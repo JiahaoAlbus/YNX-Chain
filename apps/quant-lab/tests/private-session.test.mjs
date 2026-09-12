@@ -80,7 +80,7 @@ test('guest creates no private key/session or account request; explicit Sign in 
 test('two actual tabs reuse nonextractable device; complete rejected callback is bound and late replay grants nothing',async()=>{
   const f=await setup();try{
     await begin(f.page);const a=await records(f.page),old=pending(a);
-    const second=await f.context.newPage();await second.goto(ORIGIN);await second.waitForFunction(()=>window.YNXQuantWallet?.getPrivateSessionState().status==='awaiting-return');
+    const second=await f.context.newPage();await second.goto(ORIGIN);await second.waitForFunction(()=>window.YNXQuantWallet?.getPrivateSessionState().status==='connecting');
     const b=await records(second);assert.equal(a.deviceId,b.deviceId);assert.equal(b.privateExtractable,false);
     assert.equal(pending(b).nonce,old.nonce);
     const request=pending(b),callback=new URL(ORIGIN+'/wallet-auth/callback');for(const [key,value] of Object.entries({result:'rejected',reason:'user_rejected',nonce:request.nonce,state:request.state}))callback.searchParams.set(key,value);

@@ -1,6 +1,8 @@
 const $ = (s) => document.querySelector(s),
   $$ = (s) => [...document.querySelectorAll(s)];
 let snapshot = { paper: {}, strategies: {}, experiments: {}, audit: [] };
+let statefulPreview = false;
+let publicExperiments = {};
 let pendingMandate = null;
 let pendingOrder = null;
 let previewRevision = 0;
@@ -161,6 +163,10 @@ const toast = (m) => {
 };
 async function refresh() {
   snapshot = await api("/v1/snapshot");
+  statefulPreview = snapshot.access?.statefulPreview === true;
+  if (!statefulPreview) snapshot.experiments = publicExperiments;
+  $("#workspace-boundary").hidden = statefulPreview;
+  for (const id of ["reconcile", "kill"]) $("#" + id).disabled = !statefulPreview;
   render();
 }
 function currentWalletIdentity(state) {
@@ -242,7 +248,7 @@ function renderPaperStrategies(strategies) {
   const preferred = previous || pendingPaperIntent?.StrategyHash || "";
   selection.value = available.some(strategy => strategy.StrategyHash === preferred) ? preferred : "";
   selection.disabled = available.length === 0;
-  $("#paper-submit").disabled = paperSubmitting || !selection.value;
+  $("#paper-submit").disabled = !statefulPreview || paperSubmitting || !selection.value;
   if (pendingPaperIntent && !previous) {
     $("#side").value = pendingPaperIntent.Side;
     $("#paper-amount").value = String(pendingPaperIntent.Amount);
@@ -255,19 +261,21 @@ function render() {
   $("#strategy-rows").innerHTML = strategies.length
     ? strategies
         .map(
-          (s) =>
-            `<tr><td>${safe(s.Name)}</td><td>${safe(s.Family)}</td><td>${safe(s.Stage || "Draft")}</td><td><code>${safe((s.StrategyHash || "").slice(0, 12))}…</code></td><td>${safe(s.License)}</td></tr>`,
+          (s) => {
+            const runtime = s.Runtime || {}, enabled = runtime.enabled === true;
+            return `<tr><td>${safe(s.Name)}</td><td>${safe(s.Family)}</td><td>${safe(s.Stage || "Draft")}</td><td><code>${safe((s.StrategyHash || "").slice(0, 12))}…</code></td><td>${safe(s.License)}</td><td><strong>${enabled ? safe(runtime.lastRunStatus || "Scheduled") : "Stopped"}</strong><small>${enabled && runtime.nextRunAt ? safe(localDate(runtime.nextRunAt)) : "No automatic execution"}</small><button type="button" class="schedule-toggle" data-strategy-id="${safe(s.ID)}" data-enabled="${!enabled}" ${statefulPreview ? "" : "disabled"}>${enabled ? "Stop schedule" : "Start 60s research"}</button></td></tr>`;
+          },
         )
         .join("")
-    : `<tr><td colspan="5">${safe(t("emptyStrategy"))}</td></tr>`;
+    : `<tr><td colspan="6">${safe(t("emptyStrategy"))}</td></tr>`;
   $("#experiment-rows").innerHTML = experiments.length
     ? experiments
         .map(
           (e) =>
-            `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${e.sensitivitySpreadBPS} bps</td><td>${e.metrics.DataGaps}</td><td>${e.attribution?.userNetPnl ?? 0}</td><td>${e.attribution?.userRealizedPnl ?? 0}</td><td>${e.attribution?.userUnrealizedPnl ?? 0}</td><td>${e.attribution?.tradingFee ?? 0}</td><td>${e.attribution?.slippage ?? 0}</td></tr>`,
+            `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${Number.isFinite(e.metrics.SharpeMilli) ? (e.metrics.SharpeMilli / 1000).toFixed(3) : "—"}</td><td>${e.metrics.VolatilityBPS ?? "—"} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${e.sensitivitySpreadBPS} bps</td><td>${e.metrics.DataGaps}</td><td>${e.attribution?.userNetPnl ?? 0}</td><td>${e.attribution?.userRealizedPnl ?? 0}</td><td>${e.attribution?.userUnrealizedPnl ?? 0}</td><td>${e.attribution?.tradingFee ?? 0}</td><td>${e.attribution?.slippage ?? 0}</td></tr>`,
         )
         .join("")
-    : `<tr><td colspan="14">${safe(t("emptyExperiment"))}</td></tr>`;
+    : `<tr><td colspan="16">${safe(t("emptyExperiment"))}</td></tr>`;
   const p = snapshot.paper || {};
   renderPaperStrategies(strategies);
   $("#paper-state").innerHTML =
@@ -284,6 +292,34 @@ function render() {
   if (!$("#mandate-strategy").value && strategies.length) {
     $("#mandate-strategy").value = strategies[0].StrategyHash || "";
   }
+  const executions = Object.values(snapshot.testnetOrders || {});
+  $("#testnet-execution-rows").innerHTML = executions.length ? executions.map(order => `<tr><td><code>${safe(order.venueOrderId || "Pending")}</code></td><td>${safe(order.market)}</td><td>${safe(order.side)}</td><td>${safe(order.amount)}</td><td>${safe(order.venueStatus || "Outcome pending")}</td><td><code>${safe(order.authorizationDigest || "—")}</code></td></tr>`).join("") : '<tr><td colspan="6">No Wallet-authorized Testnet execution yet.</td></tr>';
+}
+$("#strategy-rows").addEventListener("click", async event => {
+  const button = event.target.closest(".schedule-toggle");
+  if (!button || !statefulPreview || button.disabled) return;
+  const enabled = button.dataset.enabled === "true";
+  if (enabled && !confirm("Start persistent 60-second research? No Paper or Testnet orders will be placed.")) return;
+  button.disabled = true;
+  try {
+    await api(`/v1/strategies/${encodeURIComponent(button.dataset.strategyId)}/schedule`, {method: "PUT", body: JSON.stringify({enabled, intervalSeconds: enabled ? 60 : 0, assumptions: enabled ? {feeBPS:+$("#fee").value, slippageBPS:+$("#slippage").value, latencyBars:1, participationBPS:1000, seed:+$("#seed").value, trainEnd:24, walkForwardWindows:3} : {}})});
+    await refresh();
+  } catch (error) { toast(error.message); button.disabled = false; }
+});
+function renderResult(result) {
+  const metrics = result.metrics;
+  if (!metrics) return;
+  $("#latest-result").hidden = false;
+  for (const [id, key] of [["return","ReturnBPS"],["baseline","BuyHoldBPS"],["drawdown","MaxDrawdownBPS"],["volatility","VolatilityBPS"]]) $("#result-" + id).textContent = Number.isFinite(metrics[key]) ? `${metrics[key]} bps` : "—";
+  $("#result-sharpe").textContent = Number.isFinite(metrics.SharpeMilli) ? (metrics.SharpeMilli / 1000).toFixed(3) : "—";
+  const points = result.equityCurve || [];
+  const valid = points.length > 1 && points.length <= 10000 && points.every(point => Number.isFinite(point.equity) && Number.isFinite(point.benchmarkEquity));
+  $("#equity-figure").hidden = !valid;
+  if (!valid) { $("#equity-chart").innerHTML = ""; return; }
+  const values = points.flatMap(point => [point.equity, point.benchmarkEquity]);
+  const low = Math.min(...values), span = Math.max(1, Math.max(...values) - low);
+  const line = key => points.map((point,index) => `${(12 + index * 696 / (points.length - 1)).toFixed(2)},${(208 - (point[key] - low) * 196 / span).toFixed(2)}`).join(" ");
+  $("#equity-chart").innerHTML = `<polyline class="benchmark-line" points="${line("benchmarkEquity")}"/><polyline class="equity-line" points="${line("equity")}"/>`;
 }
 function safe(v) {
   const e = document.createElement("span");
@@ -302,7 +338,7 @@ $$("nav button").forEach(
 );
 $("#refresh").onclick = () => Promise.all([refresh(), refreshPortfolio()]).catch((e) => toast(e.message));
 $("#wallet-portfolio-refresh").onclick = refreshPortfolio;
-$("#paper-strategy").onchange = () => { $("#paper-submit").disabled = paperSubmitting || !$("#paper-strategy").value; };
+$("#paper-strategy").onchange = () => { $("#paper-submit").disabled = !statefulPreview || paperSubmitting || !$("#paper-strategy").value; };
 $("#locale").onchange = (e) => {
   locale = e.target.value;
   localStorage.setItem("ynx.quant.locale", locale);
@@ -333,16 +369,18 @@ $("#backtest").onsubmit = async (e) => {
         walkForwardWindows: 3,
       },
     };
-    await api("/v1/backtests/from-market", { method: "POST", body: JSON.stringify(body) });
-    toast("Out-of-sample experiment completed and audited");
-    await refresh();
+    const result = await api(statefulPreview ? "/v1/backtests/from-market" : "/v1/public/research/backtests/from-market", { method: "POST", body: JSON.stringify(body) });
+    renderResult(result);
+    toast(statefulPreview ? "Out-of-sample experiment completed and audited" : "Stateless research completed. This result is not a saved strategy or funded account.");
+    if (statefulPreview) await refresh();
+    else { publicExperiments[result.id] = result; snapshot.experiments = publicExperiments; render(); }
   } catch (e) {
     toast(e.message);
   }
 };
 $("#paper-order").onsubmit = async (e) => {
   e.preventDefault();
-  if (paperSubmitting) return;
+  if (paperSubmitting || !statefulPreview) return;
   try {
     const strategyHash = $("#paper-strategy").value;
     if (!Object.values(snapshot.strategies || {}).some(strategy => strategy.StrategyHash === strategyHash) || !/^[0-9a-f]{64}$/.test(strategyHash)) throw new Error(t("strategyMissing"));
@@ -374,7 +412,7 @@ $("#paper-order").onsubmit = async (e) => {
     toast(e.message);
   } finally {
     paperSubmitting = false;
-    $("#paper-submit").disabled = !$("#paper-strategy").value;
+    $("#paper-submit").disabled = !statefulPreview || !$("#paper-strategy").value;
   }
 };
 function quantDeviceId() {

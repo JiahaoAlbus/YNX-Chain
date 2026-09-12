@@ -1,3 +1,8 @@
+#equity-chart { width: 100%; height: auto; }
+.equity-line { stroke: #0047ff; fill: none; stroke-width: 2; }
+.benchmark-line { stroke: #818794; fill: none; stroke-width: 2; }
+#workspace-boundary { padding: 14px 24px; margin: 0; }
+.schedule-toggle { display: block; margin-top: 8px; }
 :root {
   color-scheme: light dark;
   --canvas: #f5f5f7;

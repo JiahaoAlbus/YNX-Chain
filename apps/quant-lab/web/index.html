@@ -49,6 +49,7 @@
         </footer>
       </aside>
       <main id="workspace">
+        <p id="workspace-boundary" class="notice" role="status">Public research is stateless and uses traceable market history. Saved strategies, schedules and simulated Paper funds require a locally authorized workspace; private Wallet sign-in does not grant this authority. No live execution is enabled.</p>
         <div class="toolbar">
           <div>
             <strong id="view-title">Research</strong
@@ -107,6 +108,12 @@
                 </div>
                 <button class="primary" data-i18n="runAction">Run out-of-sample backtest</button>
               </form>
+              <div id="latest-result" hidden>
+                <h3>Latest research result</h3>
+                <dl><div><dt>OOS return</dt><dd id="result-return">—</dd></div><div><dt>Buy/hold</dt><dd id="result-baseline">—</dd></div><div><dt>Maximum drawdown</dt><dd id="result-drawdown">—</dd></div><div><dt>Sharpe</dt><dd id="result-sharpe">—</dd></div><div><dt>Volatility</dt><dd id="result-volatility">—</dd></div></dl>
+                <p>Sharpe = mean equity-period return / sample standard deviation × √period count (zero risk-free rate). Volatility is sample standard deviation in basis points. These are sample-period, not annualized metrics. Drawdown is the largest peak-to-trough equity decline.</p>
+                <figure id="equity-figure" hidden><svg id="equity-chart" viewBox="0 0 720 220" role="img" aria-label="Measured strategy and buy-hold equity"></svg><figcaption>Blue: measured strategy equity · Grey: buy/hold benchmark. All costs use the selected model, not promised returns.</figcaption></figure>
+              </div>
             </div>
             <aside class="inspector">
               <h3 data-i18n="leakage">Leakage guard</h3>
@@ -152,6 +159,7 @@
                   <th>Stage</th>
                   <th>Source hash</th>
                   <th>License</th>
+                  <th>Research schedule</th>
                 </tr>
               </thead>
               <tbody id="strategy-rows"></tbody>
@@ -169,6 +177,8 @@
                   <th>OOS return</th>
                   <th>Buy/hold</th>
                   <th>Drawdown</th>
+                  <th>Sharpe</th>
+                  <th>Volatility</th>
                   <th>Trades</th>
                   <th>Partial</th>
                   <th>Sensitivity</th>
@@ -244,6 +254,7 @@
               Product Session proof. Real-money auto-trading is structurally disabled.
             </p>
             <p id="testnet-execution-boundary" data-business-i18n="executionUnavailable">Testnet execution is unavailable: a Standard Wallet connection does not provide the native YNX mandate signature or a one-time Quant Product Session proof. Preview is read-only; no account authority is inferred.</p>
+            <div class="table-wrap"><table><thead><tr><th>Venue order</th><th>Market</th><th>Side</th><th>Amount</th><th>Venue status</th><th>Authorization receipt</th></tr></thead><tbody id="testnet-execution-rows"></tbody></table></div>
           </div>
           <div class="split testnet-workspace">
             <form id="mandate-form">

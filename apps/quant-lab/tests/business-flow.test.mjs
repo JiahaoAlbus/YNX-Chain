@@ -31,6 +31,7 @@ class Element {
   replaceChildren(...elements) {this.children = elements;}
 }
 function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage} = {}) {
+  snapshot = {access: {statefulPreview: true}, ...snapshot};
   const ids = new Map(), elements = [];
   for (const [, tag, attrs] of html.matchAll(/<([a-z]+)\b([^>]*?)>/g)) {
     const element = new Element(tag, attrs); elements.push(element); if (element.id) ids.set(element.id, element);
@@ -54,7 +55,7 @@ function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage} = {})
   }};
   const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, setTimeout: () => 1, clearTimeout: () => {}, confirm: () => false,
     localStorage: {getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key)},
-    fetch: async (url, options) => {calls.push({url, options}); const body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : url.endsWith('/paper/orders') ? {ID: 'paper-000001', ...JSON.parse(options.body)} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; return {ok: true, json: async () => body};},
+    fetch: async (url, options) => {calls.push({url, options}); const body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : url.endsWith('/paper/orders') ? {ID: 'paper-000001', ...JSON.parse(options.body)} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; return {ok: true, json: async () => url.endsWith('/snapshot') ? {access: {statefulPreview: true}, ...body} : body};},
   });
   vm.runInContext(i18n, context);
   context.QuantI18n = window.QuantI18n;
@@ -64,6 +65,27 @@ function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage} = {})
     submit: id => ids.get(id).onsubmit({preventDefault() {}}),
   };
 }
+
+test('public stateless research renders measured equity without granting Paper or saved strategy authority', async () => {
+  const experiment = {id:'public-test-result',createdAt:'2026-09-12T00:00:00Z',strategy:{Name:'Explicit synthetic UI fixture'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0},equityCurve:[{equity:1000,benchmarkEquity:1000},{equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2};
+  const app = harness({apiResponse: async url => {
+    if (url.endsWith('/snapshot')) return {access:{statefulPreview:false},strategies:{},experiments:{},paper:{},audit:[]};
+    assert.equal(url,'/api/v1/public/research/backtests/from-market');
+    return experiment;
+  }});
+  await settle();
+  assert.equal(app.ids.get('workspace-boundary').hidden,false);
+  assert.equal(app.ids.get('kill').disabled,true);
+  await app.submit('backtest');
+  assert.equal(app.ids.get('result-sharpe').textContent,'1.500');
+  assert.equal(app.ids.get('equity-figure').hidden,false);
+  assert.match(app.ids.get('equity-chart').innerHTML,/polyline/);
+  assert.equal(app.ids.get('paper-submit').disabled,true);
+  const before=app.calls.length;
+  await app.submit('paper-order');
+  assert.equal(app.calls.length,before);
+  assert.match(app.ids.get('strategy-rows').innerHTML,/No strategies/);
+});
 
 test('guest Paper has a separate persisted browser tenant and cannot submit an invented strategy hash', async () => {
   const app = harness(); await settle();

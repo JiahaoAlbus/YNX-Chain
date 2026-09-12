@@ -9,7 +9,7 @@ import {ProductSessionGatewayHttpHandler,signProductSessionApproval,createProduc
 // Disposable scalar 1/2 accounts are test data, never user keys or approvals.
 // All HTTPS is intercepted in-process. No installed Wallet or public request.
 const ORIGIN='https://quant.ynxweb4.com',AUTH='https://wallet-auth.ynxweb4.com';
-const registry=JSON.parse(await readFile(new URL('../vendor/product-session-registry-9840ef87.json',import.meta.url),'utf8'));
+const registry=JSON.parse(await readFile(new URL('../vendor/product-session-registry-a7dad7ec.json',import.meta.url),'utf8'));
 let browser;
 test.before(async()=>{browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});});
 test.after(async()=>browser.close());

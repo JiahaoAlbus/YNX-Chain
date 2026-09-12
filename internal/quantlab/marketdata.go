@@ -25,9 +25,19 @@ type HTTPExchangeMarketData struct {
 	Client  *http.Client
 }
 type exchangeTrade struct {
-	PriceMicro  int64     `json:"priceMicro"`
-	AmountMicro int64     `json:"amountMicro"`
-	CreatedAt   time.Time `json:"createdAt"`
+	ID           string    `json:"id"`
+	Market       string    `json:"market"`
+	PriceMicro   int64     `json:"priceMicro"`
+	AmountMicro  int64     `json:"amountMicro"`
+	BuyOrderID   string    `json:"buyOrderId"`
+	SellOrderID  string    `json:"sellOrderId"`
+	Buyer        string    `json:"buyer"`
+	Seller       string    `json:"seller"`
+	BuyerFee     int64     `json:"buyerFeeMicro"`
+	SellerFee    int64     `json:"sellerFeeMicro"`
+	CreatedAt    time.Time `json:"createdAt"`
+	SourceType   string    `json:"sourceType"`
+	SourceDigest string    `json:"sourceDigest"`
 }
 type tradeTape struct {
 	Market        string          `json:"market"`
@@ -59,10 +69,19 @@ func (h HTTPExchangeMarketData) tape() (tradeTape, error) {
 	// three market-data fields consumed here. Keep the adapter forward
 	// compatible with additive fields while still fail-closing on the owned
 	// market, source marker, external-price flag, and every consumed value.
-	if d.Decode(&tape) != nil || tape.Market != "YNXT-YUSD_TEST" || tape.ExternalPrice || tape.Source != "YNX-owned deterministic matched trades only" {
+	if d.Decode(&tape) != nil || tape.Market != "YNXT-YUSD_TEST" || tape.ExternalPrice || !ownedExchangeTapeSource(tape.Source) {
 		return tradeTape{}, ErrUnavailable
 	}
 	return tape, nil
+}
+
+func ownedExchangeTapeSource(source string) bool {
+	switch strings.TrimSpace(source) {
+	case "YNX-owned deterministic matched trades only", "persisted deterministic matching-engine fills only":
+		return true
+	default:
+		return false
+	}
 }
 func (h HTTPExchangeMarketData) History(market string, limit int) ([]Bar, string, error) {
 	if market != "YNXT-YUSD_TEST" || limit < 20 || limit > 10000 {

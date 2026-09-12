@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "product": "quant",
+  "deployedCompatibility": {
+    "sourceCommit": "443286487e057d78cb6b1a686d14bb37be8b3c23",
+    "sourceTree": "c4a7415f2bb9cbaf95bf928fa9aaf69988021023",
+    "integration": "three-way owner-only merge; preserve current published research, scheduler, risk metrics, Finance reads, business mandate v2, state integrity",
+    "untouchedInheritedFiles": [
+      {
+        "path": "internal/readintegration/credential.go",
+        "blob": "9c081bfcf432fcf015ff279eab57547b0b54e743"
+      },
+      {
+        "path": "internal/readintegration/credential_test.go",
+        "blob": "8a60ca45780493f5e62491ab76c5e5aacb31b2ac"
+      }
+    ],
+    "alreadyPresentUnmodified": [
+      {
+        "path": "internal/nativewallet/crypto.go",
+        "blob": "a438bc5c3b80b18f1437b5a60d2102324a609a40"
+      },
+      {
+        "path": "internal/nativewallet/crypto_test.go",
+        "blob": "17d2fd4931420cb47c1c3cfaa2e4bee6985e9b3c"
+      }
+    ]
+  },
+  "goProductSession": {
+    "source": "0b3761f903ffd5dee6367e49c613cfd8752d7562",
+    "inheritedCommit": "ea7dbca209c9f9e2f0d79b70d3bd9946fa57d89c",
+    "path": "internal/productsessionv2",
+    "modified": false
+  },
+  "standardWallet": {
+    "source": "c97f85e9ae4d4580b99860c51738e6040ca9ca18",
+    "tree": "28a660bbe1451f0d5e20d6eb08da17eef0970d77",
+    "file": "apps/quant-lab/vendor/standard-wallet-browser-c97f85e9.mjs",
+    "bytes": 22417,
+    "sha256": "b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43"
+  },
+  "privateWallet": {
+    "source": "a7dad7ec1bc7c06577978bdd5fea8dc9c7a248a9",
+    "tree": "acf17fed8866d00a3c0876ec51af020da0c9e506",
+    "file": "apps/quant-lab/vendor/product-session-browser-a7dad7ec.mjs",
+    "bytes": 223235,
+    "sha256": "16b0d677ec21e84b5ce425138f175c37e1ac6d319db7fe5a85926b276dccd336",
+    "registry": {
+      "file": "apps/quant-lab/vendor/product-session-registry-a7dad7ec.json",
+      "bytes": 7590,
+      "sha256": "e74e1668e631dd623a4364cc9580951a9fe96fcef0c66c5910d84c774f4fdc08"
+    },
+    "authority": "https://wallet-auth.ynxweb4.com",
+    "scope": [
+      "quant:account"
+    ],
+    "legacyAuthorityRecords": "preserved in place; never adopted/migrated"
+  },
+  "truth": {
+    "sourceOnly": true,
+    "publicRuntimeVerified": false,
+    "installed": false,
+    "realApproval": false,
+    "sign": false,
+    "transactions": false,
+    "postgresValidated": false
+  }
+}

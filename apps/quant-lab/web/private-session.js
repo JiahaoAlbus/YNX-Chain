@@ -1,5 +1,5 @@
-import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} from '../vendor/product-session-browser-9840ef87.mjs';
-import registry from '../vendor/product-session-registry-9840ef87.json';
+import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} from '../vendor/product-session-browser-a7dad7ec.mjs';
+import registry from '../vendor/product-session-registry-a7dad7ec.json';
 import {privateSessionCopy} from './private-session-copy.js';
 
 export const QUANT_PRIVATE_AUTHORITY='https://wallet-auth.ynxweb4.com';
@@ -16,7 +16,7 @@ async function getAdapter(){
   const epoch=adapterEpoch;
   adapterPromise=(async()=>{
     if(location.origin!==ORIGIN||!globalThis.isSecureContext)fail('REGISTERED_SECURE_ORIGIN_REQUIRED');
-    // 9840ef87 owns authority namespacing and preserves legacy records in place.
+    // Shared a7dad7ec owns authority namespacing; legacy records remain in place.
     // This marker only opts into silent restore, never grants authentication.
     const gateway=new ProductSessionGatewayFetchAdapter({endpoint:QUANT_PRIVATE_AUTHORITY,fetch:globalThis.fetch.bind(globalThis),walletInstalled:()=>false,schemeRegistered:()=>false,timeoutMs:10000});
     // EIP-1193 discovery is not proof of an installed native handler. This Web
@@ -48,15 +48,9 @@ export async function handlePrivateReturn(url){
 export async function restorePrivateSession(){
   // Fresh visitors do not create keys, pending requests or automatic sign-in.
   if(localStorage.getItem(STARTED_KEY)!=='true')return state;
-  return operation(async a=>{
-    const key=a.client.storageKey;
-    const [session,pending,returned,revoking]=await Promise.all([a.storage.get(key),a.storage.get(`${key}:pending`),a.storage.get(`${key}:return`),a.storage.get(`${key}:revoke`)]);
-    // An opening attempt may return in another tab or after reload. Do not let
-    // controlled automatic reconnect replace its persisted nonce/state first.
-    if(!session&&pending&&!returned&&!revoking)return {status:'awaiting-return'};
-    if(!session&&!returned&&!revoking)return a.client.current;
-    return a.client.restore(navigator.onLine);
-  });
+  // The shared SDK restores the original nonce/state/expiry and refuses stale
+  // responses; the product never reads or edits protocol storage directly.
+  return operation(a=>a.client.restore(navigator.onLine));
 }
 export async function privateAccount(tenantId){
   if(!/^[0-9a-f]{64}$/.test(tenantId||''))fail('TENANT_BINDING_REQUIRED');

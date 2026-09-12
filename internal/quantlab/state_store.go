@@ -43,7 +43,7 @@ func (s fileStateStore) load() (state, bool, error) {
 		return state{}, false, err
 	}
 	var loaded state
-	if json.Unmarshal(b, &loaded) != nil || !verifyIntegrity(loaded) {
+	if json.Unmarshal(b, &loaded) != nil || !verifyStateBytes(b, loaded) {
 		return state{}, false, fmt.Errorf("state integrity: %w", ErrForbidden)
 	}
 	normalizeQuantState(&loaded)
@@ -121,7 +121,7 @@ func (s *postgresStateStore) load() (state, bool, error) {
 		return state{}, false, fmt.Errorf("load Quant PostgreSQL state: %w", err)
 	}
 	var loaded state
-	if json.Unmarshal(payload, &loaded) != nil || !verifyIntegrity(loaded) {
+	if json.Unmarshal(payload, &loaded) != nil || !verifyStateBytes(payload, loaded) {
 		return state{}, false, fmt.Errorf("PostgreSQL state integrity: %w", ErrForbidden)
 	}
 	loaded.Revision = revision

@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "product": "quant",
+  "observedAt": "2026-09-12",
+  "method": "strict-known-hosts authorized read-only SSH; safe selected fields only; no secret values",
+  "host": "43.153.202.237",
+  "architecture": "x86_64",
+  "canonicalURL": "https://quant.ynxweb4.com",
+  "service": {
+    "name": "ynx-quant.service",
+    "state": "active/running",
+    "pid": 877070,
+    "nRestarts": 0,
+    "user": "ynx",
+    "group": "ynx",
+    "execStart": "/opt/ynx-quant/current/ynx-quant",
+    "workingDirectory": "/opt/ynx-quant/current",
+    "unitSHA256": "ecf68b38cd1e14fc900e21d9bf86823c99b538382081585e2005a2a925709dd1",
+    "readWritePaths": [
+      "/var/lib/ynx-quant"
+    ]
+  },
+  "current": {
+    "link": "/opt/ynx-quant/current",
+    "target": "/opt/ynx/releases/financial-owner-reads/ynx-financial-owner-reads-443286487e05/quant",
+    "tuple": "64770:1327643:0:0:777:1:84:symbolic link",
+    "source": "443286487e057d78cb6b1a686d14bb37be8b3c23",
+    "binarySHA256": "ae0d9d632eccca0b44cc92534e595a989a29fb3801f02bbba84feda8214553fb"
+  },
+  "env": {
+    "path": "/etc/ynx/ynx-quant.env",
+    "bytes": 417,
+    "sha256": "d65a972203f51c8d78e789dfd010708310d47a93445c7bc9315bae40d856257e",
+    "tuple": "64770:1327733:0:986:640:1:417:regular file",
+    "secretValuesReadBack": false,
+    "quantHTTP": "127.0.0.1:18444",
+    "exchangeURL": "http://127.0.0.1:18446/api",
+    "databaseConfigured": false
+  },
+  "state": {
+    "path": "/var/lib/ynx-quant/quant.json",
+    "bytes": 7159,
+    "sha256": "cbe3948ec8cbf93ccd07224dac779dd9ccacd8c9a596fcfe0ba917ebc3b3cb60",
+    "inode": 1327722,
+    "uid": 995,
+    "gid": 986,
+    "mode": "600",
+    "counts": {
+      "experiments": 1,
+      "strategies": 1,
+      "mandates": 0,
+      "testnetOrders": 0,
+      "idempotency": 0,
+      "executionLedger": 0,
+      "audit": 3
+    },
+    "contentReadBack": false
+  },
+  "route": {
+    "file": "/etc/caddy/conf.d/ynx-quant.caddy",
+    "sha256": "fe86b1178f5f27b2fe225aaee1704e3ca8b083a30f1f6b25fbaf999b4b68ddb9",
+    "proxy": "127.0.0.1:18444",
+    "changeRequired": false
+  },
+  "sharedCurrentHazard": {
+    "service": "ynx-quant-exchange.service",
+    "pid": 2275763,
+    "nRestarts": 0,
+    "execStart": "/opt/ynx-quant/current/ynx-exchange",
+    "unitSHA256": "db7231b5a111fbe2942e04162189a4a5e2410624a7889382ab199c37ac0caada",
+    "policy": "Never modify shared current symlink. Bind only Quant ExecStart/WorkingDirectory with service-local drop-in. Never restart Exchange."
+  },
+  "publicAndLoopback": [
+    {
+      "path": "/",
+      "status": 200,
+      "bytes": 19299,
+      "sha256": "7030c610e5830b3c69b831caa8bdd5ff5bc3559ac83d340db6d40a9914802763",
+      "mime": "text/html; charset=utf-8"
+    },
+    {
+      "path": "/api/version",
+      "status": 200,
+      "bytes": 108,
+      "sha256": "6451c911ec4ef12cf7c47f5611f7c5fcce1f319c81a69427941c65b78b563556",
+      "mime": "application/json; charset=utf-8"
+    },
+    {
+      "path": "/api/health",
+      "status": 200,
+      "bytes": 296,
+      "sha256": "3ddf5e35912c65a9e0565b35a6fa5d4b295602a2054d6d9cea9fefff17f414c1",
+      "mime": "application/json; charset=utf-8"
+    }
+  ],
+  "deploymentPerformed": false,
+  "supersededCandidate": "9dfe780964b79af2209de0fff0c76c6a497c5bf6 candidate must not deploy: lost published features until 443286 compatibility restored",
+  "futureWriteBoundary": "Fresh reread, exact unit/binary/old release/state/route; no old state snapshot restore over new writes; only own unit/runtime; service health may be good with explicit single-writer readiness 503."
+}

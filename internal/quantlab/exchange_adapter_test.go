@@ -25,9 +25,8 @@ func TestHTTPExchangeAdapterUsesExactMandateAndIndependentOrderSignature(t *test
 	mandate.WalletSignature = "mandate-wallet-signature"
 	order := TestnetOrder{Market: mandate.Market, Side: "buy", Price: 1_000_000, Amount: 1_000_000, IdempotencyKey: "quant-order-001", WalletSignature: "order-wallet-signature"}
 
-	wantMandate := "ynx-quant-execution-adapter-v1\nynx1quantaccount\nYNXT-YUSD_TEST\nkill,read,reconcile,submit\n2000000\n1\n2026-08-10T05:05:06Z\nquant:" + strategy
-	if got := string(ExchangeMandateSigningPayload(mandate)); got != wantMandate {
-		t.Fatalf("mandate payload changed\n got: %q\nwant: %q", got, wantMandate)
+	if got := string(ExchangeMandateSigningPayload(mandate)); !strings.HasPrefix(got, "ynx-quant-execution-adapter-v2\nynx1quantaccount\n"+strategy+"\nYNXT-YUSD_TEST\n") || !strings.Contains(got, "\n500000\n50\n10000\n10\n20000\n500000\n2000000\n300000\n400000\n100\n5000\n5000\n3\n") || !strings.HasSuffix(got, "\nquant:"+strategy+"\ntrue") {
+		t.Fatalf("mandate v2 payload did not bind every risk field: %q", got)
 	}
 	wantOrder := "ynx-exchange-order-v1\nynx1quantaccount\nYNXT-YUSD_TEST\nbuy\nlimit\n1000000\n1000000\nquant-order-001"
 	if got := string(ExchangeOrderSigningPayload(mandate.Account, order)); got != wantOrder {
@@ -69,9 +68,9 @@ func TestHTTPExchangeAdapterUsesExactMandateAndIndependentOrderSignature(t *test
 	if err := adapter.VerifyMandate(context.Background(), mandate, "one-time-product-session-proof"); err != nil {
 		t.Fatal(err)
 	}
-	proof, err := adapter.SubmitTestnet(context.Background(), mandate, order, "one-time-product-session-proof")
-	if err != nil || len(proof) != 64 || calls.Load() != 2 {
-		t.Fatalf("proof=%q calls=%d err=%v", proof, calls.Load(), err)
+	receipt, err := adapter.SubmitTestnet(context.Background(), mandate, order, "one-time-product-session-proof")
+	if err != nil || len(receipt.BrokerProof) != 64 || receipt.VenueOrderID != "exchange-order-001" || receipt.VenueStatus != "open" || calls.Load() != 2 {
+		t.Fatalf("receipt=%+v calls=%d err=%v", receipt, calls.Load(), err)
 	}
 }
 
@@ -97,7 +96,15 @@ func TestHTTPExchangeAdapterProxiesCanonicalWalletCompletionWithoutCredentials(t
 }
 
 func exchangeMandatePayload(m exchangeQuantMandate) []byte {
-	mandate := Mandate{Account: m.Subaccount, Market: m.Market, MaxPosition: m.CapitalMicro, ExpiresAt: m.ExpiresAt, NonceDomain: m.NonceDomain, WalletSignature: m.WalletSignature}
+	mandate := Mandate{
+		Account: m.Subaccount, StrategyHash: m.StrategyHash, Market: m.Market, ProductID: m.ProductID, BundleID: m.BundleID,
+		DeviceID: m.DeviceID, Scope: m.Scope, Nonce: m.Nonce, MaxNotional: m.MaxNotional, MaxPosition: m.CapitalMicro,
+		MaxDailyLoss: m.MaxDailyLoss, MaxSlippageBPS: m.MaxSlippageBPS, MaxGas: m.MaxGas, MaxOrdersPerMinute: m.MaxFrequency,
+		MaxLeverageBPS: m.MaxLeverageBPS, MaxDrawdown: m.MaxDrawdown, MinLiquidity: m.MinLiquidity, MaxVaR: m.MaxVaR,
+		MaxExpectedShortfall: m.MaxES, MaxDepegBPS: m.MaxDepegBPS, MaxConcentrationBPS: m.MaxConcentrationBPS,
+		MaxCancelRateBPS: m.MaxCancelRateBPS, MaxConsecutiveAPIFailures: m.MaxAPIFailures, ExpiresAt: m.ExpiresAt,
+		NonceDomain: m.NonceDomain, TestnetOnly: m.TestnetOnly, WalletSignature: m.WalletSignature,
+	}
 	return ExchangeMandateSigningPayload(mandate)
 }
 
@@ -107,14 +114,14 @@ type concurrentBroker struct {
 	release chan struct{}
 }
 
-func (b *concurrentBroker) SubmitTestnet(ctx context.Context, _ Mandate, order TestnetOrder, session string) (string, error) {
+func (b *concurrentBroker) SubmitTestnet(ctx context.Context, _ Mandate, order TestnetOrder, session string) (TestnetExecutionReceipt, error) {
 	b.calls.Add(1)
 	b.entered <- session + ":" + order.IdempotencyKey
 	select {
 	case <-b.release:
-		return "broker-proof-" + order.IdempotencyKey, nil
+		return TestnetExecutionReceipt{BrokerProof: "broker-proof-" + order.IdempotencyKey, VenueOrderID: "venue-" + order.IdempotencyKey, VenueStatus: "open", AuthorizationDigest: strings.Repeat("c", 64)}, nil
 	case <-ctx.Done():
-		return "", ctx.Err()
+		return TestnetExecutionReceipt{}, ctx.Err()
 	}
 }
 
@@ -190,11 +197,11 @@ type blockingBroker struct {
 	once    sync.Once
 }
 
-func (b *blockingBroker) SubmitTestnet(context.Context, Mandate, TestnetOrder, string) (string, error) {
+func (b *blockingBroker) SubmitTestnet(context.Context, Mandate, TestnetOrder, string) (TestnetExecutionReceipt, error) {
 	b.calls.Add(1)
 	b.once.Do(func() { close(b.entered) })
 	<-b.release
-	return "terminal-proof", nil
+	return TestnetExecutionReceipt{BrokerProof: "terminal-proof", VenueOrderID: "terminal-order", VenueStatus: "open", AuthorizationDigest: strings.Repeat("d", 64)}, nil
 }
 
 func TestUnknownOutcomeReservationPreventsDuplicateVenueSubmission(t *testing.T) {

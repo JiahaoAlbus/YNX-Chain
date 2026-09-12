@@ -1,12 +1,17 @@
 package quantlab
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
+	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 )
 
 const TenantHeader = "X-YNX-Tenant-ID"
@@ -18,17 +23,22 @@ var tenantIDPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // and Wallet/Exchange adapters. Tenant IDs are 256-bit unguessable device
 // bindings; Wallet and order signatures remain independently mandatory.
 type TenantServer struct {
-	mu          sync.Mutex
-	config      Config
-	role        string
-	root        string
-	base        http.Handler
-	baseService *Service
-	servers     map[string]*Server
-	maxOpen     int
+	mu                 sync.Mutex
+	config             Config
+	role               string
+	root               string
+	base               http.Handler
+	baseService        *Service
+	servers            map[string]*Server
+	maxOpen            int
+	financeRead        *readintegration.Verifier
+	financeConcurrency chan struct{}
 }
 
 func NewTenantServer(config Config, role string) (*TenantServer, error) {
+	if config.Now == nil {
+		config.Now = func() time.Time { return time.Now().UTC() }
+	}
 	base, err := New(config)
 	if err != nil {
 		return nil, err
@@ -45,10 +55,32 @@ func NewTenantServer(config Config, role string) (*TenantServer, error) {
 			return nil, err
 		}
 	}
-	return &TenantServer{config: config, role: role, root: root, base: NewRoleServer(base, role), baseService: base, servers: map[string]*Server{}, maxOpen: 1024}, nil
+	server := &TenantServer{config: config, role: role, root: root, base: NewRoleServer(base, role), baseService: base, servers: map[string]*Server{}, maxOpen: 1024, financeConcurrency: make(chan struct{}, 16)}
+	if strings.TrimSpace(config.FinanceReadKey) != "" {
+		server.financeRead, err = readintegration.NewVerifier(strings.TrimSpace(config.FinanceReadKey), "finance", "quant", config.Now)
+		if err != nil {
+			_ = base.Close()
+			return nil, err
+		}
+	}
+	return server, nil
 }
 
 func (s *TenantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Public research is stateless and must not create a durable tenant, expose
+	// a legacy workspace, or mistake reverse-proxy loopback for local authority.
+	if publicResearchRequest(r) || r.Method == http.MethodGet && r.URL.Path == "/v1/public/status" {
+		s.base.ServeHTTP(w, r)
+		return
+	}
+	if r.Method == http.MethodGet && r.URL.Path == "/v1/snapshot" && !localPreviewRequest(r) {
+		write(w, http.StatusOK, map[string]any{"strategies": map[string]any{}, "experiments": map[string]any{}, "paper": map[string]any{}, "audit": []any{}, "access": map[string]bool{"statefulPreview": false}})
+		return
+	}
+	if r.Method == http.MethodGet && r.URL.Path == FinanceReadRoute {
+		s.financeAccount(w, r)
+		return
+	}
 	if r.Method == http.MethodGet && (r.URL.Path == "/health" || r.URL.Path == "/ready" || r.URL.Path == "/version" || r.URL.Path == "/metrics") && r.Header.Get(TenantHeader) == "" {
 		s.base.ServeHTTP(w, r)
 		return
@@ -64,6 +96,37 @@ func (s *TenantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	handler.ServeHTTP(w, r)
+}
+
+// StartScheduler preserves the running public service's research-only schedule
+// behavior. It does not submit Paper or Testnet orders.
+func (s *TenantServer) StartScheduler(ctx context.Context, interval time.Duration) {
+	if interval <= 0 {
+		interval = 5 * time.Second
+	}
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				s.mu.Lock()
+				services := make([]*Service, 0, len(s.servers))
+				for _, server := range s.servers {
+					services = append(services, server.service)
+				}
+				s.mu.Unlock()
+				for _, service := range services {
+					if ctx.Err() != nil {
+						return
+					}
+					_, _ = service.RunDueSchedules()
+				}
+			}
+		}
+	}()
 }
 
 func (s *TenantServer) tenant(id string) (http.Handler, error) {

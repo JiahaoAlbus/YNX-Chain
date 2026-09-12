@@ -13,7 +13,7 @@ test.before(async()=>{
   server=createServer(async(req,res)=>{
     if(req.url==='/api/v1/snapshot'){
       res.writeHead(200,{'content-type':'application/json'});
-      return res.end(JSON.stringify({paper:{Cash:100,Position:2,ReconciliationDelta:0},strategies:{},experiments:{},audit:[]}));
+      return res.end(JSON.stringify({access:{statefulPreview:true},paper:{Cash:100,Position:2,ReconciliationDelta:0},strategies:{},experiments:{},audit:[]}));
     }
     const file=req.url==='/'?'index.html':String(req.url).slice(1);
     if(!/^[a-z0-9.-]+$/.test(file)){res.writeHead(404);return res.end();}

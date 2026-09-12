@@ -1,5 +1,19 @@
 # Quant private account — owner source candidate
 
+## Compatibility continuation — 2026-09-12
+
+The earlier 9dfe7809 package is superseded, NOT deployed. Fresh host reads found published source 443286487e057d78cb6b1a686d14bb37be8b3c23 contains research schedules, Sharpe/volatility/equity curves, Finance readonly integration, Exchange business mandate v2 and raw-state integrity compatibility absent from the initial owner baseline. These are now selectively merged in Quant paths, preserving tenant/idempotency/PG/private-proof work. Exact unchanged readintegration files were inherited separately at 23171a177030b9440fa34bc05148f2fbd213bdd3; existing nativewallet files are unmodified. Complete provenance is runtime-dependency-provenance.json, embedded in subsequent bundle manifests.
+
+The current private Web consumer is a7dad7ec1bc7c06577978bdd5fea8dc9c7a248a9/tree acf17fed8866d00a3c0876ec51af020da0c9e506: ESM 223235B/SHA256 16b0d677ec21e84b5ce425138f175c37e1ac6d319db7fe5a85926b276dccd336. Shared restore now owns pending nonce/state/expiry; the product no longer reads protocol storage. Factory and Gateway adapter share one module. Standard c97 bytes remain unchanged. Offline protocol tests use the official frozen 9840 kernel with the new a7dad client/registry; they do not prove real approval.
+
+Public guest research is stateless and returns measured backtest/equity/Sharpe results. Public snapshots never create tenants or expose the old workspace. Existing public write guards remain: XFF/proxy loopback cannot authorize Paper or schedules. Local owner workspaces retain saved strategies, research-only schedules, durable simulated Paper and idempotency. Public quant:account private session scope does not grant mandate/Paper authority. No fake funded public account is displayed.
+
+Actual target/rollback baseline: evidence/quant-live-443286-readonly-baseline-20260912.json. Shared /opt/ynx-quant/current is referenced by another Exchange service and MUST NOT change. Only a Quant-specific ExecStart/WorkingDirectory drop-in may target the immutable release; preserve shared env, all state and Caddy. Filesystem storage remains single-writer; /api/ready stays honestly 503 until PostgreSQL is independently configured/verified. Rollback restores runtime configuration only, never a stale user-state snapshot.
+
+Compatibility gates: Go race readintegration/productsessionv2/quantlab/server PASS; 19 Node tests; 16 Standard Chrome provider fixtures; 6 private Chrome tests; 3 offline official-kernel tests; 4 local Go browser tests; two-user/two-process 12-request idempotency/restart PASS. Real approval/signature/transaction/installed remain false. No deployment was performed by this compatibility checkpoint.
+
+## Earlier checkpoint history (superseded by the above where different)
+
 Worktree: `08-quant-flow-20260912`; branch: `codex/quant-financial-flow-20260912`.
 This continues the pushed Wallet/Portfolio/Paper checkpoint `9b22a41c206e3cfca7f88b1aece11386df7de7e1`. It is not a public, installed, approved, signed or trading completion.
 
@@ -31,7 +45,7 @@ The read-only result exposes verified native account, session binding, expiry an
 
 ## Real remaining execution boundary
 
-`/v1/testnet/mandates` and `/v1/testnet/orders` still depend on the existing Exchange business-bound V1 adapter and distinct native mandate/order signatures. V2 login proofs must NOT be relabeled/forwarded as V1. The UI refuses native proof production with `NATIVE_MANDATE_SIGNATURE_AND_EXCHANGE_V2_ADAPTER_REQUIRED`; the server rejects a V2 proof at these native routes with `native_exchange_v2_adapter_unavailable`. Native Wallet exact-action signing and an Exchange V2 accepted-identity boundary are separate owner handoffs. Standard `0x` addresses/read mappings do not confer `ynx1` mandate authority.
+`/v1/testnet/mandates` and `/v1/testnet/orders` still depend on Exchange's business-bound Product Session V1 authorization and distinct native mandate/order signatures. The published `ynx-quant-execution-adapter-v2` mandate format is a different version domain, not Product Session V2 authorization. V2 login proofs must NOT be relabeled/forwarded as V1. The UI refuses native proof production with `NATIVE_MANDATE_SIGNATURE_AND_EXCHANGE_V2_ADAPTER_REQUIRED`; the server rejects a V2 proof at these native routes with `native_exchange_v2_adapter_unavailable`. Native Wallet exact-action signing and an Exchange V2 accepted-identity boundary are separate owner handoffs. Standard `0x` addresses/read mappings do not confer `ynx1` mandate authority.
 
 ## Evidence limits and publication prerequisite
 

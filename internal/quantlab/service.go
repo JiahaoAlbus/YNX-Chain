@@ -55,6 +55,7 @@ type Config struct {
 	TestnetBroker    TestnetBroker
 	SessionCompleter WalletSessionCompleter
 	PrivateSession   ProductSessionAuthorizer
+	FinanceReadKey   string
 	MarketData       MarketData
 }
 
@@ -62,7 +63,14 @@ type MandateVerifier interface {
 	VerifyMandate(context.Context, Mandate, string) error
 }
 type TestnetBroker interface {
-	SubmitTestnet(context.Context, Mandate, TestnetOrder, string) (string, error)
+	SubmitTestnet(context.Context, Mandate, TestnetOrder, string) (TestnetExecutionReceipt, error)
+}
+
+type TestnetExecutionReceipt struct {
+	BrokerProof         string `json:"brokerProof"`
+	VenueOrderID        string `json:"venueOrderId"`
+	VenueStatus         string `json:"venueStatus"`
+	AuthorizationDigest string `json:"authorizationDigest"`
 }
 type WalletSessionCompleter interface {
 	CompleteWalletSession(context.Context, []byte) ([]byte, int, error)
@@ -114,12 +122,31 @@ type Assumptions struct {
 	TrainEnd            int
 	WalkForwardWindows  int
 }
+type StrategyRuntime struct {
+	Enabled         bool        `json:"enabled"`
+	Running         bool        `json:"running"`
+	IntervalSeconds int64       `json:"intervalSeconds"`
+	Assumptions     Assumptions `json:"assumptions"`
+	NextRunAt       time.Time   `json:"nextRunAt,omitempty"`
+	LastRunAt       time.Time   `json:"lastRunAt,omitempty"`
+	LastRunStatus   string      `json:"lastRunStatus,omitempty"`
+	LastExperiment  string      `json:"lastExperiment,omitempty"`
+	RunID           string      `json:"runId,omitempty"`
+}
 type StrategySpec struct {
 	ID, Name, Family, Source, SourceCommit, License, StrategyHash, ModelHash, DataHash, FeatureHash, Split, Limitations string
 	Seed                                                                                                                int64
 	Params                                                                                                              map[string]int64
 	Stage                                                                                                               string
 	CreatedAt                                                                                                           time.Time
+	Runtime                                                                                                             StrategyRuntime
+}
+type ScheduledRunReceipt struct {
+	StrategyID   string    `json:"strategyId"`
+	RunID        string    `json:"runId"`
+	Status       string    `json:"status"`
+	ExperimentID string    `json:"experimentId,omitempty"`
+	CompletedAt  time.Time `json:"completedAt"`
 }
 type LifecycleApproval struct {
 	TargetStage    string `json:"targetStage"`
@@ -129,14 +156,22 @@ type LifecycleApproval struct {
 	Actor          string `json:"actor"`
 }
 type BacktestRequest struct {
-	Strategy    StrategySpec `json:"strategy"`
-	Bars        []Bar        `json:"bars"`
-	Assumptions Assumptions  `json:"assumptions"`
+	Strategy      StrategySpec `json:"strategy"`
+	Bars          []Bar        `json:"bars"`
+	Assumptions   Assumptions  `json:"assumptions"`
+	scheduleRunID string
 }
 type Metrics struct {
 	ReturnBPS, BuyHoldBPS, MaxDrawdownBPS int64
+	SharpeMilli, VolatilityBPS            int64
 	Trades, PartialFills, DataGaps        int
 	NoTrade                               bool
+}
+type EquityPoint struct {
+	Time            time.Time `json:"time"`
+	Equity          int64     `json:"equity"`
+	BenchmarkEquity int64     `json:"benchmarkEquity"`
+	PeriodReturnBPS int64     `json:"periodReturnBps"`
 }
 type PnLAttribution struct {
 	Currency                 string   `json:"currency"`
@@ -171,6 +206,8 @@ type Experiment struct {
 	SensitivitySpreadBPS int64              `json:"sensitivitySpreadBPS"`
 	Regimes              map[string]Metrics `json:"regimes"`
 	NoTradeReturnBPS     int64              `json:"noTradeReturnBPS"`
+	EquityCurve          []EquityPoint      `json:"equityCurve"`
+	MetricDefinitions    map[string]string  `json:"metricDefinitions"`
 	Status               string             `json:"status"`
 	CreatedAt            time.Time          `json:"createdAt"`
 	AuditDigest          string             `json:"auditDigest"`
@@ -221,18 +258,21 @@ type TestnetRiskObservation struct {
 }
 
 type TestnetOrder struct {
-	ID              string    `json:"id"`
-	MandateDigest   string    `json:"mandateDigest"`
-	StrategyHash    string    `json:"strategyHash"`
-	Market          string    `json:"market"`
-	Side            string    `json:"side"`
-	Price           int64     `json:"price"`
-	Amount          int64     `json:"amount"`
-	IdempotencyKey  string    `json:"idempotencyKey"`
-	WalletSignature string    `json:"walletSignature,omitempty"`
-	BrokerProof     string    `json:"brokerProof"`
-	Status          string    `json:"status"`
-	CreatedAt       time.Time `json:"createdAt"`
+	ID                  string    `json:"id"`
+	MandateDigest       string    `json:"mandateDigest"`
+	StrategyHash        string    `json:"strategyHash"`
+	Market              string    `json:"market"`
+	Side                string    `json:"side"`
+	Price               int64     `json:"price"`
+	Amount              int64     `json:"amount"`
+	IdempotencyKey      string    `json:"idempotencyKey"`
+	WalletSignature     string    `json:"walletSignature,omitempty"`
+	BrokerProof         string    `json:"brokerProof"`
+	VenueOrderID        string    `json:"venueOrderId"`
+	VenueStatus         string    `json:"venueStatus"`
+	AuthorizationDigest string    `json:"authorizationDigest"`
+	Status              string    `json:"status"`
+	CreatedAt           time.Time `json:"createdAt"`
 }
 type PaperOrder struct {
 	ID, StrategyHash, Side, Status, Source string
@@ -637,12 +677,18 @@ func (s *Service) SubmitTestnetWithSession(ctx context.Context, mandateDigest, s
 	}
 	unlock()
 
-	proof, err := s.cfg.TestnetBroker.SubmitTestnet(ctx, m, o, exchangeSession)
+	receipt, err := s.cfg.TestnetBroker.SubmitTestnet(ctx, m, o, exchangeSession)
 	if err != nil {
 		return TestnetOrder{}, ErrUnavailable
 	}
-	o.BrokerProof = strings.TrimSpace(proof)
-	if o.BrokerProof == "" {
+	o.BrokerProof = strings.TrimSpace(receipt.BrokerProof)
+	o.VenueOrderID = strings.TrimSpace(receipt.VenueOrderID)
+	o.VenueStatus = strings.TrimSpace(receipt.VenueStatus)
+	o.AuthorizationDigest = strings.TrimSpace(receipt.AuthorizationDigest)
+	if o.BrokerProof == "" || o.VenueOrderID == "" || (o.VenueStatus != "open" && o.VenueStatus != "partially_filled" && o.VenueStatus != "filled") || len(o.AuthorizationDigest) != sha256.Size*2 {
+		return TestnetOrder{}, ErrUnavailable
+	}
+	if _, err := hex.DecodeString(o.AuthorizationDigest); err != nil {
 		return TestnetOrder{}, ErrUnavailable
 	}
 	s.mu.Lock()
@@ -710,7 +756,7 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 		Params map[string]int64
 	}{strategy.Family, strategy.Params})
 	strategy.Split = fmt.Sprintf("train[0:%d), out-of-sample[%d:%d), walk-forward=%d", req.Assumptions.TrainEnd, req.Assumptions.TrainEnd, len(req.Bars), req.Assumptions.WalkForwardWindows)
-	metrics, attribution := simulateDetailed(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, len(req.Bars))
+	metrics, attribution, equityCurve := simulateDetailed(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, len(req.Bars))
 	walkForward := make([]Metrics, 0, req.Assumptions.WalkForwardWindows)
 	oos := len(req.Bars) - req.Assumptions.TrainEnd
 	for i := 0; i < req.Assumptions.WalkForwardWindows; i++ {
@@ -753,10 +799,23 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 		return Experiment{}, lockErr
 	}
 	defer release()
+	if req.scheduleRunID != "" {
+		current, exists := s.state.Strategies[strategy.ID]
+		if !exists || !current.Runtime.Enabled || current.Runtime.RunID != req.scheduleRunID {
+			return Experiment{}, ErrConflict
+		}
+		strategy.Runtime = current.Runtime
+	}
 	s.state.Sequence++
 	id := fmt.Sprintf("experiment-%06d", s.state.Sequence)
 	now := s.cfg.Now()
-	e := Experiment{ID: id, Strategy: strategy, Assumptions: req.Assumptions, Metrics: metrics, Attribution: attribution, LeakageChecksPassed: true, WalkForward: walkForward, Sensitivity: sensitivity, SensitivitySpreadBPS: maxReturn - minReturn, Regimes: regimes, NoTradeReturnBPS: 0, Status: "completed_oos", CreatedAt: now}
+	e := Experiment{ID: id, Strategy: strategy, Assumptions: req.Assumptions, Metrics: metrics, Attribution: attribution, LeakageChecksPassed: true, WalkForward: walkForward, Sensitivity: sensitivity, SensitivitySpreadBPS: maxReturn - minReturn, Regimes: regimes, NoTradeReturnBPS: 0, EquityCurve: equityCurve, MetricDefinitions: map[string]string{
+		"returnBPS":      "(ending equity - starting equity) / starting equity × 10,000",
+		"buyHoldBPS":     "(ending close - starting close) / starting close × 10,000",
+		"maxDrawdownBPS": "maximum peak-to-trough equity loss / prior peak × 10,000",
+		"sharpeMilli":    "mean OOS period return / sample standard deviation of OOS period returns × sqrt(number of periods) × 1,000; risk-free rate is assumed zero",
+		"volatilityBPS":  "sample standard deviation of OOS period returns × 10,000; not annualized",
+	}, Status: "completed_oos", CreatedAt: now}
 	e.AuditDigest = hash(e)
 	s.state.Experiments[id] = e
 	s.state.Strategies[strategy.ID] = strategy
@@ -797,10 +856,10 @@ func simulate(b []Bar, st StrategySpec, a Assumptions) Metrics {
 	return simulateRange(b, st, a, a.TrainEnd, len(b))
 }
 func simulateRange(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) Metrics {
-	metrics, _ := simulateDetailed(b, st, a, startIndex, endIndex)
+	metrics, _, _ := simulateDetailed(b, st, a, startIndex, endIndex)
 	return metrics
 }
-func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, PnLAttribution) {
+func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, PnLAttribution, []EquityPoint) {
 	cash := int64(100_000_000_000)
 	start := cash
 	pos := int64(0)
@@ -829,13 +888,30 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 	if endIndex > len(b) {
 		endIndex = len(b)
 	}
+	equityCurve := make([]EquityPoint, 0, endIndex-startIndex)
+	periodReturns := make([]float64, 0, endIndex-startIndex)
+	previousEquity := start
+	benchmarkStart := b[startIndex].Close
+	recordEquity := func(index int) {
+		equity := cash + pos*b[index].Close/1_000_000
+		periodReturn := int64(0)
+		if previousEquity != 0 {
+			periodReturn = (equity - previousEquity) * 10000 / previousEquity
+			periodReturns = append(periodReturns, float64(equity-previousEquity)/float64(previousEquity))
+		}
+		benchmark := start * b[index].Close / benchmarkStart
+		equityCurve = append(equityCurve, EquityPoint{Time: b[index].Time, Equity: equity, BenchmarkEquity: benchmark, PeriodReturnBPS: periodReturn})
+		previousEquity = equity
+	}
 	for i := startIndex; i < endIndex; i++ {
 		if b[i].Time.Sub(b[i-1].Time) > 2*time.Minute {
 			gaps++
+			recordEquity(i)
 			continue
 		}
 		signalAt := i - 1 - a.LatencyBars
 		if signalAt < slow-1 {
+			recordEquity(i)
 			continue
 		}
 		f, sma := int64(0), int64(0)
@@ -854,10 +930,12 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 		target := signal * 1_000_000
 		delta := target - pos
 		if delta == 0 {
+			recordEquity(i)
 			continue
 		}
 		capFill := b[i].Volume * a.ParticipationBPS / 10000
 		if capFill <= 0 {
+			recordEquity(i)
 			continue
 		}
 		fill := abs(delta)
@@ -914,10 +992,12 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 		if dd > maxDD {
 			maxDD = dd
 		}
+		recordEquity(i)
 	}
 	end := cash + pos*b[endIndex-1].Close/1_000_000
 	buyHold := (b[endIndex-1].Close - b[startIndex].Close) * 10000 / b[startIndex].Close
-	metrics := Metrics{ReturnBPS: (end - start) * 10000 / start, BuyHoldBPS: buyHold, MaxDrawdownBPS: maxDD, Trades: trades, PartialFills: partial, DataGaps: gaps, NoTrade: trades == 0}
+	sharpeMilli, volatilityBPS := riskAdjustedMetrics(periodReturns)
+	metrics := Metrics{ReturnBPS: (end - start) * 10000 / start, BuyHoldBPS: buyHold, MaxDrawdownBPS: maxDD, SharpeMilli: sharpeMilli, VolatilityBPS: volatilityBPS, Trades: trades, PartialFills: partial, DataGaps: gaps, NoTrade: trades == 0}
 	net := end - start
 	beta := buyHold * start / 10000
 	gross := net + tradingFees + slippageCosts
@@ -928,7 +1008,29 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 	userRealized := realizedGross - tradingFees - slippageCosts
 	attribution := PnLAttribution{Currency: "YUSD_TEST_MICRO", Alpha: gross - beta, Beta: beta, TradingFee: tradingFees, Slippage: slippageCosts, AverageIdleCapital: averageIdle, UserRealizedPnL: userRealized, UserUnrealizedPnL: net - userRealized, UserNetPnL: net, UnsupportedComponents: []string{"carryFunding", "makerRebateLpFee", "gas", "mev", "oracleDrift", "computeDataFee", "managementPerformanceFee"}}
 	attribution.Reconciled = attribution.Alpha+attribution.Beta+attribution.CarryFunding+attribution.MakerRebateLPFee-attribution.TradingFee-attribution.Gas-attribution.Slippage-attribution.MEV-attribution.OracleDrift-attribution.ComputeDataFee-attribution.ManagementPerformanceFee == attribution.UserNetPnL && attribution.UserRealizedPnL+attribution.UserUnrealizedPnL == attribution.UserNetPnL
-	return metrics, attribution
+	return metrics, attribution, equityCurve
+}
+
+func riskAdjustedMetrics(returns []float64) (int64, int64) {
+	if len(returns) < 2 {
+		return 0, 0
+	}
+	mean := 0.0
+	for _, value := range returns {
+		mean += value
+	}
+	mean /= float64(len(returns))
+	variance := 0.0
+	for _, value := range returns {
+		delta := value - mean
+		variance += delta * delta
+	}
+	variance /= float64(len(returns) - 1)
+	deviation := math.Sqrt(variance)
+	if deviation == 0 {
+		return 0, 0
+	}
+	return int64(math.Round(mean / deviation * math.Sqrt(float64(len(returns))) * 1000)), int64(math.Round(deviation * 10000))
 }
 
 func cloneParams(input map[string]int64) map[string]int64 {
@@ -977,12 +1079,153 @@ func (s *Service) AdvanceStrategy(id string, approval LifecycleApproval) (Strate
 		}
 	}
 	v.Stage = approval.TargetStage
+	if v.Runtime.Enabled {
+		v.Runtime.Enabled = false
+		v.Runtime.Running = false
+		v.Runtime.NextRunAt = time.Time{}
+		v.Runtime.LastRunStatus = "stopped_stage_advanced"
+	}
 	s.state.Strategies[id] = v
 	s.audit("strategy_lifecycle_advanced", id, hash(struct {
 		Strategy StrategySpec
 		Approval LifecycleApproval
 	}{v, approval}))
 	return v, s.save()
+}
+
+func (s *Service) ConfigureStrategySchedule(id string, enabled bool, intervalSeconds int64, assumptions Assumptions) (StrategySpec, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, lockErr := s.lockAndReload()
+	if lockErr != nil {
+		return StrategySpec{}, lockErr
+	}
+	defer release()
+	strategy, ok := s.state.Strategies[id]
+	if !ok {
+		return StrategySpec{}, ErrInvalid
+	}
+	if !enabled {
+		strategy.Runtime.Enabled = false
+		strategy.Runtime.Running = false
+		strategy.Runtime.NextRunAt = time.Time{}
+		strategy.Runtime.LastRunStatus = "stopped_by_user"
+		s.state.Strategies[id] = strategy
+		s.audit("strategy_schedule_stopped", id, hash(strategy.Runtime))
+		return strategy, s.save()
+	}
+	if s.cfg.MarketData == nil || strategy.Stage != StageBacktest || intervalSeconds < 60 || intervalSeconds > 86400 || assumptions.FeeBPS < 0 || assumptions.SlippageBPS < 0 || assumptions.LatencyBars < 0 || assumptions.LatencyBars > 50 || assumptions.ParticipationBPS <= 0 || assumptions.ParticipationBPS > 10000 || assumptions.TrainEnd < 10 || assumptions.WalkForwardWindows < 1 || assumptions.WalkForwardWindows > 20 {
+		return StrategySpec{}, ErrInvalid
+	}
+	strategy.Runtime = StrategyRuntime{Enabled: true, IntervalSeconds: intervalSeconds, Assumptions: assumptions, NextRunAt: s.cfg.Now().Add(time.Duration(intervalSeconds) * time.Second), LastRunStatus: "scheduled"}
+	s.state.Strategies[id] = strategy
+	s.audit("strategy_schedule_started", id, hash(strategy.Runtime))
+	return strategy, s.save()
+}
+
+type scheduledRunClaim struct {
+	Strategy StrategySpec
+	RunID    string
+}
+
+func (s *Service) claimDueSchedules() ([]scheduledRunClaim, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	now := s.cfg.Now()
+	ids := make([]string, 0, len(s.state.Strategies))
+	for id := range s.state.Strategies {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	claims := make([]scheduledRunClaim, 0)
+	for _, id := range ids {
+		strategy := s.state.Strategies[id]
+		if !strategy.Runtime.Enabled || strategy.Runtime.NextRunAt.IsZero() || now.Before(strategy.Runtime.NextRunAt) {
+			continue
+		}
+		runID := hash(struct {
+			StrategyID string
+			DueAt      time.Time
+			Now        time.Time
+		}{id, strategy.Runtime.NextRunAt, now})
+		strategy.Runtime.Running = true
+		strategy.Runtime.RunID = runID
+		strategy.Runtime.LastRunStatus = "running"
+		strategy.Runtime.NextRunAt = now.Add(time.Duration(strategy.Runtime.IntervalSeconds) * time.Second)
+		s.state.Strategies[id] = strategy
+		s.audit("strategy_schedule_run_claimed", id, runID)
+		claims = append(claims, scheduledRunClaim{Strategy: strategy, RunID: runID})
+	}
+	if len(claims) == 0 {
+		return claims, nil
+	}
+	return claims, s.save()
+}
+
+func (s *Service) completeScheduledRun(claim scheduledRunClaim, experiment Experiment, runErr error) (ScheduledRunReceipt, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return ScheduledRunReceipt{}, err
+	}
+	defer release()
+	strategy, ok := s.state.Strategies[claim.Strategy.ID]
+	if !ok || strategy.Runtime.RunID != claim.RunID {
+		return ScheduledRunReceipt{}, ErrConflict
+	}
+	status := "completed"
+	if !strategy.Runtime.Enabled {
+		status = "cancelled_before_execution"
+	} else if errors.Is(runErr, ErrInvalid) || errors.Is(runErr, ErrConflict) {
+		status = "failed_invalid_or_cancelled_configuration"
+	} else if runErr != nil {
+		status = "failed_market_data_unavailable"
+	}
+	strategy.Runtime.Running = false
+	strategy.Runtime.LastRunAt = s.cfg.Now()
+	strategy.Runtime.LastRunStatus = status
+	strategy.Runtime.LastExperiment = experiment.ID
+	s.state.Strategies[strategy.ID] = strategy
+	receipt := ScheduledRunReceipt{StrategyID: strategy.ID, RunID: claim.RunID, Status: status, ExperimentID: experiment.ID, CompletedAt: strategy.Runtime.LastRunAt}
+	s.audit("strategy_schedule_run_"+status, strategy.ID, hash(receipt))
+	return receipt, s.save()
+}
+
+// RunDueSchedules atomically claims due research runs before fetching market
+// data. Multiple processes sharing the state path cannot execute the same due
+// run; a crashed claim becomes eligible again only at the next persisted due
+// time. Scheduled runs never submit Paper or Testnet orders.
+func (s *Service) RunDueSchedules() ([]ScheduledRunReceipt, error) {
+	claims, err := s.claimDueSchedules()
+	if err != nil {
+		return nil, err
+	}
+	receipts := make([]ScheduledRunReceipt, 0, len(claims))
+	for _, claim := range claims {
+		var experiment Experiment
+		var runErr error
+		if s.cfg.MarketData == nil {
+			runErr = ErrUnavailable
+		} else if bars, source, marketErr := s.cfg.MarketData.History("YNXT-YUSD_TEST", 10000); marketErr != nil || len(bars) < 20 {
+			runErr = ErrUnavailable
+		} else {
+			strategy := claim.Strategy
+			strategy.Source = source
+			experiment, runErr = s.RunBacktest(BacktestRequest{Strategy: strategy, Bars: bars, Assumptions: strategy.Runtime.Assumptions, scheduleRunID: claim.RunID})
+		}
+		receipt, completeErr := s.completeScheduledRun(claim, experiment, runErr)
+		if completeErr != nil {
+			return receipts, completeErr
+		}
+		receipts = append(receipts, receipt)
+	}
+	return receipts, nil
 }
 
 func (s *Service) ApplyPaperSignal(strategyHash, side string, price, amount, volume int64) (PaperOrder, error) {
@@ -1390,6 +1633,44 @@ func verifyIntegrity(s state) bool {
 	// historical hash once, then the next atomic save upgrades the integrity
 	// envelope with the new fields.
 	return got != "" && s.ExecutionLedger == nil && s.AdapterSequences == nil && got == legacyIntegrityHash(s)
+}
+
+// verifyStateBytes preserves checksum compatibility when a nested schema gains
+// fields after a state was written. The fallback includes every persisted raw
+// nested value and accepts only the exact known top-level state shape, so a
+// newly added or removed top-level field cannot be silently discarded.
+func verifyStateBytes(encoded []byte, decoded state) bool {
+	if verifyIntegrity(decoded) {
+		return true
+	}
+	type persistedState struct {
+		Schema           json.RawMessage `json:"schema"`
+		Sequence         json.RawMessage `json:"sequence"`
+		Experiments      json.RawMessage `json:"experiments"`
+		Strategies       json.RawMessage `json:"strategies"`
+		Datasets         json.RawMessage `json:"datasets"`
+		Paper            json.RawMessage `json:"paper"`
+		Mandates         json.RawMessage `json:"mandates"`
+		TestnetOrders    json.RawMessage `json:"testnetOrders"`
+		Idempotency      json.RawMessage `json:"idempotency"`
+		ExecutionLedger  json.RawMessage `json:"executionLedger"`
+		AdapterSequences json.RawMessage `json:"adapterSequences"`
+		Audit            json.RawMessage `json:"audit"`
+		Integrity        string          `json:"integrity"`
+	}
+	var raw persistedState
+	var top map[string]json.RawMessage
+	if json.Unmarshal(encoded, &raw) != nil || json.Unmarshal(encoded, &top) != nil || len(top) != 13 || raw.Integrity == "" {
+		return false
+	}
+	for _, key := range []string{"schema", "sequence", "experiments", "strategies", "datasets", "paper", "mandates", "testnetOrders", "idempotency", "executionLedger", "adapterSequences", "audit", "integrity"} {
+		if _, ok := top[key]; !ok {
+			return false
+		}
+	}
+	want := raw.Integrity
+	raw.Integrity = ""
+	return want == hash(raw)
 }
 
 func legacyIntegrityHash(s state) string {
