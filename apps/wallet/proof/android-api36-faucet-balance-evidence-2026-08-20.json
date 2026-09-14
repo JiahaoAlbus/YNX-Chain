@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T09:17:30.000Z",
+  "source": {
+    "integrationCommitBeforeEvidence": "ac691fc9a71e3124faeaf3e72e694dacb01407d7",
+    "runtimeFixCommit": "e01b2b353847f29f6724a718f67430c8b786b2f0",
+    "accountFallbackCommit": "bdbb0d106658c8d0042e087e43c6a26054484582"
+  },
+  "artifact": {
+    "sha256": "38890b476c9bdd9f0a8ea1ac484326b463d546f6a9039be3c12aeb30fe20afbb",
+    "bytes": 78301669,
+    "applicationId": "com.ynxweb4.wallet",
+    "versionName": "1.0.0",
+    "minimumApi": 24,
+    "targetApi": 36,
+    "signingClass": "disposable-qa-debug-keystore",
+    "productionSigned": false,
+    "websiteHosted": false
+  },
+  "environment": {
+    "class": "disposable Android Emulator",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "abi": "arm64-v8a",
+    "physicalDevice": false,
+    "temporaryAccount": true,
+    "recoveryMaterialRecorded": false
+  },
+  "faucetServiceDirectEvidence": {
+    "url": "https://faucet.ynxweb4.com/request",
+    "status": 201,
+    "amount": 100,
+    "nativeSymbol": "YNXT",
+    "transactionHash": "0x981b83622d2974e89b21f8f753c608af733572ecb826208b2cd80be49cd20f5d",
+    "truthfulStatus": "rpc-backed-faucet",
+    "testnetValueOnly": true
+  },
+  "walletDirectEvidence": {
+    "postFundingColdLaunch": {
+      "launchState": "COLD",
+      "totalTimeMs": 290,
+      "walletForegroundConfirmed": true
+    },
+    "simulatedBiometricUnlock": true,
+    "chainLabel": "YNX TESTNET · ynx_6423-1",
+    "nativeAssetLabel": "Native asset · authoritative testnet",
+    "displayedBalance": "100 YNXT",
+    "displayedNonce": 0,
+    "displayedRecentAccountTransactions": 1,
+    "networkUnavailableVisible": false,
+    "accountNotFoundVisible": false
+  },
+  "truthBoundaries": {
+    "faucetEndpointManifestAccepted": false,
+    "walletNativeFaucetProtocolVerified": false,
+    "faucetHealthResponseLeaksLoopback": true,
+    "faucetVersionVerified": false,
+    "physicalPixelEvidence": false,
+    "sendOrCommittedUserTransaction": false,
+    "dappAuthorizationSuccess": false,
+    "productSessionSuccess": false,
+    "productionSigned": false,
+    "officialWebsiteDownload": false
+  }
+}

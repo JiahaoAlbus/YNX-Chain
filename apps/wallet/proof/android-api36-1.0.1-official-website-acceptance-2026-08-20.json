@@ -1,0 +1,74 @@
+{
+  "schema": "ynx-wallet-android-official-website-acceptance/v1",
+  "recordedAt": "2026-08-20T13:50:34Z",
+  "product": "YNX Wallet",
+  "websiteProductionCommit": "e26adfa065927635079f9489c2d1d575ea7a8b24",
+  "release": {
+    "sourceCommit": "c9d53912b5a041af9b64ba005d9a73ddb5dcf277",
+    "sourceTag": "wallet-android-testnet-preview-c9d53912",
+    "githubPrerelease": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-c9d53912",
+    "officialWebsitePath": "https://www.ynxweb4.com/downloads/wallet/sha256-ffaf743529ba065c6996da17395c400fd1f0d7869e144a9a2f8d852e07ee8245/ynx-wallet-1.0.1-testnet-preview-c9d53912-local-test-signed.apk",
+    "officialResponse": {
+      "status": 302,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentDisposition": "attachment"
+    },
+    "assetResponse": {
+      "status": 200,
+      "contentType": "application/vnd.android.package-archive",
+      "contentDisposition": "attachment; filename=YNX-Wallet-1.0.1-testnet-preview-c9d53912-local-test-signed.apk"
+    }
+  },
+  "artifact": {
+    "sha256": "ffaf743529ba065c6996da17395c400fd1f0d7869e144a9a2f8d852e07ee8245",
+    "bytes": 78233898,
+    "packageName": "com.ynxweb4.wallet",
+    "versionName": "1.0.1-testnet-preview",
+    "versionCode": 2,
+    "minimumOS": "Android API 24",
+    "targetOS": "Android API 36",
+    "signingClass": "local-test-signed",
+    "signerCertificateSHA256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "apkSignatureSchemeV2Verified": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "installation": {
+    "target": "emulator-5560 API 36 arm64 Pixel 9 equivalent",
+    "downloadedFromOfficialWebsitePath": true,
+    "upgradeInstall": "Success",
+    "firstColdLaunch": {
+      "pid": 23757,
+      "status": "ok",
+      "totalTimeMs": 297,
+      "locked": true,
+      "uiXmlSha256": "13f5d00b316e86bef03978e60ad781fe5d1b441696f3699098b12b573ab4a36a"
+    },
+    "secondColdLaunch": {
+      "pid": 23850,
+      "status": "ok",
+      "totalTimeMs": 256,
+      "locked": true,
+      "uiXmlSha256": "13f5d00b316e86bef03978e60ad781fe5d1b441696f3699098b12b573ab4a36a"
+    },
+    "biometricUnlock": "emulator fingerprint confirmed",
+    "testnetRead": {
+      "network": "ynx_6423-1",
+      "balance": "23 YNXT",
+      "nonce": 1,
+      "recentTransactions": 2,
+      "uiXmlSha256": "9bef6e80cfd83400a113079e29edb22d38c28045bda357d5c5071adf7ecb74de"
+    },
+    "walletFatalExceptionObserved": false,
+    "walletAnrObserved": false
+  },
+  "truth": {
+    "officialWebsiteDownloadVerified": true,
+    "api36EmulatorInstallVerified": true,
+    "testnetReadVerified": true,
+    "physicalPixelVerified": false,
+    "authorizationRoundTripVerifiedFromThisArtifact": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

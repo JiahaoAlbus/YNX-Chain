@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T09:37:00.000Z",
+  "source": {
+    "integrationCommitBeforeEvidence": "c6cc7039f6292225c650bc5be1ffdefd2c5cd9e7",
+    "affectedRuntime": "apps/wallet/src/chain/nativeTransfer.ts"
+  },
+  "environment": {
+    "class": "disposable Android Emulator",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "abi": "arm64-v8a",
+    "physicalDevice": false
+  },
+  "offlineDirectEvidence": {
+    "wifiDisabled": true,
+    "cellularDataDisabled": true,
+    "coldLaunch": { "launchState": "COLD", "totalTimeMs": 257 },
+    "simulatedBiometricUnlock": true,
+    "elapsedBeforeObservationSeconds": 46,
+    "balanceWasNotFabricated": true,
+    "displayedBalance": "— YNXT",
+    "explicitDeviceOfflineOrRpcUnavailableVisible": false,
+    "result": "FAILED_REQUIREMENT"
+  },
+  "reconnectDirectEvidence": {
+    "wifiRestored": true,
+    "coldLaunch": { "launchState": "COLD", "totalTimeMs": 244 },
+    "simulatedBiometricUnlock": true,
+    "displayedBalance": "25 YNXT",
+    "displayedRecentAccountTransactions": 1,
+    "result": "PASSED"
+  },
+  "requiredPlatformFix": {
+    "owner": "wallet-platform when its execution lease returns",
+    "requirement": "Native network timeout must reject independently of React Native fetch AbortController behavior and render an explicit canonical RPC_UNAVAILABLE or DEVICE_OFFLINE state; stale or blank asset state must not be the terminal error UX.",
+    "retest": "disable both transports, cold launch and unlock, require bounded explicit error; restore transport and require authoritative balance refresh."
+  },
+  "truthBoundaries": {
+    "offlineErrorRequirementMet": false,
+    "reconnectRequirementMet": true,
+    "productionSigned": false,
+    "officialWebsiteDownload": false
+  }
+}

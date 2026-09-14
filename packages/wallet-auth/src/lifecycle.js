@@ -6,7 +6,7 @@ const SNAPSHOT_FIELDS = [
   "revokedSessionBindings", "revokedApprovalDigests", "revokedDeviceBindings", "accountLogoutRecords", "audit",
 ];
 const AUDIT_FIELDS = ["sequence", "type", "subject", "at", "previousHash", "hash"];
-const INTROSPECTION_FIELDS = ["productClientId", "bundleId", "productDeviceKey", "requiredScopes"];
+const INTROSPECTION_FIELDS = ["productClientId", "bundleId", "origin", "productDeviceKey", "requiredScopes"];
 
 export const CENTRAL_WALLET_SESSION_INVENTORY_SCHEMA_VERSION = 1;
 
@@ -43,7 +43,7 @@ export class CentralWalletSessionStore {
     const session = this.#state.sessions.find((item) => item.sessionBinding === strictDigest(sessionBinding, "sessionBinding"));
     if (!session) throw new WalletAuthError("SESSION_NOT_FOUND", "Wallet product session was not found");
     const active = assertCentralWalletSessionActive(session, this.revocationState(), at);
-    if (context.productClientId !== active.productClientId || context.bundleId !== active.bundleId || context.productDeviceKey !== active.productDeviceKey) throw new WalletAuthError("CROSS_APP_REUSE", "Wallet product session cannot be reused by another App or device");
+    if (context.productClientId !== active.productClientId || context.bundleId !== active.bundleId || context.origin !== active.origin || context.productDeviceKey !== active.productDeviceKey) throw new WalletAuthError("CROSS_APP_REUSE", "Wallet product session cannot be reused by another App, origin, or device");
     const required = sortedStrings(context.requiredScopes, "requiredScopes", 1, 8, /^[a-z][a-z0-9._:-]{1,63}$/);
     if (required.some((scope) => !active.scopes.includes(scope))) throw new WalletAuthError("SCOPE_NOT_ALLOWED", "Wallet product session lacks a required scope");
     return Object.freeze({ active: true, session: active });
@@ -167,6 +167,7 @@ function appendAudit(state, type, subject, at) {
 
 function inventorySession(session, state, asOf) {
   const inactiveReasons = [];
+  if (session.verifierVersion !== "wallet-auth-v2") inactiveReasons.push("origin-binding-retired");
   if (session.issuedAt > asOf) inactiveReasons.push("issued-in-future");
   if (session.expiresAt <= asOf) inactiveReasons.push("expired");
   if (state.revokedSessionBindings.includes(session.sessionBinding)) inactiveReasons.push("session-revoked");
@@ -178,6 +179,7 @@ function inventorySession(session, state, asOf) {
     requestingProduct: session.requestingProduct,
     productClientId: session.productClientId,
     bundleId: session.bundleId,
+    origin: session.origin ?? null,
     callback: session.callback,
     productDeviceAlgorithm: session.productDeviceAlgorithm,
     productDeviceKey: session.productDeviceKey,

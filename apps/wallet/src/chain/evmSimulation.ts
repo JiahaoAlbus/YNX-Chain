@@ -1,6 +1,6 @@
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
-import { DEFAULT_CHAIN_API } from "./nativeTransfer";
+import { DEFAULT_CHAIN_RPC } from "./nativeTransfer";
 
 const EVM_CHAIN_ID = 6423;
 const MAX_RESPONSE_BYTES = 256 * 1024;
@@ -38,7 +38,7 @@ export class EvmSimulationClient {
   readonly #now: () => Date;
   #id = 0;
 
-  constructor(baseURL = DEFAULT_CHAIN_API, fetcher: FetchLike = fetch, now: () => Date = () => new Date()) {
+  constructor(baseURL = DEFAULT_CHAIN_RPC, fetcher: FetchLike = fetch, now: () => Date = () => new Date()) {
     this.#origin = strictOrigin(baseURL);
     this.#fetch = fetcher;
     this.#now = now;
@@ -153,9 +153,9 @@ async function boundedText(response: Response): Promise<string> {
 function strictOrigin(value: string): string {
   if (typeof value !== "string") throw new Error("EVM RPC URL is invalid");
   const parsed = new URL(value);
-  if (parsed.username || parsed.password || parsed.search || parsed.hash || (parsed.pathname !== "/" && parsed.pathname !== "")) throw new Error("EVM RPC URL must be an origin");
+  if (parsed.username || parsed.password || parsed.search || parsed.hash || !["/", "/evm"].includes(parsed.pathname)) throw new Error("EVM RPC URL must be the exact root or /evm endpoint");
   if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && ["127.0.0.1", "localhost", "10.0.2.2"].includes(parsed.hostname))) throw new Error("EVM RPC requires HTTPS except local development");
-  return parsed.origin;
+  return parsed.pathname === "/" ? parsed.origin : `${parsed.origin}/evm`;
 }
 
 function strictNow(value: Date): Date {

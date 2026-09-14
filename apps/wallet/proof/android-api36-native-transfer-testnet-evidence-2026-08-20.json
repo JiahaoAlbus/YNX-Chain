@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T09:22:00.000Z",
+  "source": {
+    "integrationCommitBeforeEvidence": "5e2e075618e5fba8d5a0682aa329c37a6f3a3209",
+    "runtimeFixCommit": "e01b2b353847f29f6724a718f67430c8b786b2f0",
+    "nativeTransferImplementation": "apps/wallet/src/chain/nativeTransfer.ts"
+  },
+  "artifact": {
+    "sha256": "38890b476c9bdd9f0a8ea1ac484326b463d546f6a9039be3c12aeb30fe20afbb",
+    "bytes": 78301669,
+    "applicationId": "com.ynxweb4.wallet",
+    "versionName": "1.0.0",
+    "minimumApi": 24,
+    "targetApi": 36,
+    "signingClass": "disposable-qa-debug-keystore",
+    "productionSigned": false,
+    "websiteHosted": false
+  },
+  "environment": {
+    "class": "disposable Android Emulator",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "abi": "arm64-v8a",
+    "physicalDevice": false,
+    "temporaryAccounts": 2,
+    "recoveryMaterialRecorded": false
+  },
+  "funding": {
+    "faucetTransactionHash": "0x981b83622d2974e89b21f8f753c608af733572ecb826208b2cd80be49cd20f5d",
+    "fundedAmount": 100,
+    "nativeSymbol": "YNXT"
+  },
+  "nativeTransfer": {
+    "review": {
+      "amount": 25,
+      "networkFee": 1,
+      "network": "ynx_6423-1",
+      "recipientWasDistinctWalletAccount": true
+    },
+    "systemBiometricPrompt": "Sign this reviewed YNXT transfer",
+    "systemBiometricApproved": true,
+    "walletSubmissionMessage": "The authoritative YNX testnet accepted the signature-verified native transfer.",
+    "transactionHash": "0xc7371f7bf2a09452278d21407d38701109c2379285e1d2cb0878f2be812be3d5",
+    "authoritativeRestConfirmation": {
+      "blockNumber": 1125767,
+      "amount": 25,
+      "fee": 1,
+      "nonce": 1,
+      "memo": "signed native YNXT transfer"
+    },
+    "senderWalletDisplayAfterConfirmation": {
+      "balance": 74,
+      "nonce": 1,
+      "recentAccountTransactions": 2
+    },
+    "recipientWalletDisplayAfterConfirmation": {
+      "balance": 25,
+      "nonce": 0,
+      "recentAccountTransactions": 1
+    },
+    "postTransferRestart": {
+      "launchState": "COLD",
+      "totalTimeMs": 434,
+      "walletLockedBeforeUnlock": true,
+      "simulatedBiometricUnlock": true,
+      "recipientBalanceAfterRestart": 25,
+      "recipientRecentAccountTransactionsAfterRestart": 1
+    },
+    "screenshotPrivacy": {
+      "adbScreenCaptureWasProtected": true,
+      "capturedBytes": 15733,
+      "capturedSha256": "2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b",
+      "contentWasNotUsedAsVisualSuccessEvidence": true
+    },
+    "walletFatalOrAnrObserved": false
+  },
+  "truthBoundaries": {
+    "physicalPixelEvidence": false,
+    "productionSigned": false,
+    "officialWebsiteDownload": false,
+    "faucetEndpointManifestAccepted": false,
+    "walletNativeFaucetProtocolVerified": false,
+    "dappAuthorizationSuccess": false,
+    "productSessionSuccess": false,
+    "externalEvmDappApproval": false
+  }
+}

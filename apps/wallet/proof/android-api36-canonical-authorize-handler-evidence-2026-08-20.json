@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T14:00:00Z",
+  "scope": "installed Android Wallet canonical authorization scheme resolution and malformed-request rejection",
+  "source": {
+    "walletCommit": "acfd88f02dc2474badfede37d099f2bb458e50fa"
+  },
+  "artifact": {
+    "sha256": "82d90339257e651d7ce0873232f029c86e4586de322ccd7daa100a8eccffc7fc",
+    "bytes": 78233882,
+    "signingClass": "android-debug-local-qa",
+    "productionSigned": false
+  },
+  "environment": {
+    "serial": "emulator-5560",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "physicalDevice": false
+  },
+  "intentResolution": {
+    "canonicalUriShape": "ynxwallet://authorize?request=<base64url>",
+    "resolveActivity": "com.ynxweb4.wallet/.MainActivity",
+    "queryActivityCount": 1,
+    "exported": true,
+    "systemNoActivityFound": false
+  },
+  "malformedRequestAcceptance": {
+    "testRequest": "ynxwallet://authorize?request=e30",
+    "intentDeliveredToWallet": true,
+    "visibleError": "Security check failed: Wallet authorization request fields do not match the protocol schema",
+    "dismissActionVisible": true,
+    "authorizationSucceeded": false,
+    "productSessionCreated": false
+  },
+  "uiEvidence": {
+    "uiXmlSha256": "4715293ecffd19a45ce0d61419860fb928e5f4c29e3001335c1d02712f0c3092",
+    "uiXmlBytes": 21015
+  },
+  "truthBoundary": {
+    "validCanonicalAuthorizationVerified": false,
+    "callbackVerified": false,
+    "gatewayCompletionVerified": false,
+    "physicalPixel9Verified": false,
+    "productionSigned": false
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T10:44:00.000Z",
+  "source": {
+    "commit": "f20d52497b1515d9a5aaa21bd3fe3fab9d6e17cb",
+    "networkContract": {
+      "restUrl": "https://rest.ynxweb4.com",
+      "rpcUrl": "https://rpc.ynxweb4.com/evm",
+      "chainId": "0x1917"
+    }
+  },
+  "artifact": {
+    "pathClass": "local-disposable-qa",
+    "sha256": "2b2683eaa8952ec6b00abe4d3764735f6e830d5d957424b9b76ac331a3ec98df",
+    "bytes": 78305765,
+    "minimumApi": 24,
+    "targetApi": 36,
+    "abis": ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"],
+    "signature": {
+      "schemesVerified": ["v2", "v3"],
+      "signerClass": "Android Debug QA",
+      "certificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e"
+    },
+    "productionSigned": false,
+    "websiteHosted": false,
+    "storeReleased": false
+  },
+  "device": {
+    "class": "Android Emulator",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "abi": "arm64-v8a",
+    "physicalPixel": false
+  },
+  "acceptance": {
+    "install": true,
+    "mainActivityResolved": "com.ynxweb4.wallet/.MainActivity",
+    "coldLaunch": {
+      "success": true,
+      "totalTimeMs": 1209
+    },
+    "systemBiometricUnlock": true,
+    "walletVisible": true,
+    "networkUnavailableVisible": false,
+    "accountNotFoundVisible": false,
+    "nativeAccountVisible": true,
+    "displayedBalance": "25 YNXT",
+    "displayedNonce": 0,
+    "displayedRecentAccountTransactions": 1,
+    "screenshot": {
+      "sha256": "2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b"
+    }
+  },
+  "truthBoundaries": {
+    "exactRest404ToRpcFallbackDirectlyForcedByThisRun": false,
+    "physicalPixelValidated": false,
+    "faucetProtocolAvailable": false,
+    "walletAuthProductSessionV2InstalledClientValidated": false,
+    "productionSigned": false,
+    "officialWebsiteDownload": false
+  }
+}

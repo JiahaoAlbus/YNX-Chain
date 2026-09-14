@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "wallet-social-android-callback-2026-08-20",
+  "walletCandidate": {
+    "branch": "codex/p0-wallet-platform-20260820",
+    "commit": "56ee8b3a2cf28155622c71612a1675549f9f2b6c",
+    "change": "Wallet Reject emits the canonical USER_REJECTED callback instead of only dismissing local UI."
+  },
+  "socialCandidate": {
+    "branch": "codex/social-wallet-auth-canonical-caller-20260815",
+    "commit": "b8c4275f7849529e398e1b4f695d88a5aea491cd",
+    "change": "Social declares only the exact ynx-social://com.ynx.social Wallet callback route in addition to its unrelated profile scheme."
+  },
+  "frozenBinding": {
+    "walletDeepLink": "ynxwallet://authorize?request=<canonical-base64url>",
+    "socialCallback": "ynx-social://com.ynx.social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "scopes": ["account:read", "profile:link"]
+  },
+  "directApi36Evidence": {
+    "environment": "Pixel 9 equivalent Android Emulator API 36 arm64",
+    "approvedRoundTrip": "Social -> Wallet review -> biometric approval -> automatic Social callback -> Social home -> Social cold second launch",
+    "rejectedRoundTrip": "Social -> Wallet review -> Reject -> automatic Social callback -> visible zero-session message",
+    "systemNoActivityFoundAfterRepair": false,
+    "walletEvidence": "apps/wallet/proof/android-api36-canonical-rejection-callback-evidence-2026-08-20.json",
+    "socialEvidence": "apps/social/evidence/android-api36-wallet-callback-roundtrip-2026-08-20.json"
+  },
+  "integrationBoundaries": {
+    "legacySocialApiLoginObserved": true,
+    "centralProductSessionV2InstalledClientProof": false,
+    "walletAuthPublicRuntimeAtWalletAuthHostname": "separately evidenced; do not infer that this Social API flow consumed v2",
+    "physicalPixelEvidence": false,
+    "productionSigned": false,
+    "officialWebsiteDownload": false,
+    "defaultBranchIntegrated": false
+  },
+  "consumerAction": "Integrate the two exact candidate commits through the central frozen registry, then rerun the same visible flow on a physical Pixel and record the deployed artifact source, hash, signing class, install and second-launch evidence."
+}

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T14:56:54Z",
+  "source": {
+    "commit": "3ab8c24cac04b8a5a745cdf8736cf0bffbd88274",
+    "branch": "codex/p0-wallet-platform-20260820"
+  },
+  "artifact": {
+    "applicationId": "com.ynxweb4.wallet",
+    "versionName": "1.0.3-testnet-preview",
+    "versionCode": 4,
+    "path": "apps/wallet/android/app/build/outputs/apk/release/app-release.apk",
+    "bytes": 78233954,
+    "sha256": "afd686851ef07fbb07823295d07179b79e1a4a078d1b528bc149bd619c8689e0",
+    "minimumAndroidApi": 24,
+    "targetAndroidApi": 36,
+    "abis": ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"],
+    "signature": {
+      "v2Verified": true,
+      "v3Verified": false,
+      "signingClass": "local-test-signed",
+      "signerSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+      "productionSigned": false,
+      "storeReleased": false
+    }
+  },
+  "directApi36Evidence": {
+    "target": "emulator-5560 sdk_gphone64_arm64",
+    "installed": true,
+    "firstColdLaunch": {
+      "activity": "com.ynxweb4.wallet/.MainActivity",
+      "pid": 26180,
+      "totalTimeMs": 428
+    },
+    "secondColdLaunch": {
+      "pid": 26467,
+      "totalTimeMs": 238,
+      "lockedBeforeBiometric": true,
+      "biometricUnlock": true
+    },
+    "authoritativeTestnetRead": {
+      "visibleNativeAssetBalance": "23 YNXT",
+      "visibleNonce": 1,
+      "visibleRecentAccountTransactions": 2,
+      "fabricatedBalance": false
+    },
+    "secondLaunchScreenshot": {
+      "localPath": "/private/tmp/ynx-wallet-1.0.3-api36-second-launch.png",
+      "bytes": 15733,
+      "sha256": "2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b"
+    },
+    "walletAnrOrFatalObserved": false
+  },
+  "releaseBoundary": {
+    "officialWebsiteHosted": false,
+    "publicDownload": false,
+    "physicalPixel9": false,
+    "authorizationRoundTrip": false,
+    "signedTransaction": false,
+    "testnetBroadcast": false,
+    "reason": "This evidence proves an installed API 36 emulator can cold-start twice, biometrically unlock, and read an authoritative Testnet account. It does not yet prove official hosting, a physical Pixel 9, Wallet authorization, or an end-to-end transaction for this exact build."
+  }
+}

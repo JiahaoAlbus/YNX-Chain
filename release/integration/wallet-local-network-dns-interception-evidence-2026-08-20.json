@@ -1,0 +1,43 @@
+{
+  "schema": "ynx-wallet-local-network-interception-evidence/v1",
+  "recordedAt": "2026-08-20",
+  "scope": "Wallet platform operator Mac and API 36 emulator network diagnosis",
+  "publicServerReadOnlyCheck": {
+    "host": "43.153.202.237",
+    "transport": "configured project SSH identity",
+    "caddyActive": true,
+    "chainServiceActive": true,
+    "caddyConfigValid": true,
+    "localIngress": {
+      "evm.ynxweb4.com": {"httpStatus": 200, "ethChainId": "0x1917"},
+      "rpc.ynxweb4.com": {"httpStatus": 200, "ethChainId": "0x1917"}
+    },
+    "certificate": {
+      "evm.ynxweb4.com": {"issuer": "Let's Encrypt YE2", "notAfter": "2026-09-24T13:45:30Z"},
+      "rpc.ynxweb4.com": {"issuer": "Let's Encrypt YE2", "notAfter": "2026-09-24T13:45:30Z"}
+    },
+    "serverMutated": false
+  },
+  "localInterception": {
+    "macResolver": {
+      "evm.ynxweb4.com": "198.18.0.60",
+      "rpc.ynxweb4.com": "198.18.0.59"
+    },
+    "reservedAddressRange": "198.18.0.0/15",
+    "observedNetworkAgent": "SingLinkVPN singcore",
+    "publicRpcTlsOutcome": "SSL_ERROR_SYSCALL",
+    "androidEmulator": {
+      "deviceClass": "API 36 arm64 emulator",
+      "dnsForwarder": "10.0.2.3",
+      "encryptedDnsTest": "dns.google redirected to 198.18.0.11",
+      "walletVisibleOutcome": "RPC_UNAVAILABLE"
+    }
+  },
+  "remediationBoundary": {
+    "requiredUserAction": "Confirm disabling the identified local VPN/proxy through the visible system UI, then retest.",
+    "clientCertificateBypassAllowed": false,
+    "ipLiteralTlsBypassAllowed": false,
+    "serverReloadRequiredByThisEvidence": false,
+    "walletAccountOrTransactionClaim": false
+  }
+}

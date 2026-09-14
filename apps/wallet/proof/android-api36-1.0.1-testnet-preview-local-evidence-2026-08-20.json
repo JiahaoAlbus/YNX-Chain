@@ -1,0 +1,53 @@
+{
+  "schema": "ynx-wallet-android-local-release-evidence/v1",
+  "recordedAt": "2026-08-20T13:30:24Z",
+  "product": "YNX Wallet",
+  "sourceCommit": "c9d53912b5a041af9b64ba005d9a73ddb5dcf277",
+  "artifact": {
+    "path": "apps/wallet/android/app/build/outputs/apk/release/app-release.apk",
+    "applicationId": "com.ynxweb4.wallet",
+    "versionName": "1.0.1-testnet-preview",
+    "versionCode": 2,
+    "bytes": 78233898,
+    "sha256": "ffaf743529ba065c6996da17395c400fd1f0d7869e144a9a2f8d852e07ee8245",
+    "minimumOS": "Android API 24",
+    "targetOS": "Android API 36",
+    "abis": ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"],
+    "signingClass": "local-test-signed",
+    "signerCertificateSHA256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "apkSignatureSchemeV2Verified": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "directValidation": {
+    "target": "emulator-5560 API 36 arm64 Pixel 9 equivalent",
+    "upgradeInstall": "Success",
+    "installedVersion": "1.0.1-testnet-preview (2)",
+    "coldLaunch": {
+      "status": "ok",
+      "launchState": "COLD",
+      "pid": 23379,
+      "totalTimeMs": 339,
+      "lockedAfterRestart": true,
+      "uiXmlSha256": "13f5d00b316e86bef03978e60ad781fe5d1b441696f3699098b12b573ab4a36a"
+    },
+    "biometricUnlock": "emulator fingerprint confirmed",
+    "testnetAccountRead": {
+      "visible": true,
+      "network": "ynx_6423-1",
+      "balance": "23 YNXT",
+      "nonce": 1,
+      "recentTransactions": 2,
+      "uiXmlSha256": "9bef6e80cfd83400a113079e29edb22d38c28045bda357d5c5071adf7ecb74de"
+    },
+    "walletFatalExceptionObserved": false,
+    "walletAnrObserved": false
+  },
+  "releaseTruth": {
+    "artifactHostedOnOfficialWebsite": false,
+    "officialWebsiteDownloadVerified": false,
+    "physicalPixelVerified": false,
+    "testnetReadVerifiedOnThisApi36Emulator": true,
+    "authorizationSuccessVerifiedOnThisArtifact": false
+  }
+}

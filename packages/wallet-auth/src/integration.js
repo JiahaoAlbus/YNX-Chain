@@ -5,21 +5,27 @@ import { verifyGatewayCompletion } from "./session.js";
 
 const REGISTRY_V1_FIELDS = ["schemaVersion", "productClientId", "requestingProduct", "bundleId", "callback", "scopes", "maxScopes"];
 const REGISTRY_V2_FIELDS = ["schemaVersion", "productClientId", "requestingProduct", "bundleId", "callbacks", "scopes", "maxScopes", "productDeviceAlgorithms"];
+const REGISTRY_V3_FIELDS = [...REGISTRY_V2_FIELDS, "origins"];
 const VERIFY_FIELDS = ["registryEntry", "authorizationRequest", "walletApproval", "gatewayCompletion"];
-const SESSION_FIELDS = [
+const SESSION_V1_FIELDS = [
   "verifierVersion", "sessionBinding", "chainId", "requestingProduct", "productClientId", "bundleId",
   "callback", "productDeviceAlgorithm", "productDeviceKey", "deviceBinding", "account", "scopes", "nonce",
   "purpose", "requestDigest", "approvalDigest", "issuedAt", "expiresAt",
 ];
+const SESSION_FIELDS = [
+  "verifierVersion", "sessionBinding", "chainId", "requestingProduct", "productClientId", "bundleId",
+  "origin", "callback", "productDeviceAlgorithm", "productDeviceKey", "deviceBinding", "account", "scopes", "nonce",
+  "purpose", "requestDigest", "approvalDigest", "issuedAt", "expiresAt",
+];
 
-export const CENTRAL_REGISTRY_SCHEMA_VERSION = 2;
-export const CENTRAL_VERIFIER_VERSION = "wallet-auth-v1";
+export const CENTRAL_REGISTRY_SCHEMA_VERSION = 3;
+export const CENTRAL_VERIFIER_VERSION = "wallet-auth-v2";
 
 export function migrateCentralRegistryEntry(input) {
-  if (input?.schemaVersion === 2) return parseCentralRegistryEntry(input);
+  if (input?.schemaVersion === 3) return parseCentralRegistryEntry(input);
   exactFields(input, REGISTRY_V1_FIELDS, "Wallet product registry v1 entry");
   const migrated = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     productClientId: input.productClientId,
     requestingProduct: input.requestingProduct,
     bundleId: input.bundleId,
@@ -27,14 +33,17 @@ export function migrateCentralRegistryEntry(input) {
     scopes: input.scopes,
     maxScopes: input.maxScopes,
     productDeviceAlgorithms: [PRODUCT_DEVICE_ALGORITHM],
+    origins: [],
   };
   return parseCentralRegistryEntry(migrated);
 }
 
 export function parseCentralRegistryEntry(input) {
-  exactFields(input, REGISTRY_V2_FIELDS, "Wallet product registry v2 entry");
+  const version = input?.schemaVersion;
+  if (version === 2) exactFields(input, REGISTRY_V2_FIELDS, "Wallet product registry v2 entry");
+  else exactFields(input, REGISTRY_V3_FIELDS, "Wallet product registry entry");
   const entry = {
-    schemaVersion: requiredInteger(input.schemaVersion, "schemaVersion", 2, 2),
+    schemaVersion: requiredInteger(input.schemaVersion, "schemaVersion", 2, 3),
     productClientId: requiredPattern(input.productClientId, "productClientId", /^[a-z][a-z0-9._-]{2,63}$/),
     requestingProduct: requiredPattern(input.requestingProduct, "requestingProduct", /^[a-z][a-z0-9-]{1,31}$/),
     bundleId: requiredPattern(input.bundleId, "bundleId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/),
@@ -42,9 +51,10 @@ export function parseCentralRegistryEntry(input) {
     scopes: stringList(input.scopes, "scopes", 1, 16, (value) => requiredPattern(value, "scope", /^[a-z][a-z0-9._:-]{1,63}$/)),
     maxScopes: requiredInteger(input.maxScopes, "maxScopes", 1, 8),
     productDeviceAlgorithms: stringList(input.productDeviceAlgorithms, "productDeviceAlgorithms", 1, 4, (value) => requiredPattern(value, "productDeviceAlgorithm", /^p256-sha256$/)),
+    origins: version === 2 ? [] : stringList(input.origins, "origins", 0, 8, strictOrigin),
   };
   if (entry.maxScopes > entry.scopes.length) throw new WalletAuthError("INVALID_REGISTRY", "maxScopes cannot exceed the registered scope count");
-  return freezeEntry(entry);
+  return freezeEntry({ ...entry, schemaVersion: 3 });
 }
 
 export function registryParserBinding(input) {
@@ -54,6 +64,7 @@ export function registryParserBinding(input) {
       requestingProduct: entry.requestingProduct,
       bundleId: entry.bundleId,
       callbacks: entry.callbacks,
+      origins: entry.origins,
       scopes: entry.scopes,
       maxScopes: entry.maxScopes,
     }),
@@ -74,6 +85,7 @@ export function verifyCentralWalletSession(input, at = new Date()) {
     requestingProduct: request.requestingProduct,
     productClientId: completion.productClientId,
     bundleId: completion.bundleId,
+    origin: request.origin,
     callback: request.callback,
     productDeviceAlgorithm: completion.productDeviceAlgorithm,
     productDeviceKey: request.productDeviceKey,
@@ -103,18 +115,21 @@ export function assertCentralWalletSessionActive(session, input, at = new Date()
   if (approvals.includes(parsed.approvalDigest)) throw new WalletAuthError("REVOKED", "Wallet approval and all sessions derived from it have been revoked");
   if (devices.includes(parsed.deviceBinding)) throw new WalletAuthError("REVOKED", "Wallet product device has been revoked");
   if (logoutRecords.some((record) => record.account === parsed.account && parsed.issuedAt <= record.before)) throw new WalletAuthError("REVOKED", "Wallet account was signed out from all devices");
+  if (parsed.verifierVersion !== CENTRAL_VERIFIER_VERSION) throw new WalletAuthError("SESSION_RETIRED", "Wallet product session predates origin binding and must reconnect");
   return parsed;
 }
 
 export function parseCentralWalletSession(input) {
-  exactFields(input, SESSION_FIELDS, "Central Wallet session");
+  const legacy = input?.verifierVersion === "wallet-auth-v1";
+  exactFields(input, legacy ? SESSION_V1_FIELDS : SESSION_FIELDS, "Central Wallet session");
   const session={
-    verifierVersion:requiredPattern(input.verifierVersion,"verifierVersion",/^wallet-auth-v1$/),
+    verifierVersion:requiredPattern(input.verifierVersion,"verifierVersion",/^wallet-auth-v[12]$/),
     sessionBinding:requiredPattern(input.sessionBinding,"sessionBinding",/^[0-9a-f]{64}$/),
     chainId:requiredPattern(input.chainId,"chainId",/^ynx_6423-1$/),
     requestingProduct:requiredPattern(input.requestingProduct,"requestingProduct",/^[a-z][a-z0-9-]{1,31}$/),
     productClientId:requiredPattern(input.productClientId,"productClientId",/^[a-z][a-z0-9._-]{2,63}$/),
     bundleId:requiredPattern(input.bundleId,"bundleId",/^[A-Za-z][A-Za-z0-9.-]{2,127}$/),
+    ...(legacy ? {} : { origin:strictOrigin(input.origin) }),
     callback:canonicalCallback(input.callback),
     productDeviceAlgorithm:requiredPattern(input.productDeviceAlgorithm,"productDeviceAlgorithm",/^p256-sha256$/),
     productDeviceKey:requiredPattern(input.productDeviceKey,"productDeviceKey",/^[A-Za-z0-9_-]{44}$/),
@@ -133,15 +148,17 @@ export function parseCentralWalletSession(input) {
 }
 
 export function centralApprovalDigest(approval) {
-  return digestHex("YNX_WALLET_AUTH_APPROVAL_DIGEST_V1", parseAuthorizationResponse(approval));
+  return digestHex("YNX_WALLET_AUTH_APPROVAL_DIGEST_V2", parseAuthorizationResponse(approval));
 }
 
 export function centralDeviceBinding(requestOrSession, account) {
-  return digestHex("YNX_WALLET_PRODUCT_DEVICE_BINDING_V1", {
+  const legacy = requestOrSession.verifierVersion === "wallet-auth-v1";
+  return digestHex(legacy ? "YNX_WALLET_PRODUCT_DEVICE_BINDING_V1" : "YNX_WALLET_PRODUCT_DEVICE_BINDING_V2", {
     chainId: requestOrSession.chainId,
     requestingProduct: requestOrSession.requestingProduct,
     productClientId: requestOrSession.productClientId,
     bundleId: requestOrSession.bundleId,
+    ...(legacy ? {} : { origin: requestOrSession.origin }),
     callback: requestOrSession.callback,
     productDeviceAlgorithm: requestOrSession.productDeviceAlgorithm,
     productDeviceKey: requestOrSession.productDeviceKey,
@@ -150,7 +167,7 @@ export function centralDeviceBinding(requestOrSession, account) {
 }
 
 function freezeEntry(entry) {
-  return Object.freeze({ ...entry, callbacks: Object.freeze([...entry.callbacks]), scopes: Object.freeze([...entry.scopes]), productDeviceAlgorithms: Object.freeze([...entry.productDeviceAlgorithms]) });
+  return Object.freeze({ ...entry, callbacks: Object.freeze([...entry.callbacks]), origins: Object.freeze([...entry.origins]), scopes: Object.freeze([...entry.scopes]), productDeviceAlgorithms: Object.freeze([...entry.productDeviceAlgorithms]) });
 }
 function stringList(value, label, minimum, maximum, normalize) {
   if (!Array.isArray(value) || value.length < minimum || value.length > maximum) throw new WalletAuthError("INVALID_REGISTRY", `${label} has an invalid item count`);
@@ -164,6 +181,7 @@ function canonicalCallback(value) {
   if (parsed.toString() !== normalized || parsed.username || parsed.password || parsed.search || parsed.hash) throw new WalletAuthError("INVALID_REGISTRY", "callback must be canonical and contain no query or fragment state");
   return normalized;
 }
+function strictOrigin(value){const normalized=requiredPattern(value,"origin",/^https:\/\/[A-Za-z0-9.-]+(?::[0-9]{1,5})?$/);let parsed;try{parsed=new URL(normalized)}catch{throw new WalletAuthError("INVALID_REGISTRY","origin is invalid")}if(parsed.protocol!=="https:"||parsed.username||parsed.password||parsed.pathname!=="/"||parsed.search||parsed.hash||parsed.toString()!==`${normalized}/`)throw new WalletAuthError("INVALID_REGISTRY","origin must be a canonical HTTPS origin");return normalized}
 function parseAccountLogoutRecords(value){
   if(!Array.isArray(value)||value.length>1000)throw new WalletAuthError("INVALID_REGISTRY","accountLogoutRecords has an invalid item count");
   const records=value.map((record)=>{exactFields(record,["account","before"],"Wallet account logout record");return Object.freeze({account:requiredPattern(record.account,"account",/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/),before:strictTime(record.before,"before")})});

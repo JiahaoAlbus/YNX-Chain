@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T13:40:00Z",
+  "scope": "second cold launch of the installed Android Wallet Faucet version-contract failure state",
+  "source": {
+    "walletCommit": "2981c08504597aa769f0b6326ee2fb5a31ad5bee"
+  },
+  "artifact": {
+    "sha256": "82d90339257e651d7ce0873232f029c86e4586de322ccd7daa100a8eccffc7fc",
+    "bytes": 78233882,
+    "signingClass": "android-debug-local-qa",
+    "productionSigned": false
+  },
+  "environment": {
+    "serial": "emulator-5560",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "physicalDevice": false
+  },
+  "directAcceptance": {
+    "secondColdLaunch": true,
+    "launchState": "COLD",
+    "launchTotalTimeMs": 397,
+    "lockedStateVisible": true,
+    "systemBiometricUnlock": true,
+    "faucetModalVisible": true,
+    "visibleState": "FAUCET_VERSION_INCOMPATIBLE",
+    "requestButtonDisabled": true,
+    "walletOrChainMarkedOffline": false
+  },
+  "uiEvidence": {
+    "secondLockedUiXml": {
+      "sha256": "6e654979926d908c49b270c0fe588ea592178c158fd846ab16f6bee11447cbe6",
+      "bytes": 18416,
+      "requiredVisibleLabel": "Unlock with biometrics"
+    },
+    "faucetModalUiXml": {
+      "sha256": "7b21a6a650d42c85f552a3fea13191ac917c791f209a3703a16ea4ac470316b0",
+      "bytes": 11544,
+      "requiredVisibleLabels": [
+        "FAUCET_VERSION_INCOMPATIBLE",
+        "Public Faucet health response is invalid or leaks an internal endpoint"
+      ]
+    }
+  },
+  "truthBoundary": {
+    "faucetRuntimeFixed": false,
+    "faucetClaimVerified": false,
+    "officialWebsiteArtifactUpdated": false,
+    "productionSigned": false,
+    "physicalPixel9Verified": false
+  }
+}

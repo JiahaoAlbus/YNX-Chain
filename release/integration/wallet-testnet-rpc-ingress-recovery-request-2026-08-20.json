@@ -1,0 +1,63 @@
+{
+  "schema": "ynx-wallet-testnet-rpc-ingress-recovery-request/v1",
+  "recordedAt": "2026-08-20",
+  "walletClient": {
+    "sourceCommit": "1f8820c5a6dfc5460322b1274f740d7a873b6ea6",
+    "androidArtifact": {
+      "versionName": "1.0.2-testnet-preview",
+      "sha256": "66a0954f7955d800af4b205680ce879c786568cbf6af8a71307cddad31c216a0",
+      "bytes": 78233842,
+      "signingClass": "local-test-signed"
+    }
+  },
+  "directInstalledEvidence": {
+    "deviceClass": "API 36 arm64 emulator (not a physical Pixel device)",
+    "walletPackage": "com.ynxweb4.wallet",
+    "coldLaunch": true,
+    "biometricUnlock": true,
+    "visibleNetworkState": "Network unavailable: RPC_UNAVAILABLE: YNX Testnet transport is unavailable",
+    "fabricatedBalanceOrNonce": false,
+    "transactionBroadcastAttempted": false
+  },
+  "ingressObservations": {
+    "checkedFrom": "Wallet platform operator environment",
+    "primaryRpc": {
+      "url": "https://evm.ynxweb4.com",
+      "request": "eth_chainId",
+      "attempts": 2,
+      "httpStatus": 0,
+      "failure": "LibreSSL SSL_connect: SSL_ERROR_SYSCALL"
+    },
+    "secondaryRpc": {
+      "url": "https://rpc.ynxweb4.com/evm",
+      "request": "eth_chainId",
+      "attempts": 2,
+      "httpStatus": 0,
+      "failure": "LibreSSL SSL_connect: SSL_ERROR_SYSCALL"
+    },
+    "restControl": {
+      "url": "https://rest.ynxweb4.com/app/health",
+      "httpStatus": 200,
+      "provesEvmRpcHealthy": false
+    }
+  },
+  "requiredIngressOwnerAction": {
+    "owner": "01-chain-core and 29-integration",
+    "scope": "EVM RPC TLS ingress only",
+    "mustPreserve": ["chainId 6423 / 0x1917", "existing Wallet/Auth routes", "fail-closed JSON-RPC behavior"],
+    "requiredVerification": [
+      "public TLS handshake and eth_chainId 0x1917 on both approved RPC hosts",
+      "direct Android API 36 Wallet account balance/nonce refresh",
+      "real Testnet signed transfer with broadcast and post-transaction activity read",
+      "rollback evidence"
+    ],
+    "mustNotInfer": ["account balance", "transaction success", "mobile availability"]
+  },
+  "truthBoundary": {
+    "rootCauseResolved": false,
+    "testnetConnectionVerified": false,
+    "accountReadVerified": false,
+    "signedTransactionVerified": false,
+    "publicIngressDeploymentChangedByThisRecord": false
+  }
+}

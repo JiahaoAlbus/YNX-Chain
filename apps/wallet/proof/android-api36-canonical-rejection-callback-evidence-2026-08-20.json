@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T10:32:00.000Z",
+  "purpose": "Direct Android evidence that a Wallet rejection returns the canonical zero-authority callback to Social.",
+  "protocol": {
+    "ownerCommit": "a2b13699c3d3c4e6e3b953e4f20be483e55befe5",
+    "protocolCommitConsumedOnThisBranch": "1abcedee4",
+    "decision": "USER_REJECTED",
+    "authorityGranted": false,
+    "grantedScopes": [],
+    "callback": "ynx-social://com.ynx.social"
+  },
+  "artifacts": {
+    "wallet": {
+      "applicationId": "com.ynxweb4.wallet",
+      "bytes": 78220958,
+      "sha256": "23a695ee9aaf88106449b8e46a66271ab27cdcd643824677c6ad367878e0ff6d",
+      "minimumApi": 24,
+      "targetApi": 36,
+      "signingClass": "release-build-debug-keystore-qa",
+      "productionSigned": false,
+      "officialWebsiteHosted": false
+    },
+    "social": {
+      "sourceCommit": "b8c4275f7849529e398e1b4f695d88a5aea491cd",
+      "applicationId": "com.ynx.social",
+      "callbackResolver": "com.ynx.social/.MainActivity"
+    }
+  },
+  "environment": {
+    "class": "Android Emulator",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "abi": "arm64-v8a",
+    "physicalDevice": false
+  },
+  "directAcceptance": {
+    "socialFreshStateDisplayedSignIn": true,
+    "socialCanonicalAuthorizationOpenedWallet": true,
+    "walletExactSocialReviewVisible": true,
+    "walletRejectSelected": true,
+    "walletAutomaticallyReturnedToSocial": true,
+    "socialVisibleResult": "YNX Wallet authorization was rejected. No Social session was created.",
+    "systemNoActivityFoundObservedAfterRepair": false,
+    "socialSessionCreated": false,
+    "socialSecondLaunchZeroSessionVerified": false,
+    "reasonSecondLaunchNotPromoted": "The subsequent UI dump failed in the emulator system UiAutomation service and is not used as application evidence."
+  },
+  "validation": {
+    "walletTypecheck": "PASS",
+    "walletTests": "53/53 PASS",
+    "walletAuthTests": "105/105 PASS",
+    "releaseBuild": "PASS"
+  },
+  "truthBoundaries": {
+    "physicalPixelEvidence": false,
+    "productionSigning": false,
+    "officialDownload": false,
+    "centralProductSessionV2PublicLifecycleProvenByThisRun": false,
+    "approvalOrSigningAuthority": false,
+    "externalEvmDappApproval": false
+  }
+}
