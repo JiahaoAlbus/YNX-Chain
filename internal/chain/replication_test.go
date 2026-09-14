@@ -144,6 +144,40 @@ func TestReplicationBatchCatchesUpInBoundedSuffixes(t *testing.T) {
 	}
 }
 
+func TestReplicationBatchHonorsPayloadBudgetBeforeBlockLimit(t *testing.T) {
+	cfg := DefaultNetworkConfig("testnet")
+	source := NewDevnet(cfg)
+	for range 80 {
+		source.ProduceBlock()
+	}
+	destination := NewDevnet(cfg)
+	base := destination.LatestBlock()
+	const testPayloadBudget = 2048
+	payload, err := source.replicationBatchJSONWithLimit(base.Height, base.Hash, 40, testPayloadBudget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(payload) > testPayloadBudget {
+		t.Fatalf("non-final batch exceeded payload budget: got=%d limit=%d", len(payload), testPayloadBudget)
+	}
+	var batch replicationBatch
+	if err := json.Unmarshal(payload, &batch); err != nil {
+		t.Fatal(err)
+	}
+	if batch.Complete {
+		t.Fatal("test must exercise a non-final bounded suffix")
+	}
+	if len(batch.Blocks) == 0 || len(batch.Blocks) >= 40 {
+		t.Fatalf("payload budget did not reduce the block window: blocks=%d", len(batch.Blocks))
+	}
+	if _, err := destination.ApplyReplicationBatchJSON(payload); err != nil {
+		t.Fatalf("byte-bounded batch failed integrity/application: %v", err)
+	}
+	if destination.LatestHeight() != batch.EndHeight {
+		t.Fatalf("destination did not advance to bounded suffix end: got=%d want=%d", destination.LatestHeight(), batch.EndHeight)
+	}
+}
+
 func TestReplicationBatchCheckpointsWithoutRewritingEverySuffix(t *testing.T) {
 	cfg := DefaultNetworkConfig("testnet")
 	source := NewDevnet(cfg)

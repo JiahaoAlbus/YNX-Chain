@@ -52,6 +52,20 @@ printf '%s' "$manifest_compact" | grep -Fq "\"commit\":\"$commit\"" && echo "sou
 printf '%s' "$manifest_compact" | grep -Fq "\"release\":\"$release\"" && echo "sourceManifest.releaseMatchesStatus=ok"
 printf '%s' "$manifest_compact" | grep -Fq '"path":"bin/ynx-chaind"' && echo "sourceManifest.chaindPath=ok"
 printf '%s' "$manifest_compact" | grep -Fq "\"sha256\":\"$chaind_sha\"" && echo "sourceManifest.chaindChecksum=ok"
+# Emit the stable evidence names consumed by release-manifest-evidence.mjs.
+# The source-prefixed values above remain useful during legacy-runtime diagnosis;
+# these values bind a successful audit to a concrete immutable release record.
+echo "releaseManifest=ok"
+echo "releaseManifest.commitValue=$commit"
+echo "releaseManifest.releaseValue=$release"
+echo "releaseManifest.chaindPathValue=bin/ynx-chaind"
+echo "releaseManifest.manifestSha256=$manifest_sha"
+echo "releaseManifest.chaindSha256=$chaind_sha"
+printf '%s' "$manifest_compact" | grep -Fq '"schema":"ynx-chain-release-manifest/v1"' && echo "releaseManifest.schema=ok"
+printf '%s' "$manifest_compact" | grep -Fq "\"commit\":\"$commit\"" && echo "releaseManifest.commit=ok"
+printf '%s' "$manifest_compact" | grep -Fq "\"release\":\"$release\"" && echo "releaseManifest.release=ok"
+printf '%s' "$manifest_compact" | grep -Fq '"path":"bin/ynx-chaind"' && echo "releaseManifest.chaindPath=ok"
+printf '%s' "$manifest_compact" | grep -Fq "\"sha256\":\"$chaind_sha\"" && echo "releaseManifest.chaindChecksum=ok"
 REMOTE
 }
 
