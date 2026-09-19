@@ -1,6 +1,7 @@
 import importlib.util
 import pathlib
 import unittest
+import json
 
 spec = importlib.util.spec_from_file_location("snapshot", pathlib.Path(__file__).with_name("testnet-transport-host-snapshot.py"))
 snapshot = importlib.util.module_from_spec(spec)
@@ -43,6 +44,20 @@ class HostSnapshotTests(unittest.TestCase):
         self.assertEqual(values[0]["sequence"], "12:212")
         self.assertEqual(values[0]["ack"], "77")
         self.assertNotIn("9.8.7.6", str(values))
+
+    def test_nft_projection_removes_rules_addresses_names_and_comments(self):
+        result = snapshot.firewall_summary(json.dumps({"nftables": [
+            {"chain": {"family": "inet", "name": "SECRET", "hook": "input", "policy": "drop"}},
+            {"rule": {"comment": "SECRET", "expr": [{"match": {"left": {"payload": {"field": "dport"}}, "op": "==", "right": 443}}, {"counter": {"packets": 3, "bytes": 90}}, {"drop": None}]}},
+            {"rule": {"expr": [{"match": {"right": "1.2.3.4"}}, {"accept": None}]}}
+        ]}))
+        self.assertNotIn("SECRET", str(result))
+        self.assertNotIn("1.2.3.4", str(result))
+        self.assertEqual(result["ruleCount"], 2)
+        self.assertTrue(result["terminalRules"][0]["explicitSingleDport443Match"])
+        self.assertEqual(result["terminalRules"][0]["counter"]["packets"], 3)
+        self.assertIsNone(result["terminalRules"][1]["counter"])
+        self.assertFalse(result["cloudFirewallVisible"])
 
 
 if __name__ == "__main__":

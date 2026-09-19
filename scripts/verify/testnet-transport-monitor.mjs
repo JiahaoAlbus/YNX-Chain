@@ -24,7 +24,7 @@ export function sourceIdentity() {
 }
 
 export function parseArgs(argv) {
-  const out = {live: false, packetMetadata: false, rounds: 4, intervalSeconds: 30, vantage: "local-unspecified", host: null, identity: null, knownHosts: null, outputDir: null};
+  const out = {live: false, packetMetadata: false, pinOrigin: false, direct: false, rounds: 4, intervalSeconds: 30, vantage: "local-unspecified", host: null, identity: null, knownHosts: null, outputDir: null};
   const names = {"--rounds": "rounds", "--interval-seconds": "intervalSeconds", "--vantage": "vantage", "--host": "host", "--identity": "identity", "--known-hosts": "knownHosts", "--output-dir": "outputDir"};
   const seen = new Set();
   for (let i = 0; i < argv.length; i++) {
@@ -32,6 +32,8 @@ export function parseArgs(argv) {
     assert(!seen.has(arg), "duplicate option"); seen.add(arg);
     if (arg === "--live") { out.live = true; continue; }
     if (arg === "--packet-metadata") { out.packetMetadata = true; continue; }
+    if (arg === "--pin-origin") { out.pinOrigin = true; out.direct = true; continue; }
+    if (arg === "--direct") { out.direct = true; continue; }
     assert(names[arg] && argv[i + 1] && !argv[i + 1].startsWith("--"), "unknown option or missing value");
     out[names[arg]] = argv[++i];
   }
@@ -49,14 +51,16 @@ export function parseArgs(argv) {
   return out;
 }
 
-export function curlArgs(route, probeId, localPort = null) {
+export function curlArgs(route, probeId, localPort = null, options = {}) {
   assert(ROUTES.some(r => r.url === route.url), "route not allowlisted");
   assert(/^ynx-probe-[a-zA-Z0-9_-]{1,100}$/.test(probeId), "invalid probe identifier");
   assert(localPort === null || (Number.isInteger(localPort) && localPort >= 20000 && localPort <= 65000), "invalid local probe port");
   return ["--disable", "--silent", "--show-error", "--proto", "=https", "--request", "GET",
     "--connect-timeout", "5", "--max-time", "8", "--max-filesize", String(MAX_BYTES),
     "--header", `X-YNX-Probe-ID: ${probeId}`, "--dump-header", "/dev/stderr",
-    "--write-out", MARKER + "%{json}", ...(localPort === null ? [] : ["--local-port", String(localPort)]), route.url];
+    "--write-out", MARKER + "%{json}", ...(localPort === null ? [] : ["--local-port", String(localPort)]),
+    ...(options.direct || options.pinOrigin ? ["--noproxy", "*"] : []),
+    ...(options.pinOrigin ? ["--resolve", new URL(route.url).hostname + ":443:43.153.202.237"] : []), route.url];
 }
 
 export function runCommand(command, args, {input, onStdout, timeout = 10000, maxBuffer = MAX_BYTES + 131072} = {}) {
@@ -165,6 +169,8 @@ export async function monitor(options, deps = {}) {
   emit({type: "start", at: now(), runId, vantage: options.vantage, rounds: options.rounds, intervalSeconds: options.intervalSeconds,
     requestsPerRound: 4, maxClientConcurrency: 2, noClaimsOrTransactions: true, readOnly: true,
     sourceSHA256: sourceIdentity(),
+    pathMode: options.pinOrigin ? "pinned-public-origin" : options.direct ? "direct-dns" : "environment-dns",
+    independentNetworkPathProven: false,
     proxyEnvironmentPresent: ["HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy"].some(k => !!process.env[k]),
     hostObservationEnabled: !!options.host});
   try {
@@ -188,8 +194,9 @@ export async function monitor(options, deps = {}) {
         while (index < ROUTES.length && !stopping) {
           const routeIndex = index++, route = ROUTES[routeIndex], probeId = `${runId}-${round}-${route.kind}-${route.role}`;
           const dnsObservation = await resolveDNS(new URL(route.url).hostname);
-          const startedAt = now(), raw = await exec("curl", curlArgs(route, probeId, probePorts?.[routeIndex] ?? null));
-          const observation = {...interpret(route, raw, probeId, startedAt), plannedLocalPort: probePorts?.[routeIndex] ?? null, dns: dnsObservation};
+          const startedAt = now(), raw = await exec("curl", curlArgs(route, probeId, probePorts?.[routeIndex] ?? null, options));
+          const checkedRoute = options.pinOrigin ? {...route, origin: "43.153.202.237"} : route;
+          const observation = {...interpret(checkedRoute, raw, probeId, startedAt), plannedLocalPort: probePorts?.[routeIndex] ?? null, dns: dnsObservation};
           observations.push(observation); emit({type: "probe", round, ...observation});
           if (!observation.ready) failures.push({round, probeId, classification: observation.classification});
         }

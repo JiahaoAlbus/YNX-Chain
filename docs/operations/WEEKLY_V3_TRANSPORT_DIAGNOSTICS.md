@@ -20,6 +20,11 @@ Local tests are not official Broker Sandbox or installed Wallet acceptance.
 
 ## Execution
 
+For the later scheduler-safe job, transition alerts, one-command redacted bundle,
+DNS/origin comparison and operator-only repair gates, see
+[transport monitoring operations](WEEKLY_V3_TRANSPORT_MONITOR_OPERATIONS.md).
+The historical live results below remain tied to their recorded source checkpoint.
+
 Requirements: Node.js with ESM, curl supporting `%{json}`, optionally SSH and the
 existing authorized Ubuntu host's Python 3, ss, systemctl, journalctl and Caddy.
 No dependency installation, remote file writes or resident process is required.
