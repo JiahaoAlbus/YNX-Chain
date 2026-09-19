@@ -225,12 +225,32 @@ func TestWeeklyV3ReconciliationRejectsMismatchedOrder(t *testing.T) {
 // client trusts only the httptest certificate, with that certificate's DNS name;
 // TLS verification is never disabled and no public DNS lookup is performed.
 type weeklyProvider struct {
-	mu             sync.Mutex
-	order          map[string]any
-	posts, deletes int
-	ambiguous      bool
-	requests       []string
-	cash           string
+	mu               sync.Mutex
+	order            map[string]any
+	posts, deletes   int
+	ambiguous        bool
+	requests         []string
+	cash             string
+	accountOverrides map[string]any
+}
+
+// These are complete public documentation examples, not live provider responses.
+// Load afresh for every test so negative mutations cannot weaken another case.
+func weeklyWireFixture(t *testing.T, name string) map[string]any {
+	t.Helper()
+	raw, err := os.ReadFile(os.Getenv("WEEKLY_PROVIDER_FIXTURES"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fixtures map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fixtures); err != nil {
+		t.Fatal(err)
+	}
+	var value map[string]any
+	if err := json.Unmarshal(fixtures[name], &value); err != nil {
+		t.Fatal(err)
+	}
+	return value
 }
 
 func weeklyAssertPreflight(t *testing.T, requests []string) {
@@ -238,7 +258,7 @@ func weeklyAssertPreflight(t *testing.T, requests []string) {
 	seen := map[string]bool{}
 	for _, request := range requests {
 		if strings.HasPrefix(request, "POST ") {
-			for _, required := range []string{"GET /v1/accounts/01234567-89ab-4cde-8fab-0123456789ab", "GET /v1/assets", "GET /v2/stocks/ACME/quotes/latest", "GET /v1/trading/accounts/01234567-89ab-4cde-8fab-0123456789ab/positions"} {
+			for _, required := range []string{"GET /v1/trading/accounts/01234567-89ab-4cde-8fab-0123456789ab/account", "GET /v1/assets", "GET /v2/stocks/ACME/quotes/latest", "GET /v1/trading/accounts/01234567-89ab-4cde-8fab-0123456789ab/positions"} {
 				if !seen[required] {
 					t.Fatalf("provider POST occurred before required preflight %s; requests=%v", required, requests)
 				}
@@ -252,7 +272,10 @@ func weeklyAssertPreflight(t *testing.T, requests []string) {
 
 func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvider) {
 	t.Helper()
-	p := &weeklyProvider{ambiguous: ambiguous, cash: "100000"}
+	p := &weeklyProvider{ambiguous: ambiguous, accountOverrides: map[string]any{}}
+	accountExample := weeklyWireFixture(t, "tradingAccount")
+	accountExample["id"] = "01234567-89ab-4cde-8fab-0123456789ab"
+	orderExample := weeklyWireFixture(t, "tradeUpdateNew")["order"].(map[string]any)
 	local := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p.mu.Lock()
 		defer p.mu.Unlock()
@@ -275,10 +298,21 @@ func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvi
 				http.Error(w, "invalid", 400)
 				return
 			}
+			// Keep every documented Order field, including nullable and additive
+			// fields. Only synthetic identity, intent and lifecycle values change.
+			for key, value := range orderExample {
+				if _, present := body[key]; !present {
+					body[key] = value
+				}
+			}
 			body["id"] = "22222222-3333-4444-8555-666666666666"
 			body["status"] = "accepted"
 			body["filled_qty"] = "0"
 			body["submitted_at"] = "2026-09-19T09:00:30Z"
+			body["created_at"] = "2026-09-19T09:00:30Z"
+			body["updated_at"] = "2026-09-19T09:00:30Z"
+			body["expires_at"] = "2026-09-19T21:00:00Z"
+			body["commission"] = "0"
 			p.order = body
 			if p.ambiguous {
 				connection, _, err := w.(http.Hijacker).Hijack()
@@ -303,8 +337,26 @@ func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvi
 				orders = append(orders, p.order)
 			}
 			_ = json.NewEncoder(w).Encode(orders)
-		case strings.HasPrefix(r.URL.Path, "/v1/accounts/"):
-			_ = json.NewEncoder(w).Encode(map[string]string{"id": "01234567-89ab-4cde-8fab-0123456789ab", "status": "ACTIVE", "currency": "USD", "cash": p.cash, "buying_power": "100000"})
+		case r.Method == "GET" && r.URL.Path == "/v1/trading/accounts/01234567-89ab-4cde-8fab-0123456789ab/account":
+			body := map[string]any{}
+			for key, value := range accountExample {
+				body[key] = value
+			}
+			if p.cash != "" {
+				body["cash"] = p.cash
+			}
+			for key, value := range p.accountOverrides {
+				if value == nil {
+					delete(body, key)
+				} else {
+					body[key] = value
+				}
+			}
+			_ = json.NewEncoder(w).Encode(body)
+		case r.Method == "GET" && r.URL.Path == "/v1/accounts/01234567-89ab-4cde-8fab-0123456789ab":
+			// AccountExtended is NOT TradeAccount: never inject cash/buying_power
+			// here to make the wrong product path appear compatible.
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": accountExample["id"], "account_number": "PUBLIC_FIXTURE", "status": "ACTIVE", "currency": "USD", "last_equity": "1000", "created_at": "2026-09-19T09:00:00Z", "account_type": "trading"})
 		default:
 			http.Error(w, "unexpected local fixture request", 404)
 		}
@@ -428,12 +480,84 @@ func TestWeeklyV3ExpiredOutboxDoesNotExecute(t *testing.T) {
 	}
 }
 func TestWeeklyV3ProviderEventsAcceptProviderWire(t *testing.T) {
-	// The adapter normalizes HTTP provider snake_case. The event parser must also
-	// accept provider wire fields, not require its own already-normalized DTO.
-	wire := `{"account_id":"01234567-89ab-4cde-8fab-0123456789ab","event":"fill","timestamp":"2026-09-19T09:01:00Z","order":{"id":"22222222-3333-4444-8555-666666666666","client_order_id":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee","asset_id":"11111111-2222-4333-8444-555555555555","symbol":"ACME","side":"buy","qty":"1","filled_qty":"1","type":"limit","limit_price":"10","time_in_force":"day","status":"filled","submitted_at":"2026-09-19T09:00:00Z"}}`
-	_, _, err := brokerage.ParseTradeEventStream(strings.NewReader(fmt.Sprintf("id: event-wire-1\nevent: trade_updates\ndata: %s\n\n", wire)), "01234567-89ab-4cde-8fab-0123456789ab", 10)
+	// The official new-event JSON is unmodified. SSE framing is a local fixture;
+	// this does not verify the authenticated provider event transport.
+	envelope := weeklyWireFixture(t, "tradeUpdateNew")
+	wire, err := json.Marshal(envelope)
 	if err != nil {
-		t.Fatalf("provider-shaped order rejected by SSE parser: %v", err)
+		t.Fatal(err)
+	}
+	events, cursor, err := brokerage.ParseTradeEventStream(strings.NewReader(fmt.Sprintf("id: %s\nevent: trade_updates\ndata: %s\n\n", envelope["event_id"], wire)), envelope["account_id"].(string), 10)
+	if err != nil {
+		t.Fatalf("complete official TradeUpdateEventV2New example rejected: %v", err)
+	}
+	if len(events) != 1 || cursor != envelope["event_id"] || events[0].Timestamp.Format(time.RFC3339Nano) != envelope["at"] || events[0].Order.Symbol != "TSLA" {
+		t.Fatalf("official event lost identity or at/timestamp semantics: %+v cursor=%s", events, cursor)
+	}
+}
+
+func TestWeeklyV3ProviderWireRejectsMalformedEvents(t *testing.T) {
+	mutations := map[string]func(map[string]any){
+		"wrong_account":         func(e map[string]any) { e["account_id"] = "01234567-89ab-4cde-8fab-0123456789ab" },
+		"event_id_mismatch":     func(e map[string]any) { e["event_id"] = "01G112NTT0XAXKDZK3AABK68TJ" },
+		"invalid_at":            func(e map[string]any) { e["at"] = "not-a-timestamp" },
+		"invalid_timestamp":     func(e map[string]any) { e["timestamp"] = "not-a-timestamp" },
+		"numeric_qty":           func(e map[string]any) { e["order"].(map[string]any)["qty"] = 4 },
+		"event_status_mismatch": func(e map[string]any) { e["order"].(map[string]any)["status"] = "filled" },
+		"invalid_submitted_at":  func(e map[string]any) { e["order"].(map[string]any)["submitted_at"] = "not-a-timestamp" },
+	}
+	for name, mutate := range mutations {
+		t.Run(name, func(t *testing.T) {
+			envelope := weeklyWireFixture(t, "tradeUpdateNew")
+			id, account := envelope["event_id"], envelope["account_id"].(string)
+			mutate(envelope)
+			wire, err := json.Marshal(envelope)
+			if err != nil {
+				t.Fatal(err)
+			}
+			events, cursor, err := brokerage.ParseTradeEventStream(strings.NewReader(fmt.Sprintf("id: %s\nevent: trade_updates\ndata: %s\n\n", id, wire)), account, 10)
+			if err == nil || len(events) != 0 || cursor != "" {
+				t.Fatalf("malformed event accepted or partially advanced: %+v %s %v", events, cursor, err)
+			}
+		})
+	}
+}
+
+func TestWeeklyV3TradingAccountWirePrecision(t *testing.T) {
+	server, _, _, _ := weeklyServer(t)
+	adapter, provider := weeklyAlpaca(t, false)
+	account, err := adapter.Account(context.Background(), "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80", server.service.Store)
+	if err != nil {
+		t.Fatalf("complete official Trading Account example rejected: %v", err)
+	}
+	if account.Cash != "24861.91" || account.BuyingPower != "103556.8572572922" {
+		t.Fatalf("provider decimal was rounded or changed: %+v", account)
+	}
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
+	if len(provider.requests) != 1 || provider.requests[0] != "GET /v1/trading/accounts/01234567-89ab-4cde-8fab-0123456789ab/account" {
+		t.Fatalf("cash read did not use the Trading Account route: %v", provider.requests)
+	}
+}
+
+func TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch(t *testing.T) {
+	for _, flag := range []string{"account_blocked", "trading_blocked", "trade_suspended_by_user"} {
+		for _, variant := range []string{"true", "missing", "wrong_type"} {
+			t.Run(flag+"_"+variant, func(t *testing.T) {
+				server, _, _, now := weeklyServer(t)
+				challenge := weeklyApproved(t, server)
+				adapter, provider := weeklyAlpaca(t, false)
+				value := map[string]any{"true": true, "missing": nil, "wrong_type": "false"}[variant]
+				provider.accountOverrides[flag] = value
+				dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
+				_, err := dispatcher.Dispatch(context.Background(), challenge.Unsigned.Account, challenge.Unsigned.Order.OrderID)
+				provider.mu.Lock()
+				defer provider.mu.Unlock()
+				if err == nil || provider.posts != 0 {
+					t.Fatalf("unsafe account accepted: error=%v posts=%d", err, provider.posts)
+				}
+			})
+		}
 	}
 }
 
@@ -544,13 +668,17 @@ func TestWeeklyV3FullBrowserWalletServerFlow(t *testing.T) {
 				provider.order["status"], provider.order["filled_qty"] = "partially_filled", "1"
 				eventOrder := map[string]any{}
 				for key, value := range provider.order {
-					if key != "extended_hours" {
-						eventOrder[key] = value
-					}
+					eventOrder[key] = value
 				}
 				provider.mu.Unlock()
-				wire, _ := json.Marshal(map[string]any{"account_id": "01234567-89ab-4cde-8fab-0123456789ab", "event": "partial_fill", "timestamp": now.Add(65 * time.Second).Format(time.RFC3339Nano), "order": eventOrder})
-				events, cursor, err := brokerage.ParseTradeEventStream(strings.NewReader(fmt.Sprintf("id: full-flow-partial-1\nevent: trade_updates\ndata: %s\n\n", wire)), "01234567-89ab-4cde-8fab-0123456789ab", 10)
+				eventEnvelope := weeklyWireFixture(t, "tradeUpdateNew")
+				eventEnvelope["account_id"] = "01234567-89ab-4cde-8fab-0123456789ab"
+				eventEnvelope["event"], eventEnvelope["event_id"] = "partial_fill", "01K5G3YEKRXAXKDZK3AABK68TH"
+				eventEnvelope["at"] = now.Add(65*time.Second + time.Millisecond).Format(time.RFC3339Nano)
+				eventEnvelope["timestamp"] = now.Add(65 * time.Second).Format(time.RFC3339Nano)
+				eventEnvelope["order"], eventEnvelope["qty"], eventEnvelope["price"], eventEnvelope["position_qty"] = eventOrder, "1", "125.34", "1"
+				wire, _ := json.Marshal(eventEnvelope)
+				events, cursor, err := brokerage.ParseTradeEventStream(strings.NewReader(fmt.Sprintf("id: %s\nevent: trade_updates\ndata: %s\n\n", eventEnvelope["event_id"], wire)), "01234567-89ab-4cde-8fab-0123456789ab", 10)
 				if err != nil {
 					t.Fatal(err)
 				}
