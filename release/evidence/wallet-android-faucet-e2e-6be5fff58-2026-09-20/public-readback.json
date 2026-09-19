@@ -1,0 +1,220 @@
+{
+  "sourceCommit": "6be5fff58d547ecf1511bde7d8adb2cf85c15ccb",
+  "observedAt": "2026-09-20T01:09:30+08:00",
+  "chainId": "0x1917",
+  "requestId": "wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+  "dispatch": {
+    "ownerObservedAttempts": 2,
+    "uniqueRequestIds": 1,
+    "independentlyProven": false,
+    "note": "one original dispatch and one explicit same-ID recovery dispatch; no automatic admission retry"
+  },
+  "faucet": {
+    "consensusFinality": false,
+    "durability": {
+      "checkpointHash": "3c73e2bc363ec89f8ae576e06e8ff18ff478ae217c17c8d8dc43c435e6cef377",
+      "checkpointHeight": "1635489",
+      "scope": "local-snapshot",
+      "snapshotIntegrity": "5c368cfcbb37774f7d21a8190de928b6dee0f52a378fe94e13914c0699ab8938",
+      "version": "ynx-local-durability-v1"
+    },
+    "integerEncoding": "decimal-string",
+    "schemaVersion": "ynx-native-finance-transaction-v1",
+    "source": "authoritative chain-native YNX Testnet state",
+    "status": "durable",
+    "transaction": {
+      "amount": "100",
+      "blockHash": "723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+      "blockNumber": "1635015",
+      "fee": "0",
+      "from": "ynx_faucet",
+      "hash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+      "logs": [
+        {
+          "address": "0xab2b8712d9b6b684deab25cc98ef095799c68f03",
+          "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+          "blockNumber": "1635015",
+          "data": "0x0000000000000000000000000000000000000000000000000000000000000064",
+          "logIndex": "0",
+          "removed": false,
+          "topics": [
+            "0x961e0c8bf33b987867d24b74660ac8ee6400ab76e6f7c441ccaf9acad01cda72",
+            "0x5823127b8009cbc7d24047e79db95ba2318e3bf95046d45ed7ee62d7a6bb2863",
+            "0xb6da7af12011dd315ca395f03f2f267f1715b53fc3787a93466634e103132328"
+          ],
+          "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+          "transactionIndex": "0"
+        }
+      ],
+      "lotFlows": [
+        {
+          "amount": "100",
+          "from": "ynx_faucet",
+          "lotId": "1de51ed9d56aee3a607cca31ce0fad29e7404aad3e9f533dcd6ea0845721ff54",
+          "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736"
+        }
+      ],
+      "memo": "devnet faucet mint",
+      "nonce": "0",
+      "timestamp": "2026-09-19T16:34:11.549460638Z",
+      "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+      "type": "faucet"
+    }
+  },
+  "transfer1": {
+    "consensusFinality": false,
+    "durability": {
+      "checkpointHash": "b49d92e65d4985f239a99c33e24334c70b8333ddc8995d6f63fb3aea71f55aa4",
+      "checkpointHeight": "1635490",
+      "scope": "local-snapshot",
+      "snapshotIntegrity": "7263d44a92dd91e5019e7e84619b06c466f7915d7e9699b62c0c494892753def",
+      "version": "ynx-local-durability-v1"
+    },
+    "integerEncoding": "decimal-string",
+    "schemaVersion": "ynx-native-finance-transaction-v1",
+    "source": "authoritative chain-native YNX Testnet state",
+    "status": "durable",
+    "transaction": {
+      "amount": "1",
+      "blockHash": "2f2eed04855b48cab3d76c1f423ce5663ad94e40c5be596cf3950a1ef5886604",
+      "blockNumber": "1635108",
+      "fee": "1",
+      "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+      "hash": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+      "logs": [
+        {
+          "address": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+          "blockHash": "0x2f2eed04855b48cab3d76c1f423ce5663ad94e40c5be596cf3950a1ef5886604",
+          "blockNumber": "1635108",
+          "data": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "logIndex": "0",
+          "removed": false,
+          "topics": [
+            "0xc033c4e32955d645ceb56c016534f96606e19cfc3af5087ece0f21c797b37c6e",
+            "0xb6da7af12011dd315ca395f03f2f267f1715b53fc3787a93466634e103132328",
+            "0xdc5d1a4fb7a7559d3adbcc7fc4024a52e3d7d9335ca6e545f79a9353fd75d07b"
+          ],
+          "transactionHash": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+          "transactionIndex": "0"
+        }
+      ],
+      "lotFlows": [
+        {
+          "amount": "1",
+          "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+          "lotId": "1de51ed9d56aee3a607cca31ce0fad29e7404aad3e9f533dcd6ea0845721ff54",
+          "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+        }
+      ],
+      "memo": "signed native YNXT transfer",
+      "nonce": "1",
+      "timestamp": "2026-09-19T16:40:41.220469979Z",
+      "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+      "type": "transfer"
+    }
+  },
+  "transfer2": {
+    "consensusFinality": false,
+    "durability": {
+      "checkpointHash": "0ea40e540da0a1e831cdcf227991e3f76017f52eee7a9c69c540463c1a91f8fe",
+      "checkpointHeight": "1635491",
+      "scope": "local-snapshot",
+      "snapshotIntegrity": "1c1fe6a69a3e615f22652f1629a2410e25c8008d4c4e133dafa2a56595e5986d",
+      "version": "ynx-local-durability-v1"
+    },
+    "integerEncoding": "decimal-string",
+    "schemaVersion": "ynx-native-finance-transaction-v1",
+    "source": "authoritative chain-native YNX Testnet state",
+    "status": "durable",
+    "transaction": {
+      "amount": "1",
+      "blockHash": "1f9d4718dcdf8e3f607fbfb217325f5e8f37509b48064a9fc494ac976ffdbcf5",
+      "blockNumber": "1635182",
+      "fee": "1",
+      "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+      "hash": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27",
+      "logs": [
+        {
+          "address": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+          "blockHash": "0x1f9d4718dcdf8e3f607fbfb217325f5e8f37509b48064a9fc494ac976ffdbcf5",
+          "blockNumber": "1635182",
+          "data": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "logIndex": "0",
+          "removed": false,
+          "topics": [
+            "0xc033c4e32955d645ceb56c016534f96606e19cfc3af5087ece0f21c797b37c6e",
+            "0xb6da7af12011dd315ca395f03f2f267f1715b53fc3787a93466634e103132328",
+            "0xdc5d1a4fb7a7559d3adbcc7fc4024a52e3d7d9335ca6e545f79a9353fd75d07b"
+          ],
+          "transactionHash": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27",
+          "transactionIndex": "0"
+        }
+      ],
+      "lotFlows": [
+        {
+          "amount": "1",
+          "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+          "lotId": "1de51ed9d56aee3a607cca31ce0fad29e7404aad3e9f533dcd6ea0845721ff54",
+          "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+        }
+      ],
+      "memo": "signed native YNXT transfer",
+      "nonce": "2",
+      "timestamp": "2026-09-19T16:45:58.306548536Z",
+      "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+      "type": "transfer"
+    }
+  },
+  "account": {
+    "account": {
+      "address": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+      "balance": 96,
+      "staked": 0,
+      "nonce": 2,
+      "resourceUsage": {
+        "bandwidthUsed": 2,
+        "computeUsed": 0,
+        "aiCreditsUsed": 0,
+        "trustUsed": 0,
+        "payCreditsUsed": 0
+      },
+      "lots": {
+        "1de51ed9d56aee3a607cca31ce0fad29e7404aad3e9f533dcd6ea0845721ff54": 98
+      }
+    },
+    "resources": {
+      "address": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+      "bandwidthLimit": 1000,
+      "bandwidthUsed": 2,
+      "bandwidthLeft": 998,
+      "computeLimit": 100,
+      "computeUsed": 0,
+      "computeLeft": 100,
+      "aiCreditsLimit": 25,
+      "aiCreditsUsed": 0,
+      "aiCreditsLeft": 25,
+      "trustLimit": 25,
+      "trustUsed": 0,
+      "trustLeft": 25,
+      "payCreditsUsed": 0,
+      "staked": 0
+    },
+    "trace": {
+      "address": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+      "lots": [
+        {
+          "lotId": "1de51ed9d56aee3a607cca31ce0fad29e7404aad3e9f533dcd6ea0845721ff54",
+          "amount": 98,
+          "origin": "devnet faucet mint",
+          "riskWeightBps": 0,
+          "lastInboundTx": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+        }
+      ],
+      "labels": [
+        "devnet-only",
+        "pro-rata-lot-lineage"
+      ],
+      "summary": "Trace uses lot lineage, pro-rata movement, and advisory Trust label metadata. Labels require source, evidence, confidence, expiry, and appealability; they do not freeze, seize, or transfer funds."
+    }
+  }
+}
