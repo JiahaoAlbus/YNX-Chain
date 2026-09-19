@@ -1,0 +1,5969 @@
+{
+  "schema": "ynx-transport-sanitized-archive/v1",
+  "run": "packet-final",
+  "developmentRun": true,
+  "finalSourceRun": false,
+  "originalObservationsSHA256": "e6e5d8a40e85fdf485a0471dbaa5ec3aed673d3b459ccbfc4875691ef1d2a7c3",
+  "originalSummarySHA256": "188dae87c190c6d81e8de12893674a264845e73776788b2aa22087d3631ecc9c",
+  "originalPrivatePath": "/private/tmp/ynx-transport-20260920-packet-final-001",
+  "redactions": [
+    "client local_ip",
+    "SSH peer address",
+    "client address"
+  ],
+  "preservedOriginalClassifier": true,
+  "correction": "curl 28 with ssl_verify_result=1 during incomplete TLS is TLS handshake timeout, not certificate failure; early bodyAfterFirstByte derivation on incomplete requests is invalid",
+  "events": [
+    {
+      "type": "start",
+      "at": "2026-09-19T16:11:14.285Z",
+      "runId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830",
+      "vantage": "macos-owner",
+      "rounds": 3,
+      "intervalSeconds": 35,
+      "requestsPerRound": 4,
+      "maxClientConcurrency": 2,
+      "noClaimsOrTransactions": true,
+      "readOnly": true,
+      "proxyEnvironmentPresent": false,
+      "hostObservationEnabled": true
+    },
+    {
+      "type": "host-ready-status",
+      "round": 1,
+      "at": "2026-09-19T16:11:31.236Z",
+      "samplerReady": true
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "legacy",
+      "kind": "rpc",
+      "url": "https://rpc.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:11:36.359Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001752,
+        "time_connect": 1.12708,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.00987
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "SSL connection timeout",
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-1-rpc-legacy",
+      "startedAt": "2026-09-19T16:11:31.339Z",
+      "finishedAt": "2026-09-19T16:11:36.360Z",
+      "classification": "tls-verification-failed",
+      "client": {
+        "time_namelookup": 0.001752,
+        "time_connect": 1.12708,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.00987,
+        "remote_ip": "43.153.202.237",
+        "local_port": 62413,
+        "remote_port": 443,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 1,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "SSL connection timeout",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001752,
+        "tcpAfterDNS": 1.125328,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": null
+      },
+      "dns": {
+        "host": "rpc.ynxweb4.com",
+        "startedAt": "2026-09-19T16:11:31.242Z",
+        "finishedAt": "2026-09-19T16:11:31.339Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 232
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "canonical",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:11:36.381Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001779,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.009879
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to rpc-testnet.ynxweb4.com port 443 after 5009 ms: Timeout was reached",
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-1-rpc-canonical",
+      "startedAt": "2026-09-19T16:11:31.362Z",
+      "finishedAt": "2026-09-19T16:11:36.381Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001779,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.009879,
+        "remote_ip": "",
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to rpc-testnet.ynxweb4.com port 443 after 5009 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001779,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": null
+      },
+      "dns": {
+        "host": "rpc-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:11:31.245Z",
+        "finishedAt": "2026-09-19T16:11:31.362Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 601
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "legacy",
+      "kind": "faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:11:37.726Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001673,
+        "time_connect": 0.108822,
+        "time_appconnect": 0.533917,
+        "time_starttransfer": 1.2426,
+        "time_total": 1.242984
+      },
+      "bodySHA256": "eead303d5177cc9944fcb2dab67b3d58972832277b34e331c536a474b64c44af",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634688,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      },
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-1-faucet-legacy",
+      "startedAt": "2026-09-19T16:11:36.470Z",
+      "finishedAt": "2026-09-19T16:11:37.726Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001673,
+        "time_connect": 0.108822,
+        "time_appconnect": 0.533917,
+        "time_pretransfer": 0.533985,
+        "time_starttransfer": 1.2426,
+        "time_total": 1.242984,
+        "remote_ip": "43.153.202.237",
+        "local_port": 62423,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {
+        "probeDurationMs": 0,
+        "statusDurationMs": 0,
+        "capabilityDurationMs": 0,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "checkedAt": "2026-09-19T16:11:37.681924257Z"
+      },
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001673,
+        "tcpAfterDNS": 0.10714900000000001,
+        "tlsAfterTCP": 0.425095,
+        "firstByteAfterTLS": 0.708683,
+        "bodyAfterFirstByte": 0.000384000000000162
+      },
+      "dns": {
+        "host": "faucet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:11:36.376Z",
+        "finishedAt": "2026-09-19T16:11:36.470Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 305
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "canonical",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:11:37.869Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001081,
+        "time_connect": 1.152267,
+        "time_appconnect": 1.275289,
+        "time_starttransfer": 1.384814,
+        "time_total": 1.385075
+      },
+      "bodySHA256": "6ee2f6c4e55cec3a3abb5b16d6424b316a75db1d6bfa49e8ced4c6064f9e4820",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634688,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      },
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-1-faucet-canonical",
+      "startedAt": "2026-09-19T16:11:36.474Z",
+      "finishedAt": "2026-09-19T16:11:37.870Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001081,
+        "time_connect": 1.152267,
+        "time_appconnect": 1.275289,
+        "time_pretransfer": 1.275485,
+        "time_starttransfer": 1.384814,
+        "time_total": 1.385075,
+        "remote_ip": "43.153.202.237",
+        "local_port": 62424,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {
+        "probeDurationMs": 0,
+        "statusDurationMs": 0,
+        "capabilityDurationMs": 0,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "checkedAt": "2026-09-19T16:11:37.824616852Z"
+      },
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001081,
+        "tcpAfterDNS": 1.1511859999999998,
+        "tlsAfterTCP": 0.12302199999999996,
+        "firstByteAfterTLS": 0.1095250000000001,
+        "bodyAfterFirstByte": 0.00026100000000006673
+      },
+      "dns": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:11:36.385Z",
+        "finishedAt": "2026-09-19T16:11:36.474Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 305
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "host-window",
+      "round": 1,
+      "at": "2026-09-19T16:11:56.797Z",
+      "host": {
+        "schema": "ynx-transport-host-window/v1",
+        "startedAt": "2026-09-19T16:11:31.198447+00:00",
+        "readOnly": true,
+        "samples": [
+          {
+            "observedAt": "2026-09-19T16:11:31.199013+00:00",
+            "load": [
+              1.07275390625,
+              1.15771484375,
+              1.17138671875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688101,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903165,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998313,
+              "RetransSegs": 423669694
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 5,
+              "LAST-ACK": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:11:34.222839+00:00",
+            "load": [
+              1.06689453125,
+              1.15478515625,
+              1.17041015625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688104,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903168,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998313,
+              "RetransSegs": 423669698
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 1,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:11:37.247013+00:00",
+            "load": [
+              1.06689453125,
+              1.15478515625,
+              1.17041015625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688109,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903171,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998313,
+              "RetransSegs": 423669705
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 1,
+              "ESTAB": 6
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:11:40.271464+00:00",
+            "load": [
+              1.0615234375,
+              1.15185546875,
+              1.16943359375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688121,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903177,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998313,
+              "RetransSegs": 423669719
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 2,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:11:43.295226+00:00",
+            "load": [
+              1.0615234375,
+              1.15185546875,
+              1.16943359375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688124,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903178,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998313,
+              "RetransSegs": 423669722
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 2,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:11:46.319593+00:00",
+            "load": [
+              1.216796875,
+              1.1826171875,
+              1.1796875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688125,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903178,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998313,
+              "RetransSegs": 423669723
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 2,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:11:49.343837+00:00",
+            "load": [
+              1.19921875,
+              1.17919921875,
+              1.1787109375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688127,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903180,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998313,
+              "RetransSegs": 423669725
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 2,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:11:52.368186+00:00",
+            "load": [
+              1.19921875,
+              1.17919921875,
+              1.1787109375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688130,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903181,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998313,
+              "RetransSegs": 423669728
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 2,
+              "ESTAB": 5
+            }
+          }
+        ],
+        "packetMetadata": {
+          "available": true,
+          "payloadRetained": false,
+          "rawPacketTextRetained": false,
+          "scope": "TCP443 metadata for SSH peer only; HTTPS egress may differ",
+          "sshPeerAddressSHA256": "1c7447ae33587dd449e17420d0bad697fa74debd3263f31da016ff5f728ddc10",
+          "exitCode": 124,
+          "boundedTimeout": true,
+          "events": [
+            {
+              "timestamp": "1789834291.415061",
+              "direction": "from-client",
+              "clientPort": 62413,
+              "flags": "S",
+              "sequence": "2709949647",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834291.415130",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": "S.",
+              "sequence": "126502792",
+              "ack": "2709949648",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834292.435833",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": "S.",
+              "sequence": "126502792",
+              "ack": "2709949648",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834292.539826",
+              "direction": "from-client",
+              "clientPort": 62413,
+              "flags": ".",
+              "sequence": null,
+              "ack": "126502793",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834294.892518",
+              "direction": "from-client",
+              "clientPort": 62413,
+              "flags": "P.",
+              "sequence": "2709949648:2709949973",
+              "ack": "126502793",
+              "length": 325
+            },
+            {
+              "timestamp": "1789834294.892584",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2709949973",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834294.893027",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": "P.",
+              "sequence": "126502793:126504889",
+              "ack": "2709949973",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834294.893036",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": "P.",
+              "sequence": "126504889:126506560",
+              "ack": "2709949973",
+              "length": 1671
+            },
+            {
+              "timestamp": "1789834295.107812",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": "P.",
+              "sequence": "126505937:126506560",
+              "ack": "2709949973",
+              "length": 623
+            },
+            {
+              "timestamp": "1789834295.211964",
+              "direction": "from-client",
+              "clientPort": 62413,
+              "flags": ".",
+              "sequence": null,
+              "ack": "126502793",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834295.212018",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": ".",
+              "sequence": "126502793:126503841",
+              "ack": "2709949973",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834295.675836",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": ".",
+              "sequence": "126502793:126503841",
+              "ack": "2709949973",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834296.545640",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": "S",
+              "sequence": "1495876614",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834296.545712",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "S.",
+              "sequence": "3683272382",
+              "ack": "1495876615",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834296.595851",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": ".",
+              "sequence": "126502793:126503841",
+              "ack": "2709949973",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834296.652092",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3683272383",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834296.969961",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "1495876615:1495876943",
+              "ack": "3683272383",
+              "length": 328
+            },
+            {
+              "timestamp": "1789834296.970026",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1495876943",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834296.970569",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "3683272383:3683274479",
+              "ack": "1495876943",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834296.970580",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "3683274479:3683276156",
+              "ack": "1495876943",
+              "length": 1677
+            },
+            {
+              "timestamp": "1789834297.074713",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3683276156",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.077301",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3683276156",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.077674",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "1495876949:1495877007",
+              "ack": "3683276156",
+              "length": 58
+            },
+            {
+              "timestamp": "1789834297.077700",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1495876943",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.077705",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "1495877007:1495877093",
+              "ack": "3683276156",
+              "length": 86
+            },
+            {
+              "timestamp": "1789834297.077713",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1495876943",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.555960",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": "S",
+              "sequence": "1790260848",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.556051",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "S.",
+              "sequence": "1214163576",
+              "ack": "1790260849",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.619847",
+              "direction": "to-client",
+              "clientPort": 62351,
+              "flags": "F.",
+              "sequence": "513328568",
+              "ack": "959605668",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.680343",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "1495876943:1495877221",
+              "ack": "3683276156",
+              "length": 278
+            },
+            {
+              "timestamp": "1789834297.680421",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1495877221",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.680635",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "3683276156:3683276217",
+              "ack": "1495877221",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834297.680704",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "3683276217:3683276261",
+              "ack": "1495877221",
+              "length": 44
+            },
+            {
+              "timestamp": "1789834297.682176",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "3683276261:3683276511",
+              "ack": "1495877221",
+              "length": 250
+            },
+            {
+              "timestamp": "1789834297.682215",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "3683276511:3683277433",
+              "ack": "1495877221",
+              "length": 922
+            },
+            {
+              "timestamp": "1789834297.705101",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1790260849:1790261185",
+              "ack": "1214163577",
+              "length": 336
+            },
+            {
+              "timestamp": "1789834297.705193",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1790261185",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.705770",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1214163577:1214165673",
+              "ack": "1790261185",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834297.705779",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1214165673:1214167367",
+              "ack": "1790261185",
+              "length": 1694
+            },
+            {
+              "timestamp": "1789834297.786320",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "1495877221:1495877252",
+              "ack": "3683276261",
+              "length": 31
+            },
+            {
+              "timestamp": "1789834297.788263",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": "F.",
+              "sequence": "1495877276",
+              "ack": "3683277433",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.788297",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1495877252",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.816279",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1214164625",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.817571",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1214166721",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.823137",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1790261185:1790261191",
+              "ack": "1214167367",
+              "length": 6
+            },
+            {
+              "timestamp": "1789834297.823241",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1790261191:1790261249",
+              "ack": "1214167367",
+              "length": 58
+            },
+            {
+              "timestamp": "1789834297.823251",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1790261249:1790261335",
+              "ack": "1214167367",
+              "length": 86
+            },
+            {
+              "timestamp": "1789834297.823251",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1790261335:1790261471",
+              "ack": "1214167367",
+              "length": 136
+            },
+            {
+              "timestamp": "1789834297.823272",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1790261249",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.823444",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1214167367:1214167428",
+              "ack": "1790261471",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834297.823505",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1214167428:1214167472",
+              "ack": "1790261471",
+              "length": 44
+            },
+            {
+              "timestamp": "1789834297.824901",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1214167472:1214167585",
+              "ack": "1790261471",
+              "length": 113
+            },
+            {
+              "timestamp": "1789834297.824930",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1214167585:1214168507",
+              "ack": "1790261471",
+              "length": 922
+            },
+            {
+              "timestamp": "1789834297.931891",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1214167428",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.932119",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1790261471:1790261502",
+              "ack": "1214167472",
+              "length": 31
+            },
+            {
+              "timestamp": "1789834297.932141",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1214167585",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.933710",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1214168507",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.933710",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1790261502:1790261526",
+              "ack": "1214168507",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834297.933767",
+              "direction": "from-client",
+              "clientPort": 62424,
+              "flags": "F.",
+              "sequence": "1790261526",
+              "ack": "1214168507",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.933782",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1790261526",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834297.933863",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "P.",
+              "sequence": "1214168507:1214168531",
+              "ack": "1790261527",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834297.933895",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "F.",
+              "sequence": "1214168531",
+              "ack": "1790261527",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834298.187831",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "F.",
+              "sequence": "1214168531",
+              "ack": "1790261527",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834298.315521",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": "FP.",
+              "sequence": "1495877252:1495877276",
+              "ack": "3683277433",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834298.315702",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "P.",
+              "sequence": "3683277433:3683277457",
+              "ack": "1495877277",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834298.315741",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "F.",
+              "sequence": "3683277457",
+              "ack": "1495877277",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834298.451838",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": ".",
+              "sequence": "126502793:126503841",
+              "ack": "2709949973",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834298.531843",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "F.",
+              "sequence": "3683277457",
+              "ack": "1495877277",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834298.595845",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "FP.",
+              "sequence": "1214168507:1214168531",
+              "ack": "1790261527",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834298.851848",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "FP.",
+              "sequence": "3683277433:3683277457",
+              "ack": "1495877277",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834299.411843",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "FP.",
+              "sequence": "1214168507:1214168531",
+              "ack": "1790261527",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834299.539842",
+              "direction": "to-client",
+              "clientPort": 62423,
+              "flags": "FP.",
+              "sequence": "3683277433:3683277457",
+              "ack": "1495877277",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834299.625998",
+              "direction": "from-client",
+              "clientPort": 62423,
+              "flags": "R.",
+              "sequence": "1495877277",
+              "ack": "3683277458",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834301.075843",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "FP.",
+              "sequence": "1214168507:1214168531",
+              "ack": "1790261527",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834302.163827",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": ".",
+              "sequence": "126502793:126503841",
+              "ack": "2709949973",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834303.251832",
+              "direction": "to-client",
+              "clientPort": 62352,
+              "flags": ".",
+              "sequence": null,
+              "ack": "118425365",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834303.354760",
+              "direction": "from-client",
+              "clientPort": 62352,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3190340003",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834304.339840",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "FP.",
+              "sequence": "1214168507:1214168531",
+              "ack": "1790261527",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834305.363836",
+              "direction": "to-client",
+              "clientPort": 62409,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3615250935",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834305.469537",
+              "direction": "from-client",
+              "clientPort": 62409,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3231937803",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834309.907832",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": ".",
+              "sequence": "126502793:126503841",
+              "ack": "2709949973",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834310.931840",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "FP.",
+              "sequence": "1214168507:1214168531",
+              "ack": "1790261527",
+              "length": 24
+            }
+          ],
+          "packetLimitReached": false
+        },
+        "details": {
+          "observedAt": "2026-09-19T16:11:56.221063+00:00",
+          "cpuCount": 8,
+          "kernel": "6.8.0-101-generic",
+          "caddyVersion": {
+            "exitCode": 0,
+            "output": "2.6.2\n"
+          },
+          "services": {
+            "exitCode": 0,
+            "output": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=132907008\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=12908826624\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9494528\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8572928\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n"
+          },
+          "sysctls": {
+            "exitCode": 0,
+            "output": "net.core.somaxconn = 4096\nnet.ipv4.tcp_max_syn_backlog = 2048\nnet.ipv4.tcp_syncookies = 1\nnet.ipv4.tcp_synack_retries = 5\nnet.ipv4.tcp_syn_retries = 6\nnet.ipv4.tcp_mtu_probing = 0\n"
+          },
+          "memoryKB": {
+            "MemTotal": 31956824,
+            "MemAvailable": 15846468,
+            "SwapFree": 1881608
+          },
+          "diskConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "loadedConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "caddyfileSHA256": {
+            "exitCode": 0,
+            "output": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9  /etc/caddy/Caddyfile\n"
+          },
+          "caddyJournal": {
+            "exitCode": 0,
+            "entries": 2,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "kernelJournal": {
+            "exitCode": 0,
+            "entries": 0,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "localProbes": [
+            {
+              "host": "rpc.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000156 0.023960 0.024918 0.024980 0"
+            },
+            {
+              "host": "rpc-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000130 0.023941 0.025007 0.025049 0"
+            },
+            {
+              "host": "faucet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000126 0.024000 0.025786 0.025826 0"
+            },
+            {
+              "host": "faucet-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000154 0.024883 0.026652 0.026730 0"
+            },
+            {
+              "port": 6420,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.000507 0.000538"
+            },
+            {
+              "port": 6428,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.001065 0.001097"
+            }
+          ]
+        },
+        "finishedAt": "2026-09-19T16:11:56.515987+00:00"
+      },
+      "withinWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 29,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 16,
+        "AttemptFails": 0,
+        "EstabResets": 0,
+        "RetransSegs": 34
+      },
+      "sincePreviousWindowDelta": {},
+      "coverage": [
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-1-rpc-legacy",
+          "failure": true,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-1-rpc-canonical",
+          "failure": true,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-1-faucet-legacy",
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-1-faucet-canonical",
+          "failure": false,
+          "clientWindowCovered": true
+        }
+      ],
+      "clockSkewNotCorrected": true,
+      "countersAreHostWide": true,
+      "requestFlowAttributionProven": false
+    },
+    {
+      "type": "round",
+      "round": 1,
+      "at": "2026-09-19T16:11:56.801Z",
+      "attempted": 4,
+      "healthy": 2,
+      "failed": 2
+    },
+    {
+      "type": "host-ready-status",
+      "round": 2,
+      "at": "2026-09-19T16:12:03.011Z",
+      "samplerReady": true
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "legacy",
+      "kind": "rpc",
+      "url": "https://rpc.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:12:05.502Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.002037,
+        "time_connect": 0.107572,
+        "time_appconnect": 1.233301,
+        "time_starttransfer": 1.818843,
+        "time_total": 2.378019
+      },
+      "bodySHA256": "bb74b92a0b2e69fe36383291aa81d7f8ad8420ee467e705f3db61e5b5d085541",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634696,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      },
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-2-rpc-legacy",
+      "startedAt": "2026-09-19T16:12:03.113Z",
+      "finishedAt": "2026-09-19T16:12:05.502Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.002037,
+        "time_connect": 0.107572,
+        "time_appconnect": 1.233301,
+        "time_pretransfer": 1.23347,
+        "time_starttransfer": 1.818843,
+        "time_total": 2.378019,
+        "remote_ip": "43.153.202.237",
+        "local_port": 62461,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {},
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.002037,
+        "tcpAfterDNS": 0.105535,
+        "tlsAfterTCP": 1.125729,
+        "firstByteAfterTLS": 0.585542,
+        "bodyAfterFirstByte": 0.5591760000000001
+      },
+      "dns": {
+        "host": "rpc.ynxweb4.com",
+        "startedAt": "2026-09-19T16:12:03.016Z",
+        "finishedAt": "2026-09-19T16:12:03.113Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 200
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "legacy",
+      "kind": "faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:12:07.506Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001763,
+        "time_connect": 1.109358,
+        "time_appconnect": 1.221727,
+        "time_starttransfer": 1.914083,
+        "time_total": 1.914221
+      },
+      "bodySHA256": "5d1f17039cba9b78c0985f2311299791505ccabc421632d37e414000969f3fb4",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634696,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      },
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-2-faucet-legacy",
+      "startedAt": "2026-09-19T16:12:05.581Z",
+      "finishedAt": "2026-09-19T16:12:07.506Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001763,
+        "time_connect": 1.109358,
+        "time_appconnect": 1.221727,
+        "time_pretransfer": 1.221783,
+        "time_starttransfer": 1.914083,
+        "time_total": 1.914221,
+        "remote_ip": "43.153.202.237",
+        "local_port": 62464,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {
+        "probeDurationMs": 0,
+        "statusDurationMs": 0,
+        "capabilityDurationMs": 0,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "checkedAt": "2026-09-19T16:12:07.464042804Z"
+      },
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001763,
+        "tcpAfterDNS": 1.107595,
+        "tlsAfterTCP": 0.11236899999999994,
+        "firstByteAfterTLS": 0.692356,
+        "bodyAfterFirstByte": 0.00013799999999997148
+      },
+      "dns": {
+        "host": "faucet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:12:05.507Z",
+        "finishedAt": "2026-09-19T16:12:05.581Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 276
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "canonical",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:12:07.579Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001986,
+        "time_connect": 0.106952,
+        "time_appconnect": 1.640567,
+        "time_starttransfer": 4.323111,
+        "time_total": 4.45669
+      },
+      "bodySHA256": "bb74b92a0b2e69fe36383291aa81d7f8ad8420ee467e705f3db61e5b5d085541",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634696,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      },
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-2-rpc-canonical",
+      "startedAt": "2026-09-19T16:12:03.112Z",
+      "finishedAt": "2026-09-19T16:12:07.579Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001986,
+        "time_connect": 0.106952,
+        "time_appconnect": 1.640567,
+        "time_pretransfer": 1.640758,
+        "time_starttransfer": 4.323111,
+        "time_total": 4.45669,
+        "remote_ip": "43.153.202.237",
+        "local_port": 62460,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {},
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001986,
+        "tcpAfterDNS": 0.104966,
+        "tlsAfterTCP": 1.5336150000000002,
+        "firstByteAfterTLS": 2.682544,
+        "bodyAfterFirstByte": 0.13357900000000011
+      },
+      "dns": {
+        "host": "rpc-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:12:03.018Z",
+        "finishedAt": "2026-09-19T16:12:03.112Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 569
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "canonical",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:12:10.901Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001605,
+        "time_connect": 1.108464,
+        "time_appconnect": 2.871697,
+        "time_starttransfer": 3.293112,
+        "time_total": 3.293283
+      },
+      "bodySHA256": "540afe08da79db4ae728b9a842e4d111c9a6b743432d54f40d950e6cda676180",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634696,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      },
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-2-faucet-canonical",
+      "startedAt": "2026-09-19T16:12:07.595Z",
+      "finishedAt": "2026-09-19T16:12:10.901Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001605,
+        "time_connect": 1.108464,
+        "time_appconnect": 2.871697,
+        "time_pretransfer": 2.871922,
+        "time_starttransfer": 3.293112,
+        "time_total": 3.293283,
+        "remote_ip": "43.153.202.237",
+        "local_port": 62467,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {
+        "probeDurationMs": 0,
+        "statusDurationMs": 0,
+        "capabilityDurationMs": 0,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "checkedAt": "2026-09-19T16:12:10.855120418Z"
+      },
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001605,
+        "tcpAfterDNS": 1.1068589999999998,
+        "tlsAfterTCP": 1.7632330000000003,
+        "firstByteAfterTLS": 0.42141499999999965,
+        "bodyAfterFirstByte": 0.0001710000000003653
+      },
+      "dns": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:12:07.511Z",
+        "finishedAt": "2026-09-19T16:12:07.595Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 274
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "host-window",
+      "round": 2,
+      "at": "2026-09-19T16:12:24.322Z",
+      "host": {
+        "schema": "ynx-transport-host-window/v1",
+        "startedAt": "2026-09-19T16:12:02.969707+00:00",
+        "readOnly": true,
+        "samples": [
+          {
+            "observedAt": "2026-09-19T16:12:02.970221+00:00",
+            "load": [
+              1.16796875,
+              1.1728515625,
+              1.1767578125
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688135,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903184,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998317,
+              "RetransSegs": 423669735
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 2,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:05.993940+00:00",
+            "load": [
+              1.23486328125,
+              1.18701171875,
+              1.181640625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688142,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903187,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998317,
+              "RetransSegs": 423669751
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 6,
+              "LAST-ACK": 3
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:09.017936+00:00",
+            "load": [
+              1.2158203125,
+              1.18359375,
+              1.1806640625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688143,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903187,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998317,
+              "RetransSegs": 423669756
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 4,
+              "ESTAB": 6
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:12.041838+00:00",
+            "load": [
+              1.2158203125,
+              1.18359375,
+              1.1806640625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688151,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903192,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998317,
+              "RetransSegs": 423669767
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 4,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:15.065525+00:00",
+            "load": [
+              1.1982421875,
+              1.18017578125,
+              1.1796875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688168,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903208,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998317,
+              "RetransSegs": 423669784
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 3,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:18.089507+00:00",
+            "load": [
+              1.1982421875,
+              1.18017578125,
+              1.1796875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688175,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903215,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998317,
+              "RetransSegs": 423669791
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 3,
+              "ESTAB": 6
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:21.114106+00:00",
+            "load": [
+              1.18212890625,
+              1.1767578125,
+              1.1787109375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688193,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903231,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998317,
+              "RetransSegs": 423669811
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 3,
+              "ESTAB": 6
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:24.138613+00:00",
+            "load": [
+              1.16748046875,
+              1.17333984375,
+              1.177734375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688205,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903243,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998317,
+              "RetransSegs": 423669824
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 3,
+              "ESTAB": 6
+            }
+          }
+        ],
+        "packetMetadata": {
+          "available": true,
+          "payloadRetained": false,
+          "rawPacketTextRetained": false,
+          "scope": "TCP443 metadata for SSH peer only; HTTPS egress may differ",
+          "sshPeerAddressSHA256": "1c7447ae33587dd449e17420d0bad697fa74debd3263f31da016ff5f728ddc10",
+          "exitCode": 0,
+          "boundedTimeout": false,
+          "events": [
+            {
+              "timestamp": "1789834323.189245",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": "S",
+              "sequence": "2061328568",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834323.189317",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": "S.",
+              "sequence": "288348216",
+              "ack": "2061328569",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834323.189644",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": "S",
+              "sequence": "2841509923",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834323.189681",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "S.",
+              "sequence": "3255523129",
+              "ack": "2841509924",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834323.294974",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3255523130",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834323.294974",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "2841509924:2841510249",
+              "ack": "3255523130",
+              "length": 325
+            },
+            {
+              "timestamp": "1789834323.295083",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2841510249",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834323.295686",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "3255523130:3255525226",
+              "ack": "2841510249",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834323.295696",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "3255525226:3255526897",
+              "ack": "2841510249",
+              "length": 1671
+            },
+            {
+              "timestamp": "1789834323.515841",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "3255526274:3255526897",
+              "ack": "2841510249",
+              "length": 623
+            },
+            {
+              "timestamp": "1789834323.606000",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "2061328569:2061328902",
+              "ack": "288348217",
+              "length": 333
+            },
+            {
+              "timestamp": "1789834323.606073",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2061328902",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834323.606587",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": "288348217:288349265",
+              "ack": "2061328902",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834323.606595",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": "288349265:288350313",
+              "ack": "2061328902",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834323.606630",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": "288350313:288351361",
+              "ack": "2061328902",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834323.606633",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "288351361:288352002",
+              "ack": "2061328902",
+              "length": 641
+            },
+            {
+              "timestamp": "1789834323.624113",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3255524178",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834323.653852",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": "3255524178:3255525226",
+              "ack": "2841510249",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834323.653865",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": "3255525226:3255526274",
+              "ack": "2841510249",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834323.759355",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3255524178",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834323.759422",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": "3255524178:3255525226",
+              "ack": "2841510249",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834324.243839",
+              "direction": "to-client",
+              "clientPort": 62424,
+              "flags": "FP.",
+              "sequence": "1214168507:1214168531",
+              "ack": "1790261527",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834324.307829",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": "3255524178:3255525226",
+              "ack": "2841510249",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834324.414665",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3255526897",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834324.420739",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "2841510255:2841510313",
+              "ack": "3255526897",
+              "length": 58
+            },
+            {
+              "timestamp": "1789834324.420773",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2841510249",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834324.420779",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "2841510313:2841510399",
+              "ack": "3255526897",
+              "length": 86
+            },
+            {
+              "timestamp": "1789834324.420786",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2841510249",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834324.499825",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "288351361:288352002",
+              "ack": "2061328902",
+              "length": 641
+            },
+            {
+              "timestamp": "1789834324.525745",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": "2841510249:2841510255",
+              "ack": "3255526897",
+              "length": 6
+            },
+            {
+              "timestamp": "1789834324.525812",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2841510399",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834324.526016",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "3255526897:3255526958",
+              "ack": "2841510399",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834324.526123",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "3255526958:3255527002",
+              "ack": "2841510399",
+              "length": 44
+            },
+            {
+              "timestamp": "1789834324.606175",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": null,
+              "ack": "288348217",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834324.630111",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3255526958",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834324.630111",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3255527002",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834324.632049",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "2841510524:2841510555",
+              "ack": "3255527002",
+              "length": 31
+            },
+            {
+              "timestamp": "1789834324.632078",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2841510399",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834324.715832",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": "288348217:288349265",
+              "ack": "2061328902",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834324.737135",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": "2841510399:2841510524",
+              "ack": "3255527002",
+              "length": 125
+            },
+            {
+              "timestamp": "1789834324.737203",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2841510555",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834324.755842",
+              "direction": "to-client",
+              "clientPort": 62413,
+              "flags": ".",
+              "sequence": "126502793:126503841",
+              "ack": "2709949973",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834324.763318",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "3255527002:3255527202",
+              "ack": "2841510555",
+              "length": 200
+            },
+            {
+              "timestamp": "1789834324.763686",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "3255527202:3255529298",
+              "ack": "2841510555",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834324.771058",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "3255529298:3255530186",
+              "ack": "2841510555",
+              "length": 888
+            },
+            {
+              "timestamp": "1789834324.828547",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "2061329052:2061329184",
+              "ack": "288352002",
+              "length": 132
+            },
+            {
+              "timestamp": "1789834324.828609",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2061328902",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834324.875916",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3255527002",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834324.897830",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "3255527002:3255527202",
+              "ack": "2841510555",
+              "length": 200
+            },
+            {
+              "timestamp": "1789834324.898161",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "3255527202:3255529298",
+              "ack": "2841510555",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834325.006317",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3255528250",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834325.459836",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": "3255528250:3255529298",
+              "ack": "2841510555",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834325.566035",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": "F.",
+              "sequence": "2841510579",
+              "ack": "3255530186",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834325.566098",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2841510555",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834325.960443",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": "FP.",
+              "sequence": "2841510555:2841510579",
+              "ack": "3255530186",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834325.960608",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "P.",
+              "sequence": "3255530186:3255530210",
+              "ack": "2841510580",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834325.960645",
+              "direction": "to-client",
+              "clientPort": 62461,
+              "flags": "F.",
+              "sequence": "3255530210",
+              "ack": "2841510580",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.066553",
+              "direction": "from-client",
+              "clientPort": 62461,
+              "flags": "R",
+              "sequence": "2841510580",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.659239",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": "S",
+              "sequence": "3750748337",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.659307",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": "S.",
+              "sequence": "1891126278",
+              "ack": "3750748338",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.764435",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "3750748338:3750748666",
+              "ack": "1891126279",
+              "length": 328
+            },
+            {
+              "timestamp": "1789834326.764519",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3750748666",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.765083",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "1891126279:1891128375",
+              "ack": "3750748666",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834326.765091",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "1891128375:1891130051",
+              "ack": "3750748666",
+              "length": 1676
+            },
+            {
+              "timestamp": "1789834326.861766",
+              "direction": "from-client",
+              "clientPort": 62465,
+              "flags": "S",
+              "sequence": "262901823",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.861834",
+              "direction": "to-client",
+              "clientPort": 62465,
+              "flags": "S.",
+              "sequence": "2114424385",
+              "ack": "262901824",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.874486",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1891130051",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.885750",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1891130051",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.889294",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "3750748672:3750748730",
+              "ack": "1891130051",
+              "length": 58
+            },
+            {
+              "timestamp": "1789834326.889294",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "3750748730:3750748816",
+              "ack": "1891130051",
+              "length": 86
+            },
+            {
+              "timestamp": "1789834326.889318",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3750748666",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.889327",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3750748666",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.889330",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "3750748816:3750748944",
+              "ack": "1891130051",
+              "length": 128
+            },
+            {
+              "timestamp": "1789834326.889336",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3750748666",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.965687",
+              "direction": "from-client",
+              "clientPort": 62465,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2114424386",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.966335",
+              "direction": "from-client",
+              "clientPort": 62465,
+              "flags": "P.",
+              "sequence": "262901824:262902157",
+              "ack": "2114424386",
+              "length": 333
+            },
+            {
+              "timestamp": "1789834326.966370",
+              "direction": "to-client",
+              "clientPort": 62465,
+              "flags": ".",
+              "sequence": null,
+              "ack": "262902157",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834326.966750",
+              "direction": "to-client",
+              "clientPort": 62465,
+              "flags": "P.",
+              "sequence": "2114424386:2114426482",
+              "ack": "262902157",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834326.966757",
+              "direction": "to-client",
+              "clientPort": 62465,
+              "flags": "P.",
+              "sequence": "2114426482:2114428171",
+              "ack": "262902157",
+              "length": 1689
+            },
+            {
+              "timestamp": "1789834327.179844",
+              "direction": "to-client",
+              "clientPort": 62465,
+              "flags": "P.",
+              "sequence": "2114427530:2114428171",
+              "ack": "262902157",
+              "length": 641
+            },
+            {
+              "timestamp": "1789834327.404571",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "2061328902:2061329184",
+              "ack": "288352002",
+              "length": 282
+            },
+            {
+              "timestamp": "1789834327.404636",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2061329184",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.404840",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "288352002:288352063",
+              "ack": "2061329184",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834327.404888",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "288352063:288352107",
+              "ack": "2061329184",
+              "length": 44
+            },
+            {
+              "timestamp": "1789834327.405462",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "288352107:288352307",
+              "ack": "2061329184",
+              "length": 200
+            },
+            {
+              "timestamp": "1789834327.405491",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": "288352307:288353355",
+              "ack": "2061329184",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834327.420078",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": "288353355:288354403",
+              "ack": "2061329184",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834327.434683",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "288354403:288355291",
+              "ack": "2061329184",
+              "length": 888
+            },
+            {
+              "timestamp": "1789834327.462631",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "3750748666:3750748944",
+              "ack": "1891130051",
+              "length": 278
+            },
+            {
+              "timestamp": "1789834327.462689",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3750748944",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.462902",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "1891130051:1891130112",
+              "ack": "3750748944",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834327.462946",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "1891130112:1891130156",
+              "ack": "3750748944",
+              "length": 44
+            },
+            {
+              "timestamp": "1789834327.464273",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "1891130156:1891130406",
+              "ack": "3750748944",
+              "length": 250
+            },
+            {
+              "timestamp": "1789834327.464302",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "1891130406:1891131328",
+              "ack": "3750748944",
+              "length": 922
+            },
+            {
+              "timestamp": "1789834327.508847",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": null,
+              "ack": "288352063",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.508882",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": null,
+              "ack": "288352107",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.510297",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "2061329184:2061329215",
+              "ack": "288352107",
+              "length": 31
+            },
+            {
+              "timestamp": "1789834327.510297",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": null,
+              "ack": "288352307",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.524412",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": null,
+              "ack": "288352307",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.538853",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": "288352307:288353355",
+              "ack": "2061329215",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834327.569024",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "3750748975:3750748999",
+              "ack": "1891131328",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834327.569064",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3750748944",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.570121",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": "F.",
+              "sequence": "3750748999",
+              "ack": "1891131328",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.570130",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3750748944",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.643693",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": null,
+              "ack": "288355291",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.643824",
+              "direction": "to-client",
+              "clientPort": 62465,
+              "flags": ".",
+              "sequence": "2114424386:2114425434",
+              "ack": "262902157",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834327.643878",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": ".",
+              "sequence": null,
+              "ack": "288355291",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.643886",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "2061329215:2061329239",
+              "ack": "288355291",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834327.643886",
+              "direction": "from-client",
+              "clientPort": 62460,
+              "flags": "F.",
+              "sequence": "2061329239",
+              "ack": "288355291",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.644016",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": "P.",
+              "sequence": "288355291:288355315",
+              "ack": "2061329240",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834327.644136",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": "F.",
+              "sequence": "288355315",
+              "ack": "2061329240",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834327.751775",
+              "direction": "from-client",
+              "clientPort": 62465,
+              "flags": "P.",
+              "sequence": "262902163:262902221",
+              "ack": "2114428171",
+              "length": 58
+            },
+            {
+              "timestamp": "1789834327.751843",
+              "direction": "to-client",
+              "clientPort": 62465,
+              "flags": ".",
+              "sequence": null,
+              "ack": "262902157",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834328.211819",
+              "direction": "to-client",
+              "clientPort": 62460,
+              "flags": "F.",
+              "sequence": "288355315",
+              "ack": "2061329240",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834328.672895",
+              "direction": "from-client",
+              "clientPort": 62467,
+              "flags": "S",
+              "sequence": "1424171672",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834328.672978",
+              "direction": "to-client",
+              "clientPort": 62467,
+              "flags": "S.",
+              "sequence": "2208890243",
+              "ack": "1424171673",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834328.810352",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": "FP.",
+              "sequence": "3750748944:3750748999",
+              "ack": "1891131328",
+              "length": 55
+            },
+            {
+              "timestamp": "1789834328.810534",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": "P.",
+              "sequence": "1891131328:1891131352",
+              "ack": "3750749000",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834328.810572",
+              "direction": "to-client",
+              "clientPort": 62464,
+              "flags": "F.",
+              "sequence": "1891131352",
+              "ack": "3750749000",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834328.914679",
+              "direction": "from-client",
+              "clientPort": 62464,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1891131328",
+              "length": 0
+            }
+          ],
+          "packetLimitReached": true
+        },
+        "finishedAt": "2026-09-19T16:12:24.162871+00:00"
+      },
+      "withinWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 70,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 59,
+        "AttemptFails": 0,
+        "EstabResets": 0,
+        "RetransSegs": 89
+      },
+      "sincePreviousWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 5,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 3,
+        "AttemptFails": 0,
+        "EstabResets": 4,
+        "RetransSegs": 7
+      },
+      "coverage": [
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-2-rpc-legacy",
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-2-faucet-legacy",
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-2-rpc-canonical",
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-2-faucet-canonical",
+          "failure": false,
+          "clientWindowCovered": true
+        }
+      ],
+      "clockSkewNotCorrected": true,
+      "countersAreHostWide": true,
+      "requestFlowAttributionProven": false
+    },
+    {
+      "type": "round",
+      "round": 2,
+      "at": "2026-09-19T16:12:24.327Z",
+      "attempted": 4,
+      "healthy": 4,
+      "failed": 0
+    },
+    {
+      "type": "host-ready-status",
+      "round": 3,
+      "at": "2026-09-19T16:12:38.403Z",
+      "samplerReady": true
+    },
+    {
+      "type": "probe",
+      "round": 3,
+      "role": "legacy",
+      "kind": "rpc",
+      "url": "https://rpc.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:12:42.159Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.002296,
+        "time_connect": 3.113943,
+        "time_appconnect": 3.54082,
+        "time_starttransfer": 3.647931,
+        "time_total": 3.648128
+      },
+      "bodySHA256": "3d91428a2f8303138a71233375cd22cdc35f4a8a2b74cb78774aee7e0c836095",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634704,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      },
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-rpc-legacy",
+      "startedAt": "2026-09-19T16:12:38.498Z",
+      "finishedAt": "2026-09-19T16:12:42.159Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.002296,
+        "time_connect": 3.113943,
+        "time_appconnect": 3.54082,
+        "time_pretransfer": 3.541014,
+        "time_starttransfer": 3.647931,
+        "time_total": 3.648128,
+        "remote_ip": "43.153.202.237",
+        "local_port": 62499,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {},
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.002296,
+        "tcpAfterDNS": 3.111647,
+        "tlsAfterTCP": 0.4268770000000002,
+        "firstByteAfterTLS": 0.10711099999999973,
+        "bodyAfterFirstByte": 0.00019700000000000273
+      },
+      "dns": {
+        "host": "rpc.ynxweb4.com",
+        "startedAt": "2026-09-19T16:12:38.408Z",
+        "finishedAt": "2026-09-19T16:12:38.498Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 165
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 3,
+      "role": "canonical",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:12:43.515Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.002301,
+        "time_connect": 3.112864,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.004838
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "SSL connection timeout",
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-rpc-canonical",
+      "startedAt": "2026-09-19T16:12:38.498Z",
+      "finishedAt": "2026-09-19T16:12:43.516Z",
+      "classification": "tls-verification-failed",
+      "client": {
+        "time_namelookup": 0.002301,
+        "time_connect": 3.112864,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.004838,
+        "remote_ip": "43.153.202.237",
+        "local_port": 62500,
+        "remote_port": 443,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 1,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "SSL connection timeout",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.002301,
+        "tcpAfterDNS": 3.110563,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": null
+      },
+      "dns": {
+        "host": "rpc-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:12:38.411Z",
+        "finishedAt": "2026-09-19T16:12:38.498Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 464
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 3,
+      "role": "canonical",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:12:47.068Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001556,
+        "time_connect": 1.108254,
+        "time_appconnect": 2.050089,
+        "time_starttransfer": 3.45188,
+        "time_total": 3.452181
+      },
+      "bodySHA256": "04b791e17f4c0ce3e41da490e5a18d8eef8da3d7bf677790f88218374813dbc4",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634706,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      },
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-faucet-canonical",
+      "startedAt": "2026-09-19T16:12:43.604Z",
+      "finishedAt": "2026-09-19T16:12:47.068Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001556,
+        "time_connect": 1.108254,
+        "time_appconnect": 2.050089,
+        "time_pretransfer": 2.050282,
+        "time_starttransfer": 3.45188,
+        "time_total": 3.452181,
+        "remote_ip": "43.153.202.237",
+        "local_port": 62510,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {
+        "probeDurationMs": 0,
+        "statusDurationMs": 0,
+        "capabilityDurationMs": 0,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "checkedAt": "2026-09-19T16:12:47.024015345Z"
+      },
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001556,
+        "tcpAfterDNS": 1.1066980000000002,
+        "tlsAfterTCP": 0.9418349999999998,
+        "firstByteAfterTLS": 1.4017910000000002,
+        "bodyAfterFirstByte": 0.0003009999999998847
+      },
+      "dns": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:12:43.520Z",
+        "finishedAt": "2026-09-19T16:12:43.604Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 238
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 3,
+      "role": "legacy",
+      "kind": "faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:12:47.279Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.002157,
+        "time_connect": 1.123209,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.011653
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "SSL connection timeout",
+      "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-faucet-legacy",
+      "startedAt": "2026-09-19T16:12:42.257Z",
+      "finishedAt": "2026-09-19T16:12:47.280Z",
+      "classification": "tls-verification-failed",
+      "client": {
+        "time_namelookup": 0.002157,
+        "time_connect": 1.123209,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.011653,
+        "remote_ip": "43.153.202.237",
+        "local_port": 62508,
+        "remote_port": 443,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 1,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "SSL connection timeout",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.002157,
+        "tcpAfterDNS": 1.121052,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": null
+      },
+      "dns": {
+        "host": "faucet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:12:42.171Z",
+        "finishedAt": "2026-09-19T16:12:42.257Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 239
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "host-window",
+      "round": 3,
+      "at": "2026-09-19T16:13:00.029Z",
+      "host": {
+        "schema": "ynx-transport-host-window/v1",
+        "startedAt": "2026-09-19T16:12:38.365152+00:00",
+        "readOnly": true,
+        "samples": [
+          {
+            "observedAt": "2026-09-19T16:12:38.365690+00:00",
+            "load": [
+              1.12939453125,
+              1.16455078125,
+              1.1748046875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688263,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903289,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998318,
+              "RetransSegs": 423669878
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 3,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:41.392177+00:00",
+            "load": [
+              1.12939453125,
+              1.16455078125,
+              1.1748046875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688265,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903291,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998318,
+              "RetransSegs": 423669882
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 3,
+              "ESTAB": 6
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:44.415849+00:00",
+            "load": [
+              1.11865234375,
+              1.16162109375,
+              1.173828125
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688282,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903303,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998319,
+              "RetransSegs": 423669903
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 3,
+              "ESTAB": 6
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:47.439677+00:00",
+            "load": [
+              1.11865234375,
+              1.16162109375,
+              1.173828125
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688285,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903306,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998319,
+              "RetransSegs": 423669907
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 4,
+              "ESTAB": 6
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:50.462741+00:00",
+            "load": [
+              1.189453125,
+              1.17578125,
+              1.1787109375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688289,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903309,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998319,
+              "RetransSegs": 423669912
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 4,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:53.487852+00:00",
+            "load": [
+              1.173828125,
+              1.1728515625,
+              1.177734375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688295,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903315,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998319,
+              "RetransSegs": 423669918
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 3,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:56.512932+00:00",
+            "load": [
+              1.173828125,
+              1.1728515625,
+              1.177734375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688300,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903319,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998319,
+              "RetransSegs": 423669923
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 3,
+              "ESTAB": 5
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:12:59.536229+00:00",
+            "load": [
+              1.15966796875,
+              1.169921875,
+              1.1767578125
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688300,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903319,
+              "AttemptFails": 1046862,
+              "EstabResets": 1998319,
+              "RetransSegs": 423669923
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "LAST-ACK": 3,
+              "ESTAB": 5
+            }
+          }
+        ],
+        "packetMetadata": {
+          "available": true,
+          "payloadRetained": false,
+          "rawPacketTextRetained": false,
+          "scope": "TCP443 metadata for SSH peer only; HTTPS egress may differ",
+          "sshPeerAddressSHA256": "1c7447ae33587dd449e17420d0bad697fa74debd3263f31da016ff5f728ddc10",
+          "exitCode": 0,
+          "boundedTimeout": false,
+          "events": [
+            {
+              "timestamp": "1789834360.535868",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": "S",
+              "sequence": "3742797679",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834360.535936",
+              "direction": "to-client",
+              "clientPort": 62505,
+              "flags": "S.",
+              "sequence": "2676657466",
+              "ack": "3742797680",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834360.640337",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2676657467",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834360.953240",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": "P.",
+              "sequence": "3742797680:3742798010",
+              "ack": "2676657467",
+              "length": 330
+            },
+            {
+              "timestamp": "1789834360.953303",
+              "direction": "to-client",
+              "clientPort": 62505,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3742798010",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834360.953722",
+              "direction": "to-client",
+              "clientPort": 62505,
+              "flags": "P.",
+              "sequence": "2676657467:2676659563",
+              "ack": "3742798010",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834360.953731",
+              "direction": "to-client",
+              "clientPort": 62505,
+              "flags": "P.",
+              "sequence": "2676659563:2676661259",
+              "ack": "3742798010",
+              "length": 1696
+            },
+            {
+              "timestamp": "1789834361.058306",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2676657467",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.058360",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2676657467",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.087836",
+              "direction": "to-client",
+              "clientPort": 62505,
+              "flags": ".",
+              "sequence": "2676657467:2676658515",
+              "ack": "3742798010",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834361.192452",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2676660611",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.192513",
+              "direction": "to-client",
+              "clientPort": 62505,
+              "flags": "P.",
+              "sequence": "2676660611:2676661259",
+              "ack": "3742798010",
+              "length": 648
+            },
+            {
+              "timestamp": "1789834361.507815",
+              "direction": "to-client",
+              "clientPort": 62505,
+              "flags": "P.",
+              "sequence": "2676660611:2676661259",
+              "ack": "3742798010",
+              "length": 648
+            },
+            {
+              "timestamp": "1789834361.581387",
+              "direction": "from-client",
+              "clientPort": 62500,
+              "flags": "S",
+              "sequence": "2132944898",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.581443",
+              "direction": "to-client",
+              "clientPort": 62500,
+              "flags": "S.",
+              "sequence": "2125391366",
+              "ack": "2132944899",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.582484",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": "S",
+              "sequence": "3925773875",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.582495",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": "S.",
+              "sequence": "2966024308",
+              "ack": "3925773876",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.614019",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2676661259",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.620274",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": "P.",
+              "sequence": "3742798010:3742798016",
+              "ack": "2676661259",
+              "length": 6
+            },
+            {
+              "timestamp": "1789834361.620300",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": "P.",
+              "sequence": "3742798016:3742798074",
+              "ack": "2676661259",
+              "length": 58
+            },
+            {
+              "timestamp": "1789834361.620341",
+              "direction": "to-client",
+              "clientPort": 62505,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3742798074",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.620891",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": "P.",
+              "sequence": "3742798074:3742798310",
+              "ack": "2676661259",
+              "length": 236
+            },
+            {
+              "timestamp": "1789834361.621524",
+              "direction": "to-client",
+              "clientPort": 62505,
+              "flags": "P.",
+              "sequence": "2676661259:2676661824",
+              "ack": "3742798310",
+              "length": 565
+            },
+            {
+              "timestamp": "1789834361.685716",
+              "direction": "from-client",
+              "clientPort": 62500,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2125391367",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.725878",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2676661824",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.726607",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": "P.",
+              "sequence": "3742798310:3742798334",
+              "ack": "2676661824",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834361.726738",
+              "direction": "to-client",
+              "clientPort": 62505,
+              "flags": "P.",
+              "sequence": "2676661824:2676661848",
+              "ack": "3742798334",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834361.726774",
+              "direction": "to-client",
+              "clientPort": 62505,
+              "flags": "F.",
+              "sequence": "2676661848",
+              "ack": "3742798334",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.753532",
+              "direction": "from-client",
+              "clientPort": 62507,
+              "flags": "S",
+              "sequence": "786592369",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.753585",
+              "direction": "to-client",
+              "clientPort": 62507,
+              "flags": "S.",
+              "sequence": "212963491",
+              "ack": "786592370",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.830607",
+              "direction": "from-client",
+              "clientPort": 62505,
+              "flags": "R",
+              "sequence": "3742798334",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.859556",
+              "direction": "from-client",
+              "clientPort": 62507,
+              "flags": ".",
+              "sequence": null,
+              "ack": "212963492",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.860949",
+              "direction": "from-client",
+              "clientPort": 62507,
+              "flags": "P.",
+              "sequence": "786592370:786592700",
+              "ack": "212963492",
+              "length": 330
+            },
+            {
+              "timestamp": "1789834361.860971",
+              "direction": "to-client",
+              "clientPort": 62507,
+              "flags": ".",
+              "sequence": null,
+              "ack": "786592700",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834361.861348",
+              "direction": "to-client",
+              "clientPort": 62507,
+              "flags": "P.",
+              "sequence": "212963492:212965588",
+              "ack": "786592700",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834361.861356",
+              "direction": "to-client",
+              "clientPort": 62507,
+              "flags": "P.",
+              "sequence": "212965588:212967282",
+              "ack": "786592700",
+              "length": 1694
+            },
+            {
+              "timestamp": "1789834362.000414",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "3925773876:3925774201",
+              "ack": "2966024309",
+              "length": 325
+            },
+            {
+              "timestamp": "1789834362.000502",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3925774201",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.001084",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": "2966024309:2966025357",
+              "ack": "3925774201",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834362.001095",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": "2966025357:2966026405",
+              "ack": "3925774201",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834362.001118",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": "2966026405:2966027453",
+              "ack": "3925774201",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834362.001121",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "2966027453:2966028076",
+              "ack": "3925774201",
+              "length": 623
+            },
+            {
+              "timestamp": "1789834362.083846",
+              "direction": "to-client",
+              "clientPort": 62507,
+              "flags": "P.",
+              "sequence": "212966636:212967282",
+              "ack": "786592700",
+              "length": 646
+            },
+            {
+              "timestamp": "1789834362.110519",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2966025357",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.110581",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2966026405",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.110581",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2966028076",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.115384",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "3925774201:3925774207",
+              "ack": "2966028076",
+              "length": 6
+            },
+            {
+              "timestamp": "1789834362.115384",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "3925774207:3925774265",
+              "ack": "2966028076",
+              "length": 58
+            },
+            {
+              "timestamp": "1789834362.115384",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "3925774265:3925774351",
+              "ack": "2966028076",
+              "length": 86
+            },
+            {
+              "timestamp": "1789834362.115384",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "3925774351:3925774476",
+              "ack": "2966028076",
+              "length": 125
+            },
+            {
+              "timestamp": "1789834362.115492",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3925774476",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.115646",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "2966028076:2966028137",
+              "ack": "3925774476",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834362.115683",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "2966028137:2966028181",
+              "ack": "3925774476",
+              "length": 44
+            },
+            {
+              "timestamp": "1789834362.116253",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "2966028181:2966028381",
+              "ack": "3925774476",
+              "length": 200
+            },
+            {
+              "timestamp": "1789834362.116288",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": "2966028381:2966029429",
+              "ack": "3925774476",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834362.116292",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": "2966029429:2966030477",
+              "ack": "3925774476",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834362.116384",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "2966030477:2966031363",
+              "ack": "3925774476",
+              "length": 886
+            },
+            {
+              "timestamp": "1789834362.221594",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2966028137",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.222513",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2966028381",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.222587",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2966031363",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.224049",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "3925774507:3925774531",
+              "ack": "2966031363",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834362.224080",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3925774476",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.331042",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": "3925774476:3925774507",
+              "ack": "2966031363",
+              "length": 31
+            },
+            {
+              "timestamp": "1789834362.331116",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3925774531",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.331201",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "2966031363:2966031387",
+              "ack": "3925774531",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834362.331271",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": "F.",
+              "sequence": "2966031387",
+              "ack": "3925774531",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.331814",
+              "direction": "from-client",
+              "clientPort": 62508,
+              "flags": "S",
+              "sequence": "3382717204",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.331852",
+              "direction": "to-client",
+              "clientPort": 62508,
+              "flags": "S.",
+              "sequence": "1803234438",
+              "ack": "3382717205",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.516031",
+              "direction": "from-client",
+              "clientPort": 62500,
+              "flags": "P.",
+              "sequence": "2132944899:2132945232",
+              "ack": "2125391367",
+              "length": 333
+            },
+            {
+              "timestamp": "1789834362.516104",
+              "direction": "to-client",
+              "clientPort": 62500,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2132945232",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.516654",
+              "direction": "to-client",
+              "clientPort": 62500,
+              "flags": "P.",
+              "sequence": "2125391367:2125393463",
+              "ack": "2132945232",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834362.516662",
+              "direction": "to-client",
+              "clientPort": 62500,
+              "flags": "P.",
+              "sequence": "2125393463:2125395152",
+              "ack": "2132945232",
+              "length": 1689
+            },
+            {
+              "timestamp": "1789834362.547849",
+              "direction": "to-client",
+              "clientPort": 62507,
+              "flags": ".",
+              "sequence": "212963492:212964540",
+              "ack": "786592700",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834362.621787",
+              "direction": "from-client",
+              "clientPort": 62500,
+              "flags": ".",
+              "sequence": null,
+              "ack": "2125391367",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.651814",
+              "direction": "to-client",
+              "clientPort": 62500,
+              "flags": "P.",
+              "sequence": "2125391367:2125393463",
+              "ack": "2132945232",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834362.827826",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": "F.",
+              "sequence": "2966031387",
+              "ack": "3925774531",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.836826",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": "F.",
+              "sequence": "3925774531",
+              "ack": "2966031363",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.836882",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3925774532",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834362.971832",
+              "direction": "to-client",
+              "clientPort": 62500,
+              "flags": ".",
+              "sequence": "2125391367:2125392415",
+              "ack": "2132945232",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834363.347849",
+              "direction": "to-client",
+              "clientPort": 62508,
+              "flags": "S.",
+              "sequence": "1803234438",
+              "ack": "3382717205",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834363.475850",
+              "direction": "to-client",
+              "clientPort": 62507,
+              "flags": ".",
+              "sequence": "212963492:212964540",
+              "ack": "786592700",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834363.491070",
+              "direction": "from-client",
+              "clientPort": 62507,
+              "flags": "P.",
+              "sequence": "786592700:786593000",
+              "ack": "212967282",
+              "length": 300
+            },
+            {
+              "timestamp": "1789834363.491970",
+              "direction": "to-client",
+              "clientPort": 62507,
+              "flags": "P.",
+              "sequence": "212967282:212967847",
+              "ack": "786593000",
+              "length": 565
+            },
+            {
+              "timestamp": "1789834363.578095",
+              "direction": "from-client",
+              "clientPort": 62500,
+              "flags": "R.",
+              "sequence": "2132945232",
+              "ack": "2125391367",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834363.597238",
+              "direction": "from-client",
+              "clientPort": 62507,
+              "flags": ".",
+              "sequence": null,
+              "ack": "212967847",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834363.618767",
+              "direction": "from-client",
+              "clientPort": 62509,
+              "flags": "S",
+              "sequence": "807028860",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834363.618841",
+              "direction": "to-client",
+              "clientPort": 62509,
+              "flags": "S.",
+              "sequence": "1174811382",
+              "ack": "807028861",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834363.723056",
+              "direction": "from-client",
+              "clientPort": 62509,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1174811383",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834363.987832",
+              "direction": "to-client",
+              "clientPort": 62499,
+              "flags": "P.",
+              "sequence": "2966031363:2966031387",
+              "ack": "3925774532",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834364.026426",
+              "direction": "from-client",
+              "clientPort": 62507,
+              "flags": "FP.",
+              "sequence": "786593000:786593024",
+              "ack": "212967847",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834364.026584",
+              "direction": "to-client",
+              "clientPort": 62507,
+              "flags": "P.",
+              "sequence": "212967847:212967871",
+              "ack": "786593025",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834364.026617",
+              "direction": "to-client",
+              "clientPort": 62507,
+              "flags": "F.",
+              "sequence": "212967871",
+              "ack": "786593025",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834364.093782",
+              "direction": "from-client",
+              "clientPort": 62499,
+              "flags": "R",
+              "sequence": "3925774532",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834364.132165",
+              "direction": "from-client",
+              "clientPort": 62507,
+              "flags": "R",
+              "sequence": "786593025",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834364.680340",
+              "direction": "from-client",
+              "clientPort": 62510,
+              "flags": "S",
+              "sequence": "713003322",
+              "ack": null,
+              "length": 0
+            },
+            {
+              "timestamp": "1789834364.680420",
+              "direction": "to-client",
+              "clientPort": 62510,
+              "flags": "S.",
+              "sequence": "1180276069",
+              "ack": "713003323",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834364.691810",
+              "direction": "to-client",
+              "clientPort": 62352,
+              "flags": ".",
+              "sequence": null,
+              "ack": "118425365",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834365.395848",
+              "direction": "to-client",
+              "clientPort": 62508,
+              "flags": "S.",
+              "sequence": "1803234438",
+              "ack": "3382717205",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834365.612131",
+              "direction": "from-client",
+              "clientPort": 62510,
+              "flags": "P.",
+              "sequence": "713003323:713003659",
+              "ack": "1180276070",
+              "length": 336
+            },
+            {
+              "timestamp": "1789834365.612203",
+              "direction": "to-client",
+              "clientPort": 62510,
+              "flags": ".",
+              "sequence": null,
+              "ack": "713003659",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834365.612726",
+              "direction": "to-client",
+              "clientPort": 62510,
+              "flags": ".",
+              "sequence": "1180276070:1180277118",
+              "ack": "713003659",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834365.612735",
+              "direction": "to-client",
+              "clientPort": 62510,
+              "flags": ".",
+              "sequence": "1180277118:1180278166",
+              "ack": "713003659",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834365.612757",
+              "direction": "to-client",
+              "clientPort": 62510,
+              "flags": ".",
+              "sequence": "1180278166:1180279214",
+              "ack": "713003659",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834365.612760",
+              "direction": "to-client",
+              "clientPort": 62510,
+              "flags": "P.",
+              "sequence": "1180279214:1180279861",
+              "ack": "713003659",
+              "length": 647
+            },
+            {
+              "timestamp": "1789834365.726527",
+              "direction": "from-client",
+              "clientPort": 62510,
+              "flags": "P.",
+              "sequence": "713003665:713003723",
+              "ack": "1180279861",
+              "length": 58
+            },
+            {
+              "timestamp": "1789834365.726555",
+              "direction": "to-client",
+              "clientPort": 62510,
+              "flags": ".",
+              "sequence": null,
+              "ack": "713003659",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834365.800257",
+              "direction": "from-client",
+              "clientPort": 62508,
+              "flags": "P.",
+              "sequence": "3382717205:3382717533",
+              "ack": "1803234439",
+              "length": 328
+            },
+            {
+              "timestamp": "1789834365.800303",
+              "direction": "to-client",
+              "clientPort": 62508,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3382717533",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834365.800778",
+              "direction": "to-client",
+              "clientPort": 62508,
+              "flags": ".",
+              "sequence": "1803234439:1803235487",
+              "ack": "3382717533",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834365.831464",
+              "direction": "from-client",
+              "clientPort": 62510,
+              "flags": ".",
+              "sequence": "713003659:713003665",
+              "ack": "1180279861",
+              "length": 6
+            },
+            {
+              "timestamp": "1789834365.831493",
+              "direction": "to-client",
+              "clientPort": 62510,
+              "flags": ".",
+              "sequence": null,
+              "ack": "713003723",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834365.831656",
+              "direction": "to-client",
+              "clientPort": 62510,
+              "flags": "P.",
+              "sequence": "1180279861:1180279922",
+              "ack": "713003723",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834366.739844",
+              "direction": "to-client",
+              "clientPort": 62409,
+              "flags": ".",
+              "sequence": null,
+              "ack": "3615250935",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834366.847159",
+              "direction": "from-client",
+              "clientPort": 62509,
+              "flags": "P.",
+              "sequence": "807028861:807029191",
+              "ack": "1174811383",
+              "length": 330
+            },
+            {
+              "timestamp": "1789834366.847219",
+              "direction": "to-client",
+              "clientPort": 62509,
+              "flags": ".",
+              "sequence": null,
+              "ack": "807029191",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834366.847637",
+              "direction": "to-client",
+              "clientPort": 62509,
+              "flags": "P.",
+              "sequence": "1174811383:1174813479",
+              "ack": "807029191",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834366.847646",
+              "direction": "to-client",
+              "clientPort": 62509,
+              "flags": "P.",
+              "sequence": "1174813479:1174815174",
+              "ack": "807029191",
+              "length": 1695
+            },
+            {
+              "timestamp": "1789834366.953385",
+              "direction": "from-client",
+              "clientPort": 62509,
+              "flags": ".",
+              "sequence": null,
+              "ack": "1174813479",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834367.022561",
+              "direction": "from-client",
+              "clientPort": 62510,
+              "flags": "P.",
+              "sequence": "713003723:713003976",
+              "ack": "1180279922",
+              "length": 253
+            },
+            {
+              "timestamp": "1789834367.022756",
+              "direction": "to-client",
+              "clientPort": 62510,
+              "flags": "P.",
+              "sequence": "1180279922:1180279957",
+              "ack": "713003976",
+              "length": 35
+            }
+          ],
+          "packetLimitReached": true
+        },
+        "details": {
+          "observedAt": "2026-09-19T16:12:59.561374+00:00",
+          "cpuCount": 8,
+          "kernel": "6.8.0-101-generic",
+          "caddyVersion": {
+            "exitCode": 0,
+            "output": "2.6.2\n"
+          },
+          "services": {
+            "exitCode": 0,
+            "output": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=132919296\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=13148241920\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9506816\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8572928\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n"
+          },
+          "sysctls": {
+            "exitCode": 0,
+            "output": "net.core.somaxconn = 4096\nnet.ipv4.tcp_max_syn_backlog = 2048\nnet.ipv4.tcp_syncookies = 1\nnet.ipv4.tcp_synack_retries = 5\nnet.ipv4.tcp_syn_retries = 6\nnet.ipv4.tcp_mtu_probing = 0\n"
+          },
+          "memoryKB": {
+            "MemTotal": 31956824,
+            "MemAvailable": 15011400,
+            "SwapFree": 1881608
+          },
+          "diskConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "loadedConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "caddyfileSHA256": {
+            "exitCode": 0,
+            "output": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9  /etc/caddy/Caddyfile\n"
+          },
+          "caddyJournal": {
+            "exitCode": 0,
+            "entries": 2,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "kernelJournal": {
+            "exitCode": 0,
+            "entries": 0,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "localProbes": [
+            {
+              "host": "rpc.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000156 0.023892 0.024762 0.024809 0"
+            },
+            {
+              "host": "rpc-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000140 0.023666 0.024606 0.024658 0"
+            },
+            {
+              "host": "faucet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000130 0.024491 0.026185 0.026225 0"
+            },
+            {
+              "host": "faucet-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000121 0.024404 0.026164 0.026208 0"
+            },
+            {
+              "port": 6420,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.000382 0.000420"
+            },
+            {
+              "port": 6428,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.001095 0.001135"
+            }
+          ]
+        },
+        "finishedAt": "2026-09-19T16:12:59.852847+00:00"
+      },
+      "withinWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 37,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 30,
+        "AttemptFails": 0,
+        "EstabResets": 1,
+        "RetransSegs": 45
+      },
+      "sincePreviousWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 58,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 46,
+        "AttemptFails": 0,
+        "EstabResets": 1,
+        "RetransSegs": 54
+      },
+      "coverage": [
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-rpc-legacy",
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-rpc-canonical",
+          "failure": true,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-faucet-canonical",
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-faucet-legacy",
+          "failure": true,
+          "clientWindowCovered": true
+        }
+      ],
+      "clockSkewNotCorrected": true,
+      "countersAreHostWide": true,
+      "requestFlowAttributionProven": false
+    },
+    {
+      "type": "round",
+      "round": 3,
+      "at": "2026-09-19T16:13:00.036Z",
+      "attempted": 4,
+      "healthy": 2,
+      "failed": 2
+    },
+    {
+      "type": "summary",
+      "schema": "ynx-testnet-transport-monitor/v1",
+      "runId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830",
+      "finishedAt": "2026-09-19T16:13:00.041Z",
+      "vantage": "macos-owner",
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-09-19T16:11:56.801Z",
+          "attempted": 4,
+          "healthy": 2,
+          "failed": 2
+        },
+        {
+          "round": 2,
+          "at": "2026-09-19T16:12:24.327Z",
+          "attempted": 4,
+          "healthy": 4,
+          "failed": 0
+        },
+        {
+          "round": 3,
+          "at": "2026-09-19T16:13:00.036Z",
+          "attempted": 4,
+          "healthy": 2,
+          "failed": 2
+        }
+      ],
+      "failures": [
+        {
+          "round": 1,
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-1-rpc-legacy",
+          "classification": "tls-verification-failed"
+        },
+        {
+          "round": 1,
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-1-rpc-canonical",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 3,
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-rpc-canonical",
+          "classification": "tls-verification-failed"
+        },
+        {
+          "round": 3,
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-faucet-legacy",
+          "classification": "tls-verification-failed"
+        }
+      ],
+      "interrupted": false,
+      "allSamplesHealthy": false,
+      "rootCauseConfirmed": false,
+      "continuousAvailabilityVerified": false,
+      "globalRegionalVerified": false,
+      "serviceChanges": 0,
+      "faucetClaims": 0,
+      "transactionSubmissions": 0
+    }
+  ]
+}
