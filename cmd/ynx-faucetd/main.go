@@ -41,6 +41,7 @@ func runFaucet() (result error) {
 	maxAmount := flag.Int64("max-amount", envInt64OrDefault("YNX_FAUCET_MAX_AMOUNT", 100), "max faucet amount")
 	window := flag.Duration("rate-window", envDurationOrDefault("YNX_FAUCET_RATE_LIMIT_WINDOW", time.Hour), "rate limit window")
 	maxRequests := flag.Int("rate-max", envIntOrDefault("YNX_FAUCET_RATE_LIMIT_MAX", 1), "max requests per receiving address in window")
+	healthTimeout := flag.Duration("health-timeout", envDurationOrDefault("YNX_FAUCET_HEALTH_TIMEOUT", 2*time.Second), "total read-only health probe deadline (at most 5s)")
 	flag.Parse()
 
 	coreTokenPath := strings.TrimSpace(os.Getenv("YNX_FAUCET_CORE_AUTH_TOKEN_FILE"))
@@ -65,6 +66,7 @@ func runFaucet() (result error) {
 		RequestLog:        *requestLog,
 		AdmissionPath:     *admissionPath,
 		MaxAdmissions:     *maxAdmissions,
+		HealthTimeout:     *healthTimeout,
 	})
 	if err != nil {
 		return err
