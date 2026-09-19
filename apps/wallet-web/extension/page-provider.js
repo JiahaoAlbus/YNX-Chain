@@ -22,11 +22,12 @@
     removeListener(event,listener){listeners.get(event)?.delete(listener);return provider},
   });
   Object.defineProperty(globalThis,"__YNX_COMPANION_PROVIDER_V1__",{value:provider});
-  const existing=window.ethereum;
-  if(!existing)Object.defineProperty(window,"ethereum",{value:provider,configurable:false,enumerable:true,writable:false});
-  else{const providers=Array.isArray(existing.providers)?existing.providers:[existing];if(!providers.includes(provider))providers.push(provider);if(!Array.isArray(existing.providers)){try{Object.defineProperty(existing,"providers",{value:providers,configurable:true})}catch{}}}
   const announcement=Object.freeze({info:provider.providerInfo,provider});
   const announce=()=>window.dispatchEvent(new CustomEvent("eip6963:announceProvider",{detail:announcement}));
   window.addEventListener("eip6963:requestProvider",announce);
   queueMicrotask(announce);
+  // Legacy discovery must not prevent independent EIP-6963 announcements or
+  // mutate another wallet's provider/collection. Later providers may replace
+  // our empty-slot fallback; this provider remains discoverable through events.
+  try{if(!window.ethereum)Object.defineProperty(window,"ethereum",{value:provider,configurable:true,enumerable:true,writable:true})}catch{}
 })();
