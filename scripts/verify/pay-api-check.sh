@@ -19,8 +19,23 @@ api_key="local-pay-api-key"
 webhook_key="local-pay-webhook-signing-key"
 merchant_id="merchant_pay_check"
 audit_log="$YNX_VERIFY_WORK/pay-gateway-audit.jsonl"
-payer="0x1111111111111111111111111111111111111111"
 payout="0x2222222222222222222222222222222222222222"
+transfer_payload="$YNX_VERIFY_WORK/pay-signed-transfer.json"
+payer="$(TRANSFER_TO="$payout" TRANSFER_PAYLOAD="$transfer_payload" node --input-type=module <<'NODE'
+import {randomBytes} from "node:crypto";
+import {writeFileSync} from "node:fs";
+import {createSignedNativeTransfer,ynxAddressFromEVM} from "./packages/wallet-auth/src/index.js";
+
+const signed=createSignedNativeTransfer({
+  accountSecret:randomBytes(32).toString("hex"),
+  to:ynxAddressFromEVM(process.env.TRANSFER_TO),
+  amount:25,
+  nonce:1,
+});
+writeFileSync(process.env.TRANSFER_PAYLOAD,signed.payload,{mode:0o600});
+process.stdout.write(signed.transaction.from);
+NODE
+)"
 
 YNX_PAY_GATEWAY_CHAIN_URL="$YNX_REST_URL" \
 YNX_PAY_GATEWAY_HTTP_ADDR=127.0.0.1:6431 \
@@ -65,14 +80,17 @@ invoice="$(curl -fsS -X POST "$pay_url/pay/invoices" "${auth[@]}" -H 'content-ty
 invoice_id="$(printf '%s' "$invoice" | ynx_json_field '["id"]')"
 curl -fsS "$pay_url/pay/invoices/$invoice_id" "${auth[@]}" >/dev/null
 
-curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' -d "{\"address\":\"$payer\",\"amount\":100}" >/dev/null
+curl -fsS -X POST "$YNX_REST_URL/faucet" \
+  -H 'content-type: application/json' \
+  -H "X-YNX-Faucet-Auth: $YNX_FAUCET_CORE_AUTH_TOKEN" \
+  -d "{\"address\":\"$payer\",\"amount\":100}" >/dev/null
 for _ in {1..80}; do
   account="$(curl -fsS "$YNX_REST_URL/accounts/$payer" 2>/dev/null || true)"
   [[ -n "$account" ]] && printf '%s' "$account" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")); process.exit((d.account?.balance ?? d.balance ?? 0) >= 100 ? 0 : 1)' && break
   sleep 0.1
 done
-transfer="$(curl -fsS -X POST "$YNX_REST_URL/transfer" -H 'content-type: application/json' -d "{\"from\":\"$payer\",\"to\":\"$payout\",\"amount\":25}")"
-transaction_hash="$(printf '%s' "$transfer" | ynx_json_field '["hash"]')"
+transfer="$(curl -fsS -X POST "$YNX_REST_URL/transactions/broadcast" -H 'content-type: application/json' --data-binary "@$transfer_payload")"
+transaction_hash="$(printf '%s' "$transfer" | ynx_json_field '["transaction"]["hash"]')"
 for _ in {1..80}; do
   transaction="$(curl -fsS "$YNX_REST_URL/txs/$transaction_hash" 2>/dev/null || true)"
   [[ -n "$transaction" ]] && printf '%s' "$transaction" | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")); process.exit((d.blockNumber ?? 0) > 0 ? 0 : 1)' && break

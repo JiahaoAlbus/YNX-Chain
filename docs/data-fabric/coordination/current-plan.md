@@ -2,8 +2,8 @@
 
 Status: `ACTIVE`
 Phase: `INTEGRATE`
-Engineering Source Commit: `ff649befd4399f742b5b6b3e64d3566fa9fa809e`
-Release Candidate: `ynx-data-fabric-ff649befd439`
+Engineering Source Commit: `fcb200141f92c046ece581aa63250de732c79bdf`
+Release Candidate: `ynx-data-fabric-fcb200141f92`
 
 ## Completed and protected
 
@@ -11,18 +11,18 @@ Release Candidate: `ynx-data-fabric-ff649befd439`
 - Evidence manifests no longer reference nonexistent tests or assets; the machine path validator is part of Quality Gates.
 - Reachable vulnerability `GO-2026-6061` was removed by upgrading `google.golang.org/grpc` from `v1.79.3` to `v1.82.1`.
 - Full repository tests, Data Fabric Race tests, Vet and `govulncheck` pass locally; reachable vulnerabilities are zero.
-- The aligned engineering Source Commit is frozen, present in the remote branch, and verified by successful GitHub Actions run `30488889722` at descendant checkpoint `a737b19c92ae53f89792694cfe0d6de16567ae49`.
-- Source-only prerelease `data-fabric-v0.2.0-source-candidate` is published at checkpoint `8cbc3dba0cbd139a0ba6bf7ba716b406856b32f5`; all seven assets were downloaded and their SHA-256 values matched, including archive digest `83f7f9ab449a61dcc1fe4006889f230b0c662b4678d522b1f0e6499eb81df848`.
+- The aligned engineering Source Commit is frozen at the pushed Weekly v3 integration checkpoint; exact local quality gates are being rerun and remote CI evidence remains pending until a successful descendant run is recorded.
+- The previous source-only prerelease is historical evidence and is not carried forward as proof for this source. A new source candidate remains pending.
 - Central integration, shared Testnet, staging, public deployment, hosted download and production signing remain false without direct receipts.
 
 ## Current slice
 
-1. Publish the source-only prerelease from the protected evidence checkpoint and verify every downloaded asset digest.
-2. Record the immutable source-candidate receipt without changing public download or production-signing states.
+1. Complete exact local and hosted CI verification for the pushed Weekly v3 integration source.
+2. Prepare a new source-only candidate only after the integration source is accepted, without changing public download or production-signing states.
 3. Apply strict branch protection to the exact product and repository checks.
 4. Submit the frozen contract to Product 29 for central acceptance.
 5. Resume shared-Testnet work only from accepted authorities and approved infrastructure.
 
 ## Exact next action
 
-Publish and back-read the source-only candidate, then hand the exact frozen contract and test vectors to central integration. Keep shared-Testnet, staging and public states false until direct evidence exists.
+Complete hosted CI for the frozen integration source, then hand the exact frozen contract and test vectors to central integration. Publish and back-read a new source-only candidate only after acceptance. Keep shared-Testnet, staging and public states false until direct evidence exists.
