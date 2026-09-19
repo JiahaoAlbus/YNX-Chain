@@ -84,7 +84,8 @@ export class StandardWalletConnection {
   }
 
   /**
-   * Explicitly revoke eth_accounts, then confirm account exposure is empty.
+   * Explicitly revoke eth_accounts, then confirm both empty account exposure
+   * and absence of its permission. A locked wallet can hide still-granted accounts.
    * permissionRevoked=false means unconfirmed, not that a remote grant remains.
    * disconnect() is a separate local action. Neither revokes token approvals.
    */
@@ -111,10 +112,23 @@ export class StandardWalletConnection {
       const accountsVersion = this.#accountsVersion;
       const accounts = await this.request({ method: "eth_accounts" });
       this.#assertRevocation(operation);
-      if (!Array.isArray(accounts) || accounts.length !== 0 ||
-        (accountsVersion !== this.#accountsVersion && (!Array.isArray(this.#lastAccounts) || this.#lastAccounts.length !== 0))) {
-        throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet account revocation was not confirmed");
-      }
+      const assertAccountsAbsent = () => {
+        if (!Array.isArray(accounts) || accounts.length !== 0 ||
+          (accountsVersion !== this.#accountsVersion && (!Array.isArray(this.#lastAccounts) || this.#lastAccounts.length !== 0))) {
+          throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet account revocation was not confirmed");
+        }
+      };
+      assertAccountsAbsent();
+      this.#assertRevocation(operation);
+      const permissions = await this.request({ method: "wallet_getPermissions" });
+      this.#assertRevocation(operation);
+      if (!accountPermissionAbsent(permissions)) throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet permission revocation was not confirmed");
+      // A reconnecting account event during the permission read must not be
+      // overwritten by the earlier empty account response.
+      assertAccountsAbsent();
+      // Provider-owned Proxy traps can reenter connect() during either readback
+      // validation. Check intent again after inspecting all external values.
+      this.#assertRevocation(operation);
       // Empty accounts/disconnect events during revocation are expected. Only a
       // newer explicit intent supersedes it; no old completion clears that intent.
       this.#revocation = null;
@@ -215,6 +229,20 @@ function metadata(value) { return typeof value === "object" && value !== null &&
 function canonicalChain(value) { return typeof value === "string" && /^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(value); }
 function firstAccount(value) { if (!Array.isArray(value) || value.length < 1 || value.length > 1024 || typeof value[0] !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(value[0])) throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet did not approve a valid EVM account"); return value[0].toLowerCase(); }
 function revokeAcknowledged(value) { return value === null || (typeof value === "object" && value !== null && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null) && Object.keys(value).length === 0); }
+function accountPermissionAbsent(value) {
+  if (!Array.isArray(value) || value.length > 1024) return false;
+  for (let i = 0; i < value.length; i++) {
+    const entry = Object.getOwnPropertyDescriptor(value, String(i));
+    if (!entry || !Object.hasOwn(entry, "value")) return false;
+    const item = entry.value;
+    if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
+    const field = Object.getOwnPropertyDescriptor(item, "parentCapability");
+    if (!field || !Object.hasOwn(field, "value")) return false;
+    const capability = field.value;
+    if (typeof capability !== "string" || capability.length < 1 || capability.length > 256 || capability === "eth_accounts") return false;
+  }
+  return true;
+}
 function providerError(code, message) { return new Eip1193ProviderError(code, message); }
 function normalizeProviderError(error) {
   const code = (() => { try { return Number(error?.code); } catch { return NaN; } })();

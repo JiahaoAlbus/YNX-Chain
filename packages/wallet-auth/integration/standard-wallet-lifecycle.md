@@ -58,7 +58,11 @@ Both connect and restore use the provider passed to the constructor.
 `revoke()` returns `{status, permissionRevoked, locallyDisconnected, error?}`.
 Its statuses are `revoked`, `unsupported`, `rejected`, `failed`, or `superseded`.
 Only acknowledged `wallet_revokePermissions([{eth_accounts:{}}])` followed by
-an empty `eth_accounts` readback confirms `permissionRevoked: true`. False means
+an empty `eth_accounts` readback plus a valid `wallet_getPermissions` list without
+`eth_accounts` confirms `permissionRevoked: true`. A locked wallet can return no
+accounts while retaining a permission; unsupported or malformed permission
+readback therefore stays unconfirmed. Account events and newer connection intents
+received during either readback prevent stale cleanup. False means
 unconfirmed, not proof that the remote permission remains. Error outcomes do
 not manufacture successful logout; actual provider events may independently
 clear the local snapshot. A later explicit connection intent supersedes an old

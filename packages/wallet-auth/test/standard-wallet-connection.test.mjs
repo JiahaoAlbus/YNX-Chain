@@ -191,7 +191,7 @@ test("explicit revoke requires acknowledgement and empty readback; expected prov
     const first = client.revoke(); assert.equal(client.revoke(), first); await entered.promise; assert.equal(client.revoke(), first); pending.resolve(acknowledgement);
     assert.deepEqual(await first, { status: "revoked", permissionRevoked: true, locallyDisconnected: true });
     assert.equal(client.current, null); assert.equal(wallet.listenerCount("accountsChanged"), 0);
-    assert.deepEqual(calls, [{ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] }, { method: "eth_accounts" }]);
+    assert.deepEqual(calls, [{ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] }, { method: "eth_accounts" }, { method: "wallet_getPermissions" }]);
   }
 });
 
@@ -213,12 +213,12 @@ test("revoke readback failure and malformed acknowledgements do not claim permis
   }
 });
 
-test("new connect at either revoke await prevents old local cleanup", async () => {
-  for (const stage of ["wallet_revokePermissions", "eth_accounts"]) {
+test("new connect at every revoke await prevents old local cleanup", async () => {
+  for (const stage of ["wallet_revokePermissions", "eth_accounts", "wallet_getPermissions"]) {
     const pending = deferred(), entered = deferred(); let hold = true;
-    const wallet = provider(async ({ method }) => { if (hold && method === stage) { hold = false; entered.resolve(); return pending.promise; } return method === "wallet_revokePermissions" ? null : method === "eth_chainId" ? "0xa" : [OTHER_ACCOUNT]; });
+    const wallet = provider(async ({ method }) => { if (hold && method === stage) { hold = false; entered.resolve(); return pending.promise; } return method === "wallet_revokePermissions" ? null : method === "eth_accounts" && stage === "wallet_getPermissions" ? [] : method === "eth_chainId" ? "0xa" : [OTHER_ACCOUNT]; });
     const client = connection(wallet); await client.connect(); const revoking = client.revoke(); await entered.promise;
-    const session = await client.connect(); pending.resolve(stage === "eth_accounts" ? [] : null);
+    const session = await client.connect(); pending.resolve(stage === "wallet_revokePermissions" ? null : []);
     const r = await revoking; assert.equal(r.status, "superseded"); assert.equal(r.error.code, 4100); assert.equal(r.permissionRevoked, false); assert.equal(r.locallyDisconnected, false); assert.equal(client.current, session);
   }
 });
@@ -247,9 +247,87 @@ test("old revoke finally cannot erase a replacement single flight", async () => 
 
 test("revoke completion may reenter connect without losing its session or listeners", async () => {
   let reconnect;
-  const wallet = provider(async ({ method }) => method === "wallet_revokePermissions" ? null : method === "eth_accounts" ? [] : method === "eth_chainId" ? "0x1" : [OTHER_ACCOUNT]);
+  const wallet = provider(async ({ method }) => method === "wallet_revokePermissions" ? null : ["eth_accounts", "wallet_getPermissions"].includes(method) ? [] : method === "eth_chainId" ? "0x1" : [OTHER_ACCOUNT]);
   const client = connection(wallet); await client.connect();
   client.subscribe(({ event }) => { if (event === "disconnect") reconnect = client.connect(); });
   assert.equal((await client.revoke()).status, "revoked"); await reconnect;
   assert.equal(client.current.selectedAccount, OTHER_ACCOUNT); assert.equal(wallet.listenerCount("accountsChanged"), 1);
+});
+test("a locked account list does not prove that its existing permission was revoked", async () => {
+  const calls = [];
+  const wallet = provider(async ({ method }) => {
+    calls.push(method);
+    if (method === "wallet_revokePermissions") return null;
+    if (method === "eth_accounts") return [];
+    if (method === "wallet_getPermissions") return [{ parentCapability: "eth_accounts", caveats: [] }];
+    return method === "eth_chainId" ? "0x1917" : [ACCOUNT];
+  });
+  const client = connection(wallet), session = await client.connect(); calls.length = 0;
+  const result = await client.revoke();
+  assert.equal(result.status, "failed"); assert.equal(result.permissionRevoked, false);
+  assert.equal(client.current, session);
+  assert.deepEqual(calls, ["wallet_revokePermissions", "eth_accounts", "wallet_getPermissions"]);
+});
+test("missing, malformed or unsupported permission readback stays unconfirmed", async () => {
+  let accessorReads = 0;
+  const accessor = Object.defineProperty({}, "parentCapability", { get() { accessorReads++; return "other"; } });
+  for (const permissions of [null, {}, ["eth_accounts"], [{}], [{parentCapability:""}], Array(1), [accessor], Object.assign(Error("unsupported"), {code:4200})]) {
+    const wallet = provider(async ({ method }) => {
+      if (method === "wallet_revokePermissions") return {};
+      if (method === "eth_accounts") return [];
+      if (method === "wallet_getPermissions") { if (permissions instanceof Error) throw permissions; return permissions; }
+      return method === "eth_chainId" ? "0x1917" : [ACCOUNT];
+    });
+    const client = connection(wallet), session = await client.connect();
+    const result = await client.revoke();
+    assert.equal(result.status, "failed"); assert.equal(result.permissionRevoked, false); assert.equal(client.current, session);
+  }
+  assert.equal(accessorReads, 0);
+});
+
+test("removing the account permission does not require removing unrelated capabilities", async () => {
+  const wallet = provider(async ({method}) => method === "wallet_revokePermissions" ? {} : method === "wallet_getPermissions" ? [{parentCapability:"wallet_snap", caveats:[]}] : []);
+  assert.deepEqual(await connection(wallet).revoke(), {status:"revoked",permissionRevoked:true,locallyDisconnected:true});
+});
+
+test("account exposure during permission readback prevents stale local cleanup", async () => {
+  const wallet = provider(async ({method}) => {
+    if (method === "wallet_revokePermissions") return null;
+    if (method === "eth_accounts") return [];
+    if (method === "wallet_getPermissions") { wallet.emit("accountsChanged", [OTHER_ACCOUNT]); return []; }
+    return method === "eth_chainId" ? "0x1917" : [ACCOUNT];
+  });
+  const client = connection(wallet); await client.connect();
+  const result = await client.revoke();
+  assert.equal(result.status, "failed"); assert.equal(result.permissionRevoked, false); assert.equal(client.current.selectedAccount, OTHER_ACCOUNT);
+});
+
+test("readback Proxy reentry cannot let an old revoke cancel a newer connection", async () => {
+  for (const trigger of ["permission-descriptor", "first-account-length", "final-account-length"]) {
+    let client, reconnect, accountLengthReads = 0;
+    const reenter = () => { if (!reconnect) reconnect = client.connect(); };
+    const accounts = new Proxy([], { get(target, key, receiver) {
+      if (key === "length" && ++accountLengthReads === (trigger === "first-account-length" ? 1 : 2) && trigger !== "permission-descriptor") reenter();
+      return Reflect.get(target, key, receiver);
+    } });
+    const permission = new Proxy({ parentCapability: "wallet_snap" }, { getOwnPropertyDescriptor(target, key) {
+      if (key === "parentCapability" && trigger === "permission-descriptor") reenter();
+      return Reflect.getOwnPropertyDescriptor(target, key);
+    } });
+    const wallet = provider(async ({ method }) => {
+      if (method === "wallet_revokePermissions") return null;
+      if (method === "eth_accounts") return accounts;
+      if (method === "wallet_getPermissions") return [permission];
+      return method === "eth_chainId" ? "0x1917" : [OTHER_ACCOUNT];
+    });
+    client = connection(wallet); await client.connect();
+    const result = await client.revoke();
+    assert.ok(reconnect, trigger);
+    const session = await reconnect;
+    assert.equal(result.status, "superseded", trigger);
+    assert.equal(result.permissionRevoked, false);
+    assert.equal(client.current, session);
+    assert.equal(session.selectedAccount, OTHER_ACCOUNT);
+    assert.equal(wallet.listenerCount("accountsChanged"), 1);
+  }
 });
