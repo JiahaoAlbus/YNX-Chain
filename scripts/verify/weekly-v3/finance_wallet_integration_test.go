@@ -60,7 +60,7 @@ func weeklyServer(t *testing.T) (*Server, *httptest.Server, string, time.Time) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = store.PutBrokerSandboxMapping("ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80", "01234567-89ab-4cde-8fab-0123456789ab", now)
+	_, err = store.PutBrokerSandboxMappingWithWalletKey("ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80", "01234567-89ab-4cde-8fab-0123456789ab", "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,6 +76,9 @@ func weeklyServer(t *testing.T) (*Server, *httptest.Server, string, time.Time) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Real browser search uses the actual server route and actual adapter, but
+	// every provider socket remains pinned to this isolated public-data fixture.
+	server.broker, _ = weeklyAlpaca(t, false)
 	local := httptest.NewServer(server.Handler())
 	t.Cleanup(local.Close)
 	return server, local, statePath, now
@@ -491,8 +494,19 @@ func TestWeeklyV3ProviderEventsAcceptProviderWire(t *testing.T) {
 	if err != nil {
 		t.Fatalf("complete official TradeUpdateEventV2New example rejected: %v", err)
 	}
-	if len(events) != 1 || cursor != envelope["event_id"] || events[0].Timestamp.Format(time.RFC3339Nano) != envelope["at"] || events[0].Order.Symbol != "TSLA" {
+	// The normalized model documents occurrence time (timestamp), with at as
+	// fallback; do not incorrectly require equality with publication time.
+	if len(events) != 1 || cursor != envelope["event_id"] || events[0].Timestamp.Format(time.RFC3339Nano) != envelope["timestamp"] || events[0].Order.Symbol != "TSLA" {
 		t.Fatalf("official event lost identity or at/timestamp semantics: %+v cursor=%s", events, cursor)
+	}
+	delete(envelope, "timestamp")
+	wire, err = json.Marshal(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, _, err = brokerage.ParseTradeEventStream(strings.NewReader(fmt.Sprintf("id: %s\nevent: trade_updates\ndata: %s\n\n", envelope["event_id"], wire)), envelope["account_id"].(string), 10)
+	if err != nil || len(events) != 1 || events[0].Timestamp.Format(time.RFC3339Nano) != envelope["at"] {
+		t.Fatalf("documented at-only event timestamp fallback failed: %+v %v", events, err)
 	}
 }
 
@@ -542,12 +556,12 @@ func TestWeeklyV3TradingAccountWirePrecision(t *testing.T) {
 
 func TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch(t *testing.T) {
 	for _, flag := range []string{"account_blocked", "trading_blocked", "trade_suspended_by_user"} {
-		for _, variant := range []string{"true", "missing", "wrong_type"} {
+		for _, variant := range []string{"true", "missing", "null", "wrong_type"} {
 			t.Run(flag+"_"+variant, func(t *testing.T) {
 				server, _, _, now := weeklyServer(t)
 				challenge := weeklyApproved(t, server)
 				adapter, provider := weeklyAlpaca(t, false)
-				value := map[string]any{"true": true, "missing": nil, "wrong_type": "false"}[variant]
+				value := map[string]any{"true": true, "missing": nil, "null": json.RawMessage("null"), "wrong_type": "false"}[variant]
 				provider.accountOverrides[flag] = value
 				dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
 				_, err := dispatcher.Dispatch(context.Background(), challenge.Unsigned.Account, challenge.Unsigned.Order.OrderID)
@@ -640,6 +654,9 @@ func TestWeeklyV3FullBrowserWalletServerFlow(t *testing.T) {
 				if len(workspace.Orders) != 1 {
 					t.Fatal("full path did not create exactly one logical order")
 				}
+				if len(workspace.Watchlist) != 1 || workspace.Watchlist[0].Symbol != "ACME" {
+					t.Fatalf("actual search/select/watchlist flow did not persist owner asset: %+v", workspace.Watchlist)
+				}
 				if decision != "approve" {
 					expected := "rejected"
 					if decision == "revoke" {
@@ -661,6 +678,7 @@ func TestWeeklyV3FullBrowserWalletServerFlow(t *testing.T) {
 					t.Fatal(err)
 				}
 				dispatcher.Store = reopened
+				server.service.Store = reopened
 				if _, err := dispatcher.Reconcile(context.Background(), account); err != nil {
 					t.Fatal(err)
 				}
@@ -702,6 +720,18 @@ func TestWeeklyV3FullBrowserWalletServerFlow(t *testing.T) {
 					t.Fatal("provider partial-fill event did not advance order")
 				}
 				dispatcher.Now = func() time.Time { return now.Add(2 * time.Minute) }
+				// A newly created browser context reloads persisted watchlist/order
+				// state and uses the real user cancellation route before the worker.
+				cancelView := weeklyBridge(t, map[string]any{"mode": "workspace", "action": "cancel", "confirm": true, "base": local.URL, "orderId": record.Order.OrderID})
+				if !strings.Contains(string(cancelView["watchlist"]), "ACME") || reopened.BrokerWorkspace(account, now).Orders[0].State != "cancel_requested" {
+					t.Fatalf("browser reload/cancel intent failed: %+v", cancelView)
+				}
+				provider.mu.Lock()
+				deletesBeforeWorker := provider.deletes
+				provider.mu.Unlock()
+				if deletesBeforeWorker != 0 {
+					t.Fatal("browser cancel intent performed a provider write")
+				}
 				if _, err := dispatcher.Cancel(context.Background(), account, record.Order.OrderID); err != nil {
 					t.Fatal(err)
 				}
@@ -710,6 +740,13 @@ func TestWeeklyV3FullBrowserWalletServerFlow(t *testing.T) {
 				}
 				if reopened.BrokerWorkspace(account, now).Orders[0].State != "canceled" {
 					t.Fatal("full flow cancellation reconciliation failed")
+				}
+				// Browser reconciliation reads the same local provider state. Its
+				// adapter is replaced only to share the synthetic order lifecycle.
+				server.broker = adapter
+				finalView := weeklyBridge(t, map[string]any{"mode": "workspace", "action": "reconcile", "confirm": true, "base": local.URL})
+				if !strings.Contains(string(finalView["orders"]), "canceled") {
+					t.Fatalf("browser reconciliation did not render canceled: %+v", finalView)
 				}
 				provider.mu.Lock()
 				defer provider.mu.Unlock()

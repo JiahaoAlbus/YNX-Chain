@@ -1,6 +1,57 @@
 # Weekly v3 cross-product integration checkpoint
 
-## Current status: official-wire correction awaiting product checkpoint
+## Current result: complete wire fixtures and expanded local flow PASS
+
+Finance frozen checkpoint `b46bdae971fef9a4fd1f4b210e4aaf3174a25c3b`
+(tree `0c4d47c99d13946b58b10f29cdf58911dfb7227a`) and Wallet
+`bd977cd2d382c4c43a435c8e415e698205b8a102` pass **16 root groups / 44 leaf
+cases**, Go race enabled, without a diagnostic Date adapter. Owner source and
+integration asset hashes remain unchanged throughout; published branch heads
+match. Evidence:
+`release/evidence/weekly-v3-cross-product-b46bdae9-bd977cd2-20260919.json`.
+
+The browser bridge now follows actual provider-backed search/rendered Select,
+watchlist update, quote and account reads before manual or AI-copy approval.
+It never injects selected-asset state. The approved flow then exercises actual
+Wallet/server signatures and durable CAS, adapter preflight, lost ACK, reopen,
+partial event, non-mutating duplicate, a fresh browser context with persisted
+watchlist, confirmed user cancellation intent, worker cancellation and browser
+reconciliation. Browser cancellation is explicitly asserted to send zero provider
+DELETEs before the worker. AI results remain labelled fixtures, not a model run.
+
+The mapping fixture uses the new server-owned Wallet-key mapping API, with the
+same frozen public test key, not manual browser public-key entry. Complete public
+wire examples remain byte-content pinned. Twelve account-fence cases cover true,
+missing, null and wrong-type values for all three required safety flags; all
+prevent provider POST. Exact decimal precision and valid distinct timestamps pass.
+
+The first `1f4cc12f` run exposed missing flags being treated as false (real Finance
+defect), plus two integration defects: outdated search-less browser flow and an
+overstrict expectation that normalized occurrence time must equal publication
+time. The latter are corrected in this test harness without modifying official
+examples. Both timestamps are independently checked, and at-only fallback is
+tested. Finance repaired the required-flag defect in `b01841ad`.
+
+The `b01841ad` test run passed all tests but was **not accepted**: an owner evidence
+file appeared during execution, so the source-stability gate stayed false. Both
+initial reports are preserved as `weekly-v3-cross-product-1f4cc12f-initial-failures-20260919.json`
+and `weekly-v3-cross-product-b01841ad-unstable-input-20260919.json` in
+`release/evidence/`. The accepted run waited for the final frozen `b46bdae9`.
+
+Independent regression on product implementation `b01841ad`: all
+`go test -race -count=1 ./internal/finance/... ./apps/finance/cmd/...` packages
+pass and Finance `npm test` passes 59/59. The only change from that implementation
+to final `b46bdae9` is its preserved evidence JSON. The 9 fixture-integrity and
+5 runner-guard tests also pass. These are separate from official/live acceptance.
+
+`localFixtureEndToEndVerified=true`; `stageAComplete=false`,
+`crossProductE2EVerified=false`, `officialSandboxVerified=false`,
+`publicDeployed=false`, `publicVerified=false`, `productionApproved=false`.
+The suite does not prove installed GUI, live AI generation, authenticated provider
+event transport, deployed Product Session authority, or every Stage A operator
+activation requirement. Those need their own scope-matched evidence.
+
+## Official-wire correction provenance
 
 The historical local PASS below remains valid only for its deliberately scoped
 old fixtures. Subsequent official-document inspection found that those fixtures
@@ -16,7 +67,7 @@ Sandbox account data. An independent nine-test integrity suite checks their
 content and rejects weakened fixtures; five runner-guard tests use only temporary
 local Git repositories to reject dirty, mismatched or unpublished inputs and
 preserve historical evidence. Product integration on these corrected
-fixtures is pending a new clean, pushed Finance checkpoint.
+fixtures passes at the frozen checkpoint above.
 
 Corrections and additional assertions:
 
@@ -37,9 +88,9 @@ Corrections and additional assertions:
   Integration asset hashes are checked before and after the test, as are product
   source identities. A local PASS still does not set `stageAComplete=true`.
 
-Credential-independent work still requires complete Finance navigation/search,
-watchlist, user cancellation/reconciliation, worker event transport and activation
-tooling acceptance. Finance owns those implementations. This integration writer
+Search, watchlist and user cancellation/reconciliation now have the local flow
+evidence above. Worker event transport, AI generation and activation tooling need
+their own complete acceptance evidence. Finance owns those implementations. This integration writer
 does not patch Finance or Wallet product source or activate deployment.
 
 Preparation checks:
@@ -116,7 +167,7 @@ From this network worktree:
 ```sh
 node scripts/verify/weekly-v3-finance-wallet-integration.mjs \
   --finance-worktree /path/to/exact-finance-checkout \
-  --finance-commit FULL_NEW_CLEAN_PUSHED_FINANCE_COMMIT \
+  --finance-commit b46bdae971fef9a4fd1f4b210e4aaf3174a25c3b \
   --wallet-worktree /path/to/exact-wallet-checkout \
   --wallet-commit bd977cd2d382c4c43a435c8e415e698205b8a102 \
   --output /path/to/new-evidence.json
