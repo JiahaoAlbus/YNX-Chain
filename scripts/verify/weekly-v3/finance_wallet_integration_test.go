@@ -241,6 +241,10 @@ type weeklyProvider struct {
 	positionQty       string
 	positionAvailable string
 	cancelMode        string
+	pages             [][]map[string]any
+	pageReads         int
+	quoteTimestamp    string
+	quoteHTTPStatus   int
 }
 
 // These are complete public documentation examples, not live provider responses.
@@ -299,7 +303,15 @@ func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvi
 		case r.Method == "GET" && r.URL.Path == "/v1/assets":
 			_ = json.NewEncoder(w).Encode([]map[string]any{{"id": "11111111-2222-4333-8444-555555555555", "symbol": "ACME", "name": "Public synthetic equity fixture", "class": "us_equity", "status": "active", "tradable": true}})
 		case r.Method == "GET" && r.URL.Path == "/v2/stocks/ACME/quotes/latest":
-			_ = json.NewEncoder(w).Encode(map[string]any{"symbol": "ACME", "quote": map[string]any{"ap": 125.34, "as": 100, "bp": 125.33, "bs": 100, "t": "2026-09-19T09:00:30Z"}})
+			if p.quoteHTTPStatus != 0 {
+				http.Error(w, "synthetic entitlement failure", p.quoteHTTPStatus)
+				return
+			}
+			stamp := p.quoteTimestamp
+			if stamp == "" {
+				stamp = "2026-09-19T09:00:30Z"
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"symbol": "ACME", "quote": map[string]any{"ap": 125.34, "as": 100, "bp": 125.33, "bs": 100, "t": stamp}})
 		case r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/orders"):
 			p.posts++
 			var body map[string]any
@@ -360,6 +372,20 @@ func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvi
 			}
 			_ = json.NewEncoder(w).Encode(positions)
 		case strings.HasSuffix(r.URL.Path, "/orders"):
+			if p.pages != nil {
+				p.pageReads++
+				w.Header().Set("X-Request-ID", fmt.Sprintf("isolated-page-%d", p.pageReads))
+				index := 0
+				if r.URL.Query().Get("after") != "" {
+					if r.URL.Query().Get("after") != p.pages[0][499]["submitted_at"] {
+						http.Error(w, "unexpected pagination token", 400)
+						return
+					}
+					index = 1
+				}
+				_ = json.NewEncoder(w).Encode(p.pages[index])
+				return
+			}
 			orders := []any{}
 			if p.order != nil {
 				orders = append(orders, p.order)

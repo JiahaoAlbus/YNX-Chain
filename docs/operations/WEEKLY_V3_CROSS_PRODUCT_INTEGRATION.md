@@ -1,6 +1,65 @@
 # Weekly v3 cross-product integration checkpoint
 
+## Latest expanded Stage A acceptance: strict AI schema defect found
+
+Frozen Finance `f8c55f3c96fc3a5db374bc77a3cbef4ce156523d` (tree
+`d56d2eb8ba3e4ecf1faa86ed83a909ee87f9d618`) and Wallet `bd977cd2d` were
+tested without changing either owner worktree. The expanded suite has 26 root
+groups / 81 leaf cases: **78 pass, 3 fail**, with both product and harness
+stability gates true. This is NOT an all-pass acceptance checkpoint.
+
+The three failures traverse actual Finance HTTP job creation, actual Gateway
+HTTP/SSE parsing and persisted AI job state. Otherwise-valid model results with
+`qty="2/1"`, `limitPrice="1e2"`, or root `execute=true` become `ready`, rather
+than failing strict schema validation. No executable order or provider write is
+created by the AI cases. This is a draft-validation defect, not evidence of a
+Wallet or order-approval bypass. It was returned to the sole coordinator for
+Finance-owner repair; integration does not edit Finance source.
+
+Evidence is preserved in
+`release/evidence/weekly-v3-cross-product-f8c55f3c-strict-schema-20260919.json`.
+Earlier narrower runs (`initial`, `recovery`, `operator` suffixes) remain intact;
+the operator run passes 26 roots / 78 leaves but predates the three new negative
+schema cases, so it cannot certify the expanded suite.
+
+New passing coverage includes:
+
+- Real Gateway fragmented SSE → Finance HTTP job → durable reopen → actual
+  browser copy into a reviewed draft, with no private request during copy.
+  Malformed/truncated/prose/auth/rate-limited results do not become usable jobs.
+- Real Wallet-approved held-position sell and insufficient available holdings;
+  partial-fill cancellation race and cancellation lost-ACK without blind retry.
+- Real adapter TLS polling across 501 complete-shaped orders, finding an unknown
+  target on page two after reopening state; exactly one provider POST remains.
+- Persistent independent event/poll checkpoints, equal-time different orders,
+  duplicate and cross-tenant rejection, authenticated recovery output and no
+  checkpoint leakage to another owner.
+- Quote wire state and execution fences: fresh/delayed/old/future/unentitled.
+  The display's delayed label does not imply execution eligibility: the separate
+  execution preflight rejects quotes older than two minutes.
+- Actual operator `doctor` / read-only `sandbox-verify` probe with fixture auth,
+  mapping/account/assets/positions/orders/quote, unchanged state and zero writes;
+  disabled activation plans perform zero network requests.
+- Actual Wallet controller signature → `verify-approved` command → provider
+  POST/query/DELETE/reconcile → persisted canceled state and audit receipt;
+  repeat invocation cannot repeat writes. Disabled writes, missing approval and
+  invalid configured database are rejected without provider I/O or file changes.
+
+All provider sockets are pinned to ephemeral loopback TLS fixtures. The AI
+Gateway is a deterministic local responder, not a real model. Command overlays
+are injected with Go `-overlay`; owner files are not modified. PostgreSQL
+success/multi-host persistence and installed GUI are not verified by these tests.
+
+Independent frozen-Finance regressions pass: Go race across Finance and command
+packages, plus npm 59/59. Harness self-tests pass 35/35. `stageAComplete=false`,
+`officialSandboxVerified=false`, `publicDeployed=false`, `publicVerified=false`,
+`productionApproved=false`. The attachment's Stage B means official credentialed
+Sandbox verification and has NOT started; owner checkpoint labels do not change
+that definition.
+
 ## Stage A completion-pack tests in preparation (not product acceptance)
+
+Historical preparation record (superseded by the expanded tests above):
 
 Following the coordinator's read-only scope audit, a second integration-only
 writer window prepares tests for remaining Finance Stage A work. New owner
