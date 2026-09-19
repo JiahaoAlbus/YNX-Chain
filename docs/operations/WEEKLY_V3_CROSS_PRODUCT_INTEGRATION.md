@@ -23,6 +23,13 @@ regression from late accepted events or stale polling. Exactly one initial
 provider POST and zero DELETEs are expected. Full execution awaits Finance's
 clean, published interface freeze; new test presence is not a product PASS.
 The B3 route/receipt/idempotency tests await that same frozen owner contract.
+`finance_execution_integration_test.go` now prepares ten real-HTTP negative
+cases (default-off, missing receipt, wrong chain, live, missing credentials,
+unapproved order, wrong owner, missing proof, missing idempotency key, extra
+account-selection fields) plus one approval → explicit execution request →
+durable reopen → actual adapter single-POST/retry case. It is deliberately not
+included in the runner overlay yet: the interface is observed in ongoing owner
+work, not frozen. No pass is claimed for these eleven prepared cases.
 
 Preparation verification: **41/41 harness self-tests PASS**, including a real
 Chromium native-FormData regression probe using a synthetic HTML page only
@@ -34,6 +41,22 @@ The previous 81/81 report and source checkpoint below are immutable historical
 evidence. To reproduce that exact scope, use NETWORK `1f24904049a1bc399a67ca8c9493237e3c5f9077`;
 the expanded runner in this window must not be presented as that earlier run.
 All official/public/production flags remain false.
+
+### Additional requirement audit: provider audit correlation
+
+Read-only inspection during B1–B4 preparation found an unmet explicit attachment
+requirement to preserve provider IDs, original status and request IDs for audit.
+At Finance HEAD `cb904735`, `brokerage.Order` has provider order/client IDs and
+raw status but no request-ID field; successful `normalizeProviderOrder` drops
+its `requestID` argument. The persisted Order/Outbox/Journal contain the local
+Wallet request ID and canonical order state, not a provider response request ID
+or original status. Polling request IDs are hashed into a checkpoint, not retained
+as original correlations. A hash is not an inspectable provider request ID.
+
+This source finding was sent to the sole coordinator for Finance-owner scope
+and repair. It is not a new independently assigned product writer or permission
+to edit Finance. No runtime test has yet established persistence of those audit
+fields; the existing 81/81 suite does not assert them.
 
 ## Latest expanded local acceptance: 81/81 PASS
 
