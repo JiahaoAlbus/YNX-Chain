@@ -24,6 +24,17 @@ work="${YNX_VERIFY_WORK:-$(mktemp -d)}"
 db="$work/explorer-indexer-db.json"
 indexer_url="http://127.0.0.1:6436"
 explorer_url="http://127.0.0.1:6437"
+transfer_payload="$work/explorer-signed-transfer.json"
+eval "$(TRANSFER_PAYLOAD="$transfer_payload" node --input-type=module <<'NODE'
+import {readFileSync,writeFileSync} from "node:fs";
+
+const vectors=JSON.parse(readFileSync("testdata/exchange-signed-transactions.json","utf8"));
+const signed=vectors.transactions.find(entry=>entry.purpose==="deposit-recognition");
+if(!signed?.canonicalPayloadHex||!signed.envelope?.from||!signed.envelope?.to)throw new Error("signed Explorer fixture is missing");
+writeFileSync(process.env.TRANSFER_PAYLOAD,Buffer.from(signed.canonicalPayloadHex.slice(2),"hex"),{mode:0o600});
+process.stdout.write(`sender=${JSON.stringify(signed.envelope.from)} recipient=${JSON.stringify(signed.envelope.to)}`);
+NODE
+)"
 start_explorer() {
   YNX_EXPLORER_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_INDEXER_URL="$indexer_url" YNX_EXPLORER_HTTP_ADDR=127.0.0.1:6437 YNX_EXPLORER_PUBLIC_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_PUBLIC_URL="$explorer_url" "$work/ynx-explorerd" >"$work/explorer.log" 2>&1 &
   explorer_pid=$!
@@ -52,9 +63,11 @@ indexer_store_bytes() {
   printf '%s\n' "$total_bytes"
 }
 
-curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' -d '{"address":"ynx_explorer_alice","amount":1000}' >/dev/null
-transfer="$(curl -fsS -X POST "$YNX_REST_URL/transfer" -H 'content-type: application/json' -d '{"from":"ynx_explorer_alice","to":"ynx_explorer_bob","amount":125}')"
-tx_hash="$(printf '%s' "$transfer" | ynx_json_field '["hash"]')"
+curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' \
+  -H "X-YNX-Faucet-Auth: $YNX_FAUCET_CORE_AUTH_TOKEN" \
+  -d "{\"address\":\"$sender\",\"amount\":2000}" >/dev/null
+transfer="$(curl -fsS -X POST "$YNX_REST_URL/transactions/broadcast" -H 'content-type: application/json' --data-binary "@$transfer_payload")"
+tx_hash="$(printf '%s' "$transfer" | ynx_json_field '["transaction"]["hash"]')"
 sleep 2
 
 go build -o "$work/ynx-indexerd" ./cmd/ynx-indexerd
@@ -79,8 +92,8 @@ summary="$(curl -fsS "$explorer_url/api/summary")"
 curl -fsS "$explorer_url/api/blocks/latest?limit=3" >/dev/null
 curl -fsS "$explorer_url/api/txs?limit=3" >/dev/null
 curl -fsS "$explorer_url/api/txs/$tx_hash" >/dev/null
-curl -fsS "$explorer_url/api/accounts/ynx_explorer_bob" >/dev/null
-curl -fsS "$explorer_url/api/resources/ynx_explorer_bob" >/dev/null
+curl -fsS "$explorer_url/api/accounts/$recipient" >/dev/null
+curl -fsS "$explorer_url/api/resources/$recipient" >/dev/null
 curl -fsS "$explorer_url/api/tokens/YNXT" >/dev/null
 curl -fsS "$explorer_url/api/validators" >/dev/null
 curl -fsS "$explorer_url/api/resource-market/analytics" >/dev/null
