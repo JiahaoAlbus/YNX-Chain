@@ -24,6 +24,9 @@ const fixtureTemp=await mkdtemp(join(tmpdir(),"ynx-branded-https-")),keyPath=joi
 const artifact=await readFile(artifactPath),loadedArtifactPath=join(fixtureTemp,"extension.zip");await writeFile(loadedArtifactPath,artifact);
 const extensionPath=join(fixtureTemp,"extension");await mkdir(extensionPath);execFileSync("unzip",["-q",loadedArtifactPath,"-d",extensionPath]);
 const artifactSource=JSON.parse(await readFile(join(extensionPath,"build-identity.json"),"utf8")).sourceCommit;
+const manifestBytes=await readFile(join(extensionPath,"manifest.json")),manifest=JSON.parse(manifestBytes);
+const workerBytes=await readFile(join(extensionPath,manifest.background.service_worker));
+const loadingEvidence={extensionPath,manifestSha256:createHash("sha256").update(manifestBytes).digest("hex"),manifestVersion:manifest.manifest_version,extensionVersion:manifest.version,background:manifest.background,workerSha256:createHash("sha256").update(workerBytes).digest("hex"),workerBytes:workerBytes.length,permissions:manifest.permissions,hostPermissions:manifest.host_permissions};
 execFileSync("openssl",["req","-x509","-newkey","rsa:2048","-nodes","-keyout",keyPath,"-out",certPath,"-days","1","-subj","/CN=127.0.0.1","-addext","subjectAltName=IP:127.0.0.1"],{stdio:"ignore"});
 const [fixtureKey,fixtureCert]=await Promise.all([readFile(keyPath),readFile(certPath)]);
 const server=createServer({key:fixtureKey,cert:fixtureCert},async(request,response)=>{
@@ -41,14 +44,24 @@ async function workerFrom(context){
 async function testBrowser(browser){
   const result={browserId:browser.id,browserName:browser.name,executablePath:browser.executablePath,browserCapability:browser.id==="chrome"?{unpackedAutomation:"manual-required",automationUnsupported:true}:{unpackedAutomation:"supported",automationUnsupported:false},loadMode:"temporary-unpacked-isolated-profile",profileClass:"disposable-isolated-profile",brandedBinary:true,fixtureAuthority:"local HTTPS EIP-6963 DApp with an immutable foreign ethereum.providers array",temporaryUnpackedRuntimeTested:false,installedLocal:false,providerSuccessClaimed:false,accountAuthorized:false,messageSigned:false,transactionSubmitted:false,downloadHosted:false,productionSigned:false,storeReleased:false};
   const profile=await mkdtemp(join(tmpdir(),`ynx-wallet-${browser.id}-runtime-`));let context;
-  result.profilePath=profile;
-  const launch=()=>bounded(chromium.launchPersistentContext(profile,{executablePath:browser.executablePath,headless:true,ignoreHTTPSErrors:true,timeout:12000,ignoreDefaultArgs:["--disable-extensions"],args:[`--disable-extensions-except=${extensionPath}`,`--load-extension=${extensionPath}`,"--no-first-run","--no-default-browser-check"]}),15000,`${browser.id} launch`);
+  result.profilePath=profile;result.loadingEvidence=loadingEvidence;result.browserDiagnostics={workerErrors:[],workerRegistrations:[],workerVersions:[],console:[],protocolErrors:[]};let diagnosticSession;
+  const launch=()=>bounded(chromium.launchPersistentContext(profile,{executablePath:browser.executablePath,headless:true,ignoreHTTPSErrors:true,timeout:12000,ignoreDefaultArgs:["--disable-extensions"],args:[`--disable-extensions-except=${extensionPath}`,`--load-extension=${extensionPath}`,"--no-first-run","--no-default-browser-check","--enable-logging=stderr"]}),15000,`${browser.id} launch`);
   const stage=async(name,detail={})=>{if(keepEvidence){await mkdir(evidenceDir,{recursive:true});await appendFile(stageLog,`${JSON.stringify({at:new Date().toISOString(),browserId:browser.id,stage:name,...detail})}\n`)}};
   try{
     await stage("launch-start");
     context=await launch();
     await stage("launch-complete");
     result.version=context.browser()?.version()||"unknown";
+    try {
+      diagnosticSession=await bounded(context.newCDPSession(context.pages()[0]||await context.newPage()),2000,"diagnostic session");
+      const record=(key,value)=>{if(result.browserDiagnostics[key].length<100)result.browserDiagnostics[key].push(value)};
+      diagnosticSession.on("ServiceWorker.workerErrorReported",value=>record("workerErrors",value));
+      diagnosticSession.on("ServiceWorker.workerRegistrationUpdated",value=>record("workerRegistrations",value));
+      diagnosticSession.on("ServiceWorker.workerVersionUpdated",value=>record("workerVersions",value));
+      diagnosticSession.on("Log.entryAdded",value=>record("console",value));
+      for(const method of ["ServiceWorker.enable","Log.enable"])await bounded(diagnosticSession.send(method),2000,method).catch(error=>record("protocolErrors",{method,message:error.message}));
+      result.browserDiagnostics.commandLine=await bounded(diagnosticSession.send("Browser.getBrowserCommandLine"),2000,"browser command line").catch(error=>({error:error.message}));
+    } catch(error){result.browserDiagnostics.setupError=error.message;}
     const worker=await workerFrom(context),extensionOrigin=worker.url().replace(/\/service-worker\.js$/u,"");
     await stage("service-worker",{url:worker.url()});
     result.serviceWorker={started:true,url:worker.url(),extensionOrigin};
@@ -93,7 +106,12 @@ async function testBrowser(browser){
     result.runtimeLifecycleTested=result.serviceWorker.started&&result.secondLaunch.persisted&&rpcSafe;
     result.temporaryUnpackedRuntimeTested=result.runtimeLifecycleTested&&result.ynxPriority.passed&&result.bridgeLifecycle.passed;
   }catch(error){result.error={name:error?.name||"Error",message:error?.message||String(error)};await stage("error",result.error);}
-  finally{if(context)await bounded(context.close(),4000,"final context close").catch(()=>{});await rm(profile,{recursive:true,force:true}).catch(()=>{});}
+  finally{
+    if(diagnosticSession)result.browserDiagnostics.targets=await bounded(diagnosticSession.send("Target.getTargets"),2000,"diagnostic targets").catch(error=>({error:error.message}));
+    if(context)await bounded(context.close(),4000,"final context close").catch(()=>{});
+    try {const preferences=JSON.parse(await readFile(join(profile,"Default","Preferences"),"utf8"));result.browserDiagnostics.extensionRegistry=Object.entries(preferences.extensions?.settings??{}).map(([id,value])=>({id,path:value.path??null,state:value.state??null,location:value.location??null,name:value.manifest?.name??null}));}catch(error){result.browserDiagnostics.preferencesError=error.message}
+    await rm(profile,{recursive:true,force:true}).catch(()=>{});
+  }
   return result;
 }
 

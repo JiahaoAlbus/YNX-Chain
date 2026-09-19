@@ -1,0 +1,3 @@
+{"at":"2026-09-19T19:33:46.239Z","browserId":"chrome","stage":"launch-start"}
+{"at":"2026-09-19T19:33:47.208Z","browserId":"chrome","stage":"launch-complete"}
+{"at":"2026-09-19T19:33:55.256Z","browserId":"chrome","stage":"error","name":"TimeoutError","message":"browserContext.waitForEvent: Timeout 3000ms exceeded while waiting for event \"serviceworker\""}

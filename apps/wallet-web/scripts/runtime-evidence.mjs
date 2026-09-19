@@ -44,3 +44,14 @@ export async function capturePwaFailure(page, {timeoutMs = 2500} = {}) {
 export function pwaFrameReady() {
   return document.querySelector("#wallet")?.contentDocument?.documentElement?.dataset.pwa === "ready";
 }
+
+export function assessFirefoxProviderEvidence(result) {
+  const launches=[result.firstLaunch,result.secondLaunch];
+  const providerDiscoveryProved=launches.every(value=>value?.matchingCount===1);
+  const chainIdProved=launches.every(value=>value?.chain?.chainId==='0x1917'&&value.chain.isYNXWallet===true&&value.chain.isMetaMask===false);
+  const coexistenceProved=launches.every(value=>value?.foreignUnchanged===true);
+  const temporaryAddonNonPersistenceProved=result.restartBeforeReload?.matchingCount===0&&result.restartBeforeReload.restartMarker==='retained';
+  const exactAddon=result.addonId==='wallet-testnet@ynxweb4.com'&&result.reloadedAddonId===result.addonId;
+  return {providerDiscoveryProved,chainIdProved,coexistenceProved,temporaryAddonNonPersistenceProved,
+    passed:exactAddon&&providerDiscoveryProved&&chainIdProved&&coexistenceProved&&temporaryAddonNonPersistenceProved&&result.httpWithoutAction?.matchingCount===0};
+}
