@@ -13,5 +13,5 @@
   ],
   "installPolicy": "npm ci --ignore-scripts",
   "postinstallScriptsAllowed": false,
-  "minimumPatchedGoToolchain": "1.25.12"
+  "minimumPatchedGoToolchain": "1.25.13"
 }
