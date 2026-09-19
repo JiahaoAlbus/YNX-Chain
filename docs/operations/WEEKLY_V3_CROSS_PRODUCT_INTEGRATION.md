@@ -1,6 +1,57 @@
 # Weekly v3 cross-product integration checkpoint
 
-## Current repaired local result
+## Current status: official-wire correction awaiting product checkpoint
+
+The historical local PASS below remains valid only for its deliberately scoped
+old fixtures. Subsequent official-document inspection found that those fixtures
+were too simplified to establish Broker wire compatibility. Stage A is **not**
+complete. No historical evidence file has been overwritten.
+
+The corrected integration assets now preserve the complete public
+[Trading Account example](https://docs.alpaca.markets/us/reference/gettradingaccount)
+and [TradeUpdateEventV2New example](https://docs.alpaca.markets/us/reference/subscribetotradev2sse)
+in `scripts/verify/weekly-v3/broker-wire-fixtures.json`, with source URLs and raw
+OpenAPI SHA-256 provenance. These are public documentation examples, not real
+Sandbox account data. An independent nine-test integrity suite checks their
+content and rejects weakened fixtures; five runner-guard tests use only temporary
+local Git repositories to reject dirty, mismatched or unpublished inputs and
+preserve historical evidence. Product integration on these corrected
+fixtures is pending a new clean, pushed Finance checkpoint.
+
+Corrections and additional assertions:
+
+- Cash and buying power come only from
+  `/v1/trading/accounts/{account_id}/account`; the ordinary AccountExtended
+  fixture never acquires fictitious cash fields.
+- Preserve the official `103556.8572572922` buying-power string, all documented
+  Order fields, null values and `extended_hours`. Never truncate a sample to fit
+  a decoder or confuse provider balance precision with permitted order precision.
+- Preserve different `at` and `timestamp` values: they have different meanings.
+  Invalid times, event/account mismatch and invalid order types remain negative
+  cases. Blocked or missing critical account safety flags must not allow POST.
+- Continuous-flow derivatives replace only synthetic identities, submitted
+  intent and lifecycle values. They retain the full Order shape. Event SSE
+  framing remains explicitly a local fixture, not proof of provider transport.
+- Runner requires published owner branch heads and clean Finance source; Wallet's
+  unrelated packaging manifest remains outside the owned product-source gate.
+  Integration asset hashes are checked before and after the test, as are product
+  source identities. A local PASS still does not set `stageAComplete=true`.
+
+Credential-independent work still requires complete Finance navigation/search,
+watchlist, user cancellation/reconciliation, worker event transport and activation
+tooling acceptance. Finance owns those implementations. This integration writer
+does not patch Finance or Wallet product source or activate deployment.
+
+Preparation checks:
+
+```sh
+node --test scripts/verify/weekly-v3/broker-wire-fixtures.test.mjs
+node --test scripts/verify/weekly-v3/integration-runner-guards.test.mjs
+node --check scripts/verify/weekly-v3-finance-wallet-integration.mjs
+git diff --check
+```
+
+## Historical repaired local result (simplified fixtures)
 
 The original failure evidence below is preserved. On Finance
 `a3e5d21b91443e6db4d9cad2d38e112773e9a57f` and Wallet
@@ -39,7 +90,7 @@ explicitly enables it only in the Finance overlay. Default `go list ./...`
 excludes this otherwise non-standalone test package. No full ecosystem Go test
 run is implied by that package-inventory check.
 
-Current six states: code implemented; scoped local contract/fixture integration
+Historical six states at the checkpoint: code implemented; scoped local contract/fixture integration
 PASS; official Sandbox=false; public deployment=false; public verification=false;
 production approval=false. `localFixtureEndToEndVerified=true` does **not** promote
 `crossProductE2EVerified` (installed/public), official verification, or production.
@@ -65,11 +116,18 @@ From this network worktree:
 ```sh
 node scripts/verify/weekly-v3-finance-wallet-integration.mjs \
   --finance-worktree /path/to/exact-finance-checkout \
-  --finance-commit a3e5d21b91443e6db4d9cad2d38e112773e9a57f \
+  --finance-commit FULL_NEW_CLEAN_PUSHED_FINANCE_COMMIT \
   --wallet-worktree /path/to/exact-wallet-checkout \
   --wallet-commit bd977cd2d382c4c43a435c8e415e698205b8a102 \
   --output /path/to/new-evidence.json
 ```
+
+To reproduce an old evidence file, use its exact integration assets at network
+`d58c9d1ea` (original failures) or `c66b498c7` (simplified-fixture PASS) in a new
+detached worktree. Do not reset an owner worktree or run this corrected fixture
+suite and label it as a reproduction of the old PASS. Current runner enforces
+published owner branch heads; the historical runner preserves its original
+checkpoint rules.
 
 For reproducing the historical cf89d852/ab4dfa927 failure checkpoint only,
 `--diagnostic-date-adapter true` is ONLY for isolating downstream defects in the
