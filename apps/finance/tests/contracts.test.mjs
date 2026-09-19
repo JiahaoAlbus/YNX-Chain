@@ -57,12 +57,23 @@ test('Broker order approval consumes the exact Wallet transport and never auto-s
   assert.ok(js.includes("'/api/broker/challenges','/api/broker/callback'"),'Broker writes must request finance.profile.write');
   assert.ok(orderWallet.includes("FINANCE_ORDER_AUTHORITY_TIME_INVALID"),'server time must be parsed at the trusted response boundary');
   assert.equal(orderWallet.includes('new Date()'),false,'order approval must not fall back to the device wall clock');
+  assert.equal(html.includes('name="accountPublicKey"'),false,'Wallet public key must come from the persisted owner mapping');
+  assert.equal(html.includes('Provider asset UUID<input'),false,'users must select provider-backed assets instead of typing UUIDs');
+  assert.ok(js.includes("JSON.stringify({draft})"));
 });
 
 test('AI Broker order results remain drafts until copied and explicitly previewed',()=>{
-  for(const marker of ['draft_broker_order','Copy into order form','AI draft copied for review. No challenge, approval, or provider request has occurred.'])assert.ok(html.includes(marker)||js.includes(marker),marker);
+  for(const marker of ['draft_broker_order','Copy into order form','Search and select the exact provider-backed asset before previewing approval.'])assert.ok(html.includes(marker)||js.includes(marker),marker);
   assert.ok(js.includes("location.hash='broker-sandbox'"));
   assert.equal(js.includes('Submit AI order'),false);
+});
+
+test('Broker Sandbox product entry exposes provider search, owner watchlist, reconcile and cancellation intent without browser provider writes',()=>{
+  for(const marker of ['/api/broker/assets?query=','/api/broker/watchlist','/api/broker/reconcile','/cancel-request','providerWriteAttempted!==false','My Sandbox watchlist','Reconcile provider state','Request cancellation'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  assert.ok(js.includes("finance.profile.write"));
+  assert.ok(js.includes("state.brokerSelectedAsset.id!==draft.assetId"));
+  assert.ok(html.includes('The browser will not contact the provider')||js.includes('The browser will not contact the provider'));
+  for(const forbidden of ['ALPACA_BROKER_API_KEY','ALPACA_BROKER_API_SECRET','/v1/trading/accounts/'])assert.equal(js.includes(forbidden),false,forbidden);
 });
 
 test('Web Wallet consumes the pinned Standard SDK and isolates unavailable legacy private authorization',()=>{

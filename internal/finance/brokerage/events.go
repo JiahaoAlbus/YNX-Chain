@@ -45,21 +45,34 @@ func ParseTradeEventStream(reader io.Reader, expectedAccountID string, maxEvents
 			AccountID string        `json:"account_id"`
 			Event     string        `json:"event"`
 			Timestamp string        `json:"timestamp"`
+			At        string        `json:"at"`
+			EventID   string        `json:"event_id"`
 			Order     providerOrder `json:"order"`
 		}
 		decoder := json.NewDecoder(bytes.NewReader(data.Bytes()))
-		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&envelope); err != nil || decoder.Decode(&struct{}{}) != io.EOF {
 			return errors.New("PROVIDER_PROTOCOL_ERROR")
 		}
-		if envelope.AccountID != expectedAccountID || !validTradeEvent(envelope.Event) {
+		if envelope.AccountID != expectedAccountID || !validTradeEvent(envelope.Event) || (envelope.EventID != "" && envelope.EventID != id) {
 			return errors.New("PROVIDER_PROTOCOL_ERROR")
 		}
 		order, err := normalizeProviderOrder(envelope.Order, id)
 		if err != nil || !tradeEventStatusMatches(envelope.Event, order.Status) {
 			return errors.New("PROVIDER_PROTOCOL_ERROR")
 		}
-		timestamp, err := time.Parse(time.RFC3339Nano, envelope.Timestamp)
+		// Broker V2 defines timestamp as the trade update occurrence time and at
+		// as the envelope publication time. They are independently valid and are
+		// not expected to be identical. Persist occurrence time when available.
+		if envelope.At != "" {
+			if _, err := time.Parse(time.RFC3339Nano, envelope.At); err != nil {
+				return errors.New("PROVIDER_PROTOCOL_ERROR")
+			}
+		}
+		timestampText := envelope.Timestamp
+		if timestampText == "" {
+			timestampText = envelope.At
+		}
+		timestamp, err := time.Parse(time.RFC3339Nano, timestampText)
 		if err != nil {
 			return errors.New("PROVIDER_PROTOCOL_ERROR")
 		}

@@ -95,9 +95,13 @@ func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.mux
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
+	s.mux.HandleFunc("GET /api/broker/assets", s.brokerAssets)
 	s.mux.HandleFunc("GET /api/broker/quote", s.brokerQuote)
 	s.mux.HandleFunc("GET /api/broker/snapshot", s.protected("finance.portfolio.read", s.brokerSnapshot))
 	s.mux.HandleFunc("GET /api/broker/orders", s.protected("finance.portfolio.read", s.brokerOrders))
+	s.mux.HandleFunc("PUT /api/broker/watchlist", s.protected("finance.profile.write", s.brokerWatchlist))
+	s.mux.HandleFunc("POST /api/broker/reconcile", s.protected("finance.profile.write", s.brokerReconcile))
+	s.mux.HandleFunc("POST /api/broker/orders/{id}/cancel-request", s.protected("finance.profile.write", s.brokerCancelRequest))
 	s.mux.HandleFunc("POST /api/broker/challenges", s.protected("finance.profile.write", s.brokerChallenge))
 	s.mux.HandleFunc("POST /api/broker/callback", s.protected("finance.profile.write", s.brokerCallback))
 	s.mux.HandleFunc("GET /health", s.health)

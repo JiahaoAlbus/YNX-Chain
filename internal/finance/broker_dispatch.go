@@ -125,6 +125,10 @@ func (s *Store) RequestBrokerCancel(account, orderID string, now time.Time) (Bro
 	var result BrokerOrderRecord
 	err := s.updateBrokerCAS(account, "broker.cancel.requested", orderID, func(state *AccountState) error {
 		order, ok := state.Brokerage.Orders[orderID]
+		if ok && order.ProviderOrderID != "" && order.State == "cancel_requested" {
+			result = order
+			return errBrokerStateUnchanged
+		}
 		if !ok || order.ProviderOrderID == "" || (order.State != "submitted" && order.State != "partially_filled") {
 			return errors.New("Broker order is not cancelable")
 		}
@@ -245,7 +249,7 @@ func (s *Store) ApplyBrokerTradeEvents(account string, events []brokerage.TradeE
 }
 
 func brokerOrderIdentityMatches(order BrokerOrderRecord, provider brokerage.Order) bool {
-	return provider.ClientOrderID == order.Order.OrderID && provider.AssetID == order.Order.AssetID && provider.Symbol == order.Order.Symbol && provider.Side == order.Order.Side && provider.Qty == order.Order.Qty && provider.Type == order.Order.OrderType && provider.LimitPrice == order.Order.LimitPrice && provider.TimeInForce == order.Order.TimeInForce && (order.ProviderOrderID == "" || provider.ID == order.ProviderOrderID)
+	return provider.ClientOrderID == order.Order.OrderID && provider.AssetID == order.Order.AssetID && provider.Symbol == order.Order.Symbol && provider.Side == order.Order.Side && provider.Qty == order.Order.Qty && provider.Type == order.Order.OrderType && provider.LimitPrice == order.Order.LimitPrice && provider.TimeInForce == order.Order.TimeInForce && provider.ExtendedHours == order.Order.ExtendedHours && (order.ProviderOrderID == "" || provider.ID == order.ProviderOrderID)
 }
 
 func brokerOrderTransitionAllowed(current, next string) bool {
@@ -335,7 +339,7 @@ func (d BrokerDispatcher) Dispatch(ctx context.Context, account, orderID string)
 
 func (d BrokerDispatcher) validateDispatchPreflight(ctx context.Context, account string, order BrokerOrderRecord, now time.Time) error {
 	providerAccount, err := d.Adapter.Account(ctx, account, d.Store)
-	if err != nil || providerAccount.ID != order.BrokerAccountID || providerAccount.Status != "ACTIVE" || providerAccount.Currency != "USD" {
+	if err != nil || providerAccount.ID != order.BrokerAccountID || providerAccount.Status != "ACTIVE" || providerAccount.Currency != "USD" || providerAccount.TradingBlocked || providerAccount.AccountBlocked || providerAccount.TradeSuspendedByUser {
 		return errors.New("Broker account preflight failed")
 	}
 	assets, err := d.Adapter.Assets(ctx)

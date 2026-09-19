@@ -43,12 +43,15 @@ type AssetResult struct {
 	Assets      []Asset `json:"assets"`
 }
 type Account struct {
-	ID          string `json:"providerAccountId"`
-	Status      string `json:"providerStatus"`
-	Currency    string `json:"currency"`
-	Cash        string `json:"cash"`
-	BuyingPower string `json:"buyingPower"`
-	RequestID   string `json:"requestId"`
+	ID                   string `json:"providerAccountId"`
+	Status               string `json:"providerStatus"`
+	Currency             string `json:"currency"`
+	Cash                 string `json:"cash"`
+	BuyingPower          string `json:"buyingPower"`
+	TradingBlocked       bool   `json:"tradingBlocked"`
+	AccountBlocked       bool   `json:"accountBlocked"`
+	TradeSuspendedByUser bool   `json:"tradeSuspendedByUser"`
+	RequestID            string `json:"requestId"`
 }
 
 type Order struct {
@@ -62,6 +65,7 @@ type Order struct {
 	Type          string `json:"type"`
 	LimitPrice    string `json:"limitPrice"`
 	TimeInForce   string `json:"timeInForce"`
+	ExtendedHours bool   `json:"extendedHours"`
 	Status        string `json:"providerStatus"`
 	SubmittedAt   string `json:"submittedAt"`
 }
@@ -291,23 +295,30 @@ func (a *Alpaca) Account(ctx context.Context, owner string, resolver AccountReso
 		return Account{}, &Error{Code: "ACCOUNT_NOT_LINKED"}
 	}
 	var raw struct {
-		ID          string `json:"id"`
-		Status      string `json:"status"`
-		Currency    string `json:"currency"`
-		Cash        string `json:"cash"`
-		BuyingPower string `json:"buying_power"`
+		ID                   string `json:"id"`
+		Status               string `json:"status"`
+		Currency             string `json:"currency"`
+		Cash                 string `json:"cash"`
+		BuyingPower          string `json:"buying_power"`
+		TradingBlocked       bool   `json:"trading_blocked"`
+		AccountBlocked       bool   `json:"account_blocked"`
+		TradeSuspendedByUser bool   `json:"trade_suspended_by_user"`
 	}
-	id, err := a.get(ctx, "/v1/accounts/"+account, &raw)
+	id, err := a.get(ctx, "/v1/trading/accounts/"+account+"/account", &raw)
 	if err != nil {
 		return Account{}, err
 	}
 	if raw.ID != account || raw.Status == "" || raw.Currency != "USD" || !providerDecimal.MatchString(raw.Cash) || !providerDecimal.MatchString(raw.BuyingPower) {
 		return Account{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
 	}
-	return Account{raw.ID, raw.Status, raw.Currency, raw.Cash, raw.BuyingPower, id}, nil
+	return Account{ID: raw.ID, Status: raw.Status, Currency: raw.Currency, Cash: raw.Cash, BuyingPower: raw.BuyingPower, TradingBlocked: raw.TradingBlocked, AccountBlocked: raw.AccountBlocked, TradeSuspendedByUser: raw.TradeSuspendedByUser, RequestID: id}, nil
 }
 
-var providerDecimal = regexp.MustCompile(`^-?(?:0|[1-9][0-9]{0,15})(?:\.[0-9]{1,9})?$`)
+// Provider read models preserve upstream decimal strings exactly. Broker
+// account buying power can legitimately carry more fractional precision than
+// Finance permits for a user-authored order, so this validation is deliberately
+// separate from the order-input contract.
+var providerDecimal = regexp.MustCompile(`^-?(?:0|[1-9][0-9]{0,31})(?:\.[0-9]{1,18})?$`)
 
 func (a *Alpaca) resolveAccount(ctx context.Context, owner string, resolver AccountResolver) (string, error) {
 	if !a.cfg.ready() {
@@ -334,8 +345,11 @@ type providerOrder struct {
 	Type          string  `json:"type"`
 	LimitPrice    *string `json:"limit_price"`
 	TimeInForce   string  `json:"time_in_force"`
+	ExtendedHours bool    `json:"extended_hours"`
 	Status        string  `json:"status"`
 	SubmittedAt   string  `json:"submitted_at"`
+	CreatedAt     string  `json:"created_at"`
+	UpdatedAt     string  `json:"updated_at"`
 }
 
 func normalizeProviderOrder(value providerOrder, requestID string) (Order, error) {
@@ -346,7 +360,17 @@ func normalizeProviderOrder(value providerOrder, requestID string) (Order, error
 	if !uuid.MatchString(value.ID) || value.ClientOrderID == "" || len(value.ClientOrderID) > 128 || !uuid.MatchString(value.AssetID) || value.Symbol == "" || (value.Side != "buy" && value.Side != "sell") || !providerDecimal.MatchString(value.Qty) || !providerDecimal.MatchString(value.FilledQty) || value.Type == "" || value.TimeInForce == "" || value.Status == "" || (limitPrice != "" && !providerDecimal.MatchString(limitPrice)) {
 		return Order{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
 	}
-	return Order{value.ID, value.ClientOrderID, value.AssetID, value.Symbol, value.Side, value.Qty, value.FilledQty, value.Type, limitPrice, value.TimeInForce, value.Status, value.SubmittedAt}, nil
+	if _, err := time.Parse(time.RFC3339Nano, value.SubmittedAt); err != nil {
+		return Order{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
+	}
+	for _, optionalTimestamp := range []string{value.CreatedAt, value.UpdatedAt} {
+		if optionalTimestamp != "" {
+			if _, err := time.Parse(time.RFC3339Nano, optionalTimestamp); err != nil {
+				return Order{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
+			}
+		}
+	}
+	return Order{ID: value.ID, ClientOrderID: value.ClientOrderID, AssetID: value.AssetID, Symbol: value.Symbol, Side: value.Side, Qty: value.Qty, FilledQty: value.FilledQty, Type: value.Type, LimitPrice: limitPrice, TimeInForce: value.TimeInForce, ExtendedHours: value.ExtendedHours, Status: value.Status, SubmittedAt: value.SubmittedAt}, nil
 }
 
 func (a *Alpaca) Orders(ctx context.Context, owner string, resolver AccountResolver) ([]Order, string, error) {
@@ -446,7 +470,7 @@ func (a *Alpaca) SubmitOrder(ctx context.Context, owner string, resolver Account
 		return Order{}, err
 	}
 	result, err := normalizeProviderOrder(raw, requestID)
-	if err != nil || result.ClientOrderID != order.ClientOrderID || result.AssetID != order.AssetID || result.Symbol != order.Symbol || result.Side != order.Side || result.Qty != order.Qty || result.Type != order.Type || result.LimitPrice != order.LimitPrice || result.TimeInForce != order.TimeInForce {
+	if err != nil || result.ClientOrderID != order.ClientOrderID || result.AssetID != order.AssetID || result.Symbol != order.Symbol || result.Side != order.Side || result.Qty != order.Qty || result.Type != order.Type || result.LimitPrice != order.LimitPrice || result.TimeInForce != order.TimeInForce || result.ExtendedHours != order.ExtendedHours {
 		return Order{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
 	}
 	return result, nil

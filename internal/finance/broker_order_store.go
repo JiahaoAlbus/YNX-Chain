@@ -51,7 +51,12 @@ func (s *Store) BrokerWorkspace(account string, now time.Time) BrokerWorkspace {
 	}
 	mapping, active := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
 	active = active && mapping.Account == account && mapping.Status == "active"
-	return BrokerWorkspace{MappingActive: active, Orders: orders, Outbox: outbox, Journal: journal, ServerTime: now.UTC().Format("2006-01-02T15:04:05.000Z")}
+	watchlist := make([]BrokerWatchlistItem, 0, len(state.Brokerage.Watchlist))
+	for _, item := range state.Brokerage.Watchlist {
+		watchlist = append(watchlist, item)
+	}
+	sort.Slice(watchlist, func(i, j int) bool { return watchlist[i].Symbol < watchlist[j].Symbol })
+	return BrokerWorkspace{MappingActive: active, Orders: orders, Outbox: outbox, Journal: journal, Watchlist: watchlist, ServerTime: now.UTC().Format("2006-01-02T15:04:05.000Z")}
 }
 
 func (s *Store) ResolveBrokerAccount(_ context.Context, owner, provider, environment string) (string, error) {
@@ -64,8 +69,12 @@ func (s *Store) ResolveBrokerAccount(_ context.Context, owner, provider, environ
 }
 
 func (s *Store) PutBrokerSandboxMapping(account, brokerAccountID string, now time.Time) (BrokerAccountMapping, error) {
+	return s.PutBrokerSandboxMappingWithWalletKey(account, brokerAccountID, "", now)
+}
+
+func (s *Store) PutBrokerSandboxMappingWithWalletKey(account, brokerAccountID, walletPublicKey string, now time.Time) (BrokerAccountMapping, error) {
 	subjectID, err := DeriveFinanceSubjectID(account)
-	if err != nil || !financeProviderUUIDPattern.MatchString(brokerAccountID) {
+	if err != nil || !financeProviderUUIDPattern.MatchString(brokerAccountID) || (walletPublicKey != "" && !financePublicKeyPattern.MatchString(walletPublicKey)) {
 		return BrokerAccountMapping{}, errors.New("Broker Sandbox mapping identity is invalid")
 	}
 	now = now.UTC()
@@ -74,17 +83,62 @@ func (s *Store) PutBrokerSandboxMapping(account, brokerAccountID string, now tim
 		normalizeBrokerageState(&state.Brokerage)
 		key := brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)
 		createdAt := now
-		if existing, ok := state.Brokerage.Mappings[key]; ok {
+		existing, exists := state.Brokerage.Mappings[key]
+		if exists {
 			if existing.Account != account || existing.SubjectID != subjectID {
 				return errors.New("Broker Sandbox mapping subject cannot be reassigned")
 			}
 			createdAt = existing.CreatedAt
 		}
-		result = BrokerAccountMapping{SubjectID: subjectID, Account: account, Provider: FinanceOrderProvider, TradingEnvironment: FinanceOrderTradingEnv, BrokerAccountID: brokerAccountID, Status: "active", CreatedAt: createdAt, UpdatedAt: now}
+		if walletPublicKey == "" && exists {
+			walletPublicKey = existing.WalletPublicKey
+		}
+		result = BrokerAccountMapping{SubjectID: subjectID, Account: account, Provider: FinanceOrderProvider, TradingEnvironment: FinanceOrderTradingEnv, BrokerAccountID: brokerAccountID, WalletPublicKey: walletPublicKey, Status: "active", CreatedAt: createdAt, UpdatedAt: now}
 		state.Brokerage.Mappings[key] = result
 		return nil
 	})
 	return result, err
+}
+
+func (s *Store) BrokerWalletPublicKey(account string) (string, error) {
+	state := s.Account(account)
+	mapping, ok := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
+	if !ok || mapping.Account != account || mapping.Status != "active" || !financePublicKeyPattern.MatchString(mapping.WalletPublicKey) {
+		return "", errors.New("Broker Sandbox mapping has no verified Wallet public key")
+	}
+	return mapping.WalletPublicKey, nil
+}
+
+func (s *Store) SetBrokerWatchlistItem(account string, asset BrokerWatchlistItem, selected bool, now time.Time) ([]BrokerWatchlistItem, error) {
+	if !financeProviderUUIDPattern.MatchString(asset.AssetID) || !financeSymbolPattern.MatchString(asset.Symbol) || strings.TrimSpace(asset.Name) == "" || len(asset.Name) > 160 {
+		return nil, errors.New("Broker watchlist asset is invalid")
+	}
+	err := s.updateBrokerCAS(account, "broker.watchlist.update", asset.AssetID, func(state *AccountState) error {
+		normalizeBrokerageState(&state.Brokerage)
+		if !selected {
+			if _, ok := state.Brokerage.Watchlist[asset.AssetID]; !ok {
+				return errBrokerStateUnchanged
+			}
+			delete(state.Brokerage.Watchlist, asset.AssetID)
+			return nil
+		}
+		if len(state.Brokerage.Watchlist) >= 100 {
+			if _, exists := state.Brokerage.Watchlist[asset.AssetID]; !exists {
+				return errors.New("Broker watchlist limit reached")
+			}
+		}
+		if existing, ok := state.Brokerage.Watchlist[asset.AssetID]; ok {
+			asset.AddedAt = existing.AddedAt
+		} else {
+			asset.AddedAt = now.UTC()
+		}
+		state.Brokerage.Watchlist[asset.AssetID] = asset
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return s.BrokerWorkspace(account, now).Watchlist, nil
 }
 
 func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallengeRequest, now time.Time) (BrokerApprovalChallenge, error) {

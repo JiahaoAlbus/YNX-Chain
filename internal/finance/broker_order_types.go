@@ -99,9 +99,17 @@ type BrokerAccountMapping struct {
 	Provider           string    `json:"provider"`
 	TradingEnvironment string    `json:"tradingEnvironment"`
 	BrokerAccountID    string    `json:"brokerAccountId"`
+	WalletPublicKey    string    `json:"walletPublicKey,omitempty"`
 	Status             string    `json:"status"`
 	CreatedAt          time.Time `json:"createdAt"`
 	UpdatedAt          time.Time `json:"updatedAt"`
+}
+
+type BrokerWatchlistItem struct {
+	AssetID string    `json:"assetId"`
+	Symbol  string    `json:"symbol"`
+	Name    string    `json:"name"`
+	AddedAt time.Time `json:"addedAt"`
 }
 
 type BrokerApprovalChallenge struct {
@@ -163,15 +171,17 @@ type BrokerageAccountState struct {
 	Orders       map[string]BrokerOrderRecord       `json:"orders"`
 	Outbox       map[string]BrokerOrderOutbox       `json:"outbox"`
 	Journal      []BrokerJournalEvent               `json:"journal"`
+	Watchlist    map[string]BrokerWatchlistItem     `json:"watchlist"`
 	EventCursor  string                             `json:"eventCursor,omitempty"`
 	TradeEventAt time.Time                          `json:"tradeEventAt,omitempty"`
 	ReconciledAt time.Time                          `json:"reconciledAt,omitempty"`
 }
 
 type BrokerWorkspace struct {
-	MappingActive bool                 `json:"mappingActive"`
-	Orders        []BrokerOrderRecord  `json:"orders"`
-	Outbox        []BrokerOrderOutbox  `json:"outbox"`
-	Journal       []BrokerJournalEvent `json:"journal"`
-	ServerTime    string               `json:"serverTime"`
+	MappingActive bool                  `json:"mappingActive"`
+	Orders        []BrokerOrderRecord   `json:"orders"`
+	Outbox        []BrokerOrderOutbox   `json:"outbox"`
+	Journal       []BrokerJournalEvent  `json:"journal"`
+	Watchlist     []BrokerWatchlistItem `json:"watchlist"`
+	ServerTime    string                `json:"serverTime"`
 }

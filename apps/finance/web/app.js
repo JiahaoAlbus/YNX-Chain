@@ -1,4 +1,4 @@
-const state={connected:false,overview:null,aiJob:null,aiTimer:null,context:0};
+const state={connected:false,overview:null,aiJob:null,aiTimer:null,context:0,brokerAssets:new Map(),brokerWatchlist:new Map(),brokerSelectedAsset:null};
 // Guest-readable diagnostics only. This never requests a Wallet account, signs,
 // reads broker credentials or automatically enables order submission.
 let brokerCheckRevision=0;
@@ -24,6 +24,31 @@ function clearBrokerSnapshot(message='Sign in to read an owner-mapped Sandbox ac
   $('#broker-account').textContent='Not linked';$('#broker-cash').textContent='Unknown — not zero';$('#broker-buying-power').textContent='Unknown — not zero';$('#broker-private-status').textContent=message;
   $('#broker-positions').innerHTML='<div class="empty compact">Unknown — no provider result.</div>';$('#broker-orders').innerHTML='<div class="empty compact">Unknown — no provider result.</div>';
 }
+function selectBrokerAsset(asset){
+  if(!asset||!/^[0-9a-f-]{36}$/.test(String(asset.id||''))||!/^[A-Z][A-Z0-9.]{0,11}$/.test(String(asset.symbol||'')))throw new Error('Select an exact active provider asset.');
+  state.brokerSelectedAsset=asset;const form=$('#broker-order-form');form.elements.assetId.value=asset.id;form.elements.symbol.value=asset.symbol;
+  $('#broker-order-preview').textContent=`Selected ${asset.symbol} · ${asset.name}. No Wallet or provider write has occurred.`;
+}
+function renderBrokerAssets(assets){
+  state.brokerAssets=new Map(assets.map(asset=>[asset.id,asset]));
+  $('#broker-asset-results').innerHTML=assets.length?assets.map(asset=>`<div class="row"><div class="row-main"><strong>${esc(asset.symbol)}</strong><small>${esc(asset.name)} · active/tradable Sandbox asset</small></div><div class="wallet-choice"><button type="button" data-broker-select="${esc(asset.id)}">Select</button>${state.connected?`<button type="button" data-broker-watch="${esc(asset.id)}">Add to watchlist</button>`:''}</div></div>`).join(''):'<div class="empty compact">No active tradable provider asset matched. Nothing was substituted.</div>';
+}
+async function searchBrokerAssets(event){
+  event?.preventDefault();const query=String(new FormData($('#broker-asset-search')).get('query')||'').trim();
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
+  try{const response=await fetch(`/api/broker/assets?query=${encodeURIComponent(query)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-assets-v1'||!Array.isArray(result.assets))throw new Error(result?.error||'Sandbox asset directory is unavailable.');renderBrokerAssets(result.assets)}catch(error){renderBrokerAssets([]);notify(error.message||'Sandbox asset directory is unavailable.',true)}finally{clearTimeout(timer)}
+}
+function renderBrokerWatchlist(items){
+  const list=Array.isArray(items)?items:[];
+  state.brokerWatchlist=new Map(list.map(item=>[item.assetId,item]));
+  $('#broker-watchlist').innerHTML=list.length?list.map(item=>`<div class="row"><div class="row-main"><strong>${esc(item.symbol)}</strong><small>${esc(item.name)}</small></div><div class="wallet-choice"><button type="button" data-broker-watch-select="${esc(item.assetId)}">Select</button><button type="button" class="ghost" data-broker-unwatch="${esc(item.assetId)}">Remove</button></div></div>`).join(''):`<div class="empty compact">${state.connected?'Your Sandbox watchlist is empty.':'Sign in to load your owner-scoped watchlist.'}</div>`;
+}
+async function updateBrokerWatchlist(asset,selected){
+  if(!state.connected)throw new Error('Sign in before changing your watchlist.');
+  const result=await api('/api/broker/watchlist',{method:'PUT',body:JSON.stringify({assetId:asset.id||asset.assetId,selected})});
+  if(result?.schema!=='ynx-finance-broker-watchlist-v1'||result.providerWriteAttempted!==false)throw new Error('Watchlist response is invalid.');
+  renderBrokerWatchlist(result.watchlist);await refreshBrokerWorkspace();notify(selected?'Added to your Sandbox watchlist.':'Removed from your Sandbox watchlist.');
+}
 async function refreshBrokerSnapshot(){
   if(!state.connected){clearBrokerSnapshot();return}
   try{
@@ -44,7 +69,10 @@ let brokerCallbackInFlight=false;
 function renderBrokerWorkspace(workspace){
   const orders=Array.isArray(workspace?.orders)?workspace.orders:[];
   const outbox=new Map((Array.isArray(workspace?.outbox)?workspace.outbox:[]).map(item=>[item.orderId,item]));
-  $('#broker-local-orders').innerHTML=orders.length?orders.map(record=>{const queued=outbox.get(record.order.orderId);return `<div class="row"><div class="row-main"><strong>${esc(record.order.side)} ${esc(record.order.qty)} ${esc(record.order.symbol)}</strong><small>${esc(record.approvalState)} · ${esc(record.state)} · request ${esc(short(record.requestId))}</small></div><div class="row-value">max ${esc(record.order.maxCost)} simulated USD<small>${queued?`outbox ${esc(queued.status)} · attempts ${esc(queued.attempts)}`:'no provider outbox'}</small></div></div>`}).join(''):'<div class="empty compact">No local Sandbox order drafts.</div>';
+  $('#broker-local-orders').innerHTML=orders.length?orders.map(record=>{const queued=outbox.get(record.order.orderId),cancelable=['submitted','partially_filled'].includes(record.state);return `<div class="row"><div class="row-main"><strong>${esc(record.order.side)} ${esc(record.order.qty)} ${esc(record.order.symbol)}</strong><small>${esc(record.approvalState)} · ${esc(record.state)} · request ${esc(short(record.requestId))}</small><small>${queued?`outbox ${esc(queued.status)} · attempts ${esc(queued.attempts)}`:'no provider outbox'}</small></div><div class="row-value">max ${esc(record.order.maxCost)} simulated USD<div class="wallet-choice"><button type="button" data-broker-order-refresh="${esc(record.order.orderId)}">Refresh</button>${cancelable?`<button type="button" class="danger" data-broker-order-cancel="${esc(record.order.orderId)}">Request cancellation</button>`:''}</div></div></div>`}).join(''):'<div class="empty compact">No local Sandbox order drafts.</div>';
+  const journal=Array.isArray(workspace?.journal)?workspace.journal:[];
+  $('#broker-events').innerHTML=journal.length?journal.slice().reverse().slice(0,30).map(item=>`<div class="row"><div class="row-main"><strong>${esc(item.action)}</strong><small>${esc(date(item.createdAt))} · ${esc(short(item.orderId||item.requestId))}</small></div><div class="row-value">${esc(item.orderState)}<small>${esc(item.approvalState)}</small></div></div>`).join(''):'<div class="empty compact">No local broker events.</div>';
+  renderBrokerWatchlist(workspace?.watchlist);
 }
 async function refreshBrokerWorkspace(){
   if(!state.connected){renderBrokerWorkspace(null);return null}
@@ -54,12 +82,22 @@ async function createBrokerApproval(event){
   event.preventDefault();
   const form=new FormData(event.currentTarget),draft={assetId:String(form.get('assetId')||''),symbol:String(form.get('symbol')||'').toUpperCase(),side:String(form.get('side')||''),qty:String(form.get('qty')||''),limitPrice:String(form.get('limitPrice')||'')};
   try{
-    const result=await api('/api/broker/challenges',{method:'POST',body:JSON.stringify({accountPublicKey:String(form.get('accountPublicKey')||''),draft})});
+    if(!state.brokerSelectedAsset||state.brokerSelectedAsset.id!==draft.assetId||state.brokerSelectedAsset.symbol!==draft.symbol)throw new Error('Select this asset from the provider-backed search results before creating approval.');
+    const result=await api('/api/broker/challenges',{method:'POST',body:JSON.stringify({draft})});
     if(result?.schema!=='ynx-finance-order-approval-challenge-v1'||result.providerWriteAttempted!==false)throw new Error('Finance order challenge response is invalid.');
     const route=window.YNXFinanceOrderWallet.begin(result.challenge.unsigned,result.challenge.serverTime),order=result.challenge.unsigned.order;
     $('#broker-order-preview').innerHTML=`<strong>${esc(order.side)} ${esc(order.qty)} ${esc(order.symbol)} @ ${esc(order.limitPrice)} simulated USD</strong><br>Maximum: ${esc(order.maxCost)} USD · maximum fee ${esc(order.maxFee)} USD · expires ${esc(result.challenge.unsigned.expiresAt)}<br><small>Request ${esc(short(result.challenge.unsigned.requestId))}. Broker provider has not been contacted.</small>`;
     const link=$('#broker-wallet-approve');link.href=route.url;link.hidden=false;link.rel='noreferrer';notify('Exact approval request created. Review it in YNX Wallet; no broker order has been submitted.');await refreshBrokerWorkspace();
   }catch(error){notify(error.message,true)}
+}
+async function reconcileBroker(){
+  if(!state.connected){notify('Sign in before reconciling owner-scoped Sandbox data.',true);return}
+  if(!window.confirm('Read the linked Sandbox account now and reconcile local order state? This performs no provider write.'))return;
+  try{const result=await api('/api/broker/reconcile',{method:'POST',body:'{}'});if(result?.schema!=='ynx-finance-broker-reconcile-v1'||result.providerWriteAttempted!==false)throw new Error('Broker reconcile response is invalid.');renderBrokerWorkspace(result.workspace);await refreshBrokerSnapshot();notify('Sandbox provider state reconciled. No provider write occurred.')}catch(error){notify(error.message,true)}
+}
+async function requestBrokerCancel(orderId){
+  if(!window.confirm('Record a cancellation request for this Sandbox order? The browser will not contact the provider; an operator worker must execute it.'))return;
+  try{const result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/cancel-request`,{method:'POST',body:'{}'});if(result?.schema!=='ynx-finance-broker-cancel-request-v1'||result.providerWriteAttempted!==false)throw new Error('Cancellation request response is invalid.');notify('Cancellation intent recorded. Provider cancellation has not yet run.');await refreshBrokerWorkspace()}catch(error){notify(error.message,true)}
 }
 async function refreshBrokerQuote(){
   const symbol=String(new FormData($('#broker-order-form')).get('symbol')||'').toUpperCase();
@@ -103,7 +141,7 @@ async function api(path,options={}){
   }
   throw new Error('Read connection retry exhausted.')
 }
-function scope(path){if(path.startsWith('/api/ai/'))return'finance.ai.draft';if(['/api/categories','/api/budgets','/api/reminders','/api/notes','/api/privacy','/api/account','/api/broker/challenges','/api/broker/callback'].some(v=>path.startsWith(v))||path.includes('/category'))return'finance.profile.write';return'finance.portfolio.read'}
+function scope(path){if(path.startsWith('/api/ai/'))return'finance.ai.draft';if(['/api/categories','/api/budgets','/api/reminders','/api/notes','/api/privacy','/api/account','/api/broker/challenges','/api/broker/callback','/api/broker/watchlist','/api/broker/reconcile'].some(v=>path.startsWith(v))||/^\/api\/broker\/orders\/[^/]+\/cancel-request$/.test(path)||path.includes('/category'))return'finance.profile.write';return'finance.portfolio.read'}
 function notify(message,error=false){const box=$('#notice');box.textContent=message;box.classList.toggle('error',error);box.classList.remove('hidden');clearTimeout(box.timer);box.timer=setTimeout(()=>box.classList.add('hidden'),6500)}
 
 async function signIn(){try{await window.YNXFinanceWallet.connect()}catch(error){notify(error.message,true)}}
@@ -149,14 +187,19 @@ async function startAI(){const recordIds=$$('#ai-records input:checked').map(x=>
 function renderAIJob(){const j=state.aiJob;if(!j)return;$('#ai-status').innerHTML=`<p><strong>${esc(j.status)}</strong> · ${esc(j.provider||'Provider unavailable')} / ${esc(j.model||'—')}</p><p>${esc(j.progress||j.error||'Waiting for provider stream…')}</p><p><small>Estimate: ${esc(j.estimatedCost||'not returned')}</small></p>${j.result?`<pre>${esc(JSON.stringify(j.result,null,2))}</pre>`:''}`;$('#ai-actions').classList.remove('hidden');$$('[data-ai=cancel]').forEach(b=>b.classList.toggle('hidden',j.status!=='running'));$$('[data-ai=delete]').forEach(b=>b.classList.toggle('hidden',j.status==='running'));$$('[data-ai=apply],[data-ai=reject]').forEach(b=>b.classList.toggle('hidden',j.status!=='ready'||j.kind==='draft_broker_order'));$$('[data-ai=use-order]').forEach(b=>b.classList.toggle('hidden',j.status!=='ready'||j.kind!=='draft_broker_order'))}
 function pollAI(){clearInterval(state.aiTimer);state.aiTimer=setInterval(async()=>{if(!state.aiJob)return;try{state.aiJob=await api(`/api/ai/jobs/${state.aiJob.id}`);renderAIJob();if(state.aiJob.status!=='running')clearInterval(state.aiTimer)}catch(error){clearInterval(state.aiTimer);notify(error.message,true)}},700)}
 const deleteAIButton=document.createElement('button');deleteAIButton.dataset.ai='delete';deleteAIButton.className='danger hidden';deleteAIButton.textContent='Delete draft data';$('#ai-actions').append(deleteAIButton);
-$('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListener('click',async e=>{const decision=e.target.dataset.ai;if(!decision||!state.aiJob)return;try{if(decision==='cancel'){await api(`/api/ai/jobs/${state.aiJob.id}/cancel`,{method:'POST'});state.aiJob.status='cancelled'}else if(decision==='use-order'){const d=state.aiJob.result?.orderDraft,form=$('#broker-order-form');if(!d||!['buy','sell'].includes(d.side)||!d.assetId||!d.symbol||!d.qty||!d.limitPrice)throw new Error('AI order draft is incomplete and was not copied');form.elements.assetId.value=String(d.assetId);form.elements.symbol.value=String(d.symbol);form.elements.side.value=String(d.side);form.elements.qty.value=String(d.qty);form.elements.limitPrice.value=String(d.limitPrice);location.hash='broker-sandbox';notify('AI draft copied for review. No challenge, approval, or provider request has occurred.');return}else if(decision==='delete'){if(!window.confirm('Delete this AI draft, streamed text and result? The minimal deletion audit event will remain.'))return;await api(`/api/ai/jobs/${state.aiJob.id}`,{method:'DELETE'});state.aiJob=null;$('#ai-status').textContent='Draft data deleted. A minimal deletion audit event remains.';$('#ai-actions').classList.add('hidden');return}else state.aiJob=await api(`/api/ai/jobs/${state.aiJob.id}/decision`,{method:'POST',body:JSON.stringify({decision})});renderAIJob();if(decision==='apply')await load()}catch(error){notify(error.message,true)}});
+$('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListener('click',async e=>{const decision=e.target.dataset.ai;if(!decision||!state.aiJob)return;try{if(decision==='cancel'){await api(`/api/ai/jobs/${state.aiJob.id}/cancel`,{method:'POST'});state.aiJob.status='cancelled'}else if(decision==='use-order'){const d=state.aiJob.result?.orderDraft,form=$('#broker-order-form');if(!d||!['buy','sell'].includes(d.side)||!d.symbol||!d.qty||!d.limitPrice)throw new Error('AI order draft is incomplete and was not copied');form.elements.assetId.value='';form.elements.symbol.value='';form.elements.side.value=String(d.side);form.elements.qty.value=String(d.qty);form.elements.limitPrice.value=String(d.limitPrice);$('#broker-asset-search').elements.query.value=String(d.symbol);state.brokerSelectedAsset=null;location.hash='broker-sandbox';notify('AI draft terms copied. Search and select the exact provider-backed asset before previewing approval.');return}else if(decision==='delete'){if(!window.confirm('Delete this AI draft, streamed text and result? The minimal deletion audit event will remain.'))return;await api(`/api/ai/jobs/${state.aiJob.id}`,{method:'DELETE'});state.aiJob=null;$('#ai-status').textContent='Draft data deleted. A minimal deletion audit event remains.';$('#ai-actions').classList.add('hidden');return}else state.aiJob=await api(`/api/ai/jobs/${state.aiJob.id}/decision`,{method:'POST',body:JSON.stringify({decision})});renderAIJob();if(decision==='apply')await load()}catch(error){notify(error.message,true)}});
 
 function route(){const id=(location.hash||'#overview').slice(1);$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('#nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${id}`));const heading=$(`#${id} h2`);if(state.connected&&heading)$('#page-title').textContent=heading.textContent;else if(!state.connected)$('#page-title').textContent='Your money, with its evidence attached.'}
 window.addEventListener('ynx-finance-standard-state',()=>{state.context++;clearInterval(state.aiTimer)});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView();if(event.detail?.status==='connected')load()});
 window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('Offline · reconnect when network returns','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);
 route();consumeCallback().then(load).then(()=>{if(!state.connected)return publicHealth()}).catch(error=>notify(error.message,true));
-document.querySelector('#broker-refresh').addEventListener('click',async()=>{await refreshBrokerConfiguration();await refreshBrokerSnapshot()});
+document.querySelector('#broker-refresh').addEventListener('click',async()=>{await refreshBrokerConfiguration();await refreshBrokerSnapshot();await refreshBrokerWorkspace()});
+$('#broker-reconcile').addEventListener('click',reconcileBroker);
+$('#broker-asset-search').addEventListener('submit',searchBrokerAssets);
+$('#broker-asset-results').addEventListener('click',async event=>{const selectId=event.target.dataset.brokerSelect,watchId=event.target.dataset.brokerWatch;if(selectId){try{selectBrokerAsset(state.brokerAssets.get(selectId))}catch(error){notify(error.message,true)}}else if(watchId){try{await updateBrokerWatchlist(state.brokerAssets.get(watchId),true)}catch(error){notify(error.message,true)}}});
+$('#broker-watchlist').addEventListener('click',async event=>{const selectId=event.target.dataset.brokerWatchSelect,removeId=event.target.dataset.brokerUnwatch;if(selectId){try{const item=state.brokerWatchlist.get(selectId);selectBrokerAsset({id:item.assetId,symbol:item.symbol,name:item.name})}catch(error){notify(error.message,true)}}else if(removeId){try{await updateBrokerWatchlist(state.brokerWatchlist.get(removeId),false)}catch(error){notify(error.message,true)}}});
+$('#broker-local-orders').addEventListener('click',async event=>{const refreshId=event.target.dataset.brokerOrderRefresh,cancelId=event.target.dataset.brokerOrderCancel;if(refreshId){await reconcileBroker()}else if(cancelId){await requestBrokerCancel(cancelId)}});
 $('#broker-order-form').addEventListener('submit',createBrokerApproval);
 $('#broker-quote').addEventListener('click',refreshBrokerQuote);
 $('#broker-complete-callback').addEventListener('click',completeBrokerCallback);

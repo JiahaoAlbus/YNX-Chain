@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -590,12 +591,20 @@ func normalizeBrokerageState(state *BrokerageAccountState) {
 	if state.Journal == nil {
 		state.Journal = []BrokerJournalEvent{}
 	}
+	if state.Watchlist == nil {
+		state.Watchlist = map[string]BrokerWatchlistItem{}
+	}
 }
 
 func validateBrokeragePersistence(account string, state BrokerageAccountState) error {
 	for key, mapping := range state.Mappings {
-		if key != brokerMappingKey(mapping.Provider, mapping.TradingEnvironment) || mapping.Account != account || mapping.Provider != FinanceOrderProvider || mapping.TradingEnvironment != FinanceOrderTradingEnv || !financeProviderUUIDPattern.MatchString(mapping.BrokerAccountID) || (mapping.Status != "active" && mapping.Status != "disabled") {
+		if key != brokerMappingKey(mapping.Provider, mapping.TradingEnvironment) || mapping.Account != account || mapping.Provider != FinanceOrderProvider || mapping.TradingEnvironment != FinanceOrderTradingEnv || !financeProviderUUIDPattern.MatchString(mapping.BrokerAccountID) || (mapping.WalletPublicKey != "" && !financePublicKeyPattern.MatchString(mapping.WalletPublicKey)) || (mapping.Status != "active" && mapping.Status != "disabled") {
 			return errors.New("finance state contains an invalid Broker account mapping")
+		}
+	}
+	for assetID, item := range state.Watchlist {
+		if assetID != item.AssetID || !financeProviderUUIDPattern.MatchString(item.AssetID) || !financeSymbolPattern.MatchString(item.Symbol) || strings.TrimSpace(item.Name) == "" || len(item.Name) > 160 || item.AddedAt.IsZero() {
+			return errors.New("finance state contains an invalid Broker watchlist item")
 		}
 	}
 	validApproval := map[string]bool{"pending": true, "approved": true, "rejected": true, "revoked": true, "expired": true, "consumed": true}

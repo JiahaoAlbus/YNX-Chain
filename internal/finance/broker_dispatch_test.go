@@ -11,16 +11,26 @@ import (
 )
 
 type dispatchAdapter struct {
-	submit    func(brokerage.SubmitOrderRequest) (brokerage.Order, error)
-	cancel    func(string) error
-	snapshot  brokerage.AccountSnapshot
-	quote     brokerage.Quote
-	account   brokerage.Account
-	positions []brokerage.Position
+	submit      func(brokerage.SubmitOrderRequest) (brokerage.Order, error)
+	cancel      func(string) error
+	assets      brokerage.AssetResult
+	assetsErr   error
+	snapshot    brokerage.AccountSnapshot
+	snapshotErr error
+	quote       brokerage.Quote
+	account     brokerage.Account
+	positions   []brokerage.Position
 }
 
 func (d dispatchAdapter) Capabilities() map[string]string { return map[string]string{} }
+
 func (d dispatchAdapter) Assets(context.Context) (brokerage.AssetResult, error) {
+	if d.assetsErr != nil {
+		return brokerage.AssetResult{}, d.assetsErr
+	}
+	if len(d.assets.Assets) > 0 {
+		return d.assets, nil
+	}
 	return brokerage.AssetResult{Provider: FinanceOrderProvider, Environment: FinanceOrderTradingEnv, Assets: []brokerage.Asset{{ID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Name: "ACME", Class: "us_equity", Status: "active", Tradable: true}}}, nil
 }
 func (d dispatchAdapter) Quote(_ context.Context, symbol string) (brokerage.Quote, error) {
@@ -42,7 +52,7 @@ func (d dispatchAdapter) Positions(context.Context, string, brokerage.AccountRes
 	return d.positions, "positions-request", nil
 }
 func (d dispatchAdapter) Reconcile(context.Context, string, brokerage.AccountResolver) (brokerage.AccountSnapshot, error) {
-	return d.snapshot, nil
+	return d.snapshot, d.snapshotErr
 }
 func (d dispatchAdapter) SubmitOrder(_ context.Context, _ string, _ brokerage.AccountResolver, request brokerage.SubmitOrderRequest) (brokerage.Order, error) {
 	return d.submit(request)
@@ -104,6 +114,33 @@ func TestBrokerDispatcherSuccessAndReconcileCursor(t *testing.T) {
 	workspace := store.BrokerWorkspace(account, now.Add(2*time.Minute))
 	if workspace.Orders[0].State != "filled" || store.Account(account).Brokerage.EventCursor == "" {
 		t.Fatalf("workspace=%+v", workspace)
+	}
+}
+
+func TestOperatorCancelAcceptsExistingBrowserCancellationIntent(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	claim, err := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: claim.Order.Order.AssetID, Symbol: claim.Order.Order.Symbol, Side: claim.Order.Order.Side, Qty: claim.Order.Order.Qty, FilledQty: "0", Type: claim.Order.Order.OrderType, LimitPrice: claim.Order.Order.LimitPrice, TimeInForce: claim.Order.Order.TimeInForce, ExtendedHours: claim.Order.Order.ExtendedHours, Status: "accepted", SubmittedAt: now.Format(time.RFC3339Nano)}
+	if _, err := store.CompleteBrokerDispatch(account, orderID, &providerOrder, nil, now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.RequestBrokerCancel(account, orderID, now.Add(3*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	dispatcher := BrokerDispatcher{Store: store, Adapter: dispatchAdapter{cancel: func(providerID string) error {
+		calls++
+		if providerID != providerOrder.ID {
+			t.Fatalf("providerID=%s", providerID)
+		}
+		return nil
+	}}, Now: func() time.Time { return now.Add(4 * time.Minute) }}
+	record, err := dispatcher.Cancel(context.Background(), account, orderID)
+	if err != nil || calls != 1 || record.State != "cancel_requested" {
+		t.Fatalf("record=%+v calls=%d err=%v", record, calls, err)
 	}
 }
 

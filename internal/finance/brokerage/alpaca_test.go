@@ -46,7 +46,7 @@ func TestReadOnlyAccountOrdersPositionsAndReconcile(t *testing.T) {
 		return accountID, nil
 	})
 	responses := map[string]string{
-		"/v1/accounts/" + accountID: `{"id":"01234567-89ab-4cde-8fab-0123456789ab","status":"ACTIVE","currency":"USD","cash":"100000.00","buying_power":"100000.00"}`,
+		"/v1/trading/accounts/" + accountID + "/account":                                   `{"id":"01234567-89ab-4cde-8fab-0123456789ab","status":"ACTIVE","currency":"USD","cash":"100000.00","buying_power":"103556.8572572922","trading_blocked":false,"account_blocked":false,"trade_suspended_by_user":false}`,
 		"/v1/trading/accounts/" + accountID + "/orders?status=all&limit=500&direction=asc": `[{"id":"11111111-2222-4333-8444-555555555555","client_order_id":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee","asset_id":"99999999-8888-4777-8666-555555555555","symbol":"ACME","side":"buy","qty":"2","filled_qty":"1","type":"limit","limit_price":"125.34","time_in_force":"day","status":"partially_filled","submitted_at":"2026-09-19T09:00:00Z"}]`,
 		"/v1/trading/accounts/" + accountID + "/positions":                                 `[{"asset_id":"99999999-8888-4777-8666-555555555555","symbol":"ACME","qty":"1","qty_available":"1","avg_entry_price":"125.34","market_value":"126.00"}]`,
 	}
@@ -66,7 +66,7 @@ func TestReadOnlyAccountOrdersPositionsAndReconcile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snapshot.Account.Cash != "100000.00" || len(snapshot.Orders) != 1 || len(snapshot.Positions) != 1 || snapshot.Orders[0].Status != "partially_filled" {
+	if snapshot.Account.Cash != "100000.00" || snapshot.Account.BuyingPower != "103556.8572572922" || snapshot.Account.TradingBlocked || snapshot.Account.AccountBlocked || snapshot.Account.TradeSuspendedByUser || len(snapshot.Orders) != 1 || len(snapshot.Positions) != 1 || snapshot.Orders[0].Status != "partially_filled" {
 		t.Fatalf("%+v", snapshot)
 	}
 	if len(calls) != 3 {
@@ -297,7 +297,7 @@ func TestOwnerBindingPrecedesAccountHTTPAndRejectsCrossAccountResponse(t *testin
 	calls := 0
 	a.client.Transport = roundTrip(func(r *http.Request) (*http.Response, error) {
 		calls++
-		if r.URL.Path != "/v1/accounts/00000000-0000-0000-0000-000000000001" {
+		if r.URL.Path != "/v1/trading/accounts/00000000-0000-0000-0000-000000000001/account" {
 			t.Fatal(r.URL.Path)
 		}
 		return response(200, `{"id":"00000000-0000-0000-0000-000000000002","status":"ACTIVE","currency":"USD"}`), nil
