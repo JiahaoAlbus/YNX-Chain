@@ -4,30 +4,30 @@
 
 The `ynx-bridged` server binary imports repository-owned Go packages and the Go standard library. The root npm dependency tree is build-only tooling used by the Bridge GitHub Actions workflow to generate deterministic Solidity artifacts required by repository integration tests. Build-only status does not exempt a Critical or High advisory because compromised or resource-exhausting build tooling can still invalidate release artifacts and CI availability.
 
-## 2026-09-19 advisory closure
+## 2026-07-27 advisory closure
 
-The npm Bulk Advisory API reported a new High advisory in the locked build tree:
+The npm Bulk Advisory API reported one High advisory in the locked build tree:
 
 - Package: `adm-zip`
-- Locked vulnerable version: `0.6.0`
-- Advisory: `1239030` / `GHSA-7q85-xj36-vmfc`
-- Title: uncontrolled memory allocation through a declared uncompressed size
+- Locked vulnerable version: `0.4.16`
+- Advisory: `1123686` / `GHSA-xcpc-8h2w-3j85`
+- Title: crafted ZIP file triggers a 4 GB memory allocation
 - Severity: High
 - CVSS: 7.5
-- CWE: CWE-789
-- Vulnerable range: `<0.6.1`
+- CWE: CWE-400, CWE-789
+- Vulnerable range: `<0.6.0`
 
 Hardhat still declared `adm-zip ^0.4.16`, so upgrading Hardhat alone did not guarantee the fixed release. The root package now uses an exact npm override:
 
 ```json
 {
   "overrides": {
-    "adm-zip": "0.6.1"
+    "adm-zip": "0.6.0"
   }
 }
 ```
 
-The regenerated lockfile contains the intended same-major changes from `adm-zip 0.6.0` to `0.6.1` and direct `undici 6.27.0` to `6.28.1`. The latter also clears the three moderate advisories affecting Undici versions before 6.28.0. No suppression or ignored advisory is used.
+The regenerated lockfile contains only the intended dependency change from `adm-zip 0.4.16` to `0.6.0`. No suppression or ignored advisory is used.
 
 ## Verification gates
 

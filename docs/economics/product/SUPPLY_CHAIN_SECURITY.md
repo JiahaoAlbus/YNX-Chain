@@ -8,7 +8,7 @@ Go dependency identity is pinned by `go.mod`/`go.sum`; npm contract tooling is p
 
 `make secret-scan` is a repository pattern scan, not entropy detection or history scanning. `make static-check` runs Go vet plus shell/JavaScript syntax checks; it is not an independent SAST platform. `npm audit` and `govulncheck`, when available and recorded, are dependency vulnerability checks, not proof of exploitability or absence of vulnerabilities. The local HTTP test suite is not external DAST. No container image is produced by this economics package, so no container scan can be claimed; repository assets and local binaries require hash/inventory checks instead.
 
-The current root lockfile pins `adm-zip 0.6.1` and `undici 6.28.1`. A full npm audit reports zero known vulnerabilities after those same-major updates. Hardhat and both packages remain development-only, and the repository does not use Hardhat to ingest untrusted ZIP input. The Go graph and toolchain were upgraded to the scanner-provided fixed versions; a subsequent symbol scan reported no called findings.
+The 2026-07-22 full npm audit reports three High entries through Hardhat's `adm-zip <0.6.0` dependency and reports no available fix. Hardhat is development-only and this package does not ingest untrusted ZIP input, but the finding remains unresolved and blocks treating the contract-tooling bundle as production-ready. The Go graph and toolchain were upgraded to the scanner-provided fixed versions; a subsequent symbol scan reported no called findings.
 
 ## Build and provenance
 

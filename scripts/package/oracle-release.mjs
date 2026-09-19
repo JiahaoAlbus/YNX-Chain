@@ -272,7 +272,7 @@ function buildTypeScriptArtifact({root, output, version}) {
 
 function buildGoSDKArtifact({root, output, version}) {
   const modulePath = "github.com/JiahaoAlbus/YNX-Chain/sdk/oracle/go";
-  const goMod = `module ${modulePath}\n\ngo 1.25.13\n`;
+  const goMod = `module ${modulePath}\n\ngo 1.25.12\n`;
   const readme = `# YNX Oracle Go consumer SDK\n\nVersion: ${version}\n\nThis dependency-free consumer validates canonical YNX Oracle responses and fails closed on schema, request, freshness, source, confidence, coverage, lineage, derivation, and transport violations.\n\nThe artifact is a local unsigned candidate and is not registry-hosted.\n`;
   const entries = [
     {path: "ynx-oracle-client-go/client.go", data: fs.readFileSync(path.join(root, "sdk/oracle/go/client.go"))},
@@ -290,10 +290,10 @@ function buildGoSDKArtifact({root, output, version}) {
     hosted: false,
     id: "go-sdk",
     kind: "go-module-source-candidate",
-    minimumRuntime: "Go 1.25.13",
+    minimumRuntime: "Go 1.25.12",
     productionSigned: false,
     sha256: sha256(artifactBody),
-    target: "any-go1.25.13",
+    target: "any-go1.25.12",
   };
 }
 
