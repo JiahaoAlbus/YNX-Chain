@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ynx:finance:broker-config:v1",
+  "title": "Server-only Finance Broker Sandbox environment variables",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "YNX_CHAIN_ENV": {"const": "testnet", "default": "testnet"},
+    "YNX_EVM_CHAIN_ID": {"const": "6423", "default": "6423"},
+    "FINANCE_TRADING_ENV": {"const": "sandbox", "default": "sandbox"},
+    "FINANCE_BROKER_PROVIDER": {"const": "alpaca_broker", "default": "alpaca_broker"},
+    "FINANCE_TRADING_ENABLED": {"enum": ["true", "false"], "default": "false"},
+    "FINANCE_LIVE_ENABLED": {"const": "false", "default": "false"},
+    "FINANCE_SANDBOX_WRITES_ENABLED": {"const": "false", "default": "false"},
+    "ALPACA_BROKER_SANDBOX_BASE_URL": {"const": "https://broker-api.sandbox.alpaca.markets"},
+    "ALPACA_BROKER_TOKEN_URL": {"const": "https://authx.sandbox.alpaca.markets/v1/oauth2/token"},
+    "ALPACA_BROKER_AUTH_MODE": {"enum": ["client_credentials", "legacy_basic"], "default": "client_credentials"},
+    "ALPACA_BROKER_CLIENT_ID": {"type": "string", "maxLength": 4096, "writeOnly": true},
+    "ALPACA_BROKER_CLIENT_SECRET": {"type": "string", "maxLength": 8192, "writeOnly": true},
+    "ALPACA_BROKER_API_KEY": {"type": "string", "maxLength": 4096, "writeOnly": true},
+    "ALPACA_BROKER_API_SECRET": {"type": "string", "maxLength": 8192, "writeOnly": true}
+  },
+  "$comment": "Validate only the extracted names in this schema, not all process env. Missing/blank credentials are allowed for startup but doctor reports BLOCKED_CREDENTIALS; network remains disabled. Runtime additionally rejects control characters, legacy Basic username colon and unsupported global account mapping. Never serialize the input to public diagnostics. Defaults are applied by the Go loader, not assumed from a schema validator."
+}

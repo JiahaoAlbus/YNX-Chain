@@ -18,6 +18,7 @@
       <nav id="nav">
         <a class="active" href="#overview">Overview</a><a href="#activity">Activity</a><a href="#planning">Planning</a><a href="#statements">Statements</a><a href="#assistant">AI review</a><a href="#privacy">Privacy & safety</a><a href="#support">Support</a>
       </nav>
+      <a href="#broker-sandbox">US stocks · Sandbox</a>
       <div class="boundary"><strong>Read-only by design</strong><p>No custody, bank account, brokerage, fiat balance, credit, insurance, yield, or automatic asset control.</p></div>
     </aside>
     <main id="main" tabindex="-1">
@@ -31,6 +32,17 @@
         <div class="wallet-choice"><button id="private-begin" type="button">Authorize private Finance</button><a id="private-open" hidden rel="noreferrer">Open YNX Wallet — installation unverified</a><button id="private-retry" type="button">Retry private connection</button><button id="private-revoke" type="button">Revoke private Finance access</button><button id="private-guest" type="button">Continue as guest</button></div>
       </section>
       <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+      <a id="broker-nav" class="button ghost" href="#broker-sandbox">US stocks · Sandbox status</a>
+      <section id="broker-sandbox" class="view panel" aria-labelledby="broker-heading">
+        <span class="eyebrow">TESTNET + BROKER SANDBOX ONLY · NOT LIVE SECURITIES</span>
+        <h2 id="broker-heading">US stocks Sandbox</h2>
+        <p id="broker-status" role="status">Not configured. No broker account or market data connection is verified.</p>
+        <p>Alpaca Broker API Sandbox is separate from YNXT. Simulated USD and simulated shares are not real funds, on-chain stocks or a chain transaction.</p>
+        <dl><dt>Broker account</dt><dd>Not linked</dd><dt>Simulated cash / positions / quote</dt><dd>Unknown — not zero</dd><dt>Order approval</dt><dd>Unavailable until the shared Wallet securities approval protocol is implemented.</dd></dl>
+        <button id="broker-refresh" type="button">Recheck configuration</button>
+        <button id="broker-submit" type="button" disabled>Submit Sandbox order — unavailable</button>
+        <p id="broker-recovery">Existing Finance planning and Wallet connection remain available.</p>
+      </section>
 
       <section id="signed-out" class="hero">
         <div><span class="eyebrow">Personal finance without account control</span><h2>See owned YNXT activity.<br>Plan privately.</h2><p>YNX Finance reads evidence through Explorer and Pay after Wallet authorization. It cannot see recovery material, sign transactions, move funds, or invent missing balances.</p><p>Use the independent Wallet controls above. Standard EVM connection does not prove ownership to the private Finance API.</p></div>

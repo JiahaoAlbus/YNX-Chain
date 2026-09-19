@@ -1,4 +1,23 @@
 const state={connected:false,overview:null,aiJob:null,aiTimer:null,context:0};
+// Guest-readable diagnostics only. This never requests a Wallet account, signs,
+// reads broker credentials or automatically enables order submission.
+let brokerCheckRevision=0;
+async function refreshBrokerConfiguration(){
+  if(typeof fetch!=='function'||typeof AbortController!=='function')return;
+  const revision=++brokerCheckRevision;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
+  try{
+    const response=await fetch('/api/broker/status',{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal});
+    if(!response.ok)throw new Error('unavailable');
+    const result=await response.json();
+    if(result.schema!=='ynx-finance-broker-status-v1'||result.status?.tradingEnvironment!=='sandbox'||result.status?.chainEnvironment!=='testnet'||typeof result.status?.enabled!=='boolean'||result.status?.submissionEnabled!==false)throw new Error('invalid');
+    if(revision!==brokerCheckRevision)return;
+    document.querySelector('#broker-status').textContent=!result.status.enabled?'Sandbox module disabled. No broker connection is verified; submission is disabled.':result.status.state==='CONFIGURED_NOT_VERIFIED'?'Configuration present. Official Sandbox, linked account and trading permissions are not verified.':'Not configured / disconnected. Submission is disabled; no sample balances or trades are substituted.';
+    route();
+  }catch{
+    if(revision===brokerCheckRevision)document.querySelector('#broker-status').textContent='Configuration check unavailable. Retry is read-only; order submission remains disabled.';
+  }finally{clearTimeout(timer)}
+}
 const READ_RETRY_DELAYS=[0,600,1600];
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -77,3 +96,5 @@ window.addEventListener('ynx-finance-standard-state',()=>{state.context++;clearI
 window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('Offline · reconnect when network returns','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);
 route();consumeCallback().then(load).then(()=>{if(!state.connected)return publicHealth()}).catch(error=>notify(error.message,true));
+document.querySelector('#broker-refresh').addEventListener('click',refreshBrokerConfiguration);
+refreshBrokerConfiguration();

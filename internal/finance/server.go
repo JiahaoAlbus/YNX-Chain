@@ -19,12 +19,14 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/finance/brokerage"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
 const maxBodyBytes = 64 << 10
 
 type ServerConfig struct {
+	BrokerConfig        brokerage.Config
 	AllowedOrigins      []string
 	WebDir              string
 	CursorSigningKey    string
@@ -83,6 +85,7 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.mux)) }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /ready", s.ready)
 	s.mux.HandleFunc("GET /version", s.version)
