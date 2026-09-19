@@ -318,6 +318,40 @@ func TestOwnerBindingPrecedesAccountHTTPAndRejectsCrossAccountResponse(t *testin
 		t.Fatal(err)
 	}
 }
+
+func TestTradingAccountRequiresExplicitBooleanSafetyFences(t *testing.T) {
+	accountID := "00000000-0000-0000-0000-000000000001"
+	resolve := resolver(func(context.Context, string, string, string) (string, error) { return accountID, nil })
+	base := `{"id":"00000000-0000-0000-0000-000000000001","status":"ACTIVE","currency":"USD","cash":"100","buying_power":"103556.8572572922","trading_blocked":false,"account_blocked":false,"trade_suspended_by_user":false}`
+	invalid := map[string]string{
+		"missing trading_blocked":    strings.Replace(base, `,"trading_blocked":false`, "", 1),
+		"missing account_blocked":    strings.Replace(base, `,"account_blocked":false`, "", 1),
+		"missing suspended":          strings.Replace(base, `,"trade_suspended_by_user":false`, "", 1),
+		"null trading_blocked":       strings.Replace(base, `"trading_blocked":false`, `"trading_blocked":null`, 1),
+		"null account_blocked":       strings.Replace(base, `"account_blocked":false`, `"account_blocked":null`, 1),
+		"null suspended":             strings.Replace(base, `"trade_suspended_by_user":false`, `"trade_suspended_by_user":null`, 1),
+		"wrong type trading_blocked": strings.Replace(base, `"trading_blocked":false`, `"trading_blocked":"false"`, 1),
+		"wrong type account_blocked": strings.Replace(base, `"account_blocked":false`, `"account_blocked":0`, 1),
+		"wrong type suspended":       strings.Replace(base, `"trade_suspended_by_user":false`, `"trade_suspended_by_user":{}`, 1),
+	}
+	for name, body := range invalid {
+		t.Run(name, func(t *testing.T) {
+			a := NewAlpaca(enabled("legacy_basic"))
+			a.client.Transport = roundTrip(func(*http.Request) (*http.Response, error) { return response(http.StatusOK, body), nil })
+			if _, err := a.Account(context.Background(), "alice", resolve); ErrorCode(err) != "PROVIDER_PROTOCOL_ERROR" {
+				t.Fatalf("err=%v", err)
+			}
+		})
+	}
+	a := NewAlpaca(enabled("legacy_basic"))
+	a.client.Transport = roundTrip(func(*http.Request) (*http.Response, error) {
+		return response(http.StatusOK, strings.Replace(base, `"account_blocked":false`, `"account_blocked":true`, 1)), nil
+	})
+	account, err := a.Account(context.Background(), "alice", resolve)
+	if err != nil || !account.AccountBlocked || account.BuyingPower != "103556.8572572922" {
+		t.Fatalf("account=%+v err=%v", account, err)
+	}
+}
 func TestNoRedirectOrEnvironmentProxy(t *testing.T) {
 	a := NewAlpaca(enabled("legacy_basic"))
 	if a.client.Transport.(*http.Transport).Proxy != nil || a.client.CheckRedirect(nil, nil) != http.ErrUseLastResponse {

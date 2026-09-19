@@ -300,18 +300,18 @@ func (a *Alpaca) Account(ctx context.Context, owner string, resolver AccountReso
 		Currency             string `json:"currency"`
 		Cash                 string `json:"cash"`
 		BuyingPower          string `json:"buying_power"`
-		TradingBlocked       bool   `json:"trading_blocked"`
-		AccountBlocked       bool   `json:"account_blocked"`
-		TradeSuspendedByUser bool   `json:"trade_suspended_by_user"`
+		TradingBlocked       *bool  `json:"trading_blocked"`
+		AccountBlocked       *bool  `json:"account_blocked"`
+		TradeSuspendedByUser *bool  `json:"trade_suspended_by_user"`
 	}
 	id, err := a.get(ctx, "/v1/trading/accounts/"+account+"/account", &raw)
 	if err != nil {
 		return Account{}, err
 	}
-	if raw.ID != account || raw.Status == "" || raw.Currency != "USD" || !providerDecimal.MatchString(raw.Cash) || !providerDecimal.MatchString(raw.BuyingPower) {
+	if raw.ID != account || raw.Status == "" || raw.Currency != "USD" || !providerDecimal.MatchString(raw.Cash) || !providerDecimal.MatchString(raw.BuyingPower) || raw.TradingBlocked == nil || raw.AccountBlocked == nil || raw.TradeSuspendedByUser == nil {
 		return Account{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
 	}
-	return Account{ID: raw.ID, Status: raw.Status, Currency: raw.Currency, Cash: raw.Cash, BuyingPower: raw.BuyingPower, TradingBlocked: raw.TradingBlocked, AccountBlocked: raw.AccountBlocked, TradeSuspendedByUser: raw.TradeSuspendedByUser, RequestID: id}, nil
+	return Account{ID: raw.ID, Status: raw.Status, Currency: raw.Currency, Cash: raw.Cash, BuyingPower: raw.BuyingPower, TradingBlocked: *raw.TradingBlocked, AccountBlocked: *raw.AccountBlocked, TradeSuspendedByUser: *raw.TradeSuspendedByUser, RequestID: id}, nil
 }
 
 // Provider read models preserve upstream decimal strings exactly. Broker

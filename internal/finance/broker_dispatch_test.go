@@ -248,6 +248,30 @@ func TestBrokerDispatchBlocksExpiredApprovalAndStalePreflightBeforeSubmit(t *tes
 	}
 }
 
+func TestBrokerDispatchBlocksEveryExplicitTradingAccountFenceBeforeSubmit(t *testing.T) {
+	for name, blockedAccount := range map[string]brokerage.Account{
+		"trading blocked": {ID: "01234567-89ab-4cde-8fab-0123456789ab", Status: "ACTIVE", Currency: "USD", Cash: "100", BuyingPower: "100", TradingBlocked: true},
+		"account blocked": {ID: "01234567-89ab-4cde-8fab-0123456789ab", Status: "ACTIVE", Currency: "USD", Cash: "100", BuyingPower: "100", AccountBlocked: true},
+		"user suspended":  {ID: "01234567-89ab-4cde-8fab-0123456789ab", Status: "ACTIVE", Currency: "USD", Cash: "100", BuyingPower: "100", TradeSuspendedByUser: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			store, account, orderID, now := consumedBrokerFixture(t)
+			posts := 0
+			adapter := dispatchAdapter{account: blockedAccount, submit: func(brokerage.SubmitOrderRequest) (brokerage.Order, error) {
+				posts++
+				return brokerage.Order{}, nil
+			}}
+			dispatcher := BrokerDispatcher{Store: store, Adapter: adapter, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+			if _, err := dispatcher.Dispatch(context.Background(), account, orderID); err == nil {
+				t.Fatal("blocked trading account was accepted")
+			}
+			if posts != 0 {
+				t.Fatalf("blocked account reached provider POST: %d", posts)
+			}
+		})
+	}
+}
+
 func TestBrokerClaimNeverRegressesProviderCorrelatedOrderAfterExpiry(t *testing.T) {
 	store, account, orderID, now := consumedBrokerFixture(t)
 	provider := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted"}
