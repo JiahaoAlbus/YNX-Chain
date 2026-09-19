@@ -24,6 +24,10 @@ Live, Mainnet, installed-device or production verification.
   `029add3e6c07fbe522eeac4568c3af137c417c1b`. It is retained in history for
   provenance, but is superseded by the scope-narrowed candidate recorded by
   this document.
+- Scope-narrowing implementation checkpoint:
+  `329f3357d3c72b0e2d40ace56922ef205c232438`. The exact published checkpoint
+  passed the Finance/Wallet race integration and consolidated Weekly v3 local
+  gate before this documentation-only follow-up.
 
 ## Integration decisions
 
