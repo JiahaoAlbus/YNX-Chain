@@ -1,5 +1,40 @@
 # Weekly v3 cross-product integration checkpoint
 
+## Reopened acceptance window: B1–B4 (not yet product-tested)
+
+The sole coordinator reopened NETWORK's second writer slot for acceptance
+assets only after the full-requirement audit found four gaps outside the
+81-case scope: real HTML AI-start/FormData, provider-rejected terminal recovery,
+default-off gated product execution, and securities AI with no YNXT activity or
+an unavailable Explorer. Finance/Wallet product files remain owner-only.
+
+New assets prepare unchanged real HTML/script loading in headless Chromium,
+native FormData and actual button-click → Finance HTTP → local Gateway → durable
+job → reviewed-form copy. Three cases cover owned activity, empty chain activity
+and Explorer 503. Session proof is an explicit synthetic fixture, not an
+installed Wallet claim. All browser network is intercepted and restricted to
+the isolated Finance server; only AI-job creation is an allowed write. The
+acceptance adapter never repairs the DOM or injects an AI result.
+
+Four new provider-rejection cases cover polling/events with both accepted ACK
+and lost ACK. Each requires preserved provider identity, consumed Wallet
+approval, a non-dispatchable terminal outbox, reopening persisted state, and no
+regression from late accepted events or stale polling. Exactly one initial
+provider POST and zero DELETEs are expected. Full execution awaits Finance's
+clean, published interface freeze; new test presence is not a product PASS.
+The B3 route/receipt/idempotency tests await that same frozen owner contract.
+
+Preparation verification: **41/41 harness self-tests PASS**, including a real
+Chromium native-FormData regression probe using a synthetic HTML page only
+(DIV throws TypeError; FORM yields the value). This dependency-only probe does
+not load a moving Finance worktree's HTML/scripts. `git diff --check` and Node
+syntax validation pass. The seven new Go product cases are prepared, not run.
+
+The previous 81/81 report and source checkpoint below are immutable historical
+evidence. To reproduce that exact scope, use NETWORK `1f24904049a1bc399a67ca8c9493237e3c5f9077`;
+the expanded runner in this window must not be presented as that earlier run.
+All official/public/production flags remain false.
+
 ## Latest expanded local acceptance: 81/81 PASS
 
 Finance `cb904735f6f03364f71e41172405ee12e0f5f152`, tree
