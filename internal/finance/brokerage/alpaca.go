@@ -378,25 +378,45 @@ func (a *Alpaca) Orders(ctx context.Context, owner string, resolver AccountResol
 	if err != nil {
 		return nil, "", err
 	}
-	var raw []providerOrder
-	id, err := a.get(ctx, "/v1/trading/accounts/"+account+"/orders?status=all&limit=500&direction=asc", &raw)
-	if err != nil {
-		return nil, id, err
-	}
-	orders := make([]Order, 0, len(raw))
+	orders := make([]Order, 0, 500)
 	seen := map[string]bool{}
-	for _, value := range raw {
-		if seen[value.ID] {
-			return nil, id, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
+	requestIDs := make([]string, 0, 4)
+	after := ""
+	for page := 0; page < 100; page++ {
+		path := "/v1/trading/accounts/" + account + "/orders?status=all&limit=500&direction=asc"
+		if after != "" {
+			path += "&after=" + url.QueryEscape(after)
 		}
-		order, normalizeErr := normalizeProviderOrder(value, id)
-		if normalizeErr != nil {
-			return nil, id, normalizeErr
+		var raw []providerOrder
+		id, getErr := a.get(ctx, path, &raw)
+		if getErr != nil {
+			return nil, strings.Join(requestIDs, ","), getErr
 		}
-		seen[value.ID] = true
-		orders = append(orders, order)
+		requestIDs = append(requestIDs, id)
+		if raw == nil {
+			return nil, strings.Join(requestIDs, ","), &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
+		}
+		for _, value := range raw {
+			if seen[value.ID] {
+				return nil, strings.Join(requestIDs, ","), &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
+			}
+			order, normalizeErr := normalizeProviderOrder(value, id)
+			if normalizeErr != nil {
+				return nil, strings.Join(requestIDs, ","), normalizeErr
+			}
+			seen[value.ID] = true
+			orders = append(orders, order)
+		}
+		if len(raw) < 500 {
+			return orders, strings.Join(requestIDs, ","), nil
+		}
+		next := raw[len(raw)-1].SubmittedAt
+		if next == "" || next == after {
+			return nil, strings.Join(requestIDs, ","), &Error{Code: "ORDER_PAGINATION_AMBIGUOUS", RequestID: id}
+		}
+		after = next
 	}
-	return orders, id, nil
+	return nil, strings.Join(requestIDs, ","), &Error{Code: "ORDER_PAGINATION_LIMIT"}
 }
 
 func (a *Alpaca) Positions(ctx context.Context, owner string, resolver AccountResolver) ([]Position, string, error) {

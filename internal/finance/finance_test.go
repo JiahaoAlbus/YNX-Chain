@@ -25,6 +25,21 @@ type fakeAI struct{ result map[string]any }
 func (f fakeAI) Status(context.Context) (string, string, bool, error) {
 	return "test-provider", "test-model", true, nil
 }
+
+type capturingAI struct {
+	request AIRequest
+	result  map[string]any
+}
+
+func (f *capturingAI) Status(context.Context) (string, string, bool, error) {
+	return "loopback-gateway", "fixture-model", true, nil
+}
+func (f *capturingAI) Estimate(context.Context, AIRequest) (string, error) { return "unverified", nil }
+func (f *capturingAI) Stream(_ context.Context, request AIRequest, emit func(string)) (map[string]any, error) {
+	f.request = request
+	emit("structured draft")
+	return f.result, nil
+}
 func (f fakeAI) Estimate(context.Context, AIRequest) (string, error) { return "2 AI credits", nil }
 func (f fakeAI) Stream(_ context.Context, _ AIRequest, emit func(string)) (map[string]any, error) {
 	emit("Draft ready")
@@ -442,6 +457,91 @@ func TestAIBudgetDraftOnlyAppliesAfterReview(t *testing.T) {
 	audit := store.Audit(testAccount)
 	if len(audit) == 0 || audit[len(audit)-1].Action != "ai.deleted" {
 		t.Fatal("minimal AI deletion audit event is missing")
+	}
+}
+
+func TestAIBrokerOrderIntentProducesStrictDraftOnlyJob(t *testing.T) {
+	store, _ := OpenStore("")
+	if err := store.Update(testAccount, "privacy", "ai", func(state *AccountState) error {
+		state.Privacy.AllowAIActivityContext = true
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	provider := &capturingAI{result: map[string]any{
+		"schemaVersion": "finance.ai.broker-order-draft.v1",
+		"draftOnly":     true,
+		"orderDraft":    map[string]any{"symbol": "ACME", "side": "buy", "qty": "2", "limitPrice": "10.25", "timeInForce": "day", "warnings": []any{"Sandbox only; review provider-backed asset and Wallet approval."}},
+	}}
+	service := &Service{Store: store, AI: provider}
+	portfolio := Portfolio{Activity: []Activity{{ID: "owned-record", Source: "indexed"}}, ExplorerStatus: SourceStatus{Available: true}}
+	intent := &AISecuritiesOrderIntent{Symbol: "ACME", Side: "buy", Qty: "2", LimitPrice: "10.25"}
+	job, err := service.StartAIWithIntent(context.Background(), testAccount, "draft_broker_order", []string{"owned-record"}, []string{"owned_activity"}, true, portfolio, "en", intent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		job, _ = service.aiJob(testAccount, job.ID)
+		if job.Status != "running" {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	contextIntent, ok := provider.request.Context["securitiesOrderIntent"].(AISecuritiesOrderIntent)
+	if job.Status != "ready" || !ok || contextIntent != *intent || job.Result["draftOnly"] != true {
+		t.Fatalf("job=%+v request=%+v", job, provider.request)
+	}
+	if len(store.Account(testAccount).Brokerage.Orders) != 0 {
+		t.Fatal("AI draft created an order")
+	}
+}
+
+func TestAIBrokerOrderDraftFailsClosedOnSchemaOrIntent(t *testing.T) {
+	store, _ := OpenStore("")
+	_ = store.Update(testAccount, "privacy", "ai", func(state *AccountState) error { state.Privacy.AllowAIActivityContext = true; return nil })
+	portfolio := Portfolio{Activity: []Activity{{ID: "owned-record", Source: "indexed"}}, ExplorerStatus: SourceStatus{Available: true}}
+	provider := &capturingAI{result: map[string]any{"orderDraft": map[string]any{"symbol": "ACME"}}}
+	service := &Service{Store: store, AI: provider}
+	if _, err := service.StartAIWithIntent(context.Background(), testAccount, "draft_broker_order", []string{"owned-record"}, []string{"owned_activity"}, true, portfolio, "en", &AISecuritiesOrderIntent{Symbol: "../BAD", Side: "buy", Qty: "1", LimitPrice: "10"}); err == nil {
+		t.Fatal("invalid advisory intent was accepted")
+	}
+	job, err := service.StartAIWithIntent(context.Background(), testAccount, "draft_broker_order", []string{"owned-record"}, []string{"owned_activity"}, true, portfolio, "en", &AISecuritiesOrderIntent{Symbol: "ACME", Side: "buy", Qty: "1", LimitPrice: "10"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		job, _ = service.aiJob(testAccount, job.ID)
+		if job.Status != "running" {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if job.Status != "failed" || job.Error != "AI_ORDER_DRAFT_SCHEMA_INVALID" {
+		t.Fatalf("invalid provider result did not fail closed: %+v", job)
+	}
+}
+
+func TestHTTPAIProviderConsumesLoopbackSSEWithoutWrite(t *testing.T) {
+	requests := 0
+	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/health" {
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "model": "fixture-model"})
+			return
+		}
+		requests++
+		if r.Method != http.MethodGet || r.URL.Path != "/ai/stream" || !strings.Contains(r.URL.Query().Get("q"), "finance.ai.broker-order-draft.v1") {
+			t.Fatalf("unexpected AI gateway request: %s %s", r.Method, r.URL.String())
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = io.WriteString(w, "data: {\"text\":\"{\\\"schemaVersion\\\":\\\"finance.ai.broker-order-draft.v1\\\",\\\"draftOnly\\\":true,\\\"orderDraft\\\":{\\\"symbol\\\":\\\"ACME\\\",\\\"side\\\":\\\"buy\\\",\\\"qty\\\":\\\"1\\\",\\\"limitPrice\\\":\\\"10\\\",\\\"timeInForce\\\":\\\"day\\\",\\\"warnings\\\":[\\\"Review only\\\"]}}\"}\n\n")
+	}))
+	defer gateway.Close()
+	provider := &HTTPAIProvider{URL: gateway.URL, Client: gateway.Client()}
+	result, err := provider.Stream(context.Background(), AIRequest{Kind: "draft_broker_order", Account: testAccount, OutputLocale: "en"}, func(string) {})
+	if err != nil || requests != 1 || result["schemaVersion"] != "finance.ai.broker-order-draft.v1" {
+		t.Fatalf("result=%v requests=%d err=%v", result, requests, err)
 	}
 }
 

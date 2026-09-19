@@ -34,9 +34,9 @@ func TestCommandsRequireExplicitReadonlyNetworkAndNeverClaimWorkflowVerified(t *
 					}
 					return ""
 				}
-				probe := func(context.Context, brokerage.Config) (brokerage.AssetResult, error) {
+				probe := func(context.Context, brokerage.Config) (verificationResult, error) {
 					calls++
-					return brokerage.AssetResult{Provider: brokerage.Provider, Environment: "sandbox", Assets: []brokerage.Asset{}, RequestID: "fixture-request"}, nil
+					return verificationResult{Assets: brokerage.AssetResult{Provider: brokerage.Provider, Environment: "sandbox", Assets: []brokerage.Asset{}, RequestID: "fixture-request"}, Snapshot: brokerage.AccountSnapshot{Account: brokerage.Account{ID: "fixture-account"}}, Quote: brokerage.Quote{Symbol: "ACME"}, StoreMode: "file-cas-single-host"}, nil
 				}
 				rc := runWith(args, get, probe, &output)
 				var got map[string]any
@@ -50,7 +50,7 @@ func TestCommandsRequireExplicitReadonlyNetworkAndNeverClaimWorkflowVerified(t *
 				if calls != expected || got["officialSandboxVerified"] != false || got["writeAttempted"] != false || strings.Contains(output.String(), "fixture-secret") {
 					t.Fatal(args, calls, rc, output.String())
 				}
-				if expected == 1 && (rc != 0 || got["result"] != "BROKER_ASSET_READ_VERIFIED_ONLY") {
+				if expected == 1 && (rc != 0 || got["result"] != "BROKER_OWNER_READS_VERIFIED_ONLY" || got["accountLinkVerified"] != true || got["dataEntitlementVerified"] != true) {
 					t.Fatal(output.String())
 				}
 			}
@@ -75,9 +75,9 @@ func TestActivationPlanRequiresReceiptButNeverTouchesNetworkOrWrites(t *testing.
 			}
 			return ""
 		}
-		rc := runWith([]string{"activation-plan"}, get, func(context.Context, brokerage.Config) (brokerage.AssetResult, error) {
+		rc := runWith([]string{"activation-plan"}, get, func(context.Context, brokerage.Config) (verificationResult, error) {
 			calls++
-			return brokerage.AssetResult{}, nil
+			return verificationResult{}, nil
 		}, &output)
 		var report map[string]any
 		if err := json.Unmarshal(output.Bytes(), &report); err != nil {

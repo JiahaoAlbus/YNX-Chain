@@ -166,15 +166,19 @@ type BrokerJournalEvent struct {
 }
 
 type BrokerageAccountState struct {
-	Mappings     map[string]BrokerAccountMapping    `json:"mappings"`
-	Challenges   map[string]BrokerApprovalChallenge `json:"challenges"`
-	Orders       map[string]BrokerOrderRecord       `json:"orders"`
-	Outbox       map[string]BrokerOrderOutbox       `json:"outbox"`
-	Journal      []BrokerJournalEvent               `json:"journal"`
-	Watchlist    map[string]BrokerWatchlistItem     `json:"watchlist"`
-	EventCursor  string                             `json:"eventCursor,omitempty"`
-	TradeEventAt time.Time                          `json:"tradeEventAt,omitempty"`
-	ReconciledAt time.Time                          `json:"reconciledAt,omitempty"`
+	Mappings    map[string]BrokerAccountMapping    `json:"mappings"`
+	Challenges  map[string]BrokerApprovalChallenge `json:"challenges"`
+	Orders      map[string]BrokerOrderRecord       `json:"orders"`
+	Outbox      map[string]BrokerOrderOutbox       `json:"outbox"`
+	Journal     []BrokerJournalEvent               `json:"journal"`
+	Watchlist   map[string]BrokerWatchlistItem     `json:"watchlist"`
+	EventCursor string                             `json:"eventCursor,omitempty"`
+	// ReconcileCheckpoint identifies the last bounded polling snapshot. It is
+	// deliberately independent from EventCursor: polling must never advance or
+	// replace the provider SSE resume cursor.
+	ReconcileCheckpoint string    `json:"reconcileCheckpoint,omitempty"`
+	TradeEventAt        time.Time `json:"tradeEventAt,omitempty"`
+	ReconciledAt        time.Time `json:"reconciledAt,omitempty"`
 }
 
 type BrokerWorkspace struct {

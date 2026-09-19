@@ -30,7 +30,7 @@ Owner scope: `apps/finance/**` and `internal/finance/**` only.
 - Corrects the trading-account read to `/v1/trading/accounts/{account_id}/account`, preserves official high-precision decimal strings, and blocks dispatch when `trading_blocked`, `account_blocked` or `trade_suspended_by_user` is true.
 - Adds provider-backed asset search/selection and an owner-scoped durable watchlist. The Web order form no longer accepts a typed provider asset UUID or Wallet public key; both identities come from verified provider/operator mappings.
 - Adds authenticated refresh/reconcile, visible simulated cash/positions/orders, local journal recovery and controlled cancellation-intent actions. Browser cancellation never contacts the provider; the one-shot operator worker owns the actual Sandbox cancel boundary.
-- Expands the operator worker with `link-account`, `query`, `reconcile`, `apply-events`, `dispatch-one` and `cancel-one`, preserving absolute regular state-path checks, exact confirmations, activation receipts for provider writes, bounded network time and no automatic retry.
+- Expands the operator worker with `link-account`, `query`, `reconcile`, `apply-events`, `dispatch-one`, `cancel-one` and the explicitly activated `verify-approved` sequence, preserving exact confirmations, activation receipts for provider writes, bounded network time and no automatic retry. Server and worker share the same file/PostgreSQL backend selector and reject an unavailable configured database rather than falling back to a stale file.
 
 ## Verification
 

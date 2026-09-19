@@ -99,6 +99,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/broker/quote", s.brokerQuote)
 	s.mux.HandleFunc("GET /api/broker/snapshot", s.protected("finance.portfolio.read", s.brokerSnapshot))
 	s.mux.HandleFunc("GET /api/broker/orders", s.protected("finance.portfolio.read", s.brokerOrders))
+	s.mux.HandleFunc("GET /api/broker/recovery", s.protected("finance.portfolio.read", s.brokerRecovery))
 	s.mux.HandleFunc("PUT /api/broker/watchlist", s.protected("finance.profile.write", s.brokerWatchlist))
 	s.mux.HandleFunc("POST /api/broker/reconcile", s.protected("finance.profile.write", s.brokerReconcile))
 	s.mux.HandleFunc("POST /api/broker/orders/{id}/cancel-request", s.protected("finance.profile.write", s.brokerCancelRequest))
@@ -667,11 +668,12 @@ func (s *Server) deleteAccount(w http.ResponseWriter, r *http.Request, session S
 
 func (s *Server) startAI(w http.ResponseWriter, r *http.Request, session Session) {
 	var input struct {
-		Kind           string   `json:"kind"`
-		RecordIDs      []string `json:"recordIds"`
-		ContextClasses []string `json:"contextClasses"`
-		Consent        bool     `json:"consent"`
-		OutputLocale   string   `json:"outputLocale"`
+		Kind           string                   `json:"kind"`
+		RecordIDs      []string                 `json:"recordIds"`
+		ContextClasses []string                 `json:"contextClasses"`
+		Consent        bool                     `json:"consent"`
+		OutputLocale   string                   `json:"outputLocale"`
+		OrderIntent    *AISecuritiesOrderIntent `json:"securitiesOrderIntent"`
 	}
 	if err := decodeStrict(w, r, &input); err != nil {
 		writeError(w, 400, "invalid_request", err.Error())
@@ -683,7 +685,7 @@ func (s *Server) startAI(w http.ResponseWriter, r *http.Request, session Session
 		writeError(w, 503, "source_unavailable", "AI cannot use activity while Explorer evidence is unavailable")
 		return
 	}
-	job, err := s.service.StartAI(r.Context(), session.Account, input.Kind, input.RecordIDs, input.ContextClasses, input.Consent, p, input.OutputLocale)
+	job, err := s.service.StartAIWithIntent(r.Context(), session.Account, input.Kind, input.RecordIDs, input.ContextClasses, input.Consent, p, input.OutputLocale, input.OrderIntent)
 	if err != nil {
 		writeError(w, 503, "ai_unavailable", err.Error())
 		return

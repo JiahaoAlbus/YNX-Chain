@@ -7,8 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"math/big"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -21,6 +24,16 @@ type AIRequest struct {
 	Context        map[string]any `json:"context"`
 	Permission     string         `json:"permission"`
 	OutputLocale   string         `json:"outputLocale"`
+}
+
+// AISecuritiesOrderIntent is advisory context only. It deliberately omits an
+// asset id: the user must still select the exact provider-backed asset and
+// complete the independent Wallet approval flow before any order can exist.
+type AISecuritiesOrderIntent struct {
+	Symbol     string `json:"symbol"`
+	Side       string `json:"side"`
+	Qty        string `json:"qty"`
+	LimitPrice string `json:"limitPrice"`
 }
 
 type AIProvider interface {
@@ -55,7 +68,10 @@ func (p *HTTPAIProvider) Estimate(ctx context.Context, request AIRequest) (strin
 
 func (p *HTTPAIProvider) Stream(ctx context.Context, request AIRequest, emit func(string)) (map[string]any, error) {
 	raw, _ := json.Marshal(request)
-	query := "Return one reviewable Finance analysis draft as JSON. Never execute or claim to execute an action. Input: " + string(raw)
+	query := "Return one reviewable Finance analysis draft as strict JSON. Never execute or claim to execute an action. Input: " + string(raw)
+	if request.Kind == "draft_broker_order" {
+		query = "Return only strict JSON matching {\"schemaVersion\":\"finance.ai.broker-order-draft.v1\",\"draftOnly\":true,\"orderDraft\":{\"symbol\":string,\"side\":\"buy\"|\"sell\",\"qty\":positive-decimal-string,\"limitPrice\":positive-decimal-string,\"timeInForce\":\"day\",\"warnings\":[non-empty-string]}}. Never execute, approve, select an asset id, or claim a broker action. Input: " + string(raw)
+	}
 	endpoint := strings.TrimRight(p.URL, "/") + "/ai/stream?session=" + url.QueryEscape("finance:"+request.Account) + "&q=" + url.QueryEscape(query)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -94,8 +110,10 @@ func (p *HTTPAIProvider) Stream(ctx context.Context, request AIRequest, emit fun
 		return nil, err
 	}
 	if complete.Len() > 0 {
-		if err := json.Unmarshal([]byte(complete.String()), &result); err != nil {
-			result = map[string]any{"analysis": complete.String(), "outputLocale": request.OutputLocale, "draftOnly": true}
+		decoder := json.NewDecoder(strings.NewReader(complete.String()))
+		decoder.UseNumber()
+		if err := decoder.Decode(&result); err != nil || decoder.Decode(&struct{}{}) != io.EOF {
+			return nil, errors.New("AI_RESULT_INVALID_JSON")
 		}
 	}
 	if result == nil {
@@ -146,6 +164,14 @@ func (p *HTTPAIProvider) client() *http.Client {
 }
 
 func (s *Service) StartAI(ctx context.Context, account, kind string, recordIDs, classes []string, consent bool, portfolio Portfolio, outputLocale ...string) (AIJob, error) {
+	locale := ""
+	if len(outputLocale) == 1 {
+		locale = outputLocale[0]
+	}
+	return s.StartAIWithIntent(ctx, account, kind, recordIDs, classes, consent, portfolio, locale, nil)
+}
+
+func (s *Service) StartAIWithIntent(ctx context.Context, account, kind string, recordIDs, classes []string, consent bool, portfolio Portfolio, outputLocale string, orderIntent *AISecuritiesOrderIntent) (AIJob, error) {
 	if !consent || (kind != "categorize" && kind != "explain_fees" && kind != "draft_budget" && kind != "detect_anomalies" && kind != "explain_recurring" && kind != "draft_broker_order") {
 		return AIJob{}, errors.New("supported AI workflow and explicit context permission are required")
 	}
@@ -172,13 +198,21 @@ func (s *Service) StartAI(ctx context.Context, account, kind string, recordIDs, 
 		return AIJob{}, errors.New("Finance AI only accepts the owned_activity context class")
 	}
 	locale := "en"
-	if len(outputLocale) == 1 && outputLocale[0] != "" {
-		locale = outputLocale[0]
+	if outputLocale != "" {
+		locale = outputLocale
 	}
 	if !allowedLocale(locale) {
 		return AIJob{}, errors.New("AI output locale is unsupported")
 	}
 	request := AIRequest{Kind: kind, Account: account, RecordIDs: recordIDs, ContextClasses: classes, Context: map[string]any{"activity": selected, "categories": state.Categories, "budgets": state.Budgets}, Permission: "draft-only; no transaction, transfer, trade, borrow, lend, stake, freeze, or account-control authority", OutputLocale: locale}
+	if kind == "draft_broker_order" {
+		if orderIntent == nil || !validAIOrderIntent(*orderIntent) {
+			return AIJob{}, errors.New("AI_BROKER_ORDER_INTENT_INVALID")
+		}
+		request.Context["securitiesOrderIntent"] = *orderIntent
+	} else if orderIntent != nil {
+		return AIJob{}, errors.New("AI_ORDER_INTENT_NOT_ALLOWED")
+	}
 	provider, model, available, err := s.AI.Status(ctx)
 	if err != nil || !available {
 		if err == nil {
@@ -227,12 +261,68 @@ func (s *Service) runAI(ctx context.Context, request AIRequest, jobID, account s
 			job.Error = err.Error()
 			return
 		}
+		if validationErr := validateAIResult(request.Kind, result); validationErr != nil {
+			job.Status = "failed"
+			job.Error = validationErr.Error()
+			return
+		}
 		job.Status = "ready"
 		job.Result = result
 	})
 	s.aiMu.Lock()
 	delete(s.aiCancels, jobID)
 	s.aiMu.Unlock()
+}
+
+func validAIOrderIntent(intent AISecuritiesOrderIntent) bool {
+	if !regexp.MustCompile(`^[A-Z][A-Z0-9.]{0,11}$`).MatchString(intent.Symbol) || (intent.Side != "buy" && intent.Side != "sell") || intent.Qty == "" || intent.LimitPrice == "" {
+		return false
+	}
+	qty, qtyOK := new(big.Rat).SetString(intent.Qty)
+	price, priceOK := new(big.Rat).SetString(intent.LimitPrice)
+	return qtyOK && priceOK && qty.Sign() > 0 && price.Sign() > 0 && len(intent.Qty) <= 24 && len(intent.LimitPrice) <= 24
+}
+
+func validateAIResult(kind string, result map[string]any) error {
+	if kind != "draft_broker_order" {
+		return nil
+	}
+	if result == nil {
+		return errors.New("AI_RESULT_EMPTY")
+	}
+	if result["schemaVersion"] != "finance.ai.broker-order-draft.v1" || result["draftOnly"] != true {
+		return errors.New("AI_ORDER_DRAFT_SCHEMA_INVALID")
+	}
+	draft, ok := result["orderDraft"].(map[string]any)
+	if !ok {
+		return errors.New("AI_ORDER_DRAFT_SCHEMA_INVALID")
+	}
+	allowed := map[string]bool{"symbol": true, "side": true, "qty": true, "limitPrice": true, "timeInForce": true, "warnings": true}
+	for key := range draft {
+		if !allowed[key] {
+			return errors.New("AI_ORDER_DRAFT_SCHEMA_INVALID")
+		}
+	}
+	intent := AISecuritiesOrderIntent{Symbol: stringValue(draft["symbol"]), Side: stringValue(draft["side"]), Qty: stringValue(draft["qty"]), LimitPrice: stringValue(draft["limitPrice"])}
+	if !validAIOrderIntent(intent) || draft["timeInForce"] != "day" {
+		return errors.New("AI_ORDER_DRAFT_FIELDS_INVALID")
+	}
+	warnings, ok := draft["warnings"].([]any)
+	if !ok || len(warnings) == 0 || len(warnings) > 8 {
+		return errors.New("AI_ORDER_DRAFT_WARNINGS_REQUIRED")
+	}
+	for _, warning := range warnings {
+		text, ok := warning.(string)
+		if !ok || strings.TrimSpace(text) == "" || len(text) > 240 {
+			return errors.New("AI_ORDER_DRAFT_WARNINGS_INVALID")
+		}
+	}
+	return nil
+}
+
+func stringValue(value any) string {
+	text, _ := value.(string)
+	return text
 }
 
 func (s *Service) CancelAI(account, id string) error {

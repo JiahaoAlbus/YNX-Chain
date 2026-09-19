@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 type resolverFunc func(context.Context, string, string, string) (string, error)
@@ -85,6 +86,43 @@ func TestReadOnlySandboxLatestQuoteUsesPinnedMarketDataOrigin(t *testing.T) {
 	quote, err := a.Quote(context.Background(), "ACME")
 	if err != nil || quote.AskPrice != "125.35" || quote.BidPrice != "125.34" || quote.Feed != "iex" {
 		t.Fatalf("quote=%+v err=%v", quote, err)
+	}
+}
+
+func TestOrdersPaginatesBeyondFiveHundredWithoutSilentTruncation(t *testing.T) {
+	a := NewAlpaca(enabled("legacy_basic"))
+	accountID := "01234567-89ab-4cde-8fab-0123456789ab"
+	resolve := resolverFunc(func(context.Context, string, string, string) (string, error) { return accountID, nil })
+	makePage := func(start, count int) string {
+		values := make([]providerOrder, 0, count)
+		for i := start; i < start+count; i++ {
+			id := fmt.Sprintf("%08x-2222-4333-8444-%012x", i+1, i+1)
+			assetID := fmt.Sprintf("%08x-8888-4777-8666-%012x", i+1, i+1)
+			limit := "10"
+			values = append(values, providerOrder{ID: id, ClientOrderID: fmt.Sprintf("order-%d", i), AssetID: assetID, Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: &limit, TimeInForce: "day", Status: "accepted", SubmittedAt: time.Date(2026, 9, 19, 9, 0, i, 0, time.UTC).Format(time.RFC3339Nano)})
+		}
+		raw, _ := json.Marshal(values)
+		return string(raw)
+	}
+	first := makePage(0, 500)
+	second := makePage(500, 2)
+	calls := 0
+	a.client.Transport = roundTrip(func(request *http.Request) (*http.Response, error) {
+		calls++
+		if calls == 1 {
+			if request.URL.Query().Get("after") != "" {
+				t.Fatal("first page unexpectedly had a cursor")
+			}
+			return response(http.StatusOK, first), nil
+		}
+		if request.URL.Query().Get("after") != time.Date(2026, 9, 19, 9, 0, 499, 0, time.UTC).Format(time.RFC3339Nano) {
+			t.Fatalf("wrong pagination cursor: %s", request.URL.RawQuery)
+		}
+		return response(http.StatusOK, second), nil
+	})
+	orders, requestIDs, err := a.Orders(context.Background(), "owner", resolve)
+	if err != nil || len(orders) != 502 || calls != 2 || requestIDs != "fixture-request-1,fixture-request-1" {
+		t.Fatalf("orders=%d calls=%d ids=%q err=%v", len(orders), calls, requestIDs, err)
 	}
 }
 
@@ -177,7 +215,7 @@ func TestWriteActivationAndProviderResultsFailClosed(t *testing.T) {
 }
 
 func TestDefaultAndInvalidConfigurationNeverCallsProvider(t *testing.T) {
-	cases := []map[string]string{{}, {"FINANCE_TRADING_ENABLED": "true"}, {"FINANCE_TRADING_ENV": "live"}, {"YNX_CHAIN_ENV": "mainnet"}, {"YNX_EVM_CHAIN_ID": "1"}, {"FINANCE_LIVE_ENABLED": "true"}, {"ALPACA_BROKER_SANDBOX_BASE_URL": "https://paper-api.alpaca.markets"}, {"ALPACA_BROKER_SANDBOX_BASE_URL": BrokerOrigin + "/"}, {"ALPACA_BROKER_TOKEN_URL": "https://attacker.invalid"}, {"ALPACA_BROKER_AUTH_MODE": "private_key_jwt"}, {"ALPACA_BROKER_ACCOUNT_ID": "shared"}, {"FINANCE_SANDBOX_WRITES_ENABLED": "true"}, {"FINANCE_TRADING_ENABLED": "TRUE"}}
+	cases := []map[string]string{{}, {"FINANCE_TRADING_ENABLED": "true"}, {"FINANCE_TRADING_ENV": "live"}, {"YNX_CHAIN_ENV": "mainnet"}, {"YNX_EVM_CHAIN_ID": "1"}, {"FINANCE_LIVE_ENABLED": "true"}, {"ALPACA_BROKER_SANDBOX_BASE_URL": "https://paper-api.alpaca.markets"}, {"ALPACA_BROKER_SANDBOX_BASE_URL": BrokerOrigin + "/"}, {"ALPACA_BROKER_TOKEN_URL": "https://attacker.invalid"}, {"ALPACA_BROKER_AUTH_MODE": "private_key_jwt"}, {"ALPACA_BROKER_ACCOUNT_ID": "shared"}, {"FINANCE_SANDBOX_WRITES_ENABLED": "true"}, {"FINANCE_TRADING_ENABLED": "TRUE"}, {"FINANCE_BROKER_READ_RATE_PER_MINUTE": "0"}, {"FINANCE_BROKER_WRITE_RATE_PER_MINUTE": "10001"}, {"FINANCE_MARKET_DATA_RATE_PER_MINUTE": "unbounded"}}
 	for i, values := range cases {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			// Unsafe environment/domain/mode checks must fail even with otherwise

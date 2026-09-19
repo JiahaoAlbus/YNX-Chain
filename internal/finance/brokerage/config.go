@@ -4,6 +4,7 @@ package brokerage
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -17,6 +18,9 @@ type Config struct {
 	enabled               bool
 	writesEnabled         bool
 	authMode, key, secret string
+	readRatePerMinute     int
+	writeRatePerMinute    int
+	marketRatePerMinute   int
 	issues                []string
 }
 
@@ -59,6 +63,18 @@ func LoadConfig(get func(string) string) Config {
 	require("ALPACA_BROKER_SANDBOX_BASE_URL", BrokerOrigin)
 	require("ALPACA_BROKER_TOKEN_URL", TokenURL)
 	require("ALPACA_MARKET_DATA_SANDBOX_BASE_URL", MarketDataOrigin)
+	parseRate := func(name string, fallback int) int {
+		raw := value(name, strconv.Itoa(fallback))
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 || parsed > 10000 {
+			c.issues = append(c.issues, name+":INVALID_RATE")
+			return fallback
+		}
+		return parsed
+	}
+	c.readRatePerMinute = parseRate("FINANCE_BROKER_READ_RATE_PER_MINUTE", 180)
+	c.writeRatePerMinute = parseRate("FINANCE_BROKER_WRITE_RATE_PER_MINUTE", 30)
+	c.marketRatePerMinute = parseRate("FINANCE_MARKET_DATA_RATE_PER_MINUTE", 180)
 	flag := value("FINANCE_TRADING_ENABLED", "false")
 	c.enabled = flag == "true"
 	if flag != "true" && flag != "false" {

@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/finance"
@@ -87,10 +89,12 @@ func parseInvocation(args []string, get func(string) string) (invocation, error)
 		if !exactKeys(values, "--state", "--account", "--confirm") || values["--confirm"] != "APPLY_SANDBOX_EVENTS_ONCE" {
 			return invocation{}, errors.New("apply-events arguments fail the exact Sandbox contract")
 		}
-	case "dispatch-one", "cancel-one":
+	case "dispatch-one", "cancel-one", "verify-approved":
 		confirmation := "SANDBOX_WRITE_ONCE"
 		if result.command == "cancel-one" {
 			confirmation = "SANDBOX_CANCEL_ONCE"
+		} else if result.command == "verify-approved" {
+			confirmation = "SANDBOX_VERIFY_APPROVED_ORDER_ONCE"
 		}
 		if !exactKeys(values, "--state", "--account", "--order", "--activation-receipt", "--confirm") || values["--confirm"] != confirmation || !orderIDPattern.MatchString(result.orderID) {
 			return invocation{}, errors.New("provider write arguments fail the exact Sandbox contract")
@@ -117,14 +121,20 @@ func run(args []string, get func(string) string, stdin io.Reader, stdout io.Writ
 		_ = output(stdout, map[string]any{"ok": false, "error": "WORKER_INVOCATION_REJECTED"})
 		return 2
 	}
-	info, err := os.Lstat(invocation.statePath)
-	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
-		_ = output(stdout, map[string]any{"ok": false, "error": "STATE_STORE_NOT_REGULAR"})
-		return 2
+	databaseURL := strings.TrimSpace(get("YNX_FINANCE_DATABASE_URL"))
+	if databaseURL == "" {
+		info, statErr := os.Lstat(invocation.statePath)
+		if statErr != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+			_ = output(stdout, map[string]any{"ok": false, "error": "STATE_STORE_NOT_REGULAR"})
+			return 2
+		}
 	}
-	store, err := finance.OpenStore(invocation.statePath)
+	// The worker uses the same authoritative backend selector as the server.
+	// A configured but unavailable PostgreSQL backend is an error; it must never
+	// silently dispatch from the bootstrap file store.
+	store, err := finance.OpenStoreWithDatabase(invocation.statePath, databaseURL)
 	if err != nil {
-		_ = output(stdout, map[string]any{"ok": false, "error": "STATE_STORE_UNAVAILABLE"})
+		_ = output(stdout, map[string]any{"ok": false, "error": "STATE_STORE_UNAVAILABLE", "configuredBackend": map[bool]string{true: "postgres", false: "file"}[databaseURL != ""]})
 		return 1
 	}
 	now := time.Now().UTC()
@@ -134,7 +144,7 @@ func run(args []string, get func(string) string, stdin io.Reader, stdout io.Writ
 			_ = output(stdout, map[string]any{"ok": false, "error": "ACCOUNT_LINK_REJECTED"})
 			return 1
 		}
-		return output(stdout, map[string]any{"ok": true, "command": invocation.command, "subjectId": mapping.SubjectID, "provider": mapping.Provider, "environment": mapping.TradingEnvironment, "walletKeyLinked": true})
+		return output(stdout, map[string]any{"ok": true, "command": invocation.command, "subjectId": mapping.SubjectID, "provider": mapping.Provider, "environment": mapping.TradingEnvironment, "walletKeyLinked": true, "stateBackend": store.StateStoreMode()})
 	}
 	config := brokerage.LoadConfig(get)
 	adapter := brokerage.NewAlpaca(config)
@@ -198,7 +208,54 @@ func run(args []string, get func(string) string, stdin io.Reader, stdout io.Writ
 			return 1
 		}
 		return output(stdout, map[string]any{"ok": true, "command": invocation.command, "orderId": record.Order.OrderID, "providerOrderId": record.ProviderOrderID, "orderState": record.State, "attempts": 1, "retryAllowed": false, "environment": "sandbox"})
+	case "verify-approved":
+		if !config.Status().SubmissionEnabled {
+			_ = output(stdout, map[string]any{"ok": false, "error": "ORDER_SUBMISSION_DISABLED", "providerWriteAttempted": false})
+			return 2
+		}
+		receipt, verifyErr := runControlledVerification(ctx, dispatcher, store, invocation.account, invocation.orderID, now)
+		if verifyErr != nil {
+			_ = output(stdout, map[string]any{"ok": false, "error": brokerage.ErrorCode(verifyErr), "providerWriteAttempted": true, "retryAllowed": false})
+			return 1
+		}
+		return output(stdout, receipt)
 	}
 	_ = output(stdout, map[string]any{"ok": false, "error": fmt.Sprintf("unsupported command %s", invocation.command)})
 	return 2
+}
+
+func runControlledVerification(ctx context.Context, dispatcher finance.BrokerDispatcher, store *finance.Store, account, orderID string, now time.Time) (map[string]any, error) {
+	if err := store.RecoverInterruptedBrokerDispatches(account, now); err != nil {
+		return nil, err
+	}
+	before := store.BrokerWorkspace(account, now)
+	approved := false
+	for _, order := range before.Orders {
+		if order.Order.OrderID == orderID && order.ApprovalState == "consumed" {
+			approved = true
+		}
+	}
+	if !approved {
+		return nil, &brokerage.Error{Code: "WALLET_APPROVAL_REQUIRED"}
+	}
+	dispatched, err := dispatcher.Dispatch(ctx, account, orderID)
+	if err != nil {
+		return nil, err
+	}
+	queried, err := dispatcher.Reconcile(ctx, account)
+	if err != nil {
+		return nil, err
+	}
+	canceled, err := dispatcher.Cancel(ctx, account, orderID)
+	if err != nil {
+		return nil, err
+	}
+	finalSnapshot, err := dispatcher.Reconcile(ctx, account)
+	if err != nil {
+		return nil, err
+	}
+	audit := map[string]any{"schemaVersion": "finance.broker.controlled-verification.v1", "account": account, "orderId": orderID, "providerOrderId": dispatched.ProviderOrderID, "approvalState": dispatched.ApprovalState, "dispatchState": dispatched.State, "queryRequestIds": queried.RequestIDs, "cancelState": canceled.State, "finalRequestIds": finalSnapshot.RequestIDs, "completedAt": now.UTC().Format(time.RFC3339Nano), "environment": "sandbox", "retryAllowed": false}
+	raw, _ := json.Marshal(audit)
+	digest := sha256.Sum256(raw)
+	return map[string]any{"ok": true, "command": "verify-approved", "providerWriteAttempted": true, "audit": audit, "auditReceiptSha256": fmt.Sprintf("%x", digest[:]), "officialSandboxVerified": false, "productionApproved": false}, nil
 }

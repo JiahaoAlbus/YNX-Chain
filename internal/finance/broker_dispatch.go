@@ -195,7 +195,7 @@ func (s *Store) ApplyBrokerReconciliation(account string, snapshot brokerage.Acc
 		cursorParts := append([]string(nil), snapshot.RequestIDs...)
 		sort.Strings(cursorParts)
 		digest := sha256.Sum256([]byte(strings.Join(cursorParts, "\n") + "\n" + now.UTC().Format(time.RFC3339Nano)))
-		state.Brokerage.EventCursor, state.Brokerage.ReconciledAt = "reconcile_"+hex.EncodeToString(digest[:16]), now.UTC()
+		state.Brokerage.ReconcileCheckpoint, state.Brokerage.ReconciledAt = "reconcile_"+hex.EncodeToString(digest[:16]), now.UTC()
 		return nil
 	})
 }
@@ -216,14 +216,22 @@ func (s *Store) ApplyBrokerTradeEvents(account string, events []brokerage.TradeE
 			if event.ProviderAccountID != mapping.BrokerAccountID || !brokerageCursor(event.Cursor) {
 				return errors.New("Broker trade event tenant or cursor mismatch")
 			}
+			if event.Cursor == state.Brokerage.EventCursor {
+				return errors.New("Broker trade event cursor was already applied")
+			}
 			if _, duplicate := seen[event.Cursor]; duplicate {
 				return errors.New("Broker trade event cursor is duplicated")
 			}
 			seen[event.Cursor] = struct{}{}
-			if event.Timestamp.IsZero() || (!latestEventAt.IsZero() && !event.Timestamp.After(latestEventAt)) {
+			// Provider events may share a timestamp across independent orders. The
+			// provider cursor is the recovery checkpoint; wall time only rejects a
+			// strict backwards movement. Per-order time remains strictly monotonic.
+			if event.Timestamp.IsZero() || (!latestEventAt.IsZero() && event.Timestamp.Before(latestEventAt)) {
 				return errors.New("Broker trade event batch is stale or unordered")
 			}
-			latestEventAt = event.Timestamp.UTC()
+			if event.Timestamp.After(latestEventAt) {
+				latestEventAt = event.Timestamp.UTC()
+			}
 			order, exists := state.Brokerage.Orders[event.Order.ClientOrderID]
 			if !exists || !brokerOrderIdentityMatches(order, event.Order) {
 				return errors.New("Broker trade event does not match an owned order")

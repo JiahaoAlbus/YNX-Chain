@@ -83,6 +83,25 @@ func consumedBrokerFixture(t *testing.T) (*Store, string, string, time.Time) {
 	return store, account, challenge.Unsigned.Order.OrderID, now
 }
 
+func consumedSellBrokerFixture(t *testing.T) (*Store, string, string, time.Time) {
+	t.Helper()
+	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = store.PutBrokerSandboxMapping(account, "01234567-89ab-4cde-8fab-0123456789ab", now)
+	challenge, err := store.CreateBrokerOrderChallenge(account, BrokerChallengeRequest{AccountPublicKey: "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test", Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "0", MaxFee: "0", OrderID: "cccccccc-bbbb-4ccc-8ddd-eeeeeeeeeeee", OrderType: "limit", Qty: "2", Side: "sell", Symbol: "ACME", TimeInForce: "day"}}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.VerifyAndConsumeBrokerOrder(account, signFinanceApprovalForTest(t, challenge.Unsigned), now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	return store, account, challenge.Unsigned.Order.OrderID, now
+}
+
 func TestBrokerDispatcherSuccessAndReconcileCursor(t *testing.T) {
 	store, account, orderID, now := consumedBrokerFixture(t)
 	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted"}
@@ -112,8 +131,25 @@ func TestBrokerDispatcherSuccessAndReconcileCursor(t *testing.T) {
 		t.Fatal(err)
 	}
 	workspace := store.BrokerWorkspace(account, now.Add(2*time.Minute))
-	if workspace.Orders[0].State != "filled" || store.Account(account).Brokerage.EventCursor == "" {
+	brokerState := store.Account(account).Brokerage
+	if workspace.Orders[0].State != "filled" || brokerState.ReconcileCheckpoint == "" || brokerState.EventCursor != "" {
 		t.Fatalf("workspace=%+v", workspace)
+	}
+}
+
+func TestBrokerReconciliationPreservesProviderEventCursor(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted"}
+	event := brokerage.TradeEvent{Cursor: "provider-event-17", ProviderAccountID: "01234567-89ab-4cde-8fab-0123456789ab", Event: "new", Timestamp: now.Add(time.Minute), Order: providerOrder}
+	if err := store.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{event}, event.Cursor, now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{RequestIDs: []string{"poll-2", "poll-1"}, Orders: []brokerage.Order{providerOrder}}, now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	state := store.Account(account).Brokerage
+	if state.EventCursor != event.Cursor || state.ReconcileCheckpoint == "" {
+		t.Fatalf("polling overwrote event recovery state: %+v", state)
 	}
 }
 
@@ -181,6 +217,31 @@ func TestBrokerTradeEventsRejectStateAndCursorRegressionAcrossRestart(t *testing
 	state := reopened.Account(account).Brokerage
 	if state.EventCursor != "event-2" || state.Orders[orderID].State != "filled" || state.Orders[orderID].ProviderEventCursor != "event-2" {
 		t.Fatalf("stale event mutated state: %+v", state.Orders[orderID])
+	}
+}
+
+func TestBrokerTradeEventsAllowSameTimestampAcrossDifferentOwnedOrders(t *testing.T) {
+	store, account, firstOrderID, now := consumedBrokerFixture(t)
+	// A second order is created through the same production challenge/consume
+	// boundary, preserving tenant and Wallet ownership.
+	challenge, err := store.CreateBrokerOrderChallenge(account, BrokerChallengeRequest{AccountPublicKey: "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test", Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "33333333-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "20", MaxCost: "20", MaxFee: "0", OrderID: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", OrderType: "limit", Qty: "1", Side: "buy", Symbol: "BETA", TimeInForce: "day"}}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.VerifyAndConsumeBrokerOrder(account, signFinanceApprovalForTest(t, challenge.Unsigned), now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	stamp := now.Add(2 * time.Minute)
+	events := []brokerage.TradeEvent{
+		{Cursor: "same-time-1", ProviderAccountID: "01234567-89ab-4cde-8fab-0123456789ab", Event: "fill", Timestamp: stamp, Order: brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: firstOrderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "1", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "filled"}},
+		{Cursor: "same-time-2", ProviderAccountID: "01234567-89ab-4cde-8fab-0123456789ab", Event: "fill", Timestamp: stamp, Order: brokerage.Order{ID: "33333333-4444-4555-8666-777777777777", ClientOrderID: challenge.Unsigned.Order.OrderID, AssetID: challenge.Unsigned.Order.AssetID, Symbol: "BETA", Side: "buy", Qty: "1", FilledQty: "1", Type: "limit", LimitPrice: "20", TimeInForce: "day", Status: "filled"}},
+	}
+	if err := store.ApplyBrokerTradeEvents(account, events, "same-time-2", stamp); err != nil {
+		t.Fatal(err)
+	}
+	state := store.Account(account).Brokerage
+	if state.EventCursor != "same-time-2" || state.Orders[firstOrderID].State != "filled" || state.Orders[challenge.Unsigned.Order.OrderID].State != "filled" {
+		t.Fatalf("same-time cross-order events not applied: %+v", state)
 	}
 }
 
@@ -269,6 +330,49 @@ func TestBrokerDispatchBlocksEveryExplicitTradingAccountFenceBeforeSubmit(t *tes
 				t.Fatalf("blocked account reached provider POST: %d", posts)
 			}
 		})
+	}
+}
+
+func TestBrokerSellRequiresHoldingsAndCanReachFilled(t *testing.T) {
+	for name, available := range map[string]string{"filled": "2", "insufficient": "1"} {
+		t.Run(name, func(t *testing.T) {
+			store, account, orderID, now := consumedSellBrokerFixture(t)
+			posts := 0
+			provider := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "sell", Qty: "2", FilledQty: "2", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "filled", SubmittedAt: now.Format(time.RFC3339Nano)}
+			adapter := dispatchAdapter{positions: []brokerage.Position{{AssetID: provider.AssetID, Symbol: "ACME", Qty: "2", AvailableQty: available}}, submit: func(brokerage.SubmitOrderRequest) (brokerage.Order, error) { posts++; return provider, nil }}
+			dispatcher := BrokerDispatcher{Store: store, Adapter: adapter, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+			record, err := dispatcher.Dispatch(context.Background(), account, orderID)
+			if name == "insufficient" {
+				if err == nil || posts != 0 {
+					t.Fatalf("insufficient sell reached provider: posts=%d err=%v", posts, err)
+				}
+				return
+			}
+			if err != nil || posts != 1 || record.State != "filled" {
+				t.Fatalf("record=%+v posts=%d err=%v", record, posts, err)
+			}
+		})
+	}
+}
+
+func TestPartialFillWinsCancelRaceWithoutRegression(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	claim, _ := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Minute))
+	partial := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: claim.Order.Order.AssetID, Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0.5", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "partially_filled", SubmittedAt: now.Format(time.RFC3339Nano)}
+	if _, err := store.CompleteBrokerDispatch(account, orderID, &partial, nil, now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.RequestBrokerCancel(account, orderID, now.Add(3*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	filled := partial
+	filled.FilledQty, filled.Status = "1", "filled"
+	event := brokerage.TradeEvent{Cursor: "cancel-race-fill", ProviderAccountID: claim.Order.BrokerAccountID, Event: "fill", Timestamp: now.Add(4 * time.Minute), Order: filled}
+	if err := store.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{event}, event.Cursor, now.Add(4*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if state := store.Account(account).Brokerage.Orders[orderID].State; state != "filled" {
+		t.Fatalf("cancel race regressed fill: %s", state)
 	}
 }
 

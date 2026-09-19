@@ -52,11 +52,12 @@ func TestParseInvocationSupportsBoundedRecoveryCommands(t *testing.T) {
 		return ""
 	}
 	valid := map[string][]string{
-		"link-account": {"link-account", "--state", state, "--account", account, "--broker-account", "01234567-89ab-4cde-8fab-0123456789ab", "--wallet-public-key", "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", "--confirm", "LINK_SANDBOX_ACCOUNT"},
-		"query":        {"query", "--state", state, "--account", account, "--confirm", "READ_SANDBOX_ONCE"},
-		"reconcile":    {"reconcile", "--state", state, "--account", account, "--confirm", "RECONCILE_SANDBOX_ONCE"},
-		"apply-events": {"apply-events", "--state", state, "--account", account, "--confirm", "APPLY_SANDBOX_EVENTS_ONCE"},
-		"cancel-one":   {"cancel-one", "--state", state, "--account", account, "--order", "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", "--activation-receipt", receipt, "--confirm", "SANDBOX_CANCEL_ONCE"},
+		"link-account":    {"link-account", "--state", state, "--account", account, "--broker-account", "01234567-89ab-4cde-8fab-0123456789ab", "--wallet-public-key", "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", "--confirm", "LINK_SANDBOX_ACCOUNT"},
+		"query":           {"query", "--state", state, "--account", account, "--confirm", "READ_SANDBOX_ONCE"},
+		"reconcile":       {"reconcile", "--state", state, "--account", account, "--confirm", "RECONCILE_SANDBOX_ONCE"},
+		"apply-events":    {"apply-events", "--state", state, "--account", account, "--confirm", "APPLY_SANDBOX_EVENTS_ONCE"},
+		"cancel-one":      {"cancel-one", "--state", state, "--account", account, "--order", "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", "--activation-receipt", receipt, "--confirm", "SANDBOX_CANCEL_ONCE"},
+		"verify-approved": {"verify-approved", "--state", state, "--account", account, "--order", "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", "--activation-receipt", receipt, "--confirm", "SANDBOX_VERIFY_APPROVED_ORDER_ONCE"},
 	}
 	for name, args := range valid {
 		t.Run(name, func(t *testing.T) {
@@ -68,6 +69,37 @@ func TestParseInvocationSupportsBoundedRecoveryCommands(t *testing.T) {
 				t.Fatal("unexpected argument accepted")
 			}
 		})
+	}
+}
+
+func TestControlledVerificationWithoutWriteActivationPerformsZeroProviderWrites(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "finance.json")
+	store, err := finance.OpenStore(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	if err := store.Update(account, "fixture", "", func(*finance.AccountState) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	receipt := strings.Repeat("a", 64)
+	get := func(key string) string {
+		switch key {
+		case "FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256":
+			return receipt
+		case "FINANCE_TRADING_ENABLED":
+			return "true"
+		case "ALPACA_BROKER_CLIENT_ID":
+			return "fixture-id"
+		case "ALPACA_BROKER_CLIENT_SECRET":
+			return "fixture-secret"
+		}
+		return ""
+	}
+	var stdout bytes.Buffer
+	code := run([]string{"verify-approved", "--state", statePath, "--account", account, "--order", "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", "--activation-receipt", receipt, "--confirm", "SANDBOX_VERIFY_APPROVED_ORDER_ONCE"}, get, strings.NewReader(""), &stdout)
+	if code != 2 || !strings.Contains(stdout.String(), `"providerWriteAttempted":false`) || !strings.Contains(stdout.String(), "ORDER_SUBMISSION_DISABLED") {
+		t.Fatalf("unauthorized controlled verification was not a zero-write rejection: code=%d output=%s", code, stdout.String())
 	}
 }
 
@@ -136,5 +168,28 @@ func TestUnconfiguredRecoveryCommandsFailExplicitlyWithoutInventedDataOrProvider
 				t.Fatalf("provider write truth=%v", result["providerWriteAttempted"])
 			}
 		})
+	}
+}
+
+func TestConfiguredDatabaseNeverFallsBackToFileStore(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "finance.json")
+	store, err := finance.OpenStore(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	if err := store.Update(account, "fixture", "", func(*finance.AccountState) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	get := func(key string) string {
+		if key == "YNX_FINANCE_DATABASE_URL" {
+			return "://invalid-postgres-dsn"
+		}
+		return ""
+	}
+	var stdout bytes.Buffer
+	code := run([]string{"query", "--state", statePath, "--account", account, "--confirm", "READ_SANDBOX_ONCE"}, get, strings.NewReader(""), &stdout)
+	if code != 1 || !strings.Contains(stdout.String(), `"configuredBackend":"postgres"`) {
+		t.Fatalf("configured database fell back or was not explicit: code=%d output=%s", code, stdout.String())
 	}
 }

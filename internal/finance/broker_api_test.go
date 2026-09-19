@@ -89,13 +89,29 @@ func TestBrokerQuoteReturnsExactProviderDataWithoutImplyingVerification(t *testi
 	}
 	var response struct {
 		Quote                   brokerage.Quote `json:"quote"`
+		QuoteState              string          `json:"quoteState"`
 		OfficialSandboxVerified bool            `json:"officialSandboxVerified"`
 	}
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	if response.OfficialSandboxVerified || response.Quote.AskPrice != "10.02" || response.Quote.RequestID != "request-quote-1" {
+	if response.OfficialSandboxVerified || response.Quote.AskPrice != "10.02" || response.Quote.RequestID != "request-quote-1" || response.QuoteState != "real_time" {
 		t.Fatalf("response=%+v", response)
+	}
+}
+
+func TestBrokerQuoteStateDistinguishesRealtimeDelayedSampleAndStale(t *testing.T) {
+	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
+	cases := map[string]brokerage.Quote{
+		"real_time": {Feed: "iex", Timestamp: now.Add(-10 * time.Second).Format(time.RFC3339Nano)},
+		"delayed":   {Feed: "iex", Timestamp: now.Add(-2 * time.Minute).Format(time.RFC3339Nano)},
+		"sample":    {Feed: "sample", Timestamp: now.Format(time.RFC3339Nano)},
+		"stale":     {Feed: "iex", Timestamp: now.Add(-time.Hour).Format(time.RFC3339Nano)},
+	}
+	for want, quote := range cases {
+		if got := classifyBrokerQuote(quote, now); got != want {
+			t.Fatalf("want=%s got=%s", want, got)
+		}
 	}
 }
 
@@ -199,5 +215,33 @@ func TestBrokerChallengeUsesPersistedWalletKeyAndRejectsCallerOverride(t *testin
 	server.brokerChallenge(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/challenges", bytes.NewReader(body)), Session{Account: account})
 	if recorder.Code != http.StatusConflict {
 		t.Fatalf("override status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestBrokerRecoveryStateIsOwnerScopedPersistentAndSeparatesEventFromPoll(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	statePath := store.path
+	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted"}
+	event := brokerage.TradeEvent{Cursor: "recovery-event-1", ProviderAccountID: "01234567-89ab-4cde-8fab-0123456789ab", Event: "new", Timestamp: now.Add(time.Minute), Order: providerOrder}
+	if err := store.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{event}, event.Cursor, now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{RequestIDs: []string{"poll-request"}, Orders: []brokerage.Order{providerOrder}}, now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := OpenStore(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := &Server{service: &Service{Store: reopened}}
+	recorder := httptest.NewRecorder()
+	server.brokerRecovery(recorder, httptest.NewRequest(http.MethodGet, "/api/broker/recovery", nil), Session{Account: account})
+	if recorder.Code != http.StatusOK || !bytes.Contains(recorder.Body.Bytes(), []byte(`"cursor":"recovery-event-1"`)) || !bytes.Contains(recorder.Body.Bytes(), []byte(`"checkpoint":"reconcile_`)) {
+		t.Fatalf("recovery status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	recorder = httptest.NewRecorder()
+	server.brokerRecovery(recorder, httptest.NewRequest(http.MethodGet, "/api/broker/recovery", nil), Session{Account: "ynx1z5y9l6c6mp7eduxhn7d7p0tytpawsp5dfpjzsd"})
+	if bytes.Contains(recorder.Body.Bytes(), []byte("recovery-event-1")) || bytes.Contains(recorder.Body.Bytes(), []byte(`"mappingActive":true`)) {
+		t.Fatalf("cross-owner recovery state leaked: %s", recorder.Body.String())
 	}
 }

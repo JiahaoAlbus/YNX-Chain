@@ -65,7 +65,21 @@ func (s *Server) brokerQuote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	writeJSON(w, http.StatusOK, map[string]any{"schema": "ynx-finance-broker-quote-v1", "quote": quote, "source": "alpaca_market_data_sandbox", "officialSandboxVerified": false})
+	writeJSON(w, http.StatusOK, map[string]any{"schema": "ynx-finance-broker-quote-v1", "quote": quote, "quoteState": classifyBrokerQuote(quote, s.now()), "source": "alpaca_market_data_sandbox", "officialSandboxVerified": false})
+}
+
+func classifyBrokerQuote(quote brokerage.Quote, now time.Time) string {
+	if quote.Feed == "sample" {
+		return "sample"
+	}
+	observed, err := time.Parse(time.RFC3339Nano, quote.Timestamp)
+	if err != nil || observed.After(now.Add(30*time.Second)) || now.Sub(observed) > 15*time.Minute {
+		return "stale"
+	}
+	if now.Sub(observed) > 30*time.Second {
+		return "delayed"
+	}
+	return "real_time"
 }
 
 func (s *Server) brokerSnapshot(w http.ResponseWriter, r *http.Request, session Session) {
@@ -86,6 +100,19 @@ func (s *Server) brokerSnapshot(w http.ResponseWriter, r *http.Request, session 
 func (s *Server) brokerOrders(w http.ResponseWriter, _ *http.Request, session Session) {
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, map[string]any{"schema": "ynx-finance-broker-workspace-v1", "workspace": s.service.Store.BrokerWorkspace(session.Account, s.now()), "providerWriteAttempted": false})
+}
+
+func (s *Server) brokerRecovery(w http.ResponseWriter, _ *http.Request, session Session) {
+	state := s.service.Store.Account(session.Account).Brokerage
+	mapping := state.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, map[string]any{
+		"schema":                 "ynx-finance-broker-recovery-v1",
+		"mappingActive":          mapping.Status == "active",
+		"event":                  map[string]any{"cursor": state.EventCursor, "occurredAt": state.TradeEventAt},
+		"poll":                   map[string]any{"checkpoint": state.ReconcileCheckpoint, "completedAt": state.ReconciledAt},
+		"providerWriteAttempted": false,
+	})
 }
 
 func (s *Server) brokerWatchlist(w http.ResponseWriter, r *http.Request, session Session) {
