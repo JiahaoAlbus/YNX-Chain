@@ -602,6 +602,10 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 	}
 	resp, err := s.gatewayRequest(ctx, http.MethodPost, "/ai/stream", payload)
 	if err != nil {
+		if errors.Is(ctx.Err(), context.Canceled) {
+			s.streamFailure(w, "Generation interrupted. Retry is available; no completion was claimed.", in.GenerationID)
+			return
+		}
 		s.streamFailure(w, "timeout_or_gateway_unavailable", in.GenerationID)
 		return
 	}
