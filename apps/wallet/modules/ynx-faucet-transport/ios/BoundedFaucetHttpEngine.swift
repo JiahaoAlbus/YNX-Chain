@@ -38,8 +38,8 @@ final class FaucetOneUseUploadBody {
   }
 }
 
-/// Internal Foundation engine only. The Expo bridge remains disabled until
-/// separate iOS native acceptance. No caller-supplied URL reaches an Expo API.
+/// Internal Foundation engine used by the compiled iOS Expo bridge. No
+/// caller-supplied URL reaches an Expo API.
 /// A supplied body stream is never replaced. This does not promise wire exactly
 /// once: a server may have processed bytes before cancellation or connection loss.
 final class BoundedFaucetHttpEngine: @unchecked Sendable {
