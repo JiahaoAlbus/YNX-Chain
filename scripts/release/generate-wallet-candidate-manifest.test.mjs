@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {execFileSync} from "node:child_process";
-import {mkdtemp, mkdir, readFile, writeFile} from "node:fs/promises";
+import {mkdtemp, mkdir, readFile, symlink, writeFile} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -31,4 +31,19 @@ test("candidate manifest rejects path escape and source drift", async () => {
   await assert.rejects(generateWalletCandidateManifest({root,output:path.join(root,"out"),sourcecommit,sbom:"sbom.json",artifacts:["pwa|unsigned-web-bundle|../outside.zip"]}),/stay under root/u);
   await writeFile(path.join(root,"apps/wallet","identity"),"dirty");
   await assert.rejects(generateWalletCandidateManifest({root,output:path.join(root,"out"),sourcecommit,sbom:"sbom.json",artifacts:["pwa|unsigned-web-bundle|sbom.json"]}));
+});
+
+test("candidate manifest rejects untracked runtime source and artifact symlink escape", async () => {
+  const root=await mkdtemp(path.join(os.tmpdir(),"ynx-wallet-candidate-boundary-")), outside=await mkdtemp(path.join(os.tmpdir(),"ynx-wallet-outside-"));
+  execFileSync("git",["init","-q"],{cwd:root}); execFileSync("git",["config","user.email","test@ynx.invalid"],{cwd:root}); execFileSync("git",["config","user.name","YNX Test"],{cwd:root});
+  for (const directory of ["apps/wallet","apps/wallet-web","apps/wallet-desktop","packages/wallet-auth","out"]) { await mkdir(path.join(root,directory),{recursive:true}); await writeFile(path.join(root,directory,"identity"),directory); }
+  await writeFile(path.join(root,"sbom.json"),"{}"); execFileSync("git",["add","."],{cwd:root}); execFileSync("git",["commit","-qm","fixture"],{cwd:root});
+  const sourcecommit=execFileSync("git",["rev-parse","HEAD"],{cwd:root,encoding:"utf8"}).trim(), options={root,output:path.join(root,"candidate"),sourcecommit,sbom:"sbom.json"};
+  await writeFile(path.join(root,"apps/wallet-web","untracked-runtime.js"),"throw new Error('outside commit');\n");
+  await assert.rejects(generateWalletCandidateManifest({...options,artifacts:["pwa|unsigned-web-bundle|sbom.json"]}),/Untracked Wallet source/u);
+  execFileSync("git",["add","apps/wallet-web/untracked-runtime.js"],{cwd:root}); execFileSync("git",["commit","-qm","track runtime"],{cwd:root}); options.sourcecommit=execFileSync("git",["rev-parse","HEAD"],{cwd:root,encoding:"utf8"}).trim();
+  await writeFile(path.join(outside,"outside.apk"),"outside bytes"); await symlink(path.join(outside,"outside.apk"),path.join(root,"out","linked.apk"));
+  await assert.rejects(generateWalletCandidateManifest({...options,artifacts:["android|unsigned|out/linked.apk"]}),/symlink escapes root/u);
+  await symlink(outside,path.join(root,"out","linked-directory"),"dir");
+  await assert.rejects(generateWalletCandidateManifest({...options,artifacts:["android|unsigned|out/linked-directory/outside.apk"]}),/symlink escapes root/u);
 });

@@ -1,6 +1,7 @@
 import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
-import {mkdir, readFile, stat, writeFile} from "node:fs/promises";
+import {constants} from "node:fs";
+import {lstat, mkdir, open, realpath, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 
@@ -28,7 +29,16 @@ async function recordFile(root, descriptor) {
   if (path.isAbsolute(relativePath) || relativePath.split(/[\\/]/u).includes("..")) throw new Error(`Artifact path must stay under root: ${relativePath}`);
   const absolute=path.resolve(root, relativePath), expectedRoot=`${path.resolve(root)}${path.sep}`;
   if (!absolute.startsWith(expectedRoot)) throw new Error(`Artifact path escapes root: ${relativePath}`);
-  const bytes=await readFile(absolute), info=await stat(absolute);
+  const [realRoot,realArtifact]=await Promise.all([realpath(root),realpath(absolute)]);
+  if (!realArtifact.startsWith(`${realRoot}${path.sep}`)) throw new Error(`Artifact symlink escapes root: ${relativePath}`);
+  const canonical=path.join(realRoot,path.relative(path.resolve(root),absolute));
+  if (realArtifact !== canonical) throw new Error(`Artifact path contains a symlink: ${relativePath}`);
+  const components=path.relative(realRoot,canonical).split(path.sep), snapshots=[]; let cursor=realRoot;
+  for (const component of components) { cursor=path.join(cursor,component); const info=await lstat(cursor); if (info.isSymbolicLink()) throw new Error(`Artifact path contains a symlink: ${relativePath}`); snapshots.push([cursor,info.dev,info.ino,info.mode]); }
+  const handle=await open(canonical,constants.O_RDONLY|constants.O_NOFOLLOW); let bytes,info;
+  try { info=await handle.stat(); bytes=await handle.readFile(); } finally { await handle.close(); }
+  for (const [entry,dev,ino,mode] of snapshots) { const after=await lstat(entry); if (after.dev!==dev||after.ino!==ino||after.mode!==mode) throw new Error(`Artifact path changed while reading: ${relativePath}`); }
+  if (await realpath(canonical)!==realArtifact) throw new Error(`Artifact path changed while reading: ${relativePath}`);
   if (!info.isFile() || info.size === 0) throw new Error(`Artifact is not a non-empty file: ${relativePath}`);
   return {platform, filename:path.basename(relativePath), path:relativePath, bytes:info.size, sha256:sha256(bytes), signingClass,
     installedLocal:false, publicDownloadVerified:false, productionSigned:false, storeReleased:false};
@@ -39,7 +49,10 @@ export async function generateWalletCandidateManifest(options) {
   if (!/^[0-9a-f]{40}$/u.test(sourceCommit)) throw new Error("An exact 40-character source commit is required");
   git(root,"cat-file","-e",`${sourceCommit}^{commit}`);
   if (git(root,"rev-parse","HEAD") !== sourceCommit) throw new Error("Checkout HEAD differs from candidate source commit");
-  git(root,"diff","--exit-code",sourceCommit,"--","apps/wallet","apps/wallet-web","apps/wallet-desktop","packages/wallet-auth");
+  const sourcePaths=["apps/wallet","apps/wallet-web","apps/wallet-desktop","packages/wallet-auth"];
+  git(root,"diff","--exit-code",sourceCommit,"--",...sourcePaths);
+  const untracked=git(root,"ls-files","--others","--exclude-standard","--",...sourcePaths);
+  if (untracked) throw new Error(`Untracked Wallet source is not allowed: ${untracked.split("\n")[0]}`);
   const artifacts=[];
   for (const descriptor of options.artifacts) artifacts.push(await recordFile(root,descriptor));
   const sbom=await recordFile(root,`wallet-sbom|cyclonedx-1.6|${options.sbom}`);
