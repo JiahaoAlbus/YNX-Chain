@@ -46,25 +46,32 @@ jobs:
         run: npm ci
         working-directory: apps/wallet
       - name: Swift Foundation host and bridge verification
+        id: foundation
+        continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           host_out="$RUNNER_TEMP/ynx-ios-faucet-host"
           bridge_out="$RUNNER_TEMP/ynx-ios-faucet-bridge"
           python3 apps/wallet/modules/ynx-faucet-transport/ios/Tests/run-macos-host-tests.py --output "$host_out"
+          host_status=$?
           python3 apps/wallet/modules/ynx-faucet-transport/ios/Tests/run-macos-bridge-tests.py --output "$bridge_out"
-          node - "$host_out/result.json" "$bridge_out/result.json" "$YNX_IOS_QA_DIR/proof/foundation-summary.json" <<'NODE'
+          bridge_status=$?
+          node - "$host_out/result.json" "$host_out/swift-result.json" "$bridge_out/result.json" "$bridge_out/swift-result.json" "$YNX_IOS_QA_DIR/proof/foundation-summary.json" <<'NODE'
           const fs = require("node:fs");
-          const [hostPath, bridgePath, output] = process.argv.slice(2);
+          const [hostPath, hostSwiftPath, bridgePath, bridgeSwiftPath, output] = process.argv.slice(2);
           const host = JSON.parse(fs.readFileSync(hostPath));
           const bridge = JSON.parse(fs.readFileSync(bridgePath));
-          if (!host.passed || !bridge.passed) process.exit(1);
+          const sanitize = path => JSON.parse(fs.readFileSync(path)).tests.map(test => ({ name: test.name, passed: test.passed, ...(test.error ? { error: test.error } : {}) }));
           fs.writeFileSync(output, JSON.stringify({
-            host: { passed: host.passed, cases: host.swiftCases, wireChecks: host.wireChecks, requestCounts: host.requestCounts },
-            bridge: { passed: bridge.passed, cases: bridge.swiftCases, wireChecks: bridge.wireChecks, requestCounts: bridge.requestCounts },
+            host: { passed: host.passed, cases: host.swiftCases, wireChecks: host.wireChecks, requestCounts: host.requestCounts, tests: sanitize(hostSwiftPath) },
+            bridge: { passed: bridge.passed, cases: bridge.swiftCases, wireChecks: bridge.wireChecks, requestCounts: bridge.requestCounts, tests: sanitize(bridgeSwiftPath) },
             publicEndpointUsed: false, requestOrResponseBodiesRetained: false
           }, null, 2) + "\n");
+          if (!host.passed || !bridge.passed) process.exit(1);
           NODE
+          summary_status=$?
+          test "$host_status" -eq 0 -a "$bridge_status" -eq 0 -a "$summary_status" -eq 0
       - name: Faucet JavaScript contracts and typecheck
         working-directory: apps/wallet
         run: |
@@ -100,6 +107,10 @@ jobs:
             exit 1
           fi
           shasum -a 256 "$YNX_IOS_QA_DIR"/proof/* > "$YNX_IOS_QA_DIR/proof/SHA256SUMS"
+      - name: Enforce Foundation verification result
+        if: always()
+        run: |
+          test '${{ steps.foundation.outcome }}' = 'success'
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
