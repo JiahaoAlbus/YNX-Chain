@@ -12,7 +12,6 @@ jobs:
     timeout-minutes: 60
     env:
       YNX_IOS_EXPECTED_SOURCE_COMMIT: ${{ github.sha }}
-      YNX_IOS_QA_DIR: ${{ runner.temp }}/ynx-wallet-ios-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -34,7 +33,10 @@ jobs:
           test "$(git rev-parse HEAD)" = "$YNX_IOS_EXPECTED_SOURCE_COMMIT"
           test -z "$(git status --porcelain --untracked-files=no)"
       - name: Prepare isolated provenance directory
-        run: node apps/wallet/scripts/ios-simulator-qa.mjs prepare
+        run: |
+          printf 'YNX_IOS_QA_DIR=%s\n' "$RUNNER_TEMP/ynx-wallet-ios-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_ENV"
+          export YNX_IOS_QA_DIR="$RUNNER_TEMP/ynx-wallet-ios-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          node apps/wallet/scripts/ios-simulator-qa.mjs prepare
       - name: Use release-locked npm
         run: npm install --global npm@11.5.1
       - name: Install Wallet Auth dependencies
