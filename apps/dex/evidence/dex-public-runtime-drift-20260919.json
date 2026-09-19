@@ -1,0 +1,49 @@
+{
+  "schema": "ynx-dex-public-runtime-drift-evidence-v1",
+  "observedAt": "2026-09-19T12:40:50Z",
+  "publicUrl": "https://dex.ynxweb4.com",
+  "candidate": {
+    "implementationCommit": "c71e5b1f2e6dbf5a1cb819348a4bbd9791f8e851",
+    "implementationTree": "fdcdc1f7ecab448d50c9eee92bddc46f1bdf5da8",
+    "checkpointCommit": "2871aa7ae77e6221cb14759c3a1fb3478165d029",
+    "checkpointTree": "a6700c01e2c650a3d3fd743510b4a15e0f6d9510",
+    "indexSha256": "52988e01edf2fb0c00985c29cbf417957cabf2d327f6df99e073916271f99617",
+    "javascriptSha256": "dac6681513b15ad77104bcb6ca479ab2454763b8bd60e3e5a9a184240961618f",
+    "cssSha256": "add58adde017e7997468f983e62ab221058778dbfd03d30035e17d52ccc761de"
+  },
+  "observedRuntime": {
+    "versionHttpStatus": 200,
+    "versionBodyBytes": 126,
+    "versionBodySha256": "da7de848ab2f74dfdb15b0f00f11dbba9b7cf95223abd7137d21ea9d35433296",
+    "sourceCommit": "ac775de24176b293b5dbb5ab7114cf29428f8046",
+    "release": "ynx-dex-ac775de24176",
+    "rootHttpStatus": 200,
+    "rootBytes": 931,
+    "rootSha256": "aead21e2f53dce3b6b08b964f2021283147e19f44f9591316b7bb7d130f0492a",
+    "javascriptPath": "/assets/index-5AZtxZKv.js",
+    "javascriptBytes": 329691,
+    "javascriptSha256": "5c1b8c1d06b275d3492bdd614fe7e4c3bb5144c9c15ec2de6ec126cb8a3ac6cc",
+    "cssPath": "/assets/index-Dmgy77uC.css",
+    "cssBytes": 22585,
+    "cssSha256": "9fa209df9a4bb5a218f3c3ebe7ea90c3a16c2b534d9440597b67d26ececd829d",
+    "healthHttpStatus": 200,
+    "healthBodyBytes": 238,
+    "healthBodySha256": "20a96d0ac7dede526b2b37bea77dccc430b9d3cf32372fd2b038e733c38567a3",
+    "nativeSnapshotHttpStatus": 200,
+    "nativeSnapshotBodyBytes": 4673,
+    "nativeSnapshotBodySha256AtObservation": "314ab0bb03d768f9098ef712f3ccd9c135a2487081f91fac892764d1d08525ef",
+    "nativeSnapshotDynamic": true
+  },
+  "sharedReleaseBinding": {
+    "path": "product-release.json",
+    "sourceCommit": "dec1ba994c7c9d48fb4708f37765cb3fe90e2e0f",
+    "ownerMayModify": false,
+    "requiresCentralUpdate": true
+  },
+  "conclusion": {
+    "publicHealthy": true,
+    "candidateDeployed": false,
+    "publicSourceBoundToCandidate": false,
+    "deploymentAuthorized": false
+  }
+}
