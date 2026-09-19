@@ -1,0 +1,49 @@
+{
+  "schema": "ynx-wallet-android-testnet-preview-publication/v1",
+  "observedAt": "2026-09-20T07:08:49+08:00",
+  "sourceCommit": "8a4f009822bea6c04201cbec40b8989d67a686a9",
+  "releaseTag": "wallet-android-testnet-preview-1.0.15-8a4f00982",
+  "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-1.0.15-8a4f00982",
+  "asset": {
+    "filename": "ynx-wallet-1.0.15-testnet-preview-8a4f00982-universal-local-test-signed.apk",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.15-8a4f00982/ynx-wallet-1.0.15-testnet-preview-8a4f00982-universal-local-test-signed.apk",
+    "bytes": 79014862,
+    "sha256": "b82c4354329e2fb517730b02211e4e10ee9e45c720a4494556a68f911a753210",
+    "package": "com.ynxweb4.wallet",
+    "versionName": "1.0.15-testnet-preview",
+    "versionCode": 21,
+    "minSdk": 24,
+    "targetSdk": 36,
+    "signingClass": "local-test-signed",
+    "signatureSchemeV2Verified": true,
+    "signerCertificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "publicAssetDownloadedAndRehashed": true
+  },
+  "validation": {
+    "walletTestsPassed": 509,
+    "typecheckPassed": true,
+    "productCheckPassed": true,
+    "releaseContentCheckPassed": true,
+    "goalCoverageCheckPassed": true,
+    "releaseBuildPassed": true,
+    "upgradeFromVersionCode": 15,
+    "upgradeToVersionCode": 21,
+    "firstInstallTimePreserved": true,
+    "coldLaunchesPassed": 3,
+    "androidCrashBufferEntries": 0,
+    "uiTreeSha256": "6e964869f0bfccd1b30cb3a509ea285942611a8591f31e0d8f65283f3c0d3f28",
+    "screenshotSha256": "2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b",
+    "emulator": "YNX_WALLET_FINAL API 36 ARM64"
+  },
+  "claims": {
+    "codeImplemented": true,
+    "contractAndProductTestsPassed": true,
+    "publicDownloadVerified": true,
+    "emulatorUpgradeAndColdLaunchVerified": true,
+    "realDeviceVerified": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "officialSandboxVerified": false,
+    "productionApproved": false
+  }
+}
