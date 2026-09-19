@@ -3,7 +3,7 @@
 ## Current direct evidence
 
 - `npm ci --ignore-scripts` installs the exact lockfile without dependency lifecycle scripts.
-- `adm-zip` is overridden to `0.6.0`, the fixed range for GHSA-xcpc-8h2w-3j85. Hardhat build, selector generation and all Go repository tests pass with the override.
+- `adm-zip` is overridden to `0.6.1`, which fixes GHSA-7q85-xj36-vmfc and GHSA-vwc7-r8mq-g2x9. The direct build-only `undici` dependency is locked to `6.28.1`, which fixes the three advisories affecting versions before 6.28.0. Hardhat build, selector generation and the repository's dependency gates pass with these same-major updates.
 - `npm audit --audit-level=high` reports zero known vulnerabilities in the current lockfile.
 - Official `govulncheck` 1.6.0 reports zero reachable vulnerabilities after upgrading the toolchain to Go 1.25.12, `golang.org/x/net` to 0.53.0, and gRPC to 1.79.3. The scanner still reports vulnerabilities in required modules whose vulnerable symbols are not called; this is not equivalent to a clean transitive-module inventory.
 - `release/npm-sbom.spdx.json` is SPDX 2.3, inventories 67 Node build-tool packages and contains no local user path.
