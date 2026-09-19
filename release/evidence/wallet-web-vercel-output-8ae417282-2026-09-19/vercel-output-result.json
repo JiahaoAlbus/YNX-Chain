@@ -1,0 +1,12 @@
+{
+  "authorityArchiveSha256": "4a7eed2da6b1626cce94713a0d4420c56ebedef0d71ee39b7e2cd9bc6762ead7",
+  "gitMetadataCopied": false,
+  "headerRouteCount": 4,
+  "integrityAssetCount": 24,
+  "missingAssetRejected": true,
+  "passed": true,
+  "sourceCommit": "8ae417282bdeccbb546923c1ac1b46dbedf3dc8d",
+  "staticFileCount": 25,
+  "staticOutput": ".vercel/output/static",
+  "walletAddressAuthoritySha256": "df4bade31952f98602f51fbc9cbcb731bffe772da3d685b5be7ce895cb0e409f"
+}
