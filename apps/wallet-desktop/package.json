@@ -43,6 +43,7 @@
   "build": {
     "appId": "com.ynxweb4.wallet.macos",
     "productName": "YNX Wallet",
+    "removePackageScripts": false,
     "protocols": [
       {
         "name": "YNX Wallet Authorization",

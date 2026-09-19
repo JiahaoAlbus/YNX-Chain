@@ -11,6 +11,11 @@ import { desktopReleaseIdentity, verifyDesktopPackage } from "../scripts/release
 const actualProject = fileURLToPath(new URL("..", import.meta.url));
 const asarCLI = createRequire(path.join(actualProject, "package.json")).resolve("@electron/asar/bin/asar.js");
 
+test("electron-builder preserves dependency manifests for byte-exact provenance", async () => {
+  const metadata = JSON.parse(await readFile(path.join(actualProject, "package.json"), "utf8"));
+  assert.equal(metadata.build.removePackageScripts, false);
+});
+
 async function fixture(t, { includeRegistry = true } = {}) {
   const root = await mkdtemp(path.join(tmpdir(), "ynx-desktop-provenance-"));
   t.after(() => rm(root, { recursive: true, force: true }));
