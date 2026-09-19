@@ -22,20 +22,27 @@ export function validateLoopbackBase(value) {
     throw new Error('Exact isolated HTTP loopback root required');
   return url;
 }
-export function browserRequestPolicy(value, method = 'GET') {
+const orderIDPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+export function browserRequestPolicy(value, method = 'GET', executionOrderID = '') {
   const url = new URL(value);
   if (url.origin !== browserOrigin || url.username || url.password) return {kind: 'blocked'};
   if (method === 'GET' && !url.search && staticAssets.has(url.pathname))
     return {kind: 'static', asset: staticAssets.get(url.pathname)};
   if (method === 'GET' && url.pathname === '/wallet-auth.js' && !url.search) return {kind: 'authority-fixture'};
   if ((method === 'GET' && (url.pathname.startsWith('/api/') || url.pathname === '/health')) ||
-      (method === 'POST' && url.pathname === '/api/ai/jobs' && !url.search))
+      (method === 'POST' && !executionOrderID && url.pathname === '/api/ai/jobs' && !url.search) ||
+      (method === 'POST' && orderIDPattern.test(executionOrderID) &&
+       url.pathname === `/api/broker/orders/${executionOrderID}/execution-request` && !url.search))
     return {kind: 'loopback', target: url.pathname + url.search};
   return {kind: 'blocked'};
 }
 
-export async function runFinanceBrowserDraft(input, financeRoot) {
+export async function runFinanceBrowserFlow(input, financeRoot) {
   const base = validateLoopbackBase(input.base);
+  const mode = input.mode ?? 'draft';
+  if (!['draft', 'execution'].includes(mode) || (mode === 'execution' && !orderIDPattern.test(input.orderID)))
+    throw new Error('Known browser mode and exact canonical execution order required');
+  const executionOrderID = mode === 'execution' ? input.orderID : '';
   if (!financeRoot || !path.isAbsolute(financeRoot)) throw new Error('Exact absolute Finance checkpoint path required');
   const require = createRequire(path.join(financeRoot, 'apps/finance/package.json'));
   const {chromium} = require('playwright');
@@ -45,7 +52,7 @@ export async function runFinanceBrowserDraft(input, financeRoot) {
     const context = await browser.newContext({serviceWorkers: 'block'});
     let count = 0;
     await context.route('**/*', async route => {
-      const request = route.request(), method = request.method(), policy = browserRequestPolicy(request.url(), method);
+      const request = route.request(), method = request.method(), policy = browserRequestPolicy(request.url(), method, executionOrderID);
       try {
         if (++count > 128) throw new Error('Browser fixture request budget exceeded');
         if (policy.kind === 'blocked') {
@@ -79,7 +86,28 @@ export async function runFinanceBrowserDraft(input, financeRoot) {
     const page = await context.newPage();
     page.on('pageerror', error => result.pageErrors.push(error.message));
     page.setDefaultTimeout(10000);
-    await page.goto(`${browserOrigin}/#assistant`, {waitUntil: 'domcontentloaded'});
+    await page.goto(`${browserOrigin}/#${mode === 'execution' ? 'broker-sandbox' : 'assistant'}`, {waitUntil: 'domcontentloaded'});
+    if (mode === 'execution') {
+      await page.locator('#broker-local-orders .row').first().waitFor({state: 'visible'});
+      const button = page.locator(`[data-broker-order-execute="${executionOrderID}"]`);
+      if (input.expectExecution !== false) await button.waitFor({state: 'visible'});
+      result.executionAvailable = await button.count() === 1 && await button.isEnabled();
+      result.dialogs = [];
+      if (result.executionAvailable) {
+        await Promise.all([
+          page.waitForEvent('dialog').then(async dialog => {
+            result.dialogs.push({type: dialog.type(), message: dialog.message(), accepted: input.confirm === true});
+            if (input.confirm === true) await dialog.accept(); else await dialog.dismiss();
+          }),
+          button.click(),
+        ]);
+        if (input.confirm === true)
+          await page.waitForFunction(() => document.querySelector('#broker-local-orders').textContent.includes('execution_requested'));
+      }
+      result.statusText = await page.locator('#broker-local-orders').textContent();
+      result.notice = await page.locator('#notice').textContent();
+      return result;
+    }
     await page.locator('#ai-start').waitFor({state: 'visible'});
     await page.selectOption('#ai-kind', 'draft_broker_order');
     result.intentTag = await page.locator('#ai-order-intent').evaluate(element => element.tagName);
@@ -115,5 +143,5 @@ export async function runFinanceBrowserDraft(input, financeRoot) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const input = JSON.parse(fs.readFileSync(0, 'utf8'));
-  process.stdout.write(JSON.stringify(await runFinanceBrowserDraft(input, process.env.WEEKLY_FINANCE_ROOT)));
+  process.stdout.write(JSON.stringify(await runFinanceBrowserFlow(input, process.env.WEEKLY_FINANCE_ROOT)));
 }

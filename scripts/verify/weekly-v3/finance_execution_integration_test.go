@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -174,5 +175,114 @@ func TestWeeklyV3ExplicitExecutionHTTPToDurableConsumerExactlyOnce(t *testing.T)
 	defer provider.mu.Unlock()
 	if provider.posts != 1 || provider.deletes != 0 {
 		t.Fatalf("execution retry caused duplicate provider write: POST=%d DELETE=%d", provider.posts, provider.deletes)
+	}
+}
+
+func TestWeeklyV3RealDOMExplicitExecutionConfirmation(t *testing.T) {
+	for _, scenario := range []string{"confirm", "decline", "default_closed"} {
+		t.Run(scenario, func(t *testing.T) {
+			server, local, statePath, now := weeklyServer(t)
+			challenge := weeklyApproved(t, server)
+			orderID := challenge.Unsigned.Order.OrderID
+			if scenario != "default_closed" {
+				server.cfg.BrokerConfig = weeklyExecutionConfig(nil)
+			}
+			adapter, provider := weeklyAlpaca(t, false)
+			server.broker = adapter
+			before, _ := os.ReadFile(statePath)
+			input, _ := json.Marshal(map[string]any{"base": local.URL, "mode": "execution", "orderID": orderID, "confirm": scenario == "confirm", "expectExecution": scenario != "default_closed"})
+			ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+			defer cancel()
+			command := exec.CommandContext(ctx, "node", os.Getenv("WEEKLY_DOM_BRIDGE"))
+			command.Stdin = bytes.NewReader(input)
+			var stderr bytes.Buffer
+			command.Stderr = &stderr
+			raw, err := command.Output()
+			if err != nil {
+				t.Fatalf("native execution browser: %v %s", err, stderr.String())
+			}
+			var result struct {
+				ExecutionAvailable bool              `json:"executionAvailable"`
+				Blocked            []json.RawMessage `json:"blocked"`
+				PageErrors         []string          `json:"pageErrors"`
+				Dialogs            []struct {
+					Type     string `json:"type"`
+					Accepted bool   `json:"accepted"`
+				} `json:"dialogs"`
+				Requests []struct {
+					Method     string `json:"method"`
+					Path       string `json:"path"`
+					Status     int    `json:"status"`
+					ProofScope string `json:"proofScope"`
+					Body       string `json:"body"`
+				} `json:"requests"`
+			}
+			if err := json.Unmarshal(raw, &result); err != nil {
+				t.Fatalf("browser output: %v %s", err, raw)
+			}
+			if len(result.Blocked) != 0 || len(result.PageErrors) != 0 || result.ExecutionAvailable != (scenario != "default_closed") {
+				t.Fatalf("native execution UI availability/isolation: %s", raw)
+			}
+			wantDialogs := 1
+			if scenario == "default_closed" {
+				wantDialogs = 0
+			}
+			if len(result.Dialogs) != wantDialogs {
+				t.Fatalf("explicit confirmation missing or unexpectedly offered: %s", raw)
+			}
+			if wantDialogs == 1 && (result.Dialogs[0].Type != "confirm" || result.Dialogs[0].Accepted != (scenario == "confirm")) {
+				t.Fatalf("wrong confirmation decision: %s", raw)
+			}
+			posts := 0
+			for _, request := range result.Requests {
+				if request.Method == "GET" {
+					continue
+				}
+				posts++
+				if request.Method != "POST" || request.Path != "/api/broker/orders/"+orderID+"/execution-request" || request.Status != http.StatusAccepted || request.ProofScope != "finance.profile.write" {
+					t.Fatalf("unexpected native browser mutation: %+v", request)
+				}
+				var body map[string]string
+				if err := json.Unmarshal([]byte(request.Body), &body); err != nil || len(body) != 1 || body["idempotencyKey"] != "finance-execution-"+orderID {
+					t.Fatalf("native request bypassed exact idempotency/owner scope: %s", request.Body)
+				}
+			}
+			expectedPosts := 0
+			if scenario == "confirm" {
+				expectedPosts = 1
+			}
+			if posts != expectedPosts {
+				t.Fatalf("confirmation produced %d execution writes; want %d", posts, expectedPosts)
+			}
+			provider.mu.Lock()
+			writes := provider.posts + provider.deletes
+			provider.mu.Unlock()
+			if writes != 0 {
+				t.Fatal("browser directly caused provider execution before controlled consumer")
+			}
+			if scenario != "confirm" {
+				after, _ := os.ReadFile(statePath)
+				if !bytes.Equal(before, after) {
+					t.Fatal("declined/disabled UI changed durable approval or execution state")
+				}
+				return
+			}
+			reopened, err := OpenStore(statePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if reopened.Account(testAccount).Brokerage.Outbox[orderID].Status != "execution_requested" {
+				t.Fatal("actual browser request did not survive server restart")
+			}
+			dispatcher := BrokerDispatcher{Store: reopened, Adapter: adapter, Now: func() time.Time { return now }}
+			if record, err := dispatcher.Dispatch(context.Background(), testAccount, orderID); err != nil || record.State != "submitted" {
+				t.Fatalf("browser-requested order not consumed by actual adapter: %+v %v", record, err)
+			}
+			provider.mu.Lock()
+			defer provider.mu.Unlock()
+			if provider.posts != 1 || provider.deletes != 0 {
+				t.Fatalf("browser to consumer write count %d/%d", provider.posts, provider.deletes)
+			}
+		})
 	}
 }
