@@ -136,6 +136,46 @@ test("invalid proof inputs and Mainnet activation fail before fetching", async (
   await assert.rejects(verifyLiveMigration(modified, {fetchImpl}), /Expected values/);
 });
 
+test("transport proof requires native history, CORS, block growth and stable depth-two readback", async () => {
+  const proof = await verifyLiveMigration(config, {fetchImpl: transportFixture(), transports: true, contractAddress, waitImpl: async ms => assert.equal(ms, 3000)});
+  assert.equal(proof.confirmationDepth, 2);
+  assert.equal(proof.comparisonHeight, 100);
+  assert.equal(proof.transportProof.nativeRestVerified, true);
+  assert.equal(proof.transportProof.httpCorsVerified, true);
+  assert.equal(proof.transportProof.comparisonStableAcrossGrowth, true);
+  assert.ok(!proof.remainingGates.includes("BLOCK_GROWTH_AND_NATIVE_REST"));
+  assert.ok(proof.remainingGates.includes("UNCHANGED_GRPC_AND_REQUIRED_WEBSOCKET"));
+  assert.equal(proof.publicVerified, false);
+});
+
+for (const [name, mutate, error] of [
+  ["native chain", (v,c) => { if(c.kind === "status") v.chainId = 1; return v; }, /native REST chain/],
+  ["native historical hash", (v,c) => { if(c.kind === "nativeBlock") v.hash = "d".repeat(64); return v; }, /native REST block hash/],
+  ["CORS origin", (v,c) => { if(c.kind === "cors") v["access-control-allow-origin"] = "https://untrusted.invalid"; return v; }, /CORS origin/],
+  ["CORS method", (v,c) => { if(c.kind === "cors") v["access-control-allow-methods"] = "GET"; return v; }, /CORS POST/],
+  ["no block growth", (v,c) => c.method === "eth_blockNumber" ? "0x66" : v, /did not grow/],
+  ["comparison reorg", (v,c) => { if(c.method === "eth_getBlockByNumber" && c.grown) v.hash = `0x${"d".repeat(64)}`; return v; }, /comparison block changed/],
+]) test(`transport rejects ${name}`, async () => {
+  await assert.rejects(verifyLiveMigration(config, {fetchImpl: transportFixture(mutate), transports: true, contractAddress, waitImpl: async () => {}}), error);
+});
+
+function transportFixture(mutate = value => value) {
+  const tips = new Map();
+  const rpc = fixtureFetch([], (value, context) => {
+    if (context.method === "eth_blockNumber") {
+      const count = (tips.get(context.url) ?? 0) + 1; tips.set(context.url, count);
+      value = `0x${((context.target ? 103 : 102) + count - 1).toString(16)}`;
+    }
+    return mutate(value, {...context, grown: (tips.get(context.url) ?? 0) > 1});
+  });
+  return async (url, options = {}) => {
+    if (options.method === "OPTIONS") return new Response(null, {status: 204, headers: mutate({"access-control-allow-origin": options.headers.origin, "access-control-allow-methods": "GET, POST, OPTIONS", "access-control-allow-headers": "Content-Type"}, {kind: "cors"})});
+    if (String(url).endsWith("/status")) return jsonResponse(mutate({chainId: 6423, nativeCurrencySymbol: "YNXT", height: 103}, {kind: "status"}));
+    if (String(url).includes("/blocks/")) return jsonResponse(mutate({height: 100, hash: blockHash.slice(2), transactions: []}, {kind: "nativeBlock"}));
+    return rpc(url, options);
+  };
+}
+
 function fixtureFetch(calls, mutate = value => value) {
   return async (url, options = {}) => {
     url = String(url);
@@ -159,7 +199,7 @@ function fixtureFetch(calls, mutate = value => value) {
     const context = {method: request.method, params: request.params, url, target};
     calls.push(context);
     const results = {
-      eth_blockNumber: target ? "0x65" : "0x64", eth_chainId: "0x1917", net_version: "6423",
+      eth_blockNumber: target ? "0x67" : "0x66", eth_chainId: "0x1917", net_version: "6423",
       eth_getBalance: "0x123", eth_getCode: "0x6000", eth_getTransactionCount: "0x2",
       eth_getTransactionByHash: {blockHash, hash: txHash, blockNumber: "0x64"},
       eth_getBlockByNumber: {hash: blockHash, number: request.params[0], transactions: [txHash]},

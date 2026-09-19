@@ -3,8 +3,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-YNX_REST_URL="${YNX_REST_URL:-https://rpc.ynxweb4.com}"
-YNX_EVM_URL="${YNX_EVM_URL:-https://evm.ynxweb4.com}"
+YNX_REST_URL="${YNX_REST_URL:-$(node --input-type=module -e 'import {getTestnetEndpoints} from "./sdk/js/testnet-endpoints.js"; process.stdout.write(getTestnetEndpoints().nativeRest)')}"
+YNX_EVM_URL="${YNX_EVM_URL:-$(node --input-type=module -e 'import {getTestnetEndpoints} from "./sdk/js/testnet-endpoints.js"; process.stdout.write(getTestnetEndpoints().evmJsonRpc)')}"
 export YNX_REST_URL YNX_EVM_URL
 
 node --input-type=module <<'NODE'

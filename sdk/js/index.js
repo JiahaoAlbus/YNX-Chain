@@ -4,6 +4,7 @@ const BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 const BECH32_REVERSE = Object.freeze(Object.fromEntries([...BECH32_CHARSET].map((character, index) => [character, index])));
 
 export {ynxTestnet} from "./ynx-testnet.js";
+export {getTestnetEndpoints, testnetEndpointProfiles} from "./testnet-endpoints.js";
 export {YNXWalletError, ensureYNXTestnet, ynxTestnetAddEthereumChainParameter} from "./wallet.js";
 
 export class YNXSDKError extends Error {

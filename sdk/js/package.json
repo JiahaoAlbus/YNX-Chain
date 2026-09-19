@@ -7,7 +7,8 @@
   "files": [
     "index.js",
     "wallet.js",
-    "ynx-testnet.js"
+    "ynx-testnet.js",
+    "testnet-endpoints.js"
   ],
   "engines": {
     "node": ">=18"

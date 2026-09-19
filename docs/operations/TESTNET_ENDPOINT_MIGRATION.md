@@ -26,12 +26,14 @@ The deployment package adds Testnet aliases to the existing reverse-proxy servic
 ```sh
 node scripts/verify/testnet-endpoint-migration-check.mjs --live \
   --transaction <existing-mined-transaction-hash> \
-  --contract <existing-deployed-contract-address> --explorer
+  --contract <existing-deployed-contract-address> --explorer --transports
 ```
 
 Replace the placeholders before running. `--explorer` explicitly checks the candidate Explorer alias without enabling it; omit it when that alias is out of scope. If `--transaction` is omitted, the first transaction in the comparison block is used if present. An empty block is not historical-transaction evidence. `--contract` is required for a complete read-only comparison: matching empty EOA bytecode is not contract-preservation evidence.
 
-The live check compares both RPCs at the lower of their current tips (not a finality claim): chain ID, network ID, block number/hash and transaction list, plus balance, nonce and code for the configured proof address. It validates a mined transaction against its containing block and compares nonempty contract code. Faucet health must identify the same build, paths and quota policy. Optional Explorer checks validate chain, indexer and build identity. Every HTTP request includes a 10-second header-and-body deadline, a 2 MiB streamed response limit and no redirects or retries.
+The live check compares both RPCs two blocks below the lower current tip: chain ID, network ID, block number/hash and transaction list, plus balance, nonce and code for the configured proof address. This confirmation depth is not an irreversible-consensus-finality claim. It validates a mined transaction against its containing block and compares nonempty contract code. Faucet health must identify the same build, paths and quota policy. Optional Explorer checks validate chain, indexer and build identity. JSON HTTP requests include a 10-second header-and-body deadline, a 2 MiB streamed response limit and no redirects or retries.
+
+`--transports` additionally compares native REST `/status` identity and `/blocks/<height>` history against the EVM block, verifies HTTP CORS preflights for RPC and Faucet, then waits three seconds and requires both RPCs to advance without changing the comparison block. A slow or paused chain fails that bounded observation; retry this read-only check later, never start or reset the chain to make it pass. gRPC remains on its existing authority, and no WebSocket URL is invented: those applicable transport gates remain explicit in `remainingGates`.
 
 Output `readOnlyComparisonVerified=true` covers only that read-only subset; `publicVerified` always remains false, with `remainingGates` enumerated. Missing transaction/contract samples produce exit code 2; invalid evidence or request failures exit nonzero. A zero exit code is **not** full migration acceptance. Running without `--live` checks local candidate configuration/template text only, not DNS, generated ingress validity or deployed behavior. Unit tests use fixtures, not official Sandbox or public alias acceptance.
 
