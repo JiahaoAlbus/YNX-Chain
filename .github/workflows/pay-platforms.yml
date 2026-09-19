@@ -54,6 +54,8 @@ jobs:
       - uses: actions/setup-java@d7793b545071e98d581d3bf084a51c3213318a07
         with: {distribution: temurin, java-version: "17"}
       - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: ''
       - run: npm ci
         working-directory: apps/pay
       - name: Create test-only Debug signing identity

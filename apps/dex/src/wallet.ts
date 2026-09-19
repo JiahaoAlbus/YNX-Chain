@@ -20,11 +20,12 @@ import {
 } from "@ynx-chain/wallet-auth";
 
 export const DEX_WALLET = Object.freeze({
-  version: "1" as const,
+  version: "2" as const,
   chainId: "ynx_6423-1" as const,
   requestingProduct: "dex",
   productClientId: "ynx-dex-web-v1",
   bundleId: "com.ynxweb4.dex.web",
+  origin: "https://dex.ynxweb4.com",
   productDeviceAlgorithm: "p256-sha256" as const,
   callback: "https://dex.ynxweb4.com/wallet-auth/callback",
   scopes: Object.freeze(["account:read", "dex:positions:read", "dex:transaction:request"]),
@@ -75,6 +76,7 @@ export async function completeWalletAuthorization(url:string):Promise<CentralWal
   const envelope=await result.json().catch(()=>null) as {ok?:boolean;result?:unknown;error?:{message?:string}}|null;
   if(!result.ok||!envelope?.ok||!envelope.result)throw new Error(envelope?.error?.message||`Wallet session completion failed closed (${result.status}).`);
   const session=parseCentralWalletSession(envelope.result);
+  if(session.verifierVersion!=="wallet-auth-v2")throw new Error("Wallet returned a legacy session that cannot bind the DEX web origin.");
   if(session.productClientId!==DEX_WALLET.productClientId||session.bundleId!==DEX_WALLET.bundleId||session.productDeviceKey!==device.productDeviceKey)throw new Error("Wallet returned a session for another product or device.");
   current=Object.freeze({session,device});
   await Promise.all([write("session",session),remove("pendingRequest")]);
@@ -86,6 +88,7 @@ export async function restoreWalletSession(now=new Date()):Promise<CentralWallet
   const [input,device]=await Promise.all([read<CentralWalletSession>("session"),read<ProductDevice>("device")]);
   if(!input||!device)return null;
   const session=parseCentralWalletSession(input);
+  if(session.verifierVersion!=="wallet-auth-v2"){await clearWalletSession();return null;}
   if(session.expiresAt<=now.toISOString()||session.productDeviceKey!==device.productDeviceKey){await clearWalletSession();return null;}
   current=Object.freeze({session,device});
   return session;

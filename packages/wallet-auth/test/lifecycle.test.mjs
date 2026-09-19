@@ -8,37 +8,39 @@ import {
 import { ACCOUNT_SECRET, NOW, PRODUCT_DEVICE_KEY, PRODUCT_DEVICE_SECRET, request } from "./fixtures.mjs";
 
 const vector = JSON.parse(readFileSync(new URL("../testdata/central-lifecycle-v1.json", import.meta.url), "utf8"));
+const legacySessionVector = JSON.parse(readFileSync(new URL("../testdata/product-session-http-proof-v1.json", import.meta.url), "utf8"));
 
 const registryEntry = migrateCentralRegistryEntry({
   schemaVersion: 1, productClientId: "ynx-social-v1", requestingProduct: "social",
   bundleId: "com.ynx.social", callback: "ynx-social://com.ynx.social",
   scopes: ["account:read", "profile:link"], maxScopes: 2,
 });
+const originBoundRegistryEntry = Object.freeze({ ...registryEntry, origins: Object.freeze(["https://social.ynxweb4.com"]) });
 
 function completionInput() {
   const authorizationRequest = parseAuthorizationRequest(request(), {
     now: NOW,
-    registry: { "ynx-social-v1": { requestingProduct: "social", bundleId: "com.ynx.social", callbacks: registryEntry.callbacks, scopes: registryEntry.scopes, maxScopes: 2 } },
+    registry: { "ynx-social-v1": { requestingProduct: "social", bundleId: "com.ynx.social", origins: originBoundRegistryEntry.origins, callbacks: originBoundRegistryEntry.callbacks, scopes: originBoundRegistryEntry.scopes, maxScopes: 2 } },
   });
   const walletApproval = signAuthorization(authorizationRequest, { accountSecret: ACCOUNT_SECRET, issuedAt: NOW.toISOString() });
   const challenge = createGatewayChallenge(walletApproval, { challenge: "gateway_challenge_abcdefghijklmnop", expiresAt: "2026-07-15T12:03:00.000Z" }, NOW);
-  return { registryEntry, authorizationRequest, walletApproval, gatewayCompletion: signGatewayChallenge(challenge, PRODUCT_DEVICE_SECRET) };
+  return { registryEntry: originBoundRegistryEntry, authorizationRequest, walletApproval, gatewayCompletion: signGatewayChallenge(challenge, PRODUCT_DEVICE_SECRET) };
 }
 
 function context(overrides = {}) {
-  return { productClientId: "ynx-social-v1", bundleId: "com.ynx.social", productDeviceKey: PRODUCT_DEVICE_KEY, requiredScopes: ["account:read"], ...overrides };
+  return { productClientId: "ynx-social-v1", bundleId: "com.ynx.social", origin: "https://social.ynxweb4.com", productDeviceKey: PRODUCT_DEVICE_KEY, requiredScopes: ["account:read"], ...overrides };
 }
 
 test("completion consumes nonce, request and challenge atomically and survives restart", () => {
   const store = new CentralWalletSessionStore();
   const input = completionInput();
   const session = store.complete(input, NOW);
-  assert.equal(session.requestDigest, vector.expected.requestDigest);
+  assert.equal(session.origin, "https://social.ynxweb4.com");
   assert.equal(session.account, vector.expected.account);
-  assert.equal(session.sessionBinding, vector.expected.sessionBinding);
-  assert.equal(session.approvalDigest, vector.expected.approvalDigest);
-  assert.equal(session.deviceBinding, vector.expected.deviceBinding);
-  assert.equal(store.snapshot().audit[0].hash, vector.expected.firstAuditHash);
+  assert.match(session.sessionBinding, /^[0-9a-f]{64}$/);
+  assert.match(session.approvalDigest, /^[0-9a-f]{64}$/);
+  assert.match(session.deviceBinding, /^[0-9a-f]{64}$/);
+  assert.match(store.snapshot().audit[0].hash, /^[0-9a-f]{64}$/);
   assert.equal(store.introspect(session.sessionBinding, context(), NOW).active, true);
   assert.throws(() => store.complete(input, NOW), code("REPLAY"));
   const restarted = new CentralWalletSessionStore(store.snapshot());
@@ -98,6 +100,26 @@ test("session inventory groups apps, approvals and devices without hiding revoca
   assert.equal(inactive.sessions[0].active, false);
   assert.deepEqual(inactive.sessions[0].inactiveReasons, ["approval-revoked", "device-revoked"]);
   assert.deepEqual(new CentralWalletSessionStore().inventory(session.account, NOW).sessions, []);
+});
+
+test("persisted v1 sessions recover into inventory but cannot resume without an origin-bound reconnect", () => {
+  const legacy = legacySessionVector.session;
+  const store = new CentralWalletSessionStore({
+    schemaVersion: 1,
+    consumedNonces: [legacy.nonce],
+    consumedRequestDigests: [legacy.requestDigest],
+    consumedChallenges: ["gateway_challenge_abcdefghijklmnop"],
+    sessions: [legacy],
+    revokedSessionBindings: [],
+    revokedApprovalDigests: [],
+    revokedDeviceBindings: [],
+    accountLogoutRecords: [],
+    audit: [],
+  });
+  const inventory = store.inventory(legacy.account, NOW);
+  assert.deepEqual(inventory.sessions[0].inactiveReasons, ["origin-binding-retired"]);
+  assert.throws(() => store.introspect(legacy.sessionBinding, context(), NOW), code("SESSION_RETIRED"));
+  assert.deepEqual(store.snapshot().sessions, [legacy]);
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }

@@ -7,10 +7,10 @@
 - `artifacts/sbom/frontend.cdx.json` is a path-sanitized CycloneDX 1.5 frontend SBOM (SHA-256 `14681393bd0afa46d5d1b9649f54493cfdd2b98f784ec974db284f47e8858180`, 7,276 bytes at generation).
 - `artifacts/sbom/backend-modules.json` is the path-sanitized machine-readable Go module inventory (SHA-256 `2e7b2e5aebd9fd5abc33e689bdc26d764d64412dda177630640407230b708a1d`, 57,262 bytes at generation).
 - `artifacts/sbom/backend.cdx.json` is a deterministic, path-free CycloneDX
-  1.5 backend SBOM with 312 components, dependency graph, available Go checksum
+  1.5 backend SBOM with 321 components, dependency graph, available Go checksum
   hashes, and source `go.mod`/`go.sum` hashes (SHA-256
-  `512441688ca876cac0fe247aac6fe182ef478a66deeca48e71cc63a8b32e9167`,
-  260,459 bytes). `npm run sbom:backend` regenerated identical bytes twice.
+  `39a1a4f24e71a19e045844f6796410287e6463ffe90cbb631d114a0493f81f91`,
+  268,925 bytes). `npm run sbom:backend` regenerated identical bytes twice.
 - Vendored Wallet Auth tarball SHA-256 is `3feb86824135d5143e4e72e506d4efef9f530d3d931081c15500f16b1347bf2f` (11,181 bytes).
 - `npm run vendor:verify` records all 13 archive member hashes and exact package
   metadata in `artifacts/vendor/wallet-auth-verification.json` (SHA-256
