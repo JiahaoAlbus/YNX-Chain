@@ -1,0 +1,114 @@
+{
+  "generatedAt": "2026-09-19T18:10:58Z",
+  "workingTreeUncommitted": false,
+  "verifiedSourceCommit": "2f1cab269b88f72125c34c0a736d19a8c16613ae",
+  "verifiedSourceTree": "d019ca42edd6d08b14b93eb46bc4bc6d88159abb",
+  "product": {
+    "bundleIdentifier": "com.ynxweb4.wallet",
+    "version": "1.0.14",
+    "iosBuildNumber": "16"
+  },
+  "nativeModule": {
+    "name": "YnxFaucetTransport",
+    "version": "0.1.0",
+    "appleModules": ["YnxFaucetTransportModule"],
+    "autolinkingDiscovered": true,
+    "productionEnabled": true,
+    "productionEnabledEvidence": "compiled-source-gate"
+  },
+  "ci": {
+    "workflow": ".github/workflows/wallet-ios-faucet-verify.yml",
+    "trigger": "workflow_dispatch",
+    "runId": 35459614217,
+    "jobId": 105940993164,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/35459614217",
+    "conclusion": "success",
+    "startedAt": "2026-09-19T17:56:29Z",
+    "completedAt": "2026-09-19T18:10:58Z",
+    "runner": {"os": "macOS", "architecture": "ARM64"},
+    "xcode": {"version": "26.3", "build": "17C529"},
+    "sdk": {"name": "iphonesimulator26.2", "platform": "iphonesimulator"},
+    "artifact": {
+      "id": 10589178921,
+      "name": "ynx-wallet-ios-faucet-verify-2f1cab269b88f72125c34c0a736d19a8c16613ae",
+      "bytes": 496702,
+      "digest": "sha256:98cf11a702f400159dc7e88595910fbd72ea0c7a908ba4f4a12a287b586668bc",
+      "expiresAt": "2026-09-26T18:10:40Z",
+      "proofOnly": true,
+      "installableAppIncluded": false
+    }
+  },
+  "validation": {
+    "foundationHost": {"passed": true, "cases": 36},
+    "bridgeCore": {"passed": true, "cases": 14},
+    "targetedJsContracts": {"passed": true, "cases": 96},
+    "typecheck": {"passed": true},
+    "expoPrebuildAudit": {
+      "passed": true,
+      "usedForBuild": false,
+      "sourceRestored": true,
+      "diffSha256": "32f8c16b29277d29de5591c6b1541a8f8a9e3aa3ce36457bd4176d5c18e0b100"
+    },
+    "expoAutolinking": {"passed": true},
+    "cocoaPods": {
+      "passed": true,
+      "podLockSha256": "a2c4976a40ed50225a8e4bc61eb46b07877838cba64faa4484340ff9068fa81b",
+      "providerSha256": "fb14f48020c8b11170ea81cc324264fab08025d06eb2e042d01f42956944d47f"
+    },
+    "unsignedSimulatorBuild": {
+      "passed": true,
+      "architectures": ["arm64", "x86_64"],
+      "compiledSources": ["BoundedFaucetHttpEngine.swift", "YnxFaucetTransportModule.swift"],
+      "executableSha256": "03be20fcf6c93b48891bb02ed2823287d586fd0dc39782eb28b6b53b79cbcd26",
+      "appTreeSha256": "315c9b4d08e20284d928d5c40ff1d8b471dc515684647271903fcfde3112b5ba",
+      "buildLogSha256": "4c89de2197d8ab1f74e3fd0696aa0a08addffd97da7206dd620ea2df003d3047"
+    },
+    "compiledGateEvidence": {
+      "passed": true,
+      "selfTestPassed": true,
+      "failClosedOnSourceMismatch": true,
+      "failClosedOnMissingCompileRecord": true,
+      "failClosedOnMissingProviderRegistration": true,
+      "runtimeConstantRead": false,
+      "nativeHttpExecuted": false
+    },
+    "evidenceRetentionScan": {"passed": true}
+  },
+  "releaseGates": {
+    "publicEndpointUsed": false,
+    "iosSDKCompiled": true,
+    "expoUIKitAdapterCompiled": true,
+    "simulatorBuilt": true,
+    "simulatorInstalled": false,
+    "simulatorLaunched": false,
+    "installedUIVerified": false,
+    "physicalDeviceVerified": false,
+    "nativeHttpExecuted": false,
+    "signed": false,
+    "distributionSigned": false,
+    "testFlight": false,
+    "appStore": false
+  },
+  "securityClaims": {
+    "admissionAutomaticRetry": false,
+    "oneUseNativeReservation": true,
+    "callerControlledUrl": false,
+    "redirectsAccepted": false,
+    "credentialsStoredByTransport": false,
+    "requestOrResponseBodyLogging": false,
+    "wireExactlyOnceClaimed": false
+  },
+  "sourceSha256": {
+    ".github/workflows/wallet-ios-faucet-verify.yml": "f84b6396d0b309d4460a0ed57e51ba7ef28a3bb9fec513d3fe5dc282e8f28ef1",
+    "apps/wallet/app.json": "566978743cd6f46da8734e0450f6687f7845f5ebe96b2992fb47769e1599dae8",
+    "apps/wallet/ios/FAUCET_NATIVE_BOUNDARY.md": "1447fcb604f0dfc5503a35143facf0e143bed67bcbeda2db85b411f99db3f0b7",
+    "apps/wallet/ios/YNXWallet/Info.plist": "4d6e2416ae41c8f06465a858f517127958923204528b0b65e9fb2537978e2733",
+    "apps/wallet/ios/YNXWallet.xcodeproj/project.pbxproj": "e61bc279fbf106516137ad230af65df5920ce49aa79c98f2a04af90d9bd94cc9",
+    "apps/wallet/modules/ynx-faucet-transport/expo-module.config.json": "9320fb739a7f2a19bba964acf29b01496a753115160c539e923fd1315a6b3314",
+    "apps/wallet/modules/ynx-faucet-transport/ios/BoundedFaucetHttpEngine.swift": "6ceea5538749368b2070b5f53e1d1a8128cd71b5fdfc0756a4d3be59184bb44e",
+    "apps/wallet/modules/ynx-faucet-transport/ios/YnxFaucetTransportModule.swift": "cd5033a11f6ce476389a9194a053de3f3a18ad0a5f5bf4b47cac4400e0847457",
+    "apps/wallet/scripts/ios-simulator-qa.mjs": "efbd5a6a342724e71eb896318a1e55be3ffcafc4d9dd4de8b835c363e2403b51"
+  },
+  "evidenceDataPolicy": "Summary only. No request body, response body, HTTP headers, account, key, token, raw build log, app bundle, or public Faucet call is retained.",
+  "sourceCommit": "2f1cab269b88f72125c34c0a736d19a8c16613ae"
+}

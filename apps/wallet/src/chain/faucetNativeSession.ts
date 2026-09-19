@@ -37,8 +37,19 @@ export class FaucetNativeSession {
   private async read(method: FaucetReadMethod, params: readonly string[]): Promise<unknown> {
     if (!METHODS.has(method) || !Array.isArray(params) || (method === "ynx_getTransactionDurability" || method === "eth_getTransactionReceipt" ?
       params.length !== 1 || typeof params[0] !== "string" || !/^0x[0-9a-f]{64}$/.test(params[0]) : params.length !== 0)) fail("FAUCET_HOST_INVALID");
-    const boundParams = Object.freeze([...params]); let rpcId = "";
-    const response = await this.exchange("rpc", taskId => { rpcId = taskId; return { purpose: "rpc", taskId, rpcId, method, params: boundParams }; });
+    const boundParams = Object.freeze([...params]); let rpcId = "", response: FaucetHttpResponse;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        response = await this.exchange("rpc", taskId => { rpcId = taskId; return { purpose: "rpc", taskId, rpcId, method, params: boundParams }; });
+        break;
+      } catch (error) {
+        // RPC reads are idempotent and carry no authorization. Recover once
+        // from an Android transport loss with a fresh native reservation. The
+        // admission POST path never enters this loop and is never replayed.
+        if (attempt === 0 && !this.signal.aborted && error instanceof FaucetNativeSessionError && error.code === "FAUCET_HOST_UNAVAILABLE") continue;
+        throw error;
+      }
+    }
     if (this.signal.aborted) fail("FAUCET_HOST_CANCELLED");
     if (response.status !== 200) fail("FAUCET_HOST_UNAVAILABLE");
     let body: any; try { body = uniqueJSON(response.body); } catch { fail("FAUCET_HOST_INVALID"); }

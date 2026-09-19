@@ -1,7 +1,7 @@
 import Foundation
 
-/// The JS-visible production constructor is permanently off in this candidate.
-/// A separate native acceptance and source review must precede any activation.
+/// The JS-visible production constructor is enabled only by this compiled iOS
+/// source. JavaScript cannot supply an endpoint, client, header or enable flag.
 final class BoundedFaucetHttpBridge: @unchecked Sendable {
   typealias Completion = (Result<FaucetHttpReply, FaucetHttpFailure>) -> Void
   typealias InitialActivitySampler = (@escaping @Sendable (Bool) -> Void) -> Void
@@ -17,7 +17,7 @@ final class BoundedFaucetHttpBridge: @unchecked Sendable {
     init(_ completion: @escaping Completion) { self.completion = completion }
   }
 
-  private static let PRODUCTION_ENABLED = false
+  private static let PRODUCTION_ENABLED = true
   private let enabled: Bool
   private let makeEngine: () throws -> BoundedFaucetHttpEngine
   private let gate = DispatchQueue(label: "com.ynx.wallet.faucet.bridge")
@@ -174,6 +174,7 @@ public class YnxFaucetTransportModule: Module {
 
   public func definition() -> ModuleDefinition {
     Name("YnxFaucetTransport")
+    Constant("productionEnabled") { true }
     OnCreate {
       self.bridge.observeLifecycle(center: .default, names: .init(
         willEnterForeground: UIApplication.willEnterForegroundNotification,

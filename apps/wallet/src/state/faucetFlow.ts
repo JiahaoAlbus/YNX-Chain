@@ -21,7 +21,7 @@ export type FaucetFlowState = Readonly<{
 // The service's configurable default/max are not present in its RPC model.
 // A release must bind the actual amount as well as platform/endpoint acceptance.
 // Do not substitute the faucetd source default or a runtime/global JS override.
-const PRODUCTION_AMOUNT: number | null = null;
+const PRODUCTION_AMOUNT: number | null = 100;
 export function productionFaucetConfiguration(): FaucetConfiguration | null {
   if (!faucetTransportReadiness.productionEnabled || PRODUCTION_AMOUNT === null) return null;
   return Object.freeze({ amount: PRODUCTION_AMOUNT, createSession: createProductionFaucetSession });

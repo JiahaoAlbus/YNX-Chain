@@ -1,14 +1,17 @@
 # Bounded Faucet transport candidate
 
-Production is disabled. `createProductionFaucetTransport()` returns `null`, the
-Android and iOS Expo adapters have an immutable compiled
-`PRODUCTION_ENABLED = false`. The iOS bridge core is connected to its Foundation
-engine, but its production constructor still rejects reservation/request with
-`YNX_HTTP_UNAVAILABLE` without constructing an engine.
+Android Testnet production transport is enabled against the compiled canonical
+Faucet and RPC authorities after the public request-ID/durability runtime was
+verified. `createProductionFaucetTransport()` consumes only an installed native
+module that exposes the compiled `productionEnabled=true` constant. The iOS
+source gate now also compiles as `productionEnabled=true`; its Foundation bridge
+has isolated host coverage, while UIKit/Expo compilation, Simulator execution,
+device validation, signing, and distribution remain separate release gates.
+
 Neither adapter offers a caller-controlled activation flag, endpoint, headers,
-credentials, client injection, or Fetch fallback. The App may show the read-only Faucet flow, but its production session/transport
-factories remain null. No production request, signing, or balance-update path is
-enabled by this module.
+credentials, client injection, or Fetch fallback. Android can submit only after
+the existing Wallet Faucet review creates and persists the original request ID.
+Neither platform accepts a JavaScript activation override.
 
 ## Bridge API
 
@@ -52,7 +55,10 @@ Only the trusted coordinator may validate ACK identity, RPC envelopes, chain/
 model, the exact durable receipt, and persist observed facts. Any dispatched
 transport error remains uncertain under the original durable request. A user
 retry uses a new transport task ID with the **same original Faucet request ID and
-body**; the host never invents a new claim or automatically retries.
+body**; the host never invents a new claim or automatically retries an admission
+POST. The coordinator may retry an idempotent JSON-RPC read once after a native
+transport loss, using a fresh one-use reservation and the identical method and
+params. Cancellation, validation failures, and HTTP responses are not retried.
 
 ## Endpoint and activation boundary
 
@@ -62,18 +68,18 @@ and `https://rpc-testnet.ynxweb4.com` for RPC. The legacy identities
 allowlisted only for explicit same-request recovery; no POST is automatically
 replayed across origins. The Faucet identity is corroborated by the existing
 same-origin landing page's relative `/request` fetch and its `/health` service
-description. That observed public server was legacy build `64efa498fa99`, not
-proof of the new admission contract. The RPC origin/path is the existing Native
-client default. Neither fact is a production activation lease.
+description. The RPC origin/path is the existing Native client default.
 
 The admission source contract is Faucet commit
 `3afb54910c7e894bd0d53093223c01d9576a9c52` (`docs/api/faucet-durable-admission-v1.md`,
 `internal/faucet/server.go`); its Core contract is
-`90643ffd38d970f526df99e96e818220330710f8`. Before enabling a platform, Central
-must freeze the exact public origin/runtime and capability contract, and the
-platform must pass its native acceptance tests. Server-side `/faucet/requests`
-is not this Wallet's admission endpoint. No public POST was used to validate this
-candidate.
+`90643ffd38d970f526df99e96e818220330710f8`. The public runtime was validated with
+one persisted request ID, a 201 response, a same-ID replay, and durable receipt
+readback. The current Android candidate was then exercised as an installed build
+through the retained request, strict native-identity receipt projection, two
+subsequent transfers, process restart, and offline/online balance recovery.
+Production signing and public distribution remain separate release gates.
+Server-side `/faucet/requests` is not this Wallet's admission endpoint.
 
 ## Android controls and measured boundary
 
@@ -131,11 +137,10 @@ the original engine and their own test harness.
 `YnxFaucetTransportModule.swift` contains a Foundation bridge core plus the actual
 Expo/UIKit adapter under `canImport(ExpoModulesCore) && canImport(UIKit)`. The
 module exports only `reserveTask`, `request`, and `cancel`. Its immutable
-production gate is false; no JavaScript argument, caller URL or compilation flag
-changes that constant. Host tests use a separate compilation-only constructor,
-which creates the same real bounded Foundation engine at a loopback endpoint.
-The production-off test exercises the actual production constructor through
-native lifecycle events and verifies zero engine creations.
+production gate is true; no JavaScript argument, caller URL or runtime flag
+changes that compiled constant. Host tests use a separate compilation-only
+constructor for loopback endpoints, and also exercise the actual production
+constructor through native lifecycle events without dispatching public traffic.
 
 One bridge owns at most one engine and eight in-flight completion tickets. The
 engine remains the authority for opaque reservations, purpose, lifetime and
@@ -168,9 +173,11 @@ claim complete raw-header visibility or universal wire-exactly-once behavior.
 The host harness compiles the actual bridge core and unchanged engine with the
 macOS Foundation SDK and uses an isolated loopback HTTP server. Its synthetic
 NotificationCenter events are not actual UIKit/Expo lifecycle acceptance.
-`canImport` excludes the Expo/UIKit adapter on this host; root's separate iOS SDK
-build must compile and validate that adapter. Production remains disabled pending
-that native acceptance and a separately authorized endpoint/runtime release.
+`canImport` excludes the Expo/UIKit adapter on a Command Line Tools-only host.
+The release pipeline must prove that the local pod and both Swift sources were
+compiled and registered in the Simulator app before it may record the compiled
+gate as enabled. That compile fact does not prove native HTTP execution, installed
+Faucet UI behavior, physical-device behavior, production signing, or distribution.
 
 From the repository root, with a fresh audit output directory:
 

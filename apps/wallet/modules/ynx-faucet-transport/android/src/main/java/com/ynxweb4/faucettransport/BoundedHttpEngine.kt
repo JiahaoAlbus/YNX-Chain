@@ -18,6 +18,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.Response
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okio.BufferedSink
 
 internal class HttpFailure(val code: String) : Exception("Faucet network operation could not be completed.")
@@ -170,7 +171,9 @@ internal class BoundedHttpEngine(
   private fun readReply(id: String, entry: Entry, response: Response, url: String): HttpReply {
     active(id, entry)
     if (response.code in 300..399 || response.priorResponse != null) fail("YNX_HTTP_REDIRECT")
-    if (response.request.url.toString() != url) fail("YNX_HTTP_METADATA")
+    // OkHttp serializes an origin-only URL with a trailing slash. Compare the
+    // parsed authority, then return the exact compiled identity expected by JS.
+    if (response.request.url != url.toHttpUrl()) fail("YNX_HTTP_METADATA")
     fun header(name: String, required: Boolean = false): String {
       val values = response.headers.values(name)
       if (values.size > 1 || required && values.size != 1) fail("YNX_HTTP_METADATA")
@@ -211,7 +214,7 @@ internal class BoundedHttpEngine(
       Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
         .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(buffer, 0, count)).toString()
     } catch (_: Exception) { fail("YNX_HTTP_ENCODING") }
-    return HttpReply(response.request.url.toString(), response.code, contentType, cacheControl, text)
+    return HttpReply(url, response.code, contentType, cacheControl, text)
   }
 
   override fun close() {

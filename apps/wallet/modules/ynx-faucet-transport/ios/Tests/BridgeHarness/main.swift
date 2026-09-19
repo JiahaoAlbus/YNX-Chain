@@ -45,18 +45,18 @@ var records: [[String: Any]] = []
   catch { records.append(["name": name, "passed": false, "error": String(describing: error)]) }
 }
 
-test("immutable production off through real bridge lifecycle") {
+test("immutable production activation through real bridge lifecycle") {
   let b = BoundedFaucetHttpBridge.production(), center = NotificationCenter(); defer { b.close() }
   b.observeLifecycle(center: center, names: names, sampleInitialActivity: { sample in sample(true) })
   for _ in 0..<100 {
     for name in [names.willResignActive, names.willEnterForeground, names.didBecomeActive, names.didEnterBackground, names.didBecomeActive] { center.post(name: name, object: nil) }
-    try rejected("YNX_HTTP_UNAVAILABLE") { try b.reserveTask("admit") }
-    let (result, box) = try request(b, input("never-reserved")); try expect(code(result) == "YNX_HTTP_UNAVAILABLE", "off request enabled"); try expect(box.count == 1, "off completed twice")
-    b.cancel("never-reserved")
+    let task = try b.reserveTask("admit")
+    b.cancel(task)
+    let (result, box) = try request(b, input(task)); try expect(code(result) == "YNX_HTTP_TASK_INVALID", "cancelled production reservation revived"); try expect(box.count == 1, "production rejection completed twice")
   }
-  try expect(b.testSnapshot().engineCreations == 0 && b.testSnapshot().pending == 0, "disabled created resources")
+  try expect(b.testSnapshot().engineCreations == 1 && b.testSnapshot().pending == 0, "production bridge lifecycle leaked resources")
   b.close(); try expect(b.testSnapshot().observers == 0, "close leaked observers")
-  return ["attempts": 100, "engineCreations": 0, "pending": 0, "publicEnabled": false]
+  return ["attempts": 100, "engineCreations": 1, "pending": 0, "publicEnabled": true, "networkExpected": 0]
 }
 test("default paused and lazy initial active sampling") {
   let b = bridge(), center = NotificationCenter(); defer { b.close() }
@@ -167,7 +167,7 @@ test("native deadline retires bridge pending ticket") {
 }
 let passed = records.allSatisfy { $0["passed"] as? Bool == true }
 let result: [String: Any] = ["passed": passed, "cases": records.count, "tests": records, "actualFoundationBridgeCore": true,
- "realURLSessionEngine": true, "productionEnabled": false, "macOSFoundationOnly": true, "iosSDKCompiled": false,
+ "realURLSessionEngine": true, "productionEnabled": true, "macOSFoundationOnly": true, "iosSDKCompiled": false,
  "expoUIKitAdapterCompiled": false, "iosNativeAcceptanceVerified": false, "publicEndpointUsed": false]
 let output = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys])
 try output.write(to: URL(fileURLWithPath: environment["QA_BRIDGE_RESULT"]!))

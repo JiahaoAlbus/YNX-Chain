@@ -9,7 +9,32 @@ import { fileURLToPath } from "node:url";
 // Apple account access, distribution signing, store release or public requests.
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const phase = process.argv[2], expected = process.env.YNX_IOS_EXPECTED_SOURCE_COMMIT;
-assert(["prepare", "artifact", "run"].includes(phase), "Use prepare, artifact or run");
+function compiledFaucetGateEvidence({ moduleSource, buildLog, provider }) {
+  const privateGate = [...moduleSource.matchAll(/private static let PRODUCTION_ENABLED = (true|false)/g)].map(match => match[1]);
+  const expoGate = [...moduleSource.matchAll(/Constant\("productionEnabled"\) \{ (true|false) \}/g)].map(match => match[1]);
+  assert.deepEqual(privateGate, ["true"], "Require one enabled private iOS Faucet production gate");
+  assert.deepEqual(expoGate, ["true"], "Require one matching enabled Expo Faucet constant");
+  const compiledSources = ["YnxFaucetTransportModule.swift", "BoundedFaucetHttpEngine.swift"];
+  for (const file of compiledSources) assert(buildLog.includes(file), `The iOS build did not report compiling ${file}`);
+  assert(/\bimport YnxFaucetTransport\b/.test(provider) && /\bYnxFaucetTransportModule\.self\b/.test(provider), "The installed app must register the actual native Faucet module");
+  return Object.freeze({ productionEnabled: true, evidence: "compiled-source-gate", compiledSources, registeredInProvider: true, runtimeConstantRead: false });
+}
+if (phase === "self-test") {
+  const source = 'private static let PRODUCTION_ENABLED = true\nConstant("productionEnabled") { true }';
+  const log = "CompileSwift YnxFaucetTransportModule.swift BoundedFaucetHttpEngine.swift";
+  const provider = "import YnxFaucetTransport\nYnxFaucetTransportModule.self";
+  assert.deepEqual(compiledFaucetGateEvidence({ moduleSource: source, buildLog: log, provider }), {
+    productionEnabled: true, evidence: "compiled-source-gate", compiledSources: ["YnxFaucetTransportModule.swift", "BoundedFaucetHttpEngine.swift"], registeredInProvider: true, runtimeConstantRead: false
+  });
+  for (const invalid of [
+    { moduleSource: source.replaceAll("true", "false"), buildLog: log, provider },
+    { moduleSource: source, buildLog: "CompileSwift YnxFaucetTransportModule.swift", provider },
+    { moduleSource: source, buildLog: log, provider: "import YnxFaucetTransport" }
+  ]) assert.throws(() => compiledFaucetGateEvidence(invalid));
+  console.log("ios simulator Faucet compiled-gate evidence self-test passed");
+  process.exit(0);
+}
+assert(["prepare", "compiled", "artifact", "run"].includes(phase), "Use prepare, compiled, artifact, run or self-test");
 assert.equal(process.env.GITHUB_ACTIONS, "true", "This runner must not operate a developer's Simulator profile");
 assert.equal(process.platform, "darwin", "A macOS Xcode runner is required");
 assert.match(expected ?? "", /^[0-9a-f]{40}$/, "Require an exact lowercase source commit");
@@ -99,8 +124,37 @@ if (phase === "prepare") {
   assert.match(info.CFBundleVersion, /^[1-9][0-9]*$/);
   assert.equal(info.CFBundleVersion, config.ios.buildNumber, "Committed iOS and Expo build numbers disagree");
   assert.equal(info.UIUserInterfaceStyle, "Light");
-  const tracked = command("git", ["ls-files", "-z", "apps/wallet", "packages/wallet-auth", ".github/workflows/wallet-ios.yml"]).split("\0").filter(Boolean);
+  const tracked = command("git", ["ls-files", "-z", "apps/wallet", "packages/wallet-auth", ".github/workflows/wallet-ios.yml", ".github/workflows/wallet-ios-faucet-verify.yml"]).split("\0").filter(Boolean);
   save("source.json", { sourceCommit: expected, sourceTree: command("git", ["rev-parse", "HEAD^{tree}"]), sourceFiles: tracked.map(path => ({ path, sha256: sha(readFileSync(join(root, path))) })), xcode: command("xcodebuild", ["-version"]), sdks: command("xcodebuild", ["-showsdks"]), version: info.CFBundleShortVersionString, build: info.CFBundleVersion, simulatorOnly: true });
+} else if (phase === "compiled") {
+  assertOwnedDirectory();
+  const source = JSON.parse(readFileSync(join(proof, "source.json"))), info = plist(join(app, "Info.plist"));
+  assert.equal(info.CFBundleIdentifier, bundle); assert.equal(info.CFBundleShortVersionString, source.version); assert.equal(info.CFBundleVersion, source.build);
+  assert.deepEqual(info.CFBundleSupportedPlatforms, ["iPhoneSimulator"]); assert.equal(info.DTPlatformName, "iphonesimulator");
+  const nativeModule = JSON.parse(readFileSync(join(root, "apps/wallet/modules/ynx-faucet-transport/package.json")));
+  const podLock = readFileSync(join(root, "apps/wallet/ios/Podfile.lock"), "utf8");
+  assert(podLock.includes(`- YnxFaucetTransport (${nativeModule.version}):`), "The resolved iOS dependency graph lacks the exact local Faucet pod");
+  const providerPath = "apps/wallet/ios/Pods/Target Support Files/Pods-YNXWallet/ExpoModulesProvider.swift";
+  const provider = readFileSync(join(root, providerPath), "utf8");
+  const buildLog = readFileSync(join(proof, "xcodebuild.log"), "utf8");
+  const moduleSource = readFileSync(join(root, "apps/wallet/modules/ynx-faucet-transport/ios/YnxFaucetTransportModule.swift"), "utf8");
+  const gate = compiledFaucetGateEvidence({ moduleSource, buildLog, provider });
+  const executable = join(app, info.CFBundleExecutable), artifactFiles = files(app);
+  save("faucet-compiled-verification.json", {
+    sourceCommit: expected, workflowRunUrl: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+      ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}` : null,
+    runner: { os: process.env.RUNNER_OS ?? null, architecture: process.env.RUNNER_ARCH ?? null, xcode: source.xcode, sdks: source.sdks },
+    bundleIdentifier: bundle, version: info.CFBundleShortVersionString, build: info.CFBundleVersion,
+    sdkName: info.DTSDKName, platform: info.DTPlatformName, executableSha256: sha(readFileSync(executable)),
+    appTreeSha256: sha(JSON.stringify(artifactFiles)), appFiles: artifactFiles,
+    pod: "YnxFaucetTransport", podVersion: nativeModule.version, podLockSha256: sha(podLock),
+    providerPath, providerSha256: sha(provider), buildLogSha256: sha(buildLog),
+    productionEnabled: gate.productionEnabled, productionEnabledEvidence: gate.evidence,
+    productionEnabledRuntimeRead: gate.runtimeConstantRead, compiledSources: gate.compiledSources,
+    nativeAppBuildPassed: true, simulatorOnly: true, nativeHttpExecuted: false,
+    faucetInstalledUIVerified: false, simulatorInstalled: false, physicalDeviceVerified: false,
+    signed: false, distributionSigned: false, testFlight: false, appStore: false, publicEndpointUsed: false
+  });
 } else if (phase === "artifact") {
   assertOwnedDirectory();
   const source = JSON.parse(readFileSync(join(proof, "source.json"))), info = plist(join(app, "Info.plist"));
@@ -138,13 +192,15 @@ if (phase === "prepare") {
   const provider = readFileSync(join(root, providerPath), "utf8");
   assert(/\bimport YnxFaucetTransport\b/.test(provider) && /\bYnxFaucetTransportModule\.self\b/.test(provider), "The installed app must register the actual native Faucet module");
   const buildLog = readFileSync(join(proof, "xcodebuild.log"), "utf8");
-  for (const file of ["YnxFaucetTransportModule.swift", "BoundedFaucetHttpEngine.swift"])
-    assert(buildLog.includes(file), `The iOS build did not report compiling ${file}`);
+  const moduleSource = readFileSync(join(root, "apps/wallet/modules/ynx-faucet-transport/ios/YnxFaucetTransportModule.swift"), "utf8");
+  const gate = compiledFaucetGateEvidence({ moduleSource, buildLog, provider });
   save("ExpoModulesProvider.swift", provider);
   save("faucet-native-integration.json", { sourceCommit: expected, pod: "YnxFaucetTransport", version: nativeModule.version,
     providerPath, providerSha256: sha(provider), buildLogSha256: sha(buildLog), sdkName: info.DTSDKName,
-    platform: info.DTPlatformName, architectures, registeredInProvider: true, nativeAppBuildPassed: true,
-    productionEnabled: false, nativeHttpExecuted: false, faucetInstalledUIVerified: false, physicalDeviceVerified: false });
+    platform: info.DTPlatformName, architectures, registeredInProvider: gate.registeredInProvider, nativeAppBuildPassed: true,
+    productionEnabled: gate.productionEnabled, productionEnabledEvidence: gate.evidence,
+    productionEnabledRuntimeRead: gate.runtimeConstantRead, compiledSources: gate.compiledSources,
+    nativeHttpExecuted: false, faucetInstalledUIVerified: false, physicalDeviceVerified: false });
   const artifactFiles = files(app), zip = join(qa, `YNXWallet-iOS-Simulator-${expected.slice(0, 12)}.zip`);
   command("/usr/bin/ditto", ["-c", "-k", "--sequesterRsrc", "--keepParent", app, zip]);
   const bytes = readFileSync(zip);

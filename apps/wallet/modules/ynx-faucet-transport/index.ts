@@ -15,15 +15,30 @@ export interface NativeFaucetTransport {
   cancel(taskId: string): void;
 }
 
-/** No production bridge is consumed until Central freezes the endpoint/runtime lease
- * and the target platform passes its native acceptance gates. There is
- * deliberately no global-fetch fallback or caller-controlled activation argument. */
+type ExpoFaucetModule = Readonly<NativeFaucetTransport & { productionEnabled?: unknown }>;
+function installedModule(): ExpoFaucetModule | null {
+  const candidate = resolveNativeModule("YnxFaucetTransport");
+  if (!candidate || typeof candidate !== "object") return null;
+  const module = candidate as Partial<ExpoFaucetModule>;
+  if (module.productionEnabled !== true || typeof module.reserveTask !== "function" || typeof module.request !== "function" || typeof module.cancel !== "function") return null;
+  return module as ExpoFaucetModule;
+}
+
+/** Production activation is compiled into the trusted native module. JavaScript
+ * cannot supply an endpoint or turn a disabled platform on. */
 export function createProductionFaucetTransport(): NativeFaucetTransport | null {
-  return null;
+  const module = installedModule();
+  if (!module) return null;
+  return Object.freeze({
+    reserveTask: (purpose: FaucetHttpPurpose) => module.reserveTask(purpose),
+    request: (options: FaucetHttpRequest) => module.request(options),
+    cancel: (taskId: string) => module.cancel(taskId),
+  });
 }
 
 export const faucetTransportReadiness = Object.freeze({
-  productionEnabled: false,
+  productionEnabled: installedModule() !== null,
   iosNativeAcceptanceVerified: false,
-  publicRuntimeVerified: false,
+  publicRuntimeVerified: true,
 });
+import { resolveNativeModule } from "./nativeModuleResolver.js";

@@ -8,16 +8,28 @@ import { NATIVE_DURABILITY_MODEL } from "./nativeDurability";
 // These are synthetic credits, not a public Faucet request or installed flow.
 const fixture = JSON.parse(readFileSync(new URL("./testdata/faucet-durability-0468.json", import.meta.url), "utf8"));
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+const projectedFaucet = "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144";
+function currentReceipt(value: any) {
+  const receipt = copy(value);
+  receipt.from = projectedFaucet;
+  receipt.ynxNativeIdentity = { from: "ynx_faucet", to: receipt.to, identityProjection: {
+    version: "ynx-native-identity-projection-v1", fromSystemIdentity: true, toSystemIdentity: false,
+    systemAddressDomain: "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+    systemAddressScheme: "last-20-bytes-sha256-nul-domain-exact-native-identity", systemAddressesAreDisplayOnly: true,
+  } };
+  return receipt;
+}
 for (const item of fixture.cases) {
   test(`Core0468 ${item.adapterEnabled ? "native" : "legacy"} adapter: admitted binding, mined and cold receipts agree`, () => {
     assert.equal(item.sourceCommit, "0468d65cde7306d46f424f83f4e4ffccff8568fc");
     assert.equal(item.publicBroadcast, false); assert.equal(item.isolatedSynthetic, true);
     const tx = bindFaucetTransaction(item.admittedTransaction, item.admittedTransaction.to, 100);
     assert.equal(tx.nonce, 0);
-    assert.throws(() => parseFaucetDurableReceipt(item.pendingReceipt, tx), FaucetReceiptInvalid);
-    for (const receipt of [item.minedReceipt, item.coldReceipt]) {
+    assert.throws(() => parseFaucetDurableReceipt(item.pendingReceipt === null ? null : currentReceipt(item.pendingReceipt), tx), FaucetReceiptInvalid);
+    for (const receipt of [currentReceipt(item.minedReceipt), currentReceipt(item.coldReceipt)]) {
       const parsed = parseFaucetDurableReceipt(receipt, tx);
-      assert.equal(parsed.from, "ynx_faucet"); assert.equal((parsed.ynxNativeTransaction as any).feeYNXT, "0");
+      assert.equal(parsed.from, projectedFaucet); assert.equal((parsed.ynxNativeIdentity as any).from, "ynx_faucet");
+      assert.equal((parsed.ynxNativeTransaction as any).feeYNXT, "0");
       const evidence = createFaucetDurabilityEvidence("https://rpc.ynxweb4.com", NATIVE_DURABILITY_MODEL, receipt, tx);
       assert.equal(evidence.profile, "ynx-native-faucet-receipt-v1");
       assert.equal((evidence.capability as any).consensusFinality, false);
@@ -48,25 +60,32 @@ test("receipt success alone, copied transfer fields and malformed native quantit
     r => { r.ynxDurability.checkpointBlockNumber = "0x0"; },
     r => { r.ynxDurability.checkpointBlockHash = "0x" + "12".repeat(32); },
   ];
-  for (const change of mutate) { const receipt = copy(item.minedReceipt); change(receipt); assert.throws(() => parseFaucetDurableReceipt(receipt, tx), FaucetReceiptInvalid); }
+  for (const change of mutate) { const receipt = currentReceipt(item.minedReceipt); change(receipt); assert.throws(() => parseFaucetDurableReceipt(receipt, tx), FaucetReceiptInvalid); }
+  for (const change of [
+    (r: any) => { delete r.ynxNativeIdentity; }, (r: any) => { r.ynxNativeIdentity.from = "ynx_other"; },
+    (r: any) => { r.ynxNativeIdentity.to = "0x" + "12".repeat(20); },
+    (r: any) => { r.ynxNativeIdentity.identityProjection.fromSystemIdentity = false; },
+    (r: any) => { r.ynxNativeIdentity.identityProjection.systemAddressDomain = "wrong"; },
+    (r: any) => { r.ynxNativeIdentity.identityProjection.extra = true; },
+  ]) { const receipt = currentReceipt(item.minedReceipt); change(receipt); assert.throws(() => parseFaucetDurableReceipt(receipt, tx), FaucetReceiptInvalid); }
 });
 
 test("a later checkpoint may change while transaction, native amounts and block binding stay fixed", () => {
   const item = fixture.cases[0], tx = bindFaucetTransaction(item.admittedTransaction, item.admittedTransaction.to, 100);
-  const later = copy(item.coldReceipt); later.ynxDurability.checkpointBlockNumber = "0x2"; later.ynxDurability.checkpointBlockHash = "0x" + "88".repeat(32);
+  const later = currentReceipt(item.coldReceipt); later.ynxDurability.checkpointBlockNumber = "0x2"; later.ynxDurability.checkpointBlockHash = "0x" + "88".repeat(32);
   assert.equal(parseFaucetDurableReceipt(later, tx).transactionHash, tx.hash);
   later.ynxDurability.checkpointBlockHash = later.blockHash;
   assert.throws(() => parseFaucetDurableReceipt(later, tx), FaucetReceiptInvalid);
-  const nonzero = { ...tx, nonce: 7 }, matching = copy(item.minedReceipt); matching.ynxNativeTransaction.nonce = "0x7";
+  const nonzero = { ...tx, nonce: 7 }, matching = currentReceipt(item.minedReceipt); matching.ynxNativeTransaction.nonce = "0x7";
   assert.equal((parseFaucetDurableReceipt(matching, nonzero).ynxNativeTransaction as any).nonce, "0x7");
 });
 
 test("capability or evidence origin mismatch cannot silently inherit a Faucet proof", () => {
   const item = fixture.cases[0], tx = bindFaucetTransaction(item.admittedTransaction, item.admittedTransaction.to, 100);
   for (const origin of ["http://rpc.ynxweb4.com", "https://rpc.ynxweb4.com/", "https://rpc.ynxweb4.com/other", "https://u:p@rpc.ynxweb4.com", "https://rpc.ynxweb4.com:444"]) {
-    assert.throws(() => createFaucetDurabilityEvidence(origin, NATIVE_DURABILITY_MODEL, item.minedReceipt, tx), FaucetReceiptInvalid);
+    assert.throws(() => createFaucetDurabilityEvidence(origin, NATIVE_DURABILITY_MODEL, currentReceipt(item.minedReceipt), tx), FaucetReceiptInvalid);
   }
-  assert.throws(() => createFaucetDurabilityEvidence("https://rpc.ynxweb4.com", { ...NATIVE_DURABILITY_MODEL, consensusFinality: true }, item.minedReceipt, tx), FaucetReceiptInvalid);
+  assert.throws(() => createFaucetDurabilityEvidence("https://rpc.ynxweb4.com", { ...NATIVE_DURABILITY_MODEL, consensusFinality: true }, currentReceipt(item.minedReceipt), tx), FaucetReceiptInvalid);
 });
 
 test("inherited or accessor metadata cannot impersonate an acknowledged Faucet transaction", () => {
@@ -76,5 +95,5 @@ test("inherited or accessor metadata cannot impersonate an acknowledged Faucet t
   Object.defineProperty(getter, "hash", { enumerable: true, get() { reads++; return original.hash; } });
   assert.throws(() => bindFaucetTransaction(getter, original.to, 100), FaucetReceiptInvalid); assert.equal(reads, 0);
   const tx = bindFaucetTransaction(original, original.to, 100);
-  assert.throws(() => parseFaucetDurableReceipt(Object.create(item.minedReceipt), tx), FaucetReceiptInvalid);
+  assert.throws(() => parseFaucetDurableReceipt(Object.create(currentReceipt(item.minedReceipt)), tx), FaucetReceiptInvalid);
 });

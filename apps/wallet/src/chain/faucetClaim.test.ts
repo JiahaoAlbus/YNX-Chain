@@ -19,9 +19,12 @@ function storage() {
 }
 function durable(hash: string) { return { version: NATIVE_DURABILITY_MODEL.version, scope: "local-snapshot", status: "durable", transactionHash: hash,
   blockNumber: "0x1", blockHash: "0x" + "ab".repeat(32), checkpointBlockNumber: "0x1", checkpointBlockHash: "0x" + "ab".repeat(32), snapshotIntegrity: "0x" + "cd".repeat(32) }; }
-function receipt(hash: string) { return { transactionHash: hash, from: "ynx_faucet", to: address, status: "0x1", contractAddress: null,
+function receipt(hash: string) { return { transactionHash: hash, from: "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144", to: address, status: "0x1", contractAddress: null,
   transactionIndex: "0x0", blockNumber: "0x1", blockHash: "0x" + "ab".repeat(32), ynxDurability: durable(hash),
-  ynxNativeTransaction: { type: "faucet", amountYNXT: "100", feeYNXT: "0", nonce: "0x0" } }; }
+  ynxNativeTransaction: { type: "faucet", amountYNXT: "100", feeYNXT: "0", nonce: "0x0" },
+  ynxNativeIdentity: { from: "ynx_faucet", to: address, identityProjection: { version: "ynx-native-identity-projection-v1", fromSystemIdentity: true,
+    toSystemIdentity: false, systemAddressDomain: "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+    systemAddressScheme: "last-20-bytes-sha256-nul-domain-exact-native-identity", systemAddressesAreDisplayOnly: true } } }; }
 type Request = Parameters<FaucetAdmissionTransport>[0];
 function accepted(r: Request, replayed = false) {
   const original = JSON.parse(r.body), hash = faucetAdmissionHash(r.requestId);

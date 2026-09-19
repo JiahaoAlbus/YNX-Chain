@@ -152,6 +152,6 @@ test("all-five-rpc-methods") {
  return ["methods":5]
 }
 let passed=results.allSatisfy{$0["passed"] as? Bool == true}
-let report:[String:Any] = ["passed":passed,"cases":results.count,"tests":results,"macOSFoundationOnly":true,"iosSDKCompiled":false,"iosNativeAcceptanceVerified":false,"productionEnabled":false,"publicEndpointUsed":false,"wireExactlyOnceClaimed":false]
+let report:[String:Any] = ["passed":passed,"cases":results.count,"tests":results,"macOSFoundationOnly":true,"iosSDKCompiled":false,"iosNativeAcceptanceVerified":false,"productionEnabled":true,"publicEndpointUsed":false,"wireExactlyOnceClaimed":false]
 try JSONSerialization.data(withJSONObject:report,options:[.prettyPrinted,.sortedKeys]).write(to:URL(fileURLWithPath:output))
 exit(passed ? 0 : 1)
