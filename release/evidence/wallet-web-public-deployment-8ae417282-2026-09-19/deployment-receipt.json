@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet Web PWA",
+  "recordedDate": "2026-09-19",
+  "sourceCommit": "8ae417282bdeccbb546923c1ac1b46dbedf3dc8d",
+  "preview": {
+    "deploymentId": "dpl_22QYh6wRpdvPjpBsMYWNZdhWCx7C",
+    "status": "READY",
+    "protectedByVercel": true,
+    "publicEntryPoint": false
+  },
+  "production": {
+    "deploymentId": "dpl_EGtVy436yNRH3HiDkauJ4g3q86xC",
+    "status": "READY",
+    "deploymentUrl": "https://wallet-cxrykyy3s-jiahaoalbus-projects.vercel.app",
+    "automaticAlias": "https://wallet-web-weld-eta.vercel.app",
+    "officialUrl": "https://wallet.ynxweb4.com",
+    "previousOfficialDeploymentId": "dpl_8NCJWrJjdfUVSrQkr12HBL1dG7Fr",
+    "previousSourceCommitPrefix": "27d00feb"
+  },
+  "publicReadback": {
+    "buildIdentity": {
+      "httpStatus": 200,
+      "sourceCommit": "8ae417282bdeccbb546923c1ac1b46dbedf3dc8d",
+      "authorityArchiveSha256": "4a7eed2da6b1626cce94713a0d4420c56ebedef0d71ee39b7e2cd9bc6762ead7",
+      "authorityRecordCount": 14,
+      "walletAddressAuthoritySha256": "df4bade31952f98602f51fbc9cbcb731bffe772da3d685b5be7ce895cb0e409f",
+      "walletAuthSourceTree": "8e50f7a52a614ea6d4c4a4d2988315d036ea0b25",
+      "chainId": "0x1917",
+      "cacheControl": "no-store"
+    },
+    "assetIntegrity": {
+      "httpStatus": 200,
+      "entryCount": 24
+    },
+    "serviceWorker": {
+      "httpStatus": 200,
+      "verifiedShellSha256Prefix": "870b953",
+      "prefixOnly": true,
+      "cacheControl": "no-store"
+    },
+    "coreAuthBinding": {
+      "httpStatus": 200,
+      "publicGatewayRegistryReady": false,
+      "trustedRuntimeAvailable": false
+    }
+  },
+  "interactiveRuntime": {
+    "surface": "in-app browser",
+    "title": "YNX Wallet — Testnet companion",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "walletUnavailableInstallPromptVisible": true,
+    "consoleWarnings": 0,
+    "consoleErrors": 0
+  },
+  "releaseState": {
+    "walletWebPwaWebsiteRuntimeDeployedPublic": true,
+    "previewCountsAsPublicEntryPoint": false,
+    "installerDownloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "officialDomain": "wallet.ynxweb4.com",
+  "currentDeploymentId": "dpl_EGtVy436yNRH3HiDkauJ4g3q86xC",
+  "previousDeploymentId": "dpl_8NCJWrJjdfUVSrQkr12HBL1dG7Fr",
+  "previousSourceCommitPrefix": "27d00feb",
+  "scopedOfficialAliasRollbackCommand": "vercel alias set dpl_8NCJWrJjdfUVSrQkr12HBL1dG7Fr wallet.ynxweb4.com",
+  "projectProductionRollbackCommand": "vercel rollback dpl_8NCJWrJjdfUVSrQkr12HBL1dG7Fr --yes",
+  "executed": false
+}
