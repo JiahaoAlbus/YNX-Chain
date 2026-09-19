@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-19T14:58:11.444Z",
+  "rpc": {
+    "url": "https://rpc-testnet.ynxweb4.com/",
+    "status": 200,
+    "body": {
+      "jsonrpc": "2.0",
+      "id": 6423,
+      "result": "0x1917"
+    }
+  },
+  "faucetPreflight": {
+    "url": "https://faucet-testnet.ynxweb4.com/request",
+    "status": 204,
+    "allowOrigin": "https://wallet.ynxweb4.com",
+    "allowMethods": "GET, POST, OPTIONS",
+    "vary": "Origin"
+  },
+  "passed": true
+}

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "scope": "Weekly v3 canonical Testnet RPC and Faucet endpoint migration",
+  "sourceCommit": "7eb0beef4f3b1199ee817441d6cc04346e511765",
+  "branch": "codex/wallet-dedicated-auth-v2-20260906",
+  "canonicalEndpoints": {
+    "rpc": "https://rpc-testnet.ynxweb4.com",
+    "faucet": "https://faucet-testnet.ynxweb4.com"
+  },
+  "compatibilityEndpoints": {
+    "extensionReadRpc": "https://evm.ynxweb4.com",
+    "nativeReadApi": "https://rpc.ynxweb4.com",
+    "desktopProbeRpc": "https://rpc.ynxweb4.com/evm",
+    "faucet": "https://faucet.ynxweb4.com"
+  },
+  "safetyPolicy": {
+    "safeReadFallbackOnly": true,
+    "wrongChainFallback": false,
+    "malformedResponseFallback": false,
+    "automaticSignedTransactionReplayAcrossOrigins": false,
+    "automaticFaucetAdmissionReplayAcrossOrigins": false
+  },
+  "validation": {
+    "walletWeb": {"tests": 346, "passed": 346},
+    "walletNativeSharedAndroidIos": {"tests": 508, "passed": 508, "typecheckPassed": true},
+    "walletDesktop": {"tests": 289, "passed": 289},
+    "walletAuth": {"tests": 660, "passed": 660},
+    "packageVerified": true,
+    "extensionPermissionGatePassed": true,
+    "gitlessBuildGatePassed": true,
+    "vercelOutputGatePassed": true
+  },
+  "artifacts": {
+    "pwaZipSha256": "787e4bab808fb9d8176e15f806f65b43107becc38870448a0a2a046756fdadf2",
+    "chromeEdgeZipSha256": "f704cf96fdb25b726774c447b8bdd7f37721d46792221314dfd368a2c51dc514",
+    "firefoxZipSha256": "83cf35987c7ca962c440e14c13e5f5429047ebea7423a169f90091b3b6fad097",
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "deployment": {
+    "previewId": "dpl_yj43znZHtSkrUcuE5JWGRgLZLK5P",
+    "productionId": "dpl_3jLapaVchCeoXbT1wLdGNqsh9F5C",
+    "officialAlias": "https://wallet.ynxweb4.com",
+    "rollbackDeploymentId": "dpl_EGtVy436yNRH3HiDkauJ4g3q86xC",
+    "ready": true,
+    "publicVerified": true
+  },
+  "truthBoundaries": {
+    "webPwaPublic": true,
+    "extensionSourceAndUnsignedArtifactsVerified": true,
+    "extensionStoreReleased": false,
+    "androidIosDesktopSourceVerified": true,
+    "newNativeInstallersPublished": false,
+    "faucetProductionEnabledInNativeWallet": false
+  }
+}
