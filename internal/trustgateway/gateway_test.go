@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	testAPIKey      = "local-trust-api-key"
-	testUpstreamKey = "local-trust-upstream-key"
+	testAPIKey          = "local-trust-api-key"
+	testUpstreamKey     = "local-trust-upstream-key"
+	testFaucetCoreToken = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
 )
 
 func TestGatewayRequiresDedicatedKeys(t *testing.T) {
@@ -350,7 +351,10 @@ func newChainServer(t *testing.T) *httptest.Server {
 	if _, err := devnet.Faucet("ynx_trust_subject", 100); err != nil {
 		t.Fatal(err)
 	}
-	server := httptest.NewServer(api.NewServerWithConfig(devnet, api.ServerConfig{TrustGatewayUpstreamKey: testUpstreamKey}))
+	server := httptest.NewServer(api.NewServerWithConfig(devnet, api.ServerConfig{
+		TrustGatewayUpstreamKey: testUpstreamKey,
+		FaucetCoreAuthToken:     testFaucetCoreToken,
+	}))
 	for _, target := range []string{"/trust/trace/ynx_trust_subject", "/governance/request-validity-rules"} {
 		resp, err := http.Get(server.URL + target)
 		if err != nil {
@@ -415,6 +419,7 @@ func doChainJSON(t *testing.T, method, target string, body any, expected int, ou
 		t.Fatal(err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(api.FaucetCoreAuthorityHeader, testFaucetCoreToken)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)

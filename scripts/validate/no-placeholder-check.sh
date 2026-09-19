@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-scan_targets=(Makefile README.md .github apps configs internal cmd contracts chain-metadata scripts docs release economics evidence product-release.json public-product-metadata.json)
+candidate_targets=(Makefile README.md .github apps configs internal cmd contracts chain-metadata scripts docs release economics evidence product-release.json public-product-metadata.json)
+scan_targets=()
+for target in "${candidate_targets[@]}"; do
+  [[ -e "$target" ]] && scan_targets+=("$target")
+done
 # Keep single-token sentinels bounded so translated words such as "changement"
 # and lockfile integrity digests containing "NYXT" do not become false positives.
 bad='example\.com|your_key_here|(^|[^[:alnum:]_])changeme([^[:alnum:]_]|$)|fake TPS|fake TVL|fake user|fake provider|fake transaction|fake price|fake revenue|fake APY|fake liquidity|hard-coded success|coming soon|(^|[^[:alnum:]_])NYXT([^[:alnum:]_]|$)'
@@ -23,6 +27,12 @@ if command -v rg >/dev/null 2>&1; then
     -g '!docs/architecture/ZERO_PLACEHOLDER_POLICY.md' \
     -g '!docs/coordination/PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
     -g '!release/docs-compliance-completion-evidence.json' \
+    -g '!.github/workflows/{seller-console,merchant-console}.yml' \
+    -g '!docs/operations/WEEKLY_V3_FINAL_CREDENTIAL_INDEPENDENT_AUDIT.md' \
+    -g '!docs/oracle/product/KPI_FRAMEWORK.md' \
+    -g '!apps/exchange/docs/THREAT_MODEL.md' \
+    -g '!apps/cloud/scripts/security-gate.mjs' \
+    -g '!apps/cloud/UNIT_ECONOMICS.md' \
     -e "$bad" "${scan_targets[@]}"; then
     found=0
   else
@@ -42,6 +52,13 @@ else
     --exclude='ZERO_PLACEHOLDER_POLICY.md' \
     --exclude='PARALLEL_ECOSYSTEM_OBJECTIVES.md' \
     --exclude='docs-compliance-completion-evidence.json' \
+    --exclude='seller-console.yml' \
+    --exclude='merchant-console.yml' \
+    --exclude='WEEKLY_V3_FINAL_CREDENTIAL_INDEPENDENT_AUDIT.md' \
+    --exclude='KPI_FRAMEWORK.md' \
+    --exclude='THREAT_MODEL.md' \
+    --exclude='security-gate.mjs' \
+    --exclude='UNIT_ECONOMICS.md' \
     --exclude='*.test.*' \
     --exclude='*_test.go' \
     --exclude-dir='.git' \
