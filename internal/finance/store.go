@@ -621,7 +621,8 @@ func validateBrokeragePersistence(account string, state BrokerageAccountState) e
 	}
 	for orderID, outbox := range state.Outbox {
 		order, ok := state.Orders[orderID]
-		if !ok || order.ApprovalState != "consumed" || outbox.OrderID != orderID || outbox.RequestID != order.RequestID || outbox.ProviderClientOrderID != order.ProviderClientOrderID || outbox.Provider != FinanceOrderProvider || outbox.TradingEnvironment != FinanceOrderTradingEnv || outbox.Attempts < 0 {
+		validOutbox := map[string]bool{"pending_unwired": true, "dispatching": true, "submitted_unknown": true, "submitted": true, "provider_rejected": true}
+		if !ok || order.ApprovalState != "consumed" || outbox.OrderID != orderID || outbox.RequestID != order.RequestID || outbox.ProviderClientOrderID != order.ProviderClientOrderID || outbox.Provider != FinanceOrderProvider || outbox.TradingEnvironment != FinanceOrderTradingEnv || outbox.Attempts < 0 || !validOutbox[outbox.Status] || (outbox.ProviderOrderID != "" && !financeProviderUUIDPattern.MatchString(outbox.ProviderOrderID)) {
 			return errors.New("finance state contains an invalid Broker outbox record")
 		}
 	}

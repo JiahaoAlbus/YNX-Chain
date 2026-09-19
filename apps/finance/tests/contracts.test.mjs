@@ -9,6 +9,7 @@ const css=await readFile(new URL('web/styles.css',base),'utf8');
 const wallet=await readFile(new URL('mobile/src/wallet.ts',base),'utf8');
 const manifest=await readFile(new URL('mobile/contract/public-endpoint-manifest.json',base),'utf8');
 const webWallet=await readFile(new URL('web/wallet-auth-entry.js',base),'utf8');
+const orderWallet=await readFile(new URL('web/order-wallet-entry.js',base),'utf8');
 const providerEvidence=JSON.parse(await readFile(new URL('evidence/p0-finance-provider-connect-state-20260821.json',base),'utf8'));
 const migrationEvidence=JSON.parse(await readFile(new URL('evidence/p0-finance-product-wallet-migration-evidence-20260821.json',base),'utf8'));
 const {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_RPC_PROBE,STANDARD_WALLET_RPC_PROBE_TRANSPORT}=await import(new URL('../web/node_modules/@ynx-chain/wallet-auth/src/standard-wallet-connect-state.js',import.meta.url));
@@ -45,6 +46,20 @@ test('Broker Sandbox snapshot is authenticated, owner-mapped and never substitut
   assert.ok(js.includes("if(!state.connected){clearBrokerSnapshot();return}"));
   assert.ok(js.includes("await api('/api/broker/snapshot')"));
   assert.equal(js.includes("fetch('/api/broker/snapshot'"),false,'private Broker reads must use the authenticated Finance API helper');
+});
+
+test('Broker order approval consumes the exact Wallet transport and never auto-submits or opens a blank tab',()=>{
+  for(const marker of ['createFinanceOrderApprovalRequest','encodeFinanceOrderApprovalWalletURL','parseFinanceOrderApprovalReturnURL','@ynx-chain/wallet-auth-finance-order'])assert.ok(orderWallet.includes(marker),marker);
+  for(const marker of ['/api/broker/challenges','/api/broker/callback','providerWriteAttempted!==false','Review exact order in YNX Wallet','Broker provider has not been contacted'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  for(const forbidden of ['window.open(','location.href=','fetch(route.url','provider.request({method:"eth_sendTransaction"'])assert.equal(orderWallet.includes(forbidden)||js.includes(forbidden),false,forbidden);
+  assert.ok(html.includes('order-wallet.js'));
+  assert.ok(js.includes("window.YNXFinanceOrderWallet.clear();history.replaceState"));
+});
+
+test('AI Broker order results remain drafts until copied and explicitly previewed',()=>{
+  for(const marker of ['draft_broker_order','Copy into order form','AI draft copied for review. No challenge, approval, or provider request has occurred.'])assert.ok(html.includes(marker)||js.includes(marker),marker);
+  assert.ok(js.includes("location.hash='broker-sandbox'"));
+  assert.equal(js.includes('Submit AI order'),false);
 });
 
 test('Web Wallet consumes the pinned Standard SDK and isolates unavailable legacy private authorization',()=>{

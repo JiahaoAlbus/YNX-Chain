@@ -1,5 +1,6 @@
-// Read-only operator tools. No secrets/arguments are printed; no account creation,
-// transfer, funding, order creation or cancellation routes are compiled here.
+// Operator diagnostics and activation planning. No secrets/arguments are
+// printed; this binary never creates accounts, transfers funds, submits orders
+// or cancels orders.
 package main
 
 import (
@@ -24,8 +25,8 @@ func runWith(args []string, get func(string) string, probe func(context.Context,
 	if len(args) > 0 {
 		mode = args[0]
 	}
-	if (mode != "doctor" && mode != "sandbox-verify") || len(args) > 2 || (len(args) == 2 && args[1] != "--network-read-only") {
-		_ = json.NewEncoder(output).Encode(map[string]any{"error": "USAGE: doctor|sandbox-verify [--network-read-only]"})
+	if (mode != "doctor" && mode != "sandbox-verify" && mode != "activation-plan") || len(args) > 2 || (len(args) == 2 && args[1] != "--network-read-only") || (mode == "activation-plan" && len(args) != 1) {
+		_ = json.NewEncoder(output).Encode(map[string]any{"error": "USAGE: doctor|sandbox-verify [--network-read-only] | activation-plan"})
 		return 2
 	}
 	network = len(args) == 2
@@ -33,7 +34,17 @@ func runWith(args []string, get func(string) string, probe func(context.Context,
 	status := cfg.Status()
 	report := map[string]any{"mode": mode, "configuration": status, "networkAttempted": false, "accountLinkVerified": false, "dataEntitlementVerified": false, "officialSandboxVerified": false, "productionApproved": false, "writeAttempted": false, "walletOrderApproval": "frozen_contract_internal_only", "durableOrderJournal": "implemented_state_v2", "providerPost": "disabled_unwired"}
 	code := 0
-	if mode == "sandbox-verify" && !network {
+	if mode == "activation-plan" {
+		report["activationReceiptConfigured"] = status.SubmissionEnabled
+		report["activationScope"] = "sandbox_only_single_operator_worker_no_public_submit_route"
+		report["requiredPreconditions"] = []string{"configured sandbox credentials", "persistent per-user account mapping", "read-only provider verification", "trusted fee bound", "Wallet order approval", "64-hex activation receipt"}
+		if status.SubmissionEnabled {
+			report["result"] = "SANDBOX_WRITE_CONFIGURATION_READY_NOT_EXECUTED"
+		} else {
+			report["result"] = "SANDBOX_WRITE_ACTIVATION_BLOCKED"
+			code = 2
+		}
+	} else if mode == "sandbox-verify" && !network {
 		report["result"] = "BLOCKED_OFFICIAL_SANDBOX_WRITE_CONFIRMATION"
 		code = 2
 	} else if network {

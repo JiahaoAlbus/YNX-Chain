@@ -4,11 +4,13 @@
   "type": "module",
   "scripts": {
     "build:wallet": "esbuild wallet-auth-entry.js --bundle --minify --platform=browser --target=es2022 --outfile=wallet-auth.js",
+    "build:order-wallet": "esbuild order-wallet-entry.js --bundle --minify --platform=browser --target=es2022 --outfile=order-wallet.js",
     "verify:wallet": "node verify-wallet-connect.mjs",
     "verify:migration-evidence": "node verify-product-wallet-migration-evidence.mjs"
   },
   "dependencies": {
-    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0-product-migration-evidence-p0.tgz"
+    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0-product-migration-evidence-p0.tgz",
+    "@ynx-chain/wallet-auth-finance-order": "file:vendor/ynx-chain-wallet-auth-1.1.0.tgz"
   },
   "devDependencies": {
     "esbuild": "0.25.9"

@@ -1,6 +1,7 @@
 package brokerage
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -82,6 +83,28 @@ type AccountSnapshot struct {
 	Orders      []Order    `json:"orders"`
 	Positions   []Position `json:"positions"`
 }
+type Quote struct {
+	Symbol    string `json:"symbol"`
+	BidPrice  string `json:"bidPrice"`
+	AskPrice  string `json:"askPrice"`
+	BidSize   string `json:"bidSize"`
+	AskSize   string `json:"askSize"`
+	Timestamp string `json:"timestamp"`
+	Feed      string `json:"feed"`
+	RequestID string `json:"requestId"`
+}
+
+type SubmitOrderRequest struct {
+	ClientOrderID string `json:"client_order_id"`
+	AssetID       string `json:"asset_id"`
+	Symbol        string `json:"symbol"`
+	Side          string `json:"side"`
+	Qty           string `json:"qty"`
+	Type          string `json:"type"`
+	LimitPrice    string `json:"limit_price"`
+	TimeInForce   string `json:"time_in_force"`
+	ExtendedHours bool   `json:"extended_hours"`
+}
 
 // Account IDs must be obtained from a persistent owner-checked mapping, never a
 // browser-supplied provider ID or one global ACCOUNT_ID environment variable.
@@ -91,11 +114,12 @@ type AccountResolver interface {
 type BrokerageAdapter interface {
 	Capabilities() map[string]string
 	Assets(context.Context) (AssetResult, error)
+	Quote(context.Context, string) (Quote, error)
 	Account(context.Context, string, AccountResolver) (Account, error)
 	Orders(context.Context, string, AccountResolver) ([]Order, string, error)
 	Positions(context.Context, string, AccountResolver) ([]Position, string, error)
 	Reconcile(context.Context, string, AccountResolver) (AccountSnapshot, error)
-	SubmitOrder(context.Context, string, AccountResolver, any) (Order, error)
+	SubmitOrder(context.Context, string, AccountResolver, SubmitOrderRequest) (Order, error)
 	CancelOrder(context.Context, string, AccountResolver, string) error
 }
 type Alpaca struct {
@@ -114,12 +138,15 @@ func NewAlpaca(cfg Config) *Alpaca {
 func (a *Alpaca) Capabilities() map[string]string {
 	return map[string]string{
 		"assets": "implemented_read_only", "accountStatus": "requires_persistent_owner_mapping",
-		"quotes": "unsupported_pending_market_data_entitlement", "submit": "disabled_phase_a_no_provider_post",
-		"cancel": "disabled_phase_a_no_provider_post", "positions": "implemented_read_only", "cash": "implemented_read_only",
-		"events": "documented_v2_sse_cursor_not_yet_started", "reconciliation": "implemented_bounded_read_only", "live": "forbidden",
+		"quotes": "implemented_read_only_requires_market_data_entitlement", "submit": "implemented_activation_gated",
+		"cancel": "implemented_activation_gated", "positions": "implemented_read_only", "cash": "implemented_read_only",
+		"events": "strict_tenant_bound_sse_parser_implemented_worker_transport_not_activated", "reconciliation": "implemented_bounded_read_only", "live": "forbidden",
 	}
 }
 func (a *Alpaca) exchange(ctx context.Context, req *http.Request, out any) (string, error) {
+	return a.exchangeStatus(ctx, req, out, http.StatusOK)
+}
+func (a *Alpaca) exchangeStatus(ctx context.Context, req *http.Request, out any, accepted ...int) (string, error) {
 	req = req.WithContext(ctx)
 	req.Header.Set("Accept", "application/json")
 	res, err := a.client.Do(req)
@@ -131,7 +158,11 @@ func (a *Alpaca) exchange(ctx context.Context, req *http.Request, out any) (stri
 	if !auditID.MatchString(id) {
 		id = ""
 	}
-	if res.StatusCode != 200 {
+	statusAccepted := false
+	for _, status := range accepted {
+		statusAccepted = statusAccepted || res.StatusCode == status
+	}
+	if !statusAccepted {
 		code := "PROVIDER_REJECTED"
 		switch res.StatusCode {
 		case 401:
@@ -148,7 +179,7 @@ func (a *Alpaca) exchange(ctx context.Context, req *http.Request, out any) (stri
 		return id, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
 	}
 	data, err := io.ReadAll(io.LimitReader(res.Body, (4<<20)+1))
-	if err != nil || len(data) > 4<<20 || json.Unmarshal(data, out) != nil {
+	if err != nil || len(data) > 4<<20 || out == nil || json.Unmarshal(data, out) != nil {
 		return id, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
 	}
 	return id, nil
@@ -186,11 +217,40 @@ func (a *Alpaca) authorize(ctx context.Context, req *http.Request) error {
 	return nil
 }
 func (a *Alpaca) get(ctx context.Context, path string, out any) (string, error) {
-	req, _ := http.NewRequest(http.MethodGet, BrokerOrigin+path, nil)
+	return a.getOrigin(ctx, BrokerOrigin, path, out)
+}
+func (a *Alpaca) getOrigin(ctx context.Context, origin, path string, out any) (string, error) {
+	req, _ := http.NewRequest(http.MethodGet, origin+path, nil)
 	if err := a.authorize(ctx, req); err != nil {
 		return "", err
 	}
 	return a.exchange(ctx, req, out)
+}
+func (a *Alpaca) Quote(ctx context.Context, symbol string) (Quote, error) {
+	if !regexp.MustCompile(`^[A-Z][A-Z0-9.]{0,11}$`).MatchString(symbol) {
+		return Quote{}, &Error{Code: "MARKET_DATA_REQUEST_INVALID"}
+	}
+	var raw struct {
+		Symbol string `json:"symbol"`
+		Quote  struct {
+			AskPrice  json.Number `json:"ap"`
+			AskSize   json.Number `json:"as"`
+			BidPrice  json.Number `json:"bp"`
+			BidSize   json.Number `json:"bs"`
+			Timestamp string      `json:"t"`
+		} `json:"quote"`
+	}
+	requestID, err := a.getOrigin(ctx, MarketDataOrigin, "/v2/stocks/"+url.PathEscape(symbol)+"/quotes/latest?feed=iex&currency=USD", &raw)
+	if err != nil {
+		return Quote{}, err
+	}
+	if raw.Symbol != symbol || !providerDecimal.MatchString(raw.Quote.AskPrice.String()) || !providerDecimal.MatchString(raw.Quote.AskSize.String()) || !providerDecimal.MatchString(raw.Quote.BidPrice.String()) || !providerDecimal.MatchString(raw.Quote.BidSize.String()) {
+		return Quote{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
+	}
+	if _, err := time.Parse(time.RFC3339Nano, raw.Quote.Timestamp); err != nil {
+		return Quote{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
+	}
+	return Quote{Symbol: symbol, BidPrice: raw.Quote.BidPrice.String(), AskPrice: raw.Quote.AskPrice.String(), BidSize: raw.Quote.BidSize.String(), AskSize: raw.Quote.AskSize.String(), Timestamp: raw.Quote.Timestamp, Feed: "iex", RequestID: requestID}, nil
 }
 func (a *Alpaca) Assets(ctx context.Context) (AssetResult, error) {
 	var raw []struct {
@@ -263,25 +323,38 @@ func (a *Alpaca) resolveAccount(ctx context.Context, owner string, resolver Acco
 	return account, nil
 }
 
+type providerOrder struct {
+	ID            string  `json:"id"`
+	ClientOrderID string  `json:"client_order_id"`
+	AssetID       string  `json:"asset_id"`
+	Symbol        string  `json:"symbol"`
+	Side          string  `json:"side"`
+	Qty           string  `json:"qty"`
+	FilledQty     string  `json:"filled_qty"`
+	Type          string  `json:"type"`
+	LimitPrice    *string `json:"limit_price"`
+	TimeInForce   string  `json:"time_in_force"`
+	Status        string  `json:"status"`
+	SubmittedAt   string  `json:"submitted_at"`
+}
+
+func normalizeProviderOrder(value providerOrder, requestID string) (Order, error) {
+	limitPrice := ""
+	if value.LimitPrice != nil {
+		limitPrice = *value.LimitPrice
+	}
+	if !uuid.MatchString(value.ID) || value.ClientOrderID == "" || len(value.ClientOrderID) > 128 || !uuid.MatchString(value.AssetID) || value.Symbol == "" || (value.Side != "buy" && value.Side != "sell") || !providerDecimal.MatchString(value.Qty) || !providerDecimal.MatchString(value.FilledQty) || value.Type == "" || value.TimeInForce == "" || value.Status == "" || (limitPrice != "" && !providerDecimal.MatchString(limitPrice)) {
+		return Order{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
+	}
+	return Order{value.ID, value.ClientOrderID, value.AssetID, value.Symbol, value.Side, value.Qty, value.FilledQty, value.Type, limitPrice, value.TimeInForce, value.Status, value.SubmittedAt}, nil
+}
+
 func (a *Alpaca) Orders(ctx context.Context, owner string, resolver AccountResolver) ([]Order, string, error) {
 	account, err := a.resolveAccount(ctx, owner, resolver)
 	if err != nil {
 		return nil, "", err
 	}
-	var raw []struct {
-		ID            string  `json:"id"`
-		ClientOrderID string  `json:"client_order_id"`
-		AssetID       string  `json:"asset_id"`
-		Symbol        string  `json:"symbol"`
-		Side          string  `json:"side"`
-		Qty           string  `json:"qty"`
-		FilledQty     string  `json:"filled_qty"`
-		Type          string  `json:"type"`
-		LimitPrice    *string `json:"limit_price"`
-		TimeInForce   string  `json:"time_in_force"`
-		Status        string  `json:"status"`
-		SubmittedAt   string  `json:"submitted_at"`
-	}
+	var raw []providerOrder
 	id, err := a.get(ctx, "/v1/trading/accounts/"+account+"/orders?status=all&limit=500&direction=asc", &raw)
 	if err != nil {
 		return nil, id, err
@@ -289,15 +362,15 @@ func (a *Alpaca) Orders(ctx context.Context, owner string, resolver AccountResol
 	orders := make([]Order, 0, len(raw))
 	seen := map[string]bool{}
 	for _, value := range raw {
-		limitPrice := ""
-		if value.LimitPrice != nil {
-			limitPrice = *value.LimitPrice
-		}
-		if !uuid.MatchString(value.ID) || seen[value.ID] || value.ClientOrderID == "" || len(value.ClientOrderID) > 128 || !uuid.MatchString(value.AssetID) || value.Symbol == "" || (value.Side != "buy" && value.Side != "sell") || !providerDecimal.MatchString(value.Qty) || !providerDecimal.MatchString(value.FilledQty) || value.Type == "" || value.TimeInForce == "" || value.Status == "" || (limitPrice != "" && !providerDecimal.MatchString(limitPrice)) {
+		if seen[value.ID] {
 			return nil, id, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
 		}
+		order, normalizeErr := normalizeProviderOrder(value, id)
+		if normalizeErr != nil {
+			return nil, id, normalizeErr
+		}
 		seen[value.ID] = true
-		orders = append(orders, Order{value.ID, value.ClientOrderID, value.AssetID, value.Symbol, value.Side, value.Qty, value.FilledQty, value.Type, limitPrice, value.TimeInForce, value.Status, value.SubmittedAt})
+		orders = append(orders, order)
 	}
 	return orders, id, nil
 }
@@ -347,11 +420,70 @@ func (a *Alpaca) Reconcile(ctx context.Context, owner string, resolver AccountRe
 	return AccountSnapshot{Provider: Provider, Environment: "sandbox", RequestIDs: []string{account.RequestID, orderID, positionID}, Account: account, Orders: orders, Positions: positions}, nil
 }
 
-func (*Alpaca) SubmitOrder(context.Context, string, AccountResolver, any) (Order, error) {
-	return Order{}, &Error{Code: "ORDER_SUBMISSION_DISABLED"}
+func (a *Alpaca) SubmitOrder(ctx context.Context, owner string, resolver AccountResolver, order SubmitOrderRequest) (Order, error) {
+	if !a.cfg.writeReady() {
+		return Order{}, &Error{Code: "ORDER_SUBMISSION_DISABLED"}
+	}
+	account, err := a.resolveAccount(ctx, owner, resolver)
+	if err != nil {
+		return Order{}, err
+	}
+	if !uuid.MatchString(order.ClientOrderID) || !uuid.MatchString(order.AssetID) || order.Symbol == "" || len(order.Symbol) > 32 || (order.Side != "buy" && order.Side != "sell") || !providerDecimal.MatchString(order.Qty) || order.Type != "limit" || !providerDecimal.MatchString(order.LimitPrice) || order.TimeInForce != "day" || order.ExtendedHours {
+		return Order{}, &Error{Code: "ORDER_REQUEST_INVALID"}
+	}
+	payload, err := json.Marshal(order)
+	if err != nil || len(payload) > 4096 {
+		return Order{}, &Error{Code: "ORDER_REQUEST_INVALID"}
+	}
+	request, _ := http.NewRequest(http.MethodPost, BrokerOrigin+"/v1/trading/accounts/"+account+"/orders", bytes.NewReader(payload))
+	request.Header.Set("Content-Type", "application/json")
+	if err := a.authorize(ctx, request); err != nil {
+		return Order{}, err
+	}
+	var raw providerOrder
+	requestID, err := a.exchangeStatus(ctx, request, &raw, http.StatusOK, http.StatusCreated)
+	if err != nil {
+		return Order{}, err
+	}
+	result, err := normalizeProviderOrder(raw, requestID)
+	if err != nil || result.ClientOrderID != order.ClientOrderID || result.AssetID != order.AssetID || result.Symbol != order.Symbol || result.Side != order.Side || result.Qty != order.Qty || result.Type != order.Type || result.LimitPrice != order.LimitPrice || result.TimeInForce != order.TimeInForce {
+		return Order{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
+	}
+	return result, nil
 }
-func (*Alpaca) CancelOrder(context.Context, string, AccountResolver, string) error {
-	return &Error{Code: "ORDER_CANCELLATION_DISABLED"}
+func (a *Alpaca) CancelOrder(ctx context.Context, owner string, resolver AccountResolver, orderID string) error {
+	if !a.cfg.writeReady() {
+		return &Error{Code: "ORDER_CANCELLATION_DISABLED"}
+	}
+	account, err := a.resolveAccount(ctx, owner, resolver)
+	if err != nil {
+		return err
+	}
+	if !uuid.MatchString(orderID) {
+		return &Error{Code: "ORDER_REQUEST_INVALID"}
+	}
+	request, _ := http.NewRequest(http.MethodDelete, BrokerOrigin+"/v1/trading/accounts/"+account+"/orders/"+orderID, nil)
+	if err := a.authorize(ctx, request); err != nil {
+		return err
+	}
+	request = request.WithContext(ctx)
+	request.Header.Set("Accept", "application/json")
+	response, err := a.client.Do(request)
+	if err != nil {
+		return &Error{Code: "PROVIDER_UNAVAILABLE"}
+	}
+	defer response.Body.Close()
+	requestID := response.Header.Get("X-Request-ID")
+	if !auditID.MatchString(requestID) {
+		requestID = ""
+	}
+	if response.StatusCode != http.StatusNoContent {
+		return &Error{Code: "PROVIDER_REJECTED", RequestID: requestID, HTTPStatus: response.StatusCode}
+	}
+	if data, readErr := io.ReadAll(io.LimitReader(response.Body, 2)); readErr != nil || len(data) != 0 {
+		return &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
+	}
+	return nil
 }
 func ErrorCode(err error) string {
 	var e *Error

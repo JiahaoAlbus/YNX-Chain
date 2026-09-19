@@ -27,6 +27,9 @@ func config(values map[string]string) Config {
 func enabled(mode string) Config {
 	return config(map[string]string{"FINANCE_TRADING_ENABLED": "true", "ALPACA_BROKER_AUTH_MODE": mode, "ALPACA_BROKER_CLIENT_ID": "fixture-id", "ALPACA_BROKER_CLIENT_SECRET": "fixture-secret", "ALPACA_BROKER_API_KEY": "fixture-key", "ALPACA_BROKER_API_SECRET": "fixture-secret"})
 }
+func writeEnabled(mode string) Config {
+	return config(map[string]string{"FINANCE_TRADING_ENABLED": "true", "FINANCE_SANDBOX_WRITES_ENABLED": "true", "FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256": strings.Repeat("a", 64), "ALPACA_BROKER_AUTH_MODE": mode, "ALPACA_BROKER_CLIENT_ID": "fixture-id", "ALPACA_BROKER_CLIENT_SECRET": "fixture-secret", "ALPACA_BROKER_API_KEY": "fixture-key", "ALPACA_BROKER_API_SECRET": "fixture-secret"})
+}
 func response(status int, body string) *http.Response {
 	return &http.Response{StatusCode: status, Header: http.Header{"Content-Type": {"application/json"}, "X-Request-Id": {"fixture-request-1"}}, Body: io.NopCloser(strings.NewReader(body))}
 }
@@ -71,11 +74,44 @@ func TestReadOnlyAccountOrdersPositionsAndReconcile(t *testing.T) {
 	}
 }
 
+func TestReadOnlySandboxLatestQuoteUsesPinnedMarketDataOrigin(t *testing.T) {
+	a := NewAlpaca(enabled("legacy_basic"))
+	a.client.Transport = roundTrip(func(request *http.Request) (*http.Response, error) {
+		if request.Method != http.MethodGet || request.URL.String() != MarketDataOrigin+"/v2/stocks/ACME/quotes/latest?feed=iex&currency=USD" {
+			t.Fatalf("unexpected quote request %s %s", request.Method, request.URL.String())
+		}
+		return response(http.StatusOK, `{"symbol":"ACME","quote":{"ap":125.35,"as":7,"bp":125.34,"bs":5,"t":"2026-09-19T09:00:00.123456Z"}}`), nil
+	})
+	quote, err := a.Quote(context.Background(), "ACME")
+	if err != nil || quote.AskPrice != "125.35" || quote.BidPrice != "125.34" || quote.Feed != "iex" {
+		t.Fatalf("quote=%+v err=%v", quote, err)
+	}
+}
+
+func TestQuoteRejectsInvalidSymbolExponentAndCrossOriginConfig(t *testing.T) {
+	a := NewAlpaca(enabled("legacy_basic"))
+	called := false
+	a.client.Transport = roundTrip(func(*http.Request) (*http.Response, error) { called = true; return response(http.StatusOK, `{}`), nil })
+	if _, err := a.Quote(context.Background(), "../ACME"); ErrorCode(err) != "MARKET_DATA_REQUEST_INVALID" || called {
+		t.Fatal(err)
+	}
+	a.client.Transport = roundTrip(func(*http.Request) (*http.Response, error) {
+		return response(http.StatusOK, `{"symbol":"ACME","quote":{"ap":1e2,"as":7,"bp":99,"bs":5,"t":"2026-09-19T09:00:00Z"}}`), nil
+	})
+	if _, err := a.Quote(context.Background(), "ACME"); ErrorCode(err) != "PROVIDER_PROTOCOL_ERROR" {
+		t.Fatal(err)
+	}
+	unsafe := config(map[string]string{"FINANCE_TRADING_ENABLED": "true", "ALPACA_BROKER_CLIENT_ID": "id", "ALPACA_BROKER_CLIENT_SECRET": "secret", "ALPACA_MARKET_DATA_SANDBOX_BASE_URL": "https://attacker.invalid"})
+	if unsafe.ready() {
+		t.Fatal("cross-origin market data config accepted")
+	}
+}
+
 func TestWriteMethodsRemainFailClosedWithoutProviderPost(t *testing.T) {
 	a := NewAlpaca(enabled("legacy_basic"))
 	called := false
 	a.client.Transport = roundTrip(func(*http.Request) (*http.Response, error) { called = true; return response(500, `{}`), nil })
-	if _, err := a.SubmitOrder(context.Background(), "owner", nil, map[string]any{}); ErrorCode(err) != "ORDER_SUBMISSION_DISABLED" {
+	if _, err := a.SubmitOrder(context.Background(), "owner", nil, SubmitOrderRequest{}); ErrorCode(err) != "ORDER_SUBMISSION_DISABLED" {
 		t.Fatal(err)
 	}
 	if err := a.CancelOrder(context.Background(), "owner", nil, "id"); ErrorCode(err) != "ORDER_CANCELLATION_DISABLED" {
@@ -83,6 +119,60 @@ func TestWriteMethodsRemainFailClosedWithoutProviderPost(t *testing.T) {
 	}
 	if called {
 		t.Fatal("write methods contacted provider")
+	}
+}
+
+func TestActivationGatedSubmitAndCancelExactFixture(t *testing.T) {
+	a := NewAlpaca(writeEnabled("legacy_basic"))
+	accountID := "01234567-89ab-4cde-8fab-0123456789ab"
+	orderID := "11111111-2222-4333-8444-555555555555"
+	assetID := "99999999-8888-4777-8666-555555555555"
+	clientID := "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+	resolve := resolverFunc(func(context.Context, string, string, string) (string, error) { return accountID, nil })
+	var calls []string
+	a.client.Transport = roundTrip(func(request *http.Request) (*http.Response, error) {
+		calls = append(calls, request.Method+" "+request.URL.RequestURI())
+		if request.Method == http.MethodPost {
+			body, _ := io.ReadAll(request.Body)
+			var submitted SubmitOrderRequest
+			if json.Unmarshal(body, &submitted) != nil || submitted.ClientOrderID != clientID || submitted.ExtendedHours {
+				t.Fatal("wrong submit payload")
+			}
+			return response(http.StatusCreated, `{"id":"11111111-2222-4333-8444-555555555555","client_order_id":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee","asset_id":"99999999-8888-4777-8666-555555555555","symbol":"ACME","side":"buy","qty":"2","filled_qty":"0","type":"limit","limit_price":"125.34","time_in_force":"day","status":"accepted","submitted_at":"2026-09-19T09:00:00Z"}`), nil
+		}
+		if request.Method == http.MethodDelete && request.URL.RequestURI() == "/v1/trading/accounts/"+accountID+"/orders/"+orderID {
+			return &http.Response{StatusCode: http.StatusNoContent, Header: http.Header{"X-Request-Id": {"fixture-request-2"}}, Body: io.NopCloser(strings.NewReader(""))}, nil
+		}
+		t.Fatalf("unexpected request %s %s", request.Method, request.URL.RequestURI())
+		return nil, nil
+	})
+	request := SubmitOrderRequest{ClientOrderID: clientID, AssetID: assetID, Symbol: "ACME", Side: "buy", Qty: "2", Type: "limit", LimitPrice: "125.34", TimeInForce: "day"}
+	result, err := a.SubmitOrder(context.Background(), "owner", resolve, request)
+	if err != nil || result.ID != orderID || result.Status != "accepted" {
+		t.Fatalf("result=%+v err=%v", result, err)
+	}
+	if err := a.CancelOrder(context.Background(), "owner", resolve, orderID); err != nil {
+		t.Fatal(err)
+	}
+	if len(calls) != 2 {
+		t.Fatalf("calls=%v", calls)
+	}
+}
+
+func TestWriteActivationAndProviderResultsFailClosed(t *testing.T) {
+	missingReceipt := config(map[string]string{"FINANCE_TRADING_ENABLED": "true", "FINANCE_SANDBOX_WRITES_ENABLED": "true", "ALPACA_BROKER_CLIENT_ID": "id", "ALPACA_BROKER_CLIENT_SECRET": "secret"})
+	if missingReceipt.Status().SubmissionEnabled || missingReceipt.ready() {
+		t.Fatal("missing activation receipt enabled writes")
+	}
+	a := NewAlpaca(writeEnabled("legacy_basic"))
+	accountID := "01234567-89ab-4cde-8fab-0123456789ab"
+	resolve := resolverFunc(func(context.Context, string, string, string) (string, error) { return accountID, nil })
+	a.client.Transport = roundTrip(func(*http.Request) (*http.Response, error) {
+		return response(http.StatusCreated, `{"id":"11111111-2222-4333-8444-555555555555","client_order_id":"ffffffff-ffff-4fff-8fff-ffffffffffff","asset_id":"99999999-8888-4777-8666-555555555555","symbol":"OTHER","side":"buy","qty":"2","filled_qty":"0","type":"limit","limit_price":"125.34","time_in_force":"day","status":"accepted","submitted_at":"2026-09-19T09:00:00Z"}`), nil
+	})
+	request := SubmitOrderRequest{ClientOrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", AssetID: "99999999-8888-4777-8666-555555555555", Symbol: "ACME", Side: "buy", Qty: "2", Type: "limit", LimitPrice: "125.34", TimeInForce: "day"}
+	if _, err := a.SubmitOrder(context.Background(), "owner", resolve, request); ErrorCode(err) != "PROVIDER_PROTOCOL_ERROR" {
+		t.Fatal(err)
 	}
 }
 

@@ -126,6 +126,7 @@ type BrokerOrderRecord struct {
 	ApprovalState         string         `json:"approvalState"`
 	State                 string         `json:"state"`
 	ProviderClientOrderID string         `json:"providerClientOrderId,omitempty"`
+	ProviderOrderID       string         `json:"providerOrderId,omitempty"`
 	CreatedAt             time.Time      `json:"createdAt"`
 	UpdatedAt             time.Time      `json:"updatedAt"`
 }
@@ -137,6 +138,8 @@ type BrokerOrderOutbox struct {
 	Provider              string    `json:"provider"`
 	TradingEnvironment    string    `json:"tradingEnvironment"`
 	Status                string    `json:"status"`
+	ProviderOrderID       string    `json:"providerOrderId,omitempty"`
+	LastErrorCode         string    `json:"lastErrorCode,omitempty"`
 	Attempts              int       `json:"attempts"`
 	CreatedAt             time.Time `json:"createdAt"`
 	UpdatedAt             time.Time `json:"updatedAt"`
@@ -153,9 +156,19 @@ type BrokerJournalEvent struct {
 }
 
 type BrokerageAccountState struct {
-	Mappings   map[string]BrokerAccountMapping    `json:"mappings"`
-	Challenges map[string]BrokerApprovalChallenge `json:"challenges"`
-	Orders     map[string]BrokerOrderRecord       `json:"orders"`
-	Outbox     map[string]BrokerOrderOutbox       `json:"outbox"`
-	Journal    []BrokerJournalEvent               `json:"journal"`
+	Mappings     map[string]BrokerAccountMapping    `json:"mappings"`
+	Challenges   map[string]BrokerApprovalChallenge `json:"challenges"`
+	Orders       map[string]BrokerOrderRecord       `json:"orders"`
+	Outbox       map[string]BrokerOrderOutbox       `json:"outbox"`
+	Journal      []BrokerJournalEvent               `json:"journal"`
+	EventCursor  string                             `json:"eventCursor,omitempty"`
+	ReconciledAt time.Time                          `json:"reconciledAt,omitempty"`
+}
+
+type BrokerWorkspace struct {
+	MappingActive bool                 `json:"mappingActive"`
+	Orders        []BrokerOrderRecord  `json:"orders"`
+	Outbox        []BrokerOrderOutbox  `json:"outbox"`
+	Journal       []BrokerJournalEvent `json:"journal"`
+	ServerTime    string               `json:"serverTime"`
 }

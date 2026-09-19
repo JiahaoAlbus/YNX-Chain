@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 )
@@ -31,6 +32,27 @@ type BrokerConsumeResult struct {
 }
 
 func brokerMappingKey(provider, environment string) string { return provider + ":" + environment }
+
+func (s *Store) BrokerWorkspace(account string, now time.Time) BrokerWorkspace {
+	state := s.Account(account)
+	orders := make([]BrokerOrderRecord, 0, len(state.Brokerage.Orders))
+	for _, order := range state.Brokerage.Orders {
+		orders = append(orders, order)
+	}
+	sort.Slice(orders, func(i, j int) bool { return orders[i].CreatedAt.After(orders[j].CreatedAt) })
+	outbox := make([]BrokerOrderOutbox, 0, len(state.Brokerage.Outbox))
+	for _, item := range state.Brokerage.Outbox {
+		outbox = append(outbox, item)
+	}
+	sort.Slice(outbox, func(i, j int) bool { return outbox[i].CreatedAt.After(outbox[j].CreatedAt) })
+	journal := append([]BrokerJournalEvent(nil), state.Brokerage.Journal...)
+	if len(journal) > 200 {
+		journal = journal[len(journal)-200:]
+	}
+	mapping, active := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
+	active = active && mapping.Account == account && mapping.Status == "active"
+	return BrokerWorkspace{MappingActive: active, Orders: orders, Outbox: outbox, Journal: journal, ServerTime: now.UTC().Format("2006-01-02T15:04:05.000Z")}
+}
 
 func (s *Store) ResolveBrokerAccount(_ context.Context, owner, provider, environment string) (string, error) {
 	state := s.Account(owner)

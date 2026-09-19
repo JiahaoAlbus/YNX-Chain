@@ -5,6 +5,7 @@
   "scripts": {
 	"finance:doctor": "go run ./cmd/broker-tools doctor",
 	"finance:sandbox:verify": "go run ./cmd/broker-tools sandbox-verify",
+	"finance:sandbox:activation-plan": "go run ./cmd/broker-tools activation-plan",
     "test": "node --test tests/*.test.mjs",
     "security": "node scripts/security-check.mjs",
     "smoke": "bash scripts/smoke.sh",

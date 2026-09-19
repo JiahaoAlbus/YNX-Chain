@@ -2,15 +2,20 @@
 // YNXT balances as broker cash and never selects a live or personal Trading API.
 package brokerage
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
 
 const BrokerOrigin = "https://broker-api.sandbox.alpaca.markets"
 const TokenURL = "https://authx.sandbox.alpaca.markets/v1/oauth2/token"
+const MarketDataOrigin = "https://data.sandbox.alpaca.markets"
 const Provider = "alpaca_broker"
 
 // Fields are private to prevent accidental credential serialization/logging.
 type Config struct {
 	enabled               bool
+	writesEnabled         bool
 	authMode, key, secret string
 	issues                []string
 }
@@ -53,14 +58,23 @@ func LoadConfig(get func(string) string) Config {
 	require("FINANCE_LIVE_ENABLED", "false")
 	require("ALPACA_BROKER_SANDBOX_BASE_URL", BrokerOrigin)
 	require("ALPACA_BROKER_TOKEN_URL", TokenURL)
+	require("ALPACA_MARKET_DATA_SANDBOX_BASE_URL", MarketDataOrigin)
 	flag := value("FINANCE_TRADING_ENABLED", "false")
 	c.enabled = flag == "true"
 	if flag != "true" && flag != "false" {
 		c.issues = append(c.issues, "FINANCE_TRADING_ENABLED:INVALID_BOOLEAN")
 	}
-	// Writes remain closed even if an operator sets this prematurely.
-	if value("FINANCE_SANDBOX_WRITES_ENABLED", "false") != "false" {
-		c.issues = append(c.issues, "SANDBOX_WRITE_APPROVAL_INTEGRATION_REQUIRED")
+	writeFlag := value("FINANCE_SANDBOX_WRITES_ENABLED", "false")
+	switch writeFlag {
+	case "false":
+	case "true":
+		if !regexp.MustCompile(`^[0-9a-f]{64}$`).MatchString(get("FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256")) {
+			c.issues = append(c.issues, "SANDBOX_WRITE_ACTIVATION_RECEIPT_REQUIRED")
+		} else {
+			c.writesEnabled = true
+		}
+	default:
+		c.issues = append(c.issues, "FINANCE_SANDBOX_WRITES_ENABLED:INVALID_BOOLEAN")
 	}
 	if get("ALPACA_BROKER_ACCOUNT_ID") != "" {
 		c.issues = append(c.issues, "GLOBAL_ACCOUNT_MAPPING_FORBIDDEN")
@@ -98,6 +112,7 @@ func (c Config) Status() Status {
 			break
 		}
 	}
-	return Status{Provider: Provider, ChainEnvironment: "testnet", TradingEnvironment: "sandbox", Enabled: c.enabled, State: state, Diagnostics: append([]string{}, c.issues...)}
+	return Status{Provider: Provider, ChainEnvironment: "testnet", TradingEnvironment: "sandbox", Enabled: c.enabled, State: state, Diagnostics: append([]string{}, c.issues...), SubmissionEnabled: c.writeReady()}
 }
-func (c Config) ready() bool { return c.enabled && len(c.issues) == 0 }
+func (c Config) ready() bool      { return c.enabled && len(c.issues) == 0 }
+func (c Config) writeReady() bool { return c.ready() && c.writesEnabled }

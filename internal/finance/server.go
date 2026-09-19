@@ -26,17 +26,20 @@ import (
 const maxBodyBytes = 64 << 10
 
 type ServerConfig struct {
-	BrokerConfig        brokerage.Config
-	BrokerAdapter       brokerage.BrokerageAdapter
-	AllowedOrigins      []string
-	WebDir              string
-	CursorSigningKey    string
-	OperationsKey       string
-	WalletGatewayURL    string
-	WalletGatewayClient *http.Client
-	LogWriter           io.Writer
-	Now                 func() time.Time
-	Build               buildinfo.Info
+	BrokerConfig         brokerage.Config
+	BrokerAdapter        brokerage.BrokerageAdapter
+	BrokerMaxFeeUSD      string
+	BrokerFeeBoundSource string
+	BrokerFeeEvidenceRef string
+	AllowedOrigins       []string
+	WebDir               string
+	CursorSigningKey     string
+	OperationsKey        string
+	WalletGatewayURL     string
+	WalletGatewayClient  *http.Client
+	LogWriter            io.Writer
+	Now                  func() time.Time
+	Build                buildinfo.Info
 }
 
 type Server struct {
@@ -92,7 +95,11 @@ func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.mux
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
+	s.mux.HandleFunc("GET /api/broker/quote", s.brokerQuote)
 	s.mux.HandleFunc("GET /api/broker/snapshot", s.protected("finance.portfolio.read", s.brokerSnapshot))
+	s.mux.HandleFunc("GET /api/broker/orders", s.protected("finance.portfolio.read", s.brokerOrders))
+	s.mux.HandleFunc("POST /api/broker/challenges", s.protected("finance.profile.write", s.brokerChallenge))
+	s.mux.HandleFunc("POST /api/broker/callback", s.protected("finance.profile.write", s.brokerCallback))
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /ready", s.ready)
 	s.mux.HandleFunc("GET /version", s.version)
@@ -132,6 +139,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /ynx-logo.png", s.web)
 	s.mux.HandleFunc("GET /wallet-auth/callback", s.web)
 	s.mux.HandleFunc("GET /wallet-auth.js", s.web)
+	s.mux.HandleFunc("GET /order-wallet.js", s.web)
 	s.mux.HandleFunc("GET /build-identity.json", s.web)
 	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/complete", s.walletSessionComplete)
 	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/revoke", s.walletSessionRevoke)
@@ -718,7 +726,7 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
-	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/wallet-auth.js": "wallet-auth.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
+	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/wallet-auth.js": "wallet-auth.js", "/order-wallet.js": "order-wallet.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
 	if name == "" || s.cfg.WebDir == "" {
 		http.NotFound(w, r)
 		return

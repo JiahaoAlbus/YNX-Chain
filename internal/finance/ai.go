@@ -146,7 +146,7 @@ func (p *HTTPAIProvider) client() *http.Client {
 }
 
 func (s *Service) StartAI(ctx context.Context, account, kind string, recordIDs, classes []string, consent bool, portfolio Portfolio, outputLocale ...string) (AIJob, error) {
-	if !consent || (kind != "categorize" && kind != "explain_fees" && kind != "draft_budget" && kind != "detect_anomalies" && kind != "explain_recurring") {
+	if !consent || (kind != "categorize" && kind != "explain_fees" && kind != "draft_budget" && kind != "detect_anomalies" && kind != "explain_recurring" && kind != "draft_broker_order") {
 		return AIJob{}, errors.New("supported AI workflow and explicit context permission are required")
 	}
 	state := s.Store.Account(account)

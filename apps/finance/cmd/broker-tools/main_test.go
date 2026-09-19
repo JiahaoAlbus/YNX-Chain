@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/JiahaoAlbus/YNX-Chain/internal/finance/brokerage"
 	"strings"
 	"testing"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/finance/brokerage"
 )
 
 func TestCommandsRequireExplicitReadonlyNetworkAndNeverClaimWorkflowVerified(t *testing.T) {
@@ -53,6 +54,43 @@ func TestCommandsRequireExplicitReadonlyNetworkAndNeverClaimWorkflowVerified(t *
 					t.Fatal(output.String())
 				}
 			}
+		}
+	}
+}
+
+func TestActivationPlanRequiresReceiptButNeverTouchesNetworkOrWrites(t *testing.T) {
+	for _, receipt := range []string{"", strings.Repeat("a", 64)} {
+		calls := 0
+		var output bytes.Buffer
+		get := func(key string) string {
+			switch key {
+			case "FINANCE_TRADING_ENABLED", "FINANCE_SANDBOX_WRITES_ENABLED":
+				return "true"
+			case "FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256":
+				return receipt
+			case "ALPACA_BROKER_CLIENT_ID":
+				return "fixture-id"
+			case "ALPACA_BROKER_CLIENT_SECRET":
+				return "fixture-secret"
+			}
+			return ""
+		}
+		rc := runWith([]string{"activation-plan"}, get, func(context.Context, brokerage.Config) (brokerage.AssetResult, error) {
+			calls++
+			return brokerage.AssetResult{}, nil
+		}, &output)
+		var report map[string]any
+		if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+			t.Fatal(err)
+		}
+		if calls != 0 || report["networkAttempted"] != false || report["writeAttempted"] != false || strings.Contains(output.String(), "fixture-secret") {
+			t.Fatalf("rc=%d report=%s", rc, output.String())
+		}
+		if receipt == "" && rc != 2 {
+			t.Fatalf("missing receipt rc=%d report=%s", rc, output.String())
+		}
+		if receipt != "" && (rc != 0 || report["result"] != "SANDBOX_WRITE_CONFIGURATION_READY_NOT_EXECUTED") {
+			t.Fatalf("configured rc=%d report=%s", rc, output.String())
 		}
 	}
 }
