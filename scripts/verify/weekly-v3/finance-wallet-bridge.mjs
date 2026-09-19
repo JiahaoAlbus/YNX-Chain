@@ -22,7 +22,7 @@ const context=vm.createContext({URL,URLSearchParams,TextEncoder,TextDecoder,Uint
   location:{pathname:'/',hash:'',search:'',href:'https://finance.ynxweb4.com/'},
   history:{replaceState(){}},
   localStorage:{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)},
-  window:{addEventListener(){},YNXFinanceWallet:{ready:new Promise(()=>{}),getRevision:()=>0,requireProof:async scope=>{requested.push(scope);return{proofHeader:scope,requestId:'local-scope-fixture'}}}},
+  window:{addEventListener(){},confirm:()=>input.confirm===true,YNXFinanceWallet:{ready:new Promise(()=>{}),getRevision:()=>0,requireProof:async scope=>{requested.push(scope);return{proofHeader:scope,requestId:'local-scope-fixture'}}}},
   fetch:async (url,options={})=>{
     if(url==='/api/broker/status')return new Response(JSON.stringify({schema:'ynx-finance-broker-status-v1',status:{tradingEnvironment:'sandbox',chainEnvironment:'testnet',enabled:false,submissionEnabled:false}}),{headers:{'content-type':'application/json'}});
     const base=new URL(input.base);
@@ -57,10 +57,19 @@ async function walletDecision(challenge,route,mode){
   }else await controller.approve(review.id);
   return {urls,keys,now};
 }
-if(input.mode==='api'||input.mode==='draft'||input.mode==='full'){
+if(input.mode==='api'||input.mode==='draft'||input.mode==='full'||input.mode==='workspace'){
   vm.runInContext(fs.readFileSync(`${finance}/apps/finance/web/order-wallet.js`,'utf8'),context);
   vm.runInContext(fs.readFileSync(`${finance}/apps/finance/web/app.js`,'utf8'),context);
   context.testInput=input;
+  if(input.mode==='workspace'){
+    vm.runInContext('state.connected=true',context);
+    await vm.runInContext('refreshBrokerWorkspace()',context);
+    if(input.action==='cancel')await vm.runInContext('requestBrokerCancel(testInput.orderId)',context);
+    else if(input.action==='reconcile')await vm.runInContext('reconcileBroker()',context);
+    else if(input.action!=='read')throw new Error('Unknown workspace fixture action');
+    process.stdout.write(JSON.stringify({requested,httpResults,notice:element('#notice').textContent,orders:element('#broker-local-orders').innerHTML,watchlist:element('#broker-watchlist').innerHTML}));
+    process.exit(0);
+  }
   if(input.mode==='draft'||input.mode==='full'){
     const form=element('#broker-order-form');
     for(const key of ['accountPublicKey','assetId','symbol','side','qty','limitPrice'])form.elements[key]={value:input.body[key]??input.body.draft[key]??''};
@@ -68,6 +77,23 @@ if(input.mode==='api'||input.mode==='draft'||input.mode==='full'){
       vm.runInContext('state.aiJob={id:"local-ai-fixture",result:{orderDraft:testInput.body.draft}}',context);
       await element('#ai-actions').handlers.click({target:{dataset:{ai:'use-order'}}});
       if(requested.length||httpResults.length)throw new Error('AI copy unexpectedly requested private authority or order API');
+    }
+    // Follow the actual new search/select UI; never inject selected-asset state
+    // to bypass provider-backed selection. Server and adapter are real; only
+    // the provider socket and public asset data are loopback fixtures.
+    if(input.mode==='full')vm.runInContext('state.connected=true',context);
+    element('#broker-asset-search').elements.query={value:input.body.draft.symbol};
+    await element('#broker-asset-search').handlers.submit({preventDefault(){}});
+    const search=httpResults.find(item=>item.path.startsWith('/api/broker/assets?')&&item.status===200);
+    const selected=search&&JSON.parse(search.body).assets.find(asset=>asset.id===input.body.draft.assetId&&asset.symbol===input.body.draft.symbol);
+    if(!selected||!element('#broker-asset-results').innerHTML.includes(`data-broker-select="${selected.id}"`))throw new Error('Actual provider-backed asset search did not render the selected asset');
+    await element('#broker-asset-results').handlers.click({target:{dataset:{brokerSelect:selected.id}}});
+    if(input.mode==='full'){
+      await element('#broker-asset-results').handlers.click({target:{dataset:{brokerWatch:selected.id}}});
+      await vm.runInContext('refreshBrokerQuote()',context);
+      await vm.runInContext('refreshBrokerSnapshot()',context);
+      const watched=httpResults.find(item=>item.path==='/api/broker/watchlist'&&item.status===200);
+      if(!watched||!element('#broker-watchlist').innerHTML.includes(selected.symbol))throw new Error('Real owner-scoped watchlist update/render failed');
     }
     context.draftForm=form;
     await vm.runInContext('createBrokerApproval({preventDefault(){},currentTarget:draftForm})',context);
