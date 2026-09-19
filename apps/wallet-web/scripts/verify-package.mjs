@@ -7,6 +7,8 @@ import {fileURLToPath} from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(await readFile(join(root, "artifact-manifest.json"), "utf8"));
 const requiredFiles = new Set(["index.html", "app.js", "provider.js", "wallet-address.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "styles.css", "accessibility.css", "ynx-logo.png"]);
+const deploymentPolicy=JSON.parse(await readFile(join(root,"vercel.json"),"utf8")),expectedNoStore=["/build-identity.json","/sw.js","/asset-integrity.js","/service-worker-policy.js"];
+if(deploymentPolicy.buildCommand!=="npm run build"||deploymentPolicy.outputDirectory!=="dist/pwa"||JSON.stringify(deploymentPolicy.headers?.map(({source})=>source))!==JSON.stringify(expectedNoStore)||deploymentPolicy.headers.some(({headers})=>JSON.stringify(headers)!==JSON.stringify([{key:"Cache-Control",value:"no-store"}])))throw new Error("Invalid Wallet Vercel deployment contract");
 
 for (const artifact of manifest.artifacts) {
   const archive = join(root, artifact.path);
@@ -21,9 +23,8 @@ for (const artifact of manifest.artifacts) {
   for (const required of requiredFiles) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
 
   if (artifact.browsers.includes("PWA")) {
-    for (const required of ["manifest.webmanifest", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js", "core-auth-binding.js", "build-identity.json", "sw.js", "service-worker-policy.js", "asset-integrity.js", "vercel.json", "ynx-icon-192.png", "ynx-icon-512.png", "ynx-icon-maskable-512.png"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
-    const deploymentPolicy=JSON.parse(execFileSync("unzip",["-p",archive,"vercel.json"],{encoding:"utf8"})),expectedNoStore=["/build-identity.json","/sw.js","/asset-integrity.js","/service-worker-policy.js"];
-    if(JSON.stringify(deploymentPolicy.headers?.map(({source})=>source))!==JSON.stringify(expectedNoStore)||deploymentPolicy.headers.some(({headers})=>JSON.stringify(headers)!==JSON.stringify([{key:"Cache-Control",value:"no-store"}])))throw new Error(`Invalid PWA deployment cache policy: ${artifact.name}`);
+    for (const required of ["manifest.webmanifest", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js", "core-auth-binding.js", "build-identity.json", "sw.js", "service-worker-policy.js", "asset-integrity.js", "ynx-icon-192.png", "ynx-icon-512.png", "ynx-icon-maskable-512.png"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
+    if(entries.includes("vercel.json"))throw new Error(`Deployment configuration must not be a public PWA asset: ${artifact.name}`);
     const integritySource=execFileSync("unzip",["-p",archive,"asset-integrity.js"],{encoding:"utf8"}),match=integritySource.match(/^export const ASSET_INTEGRITY=Object\.freeze\((\{.*\})\);\n$/u);
     if(!match)throw new Error(`Invalid PWA asset integrity module: ${artifact.name}`);
     const integrity=JSON.parse(match[1]),expected=["./","./index.html","./styles.css","./accessibility.css","./app.js","./provider.js","./wallet-address.js","./extension-fee-model.js","./extension-durability.js","./transaction-input.js","./i18n.js","./preferences.js","./mobile-wallet-routing.js","./core-auth-consumer.js","./wallet-web-companion-lifecycle.js","./standard-wallet-connect-state.js","./core-auth-binding.js","./service-worker-policy.js","./build-identity.json","./ynx-logo.png","./ynx-icon-192.png","./ynx-icon-512.png","./ynx-icon-maskable-512.png","./manifest.webmanifest"];
