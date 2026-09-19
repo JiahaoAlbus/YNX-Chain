@@ -39,6 +39,14 @@ test('responsive and accessibility contracts exist',()=>{
   assert.ok(css.includes('#002FA7'));
 });
 
+test('Broker Sandbox snapshot is authenticated, owner-mapped and never substitutes guest values',()=>{
+  for(const marker of ['/api/broker/snapshot','snapshot.account.providerAccountId','snapshot.account.cash','snapshot.account.buyingPower','snapshot.positions','snapshot.orders'])assert.ok(js.includes(marker),marker);
+  for(const marker of ['Guest mode never receives balances, positions or orders.','Unknown — not zero','simulated USD'])assert.ok(html.includes(marker)||js.includes(marker),marker);
+  assert.ok(js.includes("if(!state.connected){clearBrokerSnapshot();return}"));
+  assert.ok(js.includes("await api('/api/broker/snapshot')"));
+  assert.equal(js.includes("fetch('/api/broker/snapshot'"),false,'private Broker reads must use the authenticated Finance API helper');
+});
+
 test('Web Wallet consumes the pinned Standard SDK and isolates unavailable legacy private authorization',()=>{
   for(const marker of ['StandardWalletConnection','discoverWalletProviders','selected.connect()','selected.restore()','selected.revoke()','eth_chainId','wallet_switchEthereumChain','wallet_addEthereumChain','0x1917'])assert.ok(webWallet.includes(marker),marker);
   for(const forbidden of ['iframe','window.open','location.href=','createProductDeviceIdentity','productDeviceSecret','createGatewayChallenge','signGatewayChallenge'])assert.equal(webWallet.includes(forbidden),false,forbidden);

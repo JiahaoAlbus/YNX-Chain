@@ -38,7 +38,9 @@
         <h2 id="broker-heading">US stocks Sandbox</h2>
         <p id="broker-status" role="status">Not configured. No broker account or market data connection is verified.</p>
         <p>Alpaca Broker API Sandbox is separate from YNXT. Simulated USD and simulated shares are not real funds, on-chain stocks or a chain transaction.</p>
-        <dl><dt>Broker account</dt><dd>Not linked</dd><dt>Simulated cash / positions / quote</dt><dd>Unknown — not zero</dd><dt>Order approval</dt><dd id="broker-approval">Frozen Finance/Wallet contract imported; no public submit route is enabled.</dd><dt>Durable order journal</dt><dd id="broker-journal">Local implementation status unavailable.</dd></dl>
+        <dl><dt>Broker account</dt><dd id="broker-account">Not linked</dd><dt>Simulated cash</dt><dd id="broker-cash">Unknown — not zero</dd><dt>Buying power</dt><dd id="broker-buying-power">Unknown — not zero</dd><dt>Order approval</dt><dd id="broker-approval">Frozen Finance/Wallet contract imported; no public submit route is enabled.</dd><dt>Durable order journal</dt><dd id="broker-journal">Local implementation status unavailable.</dd></dl>
+        <p id="broker-private-status" role="status">Sign in to read an owner-mapped Sandbox account. Guest mode never receives balances, positions or orders.</p>
+        <div class="grid two"><article><h3>Sandbox positions</h3><div id="broker-positions" class="rows"><div class="empty compact">Unknown — no provider result.</div></div></article><article><h3>Sandbox orders</h3><div id="broker-orders" class="rows"><div class="empty compact">Unknown — no provider result.</div></div></article></div>
         <button id="broker-refresh" type="button">Recheck configuration</button>
         <button id="broker-submit" type="button" disabled>Submit Sandbox order — unavailable</button>
         <p id="broker-recovery">Existing Finance planning and Wallet connection remain available.</p>
