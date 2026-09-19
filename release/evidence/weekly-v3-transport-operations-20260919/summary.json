@@ -1,0 +1,1107 @@
+{
+  "schema": "ynx-weekly-v3-transport-operations-delivery/v1",
+  "reportedAt": "2026-09-19T17:40:06.571Z",
+  "baselineCommit": "885226113b7c10dddc9504c42f87c3918684ca86",
+  "sourceCheckpoint": "f4e20d58360091d63701f63a28d3fd6fa51c1ead",
+  "sourceTree": "368522d54f753076d148a4a5e2426ebe10fac7c1",
+  "initialImplementationCheckpoint": "cdb03ec579ca160d5d63a82dbca665e2fbeba3db",
+  "scope": [
+    "scripts/verify",
+    "docs/operations",
+    "sanitized release evidence"
+  ],
+  "runs": [
+    {
+      "label": "baseline",
+      "sourceCommit": "885226113b7c10dddc9504c42f87c3918684ca86",
+      "archive": "baseline.json",
+      "archiveSHA256": "e40bf46cd49fad450ad4c73552fce670ad1f30c4620aa1dd0c01284b6b01bc6d",
+      "observationsSHA256": "f08fd38cdbdb438e6a46d8c6eb5895f5f8d8614c3d819677a3e141c91d710ce7",
+      "startedAt": "2026-09-19T17:13:38.289Z",
+      "finishedAt": "2026-09-19T17:14:37.906Z",
+      "pathMode": "environment-dns",
+      "healthy": 8,
+      "total": 8,
+      "failures": [],
+      "clientPath": null,
+      "alert": null,
+      "hostDetails": []
+    },
+    {
+      "label": "dns-cdb03ec57",
+      "sourceCommit": "cdb03ec579ca160d5d63a82dbca665e2fbeba3db",
+      "archive": "dns-cdb03ec57.json",
+      "archiveSHA256": "a892548ef07a33468c7d6760a1bf9daa48b8459ca574d6276381666c1ef3ab80",
+      "observationsSHA256": "e1b45d17811da5e82cc450d48a2905e2134a870b2627235be0f287fc641bba63",
+      "startedAt": "2026-09-19T17:30:26.664Z",
+      "finishedAt": "2026-09-19T17:31:25.981Z",
+      "pathMode": "direct-dns",
+      "healthy": 6,
+      "total": 8,
+      "failures": [
+        {
+          "round": 1,
+          "url": "https://faucet.ynxweb4.com/health",
+          "phase": "http-first-byte-timeout",
+          "client": {
+            "time_namelookup": 0.002646,
+            "time_connect": 1.108977,
+            "time_appconnect": 1.221107,
+            "time_starttransfer": 0,
+            "time_total": 8.006095,
+            "http_code": 0,
+            "exitcode": 28,
+            "ssl_verify_result": 0,
+            "proxy_used": 0
+          }
+        },
+        {
+          "round": 2,
+          "url": "https://rpc.ynxweb4.com/status",
+          "phase": "tls-handshake-timeout",
+          "client": {
+            "time_namelookup": 0.001757,
+            "time_connect": 0.111232,
+            "time_appconnect": 0,
+            "time_starttransfer": 0,
+            "time_total": 5.009565,
+            "http_code": 0,
+            "exitcode": 28,
+            "ssl_verify_result": 1,
+            "proxy_used": 0
+          }
+        }
+      ],
+      "clientPath": null,
+      "alert": {
+        "schema": "ynx-transport-alert-state/v1",
+        "identity": "macos-owner/direct-dns",
+        "sourceKey": "89d3a6e27235adf6b2571b43594a3d4e604ab9b36be5c96be700f1cf4852e2d2",
+        "policySHA256": "4877752a479036a291eb67b4c4e52d20e8967f336fd65575951c4a1a46fb619e",
+        "lastRunId": "ynx-probe-51f6c834-4377-4e92-9fea-3faac0f63907",
+        "lastStartedAt": "2026-09-19T17:30:26.664Z",
+        "checkedAt": "2026-09-19T17:31:25.981Z",
+        "level": "warning",
+        "hostGap": false,
+        "endpoints": {
+          "https://rpc.ynxweb4.com/status": {
+            "incidentOpen": true,
+            "level": "warning",
+            "phase": "tls-handshake-timeout",
+            "failedBatches": 1,
+            "healthyBatches": 0,
+            "sampleHealthy": false
+          },
+          "https://rpc-testnet.ynxweb4.com/status": {
+            "incidentOpen": false,
+            "level": "ok",
+            "phase": null,
+            "failedBatches": 0,
+            "healthyBatches": 1,
+            "sampleHealthy": true
+          },
+          "https://faucet.ynxweb4.com/health": {
+            "incidentOpen": true,
+            "level": "warning",
+            "phase": "http-first-byte-timeout",
+            "failedBatches": 1,
+            "healthyBatches": 0,
+            "sampleHealthy": false
+          },
+          "https://faucet-testnet.ynxweb4.com/health": {
+            "incidentOpen": false,
+            "level": "ok",
+            "phase": null,
+            "failedBatches": 0,
+            "healthyBatches": 1,
+            "sampleHealthy": true
+          }
+        },
+        "signature": "{\"level\":\"warning\",\"hostGap\":false,\"active\":[[\"https://rpc.ynxweb4.com/status\",\"warning\",\"tls-handshake-timeout\"],[\"https://faucet.ynxweb4.com/health\",\"warning\",\"http-first-byte-timeout\"]]}",
+        "alert": {
+          "notify": true,
+          "transition": "warning",
+          "activeIncidents": 2,
+          "healthyBatchesRequiredForRecovery": 3,
+          "notificationDeliveryConfigured": false
+        },
+        "globalRegionalVerified": false,
+        "continuousAvailabilityVerified": false,
+        "rootCauseConfirmed": false
+      },
+      "hostDetails": [
+        {
+          "round": 1,
+          "services": {
+            "exitCode": 0,
+            "output": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=134172672\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=13366755328\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9424896\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8572928\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n"
+          },
+          "localProbes": [
+            {
+              "host": "rpc.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000176 0.024512 0.025481 0.025529 0"
+            },
+            {
+              "host": "rpc-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000151 0.024279 0.025292 0.025343 0"
+            },
+            {
+              "host": "faucet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000174 0.024617 0.026549 0.026615 0"
+            },
+            {
+              "host": "faucet-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000170 0.024592 0.026314 0.026361 0"
+            },
+            {
+              "port": 6420,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.000462 0.000504"
+            },
+            {
+              "port": 6428,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.001220 0.001264"
+            }
+          ],
+          "caddyfile": {
+            "exitCode": 0,
+            "output": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9  /etc/caddy/Caddyfile\n"
+          },
+          "firewallSummary": {
+            "available": true,
+            "baseChains": [
+              {
+                "family": "ip",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "ip",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "postrouting",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "postrouting",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              }
+            ],
+            "ruleCount": 606,
+            "terminalRuleCount": 48,
+            "terminalCountersMissing": 48,
+            "rawRulesRetained": false,
+            "cloudFirewallVisible": false
+          },
+          "conntrack": {
+            "nf_conntrack_count": 359,
+            "nf_conntrack_max": 262144
+          },
+          "counterDelta": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 0,
+            "TCPTimeouts": 29,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 6,
+            "AttemptFails": 0,
+            "EstabResets": 1,
+            "RetransSegs": 25
+          }
+        },
+        {
+          "round": 2,
+          "services": {
+            "exitCode": 0,
+            "output": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=134000640\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=13822943232\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9445376\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8572928\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n"
+          },
+          "localProbes": [
+            {
+              "host": "rpc.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000171 0.023830 0.024745 0.024786 0"
+            },
+            {
+              "host": "rpc-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000141 0.024467 0.025431 0.025514 0"
+            },
+            {
+              "host": "faucet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000117 0.024231 0.025932 0.025972 0"
+            },
+            {
+              "host": "faucet-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000130 0.024099 0.025776 0.025814 0"
+            },
+            {
+              "port": 6420,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.000355 0.000392"
+            },
+            {
+              "port": 6428,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.001095 0.001130"
+            }
+          ],
+          "caddyfile": {
+            "exitCode": 0,
+            "output": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9  /etc/caddy/Caddyfile\n"
+          },
+          "firewallSummary": {
+            "available": true,
+            "baseChains": [
+              {
+                "family": "ip",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "ip",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "postrouting",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "postrouting",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              }
+            ],
+            "ruleCount": 606,
+            "terminalRuleCount": 48,
+            "terminalCountersMissing": 48,
+            "rawRulesRetained": false,
+            "cloudFirewallVisible": false
+          },
+          "conntrack": {
+            "nf_conntrack_count": 239,
+            "nf_conntrack_max": 262144
+          },
+          "counterDelta": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 0,
+            "TCPTimeouts": 12,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 8,
+            "AttemptFails": 0,
+            "EstabResets": 0,
+            "RetransSegs": 18
+          }
+        }
+      ]
+    },
+    {
+      "label": "pinned-cdb03ec57",
+      "sourceCommit": "cdb03ec579ca160d5d63a82dbca665e2fbeba3db",
+      "archive": "pinned-cdb03ec57.json",
+      "archiveSHA256": "b130546b4c93d259b84763f96f4b69fde52970721bca2014e6e497e0996a61c5",
+      "observationsSHA256": "534b378619822061ea467d7611b1455ab2e70773e01bb2411072caa12f231cb6",
+      "startedAt": "2026-09-19T17:32:10.422Z",
+      "finishedAt": "2026-09-19T17:32:46.416Z",
+      "pathMode": "pinned-public-origin",
+      "healthy": 6,
+      "total": 8,
+      "failures": [
+        {
+          "round": 2,
+          "url": "https://rpc-testnet.ynxweb4.com/status",
+          "phase": "tls-handshake-timeout",
+          "client": {
+            "time_namelookup": 0.000006,
+            "time_connect": 2.133064,
+            "time_appconnect": 0,
+            "time_starttransfer": 0,
+            "time_total": 5.004116,
+            "http_code": 0,
+            "exitcode": 28,
+            "ssl_verify_result": 1,
+            "proxy_used": 0
+          }
+        },
+        {
+          "round": 2,
+          "url": "https://faucet.ynxweb4.com/health",
+          "phase": "tls-handshake-timeout",
+          "client": {
+            "time_namelookup": 0.000008,
+            "time_connect": 3.112944,
+            "time_appconnect": 0,
+            "time_starttransfer": 0,
+            "time_total": 5.008427,
+            "http_code": 0,
+            "exitcode": 28,
+            "ssl_verify_result": 1,
+            "proxy_used": 0
+          }
+        }
+      ],
+      "clientPath": null,
+      "alert": {
+        "schema": "ynx-transport-alert-state/v1",
+        "identity": "macos-owner/pinned-public-origin",
+        "sourceKey": "89d3a6e27235adf6b2571b43594a3d4e604ab9b36be5c96be700f1cf4852e2d2",
+        "policySHA256": "4877752a479036a291eb67b4c4e52d20e8967f336fd65575951c4a1a46fb619e",
+        "lastRunId": "ynx-probe-737a3153-32b3-4506-b9de-e00c22538653",
+        "lastStartedAt": "2026-09-19T17:32:10.422Z",
+        "checkedAt": "2026-09-19T17:32:46.416Z",
+        "level": "warning",
+        "hostGap": false,
+        "endpoints": {
+          "https://rpc.ynxweb4.com/status": {
+            "incidentOpen": false,
+            "level": "ok",
+            "phase": null,
+            "failedBatches": 0,
+            "healthyBatches": 1,
+            "sampleHealthy": true
+          },
+          "https://rpc-testnet.ynxweb4.com/status": {
+            "incidentOpen": true,
+            "level": "warning",
+            "phase": "tls-handshake-timeout",
+            "failedBatches": 1,
+            "healthyBatches": 0,
+            "sampleHealthy": false
+          },
+          "https://faucet.ynxweb4.com/health": {
+            "incidentOpen": true,
+            "level": "warning",
+            "phase": "tls-handshake-timeout",
+            "failedBatches": 1,
+            "healthyBatches": 0,
+            "sampleHealthy": false
+          },
+          "https://faucet-testnet.ynxweb4.com/health": {
+            "incidentOpen": false,
+            "level": "ok",
+            "phase": null,
+            "failedBatches": 0,
+            "healthyBatches": 1,
+            "sampleHealthy": true
+          }
+        },
+        "signature": "{\"level\":\"warning\",\"hostGap\":false,\"active\":[[\"https://rpc-testnet.ynxweb4.com/status\",\"warning\",\"tls-handshake-timeout\"],[\"https://faucet.ynxweb4.com/health\",\"warning\",\"tls-handshake-timeout\"]]}",
+        "alert": {
+          "notify": true,
+          "transition": "warning",
+          "activeIncidents": 2,
+          "healthyBatchesRequiredForRecovery": 3,
+          "notificationDeliveryConfigured": false
+        },
+        "globalRegionalVerified": false,
+        "continuousAvailabilityVerified": false,
+        "rootCauseConfirmed": false
+      },
+      "hostDetails": []
+    },
+    {
+      "label": "dns-f4e20d583",
+      "sourceCommit": "f4e20d58360091d63701f63a28d3fd6fa51c1ead",
+      "archive": "dns-f4e20d583.json",
+      "archiveSHA256": "816a495e94146e489ac51524082ed6234711d857e313bf4a6c63977eb421c5c6",
+      "observationsSHA256": "3d7fb6bf2987864fbb52e21ac4be38be811868c48fd45da6a71dfc8f4509100c",
+      "startedAt": "2026-09-19T17:35:51.339Z",
+      "finishedAt": "2026-09-19T17:36:46.102Z",
+      "pathMode": "direct-dns",
+      "healthy": 6,
+      "total": 8,
+      "failures": [
+        {
+          "round": 1,
+          "url": "https://rpc-testnet.ynxweb4.com/status",
+          "phase": "response-body-timeout",
+          "client": {
+            "time_namelookup": 0.002554,
+            "time_connect": 1.113571,
+            "time_appconnect": 2.07986,
+            "time_starttransfer": 2.421825,
+            "time_total": 8.008241,
+            "http_code": 200,
+            "exitcode": 28,
+            "ssl_verify_result": 0,
+            "proxy_used": 0
+          }
+        },
+        {
+          "round": 2,
+          "url": "https://rpc-testnet.ynxweb4.com/status",
+          "phase": "tls-handshake-timeout",
+          "client": {
+            "time_namelookup": 0.0026,
+            "time_connect": 3.111742,
+            "time_appconnect": 0,
+            "time_starttransfer": 0,
+            "time_total": 5.011359,
+            "http_code": 0,
+            "exitcode": 28,
+            "ssl_verify_result": 1,
+            "proxy_used": 0
+          }
+        }
+      ],
+      "clientPath": {
+        "routeReadable": true,
+        "interfaceFamily": "utun",
+        "interfaceMTU": 1100,
+        "routeUsesKnownTunnelInterface": true,
+        "environmentProxyPresent": false,
+        "systemProxyReadable": true,
+        "systemProxyFlags": {
+          "HTTPEnable": false,
+          "HTTPSEnable": false,
+          "SOCKSEnable": false,
+          "ProxyAutoConfigEnable": false,
+          "ProxyAutoDiscoveryEnable": false
+        },
+        "independentVantageProven": false,
+        "tunnelAbsenceProven": false
+      },
+      "alert": {
+        "schema": "ynx-transport-alert-state/v1",
+        "identity": "macos-owner/direct-dns",
+        "sourceKey": "287ea0290ee235efaf9263b90cace1a22077e8e7a39dde59f82995544dbc8b63",
+        "policySHA256": "4877752a479036a291eb67b4c4e52d20e8967f336fd65575951c4a1a46fb619e",
+        "lastRunId": "ynx-probe-b530ee79-3204-4a4f-b7c9-6b4c4d0b244e",
+        "lastStartedAt": "2026-09-19T17:35:51.339Z",
+        "checkedAt": "2026-09-19T17:36:46.102Z",
+        "level": "warning",
+        "hostGap": false,
+        "endpoints": {
+          "https://rpc.ynxweb4.com/status": {
+            "incidentOpen": true,
+            "level": "warning",
+            "phase": "tls-handshake-timeout",
+            "failedBatches": 0,
+            "healthyBatches": 1,
+            "sampleHealthy": true
+          },
+          "https://rpc-testnet.ynxweb4.com/status": {
+            "incidentOpen": true,
+            "level": "warning",
+            "phase": "response-body-timeout,tls-handshake-timeout",
+            "failedBatches": 1,
+            "healthyBatches": 0,
+            "sampleHealthy": false
+          },
+          "https://faucet.ynxweb4.com/health": {
+            "incidentOpen": true,
+            "level": "warning",
+            "phase": "http-first-byte-timeout",
+            "failedBatches": 0,
+            "healthyBatches": 1,
+            "sampleHealthy": true
+          },
+          "https://faucet-testnet.ynxweb4.com/health": {
+            "incidentOpen": false,
+            "level": "ok",
+            "phase": null,
+            "failedBatches": 0,
+            "healthyBatches": 1,
+            "sampleHealthy": true
+          }
+        },
+        "signature": "{\"level\":\"warning\",\"hostGap\":false,\"active\":[[\"https://rpc.ynxweb4.com/status\",\"warning\",\"tls-handshake-timeout\"],[\"https://rpc-testnet.ynxweb4.com/status\",\"warning\",\"response-body-timeout,tls-handshake-timeout\"],[\"https://faucet.ynxweb4.com/health\",\"warning\",\"http-first-byte-timeout\"]]}",
+        "alert": {
+          "notify": true,
+          "transition": "warning",
+          "activeIncidents": 3,
+          "healthyBatchesRequiredForRecovery": 3,
+          "notificationDeliveryConfigured": false
+        },
+        "globalRegionalVerified": false,
+        "continuousAvailabilityVerified": false,
+        "rootCauseConfirmed": false
+      },
+      "hostDetails": [
+        {
+          "round": 1,
+          "services": {
+            "exitCode": 0,
+            "output": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=138043392\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=13157158912\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9285632\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8581120\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n"
+          },
+          "localProbes": [
+            {
+              "host": "rpc.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000130 0.023945 0.024854 0.024894 0"
+            },
+            {
+              "host": "rpc-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000135 0.024797 0.025801 0.025862 0"
+            },
+            {
+              "host": "faucet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000149 0.023927 0.025581 0.025618 0"
+            },
+            {
+              "host": "faucet-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000142 0.024504 0.026265 0.026302 0"
+            },
+            {
+              "port": 6420,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.000412 0.000445"
+            },
+            {
+              "port": 6428,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.001161 0.001197"
+            }
+          ],
+          "caddyfile": {
+            "exitCode": 0,
+            "output": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9  /etc/caddy/Caddyfile\n"
+          },
+          "firewallSummary": {
+            "available": true,
+            "baseChains": [
+              {
+                "family": "ip",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "ip",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "postrouting",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "postrouting",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              }
+            ],
+            "ruleCount": 606,
+            "terminalRuleCount": 48,
+            "terminalCountersMissing": 48,
+            "rawRulesRetained": false,
+            "cloudFirewallVisible": false
+          },
+          "conntrack": {
+            "nf_conntrack_count": 447,
+            "nf_conntrack_max": 262144
+          },
+          "counterDelta": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 0,
+            "TCPTimeouts": 11,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 1,
+            "AttemptFails": 1,
+            "EstabResets": 1,
+            "RetransSegs": 21
+          }
+        },
+        {
+          "round": 2,
+          "services": {
+            "exitCode": 0,
+            "output": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=138981376\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=13613563904\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9285632\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8581120\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n"
+          },
+          "localProbes": [
+            {
+              "host": "rpc.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000201 0.025261 0.026092 0.026142 0"
+            },
+            {
+              "host": "rpc-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000126 0.024426 0.025410 0.025482 0"
+            },
+            {
+              "host": "faucet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000136 0.024119 0.026037 0.026071 0"
+            },
+            {
+              "host": "faucet-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000135 0.024935 0.026514 0.026551 0"
+            },
+            {
+              "port": 6420,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.000429 0.000461"
+            },
+            {
+              "port": 6428,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.001048 0.001081"
+            }
+          ],
+          "caddyfile": {
+            "exitCode": 0,
+            "output": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9  /etc/caddy/Caddyfile\n"
+          },
+          "firewallSummary": {
+            "available": true,
+            "baseChains": [
+              {
+                "family": "ip",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "ip",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "postrouting",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "postrouting",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "forward",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "input",
+                "policy": "accept"
+              },
+              {
+                "family": "inet",
+                "hook": "output",
+                "policy": "accept"
+              }
+            ],
+            "ruleCount": 606,
+            "terminalRuleCount": 48,
+            "terminalCountersMissing": 48,
+            "rawRulesRetained": false,
+            "cloudFirewallVisible": false
+          },
+          "conntrack": {
+            "nf_conntrack_count": 297,
+            "nf_conntrack_max": 262144
+          },
+          "counterDelta": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 0,
+            "TCPTimeouts": 2,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 2,
+            "AttemptFails": 0,
+            "EstabResets": 2,
+            "RetransSegs": 10
+          }
+        }
+      ]
+    },
+    {
+      "label": "pinned-f4e20d583",
+      "sourceCommit": "f4e20d58360091d63701f63a28d3fd6fa51c1ead",
+      "archive": "pinned-f4e20d583.json",
+      "archiveSHA256": "c58e36d6c09ba3076b82b0c284e2e20bb2d3b402ac47d85eb862f5602d1f201e",
+      "observationsSHA256": "da69fd5dc0b992c0d1d12af011e56450e0de4b179d4073bc6506442471574661",
+      "startedAt": "2026-09-19T17:36:54.014Z",
+      "finishedAt": "2026-09-19T17:37:26.272Z",
+      "pathMode": "pinned-public-origin",
+      "healthy": 8,
+      "total": 8,
+      "failures": [],
+      "clientPath": {
+        "routeReadable": true,
+        "interfaceFamily": "utun",
+        "interfaceMTU": 1100,
+        "routeUsesKnownTunnelInterface": true,
+        "environmentProxyPresent": false,
+        "systemProxyReadable": true,
+        "systemProxyFlags": {
+          "HTTPEnable": false,
+          "HTTPSEnable": false,
+          "SOCKSEnable": false,
+          "ProxyAutoConfigEnable": false,
+          "ProxyAutoDiscoveryEnable": false
+        },
+        "independentVantageProven": false,
+        "tunnelAbsenceProven": false
+      },
+      "alert": {
+        "schema": "ynx-transport-alert-state/v1",
+        "identity": "macos-owner/pinned-public-origin",
+        "sourceKey": "287ea0290ee235efaf9263b90cace1a22077e8e7a39dde59f82995544dbc8b63",
+        "policySHA256": "4877752a479036a291eb67b4c4e52d20e8967f336fd65575951c4a1a46fb619e",
+        "lastRunId": "ynx-probe-f288f5fc-0cdd-4852-a8e7-c29f679bdac8",
+        "lastStartedAt": "2026-09-19T17:36:54.014Z",
+        "checkedAt": "2026-09-19T17:37:26.272Z",
+        "level": "warning",
+        "hostGap": false,
+        "endpoints": {
+          "https://rpc.ynxweb4.com/status": {
+            "incidentOpen": false,
+            "level": "ok",
+            "phase": null,
+            "failedBatches": 0,
+            "healthyBatches": 1,
+            "sampleHealthy": true
+          },
+          "https://rpc-testnet.ynxweb4.com/status": {
+            "incidentOpen": true,
+            "level": "warning",
+            "phase": "tls-handshake-timeout",
+            "failedBatches": 0,
+            "healthyBatches": 1,
+            "sampleHealthy": true
+          },
+          "https://faucet.ynxweb4.com/health": {
+            "incidentOpen": true,
+            "level": "warning",
+            "phase": "tls-handshake-timeout",
+            "failedBatches": 0,
+            "healthyBatches": 1,
+            "sampleHealthy": true
+          },
+          "https://faucet-testnet.ynxweb4.com/health": {
+            "incidentOpen": false,
+            "level": "ok",
+            "phase": null,
+            "failedBatches": 0,
+            "healthyBatches": 1,
+            "sampleHealthy": true
+          }
+        },
+        "signature": "{\"level\":\"warning\",\"hostGap\":false,\"active\":[[\"https://rpc-testnet.ynxweb4.com/status\",\"warning\",\"tls-handshake-timeout\"],[\"https://faucet.ynxweb4.com/health\",\"warning\",\"tls-handshake-timeout\"]]}",
+        "alert": {
+          "notify": false,
+          "transition": "unchanged",
+          "activeIncidents": 2,
+          "healthyBatchesRequiredForRecovery": 3,
+          "notificationDeliveryConfigured": false
+        },
+        "globalRegionalVerified": false,
+        "continuousAvailabilityVerified": false,
+        "rootCauseConfirmed": false
+      },
+      "hostDetails": []
+    }
+  ],
+  "totalLiveGETs": 40,
+  "totalHealthy": 34,
+  "classifications": {
+    "healthy": 34,
+    "http-first-byte-timeout": 1,
+    "tls-handshake-timeout": 4,
+    "response-body-timeout": 1
+  },
+  "uptimeEstimate": false,
+  "finalSource": {
+    "directDNS": {
+      "healthy": 6,
+      "total": 8
+    },
+    "pinnedOrigin": {
+      "healthy": 8,
+      "total": 8
+    },
+    "sameVantageAndTunnel": true,
+    "independentRegion": false
+  },
+  "liveAlertProof": {
+    "initialFailuresWarned": true,
+    "subsequentAllHealthyBatchDidNotClearIncident": true,
+    "unchangedNotificationSuppressed": true,
+    "notificationsActuallySent": 0,
+    "automaticSchedulerActivated": false
+  },
+  "historicalRedactionRegression": {
+    "networkRequests": 0,
+    "originalRunId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d",
+    "healthy": 9,
+    "total": 12,
+    "privateBundlePath": "/private/tmp/ynx-transport-round2-historical-failure-bundle-001.json",
+    "bundleSHA256": "421e70fdf3edac29dcd90acbbf39c467ad372f96bd743093dad84759f9038997",
+    "inputSHA256": "2b401beac54feb0168c2fb9c5fd72882eb504e8a8063d6a30db2f38df560950a",
+    "rawClientAddressesAndHashesRemoved": true
+  },
+  "tests": {
+    "nodePassed": 103,
+    "nodeFailed": 0,
+    "pythonPassed": 6,
+    "pythonFailed": 0,
+    "pythonInterpreter": "/usr/bin/python3",
+    "nativeReadbackOfflineAssertions": "pass; unchanged prior evidence SHA8d08fdaec50163925ad7e5f3d8a27c78875f12bfe0008c62b4d9aa9ac1ce1c13",
+    "diffCheck": "pass",
+    "archiveAndGitSourceSHAAssertions": "pass"
+  },
+  "externalEvidenceAttempt": {
+    "tool": "external web fetch",
+    "urls": [
+      "https://rpc-testnet.ynxweb4.com/status",
+      "https://faucet-testnet.ynxweb4.com/health"
+    ],
+    "result": "tool reports URLs inaccessible; no usable second-vantage service measurement",
+    "serviceFailureInferred": false
+  },
+  "conclusions": {
+    "codeComplete": true,
+    "monitorPipelineManuallyExecuted": true,
+    "periodicDeploymentComplete": false,
+    "notificationDeliveryConfigured": false,
+    "transportIssueResolved": false,
+    "rootCauseConfirmed": false,
+    "globalRegionalVerified": false,
+    "continuousAvailabilityVerified": false,
+    "officialSandboxVerified": false,
+    "hostFirewallCauseProven": false,
+    "clientTunnelCauseProven": false
+  },
+  "remainingGates": [
+    "approved independent runner/egress; do not bypass utun without authority",
+    "cloud/ISP/NAT or bidirectional per-flow evidence",
+    "approved scheduler and notification destination; none installed",
+    "causal configuration finding plus explicit scoped deployment and prepared rollback before any repair"
+  ],
+  "mutations": {
+    "serviceRestarts": 0,
+    "serviceReloads": 0,
+    "DNSChanges": 0,
+    "proxyFirewallMTUChanges": 0,
+    "VPNBypasses": 0,
+    "chainStateChanges": 0,
+    "FaucetPOSTs": 0,
+    "transactionSubmissions": 0,
+    "WalletFinanceSourceChanges": 0,
+    "emulatorChanges": 0,
+    "oldAutomationsResumed": 0
+  },
+  "recovery": "Preserve baseline885226113 and prior checkpoints. Source diagnostics are additive; stop invoking the job or review a scoped revert. No production config rollback is necessary. Do not delete state/evidence or reset shared worktrees.",
+  "runbook": "docs/operations/WEEKLY_V3_TRANSPORT_MONITOR_OPERATIONS.md"
+}

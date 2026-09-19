@@ -213,6 +213,38 @@ causal target and fresh deployment/rollback authority are not established.
 
 ## Reproducible checks and references
 
+### This round's verified delivery
+
+Source checkpoint `f4e20d58360091d63701f63a28d3fd6fa51c1ead` (tree
+`368522d54f753076d148a4a5e2426ebe10fac7c1`), preceded by job implementation
+`cdb03ec579ca160d5d63a82dbca665e2fbeba3db`. 103 Node tests and 6 Python tests
+pass; the preceding Native chain-readback offline assertions remain unchanged/pass.
+
+| Live batch | Healthy / attempts | Interpretation |
+| --- | --- | --- |
+| Preserved baseline | 8 / 8 | Short initial window only |
+| First job source, direct DNS | 6 / 8 | Warning generated |
+| First job source, pinned origin | 6 / 8 | DNS bypass did not eliminate all failures |
+| Final source, direct DNS | 6 / 8 | Same tunnel; failure preserved |
+| Final source, pinned origin | 8 / 8 | Prior warning retained, unchanged alert suppressed |
+
+Total40 GETs: 34 healthy, 4 TLS handshake timeouts, 1 first-byte timeout and
+1 body timeout. This is not an uptime estimate or concurrent regional comparison.
+The last fully healthy batch did **not** clear two open endpoint incidents:
+the real persisted job state remained warning / notify=false with one healthy
+batch accumulated. No scheduler or actual notification channel was activated.
+
+Host nft reads show606 rules with48 terminal-rule projections, whose counters
+are absent (unknown, not zero). Sampled conntrack counts239–447 versus262144,
+queue/drop counters without growth, and unchanged Caddyfile hash do not identify
+a repair target. The utun/MTU1100 path is a confirmed local environment fact;
+the tunnel's causal responsibility remains unproven.
+
+Exact runs, alerts, source hashes, five shareable bundles and residual gates are
+in `release/evidence/weekly-v3-transport-operations-20260919/summary.json`.
+The historical failure-bundle export is separately hash-bound and explicitly
+excluded from this round's new network-request count.
+
 ```sh
 node --test scripts/verify/testnet-transport-operations.test.mjs \
   scripts/verify/testnet-transport-monitor.test.mjs \
