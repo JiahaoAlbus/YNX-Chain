@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "ynx-finance-broker-wallet-approval-evidence/1",
+  "date": "2026-09-19",
+  "branch": "codex/finance-wallet-flow-20260912",
+  "predecessor": "fa3d66b169d22d52b936d57bbf35ab92cb023ec5",
+  "walletAuthority": {
+    "commit": "ab4dfa927be3d16fde3048b72d705d90c770dcd3",
+    "verifierSha256": "4aa50e5827ab00d0a8d0d87b29a78f2324aafd8c9f4aa3bc1ce0858f81711425",
+    "transportSha256": "820204fc52d645f3f40b6c6866511df8e5a0b895a760fb200ea95a60aebca945"
+  },
+  "contractSha256": {
+    "markdown": "f236823ba32a892c4157745490d2ff2767dcc33928b4d4b9dbbbfb8e0dc334f3",
+    "schema": "c3e61e2e7808985041164132b797862a79715ef08e837d26ddb7e9048356d067",
+    "transport": "f45c7ab4c28ce6f01ba7043358cb3e43ed4523990f19754c2ed59777d4ecbc52",
+    "vectors": "f8f4810e699400f019c33d045088401507d37b8d694e4e9b65498f817e895a5a"
+  },
+  "tests": {
+    "financeRace": "PASS",
+    "financeVet": "PASS",
+    "financeWeb": "PASS_51_OF_51",
+    "security": "PASS_368_FILES",
+    "wholeRepository": "FAIL_UNRELATED_MISSING_DEVTOOLS_CONTRACT_ARTIFACT"
+  },
+  "linuxAmd64": {
+    "bytes": 28799108,
+    "sha256": "461b164f8a94f9f8682060206e573630600ecd93c2b86f9ed6010b91643a0b43",
+    "published": false
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "contractTested": true,
+    "officialSandboxVerified": false,
+    "providerWriteEnabled": false,
+    "publicSubmitRouteEnabled": false,
+    "publicDeployed": false,
+    "walletApprovalVisible": false,
+    "orderSubmitted": false,
+    "productionApproved": false
+  }
+}

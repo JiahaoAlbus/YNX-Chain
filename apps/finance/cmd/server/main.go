@@ -7,11 +7,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/finance"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/finance/brokerage"
 )
 
+var buildCommit = "unknown"
+var buildRelease = "local"
+var buildTime = "unknown"
+
 func main() {
-	store, err := finance.OpenStore(required("YNX_FINANCE_STATE_PATH"))
+	store, err := finance.OpenStoreWithDatabase(required("YNX_FINANCE_STATE_PATH"), os.Getenv("YNX_FINANCE_DATABASE_URL"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,7 +33,32 @@ func main() {
 	}); err != nil {
 		log.Fatal(err)
 	}
-	auth, err := finance.NewAuthenticator(required("YNX_FINANCE_WALLET_GATEWAY_URL"), required("YNX_FINANCE_INTERNAL_KEY"), "ynx-finance-v1", "com.ynxweb4.finance")
+	if err := upstreams.ConfigureReadSourceIntegrations(finance.ReadSourceIntegrationConfig{
+		ExchangeURL: os.Getenv("YNX_FINANCE_EXCHANGE_READ_URL"),
+		ExchangeKey: os.Getenv("YNX_FINANCE_EXCHANGE_READ_KEY"),
+		DEXURL:      os.Getenv("YNX_FINANCE_DEX_READ_URL"),
+		DEXKey:      os.Getenv("YNX_FINANCE_DEX_READ_KEY"),
+		QuantURL:    os.Getenv("YNX_FINANCE_QUANT_READ_URL"),
+		QuantKey:    os.Getenv("YNX_FINANCE_QUANT_READ_KEY"),
+	}); err != nil {
+		log.Fatal(err)
+	}
+	// New Web builds use a separate v2 authority, never migrate legacy identity
+	// records or silently forward old proofs to the new Wallet service.
+	var auth *finance.Authenticator
+	legacyGateway := ""
+	switch envDefault("YNX_FINANCE_AUTH_MODE", "product-session-v2") {
+	case "product-session-v2":
+		auth, err = finance.NewBrowserV2Authenticator()
+	case "legacy-v1":
+		legacyGateway = required("YNX_FINANCE_WALLET_GATEWAY_URL")
+		if strings.TrimRight(legacyGateway, "/") == finance.BrowserWalletAuthority {
+			log.Fatal("Legacy authority cannot be replaced with the new browser v2 authority")
+		}
+		auth, err = finance.NewAuthenticator(legacyGateway, required("YNX_FINANCE_INTERNAL_KEY"), "ynx-finance-v1", "com.ynxweb4.finance")
+	default:
+		log.Fatal("YNX_FINANCE_AUTH_MODE must be product-session-v2 or explicitly isolated legacy-v1")
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,7 +67,7 @@ func main() {
 	if webDir == "" {
 		webDir = "apps/finance/web"
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{AllowedOrigins: split(os.Getenv("YNX_FINANCE_ALLOWED_ORIGINS")), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), LogWriter: os.Stdout})
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
 	if err != nil {
 		log.Fatal(err)
 	}

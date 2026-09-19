@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -23,6 +24,20 @@ type ReadSourceActionConfig struct {
 	DEXURL       string
 	QuantURL     string
 	EconomicsURL string
+}
+
+type ReadSourceIntegrationConfig struct {
+	ExchangeURL string
+	ExchangeKey string
+	DEXURL      string
+	DEXKey      string
+	QuantURL    string
+	QuantKey    string
+}
+
+type readSourceIntegration struct {
+	URL string
+	Key string
 }
 
 type ReadSourceAction struct {
@@ -103,6 +118,97 @@ var forbiddenReadSourceCapabilities = []string{
 	"treasury.write",
 	"strategy.pause",
 	"session.revoke",
+}
+
+var acceptedReadSourceContracts = map[string]AcceptedReadSourceContract{
+	"exchange": {
+		Accepted:             true,
+		SourceID:             "exchange",
+		Owner:                "07-exchange",
+		OwnerContractVersion: "exchange-finance-read-v1",
+		PayloadSchema:        "ynx-exchange-finance-account-v1",
+		AllowedCapabilities: []string{
+			"exchange.subaccount.read",
+			"exchange.orders.read",
+			"exchange.fills.read",
+			"exchange.fees.read",
+			"exchange.margin.read",
+			"exchange.funding.read",
+			"exchange.risk.read",
+		},
+	},
+	"quant": {
+		Accepted:             true,
+		SourceID:             "quant",
+		Owner:                "08-quant-lab",
+		OwnerContractVersion: "quant-finance-read-v1",
+		PayloadSchema:        "ynx-quant-finance-account-v1",
+		AllowedCapabilities: []string{
+			"quant.strategies.read",
+			"quant.mandates.read",
+			"quant.executions.read",
+			"quant.pnl.read",
+			"quant.risk.read",
+			"quant.lifecycle.read",
+		},
+	},
+	"dex": {
+		Accepted:             true,
+		SourceID:             "dex",
+		Owner:                "27-dex",
+		OwnerContractVersion: "dex-finance-read-v1",
+		PayloadSchema:        "ynx-dex-finance-account-v1",
+		AllowedCapabilities: []string{
+			"dex.positions.read",
+			"dex.swaps.read",
+			"dex.liquidity.read",
+			"dex.fees.read",
+		},
+	},
+}
+
+func (u *Upstreams) ConfigureReadSourceIntegrations(config ReadSourceIntegrationConfig) error {
+	candidates := []struct{ id, label, endpoint, key string }{
+		{id: "exchange", label: "Exchange", endpoint: config.ExchangeURL, key: config.ExchangeKey},
+		{id: "dex", label: "DEX", endpoint: config.DEXURL, key: config.DEXKey},
+		{id: "quant", label: "Quant", endpoint: config.QuantURL, key: config.QuantKey},
+	}
+	integrations := map[string]readSourceIntegration{}
+	for _, candidate := range candidates {
+		endpoint, key := strings.TrimSpace(candidate.endpoint), strings.TrimSpace(candidate.key)
+		if (endpoint == "") != (key == "") {
+			return fmt.Errorf("%s read URL and key must be configured together", candidate.label)
+		}
+		if endpoint == "" {
+			continue
+		}
+		parsed, err := requireHTTPURL(endpoint)
+		if err != nil {
+			return fmt.Errorf("%s read URL: %w", candidate.label, err)
+		}
+		if len(key) < 32 {
+			return fmt.Errorf("%s read key must contain at least 32 characters", candidate.label)
+		}
+		integrations[candidate.id] = readSourceIntegration{URL: strings.TrimRight(parsed.String(), "/"), Key: key}
+	}
+	if len(integrations) == 0 {
+		u.readIntegrations = nil
+		return nil
+	}
+	u.readIntegrations = integrations
+	return nil
+}
+
+func (u *Upstreams) ConfiguredReadSources() []string {
+	if u == nil || len(u.readIntegrations) == 0 {
+		return []string{}
+	}
+	result := make([]string, 0, len(u.readIntegrations))
+	for id := range u.readIntegrations {
+		result = append(result, id)
+	}
+	sort.Strings(result)
+	return result
 }
 
 func (u *Upstreams) ConfigureReadSourceActions(config ReadSourceActionConfig) error {

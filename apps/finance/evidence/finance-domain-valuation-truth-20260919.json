@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "ynx.finance.owner-evidence.v1",
+  "product": "finance",
+  "scope": "domain-portfolio-valuation-truth",
+  "capturedAt": "2026-09-19T12:46:33Z",
+  "branch": "codex/finance-wallet-flow-20260912",
+  "implementation": {
+    "commit": "a762227c1c88f2cf2a119795b80a3ff8181eaa84",
+    "tree": "5764cfb56f53c420d3b5c03632a01a7df1b8d37c",
+    "changedPaths": [
+      "internal/finance/domain.go",
+      "internal/finance/types.go",
+      "internal/finance/server.go",
+      "internal/finance/finance_test.go"
+    ]
+  },
+  "truthContract": {
+    "explorerAccountUnavailable": {
+      "valuationStatus": "unavailable",
+      "valuationReason": "explorer_account_evidence_unavailable",
+      "totalValueOmitted": true,
+      "holdings": []
+    },
+    "accountObservedActivityUnavailable": {
+      "acceptedSyncStatus": "partial-account-only",
+      "valuationStatus": "observed",
+      "note": "Validated account balance and stake remain usable even when the bounded transaction feed is unavailable."
+    },
+    "observedZero": {
+      "valuationStatus": "observed",
+      "totalValue": "0",
+      "holdingRetained": true
+    },
+    "invalidOrOverflowingAmounts": {
+      "valuationStatus": "unavailable",
+      "valuationReason": "explorer_account_amount_invalid",
+      "numericValueEmitted": false
+    }
+  },
+  "tests": [
+    {
+      "command": "go test -race ./internal/finance/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go vet ./internal/finance/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go build ./apps/finance/cmd/server ./apps/finance/cmd/broker-worker",
+      "result": "PASS"
+    },
+    {
+      "command": "npm --prefix apps/finance test",
+      "result": "PASS",
+      "tests": 65
+    },
+    {
+      "command": "npm --prefix apps/finance run security",
+      "result": "PASS",
+      "filesScanned": 389
+    },
+    {
+      "command": "go test ./...",
+      "result": "FAIL_UNRELATED",
+      "detail": "internal/bftgateway and internal/consensus require the absent artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json build artifact; internal/finance passed."
+    }
+  ],
+  "externalTruth": {
+    "publicRuntimeSourceBound": false,
+    "officialBrokerSandboxVerified": false,
+    "walletApprovalVerified": false,
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "productionDeploymentPerformed": false
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "schema": "ynx-finance-trading-account-required-fences-v1",
+  "recordedAt": "2026-09-19T11:04:59Z",
+  "branch": "codex/finance-wallet-flow-20260912",
+  "source": {
+    "commit": "b01841ad219b3a4958c0b878448fb6510f1a76bf",
+    "tree": "f579ea554b6b6d491f06063be187ac9804611f8a",
+    "remoteReadback": true
+  },
+  "contract": {
+    "path": "/v1/trading/accounts/{account_id}/account",
+    "requiredBooleanFields": [
+      "trading_blocked",
+      "account_blocked",
+      "trade_suspended_by_user"
+    ],
+    "executionAllowedOnlyWhen": "all three fields are present, valid JSON booleans and explicitly false",
+    "missing": "PROVIDER_PROTOCOL_ERROR",
+    "null": "PROVIDER_PROTOCOL_ERROR",
+    "wrongType": "PROVIDER_PROTOCOL_ERROR",
+    "true": "dispatch preflight rejection",
+    "providerPostOnAnyFailure": 0,
+    "providerDecimalPreserved": "103556.8572572922"
+  },
+  "verification": [
+    {
+      "command": "go test -race ./internal/finance/... ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go vet ./internal/finance/... ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "npm test --prefix apps/finance",
+      "result": "PASS",
+      "detail": "59/59"
+    },
+    {
+      "command": "npm run security --prefix apps/finance",
+      "result": "PASS",
+      "detail": "381 text files"
+    }
+  ],
+  "truth": {
+    "officialSandboxVerified": false,
+    "providerWriteActivated": false,
+    "providerOrderSubmitted": false,
+    "publicDeployed": false,
+    "walletApprovalVisible": false,
+    "productionApproved": false
+  }
+}
