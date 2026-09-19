@@ -74,6 +74,36 @@ func TestBrokerChallengeFailsClosedWithoutTrustedFeeOrMapping(t *testing.T) {
 	}
 }
 
+func TestBrokerChallengeSeparatesUnsafeFeePolicyFromInvalidOrderDraft(t *testing.T) {
+	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", now); err != nil {
+		t.Fatal(err)
+	}
+	requestBody, _ := json.Marshal(brokerChallengeInput{Draft: BrokerOrderDraftInput{AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "hold", Qty: "1", LimitPrice: "10"}})
+
+	server := &Server{service: &Service{Store: store}, cfg: ServerConfig{BrokerMaxFeeUSD: "1", BrokerFeeBoundSource: "operator_policy", BrokerFeeEvidenceRef: "unsafe evidence"}, now: func() time.Time { return now }}
+	recorder := httptest.NewRecorder()
+	server.brokerChallenge(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/challenges", bytes.NewReader(requestBody)), Session{Account: account})
+	if recorder.Code != http.StatusServiceUnavailable || !bytes.Contains(recorder.Body.Bytes(), []byte(`"code":"fee_bound_unavailable"`)) {
+		t.Fatalf("unsafe fee status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	server.cfg.BrokerFeeEvidenceRef = "operator-policy:test:v1"
+	recorder = httptest.NewRecorder()
+	server.brokerChallenge(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/challenges", bytes.NewReader(requestBody)), Session{Account: account})
+	if recorder.Code != http.StatusBadRequest || !bytes.Contains(recorder.Body.Bytes(), []byte(`"code":"invalid_order_draft"`)) {
+		t.Fatalf("invalid draft status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if workspace := store.BrokerWorkspace(account, now); len(workspace.Orders) != 0 || len(workspace.Outbox) != 0 {
+		t.Fatalf("rejected challenge mutated order state: %+v", workspace)
+	}
+}
+
 func TestBrokerExecutionRequestIsConfiguredOwnerScopedAndIdempotent(t *testing.T) {
 	store, account, orderID, now := consumedBrokerFixture(t)
 	values := map[string]string{

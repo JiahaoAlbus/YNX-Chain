@@ -11,6 +11,7 @@
 | Statements, monthly review, CSV/JSON export/import | yes | amount/legal/coverage tests | not a bank/tax/legal statement |
 | Privacy, account deletion, recovery and audit | yes | deletion/restart/audit tests | operator backup/restore runbook required at deployment |
 | AI categorization, fee explanation, budget draft | yes | selected-record/consent/apply/reject tests | provider success not claimed; never auto-applies |
+| Broker Sandbox activation readiness | yes, provider-write gated | read-only state inspection proves mapping, Wallet key and exact outbox state without file/database mutation | official credentials, entitlements, provider reads and writes remain `NOT_VERIFIED` |
 | 12 locales, Arabic RTL, amount/date/legal semantics | yes | 6 native tests including locale/RTL contracts | professional legal translation review remains a release gate |
 | Android install and cold launch | yes | official release APK installed; cold 1,163 ms | official-site direct download; Testnet test signature only |
 | iOS build/install/cold launch | target ready | Hermes bundle passed | CI Simulator pending; no device/IPA signature |

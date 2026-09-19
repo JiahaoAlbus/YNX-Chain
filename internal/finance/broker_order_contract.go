@@ -33,9 +33,23 @@ var (
 	financeQtyPattern          = regexp.MustCompile(`^(?:[1-9][0-9]{0,5}|1000000)$`)
 	financePricePattern        = regexp.MustCompile(`^(?:0\.[0-9]{0,3}[1-9]|[1-9][0-9]{0,8}(?:\.[0-9]{0,3}[1-9])?)$`)
 	financeMoneyPattern        = regexp.MustCompile(`^(?:0|0\.[0-9]{0,5}[1-9]|[1-9][0-9]{0,12}(?:\.[0-9]{0,5}[1-9])?)$`)
+	financeFeeEvidencePattern  = regexp.MustCompile(`^[A-Za-z0-9._:/-]{1,256}$`)
 )
 
 type exactUSD struct{ micro *big.Int }
+
+func ValidateBrokerFeePolicy(maxFee, feeBoundSource, feeEvidenceRef string) error {
+	if _, err := parseExactUSD(maxFee, 6, financeMoneyPattern); err != nil {
+		return err
+	}
+	if feeBoundSource != "provider_quote" && feeBoundSource != "provider_current_schedule" && feeBoundSource != "operator_policy" {
+		return errors.New("Broker fee source is invalid")
+	}
+	if !financeFeeEvidencePattern.MatchString(feeEvidenceRef) {
+		return errors.New("Broker fee evidence reference is invalid")
+	}
+	return nil
+}
 
 func parseExactUSD(value string, scale int, pattern *regexp.Regexp) (exactUSD, error) {
 	if !pattern.MatchString(value) {

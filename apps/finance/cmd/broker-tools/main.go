@@ -23,6 +23,7 @@ type verificationResult struct {
 }
 
 type verificationProbe func(context.Context, brokerage.Config) (verificationResult, error)
+type readinessProbe func(context.Context, string, string, string, time.Time) (finance.BrokerActivationReadiness, error)
 
 func main() { os.Exit(run(os.Args[1:])) }
 func run(args []string) int {
@@ -62,27 +63,49 @@ func run(args []string) int {
 	}, os.Stdout)
 }
 func runWith(args []string, get func(string) string, probe verificationProbe, output io.Writer) int {
+	return runWithReadiness(args, get, probe, finance.InspectBrokerActivationReadiness, output)
+}
+
+func runWithReadiness(args []string, get func(string) string, probe verificationProbe, readinessProbe readinessProbe, output io.Writer) int {
 	mode := "doctor"
 	network := false
+	localReadOnly := false
 	if len(args) > 0 {
 		mode = args[0]
 	}
-	if (mode != "doctor" && mode != "sandbox-verify" && mode != "activation-plan") || len(args) > 2 || (len(args) == 2 && args[1] != "--network-read-only") || (mode == "activation-plan" && len(args) != 1) {
-		_ = json.NewEncoder(output).Encode(map[string]any{"error": "USAGE: doctor|sandbox-verify [--network-read-only] | activation-plan"})
+	if (mode != "doctor" && mode != "sandbox-verify" && mode != "activation-plan") || len(args) > 2 || (len(args) == 2 && args[1] != "--network-read-only" && args[1] != "--local-read-only") || (len(args) == 2 && mode == "activation-plan" && args[1] != "--local-read-only") || (len(args) == 2 && mode != "activation-plan" && args[1] != "--network-read-only") {
+		_ = json.NewEncoder(output).Encode(map[string]any{"error": "USAGE: doctor|sandbox-verify [--network-read-only] | activation-plan [--local-read-only]"})
 		return 2
 	}
-	network = len(args) == 2
+	network = len(args) == 2 && args[1] == "--network-read-only"
+	localReadOnly = len(args) == 2 && args[1] == "--local-read-only"
 	cfg := brokerage.LoadConfig(get)
 	status := cfg.Status()
-	report := map[string]any{"mode": mode, "configuration": status, "networkAttempted": false, "accountLinkVerified": false, "dataEntitlementVerified": false, "officialSandboxVerified": false, "productionApproved": false, "writeAttempted": false, "walletOrderApproval": "manual_wallet_approval_required", "durableOrderJournal": "implemented_state_v2", "providerPost": "activation_gated_operator_only"}
+	report := map[string]any{"mode": mode, "configuration": status, "networkAttempted": false, "localReadOnlyAttempted": false, "accountLinkVerified": false, "dataEntitlementVerified": false, "officialSandboxVerified": false, "productionApproved": false, "writeAttempted": false, "walletOrderApproval": "manual_wallet_approval_required", "durableOrderJournal": "implemented_state_v2", "providerPost": "activation_gated_operator_only"}
 	code := 0
 	if mode == "activation-plan" {
 		report["activationReceiptConfigured"] = status.SubmissionEnabled
 		report["activationScope"] = "sandbox_only_single_operator_worker_no_public_submit_route"
-		report["requiredPreconditions"] = []string{"configured sandbox credentials", "persistent per-user account mapping", "read-only provider verification", "trusted fee bound", "Wallet order approval", "64-hex activation receipt"}
+		feePolicyReady := finance.ValidateBrokerFeePolicy(get("YNX_FINANCE_BROKER_MAX_FEE_USD"), get("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), get("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF")) == nil
+		report["feePolicyReady"] = feePolicyReady
+		report["requiredPreconditions"] = []string{"configured sandbox credentials", "persistent per-user account mapping", "read-only provider verification", "trusted fee bound", "Wallet order approval", "64-hex activation receipt", "one exact execution-requested outbox for worker dispatch"}
 		report["safeEnable"] = []string{"verify owner mapping and provider reads", "record exact Wallet-approved order id", "set server-side activation receipt and sandbox write flag", "run one operator dispatch-one command", "query and reconcile before any further action"}
 		report["rollback"] = []string{"set FINANCE_SANDBOX_WRITES_ENABLED=false", "restart only the operator worker environment if one exists", "query and reconcile ambiguous provider state", "do not retry an order with provider correlation"}
-		if status.SubmissionEnabled {
+		localReady := false
+		if localReadOnly {
+			report["localReadOnlyAttempted"] = true
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			readiness, err := readinessProbe(ctx, strings.TrimSpace(get("YNX_FINANCE_STATE_PATH")), strings.TrimSpace(get("YNX_FINANCE_DATABASE_URL")), strings.TrimSpace(get("YNX_FINANCE_BROKER_VERIFY_ACCOUNT")), time.Now().UTC())
+			if err != nil {
+				report["localReadinessResult"] = "LOCAL_READINESS_UNAVAILABLE"
+			} else {
+				report["localReadinessResult"] = "LOCAL_READINESS_INSPECTED"
+				report["localReadiness"] = readiness
+				localReady = readiness.ReadyForWorkerDispatch
+			}
+		}
+		if status.SubmissionEnabled && feePolicyReady && localReadOnly && localReady {
 			report["result"] = "SANDBOX_WRITE_CONFIGURATION_READY_NOT_EXECUTED"
 		} else {
 			report["result"] = "SANDBOX_WRITE_ACTIVATION_BLOCKED"

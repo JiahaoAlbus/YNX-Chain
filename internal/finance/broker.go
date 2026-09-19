@@ -227,9 +227,13 @@ func (s *Server) brokerChallenge(w http.ResponseWriter, r *http.Request, session
 		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
 	}
-	order, err := BuildBrokerOrderDraft(input.Draft, s.cfg.BrokerMaxFeeUSD, s.cfg.BrokerFeeBoundSource)
-	if err != nil || strings.TrimSpace(s.cfg.BrokerFeeEvidenceRef) == "" {
+	if err := ValidateBrokerFeePolicy(s.cfg.BrokerMaxFeeUSD, s.cfg.BrokerFeeBoundSource, s.cfg.BrokerFeeEvidenceRef); err != nil {
 		writeError(w, http.StatusServiceUnavailable, "fee_bound_unavailable", "A trusted server-side Sandbox fee bound is unavailable; no Wallet approval request was created")
+		return
+	}
+	order, err := BuildBrokerOrderDraft(input.Draft, s.cfg.BrokerMaxFeeUSD, s.cfg.BrokerFeeBoundSource)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_order_draft", err.Error())
 		return
 	}
 	walletPublicKey, err := s.service.Store.BrokerWalletPublicKey(session.Account)
