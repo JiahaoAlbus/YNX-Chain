@@ -1,0 +1,2950 @@
+{
+  "schema": "ynx-transport-sanitized-archive/v1",
+  "run": "packet",
+  "developmentRun": true,
+  "finalSourceRun": false,
+  "originalObservationsSHA256": "ecfa869bc10f5c4e36c5ba1f9d7264bd156b06efc268f9552acb453e3245d6f2",
+  "originalSummarySHA256": "73c5d56b3771dea6feb897e3f6059b4493970479fe211dd097103b3d234b71b7",
+  "originalPrivatePath": "/private/tmp/ynx-transport-20260920-packet-001",
+  "redactions": [
+    "client local_ip",
+    "SSH peer address",
+    "client address"
+  ],
+  "preservedOriginalClassifier": true,
+  "correction": "curl 28 with ssl_verify_result=1 during incomplete TLS is TLS handshake timeout, not certificate failure; early bodyAfterFirstByte derivation on incomplete requests is invalid",
+  "events": [
+    {
+      "type": "start",
+      "at": "2026-09-19T16:08:53.804Z",
+      "runId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf",
+      "vantage": "macos-owner",
+      "rounds": 2,
+      "intervalSeconds": 35,
+      "requestsPerRound": 4,
+      "maxClientConcurrency": 2,
+      "noClaimsOrTransactions": true,
+      "readOnly": true,
+      "proxyEnvironmentPresent": false,
+      "hostObservationEnabled": true
+    },
+    {
+      "type": "host-ready-status",
+      "round": 1,
+      "at": "2026-09-19T16:09:05.817Z",
+      "samplerReady": false
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "canonical",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:09:06.402Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.00182,
+        "time_connect": 0.109377,
+        "time_appconnect": 0.223606,
+        "time_starttransfer": 0.475245,
+        "time_total": 0.475309
+      },
+      "bodySHA256": "8e3c3ad431193b82fa89bbb8305356c70e994410f9e2ee2aba2040e9cb86a86d",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634652,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      },
+      "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-1-rpc-canonical",
+      "startedAt": "2026-09-19T16:09:05.916Z",
+      "finishedAt": "2026-09-19T16:09:06.402Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.00182,
+        "time_connect": 0.109377,
+        "time_appconnect": 0.223606,
+        "time_pretransfer": 0.223681,
+        "time_starttransfer": 0.475245,
+        "time_total": 0.475309,
+        "remote_ip": "43.153.202.237",
+        "local_ipSHA256": "f68fb87777002d056be7c1f62362637e6daf6ade38d5a3fc37abce81b0ce0a74",
+        "local_port": 62178,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {},
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.00182,
+        "tcpAfterDNS": 0.107557,
+        "tlsAfterTCP": 0.114229,
+        "firstByteAfterTLS": 0.25163899999999995,
+        "bodyAfterFirstByte": 0.0000640000000000085
+      },
+      "dns": {
+        "host": "rpc-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:09:05.825Z",
+        "finishedAt": "2026-09-19T16:09:05.916Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 112
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "legacy",
+      "kind": "faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:09:07.931Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.0016,
+        "time_connect": 1.114554,
+        "time_appconnect": 1.230823,
+        "time_starttransfer": 1.447049,
+        "time_total": 1.447286
+      },
+      "bodySHA256": "0f2068027ef8eabcb7c198ad33f4b391287f13c81cb97b517c96e2127fc614fc",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634652,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      },
+      "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-1-faucet-legacy",
+      "startedAt": "2026-09-19T16:09:06.472Z",
+      "finishedAt": "2026-09-19T16:09:07.931Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.0016,
+        "time_connect": 1.114554,
+        "time_appconnect": 1.230823,
+        "time_pretransfer": 1.231046,
+        "time_starttransfer": 1.447049,
+        "time_total": 1.447286,
+        "remote_ip": "43.153.202.237",
+        "local_ipSHA256": "f68fb87777002d056be7c1f62362637e6daf6ade38d5a3fc37abce81b0ce0a74",
+        "local_port": 62183,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {
+        "probeDurationMs": 0,
+        "statusDurationMs": 0,
+        "capabilityDurationMs": 0,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "checkedAt": "2026-09-19T16:09:07.778614178Z"
+      },
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.0016,
+        "tcpAfterDNS": 1.112954,
+        "tlsAfterTCP": 0.11626899999999996,
+        "firstByteAfterTLS": 0.21622600000000003,
+        "bodyAfterFirstByte": 0.00023700000000004273
+      },
+      "dns": {
+        "host": "faucet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:09:06.406Z",
+        "finishedAt": "2026-09-19T16:09:06.472Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 711
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "canonical",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:09:10.169Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001732,
+        "time_connect": 1.109815,
+        "time_appconnect": 1.228786,
+        "time_starttransfer": 2.125731,
+        "time_total": 2.126557
+      },
+      "bodySHA256": "871e933cc5216a363109b75d3c10142bcbf42c95da87d30b884e22915eb2f2d6",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634654,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      },
+      "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-1-faucet-canonical",
+      "startedAt": "2026-09-19T16:09:08.031Z",
+      "finishedAt": "2026-09-19T16:09:10.170Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001732,
+        "time_connect": 1.109815,
+        "time_appconnect": 1.228786,
+        "time_pretransfer": 1.229043,
+        "time_starttransfer": 2.125731,
+        "time_total": 2.126557,
+        "remote_ip": "43.153.202.237",
+        "local_ipSHA256": "f68fb87777002d056be7c1f62362637e6daf6ade38d5a3fc37abce81b0ce0a74",
+        "local_port": 62186,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {
+        "probeDurationMs": 0,
+        "statusDurationMs": 0,
+        "capabilityDurationMs": 0,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "checkedAt": "2026-09-19T16:09:10.126603507Z"
+      },
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001732,
+        "tcpAfterDNS": 1.108083,
+        "tlsAfterTCP": 0.11897099999999994,
+        "firstByteAfterTLS": 0.8969450000000001,
+        "bodyAfterFirstByte": 0.0008259999999999934
+      },
+      "dns": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:09:07.935Z",
+        "finishedAt": "2026-09-19T16:09:08.031Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 84
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "legacy",
+      "kind": "rpc",
+      "url": "https://rpc.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:09:11.428Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001717,
+        "time_connect": 1.143458,
+        "time_appconnect": 3.08619,
+        "time_starttransfer": 5.490558,
+        "time_total": 5.499158
+      },
+      "bodySHA256": "87b0559abd995a3f517a47d4eadc17e8447e06b630a54634f65f2654429d7789",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634654,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      },
+      "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-1-rpc-legacy",
+      "startedAt": "2026-09-19T16:09:05.917Z",
+      "finishedAt": "2026-09-19T16:09:11.428Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001717,
+        "time_connect": 1.143458,
+        "time_appconnect": 3.08619,
+        "time_pretransfer": 3.08643,
+        "time_starttransfer": 5.490558,
+        "time_total": 5.499158,
+        "remote_ip": "43.153.202.237",
+        "local_ipSHA256": "f68fb87777002d056be7c1f62362637e6daf6ade38d5a3fc37abce81b0ce0a74",
+        "local_port": 62179,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {},
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001717,
+        "tcpAfterDNS": 1.1417410000000001,
+        "tlsAfterTCP": 1.9427320000000001,
+        "firstByteAfterTLS": 2.404368,
+        "bodyAfterFirstByte": 0.008600000000000385
+      },
+      "dns": {
+        "host": "rpc.ynxweb4.com",
+        "startedAt": "2026-09-19T16:09:05.823Z",
+        "finishedAt": "2026-09-19T16:09:05.917Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 677
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "host-window",
+      "round": 1,
+      "at": "2026-09-19T16:09:31.480Z",
+      "host": {
+        "schema": "ynx-transport-host-window/v1",
+        "startedAt": "2026-09-19T16:09:06.010789+00:00",
+        "readOnly": true,
+        "samples": [
+          {
+            "observedAt": "2026-09-19T16:09:06.011367+00:00",
+            "load": [
+              1.1650390625,
+              1.171875,
+              1.17822265625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687990,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903102,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998300,
+              "RetransSegs": 423669565
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:09.035708+00:00",
+            "load": [
+              1.23193359375,
+              1.18603515625,
+              1.18310546875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687998,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903106,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998300,
+              "RetransSegs": 423669584
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:12.060625+00:00",
+            "load": [
+              1.23193359375,
+              1.18603515625,
+              1.18310546875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687999,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903106,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998300,
+              "RetransSegs": 423669588
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:15.085186+00:00",
+            "load": [
+              1.212890625,
+              1.1826171875,
+              1.181640625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688000,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903106,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998300,
+              "RetransSegs": 423669589
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:18.109282+00:00",
+            "load": [
+              1.212890625,
+              1.1826171875,
+              1.181640625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688003,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903109,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998302,
+              "RetransSegs": 423669592
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:21.132956+00:00",
+            "load": [
+              1.19580078125,
+              1.17919921875,
+              1.1806640625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688003,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903109,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998302,
+              "RetransSegs": 423669592
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:24.157605+00:00",
+            "load": [
+              1.1796875,
+              1.17578125,
+              1.1796875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688003,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903109,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998302,
+              "RetransSegs": 423669592
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:27.182384+00:00",
+            "load": [
+              1.1796875,
+              1.17578125,
+              1.1796875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688003,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903109,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998302,
+              "RetransSegs": 423669592
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          }
+        ],
+        "packetMetadata": {
+          "available": true,
+          "payloadRetained": false,
+          "rawPacketTextRetained": false,
+          "scope": "TCP443 metadata for SSH peer only; HTTPS egress may differ",
+          "sshPeerAddressSHA256": "1c7447ae33587dd449e17420d0bad697fa74debd3263f31da016ff5f728ddc10",
+          "exitCode": 124,
+          "boundedTimeout": true,
+          "events": [
+            {
+              "timestamp": "1789834146.104199",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834146.104271",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 333
+            },
+            {
+              "timestamp": "1789834146.104291",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834146.104883",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834146.104891",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 1690
+            },
+            {
+              "timestamp": "1789834146.213695",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834146.215099",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834146.215173",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 6
+            },
+            {
+              "timestamp": "1789834146.215238",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 58
+            },
+            {
+              "timestamp": "1789834146.215281",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834146.215454",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834146.216343",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 86
+            },
+            {
+              "timestamp": "1789834146.216429",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 35
+            },
+            {
+              "timestamp": "1789834146.216476",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 31
+            },
+            {
+              "timestamp": "1789834146.216947",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 132
+            },
+            {
+              "timestamp": "1789834146.217686",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 200
+            },
+            {
+              "timestamp": "1789834146.217730",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834146.225378",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 888
+            },
+            {
+              "timestamp": "1789834146.326782",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834146.326783",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834146.326783",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 31
+            },
+            {
+              "timestamp": "1789834146.335049",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834146.357833",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 66
+            },
+            {
+              "timestamp": "1789834146.357929",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834146.467364",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834146.468615",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": "F.",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834146.468640",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834146.887883",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": "FP.",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834146.888029",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "P.",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834146.888071",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "F.",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.027850",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "S.",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.115836",
+              "direction": "to-client",
+              "clientPort": 62178,
+              "flags": "F.",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.135499",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.136523",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 325
+            },
+            {
+              "timestamp": "1789834147.136555",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.137065",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834147.137075",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 1673
+            },
+            {
+              "timestamp": "1789834147.204201",
+              "direction": "from-client",
+              "clientPort": 62178,
+              "flags": "R.",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.355849",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 625
+            },
+            {
+              "timestamp": "1789834147.552832",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": "S",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.552923",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": "S.",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.660819",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.661917",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 328
+            },
+            {
+              "timestamp": "1789834147.661955",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.662334",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834147.662346",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 1678
+            },
+            {
+              "timestamp": "1789834147.770344",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.770389",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.771705",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.775450",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.777159",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 6
+            },
+            {
+              "timestamp": "1789834147.777186",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 58
+            },
+            {
+              "timestamp": "1789834147.777186",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 86
+            },
+            {
+              "timestamp": "1789834147.777186",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 129
+            },
+            {
+              "timestamp": "1789834147.777237",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.777405",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834147.777457",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 44
+            },
+            {
+              "timestamp": "1789834147.778875",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 250
+            },
+            {
+              "timestamp": "1789834147.778908",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 922
+            },
+            {
+              "timestamp": "1789834147.819828",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834147.881441",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.883508",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.883530",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834147.997587",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 31
+            },
+            {
+              "timestamp": "1789834147.997587",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834147.997712",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834147.997779",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": "P.",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834147.997826",
+              "direction": "to-client",
+              "clientPort": 62183,
+              "flags": "F.",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834148.106609",
+              "direction": "from-client",
+              "clientPort": 62183,
+              "flags": "R",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834148.755819",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834148.861505",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834148.861551",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834148.861560",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834148.861563",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 625
+            },
+            {
+              "timestamp": "1789834148.967977",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834148.968036",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 1048
+            },
+            {
+              "timestamp": "1789834148.969352",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834149.073287",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834149.079425",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 6
+            },
+            {
+              "timestamp": "1789834149.110608",
+              "direction": "from-client",
+              "clientPort": 62186,
+              "flags": "S",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834149.110680",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": "S.",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834149.119829",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834149.216332",
+              "direction": "from-client",
+              "clientPort": 62186,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834149.217999",
+              "direction": "from-client",
+              "clientPort": 62186,
+              "flags": "P.",
+              "length": 336
+            },
+            {
+              "timestamp": "1789834149.218032",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834149.218679",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": "P.",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834149.218701",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": "P.",
+              "length": 1695
+            },
+            {
+              "timestamp": "1789834149.435849",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": "P.",
+              "length": 647
+            },
+            {
+              "timestamp": "1789834149.542079",
+              "direction": "from-client",
+              "clientPort": 62186,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834150.124840",
+              "direction": "from-client",
+              "clientPort": 62186,
+              "flags": "P.",
+              "length": 286
+            },
+            {
+              "timestamp": "1789834150.125156",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": "P.",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834150.125228",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": "P.",
+              "length": 44
+            },
+            {
+              "timestamp": "1789834150.127008",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": "P.",
+              "length": 113
+            },
+            {
+              "timestamp": "1789834150.127047",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": "P.",
+              "length": 922
+            },
+            {
+              "timestamp": "1789834150.347843",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": "P.",
+              "length": 922
+            },
+            {
+              "timestamp": "1789834150.666551",
+              "direction": "from-client",
+              "clientPort": 62186,
+              "flags": "FP.",
+              "length": 55
+            },
+            {
+              "timestamp": "1789834150.666741",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": "P.",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834150.666787",
+              "direction": "to-client",
+              "clientPort": 62186,
+              "flags": "F.",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834150.774037",
+              "direction": "from-client",
+              "clientPort": 62186,
+              "flags": "R",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834151.375573",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 276
+            },
+            {
+              "timestamp": "1789834151.375633",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834151.375833",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 61
+            },
+            {
+              "timestamp": "1789834151.375935",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 44
+            },
+            {
+              "timestamp": "1789834151.376546",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 200
+            },
+            {
+              "timestamp": "1789834151.376905",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 2096
+            },
+            {
+              "timestamp": "1789834151.384420",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 901
+            },
+            {
+              "timestamp": "1789834151.488079",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834151.488079",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834151.811846",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 901
+            },
+            {
+              "timestamp": "1789834152.139830",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 901
+            },
+            {
+              "timestamp": "1789834152.250836",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": "F.",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834152.250901",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": ".",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834155.194218",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": "FP.",
+              "length": 55
+            },
+            {
+              "timestamp": "1789834155.194422",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "P.",
+              "length": 24
+            },
+            {
+              "timestamp": "1789834155.194464",
+              "direction": "to-client",
+              "clientPort": 62179,
+              "flags": "F.",
+              "length": 0
+            },
+            {
+              "timestamp": "1789834155.298639",
+              "direction": "from-client",
+              "clientPort": 62179,
+              "flags": "R",
+              "length": 0
+            }
+          ],
+          "packetLimitReached": false
+        },
+        "details": {
+          "observedAt": "2026-09-19T16:09:31.032981+00:00",
+          "cpuCount": 8,
+          "kernel": "6.8.0-101-generic",
+          "caddyVersion": {
+            "exitCode": 0,
+            "output": "2.6.2\n"
+          },
+          "services": {
+            "exitCode": 0,
+            "output": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=131428352\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=11533029376\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9375744\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8572928\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n"
+          },
+          "sysctls": {
+            "exitCode": 0,
+            "output": "net.core.somaxconn = 4096\nnet.ipv4.tcp_max_syn_backlog = 2048\nnet.ipv4.tcp_syncookies = 1\nnet.ipv4.tcp_synack_retries = 5\nnet.ipv4.tcp_syn_retries = 6\nnet.ipv4.tcp_mtu_probing = 0\n"
+          },
+          "memoryKB": {
+            "MemTotal": 31956824,
+            "MemAvailable": 17360876,
+            "SwapFree": 1881608
+          },
+          "diskConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "loadedConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "caddyfileSHA256": {
+            "exitCode": 0,
+            "output": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9  /etc/caddy/Caddyfile\n"
+          },
+          "caddyJournal": {
+            "exitCode": 0,
+            "entries": 1,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "kernelJournal": {
+            "exitCode": 0,
+            "entries": 0,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "localProbes": [
+            {
+              "host": "rpc.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000176 0.024195 0.025094 0.025139 0"
+            },
+            {
+              "host": "rpc-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000154 0.024587 0.025570 0.025623 0"
+            },
+            {
+              "host": "faucet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000146 0.024586 0.026204 0.026243 0"
+            },
+            {
+              "host": "faucet-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000141 0.023968 0.025660 0.025700 0"
+            },
+            {
+              "port": 6420,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.000454 0.000492"
+            },
+            {
+              "port": 6428,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.001211 0.001254"
+            }
+          ]
+        },
+        "finishedAt": "2026-09-19T16:09:31.331386+00:00"
+      },
+      "withinWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 13,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 7,
+        "AttemptFails": 0,
+        "EstabResets": 2,
+        "RetransSegs": 27
+      },
+      "sincePreviousWindowDelta": {},
+      "coverage": [
+        {
+          "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-1-rpc-canonical",
+          "failure": false,
+          "clientWindowCovered": false
+        },
+        {
+          "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-1-faucet-legacy",
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-1-faucet-canonical",
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-1-rpc-legacy",
+          "failure": false,
+          "clientWindowCovered": false
+        }
+      ],
+      "clockSkewNotCorrected": true,
+      "countersAreHostWide": true,
+      "requestFlowAttributionProven": false
+    },
+    {
+      "type": "round",
+      "round": 1,
+      "at": "2026-09-19T16:09:31.488Z",
+      "attempted": 4,
+      "healthy": 4,
+      "failed": 0
+    },
+    {
+      "type": "host-ready-status",
+      "round": 2,
+      "at": "2026-09-19T16:09:34.418Z",
+      "samplerReady": true
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "legacy",
+      "kind": "rpc",
+      "url": "https://rpc.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:09:36.560Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.005708,
+        "time_connect": 1.117978,
+        "time_appconnect": 1.93359,
+        "time_starttransfer": 2.042734,
+        "time_total": 2.05158
+      },
+      "bodySHA256": "f2e87ae7ec3f675bb4afc203228e09a5a2015bb125b6b4f82dec2ab9925d26cd",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634659,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      },
+      "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-2-rpc-legacy",
+      "startedAt": "2026-09-19T16:09:34.500Z",
+      "finishedAt": "2026-09-19T16:09:36.560Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.005708,
+        "time_connect": 1.117978,
+        "time_appconnect": 1.93359,
+        "time_pretransfer": 1.93364,
+        "time_starttransfer": 2.042734,
+        "time_total": 2.05158,
+        "remote_ip": "43.153.202.237",
+        "local_ipSHA256": "f68fb87777002d056be7c1f62362637e6daf6ade38d5a3fc37abce81b0ce0a74",
+        "local_port": 62225,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {},
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.005708,
+        "tcpAfterDNS": 1.1122699999999999,
+        "tlsAfterTCP": 0.815612,
+        "firstByteAfterTLS": 0.10914399999999991,
+        "bodyAfterFirstByte": 0.008846000000000132
+      },
+      "dns": {
+        "host": "rpc.ynxweb4.com",
+        "startedAt": "2026-09-19T16:09:34.423Z",
+        "finishedAt": "2026-09-19T16:09:34.500Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 349
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "canonical",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:09:38.971Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.002018,
+        "time_connect": 3.11313,
+        "time_appconnect": 3.55133,
+        "time_starttransfer": 3.97636,
+        "time_total": 4.406801
+      },
+      "bodySHA256": "1286feefbe408a7b696ad7a32e54bf97d87df34b81b4f443f02d6adfd9440f0b",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634660,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      },
+      "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-2-rpc-canonical",
+      "startedAt": "2026-09-19T16:09:34.551Z",
+      "finishedAt": "2026-09-19T16:09:38.972Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.002018,
+        "time_connect": 3.11313,
+        "time_appconnect": 3.55133,
+        "time_pretransfer": 3.551529,
+        "time_starttransfer": 3.97636,
+        "time_total": 4.406801,
+        "remote_ip": "43.153.202.237",
+        "local_ipSHA256": "f68fb87777002d056be7c1f62362637e6daf6ade38d5a3fc37abce81b0ce0a74",
+        "local_port": 62226,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {},
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.002018,
+        "tcpAfterDNS": 3.111112,
+        "tlsAfterTCP": 0.43820000000000014,
+        "firstByteAfterTLS": 0.42503,
+        "bodyAfterFirstByte": 0.43044099999999963
+      },
+      "dns": {
+        "host": "rpc-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:09:34.425Z",
+        "finishedAt": "2026-09-19T16:09:34.551Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 648
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "legacy",
+      "kind": "faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:09:40.414Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001645,
+        "time_connect": 0.107621,
+        "time_appconnect": 0.88486,
+        "time_starttransfer": 3.764787,
+        "time_total": 3.764874
+      },
+      "bodySHA256": "e3f3bff81126ad28cb4a0cbda6eae45140a8e11f61659ae02f4cf566848798e2",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634660,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      },
+      "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-2-faucet-legacy",
+      "startedAt": "2026-09-19T16:09:36.636Z",
+      "finishedAt": "2026-09-19T16:09:40.414Z",
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001645,
+        "time_connect": 0.107621,
+        "time_appconnect": 0.88486,
+        "time_pretransfer": 0.88492,
+        "time_starttransfer": 3.764787,
+        "time_total": 3.764874,
+        "remote_ip": "43.153.202.237",
+        "local_ipSHA256": "f68fb87777002d056be7c1f62362637e6daf6ade38d5a3fc37abce81b0ce0a74",
+        "local_port": 62229,
+        "remote_port": 443,
+        "http_version": "2",
+        "http_code": 200,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 0
+      },
+      "headers": {
+        "content-type": "application/json",
+        "server": "Caddy"
+      },
+      "health": {
+        "probeDurationMs": 0,
+        "statusDurationMs": 0,
+        "capabilityDurationMs": 0,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "checkedAt": "2026-09-19T16:09:40.371363209Z"
+      },
+      "clientError": null,
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001645,
+        "tcpAfterDNS": 0.105976,
+        "tlsAfterTCP": 0.777239,
+        "firstByteAfterTLS": 2.8799270000000003,
+        "bodyAfterFirstByte": 0.00008699999999972619
+      },
+      "dns": {
+        "host": "faucet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:09:36.566Z",
+        "finishedAt": "2026-09-19T16:09:36.636Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 56
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "canonical",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:09:44.073Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001781,
+        "time_connect": 0.107972,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.011115
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "SSL connection timeout",
+      "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-2-faucet-canonical",
+      "startedAt": "2026-09-19T16:09:39.048Z",
+      "finishedAt": "2026-09-19T16:09:44.073Z",
+      "classification": "tls-verification-failed",
+      "client": {
+        "time_namelookup": 0.001781,
+        "time_connect": 0.107972,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.011115,
+        "remote_ip": "43.153.202.237",
+        "local_ipSHA256": "f68fb87777002d056be7c1f62362637e6daf6ade38d5a3fc37abce81b0ce0a74",
+        "local_port": 62236,
+        "remote_port": 443,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 1,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "SSL connection timeout",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001781,
+        "tcpAfterDNS": 0.106191,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": null
+      },
+      "dns": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:09:38.975Z",
+        "finishedAt": "2026-09-19T16:09:39.048Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 53
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "host-window",
+      "round": 2,
+      "at": "2026-09-19T16:09:59.851Z",
+      "host": {
+        "schema": "ynx-transport-host-window/v1",
+        "startedAt": "2026-09-19T16:09:34.372508+00:00",
+        "readOnly": true,
+        "samples": [
+          {
+            "observedAt": "2026-09-19T16:09:34.373107+00:00",
+            "load": [
+              1.39208984375,
+              1.22021484375,
+              1.1943359375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688015,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903116,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998306,
+              "RetransSegs": 423669602
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:37.397000+00:00",
+            "load": [
+              1.39208984375,
+              1.22021484375,
+              1.1943359375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688024,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903122,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998306,
+              "RetransSegs": 423669615
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2,
+              "LAST-ACK": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:40.420840+00:00",
+            "load": [
+              1.3603515625,
+              1.21630859375,
+              1.19287109375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688033,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903124,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998306,
+              "RetransSegs": 423669625
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 3
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:43.445527+00:00",
+            "load": [
+              1.3310546875,
+              1.21240234375,
+              1.19140625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688038,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903127,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998306,
+              "RetransSegs": 423669630
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:46.470661+00:00",
+            "load": [
+              1.3310546875,
+              1.21240234375,
+              1.19140625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688046,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903134,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998306,
+              "RetransSegs": 423669638
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:49.494818+00:00",
+            "load": [
+              1.30419921875,
+              1.20849609375,
+              1.18994140625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688052,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903137,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998306,
+              "RetransSegs": 423669641
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:52.518664+00:00",
+            "load": [
+              1.30419921875,
+              1.20849609375,
+              1.18994140625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688056,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903140,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998306,
+              "RetransSegs": 423669645
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:09:55.542477+00:00",
+            "load": [
+              1.27978515625,
+              1.20458984375,
+              1.1884765625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12688058,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903142,
+              "AttemptFails": 1046861,
+              "EstabResets": 1998306,
+              "RetransSegs": 423669647
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          }
+        ],
+        "packetMetadata": {
+          "available": true,
+          "payloadRetained": false,
+          "rawPacketTextRetained": false,
+          "scope": "TCP443 metadata for SSH peer only; HTTPS egress may differ",
+          "sshPeerAddressSHA256": "7c037f3f78106e1b810cabbb61054b30631995cf7f1094caef4a0d18c9c59522",
+          "exitCode": 124,
+          "boundedTimeout": true,
+          "events": [],
+          "packetLimitReached": false
+        },
+        "details": {
+          "observedAt": "2026-09-19T16:09:59.405036+00:00",
+          "cpuCount": 8,
+          "kernel": "6.8.0-101-generic",
+          "caddyVersion": {
+            "exitCode": 0,
+            "output": "2.6.2\n"
+          },
+          "services": {
+            "exitCode": 0,
+            "output": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=131510272\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=11532537856\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9375744\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8572928\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n"
+          },
+          "sysctls": {
+            "exitCode": 0,
+            "output": "net.core.somaxconn = 4096\nnet.ipv4.tcp_max_syn_backlog = 2048\nnet.ipv4.tcp_syncookies = 1\nnet.ipv4.tcp_synack_retries = 5\nnet.ipv4.tcp_syn_retries = 6\nnet.ipv4.tcp_mtu_probing = 0\n"
+          },
+          "memoryKB": {
+            "MemTotal": 31956824,
+            "MemAvailable": 16844668,
+            "SwapFree": 1881608
+          },
+          "diskConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "loadedConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "caddyfileSHA256": {
+            "exitCode": 0,
+            "output": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9  /etc/caddy/Caddyfile\n"
+          },
+          "caddyJournal": {
+            "exitCode": 0,
+            "entries": 2,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "kernelJournal": {
+            "exitCode": 0,
+            "entries": 0,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "localProbes": [
+            {
+              "host": "rpc.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000131 0.028368 0.029566 0.029611 0"
+            },
+            {
+              "host": "rpc-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000153 0.025279 0.026355 0.026454 0"
+            },
+            {
+              "host": "faucet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000139 0.029727 0.031520 0.031569 0"
+            },
+            {
+              "host": "faucet-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000105 0.027203 0.029055 0.029097 0"
+            },
+            {
+              "port": 6420,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.000538 0.000573"
+            },
+            {
+              "port": 6428,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.001225 0.001263"
+            }
+          ]
+        },
+        "finishedAt": "2026-09-19T16:09:59.745684+00:00"
+      },
+      "withinWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 43,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 26,
+        "AttemptFails": 0,
+        "EstabResets": 0,
+        "RetransSegs": 45
+      },
+      "sincePreviousWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 12,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 7,
+        "AttemptFails": 0,
+        "EstabResets": 4,
+        "RetransSegs": 10
+      },
+      "coverage": [
+        {
+          "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-2-rpc-legacy",
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-2-rpc-canonical",
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-2-faucet-legacy",
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-2-faucet-canonical",
+          "failure": true,
+          "clientWindowCovered": true
+        }
+      ],
+      "clockSkewNotCorrected": true,
+      "countersAreHostWide": true,
+      "requestFlowAttributionProven": false
+    },
+    {
+      "type": "round",
+      "round": 2,
+      "at": "2026-09-19T16:09:59.854Z",
+      "attempted": 4,
+      "healthy": 3,
+      "failed": 1
+    },
+    {
+      "type": "summary",
+      "schema": "ynx-testnet-transport-monitor/v1",
+      "runId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf",
+      "finishedAt": "2026-09-19T16:09:59.868Z",
+      "vantage": "macos-owner",
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-09-19T16:09:31.488Z",
+          "attempted": 4,
+          "healthy": 4,
+          "failed": 0
+        },
+        {
+          "round": 2,
+          "at": "2026-09-19T16:09:59.854Z",
+          "attempted": 4,
+          "healthy": 3,
+          "failed": 1
+        }
+      ],
+      "failures": [
+        {
+          "round": 2,
+          "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-2-faucet-canonical",
+          "classification": "tls-verification-failed"
+        }
+      ],
+      "interrupted": false,
+      "allSamplesHealthy": false,
+      "rootCauseConfirmed": false,
+      "continuousAvailabilityVerified": false,
+      "globalRegionalVerified": false,
+      "serviceChanges": 0,
+      "faucetClaims": 0,
+      "transactionSubmissions": 0
+    }
+  ]
+}

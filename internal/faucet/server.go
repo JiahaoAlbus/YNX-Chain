@@ -16,6 +16,8 @@ const MaxRequestBodyBytes = 16 * 1024
 var defaultFaucetAllowedOrigins = []string{
 	"https://ynxweb4.com",
 	"https://www.ynxweb4.com",
+	"https://wallet.ynxweb4.com",
+	"https://faucet-testnet.ynxweb4.com",
 	"https://faucet.ynxweb4.com",
 }
 

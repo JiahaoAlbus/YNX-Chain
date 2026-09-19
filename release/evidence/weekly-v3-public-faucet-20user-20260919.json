@@ -1,0 +1,1808 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-19T14:25:52.083Z",
+  "test": "public-faucet-shared-nat-cross-alias-concurrency",
+  "count": 20,
+  "firstStatusCounts": {
+    "201": 20
+  },
+  "replayStatusCounts": {
+    "200": 20
+  },
+  "uniqueTransactionHashes": 20,
+  "allPassed": true,
+  "maxFirstSeconds": 11.478364583,
+  "maxReplaySeconds": 0.5229594579999993,
+  "dnsTarget": "43.153.202.237",
+  "items": [
+    {
+      "index": 0,
+      "address": "0xbb5a887e89598afc44ae314d2f1629a97de03f89",
+      "requestId": "faucet_public_20981d84d476471993bf8f2ee92d3dd7",
+      "host": "faucet-testnet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 1,
+      "address": "0x31ac162bf12dba419f30a04cde46f6c0ca44acf1",
+      "requestId": "faucet_public_2418f9209ee44006bf6c39dff21d8c70",
+      "host": "faucet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 2,
+      "address": "0xc45e41528cac53d2c936600f94a6cd5cb0da0490",
+      "requestId": "faucet_public_58d48c61c63b4bccb14f0f0478adf507",
+      "host": "faucet-testnet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 3,
+      "address": "0x9765465bd424c89eb5864f956a319f1694d5c086",
+      "requestId": "faucet_public_472b03141ae148db8cb711ecec434f37",
+      "host": "faucet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 4,
+      "address": "0x7a45263ce4848b8a90de212e1c7eda83a139e8c7",
+      "requestId": "faucet_public_4bee07abcb134e0a921c694fe17e8445",
+      "host": "faucet-testnet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 5,
+      "address": "0x60f5ee4ecf125366c8d47018f32791e5e793b555",
+      "requestId": "faucet_public_563398a719934f9194a7d9f738b61a29",
+      "host": "faucet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 6,
+      "address": "0x18a3228fc11ced3b7478ba24ae2a4fdcd8fb75d7",
+      "requestId": "faucet_public_3e44296308cb4d85b5c1588a6a15a326",
+      "host": "faucet-testnet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 7,
+      "address": "0x5520e822b2aadaffd93b95ee8aa7f489b0877172",
+      "requestId": "faucet_public_8898fffab0ba486bae05289336b1e9cc",
+      "host": "faucet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 8,
+      "address": "0x02652907198b37fe08fda37b4a872b711ebd0cb0",
+      "requestId": "faucet_public_9936532c35254adc85c4ea7ccefa808d",
+      "host": "faucet-testnet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 9,
+      "address": "0xfb25f8997137ed0a02a7e29c7f0791e08f089acb",
+      "requestId": "faucet_public_38ea90646954450fb3581a5e6e168900",
+      "host": "faucet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 10,
+      "address": "0x422143eb3435984aa4edfe2e2e8db9417ef6b7d0",
+      "requestId": "faucet_public_c83a8f072d6846d5b2280fa4c0cb7960",
+      "host": "faucet-testnet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 11,
+      "address": "0x05e2e8cabad30dc8a2621e34081b1aeee45c8139",
+      "requestId": "faucet_public_50f6a0521d26486ba72ec7dca3dd32c4",
+      "host": "faucet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 12,
+      "address": "0x92639f9b4754c9932d6e12e2dfce1e782f7f4932",
+      "requestId": "faucet_public_5eae46ce6e5c44cb83dbfa39cf0381d7",
+      "host": "faucet-testnet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 13,
+      "address": "0x7a30550386dab985e928468086dac8ffcfaf49ac",
+      "requestId": "faucet_public_aba3d55501e849f6ab85f7bed2c50069",
+      "host": "faucet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 14,
+      "address": "0x86721106be59360f22c8a932431dad6e1fe65997",
+      "requestId": "faucet_public_27f93746437c4e0492026bc43d27a4fe",
+      "host": "faucet-testnet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 15,
+      "address": "0xbcde80c80b43491da88bd75e3c9df3f5aabd0b54",
+      "requestId": "faucet_public_3d54c67f9e4a45eface52d568b1d336a",
+      "host": "faucet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 16,
+      "address": "0xc22f2bf7d8744d9f781b8cba5ff44b0c404f76a7",
+      "requestId": "faucet_public_1e448d83c0e84b32bdfba3e9973cb3df",
+      "host": "faucet-testnet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 17,
+      "address": "0x9cc1487289dda5f4d8c9c93576930993f480c927",
+      "requestId": "faucet_public_b9732a2e1af94bccb6c624e73079b376",
+      "host": "faucet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 18,
+      "address": "0xdc91f41a3febeaec19d63c3038b21d817c47c68f",
+      "requestId": "faucet_public_9d95e86b0cda41e69c3f0dcb3f07cf35",
+      "host": "faucet-testnet.ynxweb4.com",
+      "amount": 100
+    },
+    {
+      "index": 19,
+      "address": "0xd9a685dd0f8c5b11f99f6e25c08dcfbc15516891",
+      "requestId": "faucet_public_ce202b5ee92f4f3f9159c01d5e9fd3e4",
+      "host": "faucet.ynxweb4.com",
+      "amount": 100
+    }
+  ],
+  "first": [
+    {
+      "index": 0,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.832217125000001,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xc2bd65003ffb04971aeb49f060932a295ae2820d7c68d2c3f3b93a7c4aff763c",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xbb5a887e89598afc44ae314d2f1629a97de03f89",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.609129179Z",
+          "lotFlows": [
+            {
+              "lotId": "8d3e028ec8fc631168ce15739754d58c8b850248ff5091670366440320b25bb4",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xbb5a887e89598afc44ae314d2f1629a97de03f89"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xbb5a887e89598afc44ae314d2f1629a97de03f89",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_20981d84d476471993bf8f2ee92d3dd7",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xc2bd65003ffb04971aeb49f060932a295ae2820d7c68d2c3f3b93a7c4aff763c",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 1,
+      "host": "faucet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 11.276708124999999,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xfe43ddd187b86b9f29e545348b3c0ec60a1cbcf58482f285bc88190e44e75304",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x31ac162bf12dba419f30a04cde46f6c0ca44acf1",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.558755089Z",
+          "lotFlows": [
+            {
+              "lotId": "63c167fe47f2ea07c9f32db78468caff31ad13efacae628056a86528915ad9a6",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x31ac162bf12dba419f30a04cde46f6c0ca44acf1"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x31ac162bf12dba419f30a04cde46f6c0ca44acf1",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_2418f9209ee44006bf6c39dff21d8c70",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xfe43ddd187b86b9f29e545348b3c0ec60a1cbcf58482f285bc88190e44e75304",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 2,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.820617750000002,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x0d53f5cf826261dadf995c1cef603a0e718b454139f41850c57833021797647e",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xc45e41528cac53d2c936600f94a6cd5cb0da0490",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.616289498Z",
+          "lotFlows": [
+            {
+              "lotId": "48c40bbc90d788cb02fa3e57c0a264e3ada4359aa90634540bba4ce2814220b2",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xc45e41528cac53d2c936600f94a6cd5cb0da0490"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xc45e41528cac53d2c936600f94a6cd5cb0da0490",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_58d48c61c63b4bccb14f0f0478adf507",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x0d53f5cf826261dadf995c1cef603a0e718b454139f41850c57833021797647e",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 3,
+      "host": "faucet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 11.411845750000001,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x05ad861f7052b05aa85b10681783f645cf7231b6306303bdc7e5220b3e91d36f",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x9765465bd424c89eb5864f956a319f1694d5c086",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.644966242Z",
+          "lotFlows": [
+            {
+              "lotId": "b1ef51a08cb1e09aed433cbd0dc839906f1a1f3209f9b813aeb3ee5407b42876",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x9765465bd424c89eb5864f956a319f1694d5c086"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x9765465bd424c89eb5864f956a319f1694d5c086",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_472b03141ae148db8cb711ecec434f37",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x05ad861f7052b05aa85b10681783f645cf7231b6306303bdc7e5220b3e91d36f",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 4,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.820422042,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x1b25f3b49197f843636a07169717ef99fea9d82b93134ce1a091a6b647c8ab0f",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x7a45263ce4848b8a90de212e1c7eda83a139e8c7",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.601931502Z",
+          "lotFlows": [
+            {
+              "lotId": "6bda663eee8731f7b6e5c1c8d979a214bbf8719cfc34a8c7ffad105985233041",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x7a45263ce4848b8a90de212e1c7eda83a139e8c7"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x7a45263ce4848b8a90de212e1c7eda83a139e8c7",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_4bee07abcb134e0a921c694fe17e8445",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x1b25f3b49197f843636a07169717ef99fea9d82b93134ce1a091a6b647c8ab0f",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 5,
+      "host": "faucet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.8221345,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xfd5eb4b2cf7cd1b0780b2ce7d75ef2ab211116590d0bfb775b6797d69faeccde",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x60f5ee4ecf125366c8d47018f32791e5e793b555",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.6306743Z",
+          "lotFlows": [
+            {
+              "lotId": "7c354c9b6876ffd14c6202180a5e5109956e150feffe669f66170249c2e105b5",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x60f5ee4ecf125366c8d47018f32791e5e793b555"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x60f5ee4ecf125366c8d47018f32791e5e793b555",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_563398a719934f9194a7d9f738b61a29",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xfd5eb4b2cf7cd1b0780b2ce7d75ef2ab211116590d0bfb775b6797d69faeccde",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 6,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 6.531895834000001,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xa2c447acb0a795a9b6352290a6c8b7a8091448e2d87987bbc9f64212f3b6ccf6",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x18a3228fc11ced3b7478ba24ae2a4fdcd8fb75d7",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:42.384942176Z",
+          "lotFlows": [
+            {
+              "lotId": "37753238c2d3a6f64857a45c704c11c09718177064359fb48dfb164a58f413bd",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x18a3228fc11ced3b7478ba24ae2a4fdcd8fb75d7"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x18a3228fc11ced3b7478ba24ae2a4fdcd8fb75d7",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_3e44296308cb4d85b5c1588a6a15a326",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xa2c447acb0a795a9b6352290a6c8b7a8091448e2d87987bbc9f64212f3b6ccf6",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 7,
+      "host": "faucet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.819066042000001,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x4784e2ed60d1d7389c5f91037b7e84de6759bc3399a6ce2fae0d55c38992b384",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x5520e822b2aadaffd93b95ee8aa7f489b0877172",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.566037545Z",
+          "lotFlows": [
+            {
+              "lotId": "8cb24ce5a881ce9682cd1f8dfe3d09e29d0ed54d9a0ef6d904b183d70d2e26e3",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x5520e822b2aadaffd93b95ee8aa7f489b0877172"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x5520e822b2aadaffd93b95ee8aa7f489b0877172",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_8898fffab0ba486bae05289336b1e9cc",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x4784e2ed60d1d7389c5f91037b7e84de6759bc3399a6ce2fae0d55c38992b384",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 8,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.813591124999999,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xead5060b1937802c8a1d5b4b7fc201b86ed6ca4dbbb82f737d753e1d19c35402",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x02652907198b37fe08fda37b4a872b711ebd0cb0",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.65213689Z",
+          "lotFlows": [
+            {
+              "lotId": "59684d57c4ce1d873fffb92e12a58fffc63b33da3c0e173078389184908ee7af",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x02652907198b37fe08fda37b4a872b711ebd0cb0"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x02652907198b37fe08fda37b4a872b711ebd0cb0",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_9936532c35254adc85c4ea7ccefa808d",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xead5060b1937802c8a1d5b4b7fc201b86ed6ca4dbbb82f737d753e1d19c35402",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 9,
+      "host": "faucet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.813776417,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x16eaf03415d33cc0c9bab5936ae88f44ea6f6e1f5fc1f773a53dd3f3a2dea67f",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xfb25f8997137ed0a02a7e29c7f0791e08f089acb",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.544367657Z",
+          "lotFlows": [
+            {
+              "lotId": "8a0b9f8b403f8dd925880610c9b5bda3eb291446347b5eb3befa5c7b46f89939",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xfb25f8997137ed0a02a7e29c7f0791e08f089acb"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xfb25f8997137ed0a02a7e29c7f0791e08f089acb",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_38ea90646954450fb3581a5e6e168900",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x16eaf03415d33cc0c9bab5936ae88f44ea6f6e1f5fc1f773a53dd3f3a2dea67f",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 10,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 6.529098958,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x6124b8a1acda06398bf72aee909de794b71090962a5a331884a2083367f3efef",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x422143eb3435984aa4edfe2e2e8db9417ef6b7d0",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:42.392198176Z",
+          "lotFlows": [
+            {
+              "lotId": "0e23278ee8207abf82ded7fe2978c90e569d4a71c954cef4944869b3b54d583c",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x422143eb3435984aa4edfe2e2e8db9417ef6b7d0"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x422143eb3435984aa4edfe2e2e8db9417ef6b7d0",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_c83a8f072d6846d5b2280fa4c0cb7960",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x6124b8a1acda06398bf72aee909de794b71090962a5a331884a2083367f3efef",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 11,
+      "host": "faucet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 6.6754468750000004,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x2bb369ac1e07b6869e91e312b125ed34020cce78fa71b7e8c5ce2ce180e704c3",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x05e2e8cabad30dc8a2621e34081b1aeee45c8139",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:42.377715334Z",
+          "lotFlows": [
+            {
+              "lotId": "ecc18c346b21bb179fe62f76d57b9e1993bf1d551690f0bfae8c1bba32102fbf",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x05e2e8cabad30dc8a2621e34081b1aeee45c8139"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x05e2e8cabad30dc8a2621e34081b1aeee45c8139",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_50f6a0521d26486ba72ec7dca3dd32c4",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x2bb369ac1e07b6869e91e312b125ed34020cce78fa71b7e8c5ce2ce180e704c3",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 12,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.813323542000001,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xad4f758e42f8e64adabb405ef5ff8eca7e745aa99afb6471ed1fb13400c2ec63",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x92639f9b4754c9932d6e12e2dfce1e782f7f4932",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.580321378Z",
+          "lotFlows": [
+            {
+              "lotId": "a8193cd2a7ccc6ea6e5161591fe639d0cc8ba11d3cf410c1fe0b95fc9fee86be",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x92639f9b4754c9932d6e12e2dfce1e782f7f4932"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x92639f9b4754c9932d6e12e2dfce1e782f7f4932",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_5eae46ce6e5c44cb83dbfa39cf0381d7",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xad4f758e42f8e64adabb405ef5ff8eca7e745aa99afb6471ed1fb13400c2ec63",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 13,
+      "host": "faucet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.812473292,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x19ba551aa8caba13b94bc7c6055cb153a5bdb1f43fb11d2ceddf4856678b886c",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x7a30550386dab985e928468086dac8ffcfaf49ac",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.537197979Z",
+          "lotFlows": [
+            {
+              "lotId": "bacefa645d6a23aa6a196b5041551f280b34041173349b411f3c482d1a709e17",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x7a30550386dab985e928468086dac8ffcfaf49ac"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x7a30550386dab985e928468086dac8ffcfaf49ac",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_aba3d55501e849f6ab85f7bed2c50069",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x19ba551aa8caba13b94bc7c6055cb153a5bdb1f43fb11d2ceddf4856678b886c",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 14,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.804854375,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x8ba5cbe3d86ae526ecb30e44b35d9a504494bf89621050a147cc12feb6db8b1d",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x86721106be59360f22c8a932431dad6e1fe65997",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.573206043Z",
+          "lotFlows": [
+            {
+              "lotId": "5bf2cea239a90da7c9dfea0379ec90ad48d834e35b2978b8a7096d0ded2554a6",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x86721106be59360f22c8a932431dad6e1fe65997"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x86721106be59360f22c8a932431dad6e1fe65997",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_27f93746437c4e0492026bc43d27a4fe",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x8ba5cbe3d86ae526ecb30e44b35d9a504494bf89621050a147cc12feb6db8b1d",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 15,
+      "host": "faucet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 11.318832417,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x070fedc074ac67e10e01ff0bc85ffcfa9c9352f01eeead357a1874a7165fd920",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xbcde80c80b43491da88bd75e3c9df3f5aabd0b54",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.587564249Z",
+          "lotFlows": [
+            {
+              "lotId": "1d6a21e6761e225bd3dd2dda35bf3baf99111007f96c3dc6f84e60cff05977cf",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xbcde80c80b43491da88bd75e3c9df3f5aabd0b54"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xbcde80c80b43491da88bd75e3c9df3f5aabd0b54",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_3d54c67f9e4a45eface52d568b1d336a",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x070fedc074ac67e10e01ff0bc85ffcfa9c9352f01eeead357a1874a7165fd920",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 16,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.812853875,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x3db7064b32e93ed7896404eafd80ae069c4ff6b4dc0fd047b4533458869bc1bf",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xc22f2bf7d8744d9f781b8cba5ff44b0c404f76a7",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.623496123Z",
+          "lotFlows": [
+            {
+              "lotId": "ea3be40d061c42b7bf0eeda1581411c2b8dda8632f00ab9065e392f42e8ea837",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xc22f2bf7d8744d9f781b8cba5ff44b0c404f76a7"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xc22f2bf7d8744d9f781b8cba5ff44b0c404f76a7",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_1e448d83c0e84b32bdfba3e9973cb3df",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x3db7064b32e93ed7896404eafd80ae069c4ff6b4dc0fd047b4533458869bc1bf",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 17,
+      "host": "faucet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.805018124999998,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xce29bc92e0af5f8e33c9f85f6ed712bd548783b8181422465e5f04605c622ad2",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x9cc1487289dda5f4d8c9c93576930993f480c927",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.637815702Z",
+          "lotFlows": [
+            {
+              "lotId": "caa044a469fb7ca861bb6c094396f8f40737df0fee8d52fc4f0c48f959d7549e",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x9cc1487289dda5f4d8c9c93576930993f480c927"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x9cc1487289dda5f4d8c9c93576930993f480c927",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_b9732a2e1af94bccb6c624e73079b376",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xce29bc92e0af5f8e33c9f85f6ed712bd548783b8181422465e5f04605c622ad2",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 18,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 10.809018875,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xace73bdede9d065c8759a1282f28887589be2ea03884ebdde2f643c768736a5d",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xdc91f41a3febeaec19d63c3038b21d817c47c68f",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.551566572Z",
+          "lotFlows": [
+            {
+              "lotId": "15b7894e52909582ac6b514207e8c4b04605fd6e20e9a413380c351f2822e1f2",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xdc91f41a3febeaec19d63c3038b21d817c47c68f"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xdc91f41a3febeaec19d63c3038b21d817c47c68f",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_9d95e86b0cda41e69c3f0dcb3f07cf35",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xace73bdede9d065c8759a1282f28887589be2ea03884ebdde2f643c768736a5d",
+        "status": "accepted"
+      }
+    },
+    {
+      "index": 19,
+      "host": "faucet.ynxweb4.com",
+      "status": 201,
+      "elapsed": 11.478364583,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xabb3f98979a143a7d4d9238138b1a8187ce7cc331c65616ee616fef3151a99fc",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xd9a685dd0f8c5b11f99f6e25c08dcfbc15516891",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.594815489Z",
+          "lotFlows": [
+            {
+              "lotId": "c5057cd1f4579c181f72ab6dbf50bb22c9d9fa1f8b9acc50ed5663157bf7a8de",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xd9a685dd0f8c5b11f99f6e25c08dcfbc15516891"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xd9a685dd0f8c5b11f99f6e25c08dcfbc15516891",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_ce202b5ee92f4f3f9159c01d5e9fd3e4",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xabb3f98979a143a7d4d9238138b1a8187ce7cc331c65616ee616fef3151a99fc",
+        "status": "accepted"
+      }
+    }
+  ],
+  "replay": [
+    {
+      "index": 0,
+      "host": "faucet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.11057699999999931,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xc2bd65003ffb04971aeb49f060932a295ae2820d7c68d2c3f3b93a7c4aff763c",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xbb5a887e89598afc44ae314d2f1629a97de03f89",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.609129179Z",
+          "lotFlows": [
+            {
+              "lotId": "8d3e028ec8fc631168ce15739754d58c8b850248ff5091670366440320b25bb4",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xbb5a887e89598afc44ae314d2f1629a97de03f89"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xbb5a887e89598afc44ae314d2f1629a97de03f89",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_20981d84d476471993bf8f2ee92d3dd7",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xc2bd65003ffb04971aeb49f060932a295ae2820d7c68d2c3f3b93a7c4aff763c",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 1,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.10848812499999985,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xfe43ddd187b86b9f29e545348b3c0ec60a1cbcf58482f285bc88190e44e75304",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x31ac162bf12dba419f30a04cde46f6c0ca44acf1",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.558755089Z",
+          "lotFlows": [
+            {
+              "lotId": "63c167fe47f2ea07c9f32db78468caff31ad13efacae628056a86528915ad9a6",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x31ac162bf12dba419f30a04cde46f6c0ca44acf1"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x31ac162bf12dba419f30a04cde46f6c0ca44acf1",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_2418f9209ee44006bf6c39dff21d8c70",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xfe43ddd187b86b9f29e545348b3c0ec60a1cbcf58482f285bc88190e44e75304",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 2,
+      "host": "faucet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.10756187499999942,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x0d53f5cf826261dadf995c1cef603a0e718b454139f41850c57833021797647e",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xc45e41528cac53d2c936600f94a6cd5cb0da0490",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.616289498Z",
+          "lotFlows": [
+            {
+              "lotId": "48c40bbc90d788cb02fa3e57c0a264e3ada4359aa90634540bba4ce2814220b2",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xc45e41528cac53d2c936600f94a6cd5cb0da0490"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xc45e41528cac53d2c936600f94a6cd5cb0da0490",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_58d48c61c63b4bccb14f0f0478adf507",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x0d53f5cf826261dadf995c1cef603a0e718b454139f41850c57833021797647e",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 3,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.1199643329999999,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x05ad861f7052b05aa85b10681783f645cf7231b6306303bdc7e5220b3e91d36f",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x9765465bd424c89eb5864f956a319f1694d5c086",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.644966242Z",
+          "lotFlows": [
+            {
+              "lotId": "b1ef51a08cb1e09aed433cbd0dc839906f1a1f3209f9b813aeb3ee5407b42876",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x9765465bd424c89eb5864f956a319f1694d5c086"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x9765465bd424c89eb5864f956a319f1694d5c086",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_472b03141ae148db8cb711ecec434f37",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x05ad861f7052b05aa85b10681783f645cf7231b6306303bdc7e5220b3e91d36f",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 4,
+      "host": "faucet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.11127100000000065,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x1b25f3b49197f843636a07169717ef99fea9d82b93134ce1a091a6b647c8ab0f",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x7a45263ce4848b8a90de212e1c7eda83a139e8c7",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.601931502Z",
+          "lotFlows": [
+            {
+              "lotId": "6bda663eee8731f7b6e5c1c8d979a214bbf8719cfc34a8c7ffad105985233041",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x7a45263ce4848b8a90de212e1c7eda83a139e8c7"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x7a45263ce4848b8a90de212e1c7eda83a139e8c7",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_4bee07abcb134e0a921c694fe17e8445",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x1b25f3b49197f843636a07169717ef99fea9d82b93134ce1a091a6b647c8ab0f",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 5,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.1097247499999994,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xfd5eb4b2cf7cd1b0780b2ce7d75ef2ab211116590d0bfb775b6797d69faeccde",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x60f5ee4ecf125366c8d47018f32791e5e793b555",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.6306743Z",
+          "lotFlows": [
+            {
+              "lotId": "7c354c9b6876ffd14c6202180a5e5109956e150feffe669f66170249c2e105b5",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x60f5ee4ecf125366c8d47018f32791e5e793b555"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x60f5ee4ecf125366c8d47018f32791e5e793b555",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_563398a719934f9194a7d9f738b61a29",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xfd5eb4b2cf7cd1b0780b2ce7d75ef2ab211116590d0bfb775b6797d69faeccde",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 6,
+      "host": "faucet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.11003345799999988,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xa2c447acb0a795a9b6352290a6c8b7a8091448e2d87987bbc9f64212f3b6ccf6",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x18a3228fc11ced3b7478ba24ae2a4fdcd8fb75d7",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:42.384942176Z",
+          "lotFlows": [
+            {
+              "lotId": "37753238c2d3a6f64857a45c704c11c09718177064359fb48dfb164a58f413bd",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x18a3228fc11ced3b7478ba24ae2a4fdcd8fb75d7"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x18a3228fc11ced3b7478ba24ae2a4fdcd8fb75d7",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_3e44296308cb4d85b5c1588a6a15a326",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xa2c447acb0a795a9b6352290a6c8b7a8091448e2d87987bbc9f64212f3b6ccf6",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 7,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.11162345800000002,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x4784e2ed60d1d7389c5f91037b7e84de6759bc3399a6ce2fae0d55c38992b384",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x5520e822b2aadaffd93b95ee8aa7f489b0877172",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.566037545Z",
+          "lotFlows": [
+            {
+              "lotId": "8cb24ce5a881ce9682cd1f8dfe3d09e29d0ed54d9a0ef6d904b183d70d2e26e3",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x5520e822b2aadaffd93b95ee8aa7f489b0877172"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x5520e822b2aadaffd93b95ee8aa7f489b0877172",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_8898fffab0ba486bae05289336b1e9cc",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x4784e2ed60d1d7389c5f91037b7e84de6759bc3399a6ce2fae0d55c38992b384",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 8,
+      "host": "faucet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.11164854100000048,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xead5060b1937802c8a1d5b4b7fc201b86ed6ca4dbbb82f737d753e1d19c35402",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x02652907198b37fe08fda37b4a872b711ebd0cb0",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.65213689Z",
+          "lotFlows": [
+            {
+              "lotId": "59684d57c4ce1d873fffb92e12a58fffc63b33da3c0e173078389184908ee7af",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x02652907198b37fe08fda37b4a872b711ebd0cb0"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x02652907198b37fe08fda37b4a872b711ebd0cb0",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_9936532c35254adc85c4ea7ccefa808d",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xead5060b1937802c8a1d5b4b7fc201b86ed6ca4dbbb82f737d753e1d19c35402",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 9,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.111117083000001,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x16eaf03415d33cc0c9bab5936ae88f44ea6f6e1f5fc1f773a53dd3f3a2dea67f",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xfb25f8997137ed0a02a7e29c7f0791e08f089acb",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.544367657Z",
+          "lotFlows": [
+            {
+              "lotId": "8a0b9f8b403f8dd925880610c9b5bda3eb291446347b5eb3befa5c7b46f89939",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xfb25f8997137ed0a02a7e29c7f0791e08f089acb"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xfb25f8997137ed0a02a7e29c7f0791e08f089acb",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_38ea90646954450fb3581a5e6e168900",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x16eaf03415d33cc0c9bab5936ae88f44ea6f6e1f5fc1f773a53dd3f3a2dea67f",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 10,
+      "host": "faucet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.10216970899999979,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x6124b8a1acda06398bf72aee909de794b71090962a5a331884a2083367f3efef",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x422143eb3435984aa4edfe2e2e8db9417ef6b7d0",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:42.392198176Z",
+          "lotFlows": [
+            {
+              "lotId": "0e23278ee8207abf82ded7fe2978c90e569d4a71c954cef4944869b3b54d583c",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x422143eb3435984aa4edfe2e2e8db9417ef6b7d0"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x422143eb3435984aa4edfe2e2e8db9417ef6b7d0",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_c83a8f072d6846d5b2280fa4c0cb7960",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x6124b8a1acda06398bf72aee909de794b71090962a5a331884a2083367f3efef",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 11,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.10929179199999998,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x2bb369ac1e07b6869e91e312b125ed34020cce78fa71b7e8c5ce2ce180e704c3",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x05e2e8cabad30dc8a2621e34081b1aeee45c8139",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:42.377715334Z",
+          "lotFlows": [
+            {
+              "lotId": "ecc18c346b21bb179fe62f76d57b9e1993bf1d551690f0bfae8c1bba32102fbf",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x05e2e8cabad30dc8a2621e34081b1aeee45c8139"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x05e2e8cabad30dc8a2621e34081b1aeee45c8139",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_50f6a0521d26486ba72ec7dca3dd32c4",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x2bb369ac1e07b6869e91e312b125ed34020cce78fa71b7e8c5ce2ce180e704c3",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 12,
+      "host": "faucet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.1016449160000011,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xad4f758e42f8e64adabb405ef5ff8eca7e745aa99afb6471ed1fb13400c2ec63",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x92639f9b4754c9932d6e12e2dfce1e782f7f4932",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.580321378Z",
+          "lotFlows": [
+            {
+              "lotId": "a8193cd2a7ccc6ea6e5161591fe639d0cc8ba11d3cf410c1fe0b95fc9fee86be",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x92639f9b4754c9932d6e12e2dfce1e782f7f4932"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x92639f9b4754c9932d6e12e2dfce1e782f7f4932",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_5eae46ce6e5c44cb83dbfa39cf0381d7",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xad4f758e42f8e64adabb405ef5ff8eca7e745aa99afb6471ed1fb13400c2ec63",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 13,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.505925083,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x19ba551aa8caba13b94bc7c6055cb153a5bdb1f43fb11d2ceddf4856678b886c",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x7a30550386dab985e928468086dac8ffcfaf49ac",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.537197979Z",
+          "lotFlows": [
+            {
+              "lotId": "bacefa645d6a23aa6a196b5041551f280b34041173349b411f3c482d1a709e17",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x7a30550386dab985e928468086dac8ffcfaf49ac"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x7a30550386dab985e928468086dac8ffcfaf49ac",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_aba3d55501e849f6ab85f7bed2c50069",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x19ba551aa8caba13b94bc7c6055cb153a5bdb1f43fb11d2ceddf4856678b886c",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 14,
+      "host": "faucet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.5229594579999993,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x8ba5cbe3d86ae526ecb30e44b35d9a504494bf89621050a147cc12feb6db8b1d",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x86721106be59360f22c8a932431dad6e1fe65997",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.573206043Z",
+          "lotFlows": [
+            {
+              "lotId": "5bf2cea239a90da7c9dfea0379ec90ad48d834e35b2978b8a7096d0ded2554a6",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x86721106be59360f22c8a932431dad6e1fe65997"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x86721106be59360f22c8a932431dad6e1fe65997",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_27f93746437c4e0492026bc43d27a4fe",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x8ba5cbe3d86ae526ecb30e44b35d9a504494bf89621050a147cc12feb6db8b1d",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 15,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.11067004199999973,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x070fedc074ac67e10e01ff0bc85ffcfa9c9352f01eeead357a1874a7165fd920",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xbcde80c80b43491da88bd75e3c9df3f5aabd0b54",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.587564249Z",
+          "lotFlows": [
+            {
+              "lotId": "1d6a21e6761e225bd3dd2dda35bf3baf99111007f96c3dc6f84e60cff05977cf",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xbcde80c80b43491da88bd75e3c9df3f5aabd0b54"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xbcde80c80b43491da88bd75e3c9df3f5aabd0b54",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_3d54c67f9e4a45eface52d568b1d336a",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x070fedc074ac67e10e01ff0bc85ffcfa9c9352f01eeead357a1874a7165fd920",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 16,
+      "host": "faucet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.10146391699999913,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0x3db7064b32e93ed7896404eafd80ae069c4ff6b4dc0fd047b4533458869bc1bf",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xc22f2bf7d8744d9f781b8cba5ff44b0c404f76a7",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.623496123Z",
+          "lotFlows": [
+            {
+              "lotId": "ea3be40d061c42b7bf0eeda1581411c2b8dda8632f00ab9065e392f42e8ea837",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xc22f2bf7d8744d9f781b8cba5ff44b0c404f76a7"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xc22f2bf7d8744d9f781b8cba5ff44b0c404f76a7",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_1e448d83c0e84b32bdfba3e9973cb3df",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0x3db7064b32e93ed7896404eafd80ae069c4ff6b4dc0fd047b4533458869bc1bf",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 17,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.1008364160000001,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xce29bc92e0af5f8e33c9f85f6ed712bd548783b8181422465e5f04605c622ad2",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x9cc1487289dda5f4d8c9c93576930993f480c927",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.637815702Z",
+          "lotFlows": [
+            {
+              "lotId": "caa044a469fb7ca861bb6c094396f8f40737df0fee8d52fc4f0c48f959d7549e",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0x9cc1487289dda5f4d8c9c93576930993f480c927"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0x9cc1487289dda5f4d8c9c93576930993f480c927",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_b9732a2e1af94bccb6c624e73079b376",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xce29bc92e0af5f8e33c9f85f6ed712bd548783b8181422465e5f04605c622ad2",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 18,
+      "host": "faucet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.1015369580000006,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xace73bdede9d065c8759a1282f28887589be2ea03884ebdde2f643c768736a5d",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xdc91f41a3febeaec19d63c3038b21d817c47c68f",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.551566572Z",
+          "lotFlows": [
+            {
+              "lotId": "15b7894e52909582ac6b514207e8c4b04605fd6e20e9a413380c351f2822e1f2",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xdc91f41a3febeaec19d63c3038b21d817c47c68f"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xdc91f41a3febeaec19d63c3038b21d817c47c68f",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_9d95e86b0cda41e69c3f0dcb3f07cf35",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xace73bdede9d065c8759a1282f28887589be2ea03884ebdde2f643c768736a5d",
+        "status": "accepted",
+        "replayed": true
+      }
+    },
+    {
+      "index": 19,
+      "host": "faucet-testnet.ynxweb4.com",
+      "status": 200,
+      "elapsed": 0.10390929200000028,
+      "exit": 0,
+      "response": {
+        "transaction": {
+          "hash": "0xabb3f98979a143a7d4d9238138b1a8187ce7cc331c65616ee616fef3151a99fc",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xd9a685dd0f8c5b11f99f6e25c08dcfbc15516891",
+          "amount": 100,
+          "fee": 0,
+          "nonce": 0,
+          "timestamp": "2026-09-19T14:25:46.594815489Z",
+          "lotFlows": [
+            {
+              "lotId": "c5057cd1f4579c181f72ab6dbf50bb22c9d9fa1f8b9acc50ed5663157bf7a8de",
+              "amount": 100,
+              "from": "ynx_faucet",
+              "to": "0xd9a685dd0f8c5b11f99f6e25c08dcfbc15516891"
+            }
+          ],
+          "memo": "devnet faucet mint"
+        },
+        "address": "0xd9a685dd0f8c5b11f99f6e25c08dcfbc15516891",
+        "amount": 100,
+        "nativeSymbol": "YNXT",
+        "requestId": "faucet_public_ce202b5ee92f4f3f9159c01d5e9fd3e4",
+        "truthfulStatus": "rpc-backed-faucet",
+        "transactionHash": "0xabb3f98979a143a7d4d9238138b1a8187ce7cc331c65616ee616fef3151a99fc",
+        "status": "accepted",
+        "replayed": true
+      }
+    }
+  ],
+  "failures": [],
+  "ledgerVerification": [
+    {
+      "index": 0,
+      "address": "0xbb5a887e89598afc44ae314d2f1629a97de03f89",
+      "hash": "0xc2bd65003ffb04971aeb49f060932a295ae2820d7c68d2c3f3b93a7c4aff763c",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 3.908059709,
+      "accountSeconds": 4.4146442079999995
+    },
+    {
+      "index": 1,
+      "address": "0x31ac162bf12dba419f30a04cde46f6c0ca44acf1",
+      "hash": "0xfe43ddd187b86b9f29e545348b3c0ec60a1cbcf58482f285bc88190e44e75304",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 3.8952595,
+      "accountSeconds": 8.373150667
+    },
+    {
+      "index": 2,
+      "address": "0xc45e41528cac53d2c936600f94a6cd5cb0da0490",
+      "hash": "0x0d53f5cf826261dadf995c1cef603a0e718b454139f41850c57833021797647e",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 3.8964867090000004,
+      "accountSeconds": 4.588453166
+    },
+    {
+      "index": 3,
+      "address": "0x9765465bd424c89eb5864f956a319f1694d5c086",
+      "hash": "0x05ad861f7052b05aa85b10681783f645cf7231b6306303bdc7e5220b3e91d36f",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 3.8963302079999997,
+      "accountSeconds": 3.896792667
+    },
+    {
+      "index": 4,
+      "address": "0x7a45263ce4848b8a90de212e1c7eda83a139e8c7",
+      "hash": "0x1b25f3b49197f843636a07169717ef99fea9d82b93134ce1a091a6b647c8ab0f",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 3.893450292,
+      "accountSeconds": 3.892536042
+    },
+    {
+      "index": 5,
+      "address": "0x60f5ee4ecf125366c8d47018f32791e5e793b555",
+      "hash": "0xfd5eb4b2cf7cd1b0780b2ce7d75ef2ab211116590d0bfb775b6797d69faeccde",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 3.8944535829999998,
+      "accountSeconds": 3.891750125
+    },
+    {
+      "index": 6,
+      "address": "0x18a3228fc11ced3b7478ba24ae2a4fdcd8fb75d7",
+      "hash": "0xa2c447acb0a795a9b6352290a6c8b7a8091448e2d87987bbc9f64212f3b6ccf6",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 3.893658583,
+      "accountSeconds": 3.8930264589999997
+    },
+    {
+      "index": 7,
+      "address": "0x5520e822b2aadaffd93b95ee8aa7f489b0877172",
+      "hash": "0x4784e2ed60d1d7389c5f91037b7e84de6759bc3399a6ce2fae0d55c38992b384",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 3.890840459,
+      "accountSeconds": 4.363993541
+    },
+    {
+      "index": 8,
+      "address": "0x02652907198b37fe08fda37b4a872b711ebd0cb0",
+      "hash": "0xead5060b1937802c8a1d5b4b7fc201b86ed6ca4dbbb82f737d753e1d19c35402",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 3.892142667,
+      "accountSeconds": 4.148162084000001
+    },
+    {
+      "index": 9,
+      "address": "0xfb25f8997137ed0a02a7e29c7f0791e08f089acb",
+      "hash": "0x16eaf03415d33cc0c9bab5936ae88f44ea6f6e1f5fc1f773a53dd3f3a2dea67f",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 4.450362125,
+      "accountSeconds": 4.0312295
+    },
+    {
+      "index": 10,
+      "address": "0x422143eb3435984aa4edfe2e2e8db9417ef6b7d0",
+      "hash": "0x6124b8a1acda06398bf72aee909de794b71090962a5a331884a2083367f3efef",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 4.475275334,
+      "accountSeconds": 3.891607709
+    },
+    {
+      "index": 11,
+      "address": "0x05e2e8cabad30dc8a2621e34081b1aeee45c8139",
+      "hash": "0x2bb369ac1e07b6869e91e312b125ed34020cce78fa71b7e8c5ce2ce180e704c3",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 10.806839583,
+      "accountSeconds": 4.032425917
+    },
+    {
+      "index": 12,
+      "address": "0x92639f9b4754c9932d6e12e2dfce1e782f7f4932",
+      "hash": "0xad4f758e42f8e64adabb405ef5ff8eca7e745aa99afb6471ed1fb13400c2ec63",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 4.397761708,
+      "accountSeconds": 3.887214291
+    },
+    {
+      "index": 13,
+      "address": "0x7a30550386dab985e928468086dac8ffcfaf49ac",
+      "hash": "0x19ba551aa8caba13b94bc7c6055cb153a5bdb1f43fb11d2ceddf4856678b886c",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 4.400614291,
+      "accountSeconds": 4.042854333
+    },
+    {
+      "index": 14,
+      "address": "0x86721106be59360f22c8a932431dad6e1fe65997",
+      "hash": "0x8ba5cbe3d86ae526ecb30e44b35d9a504494bf89621050a147cc12feb6db8b1d",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 3.8909625,
+      "accountSeconds": 4.055708666
+    },
+    {
+      "index": 15,
+      "address": "0xbcde80c80b43491da88bd75e3c9df3f5aabd0b54",
+      "hash": "0x070fedc074ac67e10e01ff0bc85ffcfa9c9352f01eeead357a1874a7165fd920",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 4.042819125,
+      "accountSeconds": 3.8914355
+    },
+    {
+      "index": 16,
+      "address": "0xc22f2bf7d8744d9f781b8cba5ff44b0c404f76a7",
+      "hash": "0x3db7064b32e93ed7896404eafd80ae069c4ff6b4dc0fd047b4533458869bc1bf",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 3.892101959,
+      "accountSeconds": 3.891571375
+    },
+    {
+      "index": 17,
+      "address": "0x9cc1487289dda5f4d8c9c93576930993f480c927",
+      "hash": "0xce29bc92e0af5f8e33c9f85f6ed712bd548783b8181422465e5f04605c622ad2",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 4.881581625,
+      "accountSeconds": 4.286799958
+    },
+    {
+      "index": 18,
+      "address": "0xdc91f41a3febeaec19d63c3038b21d817c47c68f",
+      "hash": "0xace73bdede9d065c8759a1282f28887589be2ea03884ebdde2f643c768736a5d",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 4.447144,
+      "accountSeconds": 4.030690209
+    },
+    {
+      "index": 19,
+      "address": "0xd9a685dd0f8c5b11f99f6e25c08dcfbc15516891",
+      "hash": "0xabb3f98979a143a7d4d9238138b1a8187ce7cc331c65616ee616fef3151a99fc",
+      "txStatus": 200,
+      "accountStatus": 200,
+      "txMatches": true,
+      "accountBalance": 100,
+      "txSeconds": 4.040923332999999,
+      "accountSeconds": 4.5882827079999995
+    }
+  ],
+  "ledgerAllPassed": true,
+  "maxLedgerReadSeconds": 10.806839583
+}

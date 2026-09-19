@@ -1,0 +1,36 @@
+{
+  "activation": {
+    "explorerAliasPublicVerified": false,
+    "faucetAliasPublicVerified": false,
+    "rpcAliasPublicVerified": false
+  },
+  "chainEnvironment": "testnet",
+  "chainId": 6423,
+  "chainIdHex": "0x1917",
+  "mainnet": {
+    "chainId": null,
+    "enabled": false,
+    "reservedRpcUrl": "https://rpc-mainnet.ynxweb4.com"
+  },
+  "nativeSymbol": "YNXT",
+  "proofAddress": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+  "schema": "ynx-endpoint-migration/v1",
+  "testnet": {
+    "canonicalTargets": {
+      "explorer": "https://explorer-testnet.ynxweb4.com",
+      "faucet": "https://faucet-testnet.ynxweb4.com",
+      "rpc": "https://rpc-testnet.ynxweb4.com"
+    },
+    "legacyCompatibility": {
+      "evmRpc": "https://evm.ynxweb4.com",
+      "explorer": "https://explorer.ynxweb4.com",
+      "faucet": "https://faucet.ynxweb4.com",
+      "rpc": "https://rpc.ynxweb4.com"
+    },
+    "transport": {
+      "evmJsonRpcPath": "/",
+      "nativeRestBasePath": "/",
+      "websocketUrl": null
+    }
+  }
+}

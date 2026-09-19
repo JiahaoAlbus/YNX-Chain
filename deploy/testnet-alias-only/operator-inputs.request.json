@@ -1,0 +1,29 @@
+{
+  "schema": "ynx-testnet-alias-operator-inputs/v1",
+  "scope": "Only two Testnet aliases and optional exact Faucet health binary; no chain or consumer change",
+  "plaintextSecretsRequested": false,
+  "templateOnly": true,
+  "hostOperationAuthority": "REQUIRES_EXPLICIT_AUTHORITY_FOR_EACH_NEW_WINDOW",
+  "currentRuntimeAuthority": "This reusable template does not report live deployment state; use the single Weekly v3 handoff and exact public receipts.",
+  "required": [
+    {
+      "id": "existing-ingress",
+      "input": "Approved host, running proxy and version, exact loaded config/include paths and their checksums, actual Core/Faucet upstreams; preserve old hosts"
+    },
+    {
+      "id": "faucet-state-and-release",
+      "input": "Existing Faucet binary SHA/PID/unit, CPU architecture, actual admission DB path and private authority-file reference only; choose alias-only or additionally authorize the exact prepared Faucet binary"
+    },
+    {
+      "id": "certificate-bootstrap",
+      "input": "Existing matching certificate reference, or approved DNS-01 certificate issuance on the host; no private key contents. DNS-01 is needed when new DNS must remain on its old target until origin TLS is ready"
+    },
+    {
+      "id": "single-controlled-window",
+      "input": "One approved window to capture backups, add only two host routes, validate complete loaded configuration, reload existing proxy, return direct-origin TLS/health and shared PID/DB evidence. DNS changes remain separately gated on this evidence"
+    }
+  ],
+  "notRequired": ["new chain/genesis", "new Faucet DB or funding account", "Finance credentials for alias work", "Mainnet configuration", "restart or redeploy all ecosystem services"],
+  "publicVerified": false,
+  "consumerActivationAllowed": false
+}

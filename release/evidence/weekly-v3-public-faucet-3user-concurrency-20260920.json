@@ -1,0 +1,387 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-19T19:49:51.636Z",
+  "completedAt": "2026-09-19T19:50:02.341Z",
+  "localCalendarDate": "2026-09-20 Asia/Shanghai",
+  "evidenceType": "live-public-testnet-mutating-acceptance",
+  "test": "three concurrent independent recipients through canonical Faucet; legacy Faucet read-only compatibility and canonical/legacy RPC chain readback",
+  "repository": {
+    "branch": "codex/weekly-v3-network-20260919",
+    "headBeforeEvidence": "9147dfb2bcd964e32d1cc757c0a5bd78f973dc33"
+  },
+  "publicRuntime": {
+    "faucet": {
+      "standardHost": "faucet-testnet.ynxweb4.com",
+      "legacyHost": "faucet.ynxweb4.com",
+      "remoteAddress": "43.153.202.237",
+      "standardHealthHTTP": 200,
+      "legacyHealthHTTP": 200,
+      "standardVersionHTTP": 200,
+      "legacyVersionHTTP": 200,
+      "buildCommit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+      "release": "weekly-v3-faucet",
+      "chainId": 6423,
+      "nativeSymbol": "YNXT",
+      "fundingReady": true,
+      "idempotentRequests": true,
+      "requestPath": "/request",
+      "requestStatusPath": "/request-status",
+      "perRecipientLimit": "1 per 1h0m0s per address",
+      "sharedNATLimit": {
+        "max": 100,
+        "windowSeconds": 60
+      }
+    },
+    "rpc": {
+      "standard": "https://rpc-testnet.ynxweb4.com",
+      "legacy": "https://rpc.ynxweb4.com",
+      "chainIdHex": "0x1917"
+    }
+  },
+  "safety": {
+    "generatedRecipients": 3,
+    "recipientGeneration": "fresh random 20-byte public test addresses",
+    "privateKeysGenerated": false,
+    "privateKeysRetained": false,
+    "standardMutationPOSTs": 3,
+    "mutationPOSTRetries": 0,
+    "legacyMutationPOSTs": 0,
+    "unknownOrTimeoutReposts": 0,
+    "productionConfigurationChanged": false,
+    "dnsChanged": false,
+    "serviceRestarted": false
+  },
+  "concurrency": {
+    "dispatchGateAt": "2026-09-19T19:49:53.041Z",
+    "dispatchStartSkewMs": 1,
+    "minMutationLatencyMs": 7947.093,
+    "maxMutationLatencyMs": 7948.536,
+    "latencySpreadMs": 1.443,
+    "allAcceptedHTTP201": true,
+    "rateLimitedCount": 0,
+    "timedOutOrUnknownCount": 0,
+    "uniqueRequestIds": 3,
+    "uniqueRecipients": 3,
+    "uniqueTransactionHashes": 3,
+    "transactionTimestampSpreadMs": 15,
+    "commonCommittedBlock": {
+      "blockNumber": "0x18fdc0",
+      "blockHash": "0x8b008a249520b1fdc9506ed8b554c52b9ecd4694964da2b439c4ee49df48b96d"
+    },
+    "noObservedGlobalLockSerialization": true
+  },
+  "observations": {
+    "initialImmediateTransactionReadback": "after the accepted responses, an immediate parallel RPC read observed 0/3 receipts and 0, 1 or 2 of 3 pending transactions depending on alias/order; no new POST was made",
+    "subsequentReadOnlyWaveCount": 1,
+    "subsequentReadback": "the next read-only wave returned all three transactions and successful receipts from both RPC aliases with identical balances",
+    "interpretation": "this run proves concurrent public acceptance, durable ID readback, eventual committed receipts and alias agreement from one client/network path; it does not prove a multi-region SLO or unlimited global capacity"
+  },
+  "items": [
+    {
+      "index": 0,
+      "address": "0x3b0a22be662dc2744645d1bf82c7433d0960dee4",
+      "requestId": "faucet_global_20260919194951_0_e62074b05e992ba3a96d340e11be8625",
+      "amountYNXT": 100,
+      "mutation": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "path": "/request",
+        "httpStatus": 201,
+        "startedAt": "2026-09-19T19:49:53.042Z",
+        "completedAt": "2026-09-19T19:50:00.989Z",
+        "elapsedMs": 7947.093,
+        "status": "accepted",
+        "requestId": "faucet_global_20260919194951_0_e62074b05e992ba3a96d340e11be8625",
+        "transactionHash": "0xb735c4705354645369f91373ab2af159967e7cf76f76642f250a6ea3ea176e68",
+        "transaction": {
+          "hash": "0xb735c4705354645369f91373ab2af159967e7cf76f76642f250a6ea3ea176e68",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x3b0a22be662dc2744645d1bf82c7433d0960dee4",
+          "amount": 100,
+          "fee": 0,
+          "timestamp": "2026-09-19T19:49:56.725504147Z"
+        }
+      },
+      "statusReadback": {
+        "standard": {
+          "httpStatus": 200,
+          "elapsedMs": 224.255,
+          "status": "accepted",
+          "replayed": true,
+          "requestId": "faucet_global_20260919194951_0_e62074b05e992ba3a96d340e11be8625",
+          "transactionHash": "0xb735c4705354645369f91373ab2af159967e7cf76f76642f250a6ea3ea176e68",
+          "address": "0x3b0a22be662dc2744645d1bf82c7433d0960dee4",
+          "amount": 100
+        },
+        "legacy": {
+          "httpStatus": 200,
+          "elapsedMs": 631.862,
+          "status": "accepted",
+          "replayed": true,
+          "requestId": "faucet_global_20260919194951_0_e62074b05e992ba3a96d340e11be8625",
+          "transactionHash": "0xb735c4705354645369f91373ab2af159967e7cf76f76642f250a6ea3ea176e68",
+          "address": "0x3b0a22be662dc2744645d1bf82c7433d0960dee4",
+          "amount": 100
+        }
+      },
+      "chainReadback": {
+        "before": {
+          "standardBalance": "0x0",
+          "legacyBalance": "0x0",
+          "standardChainId": "0x1917",
+          "legacyChainId": "0x1917"
+        },
+        "after": {
+          "standardBalance": "0x56bc75e2d63100000",
+          "legacyBalance": "0x56bc75e2d63100000",
+          "standardChainId": "0x1917",
+          "legacyChainId": "0x1917"
+        },
+        "transaction": {
+          "standardHash": "0xb735c4705354645369f91373ab2af159967e7cf76f76642f250a6ea3ea176e68",
+          "legacyHash": "0xb735c4705354645369f91373ab2af159967e7cf76f76642f250a6ea3ea176e68",
+          "to": "0x3b0a22be662dc2744645d1bf82c7433d0960dee4",
+          "valueWei": "0x56bc75e2d63100000",
+          "encoding": "ynx-native",
+          "amountYNXT": "100"
+        },
+        "receipt": {
+          "standardTransactionHash": "0xb735c4705354645369f91373ab2af159967e7cf76f76642f250a6ea3ea176e68",
+          "legacyTransactionHash": "0xb735c4705354645369f91373ab2af159967e7cf76f76642f250a6ea3ea176e68",
+          "status": "0x1",
+          "legacyStatus": "0x1",
+          "blockNumber": "0x18fdc0",
+          "blockHash": "0x8b008a249520b1fdc9506ed8b554c52b9ecd4694964da2b439c4ee49df48b96d",
+          "durability": {
+            "version": "ynx-local-durability-v1",
+            "scope": "local-snapshot",
+            "status": "durable",
+            "snapshotIntegrity": "0x01d029a7a92b6c34e8d4255339eb388422380c789df36c7abe54cdf5606c6a84"
+          }
+        }
+      },
+      "validation": {
+        "index": 0,
+        "standardStatusAccepted": true,
+        "legacyStatusAccepted": true,
+        "chainIdsMatch": true,
+        "balancesMatch": true,
+        "balanceIs100YNXT": true,
+        "newTxMatches": true,
+        "oldTxMatches": true,
+        "newReceiptSuccess": true,
+        "oldReceiptSuccess": true
+      }
+    },
+    {
+      "index": 1,
+      "address": "0x93394430e9569bfb6b7b5db5c8b22f43e566e2bd",
+      "requestId": "faucet_global_20260919194951_1_1595a5965ad75b23ac4f39617429f219",
+      "amountYNXT": 100,
+      "mutation": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "path": "/request",
+        "httpStatus": 201,
+        "startedAt": "2026-09-19T19:49:53.042Z",
+        "completedAt": "2026-09-19T19:50:00.991Z",
+        "elapsedMs": 7948.536,
+        "status": "accepted",
+        "requestId": "faucet_global_20260919194951_1_1595a5965ad75b23ac4f39617429f219",
+        "transactionHash": "0x77d2136dc433853338ab5a210ebc577071e4e3fc2b6e9ce58c91ee0f22c2c7e6",
+        "transaction": {
+          "hash": "0x77d2136dc433853338ab5a210ebc577071e4e3fc2b6e9ce58c91ee0f22c2c7e6",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0x93394430e9569bfb6b7b5db5c8b22f43e566e2bd",
+          "amount": 100,
+          "fee": 0,
+          "timestamp": "2026-09-19T19:49:56.73281489Z"
+        }
+      },
+      "statusReadback": {
+        "standard": {
+          "httpStatus": 200,
+          "elapsedMs": 207.733,
+          "status": "accepted",
+          "replayed": true,
+          "requestId": "faucet_global_20260919194951_1_1595a5965ad75b23ac4f39617429f219",
+          "transactionHash": "0x77d2136dc433853338ab5a210ebc577071e4e3fc2b6e9ce58c91ee0f22c2c7e6",
+          "address": "0x93394430e9569bfb6b7b5db5c8b22f43e566e2bd",
+          "amount": 100
+        },
+        "legacy": {
+          "httpStatus": 200,
+          "elapsedMs": 627.57,
+          "status": "accepted",
+          "replayed": true,
+          "requestId": "faucet_global_20260919194951_1_1595a5965ad75b23ac4f39617429f219",
+          "transactionHash": "0x77d2136dc433853338ab5a210ebc577071e4e3fc2b6e9ce58c91ee0f22c2c7e6",
+          "address": "0x93394430e9569bfb6b7b5db5c8b22f43e566e2bd",
+          "amount": 100
+        }
+      },
+      "chainReadback": {
+        "before": {
+          "standardBalance": "0x0",
+          "legacyBalance": "0x0",
+          "standardChainId": "0x1917",
+          "legacyChainId": "0x1917"
+        },
+        "after": {
+          "standardBalance": "0x56bc75e2d63100000",
+          "legacyBalance": "0x56bc75e2d63100000",
+          "standardChainId": "0x1917",
+          "legacyChainId": "0x1917"
+        },
+        "transaction": {
+          "standardHash": "0x77d2136dc433853338ab5a210ebc577071e4e3fc2b6e9ce58c91ee0f22c2c7e6",
+          "legacyHash": "0x77d2136dc433853338ab5a210ebc577071e4e3fc2b6e9ce58c91ee0f22c2c7e6",
+          "to": "0x93394430e9569bfb6b7b5db5c8b22f43e566e2bd",
+          "valueWei": "0x56bc75e2d63100000",
+          "encoding": "ynx-native",
+          "amountYNXT": "100"
+        },
+        "receipt": {
+          "standardTransactionHash": "0x77d2136dc433853338ab5a210ebc577071e4e3fc2b6e9ce58c91ee0f22c2c7e6",
+          "legacyTransactionHash": "0x77d2136dc433853338ab5a210ebc577071e4e3fc2b6e9ce58c91ee0f22c2c7e6",
+          "status": "0x1",
+          "legacyStatus": "0x1",
+          "blockNumber": "0x18fdc0",
+          "blockHash": "0x8b008a249520b1fdc9506ed8b554c52b9ecd4694964da2b439c4ee49df48b96d",
+          "durability": {
+            "version": "ynx-local-durability-v1",
+            "scope": "local-snapshot",
+            "status": "durable",
+            "snapshotIntegrity": "0x01d029a7a92b6c34e8d4255339eb388422380c789df36c7abe54cdf5606c6a84"
+          }
+        }
+      },
+      "validation": {
+        "index": 1,
+        "standardStatusAccepted": true,
+        "legacyStatusAccepted": true,
+        "chainIdsMatch": true,
+        "balancesMatch": true,
+        "balanceIs100YNXT": true,
+        "newTxMatches": true,
+        "oldTxMatches": true,
+        "newReceiptSuccess": true,
+        "oldReceiptSuccess": true
+      }
+    },
+    {
+      "index": 2,
+      "address": "0xc658261bf6ac2e70cccea92efd0b68890e2d60fe",
+      "requestId": "faucet_global_20260919194951_2_f8a0fbe392fad884a6a71b514ac8a68d",
+      "amountYNXT": 100,
+      "mutation": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "path": "/request",
+        "httpStatus": 201,
+        "startedAt": "2026-09-19T19:49:53.043Z",
+        "completedAt": "2026-09-19T19:50:00.990Z",
+        "elapsedMs": 7947.671,
+        "status": "accepted",
+        "requestId": "faucet_global_20260919194951_2_f8a0fbe392fad884a6a71b514ac8a68d",
+        "transactionHash": "0xfd0316366b35c170da956eb13e9907c9b470f7ff9ec0d81d9ce03807990b66aa",
+        "transaction": {
+          "hash": "0xfd0316366b35c170da956eb13e9907c9b470f7ff9ec0d81d9ce03807990b66aa",
+          "type": "faucet",
+          "from": "ynx_faucet",
+          "to": "0xc658261bf6ac2e70cccea92efd0b68890e2d60fe",
+          "amount": 100,
+          "fee": 0,
+          "timestamp": "2026-09-19T19:49:56.740196748Z"
+        }
+      },
+      "statusReadback": {
+        "standard": {
+          "httpStatus": 200,
+          "elapsedMs": 219.878,
+          "status": "accepted",
+          "replayed": true,
+          "requestId": "faucet_global_20260919194951_2_f8a0fbe392fad884a6a71b514ac8a68d",
+          "transactionHash": "0xfd0316366b35c170da956eb13e9907c9b470f7ff9ec0d81d9ce03807990b66aa",
+          "address": "0xc658261bf6ac2e70cccea92efd0b68890e2d60fe",
+          "amount": 100
+        },
+        "legacy": {
+          "httpStatus": 200,
+          "elapsedMs": 620.608,
+          "status": "accepted",
+          "replayed": true,
+          "requestId": "faucet_global_20260919194951_2_f8a0fbe392fad884a6a71b514ac8a68d",
+          "transactionHash": "0xfd0316366b35c170da956eb13e9907c9b470f7ff9ec0d81d9ce03807990b66aa",
+          "address": "0xc658261bf6ac2e70cccea92efd0b68890e2d60fe",
+          "amount": 100
+        }
+      },
+      "chainReadback": {
+        "before": {
+          "standardBalance": "0x0",
+          "legacyBalance": "0x0",
+          "standardChainId": "0x1917",
+          "legacyChainId": "0x1917"
+        },
+        "after": {
+          "standardBalance": "0x56bc75e2d63100000",
+          "legacyBalance": "0x56bc75e2d63100000",
+          "standardChainId": "0x1917",
+          "legacyChainId": "0x1917"
+        },
+        "transaction": {
+          "standardHash": "0xfd0316366b35c170da956eb13e9907c9b470f7ff9ec0d81d9ce03807990b66aa",
+          "legacyHash": "0xfd0316366b35c170da956eb13e9907c9b470f7ff9ec0d81d9ce03807990b66aa",
+          "to": "0xc658261bf6ac2e70cccea92efd0b68890e2d60fe",
+          "valueWei": "0x56bc75e2d63100000",
+          "encoding": "ynx-native",
+          "amountYNXT": "100"
+        },
+        "receipt": {
+          "standardTransactionHash": "0xfd0316366b35c170da956eb13e9907c9b470f7ff9ec0d81d9ce03807990b66aa",
+          "legacyTransactionHash": "0xfd0316366b35c170da956eb13e9907c9b470f7ff9ec0d81d9ce03807990b66aa",
+          "status": "0x1",
+          "legacyStatus": "0x1",
+          "blockNumber": "0x18fdc0",
+          "blockHash": "0x8b008a249520b1fdc9506ed8b554c52b9ecd4694964da2b439c4ee49df48b96d",
+          "durability": {
+            "version": "ynx-local-durability-v1",
+            "scope": "local-snapshot",
+            "status": "durable",
+            "snapshotIntegrity": "0x01d029a7a92b6c34e8d4255339eb388422380c789df36c7abe54cdf5606c6a84"
+          }
+        }
+      },
+      "validation": {
+        "index": 2,
+        "standardStatusAccepted": true,
+        "legacyStatusAccepted": true,
+        "chainIdsMatch": true,
+        "balancesMatch": true,
+        "balanceIs100YNXT": true,
+        "newTxMatches": true,
+        "oldTxMatches": true,
+        "newReceiptSuccess": true,
+        "oldReceiptSuccess": true
+      }
+    }
+  ],
+  "summary": {
+    "initialHTTPStatuses": {
+      "201": 3
+    },
+    "acceptedCount": 3,
+    "finalStatusAcceptedCount": 3,
+    "uniqueTransactionHashes": 3,
+    "allFinalChecksTrue": true,
+    "allFinalBalancesWei": "0x56bc75e2d63100000",
+    "allFinalBalancesYNXT": "100",
+    "globalAvailabilityVerified": false,
+    "multiRegionVerified": false,
+    "performanceSLOVerified": false,
+    "sourceDefectEstablished": false,
+    "publicMutationVerified": true,
+    "legacyReadCompatibilityVerified": true,
+    "canonicalAndLegacyRPCVerified": true
+  }
+}

@@ -2,15 +2,17 @@
   "networks": {
     "mainnetDraft": {
       "chainName": "YNX Mainnet",
-      "chainId": 6420,
-      "nativeCurrency": { "name": "YNXT", "symbol": "YNXT", "decimals": 18 },
-      "status": "draft; not launched"
+      "chainId": null,
+      "enabled": false,
+      "reservedRpcUrl": "https://rpc-mainnet.ynxweb4.com",
+      "status": "disabled reservation; chain identity not assigned"
     },
     "testnet": {
       "chainName": "YNX Testnet",
       "chainId": 6423,
       "nativeCurrency": { "name": "YNXT", "symbol": "YNXT", "decimals": 18 },
-      "status": "configured for deployment after required real values are supplied"
+      "endpointConfig": "configs/testnet-endpoints.json",
+      "status": "existing chain; legacy endpoints active; canonical aliases pending public verification"
     },
     "devnet": {
       "chainName": "YNX Devnet",
@@ -19,5 +21,5 @@
       "status": "local"
     }
   },
-  "chainIdConflictCheck": "chainid.network snapshot checked on 2026-07-01; 6420, 6423, 6425 were not listed. Repeat the check before public mainnet submission."
+  "chainIdConflictCheck": "See chain-metadata collision evidence for current Testnet self-registration; Mainnet identity remains unassigned."
 }
