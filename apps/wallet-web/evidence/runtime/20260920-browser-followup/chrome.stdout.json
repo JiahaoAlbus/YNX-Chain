@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 2,
+  "sourceCommit": "uncommitted-source-tree",
+  "artifactSource": "6e502c3a2d7feb2b4cfc0290c8539b9b08a5faf1",
+  "generatedAt": "2026-09-19T19:33:55.500Z",
+  "fixtureAuthority": "isolated test fixture; never production runtime",
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 545709,
+    "sha256": "a2c40edf0fa96d58158f653c930e1a7d687bd7f9f9c3f9d7344655dacc2481a0",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "results": [
+    {
+      "browserId": "chrome",
+      "browserName": "Google Chrome",
+      "executablePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "browserCapability": {
+        "unpackedAutomation": "manual-required",
+        "automationUnsupported": true
+      },
+      "loadMode": "temporary-unpacked-isolated-profile",
+      "profileClass": "disposable-isolated-profile",
+      "brandedBinary": true,
+      "fixtureAuthority": "local HTTPS EIP-6963 DApp with an immutable foreign ethereum.providers array",
+      "temporaryUnpackedRuntimeTested": false,
+      "installedLocal": false,
+      "providerSuccessClaimed": false,
+      "accountAuthorized": false,
+      "messageSigned": false,
+      "transactionSubmitted": false,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "profilePath": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-wallet-chrome-runtime-7TEuKE",
+      "loadingEvidence": {
+        "extensionPath": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-branded-https-cj59lu/extension",
+        "manifestSha256": "e36b096f225bc4caf6d700669cf6112fbfbea1485ab3b787bc8256a21cf03e34",
+        "manifestVersion": 3,
+        "extensionVersion": "0.1.0",
+        "background": {
+          "service_worker": "service-worker.js",
+          "type": "module"
+        },
+        "workerSha256": "ffb02a0913f77e37e4849d144589e73b7b9d6038e7c3c2deced09b61b9d16a9f",
+        "workerBytes": 35078,
+        "permissions": [
+          "activeTab",
+          "scripting",
+          "storage"
+        ],
+        "hostPermissions": [
+          "https://*/*"
+        ]
+      },
+      "browserDiagnostics": {
+        "workerErrors": [],
+        "workerRegistrations": [
+          {
+            "registrations": []
+          }
+        ],
+        "workerVersions": [
+          {
+            "versions": []
+          }
+        ],
+        "console": [],
+        "protocolErrors": [],
+        "commandLine": {
+          "error": "cdpSession.send: Protocol error (Browser.getBrowserCommandLine): Command line not returned because --enable-automation not set."
+        },
+        "targets": {
+          "targetInfos": [
+            {
+              "targetId": "C337FFCB212AA32582C4D5FAAF794DC2",
+              "type": "page",
+              "title": "about:blank",
+              "url": "about:blank",
+              "attached": true,
+              "canAccessOpener": false,
+              "browserContextId": "765A355ABD97FD25616EA694CBC29671"
+            },
+            {
+              "targetId": "BF5C0EFCFF6CDE31B9A19B7063780C52",
+              "type": "browser_ui",
+              "title": "Omnibox Popup",
+              "url": "chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html",
+              "attached": false,
+              "canAccessOpener": false,
+              "browserContextId": "765A355ABD97FD25616EA694CBC29671"
+            },
+            {
+              "targetId": "1DD345A2FD5E131A8C91383A62453FA9",
+              "type": "browser_ui",
+              "title": "Omnibox Popup",
+              "url": "chrome://omnibox-popup.top-chrome/",
+              "attached": false,
+              "canAccessOpener": false,
+              "browserContextId": "765A355ABD97FD25616EA694CBC29671"
+            }
+          ]
+        },
+        "extensionRegistry": []
+      },
+      "version": "153.0.8010.50",
+      "error": {
+        "name": "TimeoutError",
+        "message": "browserContext.waitForEvent: Timeout 3000ms exceeded while waiting for event \"serviceworker\""
+      }
+    }
+  ],
+  "releaseStates": {
+    "installedLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
