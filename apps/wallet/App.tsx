@@ -27,10 +27,12 @@ import { AuthorizationAuditStore, type AuthorizationAuditRecord } from "./src/pr
 import { ProductSessionController, type ProductSessionReview, type MobileProductSessionRequest } from "./src/protocol/productSessionController";
 import { ApplicationActionController, type ApplicationActionReview } from "./src/protocol/applicationActionController";
 import { CardApplicationApprovalController, type CardApplicationApprovalReview } from "./src/protocol/cardApplicationApprovalController";
+import { FinanceOrderApprovalController, type FinanceOrderApprovalReview } from "./src/protocol/financeOrderApprovalController";
 import { scopeExplanation } from "./src/i18n/scopeCopy";
 import { authorizationCopy } from "./src/i18n/authorizationCopy";
 import { applicationActionCopy } from "./src/i18n/applicationActionCopy";
 import { cardApprovalCopy, cardApprovalLimitYNXT } from "./src/i18n/cardApprovalCopy";
+import { financeOrderApprovalCopy } from "./src/i18n/financeOrderApprovalCopy";
 import { WalletSessionInventoryClient, WalletSessionRevocationUnknown, type SessionInventoryItem, type WalletSessionInventory } from "./src/protocol/sessionInventory";
 import { assertStrongBiometrics, authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { createProductSessionKeyAccess } from "./src/security/productSessionKeyAccess";
@@ -81,6 +83,7 @@ function WalletApp(){
   const [authorization,setAuthorization]=useState<ProductSessionReview|null>(null);
   const [applicationAction,setApplicationAction]=useState<ApplicationActionReview|null>(null);
   const [cardApproval,setCardApproval]=useState<CardApplicationApprovalReview|null>(null);
+  const [financeOrderApproval,setFinanceOrderApproval]=useState<FinanceOrderApprovalReview|null>(null);
   const [authorizationError,setAuthorizationError]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
   const [locale,setLocale]=useState<WalletLocale>("en");
@@ -100,7 +103,8 @@ function WalletApp(){
   const productSessions=useMemo(()=>new ProductSessionController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url),audit:(review,action,at)=>authorizationAudit.appendProductSession(review,{action,account:review.account.account,at:at.toISOString()})}),[operations]);
   const applicationActions=useMemo(()=>new ApplicationActionController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url)}),[operations]);
   const cardApprovals=useMemo(()=>new CardApplicationApprovalController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url)}),[operations]);
-  const cancelAuthorization=useCallback(()=>{++linkRevision.current;productSessions.cancel();applicationActions.cancel();cardApprovals.cancel();setAuthorization(null);setApplicationAction(null);setCardApproval(null)},[productSessions,applicationActions,cardApprovals]);
+  const financeOrderApprovals=useMemo(()=>new FinanceOrderApprovalController({storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),currentTime:(assertCurrent)=>walletSessionInventoryClient().currentTime(assertCurrent),openURL:(url)=>Linking.openURL(url)}),[operations]);
+  const cancelAuthorization=useCallback(()=>{++linkRevision.current;productSessions.cancel();applicationActions.cancel();cardApprovals.cancel();financeOrderApprovals.cancel();setAuthorization(null);setApplicationAction(null);setCardApproval(null);setFinanceOrderApproval(null)},[productSessions,applicationActions,cardApprovals,financeOrderApprovals]);
   const lock=()=>{operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
   const updateManifest=useCallback((next:WalletManifest)=>{operations.invalidate();operations.setAccount(next.selectedAccountId);selectedRef.current=next.accounts.find(item=>item.account===next.selectedAccountId)??null;cancelAuthorization();setManifest(next)},[operations,cancelAuthorization]);
 
@@ -127,13 +131,13 @@ function WalletApp(){
   const handleLink=useCallback((url:string)=>{
     if(platformStorageHealth.requiresRestart)return;
     if(!readyRef.current||AppState.currentState!=="active"){queuedLink.current=url;return}
-    if(linkIntake.current||productSessions.current||applicationActions.current||cardApprovals.current){setAuthorizationError(localizeError(locale,new Error("Finish or reject the current Wallet request before opening another")));return}
-    let actionRoute=false,cardRoute=false;
-    try{const target=new URL(url);actionRoute=target.protocol==="ynxwallet:"&&target.hostname==="application-action";cardRoute=target.protocol==="ynxwallet:"&&target.hostname==="card-application-approval"}catch{}
+    if(linkIntake.current||productSessions.current||applicationActions.current||cardApprovals.current||financeOrderApprovals.current){setAuthorizationError(localizeError(locale,new Error("Finish or reject the current Wallet request before opening another")));return}
+    let actionRoute=false,cardRoute=false,financeRoute=false;
+    try{const target=new URL(url);actionRoute=target.protocol==="ynxwallet:"&&target.hostname==="application-action";cardRoute=target.protocol==="ynxwallet:"&&target.hostname==="card-application-approval";financeRoute=target.protocol==="ynxwallet:"&&target.hostname==="finance-order-approval"}catch{}
     const revision=++linkRevision.current;linkIntake.current=true;
-    const pending=cardRoute?cardApprovals.receive(url).then(review=>{if(revision===linkRevision.current&&cardApprovals.current?.id===review.id){setCardApproval(review);setAuthorizationError(null)}}):actionRoute?applicationActions.receive(url).then(review=>{if(revision===linkRevision.current&&applicationActions.current?.id===review.id){setApplicationAction(review);setAuthorizationError(null)}}):productSessions.receive(url).then(review=>{if(revision===linkRevision.current&&productSessions.current?.id===review.id){setAuthorization(review);setAuthorizationError(null)}});
+    const pending=financeRoute?financeOrderApprovals.receive(url).then(review=>{if(revision===linkRevision.current&&financeOrderApprovals.current?.id===review.id){setFinanceOrderApproval(review);setAuthorizationError(null)}}):cardRoute?cardApprovals.receive(url).then(review=>{if(revision===linkRevision.current&&cardApprovals.current?.id===review.id){setCardApproval(review);setAuthorizationError(null)}}):actionRoute?applicationActions.receive(url).then(review=>{if(revision===linkRevision.current&&applicationActions.current?.id===review.id){setApplicationAction(review);setAuthorizationError(null)}}):productSessions.receive(url).then(review=>{if(revision===linkRevision.current&&productSessions.current?.id===review.id){setAuthorization(review);setAuthorizationError(null)}});
     void pending.catch(caught=>{if(revision===linkRevision.current)setAuthorizationError(localizeError(locale,caught))}).finally(()=>{linkIntake.current=false});
-  },[locale,productSessions,applicationActions,cardApprovals]);
+  },[locale,productSessions,applicationActions,cardApprovals,financeOrderApprovals]);
 
   useEffect(()=>{void load()},[load]);
   useEffect(()=>{if(!initialLinkRead.current){initialLinkRead.current=true;void Linking.getInitialURL().then((url)=>{if(url)handleLink(url)})}const sub=Linking.addEventListener("url",({url})=>handleLink(url));return()=>sub.remove()},[handleLink]);
@@ -186,6 +190,7 @@ function WalletApp(){
     {authorization&&manifest&&selected?<AuthorizationModal locale={locale} key={authorization.id} review={authorization} controller={productSessions} close={cancelAuthorization} onReturned={()=>setAuthorization(null)}/>:null}
     {applicationAction&&manifest&&selected?<ApplicationActionModal locale={locale} key={applicationAction.id} review={applicationAction} controller={applicationActions} close={cancelAuthorization} onReturned={()=>setApplicationAction(null)}/>:null}
     {cardApproval&&manifest&&selected?<CardApprovalModal locale={locale} key={cardApproval.id} review={cardApproval} controller={cardApprovals} close={cancelAuthorization} onReturned={()=>setCardApproval(null)}/>:null}
+    {financeOrderApproval&&manifest&&selected?<FinanceOrderApprovalModal locale={locale} key={financeOrderApproval.id} review={financeOrderApproval} controller={financeOrderApprovals} close={cancelAuthorization} onReturned={()=>setFinanceOrderApproval(null)}/>:null}
     <LocaleSettings visible={settings} locale={locale} close={()=>setSettings(false)} select={(next)=>void saveLocale(platformSecureStorage,next).then(()=>{if(!platformStorageHealth.requiresRestart)setLocale(next)}).catch(caught=>{if(!platformStorageHealth.requiresRestart)setError(localizeError(locale,caught))})}/>
   </SafeAreaView></WalletRecoveryContext.Provider></WalletLocaleContext.Provider></WalletOperationsContext.Provider>;
 }
@@ -596,6 +601,41 @@ function CardApprovalModal({locale,review,controller,close,onReturned}:{locale:W
     <ReviewRow label={authorizationCopy(locale,"callback")} value={request.callback}/>
     {error?<><Text style={styles.error}>{error}</Text><RecoveryRequiredNotice error={error}/><SecondaryButton label={authorizationCopy(locale,"closeRequest")} disabled={busy} onPress={close}/></>:null}
     {returnReady?<Button label={authorizationCopy(locale,"retryReturn")} disabled={busy} onPress={()=>void decide("retryReturn")}/>:<View style={styles.approvalButtons}><SecondaryButton label={translate(locale,"reject")} disabled={busy} onPress={()=>void decide("reject")}/><Button label={cardApprovalCopy(locale,"approve")} disabled={busy} onPress={()=>void decide("approve")}/></View>}
+  </Sheet></Modal>
+}
+
+function FinanceOrderApprovalModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:FinanceOrderApprovalReview;controller:FinanceOrderApprovalController;close:()=>void;onReturned:()=>void}){
+  const {request,account:selected}=review,approval=request.unsigned,order=approval.order;
+  const scope=useOperationScope(true,selected.account);
+  const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[returnReady,setReturnReady]=useState(()=>controller.hasReturn(review.id)),[revocable,setRevocable]=useState(()=>controller.canRevoke(review.id));
+  const decide=async(action:"approve"|"reject"|"retryReturn"|"revokeUnused")=>{
+    if(busy||controller.current?.id!==review.id)return;
+    let lease:WalletOperationLease;try{lease=scope.begin({account:selected.account,requireUnlocked:false})}catch{return}
+    setBusy(true);setError(null);
+    try{await controller[action](review.id);if(lease.ownsScope())onReturned()}
+    catch(caught){if(lease.ownsScope()){setReturnReady(controller.hasReturn(review.id));setRevocable(controller.canRevoke(review.id));setError(localizeError(locale,caught))}}
+    finally{if(lease.ownsScope())setBusy(false);lease.finish()}
+  };
+  const dismiss=()=>{if(!busy){if(returnReady)close();else void decide("reject")}};
+  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={financeOrderApprovalCopy(locale,"title")} close={dismiss}>
+    <Text style={styles.authorizationLead}>{financeOrderApprovalCopy(locale,"boundary")}</Text>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"environment")} value="YNX Testnet · Broker Sandbox"/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"provider")} value="Alpaca Broker Sandbox"/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"source")} value={approval.origin+"\n"+approval.applicationId}/>
+    <ReviewRow label={translate(locale,"account")} value={selected.label+"\n"+selected.account}/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"subject")} value={approval.subjectId}/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"broker")} value={approval.brokerAccountId}/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"order")} value={order.orderId}/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"asset")} value={order.symbol+"\n"+order.assetId}/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"side")} value={order.side.toUpperCase()}/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"quantity")} value={order.qty}/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"price")} value={order.limitPrice+" USD"}/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"limits")} value={order.maxCost+" USD / "+order.maxFee+" USD\n"+order.feeBoundSource}/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"session")} value="DAY · regular hours only"/>
+    <ReviewRow label={translate(locale,"expires")} value={formatDateTime(locale,approval.expiresAt)}/>
+    <Text style={styles.scopeExplain}>{financeOrderApprovalCopy(locale,"revokeBoundary")}</Text>
+    {error?<><Text style={styles.error}>{error}</Text><RecoveryRequiredNotice error={error}/><SecondaryButton label={authorizationCopy(locale,"closeRequest")} disabled={busy} onPress={close}/></>:null}
+    {returnReady?<View style={styles.approvalButtons}><SecondaryButton label={authorizationCopy(locale,"retryReturn")} disabled={busy} onPress={()=>void decide("retryReturn")}/>{revocable?<Button label={financeOrderApprovalCopy(locale,"revoke")} disabled={busy} onPress={()=>void decide("revokeUnused")}/>:null}</View>:<View style={styles.approvalButtons}><SecondaryButton label={translate(locale,"reject")} disabled={busy} onPress={()=>void decide("reject")}/><Button label={financeOrderApprovalCopy(locale,"approve")} disabled={busy} onPress={()=>void decide("approve")}/></View>}
   </Sheet></Modal>
 }
 

@@ -41,6 +41,16 @@ export class WalletSessionInventoryClient {
     this.#dependencies = dependencies;
   }
 
+  /** Fresh Auth time for Wallet protocols that must never trust device wall time. */
+  async currentTime(assertCurrent: () => void = () => {}): Promise<Date> {
+    assertCurrent();
+    const requestId = `req_${await this.#randomToken()}`;
+    assertCurrent();
+    const result = exactObject(await this.#request(requestId, "/v2/product-sessions/time", null, null), ["serverTime"], "Auth time");
+    assertCurrent();
+    return new Date(canonicalTime(result.serverTime, "Auth time"));
+  }
+
   async load(account: WalletAccount, lease: WalletOperationLease): Promise<WalletSessionInventory> {
     const request = await this.#prepare(account, INVENTORY_PATH, {}, "wallet-sessions-view", lease);
     const result = await lease.step(() => this.#request(request.requestId, INVENTORY_PATH, request.body, request.proof));
