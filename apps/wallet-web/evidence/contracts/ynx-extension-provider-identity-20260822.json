@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "recordedAt": "2026-08-22",
+  "scope": "source-built-independent-ynx-provider-identity-not-installed",
+  "source": {
+    "commit": "a3310cc9f0c757d27dae83282b68361c116c22a3",
+    "tree": "b97999159a2b137d00bd2155157ce574e9c1ff64",
+    "parent": "0828b2a834142face4f035269e21c81ae666f8c7",
+    "branch": "codex/wallet-web-pwa-extensions-20260813"
+  },
+  "providerIdentity": {
+    "extensionName": "YNX Wallet",
+    "eip6963Name": "YNX Wallet",
+    "eip6963Rdns": "com.ynx.wallet",
+    "isYNXWallet": true,
+    "isMetaMask": false,
+    "internalBridgeMarkerIsProviderAuthority": false
+  },
+  "tests": {
+    "source": "112/112 pass",
+    "packageInternal": "112/112 pass",
+    "packageVerification": "3/3 pass"
+  },
+  "artifacts": [
+    {"name":"ynx-wallet-web-pwa-0.1.0.zip","bytes":285229,"sha256":"aeaf6a83f579737cf7a629884dc59b16b3c299bffeac35f93669dc5cea2a2c53","signingClass":"unsigned-web-bundle"},
+    {"name":"ynx-wallet-chrome-edge-0.1.0.zip","bytes":468405,"sha256":"bcfe54c56455b087e1f49ceca36326789e26559ca8b634633d2fb09fae6d0e4f","signingClass":"unsigned-unpacked-extension"},
+    {"name":"ynx-wallet-firefox-0.1.0.zip","bytes":468444,"sha256":"5dfd9ee68896f070603b315b3dfa5d911ea8dd7076dcb1453335fca40864e817","signingClass":"unsigned-unpacked-extension"}
+  ],
+  "falseUntilDirectInstalledEvidence": {
+    "installedProviderVerified": false,
+    "firstPartyDappDiscovery": false,
+    "externalDappDiscovery": false,
+    "accountApproved": false,
+    "providerChainId1917Verified": false,
+    "refreshRestoreVerified": false,
+    "disconnectAndEventsVerified": false,
+    "personalSignVerified": false,
+    "typedDataVerified": false,
+    "transactionSubmitted": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "deployedPublic": false,
+    "parityComplete": false
+  }
+}

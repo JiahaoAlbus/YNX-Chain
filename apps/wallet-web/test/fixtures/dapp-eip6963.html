@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>YNX EIP-6963 discovery fixture</title></head>
+<body><main><h1>EIP-6963 discovery fixture</h1><p>This page does not provide a wallet implementation.</p></main><script>
+(() => {
+  const announcements=[];
+  Object.defineProperty(globalThis,"__YNX_EIP6963_FIXTURE__",{value:Object.freeze({announcements}),configurable:false,writable:false});
+  window.addEventListener("eip6963:announceProvider",event=>{
+    const detail=event?.detail;
+    if(!detail?.info||!detail?.provider||announcements.some(item=>item.provider===detail.provider))return;
+    announcements.push({info:{uuid:detail.info.uuid,name:detail.info.name,rdns:detail.info.rdns},provider:detail.provider});
+  });
+  window.dispatchEvent(new Event("eip6963:requestProvider"));
+})();
+</script></body></html>

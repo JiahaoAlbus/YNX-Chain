@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-14T16:25:00Z",
+  "originClass": "real-public-origin",
+  "browserSurface": "Codex in-app Chromium browser",
+  "deviceEmulation": {
+    "userAgent": "Mozilla/5.0 (Linux; Android 15; Pixel 9 Pro) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "physicalDevice": false
+  },
+  "requestedUrl": "https://www.ynxweb4.com/dapp/wallet",
+  "finalUrl": "https://www.ynxweb4.com/dapp/wallet",
+  "visibleTitle": "YNX Chain — Web4 Layer-1 Ecosystem",
+  "visibleState": {
+    "surface": "legacy Wallet candidate/status page",
+    "auditedSourceDisplayed": "a1c680982b63",
+    "addYNXTestnetControlVisible": false,
+    "ynxCanonicalAuthorizationControlVisible": false,
+    "metaMaskMobileDappControlVisible": false,
+    "androidDownloadVisible": true
+  },
+  "httpFacts": [
+    {
+      "url": "https://ynxweb4.com/dapp/wallet",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 1018,
+      "sha256": "896eb0d9a14a23365cfc87363409c6991ed19ab8aac1df458e3694153b4b259a"
+    },
+    {
+      "url": "https://ynxweb4.com/wallet/companion/",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 1018,
+      "sha256": "896eb0d9a14a23365cfc87363409c6991ed19ab8aac1df458e3694153b4b259a"
+    },
+    {
+      "url": "https://www.ynxweb4.com/wallet/companion/app.js",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 1018,
+      "sha256": "896eb0d9a14a23365cfc87363409c6991ed19ab8aac1df458e3694153b4b259a",
+      "failure": "SPA HTML fallback was returned instead of JavaScript"
+    }
+  ],
+  "intermittentNetworkFacts": [
+    "www.ynxweb4.com/dapp/wallet timed out in one bounded curl attempt while the visible browser load succeeded",
+    "www.ynxweb4.com/wallet/companion/ and core-auth-binding.js timed out in one bounded parallel curl attempt"
+  ],
+  "gates": {
+    "deployedPublic": false,
+    "mobileVisibleContractProvedPublic": false,
+    "providerConnected": false,
+    "account": false,
+    "sign": false,
+    "transaction": false,
+    "testnetConnected": false
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "90cdfcacf0d321a4c57e0556006838ec1a053a1a",
+  "observedAt": "2026-08-14T14:03:24+08:00",
+  "auditClass": "direct official-domain HTTP and complete-download inspection",
+  "officialSources": {
+    "walletPage": {
+      "url": "https://www.ynxweb4.com/dapp/wallet",
+      "status": 200,
+      "contentType": "text/html",
+      "bytes": 1018,
+      "sha256": "fa9ffc6521978f0be61b5efb5fc26fbd864abcca9b1de3415c56c23a909c91bd"
+    },
+    "walletSiteAsset": {
+      "url": "https://www.ynxweb4.com/assets/index-DpjE5Sg5.js",
+      "status": 200,
+      "contentType": "application/javascript",
+      "bytes": 584610,
+      "sha256": "11bf60305e62a860027aa0cfe637ebb309318f6e4216e4e250eaaf6455d15023"
+    },
+    "releaseRegistry": {
+      "url": "https://www.ynxweb4.com/releases/ecosystem-release-registry.json",
+      "status": 200,
+      "contentType": "application/json",
+      "bytes": 12885,
+      "sha256": "7d07cb4658d96ebcc3d01c6beb4586fe305abf109be0b4bf4f852ccf7794835b"
+    }
+  },
+  "platforms": {
+    "android": {
+      "url": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+      "headStatus": 200,
+      "getStatus": 200,
+      "contentType": "application/vnd.android.package-archive",
+      "contentDisposition": "attachment",
+      "bytes": 78392878,
+      "sha256": "fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",
+      "archiveIntegrity": true,
+      "signingClass": "persistent-testnet-release-key",
+      "signatureSchemes": {"v1": false, "v2": true, "v3": false, "v4": false},
+      "signerDn": "CN=YNX Wallet Testnet Preview, O=YNX Chain, C=US",
+      "certificateSha256": "67c841ab31a4eb34f21e458827eb213b24dc22d3f1d224686ed601ed7eb8f489",
+      "key": "RSA 2048",
+      "hosted": true,
+      "productionSigned": false
+    },
+    "windowsX64": {"officialStatus": "not published", "candidateUrl": null, "headAttempted": false, "getAttempted": false, "hosted": false},
+    "windowsArm64": {"officialStatus": "not published", "candidateUrl": null, "headAttempted": false, "getAttempted": false, "hosted": false},
+    "macosX64": {"officialStatus": "not published", "candidateUrl": null, "headAttempted": false, "getAttempted": false, "hosted": false},
+    "macosArm64": {"officialStatus": "not published", "candidateUrl": null, "headAttempted": false, "getAttempted": false, "hosted": false},
+    "linuxX64": {"officialStatus": "no Wallet URL declared", "candidateUrl": null, "headAttempted": false, "getAttempted": false, "hosted": false},
+    "linuxArm64": {"officialStatus": "no Wallet URL declared", "candidateUrl": null, "headAttempted": false, "getAttempted": false, "hosted": false},
+    "chromeEdgeExtension": {"officialStatus": "no package declared", "candidateUrl": null, "headAttempted": false, "getAttempted": false, "hosted": false},
+    "firefoxExtension": {"officialStatus": "no package declared", "candidateUrl": null, "headAttempted": false, "getAttempted": false, "hosted": false},
+    "pwaPackage": {"publicStatusUrl": "https://www.ynxweb4.com/dapp/wallet", "publicStatusRoute": true, "candidateUrl": null, "hosted": false}
+  },
+  "gates": {
+    "androidHosted": true,
+    "windowsX64Hosted": false,
+    "windowsArm64Hosted": false,
+    "macosX64Hosted": false,
+    "macosArm64Hosted": false,
+    "linuxX64Hosted": false,
+    "linuxArm64Hosted": false,
+    "chromeEdgeExtensionHosted": false,
+    "firefoxExtensionHosted": false,
+    "pwaPackageHosted": false,
+    "webArtifactDownloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

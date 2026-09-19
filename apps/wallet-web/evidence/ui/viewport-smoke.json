@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "00cdbccf",
+  "browser": "Google Chrome 151.0.7922.76",
+  "viewport": {"width": 390, "height": 844, "deviceScaleFactor": 1},
+  "runs": [
+    {
+      "locale": "en",
+      "direction": "ltr",
+      "theme": "dark",
+      "innerWidth": 390,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "screenshot": "en-dark-390.png",
+      "screenshotSha256": "e857f2e14294a35358e9e2c7f53309b27c571575b59d8ee380e9ac61475ea5c7"
+    },
+    {
+      "locale": "ar",
+      "direction": "rtl",
+      "theme": "dark",
+      "innerWidth": 390,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "screenshot": "ar-dark-rtl-390.png",
+      "screenshotSha256": "91f4f6af9d59ded99835e2d741e8a480cf4fe621cab5308313ae6ac022b0ee72"
+    },
+    {
+      "locale": "en",
+      "direction": "ltr",
+      "theme": "light",
+      "innerWidth": 390,
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "screenshot": "en-light-390.png",
+      "screenshotSha256": "a72475c9b2bd8717bac5399c87d2a99801dde4d28d5dbf55009571e800c0c0aa"
+    }
+  ],
+  "horizontalOverflow": false
+}

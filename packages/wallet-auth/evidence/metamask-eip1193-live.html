@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YNX MetaMask EIP-1193 live evidence</title>
+<style>
+  :root{font:16px/1.5 system-ui,sans-serif;color:#eaf0ff;background:#0a1020}body{margin:0;display:grid;min-height:100vh;place-items:center}.card{width:min(720px,calc(100vw - 48px));padding:32px;border:1px solid #263459;border-radius:20px;background:#111a30;box-shadow:0 24px 80px #0008}.eyebrow{color:#7fa8ff;font-weight:700;letter-spacing:.12em}.truth{padding:16px;border-radius:12px;background:#091126;color:#b8c8ef}.status{margin:20px 0;padding:18px;border:1px solid #354873;border-radius:12px;white-space:pre-wrap}.error{border-color:#b6495d;color:#ffb7c2}.ok{border-color:#3e9b72;color:#aaf0d0}button{padding:12px 18px;border:0;border-radius:10px;background:#4b7fff;color:white;font-weight:700;font-size:16px;cursor:pointer}button:disabled{opacity:.5;cursor:wait}code{color:#b8d1ff}
+</style>
+<main class="card">
+  <div class="eyebrow">LOCAL INSTALLED-WALLET EVIDENCE</div>
+  <h1>MetaMask EIP-1193 · YNX Chain 6423</h1>
+  <p>This page exercises the shared <code>MetaMaskEvmConnectionAdapter</code> against the installed provider. It does not create a YNX Product Session.</p>
+  <div class="truth">Truth boundary: EVM provider only · no balance · no transaction · no Wallet AI Gateway answer · <strong>ynxProductSession=false</strong></div>
+  <div id="status" class="status">NOT CONNECTED</div>
+  <button id="connect" type="button" disabled>Loading shared adapter…</button>
+</main>
+<script>
+  addEventListener("error", event => { const node=document.querySelector("#status"); node.className="status error"; node.textContent=`FAILED CLOSED\ncode=LIVE_HARNESS_ERROR\nmessage=${event.message || "Browser module failed"}`; });
+  addEventListener("unhandledrejection", event => { const node=document.querySelector("#status"); node.className="status error"; node.textContent=`FAILED CLOSED\ncode=LIVE_HARNESS_REJECTION\nmessage=${event.reason?.message || "Browser module rejected"}`; });
+</script>
+<script type="importmap">
+  {"imports":{"@noble/hashes/":"../node_modules/@noble/hashes/"}}
+</script>
+<script type="module">
+  const status = document.querySelector("#status"), button = document.querySelector("#connect");
+  const requestId = `eip1193_live_${crypto.randomUUID()}`;
+  const masked = value => `${value.slice(0, 8)}…${value.slice(-6)}`;
+  try {
+    const [{ MetaMaskEvmConnectionAdapter }, { discoverWalletProviders }] = await Promise.all([
+      import("../src/metamask-evm-adapter.js"), import("../src/wallet-provider-discovery.js")
+    ]);
+    button.disabled = false; button.textContent = "Connect installed MetaMask (EVM only)";
+    button.addEventListener("click", async () => {
+      button.disabled = true; status.className = "status"; status.textContent = `REQUESTING REAL WALLET APPROVAL\nrequestId=${requestId}`;
+      try {
+        const registry = await fetch("../product-session-registry.json", {cache:"no-store"}).then(response => {
+          if (!response.ok) throw new Error("Registry unavailable"); return response.json();
+        });
+        const discovery = await discoverWalletProviders(globalThis, 250);
+        if (discovery.metamask === null) throw Object.assign(new Error(discovery.ambiguities.includes("metamask") ? "Multiple MetaMask providers require an explicit chooser" : "MetaMask provider was not detected"), {code:discovery.ambiguities.includes("metamask") ? "AMBIGUOUS_WALLET_PROVIDER" : "METAMASK_NOT_INSTALLED"});
+        const result = await new MetaMaskEvmConnectionAdapter({registry, productId:"dex", provider:discovery.metamask.provider}).connect();
+        status.className = "status ok";
+        status.textContent = ["CONNECTED EVM PROVIDER", `requestId=${requestId}`, `wallet=${result.wallet}`, `providerSource=${discovery.metamask.source}`, `providerRdns=${discovery.metamask.rdns || "unreported"}`, `discoveryAuthority=${discovery.authority}`, `ynxCandidatePresent=${discovery.ynx !== null}`, `chainId=${result.chainId}`, `chainQuantity=${result.chainQuantity}`, `address=${masked(result.address)}`, `authority=${result.authority}`, `ynxProductSession=${result.ynxProductSession}`, `limitations=${result.limitations.join(",")}`].join("\n");
+      } catch (error) {
+        status.className = "status error";
+        status.textContent = ["FAILED CLOSED", `requestId=${requestId}`, `code=${error?.code || "INTERNAL"}`, `message=${error?.message || "Wallet connection failed"}`, "No local or canned result was substituted."].join("\n");
+        button.disabled = false;
+      }
+    });
+  } catch (error) {
+    status.className = "status error";
+    status.textContent = ["FAILED CLOSED", `requestId=${requestId}`, "code=ADAPTER_LOAD_FAILED", `message=${error?.message || "Shared adapter failed to load"}`].join("\n");
+    button.textContent = "Shared adapter unavailable";
+  }
+</script>
+</html>

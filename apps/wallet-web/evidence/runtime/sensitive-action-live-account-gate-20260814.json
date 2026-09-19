@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "53eafc70490edc4bd4742af92b41bcb4464c2a6a",
+  "observedAt": "2026-08-14T03:07:24Z",
+  "scope": "executable provider-level fail-closed gate for PWA and extension popup consumers",
+  "preflight": {
+    "signMessage": [
+      "eth_chainId equals 0x1917",
+      "eth_accounts contains the exact connected account",
+      "personal_sign is invoked only after both checks pass"
+    ],
+    "sendTransaction": [
+      "authoritative RPC proves 0x1917",
+      "provider eth_chainId equals 0x1917",
+      "provider eth_accounts contains the exact from account",
+      "eth_sendTransaction is invoked only after all checks pass"
+    ]
+  },
+  "negativeVector": {
+    "providerChainId": "0x1917",
+    "rememberedAccountPresent": false,
+    "replacementAccountPresent": true,
+    "errorCode": "ACCOUNT_CHANGED",
+    "personalSignCalled": false,
+    "ethSendTransactionCalled": false,
+    "fakeSignature": false,
+    "fakeTransactionHash": false
+  },
+  "browserRuntime": {
+    "realProviderRetested": false,
+    "reason": "No branded-browser provider control channel was available in this environment; executable provider vectors are not labeled as an installed-browser success."
+  },
+  "releaseStates": {
+    "edgeExtensionInstalledLocal": false,
+    "chromeExtensionInstalledLocal": false,
+    "firefoxExtensionInstalledLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

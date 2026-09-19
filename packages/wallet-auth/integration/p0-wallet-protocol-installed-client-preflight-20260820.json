@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-CONNECTIVITY-2026-08-installed-client-preflight-20260820",
+  "owner": "wallet-protocol",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-installed-client-computer-control-lease-20260820T101002Z",
+  "status": "PRECHECK_REJECTED_NO_ELIGIBLE_INSTALLED_CLIENT",
+  "publicRuntimePrerequisite": {
+    "evidenceCommit": "b30775951dcea09bf6b72aeb4806f47ff81b3bef",
+    "sourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "registrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "verified": true
+  },
+  "computerControl": {
+    "skill": "computer-use",
+    "readOnlyInventoryPerformed": true,
+    "clientLaunched": false,
+    "authorizationAttempted": false,
+    "reason": "No physical or persistent device contains an eligible signed YNX Wallet installation."
+  },
+  "macos": {
+    "nativeYnxWalletFound": false,
+    "rejectedShortcut": {
+      "name": "YNX Wallet Testnet Companion",
+      "bundleIdentifier": "com.microsoft.edgemac.app.plkhingfjhnclbfboobaipbemoiaogde",
+      "shortcutUrl": "http://127.0.0.1:4173/",
+      "edgeAdhocFlag": true,
+      "signatureClass": "adhoc",
+      "teamIdentifierPresent": false,
+      "systemAssessment": "rejected",
+      "contentSha256": "6f9ec89055d8c775511176fbed1f46363e1060d886e80ebdad6d7824cca9479d",
+      "eligible": false,
+      "rejectionReasons": ["temporary localhost shortcut", "ad-hoc signature", "no signing team", "system assessment rejected"]
+    }
+  },
+  "android": {
+    "connectedTargets": [
+      {
+        "serial": "emulator-5560",
+        "model": "sdk_gphone64_arm64",
+        "class": "simulator",
+        "eligible": false
+      }
+    ],
+    "physicalDeviceFound": false
+  },
+  "ios": {
+    "physicalDeviceFound": false
+  },
+  "leaseExecution": {
+    "targetDeclared": false,
+    "preflightComplete": false,
+    "computerControlStarted": false,
+    "acceptanceComplete": false,
+    "cleanupRequired": false,
+    "orphanAuthorityCreated": false
+  },
+  "releaseTruth": {
+    "installedClientVerified": false,
+    "standardWalletConnectionClientVerified": false,
+    "accountVerified": false,
+    "signVerified": false,
+    "sendVerified": false,
+    "transactionVerified": false,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "probeMode": "READ_ONLY_GET_AND_OPTIONS",
+  "observedAt": "2026-08-20T11:25:44.000Z",
+  "baseUrl": "https://wallet-auth.ynxweb4.com",
+  "health": {
+    "httpStatus": 200,
+    "bytes": 197,
+    "sha256": "44b0f9298701778c8204bda75783954ec0dd179203d03f627ee44b031be01a5e",
+    "requestId": "4b6c5e62-1683-4352-9a2e-f4952d400d5e",
+    "traceId": "3d428d78-b45f-49b4-bc58-1573c70e33b9",
+    "remoteDeployed": true
+  },
+  "ready": {
+    "httpStatus": 200,
+    "bytes": 195,
+    "sha256": "a9b187652d70e14f28d3994e99a0bc405d40db4ab4623d133ae04284f16cb20f",
+    "requestId": "0c2abfbf-bff2-452f-96cf-3e1d2d6735c1",
+    "traceId": "e19ef50a-b47a-48c1-b603-68d678799841",
+    "publicDeploymentReady": true
+  },
+  "version": {
+    "httpStatus": 200,
+    "bytes": 298,
+    "sha256": "20e9602e0be838b982e8ab1c2ef71933e698a71b9588638d0a3eee60f6538a05",
+    "requestId": "bf358f3f-95d1-47de-a71f-f6cda2980678",
+    "traceId": "1a318d2b-de69-42e8-99a0-0dfda1e5b533",
+    "sourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "release": "p0-origin-binding-49e30d99"
+  },
+  "registeredOriginPreflight": {
+    "route": "/v1/wallet/sessions/complete",
+    "origin": "https://social.ynxweb4.com",
+    "httpStatus": 204,
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "allowOriginExact": true,
+    "allowMethod": "POST",
+    "allowHeaders": [
+      "content-type",
+      "x-ynx-product-session-proof"
+    ],
+    "requestId": "c6f36aa1-2cee-4cb1-bada-b6587c1272ba",
+    "traceId": "6c703077-cbed-4546-8773-827ea314ddb3"
+  },
+  "transportObservation": {
+    "initialVersionAndOptionsAttemptsHadTlsConnectionReset": true,
+    "boundedRetrySucceeded": true,
+    "classifiedAsRuntimeFailure": false
+  },
+  "candidateComparison": {
+    "currentOwnerHead": "2c9255e15ef3df482e4c8cb253749b6cdacc8451",
+    "publicRuntimeContainsCurrentOwnerHead": false,
+    "publicRuntimeContainsClientRetirement": false,
+    "publicRuntimeContainsMigrationEvidenceGate": false
+  },
+  "truth": {
+    "previousOriginBindingRuntimeStillPublic": true,
+    "currentOwnerCandidateDeployedPublic": false,
+    "clientRetirementDeployedPublic": false,
+    "productMigrationsVerifiedPublic": false,
+    "installedClientVerified": false,
+    "integratedCentral": false,
+    "aggregatePublicReady": false
+  }
+}

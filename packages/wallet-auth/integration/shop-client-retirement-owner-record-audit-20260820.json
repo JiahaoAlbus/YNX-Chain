@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T11:23:34.000Z",
+  "centralAssignment": {
+    "sourceCommit": "0c668adc257046924d4d631e03eb151986910462",
+    "path": "release/integration/p0-wallet-connectivity/assignments/shop-android-retirement.json",
+    "status": "PROTOCOL_CAPABILITY_ACCEPTED_OWNER_RECORDS_PENDING",
+    "executionLeaseIssued": false
+  },
+  "shopOwnerReadOnlyAudit": {
+    "sourceCommit": "60e7426c1758fc3bae9e52923214abab6732806b",
+    "scopedWorktreeClean": true,
+    "observedSharedIdentity": {
+      "productClientId": "ynx-shop-v1",
+      "bundleId": "com.ynxweb4.shop",
+      "callback": "ynxshop://wallet-auth/callback",
+      "usedBy": [
+        "android",
+        "ios",
+        "web"
+      ]
+    },
+    "files": [
+      {
+        "path": "apps/shop/wallet-auth.js",
+        "sha256": "edb7a4bb177918825043f73c79c288fd4ef08d0c141c10e8aa701c822d68d4a6"
+      },
+      {
+        "path": "apps/shop/native/android/app/build.gradle",
+        "sha256": "959fa108b630165d3dd20aafaea09da5136f10967af86da050dea935d904138e"
+      },
+      {
+        "path": "apps/shop/native/android/app/src/main/AndroidManifest.xml",
+        "sha256": "3bb5f3f7e767275f40666b70f44b3ebf8f2d116cae592b37ca8826041a9496ff"
+      },
+      {
+        "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/WalletAuth.java",
+        "sha256": "0323bbdbb732e8ae8807f3f5c25ac1625a7cb908fff9a341c961895f37cdb017"
+      },
+      {
+        "path": "apps/shop/native/ios/YNXShop/Info.plist",
+        "sha256": "c38c311278926342bec98b8690fb8ae9690f0c79d9e31266c9baae0a9f68da02"
+      },
+      {
+        "path": "apps/shop/native/ios/YNXShop/WalletAuth.swift",
+        "sha256": "112d15986839798300ff91d7e2ab5567d43ccc10e8138b2151c33c51e4e55449"
+      },
+      {
+        "path": "apps/shop/product-release.json",
+        "sha256": "7f8a017147dc9d3941aba3154856e9784a4fc21b040fcac78b849e61bec28fe2"
+      }
+    ]
+  },
+  "websiteOwnerReadOnlyAudit": {
+    "sourceCommit": "c7e70361a1f6d814591ccce7d5cdd49049e484c3",
+    "scopedWorktreeClean": true,
+    "publicAndroidArtifactStillListed": true,
+    "artifactPath": "/downloads/ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk",
+    "files": [
+      {
+        "path": "vercel.json",
+        "sha256": "a6b7ceea718cd60f3bf4efb350cfbdb186e0d733f3fa904b00eb1f7d0f3f13af"
+      },
+      {
+        "path": "src/lib/ecosystemCatalog.js",
+        "sha256": "8785b1f64c1e73ff039a3dc03fff4ba2f8d32e250a7b18a64829410f6c993d90"
+      },
+      {
+        "path": "public/releases/ecosystem-release-registry.json",
+        "sha256": "20e86ecd133fe81cd66db63fb04cea03418ba149d0b4e7b5b00f663294115d2a"
+      }
+    ]
+  },
+  "missingOwnerRecords": [
+    "supportedProductClientId",
+    "supportedCallback",
+    "retiredClientId",
+    "retiredPackageOrBundle",
+    "retiredAt",
+    "disabledCallbacks",
+    "disabledAppLinks",
+    "replacementURL",
+    "minimumClientVersion",
+    "iosImplementationSourceCommit",
+    "webImplementationSourceCommit",
+    "publicReplacementRoute"
+  ],
+  "truth": {
+    "identitySplitImplementedByProductOwners": false,
+    "retirementRecordAccepted": false,
+    "retirementDeployCandidateGenerated": false,
+    "executionLeaseIssued": false,
+    "androidClientRetired": false,
+    "websiteArtifactRemoved": false,
+    "deployedPublic": false
+  }
+}

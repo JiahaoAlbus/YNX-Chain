@@ -1,0 +1,14 @@
+{"at":"2026-08-14T00:51:48.699Z","browserId":"chrome","stage":"launch-start"}
+{"at":"2026-08-14T00:51:54.796Z","browserId":"chrome","stage":"launch-complete"}
+{"at":"2026-08-14T00:52:04.853Z","browserId":"chrome","stage":"error","name":"TimeoutError","message":"browserContext.waitForEvent: Timeout 5000ms exceeded while waiting for event \"serviceworker\""}
+{"at":"2026-08-14T00:52:12.198Z","browserId":"edge","stage":"launch-start"}
+{"at":"2026-08-14T00:52:18.843Z","browserId":"edge","stage":"launch-complete"}
+{"at":"2026-08-14T00:52:18.846Z","browserId":"edge","stage":"service-worker","url":"chrome-extension://jgijcegbgeobldllfniaejejofobcngk/service-worker.js"}
+{"at":"2026-08-14T00:52:19.462Z","browserId":"edge","stage":"fixture-active","url":"http://127.0.0.1:50839/"}
+{"at":"2026-08-14T00:53:18.847Z","browserId":"edge","stage":"action-invoked"}
+{"at":"2026-08-14T00:53:18.928Z","browserId":"edge","stage":"active-tab","id":75150562}
+{"at":"2026-08-14T00:53:18.938Z","browserId":"edge","stage":"provider-injection-denied","name":"Error","message":"worker.evaluate: Error: Cannot access contents of the page. Extension manifest must request permission to access the respective host."}
+{"at":"2026-08-14T00:53:20.137Z","browserId":"edge","stage":"popup-open","url":"chrome-extension://jgijcegbgeobldllfniaejejofobcngk/index.html"}
+{"at":"2026-08-14T00:53:26.550Z","browserId":"edge","stage":"rpc-fail-closed","requestedUrl":"https://evm.ynxweb4.com","requestedChainId":"0x1917","error":{"name":"WalletWebError","code":"RPC_UNAVAILABLE","message":"YNX Testnet RPC did not answer. Chain-changing and transaction actions remain disabled."},"chainChangeSucceeded":false}
+{"at":"2026-08-14T00:53:30.281Z","browserId":"edge","stage":"first-context-closed"}
+{"at":"2026-08-14T00:53:32.547Z","browserId":"edge","stage":"second-launch","worker":"chrome-extension://jgijcegbgeobldllfniaejejofobcngk/service-worker.js","popup":"chrome-extension://jgijcegbgeobldllfniaejejofobcngk/index.html"}

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "584acdb12e7c0946e70896687994a64bf37e2ccb",
+  "surface": "local PWA build served on loopback and operated through the Codex in-app Browser",
+  "browserFamily": "iab",
+  "viewportOverride": {"width": 390, "height": 844},
+  "firstOpen": {
+    "locale": "en",
+    "direction": "ltr",
+    "theme": "light",
+    "ynxWalletDetected": false,
+    "downloadYNXWalletVisible": true,
+    "useMetaMaskVisible": true,
+    "networkText": "YNX Testnet · Chain 6423 · 0x1917",
+    "screenshot": "pwa-first-open-light-390.jpg",
+    "screenshotSha256": "9a9245ecc5d202b05dea7f575d9b5cb847a1dc6a2b4b041d2567447aefbf8174"
+  },
+  "visibleFailClosedAction": {
+    "action": "Add YNX Testnet",
+    "status": "WALLET_NOT_FOUND: No compatible wallet provider was detected.",
+    "providerSuccessClaimed": false,
+    "screenshot": "pwa-rpc-fail-closed-390.jpg",
+    "screenshotSha256": "40d20e3974222c69667ef073b51fd49fc1c1b9eae4b057823b5e34f11101364c"
+  },
+  "arabicDark": {
+    "locale": "ar",
+    "direction": "rtl",
+    "theme": "dark",
+    "innerWidth": 390,
+    "clientWidth": 375,
+    "scrollWidth": 375,
+    "horizontalOverflow": false,
+    "screenshot": "pwa-arabic-dark-rtl-390.jpg",
+    "screenshotSha256": "c752e4ad297c5d2bc6a3c76ef8b4ce1ac81f247815006de9f47c5062bc18153f"
+  },
+  "secondOpen": {
+    "locale": "ar",
+    "direction": "rtl",
+    "theme": "dark",
+    "preferencesPersisted": true,
+    "downloadYNXWalletVisible": true,
+    "useMetaMaskVisible": true,
+    "networkText": "YNX Testnet · Chain 6423 · 0x1917",
+    "screenshot": "pwa-second-open-rtl-dark-390.jpg",
+    "screenshotSha256": "c752e4ad297c5d2bc6a3c76ef8b4ce1ac81f247815006de9f47c5062bc18153f"
+  },
+  "pwaTestedLocal": true,
+  "pwaInstalledLocal": false,
+  "browserExtensionInstalledLocal": false
+}

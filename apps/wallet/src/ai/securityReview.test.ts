@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import type { AuthorizationRequest } from "@ynx-chain/wallet-auth";
 import { GatewaySecurityReviewProvider, SecurityReviewController, type SecurityReviewProvider } from "./securityReview";
 
-const request={version:"1",nonce:"nonce_abcdefghijklmnopqrstuvwxyz12",chainId:"ynx_6423-1",requestingProduct:"social",productClientId:"ynx-social-v1",bundleId:"com.ynx.social",productDeviceAlgorithm:"p256-sha256",productDeviceKey:"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",callback:"ynx-social://com.ynx.social",scopes:["account:read","profile:link"],purpose:"Link the selected account",issuedAt:"2026-07-15T11:59:00.000Z",expiresAt:"2026-07-15T12:04:00.000Z"} as AuthorizationRequest;
+const request={nonce:"nonce_abcdefghijklmnopqrstuvwxyz12",chainId:"ynx_6423-1",requestingProduct:"social",productClientId:"ynx-social-v1",bundleId:"com.ynxweb4.social",scopes:["account:read","profile:link"],purpose:"Link the selected account",expiresAt:"2026-07-15T12:04:00.000Z"};
 const now=()=>new Date("2026-07-15T12:00:00.000Z");
 
 test("provider-backed security review covers preview, status, estimate, consent, stream, review, apply and audit",async()=>{
@@ -58,28 +57,16 @@ test("a user can cancel a live stream and retry only after fresh permission",asy
 
 test("Gateway review sends selected metadata in a POST body instead of a URL query",async()=>{
   const original=globalThis.fetch;
-  const captured:{url:string;init:RequestInit}[]=[],proofs:string[]=[];
-  globalThis.fetch=(async(url:URL|string|Request,init?:RequestInit)=>{captured.push({url:String(url),init:init??{}});return String(url).endsWith("/health")?new Response(JSON.stringify({providerConfigured:true,provider:"hosted",model:"review"}),{status:200,headers:{"Content-Type":"application/json"}}):new Response('event: token\ndata: {"token":"bounded"}\n\n',{status:200,headers:{"Content-Type":"text/event-stream"}})}) as typeof fetch;
+  let captured:{url:string;init:RequestInit}|undefined;
+  globalThis.fetch=(async(url:URL|string|Request,init?:RequestInit)=>{captured={url:String(url),init:init??{}};return new Response('event: token\ndata: {"token":"bounded"}\n\n',{status:200,headers:{"Content-Type":"text/event-stream"}})}) as typeof fetch;
   try{
-    const provider=new GatewaySecurityReviewProvider("https://gateway.example/",async(scope)=>{assert.equal(scope,"wallet:audit");const proof=`proof-${proofs.length+1}`;proofs.push(proof);return proof});
-    assert.equal((await provider.status()).available,true);
+    const provider=new GatewaySecurityReviewProvider("https://gateway.example/","session-token");
     const tokens:string[]=[];
     await provider.stream({prompt:"explain",context:{scope:"account:read"},signal:new AbortController().signal,onToken:(token)=>tokens.push(token)});
-    assert.equal(captured[1]?.url,"https://gateway.example/ai/stream");
-    assert.equal(captured[1]?.init.method,"POST");
-    assert.equal((captured[1]?.init.headers as Record<string,string>)["Content-Type"],"application/json");
-    assert.equal((captured[0]?.init.headers as Record<string,string>)["X-YNX-Product-Session-Proof"],"proof-1");
-    assert.equal((captured[1]?.init.headers as Record<string,string>)["X-YNX-Product-Session-Proof"],"proof-2");
-    assert.equal((captured[0]?.init.headers as Record<string,string>)["Authorization"],undefined);
-    assert.equal((captured[1]?.init.headers as Record<string,string>)["Authorization"],undefined);
-    assert.deepEqual(JSON.parse(String(captured[1]?.init.body)),{session:"wallet-security-review",prompt:"explain",context:{scope:"account:read"}});
+    assert.equal(captured?.url,"https://gateway.example/ai/stream");
+    assert.equal(captured?.init.method,"POST");
+    assert.equal((captured?.init.headers as Record<string,string>)["Content-Type"],"application/json");
+    assert.deepEqual(JSON.parse(String(captured?.init.body)),{session:"wallet-security-review",prompt:"explain",context:{scope:"account:read"}});
     assert.deepEqual(tokens,["bounded"]);
-    assert.deepEqual(proofs,["proof-1","proof-2"]);
   }finally{globalThis.fetch=original}
-});
-
-test("Wallet AI stays unavailable when the one-use proof bridge is absent or fails",async()=>{
-  assert.equal((await new GatewaySecurityReviewProvider("https://gateway.example",null).status()).available,false);
-  const failed=new GatewaySecurityReviewProvider("https://gateway.example",async()=>{throw new Error("Product Session expired")});
-  const state=await failed.status();assert.equal(state.available,false);assert.match(state.detail,/expired/);
 });

@@ -22,3 +22,14 @@ allprojects {
 
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
+
+// YNX_SECURE_STORE_WRITE_BARRIER_BEGIN
+// Verify on every Gradle configuration, including direct module compilation.
+def ynxSecureStorePatch = providers.exec {
+    workingDir(rootDir.parentFile)
+    commandLine("node", "scripts/secure-store-native-patch.mjs", "--check")
+}.standardOutput.asText.get()
+if (findProject(":expo-secure-store") == null) {
+    throw new GradleException("YNX SecureStore must compile from reviewed source, not a prebuilt AAR")
+}
+// YNX_SECURE_STORE_WRITE_BARRIER_END

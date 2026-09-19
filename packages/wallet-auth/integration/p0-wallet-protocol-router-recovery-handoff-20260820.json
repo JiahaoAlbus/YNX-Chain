@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "P0-WALLET-CONNECTIVITY-2026-08-router-recovery-lease-request-20260820T114555Z",
+  "owner": "wallet-protocol",
+  "status": "INTEGRATION_ACCEPTANCE_AND_NEW_EXECUTION_LEASE_REQUESTED",
+  "candidate": {
+    "branch": "codex/p0-wallet-protocol-integration-20260820",
+    "sourceCommit": "a5a2841e870d7d21df0f761179f2c47d9ca83ccc",
+    "walletAuthTree": "53790596eeba9388b02cb43ac8cc51939f00ce5d",
+    "remoteTrackingReadbackMatched": true
+  },
+  "consumedProvenance": {
+    "productSessionRouterRecoveryBase": "17417e47d79116abbfea86bfa2b65c2dd66d63c5",
+    "networkEpochReconciliation": "d5f252e90b8e7a69dfddc71e64b872a7e4482f47",
+    "platformSecureSignerReconciliation": "edcfc86bb29efad278264b3e2ae39daae9fc2b39",
+    "asyncSignerNetworkFence": "ae8e24658efbf9dea6afce5526d3938d3b8c80cd",
+    "lostRevokeAcknowledgement": "92ae5404da908c0d649a3a62fd51bcc772e14efd"
+  },
+  "verification": {
+    "walletAuthTests": "223/223 passed",
+    "focusedRecoveryAndCoordinator": "29/29 passed",
+    "dappConnectSdkTests": "13/13 passed",
+    "walletAuthPackDryRun": "passed",
+    "dappConnectSdkPackDryRun": "passed",
+    "diffCheck": "passed",
+    "conflictMarkerScan": "passed",
+    "concurrentProductSessions": 120,
+    "productRuntimeMigrations": 0
+  },
+  "lease": {
+    "priorLeaseId": "P0-WALLET-CONNECTIVITY-2026-08-runtime-lease-20260820T095840Z",
+    "priorLeaseTarget": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "priorLeaseReusableForCandidate": false,
+    "newExactExecutionLeaseIssued": false
+  },
+  "publicRuntime": {
+    "observedSourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "candidateSourceObservedPublic": false
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "pushedRemote": true,
+    "acceptedByIntegration": false,
+    "deployedPublic": false,
+    "installedClientVerified": false,
+    "productMigrationVerified": false,
+    "enhancedSdkAccepted": false,
+    "integratedCentral": false,
+    "aggregatePublicReady": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

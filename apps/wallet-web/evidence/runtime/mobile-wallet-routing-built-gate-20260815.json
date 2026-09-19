@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-14T17:31:48.681Z",
+  "immutableCentralDependency": {
+    "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "endpointMatrix": {
+      "blob": "d402fcdc844aa39bd5ee351a99d93acb4852dc37",
+      "sha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"
+    },
+    "androidLauncher": {
+      "blob": "83c9f91779701288861cff5e4dc6c487ffcdc26c",
+      "sha256": "d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"
+    }
+  },
+  "coreBinding": {
+    "registryVersion": 2,
+    "chainId": "ynx_6423-1",
+    "productClientId": "ynx-wallet-v1",
+    "requestingProduct": "wallet",
+    "bundleId": "com.ynxweb4.wallet",
+    "enabled": false,
+    "reviewState": "pending-review",
+    "scopes": [
+      "wallet:account",
+      "wallet:audit",
+      "wallet:sessions"
+    ],
+    "webCallbacks": []
+  },
+  "ynxAuthorization": {
+    "route": "canonical-auth-unavailable",
+    "available": false,
+    "callback": null,
+    "error": "CANONICAL_AUTH_UNAVAILABLE"
+  },
+  "metaMaskMobileDappUrl": "https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet",
+  "checks": [
+    {
+      "artifact": "ynx-wallet-web-pwa-0.1.0.zip",
+      "mobileRoutingPresent": true,
+      "coreBindingPresent": true,
+      "ynxLauncherMisrepresentedAsConnect": false
+    },
+    {
+      "artifact": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "mobileRoutingPresent": true,
+      "coreBindingPresent": true,
+      "ynxLauncherMisrepresentedAsConnect": false
+    },
+    {
+      "artifact": "ynx-wallet-firefox-0.1.0.zip",
+      "mobileRoutingPresent": true,
+      "coreBindingPresent": true,
+      "ynxLauncherMisrepresentedAsConnect": false
+    }
+  ],
+  "gates": {
+    "injectedProviderConnectProvedBySource": true,
+    "externalChromeReturnTreatedAsProviderSuccess": false,
+    "ynxCanonicalAuthorizationAvailable": false,
+    "metaMaskMobileRouteProvedByBuiltArtifacts": true,
+    "providerConnected": false,
+    "account": false,
+    "sign": false,
+    "transaction": false,
+    "testnetConnected": false,
+    "deployedPublic": false
+  }
+}

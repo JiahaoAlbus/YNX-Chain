@@ -1,0 +1,14 @@
+{
+  "closed": {
+    "chooserHidden": true,
+    "expanded": "false",
+    "focus": "wallet-connect-trigger"
+  },
+  "expanded": {
+    "details": true,
+    "packageDetails": true,
+    "scrollWidth": 375,
+    "width": 390
+  },
+  "personalAuthorization": false
+}

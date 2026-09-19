@@ -1,39 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PRODUCT_REGISTRY, SCOPE_EXPLANATIONS } from "./registry";
-import { encodeRequestDeepLink, parseWalletDeepLink } from "@ynx-chain/wallet-auth";
+import { productPlatformBinding, WalletAuthError } from "@ynx-chain/wallet-auth";
+import registry from "../../../../packages/wallet-auth/product-session-registry.json";
+import { PRODUCT_SESSION_REGISTRY } from "./registry";
 
-test("Wallet locally reviews the exact approved finance, commerce and existing bounded tuples",()=>{
-  assert.deepEqual(Object.keys(PRODUCT_REGISTRY).sort(),["ynx-bridge-web-v1","ynx-browser-android","ynx-browser-ios","ynx-browser-macos","ynx-browser-windows","ynx-calendar-v1","ynx-card-v1","ynx-cloud-mobile-v1","ynx-cloud-web-v1","ynx-creator-studio-web-v1","ynx-developer-v1","ynx-dex-web-v1","ynx-docs-mobile-v1","ynx-docs-web-v1","ynx-exchange-v1","ynx-finance-v1","ynx-mail-v1","ynx-merchant-console-v1","ynx-music-v1","ynx-music-web-v1","ynx-pay-v1","ynx-quant-v1","ynx-search-web","ynx-seller-v1","ynx-shop-v1","ynx-social-v1","ynx-video-mobile-v1","ynx-video-web-v1"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-bridge-web-v1"]?.callbacks,["https://ynxweb4.com/bridge/wallet-auth/callback"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-bridge-web-v1"]?.scopes,["bridge:quote:read","bridge:review:create"]);
-  assert.equal(PRODUCT_REGISTRY["ynx-social-v1"]?.bundleId,"com.ynx.social");
-  assert.equal(PRODUCT_REGISTRY["ynx-pay-v1"]?.callbacks[0],"ynxpay://wallet-auth/callback");
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-pay-v1"]?.scopes,["account:read","pay:case:create","pay:route:select","pay:settlement:submit","pay:sponsorship:request"]);
-  assert.equal(PRODUCT_REGISTRY["ynx-card-v1"]?.requestingProduct,"ynx-card");
-  assert.equal(PRODUCT_REGISTRY["ynx-finance-v1"]?.callbacks[0],"ynxfinance://wallet-auth/callback");
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-quant-v1"]?.scopes,["quant:account","quant:mandate:create","quant:mandate:execute","quant:mandate:revoke"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-developer-v1"]?.scopes,["account:read","developer:deploy"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-search-web"]?.callbacks,["https://web4.ynxweb4.com/search/auth/callback"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-cloud-mobile-v1"]?.callbacks,["ynxcloud://wallet-auth/callback"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-cloud-web-v1"]?.callbacks,["https://web4.ynxweb4.com/cloud/auth/callback"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-cloud-web-v1"]?.scopes,["ai.use","audit.read","data.delete","files.read","files.write","permissions.manage"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-docs-mobile-v1"]?.callbacks,["ynxdocs://wallet-auth/callback"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-docs-web-v1"]?.callbacks,["https://web4.ynxweb4.com/docs-app/auth/callback"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-docs-web-v1"]?.scopes,["ai.use","audit.read","comments.write","data.delete","documents.read","documents.write","sharing.manage"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-creator-studio-web-v1"]?.callbacks,["https://web4.ynxweb4.com/video/studio/wallet-auth/callback"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-creator-studio-web-v1"]?.scopes,["ai.video.propose","pay.payout.intent","video.creator","video.read"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-music-v1"]?.callbacks,["ynxmusic://auth/callback"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-music-web-v1"]?.callbacks,["https://web4.ynxweb4.com/music/auth/callback"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-music-web-v1"]?.scopes,["music.creator","music.library","music.playback","music.profile"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-video-mobile-v1"]?.callbacks,["ynxvideo://wallet-auth/callback"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-video-web-v1"]?.callbacks,["https://web4.ynxweb4.com/video/wallet-auth/callback"]);
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-video-web-v1"]?.scopes,["video.comment","video.history","video.read","video.report","video.subscribe"]);
-  assert.equal(PRODUCT_REGISTRY["ynx-seller-v1"]?.requestingProduct,"seller-console");
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-seller-v1"]?.scopes,["account:read","shop:seller:operate"]);
-  const request={version:"1",nonce:"developer_nonce_abcdefghijklmnop",chainId:"ynx_6423-1",requestingProduct:"developer",productClientId:"ynx-developer-v1",bundleId:"com.ynxweb4.developer.testnetpreview",productDeviceAlgorithm:"p256-sha256",productDeviceKey:"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",callback:"ynxdeveloper://wallet-auth/callback",scopes:["account:read","developer:deploy"],purpose:"Sign in to YNX Developer and review one exact Testnet deployment.",issuedAt:"2026-08-10T00:00:00.000Z",expiresAt:"2026-08-10T00:05:00.000Z"} as const;
-  const parsed=parseWalletDeepLink(encodeRequestDeepLink(request),"android",{now:new Date("2026-08-10T00:01:00.000Z"),registry:PRODUCT_REGISTRY});
-  assert.equal(parsed.request.productClientId,"ynx-developer-v1");
-  assert.deepEqual(parsed.request.scopes,["account:read","developer:deploy"]);
-  for(const binding of Object.values(PRODUCT_REGISTRY))for(const scope of binding.scopes)assert.ok(SCOPE_EXPLANATIONS[scope],`missing explanation ${scope}`);
+test("Wallet uses the authoritative v2 registry and canonical platform identity", () => {
+  assert.deepEqual(PRODUCT_SESSION_REGISTRY, registry);
+  for (const product of registry.products) {
+    for (const platform of ["android", "ios", "web"] as const) {
+      if (product.platforms && !product.platforms.includes(platform)) {
+        assert.throws(() => productPlatformBinding(PRODUCT_SESSION_REGISTRY, product.productId, platform),
+          (error: unknown) => error instanceof WalletAuthError && error.code === "INVALID_PLATFORM");
+        continue;
+      }
+      const binding = productPlatformBinding(PRODUCT_SESSION_REGISTRY, product.productId, platform);
+      assert.equal(binding.applicationId, product.applicationId + (platform === "web" ? ".web" : ""));
+      assert.equal(binding.callback, platform === "web" ? product.webOrigin + "/wallet-auth/callback" : product.nativeCallback);
+      assert.equal(binding.packageId, platform === "android" ? product.applicationId : null);
+      assert.equal(binding.bundleId, platform === "ios" ? product.applicationId : null);
+    }
+  }
 });

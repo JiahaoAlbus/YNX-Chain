@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "45e5d63c5461424a963b1f8e867f82813ba0010b",
+  "generatedAt": "2026-08-14T04:03:03.317Z",
+  "browserId": "chrome",
+  "browserName": "Google Chrome",
+  "gate": "injection",
+  "fixtureUrl": "http://127.0.0.1:55326/",
+  "loadMode": "temporary-unpacked-isolated-profile",
+  "passed": false,
+  "installedLocal": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "version": "151.0.7922.138",
+  "error": {
+    "name": "TimeoutError",
+    "code": null,
+    "message": "browserContext.waitForEvent: Timeout 1000ms exceeded while waiting for event \"serviceworker\""
+  },
+  "artifact": {
+    "bytes": 177873,
+    "sha256": "0bd773c7614443c17f53aa88c77460ebf139e8f744e5346b2d8d74e9fc216022"
+  }
+}

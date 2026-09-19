@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "ab6c17e22de9ac95a96f5b742c31bea726a66da8",
+  "observedAt": "2026-08-14T04:25:00Z",
+  "scope": "read-only branded-browser registration/process inspection and exact Browser Control attempt",
+  "chrome": {
+    "name": "Google Chrome",
+    "version": "151.0.7922.138",
+    "mainPid": 13472,
+    "brandedBinaryInstalled": true,
+    "ynxExtensionRegistrationFound": false,
+    "ynxExtensionId": null,
+    "installedLocal": false,
+    "firstOpenVisible": false,
+    "secondOpenVisible": false,
+    "chainResponseObserved": false,
+    "controlBlocker": "The exact Chrome browser family was not exposed by Browser Control: Browser is not available: chrome."
+  },
+  "edge": {
+    "name": "Microsoft Edge",
+    "version": "151.0.4129.78",
+    "mainPid": 6399,
+    "extensionRendererPidsObserved": [50212, 50214, 50215],
+    "brandedBinaryInstalled": true,
+    "unpackedRegistrationFound": true,
+    "unpackedPath": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/dist/chromium",
+    "ynxExtensionId": "jgijcegbgeobldllfniaejejofobcngk",
+    "installedLocal": false,
+    "installedLocalReason": "A developer-mode unpacked registration is not a signed or store-installed extension.",
+    "firstOpenVisible": false,
+    "secondOpenVisible": false,
+    "chainResponseObserved": false,
+    "connectObserved": false,
+    "disconnectReconnectObserved": false,
+    "wrongChainFailClosedVisible": false,
+    "controlBlocker": "Browser Control rejected chrome-extension://jgijcegbgeobldllfniaejejofobcngk/index.html under its URL security policy and explicitly prohibited CDP or alternate-surface circumvention."
+  },
+  "firefox": {
+    "name": "Mozilla Firefox",
+    "brandedBinaryInstalled": false,
+    "binaryPathChecked": "/Applications/Firefox.app/Contents/MacOS/firefox",
+    "declaredAddonId": "wallet-testnet@ynxweb4.com",
+    "installedLocal": false,
+    "firstOpenVisible": false,
+    "secondOpenVisible": false,
+    "chainResponseObserved": false
+  },
+  "testnet": {
+    "chainId": "0x1917",
+    "popupRpcObservedThisRun": false,
+    "connectObservedThisRun": false,
+    "disconnectReconnectObservedThisRun": false,
+    "wrongChainFailClosedVisibleThisRun": false,
+    "reason": "The extension UI could not be opened through the permitted branded-browser control surface; no provider or RPC success is inferred."
+  },
+  "packageTruth": {
+    "chromiumStableExtensionId": false,
+    "chromiumHostedUpgradeVerified": false,
+    "chromiumUninstallVerified": false,
+    "firefoxDeclaredAddonIdStable": true,
+    "firefoxHostedUpgradeVerified": false,
+    "firefoxUninstallVerified": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

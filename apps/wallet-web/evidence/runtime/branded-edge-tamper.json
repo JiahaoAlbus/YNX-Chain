@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
+  "generatedAt": "2026-08-14T04:18:38.993Z",
+  "browserId": "edge",
+  "browserName": "Microsoft Edge",
+  "gate": "tamper",
+  "fixtureUrl": "http://127.0.0.1:61485/",
+  "loadMode": "temporary-unpacked-isolated-profile",
+  "passed": true,
+  "installedLocal": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "version": "151.0.4129.78",
+  "serviceWorker": {
+    "started": true,
+    "url": "chrome-extension://jgijcegbgeobldllfniaejejofobcngk/service-worker.js"
+  },
+  "provider": {
+    "injected": true,
+    "isYNXWallet": true,
+    "rdns": "com.ynx.wallet.companion",
+    "requestType": "function"
+  },
+  "outcome": {
+    "success": false,
+    "error": {
+      "code": "INVALID_CHAIN_PARAMS",
+      "message": "Rejected non-canonical YNX Testnet chain parameters."
+    },
+    "calls": []
+  },
+  "artifact": {
+    "bytes": 177873,
+    "sha256": "0bd773c7614443c17f53aa88c77460ebf139e8f744e5346b2d8d74e9fc216022"
+  }
+}

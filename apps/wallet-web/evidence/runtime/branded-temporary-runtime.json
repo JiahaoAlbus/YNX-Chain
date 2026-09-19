@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "aada292dfb88b6042f00ed1202a3aa7304649beb",
+  "generatedAt": "2026-08-14T00:53:35.705Z",
+  "fixtureAuthority": "isolated test fixture; never production runtime",
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 171213,
+    "sha256": "2f0bb3dbfb710119873d21260d6f5668c1a5f5d5686d9ebeef0b0c6a2781e32f",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "results": [
+    {
+      "browserId": "chrome",
+      "browserName": "Google Chrome",
+      "executablePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "loadMode": "temporary-unpacked-isolated-profile",
+      "brandedBinary": true,
+      "temporaryUnpackedRuntimeTested": false,
+      "installedLocal": false,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "version": "151.0.7922.138",
+      "error": {
+        "name": "TimeoutError",
+        "message": "browserContext.waitForEvent: Timeout 5000ms exceeded while waiting for event \"serviceworker\""
+      }
+    },
+    {
+      "browserId": "edge",
+      "browserName": "Microsoft Edge",
+      "executablePath": "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+      "loadMode": "temporary-unpacked-isolated-profile",
+      "brandedBinary": true,
+      "temporaryUnpackedRuntimeTested": false,
+      "installedLocal": false,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "version": "151.0.4129.78",
+      "serviceWorker": {
+        "started": true,
+        "url": "chrome-extension://jgijcegbgeobldllfniaejejofobcngk/service-worker.js",
+        "extensionOrigin": "chrome-extension://jgijcegbgeobldllfniaejejofobcngk"
+      },
+      "dappBridge": {
+        "fixtureUrl": "http://127.0.0.1:50839/",
+        "mainWorldInjection": "production pageWalletRequest via chrome.scripting.executeScript world MAIN",
+        "contentScriptRegistered": false,
+        "activeTab": {
+          "id": 75150562
+        },
+        "tested": false,
+        "error": {
+          "name": "Error",
+          "message": "worker.evaluate: Error: Cannot access contents of the page. Extension manifest must request permission to access the respective host."
+        },
+        "reason": "Programmatic action.openPopup does not grant the user-gesture activeTab permission."
+      },
+      "ynxPriority": {
+        "passed": false,
+        "reason": "MAIN-world injection was denied before provider selection."
+      },
+      "popup": {
+        "url": "chrome-extension://jgijcegbgeobldllfniaejejofobcngk/index.html",
+        "opened": true
+      },
+      "rpcFailClosed": {
+        "requestedUrl": "https://evm.ynxweb4.com",
+        "requestedChainId": "0x1917",
+        "error": {
+          "name": "WalletWebError",
+          "code": "RPC_UNAVAILABLE",
+          "message": "YNX Testnet RPC did not answer. Chain-changing and transaction actions remain disabled."
+        },
+        "chainChangeSucceeded": false
+      },
+      "firstLaunch": {
+        "preference": {
+          "locale": "ar",
+          "theme": "dark"
+        }
+      },
+      "secondLaunch": {
+        "serviceWorkerRestarted": true,
+        "preference": {
+          "locale": "ar",
+          "theme": "dark",
+          "dir": "rtl"
+        },
+        "persisted": true
+      },
+      "runtimeLifecycleTested": true
+    }
+  ],
+  "releaseStates": {
+    "installedLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

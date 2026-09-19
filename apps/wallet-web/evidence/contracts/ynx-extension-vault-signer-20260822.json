@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "recordedAt": "2026-08-22",
+  "scope": "source-built-artifact-and-direct-node-rpc-not-installed-browser",
+  "centralAcceptance": {
+    "commit": "803d8fa0735303a5987bbebfeb088cdd5542b388",
+    "tree": "4a66635c1a7f34fefb369dc5aba185454bc2a303",
+    "path": "release/integration/p0-wallet-connectivity/acceptance/wallet-web-independent-provider-core-p0152-20260822.json",
+    "blob": "4057c4ef26e415f6cee33e105ceb825c6797c0a9",
+    "sha256": "acb808830bef59707f9433e417bac3b4af6f0bc294c218b0f6468dfbba961f20",
+    "decision": "SOURCE_AND_BUILT_ARTIFACT_ACCEPTED_INSTALLED_PROVIDER_PARITY_FALSE",
+    "executionLeaseIssued": false,
+    "deploymentLeaseIssued": false
+  },
+  "publicIdentityBlocker": {
+    "routerCommit": "177240b5c3a2d5fbfdf9246fc568c3c3b57a0114",
+    "routerTree": "a68b7db02a6e014d89598b34e048362a8a7cd15e",
+    "path": "release/integration/wallet-web-public-identity-drift-recheck-20260822.json",
+    "blob": "0d7760d57ffa78d8a69dce91ba6caec8178d5bd2",
+    "sha256": "bcb33a7d0dc64a6864690d99bba91932ed08778fc724641e9c70f49a71143b2e",
+    "publicUrl": "https://wallet.ynxweb4.com/",
+    "observedBuildIdentitySourceCommit": "uncommitted-source-tree",
+    "currentSourceBoundPublic": false,
+    "releaseBlocked": true
+  },
+  "source": {
+    "vaultCommit": "91562a4badeb23bb97cbd7c734a4590ccf3c53b3",
+    "signerCommit": "60a756991fbe07311c9d2b0dbade8a9d670dab04",
+    "signerTree": "6a6fd70ef6dae23022e877ff9542daffa225d536",
+    "branch": "codex/wallet-web-pwa-extensions-20260813"
+  },
+  "implementedSourceClaims": {
+    "encryptedExtensionVault": true,
+    "vaultKdf": "PBKDF2-SHA256-600000",
+    "vaultCipher": "AES-GCM-256",
+    "generatedOrImportedSecp256k1Account": true,
+    "providerAccountBoundToEncryptedVault": true,
+    "accountReplacementRevokesOriginPermissions": true,
+    "tamperAndWrongPasswordFailClosed": true,
+    "perRequestSensitiveReview": true,
+    "reviewShowsOriginAccountChainMethodPayload": true,
+    "personalSignRecoverableSignature": true,
+    "typedDataRequiresDomainChain6423": true,
+    "transactionRequiresRpcChainId0x1917": true,
+    "transactionNonceGasAndPriceFromCanonicalRpc": true,
+    "signedTransactionExactFieldReadback": true,
+    "broadcastHashMustMatchSignedTransaction": true,
+    "productSessionAuthorizesStandardSigner": false,
+    "metamaskSubstitution": false
+  },
+  "tests": {
+    "source": "110/110 pass",
+    "packageInternal": "83/83 pass",
+    "packageVerification": "pass",
+    "minimumPermissionArtifactGate": "pass",
+    "productionDependencyAudit": "0 vulnerabilities",
+    "directRpc": {
+      "url": "https://evm.ynxweb4.com",
+      "chainId": "0x1917",
+      "responseValidated": true,
+      "evidenceClass": "direct Node fetch through exact extension RPC implementation; not installed browser proof"
+    }
+  },
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 285229,
+      "sha256": "fca3adbf181c3ff034cdfac1a79ae7d90f3610df71f1f1f63792dc1c69222eb5",
+      "minimumOS": "modern browser with Service Worker and Web Crypto support",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 468402,
+      "sha256": "769bc63f93b5e85cfac6b85ed44002a037202ccabe8af013009ab989c566bfd6",
+      "minimumOS": "Chrome 120 / Edge 120",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 468441,
+      "sha256": "3eba0cacacded62932670f36ca5f2ea852680cda7cf696fce4515b7e1d1509c6",
+      "minimumOS": "Firefox 128",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "falseUntilInstalledDirectEvidence": {
+    "installedProviderVerified": false,
+    "ynxProviderDiscoveredByRealDapp": false,
+    "accountCreatedInInstalledExtension": false,
+    "approveVerified": false,
+    "rejectVerified": false,
+    "providerChainId1917Verified": false,
+    "refreshRestoreVerified": false,
+    "disconnectVerified": false,
+    "accountsChangedVerified": false,
+    "chainChangedVerified": false,
+    "personalSignVerified": false,
+    "typedDataVerified": false,
+    "transactionSubmitted": false,
+    "firstPartyDappsComplete": 0,
+    "externalDappsComplete": 0,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "deployedPublic": false,
+    "parityComplete": false
+  },
+  "nextActionBoundary": "First obtain immediate user confirmation before installing the exact unsigned unpacked artifact into an isolated real browser profile, then create or import a test-only account and directly exercise approve, reject, 0x1917, refresh, disconnect, events, personal sign, typed data and a real Testnet transaction. Separately, a deployment owner with an explicit lease must publish an immutable build identity bound to the reviewed source and provide fresh public HTTP and clean-profile evidence."
+}

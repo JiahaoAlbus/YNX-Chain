@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "3ed51a182cfc7c505e2af7fc1d638b6e0a321601",
+  "observedAt": "2026-08-14T03:08:57Z",
+  "invalidatingErrors": [
+    "ACCOUNT_CHANGED",
+    "WRONG_NETWORK",
+    "WALLET_NOT_FOUND",
+    4900,
+    4901
+  ],
+  "nonInvalidatingRetryableOrInputErrors": [
+    "RPC_UNAVAILABLE",
+    "INVALID_MESSAGE",
+    4001,
+    -32603
+  ],
+  "effect": {
+    "rememberedSessionDeleted": true,
+    "accountCleared": true,
+    "chainCleared": true,
+    "signDisabled": true,
+    "transactionDisabled": true,
+    "originalErrorRemainsVisible": true,
+    "explicitReconnectRequired": true
+  },
+  "verification": {
+    "unitTestsPassed": 19,
+    "pwaBuildPassed": true,
+    "chromiumExtensionBuildPassed": true,
+    "firefoxExtensionBuildPassed": true,
+    "realProviderRetested": false
+  },
+  "releaseStates": {
+    "edgeExtensionInstalledLocal": false,
+    "chromeExtensionInstalledLocal": false,
+    "firefoxExtensionInstalledLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

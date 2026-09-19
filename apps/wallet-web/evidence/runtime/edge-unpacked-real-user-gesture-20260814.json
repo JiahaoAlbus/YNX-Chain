@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "d34d2b19940537fab9747de63ec9b96ac97c0953",
+  "observedAt": "2026-08-14T01:58:27Z",
+  "browser": {
+    "name": "Microsoft Edge",
+    "version": "151.0.4129.78",
+    "brandedBinary": true,
+    "profile": "Default"
+  },
+  "extension": {
+    "name": "YNX Wallet Testnet Companion",
+    "version": "0.1.0",
+    "extensionId": "jgijcegbgeobldllfniaejejofobcngk",
+    "loadMode": "developer-mode-unpacked-persistent-profile",
+    "sourcePath": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/dist/chromium",
+    "edgePreferenceLocation": 4,
+    "enabledInExtensionManager": true,
+    "disableReasons": [],
+    "hasStartedServiceWorker": true,
+    "serviceWorkerCurrentlyActiveInManager": false,
+    "activePermissions": [
+      "activeTab",
+      "storage",
+      "scripting"
+    ],
+    "explicitHostPermissions": [],
+    "hostPermissionsExpanded": false,
+    "developerModeUnpackedLoaded": true,
+    "installedLocal": false,
+    "installedLocalReason": "Project policy does not equate a developer-mode unpacked load with a locally installed signed or store extension."
+  },
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 171213,
+    "sha256": "2f0bb3dbfb710119873d21260d6f5668c1a5f5d5686d9ebeef0b0c6a2781e32f",
+    "minimumOS": "Chrome 120 / Edge 120",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "realUserGesture": {
+    "dappUrl": "http://127.0.0.1:4173/",
+    "extensionMenuLabelBeforeClick": "YNX Wallet Testnet Companion — only when clicked",
+    "extensionActionClicked": true,
+    "toolbarSiteAccessObservedAfterClick": true,
+    "toolbarSiteAccessLabel": "YNX Wallet — has access to this site",
+    "activeTabGrantInferred": true,
+    "activeTabGrantDirectlyIntrospected": false,
+    "popupVisibleLongEnoughForInteraction": false,
+    "dappMainWorldInjectionProved": false,
+    "ynxProviderPriorityProved": false,
+    "metaMaskChooserActionInvoked": true,
+    "metaMaskProviderDetectedByDapp": false,
+    "connectSucceeded": false,
+    "addChainSucceeded": false,
+    "switchChainSucceeded": false,
+    "chainMutationSucceeded": false
+  },
+  "releaseStates": {
+    "pwaInstalledLocal": true,
+    "edgeDeveloperModeUnpackedLoaded": true,
+    "edgeExtensionInstalledLocal": false,
+    "chromeExtensionInstalledLocal": false,
+    "firefoxExtensionInstalledLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

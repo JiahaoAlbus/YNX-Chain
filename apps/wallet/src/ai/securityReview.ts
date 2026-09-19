@@ -1,11 +1,11 @@
-import type { AuthorizationRequest } from "@ynx-chain/wallet-auth";
+type SecurityReviewRequest = Readonly<{nonce:string;chainId:string;requestingProduct:string;productClientId:string;bundleId:string;scopes:readonly string[];purpose:string;expiresAt:string}>;
 
 export type ProviderState = Readonly<{ available:boolean; provider:string|null; model:string|null; detail:string }>;
 export type ReviewEstimate = Readonly<{ resourceUnits:number; maximumMonetaryCostYNXT:number; contextClasses:readonly string[] }>;
 export type ReviewAudit = Readonly<{ id:string; at:string; action:string; provider:string|null; model:string|null; requestNonce:string; contextClasses:readonly string[]; resourceUnits:number; result:string }>;
 export type ReviewSnapshot = Readonly<{
   phase:"selected"|"preview"|"permission"|"streaming"|"review"|"applied"|"rejected"|"cancelled"|"unavailable"|"failed";
-  request:AuthorizationRequest;
+  request:SecurityReviewRequest;
   provider:ProviderState|null;
   estimate:ReviewEstimate;
   allowed:boolean;
@@ -18,12 +18,11 @@ export type SecurityReviewProvider = {
   status(signal?:AbortSignal):Promise<ProviderState>;
   stream(input:{prompt:string;context:Readonly<Record<string,unknown>>;signal:AbortSignal;onToken:(token:string)=>void}):Promise<void>;
 };
-export type WalletAIProofBridge=(scope:"wallet:audit")=>Promise<string>;
 
 export class SecurityReviewController {
   private value: ReviewSnapshot;
   private aborter: AbortController | null = null;
-  constructor(request: AuthorizationRequest, private readonly now:()=>Date=()=>new Date(), private readonly outputLanguage="English") {
+  constructor(request: SecurityReviewRequest, private readonly now:()=>Date=()=>new Date(), private readonly outputLanguage="English") {
     this.value = freeze({ phase:"selected", request, provider:null, estimate:estimate(request), allowed:false, output:"", error:null, audits:[] });
   }
   snapshot():ReviewSnapshot { return this.value; }
@@ -61,11 +60,10 @@ export class SecurityReviewController {
 }
 
 export class GatewaySecurityReviewProvider implements SecurityReviewProvider {
-  constructor(private readonly baseURL:string, private readonly proofBridge:WalletAIProofBridge|null) {}
+  constructor(private readonly baseURL:string, private readonly productSessionToken:string) {}
   async status(signal?:AbortSignal):Promise<ProviderState> {
-    if (!this.baseURL || !this.proofBridge) return Object.freeze({available:false,provider:null,model:null,detail:"Wallet AI Gateway Product Session proof bridge is unavailable. No local or canned answer will be substituted."});
-    let proof:string;try{proof=await this.proofBridge("wallet:audit")}catch(error){return Object.freeze({available:false,provider:null,model:null,detail:error instanceof Error?error.message:"Wallet AI proof creation failed closed."})}
-    const response=await fetch(`${this.baseURL.replace(/\/$/,"")}/health`,{signal,headers:{"X-YNX-Product-Session-Proof":proof}});
+    if (!this.baseURL || !this.productSessionToken) return Object.freeze({available:false,provider:null,model:null,detail:"Wallet AI Gateway product session is unavailable. No local or canned answer will be substituted."});
+    const response=await fetch(`${this.baseURL.replace(/\/$/,"")}/health`,{signal,headers:{Authorization:`Bearer ${this.productSessionToken}`}});
     if (!response.ok) return Object.freeze({available:false,provider:null,model:null,detail:`AI Gateway health returned ${response.status}`});
     const value=await response.json() as Record<string,unknown>;
     const provider=typeof value.provider==="string"?value.provider:null, model=typeof value.model==="string"?value.model:null;
@@ -73,9 +71,7 @@ export class GatewaySecurityReviewProvider implements SecurityReviewProvider {
     return Object.freeze({available,provider,model,detail:available?"Provider-backed review is ready":"Provider is not configured"});
   }
   async stream(input:{prompt:string;context:Readonly<Record<string,unknown>>;signal:AbortSignal;onToken:(token:string)=>void}):Promise<void> {
-    if(!this.proofBridge)throw new Error("Wallet AI Gateway Product Session proof bridge is unavailable.");
-    const proof=await this.proofBridge("wallet:audit");
-    const response=await fetch(`${this.baseURL.replace(/\/$/,"")}/ai/stream`,{method:"POST",signal:input.signal,headers:{"X-YNX-Product-Session-Proof":proof,Accept:"text/event-stream","Content-Type":"application/json"},body:JSON.stringify({session:"wallet-security-review",prompt:input.prompt,context:input.context})});
+    const response=await fetch(`${this.baseURL.replace(/\/$/,"")}/ai/stream`,{method:"POST",signal:input.signal,headers:{Authorization:`Bearer ${this.productSessionToken}`,Accept:"text/event-stream","Content-Type":"application/json"},body:JSON.stringify({session:"wallet-security-review",prompt:input.prompt,context:input.context})});
     if (!response.ok) throw new Error(`AI Gateway stream returned ${response.status}`);
     const text=await response.text();
     for (const block of text.split("\n\n")) {
@@ -86,7 +82,7 @@ export class GatewaySecurityReviewProvider implements SecurityReviewProvider {
   }
 }
 
-function estimate(request:AuthorizationRequest):ReviewEstimate { return Object.freeze({resourceUnits:Math.max(1,request.scopes.length),maximumMonetaryCostYNXT:0,contextClasses:Object.freeze(["requesting-app-identity","requested-scopes","purpose","expiry","network"]) }); }
-function safeContext(request:AuthorizationRequest,outputLanguage:string):Readonly<Record<string,unknown>> { return Object.freeze({requestingProduct:request.requestingProduct,productClientId:request.productClientId,bundleId:request.bundleId,chainId:request.chainId,scopes:request.scopes,purpose:request.purpose,expiresAt:request.expiresAt,outputLanguage}); }
-function promptFor(_request:AuthorizationRequest,outputLanguage:string):string { return `Respond in ${outputLanguage}. Explain the selected Sign in with YNX Wallet scopes, material risks, and least-privilege implications. Do not approve, sign, change scopes, request secrets, or recommend bypassing biometrics.`; }
+function estimate(request:SecurityReviewRequest):ReviewEstimate { return Object.freeze({resourceUnits:Math.max(1,request.scopes.length),maximumMonetaryCostYNXT:0,contextClasses:Object.freeze(["requesting-app-identity","requested-scopes","purpose","expiry","network"]) }); }
+function safeContext(request:SecurityReviewRequest,outputLanguage:string):Readonly<Record<string,unknown>> { return Object.freeze({requestingProduct:request.requestingProduct,productClientId:request.productClientId,bundleId:request.bundleId,chainId:request.chainId,scopes:request.scopes,purpose:request.purpose,expiresAt:request.expiresAt,outputLanguage}); }
+function promptFor(_request:SecurityReviewRequest,outputLanguage:string):string { return `Respond in ${outputLanguage}. Explain the selected Sign in with YNX Wallet scopes, material risks, and least-privilege implications. Do not approve, sign, change scopes, request secrets, or recommend bypassing biometrics.`; }
 function freeze(value:any):ReviewSnapshot { return Object.freeze({...value,estimate:Object.freeze(value.estimate),audits:Object.freeze([...value.audits])}); }
