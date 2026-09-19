@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "ynx.finance.public-candidate.v1",
+  "product": "finance",
+  "capturedAt": "2026-09-19T14:40:00Z",
+  "source": {
+    "implementationCommit": "9912d29f82d5ceca689f07e20e944648a2be6de3",
+    "implementationTree": "516866313345666ea1987f760aae3adc15464338",
+    "evidenceCommit": "5936ca3e083742dcb85fcd85e1f48a2370ac92db"
+  },
+  "candidate": {
+    "release": "finance-weekly-v3-9912d29f82d5-linux-amd64",
+    "archiveLocalPath": "/tmp/ynx-finance-weekly-v3.Pyznlo/ynx-finance-weekly-v3-9912d29f82d5-linux-amd64-r2.tar.gz",
+    "archiveBytes": 15562500,
+    "archiveSha256": "359aa7fb7cc88d8332f3764ba83ac212d329e0486ad0079ce180a83500eee474",
+    "manifestBytes": 1965,
+    "manifestSha256": "fd7711be520865b3eb93c27f4ca5bda1ccd4e9dfc1f129e76c370888136ef8ff",
+    "binaryBytes": 20439224,
+    "binarySha256": "752f27f786c5041a6dd41eaf6de636ef3b1c04a8238ae8294765c670bba7f1f9",
+    "brokerToolsBytes": 19398840,
+    "brokerToolsSha256": "5b91813aa926b1a46bc23c068de4462f7c3d7c38770a337487fd86e7bc4db15d",
+    "repeatBuildByteExact": true,
+    "platform": "linux-amd64",
+    "elfMachine": "x86-64"
+  },
+  "freshPublicBaseline": {
+    "currentTarget": "/opt/ynx/releases/finance/finance-sdk-7a1d2aba-20260912T104700Z-r2",
+    "currentBinarySha256": "d0cc204f851afa0aace9bba06c3048a0bd1dc623b686eac56cab8ae6e0046c77",
+    "environmentSha256": "000ef2feed4a35b1b0f17cf9955433ea354e786bdd65a724f8204d0a1c66fd7a",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "dropinSha256": "ae13bc19e87b97f55a0bc4c1a8b59bdfe217deda18213003142a796b1307c397",
+    "caddySha256": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9",
+    "statePath": "/var/lib/ynx/finance/state.json",
+    "stateAbsent": true,
+    "servicePid": 1664408,
+    "serviceNRestarts": 0,
+    "serviceActiveRunning": true,
+    "publicAndLoopbackHealthy": true
+  },
+  "configurationTruth": {
+    "environmentValuesReadOrOutput": false,
+    "environmentKeyNamesInspected": true,
+    "alpacaCredentialKeysPresent": false,
+    "sandboxWriteKeyPresent": false,
+    "publicBrokerMustRemainNotConnected": true,
+    "providerReadAttempted": false,
+    "providerWriteAttempted": false
+  },
+  "deployment": {
+    "performed": false,
+    "rollbackFirst": true,
+    "stateRestoreForbidden": true,
+    "unitMutationForbidden": true,
+    "dropinMutationForbidden": true,
+    "caddyMutationForbidden": true,
+    "walletOrRpcMutationForbidden": true
+  }
+}
