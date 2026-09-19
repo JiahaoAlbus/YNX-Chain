@@ -1,15 +1,10 @@
 {
   "chain": "YNX",
-  "chainId": 6420,
+  "enabled": false,
   "explorers": [],
   "faucets": [],
   "name": "YNX Mainnet",
-  "nativeCurrency": {
-    "decimals": 18,
-    "name": "YNXT",
-    "symbol": "YNXT"
-  },
-  "networkId": 6420,
+  "reservedRpcUrl": "https://rpc-mainnet.ynxweb4.com",
   "rpc": [],
   "status": "draft-only; mainnet not launched"
 }

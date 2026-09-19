@@ -42,6 +42,9 @@ try {
   const mainnet = structuredClone(sources.mainnet.value);
   mainnet.rpc.push("https://mainnet.invalid");
   assert.throws(() => validateMainnetDraft(mainnet), /must not publish endpoints/);
+  const inventedMainnet = structuredClone(sources.mainnet.value);
+  inventedMainnet.chainId = 6420;
+  assert.throws(() => validateMainnetDraft(inventedMainnet), /fields mismatch|must not invent/);
 
   assert.throws(
     () => validateCollisionEvidence(sources.collision.value, sources.metadata.value, {now: new Date("2026-09-01T00:00:00Z"), maximumAgeMs: 24 * 60 * 60 * 1000}),

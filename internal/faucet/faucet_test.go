@@ -140,6 +140,16 @@ func TestFaucetWebsiteCORSAndTrustedProxyIdentity(t *testing.T) {
 	if got := recorder.Header().Get("Access-Control-Allow-Origin"); got != "https://ynxweb4.com" {
 		t.Fatalf("unexpected allowed origin %q", got)
 	}
+	testnetAlias := httptest.NewRequest(http.MethodOptions, "/request", nil)
+	testnetAlias.Header.Set("Origin", "https://faucet-testnet.ynxweb4.com")
+	testnetAliasRecorder := httptest.NewRecorder()
+	handler.ServeHTTP(testnetAliasRecorder, testnetAlias)
+	if testnetAliasRecorder.Code != http.StatusNoContent {
+		t.Fatalf("testnet Faucet alias preflight returned %d", testnetAliasRecorder.Code)
+	}
+	if got := testnetAliasRecorder.Header().Get("Access-Control-Allow-Origin"); got != "https://faucet-testnet.ynxweb4.com" {
+		t.Fatalf("unexpected testnet Faucet alias origin %q", got)
+	}
 
 	blocked := httptest.NewRequest(http.MethodOptions, "/request", nil)
 	blocked.Header.Set("Origin", "https://untrusted.invalid")

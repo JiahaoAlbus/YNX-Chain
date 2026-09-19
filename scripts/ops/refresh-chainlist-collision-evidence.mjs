@@ -6,7 +6,7 @@ import {canonicalJSON, sha256} from "../lib/sdk-release.mjs";
 
 const AGGREGATE_URL = "https://chainid.network/chains.json";
 const REPOSITORY = "https://github.com/ethereum-lists/chains.git";
-const TARGET = {chainId: 6423, name: "YNX Testnet", shortName: "ynxt"};
+const TARGET = {chainId: 6423, name: "YNX Testnet", shortName: "ynxtest"};
 const TARGET_FILE = "_data/chains/eip155-6423.json";
 
 export async function refreshCollisionEvidence({outputPath}) {
@@ -21,20 +21,31 @@ export async function refreshCollisionEvidence({outputPath}) {
     name: chains.filter((entry) => lower(entry.name) === lower(TARGET.name)).map(projectMatch),
     shortName: chains.filter((entry) => lower(entry.shortName) === lower(TARGET.shortName)).map(projectMatch),
   };
-  if (Object.values(matches).some((entries) => entries.length > 0)) throw new Error(`official chain registry collision detected: ${JSON.stringify(matches)}`);
+  for (const [field, entries] of Object.entries(matches)) {
+    if (entries.length !== 1 || !sameTarget(entries[0])) throw new Error(`official chain registry ${field} conflict detected: ${JSON.stringify(entries)}`);
+  }
   const remote = execFileSync("git", ["ls-remote", REPOSITORY, "HEAD"], {encoding: "utf8", timeout: 20000}).trim();
   const commit = remote.split(/\s+/)[0];
   if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error("official chain registry HEAD is invalid");
   const targetURL = `https://raw.githubusercontent.com/ethereum-lists/chains/${commit}/${TARGET_FILE}`;
   const targetResponse = await boundedFetch(targetURL);
-  if (targetResponse.status !== 404) throw new Error(`official registry target file check returned HTTP ${targetResponse.status}; expected absence`);
+  if (!targetResponse.ok) throw new Error(`official registry target file check returned HTTP ${targetResponse.status}; expected registered YNX entry`);
+  const targetBody = Buffer.from(await targetResponse.arrayBuffer());
+  if (targetBody.length === 0 || targetBody.length > 256 * 1024) throw new Error("official registry target file size is invalid");
+  const registered = JSON.parse(targetBody);
+  if (!sameTarget(registered) || registered.chain !== "YNX" || registered.networkId !== TARGET.chainId || registered.nativeCurrency?.name !== "YNXT" || registered.nativeCurrency?.symbol !== "YNXT" || registered.nativeCurrency?.decimals !== 18) {
+    throw new Error("official registry target file does not match YNX Testnet identity");
+  }
+  if (!registered.rpc?.includes("https://evm.ynxweb4.com") || !registered.explorers?.some((entry) => entry.url === "https://explorer.ynxweb4.com")) {
+    throw new Error("official registry target file does not preserve the verified legacy endpoints");
+  }
   const fetchedAt = new Date(Math.floor(Date.now() / 1000) * 1000).toISOString().replace(".000Z", "Z");
   const evidence = {
     aggregate: {bytes: body.length, chainCount: chains.length, fetchedAt, sha256: sha256(body), url: AGGREGATE_URL},
     candidate: TARGET,
     matches,
-    registry: {commit, repository: REPOSITORY, targetFile: TARGET_FILE, targetFilePresent: false},
-    status: "unassigned-at-observation; refresh-before-submission",
+    registry: {commit, repository: REPOSITORY, targetFile: TARGET_FILE, targetFilePresent: true, targetFileSha256: sha256(targetBody)},
+    status: "registered-self-at-observation; refresh-before-metadata-change",
   };
   const rendered = canonicalJSON(evidence);
   if (outputPath) {
@@ -61,6 +72,10 @@ async function boundedFetch(url) {
 
 function projectMatch(entry) {
   return {chainId: entry.chainId, name: entry.name, shortName: entry.shortName};
+}
+
+function sameTarget(entry) {
+  return entry?.chainId === TARGET.chainId && lower(entry.name) === lower(TARGET.name) && lower(entry.shortName) === lower(TARGET.shortName);
 }
 
 function lower(value) {

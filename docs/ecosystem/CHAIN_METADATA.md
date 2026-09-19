@@ -2,7 +2,7 @@
 
 YNX Testnet uses EVM chain/network ID `6423` (`0x1917`) and native coin `YNXT` with 18 decimals.
 
-Canonical public candidate endpoints:
+Current compatible public endpoints (kept active during migration):
 
 - EVM RPC: `https://evm.ynxweb4.com`
 - REST status: `https://rpc.ynxweb4.com/status`
@@ -10,6 +10,14 @@ Canonical public candidate endpoints:
 - Explorer: `https://explorer.ynxweb4.com`
 - Website: `https://www.ynxweb4.com`
 
-The collision snapshot observed official registry commit `a04fd826d72b9108a2cf1e7b6a7f7e5f13ef6f62` and aggregate SHA-256 `030098fee82f2e1ad64e9e9481fa40fa8eec6e1d3b178294423ff3f22aa5135d` at `2026-07-13T23:55:49Z`; it found no conflicting chain ID, name, short name, or `eip155-6423.json`. This is time-bounded evidence and must be refreshed before submission.
+Target Testnet aliases are defined in `chain-metadata/ynx-endpoint-migration.json`:
 
-YNX Mainnet remains a draft. Chain ID `6420` is not presented as launched, and no mainnet public endpoint is published by this metadata package.
+- unified EVM JSON-RPC and native REST host: `https://rpc-testnet.ynxweb4.com`
+- standalone Faucet: `https://faucet-testnet.ynxweb4.com`
+- evaluated Explorer alias: `https://explorer-testnet.ynxweb4.com`
+
+The target aliases remain `publicVerified=false` until DNS/TLS/ingress point them at the same Testnet services and the same-height comparison passes. Consumers must not be switched merely because DNS exists. JSON-RPC compatibility is provided by serving the same service on both hostnames, not with an HTTP redirect.
+
+The collision/registration snapshot in `chain-metadata/chainid-collision-evidence.json` is time-bounded. The refresh gate now requires exactly one official entry for chain ID `6423`, name `YNX Testnet` and short name `ynxtest`, and requires `_data/chains/eip155-6423.json` at the recorded registry commit to match the YNX identity. Any second match or changed identity fails closed. Refresh this evidence before changing public metadata; an upstream entry does not prove that a newly proposed endpoint is live.
+
+YNX Mainnet remains disabled. `https://rpc-mainnet.ynxweb4.com` is only a reserved future hostname; no Mainnet chain ID, genesis, native currency, RPC endpoint or launch state is claimed by this metadata package.
