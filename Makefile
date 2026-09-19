@@ -354,6 +354,14 @@ testnet-endpoint-migration-check:
 	node --test ./scripts/verify/testnet-endpoint-migration-check.test.mjs
 	node ./scripts/verify/testnet-endpoint-migration-check.mjs
 
+.PHONY: weekly-v3-local-check testnet-endpoint-config-check
+testnet-endpoint-config-check:
+	node scripts/ops/generate-testnet-endpoints.mjs --check
+	node --test sdk/js/testnet-endpoints.test.mjs
+
+weekly-v3-local-check:
+	node scripts/verify/weekly-v3-local-check.mjs
+
 chainlist-collision-refresh:
 	node ./scripts/ops/refresh-chainlist-collision-evidence.mjs --output chain-metadata/chainid-collision-evidence.json
 

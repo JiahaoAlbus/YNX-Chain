@@ -6,13 +6,13 @@ cd "$(dirname "$0")/../.."
 source scripts/deploy/lib.sh
 ynx_load_env
 
-export PUBLIC_RPC_URL="${PUBLIC_RPC_URL:-https://rpc.ynxweb4.com}"
-export PUBLIC_EVM_RPC_URL="${PUBLIC_EVM_RPC_URL:-https://evm.ynxweb4.com}"
-export PUBLIC_REST_URL="${PUBLIC_REST_URL:-https://rest.ynxweb4.com}"
+export PUBLIC_RPC_URL="${PUBLIC_RPC_URL:-}"
+export PUBLIC_EVM_RPC_URL="${PUBLIC_EVM_RPC_URL:-}"
+export PUBLIC_REST_URL="${PUBLIC_REST_URL:-}"
 export PUBLIC_GRPC_HOST="${PUBLIC_GRPC_HOST:-grpc.ynxweb4.com}"
-export PUBLIC_FAUCET_URL="${PUBLIC_FAUCET_URL:-https://faucet.ynxweb4.com}"
+export PUBLIC_FAUCET_URL="${PUBLIC_FAUCET_URL:-}"
 export PUBLIC_INDEXER_URL="${PUBLIC_INDEXER_URL:-https://indexer.ynxweb4.com}"
-export PUBLIC_EXPLORER_URL="${PUBLIC_EXPLORER_URL:-https://explorer.ynxweb4.com}"
+export PUBLIC_EXPLORER_URL="${PUBLIC_EXPLORER_URL:-}"
 export PUBLIC_AI_URL="${PUBLIC_AI_URL:-https://ai.ynxweb4.com}"
 export PUBLIC_WEB4_URL="${PUBLIC_WEB4_URL:-https://web4.ynxweb4.com}"
 export YNX_COSMOS_CHAIN_ID="${YNX_COSMOS_CHAIN_ID:-ynx_6423-1}"

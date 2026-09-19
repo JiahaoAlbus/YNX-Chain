@@ -68,11 +68,12 @@ export function validateDeploymentTemplates(rootDir, config) {
   assert.ok(deploy.includes("YNX_FAUCET_ALLOWED_ORIGINS="), "deployment template does not configure Faucet alias CORS");
 }
 
-export async function verifyLiveMigration(config, {fetchImpl = fetch, transactionHash = null, contractAddress = null, explorer = false} = {}) {
+export async function verifyLiveMigration(config, {fetchImpl = fetch, transactionHash = null, contractAddress = null, explorer = false, transports = false, waitImpl = ms => new Promise(resolve => setTimeout(resolve, ms))} = {}) {
   validateEndpointMigration(config);
   if (transactionHash !== null) assert.match(transactionHash, /^0x[0-9a-f]{64}$/, "invalid historical transaction hash");
   if (contractAddress !== null) assert.match(contractAddress, /^0x[0-9a-f]{40}$/, "invalid contract proof address");
   assert.equal(typeof explorer, "boolean");
+  assert.equal(typeof transports, "boolean");
   const legacyRPC = config.testnet.legacyCompatibility.rpc;
   const targetRPC = config.testnet.canonicalTargets.rpc;
   const [legacyIdentity, targetIdentity] = await Promise.all([
@@ -86,7 +87,8 @@ export async function verifyLiveMigration(config, {fetchImpl = fetch, transactio
     jsonRPC(legacyRPC, "eth_blockNumber", [], fetchImpl),
     jsonRPC(targetRPC, "eth_blockNumber", [], fetchImpl),
   ]);
-  const height = Math.min(hexQuantity(legacyHeightHex), hexQuantity(targetHeightHex));
+  const confirmationDepth = 2;
+  const height = Math.min(hexQuantity(legacyHeightHex), hexQuantity(targetHeightHex)) - confirmationDepth;
   assert.ok(height > 0, "comparison height must be positive");
   const comparisonHeight = `0x${height.toString(16)}`;
   const [legacyBlock, targetBlock] = await Promise.all([
@@ -199,9 +201,40 @@ export async function verifyLiveMigration(config, {fetchImpl = fetch, transactio
     assert.equal(targetExplorer.build?.commit, legacyExplorer.build?.commit, "Explorer aliases expose different builds");
   }
 
+  let transportProof = null;
+  if (transports) {
+    const nativeBlocks = [];
+    for (const rpc of [legacyRPC, targetRPC]) {
+      const status = await getJSON(`${rpc}/status`, fetchImpl);
+      assert.equal(status.chainId, 6423, "native REST chain differs");
+      assert.equal(status.nativeCurrencySymbol, "YNXT", "native REST asset differs");
+      assert.ok(Number.isSafeInteger(status.height) && status.height >= height, "native REST height unavailable");
+      const block = await getJSON(`${rpc}/blocks/${height}`, fetchImpl);
+      assert.equal(block.height, height, "native REST block height differs");
+      assert.equal(block.hash, legacyBlock.hash.slice(2), "native REST block hash differs from EVM projection");
+      nativeBlocks.push(block);
+      await verifyCORS(rpc, "https://finance.ynxweb4.com", fetchImpl);
+    }
+    assert.deepEqual(nativeBlocks[0], nativeBlocks[1], "native REST history differs");
+    for (const faucet of [config.testnet.legacyCompatibility.faucet, config.testnet.canonicalTargets.faucet]) {
+      await verifyCORS(`${faucet}/request`, config.testnet.canonicalTargets.faucet, fetchImpl);
+    }
+    await waitImpl(3_000);
+    const growth = await Promise.all([legacyRPC, targetRPC].map(async (rpc, index) => {
+      const latest = hexQuantity(await jsonRPC(rpc, "eth_blockNumber", [], fetchImpl));
+      assert.ok(latest > hexQuantity(index === 0 ? legacyHeightHex : targetHeightHex), "RPC did not grow during bounded observation; retry read-only check later");
+      const block = await jsonRPC(rpc, "eth_getBlockByNumber", [comparisonHeight, false], fetchImpl);
+      assert.equal(block?.hash, legacyBlock.hash, "comparison block changed during growth observation");
+      assert.equal(block?.number, comparisonHeight, "growth readback returned wrong block");
+      return latest;
+    }));
+    transportProof = {nativeRestVerified: true, httpCorsVerified: true, comparisonStableAcrossGrowth: true, observedHeights: growth, websocket: "not-configured", grpc: "unchanged-not-tested"};
+  }
+
   return {
     chainId: targetIdentity.chainId,
     comparisonHeight: height,
+    confirmationDepth,
     comparisonBlockHash: legacyBlock.hash,
     contractProof,
     faucetBuild: targetFaucet.build?.commit || null,
@@ -209,15 +242,33 @@ export async function verifyLiveMigration(config, {fetchImpl = fetch, transactio
     readOnlyComparisonVerified: transactionProof !== null && contractProof !== null,
     explorerAliasReadVerified: explorer,
     publicVerified: false,
+    transportProof,
     remainingGates: [
       ...(transactionProof === null ? ["HISTORICAL_TRANSACTION_REQUIRED"] : []),
       ...(contractProof === null ? ["NONEMPTY_CONTRACT_CODE_REQUIRED"] : []),
       ...(!explorer ? ["EXPLORER_ALIAS_NOT_CHECKED"] : []),
-      "BLOCK_GROWTH_AND_NATIVE_REST", "CORS_AND_TRANSPORTS", "SHARED_FAUCET_STATE", "WALLET_AND_ECOSYSTEM_REGRESSION",
+      ...(!transports ? ["BLOCK_GROWTH_AND_NATIVE_REST", "HTTP_CORS"] : []),
+      "UNCHANGED_GRPC_AND_REQUIRED_WEBSOCKET", "SHARED_FAUCET_STATE", "WALLET_AND_ECOSYSTEM_REGRESSION",
     ],
     stateProof,
     transactionProof,
   };
+}
+
+async function verifyCORS(url, origin, fetchImpl) {
+  const controller = new AbortController();
+  let timer;
+  try {
+    const response = await Promise.race([
+      fetchImpl(url, {method: "OPTIONS", redirect: "error", signal: controller.signal, headers: {origin, "access-control-request-method": "POST", "access-control-request-headers": "content-type"}}),
+      new Promise((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new Error("CORS preflight timed out")); }, 10_000); }),
+    ]);
+    assert.ok(response.ok && !response.redirected, "CORS preflight failed");
+    assert.ok([origin, "*"].includes(response.headers.get("access-control-allow-origin")), "CORS origin unavailable");
+    assert.ok((response.headers.get("access-control-allow-methods") ?? "").split(",").map(s => s.trim().toUpperCase()).includes("POST"), "CORS POST unavailable");
+    assert.ok((response.headers.get("access-control-allow-headers") ?? "").toLowerCase().split(",").map(s => s.trim()).includes("content-type"), "CORS content-type unavailable");
+    if (response.body) void response.body.cancel().catch(() => {});
+  } finally { clearTimeout(timer); controller.abort(); }
 }
 
 async function rpcIdentity(url, fetchImpl) {
@@ -300,17 +351,18 @@ function assertCanonicalHTTPS(value) {
 }
 
 function parseArgs(argv) {
-  const result = {live: false, explorer: false};
+  const result = {live: false, explorer: false, transports: false};
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--live" && !result.live) result.live = true;
     else if (arg === "--explorer" && !result.explorer) result.explorer = true;
+    else if (arg === "--transports" && !result.transports) result.transports = true;
     else if (arg === "--transaction" && !result.transactionHash) result.transactionHash = argv[++i];
     else if (arg === "--contract" && !result.contractAddress) result.contractAddress = argv[++i];
-    else throw new Error("usage: testnet-endpoint-migration-check.mjs [--live [--explorer] [--transaction <hash>] [--contract <address>]]");
+    else throw new Error("usage: testnet-endpoint-migration-check.mjs [--live [--explorer] [--transports] [--transaction <hash>] [--contract <address>]]");
     if ((arg === "--transaction" && !result.transactionHash) || (arg === "--contract" && !result.contractAddress)) throw new Error("proof argument is missing");
   }
-  if (!result.live && (result.explorer || result.transactionHash || result.contractAddress)) throw new Error("proof options require --live");
+  if (!result.live && (result.explorer || result.transports || result.transactionHash || result.contractAddress)) throw new Error("proof options require --live");
   return result;
 }
 
