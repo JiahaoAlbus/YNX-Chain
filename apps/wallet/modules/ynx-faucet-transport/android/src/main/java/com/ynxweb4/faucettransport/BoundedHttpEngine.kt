@@ -13,6 +13,7 @@ import okhttp3.Authenticator
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.CookieJar
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -42,6 +43,9 @@ internal class BoundedHttpEngine(
   private class Entry(val purpose: String, val deadline: Long) {
     var started = false
     var call: Call? = null
+    var requestBytes: ByteArray? = null
+    var url: String? = null
+    var readRetries = 0
     var timeout: ScheduledFuture<*>? = null
     var completion: ((HttpReply?, HttpFailure?) -> Unit)? = null
   }
@@ -93,35 +97,10 @@ internal class BoundedHttpEngine(
         if (input["purpose"] != entry.purpose) fail("YNX_HTTP_INVALID_INPUT")
         val bytes = encodeRequest(input, entry.purpose)
         val url = if (entry.purpose == "admit") admitURL else rpcURL
-        val body = object : RequestBody() {
-          private val written = AtomicBoolean(false)
-          override fun contentType() = "application/json; charset=utf-8".toMediaType()
-          override fun contentLength() = bytes.size.toLong()
-          override fun isOneShot() = true
-          override fun writeTo(sink: BufferedSink) {
-            if (!written.compareAndSet(false, true)) throw IOException("Request body cannot be replayed.")
-            sink.write(bytes)
-          }
-        }
-        val request = Request.Builder().url(url).header("Accept", "application/json")
-          .header("Accept-Encoding", "identity").post(body).build()
-        val call = client.newCall(request)
-        entry.call = call
+        entry.requestBytes = bytes; entry.url = url
         // enqueue only schedules network work; the check+enqueue boundary is
         // atomic against cancellation. No response/body I/O holds the monitor.
-        call.enqueue(object : Callback {
-          override fun onFailure(call: Call, error: IOException) {
-            finish(id, entry, null, HttpFailure("YNX_HTTP_NETWORK"))
-          }
-          override fun onResponse(call: Call, response: Response) {
-            try {
-              response.use { finish(id, entry, readReply(id, entry, it, url), null) }
-            } catch (failure: Exception) {
-              call.cancel()
-              finish(id, entry, null, failure as? HttpFailure ?: HttpFailure("YNX_HTTP_NETWORK"))
-            }
-          }
-        })
+        enqueue(id, entry)
       }
     } catch (failure: Exception) {
       val error = failure as? HttpFailure ?: HttpFailure("YNX_HTTP_INVALID_INPUT")
@@ -147,6 +126,47 @@ internal class BoundedHttpEngine(
 
   fun resume() { synchronized(monitor) { if (!closed) paused = false } }
 
+  /** Only the fixed, read-only JSON-RPC allowlist may recover one same-origin
+   * HTTP/2 stream reset. Admission is never retried here: its persisted request
+   * remains unknown until an explicit user action reuses the original ID. */
+  private fun enqueue(id: String, entry: Entry) {
+    val bytes = entry.requestBytes ?: fail("YNX_HTTP_TASK_INVALID")
+    val url = entry.url ?: fail("YNX_HTTP_TASK_INVALID")
+    val body = object : RequestBody() {
+      private val written = AtomicBoolean(false)
+      override fun contentType() = "application/json; charset=utf-8".toMediaType()
+      override fun contentLength() = bytes.size.toLong()
+      override fun isOneShot() = true
+      override fun writeTo(sink: BufferedSink) {
+        if (!written.compareAndSet(false, true)) throw IOException("Request body cannot be replayed.")
+        sink.write(bytes)
+      }
+    }
+    val request = Request.Builder().url(url).header("Accept", "application/json")
+      .header("Accept-Encoding", "identity").post(body).build()
+    val call = client.newCall(request); entry.call = call
+    call.enqueue(object : Callback {
+      override fun onFailure(call: Call, error: IOException) {
+        if (!retryReadAfterStreamReset(id, entry, error)) finish(id, entry, null, HttpFailure("YNX_HTTP_NETWORK"))
+      }
+      override fun onResponse(call: Call, response: Response) {
+        try { response.use { finish(id, entry, readReply(id, entry, it, url), null) } }
+        catch (failure: Exception) {
+          call.cancel()
+          finish(id, entry, null, failure as? HttpFailure ?: HttpFailure("YNX_HTTP_NETWORK"))
+        }
+      }
+    })
+  }
+
+  private fun retryReadAfterStreamReset(id: String, entry: Entry, error: IOException): Boolean = synchronized(monitor) {
+    if (entries[id] !== entry || closed || paused || now() >= entry.deadline || entry.purpose != "rpc" ||
+      entry.readRetries != 0 || !isHttp2StreamReset(error)) return@synchronized false
+    entry.readRetries++
+    enqueue(id, entry)
+    true
+  }
+
   private fun active(id: String, entry: Entry) = synchronized(monitor) {
     if (entries[id] !== entry) fail("YNX_HTTP_CANCELLED")
     if (now() >= entry.deadline) fail("YNX_HTTP_TIMEOUT")
@@ -162,7 +182,10 @@ internal class BoundedHttpEngine(
       entry.timeout?.cancel(false)
       // Mark terminal before cancel. A late callback cannot settle this entry twice.
       if (error != null) entry.call?.cancel()
-      entry.completion.also { entry.completion = null; entry.call = null }
+      entry.completion.also {
+        entry.completion = null; entry.call = null
+        entry.requestBytes = null; entry.url = null
+      }
     }
     completion?.invoke(result, error)
   }
@@ -170,7 +193,10 @@ internal class BoundedHttpEngine(
   private fun readReply(id: String, entry: Entry, response: Response, url: String): HttpReply {
     active(id, entry)
     if (response.code in 300..399 || response.priorResponse != null) fail("YNX_HTTP_REDIRECT")
-    if (response.request.url.toString() != url) fail("YNX_HTTP_METADATA")
+    // OkHttp renders an origin-only endpoint with a trailing slash. Compare its
+    // canonical wire identity, but return the compiled logical identity so the
+    // JS origin binding cannot be widened or caller-controlled.
+    if (response.request.url.toString() != url.toHttpUrl().toString()) fail("YNX_HTTP_METADATA")
     fun header(name: String, required: Boolean = false): String {
       val values = response.headers.values(name)
       if (values.size > 1 || required && values.size != 1) fail("YNX_HTTP_METADATA")
@@ -211,7 +237,7 @@ internal class BoundedHttpEngine(
       Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
         .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(buffer, 0, count)).toString()
     } catch (_: Exception) { fail("YNX_HTTP_ENCODING") }
-    return HttpReply(response.request.url.toString(), response.code, contentType, cacheControl, text)
+    return HttpReply(url, response.code, contentType, cacheControl, text)
   }
 
   override fun close() {
@@ -232,6 +258,17 @@ internal class BoundedHttpEngine(
     private val EMPTY_METHODS = setOf("eth_chainId", "ynx_getFaucetModel", "ynx_getDurabilityModel")
     private val HASH_METHODS = setOf("ynx_getTransactionDurability", "eth_getTransactionReceipt")
     private fun fail(code: String): Nothing = throw HttpFailure(code)
+
+    internal fun isHttp2StreamReset(error: IOException): Boolean {
+      var current: Throwable? = error
+      repeat(8) {
+        val value = current ?: return false
+        if (value.javaClass.name == "okhttp3.internal.http2.StreamResetException" ||
+          value.message?.contains("stream was reset", ignoreCase = true) == true) return true
+        current = value.cause
+      }
+      return false
+    }
 
     private fun encodeRequest(input: Map<String, Any?>, purpose: String): ByteArray {
       val body = if (purpose == "admit") {

@@ -1,4 +1,6 @@
 import { nativeQuantity, parseNativeDurabilityModel, parseNativeDurabilityState } from "./nativeDurability";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 
 export const FAUCET_LEDGER_PROFILE = "ynx-native-faucet-receipt-v1";
 export type FaucetTransactionBinding = Readonly<{
@@ -33,7 +35,7 @@ export function parseFaucetDurableReceipt(value: unknown, expected: FaucetTransa
     const receipt = data(value, ["ynxDurability", "status", "transactionHash", "from", "to", "contractAddress", "blockNumber", "blockHash", "transactionIndex", "ynxNativeTransaction"]);
     const proof = parseNativeDurabilityState(receipt.ynxDurability, tx.hash);
     if (proof.status !== "durable" || receipt.status !== "0x1" || receipt.transactionHash !== tx.hash ||
-      receipt.from !== tx.from || receipt.to !== tx.to || receipt.contractAddress !== null ||
+      !matchesFaucetIdentity(receipt, tx) || receipt.to !== tx.to || receipt.contractAddress !== null ||
       receipt.blockNumber !== proof.blockNumber || receipt.blockHash !== proof.blockHash) invalid();
     nativeQuantity(receipt.transactionIndex);
     const native = data(receipt.ynxNativeTransaction);
@@ -43,6 +45,23 @@ export function parseFaucetDurableReceipt(value: unknown, expected: FaucetTransa
       transactionIndex: receipt.transactionIndex, blockNumber: proof.blockNumber, blockHash: proof.blockHash,
       ynxDurability: proof, ynxNativeTransaction: Object.freeze({ ...native }) });
   } catch { return invalid(); }
+}
+
+function matchesFaucetIdentity(receipt: Record<string, any>, tx: FaucetTransactionBinding): boolean {
+  if (receipt.from === tx.from) return !Object.hasOwn(receipt, "ynxNativeIdentity");
+  const identity = data(receipt.ynxNativeIdentity);
+  if (Object.keys(identity).sort().join() !== "from,identityProjection,to" || identity.from !== tx.from || identity.to !== tx.to) return false;
+  const expected = {
+    version: "ynx-native-identity-projection-v1", fromSystemIdentity: true, toSystemIdentity: false,
+    systemAddressDomain: "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+    systemAddressScheme: "last-20-bytes-sha256-nul-domain-exact-native-identity",
+    systemAddressesAreDisplayOnly: true,
+  } as const;
+  const projection = data(identity.identityProjection);
+  if (Object.keys(projection).sort().join() !== Object.keys(expected).sort().join() ||
+      Object.entries(expected).some(([key, value]) => projection[key] !== value)) return false;
+  const digest = bytesToHex(sha256(utf8ToBytes(`${expected.systemAddressDomain}\0${tx.from}`)));
+  return receipt.from === `0x${digest.slice(-40)}`;
 }
 
 export function createFaucetDurabilityEvidence(origin: string, capability: unknown, receipt: unknown, expected: FaucetTransactionBinding): Readonly<Record<string, unknown>> {

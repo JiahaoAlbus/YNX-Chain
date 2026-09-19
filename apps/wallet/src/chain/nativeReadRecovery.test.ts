@@ -129,11 +129,12 @@ test("completed attempts detach caller abort listeners",async t=>{
   const pending=client.account(account,signal);await flush();t.mock.timers.tick(250);await pending;assert.equal(added,3);assert.equal(removed,added);control.abort();assert.equal(calls,2);
 });
 
-test("signed broadcast and durability RPC POST remain one attempt on transport failure",async()=>{
+test("signed broadcast remains one attempt while read-only durability RPC recovers once on transport failure",async()=>{
   const signed=createSignedNativeTransfer({accountSecret:"0".repeat(63)+"1",to:otherAccount,amount:1,nonce:3});const calls:{url:string;init?:RequestInit}[]=[];
   const client=new NativeChainClient(undefined,async(url,init)=>{calls.push({url,init});throw new TypeError(rawCancel)});
   await assert.rejects(()=>client.broadcast(signed.payload,signed.transaction,signed.hash),NativeBroadcastUnknown);assert.equal(calls.length,1);assert.equal(calls[0]!.init?.body,signed.payload);
-  await assert.rejects(()=>client.requireDurabilityCapability());assert.equal(calls.length,2);assert.ok(calls.every(x=>x.init?.method==="POST"));
+  await assert.rejects(()=>client.requireDurabilityCapability());assert.equal(calls.length,3);assert.ok(calls.every(x=>x.init?.method==="POST"));
+  assert.equal(calls.slice(1).every(x=>x.init?.body!==signed.payload),true);
 });
 
 test("an expired attempt refuses to read a fetch response arriving after its retry",async t=>{

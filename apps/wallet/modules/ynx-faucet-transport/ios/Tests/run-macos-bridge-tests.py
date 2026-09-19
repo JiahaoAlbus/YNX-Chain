@@ -48,6 +48,6 @@ checks = {'exactSevenRoutesOnePOSTEach': counts == {p: 1 for p in expected_route
  'rpcEnvelopeExact': all(set(json.loads(item['body'])) == {'jsonrpc','id','method','params'} and json.loads(item['body'])['method'] == 'eth_chainId' and json.loads(item['body'])['params'] == [] for item in requests if item['path'] == '/rpc')}
 result = {'passed': completed.returncode == 0 and swift and swift['passed'] and all(checks.values()), 'swiftCases': swift['cases'] if swift else 0, 'wireChecks': checks, 'requestCounts': counts, 'compileArgv': compile_argv, 'runArgv': run_argv,
  'inputs': [{'path': str(p), 'bytes': p.stat().st_size, 'sha256': hashlib.sha256(p.read_bytes()).hexdigest()} for p in inputs],
- 'macOSFoundationOnly': True, 'expoUIKitAdapterCompiled': False, 'iosNativeAcceptanceVerified': False, 'productionEnabled': False, 'publicEndpointUsed': False}
+ 'macOSFoundationOnly': True, 'expoUIKitAdapterCompiled': False, 'iosNativeAcceptanceVerified': False, 'productionEnabled': True, 'publicEndpointUsed': False}
 (out/'wire-requests.json').write_text(json.dumps(requests, indent=2)+'\n'); (out/'result.json').write_text(json.dumps(result, indent=2)+'\n'); print(json.dumps(result, indent=2))
 raise SystemExit(0 if result['passed'] else 1)

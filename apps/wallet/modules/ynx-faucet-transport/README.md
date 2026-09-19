@@ -1,14 +1,11 @@
-# Bounded Faucet transport candidate
+# Bounded Faucet transport
 
-Production is disabled. `createProductionFaucetTransport()` returns `null`, the
-Android and iOS Expo adapters have an immutable compiled
-`PRODUCTION_ENABLED = false`. The iOS bridge core is connected to its Foundation
-engine, but its production constructor still rejects reservation/request with
-`YNX_HTTP_UNAVAILABLE` without constructing an engine.
-Neither adapter offers a caller-controlled activation flag, endpoint, headers,
-credentials, client injection, or Fetch fallback. The App may show the read-only Faucet flow, but its production session/transport
-factories remain null. No production request, signing, or balance-update path is
-enabled by this module.
+The native bridge is enabled for the compiled YNX Testnet endpoints. JavaScript
+can select only the fixed `primary` or `legacy` route enum; it cannot supply an
+endpoint, headers, credentials, client, activation flag, or Fetch fallback. The
+primary route is the default for new requests. The legacy route is available
+only when Wallet finds an unresolved journal already bound to that authority.
+Unknown admissions remain bound to their original route and request ID.
 
 ## Bridge API
 
@@ -16,12 +13,12 @@ The local module is named `YnxFaucetTransport`. Expo's existing `./modules`
 discovery and `useExpoModules`/`use_expo_modules!` hooks discover it without
 editing app.json, package-lock, Android settings, or the Podfile.
 
-1. Synchronous `reserveTask("admit" | "rpc")` registers an opaque process-unique
+1. Synchronous `reserveTask("primary" | "legacy", "admit" | "rpc")` registers an opaque process-unique
    task ID before returning it. There are at most eight active reservations.
 2. Async `request(options)` consumes that reservation once. `options` is exactly
    one of the unions in `index.ts`; extra keys are rejected. The purpose cannot
    change. A cancelled, expired, completed, or unknown ID cannot be recreated.
-3. Synchronous `cancel(taskId)` is idempotent and retires the registered task
+3. Synchronous `cancel(route, taskId)` is idempotent and retires the registered task
    before cancelling its native call. Cancel-before-async-start therefore prevents
    dispatch. Cancel after dispatch never proves that the server did not process
    the request. Each live async request settles once, including cancellation.
@@ -50,30 +47,35 @@ Every response is the actual HTTP fact:
 not mean funds arrived. 409/429/503 are preserved, not converted to success.
 Only the trusted coordinator may validate ACK identity, RPC envelopes, chain/
 model, the exact durable receipt, and persist observed facts. Any dispatched
-transport error remains uncertain under the original durable request. A user
+transport error remains uncertain under the original durable request. Android
+may repeat one read-only RPC after a same-origin HTTP/2 `STREAM_RESET`; it never
+does so for admission. A user
 retry uses a new transport task ID with the **same original Faucet request ID and
 body**; the host never invents a new claim or automatically retries.
 
 ## Endpoint and activation boundary
 
-Compiled primary endpoint candidates are `https://faucet-testnet.ynxweb4.com/request` for admit
+Compiled primary endpoints are `https://faucet-testnet.ynxweb4.com/request` for admit
 and `https://rpc-testnet.ynxweb4.com` for RPC. The legacy identities
 `https://faucet.ynxweb4.com/request` and `https://rpc.ynxweb4.com/evm` remain
 allowlisted only for explicit same-request recovery; no POST is automatically
-replayed across origins. The Faucet identity is corroborated by the existing
+replayed across origins. New Wallet requests bind an amount of 100 whole YNXT.
+The Faucet identity is corroborated by the existing
 same-origin landing page's relative `/request` fetch and its `/health` service
-description. That observed public server was legacy build `64efa498fa99`, not
-proof of the new admission contract. The RPC origin/path is the existing Native
-client default. Neither fact is a production activation lease.
+description. Runtime availability and native installed E2E remain evidence gates
+separate from source activation. The RPC origin/path is the Native client default.
 
 The admission source contract is Faucet commit
 `3afb54910c7e894bd0d53093223c01d9576a9c52` (`docs/api/faucet-durable-admission-v1.md`,
 `internal/faucet/server.go`); its Core contract is
-`90643ffd38d970f526df99e96e818220330710f8`. Before enabling a platform, Central
-must freeze the exact public origin/runtime and capability contract, and the
-platform must pass its native acceptance tests. Server-side `/faucet/requests`
-is not this Wallet's admission endpoint. No public POST was used to validate this
-candidate.
+`90643ffd38d970f526df99e96e818220330710f8`. Server-side `/faucet/requests`
+is not this Wallet's admission endpoint. The Android build-22 local-QA candidate
+was exercised against the compiled public primary endpoints on September 20,
+2026: one retained request delivered 100 YNXT, its replay-safe acknowledgement
+and projected Faucet identity were verified, and two subsequent 1 YNXT native
+transfers reached durable local-snapshot receipts. This is installed Android
+testnet acceptance, not production signing, iOS installation, or consensus
+finality.
 
 ## Android controls and measured boundary
 
@@ -81,7 +83,10 @@ The dedicated OkHttp 4.9.2 client uses no global interceptors, cache, cookies, o
 authenticator. Redirects, SSL redirects, connection retries, and automatic
 application retries are disabled. `RequestBody.isOneShot()` is essential: OkHttp
 can otherwise replay a 503 with `Retry-After: 0` despite connection retries being
-disabled. A second `writeTo` is rejected as an additional guard.
+disabled. A second `writeTo` is rejected as an additional guard. The engine has
+one explicit exception: an allowlisted read-only RPC may create one fresh
+one-shot body after an HTTP/2 stream reset on the same compiled origin. Admission
+never enters that path, so a dropped POST remains an unknown persisted result.
 
 Request bodies are at most 1,024 UTF-8 bytes. Headers are checked before app body
 accumulation; only JSON UTF-8 and absent/identity content encoding are accepted.
@@ -131,11 +136,11 @@ the original engine and their own test harness.
 `YnxFaucetTransportModule.swift` contains a Foundation bridge core plus the actual
 Expo/UIKit adapter under `canImport(ExpoModulesCore) && canImport(UIKit)`. The
 module exports only `reserveTask`, `request`, and `cancel`. Its immutable
-production gate is false; no JavaScript argument, caller URL or compilation flag
-changes that constant. Host tests use a separate compilation-only constructor,
-which creates the same real bounded Foundation engine at a loopback endpoint.
-The production-off test exercises the actual production constructor through
-native lifecycle events and verifies zero engine creations.
+production gate is true for the two compiled route identities; no JavaScript
+argument, caller URL or compilation flag can add another endpoint. Host tests
+use a separate compilation-only constructor, which creates the same real bounded
+Foundation engine at a loopback endpoint. The production lifecycle test reserves
+and cancels tasks without public dispatch and verifies one lazy engine creation.
 
 One bridge owns at most one engine and eight in-flight completion tickets. The
 engine remains the authority for opaque reservations, purpose, lifetime and
@@ -169,8 +174,8 @@ The host harness compiles the actual bridge core and unchanged engine with the
 macOS Foundation SDK and uses an isolated loopback HTTP server. Its synthetic
 NotificationCenter events are not actual UIKit/Expo lifecycle acceptance.
 `canImport` excludes the Expo/UIKit adapter on this host; root's separate iOS SDK
-build must compile and validate that adapter. Production remains disabled pending
-that native acceptance and a separately authorized endpoint/runtime release.
+build must compile and validate that adapter. Production source activation does
+not establish installed iOS or public-runtime acceptance.
 
 From the repository root, with a fresh audit output directory:
 
@@ -203,6 +208,8 @@ node --test apps/wallet/modules/ynx-faucet-transport/test/production-off.test.mj
 ```
 
 The commands above do not include a wallet secret, public account request,
-public POST, or device mutation. The separately documented Android runtime
-procedure installs and removes only its own test APK on an explicitly permitted
-emulator. Build outputs are excluded from source control.
+public POST, or device mutation. They reproduce only local source checks. The
+separately documented Android runtime procedure installs and removes only its
+own test APK on an explicitly permitted emulator. Public acceptance evidence is
+kept outside source control and excludes recovery keys and signed transaction
+bytes. Build outputs are excluded from source control.

@@ -33,6 +33,7 @@ class BoundedHttpEngineTest {
   private var entered = CountDownLatch(1)
   private var responseFinished = CountDownLatch(1)
   private var echo: String? = null
+  @Volatile private var requestedPath: String? = null
   private var acceptEncoding: String? = null
   private val requestId = "req_0123456789abcdef0123456789abcdef"
   private val body = "{\"requestId\":\"$requestId\",\"address\":\"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80\",\"amount\":100}"
@@ -50,6 +51,7 @@ class BoundedHttpEngineTest {
               socket.soTimeout = 3000
               val source = socket.getInputStream()
               val path = line(source).split(' ')[1]
+              requestedPath = path
               val headers = mutableMapOf<String, String>()
               while (true) {
                 val row = line(source); if (row.isEmpty()) break
@@ -125,6 +127,13 @@ class BoundedHttpEngineTest {
     status = 503; retryAfter = "0"
     assertEquals(503, submit(input()).first!!.status)
     assertEquals(1, received.get())
+  }
+
+  @Test fun `only an HTTP2 stream reset is eligible for bounded read recovery`() {
+    assertTrue(BoundedHttpEngine.isHttp2StreamReset(java.io.IOException("stream was reset: REFUSED_STREAM")))
+    assertTrue(BoundedHttpEngine.isHttp2StreamReset(java.io.IOException("outer", java.io.IOException("Stream was reset: CANCEL"))))
+    assertFalse(BoundedHttpEngine.isHttp2StreamReset(java.io.IOException("connection reset")))
+    assertFalse(BoundedHttpEngine.isHttp2StreamReset(java.io.IOException("timeout")))
   }
 
   @Test fun `redirect has no second target dispatch`() {
@@ -275,5 +284,16 @@ class BoundedHttpEngineTest {
     }
     val value = mapOf("purpose" to "rpc", "taskId" to engine.reserve("rpc"), "rpcId" to "read_2", "method" to "eth_sendRawTransaction", "params" to emptyList<String>())
     assertEquals("YNX_HTTP_INVALID_INPUT", code(value)); assertEquals(5, received.get())
+  }
+
+  @Test fun `origin-only RPC endpoint keeps its compiled identity after OkHttp canonicalization`() {
+    engine.close()
+    val endpoint = "http://127.0.0.1:${server.localPort}"
+    engine = BoundedHttpEngine(endpoint + "/request", endpoint)
+    val value = mapOf<String, Any?>("purpose" to "rpc", "taskId" to engine.reserve("rpc"),
+      "rpcId" to "read_root", "method" to "eth_chainId", "params" to emptyList<String>())
+    val (reply, error) = submit(value)
+    assertNull(error); assertEquals(endpoint, reply!!.url)
+    assertEquals("/", requestedPath)
   }
 }

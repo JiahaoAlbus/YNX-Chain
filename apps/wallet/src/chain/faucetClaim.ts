@@ -147,7 +147,7 @@ export class FaucetClaimController {
   }
   private async preflight(guard: Guard): Promise<void> {
     if (await this.rpc("eth_chainId", [], guard) !== this.scope.chainId) invalid();
-    const model = exact(await this.rpc("ynx_getFaucetModel", [], guard), Object.keys(FAUCET_REQUEST_MODEL));
+    const model = atLeast(await this.rpc("ynx_getFaucetModel", [], guard), Object.keys(FAUCET_REQUEST_MODEL));
     for (const [key, value] of Object.entries(FAUCET_REQUEST_MODEL)) {
       if (key === "durability") parseNativeDurabilityModel(model[key]);
       else if (model[key] !== value) invalid();
@@ -213,6 +213,19 @@ export class FaucetClaimController {
 
 function exact(input: unknown, fields: readonly string[]): Record<string, any> {
   if (!input || typeof input !== "object" || Array.isArray(input) || Reflect.ownKeys(input).length !== fields.length) invalid();
+  for (const field of fields) {
+    const descriptor = Object.getOwnPropertyDescriptor(input, field);
+    if (!descriptor || !Object.hasOwn(descriptor, "value")) invalid();
+  }
+  return input as Record<string, any>;
+}
+
+/** Faucet nodes may advertise additive operational capabilities (for example
+ * batching or authority metadata). The security-critical request model remains
+ * closed over the fields above: every required field must be an own data
+ * property and must still exactly match the locally pinned value. */
+function atLeast(input: unknown, fields: readonly string[]): Record<string, any> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) invalid();
   for (const field of fields) {
     const descriptor = Object.getOwnPropertyDescriptor(input, field);
     if (!descriptor || !Object.hasOwn(descriptor, "value")) invalid();

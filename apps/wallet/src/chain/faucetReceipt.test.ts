@@ -61,6 +61,37 @@ test("a later checkpoint may change while transaction, native amounts and block 
   assert.equal((parseFaucetDurableReceipt(matching, nonzero).ynxNativeTransaction as any).nonce, "0x7");
 });
 
+test("the public Faucet system identity projection is recomputed and bound to its native identity", () => {
+  const item = fixture.cases[0], tx = bindFaucetTransaction(item.admittedTransaction, item.admittedTransaction.to, 100);
+  const projected = {
+    ...copy(item.minedReceipt),
+    from: "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",
+    ynxNativeIdentity: {
+      from: "ynx_faucet", to: tx.to,
+      identityProjection: {
+        version: "ynx-native-identity-projection-v1", fromSystemIdentity: true, toSystemIdentity: false,
+        systemAddressDomain: "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+        systemAddressScheme: "last-20-bytes-sha256-nul-domain-exact-native-identity",
+        systemAddressesAreDisplayOnly: true,
+      },
+    },
+  };
+  assert.equal(parseFaucetDurableReceipt(projected, tx).from, "ynx_faucet");
+  for (const change of [
+    (r: any) => { r.from = "0x" + "11".repeat(20); },
+    (r: any) => { r.ynxNativeIdentity.from = "ynx_other"; },
+    (r: any) => { r.ynxNativeIdentity.to = "0x" + "22".repeat(20); },
+    (r: any) => { r.ynxNativeIdentity.identityProjection.fromSystemIdentity = false; },
+    (r: any) => { r.ynxNativeIdentity.identityProjection.systemAddressDomain = "OTHER"; },
+    (r: any) => { r.ynxNativeIdentity.identityProjection.extra = true; },
+    (r: any) => { r.ynxNativeIdentity.extra = true; },
+    (r: any) => { delete r.ynxNativeIdentity; },
+  ]) {
+    const invalid = copy(projected); change(invalid);
+    assert.throws(() => parseFaucetDurableReceipt(invalid, tx), FaucetReceiptInvalid);
+  }
+});
+
 test("capability or evidence origin mismatch cannot silently inherit a Faucet proof", () => {
   const item = fixture.cases[0], tx = bindFaucetTransaction(item.admittedTransaction, item.admittedTransaction.to, 100);
   for (const origin of ["http://rpc.ynxweb4.com", "https://rpc.ynxweb4.com/", "https://rpc.ynxweb4.com/other", "https://u:p@rpc.ynxweb4.com", "https://rpc.ynxweb4.com:444"]) {

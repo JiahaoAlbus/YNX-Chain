@@ -83,6 +83,7 @@ export function localizeProductSessionError(locale:WalletLocale,value:unknown,ac
 // Expanded account/session UI coverage is currently translated for these two
 // locales. Other locales retain their existing English fallback explicitly.
 const DETAIL_MESSAGES={
+  "Faucet service":["水龙头服务","خدمة الصنبور"],
   "Paste address or receiving link":["粘贴地址或收款链接","لصق العنوان أو رابط الاستلام"],
   "Reading clipboard…":["正在读取剪贴板…","جارٍ قراءة الحافظة…"],
   "Copy a receiving link from a QR code, then paste it here.":["复制收款二维码中的链接，然后粘贴到这里。","انسخ رابط الاستلام من رمز QR ثم الصقه هنا."],

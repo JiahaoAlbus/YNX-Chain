@@ -28,7 +28,7 @@ function fixture() {
 function admission() { const requestId = "wallet_" + "ab".repeat(32); return { url: scope.authority + "/request", method: "POST" as const,
   requestId, body: JSON.stringify({ requestId, address: recipient, amount: 100 }) }; }
 
-test("production factory is unconditionally unavailable", () => { assert.equal(createProductionFaucetSession(new AbortController().signal), null); });
+test("production factory fails closed when the compiled native module is absent", () => { assert.equal(createProductionFaucetSession(new AbortController().signal), null); });
 test("fixed-purpose RPC binds the response ID and retires its reservation", async () => {
   const t = fixture(); assert.equal(await t.session.rpc.request("eth_chainId", []), "0x1917");
   assert.deepEqual(t.sent, [{ purpose: "rpc", taskId: "task-1", rpcId: "task-1", method: "eth_chainId", params: [] }]);

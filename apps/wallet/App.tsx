@@ -243,7 +243,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <DangerButton label={translate(locale,"removeAccountFromDevice")} onPress={()=>setRemove(true)}/>
     <Modal visible={qr} transparent animationType={MODAL_ANIMATION} onRequestClose={()=>setQR(false)}><Sheet title="Receive YNXT" close={()=>setQR(false)}><View style={styles.qr}><QRCodeView value={createPaymentURI(selected.account)} size={210} color={ACTIVE_COLORS.ink} backgroundColor={ACTIVE_COLORS.white}/></View><Text selectable style={styles.fullAddress}>{selected.account}</Text><Text style={styles.footnote}>Native network ynx_6423-1 · EVM chain ID 6423. An 0x address is shown only inside an explicit EVM compatibility view.</Text></Sheet></Modal>
     <SendModal visible={send} account={selected} close={()=>setSend(false)} onSent={()=>void refreshChain()}/>
-    {faucet?<FaucetModal account={selected} close={()=>setFaucet(false)}/>:null}
+    {faucet?<FaucetModal account={selected} close={()=>{setFaucet(false);void refreshChain()}}/>:null}
     <EvmCompatibilityModal visible={evm} account={selected} close={()=>setEvm(false)}/>
     <WalletCenter visible={center} account={selected} chainState={chainState} close={()=>setCenter(false)} openAudit={()=>void openAudit()} retry={()=>void refreshChain()}/>
     <WalletControlCenter visible={controls} locale={locale} close={()=>setControls(false)}/>
@@ -308,6 +308,7 @@ function FaucetModal({account,close}:{account:WalletAccount;close:()=>void}){
         {!state.available?<Text accessibilityRole="alert" style={[styles.sheetText,textDirection]}>{walletCopy(locale,"Test YNXT requests are not available in this version.")}</Text>:null}
         <FaucetDetail label="Recipient account" value={account.account}/>
         <FaucetDetail label="Network" value="YNX Testnet · ynx_6423-1"/>
+        <FaucetDetail label="Faucet service" value={state.route==="legacy"?"https://faucet.ynxweb4.com":"https://faucet-testnet.ynxweb4.com"}/>
         {amount!==null?<FaucetDetail label="Requested amount" value={formatYNXT(locale,amount)}/>:<Text style={[styles.muted,textDirection]}>{walletCopy(locale,"Request amount will be shown when this service becomes available.")}</Text>}
         {state.busy?<View accessibilityState={{busy:true}}><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text accessibilityLiveRegion="polite" style={[styles.sheetText,textDirection]}>{walletCopy(locale,busyText)}</Text></View>:null}
         {state.phase==="paused"&&state.error!=="storage"?<Text accessibilityRole="alert" style={[styles.sheetText,textDirection]}>{faucetRecoveryCopy(locale).paused}</Text>:null}

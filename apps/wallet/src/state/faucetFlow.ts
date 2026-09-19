@@ -1,14 +1,14 @@
 import { FaucetClaimController, type FaucetClaimView, type FaucetClaimRPC } from "../chain/faucetClaim";
 import type { FaucetAdmissionTransport } from "../chain/faucetAdmission";
-import { createProductionFaucetSession, NATIVE_FAUCET_AUTHORITY, NATIVE_FAUCET_CHAIN_ORIGIN } from "../chain/faucetNativeSession";
-import { faucetTransportReadiness } from "../../modules/ynx-faucet-transport";
+import { createProductionFaucetSession, LEGACY_FAUCET_AUTHORITY, LEGACY_FAUCET_CHAIN_ORIGIN, NATIVE_FAUCET_AUTHORITY, NATIVE_FAUCET_CHAIN_ORIGIN } from "../chain/faucetNativeSession";
+import { faucetTransportReadiness, type FaucetEndpointRoute } from "../../modules/ynx-faucet-transport";
 import { WalletOperationCancelled, WalletOperationLifecycle, type WalletOperationLease } from "../security/operationLifecycle";
 import type { SecureStorageHealth } from "../storage/secureStorageHealth";
 import type { SecureStorageAdapter } from "../storage/walletRepository";
 import type { walletCopy } from "../i18n/i18n";
 
 type Session = Readonly<{ rpc: FaucetClaimRPC; transport: FaucetAdmissionTransport }>;
-export type FaucetConfiguration = Readonly<{ amount: number; createSession(signal: AbortSignal): Session | null }>;
+export type FaucetConfiguration = Readonly<{ amount: number; createSession(signal: AbortSignal, route: FaucetEndpointRoute): Session | null }>;
 export type FaucetAction = "review" | "submit" | "check" | "complete";
 export type FaucetFlowState = Readonly<{
   phase: "closed" | "loading" | "ready" | "failed" | "paused";
@@ -16,12 +16,13 @@ export type FaucetFlowState = Readonly<{
   view: FaucetClaimView | null;
   error: "unavailable" | "read" | "storage" | "operation" | null;
   available: boolean;
+  route: FaucetEndpointRoute | null;
 }>;
 
 // The service's configurable default/max are not present in its RPC model.
 // A release must bind the actual amount as well as platform/endpoint acceptance.
 // Do not substitute the faucetd source default or a runtime/global JS override.
-const PRODUCTION_AMOUNT: number | null = null;
+const PRODUCTION_AMOUNT: number | null = 100;
 export function productionFaucetConfiguration(): FaucetConfiguration | null {
   if (!faucetTransportReadiness.productionEnabled || PRODUCTION_AMOUNT === null) return null;
   return Object.freeze({ amount: PRODUCTION_AMOUNT, createSession: createProductionFaucetSession });
@@ -37,6 +38,7 @@ type Attempt = { lease: WalletOperationLease; abort: AbortController; timer: Ret
 export class FaucetFlow {
   private readonly scope;
   private readonly local: FaucetClaimController;
+  private readonly legacy: FaucetClaimController;
   private readonly configuration: FaucetConfiguration | null;
   private readonly listeners = new Set<() => void>();
   private current: Attempt | null = null;
@@ -54,8 +56,9 @@ export class FaucetFlow {
     const config = dependencies.configuration;
     this.configuration = config && Number.isSafeInteger(config.amount) && config.amount > 0
       ? Object.freeze({ amount: config.amount, createSession: config.createSession }) : null;
-    this.local = this.controller();
-    this.state = Object.freeze({ phase: "closed", busy: null, view: null, error: null, available: this.configuration !== null });
+    this.local = this.controller(undefined, undefined, "primary");
+    this.legacy = this.controller(undefined, undefined, "legacy");
+    this.state = Object.freeze({ phase: "closed", busy: null, view: null, error: null, available: this.configuration !== null, route: null });
   }
 
   snapshot(): FaucetFlowState { return this.state; }
@@ -95,7 +98,11 @@ export class FaucetFlow {
       this.guard(attempt);
       this.publish({ phase: "loading", view: null, error: null });
       this.guard(attempt);
-      const view = await this.local.read(); this.guard(attempt); this.publish({ phase: "ready", view });
+      const primary = await this.local.read(); this.guard(attempt);
+      const legacy = await this.legacy.read(); this.guard(attempt);
+      if (primary.entry && legacy.entry) throw new Error("Multiple Faucet origins have unresolved requests");
+      const route: FaucetEndpointRoute = legacy.entry && !primary.entry ? "legacy" : "primary";
+      this.publish({ phase: "ready", view: route === "legacy" ? legacy : primary, route });
     }
     catch { if (this.owns(attempt)) this.publish({ phase: "failed", error: "read" }); }
     finally { this.finish(attempt); }
@@ -131,6 +138,7 @@ export class FaucetFlow {
     if (!this.allowed(action)) return;
     // Freeze the exact displayed original ID. An HTTP task ID never replaces it.
     const requestId = this.state.view?.entry?.requestId;
+    const route: FaucetEndpointRoute = action === "review" ? "primary" : this.state.route ?? "primary";
     const attempt = this.begin(action);
     if (!attempt) return;
     let entropy: Uint8Array | undefined;
@@ -139,7 +147,7 @@ export class FaucetFlow {
     } : {}) });
     try {
       this.guard(attempt);
-      const session = this.configuration!.createSession(attempt.abort.signal);
+      const session = this.configuration!.createSession(attempt.abort.signal, route);
       this.guard(attempt);
       if (!session) { this.publish({ available: false, error: "unavailable" }); return; }
       let consumed = false;
@@ -154,14 +162,14 @@ export class FaucetFlow {
         this.guard(attempt);
         if (consumed || length !== 32 || !entropy || entropy.length !== 32) throw new Error("Faucet entropy unavailable");
         consumed = true; return entropy;
-      });
+      }, route);
       const guard = () => this.guard(attempt);
       const view = action === "review" ? await controller.prepare(this.configuration!.amount, guard)
         : action === "submit" ? await controller.submit(requestId!, guard)
         : action === "check" ? await controller.check(requestId!, guard)
         : await controller.complete(requestId!, guard);
       this.guard(attempt);
-      this.publish({ phase: "ready", view });
+      this.publish({ phase: "ready", view, route });
     } catch (error) {
       const code = error && typeof error === "object" && "code" in error ? error.code : null;
       // A failed persistence/readback can already have changed disk. Disable
@@ -175,17 +183,19 @@ export class FaucetFlow {
         if (!this.owns(attempt)) return;
         try {
           this.guard(attempt);
-          const view = await this.local.read(); this.guard(attempt);
-          this.publish({ phase: "ready", view, error: "operation" });
+          const view = await (route === "legacy" ? this.legacy : this.local).read(); this.guard(attempt);
+          this.publish({ phase: "ready", view, route, error: "operation" });
         } catch { if (this.owns(attempt)) this.publish({ phase: "failed", view: null, error: "read" }); }
       }
     } finally { entropy?.fill(0); this.finish(attempt); }
   }
 
-  private controller(session?: Session, randomBytes?: (length: number) => Uint8Array): FaucetClaimController {
+  private controller(session?: Session, randomBytes?: (length: number) => Uint8Array, route: FaucetEndpointRoute = "primary"): FaucetClaimController {
+    const authority = route === "legacy" ? LEGACY_FAUCET_AUTHORITY : NATIVE_FAUCET_AUTHORITY;
+    const chainOrigin = route === "legacy" ? LEGACY_FAUCET_CHAIN_ORIGIN : NATIVE_FAUCET_CHAIN_ORIGIN;
     return new FaucetClaimController(this.dependencies.storage,
-      { authority: NATIVE_FAUCET_AUTHORITY, chainId: "0x1917", recipient: this.dependencies.account },
-      NATIVE_FAUCET_CHAIN_ORIGIN, { rpc: session?.rpc, transport: session?.transport, randomBytes });
+      { authority, chainId: "0x1917", recipient: this.dependencies.account },
+      chainOrigin, { rpc: session?.rpc, transport: session?.transport, randomBytes });
   }
   private begin(busy: NonNullable<FaucetFlowState["busy"]>): Attempt | null {
     if (!this.attached || this.current || this.persistenceFailed || this.dependencies.health.requiresRestart) return null;

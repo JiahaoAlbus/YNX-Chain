@@ -7,6 +7,7 @@ export type ChainAccount=Readonly<{address:string;balance:number;nonce:number}>;
 export type ChainActivity=Readonly<{hash:string;type:string;from:string;to:string;amount:number;fee:number;nonce:number;timestamp?:string}>;
 export type BroadcastResult=Readonly<{hash:string;replayed:boolean;truthfulStatus:"signature-verified-authoritative-native-transfer";durabilityConfirmed:boolean;durabilityEvidence:Readonly<Record<string,unknown>>|null}>;
 class NativeDurabilityRPCError extends Error {constructor(readonly code:number,readonly data:unknown){super("The node has not supplied a verified local durability receipt.")}}
+class NativeRpcReadTransportError extends Error {constructor(){super("The read-only RPC connection was interrupted.")}}
 export class NativeBroadcastUnknown extends Error {
   readonly code="NATIVE_BROADCAST_UNKNOWN";
   constructor(readonly hash:string,message="Transfer confirmation is unavailable. Keep the original transaction and retry only that transaction.",readonly httpStatus?:number,readonly reportedHash?:string){super(message)}
@@ -165,11 +166,19 @@ export class NativeChainClient{
   }
 
   async #rpc(method:string,params:readonly unknown[]):Promise<unknown>{
-    const id=++this.rpcSequence;
-    const response=await this.#json("/evm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id,method,params})});
-    if(!object(response)||response.jsonrpc!=="2.0"||response.id!==id||Object.hasOwn(response,"result")===Object.hasOwn(response,"error"))throw new NativeDurabilityInvalid();
-    if(Object.hasOwn(response,"error")){if(!object(response.error)||!Number.isSafeInteger(response.error.code)||typeof response.error.message!=="string")throw new NativeDurabilityInvalid();throw new NativeDurabilityRPCError(response.error.code,response.error.data)}
-    return response.result;
+    for(let attempt=0;attempt<2;attempt++){
+      const id=++this.rpcSequence;
+      try{
+        const response=await this.#json("/evm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id,method,params})});
+        if(!object(response)||response.jsonrpc!=="2.0"||response.id!==id||Object.hasOwn(response,"result")===Object.hasOwn(response,"error"))throw new NativeDurabilityInvalid();
+        if(Object.hasOwn(response,"error")){if(!object(response.error)||!Number.isSafeInteger(response.error.code)||typeof response.error.message!=="string")throw new NativeDurabilityInvalid();throw new NativeDurabilityRPCError(response.error.code,response.error.data)}
+        return response.result;
+      }catch(error){
+        if(!(error instanceof NativeRpcReadTransportError)||attempt!==0)throw error;
+        await readRetryDelay();
+      }
+    }
+    throw new NativeRpcReadTransportError();
   }
 
   async #json(path:string,init:RequestInit,requestedAccount?:string,broadcastHash?:string):Promise<unknown>{
@@ -185,10 +194,15 @@ export class NativeChainClient{
         // proof. Even a 400/403 must not release an already signed transaction.
         if(broadcastHash)throw new NativeBroadcastUnknown(broadcastHash,`YNX chain has not confirmed the transfer (${response.status}).`,response.status,object(value)&&typeof value.transactionHash==="string"&&/^0x[0-9a-f]{64}$/.test(value.transactionHash)?value.transactionHash:undefined);
         if(requestedAccount!==undefined&&init.method==="GET"&&path===`/accounts/${encodeURIComponent(requestedAccount)}`&&response.status===404&&object(value)&&Object.keys(value).length===1&&value.error==="account not found")throw new AccountNotRecordedError(requestedAccount);
+        if(RETRYABLE_READ_STATUS.has(response.status))throw new NativeRpcReadTransportError();
         throw new Error(`YNX chain rejected the request (${response.status}): ${errorMessage(value)}`);
       }
       return value;
-      })(),new Promise<never>((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(new Error("YNX chain request timed out"))},15_000)})]);
+      })(),new Promise<never>((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(broadcastHash?new NativeBroadcastUnknown(broadcastHash):new NativeRpcReadTransportError())},15_000)})]);
+    }catch(error){
+      if(error instanceof NativeBroadcastUnknown||error instanceof NativeRpcReadTransportError)throw error;
+      if(error instanceof TypeError){if(broadcastHash)throw new NativeBroadcastUnknown(broadcastHash);throw new NativeRpcReadTransportError()}
+      throw error;
     }finally{clearTimeout(timeout)}
   }
 }

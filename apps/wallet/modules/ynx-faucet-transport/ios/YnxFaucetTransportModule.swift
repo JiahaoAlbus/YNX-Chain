@@ -1,7 +1,5 @@
 import Foundation
 
-/// The JS-visible production constructor is permanently off in this candidate.
-/// A separate native acceptance and source review must precede any activation.
 final class BoundedFaucetHttpBridge: @unchecked Sendable {
   typealias Completion = (Result<FaucetHttpReply, FaucetHttpFailure>) -> Void
   typealias InitialActivitySampler = (@escaping @Sendable (Bool) -> Void) -> Void
@@ -17,7 +15,7 @@ final class BoundedFaucetHttpBridge: @unchecked Sendable {
     init(_ completion: @escaping Completion) { self.completion = completion }
   }
 
-  private static let PRODUCTION_ENABLED = false
+  private static let PRODUCTION_ENABLED = true
   private let enabled: Bool
   private let makeEngine: () throws -> BoundedFaucetHttpEngine
   private let gate = DispatchQueue(label: "com.ynx.wallet.faucet.bridge")
@@ -31,8 +29,16 @@ final class BoundedFaucetHttpBridge: @unchecked Sendable {
   private var notificationCenter: NotificationCenter?
   private var observers: [NSObjectProtocol] = []
 
-  static func production() -> BoundedFaucetHttpBridge {
-    BoundedFaucetHttpBridge(enabled: PRODUCTION_ENABLED, makeEngine: { try BoundedFaucetHttpEngine() })
+  static func production(_ route: String = "primary") -> BoundedFaucetHttpBridge {
+    BoundedFaucetHttpBridge(enabled: PRODUCTION_ENABLED, makeEngine: {
+      switch route {
+      case "primary": return try BoundedFaucetHttpEngine()
+      case "legacy": return try BoundedFaucetHttpEngine(
+        admitURL: URL(string: "https://faucet.ynxweb4.com/request")!,
+        rpcURL: URL(string: "https://rpc.ynxweb4.com/evm")!)
+      default: throw FaucetHttpFailure(code: "YNX_HTTP_INVALID_INPUT")
+      }
+    })
   }
   private init(enabled: Bool, makeEngine: @escaping () throws -> BoundedFaucetHttpEngine) {
     self.enabled = enabled; self.makeEngine = makeEngine
@@ -170,35 +176,62 @@ import ExpoModulesCore
 import UIKit
 
 public class YnxFaucetTransportModule: Module {
-  private let bridge = BoundedFaucetHttpBridge.production()
+  private let primary = BoundedFaucetHttpBridge.production("primary")
+  private let legacy = BoundedFaucetHttpBridge.production("legacy")
+  private let routesLock = NSLock()
+  private var taskRoutes: [String: String] = [:]
+
+  private func bridge(_ route: String) throws -> BoundedFaucetHttpBridge {
+    if route == "primary" { return primary }
+    if route == "legacy" { return legacy }
+    throw FaucetHttpFailure(code: "YNX_HTTP_INVALID_INPUT")
+  }
 
   public func definition() -> ModuleDefinition {
     Name("YnxFaucetTransport")
     OnCreate {
-      self.bridge.observeLifecycle(center: .default, names: .init(
-        willEnterForeground: UIApplication.willEnterForegroundNotification,
-        didBecomeActive: UIApplication.didBecomeActiveNotification,
-        willResignActive: UIApplication.willResignActiveNotification,
-        didEnterBackground: UIApplication.didEnterBackgroundNotification
-      ), sampleInitialActivity: { sample in
-        DispatchQueue.main.async { sample(UIApplication.shared.applicationState == .active) }
-      })
+      for bridge in [self.primary, self.legacy] {
+        bridge.observeLifecycle(center: .default, names: .init(
+          willEnterForeground: UIApplication.willEnterForegroundNotification,
+          didBecomeActive: UIApplication.didBecomeActiveNotification,
+          willResignActive: UIApplication.willResignActiveNotification,
+          didEnterBackground: UIApplication.didEnterBackgroundNotification
+        ), sampleInitialActivity: { sample in
+          DispatchQueue.main.async { sample(UIApplication.shared.applicationState == .active) }
+        })
+      }
     }
-    Function("reserveTask") { (purpose: String) throws -> String in
-      do { return try self.bridge.reserveTask(purpose) }
+    Function("reserveTask") { (route: String, purpose: String) throws -> String in
+      do {
+        let taskId = try self.bridge(route).reserveTask(purpose)
+        self.routesLock.lock(); self.taskRoutes[taskId] = route; self.routesLock.unlock()
+        return taskId
+      }
       catch { throw FaucetTransportException((error as? FaucetHttpFailure)?.code ?? "YNX_HTTP_UNAVAILABLE") }
     }
     AsyncFunction("request") { (input: [String: Any], promise: Promise) -> Void in
-      self.bridge.request(input) { result in
+      guard let route = input["route"] as? String, let taskId = input["taskId"] as? String else {
+        promise.reject("YNX_HTTP_INVALID_INPUT", "Faucet network operation could not be completed."); return
+      }
+      self.routesLock.lock(); let expected = self.taskRoutes[taskId]; self.routesLock.unlock()
+      guard expected == route, let bridge = try? self.bridge(route) else {
+        promise.reject("YNX_HTTP_TASK_INVALID", "Faucet network operation could not be completed."); return
+      }
+      var nativeInput = input; nativeInput.removeValue(forKey: "route")
+      bridge.request(nativeInput) { result in
+        self.routesLock.lock(); self.taskRoutes.removeValue(forKey: taskId); self.routesLock.unlock()
         switch result {
         case .success(let reply): promise.resolve(reply.fields())
         case .failure(let failure): promise.reject(failure.code, "Faucet network operation could not be completed.")
         }
       }
     }
-    Function("cancel") { (taskId: String) in self.bridge.cancel(taskId) }
-    OnDestroy { self.bridge.close() }
-    OnAppContextDestroys { self.bridge.close() }
+    Function("cancel") { (route: String, taskId: String) in
+      self.routesLock.lock(); let expected = self.taskRoutes.removeValue(forKey: taskId); self.routesLock.unlock()
+      if expected == route { try? self.bridge(route).cancel(taskId) }
+    }
+    OnDestroy { self.primary.close(); self.legacy.close() }
+    OnAppContextDestroys { self.primary.close(); self.legacy.close() }
   }
 }
 

@@ -6,7 +6,7 @@ import { WalletOperationLifecycle } from "../security/operationLifecycle";
 import { SecureStorageHealth, STORAGE_WRITE_UNCERTAIN } from "../storage/secureStorageHealth";
 import { FaucetClaimController, FAUCET_REQUEST_MODEL, type FaucetClaimRPC } from "../chain/faucetClaim";
 import { faucetAdmissionHash, type FaucetAdmissionTransport } from "../chain/faucetAdmission";
-import { NATIVE_FAUCET_AUTHORITY, NATIVE_FAUCET_CHAIN_ORIGIN } from "../chain/faucetNativeSession";
+import { LEGACY_FAUCET_AUTHORITY, LEGACY_FAUCET_CHAIN_ORIGIN, NATIVE_FAUCET_AUTHORITY, NATIVE_FAUCET_CHAIN_ORIGIN } from "../chain/faucetNativeSession";
 import { NATIVE_DURABILITY_MODEL } from "../chain/nativeDurability";
 
 // Synthetic public identifiers and in-memory transport only. No keys, accounts
@@ -44,7 +44,7 @@ function fixture(t: TestContext, enabled = true) {
   } };
   const transport: FaucetAdmissionTransport = async r => { posts.push(r); return hooks.post ? hooks.post(r) : accepted(r); };
   const config: FaucetConfiguration = { amount: 100, createSession(signal) { counts.session++; signals.push(signal); return hooks.nullSession ? null : { rpc, transport }; } };
-  const make = (configuration: FaucetConfiguration | null = enabled ? config : productionFaucetConfiguration()) => {
+  const make = (configuration: FaucetConfiguration | null = enabled ? config : null) => {
     const flow = new FaucetFlow({ account, operations, health, storage, configuration,
       async randomBytesAsync() { counts.entropy++; return hooks.random ? hooks.random() : new Uint8Array(32).fill(counts.entropy); } });
     const detach = flow.attach(); t.after(detach); return flow;
@@ -53,8 +53,8 @@ function fixture(t: TestContext, enabled = true) {
   return { flow: make(), make, config, counts, hooks, rows, storage, operations, health, signals, posts, local };
 }
 
-test("production-off open/reopen and direct repeated handlers never create an intent or session", async t => {
-  const f = fixture(t, false); assert.equal(productionFaucetConfiguration(), null);
+test("an explicitly unavailable configuration remains read-only even though the production amount is bound", async t => {
+  const f = fixture(t, false); assert.equal(productionFaucetConfiguration()?.amount, 100);
   for (let i = 0; i < 3; i++) {
     await f.flow.load(); assert.equal(f.flow.snapshot().phase, "ready"); assert.equal(f.flow.snapshot().view?.entry, null);
     await Promise.all(actions.flatMap(a => [f.flow.act(a), f.flow.act(a)])); f.flow.cancel();
@@ -63,13 +63,41 @@ test("production-off open/reopen and direct repeated handlers never create an in
   assert.deepEqual({ ...f.counts, get: 0 }, { get: 0, set: 0, delete: 0, entropy: 0, session: 0, rpc: 0 });
   assert.equal(f.posts.length, 0); assert.equal(f.rows.size, 0);
 });
-test("production-off reads an original request without changing any bytes", async t => {
+test("an explicitly unavailable configuration reads an original request without changing any bytes", async t => {
   const f = fixture(t, false), original = (await f.local.prepare(100, () => {})).entry!;
   const before = [...f.rows]; f.counts.set = 0; await f.flow.load();
   assert.deepEqual(f.flow.snapshot().view?.entry, original);
   for (const action of actions) await f.flow.act(action);
   f.flow.cancel(); await f.flow.load();
   assert.deepEqual([...f.rows], before); assert.equal(f.counts.set, 0); assert.equal(f.counts.entropy, 0); assert.equal(f.counts.session, 0);
+});
+test("a retained legacy request stays on its original authority and is never replayed through the primary route", async t => {
+  const f = fixture(t, false); f.flow.cancel();
+  const legacyScope = { authority: LEGACY_FAUCET_AUTHORITY, chainId: "0x1917" as const, recipient: account };
+  const legacyRpc: FaucetClaimRPC = { origin: LEGACY_FAUCET_CHAIN_ORIGIN, async request(method, params) {
+    if (method === "eth_chainId") return "0x1917";
+    if (method === "ynx_getFaucetModel") return FAUCET_REQUEST_MODEL;
+    if (method === "ynx_getDurabilityModel") return NATIVE_DURABILITY_MODEL;
+    if (method === "ynx_getTransactionDurability") return durable(params[0]!);
+    return { transactionHash: params[0], from: "ynx_faucet", to: address, status: "0x1", contractAddress: null,
+      transactionIndex: "0x0", blockNumber: "0x1", blockHash: "0x" + "ab".repeat(32), ynxDurability: durable(params[0]!),
+      ynxNativeTransaction: { type: "faucet", amountYNXT: "100", feeYNXT: "0", nonce: "0x0" } };
+  } };
+  const legacyPosts: Parameters<FaucetAdmissionTransport>[0][] = [];
+  const legacyTransport: FaucetAdmissionTransport = async request => { legacyPosts.push(request); return accepted(request); };
+  const legacy = new FaucetClaimController(f.storage, legacyScope, LEGACY_FAUCET_CHAIN_ORIGIN, {
+    randomBytes: length => new Uint8Array(length).fill(19), rpc: legacyRpc, transport: legacyTransport,
+  });
+  const original = (await legacy.prepare(100, () => {})).entry!;
+  const routes: string[] = [];
+  const flow = f.make({ amount: 100, createSession(_signal, route) {
+    routes.push(route); return route === "legacy" ? { rpc: legacyRpc, transport: legacyTransport } : null;
+  } });
+  await flow.load(); assert.equal(flow.snapshot().route, "legacy"); assert.equal(flow.snapshot().view?.entry?.requestId, original.requestId);
+  await flow.act("submit");
+  assert.deepEqual(routes, ["legacy"]); assert.equal(legacyPosts.length, 1);
+  assert.equal(legacyPosts[0]?.url, "https://faucet.ynxweb4.com/request");
+  assert.equal(legacyPosts[0]?.requestId, original.requestId);
 });
 test("an unavailable actual session is checked before entropy or persistence", async t => {
   const f = fixture(t); f.hooks.nullSession = true; await f.flow.load(); await f.flow.act("review");

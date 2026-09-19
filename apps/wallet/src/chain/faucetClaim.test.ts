@@ -111,6 +111,21 @@ for (const change of ["chain", "faucet-missing", "faucet-hash", "faucet-finality
   await assert.rejects(t.c.submit(entry.requestId, live)); assert.equal(t.posts.length, 0);
   assert.equal((await t.c.read()).entry?.phase, "prepared");
 });
+
+test("additive public Faucet capabilities do not weaken the pinned request model", async () => {
+  const t = setup();
+  t.hooks.rpc = async (method, params) => {
+    if (method === "ynx_getFaucetModel") return {
+      ...copy(FAUCET_REQUEST_MODEL),
+      authority: { configured: true, required: true, version: "ynx-faucet-core-token-v1" },
+      batching: { acceptance: "after-durable-shared-checkpoint", maxBatchSize: 64 },
+    };
+    return t.result(method, params);
+  };
+  const entry = (await t.c.prepare(100, live)).entry!;
+  await t.c.submit(entry.requestId, live);
+  assert.equal(t.posts.length, 1);
+});
 test("chain switch on trailing preflight and cancellation before POST stop dispatch", async () => {
   for (const mode of ["chain", "cancel"]) {
     const t = setup(); let chainReads = 0, active = true;
