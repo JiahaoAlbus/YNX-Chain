@@ -82,3 +82,22 @@ inheritance, unhealthy/incomplete/error outcomes, source binding, manual-only
 workflow and exact-file upload. They make zero live target requests. Rollback is
 to stop dispatching or review/revert only this package; no production rollback is
 needed because no production configuration is changed. Preserve prior evidence.
+
+## Actual delivery result (2026-09-19 17:51 UTC)
+
+Source checkpoint `a4a34621279eb9b81e7e940016131d43b50da9fb` was pushed and
+verified remote-exact. Local validation passed 115 Node tests (12 new), six Python
+tests, YAML parse/manual-event/permission checks and the prior Native validator.
+
+`gh` is available/authenticated with workflow scope, and repository Actions is
+enabled. Exactly one `gh workflow run` invocation returned HTTP 404 at workflow
+lookup: `workflow testnet-independent-probe.yml not found on the default branch`.
+The file exists on the intended remote branch (blob
+`442da0e8fe556c14efd09603c4c882bad1439f03`), but not as a registered workflow on
+default `main`. The read-only run query for that exact source SHA and event
+returned zero runs. No hosted probe ran and no check/artifact URL exists.
+
+This is a default-branch registration blocker, not evidence about endpoint
+availability. No merge, permissions change, alternative resource, schedule or
+target HTTP request was performed. The machine-readable delivery/blocker receipt
+is `release/evidence/weekly-v3-independent-actions-probe-20260919.json`.
