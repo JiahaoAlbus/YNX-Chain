@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-09-19T15:46:44.986Z",
+  "officialUrl": "https://wallet.ynxweb4.com",
+  "sourceCommit": "fd290cbf4e76dbf35f76b00cb7a9886dbcef3c40",
+  "deployment": {
+    "production": "dpl_6fATf6MzLxD9YhntG56rzcxuj1be",
+    "preview": "dpl_FugZwRhnDD3NHcyMu61JS71Yy8Me",
+    "rollback": "dpl_3jLapaVchCeoXbT1wLdGNqsh9F5C"
+  },
+  "responses": [
+    {
+      "path": "/",
+      "status": 200,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-origin": "*",
+        "age": "148",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-disposition": "inline",
+        "content-length": "927",
+        "content-security-policy": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com; manifest-src 'self'; worker-src 'self'",
+        "content-type": "text/html; charset=utf-8",
+        "date": "Sat, 19 Sep 2026 15:46:45 GMT",
+        "etag": "\"50274552e5b56706001938317bc8098b\"",
+        "last-modified": "Sat, 19 Sep 2026 15:44:17 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+        "referrer-policy": "no-referrer",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "hnd1::9kpvm-1789832805262-d4dcd6cc86c4"
+      },
+      "bytes": 927,
+      "sha256": "49fb08ce1798bc829955630294b0ee03dde9fa10ccb714fa65ce7d733c08830e"
+    },
+    {
+      "path": "/build-identity.json",
+      "status": 200,
+      "headers": {
+        "accept-ranges": "bytes",
+        "access-control-allow-origin": "*",
+        "age": "147",
+        "cache-control": "no-store",
+        "content-disposition": "inline; filename=\"build-identity.json\"",
+        "content-length": "619",
+        "content-security-policy": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com; manifest-src 'self'; worker-src 'self'",
+        "content-type": "application/json; charset=utf-8",
+        "date": "Sat, 19 Sep 2026 15:46:45 GMT",
+        "etag": "\"6207857cca3706fd6f3849b6f88fe53d\"",
+        "last-modified": "Sat, 19 Sep 2026 15:44:17 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+        "referrer-policy": "no-referrer",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "hnd1::qv7k7-1789832805390-1c31a7a5e243"
+      },
+      "bytes": 619,
+      "sha256": "d9f68c250f14bc52813c62932c4529d08a5397fa771d173caa0ffb9f15aee4ca",
+      "body": {
+        "schemaVersion": 1,
+        "product": "YNX Wallet Companion",
+        "sourceCommit": "fd290cbf4e76dbf35f76b00cb7a9886dbcef3c40",
+        "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+        "providerEvidenceCommit": "d3831c300560507f64a50e73117bab7b85926d9a",
+        "authorityArchiveSha256": "4a7eed2da6b1626cce94713a0d4420c56ebedef0d71ee39b7e2cd9bc6762ead7",
+        "authorityRecordCount": 14,
+        "walletAddressAuthoritySha256": "df4bade31952f98602f51fbc9cbcb731bffe772da3d685b5be7ce895cb0e409f",
+        "walletAuthSourceTree": "8e50f7a52a614ea6d4c4a4d2988315d036ea0b25",
+        "walletAddressWrapperBlob": "fb0f96cc68df36c13eb6c9d92a59cb771ddd6b93",
+        "chainId": "0x1917"
+      }
+    },
+    {
+      "path": "/sw.js",
+      "status": 200,
+      "headers": {
+        "access-control-allow-origin": "*",
+        "age": "104",
+        "cache-control": "no-store",
+        "content-disposition": "inline; filename=\"sw.js\"",
+        "content-encoding": "br",
+        "content-security-policy": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com; manifest-src 'self'; worker-src 'self'",
+        "content-type": "application/javascript; charset=utf-8",
+        "date": "Sat, 19 Sep 2026 15:46:45 GMT",
+        "etag": "W/\"e24de72bf15ac747f7627e53808e9e27\"",
+        "last-modified": "Sat, 19 Sep 2026 15:45:00 GMT",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+        "referrer-policy": "no-referrer",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "x-vercel-cache": "HIT",
+        "x-vercel-id": "hnd1::j75dw-1789832805488-ae9b4cdf584e"
+      },
+      "bytes": 6102,
+      "sha256": "16bfa932aa502a91935520754d7dc288bf6c09473d3bef1fa25646efba52dcf1"
+    }
+  ],
+  "browser": {
+    "status": 200,
+    "sourceCommit": "fd290cbf4e76dbf35f76b00cb7a9886dbcef3c40",
+    "title": "YNX Wallet — Testnet companion",
+    "consoleErrors": [],
+    "pageErrors": [],
+    "firstLoadServiceWorkerController": false,
+    "afterReload": {
+      "serviceWorkerController": true,
+      "title": "YNX Wallet — Testnet companion"
+    }
+  },
+  "validation": {
+    "walletWebTests": {
+      "passed": 346,
+      "failed": 0
+    },
+    "securityTargetedTests": {
+      "walletWeb": 159,
+      "desktop": 97,
+      "mobile": 174,
+      "total": 430,
+      "failed": 0
+    },
+    "packageVerification": "passed",
+    "vercelOutput": {
+      "passed": true,
+      "headerRouteCount": 4,
+      "securityHeaderRouteCount": 1,
+      "integrityAssetCount": 24
+    },
+    "artifacts": {
+      "pwa": "8903b3024cf5db2100b3f96ace683d389dc03232f5e0b3a39335fa657e6f14cb",
+      "chromiumEdge": "a4b91d7c5d2d63f5570990f46b7719bfaa7b7ad88602d4298a6ed717e7f8ffad",
+      "firefox": "76c33f138235ad1e48b822120abb0f41802bcffc7f07cb4a024adaf3f30c457c"
+    }
+  }
+}
