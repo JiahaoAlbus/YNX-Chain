@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.js",
+    "test:gitless-build": "node scripts/gitless-build-gate.mjs",
     "build": "node scripts/build.mjs",
     "package": "node scripts/package.mjs",
     "verify:package": "node scripts/verify-package.mjs",

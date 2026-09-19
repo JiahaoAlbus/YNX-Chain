@@ -22,7 +22,7 @@ test("actual extension artifacts have complete browser module and manifest graph
     }
     const tampered=JSON.parse(await readFile(authorityFile,"utf8"));tampered.records[0].commit="b".repeat(40);
     const bad=join(authorityDirectory,"wrong-authority.json");await writeFile(bad,JSON.stringify(tampered));
-    await assert.rejects(buildAll({dist:join(authorityDirectory,"bad"),authorityFile:bad}),/Missing or changed build authority/);
+    await assert.rejects(buildAll({dist:join(authorityDirectory,"bad"),authorityFile:bad}),/Immutable Wallet build authority archive changed|Missing or changed build authority/);
   });
   let firstIcon;
   for (const variant of ["chromium", "firefox"]) {

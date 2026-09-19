@@ -19,6 +19,14 @@ test("standalone authority requires exact embedded mapping and both hashes",asyn
   }
   assert.throws(()=>createAuthorityReader({repository:join(dir,"no-repository")}).read(entry.commit,contract));
 });
+test("preverified archive bytes are copied once and cannot race a later mutation",()=>{
+  const raw=Buffer.from(JSON.stringify({schemaVersion:1,records:[entry]}));
+  const reader=createAuthorityReader({archiveBytes:raw});
+  raw.fill(0);
+  assert.deepEqual(reader.read(entry.commit,contract),bytes);
+  assert.deepEqual(reader.finish(),{schemaVersion:1,records:[entry]});
+  assert.throws(()=>createAuthorityReader({archiveFile:"unused",archiveBytes:Buffer.alloc(0)}),/Choose one/);
+});
 test("archive corruption, duplicates and unused authorities never silently pass",async t=>{
   const dir=await mkdtemp(join(tmpdir(),"ynx-build-authority-fault-"));t.after(()=>rm(dir,{recursive:true,force:true}));const file=join(dir,"authority.json");
   for(const value of [

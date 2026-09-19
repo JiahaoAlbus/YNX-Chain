@@ -1,4 +1,6 @@
 import {createHash} from "node:crypto";
+import {execFileSync} from "node:child_process";
+import {existsSync} from "node:fs";
 import {cp, mkdir, readFile, readdir, realpath, rm, stat, writeFile} from "node:fs/promises";
 import {dirname, join, resolve, sep} from "node:path";
 import {fileURLToPath} from "node:url";
@@ -62,7 +64,31 @@ export async function buildAll({dist: outputDirectory, authorityFile = process.e
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = outputDirectory === undefined ? join(root, "dist") : resolve(outputDirectory);
 const repository=resolve(root,"..","..");
-const authorityReader=createAuthorityReader({repository,archiveFile:authorityFile});
+const resolvedAuthorityFile=resolve(authorityFile ?? join(root,"build-authority.json"));
+const authorityArchiveBytes=await readFile(resolvedAuthorityFile);
+const authorityArchiveSha256=createHash("sha256").update(authorityArchiveBytes).digest("hex");
+const expectedAuthorityArchiveSha256="4a7eed2da6b1626cce94713a0d4420c56ebedef0d71ee39b7e2cd9bc6762ead7";
+if(authorityArchiveSha256!==expectedAuthorityArchiveSha256)throw new Error("Immutable Wallet build authority archive changed");
+const authorityReader=createAuthorityReader({archiveBytes:authorityArchiveBytes});
+// A deployment source archive has no .git directory, so its committed authority
+// archive is the only allowed input. A local checkout has both and must prove
+// every archived byte against Git; the presence of .git never degrades to the
+// archive if Git verification fails.
+const gitCheckout=existsSync(join(repository,".git"));
+const gitAuthorityReader=gitCheckout?createAuthorityReader({repository}):null;
+const walletAddressAuthorityBytes=await readFile(join(root,"vendor","wallet-address-authority.js"));
+const walletAddressAuthoritySha256=createHash("sha256").update(walletAddressAuthorityBytes).digest("hex");
+const expectedWalletAddressAuthoritySha256="df4bade31952f98602f51fbc9cbcb731bffe772da3d685b5be7ce895cb0e409f";
+const walletAuthSourceTree="8e50f7a52a614ea6d4c4a4d2988315d036ea0b25";
+const walletAddressWrapperBlob="fb0f96cc68df36c13eb6c9d92a59cb771ddd6b93";
+if(walletAddressAuthoritySha256!==expectedWalletAddressAuthoritySha256)throw new Error("Immutable Wallet address authority bundle changed");
+if(gitCheckout){
+  const currentWalletAuthTree=execFileSync("git",["rev-parse","HEAD:packages/wallet-auth"],{cwd:repository,encoding:"utf8"}).trim();
+  const currentWalletAddressWrapperBlob=execFileSync("git",["rev-parse","HEAD:apps/wallet-web/src/wallet-address.js"],{cwd:repository,encoding:"utf8"}).trim();
+  if(currentWalletAuthTree!==walletAuthSourceTree||currentWalletAddressWrapperBlob!==walletAddressWrapperBlob)throw new Error("Wallet address authority source identity changed");
+  const regenerated=await bundle({entryPoints:[join(root,"src","wallet-address.js")],bundle:true,write:false,format:"esm",platform:"browser",target:"es2022",legalComments:"none",minify:true,logLevel:"silent"});
+  if(regenerated.outputFiles.length!==1||!Buffer.from(regenerated.outputFiles[0].contents).equals(walletAddressAuthorityBytes))throw new Error("Wallet address authority bundle differs from verified local source");
+}
 const centralMobileCommit="d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59";
 const centralMobileContracts=[
   {path:"release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",blob:"d402fcdc844aa39bd5ee351a99d93acb4852dc37",sha256:"d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"},
@@ -94,7 +120,12 @@ const providerEvidenceAuthorities=[
 const routerInteropCommit="9ab9cd8c8deac8563acff9ffd7e277553e20383e";
 const routerInteropContract={path:"release/integration/wallet-standard-connection-conformance-contract-p0-20260822.json",blob:"173cb99a6fa6b942f43c6dc8ee3a3b851e876525",sha256:"c59cc18de86a304be8de6ef7056e3e260e62156fe36fb0b76e021e38e096a2fe"};
 function immutableObject(commit,contract){
-  return authorityReader.read(commit,contract);
+  const archived=authorityReader.read(commit,contract);
+  if(gitAuthorityReader){
+    const repositoryBytes=gitAuthorityReader.read(commit,contract);
+    if(!archived.equals(repositoryBytes))throw new Error(`Archived authority differs from Git: ${commit}:${contract.path}`);
+  }
+  return archived;
 }
 const centralCaller=JSON.parse(immutableObject(centralCallerCommit,centralCallerContract));
 if(centralCaller?.authority?.walletPackage!=="com.ynxweb4.wallet"||centralCaller?.authority?.uriTemplate!=="ynxwallet://authorize?request=<base64url-canonical-authorization-request>"||centralCaller?.sharedCallerRequirements?.singleBuilder!=="@ynx-chain/wallet-auth encodeRequestDeepLink")throw new Error("Central caller authority mismatch");
@@ -109,18 +140,26 @@ const coreAuthBinding=deriveWalletWebCompanionBinding(JSON.parse(coreContractByt
   publicGatewayRegistryReady:false,trustedRuntimeAvailable:false,
 });
 const verifiedAuthorities=authorityReader.finish();
+gitAuthorityReader?.finish();
 if(authorityOutput!==undefined)await writeFile(authorityOutput,`${JSON.stringify(verifiedAuthorities,null,2)}\n`);
 const pwaOnly = process.argv.includes("--pwa-only");
 await rm(pwaOnly ? join(dist,"pwa") : dist, {recursive: true, force: true});
 await mkdir(join(dist, "pwa"), {recursive: true});
-const sourceCommit=process.env.YNX_WALLET_WEB_SOURCE_COMMIT||"uncommitted-source-tree";
-const buildIdentity={schemaVersion:1,product:"YNX Wallet Companion",sourceCommit,providerAuthorityCommit,providerEvidenceCommit:"d3831c300560507f64a50e73117bab7b85926d9a",chainId:"0x1917"};
+const suppliedSourceCommit=process.env.YNX_WALLET_WEB_SOURCE_COMMIT||process.env.VERCEL_GIT_COMMIT_SHA;
+if(!gitCheckout&&!/^[0-9a-f]{40}$/u.test(suppliedSourceCommit||""))throw new Error("A gitless Wallet build requires an exact source commit");
+if(gitCheckout&&suppliedSourceCommit){
+  if(!/^[0-9a-f]{40}$/u.test(suppliedSourceCommit))throw new Error("Wallet build source commit is invalid");
+  const checkoutCommit=execFileSync("git",["rev-parse","HEAD"],{cwd:repository,encoding:"utf8"}).trim();
+  if(checkoutCommit!==suppliedSourceCommit)throw new Error("Wallet build source commit differs from checkout");
+}
+const sourceCommit=suppliedSourceCommit||"uncommitted-source-tree";
+const buildIdentity={schemaVersion:1,product:"YNX Wallet Companion",sourceCommit,providerAuthorityCommit,providerEvidenceCommit:"d3831c300560507f64a50e73117bab7b85926d9a",authorityArchiveSha256,authorityRecordCount:verifiedAuthorities.records.length,walletAddressAuthoritySha256,walletAuthSourceTree,walletAddressWrapperBlob,chainId:"0x1917"};
 await writeFile(join(dist,"pwa","build-identity.json"),`${JSON.stringify(buildIdentity)}\n`);
 await writeFile(join(dist,"pwa","core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
 for (const file of ["index.html", "manifest.webmanifest", "sw.js", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(dist, "pwa", file));
 await cp(join(root,"public","vercel.json"),join(dist,"pwa","vercel.json"));
 for (const file of ["provider.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
-await bundle({entryPoints:[join(root,"src","wallet-address.js")],outfile:join(dist,"pwa","wallet-address.js"),bundle:true,format:"esm",platform:"browser",target:"es2022",legalComments:"none",minify:true});
+await writeFile(join(dist,"pwa","wallet-address.js"),walletAddressAuthorityBytes);
 await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "service-worker-policy.js"));
 for(const icon of ["ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png"])await cp(join(root,"public",icon),join(dist,"pwa",icon));
 const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","wallet-address.js","extension-fee-model.js", "extension-durability.js","transaction-input.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","standard-wallet-connect-state.js","core-auth-binding.js","service-worker-policy.js","build-identity.json","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"];
@@ -141,7 +180,7 @@ for (const [name, manifest] of variants) {
   for (const file of ["index.html", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
   for (const file of ["approval.html","approval.css","approval.js","vault.html","vault.css","vault.js","signer.html","signer.css","signer.js"]) await cp(join(root,"extension",file),join(target,file));
   for (const file of ["provider.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(target, file));
-  await bundle({entryPoints:[join(root,"src","wallet-address.js")],outfile:join(target,"wallet-address.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
+  await writeFile(join(target,"wallet-address.js"),walletAddressAuthorityBytes);
   await cp(join(root, "src", "service-worker-policy.js"), join(target, "service-worker-policy.js"));
   for (const file of ["service-worker.js", "content-script.js", "page-provider.js"]) await cp(join(root, "extension", file), join(target, file));
   await cp(join(root, "src", "extension-bridge.js"), join(target, "extension-bridge.js"));

@@ -17,11 +17,12 @@ function verify(bytes, expected) {
 
 // An explicit reviewer mode. No automatic fallback when Git is absent or fails.
 // The archive's self-declared hashes are checked again against each constant in build.mjs.
-export function createAuthorityReader({repository, archiveFile} = {}) {
+export function createAuthorityReader({repository, archiveFile, archiveBytes} = {}) {
   let archived;
   const consumed = new Map();
-  if (archiveFile !== undefined) {
-    const raw = readFileSync(archiveFile);
+  if (archiveFile !== undefined && archiveBytes !== undefined) throw new Error("Choose one build authority archive input");
+  if (archiveFile !== undefined || archiveBytes !== undefined) {
+    const raw = archiveBytes === undefined ? readFileSync(archiveFile) : Buffer.from(archiveBytes);
     if (raw.length > 8 * 1024 * 1024) throw new Error("Build authority archive exceeds limit");
     const value = JSON.parse(raw);
     if (!fields(value, ["schemaVersion", "records"]) || value.schemaVersion !== 1 || !Array.isArray(value.records) || value.records.length < 1 || value.records.length > 64) throw new Error("Invalid build authority archive");
