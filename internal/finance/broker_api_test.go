@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,6 +71,63 @@ func TestBrokerChallengeFailsClosedWithoutTrustedFeeOrMapping(t *testing.T) {
 	server.brokerChallenge(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/challenges", bytes.NewReader(body)), Session{Account: "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"})
 	if recorder.Code != http.StatusServiceUnavailable || len(store.BrokerWorkspace("ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80", now).Orders) != 0 {
 		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestBrokerExecutionRequestIsConfiguredOwnerScopedAndIdempotent(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	values := map[string]string{
+		"FINANCE_TRADING_ENABLED":                         "true",
+		"FINANCE_SANDBOX_WRITES_ENABLED":                  "true",
+		"FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256": strings.Repeat("a", 64),
+		"ALPACA_BROKER_CLIENT_ID":                         "test-client",
+		"ALPACA_BROKER_CLIENT_SECRET":                     "test-secret",
+	}
+	server := &Server{service: &Service{Store: store}, cfg: ServerConfig{BrokerConfig: brokerage.LoadConfig(func(key string) string { return values[key] })}, now: func() time.Time { return now.Add(2 * time.Minute) }}
+	body := []byte(`{"idempotencyKey":"dispatch-test-request-0001"}`)
+	request := httptest.NewRequest(http.MethodPost, "/api/broker/orders/"+orderID+"/execution-request", bytes.NewReader(body))
+	request.SetPathValue("id", orderID)
+	recorder := httptest.NewRecorder()
+	server.brokerExecutionRequest(recorder, request, Session{Account: account})
+	if recorder.Code != http.StatusAccepted || !bytes.Contains(recorder.Body.Bytes(), []byte(`"providerWriteAttempted":false`)) {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	workspace := store.BrokerWorkspace(account, now.Add(2*time.Minute))
+	requested := 0
+	for _, event := range workspace.Journal {
+		if event.Action == "product.execution_requested" {
+			requested++
+		}
+	}
+	if len(workspace.Outbox) != 1 || workspace.Outbox[0].Status != "execution_requested" || requested != 1 {
+		t.Fatalf("workspace=%+v requested=%d", workspace, requested)
+	}
+	request = httptest.NewRequest(http.MethodPost, "/api/broker/orders/"+orderID+"/execution-request", bytes.NewReader([]byte(`{"idempotencyKey":"different-request-0002"}`)))
+	request.SetPathValue("id", orderID)
+	recorder = httptest.NewRecorder()
+	server.brokerExecutionRequest(recorder, request, Session{Account: account})
+	if recorder.Code != http.StatusConflict || len(store.BrokerWorkspace(account, now).Journal) != len(workspace.Journal) {
+		t.Fatalf("different-key status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	request = httptest.NewRequest(http.MethodGet, "/api/broker/orders/"+orderID+"/execution-status", nil)
+	request.SetPathValue("id", orderID)
+	recorder = httptest.NewRecorder()
+	server.brokerExecutionStatus(recorder, request, Session{Account: account})
+	if recorder.Code != http.StatusOK || !bytes.Contains(recorder.Body.Bytes(), []byte(`"status":"execution_requested"`)) {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	recorder = httptest.NewRecorder()
+	server.brokerExecutionStatus(recorder, request, Session{Account: "ynx1z5y9l6c6mp7eduxhn7d7p0tytpawsp5dfpjzsd"})
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("cross-owner status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	disabled := &Server{service: &Service{Store: store}, cfg: ServerConfig{}, now: server.now}
+	request = httptest.NewRequest(http.MethodPost, "/api/broker/orders/"+orderID+"/execution-request", bytes.NewReader(body))
+	request.SetPathValue("id", orderID)
+	recorder = httptest.NewRecorder()
+	disabled.brokerExecutionRequest(recorder, request, Session{Account: account})
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Fatalf("disabled status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
 }
 

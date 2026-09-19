@@ -498,6 +498,93 @@ func TestAIBrokerOrderIntentProducesStrictDraftOnlyJob(t *testing.T) {
 	}
 }
 
+func TestAIBrokerOrderIntentAllowsExplicitEmptyChainContextWhenExplorerUnavailable(t *testing.T) {
+	store, _ := OpenStore("")
+	if err := store.Update(testAccount, "privacy", "ai", func(state *AccountState) error {
+		state.Privacy.AllowAIActivityContext = true
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	provider := &capturingAI{result: map[string]any{
+		"schemaVersion": "finance.ai.broker-order-draft.v1",
+		"draftOnly":     true,
+		"orderDraft":    map[string]any{"symbol": "ACME", "side": "buy", "qty": "1", "limitPrice": "10", "timeInForce": "day", "warnings": []any{"Chain activity unavailable; review only."}},
+	}}
+	service := &Service{Store: store, AI: provider}
+	portfolio := Portfolio{ExplorerStatus: SourceStatus{Available: false, Error: "indexer unavailable"}}
+	job, err := service.StartAIWithIntent(context.Background(), testAccount, "draft_broker_order", nil, nil, true, portfolio, "en", &AISecuritiesOrderIntent{Symbol: "ACME", Side: "buy", Qty: "1", LimitPrice: "10"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		job, _ = service.aiJob(testAccount, job.ID)
+		if job.Status != "running" {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	chain, ok := provider.request.Context["chainActivityContext"].(map[string]any)
+	if job.Status != "ready" || !ok || chain["available"] != false || chain["reason"] != "explorer_unavailable" || chain["activityCount"] != 0 || len(provider.request.RecordIDs) != 0 || len(provider.request.ContextClasses) != 0 {
+		t.Fatalf("job=%+v request=%+v", job, provider.request)
+	}
+	if activity, ok := provider.request.Context["activity"].([]Activity); !ok || len(activity) != 0 {
+		t.Fatalf("fabricated activity context: %#v", provider.request.Context["activity"])
+	}
+}
+
+func TestAIBrokerOrderHTTPGatewayRunsForNewUserWhileExplorerIsDegraded(t *testing.T) {
+	var streamedInput string
+	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/health":
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "model": "empty-chain-context-fixture"})
+		case "/ai/stream":
+			streamedInput = r.URL.Query().Get("q")
+			w.Header().Set("Content-Type", "text/event-stream")
+			event, _ := json.Marshal(map[string]any{"text": `{"schemaVersion":"finance.ai.broker-order-draft.v1","draftOnly":true,"orderDraft":{"symbol":"ACME","side":"buy","qty":"1","limitPrice":"10","timeInForce":"day","warnings":["Chain activity unavailable; review only."]}}`})
+			_, _ = fmt.Fprintf(w, "data: %s\n\n", event)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer gateway.Close()
+	explorer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "degraded", http.StatusServiceUnavailable) }))
+	defer explorer.Close()
+	store, _ := OpenStore("")
+	_ = store.Update(testAccount, "privacy", "ai", func(state *AccountState) error { state.Privacy.AllowAIActivityContext = true; return nil })
+	upstreams, err := NewUpstreams(explorer.URL, "", "", "https://support.example/disputes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth, session := testAuthenticator(t, "empty-chain-context-gateway")
+	service := &Service{Store: store, Upstreams: upstreams, AI: &HTTPAIProvider{URL: gateway.URL, Client: gateway.Client()}, Support: SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"}}
+	server, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey})
+	if err != nil {
+		t.Fatal(err)
+	}
+	product := httptest.NewServer(server.Handler())
+	defer product.Close()
+	body := map[string]any{"kind": "draft_broker_order", "recordIds": []string{}, "contextClasses": []string{}, "consent": true, "outputLocale": "en", "securitiesOrderIntent": map[string]any{"symbol": "ACME", "side": "buy", "qty": "1", "limitPrice": "10"}}
+	var job AIJob
+	requestJSON(t, product.URL+"/api/ai/jobs", http.MethodPost, body, session.Token, "https://finance.example", http.StatusAccepted, &job)
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		requestJSON(t, product.URL+"/api/ai/jobs/"+job.ID, http.MethodGet, nil, session.Token, "", http.StatusOK, &job)
+		if job.Status != "running" {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if job.Status != "ready" || !strings.Contains(streamedInput, `"reason":"explorer_unavailable"`) || !strings.Contains(streamedInput, `"activity":[]`) || strings.Contains(streamedInput, "owned-ai-record") {
+		t.Fatalf("job=%+v streamedInput=%s", job, streamedInput)
+	}
+	if len(store.Account(testAccount).Brokerage.Orders) != 0 {
+		t.Fatal("AI Gateway draft created a Broker order")
+	}
+}
+
 func TestAIBrokerOrderDraftFailsClosedOnSchemaOrIntent(t *testing.T) {
 	store, _ := OpenStore("")
 	_ = store.Update(testAccount, "privacy", "ai", func(state *AccountState) error { state.Privacy.AllowAIActivityContext = true; return nil })

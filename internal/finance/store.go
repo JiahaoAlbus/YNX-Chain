@@ -619,7 +619,7 @@ func validateBrokeragePersistence(account string, state BrokerageAccountState) e
 		}
 	}
 	for orderID, order := range state.Orders {
-		if orderID != order.Order.OrderID || !validApproval[order.ApprovalState] || !validOrder[order.State] {
+		if orderID != order.Order.OrderID || !validApproval[order.ApprovalState] || !validOrder[order.State] || (order.ProviderRawStatus != "" && !brokerageCursor(order.ProviderRawStatus)) || (order.ProviderHTTPRequestID != "" && !brokerageCursor(order.ProviderHTTPRequestID)) || (order.ProviderEventCursor != "" && !brokerageCursor(order.ProviderEventCursor)) {
 			return errors.New("finance state contains an invalid Broker order")
 		}
 		if order.ApprovalState == "consumed" {
@@ -630,9 +630,14 @@ func validateBrokeragePersistence(account string, state BrokerageAccountState) e
 	}
 	for orderID, outbox := range state.Outbox {
 		order, ok := state.Orders[orderID]
-		validOutbox := map[string]bool{"pending_unwired": true, "dispatching": true, "submitted_unknown": true, "submitted": true, "provider_rejected": true}
-		if !ok || order.ApprovalState != "consumed" || outbox.OrderID != orderID || outbox.RequestID != order.RequestID || outbox.ProviderClientOrderID != order.ProviderClientOrderID || outbox.Provider != FinanceOrderProvider || outbox.TradingEnvironment != FinanceOrderTradingEnv || outbox.Attempts < 0 || !validOutbox[outbox.Status] || (outbox.ProviderOrderID != "" && !financeProviderUUIDPattern.MatchString(outbox.ProviderOrderID)) {
+		validOutbox := map[string]bool{"pending_unwired": true, "execution_requested": true, "dispatching": true, "submitted_unknown": true, "submitted": true, "provider_rejected": true}
+		if !ok || order.ApprovalState != "consumed" || outbox.OrderID != orderID || outbox.RequestID != order.RequestID || outbox.ProviderClientOrderID != order.ProviderClientOrderID || outbox.Provider != FinanceOrderProvider || outbox.TradingEnvironment != FinanceOrderTradingEnv || outbox.Attempts < 0 || !validOutbox[outbox.Status] || (outbox.ProviderOrderID != "" && !financeProviderUUIDPattern.MatchString(outbox.ProviderOrderID)) || (outbox.ProviderRawStatus != "" && !brokerageCursor(outbox.ProviderRawStatus)) || (outbox.ProviderHTTPRequestID != "" && !brokerageCursor(outbox.ProviderHTTPRequestID)) || (outbox.ExecutionRequestKey != "" && !idempotencyPattern.MatchString(outbox.ExecutionRequestKey)) || (outbox.Status == "execution_requested" && (outbox.ExecutionRequestKey == "" || outbox.ExecutionRequestedAt.IsZero())) {
 			return errors.New("finance state contains an invalid Broker outbox record")
+		}
+	}
+	for _, event := range state.Journal {
+		if (event.ProviderRawStatus != "" && !brokerageCursor(event.ProviderRawStatus)) || (event.ProviderHTTPRequestID != "" && !brokerageCursor(event.ProviderHTTPRequestID)) || (event.ProviderEventCursor != "" && !brokerageCursor(event.ProviderEventCursor)) {
+			return errors.New("finance state contains invalid Broker provider audit metadata")
 		}
 	}
 	return nil

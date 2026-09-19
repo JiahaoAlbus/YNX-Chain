@@ -20,6 +20,36 @@ type BrokerDispatchClaim struct {
 	BlockedCode string            `json:"blockedCode,omitempty"`
 }
 
+func (s *Store) RequestBrokerExecution(account, orderID, idempotencyKey string, now time.Time) (BrokerOrderOutbox, error) {
+	var result BrokerOrderOutbox
+	if !idempotencyPattern.MatchString(idempotencyKey) {
+		return result, errors.New("a canonical idempotency key is required")
+	}
+	err := s.updateBrokerCAS(account, "broker.execution.requested", orderID, func(state *AccountState) error {
+		order, orderOK := state.Brokerage.Orders[orderID]
+		outbox, outboxOK := state.Brokerage.Outbox[orderID]
+		if !orderOK || !outboxOK || order.ApprovalState != "consumed" {
+			return errors.New("consumed Broker outbox was not found")
+		}
+		if outbox.ExecutionRequestKey == idempotencyKey {
+			result = outbox
+			return errBrokerStateUnchanged
+		}
+		if outbox.ExecutionRequestKey != "" {
+			return errors.New("Broker execution was already requested with another idempotency key")
+		}
+		if outbox.Status != "pending_unwired" || order.State != "submitting" || outbox.ProviderOrderID != "" || order.ProviderOrderID != "" {
+			return errors.New("Broker order is not eligible for execution")
+		}
+		outbox.Status, outbox.ExecutionRequestKey, outbox.ExecutionRequestedAt, outbox.UpdatedAt = "execution_requested", idempotencyKey, now.UTC(), now.UTC()
+		state.Brokerage.Outbox[orderID] = outbox
+		appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, "product.execution_requested", order.ApprovalState, order.State, now.UTC())
+		result = outbox
+		return nil
+	})
+	return result, err
+}
+
 func (s *Store) ClaimBrokerDispatch(account, orderID string, now time.Time) (BrokerDispatchClaim, error) {
 	var result BrokerDispatchClaim
 	err := s.updateBrokerCAS(account, "broker.outbox.claim", orderID, func(state *AccountState) error {
@@ -29,13 +59,13 @@ func (s *Store) ClaimBrokerDispatch(account, orderID string, now time.Time) (Bro
 		if !orderOK || !outboxOK || order.ApprovalState != "consumed" {
 			return errors.New("consumed Broker outbox was not found")
 		}
-		if outbox.ProviderOrderID != "" || order.ProviderOrderID != "" || outbox.Status == "submitted" || outbox.Status == "submitted_unknown" || order.State == "submitted" || order.State == "submitted_unknown" || order.State == "partially_filled" || order.State == "filled" || order.State == "cancel_requested" || order.State == "canceled" || order.State == "provider_expired" {
+		if outbox.ProviderOrderID != "" || order.ProviderOrderID != "" || outbox.Status == "submitted" || outbox.Status == "submitted_unknown" || outbox.Status == "provider_rejected" || order.State == "submitted" || order.State == "submitted_unknown" || order.State == "partially_filled" || order.State == "filled" || order.State == "cancel_requested" || order.State == "canceled" || order.State == "provider_rejected" || order.State == "provider_expired" {
 			return errors.New("Broker outbox already has provider correlation and is reconcile-only")
 		}
 		if outbox.Status == "dispatching" {
 			return errors.New("Broker outbox is already claimed")
 		}
-		if outbox.Status != "pending_unwired" && outbox.Status != "provider_rejected" {
+		if outbox.Status != "execution_requested" {
 			return fmt.Errorf("Broker outbox cannot dispatch from %s", outbox.Status)
 		}
 		challenge, challengeOK := state.Brokerage.Challenges[order.RequestID]
@@ -78,22 +108,34 @@ func (s *Store) CompleteBrokerDispatch(account, orderID string, providerOrder *b
 			if providerOrder.ClientOrderID != outbox.ProviderClientOrderID || providerOrder.AssetID != order.Order.AssetID || providerOrder.Symbol != order.Order.Symbol || providerOrder.Side != order.Order.Side || providerOrder.Qty != order.Order.Qty {
 				return errors.New("provider order does not match the signed Finance order")
 			}
-			outbox.Status, outbox.ProviderOrderID, outbox.LastErrorCode = "submitted", providerOrder.ID, ""
 			order.State, order.ProviderOrderID = normalizeBrokerOrderState(providerOrder.Status), providerOrder.ID
+			order.ProviderRawStatus, order.ProviderHTTPRequestID = providerOrder.Status, providerOrder.RequestID
+			outbox.Status, outbox.ProviderOrderID, outbox.ProviderRawStatus, outbox.ProviderHTTPRequestID, outbox.LastErrorCode = brokerOutboxStatus(order.State), providerOrder.ID, providerOrder.Status, providerOrder.RequestID, brokerOutboxError(order.State)
+			if order.State == "provider_rejected" {
+				action = "provider.submission_rejected"
+			}
 		} else {
 			code := brokerage.ErrorCode(providerError)
-			outbox.LastErrorCode = code
+			providerRequestID := brokerage.ErrorRequestID(providerError)
+			outbox.LastErrorCode, outbox.ProviderHTTPRequestID, order.ProviderHTTPRequestID = code, providerRequestID, providerRequestID
 			if code == "ORDER_SUBMISSION_DISABLED" || code == "BROKER_NOT_CONFIGURED" || code == "ACCOUNT_NOT_LINKED" || code == "ORDER_REQUEST_INVALID" {
-				outbox.Status, order.State, action = "pending_unwired", "submitting", "provider.dispatch_not_attempted"
-			} else if code == "PROVIDER_UNAVAILABLE" || code == "PROVIDER_PROTOCOL_ERROR" || code == "PROVIDER_REJECTED" {
+				outbox.Status, order.State, action = "execution_requested", "submitting", "provider.dispatch_not_attempted"
+			} else if code == "PROVIDER_UNAVAILABLE" || code == "PROVIDER_PROTOCOL_ERROR" {
 				outbox.Status, order.State, action = "submitted_unknown", "submitted_unknown", "provider.submission_unknown"
+			} else if code == "PROVIDER_REJECTED" {
+				if providerRequestID == "" {
+					outbox.LastErrorCode = "PROVIDER_PROTOCOL_ERROR"
+					outbox.Status, order.State, action = "submitted_unknown", "submitted_unknown", "provider.submission_unknown"
+				} else {
+					outbox.Status, order.State, action = "provider_rejected", "provider_rejected", "provider.submission_rejected"
+				}
 			} else {
 				outbox.Status, order.State, action = "provider_rejected", "provider_rejected", "provider.submission_rejected"
 			}
 		}
 		outbox.UpdatedAt, order.UpdatedAt = now.UTC(), now.UTC()
 		state.Brokerage.Outbox[orderID], state.Brokerage.Orders[orderID] = outbox, order
-		appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, action, order.ApprovalState, order.State, now.UTC())
+		appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, action, order.ApprovalState, order.State, now.UTC(), BrokerProviderAudit{RawStatus: order.ProviderRawStatus, HTTPRequestID: order.ProviderHTTPRequestID})
 		result = order
 		return nil
 	})
@@ -141,7 +183,7 @@ func (s *Store) RequestBrokerCancel(account, orderID string, now time.Time) (Bro
 	return result, err
 }
 
-func (s *Store) CompleteBrokerCancel(account, orderID string, providerErr error, now time.Time) (BrokerOrderRecord, error) {
+func (s *Store) CompleteBrokerCancel(account, orderID, providerRequestID string, providerErr error, now time.Time) (BrokerOrderRecord, error) {
 	var result BrokerOrderRecord
 	err := s.updateBrokerCAS(account, "broker.cancel.complete", orderID, func(state *AccountState) error {
 		order, ok := state.Brokerage.Orders[orderID]
@@ -149,6 +191,10 @@ func (s *Store) CompleteBrokerCancel(account, orderID string, providerErr error,
 			return errors.New("Broker cancel request is not active")
 		}
 		action := "provider.cancel_accepted"
+		if providerRequestID == "" {
+			providerRequestID = brokerage.ErrorRequestID(providerErr)
+		}
+		order.ProviderHTTPRequestID = providerRequestID
 		if providerErr != nil {
 			code := brokerage.ErrorCode(providerErr)
 			if code == "ORDER_CANCELLATION_DISABLED" || code == "BROKER_NOT_CONFIGURED" || code == "ACCOUNT_NOT_LINKED" || code == "ORDER_REQUEST_INVALID" {
@@ -161,7 +207,11 @@ func (s *Store) CompleteBrokerCancel(account, orderID string, providerErr error,
 		}
 		order.UpdatedAt = now.UTC()
 		state.Brokerage.Orders[orderID] = order
-		appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, action, order.ApprovalState, order.State, now.UTC())
+		if outbox, ok := state.Brokerage.Outbox[orderID]; ok {
+			outbox.ProviderHTTPRequestID, outbox.UpdatedAt = providerRequestID, now.UTC()
+			state.Brokerage.Outbox[orderID] = outbox
+		}
+		appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, action, order.ApprovalState, order.State, now.UTC(), BrokerProviderAudit{RawStatus: order.ProviderRawStatus, HTTPRequestID: providerRequestID})
 		result = order
 		return nil
 	})
@@ -187,10 +237,10 @@ func (s *Store) ApplyBrokerReconciliation(account string, snapshot brokerage.Acc
 			if !brokerOrderTransitionAllowed(order.State, next) {
 				return errors.New("Broker reconciliation would regress order state")
 			}
-			outbox.Status, outbox.ProviderOrderID, outbox.LastErrorCode, outbox.UpdatedAt = "submitted", providerOrder.ID, "", now.UTC()
-			order.ProviderOrderID, order.State, order.UpdatedAt = providerOrder.ID, next, now.UTC()
+			outbox.Status, outbox.ProviderOrderID, outbox.ProviderRawStatus, outbox.ProviderHTTPRequestID, outbox.LastErrorCode, outbox.UpdatedAt = brokerOutboxStatus(next), providerOrder.ID, providerOrder.Status, providerOrder.RequestID, brokerOutboxError(next), now.UTC()
+			order.ProviderOrderID, order.ProviderRawStatus, order.ProviderHTTPRequestID, order.State, order.UpdatedAt = providerOrder.ID, providerOrder.Status, providerOrder.RequestID, next, now.UTC()
 			state.Brokerage.Outbox[orderID], state.Brokerage.Orders[orderID] = outbox, order
-			appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, "provider.reconciled", order.ApprovalState, order.State, now.UTC())
+			appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, "provider.reconciled", order.ApprovalState, order.State, now.UTC(), BrokerProviderAudit{RawStatus: providerOrder.Status, HTTPRequestID: providerOrder.RequestID})
 		}
 		cursorParts := append([]string(nil), snapshot.RequestIDs...)
 		sort.Strings(cursorParts)
@@ -243,13 +293,13 @@ func (s *Store) ApplyBrokerTradeEvents(account string, events []brokerage.TradeE
 			if !brokerOrderTransitionAllowed(order.State, next) {
 				return errors.New("Broker trade event would regress order state")
 			}
-			order.ProviderOrderID, order.State, order.ProviderEventCursor, order.ProviderEventAt, order.UpdatedAt = event.Order.ID, next, event.Cursor, event.Timestamp.UTC(), now.UTC()
+			order.ProviderOrderID, order.ProviderRawStatus, order.State, order.ProviderEventCursor, order.ProviderEventAt, order.UpdatedAt = event.Order.ID, event.Order.Status, next, event.Cursor, event.Timestamp.UTC(), now.UTC()
 			state.Brokerage.Orders[event.Order.ClientOrderID] = order
 			if outbox, ok := state.Brokerage.Outbox[event.Order.ClientOrderID]; ok {
-				outbox.ProviderOrderID, outbox.Status, outbox.LastErrorCode, outbox.UpdatedAt = event.Order.ID, "submitted", "", now.UTC()
+				outbox.ProviderOrderID, outbox.ProviderRawStatus, outbox.Status, outbox.LastErrorCode, outbox.UpdatedAt = event.Order.ID, event.Order.Status, brokerOutboxStatus(next), brokerOutboxError(next), now.UTC()
 				state.Brokerage.Outbox[event.Order.ClientOrderID] = outbox
 			}
-			appendBrokerJournal(&state.Brokerage, event.Order.ClientOrderID, order.RequestID, "provider.event."+event.Event, order.ApprovalState, order.State, now.UTC())
+			appendBrokerJournal(&state.Brokerage, event.Order.ClientOrderID, order.RequestID, "provider.event."+event.Event, order.ApprovalState, order.State, now.UTC(), BrokerProviderAudit{RawStatus: event.Order.Status, EventCursor: event.Cursor})
 		}
 		state.Brokerage.EventCursor, state.Brokerage.TradeEventAt, state.Brokerage.ReconciledAt = cursor, latestEventAt, now.UTC()
 		return nil
@@ -265,9 +315,9 @@ func brokerOrderTransitionAllowed(current, next string) bool {
 		return true
 	}
 	allowed := map[string]map[string]bool{
-		"submitting":        {"submitted": true, "partially_filled": true, "filled": true, "canceled": true, "provider_expired": true, "submitted_unknown": true},
-		"submitted_unknown": {"submitted": true, "partially_filled": true, "filled": true, "canceled": true, "provider_expired": true},
-		"submitted":         {"partially_filled": true, "filled": true, "cancel_requested": true, "canceled": true, "provider_expired": true},
+		"submitting":        {"submitted": true, "partially_filled": true, "filled": true, "canceled": true, "provider_rejected": true, "provider_expired": true, "submitted_unknown": true},
+		"submitted_unknown": {"submitted": true, "partially_filled": true, "filled": true, "canceled": true, "provider_rejected": true, "provider_expired": true},
+		"submitted":         {"partially_filled": true, "filled": true, "cancel_requested": true, "canceled": true, "provider_rejected": true, "provider_expired": true},
 		"partially_filled":  {"filled": true, "cancel_requested": true, "canceled": true, "provider_expired": true},
 		"cancel_requested":  {"partially_filled": true, "filled": true, "canceled": true, "provider_expired": true},
 	}
@@ -300,9 +350,25 @@ func normalizeBrokerOrderState(status string) string {
 		return "canceled"
 	case "expired":
 		return "provider_expired"
+	case "rejected":
+		return "provider_rejected"
 	default:
 		return "submitted_unknown"
 	}
+}
+
+func brokerOutboxStatus(orderState string) string {
+	if orderState == "provider_rejected" {
+		return "provider_rejected"
+	}
+	return "submitted"
+}
+
+func brokerOutboxError(orderState string) string {
+	if orderState == "provider_rejected" {
+		return "PROVIDER_REJECTED"
+	}
+	return ""
 }
 
 type BrokerDispatcher struct {
@@ -426,8 +492,8 @@ func (d BrokerDispatcher) Cancel(ctx context.Context, account, orderID string) (
 	if err != nil {
 		return BrokerOrderRecord{}, err
 	}
-	providerErr := d.Adapter.CancelOrder(ctx, account, d.Store, claimed.ProviderOrderID)
-	completed, completeErr := d.Store.CompleteBrokerCancel(account, orderID, providerErr, now())
+	providerRequestID, providerErr := d.Adapter.CancelOrder(ctx, account, d.Store, claimed.ProviderOrderID)
+	completed, completeErr := d.Store.CompleteBrokerCancel(account, orderID, providerRequestID, providerErr, now())
 	if completeErr != nil {
 		return BrokerOrderRecord{}, completeErr
 	}

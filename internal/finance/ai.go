@@ -189,11 +189,24 @@ func (s *Service) StartAIWithIntent(ctx context.Context, account, kind string, r
 		}
 		selected = append(selected, activity)
 	}
-	if len(selected) == 0 || len(selected) > 50 {
-		return AIJob{}, errors.New("select between one and 50 owned records")
+	if len(selected) > 50 {
+		return AIJob{}, errors.New("select no more than 50 owned records")
 	}
-	if len(classes) != 1 || classes[0] != "owned_activity" {
-		return AIJob{}, errors.New("Finance AI only accepts the owned_activity context class")
+	if kind == "draft_broker_order" {
+		if len(selected) == 0 {
+			if len(recordIDs) != 0 || len(classes) != 0 {
+				return AIJob{}, errors.New("empty securities chain context must not claim activity records or classes")
+			}
+		} else if len(classes) != 1 || classes[0] != "owned_activity" {
+			return AIJob{}, errors.New("selected Finance activity requires the owned_activity context class")
+		}
+	} else {
+		if len(selected) == 0 {
+			return AIJob{}, errors.New("select between one and 50 owned records")
+		}
+		if len(classes) != 1 || classes[0] != "owned_activity" {
+			return AIJob{}, errors.New("Finance AI only accepts the owned_activity context class")
+		}
 	}
 	locale := "en"
 	if outputLocale != "" {
@@ -202,12 +215,22 @@ func (s *Service) StartAIWithIntent(ctx context.Context, account, kind string, r
 	if !allowedLocale(locale) {
 		return AIJob{}, errors.New("AI output locale is unsupported")
 	}
-	request := AIRequest{Kind: kind, Account: account, RecordIDs: recordIDs, ContextClasses: classes, Context: map[string]any{"activity": selected, "categories": state.Categories, "budgets": state.Budgets}, Permission: "draft-only; no transaction, transfer, trade, borrow, lend, stake, freeze, or account-control authority", OutputLocale: locale}
+	requestRecordIDs := append([]string{}, recordIDs...)
+	requestClasses := append([]string{}, classes...)
+	request := AIRequest{Kind: kind, Account: account, RecordIDs: requestRecordIDs, ContextClasses: requestClasses, Context: map[string]any{"activity": selected, "categories": state.Categories, "budgets": state.Budgets}, Permission: "draft-only; no transaction, transfer, trade, borrow, lend, stake, freeze, or account-control authority", OutputLocale: locale}
 	if kind == "draft_broker_order" {
 		if orderIntent == nil || !validAIOrderIntent(*orderIntent) {
 			return AIJob{}, errors.New("AI_BROKER_ORDER_INTENT_INVALID")
 		}
 		request.Context["securitiesOrderIntent"] = *orderIntent
+		contextReason := "selected_owned_activity"
+		if len(selected) == 0 {
+			contextReason = "not_selected"
+			if !portfolio.ExplorerStatus.Available {
+				contextReason = "explorer_unavailable"
+			}
+		}
+		request.Context["chainActivityContext"] = map[string]any{"available": portfolio.ExplorerStatus.Available, "activityCount": len(selected), "reason": contextReason}
 	} else if orderIntent != nil {
 		return AIJob{}, errors.New("AI_ORDER_INTENT_NOT_ALLOWED")
 	}
@@ -223,7 +246,7 @@ func (s *Service) StartAIWithIntent(ctx context.Context, account, kind string, r
 		return AIJob{}, err
 	}
 	now := time.Now().UTC()
-	job := AIJob{ID: newID("ai"), Account: account, Kind: kind, RecordIDs: append([]string(nil), recordIDs...), ContextClasses: append([]string(nil), classes...), Provider: provider, Model: model, EstimatedCost: estimate, OutputLocale: locale, Status: "running", CreatedAt: now, UpdatedAt: now}
+	job := AIJob{ID: newID("ai"), Account: account, Kind: kind, RecordIDs: requestRecordIDs, ContextClasses: requestClasses, Provider: provider, Model: model, EstimatedCost: estimate, OutputLocale: locale, Status: "running", CreatedAt: now, UpdatedAt: now}
 	if err := s.Store.Update(account, "ai.started", job.ID, func(state *AccountState) error { state.AIJobs = append(state.AIJobs, job); return nil }); err != nil {
 		return AIJob{}, err
 	}

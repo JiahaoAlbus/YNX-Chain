@@ -67,6 +67,7 @@ type Order struct {
 	TimeInForce   string `json:"timeInForce"`
 	ExtendedHours bool   `json:"extendedHours"`
 	Status        string `json:"providerStatus"`
+	RequestID     string `json:"requestId,omitempty"`
 	SubmittedAt   string `json:"submittedAt"`
 }
 
@@ -124,7 +125,7 @@ type BrokerageAdapter interface {
 	Positions(context.Context, string, AccountResolver) ([]Position, string, error)
 	Reconcile(context.Context, string, AccountResolver) (AccountSnapshot, error)
 	SubmitOrder(context.Context, string, AccountResolver, SubmitOrderRequest) (Order, error)
-	CancelOrder(context.Context, string, AccountResolver, string) error
+	CancelOrder(context.Context, string, AccountResolver, string) (string, error)
 }
 type Alpaca struct {
 	cfg         Config
@@ -398,12 +399,12 @@ type providerOrder struct {
 	UpdatedAt     string  `json:"updated_at"`
 }
 
-func normalizeProviderOrder(value providerOrder, requestID string) (Order, error) {
+func normalizeProviderOrder(value providerOrder, requestID string, requireRequestID bool) (Order, error) {
 	limitPrice := ""
 	if value.LimitPrice != nil {
 		limitPrice = *value.LimitPrice
 	}
-	if !uuid.MatchString(value.ID) || value.ClientOrderID == "" || len(value.ClientOrderID) > 128 || !uuid.MatchString(value.AssetID) || value.Symbol == "" || (value.Side != "buy" && value.Side != "sell") || !providerDecimal.MatchString(value.Qty) || !providerDecimal.MatchString(value.FilledQty) || value.Type == "" || value.TimeInForce == "" || value.Status == "" || (limitPrice != "" && !providerDecimal.MatchString(limitPrice)) {
+	if (requireRequestID && !auditID.MatchString(requestID)) || (!requireRequestID && requestID != "" && !auditID.MatchString(requestID)) || !uuid.MatchString(value.ID) || value.ClientOrderID == "" || len(value.ClientOrderID) > 128 || !uuid.MatchString(value.AssetID) || value.Symbol == "" || (value.Side != "buy" && value.Side != "sell") || !providerDecimal.MatchString(value.Qty) || !providerDecimal.MatchString(value.FilledQty) || value.Type == "" || value.TimeInForce == "" || value.Status == "" || (limitPrice != "" && !providerDecimal.MatchString(limitPrice)) {
 		return Order{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
 	}
 	if _, err := time.Parse(time.RFC3339Nano, value.SubmittedAt); err != nil {
@@ -416,7 +417,7 @@ func normalizeProviderOrder(value providerOrder, requestID string) (Order, error
 			}
 		}
 	}
-	return Order{ID: value.ID, ClientOrderID: value.ClientOrderID, AssetID: value.AssetID, Symbol: value.Symbol, Side: value.Side, Qty: value.Qty, FilledQty: value.FilledQty, Type: value.Type, LimitPrice: limitPrice, TimeInForce: value.TimeInForce, ExtendedHours: value.ExtendedHours, Status: value.Status, SubmittedAt: value.SubmittedAt}, nil
+	return Order{ID: value.ID, ClientOrderID: value.ClientOrderID, AssetID: value.AssetID, Symbol: value.Symbol, Side: value.Side, Qty: value.Qty, FilledQty: value.FilledQty, Type: value.Type, LimitPrice: limitPrice, TimeInForce: value.TimeInForce, ExtendedHours: value.ExtendedHours, Status: value.Status, RequestID: requestID, SubmittedAt: value.SubmittedAt}, nil
 }
 
 func (a *Alpaca) Orders(ctx context.Context, owner string, resolver AccountResolver) ([]Order, string, error) {
@@ -446,7 +447,7 @@ func (a *Alpaca) Orders(ctx context.Context, owner string, resolver AccountResol
 			if seen[value.ID] {
 				return nil, strings.Join(requestIDs, ","), &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
 			}
-			order, normalizeErr := normalizeProviderOrder(value, id)
+			order, normalizeErr := normalizeProviderOrder(value, id, true)
 			if normalizeErr != nil {
 				return nil, strings.Join(requestIDs, ","), normalizeErr
 			}
@@ -538,48 +539,48 @@ func (a *Alpaca) SubmitOrder(ctx context.Context, owner string, resolver Account
 	if err != nil {
 		return Order{}, err
 	}
-	result, err := normalizeProviderOrder(raw, requestID)
+	result, err := normalizeProviderOrder(raw, requestID, true)
 	if err != nil || result.ClientOrderID != order.ClientOrderID || result.AssetID != order.AssetID || result.Symbol != order.Symbol || result.Side != order.Side || result.Qty != order.Qty || result.Type != order.Type || result.LimitPrice != order.LimitPrice || result.TimeInForce != order.TimeInForce || result.ExtendedHours != order.ExtendedHours {
 		return Order{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
 	}
 	return result, nil
 }
-func (a *Alpaca) CancelOrder(ctx context.Context, owner string, resolver AccountResolver, orderID string) error {
+func (a *Alpaca) CancelOrder(ctx context.Context, owner string, resolver AccountResolver, orderID string) (string, error) {
 	if !a.cfg.writeReady() {
-		return &Error{Code: "ORDER_CANCELLATION_DISABLED"}
+		return "", &Error{Code: "ORDER_CANCELLATION_DISABLED"}
 	}
 	account, err := a.resolveAccount(ctx, owner, resolver)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if !uuid.MatchString(orderID) {
-		return &Error{Code: "ORDER_REQUEST_INVALID"}
+		return "", &Error{Code: "ORDER_REQUEST_INVALID"}
 	}
 	if err := a.allowRate("write"); err != nil {
-		return err
+		return "", err
 	}
 	request, _ := http.NewRequest(http.MethodDelete, BrokerOrigin+"/v1/trading/accounts/"+account+"/orders/"+orderID, nil)
 	if err := a.authorize(ctx, request); err != nil {
-		return err
+		return "", err
 	}
 	request = request.WithContext(ctx)
 	request.Header.Set("Accept", "application/json")
 	response, err := a.client.Do(request)
 	if err != nil {
-		return &Error{Code: "PROVIDER_UNAVAILABLE"}
+		return "", &Error{Code: "PROVIDER_UNAVAILABLE"}
 	}
 	defer response.Body.Close()
 	requestID := response.Header.Get("X-Request-ID")
 	if !auditID.MatchString(requestID) {
-		requestID = ""
+		return "", &Error{Code: "PROVIDER_PROTOCOL_ERROR"}
 	}
 	if response.StatusCode != http.StatusNoContent {
-		return &Error{Code: "PROVIDER_REJECTED", RequestID: requestID, HTTPStatus: response.StatusCode}
+		return requestID, &Error{Code: "PROVIDER_REJECTED", RequestID: requestID, HTTPStatus: response.StatusCode}
 	}
 	if data, readErr := io.ReadAll(io.LimitReader(response.Body, 2)); readErr != nil || len(data) != 0 {
-		return &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
+		return requestID, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
 	}
-	return nil
+	return requestID, nil
 }
 func ErrorCode(err error) string {
 	var e *Error
@@ -587,4 +588,12 @@ func ErrorCode(err error) string {
 		return e.Code
 	}
 	return "BROKER_CHECK_FAILED"
+}
+
+func ErrorRequestID(err error) string {
+	var e *Error
+	if errors.As(err, &e) && auditID.MatchString(e.RequestID) {
+		return e.RequestID
+	}
+	return ""
 }

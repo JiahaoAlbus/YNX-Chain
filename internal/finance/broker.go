@@ -21,6 +21,10 @@ type brokerWatchlistInput struct {
 	Selected bool   `json:"selected"`
 }
 
+type brokerExecutionInput struct {
+	IdempotencyKey string `json:"idempotencyKey"`
+}
+
 func (s *Server) brokerAssets(w http.ResponseWriter, r *http.Request) {
 	query := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("query")))
 	if len(query) > 64 {
@@ -100,6 +104,47 @@ func (s *Server) brokerSnapshot(w http.ResponseWriter, r *http.Request, session 
 func (s *Server) brokerOrders(w http.ResponseWriter, _ *http.Request, session Session) {
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, map[string]any{"schema": "ynx-finance-broker-workspace-v1", "workspace": s.service.Store.BrokerWorkspace(session.Account, s.now()), "providerWriteAttempted": false})
+}
+
+func (s *Server) brokerExecutionStatus(w http.ResponseWriter, r *http.Request, session Session) {
+	orderID := strings.TrimSpace(r.PathValue("id"))
+	if !financeUUIDv4Pattern.MatchString(orderID) {
+		writeError(w, http.StatusBadRequest, "invalid_order_id", "A canonical Finance order id is required")
+		return
+	}
+	workspace := s.service.Store.BrokerWorkspace(session.Account, s.now())
+	for _, outbox := range workspace.Outbox {
+		if outbox.OrderID == orderID {
+			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusOK, map[string]any{"schema": "ynx-finance-broker-execution-status-v1", "outbox": outbox, "providerWriteAttempted": false})
+			return
+		}
+	}
+	writeError(w, http.StatusNotFound, "execution_not_found", "The owner-scoped Broker execution record was not found")
+}
+
+func (s *Server) brokerExecutionRequest(w http.ResponseWriter, r *http.Request, session Session) {
+	orderID := strings.TrimSpace(r.PathValue("id"))
+	if !financeUUIDv4Pattern.MatchString(orderID) {
+		writeError(w, http.StatusBadRequest, "invalid_order_id", "A canonical Finance order id is required")
+		return
+	}
+	if !s.cfg.BrokerConfig.Status().SubmissionEnabled {
+		writeError(w, http.StatusServiceUnavailable, "sandbox_submission_disabled", "Controlled Sandbox execution is disabled until exact server configuration and activation receipt are present")
+		return
+	}
+	var input brokerExecutionInput
+	if err := decodeStrict(w, r, &input); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_request", err.Error())
+		return
+	}
+	outbox, err := s.service.Store.RequestBrokerExecution(session.Account, orderID, input.IdempotencyKey, s.now())
+	if err != nil {
+		writeError(w, http.StatusConflict, "execution_request_rejected", err.Error())
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusAccepted, map[string]any{"schema": "ynx-finance-broker-execution-request-v1", "outbox": outbox, "providerWriteAttempted": false, "next": "controlled_worker_dispatch_once"})
 }
 
 func (s *Server) brokerRecovery(w http.ResponseWriter, _ *http.Request, session Session) {
@@ -238,8 +283,8 @@ func (s *Server) brokerStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusOK, map[string]any{
 		"schema": "ynx-finance-broker-status-v1", "status": s.cfg.BrokerConfig.Status(),
-		"walletOrderApproval": "frozen_contract_internal_only_no_public_submit_route",
-		"durableOrderJournal": "implemented_state_v2", "providerPost": "operator_worker_only_not_public",
+		"walletOrderApproval": "frozen_contract_with_owner_scoped_execution_request",
+		"durableOrderJournal": "implemented_state_v2", "providerPost": "controlled_worker_only_never_browser_direct",
 		"accountLink": "requires_authenticated_persistent_mapping", "marketData": "not_verified",
 		"funding": "simulated_USD_only_no_YNXT_conversion",
 	})

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/finance"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/finance/brokerage"
 )
 
 func TestParseInvocationRequiresExactSingleWriteContract(t *testing.T) {
@@ -129,6 +130,17 @@ func TestLinkAccountPersistsBrokerAndWalletIdentityWithoutNetwork(t *testing.T) 
 	}
 	if got, err := reopened.BrokerWalletPublicKey(account); err != nil || got != key {
 		t.Fatalf("key=%q err=%v at=%s", got, err, time.Now().UTC())
+	}
+}
+
+func TestControlledVerificationReceiptSeparatesProviderCorrelations(t *testing.T) {
+	now := time.Date(2026, 9, 19, 12, 0, 0, 0, time.UTC)
+	dispatched := finance.BrokerOrderRecord{ProviderOrderID: "11111111-2222-4333-8444-555555555555", ProviderClientOrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", ProviderRawStatus: "accepted", ProviderHTTPRequestID: "http-submit-0001", ApprovalState: "consumed", State: "submitted"}
+	canceled := dispatched
+	canceled.ProviderRawStatus, canceled.ProviderHTTPRequestID, canceled.ProviderEventCursor, canceled.State = "pending_cancel", "http-cancel-0001", "sse-event-0001", "cancel_requested"
+	audit := controlledVerificationAudit("ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80", dispatched.ProviderClientOrderID, dispatched, canceled, brokerage.AccountSnapshot{RequestIDs: []string{"http-query-0001"}}, brokerage.AccountSnapshot{RequestIDs: []string{"http-final-0001"}}, now)
+	if audit["dispatchHttpRequestId"] != "http-submit-0001" || audit["cancelHttpRequestId"] != "http-cancel-0001" || audit["providerEventCursor"] != "sse-event-0001" || audit["providerRawStatus"] != "pending_cancel" {
+		t.Fatalf("audit=%+v", audit)
 	}
 }
 

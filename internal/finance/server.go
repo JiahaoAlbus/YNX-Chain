@@ -99,10 +99,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/broker/quote", s.brokerQuote)
 	s.mux.HandleFunc("GET /api/broker/snapshot", s.protected("finance.portfolio.read", s.brokerSnapshot))
 	s.mux.HandleFunc("GET /api/broker/orders", s.protected("finance.portfolio.read", s.brokerOrders))
+	s.mux.HandleFunc("GET /api/broker/orders/{id}/execution-status", s.protected("finance.portfolio.read", s.brokerExecutionStatus))
 	s.mux.HandleFunc("GET /api/broker/recovery", s.protected("finance.portfolio.read", s.brokerRecovery))
 	s.mux.HandleFunc("PUT /api/broker/watchlist", s.protected("finance.profile.write", s.brokerWatchlist))
 	s.mux.HandleFunc("POST /api/broker/reconcile", s.protected("finance.profile.write", s.brokerReconcile))
 	s.mux.HandleFunc("POST /api/broker/orders/{id}/cancel-request", s.protected("finance.profile.write", s.brokerCancelRequest))
+	s.mux.HandleFunc("POST /api/broker/orders/{id}/execution-request", s.protected("finance.profile.write", s.brokerExecutionRequest))
 	s.mux.HandleFunc("POST /api/broker/challenges", s.protected("finance.profile.write", s.brokerChallenge))
 	s.mux.HandleFunc("POST /api/broker/callback", s.protected("finance.profile.write", s.brokerCallback))
 	s.mux.HandleFunc("GET /health", s.health)
@@ -681,7 +683,7 @@ func (s *Server) startAI(w http.ResponseWriter, r *http.Request, session Session
 	}
 	state := s.service.Store.Account(session.Account)
 	p := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
-	if !p.ExplorerStatus.Available {
+	if input.Kind != "draft_broker_order" && !p.ExplorerStatus.Available {
 		writeError(w, 503, "source_unavailable", "AI cannot use activity while Explorer evidence is unavailable")
 		return
 	}

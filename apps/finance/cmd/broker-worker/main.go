@@ -238,6 +238,9 @@ func runControlledVerification(ctx context.Context, dispatcher finance.BrokerDis
 	if !approved {
 		return nil, &brokerage.Error{Code: "WALLET_APPROVAL_REQUIRED"}
 	}
+	if _, err := store.RequestBrokerExecution(account, orderID, "verify-approved:"+orderID, now); err != nil {
+		return nil, err
+	}
 	dispatched, err := dispatcher.Dispatch(ctx, account, orderID)
 	if err != nil {
 		return nil, err
@@ -254,8 +257,12 @@ func runControlledVerification(ctx context.Context, dispatcher finance.BrokerDis
 	if err != nil {
 		return nil, err
 	}
-	audit := map[string]any{"schemaVersion": "finance.broker.controlled-verification.v1", "account": account, "orderId": orderID, "providerOrderId": dispatched.ProviderOrderID, "approvalState": dispatched.ApprovalState, "dispatchState": dispatched.State, "queryRequestIds": queried.RequestIDs, "cancelState": canceled.State, "finalRequestIds": finalSnapshot.RequestIDs, "completedAt": now.UTC().Format(time.RFC3339Nano), "environment": "sandbox", "retryAllowed": false}
+	audit := controlledVerificationAudit(account, orderID, dispatched, canceled, queried, finalSnapshot, now)
 	raw, _ := json.Marshal(audit)
 	digest := sha256.Sum256(raw)
 	return map[string]any{"ok": true, "command": "verify-approved", "providerWriteAttempted": true, "audit": audit, "auditReceiptSha256": fmt.Sprintf("%x", digest[:]), "officialSandboxVerified": false, "productionApproved": false}, nil
+}
+
+func controlledVerificationAudit(account, orderID string, dispatched, canceled finance.BrokerOrderRecord, queried, finalSnapshot brokerage.AccountSnapshot, now time.Time) map[string]any {
+	return map[string]any{"schemaVersion": "finance.broker.controlled-verification.v1", "account": account, "orderId": orderID, "providerOrderId": dispatched.ProviderOrderID, "providerClientOrderId": dispatched.ProviderClientOrderID, "providerRawStatus": canceled.ProviderRawStatus, "dispatchHttpRequestId": dispatched.ProviderHTTPRequestID, "cancelHttpRequestId": canceled.ProviderHTTPRequestID, "providerEventCursor": canceled.ProviderEventCursor, "approvalState": dispatched.ApprovalState, "dispatchState": dispatched.State, "queryRequestIds": queried.RequestIDs, "cancelState": canceled.State, "finalRequestIds": finalSnapshot.RequestIDs, "completedAt": now.UTC().Format(time.RFC3339Nano), "environment": "sandbox", "retryAllowed": false}
 }

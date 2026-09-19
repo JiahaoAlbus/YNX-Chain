@@ -56,7 +56,7 @@ func ParseTradeEventStream(reader io.Reader, expectedAccountID string, maxEvents
 		if envelope.AccountID != expectedAccountID || !validTradeEvent(envelope.Event) || (envelope.EventID != "" && envelope.EventID != id) {
 			return errors.New("PROVIDER_PROTOCOL_ERROR")
 		}
-		order, err := normalizeProviderOrder(envelope.Order, id)
+		order, err := normalizeProviderOrder(envelope.Order, "", false)
 		if err != nil || !tradeEventStatusMatches(envelope.Event, order.Status) {
 			return errors.New("PROVIDER_PROTOCOL_ERROR")
 		}

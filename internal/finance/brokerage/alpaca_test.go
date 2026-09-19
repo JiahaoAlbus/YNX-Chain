@@ -67,7 +67,7 @@ func TestReadOnlyAccountOrdersPositionsAndReconcile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if snapshot.Account.Cash != "100000.00" || snapshot.Account.BuyingPower != "103556.8572572922" || snapshot.Account.TradingBlocked || snapshot.Account.AccountBlocked || snapshot.Account.TradeSuspendedByUser || len(snapshot.Orders) != 1 || len(snapshot.Positions) != 1 || snapshot.Orders[0].Status != "partially_filled" {
+	if snapshot.Account.Cash != "100000.00" || snapshot.Account.BuyingPower != "103556.8572572922" || snapshot.Account.TradingBlocked || snapshot.Account.AccountBlocked || snapshot.Account.TradeSuspendedByUser || len(snapshot.Orders) != 1 || len(snapshot.Positions) != 1 || snapshot.Orders[0].Status != "partially_filled" || snapshot.Orders[0].RequestID != "fixture-request-1" {
 		t.Fatalf("%+v", snapshot)
 	}
 	if len(calls) != 3 {
@@ -205,7 +205,7 @@ func TestWriteMethodsRemainFailClosedWithoutProviderPost(t *testing.T) {
 	if _, err := a.SubmitOrder(context.Background(), "owner", nil, SubmitOrderRequest{}); ErrorCode(err) != "ORDER_SUBMISSION_DISABLED" {
 		t.Fatal(err)
 	}
-	if err := a.CancelOrder(context.Background(), "owner", nil, "id"); ErrorCode(err) != "ORDER_CANCELLATION_DISABLED" {
+	if _, err := a.CancelOrder(context.Background(), "owner", nil, "id"); ErrorCode(err) != "ORDER_CANCELLATION_DISABLED" {
 		t.Fatal(err)
 	}
 	if called {
@@ -239,14 +239,32 @@ func TestActivationGatedSubmitAndCancelExactFixture(t *testing.T) {
 	})
 	request := SubmitOrderRequest{ClientOrderID: clientID, AssetID: assetID, Symbol: "ACME", Side: "buy", Qty: "2", Type: "limit", LimitPrice: "125.34", TimeInForce: "day"}
 	result, err := a.SubmitOrder(context.Background(), "owner", resolve, request)
-	if err != nil || result.ID != orderID || result.Status != "accepted" {
+	if err != nil || result.ID != orderID || result.Status != "accepted" || result.RequestID != "fixture-request-1" {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
-	if err := a.CancelOrder(context.Background(), "owner", resolve, orderID); err != nil {
-		t.Fatal(err)
+	if requestID, err := a.CancelOrder(context.Background(), "owner", resolve, orderID); err != nil || requestID != "fixture-request-2" {
+		t.Fatalf("requestID=%q err=%v", requestID, err)
 	}
 	if len(calls) != 2 {
 		t.Fatalf("calls=%v", calls)
+	}
+}
+
+func TestOrderWriteRequiresBoundedProviderRequestID(t *testing.T) {
+	accountID := "01234567-89ab-4cde-8fab-0123456789ab"
+	resolve := resolverFunc(func(context.Context, string, string, string) (string, error) { return accountID, nil })
+	request := SubmitOrderRequest{ClientOrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", AssetID: "99999999-8888-4777-8666-555555555555", Symbol: "ACME", Side: "buy", Qty: "2", Type: "limit", LimitPrice: "125.34", TimeInForce: "day"}
+	body := `{"id":"11111111-2222-4333-8444-555555555555","client_order_id":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee","asset_id":"99999999-8888-4777-8666-555555555555","symbol":"ACME","side":"buy","qty":"2","filled_qty":"0","type":"limit","limit_price":"125.34","time_in_force":"day","status":"accepted","submitted_at":"2026-09-19T09:00:00Z"}`
+	for _, requestID := range []string{"", "contains spaces", strings.Repeat("x", 129)} {
+		t.Run(fmt.Sprintf("len-%d", len(requestID)), func(t *testing.T) {
+			a := NewAlpaca(writeEnabled("legacy_basic"))
+			a.client.Transport = roundTrip(func(*http.Request) (*http.Response, error) {
+				return &http.Response{StatusCode: http.StatusCreated, Header: http.Header{"Content-Type": {"application/json"}, "X-Request-Id": {requestID}}, Body: io.NopCloser(strings.NewReader(body))}, nil
+			})
+			if _, err := a.SubmitOrder(context.Background(), "owner", resolve, request); ErrorCode(err) != "PROVIDER_PROTOCOL_ERROR" {
+				t.Fatalf("requestID=%q err=%v", requestID, err)
+			}
+		})
 	}
 }
 

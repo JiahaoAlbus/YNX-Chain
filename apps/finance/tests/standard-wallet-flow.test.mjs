@@ -43,10 +43,10 @@ for(const scenario of ['disabled','missing-credentials','configured','network-fa
     await page.route('**/api/broker/status',route=>scenario==='network-failure'?route.abort():route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({schema:'ynx-finance-broker-status-v1',status:{enabled:scenario!=='disabled',tradingEnvironment:'sandbox',chainEnvironment:'testnet',submissionEnabled:false,state:scenario==='configured'?'CONFIGURED_NOT_VERIFIED':scenario==='disabled'?'DISABLED':'NOT_CONFIGURED'}})}));
     await page.locator('#broker-nav').click();await page.locator('#broker-refresh').click();
     await page.waitForFunction(expected=>document.querySelector('#broker-status').textContent.includes(expected),scenario==='configured'?'not verified':scenario==='disabled'?'module disabled':scenario==='network-failure'?'check unavailable':'Not configured');
-    assert.equal(await page.locator('#broker-sandbox').isVisible(),true);assert.equal(await page.locator('#broker-submit').isDisabled(),true);
+	assert.equal(await page.locator('#broker-sandbox').isVisible(),true);assert.equal(await page.locator('[data-broker-order-execute]').count(),0);
     assert.match(await page.locator('#broker-sandbox').innerText(),/Unknown — not zero/);assert.equal(page.context().pages().length,1);assert.deepEqual(await calls(page),[]);assert.deepEqual(page.financeErrors,[]);
     await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-    await page.reload();await page.waitForFunction(()=>document.querySelector('#broker-sandbox').classList.contains('active-view'));assert.equal(await page.locator('#broker-submit').isDisabled(),true);assert.deepEqual(await calls(page),[]);
+	await page.reload();await page.waitForFunction(()=>document.querySelector('#broker-sandbox').classList.contains('active-view'));assert.equal(await page.locator('[data-broker-order-execute]').count(),0);assert.deepEqual(await calls(page),[]);
   }finally{await page.close();}
 });
 

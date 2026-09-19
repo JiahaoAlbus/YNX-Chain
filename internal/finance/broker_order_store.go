@@ -452,10 +452,16 @@ func (s *Store) updateBrokerCAS(account, action, objectID string, fn func(*Accou
 	return fmt.Errorf("Broker state CAS retry limit reached: %w", err)
 }
 
-func appendBrokerJournal(state *BrokerageAccountState, orderID, requestID, action, approvalState, orderState string, now time.Time) {
+func appendBrokerJournal(state *BrokerageAccountState, orderID, requestID, action, approvalState, orderState string, now time.Time, provider ...BrokerProviderAudit) {
 	seed := strings.Join([]string{orderID, requestID, action, now.UTC().Format(time.RFC3339Nano)}, "\n")
 	digest := sha256.Sum256([]byte(seed))
-	state.Journal = append(state.Journal, BrokerJournalEvent{ID: "broker_event_" + hex.EncodeToString(digest[:16]), OrderID: orderID, RequestID: requestID, Action: action, ApprovalState: approvalState, OrderState: orderState, CreatedAt: now.UTC()})
+	event := BrokerJournalEvent{ID: "broker_event_" + hex.EncodeToString(digest[:16]), OrderID: orderID, RequestID: requestID, Action: action, ApprovalState: approvalState, OrderState: orderState, CreatedAt: now.UTC()}
+	if len(provider) == 1 {
+		event.ProviderRawStatus = provider[0].RawStatus
+		event.ProviderHTTPRequestID = provider[0].HTTPRequestID
+		event.ProviderEventCursor = provider[0].EventCursor
+	}
+	state.Journal = append(state.Journal, event)
 	if len(state.Journal) > 5000 {
 		state.Journal = append([]BrokerJournalEvent(nil), state.Journal[len(state.Journal)-5000:]...)
 	}

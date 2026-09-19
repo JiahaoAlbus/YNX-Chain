@@ -135,6 +135,8 @@ type BrokerOrderRecord struct {
 	State                 string         `json:"state"`
 	ProviderClientOrderID string         `json:"providerClientOrderId,omitempty"`
 	ProviderOrderID       string         `json:"providerOrderId,omitempty"`
+	ProviderRawStatus     string         `json:"providerRawStatus,omitempty"`
+	ProviderHTTPRequestID string         `json:"providerHttpRequestId,omitempty"`
 	ProviderEventCursor   string         `json:"providerEventCursor,omitempty"`
 	ProviderEventAt       time.Time      `json:"providerEventAt,omitempty"`
 	CreatedAt             time.Time      `json:"createdAt"`
@@ -149,20 +151,33 @@ type BrokerOrderOutbox struct {
 	TradingEnvironment    string    `json:"tradingEnvironment"`
 	Status                string    `json:"status"`
 	ProviderOrderID       string    `json:"providerOrderId,omitempty"`
+	ProviderRawStatus     string    `json:"providerRawStatus,omitempty"`
+	ProviderHTTPRequestID string    `json:"providerHttpRequestId,omitempty"`
 	LastErrorCode         string    `json:"lastErrorCode,omitempty"`
+	ExecutionRequestKey   string    `json:"executionRequestKey,omitempty"`
+	ExecutionRequestedAt  time.Time `json:"executionRequestedAt,omitempty"`
 	Attempts              int       `json:"attempts"`
 	CreatedAt             time.Time `json:"createdAt"`
 	UpdatedAt             time.Time `json:"updatedAt"`
 }
 
 type BrokerJournalEvent struct {
-	ID            string    `json:"id"`
-	OrderID       string    `json:"orderId"`
-	RequestID     string    `json:"requestId"`
-	Action        string    `json:"action"`
-	ApprovalState string    `json:"approvalState"`
-	OrderState    string    `json:"orderState"`
-	CreatedAt     time.Time `json:"createdAt"`
+	ID                    string    `json:"id"`
+	OrderID               string    `json:"orderId"`
+	RequestID             string    `json:"requestId"`
+	Action                string    `json:"action"`
+	ApprovalState         string    `json:"approvalState"`
+	OrderState            string    `json:"orderState"`
+	ProviderRawStatus     string    `json:"providerRawStatus,omitempty"`
+	ProviderHTTPRequestID string    `json:"providerHttpRequestId,omitempty"`
+	ProviderEventCursor   string    `json:"providerEventCursor,omitempty"`
+	CreatedAt             time.Time `json:"createdAt"`
+}
+
+type BrokerProviderAudit struct {
+	RawStatus     string
+	HTTPRequestID string
+	EventCursor   string
 }
 
 type BrokerageAccountState struct {

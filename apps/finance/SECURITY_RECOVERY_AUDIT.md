@@ -16,7 +16,7 @@ Reviewed 2026-07-29 for the 1.2.0 Testnet candidate.
 - Finance never requests seed phrases, recovery material or transaction signatures.
 - Stored data is account-scoped planning state and audit metadata; atomic JSON persistence uses mode `0600`.
 - Request bodies, JSON schema and source record ownership are bounded and validated. Browser policy disables camera, microphone, geolocation and payment APIs and applies CSP/frame/origin protections.
-- AI context requires a privacy toggle, selected owned Explorer records and fresh consent. Draft/provider data can be cancelled or deleted; only a minimal deletion audit event remains.
+- AI context requires a privacy toggle and fresh consent. General activity workflows require 1–50 selected owned Explorer records. A full strict securities intent may use an explicit empty chain context when Explorer is unavailable or a new Broker user has no activity; the request states that absence and never fabricates activity. Draft/provider data can be cancelled or deleted; only a minimal deletion audit event remains.
 - Account deletion requires exact confirmation and removes the account state while retaining only a minimal `account.deleted` audit event.
 
 ## Recovery

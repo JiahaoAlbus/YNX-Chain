@@ -2,7 +2,7 @@
 
 ## Current state schema
 
-The persisted Finance state is `version: 2`. It preserves every version-1 planning field and adds account-scoped Broker Sandbox mappings (including the optional operator-verified Wallet public key), approval challenges, logical orders, one-time outbox records, an owner watchlist and an audit journal. The new mapping/watchlist members are normalized when absent, so existing version-2 files remain readable. Explorer, Pay and provider facts remain source-owned and are not copied into this state as invented balances or fills.
+The persisted Finance state is `version: 2`. It preserves every version-1 planning field and adds account-scoped Broker Sandbox mappings (including the optional operator-verified Wallet public key), approval challenges, logical orders, one-time outbox records, an owner watchlist and an audit journal. New execution-request and provider-correlation fields are optional on read, so existing version-2 records remain readable; once present they are strictly bounded and validated. HTTP request IDs, raw provider status and SSE event cursor remain separate fields. The new mapping/watchlist members are normalized when absent. Explorer, Pay and provider facts remain source-owned and are not copied into this state as invented balances or fills.
 
 The runtime decodes state and backup envelopes with unknown-field rejection. Unsupported versions fail closed before the live file is changed. A valid version-1 file or authenticated backup is deterministically normalized in memory and migrated to version 2. Its original canonical hash remains the CAS precondition, so the first successful write atomically replaces exactly the version that was read. Opening alone does not rewrite the file.
 

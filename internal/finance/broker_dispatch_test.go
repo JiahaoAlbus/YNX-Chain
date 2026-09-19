@@ -57,11 +57,11 @@ func (d dispatchAdapter) Reconcile(context.Context, string, brokerage.AccountRes
 func (d dispatchAdapter) SubmitOrder(_ context.Context, _ string, _ brokerage.AccountResolver, request brokerage.SubmitOrderRequest) (brokerage.Order, error) {
 	return d.submit(request)
 }
-func (d dispatchAdapter) CancelOrder(_ context.Context, _ string, _ brokerage.AccountResolver, orderID string) error {
+func (d dispatchAdapter) CancelOrder(_ context.Context, _ string, _ brokerage.AccountResolver, orderID string) (string, error) {
 	if d.cancel == nil {
-		return errors.New("unused")
+		return "", errors.New("unused")
 	}
-	return d.cancel(orderID)
+	return "fixture-cancel-request", d.cancel(orderID)
 }
 
 func consumedBrokerFixture(t *testing.T) (*Store, string, string, time.Time) {
@@ -78,6 +78,9 @@ func consumedBrokerFixture(t *testing.T) (*Store, string, string, time.Time) {
 		t.Fatal(err)
 	}
 	if _, err := store.VerifyAndConsumeBrokerOrder(account, signFinanceApprovalForTest(t, challenge.Unsigned), now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.RequestBrokerExecution(account, challenge.Unsigned.Order.OrderID, "dispatch-test-request-0001", now.Add(90*time.Second)); err != nil {
 		t.Fatal(err)
 	}
 	return store, account, challenge.Unsigned.Order.OrderID, now
@@ -99,12 +102,15 @@ func consumedSellBrokerFixture(t *testing.T) (*Store, string, string, time.Time)
 	if _, err := store.VerifyAndConsumeBrokerOrder(account, signFinanceApprovalForTest(t, challenge.Unsigned), now.Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := store.RequestBrokerExecution(account, challenge.Unsigned.Order.OrderID, "dispatch-test-request-0002", now.Add(90*time.Second)); err != nil {
+		t.Fatal(err)
+	}
 	return store, account, challenge.Unsigned.Order.OrderID, now
 }
 
 func TestBrokerDispatcherSuccessAndReconcileCursor(t *testing.T) {
 	store, account, orderID, now := consumedBrokerFixture(t)
-	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted"}
+	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted", RequestID: "http-poll-0001"}
 	adapter := dispatchAdapter{submit: func(request brokerage.SubmitOrderRequest) (brokerage.Order, error) {
 		if request.ClientOrderID != orderID || request.ExtendedHours {
 			t.Fatal("wrong signed request")
@@ -122,7 +128,7 @@ func TestBrokerDispatcherSuccessAndReconcileCursor(t *testing.T) {
 		t.Fatalf("record=%+v err=%v", record, err)
 	}
 	canceled, err := dispatcher.Cancel(context.Background(), account, orderID)
-	if err != nil || canceled.State != "cancel_requested" {
+	if err != nil || canceled.State != "cancel_requested" || canceled.ProviderHTTPRequestID != "fixture-cancel-request" {
 		t.Fatalf("cancel=%+v err=%v", canceled, err)
 	}
 	adapter.snapshot = brokerage.AccountSnapshot{Provider: FinanceOrderProvider, Environment: FinanceOrderTradingEnv, RequestIDs: []string{"request-b", "request-a"}, Orders: []brokerage.Order{{ID: providerOrder.ID, ClientOrderID: orderID, AssetID: providerOrder.AssetID, Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "1", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "filled"}}}
@@ -137,6 +143,26 @@ func TestBrokerDispatcherSuccessAndReconcileCursor(t *testing.T) {
 	}
 }
 
+func TestProviderRejectedErrorPersistsBoundedHTTPRequestCorrelation(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	dispatcher := BrokerDispatcher{Store: store, Adapter: dispatchAdapter{submit: func(brokerage.SubmitOrderRequest) (brokerage.Order, error) {
+		return brokerage.Order{}, &brokerage.Error{Code: "PROVIDER_REJECTED", RequestID: "http-reject-0001", HTTPStatus: 422}
+	}}, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+	if _, err := dispatcher.Dispatch(context.Background(), account, orderID); brokerage.ErrorCode(err) != "PROVIDER_REJECTED" {
+		t.Fatal(err)
+	}
+	reopened, err := OpenStore(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := reopened.Account(account).Brokerage
+	order, outbox := state.Orders[orderID], state.Outbox[orderID]
+	last := state.Journal[len(state.Journal)-1]
+	if order.State != "provider_rejected" || order.ProviderHTTPRequestID != "http-reject-0001" || outbox.Status != "provider_rejected" || outbox.ProviderHTTPRequestID != "http-reject-0001" || last.ProviderHTTPRequestID != "http-reject-0001" {
+		t.Fatalf("order=%+v outbox=%+v journal=%+v", order, outbox, last)
+	}
+}
+
 func TestBrokerReconciliationPreservesProviderEventCursor(t *testing.T) {
 	store, account, orderID, now := consumedBrokerFixture(t)
 	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted"}
@@ -144,11 +170,13 @@ func TestBrokerReconciliationPreservesProviderEventCursor(t *testing.T) {
 	if err := store.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{event}, event.Cursor, now.Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{RequestIDs: []string{"poll-2", "poll-1"}, Orders: []brokerage.Order{providerOrder}}, now.Add(2*time.Minute)); err != nil {
+	pollOrder := providerOrder
+	pollOrder.RequestID = "http-poll-0001"
+	if err := store.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{RequestIDs: []string{"poll-2", "poll-1"}, Orders: []brokerage.Order{pollOrder}}, now.Add(2*time.Minute)); err != nil {
 		t.Fatal(err)
 	}
 	state := store.Account(account).Brokerage
-	if state.EventCursor != event.Cursor || state.ReconcileCheckpoint == "" {
+	if state.EventCursor != event.Cursor || state.ReconcileCheckpoint == "" || state.Orders[orderID].ProviderHTTPRequestID != "http-poll-0001" || state.Orders[orderID].ProviderRawStatus != "accepted" {
 		t.Fatalf("polling overwrote event recovery state: %+v", state)
 	}
 }
@@ -217,6 +245,76 @@ func TestBrokerTradeEventsRejectStateAndCursorRegressionAcrossRestart(t *testing
 	state := reopened.Account(account).Brokerage
 	if state.EventCursor != "event-2" || state.Orders[orderID].State != "filled" || state.Orders[orderID].ProviderEventCursor != "event-2" {
 		t.Fatalf("stale event mutated state: %+v", state.Orders[orderID])
+	}
+}
+
+func TestProviderRejectedIsTerminalAcrossPollingEventsRestartAndDispatch(t *testing.T) {
+	for _, source := range []string{"poll", "event"} {
+		t.Run(source, func(t *testing.T) {
+			store, account, orderID, now := consumedBrokerFixture(t)
+			path := store.path
+			rejected := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "rejected"}
+			if source == "poll" {
+				if err := store.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{RequestIDs: []string{"reject-poll"}, Orders: []brokerage.Order{rejected}}, now.Add(2*time.Minute)); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				event := brokerage.TradeEvent{Cursor: "reject-event", ProviderAccountID: "01234567-89ab-4cde-8fab-0123456789ab", Event: "rejected", Timestamp: now.Add(2 * time.Minute), Order: rejected}
+				if err := store.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{event}, event.Cursor, now.Add(2*time.Minute)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			state := store.Account(account).Brokerage
+			if state.Orders[orderID].State != "provider_rejected" || state.Outbox[orderID].Status != "provider_rejected" || state.Outbox[orderID].LastErrorCode != "PROVIDER_REJECTED" {
+				t.Fatalf("rejection was not persisted as terminal: order=%+v outbox=%+v", state.Orders[orderID], state.Outbox[orderID])
+			}
+			reopened, err := OpenStore(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := reopened.ClaimBrokerDispatch(account, orderID, now.Add(3*time.Minute)); err == nil {
+				t.Fatal("provider-rejected order was dispatchable after restart")
+			}
+			accepted := rejected
+			accepted.Status = "accepted"
+			if err := reopened.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{RequestIDs: []string{"stale-accepted"}, Orders: []brokerage.Order{accepted}}, now.Add(4*time.Minute)); err == nil {
+				t.Fatal("provider-rejected order regressed through polling")
+			}
+			final := reopened.Account(account).Brokerage
+			if final.Orders[orderID].State != "provider_rejected" || final.Outbox[orderID].Status != "provider_rejected" {
+				t.Fatalf("terminal rejection changed: %+v", final.Orders[orderID])
+			}
+		})
+	}
+}
+
+func TestProviderAuditMetadataPersistsAndSeparatesHTTPFromEventCursor(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	claim, err := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: claim.Order.Order.AssetID, Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted", RequestID: "http-submit-0001", SubmittedAt: now.Format(time.RFC3339Nano)}
+	if _, err := store.CompleteBrokerDispatch(account, orderID, &provider, nil, now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	provider.Status, provider.FilledQty, provider.RequestID = "filled", "1", ""
+	event := brokerage.TradeEvent{Cursor: "sse-event-0001", ProviderAccountID: claim.Order.BrokerAccountID, Event: "fill", Timestamp: now.Add(3 * time.Minute), Order: provider}
+	if err := store.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{event}, event.Cursor, now.Add(3*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := OpenStore(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := reopened.Account(account).Brokerage
+	order, outbox := state.Orders[orderID], state.Outbox[orderID]
+	if order.ProviderRawStatus != "filled" || order.ProviderHTTPRequestID != "http-submit-0001" || order.ProviderEventCursor != "sse-event-0001" || outbox.ProviderRawStatus != "filled" || outbox.ProviderHTTPRequestID != "http-submit-0001" {
+		t.Fatalf("order=%+v outbox=%+v", order, outbox)
+	}
+	last := state.Journal[len(state.Journal)-1]
+	if last.ProviderRawStatus != "filled" || last.ProviderHTTPRequestID != "" || last.ProviderEventCursor != "sse-event-0001" {
+		t.Fatalf("event audit correlation was conflated: %+v", last)
 	}
 }
 
