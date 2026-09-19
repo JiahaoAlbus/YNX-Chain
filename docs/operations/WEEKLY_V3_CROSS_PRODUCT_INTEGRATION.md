@@ -13,7 +13,8 @@ native FormData and actual button-click → Finance HTTP → local Gateway → d
 job → reviewed-form copy. Three cases cover owned activity, empty chain activity
 and Explorer 503. Session proof is an explicit synthetic fixture, not an
 installed Wallet claim. All browser network is intercepted and restricted to
-the isolated Finance server; only AI-job creation is an allowed write. The
+the isolated Finance server; draft mode allows only AI-job creation, while
+execution mode permits only the exact selected order's execution-request. The
 acceptance adapter never repairs the DOM or injects an AI result.
 
 Four new provider-rejection cases cover polling/events with both accepted ACK
@@ -30,12 +31,19 @@ account-selection fields) plus one approval → explicit execution request →
 durable reopen → actual adapter single-POST/retry case. It is deliberately not
 included in the runner overlay yet: the interface is observed in ongoing owner
 work, not frozen. No pass is claimed for these eleven prepared cases.
+Three additional native-browser cases load the unchanged product page against
+the real local Finance backend: confirm execution, decline confirmation, and
+default-off. They verify the real browser request/owner scope/idempotency body;
+confirmation must persist one queue record across reopen, then the actual
+controlled dispatcher/adapter must perform one provider POST. Decline/default-off
+must not mutate durable approval state or initiate provider writes. No fixture
+order is injected into the browser DOM. These cases also await owner freeze.
 
-Preparation verification: **41/41 harness self-tests PASS**, including a real
+Preparation verification: **42/42 harness self-tests PASS**, including a real
 Chromium native-FormData regression probe using a synthetic HTML page only
 (DIV throws TypeError; FORM yields the value). This dependency-only probe does
 not load a moving Finance worktree's HTML/scripts. `git diff --check` and Node
-syntax validation pass. The seven new Go product cases are prepared, not run.
+syntax validation pass. The new Go product cases are prepared, not run.
 
 The previous 81/81 report and source checkpoint below are immutable historical
 evidence. To reproduce that exact scope, use NETWORK `1f24904049a1bc399a67ca8c9493237e3c5f9077`;

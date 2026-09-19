@@ -37,6 +37,19 @@ test('real DOM bridge preserves API query and dedicated scope authority fixture'
   assert.equal(browserRequestPolicy(browserOrigin + '/wallet-auth.js?changed=1').kind, 'blocked');
 });
 
+test('execution browser mode permits only its exact selected order and no other write', () => {
+  const order = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const route = `/api/broker/orders/${order}/execution-request`;
+  assert.deepEqual(browserRequestPolicy(browserOrigin + route, 'POST', order), {kind: 'loopback', target: route});
+  assert.equal(browserRequestPolicy(browserOrigin + route, 'POST').kind, 'blocked');
+  for (const target of ['/api/ai/jobs', '/api/broker/challenges', route + '?override=true',
+    route.replace('aaaaaaaa', 'bbbbbbbb'), route.replace('execution-request', 'cancel-request')])
+    assert.equal(browserRequestPolicy(browserOrigin + target, 'POST', order).kind, 'blocked');
+  for (const invalid of ['*', '../' + order, order.toUpperCase(), order.replace('-4', '-1')])
+    assert.equal(browserRequestPolicy(browserOrigin + route, 'POST', invalid).kind, 'blocked');
+  assert.equal(browserRequestPolicy('https://broker-api.sandbox.alpaca.markets' + route, 'POST', order).kind, 'blocked');
+});
+
 test('Chromium native FormData rejects DIV and accepts FORM without a product patch', {skip: !process.env.WEEKLY_FINANCE_ROOT}, async () => {
   // Dependency-only browser self-test; does not read/run any Finance product
   // HTML/script or issue HTTP. It is safe while the product owner is editing.
