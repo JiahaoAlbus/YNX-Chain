@@ -6,7 +6,7 @@ import {dirname,resolve,extname} from "node:path";
 import {fileURLToPath} from "node:url";
 import {compilePwaShell} from "./build.mjs";
 
-const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),repository=resolve(root,"../..");
+const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),repository=resolve(root,"../.."),candidateDirectory=resolve(process.env.YNX_WALLET_WEB_DIST_DIR??resolve(root,"dist"),"pwa");
 const sha=bytes=>createHash("sha256").update(bytes).digest("hex");
 const git=(commit,path)=>execFileSync("git",["show",`${commit}:${path}`],{cwd:repository});
 export async function historicalPwaFixture(commit){
@@ -40,12 +40,12 @@ export async function historicalPwaFixture(commit){
 }
 
 export async function createPwaUpgradeHarness({port=8787,candidate=null}={}){
-  const integritySource=candidate?.files["asset-integrity.js"]??await readFile(resolve(root,"dist/pwa/asset-integrity.js"));
+  const integritySource=candidate?.files["asset-integrity.js"]??await readFile(resolve(candidateDirectory,"asset-integrity.js"));
   const {ASSET_INTEGRITY}=await import(`data:text/javascript;base64,${Buffer.from(integritySource).toString("base64")}`);
-  const files=candidate?.files??Object.fromEntries(await Promise.all([...new Set([...Object.keys(ASSET_INTEGRITY).filter(key=>key!=="./").map(key=>key.slice(2)),"sw.js","asset-integrity.js"])].map(async name=>[name,await readFile(resolve(root,"dist/pwa",name))])));
+  const files=candidate?.files??Object.fromEntries(await Promise.all([...new Set([...Object.keys(ASSET_INTEGRITY).filter(key=>key!=="./").map(key=>key.slice(2)),"sw.js","asset-integrity.js"])].map(async name=>[name,await readFile(resolve(candidateDirectory,name))])));
   for(const [key,expected] of Object.entries(ASSET_INTEGRITY))if(sha(files[key==="./"?"index.html":key.slice(2)])!==expected)throw new Error(`Built PWA integrity mismatch: ${key}`);
   const policy=await import(`data:text/javascript;base64,${files["service-worker-policy.js"].toString("base64")}`);
-  const candidateA={files,assetIntegrity:ASSET_INTEGRITY,cache:policy.PWA_CACHE,workerSha256:sha(files["sw.js"]),fixtureClass:candidate?"unit-test supplied shell":"current exact dist/pwa"};
+  const candidateA={files,sourceCommit:files["build-identity.json"]?JSON.parse(files["build-identity.json"]).sourceCommit:null,assetIntegrity:ASSET_INTEGRITY,cache:policy.PWA_CACHE,workerSha256:sha(files["sw.js"]),fixtureClass:candidate?"unit-test supplied shell":"current exact dist/pwa"};
   const raw=Object.fromEntries(Object.keys(ASSET_INTEGRITY).filter(key=>key!=="./").map(key=>[key.slice(2),files[key.slice(2)]]));
   raw["service-worker-policy.js"]=Buffer.from(raw["service-worker-policy.js"].toString().replace(/export const PWA_BUILD_ID = "[0-9a-f]{64}";/u,'export const PWA_BUILD_ID = "__YNX_PWA_BUILD_ID__";'));
   raw["index.html"]=Buffer.from(raw["index.html"].toString().replace(/<meta name="ynx-wallet-shell" content="[0-9a-f]{64}">\n/u,""));

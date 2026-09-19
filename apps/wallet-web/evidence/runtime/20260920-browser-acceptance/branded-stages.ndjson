@@ -1,0 +1,13 @@
+{"at":"2026-09-19T19:13:11.326Z","browserId":"chrome","stage":"launch-start"}
+{"at":"2026-09-19T19:13:15.998Z","browserId":"chrome","stage":"launch-complete"}
+{"at":"2026-09-19T19:13:24.042Z","browserId":"chrome","stage":"error","name":"TimeoutError","message":"browserContext.waitForEvent: Timeout 3000ms exceeded while waiting for event \"serviceworker\""}
+{"at":"2026-09-19T19:13:24.290Z","browserId":"edge","stage":"launch-start"}
+{"at":"2026-09-19T19:13:25.065Z","browserId":"edge","stage":"launch-complete"}
+{"at":"2026-09-19T19:13:25.066Z","browserId":"edge","stage":"service-worker","url":"chrome-extension://kefibkemfgbglookfpjnmflikclaajih/service-worker.js"}
+{"at":"2026-09-19T19:13:25.114Z","browserId":"edge","stage":"fixture-active","url":"https://127.0.0.1:59850/"}
+{"at":"2026-09-19T19:13:25.186Z","browserId":"edge","stage":"active-tab","id":128470663,"url":"https://127.0.0.1:59850/"}
+{"at":"2026-09-19T19:13:25.207Z","browserId":"edge","stage":"content-bridge","foreignUnchanged":true,"announcementCount":1,"matchingCount":1,"info":{"uuid":"6f4e2a77-7878-4f29-9c0d-191700000001","name":"YNX Wallet","rdns":"com.ynx.wallet"},"injected":true,"isYNXWallet":true,"isMetaMask":false,"requestType":"function","chainId":"0x1917","chainError":null}
+{"at":"2026-09-19T19:13:25.290Z","browserId":"edge","stage":"popup-open","url":"chrome-extension://kefibkemfgbglookfpjnmflikclaajih/index.html"}
+{"at":"2026-09-19T19:13:25.379Z","browserId":"edge","stage":"rpc-fail-closed","requestedUrl":"https://evm.ynxweb4.com","requestedChainId":"0x1917","error":{"name":"WalletWebError","code":"UNSAFE_BROWSER_RPC_PROBE","message":"Direct browser RPC fetch is not a Standard Wallet connection authority."},"chainChangeSucceeded":false}
+{"at":"2026-09-19T19:13:26.698Z","browserId":"edge","stage":"first-context-closed"}
+{"at":"2026-09-19T19:13:27.136Z","browserId":"edge","stage":"second-launch","worker":"chrome-extension://kefibkemfgbglookfpjnmflikclaajih/service-worker.js","popup":"chrome-extension://kefibkemfgbglookfpjnmflikclaajih/index.html"}

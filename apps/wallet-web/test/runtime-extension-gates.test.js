@@ -25,7 +25,7 @@ test("runtime bridge uses an HTTPS blank fixture and discovers the real EIP-6963
 
 test("branded runtime also uses real HTTPS EIP-6963 discovery",()=>{
   assert.match(branded,/createServer\} from "node:https"/u);
-  assert.match(branded,/dapp-eip6963\.html/u);
+  assert.match(branded,/dapp-eip6963-frozen\.html/u);
   assert.match(branded,/provider\.request\(\{method:"eth_chainId"\}\)/u);
   assert.doesNotMatch(branded,/__YNX_FIXTURE_CALLS__/u);
   assert.doesNotMatch(branded,/eth_requestAccounts/u);
