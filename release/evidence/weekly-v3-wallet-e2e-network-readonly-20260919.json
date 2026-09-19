@@ -1,0 +1,496 @@
+{
+  "schema": "ynx-wallet-e2e-network-readonly-baseline/v1",
+  "checkedAt": "2026-09-19T15:27:38.041Z",
+  "readOnly": true,
+  "concurrentProbes": 4,
+  "requestsPerRoute": 1,
+  "claimsSubmitted": 0,
+  "transactionsSubmitted": 0,
+  "configurationChanged": false,
+  "allReady": false,
+  "observations": [
+    {
+      "role": "legacy",
+      "kind": "rpc",
+      "url": "https://rpc.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T15:27:38.512Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.002039,
+        "time_connect": 0.112093,
+        "time_appconnect": 0.230114,
+        "time_starttransfer": 0.456929,
+        "time_total": 0.457164
+      },
+      "bodySHA256": "a94c28eec298372b177142e20d203125af517e26432e074cf90f03a071306913",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634058,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      }
+    },
+    {
+      "role": "candidate",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T15:27:38.282Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001945,
+        "time_connect": 0.073889,
+        "time_appconnect": 0.150046,
+        "time_starttransfer": 0.227045,
+        "time_total": 0.227164
+      },
+      "bodySHA256": "a94c28eec298372b177142e20d203125af517e26432e074cf90f03a071306913",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634058,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      }
+    },
+    {
+      "role": "legacy",
+      "kind": "faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T15:27:38.739Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.001715,
+        "time_connect": 0.075413,
+        "time_appconnect": 0.508005,
+        "time_starttransfer": 0.683732,
+        "time_total": 0.683878
+      },
+      "bodySHA256": "1bc92083cc7aae26925f0ca9474594de5b85692ec4246a882721799411ccd7d5",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1634058,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      }
+    },
+    {
+      "role": "candidate",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T15:27:41.058Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 1,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001522,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 3.003739
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to faucet-testnet.ynxweb4.com port 443 after 3003 ms: Timeout was reached"
+    }
+  ],
+  "singleBoundedRecheck": {
+    "checkedAt": "2026-09-19T15:28:00.950Z",
+    "url": "https://faucet-testnet.ynxweb4.com/health",
+    "readOnly": true,
+    "recheckOf": "2026-09-19T15:27:38.041Z",
+    "exitCode": 0,
+    "body": {
+      "checkedAt": "2026-09-19T15:28:02.251445884Z",
+      "probeDurationMs": 0,
+      "statusDurationMs": 0,
+      "capabilityDurationMs": 0,
+      "idempotentRequests": true,
+      "fundingReady": true,
+      "requestStatusPath": "/request-status",
+      "ipRateLimitMax": 100,
+      "ipRateLimitWindowSeconds": 60,
+      "requestPath": "/request",
+      "rateLimitMax": 1,
+      "rateLimitWindowSeconds": 3600,
+      "ok": true,
+      "service": "ynx-faucetd",
+      "rpcUrl": "http://127.0.0.1:6420",
+      "upstreamMode": "authoritative",
+      "upstreamOk": true,
+      "chainId": 6423,
+      "height": 1634064,
+      "nativeSymbol": "YNXT",
+      "defaultAmount": 100,
+      "maxAmount": 100,
+      "rateLimit": "1 per 1h0m0s per address",
+      "requestLog": "/var/log/ynx-chain/faucet-requests.jsonl",
+      "requests": 0,
+      "successes": 0,
+      "denied": 0,
+      "build": {
+        "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+        "release": "weekly-v3-faucet",
+        "buildTime": "unknown"
+      },
+      "truthfulStatus": "rpc-backed-faucet"
+    },
+    "metadata": {
+      "http_code": 200,
+      "remote_ip": "43.153.202.237",
+      "ssl_verify_result": 0,
+      "num_redirects": 0,
+      "time_connect": 1.113303,
+      "time_appconnect": 1.227611,
+      "time_total": 1.334274,
+      "url_effective": "https://faucet-testnet.ynxweb4.com/health",
+      "exitcode": 0
+    },
+    "stderr": ""
+  },
+  "interpretation": {
+    "firstRoundAllReady": false,
+    "newFaucetRecheckReady": true,
+    "continuousAvailabilityVerified": false,
+    "transactionComparisonPending": true,
+    "reason": "Await current Wallet E2E public account addresses, transaction hashes and Faucet request ID from owner.",
+    "noClaimOrTransferPerformed": true,
+    "readOnlyStatusMayReconcileStoredReceipt": "Source RequestStatus can persist an already-existing chain receipt into admission storage; it cannot mint or create a new admitted request. No request-status call made yet."
+  },
+  "hostDiagnostics": {
+    "checkedAt": "2026-09-19T15:30:53Z",
+    "readOnly": true,
+    "configurationChanges": 0,
+    "serviceRestarts": 0,
+    "rawOutput": "2026-09-19T15:30:53Z\n 23:30:53 up 146 days,  3:14,  1 user,  load average: 1.30, 1.24, 1.19\n8\n               total        used        free      shared  buff/cache   available\nMem:     32723787776 16123842560  3449143296     2228224 13681598464 16599945216\nSwap:     2084564992   157798400  1926766592\nFilesystem     1024-blocks      Used Available Capacity Mounted on\n/dev/vda2        392071200 193865524 182146704      52% /\n/dev/vda2        392071200 193865524 182146704      52% /\nprocs -----------memory---------- ---swap-- -----io---- -system-- -------cpu-------\n r  b   swpd   free   buff  cache   si   so    bi    bo   in   cs us sy id wa st gu\n 1  2 154100 3368556 328724 13032228    0    0   630 39781 3637    4  7  1 90  2  0  0\n 1  0 154100 3863556 328724 12600056    0    0     0 236160 2682 3261  1  2 86 11  0  0\n 1  0 154100 3889456 328724 12600056    0    0     0     0 2851 2851 13  0 87  0  0  0\nTotal: 490\nTCP:   166 (estab 95, closed 14, orphaned 0, timewait 13)\n\nTransport Total     IP        IPv6\nRAW\t  2         0         2        \nUDP\t  14        9         5        \nTCP\t  152       118       34       \nINET\t  168       127       41       \nFRAG\t  0         0         0        \n\nState  Recv-Q Send-Q           Local Address:Port  Peer Address:PortProcess\nLISTEN 0      4096                 127.0.0.1:6428       0.0.0.0:*          \nLISTEN 0      4096                         *:443              *:*          \nLISTEN 0      4096                         *:80               *:*          \nLISTEN 0      4096                         *:6420             *:*          \n3\nnet.core.somaxconn = 4096\nnet.ipv4.tcp_max_syn_backlog = 2048\nnet.ipv4.tcp_syncookies = 1\nTcpExt: SyncookiesSent SyncookiesRecv SyncookiesFailed EmbryonicRsts PruneCalled RcvPruned OfoPruned OutOfWindowIcmps LockDroppedIcmps ArpFilter TW TWRecycled TWKilled PAWSActive PAWSEstab DelayedACKs DelayedACKLocked DelayedACKLost ListenOverflows ListenDrops TCPHPHits TCPPureAcks TCPHPAcks TCPRenoRecovery TCPSackRecovery TCPSACKReneging TCPSACKReorder TCPRenoReorder TCPTSReorder TCPFullUndo TCPPartialUndo TCPDSACKUndo TCPLossUndo TCPLostRetransmit TCPRenoFailures TCPSackFailures TCPLossFailures TCPFastRetrans TCPSlowStartRetrans TCPTimeouts TCPLossProbes TCPLossProbeRecovery TCPRenoRecoveryFail TCPSackRecoveryFail TCPRcvCollapsed TCPBacklogCoalesce TCPDSACKOldSent TCPDSACKOfoSent TCPDSACKRecv TCPDSACKOfoRecv TCPAbortOnData TCPAbortOnClose TCPAbortOnMemory TCPAbortOnTimeout TCPAbortOnLinger TCPAbortFailed TCPMemoryPressures TCPMemoryPressuresChrono TCPSACKDiscard TCPDSACKIgnoredOld TCPDSACKIgnoredNoUndo TCPSpuriousRTOs TCPMD5NotFound TCPMD5Unexpected TCPMD5Failure TCPSackShifted TCPSackMerged TCPSackShiftFallback TCPBacklogDrop PFMemallocDrop TCPMinTTLDrop TCPDeferAcceptDrop IPReversePathFilter TCPTimeWaitOverflow TCPReqQFullDoCookies TCPReqQFullDrop TCPRetransFail TCPRcvCoalesce TCPOFOQueue TCPOFODrop TCPOFOMerge TCPChallengeACK TCPSYNChallenge TCPFastOpenActive TCPFastOpenActiveFail TCPFastOpenPassive TCPFastOpenPassiveFail TCPFastOpenListenOverflow TCPFastOpenCookieReqd TCPFastOpenBlackhole TCPSpuriousRtxHostQueues BusyPollRxPackets TCPAutoCorking TCPFromZeroWindowAdv TCPToZeroWindowAdv TCPWantZeroWindowAdv TCPSynRetrans TCPOrigDataSent TCPHystartTrainDetect TCPHystartTrainCwnd TCPHystartDelayDetect TCPHystartDelayCwnd TCPACKSkippedSynRecv TCPACKSkippedPAWS TCPACKSkippedSeq TCPACKSkippedFinWait2 TCPACKSkippedTimeWait TCPACKSkippedChallenge TCPWinProbe TCPKeepAlive TCPMTUPFail TCPMTUPSuccess TCPDelivered TCPDeliveredCE TCPAckCompressed TCPZeroWindowDrop TCPRcvQDrop TCPWqueueTooBig TCPFastOpenPassiveAltKey TcpTimeoutRehash TcpDuplicateDataRehash TCPDSACKRecvSegs TCPDSACKIgnoredDubious TCPMigrateReqSuccess TCPMigrateReqFailure TCPPLBRehash TCPAORequired TCPAOBad TCPAOKeyNotFound TCPAOGood TCPAODroppedIcmps\nTcpExt: 0 0 0 189203 132 8 0 113 54 0 3821180 1666 0 0 24504 19807919 5272 774689 0 392 76624736 866760649 205456301 94 8224975 13 386679 5346 56850 2703 43559 21361 12860 52425578 246 11177 61513 287378548 123562410 12686659 4919803 98188 1 2030289 784 840226 997497 88719 1312210 8506 3103724 907724 0 17624 0 0 0 0 90 1311 502661 4822 0 0 0 3675685 49710509 18508684 0 0 0 0 0 0 0 0 0 25230672 2526625 0 56852 1914 1350 0 0 0 0 0 22406 0 19 0 41902363 2568 2563 14456 7902066 5840841938 649496 32424305 318 45302 1484 16339 9232 17 61 415 35848 24337796 0 0 5805868398 0 434015 104 8 0 0 3280336 0 1623456 117 0 0 0 0 0 0 0 0\nTcp: RtoAlgorithm RtoMin RtoMax MaxConn ActiveOpens PassiveOpens AttemptFails EstabResets CurrEstab InSegs OutSegs RetransSegs InErrs OutRsts InCsumErrors\nTcp: 1 200 120000 -1 14639114 8791886 1046851 1998211 95 1372890735 6095105134 423668274 6558 10079416 5910\nMainPID=1432803\nNRestarts=0\nMemoryCurrent=130220032\nCPUUsageNSec=5303535125000\nTasksCurrent=18\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\nSubState=running\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=12870758400\nCPUUsageNSec=430278910097000\nTasksCurrent=15\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\nSubState=running\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=10719232\nCPUUsageNSec=467475000\nTasksCurrent=13\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\nSubState=running\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8572928\nCPUUsageNSec=100960000\nTasksCurrent=11\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\nSubState=running\n2.6.2\n{\"caddyJournal20mEntries\": 0, \"priorityCounts\": {}, \"messageCategoryCounts\": {}, \"rawMessagesSuppressed\": true}\n{\"kernelJournal20mEntries\": 0, \"messageCategoryCounts\": {}, \"rawMessagesSuppressed\": true}\n",
+    "loopbackTLSChecks": "2026-09-19T15:31:36Z\nListenOverflows 0\nListenDrops 392\nTCPTimeouts 12686673\nTCPBacklogDrop 0\nTCPReqQFullDoCookies 0\nTCPReqQFullDrop 0\nTCPSynRetrans 7902075\n{\"host\":\"faucet.ynxweb4.com\",\"round\":1,\"http\":200,\"remoteIP\":\"127.0.0.1\",\"tlsVerify\":0,\"connect\":0.000146,\"tls\":0.024456,\"ttfb\":0.026106,\"total\":0.026154,\"exit\":0}\n{\"host\":\"faucet-testnet.ynxweb4.com\",\"round\":1,\"http\":200,\"remoteIP\":\"127.0.0.1\",\"tlsVerify\":0,\"connect\":0.000149,\"tls\":0.024199,\"ttfb\":0.025959,\"total\":0.026000,\"exit\":0}\n{\"host\":\"rpc-testnet.ynxweb4.com\",\"round\":1,\"http\":200,\"remoteIP\":\"127.0.0.1\",\"tlsVerify\":0,\"connect\":0.000145,\"tls\":0.024358,\"ttfb\":0.025429,\"total\":0.025483,\"exit\":0}\n{\"host\":\"faucet.ynxweb4.com\",\"round\":2,\"http\":200,\"remoteIP\":\"127.0.0.1\",\"tlsVerify\":0,\"connect\":0.000130,\"tls\":0.023871,\"ttfb\":0.025499,\"total\":0.025541,\"exit\":0}\n{\"host\":\"faucet-testnet.ynxweb4.com\",\"round\":2,\"http\":200,\"remoteIP\":\"127.0.0.1\",\"tlsVerify\":0,\"connect\":0.000129,\"tls\":0.024574,\"ttfb\":0.026343,\"total\":0.026388,\"exit\":0}\n{\"host\":\"rpc-testnet.ynxweb4.com\",\"round\":2,\"http\":200,\"remoteIP\":\"127.0.0.1\",\"tlsVerify\":0,\"connect\":0.000137,\"tls\":0.024432,\"ttfb\":0.025383,\"total\":0.025432,\"exit\":0}\n2026-09-19T15:31:36Z\nListenOverflows 0\nListenDrops 392\nTCPTimeouts 12686673\nTCPBacklogDrop 0\nTCPReqQFullDoCookies 0\nTCPReqQFullDrop 0\nTCPSynRetrans 7902075\n38\n"
+  },
+  "boundedExternalRetest": {
+    "checkedAt": "2026-09-19T15:31:35.342Z",
+    "readOnly": true,
+    "boundedRetest": true,
+    "requests": 6,
+    "concurrency": 1,
+    "allReady": true,
+    "observations": [
+      {
+        "round": 1,
+        "role": "legacy",
+        "kind": "faucet",
+        "url": "https://faucet.ynxweb4.com/health",
+        "origin": null,
+        "observedAt": "2026-09-19T15:31:36.291Z",
+        "transportVerified": true,
+        "identityVerified": true,
+        "ready": true,
+        "exitCode": 0,
+        "httpStatus": 200,
+        "remoteIP": "43.153.202.237",
+        "timingSeconds": {
+          "time_namelookup": 0.001398,
+          "time_connect": 0.10847,
+          "time_appconnect": 0.800216,
+          "time_starttransfer": 0.935315,
+          "time_total": 0.935746
+        },
+        "bodySHA256": "dd7b3654505640fb72f3b4c396a9f5e5ca39372db55a4a69af9ac3194ed3b15e",
+        "identity": {
+          "chainId": 6423,
+          "nativeSymbol": "YNXT",
+          "height": 1634114,
+          "build": {
+            "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+            "release": "weekly-v3-faucet",
+            "buildTime": "unknown"
+          }
+        },
+        "faucet": {
+          "service": "ynx-faucetd",
+          "ok": true,
+          "upstreamOk": true,
+          "fundingReady": true,
+          "idempotentRequests": true,
+          "rateLimitMax": 1,
+          "ipRateLimitMax": 100
+        }
+      },
+      {
+        "round": 1,
+        "role": "candidate",
+        "kind": "faucet",
+        "url": "https://faucet-testnet.ynxweb4.com/health",
+        "origin": null,
+        "observedAt": "2026-09-19T15:31:37.201Z",
+        "transportVerified": true,
+        "identityVerified": true,
+        "ready": true,
+        "exitCode": 0,
+        "httpStatus": 200,
+        "remoteIP": "43.153.202.237",
+        "timingSeconds": {
+          "time_namelookup": 0.00324,
+          "time_connect": 0.107708,
+          "time_appconnect": 0.219573,
+          "time_starttransfer": 0.888613,
+          "time_total": 0.889106
+        },
+        "bodySHA256": "ab41a94bab33737a09dcf6b51161426243fd34b68527d2396537c0a0487780f4",
+        "identity": {
+          "chainId": 6423,
+          "nativeSymbol": "YNXT",
+          "height": 1634114,
+          "build": {
+            "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+            "release": "weekly-v3-faucet",
+            "buildTime": "unknown"
+          }
+        },
+        "faucet": {
+          "service": "ynx-faucetd",
+          "ok": true,
+          "upstreamOk": true,
+          "fundingReady": true,
+          "idempotentRequests": true,
+          "rateLimitMax": 1,
+          "ipRateLimitMax": 100
+        }
+      },
+      {
+        "round": 1,
+        "role": "candidate",
+        "kind": "rpc",
+        "url": "https://rpc-testnet.ynxweb4.com/status",
+        "origin": null,
+        "observedAt": "2026-09-19T15:31:37.578Z",
+        "transportVerified": true,
+        "identityVerified": true,
+        "ready": true,
+        "exitCode": 0,
+        "httpStatus": 200,
+        "remoteIP": "43.153.202.237",
+        "timingSeconds": {
+          "time_namelookup": 0.003215,
+          "time_connect": 0.116261,
+          "time_appconnect": 0.238835,
+          "time_starttransfer": 0.356071,
+          "time_total": 0.356302
+        },
+        "bodySHA256": "745a38af57420f77f8d933f0b721fb2c536fdcacbfca0d1dbd76cf7df1d00bea",
+        "identity": {
+          "chainId": 6423,
+          "nativeSymbol": "YNXT",
+          "height": 1634114,
+          "build": {
+            "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+            "release": "core-ecosystem-20260912",
+            "buildTime": "2026-09-12T10:58:37Z"
+          }
+        }
+      },
+      {
+        "round": 2,
+        "role": "legacy",
+        "kind": "faucet",
+        "url": "https://faucet.ynxweb4.com/health",
+        "origin": null,
+        "observedAt": "2026-09-19T15:31:38.661Z",
+        "transportVerified": true,
+        "identityVerified": true,
+        "ready": true,
+        "exitCode": 0,
+        "httpStatus": 200,
+        "remoteIP": "43.153.202.237",
+        "timingSeconds": {
+          "time_namelookup": 0.002939,
+          "time_connect": 0.109644,
+          "time_appconnect": 0.987442,
+          "time_starttransfer": 1.062118,
+          "time_total": 1.063145
+        },
+        "bodySHA256": "866b00e0839ed9f399dfcc16ae45187ec721e162636c8c4535af0a042c7d9390",
+        "identity": {
+          "chainId": 6423,
+          "nativeSymbol": "YNXT",
+          "height": 1634114,
+          "build": {
+            "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+            "release": "weekly-v3-faucet",
+            "buildTime": "unknown"
+          }
+        },
+        "faucet": {
+          "service": "ynx-faucetd",
+          "ok": true,
+          "upstreamOk": true,
+          "fundingReady": true,
+          "idempotentRequests": true,
+          "rateLimitMax": 1,
+          "ipRateLimitMax": 100
+        }
+      },
+      {
+        "round": 2,
+        "role": "candidate",
+        "kind": "faucet",
+        "url": "https://faucet-testnet.ynxweb4.com/health",
+        "origin": null,
+        "observedAt": "2026-09-19T15:31:39.072Z",
+        "transportVerified": true,
+        "identityVerified": true,
+        "ready": true,
+        "exitCode": 0,
+        "httpStatus": 200,
+        "remoteIP": "43.153.202.237",
+        "timingSeconds": {
+          "time_namelookup": 0.002561,
+          "time_connect": 0.077459,
+          "time_appconnect": 0.245558,
+          "time_starttransfer": 0.392512,
+          "time_total": 0.392606
+        },
+        "bodySHA256": "27e27f5302b15c2ea61b84a9ae982b377902c15e199c2a72c8c9fd72d20336b3",
+        "identity": {
+          "chainId": 6423,
+          "nativeSymbol": "YNXT",
+          "height": 1634114,
+          "build": {
+            "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+            "release": "weekly-v3-faucet",
+            "buildTime": "unknown"
+          }
+        },
+        "faucet": {
+          "service": "ynx-faucetd",
+          "ok": true,
+          "upstreamOk": true,
+          "fundingReady": true,
+          "idempotentRequests": true,
+          "rateLimitMax": 1,
+          "ipRateLimitMax": 100
+        }
+      },
+      {
+        "round": 2,
+        "role": "candidate",
+        "kind": "rpc",
+        "url": "https://rpc-testnet.ynxweb4.com/status",
+        "origin": null,
+        "observedAt": "2026-09-19T15:31:39.550Z",
+        "transportVerified": true,
+        "identityVerified": true,
+        "ready": true,
+        "exitCode": 0,
+        "httpStatus": 200,
+        "remoteIP": "43.153.202.237",
+        "timingSeconds": {
+          "time_namelookup": 0.001514,
+          "time_connect": 0.108818,
+          "time_appconnect": 0.224883,
+          "time_starttransfer": 0.33114,
+          "time_total": 0.465023
+        },
+        "bodySHA256": "745a38af57420f77f8d933f0b721fb2c536fdcacbfca0d1dbd76cf7df1d00bea",
+        "identity": {
+          "chainId": 6423,
+          "nativeSymbol": "YNXT",
+          "height": 1634114,
+          "build": {
+            "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+            "release": "core-ecosystem-20260912",
+            "buildTime": "2026-09-12T10:58:37Z"
+          }
+        }
+      }
+    ]
+  },
+  "coordinatorReported": {
+    "independentlyReproducedByNetwork": false,
+    "oldFaucet": {
+      "passed": 4,
+      "total": 5,
+      "failure": "TCP connected around 1.11s then TLS handshake exceeded 5s"
+    },
+    "newFaucet": {
+      "passed": 5,
+      "total": 5,
+      "secondsRange": [
+        0.32,
+        1.51
+      ]
+    },
+    "newRPC": {
+      "passed": 5,
+      "total": 5,
+      "secondsRange": [
+        0.65,
+        3.64
+      ]
+    },
+    "remoteIP": "43.153.202.237"
+  },
+  "diagnosis": {
+    "observed": "Intermittent connection/TLS timeout across public aliases; preserved first-round failure.",
+    "hostResourceExhaustionObserved": false,
+    "listenQueueOverflowDuringLoopbackWindowObserved": false,
+    "loopbackNormalTLS": {
+      "passed": 6,
+      "total": 6,
+      "secondsRange": [
+        0.025432,
+        0.026388
+      ]
+    },
+    "caddyJournal20mEntries": 0,
+    "kernelJournal20mEntries": 0,
+    "caddyOpenFD": 38,
+    "configurationChangeRecommended": false,
+    "inference": "Healthy loopback and low resource pressure make transport-path issues more plausible than a Faucet application-specific failure, but do not identify a failing network hop or exclude intermittent server-side issues outside the observation window.",
+    "unverified": [
+      "Failure-synchronous packet evidence",
+      "Independent regional vantage points",
+      "Current Wallet E2E account/hash/requestId readback"
+    ],
+    "continuousAvailabilityVerified": false
+  }
+}
