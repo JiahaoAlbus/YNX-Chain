@@ -25,7 +25,7 @@ jobs:
             packages/wallet-auth/package-lock.json
             apps/wallet/package-lock.json
       - name: Verify immutable GitHub Actions pins
-        run: node scripts/verify/github-actions-pins-check.mjs
+        run: node scripts/verify/github-actions-pins-check.mjs wallet-ios.yml
       - name: Use the release-locked npm
         run: npm install --global npm@11.5.1
       - run: npm ci
