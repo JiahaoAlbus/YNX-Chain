@@ -2,6 +2,10 @@
 
 Owner branch: `codex/finance-wallet-flow-20260912`
 
+Current implementation checkpoint: `9912d29f82d5ceca689f07e20e944648a2be6de3` / tree `516866313345666ea1987f760aae3adc15464338`
+
+Evidence: `apps/finance/evidence/finance-weekly-v3-activation-readiness-20260919.json`
+
 ## Implemented owner scope
 
 - Finance Broker Sandbox uses server-only configuration, a persistent per-owner mapping, exact Wallet-approved order contracts, durable outbox/idempotency state, a one-shot operator worker and explicit reconciliation. Browser code cannot access provider credentials or call the provider write API.

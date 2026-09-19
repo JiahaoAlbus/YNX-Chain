@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "ynx.finance.owner-evidence.v1",
+  "product": "finance",
+  "scope": "weekly-v3-credential-independent-activation-readiness",
+  "capturedAt": "2026-09-19T14:32:28Z",
+  "branch": "codex/finance-wallet-flow-20260912",
+  "implementation": {
+    "commit": "9912d29f82d5ceca689f07e20e944648a2be6de3",
+    "tree": "516866313345666ea1987f760aae3adc15464338",
+    "predecessor": "4c60196375a360299735f264f3aa967ce56b21c6"
+  },
+  "delivered": {
+    "existingStateReadOnlyInspection": true,
+    "fileCreationOrMutation": false,
+    "databaseMigrationOrBootstrap": false,
+    "providerNetworkAttempted": false,
+    "ownerMappingChecked": true,
+    "walletKeyChecked": true,
+    "exactSingleExecutionRequestRequired": true,
+    "ambiguousProviderStateRejected": true,
+    "unsafeFeePolicyRejectedBeforeWalletChallenge": true,
+    "invalidOrderDraftSeparatedFromServerFeeFailure": true,
+    "operatorOutputContainsOnlyNonSensitiveCounts": true
+  },
+  "verification": [
+    {
+      "command": "go test -race ./internal/finance/... ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go vet ./internal/finance/... ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go build ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "npm --prefix apps/finance test",
+      "result": "PASS",
+      "tests": 65
+    },
+    {
+      "command": "npm --prefix apps/finance run security",
+      "result": "PASS",
+      "filesScanned": 394
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "externalTruth": {
+    "officialBrokerCredentialsProvided": false,
+    "officialBrokerSandboxVerified": false,
+    "providerReadAttempted": false,
+    "providerWriteAttempted": false,
+    "publicRuntimeSourceBound": false,
+    "installedRuntimeVerified": false,
+    "walletAccountApproved": false,
+    "walletSignatureProduced": false,
+    "securitiesOrderSubmitted": false,
+    "chainTransactionSubmitted": false,
+    "productionApproved": false
+  },
+  "rollback": {
+    "source": "Revert implementation commit 9912d29f82d5ceca689f07e20e944648a2be6de3; no provider or production state was changed.",
+    "publicRuntime": "Not applicable; this checkpoint performed no deployment."
+  }
+}
