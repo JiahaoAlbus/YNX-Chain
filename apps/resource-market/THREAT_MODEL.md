@@ -1,6 +1,6 @@
 # Threat model
 
-Local supply-chain gates use locked npm integrity records from the canonical npm registry, lifecycle scripts disabled during CI install, an explicit build-script allowlist, immutable GitHub Action commit pins, Go vet/race tests, `govulncheck`, npm audit, secret/filler scans, browser/DAST smoke, SBOM generation and artifact hashing. The minimum accepted builder is Go 1.25.12: the host default Go 1.25.7 was directly shown vulnerable and is excluded from release builds. Local evidence is recorded in `evidence/local-security-20260722.json`; no remote CI run or public provenance is claimed.
+Local supply-chain gates use locked npm integrity records from the canonical npm registry, lifecycle scripts disabled during CI install, an explicit build-script allowlist, immutable GitHub Action commit pins, Go vet/race tests, `govulncheck`, npm audit, secret/filler scans, browser/DAST smoke, SBOM generation and artifact hashing. The minimum accepted builder is Go 1.25.13; earlier 1.25 patch releases are excluded from new release builds because of fixed standard-library vulnerabilities. The historical local evidence in `evidence/local-security-20260722.json` remains bound to Go 1.25.12 and does not prove the new baseline; no public provenance is claimed.
 
 Protected assets are user authorization, provider identity, capacity evidence, signed meters, order state, receipts, dispute records, bond balances and audit continuity. The product never receives private keys, seed phrases or arbitrary withdrawal authority.
 

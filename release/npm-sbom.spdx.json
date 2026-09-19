@@ -786,11 +786,11 @@
     },
     {
       "name": "adm-zip",
-      "SPDXID": "SPDXRef-Package-adm-zip-0.6.0",
-      "versionInfo": "0.6.0",
+      "SPDXID": "SPDXRef-Package-adm-zip-0.6.1",
+      "versionInfo": "0.6.1",
       "packageFileName": "node_modules/adm-zip",
       "description": "Javascript implementation of zip for nodejs with support for electron original-fs. Allows user to create or extract zip files both in memory or to/from disk",
-      "downloadLocation": "https://registry.npmjs.org/adm-zip/-/adm-zip-0.6.0.tgz",
+      "downloadLocation": "https://registry.npmjs.org/adm-zip/-/adm-zip-0.6.1.tgz",
       "filesAnalyzed": false,
       "homepage": "https://github.com/cthackers/adm-zip",
       "licenseDeclared": "MIT",
@@ -798,13 +798,13 @@
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/adm-zip@0.6.0"
+          "referenceLocator": "pkg:npm/adm-zip@0.6.1"
         }
       ],
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "5e57abc8c85bba4b1d2ada1f9d667d4a4fb80944db9ace0c6ff114df6499c13a00c99e51815a2cfe48bc9fecabd0b5873862ae6a46d74eeb983472d08e175d82"
+          "checksumValue": "5f0ae36bc9f1f5ee68d8dd66cb80ec28278aa5dae7002cabd70b5b3f1043806ccaccac84f6446d04503c99695d23e455943ec205935663fc10dbec9dc0e47a91"
         }
       ]
     },
@@ -1506,11 +1506,11 @@
     },
     {
       "name": "undici",
-      "SPDXID": "SPDXRef-Package-undici-6.27.0",
-      "versionInfo": "6.27.0",
+      "SPDXID": "SPDXRef-Package-undici-6.28.1",
+      "versionInfo": "6.28.1",
       "packageFileName": "node_modules/undici",
       "description": "An HTTP/1.1 client, written from scratch for Node.js",
-      "downloadLocation": "https://registry.npmjs.org/undici/-/undici-6.27.0.tgz",
+      "downloadLocation": "https://registry.npmjs.org/undici/-/undici-6.28.1.tgz",
       "filesAnalyzed": false,
       "homepage": "https://undici.nodejs.org",
       "licenseDeclared": "MIT",
@@ -1518,13 +1518,13 @@
         {
           "referenceCategory": "PACKAGE-MANAGER",
           "referenceType": "purl",
-          "referenceLocator": "pkg:npm/undici@6.27.0"
+          "referenceLocator": "pkg:npm/undici@6.28.1"
         }
       ],
       "checksums": [
         {
           "algorithm": "SHA512",
-          "checksumValue": "6267d5dd89c40f35d10b9959da35ad5961ca1949b5cc8b7c0217ac475b5e9ecf874cdbfe61994dfdda7a1bbdbb2cebcc27cc633fd05eed8d9276bf7a2c39bea6"
+          "checksumValue": "cd6a5d4d50f9e07e3c088c9b2f4ad6437ba4a5bf5ddb7c0cede1f946d7dd99e3fbd1c587363b5fa3b3f8bd95fee42a0370ee772783eee6e5e9ee535f8dce8344"
         }
       ]
     },
@@ -1628,7 +1628,7 @@
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
     {
-      "spdxElementId": "SPDXRef-Package-undici-6.27.0",
+      "spdxElementId": "SPDXRef-Package-undici-6.28.1",
       "relatedSpdxElement": "SPDXRef-Package-ynx-chain-contract-tooling-0.0.0",
       "relationshipType": "DEV_DEPENDENCY_OF"
     },
@@ -1733,7 +1733,7 @@
       "relationshipType": "DEPENDENCY_OF"
     },
     {
-      "spdxElementId": "SPDXRef-Package-undici-6.27.0",
+      "spdxElementId": "SPDXRef-Package-undici-6.28.1",
       "relatedSpdxElement": "SPDXRef-Package-nomicfoundation.hardhat-utils-4.1.3",
       "relationshipType": "DEPENDENCY_OF"
     },
@@ -1938,7 +1938,7 @@
       "relationshipType": "DEPENDENCY_OF"
     },
     {
-      "spdxElementId": "SPDXRef-Package-adm-zip-0.6.0",
+      "spdxElementId": "SPDXRef-Package-adm-zip-0.6.1",
       "relatedSpdxElement": "SPDXRef-Package-hardhat-3.9.0",
       "relationshipType": "DEPENDENCY_OF"
     },
