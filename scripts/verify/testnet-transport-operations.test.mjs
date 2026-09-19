@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import {ROUTES} from './testnet-transport-monitor.mjs';
 import {loadRun,makeBundle,writeBundle,readRegular,sha256} from './testnet-transport-bundle.mjs';
 import {evaluate,parseJobArgs,runJob,storageUsage,status,LIMITS} from './testnet-transport-job.mjs';
+import {clientPathSnapshot} from './testnet-transport-client-path.mjs';
 
 const base=Date.parse('2026-09-19T10:00:00Z');
 function fixture(n=1,bad=false){
@@ -120,4 +121,18 @@ test('fresh timestamp in malformed state cannot report a healthy heartbeat',t=>{
 });
 test('offline job CLI is runnable outside repository cwd',()=>{
   const script=new URL('./testnet-transport-job.mjs',import.meta.url);const r=JSON.parse(execFileSync(process.execPath,[fileURLToPath(script)],{cwd:os.tmpdir(),encoding:'utf8'}));assert.equal(r.networkRequests,0);
+});
+test('macOS route projection detects tunnel/MTU without leaking interface addresses or PAC URL',async()=>{
+  const calls=[];const r=await clientPathSnapshot(async(cmd,args,limits)=>{calls.push([cmd,args]);assert.equal(limits.timeout,3000);return{exitCode:0,stdout:cmd.endsWith('/route')?'gateway: SECRET\ninterface: utun7\n':cmd.endsWith('/ifconfig')?'utun7: mtu 1100\n inet 1.2.3.4 SECRET':'HTTPEnable : 0\nProxyAutoConfigEnable : 1\nProxyAutoConfigURLString : https://SECRET/pac'};},'darwin');
+  assert.equal(r.interfaceFamily,'utun');assert.equal(r.interfaceMTU,1100);assert(r.routeUsesKnownTunnelInterface);assert(r.systemProxyFlags.ProxyAutoConfigEnable);assert(!JSON.stringify(r).includes('SECRET'));assert(!JSON.stringify(r).includes('1.2.3.4'));assert.equal(calls.length,3);assert.deepEqual(calls[0][1],['-n','get','43.153.202.237']);
+});
+test('Linux route/link JSON projection only reports approved metadata, not addresses',async()=>{
+  const r=await clientPathSnapshot(async(cmd,args)=>({exitCode:0,stdout:args.includes('route')?'[{"dev":"wg0","gateway":"SECRET"}]':'[{"mtu":1420,"address":"SECRET"}]'}),'linux');assert.equal(r.interfaceFamily,'wg');assert.equal(r.interfaceMTU,1420);assert(r.routeUsesKnownTunnelInterface);assert(!JSON.stringify(r).includes('SECRET'));
+});
+test('missing route tools remain unknown; non-tunnel interface never proves absence of tunnel',async()=>{
+  const absent=await clientPathSnapshot(async()=>({exitCode:1,stdout:''}),'linux');assert.equal(absent.routeUsesKnownTunnelInterface,null);assert.equal(absent.routeReadable,false);
+  const eth=await clientPathSnapshot(async(cmd,args)=>({exitCode:0,stdout:args.includes('route')?'[{"dev":"eth0"}]':'[{"mtu":1500}]'}),'linux');assert.equal(eth.routeUsesKnownTunnelInterface,false);assert.equal(eth.tunnelAbsenceProven,false);
+});
+test('bundle projects client path fields and strips injected route/proxy metadata',()=>{
+  const f=fixture();f.events[0].clientPath={routeReadable:true,interfaceFamily:'utun',interfaceMTU:1100,routeUsesKnownTunnelInterface:true,proxyURL:'SECRET',rawRoute:'SECRET'};const b=makeBundle(f);assert.equal(b.clientPath.interfaceFamily,'utun');assert.equal(b.clientPath.interfaceMTU,1100);assert(!JSON.stringify(b).includes('SECRET'));
 });
