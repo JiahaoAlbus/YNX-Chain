@@ -52,11 +52,18 @@ graph changed. The placeholder gate excludes the Finance public-endpoint
 manifest in both scanner implementations because the reserved documentation hostname appears there
 only in its fail-closed rejection list.
 
-Mail, Merchant, Music, Pay, Social, Calendar, DEX and Resource Market source and
-workflow paths are identical to the Network baseline. Their unrelated histories
-were not imported and their products were not modified to satisfy integration
-CI. The Wallet iOS workflow runs the existing pin verifier against its own new
-workflow only, while the verifier's default global behavior remains unchanged.
+Mail, Social and Calendar remain identical to the Network baseline. Their
+unrelated histories were not imported. Resource Market and Data Fabric receive
+only the shared repository Go floor (`1.25.13`) in CI. Music and Pay receive
+only an empty Android SDK package override because the pinned setup action's
+retired default `tools` package fails before their builds. Merchant receives a
+regenerated backend SBOM and matching release hash/byte metadata for the shared
+root Go dependency graph. DEX receives the minimum origin-bound Wallet Auth v2
+consumer compatibility and its CI Go floor; no paused-product feature was
+added. The Wallet iOS workflow runs the existing pin verifier against its own
+new workflow only. The independent repository-wide pin gates remain unchanged
+in `.github/workflows/ci.yml` and `.github/workflows/docs-compliance.yml`, so
+the scoped Wallet check does not remove global pin enforcement.
 
 An earlier Wallet-base experiment demonstrated that PR #137 cannot be safely
 applied onto the older Wallet tree without replacing its durable Faucet base.
@@ -74,8 +81,12 @@ Passed on the scope-narrowed working tree before publication:
 - Wallet Web: 354/354; focused browser fixtures: 13/13;
 - Wallet native TypeScript: 509/509; Faucet focused tests: 96/96; SecureStore
   patch tests: 11/11;
+- Wallet Auth complete package suite: 137/137, including the origin-bound v2
+  Gateway vectors and retained DEX/Exchange/Developer/Quant public exports;
 - Android Faucet engine JVM unit tests and offline standalone runtime APK build;
 - Finance Go packages and commands; Finance browser/product suite: 48/48;
+- DEX TypeScript/Vite production build and focused Wallet consumer test; Merchant
+  backend SBOM regeneration, 12/12 tests, build and release verification;
 - Finance/Wallet isolated race integration: pass with unchanged checkpoints,
   including draft, approval/reject/revoke, execution fences, status,
   reconciliation, recovery and provider-wire fixtures;
