@@ -3,6 +3,7 @@ package finance
 import (
 	"context"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
@@ -47,6 +48,9 @@ func (a *Authenticator) VerifyRequest(r *http.Request, scope string) (Session, e
 	raw, err := a.v2.Authorize(r.Context(), r, []string{scope})
 	if err != nil {
 		return Session{}, err
+	}
+	if !slices.Contains(raw.Scopes, scope) {
+		return Session{}, &productsessionv2.Error{Code: "INSUFFICIENT_SCOPE", Status: http.StatusForbidden}
 	}
 	expiresAt, err := time.Parse(time.RFC3339Nano, raw.ExpiresAt)
 	if err != nil {

@@ -90,12 +90,13 @@ func TestBrowserV2RejectsLegacyOriginScopeExpiredAndEVMBeforeNetwork(t *testing.
 // Route/tenant fixtures replace only the authority decision interface; they are
 // not fabricated signatures, deployed sessions, or cryptographic acceptance.
 type financeDecisionFixture struct {
-	mu          sync.Mutex
-	account     string
-	calls       int
-	scopes      []string
-	used        map[string]bool
-	unavailable bool
+	mu             sync.Mutex
+	account        string
+	calls          int
+	scopes         []string
+	used           map[string]bool
+	unavailable    bool
+	responseScopes []string
 }
 
 func (f *financeDecisionFixture) Authorize(_ context.Context, r *http.Request, scopes []string) (productsessionv2.Session, error) {
@@ -115,7 +116,26 @@ func (f *financeDecisionFixture) Authorize(_ context.Context, r *http.Request, s
 	if strings.HasPrefix(key, "B-") {
 		account = f.account
 	}
-	return productsessionv2.Session{Account: account, SessionBinding: "local-test-" + account, ClientID: "ynx-finance-v1", ApplicationID: "com.ynxweb4.finance.web", Scopes: scopes, ExpiresAt: time.Now().Add(time.Minute).UTC().Format(time.RFC3339Nano)}, nil
+	responseScopes := scopes
+	if f.responseScopes != nil {
+		responseScopes = f.responseScopes
+	}
+	return productsessionv2.Session{Account: account, SessionBinding: "local-test-" + account, ClientID: "ynx-finance-v1", ApplicationID: "com.ynxweb4.finance.web", Scopes: responseScopes, ExpiresAt: time.Now().Add(time.Minute).UTC().Format(time.RFC3339Nano)}, nil
+}
+
+func TestBrowserV2AuthenticatorRequiresAuthorityToReturnRequestedScope(t *testing.T) {
+	authority := &financeDecisionFixture{used: map[string]bool{}, responseScopes: []string{"finance.portfolio.read"}}
+	auth := &Authenticator{v2: authority}
+	request := httptest.NewRequest(http.MethodPost, "/api/broker/callback", nil)
+	request.Header.Set(productsessionv2.ProofHeader, "scope-missing")
+	_, err := auth.VerifyRequest(request, "finance.profile.write")
+	var rejection *productsessionv2.Error
+	if !errors.As(err, &rejection) || rejection.Code != "INSUFFICIENT_SCOPE" || rejection.Status != http.StatusForbidden {
+		t.Fatalf("expected missing scope to fail closed, got %v", err)
+	}
+	if len(authority.scopes) != 1 || authority.scopes[0] != "finance.profile.write" {
+		t.Fatalf("authority requested wrong scope: %v", authority.scopes)
+	}
 }
 
 func TestBrowserV2HTTPRouteTenantPersistenceReplayAndPrivateDegradation(t *testing.T) {

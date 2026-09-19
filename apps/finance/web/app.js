@@ -103,7 +103,7 @@ async function api(path,options={}){
   }
   throw new Error('Read connection retry exhausted.')
 }
-function scope(path){if(path.startsWith('/api/ai/'))return'finance.ai.draft';if(['/api/categories','/api/budgets','/api/reminders','/api/notes','/api/privacy','/api/account'].some(v=>path.startsWith(v))||path.includes('/category'))return'finance.profile.write';return'finance.portfolio.read'}
+function scope(path){if(path.startsWith('/api/ai/'))return'finance.ai.draft';if(['/api/categories','/api/budgets','/api/reminders','/api/notes','/api/privacy','/api/account','/api/broker/challenges','/api/broker/callback'].some(v=>path.startsWith(v))||path.includes('/category'))return'finance.profile.write';return'finance.portfolio.read'}
 function notify(message,error=false){const box=$('#notice');box.textContent=message;box.classList.toggle('error',error);box.classList.remove('hidden');clearTimeout(box.timer);box.timer=setTimeout(()=>box.classList.add('hidden'),6500)}
 
 async function signIn(){try{await window.YNXFinanceWallet.connect()}catch(error){notify(error.message,true)}}

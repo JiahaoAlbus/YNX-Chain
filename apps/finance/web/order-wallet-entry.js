@@ -19,16 +19,29 @@ function load(){
   if(canonicalJSON(parsed)!==raw)throw new Error('FINANCE_ORDER_PENDING_INVALID');
   return parsed;
 }
+function pendingRequest(value){
+  if(!value||typeof value!=='object'||Array.isArray(value)||value.version!=='1'||!value.request)throw new Error('FINANCE_ORDER_PENDING_INVALID');
+  return value.request;
+}
+function authorityDate(value){
+  if(typeof value!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/.test(value))throw new Error('FINANCE_ORDER_AUTHORITY_TIME_INVALID');
+  const parsed=new Date(value);
+  if(!Number.isFinite(parsed.getTime())||parsed.toISOString()!==value)throw new Error('FINANCE_ORDER_AUTHORITY_TIME_INVALID');
+  return parsed;
+}
 function begin(unsigned,serverTime){
-  const request=createFinanceOrderApprovalRequest(unsigned,serverTime);
-  const url=encodeFinanceOrderApprovalWalletURL(request,serverTime);
-  save(request);
+  const at=authorityDate(serverTime);
+  const request=createFinanceOrderApprovalRequest(unsigned,at);
+  const url=encodeFinanceOrderApprovalWalletURL(request,at);
+  save({approvedProof:null,request,version:'1'});
   return Object.freeze({request,url});
 }
 function parseReturn(url,serverTime){
-  const request=load();
-  if(!request)throw new Error('FINANCE_ORDER_PENDING_NOT_FOUND');
-  const result=parseFinanceOrderApprovalReturnURL(registry,url,request,serverTime);
+  const pending=load();
+  if(!pending)throw new Error('FINANCE_ORDER_PENDING_NOT_FOUND');
+  const request=pendingRequest(pending);
+  const result=parseFinanceOrderApprovalReturnURL(registry,url,request,authorityDate(serverTime),pending.approvedProof);
+  if(result.status==='approved')save({approvedProof:result.approval,request,version:'1'});
   return canonicalJSON(result);
 }
 

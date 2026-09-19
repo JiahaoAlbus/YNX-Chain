@@ -42,24 +42,28 @@ func ParseTradeEventStream(reader io.Reader, expectedAccountID string, maxEvents
 			return errors.New("PROVIDER_PROTOCOL_ERROR")
 		}
 		var envelope struct {
-			AccountID string `json:"account_id"`
-			Event     string `json:"event"`
-			Timestamp string `json:"timestamp"`
-			Order     Order  `json:"order"`
+			AccountID string        `json:"account_id"`
+			Event     string        `json:"event"`
+			Timestamp string        `json:"timestamp"`
+			Order     providerOrder `json:"order"`
 		}
 		decoder := json.NewDecoder(bytes.NewReader(data.Bytes()))
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&envelope); err != nil || decoder.Decode(&struct{}{}) != io.EOF {
 			return errors.New("PROVIDER_PROTOCOL_ERROR")
 		}
-		if envelope.AccountID != expectedAccountID || !validTradeEvent(envelope.Event) || envelope.Order.ID == "" || envelope.Order.ClientOrderID == "" {
+		if envelope.AccountID != expectedAccountID || !validTradeEvent(envelope.Event) {
+			return errors.New("PROVIDER_PROTOCOL_ERROR")
+		}
+		order, err := normalizeProviderOrder(envelope.Order, id)
+		if err != nil || !tradeEventStatusMatches(envelope.Event, order.Status) {
 			return errors.New("PROVIDER_PROTOCOL_ERROR")
 		}
 		timestamp, err := time.Parse(time.RFC3339Nano, envelope.Timestamp)
 		if err != nil {
 			return errors.New("PROVIDER_PROTOCOL_ERROR")
 		}
-		result = append(result, TradeEvent{Cursor: id, ProviderAccountID: envelope.AccountID, Event: envelope.Event, Timestamp: timestamp, Order: envelope.Order})
+		result = append(result, TradeEvent{Cursor: id, ProviderAccountID: envelope.AccountID, Event: envelope.Event, Timestamp: timestamp, Order: order})
 		if len(result) > maxEvents {
 			return errors.New("TRADE_EVENT_LIMIT_EXCEEDED")
 		}
@@ -110,6 +114,20 @@ func ParseTradeEventStream(reader io.Reader, expectedAccountID string, maxEvents
 		return nil, "", errors.New("TRADE_EVENT_STREAM_EMPTY")
 	}
 	return result, result[len(result)-1].Cursor, nil
+}
+
+func tradeEventStatusMatches(event, status string) bool {
+	expected := map[string]map[string]bool{
+		"new":            {"new": true, "accepted": true, "pending_new": true, "accepted_for_bidding": true},
+		"fill":           {"filled": true},
+		"partial_fill":   {"partially_filled": true},
+		"canceled":       {"canceled": true},
+		"expired":        {"expired": true},
+		"rejected":       {"rejected": true},
+		"pending_cancel": {"pending_cancel": true},
+		"replaced":       {"replaced": true},
+	}
+	return expected[event][status]
 }
 
 func validTradeEvent(value string) bool {

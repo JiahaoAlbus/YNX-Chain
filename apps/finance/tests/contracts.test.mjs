@@ -54,6 +54,9 @@ test('Broker order approval consumes the exact Wallet transport and never auto-s
   for(const forbidden of ['window.open(','location.href=','fetch(route.url','provider.request({method:"eth_sendTransaction"'])assert.equal(orderWallet.includes(forbidden)||js.includes(forbidden),false,forbidden);
   assert.ok(html.includes('order-wallet.js'));
   assert.ok(js.includes("window.YNXFinanceOrderWallet.clear();history.replaceState"));
+  assert.ok(js.includes("'/api/broker/challenges','/api/broker/callback'"),'Broker writes must request finance.profile.write');
+  assert.ok(orderWallet.includes("FINANCE_ORDER_AUTHORITY_TIME_INVALID"),'server time must be parsed at the trusted response boundary');
+  assert.equal(orderWallet.includes('new Date()'),false,'order approval must not fall back to the device wall clock');
 });
 
 test('AI Broker order results remain drafts until copied and explicitly previewed',()=>{

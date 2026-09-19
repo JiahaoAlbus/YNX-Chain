@@ -127,6 +127,8 @@ type BrokerOrderRecord struct {
 	State                 string         `json:"state"`
 	ProviderClientOrderID string         `json:"providerClientOrderId,omitempty"`
 	ProviderOrderID       string         `json:"providerOrderId,omitempty"`
+	ProviderEventCursor   string         `json:"providerEventCursor,omitempty"`
+	ProviderEventAt       time.Time      `json:"providerEventAt,omitempty"`
 	CreatedAt             time.Time      `json:"createdAt"`
 	UpdatedAt             time.Time      `json:"updatedAt"`
 }
@@ -162,6 +164,7 @@ type BrokerageAccountState struct {
 	Outbox       map[string]BrokerOrderOutbox       `json:"outbox"`
 	Journal      []BrokerJournalEvent               `json:"journal"`
 	EventCursor  string                             `json:"eventCursor,omitempty"`
+	TradeEventAt time.Time                          `json:"tradeEventAt,omitempty"`
 	ReconciledAt time.Time                          `json:"reconciledAt,omitempty"`
 }
 

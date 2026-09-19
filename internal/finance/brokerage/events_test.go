@@ -8,7 +8,7 @@ import (
 const eventAccount = "01234567-89ab-4cde-8fab-0123456789ab"
 
 func tradeEventFixture(id, account, event string) string {
-	return "id: " + id + "\nevent: trade_updates\ndata: {\"account_id\":\"" + account + "\",\"event\":\"" + event + "\",\"timestamp\":\"2026-09-19T09:00:00Z\",\"order\":{\"providerOrderId\":\"22222222-3333-4444-8555-666666666666\",\"clientOrderId\":\"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee\",\"assetId\":\"11111111-2222-4333-8444-555555555555\",\"symbol\":\"ACME\",\"side\":\"buy\",\"qty\":\"1\",\"filledQty\":\"1\",\"type\":\"limit\",\"limitPrice\":\"10\",\"timeInForce\":\"day\",\"providerStatus\":\"filled\",\"submittedAt\":\"2026-09-19T08:59:00Z\"}}\n\n"
+	return "id: " + id + "\nevent: trade_updates\ndata: {\"account_id\":\"" + account + "\",\"event\":\"" + event + "\",\"timestamp\":\"2026-09-19T09:00:00Z\",\"order\":{\"id\":\"22222222-3333-4444-8555-666666666666\",\"client_order_id\":\"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee\",\"asset_id\":\"11111111-2222-4333-8444-555555555555\",\"symbol\":\"ACME\",\"side\":\"buy\",\"qty\":\"1\",\"filled_qty\":\"1\",\"type\":\"limit\",\"limit_price\":\"10\",\"time_in_force\":\"day\",\"status\":\"filled\",\"submitted_at\":\"2026-09-19T08:59:00Z\"}}\n\n"
 }
 
 func TestParseTradeEventStreamIsBoundedAndTenantIsolated(t *testing.T) {

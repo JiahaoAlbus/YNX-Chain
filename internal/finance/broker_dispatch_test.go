@@ -19,22 +19,22 @@ type dispatchAdapter struct {
 
 func (d dispatchAdapter) Capabilities() map[string]string { return map[string]string{} }
 func (d dispatchAdapter) Assets(context.Context) (brokerage.AssetResult, error) {
-	return brokerage.AssetResult{}, errors.New("unused")
+	return brokerage.AssetResult{Provider: FinanceOrderProvider, Environment: FinanceOrderTradingEnv, Assets: []brokerage.Asset{{ID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Name: "ACME", Class: "us_equity", Status: "active", Tradable: true}}}, nil
 }
 func (d dispatchAdapter) Quote(_ context.Context, symbol string) (brokerage.Quote, error) {
 	if d.quote.Symbol == symbol {
 		return d.quote, nil
 	}
-	return brokerage.Quote{}, errors.New("unused")
+	return brokerage.Quote{Symbol: symbol, BidPrice: "9.99", AskPrice: "10", Timestamp: "2026-09-19T09:01:59Z", Feed: "iex"}, nil
 }
 func (d dispatchAdapter) Account(context.Context, string, brokerage.AccountResolver) (brokerage.Account, error) {
-	return brokerage.Account{}, errors.New("unused")
+	return brokerage.Account{ID: "01234567-89ab-4cde-8fab-0123456789ab", Status: "ACTIVE", Currency: "USD", Cash: "100", BuyingPower: "100"}, nil
 }
 func (d dispatchAdapter) Orders(context.Context, string, brokerage.AccountResolver) ([]brokerage.Order, string, error) {
 	return nil, "", errors.New("unused")
 }
 func (d dispatchAdapter) Positions(context.Context, string, brokerage.AccountResolver) ([]brokerage.Position, string, error) {
-	return nil, "", errors.New("unused")
+	return []brokerage.Position{}, "positions-request", nil
 }
 func (d dispatchAdapter) Reconcile(context.Context, string, brokerage.AccountResolver) (brokerage.AccountSnapshot, error) {
 	return d.snapshot, nil
@@ -116,6 +116,82 @@ func TestApplyBrokerTradeEventsUsesOwnedMappingAndPersistentCursor(t *testing.T)
 	event.ProviderAccountID = "11234567-89ab-4cde-8fab-0123456789ab"
 	if err := store.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{event}, "event-1", now.Add(2*time.Minute)); err == nil {
 		t.Fatal("cross-tenant event must fail closed")
+	}
+}
+
+func TestBrokerTradeEventsRejectStateAndCursorRegressionAcrossRestart(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	path := store.path
+	filled := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "1", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "filled"}
+	if err := store.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{{Cursor: "event-2", ProviderAccountID: "01234567-89ab-4cde-8fab-0123456789ab", Event: "fill", Timestamp: now.Add(2 * time.Minute), Order: filled}}, "event-2", now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	older := filled
+	older.Status, older.FilledQty = "new", "0"
+	err = reopened.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{{Cursor: "event-1", ProviderAccountID: "01234567-89ab-4cde-8fab-0123456789ab", Event: "new", Timestamp: now.Add(time.Minute), Order: older}}, "event-1", now.Add(3*time.Minute))
+	if err == nil {
+		t.Fatal("stale event regressed a terminal order")
+	}
+	state := reopened.Account(account).Brokerage
+	if state.EventCursor != "event-2" || state.Orders[orderID].State != "filled" || state.Orders[orderID].ProviderEventCursor != "event-2" {
+		t.Fatalf("stale event mutated state: %+v", state.Orders[orderID])
+	}
+}
+
+func TestBrokerReconciliationBindsFullSignedOrderIdentity(t *testing.T) {
+	base := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "1", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "filled"}
+	mutations := map[string]func(*brokerage.Order){
+		"asset":  func(o *brokerage.Order) { o.AssetID = "99999999-2222-4333-8444-555555555555" },
+		"symbol": func(o *brokerage.Order) { o.Symbol = "EVIL" },
+		"side":   func(o *brokerage.Order) { o.Side = "sell" },
+		"qty":    func(o *brokerage.Order) { o.Qty = "2" },
+		"type":   func(o *brokerage.Order) { o.Type = "market" },
+		"price":  func(o *brokerage.Order) { o.LimitPrice = "11" },
+		"tif":    func(o *brokerage.Order) { o.TimeInForce = "gtc" },
+	}
+	for name, mutate := range mutations {
+		t.Run(name, func(t *testing.T) {
+			store, account, orderID, now := consumedBrokerFixture(t)
+			candidate := base
+			candidate.ClientOrderID = orderID
+			mutate(&candidate)
+			err := store.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{Orders: []brokerage.Order{candidate}}, now.Add(time.Minute))
+			if err == nil {
+				t.Fatal("mismatched provider order was accepted")
+			}
+			order := store.Account(account).Brokerage.Orders[orderID]
+			if order.State == "filled" || order.ProviderOrderID != "" {
+				t.Fatalf("mismatch mutated order: %+v", order)
+			}
+		})
+	}
+}
+
+func TestBrokerDispatchBlocksExpiredApprovalAndStalePreflightBeforeSubmit(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	posts := 0
+	adapter := dispatchAdapter{submit: func(brokerage.SubmitOrderRequest) (brokerage.Order, error) { posts++; return brokerage.Order{}, nil }}
+	dispatcher := BrokerDispatcher{Store: store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Hour) }}
+	if _, err := dispatcher.Dispatch(context.Background(), account, orderID); brokerage.ErrorCode(err) != "ORDER_APPROVAL_EXPIRED" {
+		t.Fatalf("expected expiry fence, got %v", err)
+	}
+	if posts != 0 || store.BrokerWorkspace(account, now).Orders[0].State != "provider_rejected" {
+		t.Fatal("expired approval reached provider or was not fenced")
+	}
+
+	store, account, orderID, now = consumedBrokerFixture(t)
+	posts = 0
+	adapter = dispatchAdapter{quote: brokerage.Quote{Symbol: "ACME", Timestamp: now.Add(-time.Hour).Format(time.RFC3339Nano)}, submit: func(brokerage.SubmitOrderRequest) (brokerage.Order, error) { posts++; return brokerage.Order{}, nil }}
+	dispatcher = BrokerDispatcher{Store: store, Adapter: adapter, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+	if _, err := dispatcher.Dispatch(context.Background(), account, orderID); err == nil {
+		t.Fatal("stale preflight quote was accepted")
+	}
+	if posts != 0 {
+		t.Fatal("stale preflight reached provider POST")
 	}
 }
 

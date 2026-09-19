@@ -20,14 +20,19 @@ Owner scope: `apps/finance/**` and `internal/finance/**` only.
 - Imports Wallet authority `ab4dfa927be3d16fde3048b72d705d90c770dcd3` as the exact npm archive `web/vendor/ynx-chain-wallet-auth-1.1.0.tgz` (240104 bytes; SHA-256 `080a9b3b5bf460a0704b3f0d7128b9fdedb2cdc4eab0f129e3853b4ee4f4b605`). The browser bundle uses the package-root Finance request builder, URL encoder and callback parser; it does not hand-build a Wallet URI.
 - Adds an operator `activation-plan` that reports readiness without provider I/O. It cannot submit or cancel an order, and missing activation evidence is a hard failure.
 - Adds an operator-only `broker-worker dispatch-one` executable. It has no HTTP route or automatic service startup, accepts one exact absolute state path/account/order/activation receipt, refuses symlinks and mismatched receipts, performs restart recovery first, uses one bounded provider attempt, and declares ambiguous results non-retryable for reconciliation.
+- Corrects the live browser boundary found by cross-product integration: challenge/callback writes request `finance.profile.write`, authority responses must return that exact scope, and canonical RFC3339-millisecond server time is converted to `Date` only at the trusted boundary with no device-clock fallback.
+- Persists the exact canonical approved proof beside the pending request before callback delivery. A failed Finance HTTP delivery or browser reload therefore retains the same proof needed to validate a later Wallet revocation; only an authenticated successful server receipt clears it.
+- Makes Broker events monotonic across restart by persisting the provider cursor and timestamp per order plus the tenant trade timestamp. Stale, duplicate, unordered or terminal-state-regressing events fail atomically. Reconciliation now binds provider order ID, client ID, asset, symbol, side, quantity, order type, price and time-in-force before changing any state.
+- Adds a final no-write provider preflight before the first submit POST: approval execution window and mapping are rechecked atomically, then provider account, tradable asset identity, fresh quote, positions and buying power/sellable quantity are read. Expired, changed, stale or unavailable inputs enter a safe local terminal state without a provider POST. Existing provider correlation remains reconcile-only.
+- Parses Broker SSE from the strict provider snake_case wire DTO and normalizes it through the same order validation used by HTTP responses; internal camelCase fixtures are no longer accepted as provider evidence.
 
 ## Verification
 
-- `go test -race ./internal/finance/... ./apps/finance/cmd/broker-tools` — PASS.
-- `go vet ./internal/finance/... ./apps/finance/cmd/broker-tools` — PASS.
-- `npm run build:order-wallet --prefix apps/finance/web` — PASS; 76442-byte bundle SHA-256 `6b31276287483b28e1eda1ddbe813a361a370b63dd6e94c1f161fd45ec311f18`.
-- `npm test --prefix apps/finance` — 54/54 PASS.
-- `npm run security --prefix apps/finance` — PASS across 379 text files.
+- `npm run build:order-wallet --prefix apps/finance/web` — PASS; 77058-byte bundle SHA-256 `64aae4b70bba33b375482d99fc239f6475202f70404c60d7e24b22214202cb77`.
+- `go test -race ./internal/finance/... ./apps/finance/cmd/...` — PASS.
+- `go vet ./internal/finance/... ./apps/finance/cmd/...` — PASS.
+- `npm test --prefix apps/finance` — 57/57 PASS, including real Chrome bundle time parsing and approve-delivery-failure/reload/revoke recovery.
+- `npm run security --prefix apps/finance` — PASS across 380 text files.
 - Linux amd64 reproducible build — 28,799,108 bytes; SHA-256 `461b164f8a94f9f8682060206e573630600ecd93c2b86f9ed6010b91643a0b43`.
 - `go test ./...` reached and passed Finance, then failed only in unrelated `internal/bftgateway` and `internal/consensus` tests because `artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json` is absent from this worktree.
 
