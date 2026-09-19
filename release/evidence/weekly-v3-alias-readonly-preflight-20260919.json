@@ -1,0 +1,231 @@
+{
+  "schema": "ynx-testnet-alias-preflight/v1",
+  "checkedAt": "2026-09-19T14:45:28.313Z",
+  "readOnly": true,
+  "candidateReachabilityVerified": true,
+  "originReachabilityVerified": true,
+  "publicVerified": false,
+  "consumerActivationAllowed": false,
+  "dnsChangeAuthorized": false,
+  "remainingGates": [
+    "target loaded full-proxy config and certificate validation",
+    "same-height block/history/contract/state comparison",
+    "actual shared Faucet process/DB/quota identity",
+    "scoped consumer regressions and explicit activation authority"
+  ],
+  "observations": [
+    {
+      "role": "legacy",
+      "kind": "rpc",
+      "url": "https://rpc.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T14:45:20.142Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.152055,
+        "time_connect": 0.276915,
+        "time_appconnect": 0.795938,
+        "time_starttransfer": 1.068361,
+        "time_total": 1.690848
+      },
+      "bodySHA256": "59290c46bbfd98c820ee5f994158642c2cdcca56e36d79eca923366335bf59fa",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1633448,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      }
+    },
+    {
+      "role": "legacy",
+      "kind": "faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T14:45:24.160Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.123997,
+        "time_connect": 1.237628,
+        "time_appconnect": 2.908566,
+        "time_starttransfer": 3.99347,
+        "time_total": 3.993557
+      },
+      "bodySHA256": "4af6a4c6c2ded920bb8150d4278f6e616646a8999f2123b087ad101549e7e3c6",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1633449,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      }
+    },
+    {
+      "role": "candidate",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T14:45:25.949Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.161107,
+        "time_connect": 1.274858,
+        "time_appconnect": 1.410437,
+        "time_starttransfer": 1.645381,
+        "time_total": 1.762807
+      },
+      "bodySHA256": "2d5cd30e2f3acf3971a78b66078f37b8f3e9bf3c1553dbb90fa74e901b8d6441",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1633449,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      }
+    },
+    {
+      "role": "candidate-origin",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": "43.153.202.237",
+      "observedAt": "2026-09-19T14:45:26.292Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.000015,
+        "time_connect": 0.073784,
+        "time_appconnect": 0.154958,
+        "time_starttransfer": 0.321539,
+        "time_total": 0.32175
+      },
+      "bodySHA256": "2d5cd30e2f3acf3971a78b66078f37b8f3e9bf3c1553dbb90fa74e901b8d6441",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1633449,
+        "build": {
+          "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+          "release": "core-ecosystem-20260912",
+          "buildTime": "2026-09-12T10:58:37Z"
+        }
+      }
+    },
+    {
+      "role": "candidate",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T14:45:27.865Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.003224,
+        "time_connect": 0.114052,
+        "time_appconnect": 0.554076,
+        "time_starttransfer": 1.550176,
+        "time_total": 1.550306
+      },
+      "bodySHA256": "24d36138df70a336ea34ea1b4dfc04f206c59a4543319dc6c94873032faa1585",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1633450,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      }
+    },
+    {
+      "role": "candidate-origin",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": "43.153.202.237",
+      "observedAt": "2026-09-19T14:45:28.312Z",
+      "transportVerified": true,
+      "identityVerified": true,
+      "ready": true,
+      "exitCode": 0,
+      "httpStatus": 200,
+      "remoteIP": "43.153.202.237",
+      "timingSeconds": {
+        "time_namelookup": 0.000015,
+        "time_connect": 0.100814,
+        "time_appconnect": 0.219488,
+        "time_starttransfer": 0.426057,
+        "time_total": 0.42618
+      },
+      "bodySHA256": "f754d799ed515dd754fdc8aa3f021d4db28914325de112c83ebbd455b344fb81",
+      "identity": {
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "height": 1633450,
+        "build": {
+          "commit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+          "release": "weekly-v3-faucet",
+          "buildTime": "unknown"
+        }
+      },
+      "faucet": {
+        "service": "ynx-faucetd",
+        "ok": true,
+        "upstreamOk": true,
+        "fundingReady": true,
+        "idempotentRequests": true,
+        "rateLimitMax": 1,
+        "ipRateLimitMax": 100
+      }
+    }
+  ]
+}

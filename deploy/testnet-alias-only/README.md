@@ -1,6 +1,23 @@
 # Two-host Testnet alias-only operator package
 
 **Candidate, not deployed.** No consumers are switched. Mainnet is disabled.
+
+The sentence above describes these reusable candidate files, not current service
+state. The coordinator has since deployed the two aliases using its separately
+validated target configuration. Consult the single Weekly v3 handoff and public
+receipts; running the package builder or preflight cannot authorize a new change.
+`operator-inputs.request.json` is a future-window template, not outstanding inputs
+already supplied for the 2026-09-19 deployment. `faucet-cors.env` contains only the
+five exact official origins; merge that key without replacing private service env.
+
+Build a checksummed, clean-commit package outside the repository with
+`node scripts/deploy/build-testnet-alias-package.mjs --source-commit <full-sha> --output <new-dir>`.
+Optional `--with-faucet` creates Linux amd64/arm64 candidates only, never a release.
+Run `node scripts/verify/testnet-alias-preflight.mjs --live --origin <public-ipv4>`
+for six bounded GET probes. Reachability is separate from state, regional,
+consumer and rollback acceptance. Caddy 2.6.2's tagged reverse-proxy parser
+supports the existing `lb_retries 0` directive; no syntax migration is needed.
+Validate the complete loaded target config before any authorized reload.
 This is an additive ingress package, not a chain/service installer. Keep the old
 RPC/EVM/Faucet hosts, Core binaries/state, genesis, validators, funding account,
 Faucet admission DB and indexes unchanged. Explorer is deliberately not activated.
