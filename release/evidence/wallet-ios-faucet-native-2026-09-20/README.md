@@ -18,3 +18,9 @@ creating a compiler log while Android Emulator and other shared processes were
 retained. No Swift assertion failure was observed. The recorded 36/36 and 14/14
 results come from the completed isolated harness run against the same source
 hashes; iOS SDK and device gates remain false.
+
+Consistency follow-up commit `f9a05a1cf74635e9a18217f8da80f8b877c5b6fb` removes the stale iOS-disabled
+module description. Simulator QA now records `productionEnabled=true` only
+when the committed enabled source gate, both Swift compile records, and Expo
+provider registration all agree. Its evidence explicitly keeps runtime constant
+read and native HTTP execution false; any missing proof fails closed.
