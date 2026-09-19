@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/aigateway/httpdrain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/aiproduct"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
@@ -78,7 +79,9 @@ func main() {
 	}
 	srv := &http.Server{Addr: *httpAddr, Handler: server.Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("YNX AI client listening on http://%s; provider responses remain Gateway-backed only", *httpAddr)
-	log.Fatal(srv.ListenAndServe())
+	if err := httpdrain.ListenAndServe(srv, envDuration("YNX_AI_CLIENT_SHUTDOWN_TIMEOUT", 60*time.Second)); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func decodeKey(value string) ([]byte, error) {

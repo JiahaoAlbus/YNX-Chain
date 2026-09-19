@@ -1,18 +1,17 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"flag"
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/aigateway"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/aigateway/httpdrain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/mutationfreeze"
 )
@@ -62,17 +61,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer stop()
 	srv := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(aigateway.NewServerWithBuild(service, currentBuildInfo()).Handler()), ReadHeaderTimeout: 5 * time.Second}
-	go func() {
-		<-ctx.Done()
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(shutdownCtx)
-	}()
 	log.Printf("YNX AI Gateway listening on http://%s with chain %s and provider %s", *httpAddr, *chainURL, *providerURL)
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err := httpdrain.ListenAndServe(srv, envDurationOrDefault("YNX_AI_GATEWAY_SHUTDOWN_TIMEOUT", 60*time.Second)); err != nil {
 		log.Fatal(err)
 	}
 }
