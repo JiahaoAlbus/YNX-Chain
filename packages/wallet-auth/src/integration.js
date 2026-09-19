@@ -1,6 +1,6 @@
 import { digestHex, exactFields, WalletAuthError } from "./canonical.js";
 import { requestDigest, parseAuthorizationRequest, parseAuthorizationResponse, PRODUCT_DEVICE_ALGORITHM, YNX_NATIVE_CHAIN_ID } from "./protocol.js";
-import { verifyAuthorization } from "./crypto.js";
+import { verifyAuthorization, walletIdentityFromPublicKey } from "./crypto.js";
 import { verifyGatewayCompletion } from "./session.js";
 
 const REGISTRY_V1_FIELDS = ["schemaVersion", "productClientId", "requestingProduct", "bundleId", "callback", "scopes", "maxScopes"];

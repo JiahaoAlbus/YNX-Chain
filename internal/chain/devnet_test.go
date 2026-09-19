@@ -96,6 +96,11 @@ func TestValidatorPeerReadinessPersistence(t *testing.T) {
 	if sync.Status != "synced" || sync.LagBlocks != 1 || sync.Source != "ynx_val_primary" || sync.Target != "ynx_val_sg" || sync.Evidence != "local-sync-unit-test" {
 		t.Fatalf("unexpected peer sync state: %+v", sync)
 	}
+	// High-frequency peer observations are persisted at the next authoritative
+	// chain checkpoint rather than rewriting the full history per observation.
+	if err := devnet.persistSnapshot(); err != nil {
+		t.Fatal(err)
+	}
 
 	reconfigured, err := ParseValidatorSet("ynx_val_primary|primary-updated|43.153.202.237|primary validator|peer-primary;ynx_val_sg|singapore-updated|43.134.23.58|bonded validator|peer-sg;ynx_val_sv|silicon-valley|43.162.100.54|bonded validator|peer-sv")
 	if err != nil {

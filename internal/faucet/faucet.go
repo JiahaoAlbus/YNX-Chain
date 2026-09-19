@@ -67,7 +67,7 @@ func (c Config) normalized() (Config, error) {
 	if c.UpstreamMode != UpstreamAuthoritative && c.UpstreamMode != UpstreamBFT {
 		return Config{}, fmt.Errorf("faucet upstream mode must be %q or %q", UpstreamAuthoritative, UpstreamBFT)
 	}
-	if strings.TrimSpace(c.FaucetKey) == "" && strings.TrimSpace(c.FaucetKeyPath) == "" {
+	if strings.TrimSpace(c.FaucetKey) == "" && strings.TrimSpace(c.FaucetKeyPath) == "" && !(c.UpstreamMode == UpstreamAuthoritative && c.CoreAuthTokenPath != "") {
 		return Config{}, fmt.Errorf("FAUCET_PRIVATE_KEY or YNX_FAUCET_PRIVATE_KEY_FILE is required for ynx-faucetd")
 	}
 	if c.UpstreamMode == UpstreamBFT {
@@ -98,6 +98,12 @@ func (c Config) normalized() (Config, error) {
 	}
 	if c.MaxRequests <= 0 {
 		c.MaxRequests = 1
+	}
+	if c.IPMaxRequests <= 0 {
+		c.IPMaxRequests = 100
+	}
+	if c.IPWindow <= 0 {
+		c.IPWindow = time.Minute
 	}
 	if c.RequestLog == "" {
 		c.RequestLog = "tmp/faucet/requests.jsonl"
@@ -149,7 +155,7 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	service := &Service{cfg: normalized, httpClient: &http.Client{Timeout: 10 * time.Second}, seen: map[string][]time.Time{}}
+	service := &Service{cfg: normalized, httpClient: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, seen: map[string][]time.Time{}}
 	if normalized.UpstreamMode == UpstreamBFT {
 		signer, address, err := loadBFTSigner(normalized)
 		if err != nil {
@@ -158,6 +164,17 @@ func New(cfg Config) (*Service, error) {
 		service.signer = signer
 		service.signerAddr = address
 		service.cfg.FaucetKey = ""
+	}
+	if normalized.UpstreamMode == UpstreamAuthoritative {
+		service.coreAuthToken, err = loadCoreAuthToken(normalized.CoreAuthTokenPath)
+		if err != nil {
+			return nil, err
+		}
+		store, err := openAdmissionStore(normalized)
+		if err != nil {
+			return nil, fmt.Errorf("open durable faucet admission: %w", err)
+		}
+		service.admissions = store
 	}
 	return service, nil
 }
@@ -203,17 +220,22 @@ func loadBFTSigner(cfg Config) (*secp256k1.PrivateKey, string, error) {
 }
 
 type Request struct {
-	Address string `json:"address"`
-	Amount  int64  `json:"amount,omitempty"`
+	RequestID string `json:"requestId,omitempty"`
+	Address   string `json:"address"`
+	Amount    int64  `json:"amount,omitempty"`
 }
 
 type Response struct {
-	Transaction    chain.Transaction `json:"transaction"`
-	Address        string            `json:"address"`
-	Amount         int64             `json:"amount"`
-	NativeSymbol   string            `json:"nativeSymbol"`
-	RequestID      string            `json:"requestId"`
-	TruthfulStatus string            `json:"truthfulStatus"`
+	Transaction      chain.Transaction `json:"transaction"`
+	Address          string            `json:"address"`
+	Amount           int64             `json:"amount"`
+	NativeSymbol     string            `json:"nativeSymbol"`
+	RequestID        string            `json:"requestId"`
+	TruthfulStatus   string            `json:"truthfulStatus"`
+	TransactionHash  string            `json:"transactionHash,omitempty"`
+	Status           string            `json:"status,omitempty"`
+	RetrySameRequest bool              `json:"retrySameRequest,omitempty"`
+	Replayed         bool              `json:"replayed,omitempty"`
 }
 
 type LogEntry struct {
@@ -228,6 +250,12 @@ type LogEntry struct {
 }
 
 func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (Response, int, error) {
+	if s.cfg.UpstreamMode == UpstreamAuthoritative {
+		return s.requestAuthoritative(ctx, req, remoteAddr)
+	}
+	if req.RequestID != "" {
+		return Response{}, http.StatusBadRequest, fmt.Errorf("request IDs are not supported by this BFT faucet adapter")
+	}
 	requestID := requestID()
 	ip := clientIP(remoteAddr)
 	recipient, recipientErr := s.normalizeRecipient(req.Address)
@@ -335,37 +363,7 @@ func (s *Service) allow(ip, address string, now time.Time) bool {
 }
 
 func (s *Service) callRPC(ctx context.Context, address string, amount int64) (chain.Transaction, error) {
-	if s.cfg.UpstreamMode == UpstreamBFT {
-		return s.callBFTGateway(ctx, address, amount)
-	}
-	body, err := json.Marshal(Request{Address: address, Amount: amount})
-	if err != nil {
-		return chain.Transaction{}, err
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(s.cfg.RPCURL, "/")+"/faucet", bytes.NewReader(body))
-	if err != nil {
-		return chain.Transaction{}, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-YNX-Faucet-Auth", "configured")
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return chain.Transaction{}, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		var errorBody map[string]any
-		_ = json.NewDecoder(resp.Body).Decode(&errorBody)
-		return chain.Transaction{}, fmt.Errorf("RPC faucet returned %d: %v", resp.StatusCode, errorBody)
-	}
-	var tx chain.Transaction
-	if err := json.NewDecoder(resp.Body).Decode(&tx); err != nil {
-		return chain.Transaction{}, err
-	}
-	if tx.Hash == "" {
-		return chain.Transaction{}, fmt.Errorf("RPC faucet returned empty transaction hash")
-	}
-	return tx, nil
+	return s.callBFTGateway(ctx, address, amount)
 }
 
 type bftBroadcastResponse struct {
@@ -543,22 +541,27 @@ func (s *Service) Health() Health {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return Health{
-		OK:             s.lastError == "",
-		Service:        "ynx-faucetd",
-		RPCURL:         s.cfg.RPCURL,
-		UpstreamMode:   s.cfg.UpstreamMode,
-		FaucetAddress:  s.signerAddr,
-		NativeSymbol:   "YNXT",
-		DefaultAmount:  s.cfg.DefaultAmount,
-		MaxAmount:      s.cfg.MaxAmount,
-		RateLimit:      fmt.Sprintf("%d per %s per ip/address", s.cfg.MaxRequests, s.cfg.Window),
-		RequestLog:     s.cfg.RequestLog,
-		Requests:       s.requests,
-		Successes:      s.successes,
-		Denied:         s.denied,
-		LastTxHash:     s.lastHash,
-		LastError:      s.lastError,
-		TruthfulStatus: s.truthfulStatus(),
+		OK:                s.lastError == "",
+		Service:           "ynx-faucetd",
+		RequestPath:       "/request",
+		RequestStatusPath: "/request-status", IPRateLimitMax: s.cfg.IPMaxRequests, IPRateLimitWindowSeconds: int64(s.cfg.IPWindow.Seconds()),
+		IdempotentRequests:     s.cfg.UpstreamMode == UpstreamAuthoritative,
+		RateLimitMax:           s.cfg.MaxRequests,
+		RateLimitWindowSeconds: int64(s.cfg.Window.Seconds()),
+		RPCURL:                 s.cfg.RPCURL,
+		UpstreamMode:           s.cfg.UpstreamMode,
+		FaucetAddress:          s.signerAddr,
+		NativeSymbol:           "YNXT",
+		DefaultAmount:          s.cfg.DefaultAmount,
+		MaxAmount:              s.cfg.MaxAmount,
+		RateLimit:              fmt.Sprintf("%d per %s per address", s.cfg.MaxRequests, s.cfg.Window),
+		RequestLog:             s.cfg.RequestLog,
+		Requests:               s.requests,
+		Successes:              s.successes,
+		Denied:                 s.denied,
+		LastTxHash:             s.lastHash,
+		LastError:              s.lastError,
+		TruthfulStatus:         s.truthfulStatus(),
 	}
 }
 
@@ -620,7 +623,7 @@ func (s *Service) probeHealth(ctx context.Context) (health Health) {
 	health.Height = status.Height
 	if !health.UpstreamOK {
 		health.OK = false
-		health.LastError = "RPC native symbol is not YNXT"
+		health.LastError = "RPC network identity does not match the Faucet"
 	}
 	if health.UpstreamOK {
 		health.OK = true

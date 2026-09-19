@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"os"
@@ -17,9 +18,11 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ethnative"
 )
 
 const (
@@ -30,6 +33,12 @@ const (
 )
 
 var transactionHashPattern = regexp.MustCompile(`^0x[0-9a-fA-F]{64}$`)
+
+// ErrSnapshotDurabilityUncertain means an admitted transaction or its current
+// block inclusion lacks a completed durability checkpoint. It also covers a
+// replacement followed by a failed durability step. Callers must reconcile the
+// identical signed request and durable receipt, never assume a rollback.
+var ErrSnapshotDurabilityUncertain = errors.New("snapshot durability was not fully confirmed")
 
 var requestValidityRules = []RequestValidityRule{
 	{ID: "protect-private-secrets", Name: "Protect private secrets", Classification: RequestIllegalOrAbusive, Description: "Requests for private keys, seed phrases, or mnemonics are illegal or abusive under YNX Chain Law.", RequiresUserNotice: true, Keywords: []string{"private key", "seed phrase", "mnemonic"}},
@@ -55,43 +64,52 @@ var requestValidityRules = []RequestValidityRule{
 }
 
 type Devnet struct {
-	mu                   sync.RWMutex
-	cfg                  NetworkConfig
-	blocks               []Block
-	pending              []Transaction
-	accounts             map[string]*Account
-	validators           []Validator
-	validatorPeers       map[string]ValidatorPeer
-	validatorPeerSyncs   map[string]ValidatorPeerSync
-	nodeIdentity         NodeIdentityConfig
-	replicationRuntime   ReplicationRuntimeStatus
-	lots                 map[string]TrustTraceLot
-	payIntents           map[string]PayIntent
-	invoices             map[string]Invoice
-	refunds              map[string]RefundRecord
-	paySettlements       map[string]PaySettlement
-	webhookSignatures    map[string]WebhookSignature
-	payEvents            map[string]PayEvent
-	riskLabels           map[string][]RiskLabel
-	evidencePackets      map[string]EvidencePacket
-	governanceRequests   map[string]GovernanceRequest
-	trustAppeals         map[string]TrustAppeal
-	trackingReviews      map[string]TrackingPolicyReview
-	aiPermissions        map[string]AIPermissionGrant
-	aiActions            map[string]AIActionProposal
-	transparencyEntries  map[string]TransparencyEntry
-	resourceDelegations  map[string]ResourceDelegation
-	resourceRentals      map[string]ResourceRental
-	resourceIncome       map[string]ResourceIncomeRecord
-	resourcePolicy       ResourceMarketPolicy
-	resourcePools        map[string]ResourcePool
-	resourceSponsorships map[string]ResourceSponsorship
-	resourceSponsorIdem  map[string]ResourceSponsorIdempotency
-	resourceActionRefs   map[string]string
-	resourceSponsorAudit []ResourceSponsorAuditEvent
-	contracts            map[string]ContractArtifact
-	dataDir              string
-	lastPersistenceError string
+	mu                       sync.RWMutex
+	persistenceMu            sync.Mutex
+	durableCheckpoint        atomic.Pointer[transactionCheckpoint]
+	ethereumNativeTransfers  bool
+	cfg                      NetworkConfig
+	blocks                   []Block
+	pending                  []Transaction
+	accounts                 map[string]*Account
+	validators               []Validator
+	validatorPeers           map[string]ValidatorPeer
+	validatorPeerSyncs       map[string]ValidatorPeerSync
+	nodeIdentity             NodeIdentityConfig
+	replicationRuntime       ReplicationRuntimeStatus
+	lots                     map[string]TrustTraceLot
+	payIntents               map[string]PayIntent
+	invoices                 map[string]Invoice
+	refunds                  map[string]RefundRecord
+	paySettlements           map[string]PaySettlement
+	webhookSignatures        map[string]WebhookSignature
+	payEvents                map[string]PayEvent
+	riskLabels               map[string][]RiskLabel
+	evidencePackets          map[string]EvidencePacket
+	governanceRequests       map[string]GovernanceRequest
+	trustAppeals             map[string]TrustAppeal
+	trackingReviews          map[string]TrackingPolicyReview
+	aiPermissions            map[string]AIPermissionGrant
+	aiActions                map[string]AIActionProposal
+	transparencyEntries      map[string]TransparencyEntry
+	resourceDelegations      map[string]ResourceDelegation
+	resourceRentals          map[string]ResourceRental
+	resourceIncome           map[string]ResourceIncomeRecord
+	resourcePolicy           ResourceMarketPolicy
+	resourcePools            map[string]ResourcePool
+	resourceSponsorships     map[string]ResourceSponsorship
+	resourceSponsorIdem      map[string]ResourceSponsorIdempotency
+	resourceActionRefs       map[string]string
+	resourceSponsorAudit     []ResourceSponsorAuditEvent
+	contracts                map[string]ContractArtifact
+	dexAssets                map[string]NativeDexAsset
+	dexBalances              map[string]map[string]int64
+	dexPools                 map[string]NativeDexPool
+	dexEvents                []NativeDexEvent
+	dataDir                  string
+	lastPersistenceError     string
+	uncertainTransactions    map[string]struct{}
+	replicationDurableHeight uint64
 }
 
 func DefaultValidators() []Validator {
@@ -282,6 +300,10 @@ type devnetSnapshot struct {
 	SponsorLog       []ResourceSponsorAuditEvent           `json:"resourceSponsorAudit,omitempty"`
 	SponsorIntegrity string                                `json:"resourceSponsorIntegrity,omitempty"`
 	Contracts        map[string]ContractArtifact           `json:"contracts"`
+	DexAssets        map[string]NativeDexAsset             `json:"dexAssets,omitempty"`
+	DexBalances      map[string]map[string]int64           `json:"dexBalances,omitempty"`
+	DexPools         map[string]NativeDexPool              `json:"dexPools,omitempty"`
+	DexEvents        []NativeDexEvent                      `json:"dexEvents,omitempty"`
 }
 
 func DefaultNetworkConfig(slug string) NetworkConfig {
@@ -436,6 +458,10 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 		resourceSponsorIdem:  map[string]ResourceSponsorIdempotency{},
 		resourceActionRefs:   map[string]string{},
 		contracts:            map[string]ContractArtifact{},
+		dexAssets:            map[string]NativeDexAsset{},
+		dexBalances:          map[string]map[string]int64{},
+		dexPools:             map[string]NativeDexPool{},
+		dexEvents:            []NativeDexEvent{},
 		validators:           normalized,
 	}
 	d.applyConfiguredPeersLocked(normalizedPeers)
@@ -889,34 +915,75 @@ func (d *Devnet) RecordValidatorPeerSync(input ValidatorPeerSyncInput) (Validato
 		LatestHeight: input.TargetHeight,
 		Evidence:     input.Evidence,
 	}, now)
-	err := d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return sync, err
+	// Peer polling is high-frequency operational evidence. It is checkpointed
+	// by normal block or replication persistence; rewriting the full append-only
+	// chain snapshot for every peer observation would starve concurrent reads.
+	return sync, nil
 }
 
 func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {
+	tx, _, err := d.faucet(address, amount, "")
+	return tx, err
+}
+
+func (d *Devnet) faucet(address string, amount int64, requestHash string) (Transaction, bool, error) {
 	if amount <= 0 {
-		return Transaction{}, errors.New("amount must be positive")
+		return Transaction{}, false, errors.New("amount must be positive")
 	}
-	if address == "" {
-		return Transaction{}, errors.New("address is required")
+	if address == "" || address == FaucetAddress {
+		return Transaction{}, false, errors.New("a recipient different from the faucet is required")
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	account, faucet := d.account(address), d.account(FaucetAddress)
+	if requestHash != "" {
+		if existing, ok := d.transactionLocked(requestHash); ok {
+			if existing.Type != "faucet" || existing.From != FaucetAddress || existing.To != address || existing.Amount != amount || existing.Fee != 0 {
+				return Transaction{}, false, ErrFaucetRequestConflict
+			}
+			_, uncertain := d.uncertainTransactions[requestHash]
+			if uncertain || (d.dataDir != "" && !d.transactionCheckpointCovers(existing)) {
+				if err := d.confirmTransactionPersistenceLocked(); err != nil {
+					return existing, true, err
+				}
+			}
+			return existing, true, nil
+		}
+	}
+	tx, undo, err := d.stageFaucetLocked(address, amount, requestHash)
+	if err != nil {
+		return Transaction{}, false, err
+	}
+	tx, err = d.persistTransferLocked(tx, undo)
+	return tx, false, err
+}
+
+// stageFaucetLocked mutates only the account/lot/pending state. Its caller must
+// retain the write lock through one durable checkpoint or restore this undo.
+func (d *Devnet) stageFaucetLocked(address string, amount int64, requestHash string) (Transaction, transferUndo, error) {
+	account, faucet := d.accountReadOnly(address), d.accountReadOnly(FaucetAddress)
 	if faucet.Balance < amount {
-		return Transaction{}, errors.New("faucet balance exhausted")
+		return Transaction{}, transferUndo{}, errors.New("faucet balance exhausted")
+	}
+	if account.Balance > math.MaxInt64-amount {
+		return Transaction{}, transferUndo{}, errors.New("recipient balance would overflow")
 	}
 	lotID := hashParts("lot", address, fmt.Sprint(time.Now().UnixNano()), fmt.Sprint(amount))
+	if requestHash != "" {
+		lotID = hashParts("faucet-request-lot-v1", requestHash)
+	}
+	flows := []LotFlow{{LotID: lotID, Amount: amount, From: FaucetAddress, To: address}}
+	undo := d.transferUndoLocked(FaucetAddress, address, FaucetAddress, flows)
+	account, faucet = d.account(address), d.account(FaucetAddress)
 	faucet.Balance -= amount
 	account.Balance += amount
 	account.Lots[lotID] += amount
 	d.lots[lotID] = TrustTraceLot{LotID: lotID, Amount: amount, Origin: "devnet faucet mint", RiskWeight: 0}
-	tx := d.newTxLocked("faucet", FaucetAddress, address, amount, 0, []LotFlow{{LotID: lotID, Amount: amount, From: FaucetAddress, To: address}}, "devnet faucet mint")
+	tx := d.newTxLocked("faucet", FaucetAddress, address, amount, 0, flows, "devnet faucet mint")
+	if requestHash != "" {
+		tx.Hash = requestHash
+	}
 	d.pending = append(d.pending, tx)
-	err := d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return tx, err
+	return tx, undo, nil
 }
 
 func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
@@ -928,28 +995,49 @@ func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	sender, receiver := d.account(from), d.account(to)
+	sender, receiver := d.accountReadOnly(from), d.accountReadOnly(to)
 	const fee int64 = 1
-	if sender.Balance < amount+fee {
+	if amount > math.MaxInt64-fee || sender.Balance < amount+fee {
 		return Transaction{}, errors.New("insufficient balance")
 	}
-	flows, err := d.moveLotsLocked(sender, receiver, amount)
+	if sender.Nonce == math.MaxUint64 || sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
+		return Transaction{}, errors.New("sender nonce or bandwidth usage is exhausted")
+	}
+	validator := d.nextValidatorAddressLocked()
+	if err := d.validateTransferCreditsLocked(from, to, validator, amount, fee); err != nil {
+		return Transaction{}, err
+	}
+	flows, err := d.planLotMovementLocked(sender, receiver, amount)
 	if err != nil {
 		return Transaction{}, err
 	}
+	undo := d.transferUndoLocked(from, to, validator, flows)
+	receiver = d.account(to)
+	d.applyLotFlowsLocked(sender, receiver, flows)
 	sender.Balance -= amount + fee
 	sender.Nonce++
 	sender.ResourceUsage.BandwidthUsed++
 	receiver.Balance += amount
-	d.account(d.nextValidatorAddressLocked()).Balance += fee
+	d.account(validator).Balance += fee
 	tx := d.newTxLocked("transfer", from, to, amount, fee, flows, "native transfer")
 	d.pending = append(d.pending, tx)
-	err = d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return tx, err
+	return d.persistTransferLocked(tx, undo)
 }
 
 func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, bool, error) {
+	var ethereumTransfer *ethnative.Transfer
+	// Ethereum signatures are a separate domain, never a native JSON signature.
+	// Reverify here at state admission, including every normalized field.
+	if len(input.EthereumRaw) > 0 {
+		eth, err := ethnative.Verify(input.EthereumRaw, d.cfg.ChainID)
+		if err != nil {
+			return Transaction{}, false, err
+		}
+		if !ethnative.Matches(eth, input.Hash, input.From, input.To, input.Amount, input.Fee, input.Nonce) {
+			return Transaction{}, false, errors.New("Ethereum envelope does not match native transfer fields")
+		}
+		ethereumTransfer = &eth
+	}
 	if !transactionHashPattern.MatchString(input.Hash) || input.Hash != strings.ToLower(input.Hash) {
 		return Transaction{}, false, errors.New("signed transaction hash must be canonical lowercase 32-byte hex")
 	}
@@ -971,9 +1059,18 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if len(input.EthereumRaw) > 0 && !d.ethereumNativeTransfers {
+		return Transaction{}, false, errors.New("Ethereum native transfer adapter is disabled")
+	}
 	if existing, ok := d.transactionLocked(input.Hash); ok {
 		if existing.Type != "transfer" || existing.From != input.From || existing.To != input.To || existing.Amount != input.Amount || existing.Fee != input.Fee || existing.Nonce != input.Nonce {
 			return Transaction{}, false, errors.New("signed transaction hash conflicts with existing transaction")
+		}
+		_, uncertain := d.uncertainTransactions[input.Hash]
+		if uncertain || (d.dataDir != "" && !d.transactionCheckpointCovers(existing)) {
+			if err := d.confirmTransactionPersistenceLocked(); err != nil {
+				return existing, false, err
+			}
 		}
 		return existing, true, nil
 	}
@@ -990,28 +1087,179 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 	if input.Amount > math.MaxInt64-input.Fee || sender.Balance < input.Amount+input.Fee {
 		return Transaction{}, false, errors.New("insufficient YNXT balance for amount and fee")
 	}
+	if ethereumTransfer != nil {
+		if _, exists := d.contracts[input.To]; exists {
+			return Transaction{}, false, errors.New("native Ethereum adapter does not execute contracts")
+		}
+		budget := new(big.Int).Add(ethereumTransfer.Value, new(big.Int).Mul(new(big.Int).SetUint64(ethereumTransfer.Gas), ethereumTransfer.GasPrice))
+		if ethnative.Wei(sender.Balance).Cmp(budget) < 0 {
+			return Transaction{}, false, errors.New("insufficient funds for value plus gas budget")
+		}
+	}
 	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
 		return Transaction{}, false, errors.New("sender bandwidth usage is exhausted")
 	}
-	receiver := d.account(input.To)
-	flows, err := d.moveLotsLocked(sender, receiver, input.Amount)
+	validator := d.nextValidatorAddressLocked()
+	if err := d.validateTransferCreditsLocked(input.From, input.To, validator, input.Amount, input.Fee); err != nil {
+		return Transaction{}, false, err
+	}
+	receiver := d.accountReadOnly(input.To)
+	flows, err := d.planLotMovementLocked(sender, receiver, input.Amount)
 	if err != nil {
 		return Transaction{}, false, err
 	}
+	undo := d.transferUndoLocked(input.From, input.To, validator, flows)
+	receiver = d.account(input.To)
+	d.applyLotFlowsLocked(sender, receiver, flows)
 	sender.Balance -= input.Amount + input.Fee
 	sender.Nonce = input.Nonce
 	sender.ResourceUsage.BandwidthUsed++
 	receiver.Balance += input.Amount
-	d.account(d.nextValidatorAddressLocked()).Balance += input.Fee
+	d.account(validator).Balance += input.Fee
 	tx := Transaction{
 		Hash: input.Hash, Type: "transfer", From: input.From, To: input.To,
 		Amount: input.Amount, Fee: input.Fee, Nonce: input.Nonce,
 		Timestamp: time.Now().UTC(), LotFlows: flows, Memo: "signed native YNXT transfer",
 	}
+	if len(input.EthereumRaw) > 0 {
+		tx.Memo = ethnative.MemoPrefix + hex.EncodeToString(input.EthereumRaw)
+	}
 	d.pending = append(d.pending, tx)
-	err = d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
+	tx, err = d.persistTransferLocked(tx, undo)
 	return tx, false, err
+}
+
+func (d *Devnet) validateTransferCreditsLocked(from, to, validator string, amount, fee int64) error {
+	credits := map[string]int64{to: amount}
+	if credits[validator] > math.MaxInt64-fee {
+		return errors.New("native credit exceeds ledger range")
+	}
+	credits[validator] += fee
+	for address, credit := range credits {
+		balance := d.accountReadOnly(address).Balance
+		if address == from {
+			balance -= amount + fee
+		}
+		if balance > math.MaxInt64-credit {
+			return errors.New("native recipient balance would overflow")
+		}
+	}
+	return nil
+}
+
+type transferLotBalanceUndo struct {
+	amount  int64
+	present bool
+}
+
+type transferAccountUndo struct {
+	account *Account
+	state   Account // Lots is intentionally shallow; only moved entries are saved.
+	lots    map[string]transferLotBalanceUndo
+}
+
+type transferTraceUndo struct {
+	lot     TrustTraceLot
+	present bool
+}
+
+type transferUndo struct {
+	accounts map[string]transferAccountUndo
+	lots     map[string]transferTraceUndo
+	pending  []Transaction
+}
+
+// Capture only the three affected accounts and moved lot entries. Copying a
+// complete snapshot here would duplicate the follower's entire block history.
+func (d *Devnet) transferUndoLocked(from, to, validator string, flows []LotFlow) transferUndo {
+	undo := transferUndo{accounts: map[string]transferAccountUndo{}, lots: map[string]transferTraceUndo{}, pending: d.pending}
+	for _, address := range []string{from, to, validator} {
+		if _, saved := undo.accounts[address]; saved {
+			continue
+		}
+		entry := transferAccountUndo{account: d.accounts[address]}
+		if entry.account != nil {
+			entry.state = *entry.account
+			if address == from || address == to {
+				entry.lots = make(map[string]transferLotBalanceUndo, len(flows))
+				for _, flow := range flows {
+					amount, present := entry.account.Lots[flow.LotID]
+					entry.lots[flow.LotID] = transferLotBalanceUndo{amount, present}
+				}
+			}
+		}
+		undo.accounts[address] = entry
+	}
+	for _, flow := range flows {
+		lot, present := d.lots[flow.LotID]
+		undo.lots[flow.LotID] = transferTraceUndo{lot, present}
+	}
+	return undo
+}
+
+func (d *Devnet) rollbackTransferLocked(undo transferUndo) {
+	for address, entry := range undo.accounts {
+		if entry.account == nil {
+			delete(d.accounts, address)
+			continue
+		}
+		*entry.account = entry.state
+		for lotID, lot := range entry.lots {
+			if lot.present {
+				entry.account.Lots[lotID] = lot.amount
+			} else {
+				delete(entry.account.Lots, lotID)
+			}
+		}
+	}
+	for lotID, entry := range undo.lots {
+		if entry.present {
+			d.lots[lotID] = entry.lot
+		} else {
+			delete(d.lots, lotID)
+		}
+	}
+	clear(d.pending[len(undo.pending):])
+	d.pending = undo.pending
+}
+
+func (d *Devnet) persistTransferLocked(tx Transaction, undo transferUndo) (Transaction, error) {
+	return d.persistMutationLocked(tx, func() { d.rollbackTransferLocked(undo) })
+}
+
+// All covered mutations hold the write lock until the snapshot outcome is known.
+// A completed checkpoint confirms every uncertain transaction in that snapshot.
+func (d *Devnet) persistMutationLocked(tx Transaction, rollback func()) (Transaction, error) {
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	if err != nil {
+		if errors.Is(err, ErrSnapshotDurabilityUncertain) {
+			// Rename has exposed this state to readers and restart. Rolling back
+			// only memory would disagree with the snapshot now on disk.
+			if d.uncertainTransactions == nil {
+				d.uncertainTransactions = map[string]struct{}{}
+			}
+			d.uncertainTransactions[tx.Hash] = struct{}{}
+			return tx, err
+		}
+		rollback()
+		return Transaction{}, err
+	}
+	d.uncertainTransactions = nil
+	return tx, nil
+}
+
+func (d *Devnet) confirmTransactionPersistenceLocked() error {
+	err := d.persistSnapshotLocked()
+	if err != nil {
+		// Retry failure cannot undo a prior admission or prove its current
+		// in-memory block inclusion was durably recorded.
+		err = fmt.Errorf("%w: retry checkpoint: %w", ErrSnapshotDurabilityUncertain, err)
+	} else {
+		d.uncertainTransactions = nil
+	}
+	d.recordPersistenceErrorLocked(err)
+	return err
 }
 
 func (d *Devnet) Stake(address string, amount int64) (Transaction, ResourceBalance, error) {
@@ -1162,7 +1410,10 @@ func (d *Devnet) CreateInvoiceWithIdempotency(intentID string, dueInHours int64,
 	}
 	invoice.PaymentLink = "/pay/checkout/" + invoice.ID
 	d.invoices[invoice.ID] = invoice
-	d.recordPayEventLocked("invoice.issued", invoice.IntentID, invoice.ID, invoice.Merchant, invoice.Amount, invoice.Currency, invoice.IdempotencyKey, now)
+	event := d.recordPayEventLocked("invoice.issued", invoice.IntentID, invoice.ID, invoice.Merchant, invoice.Amount, invoice.Currency, invoice.IdempotencyKey, now)
+	event.InvoiceID = invoice.ID
+	event.AuditHash = payEventAuditHash(event)
+	d.payEvents[event.ID] = event
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return invoice, err
@@ -1320,6 +1571,139 @@ func (d *Devnet) CreateRefundWithIdempotency(intentID string, amount int64, reas
 	d.refunds[refund.ID] = refund
 	d.recordPayEventLocked("refund.recorded", refund.IntentID, refund.ID, intent.Merchant, refund.Amount, refund.Currency, refund.IdempotencyKey, now)
 	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return refund, err
+}
+
+func (d *Devnet) Refund(id string) (RefundRecord, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	refund, ok := d.refunds[strings.TrimSpace(id)]
+	return refund, ok
+}
+
+func (d *Devnet) CompleteRefund(refundID, transactionHash, idempotencyKey string) (RefundRecord, error) {
+	refundID = strings.TrimSpace(refundID)
+	transactionHash = strings.TrimSpace(transactionHash)
+	idempotencyKey = strings.TrimSpace(idempotencyKey)
+	if refundID == "" {
+		return RefundRecord{}, errors.New("refundId is required")
+	}
+	if !transactionHashPattern.MatchString(transactionHash) || transactionHash != strings.ToLower(transactionHash) {
+		return RefundRecord{}, errors.New("transactionHash must be canonical lowercase 32-byte hex")
+	}
+	if idempotencyKey == "" || len(idempotencyKey) > 128 {
+		return RefundRecord{}, errors.New("idempotencyKey must contain 1 to 128 characters")
+	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	refund, ok := d.refunds[refundID]
+	if !ok {
+		return RefundRecord{}, errors.New("refund not found")
+	}
+	if refund.Status == "completed" {
+		if refund.TransactionHash == transactionHash && refund.CompletionIdempotencyKey == idempotencyKey {
+			return refund, nil
+		}
+		if refund.CompletionIdempotencyKey == idempotencyKey {
+			return RefundRecord{}, errors.New("idempotencyKey was already used with a different refund transaction")
+		}
+		return RefundRecord{}, errors.New("refund is already completed")
+	}
+	if refund.Status != "recorded" {
+		return RefundRecord{}, errors.New("refund is not eligible for completion")
+	}
+	intent, ok := d.payIntents[refund.IntentID]
+	if !ok {
+		return RefundRecord{}, errors.New("refund payment intent is unavailable")
+	}
+	var settlement PaySettlement
+	for _, candidate := range d.paySettlements {
+		if candidate.IntentID != refund.IntentID || candidate.Status != "paid" {
+			continue
+		}
+		if settlement.ID != "" {
+			return RefundRecord{}, errors.New("refund payment intent has multiple paid settlements")
+		}
+		settlement = candidate
+	}
+	if settlement.ID == "" {
+		return RefundRecord{}, errors.New("refund requires a paid invoice settlement")
+	}
+	invoice, ok := d.invoices[settlement.InvoiceID]
+	if !ok || invoice.IntentID != refund.IntentID || invoice.Status != "paid" || settlement.Amount != intent.Amount || settlement.Currency != refund.Currency {
+		return RefundRecord{}, errors.New("refund paid settlement authority is inconsistent")
+	}
+	for _, candidate := range d.paySettlements {
+		if candidate.TransactionHash == transactionHash {
+			return RefundRecord{}, errors.New("transactionHash is already bound to an invoice settlement")
+		}
+	}
+	for _, candidate := range d.refunds {
+		if candidate.ID != refund.ID && candidate.TransactionHash == transactionHash {
+			return RefundRecord{}, errors.New("transactionHash is already bound to another refund")
+		}
+	}
+	var completedBefore int64
+	for _, candidate := range d.refunds {
+		if candidate.IntentID != refund.IntentID || candidate.Status != "completed" {
+			continue
+		}
+		if candidate.Amount <= 0 || candidate.Amount > settlement.Amount-completedBefore {
+			return RefundRecord{}, errors.New("completed refunds exceed paid settlement authority")
+		}
+		completedBefore += candidate.Amount
+	}
+	if refund.Amount > settlement.Amount-completedBefore {
+		return RefundRecord{}, errors.New("refund exceeds remaining paid settlement amount")
+	}
+	tx, found := d.transactionLocked(transactionHash)
+	if !found || tx.BlockNum == 0 || tx.BlockHash == "" {
+		return RefundRecord{}, errors.New("refund transaction is not committed")
+	}
+	_, payoutCanonical, err := normalizePayAddress(settlement.PayoutAddress)
+	if err != nil {
+		return RefundRecord{}, errors.New("refund merchant payout address is invalid")
+	}
+	_, payerCanonical, err := normalizePayAddress(settlement.Payer)
+	if err != nil {
+		return RefundRecord{}, errors.New("refund payer address is invalid")
+	}
+	if tx.Type != "transfer" || tx.From != payoutCanonical || tx.To != payerCanonical || tx.Amount != refund.Amount || tx.Fee != 1 {
+		return RefundRecord{}, errors.New("refund transaction does not match merchant, payer, amount, and native fee")
+	}
+	if tx.Timestamp.Before(refund.CreatedAt) || tx.Timestamp.Before(settlement.CreatedAt) {
+		return RefundRecord{}, errors.New("refund transaction predates refund authority")
+	}
+
+	now := time.Now().UTC()
+	refund.InvoiceID = settlement.InvoiceID
+	refund.SettlementID = settlement.ID
+	refund.Merchant = settlement.Merchant
+	refund.PayoutAddress = settlement.PayoutAddress
+	refund.Payer = settlement.Payer
+	refund.Status = "completed"
+	refund.TransactionHash = transactionHash
+	refund.BlockNumber = tx.BlockNum
+	refund.CompletedAt = &now
+	refund.CompletionIdempotencyKey = idempotencyKey
+	refund.AuditHash = payRefundAuditHash(refund)
+	d.refunds[refund.ID] = refund
+
+	completed := completedBefore + refund.Amount
+	status := "partially_refunded"
+	if completed == settlement.Amount {
+		status = "refunded"
+	}
+	intent.RefundedAmount = completed
+	intent.RefundStatus = status
+	d.payIntents[intent.ID] = intent
+	invoice.RefundedAmount = completed
+	invoice.RefundStatus = status
+	d.invoices[invoice.ID] = invoice
+	d.recordPayRefundCompletionEventLocked(refund)
+	err = d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	return refund, err
 }
@@ -2590,7 +2974,6 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 
 func (d *Devnet) ProduceBlock() Block {
 	d.mu.Lock()
-	defer d.mu.Unlock()
 	parent := d.blocks[len(d.blocks)-1]
 	txs := append([]Transaction(nil), d.pending...)
 	d.pending = nil
@@ -2602,11 +2985,20 @@ func (d *Devnet) ProduceBlock() Block {
 		block.Transactions[i].BlockHash = block.Hash
 		block.Transactions[i].BlockNum = block.Height
 		block.Transactions[i].Logs = d.evmLogsForTransactionLocked(block.Transactions[i], uint64(i), logIndex)
+		d.finalizeNativeDexRecordLocked(block.Transactions[i].Hash, block.Height, block.Hash)
 		logIndex += uint64(len(block.Transactions[i].Logs))
 	}
 	d.blocks = append(d.blocks, block)
 	d.markValidatorProducedBlockLocked(validator, block.Height, block.Time)
-	d.recordPersistenceErrorLocked(d.persistSnapshotLocked())
+	d.mu.Unlock()
+
+	// The block is committed in memory before the durable full-state checkpoint.
+	// Persist under a read lock so account, Explorer and DEX reads remain
+	// available while the large append-only history is encoded and fsynced.
+	persistErr := d.persistSnapshot()
+	d.mu.Lock()
+	d.recordPersistenceErrorLocked(persistErr)
+	d.mu.Unlock()
 	return block
 }
 
@@ -3013,16 +3405,25 @@ func (d *Devnet) loadSnapshot() error {
 	if path == "" {
 		return nil
 	}
-	payload, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("read devnet snapshot: %w", err)
+		return fmt.Errorf("open devnet snapshot: %w", err)
 	}
+	defer file.Close()
 	var snapshot devnetSnapshot
-	if err := json.Unmarshal(payload, &snapshot); err != nil {
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&snapshot); err != nil {
 		return fmt.Errorf("decode devnet snapshot: %w", err)
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			return errors.New("decode devnet snapshot: multiple JSON values")
+		}
+		return fmt.Errorf("decode devnet snapshot trailing data: %w", err)
 	}
 	markerPresent, err := validateSnapshotIntegrityMarker(d.snapshotIntegrityMarkerPath())
 	if err != nil {
@@ -3064,22 +3465,53 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if path == "" {
 		return nil
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return fmt.Errorf("create devnet data dir: %w", err)
-	}
 	snapshot, err := sealDevnetSnapshot(d.snapshotLocked())
 	if err != nil {
 		return fmt.Errorf("seal devnet snapshot: %w", err)
 	}
-	payload, err := json.MarshalIndent(snapshot, "", "  ")
+	return d.persistPreparedSnapshot(snapshot)
+}
+
+func writeDurableSnapshotJSON(path string, value any) error {
+	return writeDurableSnapshotJSONWithDirectorySync(path, value, syncSnapshotDirectory)
+}
+
+func writeDurableSnapshotJSONWithDirectorySync(path string, value any, syncDirectory func(string) error) (err error) {
+	tmpPath := path + ".tmp"
+	file, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
+		return fmt.Errorf("open devnet snapshot temp file: %w", err)
+	}
+	defer func() {
+		if file != nil {
+			_ = file.Close()
+		}
+		if err != nil {
+			_ = os.Remove(tmpPath)
+		}
+	}()
+	stream := jsonBodyWriter{target: file}
+	encoder := json.NewEncoder(&stream)
+	encoder.SetIndent("", "  ")
+	if err = encoder.Encode(value); err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
 	}
-	if err := writeDurableSnapshot(path, payload); err != nil {
-		return err
+	if err = stream.Finish(); err != nil {
+		return fmt.Errorf("finish devnet snapshot: %w", err)
 	}
-	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte("2\n")); err != nil {
-		return fmt.Errorf("persist devnet snapshot integrity marker: %w", err)
+	if err = file.Sync(); err != nil {
+		return fmt.Errorf("sync devnet snapshot: %w", err)
+	}
+	if err = file.Close(); err != nil {
+		file = nil
+		return fmt.Errorf("close devnet snapshot: %w", err)
+	}
+	file = nil
+	if err = os.Rename(tmpPath, path); err != nil {
+		return fmt.Errorf("replace devnet snapshot: %w", err)
+	}
+	if err = syncDirectory(filepath.Dir(path)); err != nil {
+		return fmt.Errorf("%w: %w", ErrSnapshotDurabilityUncertain, err)
 	}
 	return nil
 }
@@ -3129,12 +3561,19 @@ func writeDurableSnapshot(path string, payload []byte) (err error) {
 	if err = os.Rename(tmpPath, path); err != nil {
 		return fmt.Errorf("replace devnet snapshot: %w", err)
 	}
-	directory, openErr := os.Open(filepath.Dir(path))
-	if openErr != nil {
-		return fmt.Errorf("open devnet snapshot directory: %w", openErr)
+	if err = syncSnapshotDirectory(filepath.Dir(path)); err != nil {
+		return fmt.Errorf("%w: %w", ErrSnapshotDurabilityUncertain, err)
+	}
+	return nil
+}
+
+func syncSnapshotDirectory(path string) error {
+	directory, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("open devnet snapshot directory: %w", err)
 	}
 	defer directory.Close()
-	if err = directory.Sync(); err != nil {
+	if err := directory.Sync(); err != nil {
 		return fmt.Errorf("sync devnet snapshot directory: %w", err)
 	}
 	return nil
@@ -3234,6 +3673,18 @@ func (d *Devnet) ensureStateDefaults() {
 	if d.contracts == nil {
 		d.contracts = map[string]ContractArtifact{}
 	}
+	if d.dexAssets == nil {
+		d.dexAssets = map[string]NativeDexAsset{}
+	}
+	if d.dexBalances == nil {
+		d.dexBalances = map[string]map[string]int64{}
+	}
+	if d.dexPools == nil {
+		d.dexPools = map[string]NativeDexPool{}
+	}
+	if d.dexEvents == nil {
+		d.dexEvents = []NativeDexEvent{}
+	}
 	if len(d.validators) == 0 {
 		d.validators = DefaultValidators()
 	}
@@ -3320,6 +3771,18 @@ func (d *Devnet) newTxLocked(kind, from, to string, amount, fee int64, lots []Lo
 }
 
 func (d *Devnet) moveLotsLocked(sender, receiver *Account, amount int64) ([]LotFlow, error) {
+	flows, err := d.planLotMovementLocked(sender, receiver, amount)
+	if err != nil {
+		return nil, err
+	}
+	d.applyLotFlowsLocked(sender, receiver, flows)
+	return flows, nil
+}
+
+func (d *Devnet) planLotMovementLocked(sender, receiver *Account, amount int64) ([]LotFlow, error) {
+	if amount <= 0 {
+		return nil, errors.New("lot movement amount must be positive")
+	}
 	remaining := amount
 	flows := []LotFlow{}
 	keys := make([]string, 0, len(sender.Lots))
@@ -3339,11 +3802,9 @@ func (d *Devnet) moveLotsLocked(sender, receiver *Account, amount int64) ([]LotF
 		if move > remaining {
 			move = remaining
 		}
-		sender.Lots[lotID] -= move
-		receiver.Lots[lotID] += move
-		lot := d.lots[lotID]
-		lot.LastInbound = receiver.Address
-		d.lots[lotID] = lot
+		if sender != receiver && receiver.Lots[lotID] > math.MaxInt64-move {
+			return nil, errors.New("recipient traceable lot balance would overflow")
+		}
 		flows = append(flows, LotFlow{LotID: lotID, Amount: move, From: sender.Address, To: receiver.Address})
 		remaining -= move
 	}
@@ -3351,6 +3812,19 @@ func (d *Devnet) moveLotsLocked(sender, receiver *Account, amount int64) ([]LotF
 		return nil, errors.New("insufficient traceable lot balance")
 	}
 	return flows, nil
+}
+
+func (d *Devnet) applyLotFlowsLocked(sender, receiver *Account, flows []LotFlow) {
+	if receiver.Lots == nil {
+		receiver.Lots = map[string]int64{}
+	}
+	for _, flow := range flows {
+		sender.Lots[flow.LotID] -= flow.Amount
+		receiver.Lots[flow.LotID] += flow.Amount
+		lot := d.lots[flow.LotID]
+		lot.LastInbound = receiver.Address
+		d.lots[flow.LotID] = lot
+	}
 }
 
 func (d *Devnet) activeDelegatedYNXTLocked(provider string) int64 {
@@ -3449,19 +3923,45 @@ func (d *Devnet) recordPayEventLocked(eventType, intentID, objectID, merchant st
 		IdempotencyKey: idempotencyKey,
 		CreatedAt:      createdAt,
 	}
-	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	event.AuditHash = payEventAuditHash(event)
 	d.payEvents[event.ID] = event
 	return event
 }
 
 func (d *Devnet) recordPaySettlementEventLocked(settlement PaySettlement) PayEvent {
 	event := d.recordPayEventLocked("invoice.paid", settlement.IntentID, settlement.ID, settlement.Merchant, settlement.Amount, settlement.Currency, settlement.IdempotencyKey, settlement.CreatedAt)
+	event.InvoiceID = settlement.InvoiceID
 	event.PayoutAddress = settlement.PayoutAddress
 	event.Payer = settlement.Payer
 	event.TransactionHash = settlement.TransactionHash
-	event.AuditHash = hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	event.AuditHash = payEventAuditHash(event)
 	d.payEvents[event.ID] = event
 	return event
+}
+
+func (d *Devnet) recordPayRefundCompletionEventLocked(refund RefundRecord) PayEvent {
+	event := d.recordPayEventLocked("refund.completed", refund.IntentID, refund.ID, refund.Merchant, refund.Amount, refund.Currency, refund.CompletionIdempotencyKey, *refund.CompletedAt)
+	event.InvoiceID = refund.InvoiceID
+	event.SettlementID = refund.SettlementID
+	event.PayoutAddress = refund.PayoutAddress
+	event.Payer = refund.Payer
+	event.TransactionHash = refund.TransactionHash
+	event.AuditHash = payEventAuditHash(event)
+	d.payEvents[event.ID] = event
+	return event
+}
+
+func payEventAuditHash(event PayEvent) string {
+	if event.Type == "invoice.paid" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	if event.Type == "refund.completed" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.SettlementID, event.ObjectID, event.Merchant, event.PayoutAddress, event.Payer, event.TransactionHash, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	if event.InvoiceID != "" {
+		return hashParts("pay-event-audit", event.Type, event.IntentID, event.InvoiceID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
+	}
+	return hashParts("pay-event-audit", event.Type, event.IntentID, event.ObjectID, event.Merchant, fmt.Sprint(event.Amount), event.Currency, event.IdempotencyKey, event.CreatedAt.Format(time.RFC3339Nano))
 }
 
 func normalizePayAddress(value string) (native, canonical string, err error) {
@@ -3478,6 +3978,14 @@ func normalizePayAddress(value string) (native, canonical string, err error) {
 
 func paySettlementAuditHash(value PaySettlement) string {
 	return hashParts("pay-settlement-audit", value.ID, value.IntentID, value.InvoiceID, value.Merchant, value.PayoutAddress, value.Payer, fmt.Sprint(value.Amount), value.Currency, value.TransactionHash, fmt.Sprint(value.BlockNumber), value.Status, value.IdempotencyKey, value.CreatedAt.Format(time.RFC3339Nano))
+}
+
+func payRefundAuditHash(value RefundRecord) string {
+	completedAt := ""
+	if value.CompletedAt != nil {
+		completedAt = value.CompletedAt.UTC().Format(time.RFC3339Nano)
+	}
+	return hashParts("pay-refund-audit", value.ID, value.IntentID, value.InvoiceID, value.SettlementID, value.Merchant, value.PayoutAddress, value.Payer, fmt.Sprint(value.Amount), value.Currency, value.Reason, value.Status, value.TransactionHash, fmt.Sprint(value.BlockNumber), value.IdempotencyKey, value.CompletionIdempotencyKey, value.CreatedAt.Format(time.RFC3339Nano), completedAt)
 }
 
 func (d *Devnet) evmLogsForTransactionLocked(tx Transaction, txIndex, firstLogIndex uint64) []EVMLog {

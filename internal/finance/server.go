@@ -1,6 +1,7 @@
 package finance
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -10,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -67,6 +69,13 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 	}
 	if len(cfg.OperationsKey) < 32 {
 		return nil, errors.New("finance operations key must contain at least 32 characters")
+	}
+	if cfg.WalletGatewayURL != "" {
+		parsed, err := url.Parse(strings.TrimRight(cfg.WalletGatewayURL, "/"))
+		loopbackHTTP := parsed.Scheme == "http" && (parsed.Hostname() == "127.0.0.1" || parsed.Hostname() == "localhost" || parsed.Hostname() == "::1")
+		if err != nil || (parsed.Scheme != "https" && !loopbackHTTP) || parsed.Host == "" || parsed.User != nil || (parsed.Path != "" && parsed.Path != "/") || parsed.RawQuery != "" || parsed.Fragment != "" {
+			return nil, errors.New("finance Wallet Gateway URL must be an HTTPS origin or loopback HTTP development origin")
+		}
 	}
 	now := cfg.Now
 	if now == nil {
@@ -333,7 +342,7 @@ func (s *Server) sources(w http.ResponseWriter, r *http.Request, session Session
 		"consumerEnvelopeVersion": ReadSourceEnvelopeVersion,
 		"readOnly":                true,
 		"sources":                 sources,
-		"integrationState":        "owner-contracts-pending",
+		"integrationState":        integrationState,
 	})
 }
 

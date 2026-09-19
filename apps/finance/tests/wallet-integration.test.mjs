@@ -13,7 +13,7 @@ test('Finance registry is the exact central Wallet Auth v2 shape',()=>{
   assert.deepEqual(Object.keys(registry).sort(),['bundleId','callbacks','maxScopes','productClientId','productDeviceAlgorithms','requestingProduct','schemaVersion','scopes'].sort());
   assert.equal(registry.schemaVersion,2);
   assert.equal(registry.productClientId,'ynx-finance-v1');
-  assert.deepEqual(registry.callbacks,['ynxfinance://wallet-auth/callback']);
+  assert.deepEqual(registry.callbacks,['https://finance.ynxweb4.com/wallet-auth/callback','ynxfinance://wallet-auth/callback']);
   assert.deepEqual(registry.scopes,[...registry.scopes].sort());
   assert.deepEqual(registry.productDeviceAlgorithms,['p256-sha256']);
   assert.deepEqual(vector.registryEntry,registry);
@@ -28,8 +28,8 @@ test('Finance request digest matches the canonical cross-product test vector',()
   assert.equal(vector.session.verifierVersion,'wallet-auth-v1');
 });
 
-test('central status remains false until registry merge, deployment and installed approval pass',()=>{
-  assert.equal(manifest.centralIntegration.registryMerged,false);
-  assert.equal(manifest.centralIntegration.gatewayDeployed,false);
+test('central status remains false until installed strong-biometric approval and callback pass',()=>{
+  assert.equal(manifest.centralIntegration.registryMerged,true);
+  assert.equal(manifest.centralIntegration.gatewayDeployed,true);
   assert.equal(manifest.centralIntegration.walletApprovalTestedOnInstalledBuild,false);
 });

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
@@ -23,10 +25,18 @@ var (
 )
 
 func main() {
+	if err := runFaucet(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func runFaucet() (result error) {
 	httpAddr := flag.String("http", envOrDefault("YNX_FAUCET_HTTP_ADDR", "127.0.0.1:6428"), "faucet HTTP listen address")
 	rpcURL := flag.String("rpc", envOrDefault("YNX_FAUCET_RPC_URL", "http://127.0.0.1:6420"), "YNX Chain RPC URL")
 	upstreamMode := flag.String("upstream-mode", envOrDefault("YNX_FAUCET_UPSTREAM_MODE", faucet.UpstreamAuthoritative), "faucet upstream mode: authoritative or bft")
 	requestLog := flag.String("request-log", envOrDefault("YNX_FAUCET_REQUEST_LOG", "tmp/faucet/requests.jsonl"), "JSONL request log path")
+	admissionPath := flag.String("admission-db", os.Getenv("YNX_FAUCET_ADMISSION_DB"), "durable admission database (default: request-log + .admissions.db)")
+	maxAdmissions := flag.Int("max-admissions", envIntOrDefault("YNX_FAUCET_MAX_ADMISSIONS", 100000), "retained admission capacity; existing IDs remain retryable at capacity")
 	defaultAmount := flag.Int64("default-amount", envInt64OrDefault("YNX_FAUCET_DEFAULT_AMOUNT", 100), "default faucet amount")
 	maxAmount := flag.Int64("max-amount", envInt64OrDefault("YNX_FAUCET_MAX_AMOUNT", 100), "max faucet amount")
 	window := flag.Duration("rate-window", envDurationOrDefault("YNX_FAUCET_RATE_LIMIT_WINDOW", time.Hour), "rate limit window")
@@ -34,6 +44,10 @@ func main() {
 	healthTimeout := flag.Duration("health-timeout", envDurationOrDefault("YNX_FAUCET_HEALTH_TIMEOUT", 2*time.Second), "total read-only health probe deadline (at most 5s)")
 	flag.Parse()
 
+	coreTokenPath := strings.TrimSpace(os.Getenv("YNX_FAUCET_CORE_AUTH_TOKEN_FILE"))
+	if strings.EqualFold(strings.TrimSpace(*upstreamMode), faucet.UpstreamAuthoritative) && coreTokenPath == "" {
+		return errors.New("YNX_FAUCET_CORE_AUTH_TOKEN_FILE is required for the authoritative Faucet")
+	}
 	service, err := faucet.New(faucet.Config{
 		CoreAuthTokenPath: coreTokenPath,
 		RPCURL:            *rpcURL,
@@ -55,22 +69,16 @@ func main() {
 		HealthTimeout:     *healthTimeout,
 	})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer func() { result = errors.Join(result, service.Close()) }()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	srv := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(faucet.NewServerWithBuild(service, currentBuildInfo()).Handler()), ReadHeaderTimeout: 5 * time.Second}
-	go func() {
-		<-ctx.Done()
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(shutdownCtx)
-	}()
 	log.Printf("YNX Faucet listening on http://%s and funding via %s mode=%s", *httpAddr, *rpcURL, *upstreamMode)
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
-	}
+	return serveHTTPUntilShutdown(ctx, srv, 5*time.Second)
 }
 
 func currentBuildInfo() buildinfo.Info {

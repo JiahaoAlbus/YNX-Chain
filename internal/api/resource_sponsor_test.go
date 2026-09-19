@@ -20,8 +20,12 @@ func TestResourceSponsorHTTPAuthorizationLifecycleAndEvidence(t *testing.T) {
 	ownerKey, userKey := apiResourceKey(1), apiResourceKey(2)
 	owner, _ := consensus.NativeAddress(ownerKey.PubKey().SerializeCompressed())
 	user, _ := consensus.NativeAddress(userKey.PubKey().SerializeCompressed())
-	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": owner, "amount": 100}, http.StatusCreated, nil)
-	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": user, "amount": 100}, http.StatusCreated, nil)
+	if _, err := devnet.Faucet(owner, 100); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet(user, 100); err != nil {
+		t.Fatal(err)
+	}
 
 	input := chain.ResourcePoolCreateInput{PoolType: "merchant", Name: "API merchant", AllowedBeneficiaries: []string{user}, AllowedScopes: []string{"pay_api"}, AllowedResourceTypes: []string{"bandwidth"}, PerActionLimit: chain.ResourceUnits{Bandwidth: 5}, CumulativeAllowance: chain.ResourceUnits{Bandwidth: 20}, ExpiresAt: time.Now().UTC().Add(time.Hour), IdempotencyKey: "api-pool-create"}
 	input.Authorization = apiResourceAuthorization(t, ownerKey, chain.ResourcePoolCreateAction, input, 1)
