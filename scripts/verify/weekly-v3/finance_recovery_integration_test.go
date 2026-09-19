@@ -32,7 +32,7 @@ func weeklyRecoveryVectors(t *testing.T) map[string]json.RawMessage {
 
 func TestWeeklyV3PagedPollFindsUnknownAfter500AndRestart(t *testing.T) {
 	server, _, statePath, now := weeklyServer(t)
-	challenge := weeklyApproved(t, server)
+	challenge := weeklyExecutionApproved(t, server)
 	adapter, provider := weeklyAlpaca(t, true)
 	dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now }}
 	record, err := dispatcher.Dispatch(context.Background(), testAccount, challenge.Unsigned.Order.OrderID)
@@ -87,7 +87,7 @@ func weeklyEventVector(t *testing.T, envelope map[string]any) ([]brokerage.Trade
 
 func TestWeeklyV3IndependentCursorsSameTimeResumeAndTenantFence(t *testing.T) {
 	server, _, statePath, now := weeklyServer(t)
-	challenges := []BrokerApprovalChallenge{weeklyApproved(t, server), weeklyApproved(t, server)}
+	challenges := []BrokerApprovalChallenge{weeklyExecutionApproved(t, server), weeklyExecutionApproved(t, server)}
 	vectors := weeklyRecoveryVectors(t)
 	var envelopes []map[string]any
 	if err := json.Unmarshal(vectors["sameTimeDifferentOrders"], &envelopes); err != nil {
@@ -177,7 +177,7 @@ func TestWeeklyV3QuoteWireStateAndExecutionFence(t *testing.T) {
 	} {
 		t.Run(scenario.name, func(t *testing.T) {
 			server, _, _, now := weeklyServer(t)
-			challenge := weeklyApproved(t, server)
+			challenge := weeklyExecutionApproved(t, server)
 			adapter, provider := weeklyAlpaca(t, false)
 			provider.quoteTimestamp = now.Add(-scenario.age).Format(time.RFC3339Nano)
 			provider.quoteHTTPStatus = scenario.status
@@ -218,7 +218,7 @@ func TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery(t *test
 		for _, lostACK := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s_lost_ack_%v", transport, lostACK), func(t *testing.T) {
 				server, _, statePath, now := weeklyServer(t)
-				challenge := weeklyApproved(t, server)
+				challenge := weeklyExecutionApproved(t, server)
 				orderID := challenge.Unsigned.Order.OrderID
 				adapter, provider := weeklyAlpaca(t, lostACK)
 				dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now }}
@@ -227,6 +227,7 @@ func TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery(t *test
 					t.Fatalf("initial provider ACK state: %+v %v", record, err)
 				}
 				provider.mu.Lock()
+				provider.requestID = "isolated-reconciliation-request"
 				provider.order["status"] = "rejected"
 				provider.order["updated_at"] = now.Add(time.Second).Format(time.RFC3339Nano)
 				wire, _ := json.Marshal(provider.order)
@@ -258,6 +259,27 @@ func TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery(t *test
 				if state.Orders[orderID].State != "provider_rejected" || state.Orders[orderID].ApprovalState != "consumed" || state.Orders[orderID].ProviderOrderID != rejectedOrder["id"] || state.Outbox[orderID].Status != "provider_rejected" || state.Outbox[orderID].Attempts != 1 {
 					t.Fatalf("provider rejection was lost or confused with Wallet decision: order=%+v outbox=%+v", state.Orders[orderID], state.Outbox[orderID])
 				}
+				wantHTTP, wantCursor := "isolated-provider-request", ""
+				if lostACK {
+					wantHTTP = ""
+				}
+				if transport == "poll" {
+					wantHTTP = "isolated-reconciliation-request"
+				} else {
+					wantCursor = envelope["event_id"].(string)
+				}
+				stored, queued := state.Orders[orderID], state.Outbox[orderID]
+				if stored.ProviderRawStatus != "rejected" || queued.ProviderRawStatus != "rejected" || stored.ProviderHTTPRequestID != wantHTTP || queued.ProviderHTTPRequestID != wantHTTP || stored.ProviderEventCursor != wantCursor || state.EventCursor != wantCursor {
+					t.Fatalf("raw status, HTTP correlation and event cursor not independently durable: order=%+v outbox=%+v", stored, queued)
+				}
+				audit := state.Journal[len(state.Journal)-1]
+				journalHTTP := wantHTTP
+				if transport == "event" {
+					journalHTTP = ""
+				}
+				if audit.ProviderRawStatus != "rejected" || audit.ProviderHTTPRequestID != journalHTTP || audit.ProviderEventCursor != wantCursor || audit.RequestID == wantHTTP || audit.RequestID != stored.RequestID {
+					t.Fatalf("provider audit conflated HTTP/event/local Wallet request identity: %+v", audit)
+				}
 				before, _ := os.ReadFile(statePath)
 				// Even a newly delivered cursor cannot revive a terminal rejection.
 				envelope["event"], envelope["event_id"] = "new", "01K5G3YEKRXAXKDZK3AABK68T6"
@@ -288,5 +310,37 @@ func TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery(t *test
 				}
 			})
 		}
+	}
+}
+
+func TestWeeklyV3ProviderHTTPFailureCorrelationSurvivesRestart(t *testing.T) {
+	server, _, statePath, now := weeklyServer(t)
+	challenge := weeklyExecutionApproved(t, server)
+	adapter, provider := weeklyAlpaca(t, false)
+	provider.submitHTTPStatus = 403
+	provider.requestID = "isolated-provider-refusal-request"
+	dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now }}
+	if _, err := dispatcher.Dispatch(context.Background(), testAccount, challenge.Unsigned.Order.OrderID); err == nil {
+		t.Fatal("provider refusal became success")
+	}
+	reopened, err := OpenStore(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := reopened.Account(testAccount).Brokerage
+	order, outbox := state.Orders[challenge.Unsigned.Order.OrderID], state.Outbox[challenge.Unsigned.Order.OrderID]
+	audit := state.Journal[len(state.Journal)-1]
+	for _, id := range []string{order.ProviderHTTPRequestID, outbox.ProviderHTTPRequestID, audit.ProviderHTTPRequestID} {
+		if id != "isolated-provider-refusal-request" {
+			t.Fatalf("HTTP failure correlation lost on restart: %+v %+v %+v", order, outbox, audit)
+		}
+	}
+	if order.State != "provider_rejected" || order.ProviderRawStatus != "" || order.ProviderOrderID != "" || order.ProviderEventCursor != "" || audit.ProviderEventCursor != "" || audit.ProviderRawStatus != "" {
+		t.Fatal("HTTP refusal fabricated provider order status/id/event cursor")
+	}
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
+	if provider.posts != 1 || provider.deletes != 0 {
+		t.Fatalf("provider failure retried writes: %d/%d", provider.posts, provider.deletes)
 	}
 }

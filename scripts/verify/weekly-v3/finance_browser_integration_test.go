@@ -52,7 +52,9 @@ func TestWeeklyV3RealDOMStartsSecuritiesDraftWithoutChainDependency(t *testing.T
 			}
 			server.service.AI = &HTTPAIProvider{URL: os.Getenv("WEEKLY_GATEWAY_VALID"), APIKey: "public-local-gateway-fixture-not-a-secret"}
 			if err := server.service.Store.Update(testAccount, "fixture.browser.consent", "", func(state *AccountState) error {
-				state.Privacy.AllowAIActivityContext = scenario == "owned_activity"
+				// Existing global AI privacy permission remains an explicit
+				// prerequisite; empty activity must not bypass a user's opt-out.
+				state.Privacy.AllowAIActivityContext = true
 				return nil
 			}); err != nil {
 				t.Fatal(err)
@@ -127,5 +129,27 @@ func TestWeeklyV3RealDOMStartsSecuritiesDraftWithoutChainDependency(t *testing.T
 				t.Fatalf("real browser job was not durable/draft-only: %+v", jobs)
 			}
 		})
+	}
+}
+
+func TestWeeklyV3SecuritiesIntentDoesNotBypassAIPrivacyOptOut(t *testing.T) {
+	server, _, statePath, _ := weeklyServer(t)
+	server.service.AI = &HTTPAIProvider{URL: os.Getenv("WEEKLY_GATEWAY_VALID"), APIKey: "public-local-gateway-fixture-not-a-secret"}
+	if err := server.service.Store.Update(testAccount, "fixture.ai.opt_out", "", func(state *AccountState) error { state.Privacy.AllowAIActivityContext = false; return nil }); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := os.ReadFile(statePath)
+	request := httptest.NewRequest("POST", "/api/ai/jobs", strings.NewReader(`{"kind":"draft_broker_order","recordIds":[],"contextClasses":[],"consent":true,"securitiesOrderIntent":{"symbol":"ACME","side":"buy","qty":"2","limitPrice":"125.34"}}`))
+	request.Header.Set("Origin", BrowserFinanceOrigin)
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-YNX-Product-Session-Proof-V2", "finance.ai.draft")
+	response := httptest.NewRecorder()
+	server.Handler().ServeHTTP(response, request)
+	if response.Code != 503 || !strings.Contains(response.Body.String(), "privacy settings") {
+		t.Fatalf("AI opt-out was bypassed for securities intent: %d %s", response.Code, response.Body.String())
+	}
+	after, _ := os.ReadFile(statePath)
+	if !bytes.Equal(before, after) || len(server.service.Store.Account(testAccount).AIJobs) != 0 {
+		t.Fatal("disabled AI privacy still persisted a job")
 	}
 }
