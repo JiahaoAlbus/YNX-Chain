@@ -6,6 +6,8 @@ Current implementation checkpoint: `9912d29f82d5ceca689f07e20e944648a2be6de3` / 
 
 Evidence: `apps/finance/evidence/finance-weekly-v3-activation-readiness-20260919.json`
 
+Public deployment: `https://finance.ynxweb4.com/` is source-bound to implementation `9912d29f82d5ceca689f07e20e944648a2be6de3`. Deployment evidence and rollback are recorded in `apps/finance/evidence/finance-weekly-v3-public-deployment-20260919.json` and `apps/finance/handoff/finance-weekly-v3-public-release-20260919.md`.
+
 ## Implemented owner scope
 
 - Finance Broker Sandbox uses server-only configuration, a persistent per-owner mapping, exact Wallet-approved order contracts, durable outbox/idempotency state, a one-shot operator worker and explicit reconciliation. Browser code cannot access provider credentials or call the provider write API.
