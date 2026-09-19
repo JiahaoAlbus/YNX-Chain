@@ -91,6 +91,28 @@ describe("DEX committed gateway boundary", () => {
       txHash: HASH,
     });
     expect(snapshot.events[0].txHash).toBe(HASH);
+    expect(snapshot.events[0].fee0).toBe("");
+    expect(snapshot.events[0].fee1).toBe("");
+  });
+
+  it("preserves observed native event fees without inventing absent fees", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            source: "authoritative chain-native YNX Testnet state",
+            updatedAt: new Date().toISOString(),
+            assets: [],
+            pools: [RAW_POOL],
+            events: [{ ...RAW_EVENT, fee0: 3, fee1: 0 }],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+    const snapshot = await loadDexSnapshot();
+    expect(snapshot.events[0]).toMatchObject({ fee0: "3", fee1: "0" });
   });
 
   it("accepts only the exact authoritative account nonce", async () => {

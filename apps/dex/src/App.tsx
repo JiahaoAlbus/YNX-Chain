@@ -11,6 +11,7 @@ import {
 import type { AuditAction, RiskContext } from "./riskAssistant";
 import { useDexData } from "./useDexData";
 import { aggregateCandles, type Candle } from "./candles";
+import { aggregatePoolActivity, constantProductDepth } from "./poolAnalytics";
 import type { ChainEvent, Locale, Pool, Token } from "./types";
 import { broadcastDexAction, loadAccountNonce } from "./api";
 import {
@@ -1975,6 +1976,17 @@ function AnalyticsPage({
   const candles = pool
     ? aggregateCandles(data.data.events, pool, data.data.tokens, interval)
     : [];
+  const tokenMap = new Map(
+    data.data.tokens.map((token) => [token.address.toLowerCase(), token]),
+  );
+  const activity = pool
+    ? aggregatePoolActivity(data.data.events, pool)
+    : null;
+  const depth = pool
+    ? constantProductDepth(pool, pool.token0)
+    : [];
+  const token0 = pool ? tokenMap.get(pool.token0.toLowerCase()) : undefined;
+  const token1 = pool ? tokenMap.get(pool.token1.toLowerCase()) : undefined;
   const metrics = [
     [t.indexed, data.data.analytics.indexedEvents],
     [t.pools, data.data.analytics.pools],
@@ -2035,6 +2047,44 @@ function AnalyticsPage({
             No synthetic prices or volume are inserted.
           </p>
         </div>
+      )}
+      {pool && activity && (
+        <section className="pool-analytics" aria-labelledby="pool-activity-heading">
+          <header>
+            <div>
+              <h2 id="pool-activity-heading">Confirmed pool activity</h2>
+              <p>
+                Raw token amounts from committed events. No fiat TVL or annualized
+                yield is inferred without a verified price oracle.
+              </p>
+            </div>
+            <code>{pool.address}</code>
+          </header>
+          <dl className="pool-facts">
+            <div><dt>Committed reserves</dt><dd>{formatUnits(BigInt(pool.reserve0), token0?.decimals || 0)} {token0?.symbol || pool.token0} · {formatUnits(BigInt(pool.reserve1), token1?.decimals || 0)} {token1?.symbol || pool.token1}</dd></div>
+            <div><dt>Confirmed swaps</dt><dd>{activity.swaps}</dd></div>
+            <div><dt>Raw volume</dt><dd>{formatUnits(activity.volume0, token0?.decimals || 0)} {token0?.symbol || pool.token0} · {formatUnits(activity.volume1, token1?.decimals || 0)} {token1?.symbol || pool.token1}</dd></div>
+            <div><dt>Observed fees</dt><dd>{activity.feeCoverage === "unavailable" ? "Unavailable — source omitted fee fields" : `${formatUnits(activity.fee0, token0?.decimals || 0)} ${token0?.symbol || pool.token0} · ${formatUnits(activity.fee1, token1?.decimals || 0)} ${token1?.symbol || pool.token1}${activity.feeCoverage === "partial" ? " · partial coverage" : ""}`}</dd></div>
+          </dl>
+          <h3>Constant-product liquidity depth</h3>
+          <p className="depth-note">Deterministic read-only scenarios from the selected committed reserve snapshot. These are not orders or fabricated trades.</p>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Input / reserve</th><th>Input</th><th>Output</th><th>Pool fee</th><th>Price impact</th></tr></thead>
+              <tbody>
+                {depth.map((point) => (
+                  <tr key={point.reserveShareBps}>
+                    <td>{(point.reserveShareBps / 100).toFixed(2)}%</td>
+                    <td>{formatUnits(point.amountIn, token0?.decimals || 0)} {token0?.symbol || pool.token0}</td>
+                    <td>{formatUnits(point.amountOut, token1?.decimals || 0)} {token1?.symbol || pool.token1}</td>
+                    <td>{formatUnits(point.feeAmount, token0?.decimals || 0)} {token0?.symbol || pool.token0}</td>
+                    <td>{(point.priceImpactBps / 100).toFixed(2)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
       <p className="source-line">
         <Icon name="info" />

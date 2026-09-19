@@ -138,6 +138,20 @@ describe("YNX DEX consensus product shell", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(/confirmed chain swaps/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Confirmed pool activity" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Unavailable — source omitted fee fields"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Constant-product liquidity depth",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/not orders or fabricated trades/),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "1m" })).toHaveAttribute(
       "aria-pressed",
       "true",

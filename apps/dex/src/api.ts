@@ -59,6 +59,8 @@ type NativeEvent = {
   asset1?: string;
   amount0?: number;
   amount1?: number;
+  fee0?: number;
+  fee1?: number;
   blockHeight: number;
   occurredAt: string;
   txHash?: string;
@@ -193,8 +195,14 @@ const event = (value: NativeEvent): ChainEvent => ({
       ? 0
       : safeInteger(value.amount1, "DEX event amount 1"),
   ),
-  fee0: "0",
-  fee1: "0",
+  fee0:
+    value.fee0 === undefined
+      ? ""
+      : String(safeInteger(value.fee0, "DEX event fee 0")),
+  fee1:
+    value.fee1 === undefined
+      ? ""
+      : String(safeInteger(value.fee1, "DEX event fee 1")),
   blockNumber: safeInteger(value.blockHeight, "DEX event block height", 1),
   txHash: value.txHash || value.transactionHash || "",
   timestamp: value.occurredAt,

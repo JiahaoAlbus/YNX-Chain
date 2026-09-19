@@ -27,19 +27,13 @@ const POOL = {
   txHash: HASH,
   auditHash: "c".repeat(64),
 };
-const ENVELOPE = {
-  source: "ynx-consensus-abci",
-  version: "abci-state-v13",
-  failure: false,
-};
-
 async function consensusFixture(
   page: Page,
   options: { delayed?: boolean; failure?: boolean } = {},
 ) {
   await page.route("**/*", async (route: Route) => {
     const pathname = new URL(route.request().url()).pathname;
-    if (!pathname.startsWith("/dex/")) return route.continue();
+    if (pathname !== "/v1/native-snapshot") return route.continue();
     if (options.delayed)
       await new Promise((resolve) => setTimeout(resolve, 1_000));
     if (options.failure) {
@@ -49,14 +43,13 @@ async function consensusFixture(
         body: JSON.stringify({ failure: true, error: "fixture unavailable" }),
       });
     }
-    const body =
-      pathname === "/dex/assets"
-        ? { ...ENVELOPE, assets: [ASSET] }
-        : pathname === "/dex/pools"
-          ? { ...ENVELOPE, pools: [POOL] }
-          : pathname === "/dex/events"
-            ? { ...ENVELOPE, events: [] }
-            : { failure: true, error: "unknown fixture route" };
+    const body = {
+      source: "authoritative chain-native YNX Testnet state",
+      updatedAt: new Date().toISOString(),
+      assets: [ASSET],
+      pools: [POOL],
+      events: [],
+    };
     return route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -83,6 +76,25 @@ test("quotes committed v13 reserves and keeps transaction signing behind Wallet"
   await expect(
     review.getByRole("button", { name: "Connect Wallet to continue" }),
   ).toBeEnabled();
+});
+
+test("shows reserve-derived depth and never invents missing fee totals", async ({
+  page,
+}) => {
+  await consensusFixture(page);
+  await page.goto("/#analytics");
+  await expect(
+    page.getByRole("heading", { name: "Confirmed pool activity" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Unavailable — source omitted fee fields"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Constant-product liquidity depth",
+    }),
+  ).toBeVisible();
+  await expect(page.getByText(/not orders or fabricated trades/)).toBeVisible();
 });
 
 test("exposes the committed pool and real add/remove review forms without fabricated positions", async ({
