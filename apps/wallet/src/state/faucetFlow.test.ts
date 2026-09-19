@@ -38,9 +38,12 @@ function fixture(t: TestContext, enabled = true) {
     if (method === "ynx_getFaucetModel") return FAUCET_REQUEST_MODEL;
     if (method === "ynx_getDurabilityModel") return NATIVE_DURABILITY_MODEL;
     if (method === "ynx_getTransactionDurability") return durable(params[0]!);
-    return { transactionHash: params[0], from: "ynx_faucet", to: address, status: "0x1", contractAddress: null,
+    return { transactionHash: params[0], from: "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144", to: address, status: "0x1", contractAddress: null,
       transactionIndex: "0x0", blockNumber: "0x1", blockHash: "0x" + "ab".repeat(32), ynxDurability: durable(params[0]!),
-      ynxNativeTransaction: { type: "faucet", amountYNXT: "100", feeYNXT: "0", nonce: "0x0" } };
+      ynxNativeTransaction: { type: "faucet", amountYNXT: "100", feeYNXT: "0", nonce: "0x0" },
+      ynxNativeIdentity: { from: "ynx_faucet", to: address, identityProjection: { version: "ynx-native-identity-projection-v1", fromSystemIdentity: true,
+        toSystemIdentity: false, systemAddressDomain: "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+        systemAddressScheme: "last-20-bytes-sha256-nul-domain-exact-native-identity", systemAddressesAreDisplayOnly: true } } };
   } };
   const transport: FaucetAdmissionTransport = async r => { posts.push(r); return hooks.post ? hooks.post(r) : accepted(r); };
   const config: FaucetConfiguration = { amount: 100, createSession(signal) { counts.session++; signals.push(signal); return hooks.nullSession ? null : { rpc, transport }; } };

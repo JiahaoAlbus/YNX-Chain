@@ -34,6 +34,16 @@ test("fixed-purpose RPC binds the response ID and retires its reservation", asyn
   assert.deepEqual(t.sent, [{ purpose: "rpc", taskId: "task-1", rpcId: "task-1", method: "eth_chainId", params: [] }]);
   assert.deepEqual(t.cancelled, ["task-1"]);
 });
+test("one native transport loss retries only the idempotent RPC read with a fresh reservation", async () => {
+  const t = fixture(); let requests = 0;
+  t.hooks.request = async r => {
+    if (++requests === 1) throw Error("stream reset");
+    return t.response(r);
+  };
+  assert.equal(await t.session.rpc.request("eth_chainId", []), "0x1917");
+  assert.deepEqual(t.sent.map(r => r.taskId), ["task-1", "task-2"]);
+  assert.deepEqual(t.cancelled, ["task-1", "task-2"]);
+});
 test("admission preserves original canonical body and actual retryable HTTP status", async () => {
   const t = fixture(), original = admission(); t.hooks.request = async r => ({ ...t.response(r), status: 503, body: "{\"error\":\"uncertain\"}" });
   const out = await t.session.transport(original); assert.equal(out.status, 503);

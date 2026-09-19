@@ -121,6 +121,16 @@ class BoundedHttpEngineTest {
     assertEquals(5, received.get())
   }
 
+  @Test fun `origin-only endpoint preserves the exact compiled identity`() {
+    engine.close()
+    val origin = "http://127.0.0.1:${server.localPort}"
+    engine = BoundedHttpEngine(origin, origin)
+    val (reply, error) = submit(input())
+    assertNull(error)
+    assertEquals(origin, reply!!.url)
+    assertEquals(1, received.get())
+  }
+
   @Test fun `503 retry-after zero never resends the one-shot body`() {
     status = 503; retryAfter = "0"
     assertEquals(503, submit(input()).first!!.status)

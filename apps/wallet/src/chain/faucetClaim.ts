@@ -39,6 +39,9 @@ export const FAUCET_REQUEST_MODEL = Object.freeze({
   transactionHashScheme: "sha256-nul-domain-decimal-chain-id-request-id",
   idempotencyScope: "retained-chain-transaction-history", legacyRequestSafeRetry: false,
   consensusFinality: false, durability: NATIVE_DURABILITY_MODEL,
+  authority: Object.freeze({ configured: true, header: "X-YNX-Faucet-Auth", required: true, version: "ynx-faucet-core-token-v1" }),
+  batching: Object.freeze({ acceptance: "after-durable-shared-checkpoint", collectionWindowMs: 25, maxBatchSize: 64,
+    maxQueuedRequests: 128, statusPath: "/v1/native-transactions/{hash}" }),
 });
 function invalid(): never { throw new FaucetClaimError("FAUCET_CLAIM_INVALID"); }
 
@@ -150,6 +153,10 @@ export class FaucetClaimController {
     const model = exact(await this.rpc("ynx_getFaucetModel", [], guard), Object.keys(FAUCET_REQUEST_MODEL));
     for (const [key, value] of Object.entries(FAUCET_REQUEST_MODEL)) {
       if (key === "durability") parseNativeDurabilityModel(model[key]);
+      else if (key === "authority" || key === "batching") {
+        const nested = exact(model[key], Object.keys(value));
+        if (Object.entries(value).some(([field, expected]) => nested[field] !== expected)) invalid();
+      }
       else if (model[key] !== value) invalid();
     }
     parseNativeDurabilityModel(await this.rpc("ynx_getDurabilityModel", [], guard));

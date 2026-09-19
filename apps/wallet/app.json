@@ -18,7 +18,7 @@
     },
     "android": {
       "package": "com.ynxweb4.wallet",
-      "versionCode": 15,
+      "versionCode": 21,
       "permissions": ["USE_BIOMETRIC"],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",

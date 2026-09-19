@@ -54,7 +54,10 @@ Only the trusted coordinator may validate ACK identity, RPC envelopes, chain/
 model, the exact durable receipt, and persist observed facts. Any dispatched
 transport error remains uncertain under the original durable request. A user
 retry uses a new transport task ID with the **same original Faucet request ID and
-body**; the host never invents a new claim or automatically retries.
+body**; the host never invents a new claim or automatically retries an admission
+POST. The coordinator may retry an idempotent JSON-RPC read once after a native
+transport loss, using a fresh one-use reservation and the identical method and
+params. Cancellation, validation failures, and HTTP responses are not retried.
 
 ## Endpoint and activation boundary
 
@@ -71,9 +74,11 @@ The admission source contract is Faucet commit
 `internal/faucet/server.go`); its Core contract is
 `90643ffd38d970f526df99e96e818220330710f8`. The public runtime was validated with
 one persisted request ID, a 201 response, a same-ID replay, and durable receipt
-readback. Android activation still requires an installed-build UI acceptance run
-before it can be called release-ready. Server-side `/faucet/requests` is not this
-Wallet's admission endpoint.
+readback. The current Android candidate was then exercised as an installed build
+through the retained request, strict native-identity receipt projection, two
+subsequent transfers, process restart, and offline/online balance recovery.
+Production signing and public distribution remain separate release gates.
+Server-side `/faucet/requests` is not this Wallet's admission endpoint.
 
 ## Android controls and measured boundary
 

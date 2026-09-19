@@ -1,6 +1,7 @@
 package com.ynxweb4.faucettransport
 
 import android.os.SystemClock
+import android.util.Log
 import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.CodedException
 import expo.modules.kotlin.modules.Module
@@ -33,11 +34,15 @@ class YnxFaucetTransportModule : Module() {
     AsyncFunction("request") { input: Map<String, Any?>, promise: Promise ->
       try {
         enabledEngine().request(input) { response, error ->
-          if (error != null) promise.reject(error.code, "Faucet network operation could not be completed.", null)
+          if (error != null) {
+            Log.w(LOG_TAG, "request failed: ${error.code}")
+            promise.reject(error.code, "Faucet network operation could not be completed.", null)
+          }
           else if (response != null) promise.resolve(response.fields())
           else promise.reject("YNX_HTTP_NETWORK", "Faucet network operation could not be completed.", null)
         }
       } catch (error: TransportException) {
+        Log.w(LOG_TAG, "request unavailable: ${error.code}")
         promise.reject(error.code, "Faucet transport is not enabled.", null)
       }
     }
@@ -50,6 +55,7 @@ class YnxFaucetTransportModule : Module() {
 
   private class TransportException(code: String) : CodedException(code, "Faucet transport is not enabled.", null)
   companion object {
+    private const val LOG_TAG = "YNXFaucetTransport"
     private const val PRODUCTION_ENABLED = true
     private const val ADMIT_URL = "https://faucet-testnet.ynxweb4.com/request"
     private const val RPC_URL = "https://rpc-testnet.ynxweb4.com"
