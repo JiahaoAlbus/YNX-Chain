@@ -1,0 +1,82 @@
+{
+  "schema": "ynx-dex-source-backed-pool-analytics-evidence-v1",
+  "createdAt": "2026-09-19T12:39:33Z",
+  "owner": "dex",
+  "branch": "codex/final-dex",
+  "implementation": {
+    "commit": "c71e5b1f2e6dbf5a1cb819348a4bbd9791f8e851",
+    "tree": "fdcdc1f7ecab448d50c9eee92bddc46f1bdf5da8",
+    "predecessor": "c0d77725f8cb529b9c88a42dd59ddd2250cb5ecd"
+  },
+  "delivered": {
+    "missingFeeEvidenceNoLongerRenderedAsZero": true,
+    "confirmedRawPoolVolume": true,
+    "confirmedFeeCoverageClassification": true,
+    "committedReserveInventory": true,
+    "constantProductLiquidityDepth": true,
+    "fiatTvlWithoutOracle": false,
+    "fabricatedTrades": false
+  },
+  "verification": [
+    {
+      "command": "npm test",
+      "workingDirectory": "apps/dex",
+      "result": "PASS",
+      "tests": 29
+    },
+    {
+      "command": "npm run build",
+      "workingDirectory": "apps/dex",
+      "result": "PASS"
+    },
+    {
+      "command": "npm run verify:canonical-authorize",
+      "workingDirectory": "apps/dex",
+      "result": "PASS",
+      "filesScanned": 15
+    },
+    {
+      "command": "npm run test:e2e",
+      "workingDirectory": "apps/dex",
+      "result": "PASS",
+      "passed": 9,
+      "skipped": 1,
+      "projects": ["desktop-chromium", "mobile-chromium"]
+    },
+    {
+      "command": "go test -race ./internal/dex/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go vet ./internal/dex/...",
+      "result": "PASS"
+    }
+  ],
+  "build": {
+    "index": {
+      "path": "apps/dex/dist/index.html",
+      "sha256": "52988e01edf2fb0c00985c29cbf417957cabf2d327f6df99e073916271f99617"
+    },
+    "javascript": {
+      "path": "apps/dex/dist/assets/index-CwDW2ejC.js",
+      "sha256": "dac6681513b15ad77104bcb6ca479ab2454763b8bd60e3e5a9a184240961618f"
+    },
+    "css": {
+      "path": "apps/dex/dist/assets/index-d_zUAIH7.css",
+      "sha256": "add58adde017e7997468f983e62ab221058778dbfd03d30035e17d52ccc761de"
+    }
+  },
+  "truth": {
+    "sourceCheckpoint": true,
+    "localBrowserVerified": true,
+    "publicRuntimeDeployed": false,
+    "publicSourceBound": false,
+    "walletProductSessionActive": false,
+    "walletApprovalVisible": false,
+    "swapSubmitted": false,
+    "liquiditySubmitted": false,
+    "installedRuntimeVerified": false,
+    "productionApproved": false
+  },
+  "remainingBlocker": "A DEX-only publication lease and exact current runtime/rollback binding are required before public deployment. Chain-native writes additionally require a real proof-bound Wallet Product Session and immediate user confirmation."
+}
