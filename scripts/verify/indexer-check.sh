@@ -18,16 +18,37 @@ trap cleanup EXIT
 
 work="${YNX_VERIFY_WORK:-$(mktemp -d)}"
 db="$work/indexer-db.json"
+transfer_payload="$work/indexer-signed-transfer.json"
+sender="$(TRANSFER_PAYLOAD="$transfer_payload" node --input-type=module <<'NODE'
+import {randomBytes} from "node:crypto";
+import {writeFileSync} from "node:fs";
+import {createSignedNativeTransfer,ynxAddressFromEVM} from "./packages/wallet-auth/src/index.js";
 
-curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' -d '{"address":"ynx_indexer_alice","amount":1000}' >/dev/null
-curl -fsS -X POST "$YNX_REST_URL/transfer" -H 'content-type: application/json' -d '{"from":"ynx_indexer_alice","to":"ynx_indexer_bob","amount":125}' >/dev/null
+const signed=createSignedNativeTransfer({
+  accountSecret:randomBytes(32).toString("hex"),
+  to:ynxAddressFromEVM("0x2222222222222222222222222222222222222222"),
+  amount:125,
+  nonce:1,
+});
+writeFileSync(process.env.TRANSFER_PAYLOAD,signed.payload,{mode:0o600});
+process.stdout.write(signed.transaction.from);
+NODE
+)"
+
+curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' \
+  -H "X-YNX-Faucet-Auth: $YNX_FAUCET_CORE_AUTH_TOKEN" \
+  -d "{\"address\":\"$sender\",\"amount\":1000}" >/dev/null
+curl -fsS -X POST "$YNX_REST_URL/transactions/broadcast" -H 'content-type: application/json' \
+  --data-binary "@$transfer_payload" >/dev/null
 sleep 3
 
 first_sync="$(go run ./cmd/ynx-indexerd -rpc "$YNX_REST_URL" -db "$db" -once)"
 first_height="$(printf '%s' "$first_sync" | ynx_json_field '["lastIndexedHeight"]')"
 [[ "$first_height" -ge 1 ]] || { echo "indexer did not index produced blocks"; exit 1; }
 
-curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' -d '{"address":"ynx_indexer_carol","amount":50}' >/dev/null
+curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' \
+  -H "X-YNX-Faucet-Auth: $YNX_FAUCET_CORE_AUTH_TOKEN" \
+  -d '{"address":"ynx_indexer_carol","amount":50}' >/dev/null
 sleep 3
 second_sync="$(go run ./cmd/ynx-indexerd -rpc "$YNX_REST_URL" -db "$db" -once)"
 resume_from="$(printf '%s' "$second_sync" | ynx_json_field '["resumeFromHeight"]')"
