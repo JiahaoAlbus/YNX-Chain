@@ -1,6 +1,31 @@
 # Weekly v3 cross-product integration checkpoint
 
-## Current frozen acceptance: 104/104 local PASS
+## Latest incremental acceptance: Finance5936ca3e × Wallet7eb0beef
+
+Fresh independent run on 2026-09-19: Finance
+`5936ca3e083742dcb85fcd85e1f48a2370ac92db` and Wallet
+`7eb0beef4f3b1199ee817441d6cc04346e511765` passed **33 root groups / 104 leaf
+cases**, with Go race, no diagnostic date adapter, exact published branch heads,
+and unchanged product source/integration assets throughout the run. This is a
+new run, not reuse of the historical frozen result below. Finance browser tests
+also passed 65/65, its scoped Go race packages passed, and its security gate
+passed across 395 text files. The pre-existing dirty Wallet Web artifact manifest
+was excluded from this product scope and remained byte-identical.
+
+Evidence: `release/evidence/weekly-v3-finance5936-wallet7eb0-integration-20260919.json`.
+It covers the actual Finance browser scripts, Wallet approval controller and
+Finance HTTP/store through local authority/Gateway/provider fixtures. It does
+not prove installed Wallet signing, actual authority transport, real AI model
+generation, authenticated official Alpaca Sandbox, or PostgreSQL runtime.
+Official Sandbox and production approval remain false.
+
+Separate public NETWORK/website evidence (not a promotion of fixture E2E):
+`release/evidence/weekly-v3-postdeployment-readback-20260919.json` records alias
+CORS, matching block/history/latest balance, and current official website source.
+The fixed-height state gate correctly fails because both old/new Core adapters
+only support latest/pending state. No EVM contract-code acceptance is invented.
+
+## Historical frozen acceptance: 104/104 local PASS
 
 Finance `0adc35cd722d8728fc41704350c5f7a0056200d8` / tree
 `821d1661d2818f4347a59800d8e0764410b659b2` and Wallet
