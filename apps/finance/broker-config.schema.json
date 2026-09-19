@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ynx:finance:broker-config:v1",
+  "title": "Server-only Finance Broker Sandbox environment variables",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "YNX_CHAIN_ENV": {"const": "testnet", "default": "testnet"},
+    "YNX_EVM_CHAIN_ID": {"const": "6423", "default": "6423"},
+    "FINANCE_TRADING_ENV": {"const": "sandbox", "default": "sandbox"},
+    "FINANCE_BROKER_PROVIDER": {"const": "alpaca_broker", "default": "alpaca_broker"},
+    "FINANCE_TRADING_ENABLED": {"enum": ["true", "false"], "default": "false"},
+    "FINANCE_LIVE_ENABLED": {"const": "false", "default": "false"},
+    "FINANCE_SANDBOX_WRITES_ENABLED": {"enum": ["true", "false"], "default": "false"},
+    "FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256": {"type": "string", "pattern": "^[0-9a-f]{64}$", "writeOnly": true},
+    "YNX_FINANCE_BROKER_VERIFY_ACCOUNT": {"type": "string", "pattern": "^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$"},
+    "YNX_FINANCE_BROKER_MAX_FEE_USD": {"type": "string", "pattern": "^(?:0|0\\.[0-9]{0,5}[1-9]|[1-9][0-9]{0,12}(?:\\.[0-9]{0,5}[1-9])?)$"},
+    "YNX_FINANCE_BROKER_FEE_BOUND_SOURCE": {"enum": ["provider_quote", "provider_current_schedule", "operator_policy"]},
+    "YNX_FINANCE_BROKER_FEE_EVIDENCE_REF": {"type": "string", "pattern": "^[A-Za-z0-9._:/-]{1,256}$"},
+    "ALPACA_BROKER_SANDBOX_BASE_URL": {"const": "https://broker-api.sandbox.alpaca.markets"},
+    "ALPACA_BROKER_TOKEN_URL": {"const": "https://authx.sandbox.alpaca.markets/v1/oauth2/token"},
+    "ALPACA_MARKET_DATA_SANDBOX_BASE_URL": {"const": "https://data.sandbox.alpaca.markets"},
+    "FINANCE_BROKER_READ_RATE_PER_MINUTE": {"type": "string", "pattern": "^(?:[1-9][0-9]{0,3}|10000)$", "default": "180"},
+    "FINANCE_BROKER_WRITE_RATE_PER_MINUTE": {"type": "string", "pattern": "^(?:[1-9][0-9]{0,3}|10000)$", "default": "30"},
+    "FINANCE_MARKET_DATA_RATE_PER_MINUTE": {"type": "string", "pattern": "^(?:[1-9][0-9]{0,3}|10000)$", "default": "180"},
+    "ALPACA_BROKER_AUTH_MODE": {"enum": ["client_credentials", "legacy_basic"], "default": "client_credentials"},
+    "ALPACA_BROKER_CLIENT_ID": {"type": "string", "maxLength": 4096, "writeOnly": true},
+    "ALPACA_BROKER_CLIENT_SECRET": {"type": "string", "maxLength": 8192, "writeOnly": true},
+    "ALPACA_BROKER_API_KEY": {"type": "string", "maxLength": 4096, "writeOnly": true},
+    "ALPACA_BROKER_API_SECRET": {"type": "string", "maxLength": 8192, "writeOnly": true}
+  },
+  "$comment": "Validate only the extracted names in this schema, not all process env. Missing/blank credentials are allowed for startup but doctor reports BLOCKED_CREDENTIALS; network remains disabled. Runtime additionally rejects control characters, legacy Basic username colon and unsupported global account mapping. Never serialize the input to public diagnostics. Defaults are applied by the Go loader, not assumed from a schema validator."
+}

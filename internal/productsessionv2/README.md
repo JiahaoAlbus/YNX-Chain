@@ -1,0 +1,17 @@
+# Go consumer for Wallet Product Session v2
+
+This package bridges Go product APIs to the existing `ProductSessionGatewayHttpHandler` contract in Wallet source `673522fe126b5b87f91c6790ca7bea0eb574f2e8`. It neither signs nor issues Wallet identities. It deliberately rejects the legacy `X-YNX-Product-Session-Proof` header and fixture bearer tokens.
+
+Create one client with the configured HTTPS Wallet authority and the exact product/platform row accepted in its registry. The server must choose scopes for each route. Pass the incoming request to `Authorize`; use the returned account and device only after it succeeds. Do not take product policy, authority URL, or required scopes from a user body. The client sends no cookies or bearer credentials, follows no redirects, bounds response size and time, checks the authority's request correlation, and never caches or automatically retries a decision.
+
+The browser calls `adapter.createIntrospectionProof(serverRouteScopes)` from `@ynx-chain/wallet-auth/product-session-browser`, then sends its `proofHeader` as `X-YNX-Product-Session-Proof-V2` on the product request. Do **not** introspect that same proof in the browser first: the authority consumes each proof once. On a network retry obtain a fresh proof. Keep a separate product idempotency key for business writes.
+
+The signed digest covers the canonical Auth introspection body `{requiredScopes:[...]}`, not the business method/path/body. This is active-session and scope authorization. The product still chooses scopes, checks resource ownership, validates business input, and requires a distinct exact-action Wallet approval/signature for payments, opening a card, and other confirmation-bound actions. An active login is never transaction approval. Product write idempotency must not replay a stale authorization decision.
+
+Go validates product, client, application, platform, origin, callback, account, device, session binding, scopes and time against a fresh authenticated authority response. Cryptographic verification and persistent proof replay/revocation are performed by the existing Wallet authority. A supplied Origin must match; an absent Origin is allowed because same-origin browser GETs and native requests may omit it. This does not replace the product's CORS policy. The signed origin must always match the configured policy.
+
+The implementation uses Go's default verified TLS transport unless an application supplies its own `http.RoundTripper`. Never supply an insecure or redirecting credential proxy in production. Errors contain codes, not proof/header bodies. Products should surface unavailable/retry separately from expired/revoked sessions, and must not erase a valid standard-wallet connection when the private authority is temporarily unavailable.
+
+AI, Cloud and Docs were absent from the observed Wallet registry. Their product owners and Wallet must register actual identifiers/scopes and deploy the matching authority before enabling production login. This library does not invent their registration or prove the public service is deployed.
+
+The test vector is generated offline using the actual SDK's request, Wallet approval, device completion, proof signing, HTTP introspection and replay rejection. Its fixed test keys are disposable. Regenerate with `node internal/productsessionv2/testdata/generate.mjs /absolute/path/to/packages/wallet-auth`, with that package's existing dependencies installed. Go tests consume the committed vector without Node, a network, or any real account.

@@ -33,6 +33,7 @@ type Session struct {
 // Authenticator accepts only opaque sessions issued by the canonical Wallet
 // Gateway. It deliberately has no local assertion or fallback session.
 type Authenticator struct {
+	v2                                   productSessionV2Authorizer
 	introspectionURL, clientID, bundleID string
 	client                               *http.Client
 	now                                  func() time.Time
@@ -53,6 +54,9 @@ func NewAuthenticator(gatewayURL, internalKey, clientID, bundleID string) (*Auth
 }
 
 func (a *Authenticator) Verify(proof, scope string) (Session, error) {
+	if a.v2 != nil {
+		return Session{}, errors.New("Product Session v2 requires its exact request header and route policy")
+	}
 	proof = strings.TrimSpace(proof)
 	if proof == "" || len(proof) > 8192 {
 		return Session{}, errors.New("canonical Product Session proof required")

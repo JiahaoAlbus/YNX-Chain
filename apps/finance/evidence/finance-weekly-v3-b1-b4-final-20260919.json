@@ -1,0 +1,76 @@
+{
+  "schema": "ynx-finance-weekly-v3-b1-b4-final-evidence-v1",
+  "createdAt": "2026-09-19T12:32:43Z",
+  "owner": "finance",
+  "branch": "codex/finance-wallet-flow-20260912",
+  "implementation": {
+    "commit": "1329c6a03c8bcd4b02baed1ea8e68f0019d26dd9",
+    "tree": "903ceb3a216e456ce172bb38160d597e5cf931b7",
+    "predecessor": "cb904735f6f03364f71e41172405ee12e0f5f152"
+  },
+  "delivered": {
+    "b1RealOrderIntentForm": true,
+    "b2RejectedTerminalState": true,
+    "b3OwnerScopedExecutionQueue": true,
+    "b4SecuritiesContextWithoutChainHistory": true,
+    "providerHttpCorrelationPersisted": true,
+    "providerRawStatusPersisted": true,
+    "providerEventCursorSeparated": true,
+    "browserProviderWrites": false
+  },
+  "providerAuditBoundary": {
+    "httpRequestId": "bounded and sanitized; required on real HTTP order and cancel success paths",
+    "rawStatus": "preserved independently from normalized Finance state",
+    "eventCursor": "preserved independently from HTTP request correlation",
+    "restartPersistence": true,
+    "receiptSeparation": true,
+    "missingOrMalformedRealHttpCorrelationFailsClosed": true
+  },
+  "verification": [
+    {
+      "command": "go test -race ./internal/finance/... ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go vet ./internal/finance/... ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go build ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "npm test",
+      "workingDirectory": "apps/finance",
+      "result": "PASS",
+      "tests": 65
+    },
+    {
+      "command": "npm run security",
+      "workingDirectory": "apps/finance",
+      "result": "PASS",
+      "filesScanned": 387
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "truth": {
+    "officialBrokerCredentialsProvided": false,
+    "providerWriteAttempted": false,
+    "officialSandboxVerified": false,
+    "realModelInvoked": false,
+    "publicRuntimeDeployed": false,
+    "installedRuntimeVerified": false,
+    "walletAccountApproved": false,
+    "walletSignatureProduced": false,
+    "securitiesOrderSubmitted": false,
+    "chainTransactionSubmitted": false,
+    "productionApproved": false
+  },
+  "rollback": {
+    "source": "Revert the implementation commit and restore the prior authenticated-state snapshot if v2 fields were written.",
+    "publicRuntime": "Not applicable; no deployment occurred in this window."
+  }
+}

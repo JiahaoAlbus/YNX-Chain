@@ -1,26 +1,20 @@
 # YNX Finance native app
 
-Native-first Expo/React Native client for Android and iOS. It uses the independent identifiers `com.ynxweb4.finance` and `ynxfinance://wallet-auth/callback`.
+Native Expo/React Native Finance client for Android and iOS.
+
+## P0 Wallet Connectivity status
+
+The client consumes the accepted `@ynx/dapp-connect-sdk@0.1.0-p0.0` package and the hash-pinned Testnet endpoint manifest `1.0.0-p0.2`. It uses only standard EIP-1193 wallet connection and never creates a device key, Wallet callback request, Gateway completion, Product Session proof, or configurable Finance Gateway URL.
+
+Finance is currently `PENDING` in the accepted endpoint manifest. The app may connect a compatible YNX Testnet wallet, but it must not call a Finance product API until Integration publishes direct product release evidence. The UI marks this as `PRODUCT_SESSION_UNAVAILABLE`, not as a Wallet or whole-app outage.
+
+## Local verification
 
 ```bash
 npm ci
 npm run check
 npx expo prebuild --no-install
-cd android && JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug
+cd android && JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleRelease --no-daemon
 ```
 
-For a self-contained local install/cold-start proof, build the release variant
-with the Hermes bundle embedded. It is still only locally debug-signed by the
-generated project and is not production signing evidence:
-
-```bash
-NODE_ENV=production \
-ANDROID_HOME="$HOME/Library/Android/sdk" \
-ANDROID_SDK_ROOT="$HOME/Library/Android/sdk" \
-JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" \
-./android/gradlew -p android assembleRelease --no-daemon
-```
-
-The release default is the public Testnet service at `https://finance.ynxweb4.com`; local development can override it with `EXPO_PUBLIC_YNX_FINANCE_API_URL` or change it in Settings. The client never creates a local substitute session: Wallet approval must complete through the canonical Wallet Gateway. If the registered Finance client, requested scopes, device proof or account binding is not accepted, sign-in fails closed.
-
-Cached data is labelled offline and never presented as live. Import accepts only the versioned Finance export envelope. Export includes public account evidence and private planning data and should be stored securely.
+A locally built APK is neither public hosting nor production-signing evidence. It must be installed and cold-started on a separately recorded device before being proposed to the central downloads release path.
