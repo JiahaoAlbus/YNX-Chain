@@ -2,8 +2,7 @@
 
 package finance
 
-// Prepared against the owner's observed B3 HTTP interface. Deliberately not
-// loaded by the runner until the owner freezes a clean published contract.
+// Bound to the owner's frozen 0adc35cd B3 HTTP interface and loaded by overlay.
 // No private provider key or public write authority is used by these fixtures.
 import (
 	"bytes"
@@ -41,6 +40,24 @@ func weeklyExecutionRequest(t *testing.T, server *Server, orderID, key string) *
 		t.Fatal(err)
 	}
 	return weeklyHTTP(t, server, "/api/broker/orders/"+orderID+"/execution-request", body)
+}
+
+// Execution fixtures explicitly call the real product HTTP route after real
+// Wallet approval. Approval-only tests continue to use weeklyApproved unchanged.
+func weeklyExecutionApproved(t *testing.T, server *Server) BrokerApprovalChallenge {
+	return weeklyExecutionApprovedInput(t, server, weeklyInput())
+}
+
+func weeklyExecutionApprovedInput(t *testing.T, server *Server, input map[string]any) BrokerApprovalChallenge {
+	t.Helper()
+	challenge := weeklyApprovedInput(t, server, input)
+	server.cfg.BrokerConfig = weeklyExecutionConfig(nil)
+	orderID := challenge.Unsigned.Order.OrderID
+	response := weeklyExecutionRequest(t, server, orderID, "finance-execution-"+orderID)
+	if response.Code != http.StatusAccepted || !strings.Contains(response.Body.String(), `"providerWriteAttempted":false`) {
+		t.Fatalf("explicit execution prerequisite: %d %s", response.Code, response.Body.String())
+	}
+	return challenge
 }
 
 type weeklyOtherOwnerAuthority struct{}

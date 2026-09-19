@@ -36,15 +36,18 @@ const source=path.join(root,'scripts/verify/weekly-v3/finance_wallet_integration
 const gatewaySource=path.join(root,'scripts/verify/weekly-v3/finance_gateway_integration_test.go');
 const recoverySource=path.join(root,'scripts/verify/weekly-v3/finance_recovery_integration_test.go');
 const browserSource=path.join(root,'scripts/verify/weekly-v3/finance_browser_integration_test.go');
+const executionSource=path.join(root,'scripts/verify/weekly-v3/finance_execution_integration_test.go');
 const browserBridge=path.join(root,'scripts/verify/weekly-v3/finance-browser-bridge.mjs');
 const recoveryFile=path.join(temp,'recovery-fixtures.json');
 fs.writeFileSync(recoveryFile,JSON.stringify(makeRecoveryFixtures()),{flag:'wx'});
 const assetFiles=[source,gatewaySource,recoverySource,browserSource,browserBridge,providerFixtureFile,path.join(root,'scripts/verify/weekly-v3/broker-wire-fixtures.mjs'),path.join(root,'scripts/verify/weekly-v3/gateway-sse-fixture.mjs'),path.join(root,'scripts/verify/weekly-v3/recovery-fixtures.mjs'),path.join(root,'scripts/verify/weekly-v3/finance-wallet-bridge.mjs'),fileURLToPath(import.meta.url)];
 const hashAssets=()=>Object.fromEntries(assetFiles.map(file=>[path.relative(root,file),createHash('sha256').update(fs.readFileSync(file)).digest('hex')]));
 const sourceSha256=hashAssets();
+assetFiles.push(executionSource);
 const overlay=path.join(temp,'overlay.json');
 const replacements={[path.join(roots.finance,'internal/finance/weekly_v3_integration_test.go')]:source,[path.join(roots.finance,'internal/finance/weekly_v3_gateway_integration_test.go')]:gatewaySource,[path.join(roots.finance,'internal/finance/weekly_v3_recovery_integration_test.go')]:recoverySource};
 replacements[path.join(roots.finance,'internal/finance/weekly_v3_browser_integration_test.go')]=browserSource;
+replacements[path.join(roots.finance,'internal/finance/weekly_v3_execution_integration_test.go')]=executionSource;
 for(const command of ['worker','tools']){
  const common=path.join(root,'scripts/verify/weekly-v3/broker_operator_fixture_test.go');
  const test=path.join(root,`scripts/verify/weekly-v3/broker_${command}_integration_test.go`);

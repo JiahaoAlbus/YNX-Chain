@@ -245,6 +245,8 @@ type weeklyProvider struct {
 	pageReads         int
 	quoteTimestamp    string
 	quoteHTTPStatus   int
+	requestID         string
+	submitHTTPStatus  int
 }
 
 // These are complete public documentation examples, not live provider responses.
@@ -295,6 +297,9 @@ func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvi
 		p.requests = append(p.requests, r.Method+" "+r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Request-ID", "isolated-provider-request")
+		if p.requestID != "" {
+			w.Header().Set("X-Request-ID", p.requestID)
+		}
 		if r.Host != "broker-api.sandbox.alpaca.markets" && r.Host != "data.sandbox.alpaca.markets" {
 			http.Error(w, "fixture rejected host", 400)
 			return
@@ -314,6 +319,10 @@ func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvi
 			_ = json.NewEncoder(w).Encode(map[string]any{"symbol": "ACME", "quote": map[string]any{"ap": 125.34, "as": 100, "bp": 125.33, "bs": 100, "t": stamp}})
 		case r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/orders"):
 			p.posts++
+			if p.submitHTTPStatus != 0 {
+				http.Error(w, "isolated provider refusal", p.submitHTTPStatus)
+				return
+			}
 			var body map[string]any
 			if json.NewDecoder(r.Body).Decode(&body) != nil {
 				http.Error(w, "invalid", 400)
@@ -469,7 +478,7 @@ func TestWeeklyV3SellOwnedPositionAndInsufficientAvailable(t *testing.T) {
 			server, _, statePath, now := weeklyServer(t)
 			input := weeklyInput()
 			input["draft"].(map[string]string)["side"] = "sell"
-			challenge := weeklyApprovedInput(t, server, input)
+			challenge := weeklyExecutionApprovedInput(t, server, input)
 			adapter, provider := weeklyAlpaca(t, false)
 			provider.positionQty, provider.positionAvailable = scenario.owned, scenario.available
 			dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
@@ -505,7 +514,7 @@ func TestWeeklyV3CancellationRaceAndLostAckNeverBlindlyRetry(t *testing.T) {
 	for _, mode := range []string{"fill_race", "lost_ack"} {
 		t.Run(mode, func(t *testing.T) {
 			server, _, statePath, now := weeklyServer(t)
-			challenge := weeklyApproved(t, server)
+			challenge := weeklyExecutionApproved(t, server)
 			adapter, provider := weeklyAlpaca(t, false)
 			provider.cancelMode = mode
 			dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
@@ -555,7 +564,7 @@ func TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart(t *testing.T) {
 	for _, mode := range []string{"submitted", "lost_ack", "restart_during_dispatch"} {
 		t.Run(mode, func(t *testing.T) {
 			server, _, statePath, now := weeklyServer(t)
-			challenge := weeklyApproved(t, server)
+			challenge := weeklyExecutionApproved(t, server)
 			account, orderID := challenge.Unsigned.Account, challenge.Unsigned.Order.OrderID
 			adapter, provider := weeklyAlpaca(t, mode == "lost_ack")
 			dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
@@ -625,7 +634,7 @@ func TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart(t *testing.T) {
 }
 func TestWeeklyV3ExpiredOutboxDoesNotExecute(t *testing.T) {
 	server, _, _, now := weeklyServer(t)
-	challenge := weeklyApproved(t, server)
+	challenge := weeklyExecutionApproved(t, server)
 	adapter, provider := weeklyAlpaca(t, false)
 	dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Hour) }}
 	_, _ = dispatcher.Dispatch(context.Background(), challenge.Unsigned.Account, challenge.Unsigned.Order.OrderID)
@@ -712,7 +721,7 @@ func TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch(t *testing.T) {
 		for _, variant := range []string{"true", "missing", "null", "wrong_type"} {
 			t.Run(flag+"_"+variant, func(t *testing.T) {
 				server, _, _, now := weeklyServer(t)
-				challenge := weeklyApproved(t, server)
+				challenge := weeklyExecutionApproved(t, server)
 				adapter, provider := weeklyAlpaca(t, false)
 				value := map[string]any{"true": true, "missing": nil, "null": json.RawMessage("null"), "wrong_type": "false"}[variant]
 				provider.accountOverrides[flag] = value
@@ -748,7 +757,7 @@ func TestWeeklyV3UnreceivedApprovalCanBeRevokedAtServer(t *testing.T) {
 }
 func TestWeeklyV3DispatchMustNotUseMarginBuyingPower(t *testing.T) {
 	server, _, _, now := weeklyServer(t)
-	challenge := weeklyApproved(t, server)
+	challenge := weeklyExecutionApproved(t, server)
 	adapter, provider := weeklyAlpaca(t, false)
 	provider.cash = "0"
 	dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
@@ -761,7 +770,7 @@ func TestWeeklyV3DispatchMustNotUseMarginBuyingPower(t *testing.T) {
 }
 func TestWeeklyV3ExpiredRedispatchCannotRewriteKnownProviderState(t *testing.T) {
 	server, _, _, now := weeklyServer(t)
-	challenge := weeklyApproved(t, server)
+	challenge := weeklyExecutionApproved(t, server)
 	adapter, provider := weeklyAlpaca(t, false)
 	dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
 	if _, err := dispatcher.Dispatch(context.Background(), challenge.Unsigned.Account, challenge.Unsigned.Order.OrderID); err != nil {
@@ -819,6 +828,11 @@ func TestWeeklyV3FullBrowserWalletServerFlow(t *testing.T) {
 						t.Fatalf("decision=%s workspace=%+v", decision, workspace)
 					}
 					return
+				}
+				server.cfg.BrokerConfig = weeklyExecutionConfig(nil)
+				orderID := workspace.Orders[0].Order.OrderID
+				if response := weeklyExecutionRequest(t, server, orderID, "finance-execution-"+orderID); response.Code != 202 {
+					t.Fatalf("full browser path explicit execution request: %d %s", response.Code, response.Body.String())
 				}
 				adapter, provider := weeklyAlpaca(t, true)
 				dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
