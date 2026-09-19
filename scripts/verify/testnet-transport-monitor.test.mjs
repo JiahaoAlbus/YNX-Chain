@@ -61,7 +61,7 @@ test("counter reset is unknown not negative loss; missing counters not zero",()=
   assert.deepEqual(counterDelta({ListenDrops:5,TCPTimeouts:8,missing:4},{ListenDrops:7,TCPTimeouts:2}),{ListenDrops:2,TCPTimeouts:null});
 });
 test("source hashes bind the exact collector and shared health interpreter",()=>{
-  const values=sourceIdentity();assert.equal(Object.keys(values).length,3);assert(Object.values(values).every(x=>/^[a-f0-9]{64}$/.test(x)));
+  const values=sourceIdentity();assert.equal(Object.keys(values).length,4);assert(Object.values(values).every(x=>/^[a-f0-9]{64}$/.test(x)));
 });
 test("pinned-origin comparison retains URL/SNI/TLS and cannot choose arbitrary targets",()=>{
   const o=parseArgs(['--pin-origin']);assert(o.direct);assert(o.pinOrigin);

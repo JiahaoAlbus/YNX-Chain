@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 import {interpretProbe} from "./testnet-alias-preflight.mjs";
+import {clientPathSnapshot} from "./testnet-transport-client-path.mjs";
 
 export const ROUTES = [
   ["legacy", "rpc", "https://rpc.ynxweb4.com/status"],
@@ -19,7 +20,7 @@ const now = () => new Date().toISOString();
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export function sourceIdentity() {
-  return Object.fromEntries(["testnet-transport-monitor.mjs", "testnet-transport-host-snapshot.py", "testnet-alias-preflight.mjs"].map(name =>
+  return Object.fromEntries(["testnet-transport-monitor.mjs", "testnet-transport-host-snapshot.py", "testnet-alias-preflight.mjs", "testnet-transport-client-path.mjs"].map(name =>
     [name, createHash("sha256").update(fs.readFileSync(new URL(name, import.meta.url))).digest("hex")]));
 }
 
@@ -162,6 +163,7 @@ export async function monitor(options, deps = {}) {
   const emit = deps.emit ?? (() => {}), sleep = deps.sleep ?? pause, clock = deps.clock ?? Date.now;
   const hostScript = options.host ? (deps.hostScript ?? fs.readFileSync(HOST_SCRIPT, "utf8")) : null;
   const runId = "ynx-probe-" + randomUUID(), portBase = randomInt(20000, 48000);
+  const clientPath = deps.clientPath ?? (deps.exec ? {available:false,reason:"injected executor; no implicit local diagnostics"} : await clientPathSnapshot(exec));
   const failures = [], rounds = [], hostWindows = []; let previousCounters = null;
   let stopping = false;
   const stop = () => { stopping = true; };
@@ -169,6 +171,7 @@ export async function monitor(options, deps = {}) {
   emit({type: "start", at: now(), runId, vantage: options.vantage, rounds: options.rounds, intervalSeconds: options.intervalSeconds,
     requestsPerRound: 4, maxClientConcurrency: 2, noClaimsOrTransactions: true, readOnly: true,
     sourceSHA256: sourceIdentity(),
+    clientPath,
     pathMode: options.pinOrigin ? "pinned-public-origin" : options.direct ? "direct-dns" : "environment-dns",
     independentNetworkPathProven: false,
     proxyEnvironmentPresent: ["HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy"].some(k => !!process.env[k]),

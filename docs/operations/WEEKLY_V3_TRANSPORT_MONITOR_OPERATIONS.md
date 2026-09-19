@@ -76,6 +76,15 @@ sampled DNS result remains diagnostic, not proof of curl's resolver path.
 
 Normal versus pinned requests from one machine are a controlled DNS/proxy
 comparison, **not independent regions**. A VPN/system tunnel can still be shared.
+The monitor now automatically projects the local route to the approved IP: macOS
+route/interface MTU and proxy enable flags, or Linux `ip` route/link metadata.
+It retains no gateway/interface address, interface number, proxy server or PAC
+URL, and never changes routes or disables a VPN. Each local command is bounded
+to three seconds. Missing tools leave unknown fields, not a direct-path claim.
+On 2026-09-19 17:32 UTC this Mac's route used a **utun interface, MTU1100**, while
+system/environment proxy flags were off. Both normal/direct DNS and pinned-IP
+requests therefore still shared a tunnel. This is an environment observation,
+not proof that this tunnel caused the failures or authorization to bypass it.
 Operator must supply a second authorized existing runner on a different verified
 egress path and region to obtain independent-path evidence. Run the same bounded
 command there with a distinct public non-sensitive vantage label and private
