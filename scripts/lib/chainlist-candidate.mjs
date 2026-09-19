@@ -46,7 +46,7 @@ export function loadCandidateSources(rootDir) {
 
 export function validateTestnetMetadata(metadata) {
   assertExactKeys(metadata, TESTNET_KEYS, "testnet metadata");
-  if (metadata.name !== "YNX Testnet" || metadata.chain !== "YNX" || metadata.shortName !== "ynxt" || metadata.status !== "active") {
+  if (metadata.name !== "YNX Testnet" || metadata.chain !== "YNX" || metadata.shortName !== "ynxtest" || metadata.status !== "active") {
     throw new Error("YNX Testnet name, chain, shortName, or status mismatch");
   }
   if (metadata.chainId !== TESTNET_CHAIN_ID || metadata.networkId !== TESTNET_CHAIN_ID) throw new Error("YNX Testnet chain/network ID mismatch");
@@ -69,14 +69,13 @@ export function validateTestnetMetadata(metadata) {
 }
 
 export function validateMainnetDraft(metadata) {
-  assertExactKeys(metadata, ["chain", "chainId", "explorers", "faucets", "name", "nativeCurrency", "networkId", "rpc", "status"], "mainnet draft");
-  if (metadata.name !== "YNX Mainnet" || metadata.chain !== "YNX" || metadata.chainId !== 6420 || metadata.networkId !== 6420) throw new Error("YNX Mainnet draft identity mismatch");
+  assertExactKeys(metadata, ["chain", "enabled", "explorers", "faucets", "name", "reservedRpcUrl", "rpc", "status"], "mainnet draft");
+  if (metadata.name !== "YNX Mainnet" || metadata.chain !== "YNX" || metadata.enabled !== false) throw new Error("YNX Mainnet draft identity mismatch");
   if (metadata.status !== "draft-only; mainnet not launched") throw new Error("YNX Mainnet must remain explicitly draft-only");
   if (metadata.rpc.length !== 0 || metadata.faucets.length !== 0 || metadata.explorers.length !== 0) throw new Error("YNX Mainnet draft must not publish endpoints");
-  assertExactKeys(metadata.nativeCurrency, ["decimals", "name", "symbol"], "mainnet native currency");
-  if (metadata.nativeCurrency.name !== TESTNET_NATIVE_SYMBOL || metadata.nativeCurrency.symbol !== TESTNET_NATIVE_SYMBOL || metadata.nativeCurrency.decimals !== 18) {
-    throw new Error("YNX Mainnet draft native currency mismatch");
-  }
+  if ("chainId" in metadata || "networkId" in metadata || "nativeCurrency" in metadata) throw new Error("YNX Mainnet draft must not invent an unlaunched network identity");
+  if (metadata.reservedRpcUrl !== "https://rpc-mainnet.ynxweb4.com") throw new Error("YNX Mainnet reserved RPC URL mismatch");
+  validateHTTPSURL(metadata.reservedRpcUrl, "mainnet reserved RPC URL");
   return metadata;
 }
 
@@ -85,7 +84,7 @@ export function validateCollisionEvidence(evidence, metadata, {now = new Date(),
   assertExactKeys(evidence.aggregate, ["bytes", "chainCount", "fetchedAt", "sha256", "url"], "collision aggregate");
   assertExactKeys(evidence.candidate, ["chainId", "name", "shortName"], "collision candidate");
   assertExactKeys(evidence.matches, ["chainId", "name", "shortName"], "collision matches");
-  assertExactKeys(evidence.registry, ["commit", "repository", "targetFile", "targetFilePresent"], "collision registry");
+  assertExactKeys(evidence.registry, ["commit", "repository", "targetFile", "targetFilePresent", "targetFileSha256"], "collision registry");
   if (evidence.aggregate.url !== "https://chainid.network/chains.json" || !Number.isSafeInteger(evidence.aggregate.bytes) || evidence.aggregate.bytes <= 0 || evidence.aggregate.bytes > 16 * 1024 * 1024) {
     throw new Error("collision aggregate source or byte count is invalid");
   }
@@ -100,15 +99,17 @@ export function validateCollisionEvidence(evidence, metadata, {now = new Date(),
     throw new Error("collision candidate does not match testnet metadata");
   }
   for (const field of ["chainId", "name", "shortName"]) {
-    if (!Array.isArray(evidence.matches[field]) || evidence.matches[field].length !== 0) throw new Error(`collision evidence reports a ${field} conflict`);
+    if (!Array.isArray(evidence.matches[field]) || evidence.matches[field].length !== 1) throw new Error(`collision evidence reports a ${field} conflict`);
+    const match = evidence.matches[field][0];
+    if (match.chainId !== metadata.chainId || match.name !== metadata.name || match.shortName !== metadata.shortName) throw new Error(`collision evidence reports a ${field} conflict`);
   }
   if (evidence.registry.repository !== "https://github.com/ethereum-lists/chains.git" || !/^[0-9a-f]{40}$/.test(evidence.registry.commit)) {
     throw new Error("collision registry source or commit is invalid");
   }
-  if (evidence.registry.targetFile !== "_data/chains/eip155-6423.json" || evidence.registry.targetFilePresent !== false) {
-    throw new Error("collision registry target file is present or mismatched");
+  if (evidence.registry.targetFile !== "_data/chains/eip155-6423.json" || evidence.registry.targetFilePresent !== true || !/^[0-9a-f]{64}$/.test(evidence.registry.targetFileSha256)) {
+    throw new Error("collision registry target file is absent or mismatched");
   }
-  if (evidence.status !== "unassigned-at-observation; refresh-before-submission") throw new Error("collision evidence status is not fail-closed");
+  if (evidence.status !== "registered-self-at-observation; refresh-before-metadata-change") throw new Error("collision evidence status is not fail-closed");
   return evidence;
 }
 

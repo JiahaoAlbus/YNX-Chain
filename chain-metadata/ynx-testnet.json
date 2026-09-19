@@ -22,6 +22,6 @@
   "rpc": [
     "https://evm.ynxweb4.com"
   ],
-  "shortName": "ynxt",
+  "shortName": "ynxtest",
   "status": "active"
 }
