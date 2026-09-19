@@ -34,7 +34,7 @@ if (phase === "self-test") {
   console.log("ios simulator Faucet compiled-gate evidence self-test passed");
   process.exit(0);
 }
-assert(["prepare", "artifact", "run"].includes(phase), "Use prepare, artifact, run or self-test");
+assert(["prepare", "compiled", "artifact", "run"].includes(phase), "Use prepare, compiled, artifact, run or self-test");
 assert.equal(process.env.GITHUB_ACTIONS, "true", "This runner must not operate a developer's Simulator profile");
 assert.equal(process.platform, "darwin", "A macOS Xcode runner is required");
 assert.match(expected ?? "", /^[0-9a-f]{40}$/, "Require an exact lowercase source commit");
@@ -124,8 +124,37 @@ if (phase === "prepare") {
   assert.match(info.CFBundleVersion, /^[1-9][0-9]*$/);
   assert.equal(info.CFBundleVersion, config.ios.buildNumber, "Committed iOS and Expo build numbers disagree");
   assert.equal(info.UIUserInterfaceStyle, "Light");
-  const tracked = command("git", ["ls-files", "-z", "apps/wallet", "packages/wallet-auth", ".github/workflows/wallet-ios.yml"]).split("\0").filter(Boolean);
+  const tracked = command("git", ["ls-files", "-z", "apps/wallet", "packages/wallet-auth", ".github/workflows/wallet-ios.yml", ".github/workflows/wallet-ios-faucet-verify.yml"]).split("\0").filter(Boolean);
   save("source.json", { sourceCommit: expected, sourceTree: command("git", ["rev-parse", "HEAD^{tree}"]), sourceFiles: tracked.map(path => ({ path, sha256: sha(readFileSync(join(root, path))) })), xcode: command("xcodebuild", ["-version"]), sdks: command("xcodebuild", ["-showsdks"]), version: info.CFBundleShortVersionString, build: info.CFBundleVersion, simulatorOnly: true });
+} else if (phase === "compiled") {
+  assertOwnedDirectory();
+  const source = JSON.parse(readFileSync(join(proof, "source.json"))), info = plist(join(app, "Info.plist"));
+  assert.equal(info.CFBundleIdentifier, bundle); assert.equal(info.CFBundleShortVersionString, source.version); assert.equal(info.CFBundleVersion, source.build);
+  assert.deepEqual(info.CFBundleSupportedPlatforms, ["iPhoneSimulator"]); assert.equal(info.DTPlatformName, "iphonesimulator");
+  const nativeModule = JSON.parse(readFileSync(join(root, "apps/wallet/modules/ynx-faucet-transport/package.json")));
+  const podLock = readFileSync(join(root, "apps/wallet/ios/Podfile.lock"), "utf8");
+  assert(podLock.includes(`- YnxFaucetTransport (${nativeModule.version}):`), "The resolved iOS dependency graph lacks the exact local Faucet pod");
+  const providerPath = "apps/wallet/ios/Pods/Target Support Files/Pods-YNXWallet/ExpoModulesProvider.swift";
+  const provider = readFileSync(join(root, providerPath), "utf8");
+  const buildLog = readFileSync(join(proof, "xcodebuild.log"), "utf8");
+  const moduleSource = readFileSync(join(root, "apps/wallet/modules/ynx-faucet-transport/ios/YnxFaucetTransportModule.swift"), "utf8");
+  const gate = compiledFaucetGateEvidence({ moduleSource, buildLog, provider });
+  const executable = join(app, info.CFBundleExecutable), artifactFiles = files(app);
+  save("faucet-compiled-verification.json", {
+    sourceCommit: expected, workflowRunUrl: process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY && process.env.GITHUB_RUN_ID
+      ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}` : null,
+    runner: { os: process.env.RUNNER_OS ?? null, architecture: process.env.RUNNER_ARCH ?? null, xcode: source.xcode, sdks: source.sdks },
+    bundleIdentifier: bundle, version: info.CFBundleShortVersionString, build: info.CFBundleVersion,
+    sdkName: info.DTSDKName, platform: info.DTPlatformName, executableSha256: sha(readFileSync(executable)),
+    appTreeSha256: sha(JSON.stringify(artifactFiles)), appFiles: artifactFiles,
+    pod: "YnxFaucetTransport", podVersion: nativeModule.version, podLockSha256: sha(podLock),
+    providerPath, providerSha256: sha(provider), buildLogSha256: sha(buildLog),
+    productionEnabled: gate.productionEnabled, productionEnabledEvidence: gate.evidence,
+    productionEnabledRuntimeRead: gate.runtimeConstantRead, compiledSources: gate.compiledSources,
+    nativeAppBuildPassed: true, simulatorOnly: true, nativeHttpExecuted: false,
+    faucetInstalledUIVerified: false, simulatorInstalled: false, physicalDeviceVerified: false,
+    signed: false, distributionSigned: false, testFlight: false, appStore: false, publicEndpointUsed: false
+  });
 } else if (phase === "artifact") {
   assertOwnedDirectory();
   const source = JSON.parse(readFileSync(join(proof, "source.json"))), info = plist(join(app, "Info.plist"));
