@@ -1,0 +1,382 @@
+{
+  "schema": "ynx-weekly-v3-finance-wallet-integration/v1",
+  "generatedAt": "2026-09-19T12:36:57.418Z",
+  "financeCommit": "0adc35cd722d8728fc41704350c5f7a0056200d8",
+  "walletCommit": "bd977cd2d382c4c43a435c8e415e698205b8a102",
+  "networkCommit": "8cfbb53ed598dbd2ea784989fe9a9617546611a2",
+  "sourceSha256": {
+    "scripts/verify/weekly-v3/finance_wallet_integration_test.go": "3f39e3f4b434a6b975bcabd62ff36aaaad3a4440011e7f312c08e54f3ef9c44d",
+    "scripts/verify/weekly-v3/finance_gateway_integration_test.go": "707ffe56e4ea55e130596c3d65c677689239b943411434bacae6c5a45d07fca1",
+    "scripts/verify/weekly-v3/finance_recovery_integration_test.go": "974494529f14709c97e68f42b6c8d66d42ca75c4a33da70bc6ebe0511509a39a",
+    "scripts/verify/weekly-v3/finance_browser_integration_test.go": "03a74868013ecbc6b9bc4c757564384314f90fb517b934999bd024d7a67e93c9",
+    "scripts/verify/weekly-v3/finance-browser-bridge.mjs": "af14b8dd8933644a268b75e529077f1a7c7c7f469c4d63ddd090afd3f107750e",
+    "scripts/verify/weekly-v3/broker-wire-fixtures.json": "1adae17f29219e4b8f1c58e384fd1a44da4681a522c95e7b533186fc9f5859e7",
+    "scripts/verify/weekly-v3/broker-wire-fixtures.mjs": "dd560e7dc6aaded3277660fb955d9cdf62b987cb6a0156248a8a84e3ca37bccd",
+    "scripts/verify/weekly-v3/gateway-sse-fixture.mjs": "5dd465d49b89a5d4398e9ba832e0c684f9cebd05195518c88f477f2297aa9430",
+    "scripts/verify/weekly-v3/recovery-fixtures.mjs": "ba460581e15b57f6d8af78480cc0bfaa8f6acef2e773f27713cdd25db155dbb7",
+    "scripts/verify/weekly-v3/finance-wallet-bridge.mjs": "ddb0acd5e40923483d584b4484fa3f63a41bd91e698e57d80e66e32dba4c907c",
+    "scripts/verify/weekly-v3-finance-wallet-integration.mjs": "e4fa81c22ebbfb1c3c677190e5425f8cd7176938046946a41ada16d36ad47c4c",
+    "scripts/verify/weekly-v3/finance_execution_integration_test.go": "7156b5a12e24d3eb18295c4b6b3c238612bcc3bce5c4377355f326216773495c",
+    "scripts/verify/weekly-v3/broker_operator_fixture_test.go": "fac1e5992ae6ef7710a78e2ab8c0bf36de222682e3743b17fc1dbd0f32232367",
+    "scripts/verify/weekly-v3/broker_worker_integration_test.go": "8dff30ff3ca8bf7254ac5277c6e0b476ed1131c547c7231065e9ccc20e65c0bc",
+    "scripts/verify/weekly-v3/broker_tools_integration_test.go": "4d065e5c7bb989163525a46d122be5fccfd0053641685b89b415fb1ed6ce1eb3"
+  },
+  "productCheckpointsUnchanged": true,
+  "diagnosticDateAdapter": false,
+  "scope": "local browser VM + actual Wallet controller + Finance HTTP/store; authority and loopback TLS provider fixtures; not installed GUI or official Sandbox",
+  "exitCode": 1,
+  "error": "Command failed: go test -race -count=1 -tags=weekly_v3_integration -overlay /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-weekly-v3-integration-T2Xv7L/overlay.json -v ./internal/finance ./apps/finance/cmd/broker-worker ./apps/finance/cmd/broker-tools -run TestWeeklyV3\n",
+  "outputSha256": "8eec28dd990ee1216c486a621532d00804596ec73652cd7997b9f05afb1ff3e1",
+  "output": "=== RUN   TestWeeklyV3RealDOMStartsSecuritiesDraftWithoutChainDependency\n=== RUN   TestWeeklyV3RealDOMStartsSecuritiesDraftWithoutChainDependency/owned_activity\n=== RUN   TestWeeklyV3RealDOMStartsSecuritiesDraftWithoutChainDependency/empty_activity\n    weekly_v3_browser_integration_test.go:93: actual DOM start/copy failed (not a VM result): {\"scope\":\"real-headless-DOM-loopback-Finance-HTTP-synthetic-session-and-Gateway\",\"requests\":[{\"path\":\"/api/broker/status\",\"method\":\"GET\",\"status\":200,\"proofScope\":\"\",\"body\":null,\"responseBody\":\"{\\\"accountLink\\\":\\\"requires_authenticated_persistent_mapping\\\",\\\"durableOrderJournal\\\":\\\"implemented_state_v2\\\",\\\"funding\\\":\\\"simulated_USD_only_no_YNXT_conversion\\\",\\\"marketData\\\":\\\"not_verified\\\",\\\"providerPost\\\":\\\"controlled_worker_only_never_browser_direct\\\",\\\"schema\\\":\\\"ynx-finance-broker-status-v1\\\",\\\"status\\\":{\\\"provider\\\":\\\"alpaca_broker\\\",\\\"chainEnvironment\\\":\\\"testnet\\\",\\\"tradingEnvironment\\\":\\\"sandbox\\\",\\\"enabled\\\":false,\\\"state\\\":\\\"DISABLED\\\",\\\"diagnostics\\\":[],\\\"submissionEnabled\\\":false,\\\"officialSandboxVerified\\\":false,\\\"productionApproved\\\":false},\\\"walletOrderApproval\\\":\\\"frozen_contract_with_owner_scoped_execution_request\\\"}\\n\"},{\"path\":\"/api/overview\",\"method\":\"GET\",\"status\":200,\"proofScope\":\"finance.portfolio.read\",\"body\":null,\"responseBody\":\"{\\\"alerts\\\":[{\\\"detail\\\":\\\"Pay receipt source is not configured\\\",\\\"id\\\":\\\"pay-unavailable\\\",\\\"severity\\\":\\\"info\\\",\\\"title\\\":\\\"Pay receipts unavailable\\\"}],\\\"boundaries\\\":{\\\"accountControl\\\":\\\"YNX Wallet only\\\",\\\"crossChainBalances\\\":\\\"not provided\\\",\\\"data\\\":\\\"live Explorer and Pay records or explicit unavailable/empty state\\\",\\\"fiatBalance\\\":\\\"not provided\\\",\\\"isBank\\\":false,\\\"isBroker\\\":false,\\\"isCustodian\\\":false,\\\"isInvestmentAdvisor\\\":false,\\\"returns\\\":\\\"not promised\\\"},\\\"budgetProgress\\\":[],\\\"portfolio\\\":{\\\"account\\\":\\\"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80\\\",\\\"network\\\":\\\"ynx_6423-1\\\",\\\"symbol\\\":\\\"YNXT\\\",\\\"balanceYnxt\\\":0,\\\"stakedYnxt\\\":0,\\\"activity\\\":[],\\\"payReceipts\\\":[],\\\"explorerStatus\\\":{\\\"available\\\":true,\\\"source\\\":\\\"http://127.0.0.1:55149\\\",\\\"version\\\":\\\"local-only\\\",\\\"asOf\\\":\\\"2026-09-19T09:00:30Z\\\",\\\"asOfKind\\\":\\\"explorer-last-checked-at\\\",\\\"coverage\\\":\\\"account balance plus latest 100 indexed transactions filtered to the authorized account\\\",\\\"syncStatus\\\":\\\"health-validated\\\",\\\"rpcHeight\\\":120,\\\"indexedHeight\\\":120},\\\"payStatus\\\":{\\\"available\\\":false,\\\"source\\\":\\\"\\\",\\\"version\\\":\\\"finance-pay-events-v1\\\",\\\"coverage\\\":\\\"Pay events returned by the configured authorized Pay API, filtered to the authorized account\\\",\\\"syncStatus\\\":\\\"not-configured\\\",\\\"error\\\":\\\"Pay receipt source is not configured\\\"},\\\"readSources\\\":{\\\"dex\\\":{\\\"id\\\":\\\"dex\\\",\\\"name\\\":\\\"YNX DEX\\\",\\\"owner\\\":\\\"27-dex\\\",\\\"capability\\\":\\\"Authorized vault, LP, swap, fee, redemption and emergency-exit evidence\\\",\\\"consumerEnvelopeVersion\\\":\\\"finance-source-read-envelope-v1\\\",\\\"ownerContractAccepted\\\":true,\\\"readOnly\\\":true,\\\"status\\\":{\\\"available\\\":false,\\\"source\\\":\\\"27-dex\\\",\\\"version\\\":\\\"finance-source-read-envelope-v1\\\",\\\"asOf\\\":\\\"2026-09-19T12:35:54.096378Z\\\",\\\"asOfKind\\\":\\\"finance-contract-evaluated-at\\\",\\\"coverage\\\":\\\"Authorized vault, LP, swap, fee, redemption and emergency-exit evidence\\\",\\\"syncStatus\\\":\\\"integration-unconfigured\\\",\\\"error\\\":\\\"Accepted owner contract is not configured with an integration endpoint\\\"},\\\"action\\\":{\\\"label\\\":\\\"Open YNX DEX\\\",\\\"configured\\\":false,\\\"owner\\\":\\\"27-dex\\\",\\\"opensOwnerProduct\\\":true,\\\"requiresOwnerApproval\\\":true},\\\"forbiddenCapabilities\\\":[\\\"transaction.sign\\\",\\\"order.place\\\",\\\"swap.execute\\\",\\\"withdrawal.execute\\\",\\\"transfer.execute\\\",\\\"owner.change\\\",\\\"address.manage\\\",\\\"leverage.change\\\",\\\"risk-limit.change\\\",\\\"mandate.write\\\",\\\"treasury.write\\\",\\\"strategy.pause\\\",\\\"session.revoke\\\"]},\\\"economics\\\":{\\\"id\\\":\\\"economics\\\",\\\"name\\\":\\\"YNXT Economics\\\",\\\"owner\\\":\\\"17-tokenomics\\\",\\\"capability\\\":\\\"Versioned issuance, burn, staking-source, treasury, service-fee and reserve evidence\\\",\\\"consumerEnvelopeVersion\\\":\\\"finance-source-read-envelope-v1\\\",\\\"ownerContractAccepted\\\":false,\\\"readOnly\\\":true,\\\"status\\\":{\\\"available\\\":false,\\\"source\\\":\\\"17-tokenomics\\\",\\\"version\\\":\\\"finance-source-read-envelope-v1\\\",\\\"asOf\\\":\\\"2026-09-19T12:35:54.096378Z\\\",\\\"asOfKind\\\":\\\"finance-contract-evaluated-at\\\",\\\"coverage\\\":\\\"Versioned issuance, burn, staking-source, treasury, service-fee and reserve evidence\\\",\\\"syncStatus\\\":\\\"owner-contract-pending\\\",\\\"error\\\":\\\"No owner-frozen read-only contract has been accepted by Finance\\\"},\\\"action\\\":{\\\"label\\\":\\\"Open YNXT Economics\\\",\\\"configured\\\":false,\\\"owner\\\":\\\"17-tokenomics\\\",\\\"opensOwnerProduct\\\":true,\\\"requiresOwnerApproval\\\":true},\\\"forbiddenCapabilities\\\":[\\\"transaction.sign\\\",\\\"order.place\\\",\\\"swap.execute\\\",\\\"withdrawal.execute\\\",\\\"transfer.execute\\\",\\\"owner.change\\\",\\\"address.manage\\\",\\\"leverage.change\\\",\\\"risk-limit.change\\\",\\\"mandate.write\\\",\\\"treasury.write\\\",\\\"strategy.pause\\\",\\\"session.revoke\\\"]},\\\"exchange\\\":{\\\"id\\\":\\\"exchange\\\",\\\"name\\\":\\\"YNX Exchange\\\",\\\"owner\\\":\\\"07-exchange\\\",\\\"capability\\\":\\\"Authorized subaccounts, positions, fills, fees, funding and PnL evidence\\\",\\\"consumerEnvelopeVersion\\\":\\\"finance-source-read-envelope-v1\\\",\\\"ownerContractAccepted\\\":true,\\\"readOnly\\\":true,\\\"status\\\":{\\\"available\\\":false,\\\"source\\\":\\\"07-exchange\\\",\\\"version\\\":\\\"finance-source-read-envelope-v1\\\",\\\"asOf\\\":\\\"2026-09-19T12:35:54.096378Z\\\",\\\"asOfKind\\\":\\\"finance-contract-evaluated-at\\\",\\\"coverage\\\":\\\"Authorized subaccounts, positions, fills, fees, funding and PnL evidence\\\",\\\"syncStatus\\\":\\\"integration-unconfigured\\\",\\\"error\\\":\\\"Accepted owner contract is not configured with an integration endpoint\\\"},\\\"action\\\":{\\\"label\\\":\\\"Open YNX Exchange\\\",\\\"configured\\\":false,\\\"owner\\\":\\\"07-exchange\\\",\\\"opensOwnerProduct\\\":true,\\\"requiresOwnerApproval\\\":true},\\\"forbiddenCapabilities\\\":[\\\"transaction.sign\\\",\\\"order.place\\\",\\\"swap.execute\\\",\\\"withdrawal.execute\\\",\\\"transfer.execute\\\",\\\"owner.change\\\",\\\"address.manage\\\",\\\"leverage.change\\\",\\\"risk-limit.change\\\",\\\"mandate.write\\\",\\\"treasury.write\\\",\\\"strategy.pause\\\",\\\"session.revoke\\\"]},\\\"quant\\\":{\\\"id\\\":\\\"quant\\\",\\\"name\\\":\\\"YNX Quant Lab\\\",\\\"owner\\\":\\\"08-quant-lab\\\",\\\"capability\\\":\\\"Authorized strategy, mandate, capital, PnL, fee, drawdown, risk and exit evidence\\\",\\\"consumerEnvelopeVersion\\\":\\\"finance-source-read-envelope-v1\\\",\\\"ownerContractAccepted\\\":true,\\\"readOnly\\\":true,\\\"status\\\":{\\\"available\\\":false,\\\"source\\\":\\\"08-quant-lab\\\",\\\"version\\\":\\\"finance-source-read-envelope-v1\\\",\\\"asOf\\\":\\\"2026-09-19T12:35:54.096378Z\\\",\\\"asOfKind\\\":\\\"finance-contract-evaluated-at\\\",\\\"coverage\\\":\\\"Authorized strategy, mandate, capital, PnL, fee, drawdown, risk and exit evidence\\\",\\\"syncStatus\\\":\\\"integration-unconfigured\\\",\\\"error\\\":\\\"Accepted owner contract is not configured with an integration endpoint\\\"},\\\"action\\\":{\\\"label\\\":\\\"Open YNX Quant Lab\\\",\\\"configured\\\":false,\\\"owner\\\":\\\"08-quant-lab\\\",\\\"opensOwnerProduct\\\":true,\\\"requiresOwnerApproval\\\":true},\\\"forbiddenCapabilities\\\":[\\\"transaction.sign\\\",\\\"order.place\\\",\\\"swap.execute\\\",\\\"withdrawal.execute\\\",\\\"transfer.execute\\\",\\\"owner.change\\\",\\\"address.manage\\\",\\\"leverage.change\\\",\\\"risk-limit.change\\\",\\\"mandate.write\\\",\\\"treasury.write\\\",\\\"strategy.pause\\\",\\\"session.revoke\\\"]}},\\\"readOnly\\\":true,\\\"asOf\\\":\\\"2026-09-19T12:35:54.096378Z\\\"},\\\"profile\\\":{\\\"categories\\\":[],\\\"budgets\\\":[],\\\"reminders\\\":[],\\\"notes\\\":[],\\\"privacy\\\":{\\\"includePayInStatements\\\":true,\\\"allowAiActivityContext\\\":false,\\\"alertsEnabled\\\":true,\\\"updatedAt\\\":\\\"0001-01-01T00:00:00Z\\\"},\\\"classifications\\\":{},\\\"aiJobs\\\":[],\\\"brokerage\\\":{\\\"mappings\\\":{\\\"alpaca_broker:sandbox\\\":{\\\"subjectId\\\":\\\"subject_312240a32249c92c42cef8b884a5a89d0421d6f0e35004a0ae0e5f28cfc70a17\\\",\\\"account\\\":\\\"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80\\\",\\\"provider\\\":\\\"alpaca_broker\\\",\\\"tradingEnvironment\\\":\\\"sandbox\\\",\\\"brokerAccountId\\\":\\\"01234567-89ab-4cde-8fab-0123456789ab\\\",\\\"walletPublicKey\\\":\\\"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\\\",\\\"status\\\":\\\"active\\\",\\\"createdAt\\\":\\\"2026-09-19T09:00:30Z\\\",\\\"updatedAt\\\":\\\"2026-09-19T09:00:30Z\\\"}},\\\"challenges\\\":{},\\\"orders\\\":{},\\\"outbox\\\":{},\\\"journal\\\":[],\\\"watchlist\\\":{},\\\"tradeEventAt\\\":\\\"0001-01-01T00:00:00Z\\\",\\\"reconciledAt\\\":\\\"0001-01-01T00:00:00Z\\\"}},\\\"support\\\":{\\\"helpUrl\\\":\\\"https://support.invalid/help\\\",\\\"privacyUrl\\\":\\\"https://support.invalid/privacy\\\",\\\"disputeUrl\\\":\\\"https://support.invalid/disputes\\\"}}\\n\"},{\"path\":\"/api/broker/orders\",\"method\":\"GET\",\"status\":200,\"proofScope\":\"finance.portfolio.read\",\"body\":null,\"responseBody\":\"{\\\"providerWriteAttempted\\\":false,\\\"schema\\\":\\\"ynx-finance-broker-workspace-v1\\\",\\\"workspace\\\":{\\\"mappingActive\\\":true,\\\"orders\\\":[],\\\"outbox\\\":[],\\\"journal\\\":null,\\\"watchlist\\\":[],\\\"serverTime\\\":\\\"2026-09-19T09:00:30.000Z\\\"}}\\n\"},{\"path\":\"/api/broker/snapshot\",\"method\":\"GET\",\"status\":200,\"proofScope\":\"finance.portfolio.read\",\"body\":null,\"responseBody\":\"{\\\"officialSandboxVerified\\\":false,\\\"schema\\\":\\\"ynx-finance-broker-snapshot-v1\\\",\\\"snapshot\\\":{\\\"provider\\\":\\\"alpaca_broker\\\",\\\"environment\\\":\\\"sandbox\\\",\\\"requestIds\\\":[\\\"isolated-provider-request\\\",\\\"isolated-provider-request\\\",\\\"isolated-provider-request\\\"],\\\"account\\\":{\\\"providerAccountId\\\":\\\"01234567-89ab-4cde-8fab-0123456789ab\\\",\\\"providerStatus\\\":\\\"ACTIVE\\\",\\\"currency\\\":\\\"USD\\\",\\\"cash\\\":\\\"24861.91\\\",\\\"buyingPower\\\":\\\"103556.8572572922\\\",\\\"tradingBlocked\\\":false,\\\"accountBlocked\\\":false,\\\"tradeSuspendedByUser\\\":false,\\\"requestId\\\":\\\"isolated-provider-request\\\"},\\\"orders\\\":[],\\\"positions\\\":[]},\\\"source\\\":\\\"provider_read_through\\\"}\\n\"},{\"path\":\"/api/ai/jobs\",\"method\":\"POST\",\"status\":503,\"proofScope\":\"finance.ai.draft\",\"body\":\"{\\\"kind\\\":\\\"draft_broker_order\\\",\\\"recordIds\\\":[],\\\"contextClasses\\\":[],\\\"consent\\\":true,\\\"securitiesOrderIntent\\\":{\\\"symbol\\\":\\\"ACME\\\",\\\"side\\\":\\\"buy\\\",\\\"qty\\\":\\\"2\\\",\\\"limitPrice\\\":\\\"125.34\\\"}}\",\"responseBody\":\"{\\\"code\\\":\\\"ai_unavailable\\\",\\\"error\\\":\\\"AI activity context is disabled in privacy settings\\\",\\\"errorId\\\":\\\"YNX-FIN-AI-UNAVAILABLE\\\",\\\"requestId\\\":\\\"local-browser-scope-fixture\\\"}\\n\"}],\"blocked\":[],\"pageErrors\":[],\"officialSandboxVerified\":false,\"realModelGenerationVerified\":false,\"intentTag\":\"FORM\",\"nativeFormData\":true,\"activityCount\":0,\"copied\":false,\"failure\":\"locator.waitFor: Timeout 15000ms exceeded.\\nCall log:\\n\\u001b[2m  - waiting for locator('[data-ai=\\\"use-order\\\"]') to be visible\\u001b[22m\\n\\u001b[2m    35 × locator resolved to hidden <button data-ai=\\\"use-order\\\" class=\\\"primary hidden\\\">Copy into order form</button>\\u001b[22m\\n\",\"notice\":\"AI activity context is disabled in privacy settings\",\"statusText\":\"No AI request has been made. Unavailable providers produce an error, never a canned answer.\"}\n=== RUN   TestWeeklyV3RealDOMStartsSecuritiesDraftWithoutChainDependency/explorer_unavailable\n    weekly_v3_browser_integration_test.go:93: actual DOM start/copy failed (not a VM result): {\"scope\":\"real-headless-DOM-loopback-Finance-HTTP-synthetic-session-and-Gateway\",\"requests\":[{\"path\":\"/api/broker/status\",\"method\":\"GET\",\"status\":200,\"proofScope\":\"\",\"body\":null,\"responseBody\":\"{\\\"accountLink\\\":\\\"requires_authenticated_persistent_mapping\\\",\\\"durableOrderJournal\\\":\\\"implemented_state_v2\\\",\\\"funding\\\":\\\"simulated_USD_only_no_YNXT_conversion\\\",\\\"marketData\\\":\\\"not_verified\\\",\\\"providerPost\\\":\\\"controlled_worker_only_never_browser_direct\\\",\\\"schema\\\":\\\"ynx-finance-broker-status-v1\\\",\\\"status\\\":{\\\"provider\\\":\\\"alpaca_broker\\\",\\\"chainEnvironment\\\":\\\"testnet\\\",\\\"tradingEnvironment\\\":\\\"sandbox\\\",\\\"enabled\\\":false,\\\"state\\\":\\\"DISABLED\\\",\\\"diagnostics\\\":[],\\\"submissionEnabled\\\":false,\\\"officialSandboxVerified\\\":false,\\\"productionApproved\\\":false},\\\"walletOrderApproval\\\":\\\"frozen_contract_with_owner_scoped_execution_request\\\"}\\n\"},{\"path\":\"/api/overview\",\"method\":\"GET\",\"status\":200,\"proofScope\":\"finance.portfolio.read\",\"body\":null,\"responseBody\":\"{\\\"alerts\\\":[{\\\"detail\\\":\\\"Explorer health unavailable: upstream returned HTTP 503\\\",\\\"id\\\":\\\"explorer-unavailable\\\",\\\"severity\\\":\\\"warning\\\",\\\"title\\\":\\\"Portfolio source unavailable\\\"},{\\\"detail\\\":\\\"Pay receipt source is not configured\\\",\\\"id\\\":\\\"pay-unavailable\\\",\\\"severity\\\":\\\"info\\\",\\\"title\\\":\\\"Pay receipts unavailable\\\"}],\\\"boundaries\\\":{\\\"accountControl\\\":\\\"YNX Wallet only\\\",\\\"crossChainBalances\\\":\\\"not provided\\\",\\\"data\\\":\\\"live Explorer and Pay records or explicit unavailable/empty state\\\",\\\"fiatBalance\\\":\\\"not provided\\\",\\\"isBank\\\":false,\\\"isBroker\\\":false,\\\"isCustodian\\\":false,\\\"isInvestmentAdvisor\\\":false,\\\"returns\\\":\\\"not promised\\\"},\\\"budgetProgress\\\":[],\\\"portfolio\\\":{\\\"account\\\":\\\"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80\\\",\\\"network\\\":\\\"ynx_6423-1\\\",\\\"symbol\\\":\\\"YNXT\\\",\\\"balanceYnxt\\\":0,\\\"stakedYnxt\\\":0,\\\"activity\\\":[],\\\"payReceipts\\\":[],\\\"explorerStatus\\\":{\\\"available\\\":false,\\\"source\\\":\\\"http://127.0.0.1:55180\\\",\\\"coverage\\\":\\\"account balance plus latest 100 indexed transactions filtered to the authorized account\\\",\\\"syncStatus\\\":\\\"unavailable\\\",\\\"error\\\":\\\"Explorer health unavailable: upstream returned HTTP 503\\\"},\\\"payStatus\\\":{\\\"available\\\":false,\\\"source\\\":\\\"\\\",\\\"version\\\":\\\"finance-pay-events-v1\\\",\\\"coverage\\\":\\\"Pay events returned by the configured authorized Pay API, filtered to the authorized account\\\",\\\"syncStatus\\\":\\\"not-configured\\\",\\\"error\\\":\\\"Pay receipt source is not configured\\\"},\\\"readSources\\\":{\\\"dex\\\":{\\\"id\\\":\\\"dex\\\",\\\"name\\\":\\\"YNX DEX\\\",\\\"owner\\\":\\\"27-dex\\\",\\\"capability\\\":\\\"Authorized vault, LP, swap, fee, redemption and emergency-exit evidence\\\",\\\"consumerEnvelopeVersion\\\":\\\"finance-source-read-envelope-v1\\\",\\\"ownerContractAccepted\\\":true,\\\"readOnly\\\":true,\\\"status\\\":{\\\"available\\\":false,\\\"source\\\":\\\"27-dex\\\",\\\"version\\\":\\\"finance-source-read-envelope-v1\\\",\\\"asOf\\\":\\\"2026-09-19T12:36:11.544724Z\\\",\\\"asOfKind\\\":\\\"finance-contract-evaluated-at\\\",\\\"coverage\\\":\\\"Authorized vault, LP, swap, fee, redemption and emergency-exit evidence\\\",\\\"syncStatus\\\":\\\"integration-unconfigured\\\",\\\"error\\\":\\\"Accepted owner contract is not configured with an integration endpoint\\\"},\\\"action\\\":{\\\"label\\\":\\\"Open YNX DEX\\\",\\\"configured\\\":false,\\\"owner\\\":\\\"27-dex\\\",\\\"opensOwnerProduct\\\":true,\\\"requiresOwnerApproval\\\":true},\\\"forbiddenCapabilities\\\":[\\\"transaction.sign\\\",\\\"order.place\\\",\\\"swap.execute\\\",\\\"withdrawal.execute\\\",\\\"transfer.execute\\\",\\\"owner.change\\\",\\\"address.manage\\\",\\\"leverage.change\\\",\\\"risk-limit.change\\\",\\\"mandate.write\\\",\\\"treasury.write\\\",\\\"strategy.pause\\\",\\\"session.revoke\\\"]},\\\"economics\\\":{\\\"id\\\":\\\"economics\\\",\\\"name\\\":\\\"YNXT Economics\\\",\\\"owner\\\":\\\"17-tokenomics\\\",\\\"capability\\\":\\\"Versioned issuance, burn, staking-source, treasury, service-fee and reserve evidence\\\",\\\"consumerEnvelopeVersion\\\":\\\"finance-source-read-envelope-v1\\\",\\\"ownerContractAccepted\\\":false,\\\"readOnly\\\":true,\\\"status\\\":{\\\"available\\\":false,\\\"source\\\":\\\"17-tokenomics\\\",\\\"version\\\":\\\"finance-source-read-envelope-v1\\\",\\\"asOf\\\":\\\"2026-09-19T12:36:11.544724Z\\\",\\\"asOfKind\\\":\\\"finance-contract-evaluated-at\\\",\\\"coverage\\\":\\\"Versioned issuance, burn, staking-source, treasury, service-fee and reserve evidence\\\",\\\"syncStatus\\\":\\\"owner-contract-pending\\\",\\\"error\\\":\\\"No owner-frozen read-only contract has been accepted by Finance\\\"},\\\"action\\\":{\\\"label\\\":\\\"Open YNXT Economics\\\",\\\"configured\\\":false,\\\"owner\\\":\\\"17-tokenomics\\\",\\\"opensOwnerProduct\\\":true,\\\"requiresOwnerApproval\\\":true},\\\"forbiddenCapabilities\\\":[\\\"transaction.sign\\\",\\\"order.place\\\",\\\"swap.execute\\\",\\\"withdrawal.execute\\\",\\\"transfer.execute\\\",\\\"owner.change\\\",\\\"address.manage\\\",\\\"leverage.change\\\",\\\"risk-limit.change\\\",\\\"mandate.write\\\",\\\"treasury.write\\\",\\\"strategy.pause\\\",\\\"session.revoke\\\"]},\\\"exchange\\\":{\\\"id\\\":\\\"exchange\\\",\\\"name\\\":\\\"YNX Exchange\\\",\\\"owner\\\":\\\"07-exchange\\\",\\\"capability\\\":\\\"Authorized subaccounts, positions, fills, fees, funding and PnL evidence\\\",\\\"consumerEnvelopeVersion\\\":\\\"finance-source-read-envelope-v1\\\",\\\"ownerContractAccepted\\\":true,\\\"readOnly\\\":true,\\\"status\\\":{\\\"available\\\":false,\\\"source\\\":\\\"07-exchange\\\",\\\"version\\\":\\\"finance-source-read-envelope-v1\\\",\\\"asOf\\\":\\\"2026-09-19T12:36:11.544724Z\\\",\\\"asOfKind\\\":\\\"finance-contract-evaluated-at\\\",\\\"coverage\\\":\\\"Authorized subaccounts, positions, fills, fees, funding and PnL evidence\\\",\\\"syncStatus\\\":\\\"integration-unconfigured\\\",\\\"error\\\":\\\"Accepted owner contract is not configured with an integration endpoint\\\"},\\\"action\\\":{\\\"label\\\":\\\"Open YNX Exchange\\\",\\\"configured\\\":false,\\\"owner\\\":\\\"07-exchange\\\",\\\"opensOwnerProduct\\\":true,\\\"requiresOwnerApproval\\\":true},\\\"forbiddenCapabilities\\\":[\\\"transaction.sign\\\",\\\"order.place\\\",\\\"swap.execute\\\",\\\"withdrawal.execute\\\",\\\"transfer.execute\\\",\\\"owner.change\\\",\\\"address.manage\\\",\\\"leverage.change\\\",\\\"risk-limit.change\\\",\\\"mandate.write\\\",\\\"treasury.write\\\",\\\"strategy.pause\\\",\\\"session.revoke\\\"]},\\\"quant\\\":{\\\"id\\\":\\\"quant\\\",\\\"name\\\":\\\"YNX Quant Lab\\\",\\\"owner\\\":\\\"08-quant-lab\\\",\\\"capability\\\":\\\"Authorized strategy, mandate, capital, PnL, fee, drawdown, risk and exit evidence\\\",\\\"consumerEnvelopeVersion\\\":\\\"finance-source-read-envelope-v1\\\",\\\"ownerContractAccepted\\\":true,\\\"readOnly\\\":true,\\\"status\\\":{\\\"available\\\":false,\\\"source\\\":\\\"08-quant-lab\\\",\\\"version\\\":\\\"finance-source-read-envelope-v1\\\",\\\"asOf\\\":\\\"2026-09-19T12:36:11.544724Z\\\",\\\"asOfKind\\\":\\\"finance-contract-evaluated-at\\\",\\\"coverage\\\":\\\"Authorized strategy, mandate, capital, PnL, fee, drawdown, risk and exit evidence\\\",\\\"syncStatus\\\":\\\"integration-unconfigured\\\",\\\"error\\\":\\\"Accepted owner contract is not configured with an integration endpoint\\\"},\\\"action\\\":{\\\"label\\\":\\\"Open YNX Quant Lab\\\",\\\"configured\\\":false,\\\"owner\\\":\\\"08-quant-lab\\\",\\\"opensOwnerProduct\\\":true,\\\"requiresOwnerApproval\\\":true},\\\"forbiddenCapabilities\\\":[\\\"transaction.sign\\\",\\\"order.place\\\",\\\"swap.execute\\\",\\\"withdrawal.execute\\\",\\\"transfer.execute\\\",\\\"owner.change\\\",\\\"address.manage\\\",\\\"leverage.change\\\",\\\"risk-limit.change\\\",\\\"mandate.write\\\",\\\"treasury.write\\\",\\\"strategy.pause\\\",\\\"session.revoke\\\"]}},\\\"readOnly\\\":true,\\\"asOf\\\":\\\"2026-09-19T12:36:11.544724Z\\\"},\\\"profile\\\":{\\\"categories\\\":[],\\\"budgets\\\":[],\\\"reminders\\\":[],\\\"notes\\\":[],\\\"privacy\\\":{\\\"includePayInStatements\\\":true,\\\"allowAiActivityContext\\\":false,\\\"alertsEnabled\\\":true,\\\"updatedAt\\\":\\\"0001-01-01T00:00:00Z\\\"},\\\"classifications\\\":{},\\\"aiJobs\\\":[],\\\"brokerage\\\":{\\\"mappings\\\":{\\\"alpaca_broker:sandbox\\\":{\\\"subjectId\\\":\\\"subject_312240a32249c92c42cef8b884a5a89d0421d6f0e35004a0ae0e5f28cfc70a17\\\",\\\"account\\\":\\\"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80\\\",\\\"provider\\\":\\\"alpaca_broker\\\",\\\"tradingEnvironment\\\":\\\"sandbox\\\",\\\"brokerAccountId\\\":\\\"01234567-89ab-4cde-8fab-0123456789ab\\\",\\\"walletPublicKey\\\":\\\"0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798\\\",\\\"status\\\":\\\"active\\\",\\\"createdAt\\\":\\\"2026-09-19T09:00:30Z\\\",\\\"updatedAt\\\":\\\"2026-09-19T09:00:30Z\\\"}},\\\"challenges\\\":{},\\\"orders\\\":{},\\\"outbox\\\":{},\\\"journal\\\":[],\\\"watchlist\\\":{},\\\"tradeEventAt\\\":\\\"0001-01-01T00:00:00Z\\\",\\\"reconciledAt\\\":\\\"0001-01-01T00:00:00Z\\\"}},\\\"support\\\":{\\\"helpUrl\\\":\\\"https://support.invalid/help\\\",\\\"privacyUrl\\\":\\\"https://support.invalid/privacy\\\",\\\"disputeUrl\\\":\\\"https://support.invalid/disputes\\\"}}\\n\"},{\"path\":\"/api/broker/orders\",\"method\":\"GET\",\"status\":200,\"proofScope\":\"finance.portfolio.read\",\"body\":null,\"responseBody\":\"{\\\"providerWriteAttempted\\\":false,\\\"schema\\\":\\\"ynx-finance-broker-workspace-v1\\\",\\\"workspace\\\":{\\\"mappingActive\\\":true,\\\"orders\\\":[],\\\"outbox\\\":[],\\\"journal\\\":null,\\\"watchlist\\\":[],\\\"serverTime\\\":\\\"2026-09-19T09:00:30.000Z\\\"}}\\n\"},{\"path\":\"/api/broker/snapshot\",\"method\":\"GET\",\"status\":200,\"proofScope\":\"finance.portfolio.read\",\"body\":null,\"responseBody\":\"{\\\"officialSandboxVerified\\\":false,\\\"schema\\\":\\\"ynx-finance-broker-snapshot-v1\\\",\\\"snapshot\\\":{\\\"provider\\\":\\\"alpaca_broker\\\",\\\"environment\\\":\\\"sandbox\\\",\\\"requestIds\\\":[\\\"isolated-provider-request\\\",\\\"isolated-provider-request\\\",\\\"isolated-provider-request\\\"],\\\"account\\\":{\\\"providerAccountId\\\":\\\"01234567-89ab-4cde-8fab-0123456789ab\\\",\\\"providerStatus\\\":\\\"ACTIVE\\\",\\\"currency\\\":\\\"USD\\\",\\\"cash\\\":\\\"24861.91\\\",\\\"buyingPower\\\":\\\"103556.8572572922\\\",\\\"tradingBlocked\\\":false,\\\"accountBlocked\\\":false,\\\"tradeSuspendedByUser\\\":false,\\\"requestId\\\":\\\"isolated-provider-request\\\"},\\\"orders\\\":[],\\\"positions\\\":[]},\\\"source\\\":\\\"provider_read_through\\\"}\\n\"},{\"path\":\"/api/ai/jobs\",\"method\":\"POST\",\"status\":503,\"proofScope\":\"finance.ai.draft\",\"body\":\"{\\\"kind\\\":\\\"draft_broker_order\\\",\\\"recordIds\\\":[],\\\"contextClasses\\\":[],\\\"consent\\\":true,\\\"securitiesOrderIntent\\\":{\\\"symbol\\\":\\\"ACME\\\",\\\"side\\\":\\\"buy\\\",\\\"qty\\\":\\\"2\\\",\\\"limitPrice\\\":\\\"125.34\\\"}}\",\"responseBody\":\"{\\\"code\\\":\\\"ai_unavailable\\\",\\\"error\\\":\\\"AI activity context is disabled in privacy settings\\\",\\\"errorId\\\":\\\"YNX-FIN-AI-UNAVAILABLE\\\",\\\"requestId\\\":\\\"local-browser-scope-fixture\\\"}\\n\"}],\"blocked\":[],\"pageErrors\":[],\"officialSandboxVerified\":false,\"realModelGenerationVerified\":false,\"intentTag\":\"FORM\",\"nativeFormData\":true,\"activityCount\":0,\"copied\":false,\"failure\":\"locator.waitFor: Timeout 15000ms exceeded.\\nCall log:\\n\\u001b[2m  - waiting for locator('[data-ai=\\\"use-order\\\"]') to be visible\\u001b[22m\\n\\u001b[2m    35 × locator resolved to hidden <button data-ai=\\\"use-order\\\" class=\\\"primary hidden\\\">Copy into order form</button>\\u001b[22m\\n\",\"notice\":\"AI activity context is disabled in privacy settings\",\"statusText\":\"No AI request has been made. Unavailable providers produce an error, never a canned answer.\"}\n--- FAIL: TestWeeklyV3RealDOMStartsSecuritiesDraftWithoutChainDependency (38.25s)\n    --- PASS: TestWeeklyV3RealDOMStartsSecuritiesDraftWithoutChainDependency/owned_activity (2.40s)\n    --- FAIL: TestWeeklyV3RealDOMStartsSecuritiesDraftWithoutChainDependency/empty_activity (16.28s)\n    --- FAIL: TestWeeklyV3RealDOMStartsSecuritiesDraftWithoutChainDependency/explorer_unavailable (19.57s)\n=== RUN   TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite\n=== RUN   TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/default_closed\n=== RUN   TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/missing_receipt\n=== RUN   TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/wrong_chain\n=== RUN   TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/live\n=== RUN   TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/missing_credentials\n=== RUN   TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/unapproved\n=== RUN   TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/wrong_owner\n=== RUN   TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/missing_proof\n=== RUN   TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/missing_idempotency_key\n=== RUN   TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/extra_fields\n--- PASS: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite (2.74s)\n    --- PASS: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/default_closed (0.43s)\n    --- PASS: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/missing_receipt (0.28s)\n    --- PASS: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/wrong_chain (0.28s)\n    --- PASS: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/live (0.29s)\n    --- PASS: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/missing_credentials (0.29s)\n    --- PASS: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/unapproved (0.02s)\n    --- PASS: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/wrong_owner (0.29s)\n    --- PASS: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/missing_proof (0.28s)\n    --- PASS: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/missing_idempotency_key (0.29s)\n    --- PASS: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite/extra_fields (0.29s)\n=== RUN   TestWeeklyV3ExplicitExecutionHTTPToDurableConsumerExactlyOnce\n--- PASS: TestWeeklyV3ExplicitExecutionHTTPToDurableConsumerExactlyOnce (0.33s)\n=== RUN   TestWeeklyV3RealDOMExplicitExecutionConfirmation\n=== RUN   TestWeeklyV3RealDOMExplicitExecutionConfirmation/confirm\n=== RUN   TestWeeklyV3RealDOMExplicitExecutionConfirmation/decline\n=== RUN   TestWeeklyV3RealDOMExplicitExecutionConfirmation/default_closed\n--- PASS: TestWeeklyV3RealDOMExplicitExecutionConfirmation (4.64s)\n    --- PASS: TestWeeklyV3RealDOMExplicitExecutionConfirmation/confirm (1.79s)\n    --- PASS: TestWeeklyV3RealDOMExplicitExecutionConfirmation/decline (1.63s)\n    --- PASS: TestWeeklyV3RealDOMExplicitExecutionConfirmation/default_closed (1.21s)\n=== RUN   TestWeeklyV3GatewayHTTPClientConsumesFragmentedDraft\n--- PASS: TestWeeklyV3GatewayHTTPClientConsumesFragmentedDraft (0.00s)\n=== RUN   TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy\n=== RUN   TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/VALID\n=== RUN   TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/INVALID_SCHEMA\n=== RUN   TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/RATIONAL_QTY\n=== RUN   TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/EXPONENT_PRICE\n=== RUN   TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/EXTRA_ROOT\n=== RUN   TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/UNSTRUCTURED\n=== RUN   TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/MALFORMED_SSE\n=== RUN   TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/TRUNCATED\n=== RUN   TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/UNAUTHORIZED\n=== RUN   TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/RATE_LIMITED\n--- PASS: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy (2.59s)\n    --- PASS: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/VALID (0.62s)\n    --- PASS: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/INVALID_SCHEMA (0.20s)\n    --- PASS: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/RATIONAL_QTY (0.48s)\n    --- PASS: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/EXPONENT_PRICE (0.47s)\n    --- PASS: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/EXTRA_ROOT (0.48s)\n    --- PASS: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/UNSTRUCTURED (0.15s)\n    --- PASS: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/MALFORMED_SSE (0.05s)\n    --- PASS: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/TRUNCATED (0.06s)\n    --- PASS: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/UNAUTHORIZED (0.03s)\n    --- PASS: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy/RATE_LIMITED (0.05s)\n=== RUN   TestWeeklyV3GatewayHTTPClientErrorsStayExplicit\n=== RUN   TestWeeklyV3GatewayHTTPClientErrorsStayExplicit/UNAUTHORIZED\n=== RUN   TestWeeklyV3GatewayHTTPClientErrorsStayExplicit/RATE_LIMITED\n=== RUN   TestWeeklyV3GatewayHTTPClientErrorsStayExplicit/MALFORMED_SSE\n--- PASS: TestWeeklyV3GatewayHTTPClientErrorsStayExplicit (0.00s)\n    --- PASS: TestWeeklyV3GatewayHTTPClientErrorsStayExplicit/UNAUTHORIZED (0.00s)\n    --- PASS: TestWeeklyV3GatewayHTTPClientErrorsStayExplicit/RATE_LIMITED (0.00s)\n    --- PASS: TestWeeklyV3GatewayHTTPClientErrorsStayExplicit/MALFORMED_SSE (0.00s)\n=== RUN   TestWeeklyV3BrowserRequestsWriteScope\n=== RUN   TestWeeklyV3BrowserRequestsWriteScope//api/broker/challenges\n=== RUN   TestWeeklyV3BrowserRequestsWriteScope//api/broker/callback\n--- PASS: TestWeeklyV3BrowserRequestsWriteScope (0.26s)\n    --- PASS: TestWeeklyV3BrowserRequestsWriteScope//api/broker/challenges (0.14s)\n    --- PASS: TestWeeklyV3BrowserRequestsWriteScope//api/broker/callback (0.11s)\n=== RUN   TestWeeklyV3WalletBrowserDecisionsAndDurableCAS\n=== RUN   TestWeeklyV3WalletBrowserDecisionsAndDurableCAS/approve\n=== RUN   TestWeeklyV3WalletBrowserDecisionsAndDurableCAS/reject\n=== RUN   TestWeeklyV3WalletBrowserDecisionsAndDurableCAS/revoke\n--- PASS: TestWeeklyV3WalletBrowserDecisionsAndDurableCAS (0.85s)\n    --- PASS: TestWeeklyV3WalletBrowserDecisionsAndDurableCAS/approve (0.30s)\n    --- PASS: TestWeeklyV3WalletBrowserDecisionsAndDurableCAS/reject (0.23s)\n    --- PASS: TestWeeklyV3WalletBrowserDecisionsAndDurableCAS/revoke (0.32s)\n=== RUN   TestWeeklyV3BrowserUsesServerTimeWireType\n--- PASS: TestWeeklyV3BrowserUsesServerTimeWireType (0.26s)\n=== RUN   TestWeeklyV3ManualAndAIDraftBrowserLaunch\n=== RUN   TestWeeklyV3ManualAndAIDraftBrowserLaunch/manual\n=== RUN   TestWeeklyV3ManualAndAIDraftBrowserLaunch/ai\n--- PASS: TestWeeklyV3ManualAndAIDraftBrowserLaunch (0.30s)\n    --- PASS: TestWeeklyV3ManualAndAIDraftBrowserLaunch/manual (0.15s)\n    --- PASS: TestWeeklyV3ManualAndAIDraftBrowserLaunch/ai (0.15s)\n=== RUN   TestWeeklyV3DelayedEventCannotRegressFilled\n--- PASS: TestWeeklyV3DelayedEventCannotRegressFilled (0.05s)\n=== RUN   TestWeeklyV3ReconciliationRejectsMismatchedOrder\n--- PASS: TestWeeklyV3ReconciliationRejectsMismatchedOrder (0.04s)\n=== RUN   TestWeeklyV3SellOwnedPositionAndInsufficientAvailable\n=== RUN   TestWeeklyV3SellOwnedPositionAndInsufficientAvailable/owned_whole_shares\n=== RUN   TestWeeklyV3SellOwnedPositionAndInsufficientAvailable/no_position\n=== RUN   TestWeeklyV3SellOwnedPositionAndInsufficientAvailable/reserved_shares_unavailable\n=== RUN   TestWeeklyV3SellOwnedPositionAndInsufficientAvailable/fractional_available_below_whole_order\n--- PASS: TestWeeklyV3SellOwnedPositionAndInsufficientAvailable (1.33s)\n    --- PASS: TestWeeklyV3SellOwnedPositionAndInsufficientAvailable/owned_whole_shares (0.35s)\n    --- PASS: TestWeeklyV3SellOwnedPositionAndInsufficientAvailable/no_position (0.32s)\n    --- PASS: TestWeeklyV3SellOwnedPositionAndInsufficientAvailable/reserved_shares_unavailable (0.33s)\n    --- PASS: TestWeeklyV3SellOwnedPositionAndInsufficientAvailable/fractional_available_below_whole_order (0.33s)\n=== RUN   TestWeeklyV3CancellationRaceAndLostAckNeverBlindlyRetry\n=== RUN   TestWeeklyV3CancellationRaceAndLostAckNeverBlindlyRetry/fill_race\n=== RUN   TestWeeklyV3CancellationRaceAndLostAckNeverBlindlyRetry/lost_ack\n--- PASS: TestWeeklyV3CancellationRaceAndLostAckNeverBlindlyRetry (0.79s)\n    --- PASS: TestWeeklyV3CancellationRaceAndLostAckNeverBlindlyRetry/fill_race (0.40s)\n    --- PASS: TestWeeklyV3CancellationRaceAndLostAckNeverBlindlyRetry/lost_ack (0.39s)\n=== RUN   TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart\n=== RUN   TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart/submitted\n    weekly_v3_integration_test.go:631: actual adapter to loopback TLS: exactly 1 POST, 1 DELETE; unknown/query/restart preserved logical order\n=== RUN   TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart/lost_ack\n    weekly_v3_integration_test.go:631: actual adapter to loopback TLS: exactly 1 POST, 1 DELETE; unknown/query/restart preserved logical order\n=== RUN   TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart/restart_during_dispatch\n--- PASS: TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart (1.10s)\n    --- PASS: TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart/submitted (0.40s)\n    --- PASS: TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart/lost_ack (0.39s)\n    --- PASS: TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart/restart_during_dispatch (0.31s)\n=== RUN   TestWeeklyV3ExpiredOutboxDoesNotExecute\n--- PASS: TestWeeklyV3ExpiredOutboxDoesNotExecute (0.31s)\n=== RUN   TestWeeklyV3ProviderEventsAcceptProviderWire\n--- PASS: TestWeeklyV3ProviderEventsAcceptProviderWire (0.00s)\n=== RUN   TestWeeklyV3ProviderWireRejectsMalformedEvents\n=== RUN   TestWeeklyV3ProviderWireRejectsMalformedEvents/event_id_mismatch\n=== RUN   TestWeeklyV3ProviderWireRejectsMalformedEvents/invalid_at\n=== RUN   TestWeeklyV3ProviderWireRejectsMalformedEvents/invalid_timestamp\n=== RUN   TestWeeklyV3ProviderWireRejectsMalformedEvents/numeric_qty\n=== RUN   TestWeeklyV3ProviderWireRejectsMalformedEvents/event_status_mismatch\n=== RUN   TestWeeklyV3ProviderWireRejectsMalformedEvents/invalid_submitted_at\n=== RUN   TestWeeklyV3ProviderWireRejectsMalformedEvents/wrong_account\n--- PASS: TestWeeklyV3ProviderWireRejectsMalformedEvents (0.01s)\n    --- PASS: TestWeeklyV3ProviderWireRejectsMalformedEvents/event_id_mismatch (0.00s)\n    --- PASS: TestWeeklyV3ProviderWireRejectsMalformedEvents/invalid_at (0.00s)\n    --- PASS: TestWeeklyV3ProviderWireRejectsMalformedEvents/invalid_timestamp (0.00s)\n    --- PASS: TestWeeklyV3ProviderWireRejectsMalformedEvents/numeric_qty (0.00s)\n    --- PASS: TestWeeklyV3ProviderWireRejectsMalformedEvents/event_status_mismatch (0.00s)\n    --- PASS: TestWeeklyV3ProviderWireRejectsMalformedEvents/invalid_submitted_at (0.00s)\n    --- PASS: TestWeeklyV3ProviderWireRejectsMalformedEvents/wrong_account (0.00s)\n=== RUN   TestWeeklyV3TradingAccountWirePrecision\n--- PASS: TestWeeklyV3TradingAccountWirePrecision (0.02s)\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/account_blocked_true\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/account_blocked_missing\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/account_blocked_null\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/account_blocked_wrong_type\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trading_blocked_true\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trading_blocked_missing\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trading_blocked_null\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trading_blocked_wrong_type\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trade_suspended_by_user_true\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trade_suspended_by_user_missing\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trade_suspended_by_user_null\n=== RUN   TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trade_suspended_by_user_wrong_type\n--- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch (4.12s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/account_blocked_true (0.32s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/account_blocked_missing (0.32s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/account_blocked_null (0.32s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/account_blocked_wrong_type (0.33s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trading_blocked_true (0.39s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trading_blocked_missing (0.39s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trading_blocked_null (0.34s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trading_blocked_wrong_type (0.32s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trade_suspended_by_user_true (0.33s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trade_suspended_by_user_missing (0.35s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trade_suspended_by_user_null (0.35s)\n    --- PASS: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch/trade_suspended_by_user_wrong_type (0.36s)\n=== RUN   TestWeeklyV3UnreceivedApprovalCanBeRevokedAtServer\n--- PASS: TestWeeklyV3UnreceivedApprovalCanBeRevokedAtServer (0.35s)\n=== RUN   TestWeeklyV3DispatchMustNotUseMarginBuyingPower\n--- PASS: TestWeeklyV3DispatchMustNotUseMarginBuyingPower (0.41s)\n=== RUN   TestWeeklyV3ExpiredRedispatchCannotRewriteKnownProviderState\n--- PASS: TestWeeklyV3ExpiredRedispatchCannotRewriteKnownProviderState (0.36s)\n=== RUN   TestWeeklyV3FullBrowserWalletServerFlow\n=== RUN   TestWeeklyV3FullBrowserWalletServerFlow/manual_approve\n    weekly_v3_integration_test.go:836: full flow lost ACK {Order:{AssetClass: AssetID: Currency: ExtendedHours:false FeeBoundSource: LimitPrice: MaxCost: MaxFee: OrderID: OrderType: Qty: Side: Symbol: TimeInForce:} RequestID: ChallengeID: SubjectID: BrokerAccountID: OrderHash: ApprovalDigest: ApprovalState: State: ProviderClientOrderID: ProviderOrderID: ProviderRawStatus: ProviderHTTPRequestID: ProviderEventCursor: ProviderEventAt:0001-01-01 00:00:00 +0000 UTC CreatedAt:0001-01-01 00:00:00 +0000 UTC UpdatedAt:0001-01-01 00:00:00 +0000 UTC} Broker outbox cannot dispatch from pending_unwired\n=== RUN   TestWeeklyV3FullBrowserWalletServerFlow/manual_reject\n=== RUN   TestWeeklyV3FullBrowserWalletServerFlow/manual_revoke\n=== RUN   TestWeeklyV3FullBrowserWalletServerFlow/ai_approve\n    weekly_v3_integration_test.go:836: full flow lost ACK {Order:{AssetClass: AssetID: Currency: ExtendedHours:false FeeBoundSource: LimitPrice: MaxCost: MaxFee: OrderID: OrderType: Qty: Side: Symbol: TimeInForce:} RequestID: ChallengeID: SubjectID: BrokerAccountID: OrderHash: ApprovalDigest: ApprovalState: State: ProviderClientOrderID: ProviderOrderID: ProviderRawStatus: ProviderHTTPRequestID: ProviderEventCursor: ProviderEventAt:0001-01-01 00:00:00 +0000 UTC CreatedAt:0001-01-01 00:00:00 +0000 UTC UpdatedAt:0001-01-01 00:00:00 +0000 UTC} Broker outbox cannot dispatch from pending_unwired\n=== RUN   TestWeeklyV3FullBrowserWalletServerFlow/ai_reject\n=== RUN   TestWeeklyV3FullBrowserWalletServerFlow/ai_revoke\n--- FAIL: TestWeeklyV3FullBrowserWalletServerFlow (2.13s)\n    --- FAIL: TestWeeklyV3FullBrowserWalletServerFlow/manual_approve (0.35s)\n    --- PASS: TestWeeklyV3FullBrowserWalletServerFlow/manual_reject (0.32s)\n    --- PASS: TestWeeklyV3FullBrowserWalletServerFlow/manual_revoke (0.42s)\n    --- FAIL: TestWeeklyV3FullBrowserWalletServerFlow/ai_approve (0.37s)\n    --- PASS: TestWeeklyV3FullBrowserWalletServerFlow/ai_reject (0.29s)\n    --- PASS: TestWeeklyV3FullBrowserWalletServerFlow/ai_revoke (0.38s)\n=== RUN   TestWeeklyV3PagedPollFindsUnknownAfter500AndRestart\n--- PASS: TestWeeklyV3PagedPollFindsUnknownAfter500AndRestart (0.48s)\n=== RUN   TestWeeklyV3IndependentCursorsSameTimeResumeAndTenantFence\n--- PASS: TestWeeklyV3IndependentCursorsSameTimeResumeAndTenantFence (0.69s)\n=== RUN   TestWeeklyV3QuoteWireStateAndExecutionFence\n=== RUN   TestWeeklyV3QuoteWireStateAndExecutionFence/fresh\n=== RUN   TestWeeklyV3QuoteWireStateAndExecutionFence/delayed_not_stale\n=== RUN   TestWeeklyV3QuoteWireStateAndExecutionFence/too_old_for_execution\n=== RUN   TestWeeklyV3QuoteWireStateAndExecutionFence/stale\n=== RUN   TestWeeklyV3QuoteWireStateAndExecutionFence/future\n=== RUN   TestWeeklyV3QuoteWireStateAndExecutionFence/unentitled\n--- PASS: TestWeeklyV3QuoteWireStateAndExecutionFence (2.04s)\n    --- PASS: TestWeeklyV3QuoteWireStateAndExecutionFence/fresh (0.33s)\n    --- PASS: TestWeeklyV3QuoteWireStateAndExecutionFence/delayed_not_stale (0.34s)\n    --- PASS: TestWeeklyV3QuoteWireStateAndExecutionFence/too_old_for_execution (0.34s)\n    --- PASS: TestWeeklyV3QuoteWireStateAndExecutionFence/stale (0.34s)\n    --- PASS: TestWeeklyV3QuoteWireStateAndExecutionFence/future (0.34s)\n    --- PASS: TestWeeklyV3QuoteWireStateAndExecutionFence/unentitled (0.35s)\n=== RUN   TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery\n=== RUN   TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery/poll_lost_ack_false\n=== RUN   TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery/poll_lost_ack_true\n=== RUN   TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery/event_lost_ack_false\n=== RUN   TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery/event_lost_ack_true\n--- PASS: TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery (1.54s)\n    --- PASS: TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery/poll_lost_ack_false (0.39s)\n    --- PASS: TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery/poll_lost_ack_true (0.39s)\n    --- PASS: TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery/event_lost_ack_false (0.38s)\n    --- PASS: TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery/event_lost_ack_true (0.38s)\n=== RUN   TestWeeklyV3ProviderHTTPFailureCorrelationSurvivesRestart\n--- PASS: TestWeeklyV3ProviderHTTPFailureCorrelationSurvivesRestart (0.35s)\nFAIL\nFAIL\tgithub.com/JiahaoAlbus/YNX-Chain/internal/finance\t67.355s\n=== RUN   TestWeeklyV3OperatorControlledVerificationAndBackendFence\n=== RUN   TestWeeklyV3OperatorControlledVerificationAndBackendFence/disabled\n=== RUN   TestWeeklyV3OperatorControlledVerificationAndBackendFence/approved\n=== RUN   TestWeeklyV3OperatorControlledVerificationAndBackendFence/no_approval\n=== RUN   TestWeeklyV3OperatorControlledVerificationAndBackendFence/database_unavailable\n--- PASS: TestWeeklyV3OperatorControlledVerificationAndBackendFence (0.60s)\n    --- PASS: TestWeeklyV3OperatorControlledVerificationAndBackendFence/disabled (0.02s)\n    --- PASS: TestWeeklyV3OperatorControlledVerificationAndBackendFence/approved (0.55s)\n    --- PASS: TestWeeklyV3OperatorControlledVerificationAndBackendFence/no_approval (0.01s)\n    --- PASS: TestWeeklyV3OperatorControlledVerificationAndBackendFence/database_unavailable (0.01s)\nPASS\nok  \tgithub.com/JiahaoAlbus/YNX-Chain/apps/finance/cmd/broker-worker\t2.597s\n=== RUN   TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth\n=== RUN   TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth/doctor\n=== RUN   TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth/sandbox-verify\n=== RUN   TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth/no_network\n=== RUN   TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth/unentitled\n=== RUN   TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth/activation-plan\n--- PASS: TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth (0.13s)\n    --- PASS: TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth/doctor (0.04s)\n    --- PASS: TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth/sandbox-verify (0.02s)\n    --- PASS: TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth/no_network (0.02s)\n    --- PASS: TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth/unentitled (0.03s)\n    --- PASS: TestWeeklyV3DoctorRealReadOnlyProbeAndActivationTruth/activation-plan (0.01s)\nPASS\nok  \tgithub.com/JiahaoAlbus/YNX-Chain/apps/finance/cmd/broker-tools\t2.098s\nFAIL\n",
+  "localFixtureEndToEndVerified": false,
+  "crossProductE2EVerified": false,
+  "officialSandboxVerified": false,
+  "publicDeployed": false,
+  "publicVerified": false,
+  "productionApproved": false,
+  "providerFixtureProvenance": {
+    "schema": "ynx-weekly-v3-broker-wire-fixtures/v1",
+    "sources": {
+      "getaccount": {
+        "url": "https://docs.alpaca.markets/us/reference/getaccount.md",
+        "openapiSha256": "42e093761b129c36deabc3ecfbf0c8a8bd329f3a0ab4bdc58fb02970253c877e",
+        "paths": [
+          "/v1/accounts/{account_id}"
+        ],
+        "properties": [
+          "account_name",
+          "account_number",
+          "account_sub_type",
+          "account_type",
+          "agreements",
+          "allow_instant_ach",
+          "beneficiaries",
+          "cash_interest",
+          "contact",
+          "created_at",
+          "crypto_status",
+          "currency",
+          "custodial_account_type",
+          "disclosures",
+          "documents",
+          "enabled_assets",
+          "fpsl",
+          "id",
+          "identity",
+          "instant_ach_blocked",
+          "investment_objective",
+          "investment_time_horizon",
+          "kyc_results",
+          "last_equity",
+          "liquidity_needs",
+          "minor_identity",
+          "primary_account_holder_id",
+          "risk_tolerance",
+          "status",
+          "trading_configurations",
+          "trusted_contact",
+          "usd"
+        ],
+        "required": [
+          "id",
+          "account_number",
+          "status",
+          "currency",
+          "last_equity",
+          "created_at",
+          "account_type"
+        ]
+      },
+      "gettradingaccount": {
+        "url": "https://docs.alpaca.markets/us/reference/gettradingaccount.md",
+        "openapiSha256": "3afff5fc04d6ed8ca255792aecc966949e45d743d82c38e64949d595fe77497c",
+        "paths": [
+          "/v1/trading/accounts/{account_id}/account"
+        ],
+        "properties": [
+          "account_blocked",
+          "account_number",
+          "accrued_fees",
+          "admin_configurations",
+          "balance_asof",
+          "buying_power",
+          "cash",
+          "cash_transferable",
+          "cash_withdrawable",
+          "clearing_broker",
+          "created_at",
+          "crypto_status",
+          "currency",
+          "effective_buying_power",
+          "equity",
+          "id",
+          "initial_margin",
+          "intraday_adjustments",
+          "last_buying_power",
+          "last_cash",
+          "last_equity",
+          "last_initial_margin",
+          "last_long_market_value",
+          "last_maintenance_margin",
+          "last_options_buying_power",
+          "last_regt_buying_power",
+          "last_short_market_value",
+          "long_market_value",
+          "maintenance_margin",
+          "memoposts",
+          "multiplier",
+          "non_marginable_buying_power",
+          "options_approved_level",
+          "options_buying_power",
+          "options_trading_level",
+          "pending_reg_taf_fees",
+          "pending_transfer_out",
+          "portfolio_value",
+          "position_market_value",
+          "previous_close",
+          "regt_buying_power",
+          "short_market_value",
+          "shorting_enabled",
+          "sma",
+          "status",
+          "trade_suspended_by_user",
+          "trading_blocked",
+          "transfers_blocked",
+          "user_configurations"
+        ],
+        "required": [
+          "id",
+          "admin_configurations",
+          "account_number",
+          "status",
+          "crypto_status",
+          "currency",
+          "buying_power",
+          "regt_buying_power",
+          "effective_buying_power",
+          "non_marginable_buying_power",
+          "accrued_fees",
+          "portfolio_value",
+          "trading_blocked",
+          "transfers_blocked",
+          "account_blocked",
+          "created_at",
+          "trade_suspended_by_user",
+          "multiplier",
+          "shorting_enabled",
+          "equity",
+          "last_equity",
+          "long_market_value",
+          "short_market_value",
+          "position_market_value",
+          "initial_margin",
+          "maintenance_margin",
+          "last_maintenance_margin",
+          "sma",
+          "balance_asof",
+          "cash"
+        ]
+      },
+      "subscribetotradev2sse": {
+        "url": "https://docs.alpaca.markets/us/reference/subscribetotradev2sse.md",
+        "openapiSha256": "13e68f7df8a5ab1e1475e55d337084d1cd91746ae52fded657ee499be2c57c9b",
+        "paths": [
+          "/v2/events/trades"
+        ],
+        "properties": [
+          "account_id",
+          "at",
+          "event",
+          "event_id",
+          "execution_id",
+          "legs",
+          "order",
+          "position_qty",
+          "position_qtys",
+          "previous_execution_id",
+          "price",
+          "qty",
+          "reason",
+          "settle_date",
+          "swap_rate",
+          "timestamp"
+        ],
+        "required": []
+      }
+    },
+    "exampleSha256": {
+      "tradingAccount": "9066f88a6a4783039b4a1dcd9c5817149834598b410fd7148408f6f4b5f37a68",
+      "tradeUpdateNew": "75cc5692dfad2234fa0f18da41c5dd28b15f6718801f9b129e46d48b1ff89616"
+    },
+    "officialSandboxVerified": false
+  },
+  "publishedCheckpoints": {
+    "finance": {
+      "remote": "origin",
+      "ref": "refs/heads/codex/finance-wallet-flow-20260912",
+      "commit": "0adc35cd722d8728fc41704350c5f7a0056200d8"
+    },
+    "wallet": {
+      "remote": "origin",
+      "ref": "refs/heads/codex/wallet-dedicated-auth-v2-20260906",
+      "commit": "bd977cd2d382c4c43a435c8e415e698205b8a102"
+    }
+  },
+  "integrationAssetsUnchanged": true,
+  "gatewayFixtureRequests": {
+    "valid": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "invalid-schema": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "rational-qty": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "exponent-price": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "extra-root": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "unstructured": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "malformed-sse": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "truncated": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "unauthorized": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "rate-limited": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ]
+  },
+  "realModelGenerationVerified": false,
+  "browserAcceptanceScope": "Real headless Chromium loads unchanged HTML and scripts; native FormData and actual start/copy clicks; synthetic session authority and loopback Gateway, not installed Wallet or real model",
+  "stageAComplete": false,
+  "providerWireScope": "Pinned complete public TradeAccount and TradeUpdateEventV2New JSON; synthetic identity/lifecycle derivatives; SSE framing is fixture-only, not authenticated transport"
+}
