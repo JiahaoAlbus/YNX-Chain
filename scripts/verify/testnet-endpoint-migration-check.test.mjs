@@ -48,6 +48,47 @@ test("explicit historical transaction is verified against its containing block",
   assert.equal(proof.readOnlyComparisonVerified, true);
 });
 
+test("matching latest-only state capability falls back explicitly without weakening historical block proof", async () => {
+  const calls = [];
+  const baseFetch = fixtureFetch(calls);
+  const fetchImpl = async (url, options = {}) => {
+    const request = options.body ? JSON.parse(options.body) : null;
+    if (["eth_getBalance", "eth_getTransactionCount", "eth_getCode"].includes(request?.method) && request.params[1] !== "latest") {
+      return jsonResponse({id: request.id, jsonrpc: "2.0", error: {code: -32602, message: "only latest/pending state is supported"}});
+    }
+    return baseFetch(url, options);
+  };
+  const proof = await verifyLiveMigration(config, {fetchImpl, transactionHash: txHash});
+  assert.equal(proof.historicalStateUnsupported, true);
+  assert.deepEqual(proof.stateProofTags, {
+    eth_getBalance: "latest",
+    eth_getCode: "latest",
+    eth_getTransactionCount: "latest",
+  });
+  assert.equal(proof.transactionProof, txHash);
+  assert.ok(calls.some(call => call.method === "eth_getBalance" && call.params[1] === "latest"));
+});
+
+test("latest-only state fallback rejects capability or error drift between aliases", async () => {
+  const baseFetch = fixtureFetch([]);
+  await assert.rejects(verifyLiveMigration(config, {fetchImpl: async (url, options = {}) => {
+    const request = options.body ? JSON.parse(options.body) : null;
+    if (request?.method === "eth_getBalance" && request.params[1] !== "latest") {
+      if (String(url).includes("-testnet")) return jsonResponse({id: request.id, jsonrpc: "2.0", error: {code: -32602, message: "only latest/pending state is supported"}});
+    }
+    return baseFetch(url, options);
+  }}), /historical-state capability differs/);
+
+  await assert.rejects(verifyLiveMigration(config, {fetchImpl: async (url, options = {}) => {
+    const request = options.body ? JSON.parse(options.body) : null;
+    if (request?.method === "eth_getBalance" && request.params[1] !== "latest") {
+      const message = String(url).includes("-testnet") ? "archive state unavailable" : "only latest/pending state is supported";
+      return jsonResponse({id: request.id, jsonrpc: "2.0", error: {code: -32602, message}});
+    }
+    return baseFetch(url, options);
+  }}), /historical-state error differs/);
+});
+
 const invalidCases = [
   ["same-height fork", /same-height block hash differs/, (v, c) => { if (c.target && c.method === "eth_getBlockByNumber") v.hash = `0x${"d".repeat(64)}`; return v; }],
   ["matching missing block hashes", /invalid block hash/, (v, c) => { if (c.method === "eth_getBlockByNumber") delete v.hash; return v; }],
@@ -146,6 +187,12 @@ test("transport proof requires native history, CORS, block growth and stable dep
   assert.ok(!proof.remainingGates.includes("BLOCK_GROWTH_AND_NATIVE_REST"));
   assert.ok(proof.remainingGates.includes("UNCHANGED_GRPC_AND_REQUIRED_WEBSOCKET"));
   assert.equal(proof.publicVerified, false);
+  assert.equal(proof.historicalStateUnsupported, false);
+  assert.deepEqual(proof.stateProofTags, {
+    eth_getBalance: "0x64",
+    eth_getCode: "0x64",
+    eth_getTransactionCount: "0x64",
+  });
 });
 
 for (const [name, mutate, error] of [

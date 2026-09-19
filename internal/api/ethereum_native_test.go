@@ -118,6 +118,38 @@ func TestEthereumNativeRPCInvalidInputIsReadOnly(t *testing.T) {
 	}
 }
 
+func TestEthereumRPCCORSSupportsBrowserWalletsWithoutBroadeningREST(t *testing.T) {
+	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	handler := NewServer(d)
+	for _, path := range []string{"/", "/evm"} {
+		preflight := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodOptions, path, nil)
+		req.Header.Set("Origin", "https://third-party-dapp.example")
+		req.Header.Set("Access-Control-Request-Method", http.MethodPost)
+		req.Header.Set("Access-Control-Request-Headers", "content-type")
+		handler.ServeHTTP(preflight, req)
+		if preflight.Code != http.StatusNoContent || preflight.Header().Get("Access-Control-Allow-Origin") != "*" || !strings.Contains(preflight.Header().Get("Access-Control-Allow-Methods"), http.MethodPost) || !strings.EqualFold(preflight.Header().Get("Access-Control-Allow-Headers"), "Content-Type") {
+			t.Fatalf("RPC preflight %s unavailable: status=%d headers=%v", path, preflight.Code, preflight.Header())
+		}
+
+		response := httptest.NewRecorder()
+		body := strings.NewReader(`{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}`)
+		post := httptest.NewRequest(http.MethodPost, path, body)
+		post.Header.Set("Content-Type", "application/json")
+		post.Header.Set("Origin", "chrome-extension://wallet-test")
+		handler.ServeHTTP(response, post)
+		if response.Code != http.StatusOK || response.Header().Get("Access-Control-Allow-Origin") != "*" {
+			t.Fatalf("RPC response %s unavailable cross-origin: status=%d headers=%v body=%s", path, response.Code, response.Header(), response.Body.String())
+		}
+	}
+
+	rest := httptest.NewRecorder()
+	handler.ServeHTTP(rest, httptest.NewRequest(http.MethodGet, "/status", nil))
+	if rest.Header().Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("authenticated/native REST inherited RPC wildcard CORS: %v", rest.Header())
+	}
+}
+
 func TestEthereumFeesRemainReadableOnFrozenFollower(t *testing.T) {
 	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	_ = d.SetEthereumNativeTransfers(true)

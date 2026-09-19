@@ -304,6 +304,21 @@ func (s *Server) withHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-YNX-Network", s.networkConfig.Slug)
 		w.Header().Set("X-YNX-Truthful-Status", s.truthfulStatus)
+		// JSON-RPC is a public, credential-free transport. Browser wallets and
+		// extensions must be able to reach it from arbitrary dApp origins, while
+		// every state mutation remains protected by signed transaction validation.
+		// Keep this wildcard scoped to the two EVM RPC paths so authenticated REST
+		// products do not accidentally inherit a broad cross-origin policy.
+		if r.URL.Path == "/" || r.URL.Path == "/evm" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Max-Age", "600")
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
 		if s.readOnlyReplica && !mutationfreeze.IsReadOnlyRequest(r) {
 			writeError(w, http.StatusConflict, "replicated follower is read-only; submit mutations to the authoritative producer")
 			return

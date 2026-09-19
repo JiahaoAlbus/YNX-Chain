@@ -111,17 +111,34 @@ export async function verifyLiveMigration(config, {fetchImpl = fetch, transactio
     ["eth_getCode", [config.proofAddress, comparisonHeight]],
   ];
   const stateProof = {};
+  const stateProofTags = {};
+  let historicalStateUnsupported = false;
   for (const [method, params] of proofMethods) {
-    const [legacyValue, targetValue] = await Promise.all([
-      jsonRPC(legacyRPC, method, params, fetchImpl),
-      jsonRPC(targetRPC, method, params, fetchImpl),
+    const historical = await Promise.all([
+      jsonRPCOutcome(legacyRPC, method, params, fetchImpl),
+      jsonRPCOutcome(targetRPC, method, params, fetchImpl),
     ]);
+    let [legacyValue, targetValue] = historical.map(outcome => outcome.result);
+    let stateTag = comparisonHeight;
+    if (historical.some(outcome => outcome.error !== null)) {
+      assert.ok(historical.every(outcome => outcome.error !== null), `${method} historical-state capability differs between aliases`);
+      assert.deepEqual(historical[1].error, historical[0].error, `${method} historical-state error differs between aliases`);
+      assert.equal(historical[0].error.code, -32602, `${method} historical-state failure is not a capability boundary`);
+      assert.match(historical[0].error.message, /only latest\/pending state is supported/i, `${method} historical-state failure is unexpected`);
+      [legacyValue, targetValue] = await Promise.all([
+        jsonRPC(legacyRPC, method, [params[0], "latest"], fetchImpl),
+        jsonRPC(targetRPC, method, [params[0], "latest"], fetchImpl),
+      ]);
+      historicalStateUnsupported = true;
+      stateTag = "latest";
+    }
     for (const value of [legacyValue, targetValue]) {
       if (method === "eth_getCode") assert.match(value ?? "", /^0x(?:[0-9a-f]{2})*$/, "invalid EVM bytecode");
       else assert.match(value ?? "", /^0x(?:0|[1-9a-f][0-9a-f]*)$/, "invalid state quantity");
     }
-    assert.equal(targetValue, legacyValue, `${method} differs at the comparison height`);
+    assert.equal(targetValue, legacyValue, `${method} differs at ${stateTag}`);
     stateProof[method] = targetValue;
+    stateProofTags[method] = stateTag;
   }
 
   let transactionProof = null;
@@ -251,6 +268,8 @@ export async function verifyLiveMigration(config, {fetchImpl = fetch, transactio
       "UNCHANGED_GRPC_AND_REQUIRED_WEBSOCKET", "SHARED_FAUCET_STATE", "WALLET_AND_ECOSYSTEM_REGRESSION",
     ],
     stateProof,
+    stateProofTags,
+    historicalStateUnsupported,
     transactionProof,
   };
 }
@@ -280,10 +299,23 @@ async function rpcIdentity(url, fetchImpl) {
 }
 
 async function jsonRPC(url, method, params, fetchImpl) {
+  const payload = await jsonRPCOutcome(url, method, params, fetchImpl);
+  if (payload.error !== null) throw new Error(`${method} returned JSON-RPC error ${payload.error.code}: ${payload.error.message}`);
+  return payload.result;
+}
+
+async function jsonRPCOutcome(url, method, params, fetchImpl) {
   const id = `ynx-endpoint-migration-${method}`;
   const payload = await requestJSON(url, {body: JSON.stringify({id, jsonrpc: "2.0", method, params}), headers: {"content-type": "application/json"}, method: "POST"}, fetchImpl);
-  if (!payload || typeof payload !== "object" || Array.isArray(payload) || payload.jsonrpc !== "2.0" || payload.id !== id || "error" in payload || !("result" in payload)) throw new Error(`${method} returned an invalid JSON-RPC response`);
-  return payload.result;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload) || payload.jsonrpc !== "2.0" || payload.id !== id) throw new Error(`${method} returned an invalid JSON-RPC response`);
+  const hasError = Object.hasOwn(payload, "error");
+  const hasResult = Object.hasOwn(payload, "result");
+  if (hasError === hasResult) throw new Error(`${method} returned an invalid JSON-RPC response`);
+  if (hasError) {
+    if (!payload.error || typeof payload.error !== "object" || !Number.isInteger(payload.error.code) || typeof payload.error.message !== "string") throw new Error(`${method} returned an invalid JSON-RPC response`);
+    return {error: {code: payload.error.code, message: payload.error.message}, result: undefined};
+  }
+  return {error: null, result: payload.result};
 }
 
 async function getJSON(url, fetchImpl) {
