@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "files": {
+    "execution.json": "0355b35fd612f1078a928259c51105329cf2a1278b107368d4bef7dcac60e3a9",
+    "faucet-request-journal.json": "2c29b5c1ad5f5f041fb7e4ef3de72bb15c50611033fee234f62717c9ed9e1d33",
+    "public-readback.json": "9b29c66e8be20d1182f1b5080cf429c35c1f61b7dc56cdaf33d4b006d3434dae"
+  }
+}

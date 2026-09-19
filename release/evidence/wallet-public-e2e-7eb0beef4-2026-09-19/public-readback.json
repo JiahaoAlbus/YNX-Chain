@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-09-19T15:36:13.472Z",
+  "sourceCommit": "7eb0beef4f3b1199ee817441d6cc04346e511765",
+  "chainId": "0x1917",
+  "faucetStatus": {
+    "transaction": {
+      "hash": "0x4e5626318222bd83e6f758aa6a0bd34763c4d2fddcb57089ca525d821b99faf8",
+      "type": "faucet",
+      "from": "ynx_faucet",
+      "to": "0xe0ce202138e28b87e1cb683e6a4ed2c38377b875",
+      "amount": 100,
+      "fee": 0,
+      "nonce": 0,
+      "timestamp": "2026-09-19T15:30:58.778432977Z",
+      "lotFlows": [
+        {
+          "lotId": "4c74f74660f3e2b2399a332d490a7cef748d2811e40513439655a591459e6365",
+          "amount": 100,
+          "from": "ynx_faucet",
+          "to": "0xe0ce202138e28b87e1cb683e6a4ed2c38377b875"
+        }
+      ],
+      "memo": "devnet faucet mint"
+    },
+    "address": "0xe0ce202138e28b87e1cb683e6a4ed2c38377b875",
+    "amount": 100,
+    "nativeSymbol": "YNXT",
+    "requestId": "wallet_301fd86cb27e105434f7b4d8968de613d796db341584372082ed0f841782847a",
+    "truthfulStatus": "rpc-backed-faucet",
+    "transactionHash": "0x4e5626318222bd83e6f758aa6a0bd34763c4d2fddcb57089ca525d821b99faf8",
+    "status": "accepted",
+    "replayed": true
+  },
+  "receipts": {
+    "0x4e5626318222bd83e6f758aa6a0bd34763c4d2fddcb57089ca525d821b99faf8": {
+      "blockHash": "0x0d8ca3bc209a5e0c05881c86e096ae57daba352eb259722a58b1349c8c3867bd",
+      "blockNumber": "0x18ef3b",
+      "contractAddress": null,
+      "cumulativeGasUsed": "0x0",
+      "effectiveGasPrice": "0x246139ca8000",
+      "from": "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",
+      "gasUsed": "0x0",
+      "logs": [
+        {
+          "address": "0xab2b8712d9b6b684deab25cc98ef095799c68f03",
+          "blockHash": "0x0d8ca3bc209a5e0c05881c86e096ae57daba352eb259722a58b1349c8c3867bd",
+          "blockNumber": "0x18ef3b",
+          "data": "0x0000000000000000000000000000000000000000000000000000000000000064",
+          "logIndex": "0x0",
+          "removed": false,
+          "topics": [
+            "0x961e0c8bf33b987867d24b74660ac8ee6400ab76e6f7c441ccaf9acad01cda72",
+            "0x5823127b8009cbc7d24047e79db95ba2318e3bf95046d45ed7ee62d7a6bb2863",
+            "0xd68cfb1daa1171e8b45fb720f7ec7ad206f0dfccb086379575cc213cca29f3f6"
+          ],
+          "transactionHash": "0x4e5626318222bd83e6f758aa6a0bd34763c4d2fddcb57089ca525d821b99faf8",
+          "transactionIndex": "0x0"
+        }
+      ],
+      "logsBloom": "0x00000000c00000000000000000000000000000000000000000000000000000000000000000000000000000200000000000020000000000000000000000000000000000000080000000000000000000000000000001000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000100100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800000000800",
+      "status": "0x1",
+      "to": "0xe0ce202138e28b87e1cb683e6a4ed2c38377b875",
+      "transactionHash": "0x4e5626318222bd83e6f758aa6a0bd34763c4d2fddcb57089ca525d821b99faf8",
+      "transactionIndex": "0x0",
+      "type": "0x0",
+      "ynxDurability": {
+        "blockHash": "0x0d8ca3bc209a5e0c05881c86e096ae57daba352eb259722a58b1349c8c3867bd",
+        "blockNumber": "0x18ef3b",
+        "checkpointBlockHash": "0x40759317bfe503a1b91823c17b8c2e6b602027fb5b09377560a73c40ee82fcdb",
+        "checkpointBlockNumber": "0x18ef82",
+        "scope": "local-snapshot",
+        "snapshotIntegrity": "0xa5b009c3efde06c19ee9c5826d28fd0d3ba61ec352be1e5ce62a61363d8f9680",
+        "status": "durable",
+        "transactionHash": "0x4e5626318222bd83e6f758aa6a0bd34763c4d2fddcb57089ca525d821b99faf8",
+        "version": "ynx-local-durability-v1"
+      },
+      "ynxFeeWei": "0x0",
+      "ynxLogSemantics": "native provenance events; no EVM execution",
+      "ynxNativeIdentity": {
+        "from": "ynx_faucet",
+        "identityProjection": {
+          "fromSystemIdentity": true,
+          "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+          "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+          "systemAddressesAreDisplayOnly": true,
+          "toSystemIdentity": false,
+          "version": "ynx-native-identity-projection-v1"
+        },
+        "to": "0xe0ce202138e28b87e1cb683e6a4ed2c38377b875"
+      },
+      "ynxNativeTransaction": {
+        "amountYNXT": "100",
+        "feeYNXT": "0",
+        "nonce": "0x0",
+        "type": "faucet"
+      }
+    },
+    "0x0abc5c60901ffff081aeae84d328413927acd8050913fac033d8388dc91ff0ba": {
+      "blockHash": "0xc762c8562536bbee753b4557205d8e72f6084f294f13caf7ff76fc2935abaa8e",
+      "blockNumber": "0x18ef48",
+      "contractAddress": null,
+      "cumulativeGasUsed": "0x61a8",
+      "effectiveGasPrice": "0x246139ca8000",
+      "from": "0xe0ce202138e28b87e1cb683e6a4ed2c38377b875",
+      "gasUsed": "0x61a8",
+      "logs": [
+        {
+          "address": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+          "blockHash": "0xc762c8562536bbee753b4557205d8e72f6084f294f13caf7ff76fc2935abaa8e",
+          "blockNumber": "0x18ef48",
+          "data": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "logIndex": "0x0",
+          "removed": false,
+          "topics": [
+            "0xc033c4e32955d645ceb56c016534f96606e19cfc3af5087ece0f21c797b37c6e",
+            "0xd68cfb1daa1171e8b45fb720f7ec7ad206f0dfccb086379575cc213cca29f3f6",
+            "0xdc5d1a4fb7a7559d3adbcc7fc4024a52e3d7d9335ca6e545f79a9353fd75d07b"
+          ],
+          "transactionHash": "0x0abc5c60901ffff081aeae84d328413927acd8050913fac033d8388dc91ff0ba",
+          "transactionIndex": "0x0"
+        }
+      ],
+      "logsBloom": "0x00000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800008000000000000000000000000000000000800000000000000000020000000000000000000000000000000000000000000080001000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000040000800",
+      "status": "0x1",
+      "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+      "transactionHash": "0x0abc5c60901ffff081aeae84d328413927acd8050913fac033d8388dc91ff0ba",
+      "transactionIndex": "0x0",
+      "type": "0x0",
+      "ynxDurability": {
+        "blockHash": "0xc762c8562536bbee753b4557205d8e72f6084f294f13caf7ff76fc2935abaa8e",
+        "blockNumber": "0x18ef48",
+        "checkpointBlockHash": "0x40759317bfe503a1b91823c17b8c2e6b602027fb5b09377560a73c40ee82fcdb",
+        "checkpointBlockNumber": "0x18ef82",
+        "scope": "local-snapshot",
+        "snapshotIntegrity": "0xa5b009c3efde06c19ee9c5826d28fd0d3ba61ec352be1e5ce62a61363d8f9680",
+        "status": "durable",
+        "transactionHash": "0x0abc5c60901ffff081aeae84d328413927acd8050913fac033d8388dc91ff0ba",
+        "version": "ynx-local-durability-v1"
+      },
+      "ynxFeeWei": "0xde0b6b3a7640000",
+      "ynxLogSemantics": "native provenance events; no EVM execution",
+      "ynxNativeIdentity": {
+        "from": "0xe0ce202138e28b87e1cb683e6a4ed2c38377b875",
+        "identityProjection": {
+          "fromSystemIdentity": false,
+          "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+          "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+          "systemAddressesAreDisplayOnly": true,
+          "toSystemIdentity": false,
+          "version": "ynx-native-identity-projection-v1"
+        },
+        "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+      },
+      "ynxNativeTransaction": {
+        "amountYNXT": "1",
+        "feeYNXT": "1",
+        "nonce": "0x1",
+        "type": "transfer"
+      }
+    },
+    "0x9f0840f2798274ea2e080b75983f0371ad3bb6512f59ad67dc7c20901bd794a2": {
+      "blockHash": "0xcd21deb84ca42a49d87a84171c76ed1612cff00b4c06e6f478accae3f2729ec3",
+      "blockNumber": "0x18ef4f",
+      "contractAddress": null,
+      "cumulativeGasUsed": "0x61a8",
+      "effectiveGasPrice": "0x246139ca8000",
+      "from": "0xe0ce202138e28b87e1cb683e6a4ed2c38377b875",
+      "gasUsed": "0x61a8",
+      "logs": [
+        {
+          "address": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+          "blockHash": "0xcd21deb84ca42a49d87a84171c76ed1612cff00b4c06e6f478accae3f2729ec3",
+          "blockNumber": "0x18ef4f",
+          "data": "0x0000000000000000000000000000000000000000000000000000000000000001",
+          "logIndex": "0x0",
+          "removed": false,
+          "topics": [
+            "0xc033c4e32955d645ceb56c016534f96606e19cfc3af5087ece0f21c797b37c6e",
+            "0xd68cfb1daa1171e8b45fb720f7ec7ad206f0dfccb086379575cc213cca29f3f6",
+            "0xdc5d1a4fb7a7559d3adbcc7fc4024a52e3d7d9335ca6e545f79a9353fd75d07b"
+          ],
+          "transactionHash": "0x9f0840f2798274ea2e080b75983f0371ad3bb6512f59ad67dc7c20901bd794a2",
+          "transactionIndex": "0x0"
+        }
+      ],
+      "logsBloom": "0x00000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800008000000000000000000000000000000000800000000000000000020000000000000000000000000000000000000000000080001000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000040000800",
+      "status": "0x1",
+      "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+      "transactionHash": "0x9f0840f2798274ea2e080b75983f0371ad3bb6512f59ad67dc7c20901bd794a2",
+      "transactionIndex": "0x0",
+      "type": "0x0",
+      "ynxDurability": {
+        "blockHash": "0xcd21deb84ca42a49d87a84171c76ed1612cff00b4c06e6f478accae3f2729ec3",
+        "blockNumber": "0x18ef4f",
+        "checkpointBlockHash": "0x40759317bfe503a1b91823c17b8c2e6b602027fb5b09377560a73c40ee82fcdb",
+        "checkpointBlockNumber": "0x18ef82",
+        "scope": "local-snapshot",
+        "snapshotIntegrity": "0xa5b009c3efde06c19ee9c5826d28fd0d3ba61ec352be1e5ce62a61363d8f9680",
+        "status": "durable",
+        "transactionHash": "0x9f0840f2798274ea2e080b75983f0371ad3bb6512f59ad67dc7c20901bd794a2",
+        "version": "ynx-local-durability-v1"
+      },
+      "ynxFeeWei": "0xde0b6b3a7640000",
+      "ynxLogSemantics": "native provenance events; no EVM execution",
+      "ynxNativeIdentity": {
+        "from": "0xe0ce202138e28b87e1cb683e6a4ed2c38377b875",
+        "identityProjection": {
+          "fromSystemIdentity": false,
+          "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+          "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+          "systemAddressesAreDisplayOnly": true,
+          "toSystemIdentity": false,
+          "version": "ynx-native-identity-projection-v1"
+        },
+        "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+      },
+      "ynxNativeTransaction": {
+        "amountYNXT": "1",
+        "feeYNXT": "1",
+        "nonce": "0x2",
+        "type": "transfer"
+      }
+    }
+  },
+  "account": {
+    "sender": "0xe0ce202138e28b87e1cb683e6a4ed2c38377b875",
+    "senderYNX": "ynx1ur8zqgfcu29c0cwtdqlx5nkjcwph0wr4djfyjy",
+    "receiver": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+    "senderBalanceLatest": "0x53444835ec5800000",
+    "senderNonceLatest": "0x2",
+    "senderNoncePending": "0x2",
+    "receiverBalanceLatest": "0x1bc16d674ec80000"
+  }
+}

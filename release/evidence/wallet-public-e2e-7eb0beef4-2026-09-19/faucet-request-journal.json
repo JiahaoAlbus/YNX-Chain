@@ -1,0 +1,10 @@
+{
+  "requestId": "wallet_301fd86cb27e105434f7b4d8968de613d796db341584372082ed0f841782847a",
+  "address": "ynx1ur8zqgfcu29c0cwtdqlx5nkjcwph0wr4djfyjy",
+  "amount": 100,
+  "bodySha256": "ea73c63a9360720d31aafb14dfe05799b5e6a9731db2866eaea5d64c5c8fb80d",
+  "phase": "response-received",
+  "httpStatus": 201,
+  "responseBodySha256": "eb8e27d682c9a2be630f4deb22a835c76cd36f8afc6fcd586c06eba6af9ed51a",
+  "receivedAt": "2026-09-19T15:31:03.005Z"
+}
