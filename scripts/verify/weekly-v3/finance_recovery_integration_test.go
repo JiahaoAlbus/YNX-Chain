@@ -209,3 +209,84 @@ func TestWeeklyV3QuoteWireStateAndExecutionFence(t *testing.T) {
 		})
 	}
 }
+
+// A provider rejection is different from an unresolved transport outcome and
+// from Wallet rejection. Exercise real adapter polling and parsed event wire,
+// including a persisted lost-ACK order, without synthesizing local order state.
+func TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery(t *testing.T) {
+	for _, transport := range []string{"poll", "event"} {
+		for _, lostACK := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s_lost_ack_%v", transport, lostACK), func(t *testing.T) {
+				server, _, statePath, now := weeklyServer(t)
+				challenge := weeklyApproved(t, server)
+				orderID := challenge.Unsigned.Order.OrderID
+				adapter, provider := weeklyAlpaca(t, lostACK)
+				dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now }}
+				record, err := dispatcher.Dispatch(context.Background(), testAccount, orderID)
+				if (!lostACK && (err != nil || record.State != "submitted")) || (lostACK && (err == nil || record.State != "submitted_unknown")) {
+					t.Fatalf("initial provider ACK state: %+v %v", record, err)
+				}
+				provider.mu.Lock()
+				provider.order["status"] = "rejected"
+				provider.order["updated_at"] = now.Add(time.Second).Format(time.RFC3339Nano)
+				wire, _ := json.Marshal(provider.order)
+				provider.mu.Unlock()
+				var rejectedOrder map[string]any
+				if err := json.Unmarshal(wire, &rejectedOrder); err != nil {
+					t.Fatal(err)
+				}
+				envelope := weeklyWireFixture(t, "tradeUpdateNew")
+				envelope["account_id"] = "01234567-89ab-4cde-8fab-0123456789ab"
+				envelope["event_id"], envelope["event"] = "01K5G3YEKRXAXKDZK3AABK68T5", "rejected"
+				envelope["timestamp"], envelope["at"] = now.Add(time.Second).Format(time.RFC3339Nano), now.Add(time.Second).Format(time.RFC3339Nano)
+				envelope["order"] = rejectedOrder
+				if transport == "poll" {
+					if _, err := dispatcher.Reconcile(context.Background(), testAccount); err != nil {
+						t.Fatal(err)
+					}
+				} else {
+					events, cursor := weeklyEventVector(t, envelope)
+					if err := server.service.Store.ApplyBrokerTradeEvents(testAccount, events, cursor, now); err != nil {
+						t.Fatal(err)
+					}
+				}
+				reopened, err := OpenStore(statePath)
+				if err != nil {
+					t.Fatal(err)
+				}
+				state := reopened.Account(testAccount).Brokerage
+				if state.Orders[orderID].State != "provider_rejected" || state.Orders[orderID].ApprovalState != "consumed" || state.Orders[orderID].ProviderOrderID != rejectedOrder["id"] || state.Outbox[orderID].Status != "provider_rejected" || state.Outbox[orderID].Attempts != 1 {
+					t.Fatalf("provider rejection was lost or confused with Wallet decision: order=%+v outbox=%+v", state.Orders[orderID], state.Outbox[orderID])
+				}
+				before, _ := os.ReadFile(statePath)
+				// Even a newly delivered cursor cannot revive a terminal rejection.
+				envelope["event"], envelope["event_id"] = "new", "01K5G3YEKRXAXKDZK3AABK68T6"
+				envelope["timestamp"], envelope["at"] = now.Add(2*time.Second).Format(time.RFC3339Nano), now.Add(2*time.Second).Format(time.RFC3339Nano)
+				rejectedOrder["status"] = "accepted"
+				events, cursor := weeklyEventVector(t, envelope)
+				if err := reopened.ApplyBrokerTradeEvents(testAccount, events, cursor, now); err == nil {
+					t.Fatal("late accepted event revived provider-rejected order")
+				}
+				provider.mu.Lock()
+				provider.order["status"] = "accepted"
+				provider.mu.Unlock()
+				dispatcher.Store = reopened
+				if _, err := dispatcher.Reconcile(context.Background(), testAccount); err == nil {
+					t.Fatal("stale polling snapshot revived provider-rejected order")
+				}
+				if _, err := dispatcher.Dispatch(context.Background(), testAccount, orderID); err == nil {
+					t.Fatal("provider-rejected order dispatched again")
+				}
+				after, _ := os.ReadFile(statePath)
+				if !bytes.Equal(before, after) {
+					t.Fatal("terminal-state rejection changed persisted state")
+				}
+				provider.mu.Lock()
+				defer provider.mu.Unlock()
+				if provider.posts != 1 || provider.deletes != 0 {
+					t.Fatalf("terminal recovery caused provider write: POST=%d DELETE=%d", provider.posts, provider.deletes)
+				}
+			})
+		}
+	}
+}
