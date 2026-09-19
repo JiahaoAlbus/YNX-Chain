@@ -1,0 +1,11 @@
+{
+  "release": "https://github.com/mozilla/geckodriver/releases/tag/v0.36.0",
+  "download": "https://github.com/mozilla/geckodriver/releases/download/v0.36.0/geckodriver-v0.36.0-macos-aarch64.tar.gz",
+  "archiveBytes": 2066443,
+  "releaseAssetBytes": 2066443,
+  "archiveSha256": "c045c8c0d859e6045defbb1c31b37ebeb3c942fc61daaf11e21fc634f2d71c52",
+  "binarySha256": "4ac58e7b0eff875a6f4860915d46386c2ca4344091c8265ed83893e49d747ac9",
+  "verification": "Downloaded from official Mozilla GitHub release over HTTPS. Hashes observed locally; no publisher checksum or PGP signature verification claimed.",
+  "firefoxExecutableSha256": "e57979cf8edb4d5077d7a0d667bef8d72708ba19f14ef031deec91190d60bd88",
+  "systemInstallation": false
+}

@@ -1,0 +1,603 @@
+1789846547859	geckodriver	INFO	Listening on 127.0.0.1:60883
+1789846547862	webdriver::server	DEBUG	-> GET /status 
+1789846547862	webdriver::server	DEBUG	<- 200 OK {"value":{"message":"","ready":true}}
+1789846547867	webdriver::server	DEBUG	-> POST /session {"capabilities":{"alwaysMatch":{"browserName":"firefox","acceptInsecureCerts":true,"moz:firefoxOptions":{"bi ... x","args":["-headless","-profile","/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-firefox-provider-4Uax99/profile"]}}}}
+1789846547867	geckodriver::capabilities	DEBUG	Trying to read firefox version from ini files
+1789846547867	geckodriver::capabilities	DEBUG	Found version 140.0
+1789846547869	mozrunner::runner	INFO	Running command: MOZ_CRASHREPORTER="1" MOZ_CRASHREPORTER_NO_REPORT="1" MOZ_CRASHREPORTER_SHUTDOWN="1" "/tmp/ynx-firefox-insta ...  "-profile" "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-firefox-provider-4Uax99/profile" "-foreground" "-no-remote"
+1789846547869	geckodriver::marionette	DEBUG	Waiting 60s to connect to browser on 127.0.0.1
+*** You are running in headless mode.
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app: 1 (Operation not permitted)
+console.warn: services.settings: Ignoring preference override of remote settings server
+console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+1789846548499	Marionette	INFO	Marionette enabled
+1789846548499	RemoteAgent	DEBUG	Setting recommended pref apz.content_response_timeout to 60000
+1789846548499	RemoteAgent	DEBUG	Setting recommended pref browser.contentblocking.introCount to 99
+1789846548499	RemoteAgent	DEBUG	Setting recommended pref browser.download.panel.shown to true
+1789846548499	RemoteAgent	DEBUG	Setting recommended pref browser.http.blank_page_with_error_response.enabled to true
+1789846548499	RemoteAgent	DEBUG	Setting recommended pref browser.newtabpage.activity-stream.discoverystream.region-weather-config to 
+1789846548499	RemoteAgent	DEBUG	Setting recommended pref browser.newtabpage.activity-stream.newtabWallpapers.enabled to false
+1789846548499	RemoteAgent	DEBUG	Setting recommended pref browser.newtabpage.activity-stream.showSponsoredTopSites to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.newtabpage.enabled to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.pagethumbnails.capturing_disabled to true
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.region.network.url to 
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.safebrowsing.blockedURIs.enabled to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.safebrowsing.downloads.enabled to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.safebrowsing.malware.enabled to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.safebrowsing.phishing.enabled to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.search.update to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.startup.couldRestoreSession.count to -1
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.tabs.remote.unloadDelayMs to 0
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.tabs.unloadOnLowMemory to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.tabs.warnOnClose to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.tabs.warnOnCloseOtherTabs to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.tabs.warnOnOpen to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.toolbars.bookmarks.visibility to never
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.topsites.contile.enabled to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.usedOnWindows10.introURL to 
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.urlbar.merino.endpointURL to 
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref browser.urlbar.suggest.searches to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref datareporting.policy.dataSubmissionPolicyAccepted to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref dom.disable_open_during_load to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref dom.file.createInChild to true
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref dom.input_events.security.minNumTicks to 0
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref dom.input_events.security.minTimeElapsedInMS to 0
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref threads.lower_mainthread_priority_in_background.enabled to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref dom.ipc.processPriorityManager.enabled to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref dom.max_chrome_script_run_time to 0
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref dom.max_script_run_time to 0
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref dom.navigation.navigationRateLimit.count to 0
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref dom.push.connection.enabled to false
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref dom.screenorientation.allow-lock to true
+1789846548500	RemoteAgent	DEBUG	Setting recommended pref dom.successive_dialog_time_limit to 0
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref extensions.getAddons.cache.enabled to false
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref extensions.getAddons.discovery.api_url to data:, 
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref extensions.blocklist.detailsURL to http://%(server)s/extensions-dummy/blocklistDetailsURL
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref extensions.blocklist.itemURL to http://%(server)s/extensions-dummy/blocklistItemURL
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref extensions.hotfix.url to http://%(server)s/extensions-dummy/hotfixURL
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref extensions.systemAddon.update.enabled to false
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref extensions.update.background.url to http://%(server)s/extensions-dummy/updateBackgroundURL
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref extensions.update.url to http://%(server)s/extensions-dummy/updateURL
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref extensions.getAddons.get.url to http://%(server)s/extensions-dummy/repositoryGetURL
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref extensions.getAddons.search.browseURL to http://%(server)s/extensions-dummy/repositoryBrowseURL
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref geo.provider.network.url to 
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref identity.fxaccounts.auth.uri to https://{server}/dummy/fxa
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref network.connectivity-service.enabled to false
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref network.http.phishy-userpass-length to 255
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref network.http.prompt-temp-redirect to false
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref privacy.trackingprotection.enabled to false
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref remote.prefs.recommended.applied to true
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref security.fileuri.strict_origin_policy to false
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref security.notification_enable_delay to 0
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref security.remote_settings.intermediates.enabled to false
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref services.settings.loglevel to off
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref signon.autofillForms to false
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref signon.rememberSignons to false
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref toolkit.telemetry.server to https://%(server)s/telemetry-dummy/
+1789846548501	RemoteAgent	DEBUG	Setting recommended pref widget.windows.window_occlusion_tracking.enabled to false
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+1789846548883	Marionette	INFO	Listening on port 60887
+1789846548884	Marionette	DEBUG	Marionette is listening
+Read port: 60887
+1789846548976	Marionette	DEBUG	Accepted connection 0 from 127.0.0.1:60888
+1789846548982	geckodriver::marionette	DEBUG	Connection to Marionette established on 127.0.0.1:60887.
+[WARN  rkv::backend::impl_safe::environment] `load_ratio()` is irrelevant for this storage backend.
+1789846549238	Marionette	DEBUG	0 -> [0,1,"WebDriver:NewSession",{"acceptInsecureCerts":true,"browserName":"firefox"}]
+1789846549241	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+1789846549241	Marionette	DEBUG	Waiting for initial application window
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+console.error: (new NotAllowedError("Could not create directory `/Users/huangjiahao/Library/Application Support/Firefox/Profile Groups' (NS_ERROR_FILE_ACCESS_DENIED)", (void 0)))
+console.error: (new NotAllowedError("Could not create directory `/Users/huangjiahao/Library/Application Support/Firefox/Profile Groups' (NS_ERROR_FILE_ACCESS_DENIED)", (void 0)))
+console.error: ExperimentAPI: 
+  Failed to initialize ExperimentStore:
+  Message: TypeError: can't access property "execute", conn is null
+  Stack:
+    _reportStartupDatabaseConsistency@resource://nimbus/lib/ExperimentStore.sys.mjs:684:18
+
+console.error: (new NotAllowedError("Could not create directory `/Users/huangjiahao/Library/Application Support/Firefox/Profile Groups' (NS_ERROR_FILE_ACCESS_DENIED)", (void 0)))
+console.error: CustomizableUI: 
+  Could not localize property 'fxms-bmb-button.tooltiptext'.
+1789846550048	Marionette	DEBUG	0 <- [1,1,null,{"sessionId":"ed526eda-927f-42c3-85a0-fff43747376b","capabilities":{"acceptInsecureCerts":true,"browserName":"firefox","browserVersion":"140.0","platformName":"mac","unhandledPromptBehavior":"dismiss and notify","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:140.0) Gecko/20100101 Firefox/140.0","moz:buildID":"20250616215311","moz:headless":true,"moz:platformVersion":"27.0.0","moz:processID":18395,"moz:profile":"/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-firefox-provider-4Uax99/profile","moz:shutdownTimeout":60000,"pageLoadStrategy":"normal","timeouts":{"implicit":0,"pageLoad":300000,"script":30000},"setWindowRect":true,"strictFileInteractability":false,"moz:accessibilityChecks":false,"moz:webdriverClick":true,"moz:windowless":false,"proxy":{}}}]
+1789846550049	webdriver::server	DEBUG	<- 200 OK {"value":{"sessionId":"ed526eda-927f-42c3-85a0-fff43747376b","capabilities":{"acceptInsecureCerts":true,"browserNam ... r":"dismiss and notify","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:140.0) Gecko/20100101 Firefox/140.0"}}}
+1789846550051	webdriver::server	DEBUG	-> POST /session/ed526eda-927f-42c3-85a0-fff43747376b/timeouts {"script":8000,"pageLoad":12000,"implicit":0}
+1789846550051	Marionette	DEBUG	0 -> [0,2,"WebDriver:SetTimeouts",{"implicit":0,"pageLoad":12000,"script":8000}]
+1789846550051	Marionette	DEBUG	0 <- [1,2,null,{"value":null}]
+1789846550051	webdriver::server	DEBUG	<- 200 OK {"value":null}
+1789846550053	webdriver::server	DEBUG	-> POST /session/ed526eda-927f-42c3-85a0-fff43747376b/moz/addon/install {"path":"/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-firefox-provider-4Uax99/wallet.zip","temporary":true}
+1789846550054	Marionette	DEBUG	0 -> [0,3,"Addon:Install",{"path":"/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-firefox-provider-4Uax99/wallet.zip","temporary":true}]
+1789846550123	Marionette	DEBUG	0 <- [1,3,null,{"value":"wallet-testnet@ynxweb4.com"}]
+1789846550125	webdriver::server	DEBUG	<- 200 OK {"value":"wallet-testnet@ynxweb4.com"}
+1789846550126	webdriver::server	DEBUG	-> POST /session/ed526eda-927f-42c3-85a0-fff43747376b/url {"url":"https://127.0.0.1:60881/"}
+1789846550127	Marionette	DEBUG	0 -> [0,4,"WebDriver:Navigate",{"url":"https://127.0.0.1:60881/"}]
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+1789846550325	Marionette	DEBUG	0 <- [1,4,null,{"value":null}]
+1789846550327	webdriver::server	DEBUG	<- 200 OK {"value":null}
+1789846550329	webdriver::server	DEBUG	-> POST /session/ed526eda-927f-42c3-85a0-fff43747376b/execute/sync {"script":"const page=window.wrappedJSObject||window;const ... s.length===1&&foreign.providers[0]===foreign.provider,restartMarker:localStorage.getItem('ynx.fixture.restart')};","args":[]}
+console.error: [Exception... "Component returned failure code: 0x80040111 (NS_ERROR_NOT_AVAILABLE) [nsIContentSniffer.getMIMETypeFromContent]"  nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)"  location: "JS frame :: resource:///modules/FaviconLoader.sys.mjs :: onStopRequest :: line 300"  data: no]
+1789846550330	Marionette	DEBUG	0 -> [0,5,"WebDriver:ExecuteScript",{"args":[],"script":"const page=window.wrappedJSObject||window;const f=page.__YNX_EIP6963_FIXTURE__,foreign=page.__YNX_FOREIGN_FIXTURE__;const ite ... ign.providers.length===1&&foreign.providers[0]===foreign.provider,restartMarker:localStorage.getItem('ynx.fixture.restart')};"}]
+1789846550345	Marionette	DEBUG	0 <- [1,5,null,{"value":{"url":"https://127.0.0.1:60881/","matchingCount":1,"foreignUnchanged":true,"restartMarker":null}}]
+1789846550346	webdriver::server	DEBUG	<- 200 OK {"value":{"foreignUnchanged":true,"matchingCount":1,"restartMarker":null,"url":"https://127.0.0.1:60881/"}}
+1789846550347	webdriver::server	DEBUG	-> POST /session/ed526eda-927f-42c3-85a0-fff43747376b/execute/async {"script":"const done=arguments[arguments.length-1],page= ... allet,isMetaMask:item.provider.isMetaMask})).catch(error=>done({error:{code:error.code,message:error.message}}));","args":[]}
+1789846550347	Marionette	DEBUG	0 -> [0,6,"WebDriver:ExecuteAsyncScript",{"args":[],"script":"const done=arguments[arguments.length-1],page=window.wrappedJSObject||window,item=page.__YNX_EIP6963_FIXTURE__.announcements. ... vider.isYNXWallet,isMetaMask:item.provider.isMetaMask})).catch(error=>done({error:{code:error.code,message:error.message}}));"}]
+1789846550353	Marionette	DEBUG	0 <- [1,6,null,{"value":{"chainId":"0x1917","info":{"uuid":"6f4e2a77-7878-4f29-9c0d-191700000001","name":"YNX Wallet","rdns":"com.ynx.wallet"},"isYNXWallet":true,"isMetaMask":false}}]
+1789846550353	webdriver::server	DEBUG	<- 200 OK {"value":{"chainId":"0x1917","info":{"name":"YNX Wallet","rdns":"com.ynx.wallet","uuid":"6f4e2a77-7878-4f29-9c0d-191700000001"},"isMetaMask":false,"isYNXWallet":true}}
+1789846550354	webdriver::server	DEBUG	-> POST /session/ed526eda-927f-42c3-85a0-fff43747376b/execute/sync {"script":"localStorage.setItem('ynx.fixture.restart','retained');return true;","args":[]}
+1789846550356	Marionette	DEBUG	0 -> [0,7,"WebDriver:ExecuteScript",{"args":[],"script":"localStorage.setItem('ynx.fixture.restart','retained');return true;"}]
+1789846550368	Marionette	DEBUG	0 <- [1,7,null,{"value":true}]
+1789846550368	webdriver::server	DEBUG	<- 200 OK {"value":true}
+1789846550369	webdriver::server	DEBUG	-> POST /session/ed526eda-927f-42c3-85a0-fff43747376b/url {"url":"http://127.0.0.1:60882/"}
+1789846550369	Marionette	DEBUG	0 -> [0,8,"WebDriver:Navigate",{"url":"http://127.0.0.1:60882/"}]
+JavaScript warning: moz-extension://5a3c7679-aad5-4b94-90b1-ed405ce559d2/content-script.js, line 11: Script terminated by timeout at:
+clearPending@moz-extension://5a3c7679-aad5-4b94-90b1-ed405ce559d2/content-script.js:11:53
+@moz-extension://5a3c7679-aad5-4b94-90b1-ed405ce559d2/content-script.js:12:75
+
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+1789846550547	Marionette	DEBUG	0 <- [1,8,null,{"value":null}]
+1789846550547	webdriver::server	DEBUG	<- 200 OK {"value":null}
+console.error: [Exception... "Component returned failure code: 0x80040111 (NS_ERROR_NOT_AVAILABLE) [nsIContentSniffer.getMIMETypeFromContent]"  nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)"  location: "JS frame :: resource:///modules/FaviconLoader.sys.mjs :: onStopRequest :: line 300"  data: no]
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+1789846551868	webdriver::server	DEBUG	-> POST /session/ed526eda-927f-42c3-85a0-fff43747376b/execute/sync {"script":"const page=window.wrappedJSObject||window;const ... s.length===1&&foreign.providers[0]===foreign.provider,restartMarker:localStorage.getItem('ynx.fixture.restart')};","args":[]}
+1789846551868	Marionette	DEBUG	0 -> [0,9,"WebDriver:ExecuteScript",{"args":[],"script":"const page=window.wrappedJSObject||window;const f=page.__YNX_EIP6963_FIXTURE__,foreign=page.__YNX_FOREIGN_FIXTURE__;const ite ... ign.providers.length===1&&foreign.providers[0]===foreign.provider,restartMarker:localStorage.getItem('ynx.fixture.restart')};"}]
+1789846551872	Marionette	DEBUG	0 <- [1,9,null,{"value":{"url":"http://127.0.0.1:60882/","matchingCount":0,"foreignUnchanged":true,"restartMarker":null}}]
+1789846551872	webdriver::server	DEBUG	<- 200 OK {"value":{"foreignUnchanged":true,"matchingCount":0,"restartMarker":null,"url":"http://127.0.0.1:60882/"}}
+1789846551872	webdriver::server	DEBUG	-> DELETE /session/ed526eda-927f-42c3-85a0-fff43747376b 
+1789846551873	Marionette	DEBUG	0 -> [0,10,"Marionette:Quit",{"flags":["eForceQuit"]}]
+1789846551873	Marionette	INFO	Stopped listening on port 60887
+1789846552066	RemoteAgent	DEBUG	Resetting recommended pref apz.content_response_timeout
+1789846552066	RemoteAgent	DEBUG	Resetting recommended pref browser.contentblocking.introCount
+1789846552066	RemoteAgent	DEBUG	Resetting recommended pref browser.download.panel.shown
+1789846552066	RemoteAgent	DEBUG	Resetting recommended pref browser.http.blank_page_with_error_response.enabled
+1789846552066	RemoteAgent	DEBUG	Resetting recommended pref browser.newtabpage.activity-stream.discoverystream.region-weather-config
+1789846552066	RemoteAgent	DEBUG	Resetting recommended pref browser.newtabpage.activity-stream.newtabWallpapers.enabled
+1789846552067	RemoteAgent	DEBUG	Resetting recommended pref browser.newtabpage.activity-stream.showSponsoredTopSites
+1789846552067	RemoteAgent	DEBUG	Resetting recommended pref browser.newtabpage.enabled
+1789846552067	RemoteAgent	DEBUG	Resetting recommended pref browser.pagethumbnails.capturing_disabled
+1789846552067	RemoteAgent	DEBUG	Resetting recommended pref browser.region.network.url
+1789846552067	RemoteAgent	DEBUG	Resetting recommended pref browser.safebrowsing.blockedURIs.enabled
+1789846552068	RemoteAgent	DEBUG	Resetting recommended pref browser.safebrowsing.downloads.enabled
+1789846552069	RemoteAgent	DEBUG	Resetting recommended pref browser.safebrowsing.malware.enabled
+1789846552070	RemoteAgent	DEBUG	Resetting recommended pref browser.safebrowsing.phishing.enabled
+1789846552070	RemoteAgent	DEBUG	Resetting recommended pref browser.search.update
+1789846552070	RemoteAgent	DEBUG	Resetting recommended pref browser.startup.couldRestoreSession.count
+1789846552070	RemoteAgent	DEBUG	Resetting recommended pref browser.tabs.remote.unloadDelayMs
+1789846552070	RemoteAgent	DEBUG	Resetting recommended pref browser.tabs.unloadOnLowMemory
+1789846552070	RemoteAgent	DEBUG	Resetting recommended pref browser.tabs.warnOnClose
+1789846552070	RemoteAgent	DEBUG	Resetting recommended pref browser.tabs.warnOnCloseOtherTabs
+1789846552070	RemoteAgent	DEBUG	Resetting recommended pref browser.tabs.warnOnOpen
+1789846552070	RemoteAgent	DEBUG	Resetting recommended pref browser.toolbars.bookmarks.visibility
+1789846552070	RemoteAgent	DEBUG	Resetting recommended pref browser.topsites.contile.enabled
+1789846552071	RemoteAgent	DEBUG	Resetting recommended pref browser.usedOnWindows10.introURL
+1789846552071	RemoteAgent	DEBUG	Resetting recommended pref browser.urlbar.merino.endpointURL
+1789846552071	RemoteAgent	DEBUG	Resetting recommended pref browser.urlbar.suggest.searches
+1789846552071	RemoteAgent	DEBUG	Resetting recommended pref datareporting.policy.dataSubmissionPolicyAccepted
+1789846552071	RemoteAgent	DEBUG	Resetting recommended pref dom.disable_open_during_load
+1789846552071	RemoteAgent	DEBUG	Resetting recommended pref dom.file.createInChild
+1789846552071	RemoteAgent	DEBUG	Resetting recommended pref dom.input_events.security.minNumTicks
+1789846552071	RemoteAgent	DEBUG	Resetting recommended pref dom.input_events.security.minTimeElapsedInMS
+1789846552071	RemoteAgent	DEBUG	Resetting recommended pref threads.lower_mainthread_priority_in_background.enabled
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref dom.ipc.processPriorityManager.enabled
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref dom.max_chrome_script_run_time
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref dom.max_script_run_time
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref dom.navigation.navigationRateLimit.count
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref dom.push.connection.enabled
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref dom.screenorientation.allow-lock
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref dom.successive_dialog_time_limit
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref extensions.getAddons.cache.enabled
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref extensions.getAddons.discovery.api_url
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref extensions.blocklist.detailsURL
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref extensions.blocklist.itemURL
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref extensions.hotfix.url
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref extensions.systemAddon.update.enabled
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref extensions.update.background.url
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref extensions.update.url
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref extensions.getAddons.get.url
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref extensions.getAddons.search.browseURL
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref geo.provider.network.url
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref identity.fxaccounts.auth.uri
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref network.connectivity-service.enabled
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref network.http.phishy-userpass-length
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref network.http.prompt-temp-redirect
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref privacy.trackingprotection.enabled
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref remote.prefs.recommended.applied
+1789846552072	RemoteAgent	DEBUG	Resetting recommended pref security.fileuri.strict_origin_policy
+1789846552073	RemoteAgent	DEBUG	Resetting recommended pref security.notification_enable_delay
+1789846552073	RemoteAgent	DEBUG	Resetting recommended pref security.remote_settings.intermediates.enabled
+1789846552073	RemoteAgent	DEBUG	Resetting recommended pref services.settings.loglevel
+1789846552073	RemoteAgent	DEBUG	Resetting recommended pref signon.autofillForms
+1789846552073	RemoteAgent	DEBUG	Resetting recommended pref signon.rememberSignons
+1789846552073	RemoteAgent	DEBUG	Resetting recommended pref toolkit.telemetry.server
+1789846552073	RemoteAgent	DEBUG	Resetting recommended pref widget.windows.window_occlusion_tracking.enabled
+1789846552081	Marionette	DEBUG	Marionette stopped listening
+console.error: "Failed to fetch https://ads.mozilla.org/v1/delete_user:" "NetworkError when attempting to fetch resource."
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+1789846552086	Marionette	DEBUG	0 <- [1,10,null,{"cause":"shutdown","forced":false,"in_app":true}]
+1789846552087	webdriver::server	DEBUG	Teardown session
+1789846552087	geckodriver::marionette	DEBUG	To store minidump files of Firefox crashes the MINIDUMP_SAVE_PATH environment variable needs to be set.
+1789846552088	Marionette	DEBUG	Closed connection 0
+console.error: services.settings: 
+  main/remote-permissions: Signature of bundled changeset is invalid: TypeError: NetworkError: Network request failed.
+console.error: services.settings: 
+  main/doh-providers: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/doh-config: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/partitioning-exempt-urls: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/normandy-recipes-capabilities: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/ms-language-packs: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/search-categorization: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/third-party-cookie-blocking-exempt-urls: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/query-stripping: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+Object
+  - prototype Object
+    - columnNumber = 0
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":25,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":24,"lineNumber":268,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":24,"lineNumber":219,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetchLatestChanges","sourceId":24,"lineNumber":429,"columnNumber":34,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"sync","sourceId":22,"lineNumber":630,"columnNumber":42,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"get/this._importingPromise<","sourceId":22,"lineNumber":482,"columnNumber":28,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:268:15|fetch@resource://services-settings/Utils.sys.mjs:219:12|fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34|sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42|get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28|
+  - prototype Object
+console.error: services.settings: 
+Object
+  - prototype Object
+    - columnNumber = 0
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":25,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":24,"lineNumber":268,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":24,"lineNumber":219,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetchLatestChanges","sourceId":24,"lineNumber":429,"columnNumber":34,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"sync","sourceId":22,"lineNumber":630,"columnNumber":42,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"get/this._importingPromise<","sourceId":22,"lineNumber":482,"columnNumber":28,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:268:15|fetch@resource://services-settings/Utils.sys.mjs:219:12|fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34|sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42|get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28|
+  - prototype Object
+console.error: services.settings: 
+Object
+  - prototype Object
+    - columnNumber = 0
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":25,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":24,"lineNumber":268,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":24,"lineNumber":219,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetchLatestChanges","sourceId":24,"lineNumber":429,"columnNumber":34,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"sync","sourceId":22,"lineNumber":630,"columnNumber":42,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"get/this._importingPromise<","sourceId":22,"lineNumber":482,"columnNumber":28,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:268:15|fetch@resource://services-settings/Utils.sys.mjs:219:12|fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34|sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42|get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28|
+  - prototype Object
+console.error: services.settings: 
+Object
+  - prototype Object
+    - columnNumber = 0
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":25,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":24,"lineNumber":268,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":24,"lineNumber":219,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetchLatestChanges","sourceId":24,"lineNumber":429,"columnNumber":34,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"sync","sourceId":22,"lineNumber":630,"columnNumber":42,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"get/this._importingPromise<","sourceId":22,"lineNumber":482,"columnNumber":28,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:268:15|fetch@resource://services-settings/Utils.sys.mjs:219:12|fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34|sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42|get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28|
+  - prototype Object
+console.warn: RSLoader: Recipe hnt-wattle-wcw-pref-flip-jul-22 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhop, which is disallowed for that collection.
+console.warn: RSLoader: Recipe hnt-wattle-wcw-pref-flip-jul-22-v2 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhop, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-15482026071643450-to-release-only-152 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddon, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-155120260811195042-to-release-only-153 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddon, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-15612026081843226-to-release-154 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddon, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-15622026082460102-to-release-15401 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddon, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-157020260831183837-to-release-155-addondeployment not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddonDeployment, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-158020260913220257-to-release-156 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddonDeployment, which is disallowed for that collection.
+console.error: (new Error("Phase \"profile-change-teardown\" is finished, it is too late to register completion condition \"ProfilesDatastoreService uninit\"", "resource://gre/modules/AsyncShutdown.sys.mjs", 718))
+console.error: NimbusMigrations: 
+  applyMigrations: error running migration 1 (import-enrollments-to-sql): TypeError: can't access property "executeTransaction", conn is null
+[Parent 18395, IPC I/O Parent] WARNING: process 19871 exited with status 1: file /builds/worker/checkouts/gecko/ipc/chromium/src/chrome/common/process_watcher_posix_sigchld.cc:128
+[Parent 18395, IPC I/O Parent] WARNING: process 19034 exited with status 1: file /builds/worker/checkouts/gecko/ipc/chromium/src/chrome/common/process_watcher_posix_sigchld.cc:128
+1789846552302	geckodriver::browser	DEBUG	Browser process stopped: exit status: 0
+1789846552302	webdriver::server	DEBUG	<- 200 OK {"value":null}
+1789846552302	webdriver::server	DEBUG	-> POST /session {"capabilities":{"alwaysMatch":{"browserName":"firefox","acceptInsecureCerts":true,"moz:firefoxOptions":{"bi ... x","args":["-headless","-profile","/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-firefox-provider-4Uax99/profile"]}}}}
+1789846552302	geckodriver::capabilities	DEBUG	Trying to read firefox version from ini files
+1789846552303	geckodriver::capabilities	DEBUG	Found version 140.0
+1789846552303	geckodriver::browser	DEBUG	Backing up prefs to "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-firefox-provider-4Uax99/profile/user.geckodriver_backup"
+1789846552304	mozrunner::runner	INFO	Running command: MOZ_CRASHREPORTER="1" MOZ_CRASHREPORTER_NO_REPORT="1" MOZ_CRASHREPORTER_SHUTDOWN="1" "/tmp/ynx-firefox-insta ...  "-profile" "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-firefox-provider-4Uax99/profile" "-foreground" "-no-remote"
+1789846552305	geckodriver::marionette	DEBUG	Waiting 60s to connect to browser on 127.0.0.1
+*** You are running in headless mode.
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app: 1 (Operation not permitted)
+console.warn: services.settings: Ignoring preference override of remote settings server
+console.warn: services.settings: Allow by setting MOZ_REMOTE_SETTINGS_DEVTOOLS=1 in the environment
+1789846552497	Marionette	INFO	Marionette enabled
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref apz.content_response_timeout to 60000
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.contentblocking.introCount to 99
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.download.panel.shown to true
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.http.blank_page_with_error_response.enabled to true
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.newtabpage.activity-stream.discoverystream.region-weather-config to 
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.newtabpage.activity-stream.newtabWallpapers.enabled to false
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.newtabpage.activity-stream.showSponsoredTopSites to false
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.newtabpage.enabled to false
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.pagethumbnails.capturing_disabled to true
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.region.network.url to 
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.safebrowsing.blockedURIs.enabled to false
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.safebrowsing.downloads.enabled to false
+1789846552497	RemoteAgent	DEBUG	Setting recommended pref browser.safebrowsing.malware.enabled to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.safebrowsing.phishing.enabled to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.search.update to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.startup.couldRestoreSession.count to -1
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.tabs.remote.unloadDelayMs to 0
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.tabs.unloadOnLowMemory to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.tabs.warnOnClose to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.tabs.warnOnCloseOtherTabs to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.tabs.warnOnOpen to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.toolbars.bookmarks.visibility to never
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.topsites.contile.enabled to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.usedOnWindows10.introURL to 
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.urlbar.merino.endpointURL to 
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref browser.urlbar.suggest.searches to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref datareporting.policy.dataSubmissionPolicyAccepted to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref dom.disable_open_during_load to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref dom.file.createInChild to true
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref dom.input_events.security.minNumTicks to 0
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref dom.input_events.security.minTimeElapsedInMS to 0
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref threads.lower_mainthread_priority_in_background.enabled to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref dom.ipc.processPriorityManager.enabled to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref dom.max_chrome_script_run_time to 0
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref dom.max_script_run_time to 0
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref dom.navigation.navigationRateLimit.count to 0
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref dom.push.connection.enabled to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref dom.screenorientation.allow-lock to true
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref dom.successive_dialog_time_limit to 0
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref extensions.getAddons.cache.enabled to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref extensions.getAddons.discovery.api_url to data:, 
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref extensions.blocklist.detailsURL to http://%(server)s/extensions-dummy/blocklistDetailsURL
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref extensions.blocklist.itemURL to http://%(server)s/extensions-dummy/blocklistItemURL
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref extensions.hotfix.url to http://%(server)s/extensions-dummy/hotfixURL
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref extensions.systemAddon.update.enabled to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref extensions.update.background.url to http://%(server)s/extensions-dummy/updateBackgroundURL
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref extensions.update.url to http://%(server)s/extensions-dummy/updateURL
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref extensions.getAddons.get.url to http://%(server)s/extensions-dummy/repositoryGetURL
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref extensions.getAddons.search.browseURL to http://%(server)s/extensions-dummy/repositoryBrowseURL
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref geo.provider.network.url to 
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref identity.fxaccounts.auth.uri to https://{server}/dummy/fxa
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref network.connectivity-service.enabled to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref network.http.phishy-userpass-length to 255
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref network.http.prompt-temp-redirect to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref privacy.trackingprotection.enabled to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref remote.prefs.recommended.applied to true
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref security.fileuri.strict_origin_policy to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref security.notification_enable_delay to 0
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref security.remote_settings.intermediates.enabled to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref services.settings.loglevel to off
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref signon.autofillForms to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref signon.rememberSignons to false
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref toolkit.telemetry.server to https://%(server)s/telemetry-dummy/
+1789846552498	RemoteAgent	DEBUG	Setting recommended pref widget.windows.window_occlusion_tracking.enabled to false
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+1789846552594	Marionette	INFO	Listening on port 60919
+1789846552594	Marionette	DEBUG	Marionette is listening
+Read port: 60919
+1789846552632	Marionette	DEBUG	Accepted connection 0 from 127.0.0.1:60920
+1789846552636	geckodriver::marionette	DEBUG	Connection to Marionette established on 127.0.0.1:60919.
+1789846552639	Marionette	DEBUG	0 -> [0,1,"WebDriver:NewSession",{"acceptInsecureCerts":true,"browserName":"firefox"}]
+1789846552639	RemoteAgent	WARN	TLS certificate errors will be ignored for this session
+1789846552642	Marionette	DEBUG	Waiting for initial application window
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+[GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt
+console.error: (new NotAllowedError("Could not create directory `/Users/huangjiahao/Library/Application Support/Firefox/Profile Groups' (NS_ERROR_FILE_ACCESS_DENIED)", (void 0)))
+console.error: (new NotAllowedError("Could not create directory `/Users/huangjiahao/Library/Application Support/Firefox/Profile Groups' (NS_ERROR_FILE_ACCESS_DENIED)", (void 0)))
+console.error: ExperimentAPI: 
+  Failed to initialize ExperimentStore:
+  Message: TypeError: can't access property "execute", conn is null
+  Stack:
+    _reportStartupDatabaseConsistency@resource://nimbus/lib/ExperimentStore.sys.mjs:684:18
+
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+console.warn: RSLoader: Recipe hnt-wattle-wcw-pref-flip-jul-22 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhop, which is disallowed for that collection.
+console.warn: RSLoader: Recipe hnt-wattle-wcw-pref-flip-jul-22-v2 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhop, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-15482026071643450-to-release-only-152 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddon, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-155120260811195042-to-release-only-153 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddon, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-15612026081843226-to-release-154 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddon, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-15622026082460102-to-release-15401 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddon, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-157020260831183837-to-release-155-addondeployment not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddonDeployment, which is disallowed for that collection.
+console.warn: RSLoader: Recipe new-tab-158020260913220257-to-release-156 not returned from collection nimbus-secure-experiments because it contains feature newtabTrainhopAddonDeployment, which is disallowed for that collection.
+console.error: (new NotAllowedError("Could not create directory `/Users/huangjiahao/Library/Application Support/Firefox/Profile Groups' (NS_ERROR_FILE_ACCESS_DENIED)", (void 0)))
+console.error: NimbusMigrations: 
+  applyMigrations: error running migration 1 (import-enrollments-to-sql): TypeError: can't access property "executeTransaction", conn is null
+console.error: (new NotAllowedError("Could not create directory `/Users/huangjiahao/Library/Application Support/Firefox/Profile Groups' (NS_ERROR_FILE_ACCESS_DENIED)", (void 0)))
+console.error: CustomizableUI: 
+  Could not localize property 'fxms-bmb-button.tooltiptext'.
+1789846553052	Marionette	DEBUG	0 <- [1,1,null,{"sessionId":"77c80600-1d1f-4fe1-8d63-8ea3de612a1d","capabilities":{"acceptInsecureCerts":true,"browserName":"firefox","browserVersion":"140.0","platformName":"mac","unhandledPromptBehavior":"dismiss and notify","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:140.0) Gecko/20100101 Firefox/140.0","moz:buildID":"20250616215311","moz:headless":true,"moz:platformVersion":"27.0.0","moz:processID":20150,"moz:profile":"/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-firefox-provider-4Uax99/profile","moz:shutdownTimeout":60000,"pageLoadStrategy":"normal","timeouts":{"implicit":0,"pageLoad":300000,"script":30000},"setWindowRect":true,"strictFileInteractability":false,"moz:accessibilityChecks":false,"moz:webdriverClick":true,"moz:windowless":false,"proxy":{}}}]
+1789846553057	webdriver::server	DEBUG	<- 200 OK {"value":{"sessionId":"77c80600-1d1f-4fe1-8d63-8ea3de612a1d","capabilities":{"acceptInsecureCerts":true,"browserNam ... r":"dismiss and notify","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:140.0) Gecko/20100101 Firefox/140.0"}}}
+1789846553058	webdriver::server	DEBUG	-> POST /session/77c80600-1d1f-4fe1-8d63-8ea3de612a1d/timeouts {"script":8000,"pageLoad":12000,"implicit":0}
+1789846553061	Marionette	DEBUG	0 -> [0,2,"WebDriver:SetTimeouts",{"implicit":0,"pageLoad":12000,"script":8000}]
+1789846553061	Marionette	DEBUG	0 <- [1,2,null,{"value":null}]
+1789846553061	webdriver::server	DEBUG	<- 200 OK {"value":null}
+[WARN  rkv::backend::impl_safe::environment] `load_ratio()` is irrelevant for this storage backend.
+1789846553062	webdriver::server	DEBUG	-> POST /session/77c80600-1d1f-4fe1-8d63-8ea3de612a1d/url {"url":"https://127.0.0.1:60881/"}
+1789846553064	Marionette	DEBUG	0 -> [0,3,"WebDriver:Navigate",{"url":"https://127.0.0.1:60881/"}]
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+1789846553191	Marionette	DEBUG	0 <- [1,3,null,{"value":null}]
+1789846553193	webdriver::server	DEBUG	<- 200 OK {"value":null}
+console.error: [Exception... "Component returned failure code: 0x80040111 (NS_ERROR_NOT_AVAILABLE) [nsIContentSniffer.getMIMETypeFromContent]"  nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)"  location: "JS frame :: resource:///modules/FaviconLoader.sys.mjs :: onStopRequest :: line 300"  data: no]
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+sandbox_extension_issue_file_to_process failed for /tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/plugin-container.app: 1 (Operation not permitted)
+1789846553818	webdriver::server	DEBUG	-> POST /session/77c80600-1d1f-4fe1-8d63-8ea3de612a1d/execute/sync {"script":"const page=window.wrappedJSObject||window;const ... s.length===1&&foreign.providers[0]===foreign.provider,restartMarker:localStorage.getItem('ynx.fixture.restart')};","args":[]}
+1789846553818	Marionette	DEBUG	0 -> [0,4,"WebDriver:ExecuteScript",{"args":[],"script":"const page=window.wrappedJSObject||window;const f=page.__YNX_EIP6963_FIXTURE__,foreign=page.__YNX_FOREIGN_FIXTURE__;const ite ... ign.providers.length===1&&foreign.providers[0]===foreign.provider,restartMarker:localStorage.getItem('ynx.fixture.restart')};"}]
+1789846553825	Marionette	DEBUG	0 <- [1,4,null,{"value":{"url":"https://127.0.0.1:60881/","matchingCount":0,"foreignUnchanged":true,"restartMarker":"retained"}}]
+1789846553825	webdriver::server	DEBUG	<- 200 OK {"value":{"foreignUnchanged":true,"matchingCount":0,"restartMarker":"retained","url":"https://127.0.0.1:60881/"}}
+1789846553825	webdriver::server	DEBUG	-> POST /session/77c80600-1d1f-4fe1-8d63-8ea3de612a1d/moz/addon/install {"path":"/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-firefox-provider-4Uax99/wallet.zip","temporary":true}
+1789846553826	Marionette	DEBUG	0 -> [0,5,"Addon:Install",{"path":"/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-firefox-provider-4Uax99/wallet.zip","temporary":true}]
+1789846553890	Marionette	DEBUG	0 <- [1,5,null,{"value":"wallet-testnet@ynxweb4.com"}]
+1789846553891	webdriver::server	DEBUG	<- 200 OK {"value":"wallet-testnet@ynxweb4.com"}
+1789846553892	webdriver::server	DEBUG	-> POST /session/77c80600-1d1f-4fe1-8d63-8ea3de612a1d/url {"url":"https://127.0.0.1:60881/?second-launch"}
+1789846553892	Marionette	DEBUG	0 -> [0,6,"WebDriver:Navigate",{"url":"https://127.0.0.1:60881/?second-launch"}]
+1789846553900	Marionette	DEBUG	0 <- [1,6,null,{"value":null}]
+1789846553901	webdriver::server	DEBUG	<- 200 OK {"value":null}
+console.error: [Exception... "Component returned failure code: 0x80040111 (NS_ERROR_NOT_AVAILABLE) [nsIContentSniffer.getMIMETypeFromContent]"  nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)"  location: "JS frame :: resource:///modules/FaviconLoader.sys.mjs :: onStopRequest :: line 300"  data: no]
+1789846553902	webdriver::server	DEBUG	-> POST /session/77c80600-1d1f-4fe1-8d63-8ea3de612a1d/execute/sync {"script":"const page=window.wrappedJSObject||window;const ... s.length===1&&foreign.providers[0]===foreign.provider,restartMarker:localStorage.getItem('ynx.fixture.restart')};","args":[]}
+1789846553908	Marionette	DEBUG	0 -> [0,7,"WebDriver:ExecuteScript",{"args":[],"script":"const page=window.wrappedJSObject||window;const f=page.__YNX_EIP6963_FIXTURE__,foreign=page.__YNX_FOREIGN_FIXTURE__;const ite ... ign.providers.length===1&&foreign.providers[0]===foreign.provider,restartMarker:localStorage.getItem('ynx.fixture.restart')};"}]
+1789846553909	Marionette	DEBUG	0 <- [1,7,null,{"value":{"url":"https://127.0.0.1:60881/?second-launch","matchingCount":1,"foreignUnchanged":true,"restartMarker":"retained"}}]
+1789846553909	webdriver::server	DEBUG	<- 200 OK {"value":{"foreignUnchanged":true,"matchingCount":1,"restartMarker":"retained","url":"https://127.0.0.1:60881/?second-launch"}}
+1789846553909	webdriver::server	DEBUG	-> POST /session/77c80600-1d1f-4fe1-8d63-8ea3de612a1d/execute/async {"script":"const done=arguments[arguments.length-1],page= ... allet,isMetaMask:item.provider.isMetaMask})).catch(error=>done({error:{code:error.code,message:error.message}}));","args":[]}
+1789846553910	Marionette	DEBUG	0 -> [0,8,"WebDriver:ExecuteAsyncScript",{"args":[],"script":"const done=arguments[arguments.length-1],page=window.wrappedJSObject||window,item=page.__YNX_EIP6963_FIXTURE__.announcements. ... vider.isYNXWallet,isMetaMask:item.provider.isMetaMask})).catch(error=>done({error:{code:error.code,message:error.message}}));"}]
+1789846553912	Marionette	DEBUG	0 <- [1,8,null,{"value":{"chainId":"0x1917","info":{"uuid":"6f4e2a77-7878-4f29-9c0d-191700000001","name":"YNX Wallet","rdns":"com.ynx.wallet"},"isYNXWallet":true,"isMetaMask":false}}]
+1789846553913	webdriver::server	DEBUG	<- 200 OK {"value":{"chainId":"0x1917","info":{"name":"YNX Wallet","rdns":"com.ynx.wallet","uuid":"6f4e2a77-7878-4f29-9c0d-191700000001"},"isMetaMask":false,"isYNXWallet":true}}
+1789846553913	webdriver::server	DEBUG	-> DELETE /session/77c80600-1d1f-4fe1-8d63-8ea3de612a1d 
+1789846553913	Marionette	DEBUG	0 -> [0,9,"Marionette:Quit",{"flags":["eForceQuit"]}]
+1789846553913	Marionette	INFO	Stopped listening on port 60919
+1789846553979	RemoteAgent	DEBUG	Resetting recommended pref apz.content_response_timeout
+1789846553979	RemoteAgent	DEBUG	Resetting recommended pref browser.contentblocking.introCount
+1789846553980	RemoteAgent	DEBUG	Resetting recommended pref browser.download.panel.shown
+1789846553980	RemoteAgent	DEBUG	Resetting recommended pref browser.http.blank_page_with_error_response.enabled
+1789846553980	RemoteAgent	DEBUG	Resetting recommended pref browser.newtabpage.activity-stream.discoverystream.region-weather-config
+1789846553980	RemoteAgent	DEBUG	Resetting recommended pref browser.newtabpage.activity-stream.newtabWallpapers.enabled
+1789846553980	RemoteAgent	DEBUG	Resetting recommended pref browser.newtabpage.activity-stream.showSponsoredTopSites
+1789846553980	RemoteAgent	DEBUG	Resetting recommended pref browser.newtabpage.enabled
+1789846553981	RemoteAgent	DEBUG	Resetting recommended pref browser.pagethumbnails.capturing_disabled
+1789846553981	RemoteAgent	DEBUG	Resetting recommended pref browser.region.network.url
+1789846553981	RemoteAgent	DEBUG	Resetting recommended pref browser.safebrowsing.blockedURIs.enabled
+1789846553982	RemoteAgent	DEBUG	Resetting recommended pref browser.safebrowsing.downloads.enabled
+1789846553982	RemoteAgent	DEBUG	Resetting recommended pref browser.safebrowsing.malware.enabled
+1789846553983	RemoteAgent	DEBUG	Resetting recommended pref browser.safebrowsing.phishing.enabled
+1789846553984	RemoteAgent	DEBUG	Resetting recommended pref browser.search.update
+1789846553984	RemoteAgent	DEBUG	Resetting recommended pref browser.startup.couldRestoreSession.count
+1789846553984	RemoteAgent	DEBUG	Resetting recommended pref browser.tabs.remote.unloadDelayMs
+1789846553984	RemoteAgent	DEBUG	Resetting recommended pref browser.tabs.unloadOnLowMemory
+1789846553984	RemoteAgent	DEBUG	Resetting recommended pref browser.tabs.warnOnClose
+1789846553984	RemoteAgent	DEBUG	Resetting recommended pref browser.tabs.warnOnCloseOtherTabs
+1789846553984	RemoteAgent	DEBUG	Resetting recommended pref browser.tabs.warnOnOpen
+1789846553984	RemoteAgent	DEBUG	Resetting recommended pref browser.toolbars.bookmarks.visibility
+1789846553984	RemoteAgent	DEBUG	Resetting recommended pref browser.topsites.contile.enabled
+1789846553984	RemoteAgent	DEBUG	Resetting recommended pref browser.usedOnWindows10.introURL
+1789846553984	RemoteAgent	DEBUG	Resetting recommended pref browser.urlbar.merino.endpointURL
+1789846553985	RemoteAgent	DEBUG	Resetting recommended pref browser.urlbar.suggest.searches
+1789846553985	RemoteAgent	DEBUG	Resetting recommended pref datareporting.policy.dataSubmissionPolicyAccepted
+1789846553985	RemoteAgent	DEBUG	Resetting recommended pref dom.disable_open_during_load
+1789846553985	RemoteAgent	DEBUG	Resetting recommended pref dom.file.createInChild
+1789846553985	RemoteAgent	DEBUG	Resetting recommended pref dom.input_events.security.minNumTicks
+1789846553985	RemoteAgent	DEBUG	Resetting recommended pref dom.input_events.security.minTimeElapsedInMS
+1789846553985	RemoteAgent	DEBUG	Resetting recommended pref threads.lower_mainthread_priority_in_background.enabled
+1789846553985	RemoteAgent	DEBUG	Resetting recommended pref dom.ipc.processPriorityManager.enabled
+1789846553985	RemoteAgent	DEBUG	Resetting recommended pref dom.max_chrome_script_run_time
+1789846553985	RemoteAgent	DEBUG	Resetting recommended pref dom.max_script_run_time
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref dom.navigation.navigationRateLimit.count
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref dom.push.connection.enabled
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref dom.screenorientation.allow-lock
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref dom.successive_dialog_time_limit
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref extensions.getAddons.cache.enabled
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref extensions.getAddons.discovery.api_url
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref extensions.blocklist.detailsURL
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref extensions.blocklist.itemURL
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref extensions.hotfix.url
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref extensions.systemAddon.update.enabled
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref extensions.update.background.url
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref extensions.update.url
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref extensions.getAddons.get.url
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref extensions.getAddons.search.browseURL
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref geo.provider.network.url
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref identity.fxaccounts.auth.uri
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref network.connectivity-service.enabled
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref network.http.phishy-userpass-length
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref network.http.prompt-temp-redirect
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref privacy.trackingprotection.enabled
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref remote.prefs.recommended.applied
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref security.fileuri.strict_origin_policy
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref security.notification_enable_delay
+1789846553986	RemoteAgent	DEBUG	Resetting recommended pref security.remote_settings.intermediates.enabled
+1789846553987	RemoteAgent	DEBUG	Resetting recommended pref services.settings.loglevel
+1789846553987	RemoteAgent	DEBUG	Resetting recommended pref signon.autofillForms
+1789846553987	RemoteAgent	DEBUG	Resetting recommended pref signon.rememberSignons
+1789846553987	RemoteAgent	DEBUG	Resetting recommended pref toolkit.telemetry.server
+1789846553987	RemoteAgent	DEBUG	Resetting recommended pref widget.windows.window_occlusion_tracking.enabled
+console.error: "Failed to fetch https://ads.mozilla.org/v1/delete_user:" "NetworkError when attempting to fetch resource."
+1789846553994	Marionette	DEBUG	Marionette stopped listening
+console.warn: TopSitesFeed: Failed to fetch data from MARS server: NetworkError when attempting to fetch resource.
+1789846553999	Marionette	DEBUG	0 <- [1,9,null,{"cause":"shutdown","forced":false,"in_app":true}]
+1789846554001	webdriver::server	DEBUG	Teardown session
+1789846554001	geckodriver::marionette	DEBUG	To store minidump files of Firefox crashes the MINIDUMP_SAVE_PATH environment variable needs to be set.
+1789846554001	Marionette	DEBUG	Closed connection 0
+console.error: services.settings: 
+  main/remote-permissions: Signature of bundled changeset is invalid: TypeError: NetworkError: Network request failed.
+console.error: services.settings: 
+  main/doh-providers: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/doh-config: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/partitioning-exempt-urls: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/normandy-recipes-capabilities: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/ms-language-packs: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/search-categorization: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/third-party-cookie-blocking-exempt-urls: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+  main/query-stripping: Signature of bundled changeset is invalid: [Exception... "<no message>"  nsresult: "0x8046001e (<unknown>)"  location: "JS frame :: resource://gre/modules/ServiceRequest.sys.mjs :: open :: line 126"  data: no].
+console.error: services.settings: 
+Object
+  - prototype Object
+    - columnNumber = 0
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":59,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":57,"lineNumber":268,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":57,"lineNumber":219,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetchLatestChanges","sourceId":57,"lineNumber":429,"columnNumber":34,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"sync","sourceId":53,"lineNumber":630,"columnNumber":42,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"get/this._importingPromise<","sourceId":53,"lineNumber":482,"columnNumber":28,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:268:15|fetch@resource://services-settings/Utils.sys.mjs:219:12|fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34|sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42|get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28|
+  - prototype Object
+console.error: services.settings: 
+Object
+  - prototype Object
+    - columnNumber = 0
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":59,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":57,"lineNumber":268,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":57,"lineNumber":219,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetchLatestChanges","sourceId":57,"lineNumber":429,"columnNumber":34,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"sync","sourceId":53,"lineNumber":630,"columnNumber":42,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"get/this._importingPromise<","sourceId":53,"lineNumber":482,"columnNumber":28,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:268:15|fetch@resource://services-settings/Utils.sys.mjs:219:12|fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34|sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42|get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28|
+  - prototype Object
+console.error: services.settings: 
+Object
+  - prototype Object
+    - columnNumber = 0
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":59,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":57,"lineNumber":268,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":57,"lineNumber":219,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetchLatestChanges","sourceId":57,"lineNumber":429,"columnNumber":34,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"sync","sourceId":53,"lineNumber":630,"columnNumber":42,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"get/this._importingPromise<","sourceId":53,"lineNumber":482,"columnNumber":28,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:268:15|fetch@resource://services-settings/Utils.sys.mjs:219:12|fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34|sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42|get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28|
+  - prototype Object
+console.error: services.settings: 
+Object
+  - prototype Object
+    - columnNumber = 0
+    - data = null
+    - filename = resource://gre/modules/ServiceRequest.sys.mjs
+    - lineNumber = 126
+    - location = {"name":"open","filename":"resource://gre/modules/ServiceRequest.sys.mjs","sourceId":59,"lineNumber":126,"columnNumber":11,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch/<","sourceId":57,"lineNumber":268,"columnNumber":15,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetch","sourceId":57,"lineNumber":219,"columnNumber":12,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/Utils.sys.mjs","name":"fetchLatestChanges","sourceId":57,"lineNumber":429,"columnNumber":34,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"sync","sourceId":53,"lineNumber":630,"columnNumber":42,"asyncCause":null,"asyncCaller":null,"caller":{"filename":"resource://services-settings/RemoteSettingsClient.sys.mjs","name":"get/this._importingPromise<","sourceId":53,"lineNumber":482,"columnNumber":28,"asyncCause":null,"asyncCaller":null,"caller":null,"formattedStack":"get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"fetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}},"formattedStack":"open@resource://gre/modules/ServiceRequest.sys.mjs:126:11\nfetch/<@resource://services-settings/Utils.sys.mjs:268:15\nfetch@resource://services-settings/Utils.sys.mjs:219:12\nfetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34\nsync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42\nget/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28\n","nativeSavedFrame":{}}
+    - message = 
+    - name = 
+    - result = 2152071198
+    - stack = open@resource://gre/modules/ServiceRequest.sys.mjs:126:11|fetch/<@resource://services-settings/Utils.sys.mjs:268:15|fetch@resource://services-settings/Utils.sys.mjs:219:12|fetchLatestChanges@resource://services-settings/Utils.sys.mjs:429:34|sync@resource://services-settings/RemoteSettingsClient.sys.mjs:630:42|get/this._importingPromise<@resource://services-settings/RemoteSettingsClient.sys.mjs:482:28|
+  - prototype Object
+console.error: services.settings: 
+  main/moz-essential-domain-fallbacks Signature failed  TypeError: NetworkError: Network request failed
+console.error: (new NetworkError("Network error: TypeError: NetworkError: Network request failed", "resource://services-settings/RemoteSettingsClient.sys.mjs", 108))
+[Parent 20150, IPC I/O Parent] WARNING: process 20157 exited with status 1: file /builds/worker/checkouts/gecko/ipc/chromium/src/chrome/common/process_watcher_posix_sigchld.cc:128
+[Parent 20150, IPC I/O Parent] WARNING: process 20154 exited with status 1: file /builds/worker/checkouts/gecko/ipc/chromium/src/chrome/common/process_watcher_posix_sigchld.cc:128
+1789846554102	geckodriver::browser	DEBUG	Browser process stopped: exit status: 0
+1789846554103	webdriver::server	DEBUG	<- 200 OK {"value":null}
