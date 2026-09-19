@@ -308,7 +308,7 @@ YNX_FAUCET_CHAIN_ID=6423
 YNX_FAUCET_REQUEST_LOG=/var/log/ynx-chain/faucet-requests.jsonl
 YNX_FAUCET_DEFAULT_AMOUNT=100
 YNX_FAUCET_MAX_AMOUNT=100
-YNX_FAUCET_ALLOWED_ORIGINS=https://ynxweb4.com,https://www.ynxweb4.com,https://${TESTNET_FAUCET_DOMAIN},https://${FAUCET_DOMAIN}
+YNX_FAUCET_ALLOWED_ORIGINS=https://ynxweb4.com,https://www.ynxweb4.com,https://wallet.ynxweb4.com,https://${TESTNET_FAUCET_DOMAIN},https://${FAUCET_DOMAIN}
 YNX_FAUCET_RATE_LIMIT_WINDOW=1h
 YNX_FAUCET_RATE_LIMIT_MAX=1
 EOF
