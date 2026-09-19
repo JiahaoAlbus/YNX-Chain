@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "ynx.finance.weekly-v3-stage-a-strict-ai-final-evidence.v1",
+  "capturedAt": "2026-09-19T11:52:02Z",
+  "branch": "codex/finance-wallet-flow-20260912",
+  "implementationCommit": "c47c88df2a6ac6140116af99feb1ecc892adbb95",
+  "implementationTree": "8c6b49398d74026b70c7489ce8e02bf8969ec0ab",
+  "scope": "credential-independent Stage A strict AI broker schema and activation-document consistency",
+  "changes": {
+    "aiInput": "symbol, side, qty and limitPrice reuse the canonical backend broker patterns; qty is an integer from 1 through 1000000 and limitPrice is canonical fixed decimal from 0.0001 through 999999999.9999",
+    "aiOutput": "finance.ai.broker-order-draft.v1 permits exactly schemaVersion, draftOnly and orderDraft at the root, and exactly symbol, side, qty, limitPrice, timeInForce and warnings inside orderDraft",
+    "forbiddenNumericForms": ["fraction", "exponent", "leading sign", "whitespace", "leading zero", "trailing fractional zero", "out-of-bound value", "implicit rounding"],
+    "backendSecondGate": "BuildBrokerOrderDraft retains the independent canonical order validation before a Wallet challenge can exist",
+    "activationDocs": "doctor read coverage and verify-approved POST/query/reconcile/DELETE/reconcile behavior now match the implementation; provider writes remain operator-only and activation-gated",
+    "configuration": "env example and broker schema include owner verification and the three server challenge fee inputs",
+    "externalGates": "official credentials, one-shot write authorization and public deployment remain separate"
+  },
+  "regressions": {
+    "rationalQty": "PASS: qty=2/1 rejected before Gateway on input and failed after real HTTP Gateway/runAI on output",
+    "exponentPrice": "PASS: limitPrice=1e2 rejected before Gateway on input and failed after real HTTP Gateway/runAI on output",
+    "extraRoot": "PASS: execute=true rejected after real HTTP Gateway/runAI with AI_ORDER_DRAFT_SCHEMA_INVALID",
+    "extraNested": "PASS: unexpected orderDraft field rejected after real HTTP Gateway/runAI",
+    "canonicalPositive": "PASS: canonical request traversed POST /api/ai/jobs, real loopback HTTP SSE Gateway and runAI to ready",
+    "providerWrites": "zero broker orders created by all AI schema route cases"
+  },
+  "tests": {
+    "goRace": "PASS: go test -race -count=1 ./internal/finance/... ./apps/finance/cmd/...",
+    "goVet": "PASS: go vet ./internal/finance/... ./apps/finance/cmd/...",
+    "goBuild": "PASS: go build ./apps/finance/cmd/...",
+    "web": "PASS: npm test --prefix apps/finance (60/60)",
+    "security": "PASS: npm run security --prefix apps/finance (384 text files)",
+    "json": "PASS: jq empty apps/finance/broker-config.schema.json apps/finance/operator-inputs.request.json",
+    "diff": "PASS: git diff --check",
+    "documentationContract": "PASS: executable Node test binds schema, env, activation guide, integration guide and operator request"
+  },
+  "artifacts": [
+    {"path": "/tmp/ynx-finance-server-stage-a-strict-ai", "bytes": 28432322, "sha256": "8a433bb46b3ef304461947a6030d1a858de0b1ff2598d20b4f2130a34f2da5a7", "sourceIdentity": "c47c88df2a6ac6140116af99feb1ecc892adbb95"},
+    {"path": "/tmp/ynx-finance-broker-worker-stage-a-strict-ai", "bytes": 27136130, "sha256": "49e2357bab3a9ce465e1d981008de7c0f0857c0356981607ba3f7a3071c21095"},
+    {"path": "/tmp/ynx-finance-broker-tools-stage-a-strict-ai", "bytes": 27033170, "sha256": "b8f66af568006e588d1e0c85e94fe037cf56fbe85adc8f596b6596ebd94ea63e"}
+  ],
+  "truth": {
+    "stageACompleteForThisCredentialIndependentSlice": true,
+    "officialSandboxStageBVerified": false,
+    "officialCredentialsVerified": false,
+    "providerWritesExecuted": false,
+    "realModelVerified": false,
+    "publicDeployed": false,
+    "installedVerified": false,
+    "liveTrading": false,
+    "mainnet": false,
+    "walletApprovalVisible": false,
+    "orderSubmitted": false
+  },
+  "writeFreezeAfterEvidencePush": true
+}
