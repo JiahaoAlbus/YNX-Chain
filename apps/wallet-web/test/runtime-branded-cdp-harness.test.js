@@ -15,6 +15,8 @@ test("native branded CDP harness isolates profiles and never disables extensions
   assert.match(source,/"--disable-gpu"/u);
   assert.match(source,/"--remote-allow-origins=\*"/u);
   assert.match(source,/visibleBrowserAcceptance:false/u);
+  assert.match(source,/unpackedAutomation:"manual-required"/u);
+  assert.match(source,/Chrome for Testing provides the automated path/u);
   assert.match(source,/ws:\/\/127\.0\.0\.1/u);
   assert.match(source,/rm\(join\(profile,"DevToolsActivePort"\),\{force:true\}\)/u);
 });
