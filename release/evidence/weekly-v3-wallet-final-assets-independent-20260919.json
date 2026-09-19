@@ -1,0 +1,148 @@
+{
+  "checkedAt": "2026-09-19T15:08:36.235Z",
+  "readOnly": true,
+  "normalTLS": true,
+  "expectedCount": 23,
+  "count": 23,
+  "allPassed": true,
+  "results": [
+    {
+      "name": "accessibility.css",
+      "bytes": 901,
+      "sha256": "8de0d9df0de6e5a26d3b4df47d5a4be1b6671e1620915d461558bc3a4809dc8b",
+      "passed": true
+    },
+    {
+      "name": "app.js",
+      "bytes": 31985,
+      "sha256": "a07bd382affabfa6bf7012d2349038d8493d8ceca95183ceb73c54abd7085285",
+      "passed": true
+    },
+    {
+      "name": "build-identity.json",
+      "bytes": 619,
+      "sha256": "1f64824b88688ded337362c2d835ce8e18c0389a7c5ce127e3fb168f3ee4ba86",
+      "passed": true
+    },
+    {
+      "name": "core-auth-binding.js",
+      "bytes": 880,
+      "sha256": "8e34a8f66c43b90516770be334379357265e4ea9e87417b98b1fb090646e98bf",
+      "passed": true
+    },
+    {
+      "name": "core-auth-consumer.js",
+      "bytes": 4626,
+      "sha256": "f6473ae835c18374cab7e1886416068a79fc431a1c3db74c5ef23223741a39d8",
+      "passed": true
+    },
+    {
+      "name": "extension-durability.js",
+      "bytes": 6557,
+      "sha256": "3e8f287919407118de1bab27bd1a789e171a20230c5df725e81578500f7c0a9d",
+      "passed": true
+    },
+    {
+      "name": "extension-fee-model.js",
+      "bytes": 3822,
+      "sha256": "4c05473e0415875dd027bba9a3c33c7f3a71c5cc91090ec4454330521a504c75",
+      "passed": true
+    },
+    {
+      "name": "i18n.js",
+      "bytes": 45637,
+      "sha256": "42aa785eb24f3034f573a0da8ae3e6e1fc5e4f278708135617311976a55a956f",
+      "passed": true
+    },
+    {
+      "name": "index.html",
+      "bytes": 927,
+      "sha256": "c4d35f904c7a880f999b03e832256d432701464b16e0f044408c9de970a04b2d",
+      "passed": true
+    },
+    {
+      "name": "manifest.webmanifest",
+      "bytes": 632,
+      "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92",
+      "passed": true
+    },
+    {
+      "name": "mobile-wallet-routing.js",
+      "bytes": 1260,
+      "sha256": "6a17eb095b790fb92ce965763ad3805501abd3a63dc6fe6b285cc0fcedb31d74",
+      "passed": true
+    },
+    {
+      "name": "preferences.js",
+      "bytes": 4272,
+      "sha256": "74247dfb335734d42538dc307d2e0da2dfde6462c327ed0dbdedf73ab5f772eb",
+      "passed": true
+    },
+    {
+      "name": "provider.js",
+      "bytes": 20345,
+      "sha256": "ac24b83df4721709c9acd6ec52215440a5e9f1347439c6d507dab1fbd115a698",
+      "passed": true
+    },
+    {
+      "name": "service-worker-policy.js",
+      "bytes": 4045,
+      "sha256": "33cd0ad4dcedb4e4fb4b9ec72a82ddc5900573f05496afcf822ad50a6a8227f0",
+      "passed": true
+    },
+    {
+      "name": "standard-wallet-connect-state.js",
+      "bytes": 8272,
+      "sha256": "4eb6d4fa2359b74207a0891ae7e4f527074536c8c43307303ceb0610fb715e52",
+      "passed": true
+    },
+    {
+      "name": "styles.css",
+      "bytes": 8449,
+      "sha256": "5919a67e983362134517798ea774dacbc5cb9a8c41f850e3cb35c09f4f3d25e4",
+      "passed": true
+    },
+    {
+      "name": "transaction-input.js",
+      "bytes": 2120,
+      "sha256": "4393c2bae7db8a898a13dd522d090bf403cd030a777f040fbd22427544305677",
+      "passed": true
+    },
+    {
+      "name": "wallet-address.js",
+      "bytes": 12471,
+      "sha256": "df4bade31952f98602f51fbc9cbcb731bffe772da3d685b5be7ce895cb0e409f",
+      "passed": true
+    },
+    {
+      "name": "wallet-web-companion-lifecycle.js",
+      "bytes": 3082,
+      "sha256": "a784917928e223d539a3be9fee2d3f4e0dbe8edb779636ee6e8f8946bee74432",
+      "passed": true
+    },
+    {
+      "name": "ynx-icon-192.png",
+      "bytes": 9838,
+      "sha256": "02bd7b202a6683d83bbe4b17c246afc969b43284ee945e97167d9606e6df04af",
+      "passed": true
+    },
+    {
+      "name": "ynx-icon-512.png",
+      "bytes": 45914,
+      "sha256": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7",
+      "passed": true
+    },
+    {
+      "name": "ynx-icon-maskable-512.png",
+      "bytes": 45914,
+      "sha256": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7",
+      "passed": true
+    },
+    {
+      "name": "ynx-logo.png",
+      "bytes": 172128,
+      "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde",
+      "passed": true
+    }
+  ]
+}

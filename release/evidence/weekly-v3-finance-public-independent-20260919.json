@@ -1,0 +1,187 @@
+{
+  "schema": "ynx-finance-independent-public-readonly/v1",
+  "checkedAt": "2026-09-19T15:18:54.664Z",
+  "origin": "https://finance.ynxweb4.com",
+  "readOnly": true,
+  "normalTLS": true,
+  "credentialsSent": false,
+  "accountRequested": false,
+  "signatureRequested": false,
+  "providerWriteAttempted": false,
+  "expectedSource": "9912d29f82d5ceca689f07e20e944648a2be6de3",
+  "checks": {
+    "allHTTP200": true,
+    "versionMatches": true,
+    "healthMatches": true,
+    "brokerDisabled": true,
+    "credentialGate": true,
+    "sandboxTestnetOnly": true,
+    "officialSandboxUnverified": true,
+    "brokerStatusNoStore": true,
+    "allResponseBytesMatchOwnerReceipt": true
+  },
+  "observations": [
+    {
+      "url": "https://finance.ynxweb4.com/health",
+      "path": "/health",
+      "status": 200,
+      "bodyBytes": 499,
+      "bodySHA256": "a84d95784dc1f322a8dd268da0375819d659b1f210b9a0959e4afd8ebc65679a",
+      "cacheControl": null,
+      "contentType": "application/json; charset=utf-8",
+      "body": {
+        "build": {
+          "commit": "9912d29f82d5ceca689f07e20e944648a2be6de3",
+          "release": "finance-weekly-v3-9912d29f82d5-linux-amd64",
+          "buildTime": "2026-09-19T14:40:00Z"
+        },
+        "chainId": "ynx_6423-1",
+        "configuredReadSources": [
+          "dex",
+          "exchange",
+          "quant"
+        ],
+        "custody": "none",
+        "multiInstanceState": false,
+        "nativeSymbol": "YNXT",
+        "observabilityVersion": "finance-observability-v1",
+        "ok": true,
+        "portfolio": "read-only",
+        "service": "ynx-finance",
+        "stateStore": "file-cas-single-host",
+        "truthfulStatus": "runtime-upstream-backed",
+        "version": "1.2.0"
+      },
+      "matchesOwnerReceipt": true
+    },
+    {
+      "url": "https://finance.ynxweb4.com/version",
+      "path": "/version",
+      "status": 200,
+      "bodyBytes": 144,
+      "bodySHA256": "21e7d0cd36f5c8331dbb4359cf065330723669759c444a3c82875b75133a57e3",
+      "cacheControl": null,
+      "contentType": "application/json; charset=utf-8",
+      "body": {
+        "commit": "9912d29f82d5ceca689f07e20e944648a2be6de3",
+        "release": "finance-weekly-v3-9912d29f82d5-linux-amd64",
+        "buildTime": "2026-09-19T14:40:00Z"
+      },
+      "matchesOwnerReceipt": true
+    },
+    {
+      "url": "https://finance.ynxweb4.com/api/broker/status",
+      "path": "/api/broker/status",
+      "status": 200,
+      "bodyBytes": 616,
+      "bodySHA256": "6d578685e6e863916204dc745f453a7c0532ba37c68550807e3523698047ba9b",
+      "cacheControl": "no-store",
+      "contentType": "application/json; charset=utf-8",
+      "body": {
+        "accountLink": "requires_authenticated_persistent_mapping",
+        "durableOrderJournal": "implemented_state_v2",
+        "funding": "simulated_USD_only_no_YNXT_conversion",
+        "marketData": "not_verified",
+        "providerPost": "controlled_worker_only_never_browser_direct",
+        "schema": "ynx-finance-broker-status-v1",
+        "status": {
+          "provider": "alpaca_broker",
+          "chainEnvironment": "testnet",
+          "tradingEnvironment": "sandbox",
+          "enabled": false,
+          "state": "DISABLED",
+          "diagnostics": [
+            "BLOCKED_CREDENTIALS"
+          ],
+          "submissionEnabled": false,
+          "officialSandboxVerified": false,
+          "productionApproved": false
+        },
+        "walletOrderApproval": "frozen_contract_with_owner_scoped_execution_request"
+      },
+      "matchesOwnerReceipt": true
+    },
+    {
+      "url": "https://finance.ynxweb4.com/ready",
+      "path": "/ready",
+      "status": 200,
+      "bodyBytes": 99,
+      "bodySHA256": "0b79c7355df523247dd9c738c43aa7250c3d1b62a653c29bace83fe753dc5e01",
+      "cacheControl": null,
+      "contentType": "application/json; charset=utf-8",
+      "body": {
+        "multiInstanceState": false,
+        "ok": true,
+        "service": "ynx-finance",
+        "stateStore": "file-cas-single-host"
+      },
+      "matchesOwnerReceipt": true
+    },
+    {
+      "url": "https://finance.ynxweb4.com/",
+      "path": "/",
+      "status": 200,
+      "bodyBytes": 18315,
+      "bodySHA256": "911bafd5870d8d7c6962e01c9446e46cabd5517913f7c0451dd4d3c30c0d28f2",
+      "cacheControl": null,
+      "contentType": "text/html; charset=utf-8",
+      "containsBrokerSurface": true,
+      "containsDisabledExplanation": false,
+      "containsUnknownNotZero": true,
+      "matchesOwnerReceipt": true
+    },
+    {
+      "url": "https://finance.ynxweb4.com/app.js",
+      "path": "/app.js",
+      "status": 200,
+      "bodyBytes": 41891,
+      "bodySHA256": "b8b2b866716a8d0ec33fb98504e9386e5ad74338cec32f22580c95b5500ec76d",
+      "cacheControl": null,
+      "contentType": "text/javascript; charset=utf-8",
+      "containsBrokerSurface": true,
+      "containsDisabledExplanation": true,
+      "containsUnknownNotZero": true,
+      "matchesOwnerReceipt": true
+    }
+  ],
+  "expectedHealthChainId": "ynx_6423-1",
+  "healthIdentitySchemaSource": "9912d29f82d5ceca689f07e20e944648a2be6de3:internal/finance/types.go",
+  "checkerCorrection": "The initial checker incorrectly expected RPC numeric chainId=6423. Finance's unchanged health contract uses Cosmos chainId=ynx_6423-1. The captured response was checked against the exact implementation source without repeating network requests.",
+  "ownerEvidenceHead": "18140e374d533a3a29adccff7dee52a86922be08",
+  "ownerEvidenceTree": "3335af7d9b2dbfd75411f90c99f2f90c66c846b4",
+  "ownerEvidencePath": "apps/finance/evidence/finance-weekly-v3-public-deployment-20260919.json",
+  "publicCodeDeployed": true,
+  "publicReadOnlyVerified": true,
+  "officialSandboxVerified": false,
+  "productionTradingApproved": false,
+  "browser": {
+    "url": "https://finance.ynxweb4.com/#broker-sandbox",
+    "tool": "Codex in-app browser",
+    "title": "YNX Finance",
+    "defaultLanguage": "English",
+    "guest": true,
+    "walletConnected": false,
+    "chainReachable": true,
+    "brokerMessage": "Sandbox module disabled. No broker connection is verified; submission is disabled.",
+    "cash": "Unknown — not zero",
+    "buyingPower": "Unknown — not zero",
+    "positions": "Unknown — no provider result.",
+    "orders": "Unknown — no provider result.",
+    "controlledWorkerBoundaryVisible": true,
+    "consoleWarnings": 0,
+    "consoleErrors": 0,
+    "clickedAccountControl": false,
+    "requestedApproval": false,
+    "submittedOrder": false,
+    "reconciledProvider": false
+  },
+  "runtimeLimitations": {
+    "stateStore": "file-cas-single-host",
+    "multiInstanceState": false,
+    "nativeInstalledRuntimeVerified": false,
+    "providerCredentialsVerified": false,
+    "providerAccountLinkVerified": false,
+    "providerReadVerified": false,
+    "providerWriteVerified": false
+  }
+}
