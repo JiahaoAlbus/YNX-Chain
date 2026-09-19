@@ -1,0 +1,45 @@
+name: Testnet independent read-only probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testnet-independent-read-only-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: github.repository == 'JiahaoAlbus/YNX-Chain' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Offline safety tests (zero target requests)
+        timeout-minutes: 2
+        run: node --test scripts/verify/testnet-independent-probe.test.mjs scripts/verify/testnet-transport-operations.test.mjs scripts/verify/testnet-transport-monitor.test.mjs
+      - name: One bounded batch (eight allowlisted GETs)
+        timeout-minutes: 5
+        run: node scripts/verify/testnet-independent-probe.mjs --live
+      - name: Upload only explicitly named redacted evidence
+        if: always()
+        timeout-minutes: 2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: testnet-independent-probe-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-independent-shareable/receipt.json
+            ${{ runner.temp }}/ynx-independent-shareable/diagnostic-bundle.json
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: 7
