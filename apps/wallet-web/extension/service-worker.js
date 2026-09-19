@@ -104,9 +104,57 @@ async function approvedState(origin,context){
 async function persistPermission(origin,account,lease){
   return mutateAuthority(async()=>{await authorizationGuard.assert(lease,{permissionRequired:false});const stored=await extensionApi.storage.local.get(PROVIDER_PERMISSIONS_KEY),next=grantPermission(stored?.[PROVIDER_PERMISSIONS_KEY],origin,account,Date.now(),lease.browserContext);await authorizationGuard.assert(lease,{permissionRequired:false});await extensionApi.storage.local.set({[PROVIDER_PERMISSIONS_KEY]:next});try{await authorizationGuard.assert(lease,{permissionRequired:false})}catch(error){await extensionApi.storage.local.set({[PROVIDER_PERMISSIONS_KEY]:revokePermission(next,origin,lease.browserContext)});throw error}return next[providerPermissionKey(origin,lease.browserContext)]})
 }
-async function removePermission(origin,browserContext){
+async function notifyRevokedDocuments(origin,browserContext,requestingDocument){
+  // Notifications cannot indefinitely hold the global authority mutation queue.
+  // Browser promises are not cancellable: fence every continuation and dispatch.
+  const deadlineAt=Math.min(requestingDocument.deadlineAt,Date.now()+2000);
+  let cancelled=false,timer;
+  const live=()=>{if(cancelled||Date.now()>=deadlineAt)throw new Error("Revocation notification budget ended")};
+  const capture=authorizationGuard.capturePending();
+  const assertDocument=async lease=>{
+    live();await authorizationGuard.assertContext(lease);live();
+    const nonce=await readCurrentDappDocument(extensionApi,lease);live();
+    await authorizationGuard.assertContext(lease);live();
+    if(nonce!==lease.documentNonce)throw new Error("Revocation document changed");
+  };
+  const notify=async lease=>{
+    for(const[event,payload]of[["accountsChanged",[]],["disconnect",{code:4900,message:"YNX Wallet disconnected from this site."}]]){
+      live();await assertDocument(lease);live();
+      // Content posts the event synchronously without a response acknowledgement.
+      // Once scheduled this browser message cannot be recalled by the fence.
+      await extensionApi.tabs.sendMessage(lease.tabId,{type:RUNTIME_EVENT,version:BRIDGE_VERSION,origin,event,payload,documentNonce:lease.documentNonce},documentMessageTarget(lease)).catch(()=>{});live();
+    }
+  };
+  const run=async()=>{
+    live();await notify(requestingDocument).catch(()=>{});live();
+    const tabs=await extensionApi.tabs.query({}).catch(()=>[]);live();
+    await Promise.all(tabs.map(async tab=>{
+      try{
+        live();
+        if(tab.id===requestingDocument.tabId||!Number.isInteger(tab.id)||new URL(tab.url).origin!==origin||browserContextForTab(tab)!==browserContext)return;
+        let lease=capture({tabId:tab.id,origin,browserContext,deadlineAt});
+        await authorizationGuard.assertContext(lease);live();
+        // Rediscover browser-owned identity after worker restart without changing
+        // the installed bridge; retain navigation revisions captured before query.
+        const results=await extensionApi.scripting.executeScript({target:{tabId:tab.id,frameIds:[0]},world:"ISOLATED",func:()=>null});live();
+        await authorizationGuard.assertContext(lease);live();
+        const documentId=results?.find(item=>item.frameId===0)?.documentId;
+        if(documentId!==undefined||!firefoxContext){if(!validBrowserDocumentId(documentId,{firefox:firefoxContext}))return;lease=Object.freeze({...lease,documentId})}
+        // Firefox without documentId still needs the exact content activation.
+        const nonce=await readCurrentDappDocument(extensionApi,lease);live();
+        lease=authorizationGuard.bindDocument(lease,nonce);
+        await notify(lease);live();
+      }catch{/* Permission stays removed even when a page is unavailable. */}
+    }));live();
+  };
+  try{
+    const timeout=new Promise(resolve=>{timer=setTimeout(()=>{cancelled=true;resolve()},Math.max(0,deadlineAt-Date.now()))});
+    await Promise.race([run().catch(()=>{}),timeout]);
+  }finally{cancelled=true;clearTimeout(timer)}
+}
+async function removePermission(origin,browserContext,requestingDocument){
   authorizationGuard.invalidateOrigin(origin,browserContext);invalidateWaiters("PERMISSION_REVOKED","Wallet permission was revoked during approval.",origin,null,browserContext);
-  return mutateAuthority(async()=>{const stored=await extensionApi.storage.local.get(PROVIDER_PERMISSIONS_KEY),next=revokePermission(stored?.[PROVIDER_PERMISSIONS_KEY],origin,browserContext);await extensionApi.storage.local.set({[PROVIDER_PERMISSIONS_KEY]:next});return next})
+  return mutateAuthority(async()=>{const stored=await extensionApi.storage.local.get(PROVIDER_PERMISSIONS_KEY),next=revokePermission(stored?.[PROVIDER_PERMISSIONS_KEY],origin,browserContext);await extensionApi.storage.local.set({[PROVIDER_PERMISSIONS_KEY]:next});await notifyRevokedDocuments(origin,browserContext,requestingDocument);return next})
 }
 function approvalKey(requestId){return `${PROVIDER_PENDING_PREFIX}${requestId}`}
 async function cleanupApproval(requestId,windowId){approvalWaiters.delete(requestId);await extensionApi.storage.session.remove(approvalKey(requestId)).catch(()=>{});if(Number.isInteger(windowId))await extensionApi.windows.remove(windowId).catch(()=>{})}
@@ -141,7 +189,7 @@ async function handleProviderMethod({tabId,origin,requestId,deadlineAt,method,pa
   if(method==="wallet_getPermissions"){const state=await approvedState(origin,documentLease.browserContext);return eip2255Permissions(state?.permission||null)}
   if(method==="wallet_requestPermissions"){exactPermissionParams(method,params);const accounts=await requestAccountApproval(tabId,origin,requestId,deadlineAt,documentLease);const state=await approvedState(origin,documentLease.browserContext);authorizationGuard.assertCurrent(documentLease);if(state?.permission?.account!==accounts[0])throw Object.assign(new Error("Wallet permission did not persist."),{code:"PERMISSION_NOT_PERSISTED"});return eip2255Permissions(state.permission)}
   if(method==="wallet_revokePermissions"||method==="ynx_disconnect"){
-    if(method==="wallet_revokePermissions")exactPermissionParams(method,params);await removePermission(origin,documentLease.browserContext);await emitToTab(tabId,origin,"accountsChanged",[],documentLease);await emitToTab(tabId,origin,"disconnect",{code:4900,message:"YNX Wallet disconnected from this site."},documentLease);return null
+    if(method==="wallet_revokePermissions")exactPermissionParams(method,params);await removePermission(origin,documentLease.browserContext,documentLease);return null
   }
   if(method==="wallet_addEthereumChain"||method==="wallet_switchEthereumChain"){
     exactMutationInput(method,params);requireLiveDeadline(deadlineAt);await emitToTab(tabId,origin,"chainChanged",CHAIN_ID,documentLease);return null
