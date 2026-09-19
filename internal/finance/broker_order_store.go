@@ -258,7 +258,7 @@ func (s *Store) RevokeBrokerOrder(account string, revocation FinanceOrderRevocat
 			result = state.Brokerage.Orders[challenge.Unsigned.Order.OrderID]
 			return errBrokerStateUnchanged
 		}
-		if challenge.ApprovalState != "approved" {
+		if challenge.ApprovalState != "approved" && challenge.ApprovalState != "pending" {
 			return fmt.Errorf("Finance approval is already %s", challenge.ApprovalState)
 		}
 		issuedAt, issuedErr := parseFinanceMilliseconds(challenge.Unsigned.IssuedAt)
@@ -266,11 +266,15 @@ func (s *Store) RevokeBrokerOrder(account string, revocation FinanceOrderRevocat
 		if issuedErr != nil || expiresErr != nil {
 			return errors.New("Finance approval lifetime is invalid")
 		}
-		if err := VerifyFinanceOrderRevocationV1(revocation, account, challenge.Unsigned.RequestID, challenge.ApprovalDigest, issuedAt, expiresAt, now); err != nil {
+		expectedDigest := challenge.ApprovalDigest
+		if challenge.ApprovalState == "pending" {
+			expectedDigest = digestFinanceCanonical(FinanceOrderApprovalDomain, challenge.Unsigned)
+		}
+		if err := VerifyFinanceOrderRevocationV1(revocation, account, challenge.Unsigned.RequestID, expectedDigest, issuedAt, expiresAt, now); err != nil {
 			return err
 		}
 		order := state.Brokerage.Orders[challenge.Unsigned.Order.OrderID]
-		challenge.ApprovalState, challenge.Revocation, challenge.UpdatedAt = "revoked", &revocation, now.UTC()
+		challenge.ApprovalState, challenge.ApprovalDigest, challenge.Revocation, challenge.UpdatedAt = "revoked", expectedDigest, &revocation, now.UTC()
 		order.ApprovalState, order.State, order.UpdatedAt = "revoked", "draft", now.UTC()
 		state.Brokerage.Challenges[revocation.RequestID], state.Brokerage.Orders[order.Order.OrderID] = challenge, order
 		appendBrokerJournal(&state.Brokerage, order.Order.OrderID, revocation.RequestID, "approval.revoked", "revoked", "draft", now.UTC())

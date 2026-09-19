@@ -29,6 +29,15 @@ func (s *Store) ClaimBrokerDispatch(account, orderID string, now time.Time) (Bro
 		if !orderOK || !outboxOK || order.ApprovalState != "consumed" {
 			return errors.New("consumed Broker outbox was not found")
 		}
+		if outbox.ProviderOrderID != "" || order.ProviderOrderID != "" || outbox.Status == "submitted" || outbox.Status == "submitted_unknown" || order.State == "submitted" || order.State == "submitted_unknown" || order.State == "partially_filled" || order.State == "filled" || order.State == "cancel_requested" || order.State == "canceled" || order.State == "provider_expired" {
+			return errors.New("Broker outbox already has provider correlation and is reconcile-only")
+		}
+		if outbox.Status == "dispatching" {
+			return errors.New("Broker outbox is already claimed")
+		}
+		if outbox.Status != "pending_unwired" && outbox.Status != "provider_rejected" {
+			return fmt.Errorf("Broker outbox cannot dispatch from %s", outbox.Status)
+		}
 		challenge, challengeOK := state.Brokerage.Challenges[order.RequestID]
 		mapping := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
 		expiresAt, expiresErr := parseFinanceMilliseconds(challenge.Unsigned.ExpiresAt)
@@ -45,12 +54,6 @@ func (s *Store) ClaimBrokerDispatch(account, orderID string, now time.Time) (Bro
 			appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, "provider.preflight_blocked", order.ApprovalState, order.State, now.UTC())
 			result = BrokerDispatchClaim{Order: order, Outbox: outbox, BlockedCode: blocked}
 			return nil
-		}
-		if outbox.Status == "dispatching" {
-			return errors.New("Broker outbox is already claimed")
-		}
-		if outbox.Status != "pending_unwired" && outbox.Status != "provider_rejected" {
-			return fmt.Errorf("Broker outbox cannot dispatch from %s", outbox.Status)
 		}
 		outbox.Status, outbox.Attempts, outbox.UpdatedAt = "dispatching", outbox.Attempts+1, now.UTC()
 		order.State, order.UpdatedAt = "submitting", now.UTC()
@@ -358,8 +361,8 @@ func (d BrokerDispatcher) validateDispatchPreflight(ctx context.Context, account
 		return errors.New("Broker positions preflight failed")
 	}
 	if order.Order.Side == "buy" {
-		if decimalLess(providerAccount.BuyingPower, order.Order.MaxCost) {
-			return errors.New("Broker buying power is below the signed maximum cost")
+		if decimalLess(providerAccount.Cash, order.Order.MaxCost) || decimalLess(providerAccount.BuyingPower, order.Order.MaxCost) {
+			return errors.New("Broker settled cash or buying power is below the signed maximum cost")
 		}
 	} else {
 		available := "0"

@@ -28,6 +28,49 @@ func signFinanceApprovalForTest(t *testing.T, unsigned FinanceOrderApprovalUnsig
 	return FinanceOrderApprovalV1{FinanceOrderApprovalUnsignedV1: unsigned, Signature: hex.EncodeToString(compact[1:])}
 }
 
+func signFinanceRevocationForTest(t *testing.T, unsigned FinanceOrderApprovalUnsignedV1, revokedAt time.Time) FinanceOrderRevocationV1 {
+	t.Helper()
+	revocation := FinanceOrderRevocationV1{Account: unsigned.Account, AccountPublicKey: unsigned.AccountPublicKey, ApprovalDigest: digestFinanceCanonical(FinanceOrderApprovalDomain, unsigned), Reason: "USER_REVOKED", RequestID: unsigned.RequestID, RevokedAt: revokedAt.UTC().Format("2006-01-02T15:04:05.000Z"), Version: "1"}
+	payload := struct {
+		Account          string `json:"account"`
+		AccountPublicKey string `json:"accountPublicKey"`
+		ApprovalDigest   string `json:"approvalDigest"`
+		Reason           string `json:"reason"`
+		RequestID        string `json:"requestId"`
+		RevokedAt        string `json:"revokedAt"`
+		Version          string `json:"version"`
+	}{revocation.Account, revocation.AccountPublicKey, revocation.ApprovalDigest, revocation.Reason, revocation.RequestID, revocation.RevokedAt, revocation.Version}
+	digest, _ := hex.DecodeString(digestFinanceCanonical(FinanceOrderRevokeDomain, payload))
+	secret := make([]byte, 32)
+	secret[31] = 1
+	revocation.Signature = hex.EncodeToString(secpECDSA.SignCompact(secp256k1.PrivKeyFromBytes(secret), digest, true)[1:])
+	return revocation
+}
+
+func TestBrokerPendingApprovalCanBeRevokedBeforeCallbackDelivery(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "finance.json")
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
+	store, _ := OpenStore(path)
+	_, _ = store.PutBrokerSandboxMapping(account, "01234567-89ab-4cde-8fab-0123456789ab", now)
+	challenge, err := store.CreateBrokerOrderChallenge(account, BrokerChallengeRequest{AccountPublicKey: "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test", Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"}}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	revocation := signFinanceRevocationForTest(t, challenge.Unsigned, now.Add(time.Minute))
+	if _, err := store.RevokeBrokerOrder(account, revocation, now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	reopened, _ := OpenStore(path)
+	state := reopened.Account(account).Brokerage
+	if state.Challenges[challenge.Unsigned.RequestID].ApprovalState != "revoked" || len(state.Outbox) != 0 {
+		t.Fatalf("pending revoke did not persist safely: %+v", state)
+	}
+	if _, err := reopened.VerifyAndConsumeBrokerOrder(account, signFinanceApprovalForTest(t, challenge.Unsigned), now.Add(2*time.Minute)); err == nil {
+		t.Fatal("revoked pending approval was consumed")
+	}
+}
+
 func TestBrokerOrderDurableConcurrentConsumeAndRestart(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "finance.json")
 	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"

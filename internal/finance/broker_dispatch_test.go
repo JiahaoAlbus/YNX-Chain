@@ -11,10 +11,12 @@ import (
 )
 
 type dispatchAdapter struct {
-	submit   func(brokerage.SubmitOrderRequest) (brokerage.Order, error)
-	cancel   func(string) error
-	snapshot brokerage.AccountSnapshot
-	quote    brokerage.Quote
+	submit    func(brokerage.SubmitOrderRequest) (brokerage.Order, error)
+	cancel    func(string) error
+	snapshot  brokerage.AccountSnapshot
+	quote     brokerage.Quote
+	account   brokerage.Account
+	positions []brokerage.Position
 }
 
 func (d dispatchAdapter) Capabilities() map[string]string { return map[string]string{} }
@@ -28,13 +30,16 @@ func (d dispatchAdapter) Quote(_ context.Context, symbol string) (brokerage.Quot
 	return brokerage.Quote{Symbol: symbol, BidPrice: "9.99", AskPrice: "10", Timestamp: "2026-09-19T09:01:59Z", Feed: "iex"}, nil
 }
 func (d dispatchAdapter) Account(context.Context, string, brokerage.AccountResolver) (brokerage.Account, error) {
+	if d.account.ID != "" {
+		return d.account, nil
+	}
 	return brokerage.Account{ID: "01234567-89ab-4cde-8fab-0123456789ab", Status: "ACTIVE", Currency: "USD", Cash: "100", BuyingPower: "100"}, nil
 }
 func (d dispatchAdapter) Orders(context.Context, string, brokerage.AccountResolver) ([]brokerage.Order, string, error) {
 	return nil, "", errors.New("unused")
 }
 func (d dispatchAdapter) Positions(context.Context, string, brokerage.AccountResolver) ([]brokerage.Position, string, error) {
-	return []brokerage.Position{}, "positions-request", nil
+	return d.positions, "positions-request", nil
 }
 func (d dispatchAdapter) Reconcile(context.Context, string, brokerage.AccountResolver) (brokerage.AccountSnapshot, error) {
 	return d.snapshot, nil
@@ -192,6 +197,33 @@ func TestBrokerDispatchBlocksExpiredApprovalAndStalePreflightBeforeSubmit(t *tes
 	}
 	if posts != 0 {
 		t.Fatal("stale preflight reached provider POST")
+	}
+
+	store, account, orderID, now = consumedBrokerFixture(t)
+	posts = 0
+	adapter = dispatchAdapter{account: brokerage.Account{ID: "01234567-89ab-4cde-8fab-0123456789ab", Status: "ACTIVE", Currency: "USD", Cash: "0", BuyingPower: "1000"}, submit: func(brokerage.SubmitOrderRequest) (brokerage.Order, error) { posts++; return brokerage.Order{}, nil }}
+	dispatcher = BrokerDispatcher{Store: store, Adapter: adapter, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+	if _, err := dispatcher.Dispatch(context.Background(), account, orderID); err == nil {
+		t.Fatal("leveraged buying power bypassed the cash-only weekly boundary")
+	}
+	if posts != 0 {
+		t.Fatal("cash-short order reached provider POST")
+	}
+}
+
+func TestBrokerClaimNeverRegressesProviderCorrelatedOrderAfterExpiry(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	provider := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted"}
+	dispatcher := BrokerDispatcher{Store: store, Adapter: dispatchAdapter{submit: func(brokerage.SubmitOrderRequest) (brokerage.Order, error) { return provider, nil }}, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+	if _, err := dispatcher.Dispatch(context.Background(), account, orderID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Hour)); err == nil {
+		t.Fatal("provider-correlated order was reclaimed")
+	}
+	workspace := store.BrokerWorkspace(account, now.Add(time.Hour))
+	if workspace.Orders[0].State != "submitted" || workspace.Outbox[0].Status != "submitted" || workspace.Orders[0].ProviderOrderID != provider.ID {
+		t.Fatalf("provider-correlated order regressed: %+v", workspace)
 	}
 }
 
