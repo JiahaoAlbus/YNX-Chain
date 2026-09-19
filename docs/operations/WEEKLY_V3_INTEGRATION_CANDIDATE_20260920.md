@@ -49,7 +49,7 @@ The security dependency graph and audit policy are retained. The audit policy's
 source checkpoint is rebound to a commit reachable from this candidate. Shared
 Cloud dependency evidence is refreshed only because the root Go dependency
 graph changed. The placeholder gate excludes the Finance public-endpoint
-manifest in both scanner implementations because `example.com` appears there
+manifest in both scanner implementations because the reserved documentation hostname appears there
 only in its fail-closed rejection list.
 
 Mail, Merchant, Music, Pay, Social, Calendar, DEX and Resource Market source and
