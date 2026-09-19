@@ -36,18 +36,24 @@ var (
 )
 
 type Config struct {
-	RPCURL        string
-	HTTPAddr      string
-	UpstreamMode  string
-	FaucetKey     string
-	FaucetKeyPath string
-	FaucetAddress string
-	ChainID       int64
-	DefaultAmount int64
-	MaxAmount     int64
-	Window        time.Duration
-	MaxRequests   int
-	RequestLog    string
+	CoreAuthTokenPath string
+	RPCURL            string
+	HTTPAddr          string
+	UpstreamMode      string
+	FaucetKey         string
+	FaucetKeyPath     string
+	FaucetAddress     string
+	ChainID           int64
+	DefaultAmount     int64
+	MaxAmount         int64
+	Window            time.Duration
+	MaxRequests       int
+	IPMaxRequests     int
+	IPWindow          time.Duration
+	RequestLog        string
+	AdmissionPath     string
+	MaxAdmissions     int
+	HealthTimeout     time.Duration
 }
 
 func (c Config) normalized() (Config, error) {
@@ -96,23 +102,46 @@ func (c Config) normalized() (Config, error) {
 	if c.RequestLog == "" {
 		c.RequestLog = "tmp/faucet/requests.jsonl"
 	}
+	if c.ChainID == 0 {
+		c.ChainID = 6423
+	}
+	if c.ChainID < 0 {
+		return Config{}, fmt.Errorf("faucet chain ID must be positive")
+	}
+	if c.AdmissionPath == "" {
+		c.AdmissionPath = c.RequestLog + ".admissions.db"
+	}
+	if c.MaxAdmissions <= 0 {
+		c.MaxAdmissions = 100000
+	}
+	if c.HealthTimeout == 0 {
+		c.HealthTimeout = 2 * time.Second
+	}
+	if c.HealthTimeout < 0 || c.HealthTimeout > 5*time.Second {
+		return Config{}, fmt.Errorf("faucet health timeout must be positive and at most 5s")
+	}
 	return c, nil
 }
 
 type Service struct {
-	cfg        Config
-	httpClient *http.Client
-	signer     *secp256k1.PrivateKey
-	signerAddr string
-	mu         sync.Mutex
-	fundMu     sync.Mutex
-	logMu      sync.Mutex
-	seen       map[string][]time.Time
-	requests   int64
-	successes  int64
-	denied     int64
-	lastHash   string
-	lastError  string
+	coreAuthToken string
+	admissions    *admissionStore
+	cfg           Config
+	httpClient    *http.Client
+	signer        *secp256k1.PrivateKey
+	signerAddr    string
+	mu            sync.Mutex
+	fundMu        sync.Mutex
+	logMu         sync.Mutex
+	seen          map[string][]time.Time
+	requests      int64
+	successes     int64
+	denied        int64
+	lastHash      string
+	lastError     string
+	healthMu      sync.Mutex
+	healthFlight  *healthFlight
+	healthStats   healthProbeStats
 }
 
 func New(cfg Config) (*Service, error) {
@@ -475,26 +504,39 @@ func (s *Service) recordDenied(reason string) {
 }
 
 type Health struct {
-	OK             bool           `json:"ok"`
-	Service        string         `json:"service"`
-	RPCURL         string         `json:"rpcUrl"`
-	UpstreamMode   string         `json:"upstreamMode"`
-	FaucetAddress  string         `json:"faucetAddress,omitempty"`
-	UpstreamOK     bool           `json:"upstreamOk"`
-	ChainID        int64          `json:"chainId,omitempty"`
-	Height         uint64         `json:"height,omitempty"`
-	NativeSymbol   string         `json:"nativeSymbol"`
-	DefaultAmount  int64          `json:"defaultAmount"`
-	MaxAmount      int64          `json:"maxAmount"`
-	RateLimit      string         `json:"rateLimit"`
-	RequestLog     string         `json:"requestLog"`
-	Requests       int64          `json:"requests"`
-	Successes      int64          `json:"successes"`
-	Denied         int64          `json:"denied"`
-	LastTxHash     string         `json:"lastTxHash,omitempty"`
-	LastError      string         `json:"lastError,omitempty"`
-	Build          buildinfo.Info `json:"build"`
-	TruthfulStatus string         `json:"truthfulStatus"`
+	CheckedAt                time.Time      `json:"checkedAt"`
+	ProbeDurationMS          int64          `json:"probeDurationMs"`
+	StatusDurationMS         int64          `json:"statusDurationMs"`
+	CapabilityDurationMS     int64          `json:"capabilityDurationMs"`
+	ProbeFailureStage        string         `json:"probeFailureStage,omitempty"`
+	IdempotentRequests       bool           `json:"idempotentRequests"`
+	FundingReady             bool           `json:"fundingReady"`
+	RequestStatusPath        string         `json:"requestStatusPath"`
+	IPRateLimitMax           int            `json:"ipRateLimitMax"`
+	IPRateLimitWindowSeconds int64          `json:"ipRateLimitWindowSeconds"`
+	RequestPath              string         `json:"requestPath"`
+	RateLimitMax             int            `json:"rateLimitMax"`
+	RateLimitWindowSeconds   int64          `json:"rateLimitWindowSeconds"`
+	OK                       bool           `json:"ok"`
+	Service                  string         `json:"service"`
+	RPCURL                   string         `json:"rpcUrl"`
+	UpstreamMode             string         `json:"upstreamMode"`
+	FaucetAddress            string         `json:"faucetAddress,omitempty"`
+	UpstreamOK               bool           `json:"upstreamOk"`
+	ChainID                  int64          `json:"chainId,omitempty"`
+	Height                   uint64         `json:"height,omitempty"`
+	NativeSymbol             string         `json:"nativeSymbol"`
+	DefaultAmount            int64          `json:"defaultAmount"`
+	MaxAmount                int64          `json:"maxAmount"`
+	RateLimit                string         `json:"rateLimit"`
+	RequestLog               string         `json:"requestLog"`
+	Requests                 int64          `json:"requests"`
+	Successes                int64          `json:"successes"`
+	Denied                   int64          `json:"denied"`
+	LastTxHash               string         `json:"lastTxHash,omitempty"`
+	LastError                string         `json:"lastError,omitempty"`
+	Build                    buildinfo.Info `json:"build"`
+	TruthfulStatus           string         `json:"truthfulStatus"`
 }
 
 func (s *Service) Health() Health {
@@ -526,8 +568,18 @@ type rpcStatus struct {
 	NativeCurrencySymbol string `json:"nativeCurrencySymbol"`
 }
 
-func (s *Service) CheckHealth(ctx context.Context) Health {
-	health := s.Health()
+func (s *Service) probeHealth(ctx context.Context) (health Health) {
+	started := time.Now()
+	statusDone := false
+	defer func() {
+		health.CheckedAt = time.Now().UTC()
+		health.ProbeDurationMS = time.Since(started).Milliseconds()
+		if !statusDone {
+			health.StatusDurationMS = health.ProbeDurationMS
+		}
+	}()
+	health = s.Health()
+	health.ProbeFailureStage = "status"
 	var status rpcStatus
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(s.cfg.RPCURL, "/")+"/status", nil)
 	if err != nil {
@@ -547,17 +599,45 @@ func (s *Service) CheckHealth(ctx context.Context) Health {
 		health.LastError = fmt.Sprintf("RPC status returned %d", resp.StatusCode)
 		return health
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+	// Core status is extensible; bound its body and reject trailing JSON without
+	// rejecting unrelated status fields added by another compatible Core build.
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, MaxResponseBytes+1))
+	if err == nil && len(raw) > MaxResponseBytes {
+		err = fmt.Errorf("RPC status exceeds response limit")
+	}
+	if err == nil {
+		err = json.Unmarshal(raw, &status)
+	}
+	if err != nil {
 		health.OK = false
 		health.LastError = err.Error()
 		return health
 	}
-	health.UpstreamOK = status.NativeCurrencySymbol == "YNXT"
+	health.StatusDurationMS = time.Since(started).Milliseconds()
+	statusDone = true
+	health.UpstreamOK = status.NativeCurrencySymbol == "YNXT" && status.ChainID == s.cfg.ChainID
 	health.ChainID = status.ChainID
 	health.Height = status.Height
 	if !health.UpstreamOK {
 		health.OK = false
 		health.LastError = "RPC native symbol is not YNXT"
+	}
+	if health.UpstreamOK {
+		health.OK = true
+		health.LastError = ""
+		if s.cfg.UpstreamMode == UpstreamAuthoritative {
+			capabilityStart := time.Now()
+			if err := s.requireFaucetCapability(ctx); err != nil {
+				health.OK = false
+				health.LastError = err.Error()
+				health.ProbeFailureStage = "capability"
+			}
+			health.CapabilityDurationMS = time.Since(capabilityStart).Milliseconds()
+		}
+	}
+	health.FundingReady = health.OK && health.UpstreamOK
+	if health.FundingReady {
+		health.ProbeFailureStage = ""
 	}
 	return health
 }
@@ -574,7 +654,7 @@ ynx_faucet_success_total{%s} %d
 # HELP ynx_faucet_denied_total Rejected or rate-limited faucet requests.
 # TYPE ynx_faucet_denied_total counter
 ynx_faucet_denied_total{%s} %d
-`, labels, h.Requests, labels, h.Successes, labels, h.Denied)
+`, labels, h.Requests, labels, h.Successes, labels, h.Denied) + s.healthMetrics()
 }
 
 func requestID() string {

@@ -914,7 +914,9 @@ ${EXPLORER_DOMAIN}, ${TESTNET_EXPLORER_DOMAIN} {
 }
 
 ${FAUCET_DOMAIN}, ${TESTNET_FAUCET_DOMAIN} {
-  reverse_proxy 127.0.0.1:6428
+  reverse_proxy 127.0.0.1:6428 {
+    header_up X-Real-IP {remote_host}
+  }
 }
 
 ${INDEXER_DOMAIN} {

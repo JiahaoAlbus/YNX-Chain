@@ -320,6 +320,7 @@ chainlist-live-check:
 
 testnet-endpoint-migration-check:
 	node --test ./scripts/verify/testnet-endpoint-migration-check.test.mjs
+	node --test ./scripts/verify/testnet-alias-package.test.mjs
 	node ./scripts/verify/testnet-endpoint-migration-check.mjs
 
 .PHONY: weekly-v3-local-check testnet-endpoint-config-check

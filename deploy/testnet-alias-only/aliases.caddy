@@ -1,0 +1,23 @@
+# Candidate import for the EXISTING Caddy instance on the Core/Faucet host.
+# Do not replace its Caddyfile or start a second proxy. Legacy sites stay intact.
+rpc-testnet.ynxweb4.com {
+	reverse_proxy 127.0.0.1:6420 {
+		header_up X-Real-IP {remote_host}
+		lb_retries 0
+		transport http {
+			dial_timeout 3s
+			response_header_timeout 15s
+		}
+	}
+}
+
+faucet-testnet.ynxweb4.com {
+	reverse_proxy 127.0.0.1:6428 {
+		header_up X-Real-IP {remote_host}
+		lb_retries 0
+		transport http {
+			dial_timeout 3s
+			response_header_timeout 25s
+		}
+	}
+}

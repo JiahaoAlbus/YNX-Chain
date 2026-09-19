@@ -30,22 +30,29 @@ func main() {
 	defaultAmount := flag.Int64("default-amount", envInt64OrDefault("YNX_FAUCET_DEFAULT_AMOUNT", 100), "default faucet amount")
 	maxAmount := flag.Int64("max-amount", envInt64OrDefault("YNX_FAUCET_MAX_AMOUNT", 100), "max faucet amount")
 	window := flag.Duration("rate-window", envDurationOrDefault("YNX_FAUCET_RATE_LIMIT_WINDOW", time.Hour), "rate limit window")
-	maxRequests := flag.Int("rate-max", envIntOrDefault("YNX_FAUCET_RATE_LIMIT_MAX", 1), "max requests per IP/address in window")
+	maxRequests := flag.Int("rate-max", envIntOrDefault("YNX_FAUCET_RATE_LIMIT_MAX", 1), "max requests per receiving address in window")
+	healthTimeout := flag.Duration("health-timeout", envDurationOrDefault("YNX_FAUCET_HEALTH_TIMEOUT", 2*time.Second), "total read-only health probe deadline (at most 5s)")
 	flag.Parse()
 
 	service, err := faucet.New(faucet.Config{
-		RPCURL:        *rpcURL,
-		HTTPAddr:      *httpAddr,
-		UpstreamMode:  *upstreamMode,
-		FaucetKey:     os.Getenv("FAUCET_PRIVATE_KEY"),
-		FaucetKeyPath: os.Getenv("YNX_FAUCET_PRIVATE_KEY_FILE"),
-		FaucetAddress: os.Getenv("YNX_FAUCET_ADDRESS"),
-		ChainID:       envInt64OrDefault("YNX_FAUCET_CHAIN_ID", 6423),
-		DefaultAmount: *defaultAmount,
-		MaxAmount:     *maxAmount,
-		Window:        *window,
-		MaxRequests:   *maxRequests,
-		RequestLog:    *requestLog,
+		CoreAuthTokenPath: coreTokenPath,
+		RPCURL:            *rpcURL,
+		HTTPAddr:          *httpAddr,
+		UpstreamMode:      *upstreamMode,
+		FaucetKey:         os.Getenv("FAUCET_PRIVATE_KEY"),
+		FaucetKeyPath:     os.Getenv("YNX_FAUCET_PRIVATE_KEY_FILE"),
+		FaucetAddress:     os.Getenv("YNX_FAUCET_ADDRESS"),
+		ChainID:           envInt64OrDefault("YNX_FAUCET_CHAIN_ID", 6423),
+		DefaultAmount:     *defaultAmount,
+		MaxAmount:         *maxAmount,
+		Window:            *window,
+		MaxRequests:       *maxRequests,
+		IPMaxRequests:     envIntOrDefault("YNX_FAUCET_IP_RATE_LIMIT_MAX", 100),
+		IPWindow:          envDurationOrDefault("YNX_FAUCET_IP_RATE_LIMIT_WINDOW", time.Minute),
+		RequestLog:        *requestLog,
+		AdmissionPath:     *admissionPath,
+		MaxAdmissions:     *maxAdmissions,
+		HealthTimeout:     *healthTimeout,
 	})
 	if err != nil {
 		log.Fatal(err)

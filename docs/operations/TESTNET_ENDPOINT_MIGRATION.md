@@ -43,6 +43,11 @@ Restore the backed-up ingress configuration, reload the proxy, and return DNS to
 
 ## External inputs still required
 
+The standalone, two-host candidate and precise rollback procedure are in
+[`deploy/testnet-alias-only`](../../deploy/testnet-alias-only/README.md).
+Choose the proxy already serving the current ingress; native validation on the
+target host and certificate checks remain mandatory. No consumers are activated.
+
 - Authority to change DNS for the three Testnet aliases.
 - Authority to install/reload the controlled ingress configuration and issue certificates.
 - Confirmation of whether the Explorer alias should be activated after RPC and Faucet, or remain only a reserved candidate.
