@@ -1,3 +1,5 @@
+//go:build weekly_v3_integration
+
 package finance
 
 // Loaded with Go -overlay into the exact Finance checkpoint. The owner worktree
@@ -228,22 +230,44 @@ type weeklyProvider struct {
 	posts, deletes int
 	ambiguous      bool
 	requests       []string
+	cash           string
+}
+
+func weeklyAssertPreflight(t *testing.T, requests []string) {
+	t.Helper()
+	seen := map[string]bool{}
+	for _, request := range requests {
+		if strings.HasPrefix(request, "POST ") {
+			for _, required := range []string{"GET /v1/accounts/01234567-89ab-4cde-8fab-0123456789ab", "GET /v1/assets", "GET /v2/stocks/ACME/quotes/latest", "GET /v1/trading/accounts/01234567-89ab-4cde-8fab-0123456789ab/positions"} {
+				if !seen[required] {
+					t.Fatalf("provider POST occurred before required preflight %s; requests=%v", required, requests)
+				}
+			}
+			return
+		}
+		seen[request] = true
+	}
+	t.Fatal("expected exactly correlated provider POST was absent")
 }
 
 func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvider) {
 	t.Helper()
-	p := &weeklyProvider{ambiguous: ambiguous}
+	p := &weeklyProvider{ambiguous: ambiguous, cash: "100000"}
 	local := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p.mu.Lock()
 		defer p.mu.Unlock()
 		p.requests = append(p.requests, r.Method+" "+r.URL.Path)
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Request-ID", "isolated-provider-request")
-		if r.Host != "broker-api.sandbox.alpaca.markets" {
+		if r.Host != "broker-api.sandbox.alpaca.markets" && r.Host != "data.sandbox.alpaca.markets" {
 			http.Error(w, "fixture rejected host", 400)
 			return
 		}
 		switch {
+		case r.Method == "GET" && r.URL.Path == "/v1/assets":
+			_ = json.NewEncoder(w).Encode([]map[string]any{{"id": "11111111-2222-4333-8444-555555555555", "symbol": "ACME", "name": "Public synthetic equity fixture", "class": "us_equity", "status": "active", "tradable": true}})
+		case r.Method == "GET" && r.URL.Path == "/v2/stocks/ACME/quotes/latest":
+			_ = json.NewEncoder(w).Encode(map[string]any{"symbol": "ACME", "quote": map[string]any{"ap": 125.34, "as": 100, "bp": 125.33, "bs": 100, "t": "2026-09-19T09:00:30Z"}})
 		case r.Method == "POST" && strings.HasSuffix(r.URL.Path, "/orders"):
 			p.posts++
 			var body map[string]any
@@ -280,7 +304,7 @@ func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvi
 			}
 			_ = json.NewEncoder(w).Encode(orders)
 		case strings.HasPrefix(r.URL.Path, "/v1/accounts/"):
-			_ = json.NewEncoder(w).Encode(map[string]string{"id": "01234567-89ab-4cde-8fab-0123456789ab", "status": "ACTIVE", "currency": "USD", "cash": "100000", "buying_power": "100000"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"id": "01234567-89ab-4cde-8fab-0123456789ab", "status": "ACTIVE", "currency": "USD", "cash": p.cash, "buying_power": "100000"})
 		default:
 			http.Error(w, "unexpected local fixture request", 404)
 		}
@@ -290,7 +314,7 @@ func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvi
 	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
 	transport.TLSClientConfig.ServerName = "example.com"
 	transport.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
-		if address != "broker-api.sandbox.alpaca.markets:443" {
+		if address != "broker-api.sandbox.alpaca.markets:443" && address != "data.sandbox.alpaca.markets:443" {
 			return nil, errors.New("integration forbids any non-fixture destination")
 		}
 		return (&net.Dialer{}).DialContext(ctx, "tcp", local.Listener.Addr().String())
@@ -386,6 +410,7 @@ func TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart(t *testing.T) {
 			if provider.posts != 1 || provider.deletes != 1 {
 				t.Fatalf("provider calls posts=%d deletes=%d", provider.posts, provider.deletes)
 			}
+			weeklyAssertPreflight(t, provider.requests)
 			t.Logf("actual adapter to loopback TLS: exactly %d POST, %d DELETE; unknown/query/restart preserved logical order", provider.posts, provider.deletes)
 		})
 	}
@@ -409,5 +434,162 @@ func TestWeeklyV3ProviderEventsAcceptProviderWire(t *testing.T) {
 	_, _, err := brokerage.ParseTradeEventStream(strings.NewReader(fmt.Sprintf("id: event-wire-1\nevent: trade_updates\ndata: %s\n\n", wire)), "01234567-89ab-4cde-8fab-0123456789ab", 10)
 	if err != nil {
 		t.Fatalf("provider-shaped order rejected by SSE parser: %v", err)
+	}
+}
+
+func TestWeeklyV3UnreceivedApprovalCanBeRevokedAtServer(t *testing.T) {
+	server, _, _, now := weeklyServer(t)
+	challenge := weeklyChallenge(t, server)
+	result := weeklyBridge(t, map[string]any{"mode": "revoke", "challenge": challenge, "authorityDateAdapter": os.Getenv("WEEKLY_DATE_ADAPTER") == "true"})
+	if len(result["decoded"]) == 0 {
+		t.Fatalf("Wallet failed before producing signed revoke: %s", result["beginError"])
+	}
+	// Isolate server behavior using the actual signed fixed-transport payload;
+	// never turn a failing browser parse into an E2E success.
+	callback := weeklyHTTP(t, server, "/api/broker/callback", result["decoded"])
+	if callback.Code != 200 {
+		t.Fatalf("unused signed proof not delivered to Finance cannot be revoked: %d %s", callback.Code, callback.Body.String())
+	}
+	workspace := server.service.Store.BrokerWorkspace(challenge.Unsigned.Account, now)
+	if workspace.Orders[0].ApprovalState != "revoked" || len(workspace.Outbox) != 0 {
+		t.Fatalf("revoke created authority or failed to persist: %+v", workspace)
+	}
+}
+func TestWeeklyV3DispatchMustNotUseMarginBuyingPower(t *testing.T) {
+	server, _, _, now := weeklyServer(t)
+	challenge := weeklyApproved(t, server)
+	adapter, provider := weeklyAlpaca(t, false)
+	provider.cash = "0"
+	dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
+	_, _ = dispatcher.Dispatch(context.Background(), challenge.Unsigned.Account, challenge.Unsigned.Order.OrderID)
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
+	if provider.posts != 0 {
+		t.Fatal("cash=0 with large margin buying_power allowed POST despite weekly no-leverage scope")
+	}
+}
+func TestWeeklyV3ExpiredRedispatchCannotRewriteKnownProviderState(t *testing.T) {
+	server, _, _, now := weeklyServer(t)
+	challenge := weeklyApproved(t, server)
+	adapter, provider := weeklyAlpaca(t, false)
+	dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
+	if _, err := dispatcher.Dispatch(context.Background(), challenge.Unsigned.Account, challenge.Unsigned.Order.OrderID); err != nil {
+		t.Fatal(err)
+	}
+	dispatcher.Now = func() time.Time { return now.Add(time.Hour) }
+	_, _ = dispatcher.Dispatch(context.Background(), challenge.Unsigned.Account, challenge.Unsigned.Order.OrderID)
+	record := server.service.Store.BrokerWorkspace(challenge.Unsigned.Account, now).Orders[0]
+	if record.State != "submitted" {
+		t.Fatalf("late re-dispatch rewrote confirmed provider order state to %s", record.State)
+	}
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
+	if provider.posts != 1 {
+		t.Fatalf("POSTs=%d", provider.posts)
+	}
+}
+
+func TestWeeklyV3FullBrowserWalletServerFlow(t *testing.T) {
+	for _, source := range []string{"manual", "ai"} {
+		for _, decision := range []string{"approve", "reject", "revoke"} {
+			t.Run(source+"_"+decision, func(t *testing.T) {
+				server, local, statePath, now := weeklyServer(t)
+				result := weeklyBridge(t, map[string]any{"mode": "full", "source": source, "decision": decision, "base": local.URL, "body": weeklyInput()})
+				var httpResults []struct {
+					Path   string `json:"path"`
+					Status int    `json:"status"`
+				}
+				if err := json.Unmarshal(result["httpResults"], &httpResults); err != nil {
+					t.Fatal(err)
+				}
+				callbackOK := false
+				for _, row := range httpResults {
+					if row.Path == "/api/broker/callback" && row.Status == 200 {
+						callbackOK = true
+					}
+				}
+				if !callbackOK || string(result["pending"]) != "null" {
+					t.Fatalf("complete real browser callback failed: notice=%s HTTP=%s pending=%s", result["notice"], result["httpResults"], result["pending"])
+				}
+				account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+				workspace := server.service.Store.BrokerWorkspace(account, now)
+				if len(workspace.Orders) != 1 {
+					t.Fatal("full path did not create exactly one logical order")
+				}
+				if decision != "approve" {
+					expected := "rejected"
+					if decision == "revoke" {
+						expected = "revoked"
+					}
+					if len(workspace.Outbox) != 0 || workspace.Orders[0].ApprovalState != expected {
+						t.Fatalf("decision=%s workspace=%+v", decision, workspace)
+					}
+					return
+				}
+				adapter, provider := weeklyAlpaca(t, true)
+				dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
+				record, err := dispatcher.Dispatch(context.Background(), account, workspace.Orders[0].Order.OrderID)
+				if brokerage.ErrorCode(err) != "PROVIDER_UNAVAILABLE" || record.State != "submitted_unknown" {
+					t.Fatalf("full flow lost ACK %+v %v", record, err)
+				}
+				reopened, err := OpenStore(statePath)
+				if err != nil {
+					t.Fatal(err)
+				}
+				dispatcher.Store = reopened
+				if _, err := dispatcher.Reconcile(context.Background(), account); err != nil {
+					t.Fatal(err)
+				}
+				provider.mu.Lock()
+				provider.order["status"], provider.order["filled_qty"] = "partially_filled", "1"
+				eventOrder := map[string]any{}
+				for key, value := range provider.order {
+					if key != "extended_hours" {
+						eventOrder[key] = value
+					}
+				}
+				provider.mu.Unlock()
+				wire, _ := json.Marshal(map[string]any{"account_id": "01234567-89ab-4cde-8fab-0123456789ab", "event": "partial_fill", "timestamp": now.Add(65 * time.Second).Format(time.RFC3339Nano), "order": eventOrder})
+				events, cursor, err := brokerage.ParseTradeEventStream(strings.NewReader(fmt.Sprintf("id: full-flow-partial-1\nevent: trade_updates\ndata: %s\n\n", wire)), "01234567-89ab-4cde-8fab-0123456789ab", 10)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := reopened.ApplyBrokerTradeEvents(account, events, cursor, now.Add(70*time.Second)); err != nil {
+					t.Fatal(err)
+				}
+				beforeDuplicate, err := json.Marshal(reopened.Account(account).Brokerage)
+				if err != nil {
+					t.Fatal(err)
+				}
+				duplicateErr := reopened.ApplyBrokerTradeEvents(account, events, cursor, now.Add(71*time.Second))
+				afterDuplicate, err := json.Marshal(reopened.Account(account).Brokerage)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(beforeDuplicate, afterDuplicate) {
+					t.Fatal("duplicate event changed journal, cursor or order state")
+				}
+				t.Logf("duplicate event is non-mutating (explicit rejection is permitted): %v", duplicateErr)
+				if reopened.BrokerWorkspace(account, now).Orders[0].State != "partially_filled" {
+					t.Fatal("provider partial-fill event did not advance order")
+				}
+				dispatcher.Now = func() time.Time { return now.Add(2 * time.Minute) }
+				if _, err := dispatcher.Cancel(context.Background(), account, record.Order.OrderID); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := dispatcher.Reconcile(context.Background(), account); err != nil {
+					t.Fatal(err)
+				}
+				if reopened.BrokerWorkspace(account, now).Orders[0].State != "canceled" {
+					t.Fatal("full flow cancellation reconciliation failed")
+				}
+				provider.mu.Lock()
+				defer provider.mu.Unlock()
+				if provider.posts != 1 || provider.deletes != 1 {
+					t.Fatalf("duplicate provider calls: %d %d", provider.posts, provider.deletes)
+				}
+				weeklyAssertPreflight(t, provider.requests)
+			})
+		}
 	}
 }

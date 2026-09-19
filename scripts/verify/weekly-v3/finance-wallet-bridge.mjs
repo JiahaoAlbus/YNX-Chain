@@ -20,6 +20,7 @@ const context=vm.createContext({URL,URLSearchParams,TextEncoder,TextDecoder,Uint
   setTimeout:()=>0,clearTimeout(){},setInterval:()=>0,clearInterval(){},
   document:{querySelector:element,querySelectorAll:()=>[],createElement:element,body:element('body')},
   location:{pathname:'/',hash:'',search:'',href:'https://finance.ynxweb4.com/'},
+  history:{replaceState(){}},
   localStorage:{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)},
   window:{addEventListener(){},YNXFinanceWallet:{ready:new Promise(()=>{}),getRevision:()=>0,requireProof:async scope=>{requested.push(scope);return{proofHeader:scope,requestId:'local-scope-fixture'}}}},
   fetch:async (url,options={})=>{
@@ -27,14 +28,40 @@ const context=vm.createContext({URL,URLSearchParams,TextEncoder,TextDecoder,Uint
     const base=new URL(input.base);
     if(base.hostname!=='127.0.0.1'||base.protocol!=='http:')throw new Error('Only explicit loopback fixture allowed');
     const response=await fetch(new URL(url,base),{...options,headers:{...options.headers,Origin:'https://finance.ynxweb4.com'}});
-    httpResults.push({path:url,status:response.status,body:await response.clone().text()});return response;
+    httpResults.push({path:url,status:response.status,body:await response.clone().text()});
+    // Browser Response.json creates objects in the page's realm. A Node fetch
+    // result must cross that realm as wire JSON, not as a host-prototype object.
+    return {ok:response.ok,status:response.status,headers:response.headers,
+      json:async()=>{context.responseJSON=await response.text();return vm.runInContext('JSON.parse(responseJSON)',context)},
+      text:()=>response.text(),blob:()=>response.blob()};
   }
 });
-if(input.mode==='api'||input.mode==='draft'){
+async function walletDecision(challenge,route,mode){
+  const sdk=await import(pathToFileURL(`${wallet}/packages/wallet-auth/src/index.js`).href);
+  const {FinanceOrderApprovalController}=await import(pathToFileURL(`${wallet}/apps/wallet/src/protocol/financeOrderApprovalController.ts`).href);
+  const vector=JSON.parse(fs.readFileSync(`${wallet}/packages/wallet-auth/testdata/finance-order-approval-v1.vectors.json`,'utf8')).positive;
+  const secret=vector.testOnlyPublicSecretScalarHex;
+  const now=new Date(challenge.serverTime), account={...sdk.walletIdentity(secret),label:'Public synthetic integration key',backupConfirmed:true,createdAt:now.toISOString()};
+  const journal=new Map(), urls=[];let keys=0,failOpen=mode==='revoke';
+  const controller=new FinanceOrderApprovalController({
+    storage:{async getItem(k){return journal.get(k)??null},async setItem(k,v){journal.set(k,v)},async deleteItem(){throw new Error('Journal deletion forbidden')}},
+    selectedAccount:()=>account,currentTime:async assertCurrent=>{assertCurrent();return now},
+    withAccountSecret:async(id,assertCurrent,use)=>{if(id!==account.account)throw new Error('Wrong synthetic account');assertCurrent();keys++;return use(secret,assertCurrent)},
+    openURL:async url=>{urls.push(url);if(failOpen)throw new Error('Isolated callback delivery failure')}
+  });
+  const review=await controller.receive(route);
+  if(mode==='reject')await controller.reject(review.id);
+  else if(mode==='revoke'){
+    try{await controller.approve(review.id)}catch(error){if(error.message!=='Isolated callback delivery failure')throw error}
+    failOpen=false;await controller.revokeUnused(review.id);
+  }else await controller.approve(review.id);
+  return {urls,keys,now};
+}
+if(input.mode==='api'||input.mode==='draft'||input.mode==='full'){
   vm.runInContext(fs.readFileSync(`${finance}/apps/finance/web/order-wallet.js`,'utf8'),context);
   vm.runInContext(fs.readFileSync(`${finance}/apps/finance/web/app.js`,'utf8'),context);
   context.testInput=input;
-  if(input.mode==='draft'){
+  if(input.mode==='draft'||input.mode==='full'){
     const form=element('#broker-order-form');
     for(const key of ['accountPublicKey','assetId','symbol','side','qty','limitPrice'])form.elements[key]={value:input.body[key]??input.body.draft[key]??''};
     if(input.source==='ai'){
@@ -44,6 +71,16 @@ if(input.mode==='api'||input.mode==='draft'){
     }
     context.draftForm=form;
     await vm.runInContext('createBrokerApproval({preventDefault(){},currentTarget:draftForm})',context);
+    if(input.mode==='full'&&element('#broker-wallet-approve').href){
+      const created=httpResults.find(item=>item.path==='/api/broker/challenges'&&item.status===201);
+      const decision=await walletDecision(JSON.parse(created.body).challenge,element('#broker-wallet-approve').href,input.decision);
+      const callbackURL=new URL(decision.urls.at(-1));
+      Object.assign(context.location,{pathname:callbackURL.pathname,search:callbackURL.search,href:callbackURL.href});
+      vm.runInContext('state.connected=true',context);
+      await vm.runInContext('completeBrokerCallback()',context);
+      process.stdout.write(JSON.stringify({requested,httpResults,keys:decision.keys,notice:element('#notice').textContent,pending:context.window.YNXFinanceOrderWallet.pending()}));
+      process.exit(0);
+    }
     process.stdout.write(JSON.stringify({requested,httpResults,url:element('#broker-wallet-approve').href??null,notice:element('#notice').textContent,form:Object.fromEntries(Object.entries(form.elements).map(([k,v])=>[k,v.value]))}));
     process.exit(0);
   }
@@ -52,29 +89,12 @@ if(input.mode==='api'||input.mode==='draft'){
 }else{
   vm.runInContext(fs.readFileSync(`${finance}/apps/finance/web/order-wallet.js`,'utf8'),context);
   const api=context.window.YNXFinanceOrderWallet;
-  const sdk=await import(pathToFileURL(`${wallet}/packages/wallet-auth/src/index.js`).href);
-  const {FinanceOrderApprovalController}=await import(pathToFileURL(`${wallet}/apps/wallet/src/protocol/financeOrderApprovalController.ts`).href);
-  const vector=JSON.parse(fs.readFileSync(`${wallet}/packages/wallet-auth/testdata/finance-order-approval-v1.vectors.json`,'utf8')).positive;
-  const secret=vector.testOnlyPublicSecretScalarHex;
-  const now=new Date(input.challenge.serverTime), account={...sdk.walletIdentity(secret),label:'Public synthetic integration key',backupConfirmed:true,createdAt:now.toISOString()};
-  const journal=new Map(), urls=[];let keys=0,failOpen=input.mode==='revoke';
-  const controller=new FinanceOrderApprovalController({
-    storage:{async getItem(k){return journal.get(k)??null},async setItem(k,v){journal.set(k,v)},async deleteItem(){throw new Error('Journal deletion forbidden')}},
-    selectedAccount:()=>account,currentTime:async assertCurrent=>{assertCurrent();return now},
-    withAccountSecret:async(id,assertCurrent,use)=>{if(id!==account.account)throw new Error('Wrong synthetic account');assertCurrent();keys++;return use(secret,assertCurrent)},
-    openURL:async url=>{urls.push(url);if(failOpen)throw new Error('Isolated callback delivery failure')}
-  });
   context.challengeJSON=JSON.stringify(input.challenge);
   context.authorityDateAdapter=input.authorityDateAdapter===true;
   let request;
   try{request=vm.runInContext('(()=>{const c=JSON.parse(challengeJSON);return window.YNXFinanceOrderWallet.begin(c.unsigned,authorityDateAdapter?new Date(c.serverTime):c.serverTime)})()',context)}
   catch(error){process.stdout.write(JSON.stringify({beginError:error.message,code:error.code}));process.exit(0)}
-  const review=await controller.receive(request.url);
-  if(input.mode==='reject')await controller.reject(review.id);
-  else if(input.mode==='revoke'){
-    try{await controller.approve(review.id)}catch(error){if(error.message!=='Isolated callback delivery failure')throw error}
-    failOpen=false;await controller.revokeUnused(review.id);
-  }else await controller.approve(review.id);
+  const {urls,keys,now}=await walletDecision(input.challenge,request.url,input.mode);
   let raw=null,parseError=null;
   try{raw=api.parseReturn(urls.at(-1),input.authorityDateAdapter?now:input.challenge.serverTime)}catch(error){parseError=error.message}
   // Keep raw transport available for backend-only continuation when the browser
