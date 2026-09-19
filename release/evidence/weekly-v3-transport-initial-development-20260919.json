@@ -1,0 +1,3318 @@
+{
+  "schema": "ynx-transport-sanitized-archive/v1",
+  "run": "initial",
+  "developmentRun": true,
+  "finalSourceRun": false,
+  "originalObservationsSHA256": "23f85e5751ce18ee0e3ee62dd5953fda2a0cedbea8a20505d25872314e27c198",
+  "originalSummarySHA256": "769ad96681f1ac701968c734402ad67853768e78398dde6a240c9449fa76c39d",
+  "originalPrivatePath": "/private/tmp/ynx-transport-20260920-initial-001",
+  "redactions": [
+    "client local_ip",
+    "SSH peer address",
+    "client address"
+  ],
+  "preservedOriginalClassifier": true,
+  "correction": "curl 28 with ssl_verify_result=1 during incomplete TLS is TLS handshake timeout, not certificate failure; early bodyAfterFirstByte derivation on incomplete requests is invalid",
+  "events": [
+    {
+      "type": "start",
+      "at": "2026-09-19T16:05:22.213Z",
+      "runId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268",
+      "vantage": "macos-owner",
+      "rounds": 4,
+      "intervalSeconds": 30,
+      "requestsPerRound": 4,
+      "maxClientConcurrency": 2,
+      "noClaimsOrTransactions": true,
+      "readOnly": true,
+      "proxyEnvironmentPresent": false,
+      "hostObservationEnabled": true
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "canonical",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:05:27.398Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001564,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.001692
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to rpc-testnet.ynxweb4.com port 443 after 5001 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-rpc-canonical",
+      "startedAt": "2026-09-19T16:05:22.387Z",
+      "finishedAt": "2026-09-19T16:05:27.399Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001564,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.001692,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to rpc-testnet.ynxweb4.com port 443 after 5001 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001564,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.001692
+      },
+      "dns": {
+        "host": "rpc-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:05:22.221Z",
+        "finishedAt": "2026-09-19T16:05:22.387Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 900
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "legacy",
+      "kind": "rpc",
+      "url": "https://rpc.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:05:27.408Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001795,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.004977
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to rpc.ynxweb4.com port 443 after 5004 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-rpc-legacy",
+      "startedAt": "2026-09-19T16:05:22.381Z",
+      "finishedAt": "2026-09-19T16:05:27.408Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001795,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.004977,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to rpc.ynxweb4.com port 443 after 5004 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001795,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.004977
+      },
+      "dns": {
+        "host": "rpc.ynxweb4.com",
+        "startedAt": "2026-09-19T16:05:22.220Z",
+        "finishedAt": "2026-09-19T16:05:22.381Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 601
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "canonical",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:05:32.619Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.002081,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.008889
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to faucet-testnet.ynxweb4.com port 443 after 5008 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-faucet-canonical",
+      "startedAt": "2026-09-19T16:05:27.598Z",
+      "finishedAt": "2026-09-19T16:05:32.619Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.002081,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.008889,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to faucet-testnet.ynxweb4.com port 443 after 5008 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.002081,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.008889
+      },
+      "dns": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:05:27.413Z",
+        "finishedAt": "2026-09-19T16:05:27.598Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 305
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 1,
+      "role": "legacy",
+      "kind": "faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:05:32.625Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001376,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.011406
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to faucet.ynxweb4.com port 443 after 5011 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-faucet-legacy",
+      "startedAt": "2026-09-19T16:05:27.605Z",
+      "finishedAt": "2026-09-19T16:05:32.625Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001376,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.011406,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to faucet.ynxweb4.com port 443 after 5011 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001376,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.011406
+      },
+      "dns": {
+        "host": "faucet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:05:27.406Z",
+        "finishedAt": "2026-09-19T16:05:27.605Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 305
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "host-window",
+      "round": 1,
+      "at": "2026-09-19T16:05:46.863Z",
+      "host": {
+        "schema": "ynx-transport-host-window/v1",
+        "startedAt": "2026-09-19T16:05:25.262120+00:00",
+        "readOnly": true,
+        "samples": [
+          {
+            "observedAt": "2026-09-19T16:05:25.262136+00:00",
+            "load": [
+              1.12158203125,
+              1.1591796875,
+              1.173828125
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687804,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902947,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998288,
+              "RetransSegs": 423669402
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:05:28.286475+00:00",
+            "load": [
+              1.11181640625,
+              1.15625,
+              1.1728515625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687810,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902953,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998288,
+              "RetransSegs": 423669408
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:05:31.310192+00:00",
+            "load": [
+              1.11181640625,
+              1.15625,
+              1.1728515625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687815,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902958,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998288,
+              "RetransSegs": 423669413
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:05:34.335418+00:00",
+            "load": [
+              1.1025390625,
+              1.1533203125,
+              1.171875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687818,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902961,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998288,
+              "RetransSegs": 423669416
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:05:37.359674+00:00",
+            "load": [
+              1.1025390625,
+              1.1533203125,
+              1.171875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687819,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902962,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998288,
+              "RetransSegs": 423669417
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:05:40.383992+00:00",
+            "load": [
+              1.09423828125,
+              1.150390625,
+              1.1708984375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687823,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902965,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998288,
+              "RetransSegs": 423669420
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:05:43.408021+00:00",
+            "load": [
+              1.1669921875,
+              1.16455078125,
+              1.17578125
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687826,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902967,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998288,
+              "RetransSegs": 423669422
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:05:46.431322+00:00",
+            "load": [
+              1.1669921875,
+              1.16455078125,
+              1.17578125
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687827,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902967,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998288,
+              "RetransSegs": 423669422
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          }
+        ],
+        "details": {
+          "observedAt": "2026-09-19T16:05:46.455717+00:00",
+          "cpuCount": 8,
+          "kernel": "6.8.0-101-generic",
+          "caddyVersion": {
+            "exitCode": 0,
+            "output": "2.6.2\n"
+          },
+          "services": {
+            "exitCode": 0,
+            "output": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=131727360\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=13568073728\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9371648\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8572928\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n"
+          },
+          "sysctls": {
+            "exitCode": 0,
+            "output": "net.core.somaxconn = 4096\nnet.ipv4.tcp_max_syn_backlog = 2048\nnet.ipv4.tcp_syncookies = 1\nnet.ipv4.tcp_synack_retries = 5\nnet.ipv4.tcp_syn_retries = 6\nnet.ipv4.tcp_mtu_probing = 0\n"
+          },
+          "memoryKB": {
+            "MemTotal": 31956824,
+            "MemAvailable": 15541540,
+            "SwapFree": 1881608
+          },
+          "diskConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "loadedConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "caddyfileSHA256": {
+            "exitCode": 0,
+            "output": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9  /etc/caddy/Caddyfile\n"
+          },
+          "caddyJournal": {
+            "exitCode": 0,
+            "entries": 1,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "kernelJournal": {
+            "exitCode": 0,
+            "entries": 0,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "localProbes": [
+            {
+              "host": "rpc.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000158 0.024816 0.025775 0.025817 0"
+            },
+            {
+              "host": "rpc-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000149 0.024354 0.025596 0.025642 0"
+            },
+            {
+              "host": "faucet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000139 0.023968 0.025721 0.025766 0"
+            },
+            {
+              "host": "faucet-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000177 0.025501 0.027612 0.027666 0"
+            },
+            {
+              "port": 6420,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.000491 0.000525"
+            },
+            {
+              "port": 6428,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.001294 0.001332"
+            }
+          ]
+        },
+        "finishedAt": "2026-09-19T16:05:46.768265+00:00"
+      },
+      "withinWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 23,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 20,
+        "AttemptFails": 0,
+        "EstabResets": 0,
+        "RetransSegs": 20
+      },
+      "sincePreviousWindowDelta": {},
+      "coverage": [
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-rpc-canonical",
+          "failure": true,
+          "clientWindowCovered": false
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-rpc-legacy",
+          "failure": true,
+          "clientWindowCovered": false
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-faucet-canonical",
+          "failure": true,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-faucet-legacy",
+          "failure": true,
+          "clientWindowCovered": true
+        }
+      ],
+      "clockSkewNotCorrected": true,
+      "countersAreHostWide": true,
+      "requestFlowAttributionProven": false
+    },
+    {
+      "type": "round",
+      "round": 1,
+      "at": "2026-09-19T16:05:46.866Z",
+      "attempted": 4,
+      "healthy": 0,
+      "failed": 4
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "canonical",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:05:57.439Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001917,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.009106
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to rpc-testnet.ynxweb4.com port 443 after 5009 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-rpc-canonical",
+      "startedAt": "2026-09-19T16:05:52.415Z",
+      "finishedAt": "2026-09-19T16:05:57.439Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001917,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.009106,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to rpc-testnet.ynxweb4.com port 443 after 5009 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001917,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.009106
+      },
+      "dns": {
+        "host": "rpc-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:05:52.221Z",
+        "finishedAt": "2026-09-19T16:05:52.415Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 305
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "legacy",
+      "kind": "rpc",
+      "url": "https://rpc.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:05:57.466Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.005241,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.008883
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to rpc.ynxweb4.com port 443 after 5008 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-rpc-legacy",
+      "startedAt": "2026-09-19T16:05:52.440Z",
+      "finishedAt": "2026-09-19T16:05:57.466Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.005241,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.008883,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to rpc.ynxweb4.com port 443 after 5008 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.005241,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.008883
+      },
+      "dns": {
+        "host": "rpc.ynxweb4.com",
+        "startedAt": "2026-09-19T16:05:52.221Z",
+        "finishedAt": "2026-09-19T16:05:52.440Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 870
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "canonical",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:06:02.573Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.002015,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.009616
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to faucet-testnet.ynxweb4.com port 443 after 5009 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-faucet-canonical",
+      "startedAt": "2026-09-19T16:05:57.553Z",
+      "finishedAt": "2026-09-19T16:06:02.573Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.002015,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.009616,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to faucet-testnet.ynxweb4.com port 443 after 5009 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.002015,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.009616
+      },
+      "dns": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:05:57.469Z",
+        "finishedAt": "2026-09-19T16:05:57.553Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 275
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 2,
+      "role": "legacy",
+      "kind": "faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:06:02.619Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.002021,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.002005
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to faucet.ynxweb4.com port 443 after 5001 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-faucet-legacy",
+      "startedAt": "2026-09-19T16:05:57.608Z",
+      "finishedAt": "2026-09-19T16:06:02.619Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.002021,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.002005,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to faucet.ynxweb4.com port 443 after 5001 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.002021,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.002005
+      },
+      "dns": {
+        "host": "faucet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:05:57.443Z",
+        "finishedAt": "2026-09-19T16:05:57.608Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 900
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "host-window",
+      "round": 2,
+      "at": "2026-09-19T16:06:16.872Z",
+      "host": {
+        "schema": "ynx-transport-host-window/v1",
+        "startedAt": "2026-09-19T16:05:55.596942+00:00",
+        "readOnly": true,
+        "samples": [
+          {
+            "observedAt": "2026-09-19T16:05:55.596959+00:00",
+            "load": [
+              1.22119140625,
+              1.17578125,
+              1.1796875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687833,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902970,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669426
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:05:58.621855+00:00",
+            "load": [
+              1.203125,
+              1.1728515625,
+              1.1787109375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687838,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902975,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669431
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:06:01.646593+00:00",
+            "load": [
+              1.203125,
+              1.1728515625,
+              1.1787109375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687842,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902979,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669435
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:06:04.675648+00:00",
+            "load": [
+              1.1865234375,
+              1.169921875,
+              1.177734375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687844,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902981,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669437
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:06:07.699876+00:00",
+            "load": [
+              1.1865234375,
+              1.169921875,
+              1.177734375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687848,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902985,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669441
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:06:10.724747+00:00",
+            "load": [
+              1.17138671875,
+              1.1669921875,
+              1.1767578125
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687851,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902988,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669445
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:06:13.748873+00:00",
+            "load": [
+              1.23779296875,
+              1.18115234375,
+              1.181640625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687857,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902994,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669451
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1,
+              "FIN-WAIT-2": 1
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:06:16.773342+00:00",
+            "load": [
+              1.23779296875,
+              1.18115234375,
+              1.181640625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687857,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7902994,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669451
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 1,
+              "FIN-WAIT-2": 1
+            }
+          }
+        ],
+        "finishedAt": "2026-09-19T16:06:16.797259+00:00"
+      },
+      "withinWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 24,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 24,
+        "AttemptFails": 0,
+        "EstabResets": 0,
+        "RetransSegs": 25
+      },
+      "sincePreviousWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 6,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 3,
+        "AttemptFails": 0,
+        "EstabResets": 4,
+        "RetransSegs": 4
+      },
+      "coverage": [
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-rpc-canonical",
+          "failure": true,
+          "clientWindowCovered": false
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-rpc-legacy",
+          "failure": true,
+          "clientWindowCovered": false
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-faucet-canonical",
+          "failure": true,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-faucet-legacy",
+          "failure": true,
+          "clientWindowCovered": true
+        }
+      ],
+      "clockSkewNotCorrected": true,
+      "countersAreHostWide": true,
+      "requestFlowAttributionProven": false
+    },
+    {
+      "type": "round",
+      "round": 2,
+      "at": "2026-09-19T16:06:16.875Z",
+      "attempted": 4,
+      "healthy": 0,
+      "failed": 4
+    },
+    {
+      "type": "probe",
+      "round": 3,
+      "role": "legacy",
+      "kind": "rpc",
+      "url": "https://rpc.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:06:27.293Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001644,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.001941
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to rpc.ynxweb4.com port 443 after 5001 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-rpc-legacy",
+      "startedAt": "2026-09-19T16:06:22.284Z",
+      "finishedAt": "2026-09-19T16:06:27.293Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001644,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.001941,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to rpc.ynxweb4.com port 443 after 5001 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001644,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.001941
+      },
+      "dns": {
+        "host": "rpc.ynxweb4.com",
+        "startedAt": "2026-09-19T16:06:22.219Z",
+        "finishedAt": "2026-09-19T16:06:22.284Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 840
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 3,
+      "role": "canonical",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:06:27.301Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001636,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.010353
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to rpc-testnet.ynxweb4.com port 443 after 5010 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-rpc-canonical",
+      "startedAt": "2026-09-19T16:06:22.283Z",
+      "finishedAt": "2026-09-19T16:06:27.301Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001636,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.010353,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to rpc-testnet.ynxweb4.com port 443 after 5010 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001636,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.010353
+      },
+      "dns": {
+        "host": "rpc-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:06:22.220Z",
+        "finishedAt": "2026-09-19T16:06:22.283Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 275
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 3,
+      "role": "legacy",
+      "kind": "faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:06:32.438Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001791,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.007685
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to faucet.ynxweb4.com port 443 after 5007 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-faucet-legacy",
+      "startedAt": "2026-09-19T16:06:27.422Z",
+      "finishedAt": "2026-09-19T16:06:32.438Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001791,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.007685,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to faucet.ynxweb4.com port 443 after 5007 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001791,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.007685
+      },
+      "dns": {
+        "host": "faucet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:06:27.296Z",
+        "finishedAt": "2026-09-19T16:06:27.422Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 245
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 3,
+      "role": "canonical",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:06:32.526Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001518,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.007628
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to faucet-testnet.ynxweb4.com port 443 after 5007 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-faucet-canonical",
+      "startedAt": "2026-09-19T16:06:27.512Z",
+      "finishedAt": "2026-09-19T16:06:32.526Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001518,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.007628,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to faucet-testnet.ynxweb4.com port 443 after 5007 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001518,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.007628
+      },
+      "dns": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:06:27.305Z",
+        "finishedAt": "2026-09-19T16:06:27.512Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 245
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "host-window",
+      "round": 3,
+      "at": "2026-09-19T16:06:32.530Z",
+      "host": {
+        "available": false,
+        "exitCode": 255,
+        "reason": "SSH or collector output unavailable; no remote service change attempted"
+      },
+      "withinWindowDelta": {},
+      "sincePreviousWindowDelta": {},
+      "coverage": [
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-rpc-legacy",
+          "failure": true,
+          "clientWindowCovered": false
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-rpc-canonical",
+          "failure": true,
+          "clientWindowCovered": false
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-faucet-legacy",
+          "failure": true,
+          "clientWindowCovered": false
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-faucet-canonical",
+          "failure": true,
+          "clientWindowCovered": false
+        }
+      ],
+      "clockSkewNotCorrected": true,
+      "countersAreHostWide": true,
+      "requestFlowAttributionProven": false
+    },
+    {
+      "type": "round",
+      "round": 3,
+      "at": "2026-09-19T16:06:32.533Z",
+      "attempted": 4,
+      "healthy": 0,
+      "failed": 4
+    },
+    {
+      "type": "probe",
+      "round": 4,
+      "role": "canonical",
+      "kind": "rpc",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:06:57.306Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001777,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.005503
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to rpc-testnet.ynxweb4.com port 443 after 5005 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-rpc-canonical",
+      "startedAt": "2026-09-19T16:06:52.292Z",
+      "finishedAt": "2026-09-19T16:06:57.306Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001777,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.005503,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to rpc-testnet.ynxweb4.com port 443 after 5005 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001777,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.005503
+      },
+      "dns": {
+        "host": "rpc-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:06:52.220Z",
+        "finishedAt": "2026-09-19T16:06:52.292Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 245
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 4,
+      "role": "legacy",
+      "kind": "rpc",
+      "url": "https://rpc.ynxweb4.com/status",
+      "origin": null,
+      "observedAt": "2026-09-19T16:06:57.311Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001294,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.001822
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to rpc.ynxweb4.com port 443 after 5001 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-rpc-legacy",
+      "startedAt": "2026-09-19T16:06:52.297Z",
+      "finishedAt": "2026-09-19T16:06:57.311Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001294,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.001822,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to rpc.ynxweb4.com port 443 after 5001 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001294,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.001822
+      },
+      "dns": {
+        "host": "rpc.ynxweb4.com",
+        "startedAt": "2026-09-19T16:06:52.220Z",
+        "finishedAt": "2026-09-19T16:06:52.297Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 511
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 4,
+      "role": "legacy",
+      "kind": "faucet",
+      "url": "https://faucet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:07:02.496Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001528,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.001389
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to faucet.ynxweb4.com port 443 after 5001 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-faucet-legacy",
+      "startedAt": "2026-09-19T16:06:57.488Z",
+      "finishedAt": "2026-09-19T16:07:02.496Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001528,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.001389,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to faucet.ynxweb4.com port 443 after 5001 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001528,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.001389
+      },
+      "dns": {
+        "host": "faucet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:06:57.310Z",
+        "finishedAt": "2026-09-19T16:06:57.488Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "ttl": 840
+              }
+            ]
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "probe",
+      "round": 4,
+      "role": "canonical",
+      "kind": "faucet",
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "origin": null,
+      "observedAt": "2026-09-19T16:07:03.168Z",
+      "transportVerified": false,
+      "identityVerified": false,
+      "ready": false,
+      "exitCode": 28,
+      "httpStatus": 0,
+      "remoteIP": "",
+      "timingSeconds": {
+        "time_namelookup": 0.001618,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.005066
+      },
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "failure": "transport-failed",
+      "curlError": "Failed to connect to faucet-testnet.ynxweb4.com port 443 after 5005 ms: Timeout was reached",
+      "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-faucet-canonical",
+      "startedAt": "2026-09-19T16:06:58.155Z",
+      "finishedAt": "2026-09-19T16:07:03.168Z",
+      "classification": "tcp-connect-timeout",
+      "client": {
+        "time_namelookup": 0.001618,
+        "time_connect": 0,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.005066,
+        "remote_ip": "",
+        "local_ipSHA256": null,
+        "local_port": 0,
+        "remote_port": 0,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 0,
+        "num_redirects": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "headers": {},
+      "health": {},
+      "clientError": "Failed to connect to faucet-testnet.ynxweb4.com port 443 after 5005 ms: Timeout was reached",
+      "processKilled": false,
+      "rawBodyRetained": false,
+      "rawHeadersRetained": false,
+      "phaseSeconds": {
+        "dns": 0.001618,
+        "tcpAfterDNS": null,
+        "tlsAfterTCP": null,
+        "firstByteAfterTLS": null,
+        "bodyAfterFirstByte": 5.005066
+      },
+      "dns": {
+        "host": "faucet-testnet.ynxweb4.com",
+        "startedAt": "2026-09-19T16:06:57.315Z",
+        "finishedAt": "2026-09-19T16:06:58.155Z",
+        "semantics": "separate DNS sample; not proof of curl's resolver path",
+        "timedOut": false,
+        "exitCode": 0,
+        "answers": [
+          {
+            "kind": "system-lookup",
+            "value": [
+              {
+                "address": "43.153.202.237",
+                "family": 4
+              }
+            ]
+          },
+          {
+            "kind": "resolver-A",
+            "errorCode": "ETIMEOUT"
+          },
+          {
+            "kind": "resolver-AAAA",
+            "errorCode": "ENODATA"
+          }
+        ]
+      }
+    },
+    {
+      "type": "host-window",
+      "round": 4,
+      "at": "2026-09-19T16:07:16.702Z",
+      "host": {
+        "schema": "ynx-transport-host-window/v1",
+        "startedAt": "2026-09-19T16:06:55.110636+00:00",
+        "readOnly": true,
+        "samples": [
+          {
+            "observedAt": "2026-09-19T16:06:55.110657+00:00",
+            "load": [
+              1.30810546875,
+              1.2041015625,
+              1.18896484375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687872,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903003,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669463
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:06:58.134617+00:00",
+            "load": [
+              1.30810546875,
+              1.2041015625,
+              1.18896484375
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687872,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903003,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669463
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:07:01.158965+00:00",
+            "load": [
+              1.283203125,
+              1.20068359375,
+              1.1875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687874,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903003,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669463
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:07:04.184279+00:00",
+            "load": [
+              1.26025390625,
+              1.197265625,
+              1.18603515625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687875,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903003,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669463
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:07:07.208567+00:00",
+            "load": [
+              1.26025390625,
+              1.197265625,
+              1.18603515625
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687876,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903004,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669464
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:07:10.232291+00:00",
+            "load": [
+              1.2392578125,
+              1.19384765625,
+              1.1845703125
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687881,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903007,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669467
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:07:13.257019+00:00",
+            "load": [
+              1.2392578125,
+              1.19384765625,
+              1.1845703125
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687884,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903009,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669469
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          },
+          {
+            "observedAt": "2026-09-19T16:07:16.281668+00:00",
+            "load": [
+              1.2197265625,
+              1.1904296875,
+              1.18310546875
+            ],
+            "tcpCounters": {
+              "SyncookiesSent": 0,
+              "ListenOverflows": 0,
+              "ListenDrops": 392,
+              "TCPTimeouts": 12687889,
+              "TCPMemoryPressures": 0,
+              "TCPBacklogDrop": 0,
+              "TCPReqQFullDoCookies": 0,
+              "TCPReqQFullDrop": 0,
+              "TCPSynRetrans": 7903014,
+              "AttemptFails": 1046860,
+              "EstabResets": 1998292,
+              "RetransSegs": 423669474
+            },
+            "listenerReadExitCode": 0,
+            "listeners": [
+              {
+                "local": "127.0.0.1:6428",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:443",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:80",
+                "recvQ": 0,
+                "backlog": 4096
+              },
+              {
+                "local": "*:6420",
+                "recvQ": 0,
+                "backlog": 4096
+              }
+            ],
+            "socketReadExitCode": 0,
+            "port443States": {
+              "ESTAB": 2
+            }
+          }
+        ],
+        "details": {
+          "observedAt": "2026-09-19T16:07:16.305328+00:00",
+          "cpuCount": 8,
+          "kernel": "6.8.0-101-generic",
+          "caddyVersion": {
+            "exitCode": 0,
+            "output": "2.6.2\n"
+          },
+          "services": {
+            "exitCode": 0,
+            "output": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=133120000\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=13621956608\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9379840\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8572928\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n"
+          },
+          "sysctls": {
+            "exitCode": 0,
+            "output": "net.core.somaxconn = 4096\nnet.ipv4.tcp_max_syn_backlog = 2048\nnet.ipv4.tcp_syncookies = 1\nnet.ipv4.tcp_synack_retries = 5\nnet.ipv4.tcp_syn_retries = 6\nnet.ipv4.tcp_mtu_probing = 0\n"
+          },
+          "memoryKB": {
+            "MemTotal": 31956824,
+            "MemAvailable": 14554592,
+            "SwapFree": 1881608
+          },
+          "diskConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "loadedConfig": {
+            "servers": {
+              "srv0": {
+                "listen": [
+                  ":443"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              },
+              "srv1": {
+                "listen": [
+                  ":80"
+                ],
+                "accessLoggingConfigured": false,
+                "tlsPolicies": []
+              }
+            },
+            "runtimeLogNames": [
+              "default"
+            ],
+            "fullConfigRetained": false
+          },
+          "caddyfileSHA256": {
+            "exitCode": 0,
+            "output": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9  /etc/caddy/Caddyfile\n"
+          },
+          "caddyJournal": {
+            "exitCode": 0,
+            "entries": 2,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "kernelJournal": {
+            "exitCode": 0,
+            "entries": 0,
+            "possiblyTruncated": false,
+            "categoryCounts": {},
+            "rawMessagesRetained": false
+          },
+          "localProbes": [
+            {
+              "host": "rpc.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000162 0.024324 0.025420 0.025471 0"
+            },
+            {
+              "host": "rpc-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000166 0.024909 0.025976 0.026021 0"
+            },
+            {
+              "host": "faucet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000161 0.024568 0.026447 0.026489 0"
+            },
+            {
+              "host": "faucet-testnet.ynxweb4.com",
+              "kind": "caddy-loopback-normal-TLS",
+              "exitCode": 0,
+              "output": "200 0.000133 0.024573 0.026518 0.026566 0"
+            },
+            {
+              "port": 6420,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.000461 0.000491"
+            },
+            {
+              "port": 6428,
+              "kind": "upstream-loopback-HTTP",
+              "exitCode": 0,
+              "output": "200 0.001243 0.001300"
+            }
+          ]
+        },
+        "finishedAt": "2026-09-19T16:07:16.605735+00:00"
+      },
+      "withinWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 17,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 11,
+        "AttemptFails": 0,
+        "EstabResets": 0,
+        "RetransSegs": 11
+      },
+      "sincePreviousWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 15,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 9,
+        "AttemptFails": 0,
+        "EstabResets": 0,
+        "RetransSegs": 12
+      },
+      "coverage": [
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-rpc-canonical",
+          "failure": true,
+          "clientWindowCovered": false
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-rpc-legacy",
+          "failure": true,
+          "clientWindowCovered": false
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-faucet-legacy",
+          "failure": true,
+          "clientWindowCovered": true
+        },
+        {
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-faucet-canonical",
+          "failure": true,
+          "clientWindowCovered": true
+        }
+      ],
+      "clockSkewNotCorrected": true,
+      "countersAreHostWide": true,
+      "requestFlowAttributionProven": false
+    },
+    {
+      "type": "round",
+      "round": 4,
+      "at": "2026-09-19T16:07:16.706Z",
+      "attempted": 4,
+      "healthy": 0,
+      "failed": 4
+    },
+    {
+      "type": "summary",
+      "schema": "ynx-testnet-transport-monitor/v1",
+      "runId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268",
+      "finishedAt": "2026-09-19T16:07:16.710Z",
+      "vantage": "macos-owner",
+      "rounds": [
+        {
+          "round": 1,
+          "at": "2026-09-19T16:05:46.866Z",
+          "attempted": 4,
+          "healthy": 0,
+          "failed": 4
+        },
+        {
+          "round": 2,
+          "at": "2026-09-19T16:06:16.875Z",
+          "attempted": 4,
+          "healthy": 0,
+          "failed": 4
+        },
+        {
+          "round": 3,
+          "at": "2026-09-19T16:06:32.533Z",
+          "attempted": 4,
+          "healthy": 0,
+          "failed": 4
+        },
+        {
+          "round": 4,
+          "at": "2026-09-19T16:07:16.706Z",
+          "attempted": 4,
+          "healthy": 0,
+          "failed": 4
+        }
+      ],
+      "failures": [
+        {
+          "round": 1,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-rpc-canonical",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 1,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-rpc-legacy",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 1,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-faucet-canonical",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 1,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-1-faucet-legacy",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 2,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-rpc-canonical",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 2,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-rpc-legacy",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 2,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-faucet-canonical",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 2,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-2-faucet-legacy",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 3,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-rpc-legacy",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 3,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-rpc-canonical",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 3,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-faucet-legacy",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 3,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-3-faucet-canonical",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 4,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-rpc-canonical",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 4,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-rpc-legacy",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 4,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-faucet-legacy",
+          "classification": "tcp-connect-timeout"
+        },
+        {
+          "round": 4,
+          "probeId": "ynx-probe-41036795-5b0c-49c7-9bfb-ea0d7f7b3268-4-faucet-canonical",
+          "classification": "tcp-connect-timeout"
+        }
+      ],
+      "interrupted": false,
+      "allSamplesHealthy": false,
+      "rootCauseConfirmed": false,
+      "continuousAvailabilityVerified": false,
+      "globalRegionalVerified": false,
+      "serviceChanges": 0,
+      "faucetClaims": 0,
+      "transactionSubmissions": 0
+    }
+  ]
+}

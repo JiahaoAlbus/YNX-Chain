@@ -1,0 +1,530 @@
+{
+  "schema": "ynx-weekly-v3-transport-diagnosis/v1",
+  "reportedAt": "2026-09-19T16:23:36.684Z",
+  "authority": {
+    "owner": "01a0b8cc-8ea5-7db3-87f6-27f5cabf51be",
+    "coordinator": "01a094cc-0ba3-7901-bcd5-56fce8330c0d",
+    "scope": "read-only NETWORK diagnostics; no other product source changes"
+  },
+  "sourceCommit": "87a10901ed8942c2498e33c17c8be19d764694c6",
+  "sourceTree": "fae25d1559f5585c422bc8e57196426e17895e7e",
+  "sourceSHA256": {
+    "testnet-transport-monitor.mjs": "cbe07196b186cf35ee6218133a2d1a835a122b64899ebc6869c3adf78c0afdab",
+    "testnet-transport-host-snapshot.py": "b19cd5cdcb5bdf5639d024ee0503994ac12d02394213dab815d11b82d74ad708",
+    "testnet-alias-preflight.mjs": "897d7e69941f8c847b8f19aaeba2b06b2ad4ff81421ff4f94cbe16187a4886d5"
+  },
+  "baselineCommit": "b82a540122a414523b65ce96b1641a399224b246",
+  "runs": [
+    {
+      "file": "weekly-v3-transport-initial-development-20260919.json",
+      "archiveSHA256": "083873ed652d6c8b210718a3e18065c25603d8fdeeb3f7e23b7d1dd479b5c5f5",
+      "originalObservationsSHA256": "23f85e5751ce18ee0e3ee62dd5953fda2a0cedbea8a20505d25872314e27c198",
+      "developmentRun": true,
+      "startedAt": "2026-09-19T16:05:22.213Z",
+      "finishedAt": "2026-09-19T16:07:16.710Z",
+      "samples": 16,
+      "counts": {
+        "tcp-connect-timeout": 16
+      },
+      "corrections": []
+    },
+    {
+      "file": "weekly-v3-transport-packet-development-20260919.json",
+      "archiveSHA256": "ed88f27f92f59937cf8b8c68d2e6927b10be6a81c6bce3a0bfaa7ccd7555d977",
+      "originalObservationsSHA256": "ecfa869bc10f5c4e36c5ba1f9d7264bd156b06efc268f9552acb453e3245d6f2",
+      "developmentRun": true,
+      "startedAt": "2026-09-19T16:08:53.804Z",
+      "finishedAt": "2026-09-19T16:09:59.868Z",
+      "samples": 8,
+      "counts": {
+        "healthy": 7,
+        "tls-handshake-timeout": 1
+      },
+      "corrections": [
+        {
+          "probeId": "ynx-probe-0c770e89-bff8-4a92-8fe6-b10f29a55fcf-2-faucet-canonical",
+          "original": "tls-verification-failed",
+          "corrected": "tls-handshake-timeout",
+          "reason": "curl 28 precedes incomplete ssl_verify_result"
+        }
+      ]
+    },
+    {
+      "file": "weekly-v3-transport-packet-final-development-20260919.json",
+      "archiveSHA256": "b31f561e14ffb5a766f60769b0573328bc2f83e2a2a04231b7b0634c0486a4b9",
+      "originalObservationsSHA256": "e6e5d8a40e85fdf485a0471dbaa5ec3aed673d3b459ccbfc4875691ef1d2a7c3",
+      "developmentRun": true,
+      "startedAt": "2026-09-19T16:11:14.285Z",
+      "finishedAt": "2026-09-19T16:13:00.041Z",
+      "samples": 12,
+      "counts": {
+        "tls-handshake-timeout": 3,
+        "tcp-connect-timeout": 1,
+        "healthy": 8
+      },
+      "corrections": [
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-1-rpc-legacy",
+          "original": "tls-verification-failed",
+          "corrected": "tls-handshake-timeout",
+          "reason": "curl 28 precedes incomplete ssl_verify_result"
+        },
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-rpc-canonical",
+          "original": "tls-verification-failed",
+          "corrected": "tls-handshake-timeout",
+          "reason": "curl 28 precedes incomplete ssl_verify_result"
+        },
+        {
+          "probeId": "ynx-probe-e1e98333-2e4a-4ce1-93b9-6d22bec06830-3-faucet-legacy",
+          "original": "tls-verification-failed",
+          "corrected": "tls-handshake-timeout",
+          "reason": "curl 28 precedes incomplete ssl_verify_result"
+        }
+      ]
+    },
+    {
+      "file": "weekly-v3-transport-port-scoped-20260919.json",
+      "archiveSHA256": "d643c5d47f4fea69aada1c59901bd5af0a268af304f1fb7bd9629d94ceddac88",
+      "originalObservationsSHA256": "2b401beac54feb0168c2fb9c5fd72882eb504e8a8063d6a30db2f38df560950a",
+      "developmentRun": false,
+      "startedAt": "2026-09-19T16:20:05.722Z",
+      "finishedAt": "2026-09-19T16:21:44.000Z",
+      "samples": 12,
+      "counts": {
+        "healthy": 9,
+        "tls-handshake-timeout": 3
+      },
+      "corrections": []
+    }
+  ],
+  "aggregate": {
+    "samples": 48,
+    "counts": {
+      "tcp-connect-timeout": 17,
+      "healthy": 24,
+      "tls-handshake-timeout": 7
+    },
+    "representativeUptimeEstimate": false,
+    "reason": "one macOS vantage; deliberately sampled diagnostic windows and development iterations, not random regional availability samples"
+  },
+  "finalSourceRun": {
+    "schema": "ynx-testnet-transport-monitor/v1",
+    "runId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d",
+    "finishedAt": "2026-09-19T16:21:44.000Z",
+    "vantage": "macos-owner",
+    "rounds": [
+      {
+        "round": 1,
+        "at": "2026-09-19T16:20:30.849Z",
+        "attempted": 4,
+        "healthy": 4,
+        "failed": 0
+      },
+      {
+        "round": 2,
+        "at": "2026-09-19T16:21:08.603Z",
+        "attempted": 4,
+        "healthy": 2,
+        "failed": 2
+      },
+      {
+        "round": 3,
+        "at": "2026-09-19T16:21:43.997Z",
+        "attempted": 4,
+        "healthy": 3,
+        "failed": 1
+      }
+    ],
+    "failures": [
+      {
+        "round": 2,
+        "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-2-rpc-legacy",
+        "classification": "tls-handshake-timeout"
+      },
+      {
+        "round": 2,
+        "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-2-faucet-legacy",
+        "classification": "tls-handshake-timeout"
+      },
+      {
+        "round": 3,
+        "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-3-faucet-canonical",
+        "classification": "tls-handshake-timeout"
+      }
+    ],
+    "hostWindows": [
+      {
+        "round": 1,
+        "available": true,
+        "allClientWindowsCovered": true,
+        "packetMetadataAvailable": true
+      },
+      {
+        "round": 2,
+        "available": true,
+        "allClientWindowsCovered": true,
+        "packetMetadataAvailable": true
+      },
+      {
+        "round": 3,
+        "available": true,
+        "allClientWindowsCovered": true,
+        "packetMetadataAvailable": true
+      }
+    ],
+    "interrupted": false,
+    "allSamplesHealthy": false,
+    "rootCauseConfirmed": false,
+    "continuousAvailabilityVerified": false,
+    "globalRegionalVerified": false,
+    "serviceChanges": 0,
+    "faucetClaims": 0,
+    "transactionSubmissions": 0,
+    "observationsSHA256": "2b401beac54feb0168c2fb9c5fd72882eb504e8a8063d6a30db2f38df560950a"
+  },
+  "failedFlowCorrelations": [
+    {
+      "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-2-rpc-legacy",
+      "round": 2,
+      "url": "https://rpc.ynxweb4.com/status",
+      "startedAt": "2026-09-19T16:20:43.375Z",
+      "finishedAt": "2026-09-19T16:20:48.392Z",
+      "plannedLocalPort": 23433,
+      "actualClientPort": 23433,
+      "classification": "tls-handshake-timeout",
+      "client": {
+        "time_namelookup": 0.001527,
+        "time_connect": 0.107784,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.005265,
+        "remote_ip": "43.153.202.237",
+        "local_port": 23433,
+        "remote_port": 443,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 1,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "packetLimitReached": false,
+      "matchingPacketCount": 14,
+      "clientAddressHashCount": 1,
+      "firstInboundDataAt": "1789834844.387677",
+      "firstOutboundDataAt": "1789834844.388283",
+      "responseAfterInboundMs": 0.6060600280761719,
+      "repeatedOutboundSequenceRanges": {
+        "3224742243:3224742866": 3
+      },
+      "interpretation": "Strong time/port/sequence correlation, not cryptographic flow identity. Server emitted response data promptly, then repeated sequence ranges with incomplete ACK progression. Loss or delay could be on data or ACK path, cloud edge, intermediate network, or client; exact hop and cause unproven."
+    },
+    {
+      "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-2-faucet-legacy",
+      "round": 2,
+      "url": "https://faucet.ynxweb4.com/health",
+      "startedAt": "2026-09-19T16:20:44.563Z",
+      "finishedAt": "2026-09-19T16:20:49.580Z",
+      "plannedLocalPort": 23435,
+      "actualClientPort": 23435,
+      "classification": "tls-handshake-timeout",
+      "client": {
+        "time_namelookup": 0.001417,
+        "time_connect": 0.108099,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.008361,
+        "remote_ip": "43.153.202.237",
+        "local_port": 23435,
+        "remote_port": 443,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 1,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "packetLimitReached": false,
+      "matchingPacketCount": 14,
+      "clientAddressHashCount": 1,
+      "firstInboundDataAt": "1789834845.061281",
+      "firstOutboundDataAt": "1789834845.061941",
+      "responseAfterInboundMs": 0.659942626953125,
+      "repeatedOutboundSequenceRanges": {
+        "4063520214:4063521262": 5,
+        "4063522310:4063522939": 2
+      },
+      "interpretation": "Strong time/port/sequence correlation, not cryptographic flow identity. Server emitted response data promptly, then repeated sequence ranges with incomplete ACK progression. Loss or delay could be on data or ACK path, cloud edge, intermediate network, or client; exact hop and cause unproven."
+    },
+    {
+      "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-3-faucet-canonical",
+      "round": 3,
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "startedAt": "2026-09-19T16:21:20.570Z",
+      "finishedAt": "2026-09-19T16:21:25.591Z",
+      "plannedLocalPort": 23440,
+      "actualClientPort": 23440,
+      "classification": "tls-handshake-timeout",
+      "client": {
+        "time_namelookup": 0.002168,
+        "time_connect": 0.803741,
+        "time_appconnect": 0,
+        "time_pretransfer": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.011242,
+        "remote_ip": "43.153.202.237",
+        "local_port": 23440,
+        "remote_port": 443,
+        "http_version": "0",
+        "http_code": 0,
+        "num_connects": 1,
+        "num_redirects": 0,
+        "ssl_verify_result": 1,
+        "proxy_used": 0,
+        "exitcode": 28
+      },
+      "packetLimitReached": false,
+      "matchingPacketCount": 13,
+      "clientAddressHashCount": 1,
+      "firstInboundDataAt": "1789834881.756567",
+      "firstOutboundDataAt": "1789834881.757216",
+      "responseAfterInboundMs": 0.6489753723144531,
+      "repeatedOutboundSequenceRanges": {
+        "638431839:638432887": 2,
+        "638432887:638433935": 2,
+        "638434983:638435630": 2
+      },
+      "interpretation": "Strong time/port/sequence correlation, not cryptographic flow identity. Server emitted response data promptly, then repeated sequence ranges with incomplete ACK progression. Loss or delay could be on data or ACK path, cloud edge, intermediate network, or client; exact hop and cause unproven."
+    }
+  ],
+  "hostFindings": {
+    "finalWindows": [
+      {
+        "round": 1,
+        "delta": {
+          "SyncookiesSent": 0,
+          "ListenOverflows": 0,
+          "ListenDrops": 0,
+          "TCPTimeouts": 37,
+          "TCPMemoryPressures": 0,
+          "TCPBacklogDrop": 0,
+          "TCPReqQFullDoCookies": 0,
+          "TCPReqQFullDrop": 0,
+          "TCPSynRetrans": 28,
+          "AttemptFails": 0,
+          "EstabResets": 2,
+          "RetransSegs": 51
+        },
+        "coverage": [
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-1-rpc-legacy",
+            "failure": false,
+            "clientWindowCovered": true
+          },
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-1-faucet-legacy",
+            "failure": false,
+            "clientWindowCovered": true
+          },
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-1-rpc-canonical",
+            "failure": false,
+            "clientWindowCovered": true
+          },
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-1-faucet-canonical",
+            "failure": false,
+            "clientWindowCovered": true
+          }
+        ],
+        "packetLimitReached": true,
+        "packetCount": 120
+      },
+      {
+        "round": 2,
+        "delta": {
+          "SyncookiesSent": 0,
+          "ListenOverflows": 0,
+          "ListenDrops": 0,
+          "TCPTimeouts": 13,
+          "TCPMemoryPressures": 0,
+          "TCPBacklogDrop": 0,
+          "TCPReqQFullDoCookies": 0,
+          "TCPReqQFullDrop": 0,
+          "TCPSynRetrans": 0,
+          "AttemptFails": 0,
+          "EstabResets": 0,
+          "RetransSegs": 16
+        },
+        "coverage": [
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-2-rpc-canonical",
+            "failure": false,
+            "clientWindowCovered": true
+          },
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-2-rpc-legacy",
+            "failure": true,
+            "clientWindowCovered": true
+          },
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-2-faucet-legacy",
+            "failure": true,
+            "clientWindowCovered": true
+          },
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-2-faucet-canonical",
+            "failure": false,
+            "clientWindowCovered": true
+          }
+        ],
+        "packetLimitReached": false,
+        "packetCount": 93
+      },
+      {
+        "round": 3,
+        "delta": {
+          "SyncookiesSent": 0,
+          "ListenOverflows": 0,
+          "ListenDrops": 0,
+          "TCPTimeouts": 15,
+          "TCPMemoryPressures": 0,
+          "TCPBacklogDrop": 0,
+          "TCPReqQFullDoCookies": 0,
+          "TCPReqQFullDrop": 0,
+          "TCPSynRetrans": 13,
+          "AttemptFails": 0,
+          "EstabResets": 1,
+          "RetransSegs": 42
+        },
+        "coverage": [
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-3-rpc-canonical",
+            "failure": false,
+            "clientWindowCovered": true
+          },
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-3-rpc-legacy",
+            "failure": false,
+            "clientWindowCovered": true
+          },
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-3-faucet-legacy",
+            "failure": false,
+            "clientWindowCovered": true
+          },
+          {
+            "probeId": "ynx-probe-fe62ab41-d2ef-462d-ace5-e9c56033841d-3-faucet-canonical",
+            "failure": true,
+            "clientWindowCovered": true
+          }
+        ],
+        "packetLimitReached": false,
+        "packetCount": 103
+      }
+    ],
+    "normalTLSLoopbackHealthy": 8,
+    "directUpstreamLoopbackHealthy": 4,
+    "loopbackTiming": "after counter sampling in first/last rounds; not simultaneous with every failing GET",
+    "caddyfileSHA256": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9",
+    "servicesBefore": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=131084288\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=14012686336\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9318400\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8572928\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n",
+    "servicesAfter": "MainPID=1432803\nNRestarts=0\nMemoryCurrent=131616768\nLimitNOFILE=1048576\nId=caddy.service\nActiveState=active\n\nMainPID=1678471\nNRestarts=0\nMemoryCurrent=12697341952\nLimitNOFILE=1048576\nId=ynx-chaind.service\nActiveState=active\n\nMainPID=1658406\nNRestarts=0\nMemoryCurrent=9404416\nLimitNOFILE=1048576\nId=ynx-faucetd.service\nActiveState=active\n\nMainPID=1674358\nNRestarts=0\nMemoryCurrent=8572928\nLimitNOFILE=65536\nId=ynx-finance.service\nActiveState=active\n",
+    "diskConfig": {
+      "servers": {
+        "srv0": {
+          "listen": [
+            ":443"
+          ],
+          "accessLoggingConfigured": false,
+          "tlsPolicies": []
+        },
+        "srv1": {
+          "listen": [
+            ":80"
+          ],
+          "accessLoggingConfigured": false,
+          "tlsPolicies": []
+        }
+      },
+      "runtimeLogNames": [
+        "default"
+      ],
+      "fullConfigRetained": false
+    },
+    "loadedConfig": {
+      "servers": {
+        "srv0": {
+          "listen": [
+            ":443"
+          ],
+          "accessLoggingConfigured": false,
+          "tlsPolicies": []
+        },
+        "srv1": {
+          "listen": [
+            ":80"
+          ],
+          "accessLoggingConfigured": false,
+          "tlsPolicies": []
+        }
+      },
+      "runtimeLogNames": [
+        "default"
+      ],
+      "fullConfigRetained": false
+    },
+    "sysctls": "net.core.somaxconn = 4096\nnet.ipv4.tcp_max_syn_backlog = 2048\nnet.ipv4.tcp_syncookies = 1\nnet.ipv4.tcp_synack_retries = 5\nnet.ipv4.tcp_syn_retries = 6\nnet.ipv4.tcp_mtu_probing = 0\n",
+    "configurationRootCauseConfirmed": false,
+    "details": "No observed listener-overflow/drop growth, restart or explicit custom timeout/cipher restriction. Host-wide timeout/retransmission counts grew but are not per-flow attribution. Default-level journals omit Caddy v2.6.2 HTTP debug logger; no empty-log inference."
+  },
+  "tests": {
+    "node": {
+      "passed": 80,
+      "failed": 0
+    },
+    "python": {
+      "interpreter": "/usr/bin/python3",
+      "passed": 5,
+      "failed": 0
+    },
+    "diffCheck": "pass",
+    "receiptConsistencyAssertions": "pass",
+    "officialSandboxPassed": false
+  },
+  "mutations": {
+    "productionConfig": 0,
+    "restarts": 0,
+    "reloads": 0,
+    "chainState": 0,
+    "faucetClaims": 0,
+    "transactionSubmissions": 0,
+    "privateKeyReads": 0,
+    "otherOwnerSourceChanges": 0,
+    "oldAutomationsResumed": 0,
+    "newAutomationsCreated": 0
+  },
+  "monitoring": {
+    "boundedCLIReady": true,
+    "automaticFutureRunsEnabled": false,
+    "reason": "No old weekly/ecosystem automations resumed; coordinator controls any future cadence using this bounded tool."
+  },
+  "unresolved": [
+    "exact failing network hop and client/cloud/ISP responsibility",
+    "independent regional vantages and representative sustained sample",
+    "NAT path and bidirectional per-flow evidence",
+    "HTTP-level request correlation when applicable; pre-HTTP failures do not reach access logging"
+  ],
+  "acceptance": {
+    "rootCauseConfirmed": false,
+    "productionFixApplied": false,
+    "continuousAvailabilityVerified": false,
+    "globalRegionalVerified": false,
+    "officialSandboxVerified": false
+  },
+  "recovery": "Additive diagnostic-only source at exact commit. Stop invoking tool or review a scoped revert; no production rollback required. Preserve all raw private runs and sanitized archives; no reset, cleanup or service restart."
+}

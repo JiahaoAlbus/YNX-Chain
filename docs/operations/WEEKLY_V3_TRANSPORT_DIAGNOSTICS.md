@@ -146,6 +146,28 @@ not a second region. Access logs cannot by themselves explain pre-HTTP failures.
 
 ## Tests and recovery
 
+Final collector source checkpoint:
+`87a10901ed8942c2498e33c17c8be19d764694c6`, tree
+`fae25d1559f5585c422bc8e57196426e17895e7e`. Its three-round public run on
+2026-09-19 16:20–16:21 UTC returned **9/12 healthy, 3 TLS handshake timeouts**.
+All three host windows cover their client windows (uncorrected-clock caveat).
+The failed ports have prompt server data responses (~0.61–0.66 ms after inbound
+data), repeated outbound sequence ranges and incomplete ACK progression. This
+is stronger delivery-path evidence, not proof of which network hop failed.
+
+The three development runs plus final source run contain 48 GETs: 24 healthy,
+17 TCP connection timeouts and 7 TLS handshake timeouts after correcting the
+development classifier. This is **not an uptime estimate** or regional sample.
+Raw classifier labels are retained in the development archives, and correction
+records are separate. All 80 Node tests and 5 Python tests passed. Final-loopback
+checks passed 8 normal-TLS and 4 direct-upstream reads; configuration hash and
+service PIDs/restart counts stayed unchanged. No production fix was applied.
+
+See `release/evidence/weekly-v3-transport-diagnosis-20260919.json` for the exact
+source hashes, archive hashes, all failure correlations, limitations and recovery
+checkpoint. Four adjacent sanitized archive files preserve the original timings
+and sampled host evidence. Private raw files remain in their receipt-listed paths.
+
 ```sh
 node --test scripts/verify/testnet-transport-monitor.test.mjs \
   scripts/verify/testnet-alias-preflight.test.mjs \
