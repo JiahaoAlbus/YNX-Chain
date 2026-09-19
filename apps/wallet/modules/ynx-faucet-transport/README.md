@@ -3,14 +3,15 @@
 Android Testnet production transport is enabled against the compiled canonical
 Faucet and RPC authorities after the public request-ID/durability runtime was
 verified. `createProductionFaucetTransport()` consumes only an installed native
-module that exposes the compiled `productionEnabled=true` constant. iOS remains
-disabled and exposes `productionEnabled=false` until its UIKit/Expo adapter is
-compiled and exercised by the current release pipeline.
+module that exposes the compiled `productionEnabled=true` constant. The iOS
+source gate now also compiles as `productionEnabled=true`; its Foundation bridge
+has isolated host coverage, while UIKit/Expo compilation, Simulator execution,
+device validation, signing, and distribution remain separate release gates.
 
 Neither adapter offers a caller-controlled activation flag, endpoint, headers,
 credentials, client injection, or Fetch fallback. Android can submit only after
 the existing Wallet Faucet review creates and persists the original request ID.
-iOS continues to return no production session.
+Neither platform accepts a JavaScript activation override.
 
 ## Bridge API
 
@@ -136,11 +137,10 @@ the original engine and their own test harness.
 `YnxFaucetTransportModule.swift` contains a Foundation bridge core plus the actual
 Expo/UIKit adapter under `canImport(ExpoModulesCore) && canImport(UIKit)`. The
 module exports only `reserveTask`, `request`, and `cancel`. Its immutable
-production gate is false; no JavaScript argument, caller URL or compilation flag
-changes that constant. Host tests use a separate compilation-only constructor,
-which creates the same real bounded Foundation engine at a loopback endpoint.
-The production-off test exercises the actual production constructor through
-native lifecycle events and verifies zero engine creations.
+production gate is true; no JavaScript argument, caller URL or runtime flag
+changes that compiled constant. Host tests use a separate compilation-only
+constructor for loopback endpoints, and also exercise the actual production
+constructor through native lifecycle events without dispatching public traffic.
 
 One bridge owns at most one engine and eight in-flight completion tickets. The
 engine remains the authority for opaque reservations, purpose, lifetime and
@@ -173,9 +173,11 @@ claim complete raw-header visibility or universal wire-exactly-once behavior.
 The host harness compiles the actual bridge core and unchanged engine with the
 macOS Foundation SDK and uses an isolated loopback HTTP server. Its synthetic
 NotificationCenter events are not actual UIKit/Expo lifecycle acceptance.
-`canImport` excludes the Expo/UIKit adapter on this host; root's separate iOS SDK
-build must compile and validate that adapter. Production remains disabled pending
-that native acceptance and a separately authorized endpoint/runtime release.
+`canImport` excludes the Expo/UIKit adapter on a Command Line Tools-only host.
+The release pipeline must prove that the local pod and both Swift sources were
+compiled and registered in the Simulator app before it may record the compiled
+gate as enabled. That compile fact does not prove native HTTP execution, installed
+Faucet UI behavior, physical-device behavior, production signing, or distribution.
 
 From the repository root, with a fresh audit output directory:
 
