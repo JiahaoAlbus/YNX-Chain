@@ -82,7 +82,10 @@ Passed on the scope-narrowed working tree before publication:
 - Wallet native TypeScript: 509/509; Faucet focused tests: 96/96; SecureStore
   patch tests: 11/11;
 - Wallet Auth complete package suite: 137/137, including the origin-bound v2
-  Gateway vectors and retained DEX/Exchange/Developer/Quant public exports;
+  Gateway vectors and retained DEX/Exchange/Developer/Quant public exports. The
+  suite also passes with the ignored root Hardhat artifact removed: Developer
+  canonical deployment uses a checked-in compiled-bytecode vector bound to the
+  exact contract source SHA-256 and compiler version;
 - Android Faucet engine JVM unit tests and offline standalone runtime APK build;
 - Finance Go packages and commands; Finance browser/product suite: 48/48;
 - DEX TypeScript/Vite production build and focused Wallet consumer test; Merchant
