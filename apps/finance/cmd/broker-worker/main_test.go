@@ -99,3 +99,42 @@ func TestLinkAccountPersistsBrokerAndWalletIdentityWithoutNetwork(t *testing.T) 
 		t.Fatalf("key=%q err=%v at=%s", got, err, time.Now().UTC())
 	}
 }
+
+func TestUnconfiguredRecoveryCommandsFailExplicitlyWithoutInventedDataOrProviderWrite(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "finance.json")
+	store, err := finance.OpenStore(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	key := "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+	if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", key, time.Now().UTC()); err != nil {
+		t.Fatal(err)
+	}
+	get := func(string) string { return "" }
+	for name, test := range map[string]struct {
+		args      []string
+		stdin     string
+		code      int
+		errorCode string
+		readOnly  bool
+	}{
+		"query":        {args: []string{"query", "--state", statePath, "--account", account, "--confirm", "READ_SANDBOX_ONCE"}, code: 1, errorCode: "BROKER_NOT_CONFIGURED", readOnly: true},
+		"reconcile":    {args: []string{"reconcile", "--state", statePath, "--account", account, "--confirm", "RECONCILE_SANDBOX_ONCE"}, code: 1, errorCode: "BROKER_NOT_CONFIGURED", readOnly: true},
+		"apply events": {args: []string{"apply-events", "--state", statePath, "--account", account, "--confirm", "APPLY_SANDBOX_EVENTS_ONCE"}, stdin: "not-sse", code: 1, errorCode: "TRADE_EVENT_APPLY_REJECTED", readOnly: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var stdout bytes.Buffer
+			if code := run(test.args, get, strings.NewReader(test.stdin), &stdout); code != test.code {
+				t.Fatalf("code=%d stdout=%s", code, stdout.String())
+			}
+			var result map[string]any
+			if err := json.Unmarshal(stdout.Bytes(), &result); err != nil || result["error"] != test.errorCode {
+				t.Fatalf("result=%v err=%v", result, err)
+			}
+			if test.readOnly && result["providerWriteAttempted"] != false {
+				t.Fatalf("provider write truth=%v", result["providerWriteAttempted"])
+			}
+		})
+	}
+}
