@@ -12,6 +12,13 @@ const expectedAddressAuthoritySha256="df4bade31952f98602f51fbc9cbcb731bffe772da3
 const requiredIntegrityAssets=["./","./index.html","./styles.css","./accessibility.css","./app.js","./provider.js","./wallet-address.js","./extension-fee-model.js","./extension-durability.js","./transaction-input.js","./i18n.js","./preferences.js","./mobile-wallet-routing.js","./core-auth-consumer.js","./wallet-web-companion-lifecycle.js","./standard-wallet-connect-state.js","./core-auth-binding.js","./service-worker-policy.js","./build-identity.json","./ynx-logo.png","./ynx-icon-192.png","./ynx-icon-512.png","./ynx-icon-maskable-512.png","./manifest.webmanifest"];
 const requiredStaticFiles=[...new Set([...requiredIntegrityAssets.filter(reference=>reference!=="./").map(reference=>reference.slice(2)),"asset-integrity.js","sw.js"])].sort();
 const requiredHeaderRoutes=["^/build-identity\\.json$","^/sw\\.js$","^/asset-integrity\\.js$","^/service-worker-policy\\.js$"];
+const requiredSecurityHeaders={
+  "Content-Security-Policy":"default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com; manifest-src 'self'; worker-src 'self'",
+  "Permissions-Policy":"camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  "Referrer-Policy":"no-referrer",
+  "X-Content-Type-Options":"nosniff",
+  "X-Frame-Options":"DENY",
+};
 const sha=bytes=>createHash("sha256").update(bytes).digest("hex");
 
 export async function validateVercelStaticOutput(directory,sourceCommit){
@@ -40,9 +47,11 @@ export async function validateVercelStaticOutput(directory,sourceCommit){
 export async function validateVercelOutputConfig(file){
   const config=JSON.parse(await readFile(file,"utf8"));
   if(config.version!==3||!Array.isArray(config.routes))throw new Error("Vercel output routing config is invalid");
+  const hardened=config.routes.filter(route=>Object.entries(requiredSecurityHeaders).every(([key,value])=>route?.headers?.[key]===value)&&route.continue===true);
+  if(hardened.length!==1||hardened[0].src!=="^(?:/(.*))$")throw new Error("Vercel output security header route is incomplete");
   const secured=config.routes.filter(route=>route?.headers?.["Cache-Control"]==="no-store"&&route.continue===true);
   if(JSON.stringify(secured.map(route=>route.src))!==JSON.stringify(requiredHeaderRoutes))throw new Error("Vercel output no-store header routes are incomplete");
-  return {headerRouteCount:secured.length};
+  return {headerRouteCount:secured.length,securityHeaderRouteCount:hardened.length};
 }
 
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
@@ -62,6 +71,6 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
     try{await validateVercelStaticOutput(staticRoot,sourceCommit)}catch(error){missingRejected=["Vercel static output file set is incomplete or contains deployment configuration","Missing Vercel static asset: core-auth-binding.js"].includes(error.message)}
     if(!missingRejected)throw new Error("Incomplete Vercel static output did not fail closed");
     await writeFile(removed,bytes);
-    console.log(JSON.stringify({passed:true,sourceCommit,staticOutput:".vercel/output/static",authorityArchiveSha256:validated.identity.authorityArchiveSha256,walletAddressAuthoritySha256:validated.identity.walletAddressAuthoritySha256,integrityAssetCount:validated.integrityAssetCount,headerRouteCount:routing.headerRouteCount,gitMetadataCopied:false,missingAssetRejected:true}));
+    console.log(JSON.stringify({passed:true,sourceCommit,staticOutput:".vercel/output/static",authorityArchiveSha256:validated.identity.authorityArchiveSha256,walletAddressAuthoritySha256:validated.identity.walletAddressAuthoritySha256,integrityAssetCount:validated.integrityAssetCount,headerRouteCount:routing.headerRouteCount,securityHeaderRouteCount:routing.securityHeaderRouteCount,gitMetadataCopied:false,missingAssetRejected:true}));
   }finally{await rm(stage,{recursive:true,force:true});await rm(archive,{force:true})}
 }
