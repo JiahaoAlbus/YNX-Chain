@@ -183,7 +183,9 @@ type DomainPortfolio struct {
 	PortfolioID      string          `json:"portfolioId"`
 	AccountID        string          `json:"accountId"`
 	ValuationAssetID string          `json:"valuationAssetId"`
-	TotalValue       string          `json:"totalValue"`
+	ValuationStatus  string          `json:"valuationStatus"`
+	ValuationReason  string          `json:"valuationReason,omitempty"`
+	TotalValue       string          `json:"totalValue,omitempty"`
 	Holdings         []DomainHolding `json:"holdings"`
 }
 

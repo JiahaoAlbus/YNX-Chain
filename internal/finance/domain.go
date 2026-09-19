@@ -2,6 +2,7 @@ package finance
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -9,6 +10,17 @@ import (
 
 func toDecimalString(value int64) string {
 	return strconv.FormatInt(value, 10)
+}
+
+func observedYNXTTotal(portfolio Portfolio) (int64, string, bool) {
+	accountEvidenceAvailable := portfolio.ExplorerStatus.Available || portfolio.ExplorerStatus.SyncStatus == "partial-account-only"
+	if !accountEvidenceAvailable {
+		return 0, "explorer_account_evidence_unavailable", false
+	}
+	if portfolio.BalanceYNXT < 0 || portfolio.StakedYNXT < 0 || portfolio.BalanceYNXT > math.MaxInt64-portfolio.StakedYNXT {
+		return 0, "explorer_account_amount_invalid", false
+	}
+	return portfolio.BalanceYNXT + portfolio.StakedYNXT, "", true
 }
 
 func domainSourceFromUpstreams(portfolio Portfolio, build string) DomainSource {
@@ -49,15 +61,22 @@ func domainSourceFromUpstreams(portfolio Portfolio, build string) DomainSource {
 
 func (s *Service) DomainPortfolio(account string, observed Portfolio, build string) DomainPortfolio {
 	portfolioID := fmt.Sprintf("finance:%s:%s", ChainID, account)
-	totalValue := observed.BalanceYNXT + observed.StakedYNXT
-	holdings := make([]DomainHolding, 0, 2)
-	if observed.BalanceYNXT != 0 || observed.StakedYNXT != 0 {
+	holdings := make([]DomainHolding, 0, 1)
+	valuationStatus := "unavailable"
+	valuationReason := "explorer_account_evidence_unavailable"
+	totalValue := ""
+	if observedTotal, reason, ok := observedYNXTTotal(observed); ok {
+		valuationStatus = "observed"
+		valuationReason = ""
+		totalValue = toDecimalString(observedTotal)
 		holdings = append(holdings, DomainHolding{
 			AssetID:   "YNXT",
 			Available: toDecimalString(observed.BalanceYNXT),
 			Staked:    toDecimalString(observed.StakedYNXT),
-			Total:     toDecimalString(totalValue),
+			Total:     toDecimalString(observedTotal),
 		})
+	} else {
+		valuationReason = reason
 	}
 	return DomainPortfolio{
 		SchemaVersion:    FinanceDomainVersion,
@@ -65,7 +84,9 @@ func (s *Service) DomainPortfolio(account string, observed Portfolio, build stri
 		PortfolioID:      portfolioID,
 		AccountID:        account,
 		ValuationAssetID: "YNXT",
-		TotalValue:       toDecimalString(totalValue),
+		ValuationStatus:  valuationStatus,
+		ValuationReason:  valuationReason,
+		TotalValue:       totalValue,
 		Holdings:         holdings,
 	}
 }

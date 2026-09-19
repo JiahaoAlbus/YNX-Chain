@@ -321,11 +321,7 @@ func (s *Server) portfolio(w http.ResponseWriter, r *http.Request, session Sessi
 
 func (s *Server) domainPortfolio(w http.ResponseWriter, r *http.Request, session Session) {
 	observed := s.observedPortfolio(r.Context(), session.Account, s.service.Store.Account(session.Account).Classifications)
-	domain := s.service.DomainPortfolio(session.Account, observed, s.build.Release)
-	if domain.TotalValue == "" {
-		domain.TotalValue = "0"
-	}
-	writeJSON(w, http.StatusOK, domain)
+	writeJSON(w, http.StatusOK, s.service.DomainPortfolio(session.Account, observed, s.build.Release))
 }
 
 func (s *Server) sources(w http.ResponseWriter, r *http.Request, session Session) {

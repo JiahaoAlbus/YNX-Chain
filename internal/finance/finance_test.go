@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -402,6 +403,9 @@ func TestDomainPortfolioEndpointReturnsStableSchema(t *testing.T) {
 	if portfolio.ValuationAssetID != "YNXT" {
 		t.Fatalf("unexpected valuation asset: %q", portfolio.ValuationAssetID)
 	}
+	if portfolio.ValuationStatus != "observed" || portfolio.ValuationReason != "" || portfolio.TotalValue != "876" {
+		t.Fatalf("unexpected valuation truth: %+v", portfolio)
+	}
 	if len(portfolio.Holdings) != 1 {
 		t.Fatalf("unexpected holding length: %d", len(portfolio.Holdings))
 	}
@@ -410,6 +414,93 @@ func TestDomainPortfolioEndpointReturnsStableSchema(t *testing.T) {
 	}
 	if portfolio.Source.Status != "partial" {
 		t.Fatalf("expected partial status for current upstream setup, got %q", portfolio.Source.Status)
+	}
+}
+
+func TestDomainPortfolioDoesNotInventZeroWhenExplorerUnavailable(t *testing.T) {
+	service := &Service{}
+	portfolio := service.DomainPortfolio(testAccount, Portfolio{
+		Account:     testAccount,
+		Network:     ChainID,
+		BalanceYNXT: 0,
+		StakedYNXT:  0,
+		ExplorerStatus: SourceStatus{
+			Available:  false,
+			SyncStatus: "owner-endpoint-unavailable",
+			Error:      "Explorer account evidence is unavailable",
+		},
+	}, "finance-test-build")
+	if portfolio.ValuationStatus != "unavailable" || portfolio.ValuationReason != "explorer_account_evidence_unavailable" {
+		t.Fatalf("unavailable valuation was not explicit: %+v", portfolio)
+	}
+	if portfolio.TotalValue != "" {
+		t.Fatalf("unavailable valuation invented a numeric total: %q", portfolio.TotalValue)
+	}
+	if portfolio.Holdings == nil || len(portfolio.Holdings) != 0 {
+		t.Fatalf("unavailable valuation must return an explicit empty holdings list: %#v", portfolio.Holdings)
+	}
+}
+
+func TestDomainPortfolioPreservesObservedZero(t *testing.T) {
+	service := &Service{}
+	portfolio := service.DomainPortfolio(testAccount, Portfolio{
+		Account:     testAccount,
+		Network:     ChainID,
+		BalanceYNXT: 0,
+		StakedYNXT:  0,
+		ExplorerStatus: SourceStatus{
+			Available:  true,
+			SyncStatus: "authorized-response",
+		},
+	}, "finance-test-build")
+	if portfolio.ValuationStatus != "observed" || portfolio.TotalValue != "0" || portfolio.ValuationReason != "" {
+		t.Fatalf("observed zero was not preserved: %+v", portfolio)
+	}
+	if len(portfolio.Holdings) != 1 || portfolio.Holdings[0].Total != "0" {
+		t.Fatalf("observed zero holding is ambiguous: %#v", portfolio.Holdings)
+	}
+}
+
+func TestDomainPortfolioUsesAccountEvidenceWhenActivityIsUnavailable(t *testing.T) {
+	service := &Service{}
+	portfolio := service.DomainPortfolio(testAccount, Portfolio{
+		BalanceYNXT: 40,
+		StakedYNXT:  2,
+		ExplorerStatus: SourceStatus{
+			Available:  false,
+			SyncStatus: "partial-account-only",
+			Error:      "account loaded but activity unavailable",
+		},
+	}, "finance-test-build")
+	if portfolio.ValuationStatus != "observed" || portfolio.TotalValue != "42" || len(portfolio.Holdings) != 1 {
+		t.Fatalf("account evidence was discarded with the unavailable activity feed: %+v", portfolio)
+	}
+}
+
+func TestDomainPortfolioRejectsInvalidOrOverflowingAccountAmounts(t *testing.T) {
+	service := &Service{}
+	for _, test := range []struct {
+		name    string
+		balance int64
+		staked  int64
+	}{
+		{name: "negative balance", balance: -1},
+		{name: "negative stake", staked: -1},
+		{name: "overflow", balance: math.MaxInt64, staked: 1},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			portfolio := service.DomainPortfolio(testAccount, Portfolio{
+				BalanceYNXT: test.balance,
+				StakedYNXT:  test.staked,
+				ExplorerStatus: SourceStatus{
+					Available:  true,
+					SyncStatus: "authorized-response",
+				},
+			}, "finance-test-build")
+			if portfolio.ValuationStatus != "unavailable" || portfolio.ValuationReason != "explorer_account_amount_invalid" || portfolio.TotalValue != "" || len(portfolio.Holdings) != 0 {
+				t.Fatalf("invalid account amount escaped as a valuation: %+v", portfolio)
+			}
+		})
 	}
 }
 
