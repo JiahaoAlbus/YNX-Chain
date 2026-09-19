@@ -97,8 +97,11 @@ func weeklyHTTP(t *testing.T, server *Server, path string, body []byte) *httptes
 	return w
 }
 func weeklyChallenge(t *testing.T, server *Server) BrokerApprovalChallenge {
+	return weeklyChallengeInput(t, server, weeklyInput())
+}
+func weeklyChallengeInput(t *testing.T, server *Server, input map[string]any) BrokerApprovalChallenge {
 	t.Helper()
-	body, _ := json.Marshal(weeklyInput())
+	body, _ := json.Marshal(input)
 	w := weeklyHTTP(t, server, "/api/broker/challenges", body)
 	if w.Code != 201 {
 		t.Fatalf("challenge %d %s", w.Code, w.Body.String())
@@ -228,13 +231,16 @@ func TestWeeklyV3ReconciliationRejectsMismatchedOrder(t *testing.T) {
 // client trusts only the httptest certificate, with that certificate's DNS name;
 // TLS verification is never disabled and no public DNS lookup is performed.
 type weeklyProvider struct {
-	mu               sync.Mutex
-	order            map[string]any
-	posts, deletes   int
-	ambiguous        bool
-	requests         []string
-	cash             string
-	accountOverrides map[string]any
+	mu                sync.Mutex
+	order             map[string]any
+	posts, deletes    int
+	ambiguous         bool
+	requests          []string
+	cash              string
+	accountOverrides  map[string]any
+	positionQty       string
+	positionAvailable string
+	cancelMode        string
 }
 
 // These are complete public documentation examples, not live provider responses.
@@ -316,6 +322,9 @@ func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvi
 			body["updated_at"] = "2026-09-19T09:00:30Z"
 			body["expires_at"] = "2026-09-19T21:00:00Z"
 			body["commission"] = "0"
+			if body["side"] == "sell" {
+				body["position_intent"] = "sell_to_close"
+			}
 			p.order = body
 			if p.ambiguous {
 				connection, _, err := w.(http.Hijacker).Hijack()
@@ -330,10 +339,26 @@ func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvi
 			p.deletes++
 			if p.order != nil {
 				p.order["status"] = "canceled"
+				if p.cancelMode == "fill_race" {
+					p.order["status"], p.order["filled_qty"] = "filled", p.order["qty"]
+					http.Error(w, `{"code":42210000,"message":"synthetic already filled"}`, 422)
+					return
+				}
+			}
+			if p.cancelMode == "lost_ack" {
+				connection, _, err := w.(http.Hijacker).Hijack()
+				if err == nil {
+					_ = connection.Close()
+				}
+				return
 			}
 			w.WriteHeader(204)
 		case strings.HasSuffix(r.URL.Path, "/positions"):
-			_ = json.NewEncoder(w).Encode([]any{})
+			positions := []any{}
+			if p.positionQty != "" {
+				positions = append(positions, map[string]any{"asset_id": "11111111-2222-4333-8444-555555555555", "symbol": "ACME", "asset_class": "us_equity", "exchange": "NASDAQ", "side": "long", "qty": p.positionQty, "qty_available": p.positionAvailable, "avg_entry_price": "100", "market_value": "1000"})
+			}
+			_ = json.NewEncoder(w).Encode(positions)
 		case strings.HasSuffix(r.URL.Path, "/orders"):
 			orders := []any{}
 			if p.order != nil {
@@ -385,8 +410,11 @@ func weeklyAlpaca(t *testing.T, ambiguous bool) (*brokerage.Alpaca, *weeklyProvi
 	return adapter, p
 }
 func weeklyApproved(t *testing.T, server *Server) BrokerApprovalChallenge {
+	return weeklyApprovedInput(t, server, weeklyInput())
+}
+func weeklyApprovedInput(t *testing.T, server *Server, input map[string]any) BrokerApprovalChallenge {
 	t.Helper()
-	challenge := weeklyChallenge(t, server)
+	challenge := weeklyChallengeInput(t, server, input)
 	result := weeklyBridge(t, map[string]any{"mode": "approve", "challenge": challenge, "authorityDateAdapter": os.Getenv("WEEKLY_DATE_ADAPTER") == "true"})
 	var raw string
 	if err := json.Unmarshal(result["raw"], &raw); err != nil {
@@ -397,6 +425,105 @@ func weeklyApproved(t *testing.T, server *Server) BrokerApprovalChallenge {
 		t.Fatalf("approval consume %d %s", w.Code, w.Body.String())
 	}
 	return challenge
+}
+
+// New Stage A cases are prepared against existing public request/adapter
+// contracts. They are not acceptance evidence until run on a frozen owner head.
+func TestWeeklyV3SellOwnedPositionAndInsufficientAvailable(t *testing.T) {
+	for _, scenario := range []struct {
+		name, owned, available string
+		allow                  bool
+	}{
+		{"owned_whole_shares", "10", "8", true},
+		{"no_position", "", "", false},
+		{"reserved_shares_unavailable", "10", "1", false},
+		{"fractional_available_below_whole_order", "10", "1.999999999", false},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			server, _, statePath, now := weeklyServer(t)
+			input := weeklyInput()
+			input["draft"].(map[string]string)["side"] = "sell"
+			challenge := weeklyApprovedInput(t, server, input)
+			adapter, provider := weeklyAlpaca(t, false)
+			provider.positionQty, provider.positionAvailable = scenario.owned, scenario.available
+			dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
+			record, err := dispatcher.Dispatch(context.Background(), challenge.Unsigned.Account, challenge.Unsigned.Order.OrderID)
+			if !scenario.allow {
+				if err == nil || provider.posts != 0 {
+					t.Fatalf("short sell was not fenced: %+v err=%v posts=%d", record, err, provider.posts)
+				}
+				return
+			}
+			if err != nil || provider.posts != 1 || record.State != "submitted" {
+				t.Fatalf("owned sell failed: %+v %v posts=%d", record, err, provider.posts)
+			}
+			provider.mu.Lock()
+			provider.order["status"], provider.order["filled_qty"] = "filled", "2"
+			provider.mu.Unlock()
+			reopened, err := OpenStore(statePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			dispatcher.Store = reopened
+			if _, err = dispatcher.Reconcile(context.Background(), challenge.Unsigned.Account); err != nil {
+				t.Fatal(err)
+			}
+			if reopened.BrokerWorkspace(challenge.Unsigned.Account, now).Orders[0].State != "filled" {
+				t.Fatal("sell fill was not recovered from provider after restart")
+			}
+		})
+	}
+}
+
+func TestWeeklyV3CancellationRaceAndLostAckNeverBlindlyRetry(t *testing.T) {
+	for _, mode := range []string{"fill_race", "lost_ack"} {
+		t.Run(mode, func(t *testing.T) {
+			server, _, statePath, now := weeklyServer(t)
+			challenge := weeklyApproved(t, server)
+			adapter, provider := weeklyAlpaca(t, false)
+			provider.cancelMode = mode
+			dispatcher := BrokerDispatcher{Store: server.service.Store, Adapter: adapter, Now: func() time.Time { return now.Add(time.Minute) }}
+			account, id := challenge.Unsigned.Account, challenge.Unsigned.Order.OrderID
+			if _, err := dispatcher.Dispatch(context.Background(), account, id); err != nil {
+				t.Fatal(err)
+			}
+			provider.mu.Lock()
+			provider.order["status"], provider.order["filled_qty"] = "partially_filled", "1"
+			provider.mu.Unlock()
+			if _, err := dispatcher.Reconcile(context.Background(), account); err != nil {
+				t.Fatal(err)
+			}
+			_, cancelErr := dispatcher.Cancel(context.Background(), account, id)
+			if cancelErr == nil {
+				t.Fatal("synthetic cancellation ambiguity was silently accepted")
+			}
+			if server.service.Store.BrokerWorkspace(account, now).Orders[0].State == "canceled" {
+				t.Fatal("failed cancellation response was treated as final canceled")
+			}
+			_, _ = dispatcher.Cancel(context.Background(), account, id)
+			if provider.deletes != 1 {
+				t.Fatalf("blind cancellation retry: deletes=%d", provider.deletes)
+			}
+			reopened, err := OpenStore(statePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			dispatcher.Store = reopened
+			if _, err := dispatcher.Reconcile(context.Background(), account); err != nil {
+				t.Fatal(err)
+			}
+			want := "canceled"
+			if mode == "fill_race" {
+				want = "filled"
+			}
+			if got := reopened.BrokerWorkspace(account, now).Orders[0].State; got != want {
+				t.Fatalf("provider final state=%s want=%s", got, want)
+			}
+			if provider.posts != 1 || provider.deletes != 1 {
+				t.Fatalf("duplicate provider effects: %d/%d", provider.posts, provider.deletes)
+			}
+		})
+	}
 }
 func TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart(t *testing.T) {
 	for _, mode := range []string{"submitted", "lost_ack", "restart_during_dispatch"} {

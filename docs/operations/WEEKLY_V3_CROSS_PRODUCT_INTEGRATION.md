@@ -1,6 +1,37 @@
 # Weekly v3 cross-product integration checkpoint
 
-## Current result: complete wire fixtures and expanded local flow PASS
+## Stage A completion-pack tests in preparation (not product acceptance)
+
+Following the coordinator's read-only scope audit, a second integration-only
+writer window prepares tests for remaining Finance Stage A work. New owner
+interfaces must be frozen and published before these prepared tests are run.
+No Finance/Wallet source is edited by integration.
+
+- Existing-contract Go overlay cases now include owned-position sell and
+  no-position/reserved/fractionally-insufficient available quantity; partial fill
+  racing cancellation; lost cancellation ACK, no blind retry and restart/query.
+- An ephemeral loopback Gateway serves deterministic fragmented HTTP/SSE, plus
+  authentication failure, rate limiting, invalid structured output, untrusted
+  prose, malformed SSE and truncation. It is never a model or public Gateway.
+  Ten self-tests verify the fixture itself, not the Finance product.
+- A prepared overlay exercises the actual existing HTTPAIProvider transport.
+  The runner executes Go asynchronously so the local Gateway listener remains
+  live, then closes every listener and hashes its source with the other assets.
+  Its report explicitly keeps real model generation false. A dedicated
+  structured-input → persisted AI job → copy test still awaits owner API freeze.
+- Pure recovery vectors preserve complete Order shapes across 501 results,
+  place the unknown target beyond page one, include same-time different-order
+  events, separate accounts, duplicate/delayed events, provider resume cursor,
+  and fresh/stale/future/unentitled quote cases. Eight self-tests verify the
+  vectors; they do not substitute for product recovery tests.
+- Doctor/verify/activation and backend-selection acceptance awaits the owner's
+  frozen command contract. No invented CLI or success placeholder is added.
+
+Preparation checks are syntax/format/diff checks and isolated fixture self-tests.
+The last accepted product result remains the exact NETWORK `9747feb2e` assets
+below. Running newer preparation assets is not a reproduction of that result.
+
+## Last accepted result at NETWORK 9747feb2e: expanded local flow PASS
 
 Finance frozen checkpoint `b46bdae971fef9a4fd1f4b210e4aaf3174a25c3b`
 (tree `0c4d47c99d13946b58b10f29cdf58911dfb7227a`) and Wallet
