@@ -4,6 +4,7 @@ import test from "node:test";
 
 const bridge=await readFile(new URL("../scripts/runtime-bridge-gate.mjs",import.meta.url),"utf8");
 const activeTab=await readFile(new URL("../scripts/runtime-active-tab-browser-gate.mjs",import.meta.url),"utf8");
+const branded=await readFile(new URL("../scripts/runtime-branded.mjs",import.meta.url),"utf8");
 const fixture=await readFile(new URL("fixtures/dapp-eip6963.html",import.meta.url),"utf8");
 
 test("runtime bridge uses an HTTPS blank fixture and discovers the real EIP-6963 provider",()=>{
@@ -20,6 +21,14 @@ test("runtime bridge uses an HTTPS blank fixture and discovers the real EIP-6963
   assert.doesNotMatch(fixture,/isYNXWallet\s*:/u);
   assert.doesNotMatch(fixture,/async request/u);
   assert.doesNotMatch(fixture,/window\.ethereum/u);
+});
+
+test("branded runtime also uses real HTTPS EIP-6963 discovery",()=>{
+  assert.match(branded,/createServer\} from "node:https"/u);
+  assert.match(branded,/dapp-eip6963\.html/u);
+  assert.match(branded,/provider\.request\(\{method:"eth_chainId"\}\)/u);
+  assert.doesNotMatch(branded,/__YNX_FIXTURE_CALLS__/u);
+  assert.doesNotMatch(branded,/eth_requestAccounts/u);
 });
 
 test("active-tab runtime polls migration and classifies toolbar action as manual",()=>{
