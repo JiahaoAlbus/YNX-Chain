@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "distribution": "testnet-preview",
+  "sourceCommit": "bd0f012e9cb148fa7f4270e0e692482a7337030a",
+  "sourceTrees": {
+    "apps/wallet": "fa08f628b03d9acad6fd27b4690375e1d19b5d7c",
+    "apps/wallet-web": "e06ffc1b8ce5a4ea34098bcd1eaec081e43dd201",
+    "apps/wallet-desktop": "a5d7bf39f0afdccc1cd1013f2774d9beb8679c57",
+    "packages/wallet-auth": "8e50f7a52a614ea6d4c4a4d2988315d036ea0b25"
+  },
+  "publicRuntimeSourceCommit": "27d00febcf0cb53d92eb0b44de403936c3ed0bf3",
+  "currentSourceDeployedPublic": false,
+  "integratedCentral": false,
+  "installedEndToEndVerified": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "artifacts": [
+    {
+      "platform": "pwa",
+      "filename": "ynx-wallet-web-pwa-0.1.0.zip",
+      "path": "apps/wallet-web/artifacts/ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 310106,
+      "sha256": "759895a104e975a34d3919a5eae2bf8cdaf839457c12462a769a88d975262d7a",
+      "signingClass": "unsigned-web-bundle",
+      "installedLocal": false,
+      "publicDownloadVerified": false,
+      "productionSigned": false,
+      "storeReleased": false
+    },
+    {
+      "platform": "chrome-edge",
+      "filename": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "path": "apps/wallet-web/artifacts/ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 545708,
+      "sha256": "4f66a5072c7811be25722ab3668bac0d071790d6f4410828212a98d5f2a2edcc",
+      "signingClass": "unsigned-unpacked-extension",
+      "installedLocal": false,
+      "publicDownloadVerified": false,
+      "productionSigned": false,
+      "storeReleased": false
+    },
+    {
+      "platform": "firefox",
+      "filename": "ynx-wallet-firefox-0.1.0.zip",
+      "path": "apps/wallet-web/artifacts/ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 545808,
+      "sha256": "996272fe767ac12841565fb5a9d37fef146721584860794e9f228e24f25e44bd",
+      "signingClass": "unsigned-unpacked-extension",
+      "installedLocal": false,
+      "publicDownloadVerified": false,
+      "productionSigned": false,
+      "storeReleased": false
+    },
+    {
+      "platform": "android-apk",
+      "filename": "app-release-unsigned.apk",
+      "path": "apps/wallet/android/app/build/outputs/apk/release/app-release-unsigned.apk",
+      "bytes": 78950042,
+      "sha256": "889334dd71188f1bbd2ff7f4cdfa0184d833d2c4541671f7c44fda357219182f",
+      "signingClass": "unsigned-android-release",
+      "installedLocal": false,
+      "publicDownloadVerified": false,
+      "productionSigned": false,
+      "storeReleased": false
+    },
+    {
+      "platform": "android-apk-qa",
+      "filename": "app-release-local-test-signed.apk",
+      "path": "apps/wallet/android/app/build/outputs/apk/release/app-release-local-test-signed.apk",
+      "bytes": 79047141,
+      "sha256": "2c2cc94338c0def401fac3e01189c3dcc6846dc2bc924d614cc0b1166e6f0411",
+      "signingClass": "local-test-signed-android-debug-certificate",
+      "installedLocal": false,
+      "publicDownloadVerified": false,
+      "productionSigned": false,
+      "storeReleased": false
+    },
+    {
+      "platform": "android-aab",
+      "filename": "app-release.aab",
+      "path": "apps/wallet/android/app/build/outputs/bundle/release/app-release.aab",
+      "bytes": 52188062,
+      "sha256": "b58bf71471f619c87ae97c2ba5281debcfaca83f140273a626a84b2a15fc0615",
+      "signingClass": "unsigned-android-bundle",
+      "installedLocal": false,
+      "publicDownloadVerified": false,
+      "productionSigned": false,
+      "storeReleased": false
+    },
+    {
+      "platform": "macos-arm64",
+      "filename": "ynx-wallet-macos-0.6.8-arm64.dmg",
+      "path": "apps/wallet-desktop/dist/ynx-wallet-macos-0.6.8-arm64.dmg",
+      "bytes": 152187793,
+      "sha256": "b05477445ebd71b7f100243e84f2d421d4a0b06b83f30bfb975259ca7df6a6d6",
+      "signingClass": "unsigned-unnotarized-dmg",
+      "installedLocal": false,
+      "publicDownloadVerified": false,
+      "productionSigned": false,
+      "storeReleased": false
+    },
+    {
+      "platform": "macos-provenance",
+      "filename": "release-manifest.json",
+      "path": "apps/wallet-desktop/dist/release-manifest.json",
+      "bytes": 18963,
+      "sha256": "0ce5bf232060842c480e234cbf0a99828cb68808ed62be43d61fd785f1f573c1",
+      "signingClass": "unsigned-json-evidence",
+      "installedLocal": false,
+      "publicDownloadVerified": false,
+      "productionSigned": false,
+      "storeReleased": false
+    }
+  ],
+  "sbom": {
+    "platform": "wallet-sbom",
+    "filename": "sbom.cdx.json",
+    "path": "apps/wallet/sbom.cdx.json",
+    "bytes": 866215,
+    "sha256": "9adc5351c8fd5bf0d4037b3bca9d1c6a71c3073d4542a739e99f8a5b2e7156ca",
+    "signingClass": "cyclonedx-1.6",
+    "installedLocal": false,
+    "publicDownloadVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

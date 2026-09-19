@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "bd0f012e9cb148fa7f4270e0e692482a7337030a",
+  "sourcePushed": true,
+  "walletWebTests": {"passed": true, "count": 344},
+  "walletAuthTests": {"passed": true, "count": 660},
+  "walletDesktopTests": {"passed": true, "count": 288},
+  "candidateGeneratorTests": {"passed": true, "count": 3},
+  "pwaV8Upgrade": {"passed": true, "brokenCandidateRejected": true, "secondLaunchReady": true},
+  "extension": {
+    "edge153RealEip6963": true,
+    "chromeForTesting151RealEip6963": true,
+    "realChainId": "0x1917",
+    "edgeBrandedCdpTwoLaunches": true,
+    "httpToolbarAction": {"passed": false, "classification": "manual-required", "automationUnsupported": true}
+  },
+  "firefox140": {
+    "officialArchiveSha256Verified": true,
+    "codesignVerified": true,
+    "gatekeeperNotarizedDeveloperId": true,
+    "brandedGatePassed": true,
+    "temporaryBoundaryPassed": true,
+    "compatibleGatePassed": true
+  },
+  "android": {
+    "unsignedReleaseApkBuilt": true,
+    "unsignedReleaseAabBuilt": true,
+    "localTestSignedReleaseApkBuilt": true,
+    "wipedApi36ColdStartPassed": true,
+    "screenCaptureProtected": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "macos": {"arm64DmgBuilt": true, "verifiedRuntimeFiles": 95, "productionSigned": false, "notarized": false},
+  "release": {
+    "artifactCount": 8,
+    "currentSourceDeployedPublic": false,
+    "integratedCentral": false,
+    "rollbackReady": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "capabilityClaims": {
+    "providerDiscovered": true,
+    "chainIdRead": true,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false
+  }
+}

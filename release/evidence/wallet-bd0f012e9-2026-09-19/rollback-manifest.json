@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "candidateSourceCommit": "bd0f012e9cb148fa7f4270e0e692482a7337030a",
+  "ready": false,
+  "reason": "No prior artifact was supplied and reverified in this candidate run.",
+  "requiredEvidence": [
+    "prior artifact bytes and SHA-256",
+    "compatible persisted-state schema",
+    "installed downgrade and relaunch proof"
+  ]
+}
