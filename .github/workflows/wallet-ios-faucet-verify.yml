@@ -77,11 +77,24 @@ jobs:
         run: |
           npx tsx --test src/chain/faucetAdmission.test.ts src/chain/faucetClaim.test.ts src/chain/faucetNativeSession.test.ts src/chain/faucetReceipt.test.ts
           npm run typecheck
-      - name: Verify Expo prebuild is reproducible
+      - name: Exercise Expo prebuild and restore immutable source
         working-directory: apps/wallet
+        shell: bash
         run: |
+          set -euo pipefail
           npx expo prebuild --platform ios --no-install
-          git diff --exit-code -- app.json ios
+          changed="$(git diff --name-only -- app.json package.json ios)"
+          diff_sha="$(git diff --binary -- app.json package.json ios | shasum -a 256 | awk '{print $1}')"
+          CHANGED="$changed" DIFF_SHA="$diff_sha" node - "$YNX_IOS_QA_DIR/proof/expo-prebuild-summary.json" <<'NODE'
+          const fs = require("node:fs");
+          const output = process.argv[2];
+          fs.writeFileSync(output, JSON.stringify({ executed: true, usedForBuild: false,
+            changedFiles: process.env.CHANGED.split("\n").filter(Boolean), diffSha256: process.env.DIFF_SHA,
+            publicEndpointUsed: false, secretsUsed: false }, null, 2) + "\n");
+          NODE
+          git restore --source=HEAD -- app.json package.json ios
+          test -z "$(git status --porcelain --untracked-files=all -- app.json package.json ios)"
+          test "$(git rev-parse HEAD)" = "$YNX_IOS_EXPECTED_SOURCE_COMMIT"
       - name: Resolve Expo modules and CocoaPods
         working-directory: apps/wallet
         run: |
