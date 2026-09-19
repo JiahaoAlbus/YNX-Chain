@@ -108,3 +108,25 @@ func TestFaucetModelIsExplicitAndReadOnly(t *testing.T) {
 		}
 	}
 }
+
+func TestFaucetModelDoesNotReadMutableChainState(t *testing.T) {
+	// A nil Devnet makes any accidental state/feature-flag read panic. The
+	// capability is immutable Server metadata and must remain available while a
+	// live node is serializing its durable chain snapshot.
+	s := &Server{
+		networkConfig:       chain.DefaultNetworkConfig("testnet"),
+		faucetCoreAuthToken: strings.Repeat("a", 64),
+	}
+	value, err := s.evmResult("ynx_getFaucetModel", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	model := value.(map[string]any)
+	if model["version"] != chain.FaucetRequestVersion || model["chainId"] != "0x1917" {
+		t.Fatalf("wrong lock-independent Faucet model: %v", model)
+	}
+	authority := model["authority"].(map[string]any)
+	if authority["required"] != true || authority["configured"] != true {
+		t.Fatalf("Faucet authority changed: %v", authority)
+	}
+}

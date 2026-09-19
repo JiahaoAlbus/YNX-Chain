@@ -1788,6 +1788,13 @@ func (s *Server) rpcResponse(req rpcRequest) rpcResponse {
 }
 
 func (s *Server) evmResult(method string, params []any) (any, error) {
+	// The Faucet probes this static, chain-bound capability before admitting a
+	// request. Serve it without taking the Devnet state lock: authoritative
+	// snapshot persistence can hold that lock while serializing long public
+	// history, but the capability only depends on immutable Server config.
+	if method == "ynx_getFaucetModel" {
+		return s.faucetModel(params)
+	}
 	if method == "ynx_getFeeModel" || s.devnet.EthereumNativeTransfersEnabled() {
 		if result, handled, err := s.ethereumNativeResult(method, params); handled {
 			return result, err
@@ -1861,18 +1868,7 @@ func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
 		}
 		return evmTx(tx), nil
 	case "ynx_getFaucetModel":
-		if len(params) != 0 {
-			return nil, rpcInvalidParams("ynx_getFaucetModel accepts no parameters")
-		}
-		return map[string]any{
-			"version": chain.FaucetRequestVersion, "chainId": hexQuantity(uint64(s.networkConfig.ChainID)),
-			"requestIdPattern":      "^[A-Za-z0-9_-]{32,128}$",
-			"transactionHashScheme": "sha256-nul-domain-decimal-chain-id-request-id",
-			"idempotencyScope":      "retained-chain-transaction-history", "legacyRequestSafeRetry": false,
-			"consensusFinality": false, "durability": durabilityModel(),
-			"authority": s.faucetAuthorityModel(),
-			"batching":  map[string]any{"maxBatchSize": chain.MaxFaucetBatchSize, "maxQueuedRequests": faucetQueueCapacity, "collectionWindowMs": 25, "acceptance": "after-durable-shared-checkpoint", "statusPath": "/v1/native-transactions/{hash}"},
-		}, nil
+		return s.faucetModel(params)
 	case "ynx_getDurabilityModel":
 		if len(params) != 0 {
 			return nil, rpcInvalidParams("ynx_getDurabilityModel accepts no parameters")
@@ -1945,6 +1941,21 @@ func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
 	default:
 		return nil, rpcMethodNotFound(fmt.Sprintf("method %s is not implemented by the local YNX devnet RPC", method))
 	}
+}
+
+func (s *Server) faucetModel(params []any) (any, error) {
+	if len(params) != 0 {
+		return nil, rpcInvalidParams("ynx_getFaucetModel accepts no parameters")
+	}
+	return map[string]any{
+		"version": chain.FaucetRequestVersion, "chainId": hexQuantity(uint64(s.networkConfig.ChainID)),
+		"requestIdPattern":      "^[A-Za-z0-9_-]{32,128}$",
+		"transactionHashScheme": "sha256-nul-domain-decimal-chain-id-request-id",
+		"idempotencyScope":      "retained-chain-transaction-history", "legacyRequestSafeRetry": false,
+		"consensusFinality": false, "durability": durabilityModel(),
+		"authority": s.faucetAuthorityModel(),
+		"batching":  map[string]any{"maxBatchSize": chain.MaxFaucetBatchSize, "maxQueuedRequests": faucetQueueCapacity, "collectionWindowMs": 25, "acceptance": "after-durable-shared-checkpoint", "statusPath": "/v1/native-transactions/{hash}"},
+	}, nil
 }
 
 func (s *Server) evmBlockByNumber(params []any) (chain.Block, bool, bool, error) {
