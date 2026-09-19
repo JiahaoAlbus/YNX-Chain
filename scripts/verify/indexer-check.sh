@@ -20,24 +20,19 @@ work="${YNX_VERIFY_WORK:-$(mktemp -d)}"
 db="$work/indexer-db.json"
 transfer_payload="$work/indexer-signed-transfer.json"
 sender="$(TRANSFER_PAYLOAD="$transfer_payload" node --input-type=module <<'NODE'
-import {randomBytes} from "node:crypto";
-import {writeFileSync} from "node:fs";
-import {createSignedNativeTransfer,ynxAddressFromEVM} from "./packages/wallet-auth/src/index.js";
+import {readFileSync,writeFileSync} from "node:fs";
 
-const signed=createSignedNativeTransfer({
-  accountSecret:randomBytes(32).toString("hex"),
-  to:ynxAddressFromEVM("0x2222222222222222222222222222222222222222"),
-  amount:125,
-  nonce:1,
-});
-writeFileSync(process.env.TRANSFER_PAYLOAD,signed.payload,{mode:0o600});
-process.stdout.write(signed.transaction.from);
+const vectors=JSON.parse(readFileSync("testdata/exchange-signed-transactions.json","utf8"));
+const signed=vectors.transactions.find(entry=>entry.purpose==="deposit-recognition");
+if(!signed?.canonicalPayloadHex||!signed.envelope?.from)throw new Error("signed indexer fixture is missing");
+writeFileSync(process.env.TRANSFER_PAYLOAD,Buffer.from(signed.canonicalPayloadHex.slice(2),"hex"),{mode:0o600});
+process.stdout.write(signed.envelope.from);
 NODE
 )"
 
 curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' \
   -H "X-YNX-Faucet-Auth: $YNX_FAUCET_CORE_AUTH_TOKEN" \
-  -d "{\"address\":\"$sender\",\"amount\":1000}" >/dev/null
+  -d "{\"address\":\"$sender\",\"amount\":2000}" >/dev/null
 curl -fsS -X POST "$YNX_REST_URL/transactions/broadcast" -H 'content-type: application/json' \
   --data-binary "@$transfer_payload" >/dev/null
 sleep 3
