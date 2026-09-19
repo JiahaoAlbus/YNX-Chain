@@ -14,6 +14,7 @@ import { PortfolioPanel } from "./PortfolioPanel";
 import { NativeReceiptPanel } from "./NativeReceiptPanel";
 import { NativeDraftPanel, draftAccount } from './NativeDraftPanel';
 import { createNativeActionJournal, openNativeActionStore } from './native-action-journal';
+import { guardNativeReviewStore } from './native-review-store';
 import { loadNativeSnapshotDocument } from './native-snapshot';
 import { nativeDraftCopy } from './native-draft-i18n';
 import { nativeSubmitCopy } from './native-submit-i18n';
@@ -331,7 +332,8 @@ export default function App() {
       if(!pool||pool.id!==quote.poolId||pool.asset0!==quote.asset0||pool.asset1!==quote.asset1||pool.reserve0!==String(quote.reserve0)||pool.reserve1!==String(quote.reserve1)||pool.blockHeight!==String(quote.poolBlockHeight)||pool.feeBps!==quote.feeBps)throw new Error('NATIVE_REVIEW_CHANGED');
       store=await openNativeActionStore();
       if(!isCurrent())return;
-      await createNativeActionJournal(store).prepare({account,action,payload,snapshot:document});
+      const guardedStore=guardNativeReviewStore(store,isCurrent,snapshot.asOf,payload.deadlineUnix);
+      await createNativeActionJournal(guardedStore).prepare({account,action,payload,snapshot:document});
       if(!isCurrent())return;
       setDraftRevision(value=>value+1);
       setTransactionState({busy:false,error:'',receipt:'NATIVE_DRAFT_SAVED'});
