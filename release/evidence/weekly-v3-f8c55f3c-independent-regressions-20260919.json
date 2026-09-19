@@ -1,0 +1,22 @@
+{
+  "schema": "ynx-weekly-v3-independent-regressions/v1",
+  "financeCommit": "f8c55f3c96fc3a5db374bc77a3cbef4ce156523d",
+  "financeTree": "d56d2eb8ba3e4ecf1faa86ed83a909ee87f9d618",
+  "walletCommit": "bd977cd2d382c4c43a435c8e415e698205b8a102",
+  "commands": [
+    {"command": "go test -race -count=1 ./internal/finance/... ./apps/finance/cmd/...", "exitCode": 0, "scope": "five tested packages pass; server has no test files; conditional external database tests do not prove PostgreSQL success"},
+    {"command": "npm test --prefix apps/finance", "exitCode": 0, "passed": 59, "failed": 0, "skipped": 0},
+    {"command": "node --test scripts/verify/weekly-v3/*.test.mjs", "exitCode": 0, "passed": 35, "failed": 0, "scope": "integration fixture integrity and runner guards, not product acceptance"}
+  ],
+  "financeWorktreeCleanAfterRegression": true,
+  "financeRemoteExactAfterRegression": true,
+  "expandedIntegrationReport": "weekly-v3-cross-product-f8c55f3c-strict-schema-20260919.json",
+  "expandedIntegrationPassed": 78,
+  "expandedIntegrationFailed": 3,
+  "stageAComplete": false,
+  "officialSandboxVerified": false,
+  "realModelGenerationVerified": false,
+  "publicDeployed": false,
+  "publicVerified": false,
+  "productionApproved": false
+}

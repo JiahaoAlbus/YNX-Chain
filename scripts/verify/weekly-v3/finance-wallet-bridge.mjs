@@ -74,7 +74,7 @@ if(input.mode==='api'||input.mode==='draft'||input.mode==='full'||input.mode==='
     const form=element('#broker-order-form');
     for(const key of ['accountPublicKey','assetId','symbol','side','qty','limitPrice'])form.elements[key]={value:input.body[key]??input.body.draft[key]??''};
     if(input.source==='ai'){
-      vm.runInContext('state.aiJob={id:"local-ai-fixture",result:{orderDraft:testInput.body.draft}}',context);
+      vm.runInContext('state.aiJob=testInput.aiJob||{id:"local-ai-fixture",result:{orderDraft:testInput.body.draft}}',context);
       await element('#ai-actions').handlers.click({target:{dataset:{ai:'use-order'}}});
       if(requested.length||httpResults.length)throw new Error('AI copy unexpectedly requested private authority or order API');
     }

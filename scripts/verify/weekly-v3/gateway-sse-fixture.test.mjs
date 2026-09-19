@@ -55,3 +55,12 @@ test('request bound is enforced and fixture shutdown is idempotent', async t => 
   await fixture.close();
   await fixture.close();
 });
+for (const [scenario, field, value] of [['rational-qty','qty','2/1'], ['exponent-price','limitPrice','1e2'], ['extra-root','execute',true]]) {
+  test(`otherwise valid schema carries exact untrusted ${scenario} value`, async t => {
+    const fixture = await startGatewayFixture({scenario}); t.after(() => fixture.close());
+    const result = JSON.parse(joined(await (await read(fixture)).text()));
+    assert.equal(result.schemaVersion, gatewayDraftFixture.schemaVersion);
+    assert.equal(result.draftOnly, true);
+    assert.equal(field === 'execute' ? result[field] : result.orderDraft[field], value);
+  });
+}

@@ -6,6 +6,7 @@ import {execFile,execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {validateBrokerWireFixtures} from './weekly-v3/broker-wire-fixtures.mjs';
 import {startGatewayFixture} from './weekly-v3/gateway-sse-fixture.mjs';
+import {makeRecoveryFixtures} from './weekly-v3/recovery-fixtures.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const providerFixtureFile=path.join(root,'scripts/verify/weekly-v3/broker-wire-fixtures.json');
 const providerFixtureProvenance=validateBrokerWireFixtures(JSON.parse(fs.readFileSync(providerFixtureFile,'utf8')));
@@ -33,18 +34,32 @@ for(const owner of ['finance','wallet']){
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-weekly-v3-integration-'));
 const source=path.join(root,'scripts/verify/weekly-v3/finance_wallet_integration_test.go');
 const gatewaySource=path.join(root,'scripts/verify/weekly-v3/finance_gateway_integration_test.go');
-const assetFiles=[source,gatewaySource,providerFixtureFile,path.join(root,'scripts/verify/weekly-v3/broker-wire-fixtures.mjs'),path.join(root,'scripts/verify/weekly-v3/gateway-sse-fixture.mjs'),path.join(root,'scripts/verify/weekly-v3/finance-wallet-bridge.mjs'),fileURLToPath(import.meta.url)];
+const recoverySource=path.join(root,'scripts/verify/weekly-v3/finance_recovery_integration_test.go');
+const recoveryFile=path.join(temp,'recovery-fixtures.json');
+fs.writeFileSync(recoveryFile,JSON.stringify(makeRecoveryFixtures()),{flag:'wx'});
+const assetFiles=[source,gatewaySource,recoverySource,providerFixtureFile,path.join(root,'scripts/verify/weekly-v3/broker-wire-fixtures.mjs'),path.join(root,'scripts/verify/weekly-v3/gateway-sse-fixture.mjs'),path.join(root,'scripts/verify/weekly-v3/recovery-fixtures.mjs'),path.join(root,'scripts/verify/weekly-v3/finance-wallet-bridge.mjs'),fileURLToPath(import.meta.url)];
 const hashAssets=()=>Object.fromEntries(assetFiles.map(file=>[path.relative(root,file),createHash('sha256').update(fs.readFileSync(file)).digest('hex')]));
 const sourceSha256=hashAssets();
 const overlay=path.join(temp,'overlay.json');
-fs.writeFileSync(overlay,JSON.stringify({Replace:{[path.join(roots.finance,'internal/finance/weekly_v3_integration_test.go')]:source,[path.join(roots.finance,'internal/finance/weekly_v3_gateway_integration_test.go')]:gatewaySource}}),{flag:'wx'});
+const replacements={[path.join(roots.finance,'internal/finance/weekly_v3_integration_test.go')]:source,[path.join(roots.finance,'internal/finance/weekly_v3_gateway_integration_test.go')]:gatewaySource,[path.join(roots.finance,'internal/finance/weekly_v3_recovery_integration_test.go')]:recoverySource};
+for(const command of ['worker','tools']){
+ const common=path.join(root,'scripts/verify/weekly-v3/broker_operator_fixture_test.go');
+ const test=path.join(root,`scripts/verify/weekly-v3/broker_${command}_integration_test.go`);
+ for(const file of [common,test]){
+  replacements[path.join(roots.finance,`apps/finance/cmd/broker-${command}`,`weekly_v3_${path.basename(file)}`)]=file;
+  if(!assetFiles.includes(file))assetFiles.push(file);
+ }
+}
+Object.assign(sourceSha256,hashAssets());
+fs.writeFileSync(overlay,JSON.stringify({Replace:replacements}),{flag:'wx'});
 const gateways={};
 let result;
 try{
- for(const scenario of ['valid','invalid-schema','unstructured','malformed-sse','truncated','unauthorized','rate-limited'])gateways[scenario]=await startGatewayFixture({scenario,maxRequests:64});
+ for(const scenario of ['valid','invalid-schema','rational-qty','exponent-price','extra-root','unstructured','malformed-sse','truncated','unauthorized','rate-limited'])gateways[scenario]=await startGatewayFixture({scenario,maxRequests:64});
  const gatewayEnv=Object.fromEntries(Object.entries(gateways).map(([scenario,fixture])=>[`WEEKLY_GATEWAY_${scenario.toUpperCase().replaceAll('-','_')}`,fixture.url]));
+ gatewayEnv.WEEKLY_RECOVERY_FIXTURES=recoveryFile;
  // Async child execution keeps this process's ephemeral HTTP fixtures alive.
- result=await new Promise(resolve=>execFile('go',['test','-race','-count=1','-tags=weekly_v3_integration','-overlay',overlay,'-v','./internal/finance','-run','TestWeeklyV3'],{cwd:roots.finance,encoding:'utf8',timeout:240000,maxBuffer:16*1024*1024,env:{...process.env,...gatewayEnv,WEEKLY_DATE_ADAPTER:options['--diagnostic-date-adapter']??'false',WEEKLY_FINANCE_ROOT:roots.finance,WEEKLY_WALLET_ROOT:roots.wallet,WEEKLY_PROVIDER_FIXTURES:providerFixtureFile,WEEKLY_BRIDGE:path.join(root,'scripts/verify/weekly-v3/finance-wallet-bridge.mjs')}},(error,stdout,stderr)=>resolve({status:error?(typeof error.code==='number'?error.code:null):0,error,stdout,stderr})));
+ result=await new Promise(resolve=>execFile('go',['test','-race','-count=1','-tags=weekly_v3_integration','-overlay',overlay,'-v','./internal/finance','./apps/finance/cmd/broker-worker','./apps/finance/cmd/broker-tools','-run','TestWeeklyV3'],{cwd:roots.finance,encoding:'utf8',timeout:240000,maxBuffer:16*1024*1024,env:{...process.env,...gatewayEnv,WEEKLY_DATE_ADAPTER:options['--diagnostic-date-adapter']??'false',WEEKLY_FINANCE_ROOT:roots.finance,WEEKLY_WALLET_ROOT:roots.wallet,WEEKLY_PROVIDER_FIXTURES:providerFixtureFile,WEEKLY_BRIDGE:path.join(root,'scripts/verify/weekly-v3/finance-wallet-bridge.mjs')}},(error,stdout,stderr)=>resolve({status:error?(typeof error.code==='number'?error.code:null):0,error,stdout,stderr})));
 }finally{await Promise.all(Object.values(gateways).map(fixture=>fixture.close()));}
 const output=(result.stdout??'')+(result.stderr??'');process.stdout.write(output);
 let unchanged=false;
