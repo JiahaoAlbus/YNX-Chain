@@ -37,6 +37,8 @@ Observed local results before the final checkpoint: 38 endpoint/profile fixtures
 
 The repository-wide GitHub Actions pin check remains failing on seven pre-existing tag references in `mail-ci.yml` and `mail-calendar-ios-proof.yml`, also present at `baab2a4e`. This network change does not modify those out-of-scope Mail workflows. The added endpoint workflow uses only the existing repository's full 40-character commit pins. No remote CI run has been claimed.
 
+Live read-only check on 2026-09-19 around 09:39 UTC: JavaScript SDK read legacy REST/EVM heights 1629027/1629028 and Python read 1629028/1629029, both chain `0x1917`, release `core-ecosystem-20260912`. The first attempt encountered a killed host `python3` interpreter; the remote wrapper now uses the same explicit/system-interpreter policy as the local SDK gate, and the rerun passed both clients. No public write was sent. The candidate `rpc-testnet` check still returned HTTP 404 before any acceptance proof, so all candidate-public flags remain false.
+
 ## Remaining activation and integration gates
 
 1. Complete Finance owner delivery and then run the real local application path: draft, approve/reject, one-time consume, provider request, status, cancel race, event/restart reconciliation. Include atomic signed-revoke vs consume, all unique bindings, authenticated readback and trusted server-time behavior.
