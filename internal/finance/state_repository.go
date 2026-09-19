@@ -30,16 +30,76 @@ func decodeFinanceState(raw []byte) (persistedState, string, error) {
 	if err := decodeStrictJSON(raw, &state); err != nil {
 		return persistedState{}, "", fmt.Errorf("decode finance state: %w", err)
 	}
-	if err := validatePersistedState(state); err != nil {
+	if err := validatePersistedStateVersion(state); err != nil {
 		return persistedState{}, "", err
 	}
-	normalizePersistedState(&state)
-	canonical, err := json.Marshal(state)
+	canonical, err := canonicalStoredFinanceState(raw, state)
 	if err != nil {
 		return persistedState{}, "", err
 	}
 	digest := sha256.Sum256(canonical)
+	if err := migratePersistedState(&state); err != nil {
+		return persistedState{}, "", err
+	}
+	normalizePersistedState(&state)
 	return state, hex.EncodeToString(digest[:]), nil
+}
+
+type legacyAccountStateV1 struct {
+	Categories      []Category                `json:"categories"`
+	Budgets         []Budget                  `json:"budgets"`
+	Reminders       []Reminder                `json:"reminders"`
+	Notes           []Note                    `json:"notes"`
+	Privacy         Privacy                   `json:"privacy"`
+	Classifications map[string]Classification `json:"classifications"`
+	AIJobs          []AIJob                   `json:"aiJobs"`
+	Idempotency     map[string]string         `json:"idempotency,omitempty"`
+}
+
+type legacyPersistedStateV1 struct {
+	Version  int                             `json:"version"`
+	Accounts map[string]legacyAccountStateV1 `json:"accounts"`
+	Audit    []AuditEvent                    `json:"audit"`
+	Nonces   map[string]time.Time            `json:"usedWalletNonces"`
+}
+
+func canonicalStoredFinanceState(raw []byte, state persistedState) ([]byte, error) {
+	if state.Version == currentStateVersion {
+		normalizePersistedState(&state)
+		return json.Marshal(state)
+	}
+	var legacy legacyPersistedStateV1
+	if err := decodeStrictJSON(raw, &legacy); err != nil {
+		return nil, err
+	}
+	if legacy.Audit == nil {
+		legacy.Audit = []AuditEvent{}
+	}
+	for account, value := range legacy.Accounts {
+		if value.Categories == nil {
+			value.Categories = []Category{}
+		}
+		if value.Budgets == nil {
+			value.Budgets = []Budget{}
+		}
+		if value.Reminders == nil {
+			value.Reminders = []Reminder{}
+		}
+		if value.Notes == nil {
+			value.Notes = []Note{}
+		}
+		if value.AIJobs == nil {
+			value.AIJobs = []AIJob{}
+		}
+		if value.Classifications == nil {
+			value.Classifications = map[string]Classification{}
+		}
+		if value.Idempotency == nil {
+			value.Idempotency = map[string]string{}
+		}
+		legacy.Accounts[account] = value
+	}
+	return json.Marshal(legacy)
 }
 
 func encodeFinanceState(state persistedState) ([]byte, string, error) {

@@ -2,13 +2,13 @@
 
 ## Current state schema
 
-The persisted Finance planning state is `version: 1`. It contains account-scoped categories, budgets, reminders, notes, privacy preferences, classifications, AI draft records, idempotency bindings, minimal audit events and used Wallet nonces. Explorer, Pay and future Exchange, DEX, Quant or Economics source facts are not copied into this authoritative local state.
+The persisted Finance state is `version: 2`. It preserves every version-1 planning field and adds account-scoped Broker Sandbox mappings, approval challenges, logical orders, one-time outbox records and an audit journal. Explorer, Pay and provider facts remain source-owned and are not copied into this state as invented balances or fills.
 
-The runtime decodes state and backup envelopes with unknown-field rejection. Unsupported state or backup versions fail closed before the live file is changed. Missing collection fields inside a valid version-1 account are normalized to empty collections so older version-1 files written before all optional collections existed remain readable.
+The runtime decodes state and backup envelopes with unknown-field rejection. Unsupported versions fail closed before the live file is changed. A valid version-1 file or authenticated backup is deterministically normalized in memory and migrated to version 2. Its original canonical hash remains the CAS precondition, so the first successful write atomically replaces exactly the version that was read. Opening alone does not rewrite the file.
 
 ## Upgrade rule
 
-A future schema change must:
+A future schema change after version 2 must:
 
 1. introduce an explicit new state version;
 2. provide deterministic forward migration from every supported source version;
@@ -18,7 +18,7 @@ A future schema change must:
 6. keep old clients read-compatible or return a versioned, actionable failure;
 7. update backup schema compatibility, tests, release evidence and the integration handoff.
 
-There is no historical public Finance state version before version 1, so no synthetic legacy migration is claimed. The current local gate proves version-1 reopen, authenticated backup/restore, tamper rejection, unknown-field rejection and unsupported-version rejection. A version-2 migration drill becomes mandatory before any version-2 writer is released.
+The local gate proves version-1 lazy migration, version-2 reopen, authenticated backup/restore, tamper rejection, unknown-field rejection, unsupported-version rejection, concurrent CAS consumption and restart recovery. Version 1 remains the only supported source version. A version-1 binary cannot understand version 2 and must never be restarted against a state file already written by the version-2 runtime.
 
 ## Export compatibility
 

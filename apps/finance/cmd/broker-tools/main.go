@@ -31,10 +31,10 @@ func runWith(args []string, get func(string) string, probe func(context.Context,
 	network = len(args) == 2
 	cfg := brokerage.LoadConfig(get)
 	status := cfg.Status()
-	report := map[string]any{"mode": mode, "configuration": status, "networkAttempted": false, "accountLinkVerified": false, "dataEntitlementVerified": false, "officialSandboxVerified": false, "productionApproved": false, "writeAttempted": false, "walletOrderApproval": "unsupported_pending_shared_protocol"}
+	report := map[string]any{"mode": mode, "configuration": status, "networkAttempted": false, "accountLinkVerified": false, "dataEntitlementVerified": false, "officialSandboxVerified": false, "productionApproved": false, "writeAttempted": false, "walletOrderApproval": "frozen_contract_internal_only", "durableOrderJournal": "implemented_state_v2", "providerPost": "disabled_unwired"}
 	code := 0
 	if mode == "sandbox-verify" && !network {
-		report["result"] = "BLOCKED_APPROVAL_AND_ORDER_JOURNAL"
+		report["result"] = "BLOCKED_OFFICIAL_SANDBOX_WRITE_CONFIRMATION"
 		code = 2
 	} else if network {
 		if status.State != "CONFIGURED_NOT_VERIFIED" {

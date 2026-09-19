@@ -13,6 +13,8 @@ async function refreshBrokerConfiguration(){
     if(result.schema!=='ynx-finance-broker-status-v1'||result.status?.tradingEnvironment!=='sandbox'||result.status?.chainEnvironment!=='testnet'||typeof result.status?.enabled!=='boolean'||result.status?.submissionEnabled!==false)throw new Error('invalid');
     if(revision!==brokerCheckRevision)return;
     document.querySelector('#broker-status').textContent=!result.status.enabled?'Sandbox module disabled. No broker connection is verified; submission is disabled.':result.status.state==='CONFIGURED_NOT_VERIFIED'?'Configuration present. Official Sandbox, linked account and trading permissions are not verified.':'Not configured / disconnected. Submission is disabled; no sample balances or trades are substituted.';
+    document.querySelector('#broker-approval').textContent=result.walletOrderApproval==='frozen_contract_internal_only_no_public_submit_route'?'Frozen Finance/Wallet contract is integrated internally; public submission remains disabled.':'Wallet order approval is unavailable.';
+    document.querySelector('#broker-journal').textContent=result.durableOrderJournal==='implemented_state_v2'?'Persistent v2 journal and one-time outbox are implemented locally; provider POST is not wired.':'Durable order journal status is unavailable.';
     route();
   }catch{
     if(revision===brokerCheckRevision)document.querySelector('#broker-status').textContent='Configuration check unavailable. Retry is read-only; order submission remains disabled.';

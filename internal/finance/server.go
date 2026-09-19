@@ -27,6 +27,7 @@ const maxBodyBytes = 64 << 10
 
 type ServerConfig struct {
 	BrokerConfig        brokerage.Config
+	BrokerAdapter       brokerage.BrokerageAdapter
 	AllowedOrigins      []string
 	WebDir              string
 	CursorSigningKey    string
@@ -50,6 +51,7 @@ type Server struct {
 	logger    *log.Logger
 	now       func() time.Time
 	build     buildinfo.Info
+	broker    brokerage.BrokerageAdapter
 }
 
 func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server, error) {
@@ -76,7 +78,11 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 	if now == nil {
 		now = time.Now
 	}
-	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), rate: map[string][]time.Time{}, cursorKey: []byte(cfg.CursorSigningKey), logger: newJSONLogger(cfg.LogWriter), now: now, build: buildinfo.Normalize(cfg.Build)}
+	broker := cfg.BrokerAdapter
+	if broker == nil {
+		broker = brokerage.NewAlpaca(cfg.BrokerConfig)
+	}
+	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), rate: map[string][]time.Time{}, cursorKey: []byte(cfg.CursorSigningKey), logger: newJSONLogger(cfg.LogWriter), now: now, build: buildinfo.Normalize(cfg.Build), broker: broker}
 	s.metrics = newFinanceMetrics(s.now())
 	s.routes()
 	return s, nil
@@ -86,6 +92,7 @@ func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.mux
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
+	s.mux.HandleFunc("GET /api/broker/snapshot", s.protected("finance.portfolio.read", s.brokerSnapshot))
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /ready", s.ready)
 	s.mux.HandleFunc("GET /version", s.version)

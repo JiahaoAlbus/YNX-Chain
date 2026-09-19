@@ -5,8 +5,7 @@
   "inputs": [
     {"id": "broker_credentials", "needed": "Server Secret Manager reference/configuration location for an approved Alpaca Broker Sandbox correspondent; actual auth method and sandbox permissions", "blocks": "official authentication only, not local development"},
     {"id": "approved_test_accounts", "needed": "Authorized sandbox account mapping procedure for at least two distinct test users, virtual funds and market-data entitlements", "blocks": "official multi-user and data verification"},
-    {"id": "wallet_approval_contract", "needed": "Wallet owner accepted Finance-only proof/schema/scope + verifier handoff; current document is proposal only", "blocks": "actual approval consumption/order submission"},
-    {"id": "sandbox_write_confirmation", "needed": "Separate immediate authorization for a bounded virtual-funded order/cancel run after local approval/outbox gates pass", "blocks": "official write verification"}
+    {"id": "sandbox_write_confirmation", "needed": "Separate immediate authorization for a bounded virtual-funded order/cancel run after the public route and provider POST adapter receive their own reviewed checkpoint", "blocks": "official write verification"}
   ],
   "officialSandboxVerified": false,
   "productionApproved": false

@@ -109,6 +109,7 @@ type AccountState struct {
 	Classifications map[string]Classification `json:"classifications"`
 	AIJobs          []AIJob                   `json:"aiJobs"`
 	Idempotency     map[string]string         `json:"idempotency,omitempty"`
+	Brokerage       BrokerageAccountState     `json:"brokerage"`
 }
 
 type persistedState struct {

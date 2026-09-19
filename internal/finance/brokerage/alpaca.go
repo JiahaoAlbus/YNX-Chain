@@ -42,10 +42,45 @@ type AssetResult struct {
 	Assets      []Asset `json:"assets"`
 }
 type Account struct {
-	ID        string `json:"providerAccountId"`
-	Status    string `json:"providerStatus"`
-	Currency  string `json:"currency"`
-	RequestID string `json:"requestId"`
+	ID          string `json:"providerAccountId"`
+	Status      string `json:"providerStatus"`
+	Currency    string `json:"currency"`
+	Cash        string `json:"cash"`
+	BuyingPower string `json:"buyingPower"`
+	RequestID   string `json:"requestId"`
+}
+
+type Order struct {
+	ID            string `json:"providerOrderId"`
+	ClientOrderID string `json:"clientOrderId"`
+	AssetID       string `json:"assetId"`
+	Symbol        string `json:"symbol"`
+	Side          string `json:"side"`
+	Qty           string `json:"qty"`
+	FilledQty     string `json:"filledQty"`
+	Type          string `json:"type"`
+	LimitPrice    string `json:"limitPrice"`
+	TimeInForce   string `json:"timeInForce"`
+	Status        string `json:"providerStatus"`
+	SubmittedAt   string `json:"submittedAt"`
+}
+
+type Position struct {
+	AssetID      string `json:"assetId"`
+	Symbol       string `json:"symbol"`
+	Qty          string `json:"qty"`
+	AvailableQty string `json:"availableQty"`
+	AveragePrice string `json:"averageEntryPrice"`
+	MarketValue  string `json:"marketValue"`
+}
+
+type AccountSnapshot struct {
+	Provider    string     `json:"provider"`
+	Environment string     `json:"environment"`
+	RequestIDs  []string   `json:"requestIds"`
+	Account     Account    `json:"account"`
+	Orders      []Order    `json:"orders"`
+	Positions   []Position `json:"positions"`
 }
 
 // Account IDs must be obtained from a persistent owner-checked mapping, never a
@@ -57,6 +92,11 @@ type BrokerageAdapter interface {
 	Capabilities() map[string]string
 	Assets(context.Context) (AssetResult, error)
 	Account(context.Context, string, AccountResolver) (Account, error)
+	Orders(context.Context, string, AccountResolver) ([]Order, string, error)
+	Positions(context.Context, string, AccountResolver) ([]Position, string, error)
+	Reconcile(context.Context, string, AccountResolver) (AccountSnapshot, error)
+	SubmitOrder(context.Context, string, AccountResolver, any) (Order, error)
+	CancelOrder(context.Context, string, AccountResolver, string) error
 }
 type Alpaca struct {
 	cfg     Config
@@ -74,9 +114,9 @@ func NewAlpaca(cfg Config) *Alpaca {
 func (a *Alpaca) Capabilities() map[string]string {
 	return map[string]string{
 		"assets": "implemented_read_only", "accountStatus": "requires_persistent_owner_mapping",
-		"quotes": "unsupported_pending_market_data_entitlement", "submit": "disabled_pending_wallet_approval_and_order_journal",
-		"cancel": "unsupported_pending_order_journal", "positions": "not_implemented", "cash": "not_implemented",
-		"events": "not_implemented_sse_cursor_required", "reconciliation": "not_implemented", "live": "forbidden",
+		"quotes": "unsupported_pending_market_data_entitlement", "submit": "disabled_phase_a_no_provider_post",
+		"cancel": "disabled_phase_a_no_provider_post", "positions": "implemented_read_only", "cash": "implemented_read_only",
+		"events": "documented_v2_sse_cursor_not_yet_started", "reconciliation": "implemented_bounded_read_only", "live": "forbidden",
 	}
 }
 func (a *Alpaca) exchange(ctx context.Context, req *http.Request, out any) (string, error) {
@@ -191,18 +231,127 @@ func (a *Alpaca) Account(ctx context.Context, owner string, resolver AccountReso
 		return Account{}, &Error{Code: "ACCOUNT_NOT_LINKED"}
 	}
 	var raw struct {
-		ID       string `json:"id"`
-		Status   string `json:"status"`
-		Currency string `json:"currency"`
+		ID          string `json:"id"`
+		Status      string `json:"status"`
+		Currency    string `json:"currency"`
+		Cash        string `json:"cash"`
+		BuyingPower string `json:"buying_power"`
 	}
 	id, err := a.get(ctx, "/v1/accounts/"+account, &raw)
 	if err != nil {
 		return Account{}, err
 	}
-	if raw.ID != account || raw.Status == "" || raw.Currency != "USD" {
+	if raw.ID != account || raw.Status == "" || raw.Currency != "USD" || !providerDecimal.MatchString(raw.Cash) || !providerDecimal.MatchString(raw.BuyingPower) {
 		return Account{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
 	}
-	return Account{raw.ID, raw.Status, raw.Currency, id}, nil
+	return Account{raw.ID, raw.Status, raw.Currency, raw.Cash, raw.BuyingPower, id}, nil
+}
+
+var providerDecimal = regexp.MustCompile(`^-?(?:0|[1-9][0-9]{0,15})(?:\.[0-9]{1,9})?$`)
+
+func (a *Alpaca) resolveAccount(ctx context.Context, owner string, resolver AccountResolver) (string, error) {
+	if !a.cfg.ready() {
+		return "", &Error{Code: "BROKER_NOT_CONFIGURED"}
+	}
+	if owner == "" || resolver == nil {
+		return "", &Error{Code: "ACCOUNT_NOT_LINKED"}
+	}
+	account, err := resolver.ResolveBrokerAccount(ctx, owner, Provider, "sandbox")
+	if err != nil || !uuid.MatchString(account) {
+		return "", &Error{Code: "ACCOUNT_NOT_LINKED"}
+	}
+	return account, nil
+}
+
+func (a *Alpaca) Orders(ctx context.Context, owner string, resolver AccountResolver) ([]Order, string, error) {
+	account, err := a.resolveAccount(ctx, owner, resolver)
+	if err != nil {
+		return nil, "", err
+	}
+	var raw []struct {
+		ID            string  `json:"id"`
+		ClientOrderID string  `json:"client_order_id"`
+		AssetID       string  `json:"asset_id"`
+		Symbol        string  `json:"symbol"`
+		Side          string  `json:"side"`
+		Qty           string  `json:"qty"`
+		FilledQty     string  `json:"filled_qty"`
+		Type          string  `json:"type"`
+		LimitPrice    *string `json:"limit_price"`
+		TimeInForce   string  `json:"time_in_force"`
+		Status        string  `json:"status"`
+		SubmittedAt   string  `json:"submitted_at"`
+	}
+	id, err := a.get(ctx, "/v1/trading/accounts/"+account+"/orders?status=all&limit=500&direction=asc", &raw)
+	if err != nil {
+		return nil, id, err
+	}
+	orders := make([]Order, 0, len(raw))
+	seen := map[string]bool{}
+	for _, value := range raw {
+		limitPrice := ""
+		if value.LimitPrice != nil {
+			limitPrice = *value.LimitPrice
+		}
+		if !uuid.MatchString(value.ID) || seen[value.ID] || value.ClientOrderID == "" || len(value.ClientOrderID) > 128 || !uuid.MatchString(value.AssetID) || value.Symbol == "" || (value.Side != "buy" && value.Side != "sell") || !providerDecimal.MatchString(value.Qty) || !providerDecimal.MatchString(value.FilledQty) || value.Type == "" || value.TimeInForce == "" || value.Status == "" || (limitPrice != "" && !providerDecimal.MatchString(limitPrice)) {
+			return nil, id, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
+		}
+		seen[value.ID] = true
+		orders = append(orders, Order{value.ID, value.ClientOrderID, value.AssetID, value.Symbol, value.Side, value.Qty, value.FilledQty, value.Type, limitPrice, value.TimeInForce, value.Status, value.SubmittedAt})
+	}
+	return orders, id, nil
+}
+
+func (a *Alpaca) Positions(ctx context.Context, owner string, resolver AccountResolver) ([]Position, string, error) {
+	account, err := a.resolveAccount(ctx, owner, resolver)
+	if err != nil {
+		return nil, "", err
+	}
+	var raw []struct {
+		AssetID      string `json:"asset_id"`
+		Symbol       string `json:"symbol"`
+		Qty          string `json:"qty"`
+		AvailableQty string `json:"qty_available"`
+		AveragePrice string `json:"avg_entry_price"`
+		MarketValue  string `json:"market_value"`
+	}
+	id, err := a.get(ctx, "/v1/trading/accounts/"+account+"/positions", &raw)
+	if err != nil {
+		return nil, id, err
+	}
+	positions := make([]Position, 0, len(raw))
+	seen := map[string]bool{}
+	for _, value := range raw {
+		if !uuid.MatchString(value.AssetID) || seen[value.AssetID] || value.Symbol == "" || !providerDecimal.MatchString(value.Qty) || !providerDecimal.MatchString(value.AvailableQty) || !providerDecimal.MatchString(value.AveragePrice) || !providerDecimal.MatchString(value.MarketValue) {
+			return nil, id, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: id}
+		}
+		seen[value.AssetID] = true
+		positions = append(positions, Position{value.AssetID, value.Symbol, value.Qty, value.AvailableQty, value.AveragePrice, value.MarketValue})
+	}
+	return positions, id, nil
+}
+
+func (a *Alpaca) Reconcile(ctx context.Context, owner string, resolver AccountResolver) (AccountSnapshot, error) {
+	account, err := a.Account(ctx, owner, resolver)
+	if err != nil {
+		return AccountSnapshot{}, err
+	}
+	orders, orderID, err := a.Orders(ctx, owner, resolver)
+	if err != nil {
+		return AccountSnapshot{}, err
+	}
+	positions, positionID, err := a.Positions(ctx, owner, resolver)
+	if err != nil {
+		return AccountSnapshot{}, err
+	}
+	return AccountSnapshot{Provider: Provider, Environment: "sandbox", RequestIDs: []string{account.RequestID, orderID, positionID}, Account: account, Orders: orders, Positions: positions}, nil
+}
+
+func (*Alpaca) SubmitOrder(context.Context, string, AccountResolver, any) (Order, error) {
+	return Order{}, &Error{Code: "ORDER_SUBMISSION_DISABLED"}
+}
+func (*Alpaca) CancelOrder(context.Context, string, AccountResolver, string) error {
+	return &Error{Code: "ORDER_CANCELLATION_DISABLED"}
 }
 func ErrorCode(err error) string {
 	var e *Error

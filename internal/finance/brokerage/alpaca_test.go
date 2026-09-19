@@ -12,6 +12,12 @@ import (
 	"testing"
 )
 
+type resolverFunc func(context.Context, string, string, string) (string, error)
+
+func (f resolverFunc) ResolveBrokerAccount(ctx context.Context, owner, provider, environment string) (string, error) {
+	return f(ctx, owner, provider, environment)
+}
+
 type roundTrip func(*http.Request) (*http.Response, error)
 
 func (f roundTrip) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
@@ -26,6 +32,59 @@ func response(status int, body string) *http.Response {
 }
 
 const asset = `[{"id":"00000000-0000-0000-0000-000000000001","symbol":"TEST","name":"Isolated test equity","class":"us_equity","status":"active","tradable":true}]`
+
+func TestReadOnlyAccountOrdersPositionsAndReconcile(t *testing.T) {
+	a := NewAlpaca(enabled("legacy_basic"))
+	accountID := "01234567-89ab-4cde-8fab-0123456789ab"
+	resolver := resolverFunc(func(_ context.Context, owner, provider, environment string) (string, error) {
+		if owner != "ynx1owner" || provider != Provider || environment != "sandbox" {
+			t.Fatal("wrong resolver binding")
+		}
+		return accountID, nil
+	})
+	responses := map[string]string{
+		"/v1/accounts/" + accountID: `{"id":"01234567-89ab-4cde-8fab-0123456789ab","status":"ACTIVE","currency":"USD","cash":"100000.00","buying_power":"100000.00"}`,
+		"/v1/trading/accounts/" + accountID + "/orders?status=all&limit=500&direction=asc": `[{"id":"11111111-2222-4333-8444-555555555555","client_order_id":"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee","asset_id":"99999999-8888-4777-8666-555555555555","symbol":"ACME","side":"buy","qty":"2","filled_qty":"1","type":"limit","limit_price":"125.34","time_in_force":"day","status":"partially_filled","submitted_at":"2026-09-19T09:00:00Z"}]`,
+		"/v1/trading/accounts/" + accountID + "/positions":                                 `[{"asset_id":"99999999-8888-4777-8666-555555555555","symbol":"ACME","qty":"1","qty_available":"1","avg_entry_price":"125.34","market_value":"126.00"}]`,
+	}
+	var mu sync.Mutex
+	calls := map[string]int{}
+	a.client.Transport = roundTrip(func(request *http.Request) (*http.Response, error) {
+		mu.Lock()
+		calls[request.URL.RequestURI()]++
+		mu.Unlock()
+		body, ok := responses[request.URL.RequestURI()]
+		if !ok {
+			t.Fatalf("unexpected %s", request.URL.RequestURI())
+		}
+		return response(200, body), nil
+	})
+	snapshot, err := a.Reconcile(context.Background(), "ynx1owner", resolver)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Account.Cash != "100000.00" || len(snapshot.Orders) != 1 || len(snapshot.Positions) != 1 || snapshot.Orders[0].Status != "partially_filled" {
+		t.Fatalf("%+v", snapshot)
+	}
+	if len(calls) != 3 {
+		t.Fatalf("calls=%v", calls)
+	}
+}
+
+func TestWriteMethodsRemainFailClosedWithoutProviderPost(t *testing.T) {
+	a := NewAlpaca(enabled("legacy_basic"))
+	called := false
+	a.client.Transport = roundTrip(func(*http.Request) (*http.Response, error) { called = true; return response(500, `{}`), nil })
+	if _, err := a.SubmitOrder(context.Background(), "owner", nil, map[string]any{}); ErrorCode(err) != "ORDER_SUBMISSION_DISABLED" {
+		t.Fatal(err)
+	}
+	if err := a.CancelOrder(context.Background(), "owner", nil, "id"); ErrorCode(err) != "ORDER_CANCELLATION_DISABLED" {
+		t.Fatal(err)
+	}
+	if called {
+		t.Fatal("write methods contacted provider")
+	}
+}
 
 func TestDefaultAndInvalidConfigurationNeverCallsProvider(t *testing.T) {
 	cases := []map[string]string{{}, {"FINANCE_TRADING_ENABLED": "true"}, {"FINANCE_TRADING_ENV": "live"}, {"YNX_CHAIN_ENV": "mainnet"}, {"YNX_EVM_CHAIN_ID": "1"}, {"FINANCE_LIVE_ENABLED": "true"}, {"ALPACA_BROKER_SANDBOX_BASE_URL": "https://paper-api.alpaca.markets"}, {"ALPACA_BROKER_SANDBOX_BASE_URL": BrokerOrigin + "/"}, {"ALPACA_BROKER_TOKEN_URL": "https://attacker.invalid"}, {"ALPACA_BROKER_AUTH_MODE": "private_key_jwt"}, {"ALPACA_BROKER_ACCOUNT_ID": "shared"}, {"FINANCE_SANDBOX_WRITES_ENABLED": "true"}, {"FINANCE_TRADING_ENABLED": "TRUE"}}

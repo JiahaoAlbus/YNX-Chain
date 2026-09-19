@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	currentStateVersion = 1
+	currentStateVersion = 2
 	backupSchemaVersion = 1
 	backupFormat        = "ynx-finance-backup-v1"
 	backupAuthAlgorithm = "HMAC-SHA-256"
@@ -312,6 +312,7 @@ func (s *Store) accountLocked(account string) AccountState {
 	if state.Idempotency == nil {
 		state.Idempotency = map[string]string{}
 	}
+	normalizeBrokerageState(&state.Brokerage)
 	return state
 }
 
@@ -454,11 +455,10 @@ func readVerifiedBackup(path string, authenticationKey []byte) (BackupManifest, 
 	if err := decodeStrictJSON(envelope.State, &state); err != nil {
 		return BackupManifest{}, nil, fmt.Errorf("decode finance backup state: %w", err)
 	}
-	if err := validatePersistedState(state); err != nil {
+	if err := validatePersistedStateVersion(state); err != nil {
 		return BackupManifest{}, nil, err
 	}
-	normalizePersistedState(&state)
-	canonicalState, err := json.Marshal(state)
+	canonicalState, err := canonicalStoredFinanceState(envelope.State, state)
 	if err != nil {
 		return BackupManifest{}, nil, fmt.Errorf("canonicalize finance backup state: %w", err)
 	}
@@ -467,7 +467,7 @@ func readVerifiedBackup(path string, authenticationKey []byte) (BackupManifest, 
 	if envelope.Manifest.SchemaVersion != backupSchemaVersion {
 		return BackupManifest{}, nil, fmt.Errorf("unsupported finance backup schema version %d", envelope.Manifest.SchemaVersion)
 	}
-	if envelope.Manifest.StateVersion != currentStateVersion {
+	if envelope.Manifest.StateVersion != state.Version {
 		return BackupManifest{}, nil, fmt.Errorf("unsupported finance backup state version %d", envelope.Manifest.StateVersion)
 	}
 	if envelope.Manifest.CreatedAt.IsZero() || envelope.Manifest.CreatedAt.After(time.Now().UTC().Add(5*time.Minute)) {
@@ -479,11 +479,42 @@ func readVerifiedBackup(path string, authenticationKey []byte) (BackupManifest, 
 	if envelope.Manifest.AccountCount != manifest.AccountCount || envelope.Manifest.AuditEventCount != manifest.AuditEventCount || envelope.Manifest.UsedNonceCount != manifest.UsedNonceCount {
 		return BackupManifest{}, nil, errors.New("finance backup manifest counts do not match state")
 	}
-	return envelope.Manifest, canonicalState, nil
+	if err := migratePersistedState(&state); err != nil {
+		return BackupManifest{}, nil, err
+	}
+	normalizePersistedState(&state)
+	migratedState, err := json.Marshal(state)
+	if err != nil {
+		return BackupManifest{}, nil, fmt.Errorf("encode migrated finance backup state: %w", err)
+	}
+	return envelope.Manifest, migratedState, nil
 }
 
 func validatePersistedState(state persistedState) error {
 	if state.Version != currentStateVersion {
+		return fmt.Errorf("unsupported finance state version %d", state.Version)
+	}
+	if state.Accounts == nil || state.Nonces == nil {
+		return errors.New("incomplete finance state")
+	}
+	for account, accountState := range state.Accounts {
+		if account == "" {
+			return errors.New("finance state contains an empty account identity")
+		}
+		if err := validateBrokeragePersistence(account, accountState.Brokerage); err != nil {
+			return err
+		}
+	}
+	for nonce, expiresAt := range state.Nonces {
+		if nonce == "" || expiresAt.IsZero() {
+			return errors.New("finance state contains an invalid Wallet nonce record")
+		}
+	}
+	return nil
+}
+
+func validatePersistedStateVersion(state persistedState) error {
+	if state.Version != 1 && state.Version != currentStateVersion {
 		return fmt.Errorf("unsupported finance state version %d", state.Version)
 	}
 	if state.Accounts == nil || state.Nonces == nil {
@@ -500,6 +531,16 @@ func validatePersistedState(state persistedState) error {
 		}
 	}
 	return nil
+}
+
+func migratePersistedState(state *persistedState) error {
+	if err := validatePersistedStateVersion(*state); err != nil {
+		return err
+	}
+	if state.Version == 1 {
+		state.Version = currentStateVersion
+	}
+	return validatePersistedState(*state)
 }
 
 func normalizePersistedState(state *persistedState) {
@@ -528,8 +569,63 @@ func normalizePersistedState(state *persistedState) {
 		if accountState.Idempotency == nil {
 			accountState.Idempotency = map[string]string{}
 		}
+		normalizeBrokerageState(&accountState.Brokerage)
 		state.Accounts[account] = accountState
 	}
+}
+
+func normalizeBrokerageState(state *BrokerageAccountState) {
+	if state.Mappings == nil {
+		state.Mappings = map[string]BrokerAccountMapping{}
+	}
+	if state.Challenges == nil {
+		state.Challenges = map[string]BrokerApprovalChallenge{}
+	}
+	if state.Orders == nil {
+		state.Orders = map[string]BrokerOrderRecord{}
+	}
+	if state.Outbox == nil {
+		state.Outbox = map[string]BrokerOrderOutbox{}
+	}
+	if state.Journal == nil {
+		state.Journal = []BrokerJournalEvent{}
+	}
+}
+
+func validateBrokeragePersistence(account string, state BrokerageAccountState) error {
+	for key, mapping := range state.Mappings {
+		if key != brokerMappingKey(mapping.Provider, mapping.TradingEnvironment) || mapping.Account != account || mapping.Provider != FinanceOrderProvider || mapping.TradingEnvironment != FinanceOrderTradingEnv || !financeProviderUUIDPattern.MatchString(mapping.BrokerAccountID) || (mapping.Status != "active" && mapping.Status != "disabled") {
+			return errors.New("finance state contains an invalid Broker account mapping")
+		}
+	}
+	validApproval := map[string]bool{"pending": true, "approved": true, "rejected": true, "revoked": true, "expired": true, "consumed": true}
+	validOrder := map[string]bool{"draft": true, "approval_pending": true, "approved": true, "submitting": true, "submitted_unknown": true, "submitted": true, "partially_filled": true, "filled": true, "cancel_requested": true, "canceled": true, "provider_rejected": true, "provider_expired": true}
+	for requestID, challenge := range state.Challenges {
+		if requestID != challenge.Unsigned.RequestID || challenge.Unsigned.Account != account || !validApproval[challenge.ApprovalState] {
+			return errors.New("finance state contains an invalid Broker approval challenge")
+		}
+		order, ok := state.Orders[challenge.Unsigned.Order.OrderID]
+		if !ok || order.RequestID != requestID || order.ApprovalState != challenge.ApprovalState {
+			return errors.New("finance state contains an uncorrelated Broker approval challenge")
+		}
+	}
+	for orderID, order := range state.Orders {
+		if orderID != order.Order.OrderID || !validApproval[order.ApprovalState] || !validOrder[order.State] {
+			return errors.New("finance state contains an invalid Broker order")
+		}
+		if order.ApprovalState == "consumed" {
+			if _, ok := state.Outbox[orderID]; !ok {
+				return errors.New("consumed Broker order is missing its outbox")
+			}
+		}
+	}
+	for orderID, outbox := range state.Outbox {
+		order, ok := state.Orders[orderID]
+		if !ok || order.ApprovalState != "consumed" || outbox.OrderID != orderID || outbox.RequestID != order.RequestID || outbox.ProviderClientOrderID != order.ProviderClientOrderID || outbox.Provider != FinanceOrderProvider || outbox.TradingEnvironment != FinanceOrderTradingEnv || outbox.Attempts < 0 {
+			return errors.New("finance state contains an invalid Broker outbox record")
+		}
+	}
+	return nil
 }
 
 func decodeStrictJSON(raw []byte, out any) error {
@@ -545,6 +641,22 @@ func decodeStrictJSON(raw []byte, out any) error {
 		return err
 	}
 	return nil
+}
+
+func canonicalizeRawJSON(raw []byte) ([]byte, error) {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	var decoded any
+	if err := decoder.Decode(&decoded); err != nil {
+		return nil, err
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			return nil, errors.New("JSON contains more than one value")
+		}
+		return nil, err
+	}
+	return json.Marshal(decoded)
 }
 
 func atomicWritePrivateFile(path string, raw []byte) error {
