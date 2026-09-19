@@ -13,7 +13,7 @@ ynx_kill_tree() {
 
 ynx_prepare_local_faucet_authority() {
   export YNX_FAUCET_CORE_AUTH_TOKEN_FILE="$YNX_VERIFY_WORK/faucet-core-auth.token"
-  YNX_FAUCET_CORE_AUTH_TOKEN="$(od -An -N32 -tx1 /dev/urandom | tr -d '[:space:]')"
+  export YNX_FAUCET_CORE_AUTH_TOKEN="$(od -An -N32 -tx1 /dev/urandom | tr -d '[:space:]')"
   if [[ ! "$YNX_FAUCET_CORE_AUTH_TOKEN" =~ ^[0-9a-f]{64}$ ]]; then
     echo "failed to generate the local Faucet authority token"
     return 1

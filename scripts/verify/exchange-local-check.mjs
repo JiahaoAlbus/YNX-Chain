@@ -8,6 +8,10 @@ const accounts = Object.fromEntries(sources.vectors.value.accounts.map((entry) =
 const depositor = accounts.depositor;
 const depositAccount = accounts["exchange-deposit-and-test-hot-wallet"];
 const recipient = accounts["withdrawal-recipient"];
+const faucetCoreAuthToken = process.env.YNX_FAUCET_CORE_AUTH_TOKEN;
+if (!/^[0-9a-f]{64}$/.test(faucetCoreAuthToken || "")) {
+  throw new Error("local exchange check requires the isolated Faucet Core authority token");
+}
 
 const health = await requestJSON(`${restURL}/health`);
 if (health.ok !== true || health.network?.chainId !== 6423) throw new Error("local exchange check health/chain identity mismatch");
@@ -16,7 +20,7 @@ await assertRPCResult("net_version", [], "6423");
 
 await requestJSON(`${restURL}/faucet`, {
   body: JSON.stringify({address: depositor.evmAddress, amount: 2_000}),
-  headers: {"content-type": "application/json"},
+  headers: {"content-type": "application/json", "X-YNX-Faucet-Auth": faucetCoreAuthToken},
   method: "POST",
   expectedStatus: 201,
 });
