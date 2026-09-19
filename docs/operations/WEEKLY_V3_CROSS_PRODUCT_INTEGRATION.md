@@ -1,5 +1,49 @@
 # Weekly v3 cross-product integration checkpoint
 
+## Current repaired local result
+
+The original failure evidence below is preserved. On Finance
+`a3e5d21b91443e6db4d9cad2d38e112773e9a57f` and Wallet
+`bd977cd2d382c4c43a435c8e415e698205b8a102`, the complete local fixture suite
+passes **without** a diagnostic Date adapter. The actual Finance bundle includes
+the repaired Wallet verifier. Exact owner worktree source is checked before and
+after execution; the unrelated Wallet artifact manifest remains preserved.
+
+The continuous flow executes manual and AI-copy forms → server challenge →
+actual Wallet approve/reject/revoke → actual Finance callback handler → durable
+CAS/outbox. For approved orders it then executes actual provider-adapter
+preflight → lost ACK → reopen/query → partial-fill event → non-mutating duplicate
+event rejection → cancel → reconcile. Before every tested POST, assertions require
+Account, Assets, Quote and Positions reads. No test bypasses the new preflight.
+Separate negative cases cover zero cash despite margin buying power, expired
+approval, late redispatch not rewriting an already-confirmed order, and revoking
+an unused approval whose approval callback never reached Finance.
+
+The VM fetch bridge parses response JSON inside the browser realm, as a real
+browser does; it does not change response fields, dates, signatures or authority.
+Duplicate events may be explicitly rejected; their complete journal/cursor/order
+state must remain byte-identical. An initial test incorrectly required a nil
+duplicate error; this was corrected to test the actual safety invariant. This is
+not evidence for an activated live SSE worker or official event transport.
+
+Evidence:
+`release/evidence/weekly-v3-cross-product-a3e5d21b-bd977cd2-20260919.json` and
+`release/evidence/weekly-v3-network-wallet-bd977cd2-20260919.json`.
+Finance independent regressions pass 58/58 front-end tests and Go race tests for
+`./internal/finance/... ./apps/finance/cmd/...`. Wallet/network regression passes
+38 endpoint/profile tests, Faucet 40-user race/recovery, SDK compatibility,
+20 approval/transport, 67 extension/provider and 143 controller/time/Faucet tests.
+
+The overlay source has the `weekly_v3_integration` build tag and the runner
+explicitly enables it only in the Finance overlay. Default `go list ./...`
+excludes this otherwise non-standalone test package. No full ecosystem Go test
+run is implied by that package-inventory check.
+
+Current six states: code implemented; scoped local contract/fixture integration
+PASS; official Sandbox=false; public deployment=false; public verification=false;
+production approval=false. `localFixtureEndToEndVerified=true` does **not** promote
+`crossProductE2EVerified` (installed/public), official verification, or production.
+
 ## Scope and recovery
 
 This runner adds integration assets only. It never edits Finance or Wallet
@@ -9,7 +53,7 @@ Finance checkout; all Finance state and HTTP/TLS listeners are temporary.
 The preserved implementation baseline is network `79af8b249`, Finance
 `cf89d852c9f8630e1980d9f0418adc901053835f`, Wallet
 `ab4dfa927be3d16fde3048b72d705d90c770dcd3`.
-Finance is actively fixing the findings below in its owner tree. A detached
+Finance has repaired the findings below in the later checkpoint above. A detached
 read-only snapshot at `/private/tmp/ynx-weekly-v3-finance-baseline.9XQFci/finance`
 preserves reproducibility of the original failures. Do not reset the owner tree
 to reproduce them. The unrelated Wallet artifact-manifest dirty file is untouched.
@@ -21,13 +65,13 @@ From this network worktree:
 ```sh
 node scripts/verify/weekly-v3-finance-wallet-integration.mjs \
   --finance-worktree /path/to/exact-finance-checkout \
-  --finance-commit cf89d852c9f8630e1980d9f0418adc901053835f \
+  --finance-commit a3e5d21b91443e6db4d9cad2d38e112773e9a57f \
   --wallet-worktree /path/to/exact-wallet-checkout \
-  --wallet-commit ab4dfa927be3d16fde3048b72d705d90c770dcd3 \
-  --diagnostic-date-adapter true \
+  --wallet-commit bd977cd2d382c4c43a435c8e415e698205b8a102 \
   --output /path/to/new-evidence.json
 ```
 
+For reproducing the historical cf89d852/ab4dfa927 failure checkpoint only,
 `--diagnostic-date-adapter true` is ONLY for isolating downstream defects in the
 broken original Finance build. The real browser scope/time/manual/AI checks never
 use it. After Finance fixes its boundary, OMIT this flag and test its new exact
@@ -72,10 +116,10 @@ are not additional independent defects. All findings were sent to the original
 coordinator, who controls the Finance repair window. No owner source was patched
 by integration.
 
-## Results and truth boundary
+## Historical failure results and truth boundary
 
 Evidence: `release/evidence/weekly-v3-cross-product-cf89d852-failures-20260919.json`.
-Cross-product acceptance FAILS. With the explicitly recorded Date adapter only,
+Cross-product acceptance FAILED on that original checkpoint. With the explicitly recorded Date adapter only,
 approve/reject → real callback validation → durable CAS/replay checks pass.
 Actual adapter submit, lost-ACK unknown → query, cancel, reopen and interrupted
 dispatch tests pass against the local TLS fixture, exactly one provider POST per
