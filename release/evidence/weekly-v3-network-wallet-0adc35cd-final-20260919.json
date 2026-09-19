@@ -1,0 +1,100 @@
+{
+  "schema": "ynx-weekly-v3-local-check/v1",
+  "generatedAt": "2026-09-19T12:36:58.539Z",
+  "scope": "network-package-and-optional-wallet-local-regression-not-full-weekly-acceptance",
+  "network": {
+    "commit": "8cfbb53ed598dbd2ea784989fe9a9617546611a2",
+    "dirty": true
+  },
+  "walletCommit": "bd977cd2d382c4c43a435c8e415e698205b8a102",
+  "contractTested": true,
+  "officialSandboxVerified": false,
+  "publicDeployed": false,
+  "publicVerified": false,
+  "productionApproved": false,
+  "crossProductE2EVerified": false,
+  "remaining": [
+    "FINANCE_FULL_CHECKPOINT_AND_CROSS_PRODUCT_E2E",
+    "PUBLIC_ALIAS_AUTHORITY_AND_RUNTIME_VERIFICATION",
+    "OFFICIAL_SANDBOX_CREDENTIALS_AND_EXPLICIT_TEST_PERMISSION"
+  ],
+  "checks": [
+    {
+      "name": "generated endpoint configuration",
+      "passed": true,
+      "elapsedMs": 36,
+      "outputSha256": "390ba65ad6a057d55955dde062696b75dfe0a45a8703874ca3024f16605457a0",
+      "tail": "testnet consumer endpoints verified; public activation remains false\n"
+    },
+    {
+      "name": "endpoint and transport adversarial fixtures",
+      "passed": true,
+      "elapsedMs": 352,
+      "outputSha256": "2c0be253a1420eec54557bdb19f2423b1ddec0bf76d177d481f13f2f92f91631",
+      "tail": "1541ms)\n✔ rejects missing Faucet build on both aliases (0.617333ms)\n✔ rejects different Faucet builds (0.607833ms)\n✔ rejects missing recovery paths (0.710375ms)\n✔ rejects missing quota metadata (0.630791ms)\n✔ rejects different Faucet quotas (0.92525ms)\n✔ rejects wrong Explorer chain (0.555209ms)\n✔ request deadline includes a stalled body after successful headers (31.32575ms)\n✔ request deadline also bounds an uncooperative fetch without retries (32.37175ms)\n✔ JSON reads enforce a streamed byte limit without content-length (0.2015ms)\n✔ JSON reads reject oversized declared length before reading (0.100292ms)\n✔ JSON reads reject wrong MIME, invalid JSON and redirects (0.253917ms)\n✔ JSON-RPC envelope rejects missing protocol or mismatched response IDs (0.820416ms)\n✔ proof flags cannot accidentally trigger network work without --live (173.565667ms)\n✔ invalid proof inputs and Mainnet activation fail before fetching (0.546958ms)\n✔ transport proof requires native history, CORS, block growth and stable depth-two readback (1.349791ms)\n✔ transport rejects native chain (0.886542ms)\n✔ transport rejects native historical hash (1.2625ms)\n✔ transport rejects CORS origin (0.643042ms)\n✔ transport rejects CORS method (0.624417ms)\n✔ transport rejects no block growth (0.965834ms)\n✔ transport rejects comparison reorg (0.858083ms)\n✔ active consumers retain independently typed legacy endpoints until activation (0.69125ms)\n✔ candidate aliases are metadata, not selectable live or Mainnet configuration (0.1525ms)\n✔ SDK separates native REST from JSON-RPC on both configured profiles without network writes (10.198625ms)\n✔ generated SDK/config artifacts match the canonical migration source (40.285875ms)\nℹ tests 38\nℹ suites 0\nℹ pass 38\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 319.3485\n"
+    },
+    {
+      "name": "Faucet multiuser, shared aliases and durable recovery race tests",
+      "passed": true,
+      "elapsedMs": 6716,
+      "outputSha256": "a45dfd6f0573bc816aa9ae99bdcd182054d1cbca19ded77822def37ff35d262e",
+      "tail": "ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/faucet\t5.855s\nok  \tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-faucetd\t2.021s\n"
+    },
+    {
+      "name": "SDK backward compatibility and clean release consumers",
+      "passed": true,
+      "elapsedMs": 3484,
+      "outputSha256": "4bfb408649c5dd07e40312d06789f358397a80add55315ff6c72e26fa07493a3",
+      "tail": "✔ reads status and a validated chain snapshot (17.378791ms)\n✔ surfaces JSON-RPC errors and invalid quantities (1.108917ms)\n✔ rejects unsupported endpoint protocols (0.088ms)\n✔ converts shared YNX address vectors (1.987041ms)\n✔ rejects malformed YNX addresses (0.127459ms)\n✔ active consumers retain independently typed legacy endpoints until activation (0.64225ms)\n✔ candidate aliases are metadata, not selectable live or Mainnet configuration (0.148084ms)\n✔ SDK separates native REST from JSON-RPC on both configured profiles without network writes (10.275208ms)\n✔ generated SDK/config artifacts match the canonical migration source (41.049833ms)\n✔ builds the bounded EIP-3085 payload (0.966167ms)\n✔ does nothing when YNX Testnet is already selected (0.175959ms)\n✔ switches an already known chain and verifies the result (0.081291ms)\n✔ adds an unknown chain, explicitly switches, and verifies the result (0.144292ms)\n✔ preserves user rejection and unsupported-method errors (0.2565ms)\n✔ fails closed when the wallet reports the wrong chain after switching (0.080042ms)\n✔ rejects a missing provider without requesting any account capability (0.070084ms)\nℹ tests 16\nℹ suites 0\nℹ pass 16\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 96.55175\nsdk-release-integrity-check passed: deterministic artifacts, canonical manifest, tamper/signature boundaries, and clean consumers verified\nsdk-check passed: JavaScript and Python clients, deterministic release artifacts, and clean consumers verified\n"
+    },
+    {
+      "name": "chain metadata and Mainnet rejection",
+      "passed": true,
+      "elapsedMs": 106,
+      "outputSha256": "5ac88deccf6f07689af1702d2acb4748e1b3e8e8c619cf0d686595d1043f4947",
+      "tail": "node ./scripts/verify/chainlist-candidate-check.mjs\nchainlist-candidate-check passed: canonical metadata/payload, deterministic testnet-only package, collision freshness, and tamper/mainnet rejection verified\n"
+    },
+    {
+      "name": "shell syntax: scripts/deploy/deploy-testnet.sh",
+      "passed": true,
+      "elapsedMs": 3,
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    {
+      "name": "shell syntax: scripts/verify/sdk-remote-check.sh",
+      "passed": true,
+      "elapsedMs": 2,
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    {
+      "name": "shell syntax: scripts/verify/remote-smoke-test.sh",
+      "passed": true,
+      "elapsedMs": 2,
+      "outputSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tail": ""
+    },
+    {
+      "name": "Wallet approval cryptography and callback transport",
+      "passed": true,
+      "elapsedMs": 188,
+      "outputSha256": "07e7280603687c054810c699c2cb7333c36870167dfff096a4d487c4353c7ef2",
+      "tail": "ixed Wallet request route round-trips canonical unsigned approval without a caller callback (2.935375ms)\n✔ approved and rejected results use only the registered Finance Web callback (21.738042ms)\n✔ unused approval revocation is a separate exact account signature (29.125375ms)\n✔ revocation without a delivered approval trusts only the authenticated unsigned challenge (11.511458ms)\n✔ revocation fails for expiry, wrong account, wrong approval or unsigned correlation (12.014791ms)\n✔ transport rejects field tampering before any product callback (0.385333ms)\n✔ local approval signature never implies Broker submission or consumption state (2.043292ms)\n✔ shared frozen vector reproduces canonical order, hashes, signature and account binding (24.649041ms)\n✔ signing the frozen vector yields its exact compact low-S signature (3.970542ms)\n✔ parse remains historical while active verification uses required server time and exact lifetime (8.85475ms)\n✔ every trusted identity and order binding must match the authoritative unsigned record (8.464084ms)\n✔ fixed product, source, platform, chain and Sandbox boundaries fail closed (0.134709ms)\n✔ all order business fields and exact cost arithmetic are signed and validated (1.251958ms)\n✔ canonical integer and decimal grammar rejects rounding, exponent, signs and overflow (0.2355ms)\n✔ unknown, missing, hidden, accessor and custom-prototype fields never reach signing (0.212167ms)\n✔ raw JSON must be exact canonical UTF-8 with no duplicate, whitespace or trailing bytes (0.492083ms)\n✔ account, public key, order hash and signature mutations are rejected (0.643917ms)\n✔ mutation coverage list remains synchronized with the shared frozen vector (0.057833ms)\nℹ tests 20\nℹ suites 0\nℹ pass 20\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 154.880916\n"
+    },
+    {
+      "name": "Wallet extension network and legacy provider regression",
+      "passed": true,
+      "elapsedMs": 1109,
+      "outputSha256": "602d4eb53109db5a811086b7c7d4b15f917c484d792fcf35e0f5d5edd348bed3",
+      "tail": "833ms)\n✔ signing and transaction reject a replaced account before sensitive provider calls (0.201916ms)\n✔ second launch restores only an exact live Testnet account (0.197292ms)\n✔ tampered local session JSON is removed without a provider request (0.115708ms)\n✔ second launch removes non-canonical and unavailable remembered sessions (0.156625ms)\n✔ second launch invalidates account replacement and provider failure (0.198208ms)\n✔ action gates require a provider and an exact connected Testnet account (0.130125ms)\n✔ network mutation never depends on a direct browser RPC probe (0.110125ms)\n✔ only authoritative provider identity failures invalidate the connected UI session (0.090958ms)\n✔ provider lifecycle callbacks normalize accounts and unsubscribe exactly (0.436833ms)\n✔ forgetSession removes only the wallet session key (0.098542ms)\n✔ PWA routes only same-origin GET navigation and assets into cache strategies (0.441167ms)\n✔ only obsolete YNX caches are purged and requests resolve to canonical asset keys (0.46625ms)\n✔ version drift recovery and upgrade navigation are single-attempt and URL preserving (0.135791ms)\n✔ PWA recovery markers are removed without changing route state (0.089959ms)\n✔ nested official scope resolves canonical keys and rejects same-origin paths outside Wallet (0.575125ms)\n✔ built worker derives cache keys from its registration scope (4.160125ms)\n✔ PWA bootstrap compares the generated build identity and permits one bounded reload (0.561792ms)\n✔ public bootstrap HTML remains byte-compatible with the deployed v8 worker (0.688541ms)\n✔ PWA caches only successful same-origin response classes (0.109625ms)\n✔ cached bytes require the exact build digest (9.879833ms)\nℹ tests 67\nℹ suites 0\nℹ pass 67\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 1073.540792\n"
+    },
+    {
+      "name": "Wallet approval lifecycle, authority time and Faucet recovery",
+      "passed": true,
+      "elapsedMs": 639,
+      "outputSha256": "dbd65eb0d4af631d7c3fdb3d119eb56a1cce78383946a0efefa825f3ec9977a5",
+      "tail": "s old abort listener cannot clear a newer loading state (0.300667ms)\n✔ cancellation during original marker persistence retains it and stops POST (1.088292ms)\n✔ lost response and restart retry only the original body, even after configured amount changes (1.935917ms)\n✔ request_id_conflict applies handler-level original retry policy (1.1365ms)\n✔ stored_receipt_invalid applies handler-level original retry policy (1.206542ms)\n✔ rate_limited applies handler-level original retry policy (1.531375ms)\n✔ transaction_result_uncertain applies handler-level original retry policy (1.447958ms)\n✔ a saved receipt snapshot does not enable completion or show current success (1.43475ms)\n✔ new checks demote previous proof while pending, and changed node status cannot complete (1.5585ms)\n✔ read failure disables all actions and cannot appear as an empty history (0.280583ms)\n✔ explicit local reload recovers a paused original request without retrying a dispatched POST (2.096792ms)\n✔ local read failure can be retried once without enabling production or replacing saved identity (0.55675ms)\n✔ local reload remains blocked when locked (0.204ms)\n✔ local reload remains blocked when different-account (0.175792ms)\n✔ local reload remains blocked when quarantined (0.167792ms)\n✔ local reload remains blocked when inactive (0.163917ms)\n✔ reloading a saved receipt cannot restore fresh evidence or authorize completion (1.30175ms)\n✔ local recovery does not clear a write failure even without a quarantine notification (0.422792ms)\n✔ a late storage failure fences a newer reload after the old action was cancelled (0.428042ms)\n✔ persistence failure never restores an earlier UI or re-reads under quarantine (0.719041ms)\nℹ tests 143\nℹ suites 0\nℹ pass 143\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 541.218\n"
+    }
+  ]
+}

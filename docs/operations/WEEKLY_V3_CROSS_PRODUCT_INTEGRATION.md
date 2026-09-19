@@ -1,6 +1,53 @@
 # Weekly v3 cross-product integration checkpoint
 
-## Reopened acceptance window: B1–B4 (not yet product-tested)
+## Current frozen acceptance: 104/104 local PASS
+
+Finance `0adc35cd722d8728fc41704350c5f7a0056200d8` / tree
+`821d1661d2818f4347a59800d8e0764410b659b2` and Wallet
+`bd977cd2d382c4c43a435c8e415e698205b8a102` were tested with unchanged NETWORK assets
+`9e83f71f2d04e7252b8748655df5954dcee529b5`, tree
+`1d05f75169282514d21cfe4d2e7439def2116a4a`. All **15 asset hashes** match that
+commit. The full corrected run passes **33 root groups / 104 leaf cases** with
+Go race enabled, product checkpoints unchanged and harness assets unchanged.
+
+Report: `release/evidence/weekly-v3-cross-product-0adc35cd-expanded-corrected-20260919.json`.
+This closes the assigned B1–B4 local acceptance plus durable provider audit
+correlation: unchanged real HTML/native FormData AI start, empty chain activity
+and unavailable Explorer with explicit AI privacy permission, privacy opt-out
+rejection, default-off execution gates, native confirmation/decline, durable
+explicit execution → actual adapter, rejected terminal polling/events/restart,
+and separate raw provider status, HTTP request IDs and event cursors.
+
+The initial run is preserved separately: **99/103 PASS, four failures**. Two
+older full-flow fixtures omitted the newly required execution-request step;
+two new empty-context fixtures inadvertently disabled the existing global AI
+privacy permission. Only test prerequisites were corrected. The privacy opt-out
+negative case was added, not removed; no product source or safety gate changed.
+
+Independent regressions: Finance browser/compatibility **65/65**, harness
+**42/42**, NETWORK endpoint **38/38**, Wallet **20/20 + 67/67 + 143/143**,
+Faucet race/shared-alias/multi-user recovery, SDK backward-compatible consumers,
+and Mainnet rejection pass. PostgreSQL bootstrap/CAS integration explicitly
+SKIPs without `YNX_FINANCE_TEST_DATABASE_URL`; it is not a database-runtime pass.
+
+Reproduce the full accepted scope from the NETWORK assets checkpoint:
+
+```sh
+node scripts/verify/weekly-v3-finance-wallet-integration.mjs \
+  --finance-worktree '/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance-flow-20260912' \
+  --finance-commit 0adc35cd722d8728fc41704350c5f7a0056200d8 \
+  --wallet-worktree '/Users/huangjiahao/.codex/worktrees/6efe/YNX Chain' \
+  --wallet-commit bd977cd2d382c4c43a435c8e415e698205b8a102
+```
+
+The attachment-by-attachment scope and remaining external gates are recorded in
+`docs/operations/WEEKLY_V3_FINAL_CREDENTIAL_INDEPENDENT_AUDIT.md`. This local
+acceptance is not installed Wallet, real model, authenticated official Sandbox,
+successful PostgreSQL deployment, or public alias proof. All official/public/
+production flags stay false, and aggregate Stage A approval remains with the
+sole coordinator. No existing service, chain state or owner dirty file was reset.
+
+## Historical preparation window: B1–B4
 
 The sole coordinator reopened NETWORK's second writer slot for acceptance
 assets only after the full-requirement audit found four gaps outside the
@@ -66,7 +113,7 @@ and repair. It is not a new independently assigned product writer or permission
 to edit Finance. No runtime test has yet established persistence of those audit
 fields; the existing 81/81 suite does not assert them.
 
-## Latest expanded local acceptance: 81/81 PASS
+## Preserved prior scoped local acceptance: 81/81 PASS
 
 Finance `cb904735f6f03364f71e41172405ee12e0f5f152`, tree
 `e64348c00c6050f8fc875562b8b301e9ba00764a`, and Wallet
