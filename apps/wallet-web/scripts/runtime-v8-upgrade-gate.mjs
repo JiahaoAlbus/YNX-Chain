@@ -3,15 +3,17 @@ import {tmpdir} from "node:os";
 import {dirname,join,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 import {chromium} from "playwright";
+import {bounded,capturePwaFailure,pwaFrameReady} from "./runtime-evidence.mjs";
 import {createPwaUpgradeHarness} from "./pwa-upgrade-browser-harness.mjs";
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),profile=await mkdtemp(join(tmpdir(),"ynx-real-v8-upgrade-"));
-const evidencePath=join(root,"evidence/runtime/pwa-v8-to-build-upgrade.json");
+const evidencePath=join(process.env.YNX_WALLET_WEB_EVIDENCE_DIR?resolve(process.env.YNX_WALLET_WEB_EVIDENCE_DIR):join(root,"evidence/runtime"),"pwa-v8-to-build-upgrade.json");
 const fixture=await createPwaUpgradeHarness({port:0});
 const result={schemaVersion:3,generatedAt:new Date().toISOString(),runtimeClass:"isolated Playwright Chromium-compatible profile running the exact git 2f55f7924 v8 service worker, upgraded to the current build; not installed PWA or public deployment",fixture:fixture.metadata(),console:[],pageErrors:[],legacyWorkerSha256:fixture.metadata().bundles["legacy-v8"].workerSha256,passed:false,installedLocal:false,deployedPublic:false,providerConnected:false,accountAuthorized:false,messageSigned:false,transactionSubmitted:false,productSessionCreated:false};
+result.profilePath=profile;result.browserExecutable=chromium.executablePath();
 let context;
-async function open(){context=await chromium.launchPersistentContext(profile,{headless:true,viewport:{width:1100,height:850},timeout:15000});const page=context.pages()[0]||await context.newPage();page.on("console",message=>result.console.push({type:message.type(),text:message.text()}));page.on("pageerror",error=>result.pageErrors.push({name:error.name,message:error.message}));await page.goto(fixture.url,{waitUntil:"domcontentloaded",timeout:10000});await page.waitForFunction(()=>Boolean(window.pwaUpgradeQA));return page}
-async function ready(page){await page.waitForFunction(()=>document.querySelector('#wallet').contentWindow.document.documentElement.dataset.pwa==='ready',{},{timeout:20000});return page.evaluate(()=>window.pwaUpgradeQA.snapshot())}
+async function open(){context=await chromium.launchPersistentContext(profile,{headless:true,viewport:{width:1100,height:850},timeout:15000});result.browserVersion=context.browser()?.version()||"unknown";const page=context.pages()[0]||await context.newPage();page.on("console",message=>result.console.push({type:message.type(),text:message.text()}));page.on("pageerror",error=>result.pageErrors.push({name:error.name,message:error.message}));await page.goto(fixture.url,{waitUntil:"domcontentloaded",timeout:10000});await page.waitForFunction(()=>Boolean(window.pwaUpgradeQA));return page}
+async function ready(page){await page.waitForFunction(pwaFrameReady,{},{timeout:20000});return page.evaluate(()=>window.pwaUpgradeQA.snapshot())}
 try{
   let page=await open();
   result.beforeUpgrade=await page.evaluate(()=>window.pwaUpgradeQA.install("legacy-v8"));
@@ -31,11 +33,8 @@ try{
   result.failureFixture=fixture.metadata();
   if(context){
     const page=context.pages()[0];
-    if(page)result.failureSnapshot=await page.evaluate(async()=>({
-      snapshot:await window.pwaUpgradeQA?.snapshot?.(),
-      pwa:document.querySelector('#wallet')?.contentWindow?.document?.documentElement?.dataset?.pwa||null
-    })).catch(()=>null);
+    if(page)result.failureSnapshot=await capturePwaFailure(page);
   }
 }
-finally{if(context)await context.close().catch(()=>{});await fixture.close();await rm(profile,{recursive:true,force:true})}
+finally{if(context)await bounded(context.close(),4000,"browser close").catch(()=>{});await bounded(fixture.close(),3000,"fixture close").catch(()=>{});await rm(profile,{recursive:true,force:true})}
 await mkdir(dirname(evidencePath),{recursive:true});await writeFile(evidencePath,JSON.stringify(result,null,2)+"\n");console.log(JSON.stringify(result,null,2));process.exitCode=result.passed?0:1;

@@ -1,0 +1,11 @@
+{
+  "node": "v26.7.0",
+  "platform": "darwin",
+  "arch": "arm64",
+  "playwright": "1.62.1",
+  "fixtureBaseCommit": "4d1992f99645589ab69ea7856db647b900d47704",
+  "isolatedWorktree": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260920-wallet-browser-acceptance/apps/wallet-web",
+  "browserProfiles": "disposable; exact paths in each JSON; removed after execution",
+  "firefoxExternalBinary": "/tmp/ynx-firefox-install.Lkf88L/Firefox.app/Contents/MacOS/firefox",
+  "firefoxStatus": "exists; not rerun by this task; historical owner evidence must not be counted as this task browser pass"
+}

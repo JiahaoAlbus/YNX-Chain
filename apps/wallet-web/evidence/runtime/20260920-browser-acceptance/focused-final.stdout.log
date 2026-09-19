@@ -1,0 +1,18 @@
+✔ every selected browser must pass, including when another browser passes (0.358459ms)
+✔ failure diagnostics preserve independent document/worker/cache observations if integrity snapshot hangs (21.885292ms)
+✔ closed pages produce explicit per-component diagnostics, not a null snapshot (11.706417ms)
+✔ real page provider announces independently with a frozen preexisting foreign providers array (2.915916ms)
+✔ PWA readiness polls through detached or navigating iframe documents (0.954542ms)
+✔ runtime bridge uses an HTTPS blank fixture and discovers the real EIP-6963 provider (0.420917ms)
+✔ branded runtime also uses real HTTPS EIP-6963 discovery (0.066625ms)
+✔ active-tab runtime polls migration and classifies toolbar action as manual (0.064584ms)
+✔ branded runtime gate is selectable and does not inherit Playwright's extension blocker (0.35025ms)
+✔ branded runtime gate uses disposable profiles, bounded launches, and honest release booleans (0.08475ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 80.537792
