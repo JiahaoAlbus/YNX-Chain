@@ -174,6 +174,7 @@ public class YnxFaucetTransportModule: Module {
 
   public func definition() -> ModuleDefinition {
     Name("YnxFaucetTransport")
+    Constant("productionEnabled") { false }
     OnCreate {
       self.bridge.observeLifecycle(center: .default, names: .init(
         willEnterForeground: UIApplication.willEnterForegroundNotification,

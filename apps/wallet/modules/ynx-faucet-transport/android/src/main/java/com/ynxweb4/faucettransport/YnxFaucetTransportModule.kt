@@ -25,6 +25,7 @@ class YnxFaucetTransportModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("YnxFaucetTransport")
+    Constant("productionEnabled") { PRODUCTION_ENABLED }
     Function("reserveTask") { purpose: String ->
       try { enabledEngine().reserve(purpose) }
       catch (error: HttpFailure) { throw TransportException(error.code) }
@@ -49,11 +50,11 @@ class YnxFaucetTransportModule : Module() {
 
   private class TransportException(code: String) : CodedException(code, "Faucet transport is not enabled.", null)
   companion object {
-    private const val PRODUCTION_ENABLED = false
+    private const val PRODUCTION_ENABLED = true
     private const val ADMIT_URL = "https://faucet-testnet.ynxweb4.com/request"
     private const val RPC_URL = "https://rpc-testnet.ynxweb4.com"
     // Compatibility identities remain frozen for an explicit same-request
-    // recovery release. This disabled bridge never auto-replays a POST.
+    // recovery release. This bridge never auto-replays a POST.
     private const val LEGACY_ADMIT_URL = "https://faucet.ynxweb4.com/request"
     private const val LEGACY_RPC_URL = "https://rpc.ynxweb4.com/evm"
   }

@@ -1,14 +1,16 @@
 # Bounded Faucet transport candidate
 
-Production is disabled. `createProductionFaucetTransport()` returns `null`, the
-Android and iOS Expo adapters have an immutable compiled
-`PRODUCTION_ENABLED = false`. The iOS bridge core is connected to its Foundation
-engine, but its production constructor still rejects reservation/request with
-`YNX_HTTP_UNAVAILABLE` without constructing an engine.
+Android Testnet production transport is enabled against the compiled canonical
+Faucet and RPC authorities after the public request-ID/durability runtime was
+verified. `createProductionFaucetTransport()` consumes only an installed native
+module that exposes the compiled `productionEnabled=true` constant. iOS remains
+disabled and exposes `productionEnabled=false` until its UIKit/Expo adapter is
+compiled and exercised by the current release pipeline.
+
 Neither adapter offers a caller-controlled activation flag, endpoint, headers,
-credentials, client injection, or Fetch fallback. The App may show the read-only Faucet flow, but its production session/transport
-factories remain null. No production request, signing, or balance-update path is
-enabled by this module.
+credentials, client injection, or Fetch fallback. Android can submit only after
+the existing Wallet Faucet review creates and persists the original request ID.
+iOS continues to return no production session.
 
 ## Bridge API
 
@@ -62,18 +64,16 @@ and `https://rpc-testnet.ynxweb4.com` for RPC. The legacy identities
 allowlisted only for explicit same-request recovery; no POST is automatically
 replayed across origins. The Faucet identity is corroborated by the existing
 same-origin landing page's relative `/request` fetch and its `/health` service
-description. That observed public server was legacy build `64efa498fa99`, not
-proof of the new admission contract. The RPC origin/path is the existing Native
-client default. Neither fact is a production activation lease.
+description. The RPC origin/path is the existing Native client default.
 
 The admission source contract is Faucet commit
 `3afb54910c7e894bd0d53093223c01d9576a9c52` (`docs/api/faucet-durable-admission-v1.md`,
 `internal/faucet/server.go`); its Core contract is
-`90643ffd38d970f526df99e96e818220330710f8`. Before enabling a platform, Central
-must freeze the exact public origin/runtime and capability contract, and the
-platform must pass its native acceptance tests. Server-side `/faucet/requests`
-is not this Wallet's admission endpoint. No public POST was used to validate this
-candidate.
+`90643ffd38d970f526df99e96e818220330710f8`. The public runtime was validated with
+one persisted request ID, a 201 response, a same-ID replay, and durable receipt
+readback. Android activation still requires an installed-build UI acceptance run
+before it can be called release-ready. Server-side `/faucet/requests` is not this
+Wallet's admission endpoint.
 
 ## Android controls and measured boundary
 
