@@ -1,0 +1,120 @@
+{
+  "schema": "ynx-weekly-v3-postdeployment-integration-readback/v1",
+  "checkedAt": "2026-09-19T14:53:30.592Z",
+  "networkSource": "e73f82db49cb2c54e0d46053b4b36f735cb1cea7",
+  "runtimeFaucetSource": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+  "publishedCorsDefaultSource": "9d5f9c418884137b5b3c9156d44cf01456866d56",
+  "runtimeConfigApplied": true,
+  "newDefaultBinaryDeployed": false,
+  "publicRoutingVerified": true,
+  "cors": {
+    "checkedAt": "2026-09-19T14:51:57.319Z",
+    "readOnly": true,
+    "allPassed": true,
+    "observations": [
+      {
+        "host": "https://faucet.ynxweb4.com",
+        "origin": "https://www.ynxweb4.com",
+        "status": 204,
+        "allowOrigin": "https://www.ynxweb4.com",
+        "passed": true
+      },
+      {
+        "host": "https://faucet.ynxweb4.com",
+        "origin": "https://wallet.ynxweb4.com",
+        "status": 204,
+        "allowOrigin": "https://wallet.ynxweb4.com",
+        "passed": true
+      },
+      {
+        "host": "https://faucet.ynxweb4.com",
+        "origin": "https://untrusted.invalid",
+        "status": 403,
+        "allowOrigin": null,
+        "passed": true
+      },
+      {
+        "host": "https://faucet-testnet.ynxweb4.com",
+        "origin": "https://www.ynxweb4.com",
+        "status": 204,
+        "allowOrigin": "https://www.ynxweb4.com",
+        "passed": true
+      },
+      {
+        "host": "https://faucet-testnet.ynxweb4.com",
+        "origin": "https://wallet.ynxweb4.com",
+        "status": 204,
+        "allowOrigin": "https://wallet.ynxweb4.com",
+        "passed": true
+      },
+      {
+        "host": "https://faucet-testnet.ynxweb4.com",
+        "origin": "https://untrusted.invalid",
+        "status": 403,
+        "allowOrigin": null,
+        "passed": true
+      }
+    ]
+  },
+  "readOnlyStateDiagnostic": {
+    "observedAt": "2026-09-19T14:50:51.568Z",
+    "hosts": [
+      "https://rpc.ynxweb4.com",
+      "https://rpc-testnet.ynxweb4.com"
+    ],
+    "comparisonHeight": "0x18ecf4",
+    "sameHeightBlockVerified": true,
+    "blockHash": "0x6518a4e51a0aa71c45f1ca3d76eb0f493b45ae21f737572e5d6ce18e4991a5d4",
+    "historicalTransactionVerified": true,
+    "transactionHash": "0xc2bd65003ffb04971aeb49f060932a295ae2820d7c68d2c3f3b93a7c4aff763c",
+    "transactionBlock": "0x18eb91",
+    "transactionBlockHash": "0x47699640af751fceb7173b4c204d46fa400e2def44c116d8a97debfe8cfcd10e",
+    "address": "0xbb5a887e89598afc44ae314d2f1629a97de03f89",
+    "latestBalanceVerified": true,
+    "latestBalance": "0x56bc75e2d63100000",
+    "fixedHeightStateVerified": false,
+    "fixedHeightStateUnsupportedOnBoth": true,
+    "observedError": {
+      "code": -32602,
+      "message": "only latest/pending state is supported"
+    },
+    "nonemptyEVMContractCodeVerified": false,
+    "strictMigrationGatePassed": false,
+    "coreSourceChanged": false
+  },
+  "package": {
+    "path": "/private/tmp/ynx-testnet-alias-e73f82db-20260919",
+    "manifestSHA256": "e30a2d079d92b9dcefc1673b4c3be16a8156c3f3e17642861a3f5c9d01dec79f",
+    "checksumChecksPassed": 6,
+    "newBinaryBuilt": false,
+    "candidateOnly": true
+  },
+  "financeIndependentRegression": {
+    "commit": "5936ca3e083742dcb85fcd85e1f48a2370ac92db",
+    "cleanBeforeAfter": true,
+    "remoteExact": true,
+    "goRacePassed": true,
+    "browserTestsPassed": 65,
+    "browserTestsFailed": 0,
+    "securityTextFiles": 395,
+    "securityPassed": true,
+    "postgresRuntimeVerified": false
+  },
+  "crossModuleRegression": {
+    "newWalletCheckpointPending": true,
+    "dirtyOwnerFilesPreserved": true,
+    "frozen104CasesNotReused": true,
+    "newContinuousFlowVerified": false
+  },
+  "website": {
+    "sourceCommit": "0226db0c7b6b7eaed42208c61ae10ca8da6c6ea0",
+    "sourceTree": "76bcfafafdc3c899776226393211cc54b50cf32d",
+    "deploymentId": "dpl_9rzGYBQVwXLcyCMSoWw1urPkbfDj",
+    "publicDeployed": true,
+    "publicReadonlyVerified": true,
+    "publicClaimExecuted": false
+  },
+  "globalRegionalVerified": false,
+  "officialSandboxVerified": false,
+  "productionApproved": false
+}
