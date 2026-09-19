@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -523,6 +524,45 @@ func TestAIBrokerOrderDraftFailsClosedOnSchemaOrIntent(t *testing.T) {
 	}
 }
 
+func TestAIBrokerOrderIntentUsesCanonicalBackendDecimalBounds(t *testing.T) {
+	base := AISecuritiesOrderIntent{Symbol: "ACME", Side: "buy", Qty: "1", LimitPrice: "1"}
+	tests := []struct {
+		name  string
+		qty   string
+		price string
+		valid bool
+	}{
+		{name: "minimum", qty: "1", price: "0.0001", valid: true},
+		{name: "maximum", qty: "1000000", price: "999999999.9999", valid: true},
+		{name: "rational quantity", qty: "2/1", price: "1"},
+		{name: "exponent quantity", qty: "1e2", price: "1"},
+		{name: "signed quantity", qty: "+2", price: "1"},
+		{name: "quantity whitespace", qty: " 2", price: "1"},
+		{name: "fractional quantity", qty: "2.5", price: "1"},
+		{name: "leading zero quantity", qty: "02", price: "1"},
+		{name: "quantity above maximum", qty: "1000001", price: "1"},
+		{name: "rational price", qty: "2", price: "2/1"},
+		{name: "exponent price", qty: "2", price: "1e2"},
+		{name: "signed price", qty: "2", price: "+1"},
+		{name: "negative price", qty: "2", price: "-1"},
+		{name: "price whitespace", qty: "2", price: "1 ", valid: false},
+		{name: "leading zero price", qty: "2", price: "01", valid: false},
+		{name: "silent trailing zero", qty: "2", price: "10.250", valid: false},
+		{name: "silent fifth decimal", qty: "2", price: "1.00001", valid: false},
+		{name: "price above maximum", qty: "2", price: "1000000000", valid: false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			intent := base
+			intent.Qty = tc.qty
+			intent.LimitPrice = tc.price
+			if got := validAIOrderIntent(intent); got != tc.valid {
+				t.Fatalf("validAIOrderIntent(%+v)=%t; want %t", intent, got, tc.valid)
+			}
+		})
+	}
+}
+
 func TestHTTPAIProviderConsumesLoopbackSSEWithoutWrite(t *testing.T) {
 	requests := 0
 	gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -542,6 +582,108 @@ func TestHTTPAIProviderConsumesLoopbackSSEWithoutWrite(t *testing.T) {
 	result, err := provider.Stream(context.Background(), AIRequest{Kind: "draft_broker_order", Account: testAccount, OutputLocale: "en"}, func(string) {})
 	if err != nil || requests != 1 || result["schemaVersion"] != "finance.ai.broker-order-draft.v1" {
 		t.Fatalf("result=%v requests=%d err=%v", result, requests, err)
+	}
+}
+
+func TestAIBrokerOrderRouteAndHTTPGatewayEnforceExactDecimalAndObjectSchemas(t *testing.T) {
+	validResult := `{"schemaVersion":"finance.ai.broker-order-draft.v1","draftOnly":true,"orderDraft":{"symbol":"ACME","side":"buy","qty":"2","limitPrice":"10.25","timeInForce":"day","warnings":["Review only"]}}`
+	tests := []struct {
+		name           string
+		intent         AISecuritiesOrderIntent
+		gatewayResult  string
+		wantPostStatus int
+		wantJobStatus  string
+		wantJobError   string
+		wantStreams    int
+	}{
+		{name: "canonical", intent: AISecuritiesOrderIntent{Symbol: "ACME", Side: "buy", Qty: "2", LimitPrice: "10.25"}, gatewayResult: validResult, wantPostStatus: http.StatusAccepted, wantJobStatus: "ready", wantStreams: 1},
+		{name: "rational quantity input", intent: AISecuritiesOrderIntent{Symbol: "ACME", Side: "buy", Qty: "2/1", LimitPrice: "10.25"}, gatewayResult: validResult, wantPostStatus: http.StatusServiceUnavailable, wantStreams: 0},
+		{name: "exponent price input", intent: AISecuritiesOrderIntent{Symbol: "ACME", Side: "buy", Qty: "2", LimitPrice: "1e2"}, gatewayResult: validResult, wantPostStatus: http.StatusServiceUnavailable, wantStreams: 0},
+		{name: "rational quantity output", intent: AISecuritiesOrderIntent{Symbol: "ACME", Side: "buy", Qty: "2", LimitPrice: "10.25"}, gatewayResult: `{"schemaVersion":"finance.ai.broker-order-draft.v1","draftOnly":true,"orderDraft":{"symbol":"ACME","side":"buy","qty":"2/1","limitPrice":"10.25","timeInForce":"day","warnings":["Review only"]}}`, wantPostStatus: http.StatusAccepted, wantJobStatus: "failed", wantJobError: "AI_ORDER_DRAFT_FIELDS_INVALID", wantStreams: 1},
+		{name: "exponent price output", intent: AISecuritiesOrderIntent{Symbol: "ACME", Side: "buy", Qty: "2", LimitPrice: "10.25"}, gatewayResult: `{"schemaVersion":"finance.ai.broker-order-draft.v1","draftOnly":true,"orderDraft":{"symbol":"ACME","side":"buy","qty":"2","limitPrice":"1e2","timeInForce":"day","warnings":["Review only"]}}`, wantPostStatus: http.StatusAccepted, wantJobStatus: "failed", wantJobError: "AI_ORDER_DRAFT_FIELDS_INVALID", wantStreams: 1},
+		{name: "extra root output", intent: AISecuritiesOrderIntent{Symbol: "ACME", Side: "buy", Qty: "2", LimitPrice: "10.25"}, gatewayResult: `{"schemaVersion":"finance.ai.broker-order-draft.v1","draftOnly":true,"execute":true,"orderDraft":{"symbol":"ACME","side":"buy","qty":"2","limitPrice":"10.25","timeInForce":"day","warnings":["Review only"]}}`, wantPostStatus: http.StatusAccepted, wantJobStatus: "failed", wantJobError: "AI_ORDER_DRAFT_SCHEMA_INVALID", wantStreams: 1},
+		{name: "extra nested output", intent: AISecuritiesOrderIntent{Symbol: "ACME", Side: "buy", Qty: "2", LimitPrice: "10.25"}, gatewayResult: `{"schemaVersion":"finance.ai.broker-order-draft.v1","draftOnly":true,"orderDraft":{"symbol":"ACME","side":"buy","qty":"2","limitPrice":"10.25","timeInForce":"day","warnings":["Review only"],"execute":true}}`, wantPostStatus: http.StatusAccepted, wantJobStatus: "failed", wantJobError: "AI_ORDER_DRAFT_SCHEMA_INVALID", wantStreams: 1},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			streamRequests := 0
+			gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/health":
+					_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "model": "strict-schema-fixture"})
+				case "/ai/stream":
+					streamRequests++
+					w.Header().Set("Content-Type", "text/event-stream")
+					event, _ := json.Marshal(map[string]any{"text": tc.gatewayResult})
+					_, _ = fmt.Fprintf(w, "data: %s\n\n", event)
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer gateway.Close()
+			explorer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.URL.Path == "/health":
+					_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "rpcHeight": 1, "indexedHeight": 1, "nativeSymbol": "YNXT", "truthfulStatus": "indexed", "build": map[string]any{"commit": "strict-schema-explorer", "release": "strict-schema-explorer"}})
+				case strings.HasPrefix(r.URL.Path, "/api/accounts/"):
+					_ = json.NewEncoder(w).Encode(map[string]any{"account": map[string]any{"address": testAccount, "balance": 1, "staked": 0, "nonce": 1}})
+				case r.URL.Path == "/api/txs":
+					_ = json.NewEncoder(w).Encode(map[string]any{"transactions": []map[string]any{{"hash": "owned-ai-record", "type": "transfer", "from": testAccount, "to": "ynx1recipient", "amount": 1, "fee": 0, "blockNumber": 1, "timestamp": time.Now().UTC()}}})
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer explorer.Close()
+			store, err := OpenStore("")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := store.Update(testAccount, "privacy", "ai", func(state *AccountState) error {
+				state.Privacy.AllowAIActivityContext = true
+				return nil
+			}); err != nil {
+				t.Fatal(err)
+			}
+			upstreams, err := NewUpstreams(explorer.URL, "", "", "https://support.example/disputes")
+			if err != nil {
+				t.Fatal(err)
+			}
+			auth, session := testAuthenticator(t, "strict-ai-schema-"+strings.ReplaceAll(tc.name, " ", "-"))
+			service := &Service{
+				Store:     store,
+				Upstreams: upstreams,
+				AI:        &HTTPAIProvider{URL: gateway.URL, Client: gateway.Client()},
+				Support:   SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"},
+			}
+			server, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey})
+			if err != nil {
+				t.Fatal(err)
+			}
+			product := httptest.NewServer(server.Handler())
+			defer product.Close()
+			body := map[string]any{"kind": "draft_broker_order", "recordIds": []string{"owned-ai-record"}, "contextClasses": []string{"owned_activity"}, "consent": true, "outputLocale": "en", "securitiesOrderIntent": tc.intent}
+			var job AIJob
+			requestJSON(t, product.URL+"/api/ai/jobs", http.MethodPost, body, session.Token, "https://finance.example", tc.wantPostStatus, &job)
+			if tc.wantPostStatus == http.StatusAccepted {
+				deadline := time.Now().Add(time.Second)
+				for time.Now().Before(deadline) {
+					requestJSON(t, product.URL+"/api/ai/jobs/"+job.ID, http.MethodGet, nil, session.Token, "", http.StatusOK, &job)
+					if job.Status != "running" {
+						break
+					}
+					time.Sleep(time.Millisecond)
+				}
+				if job.Status != tc.wantJobStatus || job.Error != tc.wantJobError {
+					t.Fatalf("job status=%q error=%q; want status=%q error=%q", job.Status, job.Error, tc.wantJobStatus, tc.wantJobError)
+				}
+			}
+			if streamRequests != tc.wantStreams {
+				t.Fatalf("AI Gateway stream requests=%d; want %d", streamRequests, tc.wantStreams)
+			}
+			if len(store.Account(testAccount).Brokerage.Orders) != 0 {
+				t.Fatal("AI schema test created a broker order")
+			}
+		})
 	}
 }
 

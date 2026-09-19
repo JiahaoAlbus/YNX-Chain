@@ -5,7 +5,8 @@
   "inputs": [
     {"id": "broker_credentials", "needed": "Server Secret Manager reference/configuration location for an approved Alpaca Broker Sandbox correspondent; actual auth method and sandbox permissions", "blocks": "official authentication only, not local development"},
     {"id": "approved_test_accounts", "needed": "Authorized sandbox account mapping procedure for at least two distinct test users, virtual funds and market-data entitlements", "blocks": "official multi-user and data verification"},
-    {"id": "sandbox_write_confirmation", "needed": "Separate immediate authorization for a bounded virtual-funded order/cancel run after the public route and provider POST adapter receive their own reviewed checkpoint", "blocks": "official write verification"}
+    {"id": "sandbox_write_confirmation", "needed": "Separate immediate authorization for one bounded virtual-funded verify-approved POST/query/DELETE/reconcile run through the implemented operator-only worker", "blocks": "official write verification"},
+    {"id": "public_deployment_authority", "needed": "Independent Finance deployment lease plus source-bound public runtime and visible browser verification; this is not a prerequisite for controlled local Sandbox write verification", "blocks": "public deployment and public verification only"}
   ],
   "officialSandboxVerified": false,
   "productionApproved": false

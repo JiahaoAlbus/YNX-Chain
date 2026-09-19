@@ -8,10 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 )
@@ -70,7 +68,7 @@ func (p *HTTPAIProvider) Stream(ctx context.Context, request AIRequest, emit fun
 	raw, _ := json.Marshal(request)
 	query := "Return one reviewable Finance analysis draft as strict JSON. Never execute or claim to execute an action. Input: " + string(raw)
 	if request.Kind == "draft_broker_order" {
-		query = "Return only strict JSON matching {\"schemaVersion\":\"finance.ai.broker-order-draft.v1\",\"draftOnly\":true,\"orderDraft\":{\"symbol\":string,\"side\":\"buy\"|\"sell\",\"qty\":positive-decimal-string,\"limitPrice\":positive-decimal-string,\"timeInForce\":\"day\",\"warnings\":[non-empty-string]}}. Never execute, approve, select an asset id, or claim a broker action. Input: " + string(raw)
+		query = "Return only strict JSON matching {\"schemaVersion\":\"finance.ai.broker-order-draft.v1\",\"draftOnly\":true,\"orderDraft\":{\"symbol\":string,\"side\":\"buy\"|\"sell\",\"qty\":canonical-whole-share-string,\"limitPrice\":canonical-fixed-decimal-USD-string,\"timeInForce\":\"day\",\"warnings\":[non-empty-string]}}. Use exactly these root and orderDraft fields. qty must be a base-10 integer from 1 through 1000000. limitPrice must be from 0.0001 through 999999999.9999, with at most four fractional digits and no sign, exponent, fraction, whitespace, leading zero, or trailing fractional zero. Never execute, approve, select an asset id, or claim a broker action. Input: " + string(raw)
 	}
 	endpoint := strings.TrimRight(p.URL, "/") + "/ai/stream?session=" + url.QueryEscape("finance:"+request.Account) + "&q=" + url.QueryEscape(query)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
@@ -275,12 +273,10 @@ func (s *Service) runAI(ctx context.Context, request AIRequest, jobID, account s
 }
 
 func validAIOrderIntent(intent AISecuritiesOrderIntent) bool {
-	if !regexp.MustCompile(`^[A-Z][A-Z0-9.]{0,11}$`).MatchString(intent.Symbol) || (intent.Side != "buy" && intent.Side != "sell") || intent.Qty == "" || intent.LimitPrice == "" {
-		return false
-	}
-	qty, qtyOK := new(big.Rat).SetString(intent.Qty)
-	price, priceOK := new(big.Rat).SetString(intent.LimitPrice)
-	return qtyOK && priceOK && qty.Sign() > 0 && price.Sign() > 0 && len(intent.Qty) <= 24 && len(intent.LimitPrice) <= 24
+	return financeSymbolPattern.MatchString(intent.Symbol) &&
+		(intent.Side == "buy" || intent.Side == "sell") &&
+		financeQtyPattern.MatchString(intent.Qty) &&
+		financePricePattern.MatchString(intent.LimitPrice)
 }
 
 func validateAIResult(kind string, result map[string]any) error {
@@ -290,6 +286,15 @@ func validateAIResult(kind string, result map[string]any) error {
 	if result == nil {
 		return errors.New("AI_RESULT_EMPTY")
 	}
+	rootAllowed := map[string]bool{"schemaVersion": true, "draftOnly": true, "orderDraft": true}
+	if len(result) != len(rootAllowed) {
+		return errors.New("AI_ORDER_DRAFT_SCHEMA_INVALID")
+	}
+	for key := range result {
+		if !rootAllowed[key] {
+			return errors.New("AI_ORDER_DRAFT_SCHEMA_INVALID")
+		}
+	}
 	if result["schemaVersion"] != "finance.ai.broker-order-draft.v1" || result["draftOnly"] != true {
 		return errors.New("AI_ORDER_DRAFT_SCHEMA_INVALID")
 	}
@@ -298,6 +303,9 @@ func validateAIResult(kind string, result map[string]any) error {
 		return errors.New("AI_ORDER_DRAFT_SCHEMA_INVALID")
 	}
 	allowed := map[string]bool{"symbol": true, "side": true, "qty": true, "limitPrice": true, "timeInForce": true, "warnings": true}
+	if len(draft) != len(allowed) {
+		return errors.New("AI_ORDER_DRAFT_SCHEMA_INVALID")
+	}
 	for key := range draft {
 		if !allowed[key] {
 			return errors.New("AI_ORDER_DRAFT_SCHEMA_INVALID")

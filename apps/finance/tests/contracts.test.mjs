@@ -12,6 +12,11 @@ const webWallet=await readFile(new URL('web/wallet-auth-entry.js',base),'utf8');
 const orderWallet=await readFile(new URL('web/order-wallet-entry.js',base),'utf8');
 const providerEvidence=JSON.parse(await readFile(new URL('evidence/p0-finance-provider-connect-state-20260821.json',base),'utf8'));
 const migrationEvidence=JSON.parse(await readFile(new URL('evidence/p0-finance-product-wallet-migration-evidence-20260821.json',base),'utf8'));
+const brokerEnv=await readFile(new URL('.env.example',base),'utf8');
+const brokerSchema=JSON.parse(await readFile(new URL('broker-config.schema.json',base),'utf8'));
+const providerActivation=await readFile(new URL('PROVIDER_ACTIVATION.md',base),'utf8');
+const providerIntegration=await readFile(new URL('PROVIDER_INTEGRATION.md',base),'utf8');
+const operatorInputs=JSON.parse(await readFile(new URL('operator-inputs.request.json',base),'utf8'));
 const {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_RPC_PROBE,STANDARD_WALLET_RPC_PROBE_TRANSPORT}=await import(new URL('../web/node_modules/@ynx-chain/wallet-auth/src/standard-wallet-connect-state.js',import.meta.url));
 const {evaluateProductWalletMigrationEvidence}=await import(new URL('../web/node_modules/@ynx-chain/wallet-auth/src/index.js',import.meta.url));
 
@@ -66,6 +71,31 @@ test('AI Broker order results remain drafts until copied and explicitly previewe
   for(const marker of ['draft_broker_order','Copy into order form','Search and select the exact provider-backed asset before previewing approval.'])assert.ok(html.includes(marker)||js.includes(marker),marker);
   assert.ok(js.includes("location.hash='broker-sandbox'"));
   assert.equal(js.includes('Submit AI order'),false);
+});
+
+test('Broker activation schema, env, operator request and documentation match the implemented controlled flow',()=>{
+  const requiredNames=['YNX_FINANCE_BROKER_VERIFY_ACCOUNT','YNX_FINANCE_BROKER_MAX_FEE_USD','YNX_FINANCE_BROKER_FEE_BOUND_SOURCE','YNX_FINANCE_BROKER_FEE_EVIDENCE_REF'];
+  const envValues=Object.fromEntries(brokerEnv.split('\n').filter(line=>line&&!line.startsWith('#')&&line.includes('=')).map(line=>{const at=line.indexOf('=');return [line.slice(0,at),line.slice(at+1)]}));
+  for(const name of requiredNames){
+    assert.ok(Object.hasOwn(brokerSchema.properties,name),`schema missing ${name}`);
+    assert.match(brokerEnv,new RegExp(`^${name}=`, 'm'),`env example missing ${name}`);
+  }
+  assert.match(envValues.YNX_FINANCE_BROKER_MAX_FEE_USD,new RegExp(brokerSchema.properties.YNX_FINANCE_BROKER_MAX_FEE_USD.pattern));
+  assert.ok(brokerSchema.properties.YNX_FINANCE_BROKER_FEE_BOUND_SOURCE.enum.includes(envValues.YNX_FINANCE_BROKER_FEE_BOUND_SOURCE));
+  assert.match(envValues.YNX_FINANCE_BROKER_FEE_EVIDENCE_REF,new RegExp(brokerSchema.properties.YNX_FINANCE_BROKER_FEE_EVIDENCE_REF.pattern));
+  for(const marker of ['verify-approved','provider POST dispatch','provider query/reconciliation','provider DELETE cancellation','final reconciliation','SANDBOX_VERIFY_APPROVED_ORDER_ONCE']) assert.ok(providerActivation.includes(marker),marker);
+  for(const stale of ['one assets GET','provider POST and its public route remain intentionally unwired']) assert.equal(providerActivation.includes(stale),false,stale);
+  assert.ok(providerIntegration.includes('Submission is disabled by default.'));
+  assert.ok(providerIntegration.includes('one-shot worker'));
+  assert.ok(providerIntegration.includes('there is no browser provider-write route'));
+  assert.equal(providerIntegration.includes('Submission stays disabled even if credentials exist or an operator prematurely turns on the write flag.'),false);
+  const byId=Object.fromEntries(operatorInputs.inputs.map(value=>[value.id,value]));
+  assert.ok(byId.broker_credentials);
+  assert.match(byId.sandbox_write_confirmation.needed,/verify-approved POST\/query\/DELETE\/reconcile/);
+  assert.equal(/public route/i.test(byId.sandbox_write_confirmation.needed),false);
+  assert.match(byId.public_deployment_authority.needed,/not a prerequisite for controlled local Sandbox write verification/);
+  assert.equal(operatorInputs.officialSandboxVerified,false);
+  assert.equal(operatorInputs.productionApproved,false);
 });
 
 test('Broker Sandbox product entry exposes provider search, owner watchlist, reconcile and cancellation intent without browser provider writes',()=>{

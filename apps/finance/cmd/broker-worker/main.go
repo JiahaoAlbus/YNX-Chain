@@ -58,7 +58,7 @@ func exactKeys(values map[string]string, keys ...string) bool {
 
 func parseInvocation(args []string, get func(string) string) (invocation, error) {
 	if len(args) < 1 {
-		return invocation{}, errors.New("USAGE: link-account|query|reconcile|dispatch-one|cancel-one|apply-events")
+		return invocation{}, errors.New("USAGE: link-account|query|reconcile|dispatch-one|cancel-one|verify-approved|apply-events")
 	}
 	values, err := parsePairs(args)
 	if err != nil {
