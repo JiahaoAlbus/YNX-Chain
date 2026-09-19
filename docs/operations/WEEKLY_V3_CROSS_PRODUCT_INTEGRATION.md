@@ -1,6 +1,59 @@
 # Weekly v3 cross-product integration checkpoint
 
-## Latest expanded Stage A acceptance: strict AI schema defect found
+## Latest expanded local acceptance: 81/81 PASS
+
+Finance `cb904735f6f03364f71e41172405ee12e0f5f152`, tree
+`e64348c00c6050f8fc875562b8b301e9ba00764a`, and Wallet
+`bd977cd2d382c4c43a435c8e415e698205b8a102` pass **26 root groups / 81 leaf
+cases** with Go race enabled. Exact unchanged NETWORK `1f24904049a1bc399a67ca8c9493237e3c5f9077`
+acceptance assets were used: all 12 source hashes match that commit; product
+and integration stability gates are true, with no diagnostic Date adapter.
+
+Evidence:
+`release/evidence/weekly-v3-cross-product-cb904735-bd977cd2-20260919.json`.
+Independent final-Finance regressions: Go race across Finance/command packages
+PASS; npm **60/60** PASS; harness **35/35** PASS. These are local results only.
+
+The owner fix `c47c88df2a6ac6140116af99feb1ecc892adbb95` reuses canonical
+backend numeric rules for AI input/output and requires exact root/nested field
+sets. The same three previously failing HTTP/Gateway job cases now fail closed;
+the positive persisted-job/browser-copy case still passes. No assertion or
+fixture was weakened. Initial failure evidence below remains immutable.
+
+Read-only source review confirms the activation guide now documents the real
+doctor read coverage and one-shot worker flow, the env/schema include owner
+verification plus fee-bound inputs, and the integration/operator request no
+longer incorrectly require unwired public provider-submit routes. Their contract
+test is included in the 60-test Finance regression.
+
+Integration's assigned completion-pack acceptance is complete and its writer
+slot is released after publishing this evidence. This scoped pass is not a
+certificate for all attachment requirements: the report intentionally preserves
+`stageAComplete=false` pending the sole coordinator's full requirement audit.
+Official Sandbox credentials/entitlements/funding and separately authorized
+low-frequency writes remain external gates. Real model, installed/public Wallet
+approval, successful PostgreSQL/multi-host persistence, public deployment and
+new RPC/Faucet alias verification are not established by this suite.
+`officialSandboxVerified`, `publicDeployed`, `publicVerified` and
+`productionApproved` remain false. Mainnet and live trading were not enabled.
+
+Reproduction (run from the NETWORK worktree at the delivered assets):
+
+```sh
+node scripts/verify/weekly-v3-finance-wallet-integration.mjs \
+  --finance-worktree '/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance-flow-20260912' \
+  --finance-commit cb904735f6f03364f71e41172405ee12e0f5f152 \
+  --wallet-worktree '/Users/huangjiahao/.codex/worktrees/6efe/YNX Chain' \
+  --wallet-commit bd977cd2d382c4c43a435c8e415e698205b8a102
+```
+
+For an additional evidence file, choose a new path with `--output`; the runner
+refuses to overwrite an existing report. It also refuses dirty/unpublished owner
+source. Recovery uses the published branches/checkpoints, never reset/clean of
+an owner tree. No product or chain-state rollback is required for this test-only
+delivery, and no existing data or service was removed.
+
+## Preserved expanded Stage A failure: strict AI schema defect
 
 Frozen Finance `f8c55f3c96fc3a5db374bc77a3cbef4ce156523d` (tree
 `d56d2eb8ba3e4ecf1faa86ed83a909ee87f9d618`) and Wallet `bd977cd2d` were
