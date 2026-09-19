@@ -52,9 +52,11 @@ graph changed. The placeholder gate excludes the Finance public-endpoint
 manifest in both scanner implementations because the reserved documentation hostname appears there
 only in its fail-closed rejection list.
 
-Mail, Social and Calendar remain identical to the Network baseline. Their
-unrelated histories were not imported. Resource Market and Data Fabric receive
-only the shared repository Go floor (`1.25.13`) in CI. Music and Pay receive
+Mail product source remains identical to the Network baseline. Its two workflows
+receive only immutable action pins required by the repository-wide security
+gate; Social and Calendar remain identical to the baseline. Their unrelated
+histories were not imported. Resource Market and Data Fabric receive only the
+shared repository Go floor (`1.25.13`) in CI. Music and Pay receive
 only an empty Android SDK package override because the pinned setup action's
 retired default `tools` package fails before their builds. Merchant receives a
 regenerated backend SBOM and matching release hash/byte metadata for the shared
@@ -64,6 +66,21 @@ added. The Wallet iOS workflow runs the existing pin verifier against its own
 new workflow only. The independent repository-wide pin gates remain unchanged
 in `.github/workflows/ci.yml` and `.github/workflows/docs-compliance.yml`, so
 the scoped Wallet check does not remove global pin enforcement.
+
+The shared root Go and security graph moved beyond Data Fabric's earlier frozen
+source. Data Fabric release metadata and all source-bound integration evidence
+therefore bind to pushed checkpoint
+`fcb200141f92c046ece581aa63250de732c79bdf`. Local quality gates pass at that
+exact source; remote CI and a new source-only prerelease remain pending. No
+historical CI run or source archive is claimed for the new source.
+
+The local Testnet helper now creates a random 32-byte Faucet authority token in
+a mode-`0600` temporary file and injects only its path into `ynx-chaind`. The Pay
+integration check supplies the authority header only to its internal Faucet
+funding call, generates an ephemeral Wallet key, broadcasts the canonical
+signed transfer through `/transactions/broadcast`, and settles only after the
+committed transaction is readable. The authority and signed-transfer checks are
+kept enabled; no public Faucet request is made.
 
 An earlier Wallet-base experiment demonstrated that PR #137 cannot be safely
 applied onto the older Wallet tree without replacing its durable Faucet base.
@@ -90,6 +107,10 @@ Passed on the scope-narrowed working tree before publication:
 - Finance Go packages and commands; Finance browser/product suite: 48/48;
 - DEX TypeScript/Vite production build and focused Wallet consumer test; Merchant
   backend SBOM regeneration, 12/12 tests, build and release verification;
+- Data Fabric exact quality gates against source checkpoint `fcb200141f92`;
+  Pay API integration with authenticated local Faucet funding and a canonical
+  signed native transfer; the repository-wide action pin gate reports 144/144
+  external references fixed to immutable commits;
 - Finance/Wallet isolated race integration: pass with unchanged checkpoints,
   including draft, approval/reject/revoke, execution fences, status,
   reconciliation, recovery and provider-wire fixtures;

@@ -11,6 +11,17 @@ ynx_kill_tree() {
   wait "$pid" >/dev/null 2>&1 || true
 }
 
+ynx_prepare_local_faucet_authority() {
+  export YNX_FAUCET_CORE_AUTH_TOKEN_FILE="$YNX_VERIFY_WORK/faucet-core-auth.token"
+  YNX_FAUCET_CORE_AUTH_TOKEN="$(od -An -N32 -tx1 /dev/urandom | tr -d '[:space:]')"
+  if [[ ! "$YNX_FAUCET_CORE_AUTH_TOKEN" =~ ^[0-9a-f]{64}$ ]]; then
+    echo "failed to generate the local Faucet authority token"
+    return 1
+  fi
+  (umask 077; printf '%s\n' "$YNX_FAUCET_CORE_AUTH_TOKEN" >"$YNX_FAUCET_CORE_AUTH_TOKEN_FILE")
+  chmod 0600 "$YNX_FAUCET_CORE_AUTH_TOKEN_FILE"
+}
+
 ynx_start_local_testnet() {
   export YNX_VERIFY_WORK="${YNX_VERIFY_WORK:-$(mktemp -d)}"
   export YNX_REST_URL="${YNX_REST_URL:-http://127.0.0.1:6420}"
@@ -19,7 +30,10 @@ ynx_start_local_testnet() {
     export YNX_STARTED_PID=""
     return 0
   fi
-  YNX_NETWORK=testnet YNX_HTTP_ADDR=127.0.0.1:6420 YNX_DATA_DIR="$YNX_VERIFY_WORK/state" go run ./cmd/ynx-chaind >"$YNX_VERIFY_WORK/server.log" 2>&1 &
+  ynx_prepare_local_faucet_authority
+  YNX_NETWORK=testnet YNX_HTTP_ADDR=127.0.0.1:6420 YNX_DATA_DIR="$YNX_VERIFY_WORK/state" \
+    YNX_FAUCET_CORE_AUTH_TOKEN_FILE="$YNX_FAUCET_CORE_AUTH_TOKEN_FILE" \
+    go run ./cmd/ynx-chaind >"$YNX_VERIFY_WORK/server.log" 2>&1 &
   export YNX_STARTED_PID=$!
   for _ in {1..120}; do
     curl -fsS "$YNX_REST_URL/health" >/dev/null 2>&1 && return 0
