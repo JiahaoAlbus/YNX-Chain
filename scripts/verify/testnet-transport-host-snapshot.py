@@ -102,6 +102,39 @@ def config_summary(config):
             "fullConfigRetained": False}
 
 
+def firewall_summary(text):
+    """Project nft list JSON; never export names, IPs, expressions or comments."""
+    value = json.loads(text)
+    result = {"available": True, "baseChains": [], "ruleCount": 0,
+              "terminalRules": [], "rawRulesRetained": False, "cloudFirewallVisible": False}
+    for item in value.get("nftables", []):
+        chain = item.get("chain", {})
+        if "hook" in chain:
+            result["baseChains"].append({k: chain[k] for k in ("family", "hook", "policy")
+                                         if chain.get(k) in ("ip", "ip6", "inet", "bridge", "netdev", "arp", "input", "output", "forward", "prerouting", "postrouting", "ingress", "egress", "accept", "drop")})
+        rule = item.get("rule")
+        if not rule:
+            continue
+        result["ruleCount"] += 1
+        verdict, count, port443 = None, None, False
+        for expression in rule.get("expr", []):
+            for target in ("accept", "drop", "reject"):
+                if target in expression:
+                    verdict = target
+            counter = expression.get("counter")
+            if isinstance(counter, dict):
+                count = {k: counter[k] for k in ("packets", "bytes") if isinstance(counter.get(k), int) and counter[k] >= 0}
+            match = expression.get("match", {})
+            payload = match.get("left", {}).get("payload", {}) if isinstance(match.get("left"), dict) else {}
+            if payload.get("field") == "dport" and match.get("op") == "==" and match.get("right") == 443:
+                port443 = True
+        if verdict:
+            result["terminalRules"].append({"verdict": verdict, "counter": count,
+                                             "explicitSingleDport443Match": port443,
+                                             "completeMatchSemanticsRetained": False})
+    return result
+
+
 def details():
     out = {"observedAt": now(), "cpuCount": os.cpu_count(), "kernel": os.uname().release}
     out["caddyVersion"] = run(["caddy", "version"])
@@ -130,6 +163,17 @@ def details():
     out["caddyfileSHA256"] = run(["sudo", "-n", "sha256sum", "/etc/caddy/Caddyfile"])
     out["caddyJournal"] = journal_summary("caddy")
     out["kernelJournal"] = journal_summary()
+    firewall = run(["sudo", "-n", "nft", "-j", "list", "ruleset"], 4)
+    try:
+        out["firewall"] = firewall_summary(firewall["output"]) if firewall["exitCode"] == 0 else {"available": False, "exitCode": firewall["exitCode"]}
+    except (ValueError, TypeError, AttributeError):
+        out["firewall"] = {"available": False, "reason": "unsupported or truncated nft JSON"}
+    out["conntrack"] = {}
+    for name in ("nf_conntrack_count", "nf_conntrack_max"):
+        try:
+            out["conntrack"][name] = int(pathlib.Path("/proc/sys/net/netfilter/" + name).read_text())
+        except (OSError, ValueError):
+            out["conntrack"][name] = None
     out["localProbes"] = []
     for host in HOSTS:
         path = "/health" if host.startswith("faucet") else "/status"

@@ -63,6 +63,11 @@ test("counter reset is unknown not negative loss; missing counters not zero",()=
 test("source hashes bind the exact collector and shared health interpreter",()=>{
   const values=sourceIdentity();assert.equal(Object.keys(values).length,3);assert(Object.values(values).every(x=>/^[a-f0-9]{64}$/.test(x)));
 });
+test("pinned-origin comparison retains URL/SNI/TLS and cannot choose arbitrary targets",()=>{
+  const o=parseArgs(['--pin-origin']);assert(o.direct);assert(o.pinOrigin);
+  for(const route of ROUTES){const a=curlArgs(route,'ynx-probe-test',null,o);assert.equal(a[a.indexOf('--resolve')+1],new URL(route.url).hostname+':443:43.153.202.237');assert.equal(a.at(-1),route.url);assert(a.includes('--noproxy'));assert(!a.includes('--insecure'));}
+  assert.throws(()=>parseArgs(['--pin-origin','1.2.3.4']));
+});
 test("planned source ports are bounded, explicitly passed and never silently retried",()=>{
   const a=curlArgs(ROUTES[0],"ynx-probe-port",24001);assert.equal(a[a.indexOf('--local-port')+1],'24001');
   for(const p of [1,65536,24001.5,"24001;bad"])assert.throws(()=>curlArgs(ROUTES[0],"ynx-probe-port",p));
