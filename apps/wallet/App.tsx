@@ -431,7 +431,7 @@ function WalletCenter({visible,account,chainState,close,openAudit,retry}:{visibl
     <Text style={[styles.eyebrow,styles.sectionLabel]}>{walletCopy(locale,"RECOVERY / SECURITY / NETWORK")}</Text>
     <InfoCard title={walletCopy(locale,"Recovery")} body={walletCopy(locale,"Your offline key restores this account. Each app still needs its own sign-in approval. You can review existing app sessions above.")}/>
     <InfoCard title={walletCopy(locale,"Security")} body={walletCopy(locale,"Wallet locks in the background. Viewing app sessions, revoking a session and using a private key each require system biometrics.")}/>
-    <InfoCard title={translate(locale,"network")} body={walletCopy(locale,"YNX testnet · ynx_6423-1 · native YNXT · rpc.ynxweb4.com. EVM chain ID 6423 is available in the compatibility view.")}/>
+    <InfoCard title={translate(locale,"network")} body={walletCopy(locale,"YNX testnet · ynx_6423-1 · native YNXT · rpc-testnet.ynxweb4.com. EVM chain ID 6423 is available in the compatibility view.")}/>
   </Sheet></Modal>
 }
 

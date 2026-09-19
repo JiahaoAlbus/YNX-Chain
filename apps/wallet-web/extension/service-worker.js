@@ -28,7 +28,7 @@ function mutateAuthority(action){const operation=authorityMutation.then(action);
 function invalidateWaiters(code,message,origin=null,tabId=null,browserContext=null){for(const collection of[approvalWaiters,signerWaiters])for(const[id,waiter]of collection)if((origin===null||waiter.pending.origin===origin)&&(tabId===null||waiter.pending.tabId===tabId)&&(browserContext===null||waiter.lease.browserContext===browserContext)){waiter.reject(Object.assign(new Error(message),{code}));collection.delete(id)}}
 const migrationPromise=runExtensionMigration(extensionApi,{alarmsDeclared:false}).then(report=>({ok:true,report}),error=>({ok:false,error}));
 async function requireMigrationReady(){const state=await migrationPromise;if(!state.ok)throw Object.assign(new Error("Extension upgrade cleanup is incomplete; wallet access remains disabled."),{code:"MIGRATION_INCOMPLETE",cause:state.error});return state.report}
-const YNX_CHAIN=Object.freeze({chainId:CHAIN_ID,chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://evm.ynxweb4.com"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com"])});
+const YNX_CHAIN=Object.freeze({chainId:CHAIN_ID,chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://rpc-testnet.ynxweb4.com","https://evm.ynxweb4.com"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com"])});
 
 function pageWalletRequest(preference,input){
   if(preference!=="ynx")throw Object.assign(new Error("YNX Wallet does not connect through another wallet provider."),{code:"WALLET_PROVIDER_UNSUPPORTED"});

@@ -141,7 +141,7 @@ const DETAIL_MESSAGES={
   "Your offline key restores this account. Each app still needs its own sign-in approval. You can review existing app sessions above.":["离线密钥可恢复此账户。每个应用仍需单独批准登录。你可以在上方查看现有应用会话。","يستعيد مفتاحك المحفوظ دون اتصال هذا الحساب. لا يزال كل تطبيق بحاجة إلى موافقة تسجيل دخول مستقلة. يمكنك مراجعة جلسات التطبيقات الحالية أعلاه."],
   "Security":["安全","الأمان"],
   "Wallet locks in the background. Viewing app sessions, revoking a session and using a private key each require system biometrics.":["钱包进入后台时会锁定。查看应用会话、撤销会话和使用私钥均需要系统生物识别。","تُقفل المحفظة في الخلفية. يتطلب عرض جلسات التطبيقات وإلغاء جلسة واستخدام مفتاح خاص المقاييس الحيوية للنظام في كل مرة."],
-  "YNX testnet · ynx_6423-1 · native YNXT · rpc.ynxweb4.com. EVM chain ID 6423 is available in the compatibility view.":["YNX 测试网 · ynx_6423-1 · 原生 YNXT · rpc.ynxweb4.com。EVM 兼容视图使用链 ID 6423。","شبكة اختبار YNX · ynx_6423-1 · YNXT الأصلي · rpc.ynxweb4.com. يتوفر معرّف سلسلة EVM رقم 6423 في عرض التوافق."],
+  "YNX testnet · ynx_6423-1 · native YNXT · rpc-testnet.ynxweb4.com. EVM chain ID 6423 is available in the compatibility view.":["YNX 测试网 · ynx_6423-1 · 原生 YNXT · rpc-testnet.ynxweb4.com。EVM 兼容视图使用链 ID 6423。","شبكة اختبار YNX · ynx_6423-1 · YNXT الأصلي · rpc-testnet.ynxweb4.com. يتوفر معرّف سلسلة EVM رقم 6423 في عرض التوافق."],
   "CONNECTED APPS / SESSIONS / DEVICES":["已连接应用 / 会话 / 设备","التطبيقات المتصلة / الجلسات / الأجهزة"],
   "Connected Apps, Sessions and Devices":["已连接应用、会话和设备","التطبيقات المتصلة والجلسات والأجهزة"],
   "Wallet account":["钱包账户","حساب المحفظة"],

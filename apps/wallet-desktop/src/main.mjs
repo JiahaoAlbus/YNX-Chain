@@ -44,7 +44,8 @@ if (isolatedProfile) {
   app.setPath("userData", isolatedProfile);
 }
 // Canonical public RPC from Central endpoint matrix d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59.
-const rpcUrl = process.env.YNX_WALLET_RPC_URL || CANONICAL_RPC_URL;
+const configuredRpcUrl = process.env.YNX_WALLET_RPC_URL;
+const rpcUrl = configuredRpcUrl || CANONICAL_RPC_URL;
 const evidencePath = process.env.YNX_WALLET_EVIDENCE_PATH;
 let mainWindow;
 let authorizationController;
@@ -76,7 +77,7 @@ function queueStartupProtocolUrl(url) {
 }
 
 async function rpcStatus() {
-  return probeYNXTestnetRPC({ rpcUrl, expectedChainId: YNX_TESTNET_CHAIN_QUANTITY, fetchImpl: net.fetch.bind(net) });
+  return probeYNXTestnetRPC({ rpcUrl: configuredRpcUrl, expectedChainId: YNX_TESTNET_CHAIN_QUANTITY, fetchImpl: net.fetch.bind(net) });
 }
 
 async function recordEvidence(status, window, { launch = false } = {}) {

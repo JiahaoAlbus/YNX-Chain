@@ -11,7 +11,7 @@ export const METAMASK_EVM_CHAIN = Object.freeze({
   chainId: METAMASK_EVM_CHAIN_QUANTITY,
   chainName: "YNX Testnet",
   nativeCurrency: Object.freeze({ name: "YNX Testnet", symbol: "YNXT", decimals: 18 }),
-  rpcUrls: Object.freeze(["https://evm.ynxweb4.com"]),
+  rpcUrls: Object.freeze(["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"]),
   blockExplorerUrls: Object.freeze(["https://explorer.ynxweb4.com"]),
 });
 

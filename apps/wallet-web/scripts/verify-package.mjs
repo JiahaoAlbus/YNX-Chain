@@ -43,7 +43,7 @@ for (const artifact of manifest.artifacts) {
   const vaultBundle=execFileSync("unzip",["-p",archive,"extension-vault.js"],{encoding:"utf8"});
   if(!vaultBundle.includes("PBKDF2")||!vaultBundle.includes("AES-GCM")||vaultBundle.includes("correct horse battery staple")||/eval\(|new Function/u.test(vaultBundle))throw new Error(`Invalid encrypted vault bundle: ${artifact.name}`);
   const signerBundle=execFileSync("unzip",["-p",archive,"extension-signer.js"],{encoding:"utf8"});if(!signerBundle.includes("eth_signTypedData_v4")||!signerBundle.includes("eth_sendTransaction")||/eval\(|new Function/u.test(signerBundle))throw new Error(`Invalid signer bundle: ${artifact.name}`);
-  if (extension.content_security_policy?.extension_pages !== "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com") throw new Error(`Invalid extension RPC CSP: ${artifact.name}`);
+  if (extension.content_security_policy?.extension_pages !== "script-src 'self'; object-src 'self'; connect-src https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com") throw new Error(`Invalid extension RPC CSP: ${artifact.name}`);
   if (JSON.stringify(extension.host_permissions) !== JSON.stringify(["https://*/*"])) throw new Error(`Invalid host permissions: ${artifact.name}`);
   const expectedContentScripts=[
     {matches:["https://*/*"],js:["content-script.js"],run_at:"document_start",all_frames:false,match_about_blank:false},

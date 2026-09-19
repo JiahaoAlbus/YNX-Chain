@@ -1,6 +1,8 @@
 import {readNativeBalance,readFeeModel} from "./extension-fee-model.js";
 import {parseDurabilityModel,parseTransactionDurability} from "./extension-durability.js";
-export const YNX_RPC_URL = "https://evm.ynxweb4.com";
+export const YNX_RPC_URL = "https://rpc-testnet.ynxweb4.com";
+export const YNX_LEGACY_RPC_URL = "https://evm.ynxweb4.com";
+export const YNX_RPC_URLS = Object.freeze([YNX_RPC_URL,YNX_LEGACY_RPC_URL]);
 export const YNX_CHAIN_ID = "0x1917";
 export const RPC_TIMEOUT_MS = 12000;
 export const RPC_REQUEST_ID = 6423;
@@ -13,14 +15,28 @@ function rpcFailure(code, message, cause) {
   throw Object.assign(new Error(message), {code, cause});
 }
 
-export async function verifyExtensionRpc(fetcher = globalThis.fetch, url = YNX_RPC_URL) {
-  const result=await forwardExtensionRpc("eth_chainId",[],fetcher,url);
-  if (result !== YNX_CHAIN_ID) rpcFailure("WRONG_NETWORK", "RPC did not prove YNX Testnet chain 6423.");
-  return Object.freeze({chainId: result, source: url, responseValidated: true});
+export async function verifyExtensionRpc(fetcher = globalThis.fetch, url) {
+  const verified=await withRpcFallback(fetcher,url,async endpoint=>{
+    const result=await exactRpcRequest("eth_chainId",[],fetcher,endpoint);
+    if(result!==YNX_CHAIN_ID)rpcFailure("WRONG_NETWORK","RPC did not prove YNX Testnet chain 6423.");
+    return result;
+  });
+  return Object.freeze({chainId:verified.value,source:verified.source,responseValidated:true});
 }
 
-export async function forwardExtensionRpc(method,params=[],fetcher=globalThis.fetch,url=YNX_RPC_URL){
+export async function forwardExtensionRpc(method,params=[],fetcher=globalThis.fetch,url){
   if(typeof method!=="string"||!(method==="eth_chainId"||READ_ONLY_RPC_METHODS.includes(method)))rpcFailure(4200,"Unsupported YNX Wallet RPC method.");
+  const result=await withRpcFallback(fetcher,url,async endpoint=>{
+    if(method!=="eth_chainId"){
+      const chain=await exactRpcRequest("eth_chainId",[],fetcher,endpoint);
+      if(chain!==YNX_CHAIN_ID)rpcFailure("WRONG_NETWORK","RPC did not prove YNX Testnet chain 6423.");
+    }
+    return forwardAtEndpoint(method,params,fetcher,endpoint);
+  });
+  return result.value;
+}
+
+async function forwardAtEndpoint(method,params,fetcher,url){
   if(method==="ynx_getDurabilityModel"){
     if(!Array.isArray(params)||params.length!==0)rpcFailure(-32602,"Durability model requires empty parameters.");
     return parseDurabilityModel(await exactRpcRequest(method,params,fetcher,url));
@@ -47,14 +63,14 @@ export async function broadcastExtensionTransaction(rawTransaction,fetcher=globa
 
 async function exactRpcRequest(method,params=[],fetcher=globalThis.fetch,url=YNX_RPC_URL){
   if(!Array.isArray(params)||JSON.stringify(params).length>PARAMS_LIMIT)rpcFailure("INVALID_RPC_PARAMS","YNX Wallet RPC parameters are invalid.");
-  if (typeof fetcher !== "function" || url !== YNX_RPC_URL) rpcFailure("RPC_UNAVAILABLE", "YNX Testnet RPC is unavailable.");
+  if(typeof fetcher!=="function"||!YNX_RPC_URLS.includes(url))rpcFailure("RPC_UNAVAILABLE","YNX Testnet RPC is unavailable.");
   const controller = new AbortController();
   let timer;
   try{
     const request=(async()=>{
       const response=await fetcher(url,{method:"POST",headers:{"content-type":"application/json",accept:"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:RPC_REQUEST_ID,method,params}),signal:controller.signal,cache:"no-store",credentials:"omit",redirect:"error"});
       if(!response)rpcFailure("RPC_UNAVAILABLE","YNX Testnet RPC returned no response.");
-      if(response.redirected!==false||typeof response.url!=="string"||response.url.length>2048||new URL(response.url).href!==new URL(YNX_RPC_URL).href)rpcFailure("INVALID_RPC_RESPONSE","RPC response did not come directly from the configured YNX Testnet endpoint.");
+      if(response.redirected!==false||typeof response.url!=="string"||response.url.length>2048||new URL(response.url).href!==new URL(url).href)rpcFailure("INVALID_RPC_RESPONSE","RPC response did not come directly from the configured YNX Testnet endpoint.");
       let body;
       if(typeof response.text==="function"){
         const text=await response.text();if(typeof text!=="string"||text.length>RPC_BODY_LIMIT)rpcFailure("INVALID_RPC_RESPONSE","RPC returned an invalid JSON-RPC envelope.");
@@ -75,4 +91,15 @@ async function exactRpcRequest(method,params=[],fetcher=globalThis.fetch,url=YNX
     if(error?.code!==undefined)throw error;
     rpcFailure("RPC_UNAVAILABLE","YNX Testnet RPC is unavailable.",error);
   }finally{clearTimeout(timer)}
+}
+
+async function withRpcFallback(fetcher,url,operation){
+  const endpoints=url===undefined?YNX_RPC_URLS:Object.freeze([url]);
+  if(endpoints.some(endpoint=>!YNX_RPC_URLS.includes(endpoint)))rpcFailure("RPC_UNAVAILABLE","YNX Testnet RPC is unavailable.");
+  let failure;
+  for(let index=0;index<endpoints.length;index++){
+    try{return Object.freeze({value:await operation(endpoints[index]),source:endpoints[index]})}
+    catch(error){failure=error;if(index===endpoints.length-1||!["RPC_UNAVAILABLE","RPC_TIMEOUT"].includes(error?.code))throw error}
+  }
+  throw failure;
 }

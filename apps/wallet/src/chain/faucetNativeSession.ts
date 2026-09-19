@@ -3,9 +3,11 @@ import { createProductionFaucetTransport, type NativeFaucetTransport, type Fauce
 import type { FaucetAdmissionTransport } from "./faucetAdmission";
 import type { FaucetClaimRPC, FaucetReadMethod } from "./faucetClaim";
 
-export const NATIVE_FAUCET_AUTHORITY = "https://faucet.ynxweb4.com";
-export const NATIVE_FAUCET_CHAIN_ORIGIN = "https://rpc.ynxweb4.com";
-const endpoint = { admit: NATIVE_FAUCET_AUTHORITY + "/request", rpc: NATIVE_FAUCET_CHAIN_ORIGIN + "/evm" } as const;
+export const NATIVE_FAUCET_AUTHORITY = "https://faucet-testnet.ynxweb4.com";
+export const LEGACY_FAUCET_AUTHORITY = "https://faucet.ynxweb4.com";
+export const NATIVE_FAUCET_CHAIN_ORIGIN = "https://rpc-testnet.ynxweb4.com";
+export const LEGACY_FAUCET_CHAIN_ORIGIN = "https://rpc.ynxweb4.com";
+const endpoint = { admit: NATIVE_FAUCET_AUTHORITY + "/request", rpc: NATIVE_FAUCET_CHAIN_ORIGIN } as const;
 const METHODS = new Set<FaucetReadMethod>(["eth_chainId", "ynx_getFaucetModel", "ynx_getDurabilityModel", "ynx_getTransactionDurability", "eth_getTransactionReceipt"]);
 export class FaucetNativeSessionError extends Error {
   constructor(readonly code: "FAUCET_HOST_INVALID" | "FAUCET_HOST_CANCELLED" | "FAUCET_HOST_TIMEOUT" | "FAUCET_HOST_UNAVAILABLE" | "FAUCET_HOST_RPC_ERROR") { super(code); }

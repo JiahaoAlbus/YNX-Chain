@@ -1,4 +1,6 @@
-const CANONICAL_RPC_URL = "https://rpc.ynxweb4.com/evm";
+const CANONICAL_RPC_URL = "https://rpc-testnet.ynxweb4.com";
+const LEGACY_RPC_URL = "https://rpc.ynxweb4.com/evm";
+const RPC_URLS = Object.freeze([CANONICAL_RPC_URL, LEGACY_RPC_URL]);
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 function classifyEndpoint(value) {
@@ -18,11 +20,23 @@ function classifyEndpoint(value) {
 }
 
 export async function probeYNXTestnetRPC({
-  rpcUrl = CANONICAL_RPC_URL,
+  rpcUrl,
+  fallbackRpcUrls,
   expectedChainId,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   fetchImpl = globalThis.fetch
 } = {}) {
+  const endpoints=rpcUrl===undefined?RPC_URLS:Object.freeze([rpcUrl,...(Array.isArray(fallbackRpcUrls)?fallbackRpcUrls:[])]);
+  let last;
+  for(let index=0;index<endpoints.length;index++){
+    const result=await probeEndpoint(endpoints[index],expectedChainId,timeoutMs,fetchImpl);
+    if(result.available||index===endpoints.length-1||!retryable(result))return Object.freeze({...result,attemptedEndpoints:Object.freeze(endpoints.slice(0,index+1)),fallbackUsed:index>0});
+    last=result;
+  }
+  return last;
+}
+
+async function probeEndpoint(rpcUrl,expectedChainId,timeoutMs,fetchImpl){
   const endpoint = classifyEndpoint(rpcUrl);
   if (!endpoint.ok) {
     return { available: false, chainId: null, endpoint: rpcUrl, errorCode: endpoint.errorCode, signingEnabled: false };
@@ -57,4 +71,6 @@ export async function probeYNXTestnetRPC({
   }
 }
 
-export { CANONICAL_RPC_URL };
+function retryable(result){return ["RPC_TIMEOUT","RPC_UNAVAILABLE"].includes(result.errorCode)||result.errorCode==="RPC_HTTP_STATUS"&&[408,429,500,502,503,504].includes(result.httpStatus)}
+
+export { CANONICAL_RPC_URL, LEGACY_RPC_URL, RPC_URLS };

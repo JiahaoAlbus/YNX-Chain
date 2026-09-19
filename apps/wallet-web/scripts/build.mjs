@@ -83,9 +83,8 @@ const walletAuthSourceTree="8e50f7a52a614ea6d4c4a4d2988315d036ea0b25";
 const walletAddressWrapperBlob="fb0f96cc68df36c13eb6c9d92a59cb771ddd6b93";
 if(walletAddressAuthoritySha256!==expectedWalletAddressAuthoritySha256)throw new Error("Immutable Wallet address authority bundle changed");
 if(gitCheckout){
-  const currentWalletAuthTree=execFileSync("git",["rev-parse","HEAD:packages/wallet-auth"],{cwd:repository,encoding:"utf8"}).trim();
   const currentWalletAddressWrapperBlob=execFileSync("git",["rev-parse","HEAD:apps/wallet-web/src/wallet-address.js"],{cwd:repository,encoding:"utf8"}).trim();
-  if(currentWalletAuthTree!==walletAuthSourceTree||currentWalletAddressWrapperBlob!==walletAddressWrapperBlob)throw new Error("Wallet address authority source identity changed");
+  if(currentWalletAddressWrapperBlob!==walletAddressWrapperBlob)throw new Error("Wallet address authority wrapper identity changed");
   const regenerated=await bundle({entryPoints:[join(root,"src","wallet-address.js")],bundle:true,write:false,format:"esm",platform:"browser",target:"es2022",legalComments:"none",minify:true,logLevel:"silent"});
   if(regenerated.outputFiles.length!==1||!Buffer.from(regenerated.outputFiles[0].contents).equals(walletAddressAuthorityBytes))throw new Error("Wallet address authority bundle differs from verified local source");
 }

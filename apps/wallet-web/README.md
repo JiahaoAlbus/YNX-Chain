@@ -63,7 +63,9 @@ transport and distinct YNX EIP-6963 provider can load deterministically at
 `document_start` on standard external DApps. HTTP, file, extension, browser,
 and custom-scheme pages are excluded. The provider is not web-accessible and
 the extension CSP still allows network connection only to the frozen
-`https://evm.ynxweb4.com` RPC origin. The action keeps a bounded `activeTab`
+`https://rpc-testnet.ynxweb4.com` RPC origin, with the previous
+`https://evm.ynxweb4.com` authority retained only for safe read fallback. Signed
+transactions are never replayed automatically across origins. The action keeps a bounded `activeTab`
 repair path; an unsupported tab, lost grant, or injection error returns
 `ACTIVE_TAB_REQUIRED`.
 The same action is keyboard-accessible through `Ctrl+Shift+Y` (macOS

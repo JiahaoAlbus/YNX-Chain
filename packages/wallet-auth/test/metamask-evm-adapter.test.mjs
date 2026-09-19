@@ -86,7 +86,7 @@ test("MetaMask adapter adds the fixed canonical YNX chain after MetaMask reports
   assert.deepEqual(METAMASK_EVM_CHAIN, {
     chainId: "0x1917", chainName: "YNX Testnet",
     nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 },
-    rpcUrls: ["https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"],
+    rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"],
   });
 });
 

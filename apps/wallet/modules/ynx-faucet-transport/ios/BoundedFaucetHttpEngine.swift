@@ -78,12 +78,12 @@ final class BoundedFaucetHttpEngine: @unchecked Sendable {
   private let delegate = Delegate()
   private static let responseCap = 16_384
 
-  init(admitURL: URL = URL(string: "https://faucet.ynxweb4.com/request")!,
-       rpcURL: URL = URL(string: "https://rpc.ynxweb4.com/evm")!,
+  init(admitURL: URL = URL(string: "https://faucet-testnet.ynxweb4.com/request")!,
+       rpcURL: URL = URL(string: "https://rpc-testnet.ynxweb4.com")!,
        now: @escaping () -> UInt64 = { DispatchTime.now().uptimeNanoseconds },
        deadlineNanoseconds: UInt64 = 15_000_000_000) throws {
-    guard Self.endpointAllowed(admitURL, expected: "https://faucet.ynxweb4.com/request"),
-          Self.endpointAllowed(rpcURL, expected: "https://rpc.ynxweb4.com/evm"),
+    guard Self.endpointAllowed(admitURL, expected: ["https://faucet-testnet.ynxweb4.com/request", "https://faucet.ynxweb4.com/request"]),
+          Self.endpointAllowed(rpcURL, expected: ["https://rpc-testnet.ynxweb4.com", "https://rpc.ynxweb4.com/evm"]),
           deadlineNanoseconds > 0, deadlineNanoseconds <= 15_000_000_000 else {
       throw FaucetHttpFailure(code: "YNX_HTTP_INVALID_INPUT")
     }
@@ -360,8 +360,8 @@ final class BoundedFaucetHttpEngine: @unchecked Sendable {
     return regex.firstMatch(in: value, range: range)?.range == range
   }
 
-  private static func endpointAllowed(_ url: URL, expected: String) -> Bool {
-    if url.absoluteString == expected { return true }
+  private static func endpointAllowed(_ url: URL, expected: [String]) -> Bool {
+    if expected.contains(url.absoluteString) { return true }
     #if YNX_FAUCET_HOST_TESTS
     // Compile-time host harness only; no runtime production enable switch.
     if let c = URLComponents(url: url, resolvingAgainstBaseURL: false), c.scheme == "http",

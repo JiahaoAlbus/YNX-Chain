@@ -11,7 +11,7 @@ test("PWA routes only same-origin GET navigation and assets into cache strategie
   assert.equal(PWA_CACHE.startsWith("ynx-wallet-web-v"),false);
   assert.equal(serviceWorkerRoute(request(`${origin}/wallet`,"GET","navigate"),origin),"navigation-network-first");
   assert.equal(serviceWorkerRoute(request(`${origin}/app.js`),origin),"asset-cache-first");
-  assert.equal(serviceWorkerRoute(request("https://evm.ynxweb4.com","POST"),origin),"network-only");
+  assert.equal(serviceWorkerRoute(request("https://rpc-testnet.ynxweb4.com","POST"),origin),"network-only");
   assert.equal(serviceWorkerRoute(request("https://metamask.io/download"),origin),"network-only");
   assert.equal(serviceWorkerRoute(request("https://www.ynxweb4.com/downloads/wallet.apk"),origin),"network-only");
 });
@@ -22,7 +22,7 @@ test("only obsolete YNX caches are purged and requests resolve to canonical asse
   assert.deepEqual(obsoletePwaCaches([`${PWA_CACHE_PREFIX}${"1".repeat(64)}`,`${PWA_CACHE_PREFIX}${"2".repeat(64)}`]),[]);
   assert.equal(assetKeyForRequest(request(`${origin}/`),origin),"./index.html");
   assert.equal(assetKeyForRequest(request(`${origin}/app.js?rollback=1`),origin),"./app.js");
-  assert.equal(assetKeyForRequest(request("https://evm.ynxweb4.com"),origin),null);
+  assert.equal(assetKeyForRequest(request("https://rpc-testnet.ynxweb4.com"),origin),null);
 });
 
 test("version drift recovery and upgrade navigation are single-attempt and URL preserving",()=>{

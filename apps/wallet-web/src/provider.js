@@ -2,7 +2,7 @@ export const YNX_CHAIN = Object.freeze({
   chainId: "0x1917",
   chainName: "YNX Testnet",
   nativeCurrency: Object.freeze({name: "YNX Testnet", symbol: "YNXT", decimals: 18}),
-  rpcUrls: Object.freeze(["https://evm.ynxweb4.com"]),
+  rpcUrls: Object.freeze(["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"]),
   blockExplorerUrls: Object.freeze(["https://explorer.ynxweb4.com"]),
 });
 

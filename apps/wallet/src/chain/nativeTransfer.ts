@@ -1,7 +1,8 @@
 import { evmAddressFromYNX, nativeTransferHash, parseSignedNativeTransfer, type SignedNativeTransfer } from "@ynx-chain/wallet-auth";
 import { createNativeDurabilityEvidence, NativeDurabilityInvalid, parseNativeDurabilityModel, parseNativeDurabilityState, type NativeDurabilityCheck } from "./nativeDurability";
 
-export const DEFAULT_CHAIN_API="https://rpc.ynxweb4.com";
+export const DEFAULT_CHAIN_API="https://rpc-testnet.ynxweb4.com";
+export const LEGACY_CHAIN_API="https://rpc.ynxweb4.com";
 export type ChainAccount=Readonly<{address:string;balance:number;nonce:number}>;
 export type ChainActivity=Readonly<{hash:string;type:string;from:string;to:string;amount:number;fee:number;nonce:number;timestamp?:string}>;
 export type BroadcastResult=Readonly<{hash:string;replayed:boolean;truthfulStatus:"signature-verified-authoritative-native-transfer";durabilityConfirmed:boolean;durabilityEvidence:Readonly<Record<string,unknown>>|null}>;
@@ -39,9 +40,9 @@ export async function loadNativeChainState(client:NativeChainClient,selectedAcco
 }
 
 export class NativeChainClient{
-  readonly #baseURL:string;readonly #fetch:FetchLike;
+  readonly #baseURL:string;readonly #readBaseURLs:readonly string[];readonly #fetch:FetchLike;
   private rpcSequence=0;
-  constructor(baseURL=DEFAULT_CHAIN_API,fetcher:FetchLike=fetch){this.#baseURL=base(baseURL);this.#fetch=fetcher}
+  constructor(baseURL=DEFAULT_CHAIN_API,fetcher:FetchLike=fetch){this.#baseURL=base(baseURL);this.#readBaseURLs=Object.freeze(this.#baseURL===DEFAULT_CHAIN_API?[this.#baseURL,LEGACY_CHAIN_API]:[this.#baseURL]);this.#fetch=fetcher}
   get origin():string{return this.#baseURL}
 
   async requireDurabilityCapability():Promise<void>{
@@ -74,19 +75,22 @@ export class NativeChainClient{
   // Only these two GET routes use recovery. RPC and transaction POSTs retain
   // their original single-attempt transport and outbox semantics below.
   async #readJSON(path:string,signal?:AbortSignal,requestedAccount?:string):Promise<unknown>{
-    for(let attempt=0;attempt<2;attempt++){
-      assertReadActive(signal);
-      try{return await this.#readAttempt(path,signal,requestedAccount)}
-      catch(error){
+    let last:unknown;
+    for(const endpoint of this.#readBaseURLs){
+      for(let attempt=0;attempt<2;attempt++){
         assertReadActive(signal);
-        if(attempt===1||!(error instanceof NativeReadError)||!error.retryable)throw error;
-        await readRetryDelay(signal);
+        try{return await this.#readAttempt(endpoint,path,signal,requestedAccount)}
+        catch(error){
+          last=error;assertReadActive(signal);
+          if(!(error instanceof NativeReadError)||!error.retryable)throw error;
+          if(attempt===0)await readRetryDelay(signal);
+        }
       }
     }
-    throw new NativeReadError("NATIVE_READ_UNAVAILABLE","The network is unavailable. Please refresh again.");
+    throw last instanceof Error?last:new NativeReadError("NATIVE_READ_UNAVAILABLE","The network is unavailable. Please refresh again.");
   }
 
-  async #readAttempt(path:string,signal?:AbortSignal,requestedAccount?:string):Promise<unknown>{
+  async #readAttempt(baseURL:string,path:string,signal?:AbortSignal,requestedAccount?:string):Promise<unknown>{
     assertReadActive(signal);
     const controller=new AbortController();let rejectStopped!:(error:Error)=>void,stopReason:Error|undefined;
     const stopped=new Promise<never>((_,reject)=>{rejectStopped=reject});
@@ -100,7 +104,7 @@ export class NativeChainClient{
     try{
       assertAttemptActive();
       return await Promise.race([(async()=>{
-        const url=`${this.#baseURL}${path}`;
+        const url=`${baseURL}${path}`;
         const response=await this.#fetch(url,{method:"GET",redirect:"error",signal:controller.signal,headers:{Accept:"application/json"}});
         assertAttemptActive();
         if(response.redirected||response.url&&response.url!==url)throw new NativeReadError("NATIVE_READ_INVALID_RESPONSE","YNX chain response origin changed");

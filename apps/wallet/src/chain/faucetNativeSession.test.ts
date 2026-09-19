@@ -20,7 +20,7 @@ function fixture() {
     cancel(id) { cancelled.push(id); },
   };
   function response(r: FaucetHttpRequest): FaucetHttpResponse {
-    return { url: r.purpose === "admit" ? scope.authority + "/request" : NATIVE_FAUCET_CHAIN_ORIGIN + "/evm", redirected: false,
+    return { url: r.purpose === "admit" ? scope.authority + "/request" : NATIVE_FAUCET_CHAIN_ORIGIN, redirected: false,
       status: 200, contentType: "application/json", cacheControl: "no-store", body: JSON.stringify({ jsonrpc: "2.0", id: r.taskId, result: "0x1917" }) };
   }
   return { lifecycle, sent, cancelled, hooks, host, response, get reservations() { return sequence; }, session: new FaucetNativeSession(host, lifecycle.signal) };

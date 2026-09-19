@@ -37,7 +37,7 @@ test("pending, missing and memory-only proofs never mean mined durable",()=>{
   for(const patch of[{status:"future"},{status:"not_found",blockNumber:"0x2"},{status:"uncertain",blockHash:receipt.blockHash}])reject(()=>parseTransactionDurability({...base,...patch},hash));
 });
 test("RPC exact discovery and status methods preserve bounded Core errors",async()=>{
-  const rpc=result=>async()=>({ok:true,redirected:false,url:"https://evm.ynxweb4.com/",json:async()=>({jsonrpc:"2.0",id:6423,result})});
+  const rpc=result=>async(_url,options)=>({ok:true,redirected:false,url:"https://rpc-testnet.ynxweb4.com/",json:async()=>({jsonrpc:"2.0",id:6423,result:JSON.parse(options.body).method==="eth_chainId"?"0x1917":result})});
   assert.deepEqual(await forwardExtensionRpc("ynx_getDurabilityModel",[],rpc(DURABILITY_MODEL)),DURABILITY_MODEL);
   assert.equal((await forwardExtensionRpc("ynx_getTransactionDurability",[hash],rpc(receipt.ynxDurability))).transactionHash,hash);
   await assert.rejects(forwardExtensionRpc("ynx_getDurabilityModel",[hash],rpc(DURABILITY_MODEL)),{code:-32602});

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {createSignedNativeTransfer,ynxAddressFromEVM} from "@ynx-chain/wallet-auth";
-import {NativeBroadcastUnknown,NativeChainClient,NativeReadError,isNativeReadCancelled,loadNativeChainState} from "./nativeTransfer";
+import {DEFAULT_CHAIN_API,LEGACY_CHAIN_API,NativeBroadcastUnknown,NativeChainClient,NativeReadError,isNativeReadCancelled,loadNativeChainState} from "./nativeTransfer";
 
 const address="0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",otherAddress="0x"+"f".repeat(40);
 const account=ynxAddressFromEVM(address),otherAccount=ynxAddressFromEVM(otherAddress);
@@ -27,11 +27,11 @@ test("activity read recovers once and still filters by the requested account",as
   const pending=client.activity(account);await flush();t.mock.timers.tick(250);assert.deepEqual(await pending,[entry]);assert.equal(calls,2);
 });
 
-test("persistent native transport error ends after two attempts with sanitized state text",async t=>{
+test("persistent native transport error exhausts both read authorities with sanitized state text",async t=>{
   t.mock.timers.enable({apis:["setTimeout"]});let calls=0;
   const client=new NativeChainClient(undefined,async()=>{calls++;throw new TypeError(rawCancel)});
-  const pending=loadNativeChainState(client,account);await flush();assert.equal(calls,2);t.mock.timers.tick(250);
-  const state=await pending;assert.equal(calls,4);assert.equal(state.phase,"failed");assert.equal(state.account,undefined);assert.equal(state.activityPhase,"failed");
+  const pending=loadNativeChainState(client,account);await flush();assert.equal(calls,2);t.mock.timers.tick(250);await flush();assert.equal(calls,6);t.mock.timers.tick(250);
+  const state=await pending;assert.equal(calls,8);assert.equal(state.phase,"failed");assert.equal(state.account,undefined);assert.equal(state.activityPhase,"failed");
   for(const text of [state.error,state.activityError]){assert.match(text!,/network connection was interrupted/i);assert.doesNotMatch(text!,/OKHTTP|STACK|STREAMRESET|CANCEL|FETCH FAILED/i)}
 });
 
@@ -77,12 +77,26 @@ test("cancelling an in-flight response body rejects its late successful value",a
   body.resolve(JSON.stringify({account:{address,balance:7,nonce:2}}));await flush();t.mock.timers.tick(60000);assert.equal(calls,1);
 });
 
-for(const nativeRejectsOnAbort of [false,true])test(`two true deadlines are bounded and typed; native abort rejection=${nativeRejectsOnAbort}`,async t=>{
-  t.mock.timers.enable({apis:["setTimeout"]});let calls=0;const signals:AbortSignal[]=[];
-  const client=new NativeChainClient(undefined,async(_url,init)=>{calls++;signals.push(init!.signal!);return new Promise<Response>((_resolve,reject)=>{if(nativeRejectsOnAbort)init!.signal!.addEventListener("abort",()=>reject(new TypeError(rawCancel)),{once:true})})});
+for(const nativeRejectsOnAbort of [false,true])test(`four bounded deadlines cover canonical then legacy reads; native abort rejection=${nativeRejectsOnAbort}`,async t=>{
+  t.mock.timers.enable({apis:["setTimeout"]});let calls=0;const signals:AbortSignal[]=[],urls:string[]=[];
+  const client=new NativeChainClient(undefined,async(url,init)=>{calls++;urls.push(url);signals.push(init!.signal!);return new Promise<Response>((_resolve,reject)=>{if(nativeRejectsOnAbort)init!.signal!.addEventListener("abort",()=>reject(new TypeError(rawCancel)),{once:true})})});
   const result=assert.rejects(()=>client.account(account),(e:unknown)=>e instanceof NativeReadError&&e.code==="NATIVE_READ_TIMEOUT"&&!e.message.includes(rawCancel));
-  await flush();t.mock.timers.tick(15000);await flush();assert.equal(calls,1);t.mock.timers.tick(250);await flush();assert.equal(calls,2);t.mock.timers.tick(15000);await result;
-  assert.equal(calls,2);assert.ok(signals.every(x=>x.aborted));
+  await flush();
+  for(let attempt=0;attempt<4;attempt++){
+    assert.equal(calls,attempt+1);t.mock.timers.tick(15000);await flush();
+    if(attempt===0||attempt===2){t.mock.timers.tick(250);await flush()}
+  }
+  await result;
+  assert.deepEqual(urls,[`${DEFAULT_CHAIN_API}/accounts/${encodeURIComponent(account)}`,`${DEFAULT_CHAIN_API}/accounts/${encodeURIComponent(account)}`,`${LEGACY_CHAIN_API}/accounts/${encodeURIComponent(account)}`,`${LEGACY_CHAIN_API}/accounts/${encodeURIComponent(account)}`]);
+  assert.ok(signals.every(x=>x.aborted));
+});
+
+test("canonical read exhaustion falls back to the legacy read authority without changing broadcast transport",async t=>{
+  t.mock.timers.enable({apis:["setTimeout"]});const urls:string[]=[];
+  const client=new NativeChainClient(undefined,async url=>{urls.push(url);if(url.startsWith(DEFAULT_CHAIN_API))throw new TypeError(rawCancel);return recorded()});
+  const pending=client.account(account);await flush();t.mock.timers.tick(250);await flush();
+  assert.equal((await pending).address,address);
+  assert.deepEqual(urls,[`${DEFAULT_CHAIN_API}/accounts/${encodeURIComponent(account)}`,`${DEFAULT_CHAIN_API}/accounts/${encodeURIComponent(account)}`,`${LEGACY_CHAIN_API}/accounts/${encodeURIComponent(account)}`]);
 });
 
 test("a timed-out old response body cannot replace a newer retry response",async t=>{

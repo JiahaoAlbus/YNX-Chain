@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
 import { StandardWalletConnection, YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
-import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "../src/rpc.mjs";
+import { CANONICAL_RPC_URL, LEGACY_RPC_URL, probeYNXTestnetRPC } from "../src/rpc.mjs";
 import { WALLET_AUTH_PROTOCOL_SOURCE, YNX_EVM_CHAIN_ID, YNX_TESTNET_CHAIN_QUANTITY as packagedChainId } from "../src/wallet-auth-contract.mjs";
 import { createPasswordVaultUI } from "../src/password-vault-ui.mjs";
 
@@ -277,9 +277,11 @@ test("RPC probe uses canonical HTTPS, proves 0x1917, and classifies failures", a
   assert.deepEqual(await probeYNXTestnetRPC({ expectedChainId: "0x1917", fetchImpl: successFetch }), {
     available: true,
     chainId: "0x1917",
-    endpoint: CANONICAL_RPC_URL,
+    endpoint: new URL(CANONICAL_RPC_URL).href,
     errorCode: null,
-    signingEnabled: false
+    signingEnabled: false,
+    attemptedEndpoints: [CANONICAL_RPC_URL],
+    fallbackUsed: false
   });
   for (const rpcUrl of ["http://rpc.ynxweb4.com/evm", "https://localhost:6420", "https://127.0.0.1:6420"]) {
     const rejected = await probeYNXTestnetRPC({ rpcUrl, expectedChainId: "0x1917", fetchImpl: successFetch });
@@ -290,4 +292,23 @@ test("RPC probe uses canonical HTTPS, proves 0x1917, and classifies failures", a
   assert.equal((await probeYNXTestnetRPC({ expectedChainId: "0x1917", fetchImpl: wrongChainFetch })).errorCode, "RPC_CHAIN_MISMATCH");
   const unavailableFetch = async () => { throw new TypeError("unreachable"); };
   assert.equal((await probeYNXTestnetRPC({ expectedChainId: "0x1917", fetchImpl: unavailableFetch })).errorCode, "RPC_UNAVAILABLE");
+
+  const attempts = [];
+  const fallback = await probeYNXTestnetRPC({ expectedChainId: "0x1917", fetchImpl: async url => {
+    attempts.push(url);
+    if (url === new URL(CANONICAL_RPC_URL).href) throw new TypeError("canonical unreachable");
+    return successFetch();
+  } });
+  assert.equal(fallback.available, true);
+  assert.equal(fallback.endpoint, LEGACY_RPC_URL);
+  assert.deepEqual(fallback.attemptedEndpoints, [CANONICAL_RPC_URL, LEGACY_RPC_URL]);
+  assert.equal(fallback.fallbackUsed, true);
+  assert.deepEqual(attempts, [new URL(CANONICAL_RPC_URL).href, LEGACY_RPC_URL]);
+
+  const wrongChainAttempts = [];
+  await probeYNXTestnetRPC({ expectedChainId: "0x1917", fetchImpl: async url => {
+    wrongChainAttempts.push(url);
+    return wrongChainFetch();
+  } });
+  assert.deepEqual(wrongChainAttempts, [new URL(CANONICAL_RPC_URL).href]);
 });

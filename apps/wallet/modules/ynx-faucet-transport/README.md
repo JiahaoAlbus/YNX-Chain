@@ -56,8 +56,11 @@ body**; the host never invents a new claim or automatically retries.
 
 ## Endpoint and activation boundary
 
-Compiled endpoint candidates are `https://faucet.ynxweb4.com/request` for admit
-and `https://rpc.ynxweb4.com/evm` for RPC. The first is corroborated by the existing
+Compiled primary endpoint candidates are `https://faucet-testnet.ynxweb4.com/request` for admit
+and `https://rpc-testnet.ynxweb4.com` for RPC. The legacy identities
+`https://faucet.ynxweb4.com/request` and `https://rpc.ynxweb4.com/evm` remain
+allowlisted only for explicit same-request recovery; no POST is automatically
+replayed across origins. The Faucet identity is corroborated by the existing
 same-origin landing page's relative `/request` fetch and its `/health` service
 description. That observed public server was legacy build `64efa498fa99`, not
 proof of the new admission contract. The RPC origin/path is the existing Native

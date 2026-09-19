@@ -11,6 +11,7 @@ import { parseFeeModel } from "../src/rpc-capabilities.mjs";
 import { FileTransactionIntentStore } from "../src/transaction-intent-store.mjs";
 import { DURABILITY_MODEL } from "../src/transaction-durability.mjs";
 import { PrivateFilePolicy } from "../src/platform-private-file.mjs";
+import { LEGACY_RPC_URL } from "../src/rpc.mjs";
 
 const W = 10n ** 18n, SECRET = "1".padStart(64, "0"), wallet = new Wallet(`0x${SECRET}`), account = wallet.address.toLowerCase(), recipient = `0x${"22".repeat(20)}`;
 const MODEL = Object.freeze({ version: "ynx-ethereum-native-v1", enabled: true, chainId: "0x1917", transactionType: "0x0", feeYNXT: "1", feeWei: toQuantity(W), gas: "0x61a8", gasPrice: "0x246139ca8000", decimals: 18, amountQuantumWei: toQuantity(W), scope: "whole-YNXT plain native transfers", fullEVM: false, eip1559: false, durability: DURABILITY_MODEL });
@@ -113,6 +114,19 @@ test("first matching -32003 is durably audited as rejected; it does not poison t
   await assert.rejects(f.life.run(lease => f.sender.send(f.signer, snapshot, lease)), code("RPC_TRANSACTION_REJECTED"));
   const journal = JSON.parse(await fs.readFile(f.filePath, "utf8")); assert.equal(journal.records.length, 0); assert.equal(journal.rejections.length, 1); assert.equal(journal.rejections[0].intent.attempts, 1);
   assert.equal(journal.rejections[0].proof.rpcMethod, "eth_sendRawTransaction"); await f.restart().prepare(account, input());
+});
+
+test("historical legacy-RPC rejection stays readable only when proof and intent origins match", async t => {
+  const f = await fixture(t, { broadcast: "reject" }), snapshot = await f.sender.prepare(account, input());
+  await assert.rejects(f.life.run(lease => f.sender.send(f.signer, snapshot, lease)), code("RPC_TRANSACTION_REJECTED"));
+  const journal = JSON.parse(await fs.readFile(f.filePath, "utf8"));
+  journal.rejections[0].intent.origin = LEGACY_RPC_URL;
+  journal.rejections[0].proof.rpcOrigin = LEGACY_RPC_URL;
+  await fs.writeFile(f.filePath, `${JSON.stringify(journal)}\n`);
+  await f.restart().prepare(account, input());
+  journal.rejections[0].proof.rpcOrigin = "https://foreign.invalid";
+  await fs.writeFile(f.filePath, `${JSON.stringify(journal)}\n`);
+  await assert.rejects(f.restart().prepare(account, input()), code("TRANSACTION_JOURNAL_INVALID"));
 });
 
 test("journal admission failure prevents every broadcast and preserves an existing unrelated intent", async t => {

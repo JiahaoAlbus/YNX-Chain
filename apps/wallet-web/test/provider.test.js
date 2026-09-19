@@ -52,7 +52,7 @@ function extensionRuntime(responses = {}) {
 }
 
 test("frozen chain metadata is exact and complete", () => {
-  assert.deepEqual(YNX_CHAIN, {chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:{name:"YNX Testnet",symbol:"YNXT",decimals:18},rpcUrls:["https://evm.ynxweb4.com"],blockExplorerUrls:["https://explorer.ynxweb4.com"]});
+  assert.deepEqual(YNX_CHAIN, {chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:{name:"YNX Testnet",symbol:"YNXT",decimals:18},rpcUrls:["https://rpc-testnet.ynxweb4.com","https://evm.ynxweb4.com"],blockExplorerUrls:["https://explorer.ynxweb4.com"]});
 });
 
 test("MetaMask-only and unknown providers cannot become a Wallet session or a fallback",async()=>{
@@ -197,7 +197,7 @@ test("extension discovery propagates runtime failure and rejects malformed respo
 test("optional CORS-safe RPC probe accepts only exact YNX Testnet and is not connection authority", async () => {
   await assert.rejects(()=>verifyTestnetRpc(rpc),(error)=>error.code==="UNSAFE_BROWSER_RPC_PROBE");
   const evidence = await verifyTestnetRpc(rpc,YNX_CHAIN.rpcUrls[0],{probeTransport:"accepted-cors-safe"});
-  assert.equal(evidence.chainId, "0x1917"); assert.equal(evidence.source, "https://evm.ynxweb4.com");
+  assert.equal(evidence.chainId, "0x1917"); assert.equal(evidence.source, "https://rpc-testnet.ynxweb4.com");
   await assert.rejects(() => verifyTestnetRpc(async()=>({ok:true,json:async()=>({jsonrpc:"2.0",id:1,result:"0x1"})}),YNX_CHAIN.rpcUrls[0],{probeTransport:"accepted-cors-safe"}), (error) => error instanceof WalletWebError && error.code === "WRONG_NETWORK");
 });
 

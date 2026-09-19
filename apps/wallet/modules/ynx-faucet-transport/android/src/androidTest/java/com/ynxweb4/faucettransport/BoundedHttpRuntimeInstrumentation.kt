@@ -34,6 +34,7 @@ class BoundedHttpRuntimeInstrumentation : Instrumentation() {
       equal("com.ynxweb4.faucettransport.runtimeqa", targetContext.packageName)
       check(Build.VERSION.SDK_INT >= 26)
       check(NetworkSecurityPolicy.getInstance().isCleartextTrafficPermitted("127.0.0.1"))
+      check(!NetworkSecurityPolicy.getInstance().isCleartextTrafficPermitted("faucet-testnet.ynxweb4.com"))
       check(!NetworkSecurityPolicy.getInstance().isCleartextTrafficPermitted("faucet.ynxweb4.com"))
       check(!NetworkSecurityPolicy.getInstance().isCleartextTrafficPermitted("192.0.2.1"))
       JSONObject().put("sdk", Build.VERSION.SDK_INT).put("vm", System.getProperty("java.vm.name"))

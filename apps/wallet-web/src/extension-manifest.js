@@ -10,7 +10,7 @@ const sharedManifest = {
   // Persistent account/permission/journal storage is not a private-browsing store.
   incognito: "not_allowed",
   permissions: ["activeTab", "scripting", "storage"],
-  content_security_policy: {extension_pages: "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com"},
+  content_security_policy: {extension_pages: "script-src 'self'; object-src 'self'; connect-src https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com"},
   host_permissions: ["https://*/*"],
   content_scripts: [
     {matches:["https://*/*"],js:["content-script.js"],run_at:"document_start",all_frames:false,match_about_blank:false},

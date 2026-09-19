@@ -6,7 +6,7 @@ import { PrivateFilePolicy } from "./platform-private-file.mjs";
 import { Transaction, toQuantity } from "ethers";
 import { parseFeeModel, capabilityFingerprint, capabilityError, assertCompatibleIntentCapabilities } from "./rpc-capabilities.mjs";
 import { validateDurableReceipt, uint64, UINT64_MAX } from "./transaction-durability.mjs";
-import { CANONICAL_RPC_URL } from "./rpc.mjs";
+import { CANONICAL_RPC_URL, LEGACY_RPC_URL } from "./rpc.mjs";
 
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
@@ -17,7 +17,7 @@ function validateIntent(record, legacy = false) {
   const model = parseFeeModel(record.capabilities), value = BigInt(record.value), quantum = BigInt(model.amountQuantumWei);
   if (!model.enabled || value % quantum !== 0n || value / quantum > 9223372036854775807n || uint64(record.nonce) === UINT64_MAX || capabilityFingerprint(model) !== capabilityFingerprint(record.capabilities)) throw invalid();
   if (!legacy) {
-    if (record.origin !== CANONICAL_RPC_URL || record.raw !== null && (typeof record.raw !== "string" || record.raw.length > 32_768 || !/^0x(?:[0-9a-f]{2})+$/.test(record.raw))) throw invalid();
+    if (![CANONICAL_RPC_URL,LEGACY_RPC_URL].includes(record.origin) || record.raw !== null && (typeof record.raw !== "string" || record.raw.length > 32_768 || !/^0x(?:[0-9a-f]{2})+$/.test(record.raw))) throw invalid();
     if (record.raw !== null) validateRawIntent(record);
   }
 }
@@ -28,8 +28,8 @@ export function validateRawIntent(record) {
     return tx;
   } catch { throw invalid(); }
 }
-function validateRejection(proof) {
-  if (!proof || proof.rpcCode !== -32003 || proof.rpcResponse !== true || proof.rpcHttpSuccess !== true || proof.rpcDefiniteRejection !== true || proof.rpcMethod !== "eth_sendRawTransaction" || proof.rpcOrigin !== CANONICAL_RPC_URL || !Number.isSafeInteger(proof.rpcRequestId) || proof.outcomeUnknown === true || proof.code !== "RPC_TRANSACTION_REJECTED") throw invalid();
+function validateRejection(proof, origin) {
+  if (!proof || ![CANONICAL_RPC_URL,LEGACY_RPC_URL].includes(origin) || proof.rpcCode !== -32003 || proof.rpcResponse !== true || proof.rpcHttpSuccess !== true || proof.rpcDefiniteRejection !== true || proof.rpcMethod !== "eth_sendRawTransaction" || proof.rpcOrigin !== origin || !Number.isSafeInteger(proof.rpcRequestId) || proof.outcomeUnknown === true || proof.code !== "RPC_TRANSACTION_REJECTED") throw invalid();
 }
 export function assertIntentReceipt(intent, receipt, capabilities = intent.capabilities) {
   try { assertCompatibleIntentCapabilities(intent.capabilities, capabilities); return validateDurableReceipt(intent, receipt, capabilities); }
@@ -40,13 +40,13 @@ function parseState(data) {
   const legacy = data.schemaVersion === 1;
   if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
   data.records.forEach(record => validateIntent(record, legacy));
-  for (const entry of data.rejections) { if (!entry || Object.keys(entry).sort().join() !== "intent,proof") throw invalid(); validateIntent(entry.intent, legacy); validateRejection(entry.proof); if (entry.intent.attempts !== 1) throw invalid(); }
+  for (const entry of data.rejections) { if (!entry || Object.keys(entry).sort().join() !== "intent,proof") throw invalid(); validateIntent(entry.intent, legacy); validateRejection(entry.proof, legacy ? entry.proof?.rpcOrigin : entry.intent.origin); if (entry.intent.attempts !== 1) throw invalid(); }
   if (new Set(data.records.map(record => record.hash)).size !== data.records.length || new Set(data.records.map(record => record.account)).size !== data.records.length) throw invalid();
   if (legacy) {
     // V1 has no signed bytes or durable receipt evidence. Keep pending records as
     // unresolved, and never synthesize a signature or a terminal confirmation.
-    const upgrade = record => ({ ...record, origin: CANONICAL_RPC_URL, raw: null });
-    return { schemaVersion: 2, records: data.records.map(upgrade), rejections: data.rejections.map(entry => ({ intent: upgrade(entry.intent), proof: entry.proof })), resolutions: [] };
+    const upgrade = (record, origin = CANONICAL_RPC_URL) => ({ ...record, origin, raw: null });
+    return { schemaVersion: 2, records: data.records.map(record => upgrade(record)), rejections: data.rejections.map(entry => ({ intent: upgrade(entry.intent, entry.proof.rpcOrigin), proof: entry.proof })), resolutions: [] };
   }
   for (const entry of data.resolutions) {
     if (!entry || Object.keys(entry).sort().join() !== "capabilities,intent,receipt") throw invalid();
@@ -93,10 +93,10 @@ export class FileTransactionIntentStore {
     });
   }
   async reject(hash, account, proof) {
-    validateRejection(proof);
     return this.#mutate(async () => {
       const state = await this.#read(), intent = state.records.find(item => item.hash === hash);
       if (!intent || intent.account !== account || intent.attempts !== 1) throw invalid();
+      validateRejection(proof, intent.origin);
       state.records = state.records.filter(item => item.hash !== hash); state.rejections.push({ intent, proof }); await this.#write(state);
     });
   }
