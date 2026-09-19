@@ -1,15 +1,17 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { chmodSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { CANONICAL_GATEWAY_HTTP_SCHEMA_VERSION, CanonicalWalletGatewayHttpKernel, gatewayStateDigest } from "./gateway-http.js";
-import { parseCentralRegistryDocument } from "./registry.js";
+import { centralRegisteredWebOrigins } from "./registry.js";
 
 export const CANONICAL_GATEWAY_PROOF_HEADER = "x-ynx-product-session-proof";
 export const CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 export const CANONICAL_GATEWAY_OBSERVABILITY_SCHEMA_VERSION = 1;
 const STATE_FIELDS = ["schemaVersion", "stateDigest", "snapshot"];
 const MAX_PROOF_HEADER_BYTES = 16_384;
+const CORS_ALLOWED_HEADERS = "content-type, x-ynx-product-session-proof";
+const CORS_EXPOSE_HEADERS = "x-error-id, x-request-id, x-trace-id";
 const JSON_HEADERS = Object.freeze({
   "cache-control": "no-store",
   "content-type": "application/json; charset=utf-8",
@@ -33,15 +35,17 @@ const OBSERVABLE_ROUTES = Object.freeze(new Map([
   ["/v1/wallet/mandates/kill", "mandate_kill"],
   ["/v1/wallet/mandates/emergency-exit", "mandate_emergency_exit"],
 ]));
+const CORS_POST_ROUTES = Object.freeze(new Set([...OBSERVABLE_ROUTES.entries()]
+  .filter(([, route]) => !["health", "ready", "version", "metrics"].includes(route))
+  .map(([path]) => path)));
 
 export class CanonicalWalletGatewayNodeHost {
   #build;
+  #corsOrigins;
   #emitEvent;
   #kernel;
   #metrics;
   #remoteDeployed;
-  #registrySha256;
-  #enabledProductClientIds;
   #statePath;
   #now;
 
@@ -53,6 +57,7 @@ export class CanonicalWalletGatewayNodeHost {
     this.#emitEvent = runtime.emitEvent;
     this.#remoteDeployed = deploymentState.remoteDeployed;
     this.#build = deploymentState.build;
+    this.#corsOrigins = new Set(centralRegisteredWebOrigins(registry));
     this.#metrics = {
       durationMsTotal: 0,
       errorsByCode: new Map(),
@@ -61,15 +66,10 @@ export class CanonicalWalletGatewayNodeHost {
       requestsTotal: 0,
       responsesByRouteStatus: new Map(),
     };
-    const reviewedRegistry = parseCentralRegistryDocument(registry);
-    this.#registrySha256 = createHash("sha256").update(canonicalJSON(reviewedRegistry)).digest("hex");
-    this.#enabledProductClientIds = Object.freeze(reviewedRegistry.products.filter((product) => product.enabled).map((product) => product.productClientId).sort());
     const stored = loadState(this.#statePath);
-    this.#kernel = new CanonicalWalletGatewayHttpKernel(reviewedRegistry, stored?.snapshot);
-    if (stored && stored.stateDigest !== gatewayStateDigest(this.#kernel.snapshot())) {
-      throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state digest is invalid");
-    }
-    if (!stored || stored.needsRewrite) this.#persist();
+    this.#kernel = new CanonicalWalletGatewayHttpKernel(registry, stored?.snapshot);
+    const normalizedStateDigest = gatewayStateDigest(this.#kernel.snapshot());
+    if (!stored || stored.needsRewrite || stored.stateDigest !== normalizedStateDigest) this.#persist();
   }
 
   handler() {
@@ -83,11 +83,20 @@ export class CanonicalWalletGatewayNodeHost {
       let errorCode = null;
       let errorId = null;
       let status = 500;
+      let corsHeaders = Object.freeze({});
       try {
+        corsHeaders = this.#corsHeaders(request);
+        const preflight = this.#preflightResponse(request, corsHeaders);
+        if (preflight) {
+          status = preflight.status;
+          response.writeHead(status, observabilityHeaders(preflight.headers, requestId, traceId, null));
+          response.end();
+          return;
+        }
         const administrative = this.#administrativeResponse(request);
         if (administrative) {
           status = administrative.status;
-          response.writeHead(status, observabilityHeaders(administrative.headers, requestId, traceId, null));
+          response.writeHead(status, observabilityHeaders({ ...administrative.headers, ...corsHeaders }, requestId, traceId, null));
           response.end(administrative.body);
           return;
         }
@@ -99,19 +108,21 @@ export class CanonicalWalletGatewayNodeHost {
           contentType: request.headers["content-type"] ?? "",
           body,
           proof,
+          origin: request.headers.origin,
         }, this.#now());
         if (result.mutated) this.#persist();
         status = result.status;
-        errorCode = status >= 400 ? responseErrorCode(result.body) : null;
+        const responseBody = status >= 400 ? bindErrorCorrelation(result.body, requestId) : result.body;
+        errorCode = status >= 400 ? responseErrorCode(responseBody) : null;
         errorId = errorCode ? randomUUID() : null;
-        response.writeHead(status, observabilityHeaders(result.headers, requestId, traceId, errorId));
-        response.end(result.body);
+        response.writeHead(status, observabilityHeaders({ ...result.headers, ...corsHeaders }, requestId, traceId, errorId));
+        response.end(responseBody);
       } catch (caught) {
         const error = hostError(caught);
         status = error.status;
         errorCode = error.code;
         errorId = randomUUID();
-        response.writeHead(status, observabilityHeaders(JSON_HEADERS, requestId, traceId, errorId));
+        response.writeHead(status, observabilityHeaders({ ...JSON_HEADERS, ...corsHeaders }, requestId, traceId, errorId));
         response.end(canonicalJSON({
           error: { code: error.code, message: error.message },
           errorId,
@@ -153,6 +164,36 @@ export class CanonicalWalletGatewayNodeHost {
     return this.#kernel.snapshot();
   }
 
+  #corsHeaders(request) {
+    const supplied = request.headers.origin;
+    if (supplied === undefined) return Object.freeze({});
+    const origin = canonicalOrigin(supplied);
+    if (!this.#corsOrigins.has(origin)) throw new WalletAuthError("ORIGIN_NOT_ALLOWED", "Canonical Wallet Gateway origin is not registered");
+    return Object.freeze({
+      "access-control-allow-origin": origin,
+      "access-control-expose-headers": CORS_EXPOSE_HEADERS,
+      vary: "origin",
+    });
+  }
+
+  #preflightResponse(request, corsHeaders) {
+    if (request.method !== "OPTIONS") return null;
+    if (Object.keys(corsHeaders).length === 0) throw new WalletAuthError("ORIGIN_NOT_ALLOWED", "Canonical Wallet Gateway preflight requires a registered origin");
+    if (!CORS_POST_ROUTES.has(request.url)) throw new WalletAuthError("ROUTE_NOT_FOUND", "Canonical Wallet Gateway route was not found");
+    if (request.headers["access-control-request-method"] !== "POST") throw new WalletAuthError("METHOD_NOT_ALLOWED", "Canonical Wallet Gateway preflight requires POST");
+    validateRequestedCorsHeaders(request.headers["access-control-request-headers"]);
+    return Object.freeze({
+      headers: Object.freeze({
+        ...corsHeaders,
+        "access-control-allow-headers": CORS_ALLOWED_HEADERS,
+        "access-control-allow-methods": "POST",
+        "access-control-max-age": "300",
+        "cache-control": "no-store",
+      }),
+      status: 204,
+    });
+  }
+
   #administrativeResponse(request) {
     if (request.method !== "GET" || request.headers[CANONICAL_GATEWAY_PROOF_HEADER] !== undefined) return null;
     const stateDigest = gatewayStateDigest(this.#kernel.snapshot());
@@ -178,12 +219,10 @@ export class CanonicalWalletGatewayNodeHost {
     if (request.url === "/version") {
       return jsonResponse({
         build: this.#build,
-        enabledProductClientIds: this.#enabledProductClientIds,
         gatewayHttpSchemaVersion: CANONICAL_GATEWAY_HTTP_SCHEMA_VERSION,
         nodeStateSchemaVersion: CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION,
         observabilitySchemaVersion: CANONICAL_GATEWAY_OBSERVABILITY_SCHEMA_VERSION,
         ok: true,
-        registrySha256: this.#registrySha256,
         remoteDeployed: this.#remoteDeployed,
         service: "ynx-wallet-gatewayd",
       });
@@ -339,6 +378,13 @@ function responseErrorCode(body) {
   }
 }
 
+function bindErrorCorrelation(body, requestId) {
+  let parsed;
+  try { parsed = JSON.parse(body); } catch { return body; }
+  if (parsed?.error?.code !== "CLIENT_RETIRED") return body;
+  return canonicalJSON({ ...parsed, error: { ...parsed.error, correlationId: requestId } });
+}
+
 function increment(map, key) {
   map.set(key, (map.get(key) ?? 0) + 1);
 }
@@ -401,6 +447,7 @@ function loadState(path) {
   if (value.schemaVersion !== CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION || !/^[0-9a-f]{64}$/.test(value.stateDigest)) {
     throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state envelope is invalid");
   }
+  if (gatewayStateDigest(value.snapshot) !== value.stateDigest) throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state digest is invalid");
   return { schemaVersion: value.schemaVersion, stateDigest: value.stateDigest, snapshot: value.snapshot, needsRewrite };
 }
 
@@ -420,7 +467,30 @@ function statePath(value) {
   return value;
 }
 
+function canonicalOrigin(value) {
+  if (Array.isArray(value) || typeof value !== "string" || value.length > 255 || value.trim() !== value) {
+    throw new WalletAuthError("ORIGIN_NOT_ALLOWED", "Canonical Wallet Gateway origin is not registered");
+  }
+  let parsed;
+  try { parsed = new URL(value); } catch { throw new WalletAuthError("ORIGIN_NOT_ALLOWED", "Canonical Wallet Gateway origin is not registered"); }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.toString() !== `${value}/`) {
+    throw new WalletAuthError("ORIGIN_NOT_ALLOWED", "Canonical Wallet Gateway origin is not registered");
+  }
+  return value;
+}
+
+function validateRequestedCorsHeaders(value) {
+  if (typeof value !== "string" || value.length < 1 || value.length > 256) throw new WalletAuthError("INVALID_CORS_REQUEST", "Canonical Wallet Gateway requested headers are invalid");
+  const headers = value.split(",").map(item => item.trim().toLowerCase());
+  if (headers.some(item => !/^[a-z0-9-]{1,64}$/.test(item)) || new Set(headers).size !== headers.length || headers.some(item => !["content-type", "x-ynx-product-session-proof"].includes(item))) {
+    throw new WalletAuthError("INVALID_CORS_REQUEST", "Canonical Wallet Gateway requested headers are not allowed");
+  }
+}
+
 function hostError(caught) {
-  if (caught instanceof WalletAuthError) return { status: caught.code === "INVALID_BODY" ? 413 : 400, code: caught.code, message: caught.message };
+  if (caught instanceof WalletAuthError) {
+    const status = caught.code === "INVALID_BODY" ? 413 : ["ORIGIN_NOT_ALLOWED", "SCOPE_NOT_ALLOWED"].includes(caught.code) ? 403 : 400;
+    return { status, code: caught.code, message: caught.message };
+  }
   return { status: 500, code: "INTERNAL", message: "Canonical Wallet Gateway host failed closed" };
 }

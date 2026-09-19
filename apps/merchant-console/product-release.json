@@ -27,7 +27,7 @@
     "dist/runtime-config.js": "d0545fc13aea930bcc73d66fde5830f186d51a969b099323da26aae0e5a3a2b6",
     "dist/ynx-logo.png": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
     "artifacts/sbom/frontend.cdx.json": "14681393bd0afa46d5d1b9649f54493cfdd2b98f784ec974db284f47e8858180",
-    "artifacts/sbom/backend.cdx.json": "c3d46e8d4982e6dc247476310ec43f80c437e705b5ee345bcf746062ac17e9a3",
+    "artifacts/sbom/backend.cdx.json": "39a1a4f24e71a19e045844f6796410287e6463ffe90cbb631d114a0493f81f91",
     "artifacts/vendor/wallet-auth-verification.json": "5a29a97fb3a3af5e29802a95bdee1f4640420ec0e67ea8c54309e31fadea9b12"
   },
   "bytes": {
@@ -40,7 +40,7 @@
     "dist/runtime-config.js": 215,
     "dist/ynx-logo.png": 104171,
     "artifacts/sbom/frontend.cdx.json": 7276,
-    "artifacts/sbom/backend.cdx.json": 268299,
+    "artifacts/sbom/backend.cdx.json": 268925,
     "artifacts/vendor/wallet-auth-verification.json": 2863
   },
   "signingClass": {"web": "unsigned static Testnet candidate"},

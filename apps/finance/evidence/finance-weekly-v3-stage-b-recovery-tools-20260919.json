@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "ynx.finance.weekly-v3-stage-b-evidence.v1",
+  "product": "finance",
+  "capturedAt": "2026-09-19T11:31:00+08:00",
+  "source": {
+    "branch": "codex/finance-wallet-flow-20260912",
+    "parentCommit": "b46bdae971fef9a4fd1f4b210e4aaf3174a25c3b",
+    "commit": "d6e37aedf333f6b9f558000a624866917d5bd3f4",
+    "tree": "229aadfc8289c27ce1b0898e0cd8e48916511b8b",
+    "remoteReadback": true
+  },
+  "implemented": {
+    "aiSecuritiesOrderIntent": "strict draft-only input and output schema through existing HTTPAIProvider",
+    "aiLoopbackSSE": "real httptest loopback SSE stream persisted as an AI job; no provider or broker write",
+    "eventRecovery": "provider event cursor is independent from polling reconcile checkpoint",
+    "eventOrdering": "duplicate/backwards events fail closed; equal timestamps across distinct owned orders are accepted",
+    "orderPagination": "bounded 500-record pages with progress and ambiguity fences",
+    "recoveryEndpoint": "authenticated owner-scoped GET /api/broker/recovery",
+    "backendSelection": "server and worker share file/PostgreSQL selection; configured database failure never falls back to file",
+    "operatorDiagnostics": "owner mapping, assets, account, quote entitlement, positions and orders are read-only verified",
+    "controlledVerification": "activation-gated approve-dispatch-query-cancel-reconcile sequence with audit receipt",
+    "quoteTruth": ["real_time", "delayed", "sample", "stale"],
+    "sellAndRaceFences": ["filled sell with holdings", "insufficient holdings zero POST", "partial-fill cancel race"]
+  },
+  "tests": {
+    "goRace": "PASS: go test -race ./internal/finance/... ./apps/finance/cmd/...",
+    "goVet": "PASS: go vet ./internal/finance/... ./apps/finance/cmd/...",
+    "goBuild": "PASS: go build ./apps/finance/cmd/...",
+    "web": "PASS: npm test --prefix apps/finance (59/59)",
+    "security": "PASS: npm run security --prefix apps/finance (382 text files)",
+    "json": "PASS: jq empty apps/finance/broker-config.schema.json",
+    "diff": "PASS: git diff --check"
+  },
+  "artifacts": [
+    {"path": "/tmp/ynx-finance-server-stage-b", "bytes": 28415490, "sha256": "a74cada61859b1e1a8763595a686fd220487069fb90ea39bb0f5281124cde98d"},
+    {"path": "/tmp/ynx-finance-broker-worker-stage-b", "bytes": 27102898, "sha256": "3dfd7ebec0895c5807b2a0e862fd1bbe2979c06817305e313293652a3e2563cc"},
+    {"path": "/tmp/ynx-finance-broker-tools-stage-b", "bytes": 27032962, "sha256": "05b1353bb3e543dfb9c5be2a8df405a4894df18f6cbaf2b1c072ef37da7a6572"}
+  ],
+  "truth": {
+    "officialSandboxVerified": false,
+    "providerWritesExecuted": false,
+    "realModelVerified": false,
+    "publicDeployed": false,
+    "installedVerified": false,
+    "liveTrading": false,
+    "mainnet": false,
+    "walletApprovalVisible": false,
+    "orderSubmitted": false
+  },
+  "remainingExternalGates": [
+    "official owner-specific Broker Sandbox credentials and entitlements",
+    "explicit activation receipt and one-shot write authorization",
+    "real YNX Wallet manual approval on an installed or source-bound public runtime",
+    "public deployment lease and runtime source binding"
+  ]
+}

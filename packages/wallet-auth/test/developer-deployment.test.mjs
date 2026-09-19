@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -13,11 +14,14 @@ const NOW = new Date("2026-08-10T02:00:00.000Z");
 const SECRET = "0000000000000000000000000000000000000000000000000000000000000065";
 
 function request(overrides = {}) {
-  const source = readFileSync(new URL("../../../contracts/devtools/SampleEVMWriteCounter.sol", import.meta.url), "utf8").trim();
-  const artifact = JSON.parse(readFileSync(new URL("../../../artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json", import.meta.url), "utf8"));
-  const base = { name:"SampleEVMWriteCounter", source, deployedBytecode:artifact.deployedBytecode.toLowerCase(), constructorArgs:["7"], idempotencyKey:"developer-deploy-vector-1" };
+  const sourceBytes = readFileSync(new URL("../../../contracts/devtools/SampleEVMWriteCounter.sol", import.meta.url));
+  const source = sourceBytes.toString("utf8").trim();
+  const artifact = JSON.parse(readFileSync(new URL("../testdata/developer-deployment-artifact-v1.json", import.meta.url), "utf8"));
+  assert.deepEqual({schemaVersion:artifact.schemaVersion,contract:artifact.contract,sourceSha256:artifact.sourceSha256},{schemaVersion:1,contract:"SampleEVMWriteCounter",sourceSha256:createHash("sha256").update(sourceBytes).digest("hex")});
+  assert.match(artifact.deployedBytecode,/^0x[0-9a-f]+$/);
+  const base = { name:artifact.contract, source, deployedBytecode:artifact.deployedBytecode, constructorArgs:["7"], idempotencyKey:"developer-deploy-vector-1" };
   const payload = { ...base, requestHash:developerDeploymentRequestHash(base) }, artifactDigest = developerArtifactDigest(payload);
-  return { version:"1",chainId:6423,productClientId:"ynx-developer-v1",bundleId:"com.ynxweb4.developer.testnetpreview",callback:"ynxdeveloper://deployment/callback",sessionBinding:"a".repeat(64),account:walletIdentity(SECRET).account,nonce:1,action:"ide_contract_deploy",payload,artifactDigest,simulation:{chainId:6423,blockNumber:900000,gasEstimate:"21000",gasPriceWei:"1",maxFeeWei:"21000",compilerVersion:"0.8.24",artifactDigest,source:"https://rpc.ynxweb4.com/",asOf:NOW.toISOString()},issuedAt:NOW.toISOString(),expiresAt:"2026-08-10T02:05:00.000Z",...overrides };
+  return { version:"1",chainId:6423,productClientId:"ynx-developer-v1",bundleId:"com.ynxweb4.developer.testnetpreview",callback:"ynxdeveloper://deployment/callback",sessionBinding:"a".repeat(64),account:walletIdentity(SECRET).account,nonce:1,action:"ide_contract_deploy",payload,artifactDigest,simulation:{chainId:6423,blockNumber:900000,gasEstimate:"21000",gasPriceWei:"1",maxFeeWei:"21000",compilerVersion:artifact.compilerVersion,artifactDigest,source:"https://rpc.ynxweb4.com/",asOf:NOW.toISOString()},issuedAt:NOW.toISOString(),expiresAt:"2026-08-10T02:05:00.000Z",...overrides };
 }
 
 test("Developer deployment deep link signs the exact canonical YNX application transaction",()=>{

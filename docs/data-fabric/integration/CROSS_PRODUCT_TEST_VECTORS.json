@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-data-fabric",
-  "sourceCommit": "ff649befd4399f742b5b6b3e64d3566fa9fa809e",
+  "sourceCommit": "fcb200141f92c046ece581aa63250de732c79bdf",
   "eventEnvelopeVersion": "2.0",
-  "generatedAt": "2026-07-29T20:25:09Z",
+  "generatedAt": "2026-09-19T21:09:44Z",
   "vectors": [
     {
       "id": "DF-XP-001",

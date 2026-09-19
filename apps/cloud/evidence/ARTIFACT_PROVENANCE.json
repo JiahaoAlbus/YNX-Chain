@@ -23,13 +23,13 @@
     {
       "uri": "go.mod",
       "digest": {
-        "sha256": "8c770c1b14e46e0bf0868845b4a20abc38ede9ea059c7c1584d071f5f663f21f"
+        "sha256": "0eefa099af534ed3367dcf206bc077569bb68ae9d72d919279aa83cc55a279d3"
       }
     },
     {
       "uri": "go.sum",
       "digest": {
-        "sha256": "3e73e9bdc6172c440ba1a8c2f11fa5641327dfe680756ef0386d68a9e9309785"
+        "sha256": "892629f34b4c48a2f3c0f19256f5d72cb1fd707ca1eda5108f76206363b02e91"
       }
     },
     {

@@ -3,7 +3,7 @@
 | Capability | Implemented | Local verification | Central/public status |
 |---|---:|---|---|
 | Canonical Wallet request/callback/device proof | yes | shared package 21/21; gateway 2/2; installed Android request review | central registry and public Gateway live; final callback awaits an enrolled strong-biometric test device |
-| Scoped, revocable Product Session proof | yes | method/path/body/device/scope-bound introspection and revoke tests | central registry update includes native and Web callbacks; public redeployment pending |
+| Scoped, revocable Finance bearer session | yes | exact introspection/revoke tests; public 10-account/100-request isolation run | public Testnet Gateway live; production shared persistence is not claimed |
 | Real YNXT balance and owned activity | yes | Go source tests; remote Explorer health and public tx smoke | live source reachable; index lag 20,696 blocks at smoke time |
 | Authorized Pay receipts and dispute URL | yes | filter/failure tests; remote Pay health | receipt request correctly 401 without operator key |
 | Categories, private notes and classifications | yes | Go persistence/ownership tests | public Testnet service; Wallet-account isolated |
@@ -11,12 +11,12 @@
 | Statements, monthly review, CSV/JSON export/import | yes | amount/legal/coverage tests | not a bank/tax/legal statement |
 | Privacy, account deletion, recovery and audit | yes | deletion/restart/audit tests | operator backup/restore runbook required at deployment |
 | AI categorization, fee explanation, budget draft | yes | selected-record/consent/apply/reject tests | provider success not claimed; never auto-applies |
+| Broker Sandbox activation readiness | yes, provider-write gated | read-only state inspection proves mapping, Wallet key and exact outbox state without file/database mutation | official credentials, entitlements, provider reads and writes remain `NOT_VERIFIED` |
 | 12 locales, Arabic RTL, amount/date/legal semantics | yes | 6 native tests including locale/RTL contracts | professional legal translation review remains a release gate |
 | Android install and cold launch | yes | official release APK installed; cold 1,163 ms | official-site direct download; Testnet test signature only |
 | iOS build/install/cold launch | target ready | Hermes bundle passed | CI Simulator pending; no device/IPA signature |
-| Web Wallet client | yes | bundled P-256 device flow, exact callback, proof and revoke tests | public redeployment pending; no fallback identity |
+| Web feasibility | yes | desktop + 390 px Browser inspection | signed-out companion only; no Web Wallet client |
 | Owner-product navigation | yes | strict reviewed-HTTPS URL validation | public Exchange, DEX and Quant links configured; navigation grants no trading or read capability |
-| Exchange account evidence | yes | account/path/timestamp/nonce HMAC binding, replay and tamper rejection, strict envelope validation, Web/native rendering, Go race tests | accepted local candidate; public Exchange/Finance runtimes are not yet configured or redeployed with this adapter |
 | Public Testnet/store release | Testnet only | public health, concurrency and official APK digest verified | `deployedPublic=true`, `storeReleased=false` |
 
 Amounts are integer YNXT units returned by the current Testnet services; the product does not display invented fiat conversions, yields, custody balances, credit, cards or insurance.

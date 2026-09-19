@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
@@ -31,6 +32,8 @@ type ReadSourceActionConfig struct {
 type ReadSourceIntegrationConfig struct {
 	ExchangeURL string
 	ExchangeKey string
+	DEXURL      string
+	DEXKey      string
 	QuantURL    string
 	QuantKey    string
 }
@@ -153,11 +156,25 @@ var acceptedReadSourceContracts = map[string]AcceptedReadSourceContract{
 			"quant.lifecycle.read",
 		},
 	},
+	"dex": {
+		Accepted:             true,
+		SourceID:             "dex",
+		Owner:                "27-dex",
+		OwnerContractVersion: "dex-finance-read-v1",
+		PayloadSchema:        "ynx-dex-finance-account-v1",
+		AllowedCapabilities: []string{
+			"dex.positions.read",
+			"dex.swaps.read",
+			"dex.liquidity.read",
+			"dex.fees.read",
+		},
+	},
 }
 
 func (u *Upstreams) ConfigureReadSourceIntegrations(config ReadSourceIntegrationConfig) error {
 	candidates := []struct{ id, label, endpoint, key string }{
 		{id: "exchange", label: "Exchange", endpoint: config.ExchangeURL, key: config.ExchangeKey},
+		{id: "dex", label: "DEX", endpoint: config.DEXURL, key: config.DEXKey},
 		{id: "quant", label: "Quant", endpoint: config.QuantURL, key: config.QuantKey},
 	}
 	integrations := map[string]readSourceIntegration{}
@@ -184,6 +201,18 @@ func (u *Upstreams) ConfigureReadSourceIntegrations(config ReadSourceIntegration
 	}
 	u.readIntegrations = integrations
 	return nil
+}
+
+func (u *Upstreams) ConfiguredReadSources() []string {
+	if u == nil || len(u.readIntegrations) == 0 {
+		return []string{}
+	}
+	result := make([]string, 0, len(u.readIntegrations))
+	for id := range u.readIntegrations {
+		result = append(result, id)
+	}
+	sort.Strings(result)
+	return result
 }
 
 func (u *Upstreams) ConfigureReadSourceActions(config ReadSourceActionConfig) error {

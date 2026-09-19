@@ -18,11 +18,13 @@ import { ACCOUNT_SECRET, NOW, PRODUCT_DEVICE_SECRET, REGISTRY, request } from ".
 function approvedRegistry(...productIds) {
   const ids = productIds.length === 0 ? ["social"] : productIds;
   const value = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
+  for (const product of value.products) { product.schemaVersion = 4; product.webOrigins = []; }
   for (const productId of ids) {
     const registration = value.products.find(product => product.productId === productId);
     assert.ok(registration, `missing ${productId} registration`);
     registration.reviewState = "approved";
     registration.enabled = true;
+    registration.webOrigins = [productId === "social" ? "https://social.ynxweb4.com" : `https://${productId}.ynxweb4.com`];
   }
   return value;
 }
@@ -39,6 +41,7 @@ function walletCompletion(registry) {
     requestingProduct: registration.requestingProduct,
     productClientId: registration.productClientId,
     bundleId: registration.bundleId,
+    origin: registration.webOrigins[0],
     callback: registration.callbacks[0],
     scopes: [...registration.scopes],
     purpose: "Manage canonical Wallet sessions, device revocation and account logout controls.",
@@ -55,6 +58,7 @@ function nonWalletControlCompletion(registry) {
     requestingProduct: registration.requestingProduct,
     productClientId: registration.productClientId,
     bundleId: registration.bundleId,
+    origin: registration.webOrigins[0],
     callback: registration.callbacks[0],
     scopes: ["wallet:sessions"],
     purpose: "Attempt Wallet control through a non-Wallet product identity.",
@@ -80,7 +84,7 @@ function proof(session, path, body, nonce = "http_kernel_proof_abcdefghijklmnop"
 }
 
 function requestInput(path, body, productProof = null, overrides = {}) {
-  return { method: "POST", path, contentType: "application/json", body, proof: productProof, ...overrides };
+  return { method: "POST", path, contentType: "application/json", body, proof: productProof, origin: productProof?.origin ?? "https://social.ynxweb4.com", ...overrides };
 }
 
 function decoded(response) { return JSON.parse(response.body); }
@@ -89,6 +93,11 @@ test("HTTP Kernel completes, persists and restarts a canonical Product Session",
   const registry = approvedRegistry();
   const kernel = new CanonicalWalletGatewayHttpKernel(registry);
   const body = canonicalJSON(completion());
+  const wrongOrigin = kernel.dispatch(requestInput("/v1/wallet/sessions/complete", body, null, { origin: "https://attacker.ynx.invalid" }), NOW);
+  assert.equal(wrongOrigin.status, 403);
+  assert.equal(decoded(wrongOrigin).error.code, "ORIGIN_MISMATCH");
+  assert.equal(wrongOrigin.mutated, false);
+  assert.equal(kernel.snapshot().sessionStore.sessions.length, 0);
   const response = kernel.dispatch(requestInput("/v1/wallet/sessions/complete", body), NOW);
   const payload = decoded(response);
   assert.equal(response.status, 200);
@@ -158,7 +167,8 @@ test("Wallet-only session inventory returns connected Apps, approvals, devices a
   const registry = approvedRegistry("social", "wallet");
   const kernel = new CanonicalWalletGatewayHttpKernel(registry);
   assert.equal(kernel.dispatch(requestInput("/v1/wallet/sessions/complete", canonicalJSON(completion())), NOW).status, 200);
-  assert.equal(kernel.dispatch(requestInput("/v1/wallet/sessions/complete", canonicalJSON(walletCompletion(registry))), NOW).status, 200);
+  const walletComplete = walletCompletion(registry);
+  assert.equal(kernel.dispatch(requestInput("/v1/wallet/sessions/complete", canonicalJSON(walletComplete), null, { origin: walletComplete.authorizationRequest.origin }), NOW).status, 200);
   const sessions = kernel.snapshot().sessionStore.sessions;
   const social = sessions.find(session => session.productClientId === "ynx-social-v1");
   const wallet = sessions.find(session => session.productClientId === "ynx-wallet-v1");
@@ -208,7 +218,8 @@ test("Wallet-only session inventory returns connected Apps, approvals, devices a
 test("all-device logout requires a canonical Wallet Product Session and survives restart", () => {
   const registry = approvedRegistry("wallet");
   const kernel = new CanonicalWalletGatewayHttpKernel(registry);
-  const completed = kernel.dispatch(requestInput("/v1/wallet/sessions/complete", canonicalJSON(walletCompletion(registry))), NOW);
+  const walletComplete = walletCompletion(registry);
+  const completed = kernel.dispatch(requestInput("/v1/wallet/sessions/complete", canonicalJSON(walletComplete), null, { origin: walletComplete.authorizationRequest.origin }), NOW);
   assert.equal(completed.status, 200);
   const session = kernel.snapshot().sessionStore.sessions[0];
   const path = "/v1/wallet/accounts/logout-all";

@@ -6,7 +6,7 @@ Reviewed 2026-07-29 for the 1.2.0 Testnet candidate.
 
 - Native request, callback parsing, approval verification, request digest and P-256 product-device proof delegate to the shared canonical Wallet package.
 - The edge Gateway verifies exact registry bindings, scopes, expiry and nonce once, issues an opaque scoped token, provides internal-key-protected introspection/revoke routes and rejects tamper/replay.
-- The Go API accepts no address identity, Bearer token or locally signed assertion. Every request introspects a one-time P-256 Product Session proof and verifies its device, HTTP method/path/body digest, client, bundle, account, scope, nonce and expiry bindings.
+- The Go API accepts no address identity or locally signed assertion. Every request introspects the bearer session and verifies verifier, session/request bindings, client, bundle, account, scopes and expiry.
 - Public Testnet Gateway replay/revocation state is in memory. A production
   Gateway must use shared persistent storage; `integratedCentral` also remains
   false until the installed strong-biometric approval/callback flow passes.
@@ -16,7 +16,7 @@ Reviewed 2026-07-29 for the 1.2.0 Testnet candidate.
 - Finance never requests seed phrases, recovery material or transaction signatures.
 - Stored data is account-scoped planning state and audit metadata; atomic JSON persistence uses mode `0600`.
 - Request bodies, JSON schema and source record ownership are bounded and validated. Browser policy disables camera, microphone, geolocation and payment APIs and applies CSP/frame/origin protections.
-- AI context requires a privacy toggle, selected owned Explorer records and fresh consent. Draft/provider data can be cancelled or deleted; only a minimal deletion audit event remains.
+- AI context requires a privacy toggle and fresh consent. General activity workflows require 1–50 selected owned Explorer records. A full strict securities intent may use an explicit empty chain context when Explorer is unavailable or a new Broker user has no activity; the request states that absence and never fabricates activity. Draft/provider data can be cancelled or deleted; only a minimal deletion audit event remains.
 - Account deletion requires exact confirmation and removes the account state while retaining only a minimal `account.deleted` audit event.
 
 ## Recovery
@@ -38,4 +38,4 @@ Reviewed 2026-07-29 for the 1.2.0 Testnet candidate.
 
 ## Verdict
 
-The Web and native clients are implemented as centrally registered Testnet Product Session clients, but the new Web callback and proof path are not publicly deployed yet. It is not acceptable to call this production signed or store released: public redeployment, final enrolled-biometric callback evidence, authorized Pay receipt smoke, central Gateway persistence/operations, iOS evidence, production signing and store review remain open in `product-release.json`.
+Acceptable as a centrally integrated public Testnet preview with an official-site Android download and a signed-out Web companion. It is not acceptable to call production signed or store released: final enrolled-biometric callback evidence, authorized Pay receipt smoke, production Gateway persistence/operations, iOS evidence, production signing and store review remain open in `product-release.json`.

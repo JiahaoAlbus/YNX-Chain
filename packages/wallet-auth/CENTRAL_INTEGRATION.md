@@ -1,14 +1,16 @@
 # Central Wallet Auth integration contract
 
-The executable integration boundary is `src/gateway-http.js`, backed by `src/gateway-adapter.js`; `src/gateway-node-host.js` adds fail-closed local persistence and bounded observability. The merge manifest, versioned state schema and central patch instructions are in `integration/`. `testdata/product-session-http-proof-v1.json` is the deterministic P-256 sender-constrained HTTP proof vector. These artifacts supersede any assumption that possession of a session binding or legacy opaque token is sufficient for canonical introspection. Source commit `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6` is the current locally tested candidate.
+The executable integration boundary is `src/gateway-http.js`, backed by `src/gateway-adapter.js`; `src/gateway-node-host.js` adds fail-closed local persistence and bounded observability. The merge manifest, versioned state schema and central patch instructions are in `integration/`. `testdata/product-session-http-proof-v1.json` is the deterministic P-256 sender-constrained HTTP proof vector. These artifacts supersede any assumption that possession of a session binding or legacy opaque token is sufficient for canonical introspection. Release evidence must record the exact checked-out source commit; this document deliberately does not carry a mutable source pointer.
 
-This is the merge-ready central protocol candidate implemented and tested by `@ynx-chain/wallet-auth`. It is **not** evidence of central integration, staging deployment, or public deployment. Product approval in this file means only that the exact Testnet identity and least-privilege scope tuple has passed product-owned review; it does not mean that a central Gateway or an installed end-to-end flow is live.
+This is the merge-ready central protocol candidate implemented and tested by `@ynx-chain/wallet-auth`. It is **not** evidence of central review, central integration, staging deployment, or public deployment. The candidate registry therefore keeps every product disabled.
 
 ## Canonical registry
 
-`central-registry.json` is the only 29-registration candidate inventory. The top-level schema is exact: `registryVersion`, `chainId`, `products`. It requires version `2`, chain `ynx_6423-1`, exactly 29 alphabetically sorted registrations, and globally unique product IDs, client IDs, bundle IDs, and callbacks. Registry v1 migrates only through the exact deterministic migration that replaces the obsolete generic Browser tuple with four disabled platform-bound Browser registrations and adds disabled, pending-review Quant.
+`central-registry.json` is the only 26-product candidate inventory. Its checked-in legacy shape is exact: `registryVersion`, `chainId`, `products`. Registry v2 requires chain `ynx_6423-1`, exactly 26 alphabetically sorted products, and globally unique client IDs, bundle IDs, and callbacks. Registry v1 migrates only through the exact deterministic migration that adds disabled, pending-review Quant.
 
-Each product registration uses exact schema v3 fields:
+Accepted registry v3 adds the exact top-level `retiredClients` array. It permits an active product registration and a retired client record to carry different product client IDs, bundle/package IDs and callbacks without weakening uniqueness. Every active/retired client ID, bundle ID and callback remains globally unique. A v2 registry becomes v3 only in the exact-digest client-retirement transaction; callers cannot inject a retired tuple or infer one from a product name.
+
+The checked-in v2 candidate contains legacy schema v3 product registrations:
 
 ```json
 {
@@ -29,30 +31,11 @@ Each product registration uses exact schema v3 fields:
 }
 ```
 
-`reviewState` is `approved`, `pending-review`, or `disabled`; `enabled` must be true exactly when approved. `centralRegistrationByProduct` and `centralProtocolEntry` reject disabled entries by default. Callers may pass `{requireEnabled:false}` only for review tooling and tests, never for session issuance. No wildcard scope, callback, client, or bundle is allowed.
+The parser normalizes these to schema v5, which adds `webOrigins` and exact `clientLifecycle`. `reviewState` is `approved`, `pending-review`, `disabled`, or `retired`; `enabled` must be true exactly when approved and active. `centralRegistrationByProduct` and `centralProtocolEntry` reject disabled or retired entries by default. Callers may pass `{requireEnabled:false}` only for review tooling and tests, never for session issuance. No wildcard origin, scope, callback, client, or bundle is allowed.
 
 Schema v2 remains the exact protocol projection consumed by the verifier: `schemaVersion`, `productClientId`, `requestingProduct`, `bundleId`, `callbacks`, `scopes`, `maxScopes`, and `productDeviceAlgorithms`. `migrateCentralRegistryEntry` converts the exact legacy single-callback v1 shape to v2 and rejects extra fields.
 
 `registry-conflict-evidence.json` records known identity and central implementation conflicts. It must be reviewed with the owning product worktrees before any product is marked approved.
-
-## Approved Testnet product bindings
-
-`calendar`, `developer`, `exchange`, `finance`, `quant`, and `shop` have approved
-Testnet bindings. Each approval is restricted to the exact client, bundle,
-callback, algorithms, duration, and least-privilege scopes listed in
-`central-registry.json`. The Developer binding is specifically
-`ynx-developer-v1` / `com.ynxweb4.developer.testnetpreview` /
-`ynxdeveloper://wallet-auth/callback` with `account:read` and
-`developer:deploy`; the Wallet app tests that exact deep link and refuses tuple or
-scope substitution.
-
-Approval is not transaction authority. Exchange actions, Quant mandates,
-Calendar recovery, Developer deployment, and every other signed action remain
-separate human-review and Gateway boundaries. The public Web Developer cannot
-receive the native `ynxdeveloper://` callback, and the central Gateway lifecycle
-is not deployed or attested; those flows must remain unavailable instead of
-falling back to a bearer token, browser-injected signer, or simulated success.
-All other products remain disabled until equivalent product-owned evidence exists.
 
 ## Canonical envelope and verifier
 
@@ -117,15 +100,6 @@ The kernel freezes the parsed registry at construction, rejects alternate JSON e
 6. Deploy registry, kernel host and durable state migration atomically to staging; record registry hash, source commit, release, canonical build time, deployment ID and restore evidence, then run real Wallet↔product flows.
 7. Have Monitor accept the bounded metric/event contract, prove dashboard and alert behavior, and correlate request/error IDs to authoritative audit IDs without logging custody or proof material.
 
-Current focused verification on 2026-08-10 is Wallet/Auth 105/105, Wallet app
-39/39, and Wallet app TypeScript typecheck, all passing. Earlier Node host,
-Browser SDK, JS SDK, loopback CLI, package, and Go evidence remains subject to
-its recorded source identity. Until central merge and direct Testnet/public
-evidence exist, truthful status remains `implemented-local` and `tested-local`,
-not `integrated-central` or `deployed-staging`.
+`integration/product-migration-matrix-v2.json` is the machine-verifiable downstream migration ledger. A product may be `MIGRATED` only with exact product and shared-SDK source commits plus visible, request-bound evidence for Wallet absent, Wallet present, approval, rejection, timeout, revocation, second open and temporary Chain disconnect/Retry on every declared platform. Web evidence is mandatory. `PROTOCOL_ONLY` means protocol tests exist but no product migration is claimed; `NO_EVIDENCE` means no product evidence exists. The parser rejects status inflation and incomplete evidence.
 
-The Node host `/version` response now binds its exact validated canonical
-registry using `registrySha256` and the sorted `enabledProductClientIds`. Product
-gateways must require both values, not infer enablement from process health or a
-source commit. This attestation is runtime evidence for the loaded registry; it
-does not by itself prove ingress routing or an installed Wallet-to-product flow.
+Verification counts are release evidence, not documentation constants. Until central merge and direct Testnet/public evidence exist, truthful status remains `implemented-local` and `tested-local`, not `integrated-central`, `deployed-staging`, or `deployed-public`.

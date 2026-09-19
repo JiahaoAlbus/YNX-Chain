@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "ynx.finance.weekly-v3-stage-b-final-evidence.v1",
+  "capturedAt": "2026-09-19T11:49:00+08:00",
+  "branch": "codex/finance-wallet-flow-20260912",
+  "implementationCommit": "79784051d4a80dc9897edaeee56b1d8086c20be6",
+  "implementationTree": "123fec2730b008df5a44d35bde29aa0f276e0627",
+  "remoteImplementationExact": true,
+  "change": {
+    "reason": "required alignment of the three documented provider rate settings with real runtime behavior",
+    "behavior": "concurrency-safe independent sliding one-minute gates for Broker reads, Broker writes and Market Data execute before provider contact",
+    "defaults": {"brokerReadsPerMinute": 180, "brokerWritesPerMinute": 30, "marketDataPerMinute": 180},
+    "failure": "RATE_LIMITED_LOCAL",
+    "providerContactAfterLimit": false
+  },
+  "tests": {
+    "goRace": "PASS: go test -race ./internal/finance/... ./apps/finance/cmd/...",
+    "goVet": "PASS: go vet ./internal/finance/... ./apps/finance/cmd/...",
+    "goBuild": "PASS: go build ./apps/finance/cmd/...",
+    "web": "PASS: npm test --prefix apps/finance (59/59)",
+    "security": "PASS: npm run security --prefix apps/finance (383 text files)",
+    "json": "PASS: jq empty apps/finance/broker-config.schema.json",
+    "diff": "PASS: git diff --check",
+    "rateConcurrency": "PASS: 12 concurrent Broker reads with limit 3 produced exactly 3 provider calls and 9 local rejections; Market Data limit 1 produced exactly one provider call"
+  },
+  "artifacts": [
+    {"path": "/tmp/ynx-finance-server-stage-b-final", "bytes": 28432210, "sha256": "61fd0e498aec207018b530b83888d37277c466172bd55aeb64770603610892b0"},
+    {"path": "/tmp/ynx-finance-broker-worker-stage-b-final", "bytes": 27136130, "sha256": "45b5e9d57a34d2eef379ccc130a8a6d70c0b938b33723590a89571402c7e276a"},
+    {"path": "/tmp/ynx-finance-broker-tools-stage-b-final", "bytes": 27033170, "sha256": "c741d4bfb2666e9abab130a126df1fd0985798e2afd40316aea3b0ac67b9a50f"}
+  ],
+  "truth": {
+    "officialSandboxVerified": false,
+    "providerWritesExecuted": false,
+    "realModelVerified": false,
+    "publicDeployed": false,
+    "installedVerified": false,
+    "liveTrading": false,
+    "mainnet": false,
+    "walletApprovalVisible": false,
+    "orderSubmitted": false
+  },
+  "writeFreezeAfterEvidencePush": true
+}

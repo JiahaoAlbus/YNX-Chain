@@ -1,0 +1,8 @@
+{
+  "name": "ynx-faucet-transport",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "description": "Disabled-by-default, bounded native Faucet HTTP transport"
+}

@@ -1,0 +1,118 @@
+{
+  "schema": "ynx-finance-weekly-v3-stage-a-evidence-v1",
+  "recordedAt": "2026-09-19T11:00:58Z",
+  "owner": "finance",
+  "branch": "codex/finance-wallet-flow-20260912",
+  "source": {
+    "commit": "54c16ef3d0beb1c12895bf33d927413bf7b55acf",
+    "tree": "d563b8b2ae826a7c3e150a830b0413b9dc85fa2e",
+    "predecessor": "04e91c9e819b2d4eae0c8d9a153303bf9dea48fd",
+    "remoteRef": "refs/heads/codex/finance-wallet-flow-20260912",
+    "remoteReadback": true
+  },
+  "scope": [
+    "apps/finance/**",
+    "internal/finance/**"
+  ],
+  "delivered": {
+    "providerAssetSearchAndSelection": true,
+    "ownerScopedPersistentWatchlist": true,
+    "manualProviderAssetUuidInputRemoved": true,
+    "manualWalletPublicKeyInputRemoved": true,
+    "ownerMappedWalletPublicKey": true,
+    "authenticatedSnapshotAndReconcile": true,
+    "localCancellationIntentWithoutProviderWrite": true,
+    "operatorQueryReconcileEventCancelTools": true,
+    "restartAndEventJournalRecovery": true,
+    "tradingAccountOfficialPath": "/v1/trading/accounts/{account_id}/account",
+    "accountTradingFences": [
+      "trading_blocked",
+      "account_blocked",
+      "trade_suspended_by_user"
+    ],
+    "officialTradeEventAdditiveFieldsAccepted": [
+      "at",
+      "event_id",
+      "extended_hours",
+      "created_at",
+      "updated_at"
+    ],
+    "tradeEventOccurrenceTime": "timestamp",
+    "tradeEventPublicationTime": "at",
+    "providerDecimalPreservedExample": "103556.8572572922"
+  },
+  "publicApi": {
+    "guestReadOnly": [
+      "GET /api/broker/status",
+      "GET /api/broker/assets",
+      "GET /api/broker/quote"
+    ],
+    "authenticatedRead": [
+      "GET /api/broker/snapshot",
+      "GET /api/broker/orders"
+    ],
+    "authenticatedControlledWrite": [
+      "PUT /api/broker/watchlist",
+      "POST /api/broker/reconcile",
+      "POST /api/broker/orders/{id}/cancel-request",
+      "POST /api/broker/challenges",
+      "POST /api/broker/callback"
+    ],
+    "browserProviderSubmitRoute": false,
+    "browserProviderCancelRoute": false
+  },
+  "operatorWorkerCommands": [
+    "link-account",
+    "query",
+    "reconcile",
+    "apply-events",
+    "dispatch-one",
+    "cancel-one"
+  ],
+  "verification": [
+    {
+      "command": "npm run security --prefix apps/finance",
+      "result": "PASS",
+      "detail": "380 text files"
+    },
+    {
+      "command": "npm test --prefix apps/finance",
+      "result": "PASS",
+      "detail": "59/59"
+    },
+    {
+      "command": "go test -race ./internal/finance/... ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go vet ./internal/finance/... ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go build ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "truth": {
+    "officialSandboxCredentialsAvailable": false,
+    "officialSandboxVerified": false,
+    "marketDataEntitlementVerified": false,
+    "simulatedFundingVerified": false,
+    "providerWriteActivated": false,
+    "providerOrderSubmitted": false,
+    "providerOrderCanceled": false,
+    "liveTradeEventTransportActivated": false,
+    "walletApprovalVisible": false,
+    "publicDeployed": false,
+    "installedClientVerified": false,
+    "productionApproved": false
+  },
+  "rollback": {
+    "source": "Revert 54c16ef3d0beb1c12895bf33d927413bf7b55acf after preserving any state-v2 file written by the candidate.",
+    "state": "Restore the authenticated pre-change Finance snapshot while all Finance writers are stopped; do not point an older binary at a newly written state file without the documented restore procedure."
+  }
+}

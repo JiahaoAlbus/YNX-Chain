@@ -37,10 +37,12 @@ const WRONG_KEY = Buffer.alloc(32, 0x41);
 
 function approvedRegistry() {
   const registry = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
+  for (const product of registry.products) { product.schemaVersion = 4; product.webOrigins = []; }
   for (const id of ["social", "wallet"]) {
     const product = registry.products.find((item) => item.productId === id);
     product.reviewState = "approved";
     product.enabled = true;
+    product.webOrigins = [id === "social" ? "https://social.ynxweb4.com" : "https://wallet.ynxweb4.com"];
   }
   return registry;
 }
@@ -52,6 +54,7 @@ function completion(registry, productId, nonce, challenge) {
     requestingProduct: registration.requestingProduct,
     productClientId: registration.productClientId,
     bundleId: registration.bundleId,
+    origin: registration.webOrigins[0],
     callback: registration.callbacks[0],
     scopes: [...registration.scopes],
     purpose: `Authorize ${productId} before a recovery drill.`,
@@ -106,10 +109,11 @@ async function nonEmptyGatewayState(statePath) {
       ["social", "social_backup_nonce_abcdefghijkl", "social_backup_challenge_abcdefgh"],
       ["wallet", "wallet_backup_nonce_abcdefghijkl", "wallet_backup_challenge_abcdefgh"],
     ]) {
+      const complete = completion(registry, id, nonce, challenge);
       const response = await fetch(`${base}/v1/wallet/sessions/complete`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: canonicalJSON(completion(registry, id, nonce, challenge)),
+        headers: { origin: complete.authorizationRequest.origin, "content-type": "application/json" },
+        body: canonicalJSON(complete),
       });
       assert.equal(response.status, 200, await response.text());
     }
@@ -117,7 +121,7 @@ async function nonEmptyGatewayState(statePath) {
     consumedProof = proof(walletSession, "/v1/wallet/sessions", "backup_consumed_proof_abcdefghijkl");
     const inventory = await fetch(`${base}/v1/wallet/sessions`, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-ynx-product-session-proof": consumedProof },
+      headers: { origin: walletSession.origin, "content-type": "application/json", "x-ynx-product-session-proof": consumedProof },
       body: "{}",
     });
     assert.equal(inventory.status, 200, await inventory.text());
@@ -178,7 +182,7 @@ test("encrypted backup restores exact Gateway state and preserves consumed-proof
     await serve(recoveredHost, async (base) => {
       const replay = await fetch(`${base}/v1/wallet/sessions`, {
         method: "POST",
-        headers: { "content-type": "application/json", "x-ynx-product-session-proof": source.consumedProof },
+        headers: { origin: "https://wallet.ynxweb4.com", "content-type": "application/json", "x-ynx-product-session-proof": source.consumedProof },
         body: "{}",
       });
       assert.equal(replay.status, 409);
@@ -296,7 +300,7 @@ test("legacy Gateway state normalizes before backup while unsupported future sta
     await serve(recoveredHost, async (base) => {
       const replay = await fetch(`${base}/v1/wallet/sessions`, {
         method: "POST",
-        headers: { "content-type": "application/json", "x-ynx-product-session-proof": source.consumedProof },
+        headers: { origin: "https://wallet.ynxweb4.com", "content-type": "application/json", "x-ynx-product-session-proof": source.consumedProof },
         body: "{}",
       });
       assert.equal(replay.status, 409);
