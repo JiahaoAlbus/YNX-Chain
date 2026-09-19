@@ -20,28 +20,39 @@ Live, Mainnet, installed-device or production verification.
   The Weekly v3 Broker Sandbox sequence runs from
   `fa3d66b169d22d52b936d57bbf35ab92cb023ec5` through that checkpoint
   (25 commits).
-- Fully published product checkpoint used by the combined local gates:
-  `029add3e6c07fbe522eeac4568c3af137c417c1b`.
+- The earlier broad integration checkpoint was
+  `029add3e6c07fbe522eeac4568c3af137c417c1b`. It is retained in history for
+  provenance, but is superseded by the scope-narrowed candidate recorded by
+  this document.
 
 ## Integration decisions
 
 The Network head is the tree baseline because the Wallet branch predates the
-durable Faucet and Finance/Network baseline. Wallet-owned directories
-`apps/wallet`, `apps/wallet-web` and `packages/wallet-auth` use the final browser
-head state; Network-only Wallet files remain present. The final Wallet deep-link
-configuration retains both `authorize` and `action` entry points.
+durable Faucet and Finance/Network baseline. Wallet runtime, packaging and test
+paths use the final browser head behavior; historical browser screenshots,
+intermediate proposals and superseded Wallet Auth test histories are omitted.
+The final Wallet deep-link configuration retains both `authorize` and `action`
+entry points.
 
 Finance uses the final owner state for the Weekly v3 changed paths, the complete
-`internal/finance` package, the Web/Mobile connection baselines required by its
-own regression suite, and `internal/productsessionv2`. The Network-only
-`apps/finance/gateway` remains present. This imports the existing Finance
+`internal/finance` package, the Web connection baseline, the two Mobile contract
+files consumed by Finance verification, and `internal/productsessionv2`. The
+Network-only `apps/finance/gateway` remains present. Unreferenced superseded
+Finance vendor bundles are omitted. This imports the existing Finance
 implementation and its dependencies rather than creating test-only stubs.
 
 The security dependency graph and audit policy are retained. The audit policy's
-source checkpoint is rebound to a commit reachable from this candidate. The
-Trust Gateway fixture now supplies the Faucet Core authority required by the
-production boundary; production authorization was not relaxed. The placeholder
-gate skips only known policy/scanner documents that describe forbidden tokens.
+source checkpoint is rebound to a commit reachable from this candidate. Shared
+Cloud dependency evidence is refreshed only because the root Go dependency
+graph changed. The placeholder gate excludes the Finance public-endpoint
+manifest in both scanner implementations because `example.com` appears there
+only in its fail-closed rejection list.
+
+Mail, Merchant, Music, Pay, Social, Calendar, DEX and Resource Market source and
+workflow paths are identical to the Network baseline. Their unrelated histories
+were not imported and their products were not modified to satisfy integration
+CI. The Wallet iOS workflow runs the existing pin verifier against its own new
+workflow only, while the verifier's default global behavior remains unchanged.
 
 An earlier Wallet-base experiment demonstrated that PR #137 cannot be safely
 applied onto the older Wallet tree without replacing its durable Faucet base.
@@ -50,7 +61,7 @@ was rewritten, reset, cleaned or force-pushed.
 
 ## Local verification
 
-Passed at the published product checkpoint above:
+Passed on the scope-narrowed working tree before publication:
 
 - root `npm ci`, full and production npm audit: zero reported vulnerabilities;
   audit policy and self-test; placeholder, Hardhat and contract gates;

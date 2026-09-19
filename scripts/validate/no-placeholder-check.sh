@@ -33,6 +33,7 @@ if command -v rg >/dev/null 2>&1; then
     -g '!apps/exchange/docs/THREAT_MODEL.md' \
     -g '!apps/cloud/scripts/security-gate.mjs' \
     -g '!apps/cloud/UNIT_ECONOMICS.md' \
+    -g '!apps/finance/mobile/contract/public-endpoint-manifest.json' \
     -e "$bad" "${scan_targets[@]}"; then
     found=0
   else
@@ -59,6 +60,7 @@ else
     --exclude='THREAT_MODEL.md' \
     --exclude='security-gate.mjs' \
     --exclude='UNIT_ECONOMICS.md' \
+    --exclude='public-endpoint-manifest.json' \
     --exclude='*.test.*' \
     --exclude='*_test.go' \
     --exclude-dir='.git' \

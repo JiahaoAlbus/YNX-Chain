@@ -8,7 +8,6 @@ export const REGISTRY = Object.freeze({
   "ynx-social-v1": Object.freeze({
     requestingProduct: "social",
     bundleId: "com.ynx.social",
-    origins: Object.freeze(["https://social.ynxweb4.com"]),
     callbacks: Object.freeze(["ynx-social://com.ynx.social"]),
     scopes: Object.freeze(["account:read", "profile:link"]),
     maxScopes: 2,
@@ -17,7 +16,7 @@ export const REGISTRY = Object.freeze({
 
 export function request(overrides = {}) {
   return {
-    version: "2",
+    version: "1",
     nonce: "nonce_abcdefghijklmnopqrstuvwxyz12",
     chainId: "ynx_6423-1",
     requestingProduct: "social",
@@ -25,7 +24,6 @@ export function request(overrides = {}) {
     bundleId: "com.ynx.social",
     productDeviceAlgorithm: "p256-sha256",
     productDeviceKey: PRODUCT_DEVICE_KEY,
-    origin: "https://social.ynxweb4.com",
     callback: "ynx-social://com.ynx.social",
     scopes: ["account:read", "profile:link"],
     purpose: "Link this YNX account to the selected Social profile on this device.",
