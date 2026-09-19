@@ -3,7 +3,7 @@
   "policyId": "YNX-INT-NPM-2026-001",
   "owner": "29-integration",
   "requiredReviewOwner": "30-security-sre",
-  "sourceCommit": "b2d510887ebcafe706b6388b73194d8a9bb9d330",
+  "sourceCommit": "151a9fe7355db6cc04693f8181d7c99b50fb4288",
   "decision": "noExceptionRequired",
   "createdAt": "2026-07-27T15:12:00Z",
   "remediatedAt": "2026-09-19T18:43:00Z",
