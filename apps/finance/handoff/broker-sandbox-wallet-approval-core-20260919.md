@@ -7,7 +7,7 @@ Owner scope: `apps/finance/**` and `internal/finance/**` only.
 
 ## Delivered source boundary
 
-- Imports the four frozen Finance order-approval contract artifacts only after exact SHA-256 verification. The import manifest binds Wallet authority commit `ab4dfa927be3d16fde3048b72d705d90c770dcd3` and the exact verifier and transport source identities.
+- Imports the four frozen Finance order-approval contract artifacts only after exact SHA-256 verification. The initial import manifest binds Wallet authority commit `ab4dfa927be3d16fde3048b72d705d90c770dcd3`; the browser consumer package is advanced to the reviewed revocation successor `bd977cd2d` without copying or rewriting shared SDK source.
 - Implements the cross-language canonical order hash, derived Finance subject, compact secp256k1 signature verification, low-S enforcement, account/public-key binding, five-minute approval lifetime, 32 KiB canonical callback limit, and strict duplicate/unknown-key rejection.
 - Uses Finance server time as authority. Approval verify is separate from persistent consume. Consume, revoke and expiry use the same authenticated compare-and-swap state transition boundary.
 - Adds deterministic manual and reviewed-AI order drafts with exact decimal arithmetic. An AI result can only be copied into the visible order form; the user must still request a server challenge and approve the exact Wallet payload. AI text is never execution authority; the server supplies fee evidence and all signed bounds.
@@ -17,7 +17,7 @@ Owner scope: `apps/finance/**` and `internal/finance/**` only.
 - Implements exact Sandbox Broker POST and cancel adapter calls behind a double fail-closed gate: server configuration plus a 64-hex activation receipt. There is still no public submit/cancel route and no worker is automatically started.
 - Implements persistent dispatch claims, one-attempt submit, explicit `submitted_unknown` recovery, restart recovery, cancellation state, client-order reconciliation, and deterministic cursor persistence. Transport ambiguity is reconciled by stable client order ID; it is never blindly retried.
 - Adds a bounded strict parser for the documented v2 trade-event SSE shape. Every event is tied to the persistent owner mapping before it can update an order; unknown fields, duplicate cursors, tenant mismatch, truncation and oversized batches fail closed. Network streaming remains unactivated.
-- Imports Wallet authority `ab4dfa927be3d16fde3048b72d705d90c770dcd3` as the exact npm archive `web/vendor/ynx-chain-wallet-auth-1.1.0.tgz` (240104 bytes; SHA-256 `080a9b3b5bf460a0704b3f0d7128b9fdedb2cdc4eab0f129e3853b4ee4f4b605`). The browser bundle uses the package-root Finance request builder, URL encoder and callback parser; it does not hand-build a Wallet URI.
+- Consumes Wallet authority `bd977cd2d` as the reproducible npm archive `web/vendor/ynx-chain-wallet-auth-1.1.0.tgz` (240311 bytes; SHA-256 `e23a2c55f4319c4ae39d856895669ce5fc3b1226f189a5abdb3bb25df92ec220`). The lock integrity is `sha512-E6i5XFxU7RhyFINETtPGTHi52E9phGKBuaA+dBJYbbVrcnE8hUAHSFlp9C09zCwqwHg68QEo5yCJCcSmiDuhXA==`. The browser bundle uses only package-root Finance request, return and revocation verification APIs; it does not hand-build a Wallet URI or copy shared source.
 - Adds an operator `activation-plan` that reports readiness without provider I/O. It cannot submit or cancel an order, and missing activation evidence is a hard failure.
 - Adds an operator-only `broker-worker dispatch-one` executable. It has no HTTP route or automatic service startup, accepts one exact absolute state path/account/order/activation receipt, refuses symlinks and mismatched receipts, performs restart recovery first, uses one bounded provider attempt, and declares ambiguous results non-retryable for reconciliation.
 - Corrects the live browser boundary found by cross-product integration: challenge/callback writes request `finance.profile.write`, authority responses must return that exact scope, and canonical RFC3339-millisecond server time is converted to `Date` only at the trusted boundary with no device-clock fallback.
@@ -30,10 +30,11 @@ Owner scope: `apps/finance/**` and `internal/finance/**` only.
 
 ## Verification
 
-- `npm run build:order-wallet --prefix apps/finance/web` — PASS; 77058-byte bundle SHA-256 `64aae4b70bba33b375482d99fc239f6475202f70404c60d7e24b22214202cb77`.
+- `npm run build:order-wallet --prefix apps/finance/web` — PASS; 77452-byte bundle SHA-256 `dc8f749838e7abcf20a034716f0b870c9d4a6bd59a9e578561536a321a635902`.
 - `go test -race ./internal/finance/... ./apps/finance/cmd/...` — PASS.
 - `go vet ./internal/finance/... ./apps/finance/cmd/...` — PASS.
-- `npm test --prefix apps/finance` — 57/57 PASS, including real Chrome bundle time parsing and approve-delivery-failure/reload/revoke recovery.
+- `npm test --prefix apps/finance` — 58/58 PASS, including real Chrome bundle time parsing, approve-delivery-failure/reload/revoke recovery, and pending unsigned challenge revocation when the approved callback was never delivered.
+- Exact Wallet authority package test at `bd977cd2d` — 660/660 PASS.
 - `npm run security --prefix apps/finance` — PASS across 380 text files.
 - Linux amd64 reproducible build — 28,799,108 bytes; SHA-256 `461b164f8a94f9f8682060206e573630600ecd93c2b86f9ed6010b91643a0b43`.
 - `go test ./...` reached and passed Finance, then failed only in unrelated `internal/bftgateway` and `internal/consensus` tests because `artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json` is absent from this worktree.

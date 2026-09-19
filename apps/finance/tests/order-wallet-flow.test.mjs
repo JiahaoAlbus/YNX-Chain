@@ -58,6 +58,23 @@ test('approved proof survives delivery failure and reload so an exact revocation
   }finally{await fixture.context.close();}
 });
 
+test('trusted pending unsigned challenge verifies Wallet revocation when approved callback was never delivered',async()=>{
+  const fixture=await setup();
+  try{
+    const approvedAt=new Date('2026-09-19T09:00:01.000Z');
+    const request=createFinanceOrderApprovalRequest(vectors.positive.unsigned,approvedAt);
+    const approval=createSignedFinanceOrderApproval({accountSecret:vectors.positive.testOnlyPublicSecretScalarHex,approval:vectors.positive.unsigned},approvedAt);
+    await fixture.page.evaluate(({unsigned})=>window.YNXFinanceOrderWallet.begin(unsigned,'2026-09-19T09:00:01.000Z'),{unsigned:vectors.positive.unsigned});
+    assert.equal((await fixture.page.evaluate(()=>window.YNXFinanceOrderWallet.pending())).approvedProof,null);
+    const revokedAt=new Date('2026-09-19T09:00:02.000Z');
+    const revocation=createSignedFinanceOrderApprovalRevocation({accountSecret:vectors.positive.testOnlyPublicSecretScalarHex,approval},revokedAt);
+    const revokedURL=createFinanceOrderApprovalReturnURL(registry,request,{status:'revoked',approval,revocation},revokedAt);
+    const revoked=JSON.parse(await fixture.page.evaluate(url=>window.YNXFinanceOrderWallet.parseReturn(url,'2026-09-19T09:00:02.000Z'),revokedURL));
+    assert.equal(revoked.status,'revoked');
+    assert.equal((await fixture.page.evaluate(()=>window.YNXFinanceOrderWallet.pending())).approvedProof,null);
+  }finally{await fixture.context.close();}
+});
+
 test('real browser bundle rejects invalid or missing authority time without device-clock fallback or pending state',async()=>{
   const fixture=await setup();
   try{
