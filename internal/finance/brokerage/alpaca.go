@@ -127,17 +127,56 @@ type BrokerageAdapter interface {
 	CancelOrder(context.Context, string, AccountResolver, string) error
 }
 type Alpaca struct {
-	cfg     Config
-	client  *http.Client
-	mu      sync.Mutex
-	token   string
-	expires time.Time
+	cfg         Config
+	client      *http.Client
+	mu          sync.Mutex
+	token       string
+	expires     time.Time
+	rateMu      sync.Mutex
+	readTimes   []time.Time
+	writeTimes  []time.Time
+	marketTimes []time.Time
+	now         func() time.Time
 }
 
 func NewAlpaca(cfg Config) *Alpaca {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = nil
-	return &Alpaca{cfg: cfg, client: &http.Client{Timeout: 10 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
+	return &Alpaca{cfg: cfg, client: &http.Client{Timeout: 10 * time.Second, Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, now: time.Now}
+}
+
+func (a *Alpaca) allowRate(kind string) error {
+	a.rateMu.Lock()
+	defer a.rateMu.Unlock()
+	now := time.Now().UTC()
+	if a.now != nil {
+		now = a.now().UTC()
+	}
+	cutoff := now.Add(-time.Minute)
+	var bucket *[]time.Time
+	limit := 0
+	switch kind {
+	case "read":
+		bucket, limit = &a.readTimes, a.cfg.readRatePerMinute
+	case "write":
+		bucket, limit = &a.writeTimes, a.cfg.writeRatePerMinute
+	case "market":
+		bucket, limit = &a.marketTimes, a.cfg.marketRatePerMinute
+	default:
+		return &Error{Code: "RATE_LIMIT_CONFIGURATION_ERROR"}
+	}
+	kept := (*bucket)[:0]
+	for _, observed := range *bucket {
+		if observed.After(cutoff) {
+			kept = append(kept, observed)
+		}
+	}
+	if limit < 1 || len(kept) >= limit {
+		*bucket = kept
+		return &Error{Code: "RATE_LIMITED_LOCAL"}
+	}
+	*bucket = append(kept, now)
+	return nil
 }
 func (a *Alpaca) Capabilities() map[string]string {
 	return map[string]string{
@@ -224,6 +263,13 @@ func (a *Alpaca) get(ctx context.Context, path string, out any) (string, error) 
 	return a.getOrigin(ctx, BrokerOrigin, path, out)
 }
 func (a *Alpaca) getOrigin(ctx context.Context, origin, path string, out any) (string, error) {
+	kind := "read"
+	if origin == MarketDataOrigin {
+		kind = "market"
+	}
+	if err := a.allowRate(kind); err != nil {
+		return "", err
+	}
 	req, _ := http.NewRequest(http.MethodGet, origin+path, nil)
 	if err := a.authorize(ctx, req); err != nil {
 		return "", err
@@ -475,6 +521,9 @@ func (a *Alpaca) SubmitOrder(ctx context.Context, owner string, resolver Account
 	if !uuid.MatchString(order.ClientOrderID) || !uuid.MatchString(order.AssetID) || order.Symbol == "" || len(order.Symbol) > 32 || (order.Side != "buy" && order.Side != "sell") || !providerDecimal.MatchString(order.Qty) || order.Type != "limit" || !providerDecimal.MatchString(order.LimitPrice) || order.TimeInForce != "day" || order.ExtendedHours {
 		return Order{}, &Error{Code: "ORDER_REQUEST_INVALID"}
 	}
+	if err := a.allowRate("write"); err != nil {
+		return Order{}, err
+	}
 	payload, err := json.Marshal(order)
 	if err != nil || len(payload) > 4096 {
 		return Order{}, &Error{Code: "ORDER_REQUEST_INVALID"}
@@ -505,6 +554,9 @@ func (a *Alpaca) CancelOrder(ctx context.Context, owner string, resolver Account
 	}
 	if !uuid.MatchString(orderID) {
 		return &Error{Code: "ORDER_REQUEST_INVALID"}
+	}
+	if err := a.allowRate("write"); err != nil {
+		return err
 	}
 	request, _ := http.NewRequest(http.MethodDelete, BrokerOrigin+"/v1/trading/accounts/"+account+"/orders/"+orderID, nil)
 	if err := a.authorize(ctx, request); err != nil {

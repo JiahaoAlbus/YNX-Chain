@@ -89,6 +89,59 @@ func TestReadOnlySandboxLatestQuoteUsesPinnedMarketDataOrigin(t *testing.T) {
 	}
 }
 
+func TestConfiguredProviderRateLimitsAreEnforcedConcurrently(t *testing.T) {
+	cfg := config(map[string]string{
+		"FINANCE_TRADING_ENABLED": "true", "ALPACA_BROKER_AUTH_MODE": "legacy_basic",
+		"ALPACA_BROKER_API_KEY": "fixture-key", "ALPACA_BROKER_API_SECRET": "fixture-secret",
+		"FINANCE_BROKER_READ_RATE_PER_MINUTE": "3", "FINANCE_BROKER_WRITE_RATE_PER_MINUTE": "2", "FINANCE_MARKET_DATA_RATE_PER_MINUTE": "1",
+	})
+	a := NewAlpaca(cfg)
+	fixed := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
+	a.now = func() time.Time { return fixed }
+	var calls atomic.Int32
+	a.client.Transport = roundTrip(func(request *http.Request) (*http.Response, error) {
+		calls.Add(1)
+		return response(http.StatusOK, asset), nil
+	})
+	results := make(chan string, 12)
+	var group sync.WaitGroup
+	for i := 0; i < 12; i++ {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			_, err := a.Assets(context.Background())
+			results <- ErrorCode(err)
+		}()
+	}
+	group.Wait()
+	close(results)
+	limited, successful := 0, 0
+	for code := range results {
+		if code == "RATE_LIMITED_LOCAL" {
+			limited++
+		} else if code == "BROKER_CHECK_FAILED" {
+			successful++
+		} else {
+			t.Fatalf("unexpected result code %s", code)
+		}
+	}
+	if calls.Load() != 3 || successful != 3 || limited != 9 {
+		t.Fatalf("provider calls=%d successful=%d limited=%d", calls.Load(), successful, limited)
+	}
+
+	quoteCalls := 0
+	a.client.Transport = roundTrip(func(*http.Request) (*http.Response, error) {
+		quoteCalls++
+		return response(http.StatusOK, `{"symbol":"ACME","quote":{"ap":10,"as":1,"bp":9,"bs":1,"t":"2026-09-19T09:00:00Z"}}`), nil
+	})
+	if _, err := a.Quote(context.Background(), "ACME"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := a.Quote(context.Background(), "ACME"); ErrorCode(err) != "RATE_LIMITED_LOCAL" || quoteCalls != 1 {
+		t.Fatalf("market rate gate err=%v calls=%d", err, quoteCalls)
+	}
+}
+
 func TestOrdersPaginatesBeyondFiveHundredWithoutSilentTruncation(t *testing.T) {
 	a := NewAlpaca(enabled("legacy_basic"))
 	accountID := "01234567-89ab-4cde-8fab-0123456789ab"
