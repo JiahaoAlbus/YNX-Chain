@@ -68,8 +68,16 @@ test("creates a separately signed unused-proof revocation and persists it before
   const f = fixture(), c = f.controller(), request = f.request(), review = await c.receive(f.url(request)); f.state.failOpen = true;
   await assert.rejects(c.approve(review.id)); assert.equal(c.canRevoke(review.id), true); f.state.failOpen = false; f.state.now += 1_000;
   await c.revokeUnused(review.id); assert.equal(f.state.keys, 2); assert.deepEqual(f.state.writes.map(raw => JSON.parse(raw).records[0].status), ["reserved", "approved", "revoked"]);
-  const approval = JSON.parse(f.state.writes[1]!).records[0].approval;
-  assert.equal(parseFinanceOrderApprovalReturnURL(registry, f.state.opens.at(-1)!, request, new Date(f.state.now), approval).status, "revoked");
+  assert.equal(parseFinanceOrderApprovalReturnURL(registry, f.state.opens.at(-1)!, request, new Date(f.state.now)).status, "revoked");
+});
+
+test("concurrent revocation attempts persist and return only one exact result", async () => {
+  const f = fixture(), first = f.controller(), request = f.request(), review = await first.receive(f.url(request)); f.state.failOpen = true; await assert.rejects(first.approve(review.id));
+  first.cancel(); f.state.failOpen = false; const a = f.controller(), b = f.controller(), ar = await a.receive(f.url(request)), br = await b.receive(f.url(request));
+  const results = await Promise.allSettled([a.revokeUnused(ar.id), b.revokeUnused(br.id)]);
+  assert.equal(results.filter(item => item.status === "fulfilled").length, 1); assert.equal(f.state.opens.length, 2);
+  const row = JSON.parse(f.values.get(FINANCE_ORDER_APPROVAL_REPLAY_KEY)!).records[0]; assert.equal(row.status, "revoked"); assert.ok(row.revocation);
+  assert.equal(parseFinanceOrderApprovalReturnURL(registry, f.state.opens[1]!, request, new Date(f.state.now)).status, "revoked");
 });
 
 test("account mismatch, missing backup and wrong decrypted key fail before a signature", async () => {

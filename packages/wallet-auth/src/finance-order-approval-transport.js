@@ -5,7 +5,7 @@ import {
   assertFinanceOrderApprovalActive, financeOrderApprovalDigest,
   parseFinanceOrderApprovalUnsigned, parseSignedFinanceOrderApproval,
   parseSignedFinanceOrderApprovalRevocation, verifySignedFinanceOrderApproval,
-  verifySignedFinanceOrderApprovalRevocation,
+  verifySignedFinanceOrderApprovalRevocation, verifySignedFinanceOrderApprovalRevocationAgainstUnsigned,
 } from "./finance-order-approval.js";
 
 export const FINANCE_ORDER_APPROVAL_ROUTE = "ynxwallet://finance-order-approval";
@@ -71,9 +71,9 @@ function resultFor(request, input, at, approvalForRevocation = null) {
     return Object.freeze({ callbackStateHash: request.unsigned.callbackStateHash, kind: "finance_order_approval_result", reason: "USER_REJECTED", requestId: request.unsigned.requestId, status: "rejected", version: "1" });
   }
   if (status === "revoked") {
-    const approval = approvalForRevocation ?? input.approval;
-    if (!approval) fail("INVALID_FINANCE_APPROVAL_RESULT", "The approved proof is required to verify its revocation");
-    const revocation = verifySignedFinanceOrderApprovalRevocation(fields.revocation, approval, request.unsigned, at);
+    const revocation = approvalForRevocation
+      ? verifySignedFinanceOrderApprovalRevocation(fields.revocation, approvalForRevocation, request.unsigned, at)
+      : verifySignedFinanceOrderApprovalRevocationAgainstUnsigned(fields.revocation, request.unsigned, at);
     return Object.freeze({ callbackStateHash: request.unsigned.callbackStateHash, kind: "finance_order_approval_result", requestId: request.unsigned.requestId, revocation, status: "revoked", version: "1" });
   }
   fail("INVALID_FINANCE_APPROVAL_RESULT", "Finance order approval result status is invalid");

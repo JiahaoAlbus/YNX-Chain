@@ -8,7 +8,7 @@ import {
   financeOrderApprovalRequestDigest, financeOrderApprovalRevocationDigest, financeOrderHash,
   parseFinanceOrder, parseFinanceOrderApprovalReturnURL, parseFinanceOrderApprovalWalletURL,
   parseProductSessionRegistry, parseSignedFinanceOrderApprovalRevocation,
-  verifySignedFinanceOrderApprovalRevocation,
+  verifySignedFinanceOrderApprovalRevocation, verifySignedFinanceOrderApprovalRevocationAgainstUnsigned, walletIdentity,
 } from "../src/index.js";
 
 const vectors = JSON.parse(await readFile(new URL("../testdata/finance-order-approval-v1.vectors.json", import.meta.url), "utf8"));
@@ -66,9 +66,26 @@ test("unused approval revocation is a separate exact account signature", () => {
   assert.match(financeOrderApprovalRevocationDigest(revocation), /^[0-9a-f]{64}$/);
   assert.deepEqual(parseSignedFinanceOrderApprovalRevocation(canonicalJSON(revocation)), revocation);
   assert.deepEqual(verifySignedFinanceOrderApprovalRevocation(revocation, signed, unsigned, REVOKED), revocation);
+  assert.deepEqual(verifySignedFinanceOrderApprovalRevocationAgainstUnsigned(revocation, unsigned, REVOKED), revocation);
   const url = createFinanceOrderApprovalReturnURL(registry, request, { status: "revoked", approval: signed, revocation }, REVOKED);
-  const result = parseFinanceOrderApprovalReturnURL(registry, url, request, REVOKED, signed);
-  assert.equal(result.status, "revoked"); assert.deepEqual(result.revocation, revocation);
+  const withoutApproval = parseFinanceOrderApprovalReturnURL(registry, url, request, REVOKED);
+  const withApproval = parseFinanceOrderApprovalReturnURL(registry, url, request, REVOKED, signed);
+  assert.equal(withoutApproval.status, "revoked"); assert.deepEqual(withoutApproval.revocation, revocation);
+  assert.deepEqual(withApproval, withoutApproval);
+});
+
+test("revocation without a delivered approval trusts only the authenticated unsigned challenge", () => {
+  const revocation = createSignedFinanceOrderApprovalRevocation({ accountSecret: secret, approval: signed }, REVOKED);
+  const other = walletIdentity("0".repeat(63) + "2");
+  const wrongAccount = { ...unsigned, account: other.account, accountPublicKey: other.accountPublicKey,
+    subjectId: deriveFinanceSubjectId({ account: other.account, applicationId: unsigned.applicationId, platform: "web", productClientId: "ynx-finance-v1" }) };
+  for (const expected of [
+    { ...unsigned, requestId: "request_77777777-7777-4777-8777-777777777777" },
+    { ...unsigned, callbackStateHash: "b".repeat(64) }, wrongAccount,
+  ]) assert.throws(() => verifySignedFinanceOrderApprovalRevocationAgainstUnsigned(revocation, expected, REVOKED), /authoritative unsigned challenge/);
+  assert.throws(() => verifySignedFinanceOrderApprovalRevocationAgainstUnsigned(revocation, unsigned, ACTIVE), /lifetime/);
+  assert.throws(() => verifySignedFinanceOrderApprovalRevocationAgainstUnsigned({ ...revocation, signature: "0".repeat(128) }, unsigned, REVOKED), /signature/);
+  assert.throws(() => verifySignedFinanceOrderApprovalRevocationAgainstUnsigned({ ...revocation, approvalDigest: "0".repeat(64) }, unsigned, REVOKED), /signature/);
 });
 
 test("revocation fails for expiry, wrong account, wrong approval or unsigned correlation", () => {
@@ -78,7 +95,8 @@ test("revocation fails for expiry, wrong account, wrong approval or unsigned cor
   assert.throws(() => parseSignedFinanceOrderApprovalRevocation({ ...revocation, approvalDigest: "0".repeat(64) }), /signature/);
   assert.throws(() => parseSignedFinanceOrderApprovalRevocation({ ...revocation, signature: "0".repeat(128) }), /signature/);
   const request = createFinanceOrderApprovalRequest(unsigned, ACTIVE);
-  assert.throws(() => createFinanceOrderApprovalReturnURL(registry, request, { status: "revoked", revocation }, REVOKED), /approved proof/);
+  const url = createFinanceOrderApprovalReturnURL(registry, request, { status: "revoked", revocation }, REVOKED);
+  assert.equal(parseFinanceOrderApprovalReturnURL(registry, url, request, REVOKED).status, "revoked");
 });
 
 test("transport rejects field tampering before any product callback", () => {

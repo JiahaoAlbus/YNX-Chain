@@ -155,6 +155,19 @@ export function verifySignedFinanceOrderApprovalRevocation(input, approvalInput,
   return revocation;
 }
 
+/** Verify a Wallet revocation when Finance never received the approved proof.
+ * Every binding comes from Finance's authenticated unsigned challenge; no
+ * account, digest, request or time context is trusted from the revocation. */
+export function verifySignedFinanceOrderApprovalRevocationAgainstUnsigned(input, expected, at) {
+  const trusted = unsignedSnapshot(expected);
+  const revocation = parseSignedFinanceOrderApprovalRevocation(input);
+  if (revocation.account !== trusted.account || revocation.accountPublicKey !== trusted.accountPublicKey || revocation.requestId !== trusted.requestId
+    || revocation.approvalDigest !== financeOrderApprovalDigest(trusted)) fail("BINDING_MISMATCH", "Finance approval revocation does not match the authoritative unsigned challenge");
+  const revoked = Date.parse(revocation.revokedAt);
+  if (revoked < Date.parse(trusted.issuedAt) || revoked >= Date.parse(trusted.expiresAt) || revoked > instant(at)) fail("INVALID_FINANCE_REVOCATION_TIME", "Finance approval revocation is outside the authoritative challenge lifetime");
+  return revocation;
+}
+
 export function financeOrderApprovalRevocationDigest(input) {
   const value = Object.hasOwn(input ?? {}, "signature") ? pick(parseSignedFinanceOrderApprovalRevocation(input), REVOCATION_UNSIGNED_FIELDS) : revocationSnapshot(input);
   return bytesToHex(revocationDigestBytes(value));

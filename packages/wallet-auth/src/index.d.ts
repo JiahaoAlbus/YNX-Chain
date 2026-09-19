@@ -165,6 +165,7 @@ export declare function deriveFinanceSubjectId(input:Readonly<{account:string;ap
 export declare function createSignedFinanceOrderApprovalRevocation(input:Readonly<{accountSecret:string;approval:SignedFinanceOrderApproval}>,at:Date):SignedFinanceOrderApprovalRevocation;
 export declare function parseSignedFinanceOrderApprovalRevocation(input:unknown):SignedFinanceOrderApprovalRevocation;
 export declare function verifySignedFinanceOrderApprovalRevocation(input:unknown,approval:unknown,expected:FinanceOrderApprovalUnsigned,at:Date):SignedFinanceOrderApprovalRevocation;
+export declare function verifySignedFinanceOrderApprovalRevocationAgainstUnsigned(input:unknown,expected:FinanceOrderApprovalUnsigned,at:Date):SignedFinanceOrderApprovalRevocation;
 export declare function financeOrderApprovalRevocationDigest(input:unknown):string;
 export declare function createFinanceOrderApprovalRequest(unsigned:FinanceOrderApprovalUnsigned,at:Date):FinanceOrderApprovalRequest;
 export declare function parseFinanceOrderApprovalRequest(input:unknown,at:Date):FinanceOrderApprovalRequest;
