@@ -5646,8 +5646,8 @@
       "type": "library",
       "group": "npm",
       "name": "adm-zip",
-      "version": "0.6.0",
-      "purl": "pkg:npm/adm-zip@0.6.0",
+      "version": "0.6.1",
+      "purl": "pkg:npm/adm-zip@0.6.1",
       "scope": "optional",
       "properties": [
         {
@@ -6213,8 +6213,8 @@
       "type": "library",
       "group": "npm",
       "name": "undici",
-      "version": "6.27.0",
-      "purl": "pkg:npm/undici@6.27.0",
+      "version": "6.28.1",
+      "purl": "pkg:npm/undici@6.28.1",
       "scope": "optional",
       "properties": [
         {

@@ -137,12 +137,23 @@ function validateBundle({ policy, packageJson, lock, fullAudit, productionAudit,
   }
 
   const advisory = policy?.advisory ?? {};
-  expect(advisory.id === "GHSA-xcpc-8h2w-3j85", "unexpected remediated advisory ID");
-  expect(advisory.source === 1123686, "unexpected remediated advisory source ID");
+  expect(advisory.id === "GHSA-7q85-xj36-vmfc", "unexpected remediated advisory ID");
+  expect(advisory.source === 1239030, "unexpected remediated advisory source ID");
   expect(advisory.package === "adm-zip", "unexpected remediated advisory package");
   expect(advisory.severity === "high", "remediated advisory severity history must remain high");
   expect(advisory.fixAvailable === true, "policy must record that the dependency graph is fixed");
-  expect(advisory.installedVersion === "0.6.0", "policy must bind the fixed adm-zip version");
+  expect(advisory.installedVersion === "0.6.1", "policy must bind the fixed adm-zip version");
+  const remediatedAdvisories = (policy?.remediatedAdvisories ?? [])
+    .map(({ id, source, package: packageName, affectedRange, fixedVersion, severity }) => ({ id, source, package: packageName, affectedRange, fixedVersion, severity }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+  const expectedRemediatedAdvisories = [
+    { id: "GHSA-7q85-xj36-vmfc", source: 1239030, package: "adm-zip", affectedRange: "<0.6.1", fixedVersion: "0.6.1", severity: "high" },
+    { id: "GHSA-8xcm-r25x-g524", source: 1130716, package: "undici", affectedRange: "<6.28.0", fixedVersion: "6.28.1", severity: "moderate" },
+    { id: "GHSA-m8rv-5g2x-5cg5", source: 1130727, package: "undici", affectedRange: "<6.28.0", fixedVersion: "6.28.1", severity: "moderate" },
+    { id: "GHSA-v3r7-h72x-cjcm", source: 1130732, package: "undici", affectedRange: "<6.28.0", fixedVersion: "6.28.1", severity: "moderate" },
+    { id: "GHSA-vwc7-r8mq-g2x9", source: 1193734, package: "adm-zip", affectedRange: ">=0.5.9 <=0.6.0", fixedVersion: "0.6.1", severity: "moderate" }
+  ].sort((left, right) => left.id.localeCompare(right.id));
+  expect(JSON.stringify(remediatedAdvisories) === JSON.stringify(expectedRemediatedAdvisories), "remediated advisory inventory is incomplete or has drifted");
   expect(policy?.scope?.productionDependenciesAllowed === false, "production dependency scope must remain prohibited");
   expect(policy?.scope?.runtimeImportAllowed === false, "runtime import scope must remain prohibited");
   expect(policy?.scope?.untrustedArchiveInputAllowed === false, "untrusted archive input must remain prohibited");
@@ -248,6 +259,11 @@ function main() {
     runtimePackage.dependencies = { hardhat: "3.9.0" };
     const runtimeFailures = validateBundle({ policy, packageJson: runtimePackage, lock, fullAudit, productionAudit });
     if (!runtimeFailures.some((failure) => failure.includes("production npm dependencies"))) return ["self-test failed to reject production dependency exposure"];
+
+    const incompleteAdvisoryPolicy = clone(policy);
+    incompleteAdvisoryPolicy.remediatedAdvisories.pop();
+    const incompleteAdvisoryFailures = validateBundle({ policy: incompleteAdvisoryPolicy, packageJson, lock, fullAudit, productionAudit });
+    if (!incompleteAdvisoryFailures.some((failure) => failure.includes("remediated advisory inventory"))) return ["self-test failed to reject an incomplete remediated advisory inventory"];
   }
   return [];
 }

@@ -75,7 +75,7 @@ Generated from the committed npm lockfile and Go module graph. `not-recorded` is
 | @uniswap/v2-core | 1.0.1 | GPL-3.0-or-later | node_modules/@uniswap/v2-core |
 | @uniswap/v3-core | 1.0.1 | BUSL-1.1 | node_modules/@uniswap/v3-core |
 | @uniswap/v3-periphery | 1.4.4 | GPL-2.0-or-later | node_modules/@uniswap/v3-periphery |
-| adm-zip | 0.6.0 | MIT | node_modules/adm-zip |
+| adm-zip | 0.6.1 | MIT | node_modules/adm-zip |
 | aes-js | 4.0.0-beta.5 | MIT | node_modules/aes-js |
 | ansi-colors | 4.1.3 | MIT | node_modules/ansi-colors |
 | ansi-regex | 5.0.1 | MIT | node_modules/ansi-regex |
@@ -102,7 +102,7 @@ Generated from the committed npm lockfile and Go module graph. `not-recorded` is
 | tsx | 4.22.4 | MIT | node_modules/tsx |
 | typescript | 5.9.3 | Apache-2.0 | node_modules/typescript |
 | undici-types | 6.19.8 | MIT | node_modules/undici-types |
-| undici | 6.27.0 | MIT | node_modules/undici |
+| undici | 6.28.1 | MIT | node_modules/undici |
 | ws | 8.21.0 | MIT | node_modules/ws |
 | zod | 3.25.76 | MIT | node_modules/zod |
 

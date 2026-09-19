@@ -6,12 +6,12 @@ Contract artifact generation uses Node development dependencies. The exact packa
 
 Key direct build tools:
 
-- Hardhat 3.9.0 — MIT.
-- `@nomicfoundation/hardhat-ethers` 4.0.13 — MIT.
+- Hardhat 3.11.1 — MIT.
+- `@nomicfoundation/hardhat-ethers` 4.0.15 — MIT.
 - ethers 6.17.0 — MIT.
 - TypeScript 5.9.3 — Apache-2.0.
-- undici 6.27.0 — MIT.
-- adm-zip 0.6.0 — MIT.
+- undici 6.28.1 — MIT.
+- adm-zip 0.6.1 — MIT.
 
 PostgreSQL is used as an operator-provided database under the PostgreSQL License. NATS Server is used as an operator-provided broker under Apache-2.0. Neither server binary is bundled by the current source package.
 
