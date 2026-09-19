@@ -71,6 +71,8 @@ test("built worker derives cache keys from its registration scope",async()=>{
   const obsoleteDeletion=worker.indexOf('const obsolete=obsoletePwaCaches');
   assert.ok(activationGuard>=0&&activationGuard<obsoleteDeletion,"build integrity must be ready before legacy caches are deleted");
   assert.match(worker,/await self\.clients\.claim\(\);\s+await purgeObsolete\(\);/u);
+  assert.match(worker,/if\(target\)void client\.navigate\(target\)\.catch\(\(\)=>null\)/u);
+  assert.doesNotMatch(worker,/await client\.navigate\(target\)/u,"activation must not wait on navigation that is blocked by activation");
 });
 
 test("PWA bootstrap compares the generated build identity and permits one bounded reload",async()=>{

@@ -56,10 +56,12 @@ self.addEventListener("activate", (event) => event.waitUntil((async()=>{
   // A page still executing its old cached modules expects its old build ID.
   // Reload it once after the complete new cache is active, preserving its URL.
   if(replacingShell){
-    await Promise.all(windows.map(async client=>{
+    for(const client of windows){
       const target=upgradeNavigationUrl(client.url);
-      if(target)await client.navigate(target).catch(()=>null);
-    }));
+      // Navigation waits for activation while activation used to wait for the
+      // navigation, deadlocking upgrades. Finish activation before reloading.
+      if(target)void client.navigate(target).catch(()=>null);
+    }
   }
 })()));
 self.addEventListener("message",(event)=>{
