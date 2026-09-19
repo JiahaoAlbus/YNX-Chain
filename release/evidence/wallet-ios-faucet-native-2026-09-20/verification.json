@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-19T17:19:37Z",
+  "generatedAt": "2026-09-19T17:22:09Z",
   "workingTreeUncommitted": false,
   "product": {
     "bundleIdentifier": "com.ynxweb4.wallet",
@@ -83,6 +83,14 @@
         "classification": "host-resource-termination",
         "assertionFailureObserved": false
       }
+    },
+    "compiledGateEvidence": {
+      "selfTestPassed": true,
+      "failClosedOnSourceMismatch": true,
+      "failClosedOnMissingCompileRecord": true,
+      "failClosedOnMissingProviderRegistration": true,
+      "runtimeConstantRead": false,
+      "nativeHttpExecuted": false
     }
   },
   "releaseGates": {
@@ -115,8 +123,10 @@
     "apps/wallet/modules/ynx-faucet-transport/ios/Tests/HostHarness/main.swift": "d2473b396b956f9d45c9e611e78f09c863c920e67d4f22402b106f746af0b435",
     "apps/wallet/modules/ynx-faucet-transport/ios/Tests/BridgeHarness/main.swift": "c9dc238845bd2dcb0b2d9b32cad9c327d15e0fd8c124de469fe5880ba1b921be",
     "apps/wallet/modules/ynx-faucet-transport/ios/Tests/run-macos-host-tests.py": "d0ed32abc859c72017a6a6d34be1181ac78de18aa8938b5eeca3244fd24aade8",
-    "apps/wallet/modules/ynx-faucet-transport/ios/Tests/run-macos-bridge-tests.py": "4e96905ae7a9aca158859f95796f6a1172004b801b823d610d718b965c31c45d"
+    "apps/wallet/modules/ynx-faucet-transport/ios/Tests/run-macos-bridge-tests.py": "4e96905ae7a9aca158859f95796f6a1172004b801b823d610d718b965c31c45d",
+    "apps/wallet/modules/ynx-faucet-transport/README.md": "ad3a046532e9bc4a363da6d944e9b994c1dba011b8ed26a43bbbd55d401a400d",
+    "apps/wallet/scripts/ios-simulator-qa.mjs": "6827560542c6b8f6c3298c6b0990306e8e628c3a96da708f6ebbd5e7f5690acb"
   },
   "evidenceDataPolicy": "Summary only. No request body, response body, HTTP headers, account, key, token, or public Faucet call is retained.",
-  "sourceCommit": "0dfb25fd9e8afd5a2dc2a3d0aca792e90edfbe94"
+  "sourceCommit": "f9a05a1cf74635e9a18217f8da80f8b877c5b6fb"
 }
