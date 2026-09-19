@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-14T13:47:38+08:00",
+  "url": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+  "http": {
+    "protocol": "HTTP/2",
+    "status": 200,
+    "contentType": "application/vnd.android.package-archive",
+    "contentDisposition": "attachment; filename=\"ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk\"",
+    "contentLength": 78392878,
+    "strictTransportSecurity": "max-age=63072000",
+    "xContentTypeOptions": "nosniff"
+  },
+  "download": {
+    "bytes": 78392878,
+    "sha256": "fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",
+    "zipIntegrityPassed": true
+  },
+  "apkSigning": {
+    "verified": true,
+    "schemeV2": true,
+    "schemeV1": false,
+    "schemeV3": false,
+    "signers": 1,
+    "certificateDn": "CN=YNX Wallet Testnet Preview, O=YNX Chain, C=US",
+    "certificateSha256": "67c841ab31a4eb34f21e458827eb213b24dc22d3f1d224686ed601ed7eb8f489",
+    "keyAlgorithm": "RSA",
+    "keyBits": 2048,
+    "signingClass": "testnet-preview-apk-v2-signed"
+  },
+  "ynxFallbackRouteHosted": true,
+  "webArtifactDownloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false
+}

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "86f7dd1dfa7101066d789d4f9d1886c0b14eaf13",
+  "observedAt": "2026-08-14T02:56:02Z",
+  "scope": "read-only retry of the branded Edge automation channel; existing PWA and unpacked-extension evidence was not repeated",
+  "browser": {
+    "name": "Microsoft Edge",
+    "version": "151.0.4129.78",
+    "brandedBinaryInstalled": true,
+    "processObservedRunning": true
+  },
+  "controlChannel": {
+    "edgeBrowserFamilyExposed": false,
+    "availableBrowserFamilies": [
+      "codex-in-app-browser"
+    ],
+    "directError": "Browser is not available: edge",
+    "chatGptEdgeExtensionId": "hehggadaopoacecdllhhajmbjkdcmajg",
+    "chatGptEdgeExtensionInstalled": true,
+    "chatGptEdgeExtensionEnabled": true,
+    "nativeMessagingHostManifestValid": true,
+    "expectedEdgeOriginPresent": true,
+    "localHttpServerStarted": false,
+    "localHttpServerError": "listen EPERM 127.0.0.1:4173",
+    "realUserGestureRetested": false,
+    "providerInjectionRetested": false,
+    "connectRetested": false,
+    "addChainRetested": false,
+    "switchChainRetested": false
+  },
+  "failClosed": {
+    "edgeControlAvailable": false,
+    "realUserGestureProviderProvedThisRun": false,
+    "connectSucceededThisRun": false,
+    "addChainSucceededThisRun": false,
+    "switchChainSucceededThisRun": false,
+    "reason": "The branded Edge family was not exposed to the control runtime and the restricted environment denied the local HTTP listener; no interaction success is inferred."
+  },
+  "releaseStates": {
+    "pwaInstalledLocal": true,
+    "edgeDeveloperModeUnpackedLoaded": true,
+    "edgeExtensionInstalledLocal": false,
+    "chromeExtensionInstalledLocal": false,
+    "firefoxExtensionInstalledLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

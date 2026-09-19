@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-14T12:02:41.064Z",
+  "mode": "truthful-unpublished-monitor",
+  "pageUrl": "https://www.ynxweb4.com/dapp/wallet",
+  "manifestUrl": "https://www.ynxweb4.com/wallet/companion/manifest.webmanifest",
+  "page": {
+    "status": 200,
+    "contentType": "text/html",
+    "manifestHrefs": [
+      "/manifest.webmanifest"
+    ],
+    "exactHrefCount": 0
+  },
+  "manifest": null,
+  "icons": [],
+  "passed": false,
+  "error": "page:wallet-manifest-link",
+  "walletManifestDeployedPublic": false,
+  "installedLocal": false,
+  "coldLaunchProved": false,
+  "secondLaunchProved": false,
+  "gatePassed": true
+}

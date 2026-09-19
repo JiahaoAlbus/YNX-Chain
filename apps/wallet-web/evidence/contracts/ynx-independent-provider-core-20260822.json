@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "recordedAt": "2026-08-22",
+  "scope": "source-and-built-artifact-only",
+  "centralParityGate": {
+    "commit": "f92757f7491c3e28106664aacc2066663bbd52bb",
+    "tree": "c3b8aa28ca0cccefcb24319f65e2adfa0621123f",
+    "path": "release/integration/p0-wallet-connectivity/wallet-standard-parity-queue-20260822.json",
+    "blob": "a6809588dbf2ba66fb8652a34bf942cce9b8a7dc",
+    "sha256": "a7448b5d6c8f6fafe7cf4611a17a10fd6c069f66be3ed80318a22ff4de76937e",
+    "executionLeaseIssued": false
+  },
+  "authoritiesConsumed": {
+    "standardWalletProtocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "consumerSdkCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "sharedProviderRuntimeCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sharedProviderRuntimeTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "sharedProviderRuntimeEvidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"
+  },
+  "source": {
+    "commit": "aa225899eed79b4ddee3027d124657d7357f361c",
+    "tree": "bcd33cb8f5ef62d40913c46da5047939fec84ab1",
+    "branch": "codex/wallet-web-pwa-extensions-20260813"
+  },
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "defaultLocale": "en"
+  },
+  "sourceAndBuildClaims": {
+    "independentYnxProviderBridge": true,
+    "distinctEip6963Identity": true,
+    "doesNotReplaceMetaMaskRootProvider": true,
+    "exactOriginPermissionLedger": true,
+    "approvalRequestBinding": true,
+    "permissionPersistenceAndRevocation": true,
+    "chainAndAccountEventsImplemented": true,
+    "standardLayerIndependentFromProductSession": true,
+    "productSessionFailureEffect": "PRIVATE_SERVICE_DEGRADED_ONLY",
+    "browserDirectRpcFetchRequiredForConnection": false,
+    "unapprovedAccountExposure": false,
+    "fakeSignerOrTransactionSuccess": false,
+    "realSignerUnavailableFailsClosed": "YNX_SIGNER_UNAVAILABLE",
+    "missingVaultAccountFailsClosed": "PROVIDER_ACCOUNT_UNAVAILABLE"
+  },
+  "tests": {
+    "unitAndSource": "105/105 pass",
+    "buildAndPackageInternal": "82/82 pass",
+    "packageVerification": "pass",
+    "minimumPermissionArtifactGate": "pass"
+  },
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 285230,
+      "sha256": "652b866a7bb9ada5d2eacc6520a6702d6dab958eefbb4822e3dbc28aaab77992",
+      "minimumOS": "modern browser with Service Worker and Web Crypto support",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 366730,
+      "sha256": "acbc2471fc8011d2b32198b1fdd141f582b729d680902a0b0808b194680aed3c",
+      "minimumOS": "Chrome 120 / Edge 120",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 366767,
+      "sha256": "bd34014aae36ae6348739a8726fdcfbbae5ead47d8d46e6049f57669b1f34cc1",
+      "minimumOS": "Firefox 128",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "directEvidenceBoundary": {
+    "sourceTestsPassed": true,
+    "builtArtifactsVerified": true,
+    "installedProviderVerified": false,
+    "firstPartyDappComplete": false,
+    "externalDappsComplete": 0,
+    "ynxProviderConnected": false,
+    "accountApproved": false,
+    "providerChainId1917": false,
+    "approveVerified": false,
+    "rejectVerified": false,
+    "refreshRestoreVerified": false,
+    "disconnectVerified": false,
+    "accountChangedVerified": false,
+    "chainChangedVerified": false,
+    "personalSignVerified": false,
+    "typedDataVerified": false,
+    "transactionSubmitted": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "deployedPublic": false,
+    "parityComplete": false
+  },
+  "nextBlockingCapability": "An accepted YNX account and signing authority must be provisioned through an encrypted extension vault or a frozen native signer transport before installed-provider approve/sign/send parity can be truthfully exercised. No such authority is asserted by this slice."
+}

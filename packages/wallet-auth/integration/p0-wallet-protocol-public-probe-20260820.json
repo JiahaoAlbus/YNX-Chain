@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "probeId": "P0-WALLET-PROTOCOL-PUBLIC-PROBE-2026-08-20T08:45Z",
+  "owner": "wallet-protocol",
+  "probeMode": "READ_ONLY_GET_AND_OPTIONS",
+  "candidate": {
+    "runtimeSourceCommit": "5231e7509d6218bbbf25029cf73d456992cc37bd",
+    "handoffCommit": "b9194a3c3ffa012d5dbb8b9dd8dcf421abd1f9fd"
+  },
+  "observedAt": "2026-08-20T08:45:27Z",
+  "walletGateway": {
+    "baseUrl": "https://wallet-auth.ynxweb4.com",
+    "health": {
+      "status": 200,
+      "requestId": "675cab42-1183-46be-a622-b20c76deae21",
+      "traceId": "3595dd86-57cf-47b3-b150-52c82e743500",
+      "service": "ynx-wallet-gatewayd",
+      "remoteDeployed": true,
+      "truthfulStatus": "remote-canonical-wallet-gateway"
+    },
+    "version": {
+      "status": 200,
+      "requestId": "63697b21-7ad4-4238-9768-9d3bf88b9f03",
+      "traceId": "d19da0d6-205a-4f46-9c67-d954ef881124",
+      "sourceCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+      "release": "wallet-quant-web-6ed04310",
+      "candidateMatch": false
+    },
+    "corsPreflight": {
+      "route": "/v1/wallet/sessions/complete",
+      "origin": "https://social.ynxweb4.com",
+      "requestMethod": "POST",
+      "requestHeaders": ["content-type", "x-ynx-product-session-proof"],
+      "status": 405,
+      "errorCode": "METHOD_NOT_ALLOWED",
+      "requestId": "2380a641-05db-4004-84ac-c0839b76d38e",
+      "traceId": "eec20661-7035-4d75-9828-478cac3138b9",
+      "candidateRequirementMet": false
+    }
+  },
+  "appGateway": {
+    "baseUrl": "https://gateway.ynxweb4.com",
+    "health": {"status": 0, "transport": "SSL_CONNECTION_TIMEOUT", "requestExecuted": false},
+    "version": {"status": 404, "server": "Vercel", "error": "DEPLOYMENT_NOT_FOUND", "vercelId": "sin1::5j26k-1787215542204-923088d23d8e", "candidateRequirementMet": false}
+  },
+  "releaseTruth": {
+    "deployedPublic": false,
+    "gatewayLoadedPublic": false,
+    "appGatewayAvailablePublic": false,
+    "publicCorsVerified": false,
+    "installedClientVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "nextOwnerAction": "Integration must deploy the exact accepted candidate through a controlled transaction, then prove exact /version source identity and registered-origin OPTIONS 204 before an installed-client lifecycle acceptance may begin."
+}

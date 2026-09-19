@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "recordedAt": "2026-08-22",
+  "scope": "immutable-router-standard-interop-build-authority-not-installed",
+  "source": {
+    "commit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "tree": "5cbf483decc37a6249420840e1d6b81bbafc9c2a",
+    "parent": "3af80dff57aecab2c62d17942f6c33e78c7621a9",
+    "branch": "codex/wallet-web-pwa-extensions-20260813"
+  },
+  "routerAuthority": {
+    "commit": "9ab9cd8c8deac8563acff9ffd7e277553e20383e",
+    "tree": "577133f121f49a7c832cc12bc6fb2afb1258b81b",
+    "path": "release/integration/wallet-standard-connection-conformance-contract-p0-20260822.json",
+    "blob": "173cb99a6fa6b942f43c6dc8ee3a3b851e876525",
+    "sha256": "c59cc18de86a304be8de6ef7056e3e260e62156fe36fb0b76e021e38e096a2fe",
+    "version": "standardWalletConformance@1.0.0-p0.0"
+  },
+  "centralP0155": {
+    "commit": "f3e4a07247f198f2a2fdd558efd7e9706b4075cf",
+    "matrixBlob": "eb63d8121eb72fcc09775aa2aca2797eb4deeea8",
+    "decision": "SOURCE_ONLY",
+    "webInstallConfirmationGranted": false
+  },
+  "buildAssertions": {
+    "chain": {"cosmosChainId":"ynx_6423-1","evmChainId":6423,"evmChainHex":"0x1917","nativeSymbol":"YNXT","defaultLanguage":"en"},
+    "directBrowserRpcIsConnectionPrerequisite": false,
+    "productSessionFailurePreservesStandardConnection": true,
+    "privateServiceState": "DEGRADED",
+    "fixtureOnly": true,
+    "profiles": ["ynx-first-party","uniswap-interface-reference","opensea-reference","safe-reference","walletconnect-v2-reference"],
+    "requiredExternalDappsBeforePromotion": 3
+  },
+  "tests": {
+    "authorityFocused": "2/2 pass",
+    "source": "114/114 pass",
+    "packageInternal": "114/114 pass",
+    "packageVerification": "3/3 pass"
+  },
+  "artifacts": [
+    {"name":"ynx-wallet-web-pwa-0.1.0.zip","bytes":285233,"sha256":"4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b","signingClass":"unsigned-web-bundle"},
+    {"name":"ynx-wallet-chrome-edge-0.1.0.zip","bytes":468406,"sha256":"0f11110eae71e0beee023e215705edcd2af2c90b26c17b1a29a6e8ce5e7b542f","signingClass":"unsigned-unpacked-extension"},
+    {"name":"ynx-wallet-firefox-0.1.0.zip","bytes":468445,"sha256":"b97a2b6b9b3f8e1a9b93e7cfd7e5cd8f70bca6a2a1cf07cc1a2875263a7717bd","signingClass":"unsigned-unpacked-extension"}
+  ],
+  "falseUntilDirectEvidence": {
+    "installedProviderVerified": false,
+    "externalDappRuntimeCount": 0,
+    "firstPartyDappRuntime": false,
+    "accountApproved": false,
+    "providerChainId1917Verified": false,
+    "approveRejectVerified": false,
+    "eventsAndRestoreVerified": false,
+    "personalSignVerified": false,
+    "typedDataVerified": false,
+    "transactionSubmitted": false,
+    "deployedPublic": false,
+    "parityComplete": false
+  },
+  "nextActionBoundary": "STOP before launching Chrome with --load-extension until immediate user confirmation is granted."
+}

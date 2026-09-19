@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "6de092c036aada56fde6aaebbc6e0c6399620cba",
+  "observedAt": "2026-08-14T01:42:26Z",
+  "browser": {
+    "name": "Microsoft Edge",
+    "version": "151.0.4129.78",
+    "brandedBinary": true,
+    "executablePath": "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"
+  },
+  "installation": {
+    "loadMode": "Edge PWA install prompt from localhost",
+    "sourceUrl": "http://127.0.0.1:4173/",
+    "installedLocal": true,
+    "applicationName": "YNX Wallet Testnet Companion",
+    "bundleIdentifier": "com.microsoft.edgemac.app.plkhingfjhnclbfboobaipbemoiaogde",
+    "bundlePath": "/Users/huangjiahao/Applications/Edge Apps.localized/YNX Wallet Testnet Companion.app",
+    "createdAt": "2026-08-14T09:39:56+0800",
+    "fileBytes": 1112879,
+    "bundleTreeSha256": "6f9ec89055d8c775511176fbed1f46363e1060d886e80ebdad6d7824cca9479d",
+    "minimumOS": "macOS 13.0",
+    "architecture": "arm64",
+    "signingClass": "Edge-generated ad-hoc app-mode wrapper",
+    "teamIdentifierPresent": false,
+    "cdHashSha256": "81071fc4ea0da559840f5fa0e14c263581bdd0422f68ee017ec39ceac19818dc"
+  },
+  "artifact": {
+    "name": "ynx-wallet-web-pwa-0.1.0.zip",
+    "bytes": 170510,
+    "sha256": "546333a6edfbeee275816c01f248111eecd505a52306901273b9cfc12f898fcb",
+    "minimumOS": "modern browser with Service Worker support",
+    "signingClass": "unsigned-web-bundle"
+  },
+  "runtime": {
+    "firstWindowLaunchObserved": true,
+    "firstWindowUrl": "http://127.0.0.1:4173/",
+    "firstWindowStatus": "Not connected",
+    "closedWindowObserved": true,
+    "processStoppedBetweenLaunches": false,
+    "secondWindowLaunchObserved": true,
+    "secondWindowUrl": "http://127.0.0.1:4173/",
+    "secondWindowStatus": "Not connected",
+    "walletDetected": false,
+    "downloadYNXWalletVisible": true,
+    "useMetaMaskVisible": true,
+    "chainIdVisible": "0x1917",
+    "addChainActionInvoked": true,
+    "addChainStatus": "WALLET_NOT_FOUND: No compatible wallet provider was detected.",
+    "chainMutationSucceeded": false
+  },
+  "directObservation": {
+    "installPromptPublisher": "127.0.0.1:4173",
+    "installPromptAction": "Install YNX Wallet Testnet Companion",
+    "installedApplicationEnumeratedByBundleIdentifier": true,
+    "firstAndSecondWindowsObservedThroughMacAccessibility": true
+  },
+  "releaseStates": {
+    "pwaInstalledLocal": true,
+    "chromeExtensionInstalledLocal": false,
+    "edgeExtensionInstalledLocal": false,
+    "firefoxExtensionInstalledLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

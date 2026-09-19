@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "expectedCommit": "4e354148177376226153a0a6c8ead3df8d891d3e",
+  "registryUrl": "https://www.ynxweb4.com/releases/ecosystem-release-registry.json",
+  "observedAt": "2026-08-14T06:18:38.567Z",
+  "registryStatus": null,
+  "publishedCommit": null,
+  "publicWeb": null,
+  "errorCode": "PUBLIC_REGISTRY_UNAVAILABLE",
+  "errorMessage": "fetch failed",
+  "deployedPublic": false,
+  "pwaInstalled": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "passed": false
+}

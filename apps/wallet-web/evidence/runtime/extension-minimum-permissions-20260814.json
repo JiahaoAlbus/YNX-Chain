@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "60a756991fbe07311c9d2b0dbade8a9d670dab04",
+  "generatedAt": "2026-08-22T04:55:45.102Z",
+  "gateClass": "exact built-artifact manifest and external URL inspection; not a browser installation",
+  "externalUrlClasses": {
+    "rpcAuthority": "https://evm.ynxweb4.com",
+    "explorerDisplay": "https://explorer.ynxweb4.com",
+    "officialWalletAndCallback": "https://www.ynxweb4.com",
+    "metaMaskFallback": [
+      "https://metamask.io/download",
+      "https://metamask.app.link"
+    ]
+  },
+  "passed": true,
+  "artifacts": [
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 468402,
+      "sha256": "769bc63f93b5e85cfac6b85ed44002a037202ccabe8af013009ab989c566bfd6",
+      "permissions": [
+        "activeTab",
+        "scripting",
+        "storage"
+      ],
+      "hostPermissions": [
+        "https://evm.ynxweb4.com/*"
+      ],
+      "csp": "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com",
+      "persistentContentScripts": false,
+      "webAccessibleProvider": false,
+      "externalUrls": [
+        "https://evm.ynxweb4.com",
+        "https://evm.ynxweb4.com/*",
+        "https://explorer.ynxweb4.com",
+        "https://metamask.app.link",
+        "https://metamask.io/download",
+        "https://www.ynxweb4.com",
+        "https://www.ynxweb4.com/",
+        "https://www.ynxweb4.com/dapp/wallet",
+        "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+        "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk"
+      ],
+      "unexpectedExternalUrls": [],
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 468441,
+      "sha256": "3eba0cacacded62932670f36ca5f2ea852680cda7cf696fce4515b7e1d1509c6",
+      "permissions": [
+        "activeTab",
+        "scripting",
+        "storage"
+      ],
+      "hostPermissions": [
+        "https://evm.ynxweb4.com/*"
+      ],
+      "csp": "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com",
+      "persistentContentScripts": false,
+      "webAccessibleProvider": false,
+      "externalUrls": [
+        "https://evm.ynxweb4.com",
+        "https://evm.ynxweb4.com/*",
+        "https://explorer.ynxweb4.com",
+        "https://metamask.app.link",
+        "https://metamask.io/download",
+        "https://www.ynxweb4.com",
+        "https://www.ynxweb4.com/",
+        "https://www.ynxweb4.com/dapp/wallet",
+        "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+        "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk"
+      ],
+      "unexpectedExternalUrls": [],
+      "passed": true
+    }
+  ],
+  "installedLocal": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false
+}

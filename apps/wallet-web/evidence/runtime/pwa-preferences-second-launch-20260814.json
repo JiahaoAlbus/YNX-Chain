@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "ae55e8272018979abb6cb393307755c063f71f38",
+  "generatedAt": "2026-08-14T04:36:12.527Z",
+  "runtimeClass": "Playwright bundled Chromium-compatible PWA; not branded Chrome/Edge and not an installed PWA",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "passed": true,
+  "installedLocal": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "firstLaunch": {
+    "lang": "ar",
+    "dir": "rtl",
+    "theme": "dark",
+    "preferences": {
+      "schemaVersion": 1,
+      "revision": 2,
+      "locale": "ar",
+      "theme": "dark",
+      "updatedAt": "2026-08-14T04:36:19.659Z",
+      "expiresAt": "2027-02-10T04:36:19.659Z"
+    }
+  },
+  "secondLaunch": {
+    "lang": "ar",
+    "dir": "rtl",
+    "theme": "dark",
+    "horizontalOverflow": false,
+    "download": {
+      "visible": true,
+      "href": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk"
+    },
+    "metamask": {
+      "visible": true,
+      "href": "https://metamask.io/download"
+    }
+  },
+  "tamperRelaunch": {
+    "lang": "en",
+    "dir": "ltr",
+    "theme": "system",
+    "statusKind": "error",
+    "statusText": "Status: Saved display preferences were invalid or stale and were reset safely.",
+    "stored": null
+  },
+  "artifact": {
+    "name": "ynx-wallet-web-pwa-0.1.0.zip",
+    "bytes": 174601,
+    "sha256": "45db1074103837575f74f697d8401e7ade06f421b00307794dd9eaa58d9a7e17",
+    "minimumOS": "modern browser with Service Worker support",
+    "signingClass": "unsigned-web-bundle"
+  }
+}

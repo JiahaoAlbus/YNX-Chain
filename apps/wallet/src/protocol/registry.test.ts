@@ -1,13 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { PRODUCT_REGISTRY, SCOPE_EXPLANATIONS } from "./registry";
+import { productPlatformBinding, WalletAuthError } from "@ynx-chain/wallet-auth";
+import registry from "../../../../packages/wallet-auth/product-session-registry.json";
+import { PRODUCT_SESSION_REGISTRY } from "./registry";
 
-test("Wallet locally reviews the exact approved finance, commerce and existing bounded tuples",()=>{
-  assert.deepEqual(Object.keys(PRODUCT_REGISTRY).sort(),["ynx-card-v1","ynx-exchange-v1","ynx-finance-v1","ynx-pay-v1","ynx-quant-v1","ynx-shop-v1","ynx-social-v1"]);
-  assert.equal(PRODUCT_REGISTRY["ynx-social-v1"]?.bundleId,"com.ynx.social");
-  assert.equal(PRODUCT_REGISTRY["ynx-pay-v1"]?.callbacks[0],"ynxpay://wallet-auth/callback");
-  assert.equal(PRODUCT_REGISTRY["ynx-card-v1"]?.requestingProduct,"ynx-card");
-  assert.equal(PRODUCT_REGISTRY["ynx-finance-v1"]?.callbacks[0],"ynxfinance://wallet-auth/callback");
-  assert.deepEqual(PRODUCT_REGISTRY["ynx-quant-v1"]?.scopes,["quant:account","quant:mandate:create","quant:mandate:execute","quant:mandate:revoke"]);
-  for(const binding of Object.values(PRODUCT_REGISTRY))for(const scope of binding.scopes)assert.ok(SCOPE_EXPLANATIONS[scope],`missing explanation ${scope}`);
+test("Wallet uses the authoritative v2 registry and canonical platform identity", () => {
+  assert.deepEqual(PRODUCT_SESSION_REGISTRY, registry);
+  for (const product of registry.products) {
+    for (const platform of ["android", "ios", "web"] as const) {
+      if (product.platforms && !product.platforms.includes(platform)) {
+        assert.throws(() => productPlatformBinding(PRODUCT_SESSION_REGISTRY, product.productId, platform),
+          (error: unknown) => error instanceof WalletAuthError && error.code === "INVALID_PLATFORM");
+        continue;
+      }
+      const binding = productPlatformBinding(PRODUCT_SESSION_REGISTRY, product.productId, platform);
+      assert.equal(binding.applicationId, product.applicationId + (platform === "web" ? ".web" : ""));
+      assert.equal(binding.callback, platform === "web" ? product.webOrigin + "/wallet-auth/callback" : product.nativeCallback);
+      assert.equal(binding.packageId, platform === "android" ? product.applicationId : null);
+      assert.equal(binding.bundleId, platform === "ios" ? product.applicationId : null);
+    }
+  }
 });
