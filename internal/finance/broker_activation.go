@@ -66,6 +66,9 @@ func InspectBrokerActivationReadiness(ctx context.Context, statePath, databaseUR
 		case !hasOutbox:
 			result.Inconsistent++
 			result.StateConsistent = false
+		case !brokerOrderOutboxCorrelationConsistent(order, outbox):
+			result.Inconsistent++
+			result.StateConsistent = false
 		case brokerTerminalOrderState(order.State):
 			if brokerTerminalStateConsistent(order, outbox) {
 				result.Terminal++
@@ -92,6 +95,16 @@ func InspectBrokerActivationReadiness(ctx context.Context, statePath, databaseUR
 	return result, nil
 }
 
+func brokerOrderOutboxCorrelationConsistent(order BrokerOrderRecord, outbox BrokerOrderOutbox) bool {
+	if outbox.OrderID != order.Order.OrderID || outbox.RequestID != order.RequestID || outbox.ProviderClientOrderID != order.ProviderClientOrderID || outbox.Provider != FinanceOrderProvider || outbox.TradingEnvironment != FinanceOrderTradingEnv {
+		return false
+	}
+	if outbox.ProviderOrderID != "" && order.ProviderOrderID != "" && outbox.ProviderOrderID != order.ProviderOrderID {
+		return false
+	}
+	return outbox.ProviderRawStatus == "" || order.ProviderRawStatus == "" || outbox.ProviderRawStatus == order.ProviderRawStatus
+}
+
 func brokerTerminalOrderState(state string) bool {
 	return state == "filled" || state == "canceled" || state == "provider_rejected" || state == "provider_expired"
 }
@@ -102,7 +115,7 @@ func brokerTerminalStateConsistent(order BrokerOrderRecord, outbox BrokerOrderOu
 	}
 	switch order.State {
 	case "provider_rejected":
-		return outbox.Status == "provider_rejected" && outbox.LastErrorCode != "" && (order.ProviderRawStatus == "" || normalizeBrokerOrderState(order.ProviderRawStatus) == order.State)
+		return outbox.Status == "provider_rejected" && outbox.LastErrorCode == brokerOutboxError(order.State) && (order.ProviderRawStatus == "" || normalizeBrokerOrderState(order.ProviderRawStatus) == order.State)
 	case "filled", "canceled", "provider_expired":
 		return outbox.Status == "submitted" && outbox.LastErrorCode == "" && order.ProviderOrderID != "" && order.ProviderRawStatus != "" && normalizeBrokerOrderState(order.ProviderRawStatus) == order.State
 	default:

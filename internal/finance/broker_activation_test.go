@@ -260,11 +260,13 @@ func TestBrokerActivationReadinessRejectsContradictoryTerminalOutbox(t *testing.
 		{name: "filled", orderState: "filled", rawStatus: "filled", outboxStatus: "submitted", orderProviderID: providerOrderID, outboxProviderID: providerOrderID, consistent: true},
 		{name: "canceled", orderState: "canceled", rawStatus: "canceled", outboxStatus: "submitted", orderProviderID: providerOrderID, outboxProviderID: providerOrderID, consistent: true},
 		{name: "expired", orderState: "provider_expired", rawStatus: "expired", outboxStatus: "submitted", orderProviderID: providerOrderID, outboxProviderID: providerOrderID, consistent: true},
-		{name: "rejected_without_provider_id", orderState: "provider_rejected", outboxStatus: "provider_rejected", outboxError: "ORDER_APPROVAL_EXPIRED", consistent: true},
+		{name: "rejected_without_provider_id", orderState: "provider_rejected", outboxStatus: "provider_rejected", outboxError: "PROVIDER_REJECTED", consistent: true},
 		{name: "filled_unknown_outbox", orderState: "filled", rawStatus: "filled", outboxStatus: "dispatching", orderProviderID: providerOrderID, outboxProviderID: providerOrderID},
 		{name: "canceled_missing_provider_id", orderState: "canceled", rawStatus: "canceled", outboxStatus: "submitted"},
 		{name: "expired_wrong_raw_status", orderState: "provider_expired", rawStatus: "filled", outboxStatus: "submitted", orderProviderID: providerOrderID, outboxProviderID: providerOrderID},
 		{name: "rejected_missing_error", orderState: "provider_rejected", outboxStatus: "provider_rejected"},
+		{name: "rejected_local_approval_error", orderState: "provider_rejected", outboxStatus: "provider_rejected", outboxError: "ORDER_APPROVAL_EXPIRED"},
+		{name: "rejected_arbitrary_error", orderState: "provider_rejected", outboxStatus: "provider_rejected", outboxError: "ARBITRARY_ERROR"},
 		{name: "rejected_id_mismatch", orderState: "provider_rejected", outboxStatus: "provider_rejected", outboxError: "PROVIDER_REJECTED", orderProviderID: providerOrderID},
 	}
 	for _, test := range tests {
@@ -301,6 +303,73 @@ func TestBrokerActivationReadinessRejectsContradictoryTerminalOutbox(t *testing.
 				t.Fatalf("contradictory terminal state accepted: %+v", readiness)
 			}
 		})
+	}
+}
+
+func TestBrokerActivationReadinessValidatesCorrelationBeforeReconcile(t *testing.T) {
+	baseOrder := BrokerOrderRecord{
+		Order: FinanceOrderV1{OrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"}, RequestID: "request-correlation",
+		ProviderClientOrderID: "client-correlation", ApprovalState: "consumed", State: "submitted",
+		ProviderOrderID: "01234567-89ab-4cde-8fab-0123456789ab", ProviderRawStatus: "new",
+	}
+	baseOutbox := BrokerOrderOutbox{
+		OrderID: baseOrder.Order.OrderID, RequestID: baseOrder.RequestID, ProviderClientOrderID: baseOrder.ProviderClientOrderID,
+		Provider: FinanceOrderProvider, TradingEnvironment: FinanceOrderTradingEnv, Status: "submitted",
+		ProviderOrderID: baseOrder.ProviderOrderID, ProviderRawStatus: baseOrder.ProviderRawStatus,
+	}
+	if !brokerOrderOutboxCorrelationConsistent(baseOrder, baseOutbox) {
+		t.Fatal("legitimate reconcile-only correlation was rejected")
+	}
+	for _, test := range []struct {
+		name   string
+		mutate func(*BrokerOrderOutbox)
+	}{
+		{name: "order_id", mutate: func(outbox *BrokerOrderOutbox) { outbox.OrderID = "other-order" }},
+		{name: "request_id", mutate: func(outbox *BrokerOrderOutbox) { outbox.RequestID = "other-request" }},
+		{name: "provider_client_id", mutate: func(outbox *BrokerOrderOutbox) { outbox.ProviderClientOrderID = "other-client" }},
+		{name: "provider", mutate: func(outbox *BrokerOrderOutbox) { outbox.Provider = "other" }},
+		{name: "trading_environment", mutate: func(outbox *BrokerOrderOutbox) { outbox.TradingEnvironment = "live" }},
+		{name: "provider_order_id", mutate: func(outbox *BrokerOrderOutbox) { outbox.ProviderOrderID = "11111111-2222-4333-8444-555555555555" }},
+		{name: "provider_raw_status", mutate: func(outbox *BrokerOrderOutbox) { outbox.ProviderRawStatus = "partially_filled" }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			outbox := baseOutbox
+			test.mutate(&outbox)
+			if brokerOrderOutboxCorrelationConsistent(baseOrder, outbox) {
+				t.Fatal("contradictory order/outbox correlation was accepted")
+			}
+		})
+	}
+
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	statePath := filepath.Join(t.TempDir(), "finance.json")
+	writeAndInspect := func(t *testing.T, order BrokerOrderRecord, outbox BrokerOrderOutbox) BrokerActivationReadiness {
+		t.Helper()
+		state := persistedState{Version: currentStateVersion, Accounts: map[string]AccountState{
+			account: {Brokerage: BrokerageAccountState{Orders: map[string]BrokerOrderRecord{order.Order.OrderID: order}, Outbox: map[string]BrokerOrderOutbox{order.Order.OrderID: outbox}}},
+		}, Nonces: map[string]time.Time{}}
+		raw, _, err := encodeFinanceState(state)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(statePath, raw, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		readiness, err := InspectBrokerActivationReadiness(context.Background(), statePath, "", account, time.Date(2026, 9, 20, 6, 0, 0, 0, time.UTC))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return readiness
+	}
+	readiness := writeAndInspect(t, baseOrder, baseOutbox)
+	if readiness.ReconcileOnly != 1 || readiness.Inconsistent != 0 || !readiness.StateConsistent {
+		t.Fatalf("legitimate reconcile-only order was misclassified: %+v", readiness)
+	}
+	mismatched := baseOutbox
+	mismatched.ProviderRawStatus = "partially_filled"
+	readiness = writeAndInspect(t, baseOrder, mismatched)
+	if readiness.ReconcileOnly != 0 || readiness.Inconsistent != 1 || readiness.StateConsistent {
+		t.Fatalf("provider correlation mismatch reached reconcile-only: %+v", readiness)
 	}
 }
 
