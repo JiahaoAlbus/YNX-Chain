@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "3b27b049bd3b3e72c57796e2100bc52565a38bf6",
-  "generatedAt": "2026-09-20T00:29:25.226Z",
+  "sourceCommit": "468ad8862084eb7ea5db74722536a7caf1c00dc0",
+  "generatedAt": "2026-09-20T00:31:00.150Z",
   "browser": {
     "id": "edge",
     "name": "Microsoft Edge",
@@ -12,7 +12,9 @@
   "fixtureAuthority": "local HTTPS DApp with an immutable foreign MetaMask-shaped provider; no account, signature or transaction fixture implementation",
   "artifact": {
     "manifestSha256": "fb171f94af2cce9ee929da28d3fdf6b03e048e64ba63b8ed3d34d074139a8f1e",
-    "pageProviderSha256": "03ab34029146cd37c8a7f13a4c25cbc33ebcf4bba7204058a7c0477eb0b35e8a"
+    "pageProviderSha256": "03ab34029146cd37c8a7f13a4c25cbc33ebcf4bba7204058a7c0477eb0b35e8a",
+    "buildSourceCommit": "3b27b049bd3b3e72c57796e2100bc52565a38bf6",
+    "sourceDirectory": "dist/chromium"
   },
   "passed": true,
   "providerDiscovered": true,
@@ -33,9 +35,9 @@
     "started": true,
     "url": "chrome-extension://jmpmcjigljnhlpgjldgfheiiekiokhcm/service-worker.js"
   },
-  "account": "0x636ac831a5dc57af0734f2ffb557e78829179c07",
+  "account": "0x7304343a6e90c850ca82470aeba040938081cb47",
   "connectedAccounts": [
-    "0x636ac831a5dc57af0734f2ffb557e78829179c07"
+    "0x7304343a6e90c850ca82470aeba040938081cb47"
   ],
-  "signatureSha256": "5ceb3d090e526986f7300f42b4b33250c691566f2c654aec766b0ebcffeaeca5"
+  "signatureSha256": "25a3e627e4550d1e9246a381f866ad74ad4d5559c6acb56e4f808d0d90a11169"
 }

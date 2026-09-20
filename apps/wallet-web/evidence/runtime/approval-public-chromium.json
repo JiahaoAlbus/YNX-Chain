@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "sourceCommit": "468ad8862084eb7ea5db74722536a7caf1c00dc0",
-  "generatedAt": "2026-09-20T00:31:02.036Z",
+  "generatedAt": "2026-09-20T00:31:05.638Z",
   "browser": {
     "id": "chromium",
     "name": "Chrome for Testing",
@@ -13,8 +13,12 @@
   "artifact": {
     "manifestSha256": "fb171f94af2cce9ee929da28d3fdf6b03e048e64ba63b8ed3d34d074139a8f1e",
     "pageProviderSha256": "03ab34029146cd37c8a7f13a4c25cbc33ebcf4bba7204058a7c0477eb0b35e8a",
-    "buildSourceCommit": "3b27b049bd3b3e72c57796e2100bc52565a38bf6",
-    "sourceDirectory": "dist/chromium"
+    "buildSourceCommit": "e76388bf613a6e94a03ae2729c7e40761c808146",
+    "publicArchive": {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 546193,
+      "sha256": "c24d4939ccb1ff8110d35a1b67baf91df7316b4b77f67d95dbc428076552a634"
+    }
   },
   "passed": true,
   "providerDiscovered": true,
@@ -28,16 +32,16 @@
   "postRevokeDenied": true,
   "transactionSubmitted": false,
   "installedLocal": false,
-  "downloadHosted": false,
+  "downloadHosted": true,
   "productionSigned": false,
   "storeReleased": false,
   "serviceWorker": {
     "started": true,
-    "url": "chrome-extension://jmpmcjigljnhlpgjldgfheiiekiokhcm/service-worker.js"
+    "url": "chrome-extension://lgghamffclmlcmplgcklkfiipikmbjja/service-worker.js"
   },
-  "account": "0x090e2d69e42f16b5a5de39767ad8b9eaab30a173",
+  "account": "0x814a2059d421e4c67d6cae01d3b7ee2a73351e81",
   "connectedAccounts": [
-    "0x090e2d69e42f16b5a5de39767ad8b9eaab30a173"
+    "0x814a2059d421e4c67d6cae01d3b7ee2a73351e81"
   ],
-  "signatureSha256": "6e2cad9b3ce86825d692aa3c2dfb4bad047f70d1985e75ffbe41ca37e79b7351"
+  "signatureSha256": "9dd36e5174cbd87692c3cdbd6f142a2de1300b3ea6cf05bc347863647af1805b"
 }
