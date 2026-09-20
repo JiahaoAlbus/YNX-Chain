@@ -24,6 +24,8 @@
     "multipleEligibleRequestsFailClosed": true,
     "mixedExecutionQueuesFailClosed": true,
     "terminalOutboxCorrelationRequired": true,
+    "canonicalProviderRejectedErrorRequired": true,
+    "orderOutboxIdentityRequiredBeforeReconcile": true,
     "pendingApprovalNeverReportedAsTerminal": true
   },
   "originalCheckpointVerification": [
@@ -36,8 +38,8 @@
   ],
   "freshMainPullRequestVerification": {
     "base": "b5bb8cf4767c922a4563ddb749820446df67ccbc",
-    "reviewedImplementationCommit": "2c72a8a6b74c706aba00bff0dad932745e6b449d",
-    "reviewedImplementationTree": "3cc0fb76a8057fc334a5edfc356be527faf536f2",
+    "reviewedImplementationCommit": "414821ffdd56d3748a1ce70dbc7baf3a4a122987",
+    "reviewedImplementationTree": "b50613b94e39a777a90f08c02299dee9834c9f03",
     "goRace": "PASS",
     "goVet": "PASS",
     "goBuild": "PASS",
