@@ -283,6 +283,48 @@ func (s *Store) ExpireBrokerOrder(account, requestID string, now time.Time) (Bro
 	return s.transitionUnapprovedBrokerOrder(account, requestID, "", "expired", "approval.expired", now)
 }
 
+// ExpireBrokerOrders durably archives every owner-scoped pending or approved
+// challenge whose server-authoritative lifetime has elapsed. It deliberately
+// creates no execution outbox and is safe to call at read and callback
+// boundaries after restarts.
+func (s *Store) ExpireBrokerOrders(account string, now time.Time) (int, error) {
+	now = now.UTC()
+	expired := 0
+	err := s.updateBrokerCAS(account, "broker.approval.expire_due", account, func(state *AccountState) error {
+		expired = 0
+		normalizeBrokerageState(&state.Brokerage)
+		for requestID, challenge := range state.Brokerage.Challenges {
+			if challenge.ApprovalState != "pending" && challenge.ApprovalState != "approved" {
+				continue
+			}
+			expiresAt, err := parseFinanceMilliseconds(challenge.Unsigned.ExpiresAt)
+			if err != nil {
+				return errors.New("Finance approval lifetime is invalid")
+			}
+			if now.Before(expiresAt) {
+				continue
+			}
+			order, ok := state.Brokerage.Orders[challenge.Unsigned.Order.OrderID]
+			if !ok || order.RequestID != requestID || order.ApprovalState != challenge.ApprovalState {
+				return errors.New("Finance approval durable state is inconsistent")
+			}
+			if _, exists := state.Brokerage.Outbox[order.Order.OrderID]; exists {
+				return errors.New("unconsumed Finance approval unexpectedly has an execution outbox")
+			}
+			challenge.ApprovalState, challenge.UpdatedAt = "expired", now
+			order.ApprovalState, order.State, order.UpdatedAt = "expired", "draft", now
+			state.Brokerage.Challenges[requestID], state.Brokerage.Orders[order.Order.OrderID] = challenge, order
+			appendBrokerJournal(&state.Brokerage, order.Order.OrderID, requestID, "approval.expired", "expired", "draft", now)
+			expired++
+		}
+		if expired == 0 {
+			return errBrokerStateUnchanged
+		}
+		return nil
+	})
+	return expired, err
+}
+
 func (s *Store) transitionUnapprovedBrokerOrder(account, requestID, callbackStateHash, target, action string, now time.Time) (BrokerOrderRecord, error) {
 	var result BrokerOrderRecord
 	err := s.updateBrokerCAS(account, action, requestID, func(state *AccountState) error {

@@ -76,6 +76,18 @@ function renderBrokerWorkspace(workspace){
   $('#broker-events').innerHTML=journal.length?journal.slice().reverse().slice(0,30).map(item=>`<div class="row"><div class="row-main"><strong>${esc(item.action)}</strong><small>${esc(date(item.createdAt))} · ${esc(short(item.orderId||item.requestId))}</small></div><div class="row-value">${esc(item.orderState)}<small>${esc(item.approvalState)}</small></div></div>`).join(''):'<div class="empty compact">No local broker events.</div>';
   renderBrokerWatchlist(workspace?.watchlist);
 }
+function renderBrokerApprovalRoute(route,recovered=false){
+  const unsigned=route.request.unsigned,order=unsigned.order;
+  $('#broker-order-preview').innerHTML=`<strong>${esc(order.side)} ${esc(order.qty)} ${esc(order.symbol)} @ ${esc(order.limitPrice)} simulated USD</strong><br>Maximum: ${esc(order.maxCost)} USD · maximum fee ${esc(order.maxFee)} USD · expires ${esc(unsigned.expiresAt)}<br><small>Request ${esc(short(unsigned.requestId))}. ${recovered?'Recovered from this browser; the same request can be reviewed or revoked.':'Broker provider has not been contacted.'}</small>`;
+  const link=$('#broker-wallet-approve');link.href=route.url;link.hidden=false;link.rel='noreferrer';link.textContent=route.approved?'Review or revoke exact approval in YNX Wallet':'Review exact order in YNX Wallet';
+}
+async function restoreBrokerApproval(serverTime,{announce=false}={}){
+  if(!window.YNXFinanceOrderWallet.pending())return null;
+  const route=await window.YNXFinanceOrderWallet.resume(serverTime);
+  if(!route)return null;
+  if(route.expired){$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent='The local Wallet request expired and was cleared. The server archives expired approvals without creating an execution outbox.';if(announce)notify('Expired Wallet request cleared. No broker action occurred.');return route}
+  renderBrokerApprovalRoute(route,true);if(announce)notify('An existing Wallet request is still active. Reopen that exact request or revoke it before creating another.');return route
+}
 async function requireBrokerOrderAuthority(){
   try{return await window.YNXFinanceOrderWallet.assertAuthority()}
   catch(error){
@@ -99,19 +111,20 @@ async function refreshBrokerExecutionStatus(orderId){
 }
 async function refreshBrokerWorkspace(){
   if(!state.connected){renderBrokerWorkspace(null);return null}
-  try{const result=await api('/api/broker/orders');if(result?.schema!=='ynx-finance-broker-workspace-v1')throw new Error('Broker workspace response is invalid.');renderBrokerWorkspace(result.workspace);return result.workspace}catch(error){$('#broker-local-orders').innerHTML=`<div class="empty compact">${esc(error.message)} No order state was substituted.</div>`;return null}
+  try{const result=await api('/api/broker/orders');if(result?.schema!=='ynx-finance-broker-workspace-v1'||typeof result.workspace?.serverTime!=='string')throw new Error('Broker workspace response is invalid.');renderBrokerWorkspace(result.workspace);return result.workspace}catch(error){$('#broker-local-orders').innerHTML=`<div class="empty compact">${esc(error.message)} No order state was substituted.</div>`;return null}
 }
 async function createBrokerApproval(event){
   event.preventDefault();
   const form=new FormData(event.currentTarget),draft={assetId:String(form.get('assetId')||''),symbol:String(form.get('symbol')||'').toUpperCase(),side:String(form.get('side')||''),qty:String(form.get('qty')||''),limitPrice:String(form.get('limitPrice')||'')};
   try{
     await requireBrokerOrderAuthority();
+    const workspace=await refreshBrokerWorkspace();if(!workspace)throw new Error('Current Finance server time is unavailable.');
+    const existing=await restoreBrokerApproval(workspace.serverTime,{announce:true});if(existing&&!existing.expired)return;
     if(!state.brokerSelectedAsset||state.brokerSelectedAsset.id!==draft.assetId||state.brokerSelectedAsset.symbol!==draft.symbol)throw new Error('Select this asset from the provider-backed search results before creating approval.');
     const result=await api('/api/broker/challenges',{method:'POST',body:JSON.stringify({draft})});
     if(result?.schema!=='ynx-finance-order-approval-challenge-v1'||result.providerWriteAttempted!==false)throw new Error('Finance order challenge response is invalid.');
-    const route=await window.YNXFinanceOrderWallet.begin(result.challenge.unsigned,result.challenge.serverTime),order=result.challenge.unsigned.order;
-    $('#broker-order-preview').innerHTML=`<strong>${esc(order.side)} ${esc(order.qty)} ${esc(order.symbol)} @ ${esc(order.limitPrice)} simulated USD</strong><br>Maximum: ${esc(order.maxCost)} USD · maximum fee ${esc(order.maxFee)} USD · expires ${esc(result.challenge.unsigned.expiresAt)}<br><small>Request ${esc(short(result.challenge.unsigned.requestId))}. Broker provider has not been contacted.</small>`;
-    const link=$('#broker-wallet-approve');link.href=route.url;link.hidden=false;link.rel='noreferrer';notify('Exact approval request created. Review it in YNX Wallet; no broker order has been submitted.');await refreshBrokerWorkspace();
+    const route=await window.YNXFinanceOrderWallet.begin(result.challenge.unsigned,result.challenge.serverTime);
+    renderBrokerApprovalRoute(route);notify('Exact approval request created. Review it in YNX Wallet; no broker order has been submitted.');await refreshBrokerWorkspace();
   }catch(error){notify(error.message,true)}
 }
 async function reconcileBroker(){
@@ -177,7 +190,7 @@ function renderSignedOut(){document.body.classList.add('signed-out-state');$('#s
 
 async function load(){await window.YNXFinanceWallet.ready;state.connected=window.YNXFinanceWallet.connected();if(!state.connected){renderSignedOut();return}try{$('#source-pill').textContent='Checking sources';const data=await api('/api/overview');state.overview=data;render(data)}catch(error){if(error.status===401||error.status===403){window.YNXFinanceWallet.reportPrivateFailure();clearPrivateView();notify('Private Finance access needs reauthorization. Standard Wallet is unchanged.',true)}else notify(error.message,true)}}
 async function reconnect(){try{await publicHealth();if(state.connected)await load()}catch(error){notify(error.message,true)}}
-function render(data){document.body.classList.remove('signed-out-state');$('#signed-out').classList.add('hidden');$('#workspace').classList.remove('hidden');$('#signin').classList.add('hidden');$('#logout').classList.remove('hidden');const p=data.portfolio,profile=data.profile;$('#account').textContent=p.account;$('#balance').textContent=p.explorerStatus.available?`${fmt(p.balanceYnxt)} YNXT`:'Unavailable';$('#staked').textContent=p.explorerStatus.available?`${fmt(p.stakedYnxt)} YNXT`:'Unavailable';$('#balance-source').textContent=p.explorerStatus.available?`Explorer evidence · ${date(p.asOf)}`:p.explorerStatus.error;const both=p.explorerStatus.available&&p.payStatus.available;$('#source-pill').textContent=both?'Explorer + Pay live':p.explorerStatus.available?'Explorer live · Pay unavailable':'Sources unavailable';$('#source-pill').className=`pill ${both?'live':'warning'}`;renderAlerts(data.alerts);renderActivity(p.activity);renderReceipts(p.payReceipts,p.payStatus);renderPlanning(profile,data.budgetProgress);renderPrivacy(profile.privacy);renderAIRecords(p.activity);renderSupport(data.support);refreshBrokerSnapshot();refreshBrokerWorkspace().then(()=>completeBrokerCallback());route()}
+function render(data){document.body.classList.remove('signed-out-state');$('#signed-out').classList.add('hidden');$('#workspace').classList.remove('hidden');$('#signin').classList.add('hidden');$('#logout').classList.remove('hidden');const p=data.portfolio,profile=data.profile;$('#account').textContent=p.account;$('#balance').textContent=p.explorerStatus.available?`${fmt(p.balanceYnxt)} YNXT`:'Unavailable';$('#staked').textContent=p.explorerStatus.available?`${fmt(p.stakedYnxt)} YNXT`:'Unavailable';$('#balance-source').textContent=p.explorerStatus.available?`Explorer evidence · ${date(p.asOf)}`:p.explorerStatus.error;const both=p.explorerStatus.available&&p.payStatus.available;$('#source-pill').textContent=both?'Explorer + Pay live':p.explorerStatus.available?'Explorer live · Pay unavailable':'Sources unavailable';$('#source-pill').className=`pill ${both?'live':'warning'}`;renderAlerts(data.alerts);renderActivity(p.activity);renderReceipts(p.payReceipts,p.payStatus);renderPlanning(profile,data.budgetProgress);renderPrivacy(profile.privacy);renderAIRecords(p.activity);renderSupport(data.support);refreshBrokerSnapshot();refreshBrokerWorkspace().then(async workspace=>{if(workspace)try{await restoreBrokerApproval(workspace.serverTime)}catch(error){notify(error.message,true)}await completeBrokerCallback()});route()}
 function renderAlerts(alerts){const el=$('#alerts');if(!alerts.length){el.innerHTML='<div class="alert info"><div><strong>No source or rule alerts</strong><small>Finance alerts are informational and never freeze assets.</small></div></div>';return}el.innerHTML=alerts.map(a=>`<div class="alert ${a.severity==='info'?'info':''}"><div><strong>${esc(a.title)}</strong><small>${esc(a.detail)}</small></div></div>`).join('')}
 function activityRow(a){const sign=a.direction==='outgoing'?'-':'+';return `<div class="row"><div class="row-main"><strong>${esc(a.type||'YNXT activity')}</strong><small>${esc(date(a.timestamp))} · ${esc(short(a.id))}</small></div><div class="row-value">${sign}${fmt(a.amountYnxt)} YNXT<small>fee ${fmt(a.feeYnxt)}</small></div></div>`}
 function renderActivity(items){$('#recent-activity').innerHTML=items.length?items.slice(0,5).map(activityRow).join(''):'<div class="empty compact">No owned indexed activity was returned. Nothing has been invented.</div>';$('#activity-body').innerHTML=items.map(a=>`<tr><td>${esc(date(a.timestamp))}</td><td>${esc(a.type)}</td><td>${esc(a.direction)}</td><td class="num">${fmt(a.amountYnxt)} YNXT</td><td class="num">${fmt(a.feeYnxt)}</td><td><span class="evidence">${esc(short(a.id))}</span></td></tr>`).join('');$('#activity-empty').classList.toggle('hidden',items.length>0);$('#activity-empty').textContent='No owned YNXT activity is available from Explorer.'}
@@ -230,5 +243,5 @@ $('#broker-local-orders').addEventListener('click',async event=>{const refreshId
 $('#broker-order-form').addEventListener('submit',createBrokerApproval);
 $('#broker-quote').addEventListener('click',refreshBrokerQuote);
 $('#broker-complete-callback').addEventListener('click',completeBrokerCallback);
-$('#broker-clear-approval').addEventListener('click',()=>{window.YNXFinanceOrderWallet.clear();$('#broker-wallet-approve').hidden=true;$('#broker-complete-callback').hidden=true;$('#broker-order-preview').textContent='Pending Wallet approval request discarded. No broker action occurred.'});
+$('#broker-clear-approval').addEventListener('click',async()=>{try{const workspace=await refreshBrokerWorkspace();if(!workspace)throw new Error('Current Finance server time is unavailable.');const route=await restoreBrokerApproval(workspace.serverTime,{announce:true});if(!route){$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent='No local Wallet request is pending.'}}catch(error){notify(error.message,true)}});
 refreshBrokerConfiguration();

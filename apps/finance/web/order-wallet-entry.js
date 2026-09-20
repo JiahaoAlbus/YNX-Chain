@@ -21,7 +21,7 @@ function load(){
   return parsed;
 }
 function pendingRequest(value){
-  if(!value||typeof value!=='object'||Array.isArray(value)||value.version!=='1'||!value.request)throw new Error('FINANCE_ORDER_PENDING_INVALID');
+  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).sort().join(',')!=='approvedProof,request,version'||value.version!=='1'||!value.request)throw new Error('FINANCE_ORDER_PENDING_INVALID');
   return value.request;
 }
 function authorityDate(value){
@@ -33,9 +33,25 @@ function authorityDate(value){
 async function assertAuthority(nowMs=Date.now()){
   return assertFinancePrivateAuthority(nowMs);
 }
+function resumeStored(at){
+  const pending=load();
+  if(!pending)return null;
+  const request=pendingRequest(pending),expiresAt=authorityDate(request?.unsigned?.expiresAt);
+  if(at.getTime()>=expiresAt.getTime()){
+    save(null);
+    return Object.freeze({expired:true,request});
+  }
+  return Object.freeze({approved:pending.approvedProof!==null,expired:false,request,url:encodeFinanceOrderApprovalWalletURL(request,at)});
+}
+async function resume(serverTime){
+  await assertAuthority();
+  return resumeStored(authorityDate(serverTime));
+}
 async function begin(unsigned,serverTime){
   await assertAuthority();
   const at=authorityDate(serverTime);
+  const existing=resumeStored(at);
+  if(existing&&!existing.expired)throw new Error('FINANCE_ORDER_PENDING_EXISTS');
   const request=createFinanceOrderApprovalRequest(unsigned,at);
   const url=encodeFinanceOrderApprovalWalletURL(request,at);
   save({approvedProof:null,request,version:'1'});
@@ -51,4 +67,4 @@ async function parseReturn(url,serverTime){
   return canonicalJSON(result);
 }
 
-window.YNXFinanceOrderWallet=Object.freeze({assertAuthority,begin,parseReturn,pending:load,clear:()=>save(null)});
+window.YNXFinanceOrderWallet=Object.freeze({assertAuthority,begin,parseReturn,resume,pending:load,clear:()=>save(null)});

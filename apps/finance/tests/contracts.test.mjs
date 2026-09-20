@@ -67,6 +67,8 @@ test('Broker order approval consumes the exact Wallet transport and never auto-s
   assert.ok(js.includes("window.YNXFinanceOrderWallet.clear();history.replaceState"));
   assert.ok(js.includes("'/api/broker/challenges','/api/broker/callback'"),'Broker writes must request finance.profile.write');
   assert.ok(orderWallet.includes("FINANCE_ORDER_AUTHORITY_TIME_INVALID"),'server time must be parsed at the trusted response boundary');
+  for(const marker of ['FINANCE_ORDER_PENDING_EXISTS','resumeStored','expiresAt.getTime()'])assert.ok(orderWallet.includes(marker),marker);
+  for(const marker of ['restoreBrokerApproval(workspace.serverTime','Clear expired request','same request can be reviewed or revoked'])assert.ok(js.includes(marker)||html.includes(marker),marker);
   assert.equal(orderWallet.includes('new Date()'),false,'order approval must not fall back to the device wall clock');
   assert.equal(html.includes('name="accountPublicKey"'),false,'Wallet public key must come from the persisted owner mapping');
   assert.equal(html.includes('Provider asset UUID<input'),false,'users must select provider-backed assets instead of typing UUIDs');
@@ -99,12 +101,15 @@ test('Broker activation schema, env, operator request and documentation match th
   assert.ok(providerIntegration.includes('there is no browser provider-write route'));
   assert.equal(providerIntegration.includes('Submission stays disabled even if credentials exist or an operator prematurely turns on the write flag.'),false);
   const byId=Object.fromEntries(operatorInputs.inputs.map(value=>[value.id,value]));
+  assert.match(byId.shared_endpoint_authority.needed,/Central-issued and signed/);
+  assert.match(byId.installed_wallet_callback_verification.needed,/installed Wallet build/);
   assert.ok(byId.broker_credentials);
   assert.match(byId.sandbox_write_confirmation.needed,/verify-approved POST\/query\/DELETE\/reconcile/);
   assert.equal(/public route/i.test(byId.sandbox_write_confirmation.needed),false);
   assert.match(byId.public_deployment_authority.needed,/not a prerequisite for controlled local Sandbox write verification/);
   assert.equal(operatorInputs.officialSandboxVerified,false);
   assert.equal(operatorInputs.productionApproved,false);
+  assert.deepEqual(operatorInputs.sharedEndpointAuthority,{bundledManifestPresent:true,bundledFinancePinBuildVerified:true,centralSignedManifestActive:false,installedWalletCallbackVerified:false});
 });
 
 test('Broker Sandbox product entry exposes provider search, owner watchlist, reconcile and cancellation intent without browser provider writes',()=>{

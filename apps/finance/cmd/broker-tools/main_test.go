@@ -53,6 +53,10 @@ func TestCommandsRequireExplicitReadonlyNetworkAndNeverClaimWorkflowVerified(t *
 				if calls != expected || got["officialSandboxVerified"] != false || got["writeAttempted"] != false || strings.Contains(output.String(), "fixture-secret") {
 					t.Fatal(args, calls, rc, output.String())
 				}
+				authority, ok := got["sharedEndpointAuthority"].(map[string]any)
+				if !ok || authority["bundledManifestPresent"] != true || authority["bundledFinancePinBuildVerified"] != true || authority["centralSignedManifestActive"] != false || authority["installedWalletCallbackVerified"] != false || authority["result"] != "BLOCKED_SHARED_AUTHORITY_EVIDENCE" {
+					t.Fatalf("shared authority truth is missing: %s", output.String())
+				}
 				if expected == 1 && (rc != 0 || got["result"] != "BROKER_OWNER_READS_VERIFIED_ONLY" || got["accountLinkVerified"] != true || got["dataEntitlementVerified"] != true) {
 					t.Fatal(output.String())
 				}
@@ -94,6 +98,10 @@ func TestActivationPlanRequiresReceiptButNeverTouchesNetworkOrWrites(t *testing.
 		}
 		if receipt != "" && (rc != 2 || report["result"] != "SANDBOX_WRITE_ACTIVATION_BLOCKED") {
 			t.Fatalf("configured rc=%d report=%s", rc, output.String())
+		}
+		required, ok := report["requiredPreconditions"].([]any)
+		if !ok || len(required) < 3 || required[0] != "Central-issued and signed shared endpoint authority manifest" || required[1] != "Finance pin bound to the current authority manifest" || required[2] != "installed Wallet callback verified read-only" {
+			t.Fatalf("shared authority activation inputs are missing: %s", output.String())
 		}
 	}
 }

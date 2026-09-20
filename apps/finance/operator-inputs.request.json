@@ -3,11 +3,14 @@
   "scope": "testnet+sandbox only",
   "doNotSupplySecretsInChat": true,
   "inputs": [
+    {"id": "shared_endpoint_authority", "needed": "Central-issued and signed shared endpoint authority manifest, its exact SHA256 and the current Finance pin activation record", "blocks": "Finance order approval authority activation; public read-only Finance remains available"},
+    {"id": "installed_wallet_callback_verification", "needed": "Read-only evidence from the currently installed Wallet build that the exact Finance callback origin and contract version are accepted", "blocks": "installed Wallet approval callback verification only"},
     {"id": "broker_credentials", "needed": "Server Secret Manager reference/configuration location for an approved Alpaca Broker Sandbox correspondent; actual auth method and sandbox permissions", "blocks": "official authentication only, not local development"},
     {"id": "approved_test_accounts", "needed": "Authorized sandbox account mapping procedure for at least two distinct test users, virtual funds and market-data entitlements", "blocks": "official multi-user and data verification"},
     {"id": "sandbox_write_confirmation", "needed": "Separate immediate authorization for one bounded virtual-funded verify-approved POST/query/DELETE/reconcile run through the implemented operator-only worker", "blocks": "official write verification"},
     {"id": "public_deployment_authority", "needed": "Independent Finance deployment lease plus source-bound public runtime and visible browser verification; this is not a prerequisite for controlled local Sandbox write verification", "blocks": "public deployment and public verification only"}
   ],
+  "sharedEndpointAuthority": {"bundledManifestPresent": true, "bundledFinancePinBuildVerified": true, "centralSignedManifestActive": false, "installedWalletCallbackVerified": false},
   "officialSandboxVerified": false,
   "productionApproved": false
 }

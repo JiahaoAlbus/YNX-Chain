@@ -7,8 +7,8 @@ import {chromium} from 'playwright';
 const web=new URL('../web/',import.meta.url);
 const orderId='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const walletStub=`window.YNXFinanceWallet={ready:Promise.resolve(),connected:()=>true,getRevision:()=>0,requireProof:async()=>({proofHeader:'TEST_ONLY',requestId:'req_test_finance_broker_0001'}),connect:async()=>{},disconnect:async()=>({status:'disconnected'}),reportPrivateFailure:()=>{}};`;
-const orderWalletStub=`window.__orderWalletFixture={authorityChecks:0,authorityAllowed:false,beginCalls:0,callbackCalls:0};window.YNXFinanceOrderWallet={pending:()=>null,clear:()=>{},assertAuthority:async()=>{window.__orderWalletFixture.authorityChecks++;if(window.__orderWalletFixture.authorityAllowed)return {fixture:true};throw new Error('PRIVATE_SERVICE_DEGRADED: Wallet Gateway=PENDING; Finance Product Session=PENDING.')},begin:async()=>{window.__orderWalletFixture.beginCalls++;throw new Error('order authority was bypassed')},parseReturn:async()=>{window.__orderWalletFixture.callbackCalls++;throw new Error('order authority was bypassed')}};`;
-let server,browser,base,executionRequests,challengeRequests,callbackRequests,executionStatusRequests,reconcileRequests,outboxStatus;
+const orderWalletStub=`window.__orderWalletFixture=Object.assign({authorityChecks:0,authorityAllowed:false,beginCalls:0,callbackCalls:0,clearCalls:0,resumeCalls:0,pending:null,callbackResult:null},window.__initialOrderWalletFixture||{});const assertAuthority=async()=>{window.__orderWalletFixture.authorityChecks++;if(window.__orderWalletFixture.authorityAllowed)return {fixture:true};throw new Error('PRIVATE_SERVICE_DEGRADED: Wallet Gateway=PENDING; Finance Product Session=PENDING.')};window.YNXFinanceOrderWallet={pending:()=>window.__orderWalletFixture.pending,clear:()=>{window.__orderWalletFixture.clearCalls++;window.__orderWalletFixture.pending=null},assertAuthority,begin:async()=>{window.__orderWalletFixture.beginCalls++;throw new Error('order authority was bypassed')},resume:async()=>{window.__orderWalletFixture.resumeCalls++;return window.__orderWalletFixture.pending},parseReturn:async()=>{window.__orderWalletFixture.callbackCalls++;return JSON.stringify(window.__orderWalletFixture.callbackResult)}};`;
+let server,browser,base,executionRequests,challengeRequests,callbackRequests,executionStatusRequests,reconcileRequests,outboxStatus,callbackFailure;
 
 function json(res,status,value){res.writeHead(status,{'content-type':'application/json'});res.end(JSON.stringify(value));}
 function workspace(){return {orders:[{requestId:'request-fixture',approvalState:'consumed',state:'submitting',order:{orderId,symbol:'ACME',side:'buy',qty:'1',maxCost:'10'}}],outbox:[{orderId,status:outboxStatus,attempts:0}],journal:[],watchlist:[],serverTime:'2026-09-19T11:00:00.000Z'};}
@@ -24,7 +24,12 @@ test.before(async()=>{
     if(url.pathname==='/api/broker/snapshot')return json(res,200,{schema:'ynx-finance-broker-snapshot-v1',snapshot:{provider:'alpaca_broker',environment:'sandbox',account:{providerAccountId:'11111111-2222-4333-8444-555555555555',currency:'USD',cash:'100',buyingPower:'100'},positions:[],orders:[]}});
     if(url.pathname==='/api/broker/orders'&&req.method==='GET')return json(res,200,{schema:'ynx-finance-broker-workspace-v1',workspace:workspace(),providerWriteAttempted:false});
     if(url.pathname==='/api/broker/challenges'&&req.method==='POST'){challengeRequests.push(url.pathname);return json(res,500,{error:'authority gate bypassed'});}
-    if(url.pathname==='/api/broker/callback'&&req.method==='POST'){callbackRequests.push(url.pathname);return json(res,500,{error:'authority gate bypassed'});}
+    if(url.pathname==='/api/broker/callback'&&req.method==='POST'){
+      const chunks=[];for await(const chunk of req)chunks.push(chunk);
+      callbackRequests.push(Buffer.concat(chunks).toString('utf8'));
+      if(callbackFailure)return json(res,500,{error:'isolated callback outage'});
+      return json(res,200,{schema:'ynx-finance-order-approval-consume-v1',status:'revoked',result:{approvalState:'revoked'},providerWriteAttempted:false});
+    }
     if(url.pathname===`/api/broker/orders/${orderId}/execution-status`&&req.method==='GET'){
       executionStatusRequests.push(url.pathname);
       return json(res,200,{schema:'ynx-finance-broker-execution-status-v1',outbox:{orderId,status:outboxStatus,attempts:0},providerWriteAttempted:false});
@@ -39,7 +44,7 @@ test.before(async()=>{
       outboxStatus='execution_requested';
       return json(res,202,{schema:'ynx-finance-broker-execution-request-v1',outbox:{orderId,status:outboxStatus},providerWriteAttempted:false,next:'controlled_worker_dispatch_once'});
     }
-    const file=url.pathname==='/'?'index.html':url.pathname.slice(1);
+    const file=url.pathname==='/'||url.pathname==='/wallet-auth/callback'?'index.html':url.pathname.slice(1);
     if(!/^[a-z0-9.-]+$/.test(file)){res.writeHead(404);return res.end();}
     try{const bytes=await readFile(new URL(file,web));res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html'});res.end(bytes);}catch{res.writeHead(404);res.end();}
   });
@@ -50,7 +55,7 @@ test.before(async()=>{
 test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
 
 test('pending shared private authority blocks challenge and execution before network or local pending state',async()=>{
-  executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='pending_unwired';
+  executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='pending_unwired';callbackFailure=true;
   const page=await browser.newPage(),errors=[],externalRequests=[],dialogs=[];
   page.on('pageerror',error=>errors.push(error.message));
   page.on('request',request=>{if(new URL(request.url()).origin!==base)externalRequests.push(request.url());});
@@ -72,7 +77,7 @@ test('pending shared private authority blocks challenge and execution before net
     assert.deepEqual(challengeRequests,[]);
     assert.deepEqual(callbackRequests,[]);
     assert.deepEqual(dialogs,[]);
-    assert.deepEqual(await page.evaluate(()=>window.__orderWalletFixture),{authorityChecks:3,authorityAllowed:false,beginCalls:0,callbackCalls:0});
+    assert.deepEqual(await page.evaluate(()=>window.__orderWalletFixture),{authorityChecks:3,authorityAllowed:false,beginCalls:0,callbackCalls:0,clearCalls:0,resumeCalls:0,pending:null,callbackResult:null});
     assert.equal(await page.evaluate(()=>localStorage.getItem('ynx.finance.order-approval.v1.pending')),null);
     assert.match(await page.locator('#broker-approval').textContent(),/not yet verified/);
     assert.deepEqual(externalRequests,[]);
@@ -81,7 +86,7 @@ test('pending shared private authority blocks challenge and execution before net
 });
 
 test('isolated activated fixture refreshes one persisted execution status without provider reconciliation',async()=>{
-  executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='execution_requested';
+  executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='execution_requested';callbackFailure=true;
   const page=await browser.newPage(),dialogs=[];page.on('dialog',dialog=>{dialogs.push(dialog.message());dialog.dismiss();});
   try{
     await page.goto(base);await page.evaluate(()=>{window.__orderWalletFixture.authorityAllowed=true;location.hash='broker-sandbox';});
@@ -92,5 +97,47 @@ test('isolated activated fixture refreshes one persisted execution status withou
     assert.deepEqual(reconcileRequests,[]);
     assert.deepEqual(executionRequests,[]);
     assert.deepEqual(dialogs,[]);
+  }finally{await page.close();}
+});
+
+test('active pending request is restored and blocks double begin before challenge POST',async()=>{
+  executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='pending_unwired';callbackFailure=true;
+  const page=await browser.newPage(),request={kind:'finance_order_approval_request',route:'ynxwallet://finance-order-approval',version:'1',unsigned:{requestId:'request_same_pending',expiresAt:'2026-09-19T11:05:00.000Z',order:{side:'buy',qty:'1',symbol:'ACME',limitPrice:'10',maxCost:'10',maxFee:'1'}}},url='https://wallet.example/review?request=request_same_pending';
+  try{
+    await page.addInitScript(({request,url})=>{window.__initialOrderWalletFixture={authorityAllowed:true,pending:{approved:false,expired:false,request,url}}},{request,url});
+    await page.goto(base);await page.evaluate(()=>{location.hash='broker-sandbox';});
+    await page.waitForFunction(()=>document.querySelector('#broker-wallet-approve')?.href==='https://wallet.example/review?request=request_same_pending');
+    await page.evaluate(()=>selectBrokerAsset({id:'11111111-2222-4333-8444-555555555555',symbol:'ACME',name:'ACME fixture'}));
+    await page.locator('#broker-order-form [name="qty"]').fill('1');
+    await page.locator('#broker-order-form [name="limitPrice"]').fill('10');
+    await page.locator('#broker-order-form').evaluate(form=>form.requestSubmit());
+    await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('existing Wallet request'));
+    assert.deepEqual(challengeRequests,[]);
+    const fixture=await page.evaluate(()=>window.__orderWalletFixture);
+    assert.equal(fixture.beginCalls,0);
+    assert.deepEqual(fixture.pending,{approved:false,expired:false,request,url});
+    assert.equal(await page.locator('#broker-wallet-approve').getAttribute('href'),url);
+  }finally{await page.close();}
+});
+
+test('callback outage preserves exact request across reload and later records Wallet revocation once',async()=>{
+  executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='pending_unwired';callbackFailure=true;
+  const page=await browser.newPage(),request={kind:'finance_order_approval_request',route:'ynxwallet://finance-order-approval',version:'1',unsigned:{requestId:'request_callback_retry',expiresAt:'2026-09-19T11:05:00.000Z',order:{side:'sell',qty:'1',symbol:'ACME',limitPrice:'9',maxCost:'0',maxFee:'1'}}},url='https://wallet.example/review?request=request_callback_retry',callbackResult={kind:'finance_order_approval_result',version:'1',status:'revoked',requestId:'request_callback_retry'};
+  try{
+    await page.addInitScript(({request,url,callbackResult})=>{window.__initialOrderWalletFixture={authorityAllowed:true,pending:{approved:true,expired:false,request,url},callbackResult}},{request,url,callbackResult});
+    await page.goto(`${base}/wallet-auth/callback?financeOrderApprovalResult=fixture`);
+    await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('isolated callback outage'));
+    assert.equal(callbackRequests.length,1);
+    assert.equal((await page.evaluate(()=>window.__orderWalletFixture)).clearCalls,0);
+    await page.goto(base);
+    await page.waitForFunction(()=>document.querySelector('#broker-wallet-approve')?.href==='https://wallet.example/review?request=request_callback_retry');
+    assert.equal(await page.locator('#broker-wallet-approve').getAttribute('href'),url);
+    callbackFailure=false;
+    await page.evaluate(()=>history.replaceState(null,'','/wallet-auth/callback?financeOrderApprovalResult=fixture'));
+    await page.evaluate(()=>completeBrokerCallback());
+    await page.waitForFunction(()=>window.__orderWalletFixture.pending===null);
+    assert.equal(callbackRequests.length,2);
+    assert.equal((await page.evaluate(()=>window.__orderWalletFixture)).clearCalls,1);
+    assert.match(await page.locator('#notice').textContent(),/Wallet decision recorded/);
   }finally{await page.close();}
 });
