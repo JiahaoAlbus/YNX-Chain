@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ynx:finance-release-inventory:v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "source",
+    "tree",
+    "releaseId",
+    "statePolicy",
+    "files"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ynx-finance-release-inventory/v2"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "tree": {
+      "$ref": "#/$defs/source"
+    },
+    "releaseId": {
+      "$ref": "#/$defs/id"
+    },
+    "statePolicy": {
+      "const": "preserve-existing-no-migration"
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1024,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "bytes",
+          "mode"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.-]+(/[a-zA-Z0-9_.-]+)*$"
+          },
+          "sha256": {
+            "$ref": "#/$defs/hash"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 67108864
+          },
+          "mode": {
+            "enum": [
+              420,
+              493
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{7,95}$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schema": "ynx-finance-lease-validation/v2",
+  "baseCommit": "2ab479f8cc09ad3fc123363c1e0e36f182997f4c",
+  "recordedAt": "2026-09-20T14:55:13.828848+00:00",
+  "platform": "Darwin arm64",
+  "python": "3.9.6",
+  "runtimeMatrix": [
+    {
+      "node": "24.19.0",
+      "tests": 44,
+      "passed": 44,
+      "failed": 0
+    },
+    {
+      "node": "26.7.0",
+      "tests": 44,
+      "passed": 44,
+      "failed": 0
+    }
+  ],
+  "command": "node --test apps/finance/deploy/lease-v2/lease.test.mjs",
+  "concurrentProcesses": 8,
+  "crashPhases": [
+    "CONSUMED",
+    "STAGED",
+    "STOPPING",
+    "STOPPED",
+    "SWITCHING",
+    "SWITCHED",
+    "STARTED",
+    "VERIFIED"
+  ],
+  "testedFilesSha256": {
+    "scripts/ops/finance-lease-v2/lease.mjs": "a07725b9f5fe08a50ad972eae83653a8953ca8fe9ee3f1a5dc0f472e6fb738ad",
+    "scripts/ops/finance-lease-v2/cli.mjs": "a8b5ea64362124d4e237dad6ab14399e562085562af4a619549521968679e519",
+    "apps/finance/deploy/lease-v2/executor.py": "337bb1953b28cbe465f45de2d625536c861c22e90cb15a5b1ec826f59cfc9bb5",
+    "apps/finance/deploy/lease-v2/lease.test.mjs": "5767a6ee8a5bee94b063e846f4b40049fe0e5b38ed08ea2135fa6023af50e695"
+  },
+  "productionLeaseIssued": false,
+  "productionSSHInvoked": false,
+  "productionServicesChanged": false,
+  "trustRootInstalled": false,
+  "financeProviderVerified": false,
+  "fixtureOnly": true,
+  "limitations": [
+    "No production or Linux service execution was attempted.",
+    "Real issue requires independently provisioned public trust and reviewed owner approval.",
+    "All-ingress closure and zero-active-request admission receipt must be established by the unique owner.",
+    "The durable local ledger is not hardware-backed or an off-host rollback checkpoint."
+  ]
+}

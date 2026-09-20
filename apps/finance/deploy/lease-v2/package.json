@@ -1,0 +1,9 @@
+{
+  "name": "ynx-finance-deployment-lease-v2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test lease.test.mjs"
+  },
+  "engines": {"node": ">=22"}
+}

@@ -1,0 +1,442 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ynx:finance-deployment-lease:v2",
+  "description": "Structural validation only. lease.mjs enforces canonicalization, cryptography, time, root, cross-field and mode policy; executor.py enforces host/ledger/artifact baselines.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "mode",
+    "leaseId",
+    "nonce",
+    "operation",
+    "recoveryOf",
+    "issuedAt",
+    "notBefore",
+    "expiresAt",
+    "singleUse",
+    "retryAllowed",
+    "target",
+    "candidate",
+    "baseline",
+    "rollback",
+    "admission",
+    "verification",
+    "rollbackVerification",
+    "tooling",
+    "signature"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ynx-finance-deployment-lease/v2"
+    },
+    "mode": {
+      "enum": [
+        "production",
+        "fixture"
+      ]
+    },
+    "leaseId": {
+      "$ref": "#/$defs/id"
+    },
+    "nonce": {
+      "$ref": "#/$defs/hash"
+    },
+    "operation": {
+      "enum": [
+        "deploy",
+        "rollback"
+      ]
+    },
+    "recoveryOf": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/id"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "issuedAt": {
+      "$ref": "#/$defs/time"
+    },
+    "notBefore": {
+      "$ref": "#/$defs/time"
+    },
+    "expiresAt": {
+      "$ref": "#/$defs/time"
+    },
+    "singleUse": {
+      "const": true
+    },
+    "retryAllowed": {
+      "const": false
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "host",
+        "machineIdSha256",
+        "sshHostFingerprint",
+        "service"
+      ],
+      "properties": {
+        "host": {
+          "enum": [
+            "43.153.202.237",
+            "fixture.invalid"
+          ]
+        },
+        "machineIdSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "sshHostFingerprint": {
+          "type": "string",
+          "pattern": "^SHA256:[A-Za-z0-9+/]{43}$"
+        },
+        "service": {
+          "const": "ynx-finance.service"
+        }
+      }
+    },
+    "candidate": {
+      "$ref": "#/$defs/identity"
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "currentRelease",
+        "binary",
+        "env",
+        "unit",
+        "caddy",
+        "state",
+        "caddyFiles",
+        "dropins",
+        "active",
+        "pid",
+        "nrestarts"
+      ],
+      "properties": {
+        "currentRelease": {
+          "type": "string",
+          "pattern": "^/opt/ynx/releases/finance(-v2)?/[a-zA-Z0-9_./-]+$"
+        },
+        "binary": {
+          "$ref": "#/$defs/file"
+        },
+        "env": {
+          "$ref": "#/$defs/file"
+        },
+        "unit": {
+          "$ref": "#/$defs/file"
+        },
+        "caddy": {
+          "$ref": "#/$defs/file"
+        },
+        "state": {
+          "$ref": "#/$defs/file"
+        },
+        "caddyFiles": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/caddyFile"
+          }
+        },
+        "dropins": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "file"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "pattern": "^[a-zA-Z0-9_.-]+\\.conf$"
+              },
+              "file": {
+                "$ref": "#/$defs/file"
+              }
+            }
+          }
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "pid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "nrestarts": {
+          "const": 0
+        }
+      }
+    },
+    "rollback": {
+      "$ref": "#/$defs/identity"
+    },
+    "admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "bodySha256",
+        "status",
+        "configurationSha256",
+        "receiptSha256"
+      ],
+      "properties": {
+        "url": {
+          "const": "https://finance.ynxweb4.com/"
+        },
+        "bodySha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "status": {
+          "const": 503
+        },
+        "configurationSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "receiptSha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "verification": {
+      "$ref": "#/$defs/verification"
+    },
+    "rollbackVerification": {
+      "$ref": "#/$defs/verification"
+    },
+    "tooling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verifierSha256",
+        "executorSha256"
+      ],
+      "properties": {
+        "verifierSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "executorSha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "keyId",
+        "rootVersion",
+        "payloadSha256",
+        "value"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "Ed25519"
+        },
+        "keyId": {
+          "$ref": "#/$defs/id"
+        },
+        "rootVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "payloadSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{86}$"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{7,95}$"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "tree",
+        "releaseId",
+        "artifactSha256",
+        "manifestSha256",
+        "sbomSha256",
+        "binarySha256",
+        "envSha256"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "tree": {
+          "$ref": "#/$defs/source"
+        },
+        "releaseId": {
+          "$ref": "#/$defs/id"
+        },
+        "artifactSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "manifestSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "sbomSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "binarySha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "envSha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "absent",
+        "sha256",
+        "uid",
+        "gid",
+        "mode"
+      ],
+      "properties": {
+        "absent": {
+          "type": "boolean"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "uid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 511
+        }
+      }
+    },
+    "caddyFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "file"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/etc/caddy/[a-zA-Z0-9_./-]+$"
+        },
+        "file": {
+          "$ref": "#/$defs/file"
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "versionSha256",
+        "source",
+        "stateUnchanged"
+      ],
+      "properties": {
+        "url": {
+          "const": "http://127.0.0.1:6483/version"
+        },
+        "versionSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "stateUnchanged": {
+          "const": true
+        }
+      }
+    },
+    "key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "keyId",
+        "algorithm",
+        "publicKey",
+        "notBefore",
+        "notAfter",
+        "revoked"
+      ],
+      "properties": {
+        "keyId": {
+          "$ref": "#/$defs/id"
+        },
+        "algorithm": {
+          "const": "Ed25519"
+        },
+        "publicKey": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "notBefore": {
+          "$ref": "#/$defs/time"
+        },
+        "notAfter": {
+          "$ref": "#/$defs/time"
+        },
+        "revoked": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

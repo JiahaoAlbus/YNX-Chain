@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ynx:finance-release-trust:v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "mode",
+    "rootVersion",
+    "maxLeaseSeconds",
+    "keys"
+  ],
+  "properties": {
+    "schema": {
+      "const": "ynx-finance-release-trust/v2"
+    },
+    "mode": {
+      "enum": [
+        "production",
+        "fixture"
+      ]
+    },
+    "rootVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "maxLeaseSeconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3600
+    },
+    "keys": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/key"
+      }
+    }
+  },
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{7,95}$"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "tree",
+        "releaseId",
+        "artifactSha256",
+        "manifestSha256",
+        "sbomSha256",
+        "binarySha256",
+        "envSha256"
+      ],
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "tree": {
+          "$ref": "#/$defs/source"
+        },
+        "releaseId": {
+          "$ref": "#/$defs/id"
+        },
+        "artifactSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "manifestSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "sbomSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "binarySha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "envSha256": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "absent",
+        "sha256",
+        "uid",
+        "gid",
+        "mode"
+      ],
+      "properties": {
+        "absent": {
+          "type": "boolean"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/hash"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "uid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "gid": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "mode": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 511
+        }
+      }
+    },
+    "caddyFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "file"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/etc/caddy/[a-zA-Z0-9_./-]+$"
+        },
+        "file": {
+          "$ref": "#/$defs/file"
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "versionSha256",
+        "source",
+        "stateUnchanged"
+      ],
+      "properties": {
+        "url": {
+          "const": "http://127.0.0.1:6483/version"
+        },
+        "versionSha256": {
+          "$ref": "#/$defs/hash"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "stateUnchanged": {
+          "const": true
+        }
+      }
+    },
+    "key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "keyId",
+        "algorithm",
+        "publicKey",
+        "notBefore",
+        "notAfter",
+        "revoked"
+      ],
+      "properties": {
+        "keyId": {
+          "$ref": "#/$defs/id"
+        },
+        "algorithm": {
+          "const": "Ed25519"
+        },
+        "publicKey": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{43}$"
+        },
+        "notBefore": {
+          "$ref": "#/$defs/time"
+        },
+        "notAfter": {
+          "$ref": "#/$defs/time"
+        },
+        "revoked": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

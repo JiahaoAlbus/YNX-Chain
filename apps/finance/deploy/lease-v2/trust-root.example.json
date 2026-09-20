@@ -1,0 +1,7 @@
+{
+  "schema": "ynx-finance-release-trust/v2",
+  "mode": "production",
+  "rootVersion": 1,
+  "maxLeaseSeconds": 300,
+  "keys": []
+}
