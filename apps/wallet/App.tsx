@@ -375,8 +375,17 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
   if(inputContext.current!==contextKey){recipientInput.cancel();inputContext.current=contextKey}
   const cancelInput=()=>{recipientInput.cancel();setPasting(false);setRecipientAdded(false)};
   const dismiss=()=>{cancelInput();scope.cancel();setBusy(false);close()};
-  useEffect(()=>{recipientInput.cancel();scope.cancel();setTo("");setAmount("");setReview(false);setBusy(false);setPasting(false);setRecipientAdded(false);setError(null);setStored(null);setLoaded(false);if(!visible)return;let current=true;
-    void nativeOutbox.read(account.account).then(value=>{if(current){setStored(value?.phase==="done"?null:value);setLoaded(true)}}).catch(caught=>{if(current)setError(message(caught))});return()=>{current=false;recipientInput.cancel()}
+  useEffect(()=>{recipientInput.cancel();scope.cancel();setTo("");setAmount("");setReview(false);setBusy(false);setPasting(false);setRecipientAdded(false);setError(null);setStored(null);setLoaded(false);if(!visible)return;let current=true,lease:WalletOperationLease|undefined;
+    void (async()=>{try{
+      const value=await nativeOutbox.read(account.account);if(!current)return;
+      setStored(value?.phase==="done"?null:value);setLoaded(true);
+      if(value&&value.phase!=="done"&&value.phase!=="accepted"){
+        lease=scope.begin({account:account.account});const activeLease=lease;setBusy(true);
+        const recovered=await nativeOutbox.recover(account.account,chainClient(),activeLease.assert);
+        if(current&&activeLease.isCurrent()){setStored(recovered?.phase==="done"?null:recovered);if(recovered?.phase==="accepted")setError(null)}
+      }
+    }catch(caught){if(current&&(!lease||lease.isCurrent()))setError(message(caught))}finally{if(current&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}})();
+    return()=>{current=false;recipientInput.cancel();lease?.finish()}
   },[visible,account.account,scope,reload,recipientInput]);
   const pasteRecipient=async()=>{
     if(!visible||!loaded||stored||review||busy)return;
@@ -411,7 +420,7 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
       }
       // The outbox records late network facts even when this screen has closed.
       // A cancelled lease only suppresses UI/callback updates, never that write.
-      activeLease.assert();setStored(result.phase==="done"?null:result);if(result.phase==="observed"||result.phase==="accepted")onSent();if(mode==="done")dismiss();
+      activeLease.assert();setStored(result.phase==="done"?null:result);if(result.phase==="observed"||result.phase==="accepted"||mode==="done")onSent();if(mode==="done"){cancelInput();setTo("");setAmount("");setReview(false)}
     }catch(caught){if(lease?.isCurrent()||!lease){setError(message(caught));try{const value=await nativeOutbox.read(request.account);if(lease?.isCurrent()||!lease){setStored(value?.phase==="done"?null:value);setLoaded(true)}}catch{if(lease?.isCurrent()||!lease)setLoaded(false)}}}
     finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}
   };

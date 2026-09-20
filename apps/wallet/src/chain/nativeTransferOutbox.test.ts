@@ -216,6 +216,22 @@ test("lost ACK recovers through public receipt checks with no authorization, bro
   assert.equal((await restarted.acknowledge(account,signed.hash,noGuard)).phase,"done");assert.equal((await fixtureOutbox(storage).read(account))?.phase,"done");
 });
 
+test("reopening send automatically recovers a durable lost-ACK transfer after a transient HTTP/2 reset",async()=>{
+  const storage=new MemoryStorage();await unknown(storage);const methods:string[]=[];let reset=true,posts=0;
+  const remote=new NativeChainClient("https://rpc.ynxweb4.com",async(url,init)=>{
+    if(url.endsWith("/transactions/broadcast")){posts++;throw new Error("recover must never broadcast")}
+    const request=JSON.parse(String(init?.body));methods.push(request.method);
+    if(reset){reset=false;throw new TypeError("okhttp3.internal.http2.StreamResetException: stream was reset CANCEL")}
+    const values:Record<string,unknown>={eth_chainId:"0x1917",ynx_getDurabilityModel:NATIVE_DURABILITY_MODEL,ynx_getTransactionDurability:receipt().ynxDurability,eth_getTransactionReceipt:receipt()};
+    return response({jsonrpc:"2.0",id:request.id,result:values[request.method]});
+  });
+  const recovered=await fixtureOutbox(storage).recover(account,remote,noGuard);
+  assert.equal(recovered?.phase,"accepted");assert.equal(recovered?.hash,signed.hash);assert.equal(posts,0);
+  assert.deepEqual(methods.slice(0,2),["eth_chainId","eth_chainId"],"the interrupted public read is retried without signing");
+  const before=methods.length;assert.equal((await fixtureOutbox(storage).recover(account,remote,noGuard))?.phase,"accepted");assert.equal(methods.length,before,"verified accepted evidence is reused without another network read");
+  await fixtureOutbox(storage).acknowledge(account,signed.hash,noGuard);assert.equal((await fixtureOutbox(storage).recover(account,remote,noGuard))?.phase,"done");assert.equal(methods.length,before);
+});
+
 for(const status of ["pending_durable","uncertain","memory_only","not_found","unsupported"] as const)test(`${status} remains stored across restart and cannot authorize Done or replacement`,async()=>{
   const storage=new MemoryStorage();await unknown(storage);const methods:string[]=[];
   const state={version:NATIVE_DURABILITY_MODEL.version,scope:"local-snapshot",status,transactionHash:signed.hash,...(status==="pending_durable"?{checkpointBlockNumber:"0x0",checkpointBlockHash:blockHash,snapshotIntegrity:"0x"+"b".repeat(64)}:{})};
