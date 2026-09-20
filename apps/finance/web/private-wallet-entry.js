@@ -1,7 +1,6 @@
 import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} from './vendor/product-session-browser-a7dad7ec.mjs';
 import registry from './vendor/product-session-registry-a7dad7ec.json';
-import {assertFinancePrivateAuthority} from './endpoint-authority-entry.js';
-const AUTHORITY='https://wallet-auth.ynxweb4.com';
+import {assertFinancePrivateAuthority,financePrivateAuthorityRevision,invalidateFinancePrivateAuthority} from './endpoint-authority-entry.js';
 const ATTEMPT_KEY='ynx.finance.browser-private.9840ef87.wallet-auth.attempted';
 const SCOPES=Object.freeze(['finance.ai.draft','finance.pay.read','finance.portfolio.read','finance.profile.write']);
 let adapter=null,initializing=null,generation=0,revision=0,busy=false;
@@ -13,14 +12,14 @@ function publish(next,code=''){
 function code(error){return /^[A-Z][A-Z0-9_]{1,80}$/.test(error?.code??'')?error.code:'PRIVATE_SERVICE_DEGRADED';}
 async function initialize(){
   if(adapter)return adapter;
-  if(!initializing)initializing=assertFinancePrivateAuthority().then(()=>createBrowserProductSessionClient({registry,productId:'finance',scopes:SCOPES,
+  if(!initializing)initializing=assertFinancePrivateAuthority().then(authority=>createBrowserProductSessionClient({registry,productId:'finance',scopes:SCOPES,
     purpose:'Read owned Finance activity and Pay evidence; manage private planning and explicitly requested AI drafts. No asset execution.',
-    gateway:new ProductSessionGatewayFetchAdapter({endpoint:AUTHORITY,fetch:globalThis.fetch.bind(globalThis),walletInstalled:async()=>false,schemeRegistered:async()=>false,timeoutMs:10000})})).then(value=>adapter=value).finally(()=>{initializing=null;});
+    gateway:new ProductSessionGatewayFetchAdapter({endpoint:authority.walletGateway,fetch:globalThis.fetch.bind(globalThis),walletInstalled:async()=>false,schemeRegistered:async()=>false,timeoutMs:10000})})).then(value=>adapter=value).finally(()=>{initializing=null;});
   return initializing;
 }
 async function operation(action){
   const attempt=++generation;busy=true;publish({status:'checking',session:null});
-  try{const selected=await initialize();if(attempt!==generation)return current;const result=await action(selected);if(attempt===generation)publish(result);return attempt===generation?result:current;}
+  try{await assertFinancePrivateAuthority();const selected=await initialize(),authorityRevision=financePrivateAuthorityRevision();if(attempt!==generation)return current;const result=await action(selected);if(authorityRevision!==financePrivateAuthorityRevision())throw new Error('AUTHORITY_V2_SUPERSEDED');if(attempt===generation)publish(result);return attempt===generation?result:current;}
   catch(error){if(attempt===generation)publish({status:'degraded',session:null},code(error));return current;}
   finally{if(attempt===generation){busy=false;render();}}
 }
@@ -45,7 +44,7 @@ function reportFailure(){publish({status:'degraded',session:null},'PRIVATE_SERVI
 async function proof(scope){
   if(!SCOPES.includes(scope)||current.status!=='connected'||!current.session||!adapter)throw new Error('PRIVATE_SERVICE_DEGRADED: Private Finance requires separate Wallet approval.');
   const attempt=generation,view=current,selected=adapter;
-  try{const authorization=await selected.createIntrospectionProof([scope]);if(attempt!==generation||current!==view||selected!==adapter)throw new Error('FINANCE_CONTEXT_CHANGED');return authorization;}
+  try{await assertFinancePrivateAuthority();const authorityRevision=financePrivateAuthorityRevision(),authorization=await selected.createIntrospectionProof([scope]);if(authorityRevision!==financePrivateAuthorityRevision()||attempt!==generation||current!==view||selected!==adapter)throw new Error('FINANCE_CONTEXT_CHANGED');return authorization;}
   catch(error){if(attempt===generation)reportFailure();throw error;}
 }
 function render(){
@@ -65,7 +64,7 @@ export function bindPrivateFinanceUI(){
   document.querySelector('#private-guest')?.addEventListener('click',guest);
   window.addEventListener('offline',()=>{generation++;busy=false;publish(adapter?.client.setNetworkAvailable(false)??{status:'network-unavailable'});});
   window.addEventListener('online',()=>{generation++;busy=false;publish(adapter?.client.setNetworkAvailable(true)??{status:'retry-required'});});
-  window.addEventListener('pagehide',()=>{generation++;adapter?.close();adapter=null;});
+  window.addEventListener('pagehide',()=>{generation++;invalidateFinancePrivateAuthority();adapter?.close();adapter=null;});
   window.addEventListener('pageshow',event=>{if(event.persisted)restore();});
   render();void restore();
 }

@@ -10,16 +10,19 @@
     "byteReproducible": true,
     "status": "VERIFIED_REPRODUCIBLE",
     "cleanBuildCount": 2,
-    "bytes": 179986,
-    "sha256": "fbebce55d813f1acbbec7738d171bb2a3142eb415d2c513bae48862b4ecd1967"
+    "bytes": 180425,
+    "sha256": "0e12ea5a77c0768411e1557ed946b63bfa744065b8e61c27ccbc7c8d18da9e14"
   },
   "files": [
     {"path": "package.json", "bytes": 827, "sha256": "f0fc88691ca8f8fb4e9d57f8d8d06fd49ceda316665dffe6fc88dbca8e7b323d"},
     {"path": "package-lock.json", "bytes": 17389, "sha256": "35743dedd9523cadf1d057a67bc0d4a7c5771c86a54e252e6fa7ff2015394c6f"},
     {"path": "wallet-auth-entry.js", "bytes": 8924, "sha256": "53f53a2550ffa85b67dd2526da4421671302b261721542bb4532275fab607ed4"},
-    {"path": "private-wallet-entry.js", "bytes": 6560, "sha256": "a41f2da258765ed5f3f00aceeb65e05a58389f8473fe54b00621f910081315eb"},
-    {"path": "endpoint-authority-entry.js", "bytes": 875, "sha256": "c0e7caa31ac074c6db3b2874215eff7978aba6e5e12cdc9d5b5484eb5221dbb0"},
-    {"path": "wallet-auth.js", "bytes": 179986, "sha256": "fbebce55d813f1acbbec7738d171bb2a3142eb415d2c513bae48862b4ecd1967"},
+    {"path": "private-wallet-entry.js", "bytes": 6967, "sha256": "78ec73331284f0e96670e3acdecaeea03cf14ee645660d0a921492f229a84066"},
+    {"path": "endpoint-authority-entry.js", "bytes": 3893, "sha256": "4ec36db5b858286ddecba0407388fc3fab260d9bb6b29d20b7744d0c3442adf6"},
+    {"path": "endpoint-authority-store.js", "bytes": 3169, "sha256": "a1d656fa8bba98775f1a1a6ea503821e3a3954184c38a24372f7da86eae16889"},
+    {"path": "order-wallet-entry.js", "bytes": 3096, "sha256": "7cce3977bc37def6e8ab72b51763634795a5c660f8bb85bddf8b63baa68c1609"},
+    {"path": "wallet-auth.js", "bytes": 180425, "sha256": "0e12ea5a77c0768411e1557ed946b63bfa744065b8e61c27ccbc7c8d18da9e14"},
+    {"path": "order-wallet.js", "bytes": 103577, "sha256": "6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc"},
     {"path": "index.html", "bytes": 18313, "sha256": "92723f78769f7d65a0881be2d94e1819f429e41a7fe7569dc3635474b454349d"},
     {"path": "app.js", "bytes": 45371, "sha256": "93f3774bf4a52c07b549ad7aaf407e587c8935aa0fea4c33645d626a33e89e72"},
     {"path": "vendor/standard-wallet-browser-c97f85e9.mjs", "bytes": 22417, "sha256": "b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43"},
@@ -33,7 +36,7 @@
     {"path": "../../../sdk/js/testnet-endpoints.js", "bytes": 2423, "sha256": "00216b41b29c5fa8478a36394627be1a18d232014d7d0ab9c2b36d5ec45c8316"},
     {"path": "../../../sdk/js/ynx-testnet.js", "bytes": 574, "sha256": "0a619f9a56dd25b6f7e9991a2096d69580ba455fee2231aad1caab323ae27178"},
     {"path": "../../../sdk/js/wallet.js", "bytes": 2221, "sha256": "2bffcdcdf41bfbf848f51389eaef1ca147b824b3ccc7761d813347b79493b3a0"},
-    {"path": "../scripts/finance-nonregressive-runtime.mjs", "bytes": 642, "sha256": "9977373253190212debbc79026177ae3353d21c953c0596d105648465e441734"},
-    {"path": "../scripts/build-finance-weekly-v3-candidate.mjs", "bytes": 8165, "sha256": "fddb857455f37b9ff5099c5d25e3aabf8c92f2e25c868f199c6dd6f6568dfb25"}
+    {"path": "../scripts/finance-nonregressive-runtime.mjs", "bytes": 1401, "sha256": "129c06ec39acc5de1d9a0c59ab254a4e5c092955257f17f5cf81ecda72b51d35"},
+    {"path": "../scripts/build-finance-weekly-v3-candidate.mjs", "bytes": 8687, "sha256": "b4ed1233970b2d6f587e44d27eea170525da8ceb1c47d82d52846d1663f5ef3b"}
   ]
 }

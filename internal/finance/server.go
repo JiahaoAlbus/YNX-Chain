@@ -40,6 +40,7 @@ type ServerConfig struct {
 	LogWriter            io.Writer
 	Now                  func() time.Time
 	Build                buildinfo.Info
+	EndpointAuthority    EndpointAuthorityBrowserConfigProvider
 }
 
 type Server struct {
@@ -96,6 +97,7 @@ func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.dra
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
+	s.mux.HandleFunc("GET /api/endpoint-authority/v2/config", s.endpointAuthorityBrowserConfig)
 	s.mux.HandleFunc("GET /api/broker/assets", s.brokerAssets)
 	s.mux.HandleFunc("GET /api/broker/quote", s.brokerQuote)
 	s.mux.HandleFunc("GET /api/broker/snapshot", s.protected("finance.portfolio.read", s.brokerSnapshot))
@@ -152,6 +154,22 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /build-identity.json", s.web)
 	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/complete", s.walletSessionComplete)
 	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/revoke", s.walletSessionRevoke)
+}
+
+func (s *Server) endpointAuthorityBrowserConfig(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	if s.cfg.EndpointAuthority == nil {
+		writeError(w, http.StatusServiceUnavailable, "private_service_degraded", "Finance Endpoint Authority v2 is unavailable; Standard Wallet and public Finance remain available")
+		return
+	}
+	payload, err := s.cfg.EndpointAuthority.BrowserConfig(r.Context())
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "private_service_degraded", "Finance Endpoint Authority v2 is unavailable; Standard Wallet and public Finance remain available")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(append(payload, '\n'))
 }
 
 func (s *Server) walletSessionComplete(w http.ResponseWriter, r *http.Request) {

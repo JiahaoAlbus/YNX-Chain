@@ -34,6 +34,7 @@ type Session struct {
 // Gateway. It deliberately has no local assertion or fallback session.
 type Authenticator struct {
 	v2                                   productSessionV2Authorizer
+	privateAuthority                     EndpointAuthorityGate
 	introspectionURL, clientID, bundleID string
 	client                               *http.Client
 	now                                  func() time.Time

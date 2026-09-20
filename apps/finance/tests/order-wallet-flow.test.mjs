@@ -28,11 +28,11 @@ async function setup(){
   return {context,page};
 }
 
-test('real browser bundle fails closed before creating order pending state while shared private authority is pending',async()=>{
+test('real browser bundle fails closed before creating order pending state while v2 authority is unconfigured',async()=>{
   const fixture=await setup();
   try{
     const result=await fixture.page.evaluate(async({unsigned,serverTime})=>{try{await window.YNXFinanceOrderWallet.begin(unsigned,serverTime);return 'accepted'}catch(error){return error.message}},{unsigned:vectors.positive.unsigned,serverTime:'2026-09-20T09:00:00.000Z'});
-    assert.match(result,/PRIVATE_SERVICE_DEGRADED: Wallet Gateway=PENDING; Finance Product Session=PENDING/);
+    assert.match(result,/PRIVATE_SERVICE_DEGRADED: Finance Endpoint Authority v2 is not configured/);
     assert.equal(await fixture.page.evaluate(()=>window.YNXFinanceOrderWallet.pending()),null);
   }finally{await fixture.context.close();}
 });

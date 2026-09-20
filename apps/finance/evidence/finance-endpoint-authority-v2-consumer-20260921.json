@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "ynx.finance.endpoint-authority-v2-consumer-evidence.v1",
+  "recordedAt": "2026-09-21T00:00:00.000Z",
+  "branch": "codex/finance-endpoint-authority-v2-consumer-20260921",
+  "baseline": "42e0abaa46bcaa6a14158a78e70d1fcbde13e06e",
+  "implementationCommit": "f949e7afb1e407780a8c93f9fac42d1aef775c6a",
+  "implementationTree": "859175ce6ed09892e1e43f62fe0e877fae490506",
+  "identity": {
+    "consumerId": "ynx-finance-v1",
+    "origin": "https://finance.ynxweb4.com",
+    "webApplicationId": "com.ynxweb4.finance.web",
+    "nativeApplicationId": "com.ynxweb4.finance",
+    "nativeCallback": "ynxfinance://wallet-auth/callback",
+    "requiredEndpoint": "walletGateway",
+    "requiredProduct": "finance"
+  },
+  "sourceObjects": [
+    {"path":"apps/finance/authority/adapter.mjs","bytes":2936,"sha256":"c0ed2d38c8da2fee880a7af5942f46b2c7d1389249504526c47f7d7fbfc370c3"},
+    {"path":"apps/finance/authority/checkpoint-node.mjs","bytes":11959,"sha256":"861b458cc82bfa29c4bb16d834990b4738d0c0d98e90e340e4f957db41e614c5"},
+    {"path":"apps/finance/authority/config.mjs","bytes":2229,"sha256":"c3f5218ab4b5a53db5c495c8ec79069e986d1625b210d475f5894893608cac2b"},
+    {"path":"apps/finance/scripts/finance-endpoint-authority-v2.mjs","bytes":933,"sha256":"ccfa992bf0957dfd8e25f33c2635284fabc9f9670f14c010b870b9704f692454"},
+    {"path":"apps/finance/web/endpoint-authority-entry.js","bytes":3893,"sha256":"4ec36db5b858286ddecba0407388fc3fab260d9bb6b29d20b7744d0c3442adf6"},
+    {"path":"apps/finance/web/endpoint-authority-store.js","bytes":3169,"sha256":"a1d656fa8bba98775f1a1a6ea503821e3a3954184c38a24372f7da86eae16889"},
+    {"path":"apps/finance/mobile/src/endpoint-authority-capabilities.ts","bytes":1068,"sha256":"7083507b8cfb1a3049b8215a9a1a79b20dea5eb98bcb7fc61cdcb82d04437e7f"},
+    {"path":"internal/finance/endpoint_authority.go","bytes":6748,"sha256":"37cc202bf1ef4cd89e308276405af5e0bcbd581e4dfbad97b1ee78822765af28"}
+  ],
+  "browserBundles": {
+    "wallet":{"path":"apps/finance/web/wallet-auth.js","bytes":180425,"sha256":"0e12ea5a77c0768411e1557ed946b63bfa744065b8e61c27ccbc7c8d18da9e14"},
+    "order":{"path":"apps/finance/web/order-wallet.js","bytes":103577,"sha256":"6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc"},
+    "verifierManifest":{"path":"apps/finance/web/wallet-verifier-manifest.json","bytes":3921,"sha256":"30968b5ab0506b771628f568f3bb3940fb96133733f950ed894053d9625c6aa4"},
+    "repeatedCleanBuildByteExact": true
+  },
+  "linuxAmd64Candidate": {
+    "path": "/tmp/ynx-finance-f949e7afb1e4-linux-amd64.tar.gz",
+    "bytes": 30506088,
+    "sha256": "d06c61f46226b6006932a848b1a4d6dbf394ee2c08e3966e3ed569ed3042fe83",
+    "repeatedBuildByteExact": true,
+    "published": false
+  },
+  "tests": {
+    "financeNode": "67/67 PASS",
+    "authorityAdapter": "15/15 PASS including repeated-manifest idempotence without self-transition, browser config checkpoint binding, root rotation/rollback, pre/post-publish SIGKILL recovery, ancestor and symlink rejection, invalid-next non-pollution and 20 rounds of eight-process append-only CAS contention",
+    "mobile": "18/18 PASS; typecheck PASS; Android+iOS Expo export PASS",
+    "go": "go test -race, go vet and go build PASS for internal/finance/... and apps/finance/...",
+    "walletVerifier": "PASS; two clean browser rebuilds byte-exact",
+    "security": "PASS across 254 text files",
+    "smoke": "PASS",
+    "browserAuthority": "Chromium PASS: shipped same-origin config fetch, valid signature, bad signature, same-sequence equivocation, cross-tab CAS, IDB-only checkpoint loss, complete site-data reset anchored by the server checkpoint, clock rollback, expiry and key revocation; zero cross-origin private network"
+  },
+  "safety": {
+    "sharedSdkModified": false,
+    "requestCanInjectAuthority": false,
+    "shellUsedByGoGate": false,
+    "missingV2MakesPrivateNetworkCalls": false,
+    "malformedProofStartsNodeProcess": false,
+    "browserConfigInjectedByShippedRuntime": true,
+    "completeSiteDataResetCanRollbackAuthority": false,
+    "customCheckpointLockUsed": false,
+    "checkpointPathReopenedForMutation": false,
+    "checkpointAncestorChainRequiresProtectedOwnershipAndModes": true,
+    "deadOwnerCheckpointLockCanPermanentlyBlock": false,
+    "v1RpcAndFaucetPreserved": true,
+    "mobileClaimsEd25519OrCAS": false,
+    "officialSandboxVerified": false,
+    "providerVerified": false,
+    "productionApproved": false,
+    "publicDeploymentVerified": false,
+    "installedWalletCallbackVerified": false,
+    "accountRequested": false,
+    "signatureRequested": false,
+    "transactionRequested": false
+  },
+  "remainingBlocker": "A protected signed v2 trust root, signed Finance manifest, trusted-clock feed, durable checkpoint prefix inside a service-owned 0700 directory whose full ancestor chain passes the ownership/write-permission gate, and a deployment lease are required before public activation. No production deployment was attempted."
+}

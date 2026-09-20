@@ -1,5 +1,6 @@
 import * as Crypto from 'expo-crypto';
 import {assertFinanceConsumerContract,assertFinanceProductSessionContract,financeNetworkEndpoints} from './endpoint-manifest';
+export {assertFinanceAuthorityV2NativeCapabilities,type FinanceAuthorityV2NativeCapabilities} from './endpoint-authority-capabilities';
 
 const nativeDigest=(payload:string)=>Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256,payload,{encoding:Crypto.CryptoEncoding.HEX});
 export const assertFinanceConsumerContractNative=(nowMs=Date.now())=>assertFinanceConsumerContract(nowMs,nativeDigest);

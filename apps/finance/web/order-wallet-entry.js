@@ -30,8 +30,8 @@ function authorityDate(value){
   if(!Number.isFinite(parsed.getTime())||parsed.toISOString()!==value)throw new Error('FINANCE_ORDER_AUTHORITY_TIME_INVALID');
   return parsed;
 }
-async function assertAuthority(nowMs=Date.now()){
-  return assertFinancePrivateAuthority(nowMs);
+async function assertAuthority(){
+  return assertFinancePrivateAuthority();
 }
 function resumeStored(at){
   const pending=load();
@@ -54,6 +54,7 @@ async function begin(unsigned,serverTime){
   if(existing&&!existing.expired)throw new Error('FINANCE_ORDER_PENDING_EXISTS');
   const request=createFinanceOrderApprovalRequest(unsigned,at);
   const url=encodeFinanceOrderApprovalWalletURL(request,at);
+  await assertAuthority();
   save({approvedProof:null,request,version:'1'});
   return Object.freeze({request,url});
 }
@@ -63,7 +64,7 @@ async function parseReturn(url,serverTime){
   if(!pending)throw new Error('FINANCE_ORDER_PENDING_NOT_FOUND');
   const request=pendingRequest(pending);
   const result=parseFinanceOrderApprovalReturnURL(registry,url,request,authorityDate(serverTime),pending.approvedProof);
-  if(result.status==='approved')save({approvedProof:result.approval,request,version:'1'});
+  if(result.status==='approved'){await assertAuthority();save({approvedProof:result.approval,request,version:'1'});}
   return canonicalJSON(result);
 }
 
