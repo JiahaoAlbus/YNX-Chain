@@ -265,6 +265,25 @@ func TestProviderRejectedErrorPersistsBoundedHTTPRequestCorrelation(t *testing.T
 	}
 }
 
+func TestUnclassifiedProviderErrorRemainsUnknownAndCannotRetry(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	dispatcher := BrokerDispatcher{Store: store, Adapter: dispatchAdapter{submit: func(brokerage.SubmitOrderRequest) (brokerage.Order, error) {
+		return brokerage.Order{}, errors.New("unexpected adapter failure")
+	}}, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+	if _, err := dispatcher.Dispatch(context.Background(), account, orderID); brokerage.ErrorCode(err) != "BROKER_CHECK_FAILED" {
+		t.Fatalf("unexpected dispatch error: %v", err)
+	}
+	state := store.Account(account).Brokerage
+	order, outbox := state.Orders[orderID], state.Outbox[orderID]
+	last := state.Journal[len(state.Journal)-1]
+	if order.State != "submitted_unknown" || outbox.Status != "submitted_unknown" || outbox.LastErrorCode != "BROKER_CHECK_FAILED" || last.Action != "provider.submission_unknown" {
+		t.Fatalf("unclassified provider outcome was treated as definitive: order=%+v outbox=%+v journal=%+v", order, outbox, last)
+	}
+	if _, err := dispatcher.Dispatch(context.Background(), account, orderID); err == nil {
+		t.Fatal("unclassified provider outcome was submitted twice")
+	}
+}
+
 func TestBrokerReconciliationPreservesProviderEventCursor(t *testing.T) {
 	store, account, orderID, now := consumedBrokerFixture(t)
 	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted"}
