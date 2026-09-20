@@ -83,7 +83,7 @@ async function waitForConfirmations(transactionHash, minimum) {
   const deadline = Date.now() + 30_000;
   let receipt;
   while (Date.now() < deadline) {
-    receipt = await rpc("eth_getTransactionReceipt", [transactionHash]);
+    receipt = await transactionReceipt(transactionHash);
     if (receipt) {
       const latest = parseQuantity(await rpc("eth_blockNumber", []));
       const included = parseQuantity(receipt.blockNumber);
@@ -92,6 +92,29 @@ async function waitForConfirmations(transactionHash, minimum) {
     await delay(300);
   }
   throw new Error(`transaction ${transactionHash} did not reach ${minimum} local confirmations`);
+}
+
+async function transactionReceipt(transactionHash) {
+  const id = "exchange-eth_getTransactionReceipt";
+  const response = await requestJSON(evmURL, {
+    body: JSON.stringify({id, jsonrpc: "2.0", method: "eth_getTransactionReceipt", params: [transactionHash]}),
+    headers: {"content-type": "application/json"},
+    method: "POST",
+  });
+  if (response.jsonrpc !== "2.0" || response.id !== id) {
+    throw new Error(`eth_getTransactionReceipt returned an invalid JSON-RPC response: ${JSON.stringify(response)}`);
+  }
+  if (!response.error && "result" in response) return response.result;
+
+  const durability = response.error?.data;
+  if (
+    response.error?.code === -32002 &&
+    durability?.status === "transaction_durability_uncertain" &&
+    durability?.transactionHash === transactionHash
+  ) {
+    return null;
+  }
+  throw new Error(`eth_getTransactionReceipt returned an invalid JSON-RPC response: ${JSON.stringify(response)}`);
 }
 
 async function assertRPCResult(method, params, expected) {
