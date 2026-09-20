@@ -64,5 +64,6 @@
     }
   ],
   "publicationEvidence": "proof/wallet-android-1.0.19-publication-20260921.json",
+  "installedEvidence": "proof/wallet-android-1.0.19-installed-readonly-20260921.json",
   "generatedAt": "2026-09-20T22:02:31Z"
 }

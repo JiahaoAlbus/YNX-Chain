@@ -17,6 +17,7 @@ const installedEvidence = JSON.parse(await readFile(new URL(manifest.recoveryBin
 const publicationEvidence = JSON.parse(await readFile(new URL(publication.publicationEvidence, walletRoot), "utf8"));
 const publicationEvidence118 = JSON.parse(await readFile(new URL(publication118.publicationEvidence, walletRoot), "utf8"));
 const publicationEvidence119 = JSON.parse(await readFile(new URL(publication119.publicationEvidence, walletRoot), "utf8"));
+const installedEvidence119 = JSON.parse(await readFile(new URL(publication119.installedEvidence, walletRoot), "utf8"));
 
 const previous = Object.freeze({
   tag: "wallet-android-testnet-preview-1.0.16-e9816a827",
@@ -579,6 +580,7 @@ function validate119Publication(value) {
     publishedApkBitForBitMatched: true,
   });
   assert.equal(value.publicationEvidence, "proof/wallet-android-1.0.19-publication-20260921.json");
+  assert.equal(value.installedEvidence, "proof/wallet-android-1.0.19-installed-readonly-20260921.json");
   assert.deepEqual(value.artifacts.map(({ name }) => name).sort(), ["android-hermes", "android-release-aab", "android-release-apk", "ios-hermes"]);
   assert.equal(new Set(value.artifacts.map(({ name }) => name)).size, 4);
   const apk = value.artifacts.find(({ name }) => name === "android-release-apk");
@@ -709,5 +711,117 @@ test("1.0.19 publication rejects changed assets, widened trust or repeated mutat
     const copy = structuredClone(publicationEvidence119);
     mutate(copy);
     assert.throws(() => validate119PublicationEvidence(copy, publication119));
+  }
+});
+
+function validate119InstalledEvidence(value, published) {
+  assert.equal(value.schema, "ynx-wallet-android-installed-readonly/v1");
+  assert.equal(value.evidenceBaseCommit, "cdb9bd25cdef9524c7c869d1110f4ce0b7d8cd91");
+  const apk = published.artifacts.find(({ name }) => name === "android-release-apk");
+  assert.deepEqual(value.officialArtifact, {
+    releaseTag: published.releaseTag,
+    releaseSourceCommit: published.sourceCommit,
+    assetId: apk.assetId,
+    filename: apk.filename,
+    sha256: apk.sha256,
+    bytes: apk.bytes,
+    package: "com.ynxweb4.wallet",
+    activity: "com.ynxweb4.wallet/.MainActivity",
+    versionCode: 25,
+    versionName: "1.0.19-testnet-preview",
+    signingClass: "local-test-signed",
+    productionSigned: false,
+  });
+  assert.deepEqual(value.emulator, {
+    avd: "YNX_WALLET_1019_20260921_QA",
+    serial: "emulator-5554",
+    api: 36,
+    abi: "arm64-v8a",
+    freshAvd: true,
+    freshApplicationData: true,
+  });
+  assert.deepEqual(value.installedFlow, {
+    firstColdLaunchMillis: 621,
+    disposableRandomRecoveryMaterial: true,
+    recoveryMaterialPrinted: false,
+    recoveryMaterialRetained: false,
+    strongBiometricConfigured: true,
+    accountImportedToSecureStorage: true,
+    postImportState: "LOCKED",
+    biometricUnlock: "PASS",
+    explicitLock: "PASS",
+    coldRestartRestoredAccountLocked: true,
+    lockedAccountColdLaunchMillis: 437,
+    finalLockedColdLaunchMillis: 529,
+    applicationCrashEntriesAfterFinalColdLaunch: 0,
+  });
+  assert.deepEqual(value.readOnlyChainValidation, {
+    chain: "ynx_6423-1",
+    chainQuantity: "0x1917",
+    networkPhaseTimeoutSeconds: 10,
+    absoluteCallDeadlineSeconds: 15,
+    biometricToSettledResultMillis: 9848,
+    result: "NO_ON_CHAIN_ACCOUNT_RECORD",
+    balance: "UNAVAILABLE_NOT_INVENTED",
+    nonce: "UNAVAILABLE_NOT_INVENTED",
+    sendEligibility: "BLOCKED_UNTIL_BALANCE_AND_NONCE_CONFIRMED",
+    readOnlyRequestCompletedWithinPhaseAndAbsoluteDeadlines: true,
+  });
+  assert.deepEqual(value.mutationBoundary, {
+    faucetRequests: 0,
+    transferBroadcasts: 0,
+    walletConnectRelayContacts: 0,
+    publicServiceMutations: 0,
+  });
+  assert.deepEqual(value.sanitization, {
+    rawUiTreesRetained: false,
+    rawSystemLogsRetained: false,
+    screenshotsRetained: false,
+    recoveryMaterialRetained: false,
+    lockCredentialRetained: false,
+    accountAddressRecorded: false,
+    onlyAllowlistedEvidenceCommitted: true,
+    lockedAfterImportUiSha256: "70fe2a77f68b9774872ba5dce0c1abc07e43ab62136cd864b1e125c47353cc02",
+    readOnlyResultUiSha256: "600f8825868395855a76e8e8e09565c4c7e71c59e4fd4641c4f7f874bf70cd7d",
+    finalColdLockedUiSha256: "8bc8ae6f59e17112c086be3089bb69cd18322faeb2442a3e2434f109d87ec7a1",
+  });
+  assert.deepEqual(value.notVerified, [
+    "funded-account balance and nonce",
+    "Faucet request",
+    "transfer broadcast or recovery",
+    "WalletConnect Relay interoperability",
+    "physical Android device",
+    "production signing",
+    "app-store publication",
+    "Finance integration",
+  ]);
+  strictUtcSeconds(value.testedAt);
+}
+
+test("installed 1.0.19 binds fresh APK identity, locked recovery and bounded read-only Testnet behavior", () => {
+  validate119InstalledEvidence(installedEvidence119, publication119);
+});
+
+test("installed 1.0.19 evidence rejects secrets, mutations and unsupported verification promotion", () => {
+  for (const mutate of [
+    (value) => { value.officialArtifact.sha256 = "0".repeat(64); },
+    (value) => { value.officialArtifact.versionCode = 24; },
+    (value) => { value.officialArtifact.productionSigned = true; },
+    (value) => { value.emulator.freshAvd = false; },
+    (value) => { value.installedFlow.recoveryMaterialPrinted = true; },
+    (value) => { value.installedFlow.recoveryMaterialRetained = true; },
+    (value) => { value.installedFlow.coldRestartRestoredAccountLocked = false; },
+    (value) => { value.readOnlyChainValidation.networkPhaseTimeoutSeconds = 5; },
+    (value) => { value.readOnlyChainValidation.biometricToSettledResultMillis = 15001; },
+    (value) => { value.readOnlyChainValidation.balance = "0 YNXT"; },
+    (value) => { value.mutationBoundary.faucetRequests = 1; },
+    (value) => { value.mutationBoundary.transferBroadcasts = 1; },
+    (value) => { value.mutationBoundary.walletConnectRelayContacts = 1; },
+    (value) => { value.sanitization.rawSystemLogsRetained = true; },
+    (value) => { value.notVerified = value.notVerified.filter(item => item !== "physical Android device"); },
+  ]) {
+    const copy = structuredClone(installedEvidence119);
+    mutate(copy);
+    assert.throws(() => validate119InstalledEvidence(copy, publication119));
   }
 });
