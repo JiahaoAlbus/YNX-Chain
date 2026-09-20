@@ -40,7 +40,7 @@ Public hosting does not make the packages production-signed or store-released. T
 
 `export-reviewer-source.mjs` exports only committed Wallet Web, Wallet/Auth and required integration source from an immutable commit. It embeds the complete verified build-authority archive and normal-build output hashes. `rebuild-reviewer-source.mjs` works without `.git`, verifies every submitted source byte and authority record, rebuilds all variants, and requires every generated output byte to match. See `submission-build.md` for the exact commands and environment.
 
-The machine-readable candidate receipt in `release-readiness.json` binds source commit `413ad7eed30d1192a3d142d37073bae02d9edea3`, all three unsigned package hashes, the reviewer-source ZIP hash and a clean extracted rebuild with 110/110 output files matching byte for byte. The receipt commit itself is audit metadata and is not substituted for that immutable source commit.
+The machine-readable candidate receipt in `release-readiness.json` binds source commit `9553b6d26d1bd0adda3bca6a8a61b1786ae91e51`, all three unsigned package hashes, the reviewer-source ZIP hash and a clean extracted rebuild with 110/110 output files matching byte for byte. The receipt commit itself is audit metadata and is not substituted for that immutable source commit.
 
 ## Inputs still required from the publisher
 
