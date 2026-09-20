@@ -82,7 +82,7 @@
   "tests": [
     {"name": "Wallet JavaScript tests", "passed": 558, "failed": 0},
     {"name": "TypeScript typecheck", "passed": true},
-    {"name": "BoundedHttpEngine JVM tests", "passed": 17, "failed": 0},
+    {"name": "BoundedHttpEngine JVM tests", "passed": 18, "failed": 0},
     {"name": "Android hermetic runtime instrumentation", "passed": 12, "failed": 0, "publicRequests": 0},
     {"name": "Android authorized public read-only runtime instrumentation", "passed": 14, "failed": 0, "publicRequests": 2, "chainId": "0x1917"},
     {"name": "Android release assemble with Java 17", "passed": true}
@@ -97,7 +97,11 @@
     "uiTreeNextSendAvailableSha256": "281d3903c264482e248d25863e98913796a5febb4f43a4a45a40f0b4abd0efc9",
     "secureScreenshotSha256": "2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b",
     "screenshotNote": "FLAG_SECURE intentionally produces a protected black capture; UI assertions use the retained trees",
-    "crashBufferSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "crashBufferSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "localEvidenceSanitized": true,
+    "rawSystemLogsRetained": false,
+    "coldLogAllowlistSummarySha256": "bbf92fcd0560be25bac6df330babaf00a0ad34cb44ac0da29fdb533380e84cdc",
+    "lockSettingsSanitizedSha256": "449cf9a95cff70e0d4fbcef1bea693297c12856d9985e3cde3ad682dc4489d5d"
   },
   "notVerified": [
     "physical Android device",
