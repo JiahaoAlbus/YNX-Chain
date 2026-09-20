@@ -52,6 +52,8 @@ function buildOnce(sourceRoot, destination) {
     const packageRoot = join(work, release);
     const webRoot = join(packageRoot, 'web');
     mkdirSync(webRoot, { recursive: true, mode: 0o755 });
+    chmodSync(packageRoot, 0o755);
+    chmodSync(webRoot, 0o755);
     const ldflags = `-s -w -buildid= -X main.buildCommit=${sourceCommit} -X main.buildRelease=${release} -X main.buildTime=${buildTime}`;
     for (const [name, pkg] of programs) {
       const built = spawnSync('go', ['build', '-buildvcs=false', '-trimpath', '-ldflags', ldflags, '-o', join(packageRoot, name), pkg], {
@@ -112,15 +114,24 @@ function buildOnce(sourceRoot, destination) {
     };
     writeFileSync(join(packageRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o644 });
     const names = walk(packageRoot);
-    const archiveNames = names.map(name => `${release}/${name}`);
+    // Keep explicit directory entries in the archive. The production extractor
+    // runs with umask 0077; an archive containing files only would cause tar to
+    // synthesize 0700 parent directories and the ynx service user could not
+    // traverse the materialized release.
+    const archiveNames = [`${release}/`, `${release}/web/`, ...names.map(name => `${release}/${name}`)];
     const tar = `${destination}.tar`;
     mkdirSync(dirname(destination), { recursive: true });
     const gtar = ['/opt/homebrew/bin/gtar', '/usr/local/bin/gtar', 'gtar'].find(candidate => {
       try { execFileSync(candidate, ['--version'], { stdio: 'ignore' }); return true; } catch { return false; }
     });
     if (!gtar) throw new Error('GNU tar required');
-    execFileSync(gtar, ['--sort=name', `--mtime=${buildTime}`, '--owner=0', '--group=0', '--numeric-owner', '--format=gnu', '-cf', tar, '-C', work, ...archiveNames]);
+    execFileSync(gtar, ['--sort=name', '--no-recursion', `--mtime=${buildTime}`, '--owner=0', '--group=0', '--numeric-owner', '--format=gnu', '-cf', tar, '-C', work, ...archiveNames]);
     execFileSync('gzip', ['-n', '-9', tar]);
+    const archiveListing = execFileSync(gtar, ['--numeric-owner', '-tvzf', `${destination}.tar.gz`], { encoding: 'utf8' });
+    for (const directory of [`${release}/`, `${release}/web/`]) {
+      const line = archiveListing.split('\n').find(value => value.endsWith(` ${directory}`));
+      if (!line || !line.startsWith('drwxr-xr-x 0/0 ')) throw new Error(`FINANCE_RELEASE_DIRECTORY_NOT_SERVICE_TRAVERSABLE:${directory}`);
+    }
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
