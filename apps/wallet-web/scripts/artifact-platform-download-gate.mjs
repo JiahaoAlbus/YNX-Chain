@@ -6,7 +6,8 @@ import {pathToFileURL,fileURLToPath} from "node:url";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const repository=resolve(root,"..","..");
 const evidencePath=join(root,"evidence","runtime","built-platform-download-matrix-20260814.json");
-execFileSync(process.execPath,["scripts/build.mjs"],{cwd:root,stdio:"inherit"});
+const sourceCommit=process.env.YNX_WALLET_WEB_SOURCE_COMMIT||execFileSync("git",["rev-parse","HEAD"],{cwd:repository,encoding:"utf8"}).trim();
+execFileSync(process.execPath,["scripts/build.mjs"],{cwd:root,stdio:"inherit",env:{...process.env,YNX_WALLET_WEB_SOURCE_COMMIT:sourceCommit}});
 
 const [provider,app,styles,nativeManifest,webManifest]=await Promise.all([
   import(`${pathToFileURL(join(root,"dist","pwa","provider.js")).href}?built=${Date.now()}`),
@@ -41,7 +42,7 @@ require(/productionSigned=\$\{String\(item\.productionSigned===true\)\}/u.test(a
 require(/button\.disabled = button\.dataset\.permanentDisabled === "true"/u.test(app),"built UI lost permanent-disabled handling");
 require(/@media\(max-width:520px\)[\s\S]*\.wallets,\.actions,\.platform-grid\{grid-template-columns:minmax\(0,1fr\)\}/u.test(styles),"built UI lost narrow layout");
 
-const result={schemaVersion:2,sourceCommit:process.env.YNX_WALLET_WEB_SOURCE_COMMIT||"uncommitted-source-tree",generatedAt:new Date().toISOString(),gateClass:"current built PWA download matrix bound to committed Android and published Wallet Web manifests",matrix,failures,passed:failures.length===0,installedLocal:false,deployedPublic:false,productionSigned:false,storeReleased:false};
+const result={schemaVersion:2,sourceCommit,generatedAt:new Date().toISOString(),gateClass:"current built PWA download matrix bound to committed Android and published Wallet Web manifests",matrix,failures,passed:failures.length===0,installedLocal:false,deployedPublic:false,productionSigned:false,storeReleased:false};
 await mkdir(dirname(evidencePath),{recursive:true});
 await writeFile(evidencePath,`${JSON.stringify(result,null,2)}\n`);
 console.log(JSON.stringify(result,null,2));
