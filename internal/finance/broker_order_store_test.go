@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -48,12 +49,151 @@ func signFinanceRevocationForTest(t *testing.T, unsigned FinanceOrderApprovalUns
 	return revocation
 }
 
+func TestBrokerOrderLifecycleFailsClosedAfterMappedWalletKeyRotation(t *testing.T) {
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	brokerAccount := "01234567-89ab-4cde-8fab-0123456789ab"
+	originalKey := "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+	rotatedKey := "03" + strings.Repeat("1", 64)
+	now := time.Date(2026, 9, 20, 10, 0, 0, 0, time.UTC)
+	request := func(orderID string) BrokerChallengeRequest {
+		return BrokerChallengeRequest{
+			AccountPublicKey: originalKey, FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test",
+			Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: orderID, OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"},
+		}
+	}
+	open := func(t *testing.T) *Store {
+		t.Helper()
+		store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, brokerAccount, originalKey, now); err != nil {
+			t.Fatal(err)
+		}
+		return store
+	}
+	rotate := func(t *testing.T, store *Store) {
+		t.Helper()
+		if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, brokerAccount, rotatedKey, now.Add(time.Minute)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	t.Run("challenge", func(t *testing.T) {
+		store := open(t)
+		candidate := request("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")
+		candidate.AccountPublicKey = rotatedKey
+		if _, err := store.CreateBrokerOrderChallenge(account, candidate, now); err == nil {
+			t.Fatal("challenge accepted a Wallet key different from the current mapping")
+		}
+		if len(store.BrokerWorkspace(account, now).Orders) != 0 {
+			t.Fatal("rejected challenge created an order")
+		}
+	})
+
+	t.Run("approve", func(t *testing.T) {
+		store := open(t)
+		challenge, err := store.CreateBrokerOrderChallenge(account, request("bbbbbbbb-cccc-4ddd-8eee-ffffffffffff"), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rotate(t, store)
+		if _, err := store.ApproveBrokerOrder(account, signFinanceApprovalForTest(t, challenge.Unsigned), now.Add(2*time.Minute)); err == nil {
+			t.Fatal("approval signed by the former mapped Wallet key was accepted")
+		}
+		if state := store.Account(account).Brokerage.Orders[challenge.Unsigned.Order.OrderID]; state.ApprovalState != "pending" || state.State != "approval_pending" {
+			t.Fatalf("rejected approval mutated order state: %+v", state)
+		}
+	})
+
+	t.Run("consume", func(t *testing.T) {
+		store := open(t)
+		challenge, err := store.CreateBrokerOrderChallenge(account, request("cccccccc-dddd-4eee-8fff-aaaaaaaaaaaa"), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		approval := signFinanceApprovalForTest(t, challenge.Unsigned)
+		approved, err := store.ApproveBrokerOrder(account, approval, now.Add(time.Minute))
+		if err != nil {
+			t.Fatal(err)
+		}
+		rotate(t, store)
+		if _, err := store.ConsumeBrokerOrder(account, challenge.Unsigned.RequestID, approved.ApprovalDigest, now.Add(2*time.Minute)); err == nil {
+			t.Fatal("approval from the former mapped Wallet key was consumed")
+		}
+		if state := store.Account(account).Brokerage; len(state.Outbox) != 0 || state.Orders[challenge.Unsigned.Order.OrderID].ApprovalState != "approved" {
+			t.Fatalf("rejected consumption mutated durable state: %+v", state)
+		}
+	})
+
+	t.Run("verify and consume after rotation", func(t *testing.T) {
+		store := open(t)
+		challenge, err := store.CreateBrokerOrderChallenge(account, request("eeeeeeee-ffff-4aaa-8bbb-cccccccccccc"), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rotate(t, store)
+		before := store.Account(account).Brokerage
+		if _, err := store.VerifyAndConsumeBrokerOrder(account, signFinanceApprovalForTest(t, challenge.Unsigned), now.Add(2*time.Minute)); err == nil {
+			t.Fatal("production verify-and-consume accepted the former mapped Wallet key")
+		}
+		after := store.Account(account).Brokerage
+		if !reflect.DeepEqual(before, after) {
+			t.Fatalf("rejected verify-and-consume mutated durable state: before=%+v after=%+v", before, after)
+		}
+	})
+
+	t.Run("verify and consume with legacy empty key", func(t *testing.T) {
+		store := open(t)
+		challenge, err := store.CreateBrokerOrderChallenge(account, request("ffffffff-aaaa-4bbb-8ccc-dddddddddddd"), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := store.Update(account, "test.mapping.clear_wallet_key", brokerAccount, func(state *AccountState) error {
+			mapping := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
+			mapping.WalletPublicKey = ""
+			mapping.UpdatedAt = now.Add(time.Minute)
+			state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)] = mapping
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		before := store.Account(account).Brokerage
+		if _, err := store.VerifyAndConsumeBrokerOrder(account, signFinanceApprovalForTest(t, challenge.Unsigned), now.Add(2*time.Minute)); err == nil {
+			t.Fatal("production verify-and-consume accepted a legacy empty mapping key")
+		}
+		after := store.Account(account).Brokerage
+		if !reflect.DeepEqual(before, after) {
+			t.Fatalf("rejected legacy verify-and-consume mutated durable state: before=%+v after=%+v", before, after)
+		}
+	})
+
+	t.Run("dispatch claim", func(t *testing.T) {
+		store := open(t)
+		challenge, err := store.CreateBrokerOrderChallenge(account, request("dddddddd-eeee-4fff-8aaa-bbbbbbbbbbbb"), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := store.VerifyAndConsumeBrokerOrder(account, signFinanceApprovalForTest(t, challenge.Unsigned), now.Add(time.Minute)); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := store.RequestBrokerExecution(account, challenge.Unsigned.Order.OrderID, "wallet-key-rotation-request-0001", now.Add(90*time.Second)); err != nil {
+			t.Fatal(err)
+		}
+		rotate(t, store)
+		claim, err := store.ClaimBrokerDispatch(account, challenge.Unsigned.Order.OrderID, now.Add(2*time.Minute))
+		if err != nil || claim.BlockedCode != "ACCOUNT_MAPPING_CHANGED" || claim.Outbox.Status != "execution_blocked" || claim.Order.State != "execution_blocked" {
+			t.Fatalf("rotated Wallet key was not fenced before provider dispatch: claim=%+v err=%v", claim, err)
+		}
+	})
+}
+
 func TestBrokerPendingApprovalCanBeRevokedBeforeCallbackDelivery(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "finance.json")
 	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
 	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
 	store, _ := OpenStore(path)
-	_, _ = store.PutBrokerSandboxMapping(account, "01234567-89ab-4cde-8fab-0123456789ab", now)
+	_, _ = store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", now)
 	challenge, err := store.CreateBrokerOrderChallenge(account, BrokerChallengeRequest{AccountPublicKey: "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test", Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"}}, now)
 	if err != nil {
 		t.Fatal(err)
@@ -81,7 +221,7 @@ func TestBrokerOrderDurableConcurrentConsumeAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.PutBrokerSandboxMapping(account, brokerID, now); err != nil {
+	if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, brokerID, "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", now); err != nil {
 		t.Fatal(err)
 	}
 	challenge, err := store.CreateBrokerOrderChallenge(account, BrokerChallengeRequest{
@@ -156,7 +296,7 @@ func TestBrokerRevokeAndConsumeUseSameCAS(t *testing.T) {
 	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
 	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
 	store, _ := OpenStore(path)
-	_, _ = store.PutBrokerSandboxMapping(account, "01234567-89ab-4cde-8fab-0123456789ab", now)
+	_, _ = store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", now)
 	challenge, err := store.CreateBrokerOrderChallenge(account, BrokerChallengeRequest{AccountPublicKey: "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test", Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"}}, now)
 	if err != nil {
 		t.Fatal(err)
