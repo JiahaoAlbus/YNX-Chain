@@ -122,7 +122,7 @@ func TestActivationPlanRequiresCredentialIndependentLocalReadiness(t *testing.T)
 		if path != values["YNX_FINANCE_STATE_PATH"] || databaseURL != "" || account != values["YNX_FINANCE_BROKER_VERIFY_ACCOUNT"] {
 			t.Fatalf("unexpected readiness inputs: %q %q %q", path, databaseURL, account)
 		}
-		return finance.BrokerActivationReadiness{StateBackend: "file-cas-single-host", MappingActive: true, WalletKeyLinked: true, ExecutionRequested: 1, TotalOrders: 1, ReadyForWorkerDispatch: true}, nil
+		return finance.BrokerActivationReadiness{StateBackend: "file-cas-single-host", MappingActive: true, WalletKeyLinked: true, ExecutionRequested: 1, TotalOrders: 1, StateConsistent: true, ReadyForWorkerDispatch: true}, nil
 	}, &output)
 	var report map[string]any
 	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
@@ -132,7 +132,7 @@ func TestActivationPlanRequiresCredentialIndependentLocalReadiness(t *testing.T)
 		t.Fatalf("rc=%d network=%d readiness=%d report=%s", rc, networkCalls, readinessCalls, output.String())
 	}
 	readiness, ok := report["localReadiness"].(map[string]any)
-	if !ok || readiness["readyForWorkerDispatch"] != true || readiness["executionRequested"] != float64(1) {
+	if !ok || readiness["stateConsistent"] != true || readiness["readyForWorkerDispatch"] != true || readiness["executionRequested"] != float64(1) {
 		t.Fatalf("missing exact local readiness: %s", output.String())
 	}
 }
