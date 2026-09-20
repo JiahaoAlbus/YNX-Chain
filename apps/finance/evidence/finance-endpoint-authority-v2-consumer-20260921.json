@@ -3,8 +3,8 @@
   "recordedAt": "2026-09-21T00:00:00.000Z",
   "branch": "codex/finance-endpoint-authority-v2-consumer-20260921",
   "baseline": "42e0abaa46bcaa6a14158a78e70d1fcbde13e06e",
-  "implementationCommit": "2d063c24ddfa8813329e6e7e4e9756560170c1c4",
-  "implementationTree": "dc40a09d079691bb7d0298c1f54e788dcd380dc3",
+  "implementationCommit": "c8ea3960fea60a6ce91483a5edabe8bfffd6c183",
+  "implementationTree": "ba0ddc555b4554d45501d075be48f19b8e9478dd",
   "identity": {
     "consumerId": "ynx-finance-v1",
     "origin": "https://finance.ynxweb4.com",
@@ -16,7 +16,7 @@
   },
   "sourceObjects": [
     {"path":"apps/finance/authority/adapter.mjs","bytes":2936,"sha256":"c0ed2d38c8da2fee880a7af5942f46b2c7d1389249504526c47f7d7fbfc370c3"},
-    {"path":"apps/finance/authority/checkpoint-node.mjs","bytes":10309,"sha256":"e6a03f1d6cd6bd3a07d10557698deccaf9842ac28e047d868c4437cf6d2554ea"},
+    {"path":"apps/finance/authority/checkpoint-node.mjs","bytes":11751,"sha256":"357d0cbdb579998a5ee87316935ecb4cbc89700cafcf591ac1cef269c24efba6"},
     {"path":"apps/finance/authority/config.mjs","bytes":2229,"sha256":"c3f5218ab4b5a53db5c495c8ec79069e986d1625b210d475f5894893608cac2b"},
     {"path":"apps/finance/scripts/finance-endpoint-authority-v2.mjs","bytes":933,"sha256":"ccfa992bf0957dfd8e25f33c2635284fabc9f9670f14c010b870b9704f692454"},
     {"path":"apps/finance/web/endpoint-authority-entry.js","bytes":3893,"sha256":"4ec36db5b858286ddecba0407388fc3fab260d9bb6b29d20b7744d0c3442adf6"},
@@ -31,19 +31,19 @@
     "repeatedCleanBuildByteExact": true
   },
   "linuxAmd64Candidate": {
-    "path": "/tmp/ynx-finance-2d063c24ddfa-linux-amd64.tar.gz",
-    "bytes": 30505666,
-    "sha256": "11e8fd049acda96f47dd96a8d02b813093a2884d2dd64464fa48ef8f05c8042e",
+    "path": "/tmp/ynx-finance-c8ea3960fea6-linux-amd64.tar.gz",
+    "bytes": 30506116,
+    "sha256": "29ad3b16316917c1d43c125330a30a9aa90dbee19ee4b66143a646737de4f8a4",
     "repeatedBuildByteExact": true,
     "published": false
   },
   "tests": {
-    "financeNode": "75/75 PASS",
-    "authorityAdapter": "8/8 PASS including browser config checkpoint binding, dead-owner recovery and 20 rounds of eight-process orphan-lock contention",
+    "financeNode": "67/67 PASS",
+    "authorityAdapter": "14/14 PASS including browser config checkpoint binding, root rotation/rollback, pre/post-publish SIGKILL recovery, ancestor and symlink rejection, transition rollback rejection and 20 rounds of eight-process append-only CAS contention",
     "mobile": "18/18 PASS; typecheck PASS; Android+iOS Expo export PASS",
     "go": "go test -race, go vet and go build PASS for internal/finance/... and apps/finance/...",
     "walletVerifier": "PASS; two clean browser rebuilds byte-exact",
-    "security": "PASS across 252 text files",
+    "security": "PASS across 254 text files",
     "smoke": "PASS",
     "browserAuthority": "Chromium PASS: shipped same-origin config fetch, valid signature, bad signature, same-sequence equivocation, cross-tab CAS, IDB-only checkpoint loss, complete site-data reset anchored by the server checkpoint, clock rollback, expiry and key revocation; zero cross-origin private network"
   },
@@ -55,6 +55,9 @@
     "malformedProofStartsNodeProcess": false,
     "browserConfigInjectedByShippedRuntime": true,
     "completeSiteDataResetCanRollbackAuthority": false,
+    "customCheckpointLockUsed": false,
+    "checkpointPathReopenedForMutation": false,
+    "checkpointAncestorChainRequiresProtectedOwnershipAndModes": true,
     "deadOwnerCheckpointLockCanPermanentlyBlock": false,
     "v1RpcAndFaucetPreserved": true,
     "mobileClaimsEd25519OrCAS": false,
@@ -67,5 +70,5 @@
     "signatureRequested": false,
     "transactionRequested": false
   },
-  "remainingBlocker": "A protected signed v2 trust root, signed Finance manifest, trusted-clock feed, durable checkpoint path and deployment lease are required before public activation. No production deployment was attempted."
+  "remainingBlocker": "A protected signed v2 trust root, signed Finance manifest, trusted-clock feed, durable checkpoint prefix inside a service-owned 0700 directory whose full ancestor chain passes the ownership/write-permission gate, and a deployment lease are required before public activation. No production deployment was attempted."
 }
