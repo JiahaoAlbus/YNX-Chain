@@ -46,6 +46,8 @@
     </dict>
     <key>NSFaceIDUsageDescription</key>
     <string>YNX Wallet uses Face ID to unlock keys and approve exact requests.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>YNX Wallet uses the camera only when you choose to scan a WalletConnect QR code.</string>
     <key>RCTNewArchEnabled</key>
     <true/>
     <key>UILaunchStoryboardName</key>
