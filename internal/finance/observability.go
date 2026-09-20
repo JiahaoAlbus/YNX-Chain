@@ -63,6 +63,7 @@ type metricsSnapshot struct {
 	Routes               map[string]routeMetric  `json:"routes"`
 	Sources              map[string]sourceMetric `json:"sources"`
 	PrivacyBoundary      string                  `json:"privacyBoundary"`
+	Drain                DrainSnapshot           `json:"drain"`
 }
 
 type financeMetrics struct {
@@ -277,7 +278,9 @@ func (s *Server) metricsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	writeJSON(w, http.StatusOK, s.metrics.snapshot(s.now()))
+	snapshot := s.metrics.snapshot(s.now())
+	snapshot.Drain = s.DrainSnapshot()
+	writeJSON(w, http.StatusOK, snapshot)
 }
 
 func (s *Server) observedPortfolio(ctx context.Context, account string, classifications map[string]Classification) Portfolio {

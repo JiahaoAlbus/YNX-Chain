@@ -12,6 +12,18 @@ Public deployment: `https://finance.ynxweb4.com/` remains healthy and source-bou
 
 The current candidate is repository-published only. No public deployment, provider read, provider write, official Sandbox verification, Live activation or Mainnet activation was performed while producing it.
 
+## Graceful-drain continuation (2026-09-20)
+
+The actual deployed ingress/process boundary is the Go `ynx-finance.service`: it serves Finance Web/API and the bounded Wallet completion/revoke proxy. The separate Node gateway in `apps/finance/gateway` is optional source and is not the current deployment ingress, so this continuation does not create a second drain authority there.
+
+The Go service now enters an atomic, one-way drain on `SIGTERM`, `SIGINT`, or authenticated loopback `POST /internal/drain`. Readiness fails immediately, new business/transaction/Wallet-proxy admission is rejected, admitted requests are counted and may finish within the configured timeout, and health/metrics expose the drain state and active request count. Timeout is explicit and forces listener closure rather than being reported as graceful success. Durable mappings, orders and outbox records are unchanged across drain and store reopen.
+
+Exact implementation checkpoint: `b87eb0a8a675734c92c932ff893486ee96852c10` / tree `15292de717bf69658ff823c5ed67ca62560dbf87`. Evidence: `apps/finance/evidence/finance-graceful-drain-20260920.json`.
+
+Full Go tests, race tests, vet, build, Finance smoke, 54 browser/contract tests, the 231-file security gate, optional gateway tests, Finance Mobile typecheck/tests/Android+iOS export and the Wallet migration-evidence evaluator passed. The legacy `apps/finance/web/verify-wallet-connect.mjs` still references the absent `wallet-connect-entry.js`; that independent pre-existing script drift was reported to the successor ecosystem audit and generated bundles were restored unchanged.
+
+This is a local source/test checkpoint only. It has not been deployed and does not promote any Wallet approval, provider, transaction, Sandbox or public-runtime flag.
+
 ## Implemented owner scope
 
 - Finance Broker Sandbox uses server-only configuration, a persistent per-owner mapping, exact Wallet-approved order contracts, durable outbox/idempotency state, a one-shot operator worker and explicit reconciliation. Browser code cannot access provider credentials or call the provider write API.

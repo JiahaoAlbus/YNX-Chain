@@ -1,0 +1,69 @@
+{
+  "schema": "ynx-finance-graceful-drain-evidence/v1",
+  "generatedAt": "2026-09-20T15:17:56Z",
+  "scope": "Finance owner source, tests and handoff only",
+  "base": {
+    "commit": "2ab479f8cc09ad3fc123363c1e0e36f182997f4c",
+    "tree": "88b4597bcd904aff05252f6666fca47a848c1324"
+  },
+  "implementation": {
+    "branch": "codex/finance-graceful-drain-20260920",
+    "commit": "b87eb0a8a675734c92c932ff893486ee96852c10",
+    "tree": "15292de717bf69658ff823c5ed67ca62560dbf87",
+    "ingress": "Go ynx-finance HTTP service",
+    "optionalNodeGatewayIsDeployedIngress": false,
+    "files": [
+      {"path": "apps/finance/cmd/server/main.go", "sha256": "8e3ce9673b00c6c73b84ad39c78179a63835f05276ea895a68edb1a853d00efd"},
+      {"path": "apps/finance/cmd/server/lifecycle_test.go", "sha256": "3c19289062c484a7b7b1259c2b44060311cf3069ca020a4625b4101cf8fbacc3"},
+      {"path": "internal/finance/drain.go", "sha256": "655053d23bbaf51d0c621eefbd1e06100a393cf5c8d1e11a73c26d1d4a11d9a7"},
+      {"path": "internal/finance/drain_test.go", "sha256": "06e711930636ef7bd0c9d4a913e898c509b77292ccf9c19e5aa4d354343fcb59"},
+      {"path": "internal/finance/server.go", "sha256": "77cf02bb57f7da557debb1fbc5a0979bef830398ddc277a839575cb65bc83eec"},
+      {"path": "internal/finance/observability.go", "sha256": "45f00bd6897ab4e30fbbbf37c2e1094df242acf3d082cbfb475dc48f20710487"},
+      {"path": "apps/finance/OPERATIONS.md", "sha256": "266e81221a37fd8e4db9478fdafc0519d1b4a8ddf0a0f189b5f97d472286a8d9"},
+      {"path": "apps/finance/.env.example", "sha256": "d167e902074a9caa66871a016eb148ed7d803a60d3bee6715ee391009704a755"}
+    ]
+  },
+  "behavior": {
+    "signalDrain": ["SIGTERM", "SIGINT"],
+    "localControl": "POST /internal/drain with loopback source and operations key",
+    "readinessFailsImmediately": true,
+    "newBusinessAdmissionRejected": true,
+    "newWalletProxyAdmissionRejected": true,
+    "admittedRequestsCompleteWithinDeadline": true,
+    "activeRequestsExposed": true,
+    "timeoutIsExplicitFailure": true,
+    "durableFinanceStatePreserved": true,
+    "drainStatePersistsAcrossRestart": false
+  },
+  "tests": [
+    {"command": "go test ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go test -race ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go vet ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go build ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "bash apps/finance/scripts/smoke.sh", "result": "PASS"},
+    {"command": "npm test", "cwd": "apps/finance", "result": "PASS", "count": 54},
+    {"command": "npm run security", "cwd": "apps/finance", "result": "PASS", "filesScanned": 231},
+    {"command": "npm test", "cwd": "apps/finance/gateway", "result": "PASS", "count": 2},
+    {"command": "npm run check", "cwd": "apps/finance/mobile", "result": "PASS", "count": 17, "bundles": ["android", "ios"]},
+    {"command": "npm run verify:migration-evidence", "cwd": "apps/finance/web", "result": "PASS"}
+  ],
+  "knownIndependentIssue": {
+    "command": "npm run verify:wallet",
+    "cwd": "apps/finance/web",
+    "result": "PRE_EXISTING_SCRIPT_DRIFT",
+    "detail": "verify-wallet-connect.mjs references absent wallet-connect-entry.js before checking current bundles",
+    "causedByThisChange": false,
+    "generatedBundlesRestored": true
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "testsPassed": true,
+    "publicDeployed": false,
+    "installedRuntimeVerified": false,
+    "walletApprovalVerified": false,
+    "providerWriteVerified": false,
+    "transactionVerified": false,
+    "productionApproved": false
+  },
+  "rollback": "Revert implementation commit b87eb0a8a675734c92c932ff893486ee96852c10; no public runtime or persistent schema was changed by this source-only checkpoint."
+}

@@ -82,3 +82,27 @@ curl --fail --silent \
 ```
 
 For incident correlation, search structured logs by `requestId` and then use the stable `errorId` to group the failure class. Never ask a user to send an authorization token, full financial response or state file as troubleshooting evidence.
+
+## Graceful drain and shutdown
+
+The deployed Finance ingress is the Go `ynx-finance` HTTP server. The optional Node gateway under `apps/finance/gateway` is not part of the current service ingress and is not the shutdown authority.
+
+`SIGTERM` and `SIGINT` atomically place the Go server in draining state before HTTP shutdown begins. During drain:
+
+- `GET /ready` returns `503` immediately;
+- new API, Wallet proxy and transaction-admission requests return `503 service_draining` with `Retry-After: 5`;
+- requests admitted before drain continue until completion or the bounded shutdown deadline;
+- `GET /health` and authenticated `GET /metrics` expose `drain.state`, `drain.draining`, `drain.activeRequests` and `drain.startedAt`;
+- health, readiness, version, metrics and static recovery assets remain readable.
+
+The default deadline is 30 seconds. Configure `YNX_FINANCE_SHUTDOWN_TIMEOUT_SECONDS` to an integer from 1 through 300. Expiry forces listener closure and produces an explicit fatal shutdown error; it does not report graceful success.
+
+An authenticated local operator may begin admission drain without stopping the process:
+
+```bash
+curl --fail --silent --request POST \
+  -H "X-YNX-Operations-Key: ${YNX_FINANCE_OPERATIONS_KEY}" \
+  http://127.0.0.1:6436/internal/drain
+```
+
+This endpoint accepts loopback callers only. Drain is intentionally one-way for the lifetime of a process: restart the process to return to ready state. A restart reopens the same durable Finance state; drain state and process counters are not persisted.

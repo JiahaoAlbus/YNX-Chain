@@ -55,6 +55,7 @@ type Server struct {
 	now       func() time.Time
 	build     buildinfo.Info
 	broker    brokerage.BrokerageAdapter
+	drain     drainController
 }
 
 func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server, error) {
@@ -91,7 +92,7 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 	return s, nil
 }
 
-func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.mux)) }
+func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.drainAdmission(s.mux))) }
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
@@ -111,6 +112,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /ready", s.ready)
 	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /metrics", s.metricsEndpoint)
+	s.mux.HandleFunc("POST /internal/drain", s.beginDrainEndpoint)
 	s.mux.HandleFunc("POST /api/auth/logout", s.protected("", s.logout))
 	s.mux.HandleFunc("GET /api/overview", s.protected("finance.portfolio.read", s.overview))
 	s.mux.HandleFunc("GET /api/portfolio", s.protected("finance.portfolio.read", s.portfolio))
@@ -233,16 +235,21 @@ func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, sessio
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
 	stateStore := s.service.Store.StateStoreMode()
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "build": s.build, "observabilityVersion": observabilityVersion, "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "configuredReadSources": s.service.Upstreams.ConfiguredReadSources(), "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance", "truthfulStatus": "runtime-upstream-backed"})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "build": s.build, "observabilityVersion": observabilityVersion, "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "configuredReadSources": s.service.Upstreams.ConfiguredReadSources(), "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance", "truthfulStatus": "runtime-upstream-backed", "drain": s.DrainSnapshot()})
 }
 
 func (s *Server) ready(w http.ResponseWriter, _ *http.Request) {
 	stateStore := s.service.Store.StateStoreMode()
-	if err := s.service.Store.StateStoreReady(); err != nil {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "service": "ynx-finance", "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance", "error": "authoritative state store unavailable"})
+	drain := s.DrainSnapshot()
+	if drain.Draining {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "service": "ynx-finance", "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance", "error": "service draining", "drain": drain})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance"})
+	if err := s.service.Store.StateStoreReady(); err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "service": "ynx-finance", "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance", "error": "authoritative state store unavailable", "drain": drain})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance", "drain": drain})
 }
 
 func (s *Server) version(w http.ResponseWriter, _ *http.Request) {
