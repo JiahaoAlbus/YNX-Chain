@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "ynx.finance.wallet-web-verifier.v1",
+  "build": {
+    "entry": "wallet-auth-entry.js",
+    "bundle": "wallet-auth.js",
+    "command": "esbuild wallet-auth-entry.js --bundle --minify --platform=browser --target=es2022 --outfile=wallet-auth.js"
+  },
+  "sourceBundleRelation": {
+    "byteReproducible": false,
+    "status": "NOT_VERIFIED_AS_REPRODUCIBLE",
+    "observedRebuildBytes": 179986,
+    "observedRebuildSha256": "fbebce55d813f1acbbec7738d171bb2a3142eb415d2c513bae48862b4ecd1967"
+  },
+  "files": [
+    {"path": "package.json", "bytes": 827, "sha256": "f0fc88691ca8f8fb4e9d57f8d8d06fd49ceda316665dffe6fc88dbca8e7b323d"},
+    {"path": "wallet-auth-entry.js", "bytes": 8924, "sha256": "53f53a2550ffa85b67dd2526da4421671302b261721542bb4532275fab607ed4"},
+    {"path": "private-wallet-entry.js", "bytes": 6560, "sha256": "a41f2da258765ed5f3f00aceeb65e05a58389f8473fe54b00621f910081315eb"},
+    {"path": "wallet-auth.js", "bytes": 168865, "sha256": "a69ce9095f1b6ebb5929fe55d6a0948cf7600fa712be4ea80c7b50c35595942e"},
+    {"path": "index.html", "bytes": 18313, "sha256": "92723f78769f7d65a0881be2d94e1819f429e41a7fe7569dc3635474b454349d"},
+    {"path": "app.js", "bytes": 45371, "sha256": "93f3774bf4a52c07b549ad7aaf407e587c8935aa0fea4c33645d626a33e89e72"},
+    {"path": "vendor/standard-wallet-browser-c97f85e9.mjs", "bytes": 22417, "sha256": "b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43"},
+    {"path": "../scripts/finance-nonregressive-runtime.mjs", "bytes": 642, "sha256": "9977373253190212debbc79026177ae3353d21c953c0596d105648465e441734"},
+    {"path": "../scripts/build-finance-weekly-v3-candidate.mjs", "bytes": 8165, "sha256": "fddb857455f37b9ff5099c5d25e3aabf8c92f2e25c868f199c6dd6f6568dfb25"}
+  ]
+}
