@@ -73,7 +73,7 @@ for(const phase of ['CONSUMED','STAGED','STOPPING','STOPPED','SWITCHING','SWITCH
 test('failed candidate version automatically restores only signed bytes, never state',t=>{const f=fixture(t),http=f.get('/http.json');http['http://127.0.0.1:6483/version'].byRelease[f.dest].body='{"commit":"wrong"}';f.json('/http.json',http);const r=f.exec();assert.equal(r.result.code,'FAILED_ROLLED_BACK',JSON.stringify(r));assert.equal(fs.readlinkSync(f.p(P.current)),f.old);assert.equal(f.fingerprint(P.env).sha256,f.lease.rollback.envSha256);assert.equal(f.fingerprint(P.state).sha256,f.lease.baseline.state.sha256);assert.equal(f.exec().result.code,'ALREADY_CONSUMED');});
 test('durable high-water blocks clock/root downgrade and nonce reuse across IDs',t=>{const f=fixture(t);f.json(P.control+'/ledger.json',{schema:'ynx-finance-consumed/v2',rootVersion:1,lastClockMs:Date.now()+1000000,leases:{}});fs.chmodSync(f.p(P.control),0o700);assert.equal(f.exec().result.code,'CLOCK_ROLLBACK');let j=f.get(P.control+'/ledger.json');j.lastClockMs=0;j.rootVersion=2;f.json(P.control+'/ledger.json',j);assert.equal(f.exec().result.code,'SIGNATURE_OR_POLICY');j.rootVersion=1;j.leases['different-lease']={nonce:f.lease.nonce};f.json(P.control+'/ledger.json',j);assert.equal(f.exec().result.code,'ALREADY_CONSUMED');});
 test('fresh explicitly signed rollback operation is independently consumed',t=>{const f=fixture(t);f.lease.operation='rollback';f.resign();const r=f.exec();assert.equal(r.status,0,JSON.stringify(r));assert.equal(r.result.operation,'rollback');assert.equal(f.exec().result.code,'ALREADY_CONSUMED');});
-test('local transport plan pins exact known host and emits argv without execution',t=>{const f=fixture(t),key=Buffer.from('synthetic-public-host-key');f.lease.target.sshHostFingerprint='SHA256:'+Buffer.from(sha(key),'hex').toString('base64').replace(/=+$/,'');f.resign();f.put('/known-hosts','fixture.invalid ssh-ed25519 '+key.toString('base64')+'\n');const args=['transport-plan','--lease',f.p(f.carrier+'/lease.json'),'--trust-root',f.p(P.trust),'--known-hosts',f.p('/known-hosts'),'--identity-file',f.p('/not-opened-ssh-identity')];const r=run(args);assert.equal(r.executed,false);assert.ok(r.argv.includes('StrictHostKeyChecking=yes'));assert.ok(r.argv.includes('UpdateHostKeys=no'));assert.equal(r.argv.at(-1),f.lease.leaseId);f.put('/known-hosts','fixture.invalid ssh-ed25519 '+Buffer.from('wrong').toString('base64')+'\n');assert.throws(()=>run(args),/SSH_FINGERPRINT/);});
+test('local transport plan pins exact known host and emits argv without execution',t=>{const f=fixture(t),key=Buffer.from('synthetic-public-host-key');f.lease.target.sshHostFingerprint='SHA256:'+Buffer.from(sha(key),'hex').toString('base64').replace(/=+$/,'');f.resign();f.put('/known-hosts','fixture.invalid ssh-ed25519 '+key.toString('base64')+'\n');const args=['transport-plan','--lease',f.p(f.carrier+'/lease.json'),'--trust-root',f.p(P.trust),'--known-hosts',fs.realpathSync(f.p('/known-hosts')),'--identity-file',f.p('/not-opened-ssh-identity')];const r=run(args);assert.equal(r.executed,false);assert.ok(r.argv.includes('StrictHostKeyChecking=yes'));assert.ok(r.argv.includes('UpdateHostKeys=no'));assert.equal(r.argv.at(-1),f.lease.leaseId);f.put('/known-hosts','fixture.invalid ssh-ed25519 '+Buffer.from('wrong').toString('base64')+'\n');assert.throws(()=>run(args),/SSH_FINGERPRINT/);});
 
 test('stop/start uncertainty becomes ambiguous and cannot be replayed',t=>{for(const action of ['stopError','startError']){const f=fixture(t),j=f.get('/service.json');j[action]=true;f.json('/service.json',j);const r=f.exec();assert.equal(r.result.code,'AMBIGUOUS_REQUIRES_NEW_RECOVERY_LEASE',JSON.stringify(r));assert.equal(f.exec().result.code,'ALREADY_CONSUMED');}});
 test('candidate state mutation prevents automatic state rollback',t=>{const f=fixture(t),j=f.get('/service.json');j.onStartState={newActivity:'must survive'};f.json('/service.json',j);assert.equal(f.exec().result.code,'AMBIGUOUS_REQUIRES_NEW_RECOVERY_LEASE');assert.deepEqual(f.get(P.state),j.onStartState);assert.equal(fs.readlinkSync(f.p(P.current)),f.dest);});
@@ -93,3 +93,46 @@ test('absent state stays absent and no state backup is invented',t=>{const f=fix
 test('wrong recovery receipt cannot clear a spent operation',t=>{const f=fixture(t);f.json(P.control+'/ledger.json',{schema:'ynx-finance-consumed/v2',rootVersion:1,lastClockMs:0,leases:{'correct-recovery-id':{nonce:'f'.repeat(64),state:'CONSUMED',phase:'STOPPED'}}});fs.chmodSync(f.p(P.control),0o700);f.lease.operation='rollback';f.lease.recoveryOf='unrelated-recovery';f.resign();assert.equal(f.exec().result.code,'RECOVERY_RECEIPT');assert.equal(f.get('/service.json').pid,101);});
 
 test('duplicate JSON keys, including escaped spellings, are rejected',t=>{assert.throws(()=>parseDocument('{"a":1,"a":2}'),/DUPLICATE_KEY/);assert.throws(()=>parseDocument('{"a":1,"\\u0061":2}'),/DUPLICATE_KEY/);assert.deepEqual(parseDocument('{"a":[{"x":1},{"x":2}],"b":"\\\"{},"}'),{a:[{x:1},{x:2}],b:'"{},'});const f=fixture(t),raw=fs.readFileSync(f.p(f.carrier+'/lease.json'),'utf8');f.put(f.carrier+'/lease.json',raw.replace('{','{"singleUse":false,'));assert.notEqual(f.exec().status,0);assert.ok(!fs.existsSync(f.p(P.control+'/ledger.json')));});
+
+function transportFixture(t){
+ const f=fixture(t),key=Buffer.from('synthetic-public-host-key');
+ f.lease.target.sshHostFingerprint='SHA256:'+Buffer.from(sha(key),'hex').toString('base64').replace(/=+$/,'');f.resign();
+ const line='fixture.invalid ssh-ed25519 '+key.toString('base64')+'\n';f.put('/known-hosts',line);
+ const known=fs.realpathSync(f.p('/known-hosts'));
+ const args=p=>['transport-plan','--lease',f.p(f.carrier+'/lease.json'),'--trust-root',f.p(P.trust),'--known-hosts',p,'--identity-file',f.p('/not-opened-ssh-identity')];
+ return {...f,line,known,args};
+}
+test('transport rejects SSH tokens, whitespace, controls and ambiguous path syntax before file access',t=>{
+ const f=transportFixture(t),dir=path.dirname(f.known);
+ for(const suffix of ['%h','%p','%d','%C','%%','${HOME}','$HOME','~','two files','tab\tfile','line\nfile','return\rfile','nul\0file','nbsp\u00a0file','quote"file',"quote'file",'slash\\file','glob*','[list]','semi;file','colon:file'])
+  assert.throws(()=>run(f.args(dir+'/'+suffix)),/SSH_LITERAL_PATH/,JSON.stringify(suffix));
+ for(const p of [dir+'//known-hosts',dir+'/./known-hosts',dir+'/../known-hosts',f.known+'/',dir+'/known-hosts '+f.known])
+  assert.throws(()=>run(f.args(p)),/SSH_LITERAL_PATH/,p);
+ const alias=dir+'/symlink-parent';fs.symlinkSync(dir,alias);
+ assert.throws(()=>run(f.args(alias+'/known-hosts')),/SSH_CANONICAL_PATH/);
+});
+test('OpenSSH -G parses exactly the verified single literal known-hosts path without connecting',t=>{
+ const f=transportFixture(t),plan=run(f.args(f.known));assert.equal(plan.argv[0],'/usr/bin/ssh');
+ // -G prints effective configuration and exits before any connection/authentication.
+ const parsed=spawnSync(plan.argv[0],['-G',...plan.argv.slice(1)],{encoding:'utf8',timeout:5000});
+ assert.equal(parsed.status,0,parsed.stderr);assert.equal(parsed.signal,null);
+ const lines=parsed.stdout.split('\n').filter(x=>x.startsWith('userknownhostsfile '));
+ assert.deepEqual(lines,['userknownhostsfile '+f.known]);
+ assert.ok(parsed.stdout.includes('globalknownhostsfile /dev/null\n'));
+ // Demonstrate the rejected inputs really have different OpenSSH semantics.
+ const unsafe=spawnSync('/usr/bin/ssh',['-G','-F','/dev/null','-T','-o','UserKnownHostsFile='+path.dirname(f.known)+'/%h','--','fixture.invalid'],{encoding:'utf8',timeout:5000});
+ assert.equal(unsafe.status,0,unsafe.stderr);assert.ok(unsafe.stdout.includes('userknownhostsfile '+path.dirname(f.known)+'/fixture.invalid\n'));
+ const multiple=spawnSync('/usr/bin/ssh',['-G','-F','/dev/null','-T','-o','UserKnownHostsFile='+f.known+' '+f.known+'-second','--','fixture.invalid'],{encoding:'utf8',timeout:5000});
+ assert.equal(multiple.status,0,multiple.stderr);assert.ok(multiple.stdout.includes('userknownhostsfile '+f.known+' '+f.known+'-second\n'));
+ f.put('/known-hosts',f.line+f.line);assert.throws(()=>run(f.args(f.known)),/EXACT_HOST_KEY/);
+});
+test('remote command uses only fixed absolute executables and safe exact lease ID',t=>{
+ const f=transportFixture(t),plan=run(f.args(f.known));const hostIndex=plan.argv.indexOf('ubuntu@fixture.invalid');
+ assert.ok(hostIndex>0);assert.equal(plan.argv[hostIndex-1],'--');
+ const remote=plan.argv.slice(hostIndex+1);
+ assert.deepEqual(remote,['/usr/bin/sudo','-n','/usr/bin/python3','/opt/ynx/finance-release-v2/executor.py','execute','--lease-id',f.lease.leaseId]);
+ // OpenSSH joins remote arguments for the remote shell; this exact shape contains
+ // no substitutions, quotes, options from a payload or PATH-dependent executable.
+ assert.equal(remote.join(' '),'/usr/bin/sudo -n /usr/bin/python3 /opt/ynx/finance-release-v2/executor.py execute --lease-id fixture-lease-01');
+ assert.ok(remote.every(x=>/^[A-Za-z0-9_./-]+$/.test(x)));assert.equal(plan.executed,false);
+});
