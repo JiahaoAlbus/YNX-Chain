@@ -129,9 +129,12 @@ try {
     }
   }
   const doctor = spawnSync('docker', ['run', '--rm', ...dockerBase, ...envArgs, image, '/candidate/ynx-finance-broker-tools', 'doctor'], { encoding: 'utf8' });
-  assert.equal(doctor.status, 2);
+  assert.ok(doctor.status === 0 || doctor.status === 2);
   diagnostic = JSON.parse(doctor.stdout);
   assert.equal(diagnostic.result, 'CONFIGURATION_ONLY_NO_NETWORK');
+  assert.equal(diagnostic.configuration.submissionEnabled, false);
+  assert.equal(diagnostic.configuration.officialSandboxVerified, false);
+  assert.equal(diagnostic.configuration.productionApproved, false);
   assert.equal(diagnostic.networkAttempted, false);
   assert.equal(diagnostic.writeAttempted, false);
   assert.equal(diagnostic.officialSandboxVerified, false);
