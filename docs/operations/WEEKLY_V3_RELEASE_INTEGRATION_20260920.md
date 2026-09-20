@@ -24,9 +24,16 @@ Baseline: main `460beb36bc7af7036524caf6d1bb81a75909d279`
 - 45/45 integration fixture/guard tests, including 3 new authority regressions
   and the real Chromium FormData guard; zero skips.
 - Wallet Web 366/366 tests and built platform-download gate.
+- Finance browser 49/49 tests (after installing its pinned Web dependencies).
 - `go test -race ./internal/finance/... ./apps/finance/cmd/... ./internal/faucet/...`.
 - Read-only public RPC/Faucet 8/8 health samples in the committed evidence;
   this is one local vantage, not global or continuous availability.
+- The bounded deeper migration probe first timed out. A second read-only attempt
+  matched block 1646243 and its hash across aliases, the existing transaction,
+  native REST, HTTP CORS and stability across growth. Its overall flag stays
+  false: nonempty contract proof, Explorer alias and remaining transport/
+  ecosystem gates were not established. Both outcomes are preserved in
+  `release/evidence/weekly-v3-migration-readonly-partial-20260920.json`.
 - Full public APK download: 116631255 bytes and SHA-256
   `89a842dc8641206a9154a6e41fd1c9e3cbb4b6cca2cea455ed5b7fc674b558c0`.
   AAB is metadata-verified only. No fresh installed-app acceptance.
@@ -39,6 +46,12 @@ unmodified browser-to-Wallet approval flow must remain blocked. The full
 integration runner must not be reported as passing. Provider/HTTP/store
 unit contracts passing do not supersede this gate.
 
+The exact published source `45a12bf1f38340af69fe45c486386097cc3cc413`
+was rerun with the date adapter disabled; both product checkpoints and all
+integration assets stayed unchanged. The blocked receipt is committed at
+`release/evidence/weekly-v3-finance-wallet-authority-blocked-20260920.json`.
+The built-download evidence is also regenerated from this committed source.
+
 Official Sandbox credentials, account/data rights and a separate low-frequency
 test-write approval remain external inputs. Real WalletConnect Relay requires
 its own configured project and installed acceptance. Mainnet/live remain off.
@@ -48,6 +61,10 @@ deployment was changed here.
 Website selection is prepared separately in repository YNX-Chain-website,
 branch `codex/weekly-v3-wallet-1016-entry-20260920`; its deploy decision is
 independent of GitHub artifact publication and this source checkpoint.
+Website checkpoint `8325ed7363b05c797cefdf7179860d4f977d6c89`:
+PR57, 216/216 tests, clean production build 448960 bytes, four remote checks
+passed including both Vercel preview checks. These previews are not approval
+to move the official production domain.
 
 ## Recovery and verification
 

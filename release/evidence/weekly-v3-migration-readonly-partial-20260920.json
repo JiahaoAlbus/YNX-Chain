@@ -1,0 +1,66 @@
+{
+  "schema": "ynx-weekly-v3-readonly-migration-followup/v1",
+  "observedDate": "2026-09-20",
+  "sourceCommit": "45a12bf1f38340af69fe45c486386097cc3cc413",
+  "attempts": [
+    {
+      "attempt": 1,
+      "outcome": "REQUEST_BODY_TIMEOUT",
+      "endpoint": "https://rpc-testnet.ynxweb4.com",
+      "verificationComplete": false
+    },
+    {
+      "attempt": 2,
+      "outcome": "PARTIAL_READONLY_PROOF",
+      "exitCode": 2,
+      "proof": {
+        "chainId": "0x1917",
+        "comparisonHeight": 1646243,
+        "confirmationDepth": 2,
+        "comparisonBlockHash": "0x7da1415a23361eb36036e13bf7d380f3dabcc8744f5ca4515fc5cb2795e71547",
+        "contractProof": null,
+        "faucetBuild": "6ac8362989cc1633c26a6468a9407d4560da77c8",
+        "networkId": "6423",
+        "readOnlyComparisonVerified": false,
+        "explorerAliasReadVerified": false,
+        "publicVerified": false,
+        "transportProof": {
+          "nativeRestVerified": true,
+          "httpCorsVerified": true,
+          "comparisonStableAcrossGrowth": true,
+          "observedHeights": [
+            1646248,
+            1646248
+          ],
+          "websocket": "not-configured",
+          "grpc": "unchanged-not-tested"
+        },
+        "remainingGates": [
+          "NONEMPTY_CONTRACT_CODE_REQUIRED",
+          "EXPLORER_ALIAS_NOT_CHECKED",
+          "UNCHANGED_GRPC_AND_REQUIRED_WEBSOCKET",
+          "SHARED_FAUCET_STATE",
+          "WALLET_AND_ECOSYSTEM_REGRESSION"
+        ],
+        "stateProof": {
+          "eth_getBalance": "0xa2325753b460c0000",
+          "eth_getTransactionCount": "0x2",
+          "eth_getCode": "0x"
+        },
+        "stateProofTags": {
+          "eth_getBalance": "latest",
+          "eth_getTransactionCount": "latest",
+          "eth_getCode": "latest"
+        },
+        "historicalStateUnsupported": true,
+        "transactionProof": "0xc2bd65003ffb04971aeb49f060932a295ae2820d7c68d2c3f3b93a7c4aff763c"
+      }
+    }
+  ],
+  "serviceChanges": 0,
+  "faucetClaims": 0,
+  "transactionSubmissions": 0,
+  "authorityRenewed": false,
+  "officialSandboxVerified": false,
+  "productionApproved": false
+}

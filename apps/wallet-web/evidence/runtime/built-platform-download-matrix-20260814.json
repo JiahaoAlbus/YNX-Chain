@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "sourceCommit": "460beb36bc7af7036524caf6d1bb81a75909d279",
-  "generatedAt": "2026-09-20T10:20:17.278Z",
+  "sourceCommit": "45a12bf1f38340af69fe45c486386097cc3cc413",
+  "generatedAt": "2026-09-20T10:24:21.613Z",
   "gateClass": "current built PWA download matrix bound to committed Android and published Wallet Web manifests",
   "matrix": {
     "android": {
