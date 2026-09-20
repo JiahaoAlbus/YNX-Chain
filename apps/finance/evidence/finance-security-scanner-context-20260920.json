@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "ynx.finance.owner-evidence.v1",
+  "product": "finance",
+  "scope": "security-scanner-context",
+  "capturedAt": "2026-09-20T07:59:53Z",
+  "base": {
+    "commit": "09074e5a57929239aaa2bf9ada51dacc0e89ecb0",
+    "activationLifecyclePullRequest": 145
+  },
+  "implementation": {
+    "commit": "98144a950c4c38175ec3a5e836d2519874e50907",
+    "tree": "481f60de565b80ed92d659a6b53066bc6deb2bae"
+  },
+  "delivered": {
+    "manifestDenyListContextRecognized": true,
+    "twoExactPinnedBundleCommentsNotTreatedAsProductPlaceholders": true,
+    "otherVendoredRuntimePlaceholdersStillRejected": true,
+    "privateKeyAndSecretRulesStillScanVendoredBytes": true,
+    "deployableReservedHostStillRejected": true,
+    "nonVendoredRuntimePlaceholderStillRejected": true
+  },
+  "verification": [
+    {"command": "go test -race ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go vet ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go build ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "npm --prefix apps/finance test", "result": "PASS", "tests": 50},
+    {"command": "npm --prefix apps/finance run security", "result": "PASS", "filesScanned": 196},
+    {"command": "git diff --check", "result": "PASS"}
+  ],
+  "externalTruth": {
+    "publicDeploymentPerformed": false,
+    "officialBrokerCredentialsProvided": false,
+    "officialBrokerSandboxVerified": false,
+    "walletConnectRelayVerified": false,
+    "accountApproval": false,
+    "signature": false,
+    "securitiesOrder": false,
+    "chainTransaction": false
+  }
+}

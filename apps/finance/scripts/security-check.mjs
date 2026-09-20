@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, relative, resolve } from 'node:path';
+import { isNonRuntimeSentinelUse } from './security-policy.mjs';
 
 const root = resolve(import.meta.dirname, '../../..');
 const scanRoots = [
@@ -121,6 +122,7 @@ for (const file of files) {
     if (rule.runtimeOnly && !runtimeRoots.some((prefix) => rel === prefix || rel.startsWith(`${prefix}/`))) continue;
     rule.pattern.lastIndex = 0;
     for (const match of text.matchAll(rule.pattern)) {
+      if (isNonRuntimeSentinelUse(rule.id, rel, text, match[0], match.index ?? 0)) continue;
       findings.push({
         rule: rule.id,
         path: rel,
