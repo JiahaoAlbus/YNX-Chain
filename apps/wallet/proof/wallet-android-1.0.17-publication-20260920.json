@@ -1,0 +1,51 @@
+{
+  "schema": "ynx-wallet-mobile-preview-publication/v1",
+  "releaseTag": "wallet-android-testnet-preview-1.0.17-875f6c5b7",
+  "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-1.0.17-875f6c5b7",
+  "targetCommit": "875f6c5b744b4b641eb5c2c9b2cb41e928676c90",
+  "prerelease": true,
+  "releaseImmutable": false,
+  "publisherCanReplaceAssets": true,
+  "downloadTimeSha256Verified": true,
+  "githubReleaseId": 392422025,
+  "apkAssetId": 576764497,
+  "aabAssetId": 576764498,
+  "apk": {
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.17-875f6c5b7/ynx-wallet-1.0.17-testnet-preview-875f6c5b7-universal-local-test-signed.apk",
+    "bytes": 116636787,
+    "sha256": "04a37e7bd9f76bb3bb76fe330921f0f80e6d2cfa3b115d38ac93c53cb80370a2",
+    "freshDownloadDigestMatched": true,
+    "apkSignatureV2Verified": true
+  },
+  "aab": {
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.17-875f6c5b7/ynx-wallet-1.0.17-testnet-preview-875f6c5b7-local-test-signed.aab",
+    "bytes": 71872002,
+    "sha256": "079c8e0597ab0c30b884e10c0d15bd1a8f606c6412509162fa85429966dbef1b",
+    "freshDownloadDigestMatched": true,
+    "jarSignatureVerified": true
+  },
+  "signerCertificateDn": "C=US, O=Android, CN=Android Debug",
+  "signerCertificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+  "emulator": {
+    "avd": "YNX_WC_RC_20260920",
+    "api": 36,
+    "upgradedFromVersionCode": 22,
+    "upgradeInstall": "PASS",
+    "firstInstallTimePreserved": true,
+    "coldLaunch": "PASS",
+    "coldLaunchTotalTimeMs": 220,
+    "malformedDeepLink": "FAIL_CLOSED_NO_CRASH",
+    "walletConnectDeepLinkWithoutProjectId": "DISABLED_NO_CRASH",
+    "crashBufferEmpty": true
+  },
+  "recoveryContractTests": {
+    "passed": 56,
+    "failed": 0,
+    "liveChainTransferExecuted": false
+  },
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": false,
+  "officialWebsiteUpdated": false,
+  "generatedAt": "2026-09-20T12:21:28Z"
+}

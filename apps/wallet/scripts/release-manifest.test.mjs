@@ -5,11 +5,13 @@ import test from "node:test";
 const walletRoot = new URL("../", import.meta.url);
 const publishedManifest = JSON.parse(await readFile(new URL("artifact-manifest.json", walletRoot), "utf8"));
 const manifest = JSON.parse(await readFile(new URL("artifact-candidate-1.0.17.json", walletRoot), "utf8"));
+const publication = JSON.parse(await readFile(new URL("artifact-publication-1.0.17.json", walletRoot), "utf8"));
 const app = JSON.parse(await readFile(new URL("app.json", walletRoot), "utf8")).expo;
 const android = await readFile(new URL("android/app/build.gradle", walletRoot), "utf8");
 const plist = await readFile(new URL("ios/YNXWallet/Info.plist", walletRoot), "utf8");
 const xcode = await readFile(new URL("ios/YNXWallet.xcodeproj/project.pbxproj", walletRoot), "utf8");
 const evidence = JSON.parse(await readFile(new URL(manifest.candidateEvidence, walletRoot), "utf8"));
+const publicationEvidence = JSON.parse(await readFile(new URL(publication.publicationEvidence, walletRoot), "utf8"));
 
 const previous = Object.freeze({
   tag: "wallet-android-testnet-preview-1.0.16-e9816a827",
@@ -75,6 +77,33 @@ function validateEvidence(value) {
   assert.ok(Date.parse(value.generatedAt) <= Date.now());
 }
 
+function validatePublication(value) {
+  assert.equal(value.version, "1.0.17-testnet-preview");
+  assert.equal(value.versionCode, 23);
+  assert.equal(value.releaseStatus, "PUBLISHED_TESTNET_PRERELEASE");
+  assert.equal(value.sourceCommit, "875f6c5b744b4b641eb5c2c9b2cb41e928676c90");
+  assert.equal(value.releaseTag, "wallet-android-testnet-preview-1.0.17-875f6c5b7");
+  assert.equal(value.releaseImmutable, false);
+  assert.equal(value.publisherCanReplaceAssets, true);
+  assert.equal(value.downloadTimeSha256Verified, true);
+  assert.equal(value.productionSigned, false);
+  assert.equal(value.storeReleased, false);
+  assert.equal(value.walletConnectRelayE2E, "NOT_VERIFIED");
+  const apk = value.artifacts.find(({ name }) => name === "android-release-apk");
+  const aab = value.artifacts.find(({ name }) => name === "android-release-aab");
+  assert.deepEqual(
+    { bytes: apk.bytes, sha256: apk.sha256, productionSigned: apk.productionSigned, versionCode: apk.versionCode },
+    { bytes: 116636787, sha256: "04a37e7bd9f76bb3bb76fe330921f0f80e6d2cfa3b115d38ac93c53cb80370a2", productionSigned: false, versionCode: 23 },
+  );
+  assert.deepEqual(
+    { bytes: aab.bytes, sha256: aab.sha256, productionSigned: aab.productionSigned, versionCode: aab.versionCode },
+    { bytes: 71872002, sha256: "079c8e0597ab0c30b884e10c0d15bd1a8f606c6412509162fa85429966dbef1b", productionSigned: false, versionCode: 23 },
+  );
+  assert.match(apk.url, new RegExp(`/${value.releaseTag}/${apk.filename}$`));
+  assert.match(aab.url, new RegExp(`/${value.releaseTag}/${aab.filename}$`));
+  assert.ok(Date.parse(value.generatedAt) <= Date.now());
+}
+
 test("the active download manifest remains the compatible published 1.0.16 contract", () => {
   assert.equal(publishedManifest.schemaVersion, 1);
   assert.equal(publishedManifest.version, "1.0.16-testnet-preview");
@@ -125,6 +154,41 @@ test("candidate evidence false states and source bindings cannot be widened", ()
     const copy = structuredClone(evidence);
     mutate(copy);
     assert.throws(() => validateEvidence(copy));
+  }
+});
+
+test("1.0.17 publication binds exact merge, fresh-download digests and test-signing truth", () => {
+  validatePublication(publication);
+  assert.equal(publicationEvidence.targetCommit, publication.sourceCommit);
+  assert.equal(publicationEvidence.releaseTag, publication.releaseTag);
+  assert.equal(publicationEvidence.releaseImmutable, false);
+  assert.equal(publicationEvidence.publisherCanReplaceAssets, true);
+  assert.equal(publicationEvidence.downloadTimeSha256Verified, true);
+  assert.equal(publicationEvidence.apk.freshDownloadDigestMatched, true);
+  assert.equal(publicationEvidence.aab.freshDownloadDigestMatched, true);
+  assert.equal(publicationEvidence.productionSigned, false);
+  assert.equal(publicationEvidence.storeReleased, false);
+  assert.equal(publicationEvidence.walletConnectRelayE2E, false);
+  assert.equal(publicationEvidence.recoveryContractTests.liveChainTransferExecuted, false);
+  assert.equal(publicationEvidence.officialWebsiteUpdated, false);
+});
+
+test("publication fails closed on asset, source, signature or external-verification tamper", () => {
+  for (const mutate of [
+    (value) => { value.sourceCommit = "a".repeat(40); },
+    (value) => { value.releaseTag += "-replacement"; },
+    (value) => { value.releaseImmutable = true; },
+    (value) => { value.publisherCanReplaceAssets = false; },
+    (value) => { value.productionSigned = true; },
+    (value) => { value.storeReleased = true; },
+    (value) => { value.walletConnectRelayE2E = "VERIFIED"; },
+    (value) => { value.artifacts[0].sha256 = "0".repeat(64); },
+    (value) => { value.artifacts[1].bytes += 1; },
+    (value) => { value.artifacts[0].url = value.artifacts[0].url.replace("875f6c5b7", "replacement"); },
+  ]) {
+    const copy = structuredClone(publication);
+    mutate(copy);
+    assert.throws(() => validatePublication(copy));
   }
 });
 
