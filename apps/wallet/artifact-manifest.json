@@ -1,26 +1,69 @@
 {
   "schemaVersion": 1,
   "productId": "wallet",
-  "version": "1.0.15-testnet-preview",
-  "sourceCommit": "8a4f009822bea6c04201cbec40b8989d67a686a9",
+  "version": "1.0.16-testnet-preview",
+  "versionCode": 22,
+  "sourceCommit": "e9816a8277b3ddd6c5f379f90aadda969c0a069b",
+  "releaseStatus": "CANDIDATE_PR_NOT_MERGED",
+  "productionSigned": false,
+  "walletConnectRelayE2E": "NOT_VERIFIED",
   "artifacts": [
-    {"name":"android-release-apk","path":"android/app/build/outputs/apk/release/app-release.apk","committed":false,"bytes":79014862,"sha256":"b82c4354329e2fb517730b02211e4e10ee9e45c720a4494556a68f911a753210","signingClass":"local-test-signed","minOS":"API 24","targetSdk":36,"versionCode":21,"sourceCommit":"8a4f009822bea6c04201cbec40b8989d67a686a9","url":"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.15-8a4f00982/ynx-wallet-1.0.15-testnet-preview-8a4f00982-universal-local-test-signed.apk","publicationEvidence":"release/evidence/wallet-android-1.0.15-8a4f00982/verification.json"},
-    {"name":"android-hermes","path":"dist-android/_expo/static/js/android/index-d9043a90fb172e9b6aad44aede822928.hbc","committed":false,"bytes":4446705,"sha256":"d3fb4d403eb46d54adbf5e8811ff36abeb0146b5a54c6b17ac6e246628bf7349","signingClass":"unsigned-build-output","minOS":"API 24"},
-    {"name":"ios-hermes","path":"dist-ios/_expo/static/js/ios/index-21943dfdbdb089f464486aa2c3b80a95.hbc","committed":false,"bytes":4440970,"sha256":"6c8b372e34ae7cd22984eb3518da9abe1a876de5d7cf4de2e6c2686d71360555","signingClass":"unsigned-build-output","minOS":"iOS 15.1"},
-    {"name":"ios-simulator-zip","path":"GitHub release asset","committed":false,"bytes":16442130,"sha256":"1396a275c90b1333c8cda80acf4428553e995cdcc87f8eaa3baf11fbfc7b3a43","signingClass":"unsigned-simulator-build","minOS":"iOS 15.1","url":"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-iOS-Simulator-da82c8b.zip"},
-    {"name":"ios-simulator-deep-link-rejection","path":"proof/ios-simulator-deep-link-rejection.png","committed":true,"bytes":342659,"sha256":"4ae89720ae48714ab90fd943e7d4746d1f42417897ea9353bcdba9702368cb77"},
-    {"name":"phone-light-empty","path":"proof/ynx-wallet-locked-current.png","committed":true,"bytes":135160,"sha256":"36f8abc2dca529a854aea09010d90e431bce0afd3a42974614937c3045c6560f"},
-    {"name":"arabic-main-rtl","path":"proof/ynx-wallet-arabic-main.png","committed":true,"bytes":138824,"sha256":"e4e1f09eb6c82ac4f19713c626f3ce56d9c5d99450fa2dbf5f40d812e93e6a53"},
-    {"name":"arabic-language-selector","path":"proof/ynx-wallet-arabic-rtl.png","committed":true,"bytes":122548,"sha256":"242d037ba8fa3a1dcdb72955323e6772c1f800a778df2443ba1f9e2453940872"},
-    {"name":"dark-large-text-rtl","path":"proof/ynx-wallet-dark-large-text-rtl.png","committed":true,"bytes":174025,"sha256":"f8dde761924b9d3c13d20b5b7f98048c64e19bc27adabfe624eabde16b0702ee"},
-    {"name":"fold-large-screen","path":"proof/ynx-wallet-fold-large-screen.png","committed":true,"bytes":144991,"sha256":"95c511540e42ef55b192c456cda61f0e03802dee556f4f8c2040577b1c91219a"},
-    {"name":"authorization-review","path":"proof/ynx-wallet-authorization.png","committed":true,"bytes":208896,"sha256":"44189c275db96e1e1fd276895e7d15f4d15ceb11271b5229ebf24a0fd809d7cc"},
-    {"name":"social-product-session","path":"proof/ynx-social-product-session.png","committed":true,"bytes":145400,"sha256":"5fd5334ad3f4d06051a4eee43e05cf66e6b092e3181980125ed2ae2ddca7dd76"},
-    {"name":"social-replay-rejected","path":"proof/ynx-social-replay-rejected.png","committed":true,"bytes":107074,"sha256":"207ed99095ed77d9274dfad6159fe5f29ee6ec027a96a20759f0d6c63052c7ce"}
+    {
+      "name": "android-release-apk",
+      "filename": "ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+      "committed": false,
+      "bytes": 116631255,
+      "sha256": "89a842dc8641206a9154a6e41fd1c9e3cbb4b6cca2cea455ed5b7fc674b558c0",
+      "signingClass": "local-test-signed",
+      "productionSigned": false,
+      "minOS": "API 24",
+      "targetSdk": 36,
+      "versionCode": 22,
+      "sourceCommit": "e9816a8277b3ddd6c5f379f90aadda969c0a069b",
+      "publicationStatus": "PENDING_PR_MERGE",
+      "plannedUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+      "verificationEvidence": "proof/wallet-android-1.0.16-e9816a827-verification.json"
+    },
+    {
+      "name": "android-release-aab",
+      "filename": "ynx-wallet-1.0.16-testnet-preview-e9816a827-local-test-signed.aab",
+      "committed": false,
+      "bytes": 71870019,
+      "sha256": "117aee9610ef3878e5c2dc226acee57ae2820f1613cc8cabc536a12abd1ddd9a",
+      "signingClass": "local-test-signed",
+      "productionSigned": false,
+      "minOS": "API 24",
+      "targetSdk": 36,
+      "versionCode": 22,
+      "sourceCommit": "e9816a8277b3ddd6c5f379f90aadda969c0a069b",
+      "publicationStatus": "PENDING_PR_MERGE",
+      "plannedUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-local-test-signed.aab",
+      "verificationEvidence": "proof/wallet-android-1.0.16-e9816a827-verification.json"
+    },
+    {
+      "name": "android-hermes",
+      "path": "dist-android/_expo/static/js/android/index-f4507cff49cbef0315b544da81272523.hbc",
+      "committed": false,
+      "bytes": 9392832,
+      "sha256": "b2121d005009c95b453d7b99c133f6bad63d1e75a21ef3800403ad4e4912f358",
+      "signingClass": "unsigned-build-output",
+      "minOS": "API 24"
+    },
+    {
+      "name": "ios-hermes",
+      "path": "dist-ios/_expo/static/js/ios/index-eba830112c8262fe25c56f2291dcb168.hbc",
+      "committed": false,
+      "bytes": 9386696,
+      "sha256": "7b2e50b76e586e2095b0173f2fa063f7473d5ab5f65ae8a504d234d3a444cc4d",
+      "signingClass": "unsigned-build-output",
+      "minOS": "iOS 16.4"
+    }
   ],
-  "publicArtifactUrls": [
-    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.15-8a4f00982/ynx-wallet-1.0.15-testnet-preview-8a4f00982-universal-local-test-signed.apk",
-    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-iOS-Simulator-da82c8b.zip"
-  ],
-  "generatedAt": "2026-09-20T07:08:49+08:00"
+  "plannedRelease": {
+    "tag": "wallet-android-testnet-preview-1.0.16-e9816a827",
+    "prerelease": true,
+    "publicationAfterMergeOnly": true
+  },
+  "publicArtifactUrls": [],
+  "generatedAt": "2026-09-20T09:35:20Z"
 }

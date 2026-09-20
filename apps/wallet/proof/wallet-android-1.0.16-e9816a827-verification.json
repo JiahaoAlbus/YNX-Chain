@@ -1,0 +1,72 @@
+{
+  "schema": "ynx-wallet-mobile-preview-verification/v1",
+  "version": "1.0.16-testnet-preview",
+  "versionCode": 22,
+  "sourceCommit": "e9816a8277b3ddd6c5f379f90aadda969c0a069b",
+  "generatedAt": "2026-09-20T09:35:20Z",
+  "build": {
+    "npm": "11.5.1",
+    "java": "17.0.17",
+    "androidTargetSdk": 36,
+    "androidMinSdk": 24,
+    "reownProjectIdConfigured": false,
+    "productionSigned": false,
+    "signingClass": "local-test-signed",
+    "signerCertificateDn": "C=US, O=Android, CN=Android Debug",
+    "signerCertificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e"
+  },
+  "artifacts": {
+    "apk": {
+      "filename": "ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+      "bytes": 116631255,
+      "sha256": "89a842dc8641206a9154a6e41fd1c9e3cbb4b6cca2cea455ed5b7fc674b558c0",
+      "apkSignatureV2Verified": true
+    },
+    "aab": {
+      "filename": "ynx-wallet-1.0.16-testnet-preview-e9816a827-local-test-signed.aab",
+      "bytes": 71870019,
+      "sha256": "117aee9610ef3878e5c2dc226acee57ae2820f1613cc8cabc536a12abd1ddd9a",
+      "jarSignatureVerified": true
+    }
+  },
+  "checks": {
+    "walletTests": {"passed": 547, "failed": 0},
+    "nativePatchTests": {"passed": 11, "failed": 0},
+    "typecheck": "PASS",
+    "productCheck": "PASS",
+    "releaseContentCheck": "PASS",
+    "goalCoverageCheck": "PASS",
+    "sbom": {"status": "PASS", "components": 527, "dependencyNodes": 639, "sha256": "6e307cea6fc893cd4cca12ade3a6718d0bcd6aaf76c8243bfffec996a24232df"},
+    "productionDependencyAudit": {"status": "PASS", "vulnerabilities": 0},
+    "androidBundle": "PASS",
+    "iosBundle": "PASS",
+    "androidReleaseApk": "PASS",
+    "androidReleaseAab": "PASS"
+  },
+  "emulator": {
+    "avd": "YNX_WC_RC_20260920",
+    "api": 36,
+    "install": "PASS",
+    "coldLaunch": {"status": "PASS", "totalTimeMs": 896, "waitTimeMs": 899},
+    "package": "com.ynxweb4.wallet",
+    "observedVersionName": "1.0.16-testnet-preview",
+    "observedVersionCode": 22,
+    "crashBufferEmpty": true,
+    "walletConnectWithoutProjectId": {
+      "relayStatus": "disabled",
+      "manualPairEnabled": false,
+      "qrScanEnabled": false,
+      "validDeepLinkRetainedForReview": true,
+      "deepLinkPairEnabled": false,
+      "relayE2E": "NOT_VERIFIED"
+    }
+  },
+  "endpointAuthority": {
+    "manifestVersion": "1.1.0-weekly-v3.20260920.1",
+    "fileSha256": "c8eb9f641185958aaec82c6fa16764e9424ad10f47bf7435af643a2a888a07e1",
+    "canonicalRpc": "https://rpc-testnet.ynxweb4.com",
+    "canonicalFaucet": "https://faucet-testnet.ynxweb4.com",
+    "walletConsumerChangeRequired": false,
+    "reason": "The compiled Wallet canonical and explicit legacy endpoints already match the bundled authority; runtime remote replacement is forbidden."
+  }
+}
