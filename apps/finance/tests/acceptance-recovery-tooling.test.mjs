@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {gunzipSync,gzipSync} from 'node:zlib';
 import {createTarGz,parseTarGz,sha256} from '../scripts/finance-v3-acceptance-recovery-lib.mjs';
+import {readFileSync} from 'node:fs';
+import {dirname,join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 test('acceptance recovery archive is byte-exact and canonical',()=>{
   const entries=[{path:'bundle/z.txt',body:Buffer.from('z'),mode:0o644},{path:'bundle/a.sh',body:Buffer.from('#!/bin/sh\n'),mode:0o755}];
@@ -23,4 +26,11 @@ test('acceptance recovery archive rejects checksum tampering and truncation',()=
   assert.throws(()=>parseTarGz(gzipSync(headerTamper,{mtime:0})),/CHECKSUM_MISMATCH/);
   const sizeTamper=Buffer.from(tar);sizeTamper.write('77777777777\0',124,'ascii');sizeTamper.fill(0x20,148,156);const sum=[...sizeTamper.subarray(0,512)].reduce((a,b)=>a+b,0);sizeTamper.write(`${sum.toString(8).padStart(6,'0')}\0 `,148,'ascii');
   assert.throws(()=>parseTarGz(gzipSync(sizeTamper,{mtime:0})),/TRUNCATED_ENTRY/);
+});
+
+test('builder keeps the recovery command independent from its output pathname',()=>{
+  const root=dirname(dirname(fileURLToPath(import.meta.url)));
+  const body=readFileSync(join(root,'scripts/build-finance-v3-acceptance-recovery.mjs'),'utf8');
+  assert.match(body,/--archive \$\{prefix\}\.tar\.gz --source \$\{source\}/);
+  assert.doesNotMatch(body,/--archive \$\{basename\(output\)\}/);
 });
