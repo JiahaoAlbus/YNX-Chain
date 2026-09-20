@@ -53,7 +53,7 @@ Extension package identity is deliberately fail-closed. The unsigned Chromium
 bundle declares Chrome/Edge 120 as its minimum runtime, but has no manifest
 `key` or `update_url`; consequently a stable Chrome/Edge extension ID, hosted
 upgrade, and store-managed uninstall are not claimed. Firefox declares the
-stable development add-on ID `wallet-testnet@ynxweb4.com` and Firefox 140 desktop as
+stable development add-on ID `wallet-testnet@ynxweb4.com` and Firefox 142 as
 its minimum runtime, with required built-in data consent for authentication,
 financial/payment and website request/response content. It remains unsigned and
 not store-released; Firefox Android is not declared. Both bundles

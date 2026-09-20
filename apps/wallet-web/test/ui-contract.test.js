@@ -70,6 +70,7 @@ test("legacy dark preference retains locale and custody records while the actual
   const document = {documentElement:{dataset:{}}}, app = {innerHTML:""};
   const environment = {document,app,state:{locale:loaded.record.locale,theme:loaded.record.theme,epoch:0,connectState:{chooserOpen:true},form:{},providers:{}},
     requestedText:"large",isRTL:locale=>locale==="ar",text:key=>key,options:()=>"",escape:value=>String(value??""),unavailablePlatforms:()=>"",statusContent:()=>"",
+    replaceMarkup:(target,markup)=>{target.innerHTML=markup},
     YNX_DOWNLOAD_URL:"https://wallet.example",WALLET_DOWNLOAD_MATRIX:{android:{url:"https://wallet.example/qa.apk",bytes:1}},
     bind(){},applyActionGates(){},presentAvailability(){}};
   runInNewContext(render+"\nrender();",environment);

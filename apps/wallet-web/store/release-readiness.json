@@ -20,7 +20,7 @@
   "manifest": {
     "version": "0.1.0",
     "chromeEdgeMinimum": "120",
-    "firefoxDesktopMinimum": "140.0",
+    "firefoxDesktopMinimum": "142.0",
     "firefoxAndroidDeclared": false,
     "firefoxId": "wallet-testnet@ynxweb4.com",
     "firefoxIdOwnershipConfirmed": false,

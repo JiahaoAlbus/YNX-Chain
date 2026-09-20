@@ -39,7 +39,8 @@ const state = {
 
 function text(key) { return catalog(state.locale)[key] || key; }
 function options() { return LOCALES.map(([value, label]) => `<option value="${value}" ${value === state.locale ? "selected" : ""}>${label}</option>`).join(""); }
-function escape(value) { const node = document.createElement("span"); node.textContent = String(value); return node.innerHTML.replaceAll('"', "&quot;").replaceAll("'", "&#39;"); }
+function escape(value) { return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;"); }
+function replaceMarkup(target,markup){const parsed=new DOMParser().parseFromString(`<body>${markup}</body>`,"text/html");target.replaceChildren(...parsed.body.childNodes)}
 function unavailablePlatforms(){return Object.values(WALLET_DOWNLOAD_MATRIX).filter(item=>item.hosted!==true).map(item=>`<button type="button" disabled aria-disabled="true" data-permanent-disabled="true">${escape(item.label)} · ${text("otherDownloads")}</button>`).join("")}
 function statusContent(){if(state.errorCode)return`${escape(state.errorCode)}: ${state.uncertainHash?`<p>The original transaction is unresolved and may already have been submitted. Open the extension account vault to check its status or explicitly retry the original transaction. Do not send a replacement.</p><p class="mono address">${escape(state.uncertainHash)}</p>`:text("requestFailed")}`;return state.account?`${text("connected")} · <span class="mono">${escape(toYNXAddress(state.account))}</span>`:text("disconnected")}
 
@@ -52,7 +53,7 @@ function render() {
   document.documentElement.dir = isRTL(state.locale) ? "rtl" : "ltr";
   document.documentElement.dataset.theme = "light";
   document.documentElement.dataset.text = requestedText === "large" ? "large" : "";
-  app.innerHTML = `<div class="shell">
+  replaceMarkup(app,`<div class="shell">
     <header><div class="brand"><img src="./ynx-logo.png" alt="YNX"><span>Wallet <span class="brand-subtitle">Companion</span></span></div>
       <div class="controls"><label><span class="sr-only">${text("language")}</span><select id="locale" aria-label="${text("language")}">${options()}</select></label></div></header>
     <section class="intro-section" aria-labelledby="title"><p class="network-label">YNX Testnet <span>6423</span></p><h1 id="title">${state.account?text("readyTitle"):text("title")}</h1><p class="intro">${text("intro")}</p></section>
@@ -77,7 +78,7 @@ function render() {
       <button id="send" class="primary send-action" type="button">${text("review")}</button>
       <details class="tools message-tools"><summary>${text("messageTools")}</summary><label class="label" for="message">${text("message")}</label><textarea id="message" maxlength="4096" autocomplete="off">${escape(state.form.message)}</textarea><button id="sign" class="secondary" type="button">${text("sign")}</button></details>
     </section></div><footer><span>${text("testnet")}</span><span>YNX Testnet · 6423 · 0x1917</span></footer>
-    <dialog id="review-dialog" aria-labelledby="review-title" aria-describedby="review-note"><h2 id="review-title">${text("reviewTitle")}</h2><div id="review-content"></div><p id="review-note" class="risk">${text("requestOnly")}</p><div class="review-actions"><button id="review-cancel" type="button">${text("cancel")}</button><button id="review-confirm" class="primary" type="button">${text("confirmWallet")}</button></div></dialog></div>`;
+    <dialog id="review-dialog" aria-labelledby="review-title" aria-describedby="review-note"><h2 id="review-title">${text("reviewTitle")}</h2><div id="review-content"></div><p id="review-note" class="risk">${text("requestOnly")}</p><div class="review-actions"><button id="review-cancel" type="button">${text("cancel")}</button><button id="review-confirm" class="primary" type="button">${text("confirmWallet")}</button></div></dialog></div>`);
   bind();
   applyActionGates();
   presentAvailability(state.providers);
@@ -111,7 +112,7 @@ async function openReview() {
     if(!reviewMatchesSession(session,state))return;
     state.review = Object.freeze({transaction,provider:state.provider,wallet:state.wallet,account:state.account,chainId:state.chainId,epoch:state.epoch});
     const rows = [[text("wallet"),"YNX Wallet"],[text("network"),"YNX Testnet · 6423"],[text("sender"),toYNXAddress(transaction.from)],[text("recipient"),toYNXAddress(transaction.to)],[text("amount"),transaction.displayAmount+" YNXT"],[text("fees"),"1 YNXT · whole-YNXT plain native transfer; full EVM unavailable"]];
-    document.querySelector("#review-content").innerHTML = `<dl class="review-facts">${rows.map(([label,value])=>`<div><dt>${escape(label)}</dt><dd>${escape(value)}</dd></div>`).join("")}</dl>${transaction.data!=="0x"?`<details open><summary>${text("data")}</summary><p class="mono address">${escape(transaction.data)}</p></details>`:""}`;
+    replaceMarkup(document.querySelector("#review-content"),`<dl class="review-facts">${rows.map(([label,value])=>`<div><dt>${escape(label)}</dt><dd>${escape(value)}</dd></div>`).join("")}</dl>${transaction.data!=="0x"?`<details open><summary>${text("data")}</summary><p class="mono address">${escape(transaction.data)}</p></details>`:""}`);
     document.querySelector("#review-dialog").showModal();
     document.querySelector("#review-cancel").focus();
   } catch (error) { formError(error); } finally {state.preparing=false;}
@@ -125,8 +126,8 @@ async function confirmReview() {
   await act(() => sendTransaction(reviewed.provider,reviewed.transaction), (value) => reviewMatchesSession(reviewed,state)?`${text("txHash")}: ${value}`:text("sessionChanged"));
 }
 
-function setStatus(message, kind = "info") { state.errorCode=null;state.uncertainHash=null;const node = document.querySelector("#status"); node.classList.remove("hidden"); node.dataset.kind = kind; node.innerHTML = `<strong>${text("status")}:</strong> ${escape(message)}`; }
-function setError(error){state.uncertainHash=["transaction_durability_uncertain","transaction_durability_unavailable","transaction_confirmation_pending"].includes(error?.data?.status)&&/^0x[0-9a-fA-F]{64}$/.test(error?.data?.transactionHash||"")?error.data.transactionHash:null;state.errorCode=String(error?.code||"REQUEST_FAILED");const node=document.querySelector("#status");node.classList.remove("hidden");node.dataset.kind="error";node.innerHTML=`<strong>${text("status")}:</strong> ${statusContent()}`}
+function setStatus(message, kind = "info") { state.errorCode=null;state.uncertainHash=null;const node = document.querySelector("#status"); node.classList.remove("hidden"); node.dataset.kind = kind; replaceMarkup(node,`<strong>${text("status")}:</strong> ${escape(message)}`); }
+function setError(error){state.uncertainHash=["transaction_durability_uncertain","transaction_durability_unavailable","transaction_confirmation_pending"].includes(error?.data?.status)&&/^0x[0-9a-fA-F]{64}$/.test(error?.data?.transactionHash||"")?error.data.transactionHash:null;state.errorCode=String(error?.code||"REQUEST_FAILED");const node=document.querySelector("#status");node.classList.remove("hidden");node.dataset.kind="error";replaceMarkup(node,`<strong>${text("status")}:</strong> ${statusContent()}`)}
 function localizedError(error) { const code=typeof error?.code==="string"||typeof error?.code==="number"?String(error.code):"REQUEST_FAILED"; return `${code}: ${text("requestFailed")}`; }
 async function act(work, success) {
   if (state.busy) return null;

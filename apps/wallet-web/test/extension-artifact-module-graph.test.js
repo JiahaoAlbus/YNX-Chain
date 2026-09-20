@@ -34,7 +34,7 @@ test("actual extension artifacts have complete browser module and manifest graph
     assert.deepEqual([iconMetadata.width, iconMetadata.height, iconMetadata.format], [128,128,"png"]);
     if (firstIcon) assert.deepEqual(icon, firstIcon); else firstIcon = icon;
     if (variant === "firefox") {
-      assert.equal(shippedManifest.browser_specific_settings.gecko.strict_min_version, "140.0");
+      assert.equal(shippedManifest.browser_specific_settings.gecko.strict_min_version, "142.0");
       assert.deepEqual(shippedManifest.browser_specific_settings.gecko.data_collection_permissions,
         {required: ["authenticationInfo", "financialAndPaymentInfo", "websiteContent"]});
     } else assert.equal("browser_specific_settings" in shippedManifest, false);

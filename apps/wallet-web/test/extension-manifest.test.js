@@ -51,7 +51,7 @@ test("unsigned Chromium package stays honest about identity and minimum runtime"
 
 test("Firefox package has a stable declared add-on id but remains unsigned", () => {
   assert.equal(firefoxManifest.browser_specific_settings.gecko.id, "wallet-testnet@ynxweb4.com");
-  assert.equal(firefoxManifest.browser_specific_settings.gecko.strict_min_version, "140.0");
+  assert.equal(firefoxManifest.browser_specific_settings.gecko.strict_min_version, "142.0");
   assert.deepEqual(firefoxManifest.browser_specific_settings.gecko.data_collection_permissions, {
     required: ["authenticationInfo", "financialAndPaymentInfo", "websiteContent"],
   });

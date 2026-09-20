@@ -34,10 +34,10 @@ export const firefoxManifest = {
   browser_specific_settings: {
     gecko: {
       id: "wallet-testnet@ynxweb4.com",
-      // New AMO submissions use Firefox's install-time consent (desktop 140+).
+      // New AMO submissions use Firefox's install-time consent (Firefox 142+).
       // Local passwords/keys stay in the browser; approved authentication signatures,
       // financial transactions and DApp request/response content leave it. See store/.
-      strict_min_version: "140.0",
+      strict_min_version: "142.0",
       data_collection_permissions: {
         required: ["authenticationInfo", "financialAndPaymentInfo", "websiteContent"],
       },

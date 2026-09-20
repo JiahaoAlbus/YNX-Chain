@@ -24,7 +24,7 @@ Transfers are limited to the RPC's verified plain native-transfer capability: po
 
 If a submission result is uncertain, the original signed transaction is retained locally. Open the account vault to check it or explicitly retry the same bytes after review and password entry. A missing receipt is not proof of rejection. Removing the account does not erase transaction recovery/history records or network data.
 
-Keep your recovery key offline. There is no publisher password reset or recovery-key escrow in this extension. Browser storage and local password encryption do not establish hardware-backed protection. Private browsing is disabled; Firefox container isolation is not implemented. Minimum package targets are Chrome/Edge 120 and desktop Firefox 140. Store approval and public transfer availability must be verified separately before release.
+Keep your recovery key offline. There is no publisher password reset or recovery-key escrow in this extension. Browser storage and local password encryption do not establish hardware-backed protection. Private browsing is disabled; Firefox container isolation is not implemented. Minimum package targets are Chrome/Edge 120 and Firefox 142. Store approval and public transfer availability must be verified separately before release.
 
 ## Support
 
