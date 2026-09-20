@@ -59,8 +59,8 @@ func (s *Store) ClaimBrokerDispatch(account, orderID string, now time.Time) (Bro
 		if !orderOK || !outboxOK || order.ApprovalState != "consumed" {
 			return errors.New("consumed Broker outbox was not found")
 		}
-		if outbox.ProviderOrderID != "" || order.ProviderOrderID != "" || outbox.Status == "submitted" || outbox.Status == "submitted_unknown" || outbox.Status == "provider_rejected" || order.State == "submitted" || order.State == "submitted_unknown" || order.State == "partially_filled" || order.State == "filled" || order.State == "cancel_requested" || order.State == "canceled" || order.State == "provider_rejected" || order.State == "provider_expired" {
-			return errors.New("Broker outbox already has provider correlation and is reconcile-only")
+		if outbox.ProviderOrderID != "" || order.ProviderOrderID != "" || outbox.Status == "submitted" || outbox.Status == "submitted_unknown" || outbox.Status == "provider_rejected" || outbox.Status == "execution_blocked" || order.State == "submitted" || order.State == "submitted_unknown" || order.State == "partially_filled" || order.State == "filled" || order.State == "cancel_requested" || order.State == "canceled" || order.State == "provider_rejected" || order.State == "provider_expired" || order.State == "execution_blocked" {
+			return errors.New("Broker outbox is terminal or provider-correlated and is not dispatchable")
 		}
 		if outbox.Status == "dispatching" {
 			return errors.New("Broker outbox is already claimed")
@@ -78,10 +78,10 @@ func (s *Store) ClaimBrokerDispatch(account, orderID string, now time.Time) (Bro
 			blocked = "ACCOUNT_MAPPING_CHANGED"
 		}
 		if blocked != "" {
-			outbox.Status, outbox.LastErrorCode, outbox.UpdatedAt = "provider_rejected", blocked, now.UTC()
-			order.State, order.UpdatedAt = "provider_rejected", now.UTC()
+			outbox.Status, outbox.LastErrorCode, outbox.UpdatedAt = "execution_blocked", blocked, now.UTC()
+			order.State, order.UpdatedAt = "execution_blocked", now.UTC()
 			state.Brokerage.Outbox[orderID], state.Brokerage.Orders[orderID] = outbox, order
-			appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, "provider.preflight_blocked", order.ApprovalState, order.State, now.UTC())
+			appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, "product.execution_blocked", order.ApprovalState, order.State, now.UTC())
 			result = BrokerDispatchClaim{Order: order, Outbox: outbox, BlockedCode: blocked}
 			return nil
 		}
@@ -93,6 +93,10 @@ func (s *Store) ClaimBrokerDispatch(account, orderID string, now time.Time) (Bro
 		return nil
 	})
 	return result, err
+}
+
+func brokerLocalExecutionBlock(code string) bool {
+	return code == "ORDER_APPROVAL_EXPIRED" || code == "ACCOUNT_MAPPING_CHANGED"
 }
 
 func (s *Store) CompleteBrokerDispatch(account, orderID string, providerOrder *brokerage.Order, providerError error, now time.Time) (BrokerOrderRecord, error) {

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "ynx.finance.owner-evidence.v1",
+  "product": "finance",
+  "scope": "weekly-v3-local-execution-blocked-truth",
+  "capturedAt": "2026-09-20T08:17:08Z",
+  "branch": "codex/finance-local-execution-blocked-20260920",
+  "implementation": {
+    "commit": "3ecf196ca495a4d4f533b927dcc9415a7e23da0a",
+    "tree": "09aa16f8ae7901e0cab65a88809f6d8375eab842",
+    "predecessor": "cc72c82d5cf56db1cb2d85c3c8eca455645cc5ed"
+  },
+  "publication": {
+    "remoteBranch": "codex/finance-local-execution-blocked-20260920",
+    "firstPublishedEvidenceCheckpoint": "7cb3f2ef5",
+    "pullRequest": 148,
+    "pullRequestUrl": "https://github.com/JiahaoAlbus/YNX-Chain/pull/148"
+  },
+  "delivered": {
+    "localBlockState": "execution_blocked",
+    "localBlockCodes": [
+      "ORDER_APPROVAL_EXPIRED",
+      "ACCOUNT_MAPPING_CHANGED"
+    ],
+    "providerPostAttemptedForLocalBlocks": false,
+    "providerCorrelationRequiredAbsent": true,
+    "canonicalProviderRejectedPreserved": true,
+    "readinessCountSeparated": true,
+    "executionRequestTimestampRequired": true,
+    "restartPersistenceCovered": true,
+    "redispatchAfterRestartRejected": true,
+    "legacyV2ExactMigrationCovered": true,
+    "legacyMigrationRequiresEmptyProviderEvidence": true,
+    "providerReadPreflightFailureRemainsRetryable": true,
+    "fileAndPostgresCASCompatibilityPreserved": true
+  },
+  "verification": [
+    {
+      "command": "go test -race ./internal/finance/... ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go vet ./internal/finance/... ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "go build ./apps/finance/cmd/...",
+      "result": "PASS"
+    },
+    {
+      "command": "npm --prefix apps/finance test",
+      "result": "PASS",
+      "tests": 50
+    },
+    {
+      "command": "npm --prefix apps/finance run security",
+      "result": "PASS",
+      "filesScanned": 198
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    }
+  ],
+  "rollback": {
+    "source": "revert this checkpoint to cc72c82d5cf56db1cb2d85c3c8eca455645cc5ed",
+    "state": "if execution_blocked has been persisted, restore the authenticated predecessor snapshot before starting the predecessor binary because it does not recognize the added state",
+    "publicServiceActionRequired": false
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "testsPassed": true,
+    "repositoryPublished": true,
+    "pullRequestCreated": true,
+    "publicDeployed": false,
+    "installedRuntimeVerified": false,
+    "officialBrokerCredentialsProvided": false,
+    "officialBrokerSandboxVerified": false,
+    "providerReadAttempted": false,
+    "providerWriteAttempted": false,
+    "walletAccountRequested": false,
+    "walletApproval": false,
+    "signature": false,
+    "securitiesOrder": false,
+    "chainTransaction": false,
+    "productionTrading": false
+  }
+}
