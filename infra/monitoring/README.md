@@ -5,7 +5,7 @@ YNX Chain exposes Prometheus metrics at `GET /metrics`.
 ## Files
 
 - `prometheus.yml`: scrapes `ynx-chaind:6420/metrics`, `ynx-indexerd:6426/metrics`, `ynx-explorerd:6427/metrics`, and `ynx-faucetd:6428/metrics`.
-- `prometheus-authoritative.yml`: production-authoritative scrape topology with one primary loopback target and three distinct follower targets over the existing WireGuard overlay. It contains no public node IP or replication credential.
+- `prometheus-authoritative.yml`: production-authoritative scrape topology with one primary chain loopback target, three distinct follower targets over the existing WireGuard overlay, and the primary Faucet loopback target. It contains no public node IP or replication credential.
 - `ynx-alerts.yml`: alerts on metrics outage, stalled block height, persistence errors, follower replication freshness/catch-up/lag/failures, indexer lag, indexer sync errors, stale explorer data, and Faucet availability, stale health, readiness, latency, admission-store failure, uncertain results, finite funding balance, or abuse signals.
 - `replication-alerts.test.yml`: Prometheus rule tests proving follower replication alerts fire after their configured hold time and clear after recovery.
 - `faucet-alerts.test.yml`: Prometheus rule tests for Faucet health freshness, readiness, capability latency, admission errors, uncertain results and finite funding balance.
