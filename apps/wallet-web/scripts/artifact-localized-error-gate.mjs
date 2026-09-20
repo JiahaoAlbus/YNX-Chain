@@ -17,7 +17,7 @@ for(const name of variants){
     const i18n=await import(`${pathToFileURL(join(temp,"i18n.js")).href}?variant=${encodeURIComponent(name)}-${Date.now()}`);
     const app=await readFile(join(temp,"app.js"),"utf8"),bytes=await readFile(archive),info=await stat(archive);
     const localeChecks=i18n.LOCALES.map(([locale])=>({locale,untranslated:i18n.untranslatedKeys(locale),requestFailed:i18n.catalog(locale).requestFailed}));
-    const checks={allLocalesDirect:localeChecks.every(item=>item.untranslated.length===0),allErrorsLocalized:localeChecks.every(item=>typeof item.requestFailed==="string"&&item.requestFailed.length>10),arabicExact:i18n.catalog("ar").requestFailed==="فشل الطلب بشكل آمن ولم تتغير حالة المحفظة.",stableCodePreserved:/return `\$\{code\}: \$\{text\("requestFailed"\)\}`/u.test(app),rawProviderMessageNotRendered:!/error\?\.message \|\|/u.test(app)};
+    const checks={allLocalesDirect:localeChecks.every(item=>item.untranslated.length===0),allErrorsLocalized:localeChecks.every(item=>typeof item.requestFailed==="string"&&item.requestFailed.length>10),arabicExact:i18n.catalog("ar").requestFailed==="تعذر إكمال الطلب. تحقق من محفظتك قبل المحاولة مجددًا.",stableCodePreserved:/return `\$\{code\}: \$\{text\("requestFailed"\)\}`/u.test(app),rawProviderMessageNotRendered:!/error\?\.message \|\|/u.test(app)};
     result.artifacts.push({name,bytes:info.size,sha256:createHash("sha256").update(bytes).digest("hex"),localeChecks,checks,passed:Object.values(checks).every(Boolean)});
   }finally{await rm(temp,{recursive:true,force:true});}
 }

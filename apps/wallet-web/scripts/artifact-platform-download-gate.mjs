@@ -27,7 +27,7 @@ for(const name of variants){
       androidMetadataVisible:/aria-describedby="download-meta"/u.test(app)&&/productionSigned=false/u.test(app),
       disabledStatePreserved:/button\.disabled = button\.dataset\.permanentDisabled === "true"/u.test(app),
       fallbackVisibilityBound:/#platforms/u.test(app)&&/showYNXDownload/u.test(app),
-      narrowLayout:/@media\(max-width:520px\)[\s\S]*\.wallets,\.actions,\.platform-grid\{grid-template-columns:1fr\}/u.test(styles),
+      narrowLayout:/@media\(max-width:520px\)[\s\S]*\.wallets,\.actions,\.platform-grid\{grid-template-columns:minmax\(0,1fr\)\}/u.test(styles),
     };
     result.artifacts.push({name,bytes:info.size,sha256:createHash("sha256").update(bytes).digest("hex"),matrix,checks,passed:Object.values(checks).every(Boolean)});
   }finally{await rm(temp,{recursive:true,force:true});}
