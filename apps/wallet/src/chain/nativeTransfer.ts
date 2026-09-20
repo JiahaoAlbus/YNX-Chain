@@ -45,7 +45,7 @@ export async function loadNativeChainState(client:NativeChainClient,selectedAcco
 export class NativeChainClient{
   readonly #baseURL:string;readonly #readBaseURLs:readonly string[];readonly #fetch:FetchLike;
   private rpcSequence=0;
-  constructor(baseURL=DEFAULT_CHAIN_API,fetcher:FetchLike=fetch){this.#baseURL=base(baseURL);this.#readBaseURLs=Object.freeze(this.#baseURL===DEFAULT_CHAIN_API?[this.#baseURL,LEGACY_CHAIN_API]:[this.#baseURL]);this.#fetch=fetcher}
+  constructor(baseURL=DEFAULT_CHAIN_API,fetcher:FetchLike=fetch,private readonly rpcReadTimeoutMs=READ_TIMEOUT_MS){if(!Number.isSafeInteger(rpcReadTimeoutMs)||rpcReadTimeoutMs<1)throw new Error("YNX chain RPC timeout is invalid");this.#baseURL=base(baseURL);this.#readBaseURLs=Object.freeze(this.#baseURL===DEFAULT_CHAIN_API?[this.#baseURL,LEGACY_CHAIN_API]:[this.#baseURL]);this.#fetch=fetcher}
   get origin():string{return this.#baseURL}
 
   async requireDurabilityCapability():Promise<void>{
@@ -179,9 +179,12 @@ export class NativeChainClient{
   }
 
   async #rpcAttempt(method:string,params:readonly unknown[]):Promise<unknown>{
-    const id=++this.rpcSequence,url=`${this.#baseURL}/evm`,controller=new AbortController();let timeout:ReturnType<typeof setTimeout>|undefined;
+    const id=++this.rpcSequence,url=`${this.#baseURL}/evm`,controller=new AbortController();let timeout:ReturnType<typeof setTimeout>|undefined,rejectStopped!:(error:Error)=>void;
+    const stopped=new Promise<never>((_,reject)=>{rejectStopped=reject});
     try{
-      const response=await Promise.race([this.#fetch(url,{method:"POST",redirect:"error",signal:controller.signal,headers:{Accept:"application/json","Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id,method,params})}),new Promise<never>((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(new NativeRPCReadTransportError("YNX chain RPC read timed out"))},READ_TIMEOUT_MS)})]);
+      timeout=setTimeout(()=>{rejectStopped(new NativeRPCReadTransportError("YNX chain RPC read timed out"));controller.abort()},this.rpcReadTimeoutMs);
+      return await Promise.race([(async()=>{
+      const response=await this.#fetch(url,{method:"POST",redirect:"error",signal:controller.signal,headers:{Accept:"application/json","Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id,method,params})});
       if(response.redirected||response.url&&response.url!==url)throw new NativeDurabilityInvalid();
       if(RETRYABLE_READ_STATUS.has(response.status))throw new NativeRPCReadTransportError(`YNX chain RPC read failed (${response.status})`,response.status);
       const text=await response.text();if(text.length>262144)throw new NativeDurabilityInvalid();let value:unknown;try{value=JSON.parse(text)}catch{throw new NativeDurabilityInvalid()}
@@ -189,6 +192,7 @@ export class NativeChainClient{
       if(!object(value)||value.jsonrpc!=="2.0"||value.id!==id||Object.hasOwn(value,"result")===Object.hasOwn(value,"error"))throw new NativeDurabilityInvalid();
       if(Object.hasOwn(value,"error")){if(!object(value.error)||!Number.isSafeInteger(value.error.code)||typeof value.error.message!=="string")throw new NativeDurabilityInvalid();throw new NativeDurabilityRPCError(value.error.code,value.error.data)}
       return value.result;
+      })(),stopped]);
     }catch(error){
       if(error instanceof NativeRPCReadTransportError||error instanceof NativeDurabilityInvalid||error instanceof NativeDurabilityRPCError)throw error;
       throw new NativeRPCReadTransportError("YNX chain RPC read was interrupted");
@@ -214,6 +218,16 @@ export class NativeChainClient{
       })(),new Promise<never>((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(new Error("YNX chain request timed out"))},15_000)})]);
     }finally{clearTimeout(timeout)}
   }
+}
+
+/** Reopen a persisted transfer only on its exact reviewed RPC origin. The two
+ * official Testnet origins remain explicit migration profiles; this never
+ * turns a failed write into automatic cross-origin replay. A runtime override
+ * may recover only records originally created on that same override. */
+export function nativeChainClientForStoredOrigin(storedOrigin:string,currentBaseURL?:string,fetcher:FetchLike=fetch):NativeChainClient{
+  const current=new NativeChainClient(currentBaseURL,fetcher);
+  if(!new Set([current.origin,DEFAULT_CHAIN_API,LEGACY_CHAIN_API]).has(storedOrigin))throw new Error("The stored transfer RPC origin is not an approved YNX Testnet recovery profile.");
+  return storedOrigin===current.origin?current:new NativeChainClient(storedOrigin,fetcher);
 }
 
 function parseActivity(value:unknown):ChainActivity{if(!object(value)||typeof value.hash!=="string"||!/^0x[0-9a-f]{64}$/.test(value.hash)||typeof value.type!=="string"||typeof value.from!=="string"||typeof value.to!=="string"||!Number.isSafeInteger(value.amount)||!Number.isSafeInteger(value.fee)||!Number.isSafeInteger(value.nonce)||value.timestamp!==undefined&&typeof value.timestamp!=="string")throw new Error("Authoritative activity entry is invalid");return Object.freeze({hash:value.hash,type:value.type,from:value.from,to:value.to,amount:value.amount,fee:value.fee,nonce:value.nonce,...(value.timestamp?{timestamp:value.timestamp}:{})})}

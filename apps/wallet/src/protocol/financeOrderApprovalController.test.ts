@@ -91,6 +91,18 @@ test("unavailable Auth time fails closed before Wallet reads the signing key", a
   await assert.rejects(c.approve(review.id), /Auth time/); assert.equal(f.state.keys, 0); assert.equal(f.state.writes.length, 0); assert.equal(f.state.opens.length, 0);
 });
 
+test("visible expiration uses authenticated time and never reads the signing key", async () => {
+  const f = fixture(), c = f.controller(), review = await c.receive(f.url());
+  assert.equal(await c.isExpired(review.id), false); f.state.now = Date.parse(unsigned.expiresAt);
+  assert.equal(await c.isExpired(review.id), true); assert.equal(f.state.keys, 0);
+});
+
+test("Finance review renders every exact signed correlation binding and an expired terminal state", () => {
+  const source=readFileSync(new URL("../../App.tsx",import.meta.url),"utf8");
+  for(const field of ["approval.chainId","approval.accountPublicKey","approval.requestId","approval.challengeId","approval.nonce","approval.orderHash","approval.callbackStateHash","review.id"])assert.ok(source.includes(field),field);
+  assert.match(source,/controller\.isExpired\(review\.id\)/);assert.match(source,/expired\?<SecondaryButton/);
+});
+
 test("expiry during reservation persistence cannot create or store a signed approval", async () => {
   const f = fixture(), c = f.controller(), review = await c.receive(f.url());
   f.state.afterSet = async raw => { if (JSON.parse(raw).records[0].status === "reserved") f.state.now = Date.parse(unsigned.expiresAt); };

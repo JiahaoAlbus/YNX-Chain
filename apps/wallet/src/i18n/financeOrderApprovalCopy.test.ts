@@ -8,5 +8,7 @@ test("Finance order review has complete copy for every Wallet locale", () => {
     assert.ok(financeOrderApprovalCopy(locale, "title").length > 4);
     assert.match(financeOrderApprovalCopy(locale, "boundary"), /Wallet|wallet|ウォレット|지갑|محفظة/iu);
     assert.ok(financeOrderApprovalCopy(locale, "revokeBoundary").length > 30);
+    assert.ok(financeOrderApprovalCopy(locale, "bindings").length > 4);
+    assert.ok(financeOrderApprovalCopy(locale, "expired").length > 20);
   }
 });

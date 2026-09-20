@@ -6,7 +6,7 @@ import { WalletOperationLifecycle } from "../security/operationLifecycle";
 import { SecureStorageHealth, STORAGE_WRITE_UNCERTAIN } from "../storage/secureStorageHealth";
 import { FaucetClaimController, FAUCET_REQUEST_MODEL, type FaucetClaimRPC } from "../chain/faucetClaim";
 import { faucetAdmissionHash, type FaucetAdmissionTransport } from "../chain/faucetAdmission";
-import { NATIVE_FAUCET_AUTHORITY, NATIVE_FAUCET_CHAIN_ORIGIN } from "../chain/faucetNativeSession";
+import { LEGACY_FAUCET_AUTHORITY, LEGACY_FAUCET_CHAIN_ORIGIN, NATIVE_FAUCET_AUTHORITY, NATIVE_FAUCET_CHAIN_ORIGIN } from "../chain/faucetNativeSession";
 import { NATIVE_DURABILITY_MODEL } from "../chain/nativeDurability";
 
 // Synthetic public identifiers and in-memory transport only. No keys, accounts
@@ -73,6 +73,14 @@ test("production-off reads an original request without changing any bytes", asyn
   for (const action of actions) await f.flow.act(action);
   f.flow.cancel(); await f.flow.load();
   assert.deepEqual([...f.rows], before); assert.equal(f.counts.set, 0); assert.equal(f.counts.entropy, 0); assert.equal(f.counts.session, 0);
+});
+
+test("an unresolved legacy-authority request remains visible and blocks a new authority request",async t=>{
+  const f=fixture(t),legacy=new FaucetClaimController(f.storage,{authority:LEGACY_FAUCET_AUTHORITY,chainId:"0x1917",recipient:account},LEGACY_FAUCET_CHAIN_ORIGIN,{randomBytes:n=>new Uint8Array(n).fill(19)});
+  const original=(await legacy.prepare(100,()=>{})).entry!;await f.flow.load();
+  assert.equal(f.flow.snapshot().view?.entry?.requestId,original.requestId);assert.equal(f.flow.snapshot().available,false);assert.equal(f.flow.snapshot().error,"unavailable");
+  assert.equal(f.flow.allowed("review"),false);await f.flow.act("review");assert.equal(f.counts.entropy,0);
+  assert.equal((await legacy.read()).entry?.body,original.body);
 });
 test("an unavailable actual session is checked before entropy or persistence", async t => {
   const f = fixture(t); f.hooks.nullSession = true; await f.flow.load(); await f.flow.act("review");
