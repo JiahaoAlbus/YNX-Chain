@@ -2,31 +2,35 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import {execFileSync} from "node:child_process";
-import {getTestnetEndpoints, testnetEndpointProfiles, ynxTestnet, YNXClient} from "./index.js";
+import {getTestnetEndpoints, testnetEndpointProfiles, ynxTestnet, YNXClient,bundledEndpointAuthority} from "./index.js";
+const time={nowMs:Date.parse(bundledEndpointAuthority.issuedAt)+1};
 
-test("active consumers retain independently typed legacy endpoints until activation", () => {
-  const active = getTestnetEndpoints();
-  assert.deepEqual(active, getTestnetEndpoints("legacy"));
-  assert.equal(active.evmJsonRpc, ynxTestnet.rpcUrls[0]);
-  assert.equal(active.nativeRest, ynxTestnet.restUrls[0]);
-  assert.equal(active.faucet, ynxTestnet.faucetUrls[0]);
+test("active consumers use renewed canonical RPC/Faucet and retain explicit legacy compatibility", () => {
+  const active = getTestnetEndpoints('active',time),legacy=getTestnetEndpoints('legacy',time);
+  assert.equal(active.evmJsonRpc,bundledEndpointAuthority.evmRpc);
+  assert.equal(active.nativeRest,bundledEndpointAuthority.rpc);
+  assert.equal(active.faucet,bundledEndpointAuthority.faucet);
+  assert.equal(legacy.evmJsonRpc, ynxTestnet.rpcUrls[0]);
+  assert.equal(legacy.nativeRest, ynxTestnet.restUrls[0]);
+  assert.equal(legacy.faucet, ynxTestnet.faucetUrls[0]);
   assert.equal(active.explorer, ynxTestnet.blockExplorerUrls[0]);
   assert.notEqual(active.restGateway, active.nativeRest);
   assert.equal(active.grpcTlsAuthority, "grpc.ynxweb4.com:443");
   assert.equal(active.websocket, null);
-  assert.deepEqual(Object.values(testnetEndpointProfiles.activation), [false, false, false]);
+  assert.deepEqual(testnetEndpointProfiles.activation, {explorerAliasPublicVerified:false,faucetAliasPublicVerified:true,rpcAliasPublicVerified:true});
 });
 
-test("candidate aliases are metadata, not selectable live or Mainnet configuration", () => {
+test("no Mainnet, unverified Explorer activation, automatic fallback or client renewal", () => {
   assert.equal(testnetEndpointProfiles.candidate.evmJsonRpc, "https://rpc-testnet.ynxweb4.com");
   assert.equal(testnetEndpointProfiles.candidate.nativeRest, "https://rpc-testnet.ynxweb4.com");
   assert.equal(testnetEndpointProfiles.candidate.faucet, "https://faucet-testnet.ynxweb4.com");
-  assert.equal(testnetEndpointProfiles.candidate.grpcTlsAuthority, getTestnetEndpoints().grpcTlsAuthority);
-  assert.equal(testnetEndpointProfiles.candidate.restGateway, getTestnetEndpoints().restGateway);
-  for (const profile of ["candidate", "canonical", "mainnet", "live", "", null]) assert.throws(() => getTestnetEndpoints(profile));
+  assert.equal(testnetEndpointProfiles.candidate.grpcTlsAuthority, getTestnetEndpoints('active',time).grpcTlsAuthority);
+  assert.equal(testnetEndpointProfiles.candidate.restGateway, getTestnetEndpoints('active',time).restGateway);
+  for (const profile of ["candidate", "canonical", "mainnet", "live", "", null]) assert.throws(() => getTestnetEndpoints(profile,time));
   assert.throws(() => { testnetEndpointProfiles.activation.rpcAliasPublicVerified = true; });
   assert.equal(testnetEndpointProfiles.mainnet.enabled, false);
   assert.equal(testnetEndpointProfiles.mainnet.chainId, null);
+  for(const profile of ['active','legacy'])assert.throws(()=>getTestnetEndpoints(profile,{nowMs:Date.parse(bundledEndpointAuthority.expiresAt)}),/EXPIRED/);
 });
 
 test("SDK separates native REST from JSON-RPC on both configured profiles without network writes", async () => {

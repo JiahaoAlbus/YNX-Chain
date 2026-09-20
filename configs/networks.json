@@ -12,7 +12,8 @@
       "chainId": 6423,
       "nativeCurrency": { "name": "YNXT", "symbol": "YNXT", "decimals": 18 },
       "endpointConfig": "configs/testnet-endpoints.json",
-      "status": "existing chain; legacy endpoints active; canonical aliases pending public verification"
+      "endpointAuthority": "chain-metadata/endpoint-authority/current.json",
+      "status": "existing chain; canonical RPC/Faucet use versioned bundled authority; legacy compatibility retained; no automatic failover"
     },
     "devnet": {
       "chainName": "YNX Devnet",

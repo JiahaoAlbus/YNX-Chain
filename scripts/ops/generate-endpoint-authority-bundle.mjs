@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {loadEndpointAuthorityRelease} from '../lib/endpoint-authority-release.mjs';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+const args=process.argv.slice(2);assert(args.length<=1&&args.every(x=>['--write','--check','--current'].includes(x)),'UNKNOWN_ARGUMENT');
+const {pin,manifest}=await loadEndpointAuthorityRelease(root,{current:args[0]==='--current'});
+const text=`// Generated from reviewed versioned authority. Runtime never renews or fetches it.\nimport {deepFreeze,assertEndpointAuthorityStructure,validateEndpointAuthority} from './endpoint-authority.js';\nexport const endpointAuthorityPin = deepFreeze(${JSON.stringify(pin,null,2)});\nexport const bundledEndpointAuthority = deepFreeze(${JSON.stringify(manifest,null,2)});\n// The bundled bytes are hash-checked during generation/release; no caller data accepted here.\nexport function getBundledEndpointAuthority({nowMs=Date.now()}={}) {\n  return assertEndpointAuthorityStructure(bundledEndpointAuthority,{nowMs});\n}\nexport async function verifyBundledEndpointAuthority(options={}) {\n  return validateEndpointAuthority(bundledEndpointAuthority,{...options,source:'bundled',trustedPin:endpointAuthorityPin});\n}\n`;
+const output=path.join(root,'sdk/js/endpoint-authority-bundle.js');
+if(args[0]==='--write')fs.writeFileSync(output,text);
+else assert(fs.readFileSync(output,'utf8')===text,'AUTHORITY_BUNDLE_DRIFT');
+console.log(JSON.stringify({manifestVersion:pin.manifestVersion,payloadSha256:pin.payloadSha256,currentValidityChecked:args[0]==='--current',reproducible:true}));

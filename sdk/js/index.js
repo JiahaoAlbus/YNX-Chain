@@ -5,6 +5,8 @@ const BECH32_REVERSE = Object.freeze(Object.fromEntries([...BECH32_CHARSET].map(
 
 export {ynxTestnet} from "./ynx-testnet.js";
 export {getTestnetEndpoints, testnetEndpointProfiles} from "./testnet-endpoints.js";
+export {canonicalEndpointAuthorityPayload,validateEndpointAuthority,selectAuthorityEndpoint} from "./endpoint-authority.js";
+export {endpointAuthorityPin,bundledEndpointAuthority,verifyBundledEndpointAuthority} from "./endpoint-authority-bundle.js";
 export {YNXWalletError, ensureYNXTestnet, ynxTestnetAddEthereumChainParameter} from "./wallet.js";
 
 export class YNXSDKError extends Error {

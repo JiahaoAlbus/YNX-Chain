@@ -8,7 +8,9 @@
     "index.js",
     "wallet.js",
     "ynx-testnet.js",
-    "testnet-endpoints.js"
+    "testnet-endpoints.js",
+    "endpoint-authority.js",
+    "endpoint-authority-bundle.js"
   ],
   "engines": {
     "node": ">=18"

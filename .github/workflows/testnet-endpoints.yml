@@ -8,6 +8,9 @@ on:
       - 'internal/faucet/**'
       - 'scripts/verify/**'
       - 'scripts/ops/generate-testnet-endpoints.mjs'
+      - 'scripts/ops/generate-endpoint-authority-bundle.mjs'
+      - 'scripts/ops/issue-endpoint-authority.mjs'
+      - 'scripts/lib/endpoint-authority-release.mjs'
       - '.github/workflows/testnet-endpoints.yml'
   workflow_dispatch:
 permissions:
