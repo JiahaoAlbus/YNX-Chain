@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "productId": "wallet",
+  "version": "1.0.18-testnet-preview",
+  "versionCode": 24,
+  "releaseStatus": "SOURCE_CANDIDATE_AWAITING_EXACT_MERGE_BUILD",
+  "releaseSourceCommit": null,
+  "releaseTag": null,
+  "releaseUrl": null,
+  "releaseImmutable": false,
+  "publisherCanReplaceAssets": true,
+  "downloadTimeSha256Required": true,
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": "NOT_VERIFIED",
+  "recoveryBinding": {
+    "implementationCommit": "4d327fd96a6e1a4a2ffd308f38aca983093292fb",
+    "mergedFeatureSource": "54b707f54a23c68fb4d504bbc3cd8b29853791dd",
+    "coverage": [
+      "current-and-exact-legacy-faucet-receipt-compatibility",
+      "legacy-faucet-authority-pending-request-fence",
+      "exact-official-old-and-new-rpc-transfer-recovery",
+      "rpc-response-body-deadline",
+      "finance-signed-binding-and-authority-time-expiry"
+    ]
+  },
+  "artifacts": [],
+  "publicArtifactUrls": [],
+  "previousPublishedRelease": {
+    "version": "1.0.17-testnet-preview",
+    "versionCode": 23,
+    "tag": "wallet-android-testnet-preview-1.0.17-875f6c5b7",
+    "releaseImmutable": false,
+    "publisherCanReplaceAssets": true,
+    "apk": {
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.17-875f6c5b7/ynx-wallet-1.0.17-testnet-preview-875f6c5b7-universal-local-test-signed.apk",
+      "bytes": 116636787,
+      "sha256": "04a37e7bd9f76bb3bb76fe330921f0f80e6d2cfa3b115d38ac93c53cb80370a2"
+    },
+    "aab": {
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.17-875f6c5b7/ynx-wallet-1.0.17-testnet-preview-875f6c5b7-local-test-signed.aab",
+      "bytes": 71872002,
+      "sha256": "079c8e0597ab0c30b884e10c0d15bd1a8f606c6412509162fa85429966dbef1b"
+    }
+  },
+  "candidateEvidence": "proof/wallet-android-1.0.18-source-candidate-20260921.json",
+  "generatedAt": "2026-09-20T18:54:49Z"
+}
