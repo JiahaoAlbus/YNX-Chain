@@ -115,10 +115,10 @@ try {
         endpoints.push({ route, status: response.status, bytes: body.length, sha256: sha256(body), contentType: response.headers.get('content-type') });
         if (route === '/version') assert.equal(JSON.parse(body).commit, sourceCommit);
         if (route === '/api/broker/status') {
-          const status = JSON.parse(body);
-          assert.equal(status.officialSandboxVerified, false);
-          assert.equal(status.productionApproved, false);
-          assert.equal(status.configuration.submissionEnabled, false);
+          const responseBody = JSON.parse(body);
+          assert.equal(responseBody.status.officialSandboxVerified, false);
+          assert.equal(responseBody.status.productionApproved, false);
+          assert.equal(responseBody.status.submissionEnabled, false);
         }
       }
       break;
