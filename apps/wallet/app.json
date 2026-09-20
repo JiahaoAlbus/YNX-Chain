@@ -19,7 +19,7 @@
     "android": {
       "package": "com.ynxweb4.wallet",
       "versionCode": 21,
-      "permissions": ["USE_BIOMETRIC"],
+      "permissions": ["USE_BIOMETRIC", "CAMERA"],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -36,6 +36,7 @@
     "plugins": [
       ["expo-secure-store", {"configureAndroidBackup": true}],
       ["expo-local-authentication", {"faceIDPermission": "YNX Wallet uses Face ID to unlock keys and approve exact requests."}],
+      ["expo-camera", {"cameraPermission": "YNX Wallet uses the camera only when you choose to scan a WalletConnect QR code."}],
       "./plugins/withYnxAndroidReleaseSigning",
       "./plugins/withYnxSecureStoreWriteBarrier"
     ],
