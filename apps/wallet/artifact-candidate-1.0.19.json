@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "productId": "wallet",
+  "version": "1.0.19-testnet-preview",
+  "versionCode": 25,
+  "releaseStatus": "SOURCE_CANDIDATE_AWAITING_EXACT_MERGE_BUILD",
+  "releaseSourceCommit": null,
+  "releaseTag": null,
+  "releaseUrl": null,
+  "releaseImmutable": false,
+  "publisherCanReplaceAssets": true,
+  "downloadTimeSha256Required": true,
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": "NOT_VERIFIED",
+  "recoveryBinding": {
+    "implementationCommit": "8f6c82e7037244318b94c079849859a9765f0803",
+    "mergedSource": "18acf05f1f263226cad42503f5639e68c2476aa5",
+    "installedEvidence": "proof/wallet-android-1.0.18-installed-faucet-transfer-20260921.json",
+    "coverage": [
+      "android-native-network-phase-timeout-10-seconds",
+      "android-native-absolute-deadline-15-seconds",
+      "automatic-retry-disabled",
+      "one-shot-request-body-no-replay",
+      "installed-account-biometric-balance-faucet-receipt-recovery",
+      "single-transfer-durable-recovery-and-subsequent-send"
+    ]
+  },
+  "artifacts": [],
+  "publicArtifactUrls": [],
+  "previousPublishedRelease": {
+    "version": "1.0.18-testnet-preview",
+    "versionCode": 24,
+    "tag": "wallet-android-testnet-preview-1.0.18-2fdd679f9",
+    "releaseImmutable": false,
+    "publisherCanReplaceAssets": true,
+    "assetsMustNotBeReplaced": true,
+    "apk": {
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.18-2fdd679f9/ynx-wallet-1.0.18-testnet-preview-2fdd679f9-universal-local-test-signed.apk",
+      "bytes": 116737714,
+      "sha256": "45fd5004c9156d4fb5880d9caa2056f5b2238e85ca63a13ddf73f25dea96266a"
+    },
+    "aab": {
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.18-2fdd679f9/ynx-wallet-1.0.18-testnet-preview-2fdd679f9-local-test-signed.aab",
+      "bytes": 71875238,
+      "sha256": "c6f920a00b8768c9ea8837bd35cfcee4b1b2c9106959c101c44026fa388c7850"
+    }
+  },
+  "candidateEvidence": "proof/wallet-android-1.0.19-source-candidate-20260921.json",
+  "generatedAt": "2026-09-20T21:32:30Z"
+}

@@ -1,0 +1,29 @@
+{
+  "schema": "ynx-wallet-mobile-preview-source-candidate/v1",
+  "version": "1.0.19-testnet-preview",
+  "versionCode": 25,
+  "baseCommit": "18acf05f1f263226cad42503f5639e68c2476aa5",
+  "recoveryImplementationCommit": "8f6c82e7037244318b94c079849859a9765f0803",
+  "installedValidationEvidence": "proof/wallet-android-1.0.18-installed-faucet-transfer-20260921.json",
+  "releaseSourceCommit": null,
+  "releaseTag": null,
+  "artifactsBuiltFromExactMerge": false,
+  "artifactsPublished": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": "NOT_VERIFIED",
+  "physicalAndroidDevice": "NOT_VERIFIED",
+  "knownLimits": [
+    "The exact 1.0.19 release source is assigned only after this source candidate merges.",
+    "APK and AAB hashes, byte sizes, signatures, asset IDs and URLs remain absent until rebuilt twice from that exact merge at one fixed absolute path.",
+    "GitHub prerelease assets are publisher-replaceable; consumers must verify the recorded SHA-256 after download.",
+    "A Reown Project ID is not configured, so real WalletConnect Relay pairing remains disabled and unverified.",
+    "Production signing, physical-device validation and app-store publication are not available in this release stage.",
+    "Installed Faucet and transfer validation is inherited from the exact 1.0.18 evidence; no Faucet request or transaction was repeated for this version-only source candidate."
+  ],
+  "previousReleasePreserved": {
+    "tag": "wallet-android-testnet-preview-1.0.18-2fdd679f9",
+    "assetsMustNotBeReplaced": true
+  },
+  "generatedAt": "2026-09-20T21:32:30Z"
+}
