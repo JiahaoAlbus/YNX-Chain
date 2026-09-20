@@ -99,3 +99,25 @@ tests:
             exp_annotations:
               summary: YNX faucet has an uncertain request result
               description: At least one funding request lacks a safely reusable final receipt. Retain its request ID and reconcile it; do not submit a replacement transfer.
+
+  - name: faucet admission capacity warning holds then fires
+    interval: 5m
+    input_series:
+      - series: 'ynx_faucet_admission_capacity{job="ynx-faucetd",instance="faucet-d"}'
+        values: '100x5'
+      - series: 'ynx_faucet_admission_remaining{job="ynx-faucetd",instance="faucet-d"}'
+        values: '9x5'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: YNXFaucetAdmissionCapacityLow
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: YNXFaucetAdmissionCapacityLow
+        exp_alerts:
+          - exp_labels:
+              instance: faucet-d
+              job: ynx-faucetd
+              severity: warning
+            exp_annotations:
+              summary: YNX faucet durable admission capacity is low
+              description: Fewer than ten percent of retained request identities remain. Increase the configured capacity with the existing database preserved before new users are rejected.
