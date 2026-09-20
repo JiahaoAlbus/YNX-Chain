@@ -155,6 +155,51 @@ func TestBrokerDispatcherSuccessAndReconcileCursor(t *testing.T) {
 	}
 }
 
+func TestBrokerExecutionIdempotencyKeyCannotCrossOrdersAfterRestart(t *testing.T) {
+	store, account, firstOrderID, now := consumedBrokerFixture(t)
+	second, err := store.CreateBrokerOrderChallenge(account, BrokerChallengeRequest{
+		AccountPublicKey:    "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+		FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test",
+		Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "33333333-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "20", MaxCost: "20", MaxFee: "0", OrderID: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", OrderType: "limit", Qty: "1", Side: "buy", Symbol: "BETA", TimeInForce: "day"},
+	}, now.Add(2*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.VerifyAndConsumeBrokerOrder(account, signFinanceApprovalForTest(t, second.Unsigned), now.Add(3*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	corrupted := store.Account(account).Brokerage
+	corrupted.Outbox = map[string]BrokerOrderOutbox{}
+	for id, outbox := range store.Account(account).Brokerage.Outbox {
+		corrupted.Outbox[id] = outbox
+	}
+	secondOutbox := corrupted.Outbox[second.Unsigned.Order.OrderID]
+	secondOutbox.Status, secondOutbox.ExecutionRequestKey, secondOutbox.ExecutionRequestedAt = "execution_requested", "dispatch-test-request-0001", now.Add(3*time.Minute)
+	corrupted.Outbox[second.Unsigned.Order.OrderID] = secondOutbox
+	if err := validateBrokeragePersistence(account, corrupted); err == nil {
+		t.Fatal("persisted duplicate execution idempotency keys passed state validation")
+	}
+
+	reopened, err := OpenStore(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reopened.RequestBrokerExecution(account, second.Unsigned.Order.OrderID, "dispatch-test-request-0001", now.Add(4*time.Minute)); err == nil {
+		t.Fatal("one execution idempotency key was accepted for two different orders after restart")
+	}
+	workspace := reopened.BrokerWorkspace(account, now.Add(4*time.Minute))
+	byID := map[string]BrokerOrderOutbox{}
+	for _, outbox := range workspace.Outbox {
+		byID[outbox.OrderID] = outbox
+	}
+	if byID[firstOrderID].ExecutionRequestKey != "dispatch-test-request-0001" || byID[second.Unsigned.Order.OrderID].ExecutionRequestKey != "" || byID[second.Unsigned.Order.OrderID].Status != "pending_unwired" {
+		t.Fatalf("cross-order replay mutated an outbox: %+v", byID)
+	}
+	if _, err := reopened.RequestBrokerExecution(account, firstOrderID, "dispatch-test-request-0001", now.Add(5*time.Minute)); err != nil {
+		t.Fatalf("exact same-order replay stopped being idempotent: %v", err)
+	}
+}
+
 func TestBrokerReconciliationRejectsDuplicateClientOrderAndCrossTenantSnapshot(t *testing.T) {
 	store, account, orderID, now := consumedBrokerFixture(t)
 	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted"}
