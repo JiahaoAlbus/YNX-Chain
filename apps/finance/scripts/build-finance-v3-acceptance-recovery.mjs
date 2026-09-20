@@ -19,7 +19,10 @@ const exact=new Set([
   'go.mod','go.sum','scripts/ops/endpoint-authority-v2.mjs',
   'apps/wallet/artifact-publication-1.0.18.json','apps/wallet/proof/wallet-android-1.0.18-publication-20260921.json','apps/wallet/proof/wallet-android-1.0.18-source-candidate-20260921.json',
 ]);
-const prefixes=['internal/finance/','apps/finance/','docs/integration/','release/integration/','.ai-bridge/','sdk/js/','infra/secrets-template/'];
+const prefixes=[
+  'internal/finance/','internal/accountaddress/','internal/buildinfo/','internal/chain/','internal/consensus/','internal/ethnative/','internal/productsessionv2/','internal/readintegration/',
+  'apps/finance/','docs/integration/','release/integration/','.ai-bridge/','sdk/js/','infra/secrets-template/',
+];
 const evidence=new Set([
   'apps/finance/evidence/finance-revocation-strictness-20260921.json','apps/finance/evidence/finance-weekly-v3-credential-independent-final-20260920.json',
   'apps/finance/evidence/finance-weekly-v3-local-activation-readonly-20260921.json','apps/finance/evidence/finance-weekly-v3-activation-lifecycle-truth-20260920.json',
