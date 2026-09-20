@@ -1,0 +1,81 @@
+{
+  "schema": "ynx-wallet-mobile-preview-publication/v1",
+  "releaseTag": "wallet-android-testnet-preview-1.0.19-d58ce00dc",
+  "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-1.0.19-d58ce00dc",
+  "targetCommit": "d58ce00dc4e83f4c24747dfef7e0b59395d6b789",
+  "prerelease": true,
+  "releaseImmutable": false,
+  "publisherCanReplaceAssets": true,
+  "downloadTimeSha256Verified": true,
+  "githubReleaseId": 392588529,
+  "releaseCreatedAt": "2026-09-20T21:53:20Z",
+  "releasePublishedAt": "2026-09-20T22:00:43Z",
+  "apkAssetId": 577641202,
+  "aabAssetId": 577641200,
+  "apk": {
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.19-d58ce00dc/ynx-wallet-1.0.19-testnet-preview-d58ce00dc-universal-local-test-signed.apk",
+    "bytes": 116639211,
+    "sha256": "437973258f40e4f7b3a2d3d603bbf67e932d1fca8082ed8eb9e8ff7b84514730",
+    "freshDownloadDigestMatched": true,
+    "apkSignatureV2Verified": true,
+    "versionCode": 25,
+    "versionName": "1.0.19-testnet-preview"
+  },
+  "aab": {
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.19-d58ce00dc/ynx-wallet-1.0.19-testnet-preview-d58ce00dc-local-test-signed.aab",
+    "bytes": 71874951,
+    "sha256": "e60c165362ba5d85cf96e562800b5a1ef2f33812fff9eacd10745370bf114b7f",
+    "freshDownloadDigestMatched": true,
+    "jarSignatureVerified": true,
+    "versionCode": 25
+  },
+  "signerCertificateDn": "C=US, O=Android, CN=Android Debug",
+  "signerCertificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+  "reproducibility": {
+    "fixedAbsolutePath": "/private/tmp/ynx-wallet-1019-fixed-release",
+    "cleanWorktrees": 2,
+    "rawGradleApkBitForBitMatched": false,
+    "rawGradleApkV2SignaturesMatched": true,
+    "rawGradleApkV2SignatureAlgorithmId": "0x0103",
+    "rawGradleApkV2SignatureAlgorithm": "RSA_PKCS1_V1_5_WITH_SHA256",
+    "differingBlockId": "0x504b4453",
+    "differingBlock": "APK Dependency Info",
+    "differingBlockContainedDifferentBuildHashes": true,
+    "resigningRemovedOrReplacedDependencyMetadata": true,
+    "rsaPssSaltNormalizationClaim": false,
+    "publishedApkBitForBitMatched": true,
+    "aabBitForBitMatched": true,
+    "crossPathComparisonExcluded": true,
+    "crossPathReason": "Native build outputs embed the absolute worktree path."
+  },
+  "installedValidation": {
+    "evidence": "proof/wallet-android-1.0.18-installed-faucet-transfer-20260921.json",
+    "networkPhaseTimeoutSeconds": 10,
+    "absoluteCallDeadlineSeconds": 15,
+    "automaticRetry": false,
+    "requestBodyReplay": false,
+    "faucetSubmitCount": 1,
+    "transferBroadcastCount": 1,
+    "transferRetryCount": 0,
+    "subsequentSendAvailable": true,
+    "mutationRepeatedFor1019": false
+  },
+  "emulator": {
+    "androidInstall": "NOT_REPEATED_FOR_VERSION_ONLY_RELEASE",
+    "androidColdLaunch": "NOT_REPEATED_FOR_VERSION_ONLY_RELEASE",
+    "iosSimulatorCiBuild": "PASS",
+    "physicalDevice": "NOT_VERIFIED"
+  },
+  "recoveryContractTests": {
+    "passed": 558,
+    "failed": 0,
+    "nativeTransportPassed": 18,
+    "nativeTransportFailed": 0,
+    "liveChainTransferExecuted": false
+  },
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": false,
+  "officialWebsiteUpdated": false,
+  "generatedAt": "2026-09-20T22:02:31Z"
+}

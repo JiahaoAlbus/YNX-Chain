@@ -7,6 +7,7 @@ const publishedManifest = JSON.parse(await readFile(new URL("artifact-manifest.j
 const manifest = JSON.parse(await readFile(new URL("artifact-candidate-1.0.19.json", walletRoot), "utf8"));
 const publication = JSON.parse(await readFile(new URL("artifact-publication-1.0.17.json", walletRoot), "utf8"));
 const publication118 = JSON.parse(await readFile(new URL("artifact-publication-1.0.18.json", walletRoot), "utf8"));
+const publication119 = JSON.parse(await readFile(new URL("artifact-publication-1.0.19.json", walletRoot), "utf8"));
 const app = JSON.parse(await readFile(new URL("app.json", walletRoot), "utf8")).expo;
 const android = await readFile(new URL("android/app/build.gradle", walletRoot), "utf8");
 const plist = await readFile(new URL("ios/YNXWallet/Info.plist", walletRoot), "utf8");
@@ -15,6 +16,7 @@ const evidence = JSON.parse(await readFile(new URL(manifest.candidateEvidence, w
 const installedEvidence = JSON.parse(await readFile(new URL(manifest.recoveryBinding.installedEvidence, walletRoot), "utf8"));
 const publicationEvidence = JSON.parse(await readFile(new URL(publication.publicationEvidence, walletRoot), "utf8"));
 const publicationEvidence118 = JSON.parse(await readFile(new URL(publication118.publicationEvidence, walletRoot), "utf8"));
+const publicationEvidence119 = JSON.parse(await readFile(new URL(publication119.publicationEvidence, walletRoot), "utf8"));
 
 const previous = Object.freeze({
   tag: "wallet-android-testnet-preview-1.0.16-e9816a827",
@@ -546,5 +548,166 @@ test("1.0.18 publication rejects widened trust or changed release assets", () =>
     const copy = structuredClone(publicationEvidence118);
     mutate(copy);
     assert.throws(() => validate118PublicationEvidence(copy, publication118));
+  }
+});
+
+function validate119Publication(value) {
+  assert.equal(value.schemaVersion, 1);
+  assert.equal(value.productId, "wallet");
+  assert.equal(value.version, "1.0.19-testnet-preview");
+  assert.equal(value.versionCode, 25);
+  assert.equal(value.releaseStatus, "PUBLISHED_TESTNET_PRERELEASE");
+  assert.equal(value.sourceCommit, "d58ce00dc4e83f4c24747dfef7e0b59395d6b789");
+  assert.equal(value.releaseTag, "wallet-android-testnet-preview-1.0.19-d58ce00dc");
+  assert.equal(value.releaseUrl, "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-1.0.19-d58ce00dc");
+  assert.equal(value.releaseImmutable, false);
+  assert.equal(value.publisherCanReplaceAssets, true);
+  assert.equal(value.downloadTimeSha256Verified, true);
+  assert.equal(value.productionSigned, false);
+  assert.equal(value.storeReleased, false);
+  assert.equal(value.walletConnectRelayE2E, "NOT_VERIFIED");
+  assert.deepEqual(value.apkReproducibility, {
+    rawGradleApkBitForBitMatched: false,
+    rawGradleApkV2SignaturesMatched: true,
+    rawGradleApkV2SignatureAlgorithmId: "0x0103",
+    rawGradleApkV2SignatureAlgorithm: "RSA_PKCS1_V1_5_WITH_SHA256",
+    differingBlockId: "0x504b4453",
+    differingBlock: "APK Dependency Info",
+    differingBlockContainedDifferentBuildHashes: true,
+    resigningRemovedOrReplacedDependencyMetadata: true,
+    rsaPssSaltNormalizationClaim: false,
+    publishedApkBitForBitMatched: true,
+  });
+  assert.equal(value.publicationEvidence, "proof/wallet-android-1.0.19-publication-20260921.json");
+  assert.deepEqual(value.artifacts.map(({ name }) => name).sort(), ["android-hermes", "android-release-aab", "android-release-apk", "ios-hermes"]);
+  assert.equal(new Set(value.artifacts.map(({ name }) => name)).size, 4);
+  const apk = value.artifacts.find(({ name }) => name === "android-release-apk");
+  const aab = value.artifacts.find(({ name }) => name === "android-release-aab");
+  assert.deepEqual(
+    [apk.filename, apk.assetId, apk.bytes, apk.sha256, apk.signingClass, apk.productionSigned, apk.versionCode, apk.url],
+    ["ynx-wallet-1.0.19-testnet-preview-d58ce00dc-universal-local-test-signed.apk", 577641202, 116639211, "437973258f40e4f7b3a2d3d603bbf67e932d1fca8082ed8eb9e8ff7b84514730", "local-test-signed", false, 25, `${value.releaseUrl.replace("/tag/", "/download/")}/ynx-wallet-1.0.19-testnet-preview-d58ce00dc-universal-local-test-signed.apk`],
+  );
+  assert.deepEqual(
+    [aab.filename, aab.assetId, aab.bytes, aab.sha256, aab.signingClass, aab.productionSigned, aab.versionCode, aab.url],
+    ["ynx-wallet-1.0.19-testnet-preview-d58ce00dc-local-test-signed.aab", 577641200, 71874951, "e60c165362ba5d85cf96e562800b5a1ef2f33812fff9eacd10745370bf114b7f", "local-test-signed", false, 25, `${value.releaseUrl.replace("/tag/", "/download/")}/ynx-wallet-1.0.19-testnet-preview-d58ce00dc-local-test-signed.aab`],
+  );
+  const androidHermes = value.artifacts.find(({ name }) => name === "android-hermes");
+  const iosHermes = value.artifacts.find(({ name }) => name === "ios-hermes");
+  assert.deepEqual([androidHermes.path, androidHermes.bytes, androidHermes.sha256, androidHermes.signingClass], ["dist-android/_expo/static/js/android/index-e85451b1f7cfc20d5147c01a1fd120f6.hbc", 9406440, "02f4a2ef13b2409c1bbe3a36d07bcc8b862675be83b012e66f1c38a65776186c", "unsigned-build-output"]);
+  assert.deepEqual([iosHermes.path, iosHermes.bytes, iosHermes.sha256, iosHermes.signingClass], ["dist-ios/_expo/static/js/ios/index-5ab8b8d9e3e6c4bdef2fea84874abf6a.hbc", 9401406, "d44257418a16004fc7c02d8180915cc0cfcf9fabe205eb7d02c08c59dd50bf72", "unsigned-build-output"]);
+  strictUtcSeconds(value.generatedAt);
+}
+
+function validate119PublicationEvidence(value, published) {
+  assert.equal(value.schema, "ynx-wallet-mobile-preview-publication/v1");
+  assert.equal(value.releaseTag, published.releaseTag);
+  assert.equal(value.releaseUrl, published.releaseUrl);
+  assert.equal(value.targetCommit, published.sourceCommit);
+  assert.equal(value.prerelease, true);
+  assert.equal(value.releaseImmutable, false);
+  assert.equal(value.publisherCanReplaceAssets, true);
+  assert.equal(value.downloadTimeSha256Verified, true);
+  assert.equal(value.githubReleaseId, 392588529);
+  assert.equal(value.apkAssetId, 577641202);
+  assert.equal(value.aabAssetId, 577641200);
+  const apk = published.artifacts.find(({ name }) => name === "android-release-apk");
+  const aab = published.artifacts.find(({ name }) => name === "android-release-aab");
+  assert.deepEqual([value.apk.url, value.apk.bytes, value.apk.sha256, value.apk.versionCode, value.apk.versionName], [apk.url, apk.bytes, apk.sha256, 25, "1.0.19-testnet-preview"]);
+  assert.deepEqual([value.aab.url, value.aab.bytes, value.aab.sha256, value.aab.versionCode], [aab.url, aab.bytes, aab.sha256, 25]);
+  assert.equal(value.apk.freshDownloadDigestMatched, true);
+  assert.equal(value.apk.apkSignatureV2Verified, true);
+  assert.equal(value.aab.freshDownloadDigestMatched, true);
+  assert.equal(value.aab.jarSignatureVerified, true);
+  assert.equal(value.signerCertificateDn, "C=US, O=Android, CN=Android Debug");
+  assert.equal(value.signerCertificateSha256, "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e");
+  assert.deepEqual(value.reproducibility, {
+    fixedAbsolutePath: "/private/tmp/ynx-wallet-1019-fixed-release",
+    cleanWorktrees: 2,
+    rawGradleApkBitForBitMatched: false,
+    rawGradleApkV2SignaturesMatched: true,
+    rawGradleApkV2SignatureAlgorithmId: "0x0103",
+    rawGradleApkV2SignatureAlgorithm: "RSA_PKCS1_V1_5_WITH_SHA256",
+    differingBlockId: "0x504b4453",
+    differingBlock: "APK Dependency Info",
+    differingBlockContainedDifferentBuildHashes: true,
+    resigningRemovedOrReplacedDependencyMetadata: true,
+    rsaPssSaltNormalizationClaim: false,
+    publishedApkBitForBitMatched: true,
+    aabBitForBitMatched: true,
+    crossPathComparisonExcluded: true,
+    crossPathReason: "Native build outputs embed the absolute worktree path.",
+  });
+  assert.deepEqual(value.installedValidation, {
+    evidence: "proof/wallet-android-1.0.18-installed-faucet-transfer-20260921.json",
+    networkPhaseTimeoutSeconds: 10,
+    absoluteCallDeadlineSeconds: 15,
+    automaticRetry: false,
+    requestBodyReplay: false,
+    faucetSubmitCount: 1,
+    transferBroadcastCount: 1,
+    transferRetryCount: 0,
+    subsequentSendAvailable: true,
+    mutationRepeatedFor1019: false,
+  });
+  assert.deepEqual(value.emulator, {
+    androidInstall: "NOT_REPEATED_FOR_VERSION_ONLY_RELEASE",
+    androidColdLaunch: "NOT_REPEATED_FOR_VERSION_ONLY_RELEASE",
+    iosSimulatorCiBuild: "PASS",
+    physicalDevice: "NOT_VERIFIED",
+  });
+  assert.deepEqual(value.recoveryContractTests, { passed: 558, failed: 0, nativeTransportPassed: 18, nativeTransportFailed: 0, liveChainTransferExecuted: false });
+  assert.equal(value.productionSigned, false);
+  assert.equal(value.storeReleased, false);
+  assert.equal(value.walletConnectRelayE2E, false);
+  assert.equal(value.officialWebsiteUpdated, false);
+  const created = strictUtcSeconds(value.releaseCreatedAt);
+  const publishedAt = strictUtcSeconds(value.releasePublishedAt);
+  const observed = strictUtcSeconds(value.generatedAt);
+  assert.ok(publishedAt >= created);
+  assert.ok(observed >= publishedAt);
+  assert.equal(value.generatedAt, published.generatedAt);
+}
+
+test("1.0.19 publication binds exact source, fresh downloads, installed recovery and reproducible local-test-signed assets", () => {
+  validate119Publication(publication119);
+  validate119PublicationEvidence(publicationEvidence119, publication119);
+});
+
+test("1.0.19 publication rejects changed assets, widened trust or repeated mutations", () => {
+  for (const mutate of [
+    (value) => { value.sourceCommit = "a".repeat(40); },
+    (value) => { value.releaseTag += "-replacement"; },
+    (value) => { value.productionSigned = true; },
+    (value) => { value.storeReleased = true; },
+    (value) => { value.walletConnectRelayE2E = "VERIFIED"; },
+    (value) => { value.apkReproducibility.rawGradleApkV2SignaturesMatched = false; },
+    (value) => { value.apkReproducibility.rsaPssSaltNormalizationClaim = true; },
+    (value) => { value.artifacts[0].assetId += 1; },
+    (value) => { value.artifacts[0].sha256 = "0".repeat(64); },
+    (value) => { value.artifacts[1].bytes += 1; },
+  ]) {
+    const copy = structuredClone(publication119);
+    mutate(copy);
+    assert.throws(() => validate119Publication(copy));
+  }
+  for (const mutate of [
+    (value) => { value.apkAssetId += 1; },
+    (value) => { value.apk.freshDownloadDigestMatched = false; },
+    (value) => { value.apk.versionCode = 24; },
+    (value) => { value.aab.jarSignatureVerified = false; },
+    (value) => { value.reproducibility.rawGradleApkV2SignaturesMatched = false; },
+    (value) => { value.reproducibility.rawGradleApkV2SignatureAlgorithmId = "0x0101"; },
+    (value) => { value.reproducibility.differingBlockId = "0x00000000"; },
+    (value) => { value.reproducibility.rsaPssSaltNormalizationClaim = true; },
+    (value) => { value.reproducibility.publishedApkBitForBitMatched = false; },
+    (value) => { value.installedValidation.networkPhaseTimeoutSeconds = 5; },
+    (value) => { value.installedValidation.mutationRepeatedFor1019 = true; },
+    (value) => { value.emulator.physicalDevice = "PASS"; },
+    (value) => { value.recoveryContractTests.liveChainTransferExecuted = true; },
+    (value) => { value.officialWebsiteUpdated = true; },
+  ]) {
+    const copy = structuredClone(publicationEvidence119);
+    mutate(copy);
+    assert.throws(() => validate119PublicationEvidence(copy, publication119));
   }
 });
