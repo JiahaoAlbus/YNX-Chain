@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "finance-broker-execution-idempotency-fence-source-evidence",
+  "recordedAt": "2026-09-20T10:10:49Z",
+  "scope": ["internal/finance/**", "apps/finance/**"],
+  "baseline": {
+    "commit": "73c7e43934ed82920edcd064c2c361a838e5fb88",
+    "tree": "b33309de50df42d29c5fceb7c45b6a1f5d84cc29"
+  },
+  "implementation": {
+    "dispatchPath": "internal/finance/broker_dispatch.go",
+    "dispatchSha256": "6bf77c3d97bee4efdcda71e4d2a206e1e11dcbc8cce34e1f93cc00de356da32b",
+    "persistencePath": "internal/finance/store.go",
+    "persistenceSha256": "24518e14d5b4edefe6fb8c02a1fd7f77744960460623bd55d05a1d2d0566d938",
+    "testPath": "internal/finance/broker_dispatch_test.go",
+    "testSha256": "eab13c9877888a99a77f465d742810d9de0d8c2a6321a5b1316749d5bdde6d87",
+    "idempotencyScope": "one_finance_account_one_execution_request_one_order",
+    "sameOrderReplay": "returns_existing_outbox",
+    "crossOrderReplay": "fail_closed_before_cas_commit",
+    "restartCoverage": true,
+    "persistedDuplicateInvariant": "rejected"
+  },
+  "tests": {
+    "focusedRestartReplay": "PASS",
+    "goFinanceAndCommands": "PASS",
+    "race": "PASS",
+    "diffCheck": "PASS"
+  },
+  "truth": {
+    "sourceComplete": true,
+    "publicRelease": false,
+    "installedRelease": false,
+    "officialSandboxVerified": false,
+    "providerAccountVerified": false,
+    "orderSubmitted": false,
+    "transaction": false
+  }
+}
