@@ -24,6 +24,7 @@ type verificationResult struct {
 
 type verificationProbe func(context.Context, brokerage.Config) (verificationResult, error)
 type readinessProbe func(context.Context, string, string, string, time.Time) (finance.BrokerActivationReadiness, error)
+type authorityFactory func(finance.NodeEndpointAuthorityConfig) (finance.EndpointAuthorityGate, error)
 
 func main() { os.Exit(run(os.Args[1:])) }
 func run(args []string) int {
@@ -67,6 +68,10 @@ func runWith(args []string, get func(string) string, probe verificationProbe, ou
 }
 
 func runWithReadiness(args []string, get func(string) string, probe verificationProbe, readinessProbe readinessProbe, output io.Writer) int {
+	return runWithDependencies(args, get, probe, readinessProbe, finance.NewNodeEndpointAuthority, output)
+}
+
+func runWithDependencies(args []string, get func(string) string, probe verificationProbe, readinessProbe readinessProbe, newAuthority authorityFactory, output io.Writer) int {
 	mode := "doctor"
 	network := false
 	localReadOnly := false
@@ -81,9 +86,16 @@ func runWithReadiness(args []string, get func(string) string, probe verification
 	localReadOnly = len(args) == 2 && args[1] == "--local-read-only"
 	cfg := brokerage.LoadConfig(get)
 	status := cfg.Status()
-	authorityReport := map[string]any{"bundledManifestPresent": true, "bundledFinancePinBuildVerified": true, "centralSignedManifestActive": false, "installedWalletCallbackVerified": false, "officialSandboxVerified": false, "providerVerified": false, "productionApproved": false, "result": "BLOCKED_SHARED_AUTHORITY_EVIDENCE"}
-	if strings.TrimSpace(get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_NODE_BINARY")) != "" || strings.TrimSpace(get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE")) != "" {
-		gate, authorityErr := finance.NewNodeEndpointAuthority(finance.NodeEndpointAuthorityConfig{
+	authorityConfigured := strings.TrimSpace(get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_NODE_BINARY")) != "" || strings.TrimSpace(get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE")) != ""
+	authorityReport := map[string]any{"bundledManifestPresent": true, "bundledFinancePinBuildVerified": true, "configured": authorityConfigured, "verificationAttempted": false, "checkpointMayAdvance": false, "centralSignedManifestActive": false, "installedWalletCallbackVerified": false, "officialSandboxVerified": false, "providerVerified": false, "productionApproved": false, "result": "BLOCKED_SHARED_AUTHORITY_EVIDENCE"}
+	// The Endpoint Authority verifier owns an append-only checkpoint CAS. It is
+	// therefore deliberately excluded from configuration-only and
+	// activation-plan --local-read-only modes. Only the explicit bounded
+	// network diagnostic may advance that local checkpoint.
+	if authorityConfigured && network {
+		authorityReport["verificationAttempted"] = true
+		authorityReport["checkpointMayAdvance"] = true
+		gate, authorityErr := newAuthority(finance.NodeEndpointAuthorityConfig{
 			NodeBinary: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_NODE_BINARY"), Script: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_SCRIPT"), TrustRootFile: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUST_ROOT_FILE"), ManifestFile: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE"), CheckpointFile: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_CHECKPOINT_FILE"), TrustedTimeFile: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUSTED_TIME_FILE"), Timeout: 3 * time.Second,
 		})
 		if authorityErr != nil {
@@ -124,9 +136,14 @@ func runWithReadiness(args []string, get func(string) string, probe verification
 				localReady = readiness.ReadyForWorkerDispatch
 			}
 		}
+		report["localWorkerCandidateReady"] = localReady
+		report["externalActivationGatesReady"] = false
 		if status.SubmissionEnabled && feePolicyReady && localReadOnly && localReady {
-			report["result"] = "SANDBOX_WRITE_CONFIGURATION_READY_NOT_EXECUTED"
+			report["configurationReadyNotExecuted"] = true
+			report["result"] = "SANDBOX_LOCAL_WORKER_CANDIDATE_READY_EXTERNAL_GATES_UNVERIFIED"
+			code = 2
 		} else {
+			report["configurationReadyNotExecuted"] = false
 			report["result"] = "SANDBOX_WRITE_ACTIVATION_BLOCKED"
 			code = 2
 		}
