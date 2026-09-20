@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "ynx.finance.owner-evidence.v1",
+  "product": "finance",
+  "scope": "weekly-v3-activation-lifecycle-truth",
+  "capturedAt": "2026-09-20T07:06:49Z",
+  "branch": "codex/finance-wallet-flow-20260912",
+  "implementation": {
+    "commit": "d7f3ad08f938902b0412f884dd0f8b0bcdb90cda",
+    "tree": "2672182be8b73f77a7b93739be391882bc67eb5f",
+    "predecessor": "966a78e065aa32f6ea4ad29a7eb4ba13396a3def"
+  },
+  "delivered": {
+    "approvalPendingCount": true,
+    "approvedAwaitingConsumptionCount": true,
+    "rejectedOrRevokedCount": true,
+    "approvedAwaitingExecutionCount": true,
+    "executionRequestedCount": true,
+    "ambiguousCount": true,
+    "reconcileOnlyCount": true,
+    "terminalCount": true,
+    "inconsistentCount": true,
+    "stateConsistencySignal": true,
+    "unknownStateFailsClosed": true,
+    "multipleEligibleRequestsFailClosed": true,
+    "pendingApprovalNeverReportedAsTerminal": true
+  },
+  "verification": [
+    {"command": "go test -race ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go vet ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go build ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "npm --prefix apps/finance test", "result": "PASS", "tests": 65},
+    {"command": "npm --prefix apps/finance run security", "result": "PASS", "filesScanned": 406},
+    {"command": "git diff --check", "result": "PASS"}
+  ],
+  "publicRuntime": {
+    "url": "https://finance.ynxweb4.com/",
+    "currentlyDeployedImplementation": "c20709da38bc2a4823efb9870046b6afb7775992",
+    "thisCheckpointDeployed": false,
+    "deploymentRequiresFreshCentralSingleUseLease": true
+  },
+  "externalTruth": {
+    "officialBrokerCredentialsProvided": false,
+    "officialBrokerSandboxVerified": false,
+    "providerReadAttempted": false,
+    "providerWriteAttempted": false,
+    "walletConnectRelayVerified": false,
+    "walletApproval": false,
+    "signature": false,
+    "securitiesOrder": false,
+    "chainTransaction": false,
+    "productionTrading": false
+  }
+}
