@@ -5,7 +5,10 @@ import {dirname, join, resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const manifest = JSON.parse(await readFile(join(root, "artifact-manifest.json"), "utf8"));
+const manifestPath = process.env.YNX_WALLET_WEB_ARTIFACT_MANIFEST
+  ? resolve(process.env.YNX_WALLET_WEB_ARTIFACT_MANIFEST)
+  : join(root, "artifact-manifest.json");
+const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 const requiredFiles = new Set(["index.html", "app.js", "provider.js", "wallet-address.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "styles.css", "accessibility.css", "ynx-logo.png"]);
 const deploymentPolicy=JSON.parse(await readFile(join(root,"vercel.json"),"utf8")),expectedNoStore=["/build-identity.json","/download-manifest.json","/sw.js","/asset-integrity.js","/service-worker-policy.js"],expectedSecurityHeaders=[{key:"Content-Security-Policy",value:"default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com; manifest-src 'self'; worker-src 'self'"},{key:"Permissions-Policy",value:"camera=(), microphone=(), geolocation=(), payment=(), usb=()"},{key:"Referrer-Policy",value:"no-referrer"},{key:"X-Content-Type-Options",value:"nosniff"},{key:"X-Frame-Options",value:"DENY"}];
 if(deploymentPolicy.buildCommand!=="npm run build"||deploymentPolicy.outputDirectory!=="dist/pwa"||deploymentPolicy.headers?.[0]?.source!=="/(.*)"||JSON.stringify(deploymentPolicy.headers[0].headers)!==JSON.stringify(expectedSecurityHeaders)||JSON.stringify(deploymentPolicy.headers.slice(1).map(({source})=>source))!==JSON.stringify(expectedNoStore)||deploymentPolicy.headers.slice(1).some(({headers})=>JSON.stringify(headers)!==JSON.stringify([{key:"Cache-Control",value:"no-store"}])))throw new Error("Invalid Wallet Vercel deployment contract");

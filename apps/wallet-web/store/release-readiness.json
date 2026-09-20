@@ -1,22 +1,37 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "product": "YNX Wallet browser extension",
-  "reviewDate": "2026-09-06",
-  "baseWebCommit": "882d04712414e7cb27aa3b81ee9aa8726cfc2b87",
-  "candidateCommit": null,
-  "state": "draft-source-and-materials-awaiting-root-review",
+  "reviewDate": "2026-09-20",
+  "baseWebCommit": "6bbf12d87a7274d73b7f2157157954d061b8efd0",
+  "candidateCommit": "9553b6d26d1bd0adda3bca6a8a61b1786ae91e51",
+  "state": "technical-release-kit-prepared-external-publisher-inputs-pending",
   "submitted": false,
   "storeReleased": false,
   "productionSigned": false,
   "installedCandidateVerified": false,
   "publisherVerified": false,
   "privacyPolicyPublished": false,
-  "sourceArchiveReady": false,
-  "screenshotAssetsReady": false,
-  "firefoxLint": {"errors":0,"warnings":5,"missingDataDeclarationWarning":false,"iconDimensionWarning":false,"androidMinimumWarningOnDesktopOnlyManifest":true},
-  "manifestIconGeneratedFromApprovedLogo": true,
+  "technicalMaterialsReady": true,
+  "sourceArchiveToolingReady": true,
+  "sourceArchiveReady": true,
+  "screenshotAssetsReady": true,
+  "storeAssetsReady": true,
   "storeSubmissionReady": false,
-  "firefoxContainerPermissions": {"sourceScoped":true,"scope":"browser-owned cookieStoreId + exact origin + selected account","legacyFirefoxGrantsInferred":false,"privateBrowsingSupported":false,"separateContainerVaults":false,"installedVerified":false},
+  "firefoxLint": {
+    "tool": "web-ext 10.6.0",
+    "errors": 0,
+    "warnings": 0,
+    "reviewed": true
+  },
+  "manifestIconGeneratedFromApprovedLogo": true,
+  "firefoxContainerPermissions": {
+    "sourceScoped": true,
+    "scope": "browser-owned cookieStoreId + exact origin + selected account",
+    "legacyFirefoxGrantsInferred": false,
+    "privateBrowsingSupported": false,
+    "separateContainerVaults": false,
+    "installedVerified": false
+  },
   "manifest": {
     "version": "0.1.1",
     "chromeEdgeMinimum": "120",
@@ -24,42 +39,93 @@
     "firefoxAndroidDeclared": false,
     "firefoxId": "wallet-testnet@ynxweb4.com",
     "firefoxIdOwnershipConfirmed": false,
-    "requiredFirefoxData": ["authenticationInfo", "financialAndPaymentInfo", "websiteContent"],
+    "requiredFirefoxData": [
+      "authenticationInfo",
+      "financialAndPaymentInfo",
+      "websiteContent"
+    ],
     "optionalFirefoxData": [],
     "incognito": "not_allowed"
   },
+  "publicDownloads": {
+    "sourceCommit": "c93e16be81beddc957ef5f27b7bbcdfa89c28db3",
+    "manifest": "../artifact-manifest.json",
+    "hosted": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "candidateReceipt": {
+    "sourceCommit": "9553b6d26d1bd0adda3bca6a8a61b1786ae91e51",
+    "artifacts": [
+      {
+        "name": "ynx-wallet-web-pwa-0.1.1.zip",
+        "bytes": 312860,
+        "sha256": "0f3709480d22eeffd6efa89a1afb8af3bc12210a9a83b31f9428239ad051bae2"
+      },
+      {
+        "name": "ynx-wallet-chrome-edge-0.1.1.zip",
+        "bytes": 547476,
+        "sha256": "f02b070e57808fc8be2371eea674f24274d5f0cf69029b3ebc368511c1a40234"
+      },
+      {
+        "name": "ynx-wallet-firefox-0.1.1.zip",
+        "bytes": 547574,
+        "sha256": "c08f1e9ea8c48e93a1d8aae4492115acb897aed8ecc9b662b8db89c97db83ec9"
+      }
+    ],
+    "reviewerSource": {
+      "name": "ynx-wallet-reviewer-source-9553b6d.zip",
+      "bytes": 1091650,
+      "sha256": "f1df88ae2302a47b40c6ad56f8bda853c91f8110dec6dd3d4fa84a3ec755e7d6",
+      "sourceFileCount": 239,
+      "authorityRecords": 14,
+      "expectedOutputFiles": 110,
+      "cleanExtractedRebuild": {
+        "gitRepositoryRequired": false,
+        "verifiedOutputFiles": 110,
+        "allBytesMatch": true
+      }
+    },
+    "productionSigned": false,
+    "storeReleased": false
+  },
   "publisherInputsRequired": [
-    "legal publisher and authorized store account owner",
-    "verified support and privacy contacts",
-    "domain control and approved HTTPS privacy policy URL",
-    "RPC, website and explorer legal operators and processors",
-    "hosting regions, request/IP log retention, access and deletion procedures",
-    "intended markets and applicable publisher/trader declarations",
-    "store inventory, version availability and signing identity ownership"
-  ],
-  "technicalGates": [
-    "final immutable source commit and three new artifact hashes",
-    "self-contained reviewer source archive with historical Git inputs and clean extracted rebuild",
-    "review of four existing innerHTML lint warnings",
-    "actual Firefox built-in installation consent and normal/private-window verification",
-    "actual Firefox container permission separation and review-context verification",
-    "real latest Chrome/Edge installed delta and current screenshots",
-    "actual store pre-install data disclosure and consent review",
-    "known queued-old-document request ordering boundary remains unproven"
+    "legal publisher and authorized Chrome, Edge and AMO account owners",
+    "publisher trader status, intended markets and store identity/version inventory",
+    "ownership of wallet-testnet@ynxweb4.com and external production signing credentials",
+    "verified support URL or email and controlled HTTPS privacy-policy URL",
+    "approved RPC, website and explorer operators, processors, regions and request/IP-log practices",
+    "legal approval of localized copy, privacy policy, data-use declarations and store attestations",
+    "authorization to upload, sign, submit and publish"
   ],
   "officialSources": [
-    {"url":"https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/","role":"Firefox taxonomy, new-extension requirement, desktop consent minimum"},
-    {"url":"https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/browser_specific_settings","role":"manifest data declaration and desktop-only support semantics"},
-    {"url":"https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/incognito","role":"exclude private windows without pretending storage isolation"},
-    {"url":"https://extensionworkshop.com/documentation/publish/add-on-policies/","role":"consent, privacy, permissions and readable source"},
-    {"url":"https://extensionworkshop.com/documentation/publish/source-code-submission/","role":"matching source, dependencies and reproducible reviewer build"},
-    {"url":"https://developer.chrome.com/docs/webstore/program-policies/disclosure-requirements","role":"pre-install data disclosure and affirmative consent"},
-    {"url":"https://developer.chrome.com/docs/webstore/program-policies/privacy","role":"accurate public privacy policy and recipients"},
-    {"url":"https://developer.chrome.com/docs/webstore/program-policies/limited-use","role":"single-purpose use and publisher certifications"},
-    {"url":"https://developer.chrome.com/docs/webstore/cws-dashboard-privacy","role":"dashboard permissions and data practices"},
-    {"url":"https://developer.chrome.com/docs/webstore/cws-dashboard-listing","role":"listing and locale requirements"},
-    {"url":"https://developer.chrome.com/docs/webstore/images","role":"store graphics"},
-    {"url":"https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension","role":"Edge privacy, listing and assets"},
-    {"url":"https://learn.microsoft.com/en-us/legal/microsoft-edge/extensions/developer-policies","role":"Edge data handling obligations"}
+    {
+      "url": "https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/",
+      "role": "Firefox taxonomy, declaration requirement and consent support"
+    },
+    {
+      "url": "https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/browser_specific_settings",
+      "role": "desktop-only support semantics"
+    },
+    {
+      "url": "https://extensionworkshop.com/documentation/publish/source-code-submission/",
+      "role": "reviewer source and reproducible output"
+    },
+    {
+      "url": "https://developer.chrome.com/docs/webstore/cws-dashboard-privacy",
+      "role": "Chrome privacy disclosures"
+    },
+    {
+      "url": "https://developer.chrome.com/docs/webstore/program-policies/limited-use",
+      "role": "Chrome Limited Use attestation"
+    },
+    {
+      "url": "https://developer.chrome.com/docs/webstore/images",
+      "role": "Chrome listing graphics"
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension",
+      "role": "Edge listing, privacy and asset requirements"
+    }
   ]
 }

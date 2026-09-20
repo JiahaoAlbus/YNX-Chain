@@ -1,42 +1,54 @@
-# Browser store preparation — draft, not submitted
+# Browser store release kit — prepared, not submitted
 
-Reviewed on 2026-09-06 against Wallet Web source based on `882d04712414e7cb27aa3b81ee9aa8726cfc2b87`. This directory prepares a new candidate; it does not change that commit's frozen packages or establish installation, store approval or publication.
+Reviewed on 2026-09-20 against merged Wallet Web baseline `6bbf12d87a7274d73b7f2157157954d061b8efd0`. This directory contains the technical material that can be prepared without publisher accounts, signing credentials, contact details or legal approval. It does not claim a signed package, store upload, review or release.
 
 ## Materials
 
 | File | Use |
 | --- | --- |
-| `listing.en.md`, `listing.zh-CN.md` | English and Simplified Chinese listing copy, with prominent data disclosure |
-| `permissions-data-map.md` | Source-backed permission reasons, recipients, local retention and dashboard answers |
-| `privacy-policy.draft.en.md`, `privacy-policy.draft.zh-CN.md` | Publisher-review drafts; placeholders must be completed before use |
-| `submission-build.md` | Exact build prerequisites, historical Git inputs, source submission and reviewer steps |
-| `release-readiness.json` | Machine-readable unresolved publishing gates and official references |
+| `listing.en.md`, `listing.zh-CN.md` | English and Simplified Chinese listing copy, including pre-install data disclosure |
+| `permissions-data-map.md` | Source-backed permission reasons, recipients, retention and dashboard answers |
+| `privacy-policy.draft.en.md`, `privacy-policy.draft.zh-CN.md` | Complete technical drafts with publisher/operator placeholders |
+| `assets/`, `store-assets.json` | Current 128/300 icons, 440 × 280 promo, 1280 × 800 localized screenshots and exact hashes |
+| `generate-assets.mjs`, `verify-release-materials.mjs` | Deterministic brand-asset generation and fail-closed release-material validation |
+| `submission-build.md` | Exact build prerequisites, historical authorities and reviewer rebuild steps |
+| `release-readiness.json` | Machine-readable public/candidate boundaries and remaining external inputs |
 
-## Changes in this candidate
+## Current manifest and data disclosure
 
-Firefox declares required `authenticationInfo`, `financialAndPaymentInfo` and `websiteContent`. These cover approved authentication signatures, account/transaction information and DApp request/response content. It cannot claim `none`. Mozilla's March 12, 2026 documentation requires the declaration for new extensions submitted from November 3, 2025. Firefox's built-in consent is used with a desktop minimum of 140; older Firefox and Firefox Android are not offered. No optional telemetry is implemented. The category assignment is our mapping of the actual code to Mozilla's taxonomy, subject to reviewer assessment. [Mozilla consent documentation](https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/)
+Both extension variants use manifest version 3, version `0.1.1`, `incognito: not_allowed`, permissions `activeTab`, `scripting`, `storage`, and HTTPS host access. Chrome and Edge require version 120 or later. Firefox requires desktop version 142 or later and declares required `authenticationInfo`, `financialAndPaymentInfo` and `websiteContent`. No `gecko_android` entry is present, so Firefox Android is outside this release. No optional telemetry category is declared. [Firefox consent](https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/), [MDN browser settings](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/browser_specific_settings)
 
-Both extension manifests disallow private browsing because the current vault, permissions and transaction journal are persistent profile storage. This is a browser policy declaration; an installed-browser verification remains pending. Normal Firefox containers have separate origin/account permissions bound to the browser-provided cookieStoreId. Old unscoped Firefox grants require a new connection. The vault and account-level transaction journal remain shared within the extension profile; this is not a separate vault per container. Actual Firefox container UI verification remains pending. [MDN incognito](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/incognito)
+`web-ext` 10.6.0 lint of the generated Firefox directory reports 0 errors, 0 warnings and 0 notices. This is a static package result; it does not imply AMO approval or signing.
 
-The package verifier now includes the shipped `wallet-address.js` in its exact PWA integrity list. README custody/provider descriptions and Firefox minimum-version package metadata are corrected. No signing, vault, RPC or shared Wallet/Auth implementation changes are included.
+Private windows are excluded because the vault, permission records and transaction journal use persistent extension-profile storage. Firefox site permission records include the browser-owned `cookieStoreId`, exact origin and selected account, so each normal container authorizes separately. The encrypted vault and account-level transaction journal remain shared by the extension profile; this is not a separate vault per container.
 
-## Publication gates
-
-1. Confirm the legal publisher, support and privacy contacts, domain control, applicable markets and store accounts. Do not treat `wallet-testnet@ynxweb4.com` as a verified contact or registered AMO identity.
-2. Confirm the RPC/website operators, processors, hosting regions and actual request/IP-log retention/deletion practices. Complete both privacy drafts, publish the approved HTTPS policy and link it from the product/homepage and store dashboard. Nothing here has been published.
-3. Verify the real pre-install data disclosure/consent experience. Chrome's current policy requires disclosure and affirmative informed consent before installation; listing copy alone has not been proven sufficient by this task. Edge dashboard answers must match the product and policy. [Chrome disclosure policy](https://developer.chrome.com/docs/webstore/program-policies/disclosure-requirements), [Edge publishing](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension)
-4. The build now generates the declared 128 px icon from the approved original logo; its dimension warning is resolved. Review the four existing Firefox `innerHTML` lint warnings with source context; do not suppress them or label lint warning-free.
-5. Capture the new immutable candidate's actual installed normal/private-window behavior, Firefox built-in consent, Chrome/Edge DApp connection and signing delta, and real store screenshots. The Mac is locked; these checks remain pending. Older `5d4bda5` screenshots and successful flows describe that source only, not `882` or this candidate.
-6. Verify Firefox container permission separation and displayed browser context in the installed extension before asserting AMO privacy compliance. Preserve the known queued-old-document request review boundary; the existing epoch tests do not prove every browser document-delivery ordering.
-7. Use `export-reviewer-source.mjs` after the root commits this candidate, then run `rebuild-reviewer-source.mjs` from a newly extracted archive with locally installed dependencies. Record the final archive hash and exact output-byte match. The explicit exported authority mode preserves fixed commit/path and dual-hash checks; a plain source copy without its authority file is insufficient.
-8. Select a unique release version/AMO ID against the publisher's actual store inventory, submit only with separate authorization, and record the resulting signing/review/publishing receipts independently.
-
-The English/Chinese files are usable editorial drafts, not uploaded localized listings. Current runtime translation support does not itself populate manifest `_locales` store metadata. Verify each store's locale/category controls and any necessary manifest localization before claiming both listings are available.
-
-Current icon candidate web-ext 10.6.0 lint: **0 errors, 5 warnings**. The missing-data declaration and icon-size warnings are gone. Alongside four existing template warnings, the linter compares desktop minimum 140 with Android's consent minimum 142. This candidate omits `gecko_android` and therefore declares desktop availability only; preserve that warning for review instead of adding untested Android support. [MDN browser settings](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/browser_specific_settings)
+The HTTPS host scope lets compatible DApps discover the provider at page start. It does not grant an account: connection, message signing and transaction submission have separate approval gates. `activeTab` and `scripting` are limited to the user-selected HTTPS page when repairing provider injection. Full explanations and data recipients are in `permissions-data-map.md` and the privacy drafts.
 
 ## Visual assets
 
-Plan actual screenshots at **1280 × 800**, which meets the documented Chrome and Edge sizes. Chrome requires an icon and 440 × 280 promotional tile; Edge recommends a 300 × 300 logo (minimum 128 × 128), and allows up to six screenshots. Supply the current blue/white UI and public QA identity only; no password, recovery key, substituted balances or staged approval result. [Chrome images](https://developer.chrome.com/docs/webstore/images), [Chrome listing](https://developer.chrome.com/docs/webstore/cws-dashboard-listing), [Edge listing](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension#step-7-enter-store-listing-details-for-each-language)
+Run `npm run store:assets` after installing dependencies. The generator rebuilds the Chromium extension, loads it temporarily in an isolated Microsoft Edge profile, leaves a neutral HTTPS page active, and captures the actual extension UI in English and Simplified Chinese. It creates no wallet account, uses no credential and submits no transaction. `npm run verify:store` enforces every image dimension, byte count and SHA-256 plus manifest, listing, permission and truth-boundary invariants.
 
-The existing actual screenshot provenance is in the audit file `web-extension-installed-qa/5d-real-screenshot-source-manifest.json`; its captures are historical and not yet ready for store submission. No store badge, store URL or publisher verification is invented.
+The kit includes the Chrome 128 × 128 icon, Chrome 440 × 280 small promotional tile, Edge 300 × 300 logo and two 1280 × 800 screenshots. These meet the documented current image dimensions. [Chrome images](https://developer.chrome.com/docs/webstore/images), [Edge publishing](https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension)
+
+## Public download boundary
+
+`artifact-manifest.json` remains the receipt for the three currently published unsigned `0.1.1` downloads built from `c93e16be81beddc957ef5f27b7bbcdfa89c28db3`. `npm run test:public-artifacts` reads that manifest and the product download matrix, then downloads all three official URLs and checks exact bytes and SHA-256. The Firefox runtime evidence is also bound to that public Firefox tuple. A new candidate package is written to a separate manifest by setting `YNX_WALLET_WEB_ARTIFACT_MANIFEST`; preparation never rewrites public history.
+
+Public hosting does not make the packages production-signed or store-released. The store documents and automated gate require `productionSigned=false` and `storeReleased=false` until external receipts exist.
+
+## Reviewer source
+
+`export-reviewer-source.mjs` exports only committed Wallet Web, Wallet/Auth and required integration source from an immutable commit. It embeds the complete verified build-authority archive and normal-build output hashes. `rebuild-reviewer-source.mjs` works without `.git`, verifies every submitted source byte and authority record, rebuilds all variants, and requires every generated output byte to match. See `submission-build.md` for the exact commands and environment.
+
+The machine-readable candidate receipt in `release-readiness.json` binds source commit `9553b6d26d1bd0adda3bca6a8a61b1786ae91e51`, all three unsigned package hashes, the reviewer-source ZIP hash and a clean extracted rebuild with 110/110 output files matching byte for byte. The receipt commit itself is audit metadata and is not substituted for that immutable source commit.
+
+## Inputs still required from the publisher
+
+1. Legal publisher/account owner, applicable trader status, intended markets, and authorized Chrome Web Store, Edge Add-ons and AMO accounts.
+2. Ownership confirmation for the Firefox ID `wallet-testnet@ynxweb4.com`, available store version/identity inventory, and production signing credentials held outside this repository.
+3. Verified support URL or email and an approved HTTPS privacy-policy URL under a controlled domain.
+4. Confirmed legal operators/processors for RPC, website and explorer services, including hosting regions, IP/request-log retention, access and deletion procedures.
+5. Legal approval of the localized listing, privacy policy, store data-use declarations and Chrome Limited Use / applicable Edge and Mozilla attestations.
+6. Separate authorization to upload, sign, submit and publish, followed by the stores' signing, review and release receipts.
+
+Until those inputs and receipts exist, the listing placeholders must remain visible and `submitted`, `publisherVerified`, `privacyPolicyPublished`, `productionSigned` and `storeReleased` must remain false.

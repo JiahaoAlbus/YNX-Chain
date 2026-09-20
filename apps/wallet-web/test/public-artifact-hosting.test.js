@@ -18,3 +18,16 @@ test("HTTP 200 SPA fallback and non-official origins fail closed",async()=>{
   const external=await inspectOfficialArtifact({...spec,url:"https://github.com/example/wallet.zip"},async()=>{throw new Error("must not fetch")});
   assert.equal(external.hosted,false);assert.equal(external.errorCode,"NON_OFFICIAL_ORIGIN");
 });
+
+test("content-addressed official route may redirect only to an immutable GitHub release asset",async()=>{
+  const redirected={...spec,allowImmutableReleaseRedirect:true};let calls=0;
+  const result=await inspectOfficialArtifact(redirected,async(_url,options)=>{
+    calls+=1;
+    if(options.redirect==="manual")return new Response(null,{status:302,headers:{location:"https://release-assets.githubusercontent.com/github-production-release-asset/1/exact","cache-control":"public, max-age=31536000, immutable","content-disposition":"attachment"}});
+    const response=new Response(body,{status:200,headers:{"content-type":"application/octet-stream","content-disposition":"attachment; filename=wallet.zip","content-length":String(body.length)}});
+    Object.defineProperty(response,"url",{value:"https://release-assets.githubusercontent.com/github-production-release-asset/1/exact"});return response;
+  });
+  assert.equal(calls,2);assert.equal(result.hosted,true);assert.equal(result.redirected,true);assert.equal(result.releaseAssetHost,"release-assets.githubusercontent.com");
+  const rejected=await inspectOfficialArtifact(redirected,async()=>new Response(null,{status:302,headers:{location:"https://example.com/wallet.zip","cache-control":"immutable","content-disposition":"attachment"}}));
+  assert.equal(rejected.hosted,false);assert.equal(rejected.errorCode,"ARTIFACT_REDIRECT_TARGET");
+});

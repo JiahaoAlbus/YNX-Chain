@@ -47,7 +47,7 @@
       "path": "artifacts/ynx-wallet-firefox-0.1.1.zip",
       "bytes": 547577,
       "sha256": "6ac256415c34b4b492dc6094be8be8c9f0acf6a40653e2e18fde64dd20f801e0",
-      "minimumOS": "Firefox 142 (desktop and Android)",
+      "minimumOS": "Firefox 142 desktop",
       "signingClass": "unsigned-unpacked-extension",
       "browsers": [
         "Firefox"

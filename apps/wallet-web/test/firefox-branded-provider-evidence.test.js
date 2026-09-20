@@ -1,18 +1,24 @@
 import assert from "node:assert/strict";
-import {createHash} from "node:crypto";
 import {readFile} from "node:fs/promises";
 import test from "node:test";
 
 const evidenceUrl=new URL("../evidence/runtime/firefox-branded-provider-20260920.json",import.meta.url);
-const artifactUrl=new URL("../artifacts/ynx-wallet-firefox-0.1.1.zip",import.meta.url);
+const artifactManifestUrl=new URL("../artifact-manifest.json",import.meta.url);
 
-test("branded Firefox evidence binds the exact published unsigned artifact",async()=>{
-  const evidence=JSON.parse(await readFile(evidenceUrl,"utf8"));
-  const artifact=await readFile(artifactUrl);
+test("branded Firefox evidence binds the published artifact manifest",async()=>{
+  const [evidence,manifest]=await Promise.all([
+    readFile(evidenceUrl,"utf8").then(JSON.parse),
+    readFile(artifactManifestUrl,"utf8").then(JSON.parse),
+  ]);
+  const artifact=manifest.artifacts.find(item=>item.browsers?.includes("Firefox"));
+  assert.ok(artifact,"published Firefox artifact is missing from the manifest");
   assert.equal(evidence.schemaVersion,"ynx.wallet.firefox-runtime-evidence.v1");
   assert.equal(evidence.artifact.sourceCommit,"c93e16be81beddc957ef5f27b7bbcdfa89c28db3");
-  assert.equal(evidence.artifact.bytes,artifact.length);
-  assert.equal(evidence.artifact.sha256,createHash("sha256").update(artifact).digest("hex"));
+  assert.equal(manifest.sourceCommit,evidence.artifact.sourceCommit);
+  assert.equal(evidence.artifact.bytes,artifact.bytes);
+  assert.equal(evidence.artifact.sha256,artifact.sha256);
+  assert.equal(artifact.productionSigned,false);
+  assert.equal(artifact.storeReleased,false);
   assert.equal(evidence.runtime.brandedMozillaFirefox,true);
   assert.equal(evidence.runtime.notarizedDeveloperIdVerified,true);
   assert.equal(evidence.temporaryAddonLifecycle.passed,true);
