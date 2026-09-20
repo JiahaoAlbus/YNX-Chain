@@ -14,7 +14,7 @@ import {
   sha256,
 } from "../lib/sdk-release.mjs";
 
-const JS_FILES = ["sdk/js/index.js", "sdk/js/package.json", "sdk/js/wallet.js", "sdk/js/ynx-testnet.js", "sdk/js/testnet-endpoints.js", "sdk/js/endpoint-authority.js", "sdk/js/endpoint-authority-bundle.js"];
+const JS_FILES = ["sdk/js/index.js", "sdk/js/package.json", "sdk/js/wallet.js", "sdk/js/ynx-testnet.js", "sdk/js/testnet-endpoints.js", "sdk/js/endpoint-authority.js", "sdk/js/endpoint-authority-bundle.js", "sdk/js/endpoint-authority-v2.js"];
 const PYTHON_FILES = ["sdk/python/README.md", "sdk/python/pyproject.toml", "sdk/python/ynx_client.py"];
 
 export function buildSDKRelease({rootDir, outputDir}) {

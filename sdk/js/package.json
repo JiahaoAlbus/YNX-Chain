@@ -10,7 +10,8 @@
     "ynx-testnet.js",
     "testnet-endpoints.js",
     "endpoint-authority.js",
-    "endpoint-authority-bundle.js"
+    "endpoint-authority-bundle.js",
+    "endpoint-authority-v2.js"
   ],
   "engines": {
     "node": ">=18"

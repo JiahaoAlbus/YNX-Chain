@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "ynx-endpoint-authority-trust/v2",
+  "authorityId": "ynx-testnet-endpoints",
+  "rootVersion": 1,
+  "chainId": 6423,
+  "anchor": {"rootVersion": 1, "sequence": 0, "payloadSha256": "0000000000000000000000000000000000000000000000000000000000000000"},
+  "keys": [],
+  "consumers": [{"consumerId": "ynx-finance-v1", "origin": "https://finance.ynxweb4.com", "minimumClientVersion": "1.0.0", "endpoints": ["rpc", "evmRpc", "faucet", "walletGateway"], "products": ["finance"]}],
+  "maxValiditySeconds": 604800
+}
