@@ -566,6 +566,18 @@ function validate119Publication(value) {
   assert.equal(value.productionSigned, false);
   assert.equal(value.storeReleased, false);
   assert.equal(value.walletConnectRelayE2E, "NOT_VERIFIED");
+  assert.deepEqual(value.apkReproducibility, {
+    rawGradleApkBitForBitMatched: false,
+    rawGradleApkV2SignaturesMatched: true,
+    rawGradleApkV2SignatureAlgorithmId: "0x0103",
+    rawGradleApkV2SignatureAlgorithm: "RSA_PKCS1_V1_5_WITH_SHA256",
+    differingBlockId: "0x504b4453",
+    differingBlock: "APK Dependency Info",
+    differingBlockContainedDifferentBuildHashes: true,
+    resigningRemovedOrReplacedDependencyMetadata: true,
+    rsaPssSaltNormalizationClaim: false,
+    publishedApkBitForBitMatched: true,
+  });
   assert.equal(value.publicationEvidence, "proof/wallet-android-1.0.19-publication-20260921.json");
   assert.deepEqual(value.artifacts.map(({ name }) => name).sort(), ["android-hermes", "android-release-aab", "android-release-apk", "ios-hermes"]);
   assert.equal(new Set(value.artifacts.map(({ name }) => name)).size, 4);
@@ -611,8 +623,16 @@ function validate119PublicationEvidence(value, published) {
   assert.deepEqual(value.reproducibility, {
     fixedAbsolutePath: "/private/tmp/ynx-wallet-1019-fixed-release",
     cleanWorktrees: 2,
-    apkPayloadsMatchedBeforeDeterministicSigning: true,
-    apkBitForBitMatchedAfterDeterministicLocalTestSigning: true,
+    rawGradleApkBitForBitMatched: false,
+    rawGradleApkV2SignaturesMatched: true,
+    rawGradleApkV2SignatureAlgorithmId: "0x0103",
+    rawGradleApkV2SignatureAlgorithm: "RSA_PKCS1_V1_5_WITH_SHA256",
+    differingBlockId: "0x504b4453",
+    differingBlock: "APK Dependency Info",
+    differingBlockContainedDifferentBuildHashes: true,
+    resigningRemovedOrReplacedDependencyMetadata: true,
+    rsaPssSaltNormalizationClaim: false,
+    publishedApkBitForBitMatched: true,
     aabBitForBitMatched: true,
     crossPathComparisonExcluded: true,
     crossPathReason: "Native build outputs embed the absolute worktree path.",
@@ -660,6 +680,8 @@ test("1.0.19 publication rejects changed assets, widened trust or repeated mutat
     (value) => { value.productionSigned = true; },
     (value) => { value.storeReleased = true; },
     (value) => { value.walletConnectRelayE2E = "VERIFIED"; },
+    (value) => { value.apkReproducibility.rawGradleApkV2SignaturesMatched = false; },
+    (value) => { value.apkReproducibility.rsaPssSaltNormalizationClaim = true; },
     (value) => { value.artifacts[0].assetId += 1; },
     (value) => { value.artifacts[0].sha256 = "0".repeat(64); },
     (value) => { value.artifacts[1].bytes += 1; },
@@ -673,7 +695,11 @@ test("1.0.19 publication rejects changed assets, widened trust or repeated mutat
     (value) => { value.apk.freshDownloadDigestMatched = false; },
     (value) => { value.apk.versionCode = 24; },
     (value) => { value.aab.jarSignatureVerified = false; },
-    (value) => { value.reproducibility.apkBitForBitMatchedAfterDeterministicLocalTestSigning = false; },
+    (value) => { value.reproducibility.rawGradleApkV2SignaturesMatched = false; },
+    (value) => { value.reproducibility.rawGradleApkV2SignatureAlgorithmId = "0x0101"; },
+    (value) => { value.reproducibility.differingBlockId = "0x00000000"; },
+    (value) => { value.reproducibility.rsaPssSaltNormalizationClaim = true; },
+    (value) => { value.reproducibility.publishedApkBitForBitMatched = false; },
     (value) => { value.installedValidation.networkPhaseTimeoutSeconds = 5; },
     (value) => { value.installedValidation.mutationRepeatedFor1019 = true; },
     (value) => { value.emulator.physicalDevice = "PASS"; },

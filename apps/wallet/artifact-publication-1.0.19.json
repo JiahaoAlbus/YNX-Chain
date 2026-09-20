@@ -13,6 +13,18 @@
   "productionSigned": false,
   "storeReleased": false,
   "walletConnectRelayE2E": "NOT_VERIFIED",
+  "apkReproducibility": {
+    "rawGradleApkBitForBitMatched": false,
+    "rawGradleApkV2SignaturesMatched": true,
+    "rawGradleApkV2SignatureAlgorithmId": "0x0103",
+    "rawGradleApkV2SignatureAlgorithm": "RSA_PKCS1_V1_5_WITH_SHA256",
+    "differingBlockId": "0x504b4453",
+    "differingBlock": "APK Dependency Info",
+    "differingBlockContainedDifferentBuildHashes": true,
+    "resigningRemovedOrReplacedDependencyMetadata": true,
+    "rsaPssSaltNormalizationClaim": false,
+    "publishedApkBitForBitMatched": true
+  },
   "artifacts": [
     {
       "name": "android-release-apk",

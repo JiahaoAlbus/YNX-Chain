@@ -34,8 +34,16 @@
   "reproducibility": {
     "fixedAbsolutePath": "/private/tmp/ynx-wallet-1019-fixed-release",
     "cleanWorktrees": 2,
-    "apkPayloadsMatchedBeforeDeterministicSigning": true,
-    "apkBitForBitMatchedAfterDeterministicLocalTestSigning": true,
+    "rawGradleApkBitForBitMatched": false,
+    "rawGradleApkV2SignaturesMatched": true,
+    "rawGradleApkV2SignatureAlgorithmId": "0x0103",
+    "rawGradleApkV2SignatureAlgorithm": "RSA_PKCS1_V1_5_WITH_SHA256",
+    "differingBlockId": "0x504b4453",
+    "differingBlock": "APK Dependency Info",
+    "differingBlockContainedDifferentBuildHashes": true,
+    "resigningRemovedOrReplacedDependencyMetadata": true,
+    "rsaPssSaltNormalizationClaim": false,
+    "publishedApkBitForBitMatched": true,
     "aabBitForBitMatched": true,
     "crossPathComparisonExcluded": true,
     "crossPathReason": "Native build outputs embed the absolute worktree path."
