@@ -156,6 +156,39 @@ func TestHealth48CallersCoalesceAndCanceledLeaderDoesNotPoison(t *testing.T) {
 	}
 }
 
+func TestHealthMonitorRefreshesWithoutPublicCallerAndStops(t *testing.T) {
+	core := api.NewServerWithConfig(chain.NewDevnet(chain.DefaultNetworkConfig("testnet")), api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
+	up := httptest.NewServer(core)
+	defer up.Close()
+	s := openTestFaucet(t, admissionTestConfig(t, up.URL))
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		s.MonitorHealth(ctx, 5*time.Millisecond)
+		close(done)
+	}()
+	deadline := time.Now().Add(time.Second)
+	for {
+		s.healthMu.Lock()
+		probes := s.healthStats.probes
+		checked := s.healthStats.last.CheckedAt
+		s.healthMu.Unlock()
+		if probes >= 2 && !checked.IsZero() {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("background health monitor did not refresh metrics")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("background health monitor did not stop")
+	}
+}
+
 func TestHealthRejectsOversizedTrailingAndRedirectedStatus(t *testing.T) {
 	for _, mode := range []string{"oversized", "trailing", "redirect", "wrong-chain", "error"} {
 		t.Run(mode, func(t *testing.T) {

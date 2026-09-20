@@ -3,6 +3,7 @@ package faucet
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 type healthFlight struct {
@@ -13,6 +14,24 @@ type healthFlight struct {
 type healthProbeStats struct {
 	probes, failures, joined uint64
 	last                     Health
+}
+
+// MonitorHealth keeps the metrics snapshot fresh without relying on a public
+// caller. It performs only the same bounded read-only probe used by /health.
+func (s *Service) MonitorHealth(ctx context.Context, interval time.Duration) {
+	if interval <= 0 {
+		return
+	}
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		_ = s.CheckHealth(ctx)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
 }
 
 // CheckHealth coalesces only overlapping probes. No stale successful result is

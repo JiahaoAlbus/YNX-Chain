@@ -24,7 +24,7 @@ The monitoring check starts a local YNX Testnet process, reads `/metrics`, valid
 
 ## Faucet incident runbook
 
-Treat `ynx_faucet_health_checked_timestamp_seconds` as the freshness boundary: readiness gauges are evidence from the last completed probe, not a live promise. `ynx_faucet_health_status_duration_seconds`, `ynx_faucet_health_capability_duration_seconds`, and `ynx_faucet_health_admission_duration_seconds` identify the slow or failed stage. `ynx_faucet_funding_ready` is one only after network identity, the durable capability, the admission database, and the applicable funding source are ready.
+Treat `ynx_faucet_health_checked_timestamp_seconds` as the freshness boundary: readiness gauges are evidence from the last completed probe, not a live promise. `ynx-faucetd` refreshes this snapshot every 15 seconds with the same bounded read-only probe used by `/health`, so monitoring freshness does not depend on public traffic. `ynx_faucet_health_status_duration_seconds`, `ynx_faucet_health_capability_duration_seconds`, and `ynx_faucet_health_admission_duration_seconds` identify the slow or failed stage. `ynx_faucet_funding_ready` is one only after network identity, the durable capability, the admission database, and the applicable funding source are ready.
 
 Authoritative mode mints through the chain-bound Core capability and has no finite treasury balance. It reports `ynx_faucet_funding_balance_applicable 0`; do not interpret its zero balance gauge as depletion. BFT account mode reports applicability one and its last verified YNXT balance. The low-balance alert compares that balance to the configured default grant and cannot fire for authoritative mode.
 
