@@ -130,26 +130,33 @@ func (c Config) normalized() (Config, error) {
 }
 
 type Service struct {
-	coreAuthToken   string
-	admissions      *admissionStore
-	cfg             Config
-	httpClient      *http.Client
-	signer          *secp256k1.PrivateKey
-	signerAddr      string
-	mu              sync.Mutex
-	fundMu          sync.Mutex
-	logMu           sync.Mutex
-	seen            map[string][]time.Time
-	requests        int64
-	successes       int64
-	denied          int64
-	requestOutcomes map[string]uint64
-	admissionErrors map[string]uint64
-	lastHash        string
-	lastError       string
-	healthMu        sync.Mutex
-	healthFlight    *healthFlight
-	healthStats     healthProbeStats
+	coreAuthToken        string
+	admissions           *admissionStore
+	cfg                  Config
+	httpClient           *http.Client
+	healthClient         *http.Client
+	signer               *secp256k1.PrivateKey
+	signerAddr           string
+	mu                   sync.Mutex
+	fundMu               sync.Mutex
+	logMu                sync.Mutex
+	seen                 map[string][]time.Time
+	requests             int64
+	successes            int64
+	denied               int64
+	requestOutcomes      map[string]uint64
+	admissionErrors      map[string]uint64
+	lastHash             string
+	lastError            string
+	healthMu             sync.Mutex
+	healthFlight         *healthFlight
+	healthStats          healthProbeStats
+	flightMu             sync.Mutex
+	fundingFlights       map[string]*fundingFlight
+	statusFlights        map[string]*statusFlight
+	capabilityFlight     *capabilityFlight
+	capabilityValidUntil time.Time
+	flightStats          flightStats
 }
 
 func New(cfg Config) (*Service, error) {
@@ -158,9 +165,11 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 	service := &Service{
-		cfg:        normalized,
-		httpClient: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
-		seen:       map[string][]time.Time{}, requestOutcomes: map[string]uint64{}, admissionErrors: map[string]uint64{},
+		cfg:          normalized,
+		httpClient:   newUpstreamHTTPClient(10*time.Second, 10*time.Second),
+		healthClient: newUpstreamHTTPClient(0, normalized.HealthTimeout),
+		seen:         map[string][]time.Time{}, requestOutcomes: map[string]uint64{}, admissionErrors: map[string]uint64{},
+		fundingFlights: map[string]*fundingFlight{}, statusFlights: map[string]*statusFlight{},
 	}
 	if normalized.UpstreamMode == UpstreamBFT {
 		signer, address, err := loadBFTSigner(normalized)
@@ -510,6 +519,8 @@ func (s *Service) recordDenied(reason string) {
 
 type Health struct {
 	CheckedAt                time.Time      `json:"checkedAt"`
+	SnapshotAgeMS            int64          `json:"snapshotAgeMs,omitempty"`
+	ProbeCached              bool           `json:"probeCached,omitempty"`
 	ProbeDurationMS          int64          `json:"probeDurationMs"`
 	StatusDurationMS         int64          `json:"statusDurationMs"`
 	CapabilityDurationMS     int64          `json:"capabilityDurationMs"`
@@ -610,7 +621,7 @@ func (s *Service) probeHealth(ctx context.Context) (health Health) {
 		health.LastError = err.Error()
 		return health
 	}
-	resp, err := s.httpClient.Do(req)
+	resp, err := s.healthClient.Do(req)
 	if err != nil {
 		health.OK = false
 		health.LastError = err.Error()
@@ -650,12 +661,15 @@ func (s *Service) probeHealth(ctx context.Context) (health Health) {
 		health.LastError = ""
 		if s.cfg.UpstreamMode == UpstreamAuthoritative {
 			capabilityStart := time.Now()
-			if err := s.requireFaucetCapability(ctx); err != nil {
+			if err := s.probeFaucetCapability(ctx, s.healthClient); err != nil {
 				health.OK = false
 				health.LastError = err.Error()
 				health.ProbeFailureStage = "capability"
 			}
 			health.CapabilityDurationMS = time.Since(capabilityStart).Milliseconds()
+			if health.OK {
+				s.noteCapabilitySuccess()
+			}
 			if health.OK {
 				admissionStart := time.Now()
 				if err := s.admissions.health(); err != nil {
@@ -704,7 +718,7 @@ ynx_faucet_success_total{%s} %d
 # HELP ynx_faucet_denied_total Rejected or rate-limited faucet requests.
 # TYPE ynx_faucet_denied_total counter
 ynx_faucet_denied_total{%s} %d
-`, labels, h.Requests, labels, h.Successes, labels, h.Denied) + s.requestMetrics() + s.healthMetrics()
+`, labels, h.Requests, labels, h.Successes, labels, h.Denied) + s.requestMetrics() + s.healthMetrics() + s.flightMetrics()
 }
 
 func (s *Service) recordRequestOutcome(response Response, status int, err error) {

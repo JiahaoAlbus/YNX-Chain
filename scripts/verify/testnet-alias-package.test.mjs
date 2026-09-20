@@ -26,6 +26,9 @@ test('nginx disables retries/cache and overwrites caller identity', () => {
   }
   assert.equal((text.match(/listen 443 ssl;/g) ?? []).length, 2);
   assert.match(text, /client_max_body_size 16k;/);
+  const faucet = text.slice(text.indexOf('server_name faucet-testnet.ynxweb4.com'));
+  assert.match(faucet, /proxy_set_header Connection "";/);
+  assert.match(faucet, /proxy_socket_keepalive on;/);
 });
 test('operator package retains external gates and data-preserving rollback', () => {
   const text = read('README.md');

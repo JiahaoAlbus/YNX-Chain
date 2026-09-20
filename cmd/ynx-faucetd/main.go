@@ -77,7 +77,15 @@ func runFaucet() (result error) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go service.MonitorHealth(ctx, 15*time.Second)
-	srv := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(faucet.NewServerWithBuild(service, currentBuildInfo()).Handler()), ReadHeaderTimeout: 5 * time.Second}
+	srv := &http.Server{
+		Addr:              *httpAddr,
+		Handler:           mutationfreeze.FromEnv(faucet.NewServerWithBuild(service, currentBuildInfo()).Handler()),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       75 * time.Second,
+		MaxHeaderBytes:    16 * 1024,
+	}
 	log.Printf("YNX Faucet listening on http://%s and funding via %s mode=%s", *httpAddr, *rpcURL, *upstreamMode)
 	return serveHTTPUntilShutdown(ctx, srv, 5*time.Second)
 }

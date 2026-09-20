@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const publicHealthFreshness = 20 * time.Second
+
 type healthFlight struct {
 	done   chan struct{}
 	result Health
@@ -72,6 +74,29 @@ func (s *Service) CheckHealth(ctx context.Context) Health {
 	case <-f.done:
 		return f.result
 	}
+}
+
+// RecentHealth returns only a bounded background snapshot. The public endpoint
+// can therefore stay responsive during a slow Core persistence cycle without
+// claiming an indefinitely stale success. Startup and stale snapshots fall back
+// to a real bounded probe in the handler.
+func (s *Service) RecentHealth(maxAge time.Duration) (Health, bool) {
+	s.healthMu.Lock()
+	h := s.healthStats.last
+	s.healthMu.Unlock()
+	if h.CheckedAt.IsZero() {
+		return Health{}, false
+	}
+	age := time.Since(h.CheckedAt)
+	if age < 0 {
+		age = 0
+	}
+	if maxAge <= 0 || age > maxAge {
+		return Health{}, false
+	}
+	h.ProbeCached = true
+	h.SnapshotAgeMS = age.Milliseconds()
+	return h, true
 }
 
 func (s *Service) canceledHealth(ctx context.Context) Health {

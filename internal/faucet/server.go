@@ -89,7 +89,10 @@ func (s *Server) routes() {
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
-	health := s.service.CheckHealth(r.Context())
+	health, fresh := s.service.RecentHealth(publicHealthFreshness)
+	if !fresh {
+		health = s.service.CheckHealth(r.Context())
+	}
 	health.Build = s.build
 	status := http.StatusOK
 	if !health.OK {

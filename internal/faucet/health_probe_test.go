@@ -189,6 +189,41 @@ func TestHealthMonitorRefreshesWithoutPublicCallerAndStops(t *testing.T) {
 	}
 }
 
+func TestPublicHealthUsesOnlyFreshBackgroundSnapshot(t *testing.T) {
+	core := api.NewServerWithConfig(chain.NewDevnet(chain.DefaultNetworkConfig("testnet")), api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
+	var stall atomic.Bool
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if stall.Load() {
+			<-r.Context().Done()
+			return
+		}
+		core.ServeHTTP(w, r)
+	}))
+	defer up.Close()
+	cfg := admissionTestConfig(t, up.URL)
+	cfg.HealthTimeout = 80 * time.Millisecond
+	s := openTestFaucet(t, cfg)
+	if h := s.CheckHealth(context.Background()); !h.FundingReady {
+		t.Fatal(h)
+	}
+	stall.Store(true)
+	started := time.Now()
+	w := httptest.NewRecorder()
+	NewServer(s).Handler().ServeHTTP(w, httptest.NewRequest("GET", "/health", nil))
+	if w.Code != 200 || time.Since(started) > 30*time.Millisecond || !strings.Contains(w.Body.String(), `"probeCached":true`) {
+		t.Fatalf("fresh snapshot was not served immediately: %d %s", w.Code, w.Body.String())
+	}
+	s.healthMu.Lock()
+	s.healthStats.last.CheckedAt = time.Now().Add(-publicHealthFreshness - time.Second)
+	s.healthMu.Unlock()
+	started = time.Now()
+	w = httptest.NewRecorder()
+	NewServer(s).Handler().ServeHTTP(w, httptest.NewRequest("GET", "/health", nil))
+	if w.Code != 502 || time.Since(started) < 50*time.Millisecond {
+		t.Fatalf("stale success was served: %d %s", w.Code, w.Body.String())
+	}
+}
+
 func TestHealthRejectsOversizedTrailingAndRedirectedStatus(t *testing.T) {
 	for _, mode := range []string{"oversized", "trailing", "redirect", "wrong-chain", "error"} {
 		t.Run(mode, func(t *testing.T) {
