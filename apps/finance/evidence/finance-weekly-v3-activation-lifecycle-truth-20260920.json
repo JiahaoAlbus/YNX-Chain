@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "ynx.finance.owner-evidence.v1",
+  "product": "finance",
+  "scope": "weekly-v3-activation-lifecycle-truth",
+  "capturedAt": "2026-09-20T07:06:49Z",
+  "branch": "codex/finance-wallet-flow-20260912",
+  "implementation": {
+    "commit": "d7f3ad08f938902b0412f884dd0f8b0bcdb90cda",
+    "tree": "2672182be8b73f77a7b93739be391882bc67eb5f",
+    "predecessor": "966a78e065aa32f6ea4ad29a7eb4ba13396a3def"
+  },
+  "delivered": {
+    "approvalPendingCount": true,
+    "approvedAwaitingConsumptionCount": true,
+    "rejectedOrRevokedCount": true,
+    "approvedAwaitingExecutionCount": true,
+    "executionRequestedCount": true,
+    "ambiguousCount": true,
+    "reconcileOnlyCount": true,
+    "terminalCount": true,
+    "inconsistentCount": true,
+    "stateConsistencySignal": true,
+    "unknownStateFailsClosed": true,
+    "multipleEligibleRequestsFailClosed": true,
+    "mixedExecutionQueuesFailClosed": true,
+    "terminalOutboxCorrelationRequired": true,
+    "canonicalProviderRejectedErrorRequired": true,
+    "orderOutboxIdentityRequiredBeforeReconcile": true,
+    "pendingApprovalNeverReportedAsTerminal": true
+  },
+  "originalCheckpointVerification": [
+    {"command": "go test -race ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go vet ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go build ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "npm --prefix apps/finance test", "result": "PASS", "tests": 65},
+    {"command": "npm --prefix apps/finance run security", "result": "PASS", "filesScanned": 406},
+    {"command": "git diff --check", "result": "PASS"}
+  ],
+  "freshMainPullRequestVerification": {
+    "base": "b5bb8cf4767c922a4563ddb749820446df67ccbc",
+    "reviewedImplementationCommit": "414821ffdd56d3748a1ce70dbc7baf3a4a122987",
+    "reviewedImplementationTree": "b50613b94e39a777a90f08c02299dee9834c9f03",
+    "goRace": "PASS",
+    "goVet": "PASS",
+    "goBuild": "PASS",
+    "webTests": {"result": "PASS", "tests": 48, "inventory": "current-main"},
+    "diffCheck": "PASS",
+    "security": {
+      "result": "BASELINE_FINDINGS_PRESENT",
+      "findingCount": 3,
+      "introducedByPullRequest": false,
+      "verifiedAgainstPureBase": true,
+      "paths": [
+        "apps/finance/mobile/contract/public-endpoint-manifest.json",
+        "apps/finance/web/vendor/product-session-browser-a7dad7ec.mjs"
+      ]
+    }
+  },
+  "publicRuntime": {
+    "url": "https://finance.ynxweb4.com/",
+    "currentlyDeployedImplementation": "c20709da38bc2a4823efb9870046b6afb7775992",
+    "thisCheckpointDeployed": false,
+    "deploymentRequiresFreshCentralSingleUseLease": true
+  },
+  "externalTruth": {
+    "officialBrokerCredentialsProvided": false,
+    "officialBrokerSandboxVerified": false,
+    "providerReadAttempted": false,
+    "providerWriteAttempted": false,
+    "walletConnectRelayVerified": false,
+    "walletApproval": false,
+    "signature": false,
+    "securitiesOrder": false,
+    "chainTransaction": false,
+    "productionTrading": false
+  }
+}
