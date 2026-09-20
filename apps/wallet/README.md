@@ -10,6 +10,7 @@ YNX Wallet is the independent self-custody, identity, authorization, signing, de
 - Review, sign and broadcast a canonical native transfer only after a biometric Send Review.
 - Review exact product, client, bundle, callback, device key, account, scopes, purpose and expiry before Sign in with YNX Wallet approval.
 - Inspect connected apps, sessions, devices and the tamper-evident authorization audit; revoke locally and require the central Gateway to enforce synced revocation.
+- Pair WalletConnect v2 dApps on `eip155:6423`, review the exact peer/Verify context and namespaces, then separately approve every account disclosure, signature or transaction. Pairing never requires a funded account.
 
 The recovery key restores native accounts only. Product device keys, sessions, replay records and local audit records are intentionally not restored to a replacement device.
 
@@ -25,6 +26,8 @@ ANDROID_HOME=/path/to/android/sdk ./gradlew assembleRelease
 ```
 
 The release APK is test-signed for Testnet Preview. Never place production keystores, Apple signing material, account secrets or provider keys in this repository.
+
+WalletConnect remains visibly unavailable when `EXPO_PUBLIC_REOWN_PROJECT_ID` is absent. Copy `.env.example` into the protected build environment and set a dedicated 32-character Reown project ID; do not commit runtime environment files. The project ID enables relay connectivity only and never authorizes a session, signature or transaction.
 
 ## Protocol
 

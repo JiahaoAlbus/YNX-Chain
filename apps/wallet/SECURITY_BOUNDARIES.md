@@ -18,6 +18,8 @@ Status: implemented and tested locally on the Wallet branch. Central enforcement
 - New recovery material blocks screen capture and is persisted only after exact `BACKED UP` confirmation.
 - Every stored secret is re-derived and matched to its public `ynx1` account on restart. Unknown fields, missing entries, mismatches, and hash-chain tamper fail closed.
 - Multi-account selection cannot silently authorize: changing the selected account locks the Wallet again.
+- WalletConnect transport cannot auto-approve. Session proposals bind Verify context, peer identity, chain `eip155:6423`, methods, events, selected account and expiry. Each sensitive request has its own replay-protected review and biometric key lease; locking or backgrounding rejects pending reviews.
+- A signed WalletConnect transaction is persisted before its first network dispatch. Missing acknowledgements and restarts preserve the exact original raw transaction, block replacement signing, and permit only status checking or an explicitly authorized resend of the same bytes until a verified local durability receipt resolves it.
 - Authorization intent, returned approval, rejection, and local revocation intent are separate immutable audit events without key material.
 - AI security review receives only selected request metadata. Its interface cannot read a key, approve, sign, mutate scopes, or bypass local authentication.
 - Smart Account sponsorship evaluates an exact operation digest, EntryPoint, Product Session, anti-Sybil subject, target/selector allowlist and three nested budgets. Disabled, expired, mismatched or exhausted policies return zero approved cost.

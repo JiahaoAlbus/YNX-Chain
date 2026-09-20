@@ -44,6 +44,8 @@ import { needsOfflineKeyRecovery, reviewRecoveryKey } from "./src/state/recovery
 import { assertSecureStorageAvailable, platformSecureStorage, platformStorageHealth } from "./src/storage/secureStorage";
 import { type WalletAccount, type WalletManifest, WalletRepository } from "./src/storage/walletRepository";
 import { COLORS, HIGH_CONTRAST_LIGHT } from "./src/theme";
+import { WalletConnectButton, walletConnectRuntime } from "./src/walletConnect/WalletConnectModal";
+import { offerWalletConnectDeepLink } from "./src/walletConnect/inbox";
 
 let ACTIVE_COLORS=COLORS;
 let styles=createStyles();
@@ -105,14 +107,14 @@ function WalletApp(){
   const cardApprovals=useMemo(()=>new CardApplicationApprovalController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url)}),[operations]);
   const financeOrderApprovals=useMemo(()=>new FinanceOrderApprovalController({storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),currentTime:(assertCurrent)=>walletSessionInventoryClient().currentTime(assertCurrent),openURL:(url)=>Linking.openURL(url)}),[operations]);
   const cancelAuthorization=useCallback(()=>{++linkRevision.current;productSessions.cancel();applicationActions.cancel();cardApprovals.cancel();financeOrderApprovals.cancel();setAuthorization(null);setApplicationAction(null);setCardApproval(null);setFinanceOrderApproval(null)},[productSessions,applicationActions,cardApprovals,financeOrderApprovals]);
-  const lock=()=>{operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
-  const updateManifest=useCallback((next:WalletManifest)=>{operations.invalidate();operations.setAccount(next.selectedAccountId);selectedRef.current=next.accounts.find(item=>item.account===next.selectedAccountId)??null;cancelAuthorization();setManifest(next)},[operations,cancelAuthorization]);
+  const lock=()=>{void walletConnectRuntime.rejectPendingForLock();operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
+  const updateManifest=useCallback((next:WalletManifest)=>{void walletConnectRuntime.rejectPendingForLock();operations.invalidate();operations.setAccount(next.selectedAccountId);selectedRef.current=next.accounts.find(item=>item.account===next.selectedAccountId)??null;cancelAuthorization();setManifest(next)},[operations,cancelAuthorization]);
 
   useEffect(()=>platformStorageHealth.subscribe(()=>{
     // Cancel scopes immediately, before React renders the restart page. Keep
     // the durable account/outbox records; an interrupted send can be unknown.
     ++loadRevision.current;readyRef.current=false;queuedLink.current=null;
-    operations.lock();rootScope.cancel();corruptReset.cancel();cancelAuthorization();
+    void walletConnectRuntime.rejectPendingForLock();operations.lock();rootScope.cancel();corruptReset.cancel();cancelAuthorization();
     setPendingRecovery(null);setSetup("closed");setSettings(false);setBusy(false);
     setNotice(null);setLoading(false);setStorageRestartRequired(true);
     dispatchLock({type:"lock",reason:"user"});
@@ -132,8 +134,9 @@ function WalletApp(){
     if(platformStorageHealth.requiresRestart)return;
     if(!readyRef.current||AppState.currentState!=="active"){queuedLink.current=url;return}
     if(linkIntake.current||productSessions.current||applicationActions.current||cardApprovals.current||financeOrderApprovals.current){setAuthorizationError(localizeError(locale,new Error("Finish or reject the current Wallet request before opening another")));return}
-    let actionRoute=false,cardRoute=false,financeRoute=false;
-    try{const target=new URL(url);actionRoute=target.protocol==="ynxwallet:"&&target.hostname==="application-action";cardRoute=target.protocol==="ynxwallet:"&&target.hostname==="card-application-approval";financeRoute=target.protocol==="ynxwallet:"&&target.hostname==="finance-order-approval"}catch{}
+    let actionRoute=false,cardRoute=false,financeRoute=false,walletConnectRoute=false;
+    try{const target=new URL(url);actionRoute=target.protocol==="ynxwallet:"&&target.hostname==="application-action";cardRoute=target.protocol==="ynxwallet:"&&target.hostname==="card-application-approval";financeRoute=target.protocol==="ynxwallet:"&&target.hostname==="finance-order-approval";walletConnectRoute=target.protocol==="ynxwallet:"&&target.hostname==="wc"}catch{}
+    if(walletConnectRoute){offerWalletConnectDeepLink(url);return}
     const revision=++linkRevision.current;linkIntake.current=true;
     const pending=financeRoute?financeOrderApprovals.receive(url).then(review=>{if(revision===linkRevision.current&&financeOrderApprovals.current?.id===review.id){setFinanceOrderApproval(review);setAuthorizationError(null)}}):cardRoute?cardApprovals.receive(url).then(review=>{if(revision===linkRevision.current&&cardApprovals.current?.id===review.id){setCardApproval(review);setAuthorizationError(null)}}):actionRoute?applicationActions.receive(url).then(review=>{if(revision===linkRevision.current&&applicationActions.current?.id===review.id){setApplicationAction(review);setAuthorizationError(null)}}):productSessions.receive(url).then(review=>{if(revision===linkRevision.current&&productSessions.current?.id===review.id){setAuthorization(review);setAuthorizationError(null)}});
     void pending.catch(caught=>{if(revision===linkRevision.current)setAuthorizationError(localizeError(locale,caught))}).finally(()=>{linkIntake.current=false});
@@ -142,7 +145,7 @@ function WalletApp(){
   useEffect(()=>{void load()},[load]);
   useEffect(()=>{if(!initialLinkRead.current){initialLinkRead.current=true;void Linking.getInitialURL().then((url)=>{if(url)handleLink(url)})}const sub=Linking.addEventListener("url",({url})=>handleLink(url));return()=>sub.remove()},[handleLink]);
   useEffect(()=>{if(!storageRestartRequired&&!loading&&manifest&&queuedLink.current){const url=queuedLink.current;queuedLink.current=null;handleLink(url)}},[storageRestartRequired,loading,manifest,handleLink]);
-  useEffect(()=>{operations.setAppState(AppState.currentState);let reloadOnActive=AppState.currentState==="background";const sub=AppState.addEventListener("change",(next)=>{operations.setAppState(next);if(next==="background"){reloadOnActive=true;rootScope.cancel();dispatchLock({type:"lock",reason:"background"});cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false)}else if(next==="active"&&reloadOnActive){reloadOnActive=false;void loadHandler.current()}});return()=>{operations.lock();rootScope.cancel();sub.remove()}},[cancelAuthorization,operations,rootScope]);
+  useEffect(()=>{operations.setAppState(AppState.currentState);let reloadOnActive=AppState.currentState==="background";const sub=AppState.addEventListener("change",(next)=>{operations.setAppState(next);if(next==="background"){void walletConnectRuntime.rejectPendingForLock();reloadOnActive=true;rootScope.cancel();dispatchLock({type:"lock",reason:"background"});cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false)}else if(next==="active"&&reloadOnActive){reloadOnActive=false;void loadHandler.current();void walletConnectRuntime.restore()}});return()=>{operations.lock();rootScope.cancel();sub.remove()}},[cancelAuthorization,operations,rootScope]);
   useEffect(()=>{if(!pendingRecovery)return;const timer=setTimeout(()=>{rootScope.cancel();operations.invalidate();setPendingRecovery(null);setSetup("closed");setBusy(false);setNotice("Recovery display expired. Generate a new account if it was not saved.")},RECOVERY_DISPLAY_MS);return()=>clearTimeout(timer)},[pendingRecovery,operations,rootScope]);
   useEffect(()=>{void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);void AccessibilityInfo.isHighTextContrastEnabled().then(setHighContrast);const sub=AccessibilityInfo.addEventListener("reduceMotionChanged",setReducedMotion);return()=>sub.remove()},[]);
   useEffect(()=>{let active=true;setPrivacyState({ready:false,error:null});void preventScreenCaptureAsync("wallet-runtime").then(()=>{if(active)setPrivacyState({ready:true,error:null})}).catch((caught)=>{if(active){operations.lock();dispatchLock({type:"lock",reason:"user"});setPrivacyState({ready:false,error:`Wallet privacy protection failed: ${message(caught)}`})}});return()=>{active=false;void allowScreenCaptureAsync("wallet-runtime")}},[privacyAttempt,operations]);
@@ -200,6 +203,8 @@ function EmptyWallet({locale,create,importAccount,recover}:{locale:WalletLocale;
 function Locked({locale,account,busy,unlock,recovery}:{locale:WalletLocale;account:WalletAccount;busy:boolean;unlock:()=>void;recovery:()=>void}){return <Screen><View style={styles.heroIcon}><Lock color={ACTIVE_COLORS.blue} size={32}/></View><Text style={styles.eyebrow}>{translate(locale,"walletLocked")}</Text><Text style={styles.title}>{account.label}</Text><Text style={styles.address}>{short(account.account)}</Text><Button label={busy?translate(locale,"checkingBiometrics"):translate(locale,"unlock")} disabled={busy} onPress={unlock} icon={<Fingerprint color={ACTIVE_COLORS.white} size={19}/>}/><SecondaryButton label={translate(locale,"lostDeviceRecovery")} onPress={recovery}/><Text style={styles.footnote}>{translate(locale,"recovery")}</Text></Screen>}
 
 function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,onMutationError}:{locale:WalletLocale;manifest:WalletManifest;selected:WalletAccount;select:(v:string)=>void;add:()=>void;create:()=>void;lock:()=>void;onManifest:(v:WalletManifest)=>void;onMutationError:(text:string)=>void}){
+  const operations=useWalletOperations();
+  const walletConnectKeyAccess=useMemo(()=>createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),[operations]);
   const [faucet,setFaucet]=useState(false);
   const [accountsOpen,setAccountsOpen]=useState(false),[copied,setCopied]=useState(false),[qr,setQR]=useState(false),[send,setSend]=useState(false),[evm,setEvm]=useState(false),[center,setCenter]=useState(false),[controls,setControls]=useState(false),[remove,setRemove]=useState(false),[rename,setRename]=useState(false),[recovery,setRecovery]=useState(false),[auditOpen,setAuditOpen]=useState(false),[records,setRecords]=useState<readonly AuthorizationAuditRecord[]>([]),[auditError,setAuditError]=useState<string|null>(null);
   const cancelClipboardClear=useRef<null|(()=>void)>(null);
@@ -236,6 +241,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <FaucetButton secondary label={walletCopy(locale,"View offline recovery key")} onPress={()=>setRecovery(true)}/>
     <FaucetButton secondary label={walletCopy(locale,"0x EVM compatibility and contract simulation")} onPress={()=>setEvm(true)}/>
     <SecondaryButton label={walletCopy(locale,"Connected Apps, Sessions and Devices")} onPress={()=>setCenter(true)}/>
+    <WalletConnectButton account={selected} withAccountSecret={walletConnectKeyAccess}/>
     <SecondaryButton label={walletCopy(locale,"Review stored transfer")} onPress={()=>setSend(true)}/>
     <SecondaryButton label={controlCopy(locale,"open")} onPress={()=>setControls(true)}/>
     <SecondaryButton label={translate(locale,"lockWallet")} onPress={lock}/>
