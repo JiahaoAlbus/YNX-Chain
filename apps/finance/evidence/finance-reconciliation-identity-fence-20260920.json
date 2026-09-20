@@ -9,19 +9,22 @@
   },
   "implementation": {
     "dispatcherPath": "internal/finance/broker_dispatch.go",
-    "dispatcherSha256": "bb3de001b6481b47e913406b83abf781f57d9b348b8efcefece321d23842e7d5",
+    "dispatcherSha256": "e8f35c8d558b56237ac1254898651ff383d2468b9881f07e0fb53db6423f9234",
     "testPath": "internal/finance/broker_dispatch_test.go",
-    "testSha256": "a45bc281f2e89a5879a420cf63a009fbabdd80d00eaf214a80abf6935583f444",
+    "testSha256": "e63dc2dcfc3829c210d7fb03ade4516c09717543b2bf544d3868f86040e024cf",
     "duplicateClientOrderIds": "fail_closed_before_any_cas_commit",
     "snapshotProvider": "alpaca_broker",
     "snapshotEnvironment": "sandbox",
     "snapshotAccountBinding": "must_equal_current_owner_persisted_mapping",
+    "wrongProviderEnvironmentAccountTests": "PASS",
+    "providerSubmissionResponseIdentity": "client_order_asset_symbol_side_qty_type_limit_price_time_in_force_extended_hours",
     "providerWriteAttempted": false
   },
   "tests": {
     "goFinanceAndCommands": "PASS",
     "rejectedDuplicateSnapshotMutatedState": false,
-    "rejectedCrossTenantSnapshotMutatedState": false,
+    "rejectedWrongAuthoritySnapshotMutatedState": false,
+    "rejectedDivergentSubmissionResponseMutatedState": false,
     "diffCheck": "PASS"
   },
   "truth": {

@@ -171,17 +171,32 @@ func TestBrokerReconciliationRejectsDuplicateClientOrderAndCrossTenantSnapshot(t
 		t.Fatalf("rejected duplicate snapshot mutated durable state: before=%+v after=%+v", before, after)
 	}
 
-	dispatcher := BrokerDispatcher{Store: store, Adapter: dispatchAdapter{snapshot: brokerage.AccountSnapshot{
+	validSnapshot := brokerage.AccountSnapshot{
 		Provider: FinanceOrderProvider, Environment: FinanceOrderTradingEnv,
-		Account: brokerage.Account{ID: "99999999-8888-4777-8666-555555555555"},
+		Account: brokerage.Account{ID: "01234567-89ab-4cde-8fab-0123456789ab"},
 		Orders:  []brokerage.Order{providerOrder},
-	}}, Now: func() time.Time { return now.Add(2 * time.Minute) }}
-	if _, err := dispatcher.Reconcile(context.Background(), account); err == nil {
-		t.Fatal("cross-tenant provider account snapshot was accepted")
 	}
-	after = store.Account(account).Brokerage
-	if after.ReconcileCheckpoint != before.ReconcileCheckpoint || after.Orders[orderID].ProviderOrderID != before.Orders[orderID].ProviderOrderID || after.Orders[orderID].State != before.Orders[orderID].State {
-		t.Fatalf("rejected cross-tenant snapshot mutated durable state: before=%+v after=%+v", before, after)
+	invalidSnapshots := map[string]brokerage.AccountSnapshot{}
+	wrongProvider := validSnapshot
+	wrongProvider.Provider = "attacker_broker"
+	invalidSnapshots["wrong provider"] = wrongProvider
+	wrongEnvironment := validSnapshot
+	wrongEnvironment.Environment = "live"
+	invalidSnapshots["wrong environment"] = wrongEnvironment
+	wrongAccount := validSnapshot
+	wrongAccount.Account.ID = "99999999-8888-4777-8666-555555555555"
+	invalidSnapshots["wrong account"] = wrongAccount
+	for name, snapshot := range invalidSnapshots {
+		t.Run(name, func(t *testing.T) {
+			dispatcher := BrokerDispatcher{Store: store, Adapter: dispatchAdapter{snapshot: snapshot}, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+			if _, err := dispatcher.Reconcile(context.Background(), account); err == nil {
+				t.Fatal("wrong-authority provider snapshot was accepted")
+			}
+			after = store.Account(account).Brokerage
+			if after.ReconcileCheckpoint != before.ReconcileCheckpoint || after.Orders[orderID].ProviderOrderID != before.Orders[orderID].ProviderOrderID || after.Orders[orderID].State != before.Orders[orderID].State {
+				t.Fatalf("rejected wrong-authority snapshot mutated durable state: before=%+v after=%+v", before, after)
+			}
+		})
 	}
 }
 
@@ -409,6 +424,34 @@ func TestBrokerReconciliationBindsFullSignedOrderIdentity(t *testing.T) {
 			order := store.Account(account).Brokerage.Orders[orderID]
 			if order.State == "filled" || order.ProviderOrderID != "" {
 				t.Fatalf("mismatch mutated order: %+v", order)
+			}
+		})
+	}
+}
+
+func TestBrokerDispatchCompletionBindsFullSignedOrderIdentity(t *testing.T) {
+	base := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted"}
+	mutations := map[string]func(*brokerage.Order){
+		"type":           func(o *brokerage.Order) { o.Type = "market" },
+		"price":          func(o *brokerage.Order) { o.LimitPrice = "11" },
+		"time in force":  func(o *brokerage.Order) { o.TimeInForce = "gtc" },
+		"extended hours": func(o *brokerage.Order) { o.ExtendedHours = true },
+	}
+	for name, mutate := range mutations {
+		t.Run(name, func(t *testing.T) {
+			store, account, orderID, now := consumedBrokerFixture(t)
+			if _, err := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Minute)); err != nil {
+				t.Fatal(err)
+			}
+			candidate := base
+			candidate.ClientOrderID = orderID
+			mutate(&candidate)
+			if _, err := store.CompleteBrokerDispatch(account, orderID, &candidate, nil, now.Add(2*time.Minute)); err == nil {
+				t.Fatal("provider submission response diverging from the signed order was accepted")
+			}
+			workspace := store.BrokerWorkspace(account, now.Add(2*time.Minute))
+			if workspace.Orders[0].ProviderOrderID != "" || workspace.Orders[0].State != "submitting" || workspace.Outbox[0].Status != "dispatching" {
+				t.Fatalf("rejected provider response mutated durable state: %+v", workspace)
 			}
 		})
 	}

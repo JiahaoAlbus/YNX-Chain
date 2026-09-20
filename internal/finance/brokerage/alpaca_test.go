@@ -260,7 +260,7 @@ func TestProviderOrderUnknownStatusFailsClosedAsProtocolError(t *testing.T) {
 	if _, err := normalizeProviderOrder(order, "fixture-request-unknown-status", true); ErrorCode(err) != "PROVIDER_PROTOCOL_ERROR" {
 		t.Fatalf("unknown provider status was not rejected: %v", err)
 	}
-	for _, status := range []string{"accepted", "partially_filled", "filled", "pending_cancel", "canceled", "expired", "rejected"} {
+	for _, status := range []string{"new", "accepted", "pending_new", "accepted_for_bidding", "stopped", "calculated", "held", "pending_replace", "replaced", "done_for_day", "suspended", "partially_filled", "filled", "pending_cancel", "canceled", "expired", "rejected"} {
 		order.Status = status
 		if _, err := normalizeProviderOrder(order, "fixture-request-known-status", true); err != nil {
 			t.Fatalf("known provider status %q was rejected: %v", status, err)

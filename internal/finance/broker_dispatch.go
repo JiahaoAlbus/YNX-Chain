@@ -109,7 +109,7 @@ func (s *Store) CompleteBrokerDispatch(account, orderID string, providerOrder *b
 		}
 		action := "provider.submitted"
 		if providerError == nil && providerOrder != nil {
-			if providerOrder.ClientOrderID != outbox.ProviderClientOrderID || providerOrder.AssetID != order.Order.AssetID || providerOrder.Symbol != order.Order.Symbol || providerOrder.Side != order.Order.Side || providerOrder.Qty != order.Order.Qty {
+			if providerOrder.ClientOrderID != outbox.ProviderClientOrderID || !brokerOrderIdentityMatches(order, *providerOrder) {
 				return errors.New("provider order does not match the signed Finance order")
 			}
 			order.State, order.ProviderOrderID = normalizeBrokerOrderState(providerOrder.Status), providerOrder.ID
@@ -347,7 +347,7 @@ func brokerageCursor(value string) bool {
 
 func normalizeBrokerOrderState(status string) string {
 	switch status {
-	case "new", "accepted", "pending_new", "accepted_for_bidding", "stopped", "calculated", "held", "pending_replace", "replaced":
+	case "new", "accepted", "pending_new", "accepted_for_bidding", "stopped", "calculated", "held", "pending_replace", "replaced", "done_for_day", "suspended":
 		return "submitted"
 	case "partially_filled":
 		return "partially_filled"

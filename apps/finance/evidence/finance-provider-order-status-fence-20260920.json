@@ -9,10 +9,11 @@
   },
   "implementation": {
     "adapterPath": "internal/finance/brokerage/alpaca.go",
-    "adapterSha256": "383309f383ab44091285f6214733e0ee38109ed1a2add91123bfa9dadbea09f1",
+    "adapterSha256": "cf856eb85585ed90ad2e686c1388fecb01c644c922b8b91c81021ea64f332a31",
     "testPath": "internal/finance/brokerage/alpaca_test.go",
-    "testSha256": "09565d12c8c3ff87137b42fc2aaf5b0db9f1a10e8bdeec1af0271e7fba326027",
+    "testSha256": "80b2dc803c984d8261a5d878e6a71de474f09b04367a791c8ec024d6d9db976a",
     "unknownStatusResult": "PROVIDER_PROTOCOL_ERROR",
+    "officialLifecycleStatesCovered": 17,
     "providerWriteAttemptedByRegression": false
   },
   "tests": {

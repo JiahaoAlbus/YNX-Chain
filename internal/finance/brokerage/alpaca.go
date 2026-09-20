@@ -427,7 +427,7 @@ func normalizeProviderOrder(value providerOrder, requestID string, requireReques
 
 func knownProviderOrderStatus(status string) bool {
 	switch status {
-	case "new", "accepted", "pending_new", "accepted_for_bidding", "stopped", "calculated", "held", "pending_replace", "replaced", "partially_filled", "filled", "pending_cancel", "canceled", "expired", "rejected":
+	case "new", "accepted", "pending_new", "accepted_for_bidding", "stopped", "calculated", "held", "pending_replace", "replaced", "done_for_day", "suspended", "partially_filled", "filled", "pending_cancel", "canceled", "expired", "rejected":
 		return true
 	default:
 		return false
