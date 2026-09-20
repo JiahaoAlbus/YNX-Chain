@@ -13,13 +13,13 @@ function fixture(mutate = x => x) {
   const env = join(etc, 'finance.env'); writeFileSync(env, 'A=1\nYNX_FINANCE_WEB_DIR=/old/web\nB=2\n');
   const id = 'finance-combined-4f7fba323a89-20260831t041500z', carrier = join(stage, id), archive = Buffer.from('candidate-archive');
   const ownerMode = execFileSync('/opt/homebrew/bin/gstat', ['-Lc', '%u:%g', stage], { encoding: 'utf8' }).trim() + ':700';
-  const lease = mutate({ lease: { signed: true, kind: 'FINANCE_NONREGRESSIVE_CARRIER_PREPARATION', id, expiresAt: '2099-01-01T00:00:00Z' }, paths: { carrier }, fresh: { rootTuple: stat(ynx), stageTuple: stat(stage), env: { tuple: stat(env), bytes: readFileSync(env).length, sha256: sha(readFileSync(env)) } }, candidate: { carrierOwnerMode: ownerMode, releaseWebDir: join(ynx, 'releases', 'finance', id, 'ynx-finance-4f7fba323a89', 'web'), archive: { bytes: archive.length, sha256: sha(archive) } } });
+  const lease = mutate({ lease: { signed: true, kind: 'FINANCE_NONREGRESSIVE_CARRIER_PREPARATION', id, expiresAt: '2099-01-01T00:00:00Z' }, paths: { carrier }, fresh: { rootTuple: stat(ynx), stageTuple: stat(stage), env: { tuple: stat(env), bytes: readFileSync(env).length, sha256: sha(readFileSync(env)) } }, candidate: { carrierOwnerMode: ownerMode, releaseWebDir: join(ynx, 'releases', 'finance', id, 'finance-weekly-v3-4f7fba323a89-linux-amd64', 'web'), archive: { bytes: archive.length, sha256: sha(archive) } } });
   const script = source.replaceAll('/opt/ynx', ynx).replaceAll('/etc/ynx', etc).replaceAll('stat -Lc', '/opt/homebrew/bin/gstat -Lc').replaceAll('mv -T --', '/opt/homebrew/bin/gmv -T --');
   const run = input => spawnSync('/bin/bash', ['-c', script, 'finance-carrier', Buffer.from(JSON.stringify(lease)).toString('base64')], { input, encoding: 'utf8' });
   return { dir, carrier, archive, lease, run };
 }
 {
-  const x = fixture(); const result = x.run(x.archive); assert.equal(result.status, 0, result.stderr); assert.match(result.stdout, /^phase=carrier-preparation$/m); assert.equal(readFileSync(join(x.carrier, 'candidate.tgz')).toString(), x.archive.toString()); assert.match(readFileSync(join(x.carrier, 'finance.env'), 'utf8'), /YNX_FINANCE_WEB_DIR=.*finance-combined/);
+  const x = fixture(); const result = x.run(x.archive); assert.equal(result.status, 0, result.stderr); assert.match(result.stdout, /^phase=carrier-preparation$/m); assert.equal(readFileSync(join(x.carrier, 'candidate.tgz')).toString(), x.archive.toString()); const candidateEnv = readFileSync(join(x.carrier, 'finance.env'), 'utf8'); assert.match(candidateEnv, /YNX_FINANCE_WEB_DIR=.*finance-combined/); for (const expected of ['YNX_CHAIN_ENV=testnet', 'FINANCE_TRADING_ENV=sandbox', 'FINANCE_TRADING_ENABLED=false', 'FINANCE_LIVE_ENABLED=false', 'FINANCE_SANDBOX_WRITES_ENABLED=false']) assert.equal(candidateEnv.split('\n').filter(line => line === expected).length, 1, expected);
 }
 for (const kind of ['truncated', 'hash', 'existing', 'symlink']) {
   const x = fixture(lease => { if (kind === 'hash') lease.candidate.archive.sha256 = '0'.repeat(64); return lease; });
@@ -40,5 +40,13 @@ for (const kind of ['truncated', 'hash', 'existing', 'symlink']) {
   const result = spawnSync('/bin/bash', ['-c', substituted, 'finance-carrier', Buffer.from(JSON.stringify(x.lease)).toString('base64')], { input: x.archive, encoding: 'utf8' });
   assert.notEqual(result.status, 0, 'post-move archive substitution fails closed');
   assert.equal(readFileSync(foreign).toString(), x.archive.toString(), 'foreign substitution target preserved');
+}
+{
+  const x = fixture();
+  const env = join(x.dir, 'etc', 'ynx', 'finance.env');
+  writeFileSync(env, `${readFileSync(env, 'utf8')}ALPACA_BROKER_CLIENT_SECRET=forbidden\n`);
+  x.lease.fresh.env = { tuple: stat(env), bytes: readFileSync(env).length, sha256: sha(readFileSync(env)) };
+  const result = x.run(x.archive);
+  assert.notEqual(result.status, 0, 'provider credential source env fails closed');
 }
 process.stdout.write('finance non-regressive carrier fixture: pass\n');

@@ -27,9 +27,15 @@ test "$(ft "$env")" = "$(get '.fresh.env.tuple')"
 test "$(bytes "$env")" = "$(get '.fresh.env.bytes')"
 test "$(sha "$env")" = "$(get '.fresh.env.sha256')"
 release_web=$(get '.candidate.releaseWebDir')
-case "$release_web" in /opt/ynx/releases/finance/*/ynx-finance-*/web) ;; *) exit 65;; esac
+case "$release_web" in
+  /opt/ynx/releases/finance/*/ynx-finance-*/web|/opt/ynx/releases/finance/*/finance-weekly-v3-*-linux-amd64/web) ;;
+  *) exit 65;;
+esac
 case "$release_web" in *..*|*//*) exit 65;; esac
 test "$(grep -c '^YNX_FINANCE_WEB_DIR=' "$env")" = 1
+for key in ALPACA_BROKER_CLIENT_ID ALPACA_BROKER_CLIENT_SECRET ALPACA_BROKER_API_KEY ALPACA_BROKER_API_SECRET FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256; do
+  if grep -q "^${key}=" "$env"; then exit 65; fi
+done
 for path in "$carrier" "$archive" "$archive_pending" "$candidate_env" "$env_pending"; do absent "$path"; done
 carrier_created=false; archive_pending_created=false; archive_created=false; env_pending_created=false; env_created=false
 cleanup(){
@@ -57,11 +63,31 @@ test "$(sha "$archive_pending")" = "$(get '.candidate.archive.sha256')"
 chmod 0600 "$archive_pending"; mv -T -- "$archive_pending" "$archive"; archive_pending_created=false; archive_created=true; archive_identity=$(identity "$archive"); test "$archive_identity" = "$archive_pending_identity"; archive_sha=$(sha "$archive")
 test -f "$archive" && test ! -L "$archive" && test "$(bytes "$archive")" = "$(get '.candidate.archive.bytes')" && test "$archive_sha" = "$(get '.candidate.archive.sha256')"
 set -C; exec 4> "$env_pending"; set +C; env_pending_created=true; env_pending_identity=$(identity "$env_pending")
-awk -v value="$release_web" 'BEGIN{count=0} /^YNX_FINANCE_WEB_DIR=/{print "YNX_FINANCE_WEB_DIR=" value;count++;next} {print} END{if(count!=1)exit 65}' "$env" >&4
+awk -v value="$release_web" '
+  BEGIN { web=0; chain=0; environment=0; trading=0; live=0; writes=0 }
+  /^YNX_FINANCE_WEB_DIR=/ { if (++web != 1) exit 65; print "YNX_FINANCE_WEB_DIR=" value; next }
+  /^YNX_CHAIN_ENV=/ { if (++chain != 1) exit 65; print "YNX_CHAIN_ENV=testnet"; next }
+  /^FINANCE_TRADING_ENV=/ { if (++environment != 1) exit 65; print "FINANCE_TRADING_ENV=sandbox"; next }
+  /^FINANCE_TRADING_ENABLED=/ { if (++trading != 1) exit 65; print "FINANCE_TRADING_ENABLED=false"; next }
+  /^FINANCE_LIVE_ENABLED=/ { if (++live != 1) exit 65; print "FINANCE_LIVE_ENABLED=false"; next }
+  /^FINANCE_SANDBOX_WRITES_ENABLED=/ { if (++writes != 1) exit 65; print "FINANCE_SANDBOX_WRITES_ENABLED=false"; next }
+  { print }
+  END {
+    if (web != 1) exit 65
+    if (chain == 0) print "YNX_CHAIN_ENV=testnet"
+    if (environment == 0) print "FINANCE_TRADING_ENV=sandbox"
+    if (trading == 0) print "FINANCE_TRADING_ENABLED=false"
+    if (live == 0) print "FINANCE_LIVE_ENABLED=false"
+    if (writes == 0) print "FINANCE_SANDBOX_WRITES_ENABLED=false"
+  }
+' "$env" >&4
 exec 4>&-
 test "$(identity "$env_pending")" = "$env_pending_identity"
 chown "$(stat -Lc '%u:%g' "$env")" "$env_pending"; chmod "$(stat -Lc '%a' "$env")" "$env_pending"
 test "$(grep -c '^YNX_FINANCE_WEB_DIR=' "$env_pending")" = 1
+for expected in YNX_CHAIN_ENV=testnet FINANCE_TRADING_ENV=sandbox FINANCE_TRADING_ENABLED=false FINANCE_LIVE_ENABLED=false FINANCE_SANDBOX_WRITES_ENABLED=false; do
+  test "$(grep -Fxc "$expected" "$env_pending")" = 1
+done
 mv -T -- "$env_pending" "$candidate_env"; env_pending_created=false; env_created=true; env_identity=$(identity "$candidate_env"); test "$env_identity" = "$env_pending_identity"; env_sha=$(sha "$candidate_env")
 test -f "$candidate_env" && test ! -L "$candidate_env"
 expected=$(printf '%s\n%s\n' "$archive" "$candidate_env" | LC_ALL=C sort)
