@@ -1,12 +1,12 @@
 {
   "schemaVersion": 2,
-  "sourceCommit": "0c82e2823d9b26c0d2d200fb0c17016aa6053564",
-  "generatedAt": "2026-09-20T02:10:25.493Z",
+  "sourceCommit": "uncommitted-source-tree",
+  "generatedAt": "2026-09-20T02:28:30.518Z",
   "gateClass": "current built PWA download matrix bound to committed Android and published Wallet Web manifests",
   "matrix": {
     "android": {
       "label": "Android API 24+ · universal",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.15-8a4f00982/ynx-wallet-1.0.15-testnet-preview-8a4f00982-universal-local-test-signed.apk",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-b82c4354329e2fb517730b02211e4e10ee9e45c720a4494556a68f911a753210/ynx-wallet-1.0.15-testnet-preview-8a4f00982-universal-local-test-signed.apk",
       "hosted": true,
       "bytes": 79014862,
       "sha256": "b82c4354329e2fb517730b02211e4e10ee9e45c720a4494556a68f911a753210",
@@ -16,7 +16,7 @@
     },
     "windowsX64": {
       "label": "Windows x64 · 0.6.8",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-desktop-testnet-preview-6f332753/ynx-wallet-desktop-0.6.8-x64.exe",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-da2e564eb680de0595202bd388eda9d524f40d62052b03da9b0bba4bf9da3716/ynx-wallet-desktop-0.6.8-x64.exe",
       "hosted": true,
       "bytes": 120954701,
       "sha256": "da2e564eb680de0595202bd388eda9d524f40d62052b03da9b0bba4bf9da3716",
@@ -26,7 +26,7 @@
     },
     "windowsArm64": {
       "label": "Windows arm64 · 0.6.8",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-desktop-testnet-preview-6f332753/ynx-wallet-desktop-0.6.8-arm64.exe",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-122027d7f5668876ae5bdae8bab31c4bd34dee517096eae07813f66775b02902/ynx-wallet-desktop-0.6.8-arm64.exe",
       "hosted": true,
       "bytes": 114596628,
       "sha256": "122027d7f5668876ae5bdae8bab31c4bd34dee517096eae07813f66775b02902",
@@ -36,7 +36,7 @@
     },
     "macosUniversal": {
       "label": "macOS universal · 0.6.8",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-desktop-testnet-preview-6f332753/ynx-wallet-macos-0.6.8-universal.dmg",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f/ynx-wallet-macos-0.6.8-universal.dmg",
       "hosted": true,
       "bytes": 258681947,
       "sha256": "f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f",
@@ -46,7 +46,7 @@
     },
     "linuxX64": {
       "label": "Linux x64 DEB · 0.6.8",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-desktop-testnet-preview-6f332753/ynx-wallet-desktop-0.6.8-amd64.deb",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-0a06a27486c7eabf3569d0e9d225ae9f0ec6e2e7a31076cc789c1cbce7bf6dce/ynx-wallet-desktop-0.6.8-amd64.deb",
       "hosted": true,
       "bytes": 95869208,
       "sha256": "0a06a27486c7eabf3569d0e9d225ae9f0ec6e2e7a31076cc789c1cbce7bf6dce",
@@ -56,7 +56,7 @@
     },
     "linuxArm64": {
       "label": "Linux arm64 DEB · 0.6.8",
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-desktop-testnet-preview-6f332753/ynx-wallet-desktop-0.6.8-arm64.deb",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-e8d3f5e902b290432fc4ee27952bbcd1972124ace89b0ac3d1e83ec4d1c43fb7/ynx-wallet-desktop-0.6.8-arm64.deb",
       "hosted": true,
       "bytes": 89954040,
       "sha256": "e8d3f5e902b290432fc4ee27952bbcd1972124ace89b0ac3d1e83ec4d1c43fb7",

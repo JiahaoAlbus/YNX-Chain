@@ -19,7 +19,8 @@ const matrix=provider.WALLET_DOWNLOAD_MATRIX;
 const failures=[];
 const require=(condition,message)=>{if(!condition)failures.push(message)};
 const android=nativeManifest.artifacts.find(item=>item.name==="android-release-apk");
-require(android&&matrix.android?.url===android.url&&matrix.android?.bytes===android.bytes&&matrix.android?.sha256===android.sha256,"Android install entry is not the current immutable release");
+const officialWalletURL=artifact=>`https://downloads.ynxweb4.com/wallet/sha256-${artifact.sha256}/${artifact.url.split("/").pop()}`;
+require(android&&matrix.android?.url===officialWalletURL(android)&&matrix.android?.bytes===android.bytes&&matrix.android?.sha256===android.sha256,"Android install entry is not the current official immutable mirror");
 for(const [key,name] of Object.entries({pwaPackage:"ynx-wallet-web-pwa-0.1.1.zip",chromeEdgeExtension:"ynx-wallet-chrome-edge-0.1.1.zip",firefoxExtension:"ynx-wallet-firefox-0.1.1.zip"})){
   const artifact=webManifest.artifacts.find(item=>item.name===name),entry=matrix[key];
   require(artifact&&entry?.hosted===true&&entry?.bytes===artifact.bytes&&entry?.sha256===artifact.sha256&&entry?.url?.endsWith(`/${name}`),`${key} does not match the published Wallet Web artifact`);
@@ -30,6 +31,10 @@ for(const [key,entry] of Object.entries(matrix)){
   require(Number.isSafeInteger(entry?.bytes)&&entry.bytes>0,`${key} has no exact byte size`);
   require(/^[0-9a-f]{64}$/u.test(entry?.sha256||""),`${key} has no exact SHA-256`);
   require(entry?.productionSigned===false,`${key} has an unsupported production-signing claim`);
+}
+for(const key of ["android","windowsX64","windowsArm64","macosUniversal","linuxX64","linuxArm64"]){
+  const entry=matrix[key];
+  require(new URL(entry.url).hostname==="downloads.ynxweb4.com"&&entry.url.includes(`/sha256-${entry.sha256}/`),`${key} is not bound to the official immutable download origin`);
 }
 require(/function platformDownloads\(\)/u.test(app)&&/item\.hosted===true&&item\.url/u.test(app),"built UI does not render every hosted package");
 require(/productionSigned=\$\{String\(item\.productionSigned===true\)\}/u.test(app),"built UI hides package signing status");
