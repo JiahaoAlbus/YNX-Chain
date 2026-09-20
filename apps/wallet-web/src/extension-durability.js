@@ -3,6 +3,7 @@
 export const DURABILITY_MODEL=Object.freeze({version:"ynx-local-durability-v1",scope:"local-snapshot",receiptField:"ynxDurability",transactionStatusMethod:"ynx_getTransactionDurability",nativeTransactionField:"ynxNativeTransaction",minedStatus:"durable",pendingStatus:"pending_durable",consensusFinality:false});
 const HASH=/^0x[0-9a-f]{64}$/u,ADDRESS=/^0x[0-9a-fA-F]{40}$/u,UINT64=(1n<<64n)-1n,INT64_MIN=-(1n<<63n),INT64_MAX=(1n<<63n)-1n,UNIT=10n**18n;
 const COMMON=["version","scope","status","transactionHash"],BLOCK=["blockNumber","blockHash"],CHECKPOINT=["checkpointBlockNumber","checkpointBlockHash","snapshotIntegrity"];
+const NATIVE_BASE=["type","amountYNXT","feeYNXT","nonce"],NATIVE_IDENTITY=["version","fromSystemIdentity","toSystemIdentity","systemAddressDomain","systemAddressScheme","systemAddressesAreDisplayOnly"];
 function isHash(value){return typeof value==="string"&&HASH.test(value)}
 function fail(message){throw Object.assign(new Error(message),{code:"DURABILITY_UNCONFIRMED"})}
 function exact(value,keys){if(!value||typeof value!=="object"||Array.isArray(value)||Object.keys(value).length!==keys.length||keys.some(key=>!Object.hasOwn(value,key)))fail("Durability evidence has unknown or missing fields.");return value}
@@ -32,12 +33,24 @@ export function parseTransactionDurability(value,expectedHash){
 export function verifyNativeDurabilityIntent(signed,expectedHash){
   if(typeof expectedHash!=="string"||!isHash(expectedHash)||signed.hash!==expectedHash||signed.chainId!==6423n||signed.type!==0||signed.data!=="0x"||!signed.to||!Number.isSafeInteger(signed.nonce)||signed.nonce<0||signed.value<=0n||signed.value%UNIT!==0n||signed.value/UNIT>INT64_MAX||signed.gasPrice!==40000000000000n||signed.gasLimit<25000n)fail("Durable receipt must bind the original signed whole-YNXT transfer.");
 }
+function parseNativeTransaction(value,signed){
+  const extended=value&&typeof value==="object"&&!Array.isArray(value)&&["from","to","identityProjection"].some(key=>Object.hasOwn(value,key));
+  const native=exact(value,extended?[...NATIVE_BASE,"from","to","identityProjection"]:NATIVE_BASE);
+  if(extended){
+    if(!ADDRESS.test(native.from)||!ADDRESS.test(native.to)||native.from.toLowerCase()!==signed.from?.toLowerCase()||native.to.toLowerCase()!==signed.to?.toLowerCase())fail("Native identity projection does not match the signed transfer.");
+    const identity=exact(native.identityProjection,NATIVE_IDENTITY);
+    if(identity.version!=="ynx-native-identity-projection-v1"||identity.fromSystemIdentity!==false||identity.toSystemIdentity!==false||identity.systemAddressDomain!=="YNX_NATIVE_IDENTITY_PROJECTION_V1"||identity.systemAddressScheme!=="last-20-bytes-sha256-nul-domain-exact-native-identity"||identity.systemAddressesAreDisplayOnly!==true)fail("Native identity projection is outside the reviewed display-only policy.");
+  }
+  // Extended Core identity metadata is verified above but is not persisted as
+  // recovery authority. The stable native ledger tuple remains four fields.
+  return Object.freeze(Object.fromEntries(NATIVE_BASE.map(key=>[key,native[key]])));
+}
 export function verifyDurableNativeReceipt(receipt,signed,expectedHash,model){
   parseDurabilityModel(model);verifyNativeDurabilityIntent(signed,expectedHash);
   if(!receipt||typeof receipt!=="object"||Array.isArray(receipt)||receipt.transactionHash!==expectedHash)fail("Receipt hash differs from the original transaction.");
   const proof=parseTransactionDurability(receipt.ynxDurability,expectedHash);
   if(proof.status!=="durable")fail("The transaction has no durable mined checkpoint yet.");
-  const native=exact(receipt.ynxNativeTransaction,["type","amountYNXT","feeYNXT","nonce"]);
+  const native=parseNativeTransaction(receipt.ynxNativeTransaction,signed);
   const amount=durabilityInt64(native.amountYNXT),fee=durabilityInt64(native.feeYNXT),nonce=durabilityQuantity(native.nonce);
   if(native.type!=="transfer"||amount<=0n||amount!==signed.value/UNIT||fee!==1n||nonce!==BigInt(signed.nonce)+1n)fail("Native amount, fee or nonce does not match the signed Ethereum intent.");
   if(typeof receipt.from!=="string"||typeof receipt.to!=="string"||!ADDRESS.test(receipt.from)||!ADDRESS.test(receipt.to)||receipt.from.toLowerCase()!==signed.from?.toLowerCase()||receipt.to.toLowerCase()!==signed.to.toLowerCase()||receipt.blockNumber!==proof.blockNumber||receipt.blockHash!==proof.blockHash||receipt.status!=="0x1"||receipt.type!=="0x0"||receipt.contractAddress!==null||receipt.gasUsed!=="0x61a8"||receipt.effectiveGasPrice!=="0x246139ca8000"||receipt.ynxFeeWei!=="0xde0b6b3a7640000"||BigInt(receipt.gasUsed)>signed.gasLimit||signed.gasPrice!==40000000000000n||BigInt(receipt.gasUsed)*BigInt(receipt.effectiveGasPrice)!==UNIT)fail("Receipt identity, mined block or fixed fee differs from the signed transfer.");
