@@ -20,6 +20,7 @@ type BrokerActivationReadiness struct {
 	ApprovalPending           int    `json:"approvalPending"`
 	ApprovedAwaitingConsume   int    `json:"approvedAwaitingConsumption"`
 	RejectedOrRevoked         int    `json:"rejectedOrRevoked"`
+	ExecutionBlocked          int    `json:"executionBlocked"`
 	ApprovedAwaitingExecution int    `json:"approvedAwaitingExecution"`
 	ExecutionRequested        int    `json:"executionRequested"`
 	Ambiguous                 int    `json:"ambiguous"`
@@ -69,6 +70,13 @@ func InspectBrokerActivationReadiness(ctx context.Context, statePath, databaseUR
 		case !brokerOrderOutboxCorrelationConsistent(order, outbox):
 			result.Inconsistent++
 			result.StateConsistent = false
+		case order.State == "execution_blocked" || outbox.Status == "execution_blocked":
+			if brokerLocalExecutionBlockedStateConsistent(order, outbox) {
+				result.ExecutionBlocked++
+			} else {
+				result.Inconsistent++
+				result.StateConsistent = false
+			}
 		case brokerTerminalOrderState(order.State):
 			if brokerTerminalStateConsistent(order, outbox) {
 				result.Terminal++
@@ -93,6 +101,10 @@ func InspectBrokerActivationReadiness(ctx context.Context, statePath, databaseUR
 	result.ReadyForExecutionRequest = mappingActive && walletKeyLinked && result.StateConsistent && eligible == 1 && result.ApprovedAwaitingExecution == 1 && result.ExecutionRequested == 0 && result.Ambiguous == 0
 	result.ReadyForWorkerDispatch = mappingActive && walletKeyLinked && result.StateConsistent && eligible == 1 && result.ExecutionRequested == 1 && result.ApprovedAwaitingExecution == 0 && result.Ambiguous == 0
 	return result, nil
+}
+
+func brokerLocalExecutionBlockedStateConsistent(order BrokerOrderRecord, outbox BrokerOrderOutbox) bool {
+	return order.ApprovalState == "consumed" && order.State == "execution_blocked" && outbox.Status == "execution_blocked" && brokerLocalExecutionBlock(outbox.LastErrorCode) && outbox.ExecutionRequestKey != "" && order.ProviderOrderID == "" && outbox.ProviderOrderID == "" && order.ProviderRawStatus == "" && outbox.ProviderRawStatus == "" && order.ProviderHTTPRequestID == "" && outbox.ProviderHTTPRequestID == ""
 }
 
 func brokerOrderOutboxCorrelationConsistent(order BrokerOrderRecord, outbox BrokerOrderOutbox) bool {

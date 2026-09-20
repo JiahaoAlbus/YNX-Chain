@@ -201,17 +201,22 @@ func TestBrokerActivationReadinessReportsLifecycleWithoutCallingPendingTerminal(
 		"ready-request": orderRecord("ready-request", "consumed", "submitting"),
 		"ready-worker":  orderRecord("ready-worker", "consumed", "submitting"),
 		"terminal":      orderRecord("terminal", "consumed", "provider_rejected"),
+		"blocked":       orderRecord("blocked", "consumed", "execution_blocked"),
 		"inconsistent":  orderRecord("inconsistent", "consumed", "submitting"),
 	}
 	outbox := map[string]BrokerOrderOutbox{
 		"ready-request": outboxRecord("ready-request", "pending_unwired", ""),
 		"ready-worker":  outboxRecord("ready-worker", "execution_requested", "dispatch-test-request-0003"),
 		"terminal":      outboxRecord("terminal", "provider_rejected", ""),
+		"blocked":       outboxRecord("blocked", "execution_blocked", "dispatch-test-request-0004"),
 		"inconsistent":  outboxRecord("inconsistent", "pending_unwired", "unexpected-valid-key"),
 	}
 	terminalOutbox := outbox["terminal"]
 	terminalOutbox.LastErrorCode = "PROVIDER_REJECTED"
 	outbox["terminal"] = terminalOutbox
+	blockedOutbox := outbox["blocked"]
+	blockedOutbox.LastErrorCode = "ORDER_APPROVAL_EXPIRED"
+	outbox["blocked"] = blockedOutbox
 	writeActivationState := func(orders map[string]BrokerOrderRecord) {
 		t.Helper()
 		state := persistedState{Version: currentStateVersion, Accounts: map[string]AccountState{
@@ -233,7 +238,7 @@ func TestBrokerActivationReadinessReportsLifecycleWithoutCallingPendingTerminal(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if readiness.ApprovalPending != 1 || readiness.ApprovedAwaitingConsume != 1 || readiness.RejectedOrRevoked != 1 || readiness.ApprovedAwaitingExecution != 1 || readiness.ExecutionRequested != 1 || readiness.Terminal != 1 || readiness.Inconsistent != 1 || readiness.StateConsistent || readiness.ReadyForExecutionRequest || readiness.ReadyForWorkerDispatch {
+	if readiness.ApprovalPending != 1 || readiness.ApprovedAwaitingConsume != 1 || readiness.RejectedOrRevoked != 1 || readiness.ExecutionBlocked != 1 || readiness.ApprovedAwaitingExecution != 1 || readiness.ExecutionRequested != 1 || readiness.Terminal != 1 || readiness.Inconsistent != 1 || readiness.StateConsistent || readiness.ReadyForExecutionRequest || readiness.ReadyForWorkerDispatch {
 		t.Fatalf("inconsistent lifecycle was misclassified: %+v", readiness)
 	}
 	delete(orders, "inconsistent")
@@ -243,8 +248,85 @@ func TestBrokerActivationReadinessReportsLifecycleWithoutCallingPendingTerminal(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !readiness.StateConsistent || readiness.Inconsistent != 0 || readiness.ReadyForExecutionRequest || readiness.ReadyForWorkerDispatch || readiness.Terminal != 1 {
+	if !readiness.StateConsistent || readiness.Inconsistent != 0 || readiness.ReadyForExecutionRequest || readiness.ReadyForWorkerDispatch || readiness.Terminal != 1 || readiness.ExecutionBlocked != 1 {
 		t.Fatalf("mixed eligible lifecycle was not kept fail closed: %+v", readiness)
+	}
+}
+
+func TestBrokerActivationReadinessValidatesLocalExecutionBlockedState(t *testing.T) {
+	baseOrder := BrokerOrderRecord{
+		Order: FinanceOrderV1{OrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"}, RequestID: "request-blocked",
+		ProviderClientOrderID: "client-blocked", ApprovalState: "consumed", State: "execution_blocked",
+	}
+	baseOutbox := BrokerOrderOutbox{
+		OrderID: baseOrder.Order.OrderID, RequestID: baseOrder.RequestID, ProviderClientOrderID: baseOrder.ProviderClientOrderID,
+		Provider: FinanceOrderProvider, TradingEnvironment: FinanceOrderTradingEnv, Status: "execution_blocked",
+		ExecutionRequestKey: "dispatch-test-request-blocked", ExecutionRequestedAt: time.Date(2026, 9, 20, 4, 0, 0, 0, time.UTC), LastErrorCode: "ACCOUNT_MAPPING_CHANGED",
+	}
+	if !brokerLocalExecutionBlockedStateConsistent(baseOrder, baseOutbox) {
+		t.Fatal("valid local execution block was rejected")
+	}
+	for _, test := range []struct {
+		name   string
+		mutate func(*BrokerOrderRecord, *BrokerOrderOutbox)
+	}{
+		{name: "provider_rejection_code", mutate: func(_ *BrokerOrderRecord, outbox *BrokerOrderOutbox) { outbox.LastErrorCode = "PROVIDER_REJECTED" }},
+		{name: "missing_execution_key", mutate: func(_ *BrokerOrderRecord, outbox *BrokerOrderOutbox) { outbox.ExecutionRequestKey = "" }},
+		{name: "provider_http_correlation", mutate: func(order *BrokerOrderRecord, outbox *BrokerOrderOutbox) {
+			order.ProviderHTTPRequestID, outbox.ProviderHTTPRequestID = "provider-http", "provider-http"
+		}},
+		{name: "mismatched_status", mutate: func(_ *BrokerOrderRecord, outbox *BrokerOrderOutbox) { outbox.Status = "provider_rejected" }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			order, outbox := baseOrder, baseOutbox
+			test.mutate(&order, &outbox)
+			if brokerLocalExecutionBlockedStateConsistent(order, outbox) {
+				t.Fatal("contradictory local execution block was accepted")
+			}
+		})
+	}
+}
+
+func TestPersistedStateMigratesOnlyLegacyLocalExecutionBlocks(t *testing.T) {
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	order := BrokerOrderRecord{
+		Order: FinanceOrderV1{OrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"}, RequestID: "request-legacy-block",
+		ProviderClientOrderID: "client-legacy-block", ApprovalState: "consumed", State: "provider_rejected",
+	}
+	outbox := BrokerOrderOutbox{
+		OrderID: order.Order.OrderID, RequestID: order.RequestID, ProviderClientOrderID: order.ProviderClientOrderID,
+		Provider: FinanceOrderProvider, TradingEnvironment: FinanceOrderTradingEnv, Status: "provider_rejected",
+		ExecutionRequestKey: "dispatch-test-request-legacy", ExecutionRequestedAt: time.Date(2026, 9, 20, 4, 0, 0, 0, time.UTC), LastErrorCode: "ORDER_APPROVAL_EXPIRED",
+	}
+	state := persistedState{Version: currentStateVersion, Accounts: map[string]AccountState{
+		account: {Brokerage: BrokerageAccountState{Orders: map[string]BrokerOrderRecord{order.Order.OrderID: order}, Outbox: map[string]BrokerOrderOutbox{order.Order.OrderID: outbox}}},
+	}, Nonces: map[string]time.Time{}}
+	raw, _, err := encodeFinanceState(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	migrated, _, err := decodeFinanceState(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountState := migrated.Accounts[account]
+	if accountState.Brokerage.Orders[order.Order.OrderID].State != "execution_blocked" || accountState.Brokerage.Outbox[order.Order.OrderID].Status != "execution_blocked" {
+		t.Fatal("legacy local execution block was not migrated")
+	}
+
+	outbox.LastErrorCode = "PROVIDER_REJECTED"
+	state.Accounts[account] = AccountState{Brokerage: BrokerageAccountState{Orders: map[string]BrokerOrderRecord{order.Order.OrderID: order}, Outbox: map[string]BrokerOrderOutbox{order.Order.OrderID: outbox}}}
+	raw, _, err = encodeFinanceState(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	migrated, _, err = decodeFinanceState(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountState = migrated.Accounts[account]
+	if accountState.Brokerage.Orders[order.Order.OrderID].State != "provider_rejected" || accountState.Brokerage.Outbox[order.Order.OrderID].Status != "provider_rejected" {
+		t.Fatal("real provider rejection was rewritten by compatibility migration")
 	}
 }
 

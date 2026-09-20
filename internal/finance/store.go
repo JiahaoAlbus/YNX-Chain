@@ -568,7 +568,28 @@ func migratePersistedState(state *persistedState) error {
 	if state.Version == 1 {
 		state.Version = currentStateVersion
 	}
+	migrateLegacyBrokerLocalExecutionBlocks(state)
 	return validatePersistedState(*state)
+}
+
+// migrateLegacyBrokerLocalExecutionBlocks corrects the exact state written by
+// older v2 workers when a request was blocked locally before a provider call.
+// The narrow correlation and empty-provider-evidence checks deliberately leave
+// real provider rejections and ambiguous submissions untouched.
+func migrateLegacyBrokerLocalExecutionBlocks(state *persistedState) {
+	for account, accountState := range state.Accounts {
+		for orderID, order := range accountState.Brokerage.Orders {
+			outbox, ok := accountState.Brokerage.Outbox[orderID]
+			if !ok || order.ApprovalState != "consumed" || order.State != "provider_rejected" || outbox.Status != "provider_rejected" || !brokerLocalExecutionBlock(outbox.LastErrorCode) || outbox.ExecutionRequestKey == "" || !brokerOrderOutboxCorrelationConsistent(order, outbox) || order.ProviderOrderID != "" || outbox.ProviderOrderID != "" || order.ProviderRawStatus != "" || outbox.ProviderRawStatus != "" || order.ProviderHTTPRequestID != "" || outbox.ProviderHTTPRequestID != "" {
+				continue
+			}
+			order.State = "execution_blocked"
+			outbox.Status = "execution_blocked"
+			accountState.Brokerage.Orders[orderID] = order
+			accountState.Brokerage.Outbox[orderID] = outbox
+		}
+		state.Accounts[account] = accountState
+	}
 }
 
 func normalizePersistedState(state *persistedState) {
@@ -635,7 +656,7 @@ func validateBrokeragePersistence(account string, state BrokerageAccountState) e
 		}
 	}
 	validApproval := map[string]bool{"pending": true, "approved": true, "rejected": true, "revoked": true, "expired": true, "consumed": true}
-	validOrder := map[string]bool{"draft": true, "approval_pending": true, "approved": true, "submitting": true, "submitted_unknown": true, "submitted": true, "partially_filled": true, "filled": true, "cancel_requested": true, "canceled": true, "provider_rejected": true, "provider_expired": true}
+	validOrder := map[string]bool{"draft": true, "approval_pending": true, "approved": true, "submitting": true, "submitted_unknown": true, "submitted": true, "partially_filled": true, "filled": true, "cancel_requested": true, "canceled": true, "provider_rejected": true, "provider_expired": true, "execution_blocked": true}
 	for requestID, challenge := range state.Challenges {
 		if requestID != challenge.Unsigned.RequestID || challenge.Unsigned.Account != account || !validApproval[challenge.ApprovalState] {
 			return errors.New("finance state contains an invalid Broker approval challenge")
@@ -657,7 +678,7 @@ func validateBrokeragePersistence(account string, state BrokerageAccountState) e
 	}
 	for orderID, outbox := range state.Outbox {
 		order, ok := state.Orders[orderID]
-		validOutbox := map[string]bool{"pending_unwired": true, "execution_requested": true, "dispatching": true, "submitted_unknown": true, "submitted": true, "provider_rejected": true}
+		validOutbox := map[string]bool{"pending_unwired": true, "execution_requested": true, "dispatching": true, "submitted_unknown": true, "submitted": true, "provider_rejected": true, "execution_blocked": true}
 		if !ok || order.ApprovalState != "consumed" || outbox.OrderID != orderID || outbox.RequestID != order.RequestID || outbox.ProviderClientOrderID != order.ProviderClientOrderID || outbox.Provider != FinanceOrderProvider || outbox.TradingEnvironment != FinanceOrderTradingEnv || outbox.Attempts < 0 || !validOutbox[outbox.Status] || (outbox.ProviderOrderID != "" && !financeProviderUUIDPattern.MatchString(outbox.ProviderOrderID)) || (outbox.ProviderRawStatus != "" && !brokerageCursor(outbox.ProviderRawStatus)) || (outbox.ProviderHTTPRequestID != "" && !brokerageCursor(outbox.ProviderHTTPRequestID)) || (outbox.ExecutionRequestKey != "" && !idempotencyPattern.MatchString(outbox.ExecutionRequestKey)) || (outbox.Status == "execution_requested" && (outbox.ExecutionRequestKey == "" || outbox.ExecutionRequestedAt.IsZero())) {
 			return errors.New("finance state contains an invalid Broker outbox record")
 		}

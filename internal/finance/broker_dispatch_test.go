@@ -392,8 +392,35 @@ func TestBrokerDispatchBlocksExpiredApprovalAndStalePreflightBeforeSubmit(t *tes
 	if _, err := dispatcher.Dispatch(context.Background(), account, orderID); brokerage.ErrorCode(err) != "ORDER_APPROVAL_EXPIRED" {
 		t.Fatalf("expected expiry fence, got %v", err)
 	}
-	if posts != 0 || store.BrokerWorkspace(account, now).Orders[0].State != "provider_rejected" {
+	workspace := store.BrokerWorkspace(account, now)
+	if posts != 0 || workspace.Orders[0].State != "execution_blocked" || workspace.Outbox[0].Status != "execution_blocked" || workspace.Outbox[0].LastErrorCode != "ORDER_APPROVAL_EXPIRED" || workspace.Journal[len(workspace.Journal)-1].Action != "product.execution_blocked" {
 		t.Fatal("expired approval reached provider or was not fenced")
+	}
+	reopened, err := OpenStore(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspace = reopened.BrokerWorkspace(account, now)
+	if workspace.Orders[0].State != "execution_blocked" || workspace.Outbox[0].Status != "execution_blocked" {
+		t.Fatal("local execution block did not survive restart")
+	}
+	if _, err := reopened.ClaimBrokerDispatch(account, orderID, now.Add(time.Hour+time.Minute)); err == nil {
+		t.Fatal("local execution block became dispatchable after restart")
+	}
+
+	store, account, orderID, now = consumedBrokerFixture(t)
+	posts = 0
+	if _, err := store.PutBrokerSandboxMapping(account, "99999999-89ab-4cde-8fab-0123456789ab", now.Add(100*time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	adapter = dispatchAdapter{submit: func(brokerage.SubmitOrderRequest) (brokerage.Order, error) { posts++; return brokerage.Order{}, nil }}
+	dispatcher = BrokerDispatcher{Store: store, Adapter: adapter, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+	if _, err := dispatcher.Dispatch(context.Background(), account, orderID); brokerage.ErrorCode(err) != "ACCOUNT_MAPPING_CHANGED" {
+		t.Fatalf("expected account mapping fence, got %v", err)
+	}
+	workspace = store.BrokerWorkspace(account, now)
+	if posts != 0 || workspace.Orders[0].State != "execution_blocked" || workspace.Outbox[0].Status != "execution_blocked" || workspace.Outbox[0].LastErrorCode != "ACCOUNT_MAPPING_CHANGED" {
+		t.Fatal("changed account mapping reached provider or was not fenced")
 	}
 
 	store, account, orderID, now = consumedBrokerFixture(t)

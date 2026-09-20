@@ -118,7 +118,12 @@ Approval states: `pending`, `approved`, `rejected`, `revoked`, `expired`,
 
 Logical order states: `draft`, `approval_pending`, `approved`, `submitting`,
 `submitted_unknown`, `submitted`, `partially_filled`, `filled`,
-`cancel_requested`, `canceled`, `provider_rejected`, `provider_expired`.
+`cancel_requested`, `canceled`, `provider_rejected`, `provider_expired`,
+`execution_blocked`. The last state is reserved for a consumed approval that
+was stopped locally before provider submission because the approval expired or
+the persisted owner-to-provider account mapping changed. It must carry no
+provider order, raw-status or HTTP-request correlation and must never be
+reported as a provider rejection.
 Transport timeout becomes `submitted_unknown`; reconcile the saved provider
 correlation and never create a new nonce or blind POST. Replaying a consumed
 proof returns the same logical order record. Canceling approval never changes a
