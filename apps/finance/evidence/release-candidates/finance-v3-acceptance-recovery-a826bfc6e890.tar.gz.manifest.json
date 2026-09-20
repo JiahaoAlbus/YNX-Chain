@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "ynx.finance.v3.acceptance-recovery-sidecar.v1",
+  "source": {
+    "commit": "a826bfc6e8906725a040cd461e1f3a7993a22b89",
+    "tree": "42a67633319d8f6877309cae8384159998ec4bcf"
+  },
+  "bundleRoot": "finance-v3-acceptance-recovery-a826bfc6e890",
+  "archive": {
+    "path": "finance-v3-acceptance-recovery-a826bfc6e890.tar.gz",
+    "bytes": 2294733,
+    "sha256": "fad8273613403153f025e6cf2957b03cfdc162d1c659eef4d2f62f6c436a401c"
+  },
+  "manifest": {
+    "bytes": 89758,
+    "sha256": "554148b1eb8cba88b887ff46b0734b8eca317aadc97c947a7351b8b92d81c4b8"
+  },
+  "entryCount": 424
+}

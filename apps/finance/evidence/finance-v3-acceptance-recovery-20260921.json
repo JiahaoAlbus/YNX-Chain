@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "ynx.finance.v3.acceptance-recovery-evidence.v1",
+  "capturedAt": "2026-09-21T00:00:00Z",
+  "branch": "codex/finance-v3-acceptance-recovery-20260921",
+  "baseline": {
+    "commit": "0c14c1959a316186008af826af337b9b1bc0f2e0",
+    "tree": "954c19abc594243061f71f2a0545d371dc160d29",
+    "walletReleaseEvidenceMerged": true
+  },
+  "source": {
+    "commit": "a826bfc6e8906725a040cd461e1f3a7993a22b89",
+    "tree": "42a67633319d8f6877309cae8384159998ec4bcf"
+  },
+  "bundle": {
+    "path": "apps/finance/evidence/release-candidates/finance-v3-acceptance-recovery-a826bfc6e890.tar.gz",
+    "bytes": 2294733,
+    "sha256": "fad8273613403153f025e6cf2957b03cfdc162d1c659eef4d2f62f6c436a401c",
+    "manifestBytes": 89758,
+    "manifestSha256": "554148b1eb8cba88b887ff46b0734b8eca317aadc97c947a7351b8b92d81c4b8",
+    "entries": 424,
+    "repeatBuildByteExact": true,
+    "verified": true,
+    "cleanExtractionExecuted": true,
+    "cleanExtractionResult": "PASS"
+  },
+  "coverage": {
+    "walletRelease": "1.0.18-testnet-preview evidence and Android artifact hashes included; APK/AAB bytes are referenced, not duplicated",
+    "walletApprovalProtocol": "current Finance imported approval contract, verifier, test vector and strict revocation evidence included",
+    "brokerAdapter": "Alpaca Broker Sandbox adapter, configuration, bounded errors and event normalization included",
+    "reconciliation": "persistent owner mapping, account/order/position snapshot, order outbox and restart reconciliation source/tests included",
+    "ai": "draft-only Broker order generation and copy-to-review tests included; no execution authority",
+    "activation": "configuration-only and local-read-only diagnostics included; network/provider gates remain external",
+    "recovery": "exact source/tree, canonical file inventory, per-file SHA-256 and deterministic verifier included"
+  },
+  "tests": [
+    {"command": "go test -race ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS", "packages": 6},
+    {"command": "go vet ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go build ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "npm --prefix apps/finance test", "result": "PASS", "tests": 71},
+    {"command": "npm --prefix apps/finance run security", "result": "PASS", "textFilesScanned": 261},
+    {"command": "npm --prefix apps/finance run smoke", "result": "PASS"},
+    {"command": "repeat bundle build + cmp + verifier", "result": "PASS"},
+    {"command": "clean extraction + locked dependency install + all declared commands", "result": "PASS", "commands": 8}
+  ],
+  "truth": {
+    "credentialsBundled": false,
+    "officialAlpacaIntegration": "NOT_VERIFIED",
+    "officialSandboxAccount": "NOT_VERIFIED",
+    "providerNetworkRead": "NOT_VERIFIED",
+    "providerOrderWrite": "NOT_VERIFIED",
+    "realOrder": "NOT_VERIFIED",
+    "liveTrading": false,
+    "mainnet": false,
+    "publicDeployment": false,
+    "productionSigning": false,
+    "walletConnectRelayE2E": "NOT_VERIFIED",
+    "physicalDeviceApproval": "NOT_VERIFIED"
+  },
+  "externalBlockers": [
+    "Official Alpaca Broker Sandbox credentials, entitlements, simulated funding and explicit authorization are required for provider network reads or writes.",
+    "Installed Wallet approval/rejection and physical-device callback evidence remain outside this credential-independent package.",
+    "Public Finance deployment requires a separate deployment authority and source-bound runtime verification."
+  ],
+  "mutations": {
+    "deployment": false,
+    "providerRead": false,
+    "providerWrite": false,
+    "walletAccountRequest": false,
+    "signature": false,
+    "transaction": false
+  }
+}
