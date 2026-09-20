@@ -1,0 +1,101 @@
+rule_files:
+  - ynx-alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: faucet stale and not ready alerts hold then fire
+    interval: 1m
+    input_series:
+      - series: 'ynx_faucet_health_checked_timestamp_seconds{job="ynx-faucetd",instance="faucet-a"}'
+        values: '0x4'
+      - series: 'ynx_faucet_funding_ready{job="ynx-faucetd",instance="faucet-a"}'
+        values: '0x4'
+    alert_rule_test:
+      - eval_time: 0m
+        alertname: YNXFaucetHealthStale
+        exp_alerts: []
+      - eval_time: 1m
+        alertname: YNXFaucetHealthStale
+        exp_alerts:
+          - exp_labels:
+              instance: faucet-a
+              job: ynx-faucetd
+              severity: critical
+            exp_annotations:
+              summary: YNX faucet health evidence is stale
+              description: No read-only health probe completed in the last 60 seconds. Check the health scraper, Faucet process, and bounded upstream stages before restarting anything.
+      - eval_time: 1m
+        alertname: YNXFaucetNotReady
+        exp_alerts:
+          - exp_labels:
+              instance: faucet-a
+              job: ynx-faucetd
+              severity: critical
+            exp_annotations:
+              summary: YNX faucet cannot safely fund requests
+              description: The last complete health probe did not prove upstream, capability, admission store, and funding readiness. Inspect the stage metrics and preserve the admission database.
+
+  - name: faucet capability latency and finite funding alerts hold then fire
+    interval: 1m
+    input_series:
+      - series: 'ynx_faucet_health_capability_duration_seconds{job="ynx-faucetd",instance="faucet-b"}'
+        values: '1.5x5'
+      - series: 'ynx_faucet_funding_balance_applicable{job="ynx-faucetd",instance="faucet-b"}'
+        values: '1x5'
+      - series: 'ynx_faucet_funding_balance_ynxt{job="ynx-faucetd",instance="faucet-b"}'
+        values: '50x5'
+      - series: 'ynx_faucet_default_amount_ynxt{job="ynx-faucetd",instance="faucet-b"}'
+        values: '100x5'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: YNXFaucetCapabilitySlow
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: YNXFaucetCapabilitySlow
+        exp_alerts:
+          - exp_labels:
+              instance: faucet-b
+              job: ynx-faucetd
+              severity: warning
+            exp_annotations:
+              summary: YNX faucet capability probe is slow
+              description: The read-only durable Faucet capability stage exceeded one second and is approaching the two-second default probe budget.
+      - eval_time: 2m
+        alertname: YNXFaucetFundingBalanceLow
+        exp_alerts:
+          - exp_labels:
+              instance: faucet-b
+              job: ynx-faucetd
+              severity: critical
+            exp_annotations:
+              summary: YNX faucet funding account cannot cover a default grant
+              description: The finite BFT Faucet balance is below the configured default grant amount. Protocol-authority mode reports balance applicability as zero and never triggers this alert.
+
+  - name: faucet admission and uncertain result counters alert
+    interval: 1m
+    input_series:
+      - series: 'ynx_faucet_admission_store_errors_total{job="ynx-faucetd",instance="faucet-c",operation="lookup"}'
+        values: '0 1 1 1'
+      - series: 'ynx_faucet_request_results_total{job="ynx-faucetd",instance="faucet-c",outcome="transaction_result_uncertain"}'
+        values: '0 1 1 1'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: YNXFaucetAdmissionStoreErrors
+        exp_alerts:
+          - exp_labels:
+              instance: faucet-c
+              job: ynx-faucetd
+              operation: lookup
+              severity: critical
+            exp_annotations:
+              summary: YNX faucet durable admission store is failing
+              description: A durable admission lookup, write, completion, or health operation failed. Preserve the database and request log; do not clear quotas or create a replacement writer.
+      - eval_time: 2m
+        alertname: YNXFaucetUncertainResults
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: YNX faucet has an uncertain request result
+              description: At least one funding request lacks a safely reusable final receipt. Retain its request ID and reconcile it; do not submit a replacement transfer.

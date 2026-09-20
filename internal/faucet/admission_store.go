@@ -271,6 +271,22 @@ func (s *admissionStore) lookup(id string) (admissionRecord, bool, error) {
 	return record, found, err
 }
 
+func (s *admissionStore) health() error {
+	if s == nil || s.db == nil {
+		return errors.New("admission database is not open")
+	}
+	return s.db.View(func(tx *bolt.Tx) error {
+		meta := tx.Bucket(admissionMeta)
+		if meta == nil || tx.Bucket(admissionBucket) == nil || tx.Bucket(addressQuotaBucket) == nil || tx.Bucket(ipQuotaBucket) == nil {
+			return errors.New("admission database schema is incomplete")
+		}
+		if string(meta.Get([]byte("chainId"))) != strconv.FormatInt(s.cfg.ChainID, 10) || string(meta.Get([]byte("version"))) != chain.FaucetRequestVersion {
+			return errors.New("admission database identity does not match faucet")
+		}
+		return nil
+	})
+}
+
 // Migrate historical pair quotas once, retaining every charged admission. Address
 // quota survives IP changes; the independent wider IP budget allows shared NATs.
 func (s *admissionStore) migrateQuotaV2(tx *bolt.Tx) error {

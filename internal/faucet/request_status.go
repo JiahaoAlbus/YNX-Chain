@@ -23,6 +23,7 @@ func (s *Service) RequestStatus(ctx context.Context, id string) (Response, int, 
 	}
 	record, found, err := s.admissions.lookup(id)
 	if err != nil {
+		s.recordAdmissionStoreError("lookup")
 		return Response{}, 503, errors.New("admission unavailable")
 	}
 	if !found {
@@ -92,6 +93,7 @@ func (s *Service) RequestStatus(ctx context.Context, id string) (Response, int, 
 			return result, 503, errors.New("receipt does not match admitted intent")
 		}
 		if err := s.admissions.complete(record, tx); err != nil {
+			s.recordAdmissionStoreError("complete")
 			return result, 503, errors.New("receipt persistence unavailable")
 		}
 		record.Transaction = &tx

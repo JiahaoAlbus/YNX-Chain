@@ -48,6 +48,7 @@ func (s *Service) requestAuthoritative(ctx context.Context, req Request, remote 
 	result := Response{RequestID: id, Address: address, NativeSymbol: "YNXT", TransactionHash: hash, TruthfulStatus: s.truthfulStatus()}
 	known, found, err := s.admissions.lookup(id)
 	if err != nil {
+		s.recordAdmissionStoreError("lookup")
 		result.Status = "admission_unavailable"
 		result.RetrySameRequest = true
 		return result, 503, errors.New("durable faucet admission is unavailable")
@@ -96,6 +97,9 @@ func (s *Service) requestAuthoritative(ctx context.Context, req Request, remote 
 	record, replayed, err := s.admissions.admit(id, address, clientIP(remote), amount, now)
 	entry := LogEntry{RequestID: id, At: now, IP: clientIP(remote), Address: address, Amount: amount}
 	if err != nil {
+		if !errors.Is(err, errAdmissionRate) && !errors.Is(err, errAdmissionIPRate) && !errors.Is(err, chain.ErrFaucetRequestConflict) && !errors.Is(err, errAdmissionCapacity) {
+			s.recordAdmissionStoreError("admit")
+		}
 		status := 503
 		result.Status = "admission_unavailable"
 		result.RetrySameRequest = true
@@ -145,6 +149,7 @@ func (s *Service) requestAuthoritative(ctx context.Context, req Request, remote 
 		return result, status, err
 	}
 	if err := s.admissions.complete(record, transaction); err != nil {
+		s.recordAdmissionStoreError("complete")
 		result.Status = "receipt_persistence_uncertain"
 		result.RetrySameRequest = true
 		return result, 503, errors.New("faucet receipt needs confirmation; retain the same request ID")

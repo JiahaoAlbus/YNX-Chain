@@ -67,9 +67,18 @@ func (s *Service) healthMetrics() string {
 	s.healthMu.Lock()
 	stats := s.healthStats
 	s.healthMu.Unlock()
-	var ready, checked float64
+	var ready, admissionReady, upstreamReady, balanceApplicable, checked float64
 	if stats.last.FundingReady {
 		ready = 1
+	}
+	if stats.last.AdmissionReady {
+		admissionReady = 1
+	}
+	if stats.last.UpstreamOK {
+		upstreamReady = 1
+	}
+	if stats.last.FundingBalanceApplicable {
+		balanceApplicable = 1
 	}
 	if !stats.last.CheckedAt.IsZero() {
 		checked = float64(stats.last.CheckedAt.Unix())
@@ -92,5 +101,35 @@ ynx_faucet_health_checked_timestamp_seconds %.0f
 # HELP ynx_faucet_health_duration_seconds Last complete probe duration.
 # TYPE ynx_faucet_health_duration_seconds gauge
 ynx_faucet_health_duration_seconds %.3f
-`, stats.probes, stats.failures, stats.joined, ready, checked, float64(stats.last.ProbeDurationMS)/1000)
+# HELP ynx_faucet_health_status_duration_seconds Last upstream status stage duration.
+# TYPE ynx_faucet_health_status_duration_seconds gauge
+ynx_faucet_health_status_duration_seconds %.3f
+# HELP ynx_faucet_health_capability_duration_seconds Last capability stage duration.
+# TYPE ynx_faucet_health_capability_duration_seconds gauge
+ynx_faucet_health_capability_duration_seconds %.3f
+# HELP ynx_faucet_health_admission_duration_seconds Last admission store readiness stage duration.
+# TYPE ynx_faucet_health_admission_duration_seconds gauge
+ynx_faucet_health_admission_duration_seconds %.3f
+# HELP ynx_faucet_health_funding_duration_seconds Last account funding stage duration; zero for protocol authority mode.
+# TYPE ynx_faucet_health_funding_duration_seconds gauge
+ynx_faucet_health_funding_duration_seconds %.3f
+# HELP ynx_faucet_upstream_ready Last upstream network and capability readiness.
+# TYPE ynx_faucet_upstream_ready gauge
+ynx_faucet_upstream_ready %.0f
+# HELP ynx_faucet_admission_ready Last durable admission store readiness.
+# TYPE ynx_faucet_admission_ready gauge
+ynx_faucet_admission_ready %.0f
+# HELP ynx_faucet_funding_ready Last end-to-end funding readiness.
+# TYPE ynx_faucet_funding_ready gauge
+ynx_faucet_funding_ready %.0f
+# HELP ynx_faucet_funding_balance_applicable Whether funding uses a finite account balance.
+# TYPE ynx_faucet_funding_balance_applicable gauge
+ynx_faucet_funding_balance_applicable %.0f
+# HELP ynx_faucet_funding_balance_ynxt Last finite funding account balance; interpret only when applicable is 1.
+# TYPE ynx_faucet_funding_balance_ynxt gauge
+ynx_faucet_funding_balance_ynxt %.0f
+`, stats.probes, stats.failures, stats.joined, ready, checked, float64(stats.last.ProbeDurationMS)/1000,
+		float64(stats.last.StatusDurationMS)/1000, float64(stats.last.CapabilityDurationMS)/1000,
+		float64(stats.last.AdmissionDurationMS)/1000, float64(stats.last.FundingDurationMS)/1000,
+		upstreamReady, admissionReady, ready, balanceApplicable, float64(stats.last.FundingBalanceYNXT))
 }

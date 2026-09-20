@@ -130,24 +130,26 @@ func (c Config) normalized() (Config, error) {
 }
 
 type Service struct {
-	coreAuthToken string
-	admissions    *admissionStore
-	cfg           Config
-	httpClient    *http.Client
-	signer        *secp256k1.PrivateKey
-	signerAddr    string
-	mu            sync.Mutex
-	fundMu        sync.Mutex
-	logMu         sync.Mutex
-	seen          map[string][]time.Time
-	requests      int64
-	successes     int64
-	denied        int64
-	lastHash      string
-	lastError     string
-	healthMu      sync.Mutex
-	healthFlight  *healthFlight
-	healthStats   healthProbeStats
+	coreAuthToken   string
+	admissions      *admissionStore
+	cfg             Config
+	httpClient      *http.Client
+	signer          *secp256k1.PrivateKey
+	signerAddr      string
+	mu              sync.Mutex
+	fundMu          sync.Mutex
+	logMu           sync.Mutex
+	seen            map[string][]time.Time
+	requests        int64
+	successes       int64
+	denied          int64
+	requestOutcomes map[string]uint64
+	admissionErrors map[string]uint64
+	lastHash        string
+	lastError       string
+	healthMu        sync.Mutex
+	healthFlight    *healthFlight
+	healthStats     healthProbeStats
 }
 
 func New(cfg Config) (*Service, error) {
@@ -155,7 +157,11 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	service := &Service{cfg: normalized, httpClient: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, seen: map[string][]time.Time{}}
+	service := &Service{
+		cfg:        normalized,
+		httpClient: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
+		seen:       map[string][]time.Time{}, requestOutcomes: map[string]uint64{}, admissionErrors: map[string]uint64{},
+	}
 	if normalized.UpstreamMode == UpstreamBFT {
 		signer, address, err := loadBFTSigner(normalized)
 		if err != nil {
@@ -249,7 +255,8 @@ type LogEntry struct {
 	Error     string    `json:"error,omitempty"`
 }
 
-func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (Response, int, error) {
+func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (response Response, status int, err error) {
+	defer func() { s.recordRequestOutcome(response, status, err) }()
 	if s.cfg.UpstreamMode == UpstreamAuthoritative {
 		return s.requestAuthoritative(ctx, req, remoteAddr)
 	}
@@ -506,9 +513,15 @@ type Health struct {
 	ProbeDurationMS          int64          `json:"probeDurationMs"`
 	StatusDurationMS         int64          `json:"statusDurationMs"`
 	CapabilityDurationMS     int64          `json:"capabilityDurationMs"`
+	AdmissionDurationMS      int64          `json:"admissionDurationMs"`
+	FundingDurationMS        int64          `json:"fundingDurationMs"`
 	ProbeFailureStage        string         `json:"probeFailureStage,omitempty"`
 	IdempotentRequests       bool           `json:"idempotentRequests"`
 	FundingReady             bool           `json:"fundingReady"`
+	AdmissionReady           bool           `json:"admissionReady"`
+	FundingModel             string         `json:"fundingModel"`
+	FundingBalanceApplicable bool           `json:"fundingBalanceApplicable"`
+	FundingBalanceYNXT       int64          `json:"fundingBalanceYnxt,omitempty"`
 	RequestStatusPath        string         `json:"requestStatusPath"`
 	IPRateLimitMax           int            `json:"ipRateLimitMax"`
 	IPRateLimitWindowSeconds int64          `json:"ipRateLimitWindowSeconds"`
@@ -540,28 +553,35 @@ type Health struct {
 func (s *Service) Health() Health {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	fundingModel := "protocol-authority"
+	if s.cfg.UpstreamMode == UpstreamBFT {
+		fundingModel = "bft-account"
+	}
 	return Health{
 		OK:                s.lastError == "",
 		Service:           "ynx-faucetd",
 		RequestPath:       "/request",
 		RequestStatusPath: "/request-status", IPRateLimitMax: s.cfg.IPMaxRequests, IPRateLimitWindowSeconds: int64(s.cfg.IPWindow.Seconds()),
-		IdempotentRequests:     s.cfg.UpstreamMode == UpstreamAuthoritative,
-		RateLimitMax:           s.cfg.MaxRequests,
-		RateLimitWindowSeconds: int64(s.cfg.Window.Seconds()),
-		RPCURL:                 s.cfg.RPCURL,
-		UpstreamMode:           s.cfg.UpstreamMode,
-		FaucetAddress:          s.signerAddr,
-		NativeSymbol:           "YNXT",
-		DefaultAmount:          s.cfg.DefaultAmount,
-		MaxAmount:              s.cfg.MaxAmount,
-		RateLimit:              fmt.Sprintf("%d per %s per address", s.cfg.MaxRequests, s.cfg.Window),
-		RequestLog:             s.cfg.RequestLog,
-		Requests:               s.requests,
-		Successes:              s.successes,
-		Denied:                 s.denied,
-		LastTxHash:             s.lastHash,
-		LastError:              s.lastError,
-		TruthfulStatus:         s.truthfulStatus(),
+		IdempotentRequests:       s.cfg.UpstreamMode == UpstreamAuthoritative,
+		AdmissionReady:           s.cfg.UpstreamMode != UpstreamAuthoritative || s.admissions != nil,
+		FundingModel:             fundingModel,
+		FundingBalanceApplicable: s.cfg.UpstreamMode == UpstreamBFT,
+		RateLimitMax:             s.cfg.MaxRequests,
+		RateLimitWindowSeconds:   int64(s.cfg.Window.Seconds()),
+		RPCURL:                   s.cfg.RPCURL,
+		UpstreamMode:             s.cfg.UpstreamMode,
+		FaucetAddress:            s.signerAddr,
+		NativeSymbol:             "YNXT",
+		DefaultAmount:            s.cfg.DefaultAmount,
+		MaxAmount:                s.cfg.MaxAmount,
+		RateLimit:                fmt.Sprintf("%d per %s per address", s.cfg.MaxRequests, s.cfg.Window),
+		RequestLog:               s.cfg.RequestLog,
+		Requests:                 s.requests,
+		Successes:                s.successes,
+		Denied:                   s.denied,
+		LastTxHash:               s.lastHash,
+		LastError:                s.lastError,
+		TruthfulStatus:           s.truthfulStatus(),
 	}
 }
 
@@ -636,6 +656,33 @@ func (s *Service) probeHealth(ctx context.Context) (health Health) {
 				health.ProbeFailureStage = "capability"
 			}
 			health.CapabilityDurationMS = time.Since(capabilityStart).Milliseconds()
+			if health.OK {
+				admissionStart := time.Now()
+				if err := s.admissions.health(); err != nil {
+					health.OK = false
+					health.AdmissionReady = false
+					health.LastError = "durable faucet admission is unavailable"
+					health.ProbeFailureStage = "admission"
+					s.recordAdmissionStoreError("health")
+				}
+				health.AdmissionDurationMS = time.Since(admissionStart).Milliseconds()
+			}
+		} else if health.OK {
+			fundingStart := time.Now()
+			account, err := s.bftAccount(ctx)
+			health.FundingDurationMS = time.Since(fundingStart).Milliseconds()
+			if err != nil {
+				health.OK = false
+				health.LastError = "BFT faucet funding account is unavailable"
+				health.ProbeFailureStage = "funding"
+			} else {
+				health.FundingBalanceYNXT = account.Balance
+				if account.Balance < s.cfg.DefaultAmount+consensus.SignedTransactionFeeYNXT {
+					health.OK = false
+					health.LastError = "BFT faucet has insufficient YNXT"
+					health.ProbeFailureStage = "funding"
+				}
+			}
 		}
 	}
 	health.FundingReady = health.OK && health.UpstreamOK
@@ -657,7 +704,65 @@ ynx_faucet_success_total{%s} %d
 # HELP ynx_faucet_denied_total Rejected or rate-limited faucet requests.
 # TYPE ynx_faucet_denied_total counter
 ynx_faucet_denied_total{%s} %d
-`, labels, h.Requests, labels, h.Successes, labels, h.Denied) + s.healthMetrics()
+`, labels, h.Requests, labels, h.Successes, labels, h.Denied) + s.requestMetrics() + s.healthMetrics()
+}
+
+func (s *Service) recordRequestOutcome(response Response, status int, err error) {
+	outcome := response.Status
+	switch outcome {
+	case "accepted", "admission_unavailable", "ip_rate_limited", "rate_limited", "receipt_persistence_uncertain", "request_id_conflict", "stored_receipt_invalid", "transaction_result_uncertain", "upstream_capability_unavailable":
+	default:
+		switch {
+		case err == nil && status >= 200 && status < 300:
+			outcome = "accepted"
+		case status == http.StatusBadRequest:
+			outcome = "invalid_request"
+		case status == http.StatusTooManyRequests:
+			outcome = "rate_limited"
+		case status >= 500:
+			outcome = "upstream_error"
+		default:
+			outcome = "other_error"
+		}
+	}
+	s.mu.Lock()
+	s.requestOutcomes[outcome]++
+	s.mu.Unlock()
+}
+
+func (s *Service) recordAdmissionStoreError(operation string) {
+	switch operation {
+	case "admit", "complete", "health", "lookup":
+	default:
+		operation = "other"
+	}
+	s.mu.Lock()
+	s.admissionErrors[operation]++
+	s.mu.Unlock()
+}
+
+func (s *Service) requestMetrics() string {
+	s.mu.Lock()
+	outcomes := make(map[string]uint64, len(s.requestOutcomes))
+	for key, value := range s.requestOutcomes {
+		outcomes[key] = value
+	}
+	admission := make(map[string]uint64, len(s.admissionErrors))
+	for key, value := range s.admissionErrors {
+		admission[key] = value
+	}
+	s.mu.Unlock()
+	var b strings.Builder
+	fmt.Fprintf(&b, "# HELP ynx_faucet_default_amount_ynxt Configured default grant amount.\n# TYPE ynx_faucet_default_amount_ynxt gauge\nynx_faucet_default_amount_ynxt %d\n", s.cfg.DefaultAmount)
+	b.WriteString("# HELP ynx_faucet_request_results_total Faucet request results by bounded outcome.\n# TYPE ynx_faucet_request_results_total counter\n")
+	for _, outcome := range []string{"accepted", "admission_unavailable", "invalid_request", "ip_rate_limited", "other_error", "rate_limited", "receipt_persistence_uncertain", "request_id_conflict", "stored_receipt_invalid", "transaction_result_uncertain", "upstream_capability_unavailable", "upstream_error"} {
+		fmt.Fprintf(&b, "ynx_faucet_request_results_total{outcome=%q} %d\n", outcome, outcomes[outcome])
+	}
+	b.WriteString("# HELP ynx_faucet_admission_store_errors_total Durable admission store errors by bounded operation.\n# TYPE ynx_faucet_admission_store_errors_total counter\n")
+	for _, operation := range []string{"admit", "complete", "health", "lookup", "other"} {
+		fmt.Fprintf(&b, "ynx_faucet_admission_store_errors_total{operation=%q} %d\n", operation, admission[operation])
+	}
+	return b.String()
 }
 
 func requestID() string {

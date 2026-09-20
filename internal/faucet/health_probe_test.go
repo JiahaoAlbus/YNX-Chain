@@ -49,12 +49,46 @@ func TestHealthBoundedStagesAndRecovery(t *testing.T) {
 				t.Fatalf("failed probe was cached: %+v", h)
 			}
 			metrics := s.Metrics()
-			for _, want := range []string{"ynx_faucet_health_probes_total 2", "ynx_faucet_health_failures_total 1", "ynx_faucet_health_ready 1"} {
+			for _, want := range []string{
+				"ynx_faucet_health_probes_total 2",
+				"ynx_faucet_health_failures_total 1",
+				"ynx_faucet_health_ready 1",
+				"ynx_faucet_health_checked_timestamp_seconds ",
+				"ynx_faucet_health_status_duration_seconds ",
+				"ynx_faucet_health_capability_duration_seconds ",
+				"ynx_faucet_admission_ready 1",
+				"ynx_faucet_funding_ready 1",
+				"ynx_faucet_funding_balance_applicable 0",
+			} {
 				if !strings.Contains(metrics, want) {
 					t.Fatal(metrics)
 				}
 			}
 		})
+	}
+}
+
+func TestHealthAdmissionStoreFailureIsVisibleAndBlocksFundingReadiness(t *testing.T) {
+	core := api.NewServerWithConfig(chain.NewDevnet(chain.DefaultNetworkConfig("testnet")), api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
+	up := httptest.NewServer(core)
+	defer up.Close()
+	s := openTestFaucet(t, admissionTestConfig(t, up.URL))
+	if err := s.admissions.db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	h := s.CheckHealth(context.Background())
+	if h.OK || h.FundingReady || h.AdmissionReady || h.ProbeFailureStage != "admission" {
+		t.Fatalf("admission failure was not reflected in readiness: %+v", h)
+	}
+	metrics := s.Metrics()
+	for _, want := range []string{
+		"ynx_faucet_admission_ready 0",
+		"ynx_faucet_funding_ready 0",
+		`ynx_faucet_admission_store_errors_total{operation="health"} 1`,
+	} {
+		if !strings.Contains(metrics, want) {
+			t.Fatalf("missing %q in metrics:\n%s", want, metrics)
+		}
 	}
 }
 
