@@ -8,6 +8,10 @@ Implementation tree: `09aa16f8ae7901e0cab65a88809f6d8375eab842`
 
 Predecessor: `cc72c82d5cf56db1cb2d85c3c8eca455645cc5ed`
 
+Remote branch: `codex/finance-local-execution-blocked-20260920`
+
+Pull request: `https://github.com/JiahaoAlbus/YNX-Chain/pull/148`
+
 ## Closed gap
 
 The controlled worker no longer records approval expiry or a changed owner-to-provider account mapping as `provider_rejected`. Both are pre-provider local terminal conditions and now persist as `execution_blocked` with the exact local error code, an existing execution request key, and no provider order, raw status or provider HTTP request correlation. No provider POST occurs.

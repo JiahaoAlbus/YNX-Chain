@@ -9,6 +9,12 @@
     "tree": "09aa16f8ae7901e0cab65a88809f6d8375eab842",
     "predecessor": "cc72c82d5cf56db1cb2d85c3c8eca455645cc5ed"
   },
+  "publication": {
+    "remoteBranch": "codex/finance-local-execution-blocked-20260920",
+    "firstPublishedEvidenceCheckpoint": "7cb3f2ef5",
+    "pullRequest": 148,
+    "pullRequestUrl": "https://github.com/JiahaoAlbus/YNX-Chain/pull/148"
+  },
   "delivered": {
     "localBlockState": "execution_blocked",
     "localBlockCodes": [
@@ -62,8 +68,8 @@
   "truth": {
     "sourceImplemented": true,
     "testsPassed": true,
-    "repositoryPublished": false,
-    "pullRequestCreated": false,
+    "repositoryPublished": true,
+    "pullRequestCreated": true,
     "publicDeployed": false,
     "installedRuntimeVerified": false,
     "officialBrokerCredentialsProvided": false,
