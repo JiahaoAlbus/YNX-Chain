@@ -60,8 +60,14 @@ internal class BoundedHttpEngine(
     .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false)
     .cookieJar(CookieJar.NO_COOKIES).cache(null)
     .authenticator(Authenticator.NONE).proxyAuthenticator(Authenticator.NONE)
-    .connectTimeout(5, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS)
-    .writeTimeout(5, TimeUnit.SECONDS).callTimeout(15, TimeUnit.SECONDS).build()
+    // A fresh Android TLS/HTTP2 connection to the public Testnet can take more
+    // than five seconds even when the endpoint is healthy. Keep each network
+    // phase inside the existing fifteen-second monotonic call deadline without
+    // turning on OkHttp retries or allowing a request body to be replayed.
+    .connectTimeout(NETWORK_PHASE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+    .readTimeout(NETWORK_PHASE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+    .writeTimeout(NETWORK_PHASE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+    .callTimeout(CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS).build()
 
   fun reserve(purpose: String): String = synchronized(monitor) {
     if (purpose != "admit" && purpose != "rpc") fail("YNX_HTTP_INVALID_INPUT")
@@ -226,6 +232,8 @@ internal class BoundedHttpEngine(
   }
 
   companion object {
+    internal const val NETWORK_PHASE_TIMEOUT_SECONDS = 10L
+    internal const val CALL_TIMEOUT_SECONDS = 15L
     private const val RESPONSE_CAP = 16384
     private val JSON_TYPE = Regex("application/json(?:;\\s*charset=utf-8)?", RegexOption.IGNORE_CASE)
     private val DECIMAL = Regex("[0-9]{1,20}")

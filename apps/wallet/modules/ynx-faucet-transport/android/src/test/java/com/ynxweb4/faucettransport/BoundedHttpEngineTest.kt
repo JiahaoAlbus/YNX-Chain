@@ -3,6 +3,8 @@ package com.ynxweb4.faucettransport
 import java.io.InputStream
 import java.net.ServerSocket
 import java.net.InetSocketAddress
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
@@ -36,6 +38,18 @@ class BoundedHttpEngineTest {
   private var acceptEncoding: String? = null
   private val requestId = "req_0123456789abcdef0123456789abcdef"
   private val body = "{\"requestId\":\"$requestId\",\"address\":\"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80\",\"amount\":100}"
+
+  @Test fun `documented network budgets match the production engine contract`() {
+    assertEquals(10L, BoundedHttpEngine.NETWORK_PHASE_TIMEOUT_SECONDS)
+    assertEquals(15L, BoundedHttpEngine.CALL_TIMEOUT_SECONDS)
+    val readme = sequenceOf(
+      Path.of("..", "README.md"),
+      Path.of("apps", "wallet", "modules", "ynx-faucet-transport", "README.md"),
+    ).firstOrNull(Files::isRegularFile) ?: error("Faucet transport README is unavailable")
+    val contract = String(Files.readAllBytes(readme), Charsets.UTF_8)
+    assertTrue(contract.contains(
+      "Connect/read/write limits are ten seconds, with a 15-second call timeout"))
+  }
 
   @Before fun setup() {
     // Raw loopback sockets use only java.base, also available in the Android

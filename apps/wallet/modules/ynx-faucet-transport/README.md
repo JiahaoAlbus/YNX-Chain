@@ -99,7 +99,7 @@ operation or emits partial chunks to JS. This bounds the **application-owned
 accumulated response bytes**, not all HTTP/TLS/Okio allocations or decoded String
 memory. Native HTTP libraries have their own internal buffers.
 
-Connect/read/write limits are five seconds, with a 15-second call timeout and a
+Connect/read/write limits are ten seconds, with a 15-second call timeout and a
 separate reservation deadline. Android uses `elapsedRealtimeNanos`, so checks
 also reject a late response after deep sleep. Registration, terminal transition,
 and enqueue are serialized; body I/O does not hold the registry monitor. Native
