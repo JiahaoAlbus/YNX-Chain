@@ -109,6 +109,66 @@ func TestBrokerActivationReadinessRequiresExactlyOneExecutionRequest(t *testing.
 	}
 }
 
+func TestBrokerActivationReadinessAllowsOnlyOneEligibleLifecycle(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state, _, err := decodeFinanceState(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountState := state.Accounts[account]
+	secondOrderID := "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff"
+	secondOrder := accountState.Brokerage.Orders[orderID]
+	secondOrder.Order.OrderID = secondOrderID
+	accountState.Brokerage.Orders[secondOrderID] = secondOrder
+	secondOutbox := accountState.Brokerage.Outbox[orderID]
+	secondOutbox.OrderID = secondOrderID
+	secondOutbox.Status = "pending_unwired"
+	secondOutbox.ExecutionRequestKey = ""
+	secondOutbox.ExecutionRequestedAt = time.Time{}
+	accountState.Brokerage.Outbox[secondOrderID] = secondOutbox
+	state.Accounts[account] = accountState
+	raw, _, err = encodeFinanceState(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(store.path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	readiness, err := InspectBrokerActivationReadiness(context.Background(), store.path, "", account, now.Add(2*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if readiness.ApprovedAwaitingExecution != 1 || readiness.ExecutionRequested != 1 || readiness.ReadyForExecutionRequest || readiness.ReadyForWorkerDispatch {
+		t.Fatalf("mixed eligible lifecycles must fail closed: %+v", readiness)
+	}
+	firstRequestID := accountState.Brokerage.Orders[orderID].RequestID
+	delete(accountState.Brokerage.Orders, orderID)
+	delete(accountState.Brokerage.Outbox, orderID)
+	delete(accountState.Brokerage.Challenges, firstRequestID)
+	state.Accounts[account] = accountState
+	raw, _, err = encodeFinanceState(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(store.path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	readiness, err = InspectBrokerActivationReadiness(context.Background(), store.path, "", account, now.Add(3*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if readiness.ApprovedAwaitingExecution != 1 || readiness.ExecutionRequested != 0 || !readiness.ReadyForExecutionRequest || readiness.ReadyForWorkerDispatch {
+		t.Fatalf("one approved request should enable only execution-request readiness: %+v", readiness)
+	}
+}
+
 func TestBrokerActivationReadinessReportsLifecycleWithoutCallingPendingTerminal(t *testing.T) {
 	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
 	now := time.Date(2026, 9, 20, 4, 0, 0, 0, time.UTC)
@@ -149,6 +209,9 @@ func TestBrokerActivationReadinessReportsLifecycleWithoutCallingPendingTerminal(
 		"terminal":      outboxRecord("terminal", "provider_rejected", ""),
 		"inconsistent":  outboxRecord("inconsistent", "pending_unwired", "unexpected-valid-key"),
 	}
+	terminalOutbox := outbox["terminal"]
+	terminalOutbox.LastErrorCode = "PROVIDER_REJECTED"
+	outbox["terminal"] = terminalOutbox
 	writeActivationState := func(orders map[string]BrokerOrderRecord) {
 		t.Helper()
 		state := persistedState{Version: currentStateVersion, Accounts: map[string]AccountState{
@@ -180,8 +243,64 @@ func TestBrokerActivationReadinessReportsLifecycleWithoutCallingPendingTerminal(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !readiness.StateConsistent || readiness.Inconsistent != 0 || !readiness.ReadyForExecutionRequest || !readiness.ReadyForWorkerDispatch || readiness.Terminal != 1 {
-		t.Fatalf("consistent lifecycle did not become exactly ready: %+v", readiness)
+	if !readiness.StateConsistent || readiness.Inconsistent != 0 || readiness.ReadyForExecutionRequest || readiness.ReadyForWorkerDispatch || readiness.Terminal != 1 {
+		t.Fatalf("mixed eligible lifecycle was not kept fail closed: %+v", readiness)
+	}
+}
+
+func TestBrokerActivationReadinessRejectsContradictoryTerminalOutbox(t *testing.T) {
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	now := time.Date(2026, 9, 20, 5, 0, 0, 0, time.UTC)
+	statePath := filepath.Join(t.TempDir(), "finance.json")
+	providerOrderID := "01234567-89ab-4cde-8fab-0123456789ab"
+	tests := []struct {
+		name, orderState, rawStatus, outboxStatus, outboxError, orderProviderID, outboxProviderID string
+		consistent                                                                                bool
+	}{
+		{name: "filled", orderState: "filled", rawStatus: "filled", outboxStatus: "submitted", orderProviderID: providerOrderID, outboxProviderID: providerOrderID, consistent: true},
+		{name: "canceled", orderState: "canceled", rawStatus: "canceled", outboxStatus: "submitted", orderProviderID: providerOrderID, outboxProviderID: providerOrderID, consistent: true},
+		{name: "expired", orderState: "provider_expired", rawStatus: "expired", outboxStatus: "submitted", orderProviderID: providerOrderID, outboxProviderID: providerOrderID, consistent: true},
+		{name: "rejected_without_provider_id", orderState: "provider_rejected", outboxStatus: "provider_rejected", outboxError: "ORDER_APPROVAL_EXPIRED", consistent: true},
+		{name: "filled_unknown_outbox", orderState: "filled", rawStatus: "filled", outboxStatus: "dispatching", orderProviderID: providerOrderID, outboxProviderID: providerOrderID},
+		{name: "canceled_missing_provider_id", orderState: "canceled", rawStatus: "canceled", outboxStatus: "submitted"},
+		{name: "expired_wrong_raw_status", orderState: "provider_expired", rawStatus: "filled", outboxStatus: "submitted", orderProviderID: providerOrderID, outboxProviderID: providerOrderID},
+		{name: "rejected_missing_error", orderState: "provider_rejected", outboxStatus: "provider_rejected"},
+		{name: "rejected_id_mismatch", orderState: "provider_rejected", outboxStatus: "provider_rejected", outboxError: "PROVIDER_REJECTED", orderProviderID: providerOrderID},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			orderID := "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+			state := persistedState{Version: currentStateVersion, Accounts: map[string]AccountState{
+				account: {Brokerage: BrokerageAccountState{
+					Orders: map[string]BrokerOrderRecord{orderID: {
+						Order: FinanceOrderV1{OrderID: orderID}, RequestID: "request-terminal", ProviderClientOrderID: "client-terminal",
+						ApprovalState: "consumed", State: test.orderState, ProviderOrderID: test.orderProviderID, ProviderRawStatus: test.rawStatus,
+					}},
+					Outbox: map[string]BrokerOrderOutbox{orderID: {
+						OrderID: orderID, RequestID: "request-terminal", ProviderClientOrderID: "client-terminal", Provider: FinanceOrderProvider,
+						TradingEnvironment: FinanceOrderTradingEnv, Status: test.outboxStatus, ProviderOrderID: test.outboxProviderID,
+						ProviderRawStatus: test.rawStatus, LastErrorCode: test.outboxError,
+					}},
+				}},
+			}, Nonces: map[string]time.Time{}}
+			raw, _, err := encodeFinanceState(state)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(statePath, raw, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			readiness, err := InspectBrokerActivationReadiness(context.Background(), statePath, "", account, now)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.consistent && (readiness.Terminal != 1 || readiness.Inconsistent != 0 || !readiness.StateConsistent) {
+				t.Fatalf("valid terminal state rejected: %+v", readiness)
+			}
+			if !test.consistent && (readiness.Terminal != 0 || readiness.Inconsistent != 1 || readiness.StateConsistent) {
+				t.Fatalf("contradictory terminal state accepted: %+v", readiness)
+			}
+		})
 	}
 }
 

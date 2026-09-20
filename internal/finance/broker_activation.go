@@ -66,8 +66,13 @@ func InspectBrokerActivationReadiness(ctx context.Context, statePath, databaseUR
 		case !hasOutbox:
 			result.Inconsistent++
 			result.StateConsistent = false
-		case order.State == "filled" || order.State == "canceled" || order.State == "provider_rejected" || order.State == "provider_expired":
-			result.Terminal++
+		case brokerTerminalOrderState(order.State):
+			if brokerTerminalStateConsistent(order, outbox) {
+				result.Terminal++
+			} else {
+				result.Inconsistent++
+				result.StateConsistent = false
+			}
 		case outbox.Status == "pending_unwired" && outbox.ExecutionRequestKey == "" && outbox.ProviderOrderID == "" && order.ProviderOrderID == "" && order.ApprovalState == "consumed" && order.State == "submitting":
 			result.ApprovedAwaitingExecution++
 		case outbox.Status == "execution_requested" && outbox.ExecutionRequestKey != "" && outbox.ProviderOrderID == "" && order.ProviderOrderID == "" && order.ApprovalState == "consumed" && order.State == "submitting":
@@ -81,9 +86,28 @@ func InspectBrokerActivationReadiness(ctx context.Context, statePath, databaseUR
 			result.StateConsistent = false
 		}
 	}
-	result.ReadyForExecutionRequest = mappingActive && walletKeyLinked && result.StateConsistent && result.ApprovedAwaitingExecution == 1 && result.Ambiguous == 0
-	result.ReadyForWorkerDispatch = mappingActive && walletKeyLinked && result.StateConsistent && result.ExecutionRequested == 1 && result.Ambiguous == 0
+	eligible := result.ApprovedAwaitingExecution + result.ExecutionRequested
+	result.ReadyForExecutionRequest = mappingActive && walletKeyLinked && result.StateConsistent && eligible == 1 && result.ApprovedAwaitingExecution == 1 && result.ExecutionRequested == 0 && result.Ambiguous == 0
+	result.ReadyForWorkerDispatch = mappingActive && walletKeyLinked && result.StateConsistent && eligible == 1 && result.ExecutionRequested == 1 && result.ApprovedAwaitingExecution == 0 && result.Ambiguous == 0
 	return result, nil
+}
+
+func brokerTerminalOrderState(state string) bool {
+	return state == "filled" || state == "canceled" || state == "provider_rejected" || state == "provider_expired"
+}
+
+func brokerTerminalStateConsistent(order BrokerOrderRecord, outbox BrokerOrderOutbox) bool {
+	if order.ApprovalState != "consumed" || outbox.ProviderOrderID != order.ProviderOrderID || outbox.ProviderRawStatus != order.ProviderRawStatus {
+		return false
+	}
+	switch order.State {
+	case "provider_rejected":
+		return outbox.Status == "provider_rejected" && outbox.LastErrorCode != "" && (order.ProviderRawStatus == "" || normalizeBrokerOrderState(order.ProviderRawStatus) == order.State)
+	case "filled", "canceled", "provider_expired":
+		return outbox.Status == "submitted" && outbox.LastErrorCode == "" && order.ProviderOrderID != "" && order.ProviderRawStatus != "" && normalizeBrokerOrderState(order.ProviderRawStatus) == order.State
+	default:
+		return false
+	}
 }
 
 func loadFinanceStateReadOnly(ctx context.Context, statePath, databaseURL string) (persistedState, string, error) {
