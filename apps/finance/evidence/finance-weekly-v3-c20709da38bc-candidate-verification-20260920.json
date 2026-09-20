@@ -1,0 +1,245 @@
+{
+  "schemaVersion": "ynx.finance.weekly-v3-candidate-verification.v1",
+  "capturedAt": "2026-09-20T01:43:45.627Z",
+  "source": {
+    "commit": "c20709da38bc2a4823efb9870046b6afb7775992",
+    "tree": "8ff6ce4f3074eb6bcb64b2d5dc47dbd6b8ba48cb",
+    "toolingCommit": "3c32c6133da7a758baa3551fbd1221c28445cc5c"
+  },
+  "candidate": {
+    "release": "finance-weekly-v3-c20709da38bc-linux-amd64",
+    "archive": {
+      "path": "apps/finance/evidence/release-candidates/finance-weekly-v3-c20709da38bc-linux-amd64.tar.gz",
+      "bytes": 30251651,
+      "sha256": "839b1c97ac03471d13a7a036e6e0ea3b4054f2468140398a9e6cfda32c3f33a5"
+    },
+    "repeatBuildByteExact": true,
+    "manifestSha256": "aad01acbfe8d1f9bf23b4d6140495f6a5470d8e9ada62112d80a1dfb10ef6948",
+    "files": [
+      {
+        "path": ".env.example",
+        "bytes": 2476,
+        "sha256": "6209f137ea5e7fdbed90d9c465cc556c5acef0d0929a1445e1cecb342e0fb2c5",
+        "mode": "0644"
+      },
+      {
+        "path": "web/app.js",
+        "bytes": 41891,
+        "sha256": "b8b2b866716a8d0ec33fb98504e9386e5ad74338cec32f22580c95b5500ec76d",
+        "mode": "0644"
+      },
+      {
+        "path": "web/build-identity.json",
+        "bytes": 237,
+        "sha256": "fcde6365563272f9c78728fd3724979c594a91c6d452b63ac784943707f76dc9",
+        "mode": "0644"
+      },
+      {
+        "path": "web/health.json",
+        "bytes": 283,
+        "sha256": "74ab15485c24722bac5cee3ba23766e7e5a8d02012815d64f0f71700adde3282",
+        "mode": "0644"
+      },
+      {
+        "path": "web/index.html",
+        "bytes": 18315,
+        "sha256": "911bafd5870d8d7c6962e01c9446e46cabd5517913f7c0451dd4d3c30c0d28f2",
+        "mode": "0644"
+      },
+      {
+        "path": "web/manifest.webmanifest",
+        "bytes": 241,
+        "sha256": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05",
+        "mode": "0644"
+      },
+      {
+        "path": "web/read-sources.js",
+        "bytes": 10920,
+        "sha256": "e19b7b266c14b181a4d88b10c6e1975398bdafb77660272f37ba22b48fc18c70",
+        "mode": "0644"
+      },
+      {
+        "path": "web/styles.css",
+        "bytes": 13935,
+        "sha256": "bd01b920fee3693204a63aed364c27becf4c9c84f3ee1ed9dd3e2d35a39b5d9f",
+        "mode": "0644"
+      },
+      {
+        "path": "web/vercel.json",
+        "bytes": 631,
+        "sha256": "b58973f79696792d9529a5bee54270d88a87b1d33fa5cb768ab6884abbd6ac89",
+        "mode": "0644"
+      },
+      {
+        "path": "web/wallet-auth-entry.js",
+        "bytes": 8924,
+        "sha256": "53f53a2550ffa85b67dd2526da4421671302b261721542bb4532275fab607ed4",
+        "mode": "0644"
+      },
+      {
+        "path": "web/wallet-auth.js",
+        "bytes": 154703,
+        "sha256": "8406eeae586144f0ac82f1f0192d2675ff2aa5ef0f5ffe17f2260a2564f05770",
+        "mode": "0644"
+      },
+      {
+        "path": "web/ynx-logo.png",
+        "bytes": 104171,
+        "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+        "mode": "0644"
+      },
+      {
+        "path": "ynx-finance",
+        "bytes": 20443284,
+        "sha256": "53ddb7c982b7d7b0f3ecbb1d9540709fdf26ab3ac8a67138d93914fe8a44227b",
+        "mode": "0755"
+      },
+      {
+        "path": "ynx-finance-admin",
+        "bytes": 18579604,
+        "sha256": "833f9d7f5ef4194679fce86bce02a63cbd7a5bc63b3631dda2df3501172f5eb9",
+        "mode": "0755"
+      },
+      {
+        "path": "ynx-finance-broker-tools",
+        "bytes": 19398804,
+        "sha256": "5cbb6aaf9b53205d32b9440862cd7d2af01e2b5a715d61811003644fc2989e1b",
+        "mode": "0755"
+      },
+      {
+        "path": "ynx-finance-broker-worker",
+        "bytes": 19464340,
+        "sha256": "f1169e1f632b36ec3979eaef3fdd59fb09a6911530c0a80e38ee47e4c880c859",
+        "mode": "0755"
+      }
+    ]
+  },
+  "safetyDefaults": {
+    "tradingEnvironment": "sandbox",
+    "tradingEnabled": false,
+    "liveEnabled": false,
+    "sandboxWritesEnabled": false,
+    "credentialsBundled": false,
+    "providerReadAttempted": false,
+    "providerWriteAttempted": false
+  },
+  "localLinuxColdStart": {
+    "performed": true,
+    "containerImage": "ubuntu:24.04",
+    "containerImageId": "sha256:6232b38791000e3818b58d8847b5a8f5612d606929e01156dd8febc423e0f2ef",
+    "requestedPlatform": "linux/amd64",
+    "endpoints": [
+      {
+        "route": "/health",
+        "status": 200,
+        "bytes": 479,
+        "sha256": "bdc6de98e939a1926525d61ac4d0b20c78f5ee54d2e4757e836fd6ee840a2647",
+        "contentType": "application/json; charset=utf-8"
+      },
+      {
+        "route": "/version",
+        "status": 200,
+        "bytes": 148,
+        "sha256": "350ed360688f4f0d0198edabdf334da5fc9ca394adb1b692b6e46c0cf3735e73",
+        "contentType": "application/json; charset=utf-8"
+      },
+      {
+        "route": "/ready",
+        "status": 200,
+        "bytes": 99,
+        "sha256": "0b79c7355df523247dd9c738c43aa7250c3d1b62a653c29bace83fe753dc5e01",
+        "contentType": "application/json; charset=utf-8"
+      },
+      {
+        "route": "/api/broker/status",
+        "status": 200,
+        "bytes": 616,
+        "sha256": "6d578685e6e863916204dc745f453a7c0532ba37c68550807e3523698047ba9b",
+        "contentType": "application/json; charset=utf-8"
+      },
+      {
+        "route": "/",
+        "status": 200,
+        "bytes": 18315,
+        "sha256": "911bafd5870d8d7c6962e01c9446e46cabd5517913f7c0451dd4d3c30c0d28f2",
+        "contentType": "text/html; charset=utf-8"
+      },
+      {
+        "route": "/app.js",
+        "status": 200,
+        "bytes": 41891,
+        "sha256": "b8b2b866716a8d0ec33fb98504e9386e5ad74338cec32f22580c95b5500ec76d",
+        "contentType": "text/javascript; charset=utf-8"
+      },
+      {
+        "route": "/wallet-auth.js",
+        "status": 200,
+        "bytes": 154703,
+        "sha256": "8406eeae586144f0ac82f1f0192d2675ff2aa5ef0f5ffe17f2260a2564f05770",
+        "contentType": "text/javascript; charset=utf-8"
+      }
+    ],
+    "stateAbsentBeforeAndAfter": true,
+    "diagnostic": {
+      "accountLinkVerified": false,
+      "configuration": {
+        "provider": "alpaca_broker",
+        "chainEnvironment": "testnet",
+        "tradingEnvironment": "sandbox",
+        "enabled": false,
+        "state": "DISABLED",
+        "diagnostics": [
+          "BLOCKED_CREDENTIALS"
+        ],
+        "submissionEnabled": false,
+        "officialSandboxVerified": false,
+        "productionApproved": false
+      },
+      "dataEntitlementVerified": false,
+      "durableOrderJournal": "implemented_state_v2",
+      "localReadOnlyAttempted": false,
+      "mode": "doctor",
+      "networkAttempted": false,
+      "officialSandboxVerified": false,
+      "productionApproved": false,
+      "providerPost": "activation_gated_operator_only",
+      "result": "CONFIGURATION_ONLY_NO_NETWORK",
+      "walletOrderApproval": "manual_wallet_approval_required",
+      "writeAttempted": false
+    }
+  },
+  "legacyStateReadOnlyColdStart": {
+    "performed": true,
+    "sourceVersion": 1,
+    "acceptedByCandidate": true,
+    "diskStateUnchanged": true,
+    "beforeSha256": "e4f899419e5c34226e57bf8b0ed683f4f605ab6cf9977d561be4ad2ac48ddef8",
+    "afterSha256": "e4f899419e5c34226e57bf8b0ed683f4f605ab6cf9977d561be4ad2ac48ddef8",
+    "endpoints": [
+      {
+        "route": "/health",
+        "status": 200,
+        "bytes": 479,
+        "sha256": "bdc6de98e939a1926525d61ac4d0b20c78f5ee54d2e4757e836fd6ee840a2647"
+      },
+      {
+        "route": "/version",
+        "status": 200,
+        "bytes": 148,
+        "sha256": "350ed360688f4f0d0198edabdf334da5fc9ca394adb1b692b6e46c0cf3735e73"
+      },
+      {
+        "route": "/ready",
+        "status": 200,
+        "bytes": 99,
+        "sha256": "0b79c7355df523247dd9c738c43aa7250c3d1b62a653c29bace83fe753dc5e01"
+      }
+    ]
+  },
+  "providerReadAttempted": false,
+  "providerWriteAttempted": false,
+  "officialSandboxVerified": false,
+  "publicDeploymentPerformed": false,
+  "liveEnabled": false,
+  "mainnetEnabled": false
+}
