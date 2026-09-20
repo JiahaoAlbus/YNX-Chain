@@ -15,7 +15,7 @@ try{
   if(!response.ok)throw Object.assign(new Error(`Registry HTTP ${response.status}.`),{code:"PUBLIC_REGISTRY_UNAVAILABLE"});
   const registry=await response.json();
   const wallet=registry?.products?.find(item=>item?.key==="wallet");
-  result.publishedCommit=wallet?.commit||null;result.publicWeb=wallet?.publicWeb||null;
+  result.publishedCommit=wallet?.publicWebSourceCommit||null;result.publicWeb=wallet?.publicWeb||null;
   Object.assign(result,validateWalletPublicRegistry(registry,expectedCommit));result.passed=true;
 }catch(error){result.errorCode=error?.code||(result.registryStatus===null?"PUBLIC_REGISTRY_UNAVAILABLE":error?.name)||"PUBLIC_REGISTRY_UNAVAILABLE";result.errorMessage=error?.message||String(error);}
 

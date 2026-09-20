@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "expectedCommit": "2f1822ef268e825f14274d87c912b6b863bbaca3",
+  "registryUrl": "https://www.ynxweb4.com/releases/ecosystem-release-registry.json",
+  "observedAt": "2026-09-20T04:32:32.381Z",
+  "registryStatus": 200,
+  "publishedCommit": "2f1822ef268e825f14274d87c912b6b863bbaca3",
+  "publicWeb": "https://wallet.ynxweb4.com/",
+  "errorCode": null,
+  "errorMessage": null,
+  "deployedPublic": true,
+  "pwaInstalled": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "passed": true,
+  "state": "testnet-preview"
+}

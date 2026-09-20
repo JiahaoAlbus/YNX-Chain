@@ -10,7 +10,7 @@ export function validateWalletPublicRegistry(registry,expectedCommit){
   const walletRecords=registry.products.filter(item=>item?.key==="wallet");
   if(walletRecords.length!==1)throw new PublicDeploymentError("INVALID_PUBLIC_REGISTRY","Public release registry must contain exactly one Wallet record.");
   const wallet=walletRecords[0];
-  if(wallet.publicWeb!=="https://www.ynxweb4.com/dapp/wallet")throw new PublicDeploymentError("INVALID_PUBLIC_ROUTE","Wallet public route is not the frozen official route.");
-  if(wallet.commit!==expectedCommit)throw new PublicDeploymentError("PUBLIC_SOURCE_DRIFT",`Published Wallet source ${wallet.commit||"missing"} does not equal expected ${expectedCommit}.`);
-  return Object.freeze({expectedCommit,publishedCommit:wallet.commit,publicWeb:wallet.publicWeb,state:wallet.state||null,deployedPublic:true});
+  if(wallet.publicWeb!=="https://wallet.ynxweb4.com/")throw new PublicDeploymentError("INVALID_PUBLIC_ROUTE","Wallet Companion public origin is not the frozen official origin.");
+  if(wallet.publicWebSourceCommit!==expectedCommit)throw new PublicDeploymentError("PUBLIC_SOURCE_DRIFT",`Published Wallet Companion source ${wallet.publicWebSourceCommit||"missing"} does not equal expected ${expectedCommit}.`);
+  return Object.freeze({expectedCommit,publishedCommit:wallet.publicWebSourceCommit,publicWeb:wallet.publicWeb,state:wallet.state||null,deployedPublic:true});
 }
