@@ -1,0 +1,53 @@
+{
+  "schema": "ynx-weekly-v3-publication-review-correction/v1",
+  "sourceCommit": "1599664729051510665011cd7ab6b21fb9ae0b11",
+  "mergedMain": "3f6374f84326b57a38d1c3bbbc9ebbe096d7f233",
+  "mergeMethod": "ordinary merge; no rebase or force push",
+  "financePrivateDeltaEmpty": true,
+  "websiteCommit": "900bb4f5ec1c5f40a8a476787edced22b4e9e97a",
+  "githubApiObservedAt": "2026-09-20T10:30:53Z",
+  "releaseImmutable": false,
+  "publisherCanReplaceAssets": true,
+  "downloadTimeSha256Verified": false,
+  "pairedTamperRegression": {
+    "beforeFix": "FAIL: available true",
+    "afterFix": "PASS: available false and fallbackHref null",
+    "platforms": [
+      "android",
+      "androidUniversal"
+    ],
+    "fixture": "same release tag, coordinated APK filename and fallback replaced with AAB"
+  },
+  "tests": {
+    "website": 217,
+    "walletWeb": 366,
+    "integrationGuards": 45,
+    "financeBrowser": 49,
+    "failures": 0,
+    "skips": 0,
+    "goRace": "PASS: Finance, brokerage, broker tools/worker/admin, Faucet; count=1",
+    "websiteProductionBuild": {
+      "passed": true,
+      "entryBytes": 449157,
+      "limitBytes": 450000
+    },
+    "walletWebArtifactBuild": "PASS"
+  },
+  "browser": {
+    "renderedDisclosure": "releaseImmutable=false: publisher can replace assets. SHA-256 is not recomputed during download; verify the digest yourself.",
+    "exactAPKHref": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+    "externalRequestsBlocked": 0,
+    "syntheticBrowserOrigin": true,
+    "accountRequests": 0,
+    "signatures": 0,
+    "transactions": 0,
+    "publicVerified": false
+  },
+  "implemented": true,
+  "contractTested": true,
+  "officialSandboxVerified": false,
+  "publicDeployed": false,
+  "publicVerified": false,
+  "productionApproved": false,
+  "remaining": "CI at final evidence head is tracked in the same PRs; no production deployment authorized or performed"
+}

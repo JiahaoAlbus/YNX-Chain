@@ -1,3 +1,28 @@
+// Independently downloaded GitHub prerelease; no unverified CDN mirror.
+export const ANDROID_PREVIEW_DOWNLOAD = Object.freeze({
+  filename: "ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+  releaseTag: "wallet-android-testnet-preview-1.0.16-e9816a827",
+  assetPath: "/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+  releaseImmutable: false,
+  publisherCanReplaceAssets: true,
+  downloadTimeSha256Verified: false,
+  releaseMetadataObservedAt: "2026-09-20T10:30:53Z",
+  downloadNotice: "releaseImmutable=false: publisher can replace assets. SHA-256 is not recomputed during download; verify the digest yourself.",
+  label: "Android API 24+ · universal · 1.0.16",
+  url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+  fallbackUrl: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+  hosted: true, bytes: 116631255,
+  sha256: "89a842dc8641206a9154a6e41fd1c9e3cbb4b6cca2cea455ed5b7fc674b558c0",
+  contentType: "application/vnd.android.package-archive",
+  signingClass: "local-test-signed Testnet Preview", productionSigned: false,
+});
+
+// Only this reviewed exact release can be a non-content-addressed primary URL.
+export function isPinnedAndroidRelease(item) {
+  return ["filename", "assetPath", "releaseTag", "url", "fallbackUrl", "bytes", "sha256", "productionSigned", "signingClass", "releaseImmutable", "publisherCanReplaceAssets", "downloadTimeSha256Verified", "releaseMetadataObservedAt", "downloadNotice"]
+    .every(key => item?.[key] === ANDROID_PREVIEW_DOWNLOAD[key]);
+}
+
 export const YNX_CHAIN = Object.freeze({
   chainId: "0x1917",
   chainName: "YNX Testnet",
@@ -7,7 +32,7 @@ export const YNX_CHAIN = Object.freeze({
 });
 
 export const WALLET_DOWNLOAD_MATRIX = Object.freeze({
-  android: Object.freeze({label:"Android API 24+ · universal",url:"https://downloads.ynxweb4.com/wallet/sha256-b82c4354329e2fb517730b02211e4e10ee9e45c720a4494556a68f911a753210/ynx-wallet-1.0.15-testnet-preview-8a4f00982-universal-local-test-signed.apk",fallbackUrl:"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.15-8a4f00982/ynx-wallet-1.0.15-testnet-preview-8a4f00982-universal-local-test-signed.apk",hosted:true,bytes:79014862,sha256:"b82c4354329e2fb517730b02211e4e10ee9e45c720a4494556a68f911a753210",contentType:"application/vnd.android.package-archive",signingClass:"local-test-signed Testnet Preview",productionSigned:false}),
+  android: ANDROID_PREVIEW_DOWNLOAD,
   windowsX64: Object.freeze({label:"Windows x64 · 0.6.8",url:"https://downloads.ynxweb4.com/wallet/sha256-da2e564eb680de0595202bd388eda9d524f40d62052b03da9b0bba4bf9da3716/ynx-wallet-desktop-0.6.8-x64.exe",fallbackUrl:"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-desktop-testnet-preview-6f332753/ynx-wallet-desktop-0.6.8-x64.exe",hosted:true,bytes:120954701,sha256:"da2e564eb680de0595202bd388eda9d524f40d62052b03da9b0bba4bf9da3716",contentType:"application/vnd.microsoft.portable-executable",signingClass:"unsigned Testnet Preview",productionSigned:false}),
   windowsArm64: Object.freeze({label:"Windows arm64 · 0.6.8",url:"https://downloads.ynxweb4.com/wallet/sha256-122027d7f5668876ae5bdae8bab31c4bd34dee517096eae07813f66775b02902/ynx-wallet-desktop-0.6.8-arm64.exe",fallbackUrl:"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-desktop-testnet-preview-6f332753/ynx-wallet-desktop-0.6.8-arm64.exe",hosted:true,bytes:114596628,sha256:"122027d7f5668876ae5bdae8bab31c4bd34dee517096eae07813f66775b02902",contentType:"application/vnd.microsoft.portable-executable",signingClass:"unsigned Testnet Preview",productionSigned:false}),
   macosUniversal: Object.freeze({label:"macOS universal · 0.6.8",url:"https://downloads.ynxweb4.com/wallet/sha256-f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f/ynx-wallet-macos-0.6.8-universal.dmg",fallbackUrl:"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-desktop-testnet-preview-6f332753/ynx-wallet-macos-0.6.8-universal.dmg",hosted:true,bytes:258681947,sha256:"f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f",contentType:"application/x-apple-diskimage",signingClass:"ad-hoc signed; not notarized",productionSigned:false}),
