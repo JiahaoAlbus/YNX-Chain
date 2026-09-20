@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "ynx.wallet.firefox-runtime-evidence.v1",
+  "verifiedAt": "2026-09-20T04:40:06Z",
+  "artifact": {
+    "sourceCommit": "c93e16be81beddc957ef5f27b7bbcdfa89c28db3",
+    "sha256": "6ac256415c34b4b492dc6094be8be8c9f0acf6a40653e2e18fde64dd20f801e0",
+    "bytes": 547577
+  },
+  "runtime": {
+    "name": "Mozilla Firefox Stable",
+    "version": "156.0",
+    "buildId": "20260909172920",
+    "brandedMozillaFirefox": true,
+    "notarizedDeveloperIdVerified": true,
+    "dmgSha256": "fecc46103039ca4a77ecb2b2ef7b03892f922e13db0782f8570c512b2e458515"
+  },
+  "driver": {
+    "name": "geckodriver",
+    "version": "0.37.1",
+    "archiveSha256": "d02b3f7003f999caf90974a2ef5da0286c05d01cee19112c86846d759fdba4f5"
+  },
+  "temporaryAddonLifecycle": {
+    "passed": true,
+    "firstLaunchProved": true,
+    "secondLaunchProved": true,
+    "temporaryAddonReloadedOnSecondLaunch": true,
+    "temporaryAddonRemovedAfterSuccessfulShutdown": true
+  },
+  "provider": {
+    "passed": true,
+    "providerDiscoveryProved": true,
+    "chainIdProved": true,
+    "chainId": "0x1917",
+    "rdns": "com.ynx.wallet",
+    "isYNXWallet": true,
+    "isMetaMask": false,
+    "coexistenceProved": true,
+    "temporaryAddonNonPersistenceProved": true,
+    "httpActionInjectionProved": false,
+    "restartMarkerRetained": true,
+    "browserCleanupPassed": true
+  },
+  "boundaries": {
+    "temporaryUnsignedAddon": true,
+    "installedLocal": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
