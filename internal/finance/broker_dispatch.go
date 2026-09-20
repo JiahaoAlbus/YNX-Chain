@@ -109,7 +109,7 @@ func (s *Store) CompleteBrokerDispatch(account, orderID string, providerOrder *b
 		}
 		action := "provider.submitted"
 		if providerError == nil && providerOrder != nil {
-			if providerOrder.ClientOrderID != outbox.ProviderClientOrderID || providerOrder.AssetID != order.Order.AssetID || providerOrder.Symbol != order.Order.Symbol || providerOrder.Side != order.Order.Side || providerOrder.Qty != order.Order.Qty {
+			if providerOrder.ClientOrderID != outbox.ProviderClientOrderID || !brokerOrderIdentityMatches(order, *providerOrder) {
 				return errors.New("provider order does not match the signed Finance order")
 			}
 			order.State, order.ProviderOrderID = normalizeBrokerOrderState(providerOrder.Status), providerOrder.ID
@@ -226,6 +226,11 @@ func (s *Store) ApplyBrokerReconciliation(account string, snapshot brokerage.Acc
 	return s.updateBrokerCAS(account, "broker.reconcile", "", func(state *AccountState) error {
 		byClient := map[string]brokerage.Order{}
 		for _, order := range snapshot.Orders {
+			if order.ClientOrderID != "" {
+				if _, duplicate := byClient[order.ClientOrderID]; duplicate {
+					return errors.New("Broker reconciliation contains duplicate client order ids")
+				}
+			}
 			byClient[order.ClientOrderID] = order
 		}
 		for orderID, outbox := range state.Brokerage.Outbox {
@@ -342,7 +347,7 @@ func brokerageCursor(value string) bool {
 
 func normalizeBrokerOrderState(status string) string {
 	switch status {
-	case "new", "accepted", "pending_new", "accepted_for_bidding", "stopped", "calculated", "held", "pending_replace", "replaced":
+	case "new", "accepted", "pending_new", "accepted_for_bidding", "stopped", "calculated", "held", "pending_replace", "replaced", "done_for_day", "suspended":
 		return "submitted"
 	case "partially_filled":
 		return "partially_filled"
@@ -473,6 +478,10 @@ func (d BrokerDispatcher) Reconcile(ctx context.Context, account string) (broker
 	snapshot, err := d.Adapter.Reconcile(ctx, account, d.Store)
 	if err != nil {
 		return brokerage.AccountSnapshot{}, err
+	}
+	brokerAccount, err := d.Store.ResolveBrokerAccount(ctx, account, FinanceOrderProvider, FinanceOrderTradingEnv)
+	if err != nil || snapshot.Provider != FinanceOrderProvider || snapshot.Environment != FinanceOrderTradingEnv || snapshot.Account.ID != brokerAccount {
+		return brokerage.AccountSnapshot{}, errors.New("Broker reconciliation snapshot identity mismatch")
 	}
 	now := time.Now()
 	if d.Now != nil {

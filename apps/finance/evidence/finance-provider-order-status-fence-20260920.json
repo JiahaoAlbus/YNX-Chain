@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "finance-provider-order-status-protocol-fence-source-evidence",
+  "recordedAt": "2026-09-20T09:55:33Z",
+  "scope": ["internal/finance/brokerage/**", "apps/finance/**"],
+  "baseline": {
+    "commit": "5b953d199b221a3aeabfe3b7523e51b474d7e561",
+    "tree": "b589e38808bc339a4364cc7dab99c782c1331512"
+  },
+  "implementation": {
+    "adapterPath": "internal/finance/brokerage/alpaca.go",
+    "adapterSha256": "cf856eb85585ed90ad2e686c1388fecb01c644c922b8b91c81021ea64f332a31",
+    "testPath": "internal/finance/brokerage/alpaca_test.go",
+    "testSha256": "80b2dc803c984d8261a5d878e6a71de474f09b04367a791c8ec024d6d9db976a",
+    "unknownStatusResult": "PROVIDER_PROTOCOL_ERROR",
+    "officialLifecycleStatesCovered": 17,
+    "providerWriteAttemptedByRegression": false
+  },
+  "tests": {
+    "brokerage": "PASS",
+    "finance": "PASS",
+    "race": "PASS",
+    "diffCheck": "PASS"
+  },
+  "truth": {
+    "sourceComplete": true,
+    "publicRelease": false,
+    "installedRelease": false,
+    "officialSandboxVerified": false,
+    "providerAccountVerified": false,
+    "orderSubmitted": false,
+    "transaction": false
+  }
+}

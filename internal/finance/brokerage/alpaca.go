@@ -409,7 +409,7 @@ func normalizeProviderOrder(value providerOrder, requestID string, requireReques
 	if value.LimitPrice != nil {
 		limitPrice = *value.LimitPrice
 	}
-	if (requireRequestID && !auditID.MatchString(requestID)) || (!requireRequestID && requestID != "" && !auditID.MatchString(requestID)) || !uuid.MatchString(value.ID) || value.ClientOrderID == "" || len(value.ClientOrderID) > 128 || !uuid.MatchString(value.AssetID) || value.Symbol == "" || (value.Side != "buy" && value.Side != "sell") || !providerDecimal.MatchString(value.Qty) || !providerDecimal.MatchString(value.FilledQty) || value.Type == "" || value.TimeInForce == "" || value.Status == "" || (limitPrice != "" && !providerDecimal.MatchString(limitPrice)) {
+	if (requireRequestID && !auditID.MatchString(requestID)) || (!requireRequestID && requestID != "" && !auditID.MatchString(requestID)) || !uuid.MatchString(value.ID) || value.ClientOrderID == "" || len(value.ClientOrderID) > 128 || !uuid.MatchString(value.AssetID) || value.Symbol == "" || (value.Side != "buy" && value.Side != "sell") || !providerDecimal.MatchString(value.Qty) || !providerDecimal.MatchString(value.FilledQty) || value.Type == "" || value.TimeInForce == "" || !knownProviderOrderStatus(value.Status) || (limitPrice != "" && !providerDecimal.MatchString(limitPrice)) {
 		return Order{}, &Error{Code: "PROVIDER_PROTOCOL_ERROR", RequestID: requestID}
 	}
 	if _, err := time.Parse(time.RFC3339Nano, value.SubmittedAt); err != nil {
@@ -423,6 +423,15 @@ func normalizeProviderOrder(value providerOrder, requestID string, requireReques
 		}
 	}
 	return Order{ID: value.ID, ClientOrderID: value.ClientOrderID, AssetID: value.AssetID, Symbol: value.Symbol, Side: value.Side, Qty: value.Qty, FilledQty: value.FilledQty, Type: value.Type, LimitPrice: limitPrice, TimeInForce: value.TimeInForce, ExtendedHours: value.ExtendedHours, Status: value.Status, RequestID: requestID, SubmittedAt: value.SubmittedAt}, nil
+}
+
+func knownProviderOrderStatus(status string) bool {
+	switch status {
+	case "new", "accepted", "pending_new", "accepted_for_bidding", "stopped", "calculated", "held", "pending_replace", "replaced", "done_for_day", "suspended", "partially_filled", "filled", "pending_cancel", "canceled", "expired", "rejected":
+		return true
+	default:
+		return false
+	}
 }
 
 func (a *Alpaca) Orders(ctx context.Context, owner string, resolver AccountResolver) ([]Order, string, error) {

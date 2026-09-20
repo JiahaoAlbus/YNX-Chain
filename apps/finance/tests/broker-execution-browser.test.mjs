@@ -7,8 +7,8 @@ import {chromium} from 'playwright';
 const web=new URL('../web/',import.meta.url);
 const orderId='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const walletStub=`window.YNXFinanceWallet={ready:Promise.resolve(),connected:()=>true,getRevision:()=>0,requireProof:async()=>({proofHeader:'TEST_ONLY',requestId:'req_test_finance_broker_0001'}),connect:async()=>{},disconnect:async()=>({status:'disconnected'}),reportPrivateFailure:()=>{}};`;
-const orderWalletStub=`window.__orderWalletFixture={authorityChecks:0,beginCalls:0,callbackCalls:0};window.YNXFinanceOrderWallet={pending:()=>null,clear:()=>{},assertAuthority:async()=>{window.__orderWalletFixture.authorityChecks++;throw new Error('PRIVATE_SERVICE_DEGRADED: Wallet Gateway=PENDING; Finance Product Session=PENDING.')},begin:async()=>{window.__orderWalletFixture.beginCalls++;throw new Error('order authority was bypassed')},parseReturn:async()=>{window.__orderWalletFixture.callbackCalls++;throw new Error('order authority was bypassed')}};`;
-let server,browser,base,executionRequests,challengeRequests,callbackRequests,outboxStatus;
+const orderWalletStub=`window.__orderWalletFixture={authorityChecks:0,authorityAllowed:false,beginCalls:0,callbackCalls:0};window.YNXFinanceOrderWallet={pending:()=>null,clear:()=>{},assertAuthority:async()=>{window.__orderWalletFixture.authorityChecks++;if(window.__orderWalletFixture.authorityAllowed)return {fixture:true};throw new Error('PRIVATE_SERVICE_DEGRADED: Wallet Gateway=PENDING; Finance Product Session=PENDING.')},begin:async()=>{window.__orderWalletFixture.beginCalls++;throw new Error('order authority was bypassed')},parseReturn:async()=>{window.__orderWalletFixture.callbackCalls++;throw new Error('order authority was bypassed')}};`;
+let server,browser,base,executionRequests,challengeRequests,callbackRequests,executionStatusRequests,reconcileRequests,outboxStatus;
 
 function json(res,status,value){res.writeHead(status,{'content-type':'application/json'});res.end(JSON.stringify(value));}
 function workspace(){return {orders:[{requestId:'request-fixture',approvalState:'consumed',state:'submitting',order:{orderId,symbol:'ACME',side:'buy',qty:'1',maxCost:'10'}}],outbox:[{orderId,status:outboxStatus,attempts:0}],journal:[],watchlist:[],serverTime:'2026-09-19T11:00:00.000Z'};}
@@ -25,6 +25,14 @@ test.before(async()=>{
     if(url.pathname==='/api/broker/orders'&&req.method==='GET')return json(res,200,{schema:'ynx-finance-broker-workspace-v1',workspace:workspace(),providerWriteAttempted:false});
     if(url.pathname==='/api/broker/challenges'&&req.method==='POST'){challengeRequests.push(url.pathname);return json(res,500,{error:'authority gate bypassed'});}
     if(url.pathname==='/api/broker/callback'&&req.method==='POST'){callbackRequests.push(url.pathname);return json(res,500,{error:'authority gate bypassed'});}
+    if(url.pathname===`/api/broker/orders/${orderId}/execution-status`&&req.method==='GET'){
+      executionStatusRequests.push(url.pathname);
+      return json(res,200,{schema:'ynx-finance-broker-execution-status-v1',outbox:{orderId,status:outboxStatus,attempts:0},providerWriteAttempted:false});
+    }
+    if(url.pathname==='/api/broker/reconcile'&&req.method==='POST'){
+      reconcileRequests.push(url.pathname);
+      return json(res,500,{error:'status refresh must not reconcile provider state'});
+    }
     if(url.pathname===`/api/broker/orders/${orderId}/execution-request`&&req.method==='POST'){
       const chunks=[];for await(const chunk of req)chunks.push(chunk);
       executionRequests.push(JSON.parse(Buffer.concat(chunks).toString('utf8')));
@@ -42,7 +50,7 @@ test.before(async()=>{
 test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
 
 test('pending shared private authority blocks challenge and execution before network or local pending state',async()=>{
-  executionRequests=[];challengeRequests=[];callbackRequests=[];outboxStatus='pending_unwired';
+  executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='pending_unwired';
   const page=await browser.newPage(),errors=[],externalRequests=[],dialogs=[];
   page.on('pageerror',error=>errors.push(error.message));
   page.on('request',request=>{if(new URL(request.url()).origin!==base)externalRequests.push(request.url());});
@@ -64,10 +72,25 @@ test('pending shared private authority blocks challenge and execution before net
     assert.deepEqual(challengeRequests,[]);
     assert.deepEqual(callbackRequests,[]);
     assert.deepEqual(dialogs,[]);
-    assert.deepEqual(await page.evaluate(()=>window.__orderWalletFixture),{authorityChecks:3,beginCalls:0,callbackCalls:0});
+    assert.deepEqual(await page.evaluate(()=>window.__orderWalletFixture),{authorityChecks:3,authorityAllowed:false,beginCalls:0,callbackCalls:0});
     assert.equal(await page.evaluate(()=>localStorage.getItem('ynx.finance.order-approval.v1.pending')),null);
     assert.match(await page.locator('#broker-approval').textContent(),/not yet verified/);
     assert.deepEqual(externalRequests,[]);
     assert.deepEqual(errors,[]);
+  }finally{await page.close();}
+});
+
+test('isolated activated fixture refreshes one persisted execution status without provider reconciliation',async()=>{
+  executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='execution_requested';
+  const page=await browser.newPage(),dialogs=[];page.on('dialog',dialog=>{dialogs.push(dialog.message());dialog.dismiss();});
+  try{
+    await page.goto(base);await page.evaluate(()=>{window.__orderWalletFixture.authorityAllowed=true;location.hash='broker-sandbox';});
+    await page.waitForFunction(()=>document.querySelector(`[data-broker-order-refresh="${'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'}"]`));
+    await page.locator(`[data-broker-order-refresh="${orderId}"]`).click();
+    await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('execution_requested'));
+    assert.deepEqual(executionStatusRequests,[`/api/broker/orders/${orderId}/execution-status`]);
+    assert.deepEqual(reconcileRequests,[]);
+    assert.deepEqual(executionRequests,[]);
+    assert.deepEqual(dialogs,[]);
   }finally{await page.close();}
 });
