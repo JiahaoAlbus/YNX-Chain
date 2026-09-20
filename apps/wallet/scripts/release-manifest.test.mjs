@@ -26,6 +26,37 @@ const previous = Object.freeze({
     sha256: "117aee9610ef3878e5c2dc226acee57ae2820f1613cc8cabc536a12abd1ddd9a",
   }),
 });
+const published117 = Object.freeze({
+  sourceCommit: "875f6c5b744b4b641eb5c2c9b2cb41e928676c90",
+  tag: "wallet-android-testnet-preview-1.0.17-875f6c5b7",
+  releaseUrl: "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-1.0.17-875f6c5b7",
+  releaseId: 392422025,
+  releaseCreatedAt: "2026-09-20T12:13:28Z",
+  releasePublishedAt: "2026-09-20T12:19:31Z",
+  apk: Object.freeze({
+    assetId: 576764497,
+    filename: "ynx-wallet-1.0.17-testnet-preview-875f6c5b7-universal-local-test-signed.apk",
+    url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.17-875f6c5b7/ynx-wallet-1.0.17-testnet-preview-875f6c5b7-universal-local-test-signed.apk",
+    bytes: 116636787,
+    sha256: "04a37e7bd9f76bb3bb76fe330921f0f80e6d2cfa3b115d38ac93c53cb80370a2",
+  }),
+  aab: Object.freeze({
+    assetId: 576764498,
+    filename: "ynx-wallet-1.0.17-testnet-preview-875f6c5b7-local-test-signed.aab",
+    url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.17-875f6c5b7/ynx-wallet-1.0.17-testnet-preview-875f6c5b7-local-test-signed.aab",
+    bytes: 71872002,
+    sha256: "079c8e0597ab0c30b884e10c0d15bd1a8f606c6412509162fa85429966dbef1b",
+  }),
+});
+
+function strictUtcSeconds(value) {
+  assert.match(value, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+  const parsed = Date.parse(value);
+  assert.equal(Number.isFinite(parsed), true);
+  assert.equal(new Date(parsed).toISOString().replace(".000Z", "Z"), value);
+  assert.ok(parsed <= Date.now(), "evidence timestamp must not claim a future observation");
+  return parsed;
+}
 
 function validate(candidate) {
   assert.equal(candidate.schemaVersion, 2);
@@ -78,11 +109,14 @@ function validateEvidence(value) {
 }
 
 function validatePublication(value) {
+  assert.equal(value.schemaVersion, 1);
+  assert.equal(value.productId, "wallet");
   assert.equal(value.version, "1.0.17-testnet-preview");
   assert.equal(value.versionCode, 23);
   assert.equal(value.releaseStatus, "PUBLISHED_TESTNET_PRERELEASE");
-  assert.equal(value.sourceCommit, "875f6c5b744b4b641eb5c2c9b2cb41e928676c90");
-  assert.equal(value.releaseTag, "wallet-android-testnet-preview-1.0.17-875f6c5b7");
+  assert.equal(value.sourceCommit, published117.sourceCommit);
+  assert.equal(value.releaseTag, published117.tag);
+  assert.equal(value.releaseUrl, published117.releaseUrl);
   assert.equal(value.releaseImmutable, false);
   assert.equal(value.publisherCanReplaceAssets, true);
   assert.equal(value.downloadTimeSha256Verified, true);
@@ -93,15 +127,58 @@ function validatePublication(value) {
   const aab = value.artifacts.find(({ name }) => name === "android-release-aab");
   assert.deepEqual(
     { bytes: apk.bytes, sha256: apk.sha256, productionSigned: apk.productionSigned, versionCode: apk.versionCode },
-    { bytes: 116636787, sha256: "04a37e7bd9f76bb3bb76fe330921f0f80e6d2cfa3b115d38ac93c53cb80370a2", productionSigned: false, versionCode: 23 },
+    { bytes: published117.apk.bytes, sha256: published117.apk.sha256, productionSigned: false, versionCode: 23 },
   );
   assert.deepEqual(
     { bytes: aab.bytes, sha256: aab.sha256, productionSigned: aab.productionSigned, versionCode: aab.versionCode },
-    { bytes: 71872002, sha256: "079c8e0597ab0c30b884e10c0d15bd1a8f606c6412509162fa85429966dbef1b", productionSigned: false, versionCode: 23 },
+    { bytes: published117.aab.bytes, sha256: published117.aab.sha256, productionSigned: false, versionCode: 23 },
   );
-  assert.match(apk.url, new RegExp(`/${value.releaseTag}/${apk.filename}$`));
-  assert.match(aab.url, new RegExp(`/${value.releaseTag}/${aab.filename}$`));
-  assert.ok(Date.parse(value.generatedAt) <= Date.now());
+  assert.equal(apk.filename, published117.apk.filename);
+  assert.equal(apk.url, published117.apk.url);
+  assert.equal(aab.filename, published117.aab.filename);
+  assert.equal(aab.url, published117.aab.url);
+  strictUtcSeconds(value.generatedAt);
+}
+
+function validatePublicationEvidence(value, published) {
+  assert.equal(value.schema, "ynx-wallet-mobile-preview-publication/v1");
+  assert.equal(value.releaseTag, published117.tag);
+  assert.equal(value.releaseUrl, published117.releaseUrl);
+  assert.equal(value.targetCommit, published117.sourceCommit);
+  assert.equal(value.prerelease, true);
+  assert.equal(value.releaseImmutable, false);
+  assert.equal(value.publisherCanReplaceAssets, true);
+  assert.equal(value.downloadTimeSha256Verified, true);
+  assert.equal(value.githubReleaseId, published117.releaseId);
+  assert.equal(value.releaseCreatedAt, published117.releaseCreatedAt);
+  assert.equal(value.releasePublishedAt, published117.releasePublishedAt);
+  assert.equal(value.apkAssetId, published117.apk.assetId);
+  assert.equal(value.aabAssetId, published117.aab.assetId);
+  for (const [kind, expected] of [["apk", published117.apk], ["aab", published117.aab]]) {
+    assert.equal(value[kind].url, expected.url);
+    assert.equal(value[kind].bytes, expected.bytes);
+    assert.equal(value[kind].sha256, expected.sha256);
+    assert.equal(value[kind].freshDownloadDigestMatched, true);
+  }
+  assert.equal(value.apk.apkSignatureV2Verified, true);
+  assert.equal(value.aab.jarSignatureVerified, true);
+  assert.equal(value.signerCertificateDn, "C=US, O=Android, CN=Android Debug");
+  assert.equal(value.signerCertificateSha256, "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e");
+  assert.equal(value.productionSigned, false);
+  assert.equal(value.storeReleased, false);
+  assert.equal(value.walletConnectRelayE2E, false);
+  assert.equal(value.recoveryContractTests.liveChainTransferExecuted, false);
+  assert.equal(value.officialWebsiteUpdated, false);
+  assert.equal(value.generatedAt, published.generatedAt);
+  const created = strictUtcSeconds(value.releaseCreatedAt);
+  const publishedAt = strictUtcSeconds(value.releasePublishedAt);
+  const observed = strictUtcSeconds(value.generatedAt);
+  assert.ok(created >= Date.parse("2026-09-20T12:13:28Z"));
+  assert.ok(publishedAt >= created);
+  assert.ok(observed >= publishedAt);
+  assert.ok(observed - publishedAt <= 10 * 60_000, "capture must remain close to publication");
+  assert.equal(value.apk.url, published.artifacts.find(({ name }) => name === "android-release-apk").url);
+  assert.equal(value.aab.url, published.artifacts.find(({ name }) => name === "android-release-aab").url);
 }
 
 test("the active download manifest remains the compatible published 1.0.16 contract", () => {
@@ -159,24 +236,16 @@ test("candidate evidence false states and source bindings cannot be widened", ()
 
 test("1.0.17 publication binds exact merge, fresh-download digests and test-signing truth", () => {
   validatePublication(publication);
-  assert.equal(publicationEvidence.targetCommit, publication.sourceCommit);
-  assert.equal(publicationEvidence.releaseTag, publication.releaseTag);
-  assert.equal(publicationEvidence.releaseImmutable, false);
-  assert.equal(publicationEvidence.publisherCanReplaceAssets, true);
-  assert.equal(publicationEvidence.downloadTimeSha256Verified, true);
-  assert.equal(publicationEvidence.apk.freshDownloadDigestMatched, true);
-  assert.equal(publicationEvidence.aab.freshDownloadDigestMatched, true);
-  assert.equal(publicationEvidence.productionSigned, false);
-  assert.equal(publicationEvidence.storeReleased, false);
-  assert.equal(publicationEvidence.walletConnectRelayE2E, false);
-  assert.equal(publicationEvidence.recoveryContractTests.liveChainTransferExecuted, false);
-  assert.equal(publicationEvidence.officialWebsiteUpdated, false);
+  validatePublicationEvidence(publicationEvidence, publication);
 });
 
 test("publication fails closed on asset, source, signature or external-verification tamper", () => {
   for (const mutate of [
     (value) => { value.sourceCommit = "a".repeat(40); },
+    (value) => { value.schemaVersion = 2; },
+    (value) => { value.productId = "other"; },
     (value) => { value.releaseTag += "-replacement"; },
+    (value) => { value.releaseUrl += "-replacement"; },
     (value) => { value.releaseImmutable = true; },
     (value) => { value.publisherCanReplaceAssets = false; },
     (value) => { value.productionSigned = true; },
@@ -189,6 +258,30 @@ test("publication fails closed on asset, source, signature or external-verificat
     const copy = structuredClone(publication);
     mutate(copy);
     assert.throws(() => validatePublication(copy));
+  }
+});
+
+test("publication evidence rejects release identity, asset pairing and timestamp tamper", () => {
+  for (const mutate of [
+    (value) => { value.schema = "ynx-wallet-mobile-preview-publication/v2"; },
+    (value) => { value.releaseUrl += "-replacement"; },
+    (value) => { value.githubReleaseId += 1; },
+    (value) => { value.apkAssetId += 1; },
+    (value) => { value.aabAssetId += 1; },
+    (value) => { value.apk.url += ".replacement"; },
+    (value) => { value.apk.bytes += 1; },
+    (value) => { value.apk.sha256 = "0".repeat(64); },
+    (value) => { value.aab.url += ".replacement"; },
+    (value) => { value.aab.bytes += 1; },
+    (value) => { value.aab.sha256 = "0".repeat(64); },
+    (value) => { value.releaseCreatedAt = "2026-09-20T12:13:28.000Z"; },
+    (value) => { value.releasePublishedAt = "2026-09-20T12:12:00Z"; },
+    (value) => { value.generatedAt = "2999-01-01T00:00:00Z"; },
+    (value) => { value.generatedAt = "2026-09-20T12:40:00Z"; },
+  ]) {
+    const copy = structuredClone(publicationEvidence);
+    mutate(copy);
+    assert.throws(() => validatePublicationEvidence(copy, publication));
   }
 });
 
