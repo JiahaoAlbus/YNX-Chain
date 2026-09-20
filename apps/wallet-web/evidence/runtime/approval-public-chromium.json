@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "468ad8862084eb7ea5db74722536a7caf1c00dc0",
-  "generatedAt": "2026-09-20T00:31:05.638Z",
+  "sourceCommit": "b04765f112aca96cf7dff7cfa48f9b65a891166d",
+  "generatedAt": "2026-09-20T01:10:49.839Z",
   "browser": {
     "id": "chromium",
     "name": "Chrome for Testing",
@@ -11,13 +11,13 @@
   "runtimeClass": "temporary unpacked extension in an isolated disposable profile",
   "fixtureAuthority": "local HTTPS DApp with an immutable foreign MetaMask-shaped provider; no account, signature or transaction fixture implementation",
   "artifact": {
-    "manifestSha256": "fb171f94af2cce9ee929da28d3fdf6b03e048e64ba63b8ed3d34d074139a8f1e",
+    "manifestSha256": "ebc91953130bf0c05e25ab5d378c5c6f1e06adf5047b27e1ef2a29ecdbd4aca9",
     "pageProviderSha256": "03ab34029146cd37c8a7f13a4c25cbc33ebcf4bba7204058a7c0477eb0b35e8a",
-    "buildSourceCommit": "e76388bf613a6e94a03ae2729c7e40761c808146",
+    "buildSourceCommit": "b04765f112aca96cf7dff7cfa48f9b65a891166d",
     "publicArchive": {
-      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 546193,
-      "sha256": "c24d4939ccb1ff8110d35a1b67baf91df7316b4b77f67d95dbc428076552a634"
+      "name": "ynx-wallet-chrome-edge-0.1.1.zip",
+      "bytes": 546266,
+      "sha256": "6e8094cc4031aad706d930b09fcf8297cb6bd004a0352a4d9fbd984c3ad3a2bd"
     }
   },
   "passed": true,
@@ -37,11 +37,11 @@
   "storeReleased": false,
   "serviceWorker": {
     "started": true,
-    "url": "chrome-extension://lgghamffclmlcmplgcklkfiipikmbjja/service-worker.js"
+    "url": "chrome-extension://cfhbldbbmiiabpebboolncjkamjojkel/service-worker.js"
   },
-  "account": "0x814a2059d421e4c67d6cae01d3b7ee2a73351e81",
+  "account": "0xe8dcbee9b51a522ec839aa8a39476321c41eff8d",
   "connectedAccounts": [
-    "0x814a2059d421e4c67d6cae01d3b7ee2a73351e81"
+    "0xe8dcbee9b51a522ec839aa8a39476321c41eff8d"
   ],
-  "signatureSha256": "9dd36e5174cbd87692c3cdbd6f142a2de1300b3ea6cf05bc347863647af1805b"
+  "signatureSha256": "1035dd802ac5ac837fae4f026193254f0a326aa1e3c2ba83ac65e10c378b73d6"
 }
