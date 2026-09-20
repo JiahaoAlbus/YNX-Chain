@@ -326,8 +326,9 @@ testnet-endpoint-migration-check:
 
 .PHONY: weekly-v3-local-check testnet-endpoint-config-check
 testnet-endpoint-config-check:
+	node scripts/ops/generate-endpoint-authority-bundle.mjs --current
 	node scripts/ops/generate-testnet-endpoints.mjs --check
-	node --test sdk/js/testnet-endpoints.test.mjs
+	node --test sdk/js/testnet-endpoints.test.mjs sdk/js/endpoint-authority.test.mjs
 
 weekly-v3-local-check:
 	node scripts/verify/weekly-v3-local-check.mjs

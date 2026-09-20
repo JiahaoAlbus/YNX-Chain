@@ -29,7 +29,7 @@ export function loadEndpointMigration(rootDir = process.cwd()) {
 }
 
 export function validateEndpointMigration(config) {
-  assert.deepEqual(Object.keys(config).sort(), ["activation", "chainEnvironment", "chainId", "chainIdHex", "mainnet", "nativeSymbol", "proofAddress", "schema", "testnet"].sort());
+  assert.deepEqual(Object.keys(config).sort(), ["activation", "authority", "chainEnvironment", "chainId", "chainIdHex", "mainnet", "nativeSymbol", "proofAddress", "schema", "testnet"].sort());
   assert.equal(config.schema, "ynx-endpoint-migration/v1");
   assert.equal(config.chainEnvironment, "testnet");
   assert.equal(config.chainId, 6423);
@@ -38,9 +38,10 @@ export function validateEndpointMigration(config) {
   assert.match(config.proofAddress, /^0x[0-9a-f]{40}$/);
   assert.deepEqual(config.activation, {
     explorerAliasPublicVerified: false,
-    faucetAliasPublicVerified: false,
-    rpcAliasPublicVerified: false,
+    faucetAliasPublicVerified: true,
+    rpcAliasPublicVerified: true,
   });
+  assert.deepEqual(config.authority,{pinPath:"chain-metadata/endpoint-authority/current.json",scope:"RPC/Faucet sampled identity; validity and integrity enforced by the bundled endpoint authority"});
   assert.deepEqual(config.mainnet, {chainId: null, enabled: false, reservedRpcUrl: EXPECTED.mainnet});
   assert.deepEqual(config.testnet.canonicalTargets, {explorer: EXPECTED.explorer, faucet: EXPECTED.faucet, rpc: EXPECTED.rpc});
   assert.deepEqual(config.testnet.legacyCompatibility, {
@@ -402,7 +403,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const {live, ...options} = parseArgs(process.argv.slice(2));
   const config = loadEndpointMigration();
   if (!live) {
-    process.stdout.write("testnet-endpoint-migration-check passed: config valid; mainnet disabled; public aliases remain unverified\n");
+    process.stdout.write("testnet-endpoint-migration-check passed: descriptor valid; Mainnet disabled; RPC/Faucet require separately checked bundled authority; this check performs no public verification\n");
   } else {
     const proof = await verifyLiveMigration(config, options);
     process.stdout.write(`${JSON.stringify(proof, null, 2)}\n`);

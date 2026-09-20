@@ -1,8 +1,15 @@
 {
   "activation": {
     "explorerAliasPublicVerified": false,
-    "faucetAliasPublicVerified": false,
-    "rpcAliasPublicVerified": false
+    "faucetAliasPublicVerified": true,
+    "rpcAliasPublicVerified": true
+  },
+  "authority": {
+    "expiresAt": "2026-09-27T08:55:00.000Z",
+    "issuedAt": "2026-09-20T08:55:00.000Z",
+    "manifestVersion": "1.1.0-weekly-v3.20260920.1",
+    "payloadSha256": "29f801933e9df4faea58531cb522cc34bfe1028628adfb88227f3d0cae1e4e73",
+    "scope": "RPC/Faucet sampled identity; not global availability"
   },
   "candidate": {
     "evmJsonRpc": "https://rpc-testnet.ynxweb4.com",
@@ -32,5 +39,5 @@
   },
   "nativeSymbol": "YNXT",
   "schema": "ynx-testnet-consumer-endpoints/v1",
-  "sourceSha256": "dfc7fb691cb1446424f856d8b1fcfe0553449abaa95a06855a2d4537905467b2"
+  "sourceSha256": "2e7afa023d5bb5f2748176bbb715325d3db8a70da7c95ffad7c4b11e1151863c"
 }

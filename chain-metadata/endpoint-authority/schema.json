@@ -1,0 +1,743 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ynx:endpoint-authority:1.1.0",
+  "title": "YNX scoped bundled endpoint authority",
+  "description": "Run the executable validator as well: hash pin, chronology, maximum 7-day lifetime, evidence freshness and alias build equality require semantic checks.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "manifestVersion",
+    "status",
+    "environment",
+    "releaseId",
+    "sourceCommit",
+    "issuedAt",
+    "expiresAt",
+    "cosmosChainId",
+    "evmChainId",
+    "evmChainHex",
+    "nativeAsset",
+    "rpc",
+    "evmRpc",
+    "rest",
+    "walletGateway",
+    "appGateway",
+    "faucet",
+    "explorer",
+    "indexer",
+    "monitor",
+    "healthUrl",
+    "versionUrl",
+    "endpointStates",
+    "mainnet",
+    "legacyCompatibility",
+    "sourceEvidence",
+    "fallbacks",
+    "minimumClientVersion",
+    "clientPolicy",
+    "acceptanceBoundary",
+    "integrity"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.1.0"
+    },
+    "manifestVersion": {
+      "type": "string",
+      "pattern": "^1\\.1\\.0-weekly-v3\\.\\d{8}\\.\\d+$"
+    },
+    "status": {
+      "const": "ACCEPTED_BUNDLED_CONSUMER_CONTRACT"
+    },
+    "environment": {
+      "const": "testnet"
+    },
+    "releaseId": {
+      "type": "string",
+      "pattern": "^ynx-endpoints-\\d{8}\\.\\d+$"
+    },
+    "sourceCommit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "issuedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    },
+    "cosmosChainId": {
+      "const": "ynx_6423-1"
+    },
+    "evmChainId": {
+      "const": 6423
+    },
+    "evmChainHex": {
+      "const": "0x1917"
+    },
+    "nativeAsset": {
+      "const": "YNXT"
+    },
+    "rpc": {
+      "const": "https://rpc-testnet.ynxweb4.com"
+    },
+    "evmRpc": {
+      "const": "https://rpc-testnet.ynxweb4.com"
+    },
+    "rest": {
+      "const": "https://rest.ynxweb4.com"
+    },
+    "walletGateway": {
+      "const": "https://wallet-auth.ynxweb4.com"
+    },
+    "appGateway": {
+      "const": "https://gateway.ynxweb4.com"
+    },
+    "faucet": {
+      "const": "https://faucet-testnet.ynxweb4.com"
+    },
+    "explorer": {
+      "const": "https://explorer.ynxweb4.com"
+    },
+    "indexer": {
+      "const": "https://indexer.ynxweb4.com"
+    },
+    "monitor": {
+      "const": "https://monitor.ynxweb4.com"
+    },
+    "healthUrl": {
+      "const": "https://monitor.ynxweb4.com/health"
+    },
+    "versionUrl": {
+      "const": "https://monitor.ynxweb4.com/version"
+    },
+    "endpointStates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rpc",
+        "evmRpc",
+        "rest",
+        "walletGateway",
+        "appGateway",
+        "faucet",
+        "explorer",
+        "indexer",
+        "monitor",
+        "products"
+      ],
+      "properties": {
+        "rpc": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "health",
+            "versionIdentity",
+            "verifiedAt",
+            "chainId",
+            "sourceCommit",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "VERIFIED"
+            },
+            "health": {
+              "const": "https://rpc-testnet.ynxweb4.com/status"
+            },
+            "versionIdentity": {
+              "const": "https://rpc-testnet.ynxweb4.com/status"
+            },
+            "verifiedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "chainId": {
+              "const": 6423
+            },
+            "sourceCommit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        "evmRpc": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "health",
+            "versionIdentity",
+            "verifiedAt",
+            "chainId",
+            "sourceCommit",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "VERIFIED"
+            },
+            "health": {
+              "const": "https://rpc-testnet.ynxweb4.com/status"
+            },
+            "versionIdentity": {
+              "const": "https://rpc-testnet.ynxweb4.com/status"
+            },
+            "verifiedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "chainId": {
+              "const": 6423
+            },
+            "sourceCommit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        "rest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "health",
+            "versionIdentity",
+            "verifiedAt",
+            "sourceCommit",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "PENDING"
+            },
+            "health": {
+              "type": "null"
+            },
+            "versionIdentity": {
+              "type": "null"
+            },
+            "verifiedAt": {
+              "type": "null"
+            },
+            "sourceCommit": {
+              "type": "null"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        "walletGateway": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "health",
+            "versionIdentity",
+            "verifiedAt",
+            "sourceCommit",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "PENDING"
+            },
+            "health": {
+              "type": "null"
+            },
+            "versionIdentity": {
+              "type": "null"
+            },
+            "verifiedAt": {
+              "type": "null"
+            },
+            "sourceCommit": {
+              "type": "null"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        "appGateway": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "health",
+            "versionIdentity",
+            "verifiedAt",
+            "sourceCommit",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "PENDING"
+            },
+            "health": {
+              "type": "null"
+            },
+            "versionIdentity": {
+              "type": "null"
+            },
+            "verifiedAt": {
+              "type": "null"
+            },
+            "sourceCommit": {
+              "type": "null"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        "faucet": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "health",
+            "versionIdentity",
+            "verifiedAt",
+            "chainId",
+            "sourceCommit",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "VERIFIED"
+            },
+            "health": {
+              "const": "https://faucet-testnet.ynxweb4.com/health"
+            },
+            "versionIdentity": {
+              "const": "https://faucet-testnet.ynxweb4.com/health"
+            },
+            "verifiedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            },
+            "chainId": {
+              "const": 6423
+            },
+            "sourceCommit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        "explorer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "health",
+            "versionIdentity",
+            "verifiedAt",
+            "sourceCommit",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "PENDING"
+            },
+            "health": {
+              "type": "null"
+            },
+            "versionIdentity": {
+              "type": "null"
+            },
+            "verifiedAt": {
+              "type": "null"
+            },
+            "sourceCommit": {
+              "type": "null"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        "indexer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "health",
+            "versionIdentity",
+            "verifiedAt",
+            "sourceCommit",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "PENDING"
+            },
+            "health": {
+              "type": "null"
+            },
+            "versionIdentity": {
+              "type": "null"
+            },
+            "verifiedAt": {
+              "type": "null"
+            },
+            "sourceCommit": {
+              "type": "null"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        "monitor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "health",
+            "versionIdentity",
+            "verifiedAt",
+            "sourceCommit",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "PENDING"
+            },
+            "health": {
+              "type": "null"
+            },
+            "versionIdentity": {
+              "type": "null"
+            },
+            "verifiedAt": {
+              "type": "null"
+            },
+            "sourceCommit": {
+              "type": "null"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        },
+        "products": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "finance"
+          ],
+          "properties": {
+            "finance": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "reason"
+              ],
+              "properties": {
+                "status": {
+                  "const": "PENDING"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "mainnet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "chainId",
+        "rpc",
+        "reservedRpcUrl"
+      ],
+      "properties": {
+        "enabled": {
+          "const": false
+        },
+        "chainId": {
+          "type": "null"
+        },
+        "rpc": {
+          "type": "null"
+        },
+        "reservedRpcUrl": {
+          "const": "https://rpc-mainnet.ynxweb4.com"
+        }
+      }
+    },
+    "legacyCompatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rpc",
+        "faucet",
+        "evmRpc"
+      ],
+      "properties": {
+        "rpc": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "url",
+            "status",
+            "chainId",
+            "sourceCommit",
+            "verifiedAt"
+          ],
+          "properties": {
+            "url": {
+              "const": "https://rpc.ynxweb4.com"
+            },
+            "status": {
+              "const": "VERIFIED"
+            },
+            "chainId": {
+              "const": 6423
+            },
+            "sourceCommit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "verifiedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          }
+        },
+        "faucet": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "url",
+            "status",
+            "chainId",
+            "sourceCommit",
+            "verifiedAt"
+          ],
+          "properties": {
+            "url": {
+              "const": "https://faucet.ynxweb4.com"
+            },
+            "status": {
+              "const": "VERIFIED"
+            },
+            "chainId": {
+              "const": 6423
+            },
+            "sourceCommit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "verifiedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          }
+        },
+        "evmRpc": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "url",
+            "status",
+            "reason"
+          ],
+          "properties": {
+            "url": {
+              "const": "https://evm.ynxweb4.com"
+            },
+            "status": {
+              "const": "PENDING"
+            },
+            "reason": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "sourceEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "scope"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^chain-metadata/endpoint-authority/\\d{8}\\.\\d+\\.evidence\\.json$"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "scope": {
+          "type": "string"
+        }
+      }
+    },
+    "fallbacks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rpc",
+        "evmRpc",
+        "rest",
+        "walletGateway",
+        "appGateway",
+        "faucet"
+      ],
+      "properties": {
+        "rpc": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "evmRpc": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "rest": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "walletGateway": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "appGateway": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "faucet": {
+          "type": "array",
+          "maxItems": 0
+        }
+      }
+    },
+    "minimumClientVersion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wallet",
+        "financialApps",
+        "policy"
+      ],
+      "properties": {
+        "wallet": {
+          "type": "null"
+        },
+        "financialApps": {
+          "type": "null"
+        },
+        "policy": {
+          "const": "Only independently accepted product release matrices may declare minimum client versions"
+        }
+      }
+    },
+    "clientPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "remoteReplacement",
+        "clientRenewal",
+        "automaticWriteRetry",
+        "compatibilitySelection"
+      ],
+      "properties": {
+        "remoteReplacement": {
+          "const": "FORBIDDEN_UNSIGNED"
+        },
+        "clientRenewal": {
+          "const": false
+        },
+        "automaticWriteRetry": {
+          "const": false
+        },
+        "compatibilitySelection": {
+          "const": "Explicit legacy profile only; never automatic failover"
+        }
+      }
+    },
+    "acceptanceBoundary": {
+      "type": "string",
+      "maxLength": 2048
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "canonicalization",
+        "payloadSha256",
+        "remoteSignature"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "SHA-256"
+        },
+        "canonicalization": {
+          "const": "UTF-8 stable JSON recursively sorted keys, integrity omitted"
+        },
+        "payloadSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "remoteSignature": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "keyId",
+            "signature",
+            "failClosed"
+          ],
+          "properties": {
+            "status": {
+              "const": "PENDING_PROTECTED_SIGNER"
+            },
+            "keyId": {
+              "type": "null"
+            },
+            "signature": {
+              "type": "null"
+            },
+            "failClosed": {
+              "const": true
+            }
+          }
+        }
+      }
+    }
+  }
+}
