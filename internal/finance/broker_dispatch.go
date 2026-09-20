@@ -80,7 +80,7 @@ func (s *Store) ClaimBrokerDispatch(account, orderID string, now time.Time) (Bro
 		blocked := ""
 		if !challengeOK || expiresErr != nil || !now.UTC().Before(expiresAt) {
 			blocked = "ORDER_APPROVAL_EXPIRED"
-		} else if mapping.Status != "active" || mapping.Account != account || mapping.SubjectID != order.SubjectID || mapping.BrokerAccountID != order.BrokerAccountID {
+		} else if mapping.Status != "active" || mapping.Account != account || mapping.SubjectID != order.SubjectID || mapping.BrokerAccountID != order.BrokerAccountID || (mapping.WalletPublicKey != "" && mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey) {
 			blocked = "ACCOUNT_MAPPING_CHANGED"
 		}
 		if blocked != "" {

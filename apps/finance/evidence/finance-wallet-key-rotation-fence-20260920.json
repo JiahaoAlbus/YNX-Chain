@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "finance-broker-wallet-key-rotation-fence-source-evidence",
+  "recordedAt": "2026-09-20T10:18:35Z",
+  "scope": ["internal/finance/**", "apps/finance/**"],
+  "baseline": {
+    "commit": "5442131a5ed76e8738c4d46b62f7d03a6181c79a",
+    "tree": "c2469147104e101393d7df74cc16d4bff91fb25b"
+  },
+  "implementation": {
+    "dispatchPath": "internal/finance/broker_dispatch.go",
+    "dispatchSha256": "dde9b54c3adf7b94bf8ba5af3f45701b0bc38452ed7473ea19c3f8dae89a9e61",
+    "orderStorePath": "internal/finance/broker_order_store.go",
+    "orderStoreSha256": "32757bc7ec616934401ae585d4b446a4a187c52c7641b8f30d4a5508e39e0a05",
+    "testPath": "internal/finance/broker_order_store_test.go",
+    "testSha256": "bd817cec1a267e1158f3ab93fb911fd7afcf012e6d5a8da5135eb31f92044448",
+    "mappingKeyBinding": "challenge_account_public_key",
+    "challengeOnDifferentKey": "fail_closed_without_order_creation",
+    "approvalAfterRotation": "fail_closed_without_state_transition",
+    "consumeAfterRotation": "fail_closed_without_outbox_creation",
+    "dispatchAfterRotation": "execution_blocked_ACCOUNT_MAPPING_CHANGED",
+    "legacyEmptyMappingKeyCompatibility": true
+  },
+  "tests": {
+    "focusedWalletKeyRotation": "PASS",
+    "goFinanceAndCommands": "PASS",
+    "race": "PASS",
+    "financeWeb": "PASS_49_OF_49",
+    "securityScan": "PASS_220_TEXT_FILES",
+    "diffCheck": "PASS"
+  },
+  "truth": {
+    "sourceComplete": true,
+    "publicRelease": false,
+    "installedRelease": false,
+    "officialSandboxVerified": false,
+    "providerAccountVerified": false,
+    "orderSubmitted": false,
+    "transaction": false
+  }
+}
