@@ -31,9 +31,15 @@ func (s *Store) RequestBrokerExecution(account, orderID, idempotencyKey string, 
 		if !orderOK || !outboxOK || order.ApprovalState != "consumed" {
 			return errors.New("consumed Broker outbox was not found")
 		}
-		if outbox.ExecutionRequestKey == idempotencyKey {
-			result = outbox
-			return errBrokerStateUnchanged
+		for existingOrderID, existing := range state.Brokerage.Outbox {
+			if existing.ExecutionRequestKey != idempotencyKey {
+				continue
+			}
+			if existingOrderID == orderID {
+				result = outbox
+				return errBrokerStateUnchanged
+			}
+			return errors.New("Broker execution idempotency key is already bound to another order")
 		}
 		if outbox.ExecutionRequestKey != "" {
 			return errors.New("Broker execution was already requested with another idempotency key")
@@ -74,7 +80,7 @@ func (s *Store) ClaimBrokerDispatch(account, orderID string, now time.Time) (Bro
 		blocked := ""
 		if !challengeOK || expiresErr != nil || !now.UTC().Before(expiresAt) {
 			blocked = "ORDER_APPROVAL_EXPIRED"
-		} else if mapping.Status != "active" || mapping.Account != account || mapping.SubjectID != order.SubjectID || mapping.BrokerAccountID != order.BrokerAccountID {
+		} else if mapping.Status != "active" || mapping.Account != account || mapping.SubjectID != order.SubjectID || mapping.BrokerAccountID != order.BrokerAccountID || mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey {
 			blocked = "ACCOUNT_MAPPING_CHANGED"
 		}
 		if blocked != "" {

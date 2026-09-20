@@ -676,11 +676,18 @@ func validateBrokeragePersistence(account string, state BrokerageAccountState) e
 			}
 		}
 	}
+	executionKeys := map[string]string{}
 	for orderID, outbox := range state.Outbox {
 		order, ok := state.Orders[orderID]
 		validOutbox := map[string]bool{"pending_unwired": true, "execution_requested": true, "dispatching": true, "submitted_unknown": true, "submitted": true, "provider_rejected": true, "execution_blocked": true}
 		if !ok || order.ApprovalState != "consumed" || outbox.OrderID != orderID || outbox.RequestID != order.RequestID || outbox.ProviderClientOrderID != order.ProviderClientOrderID || outbox.Provider != FinanceOrderProvider || outbox.TradingEnvironment != FinanceOrderTradingEnv || outbox.Attempts < 0 || !validOutbox[outbox.Status] || (outbox.ProviderOrderID != "" && !financeProviderUUIDPattern.MatchString(outbox.ProviderOrderID)) || (outbox.ProviderRawStatus != "" && !brokerageCursor(outbox.ProviderRawStatus)) || (outbox.ProviderHTTPRequestID != "" && !brokerageCursor(outbox.ProviderHTTPRequestID)) || (outbox.ExecutionRequestKey != "" && !idempotencyPattern.MatchString(outbox.ExecutionRequestKey)) || (outbox.Status == "execution_requested" && (outbox.ExecutionRequestKey == "" || outbox.ExecutionRequestedAt.IsZero())) {
 			return errors.New("finance state contains an invalid Broker outbox record")
+		}
+		if outbox.ExecutionRequestKey != "" {
+			if previousOrderID, duplicate := executionKeys[outbox.ExecutionRequestKey]; duplicate && previousOrderID != orderID {
+				return errors.New("finance state reuses a Broker execution idempotency key")
+			}
+			executionKeys[outbox.ExecutionRequestKey] = orderID
 		}
 	}
 	for _, event := range state.Journal {
