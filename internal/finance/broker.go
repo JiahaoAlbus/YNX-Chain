@@ -279,7 +279,7 @@ func (s *Server) brokerCallback(w http.ResponseWriter, r *http.Request, session 
 	case "rejected":
 		result, err = s.service.Store.RejectBrokerOrder(session.Account, callback.RequestID, callback.CallbackStateHash, now)
 	case "revoked":
-		result, err = s.service.Store.RevokeBrokerOrder(session.Account, *callback.Revocation, now)
+		result, err = s.service.Store.RevokeBrokerOrder(session.Account, callback.CallbackStateHash, *callback.Revocation, now)
 	default:
 		err = errors.New("Finance approval callback status is unsupported")
 	}
