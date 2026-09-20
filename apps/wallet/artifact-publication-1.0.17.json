@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet",
+  "version": "1.0.17-testnet-preview",
+  "versionCode": 23,
+  "releaseStatus": "PUBLISHED_TESTNET_PRERELEASE",
+  "sourceCommit": "875f6c5b744b4b641eb5c2c9b2cb41e928676c90",
+  "releaseTag": "wallet-android-testnet-preview-1.0.17-875f6c5b7",
+  "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-1.0.17-875f6c5b7",
+  "releaseImmutable": false,
+  "publisherCanReplaceAssets": true,
+  "downloadTimeSha256Verified": true,
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": "NOT_VERIFIED",
+  "artifacts": [
+    {
+      "name": "android-release-apk",
+      "filename": "ynx-wallet-1.0.17-testnet-preview-875f6c5b7-universal-local-test-signed.apk",
+      "bytes": 116636787,
+      "sha256": "04a37e7bd9f76bb3bb76fe330921f0f80e6d2cfa3b115d38ac93c53cb80370a2",
+      "signingClass": "local-test-signed",
+      "productionSigned": false,
+      "versionCode": 23,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.17-875f6c5b7/ynx-wallet-1.0.17-testnet-preview-875f6c5b7-universal-local-test-signed.apk"
+    },
+    {
+      "name": "android-release-aab",
+      "filename": "ynx-wallet-1.0.17-testnet-preview-875f6c5b7-local-test-signed.aab",
+      "bytes": 71872002,
+      "sha256": "079c8e0597ab0c30b884e10c0d15bd1a8f606c6412509162fa85429966dbef1b",
+      "signingClass": "local-test-signed",
+      "productionSigned": false,
+      "versionCode": 23,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.17-875f6c5b7/ynx-wallet-1.0.17-testnet-preview-875f6c5b7-local-test-signed.aab"
+    },
+    {
+      "name": "android-hermes",
+      "path": "dist-android/_expo/static/js/android/index-914b007e1bb25a1cb8c657e58ed7afa0.hbc",
+      "bytes": 9399238,
+      "sha256": "1228b51c6d93cf42c5407f7cccd2d6578ab766583e65f2529914b0743e36d36a",
+      "signingClass": "unsigned-build-output"
+    },
+    {
+      "name": "ios-hermes",
+      "path": "dist-ios/_expo/static/js/ios/index-a52648763664cc19c4f07397f16a9a9e.hbc",
+      "bytes": 9394059,
+      "sha256": "b06dc784a39e7b569cdd1e46aafe4c8e3965645903f06f64055062678db85fa3",
+      "signingClass": "unsigned-build-output"
+    }
+  ],
+  "publicationEvidence": "proof/wallet-android-1.0.17-publication-20260920.json",
+  "generatedAt": "2026-09-20T12:21:28Z"
+}
