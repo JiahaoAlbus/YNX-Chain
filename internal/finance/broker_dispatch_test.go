@@ -11,15 +11,18 @@ import (
 )
 
 type dispatchAdapter struct {
-	submit      func(brokerage.SubmitOrderRequest) (brokerage.Order, error)
-	cancel      func(string) error
-	assets      brokerage.AssetResult
-	assetsErr   error
-	snapshot    brokerage.AccountSnapshot
-	snapshotErr error
-	quote       brokerage.Quote
-	account     brokerage.Account
-	positions   []brokerage.Position
+	submit       func(brokerage.SubmitOrderRequest) (brokerage.Order, error)
+	cancel       func(string) error
+	assets       brokerage.AssetResult
+	assetsErr    error
+	snapshot     brokerage.AccountSnapshot
+	snapshotErr  error
+	quote        brokerage.Quote
+	quoteErr     error
+	account      brokerage.Account
+	accountErr   error
+	positions    []brokerage.Position
+	positionsErr error
 }
 
 func (d dispatchAdapter) Capabilities() map[string]string { return map[string]string{} }
@@ -34,12 +37,18 @@ func (d dispatchAdapter) Assets(context.Context) (brokerage.AssetResult, error) 
 	return brokerage.AssetResult{Provider: FinanceOrderProvider, Environment: FinanceOrderTradingEnv, Assets: []brokerage.Asset{{ID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Name: "ACME", Class: "us_equity", Status: "active", Tradable: true}}}, nil
 }
 func (d dispatchAdapter) Quote(_ context.Context, symbol string) (brokerage.Quote, error) {
+	if d.quoteErr != nil {
+		return brokerage.Quote{}, d.quoteErr
+	}
 	if d.quote.Symbol == symbol {
 		return d.quote, nil
 	}
 	return brokerage.Quote{Symbol: symbol, BidPrice: "9.99", AskPrice: "10", Timestamp: "2026-09-19T09:01:59Z", Feed: "iex"}, nil
 }
 func (d dispatchAdapter) Account(context.Context, string, brokerage.AccountResolver) (brokerage.Account, error) {
+	if d.accountErr != nil {
+		return brokerage.Account{}, d.accountErr
+	}
 	if d.account.ID != "" {
 		return d.account, nil
 	}
@@ -49,6 +58,9 @@ func (d dispatchAdapter) Orders(context.Context, string, brokerage.AccountResolv
 	return nil, "", errors.New("unused")
 }
 func (d dispatchAdapter) Positions(context.Context, string, brokerage.AccountResolver) ([]brokerage.Position, string, error) {
+	if d.positionsErr != nil {
+		return nil, "", d.positionsErr
+	}
 	return d.positions, "positions-request", nil
 }
 func (d dispatchAdapter) Reconcile(context.Context, string, brokerage.AccountResolver) (brokerage.AccountSnapshot, error) {
@@ -407,6 +419,54 @@ func TestBrokerDispatchBlocksExpiredApprovalAndStalePreflightBeforeSubmit(t *tes
 	}
 }
 
+func TestBrokerPreflightReadFailuresPreserveApprovedOrderForBoundedRetry(t *testing.T) {
+	readFailure := errors.New("provider preflight read failed")
+	cases := []struct {
+		name string
+		fail func(*dispatchAdapter)
+	}{
+		{name: "account", fail: func(adapter *dispatchAdapter) { adapter.accountErr = readFailure }},
+		{name: "assets", fail: func(adapter *dispatchAdapter) { adapter.assetsErr = readFailure }},
+		{name: "quote", fail: func(adapter *dispatchAdapter) { adapter.quoteErr = readFailure }},
+		{name: "positions", fail: func(adapter *dispatchAdapter) { adapter.positionsErr = readFailure }},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			store, account, orderID, now := consumedBrokerFixture(t)
+			posts := 0
+			providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted", RequestID: "http-submit-0001"}
+			submit := func(request brokerage.SubmitOrderRequest) (brokerage.Order, error) {
+				posts++
+				expected := brokerage.SubmitOrderRequest{ClientOrderID: orderID, AssetID: providerOrder.AssetID, Symbol: providerOrder.Symbol, Side: providerOrder.Side, Qty: providerOrder.Qty, Type: providerOrder.Type, LimitPrice: providerOrder.LimitPrice, TimeInForce: providerOrder.TimeInForce}
+				if request != expected {
+					t.Fatalf("approved order content changed on retry: got=%+v want=%+v", request, expected)
+				}
+				return providerOrder, nil
+			}
+			failedAdapter := dispatchAdapter{submit: submit}
+			test.fail(&failedAdapter)
+			dispatcher := BrokerDispatcher{Store: store, Adapter: failedAdapter, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+			if _, err := dispatcher.Dispatch(context.Background(), account, orderID); err == nil {
+				t.Fatal("preflight read failure was accepted")
+			}
+			state := store.Account(account).Brokerage
+			order, outbox := state.Orders[orderID], state.Outbox[orderID]
+			if posts != 0 || order.ApprovalState != "consumed" || order.State != "submitting" || outbox.Status != "execution_requested" || outbox.LastErrorCode != "ORDER_PREFLIGHT_FAILED" || outbox.Attempts != 1 {
+				t.Fatalf("preflight failure consumed the approved order: posts=%d order=%+v outbox=%+v", posts, order, outbox)
+			}
+
+			dispatcher.Adapter = dispatchAdapter{submit: submit}
+			retried, err := dispatcher.Dispatch(context.Background(), account, orderID)
+			if err != nil || posts != 1 || retried.State != "submitted" || retried.ProviderOrderID != providerOrder.ID {
+				t.Fatalf("bounded retry did not submit the same order once: record=%+v posts=%d err=%v", retried, posts, err)
+			}
+			if _, err := dispatcher.Dispatch(context.Background(), account, orderID); err == nil || posts != 1 {
+				t.Fatalf("provider-correlated order was submitted again: posts=%d err=%v", posts, err)
+			}
+		})
+	}
+}
+
 func TestBrokerDispatchBlocksEveryExplicitTradingAccountFenceBeforeSubmit(t *testing.T) {
 	for name, blockedAccount := range map[string]brokerage.Account{
 		"trading blocked": {ID: "01234567-89ab-4cde-8fab-0123456789ab", Status: "ACTIVE", Currency: "USD", Cash: "100", BuyingPower: "100", TradingBlocked: true},
@@ -493,14 +553,15 @@ func TestBrokerClaimNeverRegressesProviderCorrelatedOrderAfterExpiry(t *testing.
 func TestBrokerDispatcherTimeoutAndRestartRemainUnknownWithoutDuplicateSubmit(t *testing.T) {
 	store, account, orderID, now := consumedBrokerFixture(t)
 	adapter := dispatchAdapter{submit: func(brokerage.SubmitOrderRequest) (brokerage.Order, error) {
-		return brokerage.Order{}, &brokerage.Error{Code: "PROVIDER_UNAVAILABLE"}
+		return brokerage.Order{}, &brokerage.Error{Code: "PROVIDER_UNAVAILABLE", RequestID: "http-submit-5xx", HTTPStatus: 503}
 	}}
 	dispatcher := BrokerDispatcher{Store: store, Adapter: adapter, Now: func() time.Time { return now.Add(2 * time.Minute) }}
 	if _, err := dispatcher.Dispatch(context.Background(), account, orderID); brokerage.ErrorCode(err) != "PROVIDER_UNAVAILABLE" {
 		t.Fatal(err)
 	}
 	workspace := store.BrokerWorkspace(account, now.Add(2*time.Minute))
-	if workspace.Orders[0].State != "submitted_unknown" || workspace.Outbox[0].Status != "submitted_unknown" {
+	journal := store.Account(account).Brokerage.Journal
+	if workspace.Orders[0].State != "submitted_unknown" || workspace.Orders[0].ProviderHTTPRequestID != "http-submit-5xx" || workspace.Outbox[0].Status != "submitted_unknown" || workspace.Outbox[0].LastErrorCode != "PROVIDER_UNAVAILABLE" || workspace.Outbox[0].ProviderHTTPRequestID != "http-submit-5xx" || journal[len(journal)-1].Action != "provider.submission_unknown" {
 		t.Fatalf("workspace=%+v", workspace)
 	}
 	if _, err := dispatcher.Dispatch(context.Background(), account, orderID); err == nil {

@@ -118,7 +118,7 @@ func (s *Store) CompleteBrokerDispatch(account, orderID string, providerOrder *b
 			code := brokerage.ErrorCode(providerError)
 			providerRequestID := brokerage.ErrorRequestID(providerError)
 			outbox.LastErrorCode, outbox.ProviderHTTPRequestID, order.ProviderHTTPRequestID = code, providerRequestID, providerRequestID
-			if code == "ORDER_SUBMISSION_DISABLED" || code == "BROKER_NOT_CONFIGURED" || code == "ACCOUNT_NOT_LINKED" || code == "ORDER_REQUEST_INVALID" {
+			if code == "ORDER_SUBMISSION_DISABLED" || code == "BROKER_NOT_CONFIGURED" || code == "ACCOUNT_NOT_LINKED" || code == "ORDER_REQUEST_INVALID" || code == "ORDER_PREFLIGHT_FAILED" {
 				outbox.Status, order.State, action = "execution_requested", "submitting", "provider.dispatch_not_attempted"
 			} else if code == "PROVIDER_UNAVAILABLE" || code == "PROVIDER_PROTOCOL_ERROR" {
 				outbox.Status, order.State, action = "submitted_unknown", "submitted_unknown", "provider.submission_unknown"

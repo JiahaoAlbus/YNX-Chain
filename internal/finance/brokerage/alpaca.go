@@ -208,12 +208,17 @@ func (a *Alpaca) exchangeStatus(ctx context.Context, req *http.Request, out any,
 	}
 	if !statusAccepted {
 		code := "PROVIDER_REJECTED"
-		switch res.StatusCode {
-		case 401:
+		switch {
+		case res.StatusCode >= http.StatusInternalServerError:
+			// A server error cannot prove whether a write was accepted before the
+			// provider failed. Callers must reconcile POSTs instead of treating
+			// the response as a terminal provider rejection.
+			code = "PROVIDER_UNAVAILABLE"
+		case res.StatusCode == http.StatusUnauthorized:
 			code = "AUTHENTICATION_FAILED"
-		case 403:
+		case res.StatusCode == http.StatusForbidden:
 			code = "PERMISSION_DENIED"
-		case 429:
+		case res.StatusCode == http.StatusTooManyRequests:
 			code = "RATE_LIMITED"
 		}
 		return id, &Error{Code: code, RequestID: id, HTTPStatus: res.StatusCode}

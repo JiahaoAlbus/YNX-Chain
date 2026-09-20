@@ -268,6 +268,30 @@ func TestOrderWriteRequiresBoundedProviderRequestID(t *testing.T) {
 	}
 }
 
+func TestSubmitOrderServerFailureRequiresReconciliation(t *testing.T) {
+	accountID := "01234567-89ab-4cde-8fab-0123456789ab"
+	resolve := resolverFunc(func(context.Context, string, string, string) (string, error) { return accountID, nil })
+	request := SubmitOrderRequest{ClientOrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", AssetID: "99999999-8888-4777-8666-555555555555", Symbol: "ACME", Side: "buy", Qty: "2", Type: "limit", LimitPrice: "125.34", TimeInForce: "day"}
+	for _, status := range []int{http.StatusInternalServerError, http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout} {
+		t.Run(fmt.Sprint(status), func(t *testing.T) {
+			a := NewAlpaca(writeEnabled("legacy_basic"))
+			calls := 0
+			a.client.Transport = roundTrip(func(providerRequest *http.Request) (*http.Response, error) {
+				calls++
+				if providerRequest.Method != http.MethodPost || providerRequest.URL.RequestURI() != "/v1/trading/accounts/"+accountID+"/orders" {
+					t.Fatalf("unexpected provider request %s %s", providerRequest.Method, providerRequest.URL.RequestURI())
+				}
+				return response(status, `{"message":"provider failed after accepting an unknown amount of work"}`), nil
+			})
+			_, err := a.SubmitOrder(context.Background(), "owner", resolve, request)
+			providerErr, ok := err.(*Error)
+			if !ok || providerErr.Code != "PROVIDER_UNAVAILABLE" || providerErr.RequestID != "fixture-request-1" || providerErr.HTTPStatus != status || calls != 1 {
+				t.Fatalf("POST 5xx must be submission-unknown input: err=%+v calls=%d", err, calls)
+			}
+		})
+	}
+}
+
 func TestWriteActivationAndProviderResultsFailClosed(t *testing.T) {
 	missingReceipt := config(map[string]string{"FINANCE_TRADING_ENABLED": "true", "FINANCE_SANDBOX_WRITES_ENABLED": "true", "ALPACA_BROKER_CLIENT_ID": "id", "ALPACA_BROKER_CLIENT_SECRET": "secret"})
 	if missingReceipt.Status().SubmissionEnabled || missingReceipt.ready() {
