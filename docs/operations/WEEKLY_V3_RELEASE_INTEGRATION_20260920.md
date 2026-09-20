@@ -97,3 +97,14 @@ No repository-wide release immutability or new CDN was enabled.
 The Android pin now binds filename, exact release path, tag, primary/fallback
 URLs and the publication truth fields. Website PR57 separately binds both
 artifactPath and fallbackUrl and rejects their coordinated substitution.
+
+The correction was merged normally with main
+`3f6374f84326b57a38d1c3bbbc9ebbe096d7f233` at
+`1599664729051510665011cd7ab6b21fb9ae0b11`; Finance private paths have
+zero delta against that main. Full tests were rerun: Wallet Web 366/366,
+integration guards 45/45, Finance browser 49/49, and uncached Finance/Faucet
+race tests passed. The artifact gate rebuilt the exact merged checkpoint.
+An isolated Chromium render confirmed the disclosure and exact APK link,
+without account requests, signatures, transactions or public acceptance.
+Website correction checkpoint `900bb4f5ec1c5f40a8a476787edced22b4e9e97a`
+passed 217/217 tests and clean production build at 449157 bytes.

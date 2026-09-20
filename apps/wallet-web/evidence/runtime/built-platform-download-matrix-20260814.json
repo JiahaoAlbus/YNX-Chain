@@ -1,10 +1,18 @@
 {
   "schemaVersion": 2,
-  "sourceCommit": "45a12bf1f38340af69fe45c486386097cc3cc413",
-  "generatedAt": "2026-09-20T10:24:21.613Z",
+  "sourceCommit": "1599664729051510665011cd7ab6b21fb9ae0b11",
+  "generatedAt": "2026-09-20T10:35:48.562Z",
   "gateClass": "current built PWA download matrix bound to committed Android and published Wallet Web manifests",
   "matrix": {
     "android": {
+      "filename": "ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+      "releaseTag": "wallet-android-testnet-preview-1.0.16-e9816a827",
+      "assetPath": "/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+      "releaseImmutable": false,
+      "publisherCanReplaceAssets": true,
+      "downloadTimeSha256Verified": false,
+      "releaseMetadataObservedAt": "2026-09-20T10:30:53Z",
+      "downloadNotice": "releaseImmutable=false: publisher can replace assets. SHA-256 is not recomputed during download; verify the digest yourself.",
       "label": "Android API 24+ · universal · 1.0.16",
       "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
       "fallbackUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
