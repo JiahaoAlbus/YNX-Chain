@@ -1,0 +1,428 @@
+{
+  "schema": "ynx-weekly-v3-finance-wallet-integration/v1",
+  "generatedAt": "2026-09-20T10:23:27.606Z",
+  "financeCommit": "45a12bf1f38340af69fe45c486386097cc3cc413",
+  "walletCommit": "45a12bf1f38340af69fe45c486386097cc3cc413",
+  "networkCommit": "45a12bf1f38340af69fe45c486386097cc3cc413",
+  "sourceSha256": {
+    "scripts/verify/weekly-v3/finance_wallet_integration_test.go": "599d6541b81ad2e8dcdd9c309fe3aef88380e841f716046414e4f038f7b2366e",
+    "scripts/verify/weekly-v3/finance_gateway_integration_test.go": "707ffe56e4ea55e130596c3d65c677689239b943411434bacae6c5a45d07fca1",
+    "scripts/verify/weekly-v3/finance_recovery_integration_test.go": "974494529f14709c97e68f42b6c8d66d42ca75c4a33da70bc6ebe0511509a39a",
+    "scripts/verify/weekly-v3/finance_browser_integration_test.go": "ed68c86070804073b1cd9fe998c7cb84a55709444073fbd73f2a74910d1208bb",
+    "scripts/verify/weekly-v3/finance-browser-bridge.mjs": "af14b8dd8933644a268b75e529077f1a7c7c7f469c4d63ddd090afd3f107750e",
+    "scripts/verify/weekly-v3/broker-wire-fixtures.json": "1adae17f29219e4b8f1c58e384fd1a44da4681a522c95e7b533186fc9f5859e7",
+    "scripts/verify/weekly-v3/broker-wire-fixtures.mjs": "dd560e7dc6aaded3277660fb955d9cdf62b987cb6a0156248a8a84e3ca37bccd",
+    "scripts/verify/weekly-v3/gateway-sse-fixture.mjs": "5dd465d49b89a5d4398e9ba832e0c684f9cebd05195518c88f477f2297aa9430",
+    "scripts/verify/weekly-v3/recovery-fixtures.mjs": "ba460581e15b57f6d8af78480cc0bfaa8f6acef2e773f27713cdd25db155dbb7",
+    "scripts/verify/weekly-v3/finance-wallet-bridge.mjs": "a92e7ea2de8e904b92ca13e50771acde40140efcb078e8e65622dcd03630d3ca",
+    "scripts/verify/weekly-v3-finance-wallet-integration.mjs": "e4fa81c22ebbfb1c3c677190e5425f8cd7176938046946a41ada16d36ad47c4c",
+    "scripts/verify/weekly-v3/finance_execution_integration_test.go": "7156b5a12e24d3eb18295c4b6b3c238612bcc3bce5c4377355f326216773495c",
+    "scripts/verify/weekly-v3/broker_operator_fixture_test.go": "fac1e5992ae6ef7710a78e2ab8c0bf36de222682e3743b17fc1dbd0f32232367",
+    "scripts/verify/weekly-v3/broker_worker_integration_test.go": "8dff30ff3ca8bf7254ac5277c6e0b476ed1131c547c7231065e9ccc20e65c0bc",
+    "scripts/verify/weekly-v3/broker_tools_integration_test.go": "4d065e5c7bb989163525a46d122be5fccfd0053641685b89b415fb1ed6ce1eb3"
+  },
+  "productCheckpointsUnchanged": true,
+  "diagnosticDateAdapter": false,
+  "scope": "local browser VM + actual Wallet controller + Finance HTTP/store; authority and loopback TLS provider fixtures; not installed GUI or official Sandbox",
+  "exitCode": 1,
+  "outputSha256": "7e98d05a3405beba76725434cd715668c82dd90e0e982e864b17210ae922d625",
+  "localFixtureEndToEndVerified": false,
+  "crossProductE2EVerified": false,
+  "officialSandboxVerified": false,
+  "publicDeployed": false,
+  "publicVerified": false,
+  "productionApproved": false,
+  "providerFixtureProvenance": {
+    "schema": "ynx-weekly-v3-broker-wire-fixtures/v1",
+    "sources": {
+      "getaccount": {
+        "url": "https://docs.alpaca.markets/us/reference/getaccount.md",
+        "openapiSha256": "42e093761b129c36deabc3ecfbf0c8a8bd329f3a0ab4bdc58fb02970253c877e",
+        "paths": [
+          "/v1/accounts/{account_id}"
+        ],
+        "properties": [
+          "account_name",
+          "account_number",
+          "account_sub_type",
+          "account_type",
+          "agreements",
+          "allow_instant_ach",
+          "beneficiaries",
+          "cash_interest",
+          "contact",
+          "created_at",
+          "crypto_status",
+          "currency",
+          "custodial_account_type",
+          "disclosures",
+          "documents",
+          "enabled_assets",
+          "fpsl",
+          "id",
+          "identity",
+          "instant_ach_blocked",
+          "investment_objective",
+          "investment_time_horizon",
+          "kyc_results",
+          "last_equity",
+          "liquidity_needs",
+          "minor_identity",
+          "primary_account_holder_id",
+          "risk_tolerance",
+          "status",
+          "trading_configurations",
+          "trusted_contact",
+          "usd"
+        ],
+        "required": [
+          "id",
+          "account_number",
+          "status",
+          "currency",
+          "last_equity",
+          "created_at",
+          "account_type"
+        ]
+      },
+      "gettradingaccount": {
+        "url": "https://docs.alpaca.markets/us/reference/gettradingaccount.md",
+        "openapiSha256": "3afff5fc04d6ed8ca255792aecc966949e45d743d82c38e64949d595fe77497c",
+        "paths": [
+          "/v1/trading/accounts/{account_id}/account"
+        ],
+        "properties": [
+          "account_blocked",
+          "account_number",
+          "accrued_fees",
+          "admin_configurations",
+          "balance_asof",
+          "buying_power",
+          "cash",
+          "cash_transferable",
+          "cash_withdrawable",
+          "clearing_broker",
+          "created_at",
+          "crypto_status",
+          "currency",
+          "effective_buying_power",
+          "equity",
+          "id",
+          "initial_margin",
+          "intraday_adjustments",
+          "last_buying_power",
+          "last_cash",
+          "last_equity",
+          "last_initial_margin",
+          "last_long_market_value",
+          "last_maintenance_margin",
+          "last_options_buying_power",
+          "last_regt_buying_power",
+          "last_short_market_value",
+          "long_market_value",
+          "maintenance_margin",
+          "memoposts",
+          "multiplier",
+          "non_marginable_buying_power",
+          "options_approved_level",
+          "options_buying_power",
+          "options_trading_level",
+          "pending_reg_taf_fees",
+          "pending_transfer_out",
+          "portfolio_value",
+          "position_market_value",
+          "previous_close",
+          "regt_buying_power",
+          "short_market_value",
+          "shorting_enabled",
+          "sma",
+          "status",
+          "trade_suspended_by_user",
+          "trading_blocked",
+          "transfers_blocked",
+          "user_configurations"
+        ],
+        "required": [
+          "id",
+          "admin_configurations",
+          "account_number",
+          "status",
+          "crypto_status",
+          "currency",
+          "buying_power",
+          "regt_buying_power",
+          "effective_buying_power",
+          "non_marginable_buying_power",
+          "accrued_fees",
+          "portfolio_value",
+          "trading_blocked",
+          "transfers_blocked",
+          "account_blocked",
+          "created_at",
+          "trade_suspended_by_user",
+          "multiplier",
+          "shorting_enabled",
+          "equity",
+          "last_equity",
+          "long_market_value",
+          "short_market_value",
+          "position_market_value",
+          "initial_margin",
+          "maintenance_margin",
+          "last_maintenance_margin",
+          "sma",
+          "balance_asof",
+          "cash"
+        ]
+      },
+      "subscribetotradev2sse": {
+        "url": "https://docs.alpaca.markets/us/reference/subscribetotradev2sse.md",
+        "openapiSha256": "13e68f7df8a5ab1e1475e55d337084d1cd91746ae52fded657ee499be2c57c9b",
+        "paths": [
+          "/v2/events/trades"
+        ],
+        "properties": [
+          "account_id",
+          "at",
+          "event",
+          "event_id",
+          "execution_id",
+          "legs",
+          "order",
+          "position_qty",
+          "position_qtys",
+          "previous_execution_id",
+          "price",
+          "qty",
+          "reason",
+          "settle_date",
+          "swap_rate",
+          "timestamp"
+        ],
+        "required": []
+      }
+    },
+    "exampleSha256": {
+      "tradingAccount": "9066f88a6a4783039b4a1dcd9c5817149834598b410fd7148408f6f4b5f37a68",
+      "tradeUpdateNew": "75cc5692dfad2234fa0f18da41c5dd28b15f6718801f9b129e46d48b1ff89616"
+    },
+    "officialSandboxVerified": false
+  },
+  "publishedCheckpoints": {
+    "finance": {
+      "remote": "origin",
+      "ref": "refs/heads/codex/weekly-v3-release-integration-20260920",
+      "commit": "45a12bf1f38340af69fe45c486386097cc3cc413"
+    },
+    "wallet": {
+      "remote": "origin",
+      "ref": "refs/heads/codex/weekly-v3-release-integration-20260920",
+      "commit": "45a12bf1f38340af69fe45c486386097cc3cc413"
+    }
+  },
+  "integrationAssetsUnchanged": true,
+  "gatewayFixtureRequests": {
+    "valid": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "invalid-schema": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "rational-qty": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "exponent-price": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "extra-root": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "unstructured": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "malformed-sse": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "truncated": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "unauthorized": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ],
+    "rate-limited": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      },
+      {
+        "method": "GET",
+        "path": "/ai/stream",
+        "authenticated": true
+      }
+    ]
+  },
+  "realModelGenerationVerified": false,
+  "browserAcceptanceScope": "Real headless Chromium loads unchanged HTML and scripts; native FormData and actual start/copy clicks; synthetic session authority and loopback Gateway, not installed Wallet or real model",
+  "stageAComplete": false,
+  "providerWireScope": "Pinned complete public TradeAccount and TradeUpdateEventV2New JSON; synthetic identity/lifecycle derivatives; SSE framing is fixture-only, not authenticated transport",
+  "completedTests": 11,
+  "failedTests": [
+    "--- FAIL: TestWeeklyV3ExecutionHTTPGatesPreserveApprovalWithoutProviderWrite (2.06s)",
+    "--- FAIL: TestWeeklyV3ExplicitExecutionHTTPToDurableConsumerExactlyOnce (0.18s)",
+    "--- FAIL: TestWeeklyV3RealDOMExplicitExecutionConfirmation (0.40s)",
+    "--- FAIL: TestWeeklyV3GatewayStructuredJobHTTPPersistenceAndCopy (2.48s)",
+    "--- FAIL: TestWeeklyV3WalletBrowserDecisionsAndDurableCAS (0.44s)",
+    "--- FAIL: TestWeeklyV3BrowserUsesServerTimeWireType (0.13s)",
+    "--- FAIL: TestWeeklyV3ManualAndAIDraftBrowserLaunch (0.27s)",
+    "--- FAIL: TestWeeklyV3SellOwnedPositionAndInsufficientAvailable (0.56s)",
+    "--- FAIL: TestWeeklyV3CancellationRaceAndLostAckNeverBlindlyRetry (0.29s)",
+    "--- FAIL: TestWeeklyV3ActualAdapterSubmitUnknownQueryCancelRestart (0.40s)",
+    "--- FAIL: TestWeeklyV3ExpiredOutboxDoesNotExecute (0.12s)",
+    "--- FAIL: TestWeeklyV3ProviderAccountSafetyFlagsFenceDispatch (1.45s)",
+    "--- FAIL: TestWeeklyV3UnreceivedApprovalCanBeRevokedAtServer (0.12s)",
+    "--- FAIL: TestWeeklyV3DispatchMustNotUseMarginBuyingPower (0.12s)",
+    "--- FAIL: TestWeeklyV3ExpiredRedispatchCannotRewriteKnownProviderState (0.13s)",
+    "--- FAIL: TestWeeklyV3FullBrowserWalletServerFlow (0.99s)",
+    "--- FAIL: TestWeeklyV3PagedPollFindsUnknownAfter500AndRestart (0.14s)",
+    "--- FAIL: TestWeeklyV3IndependentCursorsSameTimeResumeAndTenantFence (0.14s)",
+    "--- FAIL: TestWeeklyV3QuoteWireStateAndExecutionFence (1.33s)",
+    "--- FAIL: TestWeeklyV3ProviderRejectedTerminalSurvivesRestartAndStaleRecovery (0.67s)",
+    "--- FAIL: TestWeeklyV3ProviderHTTPFailureCorrelationSurvivesRestart (0.12s)",
+    "--- FAIL: TestWeeklyV3OperatorControlledVerificationAndBackendFence (0.20s)"
+  ],
+  "failureReason": "PRIVATE_SERVICE_DEGRADED: bundled Wallet Gateway=PENDING; Finance Product Session=PENDING. No VERIFIED fixture substitution.",
+  "originalReportSHA256": "c48157378bdfe50d3e71bf0d62898a69ba6f21c7ea89ea40044b8d53f2d331b5",
+  "testOutputStoredInOriginalLocalReport": true
+}

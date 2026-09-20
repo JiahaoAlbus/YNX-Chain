@@ -1,4 +1,4 @@
-import {WALLET_DOWNLOAD_MATRIX, YNX_CHAIN} from "./provider.js";
+import {WALLET_DOWNLOAD_MATRIX, YNX_CHAIN, isPinnedAndroidRelease} from "./provider.js";
 
 const SHA256=/^[0-9a-f]{64}$/u;
 const SOURCE_COMMIT=/^[0-9a-f]{40}$/u;
@@ -10,7 +10,7 @@ export function createWalletDownloadManifest({sourceCommit}) {
       throw new Error(`Wallet download entry is not publishable: ${id}`);
     }
     const url=new URL(item.url);
-    if(url.protocol!=="https:"||!url.pathname.includes(`/sha256-${item.sha256}/`)){
+    if(url.protocol!=="https:"||(!url.pathname.includes(`/sha256-${item.sha256}/`)&&!(id==="android"&&isPinnedAndroidRelease(item)))){
       throw new Error(`Wallet download entry is not content addressed: ${id}`);
     }
     const fallbackUrl=item.fallbackUrl?new URL(item.fallbackUrl):null;
@@ -26,6 +26,12 @@ export function createWalletDownloadManifest({sourceCommit}) {
       contentType:item.contentType,
       signingClass:item.signingClass,
       productionSigned:item.productionSigned===true,
+      ...(id==="android"?{
+        filename:item.filename,assetPath:item.assetPath,releaseTag:item.releaseTag,
+        releaseImmutable:item.releaseImmutable,publisherCanReplaceAssets:item.publisherCanReplaceAssets,
+        downloadTimeSha256Verified:item.downloadTimeSha256Verified,releaseMetadataObservedAt:item.releaseMetadataObservedAt,
+        downloadNotice:item.downloadNotice,
+      }:{}),
       ...(fallbackUrl?{fallbackUrl:item.fallbackUrl}:{}),
     });
   });

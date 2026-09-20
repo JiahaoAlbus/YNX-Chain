@@ -175,12 +175,12 @@ test("canonical YNX mobile authorization stays closed until Core freezes the exa
   assert.deepEqual(canonicalYNXAuthorizationState(frozen,"https://www.ynxweb4.com/wallet-auth/callback"),{route:"canonical-auth",available:true,callback:"https://www.ynxweb4.com/wallet-auth/callback",error:null});
 });
 
-test("default download opens platform selection and Android uses the current immutable release", () => {
+test("default download opens platform selection and Android uses the exact observed release", () => {
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.hosted,true);
   assert.equal(YNX_DOWNLOAD_URL,"https://www.ynxweb4.com/dapp/wallet/open-download");
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,"https://downloads.ynxweb4.com/wallet/sha256-b82c4354329e2fb517730b02211e4e10ee9e45c720a4494556a68f911a753210/ynx-wallet-1.0.15-testnet-preview-8a4f00982-universal-local-test-signed.apk");
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.bytes,79014862);
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,"b82c4354329e2fb517730b02211e4e10ee9e45c720a4494556a68f911a753210");
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk");
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.bytes,116631255);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,"89a842dc8641206a9154a6e41fd1c9e3cbb4b6cca2cea455ed5b7fc674b558c0");
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.contentType,"application/vnd.android.package-archive");
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.productionSigned,false);
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
@@ -188,7 +188,8 @@ test("default download opens platform selection and Android uses the current imm
     assert.equal(item.hosted,true);assert.match(item.url,/^https:\/\//);assert.ok(Number.isSafeInteger(item.bytes)&&item.bytes>0);assert.match(item.sha256,/^[0-9a-f]{64}$/);assert.equal(item.productionSigned,false);
   }
   for(const key of ["android","windowsX64","windowsArm64","macosUniversal","linuxX64","linuxArm64"]){
-    const item=WALLET_DOWNLOAD_MATRIX[key];assert.equal(new URL(item.url).hostname,"downloads.ynxweb4.com");assert.ok(item.url.includes(`/sha256-${item.sha256}/`));
+    const item=WALLET_DOWNLOAD_MATRIX[key];assert.equal(new URL(item.url).hostname,key==="android"?"github.com":"downloads.ynxweb4.com");
+    if(key==="android")assert.equal(item.url,item.fallbackUrl);else assert.ok(item.url.includes(`/sha256-${item.sha256}/`));
   }
   assert.match(WALLET_DOWNLOAD_MATRIX.windowsX64.url,/ynx-wallet-desktop-0\.6\.8-x64\.exe$/);
   assert.match(WALLET_DOWNLOAD_MATRIX.macosUniversal.url,/ynx-wallet-macos-0\.6\.8-universal\.dmg$/);

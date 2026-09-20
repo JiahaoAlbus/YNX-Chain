@@ -21,7 +21,7 @@ const failures=[];
 const require=(condition,message)=>{if(!condition)failures.push(message)};
 const android=nativeManifest.artifacts.find(item=>item.name==="android-release-apk");
 const officialWalletURL=artifact=>`https://downloads.ynxweb4.com/wallet/sha256-${artifact.sha256}/${artifact.url.split("/").pop()}`;
-require(android&&matrix.android?.url===officialWalletURL(android)&&matrix.android?.bytes===android.bytes&&matrix.android?.sha256===android.sha256,"Android install entry is not the current official immutable mirror");
+require(android&&matrix.android?.url===android.url&&matrix.android?.bytes===android.bytes&&matrix.android?.sha256===android.sha256&&provider.isPinnedAndroidRelease(matrix.android),"Android install entry is not the current exact verified GitHub prerelease");
 for(const [key,name] of Object.entries({pwaPackage:"ynx-wallet-web-pwa-0.1.1.zip",chromeEdgeExtension:"ynx-wallet-chrome-edge-0.1.1.zip",firefoxExtension:"ynx-wallet-firefox-0.1.1.zip"})){
   const artifact=webManifest.artifacts.find(item=>item.name===name),entry=matrix[key];
   require(artifact&&entry?.hosted===true&&entry?.bytes===artifact.bytes&&entry?.sha256===artifact.sha256&&entry?.url?.endsWith(`/${name}`),`${key} does not match the published Wallet Web artifact`);
@@ -35,9 +35,10 @@ for(const [key,entry] of Object.entries(matrix)){
 }
 for(const key of ["android","windowsX64","windowsArm64","macosUniversal","linuxX64","linuxArm64"]){
   const entry=matrix[key];
-  require(new URL(entry.url).hostname==="downloads.ynxweb4.com"&&entry.url.includes(`/sha256-${entry.sha256}/`),`${key} is not bound to the official immutable download origin`);
+  require(key==="android"?provider.isPinnedAndroidRelease(entry):new URL(entry.url).hostname==="downloads.ynxweb4.com"&&entry.url.includes(`/sha256-${entry.sha256}/`),`${key} is not bound to the exact verified download`);
 }
 require(/function platformDownloads\(\)/u.test(app)&&/item\.hosted===true&&item\.url/u.test(app),"built UI does not render every hosted package");
+require(app.includes('id="android-publication-boundary"')&&app.includes("WALLET_DOWNLOAD_MATRIX.android.downloadNotice"),"built UI hides mutable release and unchecked download disclosure");
 require(/productionSigned=\$\{String\(item\.productionSigned===true\)\}/u.test(app),"built UI hides package signing status");
 require(/button\.disabled = button\.dataset\.permanentDisabled === "true"/u.test(app),"built UI lost permanent-disabled handling");
 require(/@media\(max-width:520px\)[\s\S]*\.wallets,\.actions,\.platform-grid\{grid-template-columns:minmax\(0,1fr\)\}/u.test(styles),"built UI lost narrow layout");
