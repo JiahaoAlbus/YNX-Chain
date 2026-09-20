@@ -76,6 +76,7 @@ assert.equal(/^FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256=[^\s#]+$/m.test(e
 const image = 'ubuntu:24.04';
 const inspectImage = JSON.parse(execFileSync('docker', ['image', 'inspect', image], { encoding: 'utf8' }))[0];
 const container = `ynx-finance-candidate-${randomUUID()}`;
+const legacyContainer = `ynx-finance-candidate-legacy-${randomUUID()}`;
 const env = [
   'YNX_FINANCE_LISTEN=0.0.0.0:6436',
   'YNX_FINANCE_STATE_PATH=/state/state.json',
@@ -98,6 +99,8 @@ const dockerBase = ['--platform', 'linux/amd64', '-v', `${extractRoot}:/candidat
 const envArgs = env.flatMap(item => ['-e', item]);
 let endpoints = [];
 let diagnostic;
+let absentStateColdStart;
+let legacyStateReadOnlyColdStart;
 try {
   execFileSync('docker', ['create', '--name', container, ...dockerBase, ...envArgs, '-p', '127.0.0.1::6436', image, '/candidate/ynx-finance'], { stdio: 'ignore' });
   execFileSync('docker', ['start', container], { stdio: 'ignore' });
@@ -140,8 +143,51 @@ try {
   assert.equal(diagnostic.officialSandboxVerified, false);
   assert.equal(diagnostic.productionApproved, false);
   assert.deepEqual(readdirSync(stateRoot), []);
+  absentStateColdStart = true;
+  execFileSync('docker', ['rm', '-f', container], { stdio: 'ignore' });
+
+  const legacyState = Buffer.from('{"version":1,"accounts":{"ynx1legacy":{"categories":[],"budgets":[],"reminders":[],"notes":[],"privacy":{"includePayInStatements":true,"allowAiActivityContext":false,"alertsEnabled":true,"updatedAt":"0001-01-01T00:00:00Z"},"classifications":{},"aiJobs":[],"idempotency":{}}},"audit":[],"usedWalletNonces":{}}');
+  const legacyStatePath = join(stateRoot, 'state.json');
+  writeFileSync(legacyStatePath, legacyState, { mode: 0o600 });
+  const beforeLegacySha256 = sha256(readFileSync(legacyStatePath));
+  execFileSync('docker', ['create', '--name', legacyContainer, ...dockerBase, ...envArgs, '-p', '127.0.0.1::6436', image, '/candidate/ynx-finance'], { stdio: 'ignore' });
+  execFileSync('docker', ['start', legacyContainer], { stdio: 'ignore' });
+  const legacyPortOutput = execFileSync('docker', ['port', legacyContainer, '6436/tcp'], { encoding: 'utf8' }).trim();
+  const legacyPort = Number(legacyPortOutput.slice(legacyPortOutput.lastIndexOf(':') + 1));
+  let legacyEndpoints = [];
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    try {
+      legacyEndpoints = [];
+      for (const route of ['/health', '/version', '/ready']) {
+        const response = await fetch(`http://127.0.0.1:${legacyPort}${route}`, { headers: { 'cache-control': 'no-cache' } });
+        const body = Buffer.from(await response.arrayBuffer());
+        assert.equal(response.status, 200, route);
+        if (route === '/version') assert.equal(JSON.parse(body).commit, sourceCommit);
+        legacyEndpoints.push({ route, status: response.status, bytes: body.length, sha256: sha256(body) });
+      }
+      break;
+    } catch (error) {
+      legacyEndpoints = [];
+      if (attempt === 49) throw error;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+  execFileSync('docker', ['rm', '-f', legacyContainer], { stdio: 'ignore' });
+  const afterLegacyBody = readFileSync(legacyStatePath);
+  assert.equal(sha256(afterLegacyBody), beforeLegacySha256);
+  assert.equal(JSON.parse(afterLegacyBody).version, 1);
+  legacyStateReadOnlyColdStart = {
+    performed: true,
+    sourceVersion: 1,
+    acceptedByCandidate: true,
+    diskStateUnchanged: true,
+    beforeSha256: beforeLegacySha256,
+    afterSha256: sha256(afterLegacyBody),
+    endpoints: legacyEndpoints,
+  };
 } finally {
   spawnSync('docker', ['rm', '-f', container], { stdio: 'ignore' });
+  spawnSync('docker', ['rm', '-f', legacyContainer], { stdio: 'ignore' });
 }
 
 const evidence = {
@@ -162,9 +208,10 @@ const evidence = {
     containerImageId: inspectImage.Id,
     requestedPlatform: 'linux/amd64',
     endpoints,
-    stateAbsentBeforeAndAfter: readdirSync(stateRoot).length === 0,
+    stateAbsentBeforeAndAfter: absentStateColdStart,
     diagnostic,
   },
+  legacyStateReadOnlyColdStart,
   providerReadAttempted: false,
   providerWriteAttempted: false,
   officialSandboxVerified: false,
