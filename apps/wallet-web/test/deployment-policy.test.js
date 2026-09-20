@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import test from "node:test";
 
-const expectedSources=["/(.*)","/build-identity.json","/sw.js","/asset-integrity.js","/service-worker-policy.js"];
+const expectedSources=["/(.*)","/build-identity.json","/download-manifest.json","/sw.js","/asset-integrity.js","/service-worker-policy.js"];
 const securityHeaders=[
   {key:"Content-Security-Policy",value:"default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com; manifest-src 'self'; worker-src 'self'"},
   {key:"Permissions-Policy",value:"camera=(), microphone=(), geolocation=(), payment=(), usb=()"},
