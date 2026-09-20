@@ -62,7 +62,7 @@ Finance consumes the existing Wallet/Auth interfaces and does not modify Wallet 
 ## Operator continuation
 
 1. Keep writes disabled and run configuration-only doctor/activation reports.
-2. With an existing absolute state path and one authorized test owner, run `npm run finance:sandbox:activation-plan -- --local-read-only`. This does not require Broker credentials and does not write state.
+2. With an existing absolute state path and one authorized test owner, run `npm run finance:sandbox:activation-plan -- --local-read-only`. This does not require Broker credentials, does not run Endpoint Authority verification, and does not write Finance state or the authority checkpoint. A locally dispatchable candidate remains externally blocked until Central authority and installed Wallet callback evidence are independently verified.
 3. Supply credentials only through the approved secret channel, then perform the separately authorized bounded read-only provider verification.
 4. A provider write still requires a new immediate authorization, exact activation receipt and one eligible execution-requested outbox. No source or local test can promote the official verification flags.
 5. Public deployment requires a fresh Finance deployment lease and the rollback-first procedure in the candidate operation card. Do not reuse the 2026-09-19 baseline hashes or hard-coded one-off deployment script.

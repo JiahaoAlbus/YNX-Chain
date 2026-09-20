@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "ynx-finance-weekly-v3-local-activation-readonly-evidence/v1",
+  "recordedAt": "2026-09-20T18:14:26Z",
+  "scope": "Finance Sandbox credential-independent diagnostics only",
+  "baseline": {
+    "commit": "51550d6a8f275688d68a5413c8e304e2ed168a0a",
+    "endpointAuthorityV2Merged": true
+  },
+  "implementation": {
+    "commit": "4b66ec6c28d2586ef3d3134c8d2efc031e7394c3",
+    "tree": "bee80a7d4b89023fa244debad331c47dc0509a98",
+    "files": [
+      {
+        "path": "apps/finance/cmd/broker-tools/main.go",
+        "blob": "85cc6147fd6d60365be42d3e96cf7f3149e477db",
+        "bytes": 9991,
+        "sha256": "ad8902616db8ebef971696f2bed811ebe0c5ae2af17fbd4fa0ab03df1340233f"
+      },
+      {
+        "path": "apps/finance/cmd/broker-tools/main_test.go",
+        "blob": "033ea1720c7a62b76898bdf44fce8902e6d026fc",
+        "bytes": 11931,
+        "sha256": "4b30c69f2b1959e77fb7db9358133efb780abaa5ef6028f2328aada1ebf50f58"
+      },
+      {
+        "path": "apps/finance/PROVIDER_ACTIVATION.md",
+        "blob": "2bc0dbcdeca8a596c156dcaa445f3cf27a4bf52f",
+        "bytes": 6778,
+        "sha256": "b107940c86f11d629cdcb41c4be10f7c8b7d81fcd3ba7815adf3f2ba2c342407"
+      },
+      {
+        "path": "apps/finance/WEEKLY_V3_HANDOFF.md",
+        "blob": "6165d1b10bcae8e0fb0ae4e118d42f01c55fa1f3",
+        "bytes": 10836,
+        "sha256": "7d8c559d6bee4cf49a2ea6573af797576ca8aa9d8514f71ef9f9c7c93ea8cb87"
+      }
+    ]
+  },
+  "contracts": {
+    "activationPlanLocalReadOnlyInvokesEndpointAuthority": false,
+    "activationPlanLocalReadOnlyWritesFinanceState": false,
+    "activationPlanLocalReadOnlyWritesAuthorityCheckpoint": false,
+    "explicitNetworkReadOnlyMayAdvanceAuthorityCheckpoint": true,
+    "localWorkerCandidateReportedSeparately": true,
+    "externalActivationGatesReady": false,
+    "centralSignedManifestActive": false,
+    "installedWalletCallbackVerified": false
+  },
+  "tests": [
+    {"command": "go test ./apps/finance/cmd/broker-tools", "result": "PASS"},
+    {"command": "go test -race ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go vet ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go build ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "npm --prefix apps/finance test", "result": "PASS_67_OF_67"},
+    {"command": "npm --prefix apps/finance run security", "result": "PASS_254_TEXT_FILES"},
+    {"command": "npm --prefix apps/finance run smoke", "result": "PASS"}
+  ],
+  "notClaimed": {
+    "officialSandboxVerified": false,
+    "providerVerified": false,
+    "publicDeploymentVerified": false,
+    "installedWalletCallbackVerified": false,
+    "accountApproved": false,
+    "signatureVerified": false,
+    "transactionVerified": false
+  },
+  "remainingExternalBlockers": [
+    "Central-signed active Endpoint Authority manifest evidence",
+    "installed Wallet callback verification",
+    "approved Alpaca Broker Sandbox credentials and entitlements",
+    "separate immediate authorization for any provider write",
+    "Finance public deployment lease and source-bound runtime verification"
+  ]
+}

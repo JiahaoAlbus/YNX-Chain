@@ -13,6 +13,13 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/finance/brokerage"
 )
 
+type countingAuthorityGate struct{ calls *int }
+
+func (g countingAuthorityGate) Authorize(context.Context) error {
+	*g.calls++
+	return nil
+}
+
 func TestCommandsRequireExplicitReadonlyNetworkAndNeverClaimWorkflowVerified(t *testing.T) {
 	for _, mode := range []string{"doctor", "sandbox-verify"} {
 		for _, network := range []bool{false, true} {
@@ -136,12 +143,70 @@ func TestActivationPlanRequiresCredentialIndependentLocalReadiness(t *testing.T)
 	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
 		t.Fatal(err)
 	}
-	if rc != 0 || networkCalls != 0 || readinessCalls != 1 || report["networkAttempted"] != false || report["localReadOnlyAttempted"] != true || report["writeAttempted"] != false || report["result"] != "SANDBOX_WRITE_CONFIGURATION_READY_NOT_EXECUTED" || strings.Contains(output.String(), "fixture-secret") {
+	if rc != 2 || networkCalls != 0 || readinessCalls != 1 || report["networkAttempted"] != false || report["localReadOnlyAttempted"] != true || report["writeAttempted"] != false || report["localWorkerCandidateReady"] != true || report["externalActivationGatesReady"] != false || report["configurationReadyNotExecuted"] != true || report["result"] != "SANDBOX_LOCAL_WORKER_CANDIDATE_READY_EXTERNAL_GATES_UNVERIFIED" || strings.Contains(output.String(), "fixture-secret") {
 		t.Fatalf("rc=%d network=%d readiness=%d report=%s", rc, networkCalls, readinessCalls, output.String())
 	}
 	readiness, ok := report["localReadiness"].(map[string]any)
 	if !ok || readiness["stateConsistent"] != true || readiness["readyForWorkerDispatch"] != true || readiness["executionRequested"] != float64(1) {
 		t.Fatalf("missing exact local readiness: %s", output.String())
+	}
+}
+
+func TestActivationPlanLocalReadOnlyNeverInvokesCheckpointAuthority(t *testing.T) {
+	values := map[string]string{
+		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_NODE_BINARY":   "/usr/bin/node",
+		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE": "/protected/manifest.json",
+	}
+	get := func(key string) string { return values[key] }
+	authorityFactoryCalls, authorityCalls := 0, 0
+	var output bytes.Buffer
+	rc := runWithDependencies([]string{"activation-plan", "--local-read-only"}, get, func(context.Context, brokerage.Config) (verificationResult, error) {
+		t.Fatal("provider network probe must not run")
+		return verificationResult{}, nil
+	}, func(context.Context, string, string, string, time.Time) (finance.BrokerActivationReadiness, error) {
+		return finance.BrokerActivationReadiness{}, errors.New("state unavailable")
+	}, func(finance.NodeEndpointAuthorityConfig) (finance.EndpointAuthorityGate, error) {
+		authorityFactoryCalls++
+		return countingAuthorityGate{calls: &authorityCalls}, nil
+	}, &output)
+	var report map[string]any
+	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	authority, ok := report["sharedEndpointAuthority"].(map[string]any)
+	if rc != 2 || authorityFactoryCalls != 0 || authorityCalls != 0 || !ok || authority["configured"] != true || authority["verificationAttempted"] != false || authority["checkpointMayAdvance"] != false || authority["centralSignedManifestActive"] != false {
+		t.Fatalf("rc=%d factory=%d authority=%d report=%s", rc, authorityFactoryCalls, authorityCalls, output.String())
+	}
+}
+
+func TestExplicitNetworkDiagnosticInvokesCheckpointAuthorityOnce(t *testing.T) {
+	values := map[string]string{
+		"FINANCE_TRADING_ENABLED":                         "true",
+		"ALPACA_BROKER_CLIENT_ID":                         "fixture-id",
+		"ALPACA_BROKER_CLIENT_SECRET":                     "fixture-secret",
+		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_NODE_BINARY":   "/usr/bin/node",
+		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE": "/protected/manifest.json",
+	}
+	get := func(key string) string { return values[key] }
+	authorityFactoryCalls, authorityCalls, networkCalls := 0, 0, 0
+	var output bytes.Buffer
+	rc := runWithDependencies([]string{"doctor", "--network-read-only"}, get, func(context.Context, brokerage.Config) (verificationResult, error) {
+		networkCalls++
+		return verificationResult{Assets: brokerage.AssetResult{Assets: []brokerage.Asset{}, RequestID: "fixture-request"}, Snapshot: brokerage.AccountSnapshot{Account: brokerage.Account{ID: "fixture-account"}}, Quote: brokerage.Quote{Symbol: "ACME"}}, nil
+	}, func(context.Context, string, string, string, time.Time) (finance.BrokerActivationReadiness, error) {
+		t.Fatal("local readiness probe must not run")
+		return finance.BrokerActivationReadiness{}, nil
+	}, func(finance.NodeEndpointAuthorityConfig) (finance.EndpointAuthorityGate, error) {
+		authorityFactoryCalls++
+		return countingAuthorityGate{calls: &authorityCalls}, nil
+	}, &output)
+	var report map[string]any
+	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	authority, ok := report["sharedEndpointAuthority"].(map[string]any)
+	if rc != 0 || authorityFactoryCalls != 1 || authorityCalls != 1 || networkCalls != 1 || !ok || authority["verificationAttempted"] != true || authority["checkpointMayAdvance"] != true || authority["centralSignedManifestActive"] != true || authority["result"] != "FINANCE_PRIVATE_AUTHORITY_VERIFIED_PROVIDER_GATES_FALSE" || strings.Contains(output.String(), "fixture-secret") {
+		t.Fatalf("rc=%d factory=%d authority=%d network=%d report=%s", rc, authorityFactoryCalls, authorityCalls, networkCalls, output.String())
 	}
 }
 
