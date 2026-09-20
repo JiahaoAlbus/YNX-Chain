@@ -134,6 +134,7 @@ function validatePublication(value) {
   assert.equal(value.productionSigned, false);
   assert.equal(value.storeReleased, false);
   assert.equal(value.walletConnectRelayE2E, "NOT_VERIFIED");
+  assert.equal(value.publicationEvidence, "proof/wallet-android-1.0.17-publication-20260920.json");
   assert.deepEqual(value.artifacts.map(({ name }) => name).sort(), ["android-hermes", "android-release-aab", "android-release-apk", "ios-hermes"]);
   assert.equal(new Set(value.artifacts.map(({ name }) => name)).size, 4);
   const apk = value.artifacts.find(({ name }) => name === "android-release-apk");
@@ -283,6 +284,7 @@ test("publication fails closed on asset, source, signature or external-verificat
     (value) => { value.productId = "other"; },
     (value) => { value.releaseTag += "-replacement"; },
     (value) => { value.releaseUrl += "-replacement"; },
+    (value) => { value.publicationEvidence = "proof/other.json"; },
     (value) => { value.releaseImmutable = true; },
     (value) => { value.publisherCanReplaceAssets = false; },
     (value) => { value.productionSigned = true; },
