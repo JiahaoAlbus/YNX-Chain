@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -156,5 +157,156 @@ func TestModuleReplayConfirmsMinedCheckpoint(t *testing.T) {
 				t.Fatalf("recovered proof: %+v", proof)
 			}
 		})
+	}
+}
+
+// An unrelated checkpoint must not revoke a completed write's proof for an
+// unchanged transaction, even if the new write fails before or after rename.
+func TestCompletedTransactionSurvivesLaterCheckpointFailure(t *testing.T) {
+	for _, phase := range []string{"snapshot", "marker"} {
+		t.Run(phase, func(t *testing.T) {
+			d, err := NewPersistentDevnet(DefaultNetworkConfig("testnet"), t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			old, err := d.Faucet("durable-recipient", 100)
+			if err != nil {
+				t.Fatal(err)
+			}
+			d.ProduceBlock()
+			_, before, _ := d.TransactionWithDurability(old.Hash)
+			if before.Status != "durable" {
+				t.Fatalf("fixture not durable: %+v", before)
+			}
+			newTx, err := d.Faucet("new-recipient", 100)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, before, _ = d.TransactionWithDurability(old.Hash)
+			path := d.snapshotPath() + ".tmp"
+			if phase == "marker" {
+				path = d.snapshotIntegrityMarkerPath() + ".tmp"
+			}
+			clear := blockSnapshotWrite(t, path)
+			defer clear()
+			for range 3 {
+				d.ProduceBlock()
+				_, after, _ := d.TransactionWithDurability(old.Hash)
+				if !reflect.DeepEqual(after, before) {
+					t.Fatalf("later failed %s checkpoint revoked completed proof: before=%+v after=%+v", phase, before, after)
+				}
+				_, fresh, _ := d.TransactionWithDurability(newTx.Hash)
+				if fresh.Status != "uncertain" {
+					t.Fatalf("new inclusion attested before completed write: %+v", fresh)
+				}
+			}
+			clear()
+			if err := d.persistSnapshot(); err != nil {
+				t.Fatal(err)
+			}
+			for _, hash := range []string{old.Hash, newTx.Hash} {
+				_, proof, _ := d.TransactionWithDurability(hash)
+				if proof.Status != "durable" {
+					t.Fatalf("recovered checkpoint: %+v", proof)
+				}
+			}
+		})
+	}
+}
+
+func TestReplacementCheckpointRetainsOnlyUnchangedCompletedProof(t *testing.T) {
+	for _, phase := range []string{"snapshot", "marker"} {
+		for _, change := range []string{"unchanged", "removed", "same-hash-amount", "index", "earlier-fee", "later-fee", "pending"} {
+			t.Run(phase+"/"+change, func(t *testing.T) {
+				d, err := NewPersistentDevnet(DefaultNetworkConfig("testnet"), t.TempDir())
+				if err != nil {
+					t.Fatal(err)
+				}
+				var target Transaction
+				for _, address := range []string{"first", "target", "last"} {
+					tx, err := d.Faucet(address, 100)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if address == "target" {
+						target = tx
+					}
+				}
+				d.ProduceBlock()
+				target, before, _ := d.TransactionWithDurability(target.Hash)
+				previous := d.durableCheckpoint.Load()
+				// Round-trip so the replacement fixture cannot mutate live state.
+				d.mu.RLock()
+				encoded, err := json.Marshal(d.snapshotLocked())
+				d.mu.RUnlock()
+				if err != nil {
+					t.Fatal(err)
+				}
+				var candidate devnetSnapshot
+				if err := json.Unmarshal(encoded, &candidate); err != nil {
+					t.Fatal(err)
+				}
+				block := &candidate.Blocks[target.BlockNum]
+				switch change {
+				case "removed":
+					block.Transactions = append(block.Transactions[:1], block.Transactions[2:]...)
+				case "same-hash-amount":
+					block.Transactions[1].Amount++
+				case "index":
+					block.Transactions[0], block.Transactions[1] = block.Transactions[1], block.Transactions[0]
+				case "earlier-fee":
+					block.Transactions[0].Fee++
+				case "later-fee":
+					block.Transactions[2].Fee++
+				case "pending":
+					pending := block.Transactions[1]
+					pending.BlockNum, pending.BlockHash = 0, ""
+					candidate.Pending = append(candidate.Pending, pending)
+					block.Transactions = append(block.Transactions[:1], block.Transactions[2:]...)
+				}
+				candidate, err = sealDevnetSnapshot(candidate)
+				if err != nil {
+					t.Fatal(err)
+				}
+				path := d.snapshotPath() + ".tmp"
+				if phase == "marker" {
+					path = d.snapshotIntegrityMarkerPath() + ".tmp"
+				}
+				clear := blockSnapshotWrite(t, path)
+				defer clear()
+				if err := d.persistPreparedSnapshot(candidate); err == nil {
+					t.Fatal("obstructed replacement succeeded")
+				}
+				_, after, _ := d.TransactionWithDurability(target.Hash)
+				keep := change == "unchanged" || change == "later-fee"
+				if keep {
+					if !reflect.DeepEqual(after, before) {
+						t.Fatalf("unchanged receipt context lost proof: before=%+v after=%+v", before, after)
+					}
+				} else if after.Status != "uncertain" {
+					t.Fatalf("changed replacement kept stale proof: %+v", after)
+				}
+				if !checkpointCovers(previous, target) || len(previous.transactions) != 3 {
+					t.Fatal("published previous checkpoint was mutated")
+				}
+				// A second failed write cannot restore a withdrawn proof, even if
+				// it proposes the exact original transaction again.
+				if err := d.persistSnapshot(); err == nil {
+					t.Fatal("obstructed retry succeeded")
+				}
+				_, retry, _ := d.TransactionWithDurability(target.Hash)
+				if !keep && retry.Status != "uncertain" {
+					t.Fatalf("failed retry manufactured proof: %+v", retry)
+				}
+				clear()
+				if err := d.persistSnapshot(); err != nil {
+					t.Fatal(err)
+				}
+				_, recovered, _ := d.TransactionWithDurability(target.Hash)
+				if recovered.Status != "durable" {
+					t.Fatalf("completed replacement did not recover: %+v", recovered)
+				}
+			})
+		}
 	}
 }
