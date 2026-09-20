@@ -3,13 +3,13 @@ import {createHash,randomBytes} from "node:crypto";
 import {createServer} from "node:https";
 import {mkdir,mkdtemp,readFile,rm,writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
-import {dirname,join,resolve} from "node:path";
+import {basename,dirname,join,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 import {getBytes,verifyMessage} from "ethers";
 import {chromium} from "playwright";
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
-const extensionPath=join(root,"dist","chromium"),fixturePath=join(root,"test","fixtures","dapp-eip6963-frozen.html");
+const fixturePath=join(root,"test","fixtures","dapp-eip6963-frozen.html");
 const evidenceDir=join(root,"evidence","runtime"),sourceCommit=process.env.YNX_WALLET_WEB_SOURCE_COMMIT||"uncommitted-source-tree";
 const writeEvidence=process.env.YNX_WALLET_WEB_WRITE_EVIDENCE==="1",browserId=process.env.YNX_BROWSER||"edge";
 const browsers={
@@ -21,12 +21,21 @@ const browser=browsers[browserId],password="ynx-disposable-runtime-password",sec
 const bounded=(promise,ms,label)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(new Error(`${label} timed out after ${ms}ms`),{code:"GATE_TIMEOUT"})),ms))]);
 const sha256=value=>createHash("sha256").update(value).digest("hex");
 const temp=await mkdtemp(join(tmpdir(),`ynx-wallet-approval-${browserId}-`)),profile=join(temp,"profile"),keyPath=join(temp,"fixture.key.pem"),certPath=join(temp,"fixture.cert.pem");
+const archiveInput=process.env.YNX_WALLET_EXTENSION_ARCHIVE?resolve(process.env.YNX_WALLET_EXTENSION_ARCHIVE):null;
+let extensionPath=join(root,"dist","chromium"),archiveEvidence=null;
+if(archiveInput){
+  const archive=await readFile(archiveInput),entries=execFileSync("unzip",["-Z1",archiveInput],{encoding:"utf8"}).trim().split("\n").filter(Boolean);
+  if(entries.length===0||entries.some(entry=>entry.startsWith("/")||entry.split("/").includes("..")))throw new Error("Extension archive contains an unsafe path");
+  extensionPath=join(temp,"extension");await mkdir(extensionPath);execFileSync("unzip",["-q",archiveInput,"-d",extensionPath]);
+  archiveEvidence={name:basename(archiveInput),bytes:archive.length,sha256:sha256(archive)};
+}
 execFileSync("openssl",["req","-x509","-newkey","rsa:2048","-nodes","-keyout",keyPath,"-out",certPath,"-days","1","-subj","/CN=127.0.0.1","-addext","subjectAltName=IP:127.0.0.1"],{stdio:"ignore"});
 const [fixture,key,cert,manifest,pageProvider]=await Promise.all([readFile(fixturePath),readFile(keyPath),readFile(certPath),readFile(join(extensionPath,"manifest.json")),readFile(join(extensionPath,"page-provider.js"))]);
 const server=createServer({key,cert},(_request,response)=>{response.setHeader("content-type","text/html; charset=utf-8");response.setHeader("cache-control","no-store");response.end(fixture)});
 await bounded(new Promise((accept,reject)=>{server.once("error",reject);server.listen(0,"127.0.0.1",accept)}),3000,"fixture server");
 const fixtureUrl=`https://127.0.0.1:${server.address().port}/`;
-const result={schemaVersion:1,sourceCommit,generatedAt:new Date().toISOString(),browser:{id:browserId,name:browser.name,version:null,branded:browser.branded},runtimeClass:"temporary unpacked extension in an isolated disposable profile",fixtureAuthority:"local HTTPS DApp with an immutable foreign MetaMask-shaped provider; no account, signature or transaction fixture implementation",artifact:{manifestSha256:sha256(manifest),pageProviderSha256:sha256(pageProvider)},passed:false,providerDiscovered:false,foreignProviderPreserved:false,vaultCreatedThroughUi:false,providerConnected:false,accountAuthorized:false,messageSigned:false,signatureRecovered:false,permissionRevoked:false,postRevokeDenied:false,transactionSubmitted:false,installedLocal:false,downloadHosted:false,productionSigned:false,storeReleased:false};
+const buildIdentity=JSON.parse(await readFile(join(extensionPath,"build-identity.json"),"utf8"));
+const result={schemaVersion:1,sourceCommit,generatedAt:new Date().toISOString(),browser:{id:browserId,name:browser.name,version:null,branded:browser.branded},runtimeClass:"temporary unpacked extension in an isolated disposable profile",fixtureAuthority:"local HTTPS DApp with an immutable foreign MetaMask-shaped provider; no account, signature or transaction fixture implementation",artifact:{manifestSha256:sha256(manifest),pageProviderSha256:sha256(pageProvider),buildSourceCommit:buildIdentity.sourceCommit,...(archiveEvidence?{publicArchive:archiveEvidence}:{sourceDirectory:"dist/chromium"})},passed:false,providerDiscovered:false,foreignProviderPreserved:false,vaultCreatedThroughUi:false,providerConnected:false,accountAuthorized:false,messageSigned:false,signatureRecovered:false,permissionRevoked:false,postRevokeDenied:false,transactionSubmitted:false,installedLocal:false,downloadHosted:Boolean(archiveEvidence),productionSigned:false,storeReleased:false};
 let context;
 try{
   context=await bounded(chromium.launchPersistentContext(profile,{executablePath:browser.path,headless:true,ignoreHTTPSErrors:true,timeout:12000,ignoreDefaultArgs:["--disable-extensions"],args:[`--disable-extensions-except=${extensionPath}`,`--load-extension=${extensionPath}`,"--no-first-run","--no-default-browser-check"]}),15000,"browser launch");
@@ -61,7 +70,7 @@ try{
   result.passed=result.providerDiscovered&&result.foreignProviderPreserved&&result.vaultCreatedThroughUi&&result.accountAuthorized&&result.messageSigned&&result.signatureRecovered&&result.permissionRevoked&&result.postRevokeDenied;
 }catch(error){result.error={name:error?.name||"Error",code:error?.code||null,message:error?.message||String(error)};}
 finally{if(context)await bounded(context.close(),5000,"browser close").catch(()=>{});server.closeAllConnections?.();await bounded(new Promise(resolveClose=>server.close(resolveClose)),2000,"fixture close").catch(()=>{});await rm(temp,{recursive:true,force:true}).catch(()=>{});}
-if(writeEvidence){await mkdir(evidenceDir,{recursive:true});await writeFile(join(evidenceDir,`approval-${browserId}.json`),`${JSON.stringify(result,null,2)}\n`)}
+if(writeEvidence){await mkdir(evidenceDir,{recursive:true});await writeFile(join(evidenceDir,`approval-${archiveEvidence?"public-":""}${browserId}.json`),`${JSON.stringify(result,null,2)}\n`)}
 console.log(JSON.stringify(result,null,2));process.exit(result.passed?0:1);
 
 async function waitForWorker(browserContext){for(let attempt=0;attempt<30;attempt++){const found=browserContext.serviceWorkers()[0];if(found)return found;await new Promise(resolveWait=>setTimeout(resolveWait,200))}return bounded(browserContext.waitForEvent("serviceworker"),3000,"service worker")}
