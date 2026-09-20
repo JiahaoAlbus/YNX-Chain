@@ -1,0 +1,8 @@
+{
+  "schema": "ynx-endpoint-authority-pin/v1",
+  "manifestVersion": "1.1.0-weekly-v3.20260920.1",
+  "manifestPath": "chain-metadata/endpoint-authority/20260920.1.json",
+  "fileSha256": "c8eb9f641185958aaec82c6fa16764e9424ad10f47bf7435af643a2a888a07e1",
+  "payloadSha256": "29f801933e9df4faea58531cb522cc34bfe1028628adfb88227f3d0cae1e4e73",
+  "policy": "Finance-reviewed bundled release pin; never a client-fetched trust root"
+}
