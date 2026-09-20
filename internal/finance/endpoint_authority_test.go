@@ -67,8 +67,10 @@ func TestNodeEndpointAuthorityUsesFixedNoArgumentProcessAndStrictResponse(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = gate.Authorize(context.Background()); err != nil {
-		t.Fatal(err)
+	for request := 1; request <= 2; request++ {
+		if err = gate.Authorize(context.Background()); err != nil {
+			t.Fatalf("protected request %d: %v", request, err)
+		}
 	}
 	if err := os.WriteFile(script, []byte(body+"printf warning >&2\n"), 0o700); err != nil {
 		t.Fatal(err)

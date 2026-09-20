@@ -142,7 +142,9 @@ export function createNodeCheckpointStore({file,anchor,trustedClockMs}){
     async read(){return (await inspect()).checkpoint;},
     async compareAndSwap(previous,next){
       const current=await inspect();if(!same(current.checkpoint,previous))return false;
-      const value={schemaVersion:TRANSITION_SCHEMA,previous:current.checkpoint,next:assertCheckpoint(next),trustedClockHighWaterMs:Math.max(current.trustedClockHighWaterMs,at())},target=transitionPath(current.checkpoint);
+      const checkedNext=assertCheckpoint(next);if(same(current.checkpoint,checkedNext))return true;
+      if(checkedNext.rootVersion<current.checkpoint.rootVersion||checkedNext.sequence<=current.checkpoint.sequence)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_ROLLBACK');
+      const value={schemaVersion:TRANSITION_SCHEMA,previous:current.checkpoint,next:checkedNext,trustedClockHighWaterMs:Math.max(current.trustedClockHighWaterMs,at())},target=transitionPath(current.checkpoint);
       const published=await publishBytes(target,encoded(value)),stored=parseTransition(published.stored,current);
       await ensureMarker(target+'.committed',markerContent);
       if(published.linked&&!same(stored.checkpoint,next))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_PUBLISH_INVALID');

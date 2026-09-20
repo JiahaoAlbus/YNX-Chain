@@ -57,6 +57,7 @@ test('exact signed Finance v2 selects only Wallet Gateway and keeps provider fla
   const value=await fixture(t);
   const authority=await resolveFinancePrivateAuthority({env:value.env});
   assert.deepEqual(authority,{walletGateway:'https://wallet-auth.ynxweb4.com',financeOrigin:'https://finance.ynxweb4.com',manifestVersion:'2.0.0.1',payloadSha256:value.manifest.integrity.payloadSha256,officialSandboxVerified:false,providerVerified:false,productionApproved:false});
+  assert.deepEqual(await resolveFinancePrivateAuthority({env:value.env}),authority);
   const persisted=await createNodeCheckpointStore({file:value.files.checkpointFile,anchor:root.anchor,trustedClockMs:nowMs}).inspect();
   assert.equal(persisted.checkpoint.sequence,1);assert.equal(persisted.trustedClockHighWaterMs,nowMs);
 });
@@ -187,4 +188,13 @@ test('append-only transition files reject root, sequence and trusted-clock rollb
     const target=transitionPath(file,one),value={schemaVersion:'ynx-finance-endpoint-authority-checkpoint-transition/v1',previous:one,next,trustedClockHighWaterMs:clock};await fs.writeFile(target,canonicalAuthorityV2(value)+'\n');
     await assert.rejects(store.read(),/CHECKPOINT_(?:INVALID|ROLLBACK)/);
   }
+});
+
+test('checkpoint CAS is idempotent for the current value and invalid next values leave no poisoned transition',async t=>{
+  const dir=await fs.mkdtemp(path.join(tempRoot,'ynx-finance-checkpoint-idempotent-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const file=path.join(dir,'checkpoint'),store=createNodeCheckpointStore({file,anchor:copy(root.anchor),trustedClockMs:nowMs}),one={rootVersion:1,sequence:1,payloadSha256:'a'.repeat(64)};
+  assert.equal(await store.compareAndSwap(root.anchor,one),true);assert.equal(await store.compareAndSwap(one,one),true);assert.deepEqual(await store.read(),one);
+  const selfTarget=transitionPath(file,one);assert.equal(await fs.stat(selfTarget).then(()=>true,()=>false),false);
+  await assert.rejects(store.compareAndSwap(one,{rootVersion:1,sequence:0,payloadSha256:'0'.repeat(64)}),/CHECKPOINT_ROLLBACK/);
+  assert.equal(await fs.stat(selfTarget).then(()=>true,()=>false),false);assert.deepEqual(await store.read(),one);
 });
