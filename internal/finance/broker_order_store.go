@@ -438,7 +438,7 @@ func (s *Store) VerifyAndConsumeBrokerOrder(account string, approval FinanceOrde
 			return errors.New("Finance approval digest changed before consumption")
 		}
 		mapping := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
-		if mapping.Account != account || mapping.Status != "active" || mapping.SubjectID != approval.SubjectID || mapping.BrokerAccountID != approval.BrokerAccountID {
+		if mapping.Account != account || mapping.Status != "active" || mapping.SubjectID != approval.SubjectID || mapping.BrokerAccountID != approval.BrokerAccountID || mapping.WalletPublicKey != approval.AccountPublicKey {
 			return errors.New("Finance approval no longer matches the current Broker Sandbox mapping")
 		}
 		serverTime := now.UTC()

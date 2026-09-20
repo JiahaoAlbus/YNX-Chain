@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -122,6 +123,48 @@ func TestBrokerOrderLifecycleFailsClosedAfterMappedWalletKeyRotation(t *testing.
 		}
 		if state := store.Account(account).Brokerage; len(state.Outbox) != 0 || state.Orders[challenge.Unsigned.Order.OrderID].ApprovalState != "approved" {
 			t.Fatalf("rejected consumption mutated durable state: %+v", state)
+		}
+	})
+
+	t.Run("verify and consume after rotation", func(t *testing.T) {
+		store := open(t)
+		challenge, err := store.CreateBrokerOrderChallenge(account, request("eeeeeeee-ffff-4aaa-8bbb-cccccccccccc"), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		rotate(t, store)
+		before := store.Account(account).Brokerage
+		if _, err := store.VerifyAndConsumeBrokerOrder(account, signFinanceApprovalForTest(t, challenge.Unsigned), now.Add(2*time.Minute)); err == nil {
+			t.Fatal("production verify-and-consume accepted the former mapped Wallet key")
+		}
+		after := store.Account(account).Brokerage
+		if !reflect.DeepEqual(before, after) {
+			t.Fatalf("rejected verify-and-consume mutated durable state: before=%+v after=%+v", before, after)
+		}
+	})
+
+	t.Run("verify and consume with legacy empty key", func(t *testing.T) {
+		store := open(t)
+		challenge, err := store.CreateBrokerOrderChallenge(account, request("ffffffff-aaaa-4bbb-8ccc-dddddddddddd"), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := store.Update(account, "test.mapping.clear_wallet_key", brokerAccount, func(state *AccountState) error {
+			mapping := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
+			mapping.WalletPublicKey = ""
+			mapping.UpdatedAt = now.Add(time.Minute)
+			state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)] = mapping
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+		before := store.Account(account).Brokerage
+		if _, err := store.VerifyAndConsumeBrokerOrder(account, signFinanceApprovalForTest(t, challenge.Unsigned), now.Add(2*time.Minute)); err == nil {
+			t.Fatal("production verify-and-consume accepted a legacy empty mapping key")
+		}
+		after := store.Account(account).Brokerage
+		if !reflect.DeepEqual(before, after) {
+			t.Fatalf("rejected legacy verify-and-consume mutated durable state: before=%+v after=%+v", before, after)
 		}
 	})
 
