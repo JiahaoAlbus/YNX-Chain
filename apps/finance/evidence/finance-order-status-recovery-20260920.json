@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "finance-order-status-readonly-recovery-source-evidence",
+  "recordedAt": "2026-09-20T09:50:10.000Z",
+  "scope": "apps/finance/**",
+  "baseline": {
+    "commit": "9dc05ce3035784dc3787364bfd5ea0208f0a40d3",
+    "tree": "b2603c9726a43f16ff42feb14de0377d8500de95"
+  },
+  "implementation": {
+    "webAppPath": "apps/finance/web/app.js",
+    "webAppSha256": "3e52b9b711f339bf30b907229c9fc8c5efda41b0540f68ae3a76f4885c6fcbc3",
+    "browserTestPath": "apps/finance/tests/broker-execution-browser.test.mjs",
+    "browserTestSha256": "d2aa3aaa965e3430c6fbf9a144442e8234ffea1ff7f6b297a2d260fe2c6691d7",
+    "endpoint": "/api/broker/orders/{id}/execution-status",
+    "method": "GET",
+    "providerWriteAttemptedRequired": false,
+    "orderBindingRequired": true
+  },
+  "tests": {
+    "focusedBrowser": {"status": "PASS", "passed": 2, "failed": 0},
+    "finance": {"status": "PASS", "passed": 49, "failed": 0},
+    "security": "PASS",
+    "diffCheck": "PASS",
+    "isolatedActivatedFixtureOnly": true,
+    "providerReconcileCallsFromStatusRefresh": 0,
+    "providerWriteCallsFromStatusRefresh": 0,
+    "confirmationDialogsFromStatusRefresh": 0
+  },
+  "truth": {
+    "sourceComplete": true,
+    "publicRelease": false,
+    "installedRelease": false,
+    "walletGatewayAuthorized": false,
+    "financeProductSessionAuthorized": false,
+    "providerAccountVerified": false,
+    "orderSubmitted": false,
+    "transaction": false
+  }
+}
