@@ -3,8 +3,8 @@
   "recordedAt": "2026-09-21T00:00:00.000Z",
   "branch": "codex/finance-endpoint-authority-v2-consumer-20260921",
   "baseline": "42e0abaa46bcaa6a14158a78e70d1fcbde13e06e",
-  "implementationCommit": "a973e3e252b6660302c585d418951839875793ce",
-  "implementationTree": "30d1f7494336a45e9e42e6f80b3e856b1a00df60",
+  "implementationCommit": "2d063c24ddfa8813329e6e7e4e9756560170c1c4",
+  "implementationTree": "dc40a09d079691bb7d0298c1f54e788dcd380dc3",
   "identity": {
     "consumerId": "ynx-finance-v1",
     "origin": "https://finance.ynxweb4.com",
@@ -16,7 +16,7 @@
   },
   "sourceObjects": [
     {"path":"apps/finance/authority/adapter.mjs","bytes":2936,"sha256":"c0ed2d38c8da2fee880a7af5942f46b2c7d1389249504526c47f7d7fbfc370c3"},
-    {"path":"apps/finance/authority/checkpoint-node.mjs","bytes":8596,"sha256":"3cf9caf26d79850debd99ecf13f5d730334652f3bf421681061b2f2b35dfb44f"},
+    {"path":"apps/finance/authority/checkpoint-node.mjs","bytes":10309,"sha256":"e6a03f1d6cd6bd3a07d10557698deccaf9842ac28e047d868c4437cf6d2554ea"},
     {"path":"apps/finance/authority/config.mjs","bytes":2229,"sha256":"c3f5218ab4b5a53db5c495c8ec79069e986d1625b210d475f5894893608cac2b"},
     {"path":"apps/finance/scripts/finance-endpoint-authority-v2.mjs","bytes":933,"sha256":"ccfa992bf0957dfd8e25f33c2635284fabc9f9670f14c010b870b9704f692454"},
     {"path":"apps/finance/web/endpoint-authority-entry.js","bytes":3893,"sha256":"4ec36db5b858286ddecba0407388fc3fab260d9bb6b29d20b7744d0c3442adf6"},
@@ -31,15 +31,15 @@
     "repeatedCleanBuildByteExact": true
   },
   "linuxAmd64Candidate": {
-    "path": "/tmp/ynx-finance-a973e3e252b6-linux-amd64.tar.gz",
-    "bytes": 30505371,
-    "sha256": "796450cae9e8594a4be2ddbff830594008dac14ab3830cfd172234fa18c672e6",
+    "path": "/tmp/ynx-finance-2d063c24ddfa-linux-amd64.tar.gz",
+    "bytes": 30505666,
+    "sha256": "11e8fd049acda96f47dd96a8d02b813093a2884d2dd64464fa48ef8f05c8042e",
     "repeatedBuildByteExact": true,
     "published": false
   },
   "tests": {
-    "financeNode": "74/74 PASS",
-    "authorityAdapter": "7/7 PASS including browser config checkpoint binding and dead-owner lock recovery",
+    "financeNode": "75/75 PASS",
+    "authorityAdapter": "8/8 PASS including browser config checkpoint binding, dead-owner recovery and 20 rounds of eight-process orphan-lock contention",
     "mobile": "18/18 PASS; typecheck PASS; Android+iOS Expo export PASS",
     "go": "go test -race, go vet and go build PASS for internal/finance/... and apps/finance/...",
     "walletVerifier": "PASS; two clean browser rebuilds byte-exact",
