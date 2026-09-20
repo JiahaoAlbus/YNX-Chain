@@ -31,9 +31,9 @@ async function normalizeMtime(path) {
   await utimes(path, reproducibleTime, reproducibleTime);
 }
 const entries = [
-  ["ynx-wallet-web-pwa-0.1.0.zip", "pwa", "modern browser with Service Worker and Web Crypto support", "unsigned-web-bundle", ["PWA"]],
-  ["ynx-wallet-chrome-edge-0.1.0.zip", "chromium", "Chrome 120 / Edge 120", "unsigned-unpacked-extension", ["Chrome", "Edge"]],
-  ["ynx-wallet-firefox-0.1.0.zip", "firefox", "Firefox 140 (desktop)", "unsigned-unpacked-extension", ["Firefox"]],
+  ["ynx-wallet-web-pwa-0.1.1.zip", "pwa", "modern browser with Service Worker and Web Crypto support", "unsigned-web-bundle", ["PWA"]],
+  ["ynx-wallet-chrome-edge-0.1.1.zip", "chromium", "Chrome 120 / Edge 120", "unsigned-unpacked-extension", ["Chrome", "Edge"]],
+  ["ynx-wallet-firefox-0.1.1.zip", "firefox", "Firefox 142 (desktop and Android)", "unsigned-unpacked-extension", ["Firefox"]],
 ];
 const records = [];
 for (const [name, folder, minimumOS, signingClass, browsers] of entries) {
@@ -51,7 +51,7 @@ for (const [name, folder, minimumOS, signingClass, browsers] of entries) {
   const data = await readFile(output); const info = await stat(output);
   records.push({name, path:`artifacts/${name}`, bytes:info.size, sha256:createHash("sha256").update(data).digest("hex"), minimumOS, signingClass, browsers, installedLocal:false, productionSigned:false, storeReleased:false});
 }
-const manifest = {schemaVersion:1,productId:"wallet-web",version:"0.1.0-testnet-preview.1",sourceCommit,implementedLocal:true,testedLocal:true,installedLocal:false,integratedCentral:false,deployedStaging:false,deployedPublic:false,downloadHosted:false,productionSigned:false,storeReleased:false,artifacts:records};
+const manifest = {schemaVersion:1,productId:"wallet-web",version:"0.1.1-testnet-preview.1",sourceCommit,implementedLocal:true,testedLocal:true,installedLocal:false,integratedCentral:false,deployedStaging:false,deployedPublic:false,downloadHosted:false,productionSigned:false,storeReleased:false,artifacts:records};
 await writeFile(join(root, "artifact-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(JSON.stringify(manifest, null, 2));
 execFileSync(process.execPath, ["scripts/verify-package.mjs"], {cwd:root, stdio:"inherit"});

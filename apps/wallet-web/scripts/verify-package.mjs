@@ -55,7 +55,7 @@ for (const artifact of manifest.artifacts) {
   if(!pageProvider.includes('rdns:"com.ynx.wallet"')||!pageProvider.includes('isYNXWallet:true')||!pageProvider.includes('isMetaMask:false')||!pageProvider.includes('eip6963:requestProvider')||!pageProvider.includes('eip6963:announceProvider')||!pageProvider.includes('queueMicrotask(announce)'))throw new Error(`Invalid YNX EIP-6963 provider identity: ${artifact.name}`);
   for(const sourceName of ["app.js","page-provider.js","content-script.js","service-worker.js"]){const source=execFileSync("unzip",["-p",archive,sourceName],{encoding:"utf8"});if(/window\.open\s*\(/u.test(source)||/(?:window\.)?location(?:\.href)?\s*=\s*[`'"]ynxwallet:\/\//u.test(source))throw new Error(`Forbidden top-level YNX custom-scheme navigation in ${sourceName}: ${artifact.name}`)}
   if (artifact.browsers.includes("Firefox")) {
-    if (extension.browser_specific_settings?.gecko?.id !== "wallet-testnet@ynxweb4.com" || extension.browser_specific_settings?.gecko?.strict_min_version !== "140.0") throw new Error(`Invalid Firefox identity metadata: ${artifact.name}`);
+    if (extension.browser_specific_settings?.gecko?.id !== "wallet-testnet@ynxweb4.com" || extension.browser_specific_settings?.gecko?.strict_min_version !== "142.0") throw new Error(`Invalid Firefox identity metadata: ${artifact.name}`);
     if (JSON.stringify(extension.browser_specific_settings.gecko.data_collection_permissions) !== JSON.stringify({required:["authenticationInfo","financialAndPaymentInfo","websiteContent"]})) throw new Error(`Invalid Firefox data disclosure: ${artifact.name}`);
   } else if (extension.minimum_chrome_version !== "120") {
     throw new Error(`Invalid Chromium minimum version: ${artifact.name}`);

@@ -18,7 +18,7 @@
   "storeSubmissionReady": false,
   "firefoxContainerPermissions": {"sourceScoped":true,"scope":"browser-owned cookieStoreId + exact origin + selected account","legacyFirefoxGrantsInferred":false,"privateBrowsingSupported":false,"separateContainerVaults":false,"installedVerified":false},
   "manifest": {
-    "version": "0.1.0",
+    "version": "0.1.1",
     "chromeEdgeMinimum": "120",
     "firefoxDesktopMinimum": "142.0",
     "firefoxAndroidDeclared": false,

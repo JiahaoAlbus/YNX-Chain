@@ -1,6 +1,6 @@
 # YNX Wallet
 
-Draft store text. Publisher contact and privacy URL are pending; do not submit this file with placeholders. Runtime manifest name remains `YNX Wallet`, version `0.1.0`; uniqueness against an actual store account has not been checked.
+Draft store text. Publisher contact and privacy URL are pending; do not submit this file with placeholders. Runtime manifest name remains `YNX Wallet`, version `0.1.1`; uniqueness against an actual store account has not been checked.
 
 ## Short description
 

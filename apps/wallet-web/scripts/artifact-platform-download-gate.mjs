@@ -7,7 +7,7 @@ import {pathToFileURL,fileURLToPath} from "node:url";
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const evidencePath=join(root,"evidence","runtime","built-platform-download-matrix-20260814.json");
-const variants=["ynx-wallet-web-pwa-0.1.0.zip","ynx-wallet-chrome-edge-0.1.0.zip","ynx-wallet-firefox-0.1.0.zip"];
+const variants=["ynx-wallet-web-pwa-0.1.1.zip","ynx-wallet-chrome-edge-0.1.1.zip","ynx-wallet-firefox-0.1.1.zip"];
 const androidUrl="https://www.ynxweb4.com/downloads/wallet/sha256-afd686851ef07fbb07823295d07179b79e1a4a078d1b528bc149bd619c8689e0/ynx-wallet-1.0.3-testnet-preview-3ab8c24c-local-test-signed.apk";
 const unavailableKeys=["windowsX64","windowsArm64","macosX64","macosArm64","linuxX64","linuxArm64","chromeEdgeExtension","firefoxExtension","pwaPackage"];
 const result={schemaVersion:1,sourceCommit:process.env.YNX_WALLET_WEB_SOURCE_COMMIT||"uncommitted-source-tree",generatedAt:new Date().toISOString(),gateClass:"exact built-artifact download metadata and UI-source inspection; not browser installation, platform package publication, or signing proof",artifacts:[],androidHosted:true,windowsX64Hosted:false,windowsArm64Hosted:false,macosX64Hosted:false,macosArm64Hosted:false,linuxX64Hosted:false,linuxArm64Hosted:false,chromeEdgeExtensionHosted:false,firefoxExtensionHosted:false,pwaPackageHosted:false,webArtifactDownloadHosted:false,installedLocal:false,deployedPublic:false,productionSigned:false,storeReleased:false,passed:false};

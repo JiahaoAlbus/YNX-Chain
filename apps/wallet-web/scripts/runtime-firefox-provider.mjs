@@ -16,7 +16,7 @@ if(!firefox?.startsWith('/tmp/ynx-firefox-install.')||!driver?.startsWith('/tmp/
 const evidenceDir=resolve(process.env.YNX_WALLET_WEB_EVIDENCE_DIR??join(root,'evidence/runtime/firefox-provider'));
 await mkdir(evidenceDir,{recursive:true});
 const temporary=await mkdtemp(join(tmpdir(),'ynx-firefox-provider-')),profile=join(temporary,'profile');await mkdir(profile);
-const artifact=await readFile(join(root,'artifacts/ynx-wallet-firefox-0.1.0.zip')),artifactPath=join(temporary,'wallet.zip');await writeFile(artifactPath,artifact);
+const artifact=await readFile(join(root,'artifacts/ynx-wallet-firefox-0.1.1.zip')),artifactPath=join(temporary,'wallet.zip');await writeFile(artifactPath,artifact);
 const archiveIdentity=JSON.parse(execFileSync('unzip',['-p',artifactPath,'build-identity.json'],{encoding:'utf8'}));
 const fixture=await readFile(join(root,'test/fixtures/dapp-eip6963-frozen.html'));
 const key=join(temporary,'key.pem'),cert=join(temporary,'cert.pem');

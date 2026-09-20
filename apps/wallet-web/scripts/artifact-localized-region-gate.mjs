@@ -7,7 +7,7 @@ import {pathToFileURL,fileURLToPath} from "node:url";
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const evidencePath=join(root,"evidence","runtime","built-localized-region-gate-20260814.json");
-const variants=["ynx-wallet-web-pwa-0.1.0.zip","ynx-wallet-chrome-edge-0.1.0.zip","ynx-wallet-firefox-0.1.0.zip"];
+const variants=["ynx-wallet-web-pwa-0.1.1.zip","ynx-wallet-chrome-edge-0.1.1.zip","ynx-wallet-firefox-0.1.1.zip"];
 const result={schemaVersion:1,sourceCommit:process.env.YNX_WALLET_WEB_SOURCE_COMMIT||"uncommitted-source-tree",generatedAt:new Date().toISOString(),gateClass:"exact built ZIP locale module and rendered-template source inspection; not visible browser runtime",artifacts:[],browserVisibleRecheck:false,installedLocal:false,deployedPublic:false,productionSigned:false,storeReleased:false,passed:false};
 
 for(const name of variants){

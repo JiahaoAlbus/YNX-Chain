@@ -9,7 +9,7 @@ import {chromium} from "playwright";
 import {bounded,allSelectedBrowsersPassed} from "./runtime-evidence.mjs";
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
-const artifactPath=join(root,"artifacts","ynx-wallet-chrome-edge-0.1.0.zip"),fixtureRoot=join(root,"test","fixtures"),evidenceDir=process.env.YNX_WALLET_WEB_EVIDENCE_DIR?resolve(process.env.YNX_WALLET_WEB_EVIDENCE_DIR):join(root,"evidence","runtime");
+const artifactPath=join(root,"artifacts","ynx-wallet-chrome-edge-0.1.1.zip"),fixtureRoot=join(root,"test","fixtures"),evidenceDir=process.env.YNX_WALLET_WEB_EVIDENCE_DIR?resolve(process.env.YNX_WALLET_WEB_EVIDENCE_DIR):join(root,"evidence","runtime");
 const sourceCommit=process.env.YNX_WALLET_WEB_SOURCE_COMMIT||"uncommitted-source-tree",keepEvidence=process.env.YNX_WALLET_WEB_WRITE_EVIDENCE==="1";
 const requestedBrowser=process.env.YNX_BROWSER||"all";
 const stageLog=join(evidenceDir,"branded-runtime-stages.ndjson");
@@ -118,6 +118,6 @@ async function testBrowser(browser){
 if(keepEvidence){await mkdir(evidenceDir,{recursive:true});await rm(stageLog,{force:true})}
 const results=[];for(const browser of browsers.filter(({id})=>requestedBrowser==="all"||id===requestedBrowser))results.push(await testBrowser(browser));
 server.closeIdleConnections?.();server.closeAllConnections?.();await bounded(new Promise(resolveClose=>server.close(resolveClose)),2000,"fixture server close").catch(()=>{});await rm(fixtureTemp,{recursive:true,force:true}).catch(()=>{});
-const evidence={schemaVersion:2,sourceCommit,artifactSource,generatedAt:new Date().toISOString(),fixtureAuthority:"isolated test fixture; never production runtime",artifact:{name:"ynx-wallet-chrome-edge-0.1.0.zip",bytes:artifact.length,sha256:createHash("sha256").update(artifact).digest("hex"),signingClass:"unsigned-unpacked-extension"},results,releaseStates:{installedLocal:false,downloadHosted:false,productionSigned:false,storeReleased:false}};
+const evidence={schemaVersion:2,sourceCommit,artifactSource,generatedAt:new Date().toISOString(),fixtureAuthority:"isolated test fixture; never production runtime",artifact:{name:"ynx-wallet-chrome-edge-0.1.1.zip",bytes:artifact.length,sha256:createHash("sha256").update(artifact).digest("hex"),signingClass:"unsigned-unpacked-extension"},results,releaseStates:{installedLocal:false,downloadHosted:false,productionSigned:false,storeReleased:false}};
 if(keepEvidence){await mkdir(evidenceDir,{recursive:true});await writeFile(join(evidenceDir,"branded-temporary-runtime.json"),`${JSON.stringify(evidence,null,2)}\n`)}
 console.log(JSON.stringify(evidence,null,2));await new Promise(resolveWrite=>process.stdout.write("",resolveWrite));process.exit(allSelectedBrowsersPassed(results)?0:1);

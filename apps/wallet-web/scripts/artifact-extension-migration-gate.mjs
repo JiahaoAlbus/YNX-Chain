@@ -7,7 +7,7 @@ import {pathToFileURL,fileURLToPath} from "node:url";
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const evidencePath=join(root,"evidence","runtime","extension-upgrade-migration-20260814.json");
-const variants=[{name:"ynx-wallet-chrome-edge-0.1.0.zip",platform:"chromium",alarmsApi:true},{name:"ynx-wallet-firefox-0.1.0.zip",platform:"firefox",alarmsApi:false}];
+const variants=[{name:"ynx-wallet-chrome-edge-0.1.1.zip",platform:"chromium",alarmsApi:true},{name:"ynx-wallet-firefox-0.1.1.zip",platform:"firefox",alarmsApi:false}];
 const temp=await mkdtemp(join(tmpdir(),"ynx-extension-migration-"));
 const result={schemaVersion:1,sourceCommit:process.env.YNX_WALLET_WEB_SOURCE_COMMIT||"uncommitted-source-tree",generatedAt:new Date().toISOString(),gateClass:"executable migration policy imported from exact built ZIPs; not a browser installation",passed:false,artifacts:[],providerConnected:false,accountAuthorized:false,messageSigned:false,transactionSubmitted:false,installedLocal:false,deployedPublic:false,downloadHosted:false,productionSigned:false,storeReleased:false};
 let diagnostic={stage:"startup",state:null};
