@@ -2993,8 +2993,9 @@ func (d *Devnet) ProduceBlock() Block {
 	d.mu.Unlock()
 
 	// The block is committed in memory before the durable full-state checkpoint.
-	// Persist under a read lock so account, Explorer and DEX reads remain
-	// available while the large append-only history is encoded and fsynced.
+	// Detach a snapshot under a short read lock, then encode and fsync outside
+	// d.mu. Holding RLock across I/O would let a queued peer-observation writer
+	// block every subsequent RPC reader for the full checkpoint duration.
 	persistErr := d.persistSnapshot()
 	d.mu.Lock()
 	d.recordPersistenceErrorLocked(persistErr)
@@ -3455,9 +3456,31 @@ func (d *Devnet) loadSnapshot() error {
 }
 
 func (d *Devnet) persistSnapshot() error {
+	return d.persistSnapshotWithWriter(d.persistPreparedSnapshotSerialized)
+}
+
+// The writer runs with persistenceMu held, but without d.mu. Acquire locks in
+// state -> persistence order, just like synchronous mutation checkpoints. Once
+// detached, neither encoding nor the writer may reacquire d.mu. This preserves
+// disk-write order: a later mutation cannot be overwritten by an older snapshot.
+func (d *Devnet) persistSnapshotWithWriter(write func(devnetSnapshot) error) error {
 	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.persistSnapshotLocked()
+	if d.snapshotPath() == "" {
+		d.mu.RUnlock()
+		return nil
+	}
+	d.persistenceMu.Lock()
+	defer d.persistenceMu.Unlock()
+	snapshot, err := d.detachedSnapshotLocked()
+	d.mu.RUnlock()
+	if err != nil {
+		return err
+	}
+	snapshot, err = sealDevnetSnapshot(snapshot)
+	if err != nil {
+		return err
+	}
+	return write(snapshot)
 }
 
 func (d *Devnet) persistSnapshotLocked() error {

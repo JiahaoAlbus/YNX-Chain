@@ -519,6 +519,14 @@ func (d *Devnet) ApplyReplicationSnapshotJSON(payload []byte, allowAuthoritative
 }
 
 func (d *Devnet) persistPreparedSnapshot(snapshot devnetSnapshot) error {
+	d.persistenceMu.Lock()
+	defer d.persistenceMu.Unlock()
+	return d.persistPreparedSnapshotSerialized(snapshot)
+}
+
+// Caller owns persistenceMu. Never acquire d.mu here: mutation checkpoints may
+// already own it, while periodic checkpoints hold only a detached immutable copy.
+func (d *Devnet) persistPreparedSnapshotSerialized(snapshot devnetSnapshot) error {
 	path := d.snapshotPath()
 	if path == "" {
 		return nil
@@ -527,11 +535,6 @@ func (d *Devnet) persistPreparedSnapshot(snapshot devnetSnapshot) error {
 	if err != nil {
 		return err
 	}
-	// Normal checkpoints hold d.mu for reading; replication persists an
-	// immutable prepared state outside it. Serialize their shared temp paths.
-	// No code holding persistenceMu acquires d.mu, avoiding lock inversion.
-	d.persistenceMu.Lock()
-	defer d.persistenceMu.Unlock()
 	// Replacements/rebases can remove or change earlier transactions. Withdraw
 	// those proofs before disk I/O, while keeping already completed proofs for
 	// exact entries shared by both snapshots. Ordinary appended checkpoints
@@ -696,6 +699,45 @@ func (d *Devnet) snapshotLocked() devnetSnapshot {
 	snapshot := devnetSnapshot{Version: devnetSnapshotVersion, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Peers: d.validatorPeers, PeerSyncs: d.validatorPeerSyncs, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, PaySettlements: d.paySettlements, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Policy: d.resourcePolicy, Pools: d.resourcePools, Sponsors: d.resourceSponsorships, SponsorIDs: d.resourceSponsorIdem, ActionRefs: d.resourceActionRefs, SponsorLog: d.resourceSponsorAudit, Contracts: d.contracts, DexAssets: d.dexAssets, DexBalances: d.dexBalances, DexPools: d.dexPools, DexEvents: d.dexEvents}
 	snapshot.SponsorIntegrity = resourceSponsorSnapshotIntegrity(snapshot)
 	return snapshot
+}
+
+// Clone mutable state before releasing d.mu. Most of a long-running public
+// history consists of empty block headers: copy those as values instead of
+// encoding/decoding hundreds of MiB while holding the state lock. Transaction
+// slices (including nested logs) are deep-copied; no caller alias is retained.
+// The JSON round trip uses the typed snapshot schema, so amounts remain int64,
+// never float64. It also automatically covers newly added application fields.
+func (d *Devnet) detachedSnapshotLocked() (devnetSnapshot, error) {
+	source := d.snapshotLocked()
+	history := source.Blocks
+	source.Blocks = nil
+	encoded, err := json.Marshal(source)
+	if err != nil {
+		return devnetSnapshot{}, fmt.Errorf("detach checkpoint state: %w", err)
+	}
+	var detached devnetSnapshot
+	if err := json.Unmarshal(encoded, &detached); err != nil {
+		return devnetSnapshot{}, fmt.Errorf("decode detached checkpoint state: %w", err)
+	}
+	if history != nil {
+		detached.Blocks = make([]Block, len(history))
+		copy(detached.Blocks, history)
+	}
+	for i := range detached.Blocks {
+		if history[i].Transactions == nil {
+			continue
+		}
+		encoded, err := json.Marshal(history[i].Transactions)
+		if err != nil {
+			return devnetSnapshot{}, fmt.Errorf("detach checkpoint transactions: %w", err)
+		}
+		// A non-nil destination could reuse the live slice backing array.
+		detached.Blocks[i].Transactions = nil
+		if err := json.Unmarshal(encoded, &detached.Blocks[i].Transactions); err != nil {
+			return devnetSnapshot{}, fmt.Errorf("decode detached checkpoint transactions: %w", err)
+		}
+	}
+	return detached, nil
 }
 
 func (d *Devnet) applySnapshotLocked(snapshot devnetSnapshot) {
