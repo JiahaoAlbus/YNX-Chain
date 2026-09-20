@@ -4,9 +4,8 @@ import {
   encodeFinanceOrderApprovalWalletURL,
   parseFinanceOrderApprovalReturnURL,
 } from '@ynx-chain/wallet-auth-finance-order';
-import {bundledEndpointAuthority,validateEndpointAuthority} from '@ynx-chain/sdk';
 import registry from './vendor/product-session-registry-a7dad7ec.json';
-import authorityPin from '../mobile/contract/endpoint-authority-pin.json';
+import {assertFinancePrivateAuthority} from './endpoint-authority-entry.js';
 
 const PENDING_KEY='ynx.finance.order-approval.v1.pending';
 
@@ -32,9 +31,7 @@ function authorityDate(value){
   return parsed;
 }
 async function assertAuthority(nowMs=Date.now()){
-  const authority=await validateEndpointAuthority(bundledEndpointAuthority,{trustedPin:authorityPin,nowMs,source:'bundled'});
-  if(authority.endpointStates.walletGateway.status!=='VERIFIED'||authority.endpointStates.products.finance.status!=='VERIFIED')throw new Error(`PRIVATE_SERVICE_DEGRADED: Wallet Gateway=${authority.endpointStates.walletGateway.status}; Finance Product Session=${authority.endpointStates.products.finance.status}. Order approval and submission remain unavailable.`);
-  return authority;
+  return assertFinancePrivateAuthority(nowMs);
 }
 async function begin(unsigned,serverTime){
   await assertAuthority();

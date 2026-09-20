@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "kind": "finance-endpoint-authority-1.1-consumer-source-build-evidence",
-  "recordedAt": "2026-09-20T09:38:20.000Z",
+  "recordedAt": "2026-09-20T09:40:15.000Z",
   "scope": "apps/finance/**",
   "baseline": {
     "mainCommit": "98a5774ae229acd1a41f7647d95b858d31b73ad2",
@@ -24,7 +24,9 @@
     "sharedCanonicalizationUsed": true,
     "nativeSha256Injected": true,
     "webOrderBundleUsesSharedValidator": true,
-    "webOrderBundleSha256": "301f4027c52d00ac10d5fd34e343e25b954eb9c387c130c0ff1b11ec8785589d",
+    "webOrderBundleSha256": "33843455cec882c6976ade1bf6fc56900dcc13543b115551ecfbdba5fb14d035",
+    "webPrivateWalletBundleUsesSharedValidator": true,
+    "webPrivateWalletBundleSha256": "a69ce9095f1b6ebb5929fe55d6a0948cf7600fa712be4ea80c7b50c35595942e",
     "webChallengePendingNetworkCalls": 0,
     "webCallbackPendingNetworkCalls": 0,
     "webExecutionRequestPendingNetworkCalls": 0,
@@ -47,11 +49,11 @@
     "androidIosBundleExport": "PASS",
     "androidBundleSha256": "189a375ccd72a433fa6c30bbccbb2dda75fab37a4afd6cd011b3e4a15d0c2ba1",
     "iosBundleSha256": "08c554553f4d2228061d9ae0f7da5c221caa5205dac0dd595f8c9beaed86c5e4",
-    "financeUnit": {"status": "PASS", "passed": 47, "failed": 0},
+    "financeUnit": {"status": "PASS", "passed": 48, "failed": 0},
     "walletAuthUnit": {"status": "PASS", "passed": 150, "failed": 0},
     "sharedSdkUnit": {"status": "PASS", "passed": 5, "failed": 0},
     "sharedAuthorityUnit": {"status": "PASS", "passed": 35, "failed": 0},
-    "security": {"status": "PASS", "filesScanned": 459}
+    "security": {"status": "PASS", "filesScanned": 460}
   },
   "truth": {
     "rpcFaucetAuthorityConsumed": true,

@@ -12,6 +12,8 @@ const manifestPin=await readFile(new URL('mobile/contract/endpoint-authority-pin
 const endpointAuthority=await readFile(new URL('mobile/src/endpoint-manifest.ts',base),'utf8');
 const webWallet=await readFile(new URL('web/wallet-auth-entry.js',base),'utf8');
 const orderWallet=await readFile(new URL('web/order-wallet-entry.js',base),'utf8');
+const privateWallet=await readFile(new URL('web/private-wallet-entry.js',base),'utf8');
+const webAuthority=await readFile(new URL('web/endpoint-authority-entry.js',base),'utf8');
 const providerEvidence=JSON.parse(await readFile(new URL('evidence/p0-finance-provider-connect-state-20260821.json',base),'utf8'));
 const migrationEvidence=JSON.parse(await readFile(new URL('evidence/p0-finance-product-wallet-migration-evidence-20260821.json',base),'utf8'));
 const brokerEnv=await readFile(new URL('.env.example',base),'utf8');
@@ -69,6 +71,9 @@ test('Broker order approval consumes the exact Wallet transport and never auto-s
   assert.equal(html.includes('name="accountPublicKey"'),false,'Wallet public key must come from the persisted owner mapping');
   assert.equal(html.includes('Provider asset UUID<input'),false,'users must select provider-backed assets instead of typing UUIDs');
   assert.ok(js.includes("JSON.stringify({draft})"));
+  for(const marker of ['@ynx-chain/sdk','validateEndpointAuthority','walletGateway.status','products.finance.status'])assert.ok(webAuthority.includes(marker),marker);
+  assert.ok(orderWallet.includes('assertFinancePrivateAuthority'));
+  assert.ok(privateWallet.includes('assertFinancePrivateAuthority'));
 });
 
 test('AI Broker order results remain drafts until copied and explicitly previewed',()=>{
