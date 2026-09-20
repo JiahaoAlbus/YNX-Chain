@@ -1,0 +1,82 @@
+{
+  "schema": "ynx-wallet-android-installed-readonly/v1",
+  "testedAt": "2026-09-20T23:16:31Z",
+  "evidenceBaseCommit": "cdb9bd25cdef9524c7c869d1110f4ce0b7d8cd91",
+  "officialArtifact": {
+    "releaseTag": "wallet-android-testnet-preview-1.0.19-d58ce00dc",
+    "releaseSourceCommit": "d58ce00dc4e83f4c24747dfef7e0b59395d6b789",
+    "assetId": 577641202,
+    "filename": "ynx-wallet-1.0.19-testnet-preview-d58ce00dc-universal-local-test-signed.apk",
+    "sha256": "437973258f40e4f7b3a2d3d603bbf67e932d1fca8082ed8eb9e8ff7b84514730",
+    "bytes": 116639211,
+    "package": "com.ynxweb4.wallet",
+    "activity": "com.ynxweb4.wallet/.MainActivity",
+    "versionCode": 25,
+    "versionName": "1.0.19-testnet-preview",
+    "signingClass": "local-test-signed",
+    "productionSigned": false
+  },
+  "emulator": {
+    "avd": "YNX_WALLET_1019_20260921_QA",
+    "serial": "emulator-5554",
+    "api": 36,
+    "abi": "arm64-v8a",
+    "freshAvd": true,
+    "freshApplicationData": true
+  },
+  "installedFlow": {
+    "firstColdLaunchMillis": 621,
+    "disposableRandomRecoveryMaterial": true,
+    "recoveryMaterialPrinted": false,
+    "recoveryMaterialRetained": false,
+    "strongBiometricConfigured": true,
+    "accountImportedToSecureStorage": true,
+    "postImportState": "LOCKED",
+    "biometricUnlock": "PASS",
+    "explicitLock": "PASS",
+    "coldRestartRestoredAccountLocked": true,
+    "lockedAccountColdLaunchMillis": 437,
+    "finalLockedColdLaunchMillis": 529,
+    "applicationCrashEntriesAfterFinalColdLaunch": 0
+  },
+  "readOnlyChainValidation": {
+    "chain": "ynx_6423-1",
+    "chainQuantity": "0x1917",
+    "networkPhaseTimeoutSeconds": 10,
+    "absoluteCallDeadlineSeconds": 15,
+    "biometricToSettledResultMillis": 9848,
+    "result": "NO_ON_CHAIN_ACCOUNT_RECORD",
+    "balance": "UNAVAILABLE_NOT_INVENTED",
+    "nonce": "UNAVAILABLE_NOT_INVENTED",
+    "sendEligibility": "BLOCKED_UNTIL_BALANCE_AND_NONCE_CONFIRMED",
+    "readOnlyRequestCompletedWithinPhaseAndAbsoluteDeadlines": true
+  },
+  "mutationBoundary": {
+    "faucetRequests": 0,
+    "transferBroadcasts": 0,
+    "walletConnectRelayContacts": 0,
+    "publicServiceMutations": 0
+  },
+  "sanitization": {
+    "rawUiTreesRetained": false,
+    "rawSystemLogsRetained": false,
+    "screenshotsRetained": false,
+    "recoveryMaterialRetained": false,
+    "lockCredentialRetained": false,
+    "accountAddressRecorded": false,
+    "onlyAllowlistedEvidenceCommitted": true,
+    "lockedAfterImportUiSha256": "70fe2a77f68b9774872ba5dce0c1abc07e43ab62136cd864b1e125c47353cc02",
+    "readOnlyResultUiSha256": "600f8825868395855a76e8e8e09565c4c7e71c59e4fd4641c4f7f874bf70cd7d",
+    "finalColdLockedUiSha256": "8bc8ae6f59e17112c086be3089bb69cd18322faeb2442a3e2434f109d87ec7a1"
+  },
+  "notVerified": [
+    "funded-account balance and nonce",
+    "Faucet request",
+    "transfer broadcast or recovery",
+    "WalletConnect Relay interoperability",
+    "physical Android device",
+    "production signing",
+    "app-store publication",
+    "Finance integration"
+  ]
+}
