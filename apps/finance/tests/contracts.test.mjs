@@ -27,10 +27,10 @@ test('product states its non-bank and non-custodial boundary',()=>{
   for(const prohibited of ['APY 8%','Guaranteed return','Visa card balance']) assert.equal(html.includes(prohibited),false);
 });
 
-test('wallet preserves Standard Wallet and consumes the accepted Product Session root and canonical authorization builder',()=>{
-  for(const marker of ['@ynx/dapp-connect-sdk','StandardWalletConnection','@ynx-chain/wallet-auth','createProductWalletConnection','PRODUCT_SESSION_UNAVAILABLE','WALLET_NOT_FOUND']) assert.ok(wallet.includes(marker),marker);
-  for(const required of ['encodeRequestDeepLink','parseAuthorizationCallbackURL','CANONICAL_AUTHORIZATION_PENDING_KEY']) assert.ok(wallet.includes(required),required);
-  for(const prohibited of ['createGatewayChallenge','signGatewayChallenge','createProductSessionProof','sessions/complete','gatewayEndpoint','deviceSecret']) assert.equal(wallet.includes(prohibited),false,prohibited);
+test('mobile Wallet approval uses the current package root and expired endpoint authority fails closed',()=>{
+  for(const marker of ['@ynx-chain/wallet-auth','encodeRequestDeepLink','parseCallbackURL','createGatewayChallenge','signGatewayChallenge','createProductSessionProof','assertFinanceConsumerContract'])assert.ok(wallet.includes(marker),marker);
+  for(const required of ["version:'2'","origin:'https://finance.ynxweb4.com'","manifest.walletGateway+'/v1/wallet/sessions/complete'"])assert.ok(wallet.includes(required),required);
+  for(const prohibited of ['@ynx/dapp-connect-sdk','createProductWalletConnection','EXPO_PUBLIC_YNX_FINANCE_WALLET_GATEWAY_URL','FinanceSecureDevice'])assert.equal(wallet.includes(prohibited),false,prohibited);
   assert.equal(/Linking\.openURL\(\s*['"`]ynxwallet:\/\/authorize/.test(wallet),false);
   assert.equal(js.includes('Bearer '),false,'legacy browser bearer session must be absent');
   assert.ok(manifest.includes('1.0.0-p0.2'));
