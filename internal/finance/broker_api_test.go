@@ -61,6 +61,96 @@ func TestBrokerChallengeCallbackAndWorkspaceNeverPostsProvider(t *testing.T) {
 	}
 }
 
+func TestCredentialIndependentBrokerFlowEndToEnd(t *testing.T) {
+	now := time.Date(2026, 9, 20, 1, 0, 0, 0, time.UTC)
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	brokerAccount := "01234567-89ab-4cde-8fab-0123456789ab"
+	walletKey := "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+	path := filepath.Join(t.TempDir(), "finance.json")
+	store, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, brokerAccount, walletKey, now); err != nil {
+		t.Fatal(err)
+	}
+	values := map[string]string{
+		"FINANCE_TRADING_ENABLED":                         "true",
+		"FINANCE_SANDBOX_WRITES_ENABLED":                  "true",
+		"FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256": strings.Repeat("a", 64),
+		"ALPACA_BROKER_CLIENT_ID":                         "isolated-fixture-id",
+		"ALPACA_BROKER_CLIENT_SECRET":                     "isolated-fixture-secret",
+	}
+	server := &Server{service: &Service{Store: store}, cfg: ServerConfig{
+		BrokerConfig:    brokerage.LoadConfig(func(key string) string { return values[key] }),
+		BrokerMaxFeeUSD: "1", BrokerFeeBoundSource: "operator_policy", BrokerFeeEvidenceRef: "isolated-fixture:weekly-v3",
+	}, now: func() time.Time { return now }}
+
+	draftBody, _ := json.Marshal(brokerChallengeInput{Draft: BrokerOrderDraftInput{AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "2", LimitPrice: "10"}})
+	recorder := httptest.NewRecorder()
+	server.brokerChallenge(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/challenges", bytes.NewReader(draftBody)), Session{Account: account})
+	var created struct {
+		Challenge BrokerApprovalChallenge `json:"challenge"`
+	}
+	if recorder.Code != http.StatusCreated || json.Unmarshal(recorder.Body.Bytes(), &created) != nil {
+		t.Fatalf("challenge status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	approval := signFinanceApprovalForTest(t, created.Challenge.Unsigned)
+	callback := mustFinanceCanonical(map[string]any{"approval": approval, "callbackStateHash": approval.CallbackStateHash, "kind": "finance_order_approval_result", "requestId": approval.RequestID, "status": "approved", "version": "1"})
+	server.now = func() time.Time { return now.Add(time.Minute) }
+	recorder = httptest.NewRecorder()
+	server.brokerCallback(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/callback", bytes.NewReader(callback)), Session{Account: account})
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("approval status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	orderID := approval.Order.OrderID
+	executionBody := []byte(`{"idempotencyKey":"isolated-e2e-execution-0001"}`)
+	executionRequest := httptest.NewRequest(http.MethodPost, "/api/broker/orders/"+orderID+"/execution-request", bytes.NewReader(executionBody))
+	executionRequest.SetPathValue("id", orderID)
+	recorder = httptest.NewRecorder()
+	server.brokerExecutionRequest(recorder, executionRequest, Session{Account: account})
+	if recorder.Code != http.StatusAccepted || !bytes.Contains(recorder.Body.Bytes(), []byte(`"providerWriteAttempted":false`)) {
+		t.Fatalf("execution request status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+
+	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: approval.Order.AssetID, Symbol: approval.Order.Symbol, Side: approval.Order.Side, Qty: approval.Order.Qty, FilledQty: "0", Type: approval.Order.OrderType, LimitPrice: approval.Order.LimitPrice, TimeInForce: approval.Order.TimeInForce, Status: "accepted", RequestID: "isolated-submit-0001", SubmittedAt: now.Add(2 * time.Minute).Format(time.RFC3339Nano)}
+	adapter := dispatchAdapter{quote: brokerage.Quote{Symbol: "ACME", BidPrice: "9.99", AskPrice: "10", Timestamp: now.Add(2 * time.Minute).Format(time.RFC3339Nano), Feed: "iex"}, submit: func(request brokerage.SubmitOrderRequest) (brokerage.Order, error) {
+		if request.ClientOrderID != orderID || request.AssetID != approval.Order.AssetID || request.Qty != "2" || request.LimitPrice != "10" {
+			t.Fatalf("provider request no longer matches approved order: %+v", request)
+		}
+		return providerOrder, nil
+	}}
+	dispatcher := BrokerDispatcher{Store: store, Adapter: adapter, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+	if record, err := dispatcher.Dispatch(t.Context(), account, orderID); err != nil || record.State != "submitted" || record.ProviderOrderID != providerOrder.ID {
+		t.Fatalf("dispatch record=%+v err=%v", record, err)
+	}
+	filled := providerOrder
+	filled.FilledQty, filled.Status, filled.RequestID = "2", "filled", "isolated-reconcile-order-0001"
+	adapter.snapshot = brokerage.AccountSnapshot{
+		Provider: FinanceOrderProvider, Environment: FinanceOrderTradingEnv,
+		RequestIDs: []string{"isolated-account-0001", "isolated-orders-0001", "isolated-positions-0001"},
+		Account:    brokerage.Account{ID: brokerAccount, Status: "ACTIVE", Currency: "USD", Cash: "979", BuyingPower: "979", RequestID: "isolated-account-0001"},
+		Orders:     []brokerage.Order{filled},
+		Positions:  []brokerage.Position{{AssetID: approval.Order.AssetID, Symbol: approval.Order.Symbol, Qty: "2", AvailableQty: "2", AveragePrice: "10", MarketValue: "20"}},
+	}
+	dispatcher.Adapter = adapter
+	if _, err := dispatcher.Reconcile(t.Context(), account); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspace := reopened.BrokerWorkspace(account, now.Add(3*time.Minute))
+	if len(workspace.Orders) != 1 || workspace.Orders[0].State != "filled" || workspace.Orders[0].ApprovalState != "consumed" || len(workspace.Outbox) != 1 || workspace.Outbox[0].Status != "submitted" || workspace.Outbox[0].ProviderRawStatus != "filled" {
+		t.Fatalf("final workspace=%+v", workspace)
+	}
+	if got, err := reopened.ResolveBrokerAccount(t.Context(), account, FinanceOrderProvider, FinanceOrderTradingEnv); err != nil || got != brokerAccount {
+		t.Fatalf("mapping=%q err=%v", got, err)
+	}
+}
+
 func TestBrokerChallengeFailsClosedWithoutTrustedFeeOrMapping(t *testing.T) {
 	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
 	store, _ := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
