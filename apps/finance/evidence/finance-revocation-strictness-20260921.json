@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "ynx-finance-revocation-strictness-evidence/v1",
+  "recordedAt": "2026-09-20T18:30:37Z",
+  "scope": "Finance Broker Wallet revocation callback and durable replay only",
+  "baseline": {
+    "mainCommit": "df1a5a8cb291632bf3437805396458fa5bfe57ba",
+    "mainTree": "d60f45eba34168aa0f97f78f905f25f2fb88c22b",
+    "handoffPatchSha256": "547f61451dfc0cfc781d67d431c4fb96b23d7fb6581219ae548926c3a22b2a2d"
+  },
+  "implementation": {
+    "commit": "2d68eea5586e117ec9995c70b2ef9d8178d153ed",
+    "tree": "13fc6123f101daf0c658ab1a5295ba20bdb9ea99",
+    "files": [
+      {"path": "internal/finance/broker.go", "blob": "ffae7a68759f63fbd4d3444d7eb0d481305ae720", "bytes": 13874, "sha256": "430d45172e5de590893fe64358f6586125e99fa9f6073c0c32e671d959a09c96"},
+      {"path": "internal/finance/broker_api_test.go", "blob": "86d2cdc546cae89d2244410c264e53ef671edde9", "bytes": 32778, "sha256": "1d9704fa65f2d7f219be84a2edfa9b9314f0b953566248e2d63bd59c76d91041"},
+      {"path": "internal/finance/broker_order_store.go", "blob": "ee7f996e3b5c555e601b08fdd817e2d34e55b060", "bytes": 28386, "sha256": "b21aff62ca280d5f3b40b9001441bb94472451b258bbdec8e5fe6df57ff0820f"},
+      {"path": "internal/finance/broker_order_store_test.go", "blob": "0aa9a87da24592b8bea2e960dbbfb29bd722b165", "bytes": 29279, "sha256": "b0a661c1c3c7a2ac8ec7f77e1927e5e26509f813070be858b7f5a725e6855ef7"}
+    ]
+  },
+  "enforcedBeforeIdempotence": {
+    "outerCallbackStateMatchesDurableChallenge": true,
+    "sessionAccountMatchesChallengeAndCurrentMapping": true,
+    "subjectMatchesCurrentMapping": true,
+    "providerAndTradingEnvironmentMatch": true,
+    "brokerAccountMatchesCurrentMapping": true,
+    "walletPublicKeyMatchesChallengeRevocationAndCurrentMapping": true,
+    "completeRevocationSignatureVerified": true,
+    "exactPersistedRevocationStructRequiredForReplay": true
+  },
+  "negativeCoverage": [
+    "changed outer callback state",
+    "changed invalid signature",
+    "different fully valid signed revocation",
+    "Wallet key rotation after challenge",
+    "Broker account rotation after challenge",
+    "revocation after approval consumption",
+    "concurrent revoke versus consume CAS"
+  ],
+  "tests": [
+    {"command": "go test ./internal/finance -run TestBroker... -count=10", "result": "PASS"},
+    {"command": "go test ./internal/finance", "result": "PASS"},
+    {"command": "go test -race ./internal/finance/...", "result": "PASS"},
+    {"command": "go vet ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go build ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "npm --prefix apps/finance test", "result": "PASS_67_OF_67"},
+    {"command": "npm --prefix apps/finance run security", "result": "PASS_255_TEXT_FILES"},
+    {"command": "npm --prefix apps/finance run smoke", "result": "PASS"}
+  ],
+  "unchangedTruth": {
+    "providerWriteAttemptedByTests": false,
+    "officialSandboxVerified": false,
+    "publicDeploymentVerified": false,
+    "installedWalletCallbackVerified": false,
+    "accountApproved": false,
+    "signaturePromoted": false,
+    "transactionVerified": false
+  },
+  "walletPathsModified": false
+}
