@@ -39,7 +39,6 @@ async function syncDirectory(directory){const handle=await fs.open(directory,con
 
 async function privateDirectoryState(directory){
   if(directory!==path.resolve(directory))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_DIRECTORY_PATH_INVALID');
-  await fs.mkdir(directory,{recursive:true,mode:0o700});
   let resolved;try{resolved=await fs.realpath(directory);}catch{throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_DIRECTORY_INVALID');}
   if(resolved!==directory)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_DIRECTORY_SYMLINK_INVALID');
   const chain=[];let current=directory;

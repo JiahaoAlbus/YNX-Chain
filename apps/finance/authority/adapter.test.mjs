@@ -157,6 +157,7 @@ test('checkpoint store rejects symlinked, shared and foreign-owned parent direct
   const shared=path.join(dir,'shared');await fs.mkdir(shared,{mode:0o700});await fs.chmod(shared,0o750);
   await assert.rejects(make(path.join(shared,'checkpoint')),/DIRECTORY_MODE_INVALID/);
   if(process.geteuid()!==0){const foreign=await fs.realpath('/tmp');await assert.rejects(make(path.join(foreign,'ynx-finance-foreign-checkpoint')),/DIRECTORY_OWNER_INVALID/);}
+  await assert.rejects(make(path.join(dir,'absent','checkpoint')),/DIRECTORY_INVALID/);assert.equal(await fs.stat(path.join(dir,'absent')).then(()=>true,()=>false),false);
 });
 
 test('checkpoint store rejects writable and symlinked ancestors before publishing',async t=>{
