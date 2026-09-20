@@ -38,6 +38,7 @@ for(const key of ["android","windowsX64","windowsArm64","macosUniversal","linuxX
   require(key==="android"?provider.isPinnedAndroidRelease(entry):new URL(entry.url).hostname==="downloads.ynxweb4.com"&&entry.url.includes(`/sha256-${entry.sha256}/`),`${key} is not bound to the exact verified download`);
 }
 require(/function platformDownloads\(\)/u.test(app)&&/item\.hosted===true&&item\.url/u.test(app),"built UI does not render every hosted package");
+require(app.includes('id="android-publication-boundary"')&&app.includes("WALLET_DOWNLOAD_MATRIX.android.downloadNotice"),"built UI hides mutable release and unchecked download disclosure");
 require(/productionSigned=\$\{String\(item\.productionSigned===true\)\}/u.test(app),"built UI hides package signing status");
 require(/button\.disabled = button\.dataset\.permanentDisabled === "true"/u.test(app),"built UI lost permanent-disabled handling");
 require(/@media\(max-width:520px\)[\s\S]*\.wallets,\.actions,\.platform-grid\{grid-template-columns:minmax\(0,1fr\)\}/u.test(styles),"built UI lost narrow layout");

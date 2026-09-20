@@ -175,7 +175,7 @@ test("canonical YNX mobile authorization stays closed until Core freezes the exa
   assert.deepEqual(canonicalYNXAuthorizationState(frozen,"https://www.ynxweb4.com/wallet-auth/callback"),{route:"canonical-auth",available:true,callback:"https://www.ynxweb4.com/wallet-auth/callback",error:null});
 });
 
-test("default download opens platform selection and Android uses the current immutable release", () => {
+test("default download opens platform selection and Android uses the exact observed release", () => {
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.hosted,true);
   assert.equal(YNX_DOWNLOAD_URL,"https://www.ynxweb4.com/dapp/wallet/open-download");
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk");

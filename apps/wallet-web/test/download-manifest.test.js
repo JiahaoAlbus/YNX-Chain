@@ -7,8 +7,14 @@ test("GitHub primary exception cannot promote another URL, digest, bytes or sign
   const item=WALLET_DOWNLOAD_MATRIX.android;
   assert.equal(isPinnedAndroidRelease(item),true);
   for(const patch of [{url:item.url+"?download=1"},{url:item.url.replace("github.com","example.com")},
-    {fallbackUrl:item.url+"#other"},{bytes:1},{sha256:"0".repeat(64)},{productionSigned:true},{signingClass:"production"}])
+    {fallbackUrl:item.url+"#other"},{bytes:1},{sha256:"0".repeat(64)},{productionSigned:true},{signingClass:"production"},
+    {filename:"other.apk"},{assetPath:"/other.apk"},{releaseTag:"other"},{releaseImmutable:true},
+    {publisherCanReplaceAssets:false},{downloadTimeSha256Verified:true}])
     assert.equal(isPinnedAndroidRelease({...item,...patch}),false);
+  const filename="ynx-wallet-1.0.16-testnet-preview-e9816a827-local-test-signed.aab";
+  const assetPath=`/JiahaoAlbus/YNX-Chain/releases/download/${item.releaseTag}/${filename}`;
+  assert.equal(isPinnedAndroidRelease({...item,filename,assetPath,fallbackUrl:"https://github.com"+assetPath}),false);
+  assert.equal(isPinnedAndroidRelease({...item,filename,assetPath,url:"https://github.com"+assetPath,fallbackUrl:"https://github.com"+assetPath}),false);
 });
 
 test("public download manifest is an exact machine-readable view of the current matrix",()=>{
@@ -23,6 +29,11 @@ test("public download manifest is an exact machine-readable view of the current 
     assert.deepEqual(item,{
       id:item.id,label:source.label,url:source.url,bytes:source.bytes,sha256:source.sha256,
       contentType:source.contentType,signingClass:source.signingClass,productionSigned:source.productionSigned===true,
+      ...(item.id==="android"?{
+        filename:source.filename,assetPath:source.assetPath,releaseTag:source.releaseTag,
+        releaseImmutable:false,publisherCanReplaceAssets:true,downloadTimeSha256Verified:false,
+        releaseMetadataObservedAt:source.releaseMetadataObservedAt,downloadNotice:source.downloadNotice,
+      }:{}),
       ...(source.fallbackUrl?{fallbackUrl:source.fallbackUrl}:{}),
     });
   }

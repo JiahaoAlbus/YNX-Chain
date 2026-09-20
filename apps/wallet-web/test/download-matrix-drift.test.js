@@ -17,6 +17,17 @@ test("Wallet install entry stays bound to current Android and published Web arti
   );
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,android.url);
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.fallbackUrl,android.url);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.filename,android.filename);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.assetPath,new URL(android.url).pathname);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.releaseTag,nativeManifest.publishedRelease.tag);
+  const receipt=await readJSON("../../wallet/proof/wallet-android-1.0.16-publication-20260920.json");
+  for(const source of [nativeManifest,receipt,WALLET_DOWNLOAD_MATRIX.android]){
+    assert.equal(source.releaseImmutable,false);
+    assert.equal(source.publisherCanReplaceAssets,true);
+    assert.equal(source.downloadTimeSha256Verified,false);
+  }
+  assert.equal(receipt.githubReleaseObservation.immutable,false);
+  assert.equal(receipt.githubReleaseObservation.observedAt,WALLET_DOWNLOAD_MATRIX.android.releaseMetadataObservedAt);
   const expected={
     pwaPackage:"ynx-wallet-web-pwa-0.1.1.zip",
     chromeEdgeExtension:"ynx-wallet-chrome-edge-0.1.1.zip",

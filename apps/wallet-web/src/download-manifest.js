@@ -26,6 +26,12 @@ export function createWalletDownloadManifest({sourceCommit}) {
       contentType:item.contentType,
       signingClass:item.signingClass,
       productionSigned:item.productionSigned===true,
+      ...(id==="android"?{
+        filename:item.filename,assetPath:item.assetPath,releaseTag:item.releaseTag,
+        releaseImmutable:item.releaseImmutable,publisherCanReplaceAssets:item.publisherCanReplaceAssets,
+        downloadTimeSha256Verified:item.downloadTimeSha256Verified,releaseMetadataObservedAt:item.releaseMetadataObservedAt,
+        downloadNotice:item.downloadNotice,
+      }:{}),
       ...(fallbackUrl?{fallbackUrl:item.fallbackUrl}:{}),
     });
   });

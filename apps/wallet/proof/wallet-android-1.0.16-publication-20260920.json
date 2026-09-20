@@ -5,6 +5,18 @@
   "targetCommit": "15d968bd5e29479c2b78c5c23887e96a535e29ca",
   "buildSourceCommit": "e9816a8277b3ddd6c5f379f90aadda969c0a069b",
   "prerelease": true,
+  "releaseImmutable": false,
+  "publisherCanReplaceAssets": true,
+  "downloadTimeSha256Verified": false,
+  "githubReleaseObservation": {
+    "observedAt": "2026-09-20T10:30:53Z",
+    "apiUrl": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/releases/tags/wallet-android-testnet-preview-1.0.16-e9816a827",
+    "id": 392389176,
+    "immutable": false,
+    "updatedAt": "2026-09-20T10:06:46Z",
+    "apkAssetId": 576583232,
+    "aabAssetId": 576583235
+  },
   "apk": {
     "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
     "bytes": 116631255,
@@ -19,7 +31,7 @@
     "githubMetadataMatched": true,
     "fullPublicDownloadDigestMatched": false
   },
-  "scope": "GitHub prerelease and exact public APK bytes; AAB metadata only. Not deployment or installed acceptance.",
+  "scope": "Point-in-time GitHub prerelease and public APK byte verification; AAB metadata only. Release is mutable: publisher can replace assets. Website does not recompute SHA-256 during download. Not deployment or installed acceptance.",
   "officialWebsiteDeployed": false,
   "cdnMirrorVerified": false,
   "installedE2EVerified": false,

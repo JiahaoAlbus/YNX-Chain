@@ -82,5 +82,18 @@ go test -race ./internal/finance/... ./apps/finance/cmd/... ./internal/faucet/..
 Status for this change: implemented=true; contractTested=true;
 officialSandboxVerified=false; publicDeployed=false; publicVerified=false
 for the new website/Wallet Web selection; productionApproved=false.
-The separate immutable APK publication and sampled RPC health evidence do not
+The separate point-in-time APK publication and sampled RPC health evidence do not
 turn those product acceptance flags true.
+
+## Publication review correction
+
+GitHub API observed at 2026-09-20T10:30:53Z reports `immutable=false` for
+release ID 392389176. The release and asset URL are not immutable:
+`releaseImmutable=false`, and the publisher can replace the assets.
+The website and Wallet Web do not recompute SHA-256 at download time.
+Displayed size and digest identify the previously checked bytes, not a promise
+that future downloads cannot change. Users must independently verify the digest.
+No repository-wide release immutability or new CDN was enabled.
+The Android pin now binds filename, exact release path, tag, primary/fallback
+URLs and the publication truth fields. Website PR57 separately binds both
+artifactPath and fallbackUrl and rejects their coordinated substitution.

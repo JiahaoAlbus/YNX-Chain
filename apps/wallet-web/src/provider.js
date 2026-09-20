@@ -1,5 +1,13 @@
 // Independently downloaded GitHub prerelease; no unverified CDN mirror.
 export const ANDROID_PREVIEW_DOWNLOAD = Object.freeze({
+  filename: "ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+  releaseTag: "wallet-android-testnet-preview-1.0.16-e9816a827",
+  assetPath: "/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+  releaseImmutable: false,
+  publisherCanReplaceAssets: true,
+  downloadTimeSha256Verified: false,
+  releaseMetadataObservedAt: "2026-09-20T10:30:53Z",
+  downloadNotice: "releaseImmutable=false: publisher can replace assets. SHA-256 is not recomputed during download; verify the digest yourself.",
   label: "Android API 24+ · universal · 1.0.16",
   url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
   fallbackUrl: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
@@ -11,7 +19,7 @@ export const ANDROID_PREVIEW_DOWNLOAD = Object.freeze({
 
 // Only this reviewed exact release can be a non-content-addressed primary URL.
 export function isPinnedAndroidRelease(item) {
-  return ["url", "fallbackUrl", "bytes", "sha256", "productionSigned", "signingClass"]
+  return ["filename", "assetPath", "releaseTag", "url", "fallbackUrl", "bytes", "sha256", "productionSigned", "signingClass", "releaseImmutable", "publisherCanReplaceAssets", "downloadTimeSha256Verified", "releaseMetadataObservedAt", "downloadNotice"]
     .every(key => item?.[key] === ANDROID_PREVIEW_DOWNLOAD[key]);
 }
 
