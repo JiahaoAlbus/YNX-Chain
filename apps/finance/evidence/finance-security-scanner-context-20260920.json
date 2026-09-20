@@ -8,12 +8,13 @@
     "activationLifecyclePullRequest": 145
   },
   "implementation": {
-    "commit": "6b243b8b7d8fc8cb9387f777e68aa4c330e9617b",
-    "tree": "1a3d46d6ddd95a9a5323f8723a8a1d23c07bd16e"
+    "commit": "98144a950c4c38175ec3a5e836d2519874e50907",
+    "tree": "481f60de565b80ed92d659a6b53066bc6deb2bae"
   },
   "delivered": {
     "manifestDenyListContextRecognized": true,
-    "vendoredRuntimeCommentsNotTreatedAsProductPlaceholders": true,
+    "twoExactPinnedBundleCommentsNotTreatedAsProductPlaceholders": true,
+    "otherVendoredRuntimePlaceholdersStillRejected": true,
     "privateKeyAndSecretRulesStillScanVendoredBytes": true,
     "deployableReservedHostStillRejected": true,
     "nonVendoredRuntimePlaceholderStillRejected": true
@@ -23,7 +24,7 @@
     {"command": "go vet ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
     {"command": "go build ./apps/finance/cmd/...", "result": "PASS"},
     {"command": "npm --prefix apps/finance test", "result": "PASS", "tests": 50},
-    {"command": "npm --prefix apps/finance run security", "result": "PASS", "filesScanned": 195},
+    {"command": "npm --prefix apps/finance run security", "result": "PASS", "filesScanned": 196},
     {"command": "git diff --check", "result": "PASS"}
   ],
   "externalTruth": {
