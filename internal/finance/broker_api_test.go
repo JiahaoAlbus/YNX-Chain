@@ -412,16 +412,25 @@ func TestBrokerReconcileAndCancelRequestAreOwnerScopedAndDoNotWriteProvider(t *t
 func TestBrokerChallengeUsesPersistedWalletKeyAndRejectsCallerOverride(t *testing.T) {
 	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
 	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
-	store, _ := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
 	key := "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
-	_, _ = store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", key, now)
-	server := &Server{service: &Service{Store: store}, cfg: ServerConfig{BrokerMaxFeeUSD: "1", BrokerFeeBoundSource: "operator_policy", BrokerFeeEvidenceRef: "operator-policy:test:v1"}, now: func() time.Time { return now }}
+	newServer := func(t *testing.T) *Server {
+		t.Helper()
+		store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", key, now); err != nil {
+			t.Fatal(err)
+		}
+		return &Server{service: &Service{Store: store}, cfg: ServerConfig{BrokerMaxFeeUSD: "1", BrokerFeeBoundSource: "operator_policy", BrokerFeeEvidenceRef: "operator-policy:test:v1"}, now: func() time.Time { return now }}
+	}
 	draft := BrokerOrderDraftInput{AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", LimitPrice: "10"}
 	for name, input := range map[string]brokerChallengeInput{
 		"omitted caller key":  {Draft: draft},
 		"matching legacy key": {AccountPublicKey: key, Draft: draft},
 	} {
 		t.Run(name, func(t *testing.T) {
+			server := newServer(t)
 			body, _ := json.Marshal(input)
 			recorder := httptest.NewRecorder()
 			server.brokerChallenge(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/challenges", bytes.NewReader(body)), Session{Account: account})
@@ -430,6 +439,7 @@ func TestBrokerChallengeUsesPersistedWalletKeyAndRejectsCallerOverride(t *testin
 			}
 		})
 	}
+	server := newServer(t)
 	body, _ := json.Marshal(brokerChallengeInput{AccountPublicKey: "0379be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", Draft: draft})
 	recorder := httptest.NewRecorder()
 	server.brokerChallenge(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/challenges", bytes.NewReader(body)), Session{Account: account})

@@ -67,7 +67,7 @@ async function refreshBrokerSnapshot(){
     clearBrokerSnapshot(error?.message||'Broker Sandbox account data is unavailable. No values were substituted.');
   }
 }
-let brokerCallbackInFlight=false;
+let brokerCallbackInFlight=false,brokerApprovalInFlight=false;
 function renderBrokerWorkspace(workspace){
   const orders=Array.isArray(workspace?.orders)?workspace.orders:[];
   const outbox=new Map((Array.isArray(workspace?.outbox)?workspace.outbox:[]).map(item=>[item.orderId,item]));
@@ -115,6 +115,10 @@ async function refreshBrokerWorkspace(){
 }
 async function createBrokerApproval(event){
   event.preventDefault();
+  if(brokerApprovalInFlight){notify('A Wallet order request is already being created. Wait for that exact request to finish.',true);return}
+  brokerApprovalInFlight=true;
+  const submit=event.currentTarget.querySelector('button[type="submit"],button:not([type])'),wasDisabled=submit?.disabled===true;
+  if(submit){submit.disabled=true;submit.setAttribute('aria-busy','true')}
   const form=new FormData(event.currentTarget),draft={assetId:String(form.get('assetId')||''),symbol:String(form.get('symbol')||'').toUpperCase(),side:String(form.get('side')||''),qty:String(form.get('qty')||''),limitPrice:String(form.get('limitPrice')||'')};
   try{
     await requireBrokerOrderAuthority();
@@ -125,7 +129,7 @@ async function createBrokerApproval(event){
     if(result?.schema!=='ynx-finance-order-approval-challenge-v1'||result.providerWriteAttempted!==false)throw new Error('Finance order challenge response is invalid.');
     const route=await window.YNXFinanceOrderWallet.begin(result.challenge.unsigned,result.challenge.serverTime);
     renderBrokerApprovalRoute(route);notify('Exact approval request created. Review it in YNX Wallet; no broker order has been submitted.');await refreshBrokerWorkspace();
-  }catch(error){notify(error.message,true)}
+  }catch(error){notify(error.message,true)}finally{brokerApprovalInFlight=false;if(submit){submit.disabled=wasDisabled;submit.removeAttribute('aria-busy')}}
 }
 async function reconcileBroker(){
   if(!state.connected){notify('Sign in before reconciling owner-scoped Sandbox data.',true);return}
