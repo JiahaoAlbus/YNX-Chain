@@ -212,6 +212,144 @@ func TestBrokerPendingApprovalCanBeRevokedBeforeCallbackDelivery(t *testing.T) {
 	}
 }
 
+func TestBrokerDueApprovalsExpireDurablyWithoutOutboxAcrossRestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "finance.json")
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	walletKey := "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+	now := time.Date(2026, 9, 20, 12, 0, 0, 0, time.UTC)
+	store, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", walletKey, now); err != nil {
+		t.Fatal(err)
+	}
+	request := func(orderID string) BrokerChallengeRequest {
+		return BrokerChallengeRequest{AccountPublicKey: walletKey, FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test-expiry", Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: orderID, OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"}}
+	}
+	approved, err := store.CreateBrokerOrderChallenge(account, request("bbbbbbbb-cccc-4ddd-8eee-ffffffffffff"), now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.ApproveBrokerOrder(account, signFinanceApprovalForTest(t, approved.Unsigned), now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	count, err := store.ExpireBrokerOrders(account, now.Add(5*time.Minute))
+	if err != nil || count != 1 {
+		t.Fatalf("due approvals were not archived together: count=%d err=%v", count, err)
+	}
+	if count, err := store.ExpireBrokerOrders(account, now.Add(6*time.Minute)); err != nil || count != 0 {
+		t.Fatalf("expiry was not idempotent: count=%d err=%v", count, err)
+	}
+	reopened, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := reopened.Account(account).Brokerage
+	if len(state.Outbox) != 0 {
+		t.Fatalf("expiry created an execution outbox: %+v", state.Outbox)
+	}
+	for _, challenge := range []BrokerApprovalChallenge{approved} {
+		storedChallenge := state.Challenges[challenge.Unsigned.RequestID]
+		storedOrder := state.Orders[challenge.Unsigned.Order.OrderID]
+		if storedChallenge.ApprovalState != "expired" || storedOrder.ApprovalState != "expired" || storedOrder.State != "draft" {
+			t.Fatalf("expiry did not survive restart: challenge=%+v order=%+v", storedChallenge, storedOrder)
+		}
+	}
+	expiredEvents := 0
+	for _, event := range state.Journal {
+		if event.Action == "approval.expired" {
+			expiredEvents++
+		}
+	}
+	if expiredEvents != 1 {
+		t.Fatalf("expected one durable expiry event, got %d", expiredEvents)
+	}
+}
+
+func TestBrokerConcurrentChallengeCreationAllowsOneActiveApprovalAcrossRestart(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "finance.json")
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	walletKey := "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+	now := time.Date(2026, 9, 20, 14, 0, 0, 0, time.UTC)
+	store, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", walletKey, now); err != nil {
+		t.Fatal(err)
+	}
+	request := func(orderID string) BrokerChallengeRequest {
+		return BrokerChallengeRequest{AccountPublicKey: walletKey, FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test-concurrent", Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: orderID, OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"}}
+	}
+	type createResult struct {
+		challenge BrokerApprovalChallenge
+		err       error
+	}
+	const workers = 16
+	results := make(chan createResult, workers)
+	var wg sync.WaitGroup
+	for index := 0; index < workers; index++ {
+		wg.Add(1)
+		go func(index int) {
+			defer wg.Done()
+			independent, openErr := OpenStore(path)
+			if openErr != nil {
+				results <- createResult{err: openErr}
+				return
+			}
+			orderID := fmt.Sprintf("%08x-bbbb-4ccc-8ddd-%012x", index+1, index+1)
+			challenge, createErr := independent.CreateBrokerOrderChallenge(account, request(orderID), now)
+			results <- createResult{challenge: challenge, err: createErr}
+		}(index)
+	}
+	wg.Wait()
+	close(results)
+	successes := 0
+	for result := range results {
+		if result.err == nil {
+			successes++
+		}
+	}
+	if successes != 1 {
+		t.Fatalf("concurrent challenge creation produced %d active approvals", successes)
+	}
+	reopened, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := reopened.Account(account).Brokerage
+	if len(state.Challenges) != 1 || len(state.Orders) != 1 || len(state.Outbox) != 0 {
+		t.Fatalf("concurrent challenge creation left orphan durable state: %+v", state)
+	}
+	for _, challenge := range state.Challenges {
+		if challenge.ApprovalState != "pending" {
+			t.Fatalf("unexpected active approval after restart: %+v", challenge)
+		}
+	}
+	second, err := reopened.CreateBrokerOrderChallenge(account, request("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"), now.Add(6*time.Minute))
+	if err != nil {
+		t.Fatalf("terminal expiry did not permit the next legitimate request: %v", err)
+	}
+	restarted, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	state = restarted.Account(account).Brokerage
+	pending, expired := 0, 0
+	for _, challenge := range state.Challenges {
+		switch challenge.ApprovalState {
+		case "pending":
+			pending++
+		case "expired":
+			expired++
+		}
+	}
+	if len(state.Challenges) != 2 || len(state.Orders) != 2 || len(state.Outbox) != 0 || pending != 1 || expired != 1 || state.Challenges[second.Unsigned.RequestID].ApprovalState != "pending" {
+		t.Fatalf("restart lifecycle did not preserve one active approval: %+v", state)
+	}
+}
+
 func TestBrokerOrderDurableConcurrentConsumeAndRestart(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "finance.json")
 	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"

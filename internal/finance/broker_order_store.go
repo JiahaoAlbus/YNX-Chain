@@ -211,6 +211,14 @@ func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallen
 	var result BrokerApprovalChallenge
 	err = s.updateBrokerCAS(account, "broker.approval.challenge", order.OrderID, func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)
+		if _, err := expireDueBrokerOrders(state, issuedAt); err != nil {
+			return err
+		}
+		for _, challenge := range state.Brokerage.Challenges {
+			if challenge.ApprovalState == "pending" || challenge.ApprovalState == "approved" {
+				return errors.New("an active Finance order approval already exists for this account")
+			}
+		}
 		mapping, ok := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
 		if !ok || mapping.Status != "active" || mapping.Account != account || mapping.SubjectID != subjectID || mapping.WalletPublicKey != request.AccountPublicKey {
 			return errors.New("active Broker Sandbox mapping is required")
@@ -281,6 +289,57 @@ func (s *Store) RejectBrokerOrder(account, requestID, callbackStateHash string, 
 
 func (s *Store) ExpireBrokerOrder(account, requestID string, now time.Time) (BrokerOrderRecord, error) {
 	return s.transitionUnapprovedBrokerOrder(account, requestID, "", "expired", "approval.expired", now)
+}
+
+// ExpireBrokerOrders durably archives every owner-scoped pending or approved
+// challenge whose server-authoritative lifetime has elapsed. It deliberately
+// creates no execution outbox and is safe to call at read and callback
+// boundaries after restarts.
+func (s *Store) ExpireBrokerOrders(account string, now time.Time) (int, error) {
+	now = now.UTC()
+	expired := 0
+	err := s.updateBrokerCAS(account, "broker.approval.expire_due", account, func(state *AccountState) error {
+		normalizeBrokerageState(&state.Brokerage)
+		var err error
+		expired, err = expireDueBrokerOrders(state, now)
+		if err != nil {
+			return err
+		}
+		if expired == 0 {
+			return errBrokerStateUnchanged
+		}
+		return nil
+	})
+	return expired, err
+}
+
+func expireDueBrokerOrders(state *AccountState, now time.Time) (int, error) {
+	expired := 0
+	for requestID, challenge := range state.Brokerage.Challenges {
+		if challenge.ApprovalState != "pending" && challenge.ApprovalState != "approved" {
+			continue
+		}
+		expiresAt, err := parseFinanceMilliseconds(challenge.Unsigned.ExpiresAt)
+		if err != nil {
+			return 0, errors.New("Finance approval lifetime is invalid")
+		}
+		if now.Before(expiresAt) {
+			continue
+		}
+		order, ok := state.Brokerage.Orders[challenge.Unsigned.Order.OrderID]
+		if !ok || order.RequestID != requestID || order.ApprovalState != challenge.ApprovalState {
+			return 0, errors.New("Finance approval durable state is inconsistent")
+		}
+		if _, exists := state.Brokerage.Outbox[order.Order.OrderID]; exists {
+			return 0, errors.New("unconsumed Finance approval unexpectedly has an execution outbox")
+		}
+		challenge.ApprovalState, challenge.UpdatedAt = "expired", now
+		order.ApprovalState, order.State, order.UpdatedAt = "expired", "draft", now
+		state.Brokerage.Challenges[requestID], state.Brokerage.Orders[order.Order.OrderID] = challenge, order
+		appendBrokerJournal(&state.Brokerage, order.Order.OrderID, requestID, "approval.expired", "expired", "draft", now)
+		expired++
+	}
+	return expired, nil
 }
 
 func (s *Store) transitionUnapprovedBrokerOrder(account, requestID, callbackStateHash, target, action string, now time.Time) (BrokerOrderRecord, error) {

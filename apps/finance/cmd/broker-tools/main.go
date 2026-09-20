@@ -81,14 +81,14 @@ func runWithReadiness(args []string, get func(string) string, probe verification
 	localReadOnly = len(args) == 2 && args[1] == "--local-read-only"
 	cfg := brokerage.LoadConfig(get)
 	status := cfg.Status()
-	report := map[string]any{"mode": mode, "configuration": status, "networkAttempted": false, "localReadOnlyAttempted": false, "accountLinkVerified": false, "dataEntitlementVerified": false, "officialSandboxVerified": false, "productionApproved": false, "writeAttempted": false, "walletOrderApproval": "manual_wallet_approval_required", "durableOrderJournal": "implemented_state_v2", "providerPost": "activation_gated_operator_only"}
+	report := map[string]any{"mode": mode, "configuration": status, "networkAttempted": false, "localReadOnlyAttempted": false, "accountLinkVerified": false, "dataEntitlementVerified": false, "officialSandboxVerified": false, "productionApproved": false, "writeAttempted": false, "walletOrderApproval": "manual_wallet_approval_required", "durableOrderJournal": "implemented_state_v2", "providerPost": "activation_gated_operator_only", "sharedEndpointAuthority": map[string]any{"bundledManifestPresent": true, "bundledFinancePinBuildVerified": true, "centralSignedManifestActive": false, "installedWalletCallbackVerified": false, "result": "BLOCKED_SHARED_AUTHORITY_EVIDENCE"}}
 	code := 0
 	if mode == "activation-plan" {
 		report["activationReceiptConfigured"] = status.SubmissionEnabled
 		report["activationScope"] = "sandbox_only_single_operator_worker_no_public_submit_route"
 		feePolicyReady := finance.ValidateBrokerFeePolicy(get("YNX_FINANCE_BROKER_MAX_FEE_USD"), get("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), get("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF")) == nil
 		report["feePolicyReady"] = feePolicyReady
-		report["requiredPreconditions"] = []string{"configured sandbox credentials", "persistent per-user account mapping", "read-only provider verification", "trusted fee bound", "Wallet order approval", "64-hex activation receipt", "one exact execution-requested outbox for worker dispatch"}
+		report["requiredPreconditions"] = []string{"Central-issued and signed shared endpoint authority manifest", "Finance pin bound to the current authority manifest", "installed Wallet callback verified read-only", "configured sandbox credentials", "persistent per-user account mapping", "read-only provider verification", "trusted fee bound", "Wallet order approval", "64-hex activation receipt", "one exact execution-requested outbox for worker dispatch"}
 		report["safeEnable"] = []string{"verify owner mapping and provider reads", "record exact Wallet-approved order id", "set server-side activation receipt and sandbox write flag", "run one operator dispatch-one command", "query and reconcile before any further action"}
 		report["rollback"] = []string{"set FINANCE_SANDBOX_WRITES_ENABLED=false", "restart only the operator worker environment if one exists", "query and reconcile ambiguous provider state", "do not retry an order with provider correlation"}
 		localReady := false

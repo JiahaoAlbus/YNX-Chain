@@ -102,8 +102,13 @@ func (s *Server) brokerSnapshot(w http.ResponseWriter, r *http.Request, session 
 }
 
 func (s *Server) brokerOrders(w http.ResponseWriter, _ *http.Request, session Session) {
+	now := s.now()
+	if _, err := s.service.Store.ExpireBrokerOrders(session.Account, now); err != nil {
+		writeError(w, http.StatusConflict, "approval_expiration_failed", err.Error())
+		return
+	}
 	w.Header().Set("Cache-Control", "no-store")
-	writeJSON(w, http.StatusOK, map[string]any{"schema": "ynx-finance-broker-workspace-v1", "workspace": s.service.Store.BrokerWorkspace(session.Account, s.now()), "providerWriteAttempted": false})
+	writeJSON(w, http.StatusOK, map[string]any{"schema": "ynx-finance-broker-workspace-v1", "workspace": s.service.Store.BrokerWorkspace(session.Account, now), "providerWriteAttempted": false})
 }
 
 func (s *Server) brokerExecutionStatus(w http.ResponseWriter, r *http.Request, session Session) {
@@ -262,14 +267,19 @@ func (s *Server) brokerCallback(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusBadRequest, "invalid_callback", err.Error())
 		return
 	}
+	now := s.now()
+	if _, err := s.service.Store.ExpireBrokerOrders(session.Account, now); err != nil {
+		writeError(w, http.StatusConflict, "approval_expiration_failed", err.Error())
+		return
+	}
 	var result any
 	switch callback.Status {
 	case "approved":
-		result, err = s.service.Store.VerifyAndConsumeBrokerOrder(session.Account, *callback.Approval, s.now())
+		result, err = s.service.Store.VerifyAndConsumeBrokerOrder(session.Account, *callback.Approval, now)
 	case "rejected":
-		result, err = s.service.Store.RejectBrokerOrder(session.Account, callback.RequestID, callback.CallbackStateHash, s.now())
+		result, err = s.service.Store.RejectBrokerOrder(session.Account, callback.RequestID, callback.CallbackStateHash, now)
 	case "revoked":
-		result, err = s.service.Store.RevokeBrokerOrder(session.Account, *callback.Revocation, s.now())
+		result, err = s.service.Store.RevokeBrokerOrder(session.Account, *callback.Revocation, now)
 	default:
 		err = errors.New("Finance approval callback status is unsupported")
 	}
