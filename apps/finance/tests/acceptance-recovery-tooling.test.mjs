@@ -35,5 +35,5 @@ test('builder keeps the recovery command independent from its output pathname',(
   assert.doesNotMatch(body,/--archive \$\{basename\(output\)\}/);
   for(const required of ["'apps/finance/'","'internal/accountaddress/'","'internal/buildinfo/'","'internal/chain/'","'internal/consensus/'","'internal/ethnative/'","'internal/productsessionv2/'","'internal/readintegration/'","'docs/integration/'","'release/integration/'","'sdk/js/'"])assert.ok(body.includes(required),required);
   const verifier=readFileSync(join(root,'scripts/verify-finance-v3-acceptance-recovery.mjs'),'utf8');
-  for(const command of ["run('go',['test','-race'","run('go',['vet'","run('go',['build'","run('npm',['--prefix','apps/finance','test']","run('npm',['--prefix','apps/finance','run','security']","run('npm',['--prefix','apps/finance','run','smoke']"])assert.ok(verifier.includes(command),command);
+  for(const command of ["run('npm',['--prefix','apps/finance/web','ci']","run('go',['test','-race'","run('go',['vet'","run('go',['build'","run('npm',['--prefix','apps/finance','test']","run('npm',['--prefix','apps/finance','run','security']","run('npm',['--prefix','apps/finance','run','smoke']"])assert.ok(verifier.includes(command),command);
 });

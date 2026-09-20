@@ -38,13 +38,14 @@ if(executeClean){
     }
     const run=(command,commandArgs)=>execFileSync(command,commandArgs,{cwd:repository,stdio:'inherit',env:{...process.env,CI:'1'}});
     run('npm',['--prefix','apps/finance','ci','--ignore-scripts']);
+    run('npm',['--prefix','apps/finance/web','ci']);
     run('go',['test','-race','./internal/finance/...','./apps/finance/cmd/...']);
     run('go',['vet','./internal/finance/...','./apps/finance/cmd/...']);
     run('go',['build','./apps/finance/cmd/...']);
     run('npm',['--prefix','apps/finance','test']);
     run('npm',['--prefix','apps/finance','run','security']);
     run('npm',['--prefix','apps/finance','run','smoke']);
-    cleanExtraction={performed:true,result:'PASS',commands:7};
+    cleanExtraction={performed:true,result:'PASS',commands:8};
   }finally{rmSync(root,{recursive:true,force:true});}
 }
 process.stdout.write(`${JSON.stringify({verified:true,source:manifest.source,archive:sidecar.archive,entries:entries.length,cleanExtraction,externalTruth:manifest.externalTruth})}\n`);
