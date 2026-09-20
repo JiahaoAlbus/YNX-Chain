@@ -38,6 +38,7 @@ export * from "./product-session-router.js";
 export * from "./metamask-evm-adapter.js";
 export * from "./wallet-provider-discovery.js";
 export * from "./wallet-connection-coordinator.js";
+export * from "./walletconnect-protocol.js";
 export { WALLET_DOWNLOAD_MANIFEST_SCHEMA_VERSION, parseWalletDownloadManifest, selectWalletDownload } from "./wallet-downloads.js";
 export * from "./product-session-recovery.js";
 export { ProductSessionServerAuthorizer } from "./product-session-server.js";

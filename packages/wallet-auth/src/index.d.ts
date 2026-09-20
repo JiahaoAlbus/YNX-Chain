@@ -232,6 +232,26 @@ export declare const STANDARD_WALLET_METHODS:readonly ["wallet_addEthereumChain"
 export declare class Eip1193ProviderError extends Error { readonly code:4001|4100|4200|4900|4901|4902; }
 export type StandardWalletRevocationResult = Readonly<{status:"revoked"|"unsupported"|"rejected"|"failed"|"superseded";permissionRevoked:boolean;locallyDisconnected:boolean;error?:Readonly<{code:number;message:string}>}>;
 export declare class StandardWalletConnection { constructor(config:Readonly<{provider:unknown;origin:string;metadata:Readonly<{name:string;url:string}>}>); readonly current:Readonly<Record<string,unknown>>|null; connect():Promise<Readonly<Record<string,unknown>>>; restore():Promise<Readonly<Record<string,unknown>>|null>; revoke():Promise<StandardWalletRevocationResult>; request(input:Readonly<{method:string;params?:unknown}>):Promise<unknown>; disconnect():void; subscribe(listener:(event:Readonly<{event:string;value:unknown}>)=>void):()=>boolean; }
+export declare const WALLETCONNECT_PROTOCOL_VERSION:2;
+export declare const WALLETCONNECT_NAMESPACE:"eip155";
+export declare const WALLETCONNECT_CHAIN:"eip155:6423";
+export declare const WALLETCONNECT_CHAIN_QUANTITY:"0x1917";
+export declare const WALLETCONNECT_SESSION_METHODS:readonly ["eth_accounts","eth_requestAccounts","eth_chainId","personal_sign","eth_signTypedData_v4","eth_sendTransaction","wallet_switchEthereumChain","wallet_addEthereumChain"];
+export declare const WALLETCONNECT_SESSION_EVENTS:readonly ["accountsChanged","chainChanged"];
+export type WalletConnectPeer=Readonly<{publicKey:string;metadata:Readonly<{name:string;description:string;url:string;icons:readonly string[]}>}>;
+export type WalletConnectNamespaces=Readonly<{eip155:Readonly<{chains:readonly ["eip155:6423"];methods:readonly string[];events:readonly string[];accounts:readonly string[]}>}>;
+export type WalletConnectVerification=Readonly<{origin:string;validation:"UNKNOWN"|"VALID";verifyUrl:string;isScam:false}>;
+export type WalletConnectSessionReview=Readonly<{kind:"walletconnect_session_review";protocolVersion:2;proposalId:number;expiryTimestamp:number;peer:WalletConnectPeer;verification:WalletConnectVerification;relays:readonly string[];namespaces:WalletConnectNamespaces;account:string;requiresUserApproval:true;proposalDigest:string}>;
+export type WalletConnectSessionApproval=Readonly<{kind:"walletconnect_session_approval";protocolVersion:2;topic:string;proposalId:number;proposalDigest:string;peer:WalletConnectPeer;verification:WalletConnectVerification;relays:readonly string[];namespaces:WalletConnectNamespaces;account:string;approvedAt:string;expiresAt:string;sessionBinding:string}>;
+export type WalletConnectRequestReview=Readonly<{kind:"walletconnect_request_review";protocolVersion:2;topic:string;requestId:number;sessionBinding:string;chainId:"eip155:6423";account:string;peer:WalletConnectPeer;verification:WalletConnectVerification;method:string;params:unknown;expirySource:"request"|"bounded-default";expiresAt:string;requiresUserApproval:true;requestDigest:string}>;
+export declare function parseWalletConnectRuntimeConfig(input:unknown):Readonly<{projectId:string;relayUrl:string}>;
+export declare function parseWalletConnectPairingUri(input:string,at?:Date):Readonly<{topic:string;version:2;relayProtocol:"irn";symKey:string;expiryTimestamp:number|null}>;
+export declare function reviewWalletConnectSessionProposal(input:unknown,options:{account:string;now:Date}):WalletConnectSessionReview;
+export declare function createWalletConnectSessionApproval(review:WalletConnectSessionReview,decision:{approved:true;topic:string},at?:Date):WalletConnectSessionApproval;
+export declare function createWalletConnectRequestReview(input:unknown,options:{session:WalletConnectSessionApproval;now:Date;replayStore:WalletConnectRequestReplayStore}):WalletConnectRequestReview;
+export declare function finalizeWalletConnectRequestReview(review:WalletConnectRequestReview,decision:{approved:boolean},replayStore:WalletConnectRequestReplayStore,at?:Date):Readonly<{kind:"walletconnect_request_decision";requestDigest:string;topic:string;requestId:number;approved:boolean;decidedAt:string;executionAuthorized:boolean}>;
+export declare class WalletConnectRequestReplayStore {constructor(snapshot?:readonly Readonly<{key:string;requestDigest:string;expiresAt:string;status:"reserved"|"consumed"}>[]);reserve(review:WalletConnectRequestReview,at?:Date):void;consume(review:WalletConnectRequestReview,at?:Date):void;prune(at?:Date):void;snapshot():readonly Readonly<{key:string;requestDigest:string;expiresAt:string;status:"reserved"|"consumed"}>[];}
+export declare function walletConnectRejection(error:unknown):Readonly<{code:number;message:string}>;
 export declare function decodeProductSessionGatewayProofHeaderV2(value:unknown):Readonly<Record<string,unknown>>;
 export declare function encodeProductSessionGatewayProofHeaderV2(value:unknown):string;
 export declare const PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES:1048576;
