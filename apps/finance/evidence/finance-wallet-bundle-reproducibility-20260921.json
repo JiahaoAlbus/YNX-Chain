@@ -1,0 +1,66 @@
+{
+  "schema": "ynx-finance-wallet-bundle-reproducibility/v1",
+  "generatedAt": "2026-09-20T16:01:22Z",
+  "scope": "Finance Web runtime, verifier, tests and handoff only",
+  "base": {
+    "commit": "b1ca54b30974db15d66312b2b78ca756f1a369d8"
+  },
+  "implementation": {
+    "branch": "codex/finance-web-bundle-reproducible-20260920",
+    "commit": "5dc8f2f6f1d7f5e7d43b60fa0913d1ea30c452a9",
+    "tree": "1f15fb30b58a6ee829e48e15698b58583b9d4c5e",
+    "files": [
+      {"path": "apps/finance/web/wallet-auth.js", "blob": "ec5bd58bd5fd4f33f9b7e982ec8afdbd11ea48be", "bytes": 179986, "sha256": "fbebce55d813f1acbbec7738d171bb2a3142eb415d2c513bae48862b4ecd1967"},
+      {"path": "apps/finance/web/wallet-verifier-manifest.json", "blob": "20a6c3bfe0e9d550d71a28c8f7871934552b982f", "bytes": 3521, "sha256": "7bb7d85e3e7adce9ae33d7b91ca597669644d6108fa99579739f0dc34c96c28d"},
+      {"path": "apps/finance/web/verify-wallet-connect.mjs", "blob": "e48a37326fe7da9afab8e055317cfd957fd24aa0", "bytes": 11219, "sha256": "5d49efc55b3cea7cc876ae94ddab879b1d0e8b597727fb50ad9f25f94f625be9"},
+      {"path": "apps/finance/tests/wallet-bundle-verifier.test.mjs", "blob": "d3de4ddcee7cfba61139ff2385f6af66bba246c0", "bytes": 5987, "sha256": "ce0ee3596fb0365d8717aa137f305c586c6cb50b500149299edc0e796efbad93"}
+    ]
+  },
+  "rootCause": {
+    "committedBundle": {"bytes": 168865, "sha256": "a69ce9095f1b6ebb5929fe55d6a0948cf7600fa712be4ea80c7b50c35595942e"},
+    "finding": "The prior bundle was generated before the local @ynx-chain/sdk dependency added Endpoint Authority v2 and explicit trusted-clock validation. The current Finance entry imports validateEndpointAuthority from the SDK package root, so the committed bundle no longer represented the current tracked dependency graph.",
+    "authoritativeInputs": "Current tracked Finance entry, private Product Session adapter, versioned Standard Wallet vendor, Product Session vendor/registry, endpoint pin, current tracked sdk/js source, package lock and esbuild 0.25.9.",
+    "semanticDelta": ["AUTHORITY_V2_CLOCK_REQUIRED", "AUTHORITY_V2_ROOT_ROLLBACK"],
+    "legacyLauncherRestored": false
+  },
+  "reproducibility": {
+    "command": "esbuild wallet-auth-entry.js --bundle --minify --platform=browser --target=es2022 --outfile=wallet-auth.js",
+    "esbuildVersion": "0.25.9",
+    "cleanBuilds": 2,
+    "first": {"bytes": 179986, "sha256": "fbebce55d813f1acbbec7738d171bb2a3142eb415d2c513bae48862b4ecd1967"},
+    "second": {"bytes": 179986, "sha256": "fbebce55d813f1acbbec7738d171bb2a3142eb415d2c513bae48862b4ecd1967"},
+    "committedBundleEqualsBoth": true,
+    "verifierReadsReviewedInputsOnce": true,
+    "verifierRebuildsFromInMemorySnapshotTwice": true
+  },
+  "failClosed": {
+    "missing": true,
+    "legacy": true,
+    "bundleTamper": true,
+    "coordinatedBundleManifestTamper": true,
+    "sourceMissing": true,
+    "rebuildMismatch": true,
+    "nondeterministicRebuild": true,
+    "toctouFirstReadTamper": true
+  },
+  "tests": [
+    {"command": "npm run verify:wallet", "cwd": "apps/finance/web", "result": "PASS"},
+    {"command": "npm test", "cwd": "apps/finance", "result": "PASS", "count": 64},
+    {"command": "npm run security", "cwd": "apps/finance", "result": "PASS", "filesScanned": 242},
+    {"command": "bash apps/finance/scripts/smoke.sh", "result": "PASS"},
+    {"command": "npm run verify:migration-evidence", "cwd": "apps/finance/web", "result": "PASS"},
+    {"command": "go test ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go test -race ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go vet ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
+    {"command": "go build ./apps/finance/cmd/...", "result": "PASS"}
+  ],
+  "truth": {
+    "sourceBundleReproducible": true,
+    "publicDeployed": false,
+    "installedRuntimeVerified": false,
+    "walletApprovalVerified": false,
+    "providerWriteVerified": false,
+    "transactionVerified": false
+  },
+  "rollback": "Revert implementation commit 5dc8f2f6f1d7f5e7d43b60fa0913d1ea30c452a9. No public runtime or persistent state was changed by this source-only correction."
+}
