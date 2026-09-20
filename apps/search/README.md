@@ -37,14 +37,23 @@ or bounded privacy into a stronger claim. The optional AI flow uses
 state. Context preview and explicit consent precede streaming, and citation
 metadata is rejected unless every URL belongs to the retrieved indexed set.
 
-## Staging operations
+## Public Testnet operations
 
 `deploy/` contains the reviewed loopback-only systemd unit, Caddy route and
-environment template. The active Testnet Preview is:
+environment template. The public Testnet Preview is mounted below the YNX Web4
+hub so users do not need an unrelated download or a GitHub account:
 
-- UI: <https://search-staging.43.153.202.237.sslip.io>
-- health/version: <https://search-staging.43.153.202.237.sslip.io/api/health>
+- UI: <https://web4.ynxweb4.com/search/>
+- health/version: <https://web4.ynxweb4.com/search/api/health>
 
-It starts with an empty approved-source inventory. AI, Wallet Gateway and Trust
-remain unavailable until central operators provide their reviewed integrations;
-no secret is stored in this repository.
+The public inventory is seeded only with YNX-owned pages for which the project
+can record indexing authorization. It is not a general-purpose web crawler.
+Search reads can be served concurrently; persistent source, moderation, Wallet
+challenge and audit mutations are serialized through atomic file replacement so
+one process cannot lose a concurrent write. Public queries are rate-limited per
+client. AI, Wallet Gateway and Trust remain explicitly unavailable unless their
+reviewed integrations are configured; no secret is stored in this repository.
+
+The app uses relative assets and API URLs so the same build works at `/` in
+local/evidence runs and at `/search/` behind Caddy. The production process binds
+only to `127.0.0.1`; Caddy owns TLS and strips the `/search` prefix.

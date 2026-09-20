@@ -1,4 +1,4 @@
-import{MESSAGES,resolveLocale}from"/shared-i18n.js";
+import{MESSAGES,resolveLocale}from"./shared-i18n.js";
 export const locales={en:"English","zh-Hans":"简体中文","zh-Hant":"繁體中文",ja:"日本語",ko:"한국어",es:"Español",fr:"Français",de:"Deutsch",pt:"Português",ru:"Русский",ar:"العربية",id:"Bahasa Indonesia"};
 const ui={
 en:{appearance:"Theme",results:"Results",indexedSources:"Indexed sources",allSources:"All authorized sources",publicPreview:"Public testnet preview",answerAI:"Answer with cited AI",fetched:"Fetched",documents:"documents",notIndexed:"not indexed yet"},
