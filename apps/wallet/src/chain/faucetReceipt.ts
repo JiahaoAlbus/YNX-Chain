@@ -37,9 +37,19 @@ export function parseFaucetDurableReceipt(value: unknown, expected: FaucetTransa
   try {
     const binding = data(expected, ["to", "amount"]);
     const tx = bindFaucetTransaction(binding, binding.to, binding.amount);
-    const receipt = data(value, ["ynxDurability", "status", "transactionHash", "from", "to", "contractAddress", "blockNumber", "blockHash", "transactionIndex", "ynxNativeTransaction", "ynxNativeIdentity"]);
+    const receipt = data(value, ["ynxDurability", "status", "transactionHash", "from", "to", "contractAddress", "blockNumber", "blockHash", "transactionIndex", "ynxNativeTransaction"]);
     const proof = parseNativeDurabilityState(receipt.ynxDurability, tx.hash);
-    const identity = exact(receipt.ynxNativeIdentity, ["from", "to", "identityProjection"]);
+    const nativeInput = data(receipt.ynxNativeTransaction);
+    const nativeFields = Object.keys(nativeInput).sort().join();
+    let native: Record<string, any>, identity: Record<string, any>;
+    if (nativeFields === "amountYNXT,feeYNXT,from,identityProjection,nonce,to,type") {
+      if (Object.hasOwn(receipt, "ynxNativeIdentity")) invalid();
+      native = exact(nativeInput, ["amountYNXT", "feeYNXT", "from", "identityProjection", "nonce", "to", "type"]);
+      identity = native;
+    } else if (nativeFields === "amountYNXT,feeYNXT,nonce,type") {
+      native = exact(nativeInput, ["amountYNXT", "feeYNXT", "nonce", "type"]);
+      identity = exact(receipt.ynxNativeIdentity, ["from", "to", "identityProjection"]);
+    } else invalid();
     const projection = exact(identity.identityProjection, Object.keys(SYSTEM_IDENTITY_PROJECTION));
     if (proof.status !== "durable" || receipt.status !== "0x1" || receipt.transactionHash !== tx.hash ||
       receipt.from !== projectedSystemIdentity(tx.from) || receipt.to !== tx.to || receipt.contractAddress !== null ||
@@ -47,13 +57,11 @@ export function parseFaucetDurableReceipt(value: unknown, expected: FaucetTransa
       Object.entries(SYSTEM_IDENTITY_PROJECTION).some(([key, expected]) => projection[key] !== expected) ||
       receipt.blockNumber !== proof.blockNumber || receipt.blockHash !== proof.blockHash) invalid();
     nativeQuantity(receipt.transactionIndex);
-    const native = data(receipt.ynxNativeTransaction);
-    if (Object.keys(native).sort().join() !== "amountYNXT,feeYNXT,nonce,type" || native.type !== "faucet" ||
-      native.amountYNXT !== String(tx.amount) || native.feeYNXT !== "0" || nativeQuantity(native.nonce) !== BigInt(tx.nonce)) invalid();
+    if (native.type !== "faucet" || native.amountYNXT !== String(tx.amount) || native.feeYNXT !== "0" || nativeQuantity(native.nonce) !== BigInt(tx.nonce)) invalid();
     return Object.freeze({ transactionHash: tx.hash, from: receipt.from, to: tx.to, status: "0x1", contractAddress: null,
       transactionIndex: receipt.transactionIndex, blockNumber: proof.blockNumber, blockHash: proof.blockHash,
-      ynxDurability: proof, ynxNativeTransaction: Object.freeze({ ...native }),
-      ynxNativeIdentity: Object.freeze({ from: tx.from, to: tx.to, identityProjection: Object.freeze({ ...projection }) }) });
+      ynxDurability: proof, ynxNativeTransaction: Object.freeze({ amountYNXT: native.amountYNXT, feeYNXT: native.feeYNXT,
+        from: identity.from, identityProjection: Object.freeze({ ...projection }), nonce: native.nonce, to: identity.to, type: native.type }) });
   } catch { return invalid(); }
 }
 

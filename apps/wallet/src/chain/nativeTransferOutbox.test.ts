@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createSignedNativeTransfer, ynxAddressFromEVM } from "@ynx-chain/wallet-auth";
-import { NativeBroadcastUnknown, NativeChainClient } from "./nativeTransfer";
+import { DEFAULT_CHAIN_API, LEGACY_CHAIN_API, NativeBroadcastUnknown, NativeChainClient, nativeChainClientForStoredOrigin } from "./nativeTransfer";
 import { NATIVE_DURABILITY_MODEL } from "./nativeDurability";
 import { NATIVE_OUTBOX_PREFIX, NativeOutboxBlocked, NativeOutboxStorageError, NativeTransferOutbox } from "./nativeTransferOutbox";
 import { WalletOperationLifecycle } from "../security/operationLifecycle";
@@ -174,6 +174,20 @@ test("a changed RPC origin or stale review hash cannot authorize original replay
   const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);await outbox.sendNew(account,client(async()=>{throw new Error("lost")}),noGuard,async()=>signed);let prompts=0;
   await assert.rejects(()=>outbox.retry(account,signed.hash,new NativeChainClient("https://other.example",async()=>response(success())),noGuard,async()=>{prompts++}),/different RPC origin/);
   await assert.rejects(()=>outbox.retry(account,"0x"+"0".repeat(64),client(async()=>response(success())),noGuard,async()=>{prompts++}),NativeOutboxBlocked);assert.equal(prompts,0);
+});
+
+test("a legacy-origin outbox is recovered by exact-origin public reads after the Testnet RPC migration",async()=>{
+  const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);
+  await outbox.sendNew(account,client(async()=>{throw new Error("lost ACK")}),noGuard,async()=>signed);
+  const saved=await outbox.read(account);assert.equal(saved?.origin,LEGACY_CHAIN_API);
+  const calls:string[]=[];
+  const recovery=nativeChainClientForStoredOrigin(saved!.origin,DEFAULT_CHAIN_API,async(url,init)=>{
+    calls.push(url);const {id,method}=JSON.parse(String(init?.body));
+    const values:Record<string,unknown>={eth_chainId:"0x1917",ynx_getDurabilityModel:NATIVE_DURABILITY_MODEL,ynx_getTransactionDurability:receipt().ynxDurability,eth_getTransactionReceipt:receipt()};
+    assert.ok(Object.hasOwn(values,method));return response({jsonrpc:"2.0",id,result:values[method]});
+  });
+  const recovered=await fixtureOutbox(storage).recover(account,recovery,noGuard);
+  assert.equal(recovered?.phase,"accepted");assert.ok(calls.length>=4);assert.ok(calls.every(url=>url===LEGACY_CHAIN_API+"/evm"));
 });
 
 test("unsafe whole-YNXT totals and mismatched locally signed identity stop before any POST",async()=>{

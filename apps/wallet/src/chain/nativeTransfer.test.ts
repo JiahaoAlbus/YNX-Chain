@@ -1,12 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {createSignedNativeTransfer,ynxAddressFromEVM} from "@ynx-chain/wallet-auth";
-import {AccountNotRecordedError,NativeChainClient,NativeReadError,loadNativeChainState} from "./nativeTransfer";
+import {AccountNotRecordedError,DEFAULT_CHAIN_API,LEGACY_CHAIN_API,NativeChainClient,NativeReadError,loadNativeChainState,nativeChainClientForStoredOrigin} from "./nativeTransfer";
 import {NATIVE_DURABILITY_MODEL,NativeDurabilityInvalid} from "./nativeDurability";
 
 const account=ynxAddressFromEVM("0x7e5f4552091a69125d5dfcb7b8c2659029395bdf");
 const recipient=ynxAddressFromEVM("0xffffffffffffffffffffffffffffffffffffffff");
 const signed=createSignedNativeTransfer({accountSecret:"0".repeat(63)+"1",to:recipient,amount:25,nonce:7});
+
+test("stored transfers recover only on the exact current or explicit old/new Testnet RPC profile",()=>{
+  assert.equal(nativeChainClientForStoredOrigin(DEFAULT_CHAIN_API).origin,DEFAULT_CHAIN_API);
+  assert.equal(nativeChainClientForStoredOrigin(LEGACY_CHAIN_API).origin,LEGACY_CHAIN_API);
+  assert.equal(nativeChainClientForStoredOrigin("https://candidate.example","https://candidate.example").origin,"https://candidate.example");
+  assert.throws(()=>nativeChainClientForStoredOrigin("https://other.example"),/not an approved YNX Testnet recovery profile/);
+  assert.throws(()=>nativeChainClientForStoredOrigin("http://rpc.ynxweb4.com"),/not an approved YNX Testnet recovery profile/);
+});
 
 test("native client loads exact account/activity and broadcasts only matching signed result",async()=>{
   const calls:{url:string;init?:RequestInit}[]=[];
@@ -102,6 +110,14 @@ test("read-only RPC retries bounded transient HTTP failures but never retries in
   const invalid=new NativeChainClient("https://rpc-testnet.ynxweb4.com",async(_url,init)=>{invalidCalls++;const request=JSON.parse(String(init?.body));return response({jsonrpc:"2.0",id:request.id,result:"0x1"})});
   await assert.rejects(()=>invalid.requireDurabilityCapability(),NativeDurabilityInvalid);
   assert.equal(invalidCalls,1,"a valid wrong-chain response is evidence, not a transport retry");
+});
+
+test("RPC deadline covers the response body even when native fetch ignores abort",async()=>{
+  let release!:()=>void,calls=0;
+  const client=new NativeChainClient(DEFAULT_CHAIN_API,async(_url,init)=>{calls++;if(calls>1)throw new TypeError("synthetic retry failure");const request=JSON.parse(String(init?.body));return {ok:true,status:200,redirected:false,url:"",text:()=>new Promise<string>(resolve=>{release=resolve.bind(null,JSON.stringify({jsonrpc:"2.0",id:request.id,result:"0x1917"}))})} as Response},5);
+  const pending=client.requireDurabilityCapability();
+  await assert.rejects(()=>pending,(error:unknown)=>error instanceof NativeReadError&&error.code==="NATIVE_READ_UNAVAILABLE");
+  assert.equal(calls,3);release();await Promise.resolve();
 });
 
 function response(value:unknown,status=200){return new Response(JSON.stringify(value),{status,headers:{"Content-Type":"application/json"}})}

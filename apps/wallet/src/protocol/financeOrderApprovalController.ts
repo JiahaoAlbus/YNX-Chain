@@ -46,6 +46,16 @@ export class FinanceOrderApprovalController {
   hasReturn(id: string): boolean { return this.pending?.review.id === id && this.pending.returnURL !== null; }
   canRevoke(id: string): boolean { return this.pending?.review.id === id && this.pending.status === "approved"; }
 
+  /** Uses the authenticated authority clock. Device wall time may schedule this
+   * check, but never decides whether signing remains available. */
+  async isExpired(id: string): Promise<boolean> {
+    const pending = this.requirePending(id), generation = this.generation;
+    this.check(pending, generation);
+    const at = await this.time(() => this.check(pending, generation));
+    this.check(pending, generation);
+    return at.getTime() >= Date.parse(pending.review.request.unsigned.expiresAt);
+  }
+
   async receive(url: string): Promise<FinanceOrderApprovalReview> {
     return this.exclusive(async () => {
       this.healthy(); const generation = this.generation;

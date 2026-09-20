@@ -1,6 +1,6 @@
 import { FaucetClaimController, type FaucetClaimView, type FaucetClaimRPC } from "../chain/faucetClaim";
 import type { FaucetAdmissionTransport } from "../chain/faucetAdmission";
-import { createProductionFaucetSession, NATIVE_FAUCET_AUTHORITY, NATIVE_FAUCET_CHAIN_ORIGIN } from "../chain/faucetNativeSession";
+import { createProductionFaucetSession, LEGACY_FAUCET_AUTHORITY, LEGACY_FAUCET_CHAIN_ORIGIN, NATIVE_FAUCET_AUTHORITY, NATIVE_FAUCET_CHAIN_ORIGIN } from "../chain/faucetNativeSession";
 import { faucetTransportReadiness } from "../../modules/ynx-faucet-transport";
 import { WalletOperationCancelled, WalletOperationLifecycle, type WalletOperationLease } from "../security/operationLifecycle";
 import type { SecureStorageHealth } from "../storage/secureStorageHealth";
@@ -37,10 +37,12 @@ type Attempt = { lease: WalletOperationLease; abort: AbortController; timer: Ret
 export class FaucetFlow {
   private readonly scope;
   private readonly local: FaucetClaimController;
+  private readonly legacyLocal: FaucetClaimController;
   private readonly configuration: FaucetConfiguration | null;
   private readonly listeners = new Set<() => void>();
   private current: Attempt | null = null;
   private persistenceFailed = false;
+  private legacyBlocked = false;
   private attached = false;
   private detachListeners: (() => void) | null = null;
   private state: FaucetFlowState;
@@ -55,6 +57,7 @@ export class FaucetFlow {
     this.configuration = config && Number.isSafeInteger(config.amount) && config.amount > 0
       ? Object.freeze({ amount: config.amount, createSession: config.createSession }) : null;
     this.local = this.controller();
+    this.legacyLocal = this.controller(undefined, undefined, true);
     this.state = Object.freeze({ phase: "closed", busy: null, view: null, error: null, available: this.configuration !== null });
   }
 
@@ -95,7 +98,10 @@ export class FaucetFlow {
       this.guard(attempt);
       this.publish({ phase: "loading", view: null, error: null });
       this.guard(attempt);
-      const view = await this.local.read(); this.guard(attempt); this.publish({ phase: "ready", view });
+      const current = await this.local.read(); this.guard(attempt); const legacy = await this.legacyLocal.read(); this.guard(attempt);
+      if(current.entry&&legacy.entry)throw new Error("Multiple Faucet authority requests require recovery");
+      this.legacyBlocked=!!legacy.entry;const view=legacy.entry?legacy:current;
+      this.publish({ phase: "ready", view, available: this.configuration !== null&&!this.legacyBlocked, error: this.legacyBlocked?"unavailable":null });
     }
     catch { if (this.owns(attempt)) this.publish({ phase: "failed", error: "read" }); }
     finally { this.finish(attempt); }
@@ -115,7 +121,7 @@ export class FaucetFlow {
   }
 
   allowed(action: FaucetAction): boolean {
-    if (!this.attached || this.current || this.persistenceFailed || this.state.phase !== "ready" || !this.state.available || !this.configuration ||
+    if (!this.attached || this.current || this.persistenceFailed || this.legacyBlocked || this.state.phase !== "ready" || !this.state.available || !this.configuration ||
         this.dependencies.health.requiresRestart || !this.dependencies.operations.isUnlocked() ||
         this.dependencies.operations.selectedAccount() !== this.dependencies.account) return false;
     const view = this.state.view, entry = view?.entry;
@@ -182,10 +188,10 @@ export class FaucetFlow {
     } finally { entropy?.fill(0); this.finish(attempt); }
   }
 
-  private controller(session?: Session, randomBytes?: (length: number) => Uint8Array): FaucetClaimController {
+  private controller(session?: Session, randomBytes?: (length: number) => Uint8Array, legacy=false): FaucetClaimController {
     return new FaucetClaimController(this.dependencies.storage,
-      { authority: NATIVE_FAUCET_AUTHORITY, chainId: "0x1917", recipient: this.dependencies.account },
-      NATIVE_FAUCET_CHAIN_ORIGIN, { rpc: session?.rpc, transport: session?.transport, randomBytes });
+      { authority: legacy?LEGACY_FAUCET_AUTHORITY:NATIVE_FAUCET_AUTHORITY, chainId: "0x1917", recipient: this.dependencies.account },
+      legacy?LEGACY_FAUCET_CHAIN_ORIGIN:NATIVE_FAUCET_CHAIN_ORIGIN, { rpc: session?.rpc, transport: session?.transport, randomBytes });
   }
   private begin(busy: NonNullable<FaucetFlowState["busy"]>): Attempt | null {
     if (!this.attached || this.current || this.persistenceFailed || this.dependencies.health.requiresRestart) return null;

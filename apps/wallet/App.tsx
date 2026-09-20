@@ -12,7 +12,7 @@ import {
   createSignedNativeTransfer, evmAddressFromYNX, walletIdentity, ynxAddressFromEVM,
 } from "@ynx-chain/wallet-auth";
 import { GatewaySecurityReviewProvider, SecurityReviewController, type ReviewSnapshot } from "./src/ai/securityReview";
-import { NativeChainClient, loadNativeChainState, isNativeReadCancelled, type NativeChainState } from "./src/chain/nativeTransfer";
+import { NativeChainClient, loadNativeChainState, isNativeReadCancelled, nativeChainClientForStoredOrigin, type NativeChainState } from "./src/chain/nativeTransfer";
 import { networkRecoveryCopy } from "./src/i18n/networkRecoveryCopy";
 import { NativeTransferOutbox, type NativeTransferOutboxEntry } from "./src/chain/nativeTransferOutbox";
 import { createPaymentURI, PaymentRequestError } from "./src/chain/paymentRequest";
@@ -62,6 +62,7 @@ const repository=new WalletRepository(platformSecureStorage);
 const nativeOutbox=new NativeTransferOutbox(platformSecureStorage);
 const authorizationAudit=new AuthorizationAuditStore(platformSecureStorage);
 function chainClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new NativeChainClient(runtime?.baseURL)}
+function storedChainClient(origin:string){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return nativeChainClientForStoredOrigin(origin,runtime?.baseURL)}
 function evmSimulationClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new EvmSimulationClient(runtime?.evmRpcURL??runtime?.baseURL)}
 function walletSessionInventoryClient(){return new WalletSessionInventoryClient({fetch:(input,init)=>fetch(input,init),randomBytes:getRandomBytesAsync,authorize:authorizeLocalKeyUse,accountSecret:(account,assertCurrent)=>repository.accountSecret(account,assertCurrent,{allowLegacyMigration:true})})}
 
@@ -381,7 +382,7 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
       setStored(value?.phase==="done"?null:value);setLoaded(true);
       if(value&&value.phase!=="done"&&value.phase!=="accepted"){
         lease=scope.begin({account:account.account});const activeLease=lease;setBusy(true);
-        const recovered=await nativeOutbox.recover(account.account,chainClient(),activeLease.assert);
+        const recovered=await nativeOutbox.recover(account.account,storedChainClient(value.origin),activeLease.assert);
         if(current&&activeLease.isCurrent()){setStored(recovered?.phase==="done"?null:recovered);if(recovered?.phase==="accepted")setError(null)}
       }
     }catch(caught){if(current&&(!lease||lease.isCurrent()))setError(message(caught))}finally{if(current&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}})();
@@ -398,7 +399,7 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
   const changeAmount=(value:string)=>{cancelInput();setAmount(value);setReview(false);setError(null)};
   let valid=false;try{valid=evmAddressFromYNX(to)!==evmAddressFromYNX(account.account)&&/^\d+$/.test(amount)&&Number.isSafeInteger(Number(amount)+1)&&Number(amount)>0}catch{valid=false}
   const act=async(mode:"new"|"retry"|"done"|"check")=>{let lease:WalletOperationLease|undefined;setBusy(true);setError(null);const request=Object.freeze({account:account.account,accountPublicKey:account.accountPublicKey,to,amount:Number(amount)});
-    try{lease=scope.begin({account:request.account});const activeLease=lease,client=chainClient();let result:NativeTransferOutboxEntry;
+    try{lease=scope.begin({account:request.account});const activeLease=lease,client=stored&&mode!=="new"?storedChainClient(stored.origin):chainClient();let result:NativeTransferOutboxEntry;
       if(mode==="done"){
         if(!stored)throw new Error("Stored transfer is unavailable");
         result=await nativeOutbox.acknowledge(request.account,stored.hash,activeLease.assert);
@@ -622,7 +623,8 @@ function CardApprovalModal({locale,review,controller,close,onReturned}:{locale:W
 function FinanceOrderApprovalModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:FinanceOrderApprovalReview;controller:FinanceOrderApprovalController;close:()=>void;onReturned:()=>void}){
   const {request,account:selected}=review,approval=request.unsigned,order=approval.order;
   const scope=useOperationScope(true,selected.account);
-  const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[returnReady,setReturnReady]=useState(()=>controller.hasReturn(review.id)),[revocable,setRevocable]=useState(()=>controller.canRevoke(review.id));
+  const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[expired,setExpired]=useState(false),[returnReady,setReturnReady]=useState(()=>controller.hasReturn(review.id)),[revocable,setRevocable]=useState(()=>controller.canRevoke(review.id));
+  useEffect(()=>{let active=true,timer:ReturnType<typeof setTimeout>|undefined;const refresh=async()=>{try{const value=await controller.isExpired(review.id);if(active)setExpired(value)}catch(caught){if(active)setError(localizeError(locale,caught))}};void refresh();const delay=Math.max(0,Date.parse(approval.expiresAt)-Date.now())+50;timer=setTimeout(()=>void refresh(),Math.min(delay,2_147_483_647));return()=>{active=false;if(timer)clearTimeout(timer)}},[approval.expiresAt,controller,locale,review.id]);
   const decide=async(action:"approve"|"reject"|"retryReturn"|"revokeUnused")=>{
     if(busy||controller.current?.id!==review.id)return;
     let lease:WalletOperationLease;try{lease=scope.begin({account:selected.account,requireUnlocked:false})}catch{return}
@@ -647,10 +649,12 @@ function FinanceOrderApprovalModal({locale,review,controller,close,onReturned}:{
     <ReviewRow label={financeOrderApprovalCopy(locale,"price")} value={order.limitPrice+" USD"}/>
     <ReviewRow label={financeOrderApprovalCopy(locale,"limits")} value={order.maxCost+" USD / "+order.maxFee+" USD\n"+order.feeBoundSource}/>
     <ReviewRow label={financeOrderApprovalCopy(locale,"session")} value="DAY · regular hours only"/>
+    <ReviewRow label={financeOrderApprovalCopy(locale,"bindings")} value={`Chain: ${approval.chainId}\nAccount key: ${approval.accountPublicKey}\nRequest: ${approval.requestId}\nChallenge: ${approval.challengeId}\nNonce: ${approval.nonce}\nOrder hash: ${approval.orderHash}\nCallback state: ${approval.callbackStateHash}\nApproval digest: ${review.id}`}/>
     <ReviewRow label={translate(locale,"expires")} value={formatDateTime(locale,approval.expiresAt)}/>
+    {expired?<Text style={styles.error}>{financeOrderApprovalCopy(locale,"expired")}</Text>:null}
     <Text style={styles.scopeExplain}>{financeOrderApprovalCopy(locale,"revokeBoundary")}</Text>
     {error?<><Text style={styles.error}>{error}</Text><RecoveryRequiredNotice error={error}/><SecondaryButton label={authorizationCopy(locale,"closeRequest")} disabled={busy} onPress={close}/></>:null}
-    {returnReady?<View style={styles.approvalButtons}><SecondaryButton label={authorizationCopy(locale,"retryReturn")} disabled={busy} onPress={()=>void decide("retryReturn")}/>{revocable?<Button label={financeOrderApprovalCopy(locale,"revoke")} disabled={busy} onPress={()=>void decide("revokeUnused")}/>:null}</View>:<View style={styles.approvalButtons}><SecondaryButton label={translate(locale,"reject")} disabled={busy} onPress={()=>void decide("reject")}/><Button label={financeOrderApprovalCopy(locale,"approve")} disabled={busy} onPress={()=>void decide("approve")}/></View>}
+    {expired?<SecondaryButton label={authorizationCopy(locale,"closeRequest")} disabled={busy} onPress={close}/>:returnReady?<View style={styles.approvalButtons}><SecondaryButton label={authorizationCopy(locale,"retryReturn")} disabled={busy} onPress={()=>void decide("retryReturn")}/>{revocable?<Button label={financeOrderApprovalCopy(locale,"revoke")} disabled={busy} onPress={()=>void decide("revokeUnused")}/>:null}</View>:<View style={styles.approvalButtons}><SecondaryButton label={translate(locale,"reject")} disabled={busy} onPress={()=>void decide("reject")}/><Button label={financeOrderApprovalCopy(locale,"approve")} disabled={busy} onPress={()=>void decide("approve")}/></View>}
   </Sheet></Modal>
 }
 
