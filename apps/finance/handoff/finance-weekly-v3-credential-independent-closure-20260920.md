@@ -1,10 +1,10 @@
 # Finance weekly-v3 credential-independent closure — 2026-09-20
 
-The current source closes the independently executable draft → approval → durable outbox → idempotent execution request → isolated provider submission → status → filled reconciliation → restart-readback lifecycle. The exact end-to-end fixture passed 20 consecutive race-enabled runs. Full Finance/command race tests, vet, builds, 49 Web tests and the 222-file security scan also pass.
+The current source closes the independently executable draft → approval → durable outbox → idempotent execution request → isolated provider submission → status → filled reconciliation → restart-readback lifecycle. The exact end-to-end fixture passed 20 consecutive race-enabled runs. Full Finance/command race tests, vet, builds and 49 Web tests also pass. The security scan passed across 222 text files at source/base `30a9f1ac9b03df7f4fc71dae1baa506956a06f9f`; it passed across 224 text files at the closure PR head because that head adds exactly this JSON evidence and handoff document.
 
 Recent lifecycle fences are included: an order cannot advance after its mapped Wallet key rotates or becomes empty, including the production combined callback path; an execution idempotency key cannot cross orders; status refresh is separate from account-wide reconciliation; and an unclassified provider outcome remains `submitted_unknown` so it cannot be submitted twice.
 
-There is no remaining credential-independent implementation gap presently identified in this weekly-v3 lifecycle. This is not public or official-Sandbox completion. The live `/version` still identifies `c20709da38bc2a4823efb9870046b6afb7775992`, while the reviewed current main baseline is `30a9f1ac9b03df7f4fc71dae1baa506956a06f9f`; therefore the latest source is not source-bound to the public runtime.
+There is no remaining credential-independent implementation gap presently identified in this weekly-v3 lifecycle. This is not public or official-Sandbox completion. A fresh read-only public capture at `2026-09-20T10:56:29Z` shows that live `/version` still identifies `c20709da38bc2a4823efb9870046b6afb7775992`, while the reviewed current main baseline is `30a9f1ac9b03df7f4fc71dae1baa506956a06f9f`; therefore the latest source is not source-bound to the public runtime.
 
 ## External inputs still required
 
