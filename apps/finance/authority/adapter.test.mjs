@@ -6,6 +6,7 @@ import path from 'node:path';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
+import {DatabaseSync} from 'node:sqlite';
 import {AUTHORITY_V2_REPOSITORY,AUTHORITY_V2_URLS,authorityV2SigningMessage} from '../../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft} from '../../../scripts/ops/endpoint-authority-v2.mjs';
 import {resolveFinanceBrowserAuthorityConfig,resolveFinancePrivateAuthority} from './adapter.mjs';
@@ -36,7 +37,7 @@ function signed({sequence=1,previousPayloadSha256='0'.repeat(64),origin=consumer
 async function fixture(t,{manifest=signed(),trustedTimeMs=nowMs}={}){
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'ynx-finance-authority-v2-'));
   t.after(()=>fs.rm(dir,{recursive:true,force:true}));
-  const files={trustRootFile:path.join(dir,'trust-root.json'),manifestFile:path.join(dir,'manifest.json'),checkpointFile:path.join(dir,'checkpoint.json'),trustedTimeFile:path.join(dir,'trusted-time.json')};
+  const files={trustRootFile:path.join(dir,'trust-root.json'),manifestFile:path.join(dir,'manifest.json'),checkpointFile:path.join(dir,'checkpoint.sqlite'),trustedTimeFile:path.join(dir,'trusted-time.json')};
   await Promise.all([fs.writeFile(files.trustRootFile,JSON.stringify(root)),fs.writeFile(files.manifestFile,JSON.stringify(manifest)),fs.writeFile(files.trustedTimeFile,JSON.stringify({schemaVersion:'ynx-trusted-time/v1',unixTimeMs:trustedTimeMs}))]);
   const env=Object.fromEntries(Object.entries(files).map(([name,value])=>[`YNX_FINANCE_ENDPOINT_AUTHORITY_V2_${name.replace(/File$/,'').replace(/[A-Z]/g,letter=>'_'+letter).toUpperCase()}_FILE`,value]));
   return {dir,files,env,manifest};
@@ -56,7 +57,7 @@ test('exact signed Finance v2 selects only Wallet Gateway and keeps provider fla
   const value=await fixture(t);
   const authority=await resolveFinancePrivateAuthority({env:value.env});
   assert.deepEqual(authority,{walletGateway:'https://wallet-auth.ynxweb4.com',financeOrigin:'https://finance.ynxweb4.com',manifestVersion:'2.0.0.1',payloadSha256:value.manifest.integrity.payloadSha256,officialSandboxVerified:false,providerVerified:false,productionApproved:false});
-  const persisted=JSON.parse(await fs.readFile(value.files.checkpointFile,'utf8'));
+  const persisted=await createNodeCheckpointStore({file:value.files.checkpointFile,anchor:root.anchor,trustedClockMs:nowMs}).inspect();
   assert.equal(persisted.checkpoint.sequence,1);assert.equal(persisted.trustedClockHighWaterMs,nowMs);
 });
 
@@ -82,27 +83,42 @@ test('origin, signature, clock rollback and storage loss/equivocation fail close
 
 test('node checkpoint CAS serializes competing process views',async t=>{
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'ynx-finance-checkpoint-cas-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
-  const file=path.join(dir,'checkpoint.json'),anchor=copy(root.anchor),nextA={rootVersion:1,sequence:1,payloadSha256:'a'.repeat(64)},nextB={rootVersion:1,sequence:1,payloadSha256:'b'.repeat(64)};
+  const file=path.join(dir,'checkpoint.sqlite'),anchor=copy(root.anchor),nextA={rootVersion:1,sequence:1,payloadSha256:'a'.repeat(64)},nextB={rootVersion:1,sequence:1,payloadSha256:'b'.repeat(64)};
   const stores=[1,2].map(()=>createNodeCheckpointStore({file,anchor,trustedClockMs:nowMs}));
   const results=await Promise.all([stores[0].compareAndSwap(anchor,nextA),stores[1].compareAndSwap(anchor,nextB)]);
   assert.equal(results.filter(Boolean).length,1);
   assert.ok([nextA.payloadSha256,nextB.payloadSha256].includes((await stores[0].read()).payloadSha256));
 });
 
-test('node checkpoint recovers an identity-bound orphan lock owned by a dead process',async t=>{
-  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'ynx-finance-checkpoint-orphan-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
-  const file=path.join(dir,'checkpoint.json'),nonce='11111111-1111-4111-8111-111111111111',owner={pid:2147483647,startedAtMs:nowMs,nonce,tempBasename:`.checkpoint-lock-2147483647-${nonce}.tmp`};
-  await fs.writeFile(file+'.lock',JSON.stringify(owner)+'\n',{mode:0o600});
-  const store=createNodeCheckpointStore({file,anchor:copy(root.anchor),trustedClockMs:nowMs}),next={rootVersion:1,sequence:1,payloadSha256:'a'.repeat(64)};
-  assert.equal(await store.compareAndSwap(root.anchor,next),true);assert.deepEqual(await store.read(),next);await assert.rejects(fs.stat(file+'.lock'),error=>error.code==='ENOENT');
+test('SQLite initialization fails closed before commit and repairs a missing marker after commit',async t=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'ynx-finance-checkpoint-init-crash-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const before=path.join(dir,'before.sqlite'),after=path.join(dir,'after.sqlite'),marker=file=>file+'.initialized';
+  const seed=file=>{const database=new DatabaseSync(file);database.exec('CREATE TABLE authority_checkpoint (singleton INTEGER PRIMARY KEY CHECK(singleton=1), envelope TEXT NOT NULL)');return database;};
+  await fs.writeFile(marker(before),'ynx-finance-endpoint-authority-checkpoint/v1\n');seed(before).close();
+  await assert.rejects(createNodeCheckpointStore({file:before,anchor:copy(root.anchor),trustedClockMs:nowMs}).read(),/CHECKPOINT_LOST/);
+  const database=seed(after),next={rootVersion:1,sequence:1,payloadSha256:'c'.repeat(64)};
+  database.prepare('INSERT INTO authority_checkpoint(singleton,envelope) VALUES(1,?)').run(JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-checkpoint/v1',checkpoint:next,trustedClockHighWaterMs:nowMs}));database.close();
+  const store=createNodeCheckpointStore({file:after,anchor:copy(root.anchor),trustedClockMs:nowMs});
+  assert.deepEqual(await store.read(),next);
+  const markerStat=await fs.stat(marker(after));assert.equal(markerStat.isFile(),true);assert.equal(markerStat.nlink,1);
 });
 
-test('eight processes concurrently recover one orphan lock without ENOENT or replacement races',async t=>{
+test('SQLite checkpoint transaction releases its OS lock and rolls back after verifier SIGKILL',async t=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'ynx-finance-checkpoint-crash-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const workerFile=path.join(dir,'crash-worker.mjs');
+  await fs.writeFile(workerFile,`import fs from 'node:fs';import {DatabaseSync} from 'node:sqlite';const [file,ready,mode]=process.argv.slice(2),db=new DatabaseSync(file);db.exec('PRAGMA busy_timeout=3000; BEGIN IMMEDIATE');if(mode==='after-update')db.prepare('UPDATE authority_checkpoint SET envelope=? WHERE singleton=1').run(JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-checkpoint/v1',checkpoint:{rootVersion:1,sequence:99,payloadSha256:'f'.repeat(64)},trustedClockHighWaterMs:${nowMs}}));fs.writeFileSync(ready,'ready');setInterval(()=>{},1000);`);
+  for(const mode of ['after-begin','after-update']){
+    const file=path.join(dir,mode+'.sqlite'),ready=file+'.ready',store=createNodeCheckpointStore({file,anchor:copy(root.anchor),trustedClockMs:nowMs}),one={rootVersion:1,sequence:1,payloadSha256:'a'.repeat(64)},two={rootVersion:1,sequence:2,payloadSha256:'b'.repeat(64)};
+    assert.equal(await store.compareAndSwap(root.anchor,one),true);
+    const child=spawn(process.execPath,[workerFile,file,ready,mode],{stdio:'ignore'});for(let attempt=0;attempt<1000;attempt++){try{await fs.stat(ready);break}catch(error){if(error.code!=='ENOENT')throw error;if(attempt===999)throw new Error('crash worker not ready');await new Promise(resolve=>setTimeout(resolve,2));}}
+    child.kill('SIGKILL');await new Promise(resolve=>child.once('close',resolve));assert.deepEqual(await store.read(),one);assert.equal(await store.compareAndSwap(one,two),true);assert.deepEqual(await store.read(),two);
+  }
+});
+
+test('eight processes serialize checkpoint CAS without lock-file recovery races',async t=>{
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'ynx-finance-checkpoint-race-')),rounds=20,workers=8;t.after(()=>fs.rm(dir,{recursive:true,force:true}));
   const moduleURL=pathToFileURL(path.resolve('apps/finance/authority/checkpoint-node.mjs')).href,workerFile=path.join(dir,'worker.mjs'),barriers=path.join(dir,'barrier');
-  await fs.writeFile(workerFile,`import fs from 'node:fs/promises';import {createNodeCheckpointStore} from ${JSON.stringify(moduleURL)};const [base,barriers,rounds,index]=process.argv.slice(2);const anchor={rootVersion:1,sequence:0,payloadSha256:'0'.repeat(64)},out=[];for(let r=0;r<Number(rounds);r++){await fs.writeFile(barriers+'.'+r+'.ready.'+index,'');while(true){try{await fs.stat(barriers+'.'+r+'.go');break}catch(error){if(error.code!=='ENOENT')throw error;await new Promise(resolve=>setTimeout(resolve,2));}}try{out.push(await createNodeCheckpointStore({file:base+'.'+r+'.json',anchor,trustedClockMs:${nowMs}}).compareAndSwap(anchor,{rootVersion:1,sequence:1,payloadSha256:String(index).repeat(64)}));}catch(error){out.push({error:error.code??error.message});}}process.stdout.write(JSON.stringify(out));`);
-  const dead={pid:2147483647,startedAtMs:nowMs,nonce:'11111111-1111-4111-8111-111111111111',tempBasename:'.checkpoint-lock-2147483647-11111111-1111-4111-8111-111111111111.tmp'};
-  for(let round=0;round<rounds;round++)await fs.writeFile(path.join(dir,`checkpoint.${round}.json.lock`),JSON.stringify(dead)+'\n',{mode:0o600});
+  await fs.writeFile(workerFile,`import fs from 'node:fs/promises';import {createNodeCheckpointStore} from ${JSON.stringify(moduleURL)};const [base,barriers,rounds,index]=process.argv.slice(2);const anchor={rootVersion:1,sequence:0,payloadSha256:'0'.repeat(64)},out=[];for(let r=0;r<Number(rounds);r++){await fs.writeFile(barriers+'.'+r+'.ready.'+index,'');while(true){try{await fs.stat(barriers+'.'+r+'.go');break}catch(error){if(error.code!=='ENOENT')throw error;await new Promise(resolve=>setTimeout(resolve,2));}}try{out.push(await createNodeCheckpointStore({file:base+'.'+r+'.sqlite',anchor,trustedClockMs:${nowMs}}).compareAndSwap(anchor,{rootVersion:1,sequence:1,payloadSha256:String(index).repeat(64)}));}catch(error){out.push({error:error.code??error.message});}}process.stdout.write(JSON.stringify(out));`);
   const children=Array.from({length:workers},(_,index)=>new Promise((resolve,reject)=>{const child=spawn(process.execPath,[workerFile,path.join(dir,'checkpoint'),barriers,String(rounds),String(index)],{stdio:['ignore','pipe','pipe']});let stdout='',stderr='';child.stdout.on('data',value=>stdout+=value);child.stderr.on('data',value=>stderr+=value);child.on('error',reject);child.on('close',code=>code===0?resolve(JSON.parse(stdout)):reject(new Error(`worker ${index} rc=${code}: ${stderr}`)));}));
   for(let round=0;round<rounds;round++){
     for(let attempt=0;attempt<1000;attempt++){const names=await fs.readdir(dir),ready=names.filter(name=>name.startsWith(`barrier.${round}.ready.`)).length;if(ready===workers)break;if(attempt===999)throw new Error(`workers not ready for round ${round}`);await new Promise(resolve=>setTimeout(resolve,2));}
@@ -118,5 +134,5 @@ test('authority JSON and checkpoint reads reject symlink substitution',async t=>
   await assert.rejects(resolveFinancePrivateAuthority({env:value.env}),/FILE_IDENTITY_INVALID/);
   await fs.rm(value.files.trustRootFile);await fs.writeFile(value.files.trustRootFile,JSON.stringify(root));await resolveFinancePrivateAuthority({env:value.env});
   await fs.rm(value.files.checkpointFile);await fs.symlink(target,value.files.checkpointFile);
-  await assert.rejects(resolveFinancePrivateAuthority({env:value.env}),/FILE_IDENTITY_INVALID/);
+  await assert.rejects(resolveFinancePrivateAuthority({env:value.env}),/CHECKPOINT_IDENTITY_INVALID/);
 });

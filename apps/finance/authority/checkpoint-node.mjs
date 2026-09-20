@@ -1,11 +1,11 @@
 import fs from 'node:fs/promises';
-import {constants} from 'node:fs';
-import {randomUUID} from 'node:crypto';
+import {closeSync,constants,fstatSync,fsyncSync,openSync,writeFileSync} from 'node:fs';
 import path from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import {canonicalAuthorityV2} from '../../../sdk/js/endpoint-authority-v2.js';
 
 const SCHEMA='ynx-finance-endpoint-authority-checkpoint/v1';
-const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const TABLE='authority_checkpoint';
 const clone=value=>JSON.parse(canonicalAuthorityV2(value));
 const same=(a,b)=>canonicalAuthorityV2(a)===canonicalAuthorityV2(b);
 
@@ -32,127 +32,80 @@ async function readRegularJSON(file,{missing}={}){
   }finally{await handle.close();}
 }
 
-async function durableReplace(file,value){
-  const directory=path.dirname(file),temporary=path.join(directory,`.${path.basename(file)}.${process.pid}.${Date.now()}.tmp`);
-  await fs.mkdir(directory,{recursive:true,mode:0o700});
-  const handle=await fs.open(temporary,'wx',0o600);
-  try{await handle.writeFile(JSON.stringify(value)+'\n');await handle.sync();}finally{await handle.close();}
-  await fs.rename(temporary,file);
-  const dir=await fs.open(directory,'r');try{await dir.sync();}finally{await dir.close();}
-}
-
-async function readLock(lock){
+async function regularFileState(file){
   let handle;
-  try{handle=await fs.open(lock,constants.O_RDONLY|constants.O_NOFOLLOW);}catch(error){if(error?.code==='ELOOP')throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_IDENTITY_INVALID');throw error;}
-  try{
-    const stat=await handle.stat();
-    if(stat.nlink===0){const error=new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_CHANGED');error.code='EAGAIN';throw error;}
-    if(!stat.isFile()||stat.nlink>3||stat.size<2||stat.size>4096)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_IDENTITY_INVALID');
-    const raw=await handle.readFile('utf8');if(Buffer.byteLength(raw)!==stat.size)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_CHANGED');
-    const owner=JSON.parse(raw);
-    if(!owner||Object.keys(owner).sort().join(',')!=='nonce,pid,startedAtMs,tempBasename'||!Number.isSafeInteger(owner.pid)||owner.pid<1||!Number.isSafeInteger(owner.startedAtMs)||owner.startedAtMs<0||typeof owner.nonce!=='string'||!/^[a-f0-9-]{36}$/.test(owner.nonce)||owner.tempBasename!==`.checkpoint-lock-${owner.pid}-${owner.nonce}.tmp`)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_INVALID');
-    return {owner,raw,stat};
-  }finally{await handle.close();}
+  try{handle=await fs.open(file,constants.O_RDONLY|constants.O_NOFOLLOW);}catch(error){if(error?.code==='ENOENT')return false;if(error?.code==='ELOOP')throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_IDENTITY_INVALID');throw error;}
+  try{const stat=await handle.stat();if(!stat.isFile()||stat.nlink!==1)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_IDENTITY_INVALID');return true;}finally{await handle.close();}
 }
 
-function processAlive(pid){try{process.kill(pid,0);return true;}catch(error){if(error?.code==='ESRCH')return false;if(error?.code==='EPERM')return true;throw error;}}
-function sameIdentity(a,b){return a.dev===b.dev&&a.ino===b.ino&&a.size===b.size;}
-async function recoveryClaims(lock){const prefix=path.basename(lock)+'.recovery-';return (await fs.readdir(path.dirname(lock))).filter(name=>name.startsWith(prefix));}
-
-async function retireLock(lock,observed){
-  const claim=`${lock}.recovery-${observed.stat.dev}-${observed.stat.ino}`;
-  try{await fs.link(lock,claim);}catch(error){if(error?.code==='ENOENT'||error?.code==='EEXIST')return false;throw error;}
-  const claimed=await readLock(claim);
-  if(!sameIdentity(observed.stat,claimed.stat)||claimed.raw!==observed.raw)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_SUBSTITUTED');
-  try{
-    const current=await readLock(lock);
-    if(!sameIdentity(observed.stat,current.stat)||current.raw!==observed.raw)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_SUBSTITUTED');
-    await fs.unlink(lock);
-  }catch(error){if(error?.code!=='ENOENT')throw error;}
-  const temporary=path.join(path.dirname(lock),claimed.owner.tempBasename);
-  try{
-    const temporaryStat=await fs.lstat(temporary);
-    if(!temporaryStat.isFile()||!sameIdentity(claimed.stat,temporaryStat))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_TEMP_INVALID');
-    await fs.unlink(temporary);
-  }catch(error){if(error?.code!=='ENOENT')throw error;}
-  const finalStat=await fs.lstat(claim);
-  if(!finalStat.isFile()||finalStat.nlink!==1||!sameIdentity({...claimed.stat,nlink:1},finalStat))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_CHANGED');
-  await fs.unlink(claim);
-  return true;
+async function markerExists(marker){
+  let handle;
+  try{handle=await fs.open(marker,constants.O_RDONLY|constants.O_NOFOLLOW);}catch(error){if(error?.code==='ENOENT')return false;if(error?.code==='ELOOP')throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_MARKER_INVALID');throw error;}
+  try{const stat=await handle.stat();if(!stat.isFile()||stat.nlink!==1)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_MARKER_INVALID');return true;}finally{await handle.close();}
 }
 
-async function abandonOwnedLock(lock,observed){
-  const guard=`${lock}.abandoned-${process.pid}-${randomUUID()}`;
-  await fs.link(lock,guard);
-  try{
-    const claimed=await readLock(guard),current=await readLock(lock);
-    if(!sameIdentity(observed.stat,claimed.stat)||!sameIdentity(observed.stat,current.stat)||claimed.raw!==observed.raw||current.raw!==observed.raw)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_SUBSTITUTED');
-    await fs.unlink(lock);
-  }finally{
-    await fs.unlink(guard).catch(()=>{});
-  }
-}
-
-async function acquireLock(lock){
-  if((await recoveryClaims(lock)).length!==0){const error=new Error('lock recovery active');error.code='EEXIST';throw error;}
-  const nonce=randomUUID(),owner={pid:process.pid,startedAtMs:Date.now(),nonce,tempBasename:`.checkpoint-lock-${process.pid}-${nonce}.tmp`};
-  const temporary=path.join(path.dirname(lock),owner.tempBasename),raw=JSON.stringify(owner)+'\n';
-  const handle=await fs.open(temporary,'wx',0o600);
-  try{await handle.writeFile(raw);await handle.sync();}finally{await handle.close();}
-  try{await fs.link(temporary,lock);}catch(error){await fs.unlink(temporary).catch(()=>{});throw error;}
-  await fs.unlink(temporary);
-  const observed=await readLock(lock);
-  if(observed.raw!==raw||observed.owner.pid!==process.pid||observed.owner.nonce!==nonce)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_SUBSTITUTED');
-  if((await recoveryClaims(lock)).length!==0){await abandonOwnedLock(lock,observed);const error=new Error('lock recovery active');error.code='EEXIST';throw error;}
-  return observed;
-}
-
-async function withLock(file,action){
-  const lock=file+'.lock';
+async function openDatabase(file,marker){
   await fs.mkdir(path.dirname(file),{recursive:true,mode:0o700});
-  for(let attempt=0;attempt<80;attempt++){
-    let owned;
-    try{owned=await acquireLock(lock);}catch(error){
+  const exists=await regularFileState(file);
+  if(!exists&&await markerExists(marker))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOST');
+  let database;
+  try{
+    database=new DatabaseSync(file);
+    database.exec(`PRAGMA busy_timeout=5000; PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS ${TABLE} (singleton INTEGER PRIMARY KEY CHECK(singleton=1), envelope TEXT NOT NULL);`);
+  }catch(error){database?.close();throw Object.assign(new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_DATABASE_INVALID'),{cause:error});}
+  if(!await regularFileState(file)){database.close();throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_IDENTITY_INVALID');}
+  if(database.prepare(`SELECT 1 AS present FROM ${TABLE} WHERE singleton=1`).get()&&!await markerExists(marker))ensureMarker(marker);
+  return database;
+}
+
+function readEnvelope(database,initial,at,initialized=false){
+  const row=database.prepare(`SELECT envelope FROM ${TABLE} WHERE singleton=1`).get();
+  if(!row){if(initialized)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOST');return initial;}
+  let value;try{value=JSON.parse(row.envelope);}catch{throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');}
+  if(!value||Object.keys(value).sort().join(',')!=='checkpoint,schemaVersion,trustedClockHighWaterMs'||value.schemaVersion!==SCHEMA)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');
+  const checked=envelope(value.checkpoint,value.trustedClockHighWaterMs);
+  if(at()<checked.trustedClockHighWaterMs)throw new Error('AUTHORITY_V2_CLOCK_ROLLBACK');
+  return checked;
+}
+
+function ensureMarker(marker){
+  let descriptor;
+  try{
+    try{
+      descriptor=openSync(marker,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);
+      writeFileSync(descriptor,SCHEMA+'\n');fsyncSync(descriptor);
+    }catch(error){
       if(error?.code!=='EEXIST')throw error;
-      let observed;
-      try{observed=await readLock(lock);}catch(readError){if(readError?.code==='ENOENT'||readError?.code==='EAGAIN'){await wait(1);continue;}throw readError;}
-      if(!processAlive(observed.owner.pid)){await retireLock(lock,observed);continue;}
-      await wait(10);continue;
+      if(descriptor!==undefined){closeSync(descriptor);descriptor=undefined;}
+      try{descriptor=openSync(marker,constants.O_RDONLY|constants.O_NOFOLLOW);}catch{throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_MARKER_INVALID');}
     }
-    try{return await action();}finally{if(!await retireLock(lock,owned))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_LOST');}
+    const stat=fstatSync(descriptor);
+    if(!stat.isFile()||stat.nlink!==1)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_MARKER_INVALID');
   }
-  throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_TIMEOUT');
+  finally{if(descriptor!==undefined)closeSync(descriptor);}
 }
 
 export function createNodeCheckpointStore({file,anchor,trustedClockMs}){
   if(typeof file!=='string'||!path.isAbsolute(file))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_PATH_INVALID');
-  const initial=envelope(anchor,0);
-  const marker=file+'.initialized';
+  const initial=envelope(anchor,0),marker=file+'.initialized';
   const at=()=>{if(!Number.isSafeInteger(trustedClockMs)||trustedClockMs<0)throw new Error('FINANCE_AUTHORITY_V2_CLOCK_INVALID');return trustedClockMs;};
-  async function readEnvelope(){
-    let value;
-    try{value=await readRegularJSON(file);}catch(error){
-      if(error?.code!=='ENOENT')throw error;
-      try{const handle=await fs.open(marker,constants.O_RDONLY|constants.O_NOFOLLOW);try{const stat=await handle.stat();if(!stat.isFile()||stat.nlink!==1)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_MARKER_INVALID');}finally{await handle.close();}throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOST');}
-      catch(markerError){if(markerError?.code!=='ENOENT')throw markerError;value=initial;}
-    }
-    if(!value||Object.keys(value).sort().join(',')!=='checkpoint,schemaVersion,trustedClockHighWaterMs'||value.schemaVersion!==SCHEMA)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');
-    const checked=envelope(value.checkpoint,value.trustedClockHighWaterMs);
-    if(at()<checked.trustedClockHighWaterMs)throw new Error('AUTHORITY_V2_CLOCK_ROLLBACK');
-    return checked;
-  }
+  async function inspect(){const database=await openDatabase(file,marker);try{return readEnvelope(database,initial,at,await markerExists(marker));}finally{database.close();}}
   return Object.freeze({
-    async read(){return (await readEnvelope()).checkpoint;},
+    async read(){return (await inspect()).checkpoint;},
     async compareAndSwap(previous,next){
-      return withLock(file,async()=>{
-        const current=await readEnvelope();
-        if(!same(current.checkpoint,previous))return false;
-        try{const handle=await fs.open(marker,'wx',0o600);try{await handle.writeFile(SCHEMA+'\n');await handle.sync();}finally{await handle.close();}}catch(error){if(error?.code!=='EEXIST')throw error;}
-        await durableReplace(file,envelope(next,Math.max(current.trustedClockHighWaterMs,at())));
+      const database=await openDatabase(file,marker),initialized=await markerExists(marker);let transaction=false;
+      try{
+        database.exec('BEGIN IMMEDIATE');transaction=true;
+        const current=readEnvelope(database,initial,at,initialized);
+        if(!same(current.checkpoint,previous)){database.exec('ROLLBACK');transaction=false;return false;}
+        database.prepare(`INSERT INTO ${TABLE}(singleton,envelope) VALUES(1,?) ON CONFLICT(singleton) DO UPDATE SET envelope=excluded.envelope`).run(JSON.stringify(envelope(next,Math.max(current.trustedClockHighWaterMs,at()))));
+        database.exec('COMMIT');transaction=false;
+        ensureMarker(marker);
         return true;
-      });
+      }catch(error){if(transaction)try{database.exec('ROLLBACK');}catch{}if(error?.code==='ERR_SQLITE_ERROR'&&/locked|busy/i.test(String(error.message)))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_TIMEOUT');throw error;}
+      finally{database.close();}
     },
-    async inspect(){return readEnvelope();},
+    async inspect(){return inspect();},
   });
 }
 
