@@ -74,11 +74,14 @@ const BufferlessByteLength = value => {
 };
 
 export async function validateEndpointAuthority(manifest,options={}){
-  const {trustedPin,nowMs=Date.now(),source='bundled',digestSHA256}=options;
+  const {source='bundled'}=options;
   if(Object.getOwnPropertyDescriptor(manifest??{},'schemaVersion')?.value==='2.0.0'){
     requireValue(['bundled','remote'].includes(source),'AUTHORITY_V2_SOURCE');
-    return verifySignedEndpointAuthority(manifest,{...options,nowMs});
+    // A v2 caller must supply its independently trusted time. Never silently
+    // replace a missing clock with the device's rollback-prone wall clock.
+    return verifySignedEndpointAuthority(manifest,options);
   }
+  const {trustedPin,nowMs=Date.now(),digestSHA256}=options;
   requireValue(source==='bundled','AUTHORITY_REMOTE_FORBIDDEN');
   // Pin MUST come from separately reviewed app/release policy, never from manifest.
   requireValue(trustedPin&&sha(trustedPin.payloadSha256)&&trustedPin.manifestVersion===manifest?.manifestVersion,'AUTHORITY_UNTRUSTED_PIN');
@@ -99,8 +102,8 @@ export async function validateEndpointAuthority(manifest,options={}){
 export function deepFreeze(value){if(value&&typeof value==='object'){for(const child of Object.values(value))deepFreeze(child);Object.freeze(value);}return value;}
 
 export function selectAuthorityEndpoint(verifiedAuthority,key,options={}){
+  if(isSignedEndpointAuthority(verifiedAuthority))return selectSignedAuthorityEndpoint(verifiedAuthority,key,options);
   const {nowMs=Date.now()}=options;
-  if(isSignedEndpointAuthority(verifiedAuthority))return selectSignedAuthorityEndpoint(verifiedAuthority,key,{...options,nowMs});
   // This selector never activates compatibility metadata or follows fallbacks.
   requireValue(verifiedAuthorities.has(verifiedAuthority),'AUTHORITY_NOT_VALIDATED');
   assertEndpointAuthorityStructure(verifiedAuthority,{nowMs});

@@ -163,16 +163,23 @@ export function financeProductSessionAuthority(m,{checkpoint:current,nowMs}={}){
 export function createEndpointAuthorityClient({trustRoot,consumer,storage,clock}={}){
   const r=assertAuthorityV2TrustRoot(trustRoot),ctx=freeze(clone(consumer));
   check(storage&&typeof storage.read==='function'&&typeof storage.compareAndSwap==='function'&&typeof clock==='function','AUTHORITY_V2_DURABLE_STORAGE_REQUIRED');
-  let active=null,generation=0;
-  async function currentActive(select){const token=generation,m=active;check(m,'AUTHORITY_V2_NOT_ACTIVE');const current=await storage.read();check(token===generation&&active===m,'AUTHORITY_V2_SUPERSEDED');return select(m,{checkpoint:current,nowMs:now(clock())});}
+  let active=null,generation=0,lastClockMs=-1;
+  function readClock(){
+    // Read the controlled provider on every boundary, including after async CAS.
+    // This local high-water mark survives invalidate/reaccept. The provider must
+    // additionally preserve trusted time across process/device restarts.
+    try{const at=now(clock());check(at>=lastClockMs,'AUTHORITY_V2_CLOCK_ROLLBACK');lastClockMs=at;return at;}
+    catch(error){generation++;active=null;throw error;}
+  }
+  async function currentActive(select){const token=generation,m=active;check(m,'AUTHORITY_V2_NOT_ACTIVE');const current=await storage.read();check(token===generation&&active===m,'AUTHORITY_V2_SUPERSEDED');const at=readClock();check(token===generation&&active===m,'AUTHORITY_V2_SUPERSEDED');return select(m,{checkpoint:current,nowMs:at});}
   return Object.freeze({
     async accept(input,{source}={}){
       check(['bundled','remote'].includes(source),'AUTHORITY_V2_SOURCE');const snapshot=freeze(clone(input)),token=++generation;active=null;
-      const previous=freeze(clone(await storage.read()));const m=await verifySignedEndpointAuthority(snapshot,{trustRoot:r,checkpoint:previous,consumer:ctx,nowMs:now(clock())});
-      check(token===generation,'AUTHORITY_V2_SUPERSEDED');assertAuthorityV2Manifest(m,{nowMs:now(clock())});
+      const previous=freeze(clone(await storage.read()));const m=await verifySignedEndpointAuthority(snapshot,{trustRoot:r,checkpoint:previous,consumer:ctx,nowMs:readClock()});
+      check(token===generation,'AUTHORITY_V2_SUPERSEDED');const beforeCommit=readClock();check(token===generation,'AUTHORITY_V2_SUPERSEDED');assertAuthorityV2Manifest(m,{nowMs:beforeCommit});
       const next=nextCheckpoint(m,r);
       check(await storage.compareAndSwap(previous,next),'AUTHORITY_V2_CHECKPOINT_CONFLICT');
-      check(token===generation,'AUTHORITY_V2_SUPERSEDED');assertAuthorityV2Manifest(m,{nowMs:now(clock())});active=m;return m;
+      check(token===generation,'AUTHORITY_V2_SUPERSEDED');const afterCommit=readClock();check(token===generation,'AUTHORITY_V2_SUPERSEDED');assertAuthorityV2Manifest(m,{nowMs:afterCommit});active=m;return m;
     },
     endpoint(key){return currentActive((m,options)=>selectSignedAuthorityEndpoint(m,key,options));},
     financeProductSession(){return currentActive(financeProductSessionAuthority);},

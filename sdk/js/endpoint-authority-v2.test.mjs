@@ -173,3 +173,55 @@ test('unpaired Unicode is rejected and valid surrogate pairs canonicalize',()=>{
  m.issuerSource.repository='bad\udc00';assert.throws(()=>assertAuthorityV2Manifest(m,{nowMs}),/INVALID_UNICODE/);
  assert.equal(canonicalAuthorityV2Payload({text:'\ud83d\ude00',integrity:{}}),' {"text":"😀"}'.trim());
 });
+test('shared v2 validate cannot fill missing trusted time from Date.now',async()=>{
+ const m=signed(),o=options();delete o.nowMs;
+ const original=Date.now;Date.now=()=>nowMs;
+ try{
+  await assert.rejects(verifySignedEndpointAuthority(m,o),/CLOCK_REQUIRED/);
+  await assert.rejects(validateEndpointAuthority(m,{...o,source:'remote'}),/CLOCK_REQUIRED/);
+  await assert.rejects(validateEndpointAuthority(m,{...o,source:'bundled'}),/CLOCK_REQUIRED/);
+  await assert.rejects(validateEndpointAuthority(m,{...o,nowMs:undefined}),/CLOCK_REQUIRED/);
+  assert.equal((await validateEndpointAuthority(m,options())).sequence,1);
+ }finally{Date.now=original;}
+});
+test('shared v2 select cannot fill missing trusted time from Date.now',async()=>{
+ const m=await verifySignedEndpointAuthority(signed(),options());
+ const original=Date.now;Date.now=()=>nowMs;
+ try{
+  assert.throws(()=>selectSignedAuthorityEndpoint(m,'rpc',{checkpoint:next(m)}),/CLOCK_REQUIRED/);
+  assert.throws(()=>selectAuthorityEndpoint(m,'rpc',{checkpoint:next(m)}),/CLOCK_REQUIRED/);
+  assert.throws(()=>selectAuthorityEndpoint(m,'rpc',{checkpoint:next(m),nowMs:undefined}),/CLOCK_REQUIRED/);
+  assert.throws(()=>selectAuthorityEndpoint(m,'rpc',{checkpoint:next(m),nowMs:Date.parse(m.expiresAt)}),/EXPIRED_OR_FUTURE/);
+ }finally{Date.now=original;}
+});
+test('controlled client clock regression invalidates active and in-flight use',async()=>{
+ let at=nowMs,reads=0;const store=storage(),m=signed();
+ const client=createEndpointAuthorityClient({trustRoot:root,consumer,storage:store,clock:()=>{reads++;return at;}});
+ await client.accept(m,{source:'remote'});assert.equal(reads,3);
+ at=nowMs+100;await client.endpoint('rpc');assert.equal(reads,4);
+ at=nowMs;await assert.rejects(client.financeProductSession(),/CLOCK_ROLLBACK/);
+ await assert.rejects(client.endpoint('rpc'),/NOT_ACTIVE/);
+ client.invalidate();await assert.rejects(client.accept(m,{source:'remote'}),/CLOCK_ROLLBACK/);
+ at=nowMs+200;await client.accept(m,{source:'remote'});assert.equal(await client.endpoint('rpc'),AUTHORITY_V2_URLS.rpc);
+});
+test('clock rollback cannot revive an observed expired authority',async()=>{
+ let at=nowMs;const store=storage(),m=signed();
+ const client=createEndpointAuthorityClient({trustRoot:root,consumer,storage:store,clock:()=>at});
+ await client.accept(m,{source:'remote'});
+ at=Date.parse(m.expiresAt);await assert.rejects(client.endpoint('rpc'),/EXPIRED_OR_FUTURE/);
+ at=nowMs;await assert.rejects(client.endpoint('rpc'),/CLOCK_ROLLBACK/);
+ await assert.rejects(client.accept(m,{source:'remote'}),/CLOCK_ROLLBACK/);
+ at=Date.parse(m.expiresAt);await assert.rejects(client.accept(m,{source:'remote'}),/EXPIRED_OR_FUTURE/);
+});
+test('clock regression during durable CAS cannot expose a verified candidate',async()=>{
+ let at=nowMs;const store=storage(),m=signed();
+ const client=createEndpointAuthorityClient({trustRoot:root,consumer,clock:()=>at,storage:{read:store.read,compareAndSwap:async(previous,next)=>{const committed=await store.compareAndSwap(previous,next);at--;return committed;}}});
+ await assert.rejects(client.accept(m,{source:'remote'}),/CLOCK_ROLLBACK/);
+ await assert.rejects(client.endpoint('rpc'),/NOT_ACTIVE/);
+ assert.equal((await store.read()).sequence,1); // The durable high-water mark is never undone.
+});
+test('clock-provider lifecycle invalidation cannot reactivate a candidate',async()=>{
+ const store=storage(),m=signed();let reads=0,client;
+ client=createEndpointAuthorityClient({trustRoot:root,consumer,storage:store,clock:()=>{if(++reads===3)client.invalidate();return nowMs;}});
+ await assert.rejects(client.accept(m,{source:'remote'}),/SUPERSEDED/);await assert.rejects(client.endpoint('rpc'),/NOT_ACTIVE/);
+});

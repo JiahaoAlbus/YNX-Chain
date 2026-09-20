@@ -81,8 +81,11 @@ crypto fails closed; no application-supplied signature verifier bypass exists.
 
 `validateEndpointAuthority` dispatches v2 to the signed verifier for either
 `source: 'bundled'` or `'remote'`. v1.1 retains its original exact reviewed bundle
-pin and only bundled mode. A valid v2 signature yields an immutable, branded
-**candidate**, not a persistent acceptance or a user authorization.
+pin and only bundled mode. Both shared v2 entry points (`validateEndpointAuthority`
+and `selectAuthorityEndpoint`) require an explicitly supplied trusted `nowMs`;
+only v1 retains its historical `Date.now()` default. A valid v2 signature yields
+an immutable, branded **candidate**, not a persistent acceptance or a user
+authorization.
 
 Prefer `createEndpointAuthorityClient` for actual consumers:
 
@@ -123,8 +126,16 @@ an old cached candidate. Concurrent acceptance failures never expose endpoints.
 For low-level `selectSignedAuthorityEndpoint` / `financeProductSessionAuthority`,
 pass the **fresh application-owned durable checkpoint**, never one constructed
 from the manifest's sequence/hash. The higher-level client enforces this lifecycle.
-Persist and validate trusted clock state independently; wall-clock rollback is not
-fixed by a signed document. `invalidate()` stops current and in-flight local use.
+The client reads its controlled clock provider at every verification, before and
+after durable CAS, and on every endpoint/product lookup. Its local monotonic
+high-water mark rejects clock rollback, invalidates active/in-flight use, and
+survives `invalidate()` and reaccept attempts. An observed expired authority
+cannot become usable again after a clock regression. This local guard is not a
+persisted clock: the controlled provider must preserve/validate trusted time
+across process/device restarts independently of the authority checkpoint. A
+plain resettable device wall clock is insufficient. Low-level stateless calls
+likewise require trusted time and cannot infer clock provenance from a number.
+`invalidate()` stops current and in-flight local use.
 
 Root rotation/revocation is an application/operator trust-policy update, not a
 remote manifest field. Update the public root through the reviewed release/config
