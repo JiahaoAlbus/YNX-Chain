@@ -19,6 +19,10 @@ function currentReceipt(value: any) {
   } };
   return receipt;
 }
+function splitReceipt(value:any){
+  const receipt=currentReceipt(value),{from,to,identityProjection,...native}=receipt.ynxNativeTransaction;
+  receipt.ynxNativeTransaction=native;receipt.ynxNativeIdentity={from,to,identityProjection};return receipt;
+}
 for (const item of fixture.cases) {
   test(`Core0468 ${item.adapterEnabled ? "native" : "legacy"} adapter: admitted binding, mined and cold receipts agree`, () => {
     assert.equal(item.sourceCommit, "0468d65cde7306d46f424f83f4e4ffccff8568fc");
@@ -97,4 +101,10 @@ test("inherited or accessor metadata cannot impersonate an acknowledged Faucet t
   assert.throws(() => bindFaucetTransaction(getter, original.to, 100), FaucetReceiptInvalid); assert.equal(reads, 0);
   const tx = bindFaucetTransaction(original, original.to, 100);
   assert.throws(() => parseFaucetDurableReceipt(Object.create(currentReceipt(item.minedReceipt)), tx), FaucetReceiptInvalid);
+  const inherited=splitReceipt(item.minedReceipt),identity=inherited.ynxNativeIdentity;delete inherited.ynxNativeIdentity;
+  Object.setPrototypeOf(inherited,{ynxNativeIdentity:identity});
+  assert.throws(()=>parseFaucetDurableReceipt(inherited,tx),FaucetReceiptInvalid);
+  const accessor=splitReceipt(item.minedReceipt),accessorIdentity=accessor.ynxNativeIdentity;delete accessor.ynxNativeIdentity;let identityReads=0;
+  Object.setPrototypeOf(accessor,Object.defineProperty({},"ynxNativeIdentity",{get(){identityReads++;return accessorIdentity}}));
+  assert.throws(()=>parseFaucetDurableReceipt(accessor,tx),FaucetReceiptInvalid);assert.equal(identityReads,0);
 });

@@ -47,6 +47,7 @@ export function parseFaucetDurableReceipt(value: unknown, expected: FaucetTransa
       native = exact(nativeInput, ["amountYNXT", "feeYNXT", "from", "identityProjection", "nonce", "to", "type"]);
       identity = native;
     } else if (nativeFields === "amountYNXT,feeYNXT,nonce,type") {
+      if (!Object.hasOwn(receipt, "ynxNativeIdentity")) invalid();
       native = exact(nativeInput, ["amountYNXT", "feeYNXT", "nonce", "type"]);
       identity = exact(receipt.ynxNativeIdentity, ["from", "to", "identityProjection"]);
     } else invalid();
