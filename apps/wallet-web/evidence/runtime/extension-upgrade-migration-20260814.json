@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b04765f112aca96cf7dff7cfa48f9b65a891166d",
+  "generatedAt": "2026-09-20T01:09:46.172Z",
+  "gateClass": "executable migration policy imported from exact built ZIPs; not a browser installation",
+  "passed": true,
+  "artifacts": [
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.1.zip",
+      "platform": "chromium",
+      "bytes": 546266,
+      "sha256": "6e8094cc4031aad706d930b09fcf8297cb6bd004a0352a4d9fbd984c3ad3a2bd",
+      "firstInstallOrUpgrade": {
+        "schemaVersion": 1,
+        "migrationVersion": 3,
+        "legacyOriginsRemoved": [
+          "http://*/*",
+          "http://localhost/*",
+          "http://127.0.0.1/*"
+        ],
+        "dynamicScriptIdsRemoved": [
+          "legacy-static-shadow"
+        ],
+        "alarmNamesRemoved": [
+          "legacy-refresh"
+        ],
+        "alarmCleanup": "verified-empty",
+        "httpsProviderOriginRetained": true,
+        "accountStateTouched": false,
+        "completedAt": "1970-01-01T00:00:00.000Z"
+      },
+      "secondStartup": {
+        "schemaVersion": 1,
+        "migrationVersion": 3,
+        "legacyOriginsRemoved": [],
+        "dynamicScriptIdsRemoved": [],
+        "alarmNamesRemoved": [],
+        "alarmCleanup": "verified-empty",
+        "httpsProviderOriginRetained": true,
+        "accountStateTouched": false,
+        "completedAt": "1970-01-01T00:00:01.000Z"
+      },
+      "finalOrigins": [
+        "https://*/*"
+      ],
+      "dynamicScriptsRemaining": 0,
+      "alarmsRemaining": 0,
+      "accountStateTouched": false,
+      "cleanupFailure": {
+        "failedClosed": true,
+        "code": "MIGRATION_ORIGIN_REMAINS"
+      },
+      "providerPermissionFailure": {
+        "failedClosed": true,
+        "code": "REQUIRED_PROVIDER_PERMISSION_MISSING"
+      },
+      "messageFailure": {
+        "discovery": {
+          "ynx": true,
+          "metamask": false,
+          "error": {
+            "code": "MIGRATION_INCOMPLETE",
+            "message": "Extension upgrade cleanup is incomplete; wallet access remains disabled."
+          }
+        },
+        "sensitive": {
+          "ok": false,
+          "error": {
+            "code": "MIGRATION_INCOMPLETE",
+            "message": "Extension upgrade cleanup is incomplete; wallet access remains disabled."
+          }
+        },
+        "scriptingCalls": 0,
+        "passed": true
+      },
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.1.zip",
+      "platform": "firefox",
+      "bytes": 546364,
+      "sha256": "ed5bdc6c195b1598900a175ff2e294c6529dbca9130ddffde980abdcf29711f5",
+      "firstInstallOrUpgrade": {
+        "schemaVersion": 1,
+        "migrationVersion": 3,
+        "legacyOriginsRemoved": [
+          "http://*/*",
+          "http://localhost/*",
+          "http://127.0.0.1/*"
+        ],
+        "dynamicScriptIdsRemoved": [
+          "legacy-static-shadow"
+        ],
+        "alarmNamesRemoved": [],
+        "alarmCleanup": "not-declared-api-unavailable",
+        "httpsProviderOriginRetained": true,
+        "accountStateTouched": false,
+        "completedAt": "1970-01-01T00:00:00.000Z"
+      },
+      "secondStartup": {
+        "schemaVersion": 1,
+        "migrationVersion": 3,
+        "legacyOriginsRemoved": [],
+        "dynamicScriptIdsRemoved": [],
+        "alarmNamesRemoved": [],
+        "alarmCleanup": "not-declared-api-unavailable",
+        "httpsProviderOriginRetained": true,
+        "accountStateTouched": false,
+        "completedAt": "1970-01-01T00:00:01.000Z"
+      },
+      "finalOrigins": [
+        "https://*/*"
+      ],
+      "dynamicScriptsRemaining": 0,
+      "alarmsRemaining": "API unavailable and permission never declared",
+      "accountStateTouched": false,
+      "cleanupFailure": {
+        "failedClosed": true,
+        "code": "MIGRATION_ORIGIN_REMAINS"
+      },
+      "providerPermissionFailure": {
+        "failedClosed": true,
+        "code": "REQUIRED_PROVIDER_PERMISSION_MISSING"
+      },
+      "messageFailure": {
+        "discovery": {
+          "ynx": true,
+          "metamask": false,
+          "error": {
+            "code": "MIGRATION_INCOMPLETE",
+            "message": "Extension upgrade cleanup is incomplete; wallet access remains disabled."
+          }
+        },
+        "sensitive": {
+          "ok": false,
+          "error": {
+            "code": "MIGRATION_INCOMPLETE",
+            "message": "Extension upgrade cleanup is incomplete; wallet access remains disabled."
+          }
+        },
+        "scriptingCalls": 0,
+        "passed": true
+      },
+      "passed": true
+    }
+  ],
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "installedLocal": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false
+}

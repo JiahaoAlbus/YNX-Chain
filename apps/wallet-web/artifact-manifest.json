@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "productId": "wallet-web",
-  "version": "0.1.0-testnet-preview.1",
-  "sourceCommit": "e76388bf613a6e94a03ae2729c7e40761c808146",
+  "version": "0.1.1-testnet-preview.1",
+  "sourceCommit": "b04765f112aca96cf7dff7cfa48f9b65a891166d",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
@@ -14,10 +14,10 @@
   "storeReleased": false,
   "artifacts": [
     {
-      "name": "ynx-wallet-web-pwa-0.1.0.zip",
-      "path": "artifacts/ynx-wallet-web-pwa-0.1.0.zip",
-      "bytes": 310025,
-      "sha256": "4aa64152ecc80e7a6fe8186e1c3bd7710f111644f6e41d8402e58d7b582802fd",
+      "name": "ynx-wallet-web-pwa-0.1.1.zip",
+      "path": "artifacts/ynx-wallet-web-pwa-0.1.1.zip",
+      "bytes": 310097,
+      "sha256": "ed841dd13d04d9fe3b335c040d6859cd59326432376d4390943b573920786186",
       "minimumOS": "modern browser with Service Worker and Web Crypto support",
       "signingClass": "unsigned-web-bundle",
       "browsers": [
@@ -28,10 +28,10 @@
       "storeReleased": false
     },
     {
-      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "path": "artifacts/ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 546193,
-      "sha256": "c24d4939ccb1ff8110d35a1b67baf91df7316b4b77f67d95dbc428076552a634",
+      "name": "ynx-wallet-chrome-edge-0.1.1.zip",
+      "path": "artifacts/ynx-wallet-chrome-edge-0.1.1.zip",
+      "bytes": 546266,
+      "sha256": "6e8094cc4031aad706d930b09fcf8297cb6bd004a0352a4d9fbd984c3ad3a2bd",
       "minimumOS": "Chrome 120 / Edge 120",
       "signingClass": "unsigned-unpacked-extension",
       "browsers": [
@@ -43,11 +43,11 @@
       "storeReleased": false
     },
     {
-      "name": "ynx-wallet-firefox-0.1.0.zip",
-      "path": "artifacts/ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 546293,
-      "sha256": "b30f67a87e841039f2141065a5857e425838c34ffdb98f3094eedd8abcbb81b0",
-      "minimumOS": "Firefox 140 (desktop)",
+      "name": "ynx-wallet-firefox-0.1.1.zip",
+      "path": "artifacts/ynx-wallet-firefox-0.1.1.zip",
+      "bytes": 546364,
+      "sha256": "ed5bdc6c195b1598900a175ff2e294c6529dbca9130ddffde980abdcf29711f5",
+      "minimumOS": "Firefox 142 (desktop and Android)",
       "signingClass": "unsigned-unpacked-extension",
       "browsers": [
         "Firefox"
