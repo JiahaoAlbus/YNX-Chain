@@ -118,7 +118,14 @@ maximum configurable 5 seconds via newly implemented
 Inspect `checkedAt`, `probeDurationMs`, `statusDurationMs`,
 `capabilityDurationMs`, `probeFailureStage`; do not auto-restart Core for a
 temporary health failure. `/metrics` exposes process-local probe/failure/join
-counters, last readiness, timestamp and duration; it does not run a probe.
+counters, last readiness, timestamp and duration; it does not run a probe. It
+also exposes retained admission count, configured capacity and remaining
+capacity. `/health` becomes not ready when no new durable request identity can be
+admitted; existing request IDs remain recoverable. Increase
+`YNX_FAUCET_MAX_ADMISSIONS` while preserving the same database before the low
+capacity alert reaches exhaustion. The health payload labels the authoritative
+store `single-instance-local-bbolt`, reports `multiActiveSupported: false`, and
+names the required `stop-drain-start` deployment strategy.
 Alert on readiness 0, stale/no checked timestamp (e.g. >60s with a 15s health
 scrape), repeated deadline failures, and latency by region. Counters reset after
 process restart and are not durable admission totals. Do not expose private

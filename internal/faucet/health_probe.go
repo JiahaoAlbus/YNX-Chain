@@ -111,12 +111,15 @@ func (s *Service) healthMetrics() string {
 	s.healthMu.Lock()
 	stats := s.healthStats
 	s.healthMu.Unlock()
-	var ready, admissionReady, upstreamReady, balanceApplicable, checked float64
+	var ready, admissionReady, capacityReady, upstreamReady, balanceApplicable, checked float64
 	if stats.last.FundingReady {
 		ready = 1
 	}
 	if stats.last.AdmissionReady {
 		admissionReady = 1
+	}
+	if stats.last.AdmissionCapacityReady {
+		capacityReady = 1
 	}
 	if stats.last.UpstreamOK {
 		upstreamReady = 1
@@ -163,6 +166,18 @@ ynx_faucet_upstream_ready %.0f
 # HELP ynx_faucet_admission_ready Last durable admission store readiness.
 # TYPE ynx_faucet_admission_ready gauge
 ynx_faucet_admission_ready %.0f
+# HELP ynx_faucet_admission_capacity_ready Whether the durable admission store can accept a new request ID.
+# TYPE ynx_faucet_admission_capacity_ready gauge
+ynx_faucet_admission_capacity_ready %.0f
+# HELP ynx_faucet_admission_count Retained durable request identities.
+# TYPE ynx_faucet_admission_count gauge
+ynx_faucet_admission_count %d
+# HELP ynx_faucet_admission_capacity Configured retained request identity limit.
+# TYPE ynx_faucet_admission_capacity gauge
+ynx_faucet_admission_capacity %d
+# HELP ynx_faucet_admission_remaining Remaining durable request identity capacity.
+# TYPE ynx_faucet_admission_remaining gauge
+ynx_faucet_admission_remaining %d
 # HELP ynx_faucet_funding_ready Last end-to-end funding readiness.
 # TYPE ynx_faucet_funding_ready gauge
 ynx_faucet_funding_ready %.0f
@@ -175,5 +190,6 @@ ynx_faucet_funding_balance_ynxt %.0f
 `, stats.probes, stats.failures, stats.joined, ready, checked, float64(stats.last.ProbeDurationMS)/1000,
 		float64(stats.last.StatusDurationMS)/1000, float64(stats.last.CapabilityDurationMS)/1000,
 		float64(stats.last.AdmissionDurationMS)/1000, float64(stats.last.FundingDurationMS)/1000,
-		upstreamReady, admissionReady, ready, balanceApplicable, float64(stats.last.FundingBalanceYNXT))
+		upstreamReady, admissionReady, capacityReady, stats.last.AdmissionCount, stats.last.AdmissionCapacity,
+		stats.last.AdmissionRemaining, ready, balanceApplicable, float64(stats.last.FundingBalanceYNXT))
 }

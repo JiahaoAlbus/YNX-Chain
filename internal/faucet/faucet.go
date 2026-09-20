@@ -530,6 +530,13 @@ type Health struct {
 	IdempotentRequests       bool           `json:"idempotentRequests"`
 	FundingReady             bool           `json:"fundingReady"`
 	AdmissionReady           bool           `json:"admissionReady"`
+	AdmissionCapacityReady   bool           `json:"admissionCapacityReady"`
+	AdmissionCount           int            `json:"admissionCount"`
+	AdmissionCapacity        int            `json:"admissionCapacity"`
+	AdmissionRemaining       int            `json:"admissionRemaining"`
+	AdmissionScope           string         `json:"admissionScope"`
+	MultiActiveSupported     bool           `json:"multiActiveSupported"`
+	DeploymentStrategy       string         `json:"deploymentStrategy"`
 	FundingModel             string         `json:"fundingModel"`
 	FundingBalanceApplicable bool           `json:"fundingBalanceApplicable"`
 	FundingBalanceYNXT       int64          `json:"fundingBalanceYnxt,omitempty"`
@@ -565,8 +572,14 @@ func (s *Service) Health() Health {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	fundingModel := "protocol-authority"
+	admissionScope := "single-instance-local-bbolt"
+	admissionCapacity := s.cfg.MaxAdmissions
+	admissionRemaining := s.cfg.MaxAdmissions
 	if s.cfg.UpstreamMode == UpstreamBFT {
 		fundingModel = "bft-account"
+		admissionScope = "process-local-memory"
+		admissionCapacity = 0
+		admissionRemaining = 0
 	}
 	return Health{
 		OK:                s.lastError == "",
@@ -575,6 +588,12 @@ func (s *Service) Health() Health {
 		RequestStatusPath: "/request-status", IPRateLimitMax: s.cfg.IPMaxRequests, IPRateLimitWindowSeconds: int64(s.cfg.IPWindow.Seconds()),
 		IdempotentRequests:       s.cfg.UpstreamMode == UpstreamAuthoritative,
 		AdmissionReady:           s.cfg.UpstreamMode != UpstreamAuthoritative || s.admissions != nil,
+		AdmissionCapacityReady:   s.cfg.UpstreamMode != UpstreamAuthoritative || s.admissions != nil,
+		AdmissionCapacity:        admissionCapacity,
+		AdmissionRemaining:       admissionRemaining,
+		AdmissionScope:           admissionScope,
+		MultiActiveSupported:     false,
+		DeploymentStrategy:       "stop-drain-start",
 		FundingModel:             fundingModel,
 		FundingBalanceApplicable: s.cfg.UpstreamMode == UpstreamBFT,
 		RateLimitMax:             s.cfg.MaxRequests,
@@ -675,9 +694,27 @@ func (s *Service) probeHealth(ctx context.Context) (health Health) {
 				if err := s.admissions.health(); err != nil {
 					health.OK = false
 					health.AdmissionReady = false
+					health.AdmissionCapacityReady = false
 					health.LastError = "durable faucet admission is unavailable"
 					health.ProbeFailureStage = "admission"
 					s.recordAdmissionStoreError("health")
+				} else if used, limit, err := s.admissions.capacity(); err != nil {
+					health.OK = false
+					health.AdmissionReady = false
+					health.AdmissionCapacityReady = false
+					health.LastError = "durable faucet admission capacity is unavailable"
+					health.ProbeFailureStage = "admission"
+					s.recordAdmissionStoreError("health")
+				} else {
+					health.AdmissionCount = used
+					health.AdmissionCapacity = limit
+					health.AdmissionRemaining = limit - used
+					health.AdmissionCapacityReady = used < limit
+					if !health.AdmissionCapacityReady {
+						health.OK = false
+						health.LastError = "durable faucet admission capacity is exhausted"
+						health.ProbeFailureStage = "capacity"
+					}
 				}
 				health.AdmissionDurationMS = time.Since(admissionStart).Milliseconds()
 			}

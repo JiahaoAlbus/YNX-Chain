@@ -137,6 +137,14 @@ groups:
         annotations:
           summary: YNX faucet durable admission store is failing
           description: A durable admission lookup, write, completion, or health operation failed. Preserve the database and request log; do not clear quotas or create a replacement writer.
+      - alert: YNXFaucetAdmissionCapacityLow
+        expr: ynx_faucet_admission_capacity{job="ynx-faucetd"} > 0 and ynx_faucet_admission_remaining{job="ynx-faucetd"} / ynx_faucet_admission_capacity{job="ynx-faucetd"} < 0.1
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX faucet durable admission capacity is low
+          description: Fewer than ten percent of retained request identities remain. Increase the configured capacity with the existing database preserved before new users are rejected.
       - alert: YNXFaucetUncertainResults
         expr: sum(increase(ynx_faucet_request_results_total{job="ynx-faucetd",outcome=~"transaction_result_uncertain|receipt_persistence_uncertain|stored_receipt_invalid"}[5m])) > 0
         for: 1m

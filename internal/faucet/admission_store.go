@@ -287,6 +287,22 @@ func (s *admissionStore) health() error {
 	})
 }
 
+func (s *admissionStore) capacity() (used, limit int, err error) {
+	if s == nil || s.db == nil {
+		return 0, 0, errors.New("admission database is not open")
+	}
+	limit = s.cfg.MaxAdmissions
+	err = s.db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		if bucket == nil {
+			return errors.New("admission database schema is incomplete")
+		}
+		used = bucket.Stats().KeyN
+		return nil
+	})
+	return used, limit, err
+}
+
 // Migrate historical pair quotas once, retaining every charged admission. Address
 // quota survives IP changes; the independent wider IP budget allows shared NATs.
 func (s *admissionStore) migrateQuotaV2(tx *bolt.Tx) error {
