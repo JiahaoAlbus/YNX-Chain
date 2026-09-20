@@ -22,9 +22,11 @@
     "stateConsistencySignal": true,
     "unknownStateFailsClosed": true,
     "multipleEligibleRequestsFailClosed": true,
+    "mixedExecutionQueuesFailClosed": true,
+    "terminalOutboxCorrelationRequired": true,
     "pendingApprovalNeverReportedAsTerminal": true
   },
-  "verification": [
+  "originalCheckpointVerification": [
     {"command": "go test -race ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
     {"command": "go vet ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
     {"command": "go build ./apps/finance/cmd/...", "result": "PASS"},
@@ -32,6 +34,26 @@
     {"command": "npm --prefix apps/finance run security", "result": "PASS", "filesScanned": 406},
     {"command": "git diff --check", "result": "PASS"}
   ],
+  "freshMainPullRequestVerification": {
+    "base": "b5bb8cf4767c922a4563ddb749820446df67ccbc",
+    "reviewedImplementationCommit": "2c72a8a6b74c706aba00bff0dad932745e6b449d",
+    "reviewedImplementationTree": "3cc0fb76a8057fc334a5edfc356be527faf536f2",
+    "goRace": "PASS",
+    "goVet": "PASS",
+    "goBuild": "PASS",
+    "webTests": {"result": "PASS", "tests": 48, "inventory": "current-main"},
+    "diffCheck": "PASS",
+    "security": {
+      "result": "BASELINE_FINDINGS_PRESENT",
+      "findingCount": 3,
+      "introducedByPullRequest": false,
+      "verifiedAgainstPureBase": true,
+      "paths": [
+        "apps/finance/mobile/contract/public-endpoint-manifest.json",
+        "apps/finance/web/vendor/product-session-browser-a7dad7ec.mjs"
+      ]
+    }
+  },
   "publicRuntime": {
     "url": "https://finance.ynxweb4.com/",
     "currentlyDeployedImplementation": "c20709da38bc2a4823efb9870046b6afb7775992",
