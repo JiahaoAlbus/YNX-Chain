@@ -1,0 +1,54 @@
+{
+  "schema": "ynx-wallet-mobile-preview-publication/v1",
+  "releaseTag": "wallet-android-testnet-preview-1.0.18-2fdd679f9",
+  "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-1.0.18-2fdd679f9",
+  "targetCommit": "2fdd679f9044a51e4facfa5b71b6e57864bb6508",
+  "prerelease": true,
+  "releaseImmutable": false,
+  "publisherCanReplaceAssets": true,
+  "downloadTimeSha256Verified": true,
+  "githubReleaseId": 392546625,
+  "releaseCreatedAt": "2026-09-20T19:09:07Z",
+  "releasePublishedAt": "2026-09-20T19:25:44Z",
+  "apkAssetId": 577412914,
+  "aabAssetId": 577412911,
+  "apk": {
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.18-2fdd679f9/ynx-wallet-1.0.18-testnet-preview-2fdd679f9-universal-local-test-signed.apk",
+    "bytes": 116737714,
+    "sha256": "45fd5004c9156d4fb5880d9caa2056f5b2238e85ca63a13ddf73f25dea96266a",
+    "freshDownloadDigestMatched": true,
+    "apkSignatureV2Verified": true
+  },
+  "aab": {
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.18-2fdd679f9/ynx-wallet-1.0.18-testnet-preview-2fdd679f9-local-test-signed.aab",
+    "bytes": 71875238,
+    "sha256": "c6f920a00b8768c9ea8837bd35cfcee4b1b2c9106959c101c44026fa388c7850",
+    "freshDownloadDigestMatched": true,
+    "jarSignatureVerified": true
+  },
+  "signerCertificateDn": "C=US, O=Android, CN=Android Debug",
+  "signerCertificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+  "reproducibility": {
+    "fixedAbsolutePathBuilds": 2,
+    "apkBitForBitMatched": true,
+    "aabBitForBitMatched": true,
+    "crossPathComparisonExcluded": true,
+    "crossPathReason": "Native build outputs embed the absolute worktree path."
+  },
+  "emulator": {
+    "androidInstall": "NOT_VERIFIED",
+    "androidColdLaunch": "NOT_VERIFIED",
+    "iosSimulatorCiBuild": "PASS",
+    "physicalDevice": "NOT_VERIFIED"
+  },
+  "recoveryContractTests": {
+    "passed": 558,
+    "failed": 0,
+    "liveChainTransferExecuted": false
+  },
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": false,
+  "officialWebsiteUpdated": false,
+  "generatedAt": "2026-09-20T19:27:31Z"
+}
