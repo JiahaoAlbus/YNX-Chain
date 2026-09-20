@@ -51,10 +51,10 @@ func main() {
 	// New Web builds use a separate v2 authority, never migrate legacy identity
 	// records or silently forward old proofs to the new Wallet service.
 	var auth *finance.Authenticator
+	var endpointAuthority finance.EndpointAuthorityGate
 	legacyGateway := ""
 	switch envDefault("YNX_FINANCE_AUTH_MODE", "product-session-v2") {
 	case "product-session-v2":
-		var endpointAuthority finance.EndpointAuthorityGate
 		endpointAuthority, err = finance.NewNodeEndpointAuthority(finance.NodeEndpointAuthorityConfig{
 			NodeBinary: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_NODE_BINARY"), Script: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_SCRIPT"),
 			TrustRootFile: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUST_ROOT_FILE"), ManifestFile: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE"),
@@ -80,7 +80,11 @@ func main() {
 	if webDir == "" {
 		webDir = "apps/finance/web"
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
+	var browserAuthority finance.EndpointAuthorityBrowserConfigProvider
+	if provider, ok := endpointAuthority.(finance.EndpointAuthorityBrowserConfigProvider); ok {
+		browserAuthority = provider
+	}
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
 	if err != nil {
 		log.Fatal(err)
 	}

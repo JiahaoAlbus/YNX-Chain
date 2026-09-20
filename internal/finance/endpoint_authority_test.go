@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,29 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
+
+type browserConfigFixture struct {
+	payload []byte
+	err     error
+}
+
+func (f browserConfigFixture) BrowserConfig(context.Context) ([]byte, error) { return f.payload, f.err }
+
+func TestEndpointAuthorityBrowserConfigIsSameOriginPublicMetadataAndDegradesIndependently(t *testing.T) {
+	payload := []byte(`{"schemaVersion":"ynx-finance-endpoint-authority-browser-config/v1"}`)
+	server := &Server{cfg: ServerConfig{EndpointAuthority: browserConfigFixture{payload: payload}}}
+	response := httptest.NewRecorder()
+	server.endpointAuthorityBrowserConfig(response, httptest.NewRequest(http.MethodGet, "/api/endpoint-authority/v2/config", nil))
+	if response.Code != http.StatusOK || response.Header().Get("Cache-Control") != "no-store" || !strings.Contains(response.Header().Get("Content-Type"), "application/json") || strings.TrimSpace(response.Body.String()) != string(payload) {
+		t.Fatalf("unexpected config response: %d %v %q", response.Code, response.Header(), response.Body.String())
+	}
+	server.cfg.EndpointAuthority = browserConfigFixture{err: errors.New("offline")}
+	response = httptest.NewRecorder()
+	server.endpointAuthorityBrowserConfig(response, httptest.NewRequest(http.MethodGet, "/api/endpoint-authority/v2/config", nil))
+	if response.Code != http.StatusServiceUnavailable || !strings.Contains(response.Body.String(), "private_service_degraded") {
+		t.Fatalf("unexpected degraded response: %d %s", response.Code, response.Body.String())
+	}
+}
 
 func TestNodeEndpointAuthorityRejectsMissingPartialAndRelativeConfiguration(t *testing.T) {
 	gate, err := NewNodeEndpointAuthority(NodeEndpointAuthorityConfig{})

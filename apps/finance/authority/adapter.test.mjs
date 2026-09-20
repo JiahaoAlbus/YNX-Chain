@@ -6,7 +6,7 @@ import path from 'node:path';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
 import {AUTHORITY_V2_REPOSITORY,AUTHORITY_V2_URLS,authorityV2SigningMessage} from '../../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft} from '../../../scripts/ops/endpoint-authority-v2.mjs';
-import {resolveFinancePrivateAuthority} from './adapter.mjs';
+import {resolveFinanceBrowserAuthorityConfig,resolveFinancePrivateAuthority} from './adapter.mjs';
 import {createNodeCheckpointStore} from './checkpoint-node.mjs';
 import {loadFinanceAuthorityConfig} from './config.mjs';
 
@@ -58,6 +58,11 @@ test('exact signed Finance v2 selects only Wallet Gateway and keeps provider fla
   assert.equal(persisted.checkpoint.sequence,1);assert.equal(persisted.trustedClockHighWaterMs,nowMs);
 });
 
+test('browser config is server-verified public metadata bound to the durable server checkpoint',async t=>{
+  const value=await fixture(t),config=await resolveFinanceBrowserAuthorityConfig({env:value.env});
+  assert.equal(config.schemaVersion,'ynx-finance-endpoint-authority-browser-config/v1');assert.deepEqual(config.trustRoot,root);assert.deepEqual(config.manifest,value.manifest);assert.deepEqual(config.serverCheckpoint,{rootVersion:1,sequence:1,payloadSha256:value.manifest.integrity.payloadSha256});assert.equal(config.trustedTimeMs,nowMs);
+});
+
 test('origin, signature, clock rollback and storage loss/equivocation fail closed',async t=>{
   const wrong=await fixture(t,{manifest:signed({origin:'https://evil.invalid'})});
   await assert.rejects(resolveFinancePrivateAuthority({env:wrong.env}),/FINANCE_ACCEPTANCE/);
@@ -80,6 +85,14 @@ test('node checkpoint CAS serializes competing process views',async t=>{
   const results=await Promise.all([stores[0].compareAndSwap(anchor,nextA),stores[1].compareAndSwap(anchor,nextB)]);
   assert.equal(results.filter(Boolean).length,1);
   assert.ok([nextA.payloadSha256,nextB.payloadSha256].includes((await stores[0].read()).payloadSha256));
+});
+
+test('node checkpoint recovers an identity-bound orphan lock owned by a dead process',async t=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'ynx-finance-checkpoint-orphan-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const file=path.join(dir,'checkpoint.json'),nonce='11111111-1111-4111-8111-111111111111',owner={pid:2147483647,startedAtMs:nowMs,nonce,tempBasename:`.checkpoint-lock-2147483647-${nonce}.tmp`};
+  await fs.writeFile(file+'.lock',JSON.stringify(owner)+'\n',{mode:0o600});
+  const store=createNodeCheckpointStore({file,anchor:copy(root.anchor),trustedClockMs:nowMs}),next={rootVersion:1,sequence:1,payloadSha256:'a'.repeat(64)};
+  assert.equal(await store.compareAndSwap(root.anchor,next),true);assert.deepEqual(await store.read(),next);await assert.rejects(fs.stat(file+'.lock'),error=>error.code==='ENOENT');
 });
 
 test('authority JSON and checkpoint reads reject symlink substitution',async t=>{

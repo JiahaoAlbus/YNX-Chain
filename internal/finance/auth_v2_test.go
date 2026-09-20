@@ -32,6 +32,31 @@ func (f financeAuthorityGate) Authorize(ctx context.Context) error { return f(ct
 
 var allowFinanceAuthority = financeAuthorityGate(func(context.Context) error { return nil })
 
+type prevalidatingFinanceAuthority struct{ calls int }
+
+func (g *prevalidatingFinanceAuthority) Authorize(context.Context) error { g.calls++; return nil }
+func (*prevalidatingFinanceAuthority) RequiresProofPrevalidation() bool  { return true }
+
+func TestBrowserV2RejectsMalformedProofBeforeExternalAuthorityProcess(t *testing.T) {
+	gate := &prevalidatingFinanceAuthority{}
+	auth, err := newBrowserV2Authenticator(financeRoundTrip(func(*http.Request) (*http.Response, error) { t.Fatal("Gateway contacted"); return nil, nil }), gate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, proof := range []string{"", "not-base64-json", base64.RawURLEncoding.EncodeToString([]byte("[]"))} {
+		request := httptest.NewRequest(http.MethodGet, BrowserFinanceOrigin+"/api/profile", nil)
+		if proof != "" {
+			request.Header.Set(productsessionv2.ProofHeader, proof)
+		}
+		if _, err = auth.VerifyRequest(request, "finance.portfolio.read"); err == nil {
+			t.Fatal("malformed proof accepted")
+		}
+	}
+	if gate.calls != 0 {
+		t.Fatalf("external authority process invoked %d times", gate.calls)
+	}
+}
+
 func TestBrowserV2MissingEndpointAuthorityBlocksBeforeGatewayNetwork(t *testing.T) {
 	calls := 0
 	auth, err := newBrowserV2Authenticator(financeRoundTrip(func(*http.Request) (*http.Response, error) {

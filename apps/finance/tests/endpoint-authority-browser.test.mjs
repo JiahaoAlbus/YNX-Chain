@@ -20,13 +20,14 @@ function signed(tree=source.tree){
 
 const built=await build({absWorkingDir:fileURLToPath(new URL('../web/',import.meta.url)),entryPoints:['endpoint-authority-entry.js'],bundle:true,platform:'browser',target:'es2022',format:'iife',globalName:'FinanceAuthorityTest',write:false});
 const authorityBundle=Buffer.from(built.outputFiles[0].contents);
-async function setup(){
+async function setup(configResponse=null){
   const browser=await chromium.launch({headless:true}),context=await browser.newContext(),requests=[];
-  await context.route('**/*',route=>{requests.push(route.request().url());const url=new URL(route.request().url());if(url.pathname==='/authority.js')return route.fulfill({contentType:'text/javascript',body:authorityBundle});return route.fulfill({contentType:'text/html',body:'<!doctype html><script src="/authority.js"></script>'});});
+  await context.route('**/*',route=>{requests.push(route.request().url());const url=new URL(route.request().url());if(url.pathname==='/authority.js')return route.fulfill({contentType:'text/javascript',body:authorityBundle});if(url.pathname==='/api/endpoint-authority/v2/config'&&configResponse)return route.fulfill({contentType:'application/json',headers:{'cache-control':'no-store'},body:JSON.stringify(configResponse)});return route.fulfill({contentType:'text/html',body:'<!doctype html><script src="/authority.js"></script>'});});
   const page=await context.newPage();await page.goto(origin);await page.waitForFunction(()=>!!globalThis.FinanceAuthorityTest);
   return {browser,context,page,requests};
 }
-async function configure(page,manifest=signed(),trustRoot=root,clock=nowMs){await page.evaluate(({manifest,trustRoot,clock})=>{globalThis.__financeClock=clock;globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__={manifest,trustRoot,trustedClock:()=>globalThis.__financeClock};},{manifest,trustRoot,clock});}
+const manifestCheckpoint=manifest=>({rootVersion:root.rootVersion,sequence:manifest.sequence,payloadSha256:manifest.integrity.payloadSha256});
+async function configure(page,manifest=signed(),trustRoot=root,clock=nowMs,serverCheckpoint=manifestCheckpoint(manifest)){await page.evaluate(({manifest,trustRoot,clock,serverCheckpoint})=>{globalThis.__financeClock=clock;globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__={manifest,serverCheckpoint,trustRoot,trustedClock:()=>globalThis.__financeClock};},{manifest,trustRoot,clock,serverCheckpoint});}
 const invoke=page=>page.evaluate(async()=>{try{return {ok:true,value:await FinanceAuthorityTest.assertFinancePrivateAuthority()};}catch(error){return {ok:false,error:String(error?.message??error)};}});
 
 test('browser authority uses durable CAS and rejects equivocation, storage loss, clock rollback, expiry and revocation before network',async()=>{
@@ -38,6 +39,7 @@ test('browser authority uses durable CAS and rejects equivocation, storage loss,
     await configure(fixture.page,signed(),root,nowMs+3600000);result=await invoke(fixture.page);assert.equal(result.ok,false);assert.match(result.error,/EXPIRED_OR_FUTURE/);
     await configure(fixture.page,signed(),{...root,keys:root.keys.map(value=>({...value,revoked:true}))});result=await invoke(fixture.page);assert.equal(result.ok,false);assert.match(result.error,/REVOKED/);
     await configure(fixture.page);await fixture.page.evaluate(()=>new Promise((resolve,reject)=>{const request=indexedDB.deleteDatabase('ynx-finance-endpoint-authority-v2');request.onsuccess=resolve;request.onerror=()=>reject(request.error);}));result=await invoke(fixture.page);assert.equal(result.ok,false);assert.match(result.error,/CHECKPOINT_LOST/);
+    const accepted=signed(),fork=signed('e'.repeat(40));await fixture.page.evaluate(()=>{localStorage.clear();return new Promise((resolve,reject)=>{const request=indexedDB.deleteDatabase('ynx-finance-endpoint-authority-v2');request.onsuccess=resolve;request.onerror=()=>reject(request.error);});});await configure(fixture.page,fork,root,nowMs,manifestCheckpoint(accepted));result=await invoke(fixture.page);assert.equal(result.ok,false);assert.match(result.error,/EQUIVOCATION/);
     assert.deepEqual(fixture.requests.filter(url=>!url.startsWith(origin)),[]);
   }finally{await fixture.browser.close();}
 });
@@ -45,5 +47,11 @@ test('browser authority uses durable CAS and rejects equivocation, storage loss,
 test('invalid signature fails before any private endpoint request',async()=>{
   const fixture=await setup();
   try{const manifest=signed();manifest.integrity.signature=Buffer.alloc(64).toString('base64url');await configure(fixture.page,manifest);const result=await invoke(fixture.page);assert.equal(result.ok,false);assert.match(result.error,/SIGNATURE_INVALID/);assert.deepEqual(fixture.requests.filter(url=>!url.startsWith(origin)),[]);}
+  finally{await fixture.browser.close();}
+});
+
+test('shipped browser path loads same-origin verified configuration without a custom global',async()=>{
+  const manifest=signed(),fixture=await setup({schemaVersion:'ynx-finance-endpoint-authority-browser-config/v1',trustRoot:root,manifest,serverCheckpoint:manifestCheckpoint(manifest),trustedTimeMs:nowMs});
+  try{const result=await invoke(fixture.page);assert.equal(result.ok,true);assert.equal(result.value.walletGateway,AUTHORITY_V2_URLS.walletGateway);assert.equal(fixture.requests.filter(url=>url.endsWith('/api/endpoint-authority/v2/config')).length,1);assert.deepEqual(fixture.requests.filter(url=>!url.startsWith(origin)),[]);}
   finally{await fixture.browser.close();}
 });

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
@@ -19,12 +20,22 @@ type EndpointAuthorityGate interface {
 	Authorize(context.Context) error
 }
 
+type EndpointAuthorityBrowserConfigProvider interface {
+	BrowserConfig(context.Context) ([]byte, error)
+}
+
 type NodeEndpointAuthorityConfig struct {
 	NodeBinary, Script, TrustRootFile, ManifestFile, CheckpointFile, TrustedTimeFile string
 	Timeout                                                                          time.Duration
 }
 
-type nodeEndpointAuthority struct{ config NodeEndpointAuthorityConfig }
+type nodeEndpointAuthority struct {
+	config             NodeEndpointAuthorityConfig
+	slots              chan struct{}
+	browserMu          sync.Mutex
+	browserConfig      []byte
+	browserConfigUntil time.Time
+}
 type unavailableEndpointAuthority struct{ code string }
 
 func (g unavailableEndpointAuthority) Authorize(context.Context) error {
@@ -56,28 +67,13 @@ func NewNodeEndpointAuthority(config NodeEndpointAuthorityConfig) (EndpointAutho
 	if config.Timeout < time.Second || config.Timeout > 10*time.Second {
 		return nil, errors.New("Finance Endpoint Authority v2 timeout must be between 1s and 10s")
 	}
-	return &nodeEndpointAuthority{config: config}, nil
+	return &nodeEndpointAuthority{config: config, slots: make(chan struct{}, 4)}, nil
 }
 
 func (g *nodeEndpointAuthority) Authorize(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, g.config.Timeout)
-	defer cancel()
-	command := exec.CommandContext(ctx, g.config.NodeBinary, g.config.Script)
-	command.Env = []string{
-		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUST_ROOT_FILE=" + g.config.TrustRootFile,
-		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE=" + g.config.ManifestFile,
-		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_CHECKPOINT_FILE=" + g.config.CheckpointFile,
-		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUSTED_TIME_FILE=" + g.config.TrustedTimeFile,
-	}
-	var stdout, stderr bytes.Buffer
-	command.Stdout = &stdout
-	command.Stderr = &stderr
-	err := command.Run()
-	if ctx.Err() != nil {
-		return &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_TIMEOUT", Status: 503}
-	}
-	if stdout.Len() > 16<<10 || stderr.Len() != 0 {
-		return &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_INVALID_RESPONSE", Status: 503}
+	stdout, err := g.run(ctx, "")
+	if err != nil {
+		return err
 	}
 	var response struct {
 		SchemaVersion           string `json:"schemaVersion"`
@@ -90,13 +86,81 @@ func (g *nodeEndpointAuthority) Authorize(ctx context.Context) error {
 		ProviderVerified        bool   `json:"providerVerified"`
 		ProductionApproved      bool   `json:"productionApproved"`
 	}
-	decoder := json.NewDecoder(io.LimitReader(&stdout, 16<<10))
+	decoder := json.NewDecoder(bytes.NewReader(stdout))
 	decoder.DisallowUnknownFields()
 	if decodeErr := decoder.Decode(&response); decodeErr != nil || decoder.Decode(&struct{}{}) != io.EOF {
 		return &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_INVALID_RESPONSE", Status: 503}
 	}
-	if err != nil || response.SchemaVersion != "ynx-finance-endpoint-authority-runtime/v1" || response.Status != "VERIFIED" || response.WalletGateway != BrowserWalletAuthority || response.FinanceOrigin != BrowserFinanceOrigin || !regexp.MustCompile(`^2\.0\.0\.[1-9][0-9]*$`).MatchString(response.ManifestVersion) || !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(response.PayloadSHA256) || response.OfficialSandboxVerified || response.ProviderVerified || response.ProductionApproved {
+	if response.SchemaVersion != "ynx-finance-endpoint-authority-runtime/v1" || response.Status != "VERIFIED" || response.WalletGateway != BrowserWalletAuthority || response.FinanceOrigin != BrowserFinanceOrigin || !regexp.MustCompile(`^2\.0\.0\.[1-9][0-9]*$`).MatchString(response.ManifestVersion) || !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(response.PayloadSHA256) || response.OfficialSandboxVerified || response.ProviderVerified || response.ProductionApproved {
 		return &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_REJECTED", Status: 503}
 	}
 	return nil
+}
+
+func (g *nodeEndpointAuthority) RequiresProofPrevalidation() bool { return true }
+
+func (g *nodeEndpointAuthority) BrowserConfig(ctx context.Context) ([]byte, error) {
+	g.browserMu.Lock()
+	defer g.browserMu.Unlock()
+	if len(g.browserConfig) != 0 && time.Now().Before(g.browserConfigUntil) {
+		return append([]byte(nil), g.browserConfig...), nil
+	}
+	stdout, err := g.run(ctx, "browser-config")
+	if err != nil {
+		return nil, err
+	}
+	var response struct {
+		SchemaVersion    string          `json:"schemaVersion"`
+		TrustRoot        json.RawMessage `json:"trustRoot"`
+		Manifest         json.RawMessage `json:"manifest"`
+		ServerCheckpoint struct {
+			RootVersion   int64  `json:"rootVersion"`
+			Sequence      int64  `json:"sequence"`
+			PayloadSHA256 string `json:"payloadSha256"`
+		} `json:"serverCheckpoint"`
+		TrustedTimeMS int64 `json:"trustedTimeMs"`
+	}
+	decoder := json.NewDecoder(bytes.NewReader(stdout))
+	decoder.DisallowUnknownFields()
+	if decodeErr := decoder.Decode(&response); decodeErr != nil || decoder.Decode(&struct{}{}) != io.EOF || response.SchemaVersion != "ynx-finance-endpoint-authority-browser-config/v1" || len(response.TrustRoot) == 0 || len(response.Manifest) == 0 || response.ServerCheckpoint.RootVersion < 1 || response.ServerCheckpoint.Sequence < 0 || !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(response.ServerCheckpoint.PayloadSHA256) || response.TrustedTimeMS < 0 {
+		return nil, &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_INVALID_RESPONSE", Status: 503}
+	}
+	g.browserConfig = append(g.browserConfig[:0], stdout...)
+	g.browserConfigUntil = time.Now().Add(15 * time.Second)
+	return append([]byte(nil), g.browserConfig...), nil
+}
+
+func (g *nodeEndpointAuthority) run(ctx context.Context, outputMode string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, g.config.Timeout)
+	defer cancel()
+	select {
+	case g.slots <- struct{}{}:
+		defer func() { <-g.slots }()
+	case <-ctx.Done():
+		return nil, &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_BUSY", Status: 503}
+	}
+	command := exec.CommandContext(ctx, g.config.NodeBinary, g.config.Script)
+	command.Env = []string{
+		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUST_ROOT_FILE=" + g.config.TrustRootFile,
+		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE=" + g.config.ManifestFile,
+		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_CHECKPOINT_FILE=" + g.config.CheckpointFile,
+		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUSTED_TIME_FILE=" + g.config.TrustedTimeFile,
+	}
+	if outputMode != "" {
+		command.Env = append(command.Env, "YNX_FINANCE_ENDPOINT_AUTHORITY_V2_OUTPUT_MODE="+outputMode)
+	}
+	var stdout, stderr bytes.Buffer
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+	err := command.Run()
+	if ctx.Err() != nil {
+		return nil, &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_TIMEOUT", Status: 503}
+	}
+	if stdout.Len() > 16<<10 || stderr.Len() != 0 {
+		return nil, &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_INVALID_RESPONSE", Status: 503}
+	}
+	if err != nil {
+		return nil, &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_REJECTED", Status: 503}
+	}
+	return bytes.TrimSpace(stdout.Bytes()), nil
 }
