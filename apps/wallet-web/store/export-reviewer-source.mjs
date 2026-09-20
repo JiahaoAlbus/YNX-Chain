@@ -4,6 +4,7 @@ import {mkdir,readFile,writeFile,readdir,lstat,utimes} from "node:fs/promises";
 import {dirname,join,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 import {buildAll} from "../scripts/build.mjs";
+import {isReviewerSourcePath} from "./source-export-policy.mjs";
 
 const web=resolve(dirname(fileURLToPath(import.meta.url)),".."),repository=resolve(web,"../..");
 const destination=process.argv[2]&&resolve(process.argv[2]);
@@ -12,11 +13,9 @@ if(process.env.YNX_WALLET_WEB_AUTHORITY_FILE!==undefined)throw new Error("Source
 const git=(...args)=>execFileSync("git",args,{cwd:repository,maxBuffer:16*1024*1024});
 const commit=git("rev-parse","HEAD").toString().trim();
 const hash=bytes=>createHash("sha256").update(bytes).digest("hex");
-const selected=path=>/^(?:apps\/wallet-web\/(?:src|public|extension|scripts|test|fixtures|store)\/|packages\/wallet-auth\/src\/)/u.test(path) ||
-  ["apps/wallet-web/package.json","apps/wallet-web/package-lock.json","apps/wallet-web/README.md","packages/wallet-auth/package.json","packages/wallet-auth/package-lock.json","release/integration/wallet-web-pwa-site/wallet-manifest-binding.mjs","release/integration/wallet-web-pwa-site/frozen-wallet-manifest.webmanifest"].includes(path);
 const entries=git("ls-tree","-rz","--full-tree",commit).toString().split("\0").filter(Boolean).map(value=>{
   const [meta,path]=value.split("\t"),[mode,type,blob]=meta.split(" ");return{mode,type,blob,path};
-}).filter(x=>selected(x.path)).sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
+}).filter(x=>isReviewerSourcePath(x.path)).sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
 if(!entries.some(x=>x.path==="apps/wallet-web/store/export-reviewer-source.mjs"))throw new Error("Exporter must be committed before materializing release sources");
 // Never package a working-tree override, symlink, credential directory or mutable artifact.
 const files=[];
