@@ -4,7 +4,7 @@ import test from "node:test";
 
 const walletRoot = new URL("../", import.meta.url);
 const publishedManifest = JSON.parse(await readFile(new URL("artifact-manifest.json", walletRoot), "utf8"));
-const manifest = JSON.parse(await readFile(new URL("artifact-candidate-1.0.17.json", walletRoot), "utf8"));
+const manifest = JSON.parse(await readFile(new URL("artifact-candidate-1.0.18.json", walletRoot), "utf8"));
 const publication = JSON.parse(await readFile(new URL("artifact-publication-1.0.17.json", walletRoot), "utf8"));
 const app = JSON.parse(await readFile(new URL("app.json", walletRoot), "utf8")).expo;
 const android = await readFile(new URL("android/app/build.gradle", walletRoot), "utf8");
@@ -72,8 +72,8 @@ function strictUtcSeconds(value) {
 function validate(candidate) {
   assert.equal(candidate.schemaVersion, 2);
   assert.equal(candidate.productId, "wallet");
-  assert.equal(candidate.version, "1.0.17-testnet-preview");
-  assert.equal(candidate.versionCode, 23);
+  assert.equal(candidate.version, "1.0.18-testnet-preview");
+  assert.equal(candidate.versionCode, 24);
   assert.equal(candidate.releaseStatus, "SOURCE_CANDIDATE_AWAITING_EXACT_MERGE_BUILD");
   assert.equal(candidate.releaseSourceCommit, null);
   assert.equal(candidate.releaseTag, null);
@@ -86,15 +86,30 @@ function validate(candidate) {
   assert.equal(candidate.productionSigned, false);
   assert.equal(candidate.storeReleased, false);
   assert.equal(candidate.walletConnectRelayE2E, "NOT_VERIFIED");
-  assert.equal(candidate.recoveryBinding.implementationCommit, "2b4f57c49c9ab7f9fb8536a33b5f90ccabecfd23");
-  assert.equal(candidate.recoveryBinding.mergedFeatureSource, "3a41494419b5c328638fb0b2a7e607cb38ba50e9");
-  assert.equal(candidate.previousPublishedRelease.version, "1.0.16-testnet-preview");
-  assert.equal(candidate.previousPublishedRelease.versionCode, 22);
-  assert.equal(candidate.previousPublishedRelease.tag, previous.tag);
+  assert.equal(candidate.recoveryBinding.implementationCommit, "4d327fd96a6e1a4a2ffd308f38aca983093292fb");
+  assert.equal(candidate.recoveryBinding.mergedFeatureSource, "54b707f54a23c68fb4d504bbc3cd8b29853791dd");
+  assert.deepEqual(candidate.recoveryBinding.coverage, [
+    "current-and-exact-legacy-faucet-receipt-compatibility",
+    "legacy-faucet-authority-pending-request-fence",
+    "exact-official-old-and-new-rpc-transfer-recovery",
+    "rpc-response-body-deadline",
+    "finance-signed-binding-and-authority-time-expiry",
+  ]);
+  assert.equal(candidate.previousPublishedRelease.version, "1.0.17-testnet-preview");
+  assert.equal(candidate.previousPublishedRelease.versionCode, 23);
+  assert.equal(candidate.previousPublishedRelease.tag, published117.tag);
   assert.equal(candidate.previousPublishedRelease.releaseImmutable, false);
   assert.equal(candidate.previousPublishedRelease.publisherCanReplaceAssets, true);
-  assert.deepEqual(candidate.previousPublishedRelease.apk, previous.apk);
-  assert.deepEqual(candidate.previousPublishedRelease.aab, previous.aab);
+  assert.deepEqual(candidate.previousPublishedRelease.apk, {
+    url: published117.apk.url,
+    bytes: published117.apk.bytes,
+    sha256: published117.apk.sha256,
+  });
+  assert.deepEqual(candidate.previousPublishedRelease.aab, {
+    url: published117.aab.url,
+    bytes: published117.aab.bytes,
+    sha256: published117.aab.sha256,
+  });
   assert.match(candidate.generatedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
   const generatedAt = Date.parse(candidate.generatedAt);
   assert.equal(Number.isFinite(generatedAt), true);
@@ -102,10 +117,10 @@ function validate(candidate) {
 }
 
 function validateEvidence(value) {
-  assert.equal(value.version, "1.0.17-testnet-preview");
-  assert.equal(value.versionCode, 23);
-  assert.equal(value.baseCommit, "3a41494419b5c328638fb0b2a7e607cb38ba50e9");
-  assert.equal(value.recoveryImplementationCommit, "2b4f57c49c9ab7f9fb8536a33b5f90ccabecfd23");
+  assert.equal(value.version, "1.0.18-testnet-preview");
+  assert.equal(value.versionCode, 24);
+  assert.equal(value.baseCommit, "54b707f54a23c68fb4d504bbc3cd8b29853791dd");
+  assert.equal(value.recoveryImplementationCommit, "4d327fd96a6e1a4a2ffd308f38aca983093292fb");
   assert.equal(value.releaseSourceCommit, null);
   assert.equal(value.releaseTag, null);
   assert.equal(value.artifactsBuiltFromExactMerge, false);
@@ -113,7 +128,7 @@ function validateEvidence(value) {
   assert.equal(value.productionSigned, false);
   assert.equal(value.storeReleased, false);
   assert.equal(value.walletConnectRelayE2E, "NOT_VERIFIED");
-  assert.equal(value.previousReleasePreserved.tag, previous.tag);
+  assert.equal(value.previousReleasePreserved.tag, published117.tag);
   assert.equal(value.previousReleasePreserved.assetsMustNotBeReplaced, true);
   assert.equal(value.generatedAt, manifest.generatedAt);
   assert.ok(Date.parse(value.generatedAt) <= Date.now());
@@ -237,16 +252,16 @@ test("the active download manifest remains the compatible published 1.0.16 contr
   assert.equal(aab.sha256, previous.aab.sha256);
 });
 
-test("1.0.17 source candidate binds native versions and recovery source without inventing a release", () => {
+test("1.0.18 source candidate binds native versions and recovery source without inventing a release", () => {
   validate(manifest);
-  assert.equal(app.version, "1.0.17");
-  assert.equal(app.android.versionCode, 23);
-  assert.equal(app.ios.buildNumber, "23");
-  assert.match(android, /versionCode 23\n\s*versionName "1\.0\.17-testnet-preview"/);
-  assert.match(plist, /CFBundleShortVersionString<\/key>\s*<string>1\.0\.17<\/string>/);
-  assert.match(plist, /CFBundleVersion<\/key>\s*<string>23<\/string>/);
-  assert.equal((xcode.match(/CURRENT_PROJECT_VERSION = 23;/g) ?? []).length, 2);
-  assert.equal((xcode.match(/MARKETING_VERSION = 1\.0\.17;/g) ?? []).length, 2);
+  assert.equal(app.version, "1.0.18");
+  assert.equal(app.android.versionCode, 24);
+  assert.equal(app.ios.buildNumber, "24");
+  assert.match(android, /versionCode 24\n\s*versionName "1\.0\.18-testnet-preview"/);
+  assert.match(plist, /CFBundleShortVersionString<\/key>\s*<string>1\.0\.18<\/string>/);
+  assert.match(plist, /CFBundleVersion<\/key>\s*<string>24<\/string>/);
+  assert.equal((xcode.match(/CURRENT_PROJECT_VERSION = 24;/g) ?? []).length, 2);
+  assert.equal((xcode.match(/MARKETING_VERSION = 1\.0\.18;/g) ?? []).length, 2);
   assert.equal(evidence.artifactsBuiltFromExactMerge, false);
   assert.equal(evidence.artifactsPublished, false);
   validateEvidence(evidence);
@@ -372,12 +387,12 @@ test("candidate manifest fails closed when release truth or signing truth is tam
   }
 });
 
-test("the existing 1.0.16 download identity cannot be silently replaced", () => {
+test("the existing 1.0.17 download identity cannot be silently replaced", () => {
   for (const mutate of [
     (value) => { value.previousPublishedRelease.apk.sha256 = "0".repeat(64); },
     (value) => { value.previousPublishedRelease.apk.url += ".replacement"; },
     (value) => { value.previousPublishedRelease.aab.bytes += 1; },
-    (value) => { value.previousPublishedRelease.tag = "wallet-android-testnet-preview-1.0.17"; },
+    (value) => { value.previousPublishedRelease.tag = "wallet-android-testnet-preview-1.0.18"; },
   ]) {
     const copy = structuredClone(manifest);
     mutate(copy);
