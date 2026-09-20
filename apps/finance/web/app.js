@@ -81,6 +81,14 @@ async function requestBrokerExecution(orderId){
   if(!window.confirm('Queue this already approved Sandbox order for the controlled worker? The browser never contacts the provider directly.'))return;
   try{const idempotencyKey=`finance-execution-${orderId}`,result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/execution-request`,{method:'POST',body:JSON.stringify({idempotencyKey})});if(result?.schema!=='ynx-finance-broker-execution-request-v1'||result.providerWriteAttempted!==false)throw new Error('Execution request response is invalid.');notify('Controlled execution request queued once. Refresh shows provider status; no success is implied.');await refreshBrokerWorkspace()}catch(error){notify(error.message,true)}
 }
+async function refreshBrokerExecutionStatus(orderId){
+  try{
+    const result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/execution-status`),outbox=result?.outbox;
+    if(result?.schema!=='ynx-finance-broker-execution-status-v1'||result.providerWriteAttempted!==false||outbox?.orderId!==orderId||typeof outbox.status!=='string')throw new Error('Execution status response is invalid.');
+    notify(`Execution status: ${outbox.status}. This read did not contact the provider or submit an order.`);
+    await refreshBrokerWorkspace();
+  }catch(error){notify(error.message,true)}
+}
 async function refreshBrokerWorkspace(){
   if(!state.connected){renderBrokerWorkspace(null);return null}
   try{const result=await api('/api/broker/orders');if(result?.schema!=='ynx-finance-broker-workspace-v1')throw new Error('Broker workspace response is invalid.');renderBrokerWorkspace(result.workspace);return result.workspace}catch(error){$('#broker-local-orders').innerHTML=`<div class="empty compact">${esc(error.message)} No order state was substituted.</div>`;return null}
@@ -208,7 +216,7 @@ $('#broker-reconcile').addEventListener('click',reconcileBroker);
 $('#broker-asset-search').addEventListener('submit',searchBrokerAssets);
 $('#broker-asset-results').addEventListener('click',async event=>{const selectId=event.target.dataset.brokerSelect,watchId=event.target.dataset.brokerWatch;if(selectId){try{selectBrokerAsset(state.brokerAssets.get(selectId))}catch(error){notify(error.message,true)}}else if(watchId){try{await updateBrokerWatchlist(state.brokerAssets.get(watchId),true)}catch(error){notify(error.message,true)}}});
 $('#broker-watchlist').addEventListener('click',async event=>{const selectId=event.target.dataset.brokerWatchSelect,removeId=event.target.dataset.brokerUnwatch;if(selectId){try{const item=state.brokerWatchlist.get(selectId);selectBrokerAsset({id:item.assetId,symbol:item.symbol,name:item.name})}catch(error){notify(error.message,true)}}else if(removeId){try{await updateBrokerWatchlist(state.brokerWatchlist.get(removeId),false)}catch(error){notify(error.message,true)}}});
-$('#broker-local-orders').addEventListener('click',async event=>{const refreshId=event.target.dataset.brokerOrderRefresh,cancelId=event.target.dataset.brokerOrderCancel,executeId=event.target.dataset.brokerOrderExecute;if(refreshId){await reconcileBroker()}else if(executeId){await requestBrokerExecution(executeId)}else if(cancelId){await requestBrokerCancel(cancelId)}});
+$('#broker-local-orders').addEventListener('click',async event=>{const refreshId=event.target.dataset.brokerOrderRefresh,cancelId=event.target.dataset.brokerOrderCancel,executeId=event.target.dataset.brokerOrderExecute;if(refreshId){await refreshBrokerExecutionStatus(refreshId)}else if(executeId){await requestBrokerExecution(executeId)}else if(cancelId){await requestBrokerCancel(cancelId)}});
 $('#broker-order-form').addEventListener('submit',createBrokerApproval);
 $('#broker-quote').addEventListener('click',refreshBrokerQuote);
 $('#broker-complete-callback').addEventListener('click',completeBrokerCallback);

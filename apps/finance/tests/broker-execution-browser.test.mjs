@@ -8,7 +8,7 @@ const web=new URL('../web/',import.meta.url);
 const orderId='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const walletStub=`window.YNXFinanceWallet={ready:Promise.resolve(),connected:()=>true,getRevision:()=>0,requireProof:async()=>({proofHeader:'TEST_ONLY',requestId:'req_test_finance_broker_0001'}),connect:async()=>{},disconnect:async()=>({status:'disconnected'}),reportPrivateFailure:()=>{}};`;
 const orderWalletStub=`window.YNXFinanceOrderWallet={pending:()=>null,clear:()=>{},begin:()=>{throw new Error('approval is outside this fixture')},parseReturn:()=>{throw new Error('callback is outside this fixture')}};`;
-let server,browser,base,executionRequests,outboxStatus;
+let server,browser,base,executionRequests,executionStatusRequests,reconcileRequests,outboxStatus;
 
 function json(res,status,value){res.writeHead(status,{'content-type':'application/json'});res.end(JSON.stringify(value));}
 function workspace(){return {orders:[{requestId:'request-fixture',approvalState:'consumed',state:'submitting',order:{orderId,symbol:'ACME',side:'buy',qty:'1',maxCost:'10'}}],outbox:[{orderId,status:outboxStatus,attempts:0}],journal:[],watchlist:[],serverTime:'2026-09-19T11:00:00.000Z'};}
@@ -23,6 +23,14 @@ test.before(async()=>{
     if(url.pathname==='/api/broker/status')return json(res,200,{schema:'ynx-finance-broker-status-v1',status:{enabled:true,tradingEnvironment:'sandbox',chainEnvironment:'testnet',submissionEnabled:true,state:'CONFIGURED_NOT_VERIFIED'},walletOrderApproval:'frozen_contract_with_owner_scoped_execution_request',durableOrderJournal:'implemented_state_v2'});
     if(url.pathname==='/api/broker/snapshot')return json(res,200,{schema:'ynx-finance-broker-snapshot-v1',snapshot:{provider:'alpaca_broker',environment:'sandbox',account:{providerAccountId:'11111111-2222-4333-8444-555555555555',currency:'USD',cash:'100',buyingPower:'100'},positions:[],orders:[]}});
     if(url.pathname==='/api/broker/orders'&&req.method==='GET')return json(res,200,{schema:'ynx-finance-broker-workspace-v1',workspace:workspace(),providerWriteAttempted:false});
+    if(url.pathname===`/api/broker/orders/${orderId}/execution-status`&&req.method==='GET'){
+      executionStatusRequests.push(url.pathname);
+      return json(res,200,{schema:'ynx-finance-broker-execution-status-v1',outbox:{orderId,status:outboxStatus,attempts:0},providerWriteAttempted:false});
+    }
+    if(url.pathname==='/api/broker/reconcile'&&req.method==='POST'){
+      reconcileRequests.push(url.pathname);
+      return json(res,500,{error:'browser refresh must not reconcile the provider'});
+    }
     if(url.pathname===`/api/broker/orders/${orderId}/execution-request`&&req.method==='POST'){
       const chunks=[];for await(const chunk of req)chunks.push(chunk);
       executionRequests.push(JSON.parse(Buffer.concat(chunks).toString('utf8')));
@@ -40,11 +48,11 @@ test.before(async()=>{
 test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
 
 test('real Finance DOM queues one controlled owner request and never calls a provider directly',async()=>{
-  executionRequests=[];outboxStatus='pending_unwired';
-  const page=await browser.newPage(),errors=[],externalRequests=[];
+  executionRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='pending_unwired';
+  const page=await browser.newPage(),errors=[],externalRequests=[],dialogs=[];
   page.on('pageerror',error=>errors.push(error.message));
   page.on('request',request=>{if(new URL(request.url()).origin!==base)externalRequests.push(request.url());});
-  page.on('dialog',dialog=>dialog.accept());
+  page.on('dialog',dialog=>{dialogs.push(dialog.message());dialog.accept();});
   try{
     await page.goto(base);
 	await page.evaluate(()=>{location.hash='broker-sandbox';});
@@ -53,6 +61,11 @@ test('real Finance DOM queues one controlled owner request and never calls a pro
     await page.waitForFunction(()=>document.querySelector('#broker-local-orders').textContent.includes('execution_requested'));
     assert.deepEqual(executionRequests,[{idempotencyKey:`finance-execution-${orderId}`}]);
     assert.equal(await page.locator('[data-broker-order-execute]').count(),0);
+    await page.locator(`[data-broker-order-refresh="${orderId}"]`).click();
+    await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('execution_requested'));
+    assert.deepEqual(executionStatusRequests,[`/api/broker/orders/${orderId}/execution-status`]);
+    assert.deepEqual(reconcileRequests,[]);
+    assert.deepEqual(dialogs,['Queue this already approved Sandbox order for the controlled worker? The browser never contacts the provider directly.']);
     assert.deepEqual(externalRequests,[]);
     assert.deepEqual(errors,[]);
   }finally{await page.close();}
