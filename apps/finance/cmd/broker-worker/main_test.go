@@ -104,6 +104,37 @@ func TestControlledVerificationWithoutWriteActivationPerformsZeroProviderWrites(
 	}
 }
 
+func TestControlledVerificationPreflightFailureReportsZeroProviderWrites(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "finance.json")
+	store, err := finance.OpenStore(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	if err := store.Update(account, "fixture", "", func(*finance.AccountState) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	receipt := strings.Repeat("a", 64)
+	get := func(key string) string {
+		switch key {
+		case "FINANCE_TRADING_ENABLED", "FINANCE_SANDBOX_WRITES_ENABLED":
+			return "true"
+		case "FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256":
+			return receipt
+		case "ALPACA_BROKER_CLIENT_ID":
+			return "fixture-id"
+		case "ALPACA_BROKER_CLIENT_SECRET":
+			return "fixture-secret"
+		}
+		return ""
+	}
+	var stdout bytes.Buffer
+	code := run([]string{"verify-approved", "--state", statePath, "--account", account, "--order", "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", "--activation-receipt", receipt, "--confirm", "SANDBOX_VERIFY_APPROVED_ORDER_ONCE"}, get, strings.NewReader(""), &stdout)
+	if code != 1 || !strings.Contains(stdout.String(), `"error":"WALLET_APPROVAL_REQUIRED"`) || !strings.Contains(stdout.String(), `"providerWriteAttempted":false`) {
+		t.Fatalf("preflight truth was not preserved: code=%d output=%s", code, stdout.String())
+	}
+}
+
 func TestLinkAccountPersistsBrokerAndWalletIdentityWithoutNetwork(t *testing.T) {
 	statePath := filepath.Join(t.TempDir(), "finance.json")
 	store, err := finance.OpenStore(statePath)
@@ -130,6 +161,12 @@ func TestLinkAccountPersistsBrokerAndWalletIdentityWithoutNetwork(t *testing.T) 
 	}
 	if got, err := reopened.BrokerWalletPublicKey(account); err != nil || got != key {
 		t.Fatalf("key=%q err=%v at=%s", got, err, time.Now().UTC())
+	}
+	secondAccount := "ynx172kmjz4z0g7xr22u2qrrkgy3nkq3u9rk768d6x"
+	secondArgs := []string{"link-account", "--state", statePath, "--account", secondAccount, "--broker-account", "01234567-89ab-4cde-8fab-0123456789ab", "--wallet-public-key", key, "--confirm", "LINK_SANDBOX_ACCOUNT"}
+	stdout.Reset()
+	if code := run(secondArgs, func(string) string { return "" }, strings.NewReader(""), &stdout); code != 1 || !strings.Contains(stdout.String(), "ACCOUNT_LINK_REJECTED") {
+		t.Fatalf("shared Broker account was not rejected: code=%d stdout=%s", code, stdout.String())
 	}
 }
 

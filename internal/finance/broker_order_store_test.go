@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -265,6 +266,64 @@ func TestBrokerMappingsRemainPerUserAndProviderEnvironment(t *testing.T) {
 	}
 	if _, err := store.ResolveBrokerAccount(t.Context(), first, FinanceOrderProvider, "live"); err == nil {
 		t.Fatal("live mapping resolved")
+	}
+}
+
+func TestBrokerAccountCannotBeSharedAcrossFinanceUsers(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "finance.json")
+	first, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	accounts := []string{
+		"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+		"ynx172kmjz4z0g7xr22u2qrrkgy3nkq3u9rk768d6x",
+	}
+	brokerAccount := "01234567-89ab-4cde-8fab-0123456789ab"
+	start := make(chan struct{})
+	results := make(chan error, len(accounts))
+	var wg sync.WaitGroup
+	for index, store := range []*Store{first, second} {
+		wg.Add(1)
+		go func(index int, store *Store) {
+			defer wg.Done()
+			<-start
+			_, putErr := store.PutBrokerSandboxMapping(accounts[index], brokerAccount, time.Now().UTC())
+			results <- putErr
+		}(index, store)
+	}
+	close(start)
+	wg.Wait()
+	close(results)
+	successes, failures := 0, 0
+	for result := range results {
+		if result == nil {
+			successes++
+		} else if strings.Contains(result.Error(), "already linked") {
+			failures++
+		} else {
+			t.Fatalf("unexpected mapping result: %v", result)
+		}
+	}
+	if successes != 1 || failures != 1 {
+		t.Fatalf("successes=%d failures=%d", successes, failures)
+	}
+	reopened, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	linked := 0
+	for _, account := range accounts {
+		if _, resolveErr := reopened.ResolveBrokerAccount(t.Context(), account, FinanceOrderProvider, FinanceOrderTradingEnv); resolveErr == nil {
+			linked++
+		}
+	}
+	if linked != 1 {
+		t.Fatalf("shared provider account linked to %d users", linked)
 	}
 }
 
