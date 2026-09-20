@@ -46,7 +46,8 @@ async function readLock(lock){
   try{handle=await fs.open(lock,constants.O_RDONLY|constants.O_NOFOLLOW);}catch(error){if(error?.code==='ELOOP')throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_IDENTITY_INVALID');throw error;}
   try{
     const stat=await handle.stat();
-    if(!stat.isFile()||(stat.nlink!==1&&stat.nlink!==2)||stat.size<2||stat.size>4096)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_IDENTITY_INVALID');
+    if(stat.nlink===0){const error=new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_CHANGED');error.code='EAGAIN';throw error;}
+    if(!stat.isFile()||stat.nlink>3||stat.size<2||stat.size>4096)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_IDENTITY_INVALID');
     const raw=await handle.readFile('utf8');if(Buffer.byteLength(raw)!==stat.size)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_CHANGED');
     const owner=JSON.parse(raw);
     if(!owner||Object.keys(owner).sort().join(',')!=='nonce,pid,startedAtMs,tempBasename'||!Number.isSafeInteger(owner.pid)||owner.pid<1||!Number.isSafeInteger(owner.startedAtMs)||owner.startedAtMs<0||typeof owner.nonce!=='string'||!/^[a-f0-9-]{36}$/.test(owner.nonce)||owner.tempBasename!==`.checkpoint-lock-${owner.pid}-${owner.nonce}.tmp`)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_INVALID');
@@ -56,23 +57,44 @@ async function readLock(lock){
 
 function processAlive(pid){try{process.kill(pid,0);return true;}catch(error){if(error?.code==='ESRCH')return false;if(error?.code==='EPERM')return true;throw error;}}
 function sameIdentity(a,b){return a.dev===b.dev&&a.ino===b.ino&&a.size===b.size;}
+async function recoveryClaims(lock){const prefix=path.basename(lock)+'.recovery-';return (await fs.readdir(path.dirname(lock))).filter(name=>name.startsWith(prefix));}
 
 async function retireLock(lock,observed){
-  const quarantine=`${lock}.retired-${process.pid}-${randomUUID()}`;
-  await fs.rename(lock,quarantine);
-  const moved=await readLock(quarantine);
-  if(!sameIdentity(observed.stat,moved.stat)||moved.raw!==observed.raw)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_SUBSTITUTED');
-  if(moved.stat.nlink===2){
-    const temporary=path.join(path.dirname(lock),moved.owner.tempBasename),temporaryStat=await fs.lstat(temporary);
-    if(!temporaryStat.isFile()||!sameIdentity(moved.stat,temporaryStat))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_TEMP_INVALID');
+  const claim=`${lock}.recovery-${observed.stat.dev}-${observed.stat.ino}`;
+  try{await fs.link(lock,claim);}catch(error){if(error?.code==='ENOENT'||error?.code==='EEXIST')return false;throw error;}
+  const claimed=await readLock(claim);
+  if(!sameIdentity(observed.stat,claimed.stat)||claimed.raw!==observed.raw)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_SUBSTITUTED');
+  try{
+    const current=await readLock(lock);
+    if(!sameIdentity(observed.stat,current.stat)||current.raw!==observed.raw)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_SUBSTITUTED');
+    await fs.unlink(lock);
+  }catch(error){if(error?.code!=='ENOENT')throw error;}
+  const temporary=path.join(path.dirname(lock),claimed.owner.tempBasename);
+  try{
+    const temporaryStat=await fs.lstat(temporary);
+    if(!temporaryStat.isFile()||!sameIdentity(claimed.stat,temporaryStat))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_TEMP_INVALID');
     await fs.unlink(temporary);
+  }catch(error){if(error?.code!=='ENOENT')throw error;}
+  const finalStat=await fs.lstat(claim);
+  if(!finalStat.isFile()||finalStat.nlink!==1||!sameIdentity({...claimed.stat,nlink:1},finalStat))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_CHANGED');
+  await fs.unlink(claim);
+  return true;
+}
+
+async function abandonOwnedLock(lock,observed){
+  const guard=`${lock}.abandoned-${process.pid}-${randomUUID()}`;
+  await fs.link(lock,guard);
+  try{
+    const claimed=await readLock(guard),current=await readLock(lock);
+    if(!sameIdentity(observed.stat,claimed.stat)||!sameIdentity(observed.stat,current.stat)||claimed.raw!==observed.raw||current.raw!==observed.raw)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_SUBSTITUTED');
+    await fs.unlink(lock);
+  }finally{
+    await fs.unlink(guard).catch(()=>{});
   }
-  const finalStat=await fs.lstat(quarantine);
-  if(!finalStat.isFile()||finalStat.nlink!==1||!sameIdentity({...moved.stat,nlink:1},finalStat))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_CHANGED');
-  await fs.unlink(quarantine);
 }
 
 async function acquireLock(lock){
+  if((await recoveryClaims(lock)).length!==0){const error=new Error('lock recovery active');error.code='EEXIST';throw error;}
   const nonce=randomUUID(),owner={pid:process.pid,startedAtMs:Date.now(),nonce,tempBasename:`.checkpoint-lock-${process.pid}-${nonce}.tmp`};
   const temporary=path.join(path.dirname(lock),owner.tempBasename),raw=JSON.stringify(owner)+'\n';
   const handle=await fs.open(temporary,'wx',0o600);
@@ -81,6 +103,7 @@ async function acquireLock(lock){
   await fs.unlink(temporary);
   const observed=await readLock(lock);
   if(observed.raw!==raw||observed.owner.pid!==process.pid||observed.owner.nonce!==nonce)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_SUBSTITUTED');
+  if((await recoveryClaims(lock)).length!==0){await abandonOwnedLock(lock,observed);const error=new Error('lock recovery active');error.code='EEXIST';throw error;}
   return observed;
 }
 
@@ -91,11 +114,12 @@ async function withLock(file,action){
     let owned;
     try{owned=await acquireLock(lock);}catch(error){
       if(error?.code!=='EEXIST')throw error;
-      const observed=await readLock(lock);
+      let observed;
+      try{observed=await readLock(lock);}catch(readError){if(readError?.code==='ENOENT'||readError?.code==='EAGAIN'){await wait(1);continue;}throw readError;}
       if(!processAlive(observed.owner.pid)){await retireLock(lock,observed);continue;}
       await wait(10);continue;
     }
-    try{return await action();}finally{await retireLock(lock,owned);}
+    try{return await action();}finally{if(!await retireLock(lock,owned))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_LOST');}
   }
   throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOCK_TIMEOUT');
 }

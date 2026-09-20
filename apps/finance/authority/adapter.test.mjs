@@ -4,6 +4,8 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash,generateKeyPairSync,sign} from 'node:crypto';
+import {spawn} from 'node:child_process';
+import {pathToFileURL} from 'node:url';
 import {AUTHORITY_V2_REPOSITORY,AUTHORITY_V2_URLS,authorityV2SigningMessage} from '../../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft} from '../../../scripts/ops/endpoint-authority-v2.mjs';
 import {resolveFinanceBrowserAuthorityConfig,resolveFinancePrivateAuthority} from './adapter.mjs';
@@ -93,6 +95,21 @@ test('node checkpoint recovers an identity-bound orphan lock owned by a dead pro
   await fs.writeFile(file+'.lock',JSON.stringify(owner)+'\n',{mode:0o600});
   const store=createNodeCheckpointStore({file,anchor:copy(root.anchor),trustedClockMs:nowMs}),next={rootVersion:1,sequence:1,payloadSha256:'a'.repeat(64)};
   assert.equal(await store.compareAndSwap(root.anchor,next),true);assert.deepEqual(await store.read(),next);await assert.rejects(fs.stat(file+'.lock'),error=>error.code==='ENOENT');
+});
+
+test('eight processes concurrently recover one orphan lock without ENOENT or replacement races',async t=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'ynx-finance-checkpoint-race-')),rounds=20,workers=8;t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const moduleURL=pathToFileURL(path.resolve('apps/finance/authority/checkpoint-node.mjs')).href,workerFile=path.join(dir,'worker.mjs'),barriers=path.join(dir,'barrier');
+  await fs.writeFile(workerFile,`import fs from 'node:fs/promises';import {createNodeCheckpointStore} from ${JSON.stringify(moduleURL)};const [base,barriers,rounds,index]=process.argv.slice(2);const anchor={rootVersion:1,sequence:0,payloadSha256:'0'.repeat(64)},out=[];for(let r=0;r<Number(rounds);r++){await fs.writeFile(barriers+'.'+r+'.ready.'+index,'');while(true){try{await fs.stat(barriers+'.'+r+'.go');break}catch(error){if(error.code!=='ENOENT')throw error;await new Promise(resolve=>setTimeout(resolve,2));}}try{out.push(await createNodeCheckpointStore({file:base+'.'+r+'.json',anchor,trustedClockMs:${nowMs}}).compareAndSwap(anchor,{rootVersion:1,sequence:1,payloadSha256:String(index).repeat(64)}));}catch(error){out.push({error:error.code??error.message});}}process.stdout.write(JSON.stringify(out));`);
+  const dead={pid:2147483647,startedAtMs:nowMs,nonce:'11111111-1111-4111-8111-111111111111',tempBasename:'.checkpoint-lock-2147483647-11111111-1111-4111-8111-111111111111.tmp'};
+  for(let round=0;round<rounds;round++)await fs.writeFile(path.join(dir,`checkpoint.${round}.json.lock`),JSON.stringify(dead)+'\n',{mode:0o600});
+  const children=Array.from({length:workers},(_,index)=>new Promise((resolve,reject)=>{const child=spawn(process.execPath,[workerFile,path.join(dir,'checkpoint'),barriers,String(rounds),String(index)],{stdio:['ignore','pipe','pipe']});let stdout='',stderr='';child.stdout.on('data',value=>stdout+=value);child.stderr.on('data',value=>stderr+=value);child.on('error',reject);child.on('close',code=>code===0?resolve(JSON.parse(stdout)):reject(new Error(`worker ${index} rc=${code}: ${stderr}`)));}));
+  for(let round=0;round<rounds;round++){
+    for(let attempt=0;attempt<1000;attempt++){const names=await fs.readdir(dir),ready=names.filter(name=>name.startsWith(`barrier.${round}.ready.`)).length;if(ready===workers)break;if(attempt===999)throw new Error(`workers not ready for round ${round}`);await new Promise(resolve=>setTimeout(resolve,2));}
+    await fs.writeFile(`${barriers}.${round}.go`,'go');
+  }
+  const results=await Promise.all(children);
+  for(let round=0;round<rounds;round++){const values=results.map(result=>result[round]);assert.equal(values.filter(value=>value===true).length,1,`round ${round}`);assert.equal(values.filter(value=>value===false).length,workers-1,`round ${round}: ${JSON.stringify(values)}`);}
 });
 
 test('authority JSON and checkpoint reads reject symlink substitution',async t=>{
