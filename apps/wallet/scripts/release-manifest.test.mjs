@@ -33,6 +33,7 @@ const published117 = Object.freeze({
   releaseId: 392422025,
   releaseCreatedAt: "2026-09-20T12:13:28Z",
   releasePublishedAt: "2026-09-20T12:19:31Z",
+  observedAt: "2026-09-20T12:21:28Z",
   apk: Object.freeze({
     assetId: 576764497,
     filename: "ynx-wallet-1.0.17-testnet-preview-875f6c5b7-universal-local-test-signed.apk",
@@ -46,6 +47,16 @@ const published117 = Object.freeze({
     url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.17-875f6c5b7/ynx-wallet-1.0.17-testnet-preview-875f6c5b7-local-test-signed.aab",
     bytes: 71872002,
     sha256: "079c8e0597ab0c30b884e10c0d15bd1a8f606c6412509162fa85429966dbef1b",
+  }),
+  androidHermes: Object.freeze({
+    path: "dist-android/_expo/static/js/android/index-914b007e1bb25a1cb8c657e58ed7afa0.hbc",
+    bytes: 9399238,
+    sha256: "1228b51c6d93cf42c5407f7cccd2d6578ab766583e65f2529914b0743e36d36a",
+  }),
+  iosHermes: Object.freeze({
+    path: "dist-ios/_expo/static/js/ios/index-a52648763664cc19c4f07397f16a9a9e.hbc",
+    bytes: 9394059,
+    sha256: "b06dc784a39e7b569cdd1e46aafe4c8e3965645903f06f64055062678db85fa3",
   }),
 });
 
@@ -123,20 +134,33 @@ function validatePublication(value) {
   assert.equal(value.productionSigned, false);
   assert.equal(value.storeReleased, false);
   assert.equal(value.walletConnectRelayE2E, "NOT_VERIFIED");
+  assert.deepEqual(value.artifacts.map(({ name }) => name).sort(), ["android-hermes", "android-release-aab", "android-release-apk", "ios-hermes"]);
+  assert.equal(new Set(value.artifacts.map(({ name }) => name)).size, 4);
   const apk = value.artifacts.find(({ name }) => name === "android-release-apk");
   const aab = value.artifacts.find(({ name }) => name === "android-release-aab");
+  const androidHermes = value.artifacts.find(({ name }) => name === "android-hermes");
+  const iosHermes = value.artifacts.find(({ name }) => name === "ios-hermes");
   assert.deepEqual(
-    { bytes: apk.bytes, sha256: apk.sha256, productionSigned: apk.productionSigned, versionCode: apk.versionCode },
-    { bytes: published117.apk.bytes, sha256: published117.apk.sha256, productionSigned: false, versionCode: 23 },
+    { bytes: apk.bytes, sha256: apk.sha256, signingClass: apk.signingClass, productionSigned: apk.productionSigned, versionCode: apk.versionCode },
+    { bytes: published117.apk.bytes, sha256: published117.apk.sha256, signingClass: "local-test-signed", productionSigned: false, versionCode: 23 },
   );
   assert.deepEqual(
-    { bytes: aab.bytes, sha256: aab.sha256, productionSigned: aab.productionSigned, versionCode: aab.versionCode },
-    { bytes: published117.aab.bytes, sha256: published117.aab.sha256, productionSigned: false, versionCode: 23 },
+    { bytes: aab.bytes, sha256: aab.sha256, signingClass: aab.signingClass, productionSigned: aab.productionSigned, versionCode: aab.versionCode },
+    { bytes: published117.aab.bytes, sha256: published117.aab.sha256, signingClass: "local-test-signed", productionSigned: false, versionCode: 23 },
   );
   assert.equal(apk.filename, published117.apk.filename);
   assert.equal(apk.url, published117.apk.url);
   assert.equal(aab.filename, published117.aab.filename);
   assert.equal(aab.url, published117.aab.url);
+  assert.deepEqual(
+    { path: androidHermes.path, bytes: androidHermes.bytes, sha256: androidHermes.sha256, signingClass: androidHermes.signingClass },
+    { ...published117.androidHermes, signingClass: "unsigned-build-output" },
+  );
+  assert.deepEqual(
+    { path: iosHermes.path, bytes: iosHermes.bytes, sha256: iosHermes.sha256, signingClass: iosHermes.signingClass },
+    { ...published117.iosHermes, signingClass: "unsigned-build-output" },
+  );
+  assert.equal(value.generatedAt, published117.observedAt);
   strictUtcSeconds(value.generatedAt);
 }
 
@@ -168,7 +192,21 @@ function validatePublicationEvidence(value, published) {
   assert.equal(value.storeReleased, false);
   assert.equal(value.walletConnectRelayE2E, false);
   assert.equal(value.recoveryContractTests.liveChainTransferExecuted, false);
+  assert.deepEqual(value.recoveryContractTests, { passed: 56, failed: 0, liveChainTransferExecuted: false });
+  assert.deepEqual(value.emulator, {
+    avd: "YNX_WC_RC_20260920",
+    api: 36,
+    upgradedFromVersionCode: 22,
+    upgradeInstall: "PASS",
+    firstInstallTimePreserved: true,
+    coldLaunch: "PASS",
+    coldLaunchTotalTimeMs: 220,
+    malformedDeepLink: "FAIL_CLOSED_NO_CRASH",
+    walletConnectDeepLinkWithoutProjectId: "DISABLED_NO_CRASH",
+    crashBufferEmpty: true,
+  });
   assert.equal(value.officialWebsiteUpdated, false);
+  assert.equal(value.generatedAt, published117.observedAt);
   assert.equal(value.generatedAt, published.generatedAt);
   const created = strictUtcSeconds(value.releaseCreatedAt);
   const publishedAt = strictUtcSeconds(value.releasePublishedAt);
@@ -176,7 +214,6 @@ function validatePublicationEvidence(value, published) {
   assert.ok(created >= Date.parse("2026-09-20T12:13:28Z"));
   assert.ok(publishedAt >= created);
   assert.ok(observed >= publishedAt);
-  assert.ok(observed - publishedAt <= 10 * 60_000, "capture must remain close to publication");
   assert.equal(value.apk.url, published.artifacts.find(({ name }) => name === "android-release-apk").url);
   assert.equal(value.aab.url, published.artifacts.find(({ name }) => name === "android-release-aab").url);
 }
@@ -252,8 +289,16 @@ test("publication fails closed on asset, source, signature or external-verificat
     (value) => { value.storeReleased = true; },
     (value) => { value.walletConnectRelayE2E = "VERIFIED"; },
     (value) => { value.artifacts[0].sha256 = "0".repeat(64); },
+    (value) => { value.artifacts[0].signingClass = "production-signed"; },
+    (value) => { value.artifacts.push(structuredClone(value.artifacts[0])); },
+    (value) => { value.artifacts[0].name = value.artifacts[1].name; },
     (value) => { value.artifacts[1].bytes += 1; },
     (value) => { value.artifacts[0].url = value.artifacts[0].url.replace("875f6c5b7", "replacement"); },
+    (value) => { value.artifacts.find(({ name }) => name === "android-hermes").path = "attacker.hbc"; },
+    (value) => { value.artifacts.find(({ name }) => name === "android-hermes").bytes += 1; },
+    (value) => { value.artifacts.find(({ name }) => name === "android-hermes").sha256 = "0".repeat(64); },
+    (value) => { value.artifacts.find(({ name }) => name === "ios-hermes").path = "attacker.hbc"; },
+    (value) => { value.artifacts.find(({ name }) => name === "ios-hermes").signingClass = "signed"; },
   ]) {
     const copy = structuredClone(publication);
     mutate(copy);
@@ -274,10 +319,33 @@ test("publication evidence rejects release identity, asset pairing and timestamp
     (value) => { value.aab.url += ".replacement"; },
     (value) => { value.aab.bytes += 1; },
     (value) => { value.aab.sha256 = "0".repeat(64); },
+    (value) => { value.prerelease = false; },
+    (value) => { value.releaseImmutable = true; },
+    (value) => { value.publisherCanReplaceAssets = false; },
+    (value) => { value.downloadTimeSha256Verified = false; },
+    (value) => { value.apk.freshDownloadDigestMatched = false; },
+    (value) => { value.apk.apkSignatureV2Verified = false; },
+    (value) => { value.aab.freshDownloadDigestMatched = false; },
+    (value) => { value.aab.jarSignatureVerified = false; },
+    (value) => { value.signerCertificateDn = "CN=Production"; },
+    (value) => { value.signerCertificateSha256 = "0".repeat(64); },
+    (value) => { value.productionSigned = true; },
+    (value) => { value.storeReleased = true; },
+    (value) => { value.walletConnectRelayE2E = true; },
+    (value) => { value.officialWebsiteUpdated = true; },
     (value) => { value.releaseCreatedAt = "2026-09-20T12:13:28.000Z"; },
     (value) => { value.releasePublishedAt = "2026-09-20T12:12:00Z"; },
     (value) => { value.generatedAt = "2999-01-01T00:00:00Z"; },
     (value) => { value.generatedAt = "2026-09-20T12:40:00Z"; },
+    (value) => { value.emulator.upgradeInstall = "FAIL"; },
+    (value) => { value.emulator.firstInstallTimePreserved = false; },
+    (value) => { value.emulator.coldLaunch = "FAIL"; },
+    (value) => { value.emulator.malformedDeepLink = "CRASH"; },
+    (value) => { value.emulator.walletConnectDeepLinkWithoutProjectId = "CONNECTED"; },
+    (value) => { value.emulator.crashBufferEmpty = false; },
+    (value) => { value.recoveryContractTests.passed = 0; },
+    (value) => { value.recoveryContractTests.failed = 56; },
+    (value) => { value.recoveryContractTests.liveChainTransferExecuted = true; },
   ]) {
     const copy = structuredClone(publicationEvidence);
     mutate(copy);
