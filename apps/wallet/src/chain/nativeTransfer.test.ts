@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {createSignedNativeTransfer,ynxAddressFromEVM} from "@ynx-chain/wallet-auth";
-import {AccountNotRecordedError,NativeChainClient,loadNativeChainState} from "./nativeTransfer";
+import {AccountNotRecordedError,NativeChainClient,NativeReadError,loadNativeChainState} from "./nativeTransfer";
+import {NATIVE_DURABILITY_MODEL,NativeDurabilityInvalid} from "./nativeDurability";
 
 const account=ynxAddressFromEVM("0x7e5f4552091a69125d5dfcb7b8c2659029395bdf");
 const recipient=ynxAddressFromEVM("0xffffffffffffffffffffffffffffffffffffffff");
@@ -76,6 +77,31 @@ test("valid balance remains available when the independent activity endpoint fai
   const state=await loadNativeChainState(client,account);
   assert.equal(state.phase,"ready");assert.deepEqual(state.account,{address:signed.transaction.from,balance:0,nonce:0});
   assert.equal(state.activityPhase,"failed");assert.match(state.activityError??"",/404/);
+});
+
+test("read-only RPC capability checks recover from a transient mobile HTTP/2 reset on the same origin",async()=>{
+  const calls:{url:string;method:string;id:number}[]=[];let reset=true;
+  const client=new NativeChainClient("https://rpc-testnet.ynxweb4.com",async(url,init)=>{
+    const request=JSON.parse(String(init?.body));calls.push({url,method:request.method,id:request.id});
+    if(reset){reset=false;throw new TypeError("okhttp3.internal.http2.StreamResetException: stream was reset CANCEL")}
+    return response({jsonrpc:"2.0",id:request.id,result:request.method==="eth_chainId"?"0x1917":NATIVE_DURABILITY_MODEL});
+  });
+  await client.requireDurabilityCapability();
+  assert.deepEqual(calls.map(call=>call.method),["eth_chainId","eth_chainId","ynx_getDurabilityModel","eth_chainId"]);
+  assert.equal(new Set(calls.map(call=>call.url)).size,1);assert.equal(calls[0]?.url,"https://rpc-testnet.ynxweb4.com/evm");
+  assert.deepEqual(calls.map(call=>call.id),[1,2,3,4],"every retry has an independent JSON-RPC identity");
+});
+
+test("read-only RPC retries bounded transient HTTP failures but never retries invalid chain evidence",async()=>{
+  let unavailableCalls=0;
+  const unavailable=new NativeChainClient("https://rpc-testnet.ynxweb4.com",async()=>{unavailableCalls++;return response({error:"temporarily unavailable"},503)});
+  await assert.rejects(()=>unavailable.requireDurabilityCapability(),(error:unknown)=>error instanceof NativeReadError&&error.code==="NATIVE_READ_UNAVAILABLE"&&error.httpStatus===503);
+  assert.equal(unavailableCalls,3);
+
+  let invalidCalls=0;
+  const invalid=new NativeChainClient("https://rpc-testnet.ynxweb4.com",async(_url,init)=>{invalidCalls++;const request=JSON.parse(String(init?.body));return response({jsonrpc:"2.0",id:request.id,result:"0x1"})});
+  await assert.rejects(()=>invalid.requireDurabilityCapability(),NativeDurabilityInvalid);
+  assert.equal(invalidCalls,1,"a valid wrong-chain response is evidence, not a transport retry");
 });
 
 function response(value:unknown,status=200){return new Response(JSON.stringify(value),{status,headers:{"Content-Type":"application/json"}})}

@@ -7,6 +7,9 @@ export type ChainAccount=Readonly<{address:string;balance:number;nonce:number}>;
 export type ChainActivity=Readonly<{hash:string;type:string;from:string;to:string;amount:number;fee:number;nonce:number;timestamp?:string}>;
 export type BroadcastResult=Readonly<{hash:string;replayed:boolean;truthfulStatus:"signature-verified-authoritative-native-transfer";durabilityConfirmed:boolean;durabilityEvidence:Readonly<Record<string,unknown>>|null}>;
 class NativeDurabilityRPCError extends Error {constructor(readonly code:number,readonly data:unknown){super("The node has not supplied a verified local durability receipt.")}}
+class NativeRPCReadTransportError extends Error {
+  constructor(message:string,readonly httpStatus?:number){super(message);this.name="NativeRPCReadTransportError"}
+}
 export class NativeBroadcastUnknown extends Error {
   readonly code="NATIVE_BROADCAST_UNKNOWN";
   constructor(readonly hash:string,message="Transfer confirmation is unavailable. Keep the original transaction and retry only that transaction.",readonly httpStatus?:number,readonly reportedHash?:string){super(message)}
@@ -22,7 +25,7 @@ export function isNativeReadCancelled(value:unknown):value is NativeReadCancelle
 export class NativeReadError extends Error{
   constructor(readonly code:"NATIVE_READ_TIMEOUT"|"NATIVE_READ_UNAVAILABLE"|"NATIVE_READ_HTTP"|"NATIVE_READ_INVALID_RESPONSE",message:string,readonly retryable=false,readonly httpStatus?:number){super(message);this.name="NativeReadError"}
 }
-const READ_TIMEOUT_MS=15_000,READ_RETRY_DELAY_MS=250;
+const READ_TIMEOUT_MS=15_000,READ_RETRY_DELAY_MS=250,RPC_READ_ATTEMPTS=3;
 const RETRYABLE_READ_STATUS=new Set([408,429,500,502,503,504]);
 
 export class AccountNotRecordedError extends Error{
@@ -165,11 +168,31 @@ export class NativeChainClient{
   }
 
   async #rpc(method:string,params:readonly unknown[]):Promise<unknown>{
-    const id=++this.rpcSequence;
-    const response=await this.#json("/evm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id,method,params})});
-    if(!object(response)||response.jsonrpc!=="2.0"||response.id!==id||Object.hasOwn(response,"result")===Object.hasOwn(response,"error"))throw new NativeDurabilityInvalid();
-    if(Object.hasOwn(response,"error")){if(!object(response.error)||!Number.isSafeInteger(response.error.code)||typeof response.error.message!=="string")throw new NativeDurabilityInvalid();throw new NativeDurabilityRPCError(response.error.code,response.error.data)}
-    return response.result;
+    let last:NativeRPCReadTransportError|undefined;
+    for(let attempt=0;attempt<RPC_READ_ATTEMPTS;attempt++){
+      try{return await this.#rpcAttempt(method,params)}catch(error){
+        if(!(error instanceof NativeRPCReadTransportError))throw error;
+        last=error;if(attempt+1<RPC_READ_ATTEMPTS)await readRetryDelay();
+      }
+    }
+    throw new NativeReadError("NATIVE_READ_UNAVAILABLE",last?.httpStatus?`The YNX node is temporarily unavailable (${last.httpStatus}). Please refresh again.`:"The network connection was interrupted. Please refresh again.",true,last?.httpStatus);
+  }
+
+  async #rpcAttempt(method:string,params:readonly unknown[]):Promise<unknown>{
+    const id=++this.rpcSequence,url=`${this.#baseURL}/evm`,controller=new AbortController();let timeout:ReturnType<typeof setTimeout>|undefined;
+    try{
+      const response=await Promise.race([this.#fetch(url,{method:"POST",redirect:"error",signal:controller.signal,headers:{Accept:"application/json","Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id,method,params})}),new Promise<never>((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(new NativeRPCReadTransportError("YNX chain RPC read timed out"))},READ_TIMEOUT_MS)})]);
+      if(response.redirected||response.url&&response.url!==url)throw new NativeDurabilityInvalid();
+      if(RETRYABLE_READ_STATUS.has(response.status))throw new NativeRPCReadTransportError(`YNX chain RPC read failed (${response.status})`,response.status);
+      const text=await response.text();if(text.length>262144)throw new NativeDurabilityInvalid();let value:unknown;try{value=JSON.parse(text)}catch{throw new NativeDurabilityInvalid()}
+      if(!response.ok)throw new NativeDurabilityInvalid();
+      if(!object(value)||value.jsonrpc!=="2.0"||value.id!==id||Object.hasOwn(value,"result")===Object.hasOwn(value,"error"))throw new NativeDurabilityInvalid();
+      if(Object.hasOwn(value,"error")){if(!object(value.error)||!Number.isSafeInteger(value.error.code)||typeof value.error.message!=="string")throw new NativeDurabilityInvalid();throw new NativeDurabilityRPCError(value.error.code,value.error.data)}
+      return value.result;
+    }catch(error){
+      if(error instanceof NativeRPCReadTransportError||error instanceof NativeDurabilityInvalid||error instanceof NativeDurabilityRPCError)throw error;
+      throw new NativeRPCReadTransportError("YNX chain RPC read was interrupted");
+    }finally{clearTimeout(timeout);controller.abort()}
   }
 
   async #json(path:string,init:RequestInit,requestedAccount?:string,broadcastHash?:string):Promise<unknown>{

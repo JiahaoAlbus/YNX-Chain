@@ -39,12 +39,16 @@ export class NativeTransferOutbox {
     return this.serial(async()=>{
       assertCurrent();const record=await this.load(account);assertCurrent();
       if(!record||record.hash!==reviewedHash||record.phase==="done")throw new NativeOutboxBlocked();
-      if(record.origin!==client.origin)throw new Error("The stored transfer belongs to a different RPC origin. Restore that origin before checking its status.");
-      const result=await client.checkTransferDurability(record.transaction,record.hash);
-      // This is a public hash query. Preserve its verified result even if the
-      // originating screen locks before it finishes; no key use or broadcast.
-      const checked=parse({...record,phase:result.status==="durable"?"accepted":result.status,durabilityEvidence:result.evidence,updatedAt:this.now().toISOString()},account);
-      await this.save(checked);return checked;
+      return this.checkLoadedStatus(record,client);
+    });
+  }
+  /** Reconciles a stored transaction when the send surface is reopened. This
+   * performs only public chain reads and never authorizes, signs or broadcasts. */
+  async recover(account:string,client:NativeChainClient,assertCurrent:Guard):Promise<NativeTransferOutboxEntry|null>{
+    return this.serial(async()=>{
+      assertCurrent();const record=await this.load(account);assertCurrent();
+      if(!record||record.phase==="done"||record.phase==="accepted")return record;
+      return this.checkLoadedStatus(record,client);
     });
   }
   async retry(account:string,reviewedHash:string,client:NativeChainClient,assertCurrent:Guard,authorize:()=>Promise<void>):Promise<NativeTransferOutboxEntry>{
@@ -80,6 +84,14 @@ export class NativeTransferOutbox {
     const outcome=parse({...dispatch,phase:"observed",replayed:result.replayed,durabilityEvidence:null,updatedAt:this.now().toISOString()},record.account);
     await this.save(outcome);
     return outcome;
+  }
+  private async checkLoadedStatus(record:NativeTransferOutboxEntry,client:NativeChainClient):Promise<NativeTransferOutboxEntry>{
+    if(record.origin!==client.origin)throw new Error("The stored transfer belongs to a different RPC origin. Restore that origin before checking its status.");
+    const result=await client.checkTransferDurability(record.transaction,record.hash);
+    // This is a public hash query. Preserve its verified result even if the
+    // originating screen locks before it finishes; no key use or broadcast.
+    const checked=parse({...record,phase:result.status==="durable"?"accepted":result.status,durabilityEvidence:result.evidence,updatedAt:this.now().toISOString()},record.account);
+    await this.save(checked);return checked;
   }
   private async load(account:string):Promise<NativeTransferOutboxEntry|null>{
     try{const raw=await this.storage.getItem(key(account));if(raw===null)return null;if(raw.length>8192)throw new Error();return parse(JSON.parse(raw),account)}catch{throw new NativeOutboxStorageError()}
