@@ -1,0 +1,26 @@
+{
+  "schema": "ynx-wallet-mobile-preview-source-candidate/v1",
+  "version": "1.0.17-testnet-preview",
+  "versionCode": 23,
+  "baseCommit": "3a41494419b5c328638fb0b2a7e607cb38ba50e9",
+  "recoveryImplementationCommit": "2b4f57c49c9ab7f9fb8536a33b5f90ccabecfd23",
+  "releaseSourceCommit": null,
+  "releaseTag": null,
+  "artifactsBuiltFromExactMerge": false,
+  "artifactsPublished": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": "NOT_VERIFIED",
+  "knownLimits": [
+    "The exact release source is assigned only after this source candidate merges.",
+    "APK and AAB hashes, byte sizes, signatures and URLs remain absent until rebuilt from that exact merge.",
+    "GitHub prerelease assets are publisher-replaceable; consumers must verify the recorded SHA-256 after download.",
+    "A Reown Project ID is not configured, so real WalletConnect Relay pairing remains disabled and unverified.",
+    "Production signing and app-store publication are not available in this release stage."
+  ],
+  "previousReleasePreserved": {
+    "tag": "wallet-android-testnet-preview-1.0.16-e9816a827",
+    "assetsMustNotBeReplaced": true
+  },
+  "generatedAt": "2026-09-20T12:00:00Z"
+}
