@@ -103,15 +103,17 @@ async function publishBytes(target,bytes){
 async function markerExists(marker,content){const bytes=await readPublishedBytes(marker,{missing:true});if(bytes===null)return false;if(!bytes.equals(content))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_MARKER_INVALID');return true;}
 async function ensureMarker(marker,content){const result=await publishBytes(marker,content);if(!result.stored.equals(content))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_MARKER_INVALID');}
 
-function parseGenesis(bytes,anchor){
+function parseGenesis(bytes){
   let value;try{value=JSON.parse(bytes.toString('utf8'));}catch{throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');}
-  if(!value||Object.keys(value).sort().join(',')!=='anchor,schemaVersion,trustedClockHighWaterMs'||value.schemaVersion!==GENESIS_SCHEMA||!same(value.anchor,anchor)||value.trustedClockHighWaterMs!==0)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');
+  if(!value||Object.keys(value).sort().join(',')!=='anchor,schemaVersion,trustedClockHighWaterMs'||value.schemaVersion!==GENESIS_SCHEMA||value.trustedClockHighWaterMs!==0)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');
   return envelope(value.anchor,0);
 }
 
-function parseTransition(bytes,previous){
+function parseTransition(bytes,current){
   let value;try{value=JSON.parse(bytes.toString('utf8'));}catch{throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');}
-  if(!value||Object.keys(value).sort().join(',')!=='next,previous,schemaVersion,trustedClockHighWaterMs'||value.schemaVersion!==TRANSITION_SCHEMA||!same(value.previous,previous))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');
+  if(!value||Object.keys(value).sort().join(',')!=='next,previous,schemaVersion,trustedClockHighWaterMs'||value.schemaVersion!==TRANSITION_SCHEMA||!same(value.previous,current.checkpoint))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_INVALID');
+  const next=assertCheckpoint(value.next);
+  if(next.rootVersion<current.checkpoint.rootVersion||next.sequence<=current.checkpoint.sequence||value.trustedClockHighWaterMs<current.trustedClockHighWaterMs)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_ROLLBACK');
   return envelope(value.next,value.trustedClockHighWaterMs);
 }
 
@@ -123,17 +125,17 @@ export function createNodeCheckpointStore({file,anchor,trustedClockMs}){
   async function prepare(){
     const before=await privateDirectoryState(directory),genesisBytes=await readPublishedBytes(genesis,{missing:true}),marked=await markerExists(initialized,markerContent);
     if(genesisBytes===null&&marked)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOST');
-    if(genesisBytes===null){const created=await publishBytes(genesis,encoded({schemaVersion:GENESIS_SCHEMA,anchor:initial.checkpoint,trustedClockHighWaterMs:0}));parseGenesis(created.stored,initial.checkpoint);}
-    else parseGenesis(genesisBytes,initial.checkpoint);
+    const genesisEnvelope=genesisBytes===null?parseGenesis((await publishBytes(genesis,encoded({schemaVersion:GENESIS_SCHEMA,anchor:initial.checkpoint,trustedClockHighWaterMs:0}))).stored):parseGenesis(genesisBytes);
     await ensureMarker(initialized,markerContent);
     const after=await privateDirectoryState(directory);if(!sameDirectory(before,after))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_DIRECTORY_CHANGED');
+    return genesisEnvelope;
   }
   async function inspect(){
-    await prepare();let current=initial;
+    let current=await prepare();
     for(let depth=0;depth<10000;depth++){
       const target=transitionPath(current.checkpoint),marker=target+'.committed',bytes=await readPublishedBytes(target,{missing:true}),marked=await markerExists(marker,markerContent);
       if(bytes===null){if(marked)throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_LOST');if(at()<current.trustedClockHighWaterMs)throw new Error('AUTHORITY_V2_CLOCK_ROLLBACK');return current;}
-      current=parseTransition(bytes,current.checkpoint);await ensureMarker(marker,markerContent);
+      current=parseTransition(bytes,current);await ensureMarker(marker,markerContent);
     }
     throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_CHAIN_TOO_LONG');
   }
@@ -142,7 +144,7 @@ export function createNodeCheckpointStore({file,anchor,trustedClockMs}){
     async compareAndSwap(previous,next){
       const current=await inspect();if(!same(current.checkpoint,previous))return false;
       const value={schemaVersion:TRANSITION_SCHEMA,previous:current.checkpoint,next:assertCheckpoint(next),trustedClockHighWaterMs:Math.max(current.trustedClockHighWaterMs,at())},target=transitionPath(current.checkpoint);
-      const published=await publishBytes(target,encoded(value)),stored=parseTransition(published.stored,current.checkpoint);
+      const published=await publishBytes(target,encoded(value)),stored=parseTransition(published.stored,current);
       await ensureMarker(target+'.committed',markerContent);
       if(published.linked&&!same(stored.checkpoint,next))throw new Error('FINANCE_AUTHORITY_V2_CHECKPOINT_PUBLISH_INVALID');
       return published.linked;

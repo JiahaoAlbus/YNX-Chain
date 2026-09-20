@@ -66,6 +66,16 @@ test('browser config is server-verified public metadata bound to the durable ser
   assert.equal(config.schemaVersion,'ynx-finance-endpoint-authority-browser-config/v1');assert.deepEqual(config.trustRoot,root);assert.deepEqual(config.manifest,value.manifest);assert.deepEqual(config.serverCheckpoint,{rootVersion:1,sequence:1,payloadSha256:value.manifest.integrity.payloadSha256});assert.equal(config.trustedTimeMs,nowMs);
 });
 
+test('persisted history permits a signed root rotation and rejects rotation back to the old root',async t=>{
+  const first=signed(),value=await fixture(t,{manifest:first});await resolveFinancePrivateAuthority({env:value.env});
+  const root2={...copy(root),rootVersion:2,anchor:{rootVersion:2,sequence:0,payloadSha256:'0'.repeat(64)}},second=signed({sequence:2,previousPayloadSha256:first.integrity.payloadSha256});
+  await fs.writeFile(value.files.trustRootFile,JSON.stringify(root2));await fs.writeFile(value.files.manifestFile,JSON.stringify(second));
+  const rotated=await resolveFinancePrivateAuthority({env:value.env});assert.equal(rotated.manifestVersion,'2.0.0.2');
+  const persisted=await createNodeCheckpointStore({file:value.files.checkpointFile,anchor:root2.anchor,trustedClockMs:nowMs}).read();assert.deepEqual(persisted,{rootVersion:2,sequence:2,payloadSha256:second.integrity.payloadSha256});
+  await fs.writeFile(value.files.trustRootFile,JSON.stringify(root));
+  await assert.rejects(resolveFinancePrivateAuthority({env:value.env}),/ROOT_ROLLBACK/);
+});
+
 test('origin, signature, clock rollback and storage loss/equivocation fail closed',async t=>{
   const wrong=await fixture(t,{manifest:signed({origin:'https://evil.invalid'})});
   await assert.rejects(resolveFinancePrivateAuthority({env:wrong.env}),/FINANCE_ACCEPTANCE/);
@@ -163,4 +173,17 @@ test('atomic publish refuses a pre-existing transition symlink without touching 
   await fs.symlink(outside,transitionPath(file,root.anchor));
   await assert.rejects(store.compareAndSwap(root.anchor,{rootVersion:1,sequence:1,payloadSha256:'d'.repeat(64)}),/CHECKPOINT_IDENTITY_INVALID/);
   assert.equal(await fs.readFile(outside,'utf8'),'unchanged');
+});
+
+test('append-only transition files reject root, sequence and trusted-clock rollback',async t=>{
+  const dir=await fs.mkdtemp(path.join(tempRoot,'ynx-finance-checkpoint-transition-rollback-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  for(const [name,next,clock] of [
+    ['root',{rootVersion:0,sequence:2,payloadSha256:'e'.repeat(64)},nowMs],
+    ['sequence',{rootVersion:1,sequence:0,payloadSha256:'e'.repeat(64)},nowMs],
+    ['clock',{rootVersion:1,sequence:2,payloadSha256:'e'.repeat(64)},nowMs-1],
+  ]){
+    const file=path.join(dir,name),store=createNodeCheckpointStore({file,anchor:copy(root.anchor),trustedClockMs:nowMs}),one={rootVersion:1,sequence:1,payloadSha256:'a'.repeat(64)};assert.equal(await store.compareAndSwap(root.anchor,one),true);
+    const target=transitionPath(file,one),value={schemaVersion:'ynx-finance-endpoint-authority-checkpoint-transition/v1',previous:one,next,trustedClockHighWaterMs:clock};await fs.writeFile(target,canonicalAuthorityV2(value)+'\n');
+    await assert.rejects(store.read(),/CHECKPOINT_(?:INVALID|ROLLBACK)/);
+  }
 });
