@@ -8,18 +8,20 @@
     "walletReleaseEvidenceMerged": true
   },
   "source": {
-    "commit": "0e9e1f15f7a3a5938d1467edc447ab378c13753d",
-    "tree": "b32f947b4466ad585d7206d32b4056bc89d17f5e"
+    "commit": "a826bfc6e8906725a040cd461e1f3a7993a22b89",
+    "tree": "42a67633319d8f6877309cae8384159998ec4bcf"
   },
   "bundle": {
-    "path": "apps/finance/evidence/release-candidates/finance-v3-acceptance-recovery-0e9e1f15f7a3.tar.gz",
-    "bytes": 217422,
-    "sha256": "d6e09a7184c7c6671955d6a0ef0164e1d5d63fec58be0425433a3be2e6135d99",
-    "manifestBytes": 22373,
-    "manifestSha256": "b10eb665583ed7d8290d5341695a1b3ce10670bd752b80f8f6404b2e2a681c96",
-    "entries": 95,
+    "path": "apps/finance/evidence/release-candidates/finance-v3-acceptance-recovery-a826bfc6e890.tar.gz",
+    "bytes": 2294733,
+    "sha256": "fad8273613403153f025e6cf2957b03cfdc162d1c659eef4d2f62f6c436a401c",
+    "manifestBytes": 89758,
+    "manifestSha256": "554148b1eb8cba88b887ff46b0734b8eca317aadc97c947a7351b8b92d81c4b8",
+    "entries": 424,
     "repeatBuildByteExact": true,
-    "verified": true
+    "verified": true,
+    "cleanExtractionExecuted": true,
+    "cleanExtractionResult": "PASS"
   },
   "coverage": {
     "walletRelease": "1.0.18-testnet-preview evidence and Android artifact hashes included; APK/AAB bytes are referenced, not duplicated",
@@ -34,10 +36,11 @@
     {"command": "go test -race ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS", "packages": 6},
     {"command": "go vet ./internal/finance/... ./apps/finance/cmd/...", "result": "PASS"},
     {"command": "go build ./apps/finance/cmd/...", "result": "PASS"},
-    {"command": "npm --prefix apps/finance test", "result": "PASS", "tests": 70},
-    {"command": "npm --prefix apps/finance run security", "result": "PASS", "textFilesScanned": 260},
+    {"command": "npm --prefix apps/finance test", "result": "PASS", "tests": 71},
+    {"command": "npm --prefix apps/finance run security", "result": "PASS", "textFilesScanned": 261},
     {"command": "npm --prefix apps/finance run smoke", "result": "PASS"},
-    {"command": "repeat bundle build + cmp + verifier", "result": "PASS"}
+    {"command": "repeat bundle build + cmp + verifier", "result": "PASS"},
+    {"command": "clean extraction + locked dependency install + all declared commands", "result": "PASS", "commands": 8}
   ],
   "truth": {
     "credentialsBundled": false,
