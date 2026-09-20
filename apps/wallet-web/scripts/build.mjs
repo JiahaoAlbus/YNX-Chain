@@ -9,6 +9,7 @@ import sharp from "sharp";
 import {createAuthorityReader} from "./build-authority.mjs";
 import {chromiumManifest, firefoxManifest} from "../src/extension-manifest.js";
 import {deriveWalletWebCompanionBinding} from "../src/core-auth-consumer.js";
+import {createWalletDownloadManifest} from "../src/download-manifest.js";
 
 export function compilePwaShell(inputFiles, workerTemplate) {
   const files = Object.fromEntries(Object.entries(inputFiles).map(([name, bytes]) => [name, Buffer.from(bytes)]));
@@ -60,7 +61,7 @@ export async function validateExtensionModuleGraph(directory) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await buildAll();
-export async function buildAll({dist: outputDirectory, authorityFile = process.env.YNX_WALLET_WEB_AUTHORITY_FILE, authorityOutput} = {}) {
+export async function buildAll({dist: outputDirectory, authorityFile = process.env.YNX_WALLET_WEB_AUTHORITY_FILE, authorityOutput, sourceCommit: requestedSourceCommit} = {}) {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = outputDirectory === undefined ? join(root, "dist") : resolve(outputDirectory);
 const repository=resolve(root,"..","..");
@@ -144,7 +145,7 @@ if(authorityOutput!==undefined)await writeFile(authorityOutput,`${JSON.stringify
 const pwaOnly = process.argv.includes("--pwa-only");
 await rm(pwaOnly ? join(dist,"pwa") : dist, {recursive: true, force: true});
 await mkdir(join(dist, "pwa"), {recursive: true});
-const suppliedSourceCommit=process.env.YNX_WALLET_WEB_SOURCE_COMMIT||process.env.VERCEL_GIT_COMMIT_SHA;
+const suppliedSourceCommit=requestedSourceCommit||process.env.YNX_WALLET_WEB_SOURCE_COMMIT||process.env.VERCEL_GIT_COMMIT_SHA;
 if(!gitCheckout&&!/^[0-9a-f]{40}$/u.test(suppliedSourceCommit||""))throw new Error("A gitless Wallet build requires an exact source commit");
 if(gitCheckout&&suppliedSourceCommit){
   if(!/^[0-9a-f]{40}$/u.test(suppliedSourceCommit))throw new Error("Wallet build source commit is invalid");
@@ -154,13 +155,14 @@ if(gitCheckout&&suppliedSourceCommit){
 const sourceCommit=suppliedSourceCommit||"uncommitted-source-tree";
 const buildIdentity={schemaVersion:1,product:"YNX Wallet Companion",sourceCommit,providerAuthorityCommit,providerEvidenceCommit:"d3831c300560507f64a50e73117bab7b85926d9a",authorityArchiveSha256,authorityRecordCount:verifiedAuthorities.records.length,walletAddressAuthoritySha256,walletAuthSourceTree,walletAddressWrapperBlob,chainId:"0x1917"};
 await writeFile(join(dist,"pwa","build-identity.json"),`${JSON.stringify(buildIdentity)}\n`);
+await writeFile(join(dist,"pwa","download-manifest.json"),`${JSON.stringify(createWalletDownloadManifest({sourceCommit}),null,2)}\n`);
 await writeFile(join(dist,"pwa","core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
 for (const file of ["index.html", "manifest.webmanifest", "sw.js", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(dist, "pwa", file));
 for (const file of ["provider.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
 await writeFile(join(dist,"pwa","wallet-address.js"),walletAddressAuthorityBytes);
 await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "service-worker-policy.js"));
 for(const icon of ["ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png"])await cp(join(root,"public",icon),join(dist,"pwa",icon));
-const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","wallet-address.js","extension-fee-model.js", "extension-durability.js","transaction-input.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","standard-wallet-connect-state.js","core-auth-binding.js","service-worker-policy.js","build-identity.json","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"];
+const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","wallet-address.js","extension-fee-model.js", "extension-durability.js","transaction-input.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","standard-wallet-connect-state.js","core-auth-binding.js","service-worker-policy.js","build-identity.json","download-manifest.json","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"];
 const pwaInputs=Object.fromEntries(await Promise.all(pwaIntegrityFiles.map(async file=>[file,await readFile(join(dist,"pwa",file))])));
 const compiled=compilePwaShell(pwaInputs,await readFile(join(root,"public","sw.js"),"utf8"));
 for(const [file,bytes] of Object.entries(compiled.files))await writeFile(join(dist,"pwa",file),bytes);

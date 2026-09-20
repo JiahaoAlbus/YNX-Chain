@@ -1,0 +1,40 @@
+downloads.ynxweb4.com {
+	root * /opt/ynx/public-downloads
+
+	@root path /
+	redir @root https://www.ynxweb4.com/dapp/wallet/open-download 308
+
+	@walletCurrent path /wallet/current.json
+	header @walletCurrent {
+		Content-Type application/json
+		Cache-Control "public, max-age=300, must-revalidate"
+		X-Content-Type-Options nosniff
+	}
+
+	@immutableWallet path_regexp immutableWallet ^/wallet/sha256-[0-9a-f]{64}/[^/]+$
+	header @immutableWallet Cache-Control "public, max-age=31536000, immutable"
+	header @immutableWallet X-Content-Type-Options nosniff
+
+	@walletApk path_regexp walletApk ^/wallet/sha256-[0-9a-f]{64}/[^/]+\.apk$
+	header @walletApk Content-Type application/vnd.android.package-archive
+	header @walletApk Content-Disposition "attachment"
+
+	@walletExe path_regexp walletExe ^/wallet/sha256-[0-9a-f]{64}/[^/]+\.exe$
+	header @walletExe Content-Type application/vnd.microsoft.portable-executable
+	header @walletExe Content-Disposition "attachment"
+
+	@walletDmg path_regexp walletDmg ^/wallet/sha256-[0-9a-f]{64}/[^/]+\.dmg$
+	header @walletDmg Content-Type application/x-apple-diskimage
+	header @walletDmg Content-Disposition "attachment"
+
+	@walletDeb path_regexp walletDeb ^/wallet/sha256-[0-9a-f]{64}/[^/]+\.deb$
+	header @walletDeb Content-Type application/vnd.debian.binary-package
+	header @walletDeb Content-Disposition "attachment"
+
+	@walletZip path_regexp walletZip ^/wallet/sha256-[0-9a-f]{64}/[^/]+\.zip$
+	header @walletZip Content-Type application/zip
+	header @walletZip Content-Disposition "attachment"
+
+	file_server
+}
+

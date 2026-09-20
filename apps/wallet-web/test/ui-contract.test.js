@@ -10,7 +10,8 @@ test("Wallet offers its YNX download and has no other-provider login route", asy
   const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
   assert.match(source, /id="download" href="\$\{YNX_DOWNLOAD_URL\}"/);
   assert.doesNotMatch(source, /id="download"[^>]*>Android/);
-  assert.match(source, /id="android-download" href="\$\{WALLET_DOWNLOAD_MATRIX.android.url\}"/);
+  assert.match(source, /packageSources\(WALLET_DOWNLOAD_MATRIX\.android,\{primaryId:"android-download",fallbackId:"android-fallback-download"\}\)/);
+  assert.match(source, /class="fallback-download">GitHub<\/a>/);
   assert.match(source, /function platformDownloads\(\)/);
   assert.match(source, /item\.hosted===true&&item\.url/);
   assert.doesNotMatch(source, /metamask|MetaMask/);
@@ -73,6 +74,7 @@ test("legacy dark preference retains locale and custody records while the actual
   const document = {documentElement:{dataset:{}}}, app = {innerHTML:""};
   const environment = {document,app,state:{locale:loaded.record.locale,theme:loaded.record.theme,epoch:0,connectState:{chooserOpen:true},form:{},providers:{}},
     requestedText:"large",isRTL:locale=>locale==="ar",text:key=>key,options:()=>"",escape:value=>String(value??""),platformDownloads:()=>"",statusContent:()=>"",
+    packageSources:item=>`<a id="android-download" href="${item.url}">download</a>`,
     replaceMarkup:(target,markup)=>{target.innerHTML=markup},
     YNX_DOWNLOAD_URL:"https://wallet.example",WALLET_DOWNLOAD_MATRIX:{android:{url:"https://wallet.example/qa.apk",bytes:1}},
     bind(){},applyActionGates(){},presentAvailability(){}};

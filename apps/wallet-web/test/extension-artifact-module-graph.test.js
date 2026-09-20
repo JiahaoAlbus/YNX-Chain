@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {mkdtemp, readFile, readdir, rm, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
+import {execFileSync} from "node:child_process";
 import {buildAll, validateExtensionModuleGraph} from "../scripts/build.mjs";
 import sharp from "sharp";
 
@@ -13,16 +14,17 @@ test("actual extension artifacts have complete browser module and manifest graph
   const authorityDirectory=await mkdtemp(join(tmpdir(),"ynx-artifact-authorities-"));
   t.after(()=>rm(authorityDirectory,{recursive:true,force:true}));
   const authorityFile=join(authorityDirectory,"build-authorities.json");
-  await buildAll({dist,authorityOutput:authorityFile});
+  const sourceCommit=execFileSync("git",["rev-parse","HEAD"],{cwd:new URL("../../..",import.meta.url),encoding:"utf8"}).trim();
+  await buildAll({dist,authorityOutput:authorityFile,sourceCommit});
   await t.test("explicit archive authority mode reproduces every Git-build output byte",async()=>{
-    const replay=join(authorityDirectory,"replay");await buildAll({dist:replay,authorityFile});
+    const replay=join(authorityDirectory,"replay");await buildAll({dist:replay,authorityFile,sourceCommit});
     for(const variant of ["chromium","firefox","pwa"]){
       const names=(await readdir(join(dist,variant))).sort();assert.deepEqual((await readdir(join(replay,variant))).sort(),names);
       for(const name of names)assert.deepEqual(await readFile(join(replay,variant,name)),await readFile(join(dist,variant,name)),`${variant}/${name}`);
     }
     const tampered=JSON.parse(await readFile(authorityFile,"utf8"));tampered.records[0].commit="b".repeat(40);
     const bad=join(authorityDirectory,"wrong-authority.json");await writeFile(bad,JSON.stringify(tampered));
-    await assert.rejects(buildAll({dist:join(authorityDirectory,"bad"),authorityFile:bad}),/Immutable Wallet build authority archive changed|Missing or changed build authority/);
+    await assert.rejects(buildAll({dist:join(authorityDirectory,"bad"),authorityFile:bad,sourceCommit}),/Immutable Wallet build authority archive changed|Missing or changed build authority/);
   });
   let firstIcon;
   for (const variant of ["chromium", "firefox"]) {
