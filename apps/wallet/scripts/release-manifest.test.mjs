@@ -46,6 +46,10 @@ function validate(candidate) {
   assert.equal(candidate.previousPublishedRelease.tag, previous.tag);
   assert.deepEqual(candidate.previousPublishedRelease.apk, previous.apk);
   assert.deepEqual(candidate.previousPublishedRelease.aab, previous.aab);
+  assert.match(candidate.generatedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+  const generatedAt = Date.parse(candidate.generatedAt);
+  assert.equal(Number.isFinite(generatedAt), true);
+  assert.ok(generatedAt <= Date.now(), "generatedAt must not claim a future observation");
 }
 
 test("1.0.17 source candidate binds native versions and recovery source without inventing a release", () => {
@@ -60,6 +64,8 @@ test("1.0.17 source candidate binds native versions and recovery source without 
   assert.equal((xcode.match(/MARKETING_VERSION = 1\.0\.17;/g) ?? []).length, 2);
   assert.equal(evidence.artifactsBuiltFromExactMerge, false);
   assert.equal(evidence.artifactsPublished, false);
+  assert.equal(evidence.generatedAt, manifest.generatedAt);
+  assert.ok(Date.parse(evidence.generatedAt) <= Date.now());
 });
 
 test("candidate manifest fails closed when release truth or signing truth is tampered", () => {
@@ -71,6 +77,7 @@ test("candidate manifest fails closed when release truth or signing truth is tam
     (value) => { value.productionSigned = true; },
     (value) => { value.storeReleased = true; },
     (value) => { value.walletConnectRelayE2E = "VERIFIED"; },
+    (value) => { value.generatedAt = new Date(Date.now() + 60_000).toISOString().replace(/\.\d{3}Z$/, "Z"); },
   ]) {
     const copy = structuredClone(manifest);
     mutate(copy);
