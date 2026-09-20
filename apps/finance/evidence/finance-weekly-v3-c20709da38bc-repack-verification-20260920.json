@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "ynx.finance.weekly-v3-repack-verification.v1",
+  "capturedAt": "2026-09-20T03:21:24.199Z",
+  "source": {
+    "commit": "c20709da38bc2a4823efb9870046b6afb7775992",
+    "tree": "8ff6ce4f3074eb6bcb64b2d5dc47dbd6b8ba48cb",
+    "toolingCommit": "3d8f383cc06cf95f1ebaf00f56aff2d7a5433518"
+  },
+  "candidate": {
+    "release": "finance-weekly-v3-c20709da38bc-linux-amd64",
+    "archive": {
+      "path": "apps/finance/evidence/release-candidates/finance-weekly-v3-c20709da38bc-linux-amd64.tar.gz",
+      "bytes": 30251658,
+      "sha256": "25db6bd6effac994e0de0a6c713d271aee14783000e74a0e79108019fd51b6ac"
+    },
+    "repeatBuildByteExact": true,
+    "directories": [
+      {
+        "mode": "drwxr-xr-x",
+        "ownerGroup": "0/0",
+        "path": "finance-weekly-v3-c20709da38bc-linux-amd64/"
+      },
+      {
+        "mode": "drwxr-xr-x",
+        "ownerGroup": "0/0",
+        "path": "finance-weekly-v3-c20709da38bc-linux-amd64/web/"
+      }
+    ]
+  },
+  "rootCauseRegression": {
+    "extractorUmask": "0077",
+    "explicitDirectoryEntries": true,
+    "archiveReleaseMode": "0755",
+    "archiveWebMode": "0755",
+    "productionExecutorRequiresExtractedReleaseMode": "0755",
+    "productionExecutorRequiresExtractedWebMode": "0755",
+    "serviceTraversalRequired": true
+  },
+  "payloadBinding": {
+    "serverBinary": {
+      "bytes": 20443284,
+      "sha256": "53ddb7c982b7d7b0f3ecbb1d9540709fdf26ab3ac8a67138d93914fe8a44227b"
+    },
+    "indexHtml": {
+      "bytes": 18315,
+      "sha256": "911bafd5870d8d7c6962e01c9446e46cabd5517913f7c0451dd4d3c30c0d28f2"
+    },
+    "appJs": {
+      "bytes": 41891,
+      "sha256": "b8b2b866716a8d0ec33fb98504e9386e5ad74338cec32f22580c95b5500ec76d"
+    },
+    "walletAuthJs": {
+      "bytes": 154703,
+      "sha256": "8406eeae586144f0ac82f1f0192d2675ff2aa5ef0f5ffe17f2260a2564f05770"
+    }
+  },
+  "runtimeEvidence": {
+    "previousExactBinaryAndWebPayload": "apps/finance/evidence/finance-weekly-v3-c20709da38bc-candidate-verification-20260920.json",
+    "newDockerExecutionPerformed": false,
+    "diagnostic": "LOCAL_DOCKER_DAEMON_UNRESPONSIVE; no new Docker runtime claim",
+    "targetLinuxColdStart": "PENDING_NEW_ROLLBACK_FIRST_DEPLOYMENT"
+  },
+  "providerReadAttempted": false,
+  "providerWriteAttempted": false,
+  "officialSandboxVerified": false,
+  "liveEnabled": false,
+  "mainnetEnabled": false,
+  "tests": {
+    "repeatBuildByteExact": "PASS",
+    "archiveDirectoryMetadata": "PASS",
+    "payloadHashBinding": "PASS",
+    "productionRollbackFirstActualShell": "PASS",
+    "phase3StdinPlacementActualShell": "PASS",
+    "serializedOpenSshActualShell": "PASS"
+  }
+}

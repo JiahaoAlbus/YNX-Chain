@@ -33,14 +33,18 @@ execFileSync('mkdir', ['-m', '0700', stateRoot, extractRoot]);
 const listed = execFileSync('tar', ['-tzf', archive], { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
 assert.ok(listed.length > 0);
 assert.equal(new Set(listed).size, listed.length);
+const expectedDirectories = [`${sidecar.release}/`, `${sidecar.release}/web/`];
 for (const name of listed) {
   assert.equal(name.startsWith('/'), false);
   assert.equal(name.split('/').includes('..'), false);
-  assert.equal(name.endsWith('/'), false);
+  if (name.endsWith('/')) assert.ok(expectedDirectories.includes(name), name);
 }
+assert.deepEqual(listed.filter(name => name.endsWith('/')).sort(), expectedDirectories.sort());
 execFileSync('tar', ['-xzf', archive, '-C', extractRoot]);
 
 const candidateRoot = join(extractRoot, sidecar.release);
+assert.equal(statSync(candidateRoot).mode & 0o777, 0o755);
+assert.equal(statSync(join(candidateRoot, 'web')).mode & 0o777, 0o755);
 const manifest = JSON.parse(readFileSync(join(candidateRoot, 'manifest.json'), 'utf8'));
 assert.equal(manifest.schemaVersion, 'ynx.finance.weekly-v3-candidate.v1');
 assert.equal(manifest.sourceCommit, sourceCommit);
@@ -53,7 +57,7 @@ assert.deepEqual(manifest.safetyDefaults, {
   providerReadAttempted: false, providerWriteAttempted: false,
 });
 const expectedMembers = [...manifest.files.map(file => `${manifest.release}/${file.path}`), `${manifest.release}/manifest.json`].sort();
-assert.deepEqual([...listed].sort(), expectedMembers);
+assert.deepEqual(listed.filter(name => !name.endsWith('/')).sort(), expectedMembers);
 for (const file of manifest.files) {
   const body = readFileSync(join(candidateRoot, file.path));
   assert.equal(body.length, file.bytes, file.path);

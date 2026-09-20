@@ -290,6 +290,8 @@ arm_owned_phase_failure ARCHIVE_EXTRACT pre_switch_cleanup
 tar --warning=no-unknown-keyword -xzf "$archive" -C "$stage"
 arm_owned_phase_failure CANDIDATE_VERIFY pre_switch_cleanup
 candidate="$stage/$(basename "$release")"; test -x "$candidate/ynx-finance"; test "$(hash "$candidate/ynx-finance")" = "$binary_sha"; test "$(bytes "$candidate/ynx-finance")" = "$binary_bytes"; file "$candidate/ynx-finance" | grep -q 'ELF 64-bit.*x86-64'
+test "$(stat -Lc '%a:%F' "$candidate")" = '755:directory'
+test "$(stat -Lc '%a:%F' "$candidate/web")" = '755:directory'
 verify_local_assets "$candidate"; verify_build_identity "$candidate"; stage_inventory=$(tree_inventory "$stage")
 arm_owned_phase_failure RELEASE_MATERIALIZE pre_switch_cleanup
 mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true; release_container_preownership_identity=$(container_identity_tuple "$release_container")
