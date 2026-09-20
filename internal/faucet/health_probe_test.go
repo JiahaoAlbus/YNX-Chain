@@ -252,6 +252,65 @@ func TestHealthRejectsOversizedTrailingAndRedirectedStatus(t *testing.T) {
 	}
 }
 
+func TestHealthFailsBeforeAdmissionCapacityExhaustionBecomesInvisible(t *testing.T) {
+	core := api.NewServerWithConfig(chain.NewDevnet(chain.DefaultNetworkConfig("testnet")), api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
+	up := httptest.NewServer(core)
+	defer up.Close()
+	cfg := admissionTestConfig(t, up.URL)
+	cfg.MaxAdmissions = 2
+	s := openTestFaucet(t, cfg)
+	var first Request
+
+	for i := 0; i < cfg.MaxAdmissions; i++ {
+		req := Request{Address: fmt.Sprintf("0x%040x", i+1), RequestID: fmt.Sprintf("capacity_%032d", i)}
+		if i == 0 {
+			first = req
+		}
+		if _, status, err := s.Request(context.Background(), req, fmt.Sprintf("192.0.2.%d:80", i+1)); err != nil || status != http.StatusCreated {
+			t.Fatalf("admission %d: status=%d err=%v", i, status, err)
+		}
+	}
+	h := s.CheckHealth(context.Background())
+	if h.OK || h.FundingReady || !h.AdmissionReady || h.AdmissionCapacityReady || h.ProbeFailureStage != "capacity" {
+		t.Fatalf("capacity exhaustion remained ready: %+v", h)
+	}
+	if h.AdmissionCount != 2 || h.AdmissionCapacity != 2 || h.AdmissionRemaining != 0 || h.AdmissionScope != "single-instance-local-bbolt" || h.MultiActiveSupported || h.DeploymentStrategy != "stop-drain-start" {
+		t.Fatalf("capacity or deployment truth missing: %+v", h)
+	}
+	w := httptest.NewRecorder()
+	NewServer(s).Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/health", nil))
+	if w.Code != http.StatusBadGateway {
+		t.Fatalf("capacity-exhausted public health returned %d: %s", w.Code, w.Body.String())
+	}
+	if _, status, err := s.Request(context.Background(), first, "198.51.100.1:80"); err != nil || status != http.StatusOK {
+		t.Fatalf("existing request did not remain replayable: status=%d err=%v", status, err)
+	}
+	newRequest := Request{Address: fmt.Sprintf("0x%040x", 3), RequestID: fmt.Sprintf("capacity_%032d", 3)}
+	if _, status, err := s.Request(context.Background(), newRequest, "192.0.2.3:80"); err == nil || status != http.StatusServiceUnavailable {
+		t.Fatalf("new request bypassed exhausted capacity: status=%d err=%v", status, err)
+	}
+	metrics := s.Metrics()
+	for _, want := range []string{
+		"ynx_faucet_admission_capacity_ready 0",
+		"ynx_faucet_admission_count 2",
+		"ynx_faucet_admission_capacity 2",
+		"ynx_faucet_admission_remaining 0",
+	} {
+		if !strings.Contains(metrics, want) {
+			t.Fatalf("missing %q in metrics:\n%s", want, metrics)
+		}
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	cfg.MaxAdmissions = 3
+	s = openTestFaucet(t, cfg)
+	h = s.CheckHealth(context.Background())
+	if !h.FundingReady || !h.AdmissionCapacityReady || h.AdmissionCount != 2 || h.AdmissionRemaining != 1 {
+		t.Fatalf("capacity increase did not preserve and recover admissions: %+v", h)
+	}
+}
+
 func TestHealthTimeoutConfigBounds(t *testing.T) {
 	cfg := admissionTestConfig(t, "http://127.0.0.1:1")
 	for _, timeout := range []time.Duration{-1, 6 * time.Second} {

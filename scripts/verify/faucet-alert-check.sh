@@ -25,4 +25,4 @@ else
   exit 1
 fi
 
-echo "faucet-alert-check passed: stale, readiness, latency, admission, uncertain-result, and finite-balance alerts fire"
+echo "faucet-alert-check passed: stale, readiness, latency, admission, capacity, uncertain-result, and finite-balance alerts fire"
