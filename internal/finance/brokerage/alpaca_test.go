@@ -250,6 +250,24 @@ func TestActivationGatedSubmitAndCancelExactFixture(t *testing.T) {
 	}
 }
 
+func TestProviderOrderUnknownStatusFailsClosedAsProtocolError(t *testing.T) {
+	limit := "125.34"
+	order := providerOrder{
+		ID: "11111111-2222-4333-8444-555555555555", ClientOrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+		AssetID: "99999999-8888-4777-8666-555555555555", Symbol: "ACME", Side: "buy", Qty: "2", FilledQty: "0",
+		Type: "limit", LimitPrice: &limit, TimeInForce: "day", Status: "provider_future_state", SubmittedAt: "2026-09-19T09:00:00Z",
+	}
+	if _, err := normalizeProviderOrder(order, "fixture-request-unknown-status", true); ErrorCode(err) != "PROVIDER_PROTOCOL_ERROR" {
+		t.Fatalf("unknown provider status was not rejected: %v", err)
+	}
+	for _, status := range []string{"accepted", "partially_filled", "filled", "pending_cancel", "canceled", "expired", "rejected"} {
+		order.Status = status
+		if _, err := normalizeProviderOrder(order, "fixture-request-known-status", true); err != nil {
+			t.Fatalf("known provider status %q was rejected: %v", status, err)
+		}
+	}
+}
+
 func TestOrderWriteRequiresBoundedProviderRequestID(t *testing.T) {
 	accountID := "01234567-89ab-4cde-8fab-0123456789ab"
 	resolve := resolverFunc(func(context.Context, string, string, string) (string, error) { return accountID, nil })
