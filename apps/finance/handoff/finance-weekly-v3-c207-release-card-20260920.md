@@ -1,22 +1,23 @@
-# Finance Weekly v3 c207 release and rollback card
+# Finance Weekly v3 c207 public release and rollback card
 
-Status: release candidate prepared and locally verified; public deployment not performed.
+Status: deployed to `https://finance.ynxweb4.com` through one Central-signed rollback-first release. Public source, binary, static assets, disabled Broker status and browser surface were read back from the deployed runtime.
 
-## Immutable candidate
+## Immutable release
 
 - Product source: `c20709da38bc2a4823efb9870046b6afb7775992`
 - Product tree: `8ff6ce4f3074eb6bcb64b2d5dc47dbd6b8ba48cb`
-- Release tooling: `3c32c6133da7a758baa3551fbd1221c28445cc5c`
 - Release: `finance-weekly-v3-c20709da38bc-linux-amd64`
 - Archive: `apps/finance/evidence/release-candidates/finance-weekly-v3-c20709da38bc-linux-amd64.tar.gz`
-- Bytes: `30251651`
-- SHA-256: `839b1c97ac03471d13a7a036e6e0ea3b4054f2468140398a9e6cfda32c3f33a5`
-- Sidecar SHA-256: `3246b6a45c58d29bbe8a130559ec7fdfc1e1ea469222ef0effe8ea1f479b5bfc`
-- Verification evidence SHA-256: `20ccc53ab3e20c3705270c9e75da9ed05ba145ef57aae0f1f39894a8edcdc52f`
+- Archive bytes: `30251658`
+- Archive SHA-256: `25db6bd6effac994e0de0a6c713d271aee14783000e74a0e79108019fd51b6ac`
+- Manifest SHA-256: `1fc9bb5918a739d9e35694af87ca75ce525a67c90f9bef2a4a6c0a9444201cfa`
+- Repack verification SHA-256: `faf4c4a48ddcc8ae341452751ab5bbbcf54a69dc221263f81c7d0ba84c2fd6f1`
+- Runtime binary bytes/SHA-256: `20443284` / `53ddb7c982b7d7b0f3ecbb1d9540709fdf26ab3ac8a67138d93914fe8a44227b`
+- Production executor bytes/SHA-256: `27946` / `bf87ba108eae755a9edd984775e332292254b0543aee7e9951e2d92752e75d10`
 
-The archive has one top-level directory matching the release name, which is the layout consumed by `apps/finance/scripts/finance-production-rollback-first.sh`. It contains `ynx-finance`, `ynx-finance-admin`, `ynx-finance-broker-tools`, `ynx-finance-broker-worker`, exact Web files, `.env.example` and `manifest.json`.
+The archive includes explicit `0755` release and Web directory entries. The release verifier checks their extracted modes before the service can be switched. This fixes the fail-closed first attempt, where root extraction under `umask 0077` synthesized inaccessible directories and stopped at `SERVICE_USER_ACCESS` without changing the active runtime.
 
-Reproduce the archive from a clean owner checkout:
+Reproduce the deterministic archive from a clean owner checkout:
 
 ```sh
 node apps/finance/scripts/build-finance-weekly-v3-candidate.mjs \
@@ -24,35 +25,47 @@ node apps/finance/scripts/build-finance-weekly-v3-candidate.mjs \
   --output apps/finance/evidence/release-candidates/finance-weekly-v3-c20709da38bc-linux-amd64.tar.gz
 ```
 
-The builder uses `CGO_ENABLED=0 GOOS=linux GOARCH=amd64`, `-trimpath`, `-buildvcs=false`, an empty Go build ID and the source commit time. It builds twice and fails unless both compressed archives are byte-identical. The exact four `go build` commands are embedded in the archive manifest.
+The builder uses `CGO_ENABLED=0 GOOS=linux GOARCH=amd64`, `-trimpath`, `-buildvcs=false`, an empty Go build ID and the source commit time. It builds twice and fails unless both compressed archives are byte-identical.
 
-## Safety and state compatibility
+## Public runtime
 
-The packaged `.env.example` fixes `YNX_CHAIN_ENV=testnet`, `FINANCE_TRADING_ENV=sandbox`, `FINANCE_TRADING_ENABLED=false`, `FINANCE_LIVE_ENABLED=false` and `FINANCE_SANDBOX_WRITES_ENABLED=false`. It contains no credential or activation receipt. Local Linux execution reported `DISABLED`, `BLOCKED_CREDENTIALS`, `submissionEnabled=false`, `officialSandboxVerified=false` and `productionApproved=false`; it attempted no provider read or write.
+- Current target: `/opt/ynx/releases/finance/finance-combined-c20709da38bc-20260920t032800z/finance-weekly-v3-c20709da38bc-linux-amd64`
+- Environment SHA-256: `c21172537ead5102845efdff9c654d7d62b877eb49bd0e97ac1bf96c3b42373a`
+- Service: `ynx-finance.service`, active, post-switch PID `1990765`, `NRestarts=0`
+- State file: absent before and after the deployment; no migration, import, clearing or restoration ran
+- Unit SHA-256: `2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b`
+- Caddy SHA-256: `c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9`
 
-The current public source `9912d29f82d5ceca689f07e20e944648a2be6de3` and candidate source both use Finance state version 2. The candidate adds a global uniqueness invariant but does not introduce a new on-disk version. It accepts a v1 file lazily; read-only startup does not rewrite that file. Tests cover v1-to-v2 migration, authenticated backup/verify/restore, tamper rejection, unsafe-path rejection and unsupported-state rejection.
+`/health`, `/version`, `/ready`, `/api/broker/status`, `/`, `/app.js`, `/wallet-auth.js`, `/read-sources.js`, `/styles.css`, `/manifest.webmanifest` and `/ynx-logo.png` returned HTTP 200 and candidate-bound bytes. `/version` and `/health` report source `c20709da38bc2a4823efb9870046b6afb7775992`.
 
-For a file-backed deployment, take and verify an authenticated backup before the switch. Obtain `YNX_FINANCE_BACKUP_AUTH_KEY` only from the server secret manager; do not write it to the operation record:
+The deployed environment remains `testnet` plus `sandbox`; `FINANCE_TRADING_ENABLED`, `FINANCE_LIVE_ENABLED` and `FINANCE_SANDBOX_WRITES_ENABLED` are all `false`. Broker status is `DISABLED` with `BLOCKED_CREDENTIALS`; submission, official Sandbox verification and production approval are all false. No Alpaca credential or activation receipt was installed, and no provider read or write was attempted.
 
-```sh
-ynx-finance-admin backup --state /var/lib/ynx/finance/state.json --output /approved/private/path/finance.backup
-ynx-finance-admin verify --backup /approved/private/path/finance.backup
-```
+Visible Chrome regression showed the Chinese Finance guest surface, reachable YNX Testnet status, disconnected Wallet controls, and the US-stock Sandbox disabled/unlinked state. No Wallet account request, form submission, provider request or transaction was made.
 
-If state is PostgreSQL-backed, use a database-native consistent backup. The file admin deliberately refuses to back up a configured database through the bootstrap file path.
+## Deployment receipts
 
-## Deployment
+- Carrier lease: `finance-combined-c20709da38bc-20260920t032800z`, signed SHA-256 `a0267da6a892a883dc780bd9faccd1dc1e23965fbc66579c12b092593452b6ff`
+- Production lease: `finance-combined-c20709da38bc-20260920t033100z`, signed SHA-256 `44704bc098baef9080b513ee350982fde42d56e14a36c939d79929b0921191a1`
+- Production stdout: 1,948 bytes, SHA-256 `648de24fe167d471ab20a60e60f25ccc14a3bedeeedc69a62b0b6e01dd93960c`
+- Transport receipt: 204 bytes, SHA-256 `9794d31394b57e32b88782ae3fb03d3182fd6993ef13efb536ab9928d7c46615`; SSH and remote exit status were zero and the terminal receipt validated
+- Release inventory SHA-256: `3360a7d4b60adf13724a1a344c6269352d13a544005089fd3aa4949c07a91b3b`
+- Backup inventory SHA-256: `11625192aebbe265539e9ba591a6ad8450c9eda43158e9ab786fede7e60e0c95`
 
-1. Obtain a fresh Central-signed Finance deployment lease. Re-read the current release link, service PID/restart count, environment/unit/drop-in/Caddy hashes, state backend and state identity. Do not reuse the 2026-09-19 baseline.
-2. Put the exact archive and a candidate environment derived from the current environment into the lease carrier. Preserve all existing keys, update only the release Web path, and keep all trading/write/Live flags false. Do not add Alpaca credentials during this release.
-3. Keep Finance drained from user writes during the switch and immediate verification. Use `apps/finance/scripts/finance-production-rollback-first.sh deploy <fresh-signed-lease>`; do not use the hard-coded 2026-09-19 deployment script.
-4. Require the new `/version` to return `c20709da38bc2a4823efb9870046b6afb7775992`; require `/health`, `/ready`, `/api/broker/status`, `/`, `/app.js` and `/wallet-auth.js` to return the candidate-bound bytes. Require the service restart count, unit, drop-in and Caddy hashes to remain unchanged.
-5. Confirm Broker status still has writes, official verification and production approval false before reopening traffic. Record the release link, runtime binary hashes, endpoint receipts and rollback target.
+Full immutable evidence is in `apps/finance/evidence/finance-weekly-v3-c20709da38bc-public-deployment-20260920.json`.
 
 ## Rollback
 
-During the drained deployment window, any failed invariant must use the rollback-first executor's automatic restore of the previous release link and environment, then verify the old source and public bytes before traffic resumes.
+Retained rollback material:
 
-After traffic is reopened, do not restore a pre-deployment state snapshot as a routine binary rollback because that could discard accepted Finance writes. The current public rollback target and this candidate share state version 2, so a later rollback should drain writes, back up the current state, atomically restore the previous release link and environment, restart, and verify the old source while preserving the current state. Use `ynx-finance-admin restore` only for an explicitly approved state-recovery event with the exact confirmation `RESTORE FINANCE STATE`.
+- Backup: `/var/backups/ynx-finance/finance-combined-c20709da38bc-20260920t032800z/backup`
+- Previous environment SHA-256: `0145270947f6bb5cd8fe95612b158e79d8246b75b802171228837e26769be7dd`
+- Executor: `/opt/ynx/leases/finance/finance-combined-c20709da38bc-20260920t033100z.executor.sh`
+- Signed lease: `/opt/ynx/leases/finance/finance-combined-c20709da38bc-20260920t033100z.json`
 
-The candidate archive and evidence stay retained after either outcome. No cleanup command may delete the previous release, backup or current candidate until the final public receipt and rollback window are closed.
+The recorded rollback invocation is:
+
+```sh
+/opt/ynx/leases/finance/finance-combined-c20709da38bc-20260920t033100z.executor.sh rollback /opt/ynx/leases/finance/finance-combined-c20709da38bc-20260920t033100z.json
+```
+
+This command is evidence, not current authority. A manual rollback requires a fresh Central-signed rollback lease and fresh production baseline. Drain writes first and preserve current state; do not restore an older state snapshot as routine binary rollback because that could discard accepted Finance writes.
