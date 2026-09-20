@@ -3,11 +3,11 @@ import * as Linking from 'expo-linking';
 import * as SecureStore from 'expo-secure-store';
 import {p256} from '@noble/curves/nist.js';
 import {
-  canonicalJSON, createGatewayChallenge, createProductSessionProof, encodeRequestDeepLink,
-  httpBodyDigest, parseCallbackURL, requestDigest, signGatewayChallenge, verifyAuthorization,
-  type AuthorizationRequest, type AuthorizationResponse, type CentralWalletSession,
+  canonicalJSON, createProductSessionProof, encodeRequestDeepLink, httpBodyDigest,
+  type AuthorizationRequest, type CentralWalletSession,
 } from '@ynx-chain/wallet-auth';
 import {assertFinanceConsumerContract} from './endpoint-manifest';
+import {completeWalletSession} from './wallet-completion';
 
 const KEY='ynx.finance.device.p256.v2',PENDING='ynx.finance.wallet.pending.v1';
 const encodeBase64url=(bytes:Uint8Array)=>btoa(String.fromCharCode(...bytes)).replace(/=+$/g,'').replace(/\+/g,'-').replace(/\//g,'_');
@@ -31,17 +31,12 @@ export async function startWallet(){
 
 export async function completeWallet(url:string):Promise<CentralWalletSession>{
   const manifest=assertFinanceConsumerContract();
-  const request=JSON.parse((await SecureStore.getItemAsync(PENDING))||'null') as AuthorizationRequest|null;
-  if(!request)throw new Error('Pending Wallet request missing after restart');
-  const now=new Date(),approval=verifyAuthorization(parseCallbackURL(url,request.callback),{...request,requestDigest:requestDigest(request),now}) as AuthorizationResponse;
-  const d=await device(),expiresAt=new Date(Math.min(Date.parse(approval.expiresAt),now.getTime()+120_000)).toISOString();
-  const challenge=createGatewayChallenge(approval,{challenge:encodeBase64url(await Crypto.getRandomBytesAsync(24)),expiresAt},now),gatewayCompletion=signGatewayChallenge(challenge,d.secret);
-  const done=await fetch(manifest.walletGateway+'/v1/wallet/sessions/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:canonicalJSON({authorizationRequest:request,walletApproval:approval,gatewayCompletion})});
-  if(!done.ok)throw new Error(`Central Gateway device proof rejected (${done.status}); no local session or fallback was created`);
-  const envelope=await done.json(),session=envelope?.result as CentralWalletSession;
-  if(!envelope?.ok||!session?.sessionBinding)throw new Error('Central Gateway returned no canonical Finance Product Session');
-  await SecureStore.deleteItemAsync(PENDING);
-  return session;
+  return completeWalletSession(url,{
+    now:new Date(),gatewayURL:String(manifest.walletGateway)+'/v1/wallet/sessions/complete',
+    getPending:()=>SecureStore.getItemAsync(PENDING),deletePending:()=>SecureStore.deleteItemAsync(PENDING),getDevice:device,
+    randomNonce:async()=>encodeBase64url(await Crypto.getRandomBytesAsync(24)),
+    post:(endpoint,body)=>fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body}),
+  });
 }
 
 export async function gatewayProof(session:CentralWalletSession,scope:string){

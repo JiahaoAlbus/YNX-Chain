@@ -7,6 +7,7 @@ const html=await readFile(new URL('web/index.html',base),'utf8');
 const js=await readFile(new URL('web/app.js',base),'utf8');
 const css=await readFile(new URL('web/styles.css',base),'utf8');
 const wallet=await readFile(new URL('mobile/src/wallet.ts',base),'utf8');
+const walletCompletion=await readFile(new URL('mobile/src/wallet-completion.ts',base),'utf8');
 const manifest=await readFile(new URL('mobile/contract/public-endpoint-manifest.json',base),'utf8');
 const webWallet=await readFile(new URL('web/wallet-auth-entry.js',base),'utf8');
 const orderWallet=await readFile(new URL('web/order-wallet-entry.js',base),'utf8');
@@ -28,8 +29,9 @@ test('product states its non-bank and non-custodial boundary',()=>{
 });
 
 test('mobile Wallet approval uses the current package root and expired endpoint authority fails closed',()=>{
-  for(const marker of ['@ynx-chain/wallet-auth','encodeRequestDeepLink','parseCallbackURL','createGatewayChallenge','signGatewayChallenge','createProductSessionProof','assertFinanceConsumerContract'])assert.ok(wallet.includes(marker),marker);
-  for(const required of ["version:'2'","origin:'https://finance.ynxweb4.com'","manifest.walletGateway+'/v1/wallet/sessions/complete'"])assert.ok(wallet.includes(required),required);
+  for(const marker of ['@ynx-chain/wallet-auth','encodeRequestDeepLink','createProductSessionProof','assertFinanceConsumerContract'])assert.ok(wallet.includes(marker),marker);
+  for(const marker of ['parseCallbackURL','parseCentralWalletSession','createGatewayChallenge','signGatewayChallenge','verifyGatewayCompletion'])assert.ok(walletCompletion.includes(marker),marker);
+  for(const required of ["version:'2'","origin:'https://finance.ynxweb4.com'","String(manifest.walletGateway)+'/v1/wallet/sessions/complete'"])assert.ok(wallet.includes(required),required);
   for(const prohibited of ['@ynx/dapp-connect-sdk','createProductWalletConnection','EXPO_PUBLIC_YNX_FINANCE_WALLET_GATEWAY_URL','FinanceSecureDevice'])assert.equal(wallet.includes(prohibited),false,prohibited);
   assert.equal(/Linking\.openURL\(\s*['"`]ynxwallet:\/\/authorize/.test(wallet),false);
   assert.equal(js.includes('Bearer '),false,'legacy browser bearer session must be absent');

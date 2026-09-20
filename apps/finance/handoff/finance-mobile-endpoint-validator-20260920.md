@@ -12,7 +12,8 @@
 - Restores only the missing endpoint-manifest validator required by current Finance Wallet approval/session calls.
 - Aligns `wallet.ts` with the current `App.tsx`/`api.ts` exports: `startWallet`, `completeWallet`, and `gatewayProof`.
 - Pins the accepted Wallet Gateway from the manifest and removes caller endpoint injection.
-- Runtime and release checks reject malformed schema/window, expired authority, wrong chain, source/hash/origin drift, premature Finance activation, and a non-fail-closed remote-signature policy.
+- Runtime recomputes the bundled payload SHA-256 and release checks reject malformed or not-yet-valid windows, expired authority, wrong chain, source/hash/origin drift, premature Finance activation, and a non-fail-closed remote-signature policy.
+- Gateway completion uses the current package-root session parser, then binds the returned account, origin, request digest, product/client/bundle/device identity, callback, chain, scopes, purpose, session binding, approval digest, and lifetime to the exact pending request and verified Wallet approval. Any parse, network, or binding failure preserves the pending request for recovery.
 - The bundled manifest expired at `2026-09-20T08:45:00Z`; Finance did not extend it. Wallet start, callback completion, proof creation, and bundle release remain `CLIENT_RETIRED` until Integration supplies a new accepted authority.
 
 ## Renewed authority required from Integration

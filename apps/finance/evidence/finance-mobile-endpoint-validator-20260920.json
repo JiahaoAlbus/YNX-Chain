@@ -20,14 +20,18 @@
     "legacyOptionalProductSessionUiRestored": false,
     "existingFinanceSandboxPreserved": true,
     "existingExchangeQuantReadonlyEnvelopesPreserved": true,
-    "walletGatewayCallerInjection": false
+    "walletGatewayCallerInjection": false,
+    "runtimePayloadSha256Recomputed": true,
+    "gatewaySessionParsedByCurrentWalletAuth": true,
+    "gatewaySessionFullyBoundBeforePendingConsumption": true
   },
   "tests": {
     "cleanNpmCiIgnoreScripts": "PASS",
     "mobileTypecheck": "PASS",
-    "mobileUnit": {"status": "PASS", "passed": 8, "failed": 0},
+    "mobileUnit": {"status": "PASS", "passed": 16, "failed": 0},
     "financeUnit": {"status": "PASS", "passed": 50, "failed": 0},
-    "security": {"status": "PASS", "filesScanned": 453},
+    "walletAuthUnit": {"status": "PASS", "passed": 150, "failed": 0},
+    "security": {"status": "PASS", "filesScanned": 455},
     "livePostExpiryEndpointGate": {"status": "EXPECTED_FAIL_CLOSED", "observedAt": "2026-09-20T08:45:13Z", "exitCode": 1, "errorClass": "CLIENT_RETIRED"},
     "livePostExpiryBundleGate": {"status": "EXPECTED_FAIL_CLOSED_BEFORE_EXPORT", "observedAt": "2026-09-20T08:45:13Z", "exitCode": 1, "errorClass": "CLIENT_RETIRED"}
   },
