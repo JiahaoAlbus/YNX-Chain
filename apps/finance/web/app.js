@@ -76,10 +76,18 @@ function renderBrokerWorkspace(workspace){
   $('#broker-events').innerHTML=journal.length?journal.slice().reverse().slice(0,30).map(item=>`<div class="row"><div class="row-main"><strong>${esc(item.action)}</strong><small>${esc(date(item.createdAt))} · ${esc(short(item.orderId||item.requestId))}</small></div><div class="row-value">${esc(item.orderState)}<small>${esc(item.approvalState)}</small></div></div>`).join(''):'<div class="empty compact">No local broker events.</div>';
   renderBrokerWatchlist(workspace?.watchlist);
 }
+async function requireBrokerOrderAuthority(){
+  try{return await window.YNXFinanceOrderWallet.assertAuthority()}
+  catch(error){
+    state.brokerSubmissionEnabled=false;
+    $('#broker-approval').textContent='Wallet Gateway and Finance Product Session are not yet verified by the shared endpoint authority. Order approval and submission are unavailable; public Finance views remain available.';
+    $('#broker-order-preview').textContent='Order actions are unavailable until the shared authority verifies both Wallet Gateway and Finance Product Session.';
+    $('#broker-wallet-approve').hidden=true;
+    throw error;
+  }
+}
 async function requestBrokerExecution(orderId){
-  if(!state.brokerSubmissionEnabled){notify('Controlled Sandbox execution is disabled by server policy.',true);return}
-  if(!window.confirm('Queue this already approved Sandbox order for the controlled worker? The browser never contacts the provider directly.'))return;
-  try{const idempotencyKey=`finance-execution-${orderId}`,result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/execution-request`,{method:'POST',body:JSON.stringify({idempotencyKey})});if(result?.schema!=='ynx-finance-broker-execution-request-v1'||result.providerWriteAttempted!==false)throw new Error('Execution request response is invalid.');notify('Controlled execution request queued once. Refresh shows provider status; no success is implied.');await refreshBrokerWorkspace()}catch(error){notify(error.message,true)}
+  try{await requireBrokerOrderAuthority();if(!state.brokerSubmissionEnabled)throw new Error('Controlled Sandbox execution is disabled by server policy.');if(!window.confirm('Queue this already approved Sandbox order for the controlled worker? The browser never contacts the provider directly.'))return;const idempotencyKey=`finance-execution-${orderId}`,result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/execution-request`,{method:'POST',body:JSON.stringify({idempotencyKey})});if(result?.schema!=='ynx-finance-broker-execution-request-v1'||result.providerWriteAttempted!==false)throw new Error('Execution request response is invalid.');notify('Controlled execution request queued once. Refresh shows provider status; no success is implied.');await refreshBrokerWorkspace()}catch(error){notify(error.message,true)}
 }
 async function refreshBrokerWorkspace(){
   if(!state.connected){renderBrokerWorkspace(null);return null}
@@ -89,10 +97,11 @@ async function createBrokerApproval(event){
   event.preventDefault();
   const form=new FormData(event.currentTarget),draft={assetId:String(form.get('assetId')||''),symbol:String(form.get('symbol')||'').toUpperCase(),side:String(form.get('side')||''),qty:String(form.get('qty')||''),limitPrice:String(form.get('limitPrice')||'')};
   try{
+    await requireBrokerOrderAuthority();
     if(!state.brokerSelectedAsset||state.brokerSelectedAsset.id!==draft.assetId||state.brokerSelectedAsset.symbol!==draft.symbol)throw new Error('Select this asset from the provider-backed search results before creating approval.');
     const result=await api('/api/broker/challenges',{method:'POST',body:JSON.stringify({draft})});
     if(result?.schema!=='ynx-finance-order-approval-challenge-v1'||result.providerWriteAttempted!==false)throw new Error('Finance order challenge response is invalid.');
-    const route=window.YNXFinanceOrderWallet.begin(result.challenge.unsigned,result.challenge.serverTime),order=result.challenge.unsigned.order;
+    const route=await window.YNXFinanceOrderWallet.begin(result.challenge.unsigned,result.challenge.serverTime),order=result.challenge.unsigned.order;
     $('#broker-order-preview').innerHTML=`<strong>${esc(order.side)} ${esc(order.qty)} ${esc(order.symbol)} @ ${esc(order.limitPrice)} simulated USD</strong><br>Maximum: ${esc(order.maxCost)} USD · maximum fee ${esc(order.maxFee)} USD · expires ${esc(result.challenge.unsigned.expiresAt)}<br><small>Request ${esc(short(result.challenge.unsigned.requestId))}. Broker provider has not been contacted.</small>`;
     const link=$('#broker-wallet-approve');link.href=route.url;link.hidden=false;link.rel='noreferrer';notify('Exact approval request created. Review it in YNX Wallet; no broker order has been submitted.');await refreshBrokerWorkspace();
   }catch(error){notify(error.message,true)}
@@ -116,8 +125,9 @@ async function completeBrokerCallback(){
   if(brokerCallbackInFlight||!state.connected||location.pathname!=='/wallet-auth/callback'||!location.search.includes('financeOrderApprovalResult='))return;
   brokerCallbackInFlight=true;$('#broker-complete-callback').hidden=false;
   try{
+    await requireBrokerOrderAuthority();
     const workspace=await refreshBrokerWorkspace();if(!workspace)throw new Error('Current Finance server time is unavailable.');
-    const raw=window.YNXFinanceOrderWallet.parseReturn(location.href,workspace.serverTime);
+    const raw=await window.YNXFinanceOrderWallet.parseReturn(location.href,workspace.serverTime);
     const result=await api('/api/broker/callback',{method:'POST',body:raw});
     if(result?.schema!=='ynx-finance-order-approval-consume-v1'||result.providerWriteAttempted!==false)throw new Error('Finance order callback response is invalid.');
     window.YNXFinanceOrderWallet.clear();history.replaceState(null,'','/');$('#broker-wallet-approve').hidden=true;$('#broker-complete-callback').hidden=true;notify(result.status==='approved'?'Wallet approval consumed into the durable local outbox. Broker submission remains disabled.':'Wallet decision recorded. No broker submission occurred.');await refreshBrokerWorkspace();

@@ -1,5 +1,6 @@
 import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} from './vendor/product-session-browser-a7dad7ec.mjs';
 import registry from './vendor/product-session-registry-a7dad7ec.json';
+import {assertFinancePrivateAuthority} from './endpoint-authority-entry.js';
 const AUTHORITY='https://wallet-auth.ynxweb4.com';
 const ATTEMPT_KEY='ynx.finance.browser-private.9840ef87.wallet-auth.attempted';
 const SCOPES=Object.freeze(['finance.ai.draft','finance.pay.read','finance.portfolio.read','finance.profile.write']);
@@ -12,9 +13,9 @@ function publish(next,code=''){
 function code(error){return /^[A-Z][A-Z0-9_]{1,80}$/.test(error?.code??'')?error.code:'PRIVATE_SERVICE_DEGRADED';}
 async function initialize(){
   if(adapter)return adapter;
-  if(!initializing)initializing=createBrowserProductSessionClient({registry,productId:'finance',scopes:SCOPES,
+  if(!initializing)initializing=assertFinancePrivateAuthority().then(()=>createBrowserProductSessionClient({registry,productId:'finance',scopes:SCOPES,
     purpose:'Read owned Finance activity and Pay evidence; manage private planning and explicitly requested AI drafts. No asset execution.',
-    gateway:new ProductSessionGatewayFetchAdapter({endpoint:AUTHORITY,fetch:globalThis.fetch.bind(globalThis),walletInstalled:async()=>false,schemeRegistered:async()=>false,timeoutMs:10000})}).then(value=>adapter=value).finally(()=>{initializing=null;});
+    gateway:new ProductSessionGatewayFetchAdapter({endpoint:AUTHORITY,fetch:globalThis.fetch.bind(globalThis),walletInstalled:async()=>false,schemeRegistered:async()=>false,timeoutMs:10000})})).then(value=>adapter=value).finally(()=>{initializing=null;});
   return initializing;
 }
 async function operation(action){

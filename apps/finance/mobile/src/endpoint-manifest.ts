@@ -1,28 +1,35 @@
-import manifest from '../contract/public-endpoint-manifest.json';
-import {sha256} from '@noble/hashes/sha2.js';
-import {bytesToHex} from '@noble/hashes/utils.js';
+import {
+  bundledEndpointAuthority,selectAuthorityEndpoint,validateEndpointAuthority,
+  type EndpointAuthority,type EndpointAuthorityPin,
+} from '@ynx-chain/sdk';
+import pin from '../contract/endpoint-authority-pin.json';
 
-export const FINANCE_ENDPOINT_MANIFEST_SOURCE='fa0ffd9bbbcc831438078be8e19cebff51b07e5e';
-export const FINANCE_ENDPOINT_MANIFEST_SHA256='3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5';
-type FinanceEndpointManifest={schemaVersion?:unknown;manifestVersion?:unknown;status?:unknown;environment?:unknown;sourceCommit?:unknown;issuedAt?:unknown;expiresAt?:unknown;cosmosChainId?:unknown;evmChainId?:unknown;evmChainHex?:unknown;rpc?:unknown;evmRpc?:unknown;walletGateway?:unknown;endpointStates?:{products?:{finance?:{status?:unknown}}};integrity?:{status?:unknown;algorithm?:unknown;canonicalization?:unknown;payloadSha256?:unknown;remoteSignature?:{status?:unknown;failClosed?:unknown}}};
-function invalid(message:string):never{throw new Error(`ENDPOINT_MANIFEST_INVALID: ${message}`)}
-function payloadSha256(value:FinanceEndpointManifest){const payload={...value};delete payload.integrity;return bytesToHex(sha256(new TextEncoder().encode(JSON.stringify(payload))))}
-export function validateFinanceConsumerContract(input:unknown,nowMs:number):FinanceEndpointManifest{
-  if(!input||typeof input!=='object'||Array.isArray(input))invalid('bundled contract is not an object.');
-  if(!Number.isFinite(nowMs))invalid('consumer clock is invalid.');
-  const value=input as FinanceEndpointManifest;
-  if(value.schemaVersion!=='1.0.0'||value.manifestVersion!=='1.0.0-p0.2'||value.status!=='ACCEPTED_BUNDLED_CONSUMER_CONTRACT'||value.environment!=='testnet')invalid('schema identity is not the accepted Finance contract.');
-  if(value.sourceCommit!==FINANCE_ENDPOINT_MANIFEST_SOURCE)throw new Error('ENDPOINT_MANIFEST_UNVERIFIED: source commit does not match the accepted Finance contract.');
-  const issuedAt=typeof value.issuedAt==='string'?Date.parse(value.issuedAt):Number.NaN,expiresAt=typeof value.expiresAt==='string'?Date.parse(value.expiresAt):Number.NaN;
-  if(!Number.isFinite(issuedAt)||!Number.isFinite(expiresAt)||expiresAt<=issuedAt)invalid('authority window is malformed.');
-  if(nowMs<issuedAt)throw new Error('ENDPOINT_MANIFEST_NOT_YET_VALID: the bundled YNX Testnet endpoint manifest is not active.');
-  if(nowMs>=expiresAt)throw new Error('CLIENT_RETIRED: the bundled YNX Testnet endpoint manifest has expired. Update Finance before connecting.');
-  if(value.cosmosChainId!=='ynx_6423-1'||value.evmChainId!==6423||value.evmChainHex!=='0x1917')throw new Error('WRONG_CHAIN: bundled endpoint manifest is not YNX Testnet.');
-  if(value.rpc!=='https://rpc.ynxweb4.com'||value.evmRpc!=='https://evm.ynxweb4.com'||value.walletGateway!=='https://wallet-auth.ynxweb4.com')invalid('accepted endpoint origins changed.');
-  if(value.endpointStates?.products?.finance?.status!=='PENDING')invalid('Finance must not activate an unaccepted product API.');
-  if(value.integrity?.status!=='BUNDLED_SHA256_ACCEPTED'||value.integrity.algorithm!=='SHA-256'||value.integrity.canonicalization!=='UTF-8 JSON.stringify(parsed manifest with integrity omitted)'||value.integrity.payloadSha256!==FINANCE_ENDPOINT_MANIFEST_SHA256||payloadSha256(value)!==FINANCE_ENDPOINT_MANIFEST_SHA256)throw new Error('ENDPOINT_MANIFEST_UNVERIFIED: Finance bundled manifest identity changed.');
-  if(value.integrity.remoteSignature?.status!=='PENDING_PROTECTED_SIGNER'||value.integrity.remoteSignature.failClosed!==true)throw new Error('ENDPOINT_MANIFEST_UNVERIFIED: remote replacement authority is not fail closed.');
-  return value;
+export const FINANCE_ENDPOINT_AUTHORITY_SOURCE='58d41e396e9970048a97f5a26bee7a8411ce2bde';
+export const FINANCE_ENDPOINT_AUTHORITY_TREE='ab9d15db8c508284c073f5355ce52abe91a7c814';
+export const FINANCE_ENDPOINT_AUTHORITY_FILE_SHA256='c8eb9f641185958aaec82c6fa16764e9424ad10f47bf7435af643a2a888a07e1';
+export const FINANCE_ENDPOINT_AUTHORITY_PAYLOAD_SHA256='29f801933e9df4faea58531cb522cc34bfe1028628adfb88227f3d0cae1e4e73';
+export const financeEndpointAuthorityPin=Object.freeze(pin) as EndpointAuthorityPin;
+export const financeEndpointManifest=bundledEndpointAuthority;
+export type FinanceAuthorityDigest=(payload:string)=>Promise<string>;
+
+export async function validateFinanceConsumerContract(input:unknown,nowMs:number,digestSHA256?:FinanceAuthorityDigest):Promise<EndpointAuthority>{
+  const authority=await validateEndpointAuthority(input,{trustedPin:financeEndpointAuthorityPin,nowMs,source:'bundled',...(digestSHA256?{digestSHA256}:{})});
+  if(authority.endpointStates.walletGateway.status!=='PENDING'||authority.endpointStates.products.finance.status!=='PENDING')throw new Error('FINANCE_AUTHORITY_SCOPE_DRIFT: this release must not activate Wallet Gateway or Finance Product Session.');
+  return authority;
 }
-export const financeEndpointManifest=Object.freeze(manifest);
-export function assertFinanceConsumerContract(){validateFinanceConsumerContract(financeEndpointManifest,Date.now());return financeEndpointManifest}
+
+export async function assertFinanceConsumerContract(nowMs=Date.now(),digestSHA256?:FinanceAuthorityDigest){return validateFinanceConsumerContract(financeEndpointManifest,nowMs,digestSHA256)}
+
+export async function financeNetworkEndpoints(nowMs=Date.now(),digestSHA256?:FinanceAuthorityDigest){
+  const authority=await assertFinanceConsumerContract(nowMs,digestSHA256);
+  return Object.freeze({
+    rpc:selectAuthorityEndpoint(authority,'rpc',{nowMs}),
+    evmRpc:selectAuthorityEndpoint(authority,'evmRpc',{nowMs}),
+    faucet:selectAuthorityEndpoint(authority,'faucet',{nowMs}),
+  });
+}
+
+export async function assertFinanceProductSessionContract(nowMs=Date.now(),digestSHA256?:FinanceAuthorityDigest):Promise<EndpointAuthority>{
+  const authority=await assertFinanceConsumerContract(nowMs,digestSHA256);
+  throw new Error(`PRIVATE_SERVICE_DEGRADED: Wallet Gateway=${authority.endpointStates.walletGateway.status}; Finance Product Session=${authority.endpointStates.products.finance.status}. Standard Wallet and guest surfaces remain independent.`);
+}
