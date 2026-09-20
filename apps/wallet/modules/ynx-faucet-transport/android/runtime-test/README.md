@@ -70,6 +70,13 @@ adb -s emulator-5582 uninstall com.ynxweb4.faucettransport.runtimeqa
 adb -s emulator-5582 shell pm path com.ynxweb4.faucettransport.runtimeqa
 ```
 
+For an explicitly authorized public Testnet diagnostic, add
+`-e publicReadOnly true` before the component name. That mode adds two
+`eth_chainId` reads to `https://rpc-testnet.ynxweb4.com`: one plain OkHttp
+control and one through the exact production `BoundedHttpEngine`. Require 14
+case records, `passed:14`, `failed:0`, `publicRequests:2`, and chain ID
+`0x1917`. It does not call the Faucet admission endpoint or send a transaction.
+
 Cleanup applies after failed tests too. Record any cleanup failure; never remove
 another application to remedy it. Preserve Wallet APK version/hash and the
 original locale/font/theme/locked state. Do not unlock, read private material,
@@ -104,10 +111,12 @@ methods rejected before dispatch. The one-second test deadline uses the existing
 internal constructor; the production fifteen-second setting is unchanged.
 
 Engine `pause`/`resume`/`close` calls are tested directly. Actual Expo Activity
-foreground/background/destroy event delivery, OS process death/deep sleep, TLS,
-public origin activation, server idempotency, receipts, wallets, UI/account
+foreground/background/destroy event delivery, OS process death/deep sleep,
+server idempotency, receipts, wallets, UI/account
 lifecycles, storage faults and physical-device behavior remain outside this
-harness. The production adapter and JS factories remain disabled.
+harness. TLS and the public RPC origin are covered only when the explicit
+`publicReadOnly` diagnostic is enabled. The production adapter and JS factories
+remain disabled.
 
 Android's [Instrumentation API](https://developer.android.com/reference/android/app/Instrumentation)
 defines the self-contained instrumentation lifecycle used here; the

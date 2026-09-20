@@ -60,8 +60,12 @@ internal class BoundedHttpEngine(
     .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false)
     .cookieJar(CookieJar.NO_COOKIES).cache(null)
     .authenticator(Authenticator.NONE).proxyAuthenticator(Authenticator.NONE)
-    .connectTimeout(5, TimeUnit.SECONDS).readTimeout(5, TimeUnit.SECONDS)
-    .writeTimeout(5, TimeUnit.SECONDS).callTimeout(15, TimeUnit.SECONDS).build()
+    // A fresh Android TLS/HTTP2 connection to the public Testnet can take more
+    // than five seconds even when the endpoint is healthy. Keep each network
+    // phase inside the existing fifteen-second monotonic call deadline without
+    // turning on OkHttp retries or allowing a request body to be replayed.
+    .connectTimeout(10, TimeUnit.SECONDS).readTimeout(10, TimeUnit.SECONDS)
+    .writeTimeout(10, TimeUnit.SECONDS).callTimeout(15, TimeUnit.SECONDS).build()
 
   fun reserve(purpose: String): String = synchronized(monitor) {
     if (purpose != "admit" && purpose != "rpc") fail("YNX_HTTP_INVALID_INPUT")

@@ -16,6 +16,10 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -25,8 +29,12 @@ import org.json.JSONObject
 class BoundedHttpRuntimeInstrumentation : Instrumentation() {
   private val results = JSONArray()
   private var failed = 0
+  private var publicReadOnly = false
 
-  override fun onCreate(arguments: Bundle?) { super.onCreate(arguments); start() }
+  override fun onCreate(arguments: Bundle?) {
+    publicReadOnly = arguments?.getString("publicReadOnly") == "true"
+    super.onCreate(arguments); start()
+  }
 
   override fun onStart() {
     val started = SystemClock.elapsedRealtime()
@@ -38,6 +46,44 @@ class BoundedHttpRuntimeInstrumentation : Instrumentation() {
       check(!NetworkSecurityPolicy.getInstance().isCleartextTrafficPermitted("faucet.ynxweb4.com"))
       check(!NetworkSecurityPolicy.getInstance().isCleartextTrafficPermitted("192.0.2.1"))
       JSONObject().put("sdk", Build.VERSION.SDK_INT).put("vm", System.getProperty("java.vm.name"))
+    }
+    if (publicReadOnly) case("public-readonly-rpc-connectivity") {
+      val body = "{\"jsonrpc\":\"2.0\",\"id\":\"android_runtime_qa\",\"method\":\"eth_chainId\",\"params\":[]}"
+      val client = OkHttpClient.Builder()
+        .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false)
+        .connectTimeout(10, TimeUnit.SECONDS).readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS).callTimeout(15, TimeUnit.SECONDS).build()
+      try {
+        client.newCall(Request.Builder().url("https://rpc-testnet.ynxweb4.com")
+          .header("Accept", "application/json").header("Accept-Encoding", "identity")
+          .post(body.toRequestBody("application/json; charset=utf-8".toMediaType())).build()).execute().use { response ->
+          equal(200, response.code)
+          val value = JSONObject(response.body?.string() ?: error("Missing RPC body"))
+          equal("0x1917", value.getString("result"))
+          JSONObject().put("status", response.code).put("chainId", value.getString("result"))
+            .put("protocol", response.protocol.toString()).put("publicRequest", "eth_chainId")
+        }
+      } finally {
+        client.dispatcher.executorService.shutdownNow(); client.connectionPool.evictAll()
+      }
+    }
+    if (publicReadOnly) case("public-readonly-engine-rpc-connectivity") {
+      val engine = BoundedHttpEngine("https://faucet-testnet.ynxweb4.com/request",
+        "https://rpc-testnet.ynxweb4.com", SystemClock::elapsedRealtimeNanos)
+      try {
+        val done = CompletableFuture<Pair<HttpReply?, HttpFailure?>>()
+        engine.request(mapOf("purpose" to "rpc", "taskId" to engine.reserve("rpc"),
+          "rpcId" to "android_runtime_engine_qa", "method" to "eth_chainId",
+          "params" to emptyList<String>())) { reply, error -> done.complete(reply to error) }
+        val result = done.get(20, TimeUnit.SECONDS)
+        check(result.second == null) { "Engine failed with ${result.second?.code}" }
+        val reply = result.first ?: error("Missing engine RPC response")
+        equal(200, reply.status)
+        val value = JSONObject(reply.body)
+        equal("0x1917", value.getString("result"))
+        JSONObject().put("status", reply.status).put("chainId", value.getString("result"))
+          .put("publicRequest", "eth_chainId").put("engine", "production-source")
+      } finally { engine.close() }
     }
     case("201-429-503-preserve-body-without-automatic-replay") {
       Fixture().use { f ->
@@ -186,7 +232,7 @@ class BoundedHttpRuntimeInstrumentation : Instrumentation() {
       .put("elapsedMillis", SystemClock.elapsedRealtime() - started)
       .put("cases", results).put("passed", results.length() - failed).put("failed", failed)
       .put("productionAdapterIncluded", false).put("productionActivationTested", false)
-      .put("publicRequests", 0)
+      .put("publicRequests", if (publicReadOnly) 2 else 0)
       .put("expoLifecycleDeliveryTested", false).put("walletStorageAccessed", false)
     targetContext.filesDir.resolve("runtime-result.json").writeText(report.toString(2))
     finish(if (failed == 0) Activity.RESULT_OK else Activity.RESULT_CANCELED,

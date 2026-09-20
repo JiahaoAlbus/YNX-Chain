@@ -1,0 +1,109 @@
+{
+  "schema": "ynx-wallet-android-installed-faucet-transfer/v1",
+  "testedAt": "2026-09-21T04:55:00+08:00",
+  "sourceBaseCommit": "d9385d7c7c45826f124ab2ddf375f44cd744e302",
+  "sourceBaseTree": "479d4a5b07b90eb593007521d2759b66c47eab75",
+  "officialArtifact": {
+    "releaseTag": "wallet-android-testnet-preview-1.0.18-2fdd679f9",
+    "filename": "ynx-wallet-1.0.18-testnet-preview-2fdd679f9-universal-local-test-signed.apk",
+    "sha256": "45fd5004c9156d4fb5880d9caa2056f5b2238e85ca63a13ddf73f25dea96266a",
+    "bytes": 116737714,
+    "package": "com.ynxweb4.wallet",
+    "versionCode": 24,
+    "versionName": "1.0.18-testnet-preview",
+    "activity": "com.ynxweb4.wallet/.MainActivity",
+    "signingClass": "local-test-signed",
+    "certificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e"
+  },
+  "emulator": {
+    "avd": "YNX_WALLET_1018_20260921_QA",
+    "serial": "emulator-5554",
+    "api": 36,
+    "abi": "arm64-v8a",
+    "freshData": true
+  },
+  "officialInstalledFinding": {
+    "account": "ynx17ksgwj90nhjxaqfqnasy9tytmpu56zfu9yjeml",
+    "accountSource": "disposable random key imported without printing or retaining private material",
+    "biometric": "BIOMETRIC_STRONG fingerprint enrolled on disposable AVD; two confirmations protected import",
+    "coldRestartRestoredLockedAccount": true,
+    "chain": "ynx_6423-1",
+    "chainQuantity": "0x1917",
+    "initialAccountState": "no on-chain account record",
+    "faucetSubmitCount": 1,
+    "faucetRequestId": "wallet_a82c55e6e8ead23065ca6b7727d30dc9bb6cac7072a9930af985fc203b71b735",
+    "faucetTransactionHash": "0x0ac2090e3ae6b51ca8a1386f391fd53ee6ba36054976a3b9fa7da9cbd109d0ef",
+    "observedFailure": "YNX_HTTP_NETWORK after a healthy public Testnet endpoint exceeded the native five-second response-header budget",
+    "noRetryBeforeResolution": true
+  },
+  "fix": {
+    "networkPhaseTimeoutSecondsBefore": 5,
+    "networkPhaseTimeoutSecondsAfter": 10,
+    "absoluteCallDeadlineSeconds": 15,
+    "automaticRetry": false,
+    "redirects": false,
+    "requestBodyReplay": false
+  },
+  "fixedArtifact": {
+    "sha256": "228fdca555e0608ea13e86229c4c8219e0d085552aab928922bd66ad209daf66",
+    "bytes": 116643263,
+    "versionCode": 24,
+    "versionName": "1.0.18-testnet-preview",
+    "signingClass": "local-test-signed",
+    "certificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "installMode": "adb install -r",
+    "applicationDataPreserved": true,
+    "coldLaunchMillis": 451,
+    "laterColdLaunchMillis": 271,
+    "warmDeliveryMillis": 4,
+    "crashBufferEntries": 0
+  },
+  "installedRegression": {
+    "accountAndBiometricLockRestored": true,
+    "balanceAfterRecoveredFaucet": "100 YNXT",
+    "faucetRequestAndHashRestoredExactly": true,
+    "faucetIdempotentRecoveryReturnedOriginalTransaction": true,
+    "faucetDurability": "durable",
+    "faucetReceiptCheckedInApp": true,
+    "faucetReceiptReviewSaved": true,
+    "transferBroadcastCount": 1,
+    "transferRecipient": "ynx1k764f4rzk5fgz2taundjzgv9jyqpf0tcq2kk2y",
+    "transferAmount": "1 YNXT",
+    "transferFee": "1 YNXT",
+    "transferNonce": 1,
+    "transferTransactionHash": "0xe848796320dbdfb9c970cc6f5bd088667b01159717bb9e0f6b80a48aeabfdeb9",
+    "transferRetryCount": 0,
+    "transferDurability": "durable",
+    "coldRestartRestoredConfirmedTransfer": true,
+    "balanceAfterTransfer": "98 YNXT",
+    "nonceAfterTransfer": 1,
+    "subsequentSendFormAvailableAfterAcknowledgement": true
+  },
+  "tests": [
+    {"name": "Wallet JavaScript tests", "passed": 558, "failed": 0},
+    {"name": "TypeScript typecheck", "passed": true},
+    {"name": "BoundedHttpEngine JVM tests", "passed": 17, "failed": 0},
+    {"name": "Android hermetic runtime instrumentation", "passed": 12, "failed": 0, "publicRequests": 0},
+    {"name": "Android authorized public read-only runtime instrumentation", "passed": 14, "failed": 0, "publicRequests": 2, "chainId": "0x1917"},
+    {"name": "Android release assemble with Java 17", "passed": true}
+  ],
+  "evidence": {
+    "directory": "/private/tmp/ynx-wallet-1018-installed-qa-20260921/evidence",
+    "uiTreeColdLockedSha256": "c3c555ad5bc9d5bf29a69d88c0a8b96e232f105f33fc33571eae36d64e38f81b",
+    "uiTreeUnlockedBalanceSha256": "20f24d6f3196eff2a3c6242d16a36451fb9dcd3116876c2744bf4a77fddbd302",
+    "uiTreeFaucetRestoredSha256": "95dc7dd97f50238d30a14c0d2ddee292f368fca3fce67313690a2a355baa8a46",
+    "uiTreeFaucetReceiptSha256": "45c8c3d5980d64f4a73b6a50f01334f0706b3582baccdf40875c7bf011742d4c",
+    "uiTreeTransferDurableSha256": "9ccce5daf250d54434e568db878d9e56edc6eafadc96c0ad9a504e9374289eda",
+    "uiTreeNextSendAvailableSha256": "281d3903c264482e248d25863e98913796a5febb4f43a4a45a40f0b4abd0efc9",
+    "secureScreenshotSha256": "2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b",
+    "screenshotNote": "FLAG_SECURE intentionally produces a protected black capture; UI assertions use the retained trees",
+    "crashBufferSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "notVerified": [
+    "physical Android device",
+    "iOS device or simulator",
+    "WalletConnect Relay interoperability",
+    "production signing",
+    "consensus finality"
+  ]
+}
