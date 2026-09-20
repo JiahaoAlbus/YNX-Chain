@@ -80,6 +80,11 @@ done
 if ! id -u ynx-prometheus >/dev/null 2>&1; then
   sudo -n useradd --system --home-dir /var/lib/ynx-prometheus --shell /usr/sbin/nologin ynx-prometheus
 fi
+[[ "$(stat -c '%U:%G' /etc/ynx)" == "ynx:ynx" ]] || { echo "/etc/ynx ownership changed; refusing to widen traversal"; exit 1; }
+# Prometheus receives only directory traversal through its supplementary ynx
+# group. Individual secrets remain mode 0600, while the nested monitoring
+# directory and files remain group-readable by ynx-prometheus only.
+sudo -n chmod 0710 /etc/ynx
 sudo -n install -d -o ynx-prometheus -g ynx-prometheus -m 0750 /var/lib/ynx-prometheus
 sudo -n install -d -o root -g ynx-prometheus -m 0750 /etc/ynx/prometheus
 sudo -n install -o root -g root -m 0755 "$work/ynx-prometheus" /usr/local/bin/ynx-prometheus
@@ -93,9 +98,13 @@ REMOTE
 for attempt in $(seq 1 12); do
   if evidence="$(ynx_transport_ssh monitoring-ready "$PRIMARY_NODE_SSH_KEY" "$remote" \
     "curl -fsS --max-time 5 'http://10.77.42.1:19090/api/v1/query?query=up%7Bjob%3D%22ynx-chaind%22%7D'")" && \
-    node -e 'const d=JSON.parse(process.argv[1]); const r=d?.data?.result||[]; if(r.length!==4||r.some(x=>x.value?.[1]!=="1"))process.exit(1)' "$evidence"; then
-    printf '%s\n' "$evidence"
-    echo "authoritative monitoring deployed: four exact Prometheus targets are up through loopback/WireGuard"
+    node -e 'const d=JSON.parse(process.argv[1]); const r=d?.data?.result||[]; if(r.length!==4||r.some(x=>x.value?.[1]!=="1"))process.exit(1)' "$evidence" && \
+    faucet_evidence="$(ynx_transport_ssh monitoring-faucet-ready "$PRIMARY_NODE_SSH_KEY" "$remote" \
+      "curl -fsS --max-time 5 'http://10.77.42.1:19090/api/v1/query?query=up%7Bjob%3D%22ynx-faucetd%22%7D'")" && \
+    node -e 'const d=JSON.parse(process.argv[1]); const r=d?.data?.result||[]; if(r.length!==1||r[0].value?.[1]!=="1")process.exit(1)' "$faucet_evidence"; then
+	printf '%s\n' "$evidence"
+	printf '%s\n' "$faucet_evidence"
+	echo "authoritative monitoring deployed: four chain targets and the primary Faucet target are up"
     exit 0
   fi
   sleep 5

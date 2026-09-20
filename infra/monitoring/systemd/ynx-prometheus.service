@@ -7,6 +7,7 @@ Wants=network-online.target
 Type=simple
 User=ynx-prometheus
 Group=ynx-prometheus
+SupplementaryGroups=ynx
 ExecStart=/usr/local/bin/ynx-prometheus \
   --config.file=/etc/ynx/prometheus/prometheus.yml \
   --storage.tsdb.path=/var/lib/ynx-prometheus \
@@ -31,4 +32,3 @@ ReadWritePaths=/var/lib/ynx-prometheus
 
 [Install]
 WantedBy=multi-user.target
-

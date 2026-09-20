@@ -28,6 +28,7 @@ fi
 
 grep -Fq -- '--web.listen-address=10.77.42.1:19090' "$unit"
 grep -Fq 'User=ynx-prometheus' "$unit"
+grep -Fq 'SupplementaryGroups=ynx' "$unit"
 grep -Fq 'NoNewPrivileges=true' "$unit"
 grep -Fq 'ProtectSystem=strict' "$unit"
 
