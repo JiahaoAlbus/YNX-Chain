@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "finance-endpoint-authority-1.1-consumer-source-build-evidence",
+  "recordedAt": "2026-09-20T09:26:51.576Z",
+  "scope": "apps/finance/**",
+  "baseline": {
+    "mainCommit": "98a5774ae229acd1a41f7647d95b858d31b73ad2",
+    "mainTree": "ea0458a0dbaac41745a7b73a0b64a7882196e917"
+  },
+  "sharedAuthority": {
+    "implementationCommit": "58d41e396e9970048a97f5a26bee7a8411ce2bde",
+    "implementationTree": "ab9d15db8c508284c073f5355ce52abe91a7c814",
+    "mergedMainCommit": "98a5774ae229acd1a41f7647d95b858d31b73ad2",
+    "manifestVersion": "1.1.0-weekly-v3.20260920.1",
+    "manifestFileSha256": "c8eb9f641185958aaec82c6fa16764e9424ad10f47bf7435af643a2a888a07e1",
+    "payloadSha256": "29f801933e9df4faea58531cb522cc34bfe1028628adfb88227f3d0cae1e4e73",
+    "expiresAt": "2026-09-27T08:55:00.000Z"
+  },
+  "financeConsumer": {
+    "pinPath": "apps/finance/mobile/contract/endpoint-authority-pin.json",
+    "pinFileSha256": "7af1131b1586b4db15796b49ca765973731c379a6fe2cf1d0637c2e011532ff2",
+    "sharedSdkDependency": "@ynx-chain/sdk@file:../../../sdk/js",
+    "sharedValidatorUsed": true,
+    "sharedCanonicalizationUsed": true,
+    "nativeSha256Injected": true,
+    "copiedSharedSdk": false,
+    "canonicalEndpoints": {
+      "rpc": "https://rpc-testnet.ynxweb4.com",
+      "evmRpc": "https://rpc-testnet.ynxweb4.com",
+      "faucet": "https://faucet-testnet.ynxweb4.com"
+    },
+    "walletGatewayStatus": "PENDING",
+    "financeProductStatus": "PENDING",
+    "productSessionFailClosed": true
+  },
+  "tests": {
+    "cleanNpmCiIgnoreScripts": "PASS",
+    "mobileTypecheck": "PASS",
+    "mobileUnit": {"status": "PASS", "passed": 17, "failed": 0},
+    "endpointReleaseGate": "PASS_PRODUCT_SESSION_PENDING",
+    "androidIosBundleExport": "PASS",
+    "androidBundleSha256": "46cd4d1661b90cd1499e40bc0eb45ee04f7dff7e508e854254436b922e546b20",
+    "iosBundleSha256": "3b437d29ede3e3329d9f299502a6a08ee6fa6da4cbbe3ec05420719a2e74185e",
+    "financeUnit": {"status": "PASS", "passed": 50, "failed": 0},
+    "walletAuthUnit": {"status": "PASS", "passed": 150, "failed": 0},
+    "sharedSdkUnit": {"status": "PASS", "passed": 5, "failed": 0},
+    "sharedAuthorityUnit": {"status": "PASS", "passed": 35, "failed": 0},
+    "security": {"status": "PASS", "filesScanned": 459}
+  },
+  "truth": {
+    "rpcFaucetAuthorityConsumed": true,
+    "walletGatewayAuthorized": false,
+    "financeProductSessionAuthorized": false,
+    "publicRelease": false,
+    "installedRelease": false,
+    "walletApproval": false,
+    "orderSubmission": false,
+    "signature": false,
+    "typedData": false,
+    "transaction": false
+  }
+}

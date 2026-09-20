@@ -13,6 +13,7 @@
     "check": "npm run typecheck && npm test && npm run bundle-check"
   },
   "dependencies": {
+    "@ynx-chain/sdk": "file:../../../sdk/js",
     "@ynx-chain/wallet-auth": "file:../../../packages/wallet-auth",
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",

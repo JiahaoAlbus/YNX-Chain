@@ -1,23 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import manifest from '../contract/public-endpoint-manifest.json';
-import {validateFinanceConsumerContract} from './endpoint-manifest';
-function copy(){return structuredClone(manifest) as Record<string,any>}
-test('accepted Finance manifest is usable only before its exact expiry boundary',()=>{
-  assert.equal(validateFinanceConsumerContract(copy(),Date.parse('2026-09-20T08:44:59.999Z')).manifestVersion,'1.0.0-p0.2');
-  assert.throws(()=>validateFinanceConsumerContract(copy(),Date.parse('2026-08-20T08:44:59.999Z')),/ENDPOINT_MANIFEST_NOT_YET_VALID/);
-  assert.throws(()=>validateFinanceConsumerContract(copy(),Date.parse('2026-09-20T08:45:00Z')),/CLIENT_RETIRED/);
+import {sha256} from '@noble/hashes/sha2.js';
+import {bytesToHex} from '@noble/hashes/utils.js';
+import {bundledEndpointAuthority,canonicalEndpointAuthorityPayload} from '@ynx-chain/sdk';
+import {assertFinanceProductSessionContract,financeEndpointAuthorityPin,financeNetworkEndpoints,validateFinanceConsumerContract} from './endpoint-manifest';
+
+const digest=async(payload:string)=>bytesToHex(sha256(new TextEncoder().encode(payload)));
+const copy=()=>structuredClone(bundledEndpointAuthority) as Record<string,any>;
+test('Finance consumes the exact shared 1.1.0 authority and current independent pin',async()=>{
+  const authority=await validateFinanceConsumerContract(copy(),Date.parse('2026-09-20T08:55:00.000Z'),digest);
+  assert.equal(authority.manifestVersion,financeEndpointAuthorityPin.manifestVersion);
+  assert.equal(await digest(canonicalEndpointAuthorityPayload(authority)),financeEndpointAuthorityPin.payloadSha256);
+  assert.deepEqual(await financeNetworkEndpoints(Date.parse('2026-09-20T08:55:00.000Z')),{rpc:'https://rpc-testnet.ynxweb4.com',evmRpc:'https://rpc-testnet.ynxweb4.com',faucet:'https://faucet-testnet.ynxweb4.com'});
 });
-test('Finance rejects malformed authority, wrong chain, endpoint, product and signer drift',()=>{
-  const cases:[(value:Record<string,any>)=>void,RegExp][]=[
-    [value=>{value.expiresAt=value.issuedAt},/authority window is malformed/],
-    [value=>{value.evmChainHex='0x1'},/WRONG_CHAIN/],
-    [value=>{value.sourceCommit='0'.repeat(40)},/ENDPOINT_MANIFEST_UNVERIFIED/],
-    [value=>{value.integrity.payloadSha256='0'.repeat(64)},/ENDPOINT_MANIFEST_UNVERIFIED/],
-    [value=>{value.releaseId='tampered-release'},/ENDPOINT_MANIFEST_UNVERIFIED/],
-    [value=>{value.evmRpc='https://rpc.invalid'},/accepted endpoint origins changed/],
-    [value=>{value.endpointStates.products.finance.status='VERIFIED'},/must not activate/],
-    [value=>{value.integrity.remoteSignature.failClosed=false},/remote replacement authority/],
-  ];
-  for(const [mutate,expected] of cases){const value=copy();mutate(value);assert.throws(()=>validateFinanceConsumerContract(value,Date.parse('2026-08-20T08:45:00Z')),expected)}
+test('authority time boundaries and payload tampering fail closed',async()=>{
+  await assert.rejects(()=>validateFinanceConsumerContract(copy(),Date.parse('2026-09-20T08:54:59.999Z'),digest),/AUTHORITY_NOT_YET_VALID/);
+  await assert.rejects(()=>validateFinanceConsumerContract(copy(),Date.parse('2026-09-27T08:55:00.000Z'),digest),/AUTHORITY_EXPIRED/);
+  const tampered=copy();tampered.rpc='https://rpc.ynxweb4.com';
+  await assert.rejects(()=>validateFinanceConsumerContract(tampered,Date.parse('2026-09-20T09:00:00.000Z'),digest),/AUTHORITY_ENDPOINT_ALLOWLIST|AUTHORITY_HASH_MISMATCH/);
+});
+test('RPC/Faucet renewal never promotes pending Finance private services',async()=>{
+  await assert.rejects(()=>assertFinanceProductSessionContract(Date.parse('2026-09-20T09:00:00.000Z')),/PRIVATE_SERVICE_DEGRADED.*PENDING/);
+  const promoted=copy();promoted.endpointStates.products.finance.status='VERIFIED';
+  await assert.rejects(()=>validateFinanceConsumerContract(promoted,Date.parse('2026-09-20T09:00:00.000Z'),digest),/AUTHORITY_PRODUCT_PROMOTION|AUTHORITY_HASH_MISMATCH/);
 });
