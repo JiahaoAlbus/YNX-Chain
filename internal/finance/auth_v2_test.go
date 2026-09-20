@@ -26,6 +26,59 @@ type financeRoundTrip func(*http.Request) (*http.Response, error)
 
 func (f financeRoundTrip) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
+type financeAuthorityGate func(context.Context) error
+
+func (f financeAuthorityGate) Authorize(ctx context.Context) error { return f(ctx) }
+
+var allowFinanceAuthority = financeAuthorityGate(func(context.Context) error { return nil })
+
+func TestBrowserV2MissingEndpointAuthorityBlocksBeforeGatewayNetwork(t *testing.T) {
+	calls := 0
+	auth, err := newBrowserV2Authenticator(financeRoundTrip(func(*http.Request) (*http.Response, error) {
+		calls++
+		return nil, errors.New("network forbidden")
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodGet, BrowserFinanceOrigin+"/api/profile", nil)
+	request.Header.Set(productsessionv2.ProofHeader, "opaque-request-value")
+	_, err = auth.VerifyRequest(request, "finance.portfolio.read")
+	var rejected *productsessionv2.Error
+	if !errors.As(err, &rejected) || rejected.Code != "FINANCE_AUTHORITY_V2_NOT_CONFIGURED" || rejected.Status != http.StatusServiceUnavailable {
+		t.Fatalf("unexpected rejection: %v", err)
+	}
+	if calls != 0 {
+		t.Fatal("unconfigured authority contacted Wallet Gateway")
+	}
+}
+
+func TestBrowserV2EndpointAuthorityRecheckedForEveryRequest(t *testing.T) {
+	checks := 0
+	gate := financeAuthorityGate(func(context.Context) error {
+		checks++
+		return &productsessionv2.Error{Code: "AUTHORITY_V2_EXPIRED_OR_REVOKED", Status: 503}
+	})
+	auth, err := newBrowserV2Authenticator(financeRoundTrip(func(*http.Request) (*http.Response, error) {
+		t.Fatal("Gateway contacted after authority rejection")
+		return nil, nil
+	}), gate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		request := httptest.NewRequest(http.MethodGet, BrowserFinanceOrigin+"/api/profile", nil)
+		request.Header.Set(productsessionv2.ProofHeader, "opaque")
+		_, err = auth.VerifyRequest(request, "finance.portfolio.read")
+		if err == nil {
+			t.Fatal("expired authority accepted")
+		}
+	}
+	if checks != 2 {
+		t.Fatalf("authority checked %d times", checks)
+	}
+}
+
 // These cases execute the unchanged shared verifier, not a Finance reimplementation.
 // Invalid proof mutations are deliberately unsigned local test inputs. The shared
 // package separately executes its genuine SDK-generated signature/replay vector.
@@ -58,7 +111,7 @@ func TestBrowserV2RejectsLegacyOriginScopeExpiredAndEVMBeforeNetwork(t *testing.
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			calls := 0
-			auth, err := newBrowserV2Authenticator(financeRoundTrip(func(*http.Request) (*http.Response, error) { calls++; return nil, errors.New("test forbids network") }))
+			auth, err := newBrowserV2Authenticator(financeRoundTrip(func(*http.Request) (*http.Response, error) { calls++; return nil, errors.New("test forbids network") }), allowFinanceAuthority)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -125,7 +178,7 @@ func (f *financeDecisionFixture) Authorize(_ context.Context, r *http.Request, s
 
 func TestBrowserV2AuthenticatorRequiresAuthorityToReturnRequestedScope(t *testing.T) {
 	authority := &financeDecisionFixture{used: map[string]bool{}, responseScopes: []string{"finance.portfolio.read"}}
-	auth := &Authenticator{v2: authority}
+	auth := &Authenticator{v2: authority, privateAuthority: allowFinanceAuthority}
 	request := httptest.NewRequest(http.MethodPost, "/api/broker/callback", nil)
 	request.Header.Set(productsessionv2.ProofHeader, "scope-missing")
 	_, err := auth.VerifyRequest(request, "finance.profile.write")
@@ -153,7 +206,7 @@ func TestBrowserV2HTTPRouteTenantPersistenceReplayAndPrivateDegradation(t *testi
 		if e != nil {
 			t.Fatal(e)
 		}
-		server, e := NewServer(&Service{Store: store, Upstreams: upstreams, AI: fakeAI{}, Support: SupportLinks{HelpURL: "https://support.invalid/help", PrivacyURL: "https://support.invalid/privacy", DisputeURL: "https://support.invalid/disputes"}}, &Authenticator{v2: authority}, ServerConfig{AllowedOrigins: []string{BrowserFinanceOrigin}, CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey})
+		server, e := NewServer(&Service{Store: store, Upstreams: upstreams, AI: fakeAI{}, Support: SupportLinks{HelpURL: "https://support.invalid/help", PrivacyURL: "https://support.invalid/privacy", DisputeURL: "https://support.invalid/disputes"}}, &Authenticator{v2: authority, privateAuthority: allowFinanceAuthority}, ServerConfig{AllowedOrigins: []string{BrowserFinanceOrigin}, CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey})
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -221,7 +274,7 @@ func TestBrowserV2FixedAuthorityUnavailableIsNotUnauthorized(t *testing.T) {
 			t.Fatal("authority was injected")
 		}
 		return &http.Response{StatusCode: 503, Body: io.NopCloser(bytes.NewReader(nil)), Header: http.Header{}}, nil
-	}))
+	}), allowFinanceAuthority)
 	if err != nil {
 		t.Fatal(err)
 	}

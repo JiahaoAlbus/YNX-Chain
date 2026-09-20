@@ -73,7 +73,7 @@ test('Broker order approval consumes the exact Wallet transport and never auto-s
   assert.equal(html.includes('name="accountPublicKey"'),false,'Wallet public key must come from the persisted owner mapping');
   assert.equal(html.includes('Provider asset UUID<input'),false,'users must select provider-backed assets instead of typing UUIDs');
   assert.ok(js.includes("JSON.stringify({draft})"));
-  for(const marker of ['@ynx-chain/sdk','validateEndpointAuthority','walletGateway.status','products.finance.status'])assert.ok(webAuthority.includes(marker),marker);
+  for(const marker of ['@ynx-chain/sdk','createEndpointAuthorityClient','walletGateway','financeProductSession','trustedClock'])assert.ok(webAuthority.includes(marker),marker);
   assert.ok(orderWallet.includes('assertFinancePrivateAuthority'));
   assert.ok(privateWallet.includes('assertFinancePrivateAuthority'));
 });

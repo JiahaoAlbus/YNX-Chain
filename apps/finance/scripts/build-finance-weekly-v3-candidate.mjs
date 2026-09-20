@@ -4,7 +4,7 @@ import { chmodSync, copyFileSync, mkdtempSync, mkdirSync, readFileSync, readdirS
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runtimeFiles, sha256 } from './finance-nonregressive-runtime.mjs';
+import { authorityRuntimeFiles, runtimeFiles, sha256 } from './finance-nonregressive-runtime.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = dirname(scriptPath);
@@ -63,12 +63,20 @@ function buildOnce(sourceRoot, destination) {
       chmodSync(join(packageRoot, name), 0o755);
     }
     for (const name of runtimeFiles) copyFileSync(join(sourceRoot, 'apps/finance/web', name), join(webRoot, name));
+    for (const file of authorityRuntimeFiles) {
+      const destination=join(packageRoot,file.destination);
+      mkdirSync(dirname(destination),{recursive:true,mode:0o755});
+      copyFileSync(join(sourceRoot,file.source),destination);
+    }
     copyFileSync(join(sourceRoot, 'apps/finance/.env.example'), join(packageRoot, '.env.example'));
     writeFileSync(join(webRoot, 'build-identity.json'), `${JSON.stringify(identity, null, 2)}\n`, { mode: 0o644 });
     for (const name of runtimeFiles) {
       const sourceBody = readFileSync(join(sourceRoot, 'apps/finance/web', name));
       const packagedBody = readFileSync(join(webRoot, name));
       if (!sourceBody.equals(packagedBody)) throw new Error(`FINANCE_FRONTEND_SOURCE_BINDING_MISMATCH:${name}`);
+    }
+    for (const file of authorityRuntimeFiles) {
+      if (!readFileSync(join(sourceRoot,file.source)).equals(readFileSync(join(packageRoot,file.destination)))) throw new Error(`FINANCE_AUTHORITY_RUNTIME_SOURCE_BINDING_MISMATCH:${file.destination}`);
     }
     for (const forbidden of ['wallet-connect.js', 'wallet-connect-entry.js']) {
       try {

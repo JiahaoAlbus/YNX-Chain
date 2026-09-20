@@ -3,7 +3,7 @@ import {readFileSync,statSync} from 'node:fs';
 import {dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
-import {runtimeFiles,sha256} from '../scripts/finance-nonregressive-runtime.mjs';
+import {authorityRuntimeFiles,runtimeFiles,sha256} from '../scripts/finance-nonregressive-runtime.mjs';
 
 const financeRoot=dirname(dirname(fileURLToPath(import.meta.url)));
 const webRoot=join(financeRoot,'web');
@@ -18,6 +18,14 @@ test('weekly v3 release tooling closes every served Finance runtime asset',()=>{
   assert.deepEqual(runtimeFiles,expected);
   assert.equal(new Set(runtimeFiles).size,runtimeFiles.length);
   for(const name of runtimeFiles)assert.equal(statSync(join(webRoot,name)).isFile(),true,name);
+  assert.deepEqual(authorityRuntimeFiles.map(value=>value.destination),[
+    'authority-runtime/apps/finance/scripts/finance-endpoint-authority-v2.mjs',
+    'authority-runtime/apps/finance/authority/adapter.mjs',
+    'authority-runtime/apps/finance/authority/config.mjs',
+    'authority-runtime/apps/finance/authority/checkpoint-node.mjs',
+    'authority-runtime/sdk/js/endpoint-authority-v2.js',
+  ]);
+  for(const file of authorityRuntimeFiles)assert.equal(statSync(join(financeRoot,'../..',file.source)).isFile(),true,file.source);
 
   const server=readFileSync(join(financeRoot,'../../internal/finance/server.go'),'utf8');
   const staticMap=server.match(/name := map\[string\]string\{([^\n]+)\}\[r\.URL\.Path\]/)?.[1];
@@ -38,7 +46,8 @@ test('weekly v3 release tooling closes every served Finance runtime asset',()=>{
 
 test('weekly v3 builder imports the tracked runtime helper',()=>{
   const builder=readFileSync(join(financeRoot,'scripts/build-finance-weekly-v3-candidate.mjs'),'utf8');
-  assert.match(builder,/import \{ runtimeFiles, sha256 \} from '\.\/finance-nonregressive-runtime\.mjs';/);
+  assert.match(builder,/import \{ authorityRuntimeFiles, runtimeFiles, sha256 \} from '\.\/finance-nonregressive-runtime\.mjs';/);
+  assert.match(builder,/FINANCE_AUTHORITY_RUNTIME_SOURCE_BINDING_MISMATCH/);
   assert.match(builder,/repeatedBuildByteExact: true/);
   assert.match(builder,/FINANCE_WEEKLY_V3_CANDIDATE_NONDETERMINISTIC/);
 });

@@ -4,6 +4,7 @@ import {sha256} from '@noble/hashes/sha2.js';
 import {bytesToHex} from '@noble/hashes/utils.js';
 import {bundledEndpointAuthority,canonicalEndpointAuthorityPayload} from '@ynx-chain/sdk';
 import {assertFinanceProductSessionContract,financeEndpointAuthorityPin,financeNetworkEndpoints,validateFinanceConsumerContract} from './endpoint-manifest';
+import {assertFinanceAuthorityV2NativeCapabilities} from './endpoint-authority-capabilities';
 
 const digest=async(payload:string)=>bytesToHex(sha256(new TextEncoder().encode(payload)));
 const copy=()=>structuredClone(bundledEndpointAuthority) as Record<string,any>;
@@ -23,4 +24,8 @@ test('RPC/Faucet renewal never promotes pending Finance private services',async(
   await assert.rejects(()=>assertFinanceProductSessionContract(Date.parse('2026-09-20T09:00:00.000Z')),/PRIVATE_SERVICE_DEGRADED.*PENDING/);
   const promoted=copy();promoted.endpointStates.products.finance.status='VERIFIED';
   await assert.rejects(()=>validateFinanceConsumerContract(promoted,Date.parse('2026-09-20T09:00:00.000Z'),digest),/AUTHORITY_PRODUCT_PROMOTION|AUTHORITY_HASH_MISMATCH/);
+});
+test('native v2 refuses missing or unreviewed Ed25519, CAS and trusted clock capabilities',()=>{
+  assert.throws(()=>assertFinanceAuthorityV2NativeCapabilities(undefined),/Ed25519,durable-CAS,trusted-clock/);
+  assert.throws(()=>assertFinanceAuthorityV2NativeCapabilities({verifyEd25519:async()=>true,durableCompareAndSwap:async()=>true,trustedClockMs:()=>Date.now()}),/adapter-not-reviewed/);
 });

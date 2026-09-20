@@ -81,7 +81,26 @@ func runWithReadiness(args []string, get func(string) string, probe verification
 	localReadOnly = len(args) == 2 && args[1] == "--local-read-only"
 	cfg := brokerage.LoadConfig(get)
 	status := cfg.Status()
-	report := map[string]any{"mode": mode, "configuration": status, "networkAttempted": false, "localReadOnlyAttempted": false, "accountLinkVerified": false, "dataEntitlementVerified": false, "officialSandboxVerified": false, "productionApproved": false, "writeAttempted": false, "walletOrderApproval": "manual_wallet_approval_required", "durableOrderJournal": "implemented_state_v2", "providerPost": "activation_gated_operator_only", "sharedEndpointAuthority": map[string]any{"bundledManifestPresent": true, "bundledFinancePinBuildVerified": true, "centralSignedManifestActive": false, "installedWalletCallbackVerified": false, "result": "BLOCKED_SHARED_AUTHORITY_EVIDENCE"}}
+	authorityReport := map[string]any{"bundledManifestPresent": true, "bundledFinancePinBuildVerified": true, "centralSignedManifestActive": false, "installedWalletCallbackVerified": false, "officialSandboxVerified": false, "providerVerified": false, "productionApproved": false, "result": "BLOCKED_SHARED_AUTHORITY_EVIDENCE"}
+	if strings.TrimSpace(get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_NODE_BINARY")) != "" || strings.TrimSpace(get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE")) != "" {
+		gate, authorityErr := finance.NewNodeEndpointAuthority(finance.NodeEndpointAuthorityConfig{
+			NodeBinary: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_NODE_BINARY"), Script: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_SCRIPT"), TrustRootFile: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUST_ROOT_FILE"), ManifestFile: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE"), CheckpointFile: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_CHECKPOINT_FILE"), TrustedTimeFile: get("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUSTED_TIME_FILE"), Timeout: 3 * time.Second,
+		})
+		if authorityErr != nil {
+			authorityReport["result"] = "FINANCE_AUTHORITY_V2_CONFIGURATION_REJECTED"
+		} else {
+			ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+			authorityErr = gate.Authorize(ctx)
+			cancel()
+			if authorityErr == nil {
+				authorityReport["centralSignedManifestActive"] = true
+				authorityReport["result"] = "FINANCE_PRIVATE_AUTHORITY_VERIFIED_PROVIDER_GATES_FALSE"
+			} else {
+				authorityReport["result"] = "FINANCE_PRIVATE_AUTHORITY_DEGRADED"
+			}
+		}
+	}
+	report := map[string]any{"mode": mode, "configuration": status, "networkAttempted": false, "localReadOnlyAttempted": false, "accountLinkVerified": false, "dataEntitlementVerified": false, "officialSandboxVerified": false, "productionApproved": false, "writeAttempted": false, "walletOrderApproval": "manual_wallet_approval_required", "durableOrderJournal": "implemented_state_v2", "providerPost": "activation_gated_operator_only", "sharedEndpointAuthority": authorityReport}
 	code := 0
 	if mode == "activation-plan" {
 		report["activationReceiptConfigured"] = status.SubmissionEnabled

@@ -20,10 +20,17 @@ type productSessionV2Authorizer interface {
 // registry row. Neither the caller nor a business request can inject an endpoint,
 // product, callback, application identity, or required scope.
 func NewBrowserV2Authenticator() (*Authenticator, error) {
-	return newBrowserV2Authenticator(nil)
+	return newBrowserV2Authenticator(nil, unavailableEndpointAuthority{code: "FINANCE_AUTHORITY_V2_NOT_CONFIGURED"})
 }
 
-func newBrowserV2Authenticator(transport http.RoundTripper) (*Authenticator, error) {
+func NewBrowserV2AuthenticatorWithAuthority(authority EndpointAuthorityGate) (*Authenticator, error) {
+	if authority == nil {
+		authority = unavailableEndpointAuthority{code: "FINANCE_AUTHORITY_V2_NOT_CONFIGURED"}
+	}
+	return newBrowserV2Authenticator(nil, authority)
+}
+
+func newBrowserV2Authenticator(transport http.RoundTripper, authorities ...EndpointAuthorityGate) (*Authenticator, error) {
 	verifier, err := productsessionv2.NewClient(BrowserWalletAuthority, productsessionv2.Policy{
 		ProductID: "finance", ClientID: "ynx-finance-v1", ApplicationID: "com.ynxweb4.finance.web", Platform: "web",
 		Origin: BrowserFinanceOrigin, Callback: BrowserFinanceOrigin + "/wallet-auth/callback",
@@ -32,12 +39,22 @@ func newBrowserV2Authenticator(transport http.RoundTripper) (*Authenticator, err
 	if err != nil {
 		return nil, err
 	}
-	return &Authenticator{v2: verifier}, nil
+	authority := EndpointAuthorityGate(unavailableEndpointAuthority{code: "FINANCE_AUTHORITY_V2_NOT_CONFIGURED"})
+	if len(authorities) == 1 && authorities[0] != nil {
+		authority = authorities[0]
+	}
+	return &Authenticator{v2: verifier, privateAuthority: authority}, nil
 }
 
 func (a *Authenticator) VerifyRequest(r *http.Request, scope string) (Session, error) {
 	if a.v2 == nil {
 		return a.Verify(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
+	}
+	if a.privateAuthority == nil {
+		return Session{}, &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_NOT_CONFIGURED", Status: http.StatusServiceUnavailable}
+	}
+	if err := a.privateAuthority.Authorize(r.Context()); err != nil {
+		return Session{}, err
 	}
 	if len(r.Header.Values("X-YNX-Product-Session-Proof")) != 0 {
 		return Session{}, &productsessionv2.Error{Code: "LEGACY_AUTHORITY_PROOF_REJECTED", Status: http.StatusUnauthorized}

@@ -54,7 +54,15 @@ func main() {
 	legacyGateway := ""
 	switch envDefault("YNX_FINANCE_AUTH_MODE", "product-session-v2") {
 	case "product-session-v2":
-		auth, err = finance.NewBrowserV2Authenticator()
+		var endpointAuthority finance.EndpointAuthorityGate
+		endpointAuthority, err = finance.NewNodeEndpointAuthority(finance.NodeEndpointAuthorityConfig{
+			NodeBinary: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_NODE_BINARY"), Script: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_SCRIPT"),
+			TrustRootFile: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUST_ROOT_FILE"), ManifestFile: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE"),
+			CheckpointFile: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_CHECKPOINT_FILE"), TrustedTimeFile: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUSTED_TIME_FILE"), Timeout: 3 * time.Second,
+		})
+		if err == nil {
+			auth, err = finance.NewBrowserV2AuthenticatorWithAuthority(endpointAuthority)
+		}
 	case "legacy-v1":
 		legacyGateway = required("YNX_FINANCE_WALLET_GATEWAY_URL")
 		if strings.TrimRight(legacyGateway, "/") == finance.BrowserWalletAuthority {
