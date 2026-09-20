@@ -378,7 +378,7 @@ func (s *Store) transitionUnapprovedBrokerOrder(account, requestID, callbackStat
 	return result, err
 }
 
-func (s *Store) RevokeBrokerOrder(account string, revocation FinanceOrderRevocationV1, now time.Time) (BrokerOrderRecord, error) {
+func (s *Store) RevokeBrokerOrder(account, callbackStateHash string, revocation FinanceOrderRevocationV1, now time.Time) (BrokerOrderRecord, error) {
 	var result BrokerOrderRecord
 	err := s.updateBrokerCAS(account, "broker.approval.revoked", revocation.RequestID, func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)
@@ -386,11 +386,10 @@ func (s *Store) RevokeBrokerOrder(account string, revocation FinanceOrderRevocat
 		if !ok {
 			return errors.New("Finance approval challenge was not found")
 		}
-		if challenge.ApprovalState == "revoked" {
-			result = state.Brokerage.Orders[challenge.Unsigned.Order.OrderID]
-			return errBrokerStateUnchanged
+		if callbackStateHash != challenge.Unsigned.CallbackStateHash {
+			return errors.New("Finance approval callback state does not match")
 		}
-		if challenge.ApprovalState != "approved" && challenge.ApprovalState != "pending" {
+		if challenge.ApprovalState != "approved" && challenge.ApprovalState != "pending" && challenge.ApprovalState != "revoked" {
 			return fmt.Errorf("Finance approval is already %s", challenge.ApprovalState)
 		}
 		issuedAt, issuedErr := parseFinanceMilliseconds(challenge.Unsigned.IssuedAt)
@@ -402,8 +401,19 @@ func (s *Store) RevokeBrokerOrder(account string, revocation FinanceOrderRevocat
 		if challenge.ApprovalState == "pending" {
 			expectedDigest = digestFinanceCanonical(FinanceOrderApprovalDomain, challenge.Unsigned)
 		}
+		mapping := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
+		if mapping.Account != account || mapping.Account != challenge.Unsigned.Account || mapping.SubjectID != challenge.Unsigned.SubjectID || mapping.Provider != FinanceOrderProvider || mapping.TradingEnvironment != FinanceOrderTradingEnv || mapping.BrokerAccountID != challenge.Unsigned.BrokerAccountID || mapping.Status != "active" || mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey || mapping.WalletPublicKey != revocation.AccountPublicKey {
+			return errors.New("Finance approval revocation no longer matches the current Broker Sandbox mapping")
+		}
 		if err := VerifyFinanceOrderRevocationV1(revocation, account, challenge.Unsigned.RequestID, expectedDigest, issuedAt, expiresAt, now); err != nil {
 			return err
+		}
+		if challenge.ApprovalState == "revoked" {
+			if challenge.Revocation == nil || *challenge.Revocation != revocation {
+				return errors.New("Finance approval revocation replay does not match")
+			}
+			result = state.Brokerage.Orders[challenge.Unsigned.Order.OrderID]
+			return errBrokerStateUnchanged
 		}
 		order := state.Brokerage.Orders[challenge.Unsigned.Order.OrderID]
 		challenge.ApprovalState, challenge.ApprovalDigest, challenge.Revocation, challenge.UpdatedAt = "revoked", expectedDigest, &revocation, now.UTC()

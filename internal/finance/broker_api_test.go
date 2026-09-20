@@ -61,6 +61,49 @@ func TestBrokerChallengeCallbackAndWorkspaceNeverPostsProvider(t *testing.T) {
 	}
 }
 
+func TestBrokerRevocationCallbackRequiresExactOuterStateBeforeDurableReplay(t *testing.T) {
+	now := time.Date(2026, 9, 21, 1, 0, 0, 0, time.UTC)
+	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	walletKey := "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+	store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", walletKey, now); err != nil {
+		t.Fatal(err)
+	}
+	challenge, err := store.CreateBrokerOrderChallenge(account, BrokerChallengeRequest{AccountPublicKey: walletKey, FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:revocation-api", Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: "33333333-4444-4555-8666-777777777777", OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"}}, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	revocation := signFinanceRevocationForTest(t, challenge.Unsigned, now.Add(time.Minute))
+	server := &Server{service: &Service{Store: store}, now: func() time.Time { return now.Add(2 * time.Minute) }}
+	callback := func(stateHash string) []byte {
+		return mustFinanceCanonical(map[string]any{"callbackStateHash": stateHash, "kind": "finance_order_approval_result", "requestId": revocation.RequestID, "revocation": revocation, "status": "revoked", "version": "1"})
+	}
+
+	recorder := httptest.NewRecorder()
+	server.brokerCallback(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/callback", bytes.NewReader(callback(strings.Repeat("f", 64)))), Session{Account: account})
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf("wrong outer state status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if state := store.Account(account).Brokerage.Challenges[challenge.Unsigned.RequestID]; state.ApprovalState != "pending" || state.Revocation != nil {
+		t.Fatalf("wrong outer callback state mutated challenge: %+v", state)
+	}
+
+	for attempt := 0; attempt < 2; attempt++ {
+		recorder = httptest.NewRecorder()
+		server.brokerCallback(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/callback", bytes.NewReader(callback(challenge.Unsigned.CallbackStateHash))), Session{Account: account})
+		if recorder.Code != http.StatusOK || !bytes.Contains(recorder.Body.Bytes(), []byte(`"providerWriteAttempted":false`)) {
+			t.Fatalf("exact callback attempt=%d status=%d body=%s", attempt, recorder.Code, recorder.Body.String())
+		}
+	}
+	state := store.Account(account).Brokerage
+	if state.Challenges[challenge.Unsigned.RequestID].Revocation == nil || *state.Challenges[challenge.Unsigned.RequestID].Revocation != revocation || state.Orders[challenge.Unsigned.Order.OrderID].ApprovalState != "revoked" || len(state.Outbox) != 0 {
+		t.Fatalf("exact revocation was not durably idempotent: %+v", state)
+	}
+}
+
 func TestBrokerWorkspaceArchivesExpiredApprovalBeforeCallbackWithoutProviderWrite(t *testing.T) {
 	now := time.Date(2026, 9, 20, 13, 0, 0, 0, time.UTC)
 	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"

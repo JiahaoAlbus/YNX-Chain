@@ -168,6 +168,42 @@ func TestBrokerOrderLifecycleFailsClosedAfterMappedWalletKeyRotation(t *testing.
 		}
 	})
 
+	t.Run("revoke after wallet key rotation", func(t *testing.T) {
+		store := open(t)
+		challenge, err := store.CreateBrokerOrderChallenge(account, request("11111111-2222-4333-8444-555555555555"), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		revocation := signFinanceRevocationForTest(t, challenge.Unsigned, now.Add(time.Minute))
+		rotate(t, store)
+		before := store.Account(account).Brokerage
+		if _, err := store.RevokeBrokerOrder(account, challenge.Unsigned.CallbackStateHash, revocation, now.Add(2*time.Minute)); err == nil {
+			t.Fatal("revocation signed by the former mapped Wallet key was accepted")
+		}
+		if after := store.Account(account).Brokerage; !reflect.DeepEqual(before, after) {
+			t.Fatalf("rejected revocation mutated durable state: before=%+v after=%+v", before, after)
+		}
+	})
+
+	t.Run("revoke after Broker account rotation", func(t *testing.T) {
+		store := open(t)
+		challenge, err := store.CreateBrokerOrderChallenge(account, request("22222222-3333-4444-8555-666666666666"), now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		revocation := signFinanceRevocationForTest(t, challenge.Unsigned, now.Add(time.Minute))
+		if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, "99999999-aaaa-4bbb-8ccc-dddddddddddd", originalKey, now.Add(time.Minute)); err != nil {
+			t.Fatal(err)
+		}
+		before := store.Account(account).Brokerage
+		if _, err := store.RevokeBrokerOrder(account, challenge.Unsigned.CallbackStateHash, revocation, now.Add(2*time.Minute)); err == nil {
+			t.Fatal("revocation for the former Broker account mapping was accepted")
+		}
+		if after := store.Account(account).Brokerage; !reflect.DeepEqual(before, after) {
+			t.Fatalf("rejected Broker mapping revocation mutated durable state: before=%+v after=%+v", before, after)
+		}
+	})
+
 	t.Run("dispatch claim", func(t *testing.T) {
 		store := open(t)
 		challenge, err := store.CreateBrokerOrderChallenge(account, request("dddddddd-eeee-4fff-8aaa-bbbbbbbbbbbb"), now)
@@ -199,8 +235,23 @@ func TestBrokerPendingApprovalCanBeRevokedBeforeCallbackDelivery(t *testing.T) {
 		t.Fatal(err)
 	}
 	revocation := signFinanceRevocationForTest(t, challenge.Unsigned, now.Add(time.Minute))
-	if _, err := store.RevokeBrokerOrder(account, revocation, now.Add(time.Minute)); err != nil {
+	if _, err := store.RevokeBrokerOrder(account, challenge.Unsigned.CallbackStateHash, revocation, now.Add(time.Minute)); err != nil {
 		t.Fatal(err)
+	}
+	if _, err := store.RevokeBrokerOrder(account, challenge.Unsigned.CallbackStateHash, revocation, now.Add(2*time.Minute)); err != nil {
+		t.Fatalf("exact signed revocation replay failed: %v", err)
+	}
+	if _, err := store.RevokeBrokerOrder(account, strings.Repeat("f", 64), revocation, now.Add(2*time.Minute)); err == nil {
+		t.Fatal("revocation replay accepted a different callback state")
+	}
+	tampered := revocation
+	tampered.Signature = strings.Repeat("0", 128)
+	if _, err := store.RevokeBrokerOrder(account, challenge.Unsigned.CallbackStateHash, tampered, now.Add(2*time.Minute)); err == nil {
+		t.Fatal("revocation replay accepted a different signature")
+	}
+	validButDifferent := signFinanceRevocationForTest(t, challenge.Unsigned, now.Add(90*time.Second))
+	if _, err := store.RevokeBrokerOrder(account, challenge.Unsigned.CallbackStateHash, validButDifferent, now.Add(2*time.Minute)); err == nil {
+		t.Fatal("revocation replay accepted a different fully valid revocation")
 	}
 	reopened, _ := OpenStore(path)
 	state := reopened.Account(account).Brokerage
@@ -424,7 +475,7 @@ func TestBrokerOrderDurableConcurrentConsumeAndRestart(t *testing.T) {
 	if err != nil || !replay.Replayed {
 		t.Fatalf("replay=%+v err=%v", replay, err)
 	}
-	if _, err := restarted.RevokeBrokerOrder(account, FinanceOrderRevocationV1{RequestID: approval.RequestID}, now.Add(3*time.Minute)); err == nil {
+	if _, err := restarted.RevokeBrokerOrder(account, challenge.Unsigned.CallbackStateHash, FinanceOrderRevocationV1{RequestID: approval.RequestID}, now.Add(3*time.Minute)); err == nil {
 		t.Fatal("consumed approval revoked")
 	}
 }
@@ -475,7 +526,7 @@ func TestBrokerRevokeAndConsumeUseSameCAS(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		candidate, _ := OpenStore(path)
-		if _, err := candidate.RevokeBrokerOrder(account, revocation, now.Add(2*time.Minute)); err == nil {
+		if _, err := candidate.RevokeBrokerOrder(account, challenge.Unsigned.CallbackStateHash, revocation, now.Add(2*time.Minute)); err == nil {
 			outcomes <- "revoked"
 		} else {
 			outcomes <- "revoke-failed"
