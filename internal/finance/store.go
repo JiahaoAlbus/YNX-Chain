@@ -119,6 +119,25 @@ func (s *Store) Update(account, action, objectID string, fn func(*AccountState) 
 	return s.saveLocked()
 }
 
+// updateAllState is reserved for invariants spanning more than one Finance
+// account. The repository CAS still makes the check and mutation atomic across
+// processes and PostgreSQL-backed instances.
+func (s *Store) updateAllState(account, action, objectID string, fn func(*persistedState) error) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.refreshLocked(); err != nil {
+		return err
+	}
+	if err := fn(&s.state); err != nil {
+		return err
+	}
+	s.state.Audit = append(s.state.Audit, AuditEvent{ID: newID("audit"), Account: account, Action: action, ObjectID: objectID, CreatedAt: time.Now().UTC()})
+	if len(s.state.Audit) > 2000 {
+		s.state.Audit = append([]AuditEvent(nil), s.state.Audit[len(s.state.Audit)-2000:]...)
+	}
+	return s.saveLocked()
+}
+
 func (s *Store) UseNonce(nonce string, expiresAt time.Time) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -498,12 +517,20 @@ func validatePersistedState(state persistedState) error {
 	if state.Accounts == nil || state.Nonces == nil {
 		return errors.New("incomplete finance state")
 	}
+	brokerAccountOwners := map[string]string{}
 	for account, accountState := range state.Accounts {
 		if account == "" {
 			return errors.New("finance state contains an empty account identity")
 		}
 		if err := validateBrokeragePersistence(account, accountState.Brokerage); err != nil {
 			return err
+		}
+		for _, mapping := range accountState.Brokerage.Mappings {
+			key := mapping.Provider + ":" + mapping.TradingEnvironment + ":" + mapping.BrokerAccountID
+			if owner, exists := brokerAccountOwners[key]; exists && owner != account {
+				return errors.New("finance state reuses one Broker account across multiple users")
+			}
+			brokerAccountOwners[key] = account
 		}
 	}
 	for nonce, expiresAt := range state.Nonces {

@@ -79,25 +79,44 @@ func (s *Store) PutBrokerSandboxMappingWithWalletKey(account, brokerAccountID, w
 	}
 	now = now.UTC()
 	var result BrokerAccountMapping
-	err = s.updateBrokerCAS(account, "broker.mapping.put", brokerAccountID, func(state *AccountState) error {
-		normalizeBrokerageState(&state.Brokerage)
-		key := brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)
-		createdAt := now
-		existing, exists := state.Brokerage.Mappings[key]
-		if exists {
-			if existing.Account != account || existing.SubjectID != subjectID {
-				return errors.New("Broker Sandbox mapping subject cannot be reassigned")
+	for attempt := 0; attempt < brokerCASAttempts; attempt++ {
+		err = s.updateAllState(account, "broker.mapping.put", brokerAccountID, func(all *persistedState) error {
+			key := brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)
+			for otherAccount, otherState := range all.Accounts {
+				if otherAccount == account {
+					continue
+				}
+				if mapping := otherState.Brokerage.Mappings[key]; mapping.BrokerAccountID == brokerAccountID {
+					return errors.New("Broker Sandbox account is already linked to another Finance user")
+				}
 			}
-			createdAt = existing.CreatedAt
+			state := all.Accounts[account]
+			normalizeBrokerageState(&state.Brokerage)
+			createdAt := now
+			existing, exists := state.Brokerage.Mappings[key]
+			if exists {
+				if existing.Account != account || existing.SubjectID != subjectID {
+					return errors.New("Broker Sandbox mapping subject cannot be reassigned")
+				}
+				createdAt = existing.CreatedAt
+			}
+			linkedWalletPublicKey := walletPublicKey
+			if linkedWalletPublicKey == "" && exists {
+				linkedWalletPublicKey = existing.WalletPublicKey
+			}
+			result = BrokerAccountMapping{SubjectID: subjectID, Account: account, Provider: FinanceOrderProvider, TradingEnvironment: FinanceOrderTradingEnv, BrokerAccountID: brokerAccountID, WalletPublicKey: linkedWalletPublicKey, Status: "active", CreatedAt: createdAt, UpdatedAt: now}
+			state.Brokerage.Mappings[key] = result
+			all.Accounts[account] = state
+			return nil
+		})
+		if err == nil {
+			return result, nil
 		}
-		if walletPublicKey == "" && exists {
-			walletPublicKey = existing.WalletPublicKey
+		if !errors.Is(err, errFinanceStateConflict) {
+			return BrokerAccountMapping{}, err
 		}
-		result = BrokerAccountMapping{SubjectID: subjectID, Account: account, Provider: FinanceOrderProvider, TradingEnvironment: FinanceOrderTradingEnv, BrokerAccountID: brokerAccountID, WalletPublicKey: walletPublicKey, Status: "active", CreatedAt: createdAt, UpdatedAt: now}
-		state.Brokerage.Mappings[key] = result
-		return nil
-	})
-	return result, err
+	}
+	return BrokerAccountMapping{}, fmt.Errorf("Broker state CAS retry limit reached: %w", err)
 }
 
 func (s *Store) BrokerWalletPublicKey(account string) (string, error) {

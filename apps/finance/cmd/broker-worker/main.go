@@ -213,9 +213,9 @@ func run(args []string, get func(string) string, stdin io.Reader, stdout io.Writ
 			_ = output(stdout, map[string]any{"ok": false, "error": "ORDER_SUBMISSION_DISABLED", "providerWriteAttempted": false})
 			return 2
 		}
-		receipt, verifyErr := runControlledVerification(ctx, dispatcher, store, invocation.account, invocation.orderID, now)
+		receipt, providerWriteAttempted, verifyErr := runControlledVerification(ctx, dispatcher, store, invocation.account, invocation.orderID, now)
 		if verifyErr != nil {
-			_ = output(stdout, map[string]any{"ok": false, "error": brokerage.ErrorCode(verifyErr), "providerWriteAttempted": true, "retryAllowed": false})
+			_ = output(stdout, map[string]any{"ok": false, "error": brokerage.ErrorCode(verifyErr), "providerWriteAttempted": providerWriteAttempted, "retryAllowed": false})
 			return 1
 		}
 		return output(stdout, receipt)
@@ -224,9 +224,9 @@ func run(args []string, get func(string) string, stdin io.Reader, stdout io.Writ
 	return 2
 }
 
-func runControlledVerification(ctx context.Context, dispatcher finance.BrokerDispatcher, store *finance.Store, account, orderID string, now time.Time) (map[string]any, error) {
+func runControlledVerification(ctx context.Context, dispatcher finance.BrokerDispatcher, store *finance.Store, account, orderID string, now time.Time) (map[string]any, bool, error) {
 	if err := store.RecoverInterruptedBrokerDispatches(account, now); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	before := store.BrokerWorkspace(account, now)
 	approved := false
@@ -236,31 +236,31 @@ func runControlledVerification(ctx context.Context, dispatcher finance.BrokerDis
 		}
 	}
 	if !approved {
-		return nil, &brokerage.Error{Code: "WALLET_APPROVAL_REQUIRED"}
+		return nil, false, &brokerage.Error{Code: "WALLET_APPROVAL_REQUIRED"}
 	}
 	if _, err := store.RequestBrokerExecution(account, orderID, "verify-approved:"+orderID, now); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	dispatched, err := dispatcher.Dispatch(ctx, account, orderID)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 	queried, err := dispatcher.Reconcile(ctx, account)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 	canceled, err := dispatcher.Cancel(ctx, account, orderID)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 	finalSnapshot, err := dispatcher.Reconcile(ctx, account)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 	audit := controlledVerificationAudit(account, orderID, dispatched, canceled, queried, finalSnapshot, now)
 	raw, _ := json.Marshal(audit)
 	digest := sha256.Sum256(raw)
-	return map[string]any{"ok": true, "command": "verify-approved", "providerWriteAttempted": true, "audit": audit, "auditReceiptSha256": fmt.Sprintf("%x", digest[:]), "officialSandboxVerified": false, "productionApproved": false}, nil
+	return map[string]any{"ok": true, "command": "verify-approved", "providerWriteAttempted": true, "audit": audit, "auditReceiptSha256": fmt.Sprintf("%x", digest[:]), "officialSandboxVerified": false, "productionApproved": false}, true, nil
 }
 
 func controlledVerificationAudit(account, orderID string, dispatched, canceled finance.BrokerOrderRecord, queried, finalSnapshot brokerage.AccountSnapshot, now time.Time) map[string]any {
