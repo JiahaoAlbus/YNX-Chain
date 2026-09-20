@@ -112,13 +112,14 @@ function buildOnce(sourceRoot, destination) {
     };
     writeFileSync(join(packageRoot, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o644 });
     const names = walk(packageRoot);
+    const archiveNames = names.map(name => `${release}/${name}`);
     const tar = `${destination}.tar`;
     mkdirSync(dirname(destination), { recursive: true });
     const gtar = ['/opt/homebrew/bin/gtar', '/usr/local/bin/gtar', 'gtar'].find(candidate => {
       try { execFileSync(candidate, ['--version'], { stdio: 'ignore' }); return true; } catch { return false; }
     });
     if (!gtar) throw new Error('GNU tar required');
-    execFileSync(gtar, ['--sort=name', `--mtime=${buildTime}`, '--owner=0', '--group=0', '--numeric-owner', '--format=gnu', '-cf', tar, '-C', packageRoot, ...names]);
+    execFileSync(gtar, ['--sort=name', `--mtime=${buildTime}`, '--owner=0', '--group=0', '--numeric-owner', '--format=gnu', '-cf', tar, '-C', work, ...archiveNames]);
     execFileSync('gzip', ['-n', '-9', tar]);
   } finally {
     rmSync(work, { recursive: true, force: true });

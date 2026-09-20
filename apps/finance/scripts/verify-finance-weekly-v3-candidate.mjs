@@ -40,7 +40,8 @@ for (const name of listed) {
 }
 execFileSync('tar', ['-xzf', archive, '-C', extractRoot]);
 
-const manifest = JSON.parse(readFileSync(join(extractRoot, 'manifest.json'), 'utf8'));
+const candidateRoot = join(extractRoot, sidecar.release);
+const manifest = JSON.parse(readFileSync(join(candidateRoot, 'manifest.json'), 'utf8'));
 assert.equal(manifest.schemaVersion, 'ynx.finance.weekly-v3-candidate.v1');
 assert.equal(manifest.sourceCommit, sourceCommit);
 assert.equal(manifest.sourceTree, sidecar.sourceTree);
@@ -51,21 +52,21 @@ assert.deepEqual(manifest.safetyDefaults, {
   sandboxWritesEnabled: false, credentialsBundled: false,
   providerReadAttempted: false, providerWriteAttempted: false,
 });
-const expectedMembers = [...manifest.files.map(file => file.path), 'manifest.json'].sort();
+const expectedMembers = [...manifest.files.map(file => `${manifest.release}/${file.path}`), `${manifest.release}/manifest.json`].sort();
 assert.deepEqual([...listed].sort(), expectedMembers);
 for (const file of manifest.files) {
-  const body = readFileSync(join(extractRoot, file.path));
+  const body = readFileSync(join(candidateRoot, file.path));
   assert.equal(body.length, file.bytes, file.path);
   assert.equal(sha256(body), file.sha256, file.path);
 }
 
 const binaries = ['ynx-finance', 'ynx-finance-admin', 'ynx-finance-broker-tools', 'ynx-finance-broker-worker'];
 for (const name of binaries) {
-  const header = readFileSync(join(extractRoot, name)).subarray(0, 20);
+  const header = readFileSync(join(candidateRoot, name)).subarray(0, 20);
   assert.equal(header.subarray(0, 5).toString('hex'), '7f454c4602', name);
   assert.equal(header.subarray(18, 20).toString('hex'), '3e00', name);
 }
-const example = readFileSync(join(extractRoot, '.env.example'), 'utf8');
+const example = readFileSync(join(candidateRoot, '.env.example'), 'utf8');
 for (const exact of [
   'YNX_CHAIN_ENV=testnet', 'FINANCE_TRADING_ENV=sandbox', 'FINANCE_TRADING_ENABLED=false',
   'FINANCE_LIVE_ENABLED=false', 'FINANCE_SANDBOX_WRITES_ENABLED=false',
@@ -95,7 +96,7 @@ const env = [
   'FINANCE_LIVE_ENABLED=false',
   'FINANCE_SANDBOX_WRITES_ENABLED=false',
 ];
-const dockerBase = ['--platform', 'linux/amd64', '-v', `${extractRoot}:/candidate:ro`, '-v', `${stateRoot}:/state:rw`];
+const dockerBase = ['--platform', 'linux/amd64', '-v', `${candidateRoot}:/candidate:ro`, '-v', `${stateRoot}:/state:rw`];
 const envArgs = env.flatMap(item => ['-e', item]);
 let endpoints = [];
 let diagnostic;
@@ -198,7 +199,7 @@ const evidence = {
     release: manifest.release,
     archive: archiveReceipt,
     repeatBuildByteExact: sidecar.repeatedBuildByteExact,
-    manifestSha256: sha256(readFileSync(join(extractRoot, 'manifest.json'))),
+    manifestSha256: sha256(readFileSync(join(candidateRoot, 'manifest.json'))),
     files: manifest.files,
   },
   safetyDefaults: manifest.safetyDefaults,
