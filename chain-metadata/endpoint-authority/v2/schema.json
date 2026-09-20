@@ -1,0 +1,764 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "authorityId",
+    "manifestVersion",
+    "sequence",
+    "previousPayloadSha256",
+    "environment",
+    "chainId",
+    "cosmosChainId",
+    "asset",
+    "issuedAt",
+    "expiresAt",
+    "issuerSource",
+    "consumers",
+    "endpoints",
+    "products",
+    "policy",
+    "integrity"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "2.0.0"
+    },
+    "authorityId": {
+      "const": "ynx-testnet-endpoints"
+    },
+    "manifestVersion": {
+      "type": "string",
+      "pattern": "^2\\.0\\.0\\.[1-9]\\d*$"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "previousPayloadSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "environment": {
+      "const": "testnet"
+    },
+    "chainId": {
+      "const": 6423
+    },
+    "cosmosChainId": {
+      "const": "ynx_6423-1"
+    },
+    "asset": {
+      "const": "YNXT"
+    },
+    "issuedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"
+    },
+    "issuerSource": {
+      "$ref": "#/$defs/source"
+    },
+    "consumers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "consumerId",
+          "origin",
+          "minimumClientVersion"
+        ],
+        "properties": {
+          "consumerId": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,79}$"
+          },
+          "origin": {
+            "type": "string",
+            "format": "uri"
+          },
+          "minimumClientVersion": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d{0,7})\\.(0|[1-9]\\d{0,7})\\.(0|[1-9]\\d{0,7})$"
+          }
+        }
+      }
+    },
+    "endpoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rpc",
+        "evmRpc",
+        "faucet",
+        "rest",
+        "walletGateway",
+        "appGateway",
+        "explorer",
+        "indexer",
+        "monitor"
+      ],
+      "properties": {
+        "rpc": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://rpc-testnet.ynxweb4.com"
+                },
+                "status": {
+                  "const": "PENDING"
+                },
+                "evidence": {
+                  "const": null
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://rpc-testnet.ynxweb4.com"
+                },
+                "status": {
+                  "const": "VERIFIED"
+                },
+                "evidence": {
+                  "$ref": "#/$defs/endpointEvidence"
+                }
+              }
+            }
+          ]
+        },
+        "evmRpc": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://rpc-testnet.ynxweb4.com"
+                },
+                "status": {
+                  "const": "PENDING"
+                },
+                "evidence": {
+                  "const": null
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://rpc-testnet.ynxweb4.com"
+                },
+                "status": {
+                  "const": "VERIFIED"
+                },
+                "evidence": {
+                  "$ref": "#/$defs/endpointEvidence"
+                }
+              }
+            }
+          ]
+        },
+        "faucet": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://faucet-testnet.ynxweb4.com"
+                },
+                "status": {
+                  "const": "PENDING"
+                },
+                "evidence": {
+                  "const": null
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://faucet-testnet.ynxweb4.com"
+                },
+                "status": {
+                  "const": "VERIFIED"
+                },
+                "evidence": {
+                  "$ref": "#/$defs/endpointEvidence"
+                }
+              }
+            }
+          ]
+        },
+        "rest": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://rest.ynxweb4.com"
+                },
+                "status": {
+                  "const": "PENDING"
+                },
+                "evidence": {
+                  "const": null
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://rest.ynxweb4.com"
+                },
+                "status": {
+                  "const": "VERIFIED"
+                },
+                "evidence": {
+                  "$ref": "#/$defs/endpointEvidence"
+                }
+              }
+            }
+          ]
+        },
+        "walletGateway": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://wallet-auth.ynxweb4.com"
+                },
+                "status": {
+                  "const": "PENDING"
+                },
+                "evidence": {
+                  "const": null
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://wallet-auth.ynxweb4.com"
+                },
+                "status": {
+                  "const": "VERIFIED"
+                },
+                "evidence": {
+                  "$ref": "#/$defs/endpointEvidence"
+                }
+              }
+            }
+          ]
+        },
+        "appGateway": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://gateway.ynxweb4.com"
+                },
+                "status": {
+                  "const": "PENDING"
+                },
+                "evidence": {
+                  "const": null
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://gateway.ynxweb4.com"
+                },
+                "status": {
+                  "const": "VERIFIED"
+                },
+                "evidence": {
+                  "$ref": "#/$defs/endpointEvidence"
+                }
+              }
+            }
+          ]
+        },
+        "explorer": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://explorer.ynxweb4.com"
+                },
+                "status": {
+                  "const": "PENDING"
+                },
+                "evidence": {
+                  "const": null
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://explorer.ynxweb4.com"
+                },
+                "status": {
+                  "const": "VERIFIED"
+                },
+                "evidence": {
+                  "$ref": "#/$defs/endpointEvidence"
+                }
+              }
+            }
+          ]
+        },
+        "indexer": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://indexer.ynxweb4.com"
+                },
+                "status": {
+                  "const": "PENDING"
+                },
+                "evidence": {
+                  "const": null
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://indexer.ynxweb4.com"
+                },
+                "status": {
+                  "const": "VERIFIED"
+                },
+                "evidence": {
+                  "$ref": "#/$defs/endpointEvidence"
+                }
+              }
+            }
+          ]
+        },
+        "monitor": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://monitor.ynxweb4.com"
+                },
+                "status": {
+                  "const": "PENDING"
+                },
+                "evidence": {
+                  "const": null
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "status",
+                "evidence"
+              ],
+              "properties": {
+                "url": {
+                  "const": "https://monitor.ynxweb4.com"
+                },
+                "status": {
+                  "const": "VERIFIED"
+                },
+                "evidence": {
+                  "$ref": "#/$defs/endpointEvidence"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "products": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finance"
+      ],
+      "properties": {
+        "finance": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "evidence",
+                "officialSandboxVerified",
+                "providerVerified",
+                "productionApproved"
+              ],
+              "properties": {
+                "status": {
+                  "const": "PENDING"
+                },
+                "evidence": {
+                  "const": null
+                },
+                "officialSandboxVerified": {
+                  "const": false
+                },
+                "providerVerified": {
+                  "const": false
+                },
+                "productionApproved": {
+                  "const": false
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "evidence",
+                "officialSandboxVerified",
+                "providerVerified",
+                "productionApproved"
+              ],
+              "properties": {
+                "status": {
+                  "const": "VERIFIED"
+                },
+                "evidence": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "origin",
+                    "source",
+                    "observedAt",
+                    "receiptSha256",
+                    "registrySha256",
+                    "callbackContractSha256",
+                    "currentPublicSourceAccepted",
+                    "productSessionAccepted"
+                  ],
+                  "properties": {
+                    "origin": {
+                      "const": "https://finance.ynxweb4.com"
+                    },
+                    "source": {
+                      "$ref": "#/$defs/source"
+                    },
+                    "observedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"
+                    },
+                    "receiptSha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "registrySha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "callbackContractSha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "currentPublicSourceAccepted": {
+                      "const": true
+                    },
+                    "productSessionAccepted": {
+                      "const": true
+                    }
+                  }
+                },
+                "officialSandboxVerified": {
+                  "const": false
+                },
+                "providerVerified": {
+                  "const": false
+                },
+                "productionApproved": {
+                  "const": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mainnetEnabled",
+        "automaticWriteRetry",
+        "automaticFailover",
+        "clientRenewal"
+      ],
+      "properties": {
+        "mainnetEnabled": {
+          "const": false
+        },
+        "automaticWriteRetry": {
+          "const": false
+        },
+        "automaticFailover": {
+          "const": false
+        },
+        "clientRenewal": {
+          "const": false
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "payloadSha256",
+        "algorithm",
+        "keyId",
+        "signature"
+      ],
+      "properties": {
+        "payloadSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "algorithm": {
+          "const": "Ed25519"
+        },
+        "keyId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9.-]{0,79}$"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{86}$"
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ynxweb4.com/schemas/endpoint-authority-v2.json",
+  "description": "Shape only. The SDK semantic and cryptographic verifier, independent root, exact consumer, trusted clock and durable checkpoint are mandatory. This schema does not activate a release.",
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commit",
+        "tree"
+      ],
+      "properties": {
+        "repository": {
+          "const": "https://github.com/JiahaoAlbus/YNX-Chain"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "tree": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "httpStatus",
+        "bodySha256",
+        "observedAt",
+        "tlsVerified",
+        "directDNS"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "httpStatus": {
+          "const": 200
+        },
+        "bodySha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"
+        },
+        "tlsVerified": {
+          "const": true
+        },
+        "directDNS": {
+          "const": true
+        }
+      }
+    },
+    "endpointEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "health",
+        "version",
+        "source",
+        "chainId",
+        "receiptSha256"
+      ],
+      "properties": {
+        "health": {
+          "$ref": "#/$defs/observation"
+        },
+        "version": {
+          "$ref": "#/$defs/observation"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "chainId": {
+          "const": 6423
+        },
+        "receiptSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}

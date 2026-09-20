@@ -1,0 +1,160 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "authorityId",
+    "rootVersion",
+    "chainId",
+    "anchor",
+    "keys",
+    "consumers",
+    "maxValiditySeconds"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "ynx-endpoint-authority-trust/v2"
+    },
+    "authorityId": {
+      "const": "ynx-testnet-endpoints"
+    },
+    "rootVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "chainId": {
+      "const": 6423
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootVersion",
+        "sequence",
+        "payloadSha256"
+      ],
+      "properties": {
+        "rootVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "payloadSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "keys": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "keyId",
+          "algorithm",
+          "publicKeyBase64url",
+          "notBefore",
+          "notAfter",
+          "revoked"
+        ],
+        "properties": {
+          "keyId": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,79}$"
+          },
+          "algorithm": {
+            "const": "Ed25519"
+          },
+          "publicKeyBase64url": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "notBefore": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"
+          },
+          "notAfter": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\d\\.\\d{3}Z$"
+          },
+          "revoked": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "consumers": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "consumerId",
+          "origin",
+          "minimumClientVersion",
+          "endpoints",
+          "products"
+        ],
+        "properties": {
+          "consumerId": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9.-]{0,79}$"
+          },
+          "origin": {
+            "type": "string",
+            "format": "uri"
+          },
+          "minimumClientVersion": {
+            "type": "string",
+            "pattern": "^(0|[1-9]\\d{0,7})\\.(0|[1-9]\\d{0,7})\\.(0|[1-9]\\d{0,7})$"
+          },
+          "endpoints": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "rpc",
+                "evmRpc",
+                "faucet",
+                "rest",
+                "walletGateway",
+                "appGateway",
+                "explorer",
+                "indexer",
+                "monitor"
+              ]
+            }
+          },
+          "products": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "finance"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "maxValiditySeconds": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 604800
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ynxweb4.com/schemas/endpoint-authority-trust-v2.json",
+  "description": "Public application/operator release policy. Never derive this root or anchor from the signed manifest itself. Empty keys is a valid disabled configuration."
+}

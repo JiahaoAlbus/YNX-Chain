@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-node --test sdk/js/index.test.mjs sdk/js/wallet.test.mjs sdk/js/testnet-endpoints.test.mjs sdk/js/endpoint-authority.test.mjs
+node --test sdk/js/index.test.mjs sdk/js/wallet.test.mjs sdk/js/testnet-endpoints.test.mjs sdk/js/endpoint-authority.test.mjs sdk/js/endpoint-authority-v2.test.mjs
 if [[ -n "${PYTHON_BIN:-}" ]]; then
   python_bin="$PYTHON_BIN"
 elif [[ -x /usr/bin/python3 ]]; then

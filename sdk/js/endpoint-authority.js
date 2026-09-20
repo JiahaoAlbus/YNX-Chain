@@ -1,3 +1,4 @@
+import {verifySignedEndpointAuthority,isSignedEndpointAuthority,selectSignedAuthorityEndpoint} from './endpoint-authority-v2.js';
 // Shared bundled authority validation. No network, storage, signing or clock renewal.
 export const ENDPOINT_AUTHORITY_CANONICALIZATION = 'UTF-8 stable JSON recursively sorted keys, integrity omitted';
 export const ENDPOINT_AUTHORITY_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -72,7 +73,15 @@ const BufferlessByteLength = value => {
   let bytes=0;for(const character of value){const c=character.codePointAt(0);bytes+=c<0x80?1:c<0x800?2:c<0x10000?3:4;}return bytes;
 };
 
-export async function validateEndpointAuthority(manifest,{trustedPin,nowMs=Date.now(),source='bundled',digestSHA256}={}){
+export async function validateEndpointAuthority(manifest,options={}){
+  const {source='bundled'}=options;
+  if(Object.getOwnPropertyDescriptor(manifest??{},'schemaVersion')?.value==='2.0.0'){
+    requireValue(['bundled','remote'].includes(source),'AUTHORITY_V2_SOURCE');
+    // A v2 caller must supply its independently trusted time. Never silently
+    // replace a missing clock with the device's rollback-prone wall clock.
+    return verifySignedEndpointAuthority(manifest,options);
+  }
+  const {trustedPin,nowMs=Date.now(),digestSHA256}=options;
   requireValue(source==='bundled','AUTHORITY_REMOTE_FORBIDDEN');
   // Pin MUST come from separately reviewed app/release policy, never from manifest.
   requireValue(trustedPin&&sha(trustedPin.payloadSha256)&&trustedPin.manifestVersion===manifest?.manifestVersion,'AUTHORITY_UNTRUSTED_PIN');
@@ -92,7 +101,9 @@ export async function validateEndpointAuthority(manifest,{trustedPin,nowMs=Date.
 }
 export function deepFreeze(value){if(value&&typeof value==='object'){for(const child of Object.values(value))deepFreeze(child);Object.freeze(value);}return value;}
 
-export function selectAuthorityEndpoint(verifiedAuthority,key,{nowMs=Date.now()}={}){
+export function selectAuthorityEndpoint(verifiedAuthority,key,options={}){
+  if(isSignedEndpointAuthority(verifiedAuthority))return selectSignedAuthorityEndpoint(verifiedAuthority,key,options);
+  const {nowMs=Date.now()}=options;
   // This selector never activates compatibility metadata or follows fallbacks.
   requireValue(verifiedAuthorities.has(verifiedAuthority),'AUTHORITY_NOT_VALIDATED');
   assertEndpointAuthorityStructure(verifiedAuthority,{nowMs});
