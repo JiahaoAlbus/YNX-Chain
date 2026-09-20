@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
@@ -31,72 +32,14 @@ func (s *Service) RequestStatus(ctx context.Context, id string) (Response, int, 
 	}
 	result := Response{RequestID: id, Address: record.Address, Amount: record.Amount, NativeSymbol: "YNXT", TransactionHash: hash, Status: "pending", RetrySameRequest: true, TruthfulStatus: s.truthfulStatus()}
 	if record.Transaction == nil {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(s.cfg.RPCURL, "/")+"/v1/native-transactions/"+hash, nil)
-		if err != nil {
-			return result, 503, err
+		recovered := s.recoverReceipt(ctx, record, hash)
+		if recovered.err != nil {
+			return result, 503, recovered.err
 		}
-		resp, err := s.httpClient.Do(req)
-		if err != nil {
-			return result, 503, errors.New("receipt lookup unavailable; retain original request")
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode == 404 {
+		if recovered.pending {
 			return result, 202, nil
 		}
-		if resp.StatusCode != 200 {
-			return result, 503, errors.New("receipt lookup unavailable")
-		}
-		var envelope struct {
-			Source            string                     `json:"source"`
-			ConsensusFinality bool                       `json:"consensusFinality"`
-			SchemaVersion     string                     `json:"schemaVersion"`
-			Status            string                     `json:"status"`
-			IntegerEncoding   string                     `json:"integerEncoding"`
-			Transaction       map[string]json.RawMessage `json:"transaction"`
-			Durability        struct {
-				Version           string `json:"version"`
-				Scope             string `json:"scope"`
-				CheckpointHeight  string `json:"checkpointHeight"`
-				CheckpointHash    string `json:"checkpointHash"`
-				SnapshotIntegrity string `json:"snapshotIntegrity"`
-			} `json:"durability"`
-		}
-		if decodeBoundedJSON(resp.Body, &envelope) != nil || envelope.SchemaVersion != "ynx-native-finance-transaction-v1" || envelope.IntegerEncoding != "decimal-string" || envelope.Durability.Version != "ynx-local-durability-v1" || envelope.Durability.Scope != "local-snapshot" {
-			return result, 503, errors.New("invalid durable receipt model")
-		}
-		if envelope.Status != "durable" && envelope.Status != "pending_durable" {
-			return result, 202, nil
-		}
-		if len(envelope.Durability.SnapshotIntegrity) != 64 {
-			return result, 503, errors.New("durable checkpoint missing")
-		}
-		// Only the Faucet receipt fields are needed here. Exact decimal strings are
-		// parsed as integers, never converted through floating point.
-		var tx chain.Transaction
-		fields := envelope.Transaction
-		for _, key := range []string{"amount", "fee", "nonce", "blockNumber"} {
-			if raw, ok := fields[key]; ok {
-				var text string
-				if json.Unmarshal(raw, &text) != nil {
-					return result, 503, errors.New("invalid receipt integer")
-				}
-				if _, err := strconv.ParseUint(text, 10, 64); err != nil {
-					return result, 503, errors.New("invalid receipt integer")
-				}
-				fields[key] = json.RawMessage(text)
-			}
-		}
-		delete(fields, "logs")
-		delete(fields, "lotFlows")
-		raw, _ := json.Marshal(fields)
-		if json.Unmarshal(raw, &tx) != nil || !validAuthoritativeReceipt(tx, record, hash) {
-			return result, 503, errors.New("receipt does not match admitted intent")
-		}
-		if err := s.admissions.complete(record, tx); err != nil {
-			s.recordAdmissionStoreError("complete")
-			return result, 503, errors.New("receipt persistence unavailable")
-		}
-		record.Transaction = &tx
+		record.Transaction = &recovered.tx
 	}
 	if !validAuthoritativeReceipt(*record.Transaction, record, hash) {
 		return result, 503, errors.New("stored receipt does not match admitted intent")
@@ -106,6 +49,107 @@ func (s *Service) RequestStatus(ctx context.Context, id string) (Response, int, 
 	result.Status = "accepted"
 	result.RetrySameRequest = false
 	return result, 200, nil
+}
+
+func (s *Service) recoverReceipt(ctx context.Context, record admissionRecord, hash string) statusResult {
+	s.flightMu.Lock()
+	if active := s.fundingFlights[record.RequestID]; active != nil {
+		s.flightMu.Unlock()
+		return statusResult{pending: true}
+	}
+	f := s.statusFlights[record.RequestID]
+	if f == nil {
+		f = &statusFlight{done: make(chan struct{})}
+		s.statusFlights[record.RequestID] = f
+		s.flightStats.statusStarted++
+		s.flightStats.statusActive++
+		go func() {
+			opCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			f.result = s.fetchAndPersistReceipt(opCtx, record, hash)
+			s.flightMu.Lock()
+			delete(s.statusFlights, record.RequestID)
+			s.flightStats.statusActive--
+			close(f.done)
+			s.flightMu.Unlock()
+		}()
+	} else {
+		s.flightStats.statusJoined++
+	}
+	s.flightMu.Unlock()
+	select {
+	case <-ctx.Done():
+		return statusResult{err: errors.New("receipt lookup continues; check status with the same request ID")}
+	case <-f.done:
+		return f.result
+	}
+}
+
+func (s *Service) fetchAndPersistReceipt(ctx context.Context, record admissionRecord, hash string) statusResult {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(s.cfg.RPCURL, "/")+"/v1/native-transactions/"+hash, nil)
+	if err != nil {
+		return statusResult{err: err}
+	}
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return statusResult{err: errors.New("receipt lookup unavailable; retain original request")}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == 404 {
+		return statusResult{pending: true}
+	}
+	if resp.StatusCode != 200 {
+		return statusResult{err: errors.New("receipt lookup unavailable")}
+	}
+	var envelope struct {
+		Source            string                     `json:"source"`
+		ConsensusFinality bool                       `json:"consensusFinality"`
+		SchemaVersion     string                     `json:"schemaVersion"`
+		Status            string                     `json:"status"`
+		IntegerEncoding   string                     `json:"integerEncoding"`
+		Transaction       map[string]json.RawMessage `json:"transaction"`
+		Durability        struct {
+			Version           string `json:"version"`
+			Scope             string `json:"scope"`
+			CheckpointHeight  string `json:"checkpointHeight"`
+			CheckpointHash    string `json:"checkpointHash"`
+			SnapshotIntegrity string `json:"snapshotIntegrity"`
+		} `json:"durability"`
+	}
+	if decodeBoundedJSON(resp.Body, &envelope) != nil || envelope.SchemaVersion != "ynx-native-finance-transaction-v1" || envelope.IntegerEncoding != "decimal-string" || envelope.Durability.Version != "ynx-local-durability-v1" || envelope.Durability.Scope != "local-snapshot" {
+		return statusResult{err: errors.New("invalid durable receipt model")}
+	}
+	if envelope.Status != "durable" && envelope.Status != "pending_durable" {
+		return statusResult{pending: true}
+	}
+	if len(envelope.Durability.SnapshotIntegrity) != 64 {
+		return statusResult{err: errors.New("durable checkpoint missing")}
+	}
+	var tx chain.Transaction
+	fields := envelope.Transaction
+	for _, key := range []string{"amount", "fee", "nonce", "blockNumber"} {
+		if raw, ok := fields[key]; ok {
+			var text string
+			if json.Unmarshal(raw, &text) != nil {
+				return statusResult{err: errors.New("invalid receipt integer")}
+			}
+			if _, err := strconv.ParseUint(text, 10, 64); err != nil {
+				return statusResult{err: errors.New("invalid receipt integer")}
+			}
+			fields[key] = json.RawMessage(text)
+		}
+	}
+	delete(fields, "logs")
+	delete(fields, "lotFlows")
+	raw, _ := json.Marshal(fields)
+	if json.Unmarshal(raw, &tx) != nil || !validAuthoritativeReceipt(tx, record, hash) {
+		return statusResult{err: errors.New("receipt does not match admitted intent")}
+	}
+	if err := s.admissions.complete(record, tx); err != nil {
+		s.recordAdmissionStoreError("complete")
+		return statusResult{err: errors.New("receipt persistence unavailable")}
+	}
+	return statusResult{tx: tx}
 }
 func (s *Server) handleRequestStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")

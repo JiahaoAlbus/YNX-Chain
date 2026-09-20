@@ -88,7 +88,7 @@ func (s *Service) requestAuthoritative(ctx context.Context, req Request, remote 
 	// Probe the explicit read-only capability before charging the local quota.
 	// Writes use a NEW route: an old server that ignores unknown JSON fields
 	// must never mint again after a deployment rollback.
-	if err := s.requireFaucetCapability(ctx); err != nil {
+	if err := s.requireFreshFaucetCapability(ctx); err != nil {
 		result.Status = "upstream_capability_unavailable"
 		result.RetrySameRequest = true
 		return result, 503, err
@@ -131,41 +131,24 @@ func (s *Service) requestAuthoritative(ctx context.Context, req Request, remote 
 		result.Status = "accepted"
 		return result, 200, nil
 	}
-	transaction, status, err := s.sendDurableFaucetRequest(ctx, record, hash)
+	funded, joined := s.fundAdmitted(ctx, record, hash, entry)
+	transaction, status, err := funded.tx, funded.status, funded.err
 	if err != nil {
 		result.Status = "transaction_result_uncertain"
 		result.RetrySameRequest = true
+		if funded.persistenceUncertain {
+			result.Status = "receipt_persistence_uncertain"
+		}
 		if status == 409 {
 			result.Status = "request_id_conflict"
 			result.RetrySameRequest = false
 		}
-		entry.Status = "error"
-		entry.Error = err.Error()
-		entry.TxHash = hash
-		_ = s.appendLog(entry)
-		s.mu.Lock()
-		s.lastError = err.Error()
-		s.mu.Unlock()
 		return result, status, err
 	}
-	if err := s.admissions.complete(record, transaction); err != nil {
-		s.recordAdmissionStoreError("complete")
-		result.Status = "receipt_persistence_uncertain"
-		result.RetrySameRequest = true
-		return result, 503, errors.New("faucet receipt needs confirmation; retain the same request ID")
-	}
-	entry.Status = "sent"
-	entry.TxHash = hash
-	_ = s.appendLog(entry)
-	s.mu.Lock()
-	s.successes++
-	s.lastHash = hash
-	s.lastError = ""
-	s.mu.Unlock()
 	result.Transaction = transaction
 	result.Status = "accepted"
-	result.Replayed = replayed
-	if replayed {
+	result.Replayed = replayed || joined
+	if replayed || joined {
 		return result, 200, nil
 	}
 	return result, http.StatusCreated, nil
@@ -175,14 +158,14 @@ func validAuthoritativeReceipt(tx chain.Transaction, record admissionRecord, has
 	return tx.Hash == hash && tx.Type == "faucet" && tx.From == chain.FaucetAddress && tx.To == record.Address && tx.Amount == record.Amount && tx.Fee == 0
 }
 
-func (s *Service) requireFaucetCapability(ctx context.Context) error {
+func (s *Service) probeFaucetCapability(ctx context.Context, client *http.Client) error {
 	body := []byte(`{"jsonrpc":"2.0","id":1,"method":"ynx_getFaucetModel","params":[]}`)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(s.cfg.RPCURL, "/")+"/evm", bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	resp, err := s.httpClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return errors.New("faucet capability check is unavailable")
 	}
