@@ -1,6 +1,6 @@
 # Reviewer source and reproducible build instructions
 
-This build supports two explicit authority modes. Ordinary development/release builds retain the historical Git checks. A reviewer source archive uses a read-only authority file exported by a normal immutable Git build. Every record is matched to the builder's fixed commit/path mapping and checked using both the original Git blob SHA-1 (including its blob header) and SHA-256. Missing, changed, duplicate, extra or noncanonical records fail. There is no automatic fallback when Git fails.
+The committed read-only authority archive is used by every build. Every record is matched to the builder's fixed commit/path mapping and checked using both the original Git blob SHA-1 (including its blob header) and SHA-256. Missing, changed, duplicate, extra or noncanonical records fail. When a pinned historical commit is available in a checkout, the build also reads that exact commit/path from Git and requires byte equality; a standard checkout that does not retain the historical object continues from the fully verified archive.
 
 Mozilla requires readable bundled/minified source and reproducible output; source, locked dependencies and build instructions must accompany the version. [Mozilla source submission](https://extensionworkshop.com/documentation/publish/source-code-submission/)
 

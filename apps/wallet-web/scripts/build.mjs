@@ -71,10 +71,9 @@ const authorityArchiveSha256=createHash("sha256").update(authorityArchiveBytes).
 const expectedAuthorityArchiveSha256="4a7eed2da6b1626cce94713a0d4420c56ebedef0d71ee39b7e2cd9bc6762ead7";
 if(authorityArchiveSha256!==expectedAuthorityArchiveSha256)throw new Error("Immutable Wallet build authority archive changed");
 const authorityReader=createAuthorityReader({archiveBytes:authorityArchiveBytes});
-// A deployment source archive has no .git directory, so its committed authority
-// archive is the only allowed input. A local checkout has both and must prove
-// every archived byte against Git; the presence of .git never degrades to the
-// archive if Git verification fails.
+// The committed archive is the build authority in every environment. A checkout
+// additionally proves each archived byte against a pinned Git commit when that
+// commit is present; a normal clone is not required to retain historical objects.
 const gitCheckout=existsSync(join(repository,".git"));
 const gitAuthorityReader=gitCheckout?createAuthorityReader({repository}):null;
 const walletAddressAuthorityBytes=await readFile(join(root,"vendor","wallet-address-authority.js"));
@@ -122,8 +121,8 @@ const routerInteropContract={path:"release/integration/wallet-standard-connectio
 function immutableObject(commit,contract){
   const archived=authorityReader.read(commit,contract);
   if(gitAuthorityReader){
-    const repositoryBytes=gitAuthorityReader.read(commit,contract);
-    if(!archived.equals(repositoryBytes))throw new Error(`Archived authority differs from Git: ${commit}:${contract.path}`);
+    const repositoryBytes=gitAuthorityReader.readIfCommitAvailable(commit,contract);
+    if(repositoryBytes!==null&&!archived.equals(repositoryBytes))throw new Error(`Archived authority differs from Git: ${commit}:${contract.path}`);
   }
   return archived;
 }

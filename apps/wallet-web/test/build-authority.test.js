@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
-import {mkdtemp,writeFile,rm} from "node:fs/promises";
+import {execFileSync} from "node:child_process";
+import {mkdtemp,writeFile,rm,mkdir} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {createAuthorityReader} from "../scripts/build-authority.mjs";
@@ -39,4 +40,19 @@ test("archive corruption, duplicates and unused authorities never silently pass"
   ]){await writeFile(file,JSON.stringify(value));assert.throws(()=>createAuthorityReader({archiveFile:file}));}
   await writeFile(file,JSON.stringify({schemaVersion:1,records:[entry,{...entry,commit:"b".repeat(40)}]}));
   const extra=createAuthorityReader({archiveFile:file});extra.read(entry.commit,contract);assert.throws(()=>extra.finish(),/unused/);
+});
+test("Git cross-verification skips an unavailable pinned commit but rejects reachable tampering",async t=>{
+  const dir=await mkdtemp(join(tmpdir(),"ynx-build-authority-git-"));t.after(()=>rm(dir,{recursive:true,force:true}));
+  execFileSync("git",["init","--quiet"],{cwd:dir});
+  const missing=createAuthorityReader({repository:dir});
+  assert.equal(missing.readIfCommitAvailable(entry.commit,contract),null);
+  assert.deepEqual(missing.finish(),{schemaVersion:1,records:[]});
+
+  await mkdir(join(dir,"release"));
+  await writeFile(join(dir,entry.path),"tampered authority\n");
+  execFileSync("git",["add",entry.path],{cwd:dir});
+  execFileSync("git",["-c","user.name=YNX Test","-c","user.email=test@ynx.invalid","commit","--quiet","-m","fixture"],{cwd:dir});
+  const reachableCommit=execFileSync("git",["rev-parse","HEAD"],{cwd:dir,encoding:"utf8"}).trim();
+  const reachable=createAuthorityReader({repository:dir});
+  assert.throws(()=>reachable.readIfCommitAvailable(reachableCommit,contract),/Immutable authority mismatch/);
 });

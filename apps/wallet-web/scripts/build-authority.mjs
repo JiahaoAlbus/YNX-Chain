@@ -15,8 +15,8 @@ function verify(bytes, expected) {
   return bytes;
 }
 
-// An explicit reviewer mode. No automatic fallback when Git is absent or fails.
 // The archive's self-declared hashes are checked again against each constant in build.mjs.
+// Git-backed callers may additionally verify a pinned commit when that object is available.
 export function createAuthorityReader({repository, archiveFile, archiveBytes} = {}) {
   let archived;
   const consumed = new Map();
@@ -37,22 +37,35 @@ export function createAuthorityReader({repository, archiveFile, archiveBytes} = 
       archived.set(keyFor(item), {...item, bytes});
     }
   }
+  const read = (commit, contract) => {
+    const expected = {commit, ...contract}; descriptor(expected);
+    let bytes;
+    if (archived) {
+      const item = archived.get(keyFor(expected));
+      if (!item || item.blob !== expected.blob || item.sha256 !== expected.sha256) throw new Error(`Missing or changed build authority: ${keyFor(expected)}`);
+      bytes = item.bytes;
+    } else {
+      const actual = execFileSync("git", ["rev-parse", keyFor(expected)], {cwd:repository, encoding:"utf8"}).trim();
+      if (actual !== expected.blob) throw new Error(`Immutable authority mismatch: ${keyFor(expected)}`);
+      bytes = execFileSync("git", ["show", keyFor(expected)], {cwd:repository});
+    }
+    verify(bytes, expected);
+    consumed.set(keyFor(expected), {...expected, contentBase64:bytes.toString("base64")});
+    return Buffer.from(bytes);
+  };
   return {
-    read(commit, contract) {
-      const expected = {commit, ...contract}; descriptor(expected);
-      let bytes;
-      if (archived) {
-        const item = archived.get(keyFor(expected));
-        if (!item || item.blob !== expected.blob || item.sha256 !== expected.sha256) throw new Error(`Missing or changed build authority: ${keyFor(expected)}`);
-        bytes = item.bytes;
-      } else {
-        const actual = execFileSync("git", ["rev-parse", keyFor(expected)], {cwd:repository, encoding:"utf8"}).trim();
-        if (actual !== expected.blob) throw new Error(`Immutable authority mismatch: ${keyFor(expected)}`);
-        bytes = execFileSync("git", ["show", keyFor(expected)], {cwd:repository});
+    read,
+    readIfCommitAvailable(commit, contract) {
+      if (archived || repository === undefined) throw new Error("Optional Git authority verification requires a repository reader");
+      descriptor({commit, ...contract});
+      try {
+        execFileSync("git", ["cat-file", "-e", commit], {cwd:repository, stdio:"ignore"});
+      } catch (error) {
+        if (error?.status === 1 || error?.status === 128) return null;
+        throw error;
       }
-      verify(bytes, expected);
-      consumed.set(keyFor(expected), {...expected, contentBase64:bytes.toString("base64")});
-      return Buffer.from(bytes);
+      execFileSync("git", ["cat-file", "-e", `${commit}^{commit}`], {cwd:repository, stdio:"ignore"});
+      return read(commit, contract);
     },
     finish() {
       if (archived && consumed.size !== archived.size) throw new Error("Unexpected unused build authority entries");
