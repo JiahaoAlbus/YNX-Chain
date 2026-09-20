@@ -11,6 +11,8 @@ test("Wallet offers its YNX download and has no other-provider login route", asy
   assert.match(source, /id="download" href="\$\{YNX_DOWNLOAD_URL\}"/);
   assert.doesNotMatch(source, /id="download"[^>]*>Android/);
   assert.match(source, /id="android-download" href="\$\{WALLET_DOWNLOAD_MATRIX.android.url\}"/);
+  assert.match(source, /function platformDownloads\(\)/);
+  assert.match(source, /item\.hosted===true&&item\.url/);
   assert.doesNotMatch(source, /metamask|MetaMask/);
   assert.match(source, /companionLifecycle\.begin\(\)/);
   assert.match(source, /mobileWalletPresentation\(availability, mobileBrowser, CORE_WALLET_AUTH_BINDING,companionLifecycle\.publicAuthAvailable\?companionLifecycle\.callback:null\)/);
@@ -51,6 +53,7 @@ test("390px RTL blue-white and large-text preview contracts remain buildable", a
   assert.match(app,/loadedPreferences\.status==="rejected"/);
   assert.match(styles,/@media\(max-width:520px\)/);
   assert.match(styles,/\.platform-grid\{display:grid/);
+  assert.match(styles,/\.platform-grid>div>a\{display:flex/);
   assert.match(accessibility,/font-size: 125%/);
   assert.match(accessibility,/\.wallets a/);
   assert.match(accessibility,/min-height: 44px/);
@@ -69,7 +72,7 @@ test("legacy dark preference retains locale and custody records while the actual
   const render = source.slice(source.indexOf("function render() {"), source.indexOf("\nfunction formError("));
   const document = {documentElement:{dataset:{}}}, app = {innerHTML:""};
   const environment = {document,app,state:{locale:loaded.record.locale,theme:loaded.record.theme,epoch:0,connectState:{chooserOpen:true},form:{},providers:{}},
-    requestedText:"large",isRTL:locale=>locale==="ar",text:key=>key,options:()=>"",escape:value=>String(value??""),unavailablePlatforms:()=>"",statusContent:()=>"",
+    requestedText:"large",isRTL:locale=>locale==="ar",text:key=>key,options:()=>"",escape:value=>String(value??""),platformDownloads:()=>"",statusContent:()=>"",
     replaceMarkup:(target,markup)=>{target.innerHTML=markup},
     YNX_DOWNLOAD_URL:"https://wallet.example",WALLET_DOWNLOAD_MATRIX:{android:{url:"https://wallet.example/qa.apk",bytes:1}},
     bind(){},applyActionGates(){},presentAvailability(){}};

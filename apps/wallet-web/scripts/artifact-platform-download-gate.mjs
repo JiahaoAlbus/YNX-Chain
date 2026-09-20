@@ -1,38 +1,42 @@
 import {execFileSync} from "node:child_process";
-import {createHash} from "node:crypto";
-import {mkdir,mkdtemp,readFile,rm,stat,writeFile} from "node:fs/promises";
-import {tmpdir} from "node:os";
+import {mkdir,readFile,writeFile} from "node:fs/promises";
 import {dirname,join,resolve} from "node:path";
 import {pathToFileURL,fileURLToPath} from "node:url";
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
+const repository=resolve(root,"..","..");
 const evidencePath=join(root,"evidence","runtime","built-platform-download-matrix-20260814.json");
-const variants=["ynx-wallet-web-pwa-0.1.1.zip","ynx-wallet-chrome-edge-0.1.1.zip","ynx-wallet-firefox-0.1.1.zip"];
-const androidUrl="https://www.ynxweb4.com/downloads/wallet/sha256-afd686851ef07fbb07823295d07179b79e1a4a078d1b528bc149bd619c8689e0/ynx-wallet-1.0.3-testnet-preview-3ab8c24c-local-test-signed.apk";
-const unavailableKeys=["windowsX64","windowsArm64","macosX64","macosArm64","linuxX64","linuxArm64","chromeEdgeExtension","firefoxExtension","pwaPackage"];
-const result={schemaVersion:1,sourceCommit:process.env.YNX_WALLET_WEB_SOURCE_COMMIT||"uncommitted-source-tree",generatedAt:new Date().toISOString(),gateClass:"exact built-artifact download metadata and UI-source inspection; not browser installation, platform package publication, or signing proof",artifacts:[],androidHosted:true,windowsX64Hosted:false,windowsArm64Hosted:false,macosX64Hosted:false,macosArm64Hosted:false,linuxX64Hosted:false,linuxArm64Hosted:false,chromeEdgeExtensionHosted:false,firefoxExtensionHosted:false,pwaPackageHosted:false,webArtifactDownloadHosted:false,installedLocal:false,deployedPublic:false,productionSigned:false,storeReleased:false,passed:false};
+execFileSync(process.execPath,["scripts/build.mjs"],{cwd:root,stdio:"inherit"});
 
-for(const name of variants){
-  const archive=join(root,"artifacts",name),temp=await mkdtemp(join(tmpdir(),"ynx-platform-downloads-"));
-  try{
-    execFileSync("unzip",["-q",archive,"-d",temp]);
-    const provider=await import(`${pathToFileURL(join(temp,"provider.js")).href}?variant=${encodeURIComponent(name)}-${Date.now()}`);
-    const app=await readFile(join(temp,"app.js"),"utf8"),styles=await readFile(join(temp,"styles.css"),"utf8"),bytes=await readFile(archive),info=await stat(archive);
-    const matrix=provider.WALLET_DOWNLOAD_MATRIX;
-    const checks={
-      androidExact:matrix.android?.hosted===true&&matrix.android.url===androidUrl&&matrix.android.bytes===78233954&&matrix.android.sha256==="afd686851ef07fbb07823295d07179b79e1a4a078d1b528bc149bd619c8689e0"&&matrix.android.contentType==="application/vnd.android.package-archive"&&matrix.android.signingClass==="local-test-signed"&&matrix.android.productionSigned===false&&provider.YNX_DOWNLOAD_URL==="https://www.ynxweb4.com/dapp/wallet/open-download",
-      unavailableNullRoutes:unavailableKeys.every(key=>matrix[key]?.hosted===false&&matrix[key]?.url===null),
-      pwaStatusNotPackage:matrix.pwaPackage?.publicStatusUrl==="https://www.ynxweb4.com/dapp/wallet"&&matrix.pwaPackage?.hosted===false,
-      inaccessibleLinksPrevented:/disabled aria-disabled="true" data-permanent-disabled="true"/u.test(app),
-      androidMetadataVisible:/aria-describedby="download-meta"/u.test(app)&&/productionSigned=false/u.test(app),
-      disabledStatePreserved:/button\.disabled = button\.dataset\.permanentDisabled === "true"/u.test(app),
-      fallbackVisibilityBound:/#platforms/u.test(app)&&/showYNXDownload/u.test(app),
-      narrowLayout:/@media\(max-width:520px\)[\s\S]*\.wallets,\.actions,\.platform-grid\{grid-template-columns:minmax\(0,1fr\)\}/u.test(styles),
-    };
-    result.artifacts.push({name,bytes:info.size,sha256:createHash("sha256").update(bytes).digest("hex"),matrix,checks,passed:Object.values(checks).every(Boolean)});
-  }finally{await rm(temp,{recursive:true,force:true});}
+const [provider,app,styles,nativeManifest,webManifest]=await Promise.all([
+  import(`${pathToFileURL(join(root,"dist","pwa","provider.js")).href}?built=${Date.now()}`),
+  readFile(join(root,"dist","pwa","app.js"),"utf8"),
+  readFile(join(root,"dist","pwa","styles.css"),"utf8"),
+  readFile(join(repository,"apps","wallet","artifact-manifest.json"),"utf8").then(JSON.parse),
+  readFile(join(root,"artifact-manifest.json"),"utf8").then(JSON.parse),
+]);
+const matrix=provider.WALLET_DOWNLOAD_MATRIX;
+const failures=[];
+const require=(condition,message)=>{if(!condition)failures.push(message)};
+const android=nativeManifest.artifacts.find(item=>item.name==="android-release-apk");
+require(android&&matrix.android?.url===android.url&&matrix.android?.bytes===android.bytes&&matrix.android?.sha256===android.sha256,"Android install entry is not the current immutable release");
+for(const [key,name] of Object.entries({pwaPackage:"ynx-wallet-web-pwa-0.1.1.zip",chromeEdgeExtension:"ynx-wallet-chrome-edge-0.1.1.zip",firefoxExtension:"ynx-wallet-firefox-0.1.1.zip"})){
+  const artifact=webManifest.artifacts.find(item=>item.name===name),entry=matrix[key];
+  require(artifact&&entry?.hosted===true&&entry?.bytes===artifact.bytes&&entry?.sha256===artifact.sha256&&entry?.url?.endsWith(`/${name}`),`${key} does not match the published Wallet Web artifact`);
 }
-result.passed=result.artifacts.every(item=>item.passed);
+for(const [key,entry] of Object.entries(matrix)){
+  require(entry?.hosted===true,`${key} is incorrectly shown as unavailable`);
+  require(typeof entry?.url==="string"&&entry.url.startsWith("https://"),`${key} has no HTTPS download`);
+  require(Number.isSafeInteger(entry?.bytes)&&entry.bytes>0,`${key} has no exact byte size`);
+  require(/^[0-9a-f]{64}$/u.test(entry?.sha256||""),`${key} has no exact SHA-256`);
+  require(entry?.productionSigned===false,`${key} has an unsupported production-signing claim`);
+}
+require(/function platformDownloads\(\)/u.test(app)&&/item\.hosted===true&&item\.url/u.test(app),"built UI does not render every hosted package");
+require(/productionSigned=\$\{String\(item\.productionSigned===true\)\}/u.test(app),"built UI hides package signing status");
+require(/button\.disabled = button\.dataset\.permanentDisabled === "true"/u.test(app),"built UI lost permanent-disabled handling");
+require(/@media\(max-width:520px\)[\s\S]*\.wallets,\.actions,\.platform-grid\{grid-template-columns:minmax\(0,1fr\)\}/u.test(styles),"built UI lost narrow layout");
+
+const result={schemaVersion:2,sourceCommit:process.env.YNX_WALLET_WEB_SOURCE_COMMIT||"uncommitted-source-tree",generatedAt:new Date().toISOString(),gateClass:"current built PWA download matrix bound to committed Android and published Wallet Web manifests",matrix,failures,passed:failures.length===0,installedLocal:false,deployedPublic:false,productionSigned:false,storeReleased:false};
 await mkdir(dirname(evidencePath),{recursive:true});
 await writeFile(evidencePath,`${JSON.stringify(result,null,2)}\n`);
 console.log(JSON.stringify(result,null,2));
