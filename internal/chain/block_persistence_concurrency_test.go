@@ -9,10 +9,21 @@ import (
 
 func TestProduceBlockKeepsConcurrentReadsAvailableDuringCheckpoint(t *testing.T) {
 	devnet := NewDevnet(DefaultNetworkConfig("testnet"))
+	old, err := devnet.Faucet("old-durable-recipient", 100)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for range 100_000 {
 		devnet.ProduceBlock()
 	}
 	devnet.dataDir = t.TempDir()
+	if err := devnet.persistSnapshot(); err != nil {
+		t.Fatal(err)
+	}
+	_, priorProof, _ := devnet.TransactionWithDurability(old.Hash)
+	if priorProof.Status != "durable" {
+		t.Fatalf("fixture proof: %+v", priorProof)
+	}
 
 	done := make(chan struct{})
 	go func() {
@@ -35,6 +46,11 @@ func TestProduceBlockKeepsConcurrentReadsAvailableDuringCheckpoint(t *testing.T)
 			t.Fatal("checkpoint did not begin in time")
 		}
 		time.Sleep(time.Millisecond)
+	}
+
+	_, duringProof, _ := devnet.TransactionWithDurability(old.Hash)
+	if duringProof.Status != "durable" {
+		t.Errorf("unchanged old transaction lost proof during checkpoint: %+v", duringProof)
 	}
 
 	started := time.Now()

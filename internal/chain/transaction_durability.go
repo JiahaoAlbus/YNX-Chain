@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"maps"
 )
 
 // TransactionDurabilityVersion is independent of the fee and execution model.
@@ -28,6 +29,7 @@ type transactionCheckpoint struct {
 
 type checkpointTransaction struct {
 	fingerprint [32]byte
+	blockNum    uint64
 	index       int
 	mined       bool
 }
@@ -48,7 +50,7 @@ func checkpointForSnapshot(snapshot devnetSnapshot) (*transactionCheckpoint, err
 		if err != nil {
 			return fmt.Errorf("checkpoint transaction fingerprint: %w", err)
 		}
-		cp.transactions[tx.Hash] = checkpointTransaction{fingerprint: fingerprint, index: index, mined: mined}
+		cp.transactions[tx.Hash] = checkpointTransaction{fingerprint: fingerprint, blockNum: tx.BlockNum, index: index, mined: mined}
 		return nil
 	}
 	for _, block := range snapshot.Blocks {
@@ -68,6 +70,46 @@ func checkpointForSnapshot(snapshot devnetSnapshot) (*transactionCheckpoint, err
 		}
 	}
 	return cp, nil
+}
+
+// checkpointRetainedDuringWrite preserves only proof already established by a
+// completed write and still present, unchanged, in the candidate replacement.
+// Either snapshot can remain on disk if writing/renaming/fsync fails. New or
+// changed entries therefore cannot gain proof until the entire write completes.
+// Keep the previous checkpoint identity; the candidate has not been attested.
+// Published checkpoints (including their maps and fee slices) are immutable.
+func checkpointRetainedDuringWrite(previous, candidate *transactionCheckpoint) *transactionCheckpoint {
+	if previous == nil || candidate == nil {
+		return nil
+	}
+	retained := previous
+	feePrefixes := make(map[uint64]int)
+	for hash, old := range previous.transactions {
+		next, exists := candidate.transactions[hash]
+		keep := exists && old == next
+		if keep && old.mined {
+			// A receipt also attests its index and cumulative fees. Compute the
+			// common fee prefix once per block, not once per transaction.
+			prefix, cached := feePrefixes[old.blockNum]
+			if !cached {
+				before, after := previous.blockFees[old.blockNum], candidate.blockFees[old.blockNum]
+				for prefix < len(before) && prefix < len(after) && before[prefix] == after[prefix] {
+					prefix++
+				}
+				feePrefixes[old.blockNum] = prefix
+			}
+			keep = old.index >= 0 && old.index < prefix
+		}
+		if !keep {
+			if retained == previous {
+				copy := *previous
+				copy.transactions = maps.Clone(previous.transactions)
+				retained = &copy
+			}
+			delete(retained.transactions, hash)
+		}
+	}
+	return retained
 }
 
 func checkpointCovers(cp *transactionCheckpoint, tx Transaction) bool {

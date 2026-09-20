@@ -301,3 +301,93 @@ func TestDurabilityQueriesStayReadOnlyOnFrozenFollower(t *testing.T) {
 		}
 	}
 }
+
+func TestCompletedReceiptsStayAvailableAcrossLaterCheckpointFailures(t *testing.T) {
+	for _, phase := range []string{"snapshot", "marker"} {
+		t.Run(phase, func(t *testing.T) {
+			dir := t.TempDir()
+			d, err := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			v := loadRPCVectors(t)[0]
+			if _, err := d.Faucet(v.Sender, 100); err != nil {
+				t.Fatal(err)
+			}
+			d.ProduceBlock()
+			if err := d.SetEthereumNativeTransfers(true); err != nil {
+				t.Fatal(err)
+			}
+			s := newServerWithConfig(d, ServerConfig{})
+			if _, err := s.evmResult("eth_sendRawTransaction", []any{v.Raw}); err != nil {
+				t.Fatal(err)
+			}
+			oldHashes := []string{v.Hash}
+			// Reproduce multiple Faucet recipients sharing one block, alongside
+			// a Wallet transfer. These are local fixtures, never public requests.
+			for _, recipient := range []string{"recipient-a", "recipient-b", "recipient-c"} {
+				tx, err := d.Faucet(recipient, 100)
+				if err != nil {
+					t.Fatal(err)
+				}
+				oldHashes = append(oldHashes, tx.Hash)
+			}
+			d.ProduceBlock()
+			fresh, err := d.Faucet("later-recipient", 100)
+			if err != nil {
+				t.Fatal(err)
+			}
+			before := requireDurability(t, s, v.Hash, "durable")
+			receipts := make(map[string][2]any)
+			for _, hash := range oldHashes {
+				var pair [2]any
+				for i, nativeFees := range []bool{false, true} {
+					pair[i], err = s.transactionReceiptResult([]any{hash}, nativeFees)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				receipts[hash] = pair
+			}
+			path := "devnet-state.json.tmp"
+			if phase == "marker" {
+				path = "devnet-state.integrity-version.tmp"
+			}
+			clear := obstructReceiptCheckpoint(t, filepath.Join(dir, path))
+			defer clear()
+			for range 3 {
+				d.ProduceBlock()
+				if after := requireDurability(t, s, v.Hash, "durable"); !reflect.DeepEqual(before, after) {
+					t.Fatalf("old proof identity changed during incomplete write: before=%v after=%v", before, after)
+				}
+				for _, hash := range oldHashes {
+					for i, nativeFees := range []bool{false, true} {
+						receipt, err := s.transactionReceiptResult([]any{hash}, nativeFees)
+						if err != nil || !reflect.DeepEqual(receipt, receipts[hash][i]) {
+							t.Fatalf("completed receipt changed: hash=%s nativeFees=%v receipt=%v err=%v", hash, nativeFees, receipt, err)
+						}
+					}
+				}
+				for _, nativeFees := range []bool{false, true} {
+					result, err := s.transactionReceiptResult([]any{fresh.Hash}, nativeFees)
+					var rpc *rpcMethodError
+					if result != nil || !errors.As(err, &rpc) || rpc.code != -32002 || rpc.data.(map[string]any)["status"] != "transaction_durability_uncertain" {
+						t.Fatalf("new inclusion not fail-closed: %v %v", result, err)
+					}
+				}
+			}
+			retained, err := s.evmResult("eth_getTransactionReceipt", []any{v.Hash})
+			if err != nil {
+				t.Fatal(err)
+			}
+			clear()
+			d.ProduceBlock()
+			requireDurability(t, s, v.Hash, "durable")
+			recovered, err := s.evmResult("eth_getTransactionReceipt", []any{fresh.Hash})
+			if err != nil || recovered == nil {
+				t.Fatalf("new receipt not recovered: %v %v", recovered, err)
+			}
+			saveDurabilityFixture(t, "stable-checkpoint-"+phase+".json", map[string]any{"before": receipts[v.Hash][1], "retained": retained, "newlyDurable": recovered})
+		})
+	}
+}
