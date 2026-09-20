@@ -140,7 +140,10 @@ func (s *Store) CompleteBrokerDispatch(account, orderID string, providerOrder *b
 					outbox.Status, order.State, action = "provider_rejected", "provider_rejected", "provider.submission_rejected"
 				}
 			} else {
-				outbox.Status, order.State, action = "provider_rejected", "provider_rejected", "provider.submission_rejected"
+				// An unclassified adapter failure cannot prove that the provider did
+				// not accept the order. Preserve the unknown state and require
+				// reconciliation instead of permitting a duplicate submission.
+				outbox.Status, order.State, action = "submitted_unknown", "submitted_unknown", "provider.submission_unknown"
 			}
 		}
 		outbox.UpdatedAt, order.UpdatedAt = now.UTC(), now.UTC()

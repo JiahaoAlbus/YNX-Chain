@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "finance-provider-error-classification-fence-source-evidence",
+  "recordedAt": "2026-09-20T10:24:36Z",
+  "scope": ["internal/finance/**", "apps/finance/**"],
+  "baseline": {
+    "commit": "91d582c5fa7a75d16b2e08b841a9821f988cb0a0",
+    "tree": "56df48c87628cc6fe1bb4e0e7176374f65891a30"
+  },
+  "implementation": {
+    "dispatchPath": "internal/finance/broker_dispatch.go",
+    "dispatchSha256": "e8ebb1b9b6a9884aff0b11b2f27899715b43f9ddd07be5b4d3efb792e8089eb9",
+    "testPath": "internal/finance/broker_dispatch_test.go",
+    "testSha256": "05343c09f410f28c8efba1ef0e4a6bfde4e0417a88395135266bf08a99b7e0e4",
+    "explicitProviderReject": "provider_rejected_only_with_bounded_request_id",
+    "unknownAdapterError": "submitted_unknown",
+    "unknownOutcomeRetry": "blocked_pending_reconciliation"
+  },
+  "tests": {
+    "focusedErrorClassification": "PASS",
+    "goFinanceAndCommands": "PASS",
+    "race": "PASS",
+    "financeWeb": "PASS_49_OF_49",
+    "securityScan": "PASS_222_TEXT_FILES",
+    "diffCheck": "PASS"
+  },
+  "truth": {
+    "sourceComplete": true,
+    "publicRelease": false,
+    "installedRelease": false,
+    "officialSandboxVerified": false,
+    "providerAccountVerified": false,
+    "orderSubmitted": false,
+    "transaction": false
+  }
+}
