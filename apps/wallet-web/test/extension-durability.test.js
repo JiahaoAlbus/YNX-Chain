@@ -6,6 +6,7 @@ import {DURABILITY_MODEL,parseDurabilityModel,parseTransactionDurability,verifyD
 import {forwardExtensionRpc} from "../src/extension-rpc.js";
 import {publicBridgeError} from "../src/extension-bridge.js";
 const fixture=JSON.parse(await readFile(new URL("./fixtures/core-0468-ethereum-block-marker.json",import.meta.url))),receipt=fixture.recoveredReceipt,hash=receipt.transactionHash;
+const currentCore=JSON.parse(await readFile(new URL("./fixtures/core-current-native-durable-receipts.json",import.meta.url)));
 // Public Ethereum test key from the frozen Core fixture; no production custody.
 const signed=Transaction.from(await new Wallet("0x"+"46".repeat(32)).signTransaction({chainId:6423,nonce:0,to:receipt.to,value:2n*10n**18n,gasLimit:25000n,gasPrice:40000000000000n,type:0,data:"0x"}));
 const reject=fn=>assert.throws(fn,{code:"DURABILITY_UNCONFIRMED"});
@@ -13,6 +14,27 @@ test("literal Core 0468 receipt binds an independently signed exact Ethereum int
   assert.equal(signed.hash,hash);const verified=verifyDurableNativeReceipt(receipt,signed,hash,DURABILITY_MODEL);
   assert.equal(verified.ynxDurability.status,"durable");assert.equal(verified.ynxNativeTransaction.nonce,"0x1");assert.equal(Object.hasOwn(verified,"logs"),false);
   assert.deepEqual(verifyDurableNativeReceipt({...receipt,unrelatedOuterMetadata:true},signed,hash,DURABILITY_MODEL),verified);
+});
+test("fresh Core snapshot and marker receipts retain strict extended identity compatibility",()=>{
+  assert.equal(currentCore.source.coreCommit,"4ab17a4dd5222b22b1cd38731a31fff258032bfb");
+  assert.deepEqual(currentCore.cases.map(({phase,stage})=>`${phase}:${stage}`),["snapshot:before","snapshot:retained","marker:before","marker:retained"]);
+  for(const {receipt:fresh} of currentCore.cases){
+    assert.deepEqual(Object.keys(fresh.ynxNativeTransaction).sort(),["amountYNXT","feeYNXT","from","identityProjection","nonce","to","type"]);
+    const verified=verifyDurableNativeReceipt(fresh,signed,hash,DURABILITY_MODEL);
+    assert.deepEqual(verified.ynxNativeTransaction,{type:"transfer",amountYNXT:"2",feeYNXT:"1",nonce:"0x1"});
+  }
+});
+test("extended native identity is all-or-nothing, exact and display-only",()=>{
+  const fresh=currentCore.cases[0].receipt,native=fresh.ynxNativeTransaction,projection=native.identityProjection;
+  for(const key of["from","to","identityProjection"]){const bad=structuredClone(fresh);delete bad.ynxNativeTransaction[key];reject(()=>verifyDurableNativeReceipt(bad,signed,hash,DURABILITY_MODEL))}
+  reject(()=>verifyDurableNativeReceipt({...fresh,ynxNativeTransaction:{...native,unknown:true}},signed,hash,DURABILITY_MODEL));
+  for(const key of Object.keys(projection)){const bad=structuredClone(fresh);delete bad.ynxNativeTransaction.identityProjection[key];reject(()=>verifyDurableNativeReceipt(bad,signed,hash,DURABILITY_MODEL))}
+  reject(()=>verifyDurableNativeReceipt({...fresh,ynxNativeTransaction:{...native,identityProjection:{...projection,unknown:true}}},signed,hash,DURABILITY_MODEL));
+  for(const patch of[
+    {version:"ynx-native-identity-projection-v2"},{fromSystemIdentity:true},{toSystemIdentity:true},
+    {systemAddressDomain:"YNX_OTHER"},{systemAddressScheme:"other"},{systemAddressesAreDisplayOnly:false}
+  ])reject(()=>verifyDurableNativeReceipt({...fresh,ynxNativeTransaction:{...native,identityProjection:{...projection,...patch}}},signed,hash,DURABILITY_MODEL));
+  for(const patch of[{from:fresh.to},{to:fresh.from},{from:"0x1234"},{to:"0x1234"}])reject(()=>verifyDurableNativeReceipt({...fresh,ynxNativeTransaction:{...native,...patch}},signed,hash,DURABILITY_MODEL));
 });
 test("capability is exact eight fields and every proof/native field is mandatory",()=>{
   assert.equal(Object.keys(DURABILITY_MODEL).length,8);assert.equal(Object.keys(receipt.ynxDurability).length,9);assert.equal(Object.keys(receipt.ynxNativeTransaction).length,4);
