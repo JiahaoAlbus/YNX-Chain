@@ -580,7 +580,7 @@ func migrateLegacyBrokerLocalExecutionBlocks(state *persistedState) {
 	for account, accountState := range state.Accounts {
 		for orderID, order := range accountState.Brokerage.Orders {
 			outbox, ok := accountState.Brokerage.Outbox[orderID]
-			if !ok || order.ApprovalState != "consumed" || order.State != "provider_rejected" || outbox.Status != "provider_rejected" || !brokerLocalExecutionBlock(outbox.LastErrorCode) || outbox.ExecutionRequestKey == "" || !brokerOrderOutboxCorrelationConsistent(order, outbox) || order.ProviderOrderID != "" || outbox.ProviderOrderID != "" || order.ProviderRawStatus != "" || outbox.ProviderRawStatus != "" || order.ProviderHTTPRequestID != "" || outbox.ProviderHTTPRequestID != "" {
+			if !ok || order.ApprovalState != "consumed" || order.State != "provider_rejected" || outbox.Status != "provider_rejected" || !brokerLocalExecutionBlock(outbox.LastErrorCode) || outbox.ExecutionRequestKey == "" || outbox.ExecutionRequestedAt.IsZero() || !brokerOrderOutboxCorrelationConsistent(order, outbox) || order.ProviderOrderID != "" || outbox.ProviderOrderID != "" || order.ProviderRawStatus != "" || outbox.ProviderRawStatus != "" || order.ProviderHTTPRequestID != "" || outbox.ProviderHTTPRequestID != "" {
 				continue
 			}
 			order.State = "execution_blocked"

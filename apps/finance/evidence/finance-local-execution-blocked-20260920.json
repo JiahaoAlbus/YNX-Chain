@@ -25,6 +25,7 @@
     "providerCorrelationRequiredAbsent": true,
     "canonicalProviderRejectedPreserved": true,
     "readinessCountSeparated": true,
+    "executionRequestTimestampRequired": true,
     "restartPersistenceCovered": true,
     "redispatchAfterRestartRejected": true,
     "legacyV2ExactMigrationCovered": true,

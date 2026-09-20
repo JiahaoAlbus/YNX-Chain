@@ -272,6 +272,7 @@ func TestBrokerActivationReadinessValidatesLocalExecutionBlockedState(t *testing
 	}{
 		{name: "provider_rejection_code", mutate: func(_ *BrokerOrderRecord, outbox *BrokerOrderOutbox) { outbox.LastErrorCode = "PROVIDER_REJECTED" }},
 		{name: "missing_execution_key", mutate: func(_ *BrokerOrderRecord, outbox *BrokerOrderOutbox) { outbox.ExecutionRequestKey = "" }},
+		{name: "missing_execution_requested_at", mutate: func(_ *BrokerOrderRecord, outbox *BrokerOrderOutbox) { outbox.ExecutionRequestedAt = time.Time{} }},
 		{name: "provider_http_correlation", mutate: func(order *BrokerOrderRecord, outbox *BrokerOrderOutbox) {
 			order.ProviderHTTPRequestID, outbox.ProviderHTTPRequestID = "provider-http", "provider-http"
 		}},
@@ -314,6 +315,22 @@ func TestPersistedStateMigratesOnlyLegacyLocalExecutionBlocks(t *testing.T) {
 		t.Fatal("legacy local execution block was not migrated")
 	}
 
+	outbox.ExecutionRequestedAt = time.Time{}
+	state.Accounts[account] = AccountState{Brokerage: BrokerageAccountState{Orders: map[string]BrokerOrderRecord{order.Order.OrderID: order}, Outbox: map[string]BrokerOrderOutbox{order.Order.OrderID: outbox}}}
+	raw, _, err = encodeFinanceState(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	migrated, _, err = decodeFinanceState(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	accountState = migrated.Accounts[account]
+	if accountState.Brokerage.Orders[order.Order.OrderID].State != "provider_rejected" || accountState.Brokerage.Outbox[order.Order.OrderID].Status != "provider_rejected" {
+		t.Fatal("malformed legacy local block without execution time was migrated")
+	}
+
+	outbox.ExecutionRequestedAt = time.Date(2026, 9, 20, 4, 0, 0, 0, time.UTC)
 	outbox.LastErrorCode = "PROVIDER_REJECTED"
 	state.Accounts[account] = AccountState{Brokerage: BrokerageAccountState{Orders: map[string]BrokerOrderRecord{order.Order.OrderID: order}, Outbox: map[string]BrokerOrderOutbox{order.Order.OrderID: outbox}}}
 	raw, _, err = encodeFinanceState(state)

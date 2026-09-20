@@ -14,7 +14,7 @@ Pull request: `https://github.com/JiahaoAlbus/YNX-Chain/pull/148`
 
 ## Closed gap
 
-The controlled worker no longer records approval expiry or a changed owner-to-provider account mapping as `provider_rejected`. Both are pre-provider local terminal conditions and now persist as `execution_blocked` with the exact local error code, an existing execution request key, and no provider order, raw status or provider HTTP request correlation. No provider POST occurs.
+The controlled worker no longer records approval expiry or a changed owner-to-provider account mapping as `provider_rejected`. Both are pre-provider local terminal conditions and now persist as `execution_blocked` with the exact local error code, an existing execution request key, a non-zero execution-request timestamp, and no provider order, raw status or provider HTTP request correlation. No provider POST occurs.
 
 Readiness exposes a separate `executionBlocked` count and treats contradictory blocked pairs as inconsistent. Exact legacy v2 records previously written as `provider_rejected` with one of the two local codes, a correlated execution request and no provider evidence migrate in memory to `execution_blocked`. Canonical `PROVIDER_REJECTED`, ambiguous submissions and provider-correlated records are not rewritten. Provider-read preflight failures remain bounded retryable `execution_requested` work.
 

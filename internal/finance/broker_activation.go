@@ -104,7 +104,7 @@ func InspectBrokerActivationReadiness(ctx context.Context, statePath, databaseUR
 }
 
 func brokerLocalExecutionBlockedStateConsistent(order BrokerOrderRecord, outbox BrokerOrderOutbox) bool {
-	return order.ApprovalState == "consumed" && order.State == "execution_blocked" && outbox.Status == "execution_blocked" && brokerLocalExecutionBlock(outbox.LastErrorCode) && outbox.ExecutionRequestKey != "" && order.ProviderOrderID == "" && outbox.ProviderOrderID == "" && order.ProviderRawStatus == "" && outbox.ProviderRawStatus == "" && order.ProviderHTTPRequestID == "" && outbox.ProviderHTTPRequestID == ""
+	return order.ApprovalState == "consumed" && order.State == "execution_blocked" && outbox.Status == "execution_blocked" && brokerLocalExecutionBlock(outbox.LastErrorCode) && outbox.ExecutionRequestKey != "" && !outbox.ExecutionRequestedAt.IsZero() && order.ProviderOrderID == "" && outbox.ProviderOrderID == "" && order.ProviderRawStatus == "" && outbox.ProviderRawStatus == "" && order.ProviderHTTPRequestID == "" && outbox.ProviderHTTPRequestID == ""
 }
 
 func brokerOrderOutboxCorrelationConsistent(order BrokerOrderRecord, outbox BrokerOrderOutbox) bool {
