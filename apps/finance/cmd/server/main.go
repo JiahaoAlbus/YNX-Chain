@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
@@ -73,7 +78,71 @@ func main() {
 	}
 	httpServer := &http.Server{Addr: envDefault("YNX_FINANCE_LISTEN", "127.0.0.1:6436"), Handler: server.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("YNX Finance listening on %s", httpServer.Addr)
-	log.Fatal(httpServer.ListenAndServe())
+	signalContext, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+	timeout, err := shutdownTimeout(os.Getenv("YNX_FINANCE_SHUTDOWN_TIMEOUT_SECONDS"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := serveUntilShutdown(signalContext, httpServer, server.BeginDrain, timeout); err != nil {
+		log.Fatal(err)
+	}
+}
+
+type httpLifecycle interface {
+	ListenAndServe() error
+	Shutdown(context.Context) error
+	Close() error
+}
+
+func serveUntilShutdown(ctx context.Context, server httpLifecycle, beginDrain func() finance.DrainSnapshot, timeout time.Duration) error {
+	if timeout <= 0 {
+		return errors.New("Finance shutdown timeout must be positive")
+	}
+	serveResult := make(chan error, 1)
+	go func() { serveResult <- server.ListenAndServe() }()
+	select {
+	case err := <-serveResult:
+		if err == nil || errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
+	case <-ctx.Done():
+		snapshot := beginDrain()
+		log.Printf("YNX Finance drain started activeRequests=%d", snapshot.ActiveRequests)
+	}
+	shutdownContext, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	if err := server.Shutdown(shutdownContext); err != nil {
+		_ = server.Close()
+		select {
+		case <-serveResult:
+		case <-time.After(time.Second):
+		}
+		return errors.New("Finance graceful shutdown timed out: " + err.Error())
+	}
+	select {
+	case err := <-serveResult:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
+	case <-time.After(time.Second):
+		_ = server.Close()
+		return errors.New("Finance listener did not stop after graceful shutdown")
+	}
+}
+
+func shutdownTimeout(raw string) (time.Duration, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 30 * time.Second, nil
+	}
+	seconds, err := strconv.Atoi(raw)
+	if err != nil || seconds < 1 || seconds > 300 {
+		return 0, errors.New("YNX_FINANCE_SHUTDOWN_TIMEOUT_SECONDS must be an integer from 1 to 300")
+	}
+	return time.Duration(seconds) * time.Second, nil
 }
 
 func required(key string) string {
