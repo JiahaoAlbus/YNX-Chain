@@ -4,7 +4,9 @@ import {
   encodeFinanceOrderApprovalWalletURL,
   parseFinanceOrderApprovalReturnURL,
 } from '@ynx-chain/wallet-auth-finance-order';
+import {bundledEndpointAuthority,validateEndpointAuthority} from '@ynx-chain/sdk';
 import registry from './vendor/product-session-registry-a7dad7ec.json';
+import authorityPin from '../mobile/contract/endpoint-authority-pin.json';
 
 const PENDING_KEY='ynx.finance.order-approval.v1.pending';
 
@@ -29,14 +31,21 @@ function authorityDate(value){
   if(!Number.isFinite(parsed.getTime())||parsed.toISOString()!==value)throw new Error('FINANCE_ORDER_AUTHORITY_TIME_INVALID');
   return parsed;
 }
-function begin(unsigned,serverTime){
+async function assertAuthority(nowMs=Date.now()){
+  const authority=await validateEndpointAuthority(bundledEndpointAuthority,{trustedPin:authorityPin,nowMs,source:'bundled'});
+  if(authority.endpointStates.walletGateway.status!=='VERIFIED'||authority.endpointStates.products.finance.status!=='VERIFIED')throw new Error(`PRIVATE_SERVICE_DEGRADED: Wallet Gateway=${authority.endpointStates.walletGateway.status}; Finance Product Session=${authority.endpointStates.products.finance.status}. Order approval and submission remain unavailable.`);
+  return authority;
+}
+async function begin(unsigned,serverTime){
+  await assertAuthority();
   const at=authorityDate(serverTime);
   const request=createFinanceOrderApprovalRequest(unsigned,at);
   const url=encodeFinanceOrderApprovalWalletURL(request,at);
   save({approvedProof:null,request,version:'1'});
   return Object.freeze({request,url});
 }
-function parseReturn(url,serverTime){
+async function parseReturn(url,serverTime){
+  await assertAuthority();
   const pending=load();
   if(!pending)throw new Error('FINANCE_ORDER_PENDING_NOT_FOUND');
   const request=pendingRequest(pending);
@@ -45,4 +54,4 @@ function parseReturn(url,serverTime){
   return canonicalJSON(result);
 }
 
-window.YNXFinanceOrderWallet=Object.freeze({begin,parseReturn,pending:load,clear:()=>save(null)});
+window.YNXFinanceOrderWallet=Object.freeze({assertAuthority,begin,parseReturn,pending:load,clear:()=>save(null)});

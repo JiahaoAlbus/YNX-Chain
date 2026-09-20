@@ -9,6 +9,7 @@
     "verify:migration-evidence": "node verify-product-wallet-migration-evidence.mjs"
   },
   "dependencies": {
+    "@ynx-chain/sdk": "file:../../../sdk/js",
     "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0-product-migration-evidence-p0.tgz",
     "@ynx-chain/wallet-auth-finance-order": "file:vendor/ynx-chain-wallet-auth-1.1.0.tgz"
   },
