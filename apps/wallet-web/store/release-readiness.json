@@ -3,7 +3,7 @@
   "product": "YNX Wallet browser extension",
   "reviewDate": "2026-09-20",
   "baseWebCommit": "6bbf12d87a7274d73b7f2157157954d061b8efd0",
-  "candidateCommit": null,
+  "candidateCommit": "413ad7eed30d1192a3d142d37073bae02d9edea3",
   "state": "technical-release-kit-prepared-external-publisher-inputs-pending",
   "submitted": false,
   "storeReleased": false,
@@ -13,7 +13,7 @@
   "privacyPolicyPublished": false,
   "technicalMaterialsReady": true,
   "sourceArchiveToolingReady": true,
-  "sourceArchiveReady": false,
+  "sourceArchiveReady": true,
   "screenshotAssetsReady": true,
   "storeAssetsReady": true,
   "storeSubmissionReady": false,
@@ -54,7 +54,41 @@
     "productionSigned": false,
     "storeReleased": false
   },
-  "candidateReceipt": null,
+  "candidateReceipt": {
+    "sourceCommit": "413ad7eed30d1192a3d142d37073bae02d9edea3",
+    "artifacts": [
+      {
+        "name": "ynx-wallet-web-pwa-0.1.1.zip",
+        "bytes": 312855,
+        "sha256": "6532381fcbb5cba6a337db5f2cea968524348e8f384bcbd0e3e4ec9b5246128e"
+      },
+      {
+        "name": "ynx-wallet-chrome-edge-0.1.1.zip",
+        "bytes": 547478,
+        "sha256": "d5a37ef69c5782db425955d29b4484c35a29b5d348fb061d2b45ed7624a5120b"
+      },
+      {
+        "name": "ynx-wallet-firefox-0.1.1.zip",
+        "bytes": 547576,
+        "sha256": "dd75985ee9eeaaf7fbfb8d68f5b0369fd284515181f964c0d7028c42a86c05d0"
+      }
+    ],
+    "reviewerSource": {
+      "name": "ynx-wallet-reviewer-source-413ad7e.zip",
+      "bytes": 1090469,
+      "sha256": "98028f853986d15063c082d3b74b5e839ec09ea2ea0bb4b78d0ddda11813e038",
+      "sourceFileCount": 239,
+      "authorityRecords": 14,
+      "expectedOutputFiles": 110,
+      "cleanExtractedRebuild": {
+        "gitRepositoryRequired": false,
+        "verifiedOutputFiles": 110,
+        "allBytesMatch": true
+      }
+    },
+    "productionSigned": false,
+    "storeReleased": false
+  },
   "publisherInputsRequired": [
     "legal publisher and authorized Chrome, Edge and AMO account owners",
     "publisher trader status, intended markets and store identity/version inventory",

@@ -22,6 +22,14 @@ export async function verifyReleaseMaterials(){
   for(const key of ["submitted","storeReleased","productionSigned","publisherVerified","privacyPolicyPublished"]){assert.equal(readiness[key],false,`${key} must remain false`)}
   assert.equal(readiness.manifest.version,extensionVersion);
   assert.deepEqual({tool:readiness.firefoxLint.tool,errors:readiness.firefoxLint.errors,warnings:readiness.firefoxLint.warnings,reviewed:readiness.firefoxLint.reviewed},{tool:"web-ext 10.6.0",errors:0,warnings:0,reviewed:true});
+  assert.equal(readiness.sourceArchiveReady,true);
+  assert.match(readiness.candidateCommit,/^[0-9a-f]{40}$/u);
+  assert.equal(readiness.candidateReceipt.sourceCommit,readiness.candidateCommit);
+  assert.equal(readiness.candidateReceipt.artifacts.length,3);
+  for(const artifact of readiness.candidateReceipt.artifacts){assert.ok(Number.isSafeInteger(artifact.bytes)&&artifact.bytes>0);assert.match(artifact.sha256,/^[0-9a-f]{64}$/u);assert.equal(artifact.name.endsWith(".zip"),true)}
+  assert.equal(readiness.candidateReceipt.reviewerSource.cleanExtractedRebuild.gitRepositoryRequired,false);
+  assert.equal(readiness.candidateReceipt.reviewerSource.cleanExtractedRebuild.allBytesMatch,true);
+  assert.equal(readiness.candidateReceipt.productionSigned,false);assert.equal(readiness.candidateReceipt.storeReleased,false);
   assert.equal(assetManifest.manifestVersion,extensionVersion);
   assert.deepEqual(chromiumManifest.permissions,["activeTab","scripting","storage"]);
   assert.deepEqual(chromiumManifest.host_permissions,["https://*/*"]);
