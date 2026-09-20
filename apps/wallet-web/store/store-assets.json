@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "manifestVersion": "0.1.1",
+  "generatedFrom": "public/ynx-logo.png + current built Chromium extension UI",
+  "screenshots": {
+    "browser": "Microsoft Edge controlled by Playwright",
+    "temporaryUnpackedExtension": true,
+    "accountCreated": false,
+    "credentialUsed": false,
+    "transactionSubmitted": false
+  },
+  "assets": [
+    {
+      "path": "assets/icon-128.png",
+      "purpose": "Chrome Web Store package/listing icon",
+      "format": "png",
+      "width": 128,
+      "height": 128,
+      "bytes": 4616,
+      "sha256": "70d2bdd6b1a6b8169eb44dcb6c9dbc8d0a32b45afe18677b09060fab93c6cb6e"
+    },
+    {
+      "path": "assets/logo-300.png",
+      "purpose": "Microsoft Edge Add-ons listing logo",
+      "format": "png",
+      "width": 300,
+      "height": 300,
+      "bytes": 21777,
+      "sha256": "c59d6afde2e5b1079bd8caec2a77dbfcd805e08e2fd9e4dec856d97edf551ec3"
+    },
+    {
+      "path": "assets/promo-small-440x280.png",
+      "purpose": "Chrome Web Store small promotional tile",
+      "format": "png",
+      "width": 440,
+      "height": 280,
+      "bytes": 28814,
+      "sha256": "087f2df4f176a44cdb3fa5daec6e5f699dcd23e4b1ff287a307f8d77ddeab6c9"
+    },
+    {
+      "path": "assets/screenshots/wallet-en-1280x800.png",
+      "purpose": "English extension UI screenshot",
+      "format": "png",
+      "width": 1280,
+      "height": 800,
+      "bytes": 44932,
+      "sha256": "0677b93f5c8852277ae8ed3a0a32b553edb2f43ec88d11025ed4ac7b8adde1a5"
+    },
+    {
+      "path": "assets/screenshots/wallet-zh-CN-1280x800.png",
+      "purpose": "Simplified Chinese extension UI screenshot",
+      "format": "png",
+      "width": 1280,
+      "height": 800,
+      "bytes": 48219,
+      "sha256": "cb28a093c7edc6f002f8f4401d282d3e55681d902e5f629c868952b849a9734b"
+    }
+  ]
+}

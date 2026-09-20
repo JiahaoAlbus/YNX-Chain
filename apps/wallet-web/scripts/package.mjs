@@ -8,6 +8,9 @@ import {requirePackageSourceCommit} from "../src/package-source-identity.js";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repository = resolve(root, "..", "..");
 const dist = join(root, "dist"), artifacts = join(root, "artifacts");
+const manifestOutput = process.env.YNX_WALLET_WEB_ARTIFACT_MANIFEST
+  ? resolve(process.env.YNX_WALLET_WEB_ARTIFACT_MANIFEST)
+  : join(root, "artifact-manifest.json");
 const sourceCommit = requirePackageSourceCommit(process.env.YNX_WALLET_WEB_SOURCE_COMMIT);
 try {
   execFileSync("git", ["cat-file", "-e", `${sourceCommit}^{commit}`], {cwd:repository, stdio:"ignore"});
@@ -33,7 +36,7 @@ async function normalizeMtime(path) {
 const entries = [
   ["ynx-wallet-web-pwa-0.1.1.zip", "pwa", "modern browser with Service Worker and Web Crypto support", "unsigned-web-bundle", ["PWA"]],
   ["ynx-wallet-chrome-edge-0.1.1.zip", "chromium", "Chrome 120 / Edge 120", "unsigned-unpacked-extension", ["Chrome", "Edge"]],
-  ["ynx-wallet-firefox-0.1.1.zip", "firefox", "Firefox 142 (desktop and Android)", "unsigned-unpacked-extension", ["Firefox"]],
+  ["ynx-wallet-firefox-0.1.1.zip", "firefox", "Firefox 142 desktop", "unsigned-unpacked-extension", ["Firefox"]],
 ];
 const records = [];
 for (const [name, folder, minimumOS, signingClass, browsers] of entries) {
@@ -52,6 +55,7 @@ for (const [name, folder, minimumOS, signingClass, browsers] of entries) {
   records.push({name, path:`artifacts/${name}`, bytes:info.size, sha256:createHash("sha256").update(data).digest("hex"), minimumOS, signingClass, browsers, installedLocal:false, productionSigned:false, storeReleased:false});
 }
 const manifest = {schemaVersion:1,productId:"wallet-web",version:"0.1.1-testnet-preview.1",sourceCommit,implementedLocal:true,testedLocal:true,installedLocal:false,integratedCentral:false,deployedStaging:false,deployedPublic:false,downloadHosted:false,productionSigned:false,storeReleased:false,artifacts:records};
-await writeFile(join(root, "artifact-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+await mkdir(dirname(manifestOutput), {recursive: true});
+await writeFile(manifestOutput, `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(JSON.stringify(manifest, null, 2));
-execFileSync(process.execPath, ["scripts/verify-package.mjs"], {cwd:root, stdio:"inherit"});
+execFileSync(process.execPath, ["scripts/verify-package.mjs"], {cwd:root, stdio:"inherit", env:{...process.env, YNX_WALLET_WEB_ARTIFACT_MANIFEST:manifestOutput}});
