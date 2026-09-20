@@ -36,7 +36,7 @@
     "@walletconnect/types": "2.25.0",
     "@walletconnect/utils": "2.25.0",
     "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth",
-    "ethers": "6.15.0",
+    "ethers": "6.17.0",
     "expo": "~57.0.4",
     "expo-application": "7.0.8",
     "expo-clipboard": "57.0.0",
