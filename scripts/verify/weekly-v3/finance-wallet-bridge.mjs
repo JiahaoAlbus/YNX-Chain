@@ -118,11 +118,11 @@ if(input.mode==='api'||input.mode==='draft'||input.mode==='full'||input.mode==='
   context.challengeJSON=JSON.stringify(input.challenge);
   context.authorityDateAdapter=input.authorityDateAdapter===true;
   let request;
-  try{request=vm.runInContext('(()=>{const c=JSON.parse(challengeJSON);return window.YNXFinanceOrderWallet.begin(c.unsigned,authorityDateAdapter?new Date(c.serverTime):c.serverTime)})()',context)}
-  catch(error){process.stdout.write(JSON.stringify({beginError:error.message,code:error.code}));process.exit(0)}
+  try{request=await vm.runInContext('(()=>{const c=JSON.parse(challengeJSON);return window.YNXFinanceOrderWallet.begin(c.unsigned,authorityDateAdapter?new Date(c.serverTime):c.serverTime)})()',context)}
+  catch(error){process.stdout.write(JSON.stringify({beginError:error.message,code:error.code,keys:0,callbackCount:0,requested,httpResults,pending:api.pending()}));process.exit(0)}
   const {urls,keys,now}=await walletDecision(input.challenge,request.url,input.mode);
   let raw=null,parseError=null;
-  try{raw=api.parseReturn(urls.at(-1),input.authorityDateAdapter?now:input.challenge.serverTime)}catch(error){parseError=error.message}
+  try{raw=await api.parseReturn(urls.at(-1),input.authorityDateAdapter?now:input.challenge.serverTime)}catch(error){parseError=error.message}
   // Keep raw transport available for backend-only continuation when the browser
   // bridge is broken. The caller must never count that continuation as full E2E.
   const encoded=new URL(urls.at(-1)).searchParams.get('financeOrderApprovalResult');

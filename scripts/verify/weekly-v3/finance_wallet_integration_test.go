@@ -50,6 +50,9 @@ func weeklyBridge(t *testing.T, input any) map[string]json.RawMessage {
 	if err := json.Unmarshal(result, &output); err != nil {
 		t.Fatalf("bridge JSON: %v %s", err, result)
 	}
+	if failure, ok := output["beginError"]; ok {
+		t.Fatalf("unchanged Finance browser refused approval before Wallet signing (no fixture bypass): %s", failure)
+	}
 	return output
 }
 func weeklyServer(t *testing.T) (*Server, *httptest.Server, string, time.Time) {

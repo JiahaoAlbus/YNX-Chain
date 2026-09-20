@@ -1,0 +1,32 @@
+{
+  "schema": "ynx-wallet-mobile-preview-publication/v1",
+  "releaseTag": "wallet-android-testnet-preview-1.0.16-e9816a827",
+  "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-1.0.16-e9816a827",
+  "targetCommit": "15d968bd5e29479c2b78c5c23887e96a535e29ca",
+  "buildSourceCommit": "e9816a8277b3ddd6c5f379f90aadda969c0a069b",
+  "prerelease": true,
+  "apk": {
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+    "bytes": 116631255,
+    "sha256": "89a842dc8641206a9154a6e41fd1c9e3cbb4b6cca2cea455ed5b7fc674b558c0",
+    "githubMetadataMatched": true,
+    "fullPublicDownloadDigestMatched": true
+  },
+  "aab": {
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-local-test-signed.aab",
+    "bytes": 71870019,
+    "sha256": "117aee9610ef3878e5c2dc226acee57ae2820f1613cc8cabc536a12abd1ddd9a",
+    "githubMetadataMatched": true,
+    "fullPublicDownloadDigestMatched": false
+  },
+  "scope": "GitHub prerelease and exact public APK bytes; AAB metadata only. Not deployment or installed acceptance.",
+  "officialWebsiteDeployed": false,
+  "cdnMirrorVerified": false,
+  "installedE2EVerified": false,
+  "walletConnectRelayE2E": "NOT_VERIFIED",
+  "officialSandboxVerified": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "productionApproved": false,
+  "observedDate": "2026-09-20"
+}

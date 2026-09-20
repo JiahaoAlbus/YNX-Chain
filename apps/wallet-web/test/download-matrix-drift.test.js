@@ -15,7 +15,7 @@ test("Wallet install entry stays bound to current Android and published Web arti
     {bytes:WALLET_DOWNLOAD_MATRIX.android.bytes,sha256:WALLET_DOWNLOAD_MATRIX.android.sha256},
     {bytes:android.bytes,sha256:android.sha256},
   );
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,`https://downloads.ynxweb4.com/wallet/sha256-${android.sha256}/${android.url.split("/").pop()}`);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,android.url);
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.fallbackUrl,android.url);
   const expected={
     pwaPackage:"ynx-wallet-web-pwa-0.1.1.zip",
