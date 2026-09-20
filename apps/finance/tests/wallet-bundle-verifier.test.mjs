@@ -8,16 +8,13 @@ import {fileURLToPath} from 'node:url';
 import {verifyFinanceWalletBundle} from '../web/verify-wallet-connect.mjs';
 
 const financeRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..'),webRoot=join(financeRoot,'web');
-const fixtureFiles=[
-  'web/package.json','web/wallet-auth-entry.js','web/wallet-auth.js','web/index.html','web/app.js','web/vendor/standard-wallet-browser-c97f85e9.mjs',
-  'web/private-wallet-entry.js','web/wallet-verifier-manifest.json',
-  'scripts/finance-nonregressive-runtime.mjs','scripts/build-finance-weekly-v3-candidate.mjs',
-];
+const reviewedManifest=JSON.parse(await readFile(join(webRoot,'wallet-verifier-manifest.json'),'utf8'));
 
 async function fixture(){
-  const root=await mkdtemp(join(tmpdir(),'ynx-finance-wallet-verifier-test-'));
-  for(const relative of fixtureFiles){const target=join(root,relative);await mkdir(dirname(target),{recursive:true});await writeFile(target,await readFile(join(financeRoot,relative)))}
-  return {root,web:join(root,'web'),cleanup:()=>rm(root,{recursive:true,force:true})};
+  const root=await mkdtemp(join(tmpdir(),'ynx-finance-wallet-verifier-test-')),web=join(root,'repo/apps/finance/web');
+  const files=['wallet-verifier-manifest.json',...reviewedManifest.files.map(file=>file.path)];
+  for(const relative of files){const target=resolve(web,relative);await mkdir(dirname(target),{recursive:true});await writeFile(target,await readFile(resolve(webRoot,relative)))}
+  return {root,web,cleanup:()=>rm(root,{recursive:true,force:true})};
 }
 
 test('current Finance Wallet files match the exact reviewed verifier manifest',async()=>{
@@ -27,8 +24,11 @@ test('current Finance Wallet files match the exact reviewed verifier manifest',a
   assert.equal(result.bundle,'wallet-auth.js');
   assert.match(result.vendor,/^vendor\/standard-wallet-browser-[0-9a-f]{8}\.mjs$/u);
   assert.match(result.sha256,/^[0-9a-f]{64}$/u);
-  assert.equal(result.sourceBundleReproducible,false);
-  assert.equal(result.sourceBundleReproducibilityStatus,'NOT_VERIFIED_AS_REPRODUCIBLE');
+  assert.equal(result.sourceBundleReproducible,true);
+  assert.equal(result.sourceBundleReproducibilityStatus,'VERIFIED_REPRODUCIBLE');
+  assert.equal(result.cleanBuildCount,2);
+  assert.equal(result.bytes,179986);
+  assert.equal(result.sha256,'fbebce55d813f1acbbec7738d171bb2a3142eb415d2c513bae48862b4ecd1967');
 });
 
 test('missing current bundle fails closed',async()=>{
@@ -44,6 +44,11 @@ test('legacy Wallet bundle is rejected before it can satisfy current integrity b
 test('tampered current bundle cannot match the reviewed manifest',async()=>{
   const value=await fixture(),expected=await readFile(join(value.web,'wallet-auth.js'));
   try{await writeFile(join(value.web,'wallet-auth.js'),Buffer.concat([expected,Buffer.from('\n/*tampered*/\n')]));await assert.rejects(verifyFinanceWalletBundle({root:value.web}),error=>error.code==='FINANCE_WALLET_FILE_INTEGRITY_MISMATCH')}finally{await value.cleanup()}
+});
+
+test('missing current SDK authority source fails closed before rebuild',async()=>{
+  const value=await fixture();
+  try{await rm(resolve(value.web,'../../../sdk/js/endpoint-authority-v2.js'));await assert.rejects(verifyFinanceWalletBundle({root:value.web}),error=>error.code==='FINANCE_WALLET_FILE_MISSING')}finally{await value.cleanup()}
 });
 
 test('coordinated bundle and verifier-manifest tampering cannot redefine the reviewed authority',async()=>{
@@ -66,4 +71,22 @@ test('each reviewed file is read once so a second clean read cannot hide first-r
   };
   await assert.rejects(verifyFinanceWalletBundle({root:webRoot,readFile:adversarialRead}),error=>error.code==='FINANCE_WALLET_FILE_INTEGRITY_MISMATCH');
   assert.equal(bundleReads,1);
+});
+
+test('deterministic rebuild mismatch fails closed even when reviewed files match',async()=>{
+  const value=await fixture();
+  try{await assert.rejects(verifyFinanceWalletBundle({root:value.web,buildBundle:async()=>Buffer.from('not-the-reviewed-build')}),error=>error.code==='FINANCE_WALLET_REBUILD_MISMATCH')}finally{await value.cleanup()}
+});
+
+test('two different clean rebuilds fail closed before either can be accepted',async()=>{
+  const value=await fixture();let builds=0;
+  try{await assert.rejects(verifyFinanceWalletBundle({root:value.web,buildBundle:async()=>Buffer.from(`build-${++builds}`)}),error=>error.code==='FINANCE_WALLET_REBUILD_NONDETERMINISTIC');assert.equal(builds,2)}finally{await value.cleanup()}
+});
+
+test('reviewed source and bundle are read once before both rebuilds',async()=>{
+  const reads=new Map();
+  const singleRead=async path=>{reads.set(path,(reads.get(path)??0)+1);return readFile(path)};
+  const result=await verifyFinanceWalletBundle({root:webRoot,readFile:singleRead});
+  assert.equal(result.status,'pass');
+  for(const relative of reviewedManifest.files.map(file=>file.path))assert.equal(reads.get(resolve(webRoot,relative)),1,relative);
 });
