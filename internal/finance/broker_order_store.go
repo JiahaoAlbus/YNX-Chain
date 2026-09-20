@@ -212,7 +212,7 @@ func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallen
 	err = s.updateBrokerCAS(account, "broker.approval.challenge", order.OrderID, func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)
 		mapping, ok := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
-		if !ok || mapping.Status != "active" || mapping.Account != account || mapping.SubjectID != subjectID || (mapping.WalletPublicKey != "" && mapping.WalletPublicKey != request.AccountPublicKey) {
+		if !ok || mapping.Status != "active" || mapping.Account != account || mapping.SubjectID != subjectID || mapping.WalletPublicKey != request.AccountPublicKey {
 			return errors.New("active Broker Sandbox mapping is required")
 		}
 		if _, exists := state.Brokerage.Orders[order.OrderID]; exists {
@@ -253,7 +253,7 @@ func (s *Store) ApproveBrokerOrder(account string, approval FinanceOrderApproval
 			return errors.New("Finance approval does not match the durable challenge")
 		}
 		mapping := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
-		if mapping.Account != account || mapping.SubjectID != approval.SubjectID || mapping.BrokerAccountID != approval.BrokerAccountID || mapping.Status != "active" || (mapping.WalletPublicKey != "" && mapping.WalletPublicKey != approval.AccountPublicKey) {
+		if mapping.Account != account || mapping.SubjectID != approval.SubjectID || mapping.BrokerAccountID != approval.BrokerAccountID || mapping.Status != "active" || mapping.WalletPublicKey != approval.AccountPublicKey {
 			return errors.New("Finance approval no longer matches the current Broker Sandbox mapping")
 		}
 		order := state.Brokerage.Orders[approval.Order.OrderID]
@@ -385,7 +385,7 @@ func (s *Store) ConsumeBrokerOrder(account, requestID, approvalDigest string, no
 			return errors.New("Finance approval expired before consumption")
 		}
 		mapping := state.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
-		if mapping.Status != "active" || mapping.SubjectID != challenge.Unsigned.SubjectID || mapping.BrokerAccountID != challenge.Unsigned.BrokerAccountID || (mapping.WalletPublicKey != "" && mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey) {
+		if mapping.Status != "active" || mapping.SubjectID != challenge.Unsigned.SubjectID || mapping.BrokerAccountID != challenge.Unsigned.BrokerAccountID || mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey {
 			return errors.New("Finance approval mapping changed before consumption")
 		}
 		outbox := BrokerOrderOutbox{OrderID: order.Order.OrderID, RequestID: requestID, ProviderClientOrderID: order.Order.OrderID, Provider: FinanceOrderProvider, TradingEnvironment: FinanceOrderTradingEnv, Status: "pending_unwired", Attempts: 0, CreatedAt: now.UTC(), UpdatedAt: now.UTC()}

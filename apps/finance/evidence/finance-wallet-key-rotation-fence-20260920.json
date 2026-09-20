@@ -9,17 +9,20 @@
   },
   "implementation": {
     "dispatchPath": "internal/finance/broker_dispatch.go",
-    "dispatchSha256": "dde9b54c3adf7b94bf8ba5af3f45701b0bc38452ed7473ea19c3f8dae89a9e61",
+    "dispatchSha256": "73fb3fc9b72145da7604a942aae92705d1a84d066b60ece12f224cf9de7d8f5c",
     "orderStorePath": "internal/finance/broker_order_store.go",
-    "orderStoreSha256": "32757bc7ec616934401ae585d4b446a4a187c52c7641b8f30d4a5508e39e0a05",
+    "orderStoreSha256": "0b1288a447957df42d064eae682edd7408113e531e591dec2dbf826a886d93c6",
     "testPath": "internal/finance/broker_order_store_test.go",
-    "testSha256": "bd817cec1a267e1158f3ab93fb911fd7afcf012e6d5a8da5135eb31f92044448",
+    "testSha256": "092e84c90a8543970f421f54954259cafcf70ff288648df69073c25426189df0",
+    "fixtureMigrationPath": "internal/finance/broker_dispatch_test.go",
+    "fixtureMigrationSha256": "77a660fce418dcb5d0107db6d6ab2eee405605e0931c4032e20260ce3aaa6e67",
     "mappingKeyBinding": "challenge_account_public_key",
     "challengeOnDifferentKey": "fail_closed_without_order_creation",
     "approvalAfterRotation": "fail_closed_without_state_transition",
     "consumeAfterRotation": "fail_closed_without_outbox_creation",
     "dispatchAfterRotation": "execution_blocked_ACCOUNT_MAPPING_CHANGED",
-    "legacyEmptyMappingKeyCompatibility": true
+    "legacyEmptyMappingKeyCanLoad": true,
+    "legacyEmptyMappingKeyCanTrade": false
   },
   "tests": {
     "focusedWalletKeyRotation": "PASS",

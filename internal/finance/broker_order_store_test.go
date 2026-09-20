@@ -150,7 +150,7 @@ func TestBrokerPendingApprovalCanBeRevokedBeforeCallbackDelivery(t *testing.T) {
 	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
 	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
 	store, _ := OpenStore(path)
-	_, _ = store.PutBrokerSandboxMapping(account, "01234567-89ab-4cde-8fab-0123456789ab", now)
+	_, _ = store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", now)
 	challenge, err := store.CreateBrokerOrderChallenge(account, BrokerChallengeRequest{AccountPublicKey: "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test", Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"}}, now)
 	if err != nil {
 		t.Fatal(err)
@@ -178,7 +178,7 @@ func TestBrokerOrderDurableConcurrentConsumeAndRestart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := store.PutBrokerSandboxMapping(account, brokerID, now); err != nil {
+	if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, brokerID, "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", now); err != nil {
 		t.Fatal(err)
 	}
 	challenge, err := store.CreateBrokerOrderChallenge(account, BrokerChallengeRequest{
@@ -253,7 +253,7 @@ func TestBrokerRevokeAndConsumeUseSameCAS(t *testing.T) {
 	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
 	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
 	store, _ := OpenStore(path)
-	_, _ = store.PutBrokerSandboxMapping(account, "01234567-89ab-4cde-8fab-0123456789ab", now)
+	_, _ = store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", now)
 	challenge, err := store.CreateBrokerOrderChallenge(account, BrokerChallengeRequest{AccountPublicKey: "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test", Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"}}, now)
 	if err != nil {
 		t.Fatal(err)
