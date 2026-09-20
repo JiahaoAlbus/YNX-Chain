@@ -1,5 +1,6 @@
 import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
+import {createServer} from "node:https";
 import {copyFile,mkdir,mkdtemp,readFile,rm,stat,writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {dirname,join,resolve} from "node:path";
@@ -31,11 +32,16 @@ await sharp({create:{width:440,height:280,channels:4,background:{r:245,g:246,b:2
 
 const profile=await mkdtemp(join(tmpdir(),"ynx-wallet-store-assets-"));
 const extensionId=[...createHash("sha256").update(extensionPath).digest("hex").slice(0,32)].map(value=>String.fromCharCode(97+Number.parseInt(value,16))).join("");
+const keyPath=join(profile,"fixture.key.pem"),certPath=join(profile,"fixture.cert.pem");
+execFileSync("openssl",["req","-x509","-newkey","rsa:2048","-nodes","-keyout",keyPath,"-out",certPath,"-days","1","-subj","/CN=127.0.0.1","-addext","subjectAltName=IP:127.0.0.1"],{stdio:"ignore"});
+const server=createServer({key:await readFile(keyPath),cert:await readFile(certPath)},(_request,response)=>{response.setHeader("content-type","text/html; charset=utf-8");response.end("<!doctype html><title>Wallet store capture fixture</title>")});
+await new Promise((accept,reject)=>{server.once("error",reject);server.listen(0,"127.0.0.1",accept)});
+const fixtureUrl=`https://127.0.0.1:${server.address().port}/`;
 let context;
 try{
-  context=await chromium.launchPersistentContext(profile,{executablePath:"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",headless:true,viewport:{width:1280,height:800},ignoreDefaultArgs:["--disable-extensions"],args:[`--disable-extensions-except=${extensionPath}`,`--load-extension=${extensionPath}`,"--no-first-run","--no-default-browser-check"]});
+  context=await chromium.launchPersistentContext(profile,{executablePath:"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",headless:true,ignoreHTTPSErrors:true,viewport:{width:1280,height:800},ignoreDefaultArgs:["--disable-extensions"],args:[`--disable-extensions-except=${extensionPath}`,`--load-extension=${extensionPath}`,"--no-first-run","--no-default-browser-check"]});
   const activePage=context.pages()[0]||await context.newPage();
-  await activePage.goto("https://example.com",{waitUntil:"domcontentloaded"});
+  await activePage.goto(fixtureUrl,{waitUntil:"domcontentloaded"});
   const session=await context.browser().newBrowserCDPSession();
   for(const [locale,name] of [["en","wallet-en-1280x800.png"],["zh-CN","wallet-zh-CN-1280x800.png"]]){
     const url=`chrome-extension://${extensionId}/index.html?lang=${encodeURIComponent(locale)}`;
@@ -49,6 +55,7 @@ try{
   }
 }finally{
   await context?.close();
+  await new Promise(resolveClose=>server.close(resolveClose));
   await rm(profile,{recursive:true,force:true});
 }
 
