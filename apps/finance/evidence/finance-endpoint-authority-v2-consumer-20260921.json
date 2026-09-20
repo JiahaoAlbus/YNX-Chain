@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "ynx.finance.endpoint-authority-v2-consumer-evidence.v1",
+  "recordedAt": "2026-09-21T00:00:00.000Z",
+  "branch": "codex/finance-endpoint-authority-v2-consumer-20260921",
+  "baseline": "42e0abaa46bcaa6a14158a78e70d1fcbde13e06e",
+  "implementationCommit": "f2c4cb6547db9477ad6a45b1ceaaee835b3f888d",
+  "implementationTree": "2f882c2ec72b248534d5509496d64f55fba1b6b7",
+  "identity": {
+    "consumerId": "ynx-finance-v1",
+    "origin": "https://finance.ynxweb4.com",
+    "webApplicationId": "com.ynxweb4.finance.web",
+    "nativeApplicationId": "com.ynxweb4.finance",
+    "nativeCallback": "ynxfinance://wallet-auth/callback",
+    "requiredEndpoint": "walletGateway",
+    "requiredProduct": "finance"
+  },
+  "sourceObjects": [
+    {"path":"apps/finance/authority/adapter.mjs","bytes":1478,"sha256":"9d3c9ba2a7bc9bc363b2b7d014e578c2b8f1342148d22e554c60fbad6f1a598d"},
+    {"path":"apps/finance/authority/checkpoint-node.mjs","bytes":5481,"sha256":"f82e7fe807283a15e78e6a6ba05c83ef1201ddf2cef3c50783fa7cef42f30b86"},
+    {"path":"apps/finance/authority/config.mjs","bytes":2229,"sha256":"c3f5218ab4b5a53db5c495c8ec79069e986d1625b210d475f5894893608cac2b"},
+    {"path":"apps/finance/scripts/finance-endpoint-authority-v2.mjs","bytes":702,"sha256":"8c0be66d88ca3ad74e4aa6efaf581789e0fa5435aefc45ded4c88d2a09db4494"},
+    {"path":"apps/finance/web/endpoint-authority-entry.js","bytes":2336,"sha256":"4fc6db6605ba3d4836fae3572547ef050d81ebe227b6bc6d7bd9e7e5abcdc993"},
+    {"path":"apps/finance/web/endpoint-authority-store.js","bytes":3169,"sha256":"a1d656fa8bba98775f1a1a6ea503821e3a3954184c38a24372f7da86eae16889"},
+    {"path":"apps/finance/mobile/src/endpoint-authority-capabilities.ts","bytes":1068,"sha256":"7083507b8cfb1a3049b8215a9a1a79b20dea5eb98bcb7fc61cdcb82d04437e7f"},
+    {"path":"internal/finance/endpoint_authority.go","bytes":4185,"sha256":"a8d5192eeaa6fdbcb406e4145e8d42659d0116b6f952948a8971eab3d5c8f771"}
+  ],
+  "browserBundles": {
+    "wallet":{"path":"apps/finance/web/wallet-auth.js","bytes":179132,"sha256":"42c89560005eacc0bacae744fad7b3d8209908699a75066ddb8ce61b2936995c"},
+    "order":{"path":"apps/finance/web/order-wallet.js","bytes":102286,"sha256":"182d2b5c5873f53e211cc2dbc7b0776e0991f5af7ae9aeec8d56064096343192"},
+    "verifierManifest":{"path":"apps/finance/web/wallet-verifier-manifest.json","bytes":3921,"sha256":"91c86deb4712d431ae7eb40e2752702919c45c435d76988784d781bd99c8f280"},
+    "repeatedCleanBuildByteExact": true
+  },
+  "linuxAmd64Candidate": {
+    "path": "/tmp/ynx-finance-f2c4cb6547db-linux-amd64.tar.gz",
+    "bytes": 30496609,
+    "sha256": "4ded4967ea14ec94eadcbae784c45a6e57d51f1f2b944fdc68d42cf7b0faaaf8",
+    "repeatedBuildByteExact": true,
+    "published": false
+  },
+  "tests": {
+    "financeNode": "66/66 PASS",
+    "authorityAdapter": "5/5 PASS",
+    "mobile": "18/18 PASS; typecheck PASS; Android+iOS Expo export PASS",
+    "go": "go test -race, go vet and go build PASS for internal/finance/... and apps/finance/...",
+    "walletVerifier": "PASS; two clean browser rebuilds byte-exact",
+    "security": "PASS across 252 text files",
+    "smoke": "PASS",
+    "browserAuthority": "Chromium PASS: valid signature, bad signature, same-sequence equivocation, cross-tab CAS, checkpoint loss, clock rollback, expiry and key revocation; zero private network"
+  },
+  "safety": {
+    "sharedSdkModified": false,
+    "requestCanInjectAuthority": false,
+    "shellUsedByGoGate": false,
+    "missingV2MakesPrivateNetworkCalls": false,
+    "v1RpcAndFaucetPreserved": true,
+    "mobileClaimsEd25519OrCAS": false,
+    "officialSandboxVerified": false,
+    "providerVerified": false,
+    "productionApproved": false,
+    "publicDeploymentVerified": false,
+    "installedWalletCallbackVerified": false,
+    "accountRequested": false,
+    "signatureRequested": false,
+    "transactionRequested": false
+  },
+  "remainingBlocker": "A protected signed v2 trust root, signed Finance manifest, trusted-clock feed, durable checkpoint path and deployment lease are required before public activation. No production deployment was attempted."
+}
