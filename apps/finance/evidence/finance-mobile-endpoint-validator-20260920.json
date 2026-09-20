@@ -1,70 +1,37 @@
 {
   "schemaVersion": "1.0.0",
-  "kind": "finance-mobile-endpoint-validator-source-evidence",
+  "kind": "finance-mobile-minimal-endpoint-validator-source-evidence",
   "recordedAt": "2026-09-20T08:45:13Z",
   "scope": "apps/finance/**",
-  "baseline": {
-    "mainCommit": "1b77b75eb1f6ff3ae020a1833cf6d6ad91a5dbeb",
-    "restoredFinanceMobileSource": "f1fe9681a"
-  },
+  "baseline": {"mainCommit": "1b77b75eb1f6ff3ae020a1833cf6d6ad91a5dbeb"},
   "bundledAuthority": {
     "manifestVersion": "1.0.0-p0.2",
     "sourceCommit": "fa0ffd9bbbcc831438078be8e19cebff51b07e5e",
     "payloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
-    "issuedAt": "2026-08-20T08:45:00Z",
     "expiresAt": "2026-09-20T08:45:00Z",
     "remoteSignature": "PENDING_PROTECTED_SIGNER",
     "financeProductStatus": "PENDING"
   },
+  "implementation": {
+    "currentWalletAuthWorkspacePackage": true,
+    "vendoredWalletAuthTarball": false,
+    "dappConnectSdkRestored": false,
+    "nativeSecureDeviceRestored": false,
+    "legacyOptionalProductSessionUiRestored": false,
+    "existingFinanceSandboxPreserved": true,
+    "existingExchangeQuantReadonlyEnvelopesPreserved": true,
+    "walletGatewayCallerInjection": false
+  },
   "tests": {
-    "cleanNpmCiIgnoreScripts": "PASS",
-    "mobileTypecheck": "PASS",
-    "mobileUnit": {"status": "PASS", "passed": 14, "failed": 0},
-    "financeWebUnit": {"status": "PASS", "passed": 50, "failed": 0},
-    "canonicalAuthorizeScan": "PASS",
-    "security": {"status": "PASS", "filesScanned": 459},
-    "preExpiryBundle": "PASS_LOCAL_ONLY",
-    "androidDebugBuild": "PASS_LOCAL_DEBUG_SIGNED",
-    "androidEmbeddedReleaseBuild": "PASS_LOCAL_DEBUG_SIGNED_NOT_PRODUCTION",
-    "androidEmbeddedReleaseApk": {
-      "bytes": 77685902,
-      "sha256": "640587f062000dfc5e1a1bb567905fa8e5b2a3ebf085ba3191cdb2a27f04ab90",
-      "signing": "LOCAL_ANDROID_DEBUG_KEY_NOT_PRODUCTION"
-    },
-    "androidEmulatorInstall": {
-      "serial": "emulator-5580",
-      "package": "com.ynxweb4.finance",
-      "install": "PASS",
-      "coldStart": "PASS",
-      "secondStart": "PASS",
-      "accountRequestTriggered": false,
-      "crashBufferBytes": 0,
-      "visibleEnglishGuestCopy": true,
-      "secondUiTreeSha256": "b687d449848de3458a1a63518b879e877110049ddfea8620046df8cc7f5d0827",
-      "secondScreenshotSha256": "1b1d0c62651f46f1d1064c20de48fc37d21a6e4795407b84cad12a6ab8530fe6"
-    },
-    "livePostExpiryEndpointGate": {
-      "status": "EXPECTED_FAIL_CLOSED",
-      "observedAt": "2026-09-20T08:45:13Z",
-      "exitCode": 1,
-      "errorClass": "CLIENT_RETIRED"
-    },
-    "livePostExpiryBundleGate": {
-      "status": "EXPECTED_FAIL_CLOSED_BEFORE_EXPORT",
-      "observedAt": "2026-09-20T08:45:13Z",
-      "exitCode": 1,
-      "errorClass": "CLIENT_RETIRED"
-    }
+    "livePostExpiryEndpointGate": {"status": "EXPECTED_FAIL_CLOSED", "observedAt": "2026-09-20T08:45:13Z", "exitCode": 1, "errorClass": "CLIENT_RETIRED"},
+    "livePostExpiryBundleGate": {"status": "EXPECTED_FAIL_CLOSED_BEFORE_EXPORT", "observedAt": "2026-09-20T08:45:13Z", "exitCode": 1, "errorClass": "CLIENT_RETIRED"}
   },
   "truth": {
-    "sourceRestored": true,
-    "sharedOrWalletPathsChanged": false,
     "manifestExtendedByFinance": false,
     "renewedAuthorityAccepted": false,
     "publicRelease": false,
     "installedRelease": false,
     "walletApproval": false,
-    "productSessionLifecycle": false,
     "signature": false,
     "typedData": false,
     "transaction": false

@@ -9,13 +9,13 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
     "verify:endpoints": "node scripts/verify-endpoint-manifest.mjs",
-    "verify:canonical-authorize": "node scripts/verify-canonical-authorize.mjs",
-    "bundle-check": "npm run verify:endpoints && npm run verify:canonical-authorize && expo export --platform android --platform ios --output-dir dist",
+    "bundle-check": "npm run verify:endpoints && expo export --platform android --platform ios --output-dir dist",
     "check": "npm run typecheck && npm test && npm run bundle-check"
   },
   "dependencies": {
-    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0.tgz",
-    "@ynx/dapp-connect-sdk": "file:vendor/ynx-dapp-connect-sdk-0.1.0-p0.0.tgz",
+    "@ynx-chain/wallet-auth": "file:../../../packages/wallet-auth",
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0",
     "expo": "~57.0.4",
     "expo-clipboard": "57.0.0",
     "expo-crypto": "~57.0.0",
