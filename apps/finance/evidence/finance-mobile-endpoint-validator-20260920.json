@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "finance-mobile-minimal-endpoint-validator-source-evidence",
+  "recordedAt": "2026-09-20T08:45:13Z",
+  "scope": "apps/finance/**",
+  "baseline": {"mainCommit": "1b77b75eb1f6ff3ae020a1833cf6d6ad91a5dbeb"},
+  "bundledAuthority": {
+    "manifestVersion": "1.0.0-p0.2",
+    "sourceCommit": "fa0ffd9bbbcc831438078be8e19cebff51b07e5e",
+    "payloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
+    "expiresAt": "2026-09-20T08:45:00Z",
+    "remoteSignature": "PENDING_PROTECTED_SIGNER",
+    "financeProductStatus": "PENDING"
+  },
+  "implementation": {
+    "currentWalletAuthWorkspacePackage": true,
+    "vendoredWalletAuthTarball": false,
+    "dappConnectSdkRestored": false,
+    "nativeSecureDeviceRestored": false,
+    "legacyOptionalProductSessionUiRestored": false,
+    "existingFinanceSandboxPreserved": true,
+    "existingExchangeQuantReadonlyEnvelopesPreserved": true,
+    "walletGatewayCallerInjection": false,
+    "runtimePayloadSha256Recomputed": true,
+    "gatewaySessionParsedByCurrentWalletAuth": true,
+    "gatewaySessionFullyBoundBeforePendingConsumption": true
+  },
+  "tests": {
+    "cleanNpmCiIgnoreScripts": "PASS",
+    "mobileTypecheck": "PASS",
+    "mobileUnit": {"status": "PASS", "passed": 16, "failed": 0},
+    "financeUnit": {"status": "PASS", "passed": 50, "failed": 0},
+    "walletAuthUnit": {"status": "PASS", "passed": 150, "failed": 0},
+    "security": {"status": "PASS", "filesScanned": 455},
+    "livePostExpiryEndpointGate": {"status": "EXPECTED_FAIL_CLOSED", "observedAt": "2026-09-20T08:45:13Z", "exitCode": 1, "errorClass": "CLIENT_RETIRED"},
+    "livePostExpiryBundleGate": {"status": "EXPECTED_FAIL_CLOSED_BEFORE_EXPORT", "observedAt": "2026-09-20T08:45:13Z", "exitCode": 1, "errorClass": "CLIENT_RETIRED"}
+  },
+  "truth": {
+    "manifestExtendedByFinance": false,
+    "renewedAuthorityAccepted": false,
+    "publicRelease": false,
+    "installedRelease": false,
+    "walletApproval": false,
+    "signature": false,
+    "typedData": false,
+    "transaction": false
+  }
+}
