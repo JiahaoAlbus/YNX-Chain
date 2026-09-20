@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 
 // Closure for the weekly-v3 candidate builder accidentally omitted from main.
-// The list is exact for the f0e462d Finance server static map plus the two
+// The list is exact for the Finance server static map plus the two
 // reviewable source entries used to generate the standalone browser bundles.
 export const runtimeFiles=Object.freeze([
   'app.js',
