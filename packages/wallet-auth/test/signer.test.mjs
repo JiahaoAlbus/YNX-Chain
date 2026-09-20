@@ -38,8 +38,8 @@ test("approval issue time must stay inside the request verification window", () 
   assert.throws(() => verifyAuthorization(future, expected), /outside the request verification window/);
 });
 
-test("published signer vector is deterministic and verifies", async () => {
-  const vector = JSON.parse(await readFile(new URL("../testdata/signer-v1.json", import.meta.url), "utf8"));
+test("published origin-bound signer vector is deterministic and verifies", async () => {
+  const vector = JSON.parse(await readFile(new URL("../testdata/signer-v2.json", import.meta.url), "utf8"));
   const parsed = parseAuthorizationRequest(vector.request, { now: NOW, registry: REGISTRY });
   assert.equal(requestDigest(parsed), vector.requestDigest);
   assert.deepEqual(signAuthorization(parsed, { accountSecret: ACCOUNT_SECRET, issuedAt: NOW.toISOString() }), vector.approval);

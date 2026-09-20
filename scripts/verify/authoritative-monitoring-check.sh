@@ -14,6 +14,9 @@ for target in 127.0.0.1:6420 10.77.42.2:6420 10.77.42.3:6420 10.77.42.4:6420; do
   [[ "$(grep -Fc -- "- $target" "$config")" == "1" ]] || { echo "authoritative target must occur exactly once: $target"; exit 1; }
 done
 
+[[ "$(grep -Fc -- '- 127.0.0.1:6428' "$config")" == "1" ]] || { echo "authoritative Faucet target must occur exactly once"; exit 1; }
+grep -A8 -F 'job_name: ynx-faucetd' "$config" | grep -Fq 'service: ynx-faucetd' || { echo "authoritative Faucet scrape labels are missing"; exit 1; }
+
 for role in primary singapore silicon-valley seoul; do
   grep -Fq "role: $role" "$config" || { echo "missing authoritative role label: $role"; exit 1; }
 done
@@ -25,6 +28,7 @@ fi
 
 grep -Fq -- '--web.listen-address=10.77.42.1:19090' "$unit"
 grep -Fq 'User=ynx-prometheus' "$unit"
+grep -Fq 'SupplementaryGroups=ynx' "$unit"
 grep -Fq 'NoNewPrivileges=true' "$unit"
 grep -Fq 'ProtectSystem=strict' "$unit"
 
@@ -42,4 +46,4 @@ elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     prom/prometheus:v3.11.2 check config /work/prometheus-authoritative.yml
 fi
 
-echo "authoritative-monitoring-check passed: four distinct loopback/WireGuard targets and restricted listener are configured"
+echo "authoritative-monitoring-check passed: four distinct chain targets, primary Faucet scrape, and restricted listener are configured"

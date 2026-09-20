@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
@@ -40,6 +41,7 @@ func main() {
 	replicationKey := flag.String("replication-key", envOrDefault("YNX_REPLICATION_KEY", ""), "shared key for authenticated replication snapshots")
 	replicationInterval := flag.Duration("replication-interval", envDurationOrDefault("YNX_REPLICATION_INTERVAL", 2*time.Second), "authoritative replication polling interval")
 	checkConfig := flag.Bool("check-config", envBoolOrDefault("YNX_CHECK_CONFIG", false), "validate node config and exit without starting services")
+	ethereumNative := flag.Bool("ethereum-native-transfers", envBoolOrDefault("YNX_ETHEREUM_NATIVE_TRANSFERS_ENABLED", false), "enable bounded Ethereum legacy native transfer adapter on testnet/devnet")
 	exportConsensusState := flag.String("export-consensus-state", envOrDefault("YNX_EXPORT_CONSENSUS_STATE", ""), "export deterministic BFT migration state to a file and exit")
 	flag.Parse()
 
@@ -57,6 +59,7 @@ func main() {
 		ReplicationKey:           strings.TrimSpace(*replicationKey),
 		ReplicationInterval:      *replicationInterval,
 		CheckConfig:              *checkConfig,
+		EthereumNativeTransfers:  *ethereumNative,
 		ExportConsensusState:     strings.TrimSpace(*exportConsensusState),
 	}
 	if err := runNode(cfg, os.Stdout); err != nil {
@@ -65,6 +68,7 @@ func main() {
 }
 
 type nodeRuntimeConfig struct {
+	EthereumNativeTransfers  bool
 	HTTPAddr                 string
 	Network                  string
 	BlockInterval            time.Duration
@@ -90,6 +94,9 @@ type nodeStartupInputs struct {
 
 func loadNodeStartupInputs(cfg nodeRuntimeConfig) (nodeStartupInputs, error) {
 	networkConfig := chain.DefaultNetworkConfig(cfg.Network)
+	if cfg.EthereumNativeTransfers && networkConfig.Slug == "mainnet" {
+		return nodeStartupInputs{}, errors.New("Ethereum native adapter is not enabled for mainnet")
+	}
 	validators, err := chain.ParseValidatorSet(os.Getenv("YNX_VALIDATOR_SET"))
 	if err != nil {
 		return nodeStartupInputs{}, fmt.Errorf("invalid YNX_VALIDATOR_SET: %w", err)
@@ -131,6 +138,10 @@ func checkNodeRuntimeConfig(cfg nodeRuntimeConfig, out io.Writer) error {
 }
 
 func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
+	faucetCoreToken, err := loadFaucetCoreToken(os.Getenv("YNX_FAUCET_CORE_AUTH_TOKEN_FILE"))
+	if err != nil {
+		return err
+	}
 	inputs, err := loadNodeStartupInputs(cfg)
 	if err != nil {
 		return err
@@ -140,6 +151,9 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 	}
 	devnet, err := chain.NewPersistentDevnetWithValidatorsAndPeers(inputs.NetworkConfig, cfg.DataDir, inputs.Validators, inputs.Peers)
 	if err != nil {
+		return err
+	}
+	if err := devnet.SetEthereumNativeTransfers(cfg.EthereumNativeTransfers); err != nil {
 		return err
 	}
 	if cfg.ExportConsensusState != "" {
@@ -155,7 +169,7 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 		Build:             currentBuildInfo(),
 	})
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if cfg.BlockProduction {
 		go devnet.StartWithPause(ctx, cfg.BlockInterval, func() bool {
@@ -175,21 +189,13 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 		TrustGatewayUpstreamKey:    os.Getenv("YNX_TRUST_GATEWAY_UPSTREAM_KEY"),
 		ResourceGatewayUpstreamKey: os.Getenv("YNX_RESOURCE_GATEWAY_UPSTREAM_KEY"),
 		ReplicationKey:             cfg.ReplicationKey,
+		FaucetCoreAuthToken:        faucetCoreToken,
 		ReadOnlyReplica:            cfg.ReplicationSource != "",
 	})
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: mutationfreeze.FromEnv(handler), ReadHeaderTimeout: 5 * time.Second}
-	go func() {
-		<-ctx.Done()
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(shutdownCtx)
-	}()
 
 	log.Printf("YNX Chain %s listening on http://%s with native coin YNXT", inputs.NetworkConfig.Name, cfg.HTTPAddr)
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		return err
-	}
-	return nil
+	return serveHTTPUntilShutdown(ctx, srv, 5*time.Second)
 }
 
 func blockProductionPaused(marker string) bool {

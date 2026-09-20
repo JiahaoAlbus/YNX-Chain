@@ -300,9 +300,9 @@ grep -Fq "server_name rest.ynx.test api.ynx.test ide.ynx.test;" "$release_dir/ng
 grep -Fq "proxy_pass http://127.0.0.1:6437/;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing prefix-stripping App Gateway route"; exit 1; }
 grep -Fq "handle /app/*" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy config missing path-preserving App Gateway route"; exit 1; }
 grep -Fq "server_name indexer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer domain server block"; exit 1; }
-grep -Fq "server_name explorer.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer domain server block"; exit 1; }
-grep -Fq "server_name faucet.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing faucet domain server block"; exit 1; }
-grep -Fq "server_name ynx.test testnet.ynx.test rpc.ynx.test evm-rpc.ynx.test;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing RPC/EVM domain server block"; exit 1; }
+grep -Fq "server_name explorer.ynx.test explorer-testnet.ynxweb4.com;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing legacy and canonical Testnet Explorer domains"; exit 1; }
+grep -Fq "server_name faucet.ynx.test faucet-testnet.ynxweb4.com;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing legacy and canonical Testnet Faucet domains"; exit 1; }
+grep -Fq "server_name ynx.test testnet.ynx.test rpc.ynx.test evm-rpc.ynx.test rpc-testnet.ynxweb4.com;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing legacy and canonical Testnet RPC/EVM domains"; exit 1; }
 grep -Fq "proxy_pass http://127.0.0.1:6426;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing indexer proxy target"; exit 1; }
 grep -Fq "proxy_pass http://127.0.0.1:6427;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing explorer proxy target"; exit 1; }
 grep -Fq "proxy_pass http://127.0.0.1:6428;" "$release_dir/nginx/ynx-chain.conf" || { echo "nginx config missing faucet proxy target"; exit 1; }
@@ -320,9 +320,9 @@ grep -Fq "resource.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Cad
 grep -Fq "reverse_proxy 127.0.0.1:6432" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing Resource Gateway proxy target"; exit 1; }
 grep -Fq "rest.ynx.test, api.ynx.test, ide.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing REST/API domain block"; exit 1; }
 grep -Fq "indexer.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing indexer domain block"; exit 1; }
-grep -Fq "explorer.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing explorer domain block"; exit 1; }
-grep -Fq "faucet.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing faucet domain block"; exit 1; }
-grep -Fq "ynx.test, testnet.ynx.test, rpc.ynx.test, evm-rpc.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing RPC/EVM domain block"; exit 1; }
+grep -Fq "explorer.ynx.test, explorer-testnet.ynxweb4.com" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing legacy and canonical Testnet Explorer domains"; exit 1; }
+grep -Fq "faucet.ynx.test, faucet-testnet.ynxweb4.com" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing legacy and canonical Testnet Faucet domains"; exit 1; }
+grep -Fq "ynx.test, testnet.ynx.test, rpc.ynx.test, evm-rpc.ynx.test, rpc-testnet.ynxweb4.com" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing legacy and canonical Testnet RPC/EVM domains"; exit 1; }
 grep -Fq "reverse_proxy 127.0.0.1:6420" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing chain API proxy target"; exit 1; }
 grep -Fq "reverse_proxy 127.0.0.1:6426" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing indexer proxy target"; exit 1; }
 grep -Fq "reverse_proxy 127.0.0.1:6427" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing explorer proxy target"; exit 1; }

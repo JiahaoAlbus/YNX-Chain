@@ -2,15 +2,19 @@ package finance
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 )
 
 const (
@@ -25,6 +29,20 @@ type ReadSourceActionConfig struct {
 	EconomicsURL string
 }
 
+type ReadSourceIntegrationConfig struct {
+	ExchangeURL string
+	ExchangeKey string
+	DEXURL      string
+	DEXKey      string
+	QuantURL    string
+	QuantKey    string
+}
+
+type readSourceIntegration struct {
+	URL string
+	Key string
+}
+
 type ReadSourceAction struct {
 	Label                 string `json:"label"`
 	URL                   string `json:"url,omitempty"`
@@ -35,16 +53,17 @@ type ReadSourceAction struct {
 }
 
 type ReadSourceDescriptor struct {
-	ID                      string           `json:"id"`
-	Name                    string           `json:"name"`
-	Owner                   string           `json:"owner"`
-	Capability              string           `json:"capability"`
-	ConsumerEnvelopeVersion string           `json:"consumerEnvelopeVersion"`
-	OwnerContractAccepted   bool             `json:"ownerContractAccepted"`
-	ReadOnly                bool             `json:"readOnly"`
-	Status                  SourceStatus     `json:"status"`
-	Action                  ReadSourceAction `json:"action"`
-	ForbiddenCapabilities   []string         `json:"forbiddenCapabilities"`
+	ID                      string              `json:"id"`
+	Name                    string              `json:"name"`
+	Owner                   string              `json:"owner"`
+	Capability              string              `json:"capability"`
+	ConsumerEnvelopeVersion string              `json:"consumerEnvelopeVersion"`
+	OwnerContractAccepted   bool                `json:"ownerContractAccepted"`
+	ReadOnly                bool                `json:"readOnly"`
+	Status                  SourceStatus        `json:"status"`
+	Action                  ReadSourceAction    `json:"action"`
+	ForbiddenCapabilities   []string            `json:"forbiddenCapabilities"`
+	Envelope                *ReadSourceEnvelope `json:"envelope,omitempty"`
 }
 
 type ReadSourceEnvelope struct {
@@ -105,6 +124,97 @@ var forbiddenReadSourceCapabilities = []string{
 	"session.revoke",
 }
 
+var acceptedReadSourceContracts = map[string]AcceptedReadSourceContract{
+	"exchange": {
+		Accepted:             true,
+		SourceID:             "exchange",
+		Owner:                "07-exchange",
+		OwnerContractVersion: "exchange-finance-read-v1",
+		PayloadSchema:        "ynx-exchange-finance-account-v1",
+		AllowedCapabilities: []string{
+			"exchange.subaccount.read",
+			"exchange.orders.read",
+			"exchange.fills.read",
+			"exchange.fees.read",
+			"exchange.margin.read",
+			"exchange.funding.read",
+			"exchange.risk.read",
+		},
+	},
+	"quant": {
+		Accepted:             true,
+		SourceID:             "quant",
+		Owner:                "08-quant-lab",
+		OwnerContractVersion: "quant-finance-read-v1",
+		PayloadSchema:        "ynx-quant-finance-account-v1",
+		AllowedCapabilities: []string{
+			"quant.strategies.read",
+			"quant.mandates.read",
+			"quant.executions.read",
+			"quant.pnl.read",
+			"quant.risk.read",
+			"quant.lifecycle.read",
+		},
+	},
+	"dex": {
+		Accepted:             true,
+		SourceID:             "dex",
+		Owner:                "27-dex",
+		OwnerContractVersion: "dex-finance-read-v1",
+		PayloadSchema:        "ynx-dex-finance-account-v1",
+		AllowedCapabilities: []string{
+			"dex.positions.read",
+			"dex.swaps.read",
+			"dex.liquidity.read",
+			"dex.fees.read",
+		},
+	},
+}
+
+func (u *Upstreams) ConfigureReadSourceIntegrations(config ReadSourceIntegrationConfig) error {
+	candidates := []struct{ id, label, endpoint, key string }{
+		{id: "exchange", label: "Exchange", endpoint: config.ExchangeURL, key: config.ExchangeKey},
+		{id: "dex", label: "DEX", endpoint: config.DEXURL, key: config.DEXKey},
+		{id: "quant", label: "Quant", endpoint: config.QuantURL, key: config.QuantKey},
+	}
+	integrations := map[string]readSourceIntegration{}
+	for _, candidate := range candidates {
+		endpoint, key := strings.TrimSpace(candidate.endpoint), strings.TrimSpace(candidate.key)
+		if (endpoint == "") != (key == "") {
+			return fmt.Errorf("%s read URL and key must be configured together", candidate.label)
+		}
+		if endpoint == "" {
+			continue
+		}
+		parsed, err := requireHTTPURL(endpoint)
+		if err != nil {
+			return fmt.Errorf("%s read URL: %w", candidate.label, err)
+		}
+		if len(key) < 32 {
+			return fmt.Errorf("%s read key must contain at least 32 characters", candidate.label)
+		}
+		integrations[candidate.id] = readSourceIntegration{URL: strings.TrimRight(parsed.String(), "/"), Key: key}
+	}
+	if len(integrations) == 0 {
+		u.readIntegrations = nil
+		return nil
+	}
+	u.readIntegrations = integrations
+	return nil
+}
+
+func (u *Upstreams) ConfiguredReadSources() []string {
+	if u == nil || len(u.readIntegrations) == 0 {
+		return []string{}
+	}
+	result := make([]string, 0, len(u.readIntegrations))
+	for id := range u.readIntegrations {
+		result = append(result, id)
+	}
+	sort.Strings(result)
+	return result
+}
+
 func (u *Upstreams) ConfigureReadSourceActions(config ReadSourceActionConfig) error {
 	values := map[string]string{
 		"exchange":  config.ExchangeURL,
@@ -141,13 +251,20 @@ func (u *Upstreams) ReadSources(observedAt time.Time) map[string]ReadSourceDescr
 			actionURL = u.readSourceActions[definition.ID]
 		}
 		statusAt := observedAt
+		contract, accepted := acceptedReadSourceContracts[definition.ID]
+		syncStatus := "owner-contract-pending"
+		errorMessage := "No owner-frozen read-only contract has been accepted by Finance"
+		if accepted && contract.Accepted {
+			syncStatus = "integration-unconfigured"
+			errorMessage = "Accepted owner contract is not configured with an integration endpoint"
+		}
 		result[definition.ID] = ReadSourceDescriptor{
 			ID:                      definition.ID,
 			Name:                    definition.Name,
 			Owner:                   definition.Owner,
 			Capability:              definition.Capability,
 			ConsumerEnvelopeVersion: ReadSourceEnvelopeVersion,
-			OwnerContractAccepted:   false,
+			OwnerContractAccepted:   accepted && contract.Accepted,
 			ReadOnly:                true,
 			Status: SourceStatus{
 				Available:  false,
@@ -156,8 +273,8 @@ func (u *Upstreams) ReadSources(observedAt time.Time) map[string]ReadSourceDescr
 				AsOf:       &statusAt,
 				AsOfKind:   "finance-contract-evaluated-at",
 				Coverage:   definition.Capability,
-				SyncStatus: "owner-contract-pending",
-				Error:      "No owner-frozen read-only contract has been accepted by Finance",
+				SyncStatus: syncStatus,
+				Error:      errorMessage,
 			},
 			Action: ReadSourceAction{
 				Label:                 definition.Action,
@@ -171,6 +288,82 @@ func (u *Upstreams) ReadSources(observedAt time.Time) map[string]ReadSourceDescr
 		}
 	}
 	return result
+}
+
+func (u *Upstreams) ReadSourcesForAccount(ctx context.Context, account string, observedAt time.Time) map[string]ReadSourceDescriptor {
+	result := u.ReadSources(observedAt)
+	if u == nil || u.readIntegrations == nil {
+		return result
+	}
+	for id, integration := range u.readIntegrations {
+		descriptor, ok := result[id]
+		if !ok {
+			continue
+		}
+		contract, accepted := acceptedReadSourceContracts[id]
+		if !accepted || !contract.Accepted {
+			continue
+		}
+		result[id] = u.readSourceForAccount(ctx, account, observedAt, id, integration, descriptor, contract)
+	}
+	return result
+}
+
+func (u *Upstreams) readSourceForAccount(ctx context.Context, account string, observedAt time.Time, id string, integration readSourceIntegration, descriptor ReadSourceDescriptor, contract AcceptedReadSourceContract) ReadSourceDescriptor {
+	endpoint := integration.URL + "/v1/integrations/finance/account"
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err == nil {
+		err = readintegration.Sign(request, integration.Key, "finance", id, account, observedAt)
+	}
+	if err != nil {
+		descriptor.Status.Source = endpoint
+		descriptor.Status.SyncStatus = "credential-generation-failed"
+		descriptor.Status.Error = err.Error()
+		return descriptor
+	}
+	client := u.client
+	if client == nil {
+		client = &http.Client{Timeout: 8 * time.Second}
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		descriptor.Status.Source = endpoint
+		descriptor.Status.SyncStatus = "owner-endpoint-unavailable"
+		descriptor.Status.Error = err.Error()
+		return descriptor
+	}
+	defer response.Body.Close()
+	body, readErr := io.ReadAll(io.LimitReader(response.Body, maxReadSourceEnvelopeBytes+1))
+	if readErr != nil || len(body) > maxReadSourceEnvelopeBytes || response.StatusCode != http.StatusOK {
+		descriptor.Status.Source = endpoint
+		descriptor.Status.SyncStatus = "owner-response-rejected"
+		if readErr != nil {
+			descriptor.Status.Error = readErr.Error()
+		} else if len(body) > maxReadSourceEnvelopeBytes {
+			descriptor.Status.Error = "owner response exceeds the Finance evidence limit"
+		} else {
+			descriptor.Status.Error = fmt.Sprintf("owner endpoint returned HTTP %d", response.StatusCode)
+		}
+		return descriptor
+	}
+	envelope, err := ValidateReadSourceEnvelope(body, account, contract, observedAt)
+	if err != nil {
+		descriptor.Status.Source = endpoint
+		descriptor.Status.SyncStatus = "owner-evidence-rejected"
+		descriptor.Status.Error = err.Error()
+		return descriptor
+	}
+	descriptor.Status = SourceStatus{
+		Available:  true,
+		Source:     endpoint,
+		Version:    envelope.OwnerContractVersion,
+		AsOf:       &envelope.AsOf,
+		AsOfKind:   envelope.AsOfKind,
+		Coverage:   envelope.Coverage,
+		SyncStatus: envelope.SyncStatus,
+	}
+	descriptor.Envelope = &envelope
+	return descriptor
 }
 
 func ValidateReadSourceEnvelope(raw []byte, expectedAccount string, contract AcceptedReadSourceContract, now time.Time) (ReadSourceEnvelope, error) {

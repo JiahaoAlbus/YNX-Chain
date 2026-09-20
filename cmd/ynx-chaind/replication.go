@@ -10,6 +10,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"runtime"
+	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,52 +30,69 @@ func startReplicationPolling(ctx context.Context, devnet *chain.Devnet, sourceUR
 		interval = 2 * time.Second
 	}
 	if client == nil {
-		timeout := envDurationOrDefault("YNX_REPLICATION_REQUEST_TIMEOUT", 45*time.Second)
+		timeout := envDurationOrDefault("YNX_REPLICATION_REQUEST_TIMEOUT", 4*time.Minute)
 		if timeout < 5*time.Second || timeout > 5*time.Minute {
-			timeout = 45 * time.Second
+			timeout = 4 * time.Minute
 		}
 		client = &http.Client{Timeout: timeout}
 	}
-	allowAuthoritativeRebase := true
 	poll := func() {
 		devnet.BeginReplicationAttempt()
-		payload, err := fetchReplicationSnapshot(ctx, client, sourceURL, key)
+		local := devnet.LatestBlock()
+		payload, err := fetchReplicationSnapshot(ctx, client, sourceURL, key, local.Height, local.Hash)
 		if err != nil {
 			devnet.RecordReplicationFailure("fetch", err)
 			log.Printf("authoritative replication fetch failed source=%s: %v", sourceURL, err)
 			return
 		}
-		result, err := devnet.ApplyReplicationSnapshotJSON(payload, allowAuthoritativeRebase)
+		result, err := devnet.ApplyReplicationBatchJSON(payload)
+		payload = nil
 		if err != nil {
 			devnet.RecordReplicationFailure("apply", err)
 			log.Printf("authoritative replication apply failed source=%s: %v", sourceURL, err)
 			return
 		}
 		devnet.RecordReplicationSuccess(result)
-		allowAuthoritativeRebase = false
+		if result.Applied && !result.Complete {
+			// Large public-history catch-up windows leave decoded transport and
+			// replaced slice backing arrays eligible for collection. Reclaim them
+			// before requesting the next suffix so 2 GiB recovery nodes do not
+			// accumulate several windows and enter swap/OOM churn. Steady-state
+			// synchronized polls do not pay this cost.
+			runtime.GC()
+			debug.FreeOSMemory()
+		}
 		if result.Applied {
 			log.Printf("authoritative replication applied source=%s height=%d hash=%s", sourceURL, result.Height, result.BlockHash)
 		}
 	}
-	ticker := time.NewTicker(interval)
 	go func() {
-		defer ticker.Stop()
 		defer devnet.StopReplicationRuntime()
-		poll()
 		for {
+			poll()
+			timer := time.NewTimer(interval)
 			select {
 			case <-ctx.Done():
+				if !timer.Stop() {
+					<-timer.C
+				}
 				return
-			case <-ticker.C:
-				poll()
+			case <-timer.C:
 			}
 		}
 	}()
 }
 
-func fetchReplicationSnapshot(ctx context.Context, client *http.Client, sourceURL, key string) ([]byte, error) {
-	endpoint := strings.TrimRight(sourceURL, "/") + "/internal/replication/snapshot"
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+func fetchReplicationSnapshot(ctx context.Context, client *http.Client, sourceURL, key string, afterHeight uint64, afterHash string) ([]byte, error) {
+	endpoint, err := url.Parse(strings.TrimRight(sourceURL, "/") + "/internal/replication/snapshot")
+	if err != nil {
+		return nil, err
+	}
+	query := endpoint.Query()
+	query.Set("afterHeight", strconv.FormatUint(afterHeight, 10))
+	query.Set("afterHash", afterHash)
+	endpoint.RawQuery = query.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
 	if err != nil {
 		return nil, err
 	}

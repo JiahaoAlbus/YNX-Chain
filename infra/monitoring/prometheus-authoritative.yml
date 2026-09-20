@@ -37,4 +37,13 @@ scrape_configs:
           service: ynx-chaind
           role: seoul
           transport: wireguard
-
+  - job_name: ynx-faucetd
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 127.0.0.1:6428
+        labels:
+          network: ynx-testnet
+          service: ynx-faucetd
+          role: primary
+          transport: loopback

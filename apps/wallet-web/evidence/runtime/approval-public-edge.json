@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b04765f112aca96cf7dff7cfa48f9b65a891166d",
+  "generatedAt": "2026-09-20T01:10:47.831Z",
+  "browser": {
+    "id": "edge",
+    "name": "Microsoft Edge",
+    "version": "153.0.4234.32",
+    "branded": true
+  },
+  "runtimeClass": "temporary unpacked extension in an isolated disposable profile",
+  "fixtureAuthority": "local HTTPS DApp with an immutable foreign MetaMask-shaped provider; no account, signature or transaction fixture implementation",
+  "artifact": {
+    "manifestSha256": "ebc91953130bf0c05e25ab5d378c5c6f1e06adf5047b27e1ef2a29ecdbd4aca9",
+    "pageProviderSha256": "03ab34029146cd37c8a7f13a4c25cbc33ebcf4bba7204058a7c0477eb0b35e8a",
+    "buildSourceCommit": "b04765f112aca96cf7dff7cfa48f9b65a891166d",
+    "publicArchive": {
+      "name": "ynx-wallet-chrome-edge-0.1.1.zip",
+      "bytes": 546266,
+      "sha256": "6e8094cc4031aad706d930b09fcf8297cb6bd004a0352a4d9fbd984c3ad3a2bd"
+    }
+  },
+  "passed": true,
+  "providerDiscovered": true,
+  "foreignProviderPreserved": true,
+  "vaultCreatedThroughUi": true,
+  "providerConnected": true,
+  "accountAuthorized": true,
+  "messageSigned": true,
+  "signatureRecovered": true,
+  "permissionRevoked": true,
+  "postRevokeDenied": true,
+  "transactionSubmitted": false,
+  "installedLocal": false,
+  "downloadHosted": true,
+  "productionSigned": false,
+  "storeReleased": false,
+  "serviceWorker": {
+    "started": true,
+    "url": "chrome-extension://agopmcobmhgimcgngahokbgicnffhhbd/service-worker.js"
+  },
+  "account": "0xbc34eca46ef6310ed8f070115316a89e0f321826",
+  "connectedAccounts": [
+    "0xbc34eca46ef6310ed8f070115316a89e0f321826"
+  ],
+  "signatureSha256": "d90c2092b44f29a1a85f0c59a23be5b1f1f13c433c9025d8772844bccc861721"
+}

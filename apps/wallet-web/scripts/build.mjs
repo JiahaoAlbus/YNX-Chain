@@ -1,0 +1,208 @@
+import {createHash} from "node:crypto";
+import {execFileSync} from "node:child_process";
+import {existsSync} from "node:fs";
+import {cp, mkdir, readFile, readdir, realpath, rm, stat, writeFile} from "node:fs/promises";
+import {dirname, join, resolve, sep} from "node:path";
+import {fileURLToPath} from "node:url";
+import {build as bundle} from "esbuild";
+import sharp from "sharp";
+import {createAuthorityReader} from "./build-authority.mjs";
+import {chromiumManifest, firefoxManifest} from "../src/extension-manifest.js";
+import {deriveWalletWebCompanionBinding} from "../src/core-auth-consumer.js";
+import {createWalletDownloadManifest} from "../src/download-manifest.js";
+
+export function compilePwaShell(inputFiles, workerTemplate) {
+  const files = Object.fromEntries(Object.entries(inputFiles).map(([name, bytes]) => [name, Buffer.from(bytes)]));
+  const digest = bytes => createHash("sha256").update(bytes).digest("hex");
+  // Hash the unresolved policy and unversioned HTML exactly once. The resulting
+  // ID is substituted before final integrity hashes; it never hashes itself.
+  const inputs = Object.entries({...files, "sw.js": Buffer.from(workerTemplate)}).sort(([a], [b]) => a.localeCompare(b));
+  const buildId = digest(JSON.stringify(inputs.map(([name, bytes]) => [name, digest(bytes)])));
+  const policy = files["service-worker-policy.js"]?.toString("utf8") ?? "";
+  if (policy.split("__YNX_PWA_BUILD_ID__").length !== 2) throw new Error("PWA policy build identity placeholder is missing or duplicated");
+  files["service-worker-policy.js"] = Buffer.from(policy.replace("__YNX_PWA_BUILD_ID__", buildId));
+  const html = files["index.html"]?.toString("utf8") ?? "";
+  if (!html.includes("</head>")) throw new Error("PWA navigation document is missing its head");
+  files["index.html"] = Buffer.from(html.replace("</head>", `<meta name="ynx-wallet-shell" content="${buildId}">\n</head>`));
+  const assetIntegrity = Object.fromEntries(Object.keys(files).sort().map(name => [`./${name}`, digest(files[name])]));
+  assetIntegrity["./"] = assetIntegrity["./index.html"];
+  files["asset-integrity.js"] = Buffer.from(`export const ASSET_INTEGRITY=Object.freeze(${JSON.stringify(assetIntegrity)});\n`);
+  files["sw.js"] = Buffer.from(`${workerTemplate}\n// verified-shell-sha256: ${digest(JSON.stringify(assetIntegrity))}\n`);
+  return {buildId, files, assetIntegrity};
+}
+
+// Validate the shipped directory, including imports below every JS entry point.
+// Resolving against source node_modules would hide bare imports that browsers cannot load.
+export async function validateExtensionModuleGraph(directory) {
+  const root = await realpath(resolve(directory)), manifest = JSON.parse(await readFile(join(root, "manifest.json"), "utf8"));
+  const localPath = (reference, base = root) => {
+    if (typeof reference !== "string" || !reference || /^[a-z]+:|^[\\/]/iu.test(reference)) throw new Error(`Invalid extension artifact reference: ${reference}`);
+    const path = resolve(base, reference);
+    if (!path.startsWith(`${root}${sep}`)) throw new Error(`Extension artifact reference escapes package: ${reference}`);
+    return path;
+  };
+  const references = [manifest.action?.default_popup, manifest.options_ui?.page, manifest.background?.service_worker,
+    ...(manifest.background?.scripts ?? []), ...Object.values(manifest.icons ?? {}),
+    ...(manifest.content_scripts ?? []).flatMap(script => [...(script.js ?? []), ...(script.css ?? [])])].filter(value => value !== undefined);
+  const files = await readdir(root, {recursive: true});
+  for (const file of files.filter(name => name.endsWith(".html"))) {
+    const html = await readFile(join(root, file), "utf8");
+    for (const match of html.matchAll(/<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/giu)) references.push(join(dirname(file), match[1]));
+  }
+  for (const reference of references) if (!(await stat(localPath(reference))).isFile()) throw new Error(`Missing extension artifact file: ${reference}`);
+  const result = await bundle({entryPoints: files.filter(name => name.endsWith(".js")).map(name => join(root, name)),
+    outdir: join(root, ".module-graph-validation"), bundle: true, write: false, metafile: true, platform: "browser", format: "esm", logLevel: "silent",
+    plugins: [{name: "artifact-local-imports", setup(build) {build.onResolve({filter: /.*/}, args => {
+      if (args.kind === "entry-point") return;
+      if (!args.path.startsWith(".")) throw new Error(`Extension artifact import must be relative: ${args.path}`);
+      localPath(args.path, dirname(args.importer));
+    });}}]});
+  return {entryPoints: files.filter(name => name.endsWith(".js")).length, modules: Object.keys(result.metafile.inputs).length, references: references.length};
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await buildAll();
+export async function buildAll({dist: outputDirectory, authorityFile = process.env.YNX_WALLET_WEB_AUTHORITY_FILE, authorityOutput, sourceCommit: requestedSourceCommit} = {}) {
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const dist = outputDirectory === undefined ? join(root, "dist") : resolve(outputDirectory);
+const repository=resolve(root,"..","..");
+const resolvedAuthorityFile=resolve(authorityFile ?? join(root,"build-authority.json"));
+const authorityArchiveBytes=await readFile(resolvedAuthorityFile);
+const authorityArchiveSha256=createHash("sha256").update(authorityArchiveBytes).digest("hex");
+const expectedAuthorityArchiveSha256="4a7eed2da6b1626cce94713a0d4420c56ebedef0d71ee39b7e2cd9bc6762ead7";
+if(authorityArchiveSha256!==expectedAuthorityArchiveSha256)throw new Error("Immutable Wallet build authority archive changed");
+const authorityReader=createAuthorityReader({archiveBytes:authorityArchiveBytes});
+// The committed archive is the build authority in every environment. A checkout
+// additionally proves each archived byte against a pinned Git commit when that
+// commit is present; a normal clone is not required to retain historical objects.
+const gitCheckout=existsSync(join(repository,".git"));
+const gitAuthorityReader=gitCheckout?createAuthorityReader({repository}):null;
+const walletAddressAuthorityBytes=await readFile(join(root,"vendor","wallet-address-authority.js"));
+const walletAddressAuthoritySha256=createHash("sha256").update(walletAddressAuthorityBytes).digest("hex");
+const expectedWalletAddressAuthoritySha256="df4bade31952f98602f51fbc9cbcb731bffe772da3d685b5be7ce895cb0e409f";
+const walletAuthSourceTree="8e50f7a52a614ea6d4c4a4d2988315d036ea0b25";
+const walletAddressWrapperBlob="fb0f96cc68df36c13eb6c9d92a59cb771ddd6b93";
+if(walletAddressAuthoritySha256!==expectedWalletAddressAuthoritySha256)throw new Error("Immutable Wallet address authority bundle changed");
+if(gitCheckout){
+  const currentWalletAddressWrapperBlob=execFileSync("git",["rev-parse","HEAD:apps/wallet-web/src/wallet-address.js"],{cwd:repository,encoding:"utf8"}).trim();
+  if(currentWalletAddressWrapperBlob!==walletAddressWrapperBlob)throw new Error("Wallet address authority wrapper identity changed");
+  const regenerated=await bundle({entryPoints:[join(root,"src","wallet-address.js")],bundle:true,write:false,format:"esm",platform:"browser",target:"es2022",legalComments:"none",minify:true,logLevel:"silent"});
+  if(regenerated.outputFiles.length!==1||!Buffer.from(regenerated.outputFiles[0].contents).equals(walletAddressAuthorityBytes))throw new Error("Wallet address authority bundle differs from verified local source");
+}
+const centralMobileCommit="d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59";
+const centralMobileContracts=[
+  {path:"release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",blob:"d402fcdc844aa39bd5ee351a99d93acb4852dc37",sha256:"d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"},
+  {path:"release/integration/wallet-auth-android-launcher-contract.json",blob:"83c9f91779701288861cff5e4dc6c487ffcdc26c",sha256:"d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"},
+];
+for(const contract of centralMobileContracts){
+  immutableObject(centralMobileCommit,contract);
+}
+const centralCallerCommit="38c9c0ce1400ad6ba8dc5e0c1aa1d657a6c9748d";
+const centralCallerContract={path:"release/integration/wallet-auth-android-launcher-contract.json",blob:"0e0d702f9245fae42daec7d0a3a3fd5fe83f9a42",sha256:"27449c80300acd463574d5d7bb016e2273cfd7d24f6669c9da00505559393a58"};
+const coreCommit="39c80021b87730a20569b61f6ccd3f80092523c4";
+const coreContracts=[
+  {path:"release/integration/wallet-auth-web-companion-registry-contract.json",blob:"a1db56d51f3afe795faace17e4e7bb51cae66ff7",sha256:"6584e439783d6c83e8aef712af95488e75cfa034c259d63356cb7bdc731f684f"},
+  {path:"packages/wallet-auth/product-session-registry.json",blob:"a59f7aba930e6643363e7c0b5bb27028c1ecc43a",sha256:"f8a25702bdc7e3bd12b0cdecd6ac513b0a3d3ac25832a112efbe6b788ff8de9b"},
+  {path:"packages/wallet-auth/src/product-session-recovery.js",blob:"9e5af333b5873a36ab0884917a21a17675b36456",sha256:"84ea01c9d36e2de70928e42881aaa33e4883dbbeeb0072a34e9849e72f6b824c"},
+  {path:"packages/wallet-auth/src/product-session-gateway-client.js",blob:"89b12a5f54725b2dfc2194495f228cc1b265bacf",sha256:"671f85b00b1f3a6e40d0c43e6a631d3e15edbe99cb242056be289b91f11a8ca0"},
+];
+const providerAuthorityCommit="98c6d5d784d212df8981a53b17118a511e246ad2";
+const providerAuthorityContracts=[
+  {path:"packages/wallet-auth/src/standard-wallet-connect-state.js",blob:"60879be26a4b4760dea53b38f76872045c421202",sha256:"72558116f22625c6e9abf363b9dd16a7b1b80c93d88099be531cb63e70a62b92"},
+  {path:"packages/wallet-auth/src/wallet-provider-discovery.js",blob:"38198077220584668a94649c7f36d6881bfab6fb",sha256:"94875a262b7422f3153ecfd7cbe4bde2c7884239bc9f1003a1e6f86ca74b08ed"},
+  {path:"packages/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs",blob:"bdbd1f80db502096ff204ce2c5db3afce311547d",sha256:"19682da2caa7020f5648e9fe8136f27813b41ba171fcdfc01e5f0fccc908c045"},
+];
+const providerEvidenceAuthorities=[
+  {commit:"0c9846e6856f53e6d0ec1bc7dd7b389fefb03441",path:"release/integration/wallet-provider-discovery-connect-state-p0-handoff-20260821.json",blob:"ec7f04bd0cec075a89e0ad95daf9bc844fdb18eb",sha256:"6ffa68a649ec32b9569b78045a665fd05a5454dc9327094316a969ecfc60697e"},
+  {commit:"c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",path:"release/integration/wallet-provider-discovery-connect-state-p0-handoff-20260821.json",blob:"745c85539b89f542b774c862e01ee847a438cec9",sha256:"2c3872882b2d88986cecafa6c08fc3a640d60039eb8dab29d3a088aaa6452f49"},
+  {commit:"d3831c300560507f64a50e73117bab7b85926d9a",path:"release/integration/wallet-provider-connect-pending-owner-handoffs-20260821.json",blob:"4e8a760b30fc4dd54cce2cde388515701592ddd3",sha256:"c79c82b0053120a5f492ce177c9100e8f60f07be52c97fe88ab6f9a2eff57854"},
+];
+const routerInteropCommit="9ab9cd8c8deac8563acff9ffd7e277553e20383e";
+const routerInteropContract={path:"release/integration/wallet-standard-connection-conformance-contract-p0-20260822.json",blob:"173cb99a6fa6b942f43c6dc8ee3a3b851e876525",sha256:"c59cc18de86a304be8de6ef7056e3e260e62156fe36fb0b76e021e38e096a2fe"};
+function immutableObject(commit,contract){
+  const archived=authorityReader.read(commit,contract);
+  if(gitAuthorityReader){
+    const repositoryBytes=gitAuthorityReader.readIfCommitAvailable(commit,contract);
+    if(repositoryBytes!==null&&!archived.equals(repositoryBytes))throw new Error(`Archived authority differs from Git: ${commit}:${contract.path}`);
+  }
+  return archived;
+}
+const centralCaller=JSON.parse(immutableObject(centralCallerCommit,centralCallerContract));
+if(centralCaller?.authority?.walletPackage!=="com.ynxweb4.wallet"||centralCaller?.authority?.uriTemplate!=="ynxwallet://authorize?request=<base64url-canonical-authorization-request>"||centralCaller?.sharedCallerRequirements?.singleBuilder!=="@ynx-chain/wallet-auth encodeRequestDeepLink")throw new Error("Central caller authority mismatch");
+const [coreContractBytes]=coreContracts.map((contract)=>immutableObject(coreCommit,contract));
+providerAuthorityContracts.forEach((contract)=>immutableObject(providerAuthorityCommit,contract));
+providerEvidenceAuthorities.forEach(({commit,...contract})=>immutableObject(commit,contract));
+const routerInterop=JSON.parse(immutableObject(routerInteropCommit,routerInteropContract));
+const expectedInteropProfiles=["ynx-first-party","uniswap-interface-reference","opensea-reference","safe-reference","walletconnect-v2-reference"];
+if(routerInterop?.version!=="standardWalletConformance@1.0.0-p0.0"||routerInterop?.authoritativeInputs?.sharedProvider?.commit!==providerAuthorityCommit||routerInterop?.layering?.directBrowserRpcFetchIsPrerequisite!==false||routerInterop?.layering?.productSessionFailure?.standardConnection!=="CONNECTED"||routerInterop?.layering?.productSessionFailure?.privateService!=="DEGRADED"||JSON.stringify(routerInterop?.chain)!==JSON.stringify({cosmosChainId:"ynx_6423-1",evmChainId:6423,evmChainHex:"0x1917",nativeSymbol:"YNXT",defaultLanguage:"en"})||routerInterop?.executableInteropFixture?.fixtureOnly!==true||JSON.stringify(routerInterop?.executableInteropFixture?.profiles)!==JSON.stringify(expectedInteropProfiles)||!routerInterop?.requiredDirectEvidenceBeforePromotion?.includes("three independently opened non-YNX standard EVM DApps plus a first-party DApp"))throw new Error("Router Standard EVM interop authority mismatch");
+const coreAuthBinding=deriveWalletWebCompanionBinding(JSON.parse(coreContractBytes),{
+  coreCommit,coreContractBlob:coreContracts[0].blob,centralCallerCommit,centralCallerBlob:centralCallerContract.blob,
+  publicGatewayRegistryReady:false,trustedRuntimeAvailable:false,
+});
+const verifiedAuthorities=authorityReader.finish();
+gitAuthorityReader?.finish();
+if(authorityOutput!==undefined)await writeFile(authorityOutput,`${JSON.stringify(verifiedAuthorities,null,2)}\n`);
+const pwaOnly = process.argv.includes("--pwa-only");
+await rm(pwaOnly ? join(dist,"pwa") : dist, {recursive: true, force: true});
+await mkdir(join(dist, "pwa"), {recursive: true});
+const suppliedSourceCommit=requestedSourceCommit||process.env.YNX_WALLET_WEB_SOURCE_COMMIT||process.env.VERCEL_GIT_COMMIT_SHA;
+if(!gitCheckout&&!/^[0-9a-f]{40}$/u.test(suppliedSourceCommit||""))throw new Error("A gitless Wallet build requires an exact source commit");
+if(gitCheckout&&suppliedSourceCommit){
+  if(!/^[0-9a-f]{40}$/u.test(suppliedSourceCommit))throw new Error("Wallet build source commit is invalid");
+  const checkoutCommit=execFileSync("git",["rev-parse","HEAD"],{cwd:repository,encoding:"utf8"}).trim();
+  if(checkoutCommit!==suppliedSourceCommit)throw new Error("Wallet build source commit differs from checkout");
+}
+const sourceCommit=suppliedSourceCommit||"uncommitted-source-tree";
+const buildIdentity={schemaVersion:1,product:"YNX Wallet Companion",sourceCommit,providerAuthorityCommit,providerEvidenceCommit:"d3831c300560507f64a50e73117bab7b85926d9a",authorityArchiveSha256,authorityRecordCount:verifiedAuthorities.records.length,walletAddressAuthoritySha256,walletAuthSourceTree,walletAddressWrapperBlob,chainId:"0x1917"};
+await writeFile(join(dist,"pwa","build-identity.json"),`${JSON.stringify(buildIdentity)}\n`);
+await writeFile(join(dist,"pwa","download-manifest.json"),`${JSON.stringify(createWalletDownloadManifest({sourceCommit}),null,2)}\n`);
+await writeFile(join(dist,"pwa","core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
+for (const file of ["index.html", "manifest.webmanifest", "sw.js", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(dist, "pwa", file));
+for (const file of ["provider.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
+await writeFile(join(dist,"pwa","wallet-address.js"),walletAddressAuthorityBytes);
+await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "service-worker-policy.js"));
+for(const icon of ["ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png"])await cp(join(root,"public",icon),join(dist,"pwa",icon));
+const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","wallet-address.js","extension-fee-model.js", "extension-durability.js","transaction-input.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","standard-wallet-connect-state.js","core-auth-binding.js","service-worker-policy.js","build-identity.json","download-manifest.json","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"];
+const pwaInputs=Object.fromEntries(await Promise.all(pwaIntegrityFiles.map(async file=>[file,await readFile(join(dist,"pwa",file))])));
+const compiled=compilePwaShell(pwaInputs,await readFile(join(root,"public","sw.js"),"utf8"));
+for(const [file,bytes] of Object.entries(compiled.files))await writeFile(join(dist,"pwa",file),bytes);
+if(pwaOnly){console.log(`Built PWA shell ${compiled.buildId}`);return;}
+
+const variants = [
+  ["chromium", chromiumManifest],
+  ["firefox", firefoxManifest],
+];
+const logoBytes=await readFile(join(root,"public","ynx-logo.png"));
+if(createHash("sha256").update(logoBytes).digest("hex")!=="38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde")throw new Error("Approved YNX logo source changed");
+const manifestIcon=await sharp(logoBytes).resize(128,128,{fit:"contain",kernel:"lanczos3",background:{r:0,g:0,b:0,alpha:0}}).png({compressionLevel:9,adaptiveFiltering:false,palette:false}).toBuffer();
+for (const [name, manifest] of variants) {
+  const target = join(dist, name); await mkdir(target, {recursive: true});
+  for (const file of ["index.html", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
+  for (const file of ["approval.html","approval.css","approval.js","vault.html","vault.css","vault.js","signer.html","signer.css","signer.js"]) await cp(join(root,"extension",file),join(target,file));
+  for (const file of ["provider.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(target, file));
+  await writeFile(join(target,"wallet-address.js"),walletAddressAuthorityBytes);
+  await cp(join(root, "src", "service-worker-policy.js"), join(target, "service-worker-policy.js"));
+  for (const file of ["service-worker.js", "content-script.js", "page-provider.js"]) await cp(join(root, "extension", file), join(target, file));
+  await cp(join(root, "src", "extension-bridge.js"), join(target, "extension-bridge.js"));
+  await cp(join(root, "src", "extension-rpc.js"), join(target, "extension-rpc.js"));
+  await cp(join(root, "src", "extension-provider-permissions.js"), join(target, "extension-provider-permissions.js"));
+  await bundle({entryPoints:[join(root,"src","extension-vault.js")],outfile:join(target,"extension-vault.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
+  await bundle({entryPoints:[join(root,"src","extension-broadcast-journal.js")],outfile:join(target,"extension-broadcast-journal.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
+  await bundle({entryPoints:[join(root,"src","extension-signer.js")],outfile:join(target,"extension-signer.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
+  await cp(join(root, "src", "core-auth-consumer.js"), join(target, "core-auth-consumer.js"));
+  await cp(join(root, "src", "extension-sensitive-policy.js"), join(target, "extension-sensitive-policy.js"));
+  await cp(join(root, "src", "active-tab-policy.js"), join(target, "active-tab-policy.js"));
+  await cp(join(root, "src", "extension-migration.js"), join(target, "extension-migration.js"));
+  await writeFile(join(target,"core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
+  await writeFile(join(target,"build-identity.json"),`${JSON.stringify(buildIdentity)}\n`);
+  await cp(join(root, "public", "ynx-logo.png"), join(target, "ynx-logo.png"));
+  await writeFile(join(target,"ynx-icon-128.png"),manifestIcon);
+  const providerSource=await readFile(join(target,"page-provider.js"),"utf8"),providerIcon=`data:image/png;base64,${(await readFile(join(root,"public","ynx-logo.png"))).toString("base64")}`;
+  if(!providerSource.includes("__YNX_PROVIDER_ICON_DATA_URI__"))throw new Error("YNX Provider icon placeholder missing");
+  await writeFile(join(target,"page-provider.js"),providerSource.replace("__YNX_PROVIDER_ICON_DATA_URI__",providerIcon));
+  const html = (await readFile(join(target, "index.html"), "utf8")).replace('<link rel="manifest" href="./manifest.webmanifest">', "");
+  await writeFile(join(target, "index.html"), html);
+  await writeFile(join(target, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+  await validateExtensionModuleGraph(target);
+}
+console.log("Built PWA plus unsigned Chromium (Chrome/Edge) and Firefox extension directories.");
+}

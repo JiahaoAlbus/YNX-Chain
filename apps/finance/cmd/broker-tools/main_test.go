@@ -1,0 +1,160 @@
+package main
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/finance"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/finance/brokerage"
+)
+
+func TestCommandsRequireExplicitReadonlyNetworkAndNeverClaimWorkflowVerified(t *testing.T) {
+	for _, mode := range []string{"doctor", "sandbox-verify"} {
+		for _, network := range []bool{false, true} {
+			for _, configured := range []bool{false, true} {
+				args := []string{mode}
+				if network {
+					args = append(args, "--network-read-only")
+				}
+				calls := 0
+				var output bytes.Buffer
+				get := func(k string) string {
+					if !configured {
+						return ""
+					}
+					switch k {
+					case "FINANCE_TRADING_ENABLED":
+						return "true"
+					case "ALPACA_BROKER_CLIENT_ID":
+						return "fixture-id"
+					case "ALPACA_BROKER_CLIENT_SECRET":
+						return "fixture-secret"
+					}
+					return ""
+				}
+				probe := func(context.Context, brokerage.Config) (verificationResult, error) {
+					calls++
+					return verificationResult{Assets: brokerage.AssetResult{Provider: brokerage.Provider, Environment: "sandbox", Assets: []brokerage.Asset{}, RequestID: "fixture-request"}, Snapshot: brokerage.AccountSnapshot{Account: brokerage.Account{ID: "fixture-account"}}, Quote: brokerage.Quote{Symbol: "ACME"}, StoreMode: "file-cas-single-host"}, nil
+				}
+				rc := runWith(args, get, probe, &output)
+				var got map[string]any
+				if json.Unmarshal(output.Bytes(), &got) != nil {
+					t.Fatal(output.String())
+				}
+				expected := 0
+				if network && configured {
+					expected = 1
+				}
+				if calls != expected || got["officialSandboxVerified"] != false || got["writeAttempted"] != false || strings.Contains(output.String(), "fixture-secret") {
+					t.Fatal(args, calls, rc, output.String())
+				}
+				if expected == 1 && (rc != 0 || got["result"] != "BROKER_OWNER_READS_VERIFIED_ONLY" || got["accountLinkVerified"] != true || got["dataEntitlementVerified"] != true) {
+					t.Fatal(output.String())
+				}
+			}
+		}
+	}
+}
+
+func TestActivationPlanRequiresReceiptButNeverTouchesNetworkOrWrites(t *testing.T) {
+	for _, receipt := range []string{"", strings.Repeat("a", 64)} {
+		calls := 0
+		var output bytes.Buffer
+		get := func(key string) string {
+			switch key {
+			case "FINANCE_TRADING_ENABLED", "FINANCE_SANDBOX_WRITES_ENABLED":
+				return "true"
+			case "FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256":
+				return receipt
+			case "ALPACA_BROKER_CLIENT_ID":
+				return "fixture-id"
+			case "ALPACA_BROKER_CLIENT_SECRET":
+				return "fixture-secret"
+			}
+			return ""
+		}
+		rc := runWith([]string{"activation-plan"}, get, func(context.Context, brokerage.Config) (verificationResult, error) {
+			calls++
+			return verificationResult{}, nil
+		}, &output)
+		var report map[string]any
+		if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+			t.Fatal(err)
+		}
+		if calls != 0 || report["networkAttempted"] != false || report["writeAttempted"] != false || strings.Contains(output.String(), "fixture-secret") {
+			t.Fatalf("rc=%d report=%s", rc, output.String())
+		}
+		if receipt == "" && rc != 2 {
+			t.Fatalf("missing receipt rc=%d report=%s", rc, output.String())
+		}
+		if receipt != "" && (rc != 2 || report["result"] != "SANDBOX_WRITE_ACTIVATION_BLOCKED") {
+			t.Fatalf("configured rc=%d report=%s", rc, output.String())
+		}
+	}
+}
+
+func TestActivationPlanRequiresCredentialIndependentLocalReadiness(t *testing.T) {
+	values := map[string]string{
+		"FINANCE_TRADING_ENABLED":                         "true",
+		"FINANCE_SANDBOX_WRITES_ENABLED":                  "true",
+		"FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256": strings.Repeat("a", 64),
+		"ALPACA_BROKER_CLIENT_ID":                         "fixture-id",
+		"ALPACA_BROKER_CLIENT_SECRET":                     "fixture-secret",
+		"YNX_FINANCE_STATE_PATH":                          "/protected/finance-state.json",
+		"YNX_FINANCE_BROKER_VERIFY_ACCOUNT":               "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+		"YNX_FINANCE_BROKER_MAX_FEE_USD":                  "1",
+		"YNX_FINANCE_BROKER_FEE_BOUND_SOURCE":             "operator_policy",
+		"YNX_FINANCE_BROKER_FEE_EVIDENCE_REF":             "operator-policy:weekly-v3",
+	}
+	get := func(key string) string { return values[key] }
+	networkCalls, readinessCalls := 0, 0
+	var output bytes.Buffer
+	rc := runWithReadiness([]string{"activation-plan", "--local-read-only"}, get, func(context.Context, brokerage.Config) (verificationResult, error) {
+		networkCalls++
+		return verificationResult{}, nil
+	}, func(_ context.Context, path, databaseURL, account string, _ time.Time) (finance.BrokerActivationReadiness, error) {
+		readinessCalls++
+		if path != values["YNX_FINANCE_STATE_PATH"] || databaseURL != "" || account != values["YNX_FINANCE_BROKER_VERIFY_ACCOUNT"] {
+			t.Fatalf("unexpected readiness inputs: %q %q %q", path, databaseURL, account)
+		}
+		return finance.BrokerActivationReadiness{StateBackend: "file-cas-single-host", MappingActive: true, WalletKeyLinked: true, ExecutionRequested: 1, TotalOrders: 1, ReadyForWorkerDispatch: true}, nil
+	}, &output)
+	var report map[string]any
+	if err := json.Unmarshal(output.Bytes(), &report); err != nil {
+		t.Fatal(err)
+	}
+	if rc != 0 || networkCalls != 0 || readinessCalls != 1 || report["networkAttempted"] != false || report["localReadOnlyAttempted"] != true || report["writeAttempted"] != false || report["result"] != "SANDBOX_WRITE_CONFIGURATION_READY_NOT_EXECUTED" || strings.Contains(output.String(), "fixture-secret") {
+		t.Fatalf("rc=%d network=%d readiness=%d report=%s", rc, networkCalls, readinessCalls, output.String())
+	}
+	readiness, ok := report["localReadiness"].(map[string]any)
+	if !ok || readiness["readyForWorkerDispatch"] != true || readiness["executionRequested"] != float64(1) {
+		t.Fatalf("missing exact local readiness: %s", output.String())
+	}
+}
+
+func TestActivationPlanLocalReadinessFailureNeverFallsBackToNetwork(t *testing.T) {
+	values := map[string]string{
+		"FINANCE_TRADING_ENABLED":             "true",
+		"ALPACA_BROKER_CLIENT_ID":             "fixture-id",
+		"ALPACA_BROKER_CLIENT_SECRET":         "fixture-secret",
+		"YNX_FINANCE_BROKER_MAX_FEE_USD":      "1",
+		"YNX_FINANCE_BROKER_FEE_BOUND_SOURCE": "operator_policy",
+		"YNX_FINANCE_BROKER_FEE_EVIDENCE_REF": "operator-policy:weekly-v3",
+	}
+	var output bytes.Buffer
+	networkCalls := 0
+	rc := runWithReadiness([]string{"activation-plan", "--local-read-only"}, func(key string) string { return values[key] }, func(context.Context, brokerage.Config) (verificationResult, error) {
+		networkCalls++
+		return verificationResult{}, nil
+	}, func(context.Context, string, string, string, time.Time) (finance.BrokerActivationReadiness, error) {
+		return finance.BrokerActivationReadiness{}, errors.New("state unavailable")
+	}, &output)
+	if rc != 2 || networkCalls != 0 || !strings.Contains(output.String(), `"localReadinessResult":"LOCAL_READINESS_UNAVAILABLE"`) || strings.Contains(output.String(), "fixture-secret") {
+		t.Fatalf("rc=%d network=%d report=%s", rc, networkCalls, output.String())
+	}
+}

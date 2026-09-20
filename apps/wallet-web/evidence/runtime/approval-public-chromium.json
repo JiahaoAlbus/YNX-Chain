@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b04765f112aca96cf7dff7cfa48f9b65a891166d",
+  "generatedAt": "2026-09-20T01:10:49.839Z",
+  "browser": {
+    "id": "chromium",
+    "name": "Chrome for Testing",
+    "version": "151.0.7922.34",
+    "branded": false
+  },
+  "runtimeClass": "temporary unpacked extension in an isolated disposable profile",
+  "fixtureAuthority": "local HTTPS DApp with an immutable foreign MetaMask-shaped provider; no account, signature or transaction fixture implementation",
+  "artifact": {
+    "manifestSha256": "ebc91953130bf0c05e25ab5d378c5c6f1e06adf5047b27e1ef2a29ecdbd4aca9",
+    "pageProviderSha256": "03ab34029146cd37c8a7f13a4c25cbc33ebcf4bba7204058a7c0477eb0b35e8a",
+    "buildSourceCommit": "b04765f112aca96cf7dff7cfa48f9b65a891166d",
+    "publicArchive": {
+      "name": "ynx-wallet-chrome-edge-0.1.1.zip",
+      "bytes": 546266,
+      "sha256": "6e8094cc4031aad706d930b09fcf8297cb6bd004a0352a4d9fbd984c3ad3a2bd"
+    }
+  },
+  "passed": true,
+  "providerDiscovered": true,
+  "foreignProviderPreserved": true,
+  "vaultCreatedThroughUi": true,
+  "providerConnected": true,
+  "accountAuthorized": true,
+  "messageSigned": true,
+  "signatureRecovered": true,
+  "permissionRevoked": true,
+  "postRevokeDenied": true,
+  "transactionSubmitted": false,
+  "installedLocal": false,
+  "downloadHosted": true,
+  "productionSigned": false,
+  "storeReleased": false,
+  "serviceWorker": {
+    "started": true,
+    "url": "chrome-extension://cfhbldbbmiiabpebboolncjkamjojkel/service-worker.js"
+  },
+  "account": "0xe8dcbee9b51a522ec839aa8a39476321c41eff8d",
+  "connectedAccounts": [
+    "0xe8dcbee9b51a522ec839aa8a39476321c41eff8d"
+  ],
+  "signatureSha256": "1035dd802ac5ac837fae4f026193254f0a326aa1e3c2ba83ac65e10c378b73d6"
+}

@@ -7,14 +7,16 @@ Reviewed 2026-07-29 for the 1.2.0 Testnet candidate.
 - Native request, callback parsing, approval verification, request digest and P-256 product-device proof delegate to the shared canonical Wallet package.
 - The edge Gateway verifies exact registry bindings, scopes, expiry and nonce once, issues an opaque scoped token, provides internal-key-protected introspection/revoke routes and rejects tamper/replay.
 - The Go API accepts no address identity or locally signed assertion. Every request introspects the bearer session and verifies verifier, session/request bindings, client, bundle, account, scopes and expiry.
-- Local edge replay/revocation state is in memory. A production deployment must use shared persistent storage before `gatewayDeployed` or `integratedCentral` can become true.
+- Public Testnet Gateway replay/revocation state is in memory. A production
+  Gateway must use shared persistent storage; `integratedCentral` also remains
+  false until the installed strong-biometric approval/callback flow passes.
 
 ## Data protection and privacy
 
 - Finance never requests seed phrases, recovery material or transaction signatures.
 - Stored data is account-scoped planning state and audit metadata; atomic JSON persistence uses mode `0600`.
 - Request bodies, JSON schema and source record ownership are bounded and validated. Browser policy disables camera, microphone, geolocation and payment APIs and applies CSP/frame/origin protections.
-- AI context requires a privacy toggle, selected owned Explorer records and fresh consent. Draft/provider data can be cancelled or deleted; only a minimal deletion audit event remains.
+- AI context requires a privacy toggle and fresh consent. General activity workflows require 1–50 selected owned Explorer records. A full strict securities intent may use an explicit empty chain context when Explorer is unavailable or a new Broker user has no activity; the request states that absence and never fabricates activity. Draft/provider data can be cancelled or deleted; only a minimal deletion audit event remains.
 - Account deletion requires exact confirmation and removes the account state while retaining only a minimal `account.deleted` audit event.
 
 ## Recovery

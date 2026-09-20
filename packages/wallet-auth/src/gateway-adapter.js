@@ -1,4 +1,5 @@
 import { exactFields, WalletAuthError } from "./canonical.js";
+import { assertClientLifecycleActive, assertSessionClientActive, ClientRetiredError, retirementMatchesAuthorization } from "./client-retirement.js";
 import { CentralWalletSessionStore, parseCentralWalletStoreSnapshot } from "./lifecycle.js";
 import { StrategyMandateStore, parseStrategyMandateStoreSnapshot } from "./mandate-lifecycle.js";
 import { parseStrategyAction, parseStrategyMandate } from "./mandate.js";
@@ -16,7 +17,7 @@ const MANDATE_ACTIVATE_FIELDS = ["proof", "mandate"];
 const MANDATE_ACTION_FIELDS = ["proof", "mandateId", "action"];
 const MANDATE_TERMINAL_FIELDS = ["proof", "mandateId"];
 const MANDATE_EXIT_FIELDS = ["proof", "mandateId", "reason"];
-const REQUEST_FIELDS = ["method", "path", "bodyDigest"];
+const REQUEST_FIELDS = ["method", "path", "bodyDigest", "origin"];
 
 export class CanonicalWalletGatewayAdapter {
   #registry;
@@ -38,6 +39,8 @@ export class CanonicalWalletGatewayAdapter {
     exactFields(input, COMPLETE_FIELDS, "Canonical Gateway completion input");
     const client = input.authorizationRequest?.productClientId;
     if (typeof client !== "string") fail("UNKNOWN_PRODUCT", "Canonical Gateway request has no product client");
+    const retirement = this.#registry.retiredClients.find(record => retirementMatchesAuthorization(record, input.authorizationRequest));
+    if (retirement) throw new ClientRetiredError(retirement);
     const registration = this.#registry.products.find(product => product.productClientId === client);
     if (!registration) fail("UNKNOWN_PRODUCT", "Canonical Gateway product client is not registered");
     const registryEntry = centralProtocolEntry(registration);
@@ -188,6 +191,7 @@ export class CanonicalWalletGatewayAdapter {
       productClientId: proof.productClientId,
       bundleId: proof.bundleId,
       productDeviceKey: proof.productDeviceKey,
+      origin: proof.origin,
       requiredScopes,
     }, at);
     return Object.freeze({ proof, session: result.session, result });
@@ -196,6 +200,10 @@ export class CanonicalWalletGatewayAdapter {
   #sessionForProof(proofInput) {
     const session = this.#store.snapshot().sessions.find(item => item.sessionBinding === proofInput?.sessionBinding);
     if (!session) fail("SESSION_NOT_FOUND", "Canonical Gateway Product Session was not found");
+    assertSessionClientActive(session, this.#registry.retiredClients);
+    const registration = this.#registry.products.find((product) => product.productClientId === session.productClientId && product.bundleId === session.bundleId && product.callbacks.includes(session.callback));
+    if (!registration) fail("UNKNOWN_PRODUCT", "Canonical Gateway Product Session registration was not found");
+    assertClientLifecycleActive(registration);
     return session;
   }
 
@@ -208,6 +216,37 @@ export class CanonicalWalletGatewayAdapter {
     this.#proofs.push(productSessionProofDigest(proof));
     this.#proofs.sort();
   }
+}
+
+export function applyClientRetirementToGatewaySnapshot(registryInput, snapshot, productId, clientId, at = new Date()) {
+  const registry = parseCentralRegistryDocument(registryInput);
+  const candidates = registry.retiredClients.filter((record) => record.productId === productId && (clientId === undefined || record.clientId === clientId));
+  if (candidates.length !== 1) fail(candidates.length === 0 ? "UNKNOWN_PRODUCT" : "INVALID_REGISTRY", "Canonical Gateway retirement client is not uniquely registered");
+  const retirement = candidates[0];
+  const parsed = snapshot === undefined
+    ? emptySnapshot(registry.registryVersion)
+    : parseGatewayAdapterSnapshotForRetirement(snapshot, registry.registryVersion);
+  const store = new CentralWalletSessionStore(parsed.sessionStore);
+  const result = store.retireClient(retirement, at);
+  return Object.freeze({
+    result,
+    snapshot: Object.freeze({
+      schemaVersion: CANONICAL_GATEWAY_ADAPTER_SCHEMA_VERSION,
+      registryVersion: parsed.registryVersion,
+      sessionStore: store.snapshot(),
+      consumedProductProofs: parsed.consumedProductProofs,
+      mandateStore: parsed.mandateStore,
+    }),
+  });
+}
+
+function parseGatewayAdapterSnapshotForRetirement(snapshot, registryVersion) {
+  if (snapshot?.registryVersion === registryVersion) return parseGatewayAdapterSnapshot(snapshot, registryVersion);
+  if (registryVersion === 3 && snapshot?.registryVersion === 2) {
+    const parsed = parseGatewayAdapterSnapshot(snapshot, 2);
+    return Object.freeze({ ...parsed, registryVersion: 3 });
+  }
+  fail("INVALID_STORE", "Canonical Gateway snapshot registry version cannot be migrated for client retirement");
 }
 
 export function parseGatewayAdapterSnapshot(input, registryVersion) {
@@ -276,7 +315,7 @@ function assertSessionSubject(subject, session) {
 
 function parseRequest(input) {
   exactFields(input, REQUEST_FIELDS, "Canonical Gateway HTTP request context");
-  return Object.freeze({ method: input.method, path: input.path, bodyDigest: input.bodyDigest });
+  return Object.freeze({ method: input.method, path: input.path, bodyDigest: input.bodyDigest, origin: input.origin });
 }
 
 function fail(code, message) {

@@ -1,0 +1,75 @@
+{
+  "sourceCommit": "673522fe126b5b87f91c6790ca7bea0eb574f2e8",
+  "now": "2026-09-12T09:00:00.000Z",
+  "requiredScopes": [
+    "finance.pay.read"
+  ],
+  "proofHeader": "eyJhY2NvdW50IjoieW54MTBlMDUyNXNmcmY1M3loMmFsam1tM3NuOWpxNW5qazdsbHFobjgwIiwiYXBwbGljYXRpb25JZCI6ImNvbS55bnh3ZWI0LmZpbmFuY2Uud2ViIiwiYm9keURpZ2VzdCI6IjcyN2IyMmRlMTc2OWRhZGQ5OGUzZDE2NzQ5NzlkMzVhNWY3NzRkYjRmYzBiNWJiOTBhNGI2YzgxNmM3NWVhZjUiLCJidW5kbGVJZCI6bnVsbCwiY2FsbGJhY2siOiJodHRwczovL2ZpbmFuY2UueW54d2ViNC5jb20vd2FsbGV0LWF1dGgvY2FsbGJhY2siLCJjbGllbnRJZCI6InlueC1maW5hbmNlLXYxIiwiZGV2aWNlSWQiOiJnby1pbnRlcm9wLWRldmljZS0wMDEiLCJkZXZpY2VLZXkiOiJBbUk4c25zcVJibW1FOEFORmw3YjRJS1RIdzNFUmltUDRuX3RTekVTRXFOMSIsImV4cGlyZXNBdCI6IjIwMjYtMDktMTJUMDk6MDA6MzAuMDAwWiIsImlzc3VlZEF0IjoiMjAyNi0wOS0xMlQwOTowMDowMC4wMDBaIiwibWV0aG9kIjoiUE9TVCIsIm5vbmNlIjoiMndHSWFTQ2VlaGwyY3d5V0ZQRU16NEFLM3RPbHdab1l6dHFDU1g1eHJaUSIsIm9yaWdpbiI6Imh0dHBzOi8vZmluYW5jZS55bnh3ZWI0LmNvbSIsInBhY2thZ2VJZCI6bnVsbCwicGF0aCI6Ii92Mi9wcm9kdWN0LXNlc3Npb25zL2ludHJvc3BlY3QiLCJwcm9kdWN0SWQiOiJmaW5hbmNlIiwic2Vzc2lvbkJpbmRpbmciOiI0MzA5NmI1MTlkOTJjODEzYWI4YWMwMWI0NTBjZDMzMmIwNjgxMDBiNzc0OWYyNjA0NDdkYWViYmMyZDVmMGM5Iiwic2lnbmF0dXJlIjoiTUVVQ0lRRF9ZQ2ZtQXpfdEw4NU1QWE14dHRLaXl4VUpybkw0a3VmZC1ySzBzcVNoQUFJZ1VMZVNkQjRDYWhEcWd1Yk44M1Nldnk2bDk4QXlyVk93OHFheDRzdGY0SjQiLCJ2ZXJzaW9uIjoiMiJ9",
+  "proof": {
+    "version": "2",
+    "sessionBinding": "43096b519d92c813ab8ac01b450cd332b068100b7749f260447daebbc2d5f0c9",
+    "productId": "finance",
+    "clientId": "ynx-finance-v1",
+    "applicationId": "com.ynxweb4.finance.web",
+    "bundleId": null,
+    "packageId": null,
+    "origin": "https://finance.ynxweb4.com",
+    "callback": "https://finance.ynxweb4.com/wallet-auth/callback",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "deviceId": "go-interop-device-001",
+    "deviceKey": "AmI8snsqRbmmE8ANFl7b4IKTHw3ERimP4n_tSzESEqN1",
+    "method": "POST",
+    "path": "/v2/product-sessions/introspect",
+    "bodyDigest": "727b22de1769dadd98e3d1674979d35a5f774db4fc0b5bb90a4b6c816c75eaf5",
+    "nonce": "2wGIaSCeehl2cwyWFPEMz4AK3tOlwZoYztqCSX5xrZQ",
+    "issuedAt": "2026-09-12T09:00:00.000Z",
+    "expiresAt": "2026-09-12T09:00:30.000Z",
+    "signature": "MEUCIQD_YCfmAz_tL85MPXMxttKiyxUJrnL4kufd-rK0sqShAAIgULeSdB4CahDqgubN83Sevy6l98AyrVOw8qax4stf4J4"
+  },
+  "session": {
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "applicationId": "com.ynxweb4.finance.web",
+    "approvalDigest": "07bbba674b0dcfbbca7b3fac05e6007be5b87884c2acafdf6d10245625a4d8ff",
+    "bundleId": null,
+    "callback": "https://finance.ynxweb4.com/wallet-auth/callback",
+    "chainId": "ynx_6423-1",
+    "clientId": "ynx-finance-v1",
+    "deviceAlgorithm": "p256-sha256",
+    "deviceBinding": "a03b92a02c853952ec3f5f0cee7a3112baced94ee802a33b10bf7100d970bda5",
+    "deviceId": "go-interop-device-001",
+    "deviceKey": "AmI8snsqRbmmE8ANFl7b4IKTHw3ERimP4n_tSzESEqN1",
+    "expiresAt": "2026-09-12T09:03:00.000Z",
+    "issuedAt": "2026-09-12T09:00:00.000Z",
+    "nonce": "Jpl6VTpyu_SJfjo1nWMhyYIlffO23vvBalSWdvQnd1M",
+    "origin": "https://finance.ynxweb4.com",
+    "packageId": null,
+    "platform": "web",
+    "productId": "finance",
+    "requestDigest": "4a743b56bbd0a567fe00e6416597d27fc90a59c0e49fa1cc6e91f9c6c66aba72",
+    "scopes": [
+      "finance.pay.read",
+      "finance.portfolio.read"
+    ],
+    "sessionBinding": "43096b519d92c813ab8ac01b450cd332b068100b7749f260447daebbc2d5f0c9",
+    "state": "yYND_KuC6GZsn7cWde9TC-WS42tP4XPS0j98Pq_M-Fk",
+    "version": "2"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "cache-control": "no-store",
+      "content-type": "application/json; charset=utf-8",
+      "x-request-id": "req_go_introspect_001"
+    },
+    "body": "{\"ok\":true,\"requestId\":\"req_go_introspect_001\",\"result\":{\"active\":true,\"session\":{\"account\":\"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80\",\"applicationId\":\"com.ynxweb4.finance.web\",\"approvalDigest\":\"07bbba674b0dcfbbca7b3fac05e6007be5b87884c2acafdf6d10245625a4d8ff\",\"bundleId\":null,\"callback\":\"https://finance.ynxweb4.com/wallet-auth/callback\",\"chainId\":\"ynx_6423-1\",\"clientId\":\"ynx-finance-v1\",\"deviceAlgorithm\":\"p256-sha256\",\"deviceBinding\":\"a03b92a02c853952ec3f5f0cee7a3112baced94ee802a33b10bf7100d970bda5\",\"deviceId\":\"go-interop-device-001\",\"deviceKey\":\"AmI8snsqRbmmE8ANFl7b4IKTHw3ERimP4n_tSzESEqN1\",\"expiresAt\":\"2026-09-12T09:03:00.000Z\",\"issuedAt\":\"2026-09-12T09:00:00.000Z\",\"nonce\":\"Jpl6VTpyu_SJfjo1nWMhyYIlffO23vvBalSWdvQnd1M\",\"origin\":\"https://finance.ynxweb4.com\",\"packageId\":null,\"platform\":\"web\",\"productId\":\"finance\",\"requestDigest\":\"4a743b56bbd0a567fe00e6416597d27fc90a59c0e49fa1cc6e91f9c6c66aba72\",\"scopes\":[\"finance.pay.read\",\"finance.portfolio.read\"],\"sessionBinding\":\"43096b519d92c813ab8ac01b450cd332b068100b7749f260447daebbc2d5f0c9\",\"state\":\"yYND_KuC6GZsn7cWde9TC-WS42tP4XPS0j98Pq_M-Fk\",\"version\":\"2\"}},\"schemaVersion\":2}"
+  },
+  "replay": {
+    "status": 409,
+    "headers": {
+      "cache-control": "no-store",
+      "content-type": "application/json; charset=utf-8",
+      "x-request-id": "req_go_replay_000001"
+    },
+    "body": "{\"error\":{\"code\":\"REPLAY\",\"message\":\"Product Session proof was already consumed\"},\"ok\":false,\"requestId\":\"req_go_replay_000001\",\"schemaVersion\":2}"
+  }
+}

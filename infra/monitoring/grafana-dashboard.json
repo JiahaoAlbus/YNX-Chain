@@ -1,7 +1,7 @@
 {
   "title": "YNX Chain Testnet",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "15s",
   "time": {
     "from": "now-6h",
@@ -94,6 +94,35 @@
       "targets": [
         { "expr": "increase(ynx_chain_replication_failures_total{job=\"ynx-chaind\"}[5m])", "legendFormat": "{{instance}} failures" },
         { "expr": "ynx_chain_replication_consecutive_failures{job=\"ynx-chaind\"}", "legendFormat": "{{instance}} consecutive" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Faucet Readiness",
+      "gridPos": { "x": 0, "y": 29, "w": 8, "h": 5 },
+      "targets": [
+        { "expr": "ynx_faucet_upstream_ready{job=\"ynx-faucetd\"}", "legendFormat": "upstream" },
+        { "expr": "ynx_faucet_admission_ready{job=\"ynx-faucetd\"}", "legendFormat": "admission" },
+        { "expr": "ynx_faucet_funding_ready{job=\"ynx-faucetd\"}", "legendFormat": "funding" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Faucet Health Stage Latency",
+      "gridPos": { "x": 8, "y": 29, "w": 8, "h": 7 },
+      "targets": [
+        { "expr": "ynx_faucet_health_status_duration_seconds{job=\"ynx-faucetd\"}", "legendFormat": "status" },
+        { "expr": "ynx_faucet_health_capability_duration_seconds{job=\"ynx-faucetd\"}", "legendFormat": "capability" },
+        { "expr": "ynx_faucet_health_admission_duration_seconds{job=\"ynx-faucetd\"}", "legendFormat": "admission" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Faucet Operational Failures",
+      "gridPos": { "x": 16, "y": 29, "w": 8, "h": 7 },
+      "targets": [
+        { "expr": "sum by (operation) (increase(ynx_faucet_admission_store_errors_total{job=\"ynx-faucetd\"}[5m]))", "legendFormat": "admission {{operation}}" },
+        { "expr": "sum by (outcome) (increase(ynx_faucet_request_results_total{job=\"ynx-faucetd\",outcome!=\"accepted\"}[5m]))", "legendFormat": "request {{outcome}}" }
       ]
     }
   ]

@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -20,8 +21,8 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-func TestRESTAcceptsYNXAliasesAndPersistsCanonicalAccounts(t *testing.T) {
-	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+func TestDevnetRESTAcceptsYNXAliasesAndPersistsCanonicalAccounts(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
 
@@ -98,8 +99,54 @@ func TestReplicationSnapshotAuthenticationAndReadOnlyFollower(t *testing.T) {
 		t.Fatalf("snapshot response failed authentication: status=%d headers=%v", resp.StatusCode, resp.Header)
 	}
 
+	genesis, _ := devnet.BlockByHeight(0)
+	batchReq, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/internal/replication/snapshot?afterHeight=%d&afterHash=%s", server.URL, genesis.Height, genesis.Hash), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	batchReq.Header.Set("X-YNX-Replication-Key", "replication-test-key")
+	batchResp, err := http.DefaultClient.Do(batchReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer batchResp.Body.Close()
+	batchPayload, err := io.ReadAll(batchResp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	follower := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	if _, err := follower.ApplyReplicationBatchJSON(batchPayload); err != nil {
+		t.Fatalf("authenticated bounded replication batch did not apply: %v", err)
+	}
+	if batchResp.StatusCode != http.StatusOK || follower.LatestBlock().Hash != devnet.LatestBlock().Hash {
+		t.Fatalf("bounded replication endpoint did not converge follower: status=%d", batchResp.StatusCode)
+	}
+
 	var blocked map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_replica_write", "amount": 1}, http.StatusConflict, &blocked)
+}
+
+func TestStatusReturnsSeededSnapshotWithoutWaitingForRefresh(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := newServerWithConfig(devnet, ServerConfig{})
+	server.statusRefreshInFlight.Store(true)
+	req := httptest.NewRequest(http.MethodGet, "/status", nil)
+	response := httptest.NewRecorder()
+	started := time.Now()
+	server.withHeaders(server.mux).ServeHTTP(response, req)
+	if elapsed := time.Since(started); elapsed > 100*time.Millisecond {
+		t.Fatalf("cached status unexpectedly waited %s", elapsed)
+	}
+	if response.Code != http.StatusOK || response.Header().Get("X-YNX-Status-Observed-At") == "" {
+		t.Fatalf("cached status response is not observable: code=%d headers=%v", response.Code, response.Header())
+	}
+	if response.Header().Get("X-YNX-Network") != "testnet" || response.Header().Get("X-YNX-Truthful-Status") == "" {
+		t.Fatalf("cached network headers are missing: %v", response.Header())
+	}
+	var status map[string]any
+	if err := json.Unmarshal(response.Body.Bytes(), &status); err != nil || status["chainId"].(float64) != 6423 {
+		t.Fatalf("cached status payload is not a valid testnet response: %v %v", status, err)
+	}
 }
 
 func TestReplicationSnapshotGzipKeepsUncompressedSignature(t *testing.T) {
@@ -137,6 +184,54 @@ func TestReplicationSnapshotGzipKeepsUncompressedSignature(t *testing.T) {
 	_, _ = mac.Write(payload)
 	if resp.Header.Get("X-YNX-Replication-SHA256") != hex.EncodeToString(mac.Sum(nil)) {
 		t.Fatal("gzip snapshot signature does not cover the uncompressed payload")
+	}
+}
+
+func TestReplicationSnapshotResponseIsReusedAcrossConcurrentFollowers(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	devnet.ProduceBlock()
+	server := httptest.NewServer(NewServerWithConfig(devnet, ServerConfig{ReplicationKey: "replication-test-key"}))
+	defer server.Close()
+
+	const followers = 12
+	type result struct {
+		payload []byte
+		digest  string
+		err     error
+	}
+	results := make(chan result, followers)
+	for range followers {
+		go func() {
+			req, err := http.NewRequest(http.MethodGet, server.URL+"/internal/replication/snapshot", nil)
+			if err != nil {
+				results <- result{err: err}
+				return
+			}
+			req.Header.Set("X-YNX-Replication-Key", "replication-test-key")
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				results <- result{err: err}
+				return
+			}
+			defer resp.Body.Close()
+			payload, err := io.ReadAll(resp.Body)
+			results <- result{payload: payload, digest: resp.Header.Get("X-YNX-Replication-SHA256"), err: err}
+		}()
+	}
+	var expectedPayload []byte
+	var expectedDigest string
+	for range followers {
+		got := <-results
+		if got.err != nil {
+			t.Fatal(got.err)
+		}
+		if expectedPayload == nil {
+			expectedPayload, expectedDigest = got.payload, got.digest
+			continue
+		}
+		if !bytes.Equal(got.payload, expectedPayload) || got.digest != expectedDigest {
+			t.Fatal("concurrent followers did not receive one immutable authenticated snapshot")
+		}
 	}
 }
 
@@ -474,7 +569,10 @@ func TestGovernanceRequestAndAppealAPIFlow(t *testing.T) {
 }
 
 func TestEVMRPCSubset(t *testing.T) {
-	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	devnet, createErr := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), t.TempDir())
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
 	var out map[string]any
@@ -567,7 +665,9 @@ func TestPrometheusMetrics(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
-	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_metrics", "amount": 1000}, http.StatusCreated, nil)
+	if _, err := devnet.Faucet("ynx_metrics", 1000); err != nil {
+		t.Fatal(err)
+	}
 	devnet.ProduceBlock()
 
 	resp, err := http.Get(server.URL + "/metrics")
@@ -639,7 +739,10 @@ func TestPrometheusFollowerReplicationFailureMetrics(t *testing.T) {
 }
 
 func TestPayResourceAndIDEFlow(t *testing.T) {
-	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
+	devnet, createErr := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("devnet"), t.TempDir())
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
 
@@ -829,6 +932,23 @@ func TestPayInvoiceSettlementAPI(t *testing.T) {
 	if lookedUp != settlement {
 		t.Fatalf("settlement lookup changed record: %+v != %+v", lookedUp, settlement)
 	}
+	var refund chain.RefundRecord
+	doJSON(t, http.MethodPost, server.URL+"/pay/refunds", map[string]any{"intentId": intent.ID, "amount": 5, "reason": "settlement API refund", "idempotencyKey": "refund-api"}, http.StatusCreated, &refund)
+	refundTx, err := devnet.Transfer(merchant, payer, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	var completed chain.RefundRecord
+	doJSON(t, http.MethodPost, server.URL+"/pay/refunds/"+refund.ID+"/complete", map[string]any{"transactionHash": refundTx.Hash, "idempotencyKey": "refund-completion-api"}, http.StatusCreated, &completed)
+	if completed.Status != "completed" || completed.InvoiceID != invoice.ID || completed.SettlementID != settlement.ID || completed.TransactionHash != refundTx.Hash || completed.AuditHash == "" {
+		t.Fatalf("unexpected refund completion: %+v", completed)
+	}
+	var lookedUpRefund chain.RefundRecord
+	doJSON(t, http.MethodGet, server.URL+"/pay/refunds/"+refund.ID, nil, http.StatusOK, &lookedUpRefund)
+	if lookedUpRefund.AuditHash != completed.AuditHash || lookedUpRefund.TransactionHash != completed.TransactionHash {
+		t.Fatalf("refund completion lookup changed authority: %+v != %+v", lookedUpRefund, completed)
+	}
 }
 
 func TestIDECompileUsesHardhatArtifactWhenSourceMatches(t *testing.T) {
@@ -1013,7 +1133,10 @@ func TestIDEExecuteSupportsGenericPinnedWriteCallSubset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
+	devnet, createErr := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("devnet"), t.TempDir())
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
 

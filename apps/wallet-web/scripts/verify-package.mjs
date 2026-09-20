@@ -1,0 +1,66 @@
+import {execFileSync} from "node:child_process";
+import {createHash} from "node:crypto";
+import {readFile, stat} from "node:fs/promises";
+import {dirname, join, resolve} from "node:path";
+import {fileURLToPath} from "node:url";
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const manifest = JSON.parse(await readFile(join(root, "artifact-manifest.json"), "utf8"));
+const requiredFiles = new Set(["index.html", "app.js", "provider.js", "wallet-address.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "styles.css", "accessibility.css", "ynx-logo.png"]);
+const deploymentPolicy=JSON.parse(await readFile(join(root,"vercel.json"),"utf8")),expectedNoStore=["/build-identity.json","/download-manifest.json","/sw.js","/asset-integrity.js","/service-worker-policy.js"],expectedSecurityHeaders=[{key:"Content-Security-Policy",value:"default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; frame-src 'none'; form-action 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com; manifest-src 'self'; worker-src 'self'"},{key:"Permissions-Policy",value:"camera=(), microphone=(), geolocation=(), payment=(), usb=()"},{key:"Referrer-Policy",value:"no-referrer"},{key:"X-Content-Type-Options",value:"nosniff"},{key:"X-Frame-Options",value:"DENY"}];
+if(deploymentPolicy.buildCommand!=="npm run build"||deploymentPolicy.outputDirectory!=="dist/pwa"||deploymentPolicy.headers?.[0]?.source!=="/(.*)"||JSON.stringify(deploymentPolicy.headers[0].headers)!==JSON.stringify(expectedSecurityHeaders)||JSON.stringify(deploymentPolicy.headers.slice(1).map(({source})=>source))!==JSON.stringify(expectedNoStore)||deploymentPolicy.headers.slice(1).some(({headers})=>JSON.stringify(headers)!==JSON.stringify([{key:"Cache-Control",value:"no-store"}])))throw new Error("Invalid Wallet Vercel deployment contract");
+
+for (const artifact of manifest.artifacts) {
+  const archive = join(root, artifact.path);
+  const bytes = await readFile(archive);
+  const info = await stat(archive);
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  if (info.size !== artifact.bytes || sha256 !== artifact.sha256) throw new Error(`Integrity mismatch: ${artifact.name}`);
+
+  const entries = execFileSync("unzip", ["-Z1", archive], {encoding: "utf8"}).trim().split("\n").filter(Boolean);
+  if (new Set(entries).size !== entries.length) throw new Error(`Duplicate ZIP entry: ${artifact.name}`);
+  if (entries.some((entry) => entry.startsWith("/") || entry.split("/").includes(".."))) throw new Error(`Unsafe ZIP path: ${artifact.name}`);
+  for (const required of requiredFiles) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
+
+  if (artifact.browsers.includes("PWA")) {
+    for (const required of ["manifest.webmanifest", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js", "core-auth-binding.js", "build-identity.json", "download-manifest.json", "sw.js", "service-worker-policy.js", "asset-integrity.js", "ynx-icon-192.png", "ynx-icon-512.png", "ynx-icon-maskable-512.png"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
+    if(entries.includes("vercel.json"))throw new Error(`Deployment configuration must not be a public PWA asset: ${artifact.name}`);
+    const integritySource=execFileSync("unzip",["-p",archive,"asset-integrity.js"],{encoding:"utf8"}),match=integritySource.match(/^export const ASSET_INTEGRITY=Object\.freeze\((\{.*\})\);\n$/u);
+    if(!match)throw new Error(`Invalid PWA asset integrity module: ${artifact.name}`);
+    const integrity=JSON.parse(match[1]),expected=["./","./index.html","./styles.css","./accessibility.css","./app.js","./provider.js","./wallet-address.js","./extension-fee-model.js","./extension-durability.js","./transaction-input.js","./i18n.js","./preferences.js","./mobile-wallet-routing.js","./core-auth-consumer.js","./wallet-web-companion-lifecycle.js","./standard-wallet-connect-state.js","./core-auth-binding.js","./service-worker-policy.js","./build-identity.json","./download-manifest.json","./ynx-logo.png","./ynx-icon-192.png","./ynx-icon-512.png","./ynx-icon-maskable-512.png","./manifest.webmanifest"];
+    if(JSON.stringify(Object.keys(integrity).sort())!==JSON.stringify(expected.sort()))throw new Error(`Invalid PWA asset integrity set: ${artifact.name}`);
+    for(const [key,digest] of Object.entries(integrity)){const file=key==="./"?"index.html":key.slice(2),content=execFileSync("unzip",["-p",archive,file]);if(createHash("sha256").update(content).digest("hex")!==digest)throw new Error(`PWA asset integrity mismatch for ${key}: ${artifact.name}`)}
+    continue;
+  }
+
+  const extension = JSON.parse(execFileSync("unzip", ["-p", archive, "manifest.json"], {encoding: "utf8"}));
+  if (extension.incognito !== "not_allowed") throw new Error(`Unsupported private-browsing storage scope: ${artifact.name}`);
+  if (JSON.stringify(extension.icons) !== JSON.stringify({"128":"ynx-icon-128.png"}) || !entries.includes("ynx-icon-128.png")) throw new Error(`Invalid extension manifest icon: ${artifact.name}`);
+  const icon = execFileSync("unzip", ["-p", archive, "ynx-icon-128.png"]);
+  if (icon.subarray(0,8).toString("hex") !== "89504e470d0a1a0a" || icon.toString("ascii",12,16) !== "IHDR" || icon.readUInt32BE(16) !== 128 || icon.readUInt32BE(20) !== 128) throw new Error(`Invalid extension icon dimensions: ${artifact.name}`);
+  for (const required of ["preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js", "build-identity.json", "content-script.js", "page-provider.js", "active-tab-policy.js", "extension-migration.js", "extension-bridge.js", "extension-rpc.js", "extension-provider-permissions.js", "extension-vault.js", "extension-signer.js", "extension-broadcast-journal.js", "approval.html", "approval.css", "approval.js", "vault.html", "vault.css", "vault.js", "signer.html", "signer.css", "signer.js", "core-auth-consumer.js", "core-auth-binding.js", "extension-sensitive-policy.js", "service-worker.js"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
+  if (extension.manifest_version !== 3 || extension.action?.default_popup !== "index.html" || JSON.stringify(extension.options_ui)!==JSON.stringify({page:"vault.html",open_in_tab:true})) throw new Error(`Invalid MV3 entrypoint: ${artifact.name}`);
+  const vaultBundle=execFileSync("unzip",["-p",archive,"extension-vault.js"],{encoding:"utf8"});
+  if(!vaultBundle.includes("PBKDF2")||!vaultBundle.includes("AES-GCM")||vaultBundle.includes("correct horse battery staple")||/eval\(|new Function/u.test(vaultBundle))throw new Error(`Invalid encrypted vault bundle: ${artifact.name}`);
+  const signerBundle=execFileSync("unzip",["-p",archive,"extension-signer.js"],{encoding:"utf8"});if(!signerBundle.includes("eth_signTypedData_v4")||!signerBundle.includes("eth_sendTransaction")||/eval\(|new Function/u.test(signerBundle))throw new Error(`Invalid signer bundle: ${artifact.name}`);
+  if (extension.content_security_policy?.extension_pages !== "script-src 'self'; object-src 'self'; connect-src https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com") throw new Error(`Invalid extension RPC CSP: ${artifact.name}`);
+  if (JSON.stringify(extension.host_permissions) !== JSON.stringify(["https://*/*"])) throw new Error(`Invalid host permissions: ${artifact.name}`);
+  const expectedContentScripts=[
+    {matches:["https://*/*"],js:["content-script.js"],run_at:"document_start",all_frames:false,match_about_blank:false},
+    {matches:["https://*/*"],js:["page-provider.js"],run_at:"document_start",all_frames:false,match_about_blank:false,world:"MAIN"},
+  ];
+  if(JSON.stringify(extension.content_scripts)!==JSON.stringify(expectedContentScripts))throw new Error(`Invalid deterministic HTTPS provider injection: ${artifact.name}`);
+  for (const forbidden of ["web_accessible_resources", "optional_host_permissions", "update_url", "key"]) if (forbidden in extension) throw new Error(`Forbidden ${forbidden}: ${artifact.name}`);
+  const pageProvider=execFileSync("unzip",["-p",archive,"page-provider.js"],{encoding:"utf8"});
+  if(!pageProvider.includes('rdns:"com.ynx.wallet"')||!pageProvider.includes('isYNXWallet:true')||!pageProvider.includes('isMetaMask:false')||!pageProvider.includes('eip6963:requestProvider')||!pageProvider.includes('eip6963:announceProvider')||!pageProvider.includes('queueMicrotask(announce)'))throw new Error(`Invalid YNX EIP-6963 provider identity: ${artifact.name}`);
+  for(const sourceName of ["app.js","page-provider.js","content-script.js","service-worker.js"]){const source=execFileSync("unzip",["-p",archive,sourceName],{encoding:"utf8"});if(/window\.open\s*\(/u.test(source)||/(?:window\.)?location(?:\.href)?\s*=\s*[`'"]ynxwallet:\/\//u.test(source))throw new Error(`Forbidden top-level YNX custom-scheme navigation in ${sourceName}: ${artifact.name}`)}
+  if (artifact.browsers.includes("Firefox")) {
+    if (extension.browser_specific_settings?.gecko?.id !== "wallet-testnet@ynxweb4.com" || extension.browser_specific_settings?.gecko?.strict_min_version !== "142.0") throw new Error(`Invalid Firefox identity metadata: ${artifact.name}`);
+    if (JSON.stringify(extension.browser_specific_settings.gecko.data_collection_permissions) !== JSON.stringify({required:["authenticationInfo","financialAndPaymentInfo","websiteContent"]})) throw new Error(`Invalid Firefox data disclosure: ${artifact.name}`);
+  } else if (extension.minimum_chrome_version !== "120") {
+    throw new Error(`Invalid Chromium minimum version: ${artifact.name}`);
+  }
+}
+
+if (manifest.downloadHosted || manifest.productionSigned || manifest.storeReleased || manifest.installedLocal) throw new Error("Unproved release boolean is true");
+console.log(`Verified ${manifest.artifacts.length} fail-closed artifact packages.`);

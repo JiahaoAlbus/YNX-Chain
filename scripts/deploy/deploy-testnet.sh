@@ -34,10 +34,14 @@ YNX_SOCIAL_DEPLOY_ENABLED="${YNX_SOCIAL_DEPLOY_ENABLED:-false}"
 YNX_APP_GATEWAY_DEPLOY_ENABLED="${YNX_APP_GATEWAY_DEPLOY_ENABLED:-false}"
 YNX_APP_GATEWAY_HTTP_ADDR="${YNX_APP_GATEWAY_HTTP_ADDR:-127.0.0.1:6437}"
 YNX_APP_GATEWAY_ALLOWED_ORIGINS="${YNX_APP_GATEWAY_ALLOWED_ORIGINS:-https://www.ynxweb4.com,https://ynxweb4.com}"
+TESTNET_RPC_DOMAIN="${TESTNET_RPC_DOMAIN:-rpc-testnet.ynxweb4.com}"
+TESTNET_FAUCET_DOMAIN="${TESTNET_FAUCET_DOMAIN:-faucet-testnet.ynxweb4.com}"
+TESTNET_EXPLORER_DOMAIN="${TESTNET_EXPLORER_DOMAIN:-explorer-testnet.ynxweb4.com}"
+YNX_MAINNET_ENABLED="${YNX_MAINNET_ENABLED:-false}"
 
 required=(
   TESTNET_DOMAIN WEBSITE_DOMAIN EXPLORER_DOMAIN REST_DOMAIN INDEXER_DOMAIN RPC_DOMAIN EVM_RPC_DOMAIN
-  FAUCET_DOMAIN API_DOMAIN AI_GATEWAY_DOMAIN TRUST_API_DOMAIN RESOURCE_API_DOMAIN PAY_API_DOMAIN IDE_DOMAIN
+  FAUCET_DOMAIN TESTNET_RPC_DOMAIN TESTNET_FAUCET_DOMAIN TESTNET_EXPLORER_DOMAIN API_DOMAIN AI_GATEWAY_DOMAIN TRUST_API_DOMAIN RESOURCE_API_DOMAIN PAY_API_DOMAIN IDE_DOMAIN
   SERVER_HOST SERVER_USER SSH_KEY_PATH DEPLOY_TARGET CHAIN_ID CHAIN_NAME
   NATIVE_COIN_NAME NATIVE_SYMBOL GENESIS_VALIDATOR_NAME VALIDATOR_KEY_PATH
   FAUCET_PRIVATE_KEY DEPLOYER_PRIVATE_KEY TREASURY_ADDRESS FOUNDATION_ADDRESS
@@ -61,6 +65,18 @@ required=(
 )
 ynx_require_env "${required[@]}"
 ynx_reject_unsafe_env_values "${required[@]}"
+if [[ "$YNX_MAINNET_ENABLED" != "false" ]]; then
+  echo "YNX_MAINNET_ENABLED must remain false; this deployment only supports Testnet chain 6423" >&2
+  exit 1
+fi
+if [[ "$CHAIN_ID" != "6423" || "$NATIVE_SYMBOL" != "YNXT" ]]; then
+  echo "Testnet deployment identity must remain chain 6423 with native symbol YNXT" >&2
+  exit 1
+fi
+if [[ "$TESTNET_RPC_DOMAIN" != "rpc-testnet.ynxweb4.com" || "$TESTNET_FAUCET_DOMAIN" != "faucet-testnet.ynxweb4.com" || "$TESTNET_EXPLORER_DOMAIN" != "explorer-testnet.ynxweb4.com" ]]; then
+  echo "Testnet endpoint aliases do not match the reviewed migration contract" >&2
+  exit 1
+fi
 case "$YNX_BRIDGE_DEPLOY_ENABLED" in
   true | false) ;;
   *) echo "YNX_BRIDGE_DEPLOY_ENABLED must be true or false"; exit 1 ;;
@@ -292,6 +308,7 @@ YNX_FAUCET_CHAIN_ID=6423
 YNX_FAUCET_REQUEST_LOG=/var/log/ynx-chain/faucet-requests.jsonl
 YNX_FAUCET_DEFAULT_AMOUNT=100
 YNX_FAUCET_MAX_AMOUNT=100
+YNX_FAUCET_ALLOWED_ORIGINS=https://ynxweb4.com,https://www.ynxweb4.com,https://wallet.ynxweb4.com,https://${TESTNET_FAUCET_DOMAIN},https://${FAUCET_DOMAIN}
 YNX_FAUCET_RATE_LIMIT_WINDOW=1h
 YNX_FAUCET_RATE_LIMIT_MAX=1
 EOF
@@ -729,7 +746,7 @@ EOF
 cat > "$work/nginx/ynx-chain.conf" <<EOF
 server {
   listen 80;
-  server_name ${EXPLORER_DOMAIN};
+  server_name ${EXPLORER_DOMAIN} ${TESTNET_EXPLORER_DOMAIN};
   client_max_body_size 2m;
   location / {
     proxy_pass http://127.0.0.1:6427;
@@ -743,7 +760,7 @@ server {
 
 server {
   listen 80;
-  server_name ${FAUCET_DOMAIN};
+  server_name ${FAUCET_DOMAIN} ${TESTNET_FAUCET_DOMAIN};
   client_max_body_size 1m;
   location / {
     proxy_pass http://127.0.0.1:6428;
@@ -771,7 +788,7 @@ server {
 
 server {
   listen 80;
-  server_name ${NGINX_SERVER_NAME} ${TESTNET_DOMAIN} ${RPC_DOMAIN} ${EVM_RPC_DOMAIN};
+  server_name ${NGINX_SERVER_NAME} ${TESTNET_DOMAIN} ${RPC_DOMAIN} ${EVM_RPC_DOMAIN} ${TESTNET_RPC_DOMAIN};
   client_max_body_size 2m;
   location / {
     proxy_pass http://127.0.0.1:6420;
@@ -892,12 +909,14 @@ server {
 EOF
 
 cat > "$work/caddy/ynx-chain.caddy" <<EOF
-${EXPLORER_DOMAIN} {
+${EXPLORER_DOMAIN}, ${TESTNET_EXPLORER_DOMAIN} {
   reverse_proxy 127.0.0.1:6427
 }
 
-${FAUCET_DOMAIN} {
-  reverse_proxy 127.0.0.1:6428
+${FAUCET_DOMAIN}, ${TESTNET_FAUCET_DOMAIN} {
+  reverse_proxy 127.0.0.1:6428 {
+    header_up X-Real-IP {remote_host}
+  }
 }
 
 ${INDEXER_DOMAIN} {
@@ -925,7 +944,7 @@ ${RESOURCE_API_DOMAIN} {
   }
 }
 
-${NGINX_SERVER_NAME}, ${TESTNET_DOMAIN}, ${RPC_DOMAIN}, ${EVM_RPC_DOMAIN} {
+${NGINX_SERVER_NAME}, ${TESTNET_DOMAIN}, ${RPC_DOMAIN}, ${EVM_RPC_DOMAIN}, ${TESTNET_RPC_DOMAIN} {
   reverse_proxy 127.0.0.1:6420
 }
 

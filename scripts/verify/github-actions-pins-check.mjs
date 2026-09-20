@@ -5,7 +5,11 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const workflowsRoot = path.join(repoRoot, ".github", "workflows");
-const workflowNames = (await readdir(workflowsRoot))
+const requested = process.argv.slice(2);
+if (requested.length > 1 || requested.some((name) => !/^[A-Za-z0-9._-]+\.ya?ml$/.test(name))) {
+  throw new Error("usage: github-actions-pins-check.mjs [workflow.yml]");
+}
+const workflowNames = (requested.length ? requested : await readdir(workflowsRoot))
   .filter((name) => name.endsWith(".yml") || name.endsWith(".yaml"))
   .sort();
 

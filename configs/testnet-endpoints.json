@@ -1,0 +1,36 @@
+{
+  "activation": {
+    "explorerAliasPublicVerified": false,
+    "faucetAliasPublicVerified": false,
+    "rpcAliasPublicVerified": false
+  },
+  "candidate": {
+    "evmJsonRpc": "https://rpc-testnet.ynxweb4.com",
+    "explorer": "https://explorer-testnet.ynxweb4.com",
+    "faucet": "https://faucet-testnet.ynxweb4.com",
+    "grpcTlsAuthority": "grpc.ynxweb4.com:443",
+    "nativeRest": "https://rpc-testnet.ynxweb4.com",
+    "restGateway": "https://rest.ynxweb4.com",
+    "websocket": null
+  },
+  "chainEnvironment": "testnet",
+  "chainId": 6423,
+  "chainIdHex": "0x1917",
+  "legacy": {
+    "evmJsonRpc": "https://evm.ynxweb4.com",
+    "explorer": "https://explorer.ynxweb4.com",
+    "faucet": "https://faucet.ynxweb4.com",
+    "grpcTlsAuthority": "grpc.ynxweb4.com:443",
+    "nativeRest": "https://rpc.ynxweb4.com",
+    "restGateway": "https://rest.ynxweb4.com",
+    "websocket": null
+  },
+  "mainnet": {
+    "chainId": null,
+    "enabled": false,
+    "reservedRpcUrl": "https://rpc-mainnet.ynxweb4.com"
+  },
+  "nativeSymbol": "YNXT",
+  "schema": "ynx-testnet-consumer-endpoints/v1",
+  "sourceSha256": "dfc7fb691cb1446424f856d8b1fcfe0553449abaa95a06855a2d4537905467b2"
+}

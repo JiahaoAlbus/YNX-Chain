@@ -17,7 +17,7 @@ assert.equal(config.extra.nativeChainId,"ynx_6423-1");
 assert.equal(config.extra.evmChainId,6423);
 assert.equal(config.extra.nativeAsset,"YNXT");
 assert.equal(config.extra.internalAcceptanceShell,false);
-assert.equal(config.userInterfaceStyle,"automatic");
+assert.equal(config.userInterfaceStyle,"light");
 assert.equal(config.android.intentFilters[0].data[0].host,"authorize");
 assert.ok(config.plugins.includes("./plugins/withYnxAndroidReleaseSigning"),"Wallet must preserve Release signing policy through Expo prebuild");
 for(const required of ["ynxReleaseSigningConfigured ? signingConfigs.release : null","System.getenv(\"YNX_ANDROID_KEYSTORE_PATH\")","ynxDebugKeystorePath"])assert.equal(`${androidGradle}\n${signingPlugin}`.includes(required),true,`missing Android signing boundary ${required}`);
@@ -25,7 +25,7 @@ assert.equal(androidGradle.includes("            signingConfig signingConfigs.de
 for(const forbidden of ["Social Feed","Shop tab","Pay tab","Exchange tab"])assert.equal(source.includes(forbidden),false);
 for(const required of ["Sign in with YNX Wallet","Requesting App","App identity","Permissions","Purpose","Valid until","Approve","Reject"])assert.equal(`${source}\n${i18n}`.includes(required),true,`missing ${required}`);
 for(const required of ["AI security explanation","authorizationAudit.append","approval-revoked"])assert.equal(`${source}\n${i18n}\n${audit}`.includes(required),true,`missing ${required}`);
-for(const required of ["useColorScheme","isReduceMotionEnabled","isHighTextContrastEnabled","Text follows the device font scale"])assert.equal(source.includes(required),true,`missing adaptive UI contract ${required}`);
+for(const required of ["Klein blue and white appearance","isReduceMotionEnabled","isHighTextContrastEnabled","Text follows the device font scale"])assert.equal(source.includes(required),true,`missing adaptive UI contract ${required}`);
 for(const required of ["WELCOME","Create a new Wallet","Import account","Recover Wallet","WALLET LOCKED","NATIVE ACCOUNT","Assets","Activity","Receive YNXT","Send Review","Connected Apps","Sessions","Devices","Recovery","Security","Authorization Audit","Network"])assert.equal(`${source}\n${i18n}`.toLowerCase().includes(required.toLowerCase()),true,`missing Wallet IA surface ${required}`);
 for(const required of ["Smart Account & Capital","CAPITAL REVIEW","Sponsored gas","Yield source","Historical yield","Lock / cooldown","Slashing / drawdown","Withdrawal / reserve","Immediate exit"])assert.equal(`${source}\n${controlCopy}`.includes(required),true,`missing Wallet control surface ${required}`);
 for(const required of ["withdrawal-queue","trading-subaccount","api-wallet","cross-chain-route","missingCapitalProducts","staleCapitalProducts"])assert.equal(controls.includes(required),true,`missing fail-closed capital control ${required}`);

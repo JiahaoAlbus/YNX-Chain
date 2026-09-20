@@ -14,22 +14,53 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/mutationfreeze"
 )
 
 type Server struct {
 	devnet                     *chain.Devnet
 	mux                        *http.ServeMux
+	networkConfig              chain.NetworkConfig
+	truthfulStatus             string
 	aiGatewayUpstreamKey       string
 	payGatewayUpstreamKey      string
 	trustGatewayUpstreamKey    string
 	resourceGatewayUpstreamKey string
 	replicationKey             string
+	faucetBatchMu              sync.Mutex
+	faucetBatchQueue           []*faucetBatchJob
+	faucetBatchRunning         bool
+	faucetCoreAuthToken        string
 	readOnlyReplica            bool
+	replicationCacheMu         sync.Mutex
+	replicationCache           replicationResponseCache
+	statusCacheMu              sync.RWMutex
+	statusCache                []byte
+	statusCacheObservedAt      time.Time
+	statusRefreshInFlight      atomic.Bool
+}
+
+const (
+	replicationResponseCacheTTL = 5 * time.Second
+	// A status read gets a short chance to refresh while the node is idle. If a
+	// complete replicated state currently owns the Devnet write lock, callers
+	// get the last complete observation instead of joining that long critical
+	// section.
+	statusRefreshMaxWait = 25 * time.Millisecond
+)
+
+type replicationResponseCache struct {
+	createdAt time.Time
+	payload   []byte
+	gzip      []byte
+	digest    string
 }
 
 func NewServer(devnet *chain.Devnet) http.Handler {
@@ -42,22 +73,37 @@ type ServerConfig struct {
 	TrustGatewayUpstreamKey    string
 	ResourceGatewayUpstreamKey string
 	ReplicationKey             string
+	FaucetCoreAuthToken        string
 	ReadOnlyReplica            bool
 }
 
 func NewServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) http.Handler {
+	s := newServerWithConfig(devnet, cfg)
+	return s.withHeaders(s.mux)
+}
+
+func newServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) *Server {
+	networkConfig := devnet.Config()
 	s := &Server{
 		devnet:                     devnet,
 		mux:                        http.NewServeMux(),
+		networkConfig:              networkConfig,
+		truthfulStatus:             chain.TruthfulStatus(networkConfig),
 		aiGatewayUpstreamKey:       strings.TrimSpace(cfg.AIGatewayUpstreamKey),
 		payGatewayUpstreamKey:      strings.TrimSpace(cfg.PayGatewayUpstreamKey),
 		trustGatewayUpstreamKey:    strings.TrimSpace(cfg.TrustGatewayUpstreamKey),
 		resourceGatewayUpstreamKey: strings.TrimSpace(cfg.ResourceGatewayUpstreamKey),
 		replicationKey:             strings.TrimSpace(cfg.ReplicationKey),
+		faucetCoreAuthToken:        cfg.FaucetCoreAuthToken,
 		readOnlyReplica:            cfg.ReadOnlyReplica,
 	}
+	// Seed the cache before the server accepts requests. Subsequent refreshes are
+	// intentionally asynchronous: applying a complete bounded replication state
+	// holds the Devnet write lock while it validates and persists, but a public
+	// status read must remain available and clearly identify its observation time.
+	s.refreshStatusCache()
 	s.routes()
-	return s.withHeaders(s.mux)
+	return s
 }
 
 func (s *Server) routes() {
@@ -82,8 +128,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /transactions/broadcast", s.handleSignedTransactionBroadcast)
 	s.mux.HandleFunc("GET /explorer/summary", s.handleExplorerSummary)
 	s.mux.HandleFunc("POST /faucet", s.handleFaucet)
-	s.mux.HandleFunc("POST /transfer", s.handleTransfer)
-	s.mux.HandleFunc("POST /staking/stake", s.handleStake)
+	s.mux.HandleFunc("POST /faucet/requests", s.handleFaucet)
+	s.unsignedDevnetRoute("POST /transfer", s.handleTransfer)
+	s.unsignedDevnetRoute("POST /staking/stake", s.handleStake)
 	s.mux.HandleFunc("GET /resources/{address}", s.handleResources)
 	s.trustRoute("GET /trust/trace/{address}", s.handleTrustTrace)
 	s.trustRoute("POST /trust/labels", s.handleTrustLabel)
@@ -107,6 +154,8 @@ func (s *Server) routes() {
 	s.payRoute("POST /pay/invoices/{id}/settle", s.handleInvoiceSettlement)
 	s.payRoute("GET /pay/invoices/{id}/settlement", s.handleInvoiceSettlementLookup)
 	s.payRoute("POST /pay/refunds", s.handleRefund)
+	s.payRoute("GET /pay/refunds/{id}", s.handleRefundLookup)
+	s.payRoute("POST /pay/refunds/{id}/complete", s.handleRefundCompletion)
 	s.payRoute("POST /pay/webhook-signatures", s.handleWebhookSignature)
 	s.payRoute("GET /pay/webhook-signatures/{eventId}", s.handleWebhookSignatureLookup)
 	s.payRoute("GET /pay/events", s.handlePayEvents)
@@ -128,6 +177,22 @@ func (s *Server) routes() {
 	s.resourceRoute("GET /resource-market/sponsorships", s.handleResourceSponsorships)
 	s.resourceRoute("GET /resource-market/sponsorships/{id}", s.handleResourceSponsorshipLookup)
 	s.resourceRoute("GET /resource-market/sponsor-audit", s.handleResourceSponsorAudit)
+	s.mux.HandleFunc("POST /dex/assets", s.handleNativeDexMutation)
+	s.mux.HandleFunc("GET /dex/assets", s.handleNativeDexAssets)
+	s.mux.HandleFunc("GET /dex/assets/{id}", s.handleNativeDexAsset)
+	s.mux.HandleFunc("POST /dex/assets/{id}/mint", s.handleNativeDexMutation)
+	s.mux.HandleFunc("POST /dex/assets/{id}/transfer", s.handleNativeDexMutation)
+	s.mux.HandleFunc("GET /dex/balances/{address}", s.handleNativeDexBalances)
+	s.mux.HandleFunc("POST /dex/pools", s.handleNativeDexMutation)
+	s.mux.HandleFunc("GET /dex/pools", s.handleNativeDexPools)
+	s.mux.HandleFunc("GET /dex/pools/{id}", s.handleNativeDexPool)
+	s.mux.HandleFunc("POST /dex/pools/{id}/liquidity/add", s.handleNativeDexMutation)
+	s.mux.HandleFunc("POST /dex/pools/{id}/liquidity/remove", s.handleNativeDexMutation)
+	s.mux.HandleFunc("POST /dex/pools/{id}/swaps/exact-input", s.handleNativeDexMutation)
+	s.mux.HandleFunc("POST /dex/pools/{id}/swaps/exact-output", s.handleNativeDexMutation)
+	s.mux.HandleFunc("GET /dex/events", s.handleNativeDexEvents)
+	s.mux.HandleFunc("GET /v1/native-snapshot", s.handleNativeFinanceSnapshot)
+	s.mux.HandleFunc("GET /v1/native-transactions/{hash}", s.handleNativeFinanceTransaction)
 	s.aiRoute("GET /ai/stream", s.handleAIStream)
 	s.aiRoute("POST /ai/permissions", s.handleAIPermission)
 	s.aiRoute("GET /ai/permissions", s.handleAIPermissions)
@@ -139,14 +204,26 @@ func (s *Server) routes() {
 	s.aiRoute("POST /ai/actions/{id}/reject", s.handleAIActionReject)
 	s.mux.HandleFunc("GET /ide/compiler", s.handleIDECompiler)
 	s.mux.HandleFunc("POST /ide/compile", s.handleIDECompile)
-	s.mux.HandleFunc("POST /ide/deploy", s.handleIDEDeploy)
+	s.unsignedDevnetRoute("POST /ide/deploy", s.handleIDEDeploy)
 	s.mux.HandleFunc("POST /ide/call", s.handleIDECall)
-	s.mux.HandleFunc("POST /ide/execute", s.handleIDEExecute)
+	s.unsignedDevnetRoute("POST /ide/execute", s.handleIDEExecute)
 	s.mux.HandleFunc("POST /ide/verify", s.handleIDEVerify)
 	s.mux.HandleFunc("GET /ide/verifier/{address}", s.handleIDEVerifier)
 	s.mux.HandleFunc("GET /contracts/{address}", s.handleContractLookup)
 	s.mux.HandleFunc("GET /monitoring/health", s.handleMonitoring)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
+}
+
+// Local devnet helpers have no account-ownership proof. A public node must not
+// treat an address supplied in JSON as authorization to change its state.
+func (s *Server) unsignedDevnetRoute(pattern string, handler http.HandlerFunc) {
+	s.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		if s.networkConfig.IsPublicNet {
+			writeError(w, http.StatusForbidden, "unsigned account mutations are disabled on public networks; native transfers require /transactions/broadcast or eth_sendRawTransaction")
+			return
+		}
+		handler(w, r)
+	})
 }
 
 func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
@@ -225,10 +302,24 @@ func normalizeAccountInput(value string) (string, error) {
 
 func (s *Server) withHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg := s.devnet.Config()
-		w.Header().Set("X-YNX-Network", cfg.Slug)
-		w.Header().Set("X-YNX-Truthful-Status", chain.TruthfulStatus(cfg))
-		if s.readOnlyReplica && r.Method != http.MethodGet && r.Method != http.MethodHead {
+		w.Header().Set("X-YNX-Network", s.networkConfig.Slug)
+		w.Header().Set("X-YNX-Truthful-Status", s.truthfulStatus)
+		// JSON-RPC is a public, credential-free transport. Browser wallets and
+		// extensions must be able to reach it from arbitrary dApp origins, while
+		// every state mutation remains protected by signed transaction validation.
+		// Keep this wildcard scoped to the two EVM RPC paths so authenticated REST
+		// products do not accidentally inherit a broad cross-origin policy.
+		if r.URL.Path == "/" || r.URL.Path == "/evm" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Max-Age", "600")
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		if s.readOnlyReplica && !mutationfreeze.IsReadOnlyRequest(r) {
 			writeError(w, http.StatusConflict, "replicated follower is read-only; submit mutations to the authoritative producer")
 			return
 		}
@@ -237,10 +328,54 @@ func (s *Server) withHeaders(next http.Handler) http.Handler {
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-chaind", "network": s.devnet.Config(), "timestamp": time.Now().UTC()})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-chaind", "network": s.networkConfig, "timestamp": time.Now().UTC()})
 }
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, s.devnet.Status())
+	s.refreshStatusCacheBounded(statusRefreshMaxWait)
+	s.statusCacheMu.RLock()
+	payload := append([]byte(nil), s.statusCache...)
+	observedAt := s.statusCacheObservedAt
+	s.statusCacheMu.RUnlock()
+	if len(payload) == 0 {
+		writeError(w, http.StatusServiceUnavailable, "status cache is not initialized")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-YNX-Status-Observed-At", observedAt.Format(time.RFC3339Nano))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(payload)
+}
+
+func (s *Server) refreshStatusCacheBounded(wait time.Duration) {
+	if !s.statusRefreshInFlight.CompareAndSwap(false, true) {
+		return
+	}
+	done := make(chan struct{})
+	go func() {
+		defer s.statusRefreshInFlight.Store(false)
+		defer close(done)
+		s.refreshStatusCache()
+	}()
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case <-done:
+	case <-timer.C:
+	}
+}
+
+func (s *Server) refreshStatusCache() {
+	payload, err := json.Marshal(s.devnet.Status())
+	if err != nil {
+		return
+	}
+	payload = append(payload, '\n')
+	now := time.Now().UTC()
+	s.statusCacheMu.Lock()
+	s.statusCache = payload
+	s.statusCacheObservedAt = now
+	s.statusCacheMu.Unlock()
 }
 func (s *Server) handleNodeIdentity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.NodeIdentity())
@@ -250,9 +385,37 @@ func (s *Server) handleReplicationSnapshot(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusUnauthorized, "replication snapshot requires node authentication")
 		return
 	}
-	payload, err := s.devnet.ReplicationSnapshotJSON()
+	afterValue := strings.TrimSpace(r.URL.Query().Get("afterHeight"))
+	if afterValue == "" {
+		cached, err := s.replicationResponse()
+		if err != nil {
+			writeError(w, http.StatusConflict, "replication snapshot unavailable: "+err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-YNX-Replication-SHA256", cached.digest)
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Header().Set("Vary", "Accept-Encoding")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(cached.gzip)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(cached.payload)
+		return
+	}
+
+	afterHeight, parseErr := strconv.ParseUint(afterValue, 10, 64)
+	afterHash := strings.TrimSpace(r.URL.Query().Get("afterHash"))
+	afterHashBytes, hashErr := hex.DecodeString(afterHash)
+	if parseErr != nil || hashErr != nil || len(afterHashBytes) != sha256.Size {
+		writeError(w, http.StatusBadRequest, "replication batch requires valid afterHeight and afterHash")
+		return
+	}
+	payload, err := s.devnet.ReplicationBatchJSON(afterHeight, afterHash)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "replication snapshot unavailable")
+		writeError(w, http.StatusConflict, "replication batch unavailable: "+err.Error())
 		return
 	}
 	mac := hmac.New(sha256.New, []byte(s.replicationKey))
@@ -260,19 +423,51 @@ func (s *Server) handleReplicationSnapshot(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-YNX-Replication-SHA256", hex.EncodeToString(mac.Sum(nil)))
 	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-		w.Header().Set("Content-Encoding", "gzip")
-		w.Header().Set("Vary", "Accept-Encoding")
-		w.WriteHeader(http.StatusOK)
-		compressed, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
-		if err != nil {
+		var compressed bytes.Buffer
+		gzipWriter := gzip.NewWriter(&compressed)
+		if _, err := gzipWriter.Write(payload); err != nil || gzipWriter.Close() != nil {
+			writeError(w, http.StatusInternalServerError, "replication batch compression failed")
 			return
 		}
-		_, _ = compressed.Write(payload)
-		_ = compressed.Close()
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Set("Vary", "Accept-Encoding")
+		_, _ = w.Write(compressed.Bytes())
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(payload)
+}
+
+func (s *Server) replicationResponse() (replicationResponseCache, error) {
+	s.replicationCacheMu.Lock()
+	defer s.replicationCacheMu.Unlock()
+	if len(s.replicationCache.payload) > 0 && time.Since(s.replicationCache.createdAt) < replicationResponseCacheTTL {
+		return s.replicationCache, nil
+	}
+	payload, err := s.devnet.ReplicationSnapshotJSON()
+	if err != nil {
+		return replicationResponseCache{}, err
+	}
+	mac := hmac.New(sha256.New, []byte(s.replicationKey))
+	_, _ = mac.Write(payload)
+	var compressed bytes.Buffer
+	gzipWriter, err := gzip.NewWriterLevel(&compressed, gzip.DefaultCompression)
+	if err != nil {
+		return replicationResponseCache{}, err
+	}
+	if _, err := gzipWriter.Write(payload); err != nil {
+		_ = gzipWriter.Close()
+		return replicationResponseCache{}, err
+	}
+	if err := gzipWriter.Close(); err != nil {
+		return replicationResponseCache{}, err
+	}
+	s.replicationCache = replicationResponseCache{
+		createdAt: time.Now(),
+		payload:   payload,
+		gzip:      compressed.Bytes(),
+		digest:    hex.EncodeToString(mac.Sum(nil)),
+	}
+	return s.replicationCache, nil
 }
 func (s *Server) handleLatestBlock(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.LatestBlock())
@@ -381,11 +576,20 @@ func (s *Server) handleExplorerSummary(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.ExplorerSummary())
 }
 func (s *Server) handleFaucet(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	if !s.authorizeFaucet(w, r) {
+		return
+	}
 	var req struct {
-		Address string `json:"address"`
-		Amount  int64  `json:"amount"`
+		Address   string `json:"address"`
+		Amount    int64  `json:"amount"`
+		RequestID string `json:"requestId,omitempty"`
 	}
 	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if r.URL.Path == "/faucet/requests" && req.RequestID == "" {
+		writeError(w, http.StatusBadRequest, "requestId is required by the durable faucet endpoint")
 		return
 	}
 	address, err := normalizeAccountInput(req.Address)
@@ -393,12 +597,42 @@ func (s *Server) handleFaucet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	tx, err := s.devnet.Faucet(address, req.Amount)
+	var tx chain.Transaction
+	var replayed bool
+	if req.RequestID != "" {
+		tx, replayed, err = s.submitFaucetRequest(chain.FaucetRequestInput{Address: address, Amount: req.Amount, RequestID: req.RequestID})
+		w.Header().Set("X-YNX-Faucet-Idempotency", chain.FaucetRequestVersion)
+	} else {
+		tx, err = s.devnet.Faucet(address, req.Amount)
+	}
 	if err != nil {
+		if errors.Is(err, errFaucetQueueFull) {
+			w.Header().Set("Retry-After", "2")
+			hash, _ := chain.FaucetRequestHash(s.networkConfig.ChainID, req.RequestID)
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"status": "faucet_queue_full", "error": "retain this request ID and retry after backoff", "requestId": req.RequestID, "transactionHash": hash, "accepted": false})
+			return
+		}
+		if errors.Is(err, chain.ErrSnapshotDurabilityUncertain) {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+				"error":  "faucet result needs confirmation; retain this request ID and query its transaction hash",
+				"status": "transaction_durability_uncertain", "requestId": req.RequestID,
+				"transactionHash": tx.Hash, "durabilityVersion": chain.TransactionDurabilityVersion,
+				"ynxDurability": transactionDurabilityRPC(tx.Hash, tx, chain.TransactionDurability{Status: "uncertain"}),
+			})
+			return
+		}
+		if errors.Is(err, chain.ErrFaucetRequestConflict) {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusCreated, tx)
+	status := http.StatusCreated
+	if replayed {
+		status = http.StatusOK
+	}
+	writeJSON(w, status, tx)
 }
 func (s *Server) handleTransfer(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -438,6 +672,9 @@ func (s *Server) handleSignedTransactionBroadcast(w http.ResponseWriter, r *http
 	}
 	tx, replayed, err := s.submitSignedTransaction(payload)
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, signedTransactionHTTPStatus(err), err.Error())
 		return
 	}
@@ -756,6 +993,29 @@ func (s *Server) handleRefund(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusCreated, refund)
 }
+func (s *Server) handleRefundLookup(w http.ResponseWriter, r *http.Request) {
+	refund, ok := s.devnet.Refund(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "refund not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, refund)
+}
+func (s *Server) handleRefundCompletion(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TransactionHash string `json:"transactionHash"`
+		IdempotencyKey  string `json:"idempotencyKey"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	refund, err := s.devnet.CompleteRefund(r.PathValue("id"), req.TransactionHash, req.IdempotencyKey)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusCreated, refund)
+}
 func (s *Server) handleWebhookSignature(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		IntentID       string `json:"intentId"`
@@ -875,6 +1135,9 @@ func (s *Server) handleResourcePoolCreate(w http.ResponseWriter, r *http.Request
 	}
 	pool, tx, err := s.devnet.CreateResourcePool(input)
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -910,6 +1173,9 @@ func (s *Server) handleResourcePoolFund(w http.ResponseWriter, r *http.Request) 
 	}
 	pool, tx, err := s.devnet.FundResourcePool(input)
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -923,6 +1189,9 @@ func (s *Server) handleResourcePoolPolicy(w http.ResponseWriter, r *http.Request
 	}
 	pool, tx, err := s.devnet.UpdateResourcePoolPolicy(input)
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -936,6 +1205,9 @@ func (s *Server) handleResourcePoolStatus(w http.ResponseWriter, r *http.Request
 	}
 	pool, tx, err := s.devnet.UpdateResourcePoolStatus(input)
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -949,6 +1221,9 @@ func (s *Server) handleResourceSponsorshipCreate(w http.ResponseWriter, r *http.
 	}
 	sponsorship, tx, err := s.devnet.SponsorResource(input)
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -979,6 +1254,147 @@ func (s *Server) handleResourceSponsorshipLookup(w http.ResponseWriter, r *http.
 
 func (s *Server) handleResourceSponsorAudit(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"events": s.devnet.ResourceSponsorAudit()})
+}
+
+func (s *Server) handleNativeDexMutation(w http.ResponseWriter, r *http.Request) {
+	if mediaType := strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0])); mediaType != "application/json" {
+		writeError(w, http.StatusUnsupportedMediaType, "Content-Type application/json is required")
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, consensus.MaxSignedActionSize)
+	payload, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeError(w, http.StatusRequestEntityTooLarge, "signed DEX action exceeds maximum size")
+		return
+	}
+	action, err := consensus.DecodeSignedApplicationAction(payload)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := action.Verify(s.devnet.Config().ChainID); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+	expected := map[string]string{
+		"POST /dex/assets":                        consensus.ActionDexAssetCreate,
+		"POST /dex/assets/{id}/mint":              consensus.ActionDexAssetMint,
+		"POST /dex/assets/{id}/transfer":          consensus.ActionDexAssetTransfer,
+		"POST /dex/pools":                         consensus.ActionDexPoolCreate,
+		"POST /dex/pools/{id}/liquidity/add":      consensus.ActionDexLiquidityAdd,
+		"POST /dex/pools/{id}/liquidity/remove":   consensus.ActionDexLiquidityRemove,
+		"POST /dex/pools/{id}/swaps/exact-input":  consensus.ActionDexSwapExactInput,
+		"POST /dex/pools/{id}/swaps/exact-output": consensus.ActionDexSwapExactOutput,
+	}[r.Pattern]
+	if expected == "" || action.Action != expected {
+		writeError(w, http.StatusBadRequest, "signed DEX action does not match the requested route")
+		return
+	}
+	if err := bindNativeDexPath(r.PathValue("id"), action.Action, action.Payload); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	tx, mutation, replayed, err := s.devnet.SubmitNativeDexAction(chain.NativeDexSignedActionInput{
+		Hash: consensus.ApplicationActionHash(payload), Signer: action.Signer, Action: action.Action,
+		Nonce: action.Nonce, Fee: action.Fee, Payload: action.Payload,
+	})
+	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
+		writeError(w, signedTransactionHTTPStatus(err), err.Error())
+		return
+	}
+	status := http.StatusOK
+	if !replayed && (action.Action == consensus.ActionDexAssetCreate || action.Action == consensus.ActionDexPoolCreate) {
+		status = http.StatusCreated
+	}
+	writeJSON(w, status, map[string]any{"transaction": tx, "result": mutation, "replayed": replayed, "source": "authoritative chain-native YNX Testnet state", "mainnet": false})
+}
+
+func bindNativeDexPath(pathID, action string, payload json.RawMessage) error {
+	pathID = strings.TrimSpace(pathID)
+	if pathID == "" {
+		return nil
+	}
+	var bodyID string
+	switch action {
+	case consensus.ActionDexAssetMint:
+		var value chain.NativeDexAssetAmountPayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.AssetID
+	case consensus.ActionDexAssetTransfer:
+		var value chain.NativeDexAssetTransferPayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.AssetID
+	case consensus.ActionDexLiquidityAdd:
+		var value chain.NativeDexLiquidityPayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.PoolID
+	case consensus.ActionDexLiquidityRemove:
+		var value chain.NativeDexLiquidityRemovePayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.PoolID
+	case consensus.ActionDexSwapExactInput:
+		var value chain.NativeDexSwapExactInputPayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.PoolID
+	case consensus.ActionDexSwapExactOutput:
+		var value chain.NativeDexSwapExactOutputPayload
+		if err := json.Unmarshal(payload, &value); err != nil {
+			return err
+		}
+		bodyID = value.PoolID
+	}
+	if !strings.EqualFold(strings.TrimSpace(bodyID), pathID) {
+		return errors.New("DEX route identifier and signed payload identifier must match")
+	}
+	return nil
+}
+
+func (s *Server) handleNativeDexAssets(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"items": s.devnet.NativeDexAssets(), "nativeAsset": chain.NativeDexAssetID, "source": "authoritative chain-native YNX Testnet state"})
+}
+func (s *Server) handleNativeDexAsset(w http.ResponseWriter, r *http.Request) {
+	value, ok := s.devnet.NativeDexAsset(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "DEX asset not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
+func (s *Server) handleNativeDexBalances(w http.ResponseWriter, r *http.Request) {
+	address, err := normalizeAccountInput(r.PathValue("address"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	account, _ := s.devnet.Account(address)
+	writeJSON(w, http.StatusOK, map[string]any{"account": address, "nativeYNXT": account.Balance, "items": s.devnet.NativeDexBalances(address), "source": "authoritative chain-native YNX Testnet state"})
+}
+func (s *Server) handleNativeDexPools(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"items": s.devnet.NativeDexPools(), "source": "authoritative chain-native YNX Testnet state"})
+}
+func (s *Server) handleNativeDexPool(w http.ResponseWriter, r *http.Request) {
+	value, ok := s.devnet.NativeDexPool(r.PathValue("id"))
+	if !ok {
+		writeError(w, http.StatusNotFound, "DEX pool not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, value)
+}
+func (s *Server) handleNativeDexEvents(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"items": s.devnet.NativeDexEvents(), "source": "authoritative chain-native YNX Testnet state"})
 }
 
 func bindResourcePoolPath(w http.ResponseWriter, pathID string, inputID *string) bool {
@@ -1355,10 +1771,16 @@ func (s *Server) rpcResponse(req rpcRequest) rpcResponse {
 	resp := rpcResponse{JSONRPC: "2.0", ID: req.ID}
 	if err != nil {
 		code := -32603
+		var data any
 		if rpcErr, ok := err.(*rpcMethodError); ok {
 			code = rpcErr.code
+			data = rpcErr.data
 		}
-		resp.Error = map[string]any{"code": code, "message": err.Error()}
+		rpcError := map[string]any{"code": code, "message": err.Error()}
+		if data != nil {
+			rpcError["data"] = data
+		}
+		resp.Error = rpcError
 	} else {
 		resp.Result = result
 	}
@@ -1366,6 +1788,22 @@ func (s *Server) rpcResponse(req rpcRequest) rpcResponse {
 }
 
 func (s *Server) evmResult(method string, params []any) (any, error) {
+	// The Faucet probes this static, chain-bound capability before admitting a
+	// request. Serve it without taking the Devnet state lock: authoritative
+	// snapshot persistence can hold that lock while serializing long public
+	// history, but the capability only depends on immutable Server config.
+	if method == "ynx_getFaucetModel" {
+		return s.faucetModel(params)
+	}
+	if method == "ynx_getFeeModel" || s.devnet.EthereumNativeTransfersEnabled() {
+		if result, handled, err := s.ethereumNativeResult(method, params); handled {
+			return result, err
+		}
+	}
+	return s.legacyEVMResult(method, params)
+}
+
+func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
 	cfg, latest := s.devnet.Config(), s.devnet.LatestBlock()
 	switch method {
 	case "eth_chainId":
@@ -1429,23 +1867,17 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 			return nil, nil
 		}
 		return evmTx(tx), nil
+	case "ynx_getFaucetModel":
+		return s.faucetModel(params)
+	case "ynx_getDurabilityModel":
+		if len(params) != 0 {
+			return nil, rpcInvalidParams("ynx_getDurabilityModel accepts no parameters")
+		}
+		return durabilityModel(), nil
+	case "ynx_getTransactionDurability":
+		return s.transactionDurabilityResult(params)
 	case "eth_getTransactionReceipt":
-		if len(params) != 1 || !isCanonicalData(fmt.Sprint(params[0]), 32) {
-			return nil, rpcInvalidParams("eth_getTransactionReceipt requires one 32-byte transaction hash")
-		}
-		tx, ok := s.devnet.Transaction(fmt.Sprint(params[0]))
-		if !ok || tx.BlockNum == 0 || tx.BlockHash == "" {
-			return nil, nil
-		}
-		index := transactionIndex(s.devnet, tx)
-		gasUsed := uint64(21_000)
-		return map[string]any{
-			"transactionHash": tx.Hash, "transactionIndex": hexQuantity(index), "status": "0x1",
-			"blockHash": evmHash(tx.BlockHash), "blockNumber": hexQuantity(tx.BlockNum),
-			"from": tx.From, "to": tx.To, "contractAddress": nil,
-			"gasUsed": hexQuantity(gasUsed), "cumulativeGasUsed": hexQuantity((index + 1) * gasUsed),
-			"logs": evmLogs(tx.Logs),
-		}, nil
+		return s.transactionReceiptResult(params, false)
 	case "eth_sendRawTransaction":
 		if len(params) != 1 {
 			return nil, rpcInvalidParams("eth_sendRawTransaction requires one signed transaction data value")
@@ -1456,10 +1888,13 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 		}
 		tx, _, err := s.submitSignedTransaction(payload)
 		if err != nil {
-			return nil, rpcTransactionRejected(err.Error())
+			return nil, rpcBroadcastFailure(tx, err)
 		}
 		return tx.Hash, nil
 	case "eth_sendTransaction":
+		if s.networkConfig.IsPublicNet {
+			return nil, rpcMethodNotFound("node does not hold signing keys; use eth_sendRawTransaction with a supported signed transaction")
+		}
 		if len(params) == 0 {
 			return nil, rpcInvalidParams("transaction object is required")
 		}
@@ -1506,6 +1941,21 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 	default:
 		return nil, rpcMethodNotFound(fmt.Sprintf("method %s is not implemented by the local YNX devnet RPC", method))
 	}
+}
+
+func (s *Server) faucetModel(params []any) (any, error) {
+	if len(params) != 0 {
+		return nil, rpcInvalidParams("ynx_getFaucetModel accepts no parameters")
+	}
+	return map[string]any{
+		"version": chain.FaucetRequestVersion, "chainId": hexQuantity(uint64(s.networkConfig.ChainID)),
+		"requestIdPattern":      "^[A-Za-z0-9_-]{32,128}$",
+		"transactionHashScheme": "sha256-nul-domain-decimal-chain-id-request-id",
+		"idempotencyScope":      "retained-chain-transaction-history", "legacyRequestSafeRetry": false,
+		"consensusFinality": false, "durability": durabilityModel(),
+		"authority": s.faucetAuthorityModel(),
+		"batching":  map[string]any{"maxBatchSize": chain.MaxFaucetBatchSize, "maxQueuedRequests": faucetQueueCapacity, "collectionWindowMs": 25, "acceptance": "after-durable-shared-checkpoint", "statusPath": "/v1/native-transactions/{hash}"},
+	}, nil
 }
 
 func (s *Server) evmBlockByNumber(params []any) (chain.Block, bool, bool, error) {
@@ -1568,7 +2018,7 @@ func evmBlock(block chain.Block, full bool) map[string]any {
 	}
 }
 func evmTx(tx chain.Transaction) map[string]any {
-	result := map[string]any{"hash": tx.Hash, "from": tx.From, "to": tx.To, "value": hexQuantity(uint64(tx.Amount)), "nonce": hexQuantity(tx.Nonce), "gas": "0x5208", "gasPrice": "0x1", "input": "0x"}
+	result := map[string]any{"hash": tx.Hash, "from": nativeEVMIdentity(tx.From), "to": nativeEVMRecipient(tx.To), "ynxNativeTransaction": nativeTransactionProjection(tx), "value": hexQuantity(uint64(tx.Amount)), "nonce": hexQuantity(tx.Nonce), "gas": "0x5208", "gasPrice": "0x1", "input": "0x"}
 	if tx.BlockNum == 0 || tx.BlockHash == "" {
 		result["blockHash"] = nil
 		result["blockNumber"] = nil
@@ -1582,6 +2032,7 @@ func evmTx(tx chain.Transaction) map[string]any {
 type rpcMethodError struct {
 	code    int
 	message string
+	data    any
 }
 
 func (e *rpcMethodError) Error() string { return e.message }
@@ -1590,6 +2041,30 @@ func rpcInvalidParams(message string) error  { return &rpcMethodError{code: -326
 func rpcMethodNotFound(message string) error { return &rpcMethodError{code: -32601, message: message} }
 func rpcTransactionRejected(message string) error {
 	return &rpcMethodError{code: -32003, message: message}
+}
+
+func writeUncertainMutation(w http.ResponseWriter, tx chain.Transaction, err error) bool {
+	if !errors.Is(err, chain.ErrSnapshotDurabilityUncertain) {
+		return false
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+		"error":  "transaction durability needs confirmation; retry the identical signed request and require a durable mined receipt",
+		"status": "transaction_durability_uncertain", "transactionHash": tx.Hash, "durabilityVersion": chain.TransactionDurabilityVersion,
+		"ynxDurability": transactionDurabilityRPC(tx.Hash, tx, chain.TransactionDurability{Status: "uncertain"}),
+	})
+	return true
+}
+
+func rpcBroadcastFailure(tx chain.Transaction, err error) error {
+	if errors.Is(err, chain.ErrSnapshotDurabilityUncertain) {
+		return &rpcMethodError{
+			code:    -32002,
+			message: "transaction durability needs confirmation; retry the identical signed transaction and require a durable mined receipt",
+			data:    map[string]any{"status": "transaction_durability_uncertain", "transactionHash": tx.Hash, "durabilityVersion": chain.TransactionDurabilityVersion, "ynxDurability": transactionDurabilityRPC(tx.Hash, tx, chain.TransactionDurability{Status: "uncertain"})},
+		}
+	}
+	return rpcTransactionRejected(err.Error())
 }
 
 func parseCanonicalQuantity(value string) (uint64, error) {

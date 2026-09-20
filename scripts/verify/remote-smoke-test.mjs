@@ -5,6 +5,7 @@ import net from "node:net";
 import tls from "node:tls";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { getTestnetEndpoints } from "../../sdk/js/testnet-endpoints.js";
 import { createRemoteSmokeDispatcher, parseRemoteSmokeTransport, remoteSocketTarget } from "./lib/remote-smoke-transport.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -28,14 +29,15 @@ const expected = {
   releaseCommit: expectedReleaseCommit,
   releaseName: process.env.YNX_EXPECTED_RELEASE_NAME || `ynx-chain-${expectedReleaseCommit}`,
 };
+const networkEndpoints = getTestnetEndpoints();
 const endpoints = {
-  rpc: trimSlash(process.env.PUBLIC_RPC_URL || "https://rpc.ynxweb4.com"),
-  evm: trimSlash(process.env.PUBLIC_EVM_RPC_URL || "https://evm.ynxweb4.com"),
-  rest: trimSlash(process.env.PUBLIC_REST_URL || "https://rest.ynxweb4.com"),
+  rpc: trimSlash(process.env.PUBLIC_RPC_URL || networkEndpoints.nativeRest),
+  evm: trimSlash(process.env.PUBLIC_EVM_RPC_URL || networkEndpoints.evmJsonRpc),
+  rest: trimSlash(process.env.PUBLIC_REST_URL || networkEndpoints.restGateway),
   grpcHost: String(process.env.PUBLIC_GRPC_HOST || "grpc.ynxweb4.com"),
-  faucet: trimSlash(process.env.PUBLIC_FAUCET_URL || "https://faucet.ynxweb4.com"),
+  faucet: trimSlash(process.env.PUBLIC_FAUCET_URL || networkEndpoints.faucet),
   indexer: trimSlash(process.env.PUBLIC_INDEXER_URL || "https://indexer.ynxweb4.com"),
-  explorer: trimSlash(process.env.PUBLIC_EXPLORER_URL || "https://explorer.ynxweb4.com"),
+  explorer: trimSlash(process.env.PUBLIC_EXPLORER_URL || networkEndpoints.explorer),
   ai: trimSlash(process.env.PUBLIC_AI_URL || "https://ai.ynxweb4.com"),
   pay: trimSlash(process.env.PUBLIC_PAY_URL || "https://pay.ynxweb4.com"),
   trust: trimSlash(process.env.PUBLIC_TRUST_URL || "https://trust.ynxweb4.com"),

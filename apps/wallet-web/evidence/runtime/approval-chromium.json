@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "48f725d4487ab200684f89cda7c8253761dc2f6e",
+  "generatedAt": "2026-09-20T00:59:02.182Z",
+  "browser": {
+    "id": "chromium",
+    "name": "Chrome for Testing",
+    "version": "151.0.7922.34",
+    "branded": false
+  },
+  "runtimeClass": "temporary unpacked extension in an isolated disposable profile",
+  "fixtureAuthority": "local HTTPS DApp with an immutable foreign MetaMask-shaped provider; no account, signature or transaction fixture implementation",
+  "artifact": {
+    "manifestSha256": "fb171f94af2cce9ee929da28d3fdf6b03e048e64ba63b8ed3d34d074139a8f1e",
+    "pageProviderSha256": "03ab34029146cd37c8a7f13a4c25cbc33ebcf4bba7204058a7c0477eb0b35e8a",
+    "buildSourceCommit": "48f725d4487ab200684f89cda7c8253761dc2f6e",
+    "sourceDirectory": "dist/chromium"
+  },
+  "passed": true,
+  "providerDiscovered": true,
+  "foreignProviderPreserved": true,
+  "vaultCreatedThroughUi": true,
+  "providerConnected": true,
+  "accountAuthorized": true,
+  "messageSigned": true,
+  "signatureRecovered": true,
+  "permissionRevoked": true,
+  "postRevokeDenied": true,
+  "transactionSubmitted": false,
+  "installedLocal": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "serviceWorker": {
+    "started": true,
+    "url": "chrome-extension://jmpmcjigljnhlpgjldgfheiiekiokhcm/service-worker.js"
+  },
+  "account": "0x2e579153f5c711b7d9123248dc87bba9e9889550",
+  "connectedAccounts": [
+    "0x2e579153f5c711b7d9123248dc87bba9e9889550"
+  ],
+  "signatureSha256": "8b2d50ff304b08a2d636731da9f8033af1e9ab9b0c84f6ec4d372bc085cbda48"
+}

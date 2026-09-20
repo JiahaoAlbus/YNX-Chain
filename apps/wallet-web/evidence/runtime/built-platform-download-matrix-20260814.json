@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 2,
+  "sourceCommit": "uncommitted-source-tree",
+  "generatedAt": "2026-09-20T02:28:30.518Z",
+  "gateClass": "current built PWA download matrix bound to committed Android and published Wallet Web manifests",
+  "matrix": {
+    "android": {
+      "label": "Android API 24+ · universal",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-b82c4354329e2fb517730b02211e4e10ee9e45c720a4494556a68f911a753210/ynx-wallet-1.0.15-testnet-preview-8a4f00982-universal-local-test-signed.apk",
+      "hosted": true,
+      "bytes": 79014862,
+      "sha256": "b82c4354329e2fb517730b02211e4e10ee9e45c720a4494556a68f911a753210",
+      "contentType": "application/vnd.android.package-archive",
+      "signingClass": "local-test-signed Testnet Preview",
+      "productionSigned": false
+    },
+    "windowsX64": {
+      "label": "Windows x64 · 0.6.8",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-da2e564eb680de0595202bd388eda9d524f40d62052b03da9b0bba4bf9da3716/ynx-wallet-desktop-0.6.8-x64.exe",
+      "hosted": true,
+      "bytes": 120954701,
+      "sha256": "da2e564eb680de0595202bd388eda9d524f40d62052b03da9b0bba4bf9da3716",
+      "contentType": "application/vnd.microsoft.portable-executable",
+      "signingClass": "unsigned Testnet Preview",
+      "productionSigned": false
+    },
+    "windowsArm64": {
+      "label": "Windows arm64 · 0.6.8",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-122027d7f5668876ae5bdae8bab31c4bd34dee517096eae07813f66775b02902/ynx-wallet-desktop-0.6.8-arm64.exe",
+      "hosted": true,
+      "bytes": 114596628,
+      "sha256": "122027d7f5668876ae5bdae8bab31c4bd34dee517096eae07813f66775b02902",
+      "contentType": "application/vnd.microsoft.portable-executable",
+      "signingClass": "unsigned Testnet Preview",
+      "productionSigned": false
+    },
+    "macosUniversal": {
+      "label": "macOS universal · 0.6.8",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f/ynx-wallet-macos-0.6.8-universal.dmg",
+      "hosted": true,
+      "bytes": 258681947,
+      "sha256": "f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f",
+      "contentType": "application/x-apple-diskimage",
+      "signingClass": "ad-hoc signed; not notarized",
+      "productionSigned": false
+    },
+    "linuxX64": {
+      "label": "Linux x64 DEB · 0.6.8",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-0a06a27486c7eabf3569d0e9d225ae9f0ec6e2e7a31076cc789c1cbce7bf6dce/ynx-wallet-desktop-0.6.8-amd64.deb",
+      "hosted": true,
+      "bytes": 95869208,
+      "sha256": "0a06a27486c7eabf3569d0e9d225ae9f0ec6e2e7a31076cc789c1cbce7bf6dce",
+      "contentType": "application/vnd.debian.binary-package",
+      "signingClass": "unsigned Testnet Preview",
+      "productionSigned": false
+    },
+    "linuxArm64": {
+      "label": "Linux arm64 DEB · 0.6.8",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-e8d3f5e902b290432fc4ee27952bbcd1972124ace89b0ac3d1e83ec4d1c43fb7/ynx-wallet-desktop-0.6.8-arm64.deb",
+      "hosted": true,
+      "bytes": 89954040,
+      "sha256": "e8d3f5e902b290432fc4ee27952bbcd1972124ace89b0ac3d1e83ec4d1c43fb7",
+      "contentType": "application/vnd.debian.binary-package",
+      "signingClass": "unsigned Testnet Preview",
+      "productionSigned": false
+    },
+    "chromeEdgeExtension": {
+      "label": "Chrome / Edge extension · 0.1.1",
+      "url": "https://www.ynxweb4.com/downloads/wallet-web/sha256-6e8094cc4031aad706d930b09fcf8297cb6bd004a0352a4d9fbd984c3ad3a2bd/ynx-wallet-chrome-edge-0.1.1.zip",
+      "hosted": true,
+      "bytes": 546266,
+      "sha256": "6e8094cc4031aad706d930b09fcf8297cb6bd004a0352a4d9fbd984c3ad3a2bd",
+      "contentType": "application/zip",
+      "signingClass": "unsigned unpacked Testnet Preview",
+      "productionSigned": false
+    },
+    "firefoxExtension": {
+      "label": "Firefox extension · 0.1.1",
+      "url": "https://www.ynxweb4.com/downloads/wallet-web/sha256-ed5bdc6c195b1598900a175ff2e294c6529dbca9130ddffde980abdcf29711f5/ynx-wallet-firefox-0.1.1.zip",
+      "hosted": true,
+      "bytes": 546364,
+      "sha256": "ed5bdc6c195b1598900a175ff2e294c6529dbca9130ddffde980abdcf29711f5",
+      "contentType": "application/zip",
+      "signingClass": "unsigned temporary-addon Testnet Preview",
+      "productionSigned": false
+    },
+    "pwaPackage": {
+      "label": "PWA package · 0.1.1",
+      "url": "https://www.ynxweb4.com/downloads/wallet-web/sha256-ed841dd13d04d9fe3b335c040d6859cd59326432376d4390943b573920786186/ynx-wallet-web-pwa-0.1.1.zip",
+      "hosted": true,
+      "bytes": 310097,
+      "sha256": "ed841dd13d04d9fe3b335c040d6859cd59326432376d4390943b573920786186",
+      "contentType": "application/zip",
+      "signingClass": "unsigned PWA Testnet Preview",
+      "productionSigned": false,
+      "publicStatusUrl": "https://www.ynxweb4.com/dapp/wallet"
+    }
+  },
+  "failures": [],
+  "passed": true,
+  "installedLocal": false,
+  "deployedPublic": false,
+  "productionSigned": false,
+  "storeReleased": false
+}

@@ -36,18 +36,24 @@ var (
 )
 
 type Config struct {
-	RPCURL        string
-	HTTPAddr      string
-	UpstreamMode  string
-	FaucetKey     string
-	FaucetKeyPath string
-	FaucetAddress string
-	ChainID       int64
-	DefaultAmount int64
-	MaxAmount     int64
-	Window        time.Duration
-	MaxRequests   int
-	RequestLog    string
+	CoreAuthTokenPath string
+	RPCURL            string
+	HTTPAddr          string
+	UpstreamMode      string
+	FaucetKey         string
+	FaucetKeyPath     string
+	FaucetAddress     string
+	ChainID           int64
+	DefaultAmount     int64
+	MaxAmount         int64
+	Window            time.Duration
+	MaxRequests       int
+	IPMaxRequests     int
+	IPWindow          time.Duration
+	RequestLog        string
+	AdmissionPath     string
+	MaxAdmissions     int
+	HealthTimeout     time.Duration
 }
 
 func (c Config) normalized() (Config, error) {
@@ -61,7 +67,7 @@ func (c Config) normalized() (Config, error) {
 	if c.UpstreamMode != UpstreamAuthoritative && c.UpstreamMode != UpstreamBFT {
 		return Config{}, fmt.Errorf("faucet upstream mode must be %q or %q", UpstreamAuthoritative, UpstreamBFT)
 	}
-	if strings.TrimSpace(c.FaucetKey) == "" && strings.TrimSpace(c.FaucetKeyPath) == "" {
+	if strings.TrimSpace(c.FaucetKey) == "" && strings.TrimSpace(c.FaucetKeyPath) == "" && !(c.UpstreamMode == UpstreamAuthoritative && c.CoreAuthTokenPath != "") {
 		return Config{}, fmt.Errorf("FAUCET_PRIVATE_KEY or YNX_FAUCET_PRIVATE_KEY_FILE is required for ynx-faucetd")
 	}
 	if c.UpstreamMode == UpstreamBFT {
@@ -93,26 +99,57 @@ func (c Config) normalized() (Config, error) {
 	if c.MaxRequests <= 0 {
 		c.MaxRequests = 1
 	}
+	if c.IPMaxRequests <= 0 {
+		c.IPMaxRequests = 100
+	}
+	if c.IPWindow <= 0 {
+		c.IPWindow = time.Minute
+	}
 	if c.RequestLog == "" {
 		c.RequestLog = "tmp/faucet/requests.jsonl"
+	}
+	if c.ChainID == 0 {
+		c.ChainID = 6423
+	}
+	if c.ChainID < 0 {
+		return Config{}, fmt.Errorf("faucet chain ID must be positive")
+	}
+	if c.AdmissionPath == "" {
+		c.AdmissionPath = c.RequestLog + ".admissions.db"
+	}
+	if c.MaxAdmissions <= 0 {
+		c.MaxAdmissions = 100000
+	}
+	if c.HealthTimeout == 0 {
+		c.HealthTimeout = 2 * time.Second
+	}
+	if c.HealthTimeout < 0 || c.HealthTimeout > 5*time.Second {
+		return Config{}, fmt.Errorf("faucet health timeout must be positive and at most 5s")
 	}
 	return c, nil
 }
 
 type Service struct {
-	cfg        Config
-	httpClient *http.Client
-	signer     *secp256k1.PrivateKey
-	signerAddr string
-	mu         sync.Mutex
-	fundMu     sync.Mutex
-	logMu      sync.Mutex
-	seen       map[string][]time.Time
-	requests   int64
-	successes  int64
-	denied     int64
-	lastHash   string
-	lastError  string
+	coreAuthToken   string
+	admissions      *admissionStore
+	cfg             Config
+	httpClient      *http.Client
+	signer          *secp256k1.PrivateKey
+	signerAddr      string
+	mu              sync.Mutex
+	fundMu          sync.Mutex
+	logMu           sync.Mutex
+	seen            map[string][]time.Time
+	requests        int64
+	successes       int64
+	denied          int64
+	requestOutcomes map[string]uint64
+	admissionErrors map[string]uint64
+	lastHash        string
+	lastError       string
+	healthMu        sync.Mutex
+	healthFlight    *healthFlight
+	healthStats     healthProbeStats
 }
 
 func New(cfg Config) (*Service, error) {
@@ -120,7 +157,11 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	service := &Service{cfg: normalized, httpClient: &http.Client{Timeout: 10 * time.Second}, seen: map[string][]time.Time{}}
+	service := &Service{
+		cfg:        normalized,
+		httpClient: &http.Client{Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }},
+		seen:       map[string][]time.Time{}, requestOutcomes: map[string]uint64{}, admissionErrors: map[string]uint64{},
+	}
 	if normalized.UpstreamMode == UpstreamBFT {
 		signer, address, err := loadBFTSigner(normalized)
 		if err != nil {
@@ -129,6 +170,17 @@ func New(cfg Config) (*Service, error) {
 		service.signer = signer
 		service.signerAddr = address
 		service.cfg.FaucetKey = ""
+	}
+	if normalized.UpstreamMode == UpstreamAuthoritative {
+		service.coreAuthToken, err = loadCoreAuthToken(normalized.CoreAuthTokenPath)
+		if err != nil {
+			return nil, err
+		}
+		store, err := openAdmissionStore(normalized)
+		if err != nil {
+			return nil, fmt.Errorf("open durable faucet admission: %w", err)
+		}
+		service.admissions = store
 	}
 	return service, nil
 }
@@ -174,17 +226,22 @@ func loadBFTSigner(cfg Config) (*secp256k1.PrivateKey, string, error) {
 }
 
 type Request struct {
-	Address string `json:"address"`
-	Amount  int64  `json:"amount,omitempty"`
+	RequestID string `json:"requestId,omitempty"`
+	Address   string `json:"address"`
+	Amount    int64  `json:"amount,omitempty"`
 }
 
 type Response struct {
-	Transaction    chain.Transaction `json:"transaction"`
-	Address        string            `json:"address"`
-	Amount         int64             `json:"amount"`
-	NativeSymbol   string            `json:"nativeSymbol"`
-	RequestID      string            `json:"requestId"`
-	TruthfulStatus string            `json:"truthfulStatus"`
+	Transaction      chain.Transaction `json:"transaction"`
+	Address          string            `json:"address"`
+	Amount           int64             `json:"amount"`
+	NativeSymbol     string            `json:"nativeSymbol"`
+	RequestID        string            `json:"requestId"`
+	TruthfulStatus   string            `json:"truthfulStatus"`
+	TransactionHash  string            `json:"transactionHash,omitempty"`
+	Status           string            `json:"status,omitempty"`
+	RetrySameRequest bool              `json:"retrySameRequest,omitempty"`
+	Replayed         bool              `json:"replayed,omitempty"`
 }
 
 type LogEntry struct {
@@ -198,7 +255,14 @@ type LogEntry struct {
 	Error     string    `json:"error,omitempty"`
 }
 
-func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (Response, int, error) {
+func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (response Response, status int, err error) {
+	defer func() { s.recordRequestOutcome(response, status, err) }()
+	if s.cfg.UpstreamMode == UpstreamAuthoritative {
+		return s.requestAuthoritative(ctx, req, remoteAddr)
+	}
+	if req.RequestID != "" {
+		return Response{}, http.StatusBadRequest, fmt.Errorf("request IDs are not supported by this BFT faucet adapter")
+	}
 	requestID := requestID()
 	ip := clientIP(remoteAddr)
 	recipient, recipientErr := s.normalizeRecipient(req.Address)
@@ -306,37 +370,7 @@ func (s *Service) allow(ip, address string, now time.Time) bool {
 }
 
 func (s *Service) callRPC(ctx context.Context, address string, amount int64) (chain.Transaction, error) {
-	if s.cfg.UpstreamMode == UpstreamBFT {
-		return s.callBFTGateway(ctx, address, amount)
-	}
-	body, err := json.Marshal(Request{Address: address, Amount: amount})
-	if err != nil {
-		return chain.Transaction{}, err
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(s.cfg.RPCURL, "/")+"/faucet", bytes.NewReader(body))
-	if err != nil {
-		return chain.Transaction{}, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-YNX-Faucet-Auth", "configured")
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return chain.Transaction{}, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		var errorBody map[string]any
-		_ = json.NewDecoder(resp.Body).Decode(&errorBody)
-		return chain.Transaction{}, fmt.Errorf("RPC faucet returned %d: %v", resp.StatusCode, errorBody)
-	}
-	var tx chain.Transaction
-	if err := json.NewDecoder(resp.Body).Decode(&tx); err != nil {
-		return chain.Transaction{}, err
-	}
-	if tx.Hash == "" {
-		return chain.Transaction{}, fmt.Errorf("RPC faucet returned empty transaction hash")
-	}
-	return tx, nil
+	return s.callBFTGateway(ctx, address, amount)
 }
 
 type bftBroadcastResponse struct {
@@ -475,48 +509,79 @@ func (s *Service) recordDenied(reason string) {
 }
 
 type Health struct {
-	OK             bool           `json:"ok"`
-	Service        string         `json:"service"`
-	RPCURL         string         `json:"rpcUrl"`
-	UpstreamMode   string         `json:"upstreamMode"`
-	FaucetAddress  string         `json:"faucetAddress,omitempty"`
-	UpstreamOK     bool           `json:"upstreamOk"`
-	ChainID        int64          `json:"chainId,omitempty"`
-	Height         uint64         `json:"height,omitempty"`
-	NativeSymbol   string         `json:"nativeSymbol"`
-	DefaultAmount  int64          `json:"defaultAmount"`
-	MaxAmount      int64          `json:"maxAmount"`
-	RateLimit      string         `json:"rateLimit"`
-	RequestLog     string         `json:"requestLog"`
-	Requests       int64          `json:"requests"`
-	Successes      int64          `json:"successes"`
-	Denied         int64          `json:"denied"`
-	LastTxHash     string         `json:"lastTxHash,omitempty"`
-	LastError      string         `json:"lastError,omitempty"`
-	Build          buildinfo.Info `json:"build"`
-	TruthfulStatus string         `json:"truthfulStatus"`
+	CheckedAt                time.Time      `json:"checkedAt"`
+	ProbeDurationMS          int64          `json:"probeDurationMs"`
+	StatusDurationMS         int64          `json:"statusDurationMs"`
+	CapabilityDurationMS     int64          `json:"capabilityDurationMs"`
+	AdmissionDurationMS      int64          `json:"admissionDurationMs"`
+	FundingDurationMS        int64          `json:"fundingDurationMs"`
+	ProbeFailureStage        string         `json:"probeFailureStage,omitempty"`
+	IdempotentRequests       bool           `json:"idempotentRequests"`
+	FundingReady             bool           `json:"fundingReady"`
+	AdmissionReady           bool           `json:"admissionReady"`
+	FundingModel             string         `json:"fundingModel"`
+	FundingBalanceApplicable bool           `json:"fundingBalanceApplicable"`
+	FundingBalanceYNXT       int64          `json:"fundingBalanceYnxt,omitempty"`
+	RequestStatusPath        string         `json:"requestStatusPath"`
+	IPRateLimitMax           int            `json:"ipRateLimitMax"`
+	IPRateLimitWindowSeconds int64          `json:"ipRateLimitWindowSeconds"`
+	RequestPath              string         `json:"requestPath"`
+	RateLimitMax             int            `json:"rateLimitMax"`
+	RateLimitWindowSeconds   int64          `json:"rateLimitWindowSeconds"`
+	OK                       bool           `json:"ok"`
+	Service                  string         `json:"service"`
+	RPCURL                   string         `json:"rpcUrl"`
+	UpstreamMode             string         `json:"upstreamMode"`
+	FaucetAddress            string         `json:"faucetAddress,omitempty"`
+	UpstreamOK               bool           `json:"upstreamOk"`
+	ChainID                  int64          `json:"chainId,omitempty"`
+	Height                   uint64         `json:"height,omitempty"`
+	NativeSymbol             string         `json:"nativeSymbol"`
+	DefaultAmount            int64          `json:"defaultAmount"`
+	MaxAmount                int64          `json:"maxAmount"`
+	RateLimit                string         `json:"rateLimit"`
+	RequestLog               string         `json:"requestLog"`
+	Requests                 int64          `json:"requests"`
+	Successes                int64          `json:"successes"`
+	Denied                   int64          `json:"denied"`
+	LastTxHash               string         `json:"lastTxHash,omitempty"`
+	LastError                string         `json:"lastError,omitempty"`
+	Build                    buildinfo.Info `json:"build"`
+	TruthfulStatus           string         `json:"truthfulStatus"`
 }
 
 func (s *Service) Health() Health {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	fundingModel := "protocol-authority"
+	if s.cfg.UpstreamMode == UpstreamBFT {
+		fundingModel = "bft-account"
+	}
 	return Health{
-		OK:             s.lastError == "",
-		Service:        "ynx-faucetd",
-		RPCURL:         s.cfg.RPCURL,
-		UpstreamMode:   s.cfg.UpstreamMode,
-		FaucetAddress:  s.signerAddr,
-		NativeSymbol:   "YNXT",
-		DefaultAmount:  s.cfg.DefaultAmount,
-		MaxAmount:      s.cfg.MaxAmount,
-		RateLimit:      fmt.Sprintf("%d per %s per ip/address", s.cfg.MaxRequests, s.cfg.Window),
-		RequestLog:     s.cfg.RequestLog,
-		Requests:       s.requests,
-		Successes:      s.successes,
-		Denied:         s.denied,
-		LastTxHash:     s.lastHash,
-		LastError:      s.lastError,
-		TruthfulStatus: s.truthfulStatus(),
+		OK:                s.lastError == "",
+		Service:           "ynx-faucetd",
+		RequestPath:       "/request",
+		RequestStatusPath: "/request-status", IPRateLimitMax: s.cfg.IPMaxRequests, IPRateLimitWindowSeconds: int64(s.cfg.IPWindow.Seconds()),
+		IdempotentRequests:       s.cfg.UpstreamMode == UpstreamAuthoritative,
+		AdmissionReady:           s.cfg.UpstreamMode != UpstreamAuthoritative || s.admissions != nil,
+		FundingModel:             fundingModel,
+		FundingBalanceApplicable: s.cfg.UpstreamMode == UpstreamBFT,
+		RateLimitMax:             s.cfg.MaxRequests,
+		RateLimitWindowSeconds:   int64(s.cfg.Window.Seconds()),
+		RPCURL:                   s.cfg.RPCURL,
+		UpstreamMode:             s.cfg.UpstreamMode,
+		FaucetAddress:            s.signerAddr,
+		NativeSymbol:             "YNXT",
+		DefaultAmount:            s.cfg.DefaultAmount,
+		MaxAmount:                s.cfg.MaxAmount,
+		RateLimit:                fmt.Sprintf("%d per %s per address", s.cfg.MaxRequests, s.cfg.Window),
+		RequestLog:               s.cfg.RequestLog,
+		Requests:                 s.requests,
+		Successes:                s.successes,
+		Denied:                   s.denied,
+		LastTxHash:               s.lastHash,
+		LastError:                s.lastError,
+		TruthfulStatus:           s.truthfulStatus(),
 	}
 }
 
@@ -526,8 +591,18 @@ type rpcStatus struct {
 	NativeCurrencySymbol string `json:"nativeCurrencySymbol"`
 }
 
-func (s *Service) CheckHealth(ctx context.Context) Health {
-	health := s.Health()
+func (s *Service) probeHealth(ctx context.Context) (health Health) {
+	started := time.Now()
+	statusDone := false
+	defer func() {
+		health.CheckedAt = time.Now().UTC()
+		health.ProbeDurationMS = time.Since(started).Milliseconds()
+		if !statusDone {
+			health.StatusDurationMS = health.ProbeDurationMS
+		}
+	}()
+	health = s.Health()
+	health.ProbeFailureStage = "status"
 	var status rpcStatus
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(s.cfg.RPCURL, "/")+"/status", nil)
 	if err != nil {
@@ -547,17 +622,72 @@ func (s *Service) CheckHealth(ctx context.Context) Health {
 		health.LastError = fmt.Sprintf("RPC status returned %d", resp.StatusCode)
 		return health
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+	// Core status is extensible; bound its body and reject trailing JSON without
+	// rejecting unrelated status fields added by another compatible Core build.
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, MaxResponseBytes+1))
+	if err == nil && len(raw) > MaxResponseBytes {
+		err = fmt.Errorf("RPC status exceeds response limit")
+	}
+	if err == nil {
+		err = json.Unmarshal(raw, &status)
+	}
+	if err != nil {
 		health.OK = false
 		health.LastError = err.Error()
 		return health
 	}
-	health.UpstreamOK = status.NativeCurrencySymbol == "YNXT"
+	health.StatusDurationMS = time.Since(started).Milliseconds()
+	statusDone = true
+	health.UpstreamOK = status.NativeCurrencySymbol == "YNXT" && status.ChainID == s.cfg.ChainID
 	health.ChainID = status.ChainID
 	health.Height = status.Height
 	if !health.UpstreamOK {
 		health.OK = false
-		health.LastError = "RPC native symbol is not YNXT"
+		health.LastError = "RPC network identity does not match the Faucet"
+	}
+	if health.UpstreamOK {
+		health.OK = true
+		health.LastError = ""
+		if s.cfg.UpstreamMode == UpstreamAuthoritative {
+			capabilityStart := time.Now()
+			if err := s.requireFaucetCapability(ctx); err != nil {
+				health.OK = false
+				health.LastError = err.Error()
+				health.ProbeFailureStage = "capability"
+			}
+			health.CapabilityDurationMS = time.Since(capabilityStart).Milliseconds()
+			if health.OK {
+				admissionStart := time.Now()
+				if err := s.admissions.health(); err != nil {
+					health.OK = false
+					health.AdmissionReady = false
+					health.LastError = "durable faucet admission is unavailable"
+					health.ProbeFailureStage = "admission"
+					s.recordAdmissionStoreError("health")
+				}
+				health.AdmissionDurationMS = time.Since(admissionStart).Milliseconds()
+			}
+		} else if health.OK {
+			fundingStart := time.Now()
+			account, err := s.bftAccount(ctx)
+			health.FundingDurationMS = time.Since(fundingStart).Milliseconds()
+			if err != nil {
+				health.OK = false
+				health.LastError = "BFT faucet funding account is unavailable"
+				health.ProbeFailureStage = "funding"
+			} else {
+				health.FundingBalanceYNXT = account.Balance
+				if account.Balance < s.cfg.DefaultAmount+consensus.SignedTransactionFeeYNXT {
+					health.OK = false
+					health.LastError = "BFT faucet has insufficient YNXT"
+					health.ProbeFailureStage = "funding"
+				}
+			}
+		}
+	}
+	health.FundingReady = health.OK && health.UpstreamOK
+	if health.FundingReady {
+		health.ProbeFailureStage = ""
 	}
 	return health
 }
@@ -574,7 +704,65 @@ ynx_faucet_success_total{%s} %d
 # HELP ynx_faucet_denied_total Rejected or rate-limited faucet requests.
 # TYPE ynx_faucet_denied_total counter
 ynx_faucet_denied_total{%s} %d
-`, labels, h.Requests, labels, h.Successes, labels, h.Denied)
+`, labels, h.Requests, labels, h.Successes, labels, h.Denied) + s.requestMetrics() + s.healthMetrics()
+}
+
+func (s *Service) recordRequestOutcome(response Response, status int, err error) {
+	outcome := response.Status
+	switch outcome {
+	case "accepted", "admission_unavailable", "ip_rate_limited", "rate_limited", "receipt_persistence_uncertain", "request_id_conflict", "stored_receipt_invalid", "transaction_result_uncertain", "upstream_capability_unavailable":
+	default:
+		switch {
+		case err == nil && status >= 200 && status < 300:
+			outcome = "accepted"
+		case status == http.StatusBadRequest:
+			outcome = "invalid_request"
+		case status == http.StatusTooManyRequests:
+			outcome = "rate_limited"
+		case status >= 500:
+			outcome = "upstream_error"
+		default:
+			outcome = "other_error"
+		}
+	}
+	s.mu.Lock()
+	s.requestOutcomes[outcome]++
+	s.mu.Unlock()
+}
+
+func (s *Service) recordAdmissionStoreError(operation string) {
+	switch operation {
+	case "admit", "complete", "health", "lookup":
+	default:
+		operation = "other"
+	}
+	s.mu.Lock()
+	s.admissionErrors[operation]++
+	s.mu.Unlock()
+}
+
+func (s *Service) requestMetrics() string {
+	s.mu.Lock()
+	outcomes := make(map[string]uint64, len(s.requestOutcomes))
+	for key, value := range s.requestOutcomes {
+		outcomes[key] = value
+	}
+	admission := make(map[string]uint64, len(s.admissionErrors))
+	for key, value := range s.admissionErrors {
+		admission[key] = value
+	}
+	s.mu.Unlock()
+	var b strings.Builder
+	fmt.Fprintf(&b, "# HELP ynx_faucet_default_amount_ynxt Configured default grant amount.\n# TYPE ynx_faucet_default_amount_ynxt gauge\nynx_faucet_default_amount_ynxt %d\n", s.cfg.DefaultAmount)
+	b.WriteString("# HELP ynx_faucet_request_results_total Faucet request results by bounded outcome.\n# TYPE ynx_faucet_request_results_total counter\n")
+	for _, outcome := range []string{"accepted", "admission_unavailable", "invalid_request", "ip_rate_limited", "other_error", "rate_limited", "receipt_persistence_uncertain", "request_id_conflict", "stored_receipt_invalid", "transaction_result_uncertain", "upstream_capability_unavailable", "upstream_error"} {
+		fmt.Fprintf(&b, "ynx_faucet_request_results_total{outcome=%q} %d\n", outcome, outcomes[outcome])
+	}
+	b.WriteString("# HELP ynx_faucet_admission_store_errors_total Durable admission store errors by bounded operation.\n# TYPE ynx_faucet_admission_store_errors_total counter\n")
+	for _, operation := range []string{"admit", "complete", "health", "lookup", "other"} {
+		fmt.Fprintf(&b, "ynx_faucet_admission_store_errors_total{operation=%q} %d\n", operation, admission[operation])
+	}
+	return b.String()
 }
 
 func requestID() string {

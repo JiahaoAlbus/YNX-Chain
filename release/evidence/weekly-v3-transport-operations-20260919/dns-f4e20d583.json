@@ -1,0 +1,1083 @@
+{
+  "schema": "ynx-transport-shareable-bundle/v1",
+  "runId": "ynx-probe-b530ee79-3204-4a4f-b7c9-6b4c4d0b244e",
+  "vantage": "macos-owner",
+  "pathMode": "direct-dns",
+  "startedAt": "2026-09-19T17:35:51.339Z",
+  "finishedAt": "2026-09-19T17:36:46.102Z",
+  "inputSHA256": "3d7fb6bf2987864fbb52e21ac4be38be811868c48fd45da6a71dfc8f4509100c",
+  "sanitizerSHA256": "780544863db7df022ac9851d73205d2b3575ead5359f37b958d27ab170714148",
+  "sourceSHA256": {
+    "testnet-transport-monitor.mjs": "37cebb18a64e9070f1739bb5f236553378b640852a38ba728496d9e873ed4fef",
+    "testnet-transport-host-snapshot.py": "acf5108c7f0c9b950546b43b5b7a28370ce1fff024814f96b8102c05e50f665b",
+    "testnet-alias-preflight.mjs": "897d7e69941f8c847b8f19aaeba2b06b2ad4ff81421ff4f94cbe16187a4886d5",
+    "testnet-transport-client-path.mjs": "3d387e557700ea7df82b68af68525f4fdf9a94c94bc59ca358927b5b4878090a"
+  },
+  "clientPath": {
+    "routeReadable": true,
+    "interfaceFamily": "utun",
+    "interfaceMTU": 1100,
+    "routeUsesKnownTunnelInterface": true,
+    "environmentProxyPresent": false,
+    "systemProxyReadable": true,
+    "systemProxyFlags": {
+      "HTTPEnable": false,
+      "HTTPSEnable": false,
+      "SOCKSEnable": false,
+      "ProxyAutoConfigEnable": false,
+      "ProxyAutoDiscoveryEnable": false
+    },
+    "independentVantageProven": false,
+    "tunnelAbsenceProven": false
+  },
+  "complete": true,
+  "hostObservationExpected": true,
+  "expectedRounds": 2,
+  "expectedSamples": 8,
+  "observedSamples": 8,
+  "healthySamples": 6,
+  "allSamplesHealthy": false,
+  "probes": [
+    {
+      "round": 1,
+      "url": "https://rpc.ynxweb4.com/status",
+      "startedAt": "2026-09-19T17:35:54.402Z",
+      "finishedAt": "2026-09-19T17:35:57.634Z",
+      "ready": true,
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.002122,
+        "time_connect": 2.111091,
+        "time_appconnect": 2.230156,
+        "time_starttransfer": 2.338199,
+        "time_total": 3.213716,
+        "http_code": 200,
+        "exitcode": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0
+      },
+      "remoteIsExpectedOrigin": true,
+      "bodySHA256": "fecfbc752cf1ffed9245d6a6d85ed9da37d7a07f719d9ed14a334abd84aea3fa",
+      "chainId": 6423,
+      "height": 1635899,
+      "buildCommit": "d4857f24735cccc23f2034c110f966ad99273e2f"
+    },
+    {
+      "round": 1,
+      "url": "https://faucet.ynxweb4.com/health",
+      "startedAt": "2026-09-19T17:35:57.731Z",
+      "finishedAt": "2026-09-19T17:36:00.433Z",
+      "ready": true,
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001549,
+        "time_connect": 1.105651,
+        "time_appconnect": 2.1777,
+        "time_starttransfer": 2.391117,
+        "time_total": 2.690012,
+        "http_code": 200,
+        "exitcode": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0
+      },
+      "remoteIsExpectedOrigin": true,
+      "bodySHA256": "5c162aabb75f75118418d63d6bf441e5b18f13e6d0e54ea3ce94cffb65b4475c",
+      "chainId": 6423,
+      "height": 1635900,
+      "buildCommit": "37adf89a2a2c5227335f77690d859a6d4dcb7459"
+    },
+    {
+      "round": 1,
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "startedAt": "2026-09-19T17:36:00.522Z",
+      "finishedAt": "2026-09-19T17:36:03.004Z",
+      "ready": true,
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001763,
+        "time_connect": 2.115121,
+        "time_appconnect": 2.231536,
+        "time_starttransfer": 2.470386,
+        "time_total": 2.470589,
+        "http_code": 200,
+        "exitcode": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0
+      },
+      "remoteIsExpectedOrigin": true,
+      "bodySHA256": "bc7ebf8ad5317ab314c1e544997f5c301e38d33d4812e854fce40e600108d0fd",
+      "chainId": 6423,
+      "height": 1635901,
+      "buildCommit": "37adf89a2a2c5227335f77690d859a6d4dcb7459"
+    },
+    {
+      "round": 1,
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "startedAt": "2026-09-19T17:35:55.095Z",
+      "finishedAt": "2026-09-19T17:36:03.123Z",
+      "ready": false,
+      "classification": "response-body-timeout",
+      "client": {
+        "time_namelookup": 0.002554,
+        "time_connect": 1.113571,
+        "time_appconnect": 2.07986,
+        "time_starttransfer": 2.421825,
+        "time_total": 8.008241,
+        "http_code": 200,
+        "exitcode": 28,
+        "ssl_verify_result": 0,
+        "proxy_used": 0
+      },
+      "remoteIsExpectedOrigin": true,
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "chainId": null,
+      "height": null,
+      "buildCommit": null
+    },
+    {
+      "round": 2,
+      "url": "https://rpc.ynxweb4.com/status",
+      "startedAt": "2026-09-19T17:36:24.555Z",
+      "finishedAt": "2026-09-19T17:36:25.566Z",
+      "ready": true,
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.00247,
+        "time_connect": 0.107942,
+        "time_appconnect": 0.677081,
+        "time_starttransfer": 0.991434,
+        "time_total": 0.998396,
+        "http_code": 200,
+        "exitcode": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0
+      },
+      "remoteIsExpectedOrigin": true,
+      "bodySHA256": "32f77ac89a2e93db98ac1724fc6f19a80a2f6416d10f6fc103c0def5e4478373",
+      "chainId": 6423,
+      "height": 1635905,
+      "buildCommit": "d4857f24735cccc23f2034c110f966ad99273e2f"
+    },
+    {
+      "round": 2,
+      "url": "https://faucet.ynxweb4.com/health",
+      "startedAt": "2026-09-19T17:36:25.691Z",
+      "finishedAt": "2026-09-19T17:36:27.382Z",
+      "ready": true,
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.002058,
+        "time_connect": 0.108797,
+        "time_appconnect": 0.971299,
+        "time_starttransfer": 1.67866,
+        "time_total": 1.678822,
+        "http_code": 200,
+        "exitcode": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0
+      },
+      "remoteIsExpectedOrigin": true,
+      "bodySHA256": "78bec8f577f34d0a45a43735f5570d57717379d4f0d74ecc3ef4bea9152c2b53",
+      "chainId": 6423,
+      "height": 1635906,
+      "buildCommit": "37adf89a2a2c5227335f77690d859a6d4dcb7459"
+    },
+    {
+      "round": 2,
+      "url": "https://faucet-testnet.ynxweb4.com/health",
+      "startedAt": "2026-09-19T17:36:27.484Z",
+      "finishedAt": "2026-09-19T17:36:29.067Z",
+      "ready": true,
+      "classification": "healthy",
+      "client": {
+        "time_namelookup": 0.001974,
+        "time_connect": 1.111627,
+        "time_appconnect": 1.357574,
+        "time_starttransfer": 1.569896,
+        "time_total": 1.570015,
+        "http_code": 200,
+        "exitcode": 0,
+        "ssl_verify_result": 0,
+        "proxy_used": 0
+      },
+      "remoteIsExpectedOrigin": true,
+      "bodySHA256": "abb9ec85f517cdcf7ee2df6d7230d8e55c161c35cad004a1c703fff8228c77c7",
+      "chainId": 6423,
+      "height": 1635906,
+      "buildCommit": "37adf89a2a2c5227335f77690d859a6d4dcb7459"
+    },
+    {
+      "round": 2,
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "startedAt": "2026-09-19T17:36:24.555Z",
+      "finishedAt": "2026-09-19T17:36:29.578Z",
+      "ready": false,
+      "classification": "tls-handshake-timeout",
+      "client": {
+        "time_namelookup": 0.0026,
+        "time_connect": 3.111742,
+        "time_appconnect": 0,
+        "time_starttransfer": 0,
+        "time_total": 5.011359,
+        "http_code": 0,
+        "exitcode": 28,
+        "ssl_verify_result": 1,
+        "proxy_used": 0
+      },
+      "remoteIsExpectedOrigin": true,
+      "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "chainId": null,
+      "height": null,
+      "buildCommit": null
+    }
+  ],
+  "hosts": [
+    {
+      "round": 1,
+      "available": true,
+      "coverage": [
+        {
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "failure": true,
+          "clientWindowCovered": true
+        }
+      ],
+      "withinWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 11,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 1,
+        "AttemptFails": 1,
+        "EstabResets": 1,
+        "RetransSegs": 21
+      },
+      "countersAreHostWide": true,
+      "samples": [
+        {
+          "at": "2026-09-19T17:35:54.175190+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692612,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906563,
+            "AttemptFails": 1046886,
+            "EstabResets": 1998617,
+            "RetransSegs": 423674282
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:35:57.199277+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692615,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906564,
+            "AttemptFails": 1046887,
+            "EstabResets": 1998617,
+            "RetransSegs": 423674285
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:00.224166+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692617,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906564,
+            "AttemptFails": 1046887,
+            "EstabResets": 1998617,
+            "RetransSegs": 423674291
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:03.247910+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692619,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906564,
+            "AttemptFails": 1046887,
+            "EstabResets": 1998618,
+            "RetransSegs": 423674298
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:06.272649+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692622,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906564,
+            "AttemptFails": 1046887,
+            "EstabResets": 1998618,
+            "RetransSegs": 423674302
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:09.296840+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692622,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906564,
+            "AttemptFails": 1046887,
+            "EstabResets": 1998618,
+            "RetransSegs": 423674302
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:12.321582+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692623,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906564,
+            "AttemptFails": 1046887,
+            "EstabResets": 1998618,
+            "RetransSegs": 423674303
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:15.346010+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692623,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906564,
+            "AttemptFails": 1046887,
+            "EstabResets": 1998618,
+            "RetransSegs": 423674303
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        }
+      ],
+      "caddyfileSHA256": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9",
+      "conntrack": {
+        "count": 447,
+        "max": 262144
+      },
+      "firewall": {
+        "available": true,
+        "ruleCount": 606,
+        "dropRules": [
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          }
+        ],
+        "nftOnly": true,
+        "cloudFirewallVisible": false
+      },
+      "packetMetadata": null
+    },
+    {
+      "round": 2,
+      "available": true,
+      "coverage": [
+        {
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "failure": false,
+          "clientWindowCovered": true
+        },
+        {
+          "failure": true,
+          "clientWindowCovered": true
+        }
+      ],
+      "withinWindowDelta": {
+        "SyncookiesSent": 0,
+        "ListenOverflows": 0,
+        "ListenDrops": 0,
+        "TCPTimeouts": 2,
+        "TCPMemoryPressures": 0,
+        "TCPBacklogDrop": 0,
+        "TCPReqQFullDoCookies": 0,
+        "TCPReqQFullDrop": 0,
+        "TCPSynRetrans": 2,
+        "AttemptFails": 0,
+        "EstabResets": 2,
+        "RetransSegs": 10
+      },
+      "countersAreHostWide": true,
+      "samples": [
+        {
+          "at": "2026-09-19T17:36:24.416940+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692624,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906564,
+            "AttemptFails": 1046888,
+            "EstabResets": 1998622,
+            "RetransSegs": 423674305
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:27.441962+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692624,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906564,
+            "AttemptFails": 1046888,
+            "EstabResets": 1998623,
+            "RetransSegs": 423674310
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:30.466463+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692625,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906566,
+            "AttemptFails": 1046888,
+            "EstabResets": 1998623,
+            "RetransSegs": 423674314
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:33.496127+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692625,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906566,
+            "AttemptFails": 1046888,
+            "EstabResets": 1998623,
+            "RetransSegs": 423674314
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:36.520213+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692625,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906566,
+            "AttemptFails": 1046888,
+            "EstabResets": 1998624,
+            "RetransSegs": 423674314
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:39.544526+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692625,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906566,
+            "AttemptFails": 1046888,
+            "EstabResets": 1998624,
+            "RetransSegs": 423674314
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:42.569750+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692626,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906566,
+            "AttemptFails": 1046888,
+            "EstabResets": 1998624,
+            "RetransSegs": 423674315
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        },
+        {
+          "at": "2026-09-19T17:36:45.594696+00:00",
+          "counters": {
+            "SyncookiesSent": 0,
+            "ListenOverflows": 0,
+            "ListenDrops": 392,
+            "TCPTimeouts": 12692626,
+            "TCPMemoryPressures": 0,
+            "TCPBacklogDrop": 0,
+            "TCPReqQFullDoCookies": 0,
+            "TCPReqQFullDrop": 0,
+            "TCPSynRetrans": 7906566,
+            "AttemptFails": 1046888,
+            "EstabResets": 1998624,
+            "RetransSegs": 423674315
+          },
+          "listeners": [
+            {
+              "port": 6428,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 443,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 80,
+              "recvQ": 0,
+              "backlog": 4096
+            },
+            {
+              "port": 6420,
+              "recvQ": 0,
+              "backlog": 4096
+            }
+          ]
+        }
+      ],
+      "caddyfileSHA256": "c9f18ca97f865efce1472b6fd99df5875cad9bba057c8f35abddedfa3f7c54c9",
+      "conntrack": {
+        "count": 297,
+        "max": 262144
+      },
+      "firewall": {
+        "available": true,
+        "ruleCount": 606,
+        "dropRules": [
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          },
+          {
+            "packets": null,
+            "bytes": null,
+            "explicitSingleDport443Match": false
+          }
+        ],
+        "nftOnly": true,
+        "cloudFirewallVisible": false
+      },
+      "packetMetadata": null
+    }
+  ],
+  "redaction": {
+    "allowlistOnly": true,
+    "rawBodies": false,
+    "rawHeaders": false,
+    "rawErrors": false,
+    "rawConfiguration": false,
+    "rawLogs": false,
+    "clientAddresses": false,
+    "clientAddressHashes": false,
+    "localPaths": false,
+    "privateKeys": false
+  },
+  "sourceAuthenticityVerified": false,
+  "independentNetworkPathProven": false,
+  "globalRegionalVerified": false,
+  "continuousAvailabilityVerified": false,
+  "rootCauseConfirmed": false
+}

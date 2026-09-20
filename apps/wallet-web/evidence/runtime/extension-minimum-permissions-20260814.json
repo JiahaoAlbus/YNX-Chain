@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b04765f112aca96cf7dff7cfa48f9b65a891166d",
+  "generatedAt": "2026-09-20T01:09:45.930Z",
+  "gateClass": "exact built-artifact manifest and external URL inspection; not a browser installation",
+  "externalUrlClasses": {
+    "rpcAuthority": "https://rpc-testnet.ynxweb4.com",
+    "rpcCompatibilityAuthority": "https://evm.ynxweb4.com",
+    "explorerDisplay": "https://explorer.ynxweb4.com",
+    "officialWalletAndCallback": "https://www.ynxweb4.com"
+  },
+  "passed": true,
+  "artifacts": [
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.1.zip",
+      "bytes": 546266,
+      "sha256": "6e8094cc4031aad706d930b09fcf8297cb6bd004a0352a4d9fbd984c3ad3a2bd",
+      "permissions": [
+        "activeTab",
+        "scripting",
+        "storage"
+      ],
+      "hostPermissions": [
+        "https://*/*"
+      ],
+      "csp": "script-src 'self'; object-src 'self'; connect-src https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com",
+      "persistentContentScripts": true,
+      "contentScripts": [
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "content-script.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false
+        },
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "page-provider.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false,
+          "world": "MAIN"
+        }
+      ],
+      "webAccessibleProvider": false,
+      "externalUrls": [
+        "https://evm.ynxweb4.com",
+        "https://explorer.ynxweb4.com",
+        "https://rpc-testnet.ynxweb4.com",
+        "https://www.ynxweb4.com",
+        "https://www.ynxweb4.com/",
+        "https://www.ynxweb4.com/dapp/wallet",
+        "https://www.ynxweb4.com/dapp/wallet/open-download",
+        "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+        "https://www.ynxweb4.com/downloads/wallet/sha256-afd686851ef07fbb07823295d07179b79e1a4a078d1b528bc149bd619c8689e0/ynx-wallet-1.0.3-testnet-preview-3ab8c24c-local-test-signed.apk"
+      ],
+      "unexpectedExternalUrls": [],
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.1.zip",
+      "bytes": 546364,
+      "sha256": "ed5bdc6c195b1598900a175ff2e294c6529dbca9130ddffde980abdcf29711f5",
+      "permissions": [
+        "activeTab",
+        "scripting",
+        "storage"
+      ],
+      "hostPermissions": [
+        "https://*/*"
+      ],
+      "csp": "script-src 'self'; object-src 'self'; connect-src https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com",
+      "persistentContentScripts": true,
+      "contentScripts": [
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "content-script.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false
+        },
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "page-provider.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false,
+          "world": "MAIN"
+        }
+      ],
+      "webAccessibleProvider": false,
+      "externalUrls": [
+        "https://evm.ynxweb4.com",
+        "https://explorer.ynxweb4.com",
+        "https://rpc-testnet.ynxweb4.com",
+        "https://www.ynxweb4.com",
+        "https://www.ynxweb4.com/",
+        "https://www.ynxweb4.com/dapp/wallet",
+        "https://www.ynxweb4.com/dapp/wallet/open-download",
+        "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+        "https://www.ynxweb4.com/downloads/wallet/sha256-afd686851ef07fbb07823295d07179b79e1a4a078d1b528bc149bd619c8689e0/ynx-wallet-1.0.3-testnet-preview-3ab8c24c-local-test-signed.apk"
+      ],
+      "unexpectedExternalUrls": [],
+      "passed": true
+    }
+  ],
+  "installedLocal": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false
+}

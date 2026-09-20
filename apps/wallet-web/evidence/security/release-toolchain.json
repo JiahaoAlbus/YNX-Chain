@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "48f725d4487ab200684f89cda7c8253761dc2f6e",
+  "generatedAt": "2026-09-20T00:59:28.502Z",
+  "scope": "Wallet Web release toolchain and exact built Firefox directory; no store signature or store approval",
+  "dependencyAudit": {
+    "all": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "production": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "registry": "https://registry.npmjs.org",
+    "packageLockSha256": "28770762a47c320d05df7d26985b2eebef22d3dd1737cc0991df794fd1a1a416",
+    "passed": true
+  },
+  "firefoxLint": {
+    "summary": {
+      "errors": 0,
+      "notices": 0,
+      "warnings": 0
+    },
+    "errors": 0,
+    "warnings": 0,
+    "notices": 0,
+    "manifestSha256": "fc09a4fd8e2d86fb105184ce8443e956fd03239447c03dbcaff8f451985dde3b",
+    "passed": true
+  },
+  "productionSigned": false,
+  "storeReleased": false,
+  "passed": true
+}

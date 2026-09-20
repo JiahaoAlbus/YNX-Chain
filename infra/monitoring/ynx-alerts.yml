@@ -105,6 +105,54 @@ groups:
         annotations:
           summary: YNX faucet is rejecting many requests
           description: Faucet denials or rate limits are elevated. Check request logs for abuse or misconfiguration.
+      - alert: YNXFaucetHealthStale
+        expr: ynx_faucet_health_checked_timestamp_seconds{job="ynx-faucetd"} == 0 or time() - ynx_faucet_health_checked_timestamp_seconds{job="ynx-faucetd"} > 60
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX faucet health evidence is stale
+          description: No read-only health probe completed in the last 60 seconds. Check the health scraper, Faucet process, and bounded upstream stages before restarting anything.
+      - alert: YNXFaucetNotReady
+        expr: ynx_faucet_funding_ready{job="ynx-faucetd"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX faucet cannot safely fund requests
+          description: The last complete health probe did not prove upstream, capability, admission store, and funding readiness. Inspect the stage metrics and preserve the admission database.
+      - alert: YNXFaucetCapabilitySlow
+        expr: ynx_faucet_health_capability_duration_seconds{job="ynx-faucetd"} > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: YNX faucet capability probe is slow
+          description: The read-only durable Faucet capability stage exceeded one second and is approaching the two-second default probe budget.
+      - alert: YNXFaucetAdmissionStoreErrors
+        expr: increase(ynx_faucet_admission_store_errors_total{job="ynx-faucetd"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX faucet durable admission store is failing
+          description: A durable admission lookup, write, completion, or health operation failed. Preserve the database and request log; do not clear quotas or create a replacement writer.
+      - alert: YNXFaucetUncertainResults
+        expr: sum(increase(ynx_faucet_request_results_total{job="ynx-faucetd",outcome=~"transaction_result_uncertain|receipt_persistence_uncertain|stored_receipt_invalid"}[5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX faucet has an uncertain request result
+          description: At least one funding request lacks a safely reusable final receipt. Retain its request ID and reconcile it; do not submit a replacement transfer.
+      - alert: YNXFaucetFundingBalanceLow
+        expr: ynx_faucet_funding_balance_applicable{job="ynx-faucetd"} == 1 and ynx_faucet_funding_balance_ynxt{job="ynx-faucetd"} < ynx_faucet_default_amount_ynxt{job="ynx-faucetd"}
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: YNX faucet funding account cannot cover a default grant
+          description: The finite BFT Faucet balance is below the configured default grant amount. Protocol-authority mode reports balance applicability as zero and never triggers this alert.
       - alert: YNXAIGatewayDown
         expr: up{job="ynx-ai-gatewayd"} == 0
         for: 2m

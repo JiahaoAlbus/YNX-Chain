@@ -50,7 +50,12 @@ grep -Fq "ynx-explorerd:6427" infra/monitoring/prometheus.yml
 grep -Fq "YNXExplorerLagging" infra/monitoring/ynx-alerts.yml
 grep -Fq "ynx-faucetd:6428" infra/monitoring/prometheus.yml
 grep -Fq "YNXFaucetDown" infra/monitoring/ynx-alerts.yml
+for alert in YNXFaucetHealthStale YNXFaucetNotReady YNXFaucetCapabilitySlow YNXFaucetAdmissionStoreErrors YNXFaucetUncertainResults YNXFaucetFundingBalanceLow; do
+  grep -Fq "$alert" infra/monitoring/ynx-alerts.yml
+done
 grep -Fq "ynx_faucet_requests_total" infra/monitoring/grafana-dashboard.json
+grep -Fq "ynx_faucet_health_capability_duration_seconds" infra/monitoring/grafana-dashboard.json
+grep -Fq "ynx_faucet_admission_store_errors_total" infra/monitoring/grafana-dashboard.json
 grep -Fq "Follower Replication Health" infra/monitoring/grafana-dashboard.json
 grep -Fq "ynx_chain_replication_lag_blocks" infra/monitoring/grafana-dashboard.json
 grep -Fq "ynx_chain_replication_failures_total" infra/monitoring/grafana-dashboard.json

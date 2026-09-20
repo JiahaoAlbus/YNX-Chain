@@ -25,11 +25,11 @@ import (
 
 func TestFaucetServiceRequestsAndRateLimits(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	rpc := httptest.NewServer(api.NewServer(devnet))
+	rpc := httptest.NewServer(api.NewServerWithConfig(devnet, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer rpc.Close()
 
 	logPath := t.TempDir() + "/requests.jsonl"
-	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 50, MaxAmount: 100, Window: time.Hour, MaxRequests: 1, RequestLog: logPath})
+	service, err := newAuthorizedFaucet(t, Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 50, MaxAmount: 100, Window: time.Hour, MaxRequests: 1, RequestLog: logPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,9 +55,9 @@ func TestFaucetServiceRequestsAndRateLimits(t *testing.T) {
 
 func TestAuthoritativeFaucetNormalizesYNXAliasAndSharesRateLimitIdentity(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	rpc := httptest.NewServer(api.NewServer(devnet))
+	rpc := httptest.NewServer(api.NewServerWithConfig(devnet, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer rpc.Close()
-	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 100, MaxAmount: 100, Window: time.Hour, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
+	service, err := newAuthorizedFaucet(t, Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 100, MaxAmount: 100, Window: time.Hour, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,9 +80,9 @@ func TestAuthoritativeFaucetNormalizesYNXAliasAndSharesRateLimitIdentity(t *test
 
 func TestFaucetServerEndpoints(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	rpc := httptest.NewServer(api.NewServer(devnet))
+	rpc := httptest.NewServer(api.NewServerWithConfig(devnet, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer rpc.Close()
-	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 25, MaxAmount: 25, Window: time.Second, MaxRequests: 2, RequestLog: t.TempDir() + "/requests.jsonl"})
+	service, err := newAuthorizedFaucet(t, Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 25, MaxAmount: 25, Window: time.Second, MaxRequests: 2, RequestLog: t.TempDir() + "/requests.jsonl"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,6 +139,16 @@ func TestFaucetWebsiteCORSAndTrustedProxyIdentity(t *testing.T) {
 	}
 	if got := recorder.Header().Get("Access-Control-Allow-Origin"); got != "https://ynxweb4.com" {
 		t.Fatalf("unexpected allowed origin %q", got)
+	}
+	testnetAlias := httptest.NewRequest(http.MethodOptions, "/request", nil)
+	testnetAlias.Header.Set("Origin", "https://faucet-testnet.ynxweb4.com")
+	testnetAliasRecorder := httptest.NewRecorder()
+	handler.ServeHTTP(testnetAliasRecorder, testnetAlias)
+	if testnetAliasRecorder.Code != http.StatusNoContent {
+		t.Fatalf("testnet Faucet alias preflight returned %d", testnetAliasRecorder.Code)
+	}
+	if got := testnetAliasRecorder.Header().Get("Access-Control-Allow-Origin"); got != "https://faucet-testnet.ynxweb4.com" {
+		t.Fatalf("unexpected testnet Faucet alias origin %q", got)
 	}
 
 	blocked := httptest.NewRequest(http.MethodOptions, "/request", nil)
@@ -365,9 +375,9 @@ func TestBFTFaucetRejectsUpstreamFailureAndUnsafeCustody(t *testing.T) {
 
 func TestFaucetServerRejectsOversizedAndUnknownBodies(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	rpc := httptest.NewServer(api.NewServer(devnet))
+	rpc := httptest.NewServer(api.NewServerWithConfig(devnet, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer rpc.Close()
-	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 25, MaxAmount: 25, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
+	service, err := newAuthorizedFaucet(t, Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 25, MaxAmount: 25, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
 	if err != nil {
 		t.Fatal(err)
 	}

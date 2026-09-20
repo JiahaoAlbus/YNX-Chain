@@ -1,0 +1,319 @@
+{
+  "schema": "weekly-v3-faucet-global-readiness-v1",
+  "sourceCommit": "37adf89a2a2c5227335f77690d859a6d4dcb7459",
+  "sourceTree": "d1a0318f072e90e52967f38baf5bdf87bf5b14f9",
+  "baselineCommit": "8d663d319bb0e74804150485975d96e22baaef75",
+  "localFixtureVerified": true,
+  "publicDeployed": false,
+  "publicVerified": false,
+  "globalAvailabilityVerified": false,
+  "officialSandboxVerified": false,
+  "productionApproved": false,
+  "nativeProxyValidation": "NOT RUN: no local nginx or Caddy; full target config/version/certificates require operator validation",
+  "noExternalWrites": true,
+  "sourceSHA256": {
+    "Makefile": "8b3d966e893b80714c082b7278a1c66f9294cdff6fccffce03198bee955745af",
+    "cmd/ynx-faucetd/main.go": "5c87be4e501f1bcd742323ec7aeeba920669077a9bc76cc9c5c3023a39517bc1",
+    "internal/faucet/faucet.go": "1bde4d5ad8c5f4e9cadcea75b0a6485659cab35c9fec7555c6a7a4e5e29a302b",
+    "internal/faucet/health_probe.go": "ec4436eb2b1a02bfc5e57a994213d4e199fdb41de2d670ef5ceaf3872534883c",
+    "internal/faucet/health_probe_test.go": "a0c1483f3be5fe5e05b08a8e37ec62aef2d8066ef50968bda43086c905063273",
+    "internal/faucet/process_recovery_test.go": "3a4a8554304259f47fcc69b4ad76ee326c7d6f84d0111e30684f6c35df27af55",
+    "scripts/deploy/deploy-testnet.sh": "946e56038d9c25c2393a85e02995fc03f303067b8038d2db018ad19bfdfe995b",
+    "scripts/verify/testnet-alias-package.test.mjs": "bc61428bbf141f2c466103fba7205d60b371fe21063413abe82edfaeaa8ef463",
+    "deploy/testnet-alias-only/README.md": "bb759b505e846eabe302d9817d53a00a520c35b763d4a76800ce8ced9a5d25fe",
+    "deploy/testnet-alias-only/aliases.caddy": "e1fc0953f0f3431e78e60e6770f36f3f76eeed082c60d27f688a0eb59521da7e",
+    "deploy/testnet-alias-only/aliases.nginx.conf": "3e9be29085fe491bb385c9d4f9435e820522fca866c1a312b613ad7eda7c87e4"
+  },
+  "tests": [
+    {
+      "command": "go test -json -race -count=3 -timeout 90s ./internal/faucet ./cmd/ynx-faucetd",
+      "started": "2026-09-19T13:03:22.055Z",
+      "exitCode": 0,
+      "packageResults": [
+        {
+          "Time": "2026-09-19T21:03:25.64768+08:00",
+          "Action": "pass",
+          "Package": "github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-faucetd",
+          "Elapsed": 1.7690000000000001
+        },
+        {
+          "Time": "2026-09-19T21:03:51.089575+08:00",
+          "Action": "pass",
+          "Package": "github.com/JiahaoAlbus/YNX-Chain/internal/faucet",
+          "Elapsed": 27.211
+        }
+      ],
+      "testPasses": 174,
+      "failures": [],
+      "testNames": [
+        "TestHTTPShutdownWaitsForAdmittedHandler",
+        "TestHTTPShutdownTimeoutCancelsThenWaitsForHandler",
+        "TestHTTPShutdownReturnsListenerFailure",
+        "TestDurableFaucetLostACKAndColdReplayChargeOnce",
+        "TestDurableFaucetConcurrentRetriesAndCapacity",
+        "TestDurableFaucetReceiptStoreFailureRetainsOriginalAdmission",
+        "TestDurableFaucetUnavailableStoreNeverCallsMutation",
+        "TestDurableFaucetOldRouteAndRedirectFailClosed/false",
+        "TestDurableFaucetOldRouteAndRedirectFailClosed/true",
+        "TestDurableFaucetOldRouteAndRedirectFailClosed",
+        "TestDurableFaucetRejectsForgedReceiptAndExposesRetryIdentity",
+        "TestDurableFaucetImportsLegacyQuotaAndRejectsCorruptLog",
+        "TestDurableCoreRouteRequiresRequestID",
+        "TestDurableFaucetRetryRetainsAdmittedAmountAcrossConfigChange",
+        "TestDurableFaucetManyIndependentUsers",
+        "TestEndpointAliasesShareMultiuserQuotaAndColdReplay",
+        "TestEndpointAliasLostACKRecoversOnOtherAliasAfterRestart",
+        "TestFaucetServiceRequestsAndRateLimits",
+        "TestAuthoritativeFaucetNormalizesYNXAliasAndSharesRateLimitIdentity",
+        "TestFaucetServerEndpoints",
+        "TestFaucetWebsiteCORSAndTrustedProxyIdentity",
+        "TestFaucetRequiresKey",
+        "TestBFTFaucetSignsLocallyAndSerializesConcurrentNonces",
+        "TestBFTFaucetFailsClosedOnInconsistentGatewayResponse/hash",
+        "TestBFTFaucetFailsClosedOnInconsistentGatewayResponse/from",
+        "TestBFTFaucetFailsClosedOnInconsistentGatewayResponse/to",
+        "TestBFTFaucetFailsClosedOnInconsistentGatewayResponse/amount",
+        "TestBFTFaucetFailsClosedOnInconsistentGatewayResponse/nonce",
+        "TestBFTFaucetFailsClosedOnInconsistentGatewayResponse/height",
+        "TestBFTFaucetFailsClosedOnInconsistentGatewayResponse/cometHash",
+        "TestBFTFaucetFailsClosedOnInconsistentGatewayResponse/committed",
+        "TestBFTFaucetFailsClosedOnInconsistentGatewayResponse",
+        "TestBFTFaucetRejectsUpstreamFailureAndUnsafeCustody",
+        "TestFaucetServerRejectsOversizedAndUnknownBodies",
+        "TestHealthBoundedStagesAndRecovery/status",
+        "TestHealthBoundedStagesAndRecovery/capability",
+        "TestHealthBoundedStagesAndRecovery/status-body",
+        "TestHealthBoundedStagesAndRecovery",
+        "TestHealth48CallersCoalesceAndCanceledLeaderDoesNotPoison",
+        "TestHealthRejectsOversizedTrailingAndRedirectedStatus/oversized",
+        "TestHealthRejectsOversizedTrailingAndRedirectedStatus/trailing",
+        "TestHealthRejectsOversizedTrailingAndRedirectedStatus/redirect",
+        "TestHealthRejectsOversizedTrailingAndRedirectedStatus/wrong-chain",
+        "TestHealthRejectsOversizedTrailingAndRedirectedStatus/error",
+        "TestHealthRejectsOversizedTrailingAndRedirectedStatus",
+        "TestHealthTimeoutConfigBounds",
+        "TestHealthTwoStagesShareOneDeadline",
+        "TestMultiuserSameNATPersistentCore/10",
+        "TestMultiuserSameNATPersistentCore/50",
+        "TestMultiuserSameNATPersistentCore",
+        "TestDurableStatusRecoversLostACKWithoutMint",
+        "TestIndependentIPAbuseBudget",
+        "TestAdmissionProcessFenceAndRestart",
+        "TestAdmissionUpstreamTimeoutPreservesIntentAndQuota",
+        "TestWebsitePolicyAllowsSameOriginClaimAndExternalAssets",
+        "TestCoreAuthorityTokenPrivateFile",
+        "TestHealthClearsHistoricalUpstreamFailureAndRejectsWrongNetwork",
+        "TestClientIdentityIgnoresUntrustedProxyHeader"
+      ],
+      "stderr": ""
+    },
+    {
+      "command": "go test -json -race -timeout 90s ./internal/api -run Test.*(Faucet|Status)",
+      "started": "2026-09-19T13:03:51.124Z",
+      "exitCode": 0,
+      "packageResults": [
+        {
+          "Time": "2026-09-19T21:03:55.119834+08:00",
+          "Action": "pass",
+          "Package": "github.com/JiahaoAlbus/YNX-Chain/internal/api",
+          "Elapsed": 1.9340000000000002
+        }
+      ],
+      "testPasses": 31,
+      "failures": [],
+      "testNames": [
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucetunconfigured",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucetplaceholder-config",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucetabsent",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucetplaceholder",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucetwrong",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucetduplicate",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucetunconfigured",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucetplaceholder-config",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucetabsent",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucetplaceholder",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucetwrong",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucetduplicate",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucet/requestsunconfigured",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucet/requestsplaceholder-config",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucet/requestsabsent",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucet/requestsplaceholder",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucet/requestswrong",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/testnet/faucet/requestsduplicate",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucet/requestsunconfigured",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucet/requestsplaceholder-config",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucet/requestsabsent",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucet/requestsplaceholder",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucet/requestswrong",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange/mainnet/faucet/requestsduplicate",
+        "TestFaucetAuthorityRejectsBeforeAnyStateChange",
+        "TestFaucetAuthorityPreservesSameIntentAcrossRestartAndRotation",
+        "TestFaucetQueueBackpressureAndConcurrentFunding",
+        "TestFaucetHTTPRetainsIntentAcrossUncertainResult",
+        "TestFaucetModelIsExplicitAndReadOnly",
+        "TestNativeFaucetReceiptAndFullBlockUseSameIdentityProjection",
+        "TestStatusReturnsSeededSnapshotWithoutWaitingForRefresh"
+      ],
+      "stderr": ""
+    },
+    {
+      "command": "node --test scripts/verify/testnet-alias-package.test.mjs scripts/verify/testnet-endpoint-migration-check.test.mjs internal/faucet/web_client.test.mjs",
+      "started": "2026-09-19T13:03:55.166Z",
+      "exitCode": 0,
+      "output": "✔ lost ACK survives reload and resends byte-identical durable intent (2.714958ms)\n✔ legacy uncertain response never silently retries (0.212167ms)\n✔ quota denial keeps exact durable request for retry (0.199666ms)\n✔ wrong chain or failed local storage cannot send a claim (0.16325ms)\n✔ a different recipient or request ID cannot become a successful receipt (0.143917ms)\n✔ address aliases validate checksum and resolve canonical 20-byte receiver (0.150458ms)\n✔ YNX alias is submitted as the exact canonical recipient for legacy compatibility (0.156833ms)\n✔ plain-text rejection remains a rejection and permits correcting input (0.196666ms)\n✔ audited legacy reconciliation restores original receipt with no funding POST (0.168584ms)\n✔ durable pending intent recovers by read-only status after lost ACK (0.229459ms)\n✔ definitively rejected legacy intent upgrades with the same ID on durable service (0.103541ms)\n✔ alias-only ingress has two candidate hosts, same loopback authorities and no wider activation (1.080792ms)\n✔ Caddy fixes client identity and does not opt into write retries (0.132542ms)\n✔ nginx disables retries/cache and overwrites caller identity (0.397041ms)\n✔ operator package retains external gates and data-preserving rollback (0.219708ms)\n✔ legacy and alias Caddy template cannot forward a caller-controlled quota IP (0.323917ms)\n✔ complete read-only comparison never claims full public acceptance (11.66325ms)\n✔ empty history and missing contract sample remain incomplete (0.65925ms)\n✔ explicit historical transaction is verified against its containing block (1.145917ms)\n✔ rejects same-height fork (0.859333ms)\n✔ rejects matching missing block hashes (0.313541ms)\n✔ rejects wrong block number (0.327584ms)\n✔ rejects matching missing state (0.328334ms)\n✔ rejects matching malformed bytecode (0.41275ms)\n✔ rejects matching null transactions (0.613583ms)\n✔ rejects wrong transaction hash (0.469542ms)\n✔ rejects wrong historical block (0.475291ms)\n✔ rejects transaction absent from containing block (0.535292ms)\n✔ rejects empty contract bytecode (0.509417ms)\n✔ rejects missing Faucet build on both aliases (0.61375ms)\n✔ rejects different Faucet builds (0.603625ms)\n✔ rejects missing recovery paths (0.69875ms)\n✔ rejects missing quota metadata (0.644208ms)\n✔ rejects different Faucet quotas (0.838959ms)\n✔ rejects wrong Explorer chain (0.567083ms)\n✔ request deadline includes a stalled body after successful headers (32.416958ms)\n✔ request deadline also bounds an uncooperative fetch without retries (32.278667ms)\n✔ JSON reads enforce a streamed byte limit without content-length (0.230292ms)\n✔ JSON reads reject oversized declared length before reading (0.114375ms)\n✔ JSON reads reject wrong MIME, invalid JSON and redirects (0.295833ms)\n✔ JSON-RPC envelope rejects missing protocol or mismatched response IDs (0.93925ms)\n✔ proof flags cannot accidentally trigger network work without --live (182.370083ms)\n✔ invalid proof inputs and Mainnet activation fail before fetching (0.627875ms)\n✔ transport proof requires native history, CORS, block growth and stable depth-two readback (1.387083ms)\n✔ transport rejects native chain (1.095292ms)\n✔ transport rejects native historical hash (1.333875ms)\n✔ transport rejects CORS origin (0.670125ms)\n✔ transport rejects CORS method (0.677042ms)\n✔ transport rejects no block growth (0.977ms)\n✔ transport rejects comparison reorg (0.876916ms)\nℹ tests 50\nℹ suites 0\nℹ pass 50\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 330.012625\n",
+      "stderr": ""
+    },
+    {
+      "command": "node scripts/verify/testnet-endpoint-migration-check.mjs",
+      "started": "2026-09-19T13:03:55.537Z",
+      "exitCode": 0,
+      "output": "testnet-endpoint-migration-check passed: config valid; mainnet disabled; public aliases remain unverified\n",
+      "stderr": ""
+    },
+    {
+      "command": "node scripts/verify/chainlist-candidate-check.mjs",
+      "started": "2026-09-19T13:03:55.573Z",
+      "exitCode": 0,
+      "output": "chainlist-candidate-check passed: canonical metadata/payload, deterministic testnet-only package, collision freshness, and tamper/mainnet rejection verified\n",
+      "stderr": ""
+    },
+    {
+      "command": "bash -n scripts/deploy/deploy-testnet.sh",
+      "started": "2026-09-19T13:03:55.652Z",
+      "exitCode": 0,
+      "output": "",
+      "stderr": ""
+    },
+    {
+      "command": "git diff --check",
+      "started": "2026-09-19T13:03:55.655Z",
+      "exitCode": 0,
+      "output": "",
+      "stderr": ""
+    }
+  ],
+  "publicReadOnly": {
+    "scope": "bounded read-only single vantage; no retry, no redirect, no transaction",
+    "publicDeployed": false,
+    "publicVerified": false,
+    "observations": [
+      {
+        "observedAt": "2026-09-19T13:03:59.572Z",
+        "url": "https://faucet.ynxweb4.com/health",
+        "resolved": [
+          {
+            "address": "43.153.202.237",
+            "family": 4
+          }
+        ],
+        "timing": "200|43.153.202.237|0.002392|0.108342|0.211892|0.314961|0.315009",
+        "data": {
+          "build": {
+            "commit": "37fdef1a26436e9731069e9ff2a215f10af276ae",
+            "release": "faucet-durable-37fdef1a2",
+            "buildTime": "2026-09-12T09:59:08.944Z"
+          },
+          "ok": true,
+          "service": "ynx-faucetd",
+          "chainId": 6423,
+          "height": 1631989,
+          "nativeSymbol": "YNXT",
+          "fundingReady": true,
+          "upstreamMode": "authoritative",
+          "upstreamOk": true,
+          "rpcUrl": "http://127.0.0.1:6420",
+          "rateLimitMax": 1,
+          "ipRateLimitMax": 100,
+          "defaultAmount": 100,
+          "maxAmount": 100,
+          "idempotentRequests": true
+        }
+      },
+      {
+        "observedAt": "2026-09-19T13:03:59.575Z",
+        "url": "https://faucet.ynxweb4.com/version",
+        "resolved": [
+          {
+            "address": "43.153.202.237",
+            "family": 4
+          }
+        ],
+        "timing": "200|43.153.202.237|0.002562|0.109355|0.219485|1.113305|1.113362",
+        "data": {
+          "build": {
+            "commit": "37fdef1a26436e9731069e9ff2a215f10af276ae",
+            "release": "faucet-durable-37fdef1a2",
+            "buildTime": "2026-09-12T09:59:08.944Z"
+          },
+          "service": "ynx-faucetd"
+        }
+      },
+      {
+        "observedAt": "2026-09-19T13:03:59.576Z",
+        "url": "https://faucet.ynxweb4.com/metrics",
+        "resolved": [
+          {
+            "address": "43.153.202.237",
+            "family": 4
+          }
+        ],
+        "timing": "200|43.153.202.237|0.002394|0.107726|0.216148|0.896523|0.896588",
+        "data": "# HELP ynx_faucet_requests_total Requests received by ynx-faucetd.\n# TYPE ynx_faucet_requests_total counter\nynx_faucet_requests_total{native_symbol=\"YNXT\"} 7\n# HELP ynx_faucet_success_total Successful faucet transactions.\n# TYPE ynx_faucet_success_total counter\nynx_faucet_success_total{native_symbol=\"YNXT\"} 5\n# HELP ynx_faucet_denied_total Rejected or rate-limited faucet requests.\n# TYPE ynx_faucet_denied_total counter\nynx_faucet_denied_total{native_symbol=\"YNXT\"} 1"
+      },
+      {
+        "observedAt": "2026-09-19T13:03:59.576Z",
+        "url": "https://rpc.ynxweb4.com/status",
+        "resolved": [
+          {
+            "address": "43.153.202.237",
+            "family": 4
+          }
+        ],
+        "timing": "200|43.153.202.237|0.001672|0.111143|0.441548|3.429650|3.436162",
+        "data": {
+          "build": {
+            "commit": "d4857f24735cccc23f2034c110f966ad99273e2f",
+            "release": "core-ecosystem-20260912",
+            "buildTime": "2026-09-12T10:58:37Z"
+          },
+          "chainId": 6423,
+          "height": 1631990,
+          "nativeSymbol": "YNXT",
+          "mainnetReady": false
+        }
+      },
+      {
+        "observedAt": "2026-09-19T13:03:59.576Z",
+        "url": "https://rpc-testnet.ynxweb4.com/status",
+        "resolved": [
+          {
+            "address": "64.29.17.1",
+            "family": 4
+          },
+          {
+            "address": "216.198.79.1",
+            "family": 4
+          }
+        ],
+        "timing": "404|64.29.17.1|0.002716|0.230780|1.356002|1.588670|1.589336",
+        "data": "The deployment could not be found on Vercel.\n\nDEPLOYMENT_NOT_FOUND\n\nsin1::7hgph-1789823040976-ad3fdb3c200f"
+      },
+      {
+        "observedAt": "2026-09-19T13:03:59.576Z",
+        "url": "https://faucet-testnet.ynxweb4.com/health",
+        "resolved": [
+          {
+            "address": "216.198.79.65",
+            "family": 4
+          },
+          {
+            "address": "64.29.17.65",
+            "family": 4
+          }
+        ],
+        "timing": "404|216.198.79.65|0.002561|0.088182|0.184039|0.275854|0.275895",
+        "data": "The deployment could not be found on Vercel.\n\nDEPLOYMENT_NOT_FOUND\n\nhnd1::xk6wj-1789823039810-9aa43bd99f69"
+      }
+    ]
+  }
+}

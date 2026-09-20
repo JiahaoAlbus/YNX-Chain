@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b04765f112aca96cf7dff7cfa48f9b65a891166d",
+  "generatedAt": "2026-09-20T01:09:46.880Z",
+  "gateClass": "exact built ZIP locale module and UI-source inspection; not visible browser runtime",
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.1.zip",
+      "bytes": 310097,
+      "sha256": "ed841dd13d04d9fe3b335c040d6859cd59326432376d4390943b573920786186",
+      "localeChecks": [
+        {
+          "locale": "en",
+          "untranslated": [],
+          "requestFailed": "The request could not be completed. Check your wallet before trying again."
+        },
+        {
+          "locale": "zh-CN",
+          "untranslated": [],
+          "requestFailed": "请求未能完成。重试前请先检查钱包中的状态。"
+        },
+        {
+          "locale": "zh-TW",
+          "untranslated": [],
+          "requestFailed": "請求未能完成。重試前請先檢查錢包中的狀態。"
+        },
+        {
+          "locale": "ja",
+          "untranslated": [],
+          "requestFailed": "リクエストを完了できませんでした。再試行前にウォレットを確認してください。"
+        },
+        {
+          "locale": "ko",
+          "untranslated": [],
+          "requestFailed": "요청을 완료하지 못했습니다. 다시 시도하기 전에 지갑을 확인하세요."
+        },
+        {
+          "locale": "es",
+          "untranslated": [],
+          "requestFailed": "No se pudo completar la solicitud. Revisa tu cartera antes de intentarlo de nuevo."
+        },
+        {
+          "locale": "fr",
+          "untranslated": [],
+          "requestFailed": "La demande n’a pas pu aboutir. Vérifiez votre portefeuille avant de réessayer."
+        },
+        {
+          "locale": "de",
+          "untranslated": [],
+          "requestFailed": "Die Anfrage konnte nicht abgeschlossen werden. Prüfen Sie vor einem erneuten Versuch Ihre Wallet."
+        },
+        {
+          "locale": "pt",
+          "untranslated": [],
+          "requestFailed": "Não foi possível concluir a solicitação. Confira sua carteira antes de tentar novamente."
+        },
+        {
+          "locale": "ru",
+          "untranslated": [],
+          "requestFailed": "Не удалось выполнить запрос. Перед повторной попыткой проверьте кошелёк."
+        },
+        {
+          "locale": "ar",
+          "untranslated": [],
+          "requestFailed": "تعذر إكمال الطلب. تحقق من محفظتك قبل المحاولة مجددًا."
+        },
+        {
+          "locale": "id",
+          "untranslated": [],
+          "requestFailed": "Permintaan tidak dapat diselesaikan. Periksa dompet Anda sebelum mencoba lagi."
+        }
+      ],
+      "checks": {
+        "allLocalesDirect": true,
+        "allErrorsLocalized": true,
+        "arabicExact": true,
+        "stableCodePreserved": true,
+        "rawProviderMessageNotRendered": true
+      },
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.1.zip",
+      "bytes": 546266,
+      "sha256": "6e8094cc4031aad706d930b09fcf8297cb6bd004a0352a4d9fbd984c3ad3a2bd",
+      "localeChecks": [
+        {
+          "locale": "en",
+          "untranslated": [],
+          "requestFailed": "The request could not be completed. Check your wallet before trying again."
+        },
+        {
+          "locale": "zh-CN",
+          "untranslated": [],
+          "requestFailed": "请求未能完成。重试前请先检查钱包中的状态。"
+        },
+        {
+          "locale": "zh-TW",
+          "untranslated": [],
+          "requestFailed": "請求未能完成。重試前請先檢查錢包中的狀態。"
+        },
+        {
+          "locale": "ja",
+          "untranslated": [],
+          "requestFailed": "リクエストを完了できませんでした。再試行前にウォレットを確認してください。"
+        },
+        {
+          "locale": "ko",
+          "untranslated": [],
+          "requestFailed": "요청을 완료하지 못했습니다. 다시 시도하기 전에 지갑을 확인하세요."
+        },
+        {
+          "locale": "es",
+          "untranslated": [],
+          "requestFailed": "No se pudo completar la solicitud. Revisa tu cartera antes de intentarlo de nuevo."
+        },
+        {
+          "locale": "fr",
+          "untranslated": [],
+          "requestFailed": "La demande n’a pas pu aboutir. Vérifiez votre portefeuille avant de réessayer."
+        },
+        {
+          "locale": "de",
+          "untranslated": [],
+          "requestFailed": "Die Anfrage konnte nicht abgeschlossen werden. Prüfen Sie vor einem erneuten Versuch Ihre Wallet."
+        },
+        {
+          "locale": "pt",
+          "untranslated": [],
+          "requestFailed": "Não foi possível concluir a solicitação. Confira sua carteira antes de tentar novamente."
+        },
+        {
+          "locale": "ru",
+          "untranslated": [],
+          "requestFailed": "Не удалось выполнить запрос. Перед повторной попыткой проверьте кошелёк."
+        },
+        {
+          "locale": "ar",
+          "untranslated": [],
+          "requestFailed": "تعذر إكمال الطلب. تحقق من محفظتك قبل المحاولة مجددًا."
+        },
+        {
+          "locale": "id",
+          "untranslated": [],
+          "requestFailed": "Permintaan tidak dapat diselesaikan. Periksa dompet Anda sebelum mencoba lagi."
+        }
+      ],
+      "checks": {
+        "allLocalesDirect": true,
+        "allErrorsLocalized": true,
+        "arabicExact": true,
+        "stableCodePreserved": true,
+        "rawProviderMessageNotRendered": true
+      },
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.1.zip",
+      "bytes": 546364,
+      "sha256": "ed5bdc6c195b1598900a175ff2e294c6529dbca9130ddffde980abdcf29711f5",
+      "localeChecks": [
+        {
+          "locale": "en",
+          "untranslated": [],
+          "requestFailed": "The request could not be completed. Check your wallet before trying again."
+        },
+        {
+          "locale": "zh-CN",
+          "untranslated": [],
+          "requestFailed": "请求未能完成。重试前请先检查钱包中的状态。"
+        },
+        {
+          "locale": "zh-TW",
+          "untranslated": [],
+          "requestFailed": "請求未能完成。重試前請先檢查錢包中的狀態。"
+        },
+        {
+          "locale": "ja",
+          "untranslated": [],
+          "requestFailed": "リクエストを完了できませんでした。再試行前にウォレットを確認してください。"
+        },
+        {
+          "locale": "ko",
+          "untranslated": [],
+          "requestFailed": "요청을 완료하지 못했습니다. 다시 시도하기 전에 지갑을 확인하세요."
+        },
+        {
+          "locale": "es",
+          "untranslated": [],
+          "requestFailed": "No se pudo completar la solicitud. Revisa tu cartera antes de intentarlo de nuevo."
+        },
+        {
+          "locale": "fr",
+          "untranslated": [],
+          "requestFailed": "La demande n’a pas pu aboutir. Vérifiez votre portefeuille avant de réessayer."
+        },
+        {
+          "locale": "de",
+          "untranslated": [],
+          "requestFailed": "Die Anfrage konnte nicht abgeschlossen werden. Prüfen Sie vor einem erneuten Versuch Ihre Wallet."
+        },
+        {
+          "locale": "pt",
+          "untranslated": [],
+          "requestFailed": "Não foi possível concluir a solicitação. Confira sua carteira antes de tentar novamente."
+        },
+        {
+          "locale": "ru",
+          "untranslated": [],
+          "requestFailed": "Не удалось выполнить запрос. Перед повторной попыткой проверьте кошелёк."
+        },
+        {
+          "locale": "ar",
+          "untranslated": [],
+          "requestFailed": "تعذر إكمال الطلب. تحقق من محفظتك قبل المحاولة مجددًا."
+        },
+        {
+          "locale": "id",
+          "untranslated": [],
+          "requestFailed": "Permintaan tidak dapat diselesaikan. Periksa dompet Anda sebelum mencoba lagi."
+        }
+      ],
+      "checks": {
+        "allLocalesDirect": true,
+        "allErrorsLocalized": true,
+        "arabicExact": true,
+        "stableCodePreserved": true,
+        "rawProviderMessageNotRendered": true
+      },
+      "passed": true
+    }
+  ],
+  "browserVisibleRecheck": false,
+  "installedLocal": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "deployedPublic": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "passed": true
+}

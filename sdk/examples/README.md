@@ -8,6 +8,10 @@ YNX Chain SDK examples use the public testnet by default:
 - Chain ID: `6423` / `0x1917`
 - Native coin: `YNXT`
 
+`node sdk/examples/testnet-endpoints.mjs` prints the typed endpoint configuration without making a network request. JavaScript consumers can import `getTestnetEndpoints()` from the SDK and pass `nativeRest` and `evmJsonRpc` separately to `YNXClient`. `testnetEndpointProfiles.candidate` describes the new `rpc-testnet`/`faucet-testnet` aliases for read-only migration checks; it is not an active consumer profile. Until reviewed public activation, defaults stay on the working compatibility hosts. The same resolved defaults feed the JavaScript and Python remote SDK checks. Existing constructors and wallet add/switch payloads remain compatible.
+
+The generated JSON counterpart is `configs/testnet-endpoints.json`. Run `make testnet-endpoint-config-check` to reject drift against the source migration manifest. gRPC retains its separate TLS authority; WebSocket is explicitly unconfigured, not an invented HTTP URL conversion. See `docs/operations/TESTNET_ENDPOINT_MIGRATION.md` for activation and rollback gates.
+
 SDK address helpers convert the same account between canonical EVM `0x...` and checksummed YNX `ynx1...` representations. This is a reversible display/input conversion, not a second account. EVM JSON-RPC and MetaMask continue to use `0x...`.
 
 The canonical read-only example is implemented by `make sdk-remote-check`. It runs both clients, verifies REST and EVM identity, requires positive and closely aligned heights, and requires a live release identity. It does not fund an account, submit a transaction, or imply mainnet readiness.

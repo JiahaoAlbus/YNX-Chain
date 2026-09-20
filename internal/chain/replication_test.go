@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"os"
@@ -56,6 +57,269 @@ func TestReplicationSnapshotConvergesBlocksAndState(t *testing.T) {
 	}
 	if noChange.Applied {
 		t.Fatal("identical replication snapshot should not be reapplied")
+	}
+}
+
+func TestReplicationBatchConvergesBlocksAndState(t *testing.T) {
+	cfg := DefaultNetworkConfig("testnet")
+	source := NewDevnet(cfg)
+	if _, err := source.Faucet("ynx_replication_batch_alice", 250); err != nil {
+		t.Fatal(err)
+	}
+	sourceBlock := source.ProduceBlock()
+	genesis, _ := source.BlockByHeight(0)
+	payload, err := source.ReplicationBatchJSON(genesis.Height, genesis.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var encoded replicationBatch
+	if err := json.Unmarshal(payload, &encoded); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateReplicationState(*encoded.State, cfg); err != nil {
+		t.Fatalf("batch state integrity failed: %v", err)
+	}
+
+	destination, err := NewPersistentDevnet(cfg, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := destination.ApplyReplicationBatchJSON(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Applied || destination.LatestBlock().Hash != sourceBlock.Hash {
+		t.Fatalf("batch did not converge: %+v", result)
+	}
+	account, ok := destination.Account("ynx_replication_batch_alice")
+	if !ok || account.Balance != 250 {
+		t.Fatalf("replicated batch state missing: %+v %v", account, ok)
+	}
+}
+
+func TestReplicationBatchCatchesUpInBoundedSuffixes(t *testing.T) {
+	cfg := DefaultNetworkConfig("testnet")
+	source := NewDevnet(cfg)
+	for range MaxReplicationBatchBlocks + 2 {
+		source.ProduceBlock()
+	}
+	destination := NewDevnet(cfg)
+	local := destination.LatestBlock()
+	firstPayload, err := source.ReplicationBatchJSON(local.Height, local.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var first replicationBatch
+	if err := json.Unmarshal(firstPayload, &first); err != nil {
+		t.Fatal(err)
+	}
+	if first.Complete || first.State != nil || len(first.Blocks) != MaxReplicationBatchBlocks {
+		t.Fatalf("first suffix was not bounded: complete=%t state=%t blocks=%d", first.Complete, first.State != nil, len(first.Blocks))
+	}
+	firstResult, err := destination.ApplyReplicationBatchJSON(firstPayload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !firstResult.Applied || destination.LatestHeight() != MaxReplicationBatchBlocks {
+		t.Fatalf("first suffix did not advance destination: %+v height=%d", firstResult, destination.LatestHeight())
+	}
+
+	local = destination.LatestBlock()
+	finalPayload, err := source.ReplicationBatchJSON(local.Height, local.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var final replicationBatch
+	if err := json.Unmarshal(finalPayload, &final); err != nil {
+		t.Fatal(err)
+	}
+	if !final.Complete || final.State == nil || len(final.Blocks) != 2 {
+		t.Fatalf("final suffix did not carry bounded source state: complete=%t state=%t blocks=%d", final.Complete, final.State != nil, len(final.Blocks))
+	}
+	if _, err := destination.ApplyReplicationBatchJSON(finalPayload); err != nil {
+		t.Fatal(err)
+	}
+	if destination.LatestBlock().Hash != source.LatestBlock().Hash {
+		t.Fatal("bounded suffixes did not converge to authoritative tip")
+	}
+}
+
+func TestReplicationIntermediateSuffixReplaysAfterRestart(t *testing.T) {
+	cfg := DefaultNetworkConfig("testnet")
+	source := NewDevnet(cfg)
+	for range MaxReplicationBatchBlocks + 2 {
+		source.ProduceBlock()
+	}
+	dir := t.TempDir()
+	destination, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := destination.LatestBlock()
+	payload, err := source.ReplicationBatchJSON(base.Height, base.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := destination.ApplyReplicationBatchJSON(payload); err != nil {
+		t.Fatal(err)
+	}
+	if destination.LatestHeight() != MaxReplicationBatchBlocks {
+		t.Fatalf("intermediate suffix did not advance in memory: %d", destination.LatestHeight())
+	}
+
+	// An incomplete suffix is intentionally not a durable application-state
+	// checkpoint. A cold start resumes safely from the previous complete state.
+	restarted, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.LatestHeight() != base.Height || restarted.LatestBlock().Hash != base.Hash {
+		t.Fatalf("restart did not resume from the last complete checkpoint: %+v", restarted.LatestBlock())
+	}
+
+	for restarted.LatestBlock().Hash != source.LatestBlock().Hash {
+		local := restarted.LatestBlock()
+		next, err := source.ReplicationBatchJSON(local.Height, local.Hash)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := restarted.ApplyReplicationBatchJSON(next); err != nil {
+			t.Fatal(err)
+		}
+	}
+	reloaded, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.LatestBlock().Hash != source.LatestBlock().Hash {
+		t.Fatal("final authoritative suffix did not create a durable checkpoint")
+	}
+}
+
+func TestReplicationEmptySuffixDefersDurabilityToBoundedCheckpoint(t *testing.T) {
+	cfg := DefaultNetworkConfig("testnet")
+	source := NewDevnet(cfg)
+	dir := t.TempDir()
+	destination, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	source.ProduceBlock()
+	base := destination.LatestBlock()
+	payload, err := source.ReplicationBatchJSON(base.Height, base.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var emptyBatch replicationBatch
+	if err := json.Unmarshal(payload, &emptyBatch); err != nil {
+		t.Fatal(err)
+	}
+	localHash, err := replicationApplicationStateIntegrity(destination.snapshotLocked())
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceHash, err := replicationApplicationStateIntegrity(*emptyBatch.State)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if localHash != sourceHash {
+		t.Fatalf("empty suffix application state differs local=%s source=%s", localHash, sourceHash)
+	}
+	if destination.replicationDurableHeight != 0 || emptyBatch.SourceHeight != 1 {
+		t.Fatalf("unexpected durable/source heights %d/%d", destination.replicationDurableHeight, emptyBatch.SourceHeight)
+	}
+	if _, err := destination.ApplyReplicationBatchJSON(payload); err != nil {
+		t.Fatal(err)
+	}
+	if destination.LatestHeight() != 1 {
+		t.Fatalf("empty suffix did not advance in memory: %d", destination.LatestHeight())
+	}
+	restarted, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.LatestHeight() != 0 {
+		t.Fatalf("empty suffix was persisted before its bounded checkpoint: %d", restarted.LatestHeight())
+	}
+
+	for source.LatestHeight() < ReplicationDurableCheckpointBlocks {
+		source.ProduceBlock()
+	}
+	base = destination.LatestBlock()
+	payload, err = source.ReplicationBatchJSON(base.Height, base.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := destination.ApplyReplicationBatchJSON(payload); err != nil {
+		t.Fatal(err)
+	}
+	restarted, err = NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.LatestHeight() != ReplicationDurableCheckpointBlocks || restarted.LatestBlock().Hash != source.LatestBlock().Hash {
+		t.Fatalf("bounded empty-block checkpoint was not durable: %+v", restarted.LatestBlock())
+	}
+}
+
+func TestReplicationBatchHonorsPayloadBudgetBeforeBlockLimit(t *testing.T) {
+	cfg := DefaultNetworkConfig("testnet")
+	source := NewDevnet(cfg)
+	for range 80 {
+		source.ProduceBlock()
+	}
+	destination := NewDevnet(cfg)
+	base := destination.LatestBlock()
+	const testPayloadBudget = 2048
+	payload, err := source.replicationBatchJSONWithLimit(base.Height, base.Hash, 40, testPayloadBudget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(payload) > testPayloadBudget {
+		t.Fatalf("non-final batch exceeded payload budget: got=%d limit=%d", len(payload), testPayloadBudget)
+	}
+	var batch replicationBatch
+	if err := json.Unmarshal(payload, &batch); err != nil {
+		t.Fatal(err)
+	}
+	if batch.Complete {
+		t.Fatal("test must exercise a non-final bounded suffix")
+	}
+	if len(batch.Blocks) == 0 || len(batch.Blocks) >= 40 {
+		t.Fatalf("payload budget did not reduce the block window: blocks=%d", len(batch.Blocks))
+	}
+	if _, err := destination.ApplyReplicationBatchJSON(payload); err != nil {
+		t.Fatalf("byte-bounded batch failed integrity/application: %v", err)
+	}
+	if destination.LatestHeight() != batch.EndHeight {
+		t.Fatalf("destination did not advance to bounded suffix end: got=%d want=%d", destination.LatestHeight(), batch.EndHeight)
+	}
+}
+func TestReplicationBatchRejectsTamperingBeforeMutation(t *testing.T) {
+	source := NewDevnet(DefaultNetworkConfig("testnet"))
+	source.ProduceBlock()
+	destination := NewDevnet(DefaultNetworkConfig("testnet"))
+	before := destination.LatestBlock()
+	payload, err := source.ReplicationBatchJSON(before.Height, before.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var batch replicationBatch
+	if err := json.Unmarshal(payload, &batch); err != nil {
+		t.Fatal(err)
+	}
+	batch.Blocks[0].Hash = strings.Repeat("0", sha256.Size*2)
+	tampered, err := json.Marshal(batch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := destination.ApplyReplicationBatchJSON(tampered); err == nil || !strings.Contains(err.Error(), "integrity mismatch") {
+		t.Fatalf("expected batch integrity rejection, got %v", err)
+	}
+	after := destination.LatestBlock()
+	if after.Height != before.Height || after.Hash != before.Hash {
+		t.Fatal("tampered replication batch mutated destination")
 	}
 }
 

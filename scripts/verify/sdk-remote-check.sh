@@ -3,9 +3,20 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 
-YNX_REST_URL="${YNX_REST_URL:-https://rpc.ynxweb4.com}"
-YNX_EVM_URL="${YNX_EVM_URL:-https://evm.ynxweb4.com}"
+YNX_REST_URL="${YNX_REST_URL:-$(node --input-type=module -e 'import {getTestnetEndpoints} from "./sdk/js/testnet-endpoints.js"; process.stdout.write(getTestnetEndpoints().nativeRest)')}"
+YNX_EVM_URL="${YNX_EVM_URL:-$(node --input-type=module -e 'import {getTestnetEndpoints} from "./sdk/js/testnet-endpoints.js"; process.stdout.write(getTestnetEndpoints().evmJsonRpc)')}"
 export YNX_REST_URL YNX_EVM_URL
+
+# Match the local SDK gate's working interpreter policy instead of assuming
+# that a shell shim named python3 can execute on this host.
+if [[ -n "${PYTHON_BIN:-}" ]]; then
+  sdk_python="$PYTHON_BIN"
+elif [[ -x /usr/bin/python3 ]]; then
+  sdk_python=/usr/bin/python3
+else
+  sdk_python=python3
+fi
+"$sdk_python" -c 'import sys' >/dev/null
 
 node --input-type=module <<'NODE'
 import {YNXClient, assertYNXTestnetSnapshot} from "./sdk/js/index.js";
@@ -19,7 +30,7 @@ if (!snapshot.status.build?.release || !snapshot.status.build?.commit) throw new
 console.log(`JavaScript SDK remote proof: chain=${snapshot.evmChainId} restHeight=${snapshot.status.height} evmHeight=${snapshot.evmBlockNumber} release=${snapshot.status.build?.release || "unknown"}`);
 NODE
 
-PYTHONPATH=sdk/python python3 <<'PY'
+PYTHONPATH=sdk/python "$sdk_python" <<'PY'
 import os
 from ynx_client import YNXClient, assert_ynx_testnet_snapshot
 

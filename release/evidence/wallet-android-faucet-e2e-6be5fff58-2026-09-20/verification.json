@@ -1,0 +1,41 @@
+{
+  "sourceCommit": "6be5fff58d547ecf1511bde7d8adb2cf85c15ccb",
+  "installedCandidate": {
+    "package": "com.ynxweb4.wallet",
+    "versionCode": 21,
+    "versionName": "1.0.14-testnet-preview",
+    "apkSha256": "bfc7411e9987b8b517c2ab62985ad98aa56d22449181a4ea36d203864bd7067c",
+    "signingCertificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "productionSigned": false,
+    "officiallyPublished": false
+  },
+  "unsignedReleaseApkSha256": "df486a29f948614d336eac56d4757fc1d8eb69a83f90aa26288713e222e5c98c",
+  "validation": {
+    "walletTests": "509/509 passed",
+    "faucetTargetedTests": "106/106 passed",
+    "secureStorePatchTests": "11/11 passed",
+    "typecheck": "passed",
+    "androidTransportReleaseUnitTest": "passed",
+    "androidReleaseAssembly": "passed",
+    "androidBundleExport": "passed",
+    "productCheck": "passed",
+    "releaseContentCheck": "passed",
+    "goalCoverageCheck": "passed"
+  },
+  "sbom": {
+    "npmVersion": "11.5.1",
+    "components": 429,
+    "dependencyNodes": 502,
+    "sha256": "9adc5351c8fd5bf0d4037b3bca9d1c6a71c3073d4542a739e99f8a5b2e7156ca"
+  },
+  "acceptance": {
+    "installedFaucetReceiptSaved": true,
+    "installedTransfer1DurablyConfirmed": true,
+    "installedTransfer2RecoveredAfterRestart": true,
+    "offlineFailureAndOnlineRecovery": true,
+    "finalBalance": 96,
+    "finalNonce": 2,
+    "consensusFinalityClaimed": false,
+    "dispatchCountIndependentlyProven": false
+  }
+}

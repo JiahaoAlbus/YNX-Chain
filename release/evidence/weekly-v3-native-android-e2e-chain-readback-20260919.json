@@ -1,0 +1,2933 @@
+{
+  "schema": "ynx-native-android-e2e-independent-evidence/v1",
+  "coordinator": "01a094cc-0ba3-7901-bcd5-56fce8330c0d",
+  "owner": "01a0b8cc-8ea5-7db3-87f6-27f5cabf51be",
+  "requestId": "wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+  "address": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+  "fundingHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+  "stages": [
+    {
+      "schema": "ynx-native-android-e2e-independent-readback/v1",
+      "startedAt": "2026-09-19T16:42:05.368Z",
+      "finishedAt": "2026-09-19T16:42:36.387Z",
+      "stage": "funding-readback-before-native-transfer-hashes-received",
+      "sourceCommit": "8ec060adae3ae97e033424ece090013bd9dd9d25",
+      "requestId": "wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+      "address": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+      "nativeAddress": "ynx1gancyh4f23jstsumrxa96v2gfedaqdekzfygl3",
+      "fundingHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+      "deterministicRequestHashMatched": true,
+      "rpc": [
+        {
+          "origin": "https://rpc.ynxweb4.com",
+          "observations": [
+            {
+              "label": "chainId",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:05.369Z",
+              "finishedAt": "2026-09-19T16:42:06.980Z",
+              "method": "eth_chainId",
+              "params": [],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002237,
+                "tcp": 0.11128,
+                "tls": 0.223435,
+                "firstByte": 1.59447,
+                "total": 1.59457
+              },
+              "bodySHA256": "5c4a05f13a54a9563933c7daa16938e313e9b35240d6689abc92c1351ebaff79",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": "0x1917"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "fundingTransaction",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:06.980Z",
+              "finishedAt": "2026-09-19T16:42:10.060Z",
+              "method": "eth_getTransactionByHash",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.003027,
+                "tcp": 1.119095,
+                "tls": 2.356396,
+                "firstByte": 3.057495,
+                "total": 3.05757
+              },
+              "bodySHA256": "fa6d9d37d35615cec6158803515a2d8613e77b57c3cb2a64ecac39abdd2f3b01",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "result": {
+                  "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                  "blockNumber": "0x18f2c7",
+                  "from": "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",
+                  "gas": "0x0",
+                  "gasPrice": "0x246139ca8000",
+                  "hash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                  "nonce": "0x0",
+                  "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "value": "0x56bc75e2d63100000",
+                  "ynxNativeIdentity": {
+                    "from": "ynx_faucet",
+                    "identityProjection": {
+                      "fromSystemIdentity": true,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "100",
+                    "feeYNXT": "0",
+                    "nonce": "0x0",
+                    "type": "faucet"
+                  },
+                  "ynxTransactionEncoding": "ynx-native"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "fundingReceipt",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:10.060Z",
+              "finishedAt": "2026-09-19T16:42:11.672Z",
+              "method": "eth_getTransactionReceipt",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.003134,
+                "tcp": 0.107582,
+                "tls": 0.219701,
+                "firstByte": 0.960677,
+                "total": 1.59108
+              },
+              "bodySHA256": "e9b91a50edefad32ac025fa0084c1659e4447e7f40a1280fde432ee4cc46b420",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 6,
+                "result": {
+                  "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                  "blockNumber": "0x18f2c7",
+                  "contractAddress": null,
+                  "cumulativeGasUsed": "0x0",
+                  "effectiveGasPrice": "0x246139ca8000",
+                  "from": "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",
+                  "gasUsed": "0x0",
+                  "logsBloom": "0x00000000c00000000000000000000000000000000000000000000000000000000000000000000000000000200000000000020000000000000000000000000000000000000080000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000040000000000000000000000000100000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000",
+                  "status": "0x1",
+                  "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "ynxDurability": {
+                    "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                    "blockNumber": "0x18f2c7",
+                    "checkpointBlockHash": "0x66d8082b8fb0abf7db98ca9e1606b35925ce899f57ca5e19e5f8a07a64a62a8a",
+                    "checkpointBlockNumber": "0x18f336",
+                    "scope": "local-snapshot",
+                    "snapshotIntegrity": "0xbdd756b976a4f8f2d18e6ca699c24a6a128c437574675307a8465a5cd22bc51b",
+                    "status": "durable",
+                    "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                    "version": "ynx-local-durability-v1"
+                  },
+                  "ynxFeeWei": "0x0",
+                  "ynxLogSemantics": "native provenance events; no EVM execution",
+                  "ynxNativeIdentity": {
+                    "from": "ynx_faucet",
+                    "identityProjection": {
+                      "fromSystemIdentity": true,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "100",
+                    "feeYNXT": "0",
+                    "nonce": "0x0",
+                    "type": "faucet"
+                  }
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "fundingDurability",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:11.672Z",
+              "finishedAt": "2026-09-19T16:42:16.695Z",
+              "method": "ynx_getTransactionDurability",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 28,
+              "httpStatus": 0,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": false,
+              "transportClassification": "tls-handshake-timeout",
+              "clientError": "SSL connection timeout",
+              "phaseSeconds": {
+                "dns": 0.001696,
+                "tcp": 2.109282,
+                "tls": 0,
+                "firstByte": 0,
+                "total": 5.011074
+              },
+              "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "response": null,
+              "rpcError": null
+            },
+            {
+              "label": "balanceLatest",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:16.695Z",
+              "finishedAt": "2026-09-19T16:42:24.719Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "latest"
+              ],
+              "exitCode": 28,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": false,
+              "transportClassification": "response-body-timeout",
+              "clientError": "Operation timed out after 8002 milliseconds with 0 out of 57 bytes received",
+              "phaseSeconds": {
+                "dns": 0.002791,
+                "tcp": 0.107927,
+                "tls": 0.222353,
+                "firstByte": 1.316736,
+                "total": 8.00248
+              },
+              "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "response": null,
+              "rpcError": null
+            },
+            {
+              "label": "balancePending",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:24.719Z",
+              "finishedAt": "2026-09-19T16:42:29.734Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "pending"
+              ],
+              "exitCode": 28,
+              "httpStatus": 0,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": false,
+              "transportClassification": "tls-handshake-timeout",
+              "clientError": "SSL connection timeout",
+              "phaseSeconds": {
+                "dns": 0.001763,
+                "tcp": 2.119256,
+                "tls": 0,
+                "firstByte": 0,
+                "total": 5.002815
+              },
+              "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "response": null,
+              "rpcError": null
+            },
+            {
+              "label": "nonceLatest",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:29.734Z",
+              "finishedAt": "2026-09-19T16:42:34.940Z",
+              "method": "eth_getTransactionCount",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "latest"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.003143,
+                "tcp": 0.110609,
+                "tls": 0.59163,
+                "firstByte": 5.185304,
+                "total": 5.185363
+              },
+              "bodySHA256": "6750acbe0450abc7539cf6820119865df8c58523917d3a0a72dae0602fb4004d",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 15,
+                "result": "0x1"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "noncePending",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:34.940Z",
+              "finishedAt": "2026-09-19T16:42:35.594Z",
+              "method": "eth_getTransactionCount",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "pending"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002258,
+                "tcp": 0.10986,
+                "tls": 0.220868,
+                "firstByte": 0.639287,
+                "total": 0.639463
+              },
+              "bodySHA256": "4e0258d6115d0c21982e1c08fea847e306d9502c09c5200b1dba85583431d077",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 16,
+                "result": "0x1"
+              },
+              "rpcError": null
+            }
+          ]
+        },
+        {
+          "origin": "https://rpc-testnet.ynxweb4.com",
+          "observations": [
+            {
+              "label": "chainId",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:05.371Z",
+              "finishedAt": "2026-09-19T16:42:07.490Z",
+              "method": "eth_chainId",
+              "params": [],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002001,
+                "tcp": 0.108086,
+                "tls": 0.223397,
+                "firstByte": 2.106223,
+                "total": 2.10638
+              },
+              "bodySHA256": "b6bdc0aec0b2475b2e9f0d86d910a7d505068919baf6158d96e12a4fff04fc90",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "result": "0x1917"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "fundingTransaction",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:07.490Z",
+              "finishedAt": "2026-09-19T16:42:08.621Z",
+              "method": "eth_getTransactionByHash",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002707,
+                "tcp": 0.107625,
+                "tls": 0.221483,
+                "firstByte": 1.108323,
+                "total": 1.108415
+              },
+              "bodySHA256": "de43228bc5084411d7b7148cf3dd1ba0ad8e91a42000741d949f9acc13261f72",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "result": {
+                  "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                  "blockNumber": "0x18f2c7",
+                  "from": "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",
+                  "gas": "0x0",
+                  "gasPrice": "0x246139ca8000",
+                  "hash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                  "nonce": "0x0",
+                  "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "value": "0x56bc75e2d63100000",
+                  "ynxNativeIdentity": {
+                    "from": "ynx_faucet",
+                    "identityProjection": {
+                      "fromSystemIdentity": true,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "100",
+                    "feeYNXT": "0",
+                    "nonce": "0x0",
+                    "type": "faucet"
+                  },
+                  "ynxTransactionEncoding": "ynx-native"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "fundingReceipt",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:08.622Z",
+              "finishedAt": "2026-09-19T16:42:13.647Z",
+              "method": "eth_getTransactionReceipt",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 28,
+              "httpStatus": 0,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": false,
+              "transportClassification": "tls-handshake-timeout",
+              "clientError": "SSL connection timeout",
+              "phaseSeconds": {
+                "dns": 0.002835,
+                "tcp": 1.111994,
+                "tls": 0,
+                "firstByte": 0,
+                "total": 5.004152
+              },
+              "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "response": null,
+              "rpcError": null
+            },
+            {
+              "label": "fundingDurability",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:13.647Z",
+              "finishedAt": "2026-09-19T16:42:16.412Z",
+              "method": "ynx_getTransactionDurability",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.001716,
+                "tcp": 0.107796,
+                "tls": 1.325918,
+                "firstByte": 2.751625,
+                "total": 2.751775
+              },
+              "bodySHA256": "663f8d801fac0248541dd54160d3ef86df64e73c29447520fc57f27b57c3b20b",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 8,
+                "result": {
+                  "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                  "blockNumber": "0x18f2c7",
+                  "checkpointBlockHash": "0x6c5c6709dfc18e8b927d8291d4c6f1c0f7e4b1b8a613f9e31301572d8e8173aa",
+                  "checkpointBlockNumber": "0x18f337",
+                  "scope": "local-snapshot",
+                  "snapshotIntegrity": "0xea23f3b47de97c1b0aaed9de7dd3479f597ef52927774f66e57918e9487831c4",
+                  "status": "durable",
+                  "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                  "version": "ynx-local-durability-v1"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "balanceLatest",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:16.412Z",
+              "finishedAt": "2026-09-19T16:42:18.908Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "latest"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.003092,
+                "tcp": 2.115113,
+                "tls": 2.370253,
+                "firstByte": 2.47749,
+                "total": 2.477538
+              },
+              "bodySHA256": "77374f7dded498a97b8ae034d9ed8c50d1cfb5af33c8dfca751862317364d8af",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 9,
+                "result": "0x55005f0c614480000"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "balancePending",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:18.908Z",
+              "finishedAt": "2026-09-19T16:42:19.864Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "pending"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.001448,
+                "tcp": 0.106129,
+                "tls": 0.215116,
+                "firstByte": 0.947158,
+                "total": 0.947235
+              },
+              "bodySHA256": "a8464f756d47f32cdd39648e86dd9e54c5b9c2bb084e6fa9292d211498138dd4",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 11,
+                "result": "0x55005f0c614480000"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "nonceLatest",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:19.864Z",
+              "finishedAt": "2026-09-19T16:42:26.467Z",
+              "method": "eth_getTransactionCount",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "latest"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.001972,
+                "tcp": 1.110408,
+                "tls": 1.222359,
+                "firstByte": 6.576702,
+                "total": 6.576841
+              },
+              "bodySHA256": "f0228d42983ab2ee6f40fca2fd41163e9fcfbbbcd9384f7826e84a490282b783",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 12,
+                "result": "0x1"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "noncePending",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:42:26.467Z",
+              "finishedAt": "2026-09-19T16:42:30.623Z",
+              "method": "eth_getTransactionCount",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "pending"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002959,
+                "tcp": 1.112476,
+                "tls": 1.227391,
+                "firstByte": 4.132836,
+                "total": 4.133005
+              },
+              "bodySHA256": "5bcfd068a09d5fb908b6b57307e0be5b0cef25b87e13ecdb7d2396b61a30a8b1",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 14,
+                "result": "0x1"
+              },
+              "rpcError": null
+            }
+          ]
+        }
+      ],
+      "faucet": [
+        {
+          "label": "faucetRequestStatus",
+          "url": "https://faucet.ynxweb4.com/request-status?requestId=wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+          "startedAt": "2026-09-19T16:42:35.595Z",
+          "finishedAt": "2026-09-19T16:42:36.177Z",
+          "method": "GET",
+          "params": [],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.003388,
+            "tcp": 0.108689,
+            "tls": 0.348641,
+            "firstByte": 0.558243,
+            "total": 0.558411
+          },
+          "bodySHA256": "a135b7ce3e1d06655c81159621cfa8f21a163f6a096f4dc313965cbcd4162f87",
+          "response": {
+            "transaction": {
+              "hash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+              "type": "faucet",
+              "from": "ynx_faucet",
+              "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+              "amount": 100,
+              "fee": 0,
+              "nonce": 0,
+              "blockHash": "723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+              "blockNumber": 1635015,
+              "timestamp": "2026-09-19T16:34:11.549460638Z",
+              "memo": "devnet faucet mint"
+            },
+            "address": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+            "amount": 100,
+            "nativeSymbol": "YNXT",
+            "requestId": "wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+            "truthfulStatus": "rpc-backed-faucet",
+            "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+            "status": "accepted",
+            "replayed": true
+          },
+          "rpcError": null
+        },
+        {
+          "label": "faucetRequestStatus",
+          "url": "https://faucet-testnet.ynxweb4.com/request-status?requestId=wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+          "startedAt": "2026-09-19T16:42:35.597Z",
+          "finishedAt": "2026-09-19T16:42:36.387Z",
+          "method": "GET",
+          "params": [],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.025549,
+            "tcp": 0.133842,
+            "tls": 0.241101,
+            "firstByte": 0.768962,
+            "total": 0.769111
+          },
+          "bodySHA256": "a135b7ce3e1d06655c81159621cfa8f21a163f6a096f4dc313965cbcd4162f87",
+          "response": {
+            "transaction": {
+              "hash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+              "type": "faucet",
+              "from": "ynx_faucet",
+              "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+              "amount": 100,
+              "fee": 0,
+              "nonce": 0,
+              "blockHash": "723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+              "blockNumber": 1635015,
+              "timestamp": "2026-09-19T16:34:11.549460638Z",
+              "memo": "devnet faucet mint"
+            },
+            "address": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+            "amount": 100,
+            "nativeSymbol": "YNXT",
+            "requestId": "wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+            "truthfulStatus": "rpc-backed-faucet",
+            "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+            "status": "accepted",
+            "replayed": true
+          },
+          "rpcError": null
+        }
+      ],
+      "readOnlyRPCMethodsOnly": true,
+      "noAutomaticRetries": true,
+      "transactionSubmissions": 0,
+      "faucetClaims": 0,
+      "faucetPOSTReplays": 0,
+      "privateKeyReads": 0,
+      "signaturesRetained": false,
+      "ownerReported": {
+        "initialUI": "result unknown",
+        "manualRecovery": "original request id",
+        "actualClientPOSTCountIndependentlyObserved": false
+      },
+      "semantics": "GET replayed=true means existing receipt returned, not another POST. GET status can persist an existing receipt but cannot admit a new intent, charge quota or mint. Public reads identify one admitted id/hash; no complete admission DB audit or client POST-count proof.",
+      "nativeTransferHashesPending": true,
+      "analysis": {
+        "attempted": 18,
+        "transportSucceeded": 14,
+        "failures": [
+          {
+            "label": "fundingDurability",
+            "url": "https://rpc.ynxweb4.com/evm",
+            "classification": "tls-handshake-timeout",
+            "clientError": "SSL connection timeout"
+          },
+          {
+            "label": "balanceLatest",
+            "url": "https://rpc.ynxweb4.com/evm",
+            "classification": "response-body-timeout",
+            "clientError": "Operation timed out after 8002 milliseconds with 0 out of 57 bytes received"
+          },
+          {
+            "label": "balancePending",
+            "url": "https://rpc.ynxweb4.com/evm",
+            "classification": "tls-handshake-timeout",
+            "clientError": "SSL connection timeout"
+          },
+          {
+            "label": "fundingReceipt",
+            "url": "https://rpc-testnet.ynxweb4.com/evm",
+            "classification": "tls-handshake-timeout",
+            "clientError": "SSL connection timeout"
+          }
+        ],
+        "faucetAliasesSameBodySHA256": true,
+        "admissionStatus": "both aliases return same accepted request, amount 100, zero funding fee and deterministic hash",
+        "singleClientPOSTProven": false,
+        "fullAdmissionDatabaseAudited": false,
+        "observedFundingTransaction": "same transaction hash/block/recipient/100 YNXT on both RPC aliases",
+        "observedFundingReceipt": "old RPC status 0x1 durable/local-snapshot; new RPC receipt request timed out",
+        "observedFundingDurability": "new RPC durable/local-snapshot; old RPC explicit durability call timed out",
+        "observedBalance": {
+          "canonicalLatestYNXT": "98",
+          "canonicalPendingYNXT": "98",
+          "legacyLatest": null,
+          "legacyPending": null
+        },
+        "observedNonce": {
+          "legacyLatest": "1",
+          "legacyPending": "1",
+          "canonicalLatest": "1",
+          "canonicalPending": "1"
+        },
+        "temporalCaveat": "Transfer may already have occurred before these samples; 98 YNXT/nonce 1 is not the initial funded baseline, and no transfer identity is inferred without its hash.",
+        "consensusFinalityVerified": false,
+        "fullAliasReadbackPassed": false,
+        "readOnlyRecheckNeeded": [
+          "legacy funding durability",
+          "legacy latest/pending balance",
+          "canonical funding receipt"
+        ]
+      }
+    },
+    {
+      "stage": "explicit-bounded-read-only-followup-of-four-missing-reads",
+      "startedAt": "2026-09-19T16:44:32.002Z",
+      "finishedAt": "2026-09-19T16:44:41.184Z",
+      "observations": [
+        {
+          "label": "fundingDurability",
+          "url": "https://rpc.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:44:32.003Z",
+          "finishedAt": "2026-09-19T16:44:36.724Z",
+          "method": "ynx_getTransactionDurability",
+          "params": [
+            "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+          ],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.001341,
+            "tcp": 2.16985,
+            "tls": 2.436484,
+            "firstByte": 4.712678,
+            "total": 4.712729
+          },
+          "bodySHA256": "c96c7b9160e58439509102cf23b0d8ca1869614f636e660a58ca4851d50a3f57",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+              "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+              "blockNumber": "0x18f2c7",
+              "checkpointBlockHash": "0x2b97398d11a0654ce9443906ddb00201ddbb223d06e9bb0eb3aa02aa994f8f3d",
+              "checkpointBlockNumber": "0x18f359",
+              "scope": "local-snapshot",
+              "snapshotIntegrity": "0x2d086d573d9adb5797f312ec728180df3fa03ce36f42d0afd32b8eb6c6075036",
+              "status": "durable",
+              "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+              "version": "ynx-local-durability-v1"
+            }
+          },
+          "rpcError": null
+        },
+        {
+          "label": "balanceLatest",
+          "url": "https://rpc.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:44:36.724Z",
+          "finishedAt": "2026-09-19T16:44:37.818Z",
+          "method": "eth_getBalance",
+          "params": [
+            "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+            "latest"
+          ],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.001837,
+            "tcp": 0.10749,
+            "tls": 0.528565,
+            "firstByte": 1.081816,
+            "total": 1.081885
+          },
+          "bodySHA256": "7458ba84909e42b08fe6e5edafded53576643f997f57cd122f0bd5eb8799c2ff",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 4,
+            "result": "0x55005f0c614480000"
+          },
+          "rpcError": null
+        },
+        {
+          "label": "fundingReceipt",
+          "url": "https://rpc-testnet.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:44:32.005Z",
+          "finishedAt": "2026-09-19T16:44:36.208Z",
+          "method": "eth_getTransactionReceipt",
+          "params": [
+            "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+          ],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.001453,
+            "tcp": 0.119394,
+            "tls": 0.568025,
+            "firstByte": 1.582166,
+            "total": 4.195164
+          },
+          "bodySHA256": "5cd61ffe5d2f97179e39684473eaed5c9194906d1ff01e2e09ed1c52865077da",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": {
+              "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+              "blockNumber": "0x18f2c7",
+              "contractAddress": null,
+              "cumulativeGasUsed": "0x0",
+              "effectiveGasPrice": "0x246139ca8000",
+              "from": "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",
+              "gasUsed": "0x0",
+              "logsBloom": "0x00000000c00000000000000000000000000000000000000000000000000000000000000000000000000000200000000000020000000000000000000000000000000000000080000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000040000000000000000000000000100000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000",
+              "status": "0x1",
+              "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+              "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+              "transactionIndex": "0x0",
+              "type": "0x0",
+              "ynxDurability": {
+                "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                "blockNumber": "0x18f2c7",
+                "checkpointBlockHash": "0x14e71b70da4958edd792b979820a0ed9ef67db443332146a3b7c34868fe5fb41",
+                "checkpointBlockNumber": "0x18f358",
+                "scope": "local-snapshot",
+                "snapshotIntegrity": "0x943ecaa949d5b445352a6a344e588114a2145107ca9b306e1a871db1fa7986d4",
+                "status": "durable",
+                "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                "version": "ynx-local-durability-v1"
+              },
+              "ynxFeeWei": "0x0",
+              "ynxLogSemantics": "native provenance events; no EVM execution",
+              "ynxNativeIdentity": {
+                "from": "ynx_faucet",
+                "identityProjection": {
+                  "fromSystemIdentity": true,
+                  "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                  "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                  "systemAddressesAreDisplayOnly": true,
+                  "toSystemIdentity": false,
+                  "version": "ynx-native-identity-projection-v1"
+                },
+                "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736"
+              },
+              "ynxNativeTransaction": {
+                "amountYNXT": "100",
+                "feeYNXT": "0",
+                "nonce": "0x0",
+                "type": "faucet"
+              }
+            }
+          },
+          "rpcError": null
+        },
+        {
+          "label": "balancePending",
+          "url": "https://rpc.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:44:36.209Z",
+          "finishedAt": "2026-09-19T16:44:41.184Z",
+          "method": "eth_getBalance",
+          "params": [
+            "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+            "pending"
+          ],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.001762,
+            "tcp": 2.113128,
+            "tls": 4.849574,
+            "firstByte": 4.960136,
+            "total": 4.960192
+          },
+          "bodySHA256": "3b5b1e71b3674e87cace301aeb42cbd69ea501800026e5873b0e9c27f41cc3a4",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "result": "0x55005f0c614480000"
+          },
+          "rpcError": null
+        }
+      ],
+      "originalFailuresRetained": true,
+      "transactionSubmissions": 0,
+      "faucetPOSTs": 0
+    },
+    {
+      "stage": "native-two-transfer-final-chain-readback",
+      "startedAt": "2026-09-19T16:55:16.087Z",
+      "finishedAt": "2026-09-19T16:56:16.541Z",
+      "sourceCommit": "e488ce55dc82da2e087fac5cfb5c7c8aacf25a51",
+      "requestId": "wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+      "address": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+      "receiver": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+      "receiverNativeAddress": "ynx18lm70rushpj2wvqwzl065s6x0av7zc45w52ucl",
+      "hashes": {
+        "funding": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+        "transfer1": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+        "transfer2": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27"
+      },
+      "rpc": [
+        {
+          "origin": "https://rpc.ynxweb4.com",
+          "observations": [
+            {
+              "label": "chainId",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:16.088Z",
+              "finishedAt": "2026-09-19T16:55:17.959Z",
+              "method": "eth_chainId",
+              "params": [],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.051404,
+                "tcp": 1.166232,
+                "tls": 1.61054,
+                "firstByte": 1.858737,
+                "total": 1.858818
+              },
+              "bodySHA256": "5c4a05f13a54a9563933c7daa16938e313e9b35240d6689abc92c1351ebaff79",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": "0x1917"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "fundingTransaction",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:17.959Z",
+              "finishedAt": "2026-09-19T16:55:19.636Z",
+              "method": "eth_getTransactionByHash",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.003042,
+                "tcp": 1.110609,
+                "tls": 1.226745,
+                "firstByte": 1.546705,
+                "total": 1.653593
+              },
+              "bodySHA256": "fa6d9d37d35615cec6158803515a2d8613e77b57c3cb2a64ecac39abdd2f3b01",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "result": {
+                  "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                  "blockNumber": "0x18f2c7",
+                  "from": "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",
+                  "gas": "0x0",
+                  "gasPrice": "0x246139ca8000",
+                  "hash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                  "nonce": "0x0",
+                  "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "value": "0x56bc75e2d63100000",
+                  "ynxNativeIdentity": {
+                    "from": "ynx_faucet",
+                    "identityProjection": {
+                      "fromSystemIdentity": true,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "100",
+                    "feeYNXT": "0",
+                    "nonce": "0x0",
+                    "type": "faucet"
+                  },
+                  "ynxTransactionEncoding": "ynx-native"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "fundingReceipt",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:19.636Z",
+              "finishedAt": "2026-09-19T16:55:21.089Z",
+              "method": "eth_getTransactionReceipt",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002576,
+                "tcp": 1.111817,
+                "tls": 1.326084,
+                "firstByte": 1.431371,
+                "total": 1.431437
+              },
+              "bodySHA256": "117cb6244ef2a5fb06746aff5c1240dae4070d9ec544b87c9828c135a7c5407f",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "result": {
+                  "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                  "blockNumber": "0x18f2c7",
+                  "contractAddress": null,
+                  "cumulativeGasUsed": "0x0",
+                  "effectiveGasPrice": "0x246139ca8000",
+                  "from": "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",
+                  "gasUsed": "0x0",
+                  "logsBloom": "0x00000000c00000000000000000000000000000000000000000000000000000000000000000000000000000200000000000020000000000000000000000000000000000000080000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000040000000000000000000000000100000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000",
+                  "status": "0x1",
+                  "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "ynxDurability": {
+                    "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                    "blockNumber": "0x18f2c7",
+                    "checkpointBlockHash": "0x8a646268a5cf449640ccd4d77a46d80787cb029e00d5e61e683f95475edcf36f",
+                    "checkpointBlockNumber": "0x18f3f3",
+                    "scope": "local-snapshot",
+                    "snapshotIntegrity": "0x9a9f7bf068ca468e5da6b477690e20a96a7fb52ef3b4c9610e366cf0bcd97ea7",
+                    "status": "durable",
+                    "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                    "version": "ynx-local-durability-v1"
+                  },
+                  "ynxFeeWei": "0x0",
+                  "ynxLogSemantics": "native provenance events; no EVM execution",
+                  "ynxNativeIdentity": {
+                    "from": "ynx_faucet",
+                    "identityProjection": {
+                      "fromSystemIdentity": true,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "100",
+                    "feeYNXT": "0",
+                    "nonce": "0x0",
+                    "type": "faucet"
+                  }
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "fundingDurability",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:21.089Z",
+              "finishedAt": "2026-09-19T16:55:22.213Z",
+              "method": "ynx_getTransactionDurability",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002187,
+                "tcp": 0.10725,
+                "tls": 0.218409,
+                "firstByte": 1.110381,
+                "total": 1.110506
+              },
+              "bodySHA256": "4f7fe8586bd56748a9cd6e317d81ce53b9827240e6583541d850a93f0caed450",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 5,
+                "result": {
+                  "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                  "blockNumber": "0x18f2c7",
+                  "checkpointBlockHash": "0x8a646268a5cf449640ccd4d77a46d80787cb029e00d5e61e683f95475edcf36f",
+                  "checkpointBlockNumber": "0x18f3f3",
+                  "scope": "local-snapshot",
+                  "snapshotIntegrity": "0x9a9f7bf068ca468e5da6b477690e20a96a7fb52ef3b4c9610e366cf0bcd97ea7",
+                  "status": "durable",
+                  "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                  "version": "ynx-local-durability-v1"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "transfer1Transaction",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:22.213Z",
+              "finishedAt": "2026-09-19T16:55:23.878Z",
+              "method": "eth_getTransactionByHash",
+              "params": [
+                "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002942,
+                "tcp": 1.10979,
+                "tls": 1.223628,
+                "firstByte": 1.641104,
+                "total": 1.641539
+              },
+              "bodySHA256": "9876f3b574a1f269ef5b787649c75dfd9fa5018a283ea6b3c77912b9d0e34d5c",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 6,
+                "result": {
+                  "blockHash": "0x2f2eed04855b48cab3d76c1f423ce5663ad94e40c5be596cf3950a1ef5886604",
+                  "blockNumber": "0x18f324",
+                  "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "gas": "0x61a8",
+                  "gasPrice": "0x246139ca8000",
+                  "hash": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+                  "nonce": "0x1",
+                  "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "value": "0xde0b6b3a7640000",
+                  "ynxNativeIdentity": {
+                    "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                    "identityProjection": {
+                      "fromSystemIdentity": false,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "1",
+                    "feeYNXT": "1",
+                    "nonce": "0x1",
+                    "type": "transfer"
+                  },
+                  "ynxTransactionEncoding": "ynx-native"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "transfer1Receipt",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:23.878Z",
+              "finishedAt": "2026-09-19T16:55:26.003Z",
+              "method": "eth_getTransactionReceipt",
+              "params": [
+                "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.003084,
+                "tcp": 1.11053,
+                "tls": 1.539861,
+                "firstByte": 2.102023,
+                "total": 2.102191
+              },
+              "bodySHA256": "10e5053ec85b1b60e9ef2452b02b7036d3b185982fb7e6b1735b2969fb2ab139",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 7,
+                "result": {
+                  "blockHash": "0x2f2eed04855b48cab3d76c1f423ce5663ad94e40c5be596cf3950a1ef5886604",
+                  "blockNumber": "0x18f324",
+                  "contractAddress": null,
+                  "cumulativeGasUsed": "0x61a8",
+                  "effectiveGasPrice": "0x246139ca8000",
+                  "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "gasUsed": "0x61a8",
+                  "logsBloom": "0x00000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800008000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000080101000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000004000000000000000000000000000000000002000000000000000000000000000000000000000000000040000000",
+                  "status": "0x1",
+                  "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+                  "transactionHash": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "ynxDurability": {
+                    "blockHash": "0x2f2eed04855b48cab3d76c1f423ce5663ad94e40c5be596cf3950a1ef5886604",
+                    "blockNumber": "0x18f324",
+                    "checkpointBlockHash": "0x06c58a692df7666eeebc4bdf1aa53c002758300c4c18959609799cadd08a1549",
+                    "checkpointBlockNumber": "0x18f3f4",
+                    "scope": "local-snapshot",
+                    "snapshotIntegrity": "0xb5d7c7f06ab7474f2b3b6f2a5427f67f720859156a64175369143d811d63f5c4",
+                    "status": "durable",
+                    "transactionHash": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+                    "version": "ynx-local-durability-v1"
+                  },
+                  "ynxFeeWei": "0xde0b6b3a7640000",
+                  "ynxLogSemantics": "native provenance events; no EVM execution",
+                  "ynxNativeIdentity": {
+                    "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                    "identityProjection": {
+                      "fromSystemIdentity": false,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "1",
+                    "feeYNXT": "1",
+                    "nonce": "0x1",
+                    "type": "transfer"
+                  }
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "transfer1Durability",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:26.003Z",
+              "finishedAt": "2026-09-19T16:55:29.878Z",
+              "method": "ynx_getTransactionDurability",
+              "params": [
+                "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.0027,
+                "tcp": 1.112528,
+                "tls": 1.230783,
+                "firstByte": 3.407878,
+                "total": 3.85094
+              },
+              "bodySHA256": "e3d8352dc9a221b970e443feb9c3aa2828863a2e9ed4b3586bc9fb393ed9ec49",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 9,
+                "result": {
+                  "blockHash": "0x2f2eed04855b48cab3d76c1f423ce5663ad94e40c5be596cf3950a1ef5886604",
+                  "blockNumber": "0x18f324",
+                  "checkpointBlockHash": "0x423554566e2764040a30bf0f29ccac1aaf9be633738db4c32bb7718b3f19aeb4",
+                  "checkpointBlockNumber": "0x18f3f5",
+                  "scope": "local-snapshot",
+                  "snapshotIntegrity": "0xdfb4f3e2ccb581ec9695e3de64a666c35b6ba542b10d982128ec89a9322f5908",
+                  "status": "durable",
+                  "transactionHash": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+                  "version": "ynx-local-durability-v1"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "transfer2Transaction",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:29.879Z",
+              "finishedAt": "2026-09-19T16:55:36.102Z",
+              "method": "eth_getTransactionByHash",
+              "params": [
+                "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002639,
+                "tcp": 1.110195,
+                "tls": 4.010887,
+                "firstByte": 6.202973,
+                "total": 6.203006
+              },
+              "bodySHA256": "8fc70b729049c453e7ee00ec5c6391f01322fd3b5953a7905e9f6d69b32e762e",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 11,
+                "result": {
+                  "blockHash": "0x1f9d4718dcdf8e3f607fbfb217325f5e8f37509b48064a9fc494ac976ffdbcf5",
+                  "blockNumber": "0x18f36e",
+                  "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "gas": "0x61a8",
+                  "gasPrice": "0x246139ca8000",
+                  "hash": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27",
+                  "nonce": "0x2",
+                  "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "value": "0xde0b6b3a7640000",
+                  "ynxNativeIdentity": {
+                    "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                    "identityProjection": {
+                      "fromSystemIdentity": false,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "1",
+                    "feeYNXT": "1",
+                    "nonce": "0x2",
+                    "type": "transfer"
+                  },
+                  "ynxTransactionEncoding": "ynx-native"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "transfer2Receipt",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:36.103Z",
+              "finishedAt": "2026-09-19T16:55:41.114Z",
+              "method": "eth_getTransactionReceipt",
+              "params": [
+                "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27"
+              ],
+              "exitCode": 28,
+              "httpStatus": 0,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": false,
+              "transportClassification": "tls-handshake-timeout",
+              "clientError": "SSL connection timeout",
+              "phaseSeconds": {
+                "dns": 0.001407,
+                "tcp": 3.155232,
+                "tls": 0,
+                "firstByte": 0,
+                "total": 5.00243
+              },
+              "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "response": null,
+              "rpcError": null
+            },
+            {
+              "label": "transfer2Durability",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:41.114Z",
+              "finishedAt": "2026-09-19T16:55:44.776Z",
+              "method": "ynx_getTransactionDurability",
+              "params": [
+                "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.005241,
+                "tcp": 1.116151,
+                "tls": 1.551032,
+                "firstByte": 3.649543,
+                "total": 3.64964
+              },
+              "bodySHA256": "63c1bcc010d747d43e83a2465d562b6f80436d3caa164b5e3255b2073b539ade",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 16,
+                "result": {
+                  "blockHash": "0x1f9d4718dcdf8e3f607fbfb217325f5e8f37509b48064a9fc494ac976ffdbcf5",
+                  "blockNumber": "0x18f36e",
+                  "checkpointBlockHash": "0xd720c5a051647c236ec11a16c0787fe3a02d563727b6e4c90be350e52024fda6",
+                  "checkpointBlockNumber": "0x18f3f8",
+                  "scope": "local-snapshot",
+                  "snapshotIntegrity": "0x8ceeef77caa5799096961afd3aa66f4e8541fb92cff5df0af3dc5380d27a83c1",
+                  "status": "durable",
+                  "transactionHash": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27",
+                  "version": "ynx-local-durability-v1"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "senderBalanceLatest",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:44.776Z",
+              "finishedAt": "2026-09-19T16:55:48.292Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "latest"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002816,
+                "tcp": 0.110032,
+                "tls": 2.062111,
+                "firstByte": 3.496489,
+                "total": 3.496575
+              },
+              "bodySHA256": "9d51d8bfe32edc363980c89706c4010b6807c21658fb1f4bf2bdf6a3175efb69",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 17,
+                "result": "0x53444835ec5800000"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "senderBalancePending",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:48.292Z",
+              "finishedAt": "2026-09-19T16:55:50.532Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "pending"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002598,
+                "tcp": 1.111344,
+                "tls": 2.003645,
+                "firstByte": 2.216582,
+                "total": 2.21713
+              },
+              "bodySHA256": "8face17ab7ac1b14fc13b662335b5ac83d54309522c4bc590997fec18271d398",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 20,
+                "result": "0x53444835ec5800000"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "senderNonceLatest",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:50.532Z",
+              "finishedAt": "2026-09-19T16:55:55.555Z",
+              "method": "eth_getTransactionCount",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "latest"
+              ],
+              "exitCode": 28,
+              "httpStatus": 0,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": false,
+              "transportClassification": "tls-handshake-timeout",
+              "clientError": "SSL connection timeout",
+              "phaseSeconds": {
+                "dns": 0.00255,
+                "tcp": 2.116594,
+                "tls": 0,
+                "firstByte": 0,
+                "total": 5.005371
+              },
+              "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "response": null,
+              "rpcError": null
+            },
+            {
+              "label": "senderNoncePending",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:55.555Z",
+              "finishedAt": "2026-09-19T16:55:58.786Z",
+              "method": "eth_getTransactionCount",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "pending"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002836,
+                "tcp": 1.1103,
+                "tls": 1.672468,
+                "firstByte": 2.322181,
+                "total": 3.210568
+              },
+              "bodySHA256": "4e56bf23da076ea8151ec722a997cb6189900bcc6c12878811743126ab7b9b93",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 25,
+                "result": "0x2"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "receiverBalanceLatest",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:58.786Z",
+              "finishedAt": "2026-09-19T16:56:00.137Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+                "latest"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.001507,
+                "tcp": 1.109527,
+                "tls": 1.231455,
+                "firstByte": 1.341591,
+                "total": 1.34165
+              },
+              "bodySHA256": "ecdd165376eec9d0cf51b00a627e90be7c48193ac81e11dab6e72da132181c7f",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 28,
+                "result": "0x3782dace9d900000"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "receiverBalancePending",
+              "url": "https://rpc.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:56:00.137Z",
+              "finishedAt": "2026-09-19T16:56:02.795Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+                "pending"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002758,
+                "tcp": 2.108706,
+                "tls": 2.219902,
+                "firstByte": 2.635301,
+                "total": 2.635394
+              },
+              "bodySHA256": "dc2538a18a1bcd87a2ad69dca3a41bba7a2401067ff85f8079dbf4f30b3aad53",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 29,
+                "result": "0x3782dace9d900000"
+              },
+              "rpcError": null
+            }
+          ]
+        },
+        {
+          "origin": "https://rpc-testnet.ynxweb4.com",
+          "observations": [
+            {
+              "label": "chainId",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:16.090Z",
+              "finishedAt": "2026-09-19T16:55:24.104Z",
+              "method": "eth_chainId",
+              "params": [],
+              "exitCode": 28,
+              "httpStatus": 0,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": false,
+              "transportClassification": "http-first-byte-timeout",
+              "clientError": "Operation timed out after 8004 milliseconds with 0 bytes received",
+              "phaseSeconds": {
+                "dns": 0.001834,
+                "tcp": 2.110436,
+                "tls": 4.537622,
+                "firstByte": 0,
+                "total": 8.004413
+              },
+              "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "response": null,
+              "rpcError": null
+            },
+            {
+              "label": "fundingTransaction",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:24.104Z",
+              "finishedAt": "2026-09-19T16:55:28.603Z",
+              "method": "eth_getTransactionByHash",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002909,
+                "tcp": 0.108494,
+                "tls": 3.79712,
+                "firstByte": 4.476111,
+                "total": 4.476211
+              },
+              "bodySHA256": "79cd11811e2a32ee6af57166a53d3b2108a57c7919bfe3a3731f525368b10e89",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 8,
+                "result": {
+                  "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                  "blockNumber": "0x18f2c7",
+                  "from": "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",
+                  "gas": "0x0",
+                  "gasPrice": "0x246139ca8000",
+                  "hash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                  "nonce": "0x0",
+                  "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "value": "0x56bc75e2d63100000",
+                  "ynxNativeIdentity": {
+                    "from": "ynx_faucet",
+                    "identityProjection": {
+                      "fromSystemIdentity": true,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "100",
+                    "feeYNXT": "0",
+                    "nonce": "0x0",
+                    "type": "faucet"
+                  },
+                  "ynxTransactionEncoding": "ynx-native"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "fundingReceipt",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:28.603Z",
+              "finishedAt": "2026-09-19T16:55:31.437Z",
+              "method": "eth_getTransactionReceipt",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002958,
+                "tcp": 0.107586,
+                "tls": 0.216479,
+                "firstByte": 0.77277,
+                "total": 2.813429
+              },
+              "bodySHA256": "72fe8fd37cf136859f6569bf9b4cc882a1b4b56a6dc60ec11e6eca39245cf9d5",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 10,
+                "result": {
+                  "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                  "blockNumber": "0x18f2c7",
+                  "contractAddress": null,
+                  "cumulativeGasUsed": "0x0",
+                  "effectiveGasPrice": "0x246139ca8000",
+                  "from": "0x1199a4d2de49f3bb37ecccb9a7af0011e857b144",
+                  "gasUsed": "0x0",
+                  "logsBloom": "0x00000000c00000000000000000000000000000000000000000000000000000000000000000000000000000200000000000020000000000000000000000000000000000000080000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000040000000000000000000000000100000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000800000000000",
+                  "status": "0x1",
+                  "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "ynxDurability": {
+                    "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                    "blockNumber": "0x18f2c7",
+                    "checkpointBlockHash": "0x423554566e2764040a30bf0f29ccac1aaf9be633738db4c32bb7718b3f19aeb4",
+                    "checkpointBlockNumber": "0x18f3f5",
+                    "scope": "local-snapshot",
+                    "snapshotIntegrity": "0xdfb4f3e2ccb581ec9695e3de64a666c35b6ba542b10d982128ec89a9322f5908",
+                    "status": "durable",
+                    "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                    "version": "ynx-local-durability-v1"
+                  },
+                  "ynxFeeWei": "0x0",
+                  "ynxLogSemantics": "native provenance events; no EVM execution",
+                  "ynxNativeIdentity": {
+                    "from": "ynx_faucet",
+                    "identityProjection": {
+                      "fromSystemIdentity": true,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "100",
+                    "feeYNXT": "0",
+                    "nonce": "0x0",
+                    "type": "faucet"
+                  }
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "fundingDurability",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:31.437Z",
+              "finishedAt": "2026-09-19T16:55:32.088Z",
+              "method": "ynx_getTransactionDurability",
+              "params": [
+                "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.001274,
+                "tcp": 0.104629,
+                "tls": 0.216013,
+                "firstByte": 0.643063,
+                "total": 0.643106
+              },
+              "bodySHA256": "746e436b973dd03293dca472852623fa8edbf9b8e1f60c59dadafdc9a9266193",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 12,
+                "result": {
+                  "blockHash": "0x723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+                  "blockNumber": "0x18f2c7",
+                  "checkpointBlockHash": "0x423554566e2764040a30bf0f29ccac1aaf9be633738db4c32bb7718b3f19aeb4",
+                  "checkpointBlockNumber": "0x18f3f5",
+                  "scope": "local-snapshot",
+                  "snapshotIntegrity": "0xdfb4f3e2ccb581ec9695e3de64a666c35b6ba542b10d982128ec89a9322f5908",
+                  "status": "durable",
+                  "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+                  "version": "ynx-local-durability-v1"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "transfer1Transaction",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:32.088Z",
+              "finishedAt": "2026-09-19T16:55:38.404Z",
+              "method": "eth_getTransactionByHash",
+              "params": [
+                "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.001374,
+                "tcp": 1.108845,
+                "tls": 1.225555,
+                "firstByte": 6.308952,
+                "total": 6.30898
+              },
+              "bodySHA256": "403b37cabaa087e198e2d2499556fa969c44e7d3693d7f1012e1971877804bae",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 13,
+                "result": {
+                  "blockHash": "0x2f2eed04855b48cab3d76c1f423ce5663ad94e40c5be596cf3950a1ef5886604",
+                  "blockNumber": "0x18f324",
+                  "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "gas": "0x61a8",
+                  "gasPrice": "0x246139ca8000",
+                  "hash": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+                  "nonce": "0x1",
+                  "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "value": "0xde0b6b3a7640000",
+                  "ynxNativeIdentity": {
+                    "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                    "identityProjection": {
+                      "fromSystemIdentity": false,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "1",
+                    "feeYNXT": "1",
+                    "nonce": "0x1",
+                    "type": "transfer"
+                  },
+                  "ynxTransactionEncoding": "ynx-native"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "transfer1Receipt",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:38.404Z",
+              "finishedAt": "2026-09-19T16:55:46.419Z",
+              "method": "eth_getTransactionReceipt",
+              "params": [
+                "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec"
+              ],
+              "exitCode": 28,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": false,
+              "transportClassification": "response-body-timeout",
+              "clientError": "Operation timed out after 8005 milliseconds with 0 bytes received",
+              "phaseSeconds": {
+                "dns": 0.002199,
+                "tcp": 0.106508,
+                "tls": 3.848166,
+                "firstByte": 3.960884,
+                "total": 8.005953
+              },
+              "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "response": null,
+              "rpcError": null
+            },
+            {
+              "label": "transfer1Durability",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:46.419Z",
+              "finishedAt": "2026-09-19T16:55:47.958Z",
+              "method": "ynx_getTransactionDurability",
+              "params": [
+                "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.001797,
+                "tcp": 0.109825,
+                "tls": 1.290398,
+                "firstByte": 1.527057,
+                "total": 1.527177
+              },
+              "bodySHA256": "46ef57a9fb7c78c7ef140c37b19883f4dc7d657ee28fa0a179ef1da8b3cf02e5",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 18,
+                "result": {
+                  "blockHash": "0x2f2eed04855b48cab3d76c1f423ce5663ad94e40c5be596cf3950a1ef5886604",
+                  "blockNumber": "0x18f324",
+                  "checkpointBlockHash": "0xa2f0d447da424a6f3587d6f8868882803f85d9ac1a8122daf0b13c32d3df087a",
+                  "checkpointBlockNumber": "0x18f3f9",
+                  "scope": "local-snapshot",
+                  "snapshotIntegrity": "0xe2c21359fa32d20b43206c950680d1e36398ef19efc5d5e79cfcde9a0bd36fd5",
+                  "status": "durable",
+                  "transactionHash": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+                  "version": "ynx-local-durability-v1"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "transfer2Transaction",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:47.958Z",
+              "finishedAt": "2026-09-19T16:55:48.933Z",
+              "method": "eth_getTransactionByHash",
+              "params": [
+                "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002714,
+                "tcp": 0.108327,
+                "tls": 0.536284,
+                "firstByte": 0.954612,
+                "total": 0.954723
+              },
+              "bodySHA256": "8acb200d953ddcb3e4c6cf9eaa02ced10a49ab760733ecbd1f044ce0597d51f6",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 19,
+                "result": {
+                  "blockHash": "0x1f9d4718dcdf8e3f607fbfb217325f5e8f37509b48064a9fc494ac976ffdbcf5",
+                  "blockNumber": "0x18f36e",
+                  "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                  "gas": "0x61a8",
+                  "gasPrice": "0x246139ca8000",
+                  "hash": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27",
+                  "nonce": "0x2",
+                  "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+                  "transactionIndex": "0x0",
+                  "type": "0x0",
+                  "value": "0xde0b6b3a7640000",
+                  "ynxNativeIdentity": {
+                    "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                    "identityProjection": {
+                      "fromSystemIdentity": false,
+                      "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                      "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                      "systemAddressesAreDisplayOnly": true,
+                      "toSystemIdentity": false,
+                      "version": "ynx-native-identity-projection-v1"
+                    },
+                    "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+                  },
+                  "ynxNativeTransaction": {
+                    "amountYNXT": "1",
+                    "feeYNXT": "1",
+                    "nonce": "0x2",
+                    "type": "transfer"
+                  },
+                  "ynxTransactionEncoding": "ynx-native"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "transfer2Receipt",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:48.933Z",
+              "finishedAt": "2026-09-19T16:55:53.967Z",
+              "method": "eth_getTransactionReceipt",
+              "params": [
+                "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27"
+              ],
+              "exitCode": 28,
+              "httpStatus": 0,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": false,
+              "transportClassification": "tls-handshake-timeout",
+              "clientError": "SSL connection timeout",
+              "phaseSeconds": {
+                "dns": 0.003325,
+                "tcp": 1.110363,
+                "tls": 0,
+                "firstByte": 0,
+                "total": 5.011618
+              },
+              "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "response": null,
+              "rpcError": null
+            },
+            {
+              "label": "transfer2Durability",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:53.967Z",
+              "finishedAt": "2026-09-19T16:55:54.861Z",
+              "method": "ynx_getTransactionDurability",
+              "params": [
+                "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002587,
+                "tcp": 0.107513,
+                "tls": 0.536258,
+                "firstByte": 0.877941,
+                "total": 0.878063
+              },
+              "bodySHA256": "26cd0b55ce0a0c4e426fa573ae264aabd8edd913d71352492e2cb1f25bede0b7",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 23,
+                "result": {
+                  "blockHash": "0x1f9d4718dcdf8e3f607fbfb217325f5e8f37509b48064a9fc494ac976ffdbcf5",
+                  "blockNumber": "0x18f36e",
+                  "checkpointBlockHash": "0x2ed073cd169044a4e30948e859787677ca164d6654ed707cfe94776ab62b5d37",
+                  "checkpointBlockNumber": "0x18f3fb",
+                  "scope": "local-snapshot",
+                  "snapshotIntegrity": "0x327022627d4a09a2d6316ed81c42fc8e6eef8b5a38fc366a94183bfeddfd1b97",
+                  "status": "durable",
+                  "transactionHash": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27",
+                  "version": "ynx-local-durability-v1"
+                }
+              },
+              "rpcError": null
+            },
+            {
+              "label": "senderBalanceLatest",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:54.861Z",
+              "finishedAt": "2026-09-19T16:55:57.773Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "latest"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.003123,
+                "tcp": 2.117998,
+                "tls": 2.233097,
+                "firstByte": 2.449115,
+                "total": 2.888189
+              },
+              "bodySHA256": "fbc574b9f87506c37255598df13f100882f51a941e0dcd38065f3486bcd6e17a",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 24,
+                "result": "0x53444835ec5800000"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "senderBalancePending",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:57.774Z",
+              "finishedAt": "2026-09-19T16:55:58.125Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "pending"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.00267,
+                "tcp": 0.107092,
+                "tls": 0.223456,
+                "firstByte": 0.327744,
+                "total": 0.32784
+              },
+              "bodySHA256": "2bcb0f95889643991774aca7cb3069f1deba8e465ef9ce17ace733d5327a8339",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 26,
+                "result": "0x53444835ec5800000"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "senderNonceLatest",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:55:58.125Z",
+              "finishedAt": "2026-09-19T16:56:06.154Z",
+              "method": "eth_getTransactionCount",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "latest"
+              ],
+              "exitCode": 28,
+              "httpStatus": 0,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": false,
+              "transportClassification": "http-first-byte-timeout",
+              "clientError": "Operation timed out after 8003 milliseconds with 0 bytes received",
+              "phaseSeconds": {
+                "dns": 0.00275,
+                "tcp": 1.113098,
+                "tls": 1.222648,
+                "firstByte": 0,
+                "total": 8.003892
+              },
+              "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "response": null,
+              "rpcError": null
+            },
+            {
+              "label": "senderNoncePending",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:56:06.154Z",
+              "finishedAt": "2026-09-19T16:56:10.851Z",
+              "method": "eth_getTransactionCount",
+              "params": [
+                "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "pending"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.003375,
+                "tcp": 2.112867,
+                "tls": 2.576609,
+                "firstByte": 4.194015,
+                "total": 4.676312
+              },
+              "bodySHA256": "9d9be66dbac9304b17d1440cc97f1c91f64756a6bf3d963f707186540e76dd54",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 30,
+                "result": "0x2"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "receiverBalanceLatest",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:56:10.852Z",
+              "finishedAt": "2026-09-19T16:56:12.489Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+                "latest"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.002454,
+                "tcp": 0.110473,
+                "tls": 1.066686,
+                "firstByte": 1.62164,
+                "total": 1.621736
+              },
+              "bodySHA256": "e97274b7d8da1d53beccdc388006429d33c59d75e14f829b4a3e4981580caff9",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 31,
+                "result": "0x3782dace9d900000"
+              },
+              "rpcError": null
+            },
+            {
+              "label": "receiverBalancePending",
+              "url": "https://rpc-testnet.ynxweb4.com/evm",
+              "startedAt": "2026-09-19T16:56:12.489Z",
+              "finishedAt": "2026-09-19T16:56:12.847Z",
+              "method": "eth_getBalance",
+              "params": [
+                "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+                "pending"
+              ],
+              "exitCode": 0,
+              "httpStatus": 200,
+              "remoteIP": "43.153.202.237",
+              "tlsVerified": true,
+              "transportClassification": "healthy",
+              "clientError": null,
+              "phaseSeconds": {
+                "dns": 0.00296,
+                "tcp": 0.111765,
+                "tls": 0.227025,
+                "firstByte": 0.334789,
+                "total": 0.334951
+              },
+              "bodySHA256": "4f2cd9cbd3961b6f3ae34bbb16ff613eb03f7e3e42f53243e2ca424bb5e8fa74",
+              "response": {
+                "jsonrpc": "2.0",
+                "id": 32,
+                "result": "0x3782dace9d900000"
+              },
+              "rpcError": null
+            }
+          ]
+        }
+      ],
+      "faucet": [
+        {
+          "label": "faucetRequestStatus",
+          "url": "https://faucet.ynxweb4.com/request-status?requestId=wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+          "startedAt": "2026-09-19T16:56:12.848Z",
+          "finishedAt": "2026-09-19T16:56:15.015Z",
+          "method": "GET",
+          "params": [],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.054653,
+            "tcp": 1.161815,
+            "tls": 1.587758,
+            "firstByte": 2.143954,
+            "total": 2.144025
+          },
+          "bodySHA256": "a135b7ce3e1d06655c81159621cfa8f21a163f6a096f4dc313965cbcd4162f87",
+          "response": {
+            "transaction": {
+              "hash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+              "type": "faucet",
+              "from": "ynx_faucet",
+              "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+              "amount": 100,
+              "fee": 0,
+              "nonce": 0,
+              "blockHash": "723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+              "blockNumber": 1635015,
+              "timestamp": "2026-09-19T16:34:11.549460638Z",
+              "memo": "devnet faucet mint"
+            },
+            "address": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+            "amount": 100,
+            "nativeSymbol": "YNXT",
+            "requestId": "wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+            "truthfulStatus": "rpc-backed-faucet",
+            "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+            "status": "accepted",
+            "replayed": true
+          },
+          "rpcError": null
+        },
+        {
+          "label": "faucetRequestStatus",
+          "url": "https://faucet-testnet.ynxweb4.com/request-status?requestId=wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+          "startedAt": "2026-09-19T16:56:12.850Z",
+          "finishedAt": "2026-09-19T16:56:16.541Z",
+          "method": "GET",
+          "params": [],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.360112,
+            "tcp": 1.468848,
+            "tls": 2.758061,
+            "firstByte": 3.668507,
+            "total": 3.668628
+          },
+          "bodySHA256": "a135b7ce3e1d06655c81159621cfa8f21a163f6a096f4dc313965cbcd4162f87",
+          "response": {
+            "transaction": {
+              "hash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+              "type": "faucet",
+              "from": "ynx_faucet",
+              "to": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+              "amount": 100,
+              "fee": 0,
+              "nonce": 0,
+              "blockHash": "723db1eb0c20ce6f359b057423680d378a2161bdcda5496bd1196b96ee2c4357",
+              "blockNumber": 1635015,
+              "timestamp": "2026-09-19T16:34:11.549460638Z",
+              "memo": "devnet faucet mint"
+            },
+            "address": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+            "amount": 100,
+            "nativeSymbol": "YNXT",
+            "requestId": "wallet_c75d07b8dffa1d93cec501564335e662d6b0b83546ee15e63573ee41a9caaa77",
+            "truthfulStatus": "rpc-backed-faucet",
+            "transactionHash": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+            "status": "accepted",
+            "replayed": true
+          },
+          "rpcError": null
+        }
+      ],
+      "expectedSenderBalanceYNXT": "96",
+      "expectedSenderNonce": "2",
+      "readOnlyRPCMethodsOnly": true,
+      "noAutomaticRetries": true,
+      "faucetPOSTs": 0,
+      "transactionSubmissions": 0,
+      "privateKeyReads": 0,
+      "emulatorOrInstalledAppChanges": 0,
+      "observationsNotAtomic": true,
+      "consensusFinalityVerified": false
+    },
+    {
+      "stage": "explicit-bounded-followup-native-final-missing-reads",
+      "startedAt": "2026-09-19T16:56:59.384Z",
+      "finishedAt": "2026-09-19T16:57:16.969Z",
+      "observations": [
+        {
+          "label": "transfer2Receipt",
+          "url": "https://rpc.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:56:59.385Z",
+          "finishedAt": "2026-09-19T16:57:07.405Z",
+          "method": "eth_getTransactionReceipt",
+          "params": [
+            "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27"
+          ],
+          "exitCode": 28,
+          "httpStatus": 0,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": false,
+          "transportClassification": "http-first-byte-timeout",
+          "clientError": "Operation timed out after 8010 milliseconds with 0 bytes received",
+          "phaseSeconds": {
+            "dns": 0.00146,
+            "tcp": 1.110416,
+            "tls": 1.349653,
+            "firstByte": 0,
+            "total": 8.01021
+          },
+          "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "response": null,
+          "rpcError": null
+        },
+        {
+          "label": "senderNonceLatest",
+          "url": "https://rpc.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:57:07.405Z",
+          "finishedAt": "2026-09-19T16:57:15.429Z",
+          "method": "eth_getTransactionCount",
+          "params": [
+            "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+            "latest"
+          ],
+          "exitCode": 28,
+          "httpStatus": 0,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": false,
+          "transportClassification": "http-first-byte-timeout",
+          "clientError": "Operation timed out after 8011 milliseconds with 0 bytes received",
+          "phaseSeconds": {
+            "dns": 0.002754,
+            "tcp": 2.114048,
+            "tls": 4.564616,
+            "firstByte": 0,
+            "total": 8.011062
+          },
+          "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "response": null,
+          "rpcError": null
+        },
+        {
+          "label": "chainId",
+          "url": "https://rpc-testnet.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:56:59.386Z",
+          "finishedAt": "2026-09-19T16:57:04.404Z",
+          "method": "eth_chainId",
+          "params": [],
+          "exitCode": 28,
+          "httpStatus": 0,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": false,
+          "transportClassification": "tls-handshake-timeout",
+          "clientError": "SSL connection timeout",
+          "phaseSeconds": {
+            "dns": 0.001587,
+            "tcp": 0.107278,
+            "tls": 0,
+            "firstByte": 0,
+            "total": 5.009905
+          },
+          "bodySHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "response": null,
+          "rpcError": null
+        },
+        {
+          "label": "transfer1Receipt",
+          "url": "https://rpc-testnet.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:57:04.404Z",
+          "finishedAt": "2026-09-19T16:57:08.740Z",
+          "method": "eth_getTransactionReceipt",
+          "params": [
+            "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec"
+          ],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.001382,
+            "tcp": 0.106491,
+            "tls": 0.524461,
+            "firstByte": 2.971336,
+            "total": 4.326791
+          },
+          "bodySHA256": "8c9b8f08c72188aa57968928035a913c65f4167051629fdb39e5174bc03219b0",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "result": {
+              "blockHash": "0x2f2eed04855b48cab3d76c1f423ce5663ad94e40c5be596cf3950a1ef5886604",
+              "blockNumber": "0x18f324",
+              "contractAddress": null,
+              "cumulativeGasUsed": "0x61a8",
+              "effectiveGasPrice": "0x246139ca8000",
+              "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+              "gasUsed": "0x61a8",
+              "logsBloom": "0x00000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800008000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000080101000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000004000000000000000000000000000000000002000000000000000000000000000000000000000000000040000000",
+              "status": "0x1",
+              "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+              "transactionHash": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+              "transactionIndex": "0x0",
+              "type": "0x0",
+              "ynxDurability": {
+                "blockHash": "0x2f2eed04855b48cab3d76c1f423ce5663ad94e40c5be596cf3950a1ef5886604",
+                "blockNumber": "0x18f324",
+                "checkpointBlockHash": "0x563ad175016c320fa0f9e66c0b201287a4237d44f120d34919a17eae061a6430",
+                "checkpointBlockNumber": "0x18f40c",
+                "scope": "local-snapshot",
+                "snapshotIntegrity": "0x20e6f4d6e17531ece33d42bf53f39a9d8356182431600ccc1060138d842f6c4f",
+                "status": "durable",
+                "transactionHash": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+                "version": "ynx-local-durability-v1"
+              },
+              "ynxFeeWei": "0xde0b6b3a7640000",
+              "ynxLogSemantics": "native provenance events; no EVM execution",
+              "ynxNativeIdentity": {
+                "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "identityProjection": {
+                  "fromSystemIdentity": false,
+                  "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                  "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                  "systemAddressesAreDisplayOnly": true,
+                  "toSystemIdentity": false,
+                  "version": "ynx-native-identity-projection-v1"
+                },
+                "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+              },
+              "ynxNativeTransaction": {
+                "amountYNXT": "1",
+                "feeYNXT": "1",
+                "nonce": "0x1",
+                "type": "transfer"
+              }
+            }
+          },
+          "rpcError": null
+        },
+        {
+          "label": "transfer2Receipt",
+          "url": "https://rpc-testnet.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:57:08.740Z",
+          "finishedAt": "2026-09-19T16:57:10.632Z",
+          "method": "eth_getTransactionReceipt",
+          "params": [
+            "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27"
+          ],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.003163,
+            "tcp": 1.110854,
+            "tls": 1.455848,
+            "firstByte": 1.875292,
+            "total": 1.880186
+          },
+          "bodySHA256": "31746d4c8cdf241b5754293ebec3b79672b3760b6a8801e24ea89d6a9a886ff0",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 5,
+            "result": {
+              "blockHash": "0x1f9d4718dcdf8e3f607fbfb217325f5e8f37509b48064a9fc494ac976ffdbcf5",
+              "blockNumber": "0x18f36e",
+              "contractAddress": null,
+              "cumulativeGasUsed": "0x61a8",
+              "effectiveGasPrice": "0x246139ca8000",
+              "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+              "gasUsed": "0x61a8",
+              "logsBloom": "0x00000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800008000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000080101000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000004000000000000000000000000000000000002000000000000000000000000000000000000000000000040000000",
+              "status": "0x1",
+              "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+              "transactionHash": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27",
+              "transactionIndex": "0x0",
+              "type": "0x0",
+              "ynxDurability": {
+                "blockHash": "0x1f9d4718dcdf8e3f607fbfb217325f5e8f37509b48064a9fc494ac976ffdbcf5",
+                "blockNumber": "0x18f36e",
+                "checkpointBlockHash": "0x96720423b6392178b8f7fcc08279565d5c9778751f2a697a363da8ef819ce3c5",
+                "checkpointBlockNumber": "0x18f40d",
+                "scope": "local-snapshot",
+                "snapshotIntegrity": "0x6f964b8b04888c9a9a79c5cc6af12d2316f223f83cd85d8651cca0f4494f1d86",
+                "status": "durable",
+                "transactionHash": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27",
+                "version": "ynx-local-durability-v1"
+              },
+              "ynxFeeWei": "0xde0b6b3a7640000",
+              "ynxLogSemantics": "native provenance events; no EVM execution",
+              "ynxNativeIdentity": {
+                "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "identityProjection": {
+                  "fromSystemIdentity": false,
+                  "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                  "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                  "systemAddressesAreDisplayOnly": true,
+                  "toSystemIdentity": false,
+                  "version": "ynx-native-identity-projection-v1"
+                },
+                "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+              },
+              "ynxNativeTransaction": {
+                "amountYNXT": "1",
+                "feeYNXT": "1",
+                "nonce": "0x2",
+                "type": "transfer"
+              }
+            }
+          },
+          "rpcError": null
+        },
+        {
+          "label": "senderNonceLatest",
+          "url": "https://rpc-testnet.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:57:10.632Z",
+          "finishedAt": "2026-09-19T16:57:16.969Z",
+          "method": "eth_getTransactionCount",
+          "params": [
+            "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+            "latest"
+          ],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.001333,
+            "tcp": 1.13203,
+            "tls": 1.251738,
+            "firstByte": 6.32782,
+            "total": 6.327871
+          },
+          "bodySHA256": "5f083d531465cbcd155b9e5dbe075bf8d08a98b04f55d076669bbf8a6a4d23e6",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 6,
+            "result": "0x2"
+          },
+          "rpcError": null
+        }
+      ],
+      "originalFailuresRetained": true,
+      "faucetPOSTs": 0,
+      "transactionSubmissions": 0
+    },
+    {
+      "stage": "second-explicit-bounded-followup-three-still-missing-reads",
+      "startedAt": "2026-09-19T16:58:08.129Z",
+      "finishedAt": "2026-09-19T16:58:11.713Z",
+      "observations": [
+        {
+          "label": "transfer2Receipt",
+          "url": "https://rpc.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:58:08.130Z",
+          "finishedAt": "2026-09-19T16:58:11.130Z",
+          "method": "eth_getTransactionReceipt",
+          "params": [
+            "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27"
+          ],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.003453,
+            "tcp": 0.217845,
+            "tls": 1.112807,
+            "firstByte": 2.96527,
+            "total": 2.970803
+          },
+          "bodySHA256": "c152b9410c6ca9abacc9fd4c6c0f2b59349b2f636ee83713a296f5a09c3efe64",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": {
+              "blockHash": "0x1f9d4718dcdf8e3f607fbfb217325f5e8f37509b48064a9fc494ac976ffdbcf5",
+              "blockNumber": "0x18f36e",
+              "contractAddress": null,
+              "cumulativeGasUsed": "0x61a8",
+              "effectiveGasPrice": "0x246139ca8000",
+              "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+              "gasUsed": "0x61a8",
+              "logsBloom": "0x00000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000800008000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000080101000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000004000000000000000000000000000000000002000000000000000000000000000000000000000000000040000000",
+              "status": "0x1",
+              "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+              "transactionHash": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27",
+              "transactionIndex": "0x0",
+              "type": "0x0",
+              "ynxDurability": {
+                "blockHash": "0x1f9d4718dcdf8e3f607fbfb217325f5e8f37509b48064a9fc494ac976ffdbcf5",
+                "blockNumber": "0x18f36e",
+                "checkpointBlockHash": "0x5ee2af9a70c1282fa4cdbf486e275fe2ba22c8d350d1a2ec55757c3b139a0a5d",
+                "checkpointBlockNumber": "0x18f41b",
+                "scope": "local-snapshot",
+                "snapshotIntegrity": "0xb95243e7eb924da354e2dde8c58e4c9a9e4b7307578f75ea6bbf5b68bff07039",
+                "status": "durable",
+                "transactionHash": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27",
+                "version": "ynx-local-durability-v1"
+              },
+              "ynxFeeWei": "0xde0b6b3a7640000",
+              "ynxLogSemantics": "native provenance events; no EVM execution",
+              "ynxNativeIdentity": {
+                "from": "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+                "identityProjection": {
+                  "fromSystemIdentity": false,
+                  "systemAddressDomain": "YNX_NATIVE_IDENTITY_PROJECTION_V1",
+                  "systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",
+                  "systemAddressesAreDisplayOnly": true,
+                  "toSystemIdentity": false,
+                  "version": "ynx-native-identity-projection-v1"
+                },
+                "to": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4"
+              },
+              "ynxNativeTransaction": {
+                "amountYNXT": "1",
+                "feeYNXT": "1",
+                "nonce": "0x2",
+                "type": "transfer"
+              }
+            }
+          },
+          "rpcError": null
+        },
+        {
+          "label": "senderNonceLatest",
+          "url": "https://rpc.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:58:11.130Z",
+          "finishedAt": "2026-09-19T16:58:11.713Z",
+          "method": "eth_getTransactionCount",
+          "params": [
+            "0x4767825ea9546505c39b19ba5d31484e5bd03736",
+            "latest"
+          ],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.00217,
+            "tcp": 0.108915,
+            "tls": 0.221064,
+            "firstByte": 0.571489,
+            "total": 0.571537
+          },
+          "bodySHA256": "f1876cecd1e76bf29174b24a866bd5e84270bacf173af27ad59645783c8c9825",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "result": "0x2"
+          },
+          "rpcError": null
+        },
+        {
+          "label": "chainId",
+          "url": "https://rpc-testnet.ynxweb4.com/evm",
+          "startedAt": "2026-09-19T16:58:08.141Z",
+          "finishedAt": "2026-09-19T16:58:10.213Z",
+          "method": "eth_chainId",
+          "params": [],
+          "exitCode": 0,
+          "httpStatus": 200,
+          "remoteIP": "43.153.202.237",
+          "tlsVerified": true,
+          "transportClassification": "healthy",
+          "clientError": null,
+          "phaseSeconds": {
+            "dns": 0.002745,
+            "tcp": 0.215803,
+            "tls": 0.92804,
+            "firstByte": 2.050731,
+            "total": 2.05082
+          },
+          "bodySHA256": "b6bdc0aec0b2475b2e9f0d86d910a7d505068919baf6158d96e12a4fff04fc90",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 2,
+            "result": "0x1917"
+          },
+          "rpcError": null
+        }
+      ],
+      "originalFailuresRetained": true,
+      "faucetPOSTs": 0,
+      "transactionSubmissions": 0
+    }
+  ],
+  "awaitingNativeTransferHashes": false,
+  "officialSandboxVerified": false,
+  "transactionSubmissions": 0,
+  "faucetPOSTs": 0,
+  "fundingAssessment": {
+    "checkedAt": "2026-09-19T16:44:41.184Z",
+    "deterministicHashVerified": true,
+    "nativeAddressProjectionVerified": true,
+    "bothAliasesAdmissionMatch": true,
+    "bothAliasesFundingTransactionMatch": true,
+    "bothAliasesSuccessfulReceiptObserved": true,
+    "bothAliasesLocalSnapshotDurabilityObserved": true,
+    "readOnlyFollowupRecoveredFourMissingReads": true,
+    "originalTransportFailuresRetained": true,
+    "latestObservedBalanceYNXT": "98",
+    "latestObservedNonce": "1",
+    "observationsNotAtomic": true,
+    "clientPOSTCountIndependentlyProven": false,
+    "completeAdmissionDatabaseAudited": false,
+    "consensusFinalityVerified": false,
+    "nativeTransferAcceptancePending": false
+  },
+  "nativeReadbackComplete": true,
+  "nativeReadbackMissing": [],
+  "finalAssessment": {
+    "checkedAt": "2026-09-19T16:58:11.713Z",
+    "scope": "Independent public chain/Faucet readback only; not independent Android UI, installed APK or client POST-count audit",
+    "hashes": {
+      "funding": "0x2390cde0c630c91716c76a3155636ae94351353dfe80573694e053cf3d1c044a",
+      "transfer1": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+      "transfer2": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27"
+    },
+    "chainId": "0x1917",
+    "senderBalanceLatestYNXT": "96",
+    "senderBalancePendingYNXT": "96",
+    "senderNonceLatest": "2",
+    "senderNoncePending": "2",
+    "receiver": "0x3ff7e78f90b864a7300e17dfaa43467f59e162b4",
+    "receiverBalanceLatestYNXT": "4",
+    "receiverBalancePendingYNXT": "4",
+    "receiverHistory": {
+      "earlierBalanceYNXT": "2",
+      "evidenceFile": "release/evidence/weekly-v3-wallet-current-e2e-chain-readback-20260919.json",
+      "legacyReadAt": "2026-09-19T15:36:29.573Z",
+      "canonicalReadAt": "2026-09-19T15:36:41.640Z",
+      "notThisNativeRunsAtomicInitialBalance": true
+    },
+    "transfers": [
+      {
+        "hash": "0x1e540118ac7d58488cf91213c4959b7e46c2fac0bd5cbb875371978b2ecbfcec",
+        "amountYNXT": "1",
+        "feeYNXT": "1",
+        "nativeNonce": "1",
+        "rpcTransactionNonce": "0x1",
+        "encoding": "ynx-native"
+      },
+      {
+        "hash": "0xa07902864172298a9d42e8c7abfdc2b3f73159e4537e8f3b226d2cc07d61ce27",
+        "amountYNXT": "1",
+        "feeYNXT": "1",
+        "nativeNonce": "2",
+        "rpcTransactionNonce": "0x2",
+        "encoding": "ynx-native"
+      }
+    ],
+    "senderBalanceArithmetic": "100 - (1 + 1) - (1 + 1) = 96",
+    "receiptsSuccessfulOnBothAliases": 6,
+    "explicitDurabilityReadsOnBothAliases": 6,
+    "durabilityScope": "local-snapshot",
+    "consensusFinalityVerified": false,
+    "faucetStatusSameBeforeAndAfterOnBothAliases": true,
+    "faucetBodySHA256": "a135b7ce3e1d06655c81159621cfa8f21a163f6a096f4dc313965cbcd4162f87",
+    "singleBoundAdmissionAndFundingTransactionObserved": true,
+    "completeAdmissionDatabaseAudited": false,
+    "clientPOSTCountIndependentlyProven": false,
+    "ownerClientJournalReviewed": false,
+    "observationsNotAtomic": true,
+    "globalAvailabilityVerified": false,
+    "stableTransportVerified": false,
+    "officialSandboxVerified": false,
+    "emulatorOrInstalledAppChanges": 0,
+    "readCounts": {
+      "initialFunding": 18,
+      "fundingFollowup": 4,
+      "finalMain": 34,
+      "finalFollowup": 6,
+      "finalFollowup2": 3,
+      "total": 65,
+      "successful": 52,
+      "transportFailuresRetained": 13
+    },
+    "recoveryCheckpointBeforeFinalEvidence": "e488ce55dc82da2e087fac5cfb5c7c8aacf25a51",
+    "result": "All requested public chain/Faucet fields observed and consistent across aliases after explicit bounded read-only followups. Original transport failures retained; no request/transaction resend was performed."
+  }
+}

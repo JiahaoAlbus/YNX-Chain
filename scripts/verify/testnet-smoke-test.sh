@@ -4,6 +4,20 @@ set -euo pipefail
 work=.ynx-smoke
 rm -rf "$work"
 mkdir -p "$work"
+export YNX_FAUCET_CORE_AUTH_TOKEN_FILE="$work/faucet-core-auth.token"
+export YNX_FAUCET_CORE_AUTH_TOKEN="$(od -An -N32 -tx1 /dev/urandom | tr -d '[:space:]')"
+(umask 077; printf '%s\n' "$YNX_FAUCET_CORE_AUTH_TOKEN" >"$YNX_FAUCET_CORE_AUTH_TOKEN_FILE")
+transfer_payload="$work/smoke-signed-transfer.json"
+eval "$(TRANSFER_PAYLOAD="$transfer_payload" node --input-type=module <<'NODE'
+import {readFileSync,writeFileSync} from "node:fs";
+
+const vectors=JSON.parse(readFileSync("testdata/exchange-signed-transactions.json","utf8"));
+const signed=vectors.transactions.find(entry=>entry.purpose==="deposit-recognition");
+if(!signed?.canonicalPayloadHex||!signed.envelope?.from)throw new Error("signed smoke fixture is missing");
+writeFileSync(process.env.TRANSFER_PAYLOAD,Buffer.from(signed.canonicalPayloadHex.slice(2),"hex"),{mode:0o600});
+process.stdout.write(`signed_sender=${JSON.stringify(signed.envelope.from)}`);
+NODE
+)"
 pid=""
 kill_tree() {
   local target="${1:-}"
@@ -15,7 +29,9 @@ kill_tree() {
   wait "$target" >/dev/null 2>&1 || true
 }
 if ! curl -fsS http://127.0.0.1:6420/health >/dev/null 2>&1; then
-  YNX_NETWORK=testnet YNX_HTTP_ADDR=127.0.0.1:6420 YNX_DATA_DIR="$work/state" go run ./cmd/ynx-chaind >"$work/server.log" 2>&1 &
+  YNX_NETWORK=testnet YNX_HTTP_ADDR=127.0.0.1:6420 YNX_DATA_DIR="$work/state" \
+    YNX_FAUCET_CORE_AUTH_TOKEN_FILE="$YNX_FAUCET_CORE_AUTH_TOKEN_FILE" \
+    go run ./cmd/ynx-chaind >"$work/server.log" 2>&1 &
   pid=$!
   for i in {1..40}; do
     curl -fsS http://127.0.0.1:6420/health >/dev/null 2>&1 && break
@@ -36,10 +52,11 @@ sleep 3
 h2=$(curl -fsS http://127.0.0.1:6420/status | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).height')
 echo "current height: $h2"
 [[ "$h2" -gt "$h1" ]] || { echo "block height did not increase"; exit 1; }
-faucet=$(curl -fsS -X POST http://127.0.0.1:6420/faucet -H 'content-type: application/json' -d '{"address":"ynx_smoke_alice","amount":1000}')
+faucet=$(curl -fsS -X POST http://127.0.0.1:6420/faucet -H 'content-type: application/json' -H "X-YNX-Faucet-Auth: $YNX_FAUCET_CORE_AUTH_TOKEN" -d '{"address":"ynx_smoke_alice","amount":1000}')
 echo "faucet result: $faucet"
-transfer=$(curl -fsS -X POST http://127.0.0.1:6420/transfer -H 'content-type: application/json' -d '{"from":"ynx_smoke_alice","to":"ynx_smoke_bob","amount":125}')
-txhash=$(printf '%s' "$transfer" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).hash')
+curl -fsS -X POST http://127.0.0.1:6420/faucet -H 'content-type: application/json' -H "X-YNX-Faucet-Auth: $YNX_FAUCET_CORE_AUTH_TOKEN" -d "{\"address\":\"$signed_sender\",\"amount\":2000}" >/dev/null
+transfer=$(curl -fsS -X POST http://127.0.0.1:6420/transactions/broadcast -H 'content-type: application/json' --data-binary "@$transfer_payload")
+txhash=$(printf '%s' "$transfer" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).transaction.hash')
 echo "transfer tx hash: $txhash"
 sleep 2
 echo "explorer tx URL: http://127.0.0.1:6420/txs/$txhash"
@@ -136,7 +153,7 @@ echo "Resource policy result: $resource_policy"
 resource_quote=$(curl -fsS 'http://127.0.0.1:6420/resource-market/quote?address=ynx_smoke_alice&bandwidth=100&compute=5&aiCredits=2&trustCredits=1')
 printf '%s' "$resource_quote" | POLICY_HASH="$resource_policy_hash" node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.policyHash !== process.env.POLICY_HASH || !Array.isArray(data.pricingBreakdown) || data.pricingBreakdown.length !== 4) { console.error(`resource quote missing policy evidence: ${JSON.stringify(data)}`); process.exit(1); }'
 echo "Resource quote result: $resource_quote"
-curl -fsS -X POST http://127.0.0.1:6420/faucet -H 'content-type: application/json' -d '{"address":"ynx_resource_provider","amount":1000}' >/dev/null
+curl -fsS -X POST http://127.0.0.1:6420/faucet -H 'content-type: application/json' -H "X-YNX-Faucet-Auth: $YNX_FAUCET_CORE_AUTH_TOKEN" -d '{"address":"ynx_resource_provider","amount":1000}' >/dev/null
 echo "Resource delegation result:" && curl -fsS -X POST http://127.0.0.1:6420/resource-market/delegations -H 'content-type: application/json' -d '{"provider":"ynx_resource_provider","beneficiary":"ynx_resource_provider","amount":500}'
 resource_rental=$(curl -fsS -X POST http://127.0.0.1:6420/resource-market/rent -H 'content-type: application/json' -d '{"address":"ynx_smoke_alice","provider":"ynx_resource_provider","bandwidth":100,"compute":5,"aiCredits":2,"trustCredits":1}')
 printf '%s' "$resource_rental" | POLICY_HASH="$resource_policy_hash" node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.rental?.policyHash !== process.env.POLICY_HASH || data.rental?.providerIncomeYnxt <= 0 || data.rental?.protocolFeeYnxt <= 0) { console.error(`resource rental missing policy evidence: ${JSON.stringify(data)}`); process.exit(1); }'
@@ -148,26 +165,10 @@ echo "Resource analytics result: $resource_analytics"
 source='pragma solidity ^0.8.24; contract Smoke { event SmokePing(address indexed caller, uint256 value); function ping() public pure returns (uint256) { return 1; } }'
 compile=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({name:"Smoke",source}))' "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/compile -H 'content-type: application/json' -d @-)
 printf '%s' "$compile" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!data.ok || !data.sourceHash || !data.artifactHash || !data.compilerMode || !data.runtimeMode || !Array.isArray(data.functions) || data.functions[0]?.signature !== "ping()") { console.error(`missing IDE compile artifact metadata: ${JSON.stringify(data)}`); process.exit(1); }'
-deploy=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({deployer:"ynx_smoke_alice",name:"Smoke",source}))' "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/deploy -H 'content-type: application/json' -d @-)
-contract_address=$(printf '%s' "$deploy" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).contract.address')
-contract_topic=$(printf '%s' "$deploy" | node -pe 'const data=JSON.parse(fs.readFileSync(0,"utf8")); const event=data.contract.events?.[0]; if (!event || event.signature !== "SmokePing(address,uint256)" || !event.topic) throw new Error(`missing contract event metadata: ${JSON.stringify(data)}`); event.topic')
-contract_selector=$(printf '%s' "$deploy" | node -pe 'const data=JSON.parse(fs.readFileSync(0,"utf8")); const fn=data.contract.functions?.[0]; if (!fn || fn.signature !== "ping()" || !fn.selector) throw new Error(`missing contract function metadata: ${JSON.stringify(data)}`); fn.selector')
-contract_tx=$(printf '%s' "$deploy" | node -pe 'JSON.parse(fs.readFileSync(0,"utf8")).transaction.hash')
-echo "IDE deployment result: $deploy"
-echo "Contract verification result:" && node -e 'const address=process.argv[1], source=process.argv[2]; process.stdout.write(JSON.stringify({address,source}))' "$contract_address" "$source" | curl -fsS -X POST http://127.0.0.1:6420/ide/verify -H 'content-type: application/json' -d @-
-verifier_evidence=$(curl -fsS "http://127.0.0.1:6420/ide/verifier/$contract_address")
-printf '%s' "$verifier_evidence" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.localServiceStatus !== "local-verifier-evidence" || data.remotePublicProofStatus !== "not_remote_public_proof" || data.artifactKind !== "source-analyzer-artifact" || data.verified !== true) { console.error(`bad verifier evidence: ${JSON.stringify(data)}`); process.exit(1); }'
-curl -fsS "http://127.0.0.1:6420/contracts/$contract_address" >/dev/null
-contract_call=$(node -e 'const address=process.argv[1]; process.stdout.write(JSON.stringify({address,function:"ping"}))' "$contract_address" | curl -fsS -X POST http://127.0.0.1:6420/ide/call -H 'content-type: application/json' -d @-)
-printf '%s' "$contract_call" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.returnValue !== "1" || data.encodedResult !== "0x0000000000000000000000000000000000000000000000000000000000000001") { console.error(`bad IDE call result: ${JSON.stringify(data)}`); process.exit(1); }'
-eth_call=$(curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d "{\"jsonrpc\":\"2.0\",\"id\":30,\"method\":\"eth_call\",\"params\":[{\"to\":\"$contract_address\",\"data\":\"$contract_selector\"},\"latest\"]}")
-printf '%s' "$eth_call" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (data.result !== "0x0000000000000000000000000000000000000000000000000000000000000001") { console.error(`bad eth_call result: ${JSON.stringify(data)}`); process.exit(1); }'
-sleep 2
-contract_receipt=$(curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d "{\"jsonrpc\":\"2.0\",\"id\":31,\"method\":\"eth_getTransactionReceipt\",\"params\":[\"$contract_tx\"]}")
-printf '%s' "$contract_receipt" | node -e 'const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.result?.logs) || data.result.logs.length < 3) { console.error(`missing contract receipt logs: ${JSON.stringify(data)}`); process.exit(1); }'
-contract_logs=$(curl -fsS -X POST http://127.0.0.1:6420/evm -H 'content-type: application/json' -d "{\"jsonrpc\":\"2.0\",\"id\":32,\"method\":\"eth_getLogs\",\"params\":[{\"address\":\"$contract_address\",\"topics\":[\"$contract_topic\"]}]}")
-printf '%s' "$contract_logs" | node -e 'const address=process.argv[1]; const data=JSON.parse(require("fs").readFileSync(0,"utf8")); if (!Array.isArray(data.result) || data.result.length !== 1 || data.result[0].address.toLowerCase() !== address.toLowerCase()) { console.error(`missing contract event log: ${JSON.stringify(data)}`); process.exit(1); }' "$contract_address"
-echo "Contract event log result: $contract_logs"
+deploy_status=$(node -e 'const source=process.argv[1]; process.stdout.write(JSON.stringify({deployer:"ynx_smoke_alice",name:"Smoke",source}))' "$source" | curl -sS -o "$work/unsigned-ide-deploy.json" -w '%{http_code}' -X POST http://127.0.0.1:6420/ide/deploy -H 'content-type: application/json' -d @-)
+[[ "$deploy_status" == "403" ]] || { echo "unsigned Testnet IDE deploy did not fail closed: HTTP $deploy_status"; cat "$work/unsigned-ide-deploy.json"; exit 1; }
+grep -Fq 'unsigned account mutations are disabled' "$work/unsigned-ide-deploy.json"
+echo "unsigned Testnet IDE deployment correctly rejected; signed contract execution is covered by contract and API suites"
 echo "Indexer sync result:" && go run ./cmd/ynx-indexerd -rpc http://127.0.0.1:6420 -db "$work/indexer-db.json" -once
 YNX_INDEXER_RPC_URL=http://127.0.0.1:6420 YNX_INDEXER_DB_PATH="$work/indexer-db.json" YNX_INDEXER_HTTP_ADDR=127.0.0.1:6436 go run ./cmd/ynx-indexerd >"$work/indexer-smoke.log" 2>&1 &
 indexer_smoke_pid=$!

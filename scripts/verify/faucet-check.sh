@@ -55,5 +55,16 @@ grep -Fq '"status":"rate_limited"' "$request_log"
 metrics="$(curl -fsS "$faucet_url/metrics")"
 grep -Fq "ynx_faucet_requests_total" <<<"$metrics"
 grep -Fq 'native_symbol="YNXT"' <<<"$metrics"
+for metric in \
+  ynx_faucet_request_results_total \
+  ynx_faucet_admission_store_errors_total \
+  ynx_faucet_health_checked_timestamp_seconds \
+  ynx_faucet_health_capability_duration_seconds \
+  ynx_faucet_admission_ready \
+  ynx_faucet_funding_ready \
+  ynx_faucet_funding_balance_applicable
+do
+  grep -Fq "$metric" <<<"$metrics"
+done
 
 echo "faucet-check passed: url=$faucet_url tx=$tx_hash log=$request_log"

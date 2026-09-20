@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "package": "expo-secure-store",
+  "version": "57.0.3",
+  "file": "android/src/main/java/expo/modules/securestore/SecureStoreModule.kt",
+  "upstreamSha256": "72c670b538732977ef132759ce810c5719943ce6082195a58ad5a432d4ac1075",
+  "patchedSha256": "9d5ba89067e9c72f2c9607c73d5747e1a10a81918ddd04ac4fb2023123955524",
+  "helper": {
+    "source": "YNXSecureStoreWriteBarrier.kt",
+    "destination": "android/src/main/java/expo/modules/securestore/YNXSecureStoreWriteBarrier.kt",
+    "sha256": "ea2af95d0863f96ee668a1ab5b79a8145bfe793222797625055463c3fb948082"
+  },
+  "edits": [
+    {
+      "before": "    val prefs: SharedPreferences = getSharedPreferences()\n    val keychainAwareKey = createKeychainAwareKey(key, options.keychainService)\n    if (prefs.contains(keychainAwareKey)) {\n      return readJSONEncodedItem(key, prefs, options)\n    } else if (prefs.contains(key)) { // For backwards-compatibility try to read using the old key format\n      return readJSONEncodedItem(key, prefs, options)\n    }\n    return null\n",
+      "after": "    YNXSecureStoreWriteBarrier.check()\n    val prefs: SharedPreferences = getSharedPreferences()\n    val keychainAwareKey = createKeychainAwareKey(key, options.keychainService)\n    val exists = YNXSecureStoreWriteBarrier.read { prefs.contains(keychainAwareKey) || prefs.contains(key) }\n    val value = if (exists) readJSONEncodedItem(key, prefs, options) else null\n    // A different write can fail while cipher-bound OS authentication is pending.\n    YNXSecureStoreWriteBarrier.check()\n    return value\n"
+    },
+    {
+      "before": "    val legacyEncryptedItemString = prefs.getString(key, null)\n    val currentEncryptedItemString = prefs.getString(keychainAwareKey, null)\n",
+      "after": "    val (legacyEncryptedItemString, currentEncryptedItemString) = YNXSecureStoreWriteBarrier.read {\n      Pair(prefs.getString(key, null), prefs.getString(keychainAwareKey, null))\n    }\n"
+    },
+    {
+      "before": "  private suspend fun setItemImpl(key: String, value: String?, options: SecureStoreOptions, keyIsInvalidated: Boolean) {\n    val keychainAwareKey",
+      "after": "  private suspend fun setItemImpl(key: String, value: String?, options: SecureStoreOptions, keyIsInvalidated: Boolean) {\n    YNXSecureStoreWriteBarrier.check()\n    val keychainAwareKey"
+    },
+    {
+      "before": "      val success = prefs.edit().putString(keychainAwareKey, null).commit()",
+      "after": "      val success = YNXSecureStoreWriteBarrier.commit { prefs.edit().putString(keychainAwareKey, null).commit() }"
+    },
+    {
+      "before": "      saveEncryptedItem(encryptedItem, prefs, keychainAwareKey, options.requireAuthentication, options.keychainService)\n\n      // If a legacy value exists under this key we remove it to avoid unexpected errors in the future\n      if (prefs.contains(key)) {\n        prefs.edit().remove(key).apply()\n      }\n",
+      "after": "      val success = saveEncryptedItem(encryptedItem, prefs, keychainAwareKey, options.requireAuthentication, options.keychainService)\n      if (!success) {\n        throw WriteException(\"Could not commit the encrypted value to SecureStore\", key, options.keychainService)\n      }\n\n      // Only a confirmed write permits legacy cleanup. Its own failure also\n      // quarantines the process cache; never acknowledge an async apply().\n      YNXSecureStoreWriteBarrier.read {\n        if (prefs.contains(key) && !YNXSecureStoreWriteBarrier.commit { prefs.edit().remove(key).commit() }) {\n          throw WriteException(\"Could not commit legacy cleanup to SecureStore\", key, options.keychainService)\n        }\n      }\n      YNXSecureStoreWriteBarrier.check()\n"
+    },
+    {
+      "before": "    return prefs.edit().putString(key, encryptedItemString).commit()",
+      "after": "    return YNXSecureStoreWriteBarrier.commit { prefs.edit().putString(key, encryptedItemString).commit() }"
+    },
+    {
+      "before": "  private fun removeKeyFromKeystore(keyStoreAlias: String, keychainService: String) {\n    keyStore.deleteEntry",
+      "after": "  private fun removeKeyFromKeystore(keyStoreAlias: String, keychainService: String) = YNXSecureStoreWriteBarrier.read {\n    keyStore.deleteEntry"
+    },
+    {
+      "before": "  private fun removeAllEntriesUnderKeychainService(keychainService: String) {\n    val sharedPreferences",
+      "after": "  private fun removeAllEntriesUnderKeychainService(keychainService: String) = YNXSecureStoreWriteBarrier.read {\n    val sharedPreferences"
+    },
+    {
+      "before": "        sharedPreferences.edit().remove(key).apply()\n        Log.w",
+      "after": "        if (!YNXSecureStoreWriteBarrier.commit { sharedPreferences.edit().remove(key).commit() }) {\n          throw DeleteException(\"Could not commit invalidated-key cleanup to SecureStore\", key, keychainService)\n        }\n        Log.w"
+    },
+    {
+      "before": "  private fun deleteItemImpl(key: String, options: SecureStoreOptions) {\n    val success",
+      "after": "  private fun deleteItemImpl(key: String, options: SecureStoreOptions) = YNXSecureStoreWriteBarrier.read {\n    val success"
+    },
+    {
+      "before": "  val removedFromPrefs = prefs.edit().remove(keychainAwareKey).remove(key).commit()\n  val removedFromLegacyPrefs = legacyPrefs.edit().remove(key).commit()\n",
+      "after": "  val removedFromPrefs = YNXSecureStoreWriteBarrier.commit { prefs.edit().remove(keychainAwareKey).remove(key).commit() }\n  // A failed first write quarantines the cache; do not issue a second write.\n  if (!removedFromPrefs) return false\n  val removedFromLegacyPrefs = YNXSecureStoreWriteBarrier.commit { legacyPrefs.edit().remove(key).commit() }\n"
+    }
+  ],
+  "integrity": "sha512-w7XkSQeUiYXPoKXo1jSrQqql7pyCSyIzOp2k0apsZZBE+RkoLTQIMjcbqc181y6KgupfNnYxkaKe+4MEg94+SA=="
+}

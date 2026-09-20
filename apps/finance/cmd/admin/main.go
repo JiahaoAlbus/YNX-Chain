@@ -24,6 +24,9 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer) error {
+	if os.Getenv("YNX_FINANCE_DATABASE_URL") != "" {
+		return errors.New("database-backed Finance state requires a database-native backup tool; refusing to operate on the bootstrap file")
+	}
 	if len(args) == 0 {
 		return usageError()
 	}

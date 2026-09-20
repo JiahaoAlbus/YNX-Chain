@@ -1,6 +1,7 @@
 package finance
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -10,22 +11,35 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/finance/brokerage"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
 const maxBodyBytes = 64 << 10
 
 type ServerConfig struct {
-	AllowedOrigins   []string
-	WebDir           string
-	CursorSigningKey string
-	OperationsKey    string
-	LogWriter        io.Writer
-	Now              func() time.Time
+	BrokerConfig         brokerage.Config
+	BrokerAdapter        brokerage.BrokerageAdapter
+	BrokerMaxFeeUSD      string
+	BrokerFeeBoundSource string
+	BrokerFeeEvidenceRef string
+	AllowedOrigins       []string
+	WebDir               string
+	CursorSigningKey     string
+	OperationsKey        string
+	WalletGatewayURL     string
+	WalletGatewayClient  *http.Client
+	LogWriter            io.Writer
+	Now                  func() time.Time
+	Build                buildinfo.Info
 }
 
 type Server struct {
@@ -39,6 +53,8 @@ type Server struct {
 	metrics   *financeMetrics
 	logger    *log.Logger
 	now       func() time.Time
+	build     buildinfo.Info
+	broker    brokerage.BrokerageAdapter
 }
 
 func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server, error) {
@@ -54,11 +70,22 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 	if len(cfg.OperationsKey) < 32 {
 		return nil, errors.New("finance operations key must contain at least 32 characters")
 	}
+	if cfg.WalletGatewayURL != "" {
+		parsed, err := url.Parse(strings.TrimRight(cfg.WalletGatewayURL, "/"))
+		loopbackHTTP := parsed.Scheme == "http" && (parsed.Hostname() == "127.0.0.1" || parsed.Hostname() == "localhost" || parsed.Hostname() == "::1")
+		if err != nil || (parsed.Scheme != "https" && !loopbackHTTP) || parsed.Host == "" || parsed.User != nil || (parsed.Path != "" && parsed.Path != "/") || parsed.RawQuery != "" || parsed.Fragment != "" {
+			return nil, errors.New("finance Wallet Gateway URL must be an HTTPS origin or loopback HTTP development origin")
+		}
+	}
 	now := cfg.Now
 	if now == nil {
 		now = time.Now
 	}
-	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), rate: map[string][]time.Time{}, cursorKey: []byte(cfg.CursorSigningKey), logger: newJSONLogger(cfg.LogWriter), now: now}
+	broker := cfg.BrokerAdapter
+	if broker == nil {
+		broker = brokerage.NewAlpaca(cfg.BrokerConfig)
+	}
+	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), rate: map[string][]time.Time{}, cursorKey: []byte(cfg.CursorSigningKey), logger: newJSONLogger(cfg.LogWriter), now: now, build: buildinfo.Normalize(cfg.Build), broker: broker}
 	s.metrics = newFinanceMetrics(s.now())
 	s.routes()
 	return s, nil
@@ -67,11 +94,27 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.mux)) }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
+	s.mux.HandleFunc("GET /api/broker/assets", s.brokerAssets)
+	s.mux.HandleFunc("GET /api/broker/quote", s.brokerQuote)
+	s.mux.HandleFunc("GET /api/broker/snapshot", s.protected("finance.portfolio.read", s.brokerSnapshot))
+	s.mux.HandleFunc("GET /api/broker/orders", s.protected("finance.portfolio.read", s.brokerOrders))
+	s.mux.HandleFunc("GET /api/broker/orders/{id}/execution-status", s.protected("finance.portfolio.read", s.brokerExecutionStatus))
+	s.mux.HandleFunc("GET /api/broker/recovery", s.protected("finance.portfolio.read", s.brokerRecovery))
+	s.mux.HandleFunc("PUT /api/broker/watchlist", s.protected("finance.profile.write", s.brokerWatchlist))
+	s.mux.HandleFunc("POST /api/broker/reconcile", s.protected("finance.profile.write", s.brokerReconcile))
+	s.mux.HandleFunc("POST /api/broker/orders/{id}/cancel-request", s.protected("finance.profile.write", s.brokerCancelRequest))
+	s.mux.HandleFunc("POST /api/broker/orders/{id}/execution-request", s.protected("finance.profile.write", s.brokerExecutionRequest))
+	s.mux.HandleFunc("POST /api/broker/challenges", s.protected("finance.profile.write", s.brokerChallenge))
+	s.mux.HandleFunc("POST /api/broker/callback", s.protected("finance.profile.write", s.brokerCallback))
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /ready", s.ready)
+	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /metrics", s.metricsEndpoint)
 	s.mux.HandleFunc("POST /api/auth/logout", s.protected("", s.logout))
 	s.mux.HandleFunc("GET /api/overview", s.protected("finance.portfolio.read", s.overview))
 	s.mux.HandleFunc("GET /api/portfolio", s.protected("finance.portfolio.read", s.portfolio))
+	s.mux.HandleFunc("GET /v1/domain/portfolio", s.protected("finance.portfolio.read", s.domainPortfolio))
 	s.mux.HandleFunc("GET /api/sources", s.protected("finance.portfolio.read", s.sources))
 	s.mux.HandleFunc("GET /api/activity", s.protected("finance.portfolio.read", s.activityPage))
 	s.mux.HandleFunc("GET /api/profile", s.protected("finance.portfolio.read", s.profile))
@@ -101,6 +144,70 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /styles.css", s.web)
 	s.mux.HandleFunc("GET /manifest.webmanifest", s.web)
 	s.mux.HandleFunc("GET /ynx-logo.png", s.web)
+	s.mux.HandleFunc("GET /wallet-auth/callback", s.web)
+	s.mux.HandleFunc("GET /wallet-auth.js", s.web)
+	s.mux.HandleFunc("GET /order-wallet.js", s.web)
+	s.mux.HandleFunc("GET /build-identity.json", s.web)
+	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/complete", s.walletSessionComplete)
+	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/revoke", s.walletSessionRevoke)
+}
+
+func (s *Server) walletSessionComplete(w http.ResponseWriter, r *http.Request) {
+	s.proxyWalletGateway(w, r, "/v1/wallet/sessions/complete", false)
+}
+
+func (s *Server) walletSessionRevoke(w http.ResponseWriter, r *http.Request) {
+	s.proxyWalletGateway(w, r, "/v1/wallet/sessions/revoke", true)
+}
+
+func (s *Server) proxyWalletGateway(w http.ResponseWriter, r *http.Request, path string, requireProof bool) {
+	if s.auth.v2 != nil {
+		writeError(w, http.StatusGone, "legacy_authority_isolated", "Legacy sessions require their original authority; use the separate browser v2 SDK")
+		return
+	}
+	if s.cfg.WalletGatewayURL == "" {
+		writeError(w, http.StatusServiceUnavailable, "wallet_gateway_unavailable", "Canonical Wallet Gateway is unavailable")
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxBodyBytes+1))
+	if err != nil || len(body) == 0 || len(body) > maxBodyBytes {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Wallet completion body is invalid")
+		return
+	}
+	target := strings.TrimRight(s.cfg.WalletGatewayURL, "/") + path
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, target, bytes.NewReader(body))
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "wallet_gateway_unavailable", "Canonical Wallet Gateway request failed")
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	if requireProof {
+		proof := strings.TrimSpace(r.Header.Get("X-YNX-Product-Session-Proof"))
+		if proof == "" || len(proof) > 8192 {
+			writeError(w, http.StatusUnauthorized, "session_rejected", "Canonical Product Session proof is required")
+			return
+		}
+		req.Header.Set("X-YNX-Product-Session-Proof", proof)
+	}
+	client := s.cfg.WalletGatewayClient
+	if client == nil {
+		client = &http.Client{Timeout: 8 * time.Second}
+	}
+	response, err := client.Do(req)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "wallet_gateway_unavailable", "Canonical Wallet Gateway did not respond")
+		return
+	}
+	defer response.Body.Close()
+	result, err := io.ReadAll(io.LimitReader(response.Body, maxBodyBytes+1))
+	if err != nil || len(result) > maxBodyBytes {
+		writeError(w, http.StatusBadGateway, "wallet_gateway_invalid", "Canonical Wallet Gateway response is invalid")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(response.StatusCode)
+	_, _ = w.Write(result)
 }
 func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, session Session) {
 	var input struct {
@@ -125,7 +232,21 @@ func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, sessio
 }
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "observabilityVersion": observabilityVersion, "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "truthfulStatus": "runtime-upstream-backed"})
+	stateStore := s.service.Store.StateStoreMode()
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "build": s.build, "observabilityVersion": observabilityVersion, "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "configuredReadSources": s.service.Upstreams.ConfiguredReadSources(), "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance", "truthfulStatus": "runtime-upstream-backed"})
+}
+
+func (s *Server) ready(w http.ResponseWriter, _ *http.Request) {
+	stateStore := s.service.Store.StateStoreMode()
+	if err := s.service.Store.StateStoreReady(); err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "service": "ynx-finance", "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance", "error": "authoritative state store unavailable"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance"})
+}
+
+func (s *Server) version(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, s.build)
 }
 
 type handler func(http.ResponseWriter, *http.Request, Session)
@@ -136,8 +257,13 @@ func (s *Server) protected(scope string, next handler) http.HandlerFunc {
 			writeError(w, http.StatusForbidden, "origin_not_allowed", "Request origin is not registered")
 			return
 		}
-		session, err := s.auth.Verify(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
+		session, err := s.auth.VerifyRequest(r, scope)
 		if err != nil {
+			var protocolError *productsessionv2.Error
+			if errors.As(err, &protocolError) {
+				writeError(w, protocolError.Status, protocolError.Code, "Private Finance authorization is unavailable or rejected; Standard Wallet is unchanged")
+				return
+			}
 			writeError(w, http.StatusUnauthorized, "session_rejected", err.Error())
 			return
 		}
@@ -176,6 +302,10 @@ func (s *Server) allow(token, method string) bool {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request, _ Session) {
+	if s.auth.v2 != nil {
+		writeError(w, http.StatusConflict, "wallet_revoke_required", "Use the browser Product Session SDK revocation and confirmed readback; this API cannot revoke Wallet access")
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -189,14 +319,30 @@ func (s *Server) portfolio(w http.ResponseWriter, r *http.Request, session Sessi
 	writeJSON(w, http.StatusOK, s.observedPortfolio(r.Context(), session.Account, state.Classifications))
 }
 
-func (s *Server) sources(w http.ResponseWriter, _ *http.Request, _ Session) {
-	sources := s.service.Upstreams.ReadSources(s.now().UTC())
+func (s *Server) domainPortfolio(w http.ResponseWriter, r *http.Request, session Session) {
+	observed := s.observedPortfolio(r.Context(), session.Account, s.service.Store.Account(session.Account).Classifications)
+	writeJSON(w, http.StatusOK, s.service.DomainPortfolio(session.Account, observed, s.build.Release))
+}
+
+func (s *Server) sources(w http.ResponseWriter, r *http.Request, session Session) {
+	sources := s.service.Upstreams.ReadSourcesForAccount(r.Context(), session.Account, s.now().UTC())
 	s.observeReadSources(sources)
+	live := make([]string, 0, 3)
+	for _, id := range []string{"exchange", "dex", "quant"} {
+		if sources[id].Status.Available {
+			live = append(live, id)
+		}
+	}
+	liveState := "none"
+	if len(live) > 0 {
+		liveState = strings.Join(live, ",")
+	}
+	integrationState := "accepted=exchange,dex,quant;live=" + liveState + ";pending=economics"
 	writeJSON(w, http.StatusOK, map[string]any{
 		"consumerEnvelopeVersion": ReadSourceEnvelopeVersion,
 		"readOnly":                true,
 		"sources":                 sources,
-		"integrationState":        "owner-contracts-pending",
+		"integrationState":        integrationState,
 	})
 }
 
@@ -450,23 +596,17 @@ func (s *Server) monthlyReview(w http.ResponseWriter, r *http.Request, session S
 	to := from.AddDate(0, 1, 0)
 	state := s.service.Store.Account(session.Account)
 	p := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
-	incoming, outgoing, fees := int64(0), int64(0), int64(0)
-	count := 0
-	byCategory := map[string]int64{}
-	for _, item := range p.Activity {
-		if item.Timestamp.Before(from) || !item.Timestamp.Before(to) {
-			continue
-		}
-		count++
-		fees += item.Fee
-		if item.Direction == "incoming" {
-			incoming += item.Amount
-		} else {
-			outgoing += item.Amount
-			byCategory[item.Category] += item.Amount + item.Fee
-		}
+	result := monthlyActivityObservation(p, from, to)
+	asOf := to.Add(-time.Nanosecond)
+	if now.Before(asOf) {
+		asOf = now
 	}
-	writeJSON(w, 200, map[string]any{"period": from.Format("2006-01"), "from": from, "toExclusive": to, "network": ChainID, "symbol": "YNXT", "activityCount": count, "totals": map[string]int64{"incomingYnxt": incoming, "outgoingYnxt": outgoing, "feesYnxt": fees}, "categorySpendYnxt": byCategory, "budgetProgress": s.service.BudgetProgress(session.Account, p, to.Add(-time.Nanosecond)), "sourceStatus": map[string]SourceStatus{"explorer": p.ExplorerStatus, "pay": p.PayStatus}, "legal": "Source-bounded personal review; not a bank statement, fiat valuation, tax advice, or investment advice."})
+	result["period"], result["from"], result["toExclusive"] = from.Format("2006-01"), from, to
+	result["network"], result["symbol"] = ChainID, "YNXT"
+	result["budgetProgress"] = s.service.BudgetProgress(session.Account, p, asOf)
+	result["sourceStatus"] = map[string]SourceStatus{"explorer": p.ExplorerStatus, "pay": p.PayStatus}
+	result["legal"] = "Returned-record observations only; full-period totals are unknown. Not a bank statement, fiat valuation, tax advice, or investment advice."
+	writeJSON(w, 200, result)
 }
 
 func (s *Server) export(w http.ResponseWriter, r *http.Request, session Session) {
@@ -526,11 +666,12 @@ func (s *Server) deleteAccount(w http.ResponseWriter, r *http.Request, session S
 
 func (s *Server) startAI(w http.ResponseWriter, r *http.Request, session Session) {
 	var input struct {
-		Kind           string   `json:"kind"`
-		RecordIDs      []string `json:"recordIds"`
-		ContextClasses []string `json:"contextClasses"`
-		Consent        bool     `json:"consent"`
-		OutputLocale   string   `json:"outputLocale"`
+		Kind           string                   `json:"kind"`
+		RecordIDs      []string                 `json:"recordIds"`
+		ContextClasses []string                 `json:"contextClasses"`
+		Consent        bool                     `json:"consent"`
+		OutputLocale   string                   `json:"outputLocale"`
+		OrderIntent    *AISecuritiesOrderIntent `json:"securitiesOrderIntent"`
 	}
 	if err := decodeStrict(w, r, &input); err != nil {
 		writeError(w, 400, "invalid_request", err.Error())
@@ -538,11 +679,11 @@ func (s *Server) startAI(w http.ResponseWriter, r *http.Request, session Session
 	}
 	state := s.service.Store.Account(session.Account)
 	p := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
-	if !p.ExplorerStatus.Available {
+	if input.Kind != "draft_broker_order" && !p.ExplorerStatus.Available {
 		writeError(w, 503, "source_unavailable", "AI cannot use activity while Explorer evidence is unavailable")
 		return
 	}
-	job, err := s.service.StartAI(r.Context(), session.Account, input.Kind, input.RecordIDs, input.ContextClasses, input.Consent, p, input.OutputLocale)
+	job, err := s.service.StartAIWithIntent(r.Context(), session.Account, input.Kind, input.RecordIDs, input.ContextClasses, input.Consent, p, input.OutputLocale, input.OrderIntent)
 	if err != nil {
 		writeError(w, 503, "ai_unavailable", err.Error())
 		return
@@ -589,7 +730,7 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
-	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/app.js": "app.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png"}[r.URL.Path]
+	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/wallet-auth.js": "wallet-auth.js", "/order-wallet.js": "order-wallet.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
 	if name == "" || s.cfg.WebDir == "" {
 		http.NotFound(w, r)
 		return
@@ -656,7 +797,7 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 }
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")

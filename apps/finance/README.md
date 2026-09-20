@@ -4,16 +4,21 @@ YNX Finance 1.2.0 is an independent, read-only YNXT personal-finance product. It
 
 ## Canonical Wallet boundary
 
-The native app builds the exact `ynx-finance-v1` request with `@ynx-chain/wallet-auth`, opens `ynxwallet://authorize`, verifies the Wallet callback, signs the central Gateway product-device challenge and accepts only the resulting opaque product session. The Go API introspects every bearer session at the Gateway. There is no address login, local HMAC assertion, browser fallback session, Wallet secret or recovery-material path.
+The native and Web clients build the exact `ynx-finance-v1` request with `@ynx-chain/wallet-auth`, open `ynxwallet://authorize`, verify the Wallet callback, sign the central Gateway product-device challenge and accept only the resulting device-bound Product Session. Every private API request carries a one-time, method/path/body/scope-bound P-256 proof that the Go API introspects at the central Gateway. There is no Bearer session, address login, local assertion, browser fallback identity, Wallet secret or recovery-material path.
 
-Central integration is intentionally **not complete**. The exact registry entry and deterministic vector are under `integration/wallet-auth/`, but the central registry merge, deployed persistent Gateway and installed Wallet approval test remain external gates. Until those gates pass, sign-in fails closed.
+The Finance registry entry and public Gateway are deployed. The installed Android
+flow has verified exact request parsing, permission review, action disclosure and
+the strong-biometric gate. Final approval/callback remains unverified because the
+test emulator had no enrolled strong biometric, so Finance still fails closed at
+that boundary. This is a public Testnet integration, not a production Wallet or
+store-release claim.
 
 ## Data and approval boundaries
 
 - YNXT balance and activity are accepted only after Explorer `/health` validates the service and native symbol. Responses carry Explorer release/commit, source `asOf`, RPC/indexed heights, sync lag, sync status and bounded coverage.
 - Activity coverage is explicitly the latest 100 indexed records; complete history and an opening balance are not claimed. Pagination cursors are HMAC-signed and bound to the Wallet account plus the current activity snapshot, so tampering, cross-account reuse and stale snapshots fail closed.
 - Pay receipts require a configured authenticated Pay API. A missing or invalid key produces an unavailable state, never placeholder receipts; successful responses carry adapter version, response observation time, coverage and sync status.
-- Exchange, DEX, Quant and Economics appear through the Finance-owned `finance-source-read-envelope-v1` consumer boundary. All four remain `owner-contract-pending` and unavailable until Integration freezes an owner payload version and Finance explicitly accepts its account-bound, network-bound, read-only capabilities. No balance, position, PnL, APY, supply or fee figure is inferred while pending.
+- Exchange, DEX, Quant and Economics appear through the Finance-owned `finance-source-read-envelope-v1` consumer boundary. Exchange now owns the frozen `exchange-finance-read-v1` payload and Finance accepts its exact account/network/version/capability bindings. A separately secret-managed, nonce-single-use HMAC request loads sanitized balances, orders, fills, fees, margin, positions and funding for the Wallet-authorized account only. If the endpoint or key is absent, Exchange remains visibly `integration-unconfigured`; DEX, Quant and Economics remain `owner-contract-pending`. No missing balance, PnL, APY, supply, price or fee figure is inferred.
 - Optional cross-product actions are reviewed HTTPS navigation links only. They open the owner product and never grant Finance signing, trading, withdrawal, strategy, vault or Treasury mutation authority.
 - Categories, notes, budgets, reminders, privacy preferences and audit records are account-scoped local Finance data with provenance.
 - AI can draft categories, fee explanations and budgets only from selected owned records with privacy permission and per-request consent. Apply or reject is always explicit; AI cannot move assets or change account controls.
@@ -21,7 +26,7 @@ Central integration is intentionally **not complete**. The exact registry entry 
 
 ## Run
 
-Use `infra/secrets-template/finance.env.template` as the variable inventory, then inject all secret values through an operator-managed secret environment. Start the Go API and the canonical edge Gateway separately:
+Use `infra/secrets-template/finance.env.template` as the variable inventory, then inject all secret values through an operator-managed secret environment. The Go API serves Finance and its bounded central Wallet completion/revocation proxy. The optional Node edge proxy is stateless and exposes only those same two central routes:
 
 ```bash
 go run ./apps/finance/cmd/server
@@ -30,7 +35,7 @@ npm ci --prefix apps/finance/gateway
 npm start --prefix apps/finance/gateway
 ```
 
-The default API is `127.0.0.1:6436`; the edge Gateway is `127.0.0.1:8787`. `YNX_FINANCE_CURSOR_SIGNING_KEY` and `YNX_FINANCE_OPERATIONS_KEY` are mandatory, distinct secrets with at least 32 high-entropy characters supplied through the operator secret manager; neither may reuse a Wallet, Pay, AI, backup, provider or signing credential. The operations key protects the process-scoped, financial-data-free `GET /metrics` endpoint. `YNX_FINANCE_EXCHANGE_ACTION_URL`, `YNX_FINANCE_DEX_ACTION_URL`, `YNX_FINANCE_QUANT_ACTION_URL` and `YNX_FINANCE_ECONOMICS_ACTION_URL` are optional reviewed HTTPS navigation routes; they do not configure data adapters or make a source available. Production needs TLS ingress, persistent Gateway replay/revocation storage, secret rotation procedures, a backed-up Finance state volume, a Pay read key and centrally reviewed support/privacy/dispute URLs.
+The default API is `127.0.0.1:6436`; the optional stateless edge proxy is `127.0.0.1:8787` and requires `YNX_WALLET_GATEWAY_URL`. `YNX_FINANCE_CURSOR_SIGNING_KEY` and `YNX_FINANCE_OPERATIONS_KEY` are mandatory, distinct secrets with at least 32 high-entropy characters supplied through the operator secret manager; neither may reuse a Wallet, Pay, AI, backup, provider or signing credential. The operations key protects the process-scoped, financial-data-free `GET /metrics` endpoint. Exchange reads additionally require `YNX_FINANCE_EXCHANGE_READ_URL` and `YNX_FINANCE_EXCHANGE_READ_KEY`, with the same secret injected into Exchange as `YNX_EXCHANGE_FINANCE_READ_KEY`. Quant reads require the separate `YNX_FINANCE_QUANT_READ_URL` and `YNX_FINANCE_QUANT_READ_KEY`, with that exact distinct secret injected into Quant as `YNX_QUANT_FINANCE_READ_KEY`. Both owner links are account-bound, HMAC-authenticated and replay-protected; neither key reaches a Web or native client. `YNX_FINANCE_EXCHANGE_ACTION_URL`, `YNX_FINANCE_DEX_ACTION_URL`, `YNX_FINANCE_QUANT_ACTION_URL` and `YNX_FINANCE_ECONOMICS_ACTION_URL` are optional reviewed HTTPS navigation routes; they do not configure data adapters or make a source available. Production needs TLS ingress, central Gateway durable replay/revocation storage, secret rotation procedures, backed-up Finance and Quant state volumes, a Pay read key and centrally reviewed support/privacy/dispute URLs.
 
 ## Backup and recovery
 

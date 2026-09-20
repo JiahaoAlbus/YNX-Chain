@@ -5,6 +5,7 @@ import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { ensureSecureStorePatch, readPatchSpecification } from "./secure-store-native-patch.mjs";
 
 const walletRoot = fileURLToPath(new URL("..", import.meta.url));
 const committedPath = path.join(walletRoot, "sbom.cdx.json");
@@ -66,7 +67,7 @@ try {
     "CycloneDX generation reported ELSPROBLEMS",
   );
 
-  const generatedBytes = await readFile(generatedPath);
+  let generatedBytes = await readFile(generatedPath);
   const sbom = JSON.parse(generatedBytes.toString("utf8"));
   assert.equal(sbom.bomFormat, "CycloneDX");
   assert.equal(sbom.specVersion, "1.6");
@@ -75,6 +76,7 @@ try {
   assert.equal(sbom.metadata?.component?.version, "1.0.0");
 
   const tools = sbom.metadata?.tools?.components ?? [];
+  assert.equal(tools.find(component => component.name === "npm")?.version, "11.5.1", "Generate and verify the SBOM with pinned npm 11.5.1");
   const generator = tools.find(
     (component) =>
       component.group === "@cyclonedx" && component.name === "cyclonedx-npm",
@@ -106,6 +108,24 @@ try {
       `component missing license metadata: ${component.name}@${component.version}`,
     );
   }
+
+  // The npm integrity describes the upstream archive, not our compiled Android
+  // derivative. Keep both identities explicit in the release SBOM.
+  await ensureSecureStorePatch({ check: true });
+  const patch = await readPatchSpecification();
+  const secureStore = components.filter(component => component.name === patch.package);
+  assert.equal(secureStore.length, 1);
+  assert.equal(secureStore[0].version, patch.version);
+  secureStore[0].modified = true;
+  secureStore[0].properties = [
+    ...(secureStore[0].properties ?? []),
+    { name: "ynx:android-native-patch:manifest-sha256", value: sha256(await readFile(path.join(walletRoot, "native-patches/expo-secure-store-57.0.3.json"))) },
+    { name: "ynx:android-native-patch:upstream-source-sha256", value: patch.upstreamSha256 },
+    { name: "ynx:android-native-patch:compiled-source-sha256", value: patch.patchedSha256 },
+    { name: "ynx:android-native-patch:barrier-sha256", value: patch.helper.sha256 },
+    { name: "ynx:android-native-patch:build", value: "source; prebuilt upstream AAR forbidden" },
+  ];
+  generatedBytes = Buffer.from(JSON.stringify(sbom, null, 2) + "\n");
 
   const generatedHash = sha256(generatedBytes);
   if (writeMode) {

@@ -21,15 +21,16 @@ import { ACCOUNT_SECRET, NOW, PRODUCT_DEVICE_SECRET, request } from "./fixtures.
 
 const BUILD={buildTime:"2026-07-27T12:00:00.000Z",release:"wallet-auth-test",sourceCommit:"a".repeat(40)};
 
-function approvedRegistry() {
+function approvedRegistry(webOrigins = {}) {
   const registry=JSON.parse(readFileSync(new URL("../central-registry.json",import.meta.url),"utf8"));
+  for(const product of registry.products){product.schemaVersion=4;product.webOrigins=webOrigins[product.productId]??(product.productId==="social"?["https://social.ynxweb4.com"]:product.productId==="wallet"?["https://wallet.ynxweb4.com"]:[])}
   for(const id of ["social","wallet"]){const product=registry.products.find(item=>item.productId===id);product.reviewState="approved";product.enabled=true}
   return registry;
 }
 
 function completion(registry,productId,nonce,challenge) {
   const registration=registry.products.find(item=>item.productId===productId);
-  const authorizationRequest=parseAuthorizationRequest(request({nonce,requestingProduct:registration.requestingProduct,productClientId:registration.productClientId,bundleId:registration.bundleId,callback:registration.callbacks[0],scopes:[...registration.scopes],purpose:`Authorize ${productId} through the canonical persisted Gateway.`}),{now:NOW,registry:{[registration.productClientId]:centralProtocolEntry(registration)}});
+  const authorizationRequest=parseAuthorizationRequest(request({nonce,requestingProduct:registration.requestingProduct,productClientId:registration.productClientId,bundleId:registration.bundleId,origin:registration.webOrigins[0],callback:registration.callbacks[0],scopes:[...registration.scopes],purpose:`Authorize ${productId} through the canonical persisted Gateway.`}),{now:NOW,registry:{[registration.productClientId]:centralProtocolEntry(registration)}});
   const walletApproval=signAuthorization(authorizationRequest,{accountSecret:ACCOUNT_SECRET,issuedAt:NOW.toISOString()});
   return {authorizationRequest,walletApproval,gatewayCompletion:signGatewayChallenge(createGatewayChallenge(walletApproval,{challenge,expiresAt:"2026-07-15T12:03:00.000Z"},NOW),PRODUCT_DEVICE_SECRET)};
 }
@@ -50,7 +51,7 @@ test("Node host mounts the existing kernel and preserves inventory across restar
   await serve(host,async(base)=>{
     const health=await fetch(`${base}/health`);assert.equal(health.status,200);assert.equal((await health.json()).truthfulStatus,"canonical-wallet-gateway-local-runtime");
     for(const [id,nonce,challenge] of [["social","social_node_host_nonce_abcdefghijkl","social_node_host_challenge_abcdef"],["wallet","wallet_node_host_nonce_abcdefghijkl","wallet_node_host_challenge_abcdef"]]){
-      const response=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"POST",headers:{"content-type":"application/json"},body:canonicalJSON(completion(registry,id,nonce,challenge))});
+      const complete=completion(registry,id,nonce,challenge),response=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"POST",headers:{origin:complete.authorizationRequest.origin,"content-type":"application/json"},body:canonicalJSON(complete)});
       assert.equal(response.status,200,await response.text());
     }
   });
@@ -58,7 +59,7 @@ test("Node host mounts the existing kernel and preserves inventory across restar
   const restarted=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
   const sessions=restarted.snapshot().sessionStore.sessions,wallet=sessions.find(item=>item.productClientId==="ynx-wallet-v1");
   await serve(restarted,async(base)=>{
-    const response=await fetch(`${base}/v1/wallet/sessions`,{method:"POST",headers:{"content-type":"application/json","x-ynx-product-session-proof":proof(wallet,"/v1/wallet/sessions","node_inventory_proof_abcdefghijkl")},body:"{}"});
+    const response=await fetch(`${base}/v1/wallet/sessions`,{method:"POST",headers:{origin:wallet.origin,"content-type":"application/json","x-ynx-product-session-proof":proof(wallet,"/v1/wallet/sessions","node_inventory_proof_abcdefghijkl")},body:"{}"});
     assert.equal(response.status,200);const payload=await response.json();assert.equal(payload.result.connectedApps.length,2);assert.equal(payload.result.account,wallet.account);
   });
   const remote=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW},{build:BUILD,remoteDeployed:true});
@@ -76,6 +77,22 @@ test("Node host rejects noncanonical proof transport and persisted-state tamper"
   });
   const stored=JSON.parse(readFileSync(statePath,"utf8"));stored.stateDigest="0".repeat(64);writeFileSync(statePath,JSON.stringify(stored),{mode:0o600});
   assert.throws(()=>new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW}),/state digest/);
+});
+
+test("Node host permits only an enabled registered HTTPS origin and preflight cannot mutate Product Session state",async()=>{
+  const directory=mkdtempSync(join(tmpdir(),"ynx-wallet-gateway-cors-")),statePath=join(directory,"state.json"),origin="https://social.ynxweb4.com",registry=approvedRegistry({social:[origin]}),host=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
+  const before=host.snapshot();
+  await serve(host,async(base)=>{
+    const preflight=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"OPTIONS",headers:{origin,"access-control-request-method":"POST","access-control-request-headers":"content-type"}});
+    assert.equal(preflight.status,204);assert.equal(preflight.headers.get("access-control-allow-origin"),origin);assert.equal(preflight.headers.get("access-control-allow-methods"),"POST");assert.equal(preflight.headers.get("access-control-allow-headers"),"content-type, x-ynx-product-session-proof");
+    const attacker=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"POST",headers:{origin:"https://attacker.example","content-type":"application/json"},body:canonicalJSON(completion(registry,"social","cors_attacker_nonce_abcdefghijklmnop","cors_attacker_challenge_abcdefghijklmnop"))});
+    assert.equal(attacker.status,403);assert.equal((await attacker.json()).error.code,"ORIGIN_NOT_ALLOWED");assert.equal(attacker.headers.get("access-control-allow-origin"),null);
+    const complete=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"POST",headers:{origin,"content-type":"application/json"},body:canonicalJSON(completion(registry,"social","cors_registered_nonce_abcdefghijklmnop","cors_registered_challenge_abcdefghijklmnop"))});
+    assert.equal(complete.status,200,await complete.text());assert.equal(complete.headers.get("access-control-allow-origin"),origin);assert.equal(complete.headers.get("access-control-expose-headers"),"x-error-id, x-request-id, x-trace-id");
+    const badHeader=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"OPTIONS",headers:{origin,"access-control-request-method":"POST","access-control-request-headers":"authorization"}});
+    assert.equal(badHeader.status,400);assert.equal((await badHeader.json()).error.code,"INVALID_CORS_REQUEST");
+  });
+  assert.deepEqual(before.sessionStore.sessions,[]);assert.equal(host.snapshot().sessionStore.sessions.length,1);
 });
 
 test("Node host validates and atomically normalizes the legacy timestamped state envelope",()=>{

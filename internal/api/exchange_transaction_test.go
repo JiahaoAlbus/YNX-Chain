@@ -30,8 +30,9 @@ func TestSignedYNXTBroadcastReplayPersistenceAndExchangeRPC(t *testing.T) {
 	depositAddress, _ := consensus.NativeAddress(depositKey.PubKey().SerializeCompressed())
 	recipient, _ := consensus.NativeAddress(recipientKey.PubKey().SerializeCompressed())
 
-	var funded map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": depositor, "amount": 2_000}, http.StatusCreated, &funded)
+	if _, err := devnet.Faucet(depositor, 2_000); err != nil {
+		t.Fatal(err)
+	}
 	devnet.ProduceBlock()
 
 	depositPayload, depositTx := testSignedTransfer(t, depositorKey, depositAddress, 1_000, 1, 6423)
