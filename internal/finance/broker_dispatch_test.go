@@ -143,7 +143,7 @@ func TestBrokerDispatcherSuccessAndReconcileCursor(t *testing.T) {
 	if err != nil || canceled.State != "cancel_requested" || canceled.ProviderHTTPRequestID != "fixture-cancel-request" {
 		t.Fatalf("cancel=%+v err=%v", canceled, err)
 	}
-	adapter.snapshot = brokerage.AccountSnapshot{Provider: FinanceOrderProvider, Environment: FinanceOrderTradingEnv, RequestIDs: []string{"request-b", "request-a"}, Orders: []brokerage.Order{{ID: providerOrder.ID, ClientOrderID: orderID, AssetID: providerOrder.AssetID, Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "1", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "filled"}}}
+	adapter.snapshot = brokerage.AccountSnapshot{Provider: FinanceOrderProvider, Environment: FinanceOrderTradingEnv, RequestIDs: []string{"request-b", "request-a"}, Account: brokerage.Account{ID: "01234567-89ab-4cde-8fab-0123456789ab"}, Orders: []brokerage.Order{{ID: providerOrder.ID, ClientOrderID: orderID, AssetID: providerOrder.AssetID, Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "1", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "filled"}}}
 	dispatcher.Adapter = adapter
 	if _, err := dispatcher.Reconcile(context.Background(), account); err != nil {
 		t.Fatal(err)
@@ -152,6 +152,36 @@ func TestBrokerDispatcherSuccessAndReconcileCursor(t *testing.T) {
 	brokerState := store.Account(account).Brokerage
 	if workspace.Orders[0].State != "filled" || brokerState.ReconcileCheckpoint == "" || brokerState.EventCursor != "" {
 		t.Fatalf("workspace=%+v", workspace)
+	}
+}
+
+func TestBrokerReconciliationRejectsDuplicateClientOrderAndCrossTenantSnapshot(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: "11111111-2222-4333-8444-555555555555", Symbol: "ACME", Side: "buy", Qty: "1", FilledQty: "0", Type: "limit", LimitPrice: "10", TimeInForce: "day", Status: "accepted"}
+	duplicate := providerOrder
+	duplicate.ID = "33333333-4444-4555-8666-777777777777"
+	duplicate.Status = "filled"
+
+	before := store.Account(account).Brokerage
+	if err := store.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{Orders: []brokerage.Order{providerOrder, duplicate}}, now.Add(time.Minute)); err == nil {
+		t.Fatal("duplicate provider orders sharing one client order id were accepted")
+	}
+	after := store.Account(account).Brokerage
+	if after.ReconcileCheckpoint != before.ReconcileCheckpoint || after.Orders[orderID].ProviderOrderID != before.Orders[orderID].ProviderOrderID || after.Orders[orderID].State != before.Orders[orderID].State {
+		t.Fatalf("rejected duplicate snapshot mutated durable state: before=%+v after=%+v", before, after)
+	}
+
+	dispatcher := BrokerDispatcher{Store: store, Adapter: dispatchAdapter{snapshot: brokerage.AccountSnapshot{
+		Provider: FinanceOrderProvider, Environment: FinanceOrderTradingEnv,
+		Account: brokerage.Account{ID: "99999999-8888-4777-8666-555555555555"},
+		Orders:  []brokerage.Order{providerOrder},
+	}}, Now: func() time.Time { return now.Add(2 * time.Minute) }}
+	if _, err := dispatcher.Reconcile(context.Background(), account); err == nil {
+		t.Fatal("cross-tenant provider account snapshot was accepted")
+	}
+	after = store.Account(account).Brokerage
+	if after.ReconcileCheckpoint != before.ReconcileCheckpoint || after.Orders[orderID].ProviderOrderID != before.Orders[orderID].ProviderOrderID || after.Orders[orderID].State != before.Orders[orderID].State {
+		t.Fatalf("rejected cross-tenant snapshot mutated durable state: before=%+v after=%+v", before, after)
 	}
 }
 

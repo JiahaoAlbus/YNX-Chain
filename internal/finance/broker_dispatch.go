@@ -226,6 +226,11 @@ func (s *Store) ApplyBrokerReconciliation(account string, snapshot brokerage.Acc
 	return s.updateBrokerCAS(account, "broker.reconcile", "", func(state *AccountState) error {
 		byClient := map[string]brokerage.Order{}
 		for _, order := range snapshot.Orders {
+			if order.ClientOrderID != "" {
+				if _, duplicate := byClient[order.ClientOrderID]; duplicate {
+					return errors.New("Broker reconciliation contains duplicate client order ids")
+				}
+			}
 			byClient[order.ClientOrderID] = order
 		}
 		for orderID, outbox := range state.Brokerage.Outbox {
@@ -473,6 +478,10 @@ func (d BrokerDispatcher) Reconcile(ctx context.Context, account string) (broker
 	snapshot, err := d.Adapter.Reconcile(ctx, account, d.Store)
 	if err != nil {
 		return brokerage.AccountSnapshot{}, err
+	}
+	brokerAccount, err := d.Store.ResolveBrokerAccount(ctx, account, FinanceOrderProvider, FinanceOrderTradingEnv)
+	if err != nil || snapshot.Provider != FinanceOrderProvider || snapshot.Environment != FinanceOrderTradingEnv || snapshot.Account.ID != brokerAccount {
+		return brokerage.AccountSnapshot{}, errors.New("Broker reconciliation snapshot identity mismatch")
 	}
 	now := time.Now()
 	if d.Now != nil {
