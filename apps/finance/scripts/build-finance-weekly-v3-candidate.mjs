@@ -4,7 +4,7 @@ import { chmodSync, copyFileSync, mkdtempSync, mkdirSync, readFileSync, readdirS
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { preservedFrontendSource, runtimeFiles, sha256, validateBuildIdentity, validatePreservedFrontend } from './finance-nonregressive-runtime.mjs';
+import { runtimeFiles, sha256 } from './finance-nonregressive-runtime.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = dirname(scriptPath);
@@ -25,8 +25,7 @@ const toolingCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot
 const sourceTree = execFileSync('git', ['rev-parse', `${sourceCommit}^{tree}`], { cwd: repoRoot, encoding: 'utf8' }).trim();
 const buildTime = new Date(execFileSync('git', ['show', '-s', '--format=%cI', sourceCommit], { cwd: repoRoot, encoding: 'utf8' }).trim()).toISOString();
 const release = `finance-weekly-v3-${sourceCommit.slice(0, 12)}-linux-amd64`;
-const identity = { sourceCommit, release, buildTime, frontendSourceCommit: preservedFrontendSource };
-validateBuildIdentity(identity, identity);
+const identity = { sourceCommit, release, buildTime, frontendSourceCommit: sourceCommit };
 
 const programs = [
   ['ynx-finance', './apps/finance/cmd/server'],
@@ -66,8 +65,21 @@ function buildOnce(sourceRoot, destination) {
     for (const name of runtimeFiles) copyFileSync(join(sourceRoot, 'apps/finance/web', name), join(webRoot, name));
     copyFileSync(join(sourceRoot, 'apps/finance/.env.example'), join(packageRoot, '.env.example'));
     writeFileSync(join(webRoot, 'build-identity.json'), `${JSON.stringify(identity, null, 2)}\n`, { mode: 0o644 });
-    validatePreservedFrontend(webRoot);
-    validateBuildIdentity(JSON.parse(readFileSync(join(webRoot, 'build-identity.json'), 'utf8')), identity);
+    for (const name of runtimeFiles) {
+      const sourceBody = readFileSync(join(sourceRoot, 'apps/finance/web', name));
+      const packagedBody = readFileSync(join(webRoot, name));
+      if (!sourceBody.equals(packagedBody)) throw new Error(`FINANCE_FRONTEND_SOURCE_BINDING_MISMATCH:${name}`);
+    }
+    for (const forbidden of ['wallet-connect.js', 'wallet-connect-entry.js']) {
+      try {
+        readFileSync(join(webRoot, forbidden));
+        throw new Error(`FINANCE_LEGACY_WALLET_CONNECT_REINTRODUCED:${forbidden}`);
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+    }
+    const html = readFileSync(join(webRoot, 'index.html'), 'utf8');
+    if (!html.includes('wallet-auth.js') || html.includes('wallet-connect.js')) throw new Error('FINANCE_WALLET_SCRIPT_BINDING_REGRESSION');
 
     for (const name of walk(packageRoot)) if (!programs.some(([program]) => program === name)) chmodSync(join(packageRoot, name), 0o644);
     const payloadFiles = walk(packageRoot).map(path => ({
@@ -85,7 +97,7 @@ function buildOnce(sourceRoot, destination) {
       release,
       buildTime,
       platform: { os: 'linux', arch: 'amd64', cgoEnabled: false, executableFormat: 'ELF64', machine: 'x86-64' },
-      frontendSourceCommit: preservedFrontendSource,
+      frontendSourceCommit: sourceCommit,
       buildCommands: programs.map(([name, pkg]) => commandFor(name, pkg)),
       safetyDefaults: {
         tradingEnvironment: 'sandbox',
