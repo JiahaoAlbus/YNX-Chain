@@ -4,7 +4,7 @@ import {privateFinance,bindPrivateFinanceUI} from './private-wallet-entry.js';
 const ORIGIN='https://finance.ynxweb4.com';
 const PROVIDER_KEY='ynx.finance.standard-wallet.provider.v2';
 const DOWNLOAD='https://www.ynxweb4.com/dapp/download',METAMASK='https://metamask.io/download/';
-const CHAIN=Object.freeze({chainId:'0x1917',chainName:'YNX Testnet',nativeCurrency:{name:'YNX Testnet',symbol:'YNXT',decimals:18},rpcUrls:['https://rpc.ynxweb4.com/evm'],blockExplorerUrls:['https://explorer.ynxweb4.com']});
+const CHAIN=Object.freeze({chainId:'0x1917',chainName:'YNX Testnet',nativeCurrency:{name:'YNX Testnet',symbol:'YNXT',decimals:18},rpcUrls:['https://rpc-testnet.ynxweb4.com/evm','https://rpc.ynxweb4.com/evm'],blockExplorerUrls:['https://explorer.ynxweb4.com']});
 let connection=null,unsubscribe=()=>{},intent=0,revision=0,busy=false,revoking=null;
 let standard=Object.freeze({status:'disconnected',providerKind:null,account:null,chainId:null});
 let lastMessage='';

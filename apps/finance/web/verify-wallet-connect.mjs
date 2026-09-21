@@ -9,7 +9,8 @@ const BUILD_COMMAND='esbuild wallet-auth-entry.js --bundle --minify --platform=b
 const ENTRY='wallet-auth-entry.js',BUNDLE='wallet-auth.js';
 const LEGACY_FILES=['wallet-connect-entry.js','wallet-connect.js'];
 const VERIFIER_MANIFEST='wallet-verifier-manifest.json';
-const REVIEWED_VERIFIER_MANIFEST_SHA256='30968b5ab0506b771628f568f3bb3940fb96133733f950ed894053d9625c6aa4';
+const REVIEWED_VERIFIER_MANIFEST_SHA256='ba4b745394c89778c9596742673522384eead5d75a0d77cda27c93ee39e4d727';
+const CANONICAL_TESTNET_EVM_RPC='https://rpc-testnet.ynxweb4.com/evm',LEGACY_TESTNET_EVM_RPC='https://rpc.ynxweb4.com/evm';
 const REVIEWED_FILES=['package.json','package-lock.json','wallet-auth-entry.js','private-wallet-entry.js','endpoint-authority-entry.js','endpoint-authority-store.js','order-wallet-entry.js','wallet-auth.js','order-wallet.js','index.html','app.js','vendor/standard-wallet-browser-c97f85e9.mjs','vendor/product-session-browser-a7dad7ec.mjs','vendor/product-session-registry-a7dad7ec.json','../mobile/contract/endpoint-authority-pin.json','../../../sdk/js/index.js','../../../sdk/js/endpoint-authority.js','../../../sdk/js/endpoint-authority-v2.js','../../../sdk/js/endpoint-authority-bundle.js','../../../sdk/js/testnet-endpoints.js','../../../sdk/js/ynx-testnet.js','../../../sdk/js/wallet.js','../scripts/finance-nonregressive-runtime.mjs','../scripts/build-finance-weekly-v3-candidate.mjs'];
 
 function fail(code,message){const error=new Error(`${code}: ${message}`);error.code=code;throw error}
@@ -45,7 +46,7 @@ export async function verifyFinanceWalletBundle(options={}){
   let binding;try{binding=JSON.parse(bindingBytes.toString('utf8'))}catch{fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID',`${VERIFIER_MANIFEST} is not valid JSON`)}
   if(Object.keys(binding).sort().join(',')!=='build,files,schemaVersion,sourceBundleRelation'||binding.schemaVersion!=='ynx.finance.wallet-web-verifier.v1')fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID','unexpected verifier manifest schema');
   if(binding.build?.command!==BUILD_COMMAND||binding.build?.entry!==ENTRY||binding.build?.bundle!==BUNDLE||binding.build?.esbuildVersion!=='0.25.9'||Object.keys(binding.build).sort().join(',')!=='bundle,command,entry,esbuildVersion')fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID','verifier build binding is invalid');
-  if(binding.sourceBundleRelation?.byteReproducible!==true||binding.sourceBundleRelation?.status!=='VERIFIED_REPRODUCIBLE'||binding.sourceBundleRelation?.cleanBuildCount!==2||binding.sourceBundleRelation?.bytes!==180425||binding.sourceBundleRelation?.sha256!=='0e12ea5a77c0768411e1557ed946b63bfa744065b8e61c27ccbc7c8d18da9e14'||Object.keys(binding.sourceBundleRelation).sort().join(',')!=='byteReproducible,bytes,cleanBuildCount,sha256,status')fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID','source/bundle reproducibility binding is invalid');
+  if(binding.sourceBundleRelation?.byteReproducible!==true||binding.sourceBundleRelation?.status!=='VERIFIED_REPRODUCIBLE'||binding.sourceBundleRelation?.cleanBuildCount!==2||binding.sourceBundleRelation?.bytes!==180461||binding.sourceBundleRelation?.sha256!=='d076ba569a9492dd0b67f32ae53b4ffb7a67c9154519469169dabac516538a83'||Object.keys(binding.sourceBundleRelation).sort().join(',')!=='byteReproducible,bytes,cleanBuildCount,sha256,status')fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID','source/bundle reproducibility binding is invalid');
   if(esbuildVersion!==binding.build.esbuildVersion)fail('FINANCE_WALLET_BUILD_TOOL_MISMATCH',`Expected esbuild ${binding.build.esbuildVersion}, got ${esbuildVersion}`);
   if(!Array.isArray(binding.files)||binding.files.length!==REVIEWED_FILES.length)fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID',`expected ${REVIEWED_FILES.length} exact verifier inputs`);
   if(JSON.stringify(binding.files.map(file=>file?.path))!==JSON.stringify(REVIEWED_FILES))fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID','verifier file set or order is not reviewed');
@@ -70,6 +71,10 @@ export async function verifyFinanceWalletBundle(options={}){
   if(!vendor)fail('FINANCE_WALLET_AUTHORITY_INVALID','versioned Standard Wallet authority is not reviewed');
 
   for(const marker of ['StandardWalletConnection','discoverWalletProviders','privateFinance','wallet_switchEthereumChain','wallet_addEthereumChain','eth_chainId','0x1917','https://finance.ynxweb4.com'])if(!entry.includes(marker))fail('FINANCE_WALLET_ENTRY_INVALID',`current entry is missing ${marker}`);
+  const reviewedRPCs=`rpcUrls:['${CANONICAL_TESTNET_EVM_RPC}','${LEGACY_TESTNET_EVM_RPC}']`;
+  if(!entry.includes(reviewedRPCs))fail('FINANCE_WALLET_TESTNET_RPC_DRIFT','wallet_addEthereumChain must bind the canonical Testnet EVM RPC first and the legacy fallback second');
+  const canonicalBundleIndex=bundle.indexOf(CANONICAL_TESTNET_EVM_RPC),legacyBundleIndex=bundle.indexOf(LEGACY_TESTNET_EVM_RPC);
+  if(canonicalBundleIndex<0||legacyBundleIndex<0||canonicalBundleIndex>=legacyBundleIndex)fail('FINANCE_WALLET_TESTNET_RPC_DRIFT','rebuilt Wallet bundle does not preserve canonical-first Testnet EVM RPC compatibility');
   for(const marker of ['StandardWalletConnection','discoverWalletProviders','eth_accounts','eth_requestAccounts','eth_chainId','wallet_switchEthereumChain','wallet_addEthereumChain'])if(!vendor.includes(marker))fail('FINANCE_WALLET_AUTHORITY_INVALID',`versioned Standard Wallet authority is missing ${marker}`);
   for(const forbidden of [/ynxwallet:/u,/<iframe/iu,/window\.open\s*\(/u,/location\.(?:assign|replace)\s*\(/u,/location\.href\s*=/u])if(forbidden.test(entry))fail('FINANCE_WALLET_ENTRY_FORBIDDEN',`current entry contains forbidden transport ${forbidden}`);
 
