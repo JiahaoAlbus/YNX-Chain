@@ -13,8 +13,9 @@ const origin="https://rpc.ynxweb4.com";
 const hash="0x"+"f".repeat(64);
 const state=(status:string)=>({version:NATIVE_DURABILITY_MODEL.version,scope:"local-snapshot",status,transactionHash:txHash});
 
-test("public September 12 receipt with identity projection confirms the original ten-YNXT intent",()=>{
+test("user-reported 0xd13aaecd receipt fields bind the successful ten-YNXT nonce-1 transfer",()=>{
   const receipt=JSON.parse(readFileSync(new URL("./testdata/native-receipt-identity-projection-v1.json",import.meta.url),"utf8"));
+  assert.equal(receipt.transactionHash,"0xd13aaecd97c87569b5c7c71afd4b5b76bf65f48e21bd2057c00051532e2a3fa8");assert.equal(receipt.status,"0x1");assert.equal(receipt.blockNumber,"0x168725");
   const expected={...intent,from:receipt.from,to:receipt.to,amount:10,nonce:1};
   const evidence=createNativeDurabilityEvidence(origin,fixture.capability,receipt,expected,receipt.transactionHash);
   assert.equal(verifyNativeDurability(evidence,expected,receipt.transactionHash,origin),true);

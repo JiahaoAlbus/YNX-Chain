@@ -3,13 +3,14 @@ import test from "node:test";
 import { createSignedNativeTransfer, ynxAddressFromEVM } from "@ynx-chain/wallet-auth";
 import { DEFAULT_CHAIN_API, LEGACY_CHAIN_API, NativeBroadcastUnknown, NativeChainClient, nativeChainClientForStoredOrigin } from "./nativeTransfer";
 import { NATIVE_DURABILITY_MODEL } from "./nativeDurability";
-import { NATIVE_OUTBOX_PREFIX, NativeOutboxBlocked, NativeOutboxStorageError, NativeTransferOutbox } from "./nativeTransferOutbox";
+import { NATIVE_OUTBOX_HISTORY_PREFIX, NATIVE_OUTBOX_PREFIX, NativeOutboxBlocked, NativeOutboxStorageError, NativeTransferOutbox } from "./nativeTransferOutbox";
 import { WalletOperationLifecycle } from "../security/operationLifecycle";
 import type { SecureStorageAdapter } from "../storage/walletRepository";
 
 const account=ynxAddressFromEVM("0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"),to=ynxAddressFromEVM("0xffffffffffffffffffffffffffffffffffffffff");
 const signed=createSignedNativeTransfer({accountSecret:"0".repeat(63)+"1",to,amount:25,nonce:7});
 const storageKey=NATIVE_OUTBOX_PREFIX+account;
+const historyKey=NATIVE_OUTBOX_HISTORY_PREFIX+account+"."+signed.hash;
 const noGuard=()=>{};
 class MemoryStorage implements SecureStorageAdapter {
   values=new Map<string,string>();events:string[]=[];writes=0;failWrite=0;failRead=0;reads=0;afterRead:(key:string)=>void=()=>{};
@@ -77,19 +78,20 @@ test("closing or locking during POST preserves observed ACK despite a cancelled 
   await assert.rejects(()=>outbox.sendNew(account,remote,noGuard,async()=>signed),NativeOutboxBlocked);
 });
 
-test("confirmed result requires explicit Done before any new signature, including after restart",async()=>{
+test("confirmed result is archived and releases the next signature automatically, including after restart",async()=>{
   const storage=new MemoryStorage(),outbox=fixtureOutbox(storage),remote=client(async()=>response({...success(true),fixtureDurabilityProof:"verified-test-checkpoint"}),true);
   await outbox.sendNew(account,remote,noGuard,async()=>signed);
-  await outbox.checkStatus(account,signed.hash,remote,noGuard);
+  assert.equal((await outbox.checkStatus(account,signed.hash,remote,noGuard)).phase,"done");
   const restarted=fixtureOutbox(storage);
   await assert.rejects(()=>restarted.retry(account,signed.hash,remote,noGuard,async()=>{}),NativeOutboxBlocked);
   await assert.rejects(()=>restarted.acknowledge(account,"0x"+"0".repeat(64),noGuard),NativeOutboxBlocked);
-  assert.equal((await restarted.acknowledge(account,signed.hash,noGuard)).phase,"done");
-  assert.equal((await restarted.read(account))?.hash,signed.hash,"acknowledgement retains the last original receipt");
+  assert.equal((await restarted.read(account))?.phase,"done");
+  assert.equal((await restarted.resolution(account,signed.hash))?.hash,signed.hash);
+  assert.equal(JSON.parse(storage.values.get(historyKey)!).hash,signed.hash,"the exact terminal receipt remains independently auditable");
   let signedAgain=false;await restarted.sendNew(account,remote,noGuard,async()=>{signedAgain=true;return signed});assert.equal(signedAgain,true);
 });
 
-test("identity-extended receipt recovers a saved transfer, survives restart, and Done releases the next preparation without rebroadcast",async()=>{
+test("identity-extended receipt recovers a saved transfer, survives restart, and releases the next preparation without rebroadcast",async()=>{
   const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);
   await outbox.sendNew(account,client(async()=>{throw new Error("lost ACK")}),noGuard,async()=>signed);
   const original=await outbox.read(account);let broadcasts=0;
@@ -101,12 +103,11 @@ test("identity-extended receipt recovers a saved transfer, survives restart, and
     assert.ok(Object.hasOwn(values,method));return response({jsonrpc:"2.0",id,result:values[method]});
   },false,true);
   const recovered=await fixtureOutbox(storage).checkStatus(account,signed.hash,remote,noGuard);
-  assert.equal(recovered.phase,"accepted");assert.equal(recovered.payload,original?.payload);assert.equal(recovered.attempts,1);
-  const restarted=fixtureOutbox(storage);assert.equal((await restarted.read(account))?.phase,"accepted");
-  assert.equal((await restarted.acknowledge(account,signed.hash,noGuard)).phase,"done");
+  assert.equal(recovered.phase,"done");assert.equal(recovered.payload,original?.payload);assert.equal(recovered.attempts,1);
+  const restarted=fixtureOutbox(storage);assert.equal((await restarted.read(account))?.phase,"done");assert.equal((await restarted.resolution(account,signed.hash))?.hash,signed.hash);
   let preparations=0;const stop=new Error("stop at next preparation; do not sign or send");
   await assert.rejects(()=>fixtureOutbox(storage).sendNew(account,remote,noGuard,async()=>{preparations++;throw stop}),error=>error===stop);
-  assert.equal(preparations,1);assert.equal(broadcasts,0);assert.equal((await restarted.read(account))?.hash,signed.hash);
+  assert.equal(preparations,1);assert.equal(broadcasts,0);assert.equal((await restarted.resolution(account,signed.hash))?.hash,signed.hash);
 });
 
 test("persisted accepted/done bits without a presently verified proof never release the account",async()=>{
@@ -124,7 +125,7 @@ test("persisted accepted/done bits without a presently verified proof never rele
   }
   storage.values.set(storageKey,good);
   const productionDefault=new NativeTransferOutbox(storage);
-  assert.equal((await productionDefault.read(account))?.phase,"accepted","the production verifier revalidates the saved exact capability and receipt");
+  assert.equal((await productionDefault.read(account))?.phase,"done","the production verifier revalidates the saved exact capability and receipt");
   const wrong=JSON.parse(good);wrong.durabilityEvidence.capability.version="unknown-future-version";storage.values.set(storageKey,JSON.stringify(wrong));
   await assert.rejects(()=>productionDefault.acknowledge(account,signed.hash,noGuard),NativeOutboxBlocked);
 });
@@ -187,7 +188,7 @@ test("a legacy-origin outbox is recovered by exact-origin public reads after the
     assert.ok(Object.hasOwn(values,method));return response({jsonrpc:"2.0",id,result:values[method]});
   });
   const recovered=await fixtureOutbox(storage).recover(account,recovery,noGuard);
-  assert.equal(recovered?.phase,"accepted");assert.ok(calls.length>=4);assert.ok(calls.every(url=>url===LEGACY_CHAIN_API+"/evm"));
+  assert.equal(recovered?.phase,"done");assert.equal((await fixtureOutbox(storage).resolution(account,signed.hash))?.hash,signed.hash);assert.ok(calls.length>=4);assert.ok(calls.every(url=>url===LEGACY_CHAIN_API+"/evm"));
 });
 
 test("unsafe whole-YNXT totals and mismatched locally signed identity stop before any POST",async()=>{
@@ -220,14 +221,13 @@ function rpcClient(options:{state?:any;receipt?:any;model?:any;error?:(method:st
 }
 async function unknown(storage:MemoryStorage){await fixtureOutbox(storage).sendNew(account,client(async()=>{throw new Error("lost ACK")}),noGuard,async()=>signed)}
 
-test("lost ACK recovers through public receipt checks with no authorization, broadcast, nonce or new signature, including restart and Done",async()=>{
+test("lost ACK recovers through public receipt checks with no authorization, broadcast, nonce or new signature and auto-releases after restart",async()=>{
   const storage=new MemoryStorage();await unknown(storage);const methods:string[]=[];
   const result=await fixtureOutbox(storage).checkStatus(account,signed.hash,rpcClient({},methods),noGuard);
-  assert.equal(result.phase,"accepted");assert.equal(result.replayed,null);assert.equal(result.attempts,1);assert.equal(result.payload,signed.payload);
+  assert.equal(result.phase,"done");assert.equal(result.replayed,null);assert.equal(result.attempts,1);assert.equal(result.payload,signed.payload);
   assert.deepEqual(methods,["eth_chainId","ynx_getDurabilityModel","ynx_getTransactionDurability","eth_getTransactionReceipt","eth_chainId","ynx_getDurabilityModel","eth_chainId"]);
-  const restarted=fixtureOutbox(storage);assert.equal((await restarted.read(account))?.phase,"accepted");
-  await assert.rejects(()=>restarted.sendNew(account,rpcClient(),noGuard,async()=>{throw new Error("must not sign before Done")}),NativeOutboxBlocked);
-  assert.equal((await restarted.acknowledge(account,signed.hash,noGuard)).phase,"done");assert.equal((await fixtureOutbox(storage).read(account))?.phase,"done");
+  const restarted=fixtureOutbox(storage);assert.equal((await restarted.read(account))?.phase,"done");assert.equal((await restarted.resolution(account,signed.hash))?.hash,signed.hash);
+  let prepared=false;const stop=new Error("next intent reached");await assert.rejects(()=>restarted.sendNew(account,rpcClient(),noGuard,async()=>{prepared=true;throw stop}),error=>error===stop);assert.equal(prepared,true);
 });
 
 test("reopening send automatically recovers a durable lost-ACK transfer after a transient HTTP/2 reset",async()=>{
@@ -240,10 +240,10 @@ test("reopening send automatically recovers a durable lost-ACK transfer after a 
     return response({jsonrpc:"2.0",id:request.id,result:values[request.method]});
   });
   const recovered=await fixtureOutbox(storage).recover(account,remote,noGuard);
-  assert.equal(recovered?.phase,"accepted");assert.equal(recovered?.hash,signed.hash);assert.equal(posts,0);
+  assert.equal(recovered?.phase,"done");assert.equal(recovered?.hash,signed.hash);assert.equal(posts,0);
   assert.deepEqual(methods.slice(0,2),["eth_chainId","eth_chainId"],"the interrupted public read is retried without signing");
-  const before=methods.length;assert.equal((await fixtureOutbox(storage).recover(account,remote,noGuard))?.phase,"accepted");assert.equal(methods.length,before,"verified accepted evidence is reused without another network read");
-  await fixtureOutbox(storage).acknowledge(account,signed.hash,noGuard);assert.equal((await fixtureOutbox(storage).recover(account,remote,noGuard))?.phase,"done");assert.equal(methods.length,before);
+  const before=methods.length;assert.equal((await fixtureOutbox(storage).recover(account,remote,noGuard))?.phase,"done");assert.equal(methods.length,before,"verified terminal evidence is reused without another network read");
+  assert.equal((await fixtureOutbox(storage).resolution(account,signed.hash))?.hash,signed.hash);
 });
 
 for(const status of ["pending_durable","uncertain","memory_only","not_found","unsupported"] as const)test(`${status} remains stored across restart and cannot authorize Done or replacement`,async()=>{
@@ -313,13 +313,13 @@ test("a chain change while the final model response awaits cannot save accepted 
   await assert.rejects(()=>fixtureOutbox(storage).acknowledge(account,signed.hash,noGuard),NativeOutboxBlocked);
 });
 
-test("a query begun before lock saves the exact public proof after lock; a queued replacement still cannot sign",async()=>{
+test("a query begun before lock saves the exact public proof after lock; a queued replacement starts only after terminal archival",async()=>{
   const storage=new MemoryStorage();await unknown(storage);const operations=lifecycle(),lease=operations.scope().begin(),started=deferred<void>(),gate=deferred<void>();
   const remote=rpcClient({before:async method=>{if(method==="eth_getTransactionReceipt"){started.resolve();await gate.promise}}});
   const pending=fixtureOutbox(storage).checkStatus(account,signed.hash,remote,lease.assert);await started.promise;operations.lock();
-  const replacement=fixtureOutbox(storage).sendNew(account,remote,noGuard,async()=>{throw new Error("must not sign")});gate.resolve();
-  assert.equal((await pending).phase,"accepted");assert.equal(lease.isCurrent(),false);await assert.rejects(()=>replacement,NativeOutboxBlocked);
-  assert.equal((await fixtureOutbox(storage).read(account))?.phase,"accepted");
+  let prepared=false;const stop=new Error("next preparation reached");const replacement=fixtureOutbox(storage).sendNew(account,remote,noGuard,async()=>{prepared=true;throw stop});gate.resolve();
+  assert.equal((await pending).phase,"done");assert.equal(lease.isCurrent(),false);await assert.rejects(()=>replacement,error=>error===stop);assert.equal(prepared,true);
+  assert.equal((await fixtureOutbox(storage).read(account))?.phase,"done");assert.equal((await fixtureOutbox(storage).resolution(account,signed.hash))?.hash,signed.hash);
 });
 
 test("cancellation before status dispatch and stale account/hash/origin reviews issue no RPC",async()=>{
@@ -332,17 +332,13 @@ test("cancellation before status dispatch and stale account/hash/origin reviews 
   assert.deepEqual(methods,[]);assert.equal(storage.values.get(storageKey),before);
 });
 
-test("proof write/readback and Done failures never lose original bytes or permit unacknowledged replacement",async()=>{
-  for(const failure of ["write","readback"]){
-    const storage=new MemoryStorage();await unknown(storage);
-    if(failure==="write")storage.failWrite=storage.writes+1;else storage.failRead=storage.reads+2;
-    await assert.rejects(()=>fixtureOutbox(storage).checkStatus(account,signed.hash,rpcClient(),noGuard),NativeOutboxStorageError);
-    const loaded=await fixtureOutbox(storage).read(account);assert.equal(loaded?.payload,signed.payload);assert.equal(loaded?.phase,failure==="write"?"unknown":"accepted");
-    await assert.rejects(()=>fixtureOutbox(storage).sendNew(account,rpcClient(),noGuard,async()=>signed),NativeOutboxBlocked);
-  }
-  const storage=new MemoryStorage();await unknown(storage);await fixtureOutbox(storage).checkStatus(account,signed.hash,rpcClient(),noGuard);
-  storage.failWrite=storage.writes+1;await assert.rejects(()=>fixtureOutbox(storage).acknowledge(account,signed.hash,noGuard),NativeOutboxStorageError);
-  assert.equal((await fixtureOutbox(storage).read(account))?.phase,"accepted");
+test("terminal history failure retains verified success but blocks replacement until archival succeeds",async()=>{
+  const storage=new MemoryStorage();await unknown(storage);const originalSet=storage.setItem.bind(storage);let failHistory=true,prepares=0;
+  storage.setItem=async(key,value)=>{if(failHistory&&key===historyKey)throw new Error("synthetic history failure");return originalSet(key,value)};
+  await assert.rejects(()=>fixtureOutbox(storage).checkStatus(account,signed.hash,rpcClient(),noGuard),NativeOutboxStorageError);
+  const retained=await fixtureOutbox(storage).read(account);assert.equal(retained?.phase,"accepted");assert.equal(retained.payload,signed.payload);
+  await assert.rejects(()=>fixtureOutbox(storage).sendNew(account,rpcClient(),noGuard,async()=>{prepares++;return signed}),NativeOutboxStorageError);assert.equal(prepares,0);
+  failHistory=false;assert.equal((await fixtureOutbox(storage).recover(account,rpcClient(),noGuard))?.phase,"done");assert.equal((await fixtureOutbox(storage).resolution(account,signed.hash))?.hash,signed.hash);
 });
 
 test("tampered saved mined evidence cannot release an unknown-ACK transfer through reload or Done",async()=>{
