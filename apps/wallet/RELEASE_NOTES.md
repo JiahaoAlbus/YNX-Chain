@@ -1,3 +1,19 @@
+# YNX Wallet 1.0.20 Testnet Preview source candidate
+
+## Included in the candidate
+
+- Android, iOS and Expo versions advance together to 1.0.20, with Android versionCode 26 and iOS build 26.
+- A strictly verified successful native receipt (`status=0x1`) is archived as immutable per-transaction-hash terminal evidence. Reopening Send after a restart reconciles the active outbox to `done` and releases the next transfer without a manual Done acknowledgement.
+- Automatic recovery refreshes Dashboard balance, nonce and activity immediately only when recovery actually moves an active outbox to `done` and its screen lease remains current. An initially terminal record does not repeat that callback.
+- Pending, unknown, unsupported, memory-only, not-found or malformed results remain blocking and cannot authorize a replacement. Recovery checks the original transaction and never rebroadcasts automatically.
+- The published 1.0.19 APK/AAB and their identifiers, sizes and SHA-256 values remain unchanged historical assets.
+
+## Release boundaries
+
+This commit is source-only. Exact-merge APK/AAB builds, artifact hashes, signatures, asset IDs and release URLs remain absent until publication. Production signing, stores, physical devices, WalletConnect Relay, official-site publication, Faucet mutation and live transfer are false or `NOT_VERIFIED`.
+
+---
+
 # YNX Wallet 1.0.0 Testnet Preview
 
 ## Included

@@ -4,7 +4,7 @@ import test from "node:test";
 
 const walletRoot = new URL("../", import.meta.url);
 const publishedManifest = JSON.parse(await readFile(new URL("artifact-manifest.json", walletRoot), "utf8"));
-const manifest = JSON.parse(await readFile(new URL("artifact-candidate-1.0.19.json", walletRoot), "utf8"));
+const manifest = JSON.parse(await readFile(new URL("artifact-candidate-1.0.20.json", walletRoot), "utf8"));
 const publication = JSON.parse(await readFile(new URL("artifact-publication-1.0.17.json", walletRoot), "utf8"));
 const publication118 = JSON.parse(await readFile(new URL("artifact-publication-1.0.18.json", walletRoot), "utf8"));
 const publication119 = JSON.parse(await readFile(new URL("artifact-publication-1.0.19.json", walletRoot), "utf8"));
@@ -13,7 +13,10 @@ const android = await readFile(new URL("android/app/build.gradle", walletRoot), 
 const plist = await readFile(new URL("ios/YNXWallet/Info.plist", walletRoot), "utf8");
 const xcode = await readFile(new URL("ios/YNXWallet.xcodeproj/project.pbxproj", walletRoot), "utf8");
 const evidence = JSON.parse(await readFile(new URL(manifest.candidateEvidence, walletRoot), "utf8"));
-const installedEvidence = JSON.parse(await readFile(new URL(manifest.recoveryBinding.installedEvidence, walletRoot), "utf8"));
+const installedEvidence = JSON.parse(await readFile(new URL(manifest.reconciliationBinding.publishedBaselineEvidence, walletRoot), "utf8"));
+const nativeOutboxSource = await readFile(new URL("src/chain/nativeTransferOutbox.ts", walletRoot), "utf8");
+const appSource = await readFile(new URL("App.tsx", walletRoot), "utf8");
+const releaseNotes = await readFile(new URL("RELEASE_NOTES.md", walletRoot), "utf8");
 const publicationEvidence = JSON.parse(await readFile(new URL(publication.publicationEvidence, walletRoot), "utf8"));
 const publicationEvidence118 = JSON.parse(await readFile(new URL(publication118.publicationEvidence, walletRoot), "utf8"));
 const publicationEvidence119 = JSON.parse(await readFile(new URL(publication119.publicationEvidence, walletRoot), "utf8"));
@@ -78,8 +81,8 @@ function strictUtcSeconds(value) {
 function validate(candidate) {
   assert.equal(candidate.schemaVersion, 2);
   assert.equal(candidate.productId, "wallet");
-  assert.equal(candidate.version, "1.0.19-testnet-preview");
-  assert.equal(candidate.versionCode, 25);
+  assert.equal(candidate.version, "1.0.20-testnet-preview");
+  assert.equal(candidate.versionCode, 26);
   assert.equal(candidate.releaseStatus, "SOURCE_CANDIDATE_AWAITING_EXACT_MERGE_BUILD");
   assert.equal(candidate.releaseSourceCommit, null);
   assert.equal(candidate.releaseTag, null);
@@ -92,34 +95,41 @@ function validate(candidate) {
   assert.equal(candidate.productionSigned, false);
   assert.equal(candidate.storeReleased, false);
   assert.equal(candidate.walletConnectRelayE2E, "NOT_VERIFIED");
-  assert.equal(candidate.recoveryBinding.implementationCommit, "8f6c82e7037244318b94c079849859a9765f0803");
-  assert.equal(candidate.recoveryBinding.mergedSource, "18acf05f1f263226cad42503f5639e68c2476aa5");
-  assert.equal(candidate.recoveryBinding.installedEvidence, "proof/wallet-android-1.0.18-installed-faucet-transfer-20260921.json");
-  assert.deepEqual(candidate.recoveryBinding.coverage, [
-    "android-native-network-phase-timeout-10-seconds",
-    "android-native-absolute-deadline-15-seconds",
-    "automatic-retry-disabled",
-    "one-shot-request-body-no-replay",
-    "installed-account-biometric-balance-faucet-receipt-recovery",
-    "single-transfer-durable-recovery-and-subsequent-send",
+  assert.equal(candidate.physicalDevice, "NOT_VERIFIED");
+  assert.deepEqual(candidate.reconciliationBinding.implementationCommits, [
+    "58a925a82d55c7ec723839ad54f04bc35101dcf8",
+    "79af604db3d404e0155c0ee055038c00012b5deb",
   ]);
-  assert.equal(candidate.previousPublishedRelease.version, publication118.version);
-  assert.equal(candidate.previousPublishedRelease.versionCode, publication118.versionCode);
-  assert.equal(candidate.previousPublishedRelease.tag, publication118.releaseTag);
+  assert.equal(candidate.reconciliationBinding.mergedSource, "d970a92f71a4ade1c46122571e77fe449f9910ba");
+  assert.equal(candidate.reconciliationBinding.publishedBaselineEvidence, "proof/wallet-android-1.0.19-installed-readonly-20260921.json");
+  assert.deepEqual(candidate.reconciliationBinding.coverage, [
+    "strict-status-0x1-durable-native-receipt",
+    "per-transaction-hash-terminal-resolution",
+    "restart-recovers-active-outbox-to-done",
+    "terminal-resolution-releases-next-send-without-manual-ack",
+    "current-lease-dashboard-balance-nonce-activity-refresh",
+    "unknown-and-nonterminal-statuses-remain-blocking",
+    "original-payload-only-no-duplicate-broadcast",
+  ]);
+  assert.equal(candidate.previousPublishedRelease.version, publication119.version);
+  assert.equal(candidate.previousPublishedRelease.versionCode, publication119.versionCode);
+  assert.equal(candidate.previousPublishedRelease.tag, publication119.releaseTag);
   assert.equal(candidate.previousPublishedRelease.releaseImmutable, false);
   assert.equal(candidate.previousPublishedRelease.publisherCanReplaceAssets, true);
   assert.equal(candidate.previousPublishedRelease.assetsMustNotBeReplaced, true);
-  const published118Apk = publication118.artifacts.find(({ name }) => name === "android-release-apk");
-  const published118Aab = publication118.artifacts.find(({ name }) => name === "android-release-aab");
+  const published119Apk = publication119.artifacts.find(({ name }) => name === "android-release-apk");
+  const published119Aab = publication119.artifacts.find(({ name }) => name === "android-release-aab");
   assert.deepEqual(candidate.previousPublishedRelease.apk, {
-    url: published118Apk.url,
-    bytes: published118Apk.bytes,
-    sha256: published118Apk.sha256,
+    url: published119Apk.url,
+    assetId: published119Apk.assetId,
+    bytes: published119Apk.bytes,
+    sha256: published119Apk.sha256,
   });
   assert.deepEqual(candidate.previousPublishedRelease.aab, {
-    url: published118Aab.url,
-    bytes: published118Aab.bytes,
-    sha256: published118Aab.sha256,
+    url: published119Aab.url,
+    assetId: published119Aab.assetId,
+    bytes: published119Aab.bytes,
+    sha256: published119Aab.sha256,
   });
   assert.match(candidate.generatedAt, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
   const generatedAt = Date.parse(candidate.generatedAt);
@@ -128,11 +138,13 @@ function validate(candidate) {
 }
 
 function validateEvidence(value) {
-  assert.equal(value.version, "1.0.19-testnet-preview");
-  assert.equal(value.versionCode, 25);
-  assert.equal(value.baseCommit, "18acf05f1f263226cad42503f5639e68c2476aa5");
-  assert.equal(value.recoveryImplementationCommit, "8f6c82e7037244318b94c079849859a9765f0803");
-  assert.equal(value.installedValidationEvidence, manifest.recoveryBinding.installedEvidence);
+  assert.equal(value.version, "1.0.20-testnet-preview");
+  assert.equal(value.versionCode, 26);
+  assert.equal(value.baseCommit, "d970a92f71a4ade1c46122571e77fe449f9910ba");
+  assert.deepEqual(value.reconciliationImplementationCommits, manifest.reconciliationBinding.implementationCommits);
+  assert.equal(value.publishedBaselineEvidence, manifest.reconciliationBinding.publishedBaselineEvidence);
+  assert.deepEqual(value.sourceContracts, ["src/chain/nativeTransferOutbox.ts", "src/chain/nativeDurability.ts", "App.tsx"]);
+  assert.deepEqual(value.regressionTests, ["src/chain/nativeTransferOutbox.test.ts", "src/chain/nativeDurability.test.ts", "src/chain/nativeTransferUiContract.test.ts", "src/chain/nativeTransferCrossPlatformContract.test.ts"]);
   assert.equal(value.releaseSourceCommit, null);
   assert.equal(value.releaseTag, null);
   assert.equal(value.artifactsBuiltFromExactMerge, false);
@@ -141,7 +153,21 @@ function validateEvidence(value) {
   assert.equal(value.storeReleased, false);
   assert.equal(value.walletConnectRelayE2E, "NOT_VERIFIED");
   assert.equal(value.physicalAndroidDevice, "NOT_VERIFIED");
-  assert.equal(value.previousReleasePreserved.tag, publication118.releaseTag);
+  assert.equal(value.iosPhysicalDevice, "NOT_VERIFIED");
+  assert.equal(value.officialWebsiteUpdated, false);
+  assert.deepEqual(value.candidateBehavior, {
+    strictDurableSuccessReceiptRequired: true,
+    terminalResolutionPersistedByTransactionHash: true,
+    restartAutoArchivesAndUnlocks: true,
+    dashboardRefreshAfterActiveToDoneRecovery: true,
+    initialDoneDoesNotRepeatDashboardRefresh: true,
+    unknownOrNonterminalAllowsReplacement: false,
+    automaticRebroadcast: false,
+    manualDoneRequiredAfterVerifiedSuccess: false,
+  });
+  assert.equal(value.previousReleasePreserved.tag, publication119.releaseTag);
+  assert.equal(value.previousReleasePreserved.apkAssetId, manifest.previousPublishedRelease.apk.assetId);
+  assert.equal(value.previousReleasePreserved.aabAssetId, manifest.previousPublishedRelease.aab.assetId);
   assert.equal(value.previousReleasePreserved.assetsMustNotBeReplaced, true);
   assert.equal(value.generatedAt, manifest.generatedAt);
   assert.ok(Date.parse(value.generatedAt) <= Date.now());
@@ -265,41 +291,47 @@ test("the active download manifest remains the compatible published 1.0.16 contr
   assert.equal(aab.sha256, previous.aab.sha256);
 });
 
-test("1.0.19 source candidate binds native versions and recovery source without inventing a release", () => {
+test("1.0.20 source candidate binds native versions and reconciliation source without inventing a release", () => {
   validate(manifest);
-  assert.equal(app.version, "1.0.19");
-  assert.equal(app.android.versionCode, 25);
-  assert.equal(app.ios.buildNumber, "25");
-  assert.match(android, /versionCode 25\n\s*versionName "1\.0\.19-testnet-preview"/);
-  assert.match(plist, /CFBundleShortVersionString<\/key>\s*<string>1\.0\.19<\/string>/);
-  assert.match(plist, /CFBundleVersion<\/key>\s*<string>25<\/string>/);
-  assert.equal((xcode.match(/CURRENT_PROJECT_VERSION = 25;/g) ?? []).length, 2);
-  assert.equal((xcode.match(/MARKETING_VERSION = 1\.0\.19;/g) ?? []).length, 2);
+  assert.equal(app.version, "1.0.20");
+  assert.equal(app.android.versionCode, 26);
+  assert.equal(app.ios.buildNumber, "26");
+  assert.match(android, /versionCode 26\n\s*versionName "1\.0\.20-testnet-preview"/);
+  assert.match(plist, /CFBundleShortVersionString<\/key>\s*<string>1\.0\.20<\/string>/);
+  assert.match(plist, /CFBundleVersion<\/key>\s*<string>26<\/string>/);
+  assert.equal((xcode.match(/CURRENT_PROJECT_VERSION = 26;/g) ?? []).length, 2);
+  assert.equal((xcode.match(/MARKETING_VERSION = 1\.0\.20;/g) ?? []).length, 2);
   assert.equal(evidence.artifactsBuiltFromExactMerge, false);
   assert.equal(evidence.artifactsPublished, false);
   validateEvidence(evidence);
 });
 
-test("1.0.19 recovery binding preserves the verified 10s/15s installed Faucet and single-send evidence", () => {
-  assert.equal(installedEvidence.schema, "ynx-wallet-android-installed-faucet-transfer/v1");
-  assert.equal(installedEvidence.fix.networkPhaseTimeoutSecondsAfter, 10);
-  assert.equal(installedEvidence.fix.absoluteCallDeadlineSeconds, 15);
-  assert.equal(installedEvidence.fix.automaticRetry, false);
-  assert.equal(installedEvidence.fix.requestBodyReplay, false);
-  assert.equal(installedEvidence.installedRegression.accountAndBiometricLockRestored, true);
-  assert.equal(installedEvidence.installedRegression.faucetIdempotentRecoveryReturnedOriginalTransaction, true);
-  assert.equal(installedEvidence.installedRegression.transferBroadcastCount, 1);
-  assert.equal(installedEvidence.installedRegression.transferRetryCount, 0);
-  assert.equal(installedEvidence.installedRegression.coldRestartRestoredConfirmedTransfer, true);
-  assert.equal(installedEvidence.installedRegression.subsequentSendFormAvailableAfterAcknowledgement, true);
+test("1.0.20 binds terminal reconciliation, automatic unlock and lease-current Dashboard refresh", () => {
+  assert.match(nativeOutboxSource, /saveTerminalResolution\(record\)/);
+  assert.match(nativeOutboxSource, /historyKey\(resolution\.account,resolution\.hash\)/);
+  assert.match(nativeOutboxSource, /record\.phase==="done"\?record:this\.finalizeTerminal\(record\)/);
+  assert.match(appSource, /if\(value&&value\.phase!=="done"\)/);
+  assert.match(appSource, /current&&activeLease\.isCurrent\(\)/);
+  assert.match(appSource, /recovered\?\.phase==="done"\)\{setError\(null\);onSentRef\.current\(\)\}/);
+  assert.match(releaseNotes, /strictly verified successful native receipt \(`status=0x1`\)/);
+  assert.match(releaseNotes, /releases the next transfer without a manual Done acknowledgement/);
+  assert.match(releaseNotes, /Dashboard balance, nonce and activity immediately only when recovery actually moves an active outbox to `done` and its screen lease remains current/);
+  assert.match(releaseNotes, /Pending, unknown, unsupported, memory-only, not-found or malformed results remain blocking/);
+  assert.match(releaseNotes, /published 1\.0\.19 APK\/AAB[\s\S]*remain unchanged historical assets/);
+  assert.equal(installedEvidence.schema, "ynx-wallet-android-installed-readonly/v1");
+  assert.equal(installedEvidence.officialArtifact.versionCode, 25);
+  assert.equal(installedEvidence.readOnlyChainValidation.networkPhaseTimeoutSeconds, 10);
+  assert.equal(installedEvidence.readOnlyChainValidation.absoluteCallDeadlineSeconds, 15);
+  assert.equal(installedEvidence.mutationBoundary.faucetRequests, 0);
+  assert.equal(installedEvidence.mutationBoundary.transferBroadcasts, 0);
 });
 
 test("candidate evidence false states and source bindings cannot be widened", () => {
   for (const mutate of [
-    (value) => { value.version = "1.0.18-testnet-preview"; },
-    (value) => { value.versionCode = 24; },
+    (value) => { value.version = "1.0.19-testnet-preview"; },
+    (value) => { value.versionCode = 25; },
     (value) => { value.baseCommit = "a".repeat(40); },
-    (value) => { value.recoveryImplementationCommit = "b".repeat(40); },
+    (value) => { value.reconciliationImplementationCommits[0] = "b".repeat(40); },
     (value) => { value.releaseSourceCommit = "c".repeat(40); },
     (value) => { value.releaseTag = "invented"; },
     (value) => { value.artifactsBuiltFromExactMerge = true; },
@@ -307,6 +339,10 @@ test("candidate evidence false states and source bindings cannot be widened", ()
     (value) => { value.productionSigned = true; },
     (value) => { value.storeReleased = true; },
     (value) => { value.walletConnectRelayE2E = "VERIFIED"; },
+    (value) => { value.physicalAndroidDevice = "VERIFIED"; },
+    (value) => { value.officialWebsiteUpdated = true; },
+    (value) => { value.candidateBehavior.unknownOrNonterminalAllowsReplacement = true; },
+    (value) => { value.candidateBehavior.automaticRebroadcast = true; },
   ]) {
     const copy = structuredClone(evidence);
     mutate(copy);
@@ -406,6 +442,9 @@ test("candidate manifest fails closed when release truth or signing truth is tam
     (value) => { value.productionSigned = true; },
     (value) => { value.storeReleased = true; },
     (value) => { value.walletConnectRelayE2E = "VERIFIED"; },
+    (value) => { value.physicalDevice = "VERIFIED"; },
+    (value) => { value.reconciliationBinding.mergedSource = "a".repeat(40); },
+    (value) => { value.reconciliationBinding.coverage.pop(); },
     (value) => { value.generatedAt = new Date(Date.now() + 60_000).toISOString().replace(/\.\d{3}Z$/, "Z"); },
   ]) {
     const copy = structuredClone(manifest);
@@ -414,12 +453,12 @@ test("candidate manifest fails closed when release truth or signing truth is tam
   }
 });
 
-test("the existing 1.0.18 download identity cannot be silently replaced", () => {
+test("the existing 1.0.19 download identity cannot be silently replaced", () => {
   for (const mutate of [
     (value) => { value.previousPublishedRelease.apk.sha256 = "0".repeat(64); },
     (value) => { value.previousPublishedRelease.apk.url += ".replacement"; },
     (value) => { value.previousPublishedRelease.aab.bytes += 1; },
-    (value) => { value.previousPublishedRelease.tag = "wallet-android-testnet-preview-1.0.19"; },
+    (value) => { value.previousPublishedRelease.tag = "wallet-android-testnet-preview-1.0.20"; },
   ]) {
     const copy = structuredClone(manifest);
     mutate(copy);
