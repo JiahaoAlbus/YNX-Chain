@@ -1,0 +1,57 @@
+{
+  "schema": "ynx-wallet-mobile-preview-source-candidate/v1",
+  "version": "1.0.20-testnet-preview",
+  "versionCode": 26,
+  "baseCommit": "d970a92f71a4ade1c46122571e77fe449f9910ba",
+  "reconciliationImplementationCommits": [
+    "58a925a82d55c7ec723839ad54f04bc35101dcf8",
+    "79af604db3d404e0155c0ee055038c00012b5deb"
+  ],
+  "sourceContracts": [
+    "src/chain/nativeTransferOutbox.ts",
+    "src/chain/nativeDurability.ts",
+    "App.tsx"
+  ],
+  "regressionTests": [
+    "src/chain/nativeTransferOutbox.test.ts",
+    "src/chain/nativeDurability.test.ts",
+    "src/chain/nativeTransferUiContract.test.ts",
+    "src/chain/nativeTransferCrossPlatformContract.test.ts"
+  ],
+  "publishedBaselineEvidence": "proof/wallet-android-1.0.19-installed-readonly-20260921.json",
+  "releaseSourceCommit": null,
+  "releaseTag": null,
+  "artifactsBuiltFromExactMerge": false,
+  "artifactsPublished": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": "NOT_VERIFIED",
+  "physicalAndroidDevice": "NOT_VERIFIED",
+  "iosPhysicalDevice": "NOT_VERIFIED",
+  "officialWebsiteUpdated": false,
+  "candidateBehavior": {
+    "strictDurableSuccessReceiptRequired": true,
+    "terminalResolutionPersistedByTransactionHash": true,
+    "restartAutoArchivesAndUnlocks": true,
+    "dashboardRefreshAfterActiveToDoneRecovery": true,
+    "initialDoneDoesNotRepeatDashboardRefresh": true,
+    "unknownOrNonterminalAllowsReplacement": false,
+    "automaticRebroadcast": false,
+    "manualDoneRequiredAfterVerifiedSuccess": false
+  },
+  "knownLimits": [
+    "The exact 1.0.20 release source is assigned only after this source candidate merges.",
+    "APK and AAB hashes, byte sizes, signatures, asset IDs and URLs remain absent until two clean builds from that exact merge at one fixed absolute path.",
+    "The committed installed 1.0.19 record is a read-only baseline and does not claim installed 1.0.20 validation.",
+    "No Faucet request, transfer broadcast, WalletConnect Relay contact or public-service mutation was performed for this source candidate.",
+    "GitHub prerelease assets are publisher-replaceable; consumers must verify the recorded SHA-256 after download.",
+    "Production signing, physical-device validation, app-store publication, WalletConnect Relay E2E and official-site publication remain unverified."
+  ],
+  "previousReleasePreserved": {
+    "tag": "wallet-android-testnet-preview-1.0.19-d58ce00dc",
+    "apkAssetId": 577641202,
+    "aabAssetId": 577641200,
+    "assetsMustNotBeReplaced": true
+  },
+  "generatedAt": "2026-09-21T00:45:04Z"
+}

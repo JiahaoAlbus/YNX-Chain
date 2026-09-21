@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 2,
+  "productId": "wallet",
+  "version": "1.0.20-testnet-preview",
+  "versionCode": 26,
+  "releaseStatus": "SOURCE_CANDIDATE_AWAITING_EXACT_MERGE_BUILD",
+  "releaseSourceCommit": null,
+  "releaseTag": null,
+  "releaseUrl": null,
+  "releaseImmutable": false,
+  "publisherCanReplaceAssets": true,
+  "downloadTimeSha256Required": true,
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": "NOT_VERIFIED",
+  "physicalDevice": "NOT_VERIFIED",
+  "reconciliationBinding": {
+    "implementationCommits": [
+      "58a925a82d55c7ec723839ad54f04bc35101dcf8",
+      "79af604db3d404e0155c0ee055038c00012b5deb"
+    ],
+    "mergedSource": "d970a92f71a4ade1c46122571e77fe449f9910ba",
+    "publishedBaselineEvidence": "proof/wallet-android-1.0.19-installed-readonly-20260921.json",
+    "coverage": [
+      "strict-status-0x1-durable-native-receipt",
+      "per-transaction-hash-terminal-resolution",
+      "restart-recovers-active-outbox-to-done",
+      "terminal-resolution-releases-next-send-without-manual-ack",
+      "current-lease-dashboard-balance-nonce-activity-refresh",
+      "unknown-and-nonterminal-statuses-remain-blocking",
+      "original-payload-only-no-duplicate-broadcast"
+    ]
+  },
+  "artifacts": [],
+  "publicArtifactUrls": [],
+  "previousPublishedRelease": {
+    "version": "1.0.19-testnet-preview",
+    "versionCode": 25,
+    "tag": "wallet-android-testnet-preview-1.0.19-d58ce00dc",
+    "releaseImmutable": false,
+    "publisherCanReplaceAssets": true,
+    "assetsMustNotBeReplaced": true,
+    "apk": {
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.19-d58ce00dc/ynx-wallet-1.0.19-testnet-preview-d58ce00dc-universal-local-test-signed.apk",
+      "assetId": 577641202,
+      "bytes": 116639211,
+      "sha256": "437973258f40e4f7b3a2d3d603bbf67e932d1fca8082ed8eb9e8ff7b84514730"
+    },
+    "aab": {
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.19-d58ce00dc/ynx-wallet-1.0.19-testnet-preview-d58ce00dc-local-test-signed.aab",
+      "assetId": 577641200,
+      "bytes": 71874951,
+      "sha256": "e60c165362ba5d85cf96e562800b5a1ef2f33812fff9eacd10745370bf114b7f"
+    }
+  },
+  "candidateEvidence": "proof/wallet-android-1.0.20-source-candidate-20260921.json",
+  "generatedAt": "2026-09-21T00:45:04Z"
+}
