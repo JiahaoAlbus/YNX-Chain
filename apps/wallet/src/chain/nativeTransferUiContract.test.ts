@@ -11,6 +11,12 @@ test("opening Send reconciles the stored original with public reads before offer
   assert.match(source,/recovered\?\.phase==="done"/);
 });
 
+test("active-to-done recovery refreshes Dashboard only while its lease is current",()=>{
+  const recovery=source.slice(source.indexOf("const value=await nativeOutbox.read(account.account)"),source.indexOf("}catch(caught)",source.indexOf("const value=await nativeOutbox.read(account.account)")));
+  assert.match(recovery,/if\(value&&value\.phase!=="done"\)[\s\S]*if\(current&&activeLease\.isCurrent\(\)\)[\s\S]*if\(recovered\?\.phase==="done"\)\{setError\(null\);onSentRef\.current\(\)\}/);
+  assert.equal((recovery.match(/onSentRef\.current\(\)/g)??[]).length,1,"an initially done record cannot publish another refresh");
+});
+
 test("a durable result unlocks the same Send surface without a manual Done gate",()=>{
   const action=source.slice(source.indexOf('const act=async(mode:"new"'),source.indexOf('const problem=error?',source.indexOf('const act=async(mode:"new"')));
   assert.doesNotMatch(action,/mode:"done"|mode==="done"|nativeOutbox\.acknowledge/);

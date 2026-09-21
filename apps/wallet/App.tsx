@@ -371,6 +371,7 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
   const operations=useWalletOperations(),recipientInput=useMemo(()=>new PaymentRecipientInput(operations),[operations]);
   const [pasting,setPasting]=useState(false),[recipientAdded,setRecipientAdded]=useState(false);
   const inputContext=useRef("");
+  const onSentRef=useRef(onSent);onSentRef.current=onSent;
   const contextKey=JSON.stringify([visible,account.account,review,Boolean(stored),loaded]);
   // Invalidate an old clipboard result during a changed render, before effects.
   if(inputContext.current!==contextKey){recipientInput.cancel();inputContext.current=contextKey}
@@ -383,7 +384,7 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
       if(value&&value.phase!=="done"){
         lease=scope.begin({account:account.account});const activeLease=lease;setBusy(true);
         const recovered=await nativeOutbox.recover(account.account,storedChainClient(value.origin),activeLease.assert);
-        if(current&&activeLease.isCurrent()){setStored(recovered?.phase==="done"?null:recovered);if(recovered?.phase==="done")setError(null)}
+        if(current&&activeLease.isCurrent()){setStored(recovered?.phase==="done"?null:recovered);if(recovered?.phase==="done"){setError(null);onSentRef.current()}}
       }
     }catch(caught){if(current&&(!lease||lease.isCurrent()))setError(message(caught))}finally{if(current&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}})();
     return()=>{current=false;recipientInput.cancel();lease?.finish()}
