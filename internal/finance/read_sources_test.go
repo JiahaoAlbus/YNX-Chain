@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 )
 
@@ -181,6 +182,47 @@ func TestQuantReadSourceLoadsBoundStrategyAndExecutionEvidence(t *testing.T) {
 	quant := upstreams.ReadSourcesForAccount(context.Background(), testAccount, now)["quant"]
 	if !quant.OwnerContractAccepted || !quant.Status.Available || quant.Envelope == nil || quant.Envelope.AuthorizedAccount != testAccount || !strings.Contains(string(quant.Envelope.Payload), `"venueStatus":"filled"`) {
 		t.Fatalf("Quant evidence was not accepted: %+v", quant)
+	}
+}
+
+func TestQuantPaperEvidenceRequiresPerRowAccountOwnership(t *testing.T) {
+	now := time.Now().UTC()
+	contract := acceptedReadSourceContracts["quant"]
+	envelope := ReadSourceEnvelope{
+		EnvelopeVersion: ReadSourceEnvelopeVersion, SourceID: "quant", Owner: contract.Owner,
+		Network: ChainID, NativeAsset: "YNXT", AuthorizedAccount: testAccount,
+		OwnerContractVersion: contract.OwnerContractVersion, PayloadSchema: contract.PayloadSchema,
+		AsOf: now, AsOfKind: "quant-tenant-states-observed-at", Coverage: "authorized paper state",
+		SyncStatus: "authoritative-persisted-quant-state", ReadOnly: true,
+		Capabilities: []string{"quant.pnl.read"},
+	}
+	otherAccount, err := accountaddress.Encode("0x" + strings.Repeat("b", 40))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, fixture := range []struct {
+		name    string
+		payload string
+		accept  bool
+	}{
+		{name: "empty paper", payload: `{"paper":[]}`, accept: true},
+		{name: "owned paper", payload: `{"paper":[{"account":"` + testAccount + `","cash":1}]}`, accept: true},
+		{name: "unbound paper", payload: `{"paper":[{"cash":1}]}`},
+		{name: "other account paper", payload: `{"paper":[{"account":"` + otherAccount + `","cash":1}]}`},
+		{name: "mixed paper", payload: `{"paper":[{"account":"` + testAccount + `","cash":1},{"account":"` + otherAccount + `","cash":2}]}`},
+		{name: "null paper", payload: `{"paper":null}`},
+	} {
+		t.Run(fixture.name, func(t *testing.T) {
+			envelope.Payload = json.RawMessage(fixture.payload)
+			raw, err := json.Marshal(envelope)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = ValidateReadSourceEnvelope(raw, testAccount, contract, now)
+			if (err == nil) != fixture.accept {
+				t.Fatalf("accept=%t err=%v", fixture.accept, err)
+			}
+		})
 	}
 }
 

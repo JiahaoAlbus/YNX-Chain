@@ -459,7 +459,40 @@ func ValidateReadSourceEnvelope(raw []byte, expectedAccount string, contract Acc
 	if len(payload) == 0 || bytes.Equal(payload, []byte("null")) {
 		return ReadSourceEnvelope{}, errors.New("read-source payload is required")
 	}
+	if contract.SourceID == "quant" {
+		if err := validateQuantPaperOwnership(payload, expectedAccount); err != nil {
+			return ReadSourceEnvelope{}, err
+		}
+	}
 	return envelope, nil
+}
+
+// Quant paper balances and PnL are account-sensitive. The source envelope's
+// outer account is not enough: a tenant may hold multiple accounts, so each
+// nonempty paper row must identify the authorized account independently.
+func validateQuantPaperOwnership(payload []byte, expectedAccount string) error {
+	var body struct {
+		Paper json.RawMessage `json:"paper"`
+	}
+	if err := json.Unmarshal(payload, &body); err != nil {
+		return errors.New("Quant read-source payload is invalid")
+	}
+	if len(body.Paper) == 0 {
+		return nil
+	}
+	var rows []json.RawMessage
+	if err := json.Unmarshal(body.Paper, &rows); err != nil || rows == nil {
+		return errors.New("Quant paper evidence must be an array")
+	}
+	for _, raw := range rows {
+		var row struct {
+			Account string `json:"account"`
+		}
+		if json.Unmarshal(raw, &row) != nil || !sameNormalizedAccount(row.Account, expectedAccount) {
+			return errors.New("Quant paper evidence is not bound to the authorized account")
+		}
+	}
+	return nil
 }
 
 func readSourceDefinitionByID(id string) (readSourceDefinition, bool) {
