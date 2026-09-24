@@ -190,6 +190,7 @@ func (s *Store) RequestBrokerCancel(account, orderID string, now time.Time) (Bro
 		if !ok || order.ProviderOrderID == "" || (order.State != "submitted" && order.State != "partially_filled") {
 			return errors.New("Broker order is not cancelable")
 		}
+		order.CancelPriorState = order.State
 		order.State, order.CancelIntentAt, order.CancelAttemptedAt, order.UpdatedAt = "cancel_requested", now.UTC(), time.Time{}, now.UTC()
 		state.Brokerage.Orders[orderID] = order
 		appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, "provider.cancel_requested", order.ApprovalState, order.State, now.UTC())
@@ -234,8 +235,17 @@ func (s *Store) CompleteBrokerCancel(account, orderID, providerRequestID string,
 		if providerErr != nil {
 			code := brokerage.ErrorCode(providerErr)
 			if code == "ORDER_CANCELLATION_DISABLED" || code == "BROKER_NOT_CONFIGURED" || code == "ACCOUNT_NOT_LINKED" || code == "ORDER_REQUEST_INVALID" {
-				order.State, action = "submitted", "provider.cancel_not_attempted"
+				// These adapter errors occur before a provider DELETE. Restore the
+				// exact prior state so a partial fill is never reported as unfilled.
+				if order.CancelPriorState == "partially_filled" {
+					order.State = "partially_filled"
+				} else {
+					order.State = "submitted"
+				}
+				action = "provider.cancel_not_attempted"
 				order.CancelAttemptedAt = time.Time{}
+				order.CancelIntentAt = time.Time{}
+				order.CancelPriorState = ""
 			} else {
 				// A transport or provider failure cannot prove whether cancellation
 				// took effect. Reconciliation, not a blind retry, resolves it.

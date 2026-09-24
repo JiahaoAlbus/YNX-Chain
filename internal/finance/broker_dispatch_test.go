@@ -427,6 +427,49 @@ func TestBrokerCancellationClaimWithoutCompletionStaysUnknownAfterRestart(t *tes
 	}
 }
 
+func TestBrokerCancelNotAttemptedRestoresExactPriorStateAcrossRestart(t *testing.T) {
+	for _, prior := range []string{"submitted", "partially_filled"} {
+		t.Run(prior, func(t *testing.T) {
+			store, account, orderID, now := consumedBrokerFixture(t)
+			claim, err := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Minute))
+			if err != nil {
+				t.Fatal(err)
+			}
+			providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: claim.Order.Order.AssetID, Symbol: claim.Order.Order.Symbol, Side: claim.Order.Order.Side, Qty: claim.Order.Order.Qty, FilledQty: "0", Type: claim.Order.Order.OrderType, LimitPrice: claim.Order.Order.LimitPrice, TimeInForce: claim.Order.Order.TimeInForce, Status: "accepted"}
+			if _, err := store.CompleteBrokerDispatch(account, orderID, &providerOrder, nil, now.Add(2*time.Minute)); err != nil {
+				t.Fatal(err)
+			}
+			if prior == "partially_filled" {
+				providerOrder.Status, providerOrder.FilledQty = "partially_filled", "0.5"
+				if err := store.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{RequestIDs: []string{"partial-fill-before-cancel"}, Orders: []brokerage.Order{providerOrder}}, now.Add(3*time.Minute)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if _, err := store.RequestBrokerCancel(account, orderID, now.Add(4*time.Minute)); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := store.ClaimBrokerCancel(account, orderID, now.Add(5*time.Minute)); err != nil {
+				t.Fatal(err)
+			}
+			completed, err := store.CompleteBrokerCancel(account, orderID, "", &brokerage.Error{Code: "ORDER_CANCELLATION_DISABLED"}, now.Add(6*time.Minute))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if completed.State != prior || completed.CancelPriorState != "" || !completed.CancelIntentAt.IsZero() || !completed.CancelAttemptedAt.IsZero() {
+				t.Fatalf("local pre-provider rejection lost the prior state: %+v", completed)
+			}
+			reopened, err := OpenStore(store.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			persisted := reopened.BrokerWorkspace(account, now.Add(7*time.Minute)).Orders[0]
+			if persisted.State != prior || persisted.CancelPriorState != "" || !persisted.CancelIntentAt.IsZero() || !persisted.CancelAttemptedAt.IsZero() {
+				t.Fatalf("reopened state lost the prior fill classification: %+v", persisted)
+			}
+		})
+	}
+}
+
 func TestLegacyAmbiguousCancellationCannotBeResentAfterPartialFill(t *testing.T) {
 	store, account, orderID, now := consumedBrokerFixture(t)
 	claim, err := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Minute))
