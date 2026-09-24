@@ -21,7 +21,9 @@ const (
 	FinanceReadPayloadSchema   = "ynx-quant-finance-account-v1"
 )
 
-var FinanceReadCapabilities = []string{"quant.strategies.read", "quant.mandates.read", "quant.executions.read", "quant.pnl.read", "quant.risk.read", "quant.lifecycle.read"}
+// Only mandate-bound records can be attributed to a wallet account. Research
+// and Paper state belong to the tenant, which may contain multiple accounts.
+var FinanceReadCapabilities = []string{"quant.mandates.read", "quant.executions.read", "quant.risk.read", "quant.lifecycle.read"}
 
 type financeMandate struct {
 	Digest               string    `json:"digest"`
@@ -151,7 +153,7 @@ func (s *TenantServer) financeAccount(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	_ = json.NewEncoder(w).Encode(map[string]any{"envelopeVersion": FinanceReadEnvelopeVersion, "sourceId": "quant", "owner": "08-quant-lab", "network": "ynx_6423-1", "nativeAsset": "YNXT", "authorizedAccount": account, "ownerContractVersion": FinanceReadContractVersion, "payloadSchema": FinanceReadPayloadSchema, "asOf": now, "asOfKind": "quant-tenant-states-observed-at", "coverage": "authorized strategies, mandates, research attribution, bounded executions, PnL and risk limits", "syncStatus": "authoritative-persisted-quant-state", "readOnly": true, "capabilities": append([]string(nil), FinanceReadCapabilities...), "payload": payload})
+	_ = json.NewEncoder(w).Encode(map[string]any{"envelopeVersion": FinanceReadEnvelopeVersion, "sourceId": "quant", "owner": "08-quant-lab", "network": "ynx_6423-1", "nativeAsset": "YNXT", "authorizedAccount": account, "ownerContractVersion": FinanceReadContractVersion, "payloadSchema": FinanceReadPayloadSchema, "asOf": now, "asOfKind": "quant-tenant-states-observed-at", "coverage": "account-bound mandates, mandate-bound executions and risk limits; tenant-wide research and Paper/PnL excluded", "syncStatus": "account-scoped-persisted-quant-state", "readOnly": true, "capabilities": append([]string(nil), FinanceReadCapabilities...), "payload": payload})
 }
 
 func (s *TenantServer) claimFinanceReadNonce(nonce string) (bool, error) {
@@ -178,7 +180,7 @@ func (s *TenantServer) claimFinanceReadNonce(nonce string) (bool, error) {
 
 func (s *TenantServer) financePayload(account string) (financeQuantPayload, error) {
 	result := financeQuantPayload{Product: ProductID, ProductVersion: Version, BuildCommit: BuildCommit, Strategies: []financeStrategy{}, Experiments: []financeExperiment{}, Mandates: []financeMandate{}, Executions: []financeExecution{}, Paper: []financePaperState{}}
-	seen := financeSeen{strategies: map[string]bool{}, experiments: map[string]bool{}, mandates: map[string]bool{}, executions: map[string]bool{}}
+	seen := financeSeen{mandates: map[string]bool{}, executions: map[string]bool{}}
 	if s.config.DatabaseURL != "" {
 		store, ok := s.baseService.store.(*postgresStateStore)
 		if !ok {
@@ -261,10 +263,8 @@ func (s *TenantServer) financePayload(account string) (financeQuantPayload, erro
 }
 
 type financeSeen struct {
-	strategies  map[string]bool
-	experiments map[string]bool
-	mandates    map[string]bool
-	executions  map[string]bool
+	mandates   map[string]bool
+	executions map[string]bool
 }
 
 func appendFinanceState(result *financeQuantPayload, account string, snapshot state, seen *financeSeen) {
@@ -278,19 +278,8 @@ func appendFinanceState(result *financeQuantPayload, account string, snapshot st
 			result.Mandates = append(result.Mandates, financeMandate{Digest: digest, StrategyHash: mandate.StrategyHash, Market: mandate.Market, Scope: mandate.Scope, MaxNotional: mandate.MaxNotional, MaxPosition: mandate.MaxPosition, MaxDailyLoss: mandate.MaxDailyLoss, MaxSlippageBPS: mandate.MaxSlippageBPS, MaxLeverageBPS: mandate.MaxLeverageBPS, MaxDrawdown: mandate.MaxDrawdown, MaxVaR: mandate.MaxVaR, MaxExpectedShortfall: mandate.MaxExpectedShortfall, ExpiresAt: mandate.ExpiresAt, Revoked: mandate.Revoked, RevokedAt: mandate.RevokedAt})
 			seen.mandates[digest] = true
 		}
-		for _, strategy := range snapshot.Strategies {
-			if strategy.StrategyHash == mandate.StrategyHash && !seen.strategies[strategy.StrategyHash] {
-				result.Strategies = append(result.Strategies, financeStrategy{ID: strategy.ID, Name: strategy.Name, Family: strategy.Family, Stage: strategy.Stage, StrategyHash: strategy.StrategyHash, ModelHash: strategy.ModelHash, DataHash: strategy.DataHash, Params: cloneParams(strategy.Params), Limitations: strategy.Limitations, CreatedAt: strategy.CreatedAt})
-				seen.strategies[strategy.StrategyHash] = true
-			}
-		}
-		for id, experiment := range snapshot.Experiments {
-			if experiment.Strategy.StrategyHash == mandate.StrategyHash && !seen.experiments[id] {
-				metrics := experiment.Metrics
-				result.Experiments = append(result.Experiments, financeExperiment{ID: experiment.ID, StrategyHash: experiment.Strategy.StrategyHash, StrategyName: experiment.Strategy.Name, Stage: experiment.Strategy.Stage, Status: experiment.Status, Metrics: financeMetrics{ReturnBPS: metrics.ReturnBPS, BuyHoldBPS: metrics.BuyHoldBPS, MaxDrawdownBPS: metrics.MaxDrawdownBPS, Trades: metrics.Trades, PartialFills: metrics.PartialFills, DataGaps: metrics.DataGaps, NoTrade: metrics.NoTrade}, Attribution: experiment.Attribution, LeakageChecksPassed: experiment.LeakageChecksPassed, AuditDigest: experiment.AuditDigest, CreatedAt: experiment.CreatedAt})
-				seen.experiments[id] = true
-			}
-		}
+		// Equal strategy hashes do not prove account ownership of a tenant's
+		// strategy or research attribution. They remain on Quant's own pages.
 		for id, order := range snapshot.TestnetOrders {
 			if order.MandateDigest == digest && !seen.executions[id] {
 				result.Executions = append(result.Executions, financeExecution{ID: order.ID, MandateDigest: order.MandateDigest, StrategyHash: order.StrategyHash, Market: order.Market, Side: order.Side, Price: order.Price, Amount: order.Amount, VenueOrderID: order.VenueOrderID, VenueStatus: order.VenueStatus, Status: order.Status, CreatedAt: order.CreatedAt})
@@ -299,8 +288,7 @@ func appendFinanceState(result *financeQuantPayload, account string, snapshot st
 		}
 	}
 	if matched {
-		paper := snapshot.Paper
-		result.Paper = append(result.Paper, financePaperState{Cash: paper.Cash, Position: paper.Position, RealizedPnL: paper.RealizedPnL, ReconciliationDelta: paper.ReconciliationDelta, KillSwitch: paper.KillSwitch, UpdatedAt: paper.UpdatedAt})
+		// Paper cash, position and PnL are tenant-wide, not account-bound.
 		result.TenantStates++
 	}
 }
