@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
@@ -295,6 +296,12 @@ func (u *Upstreams) ReadSourcesForAccount(ctx context.Context, account string, o
 	if u == nil || u.readIntegrations == nil {
 		return result
 	}
+	type sourceResult struct {
+		id         string
+		descriptor ReadSourceDescriptor
+	}
+	completed := make(chan sourceResult, len(u.readIntegrations))
+	var pending sync.WaitGroup
 	for id, integration := range u.readIntegrations {
 		descriptor, ok := result[id]
 		if !ok {
@@ -304,7 +311,16 @@ func (u *Upstreams) ReadSourcesForAccount(ctx context.Context, account string, o
 		if !accepted || !contract.Accepted {
 			continue
 		}
-		result[id] = u.readSourceForAccount(ctx, account, observedAt, id, integration, descriptor, contract)
+		pending.Add(1)
+		go func() {
+			defer pending.Done()
+			completed <- sourceResult{id: id, descriptor: u.readSourceForAccount(ctx, account, observedAt, id, integration, descriptor, contract)}
+		}()
+	}
+	pending.Wait()
+	close(completed)
+	for source := range completed {
+		result[source.id] = source.descriptor
 	}
 	return result
 }

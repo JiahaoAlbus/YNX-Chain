@@ -95,6 +95,69 @@ func TestExchangeReadSourceLoadsBoundAccountEvidence(t *testing.T) {
 	}
 }
 
+func TestReadSourcesForAccountFetchesIndependentOwnersConcurrently(t *testing.T) {
+	now := time.Now().UTC()
+	started := make(chan string, 4)
+	release := make(chan struct{})
+	owner := func(id string) *httptest.Server {
+		contract := acceptedReadSourceContracts[id]
+		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			started <- id
+			<-release
+			_ = json.NewEncoder(w).Encode(ReadSourceEnvelope{
+				EnvelopeVersion: ReadSourceEnvelopeVersion, SourceID: id, Owner: contract.Owner,
+				Network: ChainID, NativeAsset: "YNXT", AuthorizedAccount: r.Header.Get(readintegration.HeaderAccount),
+				OwnerContractVersion: contract.OwnerContractVersion, PayloadSchema: contract.PayloadSchema,
+				AsOf: now, AsOfKind: "owner-observed-at", Coverage: "authorized account",
+				SyncStatus: "authoritative-persisted-owner-state", ReadOnly: true,
+				Capabilities: contract.AllowedCapabilities, Payload: json.RawMessage(`{"items":[]}`),
+			})
+		}))
+	}
+	exchange, quant := owner("exchange"), owner("quant")
+	defer exchange.Close()
+	defer quant.Close()
+	upstreams := &Upstreams{client: &http.Client{Timeout: 3 * time.Second}}
+	secret := strings.Repeat("k", 32)
+	if err := upstreams.ConfigureReadSourceIntegrations(ReadSourceIntegrationConfig{
+		ExchangeURL: exchange.URL, ExchangeKey: secret, QuantURL: quant.URL, QuantKey: secret,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	type accountResult struct {
+		account string
+		sources map[string]ReadSourceDescriptor
+	}
+	result := make(chan accountResult, 2)
+	otherAccount := "0x" + strings.Repeat("b", 40)
+	for _, account := range []string{testAccount, otherAccount} {
+		go func() {
+			result <- accountResult{account: account, sources: upstreams.ReadSourcesForAccount(context.Background(), account, now)}
+		}()
+	}
+	for i := 0; i < 4; i++ {
+		select {
+		case <-started:
+		case <-time.After(2 * time.Second):
+			close(release)
+			t.Fatal("configured owner reads did not start independently")
+		}
+	}
+	close(release)
+	for i := 0; i < 2; i++ {
+		select {
+		case response := <-result:
+			for _, id := range []string{"exchange", "quant"} {
+				if !response.sources[id].Status.Available || response.sources[id].Envelope == nil || response.sources[id].Envelope.AuthorizedAccount != response.account {
+					t.Fatalf("%s account evidence was not isolated: %+v", id, response.sources[id])
+				}
+			}
+		case <-time.After(2 * time.Second):
+			t.Fatal("concurrent owner reads did not finish")
+		}
+	}
+}
+
 func TestQuantReadSourceLoadsBoundStrategyAndExecutionEvidence(t *testing.T) {
 	now := time.Date(2026, 8, 11, 9, 35, 0, 0, time.UTC)
 	secret := strings.Repeat("q", 32)
