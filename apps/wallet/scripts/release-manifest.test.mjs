@@ -5,6 +5,7 @@ import test from "node:test";
 const walletRoot = new URL("../", import.meta.url);
 const publishedManifest = JSON.parse(await readFile(new URL("artifact-manifest.json", walletRoot), "utf8"));
 const manifest = JSON.parse(await readFile(new URL("artifact-candidate-1.0.20.json", walletRoot), "utf8"));
+const candidate121 = JSON.parse(await readFile(new URL("artifact-candidate-1.0.21.json", walletRoot), "utf8"));
 const publication = JSON.parse(await readFile(new URL("artifact-publication-1.0.17.json", walletRoot), "utf8"));
 const publication118 = JSON.parse(await readFile(new URL("artifact-publication-1.0.18.json", walletRoot), "utf8"));
 const publication119 = JSON.parse(await readFile(new URL("artifact-publication-1.0.19.json", walletRoot), "utf8"));
@@ -14,6 +15,7 @@ const android = await readFile(new URL("android/app/build.gradle", walletRoot), 
 const plist = await readFile(new URL("ios/YNXWallet/Info.plist", walletRoot), "utf8");
 const xcode = await readFile(new URL("ios/YNXWallet.xcodeproj/project.pbxproj", walletRoot), "utf8");
 const evidence = JSON.parse(await readFile(new URL(manifest.candidateEvidence, walletRoot), "utf8"));
+const evidence121 = JSON.parse(await readFile(new URL(candidate121.candidateEvidence, walletRoot), "utf8"));
 const installedEvidence = JSON.parse(await readFile(new URL(manifest.reconciliationBinding.publishedBaselineEvidence, walletRoot), "utf8"));
 const nativeOutboxSource = await readFile(new URL("src/chain/nativeTransferOutbox.ts", walletRoot), "utf8");
 const appSource = await readFile(new URL("App.tsx", walletRoot), "utf8");
@@ -296,19 +298,62 @@ test("the active download manifest tracks the fresh-verified published 1.0.20 co
   assert.equal(publication120.storeReleased, false);
 });
 
-test("1.0.20 source candidate binds native versions and reconciliation source without inventing a release", () => {
+test("historical 1.0.20 source candidate preserves reconciliation source without inventing a release", () => {
   validate(manifest);
-  assert.equal(app.version, "1.0.20");
-  assert.equal(app.android.versionCode, 26);
-  assert.equal(app.ios.buildNumber, "26");
-  assert.match(android, /versionCode 26\n\s*versionName "1\.0\.20-testnet-preview"/);
-  assert.match(plist, /CFBundleShortVersionString<\/key>\s*<string>1\.0\.20<\/string>/);
-  assert.match(plist, /CFBundleVersion<\/key>\s*<string>26<\/string>/);
-  assert.equal((xcode.match(/CURRENT_PROJECT_VERSION = 26;/g) ?? []).length, 2);
-  assert.equal((xcode.match(/MARKETING_VERSION = 1\.0\.20;/g) ?? []).length, 2);
   assert.equal(evidence.artifactsBuiltFromExactMerge, false);
   assert.equal(evidence.artifactsPublished, false);
   validateEvidence(evidence);
+});
+
+test("1.0.21 source versions permit a 26 to 27 upgrade without claiming a release", () => {
+  assert.equal(candidate121.schemaVersion, 2);
+  assert.equal(candidate121.productId, "wallet");
+  assert.equal(candidate121.version, "1.0.21-testnet-preview");
+  assert.equal(candidate121.versionCode, 27);
+  assert.equal(candidate121.upgradeFromPublishedVersionCode, 26);
+  assert.equal(candidate121.baseCommit, "1d3a10e4076158d70a5f0275d2c7ba7914300e17");
+  assert.equal(app.version, "1.0.21");
+  assert.equal(app.android.versionCode, 27);
+  assert.equal(app.ios.buildNumber, "27");
+  assert.match(android, /versionCode 27\n\s*versionName "1\.0\.21-testnet-preview"/);
+  assert.match(plist, /CFBundleShortVersionString<\/key>\s*<string>1\.0\.21<\/string>/);
+  assert.match(plist, /CFBundleVersion<\/key>\s*<string>27<\/string>/);
+  assert.equal((xcode.match(/CURRENT_PROJECT_VERSION = 27;/g) ?? []).length, 2);
+  assert.equal((xcode.match(/MARKETING_VERSION = 1\.0\.21;/g) ?? []).length, 2);
+  assert.equal(candidate121.releaseStatus, "SOURCE_CANDIDATE_AWAITING_EXACT_MERGE_BUILD");
+  assert.equal(candidate121.releaseSourceCommit, null);
+  assert.equal(candidate121.releaseTag, null);
+  assert.equal(candidate121.releaseUrl, null);
+  assert.deepEqual(candidate121.artifacts, []);
+  assert.deepEqual(candidate121.publicArtifactUrls, []);
+  assert.equal(candidate121.productionSigned, false);
+  assert.equal(candidate121.storeReleased, false);
+  assert.equal(candidate121.walletConnectRelayE2E, "NOT_VERIFIED");
+  assert.equal(candidate121.physicalDevice, "NOT_VERIFIED");
+  assert.equal(evidence121.versionCode, 27);
+  assert.equal(evidence121.iosBuildNumber, "27");
+  assert.equal(evidence121.baseCommit, candidate121.baseCommit);
+  assert.equal(evidence121.releaseSourceCommit, null);
+  assert.equal(evidence121.releaseTag, null);
+  assert.equal(evidence121.artifactsBuiltFromExactMerge, false);
+  assert.equal(evidence121.artifactsPublished, false);
+  assert.equal(evidence121.installedUpgradeFromVersionCode26, "NOT_VERIFIED");
+  assert.equal(evidence121.physicalAndroidDevice, "NOT_VERIFIED");
+  assert.equal(evidence121.iosPhysicalDevice, "NOT_VERIFIED");
+  assert.equal(evidence121.officialWebsiteUpdated, false);
+  assert.equal(candidate121.previousPublishedRelease.version, publication120.version);
+  assert.equal(candidate121.previousPublishedRelease.versionCode, publication120.versionCode);
+  assert.equal(candidate121.previousPublishedRelease.tag, publication120.releaseTag);
+  for (const [name, key] of [["android-release-apk", "apk"], ["android-release-aab", "aab"]]) {
+    const artifact = publication120.artifacts.find((item) => item.name === name);
+    assert.deepEqual(candidate121.previousPublishedRelease[key], {
+      url: artifact.url, assetId: artifact.assetId, bytes: artifact.bytes, sha256: artifact.sha256,
+    });
+  }
+  assert.equal(candidate121.previousPublishedRelease.assetsMustNotBeReplaced, true);
+  assert.equal(evidence121.previousReleasePreserved.apkAssetId, candidate121.previousPublishedRelease.apk.assetId);
+  assert.equal(evidence121.previousReleasePreserved.aabAssetId, candidate121.previousPublishedRelease.aab.assetId);
+  assert.match(releaseNotes, /Android versionCode and iOS build advance from 26 to 27/);
 });
 
 test("1.0.20 binds terminal reconciliation, automatic unlock and lease-current Dashboard refresh", () => {
