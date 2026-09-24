@@ -285,7 +285,7 @@ func (s *Store) ApplyBrokerReconciliation(account string, snapshot brokerage.Acc
 			if !brokerOrderIdentityMatches(order, providerOrder) {
 				return errors.New("Broker reconciliation order identity mismatch")
 			}
-			next := normalizeBrokerOrderState(providerOrder.Status)
+			next := reconciledBrokerOrderState(order, providerOrder.Status)
 			if !brokerOrderTransitionAllowed(order.State, next) {
 				return errors.New("Broker reconciliation would regress order state")
 			}
@@ -342,7 +342,7 @@ func (s *Store) ApplyBrokerTradeEvents(account string, events []brokerage.TradeE
 			if event.Timestamp.IsZero() || (!order.ProviderEventAt.IsZero() && !event.Timestamp.After(order.ProviderEventAt)) {
 				return errors.New("Broker trade event cursor is stale")
 			}
-			next := normalizeBrokerOrderState(event.Order.Status)
+			next := reconciledBrokerOrderState(order, event.Order.Status)
 			if !brokerOrderTransitionAllowed(order.State, next) {
 				return errors.New("Broker trade event would regress order state")
 			}
@@ -372,6 +372,18 @@ func fenceLegacyBrokerCancel(order *BrokerOrderRecord, now time.Time) {
 	if order.State == "cancel_requested" && order.CancelIntentAt.IsZero() {
 		order.CancelIntentAt, order.CancelAttemptedAt = now.UTC(), now.UTC()
 	}
+}
+
+func reconciledBrokerOrderState(order BrokerOrderRecord, providerStatus string) string {
+	next := normalizeBrokerOrderState(providerStatus)
+	// An accepted/new provider snapshot can be in flight while a local cancel
+	// intent or a one-shot provider DELETE is pending. It does not prove that
+	// cancellation failed. Keep the intent and its persisted retry fence until
+	// a later provider event establishes partial fill or a terminal outcome.
+	if order.State == "cancel_requested" && next == "submitted" {
+		return "cancel_requested"
+	}
+	return next
 }
 
 func brokerOrderTransitionAllowed(current, next string) bool {

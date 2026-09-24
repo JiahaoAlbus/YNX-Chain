@@ -11,23 +11,24 @@ import {authorityRuntimeFiles,runtimeFiles} from './finance-nonregressive-runtim
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 const webRequire=createRequire(resolve(root,'apps/finance/web/package.json'));
 const {build,version:esbuildVersion}=webRequire('esbuild');
-const candidatePath='apps/finance/evidence/finance-opaque-runtime-candidate-pr199-20260925.json';
+const candidatePath='apps/finance/evidence/finance-opaque-runtime-candidate-pr199-v2-20260925.json';
 const sha256=value=>createHash('sha256').update(value).digest('hex');
 const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
 const sourceAt=(commit,path)=>execFileSync('git',['show',`${commit}:${path}`],{cwd:root});
+const goRuntimeFiles=git('ls-files','--','internal/finance','apps/finance/cmd').split('\n').filter(path=>path.endsWith('.go')&&!path.endsWith('_test.go'));
 const inputs=Object.freeze([
   ...runtimeFiles.map(name=>`apps/finance/web/${name}`),
   ...authorityRuntimeFiles.map(item=>item.source),
+  ...goRuntimeFiles,
+  'go.mod',
+  'go.sum',
+  'apps/finance/package.json',
+  'apps/finance/package-lock.json',
   'apps/finance/web/package.json',
   'apps/finance/web/package-lock.json',
   'apps/finance/scripts/finance-nonregressive-runtime.mjs',
   'apps/finance/scripts/build-finance-weekly-v3-candidate.mjs',
   'apps/finance/scripts/finance-opaque-runtime-candidate.mjs',
-  'apps/finance/cmd/server/main.go',
-  'internal/finance/server.go','internal/finance/drain.go','internal/finance/auth_v2.go',
-  'internal/finance/broker_order_handoff_http.go','internal/finance/broker_order_handoff_store.go',
-  'internal/finance/broker_order_handoff_exchange.go','internal/finance/broker_order_store.go',
-  'internal/finance/broker_order_types.go','internal/finance/broker.go','internal/finance/product_catalog.go',
   'packages/wallet-auth/package.json','packages/wallet-auth/package-lock.json',
 ].sort());
 const relations=Object.freeze([
