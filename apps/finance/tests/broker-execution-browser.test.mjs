@@ -105,6 +105,37 @@ test('desktop guest Finance keeps dynamic Broker absence and date copy in the se
   }finally{await page.close()}
 });
 
+test('real browser previews a test-only DvP draft without Wallet or chain writes',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844}}),posts=[];
+  page.on('request',request=>{if(request.method()==='POST')posts.push(request.url())});
+  const channel=(id,label)=>({id,label,environment:'test',availability:'disabled',riskNotice:'No live market.',unit:'none',settlement:'disabled',custody:'none',capabilities:[]});
+  const catalog={schemaVersion:'finance-product-catalog-v1',aggregationPolicy:'never-merge-balances-cost-basis-pnl-or-performance-across-channels',channels:[
+    channel('ynxt-indexed','YNXT indexed portfolio'),
+    {...channel('ynx-evm-test','YNX on-chain test markets'),testMarket:{sourceCommit:'6663df43e2f973a90a591cc88fc120a540df7f4a',dryRunManifestSha256:'efd4d0c8f372a6a5c94a8687c17321b02144c4b812602a5e672252469a585802',chainId:6423,testOnly:true,deploymentVerified:false,publicAddresses:null,chainSubmissionEnabled:false,assets:['TEST-AAPL','tUSD'],settlementContract:'TestDvP'}},
+    channel('broker-sandbox','Official broker sandbox'),channel('future-live','Future live products'),
+  ]};
+  try{
+    await page.route('**/api/product-catalog',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(catalog)}));
+    await page.goto(base);
+    await page.locator('#test-market-draft').waitFor();
+    assert.equal(await page.locator('[data-channel="ynx-evm-test"] [data-chain-submission]').getAttribute('data-chain-submission'),'disabled');
+    const before=posts.length;
+    await page.getByLabel('TEST-AAPL quantity').fill('1.25');
+    await page.getByLabel('Your limit price in tUSD per share').fill('2.500000');
+    await page.getByRole('button',{name:'Preview test-only terms'}).click();
+    assert.match(await page.locator('#test-market-draft-result').textContent(),/1.25 TEST-AAPL @ 2.500000 tUSD/);
+    assert.match(await page.locator('#test-market-draft-result').textContent(),/No market quote, fee, allowance, counterparty/);
+    assert.equal(posts.length,before);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+    await page.locator('#finance-language').selectOption('zh-CN');
+    await page.getByLabel('TEST-AAPL 数量').fill('1e6');
+    await page.getByLabel('每股 tUSD 自定限价').fill('2');
+    await page.getByRole('button',{name:'预览仅供测试的条件'}).click();
+    assert.match(await page.locator('#test-market-draft-result').textContent(),/没有创建订单/);
+    assert.equal(posts.length,before);
+  }finally{await page.close()}
+});
+
 test('legacy order callback URL is scrubbed before asynchronous private authorization or subresource referrers',async()=>{
   executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='pending_unwired';callbackFailure=true;challengeSuccess=false;
   const page=await browser.newPage(),subresourceReferrers=[];

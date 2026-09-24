@@ -30,12 +30,22 @@
         localized(keys[0],channel.label),localized(keys[1],channel.environment),localized(keys[2],channel.availability),localized(keys[3],channel.riskNotice),
       ]:[channel.label,channel.environment,channel.availability,channel.riskNotice];
       const gate=channel.id==='ynx-evm-test'?channel.testMarket:null;
-      const safeTestDirectory=gate?.chainId===6423&&gate.testOnly===true&&gate.deploymentVerified===false&&gate.chainSubmissionEnabled===false&&gate.publicAddresses===null&&
+      const safeTestDirectory=gate?.chainId===6423&&gate.sourceCommit==='6663df43e2f973a90a591cc88fc120a540df7f4a'&&gate.dryRunManifestSha256==='efd4d0c8f372a6a5c94a8687c17321b02144c4b812602a5e672252469a585802'&&gate.testOnly===true&&gate.deploymentVerified===false&&gate.chainSubmissionEnabled===false&&gate.publicAddresses===null&&
         Array.isArray(gate.assets)&&gate.assets.length===2&&gate.assets.includes('TEST-AAPL')&&gate.assets.includes('tUSD')&&gate.settlementContract==='TestDvP';
-      const testMarketNotice=channel.id==='ynx-evm-test'?`<div class="test-market-gate" data-chain-submission="disabled"><strong>${escapeHTML(text('testAssetDirectory'))}</strong><p>${escapeHTML(text('testMarketUnverified'))}</p>${safeTestDirectory?`<small>${escapeHTML(gate.assets.join(' · '))} · ${escapeHTML(gate.settlementContract)}</small>`:''}</div>`:'';
+      const draftForm=safeTestDirectory?`<form id="test-market-draft" autocomplete="off"><label>${escapeHTML(text('testDraftQty'))}<input name="quantity" inputmode="decimal" maxlength="24" required></label><label>${escapeHTML(text('testDraftPrice'))}<input name="limitPrice" inputmode="decimal" maxlength="24" required></label><button type="submit">${escapeHTML(text('testDraftPreview'))}</button><p id="test-market-draft-result" role="status" aria-live="polite"></p></form>`:'';
+      const testMarketNotice=channel.id==='ynx-evm-test'?`<div class="test-market-gate" data-chain-submission="disabled"><strong>${escapeHTML(text('testAssetDirectory'))}</strong><p>${escapeHTML(text('testMarketUnverified'))}</p>${safeTestDirectory?`<small>${escapeHTML(gate.assets.join(' · '))} · ${escapeHTML(gate.settlementContract)}</small>`:''}${draftForm}</div>`:'';
       return `<article class="panel channel-card" data-channel="${escapeHTML(channel.id)}"><div class="panel-head"><div><span class="eyebrow">${escapeHTML(environment)}</span><h3>${escapeHTML(label)}</h3></div><span class="pill ${channel.availability==='disabled'?'warning':'neutral'}">${escapeHTML(availability)}</span></div><p>${escapeHTML(risk)}</p>${testMarketNotice}${action?`<a class="button ${channel.id==='broker-sandbox'?'primary':'ghost'}" href="${action.href}">${escapeHTML(text(action.label))}</a>`:`<button type="button" disabled>${escapeHTML(text('unavailable'))}</button>`}<details><summary>${escapeHTML(text('boundary'))}</summary><dl><div><dt>${escapeHTML(text('unit'))}</dt><dd>${escapeHTML(channel.unit)}</dd></div><div><dt>${escapeHTML(text('settlement'))}</dt><dd>${escapeHTML(channel.settlement)}</dd></div><div><dt>${escapeHTML(text('custody'))}</dt><dd>${escapeHTML(channel.custody)}</dd></div></dl><small>${(channel.capabilities||[]).length?escapeHTML(channel.capabilities.join(' · ')):escapeHTML(text('noCapabilities'))}</small></details></article>`;
     }).join('');
   };
+  document.addEventListener('submit',event=>{
+    if(event.target?.id!=='test-market-draft')return;
+    event.preventDefault();
+    const form=event.target,result=form.querySelector('#test-market-draft-result');
+    const quantity=String(form.elements.quantity.value).trim(),price=String(form.elements.limitPrice.value).trim();
+    const positive=value=>/^(?:0|[1-9][0-9]{0,12})(?:\.[0-9]{1,6})?$/u.test(value)&&/[1-9]/u.test(value);
+    if(!positive(quantity)||!positive(price)){result.textContent=text('testDraftInvalid');return}
+    result.textContent=`${quantity} TEST-AAPL @ ${price} tUSD. ${text('testDraftResult')}`;
+  });
   fetch('/api/product-catalog',{headers:{Accept:'application/json'}}).then(response=>{
     if(!response.ok)throw new Error('catalog unavailable');
     return response.json();
