@@ -70,6 +70,21 @@ test.before(async()=>{
 });
 test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
 
+test('guest Finance workbench is English by default, switches Chinese and fits a 390px viewport',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  try{
+    await page.goto(base);
+    assert.equal(await page.locator('html').getAttribute('lang'),'en');
+    assert.equal(await page.locator('#markets-heading').textContent(),'Choose what you want to do');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.equal(await page.locator('html').getAttribute('lang'),'zh-CN');
+    assert.equal(await page.locator('#markets-heading').textContent(),'选择你要办理的事项');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+    assert.equal(await page.locator('#broker-order-form button[type="submit"]').isVisible(),false);
+  }finally{await page.close()}
+});
+
 test('legacy order callback URL is scrubbed before asynchronous private authorization or subresource referrers',async()=>{
   executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='pending_unwired';callbackFailure=true;challengeSuccess=false;
   const page=await browser.newPage(),subresourceReferrers=[];
