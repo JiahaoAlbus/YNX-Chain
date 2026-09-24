@@ -81,7 +81,7 @@ export class WalletConnectSecurityStore{
       const replay=state.replay.find(item=>item.key===key);
       if(!replay||replay.requestDigest!==record.requestDigest||replay.expiresAt!==record.expiresAt||replay.status!==(record.stage==="reviewing"?"reserved":"consumed"))throw new Error("WalletConnect updated request replay binding is invalid");
       if(record.method!=="wallet_request_unreviewed"){
-        const candidate=createWalletConnectRequestReview(input,{session,now,replayStore:new WalletConnectRequestReplayStore(state.replay.filter(item=>item.key!==key))});
+        const candidate=createWalletConnectRequestReview(input,{session,now:reviewReconstructionTime(input,session,record.expiresAt,now),replayStore:new WalletConnectRequestReplayStore(state.replay.filter(item=>item.key!==key))});
         if(candidate.topic!==record.topic||candidate.requestId!==record.requestId||candidate.sessionBinding!==record.sessionBinding||candidate.account!==record.account||candidate.chainId!==record.chainId||candidate.method!==record.method||candidate.requestDigest!==record.requestDigest||candidate.expiresAt!==record.expiresAt)throw new Error("WalletConnect updated request does not match its saved review");
       }else throw new Error("WalletConnect unreviewed request cannot be safely replaced");
       if(record.stage==="ready")return record;
@@ -103,7 +103,7 @@ export class WalletConnectSecurityStore{
       const session=state.sessions.find(item=>item.topic===topic);
       if(!session||session.account!==account||session.expiresAt<=now.toISOString())throw new Error("WalletConnect orphan reservation has no current approved session");
       if(requestExceedsPolicy(input))throw new Error("WalletConnect orphan request exceeds policy");
-      const candidate=createWalletConnectRequestReview(input,{session,now,replayStore:new WalletConnectRequestReplayStore(state.replay.filter(item=>item.key!==key))});
+      const candidate=createWalletConnectRequestReview(input,{session,now:reviewReconstructionTime(input,session,replay.expiresAt,now),replayStore:new WalletConnectRequestReplayStore(state.replay.filter(item=>item.key!==key))});
       if(candidate.topic!==topic||candidate.requestId!==id||candidate.account!==account||candidate.chainId!=="eip155:6423"||candidate.sessionBinding!==session.sessionBinding||candidate.requestDigest!==replay.requestDigest||candidate.expiresAt!==replay.expiresAt)throw new Error("WalletConnect orphan reservation does not match the current request");
       const response=rpcError(id,-32002,"Wallet review was interrupted. Review a fresh request.");
       const record=parseOutboxRecord({version:1,key,topic,requestId:id,sessionBinding:session.sessionBinding,account,chainId:"eip155:6423",requestDigest:replay.requestDigest,method:"wallet_request_unreviewed",expiresAt:replay.expiresAt,decision:"rejected",stage:"ready",response,responseDigest:responseDigest({topic,requestId:id,sessionBinding:session.sessionBinding,account,chainId:"eip155:6423",requestDigest:replay.requestDigest,method:"wallet_request_unreviewed",expiresAt:replay.expiresAt},response),attempts:0,createdAt:now.toISOString(),updatedAt:now.toISOString()});
@@ -137,6 +137,14 @@ export class WalletConnectSecurityStore{
 }
 
 function emptyState():State{return Object.freeze({version:2,sessions:Object.freeze([]),replay:Object.freeze([]),outbox:Object.freeze([])})}
+function reviewReconstructionTime(input:unknown,session:WalletConnectSessionApproval,expiresAt:string,now:Date):Date{
+  const params=typeof input==="object"&&input!==null?Object.getOwnPropertyDescriptor(input,"params")?.value:undefined;
+  const request=typeof params==="object"&&params!==null?Object.getOwnPropertyDescriptor(params,"request")?.value:undefined;
+  if(typeof request==="object"&&request!==null&&Object.hasOwn(request,"expiryTimestamp"))return now;
+  const originalSecond=Math.max(Date.parse(session.approvedAt),Date.parse(expiresAt)-300_000);
+  if(!Number.isFinite(originalSecond)||originalSecond>now.getTime())throw new Error("WalletConnect saved request expiry cannot be reconstructed");
+  return new Date(originalSecond);
+}
 function requestIdentity(value:unknown):Record<string,any>{
   if(typeof value!=="object"||value===null||Array.isArray(value)||Object.getPrototypeOf(value)!==Object.prototype)throw new Error("WalletConnect request identity is invalid");
   for(const key of ["topic","id"]){const descriptor=Object.getOwnPropertyDescriptor(value,key);if(!descriptor?.enumerable||!("value" in descriptor))throw new Error("WalletConnect request identity is invalid")}

@@ -119,6 +119,14 @@ test("session update persists a generic response across restart before Relay del
   assert.equal((await restored.load()).replayStore.snapshot()[0]?.status,"consumed");
 });
 
+test("session update reconstructs a bounded-default request after the clock advances",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input=boundedDefaultInput(42),review=await store.reserveRequest(input,account,decisionTime);
+  const record=await store.rejectPendingForSessionUpdate(input,account,new Date(decisionTime.getTime()+2_000));
+  assert.equal(record.requestDigest,review.requestDigest);assert.equal(record.expiresAt,review.expiresAt);
+  assert.deepEqual(record.response,{jsonrpc:"2.0",id:42,error:{code:5103,message:"WalletConnect session updated; resend the request after reconciliation."}});
+});
+
 test("session update cannot rewrite approved execution or an attempted Relay response",async()=>{
   const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
   const input=legacyInput(35),review=await store.reserveRequest(input,account,decisionTime),key=`${topic}:35`;
@@ -224,6 +232,15 @@ test("legacy reserved replay without outbox recovers only a generic rejection",a
   await assert.rejects(store.recoverOrphanReservation(legacyInput(30),account,decisionTime),/not recoverable/);
 });
 
+test("legacy bounded-default orphan recovers after the clock advances",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),replay=new WalletConnectRequestReplayStore(),input=boundedDefaultInput(43);
+  const review=createWalletConnectRequestReview(input,{session:approval,now:decisionTime,replayStore:replay});
+  await store.saveSession(approval);await store.saveReplay(replay);
+  const recovered=await store.recoverOrphanReservation(input,account,new Date(decisionTime.getTime()+2_000));
+  assert.equal(recovered.requestDigest,review.requestDigest);assert.equal(recovered.expiresAt,review.expiresAt);
+  assert.equal(recovered.stage,"ready");
+});
+
 test("legacy orphan cannot answer a different request reusing the same topic and id",async()=>{
   const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await reservedReview(store,31);
   const changed={...legacyInput(31),params:{...legacyInput(31).params,request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:04:00.000Z")/1000)}}};
@@ -260,6 +277,7 @@ async function reservedReview(store:WalletConnectSecurityStore,id:number){
   await store.saveSession(approval);await store.saveReplay(replay);return review;
 }
 function legacyInput(id:number){return{topic,id,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:05:00.000Z")/1000)}}}}
+function boundedDefaultInput(id:number){return{topic,id,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[]}}}}
 
 test("replay consumption and rejected response are committed atomically",async()=>{
   const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,7);
