@@ -42,9 +42,12 @@ async function relationReceipt(relation,read){
   assert.deepEqual(firstBytes,secondBytes,'two independent builds must be byte-identical');
   const bundle=read(relation.bundle);
   assert.deepEqual(firstBytes,bundle,`${relation.kind} bundle differs from source rebuild`);
-  const graph=Object.keys(first.metafile.inputs).sort().map(path=>inventory(read(path),path));
+  const graph=Object.keys(first.metafile.inputs).sort().map(path=>inventory(
+    path.startsWith('packages/wallet-auth/node_modules/') ? readFileSync(resolve(root,path)) : read(path),path));
   for(const item of graph)assert.match(item.path,/^(?:apps\/finance\/scripts\/finance-order-opaque-(?:authority|browser-entry)\.mjs|packages\/wallet-auth\/(?:src\/|node_modules\/))/u,'unreviewed transitive input');
-  return {kind:relation.kind,entry:relation.entry,bundle:relation.bundle,tool:`esbuild@${esbuildVersion}`,independentBuilds:2,graph,graphSha256:sha256(graph.map(item=>`${item.path}\0${item.sha256}\n`).join('')),bundleBytes:bundle.length,bundleSha256:sha256(bundle)};
+  return {kind:relation.kind,entry:relation.entry,bundle:relation.bundle,tool:`esbuild@${esbuildVersion}`,independentBuilds:2,
+    installedDependencies:'must be reproduced from pinned packages/wallet-auth/package-lock.json before independent review',
+    graph,graphSha256:sha256(graph.map(item=>`${item.path}\0${item.sha256}\n`).join('')),bundleBytes:bundle.length,bundleSha256:sha256(bundle)};
 }
 function verifyClosure(read){
   const html=read('apps/finance/web/index.html').toString('utf8');
@@ -66,7 +69,7 @@ async function receipt(sourceCommit,read){
   assert.equal(new Set(exactInputs.map(item=>item.path)).size,exactInputs.length,'duplicate runtime input');
   return {schemaVersion:'ynx.finance.opaque-runtime-candidate.v1',status:'INDEPENDENT_REVIEW_REQUIRED_NOT_PINNED_NOT_PUBLIC',sourceCommit,sourceTree:git('rev-parse',`${sourceCommit}^{tree}`),
     exactInputs,relations:await Promise.all(relations.map(item=>relationReceipt(item,read))),
-    truth:{testedLocal:true,installedLocal:false,deployedPublic:false,realWalletApproval:false,providerOrderWrite:false,productionSigned:false}};
+    truth:{localByteRebuild:true,fullTestSuitePassed:false,installedLocal:false,deployedPublic:false,realWalletApproval:false,providerOrderWrite:false,productionSigned:false}};
 }
 async function main(){
   const [mode,argument]=process.argv.slice(2);
