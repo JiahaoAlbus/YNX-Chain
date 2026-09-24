@@ -3,6 +3,7 @@ import {readFileSync} from "node:fs";
 import test from "node:test";
 import type {SignedNativeTransfer} from "@ynx-chain/wallet-auth";
 import {createNativeDurabilityEvidence,NATIVE_DURABILITY_MODEL,NativeDurabilityInvalid,nativeQuantity,parseNativeDurabilityModel,parseNativeDurabilityState,parseNativeDurableReceipt,verifyNativeDurability} from "./nativeDurability";
+import {DEFAULT_CHAIN_API,LEGACY_CHAIN_API} from "./nativeChainOrigins";
 
 // Exact public Core 0468d65 contract fixture; no key material or live RPC.
 const fixture=JSON.parse(readFileSync(new URL("./testdata/native-durability-v1.json",import.meta.url),"utf8"));
@@ -103,4 +104,13 @@ test("saved evidence binds source origin, chain, capability and original identit
   for(const patch of [{origin:"https://other.example"},{chainId:"0x1"},{version:2},{extra:true},{capability:{...fixture.capability,consensusFinality:true}}])assert.equal(verifyNativeDurability({...evidence,...patch},intent,txHash,origin),false);
   assert.equal(verifyNativeDurability(evidence,{...intent,amount:3},txHash,origin),false);
   assert.equal(verifyNativeDurability(evidence,intent,hash,origin),false);
+});
+
+test("only the default broadcast profile accepts exact legacy read evidence",()=>{
+  const evidence=createNativeDurabilityEvidence(LEGACY_CHAIN_API,fixture.capability,fixture.durableReceipt,intent,txHash);
+  assert.equal(verifyNativeDurability(evidence,intent,txHash,DEFAULT_CHAIN_API),true);
+  assert.equal(verifyNativeDurability(evidence,intent,txHash,LEGACY_CHAIN_API),true);
+  assert.equal(verifyNativeDurability({...evidence,origin:DEFAULT_CHAIN_API},intent,txHash,LEGACY_CHAIN_API),false);
+  assert.equal(verifyNativeDurability(evidence,intent,txHash,"https://custom.example"),false);
+  assert.equal(verifyNativeDurability({...evidence,origin:"https://evm.ynxweb4.com"},intent,txHash,DEFAULT_CHAIN_API),false);
 });
