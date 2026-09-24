@@ -101,13 +101,15 @@ func TestPostgresAdmissionIsSharedAcrossInstances(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer second.Close()
-	client := "203.0.113.209"
+	client := "203.0.113.209-" + time.Now().UTC().Format(time.RFC3339Nano)
 	digest := sha256.Sum256([]byte("ynx-exchange-admission-v1\x00" + client))
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	t.Cleanup(func() {
-		_, _ = first.store.(*postgresAdmissionStore).db.ExecContext(ctx, `DELETE FROM ynx_exchange_admission_windows WHERE client_hash = $1`, hex.EncodeToString(digest[:]))
-	})
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := first.store.(*postgresAdmissionStore).db.ExecContext(ctx, `DELETE FROM ynx_exchange_admission_windows WHERE client_hash = $1`, hex.EncodeToString(digest[:])); err != nil {
+			t.Errorf("clean PostgreSQL admission fixture: %v", err)
+		}
+	}()
 	for attempt, gate := range []*admission{first, second} {
 		allowed, err := gate.allow(client)
 		if err != nil || !allowed {
