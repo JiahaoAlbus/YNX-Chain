@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 2,
+  "productId": "wallet",
+  "version": "1.0.22-testnet-preview",
+  "versionCode": 28,
+  "releaseStatus": "SOURCE_CANDIDATE_AWAITING_EXACT_MERGE_BUILD",
+  "baseCommit": "2013d05874b3b767a2d3597cf6dd43564ad1679d",
+  "releaseSourceCommit": null,
+  "releaseTag": null,
+  "releaseUrl": null,
+  "releaseImmutable": false,
+  "publisherCanReplaceAssets": true,
+  "downloadTimeSha256Required": true,
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": "NOT_VERIFIED",
+  "physicalDevice": "NOT_VERIFIED",
+  "installedAndroidUpgrade": "VERIFIED_LOCAL_EMULATOR",
+  "installedAndroidEvidence": "proof/wallet-android-1.0.22-installed-upgrade-20260925.json",
+  "financeOrderHandoffE2E": "NOT_VERIFIED",
+  "backendFourRouteContract": "NOT_VERIFIED",
+  "includedSourceHeads": {
+    "walletNative1021": "008aa8b07e04be3de363d848121e6b9ef95ecf20",
+    "walletOpaqueHandoff": "a4c4f628a71ed7eba6149ce5f3081184b07f3bd2"
+  },
+  "upgradeFromPublishedVersionCode": 26,
+  "artifacts": [],
+  "publicArtifactUrls": [],
+  "previousPublishedRelease": {
+    "version": "1.0.20-testnet-preview",
+    "versionCode": 26,
+    "tag": "wallet-android-testnet-preview-1.0.20-f3a12abad",
+    "releaseImmutable": false,
+    "publisherCanReplaceAssets": true,
+    "assetsMustNotBeReplaced": true,
+    "apk": {
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk",
+      "assetId": 577942956,
+      "bytes": 116741810,
+      "sha256": "143835c4931b190f0249818f04de6f82b1f2aaa0eb155684e929f365f3b1bfc0"
+    },
+    "aab": {
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-local-test-signed.aab",
+      "assetId": 577942957,
+      "bytes": 71877410,
+      "sha256": "46d3f0e7f2738ac55aa5e6f24717ff4adef3b499f368ca6c3e253a7c3a4e6c4d"
+    }
+  },
+  "candidateEvidence": "proof/wallet-android-1.0.22-source-candidate-20260925.json",
+  "generatedAt": "2026-09-24T17:39:06Z"
+}

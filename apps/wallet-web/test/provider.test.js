@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   SESSION_KEY, WALLET_DOWNLOAD_MATRIX, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
-  addYNXChain, connectStandardWallet, connectWallet, createExtensionProvider, discoverEip6963, discoverInjectedProviders, discoverWallets, extensionWalletAvailability,
+  addYNXChain, connectStandardWallet, connectWallet, createExtensionProvider, disconnectStandardWallet, discoverEip6963, discoverInjectedProviders, discoverWallets, extensionWalletAvailability,
   forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
   invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
@@ -50,6 +50,23 @@ function extensionRuntime(responses = {}) {
     },
   };
 }
+
+test("disconnect revokes the exact YNX account permission and confirms eth_accounts is empty",async()=>{
+  const wallet=provider({wallet_revokePermissions:null,eth_accounts:[]});
+  assert.equal(await disconnectStandardWallet(wallet),true);
+  assert.deepEqual(wallet.calls,[{method:"wallet_revokePermissions",params:[{eth_accounts:{}}]},{method:"eth_accounts"}]);
+});
+
+test("disconnect falls back only for an unsupported method and never claims an unverified revoke",async()=>{
+  const wallet=provider({ynx_disconnect:null,eth_accounts:[]});
+  assert.equal(await disconnectStandardWallet(wallet),true);
+  assert.deepEqual(wallet.calls.map(call=>call.method),["wallet_revokePermissions","ynx_disconnect","eth_accounts"]);
+  const stillAuthorized=provider({wallet_revokePermissions:null,eth_accounts:[ACCOUNT]});
+  await assert.rejects(disconnectStandardWallet(stillAuthorized),{code:"PERMISSION_REVOCATION_UNVERIFIED"});
+  const denied=provider({wallet_revokePermissions:()=>{throw Object.assign(new Error("denied"),{code:4001})}});
+  await assert.rejects(disconnectStandardWallet(denied),{code:"PERMISSION_REVOCATION_UNVERIFIED"});
+  assert.deepEqual(denied.calls.map(call=>call.method),["wallet_revokePermissions"]);
+});
 
 test("frozen chain metadata is exact and complete", () => {
   assert.deepEqual(YNX_CHAIN, {chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:{name:"YNX Testnet",symbol:"YNXT",decimals:18},rpcUrls:["https://rpc-testnet.ynxweb4.com","https://evm.ynxweb4.com"],blockExplorerUrls:["https://explorer.ynxweb4.com"]});

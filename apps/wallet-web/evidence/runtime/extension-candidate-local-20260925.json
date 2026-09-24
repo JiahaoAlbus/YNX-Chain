@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "c5df9a9a1cc2a22ba7623ba2b85da138b66c3b5f",
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.1.zip",
+      "bytes": 313957,
+      "sha256": "39c11c13fcb5b0108c7d00247b9577d99c1bd167cee09a3f470daad7d5344d08"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.1.zip",
+      "bytes": 548691,
+      "sha256": "6943d03d2f71ac4e2efb1ac541c67da95b42aaa539dba66fe8128cb31a88cda0"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.1.zip",
+      "bytes": 548789,
+      "sha256": "cd2e5af9ff8da36dcb764db6cf01935fc3bec038f435365b5ca769b0fdbf95e1"
+    }
+  ],
+  "reviewerSource": {
+    "name": "ynx-wallet-reviewer-source-c5df9a9.zip",
+    "bytes": 1131985,
+    "sha256": "4d14904d6da51653b9be0a45c2964be9697449400f631b7a3d98076438078d99",
+    "sourceFileCount": 247,
+    "authorityRecords": 14,
+    "verifiedOutputFiles": 110,
+    "allBytesMatch": true
+  },
+  "localRuntime": {
+    "edge": {
+      "temporaryUnpacked": true,
+      "providerDiscovered": true,
+      "accountAuthorized": true,
+      "messageSigned": true,
+      "signatureRecovered": true,
+      "permissionRevoked": true,
+      "postRevokeDenied": true
+    },
+    "chromeForTesting": {
+      "temporaryUnpacked": true,
+      "providerDiscovered": true,
+      "accountAuthorized": true,
+      "messageSigned": true,
+      "signatureRecovered": true,
+      "permissionRevoked": true,
+      "postRevokeDenied": true
+    },
+    "firefoxCompatible": {
+      "temporaryAddonLoaded": true,
+      "manifestValidated": true,
+      "brandedMozillaFirefox": false
+    }
+  },
+  "installedLocal": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false
+}

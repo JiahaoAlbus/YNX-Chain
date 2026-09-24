@@ -23,11 +23,11 @@ const at=new Date("2026-09-19T09:01:00.000Z");
 function setup(saved=new Map<string,string>()){
   const events={claimed:0,completed:0,keys:0,opens:[] as string[],now:new Date(at),selected:account,failOpen:false,failComplete:false,
     forceRawState:false,claimMismatch:false,claimGate:null as Promise<void>|null,completeGate:null as Promise<void>|null,
-    storageGate:null as Promise<void>|null,storageReads:0,
+    storageGate:null as Promise<void>|null,storageReads:0,maxStorageChars:Infinity,
     legacy:null as null|{request:ReturnType<typeof createFinanceOrderApprovalRequest>;status:"pending"|"approved"|"rejected"|"revoked";approval:any;revocation:any}};
   const storage:any={
     getItem:async(key:string)=>{events.storageReads++;if(events.storageGate)await events.storageGate;return saved.get(key)??null},
-    setItem:async(key:string,value:string)=>{saved.set(key,value)},
+    setItem:async(key:string,value:string)=>{if(value.length>events.maxStorageChars)throw new Error("SecureStore value too large");saved.set(key,value)},
     deleteItem:async()=>{throw new Error("journal deletion forbidden")},
   };
   const controller=()=>new FinanceOrderOpaqueController({
@@ -261,4 +261,16 @@ test("expired legacy challenge cannot mint a recovery ticket or delete old data"
   await assert.rejects(f.controller().receive(url),{code:"EXPIRED"});
   assert.equal(f.events.completed,0);assert.equal(f.events.opens.length,0);
   assert.equal(f.saved.has(FINANCE_ORDER_OPAQUE_REPLAY_KEY),false);
+});
+
+test("SecureStore capacity refusal preserves the prior journal and never sends an unpersisted approval",async()=>{
+  const f=setup(),c=f.controller(),review=await c.receive(f.url);
+  const prior=f.saved.get(FINANCE_ORDER_OPAQUE_REPLAY_KEY)!;
+  f.events.maxStorageChars=prior.length;
+  await assert.rejects(c.approve(review.id),/SecureStore value too large/);
+  assert.equal(f.saved.get(FINANCE_ORDER_OPAQUE_REPLAY_KEY),prior);
+  assert.equal(JSON.parse(prior).rows[0].status,"pending");
+  assert.equal(f.events.completed,0);
+  assert.deepEqual(f.events.opens,[]);
+  await assert.rejects(c.receive(f.url),/journal write uncertain/);
 });
