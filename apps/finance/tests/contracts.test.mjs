@@ -62,7 +62,8 @@ test('responsive and accessibility contracts exist',()=>{
 test('Broker Sandbox snapshot is authenticated, owner-mapped and never substitutes guest values',()=>{
   for(const marker of ['/api/broker/snapshot','snapshot.account.providerAccountId','snapshot.account.cash','snapshot.account.buyingPower','snapshot.positions','snapshot.orders'])assert.ok(js.includes(marker),marker);
   for(const marker of ['Guest mode never receives balances, positions or orders.','Unknown — not zero','simulated USD'])assert.ok(html.includes(marker)||js.includes(marker),marker);
-  assert.ok(js.includes("if(!state.connected){clearBrokerSnapshot();return}"));
+  assert.ok(js.includes("if(!state.connected){brokerSnapshotState={kind:'guest'};renderBrokerSnapshot();return}"));
+  assert.ok(js.includes("brokerSnapshotState={kind:'unavailable'};renderBrokerSnapshot()"),'failed provider reads must clear previously rendered account data');
   assert.ok(js.includes("await api('/api/broker/snapshot')"));
   assert.equal(js.includes("fetch('/api/broker/snapshot'"),false,'private Broker reads must use the authenticated Finance API helper');
 });
