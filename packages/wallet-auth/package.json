@@ -85,7 +85,8 @@
     "ynx-wallet-control-migrate-v3": "scripts/ynx-wallet-control-migrate-v3.mjs"
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test test/*.test.mjs && npm run test:types",
+    "test:types": "tsc -p tsconfig.types.json",
     "check": "npm test",
     "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
     "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
@@ -95,6 +96,9 @@
   "dependencies": {
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=22"

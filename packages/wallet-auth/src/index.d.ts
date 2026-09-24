@@ -289,13 +289,17 @@ export type MetaMaskEvmConnection=Readonly<{status:"connected-evm";wallet:"metam
 export declare class MetaMaskEvmConnectionAdapter{constructor(config:Readonly<{registry:unknown;productId:string;provider:unknown}>);connect():Promise<MetaMaskEvmConnection>}
 export declare const WALLET_PROVIDER_DISCOVERY_AUTHORITY:"unverified-injected-candidate";
 export declare const WALLET_PROVIDER_KIND:Readonly<{YNX:"ynx-wallet";METAMASK:"metamask"}>;
-export type WalletProviderCandidate=Readonly<{kind:"ynx-wallet"|"metamask";provider:Readonly<{request:(input:Readonly<Record<string,unknown>>)=>Promise<unknown>}>;source:"eip6963"|"legacy-injected";uuid:string|null;rdns:string|null;name:string|null;authority:"unverified-injected-candidate"}>;
-export type WalletProviderDiscovery=Readonly<{ynx:WalletProviderCandidate|null;metamask:WalletProviderCandidate|null;candidates:readonly WalletProviderCandidate[];ambiguities:readonly ("ynx-wallet"|"metamask")[];conflictedAnnouncements:number;authority:"unverified-injected-candidate"}>;
+export type WalletProviderKind="ynx-wallet"|"metamask";
+export type WalletProviderCandidate=Readonly<{kind:WalletProviderKind;provider:{request(input:Readonly<{method:string;params?:unknown}>):Promise<unknown>};source:"eip6963"|"legacy-injected";uuid:string|null;rdns:string|null;name:string|null;authority:"unverified-injected-candidate"}>;
+export type WalletProviderDiscovery=Readonly<{ynx:WalletProviderCandidate|null;metamask:WalletProviderCandidate|null;candidates:readonly WalletProviderCandidate[];ambiguities:readonly WalletProviderKind[];conflictedAnnouncements:number;authority:"unverified-injected-candidate"}>;
+export type WalletProviderDiscoverySnapshot=WalletProviderDiscovery;
+export type ContinuousWalletProviderDiscovery=Readonly<{request():WalletProviderDiscoverySnapshot;snapshot():WalletProviderDiscoverySnapshot;subscribe(listener:(value:WalletProviderDiscoverySnapshot&Readonly<{revision:number}>)=>void,options?:Readonly<{emitCurrent?:boolean}>):()=>boolean;dispose():void;readonly disposed:boolean}>;
 export declare function discoverInjectedWalletProviders(scope?:unknown):WalletProviderDiscovery;
 export declare function discoverEip6963WalletProviders(scope?:unknown,waitMs?:number):Promise<WalletProviderDiscovery>;
 export declare function discoverWalletProviders(scope?:unknown,waitMs?:number):Promise<WalletProviderDiscovery>;
 export declare function selectWalletProviderCandidates(input:unknown[],conflictedAnnouncements?:number):WalletProviderDiscovery;
 export declare function walletAvailabilityFromDiscovery(discovery:WalletProviderDiscovery):Readonly<{ynxWalletInstalled:boolean;metaMaskAvailable:boolean}>;
+export declare function createWalletProviderDiscovery(scope?:unknown):ContinuousWalletProviderDiscovery;
 export declare function encodeProductSessionWalletURL(registry:unknown,request:unknown,at?:Date):string;
 export declare function parseProductSessionWalletURL(registry:unknown,url:string,at?:Date):Readonly<Record<string,unknown>>;
 export declare function prepareWalletOpen(registry:unknown,request:unknown,environment:{networkAvailable:boolean;walletInstalled:boolean;schemeRegistered:boolean},at?:Date):Readonly<Record<string,unknown>>;
@@ -441,13 +445,6 @@ export declare const WALLET_DOWNLOAD_MANIFEST_SCHEMA_VERSION:1;
 /** Structural validation of a trusted publisher manifest; not network/installation attestation. */
 export declare function parseWalletDownloadManifest(input:unknown):WalletDownloadManifest;
 export declare function selectWalletDownload(manifest:unknown,selector?:WalletDownloadSelector):WalletDownloadSelection;
-
-export type WalletProviderKind="ynx-wallet"|"metamask";
-export type WalletProviderCandidate=Readonly<{kind:WalletProviderKind;provider:{request(input:Readonly<{method:string;params?:unknown}>):Promise<unknown>};source:"eip6963"|"legacy-injected";uuid:string|null;rdns:string|null;name:string|null;authority:"unverified-injected-candidate"}>;
-export type WalletProviderDiscoverySnapshot=Readonly<{ynx:WalletProviderCandidate|null;metamask:WalletProviderCandidate|null;candidates:readonly WalletProviderCandidate[];ambiguities:readonly WalletProviderKind[];conflictedAnnouncements:number;authority:"unverified-injected-candidate"}>;
-export type ContinuousWalletProviderDiscovery=Readonly<{request():WalletProviderDiscoverySnapshot;snapshot():WalletProviderDiscoverySnapshot;subscribe(listener:(value:WalletProviderDiscoverySnapshot&Readonly<{revision:number}>)=>void,options?:Readonly<{emitCurrent?:boolean}>):()=>boolean;dispose():void;readonly disposed:boolean}>;
-export declare const WALLET_PROVIDER_KIND:Readonly<{YNX:"ynx-wallet";METAMASK:"metamask"}>;
-export declare function createWalletProviderDiscovery(scope?:unknown):ContinuousWalletProviderDiscovery;
 
 export type EvmProductLoginChallenge=Readonly<{version:"1";scheme:"eip4361";domain:string;uri:string;account:string;accountType:"eoa"|"contract";chainId:6423;nonce:string;issuedAt:string;notBefore:string;expirationTime:string;requestId:string;statement:string;productId:string;scopes:readonly string[];providerKind:WalletProviderKind}>;
 export type EvmProductLoginProof=Readonly<{challenge:EvmProductLoginChallenge;message:string;signature:string}>;
