@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/finance"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 )
 
@@ -54,6 +55,10 @@ func TestFinanceReadUsesPersistedAccountAndRejectsReplayOrCrossAccount(t *testin
 	}
 	if strings.Contains(aliceResponse.Body.String(), bob) || strings.Contains(aliceResponse.Body.String(), "11000000") || strings.Contains(aliceResponse.Body.String(), adminKey) {
 		t.Fatal("Alice read leaked Bob or server credentials")
+	}
+	contract := finance.AcceptedReadSourceContract{Accepted: true, SourceID: "exchange", Owner: "07-exchange", OwnerContractVersion: FinanceReadContractVersion, PayloadSchema: FinanceReadPayloadSchema, AllowedCapabilities: financeReadCapabilities}
+	if _, err := finance.ValidateReadSourceEnvelope(aliceResponse.Body.Bytes(), alice, contract, time.Now().UTC()); err != nil {
+		t.Fatalf("Finance rejected Exchange owner envelope: %v", err)
 	}
 	replay := httptest.NewRecorder()
 	server.ServeHTTP(replay, signed)

@@ -82,7 +82,9 @@ state volume. Kubernetes manifests in `apps/quant-lab/k8s` are candidates, not
 deployment evidence. Neither packaging format implies staging, public
 deployment, canonical Gateway integration, or production signing.
 
-Testnet order submission additionally requires injected `MandateVerifier` and `TestnetBroker` implementations. The shipped server injects neither and therefore fails closed. Real-money execution has no adapter or route.
+Testnet order submission additionally requires injected `MandateVerifier` and `TestnetBroker` implementations. The shipped server injects the existing Exchange adapter only when `YNX_QUANT_EXCHANGE_URL` is configured; otherwise submission fails closed. Real-money execution has no adapter or route.
+
+Finance can read only `ynx1` account-bound, persisted Quant strategies, mandates, research attribution, executions, Paper state and risk through `GET /v1/integrations/finance/account`. Configure `YNX_QUANT_FINANCE_READ_KEY` on Quant and the identical secret as `YNX_FINANCE_QUANT_READ_KEY` on Finance, with the Quant base URL in `YNX_FINANCE_QUANT_READ_URL`. Keep this key server-side and distinct from Exchange, Wallet and broker keys. Without it the route returns 503; no matching mandate returns 404. In PostgreSQL mode it verifies stored tenant-state integrity and uses a shared nonce table across service instances. This is a read-only Testnet integration, with no public deployment or user approval implied by source code.
 
 Strategy lifecycle changes are sequential and fail closed:
 

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -24,7 +25,7 @@ func TestFinanceReadPostgresTenantAndCrossInstanceReplay(t *testing.T) {
 	namespace := "quant-finance-it-" + strings.ToLower(strings.ReplaceAll(t.Name(), "/", "-")) + "-" + strings.ReplaceAll(now.Format("150405.000000000"), ".", "")
 	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
 	other := "ynx100f25pex4saeuaftzgx7s45wjzcyywhyl48mjt"
-	config := Config{DatabaseURL: databaseURL, StateNamespace: namespace, FinanceReadKey: secret, Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}}
+	config := Config{StatePath: filepath.Join(t.TempDir(), "quant.json"), DatabaseURL: databaseURL, StateNamespace: namespace, FinanceReadKey: secret, Now: func() time.Time { return now }, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}}
 	first, err := NewTenantServer(config, "all")
 	if err != nil {
 		t.Fatal(err)

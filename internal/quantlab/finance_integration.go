@@ -185,9 +185,10 @@ func (s *TenantServer) financePayload(account string) (financeQuantPayload, erro
 			return result, ErrUnavailable
 		}
 		prefix := s.config.StateNamespace + ":tenant:"
+		upperBound := s.config.StateNamespace + ":tenant;"
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		rows, err := store.db.QueryContext(ctx, `SELECT state_key, revision, payload FROM ynx_quant_state WHERE left(state_key, length($1)) = $1 ORDER BY state_key LIMIT 4097`, prefix)
+		rows, err := store.db.QueryContext(ctx, `SELECT state_key, revision, payload FROM ynx_quant_state WHERE state_key >= $1 AND state_key < $2 ORDER BY state_key LIMIT 4097`, prefix, upperBound)
 		if err != nil {
 			return result, err
 		}

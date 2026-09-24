@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/finance"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 )
 
@@ -75,6 +76,10 @@ func TestFinanceReadEndpointAggregatesOnlyAuthorizedAccountAndRejectsReplay(t *t
 	}
 	if strings.Contains(recorder.Body.String(), "wallet-proof") || strings.Contains(recorder.Body.String(), other) || strings.Contains(recorder.Body.String(), second.StrategyHash) || strings.Contains(recorder.Body.String(), "brokerProof") || strings.Contains(recorder.Body.String(), "walletSignature") || strings.Contains(recorder.Body.String(), "idempotencyKey") {
 		t.Fatal("Finance evidence leaked credentials or another account's Quant state")
+	}
+	contract := finance.AcceptedReadSourceContract{Accepted: true, SourceID: "quant", Owner: "08-quant-lab", OwnerContractVersion: FinanceReadContractVersion, PayloadSchema: FinanceReadPayloadSchema, AllowedCapabilities: FinanceReadCapabilities}
+	if _, err := finance.ValidateReadSourceEnvelope(recorder.Body.Bytes(), account, contract, now); err != nil {
+		t.Fatalf("Finance rejected Quant owner envelope: %v", err)
 	}
 	replay := httptest.NewRecorder()
 	server.ServeHTTP(replay, request)

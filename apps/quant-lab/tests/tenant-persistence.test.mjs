@@ -38,7 +38,7 @@ test('actual local Quant HTTP: two tenants, two processes, durable Paper replay 
   t.diagnostic('LOCAL FIXTURE ONLY: synthetic prices, browser-local tenant capability IDs; not wallet authentication, live trades, public deployment or PostgreSQL evidence.');
   const root = await mkdtemp(path.join(os.tmpdir(), 'ynx-quant-tenant-fixture-'));
   const binary = path.join(root, 'ynx-quant-fixture');
-  const build = spawnSync('go', ['build', '-o', binary, './apps/quant-lab/server'], { cwd: repository, env: { ...process.env, GOPROXY: 'off', GOSUMDB: 'off' }, encoding: 'utf8', timeout: 90_000 });
+  const build = spawnSync('go', ['build', '-o', binary, './apps/quant-lab/server'], { cwd: repository, env: { ...process.env, GOPROXY: 'off' }, encoding: 'utf8', timeout: 90_000 });
   if (build.status !== 0) await rm(root, { recursive: true, force: true });
   assert.equal(build.status, 0, build.stderr || build.error?.message);
   const processes = new Set();
