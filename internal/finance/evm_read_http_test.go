@@ -121,12 +121,24 @@ func TestEVMReadHTTPRealWalletProofDurableOwnershipAndRevoke(t *testing.T) {
 		t.Fatalf("EVM read challenge failed: status=%d body=%#v", response.StatusCode, issued)
 	}
 	challenge := issued["challenge"]
+	challengeFields := challenge.(map[string]any)
+	challengeIssuedAt, issuedErr := time.Parse(time.RFC3339Nano, challengeFields["issuedAt"].(string))
+	challengeExpiresAt, expiresErr := time.Parse(time.RFC3339Nano, challengeFields["expiresAt"].(string))
+	if issuedErr != nil || expiresErr != nil || challengeExpiresAt.Sub(challengeIssuedAt) > 5*time.Minute || !challengeExpiresAt.After(challengeIssuedAt) {
+		t.Fatal("Finance challenge exceeded its five-minute authority boundary")
+	}
 	proof := evmReadFixture(t, node, fixture, map[string]any{"action": "login", "challenge": challenge})
 	response, sessionResult := postEVMLogin(t, ts.URL+"/api/evm-read/sessions", map[string]any{"proof": proof}, BrowserFinanceOrigin)
 	if response.StatusCode != http.StatusCreated || sessionResult["privateFinanceAuthorized"] != false || sessionResult["evmAccountReadAuthorized"] != true || sessionResult["extensionLiveStateAttested"] != false {
 		t.Fatalf("EVM session issue failed: status=%d body=%#v", response.StatusCode, sessionResult)
 	}
 	session := sessionResult["session"]
+	sessionFields := session.(map[string]any)
+	sessionIssuedAt, issuedErr := time.Parse(time.RFC3339Nano, sessionFields["issuedAt"].(string))
+	sessionExpiresAt, expiresErr := time.Parse(time.RFC3339Nano, sessionFields["expiresAt"].(string))
+	if issuedErr != nil || expiresErr != nil || sessionExpiresAt.Sub(sessionIssuedAt) > 5*time.Minute || !sessionExpiresAt.After(sessionIssuedAt) {
+		t.Fatal("Finance session exceeded its five-minute last-verification boundary")
+	}
 	reopened, err := OpenStore(storePath)
 	if err != nil {
 		t.Fatal(err)
