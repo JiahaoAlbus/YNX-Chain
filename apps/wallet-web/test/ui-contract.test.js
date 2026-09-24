@@ -72,7 +72,7 @@ test("legacy dark preference retains locale and custody records while the actual
   const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
   const render = source.slice(source.indexOf("function render() {"), source.indexOf("\nfunction formError("));
   const document = {documentElement:{dataset:{}}}, app = {innerHTML:""};
-  const environment = {document,app,state:{locale:loaded.record.locale,theme:loaded.record.theme,epoch:0,connectState:{chooserOpen:true},form:{},providers:{}},
+  const environment = {document,app,isExtension:false,state:{locale:loaded.record.locale,theme:loaded.record.theme,epoch:0,connectState:{chooserOpen:true},form:{},providers:{}},
     requestedText:"large",isRTL:locale=>locale==="ar",text:key=>key,options:()=>"",escape:value=>String(value??""),platformDownloads:()=>"",statusContent:()=>"",
     packageSources:item=>`<a id="android-download" href="${item.url}">download</a>`,
     replaceMarkup:(target,markup)=>{target.innerHTML=markup},
