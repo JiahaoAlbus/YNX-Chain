@@ -32,6 +32,7 @@
     "backupConfirmedAfterUpgrade": true,
     "invalidOpaqueFinanceTicketRejected": true,
     "derivedEvmAddressAndReadOnlySimulationVisible": true,
+    "walletConnectDisabledWithoutProjectIdShown": true,
     "walletConnectRelayPairing": "NOT_VERIFIED",
     "financeBackendFourRouteE2E": "NOT_VERIFIED",
     "physicalAndroidDevice": "NOT_VERIFIED"

@@ -415,7 +415,8 @@ test("1.0.22 emulator upgrade evidence binds exact source and keeps public and p
   for (const key of ["baselineInstalledAndColdLaunched", "baselineNewAccountCreatedWithEmulatorFingerprint",
     "baselineBackupConfirmedAndUnlocked", "adbInstallRWithoutDataClear", "packageNameAndVersionCodeAfterUpgrade",
     "sameTestAccountVisibleLockedAfterUpgrade", "sameTestAccountUnlockedWithEmulatorFingerprint",
-    "backupConfirmedAfterUpgrade", "invalidOpaqueFinanceTicketRejected", "derivedEvmAddressAndReadOnlySimulationVisible"])
+    "backupConfirmedAfterUpgrade", "invalidOpaqueFinanceTicketRejected", "derivedEvmAddressAndReadOnlySimulationVisible",
+    "walletConnectDisabledWithoutProjectIdShown"])
     assert.equal(installed122.checks[key], true);
   for (const key of ["walletConnectRelayPairing", "financeBackendFourRouteE2E", "physicalAndroidDevice"])
     assert.equal(installed122.checks[key], "NOT_VERIFIED");
