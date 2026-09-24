@@ -1,12 +1,14 @@
 import {
   canonicalJSON, createFinanceOrderApprovalRequest, createFinanceOrderOpaqueCompleteRequest,
+  createFinanceOrderOpaqueLaunchURL,
   createSignedFinanceOrderApproval, createSignedFinanceOrderApprovalRevocation,
-  createSignedFinanceOrderOpaqueClaim, createSignedFinanceOrderOpaqueReject,
+  createSignedFinanceOrderOpaqueClaim, createSignedFinanceOrderOpaqueReject, createSignedFinanceOrderLegacyRecovery,
   financeOrderApprovalDigest, financeOrderOpaqueTicketHash, parseFinanceOrderOpaqueClaimResponse,
-  parseFinanceOrderOpaqueCompleteResponse, parseFinanceOrderOpaqueLaunchURL,
+  parseFinanceOrderOpaqueCompleteResponse, parseFinanceOrderOpaqueLaunchURL, parseFinanceOrderLegacyRecoveryResponse,
   parseFinanceOrderApprovalRequest, parseSignedFinanceOrderApproval,
+  verifySignedFinanceOrderApproval, verifySignedFinanceOrderApprovalRevocationAgainstUnsigned,
 } from "@ynx-chain/wallet-auth";
-import type { FinanceOrderApprovalRequest, FinanceOrderOpaqueCompleteRequest } from "@ynx-chain/wallet-auth";
+import type { FinanceOrderApprovalRequest, FinanceOrderOpaqueCompleteRequest, SignedFinanceOrderApproval, SignedFinanceOrderApprovalRevocation } from "@ynx-chain/wallet-auth";
 import type { SecureStorageAdapter, WalletAccount } from "../storage/walletRepository";
 import type { FinanceOrderApprovalReview } from "./financeOrderApprovalController";
 
@@ -22,6 +24,8 @@ type Dependencies={
   randomToken:()=>Promise<string>;
   claim:(input:Readonly<{ticket:string;claim:ReturnType<typeof createSignedFinanceOrderOpaqueClaim>}>)=>Promise<unknown>;
   complete:(input:FinanceOrderOpaqueCompleteRequest)=>Promise<unknown>;
+  recoverLegacy:(input:Readonly<{requestId:string;claim:ReturnType<typeof createSignedFinanceOrderLegacyRecovery>}>)=>Promise<unknown>;
+  inspectLegacy:(url:string)=>Promise<Readonly<{request:FinanceOrderApprovalRequest;status:"pending"|"approved"|"rejected"|"revoked";approval:SignedFinanceOrderApproval|null;revocation:SignedFinanceOrderApprovalRevocation|null}>>;
   openURL:(url:string)=>Promise<unknown>;
 };
 const MAX_ROWS=128,MAX_JOURNAL_CHARS=1024*1024;
@@ -45,12 +49,62 @@ export class FinanceOrderOpaqueController {
   }
   async receive(url:string):Promise<FinanceOrderApprovalReview>{
     return this.exclusive(async()=>{
-      this.healthy();const generation=this.generation,ticket=parseFinanceOrderOpaqueLaunchURL(url).ticket,ticketHash=financeOrderOpaqueTicketHash(ticket);
+      this.healthy();
+      if(url.startsWith("ynxwallet://finance-order-approval?request="))
+        return this.receiveLegacy(url);
+      return this.receiveTicket(url);
+    });
+  }
+  private async receiveLegacy(url:string):Promise<FinanceOrderApprovalReview>{
+    const generation=this.generation,legacy=await this.dependencies.inspectLegacy(url);
+    const selected=this.snapshotSelected(),challenge=legacy.request.unsigned;
+    if(selected.account!==challenge.account||selected.accountPublicKey!==challenge.accountPublicKey)
+      throw new Error("Legacy Finance order belongs to another Wallet account");
+    const at=await this.time(()=>this.assertSelected(selected,generation));
+    const nonce=await this.dependencies.randomToken();this.assertSelected(selected,generation);
+    const claim=await this.dependencies.withAccountSecret(selected.account,()=>this.assertSelected(selected,generation),async(secret,assertKeyCurrent)=>{
+      assertKeyCurrent();this.assertSelected(selected,generation);
+      return createSignedFinanceOrderLegacyRecovery({challenge,nonce},at,secret);
+    });
+    const recovered=parseFinanceOrderLegacyRecoveryResponse(await this.dependencies.recoverLegacy({requestId:challenge.requestId,claim}),{requestId:challenge.requestId});
+    this.assertSelected(selected,generation);
+    const review=await this.receiveTicket(createFinanceOrderOpaqueLaunchURL(recovered.ticket),legacy.request);
+    if(legacy.status==="pending")return review;
+    const p=this.require(review.id);
+    if(p.row.status!=="pending")return review;
+    let proof:FinanceOrderOpaqueCompleteRequest["proof"];
+    if(legacy.status==="approved"){
+      if(!legacy.approval)throw new Error("Legacy approved proof is absent");
+      proof=verifySignedFinanceOrderApproval(legacy.approval,challenge,at);
+    }else if(legacy.status==="revoked"){
+      if(!legacy.revocation)throw new Error("Legacy revocation proof is absent");
+      proof=verifySignedFinanceOrderApprovalRevocationAgainstUnsigned(legacy.revocation,challenge,at);
+    }else{
+      proof=await this.dependencies.withAccountSecret(selected.account,()=>this.assertSelected(selected,generation),async(secret,assertKeyCurrent)=>{
+        assertKeyCurrent();this.assertSelected(selected,generation);
+        return createSignedFinanceOrderOpaqueReject({ticket:p.row.ticket,challenge},at,secret);
+      });
+    }
+    this.assertSelected(selected,generation);
+    await this.mutate(async()=>{
+      const rows=await this.readRows(at),index=rows.findIndex(row=>row.digest===p.row.digest);
+      const stored=rows[index];if(!stored||stored.status!=="pending"||stored.ticketHash!==p.row.ticketHash)
+        throw new Error("Legacy Finance migration result changed");
+      const next:Row={...stored,status:legacy.status,proof,returnURL:null},updated=[...rows];updated[index]=next;
+      await this.writeRows(updated);p.row=next;
+    });
+    p.review=Object.freeze({...review,decision:legacy.status});
+    return p.review;
+  }
+  private async receiveTicket(url:string,expectedLegacy:FinanceOrderApprovalRequest|null=null):Promise<FinanceOrderApprovalReview>{
+      const generation=this.generation,ticket=parseFinanceOrderOpaqueLaunchURL(url).ticket,ticketHash=financeOrderOpaqueTicketHash(ticket);
       const selected=this.snapshotSelected();
       if(this.pending){if(this.pending.row.ticketHash===ticketHash){this.check(this.pending,generation);return this.pending.review}throw new Error("Finish the current Finance order approval first")}
       const at=await this.time(()=>this.assertGeneration(generation));
       const existing=(await this.readRows(at)).find(row=>row.ticketHash===ticketHash);
       if(existing){
+        if(expectedLegacy&&canonicalJSON(existing.request.unsigned)!==canonicalJSON(expectedLegacy.unsigned))
+          throw new Error("Recovered Finance order differs from legacy challenge");
         if(existing.request.unsigned.account!==selected.account||existing.request.unsigned.accountPublicKey!==selected.accountPublicKey)throw new Error("Finance order belongs to another Wallet account");
         const review=Object.freeze({id:existing.digest,request:existing.request,account:selected,decision:existing.status});
         this.pending={review,row:existing};return review;
@@ -65,6 +119,8 @@ export class FinanceOrderOpaqueController {
       const response=parseFinanceOrderOpaqueClaimResponse(await this.dependencies.claim(Object.freeze({ticket,claim})),{ticket,account:selected.account,accountPublicKey:selected.accountPublicKey});
       this.assertSelected(selected,generation);
       const request=createFinanceOrderApprovalRequest(response.challenge,new Date(response.serverTime));
+      if(expectedLegacy&&canonicalJSON(request.unsigned)!==canonicalJSON(expectedLegacy.unsigned))
+        throw new Error("Recovered Finance order differs from legacy challenge");
       const digest=financeOrderApprovalDigest(request.unsigned);
       const row:Row={ticket,ticketHash,request,digest,status:"pending",proof:null,returnURL:null};
       await this.mutate(async()=>{const current=await this.readRows(new Date(response.serverTime));this.assertSelected(selected,generation);
@@ -74,7 +130,6 @@ export class FinanceOrderOpaqueController {
       });
       const review=Object.freeze({id:digest,request,account:selected,decision:"pending" as const});
       this.pending={review,row};return review;
-    });
   }
   async approve(id:string):Promise<void>{return this.decide(id,"approved")}
   async reject(id:string):Promise<void>{return this.decide(id,"rejected")}

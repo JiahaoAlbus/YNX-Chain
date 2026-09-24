@@ -46,6 +46,18 @@ export class FinanceOrderApprovalController {
   hasReturn(id: string): boolean { return this.pending?.review.id === id && this.pending.returnURL !== null; }
   canRevoke(id: string): boolean { return this.pending?.review.id === id && this.pending.status === "approved"; }
 
+  /** Read-only v1 migration inspection. Never opens the persisted full-proof URL. */
+  async inspectForOpaqueMigration(url:string):Promise<Readonly<{request:FinanceOrderApprovalRequest;status:"pending"|"approved"|"rejected"|"revoked";approval:SignedFinanceOrderApproval|null;revocation:SignedFinanceOrderApprovalRevocation|null}>>{
+    const at=await this.time(()=>this.healthy());
+    const request=parseFinanceOrderApprovalWalletURL(url,at);
+    const digest=financeOrderApprovalDigest(request.unsigned);
+    const row=(await this.readRecords(at)).find(item=>item.digest===digest);
+    if(row&&canonicalJSON(row.request)!==canonicalJSON(request))throw new Error("Legacy Finance order journal challenge changed");
+    if(row?.status==="reserved")throw new Error("Legacy Finance order signing result is uncertain; restart Wallet before migration");
+    const status:"pending"|"approved"|"rejected"|"revoked"=row?.status??"pending";
+    return Object.freeze({request,status,approval:row?.approval??null,revocation:row?.revocation??null});
+  }
+
   /** Uses the authenticated authority clock. Device wall time may schedule this
    * check, but never decides whether signing remains available. */
   async isExpired(id: string): Promise<boolean> {

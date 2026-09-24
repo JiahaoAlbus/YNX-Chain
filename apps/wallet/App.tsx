@@ -10,7 +10,7 @@ import QRCodeView from "react-native-qrcode-svg";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
   createSignedNativeTransfer, evmAddressFromYNX, walletIdentity, ynxAddressFromEVM,
-  FINANCE_ORDER_OPAQUE_CLAIM_PATH, FINANCE_ORDER_OPAQUE_COMPLETE_PATH,
+  FINANCE_ORDER_OPAQUE_CLAIM_PATH, FINANCE_ORDER_OPAQUE_COMPLETE_PATH, FINANCE_ORDER_OPAQUE_RECOVER_LEGACY_PATH,
 } from "@ynx-chain/wallet-auth";
 import { GatewaySecurityReviewProvider, SecurityReviewController, type ReviewSnapshot } from "./src/ai/securityReview";
 import { NativeChainClient, loadNativeChainState, isNativeReadCancelled, nativeChainClientForStoredOrigin, type NativeChainState } from "./src/chain/nativeTransfer";
@@ -30,7 +30,6 @@ import { ApplicationActionController, type ApplicationActionReview } from "./src
 import { CardApplicationApprovalController, type CardApplicationApprovalReview } from "./src/protocol/cardApplicationApprovalController";
 import { FinanceOrderApprovalController, type FinanceOrderApprovalReview } from "./src/protocol/financeOrderApprovalController";
 import { FinanceOrderOpaqueController } from "./src/protocol/financeOrderOpaqueController";
-import { FinanceOrderApprovalCoordinator } from "./src/protocol/financeOrderApprovalCoordinator";
 import { scopeExplanation } from "./src/i18n/scopeCopy";
 import { authorizationCopy } from "./src/i18n/authorizationCopy";
 import { applicationActionCopy } from "./src/i18n/applicationActionCopy";
@@ -65,7 +64,8 @@ const repository=new WalletRepository(platformSecureStorage);
 const nativeOutbox=new NativeTransferOutbox(platformSecureStorage);
 const authorizationAudit=new AuthorizationAuditStore(platformSecureStorage);
 async function postFinanceOrderHandoff(path:string,body:unknown):Promise<unknown>{
-  if(path!==FINANCE_ORDER_OPAQUE_CLAIM_PATH&&path!==FINANCE_ORDER_OPAQUE_COMPLETE_PATH)throw new Error("Finance handoff route is not authorized");
+  if(path!==FINANCE_ORDER_OPAQUE_CLAIM_PATH&&path!==FINANCE_ORDER_OPAQUE_COMPLETE_PATH&&path!==FINANCE_ORDER_OPAQUE_RECOVER_LEGACY_PATH)
+    throw new Error("Finance handoff route is not authorized");
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10_000);
   try{
     const response=await fetch("https://finance.ynxweb4.com"+path,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
@@ -125,10 +125,11 @@ function WalletApp(){
     const shared={storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:access,
       currentTime:(assertCurrent:()=>void)=>walletSessionInventoryClient().currentTime(assertCurrent),openURL:(url:string)=>Linking.openURL(url)};
     const legacy=new FinanceOrderApprovalController(shared);
-    const opaque=new FinanceOrderOpaqueController({...shared,randomToken:async()=>bytesToHex(await getRandomBytesAsync(32)),
+    return new FinanceOrderOpaqueController({...shared,randomToken:async()=>bytesToHex(await getRandomBytesAsync(32)),
       claim:body=>postFinanceOrderHandoff(FINANCE_ORDER_OPAQUE_CLAIM_PATH,body),
-      complete:body=>postFinanceOrderHandoff(FINANCE_ORDER_OPAQUE_COMPLETE_PATH,body)});
-    return new FinanceOrderApprovalCoordinator(legacy,opaque);
+      complete:body=>postFinanceOrderHandoff(FINANCE_ORDER_OPAQUE_COMPLETE_PATH,body),
+      recoverLegacy:body=>postFinanceOrderHandoff(FINANCE_ORDER_OPAQUE_RECOVER_LEGACY_PATH,body),
+      inspectLegacy:url=>legacy.inspectForOpaqueMigration(url)});
   },[operations]);
   const cancelAuthorization=useCallback(()=>{++linkRevision.current;productSessions.cancel();applicationActions.cancel();cardApprovals.cancel();financeOrderApprovals.cancel();setAuthorization(null);setApplicationAction(null);setCardApproval(null);setFinanceOrderApproval(null)},[productSessions,applicationActions,cardApprovals,financeOrderApprovals]);
   const lock=()=>{void walletConnectRuntime.rejectPendingForLock();operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
@@ -641,7 +642,7 @@ function CardApprovalModal({locale,review,controller,close,onReturned}:{locale:W
   </Sheet></Modal>
 }
 
-function FinanceOrderApprovalModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:FinanceOrderApprovalReview;controller:FinanceOrderApprovalCoordinator;close:()=>void;onReturned:()=>void}){
+function FinanceOrderApprovalModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:FinanceOrderApprovalReview;controller:FinanceOrderOpaqueController;close:()=>void;onReturned:()=>void}){
   const {request,account:selected}=review,approval=request.unsigned,order=approval.order;
   const scope=useOperationScope(true,selected.account);
   const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[expired,setExpired]=useState(false),[returnReady,setReturnReady]=useState(()=>controller.hasReturn(review.id)),[revocable,setRevocable]=useState(()=>controller.canRevoke(review.id));

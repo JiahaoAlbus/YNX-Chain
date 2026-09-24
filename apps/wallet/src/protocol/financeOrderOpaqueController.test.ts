@@ -5,7 +5,9 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 import {
   createFinanceOrderOpaqueLaunchURL, financeOrderOpaqueTicketHash, parseFinanceOrderOpaqueCallbackURL,
-  verifyFinanceOrderOpaqueClaim,
+  createFinanceOrderApprovalRequest, encodeFinanceOrderApprovalWalletURL,
+  verifyFinanceOrderOpaqueClaim, verifySignedFinanceOrderLegacyRecovery, createSignedFinanceOrderApproval,
+  createSignedFinanceOrderApprovalRevocation,
 } from "@ynx-chain/wallet-auth";
 import type { FinanceOrderApprovalUnsigned } from "@ynx-chain/wallet-auth";
 import { FinanceOrderOpaqueController, FINANCE_ORDER_OPAQUE_REPLAY_KEY } from "./financeOrderOpaqueController";
@@ -18,7 +20,8 @@ const account={account:unsigned.account,accountPublicKey:unsigned.accountPublicK
 const at=new Date("2026-09-19T09:01:00.000Z");
 
 function setup(saved=new Map<string,string>()){
-  const events={claimed:0,completed:0,keys:0,opens:[] as string[],now:new Date(at),selected:account,failOpen:false,failComplete:false};
+  const events={claimed:0,completed:0,keys:0,opens:[] as string[],now:new Date(at),selected:account,failOpen:false,failComplete:false,
+    legacy:null as null|{request:ReturnType<typeof createFinanceOrderApprovalRequest>;status:"pending"|"approved"|"rejected"|"revoked";approval:any;revocation:any}};
   const storage:any={
     getItem:async(key:string)=>saved.get(key)??null,
     setItem:async(key:string,value:string)=>{saved.set(key,value)},
@@ -32,9 +35,14 @@ function setup(saved=new Map<string,string>()){
     claim:async body=>{events.claimed++;verifyFinanceOrderOpaqueClaim(body.claim,{ticket,account:unsigned.account,accountPublicKey:unsigned.accountPublicKey},events.now);
       return {version:"2",ticketHash:financeOrderOpaqueTicketHash(ticket),challenge:unsigned,serverTime:events.now.toISOString()}},
     complete:async body=>{events.completed++;if(events.failComplete)throw new Error("handoff unavailable");
-      assert.equal(body.ticket,ticket);assert.equal(body.requestId,unsigned.requestId);
+      assert.equal(body.ticket,ticket);assert.deepEqual(Object.keys(body).sort(),["proof","status","ticket"]);
       return {version:"2",ticketHash:financeOrderOpaqueTicketHash(ticket),requestId:unsigned.requestId,status:"stored",
         code,state,serverTime:events.now.toISOString(),expiresAt:"2026-09-19T09:02:00.000Z"}},
+    recoverLegacy:async body=>{if(!events.legacy)throw new Error("Legacy recovery fixture not configured");
+      assert.equal(body.requestId,unsigned.requestId);
+      verifySignedFinanceOrderLegacyRecovery(body.claim,events.legacy.request.unsigned,new Date("2026-09-19T09:02:00.000Z"),events.now);
+      return {version:"2",ticket,ticketHash:financeOrderOpaqueTicketHash(ticket),serverTime:events.now.toISOString()}},
+    inspectLegacy:async()=>{if(!events.legacy)throw new Error("Legacy journal fixture not configured");return events.legacy},
     openURL:async url=>{events.opens.push(url);if(events.failOpen)throw new Error("callback unavailable")},
   });
   return {events,saved,controller,url:createFinanceOrderOpaqueLaunchURL(ticket)};
@@ -98,4 +106,44 @@ test("account changes stop review and wrong claim account cannot reveal order",a
   await assert.rejects(c.receive(f.url));
   assert.equal(f.events.claimed,1);
   assert.equal(f.events.opens.length,0);
+});
+
+test("pre-cutover v1 approved proof migrates through signed recovery and opaque completion without re-signing approval",async()=>{
+  const f=setup(),c=f.controller(),request=createFinanceOrderApprovalRequest(unsigned,at),legacyURL=encodeFinanceOrderApprovalWalletURL(request,at);
+  const approval=createSignedFinanceOrderApproval({accountSecret:secret,approval:unsigned},at);
+  f.events.legacy={request,status:"approved",approval,revocation:null};
+  const review=await c.receive(legacyURL);
+  assert.equal(review.decision,"approved");assert.equal(f.events.claimed,1);assert.equal(c.hasReturn(review.id),true);
+  const keys=f.events.keys;
+  await c.retryReturn(review.id);
+  assert.equal(f.events.keys,keys);
+  assert.equal(f.events.opens[0]!.includes("financeOrderApprovalResult"),false);
+  assert.equal(f.events.opens[0]!.includes(unsigned.brokerAccountId),false);
+  const row=JSON.parse(f.saved.get(FINANCE_ORDER_OPAQUE_REPLAY_KEY)!).rows[0];
+  assert.equal(row.status,"approved");assert.deepEqual(row.proof,approval);
+});
+
+test("pre-cutover v1 rejection and unused revocation migrate without opening old callback",async()=>{
+  const request=createFinanceOrderApprovalRequest(unsigned,at),legacyURL=encodeFinanceOrderApprovalWalletURL(request,at);
+  const rejected=setup();rejected.events.legacy={request,status:"rejected",approval:null,revocation:null};
+  const rejectController=rejected.controller(),rejectReview=await rejectController.receive(legacyURL);
+  assert.equal(rejectReview.decision,"rejected");
+  await rejectController.retryReturn(rejectReview.id);
+  assert.equal(rejected.events.opens[0]!.includes("financeOrderApprovalResult"),false);
+  assert.equal(JSON.parse(rejected.saved.get(FINANCE_ORDER_OPAQUE_REPLAY_KEY)!).rows[0].proof.action,"reject");
+  const revoked=setup(),approval=createSignedFinanceOrderApproval({accountSecret:secret,approval:unsigned},at);
+  revoked.events.now=new Date("2026-09-19T09:01:20.000Z");
+  const revocation=createSignedFinanceOrderApprovalRevocation({accountSecret:secret,approval},revoked.events.now);
+  revoked.events.legacy={request,status:"revoked",approval,revocation};
+  const revokeController=revoked.controller(),revokeReview=await revokeController.receive(legacyURL);
+  assert.equal(revokeReview.decision,"revoked");
+  await revokeController.retryReturn(revokeReview.id);
+  assert.equal(revoked.events.opens[0]!.includes("financeOrderApprovalResult"),false);
+  assert.deepEqual(JSON.parse(revoked.saved.get(FINANCE_ORDER_OPAQUE_REPLAY_KEY)!).rows[0].proof,revocation);
+});
+
+test("unknown legacy challenge stays fail closed and never opens a full-proof callback",async()=>{
+  const f=setup(),c=f.controller(),legacyURL=encodeFinanceOrderApprovalWalletURL(createFinanceOrderApprovalRequest(unsigned,at),at);
+  await assert.rejects(c.receive(legacyURL),/Legacy journal fixture not configured/);
+  assert.equal(f.events.claimed,0);assert.equal(f.events.completed,0);assert.equal(f.events.opens.length,0);
 });
