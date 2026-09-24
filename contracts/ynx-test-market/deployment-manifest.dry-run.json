@@ -1,0 +1,36 @@
+{
+  "manifestVersion": "ynx-test-market-dry-run-v1",
+  "network": "ynx_6423-1",
+  "chainId": 6423,
+  "testOnly": true,
+  "environment": "ephemeral-hardhat-qa6423",
+  "actualTestnetDeployment": "NOT_VERIFIED",
+  "publicAddresses": null,
+  "constructorInputs": {
+    "stock": {
+      "name": "YNX Test AAPL",
+      "symbol": "TEST-AAPL",
+      "cap": "1000000000000",
+      "admin": "CONFIGURE_QA_ADMIN",
+      "issuer": "CONFIGURE_QA_ISSUER"
+    },
+    "cash": {
+      "name": "YNX Test USD",
+      "symbol": "tUSD",
+      "cap": "10000000000000",
+      "admin": "CONFIGURE_QA_ADMIN",
+      "issuer": "CONFIGURE_QA_ISSUER"
+    },
+    "settlement": {
+      "stock": "DEPLOYED_TEST_AAPL",
+      "cash": "DEPLOYED_TUSD",
+      "feeRecipient": "CONFIGURE_QA_FEE_RECIPIENT",
+      "feeBps": 25
+    }
+  },
+  "creationBytecodeKeccak256": {
+    "TestAsset": "0x9725cf7a44a67f51a1d564d61766c163030a6839131e6370b8f18d05b8601a39",
+    "TestDvP": "0x65ae8e1b12bfda6ff449d9ccb8203daa3214e637860aa38924096ab2cb18365d"
+  },
+  "localDeploymentChecks": "PASS"
+}

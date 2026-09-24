@@ -1,0 +1,12 @@
+{
+  "catalogVersion": "ynx-test-market-v1",
+  "network": "ynx_6423-1",
+  "chainId": 6423,
+  "testOnly": true,
+  "realWorldRights": false,
+  "assets": [
+    { "symbol": "TEST-AAPL", "name": "YNX Test AAPL", "decimals": 6, "maximumUnits": "1000000000000", "meaning": "Valueless synthetic QA security; not an Apple share" },
+    { "symbol": "tUSD", "name": "YNX Test USD", "decimals": 6, "maximumUnits": "10000000000000", "meaning": "Valueless synthetic QA cash; not USDC, USDT or a redeemable dollar" }
+  ],
+  "settlement": { "feeBps": 25, "maximumFeeBps": 500, "mode": "bilateral EIP-712 signatures and atomic same-chain delivery versus payment" }
+}
