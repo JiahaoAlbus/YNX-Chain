@@ -11,7 +11,7 @@ test("GitHub primary exception cannot promote another URL, digest, bytes or sign
     {filename:"other.apk"},{assetPath:"/other.apk"},{releaseTag:"other"},{releaseImmutable:true},
     {publisherCanReplaceAssets:false},{downloadTimeSha256Verified:true}])
     assert.equal(isPinnedAndroidRelease({...item,...patch}),false);
-  const filename="ynx-wallet-1.0.16-testnet-preview-e9816a827-local-test-signed.aab";
+  const filename="ynx-wallet-1.0.20-testnet-preview-f3a12abad-local-test-signed.aab";
   const assetPath=`/JiahaoAlbus/YNX-Chain/releases/download/${item.releaseTag}/${filename}`;
   assert.equal(isPinnedAndroidRelease({...item,filename,assetPath,fallbackUrl:"https://github.com"+assetPath}),false);
   assert.equal(isPinnedAndroidRelease({...item,filename,assetPath,url:"https://github.com"+assetPath,fallbackUrl:"https://github.com"+assetPath}),false);

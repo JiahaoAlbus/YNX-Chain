@@ -9,7 +9,7 @@
   "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-1.0.20-f3a12abad",
   "releaseImmutable": false,
   "publisherCanReplaceAssets": true,
-  "downloadTimeSha256Verified": false,
+  "downloadTimeSha256Verified": true,
   "productionSigned": false,
   "storeReleased": false,
   "walletConnectRelayE2E": "NOT_VERIFIED",
@@ -41,14 +41,5 @@
     }
   ],
   "publicationEvidence": "proof/wallet-android-1.0.20-publication-20260924.json",
-  "generatedAt": "2026-09-24T12:53:59Z",
-  "publishedRelease": {
-    "tag": "wallet-android-testnet-preview-1.0.20-f3a12abad",
-    "prerelease": true,
-    "publicationAfterMergeOnly": true
-  },
-  "publicArtifactUrls": [
-    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk",
-    "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-local-test-signed.aab"
-  ]
+  "generatedAt": "2026-09-24T12:53:59Z"
 }
