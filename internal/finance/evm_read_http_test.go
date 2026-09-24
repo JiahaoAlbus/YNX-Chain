@@ -179,6 +179,25 @@ func TestEVMReadHTTPRealWalletProofDurableOwnershipAndRevoke(t *testing.T) {
 	if missingResponse.StatusCode != http.StatusForbidden {
 		t.Fatalf("originless GET without browser metadata was accepted: %d", missingResponse.StatusCode)
 	}
+	for _, mismatch := range []struct {
+		host string
+		site string
+	}{{"attacker.example", "same-origin"}, {"finance.ynxweb4.com", "cross-site"}} {
+		request, _ := http.NewRequest(http.MethodGet, ts.URL+target, nil)
+		request.Host = mismatch.host
+		request.Header.Set("Sec-Fetch-Site", mismatch.site)
+		request.Header.Set("Sec-Fetch-Mode", "cors")
+		request.Header.Set("Sec-Fetch-Dest", "empty")
+		request.Header.Set(evmReadProofHeader, base64.RawURLEncoding.EncodeToString(browserGETProof))
+		denied, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = denied.Body.Close()
+		if denied.StatusCode != http.StatusForbidden {
+			t.Fatalf("originless GET with host/site mismatch was accepted: host=%s site=%s status=%d", mismatch.host, mismatch.site, denied.StatusCode)
+		}
+	}
 	if response, _ := evmReadGET(t, ts.URL+target, readProof, BrowserFinanceOrigin); response.StatusCode == http.StatusOK {
 		t.Fatal("HTTP proof replay read private EVM account data")
 	}
