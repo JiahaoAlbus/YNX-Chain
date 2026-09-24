@@ -138,6 +138,10 @@ func (s *Server) walletLoginVerify(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, "origin_not_allowed", "Wallet login proof must return from its issued origin")
 		return
 	}
+	if err := s.service.Store.ReserveWalletLoginVerification(record.Account, record.RequestID, record.Nonce, s.now().UTC()); err != nil {
+		writeError(w, http.StatusTooManyRequests, "wallet_login_attempts_exhausted", "Wallet login verification cannot use this challenge again; request a new one")
+		return
+	}
 	verified, err := s.cfg.EVMLoginAuthority.Verify(r.Context(), input.Proof, json.RawMessage(record.ExactChallenge), s.now().UTC())
 	if err != nil || verified.Account != record.Account || verified.RequestID != record.RequestID || verified.Nonce != record.Nonce || verified.ProductID != "finance" || verified.ChainID != 6423 || verified.AccountType != "eoa" || len(verified.Scopes) != 1 || verified.Scopes[0] != financeEVMLoginScope || (verified.ProviderKind != "ynx-wallet" && verified.ProviderKind != "metamask") {
 		writeError(w, http.StatusUnauthorized, "wallet_login_rejected", "Wallet login signature or exact binding was rejected")

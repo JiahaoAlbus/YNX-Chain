@@ -26,6 +26,7 @@ type WalletLoginChallengeRecord struct {
 	ExactChallenge string     `json:"exactChallenge"`
 	IssuedAt       time.Time  `json:"issuedAt"`
 	ExpiresAt      time.Time  `json:"expiresAt"`
+	AttemptCount   uint8      `json:"attemptCount,omitempty"`
 	ConsumedAt     *time.Time `json:"consumedAt,omitempty"`
 }
 
@@ -41,6 +42,9 @@ func validateWalletLoginChallenge(record WalletLoginChallengeRecord) error {
 	}
 	if record.ConsumedAt != nil && (record.ConsumedAt.Before(record.IssuedAt) || record.ConsumedAt.After(record.ExpiresAt)) {
 		return errors.New("Finance Wallet login challenge consumption time is invalid")
+	}
+	if record.AttemptCount > 5 || (record.ConsumedAt != nil && record.AttemptCount == 0) {
+		return errors.New("Finance Wallet login challenge attempt state is invalid")
 	}
 	return nil
 }
@@ -59,7 +63,7 @@ func (s *Store) PutWalletLoginChallenge(record WalletLoginChallengeRecord, now t
 	record.Account = strings.ToLower(strings.TrimSpace(record.Account))
 	record.IssuedAt = record.IssuedAt.UTC()
 	record.ExpiresAt = record.ExpiresAt.UTC()
-	if record.ConsumedAt != nil {
+	if record.ConsumedAt != nil || record.AttemptCount != 0 {
 		return errors.New("new Finance Wallet login challenge cannot already be consumed")
 	}
 	if err := validateWalletLoginChallenge(record); err != nil {
@@ -112,6 +116,26 @@ func (s *Store) WalletLoginChallenge(account, requestID string) (WalletLoginChal
 	return cloneWalletLoginChallenge(record), nil
 }
 
+// ReserveWalletLoginVerification spends one durable attempt before expensive
+// EVM signature verification. A second process sees the same cap through the
+// Store's repository CAS instead of relying on its local HTTP rate map.
+func (s *Store) ReserveWalletLoginVerification(account, requestID, nonce string, now time.Time) error {
+	account = strings.ToLower(strings.TrimSpace(account))
+	requestID, nonce, now = strings.TrimSpace(requestID), strings.TrimSpace(nonce), now.UTC()
+	return s.updateAllState(account, "wallet_login.verification_attempt", requestID, func(state *persistedState) error {
+		record, exists := state.WalletLoginChallenges[requestID]
+		if !exists || record.Account != account || record.Nonce != nonce || record.ConsumedAt != nil || now.Before(record.IssuedAt.Add(-2*time.Minute)) || !now.Before(record.ExpiresAt) {
+			return errors.New("Finance Wallet login challenge is not available for verification")
+		}
+		if record.AttemptCount >= 5 {
+			return errors.New("Finance Wallet login verification attempt cap reached")
+		}
+		record.AttemptCount++
+		state.WalletLoginChallenges[requestID] = record
+		return nil
+	})
+}
+
 func (s *Store) ConsumeWalletLoginChallenge(account, requestID, nonce string, now time.Time) error {
 	account = strings.ToLower(strings.TrimSpace(account))
 	requestID, nonce, now = strings.TrimSpace(requestID), strings.TrimSpace(nonce), now.UTC()
@@ -122,6 +146,9 @@ func (s *Store) ConsumeWalletLoginChallenge(account, requestID, nonce string, no
 		}
 		if record.ConsumedAt != nil {
 			return errors.New("Finance Wallet login challenge was already consumed")
+		}
+		if record.AttemptCount == 0 {
+			return errors.New("Finance Wallet login verification was not reserved")
 		}
 		if now.Before(record.IssuedAt.Add(-2*time.Minute)) || !now.Before(record.ExpiresAt) {
 			return errors.New("Finance Wallet login challenge expired or is not active")

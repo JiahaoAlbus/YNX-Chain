@@ -4,6 +4,7 @@ import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {chromium} from 'playwright';
+import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 
 // Real local Chrome executes the exact Finance bundle. Providers/accounts below
 // are injected test fixtures, not installed-wallet or public authorization proof.
@@ -17,7 +18,7 @@ test.before(async()=>{
     try{const bytes=await readFile(new URL(file,web));res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html'});res.end(bytes);}catch{res.writeHead(404);res.end();}
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base=`http://127.0.0.1:${server.address().port}`;
-  browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+  browser=await chromium.launch(await financeBrowserLaunchOptions());
 });
 test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
 async function fixture({saved=null,missing=false,revoke='success',deferSwitch=false,deferRevoke=false,rejectSign=false,deferSign=false}={}){

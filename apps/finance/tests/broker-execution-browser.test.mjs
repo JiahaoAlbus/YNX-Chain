@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
+import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 
 const web=new URL('../web/',import.meta.url);
 const orderId='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
@@ -54,7 +55,7 @@ test.before(async()=>{
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   base=`http://127.0.0.1:${server.address().port}`;
-  browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+  browser=await chromium.launch(await financeBrowserLaunchOptions());
 });
 test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
 

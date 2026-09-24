@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
+import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 import {
   createFinanceOrderApprovalRequest,
   createFinanceOrderApprovalReturnURL,
@@ -13,7 +14,7 @@ import registry from '../web/vendor/product-session-registry-a7dad7ec.json' with
 const ORIGIN='https://finance.ynxweb4.com';
 const vectors=JSON.parse(await readFile(new URL('../integration/wallet-auth/finance-order-approval-v1.vectors.json',import.meta.url),'utf8'));
 let browser;
-test.before(async()=>{browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});});
+test.before(async()=>{browser=await chromium.launch(await financeBrowserLaunchOptions());});
 test.after(async()=>browser.close());
 
 async function setup(){
