@@ -102,9 +102,17 @@ export class FinanceOrderOpaqueController {
     stateBinding:FinanceOrderStateBinding=FINANCE_ORDER_STATE_BINDING_SHA256):Promise<FinanceOrderApprovalReview>{
       const generation=this.generation,ticket=parseFinanceOrderOpaqueLaunchURL(url).ticket,ticketHash=financeOrderOpaqueTicketHash(ticket);
       const selected=this.snapshotSelected();
-      if(this.pending){if(this.pending.row.ticketHash===ticketHash){this.check(this.pending,generation);return this.pending.review}throw new Error("Finish the current Finance order approval first")}
-      const at=await this.time(()=>this.assertGeneration(generation));
+      if(this.pending){
+        if(this.pending.row.ticketHash!==ticketHash)throw new Error("Finish the current Finance order approval first");
+        this.check(this.pending,generation);
+        if(this.pending.row.stateBinding!==stateBinding)throw new Error("Finance callback state binding differs from recovered ticket");
+        if(expectedLegacy&&canonicalJSON(this.pending.row.request.unsigned)!==canonicalJSON(expectedLegacy.unsigned))
+          throw new Error("Recovered Finance order differs from legacy challenge");
+        return this.pending.review;
+      }
+      const at=await this.time(()=>this.assertSelected(selected,generation));
       const existing=(await this.readRows(at)).find(row=>row.ticketHash===ticketHash);
+      this.assertSelected(selected,generation);
       if(existing){
         if(existing.stateBinding!==stateBinding)throw new Error("Finance callback state binding differs from recovered ticket");
         if(expectedLegacy&&canonicalJSON(existing.request.unsigned)!==canonicalJSON(expectedLegacy.unsigned))
