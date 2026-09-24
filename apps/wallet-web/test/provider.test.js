@@ -178,9 +178,9 @@ test("canonical YNX mobile authorization stays closed until Core freezes the exa
 test("default download opens platform selection and Android uses the exact observed release", () => {
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.hosted,true);
   assert.equal(YNX_DOWNLOAD_URL,"https://www.ynxweb4.com/dapp/wallet/open-download");
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk");
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.bytes,116631255);
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,"89a842dc8641206a9154a6e41fd1c9e3cbb4b6cca2cea455ed5b7fc674b558c0");
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk");
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.bytes,116741810);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,"143835c4931b190f0249818f04de6f82b1f2aaa0eb155684e929f365f3b1bfc0");
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.contentType,"application/vnd.android.package-archive");
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.productionSigned,false);
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
