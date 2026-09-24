@@ -116,7 +116,14 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, EVMReadAuthority: evmRead, EVMSubjectAuthority: evmSubject, BrokerOpaqueAuthority: brokerOpaque, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
+	var opaqueCutover time.Time
+	if raw := os.Getenv("YNX_FINANCE_ORDER_OPAQUE_LEGACY_CUTOVER_AT"); raw != "" {
+		opaqueCutover, err = time.Parse(time.RFC3339Nano, raw)
+		if err != nil || !strings.HasSuffix(raw, "Z") || opaqueCutover.IsZero() {
+			log.Fatal("invalid Finance opaque legacy cutover")
+		}
+	}
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, EVMReadAuthority: evmRead, EVMSubjectAuthority: evmSubject, BrokerOpaqueAuthority: brokerOpaque, BrokerOpaqueLegacyCutoverAt: opaqueCutover, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -216,9 +216,71 @@ func (s *Server) brokerOpaqueComplete(w http.ResponseWriter, r *http.Request) {
 		"expiresAt": evmReadTime(stored.CodeExpiresAt), "serverTime": evmReadTime(s.now().UTC().Truncate(time.Millisecond))})
 }
 
-func (s *Server) brokerOpaqueRecoverLegacy(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) brokerOpaqueRecoverLegacy(w http.ResponseWriter, r *http.Request) {
+	if !s.brokerOpaqueAvailable(w) {
+		return
+	}
+	if s.cfg.BrokerOpaqueLegacyCutoverAt.IsZero() {
+		writeError(w, http.StatusServiceUnavailable, "legacy_recovery_not_enabled", "Pre-cutover recovery requires an operator-bound cutover")
+		return
+	}
+	if !s.allow("broker-opaque-recover:"+brokerOpaqueRemoteHost(r), http.MethodPost) {
+		writeError(w, http.StatusTooManyRequests, "rate_limited", "Confidential recovery rate limit exceeded")
+		return
+	}
+	var input struct {
+		Proof json.RawMessage `json:"proof"`
+	}
+	if decodeStrict(w, r, &input) != nil || len(input.Proof) == 0 || len(input.Proof) > 16<<10 {
+		writeError(w, http.StatusBadRequest, "invalid_recovery", "Fresh signed legacy recovery proof required")
+		return
+	}
+	var identity struct {
+		Account   string `json:"account"`
+		RequestID string `json:"requestId"`
+	}
+	if json.Unmarshal(input.Proof, &identity) != nil || !evmSubjectRequestID.MatchString(identity.RequestID) || identity.Account == "" {
+		writeError(w, http.StatusBadRequest, "invalid_recovery", "Legacy recovery identity is invalid")
+		return
+	}
+	challenge, err := s.service.Store.legacyBrokerOrderRecoveryChallenge(identity.Account, identity.RequestID)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "recovery_rejected", "Pre-cutover order unavailable")
+		return
+	}
+	result, err := s.cfg.BrokerOpaqueAuthority.Invoke(r.Context(), map[string]any{"action": "recover-legacy", "proof": input.Proof,
+		"challenge": challenge, "cutoverAt": evmReadTime(s.cfg.BrokerOpaqueLegacyCutoverAt.UTC().Truncate(time.Millisecond)),
+		"at": evmReadTime(s.now().UTC().Truncate(time.Millisecond))}, "", nil)
+	var verified struct {
+		Kind      string `json:"kind"`
+		Action    string `json:"action"`
+		Verified  bool   `json:"verified"`
+		Account   string `json:"account"`
+		RequestID string `json:"requestId"`
+		Nonce     string `json:"nonce"`
+	}
+	if err != nil || json.Unmarshal(result, &verified) != nil || verified.Kind != "result" || verified.Action != "recover-legacy" ||
+		!verified.Verified || verified.Account != identity.Account || verified.RequestID != identity.RequestID || !brokerHandoffToken.MatchString(verified.Nonce) {
+		writeError(w, http.StatusUnauthorized, "recovery_rejected", "Signed pre-cutover recovery rejected")
+		return
+	}
+	ticket, err := brokerOpaqueRandomToken()
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "random_unavailable", "Recovery ticket unavailable")
+		return
+	}
+	ticketHash, err := s.brokerOpaqueTicketHash(r, ticket)
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "broker_opaque_authority_unavailable", "Recovery ticket authority unavailable")
+		return
+	}
+	if err := s.service.Store.RecoverLegacyBrokerOrderHandoff(identity.Account, identity.RequestID, ticketHash, challenge, s.now(), s.cfg.BrokerOpaqueLegacyCutoverAt); err != nil {
+		writeError(w, http.StatusConflict, "recovery_conflict", "Pre-cutover order changed or was recovered")
+		return
+	}
 	w.Header().Set("Cache-Control", "no-store")
-	writeError(w, http.StatusServiceUnavailable, "legacy_recovery_not_enabled", "Pre-cutover recovery requires a separately reviewed Wallet and Finance migration gate")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	writeJSON(w, http.StatusCreated, map[string]any{"version": "2", "ticket": ticket, "ticketHash": ticketHash, "serverTime": evmReadTime(s.now().UTC().Truncate(time.Millisecond))})
 }
 
 func (s *Server) brokerOpaqueExchange(w http.ResponseWriter, r *http.Request, session Session) {

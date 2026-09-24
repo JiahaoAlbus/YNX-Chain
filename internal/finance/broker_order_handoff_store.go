@@ -176,6 +176,86 @@ func (s *Store) opaqueBrokerOrderCallbackAuthority(account, requestID string) (B
 	return found, challenge.Unsigned, nil
 }
 
+func (s *Store) legacyBrokerOrderRecoveryChallenge(account, requestID string) (FinanceOrderApprovalUnsignedV1, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.refreshLocked(); err != nil {
+		return FinanceOrderApprovalUnsignedV1{}, err
+	}
+	owner, ok := s.state.Accounts[account]
+	if !ok {
+		return FinanceOrderApprovalUnsignedV1{}, errors.New("legacy order owner is absent")
+	}
+	challenge, ok := owner.Brokerage.Challenges[requestID]
+	if !ok || challenge.Unsigned.Account != account || challenge.ApprovalState != "pending" {
+		return FinanceOrderApprovalUnsignedV1{}, errors.New("legacy order is not pending")
+	}
+	for _, handoff := range s.state.BrokerOrderHandoffs {
+		if handoff.Account == account && handoff.RequestID == requestID {
+			return FinanceOrderApprovalUnsignedV1{}, errors.New("legacy order was already recovered")
+		}
+	}
+	return challenge.Unsigned, nil
+}
+
+// A legacy ticket is minted only after Wallet/Auth has verified a fresh
+// owner-key recovery signature against this durable pre-cutover challenge.
+// The original random32 callback hash is the exact legacy callback state;
+// it is never reinterpreted as a SHA256 preimage.
+func (s *Store) RecoverLegacyBrokerOrderHandoff(account, requestID, ticketHash string, expected FinanceOrderApprovalUnsignedV1, now, cutoverAt time.Time) error {
+	if !evmSubjectRequestID.MatchString(requestID) || !brokerHandoffHex.MatchString(ticketHash) || cutoverAt.IsZero() {
+		return errors.New("legacy recovery identity or cutover is invalid")
+	}
+	var err error
+	for attempt := 0; attempt < brokerCASAttempts; attempt++ {
+		err = s.updateAllState(account, "broker.handoff.legacy_recovered", requestID, func(all *persistedState) error {
+			if _, exists := all.BrokerOrderHandoffs[ticketHash]; exists {
+				return errors.New("legacy recovery ticket already exists")
+			}
+			for _, handoff := range all.BrokerOrderHandoffs {
+				if handoff.Account == account && handoff.RequestID == requestID {
+					return errors.New("legacy challenge already has a ticket")
+				}
+			}
+			owner, ok := all.Accounts[account]
+			if !ok {
+				return errors.New("legacy recovery owner is absent")
+			}
+			challenge, ok := owner.Brokerage.Challenges[requestID]
+			mapping := owner.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
+			if !ok || challenge.ApprovalState != "pending" || challenge.Unsigned.Account != account ||
+				string(mustFinanceCanonical(challenge.Unsigned)) != string(mustFinanceCanonical(expected)) ||
+				mapping.Status != "active" || mapping.Account != account || mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey {
+				return errors.New("legacy challenge changed or mapping is inactive")
+			}
+			issued, issueErr := parseFinanceMilliseconds(challenge.Unsigned.IssuedAt)
+			expires, expireErr := parseFinanceMilliseconds(challenge.Unsigned.ExpiresAt)
+			if issueErr != nil || expireErr != nil || !issued.Before(cutoverAt.UTC()) || !expires.After(now.UTC()) ||
+				issued.After(now.UTC()) || !brokerHandoffHex.MatchString(challenge.Unsigned.CallbackStateHash) {
+				return errors.New("legacy challenge is not active before cutover")
+			}
+			order, exists := owner.Brokerage.Orders[challenge.Unsigned.Order.OrderID]
+			if !exists || order.RequestID != requestID || order.ApprovalState != "pending" {
+				return errors.New("legacy order no longer matches the challenge")
+			}
+			if _, queued := owner.Brokerage.Outbox[order.Order.OrderID]; queued {
+				return errors.New("legacy order already has an outbox")
+			}
+			record := BrokerOrderHandoffRecord{TicketHash: ticketHash, Account: account, RequestID: requestID,
+				CallbackState: challenge.Unsigned.CallbackStateHash, CallbackStateBinding: "raw-v1-random32", IssuedAt: now.UTC(), ExpiresAt: expires}
+			if all.BrokerOrderHandoffs == nil {
+				all.BrokerOrderHandoffs = map[string]BrokerOrderHandoffRecord{}
+			}
+			all.BrokerOrderHandoffs[ticketHash] = record
+			return nil
+		})
+		if !errors.Is(err, errFinanceStateConflict) {
+			break
+		}
+	}
+	return err
+}
+
 // StoreBrokerOrderHandoffDecision is reached only after the accepted
 // Wallet/Auth root verifier has checked the exact ticket, durable unsigned
 // challenge, signature and status. It stores a confidential decision without

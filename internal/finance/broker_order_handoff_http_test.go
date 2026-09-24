@@ -154,3 +154,98 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 		t.Fatal("one-time callback code replayed")
 	}
 }
+
+func TestOpaqueBrokerLegacyRecoveryRequiresSignedPreCutoverChallenge(t *testing.T) {
+	node, err := exec.LookPath("node")
+	if err != nil {
+		t.Skip("Node runtime unavailable")
+	}
+	authorityPath, _ := filepath.Abs(filepath.Join("..", "..", "apps", "finance", "scripts", "finance-order-opaque-authority.bundle.mjs"))
+	signerPath, _ := filepath.Abs(filepath.Join("..", "..", "apps", "finance", "tests", "fixtures", "finance-order-opaque-sign.mjs"))
+	authority, err := NewNodeEVMReadAuthority(node, authorityPath, 5*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const account = "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	const publicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
+	store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", publicKey, now); err != nil {
+		t.Fatal(err)
+	}
+	request := BrokerChallengeRequest{AccountPublicKey: publicKey, FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:legacy-boundary",
+		Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"}}
+	challenge, err := store.CreateBrokerOrderChallenge(account, request, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clock := now.Add(time.Minute)
+	cutover := now.Add(30 * time.Second)
+	server := &Server{service: &Service{Store: store}, cfg: ServerConfig{BrokerOpaqueAuthority: authority, BrokerOpaqueLegacyCutoverAt: cutover}, now: func() time.Time { return clock }, rate: map[string][]time.Time{}}
+	proof := signOpaqueBrokerTestProof(t, node, signerPath, "legacy", "", "legacy_nonce_0123456789abcdefghijk", challenge.Unsigned, clock)
+	body, _ := json.Marshal(map[string]any{"proof": proof})
+	server.cfg.BrokerOpaqueLegacyCutoverAt = now
+	postCutover := httptest.NewRecorder()
+	server.brokerOpaqueRecoverLegacy(postCutover, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/recover-legacy", bytes.NewReader(body)))
+	if postCutover.Code == http.StatusCreated {
+		t.Fatal("post-cutover legacy challenge minted a ticket")
+	}
+	server.cfg.BrokerOpaqueLegacyCutoverAt = cutover
+	recorder := httptest.NewRecorder()
+	server.brokerOpaqueRecoverLegacy(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/recover-legacy", bytes.NewReader(body)))
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("signed pre-cutover recovery failed: %d %s", recorder.Code, recorder.Body.String())
+	}
+	var recovered struct {
+		Ticket     string `json:"ticket"`
+		TicketHash string `json:"ticketHash"`
+	}
+	if json.Unmarshal(recorder.Body.Bytes(), &recovered) != nil || !brokerHandoffToken.MatchString(recovered.Ticket) {
+		t.Fatal("recovery ticket invalid")
+	}
+	record, _, err := store.BrokerOrderHandoffAuthoritySnapshot(recovered.TicketHash)
+	if err != nil || record.CallbackStateBinding != "raw-v1-random32" || record.CallbackState != challenge.Unsigned.CallbackStateHash {
+		t.Fatalf("legacy random32 state was changed: %v", err)
+	}
+	clock = clock.Add(time.Second)
+	claim := signOpaqueBrokerTestProof(t, node, signerPath, "claim", recovered.Ticket, "legacy_claim_nonce_0123456789abcdef", challenge.Unsigned, clock)
+	claimBody, _ := json.Marshal(map[string]any{"ticket": recovered.Ticket, "claim": claim})
+	recorder = httptest.NewRecorder()
+	server.brokerOpaqueClaim(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/claim", bytes.NewReader(claimBody)))
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("recovered ticket claim failed: %d %s", recorder.Code, recorder.Body.String())
+	}
+	clock = clock.Add(time.Second)
+	approval := signOpaqueBrokerTestProof(t, node, signerPath, "approved", recovered.Ticket, "", challenge.Unsigned, clock)
+	completionBody, _ := json.Marshal(map[string]any{"ticket": recovered.Ticket, "status": "approved", "proof": approval})
+	recorder = httptest.NewRecorder()
+	server.brokerOpaqueComplete(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/complete", bytes.NewReader(completionBody)))
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("recovered approval failed: %d %s", recorder.Code, recorder.Body.String())
+	}
+	var completed struct {
+		Code  string `json:"code"`
+		State string `json:"state"`
+	}
+	if json.Unmarshal(recorder.Body.Bytes(), &completed) != nil || completed.State != challenge.Unsigned.CallbackStateHash {
+		t.Fatal("raw legacy callback state changed")
+	}
+	callbackURL := fmt.Sprintf("https://finance.ynxweb4.com/wallet-auth/callback?financeOrderCode=%s&state=%s", completed.Code, completed.State)
+	exchangeBody, _ := json.Marshal(map[string]string{"requestId": challenge.Unsigned.RequestID, "callbackURL": callbackURL})
+	recorder = httptest.NewRecorder()
+	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account})
+	if recorder.Code != http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 1 {
+		t.Fatalf("raw legacy callback did not atomically exchange: %d %s", recorder.Code, recorder.Body.String())
+	}
+	recorder = httptest.NewRecorder()
+	server.brokerOpaqueRecoverLegacy(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/recover-legacy", bytes.NewReader(body)))
+	if recorder.Code == http.StatusCreated {
+		t.Fatal("legacy signed recovery replay minted another ticket")
+	}
+	if len(store.BrokerWorkspace(account, clock).Outbox) != 1 {
+		t.Fatal("legacy recovery replay created a second outbox")
+	}
+}

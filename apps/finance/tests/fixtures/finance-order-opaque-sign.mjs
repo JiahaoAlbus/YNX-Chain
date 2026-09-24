@@ -3,6 +3,7 @@ import {
   createSignedFinanceOrderApproval,
   createSignedFinanceOrderOpaqueClaim,
   createSignedFinanceOrderOpaqueReject,
+  createSignedFinanceOrderLegacyRecovery,
 } from '@ynx-chain/wallet-auth';
 
 // Test-only deterministic key from public Wallet/Auth vectors. Never used by
@@ -18,6 +19,8 @@ if (input.action === 'claim') {
   proof = createSignedFinanceOrderApproval({ accountSecret: vector.testOnlyPublicSecretScalarHex, approval: input.challenge }, at);
 } else if (input.action === 'rejected') {
   proof = createSignedFinanceOrderOpaqueReject({ ticket: input.ticket, challenge: input.challenge }, at, vector.testOnlyPublicSecretScalarHex);
+} else if (input.action === 'legacy') {
+  proof = createSignedFinanceOrderLegacyRecovery({ challenge: input.challenge, nonce: input.nonce }, at, vector.testOnlyPublicSecretScalarHex);
 } else {
   throw new Error('test signer action invalid');
 }

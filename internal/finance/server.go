@@ -26,25 +26,26 @@ import (
 const maxBodyBytes = 64 << 10
 
 type ServerConfig struct {
-	BrokerConfig          brokerage.Config
-	BrokerAdapter         brokerage.BrokerageAdapter
-	BrokerMaxFeeUSD       string
-	BrokerFeeBoundSource  string
-	BrokerFeeEvidenceRef  string
-	AllowedOrigins        []string
-	WebDir                string
-	CursorSigningKey      string
-	OperationsKey         string
-	WalletGatewayURL      string
-	WalletGatewayClient   *http.Client
-	LogWriter             io.Writer
-	Now                   func() time.Time
-	Build                 buildinfo.Info
-	EndpointAuthority     EndpointAuthorityBrowserConfigProvider
-	EVMLoginAuthority     EVMLoginAuthority
-	EVMReadAuthority      *NodeEVMReadAuthority
-	EVMSubjectAuthority   *NodeEVMReadAuthority
-	BrokerOpaqueAuthority *NodeEVMReadAuthority
+	BrokerConfig                brokerage.Config
+	BrokerAdapter               brokerage.BrokerageAdapter
+	BrokerMaxFeeUSD             string
+	BrokerFeeBoundSource        string
+	BrokerFeeEvidenceRef        string
+	AllowedOrigins              []string
+	WebDir                      string
+	CursorSigningKey            string
+	OperationsKey               string
+	WalletGatewayURL            string
+	WalletGatewayClient         *http.Client
+	LogWriter                   io.Writer
+	Now                         func() time.Time
+	Build                       buildinfo.Info
+	EndpointAuthority           EndpointAuthorityBrowserConfigProvider
+	EVMLoginAuthority           EVMLoginAuthority
+	EVMReadAuthority            *NodeEVMReadAuthority
+	EVMSubjectAuthority         *NodeEVMReadAuthority
+	BrokerOpaqueAuthority       *NodeEVMReadAuthority
+	BrokerOpaqueLegacyCutoverAt time.Time
 }
 
 type Server struct {
