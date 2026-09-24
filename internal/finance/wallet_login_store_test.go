@@ -133,3 +133,43 @@ func TestWalletLoginVerificationAttemptCapPersistsAcrossStores(t *testing.T) {
 		t.Fatalf("durable attempt count was not preserved: %#v %v", loaded, err)
 	}
 }
+
+func TestWalletLoginConcurrentVerificationReservationsNeverExceedDurableCap(t *testing.T) {
+	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
+	path := filepath.Join(t.TempDir(), "finance.json")
+	first, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := loginChallengeFixture(now)
+	if err := first.PutWalletLoginChallenge(record, now); err != nil {
+		t.Fatal(err)
+	}
+	var wait sync.WaitGroup
+	winners := make(chan struct{}, 20)
+	for attempt := 0; attempt < 20; attempt++ {
+		store := first
+		if attempt%2 == 1 {
+			store = second
+		}
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			if store.ReserveWalletLoginVerification(record.Account, record.RequestID, record.Nonce, now.Add(time.Minute)) == nil {
+				winners <- struct{}{}
+			}
+		}()
+	}
+	wait.Wait()
+	if len(winners) > 5 {
+		t.Fatalf("%d concurrent reservations exceeded the durable cap", len(winners))
+	}
+	loaded, err := second.WalletLoginChallenge(record.Account, record.RequestID)
+	if err != nil || loaded.AttemptCount != uint8(len(winners)) {
+		t.Fatalf("durable attempts diverged from accepted reservations: %#v winners=%d err=%v", loaded, len(winners), err)
+	}
+}
