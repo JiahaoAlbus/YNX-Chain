@@ -1,4 +1,5 @@
 import type { SignedNativeTransfer } from "@ynx-chain/wallet-auth";
+import { DEFAULT_CHAIN_API, LEGACY_CHAIN_API } from "./nativeChainOrigins";
 
 export const NATIVE_DURABILITY_MODEL=Object.freeze({version:"ynx-local-durability-v1",scope:"local-snapshot",receiptField:"ynxDurability",transactionStatusMethod:"ynx_getTransactionDurability",nativeTransactionField:"ynxNativeTransaction",minedStatus:"durable",pendingStatus:"pending_durable",consensusFinality:false});
 export type NativeDurabilityStatus="durable"|"pending_durable"|"uncertain"|"memory_only"|"not_found";
@@ -56,5 +57,5 @@ export function createNativeDurabilityEvidence(origin:string,capability:unknown,
   return Object.freeze({version:1,origin,chainId:"0x1917",capability:parseNativeDurabilityModel(capability),receipt:parseNativeDurableReceipt(receipt,expected,expectedHash)});
 }
 export function verifyNativeDurability(value:unknown,expected:SignedNativeTransfer,expectedHash:string,expectedOrigin:string):boolean{
-  try{const evidence=exact(value,["version","origin","chainId","capability","receipt"]);if(evidence.version!==1||evidence.origin!==expectedOrigin||evidence.chainId!=="0x1917")return false;parseNativeDurabilityModel(evidence.capability);parseNativeDurableReceipt(evidence.receipt,expected,expectedHash);return true}catch{return false}
+  try{const evidence=exact(value,["version","origin","chainId","capability","receipt"]);if(evidence.version!==1||evidence.chainId!=="0x1917"||!(evidence.origin===expectedOrigin||expectedOrigin===DEFAULT_CHAIN_API&&evidence.origin===LEGACY_CHAIN_API))return false;parseNativeDurabilityModel(evidence.capability);parseNativeDurableReceipt(evidence.receipt,expected,expectedHash);return true}catch{return false}
 }
