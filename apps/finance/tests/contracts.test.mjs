@@ -31,6 +31,14 @@ test('product states its non-bank and non-custodial boundary',()=>{
   for(const prohibited of ['APY 8%','Guaranteed return','Visa card balance']) assert.equal(html.includes(prohibited),false);
 });
 
+test('activity exports identify bounded observations instead of complete history',()=>{
+  assert.ok(html.includes('Export observed CSV'));
+  assert.ok(html.includes('Export available JSON'));
+  assert.ok(html.includes('not a complete account history'));
+  assert.ok(js.includes('ynx-finance-observed-activity.csv'));
+  assert.ok(js.includes('ynx-finance-observed-export.json'));
+});
+
 test('mobile Wallet approval uses current package roots and pending private authority fails closed',()=>{
   for(const marker of ['@ynx-chain/wallet-auth','encodeRequestDeepLink','createProductSessionProof','assertFinanceProductSessionContractNative'])assert.ok(wallet.includes(marker),marker);
   for(const marker of ['parseCallbackURL','parseCentralWalletSession','createGatewayChallenge','signGatewayChallenge','verifyGatewayCompletion'])assert.ok(walletCompletion.includes(marker),marker);
@@ -122,7 +130,9 @@ test('Broker Sandbox product entry exposes provider search, owner watchlist, rec
 
 test('Web Wallet consumes the pinned Standard SDK and isolates unavailable legacy private authorization',()=>{
   for(const marker of ['StandardWalletConnection','discoverWalletProviders','selected.connect()','selected.restore()','selected.revoke()','eth_chainId','wallet_switchEthereumChain','wallet_addEthereumChain','0x1917'])assert.ok(webWallet.includes(marker),marker);
+  assert.ok(webWallet.includes("rpcUrls:['https://rpc-testnet.ynxweb4.com/evm','https://rpc.ynxweb4.com/evm']"),'wallet_addEthereumChain keeps canonical Testnet EVM RPC first and the legacy fallback second');
   for(const forbidden of ['iframe','window.open','location.href=','createProductDeviceIdentity','productDeviceSecret','createGatewayChallenge','signGatewayChallenge'])assert.equal(webWallet.includes(forbidden),false,forbidden);
+  assert.equal(/fetch\s*\(\s*[`'"]https:\/\/rpc-testnet\.ynxweb4\.com\/evm/.test(webWallet),false,'direct canonical RPC probing cannot gate provider connection');
   assert.equal(/fetch\s*\(\s*[`'"]https:\/\/rpc\.ynxweb4\.com\/evm/.test(webWallet),false,'direct browser RPC probing cannot gate provider connection');
   assert.ok(html.includes('wallet-choice'));
   assert.ok(html.includes('Download YNX Wallet'));

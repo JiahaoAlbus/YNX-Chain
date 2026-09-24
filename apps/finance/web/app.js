@@ -1,4 +1,10 @@
 const state={connected:false,overview:null,aiJob:null,aiTimer:null,context:0,brokerAssets:new Map(),brokerWatchlist:new Map(),brokerSelectedAsset:null,brokerSubmissionEnabled:false};
+const financeText=(key)=>window.YNXFinanceLocale?.text(key)??key;
+let walletIdentityState='identityUnverified',walletIdentityBusy=false;
+function renderWalletIdentity(){const status=document.querySelector('#wallet-login-state'),button=document.querySelector('#wallet-login-verify');if(status)status.textContent=financeText(walletIdentityState);if(button){button.hidden=window.YNXFinanceWallet?.getStandardWalletState().status!=='connected';button.disabled=walletIdentityBusy;}}
+let brokerConfigurationState='brokerStatusMissing';
+function renderBrokerConfigurationStatus(){const target=document.querySelector('#broker-status');if(target)target.textContent=financeText(brokerConfigurationState)}
+document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();renderWalletIdentity();if(!state.connected)route()});
 // Guest-readable diagnostics only. This never requests a Wallet account, signs,
 // reads broker credentials or automatically enables order submission.
 let brokerCheckRevision=0;
@@ -13,13 +19,13 @@ async function refreshBrokerConfiguration(){
     if(result.schema!=='ynx-finance-broker-status-v1'||result.status?.tradingEnvironment!=='sandbox'||result.status?.chainEnvironment!=='testnet'||typeof result.status?.enabled!=='boolean'||typeof result.status?.submissionEnabled!=='boolean')throw new Error('invalid');
     if(revision!==brokerCheckRevision)return;
 	state.brokerSubmissionEnabled=result.status.submissionEnabled;
-    document.querySelector('#broker-status').textContent=!result.status.enabled?'Sandbox module disabled. No broker connection is verified; submission is disabled.':result.status.state==='CONFIGURED_NOT_VERIFIED'?'Configuration present. Official Sandbox, linked account and trading permissions are not verified.':'Not configured / disconnected. Submission is disabled; no sample balances or trades are substituted.';
+    brokerConfigurationState=!result.status.enabled?'brokerDisabled':result.status.state==='CONFIGURED_NOT_VERIFIED'?'brokerConfigured':'brokerDisconnected';renderBrokerConfigurationStatus();
 	document.querySelector('#broker-approval').textContent=result.walletOrderApproval==='frozen_contract_with_owner_scoped_execution_request'?'Frozen Finance/Wallet approval can queue one owner-scoped controlled-worker request when server activation is enabled.':'Wallet order approval is unavailable.';
     document.querySelector('#broker-journal').textContent=result.durableOrderJournal==='implemented_state_v2'?'Persistent v2 journal and one-time outbox are implemented. Any provider POST requires the separate operator worker and activation receipt; this page cannot submit.':'Durable order journal status is unavailable.';
     route();
 	  }catch{
 	state.brokerSubmissionEnabled=false;
-    if(revision===brokerCheckRevision)document.querySelector('#broker-status').textContent='Configuration check unavailable. Retry is read-only; order submission remains disabled.';
+    if(revision===brokerCheckRevision){brokerConfigurationState='brokerCheckUnavailable';renderBrokerConfigurationStatus()}
   }finally{clearTimeout(timer)}
 }
 function clearBrokerSnapshot(message='Sign in to read an owner-mapped Sandbox account. Guest mode never receives balances, positions or orders.'){
@@ -33,12 +39,12 @@ function selectBrokerAsset(asset){
 }
 function renderBrokerAssets(assets){
   state.brokerAssets=new Map(assets.map(asset=>[asset.id,asset]));
-  $('#broker-asset-results').innerHTML=assets.length?assets.map(asset=>`<div class="row"><div class="row-main"><strong>${esc(asset.symbol)}</strong><small>${esc(asset.name)} · active/tradable Sandbox asset</small></div><div class="wallet-choice"><button type="button" data-broker-select="${esc(asset.id)}">Select</button>${state.connected?`<button type="button" data-broker-watch="${esc(asset.id)}">Add to watchlist</button>`:''}</div></div>`).join(''):'<div class="empty compact">No active tradable provider asset matched. Nothing was substituted.</div>';
+  $('#broker-asset-results').innerHTML=assets.length?assets.map(asset=>`<div class="row"><div class="row-main"><strong>${esc(asset.symbol)}</strong><small>${esc(asset.name)} · active/tradable Sandbox asset</small></div><div class="wallet-choice"><button type="button" data-broker-select="${esc(asset.id)}">Select</button>${state.connected?`<button type="button" data-broker-watch="${esc(asset.id)}">Add to watchlist</button>`:''}</div></div>`).join(''):`<div class="empty compact">${esc(financeText('brokerNoAssets'))}</div>`;
 }
 async function searchBrokerAssets(event){
   event?.preventDefault();const query=String(new FormData($('#broker-asset-search')).get('query')||'').trim();
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
-  try{const response=await fetch(`/api/broker/assets?query=${encodeURIComponent(query)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-assets-v1'||!Array.isArray(result.assets))throw new Error(result?.error||'Sandbox asset directory is unavailable.');renderBrokerAssets(result.assets)}catch(error){renderBrokerAssets([]);notify(error.message||'Sandbox asset directory is unavailable.',true)}finally{clearTimeout(timer)}
+  try{const response=await fetch(`/api/broker/assets?query=${encodeURIComponent(query)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-assets-v1'||!Array.isArray(result.assets))throw new Error('Sandbox asset directory is unavailable.');renderBrokerAssets(result.assets)}catch{renderBrokerAssets([]);notify(financeText('brokerAssetsUnavailable'),true)}finally{clearTimeout(timer)}
 }
 function renderBrokerWatchlist(items){
   const list=Array.isArray(items)?items:[];
@@ -161,7 +167,7 @@ async function completeBrokerCallback(){
 const READ_RETRY_DELAYS=[0,600,1600];
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const fmt=(v)=>new Intl.NumberFormat().format(Number(v||0));
+const fmt=v=>Number.isSafeInteger(v)&&v>=0?new Intl.NumberFormat().format(v):'Unknown';
 const short=(v)=>v?`${v.slice(0,8)}…${v.slice(-6)}`:'—';
 const date=(v)=>v?new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'Date unavailable';
 
@@ -187,10 +193,31 @@ function scope(path){if(path.startsWith('/api/ai/'))return'finance.ai.draft';if(
 function notify(message,error=false){const box=$('#notice');box.textContent=message;box.classList.toggle('error',error);box.classList.remove('hidden');clearTimeout(box.timer);box.timer=setTimeout(()=>box.classList.add('hidden'),6500)}
 
 async function signIn(){try{await window.YNXFinanceWallet.connect()}catch(error){notify(error.message,true)}}
+async function verifyWalletIdentity(){
+  if(walletIdentityBusy)return;
+  const wallet=window.YNXFinanceWallet,selected=wallet.getStandardWalletState(),revision=wallet.getStandardRevision();
+  if(selected.status!=='connected'||selected.chainId!=='0x1917'||!selected.account){walletIdentityState='identityRejected';renderWalletIdentity();return}
+  walletIdentityBusy=true;walletIdentityState='identityChecking';renderWalletIdentity();
+  let requestId='';
+  const unchanged=()=>{const current=wallet.getStandardWalletState();if(wallet.getStandardRevision()!==revision||current.status!=='connected'||current.account!==selected.account||current.providerKind!==selected.providerKind||current.chainId!=='0x1917')throw new Error('WALLET_CONTEXT_CHANGED')};
+  try{
+    const issue=await fetch('/api/wallet-login/challenges',{method:'POST',cache:'no-store',credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({account:selected.account,providerKind:selected.providerKind}),signal:AbortSignal.timeout(10000)});
+    const issued=await issue.json();unchanged();
+    if(!issue.ok||issued?.schemaVersion!=='finance-evm-login-challenge-v1'||issued?.privateFinanceAuthorized!==false||issued.challenge?.account!==selected.account||issued.challenge?.providerKind!==selected.providerKind||issued.challenge?.chainId!==6423||issued.challenge?.productId!=='finance'||JSON.stringify(issued.challenge?.scopes)!=='["finance.account.read"]'||!/^finance-login-[0-9a-f]{32}$/.test(issued.challenge?.requestId||'')||issued.signingRequest?.method!=='personal_sign')throw new Error('WALLET_LOGIN_CHALLENGE_UNAVAILABLE');
+    requestId=issued.challenge.requestId;
+    try{sessionStorage.setItem('ynx.finance.evm-login.pending.v1',JSON.stringify({requestId,account:selected.account,providerKind:selected.providerKind,expiresAt:issued.challenge.expirationTime}))}catch{}
+    const signature=await wallet.signEVMLoginRequest(issued.signingRequest);unchanged();
+    const verify=await fetch('/api/wallet-login/verify',{method:'POST',cache:'no-store',credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({proof:{challenge:issued.challenge,message:issued.signingRequest.message,signature}}),signal:AbortSignal.timeout(10000)});
+    const result=await verify.json();unchanged();
+    if(!verify.ok||result?.schemaVersion!=='finance-evm-login-verification-v1'||result.verified!==true||result.account!==selected.account||result.providerKind!==selected.providerKind||result.chainId!==6423||JSON.stringify(result.scopes)!=='["finance.account.read"]'||result.requestId!==requestId||result.privateFinanceAuthorized!==false||result.standardWalletUnchanged!==true)throw new Error('WALLET_LOGIN_VERIFICATION_REJECTED');
+    walletIdentityState='identityVerified';
+  }catch(error){walletIdentityState='identityRejected';notify(`${financeText('identityRejected')} ${error?.code||error?.message||''}`.trim(),true)}
+  finally{if(requestId){try{const pending=JSON.parse(sessionStorage.getItem('ynx.finance.evm-login.pending.v1')||'null');if(pending?.requestId===requestId)sessionStorage.removeItem('ynx.finance.evm-login.pending.v1')}catch{}}walletIdentityBusy=false;renderWalletIdentity()}
+}
 async function consumeCallback(){await window.YNXFinanceWallet.ready}
 function clearPrivateView(){state.context++;clearInterval(state.aiTimer);state.aiJob=null;state.overview=null;state.connected=false;for(const id of ['account','balance','staked','balance-source','statement','ai-status']){const element=$('#'+id);if(element)element.textContent='—'}clearBrokerSnapshot();renderBrokerWorkspace(null);renderSignedOut()}
 async function logout(){const result=await window.YNXFinanceWallet.disconnect();if(result?.status==='disconnected'){clearPrivateView()}else notify('Private sign-out is unconfirmed. Retry to reconcile; Standard Wallet is unchanged.',true)}
-function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.add('hidden');$('#logout').classList.add('hidden');$('#source-pill').textContent='Not connected';$('#source-pill').className='pill neutral';$('#page-title').textContent='Your money, with its evidence attached.'}
+function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.add('hidden');$('#logout').classList.add('hidden');$('#source-pill').textContent='Not connected';$('#source-pill').className='pill neutral';$('#page-title').textContent='Your money, with its evidence attached.';route()}
 
 async function load(){await window.YNXFinanceWallet.ready;state.connected=window.YNXFinanceWallet.connected();if(!state.connected){renderSignedOut();return}try{$('#source-pill').textContent='Checking sources';const data=await api('/api/overview');state.overview=data;render(data)}catch(error){if(error.status===401||error.status===403){window.YNXFinanceWallet.reportPrivateFailure();clearPrivateView();notify('Private Finance access needs reauthorization. Standard Wallet is unchanged.',true)}else notify(error.message,true)}}
 async function reconnect(){try{await publicHealth();if(state.connected)await load()}catch(error){notify(error.message,true)}}
@@ -220,10 +247,16 @@ $('#category-form').addEventListener('submit',e=>{e.preventDefault();const f=new
 $('#budget-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);submitForm(e.currentTarget,'/api/budgets',{name:f.get('name'),categoryId:f.get('categoryId'),limitYnxt:Number(f.get('limitYnxt')),period:f.get('period'),startsAt:new Date().toISOString()})});
 $('#reminder-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);const raw=f.get('amountYnxt');submitForm(e.currentTarget,'/api/reminders',{title:f.get('title'),amountYnxt:raw===''?null:Number(raw),schedule:f.get('schedule'),nextDueAt:new Date(f.get('nextDueAt')).toISOString(),sourceRef:''})});
 $('#privacy-form').addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/api/privacy',{method:'PUT',body:JSON.stringify({includePayInStatements:f.includePayInStatements.checked,allowAiActivityContext:f.allowAiActivityContext.checked,alertsEnabled:f.alertsEnabled.checked})});notify('Privacy settings saved.');await load()}catch(error){notify(error.message,true)}});
-$('#statement-form').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{const from=new Date(`${f.get('from')}T00:00:00Z`).toISOString(),toDate=new Date(`${f.get('to')}T00:00:00Z`);toDate.setUTCDate(toDate.getUTCDate()+1);const s=await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toDate.toISOString())}`);$('#statement').innerHTML=`<p><strong>${esc(s.network)} · ${esc(s.symbol)}</strong><br>${esc(date(s.from))} through ${esc(date(new Date(new Date(s.toExclusive).getTime()-1)))}</p><div class="statement-grid"><div class="stat"><small>Incoming</small><strong>${fmt(s.totals.incomingYnxt)} YNXT</strong></div><div class="stat"><small>Outgoing</small><strong>${fmt(s.totals.outgoingYnxt)} YNXT</strong></div><div class="stat"><small>Fees</small><strong>${fmt(s.totals.feesYnxt)} YNXT</strong></div><div class="stat"><small>Records</small><strong>${s.activity.length}</strong></div></div><p><small>${esc(s.openingBalance)}. This is not a bank statement.</small></p>`}catch(error){notify(error.message,true)}});
+function renderStatement(s){
+  if(s?.schemaVersion!=='finance-statement-v2'||s.coverageComplete!==false||!Array.isArray(s.activity)||!s.totals||!['incomingYnxt','outgoingYnxt','feesYnxt'].every(key=>s.totals[key]===null))throw new Error('Statement coverage response is invalid. No totals were shown.');
+  const observed=s.calculationStatus==='partial'?s.observedTotals:null;
+  const amount=value=>Number.isSafeInteger(value)&&value>=0?`${fmt(value)} YNXT`:'Unknown';
+  $('#statement').innerHTML=`<p><strong>${esc(s.network)} · ${esc(s.symbol)}</strong><br>${esc(date(s.from))} through ${esc(date(new Date(new Date(s.toExclusive).getTime()-1)))}</p><p><strong>Full-period totals: Unknown</strong><br>${esc(s.coverage||'Complete activity history was not provided.')}</p><div class="statement-grid"><div class="stat"><small>Observed incoming</small><strong>${amount(observed?.incomingYnxt)}</strong></div><div class="stat"><small>Observed outgoing</small><strong>${amount(observed?.outgoingYnxt)}</strong></div><div class="stat"><small>Observed fees</small><strong>${amount(observed?.feesYnxt)}</strong></div><div class="stat"><small>Returned records</small><strong>${s.activity.length}</strong></div></div><p><small>${esc(s.openingBalance)}. This is not a bank statement.</small></p>`;
+}
+$('#statement-form').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{const from=new Date(`${f.get('from')}T00:00:00Z`).toISOString(),toDate=new Date(`${f.get('to')}T00:00:00Z`);toDate.setUTCDate(toDate.getUTCDate()+1);renderStatement(await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toDate.toISOString())}`))}catch(error){notify(error.message,true)}});
 
 async function download(path,name){try{const blob=await api(path,{responseType:'blob'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}catch(error){notify(error.message,true)}}
-$('#export-json').addEventListener('click',()=>download('/api/export?format=json','ynx-finance-export.json'));$$('[data-auth-download]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();download(a.getAttribute('href'),'ynx-finance-activity.csv')}));
+$('#export-json').addEventListener('click',()=>download('/api/export?format=json','ynx-finance-observed-export.json'));$$('[data-auth-download]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();download(a.getAttribute('href'),'ynx-finance-observed-activity.csv')}));
 
 async function startAI(){const button=$('#ai-start'),idleLabel=button.textContent;if(button.disabled)return;button.disabled=true;button.textContent='Requesting review…';try{const recordIds=$$('#ai-records input:checked').map(x=>x.value),kind=$('#ai-kind').value,consent=$('#ai-consent').checked;if(kind!=='draft_broker_order'&&recordIds.length<1)throw new Error('Select at least one owned activity record.');if(!consent)throw new Error('Confirm the exact AI context before requesting a draft.');const payload={kind,recordIds,contextClasses:recordIds.length?['owned_activity']:[],consent};if(kind==='draft_broker_order'){const form=$('#ai-order-intent');if(!(form instanceof HTMLFormElement))throw new Error('Broker order intent form is unavailable.');const fields=new FormData(form),intent={symbol:String(fields.get('symbol')||'').trim().toUpperCase(),side:String(fields.get('side')||''),qty:String(fields.get('qty')||'').trim(),limitPrice:String(fields.get('limitPrice')||'').trim()};if(!/^[A-Z][A-Z0-9.]{0,11}$/.test(intent.symbol))throw new Error('Enter a canonical Broker symbol.');if(!['buy','sell'].includes(intent.side))throw new Error('Choose buy or sell.');if(!/^(?:[1-9][0-9]{0,5}|1000000)$/.test(intent.qty))throw new Error('Quantity must be a whole-share value from 1 through 1000000.');if(!/^(?:0\.[0-9]{0,3}[1-9]|[1-9][0-9]{0,8}(?:\.[0-9]{0,3}[1-9])?)$/.test(intent.limitPrice))throw new Error('Limit price must be a canonical fixed decimal from 0.0001 through 999999999.9999.');payload.securitiesOrderIntent=intent}state.aiJob=await api('/api/ai/jobs',{method:'POST',body:JSON.stringify(payload)});renderAIJob();pollAI()}catch(error){notify(error.message||'AI draft request failed.',true)}finally{button.disabled=false;button.textContent=idleLabel}}
 function renderAIJob(){const j=state.aiJob;if(!j)return;$('#ai-status').innerHTML=`<p><strong>${esc(j.status)}</strong> · ${esc(j.provider||'Provider unavailable')} / ${esc(j.model||'—')}</p><p>${esc(j.progress||j.error||'Waiting for provider stream…')}</p><p><small>Estimate: ${esc(j.estimatedCost||'not returned')}</small></p>${j.result?`<pre>${esc(JSON.stringify(j.result,null,2))}</pre>`:''}`;$('#ai-actions').classList.remove('hidden');$$('[data-ai=cancel]').forEach(b=>b.classList.toggle('hidden',j.status!=='running'));$$('[data-ai=delete]').forEach(b=>b.classList.toggle('hidden',j.status==='running'));$$('[data-ai=apply],[data-ai=reject]').forEach(b=>b.classList.toggle('hidden',j.status!=='ready'||j.kind==='draft_broker_order'));$$('[data-ai=use-order]').forEach(b=>b.classList.toggle('hidden',j.status!=='ready'||j.kind!=='draft_broker_order'))}
@@ -233,9 +266,10 @@ $('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListen
 $('#ai-order-intent').addEventListener('submit',event=>{event.preventDefault();startAI()});
 $('#ai-kind').addEventListener('change',()=>$('#ai-order-intent').classList.toggle('hidden',$('#ai-kind').value!=='draft_broker_order'));
 
-function route(){const id=(location.hash||'#overview').slice(1);$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('#nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${id}`));const heading=$(`#${id} h2`);if(state.connected&&heading)$('#page-title').textContent=heading.textContent;else if(!state.connected)$('#page-title').textContent='Your money, with its evidence attached.'}
-window.addEventListener('ynx-finance-standard-state',()=>{state.context++;clearInterval(state.aiTimer)});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView();if(event.detail?.status==='connected')load()});
+function route(){const id=(location.hash||(state.connected?'#overview':'#markets')).slice(1);$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('#nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${id}`));const heading=$(`#${id} h2`);if(state.connected&&heading)$('#page-title').textContent=heading.textContent;else if(!state.connected)$('#page-title').textContent=financeText('pageTitle')}
+window.addEventListener('ynx-finance-standard-state',()=>{state.context++;clearInterval(state.aiTimer);walletIdentityState='identityUnverified';renderWalletIdentity()});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView();if(event.detail?.status==='connected')load()});
 window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('Offline · reconnect when network returns','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
+$('#wallet-login-verify').addEventListener('click',verifyWalletIdentity);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);
 route();consumeCallback().then(load).then(()=>{if(!state.connected)return publicHealth()}).catch(error=>notify(error.message,true));
 document.querySelector('#broker-refresh').addEventListener('click',async()=>{await refreshBrokerConfiguration();await refreshBrokerSnapshot();await refreshBrokerWorkspace()});

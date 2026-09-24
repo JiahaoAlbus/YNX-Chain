@@ -4,7 +4,7 @@ import {privateFinance,bindPrivateFinanceUI} from './private-wallet-entry.js';
 const ORIGIN='https://finance.ynxweb4.com';
 const PROVIDER_KEY='ynx.finance.standard-wallet.provider.v2';
 const DOWNLOAD='https://www.ynxweb4.com/dapp/download',METAMASK='https://metamask.io/download/';
-const CHAIN=Object.freeze({chainId:'0x1917',chainName:'YNX Testnet',nativeCurrency:{name:'YNX Testnet',symbol:'YNXT',decimals:18},rpcUrls:['https://rpc.ynxweb4.com/evm'],blockExplorerUrls:['https://explorer.ynxweb4.com']});
+const CHAIN=Object.freeze({chainId:'0x1917',chainName:'YNX Testnet',nativeCurrency:{name:'YNX Testnet',symbol:'YNXT',decimals:18},rpcUrls:['https://rpc-testnet.ynxweb4.com/evm','https://rpc.ynxweb4.com/evm'],blockExplorerUrls:['https://explorer.ynxweb4.com']});
 let connection=null,unsubscribe=()=>{},intent=0,revision=0,busy=false,revoking=null;
 let standard=Object.freeze({status:'disconnected',providerKind:null,account:null,chainId:null});
 let lastMessage='';
@@ -12,7 +12,8 @@ const ready=new Promise(resolve=>document.readyState==='loading'?document.addEve
 window.YNXFinanceWallet=Object.freeze({
   ready,connect:()=>connect('ynx-wallet'),connectMetaMask:()=>connect('metamask'),
   restoreStandardWallet,disconnectStandardWallet,revokeStandardWallet,
-  getStandardWalletState:()=>standard,getRevision:()=>revision+privateFinance.revision(),
+  getStandardWalletState:()=>standard,getStandardRevision:()=>revision,getRevision:()=>revision+privateFinance.revision(),
+  signEVMLoginRequest,
   connected:privateFinance.connected,session:privateFinance.session,requireProof:privateFinance.proof,
   disconnect:privateFinance.disconnect,reportPrivateFailure:privateFinance.reportFailure,
   beginPrivate:privateFinance.begin,retryPrivate:privateFinance.retry,restorePrivate:privateFinance.restore,
@@ -40,6 +41,19 @@ async function ensureChain(selected,value){
   isCurrent(value,selected);
   if(await selected.request({method:'eth_chainId'})!=='0x1917')throw new Error('WRONG_NETWORK');
   isCurrent(value,selected);
+}
+async function signEVMLoginRequest(request){
+  const selected=connection,value=intent,account=standard.account;
+  if(!selected||standard.status!=='connected'||standard.chainId!=='0x1917'||!/^0x[0-9a-f]{40}$/.test(account||''))throw new Error('STANDARD_WALLET_NOT_CONNECTED');
+  if(request?.method!=='personal_sign'||!Array.isArray(request.params)||request.params.length!==2||typeof request.message!=='string'||request.message.length>8192||!/^0x(?:[0-9a-fA-F]{2})+$/.test(request.params[0])||request.params[1]!==account)throw new Error('WALLET_LOGIN_REQUEST_INVALID');
+  const exactMessageHex='0x'+Array.from(new TextEncoder().encode(request.message),byte=>byte.toString(16).padStart(2,'0')).join('');
+  if(request.params[0].toLowerCase()!==exactMessageHex)throw new Error('WALLET_LOGIN_MESSAGE_MISMATCH');
+  if(await selected.request({method:'eth_chainId'})!=='0x1917')throw new Error('WRONG_NETWORK');
+  isCurrent(value,selected);
+  const signature=await selected.request({method:'personal_sign',params:request.params});
+  isCurrent(value,selected);
+  if(typeof signature!=='string'||!/^0x[0-9a-fA-F]{130}$/.test(signature))throw new Error('WALLET_LOGIN_SIGNATURE_INVALID');
+  return signature;
 }
 async function connect(kind){
   if(!['ynx-wallet','metamask'].includes(kind))throw new Error('WALLET_SELECTION_INVALID');

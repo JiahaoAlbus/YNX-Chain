@@ -48,6 +48,15 @@ test('Web companion renders real bound Exchange evidence without inventing value
   assert.doesNotMatch(target.innerHTML,/UNAVAILABLE/);
 });
 
+test('Web companion keeps large micro amounts exact and missing balances unknown',()=>{
+  const {target}=run({exchange:{id:'exchange',ownerContractAccepted:true,status:{available:true},action:{configured:false},envelope:{payload:{balances:[{asset:'YNXT',availableMicro:'9007199254740993',reservedMicro:null}],orders:[],trades:[],fees:[{amountMicro:'9007199254740993'}],positions:[],funding:[],equityMicro:null,freeCollateralMicro:null}}}});
+  assert.match(target.innerHTML,/9,007,199,254\.740993 YNXT/);
+  assert.match(target.innerHTML,/9,007,199,254\.740993 YUSD_TEST recorded fees/);
+  assert.match(target.innerHTML,/— reserved/);
+  assert.match(target.innerHTML,/Margin equity<\/small><strong>—/);
+  assert.doesNotMatch(target.innerHTML,/9,007,199,254\.740992|0 YUSD_TEST free/);
+});
+
 test('Web companion escapes owner payload labels',()=>{
   const {target}=run({exchange:{id:'exchange',name:'YNX Exchange',owner:'07-exchange',ownerContractAccepted:true,status:{available:true},action:{configured:false},envelope:{payload:{balances:[{asset:'<img src=x onerror=alert(1)>',availableMicro:1,reservedMicro:0}],orders:[],trades:[],fees:[],positions:[],funding:[]}}}});
   assert.doesNotMatch(target.innerHTML,/<img/);
@@ -64,6 +73,16 @@ test('Web companion renders account-bound Quant lifecycle, PnL, execution, and r
   assert.match(target.innerHTML,/exchange-order-1/);
   assert.match(target.innerHTML,/slippage 0\.5%/);
   assert.match(target.innerHTML,/Kill switch clear/);
+});
+
+test('Web companion never sums independent research experiments or invents absent PnL',()=>{
+  const {target}=run({quant:{id:'quant',ownerContractAccepted:true,status:{available:true},action:{configured:false},envelope:{payload:{strategies:[],experiments:[{attribution:{userNetPnl:2400000,userRealizedPnl:1800000}},{attribution:{userNetPnl:4200000,userRealizedPnl:4100000}}],mandates:[],executions:[],paper:[]}}}});
+  assert.match(target.innerHTML,/First returned research PnL/);
+  assert.match(target.innerHTML,/2\.4 YUSD_TEST/);
+  assert.doesNotMatch(target.innerHTML,/6\.6 YUSD_TEST/);
+  const missing=run({quant:{id:'quant',ownerContractAccepted:true,status:{available:true},action:{configured:false},envelope:{payload:{strategies:[],experiments:[],mandates:[],executions:[],paper:[]}}}});
+  assert.match(missing.target.innerHTML,/First returned research PnL<\/small><strong>—/);
+  assert.doesNotMatch(missing.target.innerHTML,/0 YUSD_TEST realized/);
 });
 
 test('Web companion escapes Quant strategy and venue labels',()=>{

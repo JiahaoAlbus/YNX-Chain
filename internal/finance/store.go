@@ -538,6 +538,11 @@ func validatePersistedState(state persistedState) error {
 			return errors.New("finance state contains an invalid Wallet nonce record")
 		}
 	}
+	for requestID, challenge := range state.WalletLoginChallenges {
+		if requestID != challenge.RequestID || validateWalletLoginChallenge(challenge) != nil {
+			return errors.New("finance state contains an invalid Wallet login challenge")
+		}
+	}
 	return nil
 }
 
@@ -593,6 +598,9 @@ func migrateLegacyBrokerLocalExecutionBlocks(state *persistedState) {
 }
 
 func normalizePersistedState(state *persistedState) {
+	if state.WalletLoginChallenges == nil {
+		state.WalletLoginChallenges = map[string]WalletLoginChallengeRecord{}
+	}
 	if state.Audit == nil {
 		state.Audit = []AuditEvent{}
 	}
