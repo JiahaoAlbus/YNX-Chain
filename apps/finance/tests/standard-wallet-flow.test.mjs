@@ -80,6 +80,18 @@ test('local Chrome statement separates observed records from unknown period tota
   }finally{await page.close()}
 });
 
+test('local Chrome refuses imprecise or missing chain-unit amounts',async()=>{
+  const page=await fixture();try{
+    const values=await page.evaluate(()=>[fmt(0),fmt(null),fmt(undefined),fmt(Number.MAX_SAFE_INTEGER+1),fmt(-1),fmt(1.5)]);
+    assert.deepEqual(values,['0','Unknown','Unknown','Unknown','Unknown','Unknown']);
+    await page.evaluate(()=>renderActivity([{id:'fixture-tx',type:'fixture',direction:'outgoing',timestamp:'2026-09-01T00:00:00Z',amountYnxt:Number.MAX_SAFE_INTEGER+1,feeYnxt:null}]));
+    assert.match(await page.locator('#activity-body').innerText(),/Unknown YNXT/);
+    assert.doesNotMatch(await page.locator('#activity-body').innerText(),/9,007,199,254,740,992/);
+    assert.deepEqual(await calls(page),[]);
+    assert.deepEqual(page.financeErrors,[]);
+  }finally{await page.close()}
+});
+
 test('SDK artifact is exact, and Finance source no longer creates or transports a legacy device secret',async()=>{
   const sdk=await readFile(new URL('vendor/standard-wallet-browser-c97f85e9.mjs',web));
   assert.equal(sdk.length,22417);assert.equal(createHash('sha256').update(sdk).digest('hex'),'b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43');

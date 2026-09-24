@@ -9,7 +9,7 @@ const BUILD_COMMAND='esbuild wallet-auth-entry.js --bundle --minify --platform=b
 const ENTRY='wallet-auth-entry.js',BUNDLE='wallet-auth.js';
 const LEGACY_FILES=['wallet-connect-entry.js','wallet-connect.js'];
 const VERIFIER_MANIFEST='wallet-verifier-manifest.json';
-const REVIEWED_VERIFIER_MANIFEST_SHA256='4398a6cae106ac81d7dd9d0d869d369f4f0cf2f560bec506bab0f8ef393e2647';
+const REVIEWED_VERIFIER_MANIFEST_SHA256='20eda2479885ee7cf8940f61b4a16e72d3fd09b8983aa4491f34705e6aec0711';
 const CANONICAL_TESTNET_EVM_RPC='https://rpc-testnet.ynxweb4.com/evm',LEGACY_TESTNET_EVM_RPC='https://rpc.ynxweb4.com/evm';
 const REVIEWED_FILES=['package.json','package-lock.json','wallet-auth-entry.js','private-wallet-entry.js','endpoint-authority-entry.js','endpoint-authority-store.js','order-wallet-entry.js','wallet-auth.js','order-wallet.js','index.html','app.js','finance-locale.js','product-catalog.js','vendor/standard-wallet-browser-c97f85e9.mjs','vendor/product-session-browser-a7dad7ec.mjs','vendor/product-session-registry-a7dad7ec.json','../mobile/contract/endpoint-authority-pin.json','../../../sdk/js/index.js','../../../sdk/js/endpoint-authority.js','../../../sdk/js/endpoint-authority-v2.js','../../../sdk/js/endpoint-authority-bundle.js','../../../sdk/js/testnet-endpoints.js','../../../sdk/js/ynx-testnet.js','../../../sdk/js/wallet.js','../scripts/finance-nonregressive-runtime.mjs','../scripts/build-finance-weekly-v3-candidate.mjs'];
 

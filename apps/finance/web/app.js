@@ -165,7 +165,7 @@ async function completeBrokerCallback(){
 const READ_RETRY_DELAYS=[0,600,1600];
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const fmt=(v)=>new Intl.NumberFormat().format(Number(v||0));
+const fmt=v=>Number.isSafeInteger(v)&&v>=0?new Intl.NumberFormat().format(v):'Unknown';
 const short=(v)=>v?`${v.slice(0,8)}…${v.slice(-6)}`:'—';
 const date=(v)=>v?new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'Date unavailable';
 
