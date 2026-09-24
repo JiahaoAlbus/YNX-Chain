@@ -52,7 +52,7 @@ function render() {
   const begin = document.querySelector('#evm-read-begin');
   const read = document.querySelector('#evm-read-refresh');
   const end = document.querySelector('#evm-read-end');
-  if (begin) { begin.hidden = !connected; begin.disabled = busy; }
+  if (begin) { begin.hidden = !connected || Boolean(active); begin.disabled = busy; }
   if (read) { read.hidden = !active; read.disabled = busy; }
   if (end) { end.hidden = !active; end.disabled = busy; }
   const state = document.querySelector('#evm-read-state');
@@ -126,7 +126,7 @@ async function jsonRequest(path, options) {
   return result;
 }
 async function begin() {
-  if (busy) return;
+  if (busy || active) return;
   busy = true; render();
   let requestId = '';
   try {
@@ -202,6 +202,7 @@ async function revoke() {
   } catch { status('revokePending'); }
 }
 async function restore() {
+  try { sessionStorage.removeItem(PENDING_KEY); } catch {}
   try {
     const stored = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
     if (!stored) { status('disconnected'); return; }

@@ -88,9 +88,12 @@ test('real Chromium preserves short EVM-only session across refresh and revokes 
     await page.getByRole('button', { name: 'Open read-only EVM account' }).click();
     await page.waitForFunction(() => window.YNXFinanceEVMRead?.state().active === true && document.querySelector('#evm-read-summary').textContent.includes('123 YNXT'));
     assert.equal(await page.locator('#evm-read-state').textContent(), 'Read-only EVM account is authorized for this short session. This does not authorize private native Finance, orders, or transfers.');
+    assert.equal(await page.locator('#evm-read-begin').isHidden(), true);
     assert.equal(context.pages().length, 1);
+    await page.evaluate(() => sessionStorage.setItem('ynx.finance.evm-read.pending.v1', JSON.stringify({ requestId: 'stale-reload-request' })));
     await page.reload();
     await page.waitForFunction(() => window.YNXFinanceEVMRead?.state().active === true);
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('ynx.finance.evm-read.pending.v1')), null);
     await page.getByRole('button', { name: 'Refresh read-only account' }).click();
     await page.waitForFunction(() => document.querySelector('#evm-read-summary').textContent.includes('123 YNXT'));
     await page.locator('#finance-language').selectOption('zh-CN');
