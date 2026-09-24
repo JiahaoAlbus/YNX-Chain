@@ -1,0 +1,42 @@
+{
+  "schema": "ynx-wallet-mobile-preview-source-candidate/v1",
+  "version": "1.0.22-testnet-preview",
+  "versionCode": 28,
+  "iosBuildNumber": "28",
+  "baseCommit": "2013d05874b3b767a2d3597cf6dd43564ad1679d",
+  "releaseSourceCommit": null,
+  "releaseTag": null,
+  "artifactsBuiltFromExactMerge": false,
+  "artifactsPublished": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": "NOT_VERIFIED",
+  "financeOrderHandoffE2E": "NOT_VERIFIED",
+  "backendFourRouteContract": "NOT_VERIFIED",
+  "physicalAndroidDevice": "NOT_VERIFIED",
+  "iosPhysicalDevice": "NOT_VERIFIED",
+  "installedUpgradeFromVersionCode26": "VERIFIED_LOCAL_EMULATOR",
+  "installedUpgradeEvidence": "proof/wallet-android-1.0.22-installed-upgrade-20260925.json",
+  "officialWebsiteUpdated": false,
+  "sourceContracts": [
+    "app.json",
+    "android/app/build.gradle",
+    "ios/YNXWallet/Info.plist",
+    "ios/YNXWallet.xcodeproj/project.pbxproj"
+  ],
+  "previousReleasePreserved": {
+    "tag": "wallet-android-testnet-preview-1.0.20-f3a12abad",
+    "apkAssetId": 577942956,
+    "aabAssetId": 577942957,
+    "assetsMustNotBeReplaced": true
+  },
+  "knownLimits": [
+    "The exact 1.0.22 release source is assigned only after this candidate merges.",
+    "An unsigned Android build and a locally test-signed versionCode 26 to 28 emulator upgrade passed; physical-device and public-package verification remain absent.",
+    "Finance claim, complete, exchange and legacy recovery have not passed a common backend and Wallet cross-test.",
+    "APK and AAB hashes, byte sizes, signatures, asset IDs and URLs remain absent until exact-source builds and publication.",
+    "The published 1.0.20 APK and AAB are historical baselines and must not be relabeled or replaced.",
+    "Production signing, physical-device validation, app-store publication, WalletConnect Relay E2E and official-site publication remain unverified."
+  ],
+  "generatedAt": "2026-09-24T17:39:06Z"
+}

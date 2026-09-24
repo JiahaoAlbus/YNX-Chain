@@ -36,11 +36,21 @@ test("broadcast ACK loss is persisted and blocks replacement after restart", asy
   await assert.rejects(() => new WalletConnectBroadcastJournal(storage).broadcast(account, signed, async () => signed.transactionHash), /prior.*resolution/i);
 });
 
-test("failed durability preflight never writes a dispatch record or calls sendRawTransaction",async()=>{
+test("failed durability preflight saves original bytes without calling sendRawTransaction",async()=>{
   const values=new Map<string,string>(),storage={getItem:async(key:string)=>values.get(key)??null,setItem:async(key:string,value:string)=>{values.set(key,value)},deleteItem:async(key:string)=>{values.delete(key)}};
   const prepared=await prepareEvmRequest(account,"eth_sendTransaction",[{from:account,to:other,value:"0xde0b6b3a7640000"}],transferRpc),signed:any=await signPreparedEvmRequest(secret,prepared,()=>{});let sends=0;
   const journal=new WalletConnectBroadcastJournal(storage);await assert.rejects(()=>journal.broadcast(account,signed,async method=>{if(method==="eth_chainId")return EVM_CHAIN_HEX;if(method==="eth_sendRawTransaction")sends++;throw new Error("capability unavailable")}),/capability unavailable/);
-  assert.equal(sends,0);assert.equal(await journal.read(account),null);
+  assert.equal(sends,0);assert.equal((await journal.read(account))?.rawTransaction,signed.rawTransaction);
+});
+
+test("locking during durability preflight prevents signed transaction broadcast",async()=>{
+  const values=new Map<string,string>(),storage={getItem:async(key:string)=>values.get(key)??null,setItem:async(key:string,value:string)=>{values.set(key,value)},deleteItem:async(key:string)=>{values.delete(key)}};
+  const prepared=await prepareEvmRequest(account,"eth_sendTransaction",[{from:account,to:other,value:"0xde0b6b3a7640000"}],transferRpc),signed:any=await signPreparedEvmRequest(secret,prepared,()=>{});
+  let release!:()=>void,entered!:()=>void,active=true,sends=0;const gate=new Promise<void>(resolve=>{release=resolve}),started=new Promise<void>(resolve=>{entered=resolve});
+  const binding={topic:"a".repeat(64),requestId:7,sessionBinding:"b".repeat(64),requestDigest:"c".repeat(64)};
+  const journal=new WalletConnectBroadcastJournal(storage),pending=journal.broadcastAuthorized(account,signed,()=>{if(!active)throw new Error("wallet locked")},binding,async method=>{if(method==="eth_chainId")return EVM_CHAIN_HEX;if(method==="ynx_getDurabilityModel"){entered();await gate;return model}if(method==="eth_sendRawTransaction")sends++;return signed.transactionHash});
+  await started;active=false;release();await assert.rejects(pending,/wallet locked/);
+  assert.equal(sends,0);assert.equal((await journal.read(account))?.transactionHash,signed.transactionHash);assert.deepEqual((await journal.read(account))?.binding,binding);
 });
 
 test("only exact successful receipt releases a saved transaction", async () => {

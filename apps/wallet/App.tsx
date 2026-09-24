@@ -10,6 +10,7 @@ import QRCodeView from "react-native-qrcode-svg";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
   createSignedNativeTransfer, evmAddressFromYNX, walletIdentity, ynxAddressFromEVM,
+  FINANCE_ORDER_OPAQUE_CLAIM_PATH, FINANCE_ORDER_OPAQUE_COMPLETE_PATH, FINANCE_ORDER_OPAQUE_RECOVER_LEGACY_PATH,
 } from "@ynx-chain/wallet-auth";
 import { GatewaySecurityReviewProvider, SecurityReviewController, type ReviewSnapshot } from "./src/ai/securityReview";
 import { NativeChainClient, loadNativeChainState, isNativeReadCancelled, nativeChainClientForStoredOrigin, type NativeChainState } from "./src/chain/nativeTransfer";
@@ -28,6 +29,7 @@ import { ProductSessionController, type ProductSessionReview, type MobileProduct
 import { ApplicationActionController, type ApplicationActionReview } from "./src/protocol/applicationActionController";
 import { CardApplicationApprovalController, type CardApplicationApprovalReview } from "./src/protocol/cardApplicationApprovalController";
 import { FinanceOrderApprovalController, type FinanceOrderApprovalReview } from "./src/protocol/financeOrderApprovalController";
+import { FinanceOrderOpaqueController } from "./src/protocol/financeOrderOpaqueController";
 import { scopeExplanation } from "./src/i18n/scopeCopy";
 import { authorizationCopy } from "./src/i18n/authorizationCopy";
 import { applicationActionCopy } from "./src/i18n/applicationActionCopy";
@@ -44,7 +46,7 @@ import { needsOfflineKeyRecovery, reviewRecoveryKey } from "./src/state/recovery
 import { assertSecureStorageAvailable, platformSecureStorage, platformStorageHealth } from "./src/storage/secureStorage";
 import { type WalletAccount, type WalletManifest, WalletRepository } from "./src/storage/walletRepository";
 import { COLORS, HIGH_CONTRAST_LIGHT } from "./src/theme";
-import { WalletConnectButton, walletConnectRuntime } from "./src/walletConnect/WalletConnectModal";
+import { WalletConnectButton, closeWalletConnectForLock, walletConnectRuntime } from "./src/walletConnect/WalletConnectModal";
 import { offerWalletConnectDeepLink } from "./src/walletConnect/inbox";
 
 let ACTIVE_COLORS=COLORS;
@@ -61,6 +63,18 @@ function useOperationScope(visible=true,account?:string){const operations=useWal
 const repository=new WalletRepository(platformSecureStorage);
 const nativeOutbox=new NativeTransferOutbox(platformSecureStorage);
 const authorizationAudit=new AuthorizationAuditStore(platformSecureStorage);
+async function postFinanceOrderHandoff(path:string,body:unknown):Promise<unknown>{
+  if(path!==FINANCE_ORDER_OPAQUE_CLAIM_PATH&&path!==FINANCE_ORDER_OPAQUE_COMPLETE_PATH&&path!==FINANCE_ORDER_OPAQUE_RECOVER_LEGACY_PATH)
+    throw new Error("Finance handoff route is not authorized");
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10_000);
+  try{
+    const response=await fetch("https://finance.ynxweb4.com"+path,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
+      body:JSON.stringify(body),credentials:"omit",redirect:"error",cache:"no-store",signal:controller.signal});
+    if(!response.ok||!(response.headers.get("content-type")??"").includes("application/json"))throw new Error("Finance confidential handoff unavailable; signed decision is retained for retry");
+    const raw=await response.text();if(raw.length>64*1024)throw new Error("Finance handoff response is too large");
+    return JSON.parse(raw);
+  }finally{clearTimeout(timeout)}
+}
 function chainClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new NativeChainClient(runtime?.baseURL)}
 function storedChainClient(origin:string){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return nativeChainClientForStoredOrigin(origin,runtime?.baseURL)}
 function evmSimulationClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new EvmSimulationClient(runtime?.evmRpcURL??runtime?.baseURL)}
@@ -106,16 +120,26 @@ function WalletApp(){
   const productSessions=useMemo(()=>new ProductSessionController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url),audit:(review,action,at)=>authorizationAudit.appendProductSession(review,{action,account:review.account.account,at:at.toISOString()})}),[operations]);
   const applicationActions=useMemo(()=>new ApplicationActionController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url)}),[operations]);
   const cardApprovals=useMemo(()=>new CardApplicationApprovalController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url)}),[operations]);
-  const financeOrderApprovals=useMemo(()=>new FinanceOrderApprovalController({storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),currentTime:(assertCurrent)=>walletSessionInventoryClient().currentTime(assertCurrent),openURL:(url)=>Linking.openURL(url)}),[operations]);
+  const financeOrderApprovals=useMemo(()=>{
+    const access=createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")});
+    const shared={storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:access,
+      currentTime:(assertCurrent:()=>void)=>walletSessionInventoryClient().currentTime(assertCurrent),openURL:(url:string)=>Linking.openURL(url)};
+    const legacy=new FinanceOrderApprovalController(shared);
+    return new FinanceOrderOpaqueController({...shared,randomToken:async()=>bytesToHex(await getRandomBytesAsync(32)),
+      claim:body=>postFinanceOrderHandoff(FINANCE_ORDER_OPAQUE_CLAIM_PATH,body),
+      complete:body=>postFinanceOrderHandoff(FINANCE_ORDER_OPAQUE_COMPLETE_PATH,body),
+      recoverLegacy:body=>postFinanceOrderHandoff(FINANCE_ORDER_OPAQUE_RECOVER_LEGACY_PATH,body),
+      inspectLegacy:url=>legacy.inspectForOpaqueMigration(url)});
+  },[operations]);
   const cancelAuthorization=useCallback(()=>{++linkRevision.current;productSessions.cancel();applicationActions.cancel();cardApprovals.cancel();financeOrderApprovals.cancel();setAuthorization(null);setApplicationAction(null);setCardApproval(null);setFinanceOrderApproval(null)},[productSessions,applicationActions,cardApprovals,financeOrderApprovals]);
-  const lock=()=>{void walletConnectRuntime.rejectPendingForLock();operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
-  const updateManifest=useCallback((next:WalletManifest)=>{void walletConnectRuntime.rejectPendingForLock();operations.invalidate();operations.setAccount(next.selectedAccountId);selectedRef.current=next.accounts.find(item=>item.account===next.selectedAccountId)??null;cancelAuthorization();setManifest(next)},[operations,cancelAuthorization]);
+  const lock=()=>{closeWalletConnectForLock(selectedRef.current?.account);operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
+  const updateManifest=useCallback((next:WalletManifest)=>{closeWalletConnectForLock(selectedRef.current?.account);operations.invalidate();operations.setAccount(next.selectedAccountId);selectedRef.current=next.accounts.find(item=>item.account===next.selectedAccountId)??null;cancelAuthorization();setManifest(next)},[operations,cancelAuthorization]);
 
   useEffect(()=>platformStorageHealth.subscribe(()=>{
     // Cancel scopes immediately, before React renders the restart page. Keep
     // the durable account/outbox records; an interrupted send can be unknown.
     ++loadRevision.current;readyRef.current=false;queuedLink.current=null;
-    void walletConnectRuntime.rejectPendingForLock();operations.lock();rootScope.cancel();corruptReset.cancel();cancelAuthorization();
+    closeWalletConnectForLock(selectedRef.current?.account);operations.lock();rootScope.cancel();corruptReset.cancel();cancelAuthorization();
     setPendingRecovery(null);setSetup("closed");setSettings(false);setBusy(false);
     setNotice(null);setLoading(false);setStorageRestartRequired(true);
     dispatchLock({type:"lock",reason:"user"});
@@ -146,7 +170,7 @@ function WalletApp(){
   useEffect(()=>{void load()},[load]);
   useEffect(()=>{if(!initialLinkRead.current){initialLinkRead.current=true;void Linking.getInitialURL().then((url)=>{if(url)handleLink(url)})}const sub=Linking.addEventListener("url",({url})=>handleLink(url));return()=>sub.remove()},[handleLink]);
   useEffect(()=>{if(!storageRestartRequired&&!loading&&manifest&&queuedLink.current){const url=queuedLink.current;queuedLink.current=null;handleLink(url)}},[storageRestartRequired,loading,manifest,handleLink]);
-  useEffect(()=>{operations.setAppState(AppState.currentState);let reloadOnActive=AppState.currentState==="background";const sub=AppState.addEventListener("change",(next)=>{operations.setAppState(next);if(next==="background"){void walletConnectRuntime.rejectPendingForLock();reloadOnActive=true;rootScope.cancel();dispatchLock({type:"lock",reason:"background"});cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false)}else if(next==="active"&&reloadOnActive){reloadOnActive=false;void loadHandler.current();void walletConnectRuntime.restore()}});return()=>{operations.lock();rootScope.cancel();sub.remove()}},[cancelAuthorization,operations,rootScope]);
+  useEffect(()=>{operations.setAppState(AppState.currentState);let reloadOnActive=AppState.currentState==="background";const sub=AppState.addEventListener("change",(next)=>{operations.setAppState(next);if(next==="background"){closeWalletConnectForLock(selectedRef.current?.account);reloadOnActive=true;rootScope.cancel();dispatchLock({type:"lock",reason:"background"});cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false)}else if(next==="active"&&reloadOnActive){reloadOnActive=false;void loadHandler.current();void walletConnectRuntime.restore()}});return()=>{operations.lock();rootScope.cancel();sub.remove()}},[cancelAuthorization,operations,rootScope]);
   useEffect(()=>{if(!pendingRecovery)return;const timer=setTimeout(()=>{rootScope.cancel();operations.invalidate();setPendingRecovery(null);setSetup("closed");setBusy(false);setNotice("Recovery display expired. Generate a new account if it was not saved.")},RECOVERY_DISPLAY_MS);return()=>clearTimeout(timer)},[pendingRecovery,operations,rootScope]);
   useEffect(()=>{void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);void AccessibilityInfo.isHighTextContrastEnabled().then(setHighContrast);const sub=AccessibilityInfo.addEventListener("reduceMotionChanged",setReducedMotion);return()=>sub.remove()},[]);
   useEffect(()=>{let active=true;setPrivacyState({ready:false,error:null});void preventScreenCaptureAsync("wallet-runtime").then(()=>{if(active)setPrivacyState({ready:true,error:null})}).catch((caught)=>{if(active){operations.lock();dispatchLock({type:"lock",reason:"user"});setPrivacyState({ready:false,error:`Wallet privacy protection failed: ${message(caught)}`})}});return()=>{active=false;void allowScreenCaptureAsync("wallet-runtime")}},[privacyAttempt,operations]);
@@ -234,6 +258,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <Pressable accessibilityLabel={walletCopy(locale,"Switch Wallet account")} accessibilityState={{expanded:accountsOpen}} onPress={()=>setAccountsOpen(!accountsOpen)} style={styles.accountPicker}><View><Text style={styles.accountLabel}>{selected.label}</Text><Text style={styles.address}>{short(selected.account)}</Text></View><ChevronDown color={ACTIVE_COLORS.ink}/></Pressable>
     {accountsOpen?<View style={styles.accountMenu}>{manifest.accounts.map((item)=><Pressable accessibilityRole="radio" accessibilityState={{checked:item.account===selected.account}} accessibilityLabel={`${translate(locale,"account")} ${item.label}`} key={item.account} onPress={()=>{select(item.account);setAccountsOpen(false)}} style={styles.accountRow}><View><Text style={styles.accountLabel}>{item.label}</Text><Text style={styles.smallAddress}>{short(item.account)}</Text></View>{item.account===selected.account?<Check color={ACTIVE_COLORS.blue}/>:null}</Pressable>)}<Pressable accessibilityLabel={translate(locale,"createAnother")} onPress={create} style={styles.accountRow}><Plus color={ACTIVE_COLORS.blue}/><Text style={styles.link}>{translate(locale,"createAnother")}</Text></Pressable><Pressable accessibilityLabel={translate(locale,"importAnother")} onPress={add} style={styles.accountRow}><KeyRound color={ACTIVE_COLORS.blue}/><Text style={styles.link}>{translate(locale,"importAnother")}</Text></Pressable></View>:null}
     <View style={styles.balanceCard}><Text style={styles.balanceLabel}>{walletCopy(locale,"Native asset · authoritative testnet")}</Text><Text style={styles.balance}>{chainState.account?formatYNXT(locale,chainState.account.balance):"— YNXT"}</Text><Text style={styles.balanceMeta}>{chainState.phase==="loading"?walletCopy(locale,"Loading balance and nonce…"):chainState.phase==="unrecorded"?`${walletCopy(locale,"This address has no on-chain account record yet. Receive testnet YNXT to get started. Balance and nonce are not available yet.")} ${walletCopy(locale,"Sending becomes available after balance and nonce are confirmed.")}`:chainState.phase==="failed"?`${walletCopy(locale,"Balance unavailable")}: ${networkRecoveryCopy(locale,chainState.error??"")}`:`${walletCopy(locale,"Nonce {nonce}",{nonce:chainState.account?chainState.account.nonce:"—"})} · ${chainState.activityPhase==="ready"?walletCopy(locale,"{count} matching transactions in the latest 25 chain transactions",{count:chainState.activity.length}):walletCopy(locale,"Activity · unavailable")}`}</Text></View>
+    {chainState.phase==="failed"||chainState.phase==="unrecorded"||chainState.activityPhase==="failed"?<SecondaryButton label={walletCopy(locale,"Refresh balance and activity")} onPress={()=>void refreshChain()}/>:null}
     <View style={styles.quickRow}><Quick icon={<ArrowUpRight color={ACTIVE_COLORS.blue}/>} label={translate(locale,"send")} onPress={()=>setSend(true)}/><Quick icon={<QrCode color={ACTIVE_COLORS.blue}/>} label={translate(locale,"receive")} onPress={()=>setQR(true)}/><Quick icon={<History color={ACTIVE_COLORS.blue}/>} label={translate(locale,"activity")} onPress={()=>setCenter(true)}/></View>
     <SecondaryButton label={walletCopy(locale,"Test YNXT")} onPress={()=>setFaucet(true)}/>
     <InfoCard title={translate(locale,"accountSafety")} body={walletCopy(locale,selected.backupConfirmed?"Offline backup confirmed. System biometrics protect unlock, authorization, recovery viewing and deletion.":"Backup is not confirmed. Do not receive assets until the recovery key is stored offline.")}/>
@@ -242,7 +267,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <FaucetButton secondary label={walletCopy(locale,"View offline recovery key")} onPress={()=>setRecovery(true)}/>
     <FaucetButton secondary label={walletCopy(locale,"0x EVM compatibility and contract simulation")} onPress={()=>setEvm(true)}/>
     <SecondaryButton label={walletCopy(locale,"Connected Apps, Sessions and Devices")} onPress={()=>setCenter(true)}/>
-    <WalletConnectButton account={selected} withAccountSecret={walletConnectKeyAccess}/>
+    <WalletConnectButton account={selected} withAccountSecret={walletConnectKeyAccess} operations={operations}/>
     <SecondaryButton label={walletCopy(locale,"Review stored transfer")} onPress={()=>setSend(true)}/>
     <SecondaryButton label={controlCopy(locale,"open")} onPress={()=>setControls(true)}/>
     <SecondaryButton label={translate(locale,"lockWallet")} onPress={lock}/>
@@ -618,7 +643,7 @@ function CardApprovalModal({locale,review,controller,close,onReturned}:{locale:W
   </Sheet></Modal>
 }
 
-function FinanceOrderApprovalModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:FinanceOrderApprovalReview;controller:FinanceOrderApprovalController;close:()=>void;onReturned:()=>void}){
+function FinanceOrderApprovalModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:FinanceOrderApprovalReview;controller:FinanceOrderOpaqueController;close:()=>void;onReturned:()=>void}){
   const {request,account:selected}=review,approval=request.unsigned,order=approval.order;
   const scope=useOperationScope(true,selected.account);
   const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[expired,setExpired]=useState(false),[returnReady,setReturnReady]=useState(()=>controller.hasReturn(review.id)),[revocable,setRevocable]=useState(()=>controller.canRevoke(review.id));
