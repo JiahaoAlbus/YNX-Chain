@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {build as esbuild,version as esbuildVersion} from 'esbuild';
 import {dirname,join,resolve} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
+import {verifyEVMReadCandidate} from './verify-evm-read-candidate.mjs';
 
 const webRoot=dirname(fileURLToPath(import.meta.url));
 const BUILD_COMMAND='esbuild wallet-auth-entry.js --bundle --minify --platform=browser --target=es2022 --outfile=wallet-auth.js';
@@ -11,7 +12,7 @@ const LEGACY_FILES=['wallet-connect-entry.js','wallet-connect.js'];
 const VERIFIER_MANIFEST='wallet-verifier-manifest.json';
 const REVIEWED_VERIFIER_MANIFEST_SHA256='ef912e219ba722585e34a846f3a2b6e8f97276c3dd375bb2232bf193727fcaa7';
 const CANONICAL_TESTNET_EVM_RPC='https://rpc-testnet.ynxweb4.com/evm',LEGACY_TESTNET_EVM_RPC='https://rpc.ynxweb4.com/evm';
-const REVIEWED_FILES=['package.json','package-lock.json','wallet-auth-entry.js','private-wallet-entry.js','endpoint-authority-entry.js','endpoint-authority-store.js','order-wallet-entry.js','wallet-auth.js','order-wallet.js','index.html','app.js','finance-locale.js','product-catalog.js','vendor/standard-wallet-browser-c97f85e9.mjs','vendor/product-session-browser-a7dad7ec.mjs','vendor/product-session-registry-a7dad7ec.json','../mobile/contract/endpoint-authority-pin.json','../../../sdk/js/index.js','../../../sdk/js/endpoint-authority.js','../../../sdk/js/endpoint-authority-v2.js','../../../sdk/js/endpoint-authority-bundle.js','../../../sdk/js/testnet-endpoints.js','../../../sdk/js/ynx-testnet.js','../../../sdk/js/wallet.js','../scripts/finance-nonregressive-runtime.mjs','../scripts/build-finance-weekly-v3-candidate.mjs'];
+const REVIEWED_FILES=['package.json','package-lock.json','wallet-auth-entry.js','private-wallet-entry.js','endpoint-authority-entry.js','endpoint-authority-store.js','order-wallet-entry.js','wallet-auth.js','order-wallet.js','index.html','app.js','finance-locale.js','product-catalog.js','vendor/standard-wallet-browser-c97f85e9.mjs','vendor/product-session-browser-a7dad7ec.mjs','vendor/product-session-registry-a7dad7ec.json','../mobile/contract/endpoint-authority-pin.json','../../../sdk/js/index.js','../../../sdk/js/endpoint-authority.js','../../../sdk/js/endpoint-authority-v2.js','../../../sdk/js/endpoint-authority-bundle.js','../../../sdk/js/testnet-endpoints.js','../../../sdk/js/ynx-testnet.js','../../../sdk/js/wallet.js','../scripts/finance-nonregressive-runtime.mjs','../scripts/build-finance-weekly-v3-candidate.mjs','verify-evm-read-candidate.mjs','../evidence/evm-read-runtime-verifier-candidate-20260924.json'];
 
 function fail(code,message){const error=new Error(`${code}: ${message}`);error.code=code;throw error}
 function sha256(value){return createHash('sha256').update(value).digest('hex')}
@@ -44,7 +45,8 @@ export async function verifyFinanceWalletBundle(options={}){
   const bindingBytes=await mustRead(join(root,VERIFIER_MANIFEST),read);
   if(sha256(bindingBytes)!==REVIEWED_VERIFIER_MANIFEST_SHA256)fail('FINANCE_WALLET_VERIFIER_MANIFEST_INTEGRITY_MISMATCH',`${VERIFIER_MANIFEST} is not the reviewed verifier authority`);
   let binding;try{binding=JSON.parse(bindingBytes.toString('utf8'))}catch{fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID',`${VERIFIER_MANIFEST} is not valid JSON`)}
-  if(Object.keys(binding).sort().join(',')!=='build,files,schemaVersion,sourceBundleRelation'||binding.schemaVersion!=='ynx.finance.wallet-web-verifier.v1')fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID','unexpected verifier manifest schema');
+  if(Object.keys(binding).sort().join(',')!=='build,evmRead,files,schemaVersion,sourceBundleRelation'||binding.schemaVersion!=='ynx.finance.wallet-web-verifier.v1')fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID','unexpected verifier manifest schema');
+  if(Object.keys(binding.evmRead||{}).sort().join(',')!=='candidateBytes,candidatePath,candidateSha256'||binding.evmRead.candidatePath!=='../evidence/evm-read-runtime-verifier-candidate-20260924.json'||!Number.isSafeInteger(binding.evmRead.candidateBytes)||!/^[0-9a-f]{64}$/u.test(binding.evmRead.candidateSha256))fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID','EVM read candidate pin is invalid');
   if(binding.build?.command!==BUILD_COMMAND||binding.build?.entry!==ENTRY||binding.build?.bundle!==BUNDLE||binding.build?.esbuildVersion!=='0.25.9'||Object.keys(binding.build).sort().join(',')!=='bundle,command,entry,esbuildVersion')fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID','verifier build binding is invalid');
   if(binding.sourceBundleRelation?.byteReproducible!==true||binding.sourceBundleRelation?.status!=='VERIFIED_REPRODUCIBLE'||binding.sourceBundleRelation?.cleanBuildCount!==2||binding.sourceBundleRelation?.bytes!==181400||binding.sourceBundleRelation?.sha256!=='e04e757f20ff98ef3bbd97ac294c1e6c022c6e93edd1c441e30ac03c1959ed1b'||Object.keys(binding.sourceBundleRelation).sort().join(',')!=='byteReproducible,bytes,cleanBuildCount,sha256,status')fail('FINANCE_WALLET_VERIFIER_MANIFEST_INVALID','source/bundle reproducibility binding is invalid');
   if(esbuildVersion!==binding.build.esbuildVersion)fail('FINANCE_WALLET_BUILD_TOOL_MISMATCH',`Expected esbuild ${binding.build.esbuildVersion}, got ${esbuildVersion}`);
@@ -92,6 +94,9 @@ export async function verifyFinanceWalletBundle(options={}){
   if(!firstBuild.equals(bundleBytes))fail('FINANCE_WALLET_REBUILD_MISMATCH','Committed Wallet bundle is not the exact reviewed-source build output');
   if(firstBuild.byteLength!==binding.sourceBundleRelation.bytes||sha256(firstBuild)!==binding.sourceBundleRelation.sha256)fail('FINANCE_WALLET_REBUILD_IDENTITY_MISMATCH','Wallet rebuild does not match its reviewed reproducibility identity');
   for(const marker of ['AUTHORITY_V2_CLOCK_REQUIRED','AUTHORITY_V2_ROOT_ROLLBACK'])if(!bundle.includes(marker))fail('FINANCE_WALLET_CURRENT_AUTHORITY_MISSING',`Wallet bundle omits current SDK authority marker ${marker}`);
+  const evmReadCandidate=contents.get(binding.evmRead.candidatePath);
+  if(!evmReadCandidate||evmReadCandidate.length!==binding.evmRead.candidateBytes||sha256(evmReadCandidate)!==binding.evmRead.candidateSha256)fail('FINANCE_EVM_READ_CANDIDATE_PIN_MISMATCH','EVM read candidate differs from the reviewed manifest');
+  await verifyEVMReadCandidate({root:resolve(root,'../../..'),read,pinnedCandidateSha256:binding.evmRead.candidateSha256});
   return Object.freeze({status:'pass',entry:ENTRY,bundle:BUNDLE,vendor:`vendor/${vendorMatch[1]}`,sha256:committedHash,bytes:bundleBytes.byteLength,transport:'EIP-6963/EIP-1193 provider-only',sourceBundleReproducible:true,sourceBundleReproducibilityStatus:'VERIFIED_REPRODUCIBLE',cleanBuildCount:2,legacyFilesRejected:Object.freeze([...LEGACY_FILES])});
 }
 

@@ -13,6 +13,11 @@
     "bytes": 181400,
     "sha256": "e04e757f20ff98ef3bbd97ac294c1e6c022c6e93edd1c441e30ac03c1959ed1b"
   },
+  "evmRead": {
+    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-20260924.json",
+    "candidateBytes": 5657,
+    "candidateSha256": "fd19147b0a563daead96f7e2f3c0f930601add99231d8797c37976bacaac3c15"
+  },
   "files": [
     {"path": "package.json", "bytes": 827, "sha256": "f0fc88691ca8f8fb4e9d57f8d8d06fd49ceda316665dffe6fc88dbca8e7b323d"},
     {"path": "package-lock.json", "bytes": 17389, "sha256": "35743dedd9523cadf1d057a67bc0d4a7c5771c86a54e252e6fa7ff2015394c6f"},
@@ -23,7 +28,7 @@
     {"path": "order-wallet-entry.js", "bytes": 3096, "sha256": "7cce3977bc37def6e8ab72b51763634795a5c660f8bb85bddf8b63baa68c1609"},
     {"path": "wallet-auth.js", "bytes": 181400, "sha256": "e04e757f20ff98ef3bbd97ac294c1e6c022c6e93edd1c441e30ac03c1959ed1b"},
     {"path": "order-wallet.js", "bytes": 103577, "sha256": "6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc"},
-    {"path": "index.html", "bytes": 21328, "sha256": "b8fe887f7ebe6b3780c0384fe93008b777a5f2138d4313f4948d1c049fe2a4c6"},
+    {"path": "index.html", "bytes": 22325, "sha256": "284c7a3e334237183252e53c87ed72e57ad31581af03688133a2629578fcaf39"},
     {"path": "app.js", "bytes": 49924, "sha256": "19cbd150ec2255da19ff1dd74a1465b3e46ce8aebe11a270038f6f45458e80ce"},
     {"path": "finance-locale.js", "bytes": 9138, "sha256": "7ae24f22fd3fc212135a276814358801796d5c1c1a773e694800541100b2bd53"},
     {"path": "product-catalog.js", "bytes": 3418, "sha256": "75cf7f0ff91cf29f4b4e8853730ba7859f5a27da43aaf52346e34a1ce940d6c6"},
@@ -38,7 +43,9 @@
     {"path": "../../../sdk/js/testnet-endpoints.js", "bytes": 2423, "sha256": "00216b41b29c5fa8478a36394627be1a18d232014d7d0ab9c2b36d5ec45c8316"},
     {"path": "../../../sdk/js/ynx-testnet.js", "bytes": 574, "sha256": "0a619f9a56dd25b6f7e9991a2096d69580ba455fee2231aad1caab323ae27178"},
     {"path": "../../../sdk/js/wallet.js", "bytes": 2221, "sha256": "2bffcdcdf41bfbf848f51389eaef1ca147b824b3ccc7761d813347b79493b3a0"},
-    {"path": "../scripts/finance-nonregressive-runtime.mjs", "bytes": 1629, "sha256": "c6b865d334944b10efa86089ac905d6aee224b82f465ea7dc3cde88dea9d1db5"},
-    {"path": "../scripts/build-finance-weekly-v3-candidate.mjs", "bytes": 8687, "sha256": "b4ed1233970b2d6f587e44d27eea170525da8ceb1c47d82d52846d1663f5ef3b"}
+    {"path": "../scripts/finance-nonregressive-runtime.mjs", "bytes": 2155, "sha256": "b6a9666b64d3ab62615bfa668262327fb8ae7935f2d6eeb61e5da59931f154b4"},
+    {"path": "../scripts/build-finance-weekly-v3-candidate.mjs", "bytes": 8687, "sha256": "b4ed1233970b2d6f587e44d27eea170525da8ceb1c47d82d52846d1663f5ef3b"},
+    {"path": "verify-evm-read-candidate.mjs", "bytes": 6910, "sha256": "cd202db16d976bad30dc3a9337b890e8fa01980b82676d3229eef0c71c00345a"},
+    {"path": "../evidence/evm-read-runtime-verifier-candidate-20260924.json", "bytes": 5657, "sha256": "fd19147b0a563daead96f7e2f3c0f930601add99231d8797c37976bacaac3c15"}
   ]
 }
