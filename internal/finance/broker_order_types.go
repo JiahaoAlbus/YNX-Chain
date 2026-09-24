@@ -1,6 +1,9 @@
 package finance
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 const (
 	FinanceOrderApprovalVersion = "1"
@@ -121,6 +124,28 @@ type BrokerApprovalChallenge struct {
 	ApprovedAt     time.Time                      `json:"approvedAt,omitempty"`
 	Revocation     *FinanceOrderRevocationV1      `json:"revocation,omitempty"`
 	UpdatedAt      time.Time                      `json:"updatedAt"`
+}
+
+// BrokerOrderHandoffRecord stays in persistedState, never AccountState: the
+// profile endpoint serializes AccountState and must not expose a callback
+// state, proof, or one-time code verifier. Ticket and code plaintext are never
+// persisted. The raw-v1 mode is reserved for a separately reviewed legacy
+// recovery route; fresh tickets must use sha256-v2.
+type BrokerOrderHandoffRecord struct {
+	TicketHash           string               `json:"ticketHash"`
+	Account              string               `json:"account"`
+	RequestID            string               `json:"requestId"`
+	CallbackState        string               `json:"callbackState"`
+	CallbackStateBinding string               `json:"callbackStateBinding"`
+	ClaimNonces          map[string]time.Time `json:"claimNonces,omitempty"`
+	DecisionStatus       string               `json:"decisionStatus,omitempty"`
+	DecisionProof        json.RawMessage      `json:"decisionProof,omitempty"`
+	DecisionProofHash    string               `json:"decisionProofHash,omitempty"`
+	CodeHash             string               `json:"codeHash,omitempty"`
+	CodeExpiresAt        time.Time            `json:"codeExpiresAt,omitempty"`
+	CodeConsumedAt       *time.Time           `json:"codeConsumedAt,omitempty"`
+	IssuedAt             time.Time            `json:"issuedAt"`
+	ExpiresAt            time.Time            `json:"expiresAt"`
 }
 
 type BrokerOrderRecord struct {

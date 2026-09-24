@@ -18,6 +18,7 @@ var errBrokerStateUnchanged = errors.New("Broker state already reflects the requ
 
 type BrokerChallengeRequest struct {
 	AccountPublicKey    string
+	CallbackState       string
 	Order               FinanceOrderV1
 	FeeEvidenceRef      string
 	FeeBoundEstablished bool
@@ -199,6 +200,14 @@ func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallen
 	if _, err := rand.Read(callbackBytes); err != nil {
 		return BrokerApprovalChallenge{}, err
 	}
+	callbackStateHash := hex.EncodeToString(callbackBytes)
+	if request.CallbackState != "" {
+		if !brokerHandoffToken.MatchString(request.CallbackState) {
+			return BrokerApprovalChallenge{}, errors.New("Finance opaque callback state is invalid")
+		}
+		digest := sha256.Sum256([]byte(request.CallbackState))
+		callbackStateHash = hex.EncodeToString(digest[:])
+	}
 	issuedAt := now.UTC().Truncate(time.Millisecond)
 	lifetime := request.Lifetime
 	if lifetime == 0 {
@@ -228,7 +237,7 @@ func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallen
 		}
 		unsigned := FinanceOrderApprovalUnsignedV1{
 			Account: account, AccountPublicKey: request.AccountPublicKey, ApplicationID: FinanceOrderApplicationID,
-			BrokerAccountID: mapping.BrokerAccountID, CallbackStateHash: hex.EncodeToString(callbackBytes),
+			BrokerAccountID: mapping.BrokerAccountID, CallbackStateHash: callbackStateHash,
 			ChainEnvironment: FinanceOrderChainEnv, ChainID: FinanceOrderChainID, ChallengeID: "challenge_" + challengeUUID,
 			ExpiresAt: issuedAt.Add(lifetime).Format("2006-01-02T15:04:05.000Z"), IssuedAt: issuedAt.Format("2006-01-02T15:04:05.000Z"),
 			Nonce: nonce, Order: order, OrderHash: orderHash, Origin: FinanceOrderOrigin, Platform: FinanceOrderPlatform,

@@ -38,6 +38,9 @@ test('Finance opaque verifier is byte-identical to accepted Wallet/Auth package-
 });
 
 test('claim verifies only selected account and ticket, never approval or Broker execution', () => {
+  const hashed = invoke({ action: 'ticket-hash', ticket, at });
+  assert.equal(hashed.status, 0);
+  assert.equal(hashed.output.ticketHash, financeOrderOpaqueTicketHash(ticket));
   const proof = createSignedFinanceOrderOpaqueClaim({ ticket, accountSecret: secret,
     nonce: 'claim_nonce_0123456789abcdefghijkl', issuedAt: '2026-09-19T09:00:30.000Z', expiresAt: '2026-09-19T09:01:30.000Z' });
   const expected = { ticket, account: challenge.account, accountPublicKey: challenge.accountPublicKey };

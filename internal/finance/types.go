@@ -123,6 +123,7 @@ type persistedState struct {
 	EVMSubjects           map[string]EVMSubjectRecord           `json:"evmSubjects,omitempty"`
 	EVMSubjectChallenges  map[string]EVMSubjectChallengeRecord  `json:"evmSubjectChallenges,omitempty"`
 	EVMSubjectSessions    map[string]EVMSubjectSessionRecord    `json:"evmSubjectSessions,omitempty"`
+	BrokerOrderHandoffs   map[string]BrokerOrderHandoffRecord   `json:"brokerOrderHandoffs,omitempty"`
 }
 
 type Activity struct {

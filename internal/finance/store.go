@@ -572,6 +572,11 @@ func validatePersistedState(state persistedState) error {
 			return errors.New("finance EVM subject session has no matching durable owner")
 		}
 	}
+	for ticketHash, handoff := range state.BrokerOrderHandoffs {
+		if validateBrokerOrderHandoff(state, ticketHash, handoff) != nil {
+			return errors.New("finance state contains an invalid confidential Broker order handoff")
+		}
+	}
 	return nil
 }
 

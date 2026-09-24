@@ -3433,6 +3433,8 @@ try {
     if (!Number.isFinite(cutoverAt.getTime()) || cutoverAt.toISOString() !== input.cutoverAt) throw new Error("INVALID_TIME");
     const verified = verifySignedFinanceOrderLegacyRecovery(input.proof, input.challenge, cutoverAt, at);
     respond({ kind: "verified", action: "recover-legacy", ...verified });
+  } else if (input.action === "ticket-hash") {
+    respond({ kind: "result", ticketHash: financeOrderOpaqueTicketHash(input.ticket) });
   } else {
     throw new Error("INVALID_ACTION");
   }
