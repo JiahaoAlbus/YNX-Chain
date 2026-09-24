@@ -64,6 +64,18 @@ test("approved callback failure reloads the exact request proof and never signs 
   assert.equal(restart.state.opens[0], saved.returnURL); assert.equal(restart.state.keys, 0); assert.equal(restart.state.writes.length, 0);
 });
 
+test("read-only legacy migration inspection preserves a signed proof without opening the old callback",async()=>{
+  const f=fixture(),c=f.controller(),request=f.request(),url=f.url(request);
+  const pending=await c.inspectForOpaqueMigration(url);
+  assert.equal(pending.status,"pending");assert.equal(f.state.opens.length,0);
+  const review=await c.receive(url);f.state.failOpen=true;
+  await assert.rejects(c.approve(review.id),/Callback/);
+  const opens=f.state.opens.length,keys=f.state.keys;
+  const signed=await c.inspectForOpaqueMigration(url);
+  assert.equal(signed.status,"approved");assert.equal(signed.approval?.orderHash,request.unsigned.orderHash);
+  assert.equal(f.state.opens.length,opens);assert.equal(f.state.keys,keys);
+});
+
 test("creates a separately signed unused-proof revocation and persists it before return", async () => {
   const f = fixture(), c = f.controller(), request = f.request(), review = await c.receive(f.url(request)); f.state.failOpen = true;
   await assert.rejects(c.approve(review.id)); assert.equal(c.canRevoke(review.id), true); f.state.failOpen = false; f.state.now += 1_000;

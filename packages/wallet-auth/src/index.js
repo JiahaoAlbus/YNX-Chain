@@ -16,6 +16,7 @@ export * from "./card-application-approval.js";
 export * from "./card-application-approval-request.js";
 export * from "./finance-order-approval.js";
 export * from "./finance-order-approval-transport.js";
+export * from "./finance-order-opaque-transport.js";
 export * from "./smart-account.js";
 export * from "./mandate.js";
 export * from "./mandate-lifecycle.js";

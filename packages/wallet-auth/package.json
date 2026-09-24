@@ -56,6 +56,11 @@
       "import": "./src/finance-evm-order-approval.js",
       "default": "./src/finance-evm-order-approval.js"
     },
+    "./finance-order-opaque-transport": {
+      "types": "./src/index.d.ts",
+      "import": "./src/finance-order-opaque-transport.js",
+      "default": "./src/finance-order-opaque-transport.js"
+    },
     "./metamask-evm": {
       "types": "./src/index.d.ts",
       "import": "./src/metamask-evm-adapter.js",
@@ -94,7 +99,8 @@
     "registry-conflict-evidence.json",
     "CENTRAL_INTEGRATION.md",
     "EVM_PRODUCT_SESSION_V1.md",
-    "FINANCE_EVM_PRIVATE_ORDER_V1.md"
+    "FINANCE_EVM_PRIVATE_ORDER_V1.md",
+    "FINANCE_ORDER_OPAQUE_V2.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
