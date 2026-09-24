@@ -1,0 +1,82 @@
+import {createHash,createPublicKey,verify as verifySignature} from 'node:crypto';
+import {CardStore} from './storage.ts';
+import {digestInput,subject} from './contracts.ts';
+
+const ORIGIN='https://test.immersve.com';
+const JWKS=ORIGIN+'/.well-known/jwks.json';
+const id=(value:unknown):string=>{if(typeof value!=='string'||! /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(value))throw Error('IMMERSVE_INVALID_ID');return value};
+const hash=(value:Buffer|string)=>createHash('sha256').update(value).digest('hex');
+const record=(value:unknown):Record<string,unknown>=>{if(!value||typeof value!=='object'||Array.isArray(value))throw Error('IMMERSVE_INVALID_RESPONSE');return value as Record<string,unknown>};
+type Binding={accountId:string;fundingSourceId?:string;cardId?:string};
+type Event={messageId:string;topic:string;contentHash:string;createdAt:string;receivedAt:string};
+type Journal={binding?:Binding;events:Record<string,Event>};
+const empty=():Journal=>({events:{}});
+export type ImmersveSandboxConfig={enabled:boolean;partnerAccountId:string;listenerId:string;apiKey?:string;apiSecret?:string};
+
+/** Fixed Test-only endpoint. No arbitrary origin, redirects, PAN/CVV, or client-supplied account authority. */
+export class ImmersveSandbox {
+  private readonly store:CardStore;
+  private readonly config:ImmersveSandboxConfig;
+  private readonly transport:typeof fetch;
+  constructor(options:{store:CardStore;config:ImmersveSandboxConfig;transport?:typeof fetch}){
+    this.store=options.store;this.config={...options.config,partnerAccountId:id(options.config.partnerAccountId),listenerId:id(options.config.listenerId)};
+    this.transport=options.transport??fetch;
+  }
+  static fromEnvironment(store:CardStore,env:NodeJS.ProcessEnv=process.env,transport?:typeof fetch){
+    if(env.IMMERSVE_SANDBOX_ENABLED!==undefined&&!['true','false'].includes(env.IMMERSVE_SANDBOX_ENABLED))throw Error('IMMERSVE_INVALID_ENABLED');
+    if(env.IMMERSVE_SANDBOX_ORIGIN&&env.IMMERSVE_SANDBOX_ORIGIN!==ORIGIN)throw Error('IMMERSVE_TEST_ORIGIN_REQUIRED');
+    return new ImmersveSandbox({store,config:{enabled:env.IMMERSVE_SANDBOX_ENABLED==='true',partnerAccountId:env.IMMERSVE_SANDBOX_PARTNER_ACCOUNT_ID??'UNCONFIGURED',listenerId:env.IMMERSVE_SANDBOX_LISTENER_ID??'UNCONFIGURED',apiKey:env.IMMERSVE_SANDBOX_API_KEY,apiSecret:env.IMMERSVE_SANDBOX_API_SECRET},...(transport?{transport}:{})});
+  }
+  doctor(){return {environment:'Immersve Test',origin:ORIGIN,enabled:this.config.enabled,credentialsConfigured:Boolean(this.config.apiKey&&this.config.apiSecret),partnerConfigured:this.config.partnerAccountId!=='UNCONFIGURED',listenerConfigured:this.config.listenerId!=='UNCONFIGURED',providerWritesEnabled:false,ynxtChainSupported:false,tusdSupported:false,cardLedgerCredited:false};}
+  private state(owner:string){return this.store.read('immersve-sandbox:'+subject(owner),empty)}
+  /** Trusted operator binding only. Never expose as an end-user route. */
+  bindCardholder(owner:string,accountId:string){accountId=id(accountId);const exactOwner=subject(owner);return this.store.transaction('immersve-sandbox:'+exactOwner,empty,state=>{if(state.binding&&state.binding.accountId!==accountId)throw Error('IMMERSVE_BINDING_CONFLICT');this.store.claim('immersve-test-account',accountId,exactOwner,'cardholder');state.binding??={accountId};return state.binding})}
+  bindResource(owner:string,kind:'fundingSourceId'|'cardId',resourceId:string){resourceId=id(resourceId);const exactOwner=subject(owner);return this.store.transaction('immersve-sandbox:'+exactOwner,empty,state=>{if(!state.binding)throw Error('IMMERSVE_ACCOUNT_UNBOUND');if(state.binding[kind]&&state.binding[kind]!==resourceId)throw Error('IMMERSVE_BINDING_CONFLICT');this.store.claim('immersve-test-'+kind,resourceId,exactOwner,kind);state.binding[kind]=resourceId;return state.binding})}
+  private binding(owner:string){const binding=this.state(owner).binding;if(!binding)throw Error('IMMERSVE_ACCOUNT_UNBOUND');return binding}
+  private async get(path:string,accountId?:string):Promise<Record<string,unknown>>{
+    if(!this.config.enabled)throw Error('IMMERSVE_SANDBOX_DISABLED');
+    if(!this.config.apiKey||!this.config.apiSecret)throw Error('IMMERSVE_CREDENTIALS_UNAVAILABLE');
+    const response=await this.transport(ORIGIN+path,{method:'GET',headers:{'x-api-key':this.config.apiKey,'x-api-secret':this.config.apiSecret,...(accountId?{'x-account-id':accountId}:{})},redirect:'error',signal:AbortSignal.timeout(5000)});
+    if(!response.ok)throw Error('IMMERSVE_READ_FAILED_'+response.status);
+    const body=await response.text();if(body.length>262144)throw Error('IMMERSVE_RESPONSE_TOO_LARGE');return record(JSON.parse(body));
+  }
+  async listFundingSources(owner:string){const {accountId}=this.binding(owner),body=await this.get('/api/accounts/'+encodeURIComponent(accountId)+'/funding-sources',accountId);
+    if(!Array.isArray(body.items))throw Error('IMMERSVE_INVALID_RESPONSE');
+    return body.items.map(value=>{const item=record(value);if(item.accountId!==accountId)throw Error('IMMERSVE_ACCOUNT_MISMATCH');return {id:id(item.id),accountId,fundingChannelId:typeof item.fundingChannelId==='string'?id(item.fundingChannelId):null};});
+  }
+  async getBoundCard(owner:string){const {accountId,cardId}=this.binding(owner);if(!cardId)throw Error('IMMERSVE_CARD_UNBOUND');const body=await this.get('/api/cards/'+encodeURIComponent(cardId),accountId);
+    if(body.accountId!==accountId||body.cardId!==cardId&&body.id!==cardId)throw Error('IMMERSVE_ACCOUNT_MISMATCH');
+    return {cardId,accountId,status:typeof body.status==='string'?body.status:'UNKNOWN',provider:'Immersve Test',spendable:false};
+  }
+  async listWebhookDeliveryStatus(){const body=await this.get('/api/accounts/'+encodeURIComponent(this.config.partnerAccountId)+'/webhook-notifications');
+    if(!Array.isArray(body.items))throw Error('IMMERSVE_INVALID_RESPONSE');return body.items.map(value=>{const item=record(value);return {messageId:id(item.messageId),deliveryStatus:typeof item.deliveryStatus==='string'?item.deliveryStatus:'UNKNOWN'};});
+  }
+  /** No provider POST is executable in this slice: private YNX entitlement and operation lease are absent. */
+  createFundingSource():never{throw Error('IMMERSVE_PROVIDER_WRITE_NOT_AUTHORIZED')}
+  createCard():never{throw Error('IMMERSVE_PROVIDER_WRITE_NOT_AUTHORIZED')}
+  executeSimulatorDeposit():never{throw Error('IMMERSVE_PROVIDER_WRITE_NOT_AUTHORIZED')}
+  /** Signature is over the original raw bytes. The journal stores metadata only, never payment or card payloads. */
+  async acceptWebhook(owner:string,topicPath:string,headers:Record<string,string|undefined>,rawBody:Buffer){
+    if(!this.config.enabled)throw Error('IMMERSVE_SANDBOX_DISABLED');
+    if(rawBody.length>262144)throw Error('IMMERSVE_WEBHOOK_TOO_LARGE');
+    const delivery=id(headers['x-delivery-id']?.split(':')[0]),attempt=Number(headers['x-delivery-id']?.split(':')[1]);
+    const keyId=id(headers['x-key-id']),signature=headers['x-signature'];
+    if(!Number.isSafeInteger(attempt)||attempt<1||!signature||! /^[A-Za-z0-9+/]+={0,2}$/.test(signature))throw Error('IMMERSVE_INVALID_SIGNATURE');
+    const keysResponse=await this.transport(JWKS,{method:'GET',redirect:'error',signal:AbortSignal.timeout(5000)});
+    if(!keysResponse.ok)throw Error('IMMERSVE_JWKS_UNAVAILABLE');
+    const jwks=record(await keysResponse.json()),keys=jwks.keys;
+    if(!Array.isArray(keys))throw Error('IMMERSVE_JWKS_INVALID');
+    const jwk=keys.find(value=>{const key=record(value);return key.kid===keyId&&key.kty==='RSA'&&typeof key.n==='string'&&typeof key.e==='string'&&(!key.alg||key.alg==='RS256')}) as Record<string,unknown>|undefined;
+    if(!jwk)throw Error('IMMERSVE_SIGNING_KEY_UNKNOWN');
+    const signed=Buffer.concat([Buffer.from(headers['x-delivery-id']+':'+keyId+':'),rawBody]);
+    if(!verifySignature('RSA-SHA256',signed,createPublicKey({key:jwk as any,format:'jwk'}),Buffer.from(signature,'base64')))throw Error('IMMERSVE_INVALID_SIGNATURE');
+    const envelope=record(JSON.parse(rawBody.toString('utf8'))),payload=record(envelope.payload),binding=this.binding(owner);
+    if(envelope.messageId!==delivery||envelope.deliveryAttempt!==attempt||envelope.keyId!==keyId||envelope.issuer!=='test.immersve.com'||envelope.listenerId!==this.config.listenerId||envelope.listenerAccountId!==this.config.partnerAccountId||envelope.topic!==topicPath||payload.accountId!==binding.accountId)throw Error('IMMERSVE_WEBHOOK_BINDING_MISMATCH');
+    id(topicPath);if(typeof envelope.createdAt!=='string'||!Number.isFinite(Date.parse(envelope.createdAt)))throw Error('IMMERSVE_INVALID_EVENT_TIME');const receivedAt=new Date().toISOString();
+    // Delivery attempt, sentAt, keyId and raw JSON ordering may change on a
+    // valid retry. The event identity and its business payload must not.
+    const contentHash=hash(JSON.stringify(digestInput({messageId:delivery,topic:envelope.topic,listenerId:envelope.listenerId,listenerAccountId:envelope.listenerAccountId,issuer:envelope.issuer,createdAt:envelope.createdAt,payload})));
+    return this.store.transaction('immersve-sandbox:'+subject(owner),empty,state=>{if(state.binding?.accountId!==binding.accountId)throw Error('IMMERSVE_ACCOUNT_CHANGED');const previous=state.events[delivery];if(previous){if(previous.contentHash!==contentHash)throw Error('IMMERSVE_WEBHOOK_REPLAY_CONFLICT');return {duplicate:true,messageId:delivery,ledgerCredited:false}}state.events[delivery]={messageId:delivery,topic:topicPath,contentHash,createdAt:String(envelope.createdAt),receivedAt};return {duplicate:false,messageId:delivery,ledgerCredited:false}});
+  }
+  eventJournal(owner:string){return Object.values(this.state(owner).events)}
+}
