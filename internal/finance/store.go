@@ -558,6 +558,20 @@ func validatePersistedState(state persistedState) error {
 			return errors.New("finance state contains an invalid EVM-only subject")
 		}
 	}
+	for requestID, challenge := range state.EVMSubjectChallenges {
+		if requestID != challenge.RequestID || validateEVMSubjectChallenge(challenge) != nil {
+			return errors.New("finance state contains an invalid EVM subject challenge")
+		}
+	}
+	for sessionID, session := range state.EVMSubjectSessions {
+		if sessionID != session.SessionID || validateEVMSubjectSession(session) != nil {
+			return errors.New("finance state contains an invalid EVM subject session")
+		}
+		subject, ok := state.EVMSubjects[evmSubjectKey(session.Account)]
+		if !ok || subject.SubjectID != session.SubjectID || subject.AccountType != session.AccountType {
+			return errors.New("finance EVM subject session has no matching durable owner")
+		}
+	}
 	return nil
 }
 
@@ -621,6 +635,15 @@ func normalizePersistedState(state *persistedState) {
 	}
 	if state.EVMReadSessions == nil {
 		state.EVMReadSessions = map[string]EVMReadSessionRecord{}
+	}
+	if state.EVMSubjects == nil {
+		state.EVMSubjects = map[string]EVMSubjectRecord{}
+	}
+	if state.EVMSubjectChallenges == nil {
+		state.EVMSubjectChallenges = map[string]EVMSubjectChallengeRecord{}
+	}
+	if state.EVMSubjectSessions == nil {
+		state.EVMSubjectSessions = map[string]EVMSubjectSessionRecord{}
 	}
 	if state.Audit == nil {
 		state.Audit = []AuditEvent{}

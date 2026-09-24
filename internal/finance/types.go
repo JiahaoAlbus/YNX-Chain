@@ -121,6 +121,8 @@ type persistedState struct {
 	EVMReadChallenges     map[string]EVMReadChallengeRecord     `json:"evmReadChallenges,omitempty"`
 	EVMReadSessions       map[string]EVMReadSessionRecord       `json:"evmReadSessions,omitempty"`
 	EVMSubjects           map[string]EVMSubjectRecord           `json:"evmSubjects,omitempty"`
+	EVMSubjectChallenges  map[string]EVMSubjectChallengeRecord  `json:"evmSubjectChallenges,omitempty"`
+	EVMSubjectSessions    map[string]EVMSubjectSessionRecord    `json:"evmSubjectSessions,omitempty"`
 }
 
 type Activity struct {
