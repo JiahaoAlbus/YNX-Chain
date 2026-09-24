@@ -106,9 +106,24 @@ export function createFinanceEvmSubjectHttpProof(sessionInput,request,secret) {
     account:session.account,origin:session.origin,scope:session.scope,...request});
   return parseFinanceEvmSubjectHttpProof({...unsigned,deviceSignature:signDevice(financeEvmSubjectHttpMessage(unsigned),secret,session.deviceKey)});
 }
+export async function createFinanceEvmSubjectHttpProofWith(sessionInput,request,signer) {
+  const session=parseFinanceEvmSubjectSession(sessionInput);
+  exactFields(request,["method","target","bodyDigest","nonce","issuedAt","expiresAt"],"Finance EVM HTTP request");
+  if(typeof signer!=="function") fail("INVALID_DEVICE","Device signer required");
+  const unsigned=parseUnsignedHttp({version:"1",sessionId:session.sessionId,challengeDigest:session.challengeDigest,subjectId:session.subjectId,
+    account:session.account,origin:session.origin,scope:session.scope,...request});
+  const message=financeEvmSubjectHttpMessage(unsigned);
+  const signature=normalizeDeviceSignature(await signer(Object.freeze({purpose:"finance-evm-subject-http",algorithm:"p256-sha256",deviceKey:session.deviceKey,payload:encodeBase64url(utf8ToBytes(message))})));
+  verifyDevice(signature,message,session.deviceKey);
+  return parseFinanceEvmSubjectHttpProof({...unsigned,deviceSignature:signature});
+}
 export function createFinanceEvmSubjectRevokeProof(session,request,secret) {
   exactFields(request,["bodyDigest","nonce","issuedAt","expiresAt"],"Finance EVM revoke request");
   return createFinanceEvmSubjectHttpProof(session,{...request,method:"POST",target:FINANCE_EVM_SUBJECT_REVOKE_TARGET},secret);
+}
+export async function createFinanceEvmSubjectRevokeProofWith(session,request,signer) {
+  exactFields(request,["bodyDigest","nonce","issuedAt","expiresAt"],"Finance EVM revoke request");
+  return createFinanceEvmSubjectHttpProofWith(session,{...request,method:"POST",target:FINANCE_EVM_SUBJECT_REVOKE_TARGET},signer);
 }
 function verifyHttp(proof,session,request,at) {
   if(request.origin!==session.origin||proof.origin!==session.origin) fail("ORIGIN_MISMATCH","Origin changed");
