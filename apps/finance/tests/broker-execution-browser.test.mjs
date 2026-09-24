@@ -154,6 +154,42 @@ test('newer Broker asset search wins over an out-of-order result and remains loc
   }finally{await page.close()}
 });
 
+test('Broker quote never labels a sample as IEX or accepts a different asset price',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  try{
+    await page.goto(base);
+    const result=await page.evaluate(async()=>{
+      selectBrokerAsset({id:'bbbbbbbb-1111-4111-8111-111111111111',symbol:'TEST',name:'Test asset'});
+      const originalFetch=window.fetch;
+      const quote={symbol:'OTHER',bidPrice:'9.99',askPrice:'10',timestamp:'2026-09-19T11:00:00.000Z',feed:'iex'};
+      window.fetch=(url,options)=>String(url).startsWith('/api/broker/quote?')?Promise.resolve(new Response(JSON.stringify({schema:'ynx-finance-broker-quote-v1',quote,quoteState:'real_time',source:'alpaca_market_data_sandbox',officialSandboxVerified:false}),{status:200,headers:{'content-type':'application/json'}})):originalFetch(url,options);
+      await refreshBrokerQuote();const mismatched=document.querySelector('#broker-quote-status').textContent;
+      quote.symbol='TEST';quote.feed='sample';
+      window.fetch=(url,options)=>String(url).startsWith('/api/broker/quote?')?Promise.resolve(new Response(JSON.stringify({schema:'ynx-finance-broker-quote-v1',quote,quoteState:'sample',source:'alpaca_market_data_sandbox',officialSandboxVerified:false}),{status:200,headers:{'content-type':'application/json'}})):originalFetch(url,options);
+      await refreshBrokerQuote();window.fetch=originalFetch;
+      return {mismatched,sample:document.querySelector('#broker-quote-status').textContent};
+    });
+    assert.match(result.mismatched,/No price was substituted/);
+    assert.doesNotMatch(result.mismatched,/9\.99|IEX/);
+    assert.match(result.sample,/SAMPLE · sample only — not live market data/);
+    assert.doesNotMatch(result.sample,/IEX/);
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.match(await page.locator('#broker-quote-status').textContent(),/仅供测试的样本，并非实时行情/);
+    await page.evaluate(()=>selectBrokerAsset({id:'cccccccc-1111-4111-8111-111111111111',symbol:'NEXT',name:'Next asset'}));
+    assert.equal(await page.locator('#broker-quote-status').textContent(),'尚未请求报价，缺少的行情仍为未知。');
+    const stale=await page.evaluate(async()=>{
+      const originalFetch=window.fetch;let finish;
+      window.fetch=(url,options)=>String(url).startsWith('/api/broker/quote?')?new Promise(resolve=>{finish=resolve}):originalFetch(url,options);
+      const pending=refreshBrokerQuote();
+      selectBrokerAsset({id:'dddddddd-1111-4111-8111-111111111111',symbol:'LATER',name:'Later asset'});
+      finish(new Response(JSON.stringify({schema:'ynx-finance-broker-quote-v1',quote:{symbol:'NEXT',bidPrice:'100',askPrice:'101',timestamp:'2026-09-19T11:00:00.000Z',feed:'iex'},quoteState:'real_time',source:'alpaca_market_data_sandbox',officialSandboxVerified:false}),{status:200,headers:{'content-type':'application/json'}}));
+      await pending;window.fetch=originalFetch;
+      return document.querySelector('#broker-quote-status').textContent;
+    });
+    assert.equal(stale,'尚未请求报价，缺少的行情仍为未知。');
+  }finally{await page.close()}
+});
+
 test('real browser previews a test-only DvP draft without Wallet or chain writes',async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844}}),posts=[];
   page.on('request',request=>{if(request.method()==='POST')posts.push(request.url())});

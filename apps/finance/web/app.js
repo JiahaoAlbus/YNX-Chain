@@ -21,7 +21,7 @@ let walletIdentityState='identityUnverified',walletIdentityBusy=false;
 function renderWalletIdentity(){const status=document.querySelector('#wallet-login-state'),button=document.querySelector('#wallet-login-verify');if(status)status.textContent=financeText(walletIdentityState);if(button){button.hidden=window.YNXFinanceWallet?.getStandardWalletState?.()?.status!=='connected';button.disabled=walletIdentityBusy;}}
 let brokerConfigurationState='brokerStatusMissing';
 function renderBrokerConfigurationStatus(){const target=document.querySelector('#broker-status');if(target)target.textContent=financeText(brokerConfigurationState)}
-document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();renderWalletIdentity();renderBrokerSnapshot();renderSourceStatus();if(brokerAssetResults!==null)renderBrokerAssets(brokerAssetResults);if(!state.connected)route()});
+document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();renderWalletIdentity();renderBrokerSnapshot();renderSourceStatus();renderBrokerQuote();if(brokerAssetResults!==null)renderBrokerAssets(brokerAssetResults);if(!state.connected)route()});
 // Guest-readable diagnostics only. This never requests a Wallet account, signs,
 // reads broker credentials or automatically enables order submission.
 let brokerCheckRevision=0;
@@ -62,6 +62,7 @@ function renderBrokerSnapshot(){
 }
 function selectBrokerAsset(asset){
   if(!asset||!/^[0-9a-f-]{36}$/.test(String(asset.id||''))||!/^[A-Z][A-Z0-9.]{0,11}$/.test(String(asset.symbol||'')))throw new Error('Select an exact active provider asset.');
+  brokerQuoteRevision++;brokerQuoteController?.abort();brokerQuoteDisplay={kind:'none'};renderBrokerQuote();
   state.brokerSelectedAsset=asset;const form=$('#broker-order-form');form.elements.assetId.value=asset.id;form.elements.symbol.value=asset.symbol;
   $('#broker-order-preview').textContent=`Selected ${asset.symbol} · ${asset.name}. No Wallet or provider write has occurred.`;
 }
@@ -214,10 +215,19 @@ async function requestBrokerCancel(orderId){
 }
 async function refreshBrokerQuote(){
   const symbol=String(new FormData($('#broker-order-form')).get('symbol')||'').toUpperCase();
-  if(!/^[A-Z][A-Z0-9.]{0,11}$/.test(symbol)){notify('Enter a canonical US equity symbol before requesting a quote.',true);return}
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
-  try{const response=await fetch(`/api/broker/quote?symbol=${encodeURIComponent(symbol)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-quote-v1')throw new Error(result?.error||'Sandbox quote is unavailable.');const quote=result.quote;$('#broker-quote-status').textContent=`${quote.symbol} · bid ${quote.bidPrice} / ask ${quote.askPrice} simulated USD · IEX · ${result.quoteState||'unknown'} · ${date(quote.timestamp)}. This does not set the order limit automatically.`}catch(error){$('#broker-quote-status').textContent=`${error.message||'Sandbox quote is unavailable.'} No price was substituted.`}finally{clearTimeout(timer)}
+  if(!state.brokerSelectedAsset||state.brokerSelectedAsset.symbol!==symbol){brokerQuoteDisplay={kind:'unavailable'};renderBrokerQuote();return}
+  const revision=++brokerQuoteRevision;brokerQuoteController?.abort();const controller=new AbortController();brokerQuoteController=controller;
+  const timer=setTimeout(()=>controller.abort(),5000);
+  try{
+    const response=await fetch(`/api/broker/quote?symbol=${encodeURIComponent(symbol)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json(),quote=result?.quote;
+    const decimal=/^-?(?:0|[1-9][0-9]{0,31})(?:\.[0-9]{1,18})?$/;
+    if(!response.ok||result?.schema!=='ynx-finance-broker-quote-v1'||result.source!=='alpaca_market_data_sandbox'||result.officialSandboxVerified!==false||quote?.symbol!==symbol||!decimal.test(quote?.bidPrice||'')||!decimal.test(quote?.askPrice||'')||!['iex','sample'].includes(quote?.feed)||!['real_time','delayed','stale','sample'].includes(result.quoteState)||!Number.isFinite(Date.parse(quote?.timestamp)))throw new Error('BROKER_QUOTE_UNVERIFIED');
+    if(revision===brokerQuoteRevision&&state.brokerSelectedAsset?.symbol===symbol){brokerQuoteDisplay={kind:'data',quote,quoteState:result.quoteState};renderBrokerQuote()}
+  }catch{if(revision===brokerQuoteRevision){brokerQuoteDisplay={kind:'unavailable'};renderBrokerQuote()}}
+  finally{clearTimeout(timer);if(revision===brokerQuoteRevision)brokerQuoteController=null}
 }
+let brokerQuoteRevision=0,brokerQuoteController=null,brokerQuoteDisplay={kind:'none'};
+function renderBrokerQuote(){const target=$('#broker-quote-status');if(!target)return;if(brokerQuoteDisplay.kind!=='data'){target.textContent=financeText(brokerQuoteDisplay.kind==='unavailable'?'brokerQuoteUnavailable':'brokerQuoteNotRequested');return}const {quote,quoteState}=brokerQuoteDisplay;target.textContent=`${quote.symbol} · ${financeText('brokerBid')} ${quote.bidPrice} / ${financeText('brokerAsk')} ${quote.askPrice} ${financeText('brokerSimulatedUSD')} · ${quote.feed.toUpperCase()} · ${financeText(`brokerQuoteState_${quoteState}`)} · ${date(quote.timestamp)}. ${financeText('brokerQuoteNoAutofill')}`}
 async function completeBrokerCallback(){
   captureLegacyBrokerCallback();
   if(brokerCallbackInFlight||!state.connected||location.pathname!=='/wallet-auth/callback'||(!pendingLegacyBrokerReturnURL&&!pendingOpaqueBrokerReturnURL))return;
