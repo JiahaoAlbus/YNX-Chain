@@ -11,7 +11,7 @@ const webRoot=join(financeRoot,'web');
 test('weekly v3 release tooling closes every served Finance runtime asset',()=>{
   const expected=[
     'app.js','evm-read-session.js','evm-subject.js','finance-locale.js','health.json','index.html','manifest.webmanifest',
-    'order-wallet-entry.js','order-wallet.js','product-catalog.js','read-sources.js','styles.css',
+    'order-wallet-entry.js','order-wallet.js','order-opaque.js','product-catalog.js','read-sources.js','styles.css',
     'vercel.json','wallet-auth-entry.js','wallet-auth.js','ynx-logo.png',
   ];
   assert.equal(Object.isFrozen(runtimeFiles),true);
@@ -26,6 +26,8 @@ test('weekly v3 release tooling closes every served Finance runtime asset',()=>{
     'authority-runtime/apps/finance/scripts/evm-product-login-authority.bundle.mjs',
     'authority-runtime/apps/finance/scripts/evm-read-session-authority.bundle.mjs',
     'authority-runtime/apps/finance/scripts/evm-subject-authority.bundle.mjs',
+    'authority-runtime/apps/finance/scripts/finance-order-opaque-authority.mjs',
+    'authority-runtime/apps/finance/scripts/finance-order-opaque-authority.bundle.mjs',
     'authority-runtime/apps/finance/scripts/finance-endpoint-authority-v2.mjs',
     'authority-runtime/apps/finance/authority/adapter.mjs',
     'authority-runtime/apps/finance/authority/config.mjs',
