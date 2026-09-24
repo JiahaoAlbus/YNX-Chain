@@ -42,6 +42,7 @@ type ServerConfig struct {
 	Build                buildinfo.Info
 	EndpointAuthority    EndpointAuthorityBrowserConfigProvider
 	EVMLoginAuthority    EVMLoginAuthority
+	EVMReadAuthority     *NodeEVMReadAuthority
 }
 
 type Server struct {
@@ -99,6 +100,10 @@ func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.dra
 func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/wallet-login/challenges", s.walletLoginChallenge)
 	s.mux.HandleFunc("POST /api/wallet-login/verify", s.walletLoginVerify)
+	s.mux.HandleFunc("POST /api/evm-read/challenges", s.evmReadChallenge)
+	s.mux.HandleFunc("POST /api/evm-read/sessions", s.evmReadIssueSession)
+	s.mux.HandleFunc("GET /api/evm-read/portfolio", s.evmReadPortfolio)
+	s.mux.HandleFunc("POST /api/wallet-login/revoke", s.evmReadRevoke)
 	s.mux.HandleFunc("GET /api/product-catalog", s.productCatalog)
 	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
 	s.mux.HandleFunc("GET /api/endpoint-authority/v2/config", s.endpointAuthorityBrowserConfig)
