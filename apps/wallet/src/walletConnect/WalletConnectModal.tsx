@@ -35,7 +35,7 @@ export function closeWalletConnectForLock(nativeAccount?:string):Promise<void>{
     if(record)await securityStore.recoverReviewingResponse(record.key);
     else if(!rows.some(item=>item.topic===pending.topic&&item.requestId===pending.id)&&nativeAccount){
       try{await securityStore.rejectUnreviewedRequest(pending,evmAddressFromYNX(nativeAccount),new Date(),{code:5000,message:"Wallet locked before review."})}
-      catch{const latest=(await securityStore.outbox()).find(item=>item.topic===pending.topic&&item.requestId===pending.id&&item.stage==="reviewing");if(latest)await securityStore.recoverReviewingResponse(latest.key)}
+      catch{const latest=(await securityStore.outbox()).find(item=>item.topic===pending.topic&&item.requestId===pending.id&&item.stage==="reviewing");if(latest)await securityStore.recoverReviewingResponse(latest.key);else await securityStore.recoverOrphanReservation(pending,evmAddressFromYNX(nativeAccount))}
     }
   }).catch(()=>{});
   return lockRecovery;
@@ -60,7 +60,7 @@ async function deliverReadyResponse(key:string,account:string,nativeAccount:stri
     lease.assert();
     const claim=await securityStore.recordDeliveryAttempt(key);
     lease.assert();
-    if(!await currentWalletConnectDelivery(walletConnectRuntime,securityStore,record,account))return;
+    if(!await currentWalletConnectDelivery(walletConnectRuntime,securityStore,record,account,expectedPending))return;
     lease.assert();
     await walletConnectRuntime.sendStoredResponse(record.topic,record.response);
     lease.assert();
@@ -71,7 +71,8 @@ async function deliverReadyResponse(key:string,account:string,nativeAccount:stri
     const retries=deliveryRetryCounts.get(key)??0;
     if(retries<3&&operations.isActive()&&operations.isUnlocked()&&operations.selectedAccount()===nativeAccount){
       deliveryRetryCounts.set(key,retries+1);
-      setTimeout(()=>{void deliverReadyResponse(key,account,nativeAccount,operations,expectedPending).catch(()=>{})},[2_000,5_000,10_000][retries]);
+      const retryPending=walletConnectRuntime.snapshot().request===expectedPending?expectedPending:null;
+      setTimeout(()=>{void deliverReadyResponse(key,account,nativeAccount,operations,retryPending).catch(()=>{})},[2_000,5_000,10_000][retries]);
     }
     throw error;
   }finally{deliveriesInFlight.delete(key)}
@@ -144,9 +145,11 @@ function WalletConnectSheet({ account,withAccountSecret,operations,inbound,clear
             if(existing){await revokeAndDisconnectWalletConnectSession(walletConnectRuntime,securityStore,request.topic);return}
             const live=walletConnectRuntime.snapshot().sessions.find(item=>item.topic===request.topic);
             if(!live||await securityStore.reconcileSession(live.topic,live.namespaces,evmAddress)!=="current")throw new Error("WalletConnect session is not current.");
-            const record=await securityStore.rejectUnreviewedRequest(request,evmAddress);
+            let record:WalletConnectResponseRecord;
+            try{record=await securityStore.rejectUnreviewedRequest(request,evmAddress)}
+            catch(caught){record=await securityStore.recoverOrphanReservation(request,evmAddress).catch(()=>{throw caught})}
             await deliverReadyResponse(record.key,evmAddress,account.account,operations,request);
-          }catch{}
+          }catch{const durable=await securityStore.outbox().then(rows=>rows.some(item=>item.topic===request.topic&&item.requestId===request.id&&item.stage==="ready")).catch(()=>false);if(!durable)await revokeAndDisconnectWalletConnectSession(walletConnectRuntime,securityStore,request.topic).catch(()=>{})}
         }
         walletConnectRuntime.clearSensitiveReview();
       }
@@ -250,9 +253,9 @@ function WalletConnectSheet({ account,withAccountSecret,operations,inbound,clear
       let record:WalletConnectResponseRecord;
       if(existing)record=await securityStore.recoverReviewingResponse(existing.key);
       else try{record=await securityStore.rejectUnreviewedRequest(pending,evmAddress,new Date(),{code:5000,message:"User closed WalletConnect review."})}
-      catch(caught){const latest=(await securityStore.outbox()).find(item=>item.topic===pending.topic&&item.requestId===pending.id&&item.stage==="reviewing");if(!latest)throw caught;record=await securityStore.recoverReviewingResponse(latest.key)}
+      catch(caught){const latest=(await securityStore.outbox()).find(item=>item.topic===pending.topic&&item.requestId===pending.id&&item.stage==="reviewing");if(latest)record=await securityStore.recoverReviewingResponse(latest.key);else record=await securityStore.recoverOrphanReservation(pending,evmAddress).catch(()=>{throw caught})}
       if(record.stage==="ready")await deliverReadyResponse(record.key,evmAddress,account.account,operations);
-    })().catch(()=>{});
+    })().catch(()=>{void securityStore.outbox().then(rows=>{if(!rows.some(item=>item.topic===pending.topic&&item.requestId===pending.id&&item.stage==="ready"))return revokeAndDisconnectWalletConnectSession(walletConnectRuntime,securityStore,pending.topic)}).catch(()=>{})});
   };
   const checkBroadcast=async()=>{setBusy(true);setError(null);try{setBroadcast(await broadcastJournal.refresh(evmAddress))}catch(caught){setError(message(caught))}finally{setBusy(false)}};
   const retryBroadcast=async()=>{setBusy(true);setError(null);try{await withAccountSecret(account.account,()=>{},async(_secret,assertCurrent)=>{assertCurrent();const hash=await broadcastJournal.retryOriginalAuthorized(evmAddress,assertCurrent);assertCurrent();return hash});setBroadcast(await broadcastJournal.read(evmAddress))}catch(caught){setBroadcast(await broadcastJournal.read(evmAddress).catch(()=>null));setError(message(caught))}finally{setBusy(false)}};

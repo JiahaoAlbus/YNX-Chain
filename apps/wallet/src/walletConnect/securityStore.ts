@@ -50,18 +50,39 @@ export class WalletConnectSecurityStore{
 
   rejectUnreviewedRequest(input:unknown,account:string,at=new Date(),rejection:Readonly<{code:number;message:string}>={code:-32602,message:"Invalid or unsupported WalletConnect request."}):Promise<WalletConnectResponseRecord>{
     return this.#enqueue(async()=>{
-      const now=authorityTime(at),value=plainObject(input,"WalletConnect invalid request"),topic=value.topic,id=value.id;
+      const now=authorityTime(at),value=requestIdentity(input),topic=value.topic,id=value.id;
       if(typeof topic!=="string"||!HEX_32.test(topic)||!Number.isSafeInteger(id)||id<1)throw new Error("WalletConnect invalid request has no safe response identity");
       const state=await this.#read(),session=state.sessions.find(item=>item.topic===topic),retained=state.outbox.filter(item=>item.expiresAt>now.toISOString()),replayStore=new WalletConnectRequestReplayStore(state.replay);replayStore.prune(now);
       if(!session||session.account!==account||session.expiresAt<=now.toISOString())throw new Error("WalletConnect invalid request has no current approved session");
-      const encoded=JSON.stringify(value);if(typeof encoded!=="string"||utf8Length(encoded)>65_536)throw new Error("WalletConnect invalid request exceeds policy");
-      const requestDigest=keccak256(toUtf8Bytes(JSON.stringify({domain:"YNX_WALLETCONNECT_UNREVIEWED_REQUEST_V1",sessionBinding:session.sessionBinding,request:encoded}))).slice(2),key=`${topic}:${id}`;
+      const overBudget=requestExceedsPolicy(value),encoded=overBudget?null:JSON.stringify(value);
+      if(!overBudget&&typeof encoded!=="string")throw new Error("WalletConnect invalid request exceeds policy");
+      const oversized=overBudget||encoded!.length>65_536||utf8Length(encoded!)>65_536;
+      const requestDigest=keccak256(toUtf8Bytes(JSON.stringify(oversized?{domain:"YNX_WALLETCONNECT_UNREVIEWED_OVERSIZE_V1",sessionBinding:session.sessionBinding,topic,id}:{domain:"YNX_WALLETCONNECT_UNREVIEWED_REQUEST_V1",sessionBinding:session.sessionBinding,request:encoded}))).slice(2),key=`${topic}:${id}`;
       const existing=retained.find(item=>item.key===key);if(existing){if(existing.method==="wallet_request_unreviewed"&&existing.requestDigest===requestDigest&&existing.stage==="ready"&&existing.decision==="rejected")return existing;throw new Error("WalletConnect request identity was already used")}
       if(replayStore.snapshot().some(item=>item.key===key)||retained.length>=MAX_OUTBOX_RECORDS)throw new Error("WalletConnect invalid request cannot replace prior review");
       const expiresAt=new Date(Math.min(Date.parse(session.expiresAt),now.getTime()+300_000)).toISOString(),response=rpcError(id,rejection.code,rejection.message);
       const record=parseOutboxRecord({version:1,key,topic,requestId:id,sessionBinding:session.sessionBinding,account,chainId:"eip155:6423",requestDigest,method:"wallet_request_unreviewed",expiresAt,decision:"rejected",stage:"ready",response,responseDigest:responseDigest({topic,requestId:id,sessionBinding:session.sessionBinding,account,chainId:"eip155:6423",requestDigest,method:"wallet_request_unreviewed",expiresAt},response),attempts:0,createdAt:now.toISOString(),updatedAt:now.toISOString()});
       const replay=new WalletConnectRequestReplayStore([...replayStore.snapshot(),{key,requestDigest,expiresAt,status:"consumed"}]).snapshot();
       await this.#write({...state,replay,outbox:Object.freeze([...retained,record])});return record;
+    });
+  }
+
+  recoverOrphanReservation(input:unknown,account:string,at=new Date()):Promise<WalletConnectResponseRecord>{
+    return this.#enqueue(async()=>{
+      const pending=requestIdentity(input),key=`${pending.topic}:${pending.id}`;
+      const state=await this.#read(),now=authorityTime(at),replay=state.replay.find(item=>item.key===key),retained=state.outbox.filter(item=>item.expiresAt>now.toISOString());
+      if(!replay||replay.status!=="reserved"||replay.expiresAt<=now.toISOString()||retained.some(item=>item.key===key)||retained.length>=MAX_OUTBOX_RECORDS)throw new Error("WalletConnect orphan reservation is not recoverable");
+      const separator=key.lastIndexOf(":"),topic=key.slice(0,separator),id=Number(key.slice(separator+1));
+      if(!HEX_32.test(topic)||!Number.isSafeInteger(id)||id<1||key!==`${topic}:${id}`)throw new Error("WalletConnect orphan reservation identity is invalid");
+      const session=state.sessions.find(item=>item.topic===topic);
+      if(!session||session.account!==account||session.expiresAt<=now.toISOString())throw new Error("WalletConnect orphan reservation has no current approved session");
+      if(requestExceedsPolicy(input))throw new Error("WalletConnect orphan request exceeds policy");
+      const candidate=createWalletConnectRequestReview(input,{session,now,replayStore:new WalletConnectRequestReplayStore(state.replay.filter(item=>item.key!==key))});
+      if(candidate.topic!==topic||candidate.requestId!==id||candidate.account!==account||candidate.chainId!=="eip155:6423"||candidate.sessionBinding!==session.sessionBinding||candidate.requestDigest!==replay.requestDigest||candidate.expiresAt!==replay.expiresAt)throw new Error("WalletConnect orphan reservation does not match the current request");
+      const response=rpcError(id,-32002,"Wallet review was interrupted. Review a fresh request.");
+      const record=parseOutboxRecord({version:1,key,topic,requestId:id,sessionBinding:session.sessionBinding,account,chainId:"eip155:6423",requestDigest:replay.requestDigest,method:"wallet_request_unreviewed",expiresAt:replay.expiresAt,decision:"rejected",stage:"ready",response,responseDigest:responseDigest({topic,requestId:id,sessionBinding:session.sessionBinding,account,chainId:"eip155:6423",requestDigest:replay.requestDigest,method:"wallet_request_unreviewed",expiresAt:replay.expiresAt},response),attempts:0,createdAt:now.toISOString(),updatedAt:now.toISOString()});
+      const nextReplay=new WalletConnectRequestReplayStore(state.replay.map(item=>item.key===key?{...item,status:"consumed" as const}:item)).snapshot();
+      await this.#write({...state,replay:nextReplay,outbox:Object.freeze([...retained,record])});return record;
     });
   }
 
@@ -90,6 +111,25 @@ export class WalletConnectSecurityStore{
 }
 
 function emptyState():State{return Object.freeze({version:2,sessions:Object.freeze([]),replay:Object.freeze([]),outbox:Object.freeze([])})}
+function requestIdentity(value:unknown):Record<string,any>{
+  if(typeof value!=="object"||value===null||Array.isArray(value)||Object.getPrototypeOf(value)!==Object.prototype)throw new Error("WalletConnect request identity is invalid");
+  for(const key of ["topic","id"]){const descriptor=Object.getOwnPropertyDescriptor(value,key);if(!descriptor?.enumerable||!("value" in descriptor))throw new Error("WalletConnect request identity is invalid")}
+  return value as Record<string,any>;
+}
+function requestExceedsPolicy(input:unknown):boolean{
+  const pending:[unknown,number][]=[[input,0]],seen=new Set<object>();let nodes=0,characters=0;
+  while(pending.length){const [value,depth]=pending.pop()!;if(++nodes>4_096||depth>24)return true;
+    if(typeof value==="string"){characters+=value.length;if(characters>65_536)return true;continue}
+    if(value===null||typeof value==="boolean"||typeof value==="number")continue;
+    if(typeof value!=="object"||seen.has(value))return true;
+    seen.add(value);const array=Array.isArray(value),prototype=Object.getPrototypeOf(value);
+    if(prototype!==(array?Array.prototype:Object.prototype)&&prototype!==null)return true;
+    if(array&&value.length>4_096||Object.getOwnPropertyDescriptor(value,"toJSON"))return true;
+    let keys=0;
+    for(const key in value){if(!Object.hasOwn(value,key))continue;if(++keys>4_096)return true;const descriptor=Object.getOwnPropertyDescriptor(value,key);if(!descriptor||!("value" in descriptor))return true;characters+=key.length;if(characters>65_536)return true;pending.push([descriptor.value,depth+1])}
+  }
+  return false;
+}
 function authorityTime(value:Date):Date{if(!(value instanceof Date)||!Number.isFinite(value.getTime()))throw new Error("WalletConnect response time is invalid");return value}
 function rpcError(id:number,code:number,message:string):WalletConnectJsonRpcResponse{return Object.freeze({jsonrpc:"2.0",id,error:Object.freeze({code,message})})}
 function validateResponse(input:WalletConnectJsonRpcResponse,record:WalletConnectResponseRecord):WalletConnectJsonRpcResponse{
