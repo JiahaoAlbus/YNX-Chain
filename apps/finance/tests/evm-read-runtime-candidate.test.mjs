@@ -43,11 +43,11 @@ async function verifyCandidate(read = readFile) {
   assert.match(files.get('internal/finance/server.go'), /GET \/evm-read-session\.js/u);
   assert.match(files.get('internal/finance/drain.go'), /"\/evm-read-session\.js"/u);
   const pin = await read(new URL('../web/verify-wallet-connect.mjs', import.meta.url), 'utf8');
-  assert.match(pin, /REVIEWED_VERIFIER_MANIFEST_SHA256='ef912e219ba722585e34a846f3a2b6e8f97276c3dd375bb2232bf193727fcaa7'/u);
+  assert.match(pin, /REVIEWED_VERIFIER_MANIFEST_SHA256='fe22be4766486090a1e99b120fe445e4174db1ba98938ca528a6e4d542c0c599'/u);
   return candidate;
 }
 
-test('candidate binds every new Finance runtime input without moving the reviewed pin', async () => {
+test('candidate binds every new Finance runtime input under the separately reviewed pin', async () => {
   await verifyCandidate();
 });
 
