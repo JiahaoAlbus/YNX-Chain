@@ -1,8 +1,11 @@
 (()=>{
   const baseRender=render;
   const safeActionURL=(value)=>{try{const parsed=new URL(value);return parsed.protocol==='https:'&&parsed.username===''&&parsed.password===''?parsed.href:''}catch{return ''}};
-  const micro=(value,asset='')=>Number.isFinite(Number(value))?`${(Number(value)/1_000_000).toLocaleString(undefined,{maximumFractionDigits:6})}${asset?` ${esc(asset)}`:''}`:'—';
-  const bps=(value)=>Number.isFinite(Number(value))?`${(Number(value)/100).toLocaleString(undefined,{maximumFractionDigits:2})}%`:'—';
+  const exactInteger=value=>typeof value==='bigint'?value:typeof value==='number'&&Number.isSafeInteger(value)?BigInt(value):typeof value==='string'&&/^-?\d{1,78}$/.test(value)?BigInt(value):null;
+  const scaled=(value,scale,digits)=>{const units=exactInteger(value);if(units===null)return null;const negative=units<0n,absolute=negative?-units:units,whole=absolute/scale,fraction=(absolute%scale).toString().padStart(digits,'0').replace(/0+$/,'');return `${negative?'-':''}${whole.toLocaleString()}${fraction?'.'+fraction:''}`};
+  const micro=(value,asset='')=>{const amount=scaled(value,1_000_000n,6);return amount===null?'—':`${amount}${asset?` ${esc(asset)}`:''}`};
+  const bps=value=>{const amount=scaled(value,100n,2);return amount===null?'—':`${amount}%`};
+  const sumExact=values=>{let total=0n;for(const value of values){const amount=exactInteger(value);if(amount===null)return null;total+=amount}return total};
   const raw=(value)=>typeof value==='string'&&/^-?\d{1,78}$/.test(value)?value:'—';
   const observedAt=(value)=>{const parsed=new Date(value);return value&&!Number.isNaN(parsed.getTime())?parsed.toLocaleString():'unknown'};
   const exchangeDetails=(source)=>{
@@ -14,7 +17,7 @@
     const positions=Array.isArray(payload.positions)?payload.positions:[];
     const funding=Array.isArray(payload.funding)?payload.funding:[];
     const fees=Array.isArray(payload.fees)?payload.fees:[];
-    const feeTotal=fees.reduce((sum,item)=>sum+(Number(item?.amountMicro)||0),0);
+    const feeTotal=sumExact(fees.map(item=>item?.amountMicro));
     const openOrders=orders.filter(item=>item?.status==='open'||item?.status==='partially_filled');
     const evidenceRows=(items,kind)=>items.slice(-5).reverse().map(item=>{
       if(kind==='position')return `<li><span>${esc(item.market||'Position')} · ${esc(item.status||'unknown')}</span><strong>${micro(item.sizeMicro)} base · PnL ${micro(item.unrealizedPnlMicro,'YUSD_TEST')}</strong></li>`;
@@ -32,14 +35,13 @@
     const paper=Array.isArray(payload.paper)?payload.paper:[];
     const active=mandates.filter(item=>!item?.revoked&&Date.parse(item?.expiresAt||'')>Date.now());
     const filled=executions.filter(item=>item?.venueStatus==='filled');
-    const latestExperiment=experiments[0];
-    const totalNetPnL=experiments.reduce((sum,item)=>sum+(Number(item?.attribution?.userNetPnl)||0),0);
-    const totalRealized=experiments.reduce((sum,item)=>sum+(Number(item?.attribution?.userRealizedPnl)||0),0);
+    const firstExperiment=experiments[0];
     const killSwitch=paper.some(item=>item?.killSwitch===true);
+    const firstNetPnL=firstExperiment?.attribution?.userNetPnl,firstRealized=firstExperiment?.attribution?.userRealizedPnl;
     const strategyRows=strategies.slice(0,5).map(item=>`<li><span>${esc(item.name||item.id||'Strategy')} · ${esc(item.stage||'stage unavailable')}</span><strong>${esc(item.family||'family unavailable')} · ${esc(String(item.strategyHash||'').slice(0,12)||'hash unavailable')}</strong></li>`).join('');
     const executionRows=executions.slice(0,5).map(item=>`<li><span>${esc(item.market||'Market')} · ${esc(item.side||'—')} · ${esc(item.venueStatus||'venue unknown')}</span><strong>${micro(item.amount)} @ ${micro(item.price,'YUSD_TEST')} · ${esc(item.venueOrderId||'order unavailable')}</strong></li>`).join('');
     const riskRows=mandates.slice(0,5).map(item=>`<li><span>${esc(item.market||'Market')} · ${item.revoked?'revoked':'authorized'} · expires ${esc(observedAt(item.expiresAt))}</span><strong>notional ${micro(item.maxNotional)} · loss ${micro(item.maxDailyLoss)} · slippage ${bps(item.maxSlippageBps)} · leverage ${bps(item.maxLeverageBps)}</strong></li>`).join('');
-    return `<div class="source-details" aria-label="Live Quant account evidence"><div class="source-metrics"><div><small>Authorized strategies</small><strong>${strategies.length} strategies · ${active.length} active mandates</strong><span>${mandates.length-active.length} expired or revoked</span></div><div><small>Research PnL attribution</small><strong>${micro(totalNetPnL,'YUSD_TEST')}</strong><span>${micro(totalRealized,'YUSD_TEST')} realized · no unsupported component inferred</span></div><div><small>Bounded testnet execution</small><strong>${executions.length} submitted · ${filled.length} filled</strong><span>Venue status is distinct from workflow submission</span></div><div><small>Risk state</small><strong>${killSwitch?'KILL SWITCH ACTIVE':'Kill switch clear'}</strong><span>${latestExperiment?`${bps(latestExperiment.metrics?.maxDrawdownBps)} research max drawdown`:'No account-bound experiment'}</span></div></div><div class="source-evidence-grid"><div><h4>Strategy lifecycle</h4><ul>${strategyRows||'<li class="quiet">No account-authorized strategies.</li>'}</ul></div><div><h4>Authoritative executions</h4><ul>${executionRows||'<li class="quiet">No bounded testnet executions.</li>'}</ul></div><div><h4>Wallet-authorized risk limits</h4><ul>${riskRows||'<li class="quiet">No active or historical mandates.</li>'}</ul></div></div><small class="source-provenance">${esc(source.envelope.coverage||'Authorized Quant account evidence')} · as of ${esc(source.envelope.asOf||'unknown')} · ${experiments.length} research experiments · ${esc(payload.productVersion||source.status.version||'version unavailable')}</small></div>`;
+    return `<div class="source-details" aria-label="Live Quant account evidence"><div class="source-metrics"><div><small>Authorized strategies</small><strong>${strategies.length} strategies · ${active.length} active mandates</strong><span>${mandates.length-active.length} expired or revoked</span></div><div><small>First returned research PnL</small><strong>${micro(firstNetPnL,'YUSD_TEST')}</strong><span>${micro(firstRealized,'YUSD_TEST')} realized in that experiment; not portfolio PnL</span></div><div><small>Bounded testnet execution</small><strong>${executions.length} submitted · ${filled.length} filled</strong><span>Venue status is distinct from workflow submission</span></div><div><small>Risk state</small><strong>${killSwitch?'KILL SWITCH ACTIVE':'Kill switch clear'}</strong><span>${firstExperiment?`${bps(firstExperiment.metrics?.maxDrawdownBps)} research max drawdown in first returned experiment`:'No account-bound experiment'}</span></div></div><div class="source-evidence-grid"><div><h4>Strategy lifecycle</h4><ul>${strategyRows||'<li class="quiet">No account-authorized strategies.</li>'}</ul></div><div><h4>Authoritative executions</h4><ul>${executionRows||'<li class="quiet">No bounded testnet executions.</li>'}</ul></div><div><h4>Wallet-authorized risk limits</h4><ul>${riskRows||'<li class="quiet">No active or historical mandates.</li>'}</ul></div></div><small class="source-provenance">${esc(source.envelope.coverage||'Authorized Quant account evidence')} · as of ${esc(source.envelope.asOf||'unknown')} · ${experiments.length} research experiments · ${esc(payload.productVersion||source.status.version||'version unavailable')}</small></div>`;
   };
   const dexDetails=(source)=>{
     if(source?.id!=='dex'||!source?.status?.available||!source?.envelope?.payload)return '';
