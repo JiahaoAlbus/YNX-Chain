@@ -217,6 +217,26 @@ test("forged recovery ticket cannot select legacy binding without exact claimed 
   assert.equal(f.saved.has(FINANCE_ORDER_OPAQUE_REPLAY_KEY),false);
 });
 
+test("warm fresh ticket cannot be reinterpreted as a legacy recovery",async()=>{
+  const f=setup(),c=f.controller(),review=await c.receive(f.url);
+  const request=createFinanceOrderApprovalRequest(legacyUnsigned,at);
+  f.events.legacy={request,status:"pending",approval:null,revocation:null};
+  await assert.rejects(c.receive(encodeFinanceOrderApprovalWalletURL(request,at)),/state binding differs/);
+  assert.equal(c.current?.id,review.id);
+  assert.equal(JSON.parse(f.saved.get(FINANCE_ORDER_OPAQUE_REPLAY_KEY)!).rows[0].stateBinding,"sha256-v2");
+  assert.equal(f.events.completed,0);assert.equal(f.events.opens.length,0);
+});
+
+test("warm recovered legacy ticket cannot be reopened through the fresh ticket route",async()=>{
+  const f=setup(),c=f.controller(),request=createFinanceOrderApprovalRequest(legacyUnsigned,at);
+  f.events.legacy={request,status:"pending",approval:null,revocation:null};
+  const review=await c.receive(encodeFinanceOrderApprovalWalletURL(request,at));
+  await assert.rejects(c.receive(f.url),/state binding differs/);
+  assert.equal(c.current?.id,review.id);
+  assert.equal(JSON.parse(f.saved.get(FINANCE_ORDER_OPAQUE_REPLAY_KEY)!).rows[0].stateBinding,"raw-v1-random32");
+  assert.equal(f.events.completed,0);assert.equal(f.events.opens.length,0);
+});
+
 test("legacy mode survives cold restart without touching the old signed approval",async()=>{
   const f=setup(),request=createFinanceOrderApprovalRequest(legacyUnsigned,at),url=encodeFinanceOrderApprovalWalletURL(request,at);
   const approval=createSignedFinanceOrderApproval({accountSecret:secret,approval:legacyUnsigned},at);
