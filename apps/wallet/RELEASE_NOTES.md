@@ -1,3 +1,17 @@
+# YNX Wallet 1.0.21 Testnet Preview source candidate
+
+## Included in the candidate
+
+- Expo, Android and iOS source versions advance to 1.0.21. Android versionCode and iOS build advance from 26 to 27 so a new APK can be evaluated as an upgrade over the published 1.0.20 APK.
+- This candidate includes the native receipt recovery changes at the specified PR 194 source head, `1d3a10e4076158d70a5f0275d2c7ba7914300e17`.
+- The published 1.0.20 APK/AAB, their asset IDs, byte sizes, SHA-256 values and download URLs remain historical records.
+
+## Release boundaries
+
+This is source only. The exact merged release commit, built artifacts, signing identity and installed 26→27 upgrade QA are pending. Production signing, stores, physical devices, WalletConnect Relay, official-site publication and live transfer remain false or `NOT_VERIFIED`.
+
+---
+
 # YNX Wallet 1.0.20 Testnet Preview source candidate
 
 ## Included in the candidate
