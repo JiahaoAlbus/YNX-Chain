@@ -19,6 +19,7 @@ const inputs=Object.freeze([
   ...runtimeFiles.map(name=>`apps/finance/web/${name}`),
   ...authorityRuntimeFiles.map(item=>item.source),
   'apps/finance/web/package.json',
+  'apps/finance/web/package-lock.json',
   'apps/finance/scripts/finance-nonregressive-runtime.mjs',
   'apps/finance/scripts/build-finance-weekly-v3-candidate.mjs',
   'apps/finance/scripts/finance-opaque-runtime-candidate.mjs',
@@ -30,7 +31,10 @@ const inputs=Object.freeze([
   'packages/wallet-auth/package.json','packages/wallet-auth/package-lock.json',
 ].sort());
 const relations=Object.freeze([
+  Object.freeze({kind:'standard-wallet-browser',entry:'apps/finance/web/wallet-auth-entry.js',bundle:'apps/finance/web/wallet-auth.js',options:{bundle:true,minify:true,platform:'browser',target:'es2022'}}),
+  Object.freeze({kind:'order-wallet-browser',entry:'apps/finance/web/order-wallet-entry.js',bundle:'apps/finance/web/order-wallet.js',options:{bundle:true,minify:true,platform:'browser',target:'es2022'}}),
   Object.freeze({kind:'evm-read-browser',entry:'apps/finance/scripts/evm-read-browser-entry.mjs',bundle:'apps/finance/web/evm-read-session.js',options:{bundle:true,minify:true,platform:'browser',target:'es2022'}}),
+  Object.freeze({kind:'evm-subject-browser',entry:'apps/finance/scripts/evm-subject-browser-entry.mjs',bundle:'apps/finance/web/evm-subject.js',options:{bundle:true,minify:true,platform:'browser',target:'es2022',format:'iife'}}),
   Object.freeze({kind:'browser',entry:'apps/finance/scripts/finance-order-opaque-browser-entry.mjs',bundle:'apps/finance/web/order-opaque.js',options:{bundle:true,minify:true,platform:'browser',target:'es2022'}}),
   Object.freeze({kind:'node',entry:'apps/finance/scripts/finance-order-opaque-authority.mjs',bundle:'apps/finance/scripts/finance-order-opaque-authority.bundle.mjs',options:{bundle:true,platform:'node',target:'node22',format:'esm'}}),
 ]);
@@ -45,8 +49,8 @@ async function relationReceipt(relation,read){
   const bundle=read(relation.bundle);
   assert.deepEqual(firstBytes,bundle,`${relation.kind} bundle differs from source rebuild`);
   const graph=Object.keys(first.metafile.inputs).sort().map(path=>inventory(
-    path.startsWith('packages/wallet-auth/node_modules/') ? readFileSync(resolve(root,path)) : read(path),path));
-  for(const item of graph)assert.match(item.path,/^(?:apps\/finance\/scripts\/(?:evm-read-browser-entry|finance-order-opaque-(?:authority|browser-entry))\.mjs|packages\/wallet-auth\/(?:src\/|node_modules\/))/u,'unreviewed transitive input');
+    path.includes('/node_modules/') ? readFileSync(resolve(root,path)) : read(path),path));
+  for(const item of graph)assert.match(item.path,/^(?:apps\/finance\/(?:web\/(?:vendor\/|[\w.-]+\.js|node_modules\/)|scripts\/(?:evm-(?:read|subject)-browser-entry|finance-order-opaque-(?:authority|browser-entry))\.mjs)|sdk\/js\/|packages\/wallet-auth\/(?:src\/|node_modules\/))/u,'unreviewed transitive input');
   return {kind:relation.kind,entry:relation.entry,bundle:relation.bundle,tool:`esbuild@${esbuildVersion}`,independentBuilds:2,
     installedDependencies:'must be reproduced from pinned packages/wallet-auth/package-lock.json before independent review',
     graph,graphSha256:sha256(graph.map(item=>`${item.path}\0${item.sha256}\n`).join('')),bundleBytes:bundle.length,bundleSha256:sha256(bundle)};
