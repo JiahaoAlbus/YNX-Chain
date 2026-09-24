@@ -308,6 +308,10 @@ func (s *Store) createBrokerOrderChallenge(account string, request BrokerChallen
 }
 
 func (s *Store) ApproveBrokerOrder(account string, approval FinanceOrderApprovalV1, now time.Time) (BrokerOrderRecord, error) {
+	opaque, fenceErr := s.isOpaqueBrokerOrderRequest(account, approval.RequestID)
+	if fenceErr != nil || opaque {
+		return BrokerOrderRecord{}, errors.New("opaque Finance order requires the one-time code exchange")
+	}
 	digest, err := VerifyFinanceOrderApprovalV1(approval, now)
 	if err != nil {
 		return BrokerOrderRecord{}, err
@@ -346,6 +350,10 @@ func (s *Store) ApproveBrokerOrder(account string, approval FinanceOrderApproval
 }
 
 func (s *Store) RejectBrokerOrder(account, requestID, callbackStateHash string, now time.Time) (BrokerOrderRecord, error) {
+	opaque, fenceErr := s.isOpaqueBrokerOrderRequest(account, requestID)
+	if fenceErr != nil || opaque {
+		return BrokerOrderRecord{}, errors.New("opaque Finance order requires the one-time code exchange")
+	}
 	return s.transitionUnapprovedBrokerOrder(account, requestID, callbackStateHash, "rejected", "approval.rejected", now)
 }
 
@@ -441,6 +449,10 @@ func (s *Store) transitionUnapprovedBrokerOrder(account, requestID, callbackStat
 }
 
 func (s *Store) RevokeBrokerOrder(account, callbackStateHash string, revocation FinanceOrderRevocationV1, now time.Time) (BrokerOrderRecord, error) {
+	opaque, fenceErr := s.isOpaqueBrokerOrderRequest(account, revocation.RequestID)
+	if fenceErr != nil || opaque {
+		return BrokerOrderRecord{}, errors.New("opaque Finance order requires the one-time code exchange")
+	}
 	var result BrokerOrderRecord
 	err := s.updateBrokerCAS(account, "broker.approval.revoked", revocation.RequestID, func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)

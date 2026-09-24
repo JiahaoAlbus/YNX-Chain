@@ -92,6 +92,12 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 	if _, err := store.VerifyAndConsumeBrokerOrder(account, legacyApproval, clock); err == nil {
 		t.Fatal("legacy store callback consumed an opaque order without its one-time code")
 	}
+	if _, err := store.ApproveBrokerOrder(account, legacyApproval, clock); err == nil {
+		t.Fatal("legacy approval mutated an opaque order without its one-time code")
+	}
+	if _, err := store.RejectBrokerOrder(account, legacyApproval.RequestID, legacyApproval.CallbackStateHash, clock); err == nil {
+		t.Fatal("legacy rejection mutated an opaque order without its one-time code")
+	}
 	legacyCallback := mustFinanceCanonical(map[string]any{"approval": legacyApproval,
 		"callbackStateHash": legacyApproval.CallbackStateHash, "kind": "finance_order_approval_result",
 		"requestId": legacyApproval.RequestID, "status": "approved", "version": "1"})
