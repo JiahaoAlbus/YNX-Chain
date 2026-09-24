@@ -212,6 +212,10 @@ export declare function createSignedFinanceOrderOpaqueReject(input:Readonly<{tic
 export declare function verifySignedFinanceOrderOpaqueReject(proof:unknown,ticket:string,challenge:FinanceOrderApprovalUnsigned,at:Date):Readonly<{verified:true;status:"rejected";requestId:string;ticketHash:string}>;
 export declare function createFinanceOrderOpaqueCallbackURL(input:Readonly<{code:string;state:string;requestId:string;callbackStateHash:string}>):string;
 export declare function parseFinanceOrderOpaqueCallbackURL(url:string,expected:Readonly<{requestId:string;callbackStateHash:string}>):Readonly<{code:string;state:string;requestId:string}>;
+export declare function parseFinanceOrderOpaqueClaimResponse(input:unknown,expected:Readonly<{ticket:string;account:string;accountPublicKey:string}>):Readonly<{version:"2";ticketHash:string;challenge:FinanceOrderApprovalUnsigned;serverTime:string}>;
+export type FinanceOrderOpaqueCompleteRequest=Readonly<{version:"2";ticket:string;ticketHash:string;requestId:string;status:"approved"|"rejected"|"revoked";proof:SignedFinanceOrderApproval|FinanceOrderOpaqueReject|SignedFinanceOrderApprovalRevocation}>;
+export declare function createFinanceOrderOpaqueCompleteRequest(ticket:string,status:"approved"|"rejected"|"revoked",proof:unknown,challenge:FinanceOrderApprovalUnsigned,at:Date):FinanceOrderOpaqueCompleteRequest;
+export declare function parseFinanceOrderOpaqueCompleteResponse(input:unknown,expected:Readonly<{ticket:string;challenge:FinanceOrderApprovalUnsigned}>):Readonly<{version:"2";ticketHash:string;requestId:string;status:"stored";code:string;state:string;expiresAt:string;serverTime:string;callbackURL:string}>;
 export declare function nativeTransferSignJSON(transaction:Omit<SignedNativeTransfer,"signature">|SignedNativeTransfer):string;
 export declare function nativeTransferHash(payload:string):string;
 export type SmartAccountCall=Readonly<{target:string;selector:string;value:number;dataDigest:string}>;

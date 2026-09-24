@@ -7,6 +7,8 @@ import {
   createFinanceOrderOpaqueLaunchURL,parseFinanceOrderOpaqueLaunchURL,financeOrderOpaqueTicketHash,
   createSignedFinanceOrderOpaqueClaim,verifyFinanceOrderOpaqueClaim,createSignedFinanceOrderOpaqueReject,
   verifySignedFinanceOrderOpaqueReject,createFinanceOrderOpaqueCallbackURL,parseFinanceOrderOpaqueCallbackURL,
+  parseFinanceOrderOpaqueClaimResponse,createFinanceOrderOpaqueCompleteRequest,parseFinanceOrderOpaqueCompleteResponse,
+  createSignedFinanceOrderApproval,
 } from "../src/index.js";
 
 const vector=JSON.parse(readFileSync(new URL("../testdata/finance-order-approval-v1.vectors.json",import.meta.url))).positive;
@@ -49,4 +51,21 @@ test("callback exposes only one-time code and state bound to approved challenge"
   assert.equal(url.includes(unsigned.orderHash),false);
   assert.throws(()=>parseFinanceOrderOpaqueCallbackURL(url+"&financeOrderApprovalResult=secret",{requestId:unsigned.requestId,callbackStateHash:unsigned.callbackStateHash}),{code:"INVALID_CALLBACK"});
   assert.throws(()=>createFinanceOrderOpaqueCallbackURL({...input,state:"different_state_0123456789abcdefgh"}),{code:"STATE_MISMATCH"});
+});
+
+test("claim and completion responses fail closed on account, ticket, order, code and time substitutions",()=>{
+  const claim=parseFinanceOrderOpaqueClaimResponse({version:"2",ticketHash:financeOrderOpaqueTicketHash(ticket),challenge:unsigned,
+    serverTime:at.toISOString()},{ticket,account:unsigned.account,accountPublicKey:unsigned.accountPublicKey});
+  assert.equal(claim.challenge.orderHash,unsigned.orderHash);
+  assert.throws(()=>parseFinanceOrderOpaqueClaimResponse({...claim,ticketHash:"a".repeat(64)},{ticket,account:unsigned.account,accountPublicKey:unsigned.accountPublicKey}),{code:"BINDING_MISMATCH"});
+  assert.throws(()=>parseFinanceOrderOpaqueClaimResponse({...claim,challenge:{...unsigned,brokerAccountId:"other"}},{ticket,account:unsigned.account,accountPublicKey:unsigned.accountPublicKey}));
+  const approved=createSignedFinanceOrderApproval({accountSecret:vector.testOnlyPublicSecretScalarHex,approval:unsigned},at);
+  const request=createFinanceOrderOpaqueCompleteRequest(ticket,"approved",approved,unsigned,at);
+  assert.equal(request.proof.orderHash,unsigned.orderHash);
+  assert.throws(()=>createFinanceOrderOpaqueCompleteRequest(ticket,"approved",{...approved,orderHash:"a".repeat(64)},unsigned,at));
+  const response={version:"2",ticketHash:financeOrderOpaqueTicketHash(ticket),requestId:unsigned.requestId,status:"stored",
+    code,state,serverTime:at.toISOString(),expiresAt:"2026-09-19T09:02:00.000Z"};
+  assert.equal(parseFinanceOrderOpaqueCompleteResponse(response,{ticket,challenge:unsigned}).callbackURL,createFinanceOrderOpaqueCallbackURL({code,state,requestId:unsigned.requestId,callbackStateHash:unsigned.callbackStateHash}));
+  assert.throws(()=>parseFinanceOrderOpaqueCompleteResponse({...response,state:"different_state_0123456789abcdefgh"},{ticket,challenge:unsigned}),{code:"STATE_MISMATCH"});
+  assert.throws(()=>parseFinanceOrderOpaqueCompleteResponse({...response,expiresAt:"2026-09-19T09:06:00.000Z"},{ticket,challenge:unsigned}),{code:"EXPIRED"});
 });

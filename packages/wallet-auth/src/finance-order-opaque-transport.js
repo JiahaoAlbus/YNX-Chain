@@ -3,7 +3,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { walletIdentity, walletIdentityFromPublicKey } from "./crypto.js";
-import { parseFinanceOrderApprovalUnsigned } from "./finance-order-approval.js";
+import { parseFinanceOrderApprovalUnsigned, parseSignedFinanceOrderApproval, parseSignedFinanceOrderApprovalRevocation, verifySignedFinanceOrderApproval, verifySignedFinanceOrderApprovalRevocationAgainstUnsigned } from "./finance-order-approval.js";
 
 export const FINANCE_ORDER_OPAQUE_LAUNCH_ROUTE="ynxwallet://finance-order-approval";
 export const FINANCE_ORDER_OPAQUE_CALLBACK="https://finance.ynxweb4.com/wallet-auth/callback";
@@ -116,4 +116,36 @@ export function parseFinanceOrderOpaqueCallbackURL(url,expected){
   const code=match(parsed.searchParams.get("financeOrderCode"),TOKEN,"code"),state=match(parsed.searchParams.get("state"),TOKEN,"state");
   if(url!==createFinanceOrderOpaqueCallbackURL({code,state,...expected}))fail("INVALID_CALLBACK","Callback is noncanonical");
   return Object.freeze({code,state,requestId:expected.requestId});
+}
+export function parseFinanceOrderOpaqueClaimResponse(input,expected){
+  exactFields(input,["version","ticketHash","challenge","serverTime"],"Finance opaque claim response");
+  exactFields(expected,["ticket","account","accountPublicKey"],"Finance opaque claim response authority");
+  if(input.version!=="2"||input.ticketHash!==financeOrderOpaqueTicketHash(expected.ticket))fail("BINDING_MISMATCH","Claim response ticket changed");
+  const challenge=parseFinanceOrderApprovalUnsigned(input.challenge);
+  if(challenge.account!==expected.account||challenge.accountPublicKey!==expected.accountPublicKey)fail("ACCOUNT_MISMATCH","Claim response account changed");
+  const serverTime=time(input.serverTime,"serverTime");
+  active(challenge.issuedAt,challenge.expiresAt,new Date(serverTime),300_000);
+  return Object.freeze({version:"2",ticketHash:input.ticketHash,challenge,serverTime});
+}
+export function createFinanceOrderOpaqueCompleteRequest(ticket,status,proof,challengeInput,at){
+  const challenge=parseFinanceOrderApprovalUnsigned(challengeInput);
+  const ticketHash=financeOrderOpaqueTicketHash(ticket);
+  let verified;
+  if(status==="approved") verified=verifySignedFinanceOrderApproval(proof,challenge,at);
+  else if(status==="rejected"){verifySignedFinanceOrderOpaqueReject(proof,ticket,challenge,at);verified=proof;}
+  else if(status==="revoked") verified=verifySignedFinanceOrderApprovalRevocationAgainstUnsigned(proof,challenge,at);
+  else fail("INVALID_DECISION","Unknown order decision");
+  return Object.freeze({version:"2",ticket:match(ticket,TOKEN,"ticket"),ticketHash,requestId:challenge.requestId,status,proof:verified});
+}
+export function parseFinanceOrderOpaqueCompleteResponse(input,expected){
+  exactFields(input,["version","ticketHash","requestId","status","code","state","expiresAt","serverTime"],"Finance opaque complete response");
+  exactFields(expected,["ticket","challenge"],"Finance opaque complete response authority");
+  const challenge=parseFinanceOrderApprovalUnsigned(expected.challenge);
+  if(input.version!=="2"||input.status!=="stored"||input.ticketHash!==financeOrderOpaqueTicketHash(expected.ticket)||input.requestId!==challenge.requestId)
+    fail("BINDING_MISMATCH","Stored order result differs from ticket or request");
+  const callbackURL=createFinanceOrderOpaqueCallbackURL({code:input.code,state:input.state,requestId:input.requestId,callbackStateHash:challenge.callbackStateHash});
+  const serverTime=time(input.serverTime,"serverTime"),expiresAt=time(input.expiresAt,"expiresAt");
+  if(Date.parse(expiresAt)<=Date.parse(serverTime)||Date.parse(expiresAt)>Date.parse(challenge.expiresAt))fail("EXPIRED","Callback code expired or outlives challenge");
+  return Object.freeze({version:"2",ticketHash:input.ticketHash,requestId:input.requestId,status:"stored",code:input.code,state:input.state,
+    expiresAt,serverTime,callbackURL});
 }
