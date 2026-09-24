@@ -88,7 +88,7 @@ test('real Chromium preserves short EVM-only session across refresh and revokes 
       return route.fulfill({ status: 404, body: '' });
     });
     await page.goto(`${origin}/test`);
-    await page.getByRole('button', { name: 'Open read-only EVM account' }).click();
+    await page.getByRole('button', { name: 'Authorize read-only account' }).click();
     await page.waitForFunction(() => window.YNXFinanceEVMRead?.state().active === true && document.querySelector('#evm-read-summary').textContent.includes('123 YNXT'));
     assert.equal(await page.locator('#evm-read-state').textContent(), 'Read-only EVM account is authorized for this short session. This does not authorize private native Finance, orders, or transfers.');
     assert.equal(await page.locator('#evm-read-begin').isHidden(), true);
@@ -97,11 +97,13 @@ test('real Chromium preserves short EVM-only session across refresh and revokes 
     await page.reload();
     await page.waitForFunction(() => window.YNXFinanceEVMRead?.state().active === true);
     assert.equal(await page.evaluate(() => sessionStorage.getItem('ynx.finance.evm-read.pending.v1')), null);
-    await page.getByRole('button', { name: 'Refresh read-only account' }).click();
+    await page.getByRole('button', { name: 'Refresh account view' }).click();
     await page.waitForFunction(() => document.querySelector('#evm-read-summary').textContent.includes('123 YNXT'));
     await page.locator('#finance-language').selectOption('zh-CN');
     assert.match(await page.locator('#evm-read-state').textContent(), /只读/u);
+    const revokeResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/wallet-login/revoke');
     await page.evaluate(() => { window.walletStandard = { status: 'wrong-chain', chainId: '0x1', account: window.walletStandard.account, providerKind: 'metamask' }; window.walletRevision++; window.dispatchEvent(new CustomEvent('ynx-finance-standard-state', { detail: window.walletStandard })); });
+    await revokeResponse;
     await page.waitForFunction(() => window.YNXFinanceEVMRead?.state().active === false);
     assert.equal(revokeCount, 1);
     assert.equal(context.pages().length, 1);
@@ -127,7 +129,7 @@ test('real Chromium retains Standard Wallet and official fallback when read-only
       return route.fulfill({ status: 404, body: '' });
     });
     await page.goto(`${origin}/test`);
-    await page.getByRole('button', { name: 'Open read-only EVM account' }).click();
+    await page.getByRole('button', { name: 'Authorize read-only account' }).click();
     await page.waitForFunction(() => document.querySelector('#evm-read-state').textContent.includes('not approved'));
     assert.equal(await page.evaluate(() => window.YNXFinanceWallet.getStandardWalletState().status), 'connected');
     assert.equal(await page.evaluate(() => window.YNXFinanceEVMRead.state().active), false);

@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "ynx.finance.evm-read-runtime-verifier-candidate.v1",
+  "status": "INDEPENDENT_REVIEW_REQUIRED_NOT_PINNED_NOT_PUBLIC",
+  "reviewedOwnerSource": {
+    "commit": "1d687a69ceb475a5fe1f01c908d75e170597ee36",
+    "tree": "9bb71072cd349c45fe796e5791a3ac2dbffa34c8"
+  },
+  "sharedWalletAuthSource": {
+    "commit": "c75daca587d2ba43a52da2e151f4e930207087e3",
+    "tree": "e6822c88e21c9d0a47b7c7fbd4cc06ab929f42f4",
+    "packageRoot": "packages/wallet-auth/src/index.js",
+    "packageLock": "packages/wallet-auth/package-lock.json"
+  },
+  "existingVerifierPin": {
+    "path": "apps/finance/web/verify-wallet-connect.mjs",
+    "reviewedManifestSha256": "ef912e219ba722585e34a846f3a2b6e8f97276c3dd375bb2232bf193727fcaa7",
+    "pinChanged": false
+  },
+  "sourceBundleRelations": [
+    {
+      "kind": "browser",
+      "entry": "apps/finance/scripts/evm-read-browser-entry.mjs",
+      "bundle": "apps/finance/web/evm-read-session.js",
+      "command": "esbuild apps/finance/scripts/evm-read-browser-entry.mjs --bundle --minify --platform=browser --target=es2022 --outfile=apps/finance/web/evm-read-session.js",
+      "tool": "esbuild@0.25.9",
+      "independentRebuilds": 2,
+      "cleanExtractionBuilds": 0,
+      "byteReproducibleInCurrentWorkspace": true,
+      "bundleBytes": 66043,
+      "bundleSha256": "cdc98bd6b3f55c12180036bef09d4b0c4c8fb9b2055ad065c7240168c5422ab7"
+    },
+    {
+      "kind": "node",
+      "entry": "apps/finance/scripts/evm-read-session-authority.mjs",
+      "bundle": "apps/finance/scripts/evm-read-session-authority.bundle.mjs",
+      "command": "esbuild apps/finance/scripts/evm-read-session-authority.mjs --bundle --platform=node --target=node22 --format=esm --outfile=apps/finance/scripts/evm-read-session-authority.bundle.mjs",
+      "tool": "esbuild@0.25.9",
+      "independentRebuilds": 2,
+      "cleanExtractionBuilds": 0,
+      "byteReproducibleInCurrentWorkspace": true,
+      "bundleBytes": 119032,
+      "bundleSha256": "9b9a9104254374a49b2f596836ad0e553cfcf9b1465b7b64a90688c23dddfb7c"
+    }
+  ],
+  "exactInputs": [
+    {"path": "apps/finance/web/index.html", "bytes": 22325, "sha256": "284c7a3e334237183252e53c87ed72e57ad31581af03688133a2629578fcaf39"},
+    {"path": "apps/finance/web/evm-read-session.js", "bytes": 66043, "sha256": "cdc98bd6b3f55c12180036bef09d4b0c4c8fb9b2055ad065c7240168c5422ab7"},
+    {"path": "apps/finance/scripts/evm-read-browser-entry.mjs", "bytes": 16255, "sha256": "7fdb7335ef76aefaa5ac046b090461da71a16be16e0b7b40ae8ab542b0365a7a"},
+    {"path": "apps/finance/scripts/evm-read-session-authority.mjs", "bytes": 2794, "sha256": "d85f714a016314f110e4f26cf0efd66c06b1481b6c498ddebd78312ea433eb8a"},
+    {"path": "apps/finance/scripts/evm-read-session-authority.bundle.mjs", "bytes": 119032, "sha256": "9b9a9104254374a49b2f596836ad0e553cfcf9b1465b7b64a90688c23dddfb7c"},
+    {"path": "apps/finance/scripts/finance-nonregressive-runtime.mjs", "bytes": 2155, "sha256": "b6a9666b64d3ab62615bfa668262327fb8ae7935f2d6eeb61e5da59931f154b4"},
+    {"path": "internal/finance/server.go", "bytes": 37598, "sha256": "1d60d7f4c8795ac2acb2b15394fb1f92b84489e38900f0b447a840ef60b0d1d1"},
+    {"path": "internal/finance/drain.go", "bytes": 3195, "sha256": "c607c9ddd2c58eb19bfa539f39440647955a22ce32e781f89ac4c4d10f36272f"},
+    {"path": "packages/wallet-auth/package.json", "bytes": 3843, "sha256": "80fb99168f4f8ad49defe1e3895d04395fd8bd70ac2effa3a77ce9a043fafc33"},
+    {"path": "packages/wallet-auth/package-lock.json", "bytes": 2081, "sha256": "783b5744a0f63bed0c8ea1ec0b79187a2c798b4365a9f9634092390ac1b5a0f3"},
+    {"path": "packages/wallet-auth/src/index.js", "bytes": 2805, "sha256": "16fcab4d092d2132d53d3d4f70241dc9b90fa0ef69f16de6b7e756503239b55d"},
+    {"path": "packages/wallet-auth/src/evm-product-session.js", "bytes": 23584, "sha256": "cc80f0f11d104967e30f5f8ad4da91be830b9af5c86c81c478edcfdc16dddb52"}
+  ],
+  "releaseClosure": {
+    "browserScript": "/evm-read-session.js",
+    "serverStaticAllowlisted": true,
+    "runtimeWebAssetIncluded": true,
+    "nodeAuthorityDestination": "authority-runtime/apps/finance/scripts/evm-read-session-authority.bundle.mjs",
+    "nodeAuthorityIncluded": true,
+    "serverEnvironmentRequired": ["YNX_FINANCE_EVM_READ_NODE_BINARY", "YNX_FINANCE_EVM_READ_SCRIPT"],
+    "serverEnvironmentConfiguredPublicly": false
+  },
+  "truth": {
+    "independentManifestReview": false,
+    "hardcodedVerifierPinUpdated": false,
+    "cleanExtractionVerified": false,
+    "deployedPublic": false,
+    "realWalletApproval": false,
+    "realWalletRejection": false,
+    "installedRuntime": false,
+    "privateFinanceAuthorized": false,
+    "orderOrTransactionAuthorized": false
+  }
+}
