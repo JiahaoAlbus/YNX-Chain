@@ -72,7 +72,9 @@ test('Broker order approval consumes the exact Wallet transport and never auto-s
   for(const marker of ['/api/broker/challenges','/api/broker/callback','providerWriteAttempted!==false','Review exact order in YNX Wallet','Broker provider has not been contacted'])assert.ok(js.includes(marker)||html.includes(marker),marker);
   for(const forbidden of ['window.open(','location.href=','fetch(route.url','provider.request({method:"eth_sendTransaction"'])assert.equal(orderWallet.includes(forbidden)||js.includes(forbidden),false,forbidden);
   assert.ok(html.includes('order-wallet.js'));
-  assert.ok(js.includes("window.YNXFinanceOrderWallet.clear();history.replaceState"));
+  assert.ok(js.includes("pendingLegacyBrokerReturnURL=location.href;"),'legacy callback must be captured only for the current page lifetime');
+  assert.ok(js.includes("history.replaceState(null,'','/wallet-auth/callback');"),'legacy callback query must be scrubbed before async work');
+  assert.ok(js.includes("window.YNXFinanceOrderWallet.clear();pendingLegacyBrokerReturnURL=null;history.replaceState"),'consumed callback must clear the in-memory proof');
   assert.ok(js.includes("'/api/broker/challenges','/api/broker/callback'"),'Broker writes must request finance.profile.write');
   assert.ok(orderWallet.includes("FINANCE_ORDER_AUTHORITY_TIME_INVALID"),'server time must be parsed at the trusted response boundary');
   for(const marker of ['FINANCE_ORDER_PENDING_EXISTS','resumeStored','expiresAt.getTime()'])assert.ok(orderWallet.includes(marker),marker);
