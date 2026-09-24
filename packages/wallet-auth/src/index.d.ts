@@ -441,5 +441,28 @@ export declare const WALLET_DOWNLOAD_MANIFEST_SCHEMA_VERSION:1;
 /** Structural validation of a trusted publisher manifest; not network/installation attestation. */
 export declare function parseWalletDownloadManifest(input:unknown):WalletDownloadManifest;
 export declare function selectWalletDownload(manifest:unknown,selector?:WalletDownloadSelector):WalletDownloadSelection;
+
+export type WalletProviderKind="ynx-wallet"|"metamask";
+export type WalletProviderCandidate=Readonly<{kind:WalletProviderKind;provider:{request(input:Readonly<{method:string;params?:unknown}>):Promise<unknown>};source:"eip6963"|"legacy-injected";uuid:string|null;rdns:string|null;name:string|null;authority:"unverified-injected-candidate"}>;
+export type WalletProviderDiscoverySnapshot=Readonly<{ynx:WalletProviderCandidate|null;metamask:WalletProviderCandidate|null;candidates:readonly WalletProviderCandidate[];ambiguities:readonly WalletProviderKind[];conflictedAnnouncements:number;authority:"unverified-injected-candidate"}>;
+export type ContinuousWalletProviderDiscovery=Readonly<{request():WalletProviderDiscoverySnapshot;snapshot():WalletProviderDiscoverySnapshot;subscribe(listener:(value:WalletProviderDiscoverySnapshot&Readonly<{revision:number}>)=>void,options?:Readonly<{emitCurrent?:boolean}>):()=>boolean;dispose():void;readonly disposed:boolean}>;
+export declare const WALLET_PROVIDER_KIND:Readonly<{YNX:"ynx-wallet";METAMASK:"metamask"}>;
+export declare function createWalletProviderDiscovery(scope?:unknown):ContinuousWalletProviderDiscovery;
+
+export type EvmProductLoginChallenge=Readonly<{version:"1";scheme:"eip4361";domain:string;uri:string;account:string;accountType:"eoa"|"contract";chainId:6423;nonce:string;issuedAt:string;notBefore:string;expirationTime:string;requestId:string;statement:string;productId:string;scopes:readonly string[];providerKind:WalletProviderKind}>;
+export type EvmProductLoginProof=Readonly<{challenge:EvmProductLoginChallenge;message:string;signature:string}>;
+export type EvmProductLoginVerification=Readonly<{verified:true;account:string;accountType:"eoa"|"contract";chainId:6423;productId:string;scopes:readonly string[];providerKind:WalletProviderKind;nonce:string;requestId:string;message:string}>;
+export type EvmProductLoginVerificationContext=Readonly<{challenge:EvmProductLoginChallenge;clockSkewMs:number;verifyContractSignature:null|((input:Readonly<{account:string;chainId:6423;message:string;digest:string;signature:string}>)=>Promise<boolean>) }>;
+export declare const EVM_PRODUCT_LOGIN_VERSION:"1";
+export declare const EVM_PRODUCT_LOGIN_SCHEME:"eip4361";
+export declare const EVM_PRODUCT_LOGIN_CHAIN_ID:6423;
+export declare function createEvmProductLoginChallenge(input:Omit<EvmProductLoginChallenge,"version"|"scheme">):EvmProductLoginChallenge;
+export declare function parseEvmProductLoginChallenge(input:unknown):EvmProductLoginChallenge;
+export declare function evmProductLoginMessage(input:unknown):string;
+export declare function createEvmProductLoginSigningRequest(input:unknown):Readonly<{method:"personal_sign";params:readonly [string,string];message:string}>;
+export declare function parseEvmProductLoginProof(input:unknown):EvmProductLoginProof;
+export declare function verifyEvmProductLoginProof(input:unknown,expected:EvmProductLoginVerificationContext,at?:Date):Promise<EvmProductLoginVerification>;
+export declare function verifyAndConsumeEvmProductLoginProof(input:unknown,expected:EvmProductLoginVerificationContext,consume:(input:Readonly<{nonce:string;requestId:string;account:string;productId:string;expirationTime:string}>)=>Promise<boolean>,at?:Date):Promise<EvmProductLoginVerification>;
+export declare function ethereumPersonalMessageDigest(message:string):Uint8Array;
 export { createApplicationActionLauncher } from "./application-action-launcher.js";
 export type { ApplicationActionLauncher, ApplicationActionLaunchTarget } from "./application-action-launcher.js";
