@@ -24,7 +24,7 @@
     {"path": "wallet-auth.js", "bytes": 181400, "sha256": "e04e757f20ff98ef3bbd97ac294c1e6c022c6e93edd1c441e30ac03c1959ed1b"},
     {"path": "order-wallet.js", "bytes": 103577, "sha256": "6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc"},
     {"path": "index.html", "bytes": 21328, "sha256": "b8fe887f7ebe6b3780c0384fe93008b777a5f2138d4313f4948d1c049fe2a4c6"},
-    {"path": "app.js", "bytes": 49613, "sha256": "c76c4b06b3e1dae1ca0dde42e7390c44a670e67274115cae694bfb095838c31b"},
+    {"path": "app.js", "bytes": 49924, "sha256": "19cbd150ec2255da19ff1dd74a1465b3e46ce8aebe11a270038f6f45458e80ce"},
     {"path": "finance-locale.js", "bytes": 9138, "sha256": "7ae24f22fd3fc212135a276814358801796d5c1c1a773e694800541100b2bd53"},
     {"path": "product-catalog.js", "bytes": 3418, "sha256": "75cf7f0ff91cf29f4b4e8853730ba7859f5a27da43aaf52346e34a1ce940d6c6"},
     {"path": "vendor/standard-wallet-browser-c97f85e9.mjs", "bytes": 22417, "sha256": "b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43"},
