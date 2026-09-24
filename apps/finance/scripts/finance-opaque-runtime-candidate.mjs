@@ -11,7 +11,7 @@ import {authorityRuntimeFiles,runtimeFiles} from './finance-nonregressive-runtim
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 const webRequire=createRequire(resolve(root,'apps/finance/web/package.json'));
 const {build,version:esbuildVersion}=webRequire('esbuild');
-const candidatePath='apps/finance/evidence/finance-opaque-runtime-candidate-20260925.json';
+const candidatePath='apps/finance/evidence/finance-opaque-runtime-candidate-pr199-20260925.json';
 const sha256=value=>createHash('sha256').update(value).digest('hex');
 const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
 const sourceAt=(commit,path)=>execFileSync('git',['show',`${commit}:${path}`],{cwd:root});
