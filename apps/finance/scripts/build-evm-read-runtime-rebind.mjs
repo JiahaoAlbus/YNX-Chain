@@ -26,7 +26,7 @@ const opaque=JSON.parse(opaqueBytes);
 assert.equal(opaque.sourceCommit,'6e2b35cb2e7bb8cc2830a4baaccca2fef116ac4d');
 assert.equal(opaque.status,'INDEPENDENT_REVIEW_REQUIRED_NOT_PINNED_NOT_PUBLIC');
 const prior=JSON.parse(read(priorPath));
-const inventory=new Map(opaque.exactInputs.map(item=>[item.path,item]));
+const inventory=new Map([...opaque.exactInputs,...opaque.relations.flatMap(item=>item.graph)].map(item=>[item.path,item]));
 const exactInputs=prior.exactInputs.map(item=>{
   const current=inventory.get(item.path);
   assert.ok(current,`complete runtime candidate omits ${item.path}`);
