@@ -577,19 +577,13 @@ func (s *Server) statement(w http.ResponseWriter, r *http.Request, session Sessi
 	state := s.service.Store.Account(session.Account)
 	portfolio := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
 	activities := []Activity{}
-	incoming, outgoing, fees := int64(0), int64(0), int64(0)
 	for _, item := range portfolio.Activity {
 		if item.Timestamp.Before(from) || !item.Timestamp.Before(to) {
 			continue
 		}
 		activities = append(activities, item)
-		fees += item.Fee
-		if item.Direction == "incoming" {
-			incoming += item.Amount
-		} else {
-			outgoing += item.Amount
-		}
 	}
+	observation := monthlyActivityObservation(portfolio, from, to)
 	receipts := []PayReceipt{}
 	if state.Privacy.IncludePayInStatements {
 		for _, item := range portfolio.PayReceipts {
@@ -598,7 +592,7 @@ func (s *Server) statement(w http.ResponseWriter, r *http.Request, session Sessi
 			}
 		}
 	}
-	writeJSON(w, 200, map[string]any{"account": session.Account, "network": ChainID, "symbol": "YNXT", "from": from, "toExclusive": to, "activity": activities, "payReceipts": receipts, "totals": map[string]int64{"incomingYnxt": incoming, "outgoingYnxt": outgoing, "feesYnxt": fees}, "currentBalanceYnxt": portfolio.BalanceYNXT, "openingBalance": "unavailable: activity endpoint is bounded and no fiat valuation is inferred", "sourceStatus": map[string]SourceStatus{"explorer": portfolio.ExplorerStatus, "pay": portfolio.PayStatus}})
+	writeJSON(w, 200, map[string]any{"schemaVersion": "finance-statement-v2", "account": session.Account, "network": ChainID, "symbol": "YNXT", "from": from, "toExclusive": to, "activity": activities, "payReceipts": receipts, "totals": observation["totals"], "observedTotals": observation["observedTotals"], "coverageComplete": observation["coverageComplete"], "coverage": observation["coverage"], "calculationStatus": observation["calculationStatus"], "reason": observation["reason"], "currentBalanceYnxt": portfolio.BalanceYNXT, "openingBalance": "unavailable: activity endpoint is bounded and no fiat valuation is inferred", "sourceStatus": map[string]SourceStatus{"explorer": portfolio.ExplorerStatus, "pay": portfolio.PayStatus}})
 }
 
 func (s *Server) monthlyReview(w http.ResponseWriter, r *http.Request, session Session) {

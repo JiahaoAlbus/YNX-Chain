@@ -64,6 +64,22 @@ test('local Chrome planning view shows fixture observations, not false complete 
   }finally{await page.close();}
 });
 
+test('local Chrome statement separates observed records from unknown period totals',async()=>{
+  const page=await fixture();try{
+    await page.evaluate(()=>{
+      renderStatement({schemaVersion:'finance-statement-v2',network:'ynx_6423-1',symbol:'YNXT',from:'2026-09-01T00:00:00Z',toExclusive:'2026-10-01T00:00:00Z',activity:[{id:'fixture'}],totals:{incomingYnxt:null,outgoingYnxt:null,feesYnxt:null},observedTotals:{incomingYnxt:0,outgoingYnxt:12,feesYnxt:1},coverageComplete:false,coverage:'Latest 100 global indexed transactions; complete period history is not proven',calculationStatus:'partial',openingBalance:'unavailable'});
+    });
+    const text=await page.locator('#statement').innerText();
+    assert.match(text,/Full-period totals: Unknown/);
+    assert.match(text,/Observed outgoing\s*12 YNXT/);
+    assert.match(text,/Observed incoming\s*0 YNXT/);
+    assert.match(text,/Returned records\s*1/);
+    assert.doesNotMatch(text,/Outgoing\s+12 YNXT|Full-period totals: 0/);
+    await assert.rejects(page.evaluate(()=>renderStatement({schemaVersion:'finance-statement-v2',activity:[],totals:{incomingYnxt:0,outgoingYnxt:12,feesYnxt:1},coverageComplete:false})),/Statement coverage response is invalid/);
+    assert.deepEqual(await calls(page),[]);
+  }finally{await page.close()}
+});
+
 test('SDK artifact is exact, and Finance source no longer creates or transports a legacy device secret',async()=>{
   const sdk=await readFile(new URL('vendor/standard-wallet-browser-c97f85e9.mjs',web));
   assert.equal(sdk.length,22417);assert.equal(createHash('sha256').update(sdk).digest('hex'),'b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43');

@@ -278,6 +278,12 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	if monthly["coverageComplete"] != false || monthly["calculationStatus"] != "partial" || monthly["totals"].(map[string]any)["outgoingYnxt"] != nil || monthly["observedTotals"] == nil {
 		t.Fatalf("monthly HTTP response promoted bounded data to complete totals: %#v", monthly)
 	}
+	var statement map[string]any
+	requestJSON(t, ts.URL+"/api/statements?from=2026-07-01T00:00:00Z&to=2026-08-01T00:00:00Z", http.MethodGet, nil, session.Token, "", 200, &statement)
+	observed, ok := statement["observedTotals"].(map[string]any)
+	if !ok || statement["schemaVersion"] != "finance-statement-v2" || statement["coverageComplete"] != false || statement["calculationStatus"] != "partial" || statement["totals"].(map[string]any)["incomingYnxt"] != nil || statement["totals"].(map[string]any)["outgoingYnxt"] != nil || statement["totals"].(map[string]any)["feesYnxt"] != nil || observed["incomingYnxt"] != float64(15) || observed["outgoingYnxt"] != float64(40) || observed["feesYnxt"] != float64(1) {
+		t.Fatalf("statement promoted bounded records to full-period totals: %#v", statement)
+	}
 	requestJSON(t, ts.URL+"/api/activity/tx-owned/category", http.MethodPut, map[string]any{"categoryId": category.ID, "idempotencyKey": "classification-key-0001"}, session.Token, "https://finance.example", 200, &map[string]any{})
 	requestJSON(t, ts.URL+"/api/privacy", http.MethodPut, map[string]any{"includePayInStatements": true, "allowAiActivityContext": true, "alertsEnabled": true}, session.Token, "https://finance.example", 200, &map[string]any{})
 	var job AIJob
