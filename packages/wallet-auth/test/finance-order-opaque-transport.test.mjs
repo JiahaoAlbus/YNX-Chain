@@ -9,6 +9,7 @@ import {
   verifySignedFinanceOrderOpaqueReject,createFinanceOrderOpaqueCallbackURL,parseFinanceOrderOpaqueCallbackURL,
   parseFinanceOrderOpaqueClaimResponse,createFinanceOrderOpaqueCompleteRequest,parseFinanceOrderOpaqueCompleteResponse,
   createSignedFinanceOrderLegacyRecovery,verifySignedFinanceOrderLegacyRecovery,parseFinanceOrderLegacyRecoveryResponse,
+  FINANCE_ORDER_STATE_BINDING_LEGACY_RAW,FINANCE_ORDER_STATE_BINDING_SHA256,
   createSignedFinanceOrderApproval,
 } from "../src/index.js";
 
@@ -83,4 +84,24 @@ test("legacy recovery signs only a durable pre-cutover challenge and returns an 
   const response=parseFinanceOrderLegacyRecoveryResponse({version:"2",ticket,ticketHash:financeOrderOpaqueTicketHash(ticket),serverTime:at.toISOString()},{requestId:unsigned.requestId});
   assert.equal(response.ticket,ticket);
   assert.throws(()=>parseFinanceOrderLegacyRecoveryResponse({version:"2",ticket,ticketHash:"0".repeat(64),serverTime:at.toISOString()},{requestId:unsigned.requestId}),{code:"BINDING_MISMATCH"});
+});
+
+test("legacy raw random state is accepted only under explicit local legacy binding",()=>{
+  const legacy=vector.unsigned,legacyState=legacy.callbackStateHash;
+  assert.equal(legacyState.length,64);
+  assert.notEqual(bytesToHex(sha256(utf8ToBytes(legacyState))),legacyState);
+  const expected={requestId:legacy.requestId,callbackStateHash:legacy.callbackStateHash};
+  const input={code,state:legacyState,...expected};
+  const url=createFinanceOrderOpaqueCallbackURL(input,FINANCE_ORDER_STATE_BINDING_LEGACY_RAW);
+  assert.deepEqual(parseFinanceOrderOpaqueCallbackURL(url,expected,FINANCE_ORDER_STATE_BINDING_LEGACY_RAW),{code,state:legacyState,requestId:legacy.requestId});
+  assert.throws(()=>createFinanceOrderOpaqueCallbackURL(input),{code:"STATE_MISMATCH"});
+  assert.throws(()=>parseFinanceOrderOpaqueCallbackURL(url,expected),{code:"STATE_MISMATCH"});
+  const response={version:"2",ticketHash:financeOrderOpaqueTicketHash(ticket),requestId:legacy.requestId,status:"stored",
+    code,state:legacyState,serverTime:at.toISOString(),expiresAt:"2026-09-19T09:02:00.000Z"};
+  assert.equal(parseFinanceOrderOpaqueCompleteResponse(response,{ticket,challenge:legacy},FINANCE_ORDER_STATE_BINDING_LEGACY_RAW).callbackURL,url);
+  assert.throws(()=>parseFinanceOrderOpaqueCompleteResponse(response,{ticket,challenge:legacy}),{code:"STATE_MISMATCH"});
+  assert.throws(()=>parseFinanceOrderOpaqueCompleteResponse({...response,state:"0".repeat(64)},{ticket,challenge:legacy},FINANCE_ORDER_STATE_BINDING_LEGACY_RAW),{code:"STATE_MISMATCH"});
+  const fresh={code,state,requestId:unsigned.requestId,callbackStateHash:unsigned.callbackStateHash};
+  assert.ok(createFinanceOrderOpaqueCallbackURL(fresh,FINANCE_ORDER_STATE_BINDING_SHA256));
+  assert.throws(()=>createFinanceOrderOpaqueCallbackURL(fresh,FINANCE_ORDER_STATE_BINDING_LEGACY_RAW),{code:"STATE_MISMATCH"});
 });

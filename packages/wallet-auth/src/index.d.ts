@@ -203,6 +203,9 @@ export declare const FINANCE_ORDER_OPAQUE_CLAIM_PATH:"/api/broker/order-handoff/
 export declare const FINANCE_ORDER_OPAQUE_COMPLETE_PATH:"/api/broker/order-handoff/complete";
 export declare const FINANCE_ORDER_OPAQUE_EXCHANGE_PATH:"/api/broker/order-handoff/exchange";
 export declare const FINANCE_ORDER_OPAQUE_RECOVER_LEGACY_PATH:"/api/broker/order-handoff/recover-legacy";
+export type FinanceOrderStateBinding="sha256-v2"|"raw-v1-random32";
+export declare const FINANCE_ORDER_STATE_BINDING_SHA256:"sha256-v2";
+export declare const FINANCE_ORDER_STATE_BINDING_LEGACY_RAW:"raw-v1-random32";
 export declare function createFinanceOrderOpaqueLaunchURL(ticket:string):string;
 export declare function parseFinanceOrderOpaqueLaunchURL(url:string):Readonly<{ticket:string}>;
 export declare function financeOrderOpaqueTicketHash(ticket:string):string;
@@ -211,12 +214,12 @@ export declare function createSignedFinanceOrderOpaqueClaim(input:Readonly<{tick
 export declare function verifyFinanceOrderOpaqueClaim(proof:unknown,expected:Readonly<{ticket:string;account:string;accountPublicKey:string}>,at:Date):Readonly<{verified:true;ticketHash:string;account:string;nonce:string;expiresAt:string}>;
 export declare function createSignedFinanceOrderOpaqueReject(input:Readonly<{ticket:string;challenge:FinanceOrderApprovalUnsigned}>,at:Date,accountSecret:string):FinanceOrderOpaqueReject;
 export declare function verifySignedFinanceOrderOpaqueReject(proof:unknown,ticket:string,challenge:FinanceOrderApprovalUnsigned,at:Date):Readonly<{verified:true;status:"rejected";requestId:string;ticketHash:string}>;
-export declare function createFinanceOrderOpaqueCallbackURL(input:Readonly<{code:string;state:string;requestId:string;callbackStateHash:string}>):string;
-export declare function parseFinanceOrderOpaqueCallbackURL(url:string,expected:Readonly<{requestId:string;callbackStateHash:string}>):Readonly<{code:string;state:string;requestId:string}>;
+export declare function createFinanceOrderOpaqueCallbackURL(input:Readonly<{code:string;state:string;requestId:string;callbackStateHash:string}>,binding?:FinanceOrderStateBinding):string;
+export declare function parseFinanceOrderOpaqueCallbackURL(url:string,expected:Readonly<{requestId:string;callbackStateHash:string}>,binding?:FinanceOrderStateBinding):Readonly<{code:string;state:string;requestId:string}>;
 export declare function parseFinanceOrderOpaqueClaimResponse(input:unknown,expected:Readonly<{ticket:string;account:string;accountPublicKey:string}>):Readonly<{version:"2";ticketHash:string;challenge:FinanceOrderApprovalUnsigned;serverTime:string}>;
 export type FinanceOrderOpaqueCompleteRequest=Readonly<{ticket:string;status:"approved"|"rejected"|"revoked";proof:SignedFinanceOrderApproval|FinanceOrderOpaqueReject|SignedFinanceOrderApprovalRevocation}>;
 export declare function createFinanceOrderOpaqueCompleteRequest(ticket:string,status:"approved"|"rejected"|"revoked",proof:unknown,challenge:FinanceOrderApprovalUnsigned,at:Date):FinanceOrderOpaqueCompleteRequest;
-export declare function parseFinanceOrderOpaqueCompleteResponse(input:unknown,expected:Readonly<{ticket:string;challenge:FinanceOrderApprovalUnsigned}>):Readonly<{version:"2";ticketHash:string;requestId:string;status:"stored";code:string;state:string;expiresAt:string;serverTime:string;callbackURL:string}>;
+export declare function parseFinanceOrderOpaqueCompleteResponse(input:unknown,expected:Readonly<{ticket:string;challenge:FinanceOrderApprovalUnsigned}>,binding?:FinanceOrderStateBinding):Readonly<{version:"2";ticketHash:string;requestId:string;status:"stored";code:string;state:string;expiresAt:string;serverTime:string;callbackURL:string}>;
 export type FinanceOrderLegacyRecovery=Readonly<{version:"2";productId:"finance";origin:"https://finance.ynxweb4.com";chainId:"0x1917";action:"recover-legacy-order";account:string;accountPublicKey:string;approvalDigest:string;requestId:string;challengeId:string;orderHash:string;callbackStateHash:string;nonce:string;issuedAt:string;expiresAt:string;signature:string}>;
 export declare function createSignedFinanceOrderLegacyRecovery(input:Readonly<{challenge:FinanceOrderApprovalUnsigned;nonce:string}>,at:Date,accountSecret:string):FinanceOrderLegacyRecovery;
 export declare function verifySignedFinanceOrderLegacyRecovery(proof:unknown,challenge:FinanceOrderApprovalUnsigned,cutoverAt:Date,at:Date):Readonly<{verified:true;requestId:string;account:string;nonce:string;expiresAt:string}>;

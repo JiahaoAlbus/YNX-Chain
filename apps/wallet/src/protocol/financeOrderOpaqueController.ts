@@ -3,18 +3,20 @@ import {
   createFinanceOrderOpaqueLaunchURL,
   createSignedFinanceOrderApproval, createSignedFinanceOrderApprovalRevocation,
   createSignedFinanceOrderOpaqueClaim, createSignedFinanceOrderOpaqueReject, createSignedFinanceOrderLegacyRecovery,
+  FINANCE_ORDER_STATE_BINDING_SHA256,FINANCE_ORDER_STATE_BINDING_LEGACY_RAW,
   financeOrderApprovalDigest, financeOrderOpaqueTicketHash, parseFinanceOrderOpaqueClaimResponse,
   parseFinanceOrderOpaqueCompleteResponse, parseFinanceOrderOpaqueLaunchURL, parseFinanceOrderLegacyRecoveryResponse,
+  parseFinanceOrderOpaqueCallbackURL,
   parseFinanceOrderApprovalRequest, parseSignedFinanceOrderApproval,
   verifySignedFinanceOrderApproval, verifySignedFinanceOrderApprovalRevocationAgainstUnsigned,
 } from "@ynx-chain/wallet-auth";
-import type { FinanceOrderApprovalRequest, FinanceOrderOpaqueCompleteRequest, SignedFinanceOrderApproval, SignedFinanceOrderApprovalRevocation } from "@ynx-chain/wallet-auth";
+import type { FinanceOrderApprovalRequest, FinanceOrderOpaqueCompleteRequest, FinanceOrderStateBinding, SignedFinanceOrderApproval, SignedFinanceOrderApprovalRevocation } from "@ynx-chain/wallet-auth";
 import type { SecureStorageAdapter, WalletAccount } from "../storage/walletRepository";
 import type { FinanceOrderApprovalReview } from "./financeOrderApprovalController";
 
 export const FINANCE_ORDER_OPAQUE_REPLAY_KEY="ynx.wallet.finance-order-approval-v2.replay";
 type Decision="approved"|"rejected"|"revoked";
-type Row={ticket:string;ticketHash:string;request:FinanceOrderApprovalRequest;digest:string;status:"pending"|Decision;
+type Row={ticket:string;ticketHash:string;stateBinding:FinanceOrderStateBinding;request:FinanceOrderApprovalRequest;digest:string;status:"pending"|Decision;
   proof:FinanceOrderOpaqueCompleteRequest["proof"]|null;returnURL:string|null};
 type Pending={review:FinanceOrderApprovalReview;row:Row};
 type Dependencies={
@@ -68,7 +70,7 @@ export class FinanceOrderOpaqueController {
     });
     const recovered=parseFinanceOrderLegacyRecoveryResponse(await this.dependencies.recoverLegacy({requestId:challenge.requestId,claim}),{requestId:challenge.requestId});
     this.assertSelected(selected,generation);
-    const review=await this.receiveTicket(createFinanceOrderOpaqueLaunchURL(recovered.ticket),legacy.request);
+    const review=await this.receiveTicket(createFinanceOrderOpaqueLaunchURL(recovered.ticket),legacy.request,FINANCE_ORDER_STATE_BINDING_LEGACY_RAW);
     if(legacy.status==="pending")return review;
     const p=this.require(review.id);
     if(p.row.status!=="pending")return review;
@@ -96,13 +98,15 @@ export class FinanceOrderOpaqueController {
     p.review=Object.freeze({...review,decision:legacy.status});
     return p.review;
   }
-  private async receiveTicket(url:string,expectedLegacy:FinanceOrderApprovalRequest|null=null):Promise<FinanceOrderApprovalReview>{
+  private async receiveTicket(url:string,expectedLegacy:FinanceOrderApprovalRequest|null=null,
+    stateBinding:FinanceOrderStateBinding=FINANCE_ORDER_STATE_BINDING_SHA256):Promise<FinanceOrderApprovalReview>{
       const generation=this.generation,ticket=parseFinanceOrderOpaqueLaunchURL(url).ticket,ticketHash=financeOrderOpaqueTicketHash(ticket);
       const selected=this.snapshotSelected();
       if(this.pending){if(this.pending.row.ticketHash===ticketHash){this.check(this.pending,generation);return this.pending.review}throw new Error("Finish the current Finance order approval first")}
       const at=await this.time(()=>this.assertGeneration(generation));
       const existing=(await this.readRows(at)).find(row=>row.ticketHash===ticketHash);
       if(existing){
+        if(existing.stateBinding!==stateBinding)throw new Error("Finance callback state binding differs from recovered ticket");
         if(expectedLegacy&&canonicalJSON(existing.request.unsigned)!==canonicalJSON(expectedLegacy.unsigned))
           throw new Error("Recovered Finance order differs from legacy challenge");
         if(existing.request.unsigned.account!==selected.account||existing.request.unsigned.accountPublicKey!==selected.accountPublicKey)throw new Error("Finance order belongs to another Wallet account");
@@ -122,7 +126,7 @@ export class FinanceOrderOpaqueController {
       if(expectedLegacy&&canonicalJSON(request.unsigned)!==canonicalJSON(expectedLegacy.unsigned))
         throw new Error("Recovered Finance order differs from legacy challenge");
       const digest=financeOrderApprovalDigest(request.unsigned);
-      const row:Row={ticket,ticketHash,request,digest,status:"pending",proof:null,returnURL:null};
+      const row:Row={ticket,ticketHash,stateBinding,request,digest,status:"pending",proof:null,returnURL:null};
       await this.mutate(async()=>{const current=await this.readRows(new Date(response.serverTime));this.assertSelected(selected,generation);
         if(current.length>=MAX_ROWS||current.some(item=>item.ticketHash===ticketHash||item.request.unsigned.requestId===request.unsigned.requestId||item.request.unsigned.orderHash===request.unsigned.orderHash))
           throw new Error("Finance order ticket or exact order was already reviewed");
@@ -171,7 +175,7 @@ export class FinanceOrderOpaqueController {
     const at=await this.time(()=>this.check(p,generation));
     if(!p.row.proof||p.row.status==="pending")throw new Error("Finance result is not signed");
     const request=createFinanceOrderOpaqueCompleteRequest(p.row.ticket,p.row.status,p.row.proof,p.row.request.unsigned,at);
-    const response=parseFinanceOrderOpaqueCompleteResponse(await this.dependencies.complete(request),{ticket:p.row.ticket,challenge:p.row.request.unsigned});
+    const response=parseFinanceOrderOpaqueCompleteResponse(await this.dependencies.complete(request),{ticket:p.row.ticket,challenge:p.row.request.unsigned},p.row.stateBinding);
     this.check(p,generation);
     await this.mutate(async()=>{
       const rows=await this.readRows(at),index=rows.findIndex(row=>row.digest===p.row.digest);
@@ -219,16 +223,20 @@ export class FinanceOrderOpaqueController {
     if(value.schemaVersion!==2||!Array.isArray(value.rows)||value.rows.length>MAX_ROWS)throw new Error("Finance order journal invalid");
     const rows:Row[]=[];
     for(const item of value.rows){
-      const row=exact(item,["ticket","ticketHash","request","digest","status","proof","returnURL"]);
+      const row=exact(item,["ticket","ticketHash","stateBinding","request","digest","status","proof","returnURL"]);
       const ticket=parseFinanceOrderOpaqueLaunchURL("ynxwallet://finance-order-approval?ticket="+row.ticket).ticket;
       const request=parseFinanceOrderApprovalRequest(row.request,new Date(row.request?.unsigned?.issuedAt));
       if(row.ticketHash!==financeOrderOpaqueTicketHash(ticket)||row.digest!==financeOrderApprovalDigest(request.unsigned))throw new Error("Finance order journal binding invalid");
+      if(row.stateBinding!==FINANCE_ORDER_STATE_BINDING_SHA256&&row.stateBinding!==FINANCE_ORDER_STATE_BINDING_LEGACY_RAW)
+        throw new Error("Finance order journal state binding invalid");
       if(!["pending","approved","rejected","revoked"].includes(row.status))throw new Error("Finance order journal status invalid");
       if(row.status==="pending"?(row.proof!==null||row.returnURL!==null):row.proof===null)throw new Error("Finance order journal decision invalid");
       if(row.returnURL!==null&&typeof row.returnURL!=="string")throw new Error("Finance order journal callback invalid");
+      if(row.returnURL!==null)parseFinanceOrderOpaqueCallbackURL(row.returnURL,{requestId:request.unsigned.requestId,
+        callbackStateHash:request.unsigned.callbackStateHash},row.stateBinding);
       if(rows.some(existing=>existing.ticketHash===row.ticketHash||existing.request.unsigned.requestId===request.unsigned.requestId||existing.request.unsigned.orderHash===request.unsigned.orderHash))
         throw new Error("Finance order journal replay collision");
-      rows.push({ticket,ticketHash:row.ticketHash,request,digest:row.digest,status:row.status,proof:row.proof,returnURL:row.returnURL});
+      rows.push({ticket,ticketHash:row.ticketHash,stateBinding:row.stateBinding,request,digest:row.digest,status:row.status,proof:row.proof,returnURL:row.returnURL});
     }
     return rows.filter(row=>Date.parse(row.request.unsigned.expiresAt)>at.getTime());
   }

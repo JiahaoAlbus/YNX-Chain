@@ -18,6 +18,8 @@ const PUBLIC=/^(02|03)[0-9a-f]{64}$/;
 const CLAIM=["version","productId","origin","chainId","action","account","accountPublicKey","ticketHash","nonce","issuedAt","expiresAt"];
 const REJECT=["version","productId","origin","chainId","action","account","accountPublicKey","ticketHash","requestId","challengeId","orderHash","callbackStateHash","issuedAt","expiresAt"];
 const RECOVER=["version","productId","origin","chainId","action","account","accountPublicKey","approvalDigest","requestId","challengeId","orderHash","callbackStateHash","nonce","issuedAt","expiresAt"];
+export const FINANCE_ORDER_STATE_BINDING_SHA256="sha256-v2";
+export const FINANCE_ORDER_STATE_BINDING_LEGACY_RAW="raw-v1-random32";
 const hash=value=>bytesToHex(sha256(utf8ToBytes(value)));
 function fail(code,message){throw new WalletAuthError(code,message);}
 function match(value,regex,label){if(typeof value!=="string"||!regex.test(value))fail("INVALID_FIELD",label+" invalid");return value;}
@@ -103,20 +105,27 @@ export function verifySignedFinanceOrderOpaqueReject(proofInput,ticket,challenge
   verify(proof,unsigned,"YNX_FINANCE_ORDER_REJECT_V2");
   return Object.freeze({verified:true,status:"rejected",requestId:challenge.requestId,ticketHash:unsigned.ticketHash});
 }
-export function createFinanceOrderOpaqueCallbackURL(input){
+function stateBinding(value){
+  if(value!==FINANCE_ORDER_STATE_BINDING_SHA256&&value!==FINANCE_ORDER_STATE_BINDING_LEGACY_RAW)
+    fail("INVALID_STATE_BINDING","Unknown callback state binding");
+  return value;
+}
+export function createFinanceOrderOpaqueCallbackURL(input,binding=FINANCE_ORDER_STATE_BINDING_SHA256){
   exactFields(input,["code","state","requestId","callbackStateHash"],"Finance opaque callback");
   const code=match(input.code,TOKEN,"code"),state=match(input.state,TOKEN,"state");
   match(input.requestId,/^request_[0-9a-f-]{36}$/,"requestId");
-  if(hash(state)!==match(input.callbackStateHash,HEX64,"callbackStateHash"))fail("STATE_MISMATCH","Callback state changed");
+  const challengeHash=match(input.callbackStateHash,HEX64,"callbackStateHash");
+  if(stateBinding(binding)===FINANCE_ORDER_STATE_BINDING_LEGACY_RAW?
+    state!==challengeHash:hash(state)!==challengeHash)fail("STATE_MISMATCH","Callback state changed");
   return FINANCE_ORDER_OPAQUE_CALLBACK+"?financeOrderCode="+code+"&state="+state;
 }
-export function parseFinanceOrderOpaqueCallbackURL(url,expected){
+export function parseFinanceOrderOpaqueCallbackURL(url,expected,binding=FINANCE_ORDER_STATE_BINDING_SHA256){
   if(typeof url!=="string")fail("INVALID_CALLBACK","Callback URL invalid");
   let parsed;try{parsed=new URL(url);}catch{fail("INVALID_CALLBACK","Callback URL invalid");}
   if(parsed.origin!=="https://finance.ynxweb4.com"||parsed.pathname!=="/wallet-auth/callback"||parsed.hash||
     [...parsed.searchParams.keys()].join(",")!=="financeOrderCode,state")fail("INVALID_CALLBACK","Callback route or fields changed");
   const code=match(parsed.searchParams.get("financeOrderCode"),TOKEN,"code"),state=match(parsed.searchParams.get("state"),TOKEN,"state");
-  if(url!==createFinanceOrderOpaqueCallbackURL({code,state,...expected}))fail("INVALID_CALLBACK","Callback is noncanonical");
+  if(url!==createFinanceOrderOpaqueCallbackURL({code,state,...expected},binding))fail("INVALID_CALLBACK","Callback is noncanonical");
   return Object.freeze({code,state,requestId:expected.requestId});
 }
 export function parseFinanceOrderOpaqueClaimResponse(input,expected){
@@ -138,13 +147,13 @@ export function createFinanceOrderOpaqueCompleteRequest(ticket,status,proof,chal
   else fail("INVALID_DECISION","Unknown order decision");
   return Object.freeze({ticket:match(ticket,TOKEN,"ticket"),status,proof:verified});
 }
-export function parseFinanceOrderOpaqueCompleteResponse(input,expected){
+export function parseFinanceOrderOpaqueCompleteResponse(input,expected,binding=FINANCE_ORDER_STATE_BINDING_SHA256){
   exactFields(input,["version","ticketHash","requestId","status","code","state","expiresAt","serverTime"],"Finance opaque complete response");
   exactFields(expected,["ticket","challenge"],"Finance opaque complete response authority");
   const challenge=parseFinanceOrderApprovalUnsigned(expected.challenge);
   if(input.version!=="2"||input.status!=="stored"||input.ticketHash!==financeOrderOpaqueTicketHash(expected.ticket)||input.requestId!==challenge.requestId)
     fail("BINDING_MISMATCH","Stored order result differs from ticket or request");
-  const callbackURL=createFinanceOrderOpaqueCallbackURL({code:input.code,state:input.state,requestId:input.requestId,callbackStateHash:challenge.callbackStateHash});
+  const callbackURL=createFinanceOrderOpaqueCallbackURL({code:input.code,state:input.state,requestId:input.requestId,callbackStateHash:challenge.callbackStateHash},binding);
   const serverTime=time(input.serverTime,"serverTime"),expiresAt=time(input.expiresAt,"expiresAt");
   if(Date.parse(expiresAt)<=Date.parse(serverTime)||Date.parse(expiresAt)>Date.parse(challenge.expiresAt))fail("EXPIRED","Callback code expired or outlives challenge");
   return Object.freeze({version:"2",ticketHash:input.ticketHash,requestId:input.requestId,status:"stored",code:input.code,state:input.state,
