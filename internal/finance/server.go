@@ -650,14 +650,30 @@ func (s *Server) export(w http.ResponseWriter, r *http.Request, session Session)
 		writeError(w, 400, "invalid_format", "format must be json or csv")
 		return
 	}
-	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
-	w.Header().Set("Content-Disposition", `attachment; filename="ynx-finance-observed-activity.csv"`)
-	c := csv.NewWriter(w)
+	var body bytes.Buffer
+	c := csv.NewWriter(&body)
 	_ = c.Write([]string{"record_id", "timestamp", "direction", "type", "amount_ynxt", "fee_ynxt", "from", "to", "category", "source"})
 	for _, a := range p.Activity {
-		_ = c.Write([]string{a.ID, a.Timestamp.Format(time.RFC3339), a.Direction, a.Type, strconv.FormatInt(a.Amount, 10), strconv.FormatInt(a.Fee, 10), a.From, a.To, a.Category, a.Source})
+		_ = c.Write([]string{csvSafeText(a.ID), a.Timestamp.Format(time.RFC3339), csvSafeText(a.Direction), csvSafeText(a.Type), strconv.FormatInt(a.Amount, 10), strconv.FormatInt(a.Fee, 10), csvSafeText(a.From), csvSafeText(a.To), csvSafeText(a.Category), csvSafeText(a.Source)})
 	}
 	c.Flush()
+	if err := c.Error(); err != nil {
+		writeError(w, 500, "export_failed", "CSV export could not be prepared")
+		return
+	}
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition", `attachment; filename="ynx-finance-observed-activity.csv"`)
+	_, _ = w.Write(body.Bytes())
+}
+
+// Spreadsheet apps can interpret even whitespace-prefixed upstream text as a
+// formula. Escape only text cells in the export; source JSON remains exact.
+func csvSafeText(value string) string {
+	trimmed := strings.TrimLeftFunc(value, func(r rune) bool { return r <= ' ' || r == '\ufeff' || r == '\u200b' })
+	if trimmed != "" && strings.ContainsRune("=+-@", rune(trimmed[0])) {
+		return "'" + value
+	}
+	return value
 }
 
 func (s *Server) audit(w http.ResponseWriter, _ *http.Request, session Session) {
