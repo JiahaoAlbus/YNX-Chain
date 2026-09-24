@@ -60,6 +60,9 @@ func run(args []string) int {
 			}
 			return verificationResult{}, &brokerage.Error{Code: "TRADABLE_ASSET_REQUIRED"}
 		}
+		if err := finance.VerifyBrokerAccountResolverStillCurrentReadOnly(ctx, statePath, os.Getenv("YNX_FINANCE_DATABASE_URL"), resolver, backend); err != nil {
+			return verificationResult{}, &brokerage.Error{Code: "OWNER_MAPPING_CHANGED"}
+		}
 		return verificationResult{Assets: assets, Snapshot: snapshot, Quote: quote, StoreMode: backend}, nil
 	}, os.Stdout)
 }

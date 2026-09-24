@@ -78,6 +78,18 @@ func TestBrokerVerificationResolverReadsExistingOwnerMappingWithoutMutation(t *t
 	if err != nil || !bytes.Equal(before, after) || !beforeInfo.ModTime().Equal(afterInfo.ModTime()) {
 		t.Fatal("broker verification resolver changed existing state")
 	}
+	if err := VerifyBrokerAccountResolverStillCurrentReadOnly(context.Background(), store.path, "", resolver, backend); err != nil {
+		t.Fatalf("unchanged owner mapping was rejected: %v", err)
+	}
+	if err := VerifyBrokerAccountResolverStillCurrentReadOnly(context.Background(), store.path, "", resolver, "postgres-cas-multi-instance"); err == nil {
+		t.Fatal("changed state backend was accepted")
+	}
+	if _, err := store.PutBrokerSandboxMapping(owner, "22222222-3333-4444-8555-666666666666", now.Add(time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyBrokerAccountResolverStillCurrentReadOnly(context.Background(), store.path, "", resolver, backend); err == nil {
+		t.Fatal("mapping changed during a provider read was accepted as verified")
+	}
 	missing := filepath.Join(t.TempDir(), "not-created.json")
 	if _, _, err := InspectBrokerAccountResolverReadOnly(context.Background(), missing, "", owner); err == nil {
 		t.Fatal("missing Finance state was accepted")

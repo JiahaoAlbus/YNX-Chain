@@ -48,3 +48,18 @@ func InspectBrokerAccountResolverReadOnly(ctx context.Context, statePath, databa
 	}
 	return BrokerReadOnlyAccountResolver{owner: owner, accountID: mapping.BrokerAccountID}, backend, nil
 }
+
+// VerifyBrokerAccountResolverStillCurrentReadOnly prevents a bounded provider
+// read from reporting a mapping that changed or was removed during the network
+// probe. This repeats only the existing read-only snapshot inspection; it does
+// not migrate or update either state backend.
+func VerifyBrokerAccountResolverStillCurrentReadOnly(ctx context.Context, statePath, databaseURL string, previous BrokerReadOnlyAccountResolver, previousBackend string) error {
+	if previous.owner == "" || previous.accountID == "" || previousBackend == "" {
+		return errors.New("Broker account verification has no initial owner mapping")
+	}
+	current, backend, err := InspectBrokerAccountResolverReadOnly(ctx, statePath, databaseURL, previous.owner)
+	if err != nil || backend != previousBackend || current != previous {
+		return errors.New("Broker account mapping changed during read-only verification")
+	}
+	return nil
+}
