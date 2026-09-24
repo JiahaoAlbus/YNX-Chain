@@ -1,4 +1,15 @@
 const state={connected:false,overview:null,aiJob:null,aiTimer:null,context:0,brokerAssets:new Map(),brokerWatchlist:new Map(),brokerSelectedAsset:null,brokerSubmissionEnabled:false};
+// Legacy v1 Wallet returns contain the signed order proof in the URL. Capture
+// only for this page lifetime and scrub the address bar before async work or
+// any account request. New orders must move to the opaque v2 code transport.
+let pendingLegacyBrokerReturnURL=null;
+function captureLegacyBrokerCallback(){
+  if(location.pathname==='/wallet-auth/callback'&&location.search.includes('financeOrderApprovalResult=')){
+    pendingLegacyBrokerReturnURL=location.href;
+    history.replaceState(null,'','/wallet-auth/callback');
+  }
+}
+captureLegacyBrokerCallback();
 const financeText=(key)=>window.YNXFinanceLocale?.text(key)??key;
 let walletIdentityState='identityUnverified',walletIdentityBusy=false;
 function renderWalletIdentity(){const status=document.querySelector('#wallet-login-state'),button=document.querySelector('#wallet-login-verify');if(status)status.textContent=financeText(walletIdentityState);if(button){button.hidden=window.YNXFinanceWallet?.getStandardWalletState().status!=='connected';button.disabled=walletIdentityBusy;}}
@@ -153,15 +164,16 @@ async function refreshBrokerQuote(){
   try{const response=await fetch(`/api/broker/quote?symbol=${encodeURIComponent(symbol)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-quote-v1')throw new Error(result?.error||'Sandbox quote is unavailable.');const quote=result.quote;$('#broker-quote-status').textContent=`${quote.symbol} · bid ${quote.bidPrice} / ask ${quote.askPrice} simulated USD · IEX · ${result.quoteState||'unknown'} · ${date(quote.timestamp)}. This does not set the order limit automatically.`}catch(error){$('#broker-quote-status').textContent=`${error.message||'Sandbox quote is unavailable.'} No price was substituted.`}finally{clearTimeout(timer)}
 }
 async function completeBrokerCallback(){
-  if(brokerCallbackInFlight||!state.connected||location.pathname!=='/wallet-auth/callback'||!location.search.includes('financeOrderApprovalResult='))return;
+  captureLegacyBrokerCallback();
+  if(brokerCallbackInFlight||!state.connected||location.pathname!=='/wallet-auth/callback'||!pendingLegacyBrokerReturnURL)return;
   brokerCallbackInFlight=true;$('#broker-complete-callback').hidden=false;
   try{
     await requireBrokerOrderAuthority();
     const workspace=await refreshBrokerWorkspace();if(!workspace)throw new Error('Current Finance server time is unavailable.');
-    const raw=await window.YNXFinanceOrderWallet.parseReturn(location.href,workspace.serverTime);
+    const raw=await window.YNXFinanceOrderWallet.parseReturn(pendingLegacyBrokerReturnURL,workspace.serverTime);
     const result=await api('/api/broker/callback',{method:'POST',body:raw});
     if(result?.schema!=='ynx-finance-order-approval-consume-v1'||result.providerWriteAttempted!==false)throw new Error('Finance order callback response is invalid.');
-    window.YNXFinanceOrderWallet.clear();history.replaceState(null,'','/');$('#broker-wallet-approve').hidden=true;$('#broker-complete-callback').hidden=true;notify(result.status==='approved'?'Wallet approval consumed into the durable local outbox. Broker submission remains disabled.':'Wallet decision recorded. No broker submission occurred.');await refreshBrokerWorkspace();
+    window.YNXFinanceOrderWallet.clear();pendingLegacyBrokerReturnURL=null;history.replaceState(null,'','/');$('#broker-wallet-approve').hidden=true;$('#broker-complete-callback').hidden=true;notify(result.status==='approved'?'Wallet approval consumed into the durable local outbox. Broker submission remains disabled.':'Wallet decision recorded. No broker submission occurred.');await refreshBrokerWorkspace();
   }catch(error){notify(error.message,true)}finally{brokerCallbackInFlight=false}
 }
 const READ_RETRY_DELAYS=[0,600,1600];
