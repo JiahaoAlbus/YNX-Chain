@@ -141,3 +141,57 @@ func TestEVMReadSessionConcurrentCrossStoreProofNonceHasOneWinner(t *testing.T) 
 		t.Fatalf("expected one atomic proof nonce winner, got %d", winners.Load())
 	}
 }
+
+func TestEVMReadSessionTwoAccountsRemainIsolatedAcrossRevoke(t *testing.T) {
+	first, path, challengeA, sessionA, now := evmReadStoreFixture(t)
+	challengeB := challengeA
+	challengeB.Account = "0x" + strings.Repeat("b", 40)
+	challengeB.RequestID = "finance_read_request_bbbbbbbbbbbbbbbb"
+	challengeB.Nonce = "finance_read_nonce_bbbbbbbbbbbbbbbb"
+	challengeB.State = "finance_read_state_bbbbbbbbbbbbbbbb"
+	challengeJSON, _ := json.Marshal(map[string]any{"requestId": challengeB.RequestID, "nonce": challengeB.Nonce, "state": challengeB.State, "account": challengeB.Account, "issuedAt": evmReadTime(challengeB.IssuedAt), "expiresAt": evmReadTime(challengeB.ExpiresAt)})
+	challengeB.ExactChallenge = string(challengeJSON)
+	sessionB := sessionA
+	sessionB.Account = challengeB.Account
+	sessionB.RequestID = challengeB.RequestID
+	sessionB.SessionID = "finance_read_session_bbbbbbbbbbbbbbbb"
+	sessionJSON, _ := json.Marshal(map[string]any{"sessionId": sessionB.SessionID, "requestId": sessionB.RequestID, "account": sessionB.Account, "chainId": 6423, "issuedAt": evmReadTime(sessionB.IssuedAt), "expiresAt": evmReadTime(sessionB.ExpiresAt)})
+	sessionB.ExactSession = string(sessionJSON)
+	for _, challenge := range []EVMReadChallengeRecord{challengeA, challengeB} {
+		if err := first.PutEVMReadChallenge(challenge, now); err != nil {
+			t.Fatal(err)
+		}
+		if err := first.ReserveEVMReadVerification(challenge.Account, challenge.RequestID, challenge.Nonce, now.Add(time.Minute)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, selected := range []struct {
+		challenge EVMReadChallengeRecord
+		session   EVMReadSessionRecord
+	}{{challengeA, sessionA}, {challengeB, sessionB}} {
+		if err := first.CommitEVMReadSession(selected.session, selected.challenge.Nonce, selected.challenge.State, now.Add(time.Minute)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	second, err := OpenStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proofExpiry := now.Add(2 * time.Minute)
+	proofNow := now.Add(time.Minute)
+	if err := second.ConsumeEVMReadProof(challengeB.Account, sessionA.SessionID, "cross_account_proof_0123456789abcdef", proofExpiry, proofNow); err == nil {
+		t.Fatal("account B consumed account A's session")
+	}
+	if err := second.RevokeEVMReadSession(challengeA.Account, sessionB.SessionID, "cross_account_revoke_0123456789abcdef", proofExpiry, proofNow); err == nil {
+		t.Fatal("account A revoked account B's session")
+	}
+	if err := second.RevokeEVMReadSession(challengeA.Account, sessionA.SessionID, "account_a_revoke_0123456789abcdef", proofExpiry, proofNow); err != nil {
+		t.Fatal(err)
+	}
+	if err := first.ConsumeEVMReadProof(challengeA.Account, sessionA.SessionID, "account_a_late_proof_0123456789abcdef", proofExpiry, proofNow); err == nil {
+		t.Fatal("revoked account A session remained readable")
+	}
+	if err := first.ConsumeEVMReadProof(challengeB.Account, sessionB.SessionID, "account_b_valid_proof_0123456789abcdef", proofExpiry, proofNow); err != nil {
+		t.Fatalf("account A revocation disrupted account B: %v", err)
+	}
+}
