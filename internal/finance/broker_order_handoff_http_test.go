@@ -85,6 +85,21 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 	}
 	clock = now.Add(2 * time.Second)
 	approval := signOpaqueBrokerTestProof(t, node, signerPath, "approved", issued.Ticket, "", issued.Challenge, clock)
+	var legacyApproval FinanceOrderApprovalV1
+	if err := json.Unmarshal(approval, &legacyApproval); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.VerifyAndConsumeBrokerOrder(account, legacyApproval, clock); err == nil {
+		t.Fatal("legacy store callback consumed an opaque order without its one-time code")
+	}
+	legacyCallback := mustFinanceCanonical(map[string]any{"approval": legacyApproval,
+		"callbackStateHash": legacyApproval.CallbackStateHash, "kind": "finance_order_approval_result",
+		"requestId": legacyApproval.RequestID, "status": "approved", "version": "1"})
+	recorder = httptest.NewRecorder()
+	server.brokerCallback(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/callback", bytes.NewReader(legacyCallback)), Session{Account: account})
+	if recorder.Code != http.StatusConflict || !bytes.Contains(recorder.Body.Bytes(), []byte("opaque_callback_requires_exchange")) {
+		t.Fatalf("legacy route failed to fence opaque approval: %d %s", recorder.Code, recorder.Body.String())
+	}
 	body, _ = json.Marshal(map[string]any{"ticket": issued.Ticket, "status": "approved", "proof": approval})
 	recorder = httptest.NewRecorder()
 	server.brokerOpaqueComplete(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/complete", bytes.NewReader(body)))

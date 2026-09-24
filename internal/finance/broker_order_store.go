@@ -536,6 +536,10 @@ func (s *Store) ConsumeBrokerOrder(account, requestID, approvalDigest string, no
 // provider client_order_id allocation and outbox creation commit in one CAS.
 // This method never contacts the provider.
 func (s *Store) VerifyAndConsumeBrokerOrder(account string, approval FinanceOrderApprovalV1, now time.Time) (BrokerConsumeResult, error) {
+	opaque, fenceErr := s.isOpaqueBrokerOrderRequest(account, approval.RequestID)
+	if fenceErr != nil || opaque {
+		return BrokerConsumeResult{}, errors.New("opaque Finance order requires the one-time code exchange")
+	}
 	digest, err := VerifyFinanceOrderApprovalV1(approval, now)
 	if err != nil {
 		return BrokerConsumeResult{}, err

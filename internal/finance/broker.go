@@ -267,6 +267,11 @@ func (s *Server) brokerCallback(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusBadRequest, "invalid_callback", err.Error())
 		return
 	}
+	opaque, fenceErr := s.service.Store.isOpaqueBrokerOrderRequest(session.Account, callback.RequestID)
+	if fenceErr != nil || opaque {
+		writeError(w, http.StatusConflict, "opaque_callback_requires_exchange", "Confidential Wallet order requires the one-time code exchange")
+		return
+	}
 	now := s.now()
 	if _, err := s.service.Store.ExpireBrokerOrders(session.Account, now); err != nil {
 		writeError(w, http.StatusConflict, "approval_expiration_failed", err.Error())

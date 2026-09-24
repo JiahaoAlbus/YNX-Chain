@@ -137,6 +137,23 @@ func (s *Store) BrokerOrderHandoffAuthoritySnapshot(ticketHash string) (BrokerOr
 	return record, challenge.Unsigned, nil
 }
 
+// An opaque challenge must never be consumed through the legacy callback.
+// Issue persists the challenge and handoff in one CAS, and handoffs are never
+// removed, so this read remains an effective fence across store instances.
+func (s *Store) isOpaqueBrokerOrderRequest(account, requestID string) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.refreshLocked(); err != nil {
+		return false, err
+	}
+	for _, record := range s.state.BrokerOrderHandoffs {
+		if record.Account == account && record.RequestID == requestID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // StoreBrokerOrderHandoffDecision is reached only after the accepted
 // Wallet/Auth root verifier has checked the exact ticket, durable unsigned
 // challenge, signature and status. It stores a confidential decision without
