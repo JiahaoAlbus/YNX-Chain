@@ -7,16 +7,17 @@ const script=await readFile(new URL('../web/read-sources.js',import.meta.url),'u
 
 function run(readSources){
   const target={innerHTML:''};
-  let baseRenderCalls=0;
+  let baseRenderCalls=0,locale='en';const handlers=new Map();
   const context={
     URL,
-    document:{querySelector(selector){return selector==='#read-sources'?target:null}},
+    window:{YNXFinanceLocale:{get:()=>locale}},
+    document:{querySelector(selector){return selector==='#read-sources'?target:null},addEventListener(name,handler){handlers.set(name,handler)}},
     esc(value){return String(value??'').replaceAll('<','&lt;').replaceAll('>','&gt;')},
     render(){baseRenderCalls+=1},
   };
   vm.runInNewContext(script,context,{filename:'read-sources.js'});
   context.render({portfolio:{readSources}});
-  return {target,baseRenderCalls};
+  return {target,baseRenderCalls,setLocale(value){locale=value;handlers.get('finance:localechange')?.()}};
 }
 
 test('Web companion renders pending owner sources without invented facts',()=>{
@@ -72,7 +73,23 @@ test('Web companion renders account-bound Quant lifecycle, PnL, execution, and r
   assert.match(target.innerHTML,/Market neutral/);
   assert.match(target.innerHTML,/exchange-order-1/);
   assert.match(target.innerHTML,/slippage 0\.5%/);
+  assert.match(target.innerHTML,/leverage 2×/);
+  assert.doesNotMatch(target.innerHTML,/leverage 200%/);
   assert.match(target.innerHTML,/Kill switch clear/);
+});
+
+test('Exchange and Quant evidence status follows Finance language without refetch or invented balances',()=>{
+  const source={quant:{id:'quant',name:'YNX Quant Lab',owner:'08-quant-lab',ownerContractAccepted:true,status:{available:true,syncStatus:'authoritative-persisted-quant-state'},action:{configured:false},envelope:{payload:{strategies:[],experiments:[],mandates:[{market:'YNXT-YUSD_TEST',maxNotional:'1000000',maxDailyLoss:'100000',maxSlippageBps:50,maxLeverageBps:20000,expiresAt:'2099-08-11T09:00:00Z',revoked:false}],executions:[],paper:[]}}},exchange:{id:'exchange',name:'YNX Exchange',owner:'07-exchange',ownerContractAccepted:true,status:{available:false,syncStatus:'owner-endpoint-unavailable',error:'raw upstream failure'},action:{configured:false}}};
+  const result=run(source);
+  assert.match(result.target.innerHTML,/EVIDENCE AVAILABLE/);
+  assert.match(result.target.innerHTML,/Owner endpoint unavailable/);
+  assert.doesNotMatch(result.target.innerHTML,/raw upstream failure/);
+  result.setLocale('zh-CN');
+  assert.match(result.target.innerHTML,/证据可用/);
+  assert.match(result.target.innerHTML,/产品方端点不可用；不填入替代数据/);
+  assert.match(result.target.innerHTML,/杠杆 2×/);
+  assert.doesNotMatch(result.target.innerHTML,/raw upstream failure|杠杆 200%/);
+  assert.equal(result.baseRenderCalls,1);
 });
 
 test('Web companion never sums independent research experiments or invents absent PnL',()=>{

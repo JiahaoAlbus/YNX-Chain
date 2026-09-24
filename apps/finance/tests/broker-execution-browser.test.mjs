@@ -273,6 +273,26 @@ test('partially filled Broker order shows one-shot cancellation recovery after b
   }finally{await page.close()}
 });
 
+test('Finance desktop and mobile rerender Exchange and Quant source status in the selected language',async()=>{
+  const sources={exchange:{id:'exchange',name:'YNX Exchange',owner:'07-exchange',ownerContractAccepted:true,status:{available:false,syncStatus:'owner-endpoint-unavailable',error:'raw upstream error'},action:{configured:false}},quant:{id:'quant',name:'YNX Quant Lab',owner:'08-quant-lab',ownerContractAccepted:true,status:{available:true,syncStatus:'authoritative-persisted-quant-state'},action:{configured:false},envelope:{asOf:'2026-09-19T11:00:00.000Z',payload:{strategies:[],experiments:[],mandates:[{market:'YNXT-YUSD_TEST',maxNotional:'1000000',maxDailyLoss:'100000',maxSlippageBps:50,maxLeverageBps:20000,expiresAt:'2099-09-19T11:00:00.000Z',revoked:false}],executions:[],paper:[]}}}};
+  const overview={portfolio:{account:'ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80',balanceYnxt:0,stakedYnxt:0,asOf:'2026-09-19T11:00:00.000Z',activity:[],payReceipts:[],explorerStatus:{available:false,error:'Indexer unavailable'},payStatus:{available:false},readSources:sources},profile:{categories:[],budgets:[],reminders:[],privacy:{includePayInStatements:false,allowAiActivityContext:true,alertsEnabled:true}},budgetProgress:[],alerts:[],support:{helpUrl:'https://support.example/help',privacyUrl:'https://support.example/privacy',disputeUrl:'https://support.example/disputes'}};
+  for(const width of [1280,390]){
+    const page=await browser.newPage({viewport:{width,height:844}});
+    await page.route('**/api/overview',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(overview)}));
+    try{
+      await page.goto(base);
+      await page.waitForFunction(()=>document.querySelector('#read-sources')?.textContent.includes('EVIDENCE AVAILABLE'));
+      assert.doesNotMatch(await page.locator('#read-sources').textContent(),/raw upstream error/);
+      await page.locator('#finance-language').selectOption('zh-CN');
+      const content=await page.locator('#read-sources').textContent();
+      assert.match(content,/产品方端点不可用；不填入替代数据/);
+      assert.match(content,/证据可用/);
+      assert.match(content,/杠杆 2×/);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+    }finally{await page.close()}
+  }
+});
+
 test('real browser previews a test-only DvP draft without Wallet or chain writes',async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844}}),posts=[];
   page.on('request',request=>{if(request.method()==='POST')posts.push(request.url())});
