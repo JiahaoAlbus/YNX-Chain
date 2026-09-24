@@ -9,7 +9,14 @@ const stock = await Asset.deploy("YNX Test AAPL", "TEST-AAPL", 1_000_000_000_000
 const tusd = await Asset.deploy("YNX Test USD", "tUSD", 10_000_000_000_000n, admin.address, admin.address);
 await Promise.all([stock.waitForDeployment(), tusd.waitForDeployment()]);
 const DvP = await ethers.getContractFactory("TestDvP");
-const dvp = await DvP.deploy(await stock.getAddress(), await tusd.getAddress(), treasury.address, 25n);
+const codeHash = async (contract) => ethers.keccak256(await ethers.provider.getCode(await contract.getAddress()));
+const deployDvP = async (stockToken, cashToken, feeRecipient = treasury.address) => {
+  const settlement = await DvP.deploy(await stockToken.getAddress(), await cashToken.getAddress(),
+    await codeHash(stockToken), await codeHash(cashToken), feeRecipient, 25n);
+  await settlement.waitForDeployment();
+  return settlement;
+};
+const dvp = await deployDvP(stock, tusd);
 await dvp.waitForDeployment();
 
 const orderTypes = {
@@ -30,9 +37,15 @@ const makeOrder = async (nonce, overrides = {}) => ({
 const signatures = async (order) => [await seller.signTypedData(domain, orderTypes, order), await buyer.signTypedData(domain, orderTypes, order)];
 const expectRevert = async (promise, label) => {
   let reverted = false;
-  try { await (await promise).wait(); } catch { reverted = true; }
+  try {
+    const result = await promise;
+    if (typeof result.waitForDeployment === "function") await result.waitForDeployment();
+    else await result.wait();
+  } catch { reverted = true; }
   assert.ok(reverted, `expected revert: ${label}`);
 };
+await expectRevert(DvP.deploy(await stock.getAddress(), await tusd.getAddress(), ethers.ZeroHash, await codeHash(tusd), treasury.address, 25n), "approved stock code hash required");
+await expectRevert(DvP.deploy(await stock.getAddress(), await tusd.getAddress(), await codeHash(tusd), await codeHash(stock), treasury.address, 25n), "wrong nonzero asset code hashes rejected");
 const snapshot = async () => [await stock.balanceOf(seller.address), await stock.balanceOf(buyer.address),
   await tusd.balanceOf(seller.address), await tusd.balanceOf(buyer.address), await tusd.balanceOf(treasury.address)];
 
@@ -45,11 +58,12 @@ await (await stock.connect(seller).approve(await dvp.getAddress(), 500_000_000n)
 await (await tusd.connect(buyer).approve(await dvp.getAddress(), 1_000_000_000n)).wait();
 
 const FalseToken = await ethers.getContractFactory("MockFalseToken");
-const falseToken = await FalseToken.deploy();
-await falseToken.waitForDeployment();
-const falseStockDvP = await DvP.deploy(await falseToken.getAddress(), await tusd.getAddress(), treasury.address, 25n);
+const falseStockToken = await FalseToken.deploy(false);
+const falseCashToken = await FalseToken.deploy(true);
+await Promise.all([falseStockToken.waitForDeployment(), falseCashToken.waitForDeployment()]);
+const falseStockDvP = await deployDvP(falseStockToken, tusd);
 await falseStockDvP.waitForDeployment();
-const falseCashDvP = await DvP.deploy(await stock.getAddress(), await falseToken.getAddress(), treasury.address, 25n);
+const falseCashDvP = await deployDvP(stock, falseCashToken);
 await falseCashDvP.waitForDeployment();
 const badOrder = await makeOrder(6n);
 const signFor = async (settlement, value) => {
@@ -60,6 +74,31 @@ const [badStockSeller, badStockBuyer] = await signFor(falseStockDvP, badOrder);
 const beforeFalse = await snapshot();
 await expectRevert(falseStockDvP.fill(badOrder, 1_000_000n, badStockSeller, badStockBuyer), "false-return stock");
 assert.deepEqual(await snapshot(), beforeFalse);
+
+const NoopToken = await ethers.getContractFactory("MockNoopToken");
+const noopStockToken = await NoopToken.deploy(false);
+const noopCashToken = await NoopToken.deploy(true);
+await Promise.all([noopStockToken.waitForDeployment(), noopCashToken.waitForDeployment()]);
+const noopStockDvP = await deployDvP(noopStockToken, tusd);
+const noopCashDvP = await deployDvP(stock, noopCashToken);
+const [noopStockSeller, noopStockBuyer] = await signFor(noopStockDvP, badOrder);
+await (await tusd.connect(buyer).approve(await noopStockDvP.getAddress(), 1_000_000n)).wait();
+await expectRevert(noopStockDvP.fill(badOrder, 1_000_000n, noopStockSeller, noopStockBuyer), "true-return no-op stock");
+assert.equal(await noopStockDvP.filledShares(await noopStockDvP.orderHash(badOrder)), 0n);
+const [noopCashSeller, noopCashBuyer] = await signFor(noopCashDvP, badOrder);
+await (await stock.connect(seller).approve(await noopCashDvP.getAddress(), 1_000_000n)).wait();
+await expectRevert(noopCashDvP.fill(badOrder, 1_000_000n, noopCashSeller, noopCashBuyer), "true-return no-op cash rolls back stock");
+assert.deepEqual(await snapshot(), beforeFalse);
+assert.equal(await noopCashDvP.filledShares(await noopCashDvP.orderHash(badOrder)), 0n);
+
+const buyerFeeDvP = await deployDvP(stock, tusd, buyer.address);
+const [buyerFeeSeller, buyerFeeBuyer] = await signFor(buyerFeeDvP, badOrder);
+await expectRevert(buyerFeeDvP.fill(badOrder, 1_000_000n, buyerFeeSeller, buyerFeeBuyer), "buyer cannot collect their own reported fee");
+assert.equal(await buyerFeeDvP.filledShares(await buyerFeeDvP.orderHash(badOrder)), 0n);
+const sellerFeeDvP = await deployDvP(stock, tusd, seller.address);
+const [sellerFeeSeller, sellerFeeBuyer] = await signFor(sellerFeeDvP, badOrder);
+await expectRevert(sellerFeeDvP.fill(badOrder, 1_000_000n, sellerFeeSeller, sellerFeeBuyer), "seller cannot also collect separately reported fee");
+assert.equal(await sellerFeeDvP.filledShares(await sellerFeeDvP.orderHash(badOrder)), 0n);
 const [badCashSeller, badCashBuyer] = await signFor(falseCashDvP, badOrder);
 await (await stock.connect(seller).approve(await falseCashDvP.getAddress(), 1_000_000n)).wait();
 await expectRevert(falseCashDvP.fill(badOrder, 1_000_000n, badCashSeller, badCashBuyer), "false-return cash rolls back stock");
@@ -151,4 +190,4 @@ await (await stock.setPaused(true)).wait();
 await expectRevert(stock.connect(seller).transfer(buyer.address, 1n), "asset pause");
 await (await stock.setPaused(false)).wait();
 
-console.log(JSON.stringify({ status: "PASS", chainId: 6423, tests: "bilateral signatures, 16 partition properties, fee reconciliation, replay, cancellation race, expiry, nonce, insufficient funds and allowance, false ERC20 returns, atomic rollback, bounded mint/redeem, pause", contracts: 3 }));
+console.log(JSON.stringify({ status: "PASS", chainId: 6423, tests: "bilateral signatures, 16 partition properties, exact balance deltas, fee reconciliation, replay, cancellation race, expiry, nonce, insufficient funds and allowance, false/no-op ERC20 returns, self-fee rejection, atomic rollback, bounded mint/redeem, pause", contracts: 3 }));
