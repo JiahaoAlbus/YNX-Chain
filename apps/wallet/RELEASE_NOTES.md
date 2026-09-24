@@ -1,3 +1,18 @@
+# YNX Wallet 1.0.22 Testnet Preview source candidate
+
+## Included in the candidate
+
+- Android, iOS and Expo source versions advance to 1.0.22. Android versionCode and iOS build advance to 28, separate from the historical 1.0.21 source candidate.
+- The 1.0.21 native transfer recovery and WalletConnect account and lock controls are integrated with the confidential Finance order handoff. Wallet reviews the exact order after a signed ticket claim, persists an approval or rejection before delivery, and returns only an opaque code and bound state in the callback URL.
+- A pre-cutover v1 Finance request may be recovered only through its existing secure journal and a server-authorized signed recovery ticket. The source keeps fresh SHA-256 callback binding separate from the historical random-state mode.
+- The lockfile-based SBOM includes optional platform components consistently across local ARM and hosted macOS builds.
+
+## Release boundaries
+
+This is an integrated source candidate. The Finance backend exchange and legacy recovery routes, exact common-source cross-test, new Android/iOS installed upgrade, production signing, physical devices, stores and official-site publication remain unverified. The published 1.0.20 assets stay unchanged.
+
+---
+
 # YNX Wallet 1.0.21 Testnet Preview source candidate
 
 ## Included in the candidate

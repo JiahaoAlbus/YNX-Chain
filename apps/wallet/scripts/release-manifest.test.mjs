@@ -6,6 +6,7 @@ const walletRoot = new URL("../", import.meta.url);
 const publishedManifest = JSON.parse(await readFile(new URL("artifact-manifest.json", walletRoot), "utf8"));
 const manifest = JSON.parse(await readFile(new URL("artifact-candidate-1.0.20.json", walletRoot), "utf8"));
 const candidate121 = JSON.parse(await readFile(new URL("artifact-candidate-1.0.21.json", walletRoot), "utf8"));
+const candidate122 = JSON.parse(await readFile(new URL("artifact-candidate-1.0.22.json", walletRoot), "utf8"));
 const publication = JSON.parse(await readFile(new URL("artifact-publication-1.0.17.json", walletRoot), "utf8"));
 const publication118 = JSON.parse(await readFile(new URL("artifact-publication-1.0.18.json", walletRoot), "utf8"));
 const publication119 = JSON.parse(await readFile(new URL("artifact-publication-1.0.19.json", walletRoot), "utf8"));
@@ -16,6 +17,7 @@ const plist = await readFile(new URL("ios/YNXWallet/Info.plist", walletRoot), "u
 const xcode = await readFile(new URL("ios/YNXWallet.xcodeproj/project.pbxproj", walletRoot), "utf8");
 const evidence = JSON.parse(await readFile(new URL(manifest.candidateEvidence, walletRoot), "utf8"));
 const evidence121 = JSON.parse(await readFile(new URL(candidate121.candidateEvidence, walletRoot), "utf8"));
+const evidence122 = JSON.parse(await readFile(new URL(candidate122.candidateEvidence, walletRoot), "utf8"));
 const installedEvidence = JSON.parse(await readFile(new URL(manifest.reconciliationBinding.publishedBaselineEvidence, walletRoot), "utf8"));
 const nativeOutboxSource = await readFile(new URL("src/chain/nativeTransferOutbox.ts", walletRoot), "utf8");
 const appSource = await readFile(new URL("App.tsx", walletRoot), "utf8");
@@ -305,21 +307,13 @@ test("historical 1.0.20 source candidate preserves reconciliation source without
   validateEvidence(evidence);
 });
 
-test("1.0.21 source versions permit a 26 to 27 upgrade without claiming a release", () => {
+test("historical 1.0.21 source candidate retains its 26 to 27 upgrade boundary", () => {
   assert.equal(candidate121.schemaVersion, 2);
   assert.equal(candidate121.productId, "wallet");
   assert.equal(candidate121.version, "1.0.21-testnet-preview");
   assert.equal(candidate121.versionCode, 27);
   assert.equal(candidate121.upgradeFromPublishedVersionCode, 26);
   assert.equal(candidate121.baseCommit, "1d3a10e4076158d70a5f0275d2c7ba7914300e17");
-  assert.equal(app.version, "1.0.21");
-  assert.equal(app.android.versionCode, 27);
-  assert.equal(app.ios.buildNumber, "27");
-  assert.match(android, /versionCode 27\n\s*versionName "1\.0\.21-testnet-preview"/);
-  assert.match(plist, /CFBundleShortVersionString<\/key>\s*<string>1\.0\.21<\/string>/);
-  assert.match(plist, /CFBundleVersion<\/key>\s*<string>27<\/string>/);
-  assert.equal((xcode.match(/CURRENT_PROJECT_VERSION = 27;/g) ?? []).length, 2);
-  assert.equal((xcode.match(/MARKETING_VERSION = 1\.0\.21;/g) ?? []).length, 2);
   assert.equal(candidate121.releaseStatus, "SOURCE_CANDIDATE_AWAITING_EXACT_MERGE_BUILD");
   assert.equal(candidate121.releaseSourceCommit, null);
   assert.equal(candidate121.releaseTag, null);
@@ -354,6 +348,51 @@ test("1.0.21 source versions permit a 26 to 27 upgrade without claiming a releas
   assert.equal(evidence121.previousReleasePreserved.apkAssetId, candidate121.previousPublishedRelease.apk.assetId);
   assert.equal(evidence121.previousReleasePreserved.aabAssetId, candidate121.previousPublishedRelease.aab.assetId);
   assert.match(releaseNotes, /Android versionCode and iOS build advance from 26 to 27/);
+});
+
+test("1.0.22 integrated source advances both native builds without inventing a Finance release", () => {
+  assert.equal(candidate122.schemaVersion, 2);
+  assert.equal(candidate122.productId, "wallet");
+  assert.equal(candidate122.version, "1.0.22-testnet-preview");
+  assert.equal(candidate122.versionCode, 28);
+  assert.equal(candidate122.upgradeFromPublishedVersionCode, 26);
+  assert.equal(candidate122.baseCommit, "2013d05874b3b767a2d3597cf6dd43564ad1679d");
+  assert.deepEqual(candidate122.includedSourceHeads, {
+    walletNative1021: "008aa8b07e04be3de363d848121e6b9ef95ecf20",
+    walletOpaqueHandoff: "a4c4f628a71ed7eba6149ce5f3081184b07f3bd2",
+  });
+  assert.equal(app.version, "1.0.22");
+  assert.equal(app.android.versionCode, 28);
+  assert.equal(app.ios.buildNumber, "28");
+  assert.match(android, /versionCode 28\n\s*versionName "1\.0\.22-testnet-preview"/);
+  assert.match(plist, /CFBundleShortVersionString<\/key>\s*<string>1\.0\.22<\/string>/);
+  assert.match(plist, /CFBundleVersion<\/key>\s*<string>28<\/string>/);
+  assert.equal((xcode.match(/CURRENT_PROJECT_VERSION = 28;/g) ?? []).length, 2);
+  assert.equal((xcode.match(/MARKETING_VERSION = 1\.0\.22;/g) ?? []).length, 2);
+  assert.equal(candidate122.releaseStatus, "SOURCE_CANDIDATE_AWAITING_EXACT_MERGE_BUILD");
+  assert.equal(candidate122.releaseSourceCommit, null);
+  assert.equal(candidate122.releaseTag, null);
+  assert.equal(candidate122.releaseUrl, null);
+  assert.deepEqual(candidate122.artifacts, []);
+  assert.deepEqual(candidate122.publicArtifactUrls, []);
+  assert.equal(candidate122.productionSigned, false);
+  assert.equal(candidate122.storeReleased, false);
+  assert.equal(candidate122.financeOrderHandoffE2E, "NOT_VERIFIED");
+  assert.equal(candidate122.backendFourRouteContract, "NOT_VERIFIED");
+  assert.equal(evidence122.version, candidate122.version);
+  assert.equal(evidence122.versionCode, candidate122.versionCode);
+  assert.equal(evidence122.iosBuildNumber, "28");
+  assert.equal(evidence122.baseCommit, candidate122.baseCommit);
+  assert.equal(evidence122.releaseSourceCommit, null);
+  assert.equal(evidence122.artifactsBuiltFromExactMerge, false);
+  assert.equal(evidence122.artifactsPublished, false);
+  assert.equal(evidence122.installedUpgradeFromVersionCode26, "NOT_VERIFIED");
+  assert.equal(evidence122.financeOrderHandoffE2E, "NOT_VERIFIED");
+  assert.equal(evidence122.backendFourRouteContract, "NOT_VERIFIED");
+  assert.equal(evidence122.officialWebsiteUpdated, false);
+  assert.equal(candidate122.previousPublishedRelease.version, publication120.version);
+  assert.equal(candidate122.previousPublishedRelease.versionCode, publication120.versionCode);
+  assert.match(releaseNotes, /1\.0\.22 Testnet Preview source candidate/);
 });
 
 test("1.0.20 binds terminal reconciliation, automatic unlock and lease-current Dashboard refresh", () => {
