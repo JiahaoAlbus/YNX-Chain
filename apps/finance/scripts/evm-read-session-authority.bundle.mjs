@@ -2884,13 +2884,13 @@ function ethereumPersonalMessageDigest(message) {
 ${bytes.length}`);
   return keccak_256(concatBytes(prefix, bytes));
 }
-function recoverEthereumAddress(signature2, digest2) {
+function recoverEthereumAddress(signature2, digest3) {
   try {
     const raw = hexToBytes(signature2.slice(2)), recovery = raw[64] >= 27 ? raw[64] - 27 : raw[64];
     if (recovery !== 0 && recovery !== 1) fail("INVALID_SIGNATURE", "EVM product login recovery id is invalid");
     if (secp256k1.Signature.fromBytes(raw.slice(0, 64), "compact").hasHighS()) fail("INVALID_SIGNATURE", "EVM product login signature is malleable");
     const recovered = concatBytes(Uint8Array.of(recovery), raw.slice(0, 64));
-    const publicKey = secp256k1.recoverPublicKey(recovered, digest2, { prehash: false });
+    const publicKey = secp256k1.recoverPublicKey(recovered, digest3, { prehash: false });
     const uncompressed = secp256k1.Point.fromBytes(publicKey).toBytes(false);
     return `0x${bytesToHex(keccak_256(uncompressed.slice(1)).slice(-20))}`;
   } catch (error) {
@@ -3188,6 +3188,10 @@ function pattern(value, label, regex) {
 function fail2(code, message) {
   throw new WalletAuthError(code, message);
 }
+
+// packages/wallet-auth/src/finance-evm-subject.js
+var HTTP = ["version", "sessionId", "challengeDigest", "subjectId", "account", "origin", "scope", "method", "target", "bodyDigest", "nonce", "issuedAt", "expiresAt"];
+var PROOF = [...HTTP, "deviceSignature"];
 
 // packages/wallet-auth/src/wallet-session-control.js
 var WALLET_SESSION_CONTROL_PATHS = Object.freeze(["/v2/product-sessions/wallet/sessions", "/v2/product-sessions/wallet/sessions/revoke"]);
