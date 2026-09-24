@@ -2,21 +2,37 @@ import type { WalletConnectSessionApproval,WalletConnectSessionReview } from "@y
 import type { SessionTypes } from "@walletconnect/types";
 
 type ApprovalStore=Readonly<{saveSession(approval:WalletConnectSessionApproval):Promise<void>;removeSession(topic:string):Promise<void>}>;
-type ApprovalRuntime=Readonly<{refreshSessions():void;disconnect(topic:string):Promise<void>}>;
+type ApprovalRuntime=Readonly<{refreshSessions():void;disconnect(topic:string):Promise<void>;quarantineSession(topic:string):void;releaseQuarantinedSession(topic:string):void;quarantinedTopics():readonly string[]}>;
 type RevocationStore=Readonly<{removeSession(topic:string):Promise<void>}>;
 
 /** Persists local authorization before publishing the SDK session to UI. */
 export async function persistAndPublishWalletConnectSession(runtime:ApprovalRuntime,store:ApprovalStore,approval:WalletConnectSessionApproval,assertCurrent:()=>void=()=>{}):Promise<void>{
   try{assertCurrent();await store.saveSession(approval);assertCurrent();runtime.refreshSessions()}
-  catch(caught){await store.removeSession(approval.topic).catch(()=>{});await runtime.disconnect(approval.topic).catch(()=>{});throw caught}
+  catch(caught){runtime.quarantineSession(approval.topic);const failures=await cleanupFailedApproval(runtime,store,approval.topic);if(failures.length)throw new AggregateError([caught,...failures],"WalletConnect approval failed and session cleanup is pending. Reopen WalletConnect to retry.");throw caught}
 }
 
 /** Closes an SDK-approved session if its local authorization cannot be constructed. */
 export async function createPersistAndPublishWalletConnectSession(runtime:ApprovalRuntime,store:ApprovalStore,topic:string,createApproval:()=>WalletConnectSessionApproval,assertCurrent:()=>void=()=>{}):Promise<void>{
   let approval:WalletConnectSessionApproval;
   try{approval=createApproval()}
-  catch(caught){await runtime.disconnect(topic).catch(()=>{});throw caught}
+  catch(caught){runtime.quarantineSession(topic);try{await runtime.disconnect(topic);runtime.releaseQuarantinedSession(topic)}catch(disconnectError){throw new AggregateError([caught,disconnectError],"WalletConnect approval failed and session cleanup is pending. Reopen WalletConnect to retry.")}throw caught}
   await persistAndPublishWalletConnectSession(runtime,store,approval,assertCurrent);
+}
+
+async function cleanupFailedApproval(runtime:ApprovalRuntime,store:ApprovalStore,topic:string):Promise<unknown[]>{
+  const failures:unknown[]=[];
+  try{await store.removeSession(topic)}catch(error){failures.push(error)}
+  try{await runtime.disconnect(topic)}catch(error){failures.push(error)}
+  if(!failures.length)runtime.releaseQuarantinedSession(topic);
+  return failures;
+}
+
+/** A failed cleanup stays quarantined until both the local grant and SDK
+ * session have been removed; closing/reopening the sheet cannot reauthorize it. */
+export async function retryQuarantinedWalletConnectSession(runtime:ApprovalRuntime,store:ApprovalStore,topic:string):Promise<void>{
+  if(!runtime.quarantinedTopics().includes(topic))throw new Error("WalletConnect session is not awaiting cleanup.");
+  const failures=await cleanupFailedApproval(runtime,store,topic);
+  if(failures.length)throw new AggregateError(failures,"WalletConnect session cleanup is still pending. Retry when secure storage and Relay are available.");
 }
 
 /** The SDK session is untrusted until it matches the exact peer and namespace
