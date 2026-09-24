@@ -28,7 +28,10 @@ func TestFreshBrokerOrderHandoffDurableClaimAndOwnerIsolation(t *testing.T) {
 	}
 	request := BrokerChallengeRequest{AccountPublicKey: publicKey, CallbackState: callbackState, FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:test",
 		Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"}}
-	challenge, err := store.CreateBrokerOrderChallenge(account, request, now)
+	if _, err := store.CreateBrokerOrderChallenge(account, request, now); err == nil {
+		t.Fatal("a fresh callback state was created without an atomic opaque ticket")
+	}
+	challenge, err := store.CreateBrokerOrderChallengeWithHandoff(account, request, ticketHash, now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,14 +39,9 @@ func TestFreshBrokerOrderHandoffDurableClaimAndOwnerIsolation(t *testing.T) {
 	if challenge.Unsigned.CallbackStateHash != hex.EncodeToString(digest[:]) {
 		t.Fatal("fresh callback state was not SHA256-bound to the durable challenge")
 	}
-	if err := store.PutFreshBrokerOrderHandoff(account, challenge.Unsigned.RequestID, strings.Repeat("b", 64), challenge.Unsigned.CallbackStateHash, now); err == nil {
-		t.Fatal("fresh ticket accepted the legacy raw callback hash as a state preimage")
-	}
-	if err := store.PutFreshBrokerOrderHandoff(account, challenge.Unsigned.RequestID, ticketHash, callbackState, now); err != nil {
-		t.Fatal(err)
-	}
-	if err := store.PutFreshBrokerOrderHandoff(account, challenge.Unsigned.RequestID, strings.Repeat("c", 64), callbackState, now); err == nil {
-		t.Fatal("one challenge accepted a second ticket")
+	record, _, err := store.BrokerOrderHandoffAuthoritySnapshot(ticketHash)
+	if err != nil || record.CallbackStateBinding != "sha256-v2" || record.CallbackState != callbackState {
+		t.Fatalf("atomic v2 ticket did not persist the exact secret state: %v", err)
 	}
 	profile, err := json.Marshal(store.Account(account))
 	if err != nil || strings.Contains(string(profile), callbackState) || strings.Contains(string(profile), ticketHash) {
@@ -67,21 +65,26 @@ func TestFreshBrokerOrderHandoffDurableClaimAndOwnerIsolation(t *testing.T) {
 		t.Fatal("expired ticket was claimed")
 	}
 	approvedProof := json.RawMessage(`{"version":"1","signature":"test-proof-for-store-cas-only"}`)
-	approved, err := restarted.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "approved", approvedProof, strings.Repeat("d", 64), now.Add(3*time.Second))
+	tampered := challenge.Unsigned
+	tampered.Order.Symbol = "BETA"
+	if _, err := restarted.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "approved", tampered, approvedProof, strings.Repeat("c", 64), now.Add(2*time.Second)); err == nil {
+		t.Fatal("decision CAS accepted a challenge different from the verified snapshot")
+	}
+	approved, err := restarted.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "approved", challenge.Unsigned, approvedProof, strings.Repeat("d", 64), now.Add(3*time.Second))
 	if err != nil || approved.DecisionStatus != "approved" {
 		t.Fatalf("verified decision was not stored: %v", err)
 	}
-	if _, err := store.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "approved", approvedProof, strings.Repeat("e", 64), now.Add(4*time.Second)); err != nil {
+	if _, err := store.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "approved", challenge.Unsigned, approvedProof, strings.Repeat("e", 64), now.Add(4*time.Second)); err != nil {
 		t.Fatalf("same proof could not retry with a fresh one-time code: %v", err)
 	}
-	if _, err := store.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "approved", json.RawMessage(`{"different":true}`), strings.Repeat("f", 64), now.Add(5*time.Second)); err == nil {
+	if _, err := store.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "approved", challenge.Unsigned, json.RawMessage(`{"different":true}`), strings.Repeat("f", 64), now.Add(5*time.Second)); err == nil {
 		t.Fatal("conflicting approval proof replaced the durable decision")
 	}
 	revokedProof := json.RawMessage(`{"version":"1","reason":"USER_REVOKED","signature":"test-revocation-cas-only"}`)
-	if _, err := restarted.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "revoked", revokedProof, strings.Repeat("a", 64), now.Add(6*time.Second)); err != nil {
+	if _, err := restarted.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "revoked", challenge.Unsigned, revokedProof, strings.Repeat("a", 64), now.Add(6*time.Second)); err != nil {
 		t.Fatalf("unused approved decision could not be revoked: %v", err)
 	}
-	if _, err := restarted.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "rejected", revokedProof, strings.Repeat("b", 64), now.Add(7*time.Second)); err == nil {
+	if _, err := restarted.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "rejected", challenge.Unsigned, revokedProof, strings.Repeat("b", 64), now.Add(7*time.Second)); err == nil {
 		t.Fatal("revoked decision changed to rejected")
 	}
 	if err := store.updateAllState(account, "test.code_consumed", ticketHash, func(all *persistedState) error {
@@ -93,7 +96,7 @@ func TestFreshBrokerOrderHandoffDurableClaimAndOwnerIsolation(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := restarted.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "revoked", revokedProof, strings.Repeat("c", 64), now.Add(9*time.Second)); err == nil {
+	if _, err := restarted.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "revoked", challenge.Unsigned, revokedProof, strings.Repeat("c", 64), now.Add(9*time.Second)); err == nil {
 		t.Fatal("a consumed decision accepted a second completion")
 	}
 	profile, err = json.Marshal(restarted.Account(account))

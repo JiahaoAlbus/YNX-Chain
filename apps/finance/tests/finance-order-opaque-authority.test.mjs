@@ -58,7 +58,7 @@ test('complete verifies exact approved and rejected proofs against original chal
   const approval = createSignedFinanceOrderApproval({ accountSecret: secret, approval: challenge }, new Date(at));
   const approved = invoke({ action: 'complete', ticket, status: 'approved', proof: approval, challenge, at });
   assert.equal(approved.status, 0);
-  assert.deepEqual(approved.output, { kind: 'verified', action: 'complete', status: 'approved',
+  assert.deepEqual(approved.output, { kind: 'result', action: 'complete', verified: true, status: 'approved',
     ticketHash: financeOrderOpaqueTicketHash(ticket), requestId: challenge.requestId });
   const rejectedProof = createSignedFinanceOrderOpaqueReject({ ticket, challenge }, new Date(at), secret);
   const rejected = invoke({ action: 'complete', ticket, status: 'rejected', proof: rejectedProof, challenge, at });

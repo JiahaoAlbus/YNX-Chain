@@ -162,6 +162,20 @@ func (s *Store) SetBrokerWatchlistItem(account string, asset BrokerWatchlistItem
 }
 
 func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallengeRequest, now time.Time) (BrokerApprovalChallenge, error) {
+	if request.CallbackState != "" {
+		return BrokerApprovalChallenge{}, errors.New("opaque callback state requires atomic ticket issuance")
+	}
+	return s.createBrokerOrderChallenge(account, request, "", now)
+}
+
+func (s *Store) CreateBrokerOrderChallengeWithHandoff(account string, request BrokerChallengeRequest, ticketHash string, now time.Time) (BrokerApprovalChallenge, error) {
+	if !brokerHandoffToken.MatchString(request.CallbackState) || !brokerHandoffHex.MatchString(ticketHash) {
+		return BrokerApprovalChallenge{}, errors.New("opaque callback state and ticket hash are required")
+	}
+	return s.createBrokerOrderChallenge(account, request, ticketHash, now)
+}
+
+func (s *Store) createBrokerOrderChallenge(account string, request BrokerChallengeRequest, ticketHash string, now time.Time) (BrokerApprovalChallenge, error) {
 	if !request.FeeBoundEstablished || strings.TrimSpace(request.FeeEvidenceRef) == "" || len(request.FeeEvidenceRef) > 256 {
 		return BrokerApprovalChallenge{}, errors.New("a bounded, auditable fee source is required")
 	}
@@ -218,7 +232,7 @@ func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallen
 	}
 
 	var result BrokerApprovalChallenge
-	err = s.updateBrokerCAS(account, "broker.approval.challenge", order.OrderID, func(state *AccountState) error {
+	apply := func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)
 		if _, err := expireDueBrokerOrders(state, issuedAt); err != nil {
 			return err
@@ -250,7 +264,46 @@ func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallen
 		appendBrokerJournal(&state.Brokerage, order.OrderID, unsigned.RequestID, "approval.challenge_created", "pending", "approval_pending", issuedAt)
 		state.Idempotency["broker.fee-evidence:"+order.OrderID] = request.FeeEvidenceRef
 		return nil
-	})
+	}
+	if ticketHash == "" {
+		err = s.updateBrokerCAS(account, "broker.approval.challenge", order.OrderID, apply)
+	} else {
+		for attempt := 0; attempt < brokerCASAttempts; attempt++ {
+			err = s.updateAllState(account, "broker.approval.challenge_opaque", order.OrderID, func(all *persistedState) error {
+				if _, duplicate := all.BrokerOrderHandoffs[ticketHash]; duplicate {
+					return errors.New("opaque ticket hash already exists")
+				}
+				state := all.Accounts[account]
+				if err := apply(&state); err != nil {
+					return err
+				}
+				expires, parseErr := parseFinanceMilliseconds(result.Unsigned.ExpiresAt)
+				if parseErr != nil {
+					return parseErr
+				}
+				record := BrokerOrderHandoffRecord{TicketHash: ticketHash, Account: account, RequestID: result.Unsigned.RequestID,
+					CallbackState: request.CallbackState, CallbackStateBinding: "sha256-v2", IssuedAt: issuedAt, ExpiresAt: expires}
+				shadow := *all
+				shadow.Accounts = make(map[string]AccountState, len(all.Accounts)+1)
+				for key, existing := range all.Accounts {
+					shadow.Accounts[key] = existing
+				}
+				shadow.Accounts[account] = state
+				if err := validateBrokerOrderHandoff(shadow, ticketHash, record); err != nil {
+					return err
+				}
+				all.Accounts[account] = state
+				if all.BrokerOrderHandoffs == nil {
+					all.BrokerOrderHandoffs = map[string]BrokerOrderHandoffRecord{}
+				}
+				all.BrokerOrderHandoffs[ticketHash] = record
+				return nil
+			})
+			if !errors.Is(err, errFinanceStateConflict) {
+				break
+			}
+		}
+	}
 	return result, err
 }
 

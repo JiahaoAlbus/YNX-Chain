@@ -80,45 +80,6 @@ func validateBrokerOrderHandoff(all persistedState, key string, record BrokerOrd
 	return nil
 }
 
-// PutFreshBrokerOrderHandoff records only a SHA256-bound fresh-v2 callback
-// state. A legacy-v1 direct state can never enter through this method.
-func (s *Store) PutFreshBrokerOrderHandoff(account, requestID, ticketHash, callbackState string, now time.Time) error {
-	if !brokerHandoffHex.MatchString(ticketHash) || !brokerHandoffToken.MatchString(callbackState) {
-		return errors.New("fresh confidential handoff identity is invalid")
-	}
-	return s.updateAllState(account, "broker.handoff.issued", requestID, func(all *persistedState) error {
-		owner, ok := all.Accounts[account]
-		challenge, exists := owner.Brokerage.Challenges[requestID]
-		if !ok || !exists || challenge.Unsigned.Account != account || challenge.ApprovalState != "pending" ||
-			all.BrokerOrderHandoffs[ticketHash].TicketHash != "" {
-			return errors.New("fresh confidential handoff challenge is unavailable")
-		}
-		mapping := owner.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
-		if mapping.Account != account || mapping.Status != "active" || mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey {
-			return errors.New("fresh confidential handoff owner mapping differs")
-		}
-		expires, err := parseFinanceMilliseconds(challenge.Unsigned.ExpiresAt)
-		if err != nil || !expires.After(now.UTC()) {
-			return errors.New("fresh confidential handoff challenge is expired")
-		}
-		for _, prior := range all.BrokerOrderHandoffs {
-			if prior.Account == account && prior.RequestID == requestID {
-				return errors.New("a confidential ticket already exists for this challenge")
-			}
-		}
-		record := BrokerOrderHandoffRecord{TicketHash: ticketHash, Account: account, RequestID: requestID,
-			CallbackState: callbackState, CallbackStateBinding: "sha256-v2", IssuedAt: now.UTC(), ExpiresAt: expires}
-		if all.BrokerOrderHandoffs == nil {
-			all.BrokerOrderHandoffs = map[string]BrokerOrderHandoffRecord{}
-		}
-		if validateBrokerOrderHandoff(*all, ticketHash, record) != nil {
-			return errors.New("fresh confidential handoff state does not match the challenge")
-		}
-		all.BrokerOrderHandoffs[ticketHash] = record
-		return nil
-	})
-}
-
 // ClaimBrokerOrderHandoff runs only after the Wallet/Auth root verifier has
 // validated the signed claim for this exact ticket, account and nonce. The
 // repository CAS prevents replay across instances and returns no native or
@@ -155,13 +116,34 @@ func (s *Store) ClaimBrokerOrderHandoff(account, ticketHash, nonce string, now t
 	return unsigned, err
 }
 
+// BrokerOrderHandoffAuthoritySnapshot is internal-only. Neither the handoff
+// record nor callback state is serialized into the user-facing AccountState.
+func (s *Store) BrokerOrderHandoffAuthoritySnapshot(ticketHash string) (BrokerOrderHandoffRecord, FinanceOrderApprovalUnsignedV1, error) {
+	if !brokerHandoffHex.MatchString(ticketHash) {
+		return BrokerOrderHandoffRecord{}, FinanceOrderApprovalUnsignedV1{}, errors.New("confidential ticket hash is invalid")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.refreshLocked(); err != nil {
+		return BrokerOrderHandoffRecord{}, FinanceOrderApprovalUnsignedV1{}, err
+	}
+	record, ok := s.state.BrokerOrderHandoffs[ticketHash]
+	if !ok || validateBrokerOrderHandoff(s.state, ticketHash, record) != nil {
+		return BrokerOrderHandoffRecord{}, FinanceOrderApprovalUnsignedV1{}, errors.New("confidential ticket is unavailable")
+	}
+	challenge := s.state.Accounts[record.Account].Brokerage.Challenges[record.RequestID]
+	record.ClaimNonces = cloneEVMProofNonces(record.ClaimNonces)
+	record.DecisionProof = append(json.RawMessage(nil), record.DecisionProof...)
+	return record, challenge.Unsigned, nil
+}
+
 // StoreBrokerOrderHandoffDecision is reached only after the accepted
 // Wallet/Auth root verifier has checked the exact ticket, durable unsigned
 // challenge, signature and status. It stores a confidential decision without
 // creating a Broker execution outbox. A retry of the same proof may rotate the
 // one-time callback code; a different proof for the same status is rejected.
 // The sole allowed status change is unused approved -> revoked.
-func (s *Store) StoreBrokerOrderHandoffDecision(account, ticketHash, verifiedRequestID, status string, proof json.RawMessage, codeHash string, now time.Time) (BrokerOrderHandoffRecord, error) {
+func (s *Store) StoreBrokerOrderHandoffDecision(account, ticketHash, verifiedRequestID, status string, expectedChallenge FinanceOrderApprovalUnsignedV1, proof json.RawMessage, codeHash string, now time.Time) (BrokerOrderHandoffRecord, error) {
 	if !brokerHandoffHex.MatchString(ticketHash) || !brokerHandoffHex.MatchString(codeHash) ||
 		(status != "approved" && status != "rejected" && status != "revoked") ||
 		!evmSubjectRequestID.MatchString(verifiedRequestID) {
@@ -185,7 +167,8 @@ func (s *Store) StoreBrokerOrderHandoffDecision(account, ticketHash, verifiedReq
 		mapping := owner.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
 		if !ok || challenge.ApprovalState != "pending" || mapping.Status != "active" || mapping.Account != account ||
 			mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey ||
-			challenge.Unsigned.CallbackStateHash == "" {
+			challenge.Unsigned.CallbackStateHash == "" ||
+			string(mustFinanceCanonical(challenge.Unsigned)) != string(mustFinanceCanonical(expectedChallenge)) {
 			return errors.New("confidential decision no longer has the original pending owner")
 		}
 		if record.DecisionStatus != "" && !((record.DecisionStatus == status && record.DecisionProofHash == proofHash) ||

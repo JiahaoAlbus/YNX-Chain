@@ -26,24 +26,25 @@ import (
 const maxBodyBytes = 64 << 10
 
 type ServerConfig struct {
-	BrokerConfig         brokerage.Config
-	BrokerAdapter        brokerage.BrokerageAdapter
-	BrokerMaxFeeUSD      string
-	BrokerFeeBoundSource string
-	BrokerFeeEvidenceRef string
-	AllowedOrigins       []string
-	WebDir               string
-	CursorSigningKey     string
-	OperationsKey        string
-	WalletGatewayURL     string
-	WalletGatewayClient  *http.Client
-	LogWriter            io.Writer
-	Now                  func() time.Time
-	Build                buildinfo.Info
-	EndpointAuthority    EndpointAuthorityBrowserConfigProvider
-	EVMLoginAuthority    EVMLoginAuthority
-	EVMReadAuthority     *NodeEVMReadAuthority
-	EVMSubjectAuthority  *NodeEVMReadAuthority
+	BrokerConfig          brokerage.Config
+	BrokerAdapter         brokerage.BrokerageAdapter
+	BrokerMaxFeeUSD       string
+	BrokerFeeBoundSource  string
+	BrokerFeeEvidenceRef  string
+	AllowedOrigins        []string
+	WebDir                string
+	CursorSigningKey      string
+	OperationsKey         string
+	WalletGatewayURL      string
+	WalletGatewayClient   *http.Client
+	LogWriter             io.Writer
+	Now                   func() time.Time
+	Build                 buildinfo.Info
+	EndpointAuthority     EndpointAuthorityBrowserConfigProvider
+	EVMLoginAuthority     EVMLoginAuthority
+	EVMReadAuthority      *NodeEVMReadAuthority
+	EVMSubjectAuthority   *NodeEVMReadAuthority
+	BrokerOpaqueAuthority *NodeEVMReadAuthority
 }
 
 type Server struct {
@@ -124,6 +125,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/broker/orders/{id}/execution-request", s.protected("finance.profile.write", s.brokerExecutionRequest))
 	s.mux.HandleFunc("POST /api/broker/challenges", s.protected("finance.profile.write", s.brokerChallenge))
 	s.mux.HandleFunc("POST /api/broker/callback", s.protected("finance.profile.write", s.brokerCallback))
+	s.mux.HandleFunc("POST /api/broker/order-handoff/issue", s.protected("finance.profile.write", s.brokerOpaqueIssue))
+	s.mux.HandleFunc("POST /api/broker/order-handoff/claim", s.brokerOpaqueClaim)
+	s.mux.HandleFunc("POST /api/broker/order-handoff/complete", s.brokerOpaqueComplete)
+	s.mux.HandleFunc("POST /api/broker/order-handoff/recover-legacy", s.brokerOpaqueRecoverLegacy)
+	s.mux.HandleFunc("POST /api/broker/order-handoff/exchange", s.protected("finance.profile.write", s.brokerOpaqueExchange))
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /ready", s.ready)
 	s.mux.HandleFunc("GET /version", s.version)
