@@ -103,8 +103,9 @@ export class FinanceOrderOpaqueController {
       const generation=this.generation,ticket=parseFinanceOrderOpaqueLaunchURL(url).ticket,ticketHash=financeOrderOpaqueTicketHash(ticket);
       const selected=this.snapshotSelected();
       if(this.pending){if(this.pending.row.ticketHash===ticketHash){this.check(this.pending,generation);return this.pending.review}throw new Error("Finish the current Finance order approval first")}
-      const at=await this.time(()=>this.assertGeneration(generation));
+      const at=await this.time(()=>this.assertSelected(selected,generation));
       const existing=(await this.readRows(at)).find(row=>row.ticketHash===ticketHash);
+      this.assertSelected(selected,generation);
       if(existing){
         if(existing.stateBinding!==stateBinding)throw new Error("Finance callback state binding differs from recovered ticket");
         if(expectedLegacy&&canonicalJSON(existing.request.unsigned)!==canonicalJSON(expectedLegacy.unsigned))
