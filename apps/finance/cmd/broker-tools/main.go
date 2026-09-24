@@ -34,7 +34,7 @@ func run(args []string) int {
 		if statePath == "" || owner == "" {
 			return verificationResult{}, &brokerage.Error{Code: "OWNER_VERIFICATION_CONTEXT_REQUIRED"}
 		}
-		store, err := finance.OpenStoreWithDatabase(statePath, os.Getenv("YNX_FINANCE_DATABASE_URL"))
+		resolver, backend, err := finance.InspectBrokerAccountResolverReadOnly(ctx, statePath, os.Getenv("YNX_FINANCE_DATABASE_URL"), owner)
 		if err != nil {
 			return verificationResult{}, &brokerage.Error{Code: "STATE_STORE_UNAVAILABLE"}
 		}
@@ -43,7 +43,7 @@ func run(args []string) int {
 		if err != nil {
 			return verificationResult{}, err
 		}
-		snapshot, err := adapter.Reconcile(ctx, owner, store)
+		snapshot, err := adapter.Reconcile(ctx, owner, resolver)
 		if err != nil {
 			return verificationResult{}, err
 		}
@@ -60,7 +60,7 @@ func run(args []string) int {
 			}
 			return verificationResult{}, &brokerage.Error{Code: "TRADABLE_ASSET_REQUIRED"}
 		}
-		return verificationResult{Assets: assets, Snapshot: snapshot, Quote: quote, StoreMode: store.StateStoreMode()}, nil
+		return verificationResult{Assets: assets, Snapshot: snapshot, Quote: quote, StoreMode: backend}, nil
 	}, os.Stdout)
 }
 func runWith(args []string, get func(string) string, probe verificationProbe, output io.Writer) int {

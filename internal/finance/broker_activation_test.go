@@ -43,6 +43,50 @@ func TestBrokerActivationReadinessReadsExistingStateWithoutMutation(t *testing.T
 	}
 }
 
+func TestBrokerVerificationResolverReadsExistingOwnerMappingWithoutMutation(t *testing.T) {
+	store, owner, _, now := consumedBrokerFixture(t)
+	const providerAccount = "01234567-89ab-4cde-8fab-0123456789ab"
+	if _, err := store.PutBrokerSandboxMapping(owner, providerAccount, now); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeInfo, err := os.Stat(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolver, backend, err := InspectBrokerAccountResolverReadOnly(context.Background(), store.path, "", owner)
+	if err != nil || backend != "file-cas-single-host" {
+		t.Fatalf("read-only resolver backend=%q err=%v", backend, err)
+	}
+	linked, err := resolver.ResolveBrokerAccount(context.Background(), owner, FinanceOrderProvider, FinanceOrderTradingEnv)
+	if err != nil || linked != providerAccount {
+		t.Fatalf("resolved account=%q err=%v", linked, err)
+	}
+	for _, query := range [][3]string{{"ynx1other", FinanceOrderProvider, FinanceOrderTradingEnv}, {owner, "other-provider", FinanceOrderTradingEnv}, {owner, FinanceOrderProvider, "live"}} {
+		if _, err := resolver.ResolveBrokerAccount(context.Background(), query[0], query[1], query[2]); err == nil {
+			t.Fatalf("unexpected cross-scope mapping: %v", query)
+		}
+	}
+	after, err := os.ReadFile(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterInfo, err := os.Stat(store.path)
+	if err != nil || !bytes.Equal(before, after) || !beforeInfo.ModTime().Equal(afterInfo.ModTime()) {
+		t.Fatal("broker verification resolver changed existing state")
+	}
+	missing := filepath.Join(t.TempDir(), "not-created.json")
+	if _, _, err := InspectBrokerAccountResolverReadOnly(context.Background(), missing, "", owner); err == nil {
+		t.Fatal("missing Finance state was accepted")
+	}
+	if _, err := os.Stat(missing); !os.IsNotExist(err) {
+		t.Fatal("read-only resolver created a missing state path")
+	}
+}
+
 func TestBrokerActivationReadinessFailsClosedOnUnsafeOrMissingState(t *testing.T) {
 	account := "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
 	root := t.TempDir()
