@@ -106,18 +106,11 @@ test("session update synchronously clears and rejects a reviewed request even wh
   assert.deepEqual(client.responses[0],{topic,response:{jsonrpc:"2.0",id:11,error:{code:5103,message:"WalletConnect session updated; resend the request after reconciliation."}}});
 });
 
-test("lock or component disposal clears proposal and request even when remote rejection is unavailable",async()=>{
+test("lock owner clears the pending request without an untracked relay response",async()=>{
   const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
   client.handlers.get("session_proposal")!(pendingProposal());client.handlers.get("session_request")!(pendingRequest("1".repeat(64)));client.failResponses=true;client.failRejections=true;
-  await runtime.rejectPendingForLock();assert.equal(runtime.snapshot().proposal,null);assert.equal(runtime.snapshot().request,null);
-});
-
-test("completed local request decisions cannot be approved again after response transport failure",async()=>{
-  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();const topic="9".repeat(64);client.failResponses=true;
-  client.handlers.get("session_request")!(pendingRequest(topic,14));
-  await assert.rejects(runtime.respond("0x1"),/response unavailable/);assert.equal(runtime.snapshot().request,null);
-  client.handlers.get("session_request")!(pendingRequest(topic,15));
-  await assert.rejects(runtime.rejectRequest(),/response unavailable/);assert.equal(runtime.snapshot().request,null);
+  runtime.clearSensitiveReview();await runtime.rejectProposal().catch(()=>{});
+  assert.equal(runtime.snapshot().proposal,null);assert.equal(runtime.snapshot().request,null);assert.equal(client.responses.length,0);
 });
 
 test("stored response retries exact bytes after relay failure without another pending review",async()=>{

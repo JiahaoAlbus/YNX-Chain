@@ -66,8 +66,75 @@ test("request reservation validates the current session inside the shared storag
   const input={topic,id:17,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:05:00.000Z")/1000)}}};
   const review=await store.reserveRequest(input,account,decisionTime);assert.equal(review.requestId,17);
   assert.equal((await store.load()).replayStore.snapshot()[0]?.status,"reserved");
+  assert.equal((await store.outbox())[0]?.stage,"reviewing");
   await assert.rejects(store.reserveRequest(input,account,decisionTime),/already reviewed/);
   await store.removeSession(topic);await assert.rejects(store.reserveRequest({...input,id:18},account,decisionTime),/no longer authorized/);
+});
+
+test("closing after reservation recovers a durable error across a new store instance",async()=>{
+  const storage=new MemoryStorage(),first=new WalletConnectSecurityStore(storage as any);await first.saveSession(approval);
+  const input={topic,id:22,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:05:00.000Z")/1000)}}};
+  await first.reserveRequest(input,account,decisionTime);
+  const restored=new WalletConnectSecurityStore(storage as any),record=await restored.recoverReviewingResponse(`${topic}:22`,new Date(decisionTime.getTime()+1));
+  assert.equal(record.stage,"ready");assert.equal(record.decision,"rejected");assert.equal((await restored.load()).replayStore.snapshot()[0]?.status,"consumed");
+  assert.deepEqual((await restored.readyResponses(decisionTime))[0]?.response,{jsonrpc:"2.0",id:22,error:{code:-32002,message:"Wallet review was interrupted. Review a fresh request."}});
+  await assert.rejects(restored.reserveRequest(input,account,decisionTime),/already reviewed/);
+});
+
+test("approving a durable review replaces its pending record in one decision write",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input={topic,id:27,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:05:00.000Z")/1000)}}};
+  const review=await store.reserveRequest(input,account,decisionTime);
+  const authorized=await store.commitRequestDecision(review,true,new Date(decisionTime.getTime()+1));
+  assert.equal(authorized.stage,"authorized");assert.equal((await store.outbox()).length,1);
+  assert.equal((await store.load()).replayStore.snapshot()[0]?.status,"consumed");
+});
+
+test("failed decision write leaves the durable review available for recovery",async()=>{
+  const storage=new FailingStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input={topic,id:28,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:05:00.000Z")/1000)}}};
+  const review=await store.reserveRequest(input,account,decisionTime);storage.fail=true;
+  await assert.rejects(store.commitRequestDecision(review,true,new Date(decisionTime.getTime()+1)),/unavailable/);
+  storage.fail=false;assert.equal((await store.outbox())[0]?.stage,"reviewing");
+  assert.equal((await store.recoverReviewingResponse(`${topic}:28`,new Date(decisionTime.getTime()+2))).stage,"ready");
+});
+
+test("lost reservation acknowledgement still leaves a recoverable review record",async()=>{
+  const storage=new AmbiguousStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input={topic,id:24,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:05:00.000Z")/1000)}}};
+  storage.throwAfterWrite=true;await assert.rejects(store.reserveRequest(input,account,decisionTime),/acknowledgement lost/);storage.throwAfterWrite=false;
+  assert.equal((await store.outbox())[0]?.stage,"reviewing");
+  const response=await new WalletConnectSecurityStore(storage as any).recoverReviewingResponse(`${topic}:24`,new Date(decisionTime.getTime()+1));
+  assert.equal(response.stage,"ready");assert.equal((await store.load()).replayStore.snapshot()[0]?.status,"consumed");
+});
+
+test("revoking a session quarantines an unfinished review without invalidating storage",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input={topic,id:25,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:05:00.000Z")/1000)}}};
+  await store.reserveRequest(input,account,decisionTime);await store.removeSession(topic);
+  assert.equal((await new WalletConnectSecurityStore(storage as any).outbox())[0]?.stage,"quarantined");
+  await assert.rejects(store.recoverReviewingResponse(`${topic}:25`,decisionTime),/not recoverable/);
+});
+
+test("invalid pre-review request receives one bounded durable error for its approved session",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input={topic,id:23,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:1",request:{method:"eth_accounts",params:[]}}};
+  await assert.rejects(store.reserveRequest(input,account,decisionTime),/eip155:6423/);
+  const record=await store.rejectUnreviewedRequest(input,account,decisionTime);
+  assert.equal(record.method,"wallet_request_unreviewed");assert.deepEqual(record.response,{jsonrpc:"2.0",id:23,error:{code:-32602,message:"Invalid or unsupported WalletConnect request."}});
+  assert.equal((await new WalletConnectSecurityStore(storage as any).readyResponses(decisionTime))[0]?.key,`${topic}:23`);
+  assert.equal((await store.rejectUnreviewedRequest(input,account,decisionTime)).responseDigest,record.responseDigest);
+  await assert.rejects(store.rejectUnreviewedRequest({...input,params:{...input.params,chainId:"eip155:2"}},account,decisionTime),/identity was already used/);
+});
+
+test("expired review and replay are pruned together before the request id is reused",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input={topic,id:26,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:00:11.000Z")/1000)}}};
+  await store.reserveRequest(input,account,decisionTime);
+  const later=new Date("2026-09-20T00:00:12.000Z"),fresh={...input,params:{...input.params,request:{...input.params.request,expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:05:00.000Z")/1000)}}};
+  const review=await store.reserveRequest(fresh,account,later);
+  assert.equal(review.requestId,26);assert.equal((await store.outbox()).length,1);assert.equal((await store.outbox())[0]?.requestDigest,review.requestDigest);
+  assert.equal((await store.load()).replayStore.snapshot().length,1);
 });
 
 test("oversized state is rejected before secure storage is mutated",async()=>{

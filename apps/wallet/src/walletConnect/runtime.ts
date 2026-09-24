@@ -79,21 +79,11 @@ export class WalletConnectRuntime {
     this.#set({proposal:null});
     await this.#require().rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") });
   }
-  async respond(result: unknown): Promise<void> {
-    const pending = this.#snapshot.request; if (!pending) throw new Error("No WalletConnect request is awaiting review.");
-    this.#set({request:null});
-    await this.#require().respondSessionRequest({ topic: pending.topic, response: { jsonrpc: "2.0", id: pending.id, result } });
-  }
   async sendStoredResponse(topic: string, response: WalletConnectJsonRpcResponse): Promise<void> {
     if (!/^[0-9a-f]{64}$/.test(topic) || !Number.isSafeInteger(response.id) || response.id < 1) throw new Error("Stored WalletConnect response identity is invalid.");
     const pending = this.#snapshot.request;
     if (pending?.topic === topic && pending.id === response.id) this.#set({ request: null });
     await this.#require().respondSessionRequest({ topic, response });
-  }
-  async rejectRequest(code = 5000, message = "User rejected the request."): Promise<void> {
-    const pending = this.#snapshot.request; if (!pending) return;
-    this.#set({request:null});
-    await this.#require().respondSessionRequest({ topic: pending.topic, response: { jsonrpc: "2.0", id: pending.id, error: { code, message } } });
   }
   async rejectRequestForSession(topic:string,code=5000,message="WalletConnect session is no longer authorized."):Promise<void>{
     const pending=this.#snapshot.request;if(!pending||pending.topic!==topic)return;
@@ -115,12 +105,6 @@ export class WalletConnectRuntime {
     if(failures.length)throw new Error(`WalletConnect could not disconnect ${failures.length} session${failures.length===1?"":"s"}.`);
   }
   clearSensitiveReview(): void { if (this.#snapshot.request) this.#set({ request: null }); }
-  async rejectPendingForLock(): Promise<void> {
-    const request = this.#snapshot.request, proposal = this.#snapshot.proposal;
-    if (request) await this.rejectRequest(5000, "Wallet locked before approval.").catch(() => {});
-    if (proposal) await this.rejectProposal().catch(() => {});
-    this.#set({ request: null, proposal: null });
-  }
   async restore(): Promise<void> { await this.start(); this.#refreshSessions(); }
   refreshSessions():void{this.#refreshSessions()}
   async #initialize(): Promise<void> {
