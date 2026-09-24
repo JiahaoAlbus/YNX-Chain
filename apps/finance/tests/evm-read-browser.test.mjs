@@ -130,3 +130,25 @@ test('real Chromium retains Standard Wallet and official fallback when read-only
     assert.equal(page.context().pages().length, 1);
   } finally { await browser.close(); }
 });
+
+test('real Chromium keeps guest links usable without a connected Standard Wallet', async () => {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage();
+  const requests = [];
+  try {
+    page.on('request', request => requests.push(request.url()));
+    await page.route(`${origin}/**`, async route => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === '/test') return route.fulfill({ status: 200, contentType: 'text/html', body: html.replace("status:'connected'", "status:'disconnected'") });
+      if (path === '/evm-read-session.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: bundle });
+      return route.fulfill({ status: 404, body: '' });
+    });
+    await page.goto(`${origin}/test`);
+    await page.waitForFunction(() => Boolean(window.YNXFinanceEVMRead));
+    assert.equal(await page.locator('#evm-read-begin').isHidden(), true);
+    assert.equal(await page.locator('#install-wallet').getAttribute('href'), 'https://www.ynxweb4.com/dapp/download');
+    assert.equal(await page.locator('#install-metamask').getAttribute('href'), 'https://metamask.io/download/');
+    assert.equal(requests.some(url => url.includes('/api/evm-read/')), false);
+    assert.equal(page.context().pages().length, 1);
+  } finally { await browser.close(); }
+});
