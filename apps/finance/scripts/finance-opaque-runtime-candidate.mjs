@@ -27,7 +27,7 @@ const inputs=Object.freeze([
   'internal/finance/server.go','internal/finance/drain.go','internal/finance/auth_v2.go',
   'internal/finance/broker_order_handoff_http.go','internal/finance/broker_order_handoff_store.go',
   'internal/finance/broker_order_handoff_exchange.go','internal/finance/broker_order_store.go',
-  'internal/finance/broker_order_types.go',
+  'internal/finance/broker_order_types.go','internal/finance/broker.go','internal/finance/product_catalog.go',
   'packages/wallet-auth/package.json','packages/wallet-auth/package-lock.json',
 ].sort());
 const relations=Object.freeze([

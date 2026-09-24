@@ -30,7 +30,7 @@ test('guest catalog and its risk text switch language without requesting an acco
   const document={readyState:'complete',documentElement:{lang:'en'},querySelector:s=>s==='#product-channels'?target:s==='#finance-language'?selector:null,querySelectorAll:()=>[],addEventListener:(name,handler)=>handlers.set(name,handler),dispatchEvent:event=>handlers.get(event.type)?.(event)};
   const catalog={schemaVersion:'finance-product-catalog-v1',aggregationPolicy:'never-merge-balances-cost-basis-pnl-or-performance-across-channels',channels:[
     {id:'ynxt-indexed',label:'YNXT indexed portfolio',environment:'YNX Chain public testnet',availability:'source-dependent',riskNotice:'Indexed testnet records are not fiat, a bank balance, or a mainnet asset.',unit:'YNXT',settlement:'indexed-chain-evidence',custody:'none',capabilities:[]},
-    {id:'ynx-evm-test',label:'YNX on-chain test markets',environment:'chain 6423 test market',availability:'owner-source-dependent',riskNotice:'Only verified test assets and supported bounded contracts qualify; no mainnet BTC or generic EVM capability is implied.',unit:'verified-test-assets',settlement:'owner-product-testnet',custody:'owner-product-contract',capabilities:[]},
+    {id:'ynx-evm-test',label:'YNX on-chain test markets',environment:'chain 6423 test market',availability:'owner-source-dependent',riskNotice:'Only verified test assets and supported bounded contracts qualify; no mainnet BTC or generic EVM capability is implied.',unit:'verified-test-assets',settlement:'owner-product-testnet',custody:'owner-product-contract',capabilities:[],testMarket:{chainId:6423,testOnly:true,deploymentVerified:false,chainSubmissionEnabled:false,publicAddresses:null,assets:['TEST-AAPL','tUSD'],settlementContract:'TestDvP'}},
     {id:'broker-sandbox',label:'Official broker sandbox',environment:'provider sandbox',availability:'credential-and-provider-dependent',riskNotice:'Simulated cash and shares are not real funds, securities ownership, or chain assets.',unit:'simulated-USD-and-shares',settlement:'provider-sandbox',custody:'provider-sandbox-only',capabilities:[]},
     {id:'future-live',label:'Future live and mainnet products',environment:'not enabled',availability:'disabled',riskNotice:'No live brokerage, mainnet custody, lending, yield, or investment product is available.',unit:'none',settlement:'disabled',custody:'none',capabilities:[]},
   ]};
@@ -40,11 +40,14 @@ test('guest catalog and its risk text switch language without requesting an acco
   runInNewContext(script,context);
   await new Promise(resolve=>setImmediate(resolve));
   assert.match(target.innerHTML,/Indexed testnet records are not fiat/);
+  assert.match(target.innerHTML,/data-chain-submission="disabled"/);
+  assert.match(target.innerHTML,/No public 6423 deployment, balance or chain submission is verified/);
   assert.equal(context.window.YNXFinanceLocale.set('zh-CN'),true);
   assert.equal(document.documentElement.lang,'zh-CN');
   assert.equal(storage.get('ynx-finance-locale'),'zh-CN');
   assert.match(target.innerHTML,/索引的测试网记录不是法币/);
   assert.match(target.innerHTML,/模拟现金与股份不是真实资金/);
+  assert.match(target.innerHTML,/未验证公共 6423 部署、余额或链上提交/);
   assert.equal(fetchCount,1);
   catalog.channels[2].riskNotice='Provider changed the risk terms.';
   context.window.YNXFinanceLocale.set('en');
