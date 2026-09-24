@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { WalletConnectSessionApproval } from "@ynx-chain/wallet-auth";
-import { createPersistAndPublishWalletConnectSession,persistAndPublishWalletConnectSession,revokeAndDisconnectWalletConnectSession } from "./sessionApproval";
+import { assertWalletConnectSessionMatchesReview,createPersistAndPublishWalletConnectSession,persistAndPublishWalletConnectSession,revokeAndDisconnectWalletConnectSession } from "./sessionApproval";
 import { WalletConnectRuntime } from "./runtime";
 
 const approval={topic:"a".repeat(64)} as WalletConnectSessionApproval;
@@ -24,6 +24,26 @@ test("approval persistence failure disconnects and never publishes the remote se
     approval,
   ),/storage unavailable/);
   assert.deepEqual(order,["save","remove",`disconnect:${approval.topic}`]);
+});
+
+test("account lease loss after the storage write removes the grant and disconnects",async()=>{
+  const order:string[]=[];let current=true;
+  await assert.rejects(persistAndPublishWalletConnectSession(
+    {refreshSessions(){order.push("publish")},async disconnect(){order.push("disconnect")}},
+    {async saveSession(){order.push("save");current=false},async removeSession(){order.push("remove")}},
+    approval,()=>{if(!current)throw new Error("account changed")},
+  ),/account changed/);
+  assert.deepEqual(order,["save","remove","disconnect"]);
+});
+
+test("SDK peer and permissions must match the proposal shown to the user",()=>{
+  const account=`0x${"1".repeat(40)}`,publicKey="a".repeat(64);
+  const review={peer:{publicKey,metadata:{name:"dApp",description:"Test",url:"https://example.com/",icons:["https://example.com/icon.png"]}},
+    namespaces:{eip155:{accounts:[`eip155:6423:${account}`],chains:["eip155:6423"],methods:["personal_sign"],events:["accountsChanged"]}}} as any;
+  const session={topic:"a".repeat(64),peer:{publicKey,metadata:{name:"dApp",description:"Test",url:"https://example.com",icons:["https://example.com/icon.png"]}},namespaces:review.namespaces} as any;
+  assert.doesNotThrow(()=>assertWalletConnectSessionMatchesReview(session,review));
+  assert.throws(()=>assertWalletConnectSessionMatchesReview({...session,peer:{...session.peer,publicKey:"b".repeat(64)}},review),/peer differs/);
+  assert.throws(()=>assertWalletConnectSessionMatchesReview({...session,namespaces:{eip155:{...session.namespaces.eip155,methods:["eth_sendTransaction"]}}},review),/permissions differ/);
 });
 
 test("partial approval write is removed even when its remote disconnect also fails",async()=>{
@@ -67,7 +87,7 @@ test("runtime keeps a newly approved SDK session hidden and closes it when persi
   };
   const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any);await runtime.start();
   handlers.get("session_proposal")!({id:1,params:{},verifyContext:{verified:{}}});
-  await runtime.approveProposal({eip155:{accounts:[],chains:["eip155:6423"],methods:["eth_accounts"],events:[]}} as any);
+  await runtime.approveProposal(runtime.snapshot().proposal!,{eip155:{accounts:[],chains:["eip155:6423"],methods:["eth_accounts"],events:[]}} as any);
   assert.deepEqual(runtime.snapshot().sessions,[]);
   let persisted=false;
   await assert.rejects(persistAndPublishWalletConnectSession(runtime,{async saveSession(){persisted=true;throw new Error("storage unavailable")},async removeSession(){persisted=false}},approval),/storage unavailable/);

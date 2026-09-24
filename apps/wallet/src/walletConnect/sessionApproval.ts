@@ -1,22 +1,42 @@
-import type { WalletConnectSessionApproval } from "@ynx-chain/wallet-auth";
+import type { WalletConnectSessionApproval,WalletConnectSessionReview } from "@ynx-chain/wallet-auth";
+import type { SessionTypes } from "@walletconnect/types";
 
 type ApprovalStore=Readonly<{saveSession(approval:WalletConnectSessionApproval):Promise<void>;removeSession(topic:string):Promise<void>}>;
 type ApprovalRuntime=Readonly<{refreshSessions():void;disconnect(topic:string):Promise<void>}>;
 type RevocationStore=Readonly<{removeSession(topic:string):Promise<void>}>;
 
 /** Persists local authorization before publishing the SDK session to UI. */
-export async function persistAndPublishWalletConnectSession(runtime:ApprovalRuntime,store:ApprovalStore,approval:WalletConnectSessionApproval):Promise<void>{
-  try{await store.saveSession(approval);runtime.refreshSessions()}
+export async function persistAndPublishWalletConnectSession(runtime:ApprovalRuntime,store:ApprovalStore,approval:WalletConnectSessionApproval,assertCurrent:()=>void=()=>{}):Promise<void>{
+  try{assertCurrent();await store.saveSession(approval);assertCurrent();runtime.refreshSessions()}
   catch(caught){await store.removeSession(approval.topic).catch(()=>{});await runtime.disconnect(approval.topic).catch(()=>{});throw caught}
 }
 
 /** Closes an SDK-approved session if its local authorization cannot be constructed. */
-export async function createPersistAndPublishWalletConnectSession(runtime:ApprovalRuntime,store:ApprovalStore,topic:string,createApproval:()=>WalletConnectSessionApproval):Promise<void>{
+export async function createPersistAndPublishWalletConnectSession(runtime:ApprovalRuntime,store:ApprovalStore,topic:string,createApproval:()=>WalletConnectSessionApproval,assertCurrent:()=>void=()=>{}):Promise<void>{
   let approval:WalletConnectSessionApproval;
   try{approval=createApproval()}
   catch(caught){await runtime.disconnect(topic).catch(()=>{});throw caught}
-  await persistAndPublishWalletConnectSession(runtime,store,approval);
+  await persistAndPublishWalletConnectSession(runtime,store,approval,assertCurrent);
 }
+
+/** The SDK session is untrusted until it matches the exact peer and namespace
+ * whose digest the user saw. Call before writing any local authorization. */
+export function assertWalletConnectSessionMatchesReview(session:SessionTypes.Struct,review:WalletConnectSessionReview):void{
+  const peer=session.peer;
+  if(!/^[0-9a-f]{64}$/.test(session.topic)||!peer||peer.publicKey!==review.peer.publicKey||
+    peer.metadata.name!==review.peer.metadata.name||peer.metadata.description!==review.peer.metadata.description||
+    canonicalURL(peer.metadata.url)!==review.peer.metadata.url||
+    JSON.stringify(peer.metadata.icons.map(canonicalURL))!==JSON.stringify(review.peer.metadata.icons))
+    throw new Error("WalletConnect approved session peer differs from the reviewed proposal.");
+  const canonical=(namespaces:SessionTypes.Namespaces)=>Object.fromEntries(Object.entries(namespaces).sort(([a],[b])=>a.localeCompare(b)).map(([key,value])=>[key,{
+    accounts:[...(value.accounts??[])].sort(),chains:[...(value.chains??[])].sort(),
+    methods:[...(value.methods??[])].sort(),events:[...(value.events??[])].sort(),
+  }]));
+  if(JSON.stringify(canonical(session.namespaces))!==JSON.stringify(canonical(review.namespaces as unknown as SessionTypes.Namespaces)))
+    throw new Error("WalletConnect approved session permissions differ from the reviewed proposal.");
+}
+
+function canonicalURL(value:string):string{try{const parsed=new URL(value);if(parsed.protocol!=="https:"||parsed.username||parsed.password)return"";return parsed.href}catch{return""}}
 
 /** Removes local authorization first and still attempts the remote disconnect. */
 export async function revokeAndDisconnectWalletConnectSession(runtime:Pick<ApprovalRuntime,"disconnect">,store:RevocationStore,topic:string):Promise<void>{

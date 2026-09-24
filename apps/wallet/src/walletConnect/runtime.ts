@@ -70,12 +70,16 @@ export class WalletConnectRuntime {
     return this.#start;
   }
   async pair(uri: string): Promise<void> { const client = this.#require(); await client.pair({ uri }); }
-  async approveProposal(namespaces: SessionTypes.Namespaces): Promise<SessionTypes.Struct> {
-    const proposal = this.#snapshot.proposal; if (!proposal) throw new Error("No WalletConnect proposal is awaiting review.");
-    const session = await this.#require().approveSession({ id: proposal.id, namespaces }); this.#set({ proposal: null }); return session;
+  async approveProposal(expected: WalletConnectProposal, namespaces: SessionTypes.Namespaces): Promise<SessionTypes.Struct> {
+    const proposal = this.#snapshot.proposal;
+    if (!proposal || proposal !== expected) throw new Error("WalletConnect proposal changed before approval.");
+    const session = await this.#require().approveSession({ id: proposal.id, namespaces });
+    if(this.#snapshot.proposal===proposal)this.#set({proposal:null});
+    return session;
   }
-  async rejectProposal(): Promise<void> {
+  async rejectProposal(expected?:WalletConnectProposal): Promise<void> {
     const proposal = this.#snapshot.proposal; if (!proposal) return;
+    if(expected&&proposal!==expected)throw new Error("WalletConnect proposal changed before rejection.");
     this.#set({proposal:null});
     await this.#require().rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") });
   }
@@ -109,8 +113,8 @@ export class WalletConnectRuntime {
   refreshSessions():void{this.#refreshSessions()}
   async #initialize(): Promise<void> {
     const client = await this.factory(this.config!);
-    client.on("session_proposal", proposal => { if (this.#snapshot.proposal) { void client.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") }); return; } this.#set({ proposal }); });
-    client.on("session_request", request => { if (this.#snapshot.request) { void client.respondSessionRequest({ topic: request.topic, response: { jsonrpc: "2.0", id: request.id, error: { code: 5000, message: "Another Wallet request is already under review." } } }); return; } this.#set({ request }); });
+    client.on("session_proposal", proposal => { if (this.#snapshot.proposal) { void client.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") }).catch(error=>this.#set({error:publicError(error)})); return; } this.#set({ proposal }); });
+    client.on("session_request", request => { if (this.#snapshot.request) { void client.respondSessionRequest({ topic: request.topic, response: { jsonrpc: "2.0", id: request.id, error: { code: 5000, message: "Another Wallet request is already under review." } } }).catch(async error=>{this.#set({error:publicError(error)});await this.disconnect(request.topic).catch(disconnectError=>this.#set({error:publicError(disconnectError)}))}); return; } this.#set({ request }); });
     client.on("session_update", event => {
       const pending=this.#snapshot.request?.topic===event.topic?this.#snapshot.request:null;
       const sessions=Object.values(client.getActiveSessions()).map(session=>session.topic===event.topic?{...session,namespaces:event.params.namespaces}:session);

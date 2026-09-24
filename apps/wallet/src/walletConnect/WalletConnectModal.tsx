@@ -2,14 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
 import type { WalletAccount } from "../storage/walletRepository";
-import { createWalletConnectSessionApproval,evmAddressFromYNX,parseWalletConnectPairingUri,reviewWalletConnectSessionProposal,walletConnectRejection,type WalletConnectRequestReview,type WalletConnectSessionReview } from "@ynx-chain/wallet-auth";
+import { createWalletConnectSessionApproval,evmAddressFromYNX,parseWalletConnectPairingUri,reviewWalletConnectSessionProposal,type WalletConnectRequestReview,type WalletConnectSessionReview } from "@ynx-chain/wallet-auth";
 import { consumeWalletConnectDeepLink, subscribeWalletConnectDeepLinks } from "./inbox";
 import { WalletConnectRuntime, walletConnectRuntimeConfig, type WalletConnectSnapshot } from "./runtime";
 import { platformSecureStorage } from "../storage/secureStorage";
 import { WalletConnectSecurityStore, type WalletConnectResponseRecord } from "./securityStore";
 import { prepareEvmRequest,signPreparedEvmRequest,WalletConnectBroadcastJournal,type BroadcastRecord,type PreparedEvmRequest,type SignedEvmTransaction } from "./evm";
 import { reviewWalletConnectQrPayload } from "./qr";
-import { createPersistAndPublishWalletConnectSession,revokeAndDisconnectWalletConnectSession } from "./sessionApproval";
+import { assertWalletConnectSessionMatchesReview,createPersistAndPublishWalletConnectSession,revokeAndDisconnectWalletConnectSession } from "./sessionApproval";
 import { currentWalletConnectDelivery } from "./deliveryGuard";
 import { getBytes,verifyMessage,verifyTypedData } from "ethers";
 import type { WalletOperationLifecycle } from "../security/operationLifecycle";
@@ -121,7 +121,7 @@ export function WalletConnectButton({ account,withAccountSecret,operations }: { 
     return()=>{active=false;unsubscribe()};
   },[evmAddress,account.account,operations]);
   useEffect(()=>()=>{closeWalletConnectForLock(account.account)},[account.account]);
-  return <><Pressable accessibilityRole="button" accessibilityLabel="WalletConnect and external dApps" onPress={() => setVisible(true)} style={s.button}><Text style={s.buttonText}>WalletConnect and external dApps</Text></Pressable>{visible ? <WalletConnectSheet account={account} withAccountSecret={withAccountSecret} operations={operations} inbound={inbound} clearInbound={() => { if (inbound) consumeWalletConnectDeepLink(inbound); setInbound(null); }} close={() => setVisible(false)} /> : null}</>;
+  return <><Pressable accessibilityRole="button" accessibilityLabel="WalletConnect and external dApps" onPress={() => setVisible(true)} style={s.button}><Text style={s.buttonText}>WalletConnect and external dApps</Text></Pressable>{visible ? <WalletConnectSheet account={account} withAccountSecret={withAccountSecret} operations={operations} inbound={inbound} clearInbound={() => { if (inbound) consumeWalletConnectDeepLink(inbound); setInbound(current=>current===inbound?null:current); }} close={() => setVisible(false)} /> : null}</>;
 }
 
 function WalletConnectSheet({ account,withAccountSecret,operations,inbound,clearInbound,close }: { account: WalletAccount;withAccountSecret:SecretAccess;operations:WalletOperationLifecycle;inbound: string | null; clearInbound: () => void; close: () => void }) {
@@ -133,7 +133,7 @@ function WalletConnectSheet({ account,withAccountSecret,operations,inbound,clear
   useEffect(()=>{let active=true;void securityStore.outbox().then(rows=>{if(active)setIncomplete(rows.filter(item=>recoverableRecord(item,evmAddress)))}).catch(caught=>{if(active)setError(message(caught))});return()=>{active=false}},[evmAddress]);
   useEffect(()=>{let active=true;void securityStore.readyResponses().then(rows=>{if(active)setPendingResponses(rows.filter(item=>item.account===evmAddress))}).catch(caught=>{if(active)setError(message(caught))});return()=>{active=false}},[evmAddress]);
   useEffect(() => { if (!inbound) return; try { const target = new URL(inbound); const pairing = target.searchParams.get("uri") ?? ""; parseWalletConnectPairingUri(pairing,new Date());setUri(pairing);setError(null); } catch { setUri("");setError("WalletConnect deep link is invalid or expired. Pairing was not attempted.");clearInbound(); } }, [inbound]);
-  useEffect(()=>{if(!snapshot.proposal){setProposalReview(null);return}try{setProposalReview(reviewWalletConnectSessionProposal(snapshot.proposal,{account:evmAddress,now:new Date()}));setError(null)}catch(caught){const rejection=walletConnectRejection(caught);setError(message(caught));void walletConnectRuntime.rejectProposal();setProposalReview(null)}},[snapshot.proposal,evmAddress]);
+  useEffect(()=>{if(!snapshot.proposal){setProposalReview(null);return}try{setProposalReview(reviewWalletConnectSessionProposal(snapshot.proposal,{account:evmAddress,now:new Date()}));setError(null)}catch(caught){setError(message(caught));void walletConnectRuntime.rejectProposal(snapshot.proposal).catch(()=>{});setProposalReview(null)}},[snapshot.proposal,evmAddress]);
   useEffect(()=>{
     let active=true;reviewedRequestRef.current=null;setRequestReview(null);setPrepared(null);
     if(!snapshot.request)return()=>{active=false};
@@ -175,8 +175,38 @@ function WalletConnectSheet({ account,withAccountSecret,operations,inbound,clear
   },[snapshot.request,evmAddress,account.account,operations]);
   const pair = async () => { setBusy(true); setError(null); try { parseWalletConnectPairingUri(uri.trim(),new Date());await walletConnectRuntime.pair(uri.trim()); clearInbound(); setUri(""); } catch (caught) { setError(message(caught)); } finally { setBusy(false); } };
   const disconnect = async (topic: string) => { setBusy(true); setError(null); try { await revokeAndDisconnectWalletConnectSession(walletConnectRuntime,securityStore,topic); } catch (caught) { setError(message(caught)); } finally { setBusy(false); } };
-  const rejectProposal=async()=>{setBusy(true);try{await walletConnectRuntime.rejectProposal();setProposalReview(null)}catch(caught){setError(message(caught))}finally{setBusy(false)}};
-  const approveProposal=async()=>{if(!proposalReview)return;setBusy(true);setError(null);let approved=false;try{const session=await walletConnectRuntime.approveProposal(proposalReview.namespaces as any);approved=true;await createPersistAndPublishWalletConnectSession(walletConnectRuntime,securityStore,session.topic,()=>createWalletConnectSessionApproval(proposalReview,{approved:true,topic:session.topic},new Date()));setProposalReview(null)}catch(caught){setError(message(caught));if(!approved)await walletConnectRuntime.rejectProposal().catch(()=>{})}finally{setBusy(false)}};
+  const currentProposal=()=>{
+    if(!proposalReview||proposalReview.account!==evmAddress)throw new Error("WalletConnect account changed before proposal decision.");
+    const proposal=walletConnectRuntime.snapshot().proposal;
+    if(!proposal)throw new Error("WalletConnect proposal is no longer pending.");
+    const fresh=reviewWalletConnectSessionProposal(proposal,{account:evmAddress,now:new Date()});
+    if(fresh.proposalId!==proposalReview.proposalId||fresh.proposalDigest!==proposalReview.proposalDigest)
+      throw new Error("WalletConnect proposal changed before decision. Review the current proposal again.");
+    return proposal;
+  };
+  const rejectProposal=async()=>{
+    setBusy(true);setError(null);const scope=operations.scope();
+    try{const lease=scope.begin({account:account.account});try{lease.assert();await walletConnectRuntime.rejectProposal(currentProposal());lease.assert();setProposalReview(null)}finally{lease.finish()}}
+    catch(caught){setError(message(caught))}finally{setBusy(false);scope.cancel()}
+  };
+  const approveProposal=async()=>{
+    if(!proposalReview)return;
+    const review=proposalReview;setBusy(true);setError(null);
+    const scope=operations.scope();let session:Awaited<ReturnType<typeof walletConnectRuntime.approveProposal>>|null=null,handoffStarted=false;
+    try{
+      const lease=scope.begin({account:account.account});
+      try{
+        lease.assert();const proposal=currentProposal();
+        session=await walletConnectRuntime.approveProposal(proposal,review.namespaces as any);
+        lease.assert();assertWalletConnectSessionMatchesReview(session,review);
+        handoffStarted=true;
+        await createPersistAndPublishWalletConnectSession(walletConnectRuntime,securityStore,session.topic,
+          ()=>createWalletConnectSessionApproval(review,{approved:true,topic:session!.topic},new Date()),()=>lease.assert());
+        lease.assert();setProposalReview(null);
+      }finally{lease.finish()}
+    }catch(caught){setError(message(caught));if(session&&!handoffStarted)await walletConnectRuntime.disconnect(session.topic).catch(()=>{})}
+    finally{setBusy(false);scope.cancel()}
+  };
   const decideRequest=async(approved:boolean)=>{
     if(!requestReview||busy)return;
     const review=requestReview,key=`${review.topic}:${review.requestId}`;
@@ -285,6 +315,7 @@ function WalletConnectSheet({ account,withAccountSecret,operations,inbound,clear
     <Text style={s.label}>WalletConnect pairing URI</Text><TextInput accessibilityLabel="WalletConnect pairing URI" value={uri} onChangeText={setUri} autoCapitalize="none" autoCorrect={false} multiline style={s.input}/>
     <Pressable accessibilityRole="button" accessibilityLabel="Scan WalletConnect QR code" accessibilityState={{disabled:busy||snapshot.phase!=="ready"}} disabled={busy||snapshot.phase!=="ready"} onPress={()=>setScanning(true)} style={[s.secondary,(busy||snapshot.phase!=="ready")&&s.disabled]}><Text style={s.buttonText}>Scan QR code</Text></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel="Pair WalletConnect URI" accessibilityState={{ disabled: busy || snapshot.phase !== "ready" || !uri.trim() }} disabled={busy || snapshot.phase !== "ready" || !uri.trim()} onPress={() => void pair()} style={[s.primary, (busy || snapshot.phase !== "ready" || !uri.trim()) && s.disabled]}>{busy ? <ActivityIndicator color="#fff"/> : <Text style={s.primaryText}>Pair</Text>}</Pressable>
+    {inbound?<Pressable accessibilityRole="button" accessibilityLabel="Discard current WalletConnect pairing link" disabled={busy} onPress={()=>{clearInbound();setUri("");setError(null)}} style={s.secondary}><Text style={s.buttonText}>Discard this pairing link</Text></Pressable>:null}
     {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
     {broadcast?<View style={s.card}><Text style={s.cardTitle}>Stored original transaction</Text><Text style={s.caption}>Hash: {broadcast.transactionHash}{"\n"}Status: {broadcast.status}{"\n"}Broadcast attempt: {broadcast.attempt}{"\n"}Unknown network history: {broadcast.unknownHistory?"yes":"no"}</Text><Text style={s.body}>Wallet will not sign a replacement while this record is unresolved. Status checks never send a transaction. Retry resends the exact saved raw transaction after biometric authorization.</Text><Pressable disabled={busy} onPress={()=>void checkBroadcast()}><Text style={s.approve}>Check transaction status</Text></Pressable>{["broadcasting","acknowledged","uncertain"].includes(broadcast.status)?<Pressable disabled={busy} onPress={()=>void retryBroadcast()}><Text style={s.approve}>Authorize and resend original transaction</Text></Pressable>:null}{["confirmed","rejected","cancelled"].includes(broadcast.status)?<Pressable disabled={busy} onPress={()=>void acknowledgeBroadcast()}><Text style={s.approve}>Acknowledge result and unlock new sends</Text></Pressable>:null}</View>:null}
     {pendingResponses.map(record=><View key={record.key} style={s.card}><Text style={s.cardTitle}>Saved dApp response awaiting delivery</Text><Text style={s.caption}>{record.method} · request {record.requestId} · attempt {record.attempts}</Text><Text style={s.body}>Retry sends the exact stored response. It does not sign or broadcast again.</Text><Pressable accessibilityRole="button" accessibilityLabel={`Retry saved response ${record.requestId}`} disabled={busy} onPress={()=>void retrySavedResponse(record)}><Text style={s.approve}>Retry saved response</Text></Pressable></View>)}
