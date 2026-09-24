@@ -10,6 +10,7 @@ export const runtimeFiles=Object.freeze([
   'manifest.webmanifest',
   'order-wallet-entry.js',
   'order-wallet.js',
+  'product-catalog.js',
   'read-sources.js',
   'styles.css',
   'vercel.json',

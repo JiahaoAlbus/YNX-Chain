@@ -96,6 +96,7 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.drainAdmission(s.mux))) }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /api/product-catalog", s.productCatalog)
 	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
 	s.mux.HandleFunc("GET /api/endpoint-authority/v2/config", s.endpointAuthorityBrowserConfig)
 	s.mux.HandleFunc("GET /api/broker/assets", s.brokerAssets)
@@ -145,6 +146,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /auth/callback", s.web)
 	s.mux.HandleFunc("GET /app.js", s.web)
 	s.mux.HandleFunc("GET /read-sources.js", s.web)
+	s.mux.HandleFunc("GET /product-catalog.js", s.web)
 	s.mux.HandleFunc("GET /styles.css", s.web)
 	s.mux.HandleFunc("GET /manifest.webmanifest", s.web)
 	s.mux.HandleFunc("GET /ynx-logo.png", s.web)
@@ -755,7 +757,7 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
-	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/wallet-auth.js": "wallet-auth.js", "/order-wallet.js": "order-wallet.js", "/read-sources.js": "read-sources.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
+	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/wallet-auth.js": "wallet-auth.js", "/order-wallet.js": "order-wallet.js", "/read-sources.js": "read-sources.js", "/product-catalog.js": "product-catalog.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
 	if name == "" || s.cfg.WebDir == "" {
 		http.NotFound(w, r)
 		return

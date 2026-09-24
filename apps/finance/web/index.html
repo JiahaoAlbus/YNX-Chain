@@ -16,14 +16,14 @@
     <aside class="sidebar" aria-label="Product navigation">
       <a class="brand" href="#overview" aria-label="YNX Finance home"><img class="mark" src="/ynx-logo.png" alt="YNX"><span>YNX <b>Finance</b></span></a>
       <nav id="nav">
-        <a class="active" href="#overview">Overview</a><a href="#activity">Activity</a><a href="#planning">Planning</a><a href="#statements">Statements</a><a href="#assistant">AI review</a><a href="#privacy">Privacy & safety</a><a href="#support">Support</a>
+        <a class="active" href="#markets">Markets & products</a><a href="#overview">Overview</a><a href="#activity">Activity</a><a href="#planning">Planning</a><a href="#statements">Statements</a><a href="#assistant">AI review</a><a href="#privacy">Privacy & safety</a><a href="#support">Support</a>
       </nav>
       <a href="#broker-sandbox">US stocks · Sandbox</a>
       <div class="boundary"><strong>Read-only by design</strong><p>No custody, bank account, brokerage, fiat balance, credit, insurance, yield, or automatic asset control.</p></div>
     </aside>
     <main id="main" tabindex="-1">
       <header class="topbar"><div><span class="eyebrow">YNX Chain public testnet · YNXT</span><h1 id="page-title">Your money, with its evidence attached.</h1></div><div class="session"><span id="source-pill" class="pill neutral">Not connected</span><button id="network-retry" class="ghost" type="button">Reconnect YNX Chain</button><button id="signin" class="primary">Sign in with YNX Wallet</button><button id="logout" class="ghost hidden">Sign out</button></div></header>
-      <section class="panel" aria-label="Standard Wallet connection">
+      <section id="wallet-connect" class="panel" aria-label="Standard Wallet connection">
         <div id="wallet-choice" class="wallet-choice"><button id="connect-ynx" class="primary connect" type="button">Connect YNX Wallet</button><button id="connect-metamask" class="ghost" type="button">Connect MetaMask</button><a id="install-wallet" class="button ghost" href="https://www.ynxweb4.com/dapp/download">Download YNX Wallet</a><a id="install-metamask" class="button ghost" href="https://metamask.io/download/">Install MetaMask</a></div>
         <div class="wallet-choice"><button id="wallet-details" type="button" hidden>Wallet details</button><button id="wallet-disconnect" type="button" hidden>Disconnect wallet</button><button id="wallet-switch" type="button" hidden>Switch wallet</button><button id="wallet-revoke" type="button" hidden>Revoke wallet access</button></div>
         <p id="wallet-state" role="status" aria-live="polite">Standard Wallet is independent of private Finance access.</p>
@@ -32,6 +32,11 @@
         <div class="wallet-choice"><button id="private-begin" type="button">Authorize private Finance</button><a id="private-open" hidden rel="noreferrer">Open YNX Wallet — installation unverified</a><button id="private-retry" type="button">Retry private connection</button><button id="private-revoke" type="button">Revoke private Finance access</button><button id="private-guest" type="button">Continue as guest</button></div>
       </section>
       <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
+      <section id="markets" class="view active-view product-catalog" aria-labelledby="markets-heading">
+        <div class="section-head"><div><span class="eyebrow">Finance workbench</span><h2 id="markets-heading">Choose what you want to do</h2><p>Browse the official Broker Sandbox without an account, or connect a wallet to open your own testnet portfolio and cross-product evidence.</p></div><span class="pill neutral">Guest available</span></div>
+        <div class="task-strip" aria-label="Finance tasks"><a class="task-link primary" href="#broker-sandbox">Search Sandbox markets</a><a class="task-link ghost" href="#wallet-connect">Connect a wallet</a><a class="task-link ghost" href="#wallet-connect">Sign in for budgets &amp; reports</a></div>
+        <div id="product-channels" class="channel-grid" aria-live="polite"><article class="panel"><h3>Loading available Finance channels</h3><p>No market, balance or availability is inferred while Finance checks the catalog.</p></article></div>
+      </section>
       <a id="broker-nav" class="button ghost" href="#broker-sandbox">US stocks · Sandbox status</a>
       <section id="broker-sandbox" class="view panel" aria-labelledby="broker-heading">
         <span class="eyebrow">TESTNET + BROKER SANDBOX ONLY · NOT LIVE SECURITIES</span>
@@ -56,7 +61,7 @@
       </section>
 
       <div id="workspace" class="hidden">
-        <section id="overview" class="view active-view">
+        <section id="overview" class="view">
           <div class="balance-card"><div><span class="eyebrow light">READ-ONLY PORTFOLIO</span><p class="account" id="account">—</p></div><div class="balance-row"><div><span>Available evidence</span><strong id="balance">— YNXT</strong><small id="balance-source">Waiting for Explorer</small></div><div><span>Staked on-chain</span><strong id="staked">— YNXT</strong><small>No fiat conversion inferred</small></div></div></div>
           <div class="section-head"><div><span class="eyebrow">Current attention</span><h2>Evidence and alerts</h2></div><button class="ghost" id="refresh">Refresh sources</button></div>
           <div id="alerts" class="alert-list"></div>
@@ -82,5 +87,6 @@
   <script src="/order-wallet.js" defer></script>
   <script src="/app.js" defer></script>
   <script src="/read-sources.js" defer></script>
+  <script src="/product-catalog.js" defer></script>
 </body>
 </html>

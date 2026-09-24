@@ -113,10 +113,11 @@ type AccountState struct {
 }
 
 type persistedState struct {
-	Version  int                     `json:"version"`
-	Accounts map[string]AccountState `json:"accounts"`
-	Audit    []AuditEvent            `json:"audit"`
-	Nonces   map[string]time.Time    `json:"usedWalletNonces"`
+	Version               int                                   `json:"version"`
+	Accounts              map[string]AccountState               `json:"accounts"`
+	Audit                 []AuditEvent                          `json:"audit"`
+	Nonces                map[string]time.Time                  `json:"usedWalletNonces"`
+	WalletLoginChallenges map[string]WalletLoginChallengeRecord `json:"walletLoginChallenges,omitempty"`
 }
 
 type Activity struct {
