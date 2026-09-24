@@ -26,7 +26,7 @@ type SecretAccess=<T>(account:string,assertCurrent:()=>void,use:(secret:string,a
 const recoverableRecord=(item:WalletConnectResponseRecord,account:string)=>item.account===account&&item.expiresAt>new Date().toISOString()&&["reviewing","authorized","executing"].includes(item.stage);
 
 export function closeWalletConnectForLock(nativeAccount?:string):Promise<void>{
-  const pending=walletConnectRuntime.snapshot().request;
+  const current=walletConnectRuntime.snapshot(),pending=current.request??current.sessionEvent?.pendingRequest;
   walletConnectRuntime.clearSensitiveReview();
   void walletConnectRuntime.rejectProposal().catch(()=>{});
   if(!pending)return lockRecovery;
@@ -62,6 +62,8 @@ async function deliverReadyResponse(key:string,account:string,nativeAccount:stri
     lease.assert();
     if(!await currentWalletConnectDelivery(walletConnectRuntime,securityStore,record,account,expectedPending))return;
     lease.assert();
+    const beforeRelay=walletConnectRuntime.snapshot();
+    if(beforeRelay.sessions!==snapshot.sessions||beforeRelay.sessionEvent?.revision!==snapshot.sessionEvent?.revision)return;
     await walletConnectRuntime.sendStoredResponse(record.topic,record.response);
     lease.assert();
     await securityStore.markResponseDelivered(key,{attempt:claim.attempts,responseDigest:claim.responseDigest!});
@@ -84,13 +86,28 @@ export function WalletConnectButton({ account,withAccountSecret,operations }: { 
   useEffect(() => subscribeWalletConnectDeepLinks(url => { setInbound(url); setVisible(true); }), []);
   useEffect(()=>{let active=true;const unsubscribe=walletConnectRuntime.subscribe(snapshot=>{if(active&&(snapshot.proposal||snapshot.request))setVisible(true)});void walletConnectRuntime.restore().catch(()=>{});return()=>{active=false;unsubscribe()}},[]);
   useEffect(()=>{
-    let active=true;
+    let active=true,reconciliation:Promise<void>=Promise.resolve(),lastUpdateRevision=0;
     const reconcile=async(snapshot:WalletConnectSnapshot)=>{
       if(snapshot.phase!=="ready")return;
       const generation=operations.capture(),deadline=Date.now()+120_000;
-      const assertCurrent=()=>{if(!active||walletConnectRuntime.snapshot().sessions!==snapshot.sessions)throw new Error("WalletConnect sessions changed during reconciliation.");operations.assert(generation,account.account,true,deadline)};
+      const assertOwner=()=>{if(!active)throw new Error("WalletConnect reconciliation stopped.");operations.assert(generation,account.account,true,deadline)};
+      const assertCurrent=()=>{assertOwner();if(walletConnectRuntime.snapshot().sessions!==snapshot.sessions)throw new Error("WalletConnect sessions changed during reconciliation.")};
       try{
         await lockRecovery;
+        assertOwner();
+        const update=snapshot.sessionEvent;
+        if(update?.kind==="updated"&&update.pendingRequest&&update.revision>lastUpdateRevision){
+          try{await securityStore.rejectPendingForSessionUpdate(update.pendingRequest,evmAddress)}
+          catch{await revokeAndDisconnectWalletConnectSession(walletConnectRuntime,securityStore,update.topic).catch(()=>{});return}
+          lastUpdateRevision=update.revision;
+          walletConnectRuntime.clearPersistedSessionUpdateRequest(update.revision);
+          assertOwner();
+        }
+        if(update?.kind==="updated"&&update.namespaces&&await securityStore.reconcileSession(update.topic,update.namespaces,evmAddress)!=="current"){
+          assertOwner();
+          await revokeAndDisconnectWalletConnectSession(walletConnectRuntime,securityStore,update.topic).catch(()=>{});
+          return;
+        }
         assertCurrent();
         const result=await securityStore.reconcileActiveSessions(snapshot.sessions,evmAddress);
         assertCurrent();
@@ -100,7 +117,7 @@ export function WalletConnectButton({ account,withAccountSecret,operations }: { 
         if((await securityStore.outbox()).some(item=>recoverableRecord(item,evmAddress)||item.account===evmAddress&&item.stage==="ready"&&item.expiresAt>new Date().toISOString()))setVisible(true);
       }catch{/* No stale session snapshot may authorize delivery. */}
     };
-    const unsubscribe=walletConnectRuntime.subscribe(snapshot=>{void reconcile(snapshot)});
+    const unsubscribe=walletConnectRuntime.subscribe(snapshot=>{reconciliation=reconciliation.then(()=>reconcile(snapshot)).catch(()=>{})});
     return()=>{active=false;unsubscribe()};
   },[evmAddress,account.account,operations]);
   useEffect(()=>()=>{closeWalletConnectForLock(account.account)},[account.account]);

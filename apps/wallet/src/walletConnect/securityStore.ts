@@ -67,6 +67,32 @@ export class WalletConnectSecurityStore{
     });
   }
 
+  /** Invalidates a pending review before an updated session can authorize its old result.
+   * Approved work or attempted Relay delivery has an uncertain outcome, so the
+   * caller must disconnect and quarantine rather than advertise a safe retry. */
+  async rejectPendingForSessionUpdate(input:unknown,account:string,at=new Date()):Promise<WalletConnectResponseRecord>{
+    if(requestExceedsPolicy(input))throw new Error("WalletConnect updated request exceeds policy");
+    const pending=requestIdentity(input),key=`${pending.topic}:${pending.id}`;
+    const current=(await this.outbox()).find(item=>item.key===key);
+    if(!current)return this.rejectUnreviewedRequest(input,account,at,{code:5103,message:"WalletConnect session updated; resend the request after reconciliation."});
+    return this.#enqueue(async()=>{
+      const state=await this.#read(),now=authorityTime(at),record=state.outbox.find(item=>item.key===key),session=state.sessions.find(item=>item.topic===pending.topic);
+      if(!record||record.topic!==pending.topic||record.requestId!==pending.id||record.account!==account||record.sessionBinding!==session?.sessionBinding||session.expiresAt<=now.toISOString()||record.expiresAt<=now.toISOString()||record.decision==="approved"||!(record.stage==="reviewing"&&record.decision==="pending"&&record.attempts===0||record.stage==="ready"&&record.decision==="rejected"))throw new Error("WalletConnect updated request cannot be safely replaced");
+      const replay=state.replay.find(item=>item.key===key);
+      if(!replay||replay.requestDigest!==record.requestDigest||replay.expiresAt!==record.expiresAt||replay.status!==(record.stage==="reviewing"?"reserved":"consumed"))throw new Error("WalletConnect updated request replay binding is invalid");
+      if(record.method!=="wallet_request_unreviewed"){
+        const candidate=createWalletConnectRequestReview(input,{session,now,replayStore:new WalletConnectRequestReplayStore(state.replay.filter(item=>item.key!==key))});
+        if(candidate.topic!==record.topic||candidate.requestId!==record.requestId||candidate.sessionBinding!==record.sessionBinding||candidate.account!==record.account||candidate.chainId!==record.chainId||candidate.method!==record.method||candidate.requestDigest!==record.requestDigest||candidate.expiresAt!==record.expiresAt)throw new Error("WalletConnect updated request does not match its saved review");
+      }else throw new Error("WalletConnect unreviewed request cannot be safely replaced");
+      if(record.stage==="ready")return record;
+      const response=rpcError(record.requestId,5103,"WalletConnect session updated; resend the request after reconciliation.");
+      const replacement=parseOutboxRecord({...record,decision:"rejected",stage:"ready",response,responseDigest:responseDigest(record,response),updatedAt:now.toISOString()});
+      const nextReplay=new WalletConnectRequestReplayStore(state.replay.map(item=>item.key===key?{...item,status:"consumed" as const}:item)).snapshot();
+      await this.#write({...state,replay:nextReplay,outbox:Object.freeze(state.outbox.map(item=>item.key===key?replacement:item))});
+      return replacement;
+    });
+  }
+
   recoverOrphanReservation(input:unknown,account:string,at=new Date()):Promise<WalletConnectResponseRecord>{
     return this.#enqueue(async()=>{
       const pending=requestIdentity(input),key=`${pending.topic}:${pending.id}`;

@@ -71,8 +71,9 @@ test("session update and expiry events refresh the visible session and expose a 
   client.handlers.get("session_update")!({id:1,topic,params:{namespaces}});
   assert.equal(runtime.snapshot().sessionEvent?.kind,"updated");
   assert.deepEqual(runtime.snapshot().sessionEvent?.namespaces,namespaces);
+  assert.equal(runtime.snapshot().sessionEvent?.pendingRequest?.id,7);
   assert.equal(runtime.snapshot().request,null);
-  assert.deepEqual(client.responses[0],{topic,response:{jsonrpc:"2.0",id:7,error:{code:5103,message:"WalletConnect session updated; resend the request after reconciliation."}}});
+  assert.deepEqual(client.responses,[]);
   assert.deepEqual(runtime.snapshot().sessions[0]?.namespaces,namespaces);
   client.handlers.get("session_expire")!({topic});
   assert.equal(runtime.snapshot().sessionEvent?.kind,"expired");
@@ -91,19 +92,29 @@ test("expired and deleted sessions synchronously clear a same-topic pending requ
   client.handlers.get("session_delete")!({id:10,topic});assert.equal(runtime.snapshot().request,null);
 });
 
-test("namespace drift rejection clears the pending request even when the SDK response fails",async()=>{
-  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"e".repeat(32)},(async()=>client) as any);await runtime.start();const topic="f".repeat(64);
-  client.handlers.get("session_request")!(pendingRequest(topic));client.failResponses=true;
-  await assert.rejects(runtime.rejectRequestForSession(topic,5103,"scope changed"),/response unavailable/);
-  assert.equal(runtime.snapshot().request,null);assert.equal(client.responses.length,1);
-});
-
-test("session update synchronously clears and rejects a reviewed request even when the response fails",async()=>{
+test("session update synchronously clears a pending request without an untracked Relay response",async()=>{
   const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"e".repeat(32)},(async()=>client) as any);await runtime.start();const topic="0".repeat(64);
   client.handlers.get("session_request")!(pendingRequest(topic,11));client.failResponses=true;
   client.handlers.get("session_update")!({id:2,topic,params:{namespaces:{}}});
   assert.equal(runtime.snapshot().request,null);
-  assert.deepEqual(client.responses[0],{topic,response:{jsonrpc:"2.0",id:11,error:{code:5103,message:"WalletConnect session updated; resend the request after reconciliation."}}});
+  assert.equal(runtime.snapshot().sessionEvent?.pendingRequest?.id,11);
+  assert.deepEqual(client.responses,[]);
+});
+
+test("persisted update clears only its own pending request and lock removes an unpersisted one",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"e".repeat(32)},(async()=>client) as any);await runtime.start();const topic="2".repeat(64);
+  client.handlers.get("session_request")!(pendingRequest(topic,14));
+  client.handlers.get("session_update")!({id:3,topic,params:{namespaces:{}}});
+  const revision=runtime.snapshot().sessionEvent!.revision;
+  runtime.clearPersistedSessionUpdateRequest(revision+1);
+  assert.equal(runtime.snapshot().sessionEvent?.pendingRequest?.id,14);
+  runtime.clearPersistedSessionUpdateRequest(revision);
+  assert.equal(runtime.snapshot().sessionEvent?.pendingRequest,undefined);
+  client.handlers.get("session_request")!(pendingRequest(topic,15));
+  client.handlers.get("session_update")!({id:4,topic,params:{namespaces:{}}});
+  runtime.clearSensitiveReview();
+  assert.equal(runtime.snapshot().sessionEvent?.pendingRequest,undefined);
+  assert.deepEqual(client.responses,[]);
 });
 
 test("lock owner clears the pending request without an untracked relay response",async()=>{
@@ -146,7 +157,7 @@ test("batch disconnect attempts two stale sessions once and refreshes once",asyn
   assert.deepEqual(client.disconnects,[first,second]);
   assert.equal(client.sessionReads,1);
   assert.equal(runtime.snapshot().request,null);
-  assert.deepEqual(client.responses[0],{topic:second,response:{jsonrpc:"2.0",id:12,error:{code:5103,message:"WalletConnect session authorization changed; resend after reconnecting."}}});
+  assert.deepEqual(client.responses,[]);
   assert.deepEqual(runtime.snapshot().sessions,[]);
 });
 
@@ -156,7 +167,7 @@ test("batch disconnect still closes every session once when pending-request resp
   client.handlers.get("session_request")!(pendingRequest(first,13));
   await runtime.disconnectSessions([first,second]);
   assert.equal(runtime.snapshot().request,null);
-  assert.equal(client.responses.length,1);
+  assert.equal(client.responses.length,0);
   assert.deepEqual(client.disconnects,[first,second]);
   assert.equal(client.sessionReads,1);
   assert.deepEqual(runtime.snapshot().sessions,[]);

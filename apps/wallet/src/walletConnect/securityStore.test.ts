@@ -108,6 +108,77 @@ test("lost reservation acknowledgement still leaves a recoverable review record"
   assert.equal(response.stage,"ready");assert.equal((await store.load()).replayStore.snapshot()[0]?.status,"consumed");
 });
 
+test("session update persists a generic response across restart before Relay delivery",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input=legacyInput(34),review=await store.reserveRequest(input,account,decisionTime);
+  const record=await store.rejectPendingForSessionUpdate(input,account,new Date(decisionTime.getTime()+1));
+  assert.equal(record.stage,"ready");assert.equal(record.decision,"rejected");assert.equal(record.requestDigest,review.requestDigest);
+  assert.deepEqual(record.response,{jsonrpc:"2.0",id:34,error:{code:5103,message:"WalletConnect session updated; resend the request after reconciliation."}});
+  const restored=new WalletConnectSecurityStore(storage as any);
+  assert.equal((await restored.readyResponses(decisionTime))[0]?.responseDigest,record.responseDigest);
+  assert.equal((await restored.load()).replayStore.snapshot()[0]?.status,"consumed");
+});
+
+test("session update cannot rewrite approved execution or an attempted Relay response",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input=legacyInput(35),review=await store.reserveRequest(input,account,decisionTime),key=`${topic}:35`;
+  await store.commitRequestDecision(review,true,new Date(decisionTime.getTime()+1));
+  await assert.rejects(store.rejectPendingForSessionUpdate(input,account,new Date(decisionTime.getTime()+2)),/cannot be safely replaced/);
+  await store.beginRequestExecution(key,new Date(decisionTime.getTime()+2));
+  await assert.rejects(store.rejectPendingForSessionUpdate(input,account,new Date(decisionTime.getTime()+3)),/cannot be safely replaced/);
+  await store.completeRequestResponse(key,{jsonrpc:"2.0",id:35,result:[account]},new Date(decisionTime.getTime()+3));
+  await assert.rejects(store.rejectPendingForSessionUpdate(input,account,new Date(decisionTime.getTime()+4)),/cannot be safely replaced/);
+  await store.recordDeliveryAttempt(key,new Date(decisionTime.getTime()+5));
+  await assert.rejects(store.rejectPendingForSessionUpdate(input,account,new Date(decisionTime.getTime()+6)),/cannot be safely replaced/);
+  assert.deepEqual((await store.readyResponses(decisionTime))[0]?.response,{jsonrpc:"2.0",id:35,result:[account]});
+});
+
+test("session update preserves an exact persisted rejection before its first Relay attempt",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input=legacyInput(40),review=await store.reserveRequest(input,account,decisionTime);
+  const original=await store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1));
+  const retained=await store.rejectPendingForSessionUpdate(input,account,new Date(decisionTime.getTime()+2));
+  assert.equal(retained.responseDigest,original.responseDigest);
+  assert.deepEqual(retained.response,original.response);
+});
+
+test("session update enforces the request budget before inspecting a saved review",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input=legacyInput(39);await store.reserveRequest(input,account,decisionTime);
+  await assert.rejects(store.rejectPendingForSessionUpdate({...input,padding:"x".repeat(70_000)},account,decisionTime),/exceeds policy/);
+  assert.equal((await store.outbox())[0]?.stage,"reviewing");
+});
+
+test("session update rejects a reused request id with a different request digest",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input=legacyInput(37);await store.reserveRequest(input,account,decisionTime);
+  const different={...input,params:{...input.params,request:{...input.params.request,expiryTimestamp:input.params.request.expiryTimestamp-1}}};
+  await assert.rejects(store.rejectPendingForSessionUpdate(different,account,new Date(decisionTime.getTime()+1)),/does not match its saved review/);
+  assert.equal((await store.outbox())[0]?.stage,"reviewing");
+});
+
+test("failed Relay delivery leaves the exact session update response ready after cold restart",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const record=await store.rejectPendingForSessionUpdate(legacyInput(38),account,decisionTime);
+  const claim=await store.recordDeliveryAttempt(record.key,new Date(decisionTime.getTime()+1));
+  const restored=new WalletConnectSecurityStore(storage as any),ready=(await restored.readyResponses(decisionTime))[0];
+  assert.equal(ready?.attempts,1);
+  assert.equal(ready?.responseDigest,claim.responseDigest);
+  assert.deepEqual(ready?.response,record.response);
+  await restored.recordDeliveryAttempt(record.key,new Date(decisionTime.getTime()+2));
+  assert.equal((await restored.readyResponses(decisionTime))[0]?.attempts,2);
+});
+
+test("namespace drift quarantines a persisted session update response before retry",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  await store.rejectPendingForSessionUpdate(legacyInput(36),account,decisionTime);
+  const changed={eip155:{...namespaces.eip155,methods:["eth_accounts","personal_sign"]}};
+  const result=await store.reconcileActiveSessions([{topic,namespaces:changed as any}],account);
+  assert.deepEqual(result.disconnectTopics,[topic]);
+  assert.equal((await store.outbox())[0]?.stage,"quarantined");
+  assert.deepEqual(await store.readyResponses(decisionTime),[]);
+});
+
 test("revoking a session quarantines an unfinished review without invalidating storage",async()=>{
   const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
   const input={topic,id:25,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:05:00.000Z")/1000)}}};
