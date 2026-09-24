@@ -3468,9 +3468,10 @@ try {
     respond({ kind: "result", action: "recover-legacy", ...verified });
   } else if (input.action === "ticket-hash") {
     respond({ kind: "result", ticketHash: financeOrderOpaqueTicketHash(input.ticket) });
-  } else if (input.action === "callback") {
-    const parsed = parseFinanceOrderOpaqueCallbackURL(input.callbackURL, input.expected, input.binding);
-    respond({ kind: "result", action: "callback", ...parsed });
+  } else if (input.action === "callback-parts") {
+    const callbackURL = createFinanceOrderOpaqueCallbackURL({ code: input.code, state: input.state, ...input.expected }, input.binding);
+    const parsed = parseFinanceOrderOpaqueCallbackURL(callbackURL, input.expected, input.binding);
+    respond({ kind: "result", action: "callback-parts", ...parsed });
   } else {
     throw new Error("INVALID_ACTION");
   }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -79,4 +80,20 @@ test('legacy recovery is restricted to trusted pre-cutover challenge and exact p
     cutoverAt: challenge.issuedAt, at });
   assert.notEqual(afterCutover.status, 0);
   assert.equal(afterCutover.output.code, 'LEGACY_DISABLED');
+});
+
+test('code/state wire constructs only canonical Wallet/Auth callback for each server-owned mode',()=>{
+  const code='code_0123456789abcdefghijklmnopqrst';
+  const state='state_0123456789abcdefghijklmnopqrst';
+  const expected={requestId:challenge.requestId,callbackStateHash:createHash('sha256').update(state).digest('hex')};
+  const fresh=invoke({action:'callback-parts',code,state,expected,binding:'sha256-v2',at});
+  assert.equal(fresh.status,0);assert.equal(fresh.output.code,code);assert.equal(fresh.output.state,state);
+  const wrong=invoke({action:'callback-parts',code,state:'changed_state_0123456789abcdefghijkl',expected,binding:'sha256-v2',at});
+  assert.notEqual(wrong.status,0);
+  const legacy=invoke({action:'callback-parts',code,state:challenge.callbackStateHash,
+    expected:{requestId:challenge.requestId,callbackStateHash:challenge.callbackStateHash},binding:'raw-v1-random32',at});
+  assert.equal(legacy.status,0);
+  const crossMode=invoke({action:'callback-parts',code,state:challenge.callbackStateHash,
+    expected:{requestId:challenge.requestId,callbackStateHash:challenge.callbackStateHash},binding:'sha256-v2',at});
+  assert.notEqual(crossMode.status,0);
 });

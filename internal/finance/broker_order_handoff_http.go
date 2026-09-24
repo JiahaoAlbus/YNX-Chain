@@ -9,7 +9,6 @@ import (
 	"errors"
 	"net"
 	"net/http"
-	"net/url"
 	"time"
 )
 
@@ -230,9 +229,10 @@ func (s *Server) brokerOpaqueRecoverLegacy(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	var input struct {
-		Proof json.RawMessage `json:"proof"`
+		RequestID string          `json:"requestId"`
+		Claim     json.RawMessage `json:"claim"`
 	}
-	if decodeStrict(w, r, &input) != nil || len(input.Proof) == 0 || len(input.Proof) > 16<<10 {
+	if decodeStrict(w, r, &input) != nil || !evmSubjectRequestID.MatchString(input.RequestID) || len(input.Claim) == 0 || len(input.Claim) > 16<<10 {
 		writeError(w, http.StatusBadRequest, "invalid_recovery", "Fresh signed legacy recovery proof required")
 		return
 	}
@@ -240,7 +240,7 @@ func (s *Server) brokerOpaqueRecoverLegacy(w http.ResponseWriter, r *http.Reques
 		Account   string `json:"account"`
 		RequestID string `json:"requestId"`
 	}
-	if json.Unmarshal(input.Proof, &identity) != nil || !evmSubjectRequestID.MatchString(identity.RequestID) || identity.Account == "" {
+	if json.Unmarshal(input.Claim, &identity) != nil || identity.RequestID != input.RequestID || identity.Account == "" {
 		writeError(w, http.StatusBadRequest, "invalid_recovery", "Legacy recovery identity is invalid")
 		return
 	}
@@ -249,7 +249,7 @@ func (s *Server) brokerOpaqueRecoverLegacy(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusUnauthorized, "recovery_rejected", "Pre-cutover order unavailable")
 		return
 	}
-	result, err := s.cfg.BrokerOpaqueAuthority.Invoke(r.Context(), map[string]any{"action": "recover-legacy", "proof": input.Proof,
+	result, err := s.cfg.BrokerOpaqueAuthority.Invoke(r.Context(), map[string]any{"action": "recover-legacy", "proof": input.Claim,
 		"challenge": challenge, "cutoverAt": evmReadTime(s.cfg.BrokerOpaqueLegacyCutoverAt.UTC().Truncate(time.Millisecond)),
 		"at": evmReadTime(s.now().UTC().Truncate(time.Millisecond))}, "", nil)
 	var verified struct {
@@ -289,25 +289,20 @@ func (s *Server) brokerOpaqueExchange(w http.ResponseWriter, r *http.Request, se
 		return
 	}
 	var input struct {
-		CallbackURL string `json:"callbackURL"`
+		Code  string `json:"code"`
+		State string `json:"state"`
 	}
-	if decodeStrict(w, r, &input) != nil || len(input.CallbackURL) > 2048 {
+	if decodeStrict(w, r, &input) != nil || !brokerHandoffToken.MatchString(input.Code) || !brokerHandoffToken.MatchString(input.State) {
 		writeError(w, http.StatusBadRequest, "invalid_callback", "Exact confidential Wallet callback required")
 		return
 	}
-	// The URL is untrusted here and supplies only a lookup key. Wallet/Auth
-	// validates the entire canonical URL against the durable challenge below.
-	parsedURL, parseErr := url.Parse(input.CallbackURL)
-	if parseErr != nil || parsedURL == nil || !brokerHandoffToken.MatchString(parsedURL.Query().Get("state")) {
-		writeError(w, http.StatusBadRequest, "invalid_callback", "Confidential callback state is invalid")
-		return
-	}
-	record, challenge, err := s.service.Store.opaqueBrokerOrderCallbackAuthority(session.Account, parsedURL.Query().Get("state"))
+	codeDigest := sha256.Sum256([]byte(input.Code))
+	record, challenge, err := s.service.Store.opaqueBrokerOrderCallbackAuthority(session.Account, hex.EncodeToString(codeDigest[:]))
 	if err != nil || !record.CodeExpiresAt.After(s.now().UTC()) {
 		writeError(w, http.StatusConflict, "callback_unavailable", "Confidential Wallet callback unavailable")
 		return
 	}
-	parsed, err := s.cfg.BrokerOpaqueAuthority.Invoke(r.Context(), map[string]any{"action": "callback", "callbackURL": input.CallbackURL,
+	parsed, err := s.cfg.BrokerOpaqueAuthority.Invoke(r.Context(), map[string]any{"action": "callback-parts", "code": input.Code, "state": input.State,
 		"binding": record.CallbackStateBinding, "expected": map[string]string{"requestId": challenge.RequestID, "callbackStateHash": challenge.CallbackStateHash},
 		"at": evmReadTime(s.now().UTC().Truncate(time.Millisecond))}, "", nil)
 	var verified struct {
@@ -317,7 +312,7 @@ func (s *Server) brokerOpaqueExchange(w http.ResponseWriter, r *http.Request, se
 		Code      string `json:"code"`
 		State     string `json:"state"`
 	}
-	if err != nil || json.Unmarshal(parsed, &verified) != nil || verified.Kind != "result" || verified.Action != "callback" || verified.RequestID != record.RequestID {
+	if err != nil || json.Unmarshal(parsed, &verified) != nil || verified.Kind != "result" || verified.Action != "callback-parts" || verified.RequestID != record.RequestID {
 		writeError(w, http.StatusUnauthorized, "callback_rejected", "Confidential Wallet callback rejected")
 		return
 	}

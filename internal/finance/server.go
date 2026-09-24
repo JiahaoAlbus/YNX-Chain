@@ -174,6 +174,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /wallet-auth/callback", s.web)
 	s.mux.HandleFunc("GET /wallet-auth.js", s.web)
 	s.mux.HandleFunc("GET /order-wallet.js", s.web)
+	s.mux.HandleFunc("GET /order-opaque.js", s.web)
 	s.mux.HandleFunc("GET /evm-read-session.js", s.web)
 	s.mux.HandleFunc("GET /evm-subject.js", s.web)
 	s.mux.HandleFunc("GET /build-identity.json", s.web)
@@ -793,7 +794,7 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
-	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/finance-locale.js": "finance-locale.js", "/wallet-auth.js": "wallet-auth.js", "/order-wallet.js": "order-wallet.js", "/evm-read-session.js": "evm-read-session.js", "/evm-subject.js": "evm-subject.js", "/read-sources.js": "read-sources.js", "/product-catalog.js": "product-catalog.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
+	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/finance-locale.js": "finance-locale.js", "/wallet-auth.js": "wallet-auth.js", "/order-wallet.js": "order-wallet.js", "/order-opaque.js": "order-opaque.js", "/evm-read-session.js": "evm-read-session.js", "/evm-subject.js": "evm-subject.js", "/read-sources.js": "read-sources.js", "/product-catalog.js": "product-catalog.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
 	if name == "" || s.cfg.WebDir == "" {
 		http.NotFound(w, r)
 		return

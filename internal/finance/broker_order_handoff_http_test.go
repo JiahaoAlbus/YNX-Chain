@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os/exec"
@@ -134,17 +133,18 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 	if recorder.Code != http.StatusServiceUnavailable {
 		t.Fatal("unreviewed legacy recovery became reachable")
 	}
-	callbackURL := fmt.Sprintf("https://finance.ynxweb4.com/wallet-auth/callback?financeOrderCode=%s&state=%s", completed.Code, completed.State)
 	restarted, err := OpenStore(storePath)
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	server.service.Store, store = restarted, restarted
-	wrongBody, _ := json.Marshal(map[string]string{"callbackURL": callbackURL + "&extra=1"})
+	wrongBody, _ := json.Marshal(map[string]string{"code": completed.Code, "state": "changed_state_0123456789abcdefghijkl"})
 	recorder = httptest.NewRecorder()
 	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(wrongBody)), Session{Account: account})
 	if recorder.Code == http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 0 {
-		t.Fatal("noncanonical callback exchanged an opaque order")
+		t.Fatal("wrong callback state exchanged an opaque order")
 	}
-	exchangeBody, _ := json.Marshal(map[string]string{"callbackURL": callbackURL})
+	exchangeBody, _ := json.Marshal(map[string]string{"code": completed.Code, "state": completed.State})
 	recorder = httptest.NewRecorder()
 	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: "ynx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"})
 	if recorder.Code == http.StatusOK {
@@ -193,7 +193,13 @@ func TestOpaqueBrokerLegacyRecoveryRequiresSignedPreCutoverChallenge(t *testing.
 	cutover := now.Add(30 * time.Second)
 	server := &Server{service: &Service{Store: store}, cfg: ServerConfig{BrokerOpaqueAuthority: authority, BrokerOpaqueLegacyCutoverAt: cutover}, now: func() time.Time { return clock }, rate: map[string][]time.Time{}}
 	proof := signOpaqueBrokerTestProof(t, node, signerPath, "legacy", "", "legacy_nonce_0123456789abcdefghijk", challenge.Unsigned, clock)
-	body, _ := json.Marshal(map[string]any{"proof": proof})
+	body, _ := json.Marshal(map[string]any{"requestId": challenge.Unsigned.RequestID, "claim": proof})
+	mismatchedBody, _ := json.Marshal(map[string]any{"requestId": "request_aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", "claim": proof})
+	mismatched := httptest.NewRecorder()
+	server.brokerOpaqueRecoverLegacy(mismatched, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/recover-legacy", bytes.NewReader(mismatchedBody)))
+	if mismatched.Code == http.StatusCreated {
+		t.Fatal("outer recovery requestId differed from signed claim")
+	}
 	server.cfg.BrokerOpaqueLegacyCutoverAt = now
 	postCutover := httptest.NewRecorder()
 	server.brokerOpaqueRecoverLegacy(postCutover, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/recover-legacy", bytes.NewReader(body)))
@@ -240,8 +246,7 @@ func TestOpaqueBrokerLegacyRecoveryRequiresSignedPreCutoverChallenge(t *testing.
 	if json.Unmarshal(recorder.Body.Bytes(), &completed) != nil || completed.State != challenge.Unsigned.CallbackStateHash {
 		t.Fatal("raw legacy callback state changed")
 	}
-	callbackURL := fmt.Sprintf("https://finance.ynxweb4.com/wallet-auth/callback?financeOrderCode=%s&state=%s", completed.Code, completed.State)
-	exchangeBody, _ := json.Marshal(map[string]string{"callbackURL": callbackURL})
+	exchangeBody, _ := json.Marshal(map[string]string{"code": completed.Code, "state": completed.State})
 	recorder = httptest.NewRecorder()
 	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account})
 	if recorder.Code != http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 1 {

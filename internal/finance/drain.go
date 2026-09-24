@@ -94,7 +94,7 @@ func drainExempt(r *http.Request) bool {
 	switch r.URL.Path {
 	case "/health", "/ready", "/version", "/metrics", "/internal/drain":
 		return true
-	case "/", "/auth/callback", "/app.js", "/finance-locale.js", "/read-sources.js", "/product-catalog.js", "/styles.css", "/manifest.webmanifest", "/ynx-logo.png", "/wallet-auth/callback", "/wallet-auth.js", "/order-wallet.js", "/evm-read-session.js", "/evm-subject.js", "/build-identity.json":
+	case "/", "/auth/callback", "/app.js", "/finance-locale.js", "/read-sources.js", "/product-catalog.js", "/styles.css", "/manifest.webmanifest", "/ynx-logo.png", "/wallet-auth/callback", "/wallet-auth.js", "/order-wallet.js", "/order-opaque.js", "/evm-read-session.js", "/evm-subject.js", "/build-identity.json":
 		return r.Method == http.MethodGet
 	default:
 		return false

@@ -91,6 +91,19 @@ async function refreshBrokerSnapshot(){
   }
 }
 let brokerCallbackInFlight=false,brokerApprovalInFlight=false;
+const OPAQUE_ORDER_PENDING_KEY='ynx.finance.order-opaque.v2.pending';
+function opaqueOrderPending(serverTime){
+  const raw=sessionStorage.getItem(OPAQUE_ORDER_PENDING_KEY);if(!raw)return null;
+  let pending;try{pending=JSON.parse(raw)}catch{sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);return null}
+  if(pending?.version!=='2'||!window.YNXFinanceOpaqueOrder||!/^[A-Za-z0-9_-]{32,64}$/.test(pending.ticket||'')||
+    !/^request_[0-9a-f-]{36}$/.test(pending.challenge?.requestId||'')||!Number.isFinite(Date.parse(pending.challenge?.expiresAt))){
+    sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);return null;
+  }
+  if(Date.parse(serverTime)>=Date.parse(pending.challenge.expiresAt)){
+    sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);return {expired:true,request:{unsigned:pending.challenge}};
+  }
+  return {expired:false,approved:false,request:{unsigned:pending.challenge},url:window.YNXFinanceOpaqueOrder.launchURL(pending.ticket)};
+}
 function renderBrokerWorkspace(workspace){
   const orders=Array.isArray(workspace?.orders)?workspace.orders:[];
   const outbox=new Map((Array.isArray(workspace?.outbox)?workspace.outbox:[]).map(item=>[item.orderId,item]));
@@ -102,9 +115,15 @@ function renderBrokerWorkspace(workspace){
 function renderBrokerApprovalRoute(route,recovered=false){
   const unsigned=route.request.unsigned,order=unsigned.order;
   $('#broker-order-preview').innerHTML=`<strong>${esc(order.side)} ${esc(order.qty)} ${esc(order.symbol)} @ ${esc(order.limitPrice)} simulated USD</strong><br>Maximum: ${esc(order.maxCost)} USD · maximum fee ${esc(order.maxFee)} USD · expires ${esc(unsigned.expiresAt)}<br><small>Request ${esc(short(unsigned.requestId))}. ${recovered?'Recovered from this browser; the same request can be reviewed or revoked.':'Broker provider has not been contacted.'}</small>`;
-  const link=$('#broker-wallet-approve');link.href=route.url;link.hidden=false;link.rel='noreferrer';link.textContent=route.approved?'Review or revoke exact approval in YNX Wallet':'Review exact order in YNX Wallet';
+  const link=$('#broker-wallet-approve');link.hidden=false;link.rel='noreferrer';
+  if(route.url.startsWith('ynxwallet://')){
+    link.href='#';link.dataset.walletReviewUrl=route.url;link.textContent='Copy secure YNX Wallet review link';
+  }else{link.href=route.url;delete link.dataset.walletReviewUrl;link.textContent=route.approved?'Review or revoke exact approval in YNX Wallet':'Review exact order in YNX Wallet'}
 }
 async function restoreBrokerApproval(serverTime,{announce=false}={}){
+  const opaque=opaqueOrderPending(serverTime);
+  if(opaque){if(opaque.expired){$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent='The opaque Wallet ticket expired. No Broker order was sent.';return opaque}
+    renderBrokerApprovalRoute(opaque,true);if(announce)notify('The same opaque Wallet review ticket is still active. Copy it again or wait for expiry.');return opaque}
   if(!window.YNXFinanceOrderWallet.pending())return null;
   const route=await window.YNXFinanceOrderWallet.resume(serverTime);
   if(!route)return null;
@@ -148,10 +167,13 @@ async function createBrokerApproval(event){
     const workspace=await refreshBrokerWorkspace();if(!workspace)throw new Error('Current Finance server time is unavailable.');
     const existing=await restoreBrokerApproval(workspace.serverTime,{announce:true});if(existing&&!existing.expired)return;
     if(!state.brokerSelectedAsset||state.brokerSelectedAsset.id!==draft.assetId||state.brokerSelectedAsset.symbol!==draft.symbol)throw new Error('Select this asset from the provider-backed search results before creating approval.');
-    const result=await api('/api/broker/challenges',{method:'POST',body:JSON.stringify({draft})});
-    if(result?.schema!=='ynx-finance-order-approval-challenge-v1'||result.providerWriteAttempted!==false)throw new Error('Finance order challenge response is invalid.');
-    const route=await window.YNXFinanceOrderWallet.begin(result.challenge.unsigned,result.challenge.serverTime);
-    renderBrokerApprovalRoute(route);notify('Exact approval request created. Review it in YNX Wallet; no broker order has been submitted.');await refreshBrokerWorkspace();
+    if(!window.YNXFinanceOpaqueOrder)throw new Error('Confidential Wallet order builder is unavailable. No order request was created.');
+    const result=await api('/api/broker/order-handoff/issue',{method:'POST',body:JSON.stringify({draft})});
+    if(result?.version!=='2'||result.providerWriteAttempted!==false||!/^[A-Za-z0-9_-]{32,64}$/.test(result.ticket||'')||
+      !/^request_[0-9a-f-]{36}$/.test(result.challenge?.requestId||''))throw new Error('Confidential Finance order challenge response is invalid.');
+    const route={request:{unsigned:result.challenge},url:window.YNXFinanceOpaqueOrder.launchURL(result.ticket),approved:false};
+    sessionStorage.setItem(OPAQUE_ORDER_PENDING_KEY,JSON.stringify({version:'2',ticket:result.ticket,challenge:result.challenge}));
+    renderBrokerApprovalRoute(route);notify('Opaque review ticket created. Copy the link to YNX Wallet; this Web page will not launch a custom scheme or submit to the Broker.');await refreshBrokerWorkspace();
   }catch(error){notify(error.message,true)}finally{brokerApprovalInFlight=false;if(submit){submit.disabled=wasDisabled;submit.removeAttribute('aria-busy')}}
 }
 async function reconcileBroker(){
@@ -176,9 +198,14 @@ async function completeBrokerCallback(){
   try{
     await requireBrokerOrderAuthority();
     if(pendingOpaqueBrokerReturnURL){
-      const result=await api('/api/broker/order-handoff/exchange',{method:'POST',body:JSON.stringify({callbackURL:pendingOpaqueBrokerReturnURL})});
+      const callback=new URL(pendingOpaqueBrokerReturnURL),keys=[...callback.searchParams.keys()];
+      const code=callback.searchParams.get('financeOrderCode'),stateToken=callback.searchParams.get('state');
+      if(callback.origin!==location.origin||callback.pathname!=='/wallet-auth/callback'||callback.hash||keys.join(',')!=='financeOrderCode,state'||
+        !/^[A-Za-z0-9_-]{32,64}$/.test(code||'')||!/^[A-Za-z0-9_-]{32,64}$/.test(stateToken||'')||
+        callback.href!==`${callback.origin}/wallet-auth/callback?financeOrderCode=${code}&state=${stateToken}`)throw new Error('Confidential Wallet callback URL is not canonical.');
+      const result=await api('/api/broker/order-handoff/exchange',{method:'POST',body:JSON.stringify({code,state:stateToken})});
       if(result?.version!=='2'||!['approved','rejected','revoked'].includes(result.status)||result.result?.providerWriteAttempted!==false)throw new Error('Confidential Wallet decision response is invalid.');
-      pendingOpaqueBrokerReturnURL=null;history.replaceState(null,'','/');$('#broker-complete-callback').hidden=true;
+      pendingOpaqueBrokerReturnURL=null;sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);history.replaceState(null,'','/');$('#broker-complete-callback').hidden=true;$('#broker-wallet-approve').hidden=true;
       notify(result.status==='approved'?'Wallet approval queued one local Sandbox outbox. Provider submission has not occurred.':'Wallet decision recorded without a provider order.');
       await refreshBrokerWorkspace();return;
     }
@@ -304,6 +331,16 @@ $('#broker-asset-results').addEventListener('click',async event=>{const selectId
 $('#broker-watchlist').addEventListener('click',async event=>{const selectId=event.target.dataset.brokerWatchSelect,removeId=event.target.dataset.brokerUnwatch;if(selectId){try{const item=state.brokerWatchlist.get(selectId);selectBrokerAsset({id:item.assetId,symbol:item.symbol,name:item.name})}catch(error){notify(error.message,true)}}else if(removeId){try{await updateBrokerWatchlist(state.brokerWatchlist.get(removeId),false)}catch(error){notify(error.message,true)}}});
 $('#broker-local-orders').addEventListener('click',async event=>{const refreshId=event.target.dataset.brokerOrderRefresh,cancelId=event.target.dataset.brokerOrderCancel,executeId=event.target.dataset.brokerOrderExecute;if(refreshId){await refreshBrokerExecutionStatus(refreshId)}else if(executeId){await requestBrokerExecution(executeId)}else if(cancelId){await requestBrokerCancel(cancelId)}});
 $('#broker-order-form').addEventListener('submit',createBrokerApproval);
+$('#broker-wallet-approve').addEventListener('click',async event=>{
+  const link=event.currentTarget,reviewURL=link.dataset.walletReviewUrl;
+  if(!reviewURL)return;
+  event.preventDefault();
+  try{
+    if(!window.YNXFinanceOpaqueOrder||reviewURL!==window.YNXFinanceOpaqueOrder.launchURL(reviewURL.split('?ticket=')[1]||''))throw new Error('Invalid review link');
+  }catch{notify('The Wallet review link is invalid. No navigation occurred.',true);return}
+  try{await navigator.clipboard.writeText(reviewURL);notify('Secure review link copied. Open it in YNX Wallet; this Web page stays here.')}
+  catch{notify('Clipboard unavailable. The Web page did not open a custom scheme. Use YNX Wallet on a supported device.',true)}
+});
 $('#broker-quote').addEventListener('click',refreshBrokerQuote);
 $('#broker-complete-callback').addEventListener('click',completeBrokerCallback);
 $('#broker-clear-approval').addEventListener('click',async()=>{try{const workspace=await refreshBrokerWorkspace();if(!workspace)throw new Error('Current Finance server time is unavailable.');const route=await restoreBrokerApproval(workspace.serverTime,{announce:true});if(!route){$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent='No local Wallet request is pending.'}}catch(error){notify(error.message,true)}});

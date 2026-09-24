@@ -161,7 +161,7 @@ func (s *Store) isOpaqueBrokerOrderRequest(account, requestID string) (bool, err
 	return false, nil
 }
 
-func (s *Store) opaqueBrokerOrderCallbackAuthority(account, callbackState string) (BrokerOrderHandoffRecord, FinanceOrderApprovalUnsignedV1, error) {
+func (s *Store) opaqueBrokerOrderCallbackAuthority(account, codeHash string) (BrokerOrderHandoffRecord, FinanceOrderApprovalUnsignedV1, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := s.refreshLocked(); err != nil {
@@ -169,7 +169,7 @@ func (s *Store) opaqueBrokerOrderCallbackAuthority(account, callbackState string
 	}
 	var found BrokerOrderHandoffRecord
 	for key, record := range s.state.BrokerOrderHandoffs {
-		if record.Account == account && record.CallbackState == callbackState {
+		if record.Account == account && record.CodeHash == codeHash {
 			if found.RequestID != "" || validateBrokerOrderHandoff(s.state, key, record) != nil {
 				return BrokerOrderHandoffRecord{}, FinanceOrderApprovalUnsignedV1{}, errors.New("confidential callback owner is ambiguous or invalid")
 			}

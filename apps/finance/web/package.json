@@ -5,6 +5,7 @@
   "scripts": {
     "build:wallet": "esbuild wallet-auth-entry.js --bundle --minify --platform=browser --target=es2022 --outfile=wallet-auth.js",
     "build:order-wallet": "esbuild order-wallet-entry.js --bundle --minify --platform=browser --target=es2022 --outfile=order-wallet.js",
+    "build:order-opaque": "esbuild ../scripts/finance-order-opaque-browser-entry.mjs --bundle --minify --platform=browser --target=es2022 --outfile=order-opaque.js",
     "verify:wallet": "node verify-wallet-connect.mjs",
     "verify:migration-evidence": "node verify-product-wallet-migration-evidence.mjs"
   },
