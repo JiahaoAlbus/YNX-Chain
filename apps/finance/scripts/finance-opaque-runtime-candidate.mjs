@@ -2,13 +2,15 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {build,version as esbuildVersion} from 'esbuild';
 import {authorityRuntimeFiles,runtimeFiles} from './finance-nonregressive-runtime.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
+const webRequire=createRequire(resolve(root,'apps/finance/web/package.json'));
+const {build,version:esbuildVersion}=webRequire('esbuild');
 const candidatePath='apps/finance/evidence/finance-opaque-runtime-candidate-20260925.json';
 const sha256=value=>createHash('sha256').update(value).digest('hex');
 const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
