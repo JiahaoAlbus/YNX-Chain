@@ -4,9 +4,9 @@ export const ynxTestnet = Object.freeze({
   chainIdDecimal: 6423,
   chainName: "YNX Testnet",
   nativeCurrency: Object.freeze({"decimals":18,"name":"YNXT","symbol":"YNXT"}),
-  rpcUrls: Object.freeze(["https://evm.ynxweb4.com"]),
-  restUrls: Object.freeze(["https://rpc.ynxweb4.com"]),
+  rpcUrls: Object.freeze(["https://rpc-testnet.ynxweb4.com","https://evm.ynxweb4.com"]),
+  restUrls: Object.freeze(["https://rpc-testnet.ynxweb4.com","https://rpc.ynxweb4.com"]),
   blockExplorerUrls: Object.freeze(["https://explorer.ynxweb4.com"]),
-  faucetUrls: Object.freeze(["https://faucet.ynxweb4.com"]),
+  faucetUrls: Object.freeze(["https://faucet-testnet.ynxweb4.com","https://faucet.ynxweb4.com"]),
   infoUrl: "https://www.ynxweb4.com",
 });
