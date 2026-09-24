@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "ynx.finance.wallet-auth-consumer-bundle-rebuild.v1",
+  "reviewedSource": {
+    "branch": "codex/finance-evm-read-session-pr193-20260924",
+    "commit": "1e7c1d1c2347eb0764a7f40a47f06ea3ba989f6b",
+    "tree": "be9b0c55818aa81636f0513ec78fb0c3469ab45d",
+    "walletAuthCommit": "a4651b8cd3e377677f5ad384fa55062c8132ad34",
+    "walletAuthTree": "7e4826b90c83f8624e60aa66d470e0d94aa924a7"
+  },
+  "exactRebuiltFiles": [
+    {
+      "path": "apps/finance/scripts/evm-product-login-authority.bundle.mjs",
+      "blob": "8eed902944a974ec6546faba4460e6a0fcf4df76",
+      "bytes": 105185,
+      "sha256": "6ed0cf699ece5f435e014790a30c335dd25d564b180f8411aab1aec8804a1c35"
+    },
+    {
+      "path": "apps/finance/scripts/evm-read-session-authority.bundle.mjs",
+      "blob": "6ea5eebcab6fe640cb2d2fbd30cd7ad7a17b85f0",
+      "bytes": 119293,
+      "sha256": "a61fa1555398d9612092013dd3802240a37230a4bd5196cad9ddc4a0014e6cf6"
+    },
+    {
+      "path": "apps/finance/web/evm-read-session.js",
+      "blob": "b1412c3a051f6ee273d1e409207b6e1ede25190f",
+      "bytes": 66226,
+      "sha256": "c79ec62d1ff5d16f19c8d8d995f28b7b5fba50874e1d11a86539cedd2596a2e1"
+    }
+  ],
+  "tests": {
+    "focusedByteRebuildAndLocalChromium": "PASS 12/12",
+    "fullFinanceNpmTest": "FAIL_CLOSED 104 total, 93 pass, 11 fail: retained independently reviewed release pin and candidate still bind older Wallet/Auth graph and bundle bytes"
+  },
+  "truth": {
+    "sourceBundleRebuilt": true,
+    "newIndependentReleasePinAccepted": false,
+    "publicFinanceDeployedFromThisSource": false,
+    "realProviderApproval": false,
+    "nativeOrderV2BackendImplemented": false,
+    "transactionAuthorized": false
+  },
+  "nextGate": "Independent review must freeze a new complete Wallet/Auth transitive graph, Finance bundle and served-asset candidate. Do not replace the old reviewed pin in place."
+}
