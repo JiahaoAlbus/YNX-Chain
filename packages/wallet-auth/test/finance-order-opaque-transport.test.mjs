@@ -8,6 +8,7 @@ import {
   createSignedFinanceOrderOpaqueClaim,verifyFinanceOrderOpaqueClaim,createSignedFinanceOrderOpaqueReject,
   verifySignedFinanceOrderOpaqueReject,createFinanceOrderOpaqueCallbackURL,parseFinanceOrderOpaqueCallbackURL,
   parseFinanceOrderOpaqueClaimResponse,createFinanceOrderOpaqueCompleteRequest,parseFinanceOrderOpaqueCompleteResponse,
+  createSignedFinanceOrderLegacyRecovery,verifySignedFinanceOrderLegacyRecovery,parseFinanceOrderLegacyRecoveryResponse,
   createSignedFinanceOrderApproval,
 } from "../src/index.js";
 
@@ -62,10 +63,24 @@ test("claim and completion responses fail closed on account, ticket, order, code
   const approved=createSignedFinanceOrderApproval({accountSecret:vector.testOnlyPublicSecretScalarHex,approval:unsigned},at);
   const request=createFinanceOrderOpaqueCompleteRequest(ticket,"approved",approved,unsigned,at);
   assert.equal(request.proof.orderHash,unsigned.orderHash);
+  assert.deepEqual(Object.keys(request).sort(),["proof","status","ticket"]);
   assert.throws(()=>createFinanceOrderOpaqueCompleteRequest(ticket,"approved",{...approved,orderHash:"a".repeat(64)},unsigned,at));
   const response={version:"2",ticketHash:financeOrderOpaqueTicketHash(ticket),requestId:unsigned.requestId,status:"stored",
     code,state,serverTime:at.toISOString(),expiresAt:"2026-09-19T09:02:00.000Z"};
   assert.equal(parseFinanceOrderOpaqueCompleteResponse(response,{ticket,challenge:unsigned}).callbackURL,createFinanceOrderOpaqueCallbackURL({code,state,requestId:unsigned.requestId,callbackStateHash:unsigned.callbackStateHash}));
   assert.throws(()=>parseFinanceOrderOpaqueCompleteResponse({...response,state:"different_state_0123456789abcdefgh"},{ticket,challenge:unsigned}),{code:"STATE_MISMATCH"});
   assert.throws(()=>parseFinanceOrderOpaqueCompleteResponse({...response,expiresAt:"2026-09-19T09:06:00.000Z"},{ticket,challenge:unsigned}),{code:"EXPIRED"});
+});
+
+test("legacy recovery signs only a durable pre-cutover challenge and returns an opaque ticket",()=>{
+  const proof=createSignedFinanceOrderLegacyRecovery({challenge:unsigned,nonce:"legacy_nonce_0123456789abcdefghijkl"},at,vector.testOnlyPublicSecretScalarHex);
+  const cutover=new Date("2026-09-19T09:02:00.000Z");
+  assert.equal(verifySignedFinanceOrderLegacyRecovery(proof,unsigned,cutover,at).requestId,unsigned.requestId);
+  assert.equal(JSON.stringify(proof).includes(unsigned.brokerAccountId),false);
+  assert.throws(()=>verifySignedFinanceOrderLegacyRecovery(proof,unsigned,new Date(unsigned.issuedAt),at),{code:"LEGACY_DISABLED"});
+  assert.throws(()=>verifySignedFinanceOrderLegacyRecovery(proof,{...unsigned,order:{...unsigned.order,symbol:"BETA"}},cutover,at));
+  assert.throws(()=>verifySignedFinanceOrderLegacyRecovery(proof,unsigned,cutover,new Date(unsigned.expiresAt)),{code:"EXPIRED"});
+  const response=parseFinanceOrderLegacyRecoveryResponse({version:"2",ticket,ticketHash:financeOrderOpaqueTicketHash(ticket),serverTime:at.toISOString()},{requestId:unsigned.requestId});
+  assert.equal(response.ticket,ticket);
+  assert.throws(()=>parseFinanceOrderLegacyRecoveryResponse({version:"2",ticket,ticketHash:"0".repeat(64),serverTime:at.toISOString()},{requestId:unsigned.requestId}),{code:"BINDING_MISMATCH"});
 });

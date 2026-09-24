@@ -3,19 +3,21 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { walletIdentity, walletIdentityFromPublicKey } from "./crypto.js";
-import { parseFinanceOrderApprovalUnsigned, parseSignedFinanceOrderApproval, parseSignedFinanceOrderApprovalRevocation, verifySignedFinanceOrderApproval, verifySignedFinanceOrderApprovalRevocationAgainstUnsigned } from "./finance-order-approval.js";
+import { financeOrderApprovalDigest, parseFinanceOrderApprovalUnsigned, verifySignedFinanceOrderApproval, verifySignedFinanceOrderApprovalRevocationAgainstUnsigned } from "./finance-order-approval.js";
 
 export const FINANCE_ORDER_OPAQUE_LAUNCH_ROUTE="ynxwallet://finance-order-approval";
 export const FINANCE_ORDER_OPAQUE_CALLBACK="https://finance.ynxweb4.com/wallet-auth/callback";
 export const FINANCE_ORDER_OPAQUE_CLAIM_PATH="/api/broker/order-handoff/claim";
 export const FINANCE_ORDER_OPAQUE_COMPLETE_PATH="/api/broker/order-handoff/complete";
 export const FINANCE_ORDER_OPAQUE_EXCHANGE_PATH="/api/broker/order-handoff/exchange";
+export const FINANCE_ORDER_OPAQUE_RECOVER_LEGACY_PATH="/api/broker/order-handoff/recover-legacy";
 const TOKEN=/^[A-Za-z0-9_-]{32,64}$/;
 const HEX64=/^[0-9a-f]{64}$/;
 const ACCOUNT=/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/;
 const PUBLIC=/^(02|03)[0-9a-f]{64}$/;
 const CLAIM=["version","productId","origin","chainId","action","account","accountPublicKey","ticketHash","nonce","issuedAt","expiresAt"];
 const REJECT=["version","productId","origin","chainId","action","account","accountPublicKey","ticketHash","requestId","challengeId","orderHash","callbackStateHash","issuedAt","expiresAt"];
+const RECOVER=["version","productId","origin","chainId","action","account","accountPublicKey","approvalDigest","requestId","challengeId","orderHash","callbackStateHash","nonce","issuedAt","expiresAt"];
 const hash=value=>bytesToHex(sha256(utf8ToBytes(value)));
 function fail(code,message){throw new WalletAuthError(code,message);}
 function match(value,regex,label){if(typeof value!=="string"||!regex.test(value))fail("INVALID_FIELD",label+" invalid");return value;}
@@ -129,13 +131,12 @@ export function parseFinanceOrderOpaqueClaimResponse(input,expected){
 }
 export function createFinanceOrderOpaqueCompleteRequest(ticket,status,proof,challengeInput,at){
   const challenge=parseFinanceOrderApprovalUnsigned(challengeInput);
-  const ticketHash=financeOrderOpaqueTicketHash(ticket);
   let verified;
   if(status==="approved") verified=verifySignedFinanceOrderApproval(proof,challenge,at);
   else if(status==="rejected"){verifySignedFinanceOrderOpaqueReject(proof,ticket,challenge,at);verified=proof;}
   else if(status==="revoked") verified=verifySignedFinanceOrderApprovalRevocationAgainstUnsigned(proof,challenge,at);
   else fail("INVALID_DECISION","Unknown order decision");
-  return Object.freeze({version:"2",ticket:match(ticket,TOKEN,"ticket"),ticketHash,requestId:challenge.requestId,status,proof:verified});
+  return Object.freeze({ticket:match(ticket,TOKEN,"ticket"),status,proof:verified});
 }
 export function parseFinanceOrderOpaqueCompleteResponse(input,expected){
   exactFields(input,["version","ticketHash","requestId","status","code","state","expiresAt","serverTime"],"Finance opaque complete response");
@@ -148,4 +149,54 @@ export function parseFinanceOrderOpaqueCompleteResponse(input,expected){
   if(Date.parse(expiresAt)<=Date.parse(serverTime)||Date.parse(expiresAt)>Date.parse(challenge.expiresAt))fail("EXPIRED","Callback code expired or outlives challenge");
   return Object.freeze({version:"2",ticketHash:input.ticketHash,requestId:input.requestId,status:"stored",code:input.code,state:input.state,
     expiresAt,serverTime,callbackURL});
+}
+function parseLegacyRecoveryUnsigned(input){
+  exactFields(input,RECOVER,"Finance legacy recovery");
+  const value=Object.freeze({version:input.version,productId:input.productId,origin:input.origin,chainId:input.chainId,action:input.action,
+    account:match(input.account,ACCOUNT,"account"),accountPublicKey:match(input.accountPublicKey,PUBLIC,"accountPublicKey"),
+    approvalDigest:match(input.approvalDigest,HEX64,"approvalDigest"),requestId:match(input.requestId,/^request_[0-9a-f-]{36}$/,"requestId"),
+    challengeId:match(input.challengeId,/^challenge_[0-9a-f-]{36}$/,"challengeId"),orderHash:match(input.orderHash,HEX64,"orderHash"),
+    callbackStateHash:match(input.callbackStateHash,HEX64,"callbackStateHash"),nonce:match(input.nonce,TOKEN,"nonce"),
+    issuedAt:time(input.issuedAt,"issuedAt"),expiresAt:time(input.expiresAt,"expiresAt")});
+  if(value.version!=="2"||value.productId!=="finance"||value.origin!=="https://finance.ynxweb4.com"||value.chainId!=="0x1917"||value.action!=="recover-legacy-order")
+    fail("BINDING_MISMATCH","Legacy recovery domain invalid");
+  if(Date.parse(value.expiresAt)-Date.parse(value.issuedAt)>60_000||Date.parse(value.expiresAt)<=Date.parse(value.issuedAt))
+    fail("INVALID_EXPIRY","Recovery proof exceeds 60 seconds");
+  return value;
+}
+export function createSignedFinanceOrderLegacyRecovery(input,at,accountSecret){
+  exactFields(input,["challenge","nonce"],"Finance legacy recovery input");
+  const challenge=parseFinanceOrderApprovalUnsigned(input.challenge),identity=walletIdentity(accountSecret);
+  if(identity.account!==challenge.account||identity.accountPublicKey!==challenge.accountPublicKey)fail("ACCOUNT_MISMATCH","Legacy order account changed");
+  active(challenge.issuedAt,challenge.expiresAt,at,300_000);
+  const expiresAt=new Date(Math.min(at.getTime()+60_000,Date.parse(challenge.expiresAt))).toISOString();
+  const unsigned=parseLegacyRecoveryUnsigned({version:"2",productId:"finance",origin:"https://finance.ynxweb4.com",chainId:"0x1917",action:"recover-legacy-order",
+    account:challenge.account,accountPublicKey:challenge.accountPublicKey,approvalDigest:financeOrderApprovalDigest(challenge),
+    requestId:challenge.requestId,challengeId:challenge.challengeId,orderHash:challenge.orderHash,callbackStateHash:challenge.callbackStateHash,
+    nonce:input.nonce,issuedAt:at.toISOString(),expiresAt});
+  return sign(unsigned,accountSecret,"YNX_FINANCE_ORDER_LEGACY_RECOVERY_V2");
+}
+export function verifySignedFinanceOrderLegacyRecovery(proofInput,challengeInput,cutoverAt,at){
+  exactFields(proofInput,[...RECOVER,"signature"],"Signed Finance legacy recovery");
+  const challenge=parseFinanceOrderApprovalUnsigned(challengeInput),{signature,...body}=proofInput,unsigned=parseLegacyRecoveryUnsigned(body);
+  if(!(cutoverAt instanceof Date)||!Number.isFinite(cutoverAt.getTime()))fail("INVALID_TIME","Trusted cutover time required");
+  if(Date.parse(challenge.issuedAt)>=cutoverAt.getTime())fail("LEGACY_DISABLED","Challenge issued after v1 cutover");
+  active(challenge.issuedAt,challenge.expiresAt,at,300_000);
+  active(unsigned.issuedAt,unsigned.expiresAt,at,60_000);
+  if(unsigned.account!==challenge.account||unsigned.accountPublicKey!==challenge.accountPublicKey||
+    unsigned.approvalDigest!==financeOrderApprovalDigest(challenge)||unsigned.requestId!==challenge.requestId||
+    unsigned.challengeId!==challenge.challengeId||unsigned.orderHash!==challenge.orderHash||
+    unsigned.callbackStateHash!==challenge.callbackStateHash||Date.parse(unsigned.expiresAt)>Date.parse(challenge.expiresAt))
+    fail("BINDING_MISMATCH","Recovery proof differs from durable pre-cutover challenge");
+  const proof=Object.freeze({...unsigned,signature:match(signature,/^[0-9a-f]{128}$/,"signature")});
+  verify(proof,unsigned,"YNX_FINANCE_ORDER_LEGACY_RECOVERY_V2");
+  return Object.freeze({verified:true,requestId:challenge.requestId,account:challenge.account,nonce:unsigned.nonce,expiresAt:unsigned.expiresAt});
+}
+export function parseFinanceOrderLegacyRecoveryResponse(input,expected){
+  exactFields(input,["version","ticket","ticketHash","serverTime"],"Finance legacy recovery response");
+  exactFields(expected,["requestId"],"Finance legacy recovery authority");
+  if(input.version!=="2")fail("BINDING_MISMATCH","Recovery version changed");
+  const ticket=match(input.ticket,TOKEN,"ticket");
+  if(input.ticketHash!==financeOrderOpaqueTicketHash(ticket))fail("BINDING_MISMATCH","Recovery ticket hash changed");
+  return Object.freeze({version:"2",ticket,ticketHash:input.ticketHash,serverTime:time(input.serverTime,"serverTime"),requestId:match(expected.requestId,/^request_[0-9a-f-]{36}$/,"requestId")});
 }
