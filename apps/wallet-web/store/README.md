@@ -1,6 +1,6 @@
 # Browser store release kit — prepared, not submitted
 
-Reviewed on 2026-09-20 against merged Wallet Web baseline `6bbf12d87a7274d73b7f2157157954d061b8efd0`. This directory contains the technical material that can be prepared without publisher accounts, signing credentials, contact details or legal approval. It does not claim a signed package, store upload, review or release.
+Reviewed on 2026-09-25 against immutable candidate source `c5df9a9a1cc2a22ba7623ba2b85da138b66c3b5f`. This directory contains the technical material that can be prepared without publisher accounts, signing credentials, contact details or legal approval. It does not claim a signed package, store upload, review or release.
 
 ## Materials
 
@@ -13,6 +13,7 @@ Reviewed on 2026-09-20 against merged Wallet Web baseline `6bbf12d87a7274d73b7f2
 | `generate-assets.mjs`, `verify-release-materials.mjs` | Deterministic brand-asset generation and fail-closed release-material validation |
 | `submission-build.md` | Exact build prerequisites, historical authorities and reviewer rebuild steps |
 | `release-readiness.json` | Machine-readable public/candidate boundaries and remaining external inputs |
+| `candidate-artifact-manifest.json` | Current local candidate ZIP hashes; the root artifact manifest continues to describe older public downloads |
 
 ## Current manifest and data disclosure
 
@@ -40,7 +41,7 @@ Public hosting does not make the packages production-signed or store-released. T
 
 `export-reviewer-source.mjs` exports only committed Wallet Web, Wallet/Auth and required integration source from an immutable commit. It embeds the complete verified build-authority archive and normal-build output hashes. `rebuild-reviewer-source.mjs` works without `.git`, verifies every submitted source byte and authority record, rebuilds all variants, and requires every generated output byte to match. See `submission-build.md` for the exact commands and environment.
 
-The machine-readable candidate receipt in `release-readiness.json` binds source commit `9553b6d26d1bd0adda3bca6a8a61b1786ae91e51`, all three unsigned package hashes, the reviewer-source ZIP hash and a clean extracted rebuild with 110/110 output files matching byte for byte. The receipt commit itself is audit metadata and is not substituted for that immutable source commit.
+The machine-readable candidate receipt in `release-readiness.json` binds source commit `c5df9a9a1cc2a22ba7623ba2b85da138b66c3b5f`, all three unsigned package hashes, the reviewer-source ZIP hash and a clean extracted rebuild with 110/110 output files matching byte for byte. The exact reviewer-source ZIP is committed under `store/reviewer-archives`; `npm run verify:store` checks its bytes and SHA-256. After rebuilding the three local ZIPs, `npm run verify:store-candidate` also checks each actual local archive, its contents and its hash against `store/candidate-artifact-manifest.json`. Isolated Edge and Chrome for Testing profiles loaded the exact local ZIP, created disposable accounts, approved a DApp connection, recovered `personal_sign` signatures and denied signing after permission revocation. Playwright Firefox loaded the candidate as a temporary add-on; branded Mozilla Firefox, installed-candidate persistence, AMO signing and store distribution remain unverified. Local ZIP loading is not a hosted download, as recorded in `extension-candidate-local-20260925.json`.
 
 ## Inputs still required from the publisher
 

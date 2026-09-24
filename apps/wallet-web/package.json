@@ -15,6 +15,7 @@
     "verify:package": "node scripts/verify-package.mjs",
     "store:assets": "node store/generate-assets.mjs",
     "verify:store": "node store/verify-release-materials.mjs",
+    "verify:store-candidate": "node store/verify-release-materials.mjs --require-local-candidate",
     "test:runtime:branded": "npm run build && node scripts/runtime-branded.mjs",
     "test:runtime:branded:cdp": "npm run build && node scripts/runtime-branded-cdp.mjs",
     "test:runtime:bridge": "npm run build && node scripts/runtime-bridge-gate.mjs",

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
 import {readFile,stat} from "node:fs/promises";
 import {dirname,join,resolve} from "node:path";
@@ -12,12 +13,12 @@ const json=async path=>JSON.parse(await readFile(path,"utf8"));
 const text=path=>readFile(path,"utf8");
 
 export async function verifyReleaseMaterials(){
-  const [readiness,assetManifest,published,evidence,listingEn,listingZh,permissions,privacyEn,privacyZh]=await Promise.all([
-    json(join(store,"release-readiness.json")),json(join(store,"store-assets.json")),json(join(root,"artifact-manifest.json")),
-    json(join(root,"evidence","runtime","firefox-branded-provider-20260920.json")),text(join(store,"listing.en.md")),text(join(store,"listing.zh-CN.md")),
+  const [readiness,assetManifest,published,candidate,evidence,listingEn,listingZh,permissions,privacyEn,privacyZh]=await Promise.all([
+    json(join(store,"release-readiness.json")),json(join(store,"store-assets.json")),json(join(root,"artifact-manifest.json")),json(join(store,"candidate-artifact-manifest.json")),
+    json(join(root,"evidence","runtime","extension-candidate-local-20260925.json")),text(join(store,"listing.en.md")),text(join(store,"listing.zh-CN.md")),
     text(join(store,"permissions-data-map.md")),text(join(store,"privacy-policy.draft.en.md")),text(join(store,"privacy-policy.draft.zh-CN.md")),
   ]);
-  assert.equal(readiness.reviewDate,"2026-09-20");
+  assert.equal(readiness.reviewDate,"2026-09-25");
   assert.equal(readiness.baseWebCommit,"6bbf12d87a7274d73b7f2157157954d061b8efd0");
   for(const key of ["submitted","storeReleased","productionSigned","publisherVerified","privacyPolicyPublished"]){assert.equal(readiness[key],false,`${key} must remain false`)}
   assert.equal(readiness.manifest.version,extensionVersion);
@@ -27,6 +28,30 @@ export async function verifyReleaseMaterials(){
   assert.equal(readiness.candidateReceipt.sourceCommit,readiness.candidateCommit);
   assert.equal(readiness.candidateReceipt.artifacts.length,3);
   for(const artifact of readiness.candidateReceipt.artifacts){assert.ok(Number.isSafeInteger(artifact.bytes)&&artifact.bytes>0);assert.match(artifact.sha256,/^[0-9a-f]{64}$/u);assert.equal(artifact.name.endsWith(".zip"),true)}
+  const identity=items=>items.map(({name,bytes,sha256})=>({name,bytes,sha256}));
+  assert.equal(readiness.publicDownloads.sourceCommit,published.sourceCommit);
+  assert.equal(readiness.candidateCommit,candidate.sourceCommit);
+  assert.equal(evidence.sourceCommit,candidate.sourceCommit);
+  assert.notEqual(candidate.sourceCommit,published.sourceCommit);
+  assert.deepEqual(readiness.candidateReceipt.artifacts,identity(candidate.artifacts));
+  assert.deepEqual(evidence.artifacts,identity(candidate.artifacts));
+  assert.deepEqual(evidence.reviewerSource,{
+    name:readiness.candidateReceipt.reviewerSource.name,bytes:readiness.candidateReceipt.reviewerSource.bytes,
+    sha256:readiness.candidateReceipt.reviewerSource.sha256,sourceFileCount:readiness.candidateReceipt.reviewerSource.sourceFileCount,
+    authorityRecords:readiness.candidateReceipt.reviewerSource.authorityRecords,
+    verifiedOutputFiles:readiness.candidateReceipt.reviewerSource.expectedOutputFiles,allBytesMatch:true,
+  });
+  const sourceArchive=join(store,"reviewer-archives",readiness.candidateReceipt.reviewerSource.name);
+  const sourceBytes=await readFile(sourceArchive);
+  assert.equal(sourceBytes.length,readiness.candidateReceipt.reviewerSource.bytes);
+  assert.equal(createHash("sha256").update(sourceBytes).digest("hex"),readiness.candidateReceipt.reviewerSource.sha256);
+  for(const browser of [evidence.localRuntime.edge,evidence.localRuntime.chromeForTesting])
+    for(const field of ["temporaryUnpacked","providerDiscovered","accountAuthorized","messageSigned","signatureRecovered","permissionRevoked","postRevokeDenied"])
+      assert.equal(browser[field],true,`${field} local runtime proof missing`);
+  assert.deepEqual(evidence.localRuntime.firefoxCompatible,{temporaryAddonLoaded:true,manifestValidated:true,brandedMozillaFirefox:false});
+  for(const key of ["installedLocal","downloadHosted","productionSigned","storeReleased"])assert.equal(evidence[key],false);
+  assert.equal(readiness.installedCandidateVerified,false);
+  assert.equal(readiness.storeSubmissionReady,false);
   assert.equal(readiness.candidateReceipt.reviewerSource.cleanExtractedRebuild.gitRepositoryRequired,false);
   assert.equal(readiness.candidateReceipt.reviewerSource.cleanExtractedRebuild.allBytesMatch,true);
   assert.equal(readiness.candidateReceipt.productionSigned,false);assert.equal(readiness.candidateReceipt.storeReleased,false);
@@ -58,8 +83,18 @@ export async function verifyReleaseMaterials(){
   assert.equal(published.productionSigned,false);assert.equal(published.storeReleased,false);
   const publishedFirefox=published.artifacts.find(item=>item.name==="ynx-wallet-firefox-0.1.1.zip");
   assert.ok(publishedFirefox);assert.equal(publishedFirefox.minimumOS,"Firefox 142 desktop");
-  assert.deepEqual({sourceCommit:evidence.artifact.sourceCommit,bytes:evidence.artifact.bytes,sha256:evidence.artifact.sha256},{sourceCommit:published.sourceCommit,bytes:publishedFirefox.bytes,sha256:publishedFirefox.sha256});
+  const candidateFirefox=candidate.artifacts.find(item=>item.name===publishedFirefox.name);
+  assert.ok(candidateFirefox);assert.equal(candidateFirefox.minimumOS,"Firefox 142 desktop");
+  assert.equal(evidence.artifacts.find(item=>item.name===candidateFirefox.name)?.sha256,candidateFirefox.sha256);
   return{version:extensionVersion,assets:assetManifest.assets.length,publishedArtifacts:published.artifacts.length,productionSigned:false,storeReleased:false};
 }
 
-if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))console.log(JSON.stringify(await verifyReleaseMaterials(),null,2));
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+  assert.ok(process.argv.length===2||(process.argv.length===3&&process.argv[2]==="--require-local-candidate"),"Unknown store verifier option");
+  console.log(JSON.stringify(await verifyReleaseMaterials(),null,2));
+  if(process.argv[2]==="--require-local-candidate"){
+    execFileSync(process.execPath,[join(root,"scripts","verify-package.mjs")],{
+      cwd:root,stdio:"inherit",env:{...process.env,YNX_WALLET_WEB_ARTIFACT_MANIFEST:join(store,"candidate-artifact-manifest.json")},
+    });
+  }
+}
