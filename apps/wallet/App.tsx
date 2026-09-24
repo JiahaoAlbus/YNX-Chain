@@ -158,11 +158,20 @@ function WalletApp(){
   const loadHandler=useRef(load);loadHandler.current=load;
   const handleLink=useCallback((url:string)=>{
     if(platformStorageHealth.requiresRestart)return;
-    if(!readyRef.current||AppState.currentState!=="active"){queuedLink.current=url;return}
-    if(linkIntake.current||productSessions.current||applicationActions.current||cardApprovals.current||financeOrderApprovals.current){setAuthorizationError(localizeError(locale,new Error("Finish or reject the current Wallet request before opening another")));return}
     let actionRoute=false,cardRoute=false,financeRoute=false,walletConnectRoute=false;
     try{const target=new URL(url);actionRoute=target.protocol==="ynxwallet:"&&target.hostname==="application-action";cardRoute=target.protocol==="ynxwallet:"&&target.hostname==="card-application-approval";financeRoute=target.protocol==="ynxwallet:"&&target.hostname==="finance-order-approval";walletConnectRoute=target.protocol==="ynxwallet:"&&target.hostname==="wc"}catch{}
-    if(walletConnectRoute){offerWalletConnectDeepLink(url);return}
+    if(walletConnectRoute){
+      if(readyRef.current&&AppState.currentState==="active"&&(linkIntake.current||productSessions.current||applicationActions.current||cardApprovals.current||financeOrderApprovals.current)){
+        setAuthorizationError(localizeError(locale,new Error("Finish or reject the current Wallet request before opening another")));return;
+      }
+      try{offerWalletConnectDeepLink(url);setAuthorizationError(null)}catch(caught){setAuthorizationError(localizeError(locale,caught))}return;
+    }
+    if(!readyRef.current||AppState.currentState!=="active"){
+      if(queuedLink.current&&queuedLink.current!==url)setAuthorizationError(localizeError(locale,new Error("Another Wallet link is already waiting. Finish it before opening a new one.")));
+      else queuedLink.current=url;
+      return;
+    }
+    if(linkIntake.current||productSessions.current||applicationActions.current||cardApprovals.current||financeOrderApprovals.current){setAuthorizationError(localizeError(locale,new Error("Finish or reject the current Wallet request before opening another")));return}
     const revision=++linkRevision.current;linkIntake.current=true;
     const pending=financeRoute?financeOrderApprovals.receive(url).then(review=>{if(revision===linkRevision.current&&financeOrderApprovals.current?.id===review.id){setFinanceOrderApproval(review);setAuthorizationError(null)}}):cardRoute?cardApprovals.receive(url).then(review=>{if(revision===linkRevision.current&&cardApprovals.current?.id===review.id){setCardApproval(review);setAuthorizationError(null)}}):actionRoute?applicationActions.receive(url).then(review=>{if(revision===linkRevision.current&&applicationActions.current?.id===review.id){setApplicationAction(review);setAuthorizationError(null)}}):productSessions.receive(url).then(review=>{if(revision===linkRevision.current&&productSessions.current?.id===review.id){setAuthorization(review);setAuthorizationError(null)}});
     void pending.catch(caught=>{if(revision===linkRevision.current)setAuthorizationError(localizeError(locale,caught))}).finally(()=>{linkIntake.current=false});

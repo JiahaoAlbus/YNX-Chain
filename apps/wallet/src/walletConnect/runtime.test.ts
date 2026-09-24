@@ -56,11 +56,46 @@ test("initialization retries are bounded",async()=>{
 test("SDK approval is not visible until the caller explicitly publishes the persisted session",async()=>{
   const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"b".repeat(32)},(async()=>client) as any);await runtime.start();
   client.handlers.get("session_proposal")!(pendingProposal());
-  const session=await runtime.approveProposal({eip155:{accounts:[],chains:["eip155:6423"],methods:["eth_accounts"],events:[]}} as any);
+  const session=await runtime.approveProposal(runtime.snapshot().proposal!,{eip155:{accounts:[],chains:["eip155:6423"],methods:["eth_accounts"],events:[]}} as any);
   assert.equal(session.topic,"a".repeat(64));
   assert.deepEqual(runtime.snapshot().sessions,[]);
   runtime.refreshSessions();
   assert.equal(runtime.snapshot().sessions[0]?.topic,session.topic);
+});
+
+test("stale proposal approval and rejection never target a replacement proposal",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"b".repeat(32)},(async()=>client) as any);await runtime.start();
+  client.handlers.get("session_proposal")!(pendingProposal());
+  const old=runtime.snapshot().proposal!;
+  await runtime.rejectProposal(old);
+  client.handlers.get("session_proposal")!({...pendingProposal(),id:10});
+  const replacement=runtime.snapshot().proposal!;
+  await assert.rejects(runtime.approveProposal(old,{eip155:{accounts:[],chains:["eip155:6423"],methods:[],events:[]}} as any),/proposal changed/);
+  await assert.rejects(runtime.rejectProposal(old),/proposal changed/);
+  assert.equal(runtime.snapshot().proposal,replacement);
+  assert.equal(client.sessionReads,1);
+});
+
+test("concurrent relay rejection failures are handled without approving the second proposal",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"b".repeat(32)},(async()=>client) as any);await runtime.start();
+  client.handlers.get("session_proposal")!(pendingProposal());
+  client.failRejections=true;
+  client.handlers.get("session_proposal")!({...pendingProposal(),id:10});
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(runtime.snapshot().proposal?.id,9);
+  assert.match(runtime.snapshot().error??"",/reject unavailable/);
+});
+
+test("failed direct rejection of a concurrent request disconnects its topic",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"b".repeat(32)},(async()=>client) as any);await runtime.start();
+  const first="1".repeat(64),second="2".repeat(64);
+  client.handlers.get("session_request")!(pendingRequest(first));
+  client.failResponses=true;
+  client.handlers.get("session_request")!(pendingRequest(second,8));
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(runtime.snapshot().request?.topic,first);
+  assert.deepEqual(client.disconnects,[second]);
+  assert.match(runtime.snapshot().error??"",/response unavailable/);
 });
 
 test("session update and expiry events refresh the visible session and expose a single reconciliation event",async()=>{

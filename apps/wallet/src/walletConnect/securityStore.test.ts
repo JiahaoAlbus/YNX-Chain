@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createWalletConnectRequestReview, createWalletConnectSessionApproval, reviewWalletConnectSessionProposal, WalletConnectRequestReplayStore, type WalletConnectSessionApproval } from "@ynx-chain/wallet-auth";
 import { WalletConnectSecurityStore } from "./securityStore";
+import { WalletConnectRuntime } from "./runtime";
 
 class MemoryStorage{value:string|null=null;async getItem(){return this.value}async setItem(_key:string,value:string){this.value=value}async removeItem(){this.value=null}}
 class FailingStorage extends MemoryStorage{fail=false;override async setItem(key:string,value:string){if(this.fail)throw new Error("secure storage unavailable");await super.setItem(key,value)}}
@@ -10,6 +11,74 @@ const account=`0x${"1".repeat(40)}`,topic="a".repeat(64),namespaces={eip155:{cha
 const proposalTime=new Date("2026-09-20T00:00:00.000Z"),proposalSeconds=Math.floor(proposalTime.getTime()/1000);
 const proposalReview=reviewWalletConnectSessionProposal({id:1,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{id:1,expiryTimestamp:proposalSeconds+86_400,relays:[{protocol:"irn"}],proposer:{publicKey:"c".repeat(64),metadata:{name:"dApp",description:"test",url:"https://example.com",icons:["https://example.com/icon.png"]}},requiredNamespaces:{eip155:{chains:["eip155:6423"],methods:["eth_accounts"],events:["accountsChanged"]}},optionalNamespaces:{},pairingTopic:"b".repeat(64)}},{account,now:proposalTime});
 const approval=createWalletConnectSessionApproval(proposalReview,{approved:true,topic},new Date(proposalTime.getTime()+1_000)) as WalletConnectSessionApproval;
+test("cold restart never promotes a staged grant after both cleanup paths fail",async()=>{
+  const storage=new FailingStorage(),original=new WalletConnectSecurityStore(storage as any);
+  await original.stageSession(approval);
+  storage.fail=true;
+  await assert.rejects(original.removeSession(topic),/secure storage unavailable/);
+  const relayDisconnect=async()=>{throw new Error("Relay unavailable")};
+  await assert.rejects(relayDisconnect(),/Relay unavailable/);
+  storage.fail=false;
+  const restarted=new WalletConnectSecurityStore(storage as any);
+  assert.deepEqual(await restarted.pendingSessionTopics(),[topic]);
+  assert.equal(await restarted.session(topic),null);
+  assert.deepEqual((await restarted.load()).sessions,[]);
+  assert.equal(await restarted.reconcileSession(topic,namespaces as any,account),"missing");
+  const result=await restarted.reconcileActiveSessions([{topic,namespaces:namespaces as any}],account);
+  assert.deepEqual(result.disconnectTopics,[topic]);
+  assert.deepEqual(result.prunedTopics,[]);
+  await assert.rejects(restarted.reserveRequest({topic,id:1,params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[]}}},account,proposalTime),/no longer authorized/);
+  await assert.rejects(restarted.saveSession(approval),/pending session cannot be promoted/);
+  assert.deepEqual(await restarted.pendingSessionTopics(),[topic]);
+  await restarted.removeSession(topic);
+  assert.deepEqual(await restarted.pendingSessionTopics(),[]);
+});
+
+test("a fresh SDK runtime quarantines the durable pending topic before serving requests",async()=>{
+  const storage=new MemoryStorage(),first=new WalletConnectSecurityStore(storage as any);
+  await first.stageSession(approval);
+  const restarted=new WalletConnectSecurityStore(storage as any),handlers=new Map<string,(value:any)=>void>(),responses:any[]=[];
+  const active={[topic]:{topic,namespaces,peer:{metadata:{name:"dApp",url:"https://example.com"}}}};
+  const client={on(event:string,listener:(value:any)=>void){handlers.set(event,listener)},getActiveSessions:()=>active,
+    pair:async()=>{},rejectSession:async()=>{},approveSession:async()=>active[topic],
+    respondSessionRequest:async(value:any)=>{responses.push(value)},disconnectSession:async()=>{throw new Error("Relay unavailable")}};
+  const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any);
+  await runtime.start();
+  for(const pending of await restarted.pendingSessionTopics())runtime.quarantineSession(pending);
+  assert.deepEqual(runtime.snapshot().sessions,[]);
+  handlers.get("session_request")!({topic,id:9,params:{}});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(runtime.snapshot().request,null);
+  assert.equal(responses[0].response.error.code,5000);
+  assert.equal(await restarted.session(topic),null);
+});
+
+test("final approval commit readback accepts a lost write acknowledgement",async()=>{
+  const storage=new AmbiguousStorage(),store=new WalletConnectSecurityStore(storage as any);
+  await store.stageSession(approval);
+  storage.throwAfterWrite=true;
+  await store.finalizeStagedSession(topic,approval.sessionBinding,()=>{});
+  const restarted=new WalletConnectSecurityStore(storage as any);
+  assert.deepEqual(await restarted.pendingSessionTopics(),[]);
+  assert.equal((await restarted.session(topic))?.sessionBinding,approval.sessionBinding);
+});
+
+test("pre-commit lease loss leaves no active grant",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);
+  await store.stageSession(approval);
+  await assert.rejects(store.finalizeStagedSession(topic,approval.sessionBinding,()=>{throw new Error("account changed")}),/account changed/);
+  assert.equal(await new WalletConnectSecurityStore(storage as any).session(topic),null);
+  assert.deepEqual(await store.pendingSessionTopics(),[topic]);
+});
+
+test("legacy v2 approved sessions remain active when state advances to v3",async()=>{
+  const storage=new MemoryStorage();storage.value=JSON.stringify({version:2,sessions:[approval],replay:[],outbox:[]});
+  const store=new WalletConnectSecurityStore(storage as any);
+  assert.equal((await store.session(topic))?.sessionBinding,approval.sessionBinding);
+  await store.saveSession(approval);
+  assert.equal(JSON.parse(storage.value!).version,3);
+  assert.deepEqual(JSON.parse(storage.value!).pendingTopics,[]);
+});
 test("session namespace reconciliation keeps exact approval and rejects account or scope drift",async()=>{
   const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
   assert.equal(await store.reconcileSession(topic,namespaces as any,account),"current");
@@ -324,7 +393,7 @@ test("session removal quarantines undelivered response and clears its payload",a
 });
 
 test("legacy v1 state migrates on mutation and tampered response fails closed",async()=>{
-  const storage=new MemoryStorage();storage.value=JSON.stringify({version:1,sessions:[],replay:[]});const store=new WalletConnectSecurityStore(storage as any);assert.deepEqual(await store.outbox(),[]);await store.saveSession(approval);assert.equal(JSON.parse(storage.value!).version,2);
+  const storage=new MemoryStorage();storage.value=JSON.stringify({version:1,sessions:[],replay:[]});const store=new WalletConnectSecurityStore(storage as any);assert.deepEqual(await store.outbox(),[]);await store.saveSession(approval);assert.equal(JSON.parse(storage.value!).version,3);
   const review=await reservedReview(store,10);await store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1));const state=JSON.parse(storage.value!);state.outbox[0].response.error.message="changed";storage.value=JSON.stringify(state);await assert.rejects(store.outbox(),/digest is invalid/);
 });
 

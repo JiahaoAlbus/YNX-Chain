@@ -128,6 +128,26 @@ try {
   // npm only installs native binaries for the current OS. Use the pinned
   // lockfile for every optional target so all builders emit the same SBOM.
   const lock = JSON.parse(await readFile(path.join(walletRoot, "package-lock.json"), "utf8"));
+  // npm ls may omit installed package integrity after a native build. Restore
+  // the immutable archive hash from the pinned lock instead of weakening the
+  // published SBOM when the local installer metadata changes.
+  const restoreLockedIntegrity = entries => {
+    for (const component of entries) {
+      const packagePath = component.properties?.find(item => item.name === "cdx:npm:package:path")?.value;
+      const locked = packagePath && lock.packages?.[packagePath];
+      if (locked?.devOptional && !component.properties?.some(item => item.name === "cdx:npm:package:development")) {
+        component.properties = [{ name: "cdx:npm:package:development", value: "true" }, ...(component.properties ?? [])];
+      }
+      const distribution = component.externalReferences?.find(item => item.type === "distribution" && item.url === locked?.resolved);
+      if (locked?.integrity?.startsWith("sha512-") && distribution) {
+        distribution.hashes = [{ alg: "SHA-512", content: Buffer.from(locked.integrity.slice(7), "base64").toString("hex") }];
+        delete distribution.comment;
+        distribution.comment = "as verified against the pinned package-lock integrity";
+      }
+      if (component.components) restoreLockedIntegrity(component.components);
+    }
+  };
+  restoreLockedIntegrity(components);
   const lightning = lock.packages?.["node_modules/lightningcss"];
   const parentRef = `@ynx-chain/wallet-app@1.0.0|lightningcss@${lightning?.version}`;
   const parent = dependencies.find(item => item.ref === parentRef);
@@ -146,7 +166,7 @@ try {
       type: "library", name, version, "bom-ref": ref, scope: "optional",
       licenses: [{ license: { id: locked.license, acknowledgement: "declared" } }],
       purl: `pkg:npm/${name}@${version}`,
-      externalReferences: [{ url: locked.resolved, type: "distribution", hashes: [{ alg: "SHA-512", content: Buffer.from(locked.integrity.slice(7), "base64").toString("hex") }], comment: 'as detected from npm-ls property "resolved" and property "integrity"' }],
+      externalReferences: [{ url: locked.resolved, type: "distribution", hashes: [{ alg: "SHA-512", content: Buffer.from(locked.integrity.slice(7), "base64").toString("hex") }], comment: "as verified against the pinned package-lock integrity" }],
       properties: [{ name: "cdx:npm:package:path", value: packagePath }],
     });
     dependencies.push({ ref });
