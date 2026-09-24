@@ -2,6 +2,12 @@ name: YNX Finance release evidence
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [codex/wallet-final-w-20260924]
+    paths:
+      - 'apps/finance/**'
+      - 'internal/finance/**'
+      - '.github/workflows/finance-release.yml'
   push:
     branches: [codex/final-finance]
     paths:
@@ -31,6 +37,12 @@ jobs:
       - run: go test ./internal/finance ./apps/finance/cmd/server
       - run: npm ci && npm test
         working-directory: packages/wallet-auth
+      - run: npm ci
+        working-directory: apps/finance
+      - run: npm ci
+        working-directory: apps/finance/web
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/finance
       - run: npm ci && npm test
         working-directory: apps/finance/gateway
       - run: npm test
