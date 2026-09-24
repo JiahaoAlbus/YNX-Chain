@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 const base=new URL('../',import.meta.url);
 const html=await readFile(new URL('web/index.html',base),'utf8');
 const js=await readFile(new URL('web/app.js',base),'utf8');
+const locale=await readFile(new URL('web/finance-locale.js',base),'utf8');
 const css=await readFile(new URL('web/styles.css',base),'utf8');
 const wallet=await readFile(new URL('mobile/src/wallet.ts',base),'utf8');
 const walletCompletion=await readFile(new URL('mobile/src/wallet-completion.ts',base),'utf8');
@@ -124,10 +125,11 @@ test('Broker activation schema, env, operator request and documentation match th
 });
 
 test('Broker Sandbox product entry exposes provider search, owner watchlist, reconcile and cancellation intent without browser provider writes',()=>{
-  for(const marker of ['/api/broker/assets?query=','/api/broker/watchlist','/api/broker/reconcile','/cancel-request','providerWriteAttempted!==false','My Sandbox watchlist','Reconcile provider state','Request cancellation'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  for(const marker of ['/api/broker/assets?query=','/api/broker/watchlist','/api/broker/reconcile','/cancel-request','providerWriteAttempted!==false','My Sandbox watchlist','Reconcile provider state'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  assert.ok(js.includes("financeText('brokerRequestCancel')")&&locale.includes("brokerRequestCancel:'Request cancellation'"));
   assert.ok(js.includes("finance.profile.write"));
   assert.ok(js.includes("state.brokerSelectedAsset.id!==draft.assetId"));
-  assert.ok(html.includes('The browser will not contact the provider')||js.includes('The browser will not contact the provider'));
+  assert.ok(html.includes('The browser will not contact the provider')||js.includes('The browser will not contact the provider')||locale.includes('The browser will not contact the provider'));
   for(const forbidden of ['ALPACA_BROKER_API_KEY','ALPACA_BROKER_API_SECRET','/v1/trading/accounts/'])assert.equal(js.includes(forbidden),false,forbidden);
 });
 
