@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -51,6 +52,15 @@ func TestFreshBrokerOrderHandoffDurableClaimAndOwnerIsolation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, err := restarted.PutBrokerSandboxMappingWithWalletKey(account, "11234567-89ab-4cde-8fab-0123456789ab", publicKey, now.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := restarted.ClaimBrokerOrderHandoff(account, ticketHash, nonce, now.Add(time.Second)); err == nil {
+		t.Fatal("ticket claimed after Broker account rebinding with the same Wallet key")
+	}
+	if _, err := restarted.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", publicKey, now.Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := restarted.ClaimBrokerOrderHandoff(other, ticketHash, nonce, now.Add(time.Second)); err == nil {
 		t.Fatal("another account claimed the ticket")
 	}
@@ -65,6 +75,15 @@ func TestFreshBrokerOrderHandoffDurableClaimAndOwnerIsolation(t *testing.T) {
 		t.Fatal("expired ticket was claimed")
 	}
 	approvedProof := json.RawMessage(`{"version":"1","signature":"test-proof-for-store-cas-only"}`)
+	if _, err := restarted.PutBrokerSandboxMappingWithWalletKey(account, "11234567-89ab-4cde-8fab-0123456789ab", publicKey, now.Add(2*time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := restarted.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "approved", challenge.Unsigned, approvedProof, strings.Repeat("c", 64), now.Add(2*time.Second)); err == nil {
+		t.Fatal("decision stored after Broker account rebinding with the same Wallet key")
+	}
+	if _, err := restarted.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", publicKey, now.Add(2*time.Second)); err != nil {
+		t.Fatal(err)
+	}
 	tampered := challenge.Unsigned
 	tampered.Order.Symbol = "BETA"
 	if _, err := restarted.StoreBrokerOrderHandoffDecision(account, ticketHash, challenge.Unsigned.RequestID, "approved", tampered, approvedProof, strings.Repeat("c", 64), now.Add(2*time.Second)); err == nil {
@@ -102,5 +121,62 @@ func TestFreshBrokerOrderHandoffDurableClaimAndOwnerIsolation(t *testing.T) {
 	profile, err = json.Marshal(restarted.Account(account))
 	if err != nil || strings.Contains(string(profile), string(approvedProof)) || strings.Contains(string(profile), string(revokedProof)) {
 		t.Fatal("profile exposed a signed decision")
+	}
+}
+
+func TestLegacyCallbackAndOpaqueRecoveryCannotBothWinAcrossStoreInstances(t *testing.T) {
+	const account = "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
+	const publicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
+	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
+	for run := 0; run < 12; run++ {
+		path := filepath.Join(t.TempDir(), "finance.json")
+		first, err := OpenStore(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := first.PutBrokerSandboxMappingWithWalletKey(account, "01234567-89ab-4cde-8fab-0123456789ab", publicKey, now); err != nil {
+			t.Fatal(err)
+		}
+		request := BrokerChallengeRequest{AccountPublicKey: publicKey, FeeBoundEstablished: true, FeeEvidenceRef: "operator-policy:race",
+			Order: FinanceOrderV1{AssetClass: "us_equity", AssetID: "11111111-2222-4333-8444-555555555555", Currency: "USD", FeeBoundSource: "operator_policy", LimitPrice: "10", MaxCost: "10", MaxFee: "0", OrderID: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", OrderType: "limit", Qty: "1", Side: "buy", Symbol: "ACME", TimeInForce: "day"}}
+		challenge, err := first.CreateBrokerOrderChallenge(account, request, now)
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := OpenStore(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		approval := signFinanceApprovalForTest(t, challenge.Unsigned)
+		ticketDigest := sha256.Sum256([]byte(strconv.Itoa(run)))
+		ticketHash := hex.EncodeToString(ticketDigest[:])
+		start := make(chan struct{})
+		legacyResult := make(chan error, 1)
+		recoveryResult := make(chan error, 1)
+		go func() {
+			<-start
+			_, err := first.VerifyAndConsumeBrokerOrder(account, approval, now.Add(time.Minute))
+			legacyResult <- err
+		}()
+		go func() {
+			<-start
+			recoveryResult <- second.RecoverLegacyBrokerOrderHandoff(account, challenge.Unsigned.RequestID, ticketHash, challenge.Unsigned, now.Add(time.Minute), now.Add(30*time.Second))
+		}()
+		close(start)
+		legacyErr, recoveryErr := <-legacyResult, <-recoveryResult
+		if legacyErr == nil && recoveryErr == nil {
+			t.Fatalf("run %d: legacy outbox and opaque ticket both committed", run)
+		}
+		reopened, err := OpenStore(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		outbox := len(reopened.BrokerWorkspace(account, now.Add(time.Minute)).Outbox)
+		if recoveryErr == nil && outbox != 0 {
+			t.Fatalf("run %d: recovered ticket had a legacy outbox", run)
+		}
+		if legacyErr == nil && outbox != 1 {
+			t.Fatalf("run %d: consumed legacy approval had no outbox", run)
+		}
 	}
 }

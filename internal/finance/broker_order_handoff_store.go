@@ -89,30 +89,37 @@ func (s *Store) ClaimBrokerOrderHandoff(account, ticketHash, nonce string, now t
 		return FinanceOrderApprovalUnsignedV1{}, errors.New("confidential claim identity is invalid")
 	}
 	var unsigned FinanceOrderApprovalUnsignedV1
-	err := s.updateAllState(account, "broker.handoff.claimed", ticketHash, func(all *persistedState) error {
-		record, ok := all.BrokerOrderHandoffs[ticketHash]
-		if !ok || record.Account != account || !record.ExpiresAt.After(now.UTC()) || record.DecisionStatus != "" ||
-			len(record.ClaimNonces) >= 5 {
-			return errors.New("confidential ticket is absent, expired or already decided")
+	var err error
+	for attempt := 0; attempt < brokerCASAttempts; attempt++ {
+		err = s.updateAllState(account, "broker.handoff.claimed", ticketHash, func(all *persistedState) error {
+			record, ok := all.BrokerOrderHandoffs[ticketHash]
+			if !ok || record.Account != account || !record.ExpiresAt.After(now.UTC()) || record.DecisionStatus != "" ||
+				len(record.ClaimNonces) >= 5 {
+				return errors.New("confidential ticket is absent, expired or already decided")
+			}
+			owner := all.Accounts[account]
+			challenge, ok := owner.Brokerage.Challenges[record.RequestID]
+			mapping := owner.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
+			if !ok || challenge.ApprovalState != "pending" || mapping.Status != "active" || mapping.Account != account ||
+				mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey || mapping.SubjectID != challenge.Unsigned.SubjectID ||
+				mapping.BrokerAccountID != challenge.Unsigned.BrokerAccountID {
+				return errors.New("confidential ticket no longer has an active owner")
+			}
+			if record.ClaimNonces == nil {
+				record.ClaimNonces = map[string]time.Time{}
+			}
+			if _, replay := record.ClaimNonces[nonce]; replay {
+				return errors.New("confidential claim nonce was already used")
+			}
+			record.ClaimNonces[nonce] = record.ExpiresAt
+			all.BrokerOrderHandoffs[ticketHash] = record
+			unsigned = challenge.Unsigned
+			return nil
+		})
+		if !errors.Is(err, errFinanceStateConflict) {
+			break
 		}
-		owner := all.Accounts[account]
-		challenge, ok := owner.Brokerage.Challenges[record.RequestID]
-		mapping := owner.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
-		if !ok || challenge.ApprovalState != "pending" || mapping.Status != "active" || mapping.Account != account ||
-			mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey {
-			return errors.New("confidential ticket no longer has an active owner")
-		}
-		if record.ClaimNonces == nil {
-			record.ClaimNonces = map[string]time.Time{}
-		}
-		if _, replay := record.ClaimNonces[nonce]; replay {
-			return errors.New("confidential claim nonce was already used")
-		}
-		record.ClaimNonces[nonce] = record.ExpiresAt
-		all.BrokerOrderHandoffs[ticketHash] = record
-		unsigned = challenge.Unsigned
-		return nil
-	})
+	}
 	return unsigned, err
 }
 
@@ -225,7 +232,8 @@ func (s *Store) RecoverLegacyBrokerOrderHandoff(account, requestID, ticketHash s
 			mapping := owner.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
 			if !ok || challenge.ApprovalState != "pending" || challenge.Unsigned.Account != account ||
 				string(mustFinanceCanonical(challenge.Unsigned)) != string(mustFinanceCanonical(expected)) ||
-				mapping.Status != "active" || mapping.Account != account || mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey {
+				mapping.Status != "active" || mapping.Account != account || mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey ||
+				mapping.SubjectID != challenge.Unsigned.SubjectID || mapping.BrokerAccountID != challenge.Unsigned.BrokerAccountID {
 				return errors.New("legacy challenge changed or mapping is inactive")
 			}
 			issued, issueErr := parseFinanceMilliseconds(challenge.Unsigned.IssuedAt)
@@ -275,43 +283,50 @@ func (s *Store) StoreBrokerOrderHandoffDecision(account, ticketHash, verifiedReq
 	proofDigest := sha256.Sum256(compactProof)
 	proofHash := hex.EncodeToString(proofDigest[:])
 	var result BrokerOrderHandoffRecord
-	err := s.updateAllState(account, "broker.handoff.decision_stored", ticketHash, func(all *persistedState) error {
-		record, ok := all.BrokerOrderHandoffs[ticketHash]
-		if !ok || record.Account != account || record.RequestID != verifiedRequestID || !record.ExpiresAt.After(now.UTC()) ||
-			len(record.ClaimNonces) == 0 || record.CodeConsumedAt != nil {
-			return errors.New("confidential ticket is absent, unclaimed, expired or already consumed")
+	var err error
+	for attempt := 0; attempt < brokerCASAttempts; attempt++ {
+		err = s.updateAllState(account, "broker.handoff.decision_stored", ticketHash, func(all *persistedState) error {
+			record, ok := all.BrokerOrderHandoffs[ticketHash]
+			if !ok || record.Account != account || record.RequestID != verifiedRequestID || !record.ExpiresAt.After(now.UTC()) ||
+				len(record.ClaimNonces) == 0 || record.CodeConsumedAt != nil {
+				return errors.New("confidential ticket is absent, unclaimed, expired or already consumed")
+			}
+			owner := all.Accounts[account]
+			challenge, ok := owner.Brokerage.Challenges[verifiedRequestID]
+			mapping := owner.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
+			if !ok || challenge.ApprovalState != "pending" || mapping.Status != "active" || mapping.Account != account ||
+				mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey || mapping.SubjectID != challenge.Unsigned.SubjectID ||
+				mapping.BrokerAccountID != challenge.Unsigned.BrokerAccountID ||
+				challenge.Unsigned.CallbackStateHash == "" ||
+				string(mustFinanceCanonical(challenge.Unsigned)) != string(mustFinanceCanonical(expectedChallenge)) {
+				return errors.New("confidential decision no longer has the original pending owner")
+			}
+			if record.DecisionStatus != "" && !((record.DecisionStatus == status && record.DecisionProofHash == proofHash) ||
+				(record.DecisionStatus == "approved" && status == "revoked")) {
+				return errors.New("conflicting confidential order decision")
+			}
+			codeExpires := now.UTC().Add(time.Minute)
+			if codeExpires.After(record.ExpiresAt) {
+				codeExpires = record.ExpiresAt
+			}
+			if !codeExpires.After(now.UTC()) {
+				return errors.New("confidential callback code cannot outlive the challenge")
+			}
+			record.DecisionStatus = status
+			record.DecisionProof = append(json.RawMessage(nil), compactProof...)
+			record.DecisionProofHash = proofHash
+			record.CodeHash = codeHash
+			record.CodeExpiresAt = codeExpires
+			if validateBrokerOrderHandoff(*all, ticketHash, record) != nil {
+				return errors.New("confidential decision failed durable state validation")
+			}
+			all.BrokerOrderHandoffs[ticketHash] = record
+			result = record
+			return nil
+		})
+		if !errors.Is(err, errFinanceStateConflict) {
+			break
 		}
-		owner := all.Accounts[account]
-		challenge, ok := owner.Brokerage.Challenges[verifiedRequestID]
-		mapping := owner.Brokerage.Mappings[brokerMappingKey(FinanceOrderProvider, FinanceOrderTradingEnv)]
-		if !ok || challenge.ApprovalState != "pending" || mapping.Status != "active" || mapping.Account != account ||
-			mapping.WalletPublicKey != challenge.Unsigned.AccountPublicKey ||
-			challenge.Unsigned.CallbackStateHash == "" ||
-			string(mustFinanceCanonical(challenge.Unsigned)) != string(mustFinanceCanonical(expectedChallenge)) {
-			return errors.New("confidential decision no longer has the original pending owner")
-		}
-		if record.DecisionStatus != "" && !((record.DecisionStatus == status && record.DecisionProofHash == proofHash) ||
-			(record.DecisionStatus == "approved" && status == "revoked")) {
-			return errors.New("conflicting confidential order decision")
-		}
-		codeExpires := now.UTC().Add(time.Minute)
-		if codeExpires.After(record.ExpiresAt) {
-			codeExpires = record.ExpiresAt
-		}
-		if !codeExpires.After(now.UTC()) {
-			return errors.New("confidential callback code cannot outlive the challenge")
-		}
-		record.DecisionStatus = status
-		record.DecisionProof = append(json.RawMessage(nil), compactProof...)
-		record.DecisionProofHash = proofHash
-		record.CodeHash = codeHash
-		record.CodeExpiresAt = codeExpires
-		if validateBrokerOrderHandoff(*all, ticketHash, record) != nil {
-			return errors.New("confidential decision failed durable state validation")
-		}
-		all.BrokerOrderHandoffs[ticketHash] = record
-		result = record
-		return nil
-	})
+	}
 	return result, err
 }
