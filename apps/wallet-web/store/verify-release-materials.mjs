@@ -29,6 +29,17 @@ export async function verifyReleaseMaterials(){
   assert.equal(readiness.candidateReceipt.artifacts.length,3);
   for(const artifact of readiness.candidateReceipt.artifacts){assert.ok(Number.isSafeInteger(artifact.bytes)&&artifact.bytes>0);assert.match(artifact.sha256,/^[0-9a-f]{64}$/u);assert.equal(artifact.name.endsWith(".zip"),true)}
   const identity=items=>items.map(({name,bytes,sha256})=>({name,bytes,sha256}));
+  const [followup,followupManifest]=await Promise.all([json(join(store,"revocation-followup-candidate-20260925.json")),json(join(store,"revocation-followup-artifact-manifest.json"))]);
+  assert.equal(followup.class,"local-followup-candidate");
+  assert.equal(followup.previousStoreCandidateCommit,candidate.sourceCommit);
+  assert.equal(followup.sourceCommit,followupManifest.sourceCommit);
+  assert.deepEqual(followup.artifacts,identity(followupManifest.artifacts));
+  assert.notEqual(followup.sourceCommit,candidate.sourceCommit);
+  for(const key of ["installedLocal","deployedPublic","downloadHosted","productionSigned","storeReleased"])assert.equal(followup[key],false);
+  assert.deepEqual(followup.reviewerSource.cleanExtractedRebuild,{verifiedSourceFiles:249,verifiedOutputFiles:110,authorityArchiveSha256:"4a7eed2da6b1626cce94713a0d4420c56ebedef0d71ee39b7e2cd9bc6762ead7",gitRepositoryRequired:false,externalDependencySymlinks:false,allBytesMatch:true});
+  const followupSource=await readFile(join(store,"reviewer-archives",followup.reviewerSource.name));
+  assert.equal(followupSource.length,followup.reviewerSource.bytes);
+  assert.equal(createHash("sha256").update(followupSource).digest("hex"),followup.reviewerSource.sha256);
   assert.equal(readiness.publicDownloads.sourceCommit,published.sourceCommit);
   assert.equal(readiness.candidateCommit,candidate.sourceCommit);
   assert.equal(evidence.sourceCommit,candidate.sourceCommit);
@@ -94,7 +105,7 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   console.log(JSON.stringify(await verifyReleaseMaterials(),null,2));
   if(process.argv[2]==="--require-local-candidate"){
     execFileSync(process.execPath,[join(root,"scripts","verify-package.mjs")],{
-      cwd:root,stdio:"inherit",env:{...process.env,YNX_WALLET_WEB_ARTIFACT_MANIFEST:join(store,"candidate-artifact-manifest.json")},
+      cwd:root,stdio:"inherit",env:{...process.env,YNX_WALLET_WEB_ARTIFACT_MANIFEST:join(store,"revocation-followup-artifact-manifest.json")},
     });
   }
 }
