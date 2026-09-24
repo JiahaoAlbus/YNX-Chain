@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "ynx.finance.evm-login-stacked-source-build.v1",
+  "truthStatus": "STACKED_SOURCE_BUILD_ONLY",
+  "financeImplementationCommit": "cb3b7939b90551778da8a92806f08c71048c8056",
+  "financeImplementationTree": "6f3a7360764c232a651040d204726987e6e179b3",
+  "financeBranch": "codex/finance-wallet-login-stacked-pr188-20260924",
+  "financeBaseCommit": "3936345dba1e1221e4031896eba68371c7384c85",
+  "walletDependency": {
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/188",
+    "candidateCommit": "474e5f619a16caa5f7190750dad8b1ffebc500dd",
+    "mergedToMain": false,
+    "reviewDecisionAtFreeze": "REVIEW_REQUIRED",
+    "integrationMode": "isolated stacked branch; no Wallet-owner source edited in the Finance implementation commit"
+  },
+  "behavior": {
+    "standardWallet": "selected EIP-1193 provider, approved account, and provider eth_chainId 0x1917 remain independent",
+    "explicitSignature": "personal_sign is requested only after the user clicks Verify Wallet identity; displayed UTF-8 message must equal the signed hex payload",
+    "serverProof": "canonical Wallet/Auth package-root challenge and verifier; exact Origin, account, provider, chain, nonce, requestId and scope are bound; durable once-only consumption survives a second Store instance",
+    "privateFinanceAuthorization": false,
+    "providerWriteAttempted": false,
+    "chainTransactionAttempted": false
+  },
+  "candidate": {
+    "localArchive": "/tmp/ynx-finance-pr188-cb3b7939-linux-amd64.tar.gz",
+    "archiveBytes": 30584972,
+    "archiveSha256": "5f46fdcd233289bc8a2eed5f54d159091b760d3ce76eb8be8ee901a778e51784",
+    "sidecarSha256": "db316ac2c715aa1732e89e5e66d20b5fcab4cd5bcf0b048a7b3cfeeb7dd3744b",
+    "repeatedBuildByteExact": true,
+    "platform": "linux/amd64",
+    "binaryBytes": 20709524,
+    "binarySha256": "54b6c1d6ef370dc895408c9d9c298352c88a069bc16dac3ca36b0ac56190c46e",
+    "standaloneVerifierBytes": 104815,
+    "standaloneVerifierSha256": "a38f4fb4559adbf4bc99fb4f4195362a3e9821314bd24b16b7255670a22ae114",
+    "webWalletBundleBytes": 181400,
+    "webWalletBundleSha256": "e04e757f20ff98ef3bbd97ac294c1e6c022c6e93edd1c441e30ac03c1959ed1b"
+  },
+  "tests": {
+    "financeNode": "npm --prefix apps/finance test: 84/84 pass",
+    "financeGo": "go test ./internal/finance ./apps/finance/cmd/server -count=1: pass",
+    "financeRace": "go test -race ./internal/finance -count=1: pass",
+    "walletBundle": "npm --prefix apps/finance/web run verify:wallet: pass, two byte-exact rebuilds",
+    "security": "npm --prefix apps/finance run security: pass, 276 text files",
+    "officialRepository": "npm ci --ignore-scripts && make contract-tooling-check && make test: pass; generated ignored contract artifacts before the official Go test target",
+    "bareRepositoryGoDiagnostic": "go test ./... -count=1 without repository contract generation: fails outside Finance in apps/quant-lab/scripts duplicate declarations and missing generated artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json"
+  },
+  "releaseTruth": {
+    "publicDeployed": false,
+    "installedWalletApproved": false,
+    "realBrowserProviderApproved": false,
+    "privateProductSessionProven": false,
+    "downloadHosted": false,
+    "rollbackRequired": false,
+    "reason": "No production write or release switch was performed; this is a local immutable candidate pending Wallet PR review and an independent Finance deployment lease."
+  }
+}
