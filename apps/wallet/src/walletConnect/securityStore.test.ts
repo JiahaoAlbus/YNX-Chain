@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { WalletConnectSessionApproval } from "@ynx-chain/wallet-auth";
+import { WalletConnectRequestReplayStore, type WalletConnectSessionApproval } from "@ynx-chain/wallet-auth";
 import { WalletConnectSecurityStore } from "./securityStore";
 
 class MemoryStorage{value:string|null=null;async getItem(){return this.value}async setItem(_key:string,value:string){this.value=value}async removeItem(){this.value=null}}
@@ -38,4 +38,20 @@ test("full reconciliation prunes approvals for sessions deleted while the UI was
 test("full reconciliation is bounded to fifty active sessions",async()=>{
   const store=new WalletConnectSecurityStore(new MemoryStorage() as any);
   await assert.rejects(store.reconcileActiveSessions(Array.from({length:51},(_,index)=>({topic:String(index).padStart(64,"0"),namespaces:namespaces as any})),account),/limit exceeded/);
+});
+
+test("concurrent session and replay writes are serialized without lost updates",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);
+  const replay=new WalletConnectRequestReplayStore([{key:`${topic}:7`,requestDigest:"e".repeat(64),expiresAt:"2099-09-21T00:00:00.000Z",status:"reserved"}]);
+  await Promise.all([store.saveSession(approval),store.saveReplay(replay)]);
+  const loaded=await store.load();
+  assert.deepEqual(loaded.sessions,[approval]);
+  assert.deepEqual(loaded.replayStore.snapshot(),replay.snapshot());
+});
+
+test("oversized state is rejected before secure storage is mutated",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);
+  const oversized={...approval,peer:{...approval.peer,metadata:{...approval.peer.metadata,name:"x".repeat(512_000)}}};
+  await assert.rejects(store.saveSession(oversized as WalletConnectSessionApproval),/exceeds policy/);
+  assert.equal(storage.value,null);
 });
