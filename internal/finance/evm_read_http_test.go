@@ -141,6 +141,31 @@ func TestEVMReadHTTPRealWalletProofDurableOwnershipAndRevoke(t *testing.T) {
 	target := evmReadPortfolioPath + "?view=balances"
 	readInput := map[string]any{"method": "GET", "target": target, "bodyDigest": evmReadEmptyBodyDigest, "nonce": "finance_read_nonce_0123456789abcdef", "issuedAt": evmReadTime(clock), "expiresAt": evmReadTime(clock.Add(30 * time.Second))}
 	readProof := evmReadFixture(t, node, fixture, map[string]any{"action": "read", "session": session, "request": readInput})
+	// The exact EVM device proof authorizes only the read endpoint. It must not
+	// be accepted as a native Product Session or order-approval authority.
+	for _, privateTarget := range []struct {
+		method string
+		path   string
+		body   string
+	}{
+		{method: http.MethodGet, path: "/api/broker/orders"},
+		{method: http.MethodPost, path: "/api/broker/challenges", body: `{}`},
+	} {
+		privateRequest, err := http.NewRequest(privateTarget.method, ts.URL+privateTarget.path, strings.NewReader(privateTarget.body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		privateRequest.Header.Set("Origin", BrowserFinanceOrigin)
+		privateRequest.Header.Set(evmReadProofHeader, base64.RawURLEncoding.EncodeToString(readProof))
+		privateResponse, err := http.DefaultClient.Do(privateRequest)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = privateResponse.Body.Close()
+		if privateResponse.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("EVM read proof crossed private order boundary: %s %s returned %d", privateTarget.method, privateTarget.path, privateResponse.StatusCode)
+		}
+	}
 	response, portfolio := evmReadGET(t, ts.URL+target, readProof, BrowserFinanceOrigin)
 	if response.StatusCode != http.StatusOK || portfolio["account"] != identity.Account || portfolio["privateFinanceAuthorized"] != false || portfolio["evmAccountReadAuthorized"] != true {
 		t.Fatalf("EVM account-bound read failed: status=%d body=%#v", response.StatusCode, portfolio)
