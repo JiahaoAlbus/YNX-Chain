@@ -1,0 +1,25 @@
+[Unit]
+Description=YNX Quant current-source public candidate
+After=network-online.target ynx-quant-exchange.service
+Wants=network-online.target ynx-quant-exchange.service
+
+[Service]
+Type=simple
+User=ynx
+Group=ynx
+WorkingDirectory=/opt/ynx-quant/releases/9596d94f
+EnvironmentFile=/etc/ynx/ynx-quant.env
+ExecStart=/usr/bin/env YNX_QUANT_HTTP_ADDR=127.0.0.1:18448 YNX_QUANT_STATE_PATH=/var/lib/ynx-quant/candidate-9596d94f.json /opt/ynx-quant/releases/9596d94f/ynx-quant
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-quant
+MemoryMax=768M
+TasksMax=256
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

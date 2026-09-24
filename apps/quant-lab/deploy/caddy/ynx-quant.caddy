@@ -1,0 +1,18 @@
+quant.ynxweb4.com, quant-testnet.43.153.202.237.sslip.io {
+  encode zstd gzip
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options nosniff
+    Referrer-Policy no-referrer
+  }
+
+  handle_path /downloads/* {
+    root * /opt/ynx-quant/downloads
+    header Content-Disposition "attachment"
+    file_server
+  }
+
+  handle {
+    reverse_proxy 127.0.0.1:18444
+  }
+}

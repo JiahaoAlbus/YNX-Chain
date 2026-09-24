@@ -5,29 +5,26 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>YNX Quant Lab</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <a class="skip" href="#workspace" data-i18n="research">Research</a>
     <header>
-      <div class="brand">
-        <img src="ynx-logo.png" alt="YNX" />
-        <div>
-          <p class="eyebrow">YNX FINANCIAL LABS</p>
-          <h1>Quant</h1>
-        </div>
+      <div>
+        <p class="eyebrow">YNX QUANT LAB</p>
+        <h1 data-i18n="tagline">Research, paper & testnet</h1>
       </div>
-      <div class="header-actions">
-        <a href="https://ynxweb4.com/dapp/quant">Product guide</a>
-        <div class="mode"><span></span><b data-i18n="mode">SIMULATED / TESTNET ONLY</b></div>
-      </div>
+      <div class="wallet-controls"><button id="connect-wallet" type="button">Connect YNX Wallet</button><button id="connect-metamask" type="button">Use MetaMask</button><button id="wallet-details" type="button" hidden>Wallet details</button><button id="wallet-disconnect" type="button" hidden>Disconnect wallet</button><button id="wallet-switch" type="button" hidden>Switch wallet</button><button id="wallet-revoke" type="button" hidden>Revoke wallet access</button><a id="install-wallet" href="https://www.ynxweb4.com/dapp/download">Download YNX Wallet</a><a id="install-metamask" href="https://metamask.io/download/">Download MetaMask</a><small id="wallet-status" role="status" aria-live="polite">Wallet not connected — Research and Paper are still available</small><small id="wallet-details-text" hidden></small></div>
+      <div class="mode"><span></span><b data-i18n="mode">SIMULATED / TESTNET ONLY</b></div>
     </header>
+      <div class="private-session-controls"><button id="private-sign-in" type="button">Sign in to private Quant account</button><a id="private-open-wallet" hidden rel="noopener noreferrer">Open YNX Wallet — installation unverified</a><button id="private-retry" type="button">Retry private session</button><button id="private-account" type="button">Verify private account</button><button id="private-sign-out" type="button">Sign out private session</button><small id="private-session-status" role="status" aria-live="polite">Private sign-in is optional. No native Wallet handler has been verified; Standard Wallet and Paper remain independent.</small></div>
     <div class="shell">
       <aside>
         <nav aria-label="Quant Lab">
           <button class="active" data-view="research" data-i18n="research">Research</button
           ><button data-view="strategies" data-i18n="strategies">Strategies</button
           ><button data-view="experiments" data-i18n="experiments">Experiments</button
+          ><button data-view="portfolio" data-business-i18n="portfolio">Portfolio</button
           ><button data-view="paper" data-i18n="paper">Paper</button
           ><button data-view="testnet" data-i18n="testnet">Testnet</button
           ><button data-view="risk" data-i18n="risk">Risk</button
@@ -52,6 +49,7 @@
         </footer>
       </aside>
       <main id="workspace">
+        <p id="workspace-boundary" class="notice" role="status">Public research is stateless and uses traceable market history. Saved strategies, schedules and simulated Paper funds require a locally authorized workspace; private Wallet sign-in does not grant this authority. No live execution is enabled.</p>
         <div class="toolbar">
           <div>
             <strong id="view-title">Research</strong
@@ -62,17 +60,9 @@
           </div>
           <button id="refresh" data-i18n="refresh">Refresh</button>
         </div>
-        <section class="market-strip" aria-label="Live research status">
-          <div><small>MARKET</small><strong>YNXT / YUSD_TEST</strong></div>
-          <div><small>DATA</small><strong id="market-status">Checking…</strong></div>
-          <div><small>OBSERVED BARS</small><strong id="market-bars">—</strong></div>
-          <div><small>USER STATE</small><strong>Isolated per run</strong></div>
-          <div><small>LIVE FUNDS</small><strong class="danger">Disabled</strong></div>
-        </section>
         <section id="research" class="view active">
           <div class="split">
             <div>
-              <p class="section-kicker">PUBLIC RESEARCH WORKSPACE</p>
               <h2 data-i18n="runTitle">Run a reproducible experiment</h2>
               <p class="lead" data-i18n="runLead">
                 Out-of-sample by construction. Fees, slippage, participation,
@@ -116,13 +106,13 @@
                       min="0"
                   /></label>
                 </div>
-                <button id="run-backtest" class="primary" data-i18n="runAction">Run out-of-sample backtest</button>
+                <button class="primary" data-i18n="runAction">Run out-of-sample backtest</button>
               </form>
-              <div id="latest-result" class="result-card" hidden>
-                <div><small>OOS RETURN</small><strong id="result-return">—</strong></div>
-                <div><small>BUY / HOLD</small><strong id="result-baseline">—</strong></div>
-                <div><small>MAX DRAWDOWN</small><strong id="result-drawdown">—</strong></div>
-                <div><small>TRADES</small><strong id="result-trades">—</strong></div>
+              <div id="latest-result" hidden>
+                <h3>Latest research result</h3>
+                <dl><div><dt>OOS return</dt><dd id="result-return">—</dd></div><div><dt>Buy/hold</dt><dd id="result-baseline">—</dd></div><div><dt>Maximum drawdown</dt><dd id="result-drawdown">—</dd></div><div><dt>Sharpe</dt><dd id="result-sharpe">—</dd></div><div><dt>Volatility</dt><dd id="result-volatility">—</dd></div></dl>
+                <p>Sharpe = mean equity-period return / sample standard deviation × √period count (zero risk-free rate). Volatility is sample standard deviation in basis points. These are sample-period, not annualized metrics. Drawdown is the largest peak-to-trough equity decline.</p>
+                <figure id="equity-figure" hidden><svg id="equity-chart" viewBox="0 0 720 220" role="img" aria-label="Measured strategy and buy-hold equity"></svg><figcaption>Blue: measured strategy equity · Grey: buy/hold benchmark. All costs use the selected model, not promised returns.</figcaption></figure>
               </div>
             </div>
             <aside class="inspector">
@@ -148,10 +138,6 @@
                   <dt data-i18n="liveFunds">Live funds</dt>
                   <dd class="danger" data-i18n="disabled">Disabled</dd>
                 </div>
-                <div>
-                  <dt>Public state</dt>
-                  <dd>Per-request</dd>
-                </div>
               </dl>
             </aside>
           </div>
@@ -173,6 +159,7 @@
                   <th>Stage</th>
                   <th>Source hash</th>
                   <th>License</th>
+                  <th>Research schedule</th>
                 </tr>
               </thead>
               <tbody id="strategy-rows"></tbody>
@@ -190,6 +177,8 @@
                   <th>OOS return</th>
                   <th>Buy/hold</th>
                   <th>Drawdown</th>
+                  <th>Sharpe</th>
+                  <th>Volatility</th>
                   <th>Trades</th>
                   <th>Partial</th>
                   <th>Sensitivity</th>
@@ -205,6 +194,24 @@
             </table>
           </div>
         </section>
+        <section id="portfolio" class="view">
+          <h2 data-business-i18n="portfolio">Portfolio</h2>
+          <p class="lead" data-business-i18n="portfolioLead">YNX Testnet native balance reported by your selected wallet at a specific block. Exchange balances, strategy positions and Paper funds are not included.</p>
+          <p id="wallet-portfolio-status" role="status" aria-live="polite"></p>
+          <button id="wallet-portfolio-refresh" type="button" class="secondary" data-i18n="refresh">Refresh</button>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr><th scope="row" data-business-i18n="account">Account</th><td id="wallet-portfolio-account">—</td></tr>
+                <tr><th scope="row" data-business-i18n="provider">Wallet provider</th><td id="wallet-portfolio-provider">—</td></tr>
+                <tr><th scope="row" data-business-i18n="balance">Native balance</th><td id="wallet-portfolio-balance">—</td></tr>
+                <tr><th scope="row" data-business-i18n="block">Block</th><td id="wallet-portfolio-block">—</td></tr>
+                <tr><th scope="row" data-business-i18n="observed">Observed</th><td id="wallet-portfolio-observed">—</td></tr>
+                <tr><th scope="row" data-business-i18n="source">Source</th><td id="wallet-portfolio-source">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
         <section id="paper" class="view">
           <div class="split">
             <div>
@@ -213,8 +220,10 @@
                 Simulated balance with volume participation and partial-fill
                 assumptions. No order reaches the Exchange API.
               </p>
+              <p class="lead" data-business-i18n="paperWorkspaceLead">This browser's Paper workspace is stored by the Quant service. It is independent of the connected wallet; changing wallets does not change or transfer its simulated funds.</p>
               <form id="paper-order">
                 <div class="fields">
+                  <label><span data-business-i18n="strategy">Saved strategy</span><select id="paper-strategy" required></select></label>
                   <label
                     >Side<select id="side">
                       <option>buy</option>
@@ -227,8 +236,9 @@
                       value="2000000" /></label
                   >
                 </div>
-                <button class="primary" data-i18n="paperAction">Submit simulated signal</button>
+                <button id="paper-submit" class="primary" data-i18n="paperAction">Submit simulated signal</button>
               </form>
+              <p id="paper-strategy-status" role="status" aria-live="polite"></p>
             </div>
             <aside class="inspector" id="paper-state"></aside>
           </div>
@@ -239,10 +249,70 @@
             <strong data-i18n="failClosed">Fail closed</strong>
             <p data-i18n="mandateBoundary">
               Requires a canonical Wallet-signed mandate binding strategy hash,
-              market, notional, position, daily loss and expiry. No central
-              registration is present, so testnet execution is unavailable.
-              Real-money auto-trading is structurally disabled.
+              market, notional, position, daily loss and expiry. Every order
+              requires a separate Wallet signature and a fresh one-time Quant
+              Product Session proof. Real-money auto-trading is structurally disabled.
             </p>
+            <p id="testnet-execution-boundary" data-business-i18n="executionUnavailable">Testnet execution is unavailable: a Standard Wallet connection does not provide the native YNX mandate signature or a one-time Quant Product Session proof. Preview is read-only; no account authority is inferred.</p>
+            <div class="table-wrap"><table><thead><tr><th>Venue order</th><th>Market</th><th>Side</th><th>Amount</th><th>Venue status</th><th>Authorization receipt</th></tr></thead><tbody id="testnet-execution-rows"></tbody></table></div>
+          </div>
+          <div class="split testnet-workspace">
+            <form id="mandate-form">
+              <h3>1 · Authorize a bounded strategy</h3>
+              <p class="lead">Connect YNX Wallet, preview the exact Exchange mandate, sign it in Wallet, then register it with a fresh one-time Quant Product Session proof. The proof is never saved.</p>
+              <div class="fields">
+                <label>YNX account<input id="mandate-account" placeholder="ynx1…" autocomplete="off" required /></label>
+                <label>Strategy SHA-256<input id="mandate-strategy" minlength="64" maxlength="64" autocomplete="off" required /></label>
+                <label>Max order notional<input id="mandate-notional" type="number" value="2000000" min="1" required /></label>
+                <label>Aggregate capital / position<input id="mandate-position" type="number" value="2000000" min="1" required /></label>
+                <label>Max daily loss<input id="mandate-loss" type="number" value="500000" min="1" required /></label>
+                <label>Expiry (minutes)<input id="mandate-expiry" type="number" value="60" min="1" max="1440" required /></label>
+                <label>Max slippage (bps)<input id="mandate-slippage" type="number" value="50" min="1" max="10000" required /></label>
+                <label>Max gas<input id="mandate-gas" type="number" value="10000" min="1" required /></label>
+                <label>Orders / minute<input id="mandate-frequency" type="number" value="10" min="1" max="60" required /></label>
+                <label>Max leverage (bps)<input id="mandate-leverage" type="number" value="20000" min="1" required /></label>
+                <label>Max drawdown<input id="mandate-drawdown" type="number" value="500000" min="1" required /></label>
+                <label>Minimum liquidity<input id="mandate-liquidity" type="number" value="2000000" min="1" required /></label>
+                <label>Max VaR<input id="mandate-var" type="number" value="300000" min="1" required /></label>
+                <label>Max expected shortfall<input id="mandate-es" type="number" value="400000" min="1" required /></label>
+                <label>Max depeg (bps)<input id="mandate-depeg" type="number" value="100" min="1" max="10000" required /></label>
+                <label>Max concentration (bps)<input id="mandate-concentration" type="number" value="5000" min="1" max="10000" required /></label>
+                <label>Max cancel rate (bps)<input id="mandate-cancel-rate" type="number" value="5000" min="1" max="10000" required /></label>
+                <label>Max consecutive API failures<input id="mandate-api-failures" type="number" value="3" min="1" required /></label>
+                <label class="wide">Wallet mandate signature<input id="mandate-signature" type="password" autocomplete="off" required /></label>
+              </div>
+              <div class="actions"><button id="preview-mandate" type="button" class="secondary">Preview exact signing payload</button><button class="primary">Register mandate</button></div>
+              <pre id="mandate-payload" class="payload" hidden></pre>
+            </form>
+            <form id="testnet-order-form">
+              <h3>2 · Submit an independently signed order</h3>
+              <p class="lead">The risk snapshot is checked before the remote call. The Exchange then rechecks the mandate, Wallet session, order signature, capital and idempotency key.</p>
+              <div class="fields">
+                <label class="wide">Mandate digest<input id="order-mandate" minlength="64" maxlength="64" required /></label>
+                <label>Side<select id="order-side"><option>buy</option><option>sell</option></select></label>
+                <label>Limit price<input id="order-price" type="number" value="1000000" min="1" required /></label>
+                <label>Amount<input id="order-amount" type="number" value="1000000" min="1" required /></label>
+                <label>Reference price<input id="risk-reference" type="number" value="1000000" min="1" required /></label>
+                <label>Estimated gas<input id="risk-gas" type="number" value="100" min="0" required /></label>
+                <label>Observed daily loss<input id="risk-loss" type="number" value="0" min="0" required /></label>
+                <label>Equity<input id="risk-equity" type="number" value="10000000" min="1" required /></label>
+                <label>Gross exposure<input id="risk-exposure" type="number" value="1000000" min="0" required /></label>
+                <label>Peak equity<input id="risk-peak" type="number" value="10000000" min="1" required /></label>
+                <label>Current equity<input id="risk-current" type="number" value="9900000" min="0" required /></label>
+                <label>Available liquidity<input id="risk-liquidity" type="number" value="10000000" min="0" required /></label>
+                <label>Depeg (bps)<input id="risk-depeg" type="number" value="5" min="0" required /></label>
+                <label>Concentration (bps)<input id="risk-concentration" type="number" value="2000" min="0" required /></label>
+                <label>Orders observed<input id="risk-orders" type="number" value="10" min="0" required /></label>
+                <label>Cancels observed<input id="risk-cancels" type="number" value="1" min="0" required /></label>
+                <label>Consecutive API failures<input id="risk-api-failures" type="number" value="0" min="0" required /></label>
+                <label>VaR<input id="risk-var" type="number" value="100000" min="0" required /></label>
+                <label>Expected shortfall<input id="risk-es" type="number" value="150000" min="0" required /></label>
+                <label class="wide">Idempotency key<input id="order-key" minlength="8" maxlength="128" autocomplete="off" required /></label>
+                <label class="wide">Wallet order signature<input id="order-signature" type="password" autocomplete="off" required /></label>
+              </div>
+              <div class="actions"><button id="preview-order" type="button" class="secondary">Preview exact signing payload</button><button class="primary">Submit to YNX Testnet</button></div>
+              <pre id="order-payload" class="payload" hidden></pre>
+            </form>
           </div>
         </section>
         <section id="risk" class="view">
@@ -262,7 +332,8 @@
         <div id="toast" role="status" aria-live="polite"></div>
       </main>
     </div>
-    <script src="i18n.js"></script>
-    <script src="app.js"></script>
+    <script src="/wallet-auth.js"></script>
+    <script src="/i18n.js"></script>
+    <script src="/app.js"></script>
   </body>
 </html>

@@ -349,9 +349,16 @@ def validate_contract(contract: dict[str, Any], release: dict[str, Any], registr
     for field in RELEASE_FIELDS:
         if release_status.get(field) is not release.get(field):
             fail(f"releaseStatus.{field} disagrees with product-release.json")
-    for field in ("integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"):
+    for field in ("integratedCentral", "deployedStaging", "productionSigned", "storeReleased"):
         if release_status.get(field) is not False:
             fail(f"{field} cannot be true without direct central/public evidence")
+    if release_status.get("deployedPublic") is not True:
+        fail("public research deployment evidence is missing")
+    if release_status.get("downloadHosted") is not True:
+        fail("direct Testnet candidate download evidence is missing")
+    public_runtime = release.get("publicRuntime")
+    if not isinstance(public_runtime, dict) or public_runtime.get("mode") != "simulated_testnet_only" or public_runtime.get("liveFundsEnabled") is not False:
+        fail("public Quant runtime must remain an explicitly simulated, no-live-funds preview")
 
     execution = contract.get("execution")
     if not isinstance(execution, dict) or execution.get("schemaVersion") != "ynx.quant.execution.v1":

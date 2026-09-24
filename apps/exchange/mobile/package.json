@@ -7,14 +7,14 @@
     "start": "expo start",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
-    "bundle-check": "expo export --platform android --platform ios --output-dir dist",
+    "verify:canonical-authorize": "node scripts/verify-canonical-authorize.mjs",
+    "bundle-check": "npm run verify:canonical-authorize && expo export --platform android --platform ios --output-dir dist",
     "i18n-check": "tsx src/i18n.check.ts",
     "check": "npm run typecheck && npm test && npm run i18n-check && npm run bundle-check"
   },
   "dependencies": {
-    "@noble/curves": "2.2.0",
-    "@noble/hashes": "2.2.0",
-    "@ynx-chain/wallet-auth": "file:../../../packages/wallet-auth",
+    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0.tgz",
+    "@ynx/dapp-connect-sdk": "file:vendor/ynx-dapp-connect-sdk-0.1.0-p0.0.tgz",
     "expo": "~57.0.4",
     "expo-crypto": "~57.0.0",
     "expo-linking": "~57.0.0",

@@ -7,7 +7,9 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"sync"
@@ -21,9 +23,11 @@ import (
 var allowedScopes = map[string]bool{"exchange:read": true, "exchange:trade": true, "exchange:deposit": true, "exchange:withdraw": true, "exchange:withdrawal-review": true, "exchange:ai": true}
 
 type Service struct {
-	mu    sync.Mutex
-	cfg   Config
-	state persistentState
+	mu        sync.Mutex
+	requestMu sync.Mutex
+	cfg       Config
+	store     stateStore
+	state     persistentState
 }
 
 type CompleteSessionRequest struct {
@@ -39,6 +43,7 @@ type PlaceOrderRequest struct {
 	PriceMicro      int64  `json:"priceMicro"`
 	AmountMicro     int64  `json:"amountMicro"`
 	IdempotencyKey  string `json:"idempotencyKey"`
+	WalletPublicKey string `json:"walletPublicKey"`
 	WalletSignature string `json:"walletSignature"`
 }
 
@@ -53,6 +58,7 @@ type WithdrawalReviewRequest struct {
 
 func New(cfg Config) (*Service, error) {
 	cfg.StatePath = strings.TrimSpace(cfg.StatePath)
+	cfg.DatabaseURL = strings.TrimSpace(cfg.DatabaseURL)
 	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
 	cfg.WalletCallback = strings.TrimSpace(cfg.WalletCallback)
 	if cfg.Now == nil {
@@ -79,7 +85,7 @@ func New(cfg Config) (*Service, error) {
 	cfg.GatewayURL = strings.TrimRight(strings.TrimSpace(cfg.GatewayURL), "/")
 	cfg.GatewayClientID = strings.TrimSpace(cfg.GatewayClientID)
 	cfg.IndexerURL = strings.TrimRight(strings.TrimSpace(cfg.IndexerURL), "/")
-	if cfg.StatePath == "" || len(cfg.APIKey) < 16 || cfg.WalletCallback == "" || cfg.RequiredConfirmations < 1 || cfg.MakerFeeBPS < 0 || cfg.TakerFeeBPS < cfg.MakerFeeBPS || cfg.TakerFeeBPS > 1000 || cfg.WithdrawalFeeMicroYNXT < 0 {
+	if (cfg.StatePath == "" && cfg.DatabaseURL == "") || len(cfg.APIKey) < 16 || cfg.WalletCallback == "" || cfg.RequiredConfirmations < 1 || cfg.MakerFeeBPS < 0 || cfg.TakerFeeBPS < cfg.MakerFeeBPS || cfg.TakerFeeBPS > 1000 || cfg.WithdrawalFeeMicroYNXT < 0 {
 		return nil, fmt.Errorf("%w: exchange configuration", ErrInvalid)
 	}
 	if cfg.CustodyAddress != "" {
@@ -89,8 +95,13 @@ func New(cfg Config) (*Service, error) {
 		}
 		cfg.CustodyAddress = address
 	}
-	s, existed, err := loadState(cfg.StatePath)
+	store, err := openStateStore(cfg.StatePath, cfg.DatabaseURL)
 	if err != nil {
+		return nil, err
+	}
+	s, existed, err := store.load()
+	if err != nil {
+		store.close()
 		return nil, err
 	}
 	if cfg.CustodyAddress != "" {
@@ -100,17 +111,63 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	service := &Service{cfg: cfg, state: s}
+	service := &Service{cfg: cfg, store: store, state: s}
 	if !existed || migrated {
-		if err := saveState(cfg.StatePath, &service.state); err != nil {
+		if err := service.store.save(&service.state); err != nil {
+			store.close()
 			return nil, err
 		}
 	}
 	return service, nil
 }
 
+// WithFreshState serializes one API request per process and refreshes the
+// durable snapshot before it runs. PostgreSQL saves use compare-and-swap, so
+// competing instances fail closed rather than silently overwriting orders.
+func (s *Service) WithFreshState(fn func()) error {
+	s.requestMu.Lock()
+	defer s.requestMu.Unlock()
+	state, _, err := s.store.load()
+	if err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.state = state
+	s.mu.Unlock()
+	fn()
+	return nil
+}
+
+func (s *Service) Close() error { return s.store.close() }
+
+func (s *Service) StorageStatus() (backend string, multiInstance bool) {
+	return s.store.backend(), s.store.multiInstance()
+}
+
+func (s *Service) readSource(coverage string) SourceMetadata {
+	backend, multiInstance := s.StorageStatus()
+	status := "live"
+	if !multiInstance {
+		status = "degraded_single_host"
+	}
+	return SourceMetadata{
+		Authority:      "YNX-owned deterministic order state",
+		Version:        "exchange-public-state-v1",
+		AsOf:           s.cfg.Now().UTC(),
+		Classification: "testnet",
+		Status:         status,
+		Coverage:       coverage,
+		StateBackend:   backend,
+		MultiInstance:  multiInstance,
+	}
+}
+
 func (s *Service) Integrations() IntegrationStatus {
 	status := IntegrationStatus{Gateway: "unavailable", GatewayReason: "Central Gateway route and Exchange scope registration are not configured", WalletRegistry: "pending_registration", Custody: "unavailable", Indexer: "unavailable", CrossChain: "unavailable"}
+	status.ProductSessionV2 = "unconfigured"
+	if s.cfg.SessionV2 != nil {
+		status.ProductSessionV2 = "configured_not_attested"
+	}
 	if s.cfg.GatewayURL != "" && s.cfg.GatewayClientID != "" {
 		status.Gateway = "configured_not_attested"
 		status.GatewayReason = "Configuration is not evidence of central route acceptance"
@@ -147,6 +204,10 @@ func (s *Service) PublicTrades(limit int) []Trade {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.publicTradesLocked(limit)
+}
+
+func (s *Service) publicTradesLocked(limit int) []Trade {
 	items := make([]Trade, 0, len(s.state.Trades))
 	for _, trade := range s.state.Trades {
 		items = append(items, trade)
@@ -461,10 +522,21 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 	if req.Market != DefaultMarket || (req.Side != "buy" && req.Side != "sell") || req.Type != "limit" || req.PriceMicro <= 0 || req.AmountMicro <= 0 || req.PriceMicro > 1_000_000*AmountScale || req.AmountMicro > 1_000_000*AmountScale || !validKey(req.IdempotencyKey) {
 		return Order{}, ErrInvalid
 	}
-	if !verifyWalletSignature(session.Account, session.WalletPublicKey, OrderAuthorizationPayload(session.Account, req), req.WalletSignature) {
+	quote := mulDiv(req.AmountMicro, req.PriceMicro, AmountScale)
+	if quote < 1 {
+		return Order{}, fmt.Errorf("%w: order quote rounds below one micro credit", ErrInvalid)
+	}
+	walletPublicKey := session.WalletPublicKey
+	if req.WalletPublicKey != "" {
+		if walletPublicKey != "" && walletPublicKey != req.WalletPublicKey {
+			return Order{}, ErrUnauthorized
+		}
+		walletPublicKey = req.WalletPublicKey
+	}
+	if !verifyWalletSignature(session.Account, walletPublicKey, OrderAuthorizationPayload(session.Account, req), req.WalletSignature) {
 		return Order{}, ErrUnauthorized
 	}
-	if mulDiv(req.AmountMicro, req.PriceMicro, AmountScale) > s.cfg.MaxOrderNotionalMicro {
+	if quote > s.cfg.MaxOrderNotionalMicro {
 		return Order{}, ErrForbidden
 	}
 	d := digest(req)
@@ -476,6 +548,7 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 		}
 		return s.state.Orders[prev.ObjectID], nil
 	}
+	before := cloneState(s.state)
 	now := s.cfg.Now().UTC()
 	id := s.nextIDLocked("order")
 	o := Order{ID: id, Account: session.Account, Market: req.Market, Side: req.Side, Type: "limit", PriceMicro: req.PriceMicro, AmountMicro: req.AmountMicro, Status: "open", WalletAuthorized: true, CreatedAt: now, UpdatedAt: now, AuthorizationDigest: digest(OrderAuthorizationPayload(session.Account, req))}
@@ -483,7 +556,6 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 		if other.Account == session.Account && other.Market == o.Market && (other.Status == "open" || other.Status == "partially_filled") && other.Side != o.Side && crosses(o, other) {
 			o.Status = "rejected"
 			o.RejectReason = "self_trade_prevention"
-			before := cloneState(s.state)
 			s.state.Orders[id] = o
 			s.state.Idempotency[req.IdempotencyKey] = idempotencyRecord{Action: "order_place", Digest: d, ObjectID: id}
 			s.auditLocked(session.Account, "order_rejected", "order", id, d)
@@ -495,7 +567,6 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 	}
 	reserve := req.AmountMicro
 	if req.Side == "buy" {
-		quote := mulDiv(req.AmountMicro, req.PriceMicro, AmountScale)
 		reserve = quote + fee(quote, s.cfg.TakerFeeBPS)
 	}
 	asset := NativeAsset
@@ -504,9 +575,13 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 	}
 	b := s.balanceLocked(session.Account, asset)
 	if b.AvailableMicro < reserve {
+		s.state = before
 		return Order{}, ErrInsufficient
 	}
-	before := cloneState(s.state)
+	if b.ReservedMicro < 0 || b.ReservedMicro > math.MaxInt64-reserve {
+		s.state = before
+		return Order{}, fmt.Errorf("%w: invalid reserve total", ErrConflict)
+	}
 	b.AvailableMicro -= reserve
 	b.ReservedMicro += reserve
 	s.state.Balances[balanceKey(session.Account, asset)] = b
@@ -515,7 +590,12 @@ func (s *Service) PlaceOrder(session WalletSession, req PlaceOrderRequest) (Orde
 	s.state.Orders[id] = o
 	s.state.Idempotency[req.IdempotencyKey] = idempotencyRecord{Action: "order_place", Digest: d, ObjectID: id}
 	s.auditLocked(session.Account, "order_opened", "order", id, d)
-	s.matchLocked(id)
+	if err := s.matchLocked(id); err != nil {
+		// Includes sequence, audit, fees and every fill made during this request.
+		// Never spend another order's reserve or create an unpaid partial fill.
+		s.state = before
+		return Order{}, err
+	}
 	o = s.state.Orders[id]
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return Order{}, err
@@ -551,7 +631,10 @@ func (s *Service) CancelOrder(session WalletSession, id, key, walletSignature st
 		return Order{}, ErrConflict
 	}
 	before := cloneState(s.state)
-	s.releaseOrderReserveLocked(&o)
+	if err := s.releaseOrderReserveLocked(&o); err != nil {
+		s.state = before
+		return Order{}, err
+	}
 	o.Status = "cancelled"
 	o.UpdatedAt = s.cfg.Now().UTC()
 	s.state.Orders[id] = o
@@ -563,20 +646,26 @@ func (s *Service) CancelOrder(session WalletSession, id, key, walletSignature st
 	return o, nil
 }
 
-func (s *Service) matchLocked(incomingID string) {
+func (s *Service) matchLocked(incomingID string) error {
 	for {
 		incoming := s.state.Orders[incomingID]
 		if incoming.Status != "open" && incoming.Status != "partially_filled" {
-			return
+			return nil
 		}
 		candidates := []Order{}
 		for _, o := range s.state.Orders {
 			if o.ID != incoming.ID && o.Market == incoming.Market && o.Side != incoming.Side && (o.Status == "open" || o.Status == "partially_filled") && crosses(incoming, o) {
+				// Existing orders may have a dust remainder. Do not transfer base
+				// for a zero-quote fill or spin on that non-executable pair.
+				qty := min64(incoming.AmountMicro-incoming.FilledMicro, o.AmountMicro-o.FilledMicro)
+				if qty <= 0 || mulDiv(qty, o.PriceMicro, AmountScale) < 1 {
+					continue
+				}
 				candidates = append(candidates, o)
 			}
 		}
 		if len(candidates) == 0 {
-			return
+			return nil
 		}
 		sort.Slice(candidates, func(i, j int) bool {
 			if candidates[i].PriceMicro == candidates[j].PriceMicro {
@@ -592,14 +681,15 @@ func (s *Service) matchLocked(incomingID string) {
 		})
 		maker := candidates[0]
 		qty := min64(incoming.AmountMicro-incoming.FilledMicro, maker.AmountMicro-maker.FilledMicro)
-		s.executeTradeLocked(&incoming, &maker, qty, maker.PriceMicro)
+		if err := s.executeTradeLocked(&incoming, &maker, qty, maker.PriceMicro); err != nil {
+			return err
+		}
 		s.state.Orders[incoming.ID] = incoming
 		s.state.Orders[maker.ID] = maker
 	}
 }
 
-func (s *Service) executeTradeLocked(incoming, maker *Order, qty, price int64) {
-	id := s.nextIDLocked("trade")
+func (s *Service) executeTradeLocked(incoming, maker *Order, qty, price int64) error {
 	sourceDigest := digest(struct {
 		Incoming, Maker string
 		Qty, Price      int64
@@ -609,6 +699,9 @@ func (s *Service) executeTradeLocked(incoming, maker *Order, qty, price int64) {
 		buyer, seller = maker, incoming
 	}
 	quote := mulDiv(qty, price, AmountScale)
+	if qty <= 0 || quote < 1 {
+		return fmt.Errorf("%w: non-positive fill consideration", ErrInvalid)
+	}
 	buyerBPS, sellerBPS := s.cfg.MakerFeeBPS, s.cfg.MakerFeeBPS
 	if buyer.ID == incoming.ID {
 		buyerBPS = s.cfg.TakerFeeBPS
@@ -619,39 +712,49 @@ func (s *Service) executeTradeLocked(incoming, maker *Order, qty, price int64) {
 	sellerFee := fee(quote, sellerBPS)
 	bb := s.balanceLocked(buyer.Account, QuoteAsset)
 	spend := quote + buyerFee
-	buyerReservedDebit := min64(bb.ReservedMicro, spend)
-	bb.ReservedMicro -= buyerReservedDebit
-	buyer.ReservedMicro -= min64(buyer.ReservedMicro, spend)
-	s.state.Balances[balanceKey(buyer.Account, QuoteAsset)] = bb
-	s.ledgerLocked(buyer.Account, QuoteAsset, 0, -buyerReservedDebit, "trade_settlement", id, sourceDigest)
 	baseBuyer := s.balanceLocked(buyer.Account, NativeAsset)
+	baseSeller := s.balanceLocked(seller.Account, NativeAsset)
+	quoteSeller := s.balanceLocked(seller.Account, QuoteAsset)
+	if buyer.Account == seller.Account || buyer.ReservedMicro < spend || seller.ReservedMicro < qty {
+		return fmt.Errorf("%w: fill exceeds this order's reserved funds; fragmented fees may exceed initial reserve", ErrInsufficient)
+	}
+	if bb.ReservedMicro < buyer.ReservedMicro || baseSeller.ReservedMicro < seller.ReservedMicro || baseBuyer.AvailableMicro < 0 || quoteSeller.AvailableMicro < 0 || baseBuyer.AvailableMicro > math.MaxInt64-qty || quoteSeller.AvailableMicro > math.MaxInt64-(quote-sellerFee) {
+		return fmt.Errorf("%w: settlement balance invariant", ErrConflict)
+	}
+	id := s.nextIDLocked("trade")
+	bb.ReservedMicro -= spend
+	buyer.ReservedMicro -= spend
+	s.state.Balances[balanceKey(buyer.Account, QuoteAsset)] = bb
+	s.ledgerLocked(buyer.Account, QuoteAsset, 0, -spend, "trade_settlement", id, sourceDigest)
 	baseBuyer.AvailableMicro += qty
 	s.state.Balances[balanceKey(buyer.Account, NativeAsset)] = baseBuyer
 	s.ledgerLocked(buyer.Account, NativeAsset, qty, 0, "trade_settlement", id, sourceDigest)
-	baseSeller := s.balanceLocked(seller.Account, NativeAsset)
-	sellerReservedDebit := min64(baseSeller.ReservedMicro, qty)
-	baseSeller.ReservedMicro -= sellerReservedDebit
-	seller.ReservedMicro -= min64(seller.ReservedMicro, qty)
+	baseSeller.ReservedMicro -= qty
+	seller.ReservedMicro -= qty
 	s.state.Balances[balanceKey(seller.Account, NativeAsset)] = baseSeller
-	s.ledgerLocked(seller.Account, NativeAsset, 0, -sellerReservedDebit, "trade_settlement", id, sourceDigest)
-	quoteSeller := s.balanceLocked(seller.Account, QuoteAsset)
+	s.ledgerLocked(seller.Account, NativeAsset, 0, -qty, "trade_settlement", id, sourceDigest)
 	quoteSeller.AvailableMicro += quote - sellerFee
 	s.state.Balances[balanceKey(seller.Account, QuoteAsset)] = quoteSeller
 	s.ledgerLocked(seller.Account, QuoteAsset, quote-sellerFee, 0, "trade_settlement", id, sourceDigest)
 	buyer.FilledMicro += qty
 	seller.FilledMicro += qty
 	now := s.cfg.Now().UTC()
-	updateStatus := func(o *Order) {
+	updateStatus := func(o *Order) error {
 		o.UpdatedAt = now
 		if o.FilledMicro == o.AmountMicro {
 			o.Status = "filled"
-			s.releaseOrderReserveLocked(o)
+			return s.releaseOrderReserveLocked(o)
 		} else {
 			o.Status = "partially_filled"
 		}
+		return nil
 	}
-	updateStatus(buyer)
-	updateStatus(seller)
+	if err := updateStatus(buyer); err != nil {
+		return err
+	}
+	if err := updateStatus(seller); err != nil {
+		return err
+	}
 	trade := Trade{ID: id, Market: buyer.Market, PriceMicro: price, AmountMicro: qty, BuyOrderID: buyer.ID, SellOrderID: seller.ID, Buyer: buyer.Account, Seller: seller.Account, BuyerFeeMicro: buyerFee, SellerFeeMicro: sellerFee, CreatedAt: now, SourceType: "deterministic_price_time_match"}
 	trade.SourceDigest = sourceDigest
 	s.state.Trades = append(s.state.Trades, trade)
@@ -661,29 +764,38 @@ func (s *Service) executeTradeLocked(incoming, maker *Order, qty, price int64) {
 	if seller.Account != buyer.Account {
 		s.auditLocked(seller.Account, "trade_filled", "trade", id, digest(trade))
 	}
+	return nil
 }
 
-func (s *Service) releaseOrderReserveLocked(o *Order) {
-	if o.ReservedMicro <= 0 {
-		return
+func (s *Service) releaseOrderReserveLocked(o *Order) error {
+	if o.ReservedMicro == 0 {
+		return nil
 	}
 	asset := NativeAsset
 	if o.Side == "buy" {
 		asset = QuoteAsset
 	}
 	b := s.balanceLocked(o.Account, asset)
-	release := min64(b.ReservedMicro, o.ReservedMicro)
+	if o.ReservedMicro < 0 || b.ReservedMicro < o.ReservedMicro || b.AvailableMicro < 0 || b.AvailableMicro > math.MaxInt64-o.ReservedMicro {
+		return fmt.Errorf("%w: reserve release invariant", ErrConflict)
+	}
+	release := o.ReservedMicro
 	b.ReservedMicro -= release
 	b.AvailableMicro += release
 	o.ReservedMicro = 0
 	s.state.Balances[balanceKey(o.Account, asset)] = b
 	s.ledgerLocked(o.Account, asset, release, -release, "order_reserve_release", o.ID, o.AuthorizationDigest)
+	return nil
 }
 
 func (s *Service) Book() OrderBook {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	book := OrderBook{Market: DefaultMarket, Bids: []Order{}, Asks: []Order{}}
+	return s.bookLocked()
+}
+
+func (s *Service) bookLocked() OrderBook {
+	book := OrderBook{Market: DefaultMarket, Bids: []Order{}, Asks: []Order{}, SourceMetadata: s.readSource("open-orders-price-time-priority")}
 	for _, o := range s.state.Orders {
 		if o.Market == DefaultMarket && (o.Status == "open" || o.Status == "partially_filled") {
 			if o.Side == "buy" {
@@ -693,12 +805,51 @@ func (s *Service) Book() OrderBook {
 			}
 		}
 	}
-	sort.Slice(book.Bids, func(i, j int) bool { return book.Bids[i].PriceMicro > book.Bids[j].PriceMicro })
-	sort.Slice(book.Asks, func(i, j int) bool { return book.Asks[i].PriceMicro < book.Asks[j].PriceMicro })
+	priority := func(a, b Order, bids bool) bool {
+		if a.PriceMicro != b.PriceMicro {
+			if bids {
+				return a.PriceMicro > b.PriceMicro
+			}
+			return a.PriceMicro < b.PriceMicro
+		}
+		if !a.CreatedAt.Equal(b.CreatedAt) {
+			return a.CreatedAt.Before(b.CreatedAt)
+		}
+		return a.ID < b.ID
+	}
+	sort.Slice(book.Bids, func(i, j int) bool { return priority(book.Bids[i], book.Bids[j], true) })
+	sort.Slice(book.Asks, func(i, j int) bool { return priority(book.Asks[i], book.Asks[j], false) })
 	return book
 }
 
+// MarketDataSnapshot is a read-only point-in-time view used by the public
+// SSE feed. Revision is the durable-store revision, not an in-memory counter.
+type MarketDataSnapshot struct {
+	SchemaVersion  string          `json:"schemaVersion"`
+	Revision       int64           `json:"revision"`
+	Market         string          `json:"market"`
+	OrderBook      PublicOrderBook `json:"orderBook"`
+	Trades         []PublicTrade   `json:"trades"`
+	TradingRules   TradingRules    `json:"tradingRules"`
+	SourceMetadata SourceMetadata  `json:"sourceMetadata"`
+}
+
+func (s *Service) marketDataSnapshot() (MarketDataSnapshot, string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return MarketDataSnapshot{
+		SchemaVersion:  "exchange-public-market-v1",
+		Revision:       s.state.Revision,
+		Market:         DefaultMarket,
+		OrderBook:      publicBook(s.bookLocked()),
+		Trades:         publicTrades(s.publicTradesLocked(1000)),
+		TradingRules:   s.TradingRules(),
+		SourceMetadata: s.readSource("stream-orderbook-matched-trades"),
+	}, fmt.Sprintf("%d:%s", s.state.Revision, s.state.IntegrityHash)
+}
+
 type AccountSnapshot struct {
+	SourceMetadata SourceMetadata   `json:"sourceMetadata"`
 	Balances       []Balance        `json:"balances"`
 	Ledger         []LedgerEntry    `json:"ledger"`
 	DepositIntents []DepositIntent  `json:"depositIntents"`
@@ -716,7 +867,7 @@ type AccountSnapshot struct {
 func (s *Service) Snapshot(account string) AccountSnapshot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	r := AccountSnapshot{Balances: []Balance{s.balanceLocked(account, NativeAsset), s.balanceLocked(account, QuoteAsset)}, Ledger: []LedgerEntry{}, DepositIntents: []DepositIntent{}, Orders: []Order{}, Trades: []Trade{}, Fees: []FeeRecord{}, Deposits: []Deposit{}, Withdrawals: []Withdrawal{}, Security: s.securityLocked(account), Support: []SupportCase{}, AI: []AIRecord{}, Audit: []AuditEvent{}}
+	r := AccountSnapshot{SourceMetadata: s.readSource("account-ledger-orders-trades-fees-audit"), Balances: []Balance{s.balanceLocked(account, NativeAsset), s.balanceLocked(account, QuoteAsset)}, Ledger: []LedgerEntry{}, DepositIntents: []DepositIntent{}, Orders: []Order{}, Trades: []Trade{}, Fees: []FeeRecord{}, Deposits: []Deposit{}, Withdrawals: []Withdrawal{}, Security: s.securityLocked(account), Support: []SupportCase{}, AI: []AIRecord{}, Audit: []AuditEvent{}}
 	for _, v := range s.state.Ledger {
 		if v.Account == account {
 			r.Ledger = append(r.Ledger, v)
@@ -943,8 +1094,11 @@ func (s *Service) feeLocked(account, asset string, amount int64, kind, ref strin
 	s.state.Fees = append(s.state.Fees, FeeRecord{ID: s.nextIDLocked("fee"), Account: account, Asset: asset, AmountMicro: amount, Kind: kind, Reference: ref, CreatedAt: s.cfg.Now().UTC()})
 }
 func (s *Service) saveOrRollbackLocked(before persistentState) error {
-	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+	if err := s.store.save(&s.state); err != nil {
 		s.state = before
+		if errors.Is(err, errStateConflict) {
+			return ErrConflict
+		}
 		return err
 	}
 	return nil
@@ -1013,7 +1167,9 @@ func fee(amount, bps int64) int64 {
 	if amount <= 0 || bps <= 0 {
 		return 0
 	}
-	return (amount*bps + 9999) / 10000
+	// Split before multiplying: configured bps <= 1000 and positive int64
+	// notionals can otherwise overflow while computing a perfectly valid fee.
+	return (amount/10000)*bps + ((amount%10000)*bps+9999)/10000
 }
 func min64(a, b int64) int64 {
 	if a < b {

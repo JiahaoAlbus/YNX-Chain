@@ -24,7 +24,10 @@ func TestHTTPMarketDataUsesOnlyOwnedActualTradeTape(t *testing.T) {
 	start := time.Date(2026, 7, 18, 0, 0, 0, 0, time.UTC)
 	trades := make([]map[string]any, 20)
 	for i := range trades {
-		trades[i] = map[string]any{"priceMicro": int64(1_000_000 + i), "amountMicro": int64(10_000 + i), "createdAt": start.Add(time.Duration(i) * time.Second)}
+		trades[i] = map[string]any{
+			"priceMicro": int64(1_000_000 + i), "amountMicro": int64(10_000 + i), "createdAt": start.Add(time.Duration(i) * time.Second),
+			"id": "trade-audit-field", "buyOrderId": "buy-audit-field", "buyerFeeMicro": 10,
+		}
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/v1/market-data/trades" {
@@ -41,6 +44,24 @@ func TestHTTPMarketDataUsesOnlyOwnedActualTradeTape(t *testing.T) {
 	tick, e := adapter.Latest("YNXT-YUSD_TEST")
 	if e != nil || tick.Price != 1_000_019 || tick.Source == "" {
 		t.Fatalf("tick=%+v err=%v", tick, e)
+	}
+}
+
+func TestHTTPMarketDataAcceptsCurrentPersistedExchangeProvenance(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		trades := make([]map[string]any, 20)
+		for index := range trades {
+			trades[index] = map[string]any{"priceMicro": 1_000_000 + index, "amountMicro": 10_000 + index, "createdAt": time.Date(2026, 8, 14, 0, index, 0, 0, time.UTC)}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"market": "YNXT-YUSD_TEST", "source": "persisted deterministic matching-engine fills only", "externalPrice": false, "trades": trades})
+	}))
+	defer server.Close()
+	bars, source, err := (HTTPExchangeMarketData{BaseURL: server.URL, Client: server.Client()}).History("YNXT-YUSD_TEST", 100)
+	if err != nil || len(bars) != 20 || source == "" {
+		t.Fatalf("bars=%d source=%q err=%v", len(bars), source, err)
+	}
+	if ownedExchangeTapeSource("generic real-time price feed") {
+		t.Fatal("unknown market provenance was accepted")
 	}
 }
 

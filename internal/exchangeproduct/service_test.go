@@ -171,6 +171,53 @@ func TestOrderLifecycleBalanceReservationAndFees(t *testing.T) {
 	assertLedgerBalances(t, s.Snapshot(bob))
 }
 
+func TestWithFreshStateReloadsFileSnapshotForAPIServerBoundary(t *testing.T) {
+	first, _, path := newTestService(t)
+	second, err := New(Config{StatePath: path, APIKey: adminKey, WalletCallback: "ynxexchange://wallet/callback"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := first.CreditTestQuote(adminKey, bob, AmountScale, "fresh-state-credit"); err != nil {
+		t.Fatal(err)
+	}
+	before := second.Snapshot(bob)
+	for _, balance := range before.Balances {
+		if balance.Asset == QuoteAsset && balance.AvailableMicro != 0 {
+			t.Fatalf("second service unexpectedly observed unrefreshed credit: %+v", balance)
+		}
+	}
+	if err := second.WithFreshState(func() {}); err != nil {
+		t.Fatal(err)
+	}
+	after := second.Snapshot(bob)
+	for _, balance := range after.Balances {
+		if balance.Asset == QuoteAsset && balance.AvailableMicro == AmountScale {
+			return
+		}
+	}
+	t.Fatalf("fresh state did not include durable quote credit: %+v", after.Balances)
+}
+
+type conflictStateStore struct{}
+
+func (conflictStateStore) load() (persistentState, bool, error) { return newState(), true, nil }
+func (conflictStateStore) save(*persistentState) error          { return errStateConflict }
+func (conflictStateStore) close() error                         { return nil }
+func (conflictStateStore) backend() string                      { return "postgresql" }
+func (conflictStateStore) multiInstance() bool                  { return true }
+
+func TestDurableStateConflictFailsClosed(t *testing.T) {
+	service := &Service{store: conflictStateStore{}, state: newState()}
+	before := cloneState(service.state)
+	service.state.Sequence = 1
+	if err := service.saveOrRollbackLocked(before); err != ErrConflict {
+		t.Fatalf("got %v, want ErrConflict", err)
+	}
+	if service.state.Sequence != 0 {
+		t.Fatalf("state was not restored after durable conflict: %+v", service.state)
+	}
+}
+
 func assertLedgerBalances(t *testing.T, snapshot AccountSnapshot) {
 	t.Helper()
 	available := map[string]int64{}
@@ -557,16 +604,21 @@ func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	centralSession.WalletPublicKey = publicKey
 	s, _, _ := newTestService(t)
 	if _, err := s.CreditTestQuote(adminKey, account, 10*AmountScale, "central-action-credit"); err != nil {
 		t.Fatal(err)
 	}
-	req := PlaceOrderRequest{Market: DefaultMarket, Side: "buy", Type: "limit", PriceMicro: AmountScale, AmountMicro: AmountScale, IdempotencyKey: "central-action-order"}
+	req := PlaceOrderRequest{Market: DefaultMarket, Side: "buy", Type: "limit", PriceMicro: AmountScale, AmountMicro: AmountScale, IdempotencyKey: "central-action-order", WalletPublicKey: publicKey}
 	req.WalletSignature = signAction(key, OrderAuthorizationPayload(account, req))
 	order, err := s.PlaceOrder(centralSession, req)
 	if err != nil || order.Status != "open" || !order.WalletAuthorized {
 		t.Fatalf("central Wallet action order=%+v err=%v", order, err)
+	}
+	req.IdempotencyKey = "central-action-wrong-key"
+	req.WalletPublicKey = hex.EncodeToString(secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 43)).PubKey().SerializeCompressed())
+	req.WalletSignature = signAction(key, OrderAuthorizationPayload(account, req))
+	if _, err := s.PlaceOrder(centralSession, req); err != ErrUnauthorized {
+		t.Fatalf("substituted Wallet key err=%v", err)
 	}
 }
 
