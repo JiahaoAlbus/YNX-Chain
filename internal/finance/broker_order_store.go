@@ -496,7 +496,7 @@ func (s *Store) RevokeBrokerOrder(account, callbackStateHash string, revocation 
 
 func (s *Store) ConsumeBrokerOrder(account, requestID, approvalDigest string, now time.Time) (BrokerConsumeResult, error) {
 	var result BrokerConsumeResult
-	err := s.updateBrokerCAS(account, "broker.approval.consumed", requestID, func(state *AccountState) error {
+	err := s.updateBrokerCASWithOpaqueFence(account, requestID, "broker.approval.consumed", requestID, func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)
 		challenge, ok := state.Brokerage.Challenges[requestID]
 		if !ok {

@@ -73,6 +73,20 @@ test('legacy order callback URL is scrubbed before asynchronous private authoriz
   }finally{await page.close();}
 });
 
+test('opaque code callback URL is scrubbed before account or subresource work',async()=>{
+  executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];
+  const page=await browser.newPage(),subresourceReferrers=[];
+  page.on('request',request=>{if(request.resourceType()!=='document')subresourceReferrers.push(request.headers()['referer']||'')});
+  try{
+    await page.goto(`${base}/wallet-auth/callback?financeOrderCode=private-code-fixture&state=private-state-fixture`);
+    await page.waitForFunction(()=>typeof pendingOpaqueBrokerReturnURL!=='undefined');
+    assert.equal(new URL(page.url()).search,'');
+    assert.equal(await page.evaluate(()=>pendingOpaqueBrokerReturnURL.includes('private-code-fixture')),true);
+    assert.equal(subresourceReferrers.some(value=>value.includes('private-code-fixture')),false);
+    assert.deepEqual(callbackRequests,[]);
+  }finally{await page.close()}
+});
+
 test('pending shared private authority blocks challenge and execution before network or local pending state',async()=>{
   executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='pending_unwired';callbackFailure=true;challengeSuccess=false;
   const page=await browser.newPage(),errors=[],externalRequests=[],dialogs=[];

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -288,14 +289,20 @@ func (s *Server) brokerOpaqueExchange(w http.ResponseWriter, r *http.Request, se
 		return
 	}
 	var input struct {
-		RequestID   string `json:"requestId"`
 		CallbackURL string `json:"callbackURL"`
 	}
-	if decodeStrict(w, r, &input) != nil || !evmSubjectRequestID.MatchString(input.RequestID) || len(input.CallbackURL) > 2048 {
+	if decodeStrict(w, r, &input) != nil || len(input.CallbackURL) > 2048 {
 		writeError(w, http.StatusBadRequest, "invalid_callback", "Exact confidential Wallet callback required")
 		return
 	}
-	record, challenge, err := s.service.Store.opaqueBrokerOrderCallbackAuthority(session.Account, input.RequestID)
+	// The URL is untrusted here and supplies only a lookup key. Wallet/Auth
+	// validates the entire canonical URL against the durable challenge below.
+	parsedURL, parseErr := url.Parse(input.CallbackURL)
+	if parseErr != nil || parsedURL == nil || !brokerHandoffToken.MatchString(parsedURL.Query().Get("state")) {
+		writeError(w, http.StatusBadRequest, "invalid_callback", "Confidential callback state is invalid")
+		return
+	}
+	record, challenge, err := s.service.Store.opaqueBrokerOrderCallbackAuthority(session.Account, parsedURL.Query().Get("state"))
 	if err != nil || !record.CodeExpiresAt.After(s.now().UTC()) {
 		writeError(w, http.StatusConflict, "callback_unavailable", "Confidential Wallet callback unavailable")
 		return
@@ -310,11 +317,11 @@ func (s *Server) brokerOpaqueExchange(w http.ResponseWriter, r *http.Request, se
 		Code      string `json:"code"`
 		State     string `json:"state"`
 	}
-	if err != nil || json.Unmarshal(parsed, &verified) != nil || verified.Kind != "result" || verified.Action != "callback" || verified.RequestID != input.RequestID {
+	if err != nil || json.Unmarshal(parsed, &verified) != nil || verified.Kind != "result" || verified.Action != "callback" || verified.RequestID != record.RequestID {
 		writeError(w, http.StatusUnauthorized, "callback_rejected", "Confidential Wallet callback rejected")
 		return
 	}
-	result, err := s.service.Store.ExchangeBrokerOrderHandoff(session.Account, input.RequestID, verified.Code, verified.State, s.now())
+	result, err := s.service.Store.ExchangeBrokerOrderHandoff(session.Account, record.RequestID, verified.Code, verified.State, s.now())
 	if err != nil {
 		writeError(w, http.StatusConflict, "callback_consumed", "Confidential Wallet callback expired, changed or consumed")
 		return

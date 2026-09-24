@@ -41,7 +41,8 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 	const account = "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"
 	const publicKey = "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
 	now := time.Date(2026, 9, 19, 9, 0, 0, 0, time.UTC)
-	store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+	storePath := filepath.Join(t.TempDir(), "finance.json")
+	store, err := OpenStore(storePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,6 +100,9 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 	if _, err := store.RejectBrokerOrder(account, legacyApproval.RequestID, legacyApproval.CallbackStateHash, clock); err == nil {
 		t.Fatal("legacy rejection mutated an opaque order without its one-time code")
 	}
+	if _, err := store.ConsumeBrokerOrder(account, legacyApproval.RequestID, strings.Repeat("a", 64), clock); err == nil {
+		t.Fatal("direct legacy consume accepted an opaque order")
+	}
 	legacyCallback := mustFinanceCanonical(map[string]any{"approval": legacyApproval,
 		"callbackStateHash": legacyApproval.CallbackStateHash, "kind": "finance_order_approval_result",
 		"requestId": legacyApproval.RequestID, "status": "approved", "version": "1"})
@@ -131,13 +135,16 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 		t.Fatal("unreviewed legacy recovery became reachable")
 	}
 	callbackURL := fmt.Sprintf("https://finance.ynxweb4.com/wallet-auth/callback?financeOrderCode=%s&state=%s", completed.Code, completed.State)
-	wrongBody, _ := json.Marshal(map[string]string{"requestId": issued.Challenge.RequestID, "callbackURL": callbackURL + "&extra=1"})
+	restarted, err := OpenStore(storePath)
+	if err != nil { t.Fatal(err) }
+	server.service.Store, store = restarted, restarted
+	wrongBody, _ := json.Marshal(map[string]string{"callbackURL": callbackURL + "&extra=1"})
 	recorder = httptest.NewRecorder()
 	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(wrongBody)), Session{Account: account})
 	if recorder.Code == http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 0 {
 		t.Fatal("noncanonical callback exchanged an opaque order")
 	}
-	exchangeBody, _ := json.Marshal(map[string]string{"requestId": issued.Challenge.RequestID, "callbackURL": callbackURL})
+	exchangeBody, _ := json.Marshal(map[string]string{"callbackURL": callbackURL})
 	recorder = httptest.NewRecorder()
 	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: "ynx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"})
 	if recorder.Code == http.StatusOK {
@@ -234,7 +241,7 @@ func TestOpaqueBrokerLegacyRecoveryRequiresSignedPreCutoverChallenge(t *testing.
 		t.Fatal("raw legacy callback state changed")
 	}
 	callbackURL := fmt.Sprintf("https://finance.ynxweb4.com/wallet-auth/callback?financeOrderCode=%s&state=%s", completed.Code, completed.State)
-	exchangeBody, _ := json.Marshal(map[string]string{"requestId": challenge.Unsigned.RequestID, "callbackURL": callbackURL})
+	exchangeBody, _ := json.Marshal(map[string]string{"callbackURL": callbackURL})
 	recorder = httptest.NewRecorder()
 	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account})
 	if recorder.Code != http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 1 {

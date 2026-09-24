@@ -3,7 +3,13 @@ const state={connected:false,overview:null,aiJob:null,aiTimer:null,context:0,bro
 // only for this page lifetime and scrub the address bar before async work or
 // any account request. New orders must move to the opaque v2 code transport.
 let pendingLegacyBrokerReturnURL=null;
+let pendingOpaqueBrokerReturnURL=null;
 function captureLegacyBrokerCallback(){
+  if(location.pathname==='/wallet-auth/callback'&&location.search.includes('financeOrderCode=')){
+    pendingOpaqueBrokerReturnURL=location.href;
+    history.replaceState(null,'','/wallet-auth/callback');
+    return;
+  }
   if(location.pathname==='/wallet-auth/callback'&&location.search.includes('financeOrderApprovalResult=')){
     pendingLegacyBrokerReturnURL=location.href;
     history.replaceState(null,'','/wallet-auth/callback');
@@ -165,10 +171,17 @@ async function refreshBrokerQuote(){
 }
 async function completeBrokerCallback(){
   captureLegacyBrokerCallback();
-  if(brokerCallbackInFlight||!state.connected||location.pathname!=='/wallet-auth/callback'||!pendingLegacyBrokerReturnURL)return;
+  if(brokerCallbackInFlight||!state.connected||location.pathname!=='/wallet-auth/callback'||(!pendingLegacyBrokerReturnURL&&!pendingOpaqueBrokerReturnURL))return;
   brokerCallbackInFlight=true;$('#broker-complete-callback').hidden=false;
   try{
     await requireBrokerOrderAuthority();
+    if(pendingOpaqueBrokerReturnURL){
+      const result=await api('/api/broker/order-handoff/exchange',{method:'POST',body:JSON.stringify({callbackURL:pendingOpaqueBrokerReturnURL})});
+      if(result?.version!=='2'||!['approved','rejected','revoked'].includes(result.status)||result.result?.providerWriteAttempted!==false)throw new Error('Confidential Wallet decision response is invalid.');
+      pendingOpaqueBrokerReturnURL=null;history.replaceState(null,'','/');$('#broker-complete-callback').hidden=true;
+      notify(result.status==='approved'?'Wallet approval queued one local Sandbox outbox. Provider submission has not occurred.':'Wallet decision recorded without a provider order.');
+      await refreshBrokerWorkspace();return;
+    }
     const workspace=await refreshBrokerWorkspace();if(!workspace)throw new Error('Current Finance server time is unavailable.');
     const raw=await window.YNXFinanceOrderWallet.parseReturn(pendingLegacyBrokerReturnURL,workspace.serverTime);
     const result=await api('/api/broker/callback',{method:'POST',body:raw});
@@ -201,7 +214,7 @@ async function api(path,options={}){
   }
   throw new Error('Read connection retry exhausted.')
 }
-function scope(path){if(path.startsWith('/api/ai/'))return'finance.ai.draft';if(['/api/categories','/api/budgets','/api/reminders','/api/notes','/api/privacy','/api/account','/api/broker/challenges','/api/broker/callback','/api/broker/watchlist','/api/broker/reconcile'].some(v=>path.startsWith(v))||/^\/api\/broker\/orders\/[^/]+\/(?:cancel-request|execution-request)$/.test(path)||path.includes('/category'))return'finance.profile.write';return'finance.portfolio.read'}
+function scope(path){if(path.startsWith('/api/ai/'))return'finance.ai.draft';if(['/api/categories','/api/budgets','/api/reminders','/api/notes','/api/privacy','/api/account','/api/broker/challenges','/api/broker/callback','/api/broker/order-handoff/issue','/api/broker/order-handoff/exchange','/api/broker/watchlist','/api/broker/reconcile'].some(v=>path.startsWith(v))||/^\/api\/broker\/orders\/[^/]+\/(?:cancel-request|execution-request)$/.test(path)||path.includes('/category'))return'finance.profile.write';return'finance.portfolio.read'}
 function notify(message,error=false){const box=$('#notice');box.textContent=message;box.classList.toggle('error',error);box.classList.remove('hidden');clearTimeout(box.timer);box.timer=setTimeout(()=>box.classList.add('hidden'),6500)}
 
 async function signIn(){try{await window.YNXFinanceWallet.connect()}catch(error){notify(error.message,true)}}
