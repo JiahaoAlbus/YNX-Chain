@@ -41,6 +41,11 @@
       "import": "./src/evm-product-login.js",
       "default": "./src/evm-product-login.js"
     },
+    "./evm-product-session": {
+      "types": "./src/index.d.ts",
+      "import": "./src/evm-product-session.js",
+      "default": "./src/evm-product-session.js"
+    },
     "./metamask-evm": {
       "types": "./src/index.d.ts",
       "import": "./src/metamask-evm-adapter.js",
@@ -77,7 +82,8 @@
     "central-registry.json",
     "product-session-registry.json",
     "registry-conflict-evidence.json",
-    "CENTRAL_INTEGRATION.md"
+    "CENTRAL_INTEGRATION.md",
+    "EVM_PRODUCT_SESSION_V1.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

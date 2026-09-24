@@ -98,7 +98,7 @@ export function ethereumPersonalMessageDigest(message) {
   return keccak_256(concatBytes(prefix, bytes));
 }
 
-function recoverEthereumAddress(signature, digest) {
+export function recoverEthereumAddress(signature, digest) {
   try {
     const raw = hexToBytes(signature.slice(2)), recovery = raw[64] >= 27 ? raw[64] - 27 : raw[64];
     if (recovery !== 0 && recovery !== 1) fail("INVALID_SIGNATURE", "EVM product login recovery id is invalid");
