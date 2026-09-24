@@ -165,17 +165,21 @@ func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallen
 	if request.CallbackState != "" {
 		return BrokerApprovalChallenge{}, errors.New("opaque callback state requires atomic ticket issuance")
 	}
-	return s.createBrokerOrderChallenge(account, request, "", now)
+	return s.createBrokerOrderChallenge(account, request, "", "", now)
 }
 
-func (s *Store) CreateBrokerOrderChallengeWithHandoff(account string, request BrokerChallengeRequest, ticketHash string, now time.Time) (BrokerApprovalChallenge, error) {
+func (s *Store) CreateBrokerOrderChallengeWithHandoff(account string, request BrokerChallengeRequest, ticketHash, sessionBinding string, now time.Time) (BrokerApprovalChallenge, error) {
 	if !brokerHandoffToken.MatchString(request.CallbackState) || !brokerHandoffHex.MatchString(ticketHash) {
 		return BrokerApprovalChallenge{}, errors.New("opaque callback state and ticket hash are required")
 	}
-	return s.createBrokerOrderChallenge(account, request, ticketHash, now)
+	sessionHash, err := brokerHandoffSessionHash(sessionBinding)
+	if err != nil {
+		return BrokerApprovalChallenge{}, err
+	}
+	return s.createBrokerOrderChallenge(account, request, ticketHash, sessionHash, now)
 }
 
-func (s *Store) createBrokerOrderChallenge(account string, request BrokerChallengeRequest, ticketHash string, now time.Time) (BrokerApprovalChallenge, error) {
+func (s *Store) createBrokerOrderChallenge(account string, request BrokerChallengeRequest, ticketHash, sessionHash string, now time.Time) (BrokerApprovalChallenge, error) {
 	if !request.FeeBoundEstablished || strings.TrimSpace(request.FeeEvidenceRef) == "" || len(request.FeeEvidenceRef) > 256 {
 		return BrokerApprovalChallenge{}, errors.New("a bounded, auditable fee source is required")
 	}
@@ -281,7 +285,7 @@ func (s *Store) createBrokerOrderChallenge(account string, request BrokerChallen
 				if parseErr != nil {
 					return parseErr
 				}
-				record := BrokerOrderHandoffRecord{TicketHash: ticketHash, Account: account, RequestID: result.Unsigned.RequestID,
+				record := BrokerOrderHandoffRecord{TicketHash: ticketHash, Account: account, SessionBindingHash: sessionHash, RequestID: result.Unsigned.RequestID,
 					CallbackState: request.CallbackState, CallbackStateBinding: "sha256-v2", IssuedAt: issuedAt, ExpiresAt: expires}
 				shadow := *all
 				shadow.Accounts = make(map[string]AccountState, len(all.Accounts)+1)

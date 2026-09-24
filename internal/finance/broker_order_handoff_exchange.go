@@ -18,12 +18,16 @@ type BrokerOpaqueExchangeResult struct {
 // The code, callback state, signed decision and Broker state are checked and
 // consumed in one repository CAS. No provider call is made here. In
 // particular, a signed approval alone cannot enqueue an order.
-func (s *Store) ExchangeBrokerOrderHandoff(account, requestID, code, callbackState string, now time.Time) (BrokerOpaqueExchangeResult, error) {
+func (s *Store) ExchangeBrokerOrderHandoff(account, requestID, code, callbackState, sessionBinding string, now time.Time) (BrokerOpaqueExchangeResult, error) {
 	if !evmSubjectRequestID.MatchString(requestID) || !brokerHandoffToken.MatchString(code) || callbackState == "" {
 		return BrokerOpaqueExchangeResult{}, errors.New("confidential callback identity is invalid")
 	}
 	codeDigest := sha256.Sum256([]byte(code))
 	codeHash := hex.EncodeToString(codeDigest[:])
+	sessionHash, hashErr := brokerHandoffSessionHash(sessionBinding)
+	if hashErr != nil {
+		return BrokerOpaqueExchangeResult{}, hashErr
+	}
 	var result BrokerOpaqueExchangeResult
 	var err error
 	for attempt := 0; attempt < brokerCASAttempts; attempt++ {
@@ -38,7 +42,11 @@ func (s *Store) ExchangeBrokerOrderHandoff(account, requestID, code, callbackSta
 					ticketHash, record = key, candidate
 				}
 			}
+			// Fresh v2 tickets require the issuing Product Session. Legacy v1 has
+			// no persisted original session: a signed pre-cutover owner-key recovery
+			// plus this current same-account v2 session is the explicit exception.
 			if ticketHash == "" || record.CodeConsumedAt != nil || record.CodeHash != codeHash || record.CallbackState != callbackState ||
+				(record.CallbackStateBinding == "sha256-v2" && record.SessionBindingHash != sessionHash) ||
 				record.DecisionStatus == "" || !record.CodeExpiresAt.After(now.UTC()) || !record.ExpiresAt.After(now.UTC()) ||
 				validateBrokerOrderHandoff(*all, ticketHash, record) != nil {
 				return errors.New("confidential callback is absent, expired, mismatched or consumed")

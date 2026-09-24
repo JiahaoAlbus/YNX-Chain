@@ -92,17 +92,28 @@ async function refreshBrokerSnapshot(){
 }
 let brokerCallbackInFlight=false,brokerApprovalInFlight=false;
 const OPAQUE_ORDER_PENDING_KEY='ynx.finance.order-opaque.v2.pending';
+function hideBrokerApproval(){const link=$('#broker-wallet-approve');link.hidden=true;delete link.dataset.walletReviewUrl;$('#broker-order-preview').textContent='No approval request created.'}
+function reconcileOpaqueBrokerOwner(){
+  const raw=sessionStorage.getItem(OPAQUE_ORDER_PENDING_KEY);if(!raw)return;
+  let pending;try{pending=JSON.parse(raw)}catch{sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);hideBrokerApproval();return}
+  if(pending?.account!==brokerOwnerAccount()){sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);hideBrokerApproval()}
+}
+function brokerOwnerAccount(){
+  const owner=state.overview?.portfolio?.account,session=window.YNXFinanceWallet?.session?.();
+  return state.connected&&owner&&session?.account===owner?owner:null;
+}
 function opaqueOrderPending(serverTime){
   const raw=sessionStorage.getItem(OPAQUE_ORDER_PENDING_KEY);if(!raw)return null;
-  let pending;try{pending=JSON.parse(raw)}catch{sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);return null}
-  if(pending?.version!=='2'||!window.YNXFinanceOpaqueOrder||!/^[A-Za-z0-9_-]{32,64}$/.test(pending.ticket||'')||
-    !/^request_[0-9a-f-]{36}$/.test(pending.challenge?.requestId||'')||!Number.isFinite(Date.parse(pending.challenge?.expiresAt))){
-    sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);return null;
+  let pending;try{pending=JSON.parse(raw)}catch{sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);hideBrokerApproval();return null}
+  if(pending?.version!=='2'||!window.YNXFinanceOpaqueOrder||pending.account!==brokerOwnerAccount()||
+    !/^[A-Za-z0-9_-]{32,64}$/.test(pending.ticket||'')||
+    !/^request_[0-9a-f-]{36}$/.test(pending.requestId||'')||!Number.isFinite(Date.parse(pending.expiresAt))){
+    sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);hideBrokerApproval();return null;
   }
-  if(Date.parse(serverTime)>=Date.parse(pending.challenge.expiresAt)){
-    sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);return {expired:true,request:{unsigned:pending.challenge}};
+  if(Date.parse(serverTime)>=Date.parse(pending.expiresAt)){
+    sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);return {expired:true,request:{unsigned:{requestId:pending.requestId,expiresAt:pending.expiresAt}}};
   }
-  return {expired:false,approved:false,request:{unsigned:pending.challenge},url:window.YNXFinanceOpaqueOrder.launchURL(pending.ticket)};
+  return {expired:false,approved:false,request:{unsigned:{requestId:pending.requestId,expiresAt:pending.expiresAt}},url:window.YNXFinanceOpaqueOrder.launchURL(pending.ticket)};
 }
 function renderBrokerWorkspace(workspace){
   const orders=Array.isArray(workspace?.orders)?workspace.orders:[];
@@ -114,7 +125,8 @@ function renderBrokerWorkspace(workspace){
 }
 function renderBrokerApprovalRoute(route,recovered=false){
   const unsigned=route.request.unsigned,order=unsigned.order;
-  $('#broker-order-preview').innerHTML=`<strong>${esc(order.side)} ${esc(order.qty)} ${esc(order.symbol)} @ ${esc(order.limitPrice)} simulated USD</strong><br>Maximum: ${esc(order.maxCost)} USD · maximum fee ${esc(order.maxFee)} USD · expires ${esc(unsigned.expiresAt)}<br><small>Request ${esc(short(unsigned.requestId))}. ${recovered?'Recovered from this browser; the same request can be reviewed or revoked.':'Broker provider has not been contacted.'}</small>`;
+  $('#broker-order-preview').innerHTML=order?`<strong>${esc(order.side)} ${esc(order.qty)} ${esc(order.symbol)} @ ${esc(order.limitPrice)} simulated USD</strong><br>Maximum: ${esc(order.maxCost)} USD · maximum fee ${esc(order.maxFee)} USD · expires ${esc(unsigned.expiresAt)}<br><small>Request ${esc(short(unsigned.requestId))}. ${recovered?'Recovered from this browser; the same request can be reviewed or revoked.':'Broker provider has not been contacted.'}</small>`:
+    `Pending confidential Wallet review for this signed-in account · expires ${esc(unsigned.expiresAt)}. Order details are not kept in browser session storage. Review the exact terms in YNX Wallet.`;
   const link=$('#broker-wallet-approve');link.hidden=false;link.rel='noreferrer';
   if(route.url.startsWith('ynxwallet://')){
     link.href='#';link.dataset.walletReviewUrl=route.url;link.textContent='Copy secure YNX Wallet review link';
@@ -124,7 +136,11 @@ async function restoreBrokerApproval(serverTime,{announce=false}={}){
   const opaque=opaqueOrderPending(serverTime);
   if(opaque){if(opaque.expired){$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent='The opaque Wallet ticket expired. No Broker order was sent.';return opaque}
     renderBrokerApprovalRoute(opaque,true);if(announce)notify('The same opaque Wallet review ticket is still active. Copy it again or wait for expiry.');return opaque}
-  if(!window.YNXFinanceOrderWallet.pending())return null;
+  const legacyPending=window.YNXFinanceOrderWallet.pending();
+  if(!legacyPending)return null;
+  if(!brokerOwnerAccount()||legacyPending.request?.unsigned?.account!==brokerOwnerAccount()){
+    window.YNXFinanceOrderWallet.clear();hideBrokerApproval();return null;
+  }
   const route=await window.YNXFinanceOrderWallet.resume(serverTime);
   if(!route)return null;
   if(route.expired){$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent='The local Wallet request expired and was cleared. The server archives expired approvals without creating an execution outbox.';if(announce)notify('Expired Wallet request cleared. No broker action occurred.');return route}
@@ -171,8 +187,9 @@ async function createBrokerApproval(event){
     const result=await api('/api/broker/order-handoff/issue',{method:'POST',body:JSON.stringify({draft})});
     if(result?.version!=='2'||result.providerWriteAttempted!==false||!/^[A-Za-z0-9_-]{32,64}$/.test(result.ticket||'')||
       !/^request_[0-9a-f-]{36}$/.test(result.challenge?.requestId||''))throw new Error('Confidential Finance order challenge response is invalid.');
+    const owner=brokerOwnerAccount();if(!owner||result.challenge.account!==owner)throw new Error('Confidential challenge owner differs from the active Finance session.');
     const route={request:{unsigned:result.challenge},url:window.YNXFinanceOpaqueOrder.launchURL(result.ticket),approved:false};
-    sessionStorage.setItem(OPAQUE_ORDER_PENDING_KEY,JSON.stringify({version:'2',ticket:result.ticket,challenge:result.challenge}));
+    sessionStorage.setItem(OPAQUE_ORDER_PENDING_KEY,JSON.stringify({version:'2',ticket:result.ticket,account:owner,requestId:result.challenge.requestId,expiresAt:result.challenge.expiresAt}));
     renderBrokerApprovalRoute(route);notify('Opaque review ticket created. Copy the link to YNX Wallet; this Web page will not launch a custom scheme or submit to the Broker.');await refreshBrokerWorkspace();
   }catch(error){notify(error.message,true)}finally{brokerApprovalInFlight=false;if(submit){submit.disabled=wasDisabled;submit.removeAttribute('aria-busy')}}
 }
@@ -267,11 +284,11 @@ async function verifyWalletIdentity(){
   finally{if(requestId){try{const pending=JSON.parse(sessionStorage.getItem('ynx.finance.evm-login.pending.v1')||'null');if(pending?.requestId===requestId)sessionStorage.removeItem('ynx.finance.evm-login.pending.v1')}catch{}}walletIdentityBusy=false;renderWalletIdentity()}
 }
 async function consumeCallback(){await window.YNXFinanceWallet.ready}
-function clearPrivateView(){state.context++;clearInterval(state.aiTimer);state.aiJob=null;state.overview=null;state.connected=false;for(const id of ['account','balance','staked','balance-source','statement','ai-status']){const element=$('#'+id);if(element)element.textContent='—'}clearBrokerSnapshot();renderBrokerWorkspace(null);renderSignedOut()}
+function clearPrivateView({clearOpaquePending=true}={}){state.context++;clearInterval(state.aiTimer);state.aiJob=null;state.overview=null;state.connected=false;if(clearOpaquePending){sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);window.YNXFinanceOrderWallet?.clear()}hideBrokerApproval();for(const id of ['account','balance','staked','balance-source','statement','ai-status']){const element=$('#'+id);if(element)element.textContent='—'}clearBrokerSnapshot();renderBrokerWorkspace(null);renderSignedOut()}
 async function logout(){const result=await window.YNXFinanceWallet.disconnect();if(result?.status==='disconnected'){clearPrivateView()}else notify('Private sign-out is unconfirmed. Retry to reconcile; Standard Wallet is unchanged.',true)}
 function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.add('hidden');$('#logout').classList.add('hidden');$('#source-pill').textContent='Not connected';$('#source-pill').className='pill neutral';$('#page-title').textContent='Your money, with its evidence attached.';route()}
 
-async function load(){await window.YNXFinanceWallet.ready;state.connected=window.YNXFinanceWallet.connected();if(!state.connected){renderSignedOut();return}try{$('#source-pill').textContent='Checking sources';const data=await api('/api/overview');state.overview=data;render(data)}catch(error){if(error.status===401||error.status===403){window.YNXFinanceWallet.reportPrivateFailure();clearPrivateView();notify('Private Finance access needs reauthorization. Standard Wallet is unchanged.',true)}else notify(error.message,true)}}
+async function load(){await window.YNXFinanceWallet.ready;state.connected=window.YNXFinanceWallet.connected();if(!state.connected){renderSignedOut();return}try{$('#source-pill').textContent='Checking sources';const data=await api('/api/overview');state.overview=data;reconcileOpaqueBrokerOwner();render(data)}catch(error){if(error.status===401||error.status===403){window.YNXFinanceWallet.reportPrivateFailure();clearPrivateView();notify('Private Finance access needs reauthorization. Standard Wallet is unchanged.',true)}else notify(error.message,true)}}
 async function reconnect(){try{await publicHealth();if(state.connected)await load()}catch(error){notify(error.message,true)}}
 function render(data){document.body.classList.remove('signed-out-state');$('#signed-out').classList.add('hidden');$('#workspace').classList.remove('hidden');$('#signin').classList.add('hidden');$('#logout').classList.remove('hidden');const p=data.portfolio,profile=data.profile;$('#account').textContent=p.account;$('#balance').textContent=p.explorerStatus.available?`${fmt(p.balanceYnxt)} YNXT`:'Unavailable';$('#staked').textContent=p.explorerStatus.available?`${fmt(p.stakedYnxt)} YNXT`:'Unavailable';$('#balance-source').textContent=p.explorerStatus.available?`Explorer evidence · ${date(p.asOf)}`:p.explorerStatus.error;const both=p.explorerStatus.available&&p.payStatus.available;$('#source-pill').textContent=both?'Explorer + Pay live':p.explorerStatus.available?'Explorer live · Pay unavailable':'Sources unavailable';$('#source-pill').className=`pill ${both?'live':'warning'}`;renderAlerts(data.alerts);renderActivity(p.activity);renderReceipts(p.payReceipts,p.payStatus);renderPlanning(profile,data.budgetProgress);renderPrivacy(profile.privacy);renderAIRecords(p.activity);renderSupport(data.support);refreshBrokerSnapshot();refreshBrokerWorkspace().then(async workspace=>{if(workspace)try{await restoreBrokerApproval(workspace.serverTime)}catch(error){notify(error.message,true)}await completeBrokerCallback()});route()}
 function renderAlerts(alerts){const el=$('#alerts');if(!alerts.length){el.innerHTML='<div class="alert info"><div><strong>No source or rule alerts</strong><small>Finance alerts are informational and never freeze assets.</small></div></div>';return}el.innerHTML=alerts.map(a=>`<div class="alert ${a.severity==='info'?'info':''}"><div><strong>${esc(a.title)}</strong><small>${esc(a.detail)}</small></div></div>`).join('')}
@@ -319,7 +336,7 @@ $('#ai-order-intent').addEventListener('submit',event=>{event.preventDefault();s
 $('#ai-kind').addEventListener('change',()=>$('#ai-order-intent').classList.toggle('hidden',$('#ai-kind').value!=='draft_broker_order'));
 
 function route(){const id=(location.hash||(state.connected?'#overview':'#markets')).slice(1);$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('#nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${id}`));const heading=$(`#${id} h2`);if(state.connected&&heading)$('#page-title').textContent=heading.textContent;else if(!state.connected)$('#page-title').textContent=financeText('pageTitle')}
-window.addEventListener('ynx-finance-standard-state',()=>{state.context++;clearInterval(state.aiTimer);walletIdentityState='identityUnverified';renderWalletIdentity()});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView();if(event.detail?.status==='connected')load()});
+window.addEventListener('ynx-finance-standard-state',()=>{state.context++;clearInterval(state.aiTimer);walletIdentityState='identityUnverified';renderWalletIdentity()});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected')load()});
 window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('Offline · reconnect when network returns','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
 $('#wallet-login-verify').addEventListener('click',verifyWalletIdentity);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);

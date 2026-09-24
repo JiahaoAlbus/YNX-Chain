@@ -84,7 +84,7 @@ func (s *Server) brokerOpaqueIssue(w http.ResponseWriter, r *http.Request, sessi
 	challenge, err := s.service.Store.CreateBrokerOrderChallengeWithHandoff(session.Account, BrokerChallengeRequest{
 		AccountPublicKey: publicKey, CallbackState: callbackState, Order: order, FeeEvidenceRef: s.cfg.BrokerFeeEvidenceRef,
 		FeeBoundEstablished: true, Lifetime: 5 * time.Minute,
-	}, ticketHash, s.now())
+	}, ticketHash, session.SessionBinding, s.now())
 	if err != nil {
 		writeError(w, http.StatusConflict, "challenge_rejected", "Confidential order challenge was not persisted")
 		return
@@ -297,7 +297,7 @@ func (s *Server) brokerOpaqueExchange(w http.ResponseWriter, r *http.Request, se
 		return
 	}
 	codeDigest := sha256.Sum256([]byte(input.Code))
-	record, challenge, err := s.service.Store.opaqueBrokerOrderCallbackAuthority(session.Account, hex.EncodeToString(codeDigest[:]))
+	record, challenge, err := s.service.Store.opaqueBrokerOrderCallbackAuthority(session.Account, hex.EncodeToString(codeDigest[:]), session.SessionBinding)
 	if err != nil || !record.CodeExpiresAt.After(s.now().UTC()) {
 		writeError(w, http.StatusConflict, "callback_unavailable", "Confidential Wallet callback unavailable")
 		return
@@ -316,7 +316,7 @@ func (s *Server) brokerOpaqueExchange(w http.ResponseWriter, r *http.Request, se
 		writeError(w, http.StatusUnauthorized, "callback_rejected", "Confidential Wallet callback rejected")
 		return
 	}
-	result, err := s.service.Store.ExchangeBrokerOrderHandoff(session.Account, record.RequestID, verified.Code, verified.State, s.now())
+	result, err := s.service.Store.ExchangeBrokerOrderHandoff(session.Account, record.RequestID, verified.Code, verified.State, session.SessionBinding, s.now())
 	if err != nil {
 		writeError(w, http.StatusConflict, "callback_consumed", "Confidential Wallet callback expired, changed or consumed")
 		return

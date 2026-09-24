@@ -794,6 +794,10 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/wallet-auth/callback" || r.URL.Path == "/auth/callback" {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Pragma", "no-cache")
+	}
 	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/finance-locale.js": "finance-locale.js", "/wallet-auth.js": "wallet-auth.js", "/order-wallet.js": "order-wallet.js", "/order-opaque.js": "order-opaque.js", "/evm-read-session.js": "evm-read-session.js", "/evm-subject.js": "evm-subject.js", "/read-sources.js": "read-sources.js", "/product-catalog.js": "product-catalog.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
 	if name == "" || s.cfg.WebDir == "" {
 		http.NotFound(w, r)

@@ -32,7 +32,7 @@ func TestFreshBrokerOrderHandoffDurableClaimAndOwnerIsolation(t *testing.T) {
 	if _, err := store.CreateBrokerOrderChallenge(account, request, now); err == nil {
 		t.Fatal("a fresh callback state was created without an atomic opaque ticket")
 	}
-	challenge, err := store.CreateBrokerOrderChallengeWithHandoff(account, request, ticketHash, now)
+	challenge, err := store.CreateBrokerOrderChallengeWithHandoff(account, request, ticketHash, "test-finance-session-A", now)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,6 +43,29 @@ func TestFreshBrokerOrderHandoffDurableClaimAndOwnerIsolation(t *testing.T) {
 	record, _, err := store.BrokerOrderHandoffAuthoritySnapshot(ticketHash)
 	if err != nil || record.CallbackStateBinding != "sha256-v2" || record.CallbackState != callbackState {
 		t.Fatalf("atomic v2 ticket did not persist the exact secret state: %v", err)
+	}
+	if err := store.updateAllState(account, "test.pre_binding_record", ticketHash, func(all *persistedState) error {
+		legacy := all.BrokerOrderHandoffs[ticketHash]
+		legacy.SessionBindingHash = ""
+		all.BrokerOrderHandoffs[ticketHash] = legacy
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	quarantined, err := OpenStore(path)
+	if err != nil {
+		t.Fatalf("pre-binding durable state was not preserved on restart: %v", err)
+	}
+	if _, err := quarantined.ClaimBrokerOrderHandoff(account, ticketHash, nonce, now.Add(time.Second)); err == nil {
+		t.Fatal("pre-binding ticket was claimed without an issuing Product Session")
+	}
+	if err := store.updateAllState(account, "test.restore_binding", ticketHash, func(all *persistedState) error {
+		bound := all.BrokerOrderHandoffs[ticketHash]
+		bound.SessionBindingHash = record.SessionBindingHash
+		all.BrokerOrderHandoffs[ticketHash] = bound
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 	profile, err := json.Marshal(store.Account(account))
 	if err != nil || strings.Contains(string(profile), callbackState) || strings.Contains(string(profile), ticketHash) {

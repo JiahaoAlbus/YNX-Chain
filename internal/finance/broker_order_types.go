@@ -130,10 +130,15 @@ type BrokerApprovalChallenge struct {
 // profile endpoint serializes AccountState and must not expose a callback
 // state, proof, or one-time code verifier. Ticket and code plaintext are never
 // persisted. The raw-v1 mode is reserved for a separately reviewed legacy
-// recovery route; fresh tickets must use sha256-v2.
+// recovery route; fresh tickets must use sha256-v2. Fresh tickets bind the
+// issuing Product Session by hash. A raw-v1 recovered ticket has no original
+// session binding in its historical challenge: its separate owner-key recovery
+// proof plus the current same-account Product Session at exchange is an
+// explicit reauthentication exception, never an original-session claim.
 type BrokerOrderHandoffRecord struct {
 	TicketHash           string               `json:"ticketHash"`
 	Account              string               `json:"account"`
+	SessionBindingHash   string               `json:"sessionBindingHash"`
 	RequestID            string               `json:"requestId"`
 	CallbackState        string               `json:"callbackState"`
 	CallbackStateBinding string               `json:"callbackStateBinding"`

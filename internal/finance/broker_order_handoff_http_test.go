@@ -7,12 +7,28 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestFinanceCallbackDocumentIsNeverCached(t *testing.T) {
+	webDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(webDir, "index.html"), []byte("<html>Finance</html>"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	server := &Server{cfg: ServerConfig{WebDir: webDir}}
+	for _, path := range []string{"/wallet-auth/callback?financeOrderCode=secret&state=secret", "/auth/callback?code=secret"} {
+		response := httptest.NewRecorder()
+		securityHeaders(http.HandlerFunc(server.web)).ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+		if response.Code != http.StatusOK || response.Header().Get("Cache-Control") != "no-store" || response.Header().Get("Pragma") != "no-cache" || response.Header().Get("Referrer-Policy") != "no-referrer" {
+			t.Fatalf("callback document may be cached or referred: %s status=%d headers=%v", path, response.Code, response.Header())
+		}
+	}
+}
 
 func signOpaqueBrokerTestProof(t *testing.T, node, script, action, ticket, nonce string, challenge FinanceOrderApprovalUnsignedV1, at time.Time) json.RawMessage {
 	t.Helper()
@@ -54,7 +70,7 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 	body, _ := json.Marshal(draft)
 	request := httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/issue", bytes.NewReader(body))
 	recorder := httptest.NewRecorder()
-	server.brokerOpaqueIssue(recorder, request, Session{Account: account})
+	server.brokerOpaqueIssue(recorder, request, Session{Account: account, SessionBinding: "test-finance-session-A"})
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("opaque issue status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
@@ -69,6 +85,11 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 	}
 	if strings.Contains(issued.Ticket, issued.Challenge.Order.Symbol) || len(store.BrokerWorkspace(account, now).Outbox) != 0 {
 		t.Fatal("opaque ticket disclosed the order or issued a provider outbox")
+	}
+	stored, _, err := store.BrokerOrderHandoffAuthoritySnapshot(issued.TicketHash)
+	issuerDigest := sha256.Sum256([]byte("test-finance-session-A"))
+	if err != nil || stored.SessionBindingHash != hex.EncodeToString(issuerDigest[:]) || strings.Contains(string(mustFinanceCanonical(stored)), "test-finance-session-A") {
+		t.Fatal("fresh handoff did not bind only a hash of the issuer Product Session")
 	}
 	clock = now.Add(time.Second)
 	claimProof := signOpaqueBrokerTestProof(t, node, signerPath, "claim", issued.Ticket, "claim_nonce_0123456789abcdefghijkl", issued.Challenge, clock)
@@ -140,7 +161,7 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 	server.service.Store, store = restarted, restarted
 	wrongBody, _ := json.Marshal(map[string]string{"code": completed.Code, "state": "changed_state_0123456789abcdefghijkl"})
 	recorder = httptest.NewRecorder()
-	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(wrongBody)), Session{Account: account})
+	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(wrongBody)), Session{Account: account, SessionBinding: "test-finance-session-A"})
 	if recorder.Code == http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 0 {
 		t.Fatal("wrong callback state exchanged an opaque order")
 	}
@@ -151,12 +172,20 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 		t.Fatal("another account exchanged the callback")
 	}
 	recorder = httptest.NewRecorder()
-	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account})
+	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account, SessionBinding: "test-finance-session-B"})
+	if recorder.Code == http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 0 {
+		t.Fatal("a new same-account Product Session consumed the issuer-bound fresh callback")
+	}
+	if _, err := store.ExchangeBrokerOrderHandoff(account, issued.Challenge.RequestID, completed.Code, completed.State, "test-finance-session-B", clock); err == nil {
+		t.Fatal("direct store CAS accepted a different same-account Product Session")
+	}
+	recorder = httptest.NewRecorder()
+	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account, SessionBinding: "test-finance-session-A"})
 	if recorder.Code != http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 1 {
 		t.Fatalf("approved callback did not atomically create one Sandbox outbox: %d %s", recorder.Code, recorder.Body.String())
 	}
 	recorder = httptest.NewRecorder()
-	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account})
+	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account, SessionBinding: "test-finance-session-A"})
 	if recorder.Code == http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 1 {
 		t.Fatal("one-time callback code replayed")
 	}
@@ -220,7 +249,7 @@ func TestOpaqueBrokerLegacyRecoveryRequiresSignedPreCutoverChallenge(t *testing.
 		t.Fatal("recovery ticket invalid")
 	}
 	record, _, err := store.BrokerOrderHandoffAuthoritySnapshot(recovered.TicketHash)
-	if err != nil || record.CallbackStateBinding != "raw-v1-random32" || record.CallbackState != challenge.Unsigned.CallbackStateHash {
+	if err != nil || record.CallbackStateBinding != "raw-v1-random32" || record.CallbackState != challenge.Unsigned.CallbackStateHash || record.SessionBindingHash != "" {
 		t.Fatalf("legacy random32 state was changed: %v", err)
 	}
 	clock = clock.Add(time.Second)
@@ -248,7 +277,7 @@ func TestOpaqueBrokerLegacyRecoveryRequiresSignedPreCutoverChallenge(t *testing.
 	}
 	exchangeBody, _ := json.Marshal(map[string]string{"code": completed.Code, "state": completed.State})
 	recorder = httptest.NewRecorder()
-	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account})
+	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account, SessionBinding: "test-finance-session-legacy-current"})
 	if recorder.Code != http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 1 {
 		t.Fatalf("raw legacy callback did not atomically exchange: %d %s", recorder.Code, recorder.Body.String())
 	}

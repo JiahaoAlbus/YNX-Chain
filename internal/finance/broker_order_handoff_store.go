@@ -13,6 +13,14 @@ import (
 var brokerHandoffToken = regexp.MustCompile(`^[A-Za-z0-9_-]{32,64}$`)
 var brokerHandoffHex = regexp.MustCompile(`^[0-9a-f]{64}$`)
 
+func brokerHandoffSessionHash(binding string) (string, error) {
+	if binding == "" || len(binding) > 512 {
+		return "", errors.New("confidential handoff Product Session binding is invalid")
+	}
+	digest := sha256.Sum256([]byte(binding))
+	return hex.EncodeToString(digest[:]), nil
+}
+
 func compactBrokerHandoffProof(raw json.RawMessage) ([]byte, error) {
 	if len(raw) == 0 || len(raw) > 32<<10 {
 		return nil, errors.New("confidential decision proof size is invalid")
@@ -41,7 +49,9 @@ func validateBrokerOrderHandoff(all persistedState, key string, record BrokerOrd
 	}
 	switch record.CallbackStateBinding {
 	case "sha256-v2":
-		if !brokerHandoffToken.MatchString(record.CallbackState) {
+		// Preserve pre-binding durable rows on restart without granting them a
+		// claim or exchange path. New issuance always writes a valid hash.
+		if (record.SessionBindingHash != "" && !brokerHandoffHex.MatchString(record.SessionBindingHash)) || !brokerHandoffToken.MatchString(record.CallbackState) {
 			return errors.New("confidential handoff state token is invalid")
 		}
 		digest := sha256.Sum256([]byte(record.CallbackState))
@@ -49,7 +59,7 @@ func validateBrokerOrderHandoff(all persistedState, key string, record BrokerOrd
 			return errors.New("confidential handoff state digest differs from challenge")
 		}
 	case "raw-v1-random32":
-		if !brokerHandoffHex.MatchString(record.CallbackState) || record.CallbackState != challenge.Unsigned.CallbackStateHash {
+		if record.SessionBindingHash != "" || !brokerHandoffHex.MatchString(record.CallbackState) || record.CallbackState != challenge.Unsigned.CallbackStateHash {
 			return errors.New("legacy handoff state differs from original random v1 value")
 		}
 	default:
@@ -93,7 +103,7 @@ func (s *Store) ClaimBrokerOrderHandoff(account, ticketHash, nonce string, now t
 	for attempt := 0; attempt < brokerCASAttempts; attempt++ {
 		err = s.updateAllState(account, "broker.handoff.claimed", ticketHash, func(all *persistedState) error {
 			record, ok := all.BrokerOrderHandoffs[ticketHash]
-			if !ok || record.Account != account || !record.ExpiresAt.After(now.UTC()) || record.DecisionStatus != "" ||
+			if !ok || record.Account != account || (record.CallbackStateBinding == "sha256-v2" && record.SessionBindingHash == "") || !record.ExpiresAt.After(now.UTC()) || record.DecisionStatus != "" ||
 				len(record.ClaimNonces) >= 5 {
 				return errors.New("confidential ticket is absent, expired or already decided")
 			}
@@ -161,7 +171,11 @@ func (s *Store) isOpaqueBrokerOrderRequest(account, requestID string) (bool, err
 	return false, nil
 }
 
-func (s *Store) opaqueBrokerOrderCallbackAuthority(account, codeHash string) (BrokerOrderHandoffRecord, FinanceOrderApprovalUnsignedV1, error) {
+func (s *Store) opaqueBrokerOrderCallbackAuthority(account, codeHash, sessionBinding string) (BrokerOrderHandoffRecord, FinanceOrderApprovalUnsignedV1, error) {
+	sessionHash, err := brokerHandoffSessionHash(sessionBinding)
+	if err != nil {
+		return BrokerOrderHandoffRecord{}, FinanceOrderApprovalUnsignedV1{}, err
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := s.refreshLocked(); err != nil {
@@ -169,7 +183,8 @@ func (s *Store) opaqueBrokerOrderCallbackAuthority(account, codeHash string) (Br
 	}
 	var found BrokerOrderHandoffRecord
 	for key, record := range s.state.BrokerOrderHandoffs {
-		if record.Account == account && record.CodeHash == codeHash {
+		if record.Account == account && record.CodeHash == codeHash &&
+			(record.CallbackStateBinding == "raw-v1-random32" || record.SessionBindingHash == sessionHash) {
 			if found.RequestID != "" || validateBrokerOrderHandoff(s.state, key, record) != nil {
 				return BrokerOrderHandoffRecord{}, FinanceOrderApprovalUnsignedV1{}, errors.New("confidential callback owner is ambiguous or invalid")
 			}
@@ -287,7 +302,7 @@ func (s *Store) StoreBrokerOrderHandoffDecision(account, ticketHash, verifiedReq
 	for attempt := 0; attempt < brokerCASAttempts; attempt++ {
 		err = s.updateAllState(account, "broker.handoff.decision_stored", ticketHash, func(all *persistedState) error {
 			record, ok := all.BrokerOrderHandoffs[ticketHash]
-			if !ok || record.Account != account || record.RequestID != verifiedRequestID || !record.ExpiresAt.After(now.UTC()) ||
+			if !ok || record.Account != account || (record.CallbackStateBinding == "sha256-v2" && record.SessionBindingHash == "") || record.RequestID != verifiedRequestID || !record.ExpiresAt.After(now.UTC()) ||
 				len(record.ClaimNonces) == 0 || record.CodeConsumedAt != nil {
 				return errors.New("confidential ticket is absent, unclaimed, expired or already consumed")
 			}
