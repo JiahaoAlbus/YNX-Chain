@@ -8,6 +8,7 @@ export const EVM_PRODUCT_SESSION_VERSION = "1";
 export const EVM_PRODUCT_SESSION_SCOPE = "finance.account.read";
 export const EVM_PRODUCT_SESSION_ORIGIN = "https://finance.ynxweb4.com";
 export const EVM_PRODUCT_SESSION_CALLBACK = "https://finance.ynxweb4.com/wallet-auth/callback";
+export const EVM_PRODUCT_SESSION_REVOKE_TARGET = "/api/wallet-login/revoke";
 export const EVM_PRODUCT_SESSION_MAX_LIFETIME_MS = 15 * 60_000;
 export const EVM_PRODUCT_SESSION_PROOF_MAX_LIFETIME_MS = 60_000;
 
@@ -139,6 +140,16 @@ export async function createEvmProductSessionHttpProofWith(sessionInput, request
   return proof;
 }
 
+export function createEvmProductSessionRevokeProof(sessionInput, request, deviceSecretInput) {
+  exactFields(request, ["bodyDigest", "nonce", "issuedAt", "expiresAt"], "EVM Product Session revoke proof input");
+  return createEvmProductSessionHttpProof(sessionInput, { ...request, method: "POST", target: EVM_PRODUCT_SESSION_REVOKE_TARGET }, deviceSecretInput);
+}
+
+export async function createEvmProductSessionRevokeProofWith(sessionInput, request, signer) {
+  exactFields(request, ["bodyDigest", "nonce", "issuedAt", "expiresAt"], "EVM Product Session revoke proof input");
+  return createEvmProductSessionHttpProofWith(sessionInput, { ...request, method: "POST", target: EVM_PRODUCT_SESSION_REVOKE_TARGET }, signer);
+}
+
 export function parseEvmProductSessionHttpProof(input) {
   exactFields(input, HTTP_PROOF, "EVM Product Session HTTP proof");
   const { deviceSignature: signed, ...unsigned } = input;
@@ -174,6 +185,29 @@ export async function verifyAndConsumeEvmProductSessionHttpProof(proofInput, loa
   verifyDevice(proof.deviceSignature, evmProductSessionProofSignBytes(unsignedProof(proof)), session.deviceKey);
   if (await consumeProof(Object.freeze({ sessionId: session.sessionId, nonce: proof.nonce, expiresAt: proof.expiresAt })) !== true) fail("REPLAY", "HTTP proof was already used");
   return Object.freeze({ authorized: true, account: session.account, productId: session.productId, scope: session.scope, sessionId: session.sessionId });
+}
+
+// revokeAndConsume MUST atomically mark the stored session revoked and consume
+// (sessionId, nonce). No current provider selection is needed to revoke after
+// accountsChanged, chainChanged, or disconnect.
+export async function verifyAndConsumeEvmProductSessionRevokeProof(proofInput, loadSession, request, revokeAndConsume, at = new Date()) {
+  const proof = parseEvmProductSessionHttpProof(proofInput);
+  if (typeof loadSession !== "function") fail("AUTHORITY_STORE_REQUIRED", "Authoritative session lookup is required");
+  const stored = await loadSession(proof.sessionId);
+  if (stored === null || stored === undefined) fail("SESSION_NOT_FOUND", "Session is absent from the authority store");
+  const session = parseEvmProductSession(stored);
+  exactFields(request, ["origin", "method", "target", "bodyDigest"], "EVM Product Session revoke request context");
+  if (typeof revokeAndConsume !== "function") fail("REPLAY_STORE_REQUIRED", "Atomic revocation and proof consumption are required");
+  if (request.method !== "POST" || request.target !== EVM_PRODUCT_SESSION_REVOKE_TARGET || proof.method !== "POST" || proof.target !== EVM_PRODUCT_SESSION_REVOKE_TARGET) fail("REVOKE_ROUTE_MISMATCH", "Revoke proof is bound to the exact POST route");
+  if (origin(request.origin) !== session.origin || proof.origin !== session.origin) fail("ORIGIN_MISMATCH", "Revoke origin changed");
+  if (proof.bodyDigest !== digest(request.bodyDigest)) fail("HTTP_BINDING_MISMATCH", "Revoke proof differs from the request body");
+  if (["sessionId", "challengeDigest", "account", "scope"].some((key) => proof[key] !== session[key])) fail("SESSION_BINDING_MISMATCH", "Revoke proof differs from stored session");
+  const now = validDate(at).getTime();
+  if (Date.parse(session.expiresAt) <= now || Date.parse(proof.expiresAt) <= now) fail("SESSION_EXPIRED", "Session or revoke proof expired");
+  if (Date.parse(proof.issuedAt) < Date.parse(session.issuedAt) || Date.parse(proof.issuedAt) > now || proof.expiresAt > session.expiresAt) fail("INVALID_PROOF_TIME", "Revoke proof time is outside session");
+  verifyDevice(proof.deviceSignature, evmProductSessionProofSignBytes(unsignedProof(proof)), session.deviceKey);
+  if (await revokeAndConsume(Object.freeze({ sessionId: session.sessionId, challengeDigest: session.challengeDigest, account: session.account, nonce: proof.nonce, expiresAt: proof.expiresAt })) !== true) fail("REPLAY_OR_REVOKED", "Session is revoked or revoke proof was already used");
+  return Object.freeze({ revoked: true, account: session.account, sessionId: session.sessionId });
 }
 
 function httpProofInput(session, input) {

@@ -7,8 +7,9 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 import { bytesToHex, concatBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import {
   createEvmProductSessionChallenge, createEvmProductSessionHttpProof, createEvmProductSessionHttpProofWith, createEvmProductSessionLoginProof, createEvmProductSessionLoginProofWith,
+  createEvmProductSessionRevokeProof, createEvmProductSessionRevokeProofWith, EVM_PRODUCT_SESSION_REVOKE_TARGET,
   createEvmProductSessionSigningRequest, ethereumPersonalMessageDigest, evmProductSessionMessage,
-  issueEvmProductSession, parseEvmProductSessionChallenge, verifyAndConsumeEvmProductSessionHttpProof,
+  issueEvmProductSession, parseEvmProductSessionChallenge, verifyAndConsumeEvmProductSessionHttpProof, verifyAndConsumeEvmProductSessionRevokeProof,
 } from "../src/index.js";
 import { encodeBase64url } from "../src/base64url.js";
 import { decodeBase64url } from "../src/base64url.js";
@@ -88,4 +89,39 @@ test("HTTP proof denies crossed session, request, account, revocation and expiry
   await assert.rejects(check(proof, session, context, { ...authority, currentChainId: 1 }), { code: "CHAIN_CHANGED" });
   await assert.rejects(check(proof, session, context, { ...authority, revoked: true }), { code: "SESSION_REVOKED" });
   await assert.rejects(check(proof, session, context, authority, new Date(request.expiresAt)), { code: "SESSION_EXPIRED" });
+});
+
+test("POST revoke consumes the bound device proof once even after browser account or chain changes", async () => {
+  const session = await issueEvmProductSession(loginProof, challenge, issue, async () => true, at);
+  const revokeInput = { bodyDigest: "a".repeat(64), nonce: "revoke_nonce_0123456789abcdefghijk", issuedAt: "2026-09-24T06:00:01.000Z", expiresAt: "2026-09-24T06:00:31.000Z" };
+  const proof = createEvmProductSessionRevokeProof(session, revokeInput, secret);
+  assert.equal(proof.method, "POST"); assert.equal(proof.target, EVM_PRODUCT_SESSION_REVOKE_TARGET);
+  const context = { origin: challenge.origin, method: "POST", target: EVM_PRODUCT_SESSION_REVOKE_TARGET, bodyDigest: revokeInput.bodyDigest };
+  let revoked = false;
+  const commit = async ({ sessionId, account: signedAccount, nonce }) => {
+    assert.equal(sessionId, session.sessionId); assert.equal(signedAccount, account); assert.equal(nonce, revokeInput.nonce);
+    if (revoked) return false; revoked = true; return true;
+  };
+  const load = async () => session;
+  const when = new Date("2026-09-24T06:00:02.000Z");
+  await assert.rejects(verifyAndConsumeEvmProductSessionHttpProof(proof, load, { ...context, requiredScope: "finance.account.read", allowedTargets: [EVM_PRODUCT_SESSION_REVOKE_TARGET] }, { currentAccount: account, currentChainId: 6423, connected: true, revoked: false }, async () => true, when), { code: "SCOPE_DENIED" });
+  assert.equal((await verifyAndConsumeEvmProductSessionRevokeProof(proof, load, context, commit, when)).revoked, true);
+  await assert.rejects(verifyAndConsumeEvmProductSessionRevokeProof(proof, load, context, commit, when), { code: "REPLAY_OR_REVOKED" });
+});
+
+test("revoke route, body, session, signature and time substitutions fail before revocation", async () => {
+  const session = await issueEvmProductSession(loginProof, challenge, issue, async () => true, at);
+  const signer = async ({ payload }) => encodeBase64url(p256.sign(decodeBase64url(payload), deviceSecret, { format: "compact" }));
+  const revokeInput = { bodyDigest: "b".repeat(64), nonce: "revoke_nonce_0123456789abcdefghijk", issuedAt: "2026-09-24T06:00:01.000Z", expiresAt: "2026-09-24T06:00:31.000Z" };
+  const proof = await createEvmProductSessionRevokeProofWith(session, revokeInput, signer);
+  const context = { origin: challenge.origin, method: "POST", target: EVM_PRODUCT_SESSION_REVOKE_TARGET, bodyDigest: revokeInput.bodyDigest };
+  let commits = 0;
+  const check = (p = proof, s = session, r = context, when = new Date("2026-09-24T06:00:02.000Z")) => verifyAndConsumeEvmProductSessionRevokeProof(p, async () => s, r, async () => { commits++; return true }, when);
+  await assert.rejects(check(proof, session, { ...context, method: "GET" }), { code: "REVOKE_ROUTE_MISMATCH" });
+  await assert.rejects(check(proof, session, { ...context, target: "/api/private/account" }), { code: "REVOKE_ROUTE_MISMATCH" });
+  await assert.rejects(check(proof, session, { ...context, bodyDigest: "c".repeat(64) }), { code: "HTTP_BINDING_MISMATCH" });
+  await assert.rejects(check(proof, { ...session, sessionId: "other_session_0123456789abcdefgh" }), { code: "SESSION_BINDING_MISMATCH" });
+  await assert.rejects(check({ ...proof, deviceSignature: proof.deviceSignature.slice(0, -2) + "aa" }));
+  await assert.rejects(check(proof, session, context, new Date(revokeInput.expiresAt)), { code: "SESSION_EXPIRED" });
+  assert.equal(commits, 0);
 });
