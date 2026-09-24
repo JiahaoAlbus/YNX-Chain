@@ -543,6 +543,16 @@ func validatePersistedState(state persistedState) error {
 			return errors.New("finance state contains an invalid Wallet login challenge")
 		}
 	}
+	for requestID, challenge := range state.EVMReadChallenges {
+		if requestID != challenge.RequestID || validateEVMReadChallenge(challenge) != nil {
+			return errors.New("finance state contains an invalid EVM read challenge")
+		}
+	}
+	for sessionID, session := range state.EVMReadSessions {
+		if sessionID != session.SessionID || validateEVMReadSession(session) != nil {
+			return errors.New("finance state contains an invalid EVM read session")
+		}
+	}
 	return nil
 }
 
@@ -600,6 +610,12 @@ func migrateLegacyBrokerLocalExecutionBlocks(state *persistedState) {
 func normalizePersistedState(state *persistedState) {
 	if state.WalletLoginChallenges == nil {
 		state.WalletLoginChallenges = map[string]WalletLoginChallengeRecord{}
+	}
+	if state.EVMReadChallenges == nil {
+		state.EVMReadChallenges = map[string]EVMReadChallengeRecord{}
+	}
+	if state.EVMReadSessions == nil {
+		state.EVMReadSessions = map[string]EVMReadSessionRecord{}
 	}
 	if state.Audit == nil {
 		state.Audit = []AuditEvent{}

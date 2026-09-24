@@ -118,6 +118,8 @@ type persistedState struct {
 	Audit                 []AuditEvent                          `json:"audit"`
 	Nonces                map[string]time.Time                  `json:"usedWalletNonces"`
 	WalletLoginChallenges map[string]WalletLoginChallengeRecord `json:"walletLoginChallenges,omitempty"`
+	EVMReadChallenges     map[string]EVMReadChallengeRecord     `json:"evmReadChallenges,omitempty"`
+	EVMReadSessions       map[string]EVMReadSessionRecord       `json:"evmReadSessions,omitempty"`
 }
 
 type Activity struct {
