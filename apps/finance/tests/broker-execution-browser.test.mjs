@@ -236,6 +236,31 @@ test('AI draft and manual Broker order share one asset-confirmed Wallet approval
   }finally{await page.close()}
 });
 
+test('partially filled Broker order records cancellation intent and survives browser restart without provider write',async()=>{
+  const page=await browser.newPage();let orderState='partially_filled',cancelRequests=0;
+  page.on('dialog',dialog=>dialog.accept());
+  const workspaceResponse=()=>({schema:'ynx-finance-broker-workspace-v1',workspace:{orders:[{requestId:'request-fixture',approvalState:'consumed',state:orderState,order:{orderId,symbol:'ACME',side:'buy',qty:'2',maxCost:'21'}}],outbox:[{orderId,status:'submitted',attempts:1}],journal:[],watchlist:[],serverTime:'2026-09-19T11:00:00.000Z'},providerWriteAttempted:false});
+  await page.route('**/api/broker/orders',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(workspaceResponse())}));
+  await page.route(`**/api/broker/orders/${orderId}/cancel-request`,route=>{
+    cancelRequests++;orderState='cancel_requested';
+    return route.fulfill({status:202,contentType:'application/json',body:JSON.stringify({schema:'ynx-finance-broker-cancel-request-v1',order:{state:orderState},providerWriteAttempted:false,next:'operator_worker_cancel_once'})});
+  });
+  try{
+    await page.goto(base);
+    await page.evaluate(()=>{location.hash='broker-sandbox'});
+    await page.locator('[data-broker-order-cancel]').click();
+    await page.waitForFunction(()=>document.querySelector('#notice')?.textContent.includes('Provider cancellation has not yet run'));
+    assert.equal(cancelRequests,1);
+    assert.equal(await page.locator('[data-broker-order-cancel]').count(),0);
+    await page.reload();
+    await page.evaluate(()=>{location.hash='broker-sandbox'});
+    await page.waitForFunction(()=>document.querySelector('#broker-local-orders')?.textContent.includes('cancel_requested'));
+    assert.equal(await page.locator('[data-broker-order-cancel]').count(),0);
+    assert.equal(cancelRequests,1);
+    assert.match(await page.locator('#broker-local-orders').textContent(),/cancel_requested/);
+  }finally{await page.close()}
+});
+
 test('real browser previews a test-only DvP draft without Wallet or chain writes',async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844}}),posts=[];
   page.on('request',request=>{if(request.method()==='POST')posts.push(request.url())});
