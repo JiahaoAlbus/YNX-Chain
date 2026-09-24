@@ -21,14 +21,14 @@ Status: source and clean-extraction engineering gate passed; public/installed/re
 
 ## Release and rollback boundary
 
-No deployable package or single-use production lease has been frozen for this exact checkpoint. Before any release, build an immutable Linux amd64 artifact from the reviewed source, bind its binary and every served Web asset to exact bytes/SHA, re-read Finance host release link/env/unit/Caddy/state/service and public endpoint hashes, and obtain the Central Finance-only deployment lease. Source and artifact identity must match; a PR commit alone is not a public runtime receipt.
+An immutable Linux amd64 candidate is now frozen from the reviewed exact source: `apps/finance/evidence/release-candidates/finance-weekly-v3-8b95488f32e2-linux-amd64.tar.gz`, 30,850,090 bytes, SHA-256 `6d64ce0b6046440094ea6468ef39a6b3f0e3d0a41f1190c53d77d1cbb1e6311f`. Its 37-file inventory, local Linux cold starts, and release/rollback preflight are in `apps/finance/handoff/finance-evm-read-linux-amd64-candidate-20260925.md`. **No single-use production lease exists for this candidate.** Before any release, re-read Finance host release link/env/unit/Caddy/state/service and public endpoint hashes, then obtain the Central Finance-only deployment lease. The candidate hash is not a public runtime receipt.
 
 If the candidate is not deployed, leaving the current public release in place is the runtime rollback. Any source reversal should be a new reviewable commit on the Finance branch, not a force-push or destructive reset. If a future authorized deployment occurs, use only its signed rollback-first contract and fresh old-release/env/state receipts; after traffic resumes, obtain a separate authorization for any manual rollback and preserve post-deploy state rather than restoring an old snapshot over accepted writes. The historical `c20709da` release card is context, not a reusable lease or current-host rollback command.
 
 ## External blockers and next action
 
-1. Wallet Owner/CI: refresh and review the stale Wallet SBOM gate on PR #196; Finance must not mutate Wallet authority files.
-2. Release Control Plane: freeze a source-bound Finance artifact and issue a fresh, single-use Finance-only deployment lease after exact live preflight; no legacy lease may be reused.
+1. Wallet Owner/CI: Wallet PR203 has a clean/pushed SBOM fix, but PR #196 has a different stacked base and remains failing until ordered integration. Finance must not copy or mutate Wallet authority files.
+2. Release Control Plane: review the frozen source-bound Finance artifact and issue a fresh, single-use Finance-only deployment lease after exact live preflight; no legacy lease may be reused.
 3. Runtime acceptance: deploy exact artifact, verify public `/version`, `/health`, HTML/assets and rollback identity, then personally inspect the public UI. Real selected-provider approval/rejection, 0x1917 readback, chooser close, refresh/events/disconnect, Product Session degradation independence, and installed-platform claims remain false until direct evidence exists.
 4. Official Alpaca credentials/entitlements, official Sandbox order execution, mainnet custody, production signing, and actual chain transaction are not established by this source checkpoint.
 
