@@ -208,13 +208,13 @@ async function createBrokerApproval(event){
   }catch(error){notify(error.message,true)}finally{brokerApprovalInFlight=false;if(submit){submit.disabled=wasDisabled;submit.removeAttribute('aria-busy')}}
 }
 async function reconcileBroker(){
-  if(!state.connected){notify('Sign in before reconciling owner-scoped Sandbox data.',true);return}
-  if(!window.confirm('Read the linked Sandbox account now and reconcile local order state? This performs no provider write.'))return;
-  try{const result=await api('/api/broker/reconcile',{method:'POST',body:'{}'});if(result?.schema!=='ynx-finance-broker-reconcile-v1'||result.providerWriteAttempted!==false)throw new Error('Broker reconcile response is invalid.');renderBrokerWorkspace(result.workspace);await refreshBrokerSnapshot();notify('Sandbox provider state reconciled. No provider write occurred.')}catch(error){notify(error.message,true)}
+  if(!state.connected){notify(financeText('brokerPrivate'),true);return}
+  if(!window.confirm(financeText('brokerReconcileConfirm')))return;
+  try{const result=await api('/api/broker/reconcile',{method:'POST',body:'{}'});if(result?.schema!=='ynx-finance-broker-reconcile-v1'||result.providerWriteAttempted!==false)throw new Error('Broker reconcile response is invalid.');brokerWorkspaceUnavailable=false;renderBrokerWorkspace(result.workspace);await refreshBrokerSnapshot();notify(financeText('brokerReconcileSuccess'))}catch{notify(financeText('brokerReconcileUnavailable'),true)}
 }
 async function requestBrokerCancel(orderId){
-  if(!window.confirm('Record a cancellation request for this Sandbox order? The browser will not contact the provider; an operator worker must execute it.'))return;
-  try{const result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/cancel-request`,{method:'POST',body:'{}'});if(result?.schema!=='ynx-finance-broker-cancel-request-v1'||result.providerWriteAttempted!==false)throw new Error('Cancellation request response is invalid.');notify('Cancellation intent recorded. Provider cancellation has not yet run.');await refreshBrokerWorkspace()}catch(error){notify(error.message,true)}
+  if(!window.confirm(financeText('brokerCancelConfirm')))return;
+  try{const result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/cancel-request`,{method:'POST',body:'{}'});if(result?.schema!=='ynx-finance-broker-cancel-request-v1'||result.providerWriteAttempted!==false)throw new Error('Cancellation request response is invalid.');notify(financeText('brokerCancelRecorded'));await refreshBrokerWorkspace()}catch{notify(financeText('brokerCancelUnavailable'),true)}
 }
 async function refreshBrokerQuote(){
   const symbol=String(new FormData($('#broker-order-form')).get('symbol')||'').toUpperCase();

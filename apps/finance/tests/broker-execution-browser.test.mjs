@@ -293,6 +293,30 @@ test('Broker workspace outage stays unavailable across language switch and recov
   }finally{await page.close()}
 });
 
+test('Broker cancel failure remains localized and never claims a provider DELETE',async()=>{
+  for(const width of [1280,390]){
+    const page=await browser.newPage({viewport:{width,height:844}});let requests=0;
+    page.on('dialog',dialog=>dialog.accept());
+    await page.route('**/api/broker/orders',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({schema:'ynx-finance-broker-workspace-v1',workspace:{orders:[{requestId:'request-fixture',approvalState:'consumed',state:'partially_filled',order:{orderId,symbol:'ACME',side:'buy',qty:'2',maxCost:'21'}}],outbox:[{orderId,status:'submitted',attempts:1}],journal:[],watchlist:[],serverTime:'2026-09-19T11:00:00.000Z'},providerWriteAttempted:false})}));
+    await page.route(`**/api/broker/orders/${orderId}/cancel-request`,route=>{requests++;return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'raw provider delete failed'})})});
+    try{
+      await page.goto(base);
+      await page.evaluate(()=>{location.hash='broker-sandbox'});
+      await page.locator('[data-broker-order-cancel]').click();
+      await page.waitForFunction(()=>document.querySelector('#notice')?.textContent.includes('Cancellation request could not be recorded'));
+      assert.equal(requests,1);
+      assert.match(await page.locator('#notice').textContent(),/Cancellation request could not be recorded/);
+      assert.doesNotMatch(await page.locator('#notice').textContent(),/raw provider delete failed|Provider cancellation has not yet run/);
+      await page.locator('#finance-language').selectOption('zh-CN');
+      await page.locator('[data-broker-order-cancel]').click();
+      await page.waitForFunction(()=>document.querySelector('#notice')?.textContent.includes('无法记录撤单请求'));
+      assert.equal(requests,2);
+      assert.match(await page.locator('#notice').textContent(),/无法记录撤单请求；不能推断服务商已撤单/);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+    }finally{await page.close()}
+  }
+});
+
 test('Finance desktop and mobile rerender Exchange and Quant source status in the selected language',async()=>{
   const sources={exchange:{id:'exchange',name:'YNX Exchange',owner:'07-exchange',ownerContractAccepted:true,status:{available:false,syncStatus:'owner-endpoint-unavailable',error:'raw upstream error'},action:{configured:false}},quant:{id:'quant',name:'YNX Quant Lab',owner:'08-quant-lab',ownerContractAccepted:true,status:{available:true,syncStatus:'authoritative-persisted-quant-state'},action:{configured:false},envelope:{asOf:'2026-09-19T11:00:00.000Z',payload:{strategies:[],experiments:[],mandates:[{market:'YNXT-YUSD_TEST',maxNotional:'1000000',maxDailyLoss:'100000',maxSlippageBps:50,maxLeverageBps:20000,expiresAt:'2099-09-19T11:00:00.000Z',revoked:false}],executions:[],paper:[]}}}};
   const overview={portfolio:{account:'ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80',balanceYnxt:0,stakedYnxt:0,asOf:'2026-09-19T11:00:00.000Z',activity:[],payReceipts:[],explorerStatus:{available:false,error:'Indexer unavailable'},payStatus:{available:false},readSources:sources},profile:{categories:[],budgets:[],reminders:[],privacy:{includePayInStatements:false,allowAiActivityContext:true,alertsEnabled:true}},budgetProgress:[],alerts:[],support:{helpUrl:'https://support.example/help',privacyUrl:'https://support.example/privacy',disputeUrl:'https://support.example/disputes'}};
