@@ -21,8 +21,10 @@ test('weekly v3 release tooling closes every served Finance runtime asset',()=>{
   assert.deepEqual(authorityRuntimeFiles.map(value=>value.destination),[
     'authority-runtime/apps/finance/scripts/evm-read-browser-entry.mjs',
     'authority-runtime/apps/finance/scripts/evm-read-session-authority.mjs',
+    'authority-runtime/apps/finance/scripts/evm-subject-authority.mjs',
     'authority-runtime/apps/finance/scripts/evm-product-login-authority.bundle.mjs',
     'authority-runtime/apps/finance/scripts/evm-read-session-authority.bundle.mjs',
+    'authority-runtime/apps/finance/scripts/evm-subject-authority.bundle.mjs',
     'authority-runtime/apps/finance/scripts/finance-endpoint-authority-v2.mjs',
     'authority-runtime/apps/finance/authority/adapter.mjs',
     'authority-runtime/apps/finance/authority/config.mjs',

@@ -59,7 +59,7 @@ func validateEVMSubjectChallenge(record EVMSubjectChallengeRecord) error {
 		IssuedAt    string `json:"issuedAt"`
 		ExpiresAt   string `json:"expiresAt"`
 	}
-	if json.Unmarshal([]byte(record.ExactChallenge), &exact) != nil || exact.Version != "1" || exact.ProductID != "finance" || exact.Namespace != "evm" || exact.Origin != "https://finance.ynxweb4.com" || exact.Callback != "/wallet-auth/callback" || exact.ChainID != 6423 || exact.Scope != "finance.evm.private.read" || exact.RequestID != record.RequestID || exact.Nonce != record.Nonce || exact.State != record.State || exact.Account != record.Account || exact.AccountType != record.AccountType || exact.IssuedAt != evmReadTime(record.IssuedAt) || exact.ExpiresAt != evmReadTime(record.ExpiresAt) {
+	if json.Unmarshal([]byte(record.ExactChallenge), &exact) != nil || exact.Version != "1" || exact.ProductID != "finance" || exact.Namespace != "evm" || exact.Origin != "https://finance.ynxweb4.com" || exact.Callback != "https://finance.ynxweb4.com/wallet-auth/callback" || exact.ChainID != 6423 || exact.Scope != "finance.evm.private.read" || exact.RequestID != record.RequestID || exact.Nonce != record.Nonce || exact.State != record.State || exact.Account != record.Account || exact.AccountType != record.AccountType || exact.IssuedAt != evmReadTime(record.IssuedAt) || exact.ExpiresAt != evmReadTime(record.ExpiresAt) {
 		return errors.New("EVM subject challenge differs from stored identity")
 	}
 	if record.IssuedAt.IsZero() || !record.ExpiresAt.After(record.IssuedAt) || record.ExpiresAt.Sub(record.IssuedAt) > 5*time.Minute || record.AttemptCount > 5 || (record.ConsumedAt != nil && (record.AttemptCount == 0 || record.ConsumedAt.Before(record.IssuedAt) || !record.ConsumedAt.Before(record.ExpiresAt))) {

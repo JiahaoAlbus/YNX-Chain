@@ -100,7 +100,15 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, EVMReadAuthority: evmRead, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
+	var evmSubject *finance.NodeEVMReadAuthority
+	subjectNode, subjectScript := os.Getenv("YNX_FINANCE_EVM_SUBJECT_NODE_BINARY"), os.Getenv("YNX_FINANCE_EVM_SUBJECT_SCRIPT")
+	if subjectNode != "" || subjectScript != "" {
+		evmSubject, err = finance.NewNodeEVMReadAuthority(subjectNode, subjectScript, 5*time.Second)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, EVMReadAuthority: evmRead, EVMSubjectAuthority: evmSubject, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
 	if err != nil {
 		log.Fatal(err)
 	}

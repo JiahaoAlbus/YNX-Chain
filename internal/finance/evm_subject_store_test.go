@@ -25,7 +25,7 @@ func evmSubjectStoreFixture(t *testing.T, account, suffix string) (*Store, strin
 	}
 	challengeJSON, _ := json.Marshal(map[string]any{
 		"version": "1", "productId": "finance", "subjectNamespace": "evm", "origin": "https://finance.ynxweb4.com",
-		"callback": "/wallet-auth/callback", "chainId": 6423, "scope": "finance.evm.private.read",
+		"callback": "https://finance.ynxweb4.com/wallet-auth/callback", "chainId": 6423, "scope": "finance.evm.private.read",
 		"requestId": challenge.RequestID, "nonce": challenge.Nonce, "state": challenge.State,
 		"account": account, "accountType": challenge.AccountType,
 		"issuedAt": evmReadTime(challenge.IssuedAt), "expiresAt": evmReadTime(challenge.ExpiresAt),
