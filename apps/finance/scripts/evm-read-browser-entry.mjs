@@ -16,6 +16,8 @@ const REVOKE_PATH = '/api/wallet-login/revoke';
 const EMPTY_BODY_DIGEST = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 const copy = Object.freeze({
   en: { disconnected: 'Read-only EVM account is not authorized. Standard Wallet and guest markets remain available.',
+    heading: 'Read-only EVM account', beginButton: 'Authorize read-only account', refreshButton: 'Refresh account view', endButton: 'End read-only session',
+    explanation: 'Optional, five-minute, account-bound access. Finance reads the selected testnet account only. It does not authorize orders, transfers, or private native Finance. This is the last server-verified account, not live extension attestation.',
     ready: 'Read-only EVM account is authorized for this short session. This does not authorize private native Finance, orders, or transfers.',
     waiting: 'Confirm the exact Finance read-only request in the selected wallet.',
     denied: 'Read-only EVM account request was not approved. Standard Wallet remains connected.',
@@ -24,6 +26,8 @@ const copy = Object.freeze({
     revokePending: 'Local read-only access stopped. Server revoke was not confirmed; the short session will expire.',
     expired: 'Read-only EVM session expired. Start a new request to continue.' },
   'zh-CN': { disconnected: 'EVM 账户只读访问未授权。标准钱包和访客市场仍可使用。',
+    heading: 'EVM 账户只读访问', beginButton: '授权只读账户', refreshButton: '刷新账户视图', endButton: '结束只读会话',
+    explanation: '可选、为期五分钟、绑定账户的访问权限。Finance 只读取所选测试网账户；不授权订单、转账或原生 Finance 私有功能。这是服务端上次验证的账户状态，并非实时钱包扩展证明。',
     ready: '此短期会话已授权 EVM 账户只读访问；不授权原生 Finance 私有功能、订单或转账。',
     waiting: '请在所选钱包中确认 Finance 的精确只读请求。',
     denied: 'EVM 账户只读请求未获批准；标准钱包仍保持连接。',
@@ -52,6 +56,11 @@ function render() {
   const begin = document.querySelector('#evm-read-begin');
   const read = document.querySelector('#evm-read-refresh');
   const end = document.querySelector('#evm-read-end');
+  const labels = copy[language()];
+  for (const [id, value] of [['#evm-read-heading', labels.heading], ['#evm-read-explanation', labels.explanation], ['#evm-read-begin', labels.beginButton], ['#evm-read-refresh', labels.refreshButton], ['#evm-read-end', labels.endButton]]) {
+    const element = document.querySelector(id);
+    if (element) element.textContent = value;
+  }
   if (begin) { begin.hidden = !connected || Boolean(active); begin.disabled = busy; }
   if (read) { read.hidden = !active; read.disabled = busy; }
   if (end) { end.hidden = !active; end.disabled = busy; }

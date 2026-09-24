@@ -28,6 +28,13 @@
         <div class="wallet-choice"><button id="wallet-details" type="button" hidden>Wallet details</button><button id="wallet-disconnect" type="button" hidden>Disconnect wallet</button><button id="wallet-switch" type="button" hidden>Switch wallet</button><button id="wallet-revoke" type="button" hidden>Revoke wallet access</button><button id="wallet-login-verify" type="button" hidden data-finance-i18n="verifyIdentity">Verify Wallet identity</button></div>
         <p id="wallet-state" role="status" aria-live="polite">Standard Wallet is independent of private Finance access.</p>
         <p id="wallet-login-state" role="status" aria-live="polite" data-finance-i18n="identityUnverified">Wallet identity has not been verified by a signed Finance challenge. This does not authorize private Finance.</p>
+        <section id="evm-read-account" aria-labelledby="evm-read-heading">
+          <h3 id="evm-read-heading">Read-only EVM account</h3>
+          <p id="evm-read-explanation">Optional, five-minute, account-bound access. Finance reads the selected testnet account only. It does not authorize orders, transfers, or private native Finance. This is the last server-verified account, not live extension attestation.</p>
+          <div class="wallet-choice"><button id="evm-read-begin" type="button" hidden>Authorize read-only account</button><button id="evm-read-refresh" type="button" hidden>Refresh account view</button><button id="evm-read-end" type="button" hidden>End read-only session</button></div>
+          <p id="evm-read-state" role="status" aria-live="polite">Read-only EVM account is not authorized. Standard Wallet and guest markets remain available.</p>
+          <p id="evm-read-summary" aria-live="polite"></p>
+        </section>
         <p id="private-state" role="status" aria-live="polite">Private Finance is separate from Standard Wallet. Legacy sessions remain isolated with their original authority.</p>
         <p>Private approval permits owned portfolio and Pay reads, planning changes, and explicitly requested AI drafts. It never authorizes an asset transaction.</p>
         <div class="wallet-choice"><button id="private-begin" type="button">Authorize private Finance</button><a id="private-open" hidden rel="noreferrer">Open YNX Wallet — installation unverified</a><button id="private-retry" type="button">Retry private connection</button><button id="private-revoke" type="button">Revoke private Finance access</button><button id="private-guest" type="button">Continue as guest</button></div>
@@ -87,6 +94,7 @@
   <script src="/finance-locale.js" defer></script>
   <script src="/wallet-auth.js" defer></script>
   <script src="/order-wallet.js" defer></script>
+  <script src="/evm-read-session.js" defer></script>
   <script src="/app.js" defer></script>
   <script src="/read-sources.js" defer></script>
   <script src="/product-catalog.js" defer></script>

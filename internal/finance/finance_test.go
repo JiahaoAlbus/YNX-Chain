@@ -182,6 +182,20 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	if readErr != nil || assetResponse.StatusCode != http.StatusOK || !strings.Contains(string(assetRaw), "owner-contract-pending") {
 		t.Fatalf("Web read-source renderer is unavailable: status=%d readErr=%v", assetResponse.StatusCode, readErr)
 	}
+	readBundlePath := filepath.Join("..", "..", "apps", "finance", "web", "evm-read-session.js")
+	readBundle, err := os.ReadFile(readBundlePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	readBundleResponse, err := http.Get(ts.URL + "/evm-read-session.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	servedReadBundle, readBundleErr := io.ReadAll(readBundleResponse.Body)
+	readBundleResponse.Body.Close()
+	if readBundleErr != nil || readBundleResponse.StatusCode != http.StatusOK || !bytes.Equal(servedReadBundle, readBundle) {
+		t.Fatalf("EVM read browser authority is not served byte-exact: status=%d readErr=%v", readBundleResponse.StatusCode, readBundleErr)
+	}
 
 	identityRoot := t.TempDir()
 	identityBody := `{"sourceCommit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","release":"ynx-finance-test","buildTime":"2026-08-11T09:00:00.000Z","frontendSourceCommit":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}`

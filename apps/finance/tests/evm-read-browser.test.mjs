@@ -37,9 +37,12 @@ function signMessage(message) {
 }
 
 test('browser read-only bundle is byte-reproducible from the shared Wallet/Auth root', async () => {
-  const rebuilt = await build({ entryPoints: [fileURLToPath(new URL('../scripts/evm-read-browser-entry.mjs', import.meta.url))], bundle: true, minify: true, platform: 'browser', target: 'es2022', write: false });
-  assert.equal(rebuilt.outputFiles.length, 1);
-  assert.deepEqual(Buffer.from(rebuilt.outputFiles[0].contents), bundle);
+  const options = { entryPoints: [fileURLToPath(new URL('../scripts/evm-read-browser-entry.mjs', import.meta.url))], bundle: true, minify: true, platform: 'browser', target: 'es2022', write: false };
+  const [first, second] = await Promise.all([build(options), build(options)]);
+  assert.equal(first.outputFiles.length, 1);
+  assert.equal(second.outputFiles.length, 1);
+  assert.deepEqual(Buffer.from(first.outputFiles[0].contents), Buffer.from(second.outputFiles[0].contents));
+  assert.deepEqual(Buffer.from(first.outputFiles[0].contents), bundle);
 });
 
 test('real Chromium preserves short EVM-only session across refresh and revokes on account change without tabs', async () => {

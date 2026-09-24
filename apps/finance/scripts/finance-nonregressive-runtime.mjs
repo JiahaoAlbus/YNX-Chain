@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 // reviewable source entries used to generate the standalone browser bundles.
 export const runtimeFiles=Object.freeze([
   'app.js',
+  'evm-read-session.js',
   'finance-locale.js',
   'health.json',
   'index.html',
@@ -21,7 +22,10 @@ export const runtimeFiles=Object.freeze([
 ]);
 
 export const authorityRuntimeFiles=Object.freeze([
+  Object.freeze({source:'apps/finance/scripts/evm-read-browser-entry.mjs',destination:'authority-runtime/apps/finance/scripts/evm-read-browser-entry.mjs'}),
+  Object.freeze({source:'apps/finance/scripts/evm-read-session-authority.mjs',destination:'authority-runtime/apps/finance/scripts/evm-read-session-authority.mjs'}),
   Object.freeze({source:'apps/finance/scripts/evm-product-login-authority.bundle.mjs',destination:'authority-runtime/apps/finance/scripts/evm-product-login-authority.bundle.mjs'}),
+  Object.freeze({source:'apps/finance/scripts/evm-read-session-authority.bundle.mjs',destination:'authority-runtime/apps/finance/scripts/evm-read-session-authority.bundle.mjs'}),
   Object.freeze({source:'apps/finance/scripts/finance-endpoint-authority-v2.mjs',destination:'authority-runtime/apps/finance/scripts/finance-endpoint-authority-v2.mjs'}),
   Object.freeze({source:'apps/finance/authority/adapter.mjs',destination:'authority-runtime/apps/finance/authority/adapter.mjs'}),
   Object.freeze({source:'apps/finance/authority/config.mjs',destination:'authority-runtime/apps/finance/authority/config.mjs'}),
