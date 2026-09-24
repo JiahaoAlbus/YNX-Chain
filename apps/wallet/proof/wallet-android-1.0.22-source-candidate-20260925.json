@@ -15,7 +15,8 @@
   "backendFourRouteContract": "NOT_VERIFIED",
   "physicalAndroidDevice": "NOT_VERIFIED",
   "iosPhysicalDevice": "NOT_VERIFIED",
-  "installedUpgradeFromVersionCode26": "NOT_VERIFIED",
+  "installedUpgradeFromVersionCode26": "VERIFIED_LOCAL_EMULATOR",
+  "installedUpgradeEvidence": "proof/wallet-android-1.0.22-installed-upgrade-20260925.json",
   "officialWebsiteUpdated": false,
   "sourceContracts": [
     "app.json",
@@ -31,7 +32,7 @@
   },
   "knownLimits": [
     "The exact 1.0.22 release source is assigned only after this candidate merges.",
-    "An exact-source Android build and installed 1.0.20 versionCode 26 to 1.0.22 versionCode 28 upgrade have not yet been verified.",
+    "An unsigned Android build and a locally test-signed versionCode 26 to 28 emulator upgrade passed; physical-device and public-package verification remain absent.",
     "Finance claim, complete, exchange and legacy recovery have not passed a common backend and Wallet cross-test.",
     "APK and AAB hashes, byte sizes, signatures, asset IDs and URLs remain absent until exact-source builds and publication.",
     "The published 1.0.20 APK and AAB are historical baselines and must not be relabeled or replaced.",

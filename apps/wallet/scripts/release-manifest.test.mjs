@@ -18,6 +18,7 @@ const xcode = await readFile(new URL("ios/YNXWallet.xcodeproj/project.pbxproj", 
 const evidence = JSON.parse(await readFile(new URL(manifest.candidateEvidence, walletRoot), "utf8"));
 const evidence121 = JSON.parse(await readFile(new URL(candidate121.candidateEvidence, walletRoot), "utf8"));
 const evidence122 = JSON.parse(await readFile(new URL(candidate122.candidateEvidence, walletRoot), "utf8"));
+const installed122 = JSON.parse(await readFile(new URL(candidate122.installedAndroidEvidence, walletRoot), "utf8"));
 const installedEvidence = JSON.parse(await readFile(new URL(manifest.reconciliationBinding.publishedBaselineEvidence, walletRoot), "utf8"));
 const nativeOutboxSource = await readFile(new URL("src/chain/nativeTransferOutbox.ts", walletRoot), "utf8");
 const appSource = await readFile(new URL("App.tsx", walletRoot), "utf8");
@@ -377,6 +378,7 @@ test("1.0.22 integrated source advances both native builds without inventing a F
   assert.deepEqual(candidate122.publicArtifactUrls, []);
   assert.equal(candidate122.productionSigned, false);
   assert.equal(candidate122.storeReleased, false);
+  assert.equal(candidate122.installedAndroidUpgrade, "VERIFIED_LOCAL_EMULATOR");
   assert.equal(candidate122.financeOrderHandoffE2E, "NOT_VERIFIED");
   assert.equal(candidate122.backendFourRouteContract, "NOT_VERIFIED");
   assert.equal(evidence122.version, candidate122.version);
@@ -386,13 +388,39 @@ test("1.0.22 integrated source advances both native builds without inventing a F
   assert.equal(evidence122.releaseSourceCommit, null);
   assert.equal(evidence122.artifactsBuiltFromExactMerge, false);
   assert.equal(evidence122.artifactsPublished, false);
-  assert.equal(evidence122.installedUpgradeFromVersionCode26, "NOT_VERIFIED");
+  assert.equal(evidence122.installedUpgradeFromVersionCode26, "VERIFIED_LOCAL_EMULATOR");
+  assert.equal(evidence122.installedUpgradeEvidence, candidate122.installedAndroidEvidence);
   assert.equal(evidence122.financeOrderHandoffE2E, "NOT_VERIFIED");
   assert.equal(evidence122.backendFourRouteContract, "NOT_VERIFIED");
   assert.equal(evidence122.officialWebsiteUpdated, false);
   assert.equal(candidate122.previousPublishedRelease.version, publication120.version);
   assert.equal(candidate122.previousPublishedRelease.versionCode, publication120.versionCode);
   assert.match(releaseNotes, /1\.0\.22 Testnet Preview source candidate/);
+});
+
+test("1.0.22 emulator upgrade evidence binds exact source and keeps public and provider claims false", () => {
+  assert.equal(installed122.schema, "ynx-wallet-mobile-preview-installed-qa/v1");
+  assert.equal(installed122.sourceCommit, "5315d018a3ae795dd1dac94747fa7cb04c835136");
+  assert.equal(installed122.platform, "android-emulator");
+  assert.equal(installed122.androidApi, 36);
+  assert.equal(installed122.publishedBaseline.versionCode, 26);
+  assert.equal(installed122.publishedBaseline.apkSha256, candidate122.previousPublishedRelease.apk.sha256);
+  assert.equal(installed122.publishedBaseline.downloadDigestVerified, true);
+  assert.equal(installed122.candidate.versionCode, candidate122.versionCode);
+  assert.match(installed122.candidate.unsignedApkSha256, /^[0-9a-f]{64}$/);
+  assert.match(installed122.candidate.localTestSignedApkSha256, /^[0-9a-f]{64}$/);
+  assert.match(installed122.candidate.signerCertificateSha256, /^[0-9a-f]{64}$/);
+  assert.equal(installed122.candidate.sameSignerAsPublishedBaseline, true);
+  assert.equal(installed122.candidate.productionSigned, false);
+  for (const key of ["baselineInstalledAndColdLaunched", "baselineNewAccountCreatedWithEmulatorFingerprint",
+    "baselineBackupConfirmedAndUnlocked", "adbInstallRWithoutDataClear", "packageNameAndVersionCodeAfterUpgrade",
+    "sameTestAccountVisibleLockedAfterUpgrade", "sameTestAccountUnlockedWithEmulatorFingerprint",
+    "backupConfirmedAfterUpgrade", "invalidOpaqueFinanceTicketRejected", "derivedEvmAddressAndReadOnlySimulationVisible"])
+    assert.equal(installed122.checks[key], true);
+  for (const key of ["walletConnectRelayPairing", "financeBackendFourRouteE2E", "physicalAndroidDevice"])
+    assert.equal(installed122.checks[key], "NOT_VERIFIED");
+  assert.equal(installed122.publicRelease, false);
+  assert.equal(installed122.officialWebsiteUpdated, false);
 });
 
 test("1.0.20 binds terminal reconciliation, automatic unlock and lease-current Dashboard refresh", () => {

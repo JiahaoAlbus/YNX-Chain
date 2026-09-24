@@ -9,7 +9,7 @@
 
 ## Release boundaries
 
-This is an integrated source candidate. The Finance backend exchange and legacy recovery routes, exact common-source cross-test, new Android/iOS installed upgrade, production signing, physical devices, stores and official-site publication remain unverified. The published 1.0.20 assets stay unchanged.
+This is an integrated source candidate. An isolated Android 36 emulator upgraded from the verified published 1.0.20 test-signed APK to a locally test-signed 1.0.22 APK with the same new QA account intact; this does not create a public installer. The Finance backend exchange and legacy recovery routes, exact common-source cross-test, iOS installed upgrade, production signing, physical devices, stores and official-site publication remain unverified. The published 1.0.20 assets stay unchanged.
 
 ---
 

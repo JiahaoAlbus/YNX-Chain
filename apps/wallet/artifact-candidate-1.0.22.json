@@ -15,6 +15,8 @@
   "storeReleased": false,
   "walletConnectRelayE2E": "NOT_VERIFIED",
   "physicalDevice": "NOT_VERIFIED",
+  "installedAndroidUpgrade": "VERIFIED_LOCAL_EMULATOR",
+  "installedAndroidEvidence": "proof/wallet-android-1.0.22-installed-upgrade-20260925.json",
   "financeOrderHandoffE2E": "NOT_VERIFIED",
   "backendFourRouteContract": "NOT_VERIFIED",
   "includedSourceHeads": {
