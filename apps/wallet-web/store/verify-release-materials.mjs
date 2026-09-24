@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
 import {readFile,stat} from "node:fs/promises";
 import {dirname,join,resolve} from "node:path";
@@ -40,6 +41,10 @@ export async function verifyReleaseMaterials(){
     authorityRecords:readiness.candidateReceipt.reviewerSource.authorityRecords,
     verifiedOutputFiles:readiness.candidateReceipt.reviewerSource.expectedOutputFiles,allBytesMatch:true,
   });
+  const sourceArchive=join(store,"reviewer-archives",readiness.candidateReceipt.reviewerSource.name);
+  const sourceBytes=await readFile(sourceArchive);
+  assert.equal(sourceBytes.length,readiness.candidateReceipt.reviewerSource.bytes);
+  assert.equal(createHash("sha256").update(sourceBytes).digest("hex"),readiness.candidateReceipt.reviewerSource.sha256);
   for(const browser of [evidence.localRuntime.edge,evidence.localRuntime.chromeForTesting])
     for(const field of ["temporaryUnpacked","providerDiscovered","accountAuthorized","messageSigned","signatureRecovered","permissionRevoked","postRevokeDenied"])
       assert.equal(browser[field],true,`${field} local runtime proof missing`);
@@ -84,4 +89,12 @@ export async function verifyReleaseMaterials(){
   return{version:extensionVersion,assets:assetManifest.assets.length,publishedArtifacts:published.artifacts.length,productionSigned:false,storeReleased:false};
 }
 
-if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))console.log(JSON.stringify(await verifyReleaseMaterials(),null,2));
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+  assert.ok(process.argv.length===2||(process.argv.length===3&&process.argv[2]==="--require-local-candidate"),"Unknown store verifier option");
+  console.log(JSON.stringify(await verifyReleaseMaterials(),null,2));
+  if(process.argv[2]==="--require-local-candidate"){
+    execFileSync(process.execPath,[join(root,"scripts","verify-package.mjs")],{
+      cwd:root,stdio:"inherit",env:{...process.env,YNX_WALLET_WEB_ARTIFACT_MANIFEST:join(store,"candidate-artifact-manifest.json")},
+    });
+  }
+}
