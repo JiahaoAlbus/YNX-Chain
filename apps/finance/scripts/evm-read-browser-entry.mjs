@@ -51,7 +51,7 @@ function status(key) {
   render();
 }
 function render() {
-  const standard = window.YNXFinanceWallet?.getStandardWalletState();
+  const standard = window.YNXFinanceWallet?.getStandardWalletState?.();
   const connected = standard?.status === 'connected' && standard.chainId === '0x1917';
   const begin = document.querySelector('#evm-read-begin');
   const read = document.querySelector('#evm-read-refresh');
@@ -78,7 +78,7 @@ function decode(value) {
 }
 function nowISO(value = Date.now()) { return new Date(value).toISOString(); }
 function standardSnapshot() {
-  const value = window.YNXFinanceWallet?.getStandardWalletState();
+  const value = window.YNXFinanceWallet?.getStandardWalletState?.();
   if (value?.status !== 'connected' || value.chainId !== '0x1917' || !/^0x[0-9a-f]{40}$/u.test(value.account || '') || !['ynx-wallet', 'metamask'].includes(value.providerKind)) throw new Error('STANDARD_WALLET_NOT_CONNECTED');
   return { account: value.account, providerKind: value.providerKind, revision: window.YNXFinanceWallet.getStandardRevision() };
 }
