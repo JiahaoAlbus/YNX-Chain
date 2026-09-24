@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os/exec"
@@ -129,9 +130,27 @@ func TestOpaqueBrokerHTTPClaimCompleteAndLegacyBoundary(t *testing.T) {
 	if recorder.Code != http.StatusServiceUnavailable {
 		t.Fatal("unreviewed legacy recovery became reachable")
 	}
+	callbackURL := fmt.Sprintf("https://finance.ynxweb4.com/wallet-auth/callback?financeOrderCode=%s&state=%s", completed.Code, completed.State)
+	wrongBody, _ := json.Marshal(map[string]string{"requestId": issued.Challenge.RequestID, "callbackURL": callbackURL + "&extra=1"})
 	recorder = httptest.NewRecorder()
-	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", nil), Session{Account: account})
-	if recorder.Code != http.StatusServiceUnavailable {
-		t.Fatal("uncommitted code exchange became reachable")
+	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(wrongBody)), Session{Account: account})
+	if recorder.Code == http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 0 {
+		t.Fatal("noncanonical callback exchanged an opaque order")
+	}
+	exchangeBody, _ := json.Marshal(map[string]string{"requestId": issued.Challenge.RequestID, "callbackURL": callbackURL})
+	recorder = httptest.NewRecorder()
+	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: "ynx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq"})
+	if recorder.Code == http.StatusOK {
+		t.Fatal("another account exchanged the callback")
+	}
+	recorder = httptest.NewRecorder()
+	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account})
+	if recorder.Code != http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 1 {
+		t.Fatalf("approved callback did not atomically create one Sandbox outbox: %d %s", recorder.Code, recorder.Body.String())
+	}
+	recorder = httptest.NewRecorder()
+	server.brokerOpaqueExchange(recorder, httptest.NewRequest(http.MethodPost, "/api/broker/order-handoff/exchange", bytes.NewReader(exchangeBody)), Session{Account: account})
+	if recorder.Code == http.StatusOK || len(store.BrokerWorkspace(account, clock).Outbox) != 1 {
+		t.Fatal("one-time callback code replayed")
 	}
 }

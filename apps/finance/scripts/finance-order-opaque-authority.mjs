@@ -2,6 +2,7 @@ import { createInterface } from 'node:readline';
 import {
   createFinanceOrderOpaqueCompleteRequest,
   financeOrderOpaqueTicketHash,
+  parseFinanceOrderOpaqueCallbackURL,
   verifyFinanceOrderOpaqueClaim,
   verifySignedFinanceOrderLegacyRecovery,
 } from '@ynx-chain/wallet-auth';
@@ -39,6 +40,9 @@ try {
     respond({ kind: 'result', action: 'recover-legacy', ...verified });
   } else if (input.action === 'ticket-hash') {
     respond({ kind: 'result', ticketHash: financeOrderOpaqueTicketHash(input.ticket) });
+  } else if (input.action === 'callback') {
+    const parsed = parseFinanceOrderOpaqueCallbackURL(input.callbackURL, input.expected, input.binding);
+    respond({ kind: 'result', action: 'callback', ...parsed });
   } else {
     throw new Error('INVALID_ACTION');
   }

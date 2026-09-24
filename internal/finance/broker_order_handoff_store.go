@@ -154,6 +154,28 @@ func (s *Store) isOpaqueBrokerOrderRequest(account, requestID string) (bool, err
 	return false, nil
 }
 
+func (s *Store) opaqueBrokerOrderCallbackAuthority(account, requestID string) (BrokerOrderHandoffRecord, FinanceOrderApprovalUnsignedV1, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.refreshLocked(); err != nil {
+		return BrokerOrderHandoffRecord{}, FinanceOrderApprovalUnsignedV1{}, err
+	}
+	var found BrokerOrderHandoffRecord
+	for key, record := range s.state.BrokerOrderHandoffs {
+		if record.Account == account && record.RequestID == requestID {
+			if found.RequestID != "" || validateBrokerOrderHandoff(s.state, key, record) != nil {
+				return BrokerOrderHandoffRecord{}, FinanceOrderApprovalUnsignedV1{}, errors.New("confidential callback owner is ambiguous or invalid")
+			}
+			found = record
+		}
+	}
+	if found.RequestID == "" {
+		return BrokerOrderHandoffRecord{}, FinanceOrderApprovalUnsignedV1{}, errors.New("confidential callback is absent")
+	}
+	challenge := s.state.Accounts[account].Brokerage.Challenges[requestID]
+	return found, challenge.Unsigned, nil
+}
+
 // StoreBrokerOrderHandoffDecision is reached only after the accepted
 // Wallet/Auth root verifier has checked the exact ticket, durable unsigned
 // challenge, signature and status. It stores a confidential decision without

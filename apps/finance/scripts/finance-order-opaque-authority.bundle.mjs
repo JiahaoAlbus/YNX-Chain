@@ -2991,6 +2991,7 @@ function fail(code, message) {
 var LIMIT = 32 * 1024;
 
 // packages/wallet-auth/src/finance-order-opaque-transport.js
+var FINANCE_ORDER_OPAQUE_CALLBACK = "https://finance.ynxweb4.com/wallet-auth/callback";
 var TOKEN = /^[A-Za-z0-9_-]{32,64}$/;
 var HEX64 = /^[0-9a-f]{64}$/;
 var ACCOUNT2 = /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/;
@@ -2998,6 +2999,8 @@ var PUBLIC = /^(02|03)[0-9a-f]{64}$/;
 var CLAIM = ["version", "productId", "origin", "chainId", "action", "account", "accountPublicKey", "ticketHash", "nonce", "issuedAt", "expiresAt"];
 var REJECT = ["version", "productId", "origin", "chainId", "action", "account", "accountPublicKey", "ticketHash", "requestId", "challengeId", "orderHash", "callbackStateHash", "issuedAt", "expiresAt"];
 var RECOVER = ["version", "productId", "origin", "chainId", "action", "account", "accountPublicKey", "approvalDigest", "requestId", "challengeId", "orderHash", "callbackStateHash", "nonce", "issuedAt", "expiresAt"];
+var FINANCE_ORDER_STATE_BINDING_SHA256 = "sha256-v2";
+var FINANCE_ORDER_STATE_BINDING_LEGACY_RAW = "raw-v1-random32";
 var hash = (value) => bytesToHex(sha256(utf8ToBytes(value)));
 function fail2(code, message) {
   throw new WalletAuthError(code, message);
@@ -3087,6 +3090,32 @@ function verifySignedFinanceOrderOpaqueReject(proofInput, ticket, challengeInput
   const proof = Object.freeze({ ...unsigned, signature: match(signature, /^[0-9a-f]{128}$/, "signature") });
   verify(proof, unsigned, "YNX_FINANCE_ORDER_REJECT_V2");
   return Object.freeze({ verified: true, status: "rejected", requestId: challenge.requestId, ticketHash: unsigned.ticketHash });
+}
+function stateBinding(value) {
+  if (value !== FINANCE_ORDER_STATE_BINDING_SHA256 && value !== FINANCE_ORDER_STATE_BINDING_LEGACY_RAW)
+    fail2("INVALID_STATE_BINDING", "Unknown callback state binding");
+  return value;
+}
+function createFinanceOrderOpaqueCallbackURL(input, binding = FINANCE_ORDER_STATE_BINDING_SHA256) {
+  exactFields(input, ["code", "state", "requestId", "callbackStateHash"], "Finance opaque callback");
+  const code = match(input.code, TOKEN, "code"), state2 = match(input.state, TOKEN, "state");
+  match(input.requestId, /^request_[0-9a-f-]{36}$/, "requestId");
+  const challengeHash = match(input.callbackStateHash, HEX64, "callbackStateHash");
+  if (stateBinding(binding) === FINANCE_ORDER_STATE_BINDING_LEGACY_RAW ? state2 !== challengeHash : hash(state2) !== challengeHash) fail2("STATE_MISMATCH", "Callback state changed");
+  return FINANCE_ORDER_OPAQUE_CALLBACK + "?financeOrderCode=" + code + "&state=" + state2;
+}
+function parseFinanceOrderOpaqueCallbackURL(url, expected, binding = FINANCE_ORDER_STATE_BINDING_SHA256) {
+  if (typeof url !== "string") fail2("INVALID_CALLBACK", "Callback URL invalid");
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    fail2("INVALID_CALLBACK", "Callback URL invalid");
+  }
+  if (parsed.origin !== "https://finance.ynxweb4.com" || parsed.pathname !== "/wallet-auth/callback" || parsed.hash || [...parsed.searchParams.keys()].join(",") !== "financeOrderCode,state") fail2("INVALID_CALLBACK", "Callback route or fields changed");
+  const code = match(parsed.searchParams.get("financeOrderCode"), TOKEN, "code"), state2 = match(parsed.searchParams.get("state"), TOKEN, "state");
+  if (url !== createFinanceOrderOpaqueCallbackURL({ code, state: state2, ...expected }, binding)) fail2("INVALID_CALLBACK", "Callback is noncanonical");
+  return Object.freeze({ code, state: state2, requestId: expected.requestId });
 }
 function createFinanceOrderOpaqueCompleteRequest(ticket, status, proof, challengeInput, at) {
   const challenge = parseFinanceOrderApprovalUnsigned(challengeInput);
@@ -3439,6 +3468,9 @@ try {
     respond({ kind: "result", action: "recover-legacy", ...verified });
   } else if (input.action === "ticket-hash") {
     respond({ kind: "result", ticketHash: financeOrderOpaqueTicketHash(input.ticket) });
+  } else if (input.action === "callback") {
+    const parsed = parseFinanceOrderOpaqueCallbackURL(input.callbackURL, input.expected, input.binding);
+    respond({ kind: "result", action: "callback", ...parsed });
   } else {
     throw new Error("INVALID_ACTION");
   }

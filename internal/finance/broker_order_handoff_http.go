@@ -221,7 +221,43 @@ func (s *Server) brokerOpaqueRecoverLegacy(w http.ResponseWriter, _ *http.Reques
 	writeError(w, http.StatusServiceUnavailable, "legacy_recovery_not_enabled", "Pre-cutover recovery requires a separately reviewed Wallet and Finance migration gate")
 }
 
-func (s *Server) brokerOpaqueExchange(w http.ResponseWriter, _ *http.Request, _ Session) {
+func (s *Server) brokerOpaqueExchange(w http.ResponseWriter, r *http.Request, session Session) {
+	if !s.brokerOpaqueAvailable(w) {
+		return
+	}
+	var input struct {
+		RequestID   string `json:"requestId"`
+		CallbackURL string `json:"callbackURL"`
+	}
+	if decodeStrict(w, r, &input) != nil || !evmSubjectRequestID.MatchString(input.RequestID) || len(input.CallbackURL) > 2048 {
+		writeError(w, http.StatusBadRequest, "invalid_callback", "Exact confidential Wallet callback required")
+		return
+	}
+	record, challenge, err := s.service.Store.opaqueBrokerOrderCallbackAuthority(session.Account, input.RequestID)
+	if err != nil || !record.CodeExpiresAt.After(s.now().UTC()) {
+		writeError(w, http.StatusConflict, "callback_unavailable", "Confidential Wallet callback unavailable")
+		return
+	}
+	parsed, err := s.cfg.BrokerOpaqueAuthority.Invoke(r.Context(), map[string]any{"action": "callback", "callbackURL": input.CallbackURL,
+		"binding": record.CallbackStateBinding, "expected": map[string]string{"requestId": challenge.RequestID, "callbackStateHash": challenge.CallbackStateHash},
+		"at": evmReadTime(s.now().UTC().Truncate(time.Millisecond))}, "", nil)
+	var verified struct {
+		Kind      string `json:"kind"`
+		Action    string `json:"action"`
+		RequestID string `json:"requestId"`
+		Code      string `json:"code"`
+		State     string `json:"state"`
+	}
+	if err != nil || json.Unmarshal(parsed, &verified) != nil || verified.Kind != "result" || verified.Action != "callback" || verified.RequestID != input.RequestID {
+		writeError(w, http.StatusUnauthorized, "callback_rejected", "Confidential Wallet callback rejected")
+		return
+	}
+	result, err := s.service.Store.ExchangeBrokerOrderHandoff(session.Account, input.RequestID, verified.Code, verified.State, s.now())
+	if err != nil {
+		writeError(w, http.StatusConflict, "callback_consumed", "Confidential Wallet callback expired, changed or consumed")
+		return
+	}
 	w.Header().Set("Cache-Control", "no-store")
-	writeError(w, http.StatusServiceUnavailable, "order_exchange_not_enabled", "One-time code exchange and Broker approval CAS are not yet enabled")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	writeJSON(w, http.StatusOK, map[string]any{"version": "2", "status": result.Status, "result": result, "serverTime": evmReadTime(s.now().UTC().Truncate(time.Millisecond))})
 }
