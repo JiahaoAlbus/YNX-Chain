@@ -553,6 +553,11 @@ func validatePersistedState(state persistedState) error {
 			return errors.New("finance state contains an invalid EVM read session")
 		}
 	}
+	for key, subject := range state.EVMSubjects {
+		if validateEVMSubjectRecord(key, subject) != nil {
+			return errors.New("finance state contains an invalid EVM-only subject")
+		}
+	}
 	return nil
 }
 
