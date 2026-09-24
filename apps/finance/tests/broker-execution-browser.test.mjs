@@ -105,6 +105,27 @@ test('desktop guest Finance keeps dynamic Broker absence and date copy in the se
   }finally{await page.close()}
 });
 
+test('Finance connection state follows the selected language through offline, retry failure and recovery',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  try{
+    await page.goto(base);
+    await page.locator('#finance-language').selectOption('zh-CN');
+    await page.evaluate(()=>window.dispatchEvent(new Event('offline')));
+    assert.equal(await page.locator('#source-pill').textContent(),'网络已断开 · 恢复后重新连接');
+    await page.locator('#finance-language').selectOption('en');
+    assert.equal(await page.locator('#source-pill').textContent(),'Offline · reconnect when network returns');
+    await page.route('**/health',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({ok:false})}));
+    await page.locator('#finance-language').selectOption('zh-CN');
+    await page.evaluate(()=>publicHealth().catch(()=>{}));
+    assert.equal(await page.locator('#source-pill').textContent(),'Finance 连接暂不可用');
+    await page.unroute('**/health');
+    await page.evaluate(()=>publicHealth());
+    assert.equal(await page.locator('#source-pill').textContent(),'私人 Finance 服务可用');
+    await page.locator('#finance-language').selectOption('en');
+    assert.equal(await page.locator('#source-pill').textContent(),'Private Finance service reachable');
+  }finally{await page.close()}
+});
+
 test('real browser previews a test-only DvP draft without Wallet or chain writes',async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844}}),posts=[];
   page.on('request',request=>{if(request.method()==='POST')posts.push(request.url())});
