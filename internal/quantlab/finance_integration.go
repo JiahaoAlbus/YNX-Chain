@@ -190,7 +190,9 @@ func (s *TenantServer) financePayload(account string) (financeQuantPayload, erro
 		upperBound := s.config.StateNamespace + ":tenant;"
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		rows, err := store.db.QueryContext(ctx, `SELECT state_key, revision, payload FROM ynx_quant_state WHERE state_key >= $1 AND state_key < $2 ORDER BY state_key LIMIT 4097`, prefix, upperBound)
+		// PostgreSQL's database-default collation can put ':' after ';'. Tenant
+		// namespace bounds are bytewise identifiers, not human-language text.
+		rows, err := store.db.QueryContext(ctx, `SELECT state_key, revision, payload FROM ynx_quant_state WHERE state_key COLLATE "C" >= $1 AND state_key COLLATE "C" < $2 ORDER BY state_key COLLATE "C" LIMIT 4097`, prefix, upperBound)
 		if err != nil {
 			return result, err
 		}

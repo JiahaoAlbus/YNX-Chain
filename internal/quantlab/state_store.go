@@ -105,6 +105,12 @@ func openStateStore(cfg Config) (stateStore, error) {
 		}
 		return nil, fmt.Errorf("migrate Quant PostgreSQL state store: %w", err)
 	}
+	if _, err := db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS ynx_quant_state_key_c_idx ON ynx_quant_state (state_key COLLATE "C")`); err != nil {
+		if ownsDB {
+			_ = db.Close()
+		}
+		return nil, fmt.Errorf("migrate Quant PostgreSQL bytewise tenant index: %w", err)
+	}
 	return &postgresStateStore{db: db, key: cfg.StateNamespace, ownsDB: ownsDB}, nil
 }
 

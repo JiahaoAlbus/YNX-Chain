@@ -30,18 +30,35 @@ func TestFinanceReadPostgresTenantAndCrossInstanceReplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer first.Close()
+	t.Cleanup(func() {
+		if err := first.Close(); err != nil {
+			t.Errorf("close first tenant server: %v", err)
+		}
+	})
 	store := first.baseService.store.(*postgresStateStore)
 	var nonces []string
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_quant_state WHERE left(state_key, length($1)) = $1`, namespace+":tenant:")
-		_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_quant_state WHERE state_key = $1`, namespace)
+		if _, err := store.db.ExecContext(ctx, `DELETE FROM ynx_quant_state WHERE left(state_key, length($1)) = $1`, namespace+":tenant:"); err != nil {
+			t.Errorf("clean tenant states: %v", err)
+		}
+		if _, err := store.db.ExecContext(ctx, `DELETE FROM ynx_quant_state WHERE state_key = $1 OR state_key = $2`, namespace, namespace+":tenant_"+strings.Repeat("c", 64)); err != nil {
+			t.Errorf("clean adjacent namespace states: %v", err)
+		}
 		for _, nonce := range nonces {
-			_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_quant_finance_read_nonces WHERE nonce = $1`, nonce)
+			if _, err := store.db.ExecContext(ctx, `DELETE FROM ynx_quant_finance_read_nonces WHERE nonce = $1`, nonce); err != nil {
+				t.Errorf("clean read nonce: %v", err)
+			}
 		}
 	})
+	var localeOrder, byteOrder bool
+	if err := store.db.QueryRow(`SELECT 'qa:tenant:aaa' < 'qa:tenant;', 'qa:tenant:aaa' COLLATE "C" < 'qa:tenant;'`).Scan(&localeOrder, &byteOrder); err != nil {
+		t.Fatal(err)
+	}
+	if !byteOrder {
+		t.Fatal("bytewise tenant bound is not ordered")
+	}
 	seed := func(id, address, hash string) {
 		t.Helper()
 		cfg := config
@@ -60,11 +77,20 @@ func TestFinanceReadPostgresTenantAndCrossInstanceReplay(t *testing.T) {
 	}
 	seed("a", account, strings.Repeat("a", 64))
 	seed("b", other, strings.Repeat("b", 64))
+	// A neighboring namespace must not enter the tenant range even when the
+	// database's locale sorts punctuation differently from byte order.
+	if _, err := store.db.Exec(`INSERT INTO ynx_quant_state (state_key, revision, payload) VALUES ($1, 1, '{}'::jsonb)`, namespace+":tenant_"+strings.Repeat("c", 64)); err != nil {
+		t.Fatal(err)
+	}
 	second, err := NewTenantServer(config, "all")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer second.Close()
+	t.Cleanup(func() {
+		if err := second.Close(); err != nil {
+			t.Errorf("close second tenant server: %v", err)
+		}
+	})
 	request := func(address string) *http.Request {
 		t.Helper()
 		req := httptest.NewRequest(http.MethodGet, FinanceReadRoute, nil)
