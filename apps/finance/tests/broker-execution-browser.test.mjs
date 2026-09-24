@@ -273,6 +273,26 @@ test('partially filled Broker order shows one-shot cancellation recovery after b
   }finally{await page.close()}
 });
 
+test('Broker workspace outage stays unavailable across language switch and recovers without inventing orders',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  try{
+    await page.goto(base);
+    await page.waitForFunction(()=>!document.querySelector('#workspace').classList.contains('hidden'));
+    await page.route('**/api/broker/orders',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'raw provider incident'})}));
+    await page.evaluate(()=>refreshBrokerWorkspace());
+    assert.match(await page.locator('#broker-local-orders').textContent(),/Local Broker order state is unavailable/);
+    assert.doesNotMatch(await page.locator('#broker-local-orders').textContent(),/raw provider incident|No local Sandbox order drafts/);
+    assert.match(await page.locator('#broker-events').textContent(),/Local Broker order state is unavailable/);
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.match(await page.locator('#broker-local-orders').textContent(),/本地券商订单状态暂不可用/);
+    assert.doesNotMatch(await page.locator('#broker-local-orders').textContent(),/raw provider incident|本地尚无沙盒订单草稿/);
+    await page.unroute('**/api/broker/orders');
+    await page.evaluate(()=>refreshBrokerWorkspace());
+    assert.match(await page.locator('#broker-local-orders').textContent(),/ACME/);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+  }finally{await page.close()}
+});
+
 test('Finance desktop and mobile rerender Exchange and Quant source status in the selected language',async()=>{
   const sources={exchange:{id:'exchange',name:'YNX Exchange',owner:'07-exchange',ownerContractAccepted:true,status:{available:false,syncStatus:'owner-endpoint-unavailable',error:'raw upstream error'},action:{configured:false}},quant:{id:'quant',name:'YNX Quant Lab',owner:'08-quant-lab',ownerContractAccepted:true,status:{available:true,syncStatus:'authoritative-persisted-quant-state'},action:{configured:false},envelope:{asOf:'2026-09-19T11:00:00.000Z',payload:{strategies:[],experiments:[],mandates:[{market:'YNXT-YUSD_TEST',maxNotional:'1000000',maxDailyLoss:'100000',maxSlippageBps:50,maxLeverageBps:20000,expiresAt:'2099-09-19T11:00:00.000Z',revoked:false}],executions:[],paper:[]}}}};
   const overview={portfolio:{account:'ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80',balanceYnxt:0,stakedYnxt:0,asOf:'2026-09-19T11:00:00.000Z',activity:[],payReceipts:[],explorerStatus:{available:false,error:'Indexer unavailable'},payStatus:{available:false},readSources:sources},profile:{categories:[],budgets:[],reminders:[],privacy:{includePayInStatements:false,allowAiActivityContext:true,alertsEnabled:true}},budgetProgress:[],alerts:[],support:{helpUrl:'https://support.example/help',privacyUrl:'https://support.example/privacy',disputeUrl:'https://support.example/disputes'}};
