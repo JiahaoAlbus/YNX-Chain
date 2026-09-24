@@ -1,3 +1,6 @@
+// apps/finance/scripts/evm-read-session-authority.mjs
+import { createInterface } from "node:readline";
+
 // packages/wallet-auth/node_modules/@noble/hashes/utils.js
 function isBytes(a) {
   return a instanceof Uint8Array || ArrayBuffer.isView(a) && a.constructor.name === "Uint8Array" && "BYTES_PER_ELEMENT" in a && a.BYTES_PER_ELEMENT === 1;
@@ -471,6 +474,20 @@ function exactFields(value, expected, label) {
   const wanted = [...expected].sort();
   if (actual.join("\n") !== wanted.join("\n")) throw new WalletAuthError("UNKNOWN_OR_MISSING_FIELD", `${label} fields do not match the protocol schema`);
 }
+function canonicalJSON(value) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
+  if (typeof value === "number") {
+    if (!Number.isSafeInteger(value)) throw new WalletAuthError("INVALID_NUMBER", "Protocol numbers must be safe integers");
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalJSON).join(",")}]`;
+  if (!isPlainObject(value)) throw new WalletAuthError("INVALID_SHAPE", "Protocol value is not canonical JSON");
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJSON(value[key])}`).join(",")}}`;
+}
+function digestHex(domain, value) {
+  return bytesToHex(sha256(utf8ToBytes(`${domain}
+${canonicalJSON(value)}`)));
+}
 var WalletAuthError = class extends Error {
   constructor(code, message) {
     super(message);
@@ -478,6 +495,35 @@ var WalletAuthError = class extends Error {
     this.code = code;
   }
 };
+
+// packages/wallet-auth/src/base64url.js
+var ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+function encodeBase64url(bytes) {
+  if (!(bytes instanceof Uint8Array)) throw new WalletAuthError("INVALID_ENCODING", "Base64url input must be bytes");
+  let output = "";
+  for (let index = 0; index < bytes.length; index += 3) {
+    const a = bytes[index] ?? 0, b = bytes[index + 1] ?? 0, c = bytes[index + 2] ?? 0;
+    const value = a << 16 | b << 8 | c;
+    output += ALPHABET[value >>> 18 & 63] + ALPHABET[value >>> 12 & 63] + (index + 1 < bytes.length ? ALPHABET[value >>> 6 & 63] : "=") + (index + 2 < bytes.length ? ALPHABET[value & 63] : "=");
+  }
+  return output.replace(/=+$/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+function decodeBase64url(value, label = "base64url value") {
+  if (typeof value !== "string" || !/[A-Za-z0-9_-]/.test(value) || !/^[A-Za-z0-9_-]+$/.test(value) || value.length % 4 === 1) throw new WalletAuthError("INVALID_ENCODING", `${label} is invalid`);
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
+  const output = [];
+  for (let index = 0; index < padded.length; index += 4) {
+    const chars = [padded[index], padded[index + 1], padded[index + 2], padded[index + 3]];
+    const values = chars.map((character) => character === "=" ? 0 : ALPHABET.indexOf(character));
+    if (values.some((item) => item < 0)) throw new WalletAuthError("INVALID_ENCODING", `${label} is invalid`);
+    const combined = values[0] << 18 | values[1] << 12 | values[2] << 6 | values[3];
+    output.push(combined >>> 16 & 255);
+    if (chars[2] !== "=") output.push(combined >>> 8 & 255);
+    if (chars[3] !== "=") output.push(combined & 255);
+  }
+  return Uint8Array.from(output);
+}
 
 // packages/wallet-auth/node_modules/@noble/curves/utils.js
 var abytes2 = (value, length, title) => abytes(value, length, title);
@@ -2215,17 +2261,17 @@ function ecdsa(Point, hash, ecdsaOpts = {}) {
     const sig = drbg(seed, k2sig);
     return sig.toBytes(opts.format);
   }
-  function verify(signature, message, publicKey, opts = {}) {
+  function verify(signature2, message, publicKey, opts = {}) {
     const { lowS, prehash, format } = validateSigOpts(opts, defaultSigOpts);
     publicKey = abytes2(publicKey, void 0, "publicKey");
     message = validateMsgAndHash(message, prehash);
-    if (!isBytes2(signature)) {
-      const end = signature instanceof Signature ? ", use sig.toBytes()" : "";
+    if (!isBytes2(signature2)) {
+      const end = signature2 instanceof Signature ? ", use sig.toBytes()" : "";
       throw new Error("verify expects Uint8Array signature" + end);
     }
-    validateSigLength(signature, format);
+    validateSigLength(signature2, format);
     try {
-      const sig = Signature.fromBytes(signature, format);
+      const sig = Signature.fromBytes(signature2, format);
       const P = Point.fromBytes(publicKey);
       if (lowS && sig.hasHighS())
         return false;
@@ -2243,10 +2289,10 @@ function ecdsa(Point, hash, ecdsaOpts = {}) {
       return false;
     }
   }
-  function recoverPublicKey(signature, message, opts = {}) {
+  function recoverPublicKey(signature2, message, opts = {}) {
     const { prehash } = validateSigOpts(opts, defaultSigOpts);
     message = validateMsgAndHash(message, prehash);
-    return Signature.fromBytes(signature, "recovered").recoverPublicKey(message).toBytes();
+    return Signature.fromBytes(signature2, "recovered").recoverPublicKey(message).toBytes();
   }
   return Object.freeze({
     keygen,
@@ -2262,6 +2308,19 @@ function ecdsa(Point, hash, ecdsaOpts = {}) {
     hash: hash_
   });
 }
+
+// packages/wallet-auth/node_modules/@noble/curves/nist.js
+var p256_CURVE = /* @__PURE__ */ (() => ({
+  p: BigInt("0xffffffff00000001000000000000000000000000ffffffffffffffffffffffff"),
+  n: BigInt("0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"),
+  h: BigInt(1),
+  a: BigInt("0xffffffff00000001000000000000000000000000fffffffffffffffffffffffc"),
+  b: BigInt("0x5ac635d8aa3a93e7b3ebbd55769886bc651d06b0cc53b0f63bce3c3e27d2604b"),
+  Gx: BigInt("0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296"),
+  Gy: BigInt("0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5")
+}))();
+var p256_Point = /* @__PURE__ */ weierstrass(p256_CURVE);
+var p256 = /* @__PURE__ */ ecdsa(p256_Point, sha256);
 
 // packages/wallet-auth/src/protocol.js
 var MAX_REQUEST_LIFETIME_MS = 5 * 60 * 1e3;
@@ -2817,109 +2876,21 @@ var LIMITATIONS = Object.freeze([
 var WALLET_PROVIDER_KIND = Object.freeze({ YNX: "ynx-wallet", METAMASK: "metamask" });
 
 // packages/wallet-auth/src/evm-product-login.js
-var EVM_PRODUCT_LOGIN_VERSION = "1";
-var EVM_PRODUCT_LOGIN_SCHEME = "eip4361";
-var EVM_PRODUCT_LOGIN_CHAIN_ID = 6423;
 var EVM_PRODUCT_LOGIN_MAX_LIFETIME_MS = 10 * 60 * 1e3;
 var EVM_PRODUCT_LOGIN_DEFAULT_CLOCK_SKEW_MS = 2 * 60 * 1e3;
-var CHALLENGE_FIELDS = ["version", "scheme", "domain", "uri", "account", "accountType", "chainId", "nonce", "issuedAt", "notBefore", "expirationTime", "requestId", "statement", "productId", "scopes", "providerKind"];
-var PROOF_FIELDS = ["challenge", "message", "signature"];
-function parseEvmProductLoginChallenge(input) {
-  exactFields(input, CHALLENGE_FIELDS, "EVM product login challenge");
-  const value = Object.freeze({
-    version: pattern(input.version, "version", /^1$/),
-    scheme: pattern(input.scheme, "scheme", /^eip4361$/),
-    domain: domain(input.domain),
-    uri: uri(input.uri),
-    account: address(input.account),
-    accountType: pattern(input.accountType, "accountType", /^(eoa|contract)$/),
-    chainId: input.chainId,
-    nonce: pattern(input.nonce, "nonce", /^[A-Za-z0-9]{16,64}$/),
-    issuedAt: time(input.issuedAt, "issuedAt"),
-    notBefore: time(input.notBefore, "notBefore"),
-    expirationTime: time(input.expirationTime, "expirationTime"),
-    requestId: pattern(input.requestId, "requestId", /^[A-Za-z0-9._~-]{16,128}$/),
-    statement: statement(input.statement),
-    productId: pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/),
-    scopes: scopeList(input.scopes),
-    providerKind: pattern(input.providerKind, "providerKind", /^(ynx-wallet|metamask)$/)
-  });
-  if (value.chainId !== EVM_PRODUCT_LOGIN_CHAIN_ID) fail("UNSUPPORTED_CHAIN", "EVM product login is restricted to YNX Testnet chain 6423");
-  if (new URL(value.uri).host !== value.domain) fail("DOMAIN_URI_MISMATCH", "EVM product login domain and URI do not match");
-  const issued = Date.parse(value.issuedAt), notBefore = Date.parse(value.notBefore), expires = Date.parse(value.expirationTime);
-  if (notBefore < issued || expires <= notBefore || expires - issued > EVM_PRODUCT_LOGIN_MAX_LIFETIME_MS) fail("INVALID_EXPIRY", "EVM product login lifetime is invalid");
-  return value;
-}
-function createEvmProductLoginChallenge(input) {
-  return parseEvmProductLoginChallenge({ ...input, version: EVM_PRODUCT_LOGIN_VERSION, scheme: EVM_PRODUCT_LOGIN_SCHEME });
-}
-function evmProductLoginMessage(input) {
-  const challenge = parseEvmProductLoginChallenge(input);
-  const resources = [
-    `urn:ynx:product:${challenge.productId}`,
-    ...challenge.scopes.map((scope) => `urn:ynx:scope:${scope}`),
-    `urn:ynx:provider:${challenge.providerKind}`,
-    `urn:ynx:request:${challenge.requestId}`
-  ];
-  return `${challenge.domain} wants you to sign in with your Ethereum account:
-${challenge.account}
-
-${challenge.statement}
-
-URI: ${challenge.uri}
-Version: 1
-Chain ID: ${challenge.chainId}
-Nonce: ${challenge.nonce}
-Issued At: ${challenge.issuedAt}
-Expiration Time: ${challenge.expirationTime}
-Not Before: ${challenge.notBefore}
-Request ID: ${challenge.requestId}
-Resources:
-${resources.map((resource) => `- ${resource}`).join("\n")}`;
-}
-function createEvmProductLoginSigningRequest(input) {
-  const challenge = parseEvmProductLoginChallenge(input), message = evmProductLoginMessage(challenge);
-  return Object.freeze({ method: "personal_sign", params: Object.freeze([`0x${bytesToHex(utf8ToBytes(message))}`, challenge.account]), message });
-}
-function parseEvmProductLoginProof(input) {
-  exactFields(input, PROOF_FIELDS, "EVM product login proof");
-  const challenge = parseEvmProductLoginChallenge(input.challenge), message = input.message;
-  if (typeof message !== "string" || message !== evmProductLoginMessage(challenge)) fail("MESSAGE_MISMATCH", "Signed EVM product login message is not the exact issued challenge");
-  const signature = proofSignature(input.signature, challenge.accountType);
-  return Object.freeze({ challenge, message, signature });
-}
-async function verifyEvmProductLoginProof(input, expected, at = /* @__PURE__ */ new Date()) {
-  const proof = parseEvmProductLoginProof(input);
-  exactFields(expected, ["challenge", "clockSkewMs", "verifyContractSignature"], "EVM product login verification context");
-  const reference = parseEvmProductLoginChallenge(expected.challenge);
-  if (evmProductLoginMessage(reference) !== proof.message) fail("LOGIN_BINDING_MISMATCH", "EVM product login challenge changed after issuance");
-  const now = validDate(at).getTime(), skew = clockSkew(expected.clockSkewMs);
-  if (Date.parse(proof.challenge.issuedAt) > now + skew) fail("ISSUED_IN_FUTURE", "EVM product login challenge was issued in the future");
-  if (Date.parse(proof.challenge.notBefore) > now + skew) fail("NOT_YET_VALID", "EVM product login challenge is not active");
-  if (Date.parse(proof.challenge.expirationTime) <= now) fail("LOGIN_EXPIRED", "EVM product login challenge expired");
-  const digest = ethereumPersonalMessageDigest(proof.message);
-  if (proof.challenge.accountType === "eoa") {
-    if (recoverEthereumAddress(proof.signature, digest) !== proof.challenge.account) fail("INVALID_SIGNATURE", "EVM product login signature does not match the selected account");
-  } else {
-    if (typeof expected.verifyContractSignature !== "function") fail("CONTRACT_ACCOUNT_UNSUPPORTED", "Contract account login requires an EIP-1271 verifier");
-    const valid = await expected.verifyContractSignature(Object.freeze({ account: proof.challenge.account, chainId: proof.challenge.chainId, message: proof.message, digest: `0x${bytesToHex(digest)}`, signature: proof.signature }));
-    if (valid !== true) fail("INVALID_SIGNATURE", "Contract account rejected the EVM product login signature");
-  }
-  return Object.freeze({ verified: true, account: proof.challenge.account, accountType: proof.challenge.accountType, chainId: proof.challenge.chainId, productId: proof.challenge.productId, scopes: proof.challenge.scopes, providerKind: proof.challenge.providerKind, nonce: proof.challenge.nonce, requestId: proof.challenge.requestId, message: proof.message });
-}
 function ethereumPersonalMessageDigest(message) {
   if (typeof message !== "string") fail("INVALID_MESSAGE", "EVM product login message is invalid");
   const bytes = utf8ToBytes(message), prefix = utf8ToBytes(`Ethereum Signed Message:
 ${bytes.length}`);
   return keccak_256(concatBytes(prefix, bytes));
 }
-function recoverEthereumAddress(signature, digest) {
+function recoverEthereumAddress(signature2, digest2) {
   try {
-    const raw = hexToBytes(signature.slice(2)), recovery = raw[64] >= 27 ? raw[64] - 27 : raw[64];
+    const raw = hexToBytes(signature2.slice(2)), recovery = raw[64] >= 27 ? raw[64] - 27 : raw[64];
     if (recovery !== 0 && recovery !== 1) fail("INVALID_SIGNATURE", "EVM product login recovery id is invalid");
     if (secp256k1.Signature.fromBytes(raw.slice(0, 64), "compact").hasHighS()) fail("INVALID_SIGNATURE", "EVM product login signature is malleable");
     const recovered = concatBytes(Uint8Array.of(recovery), raw.slice(0, 64));
-    const publicKey = secp256k1.recoverPublicKey(recovered, digest, { prehash: false });
+    const publicKey = secp256k1.recoverPublicKey(recovered, digest2, { prehash: false });
     const uncompressed = secp256k1.Point.fromBytes(publicKey).toBytes(false);
     return `0x${bytesToHex(keccak_256(uncompressed.slice(1)).slice(-20))}`;
   } catch (error) {
@@ -2927,62 +2898,296 @@ function recoverEthereumAddress(signature, digest) {
     fail("INVALID_SIGNATURE", "EVM product login signature is invalid");
   }
 }
-function proofSignature(value, accountType) {
-  if (typeof value !== "string" || value.trim() !== value || !/^0x(?:[0-9a-fA-F]{2}){1,2048}$/.test(value)) fail("INVALID_SIGNATURE", "EVM product login signature is invalid");
-  if (accountType === "eoa" && !/^0x[0-9a-fA-F]{130}$/.test(value)) fail("INVALID_SIGNATURE", "EOA product login signature must be 65 bytes");
-  return value;
-}
-function uri(value) {
-  const normalized = pattern(value, "uri", /^https:\/\/[^\s#]+$/);
-  let parsed;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    fail("INVALID_URI", "EVM product login URI is invalid");
-  }
-  if (parsed.username || parsed.password || parsed.hash || parsed.toString() !== normalized) fail("INVALID_URI", "EVM product login URI is unsafe or non-canonical");
-  return normalized;
-}
-function domain(value) {
-  return pattern(value, "domain", /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?::\d{2,5})?$/);
-}
-function address(value) {
-  return pattern(value, "account", /^0x[0-9a-f]{40}$/);
-}
-function statement(value) {
-  const normalized = pattern(value, "statement", /^[^\r\n]{8,160}$/);
-  if (normalized.includes("URI:")) fail("INVALID_STATEMENT", "EVM product login statement is invalid");
-  return normalized;
-}
-function scopeList(value) {
-  if (!Array.isArray(value) || value.length < 1 || value.length > 8) fail("INVALID_SCOPES", "EVM product login scopes are invalid");
-  const result = value.map((scope) => pattern(scope, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
-  if (new Set(result).size !== result.length || [...result].sort().join("\n") !== result.join("\n")) fail("INVALID_SCOPES", "EVM product login scopes must be unique and sorted");
-  return Object.freeze(result);
-}
-function time(value, label) {
-  const normalized = pattern(value, label, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-  if (!Number.isFinite(Date.parse(normalized)) || new Date(normalized).toISOString() !== normalized) fail("INVALID_TIME", `${label} is invalid`);
-  return normalized;
-}
-function validDate(value) {
-  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail("INVALID_TIME", "EVM product login verification time is invalid");
-  return value;
-}
-function clockSkew(value) {
-  if (!Number.isSafeInteger(value) || value < 0 || value > EVM_PRODUCT_LOGIN_DEFAULT_CLOCK_SKEW_MS) fail("INVALID_CLOCK_SKEW", "EVM product login clock skew is invalid");
-  return value;
-}
-function pattern(value, label, regex) {
-  if (typeof value !== "string" || value.trim() !== value || !regex.test(value)) fail("INVALID_FIELD", `${label} is invalid`);
-  return value;
-}
 function fail(code, message) {
   throw new WalletAuthError(code, message);
 }
 
 // packages/wallet-auth/src/evm-product-session.js
+var EVM_PRODUCT_SESSION_VERSION = "1";
+var EVM_PRODUCT_SESSION_SCOPE = "finance.account.read";
+var EVM_PRODUCT_SESSION_ORIGIN = "https://finance.ynxweb4.com";
+var EVM_PRODUCT_SESSION_CALLBACK = "https://finance.ynxweb4.com/wallet-auth/callback";
+var EVM_PRODUCT_SESSION_REVOKE_TARGET = "/api/wallet-login/revoke";
 var EVM_PRODUCT_SESSION_MAX_LIFETIME_MS = 15 * 6e4;
+var EVM_PRODUCT_SESSION_PROOF_MAX_LIFETIME_MS = 6e4;
+var CHALLENGE = ["version", "chainId", "account", "productId", "origin", "callback", "scope", "deviceId", "deviceAlgorithm", "deviceKey", "nonce", "state", "requestId", "providerKind", "issuedAt", "expiresAt"];
+var LOGIN_PROOF = ["challenge", "message", "walletSignature", "deviceSignature"];
+var SESSION = ["version", "sessionId", "challengeDigest", "chainId", "account", "productId", "origin", "callback", "scope", "deviceId", "deviceAlgorithm", "deviceKey", "nonce", "state", "requestId", "issuedAt", "expiresAt"];
+var HTTP_PROOF = ["version", "sessionId", "challengeDigest", "account", "origin", "scope", "method", "target", "bodyDigest", "nonce", "issuedAt", "expiresAt", "deviceSignature"];
+function createEvmProductSessionChallenge(input) {
+  exactFields(input, CHALLENGE.filter((field) => field !== "version"), "EVM Product Session challenge input");
+  return parseEvmProductSessionChallenge({ ...input, version: EVM_PRODUCT_SESSION_VERSION });
+}
+function parseEvmProductSessionChallenge(input) {
+  exactFields(input, CHALLENGE, "EVM Product Session challenge");
+  const value = Object.freeze({
+    version: literal(input.version, "1"),
+    chainId: literal(input.chainId, 6423),
+    account: account(input.account),
+    productId: literal(input.productId, "finance"),
+    origin: literal(origin(input.origin), EVM_PRODUCT_SESSION_ORIGIN),
+    callback: literal(callback(input.callback), EVM_PRODUCT_SESSION_CALLBACK),
+    scope: literal(input.scope, EVM_PRODUCT_SESSION_SCOPE),
+    deviceId: pattern(input.deviceId, "deviceId", /^[A-Za-z0-9._:-]{8,128}$/),
+    deviceAlgorithm: literal(input.deviceAlgorithm, "p256-sha256"),
+    deviceKey: deviceKey(input.deviceKey),
+    nonce: token(input.nonce, "nonce"),
+    state: token(input.state, "state"),
+    requestId: pattern(input.requestId, "requestId", /^[A-Za-z0-9._~-]{16,128}$/),
+    providerKind: pattern(input.providerKind, "providerKind", /^(metamask|ynx-wallet)$/),
+    issuedAt: time(input.issuedAt, "issuedAt"),
+    expiresAt: time(input.expiresAt, "expiresAt")
+  });
+  if (!value.callback.startsWith(`${value.origin}/`)) fail2("CALLBACK_ORIGIN_MISMATCH", "Callback must belong to the exact product origin");
+  if (Date.parse(value.expiresAt) <= Date.parse(value.issuedAt) || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > 5 * 6e4) fail2("INVALID_EXPIRY", "Challenge lifetime is invalid");
+  return value;
+}
+function evmProductSessionMessage(input) {
+  return `YNX EVM Product Session authorization v1
+${canonicalJSON(parseEvmProductSessionChallenge(input))}`;
+}
+function createEvmProductSessionSigningRequest(input) {
+  const challenge = parseEvmProductSessionChallenge(input), message = evmProductSessionMessage(challenge);
+  return Object.freeze({ method: "personal_sign", params: Object.freeze([`0x${bytesToHex(utf8ToBytes(message))}`, challenge.account]), message });
+}
+function evmProductSessionDeviceSignBytes(input) {
+  return `YNX_EVM_PRODUCT_SESSION_DEVICE_BINDING_V1
+${evmProductSessionMessage(input)}`;
+}
+function parseEvmProductSessionLoginProof(input) {
+  exactFields(input, LOGIN_PROOF, "EVM Product Session login proof");
+  const challenge = parseEvmProductSessionChallenge(input.challenge), message = evmProductSessionMessage(challenge);
+  if (input.message !== message) fail2("MESSAGE_MISMATCH", "Wallet message differs from the issued challenge");
+  return Object.freeze({ challenge, message, walletSignature: signature(input.walletSignature), deviceSignature: deviceSignature(input.deviceSignature) });
+}
+function verifyEvmProductSessionLoginProof(input, expectedChallenge, at = /* @__PURE__ */ new Date()) {
+  const proof = parseEvmProductSessionLoginProof(input), expected = parseEvmProductSessionChallenge(expectedChallenge);
+  if (proof.message !== evmProductSessionMessage(expected)) fail2("CHALLENGE_MISMATCH", "Login proof differs from the server-issued challenge");
+  const now = validDate(at).getTime();
+  if (Date.parse(expected.issuedAt) > now || Date.parse(expected.expiresAt) <= now) fail2("CHALLENGE_EXPIRED", "Challenge is not active");
+  if (recoverEthereumAddress(proof.walletSignature, ethereumPersonalMessageDigest(proof.message)) !== expected.account) fail2("INVALID_SIGNATURE", "Wallet signature does not match account");
+  verifyDevice(proof.deviceSignature, evmProductSessionDeviceSignBytes(expected), expected.deviceKey);
+  return Object.freeze({ account: expected.account, challengeDigest: challengeDigest(expected), deviceKey: expected.deviceKey });
+}
+async function issueEvmProductSession(input, expectedChallenge, issue, commit2, at = /* @__PURE__ */ new Date()) {
+  const verified = verifyEvmProductSessionLoginProof(input, expectedChallenge, at);
+  if (typeof commit2 !== "function") fail2("AUTHORITY_STORE_REQUIRED", "Atomic challenge consumption and session storage are required");
+  exactFields(issue, ["sessionId", "expiresAt"], "EVM Product Session issue input");
+  const challenge = parseEvmProductSessionChallenge(expectedChallenge), now = validDate(at);
+  const session = parseEvmProductSession({
+    version: "1",
+    sessionId: token(issue.sessionId, "sessionId"),
+    challengeDigest: verified.challengeDigest,
+    chainId: challenge.chainId,
+    account: challenge.account,
+    productId: challenge.productId,
+    origin: challenge.origin,
+    callback: challenge.callback,
+    scope: challenge.scope,
+    deviceId: challenge.deviceId,
+    deviceAlgorithm: challenge.deviceAlgorithm,
+    deviceKey: challenge.deviceKey,
+    nonce: challenge.nonce,
+    state: challenge.state,
+    requestId: challenge.requestId,
+    issuedAt: now.toISOString(),
+    expiresAt: issue.expiresAt
+  });
+  if (await commit2(Object.freeze({ challengeDigest: verified.challengeDigest, nonce: challenge.nonce, state: challenge.state, requestId: challenge.requestId, session })) !== true) fail2("REPLAY_OR_STORE_FAILURE", "Challenge was consumed or session storage failed");
+  return session;
+}
+function parseEvmProductSession(input) {
+  exactFields(input, SESSION, "EVM Product Session");
+  const value = Object.freeze({
+    version: literal(input.version, "1"),
+    sessionId: token(input.sessionId, "sessionId"),
+    challengeDigest: digest(input.challengeDigest),
+    chainId: literal(input.chainId, 6423),
+    account: account(input.account),
+    productId: literal(input.productId, "finance"),
+    origin: literal(origin(input.origin), EVM_PRODUCT_SESSION_ORIGIN),
+    callback: literal(callback(input.callback), EVM_PRODUCT_SESSION_CALLBACK),
+    scope: literal(input.scope, EVM_PRODUCT_SESSION_SCOPE),
+    deviceId: pattern(input.deviceId, "deviceId", /^[A-Za-z0-9._:-]{8,128}$/),
+    deviceAlgorithm: literal(input.deviceAlgorithm, "p256-sha256"),
+    deviceKey: deviceKey(input.deviceKey),
+    nonce: token(input.nonce, "nonce"),
+    state: token(input.state, "state"),
+    requestId: pattern(input.requestId, "requestId", /^[A-Za-z0-9._~-]{16,128}$/),
+    issuedAt: time(input.issuedAt, "issuedAt"),
+    expiresAt: time(input.expiresAt, "expiresAt")
+  });
+  if (!value.callback.startsWith(`${value.origin}/`)) fail2("CALLBACK_ORIGIN_MISMATCH", "Callback origin changed");
+  if (Date.parse(value.expiresAt) <= Date.parse(value.issuedAt) || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > EVM_PRODUCT_SESSION_MAX_LIFETIME_MS) fail2("INVALID_EXPIRY", "Session lifetime is invalid");
+  return value;
+}
+function evmProductSessionProofSignBytes(input) {
+  return `YNX_EVM_PRODUCT_SESSION_HTTP_PROOF_V1
+${canonicalJSON(parseUnsignedHttpProof(input))}`;
+}
+function parseEvmProductSessionHttpProof(input) {
+  exactFields(input, HTTP_PROOF, "EVM Product Session HTTP proof");
+  const { deviceSignature: signed, ...unsigned } = input;
+  return Object.freeze({ ...parseUnsignedHttpProof(unsigned), deviceSignature: deviceSignature(signed) });
+}
+async function verifyAndConsumeEvmProductSessionHttpProof(proofInput, loadSession, request, authority, consumeProof, at = /* @__PURE__ */ new Date()) {
+  const proof = parseEvmProductSessionHttpProof(proofInput);
+  if (typeof loadSession !== "function") fail2("AUTHORITY_STORE_REQUIRED", "Authoritative session lookup is required");
+  const stored = await loadSession(proof.sessionId);
+  if (stored === null || stored === void 0) fail2("SESSION_NOT_FOUND", "Session is absent from the authority store");
+  const session = parseEvmProductSession(stored);
+  exactFields(request, ["origin", "method", "target", "bodyDigest", "requiredScope", "allowedTargets"], "EVM Product Session request context");
+  exactFields(authority, ["currentAccount", "currentChainId", "connected", "revoked"], "EVM Product Session authority context");
+  if (typeof consumeProof !== "function") fail2("REPLAY_STORE_REQUIRED", "Atomic HTTP proof nonce consumption is required");
+  if (authority.revoked !== false) fail2("SESSION_REVOKED", "Session is revoked or revocation state is unknown");
+  if (authority.connected !== true || authority.currentAccount !== session.account) fail2("ACCOUNT_CHANGED", "Selected account disconnected or changed");
+  if (authority.currentChainId !== 6423) fail2("CHAIN_CHANGED", "Selected chain changed or is unknown");
+  if (request.requiredScope !== EVM_PRODUCT_SESSION_SCOPE || session.scope !== request.requiredScope) fail2("SCOPE_DENIED", "Requested scope is not granted");
+  if (request.method !== "GET") fail2("SCOPE_DENIED", "Read-only EVM scope permits only GET requests");
+  if (!Array.isArray(request.allowedTargets) || request.allowedTargets.length === 0 || request.allowedTargets.length > 32 || request.allowedTargets.some((item) => typeof item !== "string" || item.includes("?") || target(item) !== item) || !request.allowedTargets.includes(target(request.target).split("?")[0])) fail2("ROUTE_DENIED", "Request target is not in the server's read-only route allowlist");
+  if (origin(request.origin) !== session.origin || proof.origin !== session.origin) fail2("ORIGIN_MISMATCH", "Request origin changed");
+  const expected = ["sessionId", "challengeDigest", "account", "scope"];
+  if (expected.some((key) => proof[key] !== session[key])) fail2("SESSION_BINDING_MISMATCH", "HTTP proof differs from stored session");
+  if (proof.method !== method(request.method) || proof.target !== target(request.target) || proof.bodyDigest !== digest(request.bodyDigest)) fail2("HTTP_BINDING_MISMATCH", "HTTP proof differs from request");
+  const now = validDate(at).getTime();
+  if (Date.parse(session.expiresAt) <= now || Date.parse(proof.expiresAt) <= now) fail2("SESSION_EXPIRED", "Session or HTTP proof expired");
+  if (Date.parse(proof.issuedAt) < Date.parse(session.issuedAt) || Date.parse(proof.issuedAt) > now || proof.expiresAt > session.expiresAt) fail2("INVALID_PROOF_TIME", "HTTP proof time is outside session");
+  verifyDevice(proof.deviceSignature, evmProductSessionProofSignBytes(unsignedProof(proof)), session.deviceKey);
+  if (await consumeProof(Object.freeze({ sessionId: session.sessionId, nonce: proof.nonce, expiresAt: proof.expiresAt })) !== true) fail2("REPLAY", "HTTP proof was already used");
+  return Object.freeze({ authorized: true, account: session.account, productId: session.productId, scope: session.scope, sessionId: session.sessionId });
+}
+async function verifyAndConsumeEvmProductSessionRevokeProof(proofInput, loadSession, request, revokeAndConsume, at = /* @__PURE__ */ new Date()) {
+  const proof = parseEvmProductSessionHttpProof(proofInput);
+  if (typeof loadSession !== "function") fail2("AUTHORITY_STORE_REQUIRED", "Authoritative session lookup is required");
+  const stored = await loadSession(proof.sessionId);
+  if (stored === null || stored === void 0) fail2("SESSION_NOT_FOUND", "Session is absent from the authority store");
+  const session = parseEvmProductSession(stored);
+  exactFields(request, ["origin", "method", "target", "bodyDigest"], "EVM Product Session revoke request context");
+  if (typeof revokeAndConsume !== "function") fail2("REPLAY_STORE_REQUIRED", "Atomic revocation and proof consumption are required");
+  if (request.method !== "POST" || request.target !== EVM_PRODUCT_SESSION_REVOKE_TARGET || proof.method !== "POST" || proof.target !== EVM_PRODUCT_SESSION_REVOKE_TARGET) fail2("REVOKE_ROUTE_MISMATCH", "Revoke proof is bound to the exact POST route");
+  if (origin(request.origin) !== session.origin || proof.origin !== session.origin) fail2("ORIGIN_MISMATCH", "Revoke origin changed");
+  if (proof.bodyDigest !== digest(request.bodyDigest)) fail2("HTTP_BINDING_MISMATCH", "Revoke proof differs from the request body");
+  if (["sessionId", "challengeDigest", "account", "scope"].some((key) => proof[key] !== session[key])) fail2("SESSION_BINDING_MISMATCH", "Revoke proof differs from stored session");
+  const now = validDate(at).getTime();
+  if (Date.parse(session.expiresAt) <= now || Date.parse(proof.expiresAt) <= now) fail2("SESSION_EXPIRED", "Session or revoke proof expired");
+  if (Date.parse(proof.issuedAt) < Date.parse(session.issuedAt) || Date.parse(proof.issuedAt) > now || proof.expiresAt > session.expiresAt) fail2("INVALID_PROOF_TIME", "Revoke proof time is outside session");
+  verifyDevice(proof.deviceSignature, evmProductSessionProofSignBytes(unsignedProof(proof)), session.deviceKey);
+  if (await revokeAndConsume(Object.freeze({ sessionId: session.sessionId, challengeDigest: session.challengeDigest, account: session.account, nonce: proof.nonce, expiresAt: proof.expiresAt })) !== true) fail2("REPLAY_OR_REVOKED", "Session is revoked or revoke proof was already used");
+  return Object.freeze({ revoked: true, account: session.account, sessionId: session.sessionId });
+}
+function parseUnsignedHttpProof(input) {
+  exactFields(input, HTTP_PROOF.filter((field) => field !== "deviceSignature"), "Unsigned EVM Product Session HTTP proof");
+  const value = Object.freeze({
+    version: literal(input.version, "1"),
+    sessionId: token(input.sessionId, "sessionId"),
+    challengeDigest: digest(input.challengeDigest),
+    account: account(input.account),
+    origin: literal(origin(input.origin), EVM_PRODUCT_SESSION_ORIGIN),
+    scope: literal(input.scope, EVM_PRODUCT_SESSION_SCOPE),
+    method: method(input.method),
+    target: target(input.target),
+    bodyDigest: digest(input.bodyDigest),
+    nonce: token(input.nonce, "nonce"),
+    issuedAt: time(input.issuedAt, "issuedAt"),
+    expiresAt: time(input.expiresAt, "expiresAt")
+  });
+  if (Date.parse(value.expiresAt) <= Date.parse(value.issuedAt) || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > EVM_PRODUCT_SESSION_PROOF_MAX_LIFETIME_MS) fail2("INVALID_EXPIRY", "HTTP proof lifetime is invalid");
+  return value;
+}
+function unsignedProof(value) {
+  const { deviceSignature: _signature, ...unsigned } = value;
+  return unsigned;
+}
+function challengeDigest(value) {
+  return digestHex("YNX_EVM_PRODUCT_SESSION_CHALLENGE_V1", value);
+}
+function verifyDevice(signed, message, key) {
+  let valid = false;
+  try {
+    valid = p256.verify(decodeBase64url(signed, "deviceSignature"), utf8ToBytes(message), decodeBase64url(key, "deviceKey"), { format: "der", lowS: false });
+  } catch {
+    valid = false;
+  }
+  if (!valid) fail2("INVALID_DEVICE_PROOF", "P-256 device signature does not match bound key");
+}
+function deviceSignature(value) {
+  const bytes = decodeBase64url(value, "deviceSignature");
+  if (bytes.length < 68 || bytes.length > 72 || encodeBase64url(bytes) !== value) fail2("INVALID_DEVICE_PROOF", "Device signature is invalid");
+  return value;
+}
+function deviceKey(value) {
+  const bytes = decodeBase64url(value, "deviceKey");
+  if (bytes.length !== 33 || ![2, 3].includes(bytes[0]) || encodeBase64url(bytes) !== value) fail2("INVALID_DEVICE", "P-256 device key is invalid");
+  try {
+    p256.Point.fromBytes(bytes);
+  } catch {
+    fail2("INVALID_DEVICE", "P-256 device key is invalid");
+  }
+  return value;
+}
+function account(value) {
+  return pattern(value, "account", /^0x[0-9a-f]{40}$/);
+}
+function origin(value) {
+  const text = pattern(value, "origin", /^https:\/\/[^\s/?#]+$/);
+  let parsed;
+  try {
+    parsed = new URL(text);
+  } catch {
+    fail2("INVALID_ORIGIN", "Origin is invalid");
+  }
+  if (parsed.origin !== text || parsed.username || parsed.password) fail2("INVALID_ORIGIN", "Origin is non-canonical");
+  return text;
+}
+function callback(value) {
+  const text = pattern(value, "callback", /^https:\/\/[^\s#]+$/);
+  let parsed;
+  try {
+    parsed = new URL(text);
+  } catch {
+    fail2("INVALID_CALLBACK", "Callback is invalid");
+  }
+  if (parsed.toString() !== text || parsed.username || parsed.password || parsed.hash) fail2("INVALID_CALLBACK", "Callback is non-canonical");
+  return text;
+}
+function method(value) {
+  return pattern(value, "method", /^(GET|POST|PUT|PATCH|DELETE)$/);
+}
+function target(value) {
+  const text = pattern(value, "target", /^\/[A-Za-z0-9._~!$&'()*+,;=:@\/%?-]{1,512}$/);
+  const [pathname, query, ...extra] = text.split("?");
+  if (extra.length || pathname.includes("//") || pathname.endsWith("/") || query === "" || /%(?![0-9A-F]{2})/.test(text)) fail2("INVALID_TARGET", "Request target is non-canonical");
+  return text;
+}
+function digest(value) {
+  return pattern(value, "digest", /^[0-9a-f]{64}$/);
+}
+function token(value, label) {
+  return pattern(value, label, /^[A-Za-z0-9_-]{32,64}$/);
+}
+function time(value, label) {
+  const text = pattern(value, label, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  if (!Number.isFinite(Date.parse(text)) || new Date(text).toISOString() !== text) fail2("INVALID_TIME", `${label} is invalid`);
+  return text;
+}
+function validDate(value) {
+  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail2("INVALID_TIME", "Verification time is invalid");
+  return value;
+}
+function literal(value, expected) {
+  if (value !== expected) fail2("INVALID_FIELD", "Protocol literal is invalid");
+  return expected;
+}
+function signature(value) {
+  return pattern(value, "walletSignature", /^0x[0-9a-fA-F]{130}$/);
+}
+function pattern(value, label, regex) {
+  if (typeof value !== "string" || value.trim() !== value || !regex.test(value)) fail2("INVALID_FIELD", `${label} is invalid`);
+  return value;
+}
+function fail2(code, message) {
+  throw new WalletAuthError(code, message);
+}
 
 // packages/wallet-auth/src/wallet-session-control.js
 var WALLET_SESSION_CONTROL_PATHS = Object.freeze(["/v2/product-sessions/wallet/sessions", "/v2/product-sessions/wallet/sessions/revoke"]);
@@ -3062,45 +3267,66 @@ var FORMATS = Object.freeze({
   "extension-temporary": { platform: "web-extension", architectures: ["any"], browser: "firefox", extension: ".zip", mime: ["application/zip"] }
 });
 
-// apps/finance/scripts/evm-product-login-authority.mjs
-var MAX_INPUT_BYTES = 32 * 1024;
-async function readInput() {
-  const chunks = [];
-  let bytes = 0;
-  for await (const chunk of process.stdin) {
-    bytes += chunk.length;
-    if (bytes > MAX_INPUT_BYTES) throw new Error("INVALID_INPUT");
-    chunks.push(chunk);
-  }
-  if (bytes === 0) throw new Error("INVALID_INPUT");
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+// apps/finance/scripts/evm-read-session-authority.mjs
+var lines = createInterface({ input: process.stdin, crlfDelay: Infinity })[Symbol.asyncIterator]();
+var MAX_LINE = 64 * 1024;
+async function receive() {
+  const next = await lines.next();
+  if (next.done || Buffer.byteLength(next.value) > MAX_LINE) throw new Error("INVALID_INPUT");
+  return JSON.parse(next.value);
+}
+function send(value) {
+  const raw = JSON.stringify(value);
+  if (Buffer.byteLength(raw) > MAX_LINE) throw new Error("OUTPUT_TOO_LARGE");
+  process.stdout.write(`${raw}
+`);
+}
+async function commit(kind, proposal) {
+  send({ kind: "commit", operation: kind, proposal });
+  const answer = await receive();
+  return answer?.approved === true;
 }
 try {
-  const input = await readInput();
+  const input = await receive();
   if (input?.action === "create") {
-    const challenge = createEvmProductLoginChallenge(input.challenge);
-    const signingRequest = createEvmProductLoginSigningRequest(challenge);
-    process.stdout.write(JSON.stringify({ challenge, signingRequest }) + "\n");
-  } else if (input?.action === "verify") {
-    const verified = await verifyEvmProductLoginProof(input.proof, {
-      challenge: input.expectedChallenge,
-      clockSkewMs: 0,
-      verifyContractSignature: null
-    }, new Date(input.at));
-    process.stdout.write(JSON.stringify({ verified: {
-      account: verified.account,
-      accountType: verified.accountType,
-      chainId: verified.chainId,
-      productId: verified.productId,
-      scopes: verified.scopes,
-      providerKind: verified.providerKind,
-      nonce: verified.nonce,
-      requestId: verified.requestId
-    } }) + "\n");
-  } else throw new Error("INVALID_ACTION");
+    const challenge = createEvmProductSessionChallenge(input.challenge);
+    send({ kind: "result", challenge, signingRequest: createEvmProductSessionSigningRequest(challenge) });
+  } else if (input?.action === "issue") {
+    const session = await issueEvmProductSession(
+      input.proof,
+      input.expectedChallenge,
+      input.issue,
+      (proposal) => commit("issue", proposal),
+      new Date(input.at)
+    );
+    send({ kind: "result", session });
+  } else if (input?.action === "read") {
+    const result = await verifyAndConsumeEvmProductSessionHttpProof(
+      input.proof,
+      async (sessionId) => sessionId === input.session?.sessionId ? input.session : null,
+      input.request,
+      input.authority,
+      (proposal) => commit("read", proposal),
+      new Date(input.at)
+    );
+    send({ kind: "result", authorized: result });
+  } else if (input?.action === "revoke") {
+    const result = await verifyAndConsumeEvmProductSessionRevokeProof(
+      input.proof,
+      async (sessionId) => sessionId === input.session?.sessionId ? input.session : null,
+      input.request,
+      (proposal) => commit("revoke", proposal),
+      new Date(input.at)
+    );
+    send({ kind: "result", revoked: result });
+  } else {
+    throw new Error("INVALID_ACTION");
+  }
 } catch (error) {
-  process.stdout.write(JSON.stringify({ error: { code: error?.code || "INVALID_INPUT" } }) + "\n");
+  send({ kind: "error", code: error?.code || "INVALID_INPUT" });
   process.exitCode = 1;
+} finally {
+  lines.return?.();
 }
 /*! Bundled license information:
 
@@ -3108,6 +3334,7 @@ try {
 @noble/curves/abstract/modular.js:
 @noble/curves/abstract/curve.js:
 @noble/curves/abstract/weierstrass.js:
+@noble/curves/nist.js:
 @noble/curves/secp256k1.js:
   (*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) *)
 */
