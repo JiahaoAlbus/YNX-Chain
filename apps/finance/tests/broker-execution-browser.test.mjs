@@ -236,13 +236,13 @@ test('AI draft and manual Broker order share one asset-confirmed Wallet approval
   }finally{await page.close()}
 });
 
-test('partially filled Broker order records cancellation intent and survives browser restart without provider write',async()=>{
-  const page=await browser.newPage();let orderState='partially_filled',cancelRequests=0;
+test('partially filled Broker order shows one-shot cancellation recovery after browser restart',async()=>{
+  const page=await browser.newPage();let orderState='partially_filled',cancelRequests=0,cancelIntentAt=null,cancelAttemptedAt=null;
   page.on('dialog',dialog=>dialog.accept());
-  const workspaceResponse=()=>({schema:'ynx-finance-broker-workspace-v1',workspace:{orders:[{requestId:'request-fixture',approvalState:'consumed',state:orderState,order:{orderId,symbol:'ACME',side:'buy',qty:'2',maxCost:'21'}}],outbox:[{orderId,status:'submitted',attempts:1}],journal:[],watchlist:[],serverTime:'2026-09-19T11:00:00.000Z'},providerWriteAttempted:false});
+  const workspaceResponse=()=>({schema:'ynx-finance-broker-workspace-v1',workspace:{orders:[{requestId:'request-fixture',approvalState:'consumed',state:orderState,cancelIntentAt,cancelAttemptedAt,order:{orderId,symbol:'ACME',side:'buy',qty:'2',maxCost:'21'}}],outbox:[{orderId,status:'submitted',attempts:1}],journal:[],watchlist:[],serverTime:'2026-09-19T11:00:00.000Z'},providerWriteAttempted:false});
   await page.route('**/api/broker/orders',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(workspaceResponse())}));
   await page.route(`**/api/broker/orders/${orderId}/cancel-request`,route=>{
-    cancelRequests++;orderState='cancel_requested';
+    cancelRequests++;orderState='cancel_requested';cancelIntentAt='2026-09-19T11:00:00.000Z';
     return route.fulfill({status:202,contentType:'application/json',body:JSON.stringify({schema:'ynx-finance-broker-cancel-request-v1',order:{state:orderState},providerWriteAttempted:false,next:'operator_worker_cancel_once'})});
   });
   try{
@@ -257,7 +257,19 @@ test('partially filled Broker order records cancellation intent and survives bro
     await page.waitForFunction(()=>document.querySelector('#broker-local-orders')?.textContent.includes('cancel_requested'));
     assert.equal(await page.locator('[data-broker-order-cancel]').count(),0);
     assert.equal(cancelRequests,1);
-    assert.match(await page.locator('#broker-local-orders').textContent(),/cancel_requested/);
+    assert.match(await page.locator('#broker-local-orders').textContent(),/operator has not yet confirmed a provider attempt/);
+    orderState='partially_filled';cancelAttemptedAt='2026-09-19T11:01:00.000Z';
+    await page.reload();
+    await page.waitForFunction(()=>document.querySelector('#broker-local-orders')?.textContent.includes('partially_filled'));
+    assert.equal(await page.locator('[data-broker-order-cancel]').count(),0);
+    assert.match(await page.locator('#broker-local-orders').textContent(),/do not resend/);
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.match(await page.locator('#broker-local-orders').textContent(),/不得再次发送/);
+    orderState='cancel_requested';cancelIntentAt=null;cancelAttemptedAt=null;
+    await page.reload();
+    await page.waitForFunction(()=>document.querySelector('#broker-local-orders')?.textContent.includes('cancel_requested'));
+    assert.match(await page.locator('#broker-local-orders').textContent(),/旧版撤单状态无法判定/);
+    assert.equal(await page.locator('[data-broker-order-cancel]').count(),0);
   }finally{await page.close()}
 });
 
