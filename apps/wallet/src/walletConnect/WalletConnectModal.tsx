@@ -9,7 +9,7 @@ import { platformSecureStorage } from "../storage/secureStorage";
 import { WalletConnectSecurityStore, type WalletConnectResponseRecord } from "./securityStore";
 import { prepareEvmRequest,signPreparedEvmRequest,WalletConnectBroadcastJournal,type BroadcastRecord,type PreparedEvmRequest,type SignedEvmTransaction } from "./evm";
 import { reviewWalletConnectQrPayload } from "./qr";
-import { assertWalletConnectSessionMatchesReview,createPersistAndPublishWalletConnectSession,retryQuarantinedWalletConnectSession,revokeAndDisconnectWalletConnectSession } from "./sessionApproval";
+import { abortApprovedWalletConnectSession,assertWalletConnectSessionMatchesReview,createPersistAndPublishWalletConnectSession,retryQuarantinedWalletConnectSession,revokeAndDisconnectWalletConnectSession } from "./sessionApproval";
 import { currentWalletConnectDelivery } from "./deliveryGuard";
 import { getBytes,verifyMessage,verifyTypedData } from "ethers";
 import type { WalletOperationLifecycle } from "../security/operationLifecycle";
@@ -193,7 +193,7 @@ function WalletConnectSheet({ account,withAccountSecret,operations,inbound,clear
   const approveProposal=async()=>{
     if(!proposalReview)return;
     const review=proposalReview;setBusy(true);setError(null);
-    const scope=operations.scope();let session:Awaited<ReturnType<typeof walletConnectRuntime.approveProposal>>|null=null,handoffStarted=false;
+    const scope=operations.scope();let session:Awaited<ReturnType<typeof walletConnectRuntime.approveProposal>>|null=null,handoffStarted=false,handoffCompleted=false;
     try{
       const lease=scope.begin({account:account.account});
       try{
@@ -203,9 +203,14 @@ function WalletConnectSheet({ account,withAccountSecret,operations,inbound,clear
         handoffStarted=true;
         await createPersistAndPublishWalletConnectSession(walletConnectRuntime,securityStore,session.topic,
           ()=>createWalletConnectSessionApproval(review,{approved:true,topic:session!.topic},new Date()),()=>lease.assert());
+        handoffCompleted=true;
         lease.assert();setProposalReview(null);
       }finally{lease.finish()}
-    }catch(caught){setError(message(caught));if(session&&!handoffStarted)await walletConnectRuntime.disconnect(session.topic).catch(()=>{})}
+    }catch(caught){
+      let failure=caught;
+      if(session&&(!handoffStarted||handoffCompleted))try{await abortApprovedWalletConnectSession(walletConnectRuntime,securityStore,session.topic,caught)}catch(cleanupFailure){failure=cleanupFailure}
+      setError(message(failure));
+    }
     finally{setBusy(false);scope.cancel()}
   };
   const decideRequest=async(approved:boolean)=>{

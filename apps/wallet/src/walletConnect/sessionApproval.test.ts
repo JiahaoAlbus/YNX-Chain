@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { WalletConnectSessionApproval } from "@ynx-chain/wallet-auth";
-import { assertWalletConnectSessionMatchesReview,createPersistAndPublishWalletConnectSession,persistAndPublishWalletConnectSession,retryQuarantinedWalletConnectSession,revokeAndDisconnectWalletConnectSession } from "./sessionApproval";
+import { abortApprovedWalletConnectSession,assertWalletConnectSessionMatchesReview,createPersistAndPublishWalletConnectSession,persistAndPublishWalletConnectSession,retryQuarantinedWalletConnectSession,revokeAndDisconnectWalletConnectSession } from "./sessionApproval";
 import { WalletConnectRuntime } from "./runtime";
 
 const approval={topic:"a".repeat(64)} as WalletConnectSessionApproval;
@@ -65,7 +65,7 @@ test("approval construction failure closes the already-approved SDK session",asy
     approval.topic,
     ()=>{throw new Error("invalid approval binding")},
   ),/invalid approval binding/);
-  assert.deepEqual(order,[`disconnect:${approval.topic}`]);
+  assert.deepEqual(order,["remove",`disconnect:${approval.topic}`]);
 });
 
 test("approval persistence failure is disconnected exactly once by the persistence owner",async()=>{
@@ -97,7 +97,7 @@ test("runtime keeps a newly approved SDK session hidden and closes it when persi
   assert.deepEqual(runtime.snapshot().sessions,[]);
 });
 
-test("simultaneous local and Relay cleanup failures stay quarantined across sheet reentry and recover explicitly",async()=>{
+test("lease loss after a durable grant plus two cleanup failures cannot reauthorize the session on sheet reentry",async()=>{
   const handlers=new Map<string,(event:any)=>void>(),active:Record<string,any>={},responses:any[]=[];
   let storageFails=true,relayFails=true,persisted=false;
   const client={
@@ -109,12 +109,13 @@ test("simultaneous local and Relay cleanup failures stay quarantined across shee
   const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any);await runtime.start();
   handlers.get("session_proposal")!({id:1,params:{},verifyContext:{verified:{}}});
   await runtime.approveProposal(runtime.snapshot().proposal!,{eip155:{accounts:[],chains:["eip155:6423"],methods:["eth_accounts"],events:[]}} as any);
-  const store={async saveSession(){persisted=true;throw new Error("readback mismatch")},async removeSession(){if(storageFails)throw new Error("secure storage unavailable");persisted=false}};
-  await assert.rejects(persistAndPublishWalletConnectSession(runtime,store,approval),error=>{
-    assert.ok(error instanceof AggregateError);assert.equal(error.errors.length,3);assert.match(error.message,/cleanup is pending/);return true;
+  const store={async saveSession(){persisted=true},async removeSession(){if(storageFails)throw new Error("secure storage unavailable");persisted=false}};
+  let leaseChecks=0;
+  await assert.rejects(persistAndPublishWalletConnectSession(runtime,store,approval,()=>{if(++leaseChecks===2)throw new Error("selected account changed")}),error=>{
+    assert.ok(error instanceof AggregateError);assert.equal(error.errors.length,3);assert.match(String(error.errors[0]),/selected account changed/);assert.match(error.message,/cleanup is pending/);return true;
   });
-  assert.equal(persisted,true);assert.deepEqual(runtime.quarantinedTopics(),[approval.topic]);
-  runtime.refreshSessions();assert.deepEqual(runtime.snapshot().sessions,[]);
+  assert.equal(leaseChecks,2);assert.equal(persisted,true);assert.deepEqual(runtime.quarantinedTopics(),[approval.topic]);
+  await runtime.restore();assert.deepEqual(runtime.snapshot().sessions,[]);
   handlers.get("session_request")!({topic:approval.topic,id:7,params:{}});
   await new Promise(resolve=>setImmediate(resolve));
   assert.equal(runtime.snapshot().request,null);assert.equal(responses.length,1);assert.equal(responses[0].response.error.code,5000);
@@ -122,6 +123,35 @@ test("simultaneous local and Relay cleanup failures stay quarantined across shee
   await retryQuarantinedWalletConnectSession(runtime,store,approval.topic);
   assert.equal(persisted,false);assert.deepEqual(runtime.quarantinedTopics(),[]);assert.deepEqual(runtime.snapshot().sessions,[]);
   await assert.rejects(retryQuarantinedWalletConnectSession(runtime,store,approval.topic),/not awaiting cleanup/);
+});
+
+test("final UI lease loss after publication quarantines a saved grant when both cleanup paths fail",async()=>{
+  const handlers=new Map<string,(event:any)=>void>(),active:Record<string,any>={},responses:any[]=[];
+  let persisted=false,storageFails=true,relayFails=true;
+  const client={
+    on(event:string,listener:(event:any)=>void){handlers.set(event,listener)},pair:async()=>{},rejectSession:async()=>{},
+    respondSessionRequest:async(value:any)=>{responses.push(value)},getActiveSessions:()=>active,
+    approveSession:async(value:any)=>{const session={topic:approval.topic,namespaces:value.namespaces,peer:{metadata:{name:"dApp",url:"https://example.com"}}};active[session.topic]=session;return session},
+    disconnectSession:async({topic}:{topic:string})=>{if(relayFails)throw new Error("Relay cleanup failed");delete active[topic]},
+  };
+  const runtime=new WalletConnectRuntime({projectId:"b".repeat(32)},(async()=>client) as any);await runtime.start();
+  handlers.get("session_proposal")!({id:2,params:{},verifyContext:{verified:{}}});
+  await runtime.approveProposal(runtime.snapshot().proposal!,{eip155:{accounts:[],chains:["eip155:6423"],methods:["eth_accounts"],events:[]}} as any);
+  const store={async saveSession(){persisted=true},async removeSession(){if(storageFails)throw new Error("local cleanup failed");persisted=false}};
+  await persistAndPublishWalletConnectSession(runtime,store,approval);
+  assert.equal(persisted,true);assert.deepEqual(runtime.snapshot().sessions.map(session=>session.topic),[approval.topic]);
+  await assert.rejects(abortApprovedWalletConnectSession(runtime,store,approval.topic,new Error("selected account changed after publication")),error=>{
+    assert.ok(error instanceof AggregateError);assert.equal(error.errors.length,3);
+    assert.match(String(error.errors[0]),/selected account changed after publication/);return true;
+  });
+  assert.equal(persisted,true);assert.deepEqual(runtime.quarantinedTopics(),[approval.topic]);
+  await runtime.restore();assert.deepEqual(runtime.snapshot().sessions,[]);
+  handlers.get("session_request")!({topic:approval.topic,id:8,params:{}});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(runtime.snapshot().request,null);assert.equal(responses[0].response.error.code,5000);
+  storageFails=false;relayFails=false;
+  await retryQuarantinedWalletConnectSession(runtime,store,approval.topic);
+  assert.equal(persisted,false);assert.deepEqual(runtime.quarantinedTopics(),[]);assert.deepEqual(runtime.snapshot().sessions,[]);
 });
 
 test("manual disconnect removes local approval even when the remote disconnect fails",async()=>{
