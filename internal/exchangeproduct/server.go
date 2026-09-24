@@ -12,6 +12,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/nativewallet"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"golang.org/x/crypto/sha3"
 )
@@ -20,6 +21,7 @@ type Server struct {
 	service       *Service
 	mux           *http.ServeMux
 	privateScopes map[string]string
+	financeRead   *readintegration.Verifier
 }
 
 var marketDataStreamPollInterval = 5 * time.Second
@@ -35,6 +37,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/market-data/trades", s.marketTrades)
 	s.mux.HandleFunc("GET /v1/market-data/snapshot", s.marketSnapshot)
 	s.mux.HandleFunc("GET /v1/market-data/stream", s.marketDataStream)
+	s.mux.HandleFunc("GET /v1/integrations/finance/account", s.financeAccount)
 	s.handlePrivate("GET /v1/account", "exchange:read", s.account)
 	s.handlePrivate("POST /v1/deposit-intents", "exchange:deposit", s.depositIntent)
 	s.handlePrivate("POST /v1/deposits", "exchange:deposit", s.deposit)
@@ -53,6 +56,12 @@ func NewServer(service *Service) *Server {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
+	if r.Method == http.MethodGet && r.URL.Path == FinanceReadRoute {
+		if err := s.service.WithFreshState(func() { s.mux.ServeHTTP(w, r) }); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "exchange durable state unavailable"})
+		}
+		return
+	}
 	// Remote introspection must not hold the persistent venue request lock.
 	// Each private v2 request gets its own fresh authority decision; no cache.
 	var authorized bool

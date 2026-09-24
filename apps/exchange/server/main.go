@@ -55,7 +55,11 @@ func main() {
 	}
 	defer admission.Close()
 	api := exchangeproduct.NewServer(service)
+	if err := api.ConfigureFinanceReadKey(os.Getenv("YNX_EXCHANGE_FINANCE_READ_KEY")); err != nil {
+		log.Fatal("invalid Exchange Finance read key")
+	}
 	mux := http.NewServeMux()
+	mux.Handle(exchangeproduct.FinanceReadRoute, api)
 	mux.Handle("/api/", http.StripPrefix("/api", api))
 	mux.Handle("/", spa(http.Dir("apps/exchange/web")))
 	server := &http.Server{Addr: addr, Handler: securityHeaders(admission.wrap(mux)), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
