@@ -73,7 +73,7 @@ func TestFinanceReadEndpointAggregatesOnlyAuthorizedAccountAndRejectsReplay(t *t
 	if !strings.Contains(recorder.Body.String(), `"strategyName":"Transparent moving average"`) || !strings.Contains(recorder.Body.String(), `"userNetPnl"`) || strings.Contains(recorder.Body.String(), `"StrategyHash"`) {
 		t.Fatalf("Finance Quant payload is not using its stable account contract: %s", recorder.Body.String())
 	}
-	if strings.Contains(recorder.Body.String(), "wallet-proof") || strings.Contains(recorder.Body.String(), other) || strings.Contains(recorder.Body.String(), second.StrategyHash) {
+	if strings.Contains(recorder.Body.String(), "wallet-proof") || strings.Contains(recorder.Body.String(), other) || strings.Contains(recorder.Body.String(), second.StrategyHash) || strings.Contains(recorder.Body.String(), "brokerProof") || strings.Contains(recorder.Body.String(), "walletSignature") || strings.Contains(recorder.Body.String(), "idempotencyKey") {
 		t.Fatal("Finance evidence leaked credentials or another account's Quant state")
 	}
 	replay := httptest.NewRecorder()

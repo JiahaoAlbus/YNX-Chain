@@ -62,6 +62,21 @@ func NewTenantServer(config Config, role string) (*TenantServer, error) {
 			_ = base.Close()
 			return nil, err
 		}
+		if store, ok := base.store.(*postgresStateStore); ok {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if _, err := store.db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS ynx_quant_finance_read_nonces (
+				nonce TEXT PRIMARY KEY,
+				expires_at TIMESTAMPTZ NOT NULL
+			)`); err != nil {
+				_ = base.Close()
+				return nil, err
+			}
+			if _, err := store.db.ExecContext(ctx, `CREATE INDEX IF NOT EXISTS ynx_quant_finance_read_nonces_expiry ON ynx_quant_finance_read_nonces (expires_at)`); err != nil {
+				_ = base.Close()
+				return nil, err
+			}
+		}
 	}
 	return server, nil
 }
