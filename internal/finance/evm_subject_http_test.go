@@ -82,6 +82,9 @@ func TestEVMSubjectHTTPRealWalletProofAndBrokerIsolation(t *testing.T) {
 	if response.StatusCode != http.StatusCreated || issued["brokerAuthorized"] != false {
 		t.Fatalf("EVM subject challenge rejected: %d %#v", response.StatusCode, issued)
 	}
+	if issued["signingRequest"].(map[string]any)["message"] == "" {
+		t.Fatal("EVM subject response omitted the exact wallet signing message")
+	}
 	challenge := issued["challenge"]
 	proof := evmReadFixture(t, node, fixture, map[string]any{"action": "login", "challenge": challenge})
 	response, sessionResult := postEVMLogin(t, ts.URL+"/api/evm-subject/sessions", map[string]any{"proof": proof}, BrowserFinanceOrigin)

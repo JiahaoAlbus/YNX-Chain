@@ -1,11 +1,12 @@
 import {createHash} from 'node:crypto';
 
 // Closure for the weekly-v3 candidate builder accidentally omitted from main.
-// The list is exact for the Finance server static map plus the two
-// reviewable source entries used to generate standalone browser/authority bundles.
+// The list is exact for the Finance server static map and reviewable
+// source entries used to generate standalone browser/authority bundles.
 export const runtimeFiles=Object.freeze([
   'app.js',
   'evm-read-session.js',
+  'evm-subject.js',
   'finance-locale.js',
   'health.json',
   'index.html',
@@ -23,6 +24,7 @@ export const runtimeFiles=Object.freeze([
 
 export const authorityRuntimeFiles=Object.freeze([
   Object.freeze({source:'apps/finance/scripts/evm-read-browser-entry.mjs',destination:'authority-runtime/apps/finance/scripts/evm-read-browser-entry.mjs'}),
+  Object.freeze({source:'apps/finance/scripts/evm-subject-browser-entry.mjs',destination:'authority-runtime/apps/finance/scripts/evm-subject-browser-entry.mjs'}),
   Object.freeze({source:'apps/finance/scripts/evm-read-session-authority.mjs',destination:'authority-runtime/apps/finance/scripts/evm-read-session-authority.mjs'}),
   Object.freeze({source:'apps/finance/scripts/evm-subject-authority.mjs',destination:'authority-runtime/apps/finance/scripts/evm-subject-authority.mjs'}),
   Object.freeze({source:'apps/finance/scripts/evm-product-login-authority.bundle.mjs',destination:'authority-runtime/apps/finance/scripts/evm-product-login-authority.bundle.mjs'}),

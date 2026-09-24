@@ -76,11 +76,12 @@ func (s *Server) evmSubjectChallenge(w http.ResponseWriter, r *http.Request) {
 		Kind           string          `json:"kind"`
 		Challenge      json.RawMessage `json:"challenge"`
 		SigningRequest struct {
-			Method string   `json:"method"`
-			Params []string `json:"params"`
+			Method  string   `json:"method"`
+			Params  []string `json:"params"`
+			Message string   `json:"message"`
 		} `json:"signingRequest"`
 	}
-	if err != nil || json.Unmarshal(result, &issued) != nil || issued.Kind != "result" || issued.SigningRequest.Method != "personal_sign" || len(issued.SigningRequest.Params) != 2 || issued.SigningRequest.Params[1] != input.Account {
+	if err != nil || json.Unmarshal(result, &issued) != nil || issued.Kind != "result" || issued.SigningRequest.Method != "personal_sign" || len(issued.SigningRequest.Params) != 2 || issued.SigningRequest.Params[1] != input.Account || issued.SigningRequest.Message == "" {
 		writeError(w, http.StatusServiceUnavailable, "evm_subject_authority_unavailable", "EVM subject challenge authority unavailable")
 		return
 	}
