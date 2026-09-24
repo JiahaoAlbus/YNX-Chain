@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { build, version as esbuildVersion } from 'esbuild';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-const candidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-20260924.json';
+const candidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-pr199-v2-20260925.json';
 const expectedInputs = Object.freeze([
   'apps/finance/package.json', 'apps/finance/package-lock.json',
   'apps/finance/web/package.json', 'apps/finance/web/package-lock.json',

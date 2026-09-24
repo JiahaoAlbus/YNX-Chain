@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { verifyEVMReadCandidate } from '../web/verify-evm-read-candidate.mjs';
 
-const candidate = new URL('../evidence/evm-read-runtime-verifier-candidate-20260924.json', import.meta.url);
+const candidate = new URL('../evidence/evm-read-runtime-verifier-candidate-pr199-v2-20260925.json', import.meta.url);
 const pin = createHash('sha256').update(await readFile(candidate)).digest('hex');
 
 test('two independent snapshot builds bind full Wallet/Auth graph and both Finance bundles', async () => {
