@@ -129,7 +129,19 @@ func (s *Service) fundAdmitted(ctx context.Context, record admissionRecord, hash
 			opCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			f.result.tx, f.result.status, f.result.err = s.sendDurableFaucetRequest(opCtx, record, hash)
-			if f.result.err == nil {
+			recoveredReceipt := false
+			// A lost Core HTTP response is not proof that the transaction failed.
+			// Read the exact durable receipt once; never send a second funding POST.
+			if errors.Is(f.result.err, errUpstreamResultUnknown) {
+				readCtx, readCancel := context.WithTimeout(context.Background(), 3*time.Second)
+				recovered := s.fetchAndPersistReceipt(readCtx, record, hash)
+				readCancel()
+				if recovered.err == nil && !recovered.pending {
+					f.result.tx, f.result.status, f.result.err = recovered.tx, http.StatusCreated, nil
+					recoveredReceipt = true
+				}
+			}
+			if f.result.err == nil && !recoveredReceipt {
 				if err := s.admissions.complete(record, f.result.tx); err != nil {
 					s.recordAdmissionStoreError("complete")
 					f.result.status, f.result.err, f.result.persistenceUncertain = 503, errors.New("faucet receipt needs confirmation; retain the same request ID"), true
