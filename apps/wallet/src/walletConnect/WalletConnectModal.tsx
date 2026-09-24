@@ -2,47 +2,185 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from "expo-camera";
 import type { WalletAccount } from "../storage/walletRepository";
-import { createWalletConnectRequestReview,createWalletConnectSessionApproval,evmAddressFromYNX,finalizeWalletConnectRequestReview,parseWalletConnectPairingUri,reviewWalletConnectSessionProposal,walletConnectRejection,type WalletConnectRequestReview,type WalletConnectSessionReview } from "@ynx-chain/wallet-auth";
+import { createWalletConnectSessionApproval,evmAddressFromYNX,parseWalletConnectPairingUri,reviewWalletConnectSessionProposal,walletConnectRejection,type WalletConnectRequestReview,type WalletConnectSessionReview } from "@ynx-chain/wallet-auth";
 import { consumeWalletConnectDeepLink, subscribeWalletConnectDeepLinks } from "./inbox";
 import { WalletConnectRuntime, walletConnectRuntimeConfig, type WalletConnectSnapshot } from "./runtime";
 import { platformSecureStorage } from "../storage/secureStorage";
-import { WalletConnectSecurityStore } from "./securityStore";
+import { WalletConnectSecurityStore, type WalletConnectResponseRecord } from "./securityStore";
 import { prepareEvmRequest,signPreparedEvmRequest,WalletConnectBroadcastJournal,type BroadcastRecord,type PreparedEvmRequest,type SignedEvmTransaction } from "./evm";
 import { reviewWalletConnectQrPayload } from "./qr";
 import { createPersistAndPublishWalletConnectSession,revokeAndDisconnectWalletConnectSession } from "./sessionApproval";
+import { getBytes,verifyMessage,verifyTypedData } from "ethers";
+import type { WalletOperationLifecycle } from "../security/operationLifecycle";
 
 let configError: string | null = null;
 let config = null;
 try { config = walletConnectRuntimeConfig(); } catch (error) { configError = error instanceof Error ? error.message : "WalletConnect configuration is invalid."; }
 export const walletConnectRuntime = new WalletConnectRuntime(config);
 const securityStore=new WalletConnectSecurityStore(platformSecureStorage),broadcastJournal=new WalletConnectBroadcastJournal(platformSecureStorage);
+const deliveriesInFlight=new Set<string>();
+const deliveryRetryCounts=new Map<string,number>();
 type SecretAccess=<T>(account:string,assertCurrent:()=>void,use:(secret:string,assertKeyCurrent:()=>void)=>T|Promise<T>)=>Promise<T>;
 
-export function WalletConnectButton({ account,withAccountSecret }: { account: WalletAccount;withAccountSecret:SecretAccess }) {
-  const [visible, setVisible] = useState(false), [inbound, setInbound] = useState<string | null>(null);
-  useEffect(() => subscribeWalletConnectDeepLinks(url => { setInbound(url); setVisible(true); }), []);
-  useEffect(()=>()=>{void walletConnectRuntime.rejectPendingForLock()},[]);
-  return <><Pressable accessibilityRole="button" accessibilityLabel="WalletConnect and external dApps" onPress={() => setVisible(true)} style={s.button}><Text style={s.buttonText}>WalletConnect and external dApps</Text></Pressable>{visible ? <WalletConnectSheet account={account} withAccountSecret={withAccountSecret} inbound={inbound} clearInbound={() => { if (inbound) consumeWalletConnectDeepLink(inbound); setInbound(null); }} close={() => setVisible(false)} /> : null}</>;
+async function deliverReadyResponse(key:string,account:string,nativeAccount:string,operations:WalletOperationLifecycle,allowPending=false):Promise<void>{
+  if(deliveriesInFlight.has(key))return;
+  deliveriesInFlight.add(key);
+  const scope=operations.scope();
+  try{
+    const lease=scope.begin({account:nativeAccount});
+    try{
+    lease.assert();
+    const record=(await securityStore.readyResponses()).find(item=>item.key===key);
+    lease.assert();
+    if(!record||record.account!==account||!record.response)return;
+    const snapshot=walletConnectRuntime.snapshot();
+    if(snapshot.phase!=="ready"||!snapshot.sessions.some(item=>item.topic===record.topic))return;
+    if(!allowPending&&snapshot.request?.topic===record.topic&&snapshot.request.id===record.requestId)return;
+    if(await securityStore.reconcileSession(record.topic,snapshot.sessions.find(item=>item.topic===record.topic)!.namespaces,account)!=="current")return;
+    lease.assert();
+    const claim=await securityStore.recordDeliveryAttempt(key);
+    lease.assert();
+    const currentSession=await securityStore.session(record.topic);
+    lease.assert();
+    if(!currentSession||currentSession.sessionBinding!==record.sessionBinding||currentSession.account!==account||!walletConnectRuntime.snapshot().sessions.some(item=>item.topic===record.topic))return;
+    await walletConnectRuntime.sendStoredResponse(record.topic,record.response);
+    lease.assert();
+    await securityStore.markResponseDelivered(key,{attempt:claim.attempts,responseDigest:claim.responseDigest!});
+    deliveryRetryCounts.delete(key);
+    }finally{lease.finish()}
+  }catch(error){
+    const retries=deliveryRetryCounts.get(key)??0;
+    if(retries<3&&operations.isActive()&&operations.isUnlocked()&&operations.selectedAccount()===nativeAccount){
+      deliveryRetryCounts.set(key,retries+1);
+      setTimeout(()=>{void deliverReadyResponse(key,account,nativeAccount,operations,allowPending).catch(()=>{})},[2_000,5_000,10_000][retries]);
+    }
+    throw error;
+  }finally{deliveriesInFlight.delete(key)}
 }
 
-function WalletConnectSheet({ account,withAccountSecret,inbound,clearInbound,close }: { account: WalletAccount;withAccountSecret:SecretAccess;inbound: string | null; clearInbound: () => void; close: () => void }) {
-  const [snapshot, setSnapshot] = useState<WalletConnectSnapshot>(() => walletConnectRuntime.snapshot()), [uri, setUri] = useState(""), [busy, setBusy] = useState(false), [scanning,setScanning]=useState(false), [restored,setRestored]=useState(false),[error, setError] = useState<string | null>(configError),[proposalReview,setProposalReview]=useState<WalletConnectSessionReview|null>(null),[requestReview,setRequestReview]=useState<WalletConnectRequestReview|null>(null),[prepared,setPrepared]=useState<PreparedEvmRequest|null>(null),[broadcast,setBroadcast]=useState<BroadcastRecord|null>(null);
+export function WalletConnectButton({ account,withAccountSecret,operations }: { account: WalletAccount;withAccountSecret:SecretAccess;operations:WalletOperationLifecycle }) {
+  const [visible, setVisible] = useState(false), [inbound, setInbound] = useState<string | null>(null);
+  const evmAddress=useMemo(()=>evmAddressFromYNX(account.account),[account.account]);
+  useEffect(() => subscribeWalletConnectDeepLinks(url => { setInbound(url); setVisible(true); }), []);
+  useEffect(()=>{let active=true;const unsubscribe=walletConnectRuntime.subscribe(snapshot=>{if(active&&(snapshot.proposal||snapshot.request))setVisible(true)});void walletConnectRuntime.restore().catch(()=>{});return()=>{active=false;unsubscribe()}},[]);
+  useEffect(()=>{let active=true;const reconcile=async(snapshot:WalletConnectSnapshot)=>{if(snapshot.phase!=="ready")return;try{const result=await securityStore.reconcileActiveSessions(snapshot.sessions,evmAddress);if(result.disconnectTopics.length)await walletConnectRuntime.disconnectSessions(result.disconnectTopics);if(!active)return;for(const record of await securityStore.readyResponses())await deliverReadyResponse(record.key,evmAddress,account.account,operations);if(active&&(await securityStore.outbox()).some(item=>item.account===evmAddress&&["authorized","executing"].includes(item.stage)))setVisible(true)}catch{/* A failed reconciliation or send leaves stored responses untouched for recovery. */}};const unsubscribe=walletConnectRuntime.subscribe(snapshot=>{void reconcile(snapshot)});return()=>{active=false;unsubscribe()}},[evmAddress,account.account,operations]);
+  useEffect(()=>()=>{walletConnectRuntime.clearSensitiveReview();void walletConnectRuntime.rejectProposal().catch(()=>{})},[]);
+  return <><Pressable accessibilityRole="button" accessibilityLabel="WalletConnect and external dApps" onPress={() => setVisible(true)} style={s.button}><Text style={s.buttonText}>WalletConnect and external dApps</Text></Pressable>{visible ? <WalletConnectSheet account={account} withAccountSecret={withAccountSecret} operations={operations} inbound={inbound} clearInbound={() => { if (inbound) consumeWalletConnectDeepLink(inbound); setInbound(null); }} close={() => setVisible(false)} /> : null}</>;
+}
+
+function WalletConnectSheet({ account,withAccountSecret,operations,inbound,clearInbound,close }: { account: WalletAccount;withAccountSecret:SecretAccess;operations:WalletOperationLifecycle;inbound: string | null; clearInbound: () => void; close: () => void }) {
+  const [snapshot, setSnapshot] = useState<WalletConnectSnapshot>(() => walletConnectRuntime.snapshot()), [uri, setUri] = useState(""), [busy, setBusy] = useState(false), [scanning,setScanning]=useState(false),[error, setError] = useState<string | null>(configError),[proposalReview,setProposalReview]=useState<WalletConnectSessionReview|null>(null),[requestReview,setRequestReview]=useState<WalletConnectRequestReview|null>(null),[prepared,setPrepared]=useState<PreparedEvmRequest|null>(null),[broadcast,setBroadcast]=useState<BroadcastRecord|null>(null),[incomplete,setIncomplete]=useState<readonly WalletConnectResponseRecord[]>([]);
   const evmAddress = useMemo(() => evmAddressFromYNX(account.account), [account.account]);
-  const activeSessionFingerprint=useMemo(()=>JSON.stringify(snapshot.sessions.slice(0,51).map(session=>({topic:session.topic,namespaces:session.namespaces}))),[snapshot.sessions]);
+  const reviewedRequestRef=useRef<WalletConnectSnapshot["request"]>(null);
   useEffect(() => walletConnectRuntime.subscribe(setSnapshot), []);
-  useEffect(() => { let active=true;void walletConnectRuntime.restore().then(()=>{if(active)setRestored(true)}).catch(caught=>{if(active)setError(message(caught))});return()=>{active=false}; }, []);
   useEffect(()=>{let active=true;void broadcastJournal.read(evmAddress).then(value=>{if(active)setBroadcast(value)}).catch(caught=>{if(active)setError(message(caught))});return()=>{active=false}},[evmAddress]);
+  useEffect(()=>{let active=true;void securityStore.outbox().then(rows=>{if(active)setIncomplete(rows.filter(item=>item.account===evmAddress&&["authorized","executing"].includes(item.stage)))}).catch(caught=>{if(active)setError(message(caught))});return()=>{active=false}},[evmAddress]);
   useEffect(() => { if (!inbound) return; try { const target = new URL(inbound); const pairing = target.searchParams.get("uri") ?? ""; parseWalletConnectPairingUri(pairing,new Date());setUri(pairing);setError(null); } catch { setUri("");setError("WalletConnect deep link is invalid or expired. Pairing was not attempted.");clearInbound(); } }, [inbound]);
-  useEffect(()=>{if(!restored||snapshot.phase!=="ready")return;let active=true;void(async()=>{try{const result=await securityStore.reconcileActiveSessions(snapshot.sessions,evmAddress);if(result.disconnectTopics.length)await walletConnectRuntime.disconnectSessions(result.disconnectTopics);if(active&&(result.disconnectTopics.length||result.prunedTopics.length))setError("WalletConnect sessions were reconciled with the selected account and approved scopes; stale or changed sessions were removed.")}catch(caught){if(active)setError(message(caught))}})();return()=>{active=false}},[restored,snapshot.phase,activeSessionFingerprint,evmAddress]);
   useEffect(()=>{if(!snapshot.proposal){setProposalReview(null);return}try{setProposalReview(reviewWalletConnectSessionProposal(snapshot.proposal,{account:evmAddress,now:new Date()}));setError(null)}catch(caught){const rejection=walletConnectRejection(caught);setError(message(caught));void walletConnectRuntime.rejectProposal();setProposalReview(null)}},[snapshot.proposal,evmAddress]);
-  useEffect(()=>{let active=true;if(!snapshot.request){setRequestReview(null);setPrepared(null);return()=>{active=false}};void (async()=>{try{const session=await securityStore.session(snapshot.request!.topic);if(!session||session.account!==evmAddress)throw new Error("WalletConnect session is missing or belongs to another selected account.");const {replayStore}=await securityStore.load(),review=createWalletConnectRequestReview(snapshot.request,{session,now:new Date(),replayStore});await securityStore.saveReplay(replayStore);const next=["personal_sign","eth_signTypedData_v4","eth_sendTransaction"].includes(review.method)?await prepareEvmRequest(evmAddress,review.method,review.params):null;if(active){setRequestReview(review);setPrepared(next);setError(null)}}catch(caught){const rejection=walletConnectRejection(caught);if(active)setError(message(caught));await walletConnectRuntime.rejectRequest(rejection.code,rejection.message).catch(()=>{})}})();return()=>{active=false}},[snapshot.request,evmAddress]);
+  useEffect(()=>{
+    let active=true;reviewedRequestRef.current=null;setRequestReview(null);setPrepared(null);
+    if(!snapshot.request)return()=>{active=false};
+    const request=snapshot.request,scope=operations.scope();
+    void(async()=>{
+      let review:WalletConnectRequestReview|null=null;
+      try{
+        const lease=scope.begin({account:account.account});
+        try{
+          const live=walletConnectRuntime.snapshot().sessions.find(item=>item.topic===request.topic);
+          if(walletConnectRuntime.snapshot().phase!=="ready"||!live||await securityStore.reconcileSession(live.topic,live.namespaces,evmAddress)!=="current")throw new Error("WalletConnect request has no current approved session.");
+          lease.assert();review=await securityStore.reserveRequest(request,evmAddress,new Date());lease.assert();
+          const next=["personal_sign","eth_signTypedData_v4","eth_sendTransaction"].includes(review.method)?await prepareEvmRequest(evmAddress,review.method,review.params):null;
+          lease.assert();
+          if(active&&walletConnectRuntime.snapshot().request===request){reviewedRequestRef.current=request;setRequestReview(review);setPrepared(next);setError(null)}
+        }finally{lease.finish()}
+      }catch(caught){
+        if(!active)return;
+        setError(message(caught));
+        if(review&&walletConnectRuntime.snapshot().request===request&&operations.isActive()&&operations.isUnlocked()&&operations.selectedAccount()===account.account){
+          try{await securityStore.commitRequestDecision(review,false,new Date(),walletConnectRejection(caught));await deliverReadyResponse(`${review.topic}:${review.requestId}`,evmAddress,account.account,operations,true)}catch{}
+        }
+        walletConnectRuntime.clearSensitiveReview();
+      }
+    })();
+    return()=>{active=false;scope.cancel();reviewedRequestRef.current=null};
+  },[snapshot.request,evmAddress,account.account,operations]);
   const pair = async () => { setBusy(true); setError(null); try { parseWalletConnectPairingUri(uri.trim(),new Date());await walletConnectRuntime.pair(uri.trim()); clearInbound(); setUri(""); } catch (caught) { setError(message(caught)); } finally { setBusy(false); } };
   const disconnect = async (topic: string) => { setBusy(true); setError(null); try { await revokeAndDisconnectWalletConnectSession(walletConnectRuntime,securityStore,topic); } catch (caught) { setError(message(caught)); } finally { setBusy(false); } };
   const rejectProposal=async()=>{setBusy(true);try{await walletConnectRuntime.rejectProposal();setProposalReview(null)}catch(caught){setError(message(caught))}finally{setBusy(false)}};
   const approveProposal=async()=>{if(!proposalReview)return;setBusy(true);setError(null);let approved=false;try{const session=await walletConnectRuntime.approveProposal(proposalReview.namespaces as any);approved=true;await createPersistAndPublishWalletConnectSession(walletConnectRuntime,securityStore,session.topic,()=>createWalletConnectSessionApproval(proposalReview,{approved:true,topic:session.topic},new Date()));setProposalReview(null)}catch(caught){setError(message(caught));if(!approved)await walletConnectRuntime.rejectProposal().catch(()=>{})}finally{setBusy(false)}};
-  const decideRequest=async(approved:boolean)=>{if(!requestReview)return;setBusy(true);setError(null);try{const loaded=await securityStore.load();finalizeWalletConnectRequestReview(requestReview,{approved},loaded.replayStore,new Date());await securityStore.saveReplay(loaded.replayStore);if(!approved){await walletConnectRuntime.rejectRequest();setRequestReview(null);setPrepared(null);return}let result:unknown;if(["eth_accounts","eth_requestAccounts"].includes(requestReview.method))result=[evmAddress];else if(requestReview.method==="eth_chainId")result="0x1917";else if(["wallet_switchEthereumChain","wallet_addEthereumChain"].includes(requestReview.method))result=null;else if(prepared)result=await withAccountSecret(account.account,()=>{if(requestReview.expiresAt<=new Date().toISOString())throw new Error("WalletConnect request expired before authorization.")},async(secret,assertCurrent)=>{const signed=await signPreparedEvmRequest(secret,prepared,assertCurrent);if(prepared.method!=="eth_sendTransaction")return signed;const hash=await broadcastJournal.broadcast(evmAddress,signed as SignedEvmTransaction);setBroadcast(await broadcastJournal.read(evmAddress));return hash});else throw new Error("WalletConnect request has no executable reviewed content.");await walletConnectRuntime.respond(result);setRequestReview(null);setPrepared(null)}catch(caught:any){setBroadcast(await broadcastJournal.read(evmAddress).catch(()=>null));setError(message(caught));const rejection=caught?.code==="BROADCAST_UNKNOWN"?{code:-32002,message:message(caught)}:walletConnectRejection(caught);await walletConnectRuntime.rejectRequest(rejection.code,rejection.message).catch(()=>{})}finally{setBusy(false)}};
+  const decideRequest=async(approved:boolean)=>{
+    if(!requestReview||busy)return;
+    const review=requestReview,key=`${review.topic}:${review.requestId}`;
+    setBusy(true);setError(null);
+    let ready=false;
+    const scope=operations.scope();
+    try{
+      const lease=scope.begin({account:account.account});
+      try{
+        const assertReviewCurrent=()=>{lease.assert();const current=walletConnectRuntime.snapshot().request;if(current!==reviewedRequestRef.current||current?.topic!==review.topic||current.id!==review.requestId)throw new Error("WalletConnect request changed during authorization.");};
+        assertReviewCurrent();
+        await securityStore.commitRequestDecision(review,approved);
+        assertReviewCurrent();
+        if(approved){
+          await securityStore.beginRequestExecution(key);
+          assertReviewCurrent();
+          let result:unknown;
+          if(["eth_accounts","eth_requestAccounts"].includes(review.method))result=[evmAddress];
+          else if(review.method==="eth_chainId")result="0x1917";
+          else if(["wallet_switchEthereumChain","wallet_addEthereumChain"].includes(review.method))result=null;
+          else if(prepared){
+            result=await withAccountSecret(account.account,assertReviewCurrent,async(secret,assertKeyCurrent)=>{
+              const guard=()=>{assertReviewCurrent();assertKeyCurrent()};
+              const signed=await signPreparedEvmRequest(secret,prepared,guard);
+              if(prepared.method==="personal_sign"){
+                if(verifyMessage(getBytes(prepared.params[0] as string),signed as string).toLowerCase()!==evmAddress)throw new Error("WalletConnect signature did not match the reviewed account.");
+                return signed;
+              }
+              if(prepared.method==="eth_signTypedData_v4"){
+                const typed=JSON.parse(prepared.params[1] as string),types={...typed.types};delete types.EIP712Domain;
+                if(verifyTypedData(typed.domain,types,typed.message,signed as string).toLowerCase()!==evmAddress)throw new Error("WalletConnect typed-data signature did not match the reviewed account.");
+                return signed;
+              }
+              const hash=await broadcastJournal.broadcastAuthorized(evmAddress,signed as SignedEvmTransaction,guard,{topic:review.topic,requestId:review.requestId,sessionBinding:review.sessionBinding,requestDigest:review.requestDigest});
+              guard();const journal=await broadcastJournal.read(evmAddress);guard();
+              if(!journal||journal.version!==3||journal.binding?.topic!==review.topic||journal.binding.requestId!==review.requestId||journal.binding.sessionBinding!==review.sessionBinding||journal.binding.requestDigest!==review.requestDigest||journal.transactionHash!==hash||(signed as SignedEvmTransaction).transactionHash!==hash)throw new Error("WalletConnect broadcast response did not match the saved transaction.");
+              setBroadcast(journal);return hash;
+            });
+          }else throw new Error("WalletConnect request has no executable reviewed content.");
+          assertReviewCurrent();
+          await securityStore.completeRequestResponse(key,{jsonrpc:"2.0",id:review.requestId,result});
+        }
+        ready=true;
+      }finally{lease.finish()}
+      setRequestReview(null);setPrepared(null);
+      if(ready)await deliverReadyResponse(key,evmAddress,account.account,operations,true);
+    }catch(caught){
+      setBroadcast(await broadcastJournal.read(evmAddress).catch(()=>null));
+      setError(message(caught));walletConnectRuntime.clearSensitiveReview();
+    }finally{setBusy(false);void securityStore.outbox().then(rows=>setIncomplete(rows.filter(item=>item.account===evmAddress&&["authorized","executing"].includes(item.stage)))).catch(()=>{})}
+  };
+  const recoverIncomplete=async(record:WalletConnectResponseRecord)=>{
+    setBusy(true);setError(null);
+    const scope=operations.scope();
+    try{
+      const lease=scope.begin({account:account.account});
+      try{
+        const live=walletConnectRuntime.snapshot().sessions.find(item=>item.topic===record.topic);
+        if(!live||await securityStore.reconcileSession(record.topic,live.namespaces,evmAddress)!=="current")throw new Error("WalletConnect session is no longer current.");
+        lease.assert();
+        const journal=record.stage==="executing"&&record.method==="eth_sendTransaction"?await broadcastJournal.read(evmAddress):null;
+        lease.assert();
+        if(journal?.version===3&&journal.binding?.topic===record.topic&&journal.binding.requestId===record.requestId&&journal.binding.sessionBinding===record.sessionBinding&&journal.binding.requestDigest===record.requestDigest&&["acknowledged","confirmed"].includes(journal.status)){
+          await securityStore.completeRequestResponse(record.key,{jsonrpc:"2.0",id:record.requestId,result:journal.transactionHash});
+        }else await securityStore.recoverIncompleteResponse(record.key);
+        lease.assert();
+      }finally{lease.finish()}
+      setIncomplete((await securityStore.outbox()).filter(item=>item.account===evmAddress&&["authorized","executing"].includes(item.stage)));
+      await deliverReadyResponse(record.key,evmAddress,account.account,operations,true);
+    }catch(caught){setError(message(caught))}finally{setBusy(false)}
+  };
   const checkBroadcast=async()=>{setBusy(true);setError(null);try{setBroadcast(await broadcastJournal.refresh(evmAddress))}catch(caught){setError(message(caught))}finally{setBusy(false)}};
-  const retryBroadcast=async()=>{setBusy(true);setError(null);try{await withAccountSecret(account.account,()=>{},async(_secret,assertCurrent)=>{assertCurrent();const hash=await broadcastJournal.retryOriginal(evmAddress);assertCurrent();return hash});setBroadcast(await broadcastJournal.read(evmAddress))}catch(caught){setBroadcast(await broadcastJournal.read(evmAddress).catch(()=>null));setError(message(caught))}finally{setBusy(false)}};
+  const retryBroadcast=async()=>{setBusy(true);setError(null);try{await withAccountSecret(account.account,()=>{},async(_secret,assertCurrent)=>{assertCurrent();const hash=await broadcastJournal.retryOriginalAuthorized(evmAddress,assertCurrent);assertCurrent();return hash});setBroadcast(await broadcastJournal.read(evmAddress))}catch(caught){setBroadcast(await broadcastJournal.read(evmAddress).catch(()=>null));setError(message(caught))}finally{setBusy(false)}};
   const acknowledgeBroadcast=async()=>{setBusy(true);setError(null);try{await broadcastJournal.acknowledgeTerminal(evmAddress);setBroadcast(null)}catch(caught){setError(message(caught))}finally{setBusy(false)}};
   return <Modal visible transparent animationType="slide" onRequestClose={close}><View style={s.backdrop}><ScrollView contentContainerStyle={s.sheet} keyboardShouldPersistTaps="handled"><View style={s.header}><Text style={s.title}>WalletConnect</Text><Pressable accessibilityRole="button" accessibilityLabel="Close WalletConnect" onPress={close}><Text style={s.close}>Close</Text></Pressable></View>
     <Text style={s.body}>Connect YNX Wallet to external dApps on EVM chain 6423. Pairing and account discovery do not require a balance. Every signature and transaction still requires a separate review and local biometric approval.</Text>
@@ -54,6 +192,7 @@ function WalletConnectSheet({ account,withAccountSecret,inbound,clearInbound,clo
     <Pressable accessibilityRole="button" accessibilityLabel="Pair WalletConnect URI" accessibilityState={{ disabled: busy || snapshot.phase !== "ready" || !uri.trim() }} disabled={busy || snapshot.phase !== "ready" || !uri.trim()} onPress={() => void pair()} style={[s.primary, (busy || snapshot.phase !== "ready" || !uri.trim()) && s.disabled]}>{busy ? <ActivityIndicator color="#fff"/> : <Text style={s.primaryText}>Pair</Text>}</Pressable>
     {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
     {broadcast?<View style={s.card}><Text style={s.cardTitle}>Stored original transaction</Text><Text style={s.caption}>Hash: {broadcast.transactionHash}{"\n"}Status: {broadcast.status}{"\n"}Broadcast attempt: {broadcast.attempt}{"\n"}Unknown network history: {broadcast.unknownHistory?"yes":"no"}</Text><Text style={s.body}>Wallet will not sign a replacement while this record is unresolved. Status checks never send a transaction. Retry resends the exact saved raw transaction after biometric authorization.</Text><Pressable disabled={busy} onPress={()=>void checkBroadcast()}><Text style={s.approve}>Check transaction status</Text></Pressable>{["broadcasting","acknowledged","uncertain"].includes(broadcast.status)?<Pressable disabled={busy} onPress={()=>void retryBroadcast()}><Text style={s.approve}>Authorize and resend original transaction</Text></Pressable>:null}{["confirmed","rejected","cancelled"].includes(broadcast.status)?<Pressable disabled={busy} onPress={()=>void acknowledgeBroadcast()}><Text style={s.approve}>Acknowledge result and unlock new sends</Text></Pressable>:null}</View>:null}
+    {incomplete.map(record=><View key={record.key} style={s.card}><Text style={s.cardTitle}>Interrupted WalletConnect request</Text><Text style={s.caption}>{record.method} · {record.stage}{"\n"}Request {record.requestId} · expires {record.expiresAt}</Text><Text style={s.body}>This request will not be signed again automatically. An acknowledged original transaction can return its saved hash; an unknown outcome returns an uncertainty error. Check transaction status before requesting another transfer.</Text><Pressable accessibilityRole="button" accessibilityLabel={`Recover interrupted request ${record.requestId}`} disabled={busy} onPress={()=>void recoverIncomplete(record)}><Text style={s.approve}>Recover saved response</Text></Pressable></View>)}
     <Text style={s.section}>Active sessions</Text>{snapshot.sessions.length === 0 ? <Text style={s.body}>No dApp sessions are connected.</Text> : snapshot.sessions.map(session => <View key={session.topic} style={s.card}><Text style={s.cardTitle}>{session.peer.metadata.name}</Text><Text style={s.caption}>{session.peer.metadata.url}{"\n"}{session.topic.slice(0, 12)}…{session.topic.slice(-8)}</Text><Pressable accessibilityRole="button" accessibilityLabel={`Disconnect ${session.peer.metadata.name}`} disabled={busy} onPress={() => void disconnect(session.topic)}><Text style={s.danger}>Disconnect</Text></Pressable></View>)}
     {proposalReview ? <View style={s.card}><Text style={s.cardTitle}>Connection request</Text><Text style={s.body}>{proposalReview.peer.metadata.name}{"\n"}{proposalReview.peer.metadata.url}</Text><Text style={s.caption}>Verify: {proposalReview.verification.validation} · {proposalReview.verification.origin||"origin unavailable"}{"\n"}Chain: eip155:6423{"\n"}Methods: {proposalReview.namespaces.eip155.methods.join(", ")||"none"}{"\n"}Events: {proposalReview.namespaces.eip155.events.join(", ")||"none"}{"\n"}Expires: {new Date(proposalReview.expiryTimestamp*1000).toISOString()}{"\n"}Digest: {proposalReview.proposalDigest}</Text><View style={s.actions}><Pressable disabled={busy} onPress={()=>void rejectProposal()}><Text style={s.danger}>Reject</Text></Pressable><Pressable disabled={busy} onPress={()=>void approveProposal()}><Text style={s.approve}>Approve connection</Text></Pressable></View></View> : null}
     {requestReview ? <View style={s.card}><Text style={s.cardTitle}>dApp request</Text><Text style={s.body}>{requestReview.peer.metadata.name} · {requestReview.method}</Text><Text style={s.caption}>Verify: {requestReview.verification.validation} · {requestReview.verification.origin||"origin unavailable"}{"\n"}Expires ({requestReview.expirySource}): {requestReview.expiresAt}{"\n"}Digest: {requestReview.requestDigest}</Text><Text selectable style={s.code}>{JSON.stringify(prepared?.review??requestReview.params,null,2)}</Text><View style={s.actions}><Pressable disabled={busy} onPress={()=>void decideRequest(false)}><Text style={s.danger}>Reject</Text></Pressable><Pressable disabled={busy} onPress={()=>void decideRequest(true)}><Text style={s.approve}>{prepared?"Approve and use protected key":"Approve response"}</Text></Pressable></View></View> : null}

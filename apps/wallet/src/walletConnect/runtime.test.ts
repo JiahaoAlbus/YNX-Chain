@@ -120,6 +120,18 @@ test("completed local request decisions cannot be approved again after response 
   await assert.rejects(runtime.rejectRequest(),/response unavailable/);assert.equal(runtime.snapshot().request,null);
 });
 
+test("stored response retries exact bytes after relay failure without another pending review",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();const topic="a".repeat(64);
+  client.handlers.get("session_request")!(pendingRequest(topic,21));
+  const response={jsonrpc:"2.0" as const,id:21,result:[`0x${"1".repeat(40)}`]};
+  client.failResponses=true;
+  await assert.rejects(runtime.sendStoredResponse(topic,response),/response unavailable/);
+  assert.equal(runtime.snapshot().request,null);
+  client.failResponses=false;
+  await runtime.sendStoredResponse(topic,response);
+  assert.deepEqual(client.responses,[{topic,response},{topic,response}]);
+});
+
 test("proposal rejection clears local approval UI even when relay response fails",async()=>{
   const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();client.failRejections=true;
   client.handlers.get("session_proposal")!(pendingProposal());

@@ -1,11 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { WalletConnectRequestReplayStore, type WalletConnectSessionApproval } from "@ynx-chain/wallet-auth";
+import { createWalletConnectRequestReview, createWalletConnectSessionApproval, reviewWalletConnectSessionProposal, WalletConnectRequestReplayStore, type WalletConnectSessionApproval } from "@ynx-chain/wallet-auth";
 import { WalletConnectSecurityStore } from "./securityStore";
 
 class MemoryStorage{value:string|null=null;async getItem(){return this.value}async setItem(_key:string,value:string){this.value=value}async removeItem(){this.value=null}}
+class FailingStorage extends MemoryStorage{fail=false;override async setItem(key:string,value:string){if(this.fail)throw new Error("secure storage unavailable");await super.setItem(key,value)}}
+class AmbiguousStorage extends MemoryStorage{throwAfterWrite=false;override async setItem(key:string,value:string){await super.setItem(key,value);if(this.throwAfterWrite)throw new Error("secure storage acknowledgement lost")}}
 const account=`0x${"1".repeat(40)}`,topic="a".repeat(64),namespaces={eip155:{chains:["eip155:6423"],methods:["eth_accounts"],events:["accountsChanged"],accounts:[`eip155:6423:${account}`]}} as const;
-const approval={kind:"walletconnect_session_approval",protocolVersion:2,topic,proposalId:1,proposalDigest:"b".repeat(64),peer:{publicKey:"c".repeat(64),metadata:{name:"dApp",description:"test",url:"https://example.com",icons:[]}},verification:{origin:"https://example.com",validation:"UNKNOWN",verifyUrl:"",isScam:false},relays:["irn"],namespaces,account,approvedAt:"2026-09-20T00:00:00.000Z",expiresAt:"2026-09-21T00:00:00.000Z",sessionBinding:"d".repeat(64)} as WalletConnectSessionApproval;
+const proposalTime=new Date("2026-09-20T00:00:00.000Z"),proposalSeconds=Math.floor(proposalTime.getTime()/1000);
+const proposalReview=reviewWalletConnectSessionProposal({id:1,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{id:1,expiryTimestamp:proposalSeconds+86_400,relays:[{protocol:"irn"}],proposer:{publicKey:"c".repeat(64),metadata:{name:"dApp",description:"test",url:"https://example.com",icons:["https://example.com/icon.png"]}},requiredNamespaces:{eip155:{chains:["eip155:6423"],methods:["eth_accounts"],events:["accountsChanged"]}},optionalNamespaces:{},pairingTopic:"b".repeat(64)}},{account,now:proposalTime});
+const approval=createWalletConnectSessionApproval(proposalReview,{approved:true,topic},new Date(proposalTime.getTime()+1_000)) as WalletConnectSessionApproval;
 test("session namespace reconciliation keeps exact approval and rejects account or scope drift",async()=>{
   const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
   assert.equal(await store.reconcileSession(topic,namespaces as any,account),"current");
@@ -41,12 +45,29 @@ test("full reconciliation is bounded to fifty active sessions",async()=>{
 });
 
 test("concurrent session and replay writes are serialized without lost updates",async()=>{
-  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),other=new WalletConnectSecurityStore(storage as any);
   const replay=new WalletConnectRequestReplayStore([{key:`${topic}:7`,requestDigest:"e".repeat(64),expiresAt:"2099-09-21T00:00:00.000Z",status:"reserved"}]);
-  await Promise.all([store.saveSession(approval),store.saveReplay(replay)]);
+  await Promise.all([store.saveSession(approval),other.saveReplay(replay)]);
   const loaded=await store.load();
   assert.deepEqual(loaded.sessions,[approval]);
   assert.deepEqual(loaded.replayStore.snapshot(),replay.snapshot());
+});
+
+test("a stale replay snapshot cannot undo a consumed decision",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,16);
+  const stale=(await store.load()).replayStore;
+  await store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1));
+  await assert.rejects(store.saveReplay(stale),/cannot be replaced/);
+  assert.equal((await store.load()).replayStore.snapshot()[0]?.status,"consumed");
+});
+
+test("request reservation validates the current session inside the shared storage queue",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
+  const input={topic,id:17,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:05:00.000Z")/1000)}}};
+  const review=await store.reserveRequest(input,account,decisionTime);assert.equal(review.requestId,17);
+  assert.equal((await store.load()).replayStore.snapshot()[0]?.status,"reserved");
+  await assert.rejects(store.reserveRequest(input,account,decisionTime),/already reviewed/);
+  await store.removeSession(topic);await assert.rejects(store.reserveRequest({...input,id:18},account,decisionTime),/no longer authorized/);
 });
 
 test("oversized state is rejected before secure storage is mutated",async()=>{
@@ -54,4 +75,107 @@ test("oversized state is rejected before secure storage is mutated",async()=>{
   const oversized={...approval,peer:{...approval.peer,metadata:{...approval.peer.metadata,name:"x".repeat(512_000)}}};
   await assert.rejects(store.saveSession(oversized as WalletConnectSessionApproval),/exceeds policy/);
   assert.equal(storage.value,null);
+});
+
+const decisionTime=new Date("2026-09-20T00:00:10.000Z");
+async function reservedReview(store:WalletConnectSecurityStore,id:number){
+  const replay=new WalletConnectRequestReplayStore(),review=createWalletConnectRequestReview({topic,id,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[],expiryTimestamp:Math.floor(Date.parse("2026-09-20T00:05:00.000Z")/1000)}}},{session:approval,now:decisionTime,replayStore:replay});
+  await store.saveSession(approval);await store.saveReplay(replay);return review;
+}
+
+test("replay consumption and rejected response are committed atomically",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,7);
+  const record=await store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1));
+  assert.equal(record.stage,"ready");assert.equal(record.decision,"rejected");assert.deepEqual(record.response,{jsonrpc:"2.0",id:7,error:{code:5000,message:"User rejected the request."}});
+  assert.equal((await store.load()).replayStore.snapshot()[0]?.status,"consumed");
+  assert.equal((await store.readyResponses(decisionTime))[0]?.key,`${topic}:7`);
+  await assert.rejects(store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+2)),/already contains/);
+});
+
+test("preparation failure persists its exact rejection instead of stranding a reservation",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,18);
+  const record=await store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1),{code:-32000,message:"Transaction preflight failed."});
+  assert.deepEqual(record.response,{jsonrpc:"2.0",id:18,error:{code:-32000,message:"Transaction preflight failed."}});
+  assert.equal((await store.load()).replayStore.snapshot()[0]?.status,"consumed");
+  assert.equal((await store.readyResponses(decisionTime))[0]?.responseDigest,record.responseDigest);
+});
+
+test("approved response moves through execution and delivery without changing exact bytes",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,8),key=`${topic}:8`;
+  await store.commitRequestDecision(review,true,new Date(decisionTime.getTime()+1));
+  assert.equal((await store.beginRequestExecution(key,new Date(decisionTime.getTime()+2))).stage,"executing");
+  const ready=await store.completeRequestResponse(key,{jsonrpc:"2.0",id:8,result:[account]},new Date(decisionTime.getTime()+3));
+  const exact=JSON.stringify(ready.response),attempted=await store.recordDeliveryAttempt(key,new Date(decisionTime.getTime()+4));
+  assert.equal(attempted.attempts,1);assert.equal(JSON.stringify(attempted.response),exact);
+  const delivered=await store.markResponseDelivered(key,{attempt:attempted.attempts,responseDigest:attempted.responseDigest!},new Date(decisionTime.getTime()+5));
+  assert.equal(delivered.stage,"delivered");assert.equal(JSON.stringify(delivered.response),exact);
+  assert.deepEqual(await store.readyResponses(decisionTime),[]);
+});
+
+test("an older delivery attempt cannot mark a newer retry as delivered",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,21),key=`${topic}:21`;
+  await store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1));
+  const first=await store.recordDeliveryAttempt(key,new Date(decisionTime.getTime()+2));
+  const second=await store.recordDeliveryAttempt(key,new Date(decisionTime.getTime()+3));
+  await assert.rejects(store.markResponseDelivered(key,{attempt:first.attempts,responseDigest:first.responseDigest!},new Date(decisionTime.getTime()+4)),/claim is stale/);
+  assert.equal((await store.readyResponses(decisionTime))[0]?.attempts,2);
+  await store.markResponseDelivered(key,{attempt:second.attempts,responseDigest:second.responseDigest!},new Date(decisionTime.getTime()+5));
+});
+
+test("session removal quarantines undelivered response and clears its payload",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);const review=await reservedReview(store,9);await store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1));
+  await store.removeSession(topic);const [record]=await store.outbox();assert.equal(record?.stage,"quarantined");assert.equal(record?.response,null);assert.equal(record?.responseDigest,null);
+});
+
+test("legacy v1 state migrates on mutation and tampered response fails closed",async()=>{
+  const storage=new MemoryStorage();storage.value=JSON.stringify({version:1,sessions:[],replay:[]});const store=new WalletConnectSecurityStore(storage as any);assert.deepEqual(await store.outbox(),[]);await store.saveSession(approval);assert.equal(JSON.parse(storage.value!).version,2);
+  const review=await reservedReview(store,10);await store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1));const state=JSON.parse(storage.value!);state.outbox[0].response.error.message="changed";storage.value=JSON.stringify(state);await assert.rejects(store.outbox(),/digest is invalid/);
+});
+
+test("failed atomic decision write leaves replay reserved and creates no response",async()=>{
+  const storage=new FailingStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,11);storage.fail=true;
+  await assert.rejects(store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1)),/unavailable/);storage.fail=false;
+  assert.equal((await store.load()).replayStore.snapshot()[0]?.status,"reserved");assert.deepEqual(await store.outbox(),[]);
+});
+
+test("lost acknowledgement after atomic decision preserves a recoverable exact response",async()=>{
+  const storage=new AmbiguousStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,19);
+  storage.throwAfterWrite=true;
+  await assert.rejects(store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1)),/acknowledgement lost/);
+  storage.throwAfterWrite=false;
+  assert.equal((await store.load()).replayStore.snapshot()[0]?.status,"consumed");
+  assert.deepEqual((await store.readyResponses(decisionTime))[0]?.response,{jsonrpc:"2.0",id:19,error:{code:5000,message:"User rejected the request."}});
+  await assert.rejects(store.commitRequestDecision(review,true,new Date(decisionTime.getTime()+2)),/already contains/);
+});
+
+test("interrupted execution becomes one durable uncertainty response without signing again",async()=>{
+  const storage=new MemoryStorage(),first=new WalletConnectSecurityStore(storage as any),review=await reservedReview(first,20),key=`${topic}:20`;
+  await first.commitRequestDecision(review,true,new Date(decisionTime.getTime()+1));
+  await first.beginRequestExecution(key,new Date(decisionTime.getTime()+2));
+  const recovered=await new WalletConnectSecurityStore(storage as any).recoverIncompleteResponse(key,new Date(decisionTime.getTime()+3));
+  assert.equal(recovered.stage,"ready");assert.deepEqual(recovered.response,{jsonrpc:"2.0",id:20,error:{code:-32002,message:"Wallet signing outcome was interrupted. Review a fresh request."}});
+  await assert.rejects(first.recoverIncompleteResponse(key,new Date(decisionTime.getTime()+4)),/not recoverable/);
+  assert.equal((await first.readyResponses(decisionTime))[0]?.responseDigest,recovered.responseDigest);
+});
+
+test("invalid execution result stays quarantinable and cannot become relay-ready",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,12),key=`${topic}:12`;await store.commitRequestDecision(review,true,new Date(decisionTime.getTime()+1));await store.beginRequestExecution(key,new Date(decisionTime.getTime()+2));
+  await assert.rejects(store.completeRequestResponse(key,{jsonrpc:"2.0",id:12,result:[`0x${"2".repeat(40)}`]},new Date(decisionTime.getTime()+3)),/response is invalid/);
+  assert.equal((await store.outbox())[0]?.stage,"executing");await store.quarantineTopic(topic,new Date(decisionTime.getTime()+4));assert.equal((await store.outbox())[0]?.stage,"quarantined");
+});
+
+test("session revocation wins over a stale reviewed request",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,13);await store.removeSession(topic);
+  await assert.rejects(store.commitRequestDecision(review,true,new Date(decisionTime.getTime()+1)),/no longer authorized/);
+  assert.equal((await store.load()).replayStore.snapshot()[0]?.status,"reserved");assert.deepEqual(await store.outbox(),[]);
+});
+
+test("state read rejects a ready response detached from its current session",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,14);await store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1));const state=JSON.parse(storage.value!);state.sessions=[];storage.value=JSON.stringify(state);
+  await assert.rejects(new WalletConnectSecurityStore(storage as any).readyResponses(decisionTime),/session binding is invalid/);
+});
+
+test("replacing a topic binding clears sensitive delivered response payloads",async()=>{
+  const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any),review=await reservedReview(store,15),key=`${topic}:15`;await store.commitRequestDecision(review,false,new Date(decisionTime.getTime()+1));const attempt=await store.recordDeliveryAttempt(key,new Date(decisionTime.getTime()+2));await store.markResponseDelivered(key,{attempt:attempt.attempts,responseDigest:attempt.responseDigest!},new Date(decisionTime.getTime()+3));
+  await store.saveSession({...approval,sessionBinding:"f".repeat(64)} as WalletConnectSessionApproval);const [record]=await store.outbox();assert.equal(record?.stage,"quarantined");assert.equal(record?.response,null);
 });

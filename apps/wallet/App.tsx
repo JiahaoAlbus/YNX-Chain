@@ -242,7 +242,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <FaucetButton secondary label={walletCopy(locale,"View offline recovery key")} onPress={()=>setRecovery(true)}/>
     <FaucetButton secondary label={walletCopy(locale,"0x EVM compatibility and contract simulation")} onPress={()=>setEvm(true)}/>
     <SecondaryButton label={walletCopy(locale,"Connected Apps, Sessions and Devices")} onPress={()=>setCenter(true)}/>
-    <WalletConnectButton account={selected} withAccountSecret={walletConnectKeyAccess}/>
+    <WalletConnectButton account={selected} withAccountSecret={walletConnectKeyAccess} operations={operations}/>
     <SecondaryButton label={walletCopy(locale,"Review stored transfer")} onPress={()=>setSend(true)}/>
     <SecondaryButton label={controlCopy(locale,"open")} onPress={()=>setControls(true)}/>
     <SecondaryButton label={translate(locale,"lockWallet")} onPress={lock}/>
