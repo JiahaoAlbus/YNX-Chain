@@ -73,10 +73,18 @@ func (s *Store) PutWalletLoginChallenge(record WalletLoginChallengeRecord, now t
 		if state.WalletLoginChallenges == nil {
 			state.WalletLoginChallenges = map[string]WalletLoginChallengeRecord{}
 		}
+		activeForAccount := 0
 		for requestID, existing := range state.WalletLoginChallenges {
-			if !existing.ExpiresAt.After(now) && existing.ConsumedAt == nil {
+			if !existing.ExpiresAt.After(now) {
 				delete(state.WalletLoginChallenges, requestID)
+				continue
 			}
+			if existing.Account == record.Account && existing.ConsumedAt == nil {
+				activeForAccount++
+			}
+		}
+		if activeForAccount >= 3 {
+			return errors.New("Finance Wallet login has too many active challenges for this account")
 		}
 		if _, exists := state.WalletLoginChallenges[record.RequestID]; exists {
 			return errors.New("Finance Wallet login requestId already exists")

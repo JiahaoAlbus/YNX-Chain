@@ -27,8 +27,8 @@ test('current Finance Wallet files match the exact reviewed verifier manifest',a
   assert.equal(result.sourceBundleReproducible,true);
   assert.equal(result.sourceBundleReproducibilityStatus,'VERIFIED_REPRODUCIBLE');
   assert.equal(result.cleanBuildCount,2);
-  assert.equal(result.bytes,180461);
-  assert.equal(result.sha256,'d076ba569a9492dd0b67f32ae53b4ffb7a67c9154519469169dabac516538a83');
+  assert.equal(result.bytes,181400);
+  assert.equal(result.sha256,'e04e757f20ff98ef3bbd97ac294c1e6c022c6e93edd1c441e30ac03c1959ed1b');
 });
 
 test('missing current bundle fails closed',async()=>{

@@ -84,7 +84,15 @@ func main() {
 	if provider, ok := endpointAuthority.(finance.EndpointAuthorityBrowserConfigProvider); ok {
 		browserAuthority = provider
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
+	var evmLogin finance.EVMLoginAuthority
+	loginNode, loginScript := os.Getenv("YNX_FINANCE_EVM_LOGIN_NODE_BINARY"), os.Getenv("YNX_FINANCE_EVM_LOGIN_SCRIPT")
+	if loginNode != "" || loginScript != "" {
+		evmLogin, err = finance.NewNodeEVMLoginAuthority(loginNode, loginScript, 5*time.Second)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
 	if err != nil {
 		log.Fatal(err)
 	}

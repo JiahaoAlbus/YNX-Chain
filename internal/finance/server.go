@@ -41,6 +41,7 @@ type ServerConfig struct {
 	Now                  func() time.Time
 	Build                buildinfo.Info
 	EndpointAuthority    EndpointAuthorityBrowserConfigProvider
+	EVMLoginAuthority    EVMLoginAuthority
 }
 
 type Server struct {
@@ -96,6 +97,8 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.drainAdmission(s.mux))) }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("POST /api/wallet-login/challenges", s.walletLoginChallenge)
+	s.mux.HandleFunc("POST /api/wallet-login/verify", s.walletLoginVerify)
 	s.mux.HandleFunc("GET /api/product-catalog", s.productCatalog)
 	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
 	s.mux.HandleFunc("GET /api/endpoint-authority/v2/config", s.endpointAuthorityBrowserConfig)

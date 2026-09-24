@@ -21,6 +21,7 @@ export const runtimeFiles=Object.freeze([
 ]);
 
 export const authorityRuntimeFiles=Object.freeze([
+  Object.freeze({source:'apps/finance/scripts/evm-product-login-authority.bundle.mjs',destination:'authority-runtime/apps/finance/scripts/evm-product-login-authority.bundle.mjs'}),
   Object.freeze({source:'apps/finance/scripts/finance-endpoint-authority-v2.mjs',destination:'authority-runtime/apps/finance/scripts/finance-endpoint-authority-v2.mjs'}),
   Object.freeze({source:'apps/finance/authority/adapter.mjs',destination:'authority-runtime/apps/finance/authority/adapter.mjs'}),
   Object.freeze({source:'apps/finance/authority/config.mjs',destination:'authority-runtime/apps/finance/authority/config.mjs'}),
