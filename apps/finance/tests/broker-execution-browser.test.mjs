@@ -9,7 +9,7 @@ const web=new URL('../web/',import.meta.url);
 const orderId='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const walletStub=`window.YNXFinanceWallet={ready:Promise.resolve(),connected:()=>true,session:()=>({account:window.__financeTestAccount||'ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80'}),getRevision:()=>0,requireProof:async()=>({proofHeader:'TEST_ONLY',requestId:'req_test_finance_broker_0001'}),connect:async()=>{},disconnect:async()=>({status:'disconnected'}),reportPrivateFailure:()=>{}};`;
 const orderWalletStub=`window.__orderWalletFixture=Object.assign({authorityChecks:0,authorityAllowed:false,beginCalls:0,callbackCalls:0,clearCalls:0,resumeCalls:0,pending:null,callbackResult:null},window.__initialOrderWalletFixture||{});const assertAuthority=async()=>{window.__orderWalletFixture.authorityChecks++;if(window.__orderWalletFixture.authorityAllowed)return {fixture:true};throw new Error('PRIVATE_SERVICE_DEGRADED: Wallet Gateway=PENDING; Finance Product Session=PENDING.')};window.YNXFinanceOrderWallet={pending:()=>window.__orderWalletFixture.pending,clear:()=>{window.__orderWalletFixture.clearCalls++;window.__orderWalletFixture.pending=null},assertAuthority,begin:async unsigned=>{window.__orderWalletFixture.beginCalls++;const request={kind:'finance_order_approval_request',route:'ynxwallet://finance-order-approval',version:'1',unsigned},route={approved:false,expired:false,request,url:'https://wallet.example/review?request='+encodeURIComponent(unsigned.requestId)};window.__orderWalletFixture.pending=route;return route},resume:async()=>{window.__orderWalletFixture.resumeCalls++;return window.__orderWalletFixture.pending},parseReturn:async()=>{window.__orderWalletFixture.callbackCalls++;return JSON.stringify(window.__orderWalletFixture.callbackResult)}};`;
-let server,browser,base,executionRequests,challengeRequests,opaqueIssueRequests,callbackRequests,opaqueExchangeRequests,executionStatusRequests,reconcileRequests,outboxStatus,callbackFailure,challengeSuccess;
+let server,browser,base,executionRequests,challengeRequests,opaqueIssueRequests,callbackRequests,opaqueExchangeRequests,executionStatusRequests,reconcileRequests,aiRequests,outboxStatus,callbackFailure,challengeSuccess;
 
 function json(res,status,value){res.writeHead(status,{'content-type':'application/json'});res.end(JSON.stringify(value));}
 function workspace(){return {orders:[{requestId:'request-fixture',approvalState:'consumed',state:'submitting',order:{orderId,symbol:'ACME',side:'buy',qty:'1',maxCost:'10'}}],outbox:[{orderId,status:outboxStatus,attempts:0}],journal:[],watchlist:[],serverTime:'2026-09-19T11:00:00.000Z'};}
@@ -22,6 +22,13 @@ test.before(async()=>{
     if(url.pathname==='/order-wallet.js'){res.writeHead(200,{'content-type':'text/javascript'});return res.end(orderWalletStub);}
     if(url.pathname==='/api/overview')return json(res,200,{portfolio:{account:'ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80',balanceYnxt:0,stakedYnxt:0,asOf:'2026-09-19T11:00:00.000Z',activity:[],payReceipts:[],explorerStatus:{available:false,error:'Indexer unavailable'},payStatus:{available:false}},profile:{categories:[],budgets:[],reminders:[],privacy:{includePayInStatements:false,allowAiActivityContext:true,alertsEnabled:true}},budgetProgress:[],alerts:[],support:{helpUrl:'https://support.example/help',privacyUrl:'https://support.example/privacy',disputeUrl:'https://support.example/disputes'}});
     if(url.pathname==='/api/broker/status')return json(res,200,{schema:'ynx-finance-broker-status-v1',status:{enabled:true,tradingEnvironment:'sandbox',chainEnvironment:'testnet',submissionEnabled:true,state:'CONFIGURED_NOT_VERIFIED'},walletOrderApproval:'frozen_contract_with_owner_scoped_execution_request',durableOrderJournal:'implemented_state_v2'});
+    if(url.pathname==='/api/broker/assets')return json(res,200,{schema:'ynx-finance-broker-assets-v1',assets:[{id:'11111111-2222-4333-8444-555555555555',symbol:'ACME',name:'ACME fixture asset',status:'active',tradable:true}],source:'alpaca_broker_sandbox',officialSandboxVerified:false});
+    if(url.pathname==='/api/ai/jobs'&&req.method==='POST'){
+      const chunks=[];for await(const chunk of req)chunks.push(chunk);
+      aiRequests.push(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+      return json(res,202,{id:'ai-broker-click-fixture',kind:'draft_broker_order',status:'ready',provider:'isolated-browser-fixture',model:'strict-schema-fixture',estimatedCost:'unverified',progress:'structured draft',result:{schemaVersion:'finance.ai.broker-order-draft.v1',draftOnly:true,orderDraft:{symbol:'ACME',side:'buy',qty:'2',limitPrice:'10.25',timeInForce:'day',warnings:['Review only']}}});
+    }
+    if(url.pathname==='/api/ai/jobs/ai-broker-click-fixture')return json(res,200,{id:'ai-broker-click-fixture',kind:'draft_broker_order',status:'ready',provider:'isolated-browser-fixture',model:'strict-schema-fixture',estimatedCost:'unverified',progress:'structured draft',result:{schemaVersion:'finance.ai.broker-order-draft.v1',draftOnly:true,orderDraft:{symbol:'ACME',side:'buy',qty:'2',limitPrice:'10.25',timeInForce:'day',warnings:['Review only']}}});
     if(url.pathname==='/api/broker/snapshot')return json(res,200,{schema:'ynx-finance-broker-snapshot-v1',snapshot:{provider:'alpaca_broker',environment:'sandbox',account:{providerAccountId:'11111111-2222-4333-8444-555555555555',currency:'USD',cash:'100',buyingPower:'100'},positions:[],orders:[]}});
     if(url.pathname==='/api/broker/orders'&&req.method==='GET')return json(res,200,{schema:'ynx-finance-broker-workspace-v1',workspace:workspace(),providerWriteAttempted:false});
     if(url.pathname==='/api/broker/challenges'&&req.method==='POST'){
@@ -187,6 +194,45 @@ test('Broker quote never labels a sample as IEX or accepts a different asset pri
       return document.querySelector('#broker-quote-status').textContent;
     });
     assert.equal(stale,'尚未请求报价，缺少的行情仍为未知。');
+  }finally{await page.close()}
+});
+
+test('AI draft and manual Broker order share one asset-confirmed Wallet approval form',async()=>{
+  aiRequests=[];opaqueIssueRequests=[];challengeRequests=[];challengeSuccess=true;
+  const page=await browser.newPage(),posts=[];
+  page.on('request',request=>{if(request.method()==='POST')posts.push(new URL(request.url()).pathname)});
+  try{
+    await page.goto(base);
+    await page.waitForFunction(()=>!document.querySelector('#workspace').classList.contains('hidden'));
+    await page.evaluate(()=>{location.hash='assistant'});
+    await page.locator('#ai-kind').selectOption('draft_broker_order');
+    await page.locator('#ai-order-intent [name=symbol]').fill('ACME');
+    await page.locator('#ai-order-intent [name=qty]').fill('2');
+    await page.locator('#ai-order-intent [name=limitPrice]').fill('10.25');
+    await page.locator('#ai-consent').check();
+    await page.locator('#ai-start').click();
+    await page.locator('[data-ai="use-order"]').waitFor({state:'visible'});
+    await page.locator('[data-ai="use-order"]').click();
+    assert.equal(await page.locator('#broker-order-form [name=assetId]').inputValue(),'');
+    assert.equal(await page.locator('#broker-order-form [name=symbol]').inputValue(),'');
+    assert.equal(await page.locator('#broker-order-form [name=qty]').inputValue(),'2');
+    assert.equal(await page.locator('#broker-order-form [name=limitPrice]').inputValue(),'10.25');
+    assert.deepEqual(opaqueIssueRequests,[]);
+    await page.locator('#broker-asset-search [name=query]').fill('ACME');
+    await page.locator('#broker-asset-search button[type=submit]').click();
+    await page.locator('#broker-asset-results [data-broker-select]').click();
+    assert.equal(await page.locator('#broker-order-form [name=assetId]').inputValue(),'11111111-2222-4333-8444-555555555555');
+    await page.evaluate(()=>{window.__orderWalletFixture.authorityAllowed=true});
+    await page.locator('#broker-order-form button[type=submit]').click();
+    await page.waitForFunction(()=>document.querySelector('#broker-wallet-approve')?.hidden===false);
+    assert.equal(aiRequests.length,1);
+    assert.equal(aiRequests[0].kind,'draft_broker_order');
+    assert.equal(opaqueIssueRequests.length,1);
+    assert.deepEqual(opaqueIssueRequests[0].draft,{assetId:'11111111-2222-4333-8444-555555555555',symbol:'ACME',side:'buy',qty:'2',limitPrice:'10.25'});
+    assert.equal(challengeRequests.length,0);
+    assert.equal(posts.includes('/api/broker/orders'),false);
+    assert.equal(posts.some(path=>path.includes('execution-request')),false);
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.order-opaque.v2.pending')!==null),true);
   }finally{await page.close()}
 });
 
