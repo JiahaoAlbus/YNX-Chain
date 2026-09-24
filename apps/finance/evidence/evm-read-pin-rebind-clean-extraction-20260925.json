@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "ynx.finance.evm-read-pin-rebind-evidence.v1",
+  "source": {
+    "branch": "codex/finance-evm-read-session-pr193-20260924",
+    "commit": "6e5a9a6f77bab163d0ba65dec85f8ca022b25d53",
+    "tree": "7b7c4c03e878ab174ae722427d78eb4efc08a164",
+    "gitArchiveSha256": "dd72686145cb99b8607a754da53e7946225e0b36f3230ace078b34558ab61ae4"
+  },
+  "pinTransition": {
+    "candidateCommit": "c8749aead0b9d3c371b102930a233ed97e601a6d",
+    "manifestPath": "apps/finance/web/wallet-verifier-manifest.json",
+    "manifestBlob": "9767ef22ee6a30d334517a3e442a0b3c52465159",
+    "manifestBytes": 4715,
+    "manifestSha256": "fe22be4766486090a1e99b120fe445e4174db1ba98938ca528a6e4d542c0c599",
+    "verifierPath": "apps/finance/web/verify-wallet-connect.mjs",
+    "verifierBlob": "c4049003b54cb747ba1b8c7cbde3e5844fde15c2",
+    "verifierBytes": 13245,
+    "verifierSha256": "8ef6666b2cd94687e9cd449a4be92c11536719d5aa52f3e270e84e5c00249580",
+    "evmCandidatePath": "apps/finance/evidence/evm-read-runtime-verifier-candidate-20260924.json",
+    "evmCandidateBlob": "5201c9ef71270da8b4a59b282a0ae7da8524c4e6",
+    "evmCandidateBytes": 5657,
+    "evmCandidateSha256": "fd19147b0a563daead96f7e2f3c0f930601add99231d8797c37976bacaac3c15"
+  },
+  "cleanExtraction": {
+    "directory": "/tmp/ynx-finance-read-clean.M1iqh9",
+    "method": "git archive exact source commit to new empty temporary directory",
+    "dependencies": [
+      "packages/wallet-auth: npm ci --ignore-scripts",
+      "apps/finance/web: npm ci --ignore-scripts",
+      "apps/finance: npm ci --ignore-scripts"
+    ],
+    "financeNpmTests": "PASS 99/99",
+    "financeSecurity": "PASS 296 text files",
+    "walletVerifier": "PASS, old Standard Wallet bundle remains 181400 bytes SHA256 e04e757f20ff98ef3bbd97ac294c1e6c022c6e93edd1c441e30ac03c1959ed1b",
+    "goTests": "PASS ./internal/finance ./apps/finance/cmd/server",
+    "goRaceTests": "PASS ./internal/finance ./apps/finance/cmd/server"
+  },
+  "runtimeTruth": {
+    "sourceAndCleanExtractionVerified": true,
+    "publicFinanceDeployedFromThisCommit": false,
+    "realYNXWalletApproval": false,
+    "realMetaMaskApproval": false,
+    "installedAndroidOrWindowsVerified": false,
+    "privateFinanceAuthorizedByEVMRead": false,
+    "orderOrTransactionAuthorized": false
+  }
+}
