@@ -14,10 +14,11 @@ const discoveryStates = new WeakMap();
 export function createWalletProviderDiscovery(scope = globalThis) {
   const add = safely(() => scope?.addEventListener), remove = safely(() => scope?.removeEventListener);
   const dispatch = safely(() => scope?.dispatchEvent);
-  const byUuid = new Map(), conflicted = new Set(), listeners = new Set();
+  const byUuid = new Map(), conflicted = new Set(), announcedProviders = new WeakSet(), listeners = new Set();
   let disposed = false, revision = 0;
   const snapshot = () => selectWalletProviderCandidates(uniqueProviders([
-    ...byUuid.values(), ...discoverInjectedWalletProviders(scope).candidates,
+    ...byUuid.values(),
+    ...discoverInjectedWalletProviders(scope).candidates.filter((item) => !announcedProviders.has(item.provider)),
   ]), conflicted.size);
   const publish = () => {
     const value = Object.freeze({ ...snapshot(), revision: ++revision });
@@ -27,6 +28,7 @@ export function createWalletProviderDiscovery(scope = globalThis) {
   const announce = (event) => {
     if (disposed) return;
     const detail = safely(() => event?.detail), info = safely(() => detail?.info), provider = safely(() => detail?.provider);
+    if (validProvider(provider)) announcedProviders.add(provider);
     const item = candidate(provider, info, "eip6963"), uuid = canonicalUuid(safely(() => info?.uuid));
     if (!item || uuid === null || conflicted.has(uuid)) return;
     const previous = byUuid.get(uuid);

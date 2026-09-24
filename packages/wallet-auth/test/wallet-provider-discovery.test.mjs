@@ -26,3 +26,16 @@ test("a UUID rebound to another provider is permanently conflicted", () => {
   assert.equal(result.metamask, null); assert.equal(result.conflictedAnnouncements, 1);
   discovery.dispose();
 });
+
+test("a conflicted announced provider cannot re-enter through the legacy injection path", () => {
+  const scope = new Scope(), first = { request() {}, isMetaMask: true }, second = { request() {}, isMetaMask: true };
+  scope.ethereum = first;
+  const discovery = createWalletProviderDiscovery(scope);
+  assert.equal(discovery.snapshot().metamask.provider, first);
+  announce(scope, first); announce(scope, second);
+  const result = discovery.snapshot();
+  assert.equal(result.metamask, null);
+  assert.deepEqual(result.candidates, []);
+  assert.equal(result.conflictedAnnouncements, 1);
+  discovery.dispose();
+});
