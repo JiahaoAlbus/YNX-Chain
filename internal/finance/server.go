@@ -638,9 +638,12 @@ func (s *Server) export(w http.ResponseWriter, r *http.Request, session Session)
 	}
 	state := s.service.Store.Account(session.Account)
 	p := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
+	w.Header().Set("X-YNX-Activity-Coverage-Complete", "false")
+	w.Header().Set("X-YNX-Activity-Coverage", boundedActivityCoverage)
+	w.Header().Set("Cache-Control", "no-store")
 	if format == "json" {
-		w.Header().Set("Content-Disposition", `attachment; filename="ynx-finance-export.json"`)
-		writeJSON(w, 200, map[string]any{"exportedAt": time.Now().UTC(), "account": session.Account, "portfolio": p, "profile": state, "audit": s.service.Store.Audit(session.Account)})
+		w.Header().Set("Content-Disposition", `attachment; filename="ynx-finance-observed-export.json"`)
+		writeJSON(w, 200, map[string]any{"exportedAt": time.Now().UTC(), "account": session.Account, "activityCoverageComplete": false, "activityCoverage": boundedActivityCoverage, "portfolio": p, "profile": state, "audit": s.service.Store.Audit(session.Account)})
 		return
 	}
 	if format != "csv" {
@@ -648,7 +651,7 @@ func (s *Server) export(w http.ResponseWriter, r *http.Request, session Session)
 		return
 	}
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
-	w.Header().Set("Content-Disposition", `attachment; filename="ynx-finance-activity.csv"`)
+	w.Header().Set("Content-Disposition", `attachment; filename="ynx-finance-observed-activity.csv"`)
 	c := csv.NewWriter(w)
 	_ = c.Write([]string{"record_id", "timestamp", "direction", "type", "amount_ynxt", "fee_ynxt", "from", "to", "category", "source"})
 	for _, a := range p.Activity {

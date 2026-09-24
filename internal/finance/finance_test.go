@@ -304,10 +304,15 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 		t.Fatalf("AI rejection not audited: %+v", job)
 	}
 	resp, _ := authorizedRequest(ts.URL+"/api/export?format=csv", http.MethodGet, nil, session.Token, "")
-	if resp.StatusCode != 200 || !strings.Contains(resp.Header.Get("Content-Type"), "text/csv") {
+	if resp.StatusCode != 200 || !strings.Contains(resp.Header.Get("Content-Type"), "text/csv") || resp.Header.Get("X-YNX-Activity-Coverage-Complete") != "false" || resp.Header.Get("X-YNX-Activity-Coverage") != boundedActivityCoverage || !strings.Contains(resp.Header.Get("Content-Disposition"), "observed-activity.csv") {
 		t.Fatalf("CSV export failed: %d", resp.StatusCode)
 	}
 	resp.Body.Close()
+	var exported map[string]any
+	requestJSON(t, ts.URL+"/api/export?format=json", http.MethodGet, nil, session.Token, "", 200, &exported)
+	if exported["activityCoverageComplete"] != false || exported["activityCoverage"] != boundedActivityCoverage {
+		t.Fatalf("JSON export omitted its bounded-activity coverage: %#v", exported)
+	}
 	reopened, err := OpenStore(statePath)
 	if err != nil {
 		t.Fatal(err)

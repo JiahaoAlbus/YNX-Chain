@@ -31,6 +31,14 @@ test('product states its non-bank and non-custodial boundary',()=>{
   for(const prohibited of ['APY 8%','Guaranteed return','Visa card balance']) assert.equal(html.includes(prohibited),false);
 });
 
+test('activity exports identify bounded observations instead of complete history',()=>{
+  assert.ok(html.includes('Export observed CSV'));
+  assert.ok(html.includes('Export available JSON'));
+  assert.ok(html.includes('not a complete account history'));
+  assert.ok(js.includes('ynx-finance-observed-activity.csv'));
+  assert.ok(js.includes('ynx-finance-observed-export.json'));
+});
+
 test('mobile Wallet approval uses current package roots and pending private authority fails closed',()=>{
   for(const marker of ['@ynx-chain/wallet-auth','encodeRequestDeepLink','createProductSessionProof','assertFinanceProductSessionContractNative'])assert.ok(wallet.includes(marker),marker);
   for(const marker of ['parseCallbackURL','parseCentralWalletSession','createGatewayChallenge','signGatewayChallenge','verifyGatewayCompletion'])assert.ok(walletCompletion.includes(marker),marker);
