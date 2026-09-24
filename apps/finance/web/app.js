@@ -18,10 +18,10 @@ function captureLegacyBrokerCallback(){
 captureLegacyBrokerCallback();
 const financeText=(key)=>window.YNXFinanceLocale?.text(key)??key;
 let walletIdentityState='identityUnverified',walletIdentityBusy=false;
-function renderWalletIdentity(){const status=document.querySelector('#wallet-login-state'),button=document.querySelector('#wallet-login-verify');if(status)status.textContent=financeText(walletIdentityState);if(button){button.hidden=window.YNXFinanceWallet?.getStandardWalletState().status!=='connected';button.disabled=walletIdentityBusy;}}
+function renderWalletIdentity(){const status=document.querySelector('#wallet-login-state'),button=document.querySelector('#wallet-login-verify');if(status)status.textContent=financeText(walletIdentityState);if(button){button.hidden=window.YNXFinanceWallet?.getStandardWalletState?.()?.status!=='connected';button.disabled=walletIdentityBusy;}}
 let brokerConfigurationState='brokerStatusMissing';
 function renderBrokerConfigurationStatus(){const target=document.querySelector('#broker-status');if(target)target.textContent=financeText(brokerConfigurationState)}
-document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();renderWalletIdentity();if(!state.connected)route()});
+document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();renderWalletIdentity();renderBrokerSnapshot();if(!state.connected)route()});
 // Guest-readable diagnostics only. This never requests a Wallet account, signs,
 // reads broker credentials or automatically enables order submission.
 let brokerCheckRevision=0;
@@ -45,9 +45,20 @@ async function refreshBrokerConfiguration(){
     if(revision===brokerCheckRevision){brokerConfigurationState='brokerCheckUnavailable';renderBrokerConfigurationStatus()}
   }finally{clearTimeout(timer)}
 }
-function clearBrokerSnapshot(message='Sign in to read an owner-mapped Sandbox account. Guest mode never receives balances, positions or orders.'){
-  $('#broker-account').textContent='Not linked';$('#broker-cash').textContent='Unknown — not zero';$('#broker-buying-power').textContent='Unknown — not zero';$('#broker-private-status').textContent=message;
-  $('#broker-positions').innerHTML='<div class="empty compact">Unknown — no provider result.</div>';$('#broker-orders').innerHTML='<div class="empty compact">Unknown — no provider result.</div>';
+let brokerSnapshotState={kind:'guest'};
+function renderBrokerSnapshot(){
+  const snapshot=brokerSnapshotState.kind==='data'?brokerSnapshotState.snapshot:null;
+  if(!snapshot){
+    $('#broker-account').textContent=financeText('brokerNotLinked');$('#broker-cash').textContent=financeText('brokerUnknownNotZero');$('#broker-buying-power').textContent=financeText('brokerUnknownNotZero');
+    $('#broker-private-status').textContent=financeText(brokerSnapshotState.kind==='unavailable'?'brokerSnapshotUnavailable':'brokerPrivate');
+    $('#broker-positions').innerHTML=`<div class="empty compact">${esc(financeText('brokerNoProviderResult'))}</div>`;$('#broker-orders').innerHTML=`<div class="empty compact">${esc(financeText('brokerNoProviderResult'))}</div>`;return;
+  }
+  $('#broker-account').textContent=`${financeText('brokerLinked')} · ${short(snapshot.account.providerAccountId)}`;
+  $('#broker-cash').textContent=`${snapshot.account.cash} ${financeText('brokerSimulatedUSD')}`;
+  $('#broker-buying-power').textContent=`${snapshot.account.buyingPower} ${financeText('brokerSimulatedUSD')}`;
+  $('#broker-private-status').textContent=financeText('brokerOwnerRead');
+  $('#broker-positions').innerHTML=snapshot.positions.length?snapshot.positions.map(position=>`<div class="row"><div class="row-main"><strong>${esc(position.symbol)}</strong><small>${esc(position.qty)} ${esc(financeText('brokerShares'))} · ${esc(financeText('brokerAvailable'))} ${esc(position.availableQty)}</small></div><div class="row-value">${esc(position.marketValue)} ${esc(financeText('brokerSimulatedUSD'))}<small>${esc(financeText('brokerAverage'))} ${esc(position.averageEntryPrice)}</small></div></div>`).join(''):`<div class="empty compact">${esc(financeText('brokerNoPositions'))}</div>`;
+  $('#broker-orders').innerHTML=snapshot.orders.length?snapshot.orders.map(order=>`<div class="row"><div class="row-main"><strong>${esc(order.side)} ${esc(order.qty)} ${esc(order.symbol)}</strong><small>${esc(order.type)} · ${esc(order.timeInForce)} · ${esc(order.providerStatus)}</small></div><div class="row-value">${order.limitPrice?`${esc(order.limitPrice)} ${esc(financeText('brokerSimulatedUSD'))}`:esc(financeText('brokerNoLimitPrice'))}<small>${esc(short(order.providerOrderId))}</small></div></div>`).join(''):`<div class="empty compact">${esc(financeText('brokerNoOrders'))}</div>`;
 }
 function selectBrokerAsset(asset){
   if(!asset||!/^[0-9a-f-]{36}$/.test(String(asset.id||''))||!/^[A-Z][A-Z0-9.]{0,11}$/.test(String(asset.symbol||'')))throw new Error('Select an exact active provider asset.');
@@ -75,19 +86,14 @@ async function updateBrokerWatchlist(asset,selected){
   renderBrokerWatchlist(result.watchlist);await refreshBrokerWorkspace();notify(selected?'Added to your Sandbox watchlist.':'Removed from your Sandbox watchlist.');
 }
 async function refreshBrokerSnapshot(){
-  if(!state.connected){clearBrokerSnapshot();return}
+  if(!state.connected){brokerSnapshotState={kind:'guest'};renderBrokerSnapshot();return}
   try{
     const result=await api('/api/broker/snapshot');
     const snapshot=result?.schema==='ynx-finance-broker-snapshot-v1'?result.snapshot:null;
     if(!snapshot||snapshot.provider!=='alpaca_broker'||snapshot.environment!=='sandbox'||!Array.isArray(snapshot.orders)||!Array.isArray(snapshot.positions)||snapshot.account?.currency!=='USD')throw Object.assign(new Error('Broker Sandbox returned an invalid account snapshot.'),{nonRetryable:true});
-    $('#broker-account').textContent=`Linked Sandbox account · ${short(snapshot.account.providerAccountId)}`;
-    $('#broker-cash').textContent=`${snapshot.account.cash} simulated USD`;
-    $('#broker-buying-power').textContent=`${snapshot.account.buyingPower} simulated USD`;
-    $('#broker-private-status').textContent='Owner-mapped provider read-through. Values are simulated Sandbox records, not YNXT or fiat custody.';
-    $('#broker-positions').innerHTML=snapshot.positions.length?snapshot.positions.map(position=>`<div class="row"><div class="row-main"><strong>${esc(position.symbol)}</strong><small>${esc(position.qty)} shares · available ${esc(position.availableQty)}</small></div><div class="row-value">${esc(position.marketValue)} simulated USD<small>average ${esc(position.averageEntryPrice)}</small></div></div>`).join(''):'<div class="empty compact">Provider returned no positions for this linked Sandbox account.</div>';
-    $('#broker-orders').innerHTML=snapshot.orders.length?snapshot.orders.map(order=>`<div class="row"><div class="row-main"><strong>${esc(order.side)} ${esc(order.qty)} ${esc(order.symbol)}</strong><small>${esc(order.type)} · ${esc(order.timeInForce)} · ${esc(order.providerStatus)}</small></div><div class="row-value">${order.limitPrice?`${esc(order.limitPrice)} simulated USD`:'No limit price'}<small>${esc(short(order.providerOrderId))}</small></div></div>`).join(''):'<div class="empty compact">Provider returned no orders for this linked Sandbox account.</div>';
+    brokerSnapshotState={kind:'data',snapshot};renderBrokerSnapshot();
   }catch(error){
-    clearBrokerSnapshot(error?.message||'Broker Sandbox account data is unavailable. No values were substituted.');
+    brokerSnapshotState={kind:'unavailable'};renderBrokerSnapshot();
   }
 }
 let brokerCallbackInFlight=false,brokerApprovalInFlight=false;
@@ -236,9 +242,9 @@ async function completeBrokerCallback(){
 const READ_RETRY_DELAYS=[0,600,1600];
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-const fmt=v=>Number.isSafeInteger(v)&&v>=0?new Intl.NumberFormat().format(v):'Unknown';
+const fmt=v=>Number.isSafeInteger(v)&&v>=0?new Intl.NumberFormat(window.YNXFinanceLocale?.get()||'en').format(v):financeText('unknown');
 const short=(v)=>v?`${v.slice(0,8)}…${v.slice(-6)}`:'—';
-const date=(v)=>v?new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'Date unavailable';
+const date=(v)=>v&&Number.isFinite(Date.parse(v))?new Intl.DateTimeFormat(window.YNXFinanceLocale?.get()||'en',{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):financeText('dateUnavailable');
 
 const wait=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
 function sourceStatus(message,className='neutral'){$('#source-pill').textContent=message;$('#source-pill').className=`pill ${className}`}
@@ -284,7 +290,7 @@ async function verifyWalletIdentity(){
   finally{if(requestId){try{const pending=JSON.parse(sessionStorage.getItem('ynx.finance.evm-login.pending.v1')||'null');if(pending?.requestId===requestId)sessionStorage.removeItem('ynx.finance.evm-login.pending.v1')}catch{}}walletIdentityBusy=false;renderWalletIdentity()}
 }
 async function consumeCallback(){await window.YNXFinanceWallet.ready}
-function clearPrivateView({clearOpaquePending=true}={}){state.context++;clearInterval(state.aiTimer);state.aiJob=null;state.overview=null;state.connected=false;if(clearOpaquePending){sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);window.YNXFinanceOrderWallet?.clear()}hideBrokerApproval();for(const id of ['account','balance','staked','balance-source','statement','ai-status']){const element=$('#'+id);if(element)element.textContent='—'}clearBrokerSnapshot();renderBrokerWorkspace(null);renderSignedOut()}
+function clearPrivateView({clearOpaquePending=true}={}){state.context++;clearInterval(state.aiTimer);state.aiJob=null;state.overview=null;state.connected=false;if(clearOpaquePending){sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);window.YNXFinanceOrderWallet?.clear()}hideBrokerApproval();for(const id of ['account','balance','staked','balance-source','statement','ai-status']){const element=$('#'+id);if(element)element.textContent='—'}brokerSnapshotState={kind:'guest'};renderBrokerSnapshot();renderBrokerWorkspace(null);renderSignedOut()}
 async function logout(){const result=await window.YNXFinanceWallet.disconnect();if(result?.status==='disconnected'){clearPrivateView()}else notify('Private sign-out is unconfirmed. Retry to reconcile; Standard Wallet is unchanged.',true)}
 function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.add('hidden');$('#logout').classList.add('hidden');$('#source-pill').textContent='Not connected';$('#source-pill').className='pill neutral';$('#page-title').textContent='Your money, with its evidence attached.';route()}
 

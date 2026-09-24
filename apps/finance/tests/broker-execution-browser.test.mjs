@@ -80,8 +80,28 @@ test('guest Finance workbench is English by default, switches Chinese and fits a
     await page.locator('#finance-language').selectOption('zh-CN');
     assert.equal(await page.locator('html').getAttribute('lang'),'zh-CN');
     assert.equal(await page.locator('#markets-heading').textContent(),'选择你要办理的事项');
+    await page.waitForFunction(()=>document.querySelector('#broker-cash')?.textContent==='100 模拟美元');
+    assert.equal(await page.locator('#broker-private-status').textContent(),'按本人账户从服务商读取。数值为沙盒模拟记录，不是 YNXT 或法币托管资产。');
+    assert.match(await page.evaluate(()=>date('2026-09-19T11:00:00.000Z')),/年/u);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
     assert.equal(await page.locator('#broker-order-form button[type="submit"]').isVisible(),false);
+  }finally{await page.close()}
+});
+
+test('desktop guest Finance keeps dynamic Broker absence and date copy in the selected language',async()=>{
+  const page=await browser.newPage({viewport:{width:1280,height:800}});
+  try{
+    await page.goto(base);
+    await page.waitForFunction(()=>document.querySelector('#broker-cash')?.textContent==='100 simulated USD');
+    assert.equal(await page.evaluate(()=>date(null)),'Date unavailable');
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.equal(await page.evaluate(()=>date(null)),'日期不可用');
+    assert.equal(await page.locator('#broker-cash').textContent(),'100 模拟美元');
+    await page.evaluate(async()=>{state.connected=false;await refreshBrokerSnapshot()});
+    assert.equal(await page.locator('#broker-cash').textContent(),'未知，并非零');
+    await page.locator('#finance-language').selectOption('en');
+    assert.equal(await page.locator('#broker-cash').textContent(),'Unknown — not zero');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
   }finally{await page.close()}
 });
 
