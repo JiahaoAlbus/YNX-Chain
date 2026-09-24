@@ -61,10 +61,11 @@
   let lastSources=null;
   const renderReadSources=(sources)=>{
     const target=document.querySelector('#read-sources');
-    if(!target)return;
+    const strategyTarget=document.querySelector('#strategy-read-sources');
+    if(!target&&!strategyTarget)return;
     lastSources=sources;
     const values=Object.values(sources||{});
-    target.innerHTML=values.length?values.map(source=>{
+    if(target)target.innerHTML=values.length?values.map(source=>{
       const status=source.status||{},action=source.action||{},href=action.configured?safeActionURL(action.url):'';
       const stateText=({
         'owner-contract-pending':label('Owner contract pending. No product data inferred.','产品方合同待确认；不推断产品数据。'),
@@ -75,6 +76,12 @@
       })[status.syncStatus]||label('No unsupported data inferred.','不推断未经支持的数据。');
       return `<div class="source-card"><div class="row"><div class="row-main"><strong>${esc(source.name||source.id||label('External source','外部来源'))}</strong><small>${esc(source.owner||label('owner unavailable','产品方未知'))} · ${esc(status.syncStatus||'owner-contract-pending')}</small><small>${status.available?esc(source.capability||label('Account-bound owner evidence','归属账户的产品方证据')):esc(stateText)}</small></div><div class="row-value"><span class="evidence">${source.ownerContractAccepted&&status.available?label('EVIDENCE AVAILABLE','证据可用'):label('UNAVAILABLE','不可用')}</span>${href?`<small><a href="${esc(href)}" target="_blank" rel="noreferrer noopener">${esc(action.label||label('Open owner product','打开产品页面'))}</a></small>`:`<small>${label('Owner action link not configured','产品方入口未配置')}</small>`}</div></div>${exchangeDetails(source)}${dexDetails(source)}${quantDetails(source)}</div>`;
     }).join(''):`<div class="empty compact">${label('No cross-product source registry was returned. No balances or performance figures are inferred.','未返回跨产品来源目录；不推断余额或收益数据。')}</div>`;
+    if(strategyTarget){
+      const quant=sources?.quant;
+      strategyTarget.innerHTML=quant?.status?.available&&quant?.envelope?.payload
+        ?quantDetails(quant)
+        :`<div class="empty compact">${label('Authorized Quant strategy evidence is unavailable. No strategy, return, or execution is inferred.','已授权的 Quant 策略证据暂不可用；不推断策略、收益或执行。')}</div>`;
+    }
   };
   render=(data)=>{baseRender(data);renderReadSources(data?.portfolio?.readSources||{})};
   document.addEventListener?.('finance:localechange',()=>{if(lastSources!==null)renderReadSources(lastSources)});

@@ -39,6 +39,33 @@ async function fixture({saved=null,missing=false,revoke='success',deferSwitch=fa
 async function connect(page,id='#connect-metamask'){await page.locator(id).click();try{await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected',{},{timeout:3000});}catch(error){throw new Error(JSON.stringify({errors:page.financeErrors,state:await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState()),calls:await calls(page)}),{cause:error});}}
 const calls=page=>page.evaluate(()=>window.__financeFixture.calls);
 
+test('guest navigation keeps eight product destinations visible and localizes Wallet status without account access',async()=>{
+  const page=await fixture();try{
+    for(const width of [360,390,768,1440,1920]){
+      await page.setViewportSize({width,height:900});
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`horizontal overflow at ${width}`);
+      assert.equal(await page.locator('#nav a').count(),8);
+      await page.locator('#nav a[href="#assets"]').click();
+      await page.waitForFunction(()=>document.querySelector('#guest-gate').classList.contains('active-view'));
+      assert.equal(await page.locator('#guest-gate').isVisible(),true);
+      await page.locator('#nav a[href="#markets"]').click();
+      await page.waitForFunction(()=>document.querySelector('#markets').classList.contains('active-view'));
+      assert.equal(await page.locator('#markets').isVisible(),true);
+      await page.locator('#nav a[href="#orders"]').click();
+      await page.waitForFunction(()=>document.querySelector('#broker-sandbox').classList.contains('active-view'));
+      assert.equal(await page.locator('#broker-sandbox').isVisible(),true);
+    }
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.match(await page.locator('#wallet-state').innerText(),/标准钱包未连接/);
+    await page.locator('#nav a[href="#strategies"]').click();
+    await page.waitForFunction(()=>document.querySelector('#guest-gate-heading').textContent==='策略');
+    assert.match(await page.locator('#guest-gate').innerText(),/策略/);
+    assert.deepEqual(await calls(page),[]);
+    assert.equal(page.context().pages().length,1);
+    assert.deepEqual(page.financeErrors,[]);
+  }finally{await page.close();}
+});
+
 for(const scenario of ['disabled','missing-credentials','configured','network-failure'])test('Broker Sandbox guest '+scenario+' is visible, never submits and leaves Wallet untouched',async()=>{
   const page=await fixture();try{
     await page.route('**/api/broker/status',route=>scenario==='network-failure'?route.abort():route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({schema:'ynx-finance-broker-status-v1',status:{enabled:scenario!=='disabled',tradingEnvironment:'sandbox',chainEnvironment:'testnet',submissionEnabled:false,state:scenario==='configured'?'CONFIGURED_NOT_VERIFIED':scenario==='disabled'?'DISABLED':'NOT_CONFIGURED'}})}));
@@ -55,6 +82,8 @@ test('local Chrome planning view shows fixture observations, not false complete 
   const page=await fixture();try{
     await page.evaluate(()=>{
       location.hash='#planning';
+      // This exercises rendering only; no private authorization is inferred.
+      state.connected=true;
       render({portfolio:{account:'LOCAL_RENDER_FIXTURE_NOT_AUTHORIZATION',activity:[],payReceipts:[],explorerStatus:{available:false,error:'Local fixture'},payStatus:{available:false,error:'Local fixture'}},profile:{categories:[],budgets:[{id:'budget-fixture',name:'Local rendering fixture',period:'weekly',limitYnxt:100}],reminders:[],privacy:{}},budgetProgress:[{budgetId:'budget-fixture',spentYnxt:null,remainingYnxt:null,observedSpentYnxt:12,coverageComplete:false,calculationStatus:'partial',periodTimezone:'UTC',periodStart:'2026-09-07T00:00:00Z',effectiveFrom:'2026-09-07T00:00:00Z',coverage:'Latest 100 global records only'}],alerts:[],support:{}});
     });
     assert.equal(await page.locator('#planning').isVisible(),true);
@@ -104,7 +133,7 @@ test('guest starts without account requests, missing selected wallet never falls
 });
 test('pending shared authority blocks private Finance before any Wallet Gateway request',async()=>{
   const page=await fixture(),gatewayRequests=[];page.on('request',request=>{if(new URL(request.url()).origin==='https://wallet-auth.ynxweb4.com')gatewayRequests.push(request.url());});
-  try{await page.locator('#private-begin').click();await page.waitForFunction(()=>document.querySelector('#private-state').textContent.includes('PRIVATE_SERVICE_DEGRADED'));assert.deepEqual(gatewayRequests,[]);assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getPrivateState().status),'degraded');assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'disconnected');}finally{await page.close();}
+  try{await page.locator('#wallet-more').locator('summary').click();await page.locator('#private-begin').click();await page.waitForFunction(()=>document.querySelector('#private-state').title==='PRIVATE_SERVICE_DEGRADED');assert.deepEqual(gatewayRequests,[]);assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getPrivateState().status),'degraded');assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'disconnected');}finally{await page.close();}
 });
 test('MetaMask is selected distinctly, chooser closes, private failure does not disconnect, refresh silently restores',async()=>{
   const page=await fixture();try{await connect(page);assert.equal(await page.locator('#wallet-choice').isVisible(),false);assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().providerKind),'metamask');assert.equal((await calls(page)).some(call=>call.kind==='ynx-wallet'),false);await page.evaluate(()=>window.YNXFinanceWallet.reportPrivateFailure());assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connected');await page.reload();await page.evaluate(()=>window.YNXFinanceWallet.ready);assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connected');assert.deepEqual((await calls(page)).map(call=>call.method),['eth_accounts','eth_chainId']);}finally{await page.close();}

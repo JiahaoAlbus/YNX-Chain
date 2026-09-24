@@ -21,6 +21,58 @@
       ,brokerCancelQueued:'已记录撤单意图；操作员尚未确认向服务商发起撤单。',brokerCancelReconcile:'撤单已尝试一次，服务商结果需通过事件或对账确认；不得再次发送。',brokerCancelLegacy:'旧版撤单状态无法判定；后续操作前必须对账，不得再次发送。',brokerCancelConfirm:'为此沙盒订单记录撤单请求？浏览器不会联系服务商，须由操作员工作进程执行。',brokerCancelRecorded:'已记录撤单意图；尚未向服务商执行撤单。',brokerCancelUnavailable:'无法记录撤单请求；不能推断服务商已撤单。',brokerReconcileConfirm:'现在读取关联的沙盒账户并对账本地订单状态？这不会向服务商写入。',brokerReconcileSuccess:'沙盒服务商状态已对账；没有向服务商写入。',brokerReconcileUnavailable:'沙盒对账暂不可用；现有订单状态仍未确认。',brokerLocalOrdersUnavailable:'本地券商订单状态暂不可用；未填入替代订单状态。',brokerNoLocalOrders:'本地尚无沙盒订单草稿。',brokerNoLocalEvents:'本地尚无券商事件。',brokerRequest:'请求',brokerOutbox:'待处理队列',brokerAttempts:'尝试次数',brokerNoOutbox:'没有服务商待处理记录',brokerMaximum:'上限',brokerRefresh:'刷新',brokerRequestExecution:'请求受控执行',brokerRequestCancel:'请求撤单',testAssetDirectory:'仅供测试的资产目录',testMarketUnverified:'TEST-AAPL、tUSD 与 TestDvP 目前仅有源码和本地 Hardhat QA；未验证公共 6423 部署、余额或链上提交。',testDraftQty:'TEST-AAPL 数量',testDraftPrice:'每股 tUSD 自定限价',testDraftPreview:'预览仅供测试的条件',testDraftInvalid:'请输入大于零、最多六位小数的规范数值；没有创建订单。',testDraftResult:'仅在本地预览条件。行情、费用、授权额度、对手方、钱包批准、订单与链上交易均未验证。'
     }
   };
+  Object.assign(messages.en,{
+    assets:'Assets',orders:'Orders',strategies:'Strategies',budgetsReports:'Budgets & reports',settings:'Settings',
+    boundaryShort:'Evidence first',boundarySummary:'No custody. Finance is not a bank account. Testnet and Sandbox data are separate; unavailable sources stay unknown.',
+    walletHeading:'Connect to Finance',walletIntro:'Browse without a wallet. Connect one to see your own available testnet records.',walletMore:'More account permissions and recovery',
+    privateApprovalInfo:'Private approval permits your portfolio and Pay records, planning changes and requested AI drafts. It never authorizes a transaction.',
+    privateAuthorize:'Authorize private Finance',privateOpen:'Open YNX Wallet — installation unverified',privateRetry:'Retry private connection',privateRevoke:'Revoke private Finance access',privateGuest:'Continue as guest',
+    overviewEyebrow:'Finance overview',overviewIntro:'Your recent source-backed records and items that need attention.',refreshSources:'Refresh sources',
+    guestOverviewHeading:'Your finances, with clear source boundaries.',guestOverviewIntro:'Explore markets and Sandbox tools now. Connect and authorize separately to view your own assets, orders, strategies and plans.',
+    guestTruthHeading:'No account data is shown in guest mode',guestTruthBody:'Missing balances, quotes and performance are not estimated. Testnet assets are not mainnet funds.',
+    privateArea:'Private area',guestGateAssets:'Connect a wallet and authorize private Finance to view your own assets and activity. Standard Wallet connection alone does not unlock private records.',
+    guestGateStrategies:'Authorize private Finance to see account-bound Quant evidence. No strategy or return is inferred while signed out.',
+    guestGateBudgets:'Authorize private Finance to manage your budgets, reminders and source-bounded reports.',
+    guestGateAI:'Authorize private Finance before requesting an AI draft from your selected owned records. AI never executes an asset action.',
+    guestGateSettings:'Language and public markets remain available. Authorize private Finance to change your account preferences or open owned support records.',
+    assetsEyebrow:'Account evidence',assetsIntro:'Only your authorized indexed records appear here. Missing sources remain unknown, not zero.',
+    crossProductEvidence:'Cross-product evidence',crossProductIntro:'Only validated account-bound owner sources appear. Unavailable sources stay unavailable.',
+    strategiesEyebrow:'Account-bound Quant evidence',strategiesIntro:'Only strategies and risk records returned by an authorized Quant source are shown. Research results are not portfolio returns or permission to trade.',
+    availabilityIndexed:'Connect to view',availabilityEVM:'Not publicly tradable',availabilityBroker:'Provider connection required',testMarketPublicUnavailable:'These test assets are not publicly deployed. You may preview local terms, but no trade or chain submission is available.',
+    standardOnly:'Standard connection only; private Finance needs separate approval.',standardBusy:'Waiting for the selected wallet. You may cancel.',standardDisconnected:'Standard Wallet is not connected. Choose YNX Wallet or MetaMask; public pages remain available.',
+    walletCancel:'Cancel connection',walletDisconnect:'Disconnect wallet',walletDetails:'Wallet details',walletSwitch:'Switch wallet',walletRevoke:'Revoke wallet access',walletDetailsOnly:'Standard Wallet does not authorize private Finance, signing or asset movement.',
+    walletNotFound:'Selected wallet not found.',walletRejected:'Wallet request rejected.',walletWrongChain:'Switch to YNX Testnet to continue.',walletRevoked:'Wallet permission revoked.',walletRevocationUnconfirmed:'Permission revocation was not confirmed; the current connection is unchanged.',walletActionUnavailable:'Wallet action unavailable; retry without losing guest access.',
+    privateConnected:'Private Finance verified for',privateConnectedSuffix:'Standard EVM connection remains separate.',
+    privateConnecting:'Request saved. Wallet installation is unverified; open YNX Wallet explicitly and return with a verified callback.',
+    privateChecking:'Checking separate private Wallet authority…',privateGuestState:'Private Finance is not authorized. Public pages and Standard Wallet remain available.',
+    privateDegraded:'Private Finance is unavailable. Standard Wallet and public pages remain available.',privateNetwork:'Private Finance network is unavailable. Retry after reconnecting.',
+  });
+  Object.assign(messages['zh-CN'],{
+    assets:'资产',orders:'订单',strategies:'策略',budgetsReports:'预算与报表',settings:'设置',
+    boundaryShort:'证据优先',boundarySummary:'Finance 不托管资产，也不是银行账户。测试网与券商沙盒数据彼此独立；来源不可用时显示未知。',
+    walletHeading:'连接 Finance',walletIntro:'无需钱包也可浏览。连接钱包后可按权限查看自己的测试网记录。',walletMore:'更多账户权限与恢复选项',
+    privateApprovalInfo:'私有授权可读取本人的资产与 Pay 记录、修改规划、请求 AI 草稿；绝不授权资产交易。',
+    privateAuthorize:'授权私有 Finance',privateOpen:'打开 YNX Wallet — 尚未验证安装',privateRetry:'重试私有连接',privateRevoke:'撤销私有 Finance 访问',privateGuest:'以访客身份继续',
+    overviewEyebrow:'Finance 总览',overviewIntro:'查看近期有来源证明的记录和需要关注的事项。',refreshSources:'刷新数据来源',
+    guestOverviewHeading:'清楚区分来源的个人金融视图',guestOverviewIntro:'现在即可浏览市场与沙盒工具；连接并分别授权后，才能查看自己的资产、订单、策略和规划。',
+    guestTruthHeading:'访客模式不展示账户数据',guestTruthBody:'不会估算缺失的余额、报价或收益。测试网资产不是主网资金。',
+    privateArea:'私有区域',guestGateAssets:'连接钱包并授权私有 Finance 后可查看本人资产与流水。仅连接标准钱包不会解锁私有记录。',
+    guestGateStrategies:'授权私有 Finance 后才可查看归属账户的 Quant 证据；退出状态下不推断策略或收益。',
+    guestGateBudgets:'授权私有 Finance 后可管理预算、提醒和有来源界限的报表。',
+    guestGateAI:'授权私有 Finance 后，才可根据选定的本人记录请求 AI 草稿；AI 不执行资产操作。',
+    guestGateSettings:'语言与公开市场保持可用。授权私有 Finance 后可修改账户偏好或查看本人支持记录。',
+    assetsEyebrow:'账户证据',assetsIntro:'这里只显示本人已授权的索引记录。缺失来源保持未知，不当作零。',
+    crossProductEvidence:'跨产品证据',crossProductIntro:'仅显示已核验且归属本账户的产品方来源；不可用来源仍显示不可用。',
+    strategiesEyebrow:'归属账户的 Quant 证据',strategiesIntro:'只显示获授权的 Quant 来源返回的策略与风控记录。研究结果不是组合收益，也不代表可交易。',
+    availabilityIndexed:'连接后查看',availabilityEVM:'尚不可公开交易',availabilityBroker:'需连接服务商',testMarketPublicUnavailable:'这些测试资产尚未公开部署。可以预览本地条件，但无法提交交易或链上操作。',
+    standardOnly:'仅为标准钱包连接；私有 Finance 需另行授权。',standardBusy:'正在等待所选钱包；你可以取消。',standardDisconnected:'标准钱包未连接。可选择 YNX Wallet 或 MetaMask；公开页面仍可使用。',
+    walletCancel:'取消连接',walletDisconnect:'断开钱包',walletDetails:'钱包详情',walletSwitch:'切换钱包',walletRevoke:'撤销钱包权限',walletDetailsOnly:'标准钱包连接不授权私有 Finance、签名或资产转移。',
+    walletNotFound:'未发现所选钱包。',walletRejected:'钱包请求已拒绝。',walletWrongChain:'请切换到 YNX 测试网后继续。',walletRevoked:'钱包权限已撤销。',walletRevocationUnconfirmed:'权限撤销尚未确认；当前连接状态不变。',walletActionUnavailable:'钱包操作暂不可用；访客访问不受影响。',
+    privateConnected:'私有 Finance 已验证账户',privateConnectedSuffix:'标准 EVM 连接保持独立。',
+    privateConnecting:'请求已保存。尚未验证钱包安装；请明确打开 YNX Wallet，并通过已验证的回跳返回。',
+    privateChecking:'正在检查独立的私有钱包授权…',privateGuestState:'私有 Finance 尚未授权；公开页面和标准钱包仍可使用。',
+    privateDegraded:'私有 Finance 暂不可用；标准钱包和公开页面仍可使用。',privateNetwork:'私有 Finance 网络暂不可用；恢复联网后重试。',
+  });
   let current='en';
   try{if(localStorage.getItem('ynx-finance-locale')==='zh-CN')current='zh-CN'}catch{}
   function text(key){return messages[current][key]??messages.en[key]??key}

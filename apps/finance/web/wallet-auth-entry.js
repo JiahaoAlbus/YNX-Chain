@@ -8,6 +8,11 @@ const CHAIN=Object.freeze({chainId:'0x1917',chainName:'YNX Testnet',nativeCurren
 let connection=null,unsubscribe=()=>{},intent=0,revision=0,busy=false,revoking=null;
 let standard=Object.freeze({status:'disconnected',providerKind:null,account:null,chainId:null});
 let lastMessage='';
+function label(key){return window.YNXFinanceLocale?.text(key)??key;}
+function message(code){
+  const key=({WALLET_NOT_FOUND:'walletNotFound',USER_REJECTED:'walletRejected',WRONG_NETWORK:'walletWrongChain',LOCAL_DISCONNECT_ONLY:'standardDisconnected',PERMISSION_REVOKED:'walletRevoked',WALLET_DETAILS_ONLY:'walletDetailsOnly'})[code];
+  return key?label(key):code?.startsWith('REVOCATION_')?label('walletRevocationUnconfirmed'):code?label('walletActionUnavailable'):'';
+}
 const ready=new Promise(resolve=>document.readyState==='loading'?document.addEventListener('DOMContentLoaded',resolve,{once:true}):resolve()).then(boot);
 window.YNXFinanceWallet=Object.freeze({
   ready,connect:()=>connect('ynx-wallet'),connectMetaMask:()=>connect('metamask'),
@@ -98,11 +103,11 @@ async function revokeStandardWallet(){
 function render(){
   const connected=standard.status==='connected';
   const status=document.querySelector('#wallet-state');
-  if(status)status.textContent=(lastMessage?lastMessage+' · ':'')+(connected?(standard.providerKind==='metamask'?'MetaMask':'YNX Wallet')+' · '+standard.account+' · '+standard.chainId+' · Standard connection only.':busy?'Waiting for the selected wallet. You may cancel.':'Standard Wallet not connected. Choose YNX Wallet or MetaMask; public information remains available.');
+  if(status){status.textContent=(lastMessage?message(lastMessage)+' · ':'')+(connected?(standard.providerKind==='metamask'?'MetaMask':'YNX Wallet')+' · '+standard.account+' · '+standard.chainId+' · '+label('standardOnly'):busy?label('standardBusy'):label('standardDisconnected'));status.title=lastMessage||'';}
   for(const element of document.querySelectorAll('.connect,#connect-metamask'))element.disabled=busy;
   for(const id of ['wallet-details','wallet-disconnect','wallet-revoke','wallet-switch']){const element=document.querySelector('#'+id);if(element)element.hidden=!(connected||id==='wallet-disconnect'&&busy);}
   const revoke=document.querySelector('#wallet-revoke');if(revoke)revoke.disabled=busy;
-  const disconnect=document.querySelector('#wallet-disconnect');if(disconnect)disconnect.textContent=busy?'Cancel connection':'Disconnect wallet';
+  const disconnect=document.querySelector('#wallet-disconnect');if(disconnect)disconnect.textContent=label(busy?'walletCancel':'walletDisconnect');
   const choice=document.querySelector('#wallet-choice');if(choice)choice.classList.toggle('hidden',connected);
 }
 async function boot(){
@@ -110,7 +115,8 @@ async function boot(){
   document.querySelector('#wallet-disconnect')?.addEventListener('click',disconnectStandardWallet);
   document.querySelector('#wallet-revoke')?.addEventListener('click',()=>revokeStandardWallet());
   document.querySelector('#wallet-switch')?.addEventListener('click',()=>{disconnectStandardWallet();document.querySelector('#connect-ynx')?.focus();});
-  document.querySelector('#wallet-details')?.addEventListener('click',()=>{lastMessage='Standard Wallet does not authorize private Finance, sign or move assets.';render();});
+  document.querySelector('#wallet-details')?.addEventListener('click',()=>{lastMessage='WALLET_DETAILS_ONLY';render();});
+  document.addEventListener('finance:localechange',render);
   document.querySelector('#install-wallet')?.setAttribute('href',DOWNLOAD);
   document.querySelector('#install-metamask')?.setAttribute('href',METAMASK);
   await restoreStandardWallet();

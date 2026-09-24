@@ -32,3 +32,50 @@
 .language-control{min-width:110px;font-size:11px}.language-control select{padding:7px 9px;font-size:13px}.channel-card h3{overflow-wrap:anywhere}@media(max-width:720px){.language-control{width:100%}.session{align-items:flex-end}.language-control select{max-width:180px}}
 /* A privacy boundary must override display styles on link-shaped buttons. */
 [hidden]{display:none!important}
+
+/* The same eight product routes remain visible before and after private sign-in. */
+.signed-out-state .shell{display:grid}
+.signed-out-state .sidebar{display:flex}
+.signed-out-state main{display:flex;flex-direction:column;max-width:none;padding:0 5vw 64px}
+.signed-out-state .topbar{order:0}
+.signed-out-state #notice{order:1}
+.signed-out-state #signed-out,.signed-out-state #guest-gate,.signed-out-state #markets,.signed-out-state #broker-sandbox{order:2}
+.signed-out-state #wallet-connect{order:3;margin-top:28px}
+.signed-out-state #broker-nav{order:4;align-self:flex-start;margin-top:12px}
+.signed-out-state .hero{min-height:0;padding:48px 0}
+.product-catalog:not(.active-view){display:none}
+#wallet-connect{margin-top:22px}
+#wallet-connect .panel-head h2{font-size:23px;margin:0 0 4px}
+#wallet-connect .panel-head p{margin:0;color:var(--muted)}
+.wallet-advanced{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}
+.wallet-advanced summary{cursor:pointer;color:var(--blue);font-weight:700;min-height:44px;display:flex;align-items:center}
+.wallet-advanced p{max-width:75ch;color:var(--muted)}
+.guest-gate{margin-top:40px;max-width:800px}
+.guest-gate p{color:var(--muted);max-width:68ch}
+.task-strip .task-link{min-height:44px}
+#assets .balance-card{margin-bottom:22px}
+#overview .task-strip{margin:24px 0}
+#strategies .panel{max-width:100%}
+@media(min-width:721px) and (max-width:1000px){
+  .shell{grid-template-columns:190px minmax(0,1fr)}
+  .sidebar{padding:22px 12px}
+  .brand{margin:0 8px 24px}
+  .brand span:last-child{display:inline}
+  nav a{font-size:12px;text-align:left;padding:10px 9px}
+  nav a::first-letter{font-size:inherit}
+}
+@media(max-width:720px){
+  .signed-out-state .shell{display:block}
+  .signed-out-state main{padding:0 18px 100px}
+  .sidebar,.signed-out-state .sidebar{display:flex}
+  nav{justify-content:flex-start;scroll-snap-type:x proximity}
+  nav a{font-size:12px;min-width:94px;scroll-snap-align:start}
+  .signed-out-state .hero{padding:28px 0}
+  .hero h2{font-size:clamp(30px,9vw,44px)}
+  .task-strip{display:grid}
+  .task-link{width:100%}
+  #wallet-connect{margin-top:18px}
+  #wallet-connect .wallet-choice{display:grid;grid-template-columns:1fr 1fr}
+  #wallet-connect .wallet-choice>*{min-width:0;min-height:44px}
+}
+@media(max-width:390px){#wallet-connect .wallet-choice{grid-template-columns:1fr}}

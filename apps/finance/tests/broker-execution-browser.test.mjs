@@ -349,6 +349,7 @@ test('real browser previews a test-only DvP draft without Wallet or chain writes
   try{
     await page.route('**/api/product-catalog',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(catalog)}));
     await page.goto(base);
+    await page.locator('#nav a[href="#markets"]').click();
     await page.locator('#test-market-draft').waitFor();
     assert.equal(await page.locator('[data-channel="ynx-evm-test"] [data-chain-submission]').getAttribute('data-chain-submission'),'disabled');
     const before=posts.length;

@@ -360,7 +360,33 @@ $('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListen
 $('#ai-order-intent').addEventListener('submit',event=>{event.preventDefault();startAI()});
 $('#ai-kind').addEventListener('change',()=>$('#ai-order-intent').classList.toggle('hidden',$('#ai-kind').value!=='draft_broker_order'));
 
-function route(){const id=(location.hash||(state.connected?'#overview':'#markets')).slice(1);$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('#nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${id}`));const heading=$(`#${id} h2`);if(state.connected&&heading)$('#page-title').textContent=heading.textContent;else if(!state.connected)$('#page-title').textContent=financeText('pageTitle')}
+function route(){
+  const requested=(location.hash||'#overview').slice(1);
+  const aliases={orders:'broker-sandbox',privacy:'settings',budgets:'planning',ai:'assistant',reports:'statements'};
+  const known=new Set(['overview','assets','markets','broker-sandbox','strategies','planning','statements','assistant','settings','activity','support']);
+  const target=requested==='wallet-connect'?'overview':aliases[requested]||requested;
+  const section=known.has(target)?target:'overview';
+  const privateSection=!['markets','broker-sandbox'].includes(section);
+  let visible=section;
+  if(!state.connected&&privateSection){
+    visible=section==='overview'?'signed-out':'guest-gate';
+    if(visible==='guest-gate'){
+      const gate={
+        assets:['assets','guestGateAssets'],strategies:['strategies','guestGateStrategies'],
+        planning:['budgetsReports','guestGateBudgets'],statements:['statements','guestGateBudgets'],
+        assistant:['ai','guestGateAI'],settings:['settings','guestGateSettings'],support:['support','guestGateSettings'],
+        activity:['activity','guestGateAssets'],
+      }[section]||['overview','guestGateAssets'];
+      $('#guest-gate-heading').textContent=financeText(gate[0]);
+      $('#guest-gate-description').textContent=financeText(gate[1]);
+    }
+  }
+  $$('.view').forEach(view=>view.classList.toggle('active-view',view.id===visible));
+  const active={"broker-sandbox":'orders',activity:'assets',statements:'planning',support:'settings'}[section]||section;
+  $$('#nav a').forEach(link=>{const selected=link.hash===`#${active}`;link.classList.toggle('active',selected);if(selected)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
+  const heading=$(`#${visible} h2`);
+  $('#page-title').textContent=heading?.textContent||financeText('pageTitle');
+}
 window.addEventListener('ynx-finance-standard-state',()=>{state.context++;clearInterval(state.aiTimer);walletIdentityState='identityUnverified';renderWalletIdentity()});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected')load()});
 window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('offlineRetry','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
 $('#wallet-login-verify').addEventListener('click',verifyWalletIdentity);
