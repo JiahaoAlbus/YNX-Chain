@@ -149,6 +149,36 @@ func TestEVMReadHTTPRealWalletProofDurableOwnershipAndRevoke(t *testing.T) {
 	if owned["balanceYnxt"] != float64(123) || owned["account"] != identity.Account {
 		t.Fatalf("Explorer-backed account ownership was lost: %#v", owned)
 	}
+	browserGETInput := map[string]any{"method": "GET", "target": target, "bodyDigest": evmReadEmptyBodyDigest, "nonce": "finance_browser_get_nonce_0123456789abcdef", "issuedAt": evmReadTime(clock), "expiresAt": evmReadTime(clock.Add(30 * time.Second))}
+	browserGETProof := evmReadFixture(t, node, fixture, map[string]any{"action": "read", "session": session, "request": browserGETInput})
+	browserGET, err := http.NewRequest(http.MethodGet, ts.URL+target, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	browserGET.Host = "finance.ynxweb4.com"
+	browserGET.Header.Set("Sec-Fetch-Site", "same-origin")
+	browserGET.Header.Set("Sec-Fetch-Mode", "cors")
+	browserGET.Header.Set("Sec-Fetch-Dest", "empty")
+	browserGET.Header.Set(evmReadProofHeader, base64.RawURLEncoding.EncodeToString(browserGETProof))
+	browserResponse, err := http.DefaultClient.Do(browserGET)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = browserResponse.Body.Close()
+	if browserResponse.StatusCode != http.StatusOK {
+		t.Fatalf("same-origin Chromium GET without Origin was rejected: %d", browserResponse.StatusCode)
+	}
+	missingMetadata, _ := http.NewRequest(http.MethodGet, ts.URL+target, nil)
+	missingMetadata.Host = "finance.ynxweb4.com"
+	missingMetadata.Header.Set(evmReadProofHeader, base64.RawURLEncoding.EncodeToString(browserGETProof))
+	missingResponse, err := http.DefaultClient.Do(missingMetadata)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = missingResponse.Body.Close()
+	if missingResponse.StatusCode != http.StatusForbidden {
+		t.Fatalf("originless GET without browser metadata was accepted: %d", missingResponse.StatusCode)
+	}
 	if response, _ := evmReadGET(t, ts.URL+target, readProof, BrowserFinanceOrigin); response.StatusCode == http.StatusOK {
 		t.Fatal("HTTP proof replay read private EVM account data")
 	}

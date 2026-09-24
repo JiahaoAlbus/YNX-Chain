@@ -24,7 +24,15 @@ var evmReadEmptyBodyDigest = func() string {
 }()
 
 func (s *Server) evmReadOriginAllowed(r *http.Request) bool {
-	return r.Header.Get("Origin") == BrowserFinanceOrigin && s.originAllowed(r)
+	if r.Header.Get("Origin") == BrowserFinanceOrigin {
+		return s.originAllowed(r)
+	}
+	// A same-origin browser GET normally omits Origin. Fetch metadata and the
+	// canonical Host identify that narrow case; the signed device proof still
+	// binds Finance's exact origin, account, raw target and nonce.
+	return r.Method == http.MethodGet && r.Header.Get("Origin") == "" &&
+		r.Host == "finance.ynxweb4.com" && r.Header.Get("Sec-Fetch-Site") == "same-origin" &&
+		r.Header.Get("Sec-Fetch-Mode") == "cors" && r.Header.Get("Sec-Fetch-Dest") == "empty"
 }
 
 func (s *Server) evmReadAvailable(w http.ResponseWriter) bool {
