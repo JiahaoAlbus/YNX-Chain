@@ -1,14 +1,17 @@
 import type { WalletConnectSessionApproval,WalletConnectSessionReview } from "@ynx-chain/wallet-auth";
 import type { SessionTypes } from "@walletconnect/types";
+import { WalletConnectFinalizationUnknownError } from "./securityStore";
 
-type ApprovalStore=Readonly<{saveSession(approval:WalletConnectSessionApproval):Promise<void>;removeSession(topic:string):Promise<void>}>;
+type ApprovalStore=Readonly<{stageSession(approval:WalletConnectSessionApproval):Promise<void>;finalizeStagedSession(topic:string,binding:string,assertCurrent:()=>void):Promise<void>;removeSession(topic:string):Promise<void>}>;
 type ApprovalRuntime=Readonly<{refreshSessions():void;disconnect(topic:string):Promise<void>;quarantineSession(topic:string):void;releaseQuarantinedSession(topic:string):void;quarantinedTopics():readonly string[]}>;
 type RevocationStore=Readonly<{removeSession(topic:string):Promise<void>}>;
 
-/** Persists local authorization before publishing the SDK session to UI. */
+/** A staged grant remains denied until the final secure-storage commit. */
 export async function persistAndPublishWalletConnectSession(runtime:ApprovalRuntime,store:ApprovalStore,approval:WalletConnectSessionApproval,assertCurrent:()=>void=()=>{}):Promise<void>{
-  try{assertCurrent();await store.saveSession(approval);assertCurrent();runtime.refreshSessions();assertCurrent()}
-  catch(caught){await abortApprovedWalletConnectSession(runtime,store,approval.topic,caught)}
+  runtime.quarantineSession(approval.topic);
+  try{assertCurrent();await store.stageSession(approval);assertCurrent();await store.finalizeStagedSession(approval.topic,approval.sessionBinding,assertCurrent)}
+  catch(caught){if(caught instanceof WalletConnectFinalizationUnknownError)throw caught;await abortApprovedWalletConnectSession(runtime,store,approval.topic,caught)}
+  runtime.releaseQuarantinedSession(approval.topic);
 }
 
 /** Closes an SDK-approved session if its local authorization cannot be constructed. */
@@ -19,7 +22,7 @@ export async function createPersistAndPublishWalletConnectSession(runtime:Approv
   await persistAndPublishWalletConnectSession(runtime,store,approval,assertCurrent);
 }
 
-/** Also used when the UI's final account-lease check fails after publication. */
+/** Aborts before the final secure-storage commit. */
 export async function abortApprovedWalletConnectSession(runtime:ApprovalRuntime,store:ApprovalStore,topic:string,cause:unknown):Promise<never>{
   runtime.quarantineSession(topic);
   const failures=await cleanupFailedApproval(runtime,store,topic);

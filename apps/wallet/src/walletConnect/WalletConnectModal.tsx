@@ -95,6 +95,7 @@ export function WalletConnectButton({ account,withAccountSecret,operations }: { 
       try{
         await lockRecovery;
         assertOwner();
+        for(const topic of await securityStore.pendingSessionTopics())walletConnectRuntime.quarantineSession(topic);
         const update=snapshot.sessionEvent;
         if(update?.kind==="updated"&&update.pendingRequest&&update.revision>lastUpdateRevision){
           try{await securityStore.rejectPendingForSessionUpdate(update.pendingRequest,evmAddress)}
@@ -193,7 +194,7 @@ function WalletConnectSheet({ account,withAccountSecret,operations,inbound,clear
   const approveProposal=async()=>{
     if(!proposalReview)return;
     const review=proposalReview;setBusy(true);setError(null);
-    const scope=operations.scope();let session:Awaited<ReturnType<typeof walletConnectRuntime.approveProposal>>|null=null,handoffStarted=false,handoffCompleted=false;
+    const scope=operations.scope();let session:Awaited<ReturnType<typeof walletConnectRuntime.approveProposal>>|null=null,handoffStarted=false;
     try{
       const lease=scope.begin({account:account.account});
       try{
@@ -203,12 +204,11 @@ function WalletConnectSheet({ account,withAccountSecret,operations,inbound,clear
         handoffStarted=true;
         await createPersistAndPublishWalletConnectSession(walletConnectRuntime,securityStore,session.topic,
           ()=>createWalletConnectSessionApproval(review,{approved:true,topic:session!.topic},new Date()),()=>lease.assert());
-        handoffCompleted=true;
-        lease.assert();setProposalReview(null);
+        setProposalReview(null);
       }finally{lease.finish()}
     }catch(caught){
       let failure=caught;
-      if(session&&(!handoffStarted||handoffCompleted))try{await abortApprovedWalletConnectSession(walletConnectRuntime,securityStore,session.topic,caught)}catch(cleanupFailure){failure=cleanupFailure}
+      if(session&&!handoffStarted)try{await abortApprovedWalletConnectSession(walletConnectRuntime,securityStore,session.topic,caught)}catch(cleanupFailure){failure=cleanupFailure}
       setError(message(failure));
     }
     finally{setBusy(false);scope.cancel()}

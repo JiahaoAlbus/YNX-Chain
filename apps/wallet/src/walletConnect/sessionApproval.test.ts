@@ -7,21 +7,21 @@ import { WalletConnectRuntime } from "./runtime";
 const approval={topic:"a".repeat(64)} as WalletConnectSessionApproval;
 const runtimeHooks={quarantineSession(_topic:string){},releaseQuarantinedSession(_topic:string){},quarantinedTopics:():readonly string[]=>[]};
 
-test("approved session is published only after its local approval is saved",async()=>{
+test("approved session is published only after its staged grant is finalized",async()=>{
   const order:string[]=[];
   await persistAndPublishWalletConnectSession(
-    {...runtimeHooks,refreshSessions(){order.push("publish")},async disconnect(){order.push("disconnect")}},
-    {async saveSession(){order.push("save")},async removeSession(){order.push("remove")}},
+    {...runtimeHooks,releaseQuarantinedSession(){order.push("publish")},refreshSessions(){},async disconnect(){order.push("disconnect")}},
+    {async stageSession(){order.push("stage")},async finalizeStagedSession(){order.push("finalize")},async removeSession(){order.push("remove")}},
     approval,
   );
-  assert.deepEqual(order,["save","publish"]);
+  assert.deepEqual(order,["stage","finalize","publish"]);
 });
 
 test("approval persistence failure disconnects and never publishes the remote session",async()=>{
   const order:string[]=[];
   await assert.rejects(persistAndPublishWalletConnectSession(
     {...runtimeHooks,refreshSessions(){order.push("publish")},async disconnect(topic){order.push(`disconnect:${topic}`)}},
-    {async saveSession(){order.push("save");throw new Error("storage unavailable")},async removeSession(){order.push("remove")}},
+    {async stageSession(){order.push("save");throw new Error("storage unavailable")},async finalizeStagedSession(){},async removeSession(){order.push("remove")}},
     approval,
   ),/storage unavailable/);
   assert.deepEqual(order,["save","remove",`disconnect:${approval.topic}`]);
@@ -31,7 +31,7 @@ test("account lease loss after the storage write removes the grant and disconnec
   const order:string[]=[];let current=true;
   await assert.rejects(persistAndPublishWalletConnectSession(
     {...runtimeHooks,refreshSessions(){order.push("publish")},async disconnect(){order.push("disconnect")}},
-    {async saveSession(){order.push("save");current=false},async removeSession(){order.push("remove")}},
+    {async stageSession(){order.push("save");current=false},async finalizeStagedSession(){},async removeSession(){order.push("remove")}},
     approval,()=>{if(!current)throw new Error("account changed")},
   ),/account changed/);
   assert.deepEqual(order,["save","remove","disconnect"]);
@@ -51,7 +51,7 @@ test("partial approval write is removed even when its remote disconnect also fai
   let persisted=false;
   await assert.rejects(persistAndPublishWalletConnectSession(
     {...runtimeHooks,refreshSessions(){assert.fail("must not publish")},async disconnect(){throw new Error("relay unavailable")}},
-    {async saveSession(){persisted=true;throw new Error("verification failed")},async removeSession(){persisted=false}},
+    {async stageSession(){persisted=true;throw new Error("verification failed")},async finalizeStagedSession(){},async removeSession(){persisted=false}},
     approval,
   ),error=>{assert.ok(error instanceof AggregateError);assert.match(String(error.errors[0]),/verification failed/);return true});
   assert.equal(persisted,false);
@@ -61,7 +61,7 @@ test("approval construction failure closes the already-approved SDK session",asy
   const order:string[]=[];
   await assert.rejects(createPersistAndPublishWalletConnectSession(
     {...runtimeHooks,refreshSessions(){order.push("publish")},async disconnect(topic){order.push(`disconnect:${topic}`)}},
-    {async saveSession(){order.push("save")},async removeSession(){order.push("remove")}},
+    {async stageSession(){order.push("save")},async finalizeStagedSession(){},async removeSession(){order.push("remove")}},
     approval.topic,
     ()=>{throw new Error("invalid approval binding")},
   ),/invalid approval binding/);
@@ -72,7 +72,7 @@ test("approval persistence failure is disconnected exactly once by the persisten
   const order:string[]=[];
   await assert.rejects(createPersistAndPublishWalletConnectSession(
     {...runtimeHooks,refreshSessions(){order.push("publish")},async disconnect(topic){order.push(`disconnect:${topic}`)}},
-    {async saveSession(){order.push("save");throw new Error("storage unavailable")},async removeSession(){order.push("remove")}},
+    {async stageSession(){order.push("save");throw new Error("storage unavailable")},async finalizeStagedSession(){},async removeSession(){order.push("remove")}},
     approval.topic,
     ()=>approval,
   ),/storage unavailable/);
@@ -91,7 +91,7 @@ test("runtime keeps a newly approved SDK session hidden and closes it when persi
   await runtime.approveProposal(runtime.snapshot().proposal!,{eip155:{accounts:[],chains:["eip155:6423"],methods:["eth_accounts"],events:[]}} as any);
   assert.deepEqual(runtime.snapshot().sessions,[]);
   let persisted=false;
-  await assert.rejects(persistAndPublishWalletConnectSession(runtime,{async saveSession(){persisted=true;throw new Error("storage unavailable")},async removeSession(){persisted=false}},approval),/storage unavailable/);
+  await assert.rejects(persistAndPublishWalletConnectSession(runtime,{async stageSession(){persisted=true;throw new Error("storage unavailable")},async finalizeStagedSession(){},async removeSession(){persisted=false}},approval),/storage unavailable/);
   assert.equal(persisted,false);
   assert.deepEqual(disconnected,[approval.topic]);
   assert.deepEqual(runtime.snapshot().sessions,[]);
@@ -109,7 +109,7 @@ test("lease loss after a durable grant plus two cleanup failures cannot reauthor
   const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any);await runtime.start();
   handlers.get("session_proposal")!({id:1,params:{},verifyContext:{verified:{}}});
   await runtime.approveProposal(runtime.snapshot().proposal!,{eip155:{accounts:[],chains:["eip155:6423"],methods:["eth_accounts"],events:[]}} as any);
-  const store={async saveSession(){persisted=true},async removeSession(){if(storageFails)throw new Error("secure storage unavailable");persisted=false}};
+  const store={async stageSession(){persisted=true},async finalizeStagedSession(){},async removeSession(){if(storageFails)throw new Error("secure storage unavailable");persisted=false}};
   let leaseChecks=0;
   await assert.rejects(persistAndPublishWalletConnectSession(runtime,store,approval,()=>{if(++leaseChecks===2)throw new Error("selected account changed")}),error=>{
     assert.ok(error instanceof AggregateError);assert.equal(error.errors.length,3);assert.match(String(error.errors[0]),/selected account changed/);assert.match(error.message,/cleanup is pending/);return true;
@@ -125,7 +125,7 @@ test("lease loss after a durable grant plus two cleanup failures cannot reauthor
   await assert.rejects(retryQuarantinedWalletConnectSession(runtime,store,approval.topic),/not awaiting cleanup/);
 });
 
-test("final UI lease loss after publication quarantines a saved grant when both cleanup paths fail",async()=>{
+test("explicit abort after publication quarantines a saved grant when both cleanup paths fail",async()=>{
   const handlers=new Map<string,(event:any)=>void>(),active:Record<string,any>={},responses:any[]=[];
   let persisted=false,storageFails=true,relayFails=true;
   const client={
@@ -137,7 +137,7 @@ test("final UI lease loss after publication quarantines a saved grant when both 
   const runtime=new WalletConnectRuntime({projectId:"b".repeat(32)},(async()=>client) as any);await runtime.start();
   handlers.get("session_proposal")!({id:2,params:{},verifyContext:{verified:{}}});
   await runtime.approveProposal(runtime.snapshot().proposal!,{eip155:{accounts:[],chains:["eip155:6423"],methods:["eth_accounts"],events:[]}} as any);
-  const store={async saveSession(){persisted=true},async removeSession(){if(storageFails)throw new Error("local cleanup failed");persisted=false}};
+  const store={async stageSession(){persisted=true},async finalizeStagedSession(){},async removeSession(){if(storageFails)throw new Error("local cleanup failed");persisted=false}};
   await persistAndPublishWalletConnectSession(runtime,store,approval);
   assert.equal(persisted,true);assert.deepEqual(runtime.snapshot().sessions.map(session=>session.topic),[approval.topic]);
   await assert.rejects(abortApprovedWalletConnectSession(runtime,store,approval.topic,new Error("selected account changed after publication")),error=>{

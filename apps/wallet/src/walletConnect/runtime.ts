@@ -49,6 +49,7 @@ export class WalletConnectRuntime {
   quarantinedTopics():readonly string[]{return Object.freeze([...this.#quarantinedTopics])}
   quarantineSession(topic:string):void{
     if(!/^[0-9a-f]{64}$/.test(topic))throw new Error("WalletConnect quarantine topic is invalid.");
+    if(this.#quarantinedTopics.has(topic))return;
     this.#quarantinedTopics.add(topic);
     this.#set({sessions:Object.freeze(this.#snapshot.sessions.filter(session=>session.topic!==topic)),request:this.#snapshot.request?.topic===topic?null:this.#snapshot.request});
   }
