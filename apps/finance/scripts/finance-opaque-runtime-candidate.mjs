@@ -20,6 +20,7 @@ const inputs=Object.freeze([
   ...authorityRuntimeFiles.map(item=>item.source),
   'apps/finance/web/package.json',
   'apps/finance/scripts/finance-nonregressive-runtime.mjs',
+  'apps/finance/scripts/build-finance-weekly-v3-candidate.mjs',
   'apps/finance/scripts/finance-opaque-runtime-candidate.mjs',
   'apps/finance/cmd/server/main.go',
   'internal/finance/server.go','internal/finance/drain.go','internal/finance/auth_v2.go',
@@ -63,13 +64,26 @@ function verifyClosure(read){
   assert.doesNotMatch(app,/location\.(?:assign|replace)\s*\(\s*['"]ynxwallet:/u);
   assert.doesNotMatch(app,/location\.href\s*=\s*['"]ynxwallet:/u);
   assert.match(server,/r\.URL\.Path == "\/wallet-auth\/callback"/u);
+  const served=server.match(/name := map\[string\]string\{([^}]+)\}\[r\.URL\.Path\]/u)?.[1];
+  assert.ok(served,'Finance static route map must remain inspectable');
+  const names=[...served.matchAll(/"\/[^"]*": "([^"]+)"/gu)].map(item=>item[1]);
+  assert.ok(names.length>runtimeFiles.length-4,'served asset inventory unexpectedly shrank');
+  for(const name of names)assert.ok(name==='build-identity.json'||runtimeFiles.includes(name),`unreviewed served asset: ${name}`);
+  assert.ok(names.includes('build-identity.json'),'source-bound generated identity route missing');
+  const builder=read('apps/finance/scripts/build-finance-weekly-v3-candidate.mjs').toString('utf8');
+  assert.match(builder,/writeFileSync\(join\(webRoot, 'build-identity\.json'\), `\$\{JSON\.stringify\(identity, null, 2\)\}\\n`/u);
 }
 async function receipt(sourceCommit,read){
   verifyClosure(read);
   const exactInputs=inputs.map(path=>inventory(read(path),path));
   assert.equal(new Set(exactInputs.map(item=>item.path)).size,exactInputs.length,'duplicate runtime input');
-  return {schemaVersion:'ynx.finance.opaque-runtime-candidate.v1',status:'INDEPENDENT_REVIEW_REQUIRED_NOT_PINNED_NOT_PUBLIC',sourceCommit,sourceTree:git('rev-parse',`${sourceCommit}^{tree}`),
-    exactInputs,relations:await Promise.all(relations.map(item=>relationReceipt(item,read))),
+  const sourceTree=git('rev-parse',`${sourceCommit}^{tree}`);
+  const buildTime=new Date(git('show','-s','--format=%cI',sourceCommit)).toISOString();
+  const release=`finance-weekly-v3-${sourceCommit.slice(0,12)}-linux-amd64`;
+  const identity=Buffer.from(`${JSON.stringify({sourceCommit,release,buildTime,frontendSourceCommit:sourceCommit},null,2)}\n`);
+  return {schemaVersion:'ynx.finance.opaque-runtime-candidate.v1',status:'INDEPENDENT_REVIEW_REQUIRED_NOT_PINNED_NOT_PUBLIC',sourceCommit,sourceTree,
+    exactInputs,generatedRuntime:[{...inventory(identity,'web/build-identity.json'),generator:'apps/finance/scripts/build-finance-weekly-v3-candidate.mjs',release}],
+    relations:await Promise.all(relations.map(item=>relationReceipt(item,read))),
     truth:{localByteRebuild:true,fullTestSuitePassed:false,installedLocal:false,deployedPublic:false,realWalletApproval:false,providerOrderWrite:false,productionSigned:false}};
 }
 async function main(){
