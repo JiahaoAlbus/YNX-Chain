@@ -21,6 +21,7 @@ import { PaymentRecipientInput, type PaymentRecipientInputAttempt } from "./src/
 import { FaucetFlow, faucetStatusCopy, productionFaucetConfiguration, type FaucetAction } from "./src/state/faucetFlow";
 import { faucetRecoveryCopy } from "./src/i18n/faucetRecoveryCopy";
 import { EvmSimulationClient, type EvmSimulationResult } from "./src/chain/evmSimulation";
+import { TEST_MARKET_DIRECTORY, TestMarketAssetClient, type TestMarketAssetView } from "./src/chain/testMarketAssets";
 import { buildWalletControlView, type CapitalReview } from "./src/control/controlSurface";
 import { controlCopy } from "./src/control/controlCopy";
 import { formatDateTime, formatYNXT, isRTL, loadLocale, localizeError, localizeProductSessionError, saveLocale, SUPPORTED_LOCALES, translate, walletAccessibilitySummary, walletCopy, walletDetailError, type WalletLocale } from "./src/i18n/i18n";
@@ -465,6 +466,7 @@ function WalletCenter({visible,account,chainState,close,openAudit,retry}:{visibl
   const cancelSessions=useRef<()=>void>(()=>{});
   const dismiss=()=>{cancelSessions.current();close()};
   return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={walletCopy(locale,"Wallet Center")} close={dismiss}><Text style={styles.eyebrow}>{walletCopy(locale,"ASSETS / ACTIVITY")}</Text><InfoCard title={chainState.account?`${chainState.account.balance} YNXT`:chainState.phase==="loading"?walletCopy(locale,"YNXT · loading"):chainState.phase==="unrecorded"?walletCopy(locale,"YNXT · no account record"):walletCopy(locale,"YNXT · unavailable")} body={chainState.phase==="loading"?walletCopy(locale,"Loading balance and nonce…"):chainState.phase==="unrecorded"?walletCopy(locale,"This address has no on-chain account record yet. Receive testnet YNXT to get started. Balance and nonce are not available yet."):chainState.phase==="failed"?networkRecoveryCopy(locale,chainState.error??walletCopy(locale,"Balance unavailable")):walletCopy(locale,"Authoritative nonce {nonce} on ynx_6423-1.",{nonce:chainState.account?.nonce??"—"})}/>{chainState.activityPhase==="loading"?<InfoCard title={walletCopy(locale,"Activity · loading")} body={walletCopy(locale,"Loading recent chain transactions…")}/>:chainState.activityPhase==="failed"?<InfoCard title={walletCopy(locale,"Activity · unavailable")} body={networkRecoveryCopy(locale,chainState.activityError??walletCopy(locale,"Recent transactions could not be loaded."))}/>:chainState.activity.length===0?<InfoCard title={walletCopy(locale,"Activity · empty")} body={walletCopy(locale,"No matching account activity appears in the latest 25 chain transactions.")}/>:chainState.activity.map((item)=><View key={item.hash} style={styles.auditRow}><Text style={styles.infoTitle}>{item.to===evmAddressFromYNX(account.account)?walletCopy(locale,"Received"):walletCopy(locale,"Sent")} · {item.amount} YNXT</Text><Text style={styles.infoBody}>{short(item.hash)} · {walletCopy(locale,"fee {fee} · nonce {nonce}",{fee:item.fee,nonce:item.nonce})}</Text></View>)}{chainState.phase==="failed"||chainState.phase==="unrecorded"||chainState.activityPhase==="failed"?<SecondaryButton label={walletCopy(locale,"Refresh balance and activity")} onPress={retry}/>:null}
+    <TestMarketAssets key={account.account} visible={visible} account={account}/>
     <ConnectedApps visible={visible} account={account} cancelRef={cancelSessions}/>
     <SecondaryButton label={walletCopy(locale,"Open Authorization Audit")} onPress={openAudit}/>
     <Text style={[styles.eyebrow,styles.sectionLabel]}>{walletCopy(locale,"RECOVERY / SECURITY / NETWORK")}</Text>
@@ -472,6 +474,36 @@ function WalletCenter({visible,account,chainState,close,openAudit,retry}:{visibl
     <InfoCard title={walletCopy(locale,"Security")} body={walletCopy(locale,"Wallet locks in the background. Viewing app sessions, revoking a session and using a private key each require system biometrics.")}/>
     <InfoCard title={translate(locale,"network")} body={walletCopy(locale,"YNX testnet · ynx_6423-1 · native YNXT · rpc-testnet.ynxweb4.com. EVM chain ID 6423 is available in the compatibility view.")}/>
   </Sheet></Modal>
+}
+
+function TestMarketAssets({visible,account}:{visible:boolean;account:WalletAccount}){
+  const locale=useContext(WalletLocaleContext);
+  const [state,setState]=useState<{phase:"unverified"|"loading"|"ready"|"failed";assets?:readonly TestMarketAssetView[];error?:string}>({phase:"unverified"});
+  const address=evmAddressFromYNX(account.account);
+  useEffect(()=>{
+    let current=true;
+    setState({phase:"unverified"});
+    if(!visible||TEST_MARKET_DIRECTORY.status!=="VERIFIED")return()=>{current=false};
+    setState({phase:"loading"});
+    const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;
+    new TestMarketAssetClient(runtime?.evmRpcURL??runtime?.baseURL).read(address).then(
+      assets=>{if(current)setState({phase:"ready",assets})},
+      caught=>{if(current)setState({phase:"failed",error:message(caught)})},
+    );
+    return()=>{current=false};
+  },[visible,address]);
+  return <View>
+    <Text style={[styles.eyebrow,styles.sectionLabel]}>TEST MARKET · ASSETS</Text>
+    {state.phase==="unverified"?<InfoCard title="TEST-AAPL / tUSD · unavailable" body="Valueless test assets. No verified YNX testnet deployment or contract addresses are pinned. Balances, transfers, allowances and order approval are unavailable."/>:
+      state.phase==="loading"?<InfoCard title="Test market · verifying" body="Checking deployment receipt, code and balances at a pinned chain block…"/>:
+      state.phase==="failed"?<InfoCard title="Test market · unavailable" body={state.error??"Chain verification failed. No balance or approval is available."}/>:
+      state.assets?.map(asset=><InfoCard key={asset.symbol} title={`${asset.symbol} · ${formatTestMarketUnits(asset.balanceUnits,asset.decimals)}`} body={`Valueless test asset · allowance to DvP ${formatTestMarketUnits(asset.allowanceToDvpUnits,asset.decimals)} · block ${asset.blockNumber} (${short(asset.blockHash)}) · ${asset.source} · ${asset.asOf}. Transfers and order approval remain unavailable.`}/>)}
+  </View>;
+}
+
+function formatTestMarketUnits(units:string,decimals:6):string{
+  const padded=units.padStart(decimals+1,"0"),whole=padded.slice(0,-decimals),fraction=padded.slice(-decimals).replace(/0+$/g,"");
+  return fraction?`${whole}.${fraction}`:whole;
 }
 
 function ConnectedApps({visible,account,cancelRef}:{visible:boolean;account:WalletAccount;cancelRef:{current:()=>void}}){
