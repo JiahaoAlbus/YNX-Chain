@@ -97,6 +97,67 @@ func TestLostCoreResponseRecoversOnlyExactDurableReceipt(t *testing.T) {
 	}
 }
 
+func TestLostACKRecoversAfterCoreAndFaucetRestartWithoutSecondFunding(t *testing.T) {
+	stateDir := t.TempDir()
+	core, err := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), stateDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var activeHandler atomic.Value
+	activeHandler.Store(api.NewServerWithConfig(core, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
+	var posts atomic.Int32
+	var failReads atomic.Bool
+	failReads.Store(true)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/faucet/requests" {
+			posts.Add(1)
+			recorder := httptest.NewRecorder()
+			activeHandler.Load().(http.Handler).ServeHTTP(recorder, r)
+			if recorder.Code != http.StatusCreated {
+				t.Errorf("Core funding failed before ACK loss: %d", recorder.Code)
+			}
+			http.Error(w, "ACK lost", http.StatusServiceUnavailable)
+			return
+		}
+		if failReads.Load() && r.Method == http.MethodGet && r.URL.Path != "/health" {
+			http.Error(w, "receipt read unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		activeHandler.Load().(http.Handler).ServeHTTP(w, r)
+	}))
+	defer upstream.Close()
+	cfg := admissionTestConfig(t, upstream.URL)
+	s := openTestFaucet(t, cfg)
+	req := Request{Address: "0x0000000000000000000000000000000000000044", RequestID: admissionTestID}
+	first, status, err := s.Request(context.Background(), req, "192.0.2.50:1000")
+	if err == nil || status != 503 || !first.RetrySameRequest || posts.Load() != 1 {
+		t.Fatalf("lost ACK must retain original request: %+v %d %v posts=%d", first, status, err, posts.Load())
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	// Reopen both durable stores, then restore only the read path. A retry must
+	// recover the original receipt and never issue a second funding POST.
+	core, err = chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), stateDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	activeHandler.Store(api.NewServerWithConfig(core, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
+	failReads.Store(false)
+	s = openTestFaucet(t, cfg)
+	recovered, status, err := s.RequestStatus(context.Background(), req.RequestID)
+	if err != nil || status != http.StatusOK || recovered.Status != "accepted" || recovered.Transaction.Hash != first.TransactionHash {
+		t.Fatalf("cold receipt recovery: %+v %d %v", recovered, status, err)
+	}
+	replayed, status, err := s.Request(context.Background(), req, "198.51.100.7:1000")
+	if err != nil || status != http.StatusOK || !replayed.Replayed || replayed.Transaction.Hash != recovered.Transaction.Hash || posts.Load() != 1 {
+		t.Fatalf("cold replay funded again: %+v %d %v posts=%d", replayed, status, err, posts.Load())
+	}
+	if account, _ := core.Account(req.Address); account.Balance != 100 {
+		t.Fatalf("recipient credited more than once after restart: %d", account.Balance)
+	}
+}
+
 func TestMultiuserSameNATPersistentCore(t *testing.T) {
 	for _, n := range []int{10, 50} {
 		t.Run(fmt.Sprint(n), func(t *testing.T) {
