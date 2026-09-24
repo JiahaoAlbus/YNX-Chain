@@ -126,6 +126,34 @@ test('Finance connection state follows the selected language through offline, re
   }finally{await page.close()}
 });
 
+test('newer Broker asset search wins over an out-of-order result and remains localized',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  try{
+    await page.goto(base);
+    const outcome=await page.evaluate(async()=>{
+      const originalFetch=window.fetch,requests=[];
+      window.fetch=(url,options)=>String(url).startsWith('/api/broker/assets?')?new Promise(resolve=>requests.push({url:String(url),options,resolve})):originalFetch(url,options);
+      const query=document.querySelector('#broker-asset-search [name=query]');
+      query.value='OLD';const older=searchBrokerAssets();
+      query.value='NEW';const newer=searchBrokerAssets();
+      if(requests.length!==2||!requests[0].options.signal.aborted)return {requests:requests.length,aborted:requests[0]?.options.signal.aborted};
+      const result=asset=>new Response(JSON.stringify({schema:'ynx-finance-broker-assets-v1',assets:[asset]}),{status:200,headers:{'content-type':'application/json'}});
+      requests[1].resolve(result({id:'bbbbbbbb-1111-4111-8111-111111111111',symbol:'NEW',name:'New provider asset'}));
+      await newer;
+      requests[0].resolve(result({id:'aaaaaaaa-1111-4111-8111-111111111111',symbol:'OLD',name:'Old provider asset'}));
+      await older;
+      window.fetch=originalFetch;
+      return {symbols:[...document.querySelectorAll('#broker-asset-results strong')].map(element=>element.textContent),stored:[...state.brokerAssets.values()].map(asset=>asset.symbol)};
+    });
+    assert.deepEqual(outcome,{symbols:['NEW'],stored:['NEW']});
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.match(await page.locator('#broker-asset-results').textContent(),/沙盒中有效且可交易的资产/);
+    assert.equal(await page.locator('#broker-asset-results [data-broker-select]').textContent(),'选择');
+    assert.equal(await page.locator('#broker-asset-results [data-broker-watch]').textContent(),'加入关注列表');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+  }finally{await page.close()}
+});
+
 test('real browser previews a test-only DvP draft without Wallet or chain writes',async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844}}),posts=[];
   page.on('request',request=>{if(request.method()==='POST')posts.push(request.url())});

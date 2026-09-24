@@ -21,7 +21,7 @@ let walletIdentityState='identityUnverified',walletIdentityBusy=false;
 function renderWalletIdentity(){const status=document.querySelector('#wallet-login-state'),button=document.querySelector('#wallet-login-verify');if(status)status.textContent=financeText(walletIdentityState);if(button){button.hidden=window.YNXFinanceWallet?.getStandardWalletState?.()?.status!=='connected';button.disabled=walletIdentityBusy;}}
 let brokerConfigurationState='brokerStatusMissing';
 function renderBrokerConfigurationStatus(){const target=document.querySelector('#broker-status');if(target)target.textContent=financeText(brokerConfigurationState)}
-document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();renderWalletIdentity();renderBrokerSnapshot();renderSourceStatus();if(!state.connected)route()});
+document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();renderWalletIdentity();renderBrokerSnapshot();renderSourceStatus();if(brokerAssetResults!==null)renderBrokerAssets(brokerAssetResults);if(!state.connected)route()});
 // Guest-readable diagnostics only. This never requests a Wallet account, signs,
 // reads broker credentials or automatically enables order submission.
 let brokerCheckRevision=0;
@@ -65,14 +65,18 @@ function selectBrokerAsset(asset){
   state.brokerSelectedAsset=asset;const form=$('#broker-order-form');form.elements.assetId.value=asset.id;form.elements.symbol.value=asset.symbol;
   $('#broker-order-preview').textContent=`Selected ${asset.symbol} · ${asset.name}. No Wallet or provider write has occurred.`;
 }
+let brokerAssetResults=null,brokerAssetSearchRevision=0,brokerAssetSearchController=null;
 function renderBrokerAssets(assets){
+  brokerAssetResults=assets;
   state.brokerAssets=new Map(assets.map(asset=>[asset.id,asset]));
-  $('#broker-asset-results').innerHTML=assets.length?assets.map(asset=>`<div class="row"><div class="row-main"><strong>${esc(asset.symbol)}</strong><small>${esc(asset.name)} · active/tradable Sandbox asset</small></div><div class="wallet-choice"><button type="button" data-broker-select="${esc(asset.id)}">Select</button>${state.connected?`<button type="button" data-broker-watch="${esc(asset.id)}">Add to watchlist</button>`:''}</div></div>`).join(''):`<div class="empty compact">${esc(financeText('brokerNoAssets'))}</div>`;
+  $('#broker-asset-results').innerHTML=assets.length?assets.map(asset=>`<div class="row"><div class="row-main"><strong>${esc(asset.symbol)}</strong><small>${esc(asset.name)} · ${esc(financeText('brokerActiveAsset'))}</small></div><div class="wallet-choice"><button type="button" data-broker-select="${esc(asset.id)}">${esc(financeText('brokerSelect'))}</button>${state.connected?`<button type="button" data-broker-watch="${esc(asset.id)}">${esc(financeText('brokerAddWatch'))}</button>`:''}</div></div>`).join(''):`<div class="empty compact">${esc(financeText('brokerNoAssets'))}</div>`;
 }
 async function searchBrokerAssets(event){
   event?.preventDefault();const query=String(new FormData($('#broker-asset-search')).get('query')||'').trim();
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
-  try{const response=await fetch(`/api/broker/assets?query=${encodeURIComponent(query)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-assets-v1'||!Array.isArray(result.assets))throw new Error('Sandbox asset directory is unavailable.');renderBrokerAssets(result.assets)}catch{renderBrokerAssets([]);notify(financeText('brokerAssetsUnavailable'),true)}finally{clearTimeout(timer)}
+  const revision=++brokerAssetSearchRevision;
+  brokerAssetSearchController?.abort();const controller=new AbortController();brokerAssetSearchController=controller;
+  const timer=setTimeout(()=>controller.abort(),5000);
+  try{const response=await fetch(`/api/broker/assets?query=${encodeURIComponent(query)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-assets-v1'||!Array.isArray(result.assets))throw new Error('Sandbox asset directory is unavailable.');if(revision===brokerAssetSearchRevision)renderBrokerAssets(result.assets)}catch{if(revision===brokerAssetSearchRevision){renderBrokerAssets([]);notify(financeText('brokerAssetsUnavailable'),true)}}finally{clearTimeout(timer);if(revision===brokerAssetSearchRevision)brokerAssetSearchController=null}
 }
 function renderBrokerWatchlist(items){
   const list=Array.isArray(items)?items:[];
