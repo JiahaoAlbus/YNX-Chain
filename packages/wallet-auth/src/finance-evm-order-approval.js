@@ -3,7 +3,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { canonicalJSON, exactFields } from "./canonical.js";
 import { encodeBase64url } from "./base64url.js";
 import { parseFinanceOrder, financeOrderHash } from "./finance-order-approval.js";
-import { FINANCE_EVM_ORIGIN, FINANCE_EVM_CALLBACK, FINANCE_EVM_CHAIN_ID, FINANCE_EVM_MAX_LIFETIME_MS, fail, literal, pattern, evmAccount, evmAccountType, token, digest, subjectId, time, authorityTime, activeWindow, deviceKey, deviceSignature, signDevice, verifyDevice, walletSignature, verifyWalletSignature } from "./finance-evm-common.js";
+import { FINANCE_EVM_ORIGIN, FINANCE_EVM_CALLBACK, FINANCE_EVM_CHAIN_ID, FINANCE_EVM_MAX_LIFETIME_MS, fail, literal, pattern, evmAccount, evmAccountType, token, digest, subjectId, time, authorityTime, activeWindow, deviceKey, deviceSignature, normalizeDeviceSignature, signDevice, verifyDevice, walletSignature, verifyWalletSignature } from "./finance-evm-common.js";
 
 const CHALLENGE=["version","productId","subjectNamespace","origin","chainId","subjectId","account","accountType","brokerAccountId","provider","tradingEnvironment","chainEnvironment","sessionBinding","requestId","challengeId","nonce","callbackStateHash","order","orderHash","issuedAt","expiresAt"];
 const LOGIN=["challenge","message","walletSignature","deviceSignature"];
@@ -60,6 +60,14 @@ export function createFinanceEvmOrderApproval(challengeInput,signature,deviceSec
   return parseFinanceEvmOrderApproval({challenge,message:financeEvmOrderMessage(challenge),walletSignature:signature,
     deviceSignature:signDevice(financeEvmOrderDeviceMessage(challenge),deviceSecret,deviceKeyInput)});
 }
+export async function createFinanceEvmOrderApprovalWith(challengeInput,signature,deviceKeyInput,signer) {
+  const challenge=parseFinanceEvmOrderChallenge(challengeInput), key=deviceKey(deviceKeyInput);
+  if(typeof signer!=="function") fail("INVALID_DEVICE","Device signer required");
+  const message=financeEvmOrderDeviceMessage(challenge);
+  const signed=normalizeDeviceSignature(await signer(Object.freeze({purpose:"finance-evm-order-approval",algorithm:"p256-sha256",deviceKey:key,payload:encodeBase64url(utf8ToBytes(message))})));
+  verifyDevice(signed,message,key);
+  return parseFinanceEvmOrderApproval({challenge,message:financeEvmOrderMessage(challenge),walletSignature:signature,deviceSignature:signed});
+}
 export async function verifyFinanceEvmOrderApproval(input,serverChallenge,authority,at,verifyContractSignature) {
   const proof=parseFinanceEvmOrderApproval(input),challenge=parseFinanceEvmOrderChallenge(serverChallenge);
   same(proof.challenge,challenge);
@@ -99,6 +107,16 @@ export function createFinanceEvmOrderReject(challengeInput,nonce,at,expiresAt,de
   const c=parseFinanceEvmOrderChallenge(challengeInput);
   const decision=parseDecision({version:"1",challengeId:c.challengeId,requestId:c.requestId,subjectId:c.subjectId,account:c.account,decision:"reject",nonce,issuedAt:time(at,"issuedAt"),expiresAt},REJECT,"reject");
   return Object.freeze({...decision,deviceSignature:signDevice(financeEvmOrderRejectMessage(decision),deviceSecret,deviceKeyInput)});
+}
+export async function createFinanceEvmOrderRejectWith(challengeInput,nonce,at,expiresAt,deviceKeyInput,signer) {
+  const c=parseFinanceEvmOrderChallenge(challengeInput),key=deviceKey(deviceKeyInput);
+  if(typeof signer!=="function") fail("INVALID_DEVICE","Device signer required");
+  const decision=parseDecision({version:"1",challengeId:c.challengeId,requestId:c.requestId,subjectId:c.subjectId,account:c.account,
+    decision:"reject",nonce,issuedAt:time(at,"issuedAt"),expiresAt},REJECT,"reject");
+  const message=financeEvmOrderRejectMessage(decision);
+  const signed=normalizeDeviceSignature(await signer(Object.freeze({purpose:"finance-evm-order-reject",algorithm:"p256-sha256",deviceKey:key,payload:encodeBase64url(utf8ToBytes(message))})));
+  verifyDevice(signed,message,key);
+  return Object.freeze({...decision,deviceSignature:signed});
 }
 // consume MUST atomically race reject against approval; a rejected challenge cannot submit any order.
 export async function verifyAndConsumeFinanceEvmOrderReject(input,serverChallenge,authority,consume,at) {

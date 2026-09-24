@@ -500,6 +500,7 @@ export type FinanceEvmSubjectLoginProof=Readonly<{challenge:FinanceEvmSubjectCha
 export type FinanceEvmSubjectSession=Readonly<{version:"1";sessionId:string;challengeDigest:string;subjectId:string;nativeAccount:null;productId:"finance";subjectNamespace:"evm";origin:"https://finance.ynxweb4.com";chainId:6423;account:string;accountType:"eoa"|"contract";scope:"finance.evm.private.read";deviceId:string;deviceAlgorithm:"p256-sha256";deviceKey:string;issuedAt:string;expiresAt:string}>;
 export type FinanceEvmSubjectHttpProof=Readonly<{version:"1";sessionId:string;challengeDigest:string;subjectId:string;account:string;origin:string;scope:"finance.evm.private.read";method:"GET"|"POST";target:string;bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string;deviceSignature:string}>;
 export type FinanceEvmContractVerifier=(input:Readonly<{account:string;chainId:6423;message:string;digest:string;signature:string}>)=>Promise<boolean>;
+export type FinanceEvmDeviceSigner=(input:Readonly<{purpose:"finance-evm-subject-login"|"finance-evm-subject-http"|"finance-evm-order-approval"|"finance-evm-order-reject";algorithm:"p256-sha256";deviceKey:string;payload:string}>)=>Promise<string>;
 export declare const FINANCE_EVM_SUBJECT_SCOPE:"finance.evm.private.read";
 export declare const FINANCE_EVM_SUBJECT_REVOKE_TARGET:"/api/evm-subject/revoke";
 export declare function parseFinanceEvmSubjectChallenge(input:unknown):FinanceEvmSubjectChallenge;
@@ -507,7 +508,7 @@ export declare function financeEvmSubjectMessage(input:unknown):string;
 export declare function financeEvmSubjectSigningRequest(input:unknown):Readonly<{method:"personal_sign";params:readonly [string,string];message:string}>;
 export declare function financeEvmSubjectDeviceMessage(input:unknown):string;
 export declare function createFinanceEvmSubjectLoginProof(challenge:unknown,walletSignature:string,deviceSecret:string):FinanceEvmSubjectLoginProof;
-export declare function createFinanceEvmSubjectLoginProofWith(challenge:unknown,walletSignature:string,signer:(input:Readonly<{purpose:"finance-evm-subject-login";algorithm:"p256-sha256";deviceKey:string;payload:string}>)=>Promise<string>):Promise<FinanceEvmSubjectLoginProof>;
+export declare function createFinanceEvmSubjectLoginProofWith(challenge:unknown,walletSignature:string,signer:FinanceEvmDeviceSigner):Promise<FinanceEvmSubjectLoginProof>;
 export declare function parseFinanceEvmSubjectLoginProof(input:unknown):FinanceEvmSubjectLoginProof;
 export declare function verifyFinanceEvmSubjectLoginProof(input:unknown,expectedChallenge:unknown,at:Date,verifyContractSignature?:FinanceEvmContractVerifier):Promise<Readonly<{account:string;accountType:"eoa"|"contract";challengeDigest:string}>>;
 export declare function parseFinanceEvmSubjectSession(input:unknown):FinanceEvmSubjectSession;
@@ -515,7 +516,9 @@ export declare function issueFinanceEvmSubjectSession(proof:unknown,expectedChal
 export declare function financeEvmSubjectHttpMessage(input:unknown):string;
 export declare function parseFinanceEvmSubjectHttpProof(input:unknown):FinanceEvmSubjectHttpProof;
 export declare function createFinanceEvmSubjectHttpProof(session:unknown,request:Readonly<{method:"GET"|"POST";target:string;bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string}>,deviceSecret:string):FinanceEvmSubjectHttpProof;
+export declare function createFinanceEvmSubjectHttpProofWith(session:unknown,request:Readonly<{method:"GET"|"POST";target:string;bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string}>,signer:FinanceEvmDeviceSigner):Promise<FinanceEvmSubjectHttpProof>;
 export declare function createFinanceEvmSubjectRevokeProof(session:unknown,request:Readonly<{bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string}>,deviceSecret:string):FinanceEvmSubjectHttpProof;
+export declare function createFinanceEvmSubjectRevokeProofWith(session:unknown,request:Readonly<{bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string}>,signer:FinanceEvmDeviceSigner):Promise<FinanceEvmSubjectHttpProof>;
 export declare function verifyAndConsumeFinanceEvmSubjectRead(proof:unknown,loadSession:(sessionId:string)=>Promise<FinanceEvmSubjectSession|null>,request:Readonly<{origin:string;method:string;target:string;bodyDigest:string;requiredScope:string;allowedTargets:readonly string[]}>,consumeActiveProof:(input:Readonly<{sessionId:string;subjectId:string;chainId:6423;account:string;challengeDigest:string;nonce:string;expiresAt:string;asOf:string}>)=>Promise<boolean>,at:Date):Promise<Readonly<{authorized:true;subjectNamespace:"evm";subjectId:string;nativeAccount:null;account:string;scope:"finance.evm.private.read";sessionId:string}>>;
 export declare function verifyAndConsumeFinanceEvmSubjectRevoke(proof:unknown,loadSession:(sessionId:string)=>Promise<FinanceEvmSubjectSession|null>,request:Readonly<{origin:string;method:string;target:string;bodyDigest:string}>,revokeAndConsume:(input:Readonly<{sessionId:string;subjectId:string;account:string;nonce:string;asOf:string}>)=>Promise<boolean>,at:Date):Promise<Readonly<{revoked:true;sessionId:string;subjectId:string}>>;
 
@@ -531,11 +534,13 @@ export declare function parseFinanceEvmOrderCallbackURL(url:string,expectedChall
 export declare function financeEvmOrderDeviceMessage(input:unknown):string;
 export declare function parseFinanceEvmOrderApproval(input:unknown):FinanceEvmOrderApproval;
 export declare function createFinanceEvmOrderApproval(challenge:unknown,walletSignature:string,deviceSecret:string,deviceKey:string):FinanceEvmOrderApproval;
+export declare function createFinanceEvmOrderApprovalWith(challenge:unknown,walletSignature:string,deviceKey:string,signer:FinanceEvmDeviceSigner):Promise<FinanceEvmOrderApproval>;
 export declare function verifyFinanceEvmOrderApproval(input:unknown,serverChallenge:unknown,authority:FinanceEvmOrderAuthority,at:Date,verifyContractSignature?:FinanceEvmContractVerifier):Promise<FinanceEvmOrderVerification>;
 export declare function verifyAndConsumeFinanceEvmOrderApproval(input:unknown,serverChallenge:unknown,authority:FinanceEvmOrderAuthority,commit:(input:FinanceEvmOrderVerification&Readonly<{asOf:string;contractSignatureRecheckRequired:boolean}>)=>Promise<boolean>,at:Date,verifyContractSignature?:FinanceEvmContractVerifier):Promise<FinanceEvmOrderVerification>;
 export declare function financeEvmOrderRejectMessage(input:unknown):string;
 export declare function financeEvmOrderRevokeMessage(input:unknown):string;
 export declare function createFinanceEvmOrderReject(challenge:unknown,nonce:string,issuedAt:string,expiresAt:string,deviceSecret:string,deviceKey:string):Readonly<Record<string,unknown>>;
+export declare function createFinanceEvmOrderRejectWith(challenge:unknown,nonce:string,issuedAt:string,expiresAt:string,deviceKey:string,signer:FinanceEvmDeviceSigner):Promise<Readonly<Record<string,unknown>>>;
 export declare function verifyAndConsumeFinanceEvmOrderReject(input:unknown,serverChallenge:unknown,authority:Readonly<{subjectId:string;account:string;sessionBinding:string;deviceKey:string;revoked:boolean}>,consume:(input:Readonly<{challengeId:string;requestId:string;subjectId:string;sessionBinding:string;nonce:string;asOf:string}>)=>Promise<boolean>,at:Date):Promise<Readonly<{rejected:true;challengeId:string;requestId:string}>>;
 export declare function createFinanceEvmOrderUnusedRevocation(challenge:unknown,approvalId:string,nonce:string,issuedAt:string,expiresAt:string,walletSignature:string):Readonly<Record<string,unknown>>;
 export declare function verifyAndConsumeFinanceEvmOrderUnusedRevocation(input:unknown,serverChallenge:unknown,authority:Readonly<{subjectId:string;account:string;brokerAccountId:string;sessionBinding:string;revoked:boolean}>,revoke:(input:Readonly<{approvalId:string;challengeId:string;requestId:string;subjectId:string;orderHash:string;nonce:string;asOf:string}>)=>Promise<boolean>,at:Date,verifyContractSignature?:FinanceEvmContractVerifier):Promise<Readonly<{revoked:true;approvalId:string;challengeId:string}>>;

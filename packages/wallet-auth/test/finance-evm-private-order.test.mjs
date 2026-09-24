@@ -7,12 +7,14 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, concatBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import { canonicalJSON } from "../src/canonical.js";
-import { encodeBase64url } from "../src/base64url.js";
+import { decodeBase64url, encodeBase64url } from "../src/base64url.js";
 import {
   createFinanceEvmSubjectLoginProof, financeEvmSubjectMessage, financeEvmSubjectSigningRequest, issueFinanceEvmSubjectSession,
-  createFinanceEvmSubjectHttpProof, createFinanceEvmSubjectRevokeProof, verifyAndConsumeFinanceEvmSubjectRead, verifyAndConsumeFinanceEvmSubjectRevoke,
+  createFinanceEvmSubjectHttpProof, createFinanceEvmSubjectHttpProofWith, createFinanceEvmSubjectRevokeProof, createFinanceEvmSubjectRevokeProofWith,
+  verifyAndConsumeFinanceEvmSubjectRead, verifyAndConsumeFinanceEvmSubjectRevoke,
   parseFinanceEvmSubjectChallenge, parseFinanceEvmOrderChallenge, financeEvmOrderMessage, financeEvmOrderSigningRequest,
-  createFinanceEvmOrderApproval, verifyAndConsumeFinanceEvmOrderApproval, createFinanceEvmOrderReject,
+  createFinanceEvmOrderApproval, createFinanceEvmOrderApprovalWith, verifyAndConsumeFinanceEvmOrderApproval,
+  createFinanceEvmOrderReject, createFinanceEvmOrderRejectWith,
   createFinanceEvmOrderCallbackURL, parseFinanceEvmOrderCallbackURL,
   verifyAndConsumeFinanceEvmOrderReject, financeEvmOrderRevokeMessage, createFinanceEvmOrderUnusedRevocation,
   verifyAndConsumeFinanceEvmOrderUnusedRevocation, financeOrderHash, ethereumPersonalMessageDigest,
@@ -106,6 +108,28 @@ test("EIP-1271 contract account requires the exact chain-bound verifier for logi
   const result=await verifyAndConsumeFinanceEvmOrderApproval(approval,challenge,authority,async input=>{recheck=input.contractSignatureRecheckRequired;return true;},now,verify);
   assert.equal(result.verified,true);assert.equal(recheck,true);assert.equal(checked.length,2);
   await assert.rejects(verifyAndConsumeFinanceEvmOrderApproval(approval,challenge,authority,async()=>true,now,async()=>false),{code:"INVALID_SIGNATURE"});
+});
+
+test("platform signer handles nonextractable-key shaped compact P-256 output for read, revoke, approval and reject",async()=>{
+  const purposes=[];
+  const signer=async ({purpose,algorithm,deviceKey,payload})=>{
+    purposes.push(purpose);assert.equal(algorithm,"p256-sha256");assert.equal(deviceKey,key);
+    return encodeBase64url(p256.sign(decodeBase64url(payload),deviceSecret,{format:"compact"}));
+  };
+  const session=await issueFinanceEvmSubjectSession(login,c,issue,async()=>true,now);
+  const proof=await createFinanceEvmSubjectHttpProofWith(session,request,signer);
+  assert.equal((await verifyAndConsumeFinanceEvmSubjectRead(proof,async()=>session,context,async()=>true,now)).authorized,true);
+  const revoke=await createFinanceEvmSubjectRevokeProofWith(session,{bodyDigest:"c".repeat(64),nonce:"revoke_nonce_0123456789abcdefghijklmnop",
+    issuedAt:request.issuedAt,expiresAt:request.expiresAt},signer);
+  assert.equal((await verifyAndConsumeFinanceEvmSubjectRevoke(revoke,async()=>session,{origin:c.origin,method:"POST",
+    target:"/api/evm-subject/revoke",bodyDigest:"c".repeat(64)},async()=>true,now)).revoked,true);
+  const approval=await createFinanceEvmOrderApprovalWith(orderChallenge,sign(financeEvmOrderMessage(orderChallenge)),key,signer);
+  assert.equal((await verifyAndConsumeFinanceEvmOrderApproval(approval,orderChallenge,orderAuthority,async()=>true,now)).verified,true);
+  const reject=await createFinanceEvmOrderRejectWith(orderChallenge,"reject_nonce_0123456789abcdefghijklmnop",t,end,key,signer);
+  assert.equal((await verifyAndConsumeFinanceEvmOrderReject(reject,orderChallenge,{subjectId,account,
+    sessionBinding:orderChallenge.sessionBinding,deviceKey:key,revoked:false},async()=>true,now)).rejected,true);
+  assert.deepEqual(purposes,["finance-evm-subject-http","finance-evm-subject-http","finance-evm-order-approval","finance-evm-order-reject"]);
+  await assert.rejects(createFinanceEvmOrderApprovalWith(orderChallenge,sign(financeEvmOrderMessage(orderChallenge)),key,async()=>encodeBase64url(new Uint8Array(64))),{code:"INVALID_DEVICE_PROOF"});
 });
 
 test("EVM order approval requires exact wallet and device signatures and one atomic provider order",async()=>{
