@@ -145,6 +145,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.web)
 	s.mux.HandleFunc("GET /auth/callback", s.web)
 	s.mux.HandleFunc("GET /app.js", s.web)
+	s.mux.HandleFunc("GET /finance-locale.js", s.web)
 	s.mux.HandleFunc("GET /read-sources.js", s.web)
 	s.mux.HandleFunc("GET /product-catalog.js", s.web)
 	s.mux.HandleFunc("GET /styles.css", s.web)
@@ -757,7 +758,7 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
-	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/wallet-auth.js": "wallet-auth.js", "/order-wallet.js": "order-wallet.js", "/read-sources.js": "read-sources.js", "/product-catalog.js": "product-catalog.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
+	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/finance-locale.js": "finance-locale.js", "/wallet-auth.js": "wallet-auth.js", "/order-wallet.js": "order-wallet.js", "/read-sources.js": "read-sources.js", "/product-catalog.js": "product-catalog.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
 	if name == "" || s.cfg.WebDir == "" {
 		http.NotFound(w, r)
 		return

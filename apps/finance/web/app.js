@@ -1,4 +1,8 @@
 const state={connected:false,overview:null,aiJob:null,aiTimer:null,context:0,brokerAssets:new Map(),brokerWatchlist:new Map(),brokerSelectedAsset:null,brokerSubmissionEnabled:false};
+const financeText=(key)=>window.YNXFinanceLocale?.text(key)??key;
+let brokerConfigurationState='brokerStatusMissing';
+function renderBrokerConfigurationStatus(){const target=document.querySelector('#broker-status');if(target)target.textContent=financeText(brokerConfigurationState)}
+document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();if(!state.connected)route()});
 // Guest-readable diagnostics only. This never requests a Wallet account, signs,
 // reads broker credentials or automatically enables order submission.
 let brokerCheckRevision=0;
@@ -13,13 +17,13 @@ async function refreshBrokerConfiguration(){
     if(result.schema!=='ynx-finance-broker-status-v1'||result.status?.tradingEnvironment!=='sandbox'||result.status?.chainEnvironment!=='testnet'||typeof result.status?.enabled!=='boolean'||typeof result.status?.submissionEnabled!=='boolean')throw new Error('invalid');
     if(revision!==brokerCheckRevision)return;
 	state.brokerSubmissionEnabled=result.status.submissionEnabled;
-    document.querySelector('#broker-status').textContent=!result.status.enabled?'Sandbox module disabled. No broker connection is verified; submission is disabled.':result.status.state==='CONFIGURED_NOT_VERIFIED'?'Configuration present. Official Sandbox, linked account and trading permissions are not verified.':'Not configured / disconnected. Submission is disabled; no sample balances or trades are substituted.';
+    brokerConfigurationState=!result.status.enabled?'brokerDisabled':result.status.state==='CONFIGURED_NOT_VERIFIED'?'brokerConfigured':'brokerDisconnected';renderBrokerConfigurationStatus();
 	document.querySelector('#broker-approval').textContent=result.walletOrderApproval==='frozen_contract_with_owner_scoped_execution_request'?'Frozen Finance/Wallet approval can queue one owner-scoped controlled-worker request when server activation is enabled.':'Wallet order approval is unavailable.';
     document.querySelector('#broker-journal').textContent=result.durableOrderJournal==='implemented_state_v2'?'Persistent v2 journal and one-time outbox are implemented. Any provider POST requires the separate operator worker and activation receipt; this page cannot submit.':'Durable order journal status is unavailable.';
     route();
 	  }catch{
 	state.brokerSubmissionEnabled=false;
-    if(revision===brokerCheckRevision)document.querySelector('#broker-status').textContent='Configuration check unavailable. Retry is read-only; order submission remains disabled.';
+    if(revision===brokerCheckRevision){brokerConfigurationState='brokerCheckUnavailable';renderBrokerConfigurationStatus()}
   }finally{clearTimeout(timer)}
 }
 function clearBrokerSnapshot(message='Sign in to read an owner-mapped Sandbox account. Guest mode never receives balances, positions or orders.'){
@@ -33,12 +37,12 @@ function selectBrokerAsset(asset){
 }
 function renderBrokerAssets(assets){
   state.brokerAssets=new Map(assets.map(asset=>[asset.id,asset]));
-  $('#broker-asset-results').innerHTML=assets.length?assets.map(asset=>`<div class="row"><div class="row-main"><strong>${esc(asset.symbol)}</strong><small>${esc(asset.name)} · active/tradable Sandbox asset</small></div><div class="wallet-choice"><button type="button" data-broker-select="${esc(asset.id)}">Select</button>${state.connected?`<button type="button" data-broker-watch="${esc(asset.id)}">Add to watchlist</button>`:''}</div></div>`).join(''):'<div class="empty compact">No active tradable provider asset matched. Nothing was substituted.</div>';
+  $('#broker-asset-results').innerHTML=assets.length?assets.map(asset=>`<div class="row"><div class="row-main"><strong>${esc(asset.symbol)}</strong><small>${esc(asset.name)} · active/tradable Sandbox asset</small></div><div class="wallet-choice"><button type="button" data-broker-select="${esc(asset.id)}">Select</button>${state.connected?`<button type="button" data-broker-watch="${esc(asset.id)}">Add to watchlist</button>`:''}</div></div>`).join(''):`<div class="empty compact">${esc(financeText('brokerNoAssets'))}</div>`;
 }
 async function searchBrokerAssets(event){
   event?.preventDefault();const query=String(new FormData($('#broker-asset-search')).get('query')||'').trim();
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
-  try{const response=await fetch(`/api/broker/assets?query=${encodeURIComponent(query)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-assets-v1'||!Array.isArray(result.assets))throw new Error(result?.error||'Sandbox asset directory is unavailable.');renderBrokerAssets(result.assets)}catch(error){renderBrokerAssets([]);notify(error.message||'Sandbox asset directory is unavailable.',true)}finally{clearTimeout(timer)}
+  try{const response=await fetch(`/api/broker/assets?query=${encodeURIComponent(query)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-assets-v1'||!Array.isArray(result.assets))throw new Error('Sandbox asset directory is unavailable.');renderBrokerAssets(result.assets)}catch{renderBrokerAssets([]);notify(financeText('brokerAssetsUnavailable'),true)}finally{clearTimeout(timer)}
 }
 function renderBrokerWatchlist(items){
   const list=Array.isArray(items)?items:[];
@@ -233,7 +237,7 @@ $('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListen
 $('#ai-order-intent').addEventListener('submit',event=>{event.preventDefault();startAI()});
 $('#ai-kind').addEventListener('change',()=>$('#ai-order-intent').classList.toggle('hidden',$('#ai-kind').value!=='draft_broker_order'));
 
-function route(){const id=(location.hash||(state.connected?'#overview':'#markets')).slice(1);$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('#nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${id}`));const heading=$(`#${id} h2`);if(state.connected&&heading)$('#page-title').textContent=heading.textContent;else if(!state.connected)$('#page-title').textContent='Your money, with its evidence attached.'}
+function route(){const id=(location.hash||(state.connected?'#overview':'#markets')).slice(1);$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('#nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${id}`));const heading=$(`#${id} h2`);if(state.connected&&heading)$('#page-title').textContent=heading.textContent;else if(!state.connected)$('#page-title').textContent=financeText('pageTitle')}
 window.addEventListener('ynx-finance-standard-state',()=>{state.context++;clearInterval(state.aiTimer)});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView();if(event.detail?.status==='connected')load()});
 window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('Offline · reconnect when network returns','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);

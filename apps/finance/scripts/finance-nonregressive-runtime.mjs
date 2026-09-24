@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 // reviewable source entries used to generate the standalone browser bundles.
 export const runtimeFiles=Object.freeze([
   'app.js',
+  'finance-locale.js',
   'health.json',
   'index.html',
   'manifest.webmanifest',
