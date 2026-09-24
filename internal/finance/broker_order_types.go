@@ -169,6 +169,8 @@ type BrokerOrderRecord struct {
 	ProviderHTTPRequestID string         `json:"providerHttpRequestId,omitempty"`
 	ProviderEventCursor   string         `json:"providerEventCursor,omitempty"`
 	ProviderEventAt       time.Time      `json:"providerEventAt,omitempty"`
+	CancelIntentAt        time.Time      `json:"cancelIntentAt,omitempty"`
+	CancelAttemptedAt     time.Time      `json:"cancelAttemptedAt,omitempty"`
 	CreatedAt             time.Time      `json:"createdAt"`
 	UpdatedAt             time.Time      `json:"updatedAt"`
 }

@@ -724,7 +724,7 @@ func validateBrokeragePersistence(account string, state BrokerageAccountState) e
 		}
 	}
 	for orderID, order := range state.Orders {
-		if orderID != order.Order.OrderID || !validApproval[order.ApprovalState] || !validOrder[order.State] || (order.ProviderRawStatus != "" && !brokerageCursor(order.ProviderRawStatus)) || (order.ProviderHTTPRequestID != "" && !brokerageCursor(order.ProviderHTTPRequestID)) || (order.ProviderEventCursor != "" && !brokerageCursor(order.ProviderEventCursor)) {
+		if orderID != order.Order.OrderID || !validApproval[order.ApprovalState] || !validOrder[order.State] || (order.ProviderRawStatus != "" && !brokerageCursor(order.ProviderRawStatus)) || (order.ProviderHTTPRequestID != "" && !brokerageCursor(order.ProviderHTTPRequestID)) || (order.ProviderEventCursor != "" && !brokerageCursor(order.ProviderEventCursor)) || (!order.CancelAttemptedAt.IsZero() && order.CancelIntentAt.IsZero()) {
 			return errors.New("finance state contains an invalid Broker order")
 		}
 		if order.ApprovalState == "consumed" {
