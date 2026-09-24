@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "ynx.finance.evm-login-identity-fence-followup.v1",
+  "status": "STACKED_SOURCE_BUILD_ONLY",
+  "implementationCommit": "b4ae9336509b15e6a504044d9396bedfb5a135e5",
+  "implementationTree": "93fd7dc8841cad0f4a60348b28630def02cf1bd8",
+  "supersedesSourceCandidate": "cb3b7939b90551778da8a92806f08c71048c8056",
+  "branch": "codex/finance-wallet-login-stacked-pr188-20260924",
+  "draftPullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/192",
+  "walletDependency": {
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/188",
+    "exactCandidate": "474e5f619a16caa5f7190750dad8b1ffebc500dd",
+    "reviewRequired": true,
+    "merged": false
+  },
+  "newFence": "The browser requires exact Finance productId, sole finance.account.read scope, requestId, selected account/provider and 0x1917 on both challenge and verification receipt; an account change while personal_sign is pending prevents proof submission and preserves Standard Wallet.",
+  "tests": {
+    "financeNode": "85/85 pass including 26/26 local Chrome Wallet flow fixtures",
+    "goFinance": "go test ./internal/finance ./apps/finance/cmd/server -count=1: pass at predecessor implementation",
+    "goRace": "go test -race ./internal/finance -count=1: pass at predecessor implementation",
+    "officialRepository": "npm ci --ignore-scripts && make contract-tooling-check && make test: pass at predecessor implementation; no Go source changed in this successor",
+    "walletVerifier": "two byte-exact browser bundle rebuilds pass",
+    "security": "Finance security gate passed across 277 text files"
+  },
+  "candidate": {
+    "localArchive": "/tmp/ynx-finance-pr188-b4ae9336-linux-amd64.tar.gz",
+    "archiveBytes": 30585062,
+    "archiveSha256": "b18818bf84056d48481f23f66da6113ec280fe8cc3685555fdec2c53e4158ba4",
+    "sidecarSha256": "f1dab3888513da366f183bc9bcdc9928afd84aa67d4dd5ca70e619b8730b18e2",
+    "repeatedBuildByteExact": true,
+    "linuxAmd64BinaryBytes": 20709524,
+    "linuxAmd64BinarySha256": "3ab5737d987461c005305c2a45dceb361a36bd1183e2df0ca9002eb0bee69107",
+    "webAppBytes": 49924,
+    "webAppSha256": "19cbd150ec2255da19ff1dd74a1465b3e46ce8aebe11a270038f6f45458e80ce",
+    "standaloneVerifierSha256": "a38f4fb4559adbf4bc99fb4f4195362a3e9821314bd24b16b7255670a22ae114"
+  },
+  "toolingObservation": "The repository contract-generation command rebuilt ./artifacts and removed eight tracked artifacts/finance files in this worktree. Those exact eight files were restored from the clean implementation HEAD before this evidence was committed; no deletions are included.",
+  "hostedCI": {
+    "reportedOnStackedPullRequest": false,
+    "reason": "ci.yml handles PRs targeting main; finance-release.yml handles workflow_dispatch or push to codex/final-finance, not this stacked branch. Its test job also lacks Finance/Web npm ci prerequisites. Shared workflow changes require their own owner authorization."
+  },
+  "publicRead": {
+    "url": "https://finance.ynxweb4.com/version",
+    "result": "read-only curl max-time 10 returned exit 28, HTTP 000, zero bytes from this environment; this is not proof of a production outage"
+  },
+  "completionGates": {
+    "walletPR188Merged": false,
+    "privateFinanceSessionBoundToProof": false,
+    "independentFinanceDeploymentLease": false,
+    "publicSourceBound": false,
+    "realInstalledProviderApproval": false,
+    "realSignatureAndCallback": false,
+    "mainlineReady": false,
+    "transactionExecuted": false
+  }
+}
