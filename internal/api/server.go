@@ -1788,6 +1788,21 @@ func (s *Server) rpcResponse(req rpcRequest) rpcResponse {
 }
 
 func (s *Server) evmResult(method string, params []any) (any, error) {
+	// These identifiers are fixed by the network config captured at server
+	// construction. Keep them available while replicated state owns Devnet's
+	// write lock; even checking the native-transfer flag would wait on it.
+	switch method {
+	case "eth_chainId":
+		if len(params) != 0 {
+			return nil, rpcInvalidParams("eth_chainId accepts no parameters")
+		}
+		return hexQuantity(uint64(s.networkConfig.ChainID)), nil
+	case "net_version":
+		if len(params) != 0 {
+			return nil, rpcInvalidParams("net_version accepts no parameters")
+		}
+		return fmt.Sprint(s.networkConfig.ChainID), nil
+	}
 	// The Faucet probes this static, chain-bound capability before admitting a
 	// request. Serve it without taking the Devnet state lock: authoritative
 	// snapshot persistence can hold that lock while serializing long public
@@ -1804,18 +1819,8 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 }
 
 func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
-	cfg, latest := s.devnet.Config(), s.devnet.LatestBlock()
+	latest := s.devnet.LatestBlock()
 	switch method {
-	case "eth_chainId":
-		if len(params) != 0 {
-			return nil, rpcInvalidParams("eth_chainId accepts no parameters")
-		}
-		return hexQuantity(uint64(cfg.ChainID)), nil
-	case "net_version":
-		if len(params) != 0 {
-			return nil, rpcInvalidParams("net_version accepts no parameters")
-		}
-		return fmt.Sprint(cfg.ChainID), nil
 	case "eth_blockNumber":
 		if len(params) != 0 {
 			return nil, rpcInvalidParams("eth_blockNumber accepts no parameters")
