@@ -95,9 +95,11 @@ test('language switch relabels loaded AI records without dropping exact selected
     const selected=await page.locator('#ai-records input:checked').inputValue();
     await page.evaluate(()=>window.YNXFinanceLocale.set('zh-CN'));
     assert.equal(await page.locator('#ai-records input:checked').inputValue(),selected);
+    assert.match(await page.locator('#assistant .section-head p').textContent(),/获得同意后/u);
     await page.selectOption('#finance-language','ar');
     assert.equal(await page.locator('#ai-records input:checked').inputValue(),selected);
     assert.equal(await page.locator('html').getAttribute('dir'),'rtl');
+    assert.match(await page.locator('#assistant .section-head p').textContent(),/المعاينة/u);
     assert.deepEqual(errors,[]);
   }finally{await page.close()}
 });
