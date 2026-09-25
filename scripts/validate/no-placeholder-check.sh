@@ -10,6 +10,13 @@ done
 # and lockfile integrity digests containing "NYXT" do not become false positives.
 bad='example\.com|your_key_here|(^|[^[:alnum:]_])changeme([^[:alnum:]_]|$)|fake TPS|fake TVL|fake user|fake provider|fake transaction|fake price|fake revenue|fake APY|fake liquidity|hard-coded success|coming soon|(^|[^[:alnum:]_])NYXT([^[:alnum:]_]|$)'
 
+# This immutable endpoint policy names a forbidden domain in its denylist.
+# Pin every byte before exempting it; a changed policy must be reviewed again.
+card_policy='apps/card/vendor/public-endpoint-manifest-1.0.0-p0.2.json'
+if [[ -f "$card_policy" ]]; then
+  node -e 'const fs=require("node:fs"),crypto=require("node:crypto"); const hash=crypto.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"); if(hash!=="d559741a20fe37cf1e0a9fec2bf00d144709a1bfe579a13ec139354fa1fe0e74") {console.error("Card endpoint denylist policy changed; review required");process.exit(1)}' "$card_policy"
+fi
+
 found=1
 if command -v rg >/dev/null 2>&1; then
   if rg -n --hidden \
@@ -34,6 +41,7 @@ if command -v rg >/dev/null 2>&1; then
     -g '!apps/cloud/scripts/security-gate.mjs' \
     -g '!apps/cloud/UNIT_ECONOMICS.md' \
     -g '!apps/finance/mobile/contract/public-endpoint-manifest.json' \
+    -g '!apps/card/vendor/public-endpoint-manifest-1.0.0-p0.2.json' \
     -e "$bad" "${scan_targets[@]}"; then
     found=0
   else
@@ -61,6 +69,7 @@ else
     --exclude='security-gate.mjs' \
     --exclude='UNIT_ECONOMICS.md' \
     --exclude='public-endpoint-manifest.json' \
+    --exclude='public-endpoint-manifest-1.0.0-p0.2.json' \
     --exclude='*.test.*' \
     --exclude='*_test.go' \
     --exclude-dir='.git' \
