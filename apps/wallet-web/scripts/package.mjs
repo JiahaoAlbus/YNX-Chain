@@ -1,5 +1,6 @@
 import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
+import {extensionVersion} from "../src/extension-manifest.js";
 import {mkdir, readFile, readdir, rm, stat, utimes, writeFile} from "node:fs/promises";
 import {dirname, join, resolve} from "node:path";
 import {fileURLToPath} from "node:url";
@@ -34,9 +35,9 @@ async function normalizeMtime(path) {
   await utimes(path, reproducibleTime, reproducibleTime);
 }
 const entries = [
-  ["ynx-wallet-web-pwa-0.1.1.zip", "pwa", "modern browser with Service Worker and Web Crypto support", "unsigned-web-bundle", ["PWA"]],
-  ["ynx-wallet-chrome-edge-0.1.1.zip", "chromium", "Chrome 120 / Edge 120", "unsigned-unpacked-extension", ["Chrome", "Edge"]],
-  ["ynx-wallet-firefox-0.1.1.zip", "firefox", "Firefox 142 desktop", "unsigned-unpacked-extension", ["Firefox"]],
+  [`ynx-wallet-web-pwa-${extensionVersion}.zip`, "pwa", "modern browser with Service Worker and Web Crypto support", "unsigned-web-bundle", ["PWA"]],
+  [`ynx-wallet-chrome-edge-${extensionVersion}.zip`, "chromium", "Chrome 120 / Edge 120", "unsigned-unpacked-extension", ["Chrome", "Edge"]],
+  [`ynx-wallet-firefox-${extensionVersion}.zip`, "firefox", "Firefox 142 desktop", "unsigned-unpacked-extension", ["Firefox"]],
 ];
 const records = [];
 for (const [name, folder, minimumOS, signingClass, browsers] of entries) {
@@ -54,7 +55,7 @@ for (const [name, folder, minimumOS, signingClass, browsers] of entries) {
   const data = await readFile(output); const info = await stat(output);
   records.push({name, path:`artifacts/${name}`, bytes:info.size, sha256:createHash("sha256").update(data).digest("hex"), minimumOS, signingClass, browsers, installedLocal:false, productionSigned:false, storeReleased:false});
 }
-const manifest = {schemaVersion:1,productId:"wallet-web",version:"0.1.1-testnet-preview.1",sourceCommit,implementedLocal:true,testedLocal:true,installedLocal:false,integratedCentral:false,deployedStaging:false,deployedPublic:false,downloadHosted:false,productionSigned:false,storeReleased:false,artifacts:records};
+const manifest = {schemaVersion:1,productId:"wallet-web",version:`${extensionVersion}-testnet-preview.1`,sourceCommit,implementedLocal:true,testedLocal:true,installedLocal:false,integratedCentral:false,deployedStaging:false,deployedPublic:false,downloadHosted:false,productionSigned:false,storeReleased:false,artifacts:records};
 await mkdir(dirname(manifestOutput), {recursive: true});
 await writeFile(manifestOutput, `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(JSON.stringify(manifest, null, 2));

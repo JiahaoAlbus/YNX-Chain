@@ -19,6 +19,23 @@ const vaultPromise=createEncryptedVault({password:PASSWORD,secretHex:SECRET},web
 const source=await readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8"),bindings={};
 for(const match of source.matchAll(/^import \{([^}]+)\} from "\.\/([^"]+)";$/gm)){const module=await import(new URL(`../src/${match[2]}`,import.meta.url));for(const name of match[1].split(","))bindings[name]=module[name]}
 const executable=source.replace(/^import .*;\n/gm,"");
+
+test("orphaned index and permission never expose an account without its encrypted vault",async t=>{
+  const indexed={version:1,source:"ynx-wallet-vault",account:ACCOUNT};
+  const f=await fixture(t,{existingLocal:{[PROVIDER_ACCOUNT_KEY]:indexed,[PROVIDER_PERMISSIONS_KEY]:grantPermission({},ORIGIN,indexed)}});
+  assert.deepEqual(Array.from((await f.request("eth_accounts",[]).result).result),[]);
+  assert.equal((await f.request("eth_requestAccounts",[]).result).error.code,"PROVIDER_ACCOUNT_UNAVAILABLE");
+  assert.equal(f.state.opened.length,0);
+});
+
+test("existing vault with missing provider index requires fresh site approval",async t=>{
+  const vault=await vaultPromise,indexed={version:1,source:"ynx-wallet-vault",account:ACCOUNT};
+  const f=await fixture(t,{existingLocal:{[EXTENSION_VAULT_KEY]:vault,[PROVIDER_PERMISSIONS_KEY]:grantPermission({},ORIGIN,indexed)}});
+  const request=f.request("eth_requestAccounts",[]);await f.nextWindow();
+  assert.deepEqual(f.localState[PROVIDER_PERMISSIONS_KEY],{});
+  await f.connectDecision(request.reviewId);
+  assert.deepEqual(Array.from((await request.result).result),[ACCOUNT]);
+});
 async function fixture(t,{permitted=true,existingLocal=null,existingSession=null,firefox=false,browserContext="firefox-container-1"}={}){
   const vault=await vaultPromise,account={version:1,source:"ynx-wallet-vault",account:ACCOUNT},localState=existingLocal??{[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:permitted?grantPermission({},ORIGIN,account):{}};
   const state={documentNonce:"a".repeat(64),documentId:firefox?undefined:"FF2F212A00379D284FE8558A23819E2D",probes:0,tabId:1,incognito:false,cookieStoreId:firefox?browserContext:undefined,contextByTab:{},url:`${ORIGIN}/request`,nonce:"0x1",chain:"0x1917",calls:[],signCalls:0,broadcasts:0,unlocks:0,opened:[],closed:[],events:[]};

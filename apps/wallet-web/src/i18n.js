@@ -566,6 +566,21 @@ const addressCopyRows={
   ]
 };
 function addressCopy(locale){return Object.fromEntries(["copyAddress","addressCopied","evmCompatibility","invalidAddress","noWalletHelp"].map((key,index)=>[key,(addressCopyRows[locale]||addressCopyRows.en)[index]]))}
-export function catalog(locale) { return Object.freeze({...en, ...(overrides[locale] || {}),...(connectOverrides[locale]||{}),...uiCopy(locale),...addressCopy(locale)}); }
+const connectionActionCopy={
+  en:["Manage account in Wallet","Wallet permission revocation could not be verified. Check the connected site in YNX Wallet before reconnecting.","Open the YNX Wallet account vault to manage accounts."],
+  "zh-CN":["在钱包中管理账户","无法验证钱包授权是否已撤销。重新连接前请在 YNX Wallet 检查已连接网站。","请打开 YNX Wallet 账户保险库管理账户。"],
+  "zh-TW":["在錢包中管理帳戶","無法驗證錢包授權是否已撤銷。重新連線前請在 YNX Wallet 檢查已連線網站。","請開啟 YNX Wallet 帳戶保管庫管理帳戶。"],
+  ja:["ウォレットでアカウントを管理","ウォレットの権限取り消しを確認できません。再接続前にYNX Walletで接続先を確認してください。","YNX Walletのアカウント保管庫を開いてください。"],
+  ko:["지갑에서 계정 관리","지갑 권한 철회를 확인할 수 없습니다. 다시 연결하기 전에 YNX Wallet에서 연결된 사이트를 확인하세요.","YNX Wallet 계정 보관함을 여세요."],
+  es:["Gestionar cuenta en Wallet","No se pudo verificar la revocación del permiso. Revisa el sitio conectado en YNX Wallet antes de reconectar.","Abre la bóveda de cuentas de YNX Wallet."],
+  fr:["Gérer le compte dans Wallet","La révocation de l’autorisation n’a pas pu être vérifiée. Vérifiez le site connecté dans YNX Wallet avant de vous reconnecter.","Ouvrez le coffre des comptes de YNX Wallet."],
+  de:["Konto in Wallet verwalten","Der Widerruf der Berechtigung konnte nicht bestätigt werden. Prüfe die verbundene Website in YNX Wallet vor dem erneuten Verbinden.","Öffne den Kontotresor von YNX Wallet."],
+  pt:["Gerenciar conta na Wallet","Não foi possível verificar a revogação da permissão. Confira o site conectado na YNX Wallet antes de reconectar.","Abra o cofre de contas da YNX Wallet."],
+  ru:["Управлять аккаунтом в Wallet","Не удалось проверить отзыв разрешения. Перед повторным подключением проверьте сайт в YNX Wallet.","Откройте хранилище аккаунтов YNX Wallet."],
+  ar:["إدارة الحساب في المحفظة","تعذر التحقق من إلغاء الإذن. تحقق من الموقع المتصل في YNX Wallet قبل إعادة الاتصال.","افتح خزنة حسابات YNX Wallet."],
+  id:["Kelola akun di Wallet","Pencabutan izin belum dapat diverifikasi. Periksa situs terhubung di YNX Wallet sebelum menyambung lagi.","Buka brankas akun YNX Wallet."],
+};
+function connectionActions(locale){return Object.fromEntries(["manageAccount","revocationUnverified","accountManagementUnavailable"].map((key,index)=>[key,(connectionActionCopy[locale]||connectionActionCopy.en)[index]]))}
+export function catalog(locale) { return Object.freeze({...en, ...(overrides[locale] || {}),...(connectOverrides[locale]||{}),...uiCopy(locale),...addressCopy(locale),...connectionActions(locale)}); }
 export function untranslatedKeys(locale) { const localized={...(overrides[locale]||{}),...(connectOverrides[locale]||{})};return locale === "en" ? [] : [...Object.keys(en).filter(key=>!Object.hasOwn(localized,key)),...uiKeys.filter((key,index)=>!uiTranslations[locale]?.[index]),...connectionUiKeys.filter((key,index)=>!connectionUiRows[locale]?.[index])]; }
 export function isRTL(locale) { return locale === "ar"; }

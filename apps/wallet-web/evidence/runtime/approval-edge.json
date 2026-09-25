@@ -1,19 +1,24 @@
 {
-  "schemaVersion": 1,
-  "sourceCommit": "48f725d4487ab200684f89cda7c8253761dc2f6e",
-  "generatedAt": "2026-09-20T00:58:59.587Z",
+  "schemaVersion": 2,
+  "sourceCommit": "40c2814d6e87e19ce2762737356c4f9d1128a69d",
+  "generatedAt": "2026-09-25T03:08:55.545Z",
+  "hostLoadAverageStart": [
+    11.76953125,
+    90.1484375,
+    141.845703125
+  ],
   "browser": {
     "id": "edge",
     "name": "Microsoft Edge",
-    "version": "153.0.4234.32",
+    "version": "153.0.4234.48",
     "branded": true
   },
   "runtimeClass": "temporary unpacked extension in an isolated disposable profile",
   "fixtureAuthority": "local HTTPS DApp with an immutable foreign MetaMask-shaped provider; no account, signature or transaction fixture implementation",
   "artifact": {
-    "manifestSha256": "fb171f94af2cce9ee929da28d3fdf6b03e048e64ba63b8ed3d34d074139a8f1e",
+    "manifestSha256": "2124da457296c7d7eecf31ab9c8461ae5e65e4ff85c202635b49ecb610b91a0e",
     "pageProviderSha256": "03ab34029146cd37c8a7f13a4c25cbc33ebcf4bba7204058a7c0477eb0b35e8a",
-    "buildSourceCommit": "48f725d4487ab200684f89cda7c8253761dc2f6e",
+    "buildSourceCommit": "40c2814d6e87e19ce2762737356c4f9d1128a69d",
     "sourceDirectory": "dist/chromium"
   },
   "passed": true,
@@ -22,6 +27,14 @@
   "vaultCreatedThroughUi": true,
   "providerConnected": true,
   "accountAuthorized": true,
+  "chainIdProved": true,
+  "addChainAccepted": true,
+  "switchChainAccepted": true,
+  "invalidChainRejected": true,
+  "approvalRejected": true,
+  "refreshDisconnected": true,
+  "accountSwitchRevoked": true,
+  "accountSwitched": true,
   "messageSigned": true,
   "signatureRecovered": true,
   "permissionRevoked": true,
@@ -33,11 +46,63 @@
   "storeReleased": false,
   "serviceWorker": {
     "started": true,
-    "url": "chrome-extension://jmpmcjigljnhlpgjldgfheiiekiokhcm/service-worker.js"
+    "url": "chrome-extension://onflbfnacciilfdkgckmfebopacildgo/service-worker.js"
   },
-  "account": "0x89f16866a8e18c7b4715c41bfe9977738a22b469",
-  "connectedAccounts": [
-    "0x89f16866a8e18c7b4715c41bfe9977738a22b469"
+  "account": "0x46481ee2ce3ea1a469d75763d1d0150c0735dad1",
+  "steps": [
+    {
+      "name": "discovered",
+      "elapsedMs": 1
+    },
+    {
+      "name": "chain-returned",
+      "elapsedMs": 4
+    },
+    {
+      "name": "approval-opened",
+      "elapsedMs": 107
+    },
+    {
+      "name": "approval-clicked",
+      "elapsedMs": 136
+    },
+    {
+      "name": "account-returned",
+      "elapsedMs": 152
+    },
+    {
+      "name": "network-checked",
+      "elapsedMs": 163
+    },
+    {
+      "name": "permission-revoked",
+      "elapsedMs": 511
+    },
+    {
+      "name": "approval-rejected",
+      "elapsedMs": 657
+    },
+    {
+      "name": "page-refreshed",
+      "elapsedMs": 695
+    },
+    {
+      "name": "account-switched-in-vault",
+      "elapsedMs": 935
+    },
+    {
+      "name": "new-account-returned",
+      "elapsedMs": 1089
+    }
   ],
-  "signatureSha256": "1493769f79e6d80d18455ab618c46afb61a279325f92cf4f5d2a4e3f42c1e2d8"
+  "connectedAccounts": [
+    "0x46481ee2ce3ea1a469d75763d1d0150c0735dad1"
+  ],
+  "signatureSha256": "c0f8c7d45987f58cd6f0f2be9d42586759ba8f7c7fac4c288991dcf677cc81f1",
+  "replacementAccount": "0xb018238f55ad811d4e0340f4016b43c5a5691f0d",
+  "hostLoadAverageEnd": [
+    11.06689453125,
+    88.701171875,
+    141.03173828125
+  ]
 }

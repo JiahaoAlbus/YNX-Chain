@@ -252,6 +252,23 @@ export async function connectWallet(provider, options = {}) {
   return (await connectStandardWallet(provider,options.wallet||"ynx",options)).session;
 }
 
+/** Revoke the selected DApp's account grant before the companion forgets its
+ * own display state. A successful provider method alone is insufficient. */
+export async function disconnectStandardWallet(provider){
+  requireYNXProvider(provider);
+  try{
+    try{await requestYNX(provider,{method:"wallet_revokePermissions",params:[{eth_accounts:{}}]})}
+    catch(error){
+      const code=error?.code??error?.data?.code;
+      if(![-32601,4200,"-32601","4200"].includes(code))throw error;
+      await requestYNX(provider,{method:"ynx_disconnect",params:[]});
+    }
+    const accounts=await requestYNX(provider,{method:"eth_accounts"});
+    if(!Array.isArray(accounts)||accounts.length!==0)throw new Error("Provider still reports an approved account after revocation.");
+  }catch(error){fail("PERMISSION_REVOCATION_UNVERIFIED","Wallet permission revocation could not be verified. Check the connected site in YNX Wallet.",error)}
+  return true;
+}
+
 export async function restoreTestnetSession(provider, storage = globalThis.localStorage, {assertCurrent=()=>{}}={}) {
   assertCurrent();
   if (!storage) return null;

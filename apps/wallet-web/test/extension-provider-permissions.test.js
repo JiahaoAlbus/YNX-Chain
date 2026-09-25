@@ -1,8 +1,33 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {PROVIDER_ACCOUNT_KEY,PROVIDER_CHAIN_ID,PROVIDER_PERMISSIONS_KEY,canonicalProviderOrigin,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,permissionForOrigin,revokePermission} from "../src/extension-provider-permissions.js";
+import {PROVIDER_ACCOUNT_KEY,PROVIDER_CHAIN_ID,PROVIDER_PERMISSIONS_KEY,canonicalProviderOrigin,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,permissionForOrigin,recoverMissingProviderAccount,revokePermission} from "../src/extension-provider-permissions.js";
+import {EXTENSION_VAULT_KEY,createEncryptedVault,providerAccountFromVault,unlockEncryptedVault} from "../src/extension-vault.js";
 
 const ACCOUNT={version:1,source:"ynx-wallet-vault",account:"0x1111111111111111111111111111111111111111"},ORIGIN="https://dapp.example",REQUEST=`ynx-scope-v2-${"1".repeat(64)}`;
+
+test("missing provider index recovers from the existing vault and drops old DApp grants",async()=>{
+  const vaultKey="ynx.wallet.provider.vault.v1",values={[vaultKey]:{account:ACCOUNT.account},[PROVIDER_PERMISSIONS_KEY]:grantPermission({},ORIGIN,ACCOUNT,1)};
+  const storage={get:async()=>({...values}),set:async update=>Object.assign(values,update)};
+  const fromVault=value=>{if(!value?.account)throw new Error("invalid vault");return ACCOUNT};
+  assert.deepEqual(await recoverMissingProviderAccount(storage,PROVIDER_ACCOUNT_KEY,vaultKey,fromVault),ACCOUNT);
+  assert.deepEqual(values[PROVIDER_PERMISSIONS_KEY],{});
+  assert.deepEqual(await recoverMissingProviderAccount(storage,PROVIDER_ACCOUNT_KEY,vaultKey,fromVault),ACCOUNT);
+  assert.equal(values[PROVIDER_ACCOUNT_KEY].account,ACCOUNT.account);
+  values[PROVIDER_ACCOUNT_KEY]={...ACCOUNT,account:"0x2222222222222222222222222222222222222222"};
+  await assert.rejects(()=>recoverMissingProviderAccount(storage,PROVIDER_ACCOUNT_KEY,vaultKey,fromVault),error=>error.code==="PROVIDER_ACCOUNT_UNAVAILABLE");
+  delete values[vaultKey];
+  await assert.rejects(()=>recoverMissingProviderAccount(storage,PROVIDER_ACCOUNT_KEY,vaultKey,fromVault),error=>error.code==="PROVIDER_ACCOUNT_UNAVAILABLE");
+});
+
+test("existing encrypted vault survives provider-index recovery and still unlocks",async()=>{
+  const vault=await createEncryptedVault({password:"safe-test-password-123",secretHex:"0".repeat(63)+"1"});
+  const values={[EXTENSION_VAULT_KEY]:vault,[PROVIDER_PERMISSIONS_KEY]:{}};
+  const storage={get:async()=>({...values}),set:async update=>Object.assign(values,update)};
+  const recovered=await recoverMissingProviderAccount(storage,PROVIDER_ACCOUNT_KEY,EXTENSION_VAULT_KEY,providerAccountFromVault);
+  assert.equal(recovered.account,vault.account);
+  assert.deepEqual(values[EXTENSION_VAULT_KEY],vault);
+  assert.equal((await unlockEncryptedVault(values[EXTENSION_VAULT_KEY],"safe-test-password-123")).account,recovered.account);
+});
 
 test("provider permission is exact-origin, exact-account and persistent until revoke",async()=>{
   const granted=grantPermission(undefined,ORIGIN,ACCOUNT,1000);
