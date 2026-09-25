@@ -19,13 +19,14 @@ const binary=path.join(work,"ynx-exchanged");
 const walletBundle=path.join(work,"wallet-connect.js");
 const privateBundle=path.join(work,"private-session.js");
 const ldflags=`-s -w -X github.com/JiahaoAlbus/YNX-Chain/internal/exchangeproduct.BuildCommit=${commit}`;
-run("go",["build","-trimpath","-buildvcs=false","-ldflags",ldflags,"-o",binary,"./apps/exchange/server"]);
+run("go",["build","-trimpath","-buildvcs=false","-ldflags",ldflags,"-o",binary,"./apps/exchange/server"],root,{...process.env,GOOS:"linux",GOARCH:"amd64",CGO_ENABLED:"0"});
 run(path.join(root,"apps/exchange/web/node_modules/esbuild/bin/esbuild"),["wallet-connect-entry.js","--bundle","--minify","--platform=browser","--target=es2022",`--outfile=${walletBundle}`],path.join(root,"apps/exchange/web"));
 run(path.join(root,"apps/exchange/web/node_modules/esbuild/bin/esbuild"),["private-session-entry.js","--bundle","--minify","--format=esm","--platform=browser","--target=es2022",`--outfile=${privateBundle}`],path.join(root,"apps/exchange/web"));
 const files=[];
 const sha256=value=>createHash("sha256").update(value).digest("hex");
 const add=async(absolute,relative,mode)=>{const info=await stat(absolute);if(!info.isFile()||info.isSymbolicLink())throw new Error(`required regular file missing: ${relative}`);files.push({relative,data:await readFile(absolute),mode});};
 await add(binary,`${release}/ynx-exchanged`,0o755);
+assertLinuxAmd64(files[0].data);
 for(const name of ["app.js","market-data.js","order-preview.js","index.html","styles.css"])await add(path.join(root,"apps/exchange/web",name),`${release}/apps/exchange/web/${name}`,0o644);
 await add(walletBundle,`${release}/apps/exchange/web/wallet-connect.js`,0o644);
 await add(privateBundle,`${release}/apps/exchange/web/private-session.js`,0o644);
@@ -43,7 +44,8 @@ process.stdout.write(`${JSON.stringify({release,sourceCommit:commit,sourceTree,a
 
 function parseArgs(argv){const result={commit:null,output:null};for(let i=0;i<argv.length;i+=2){const key=argv[i],value=argv[i+1];if((key!=="--commit"&&key!=="--output")||!value||result[key.slice(2)]!==null)throw new Error("usage: package-runtime-candidate.mjs --commit <exact-source-commit> --output <archive>");result[key.slice(2)]=value;}return result;}
 function git(args){return execFileSync("git",args,{cwd:root,encoding:"utf8"}).trim();}
-function run(command,args,cwd=root){execFileSync(command,args,{cwd,stdio:"inherit"});}
+function run(command,args,cwd=root,env=process.env){execFileSync(command,args,{cwd,env,stdio:"inherit"});}
+function assertLinuxAmd64(data){if(data.length<20||data.toString("hex",0,4)!=="7f454c46"||data[4]!==2||data[5]!==1||data.readUInt16LE(18)!==62)throw new Error("candidate binary must be Linux ELF64 x86-64");}
 function gzipTar(files){const blocks=[];for(const file of files){const header=Buffer.alloc(512);writeString(header,0,100,file.relative);writeOctal(header,100,8,file.mode);writeOctal(header,108,8,0);writeOctal(header,116,8,0);writeOctal(header,124,12,file.data.length);writeOctal(header,136,12,0);header.fill(0x20,148,156);header[156]="0".charCodeAt(0);writeString(header,257,6,"ustar");writeString(header,263,2,"00");let checksum=0;for(const byte of header)checksum+=byte;writeOctal(header,148,8,checksum);blocks.push(header,file.data,Buffer.alloc((512-file.data.length%512)%512));}blocks.push(Buffer.alloc(1024));return gzipSync(Buffer.concat(blocks),{level:9,mtime:0});}
 function writeString(buffer,offset,length,value){const data=Buffer.from(value);if(data.length>length)throw new Error(`tar path too long: ${value}`);data.copy(buffer,offset);}
 function writeOctal(buffer,offset,length,value){writeString(buffer,offset,length,value.toString(8).padStart(length-1,"0")+"\0");}
