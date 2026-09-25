@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import {randomBytes} from "node:crypto";
-import {mkdir,mkdtemp,rm,writeFile} from "node:fs/promises";
+import {execFileSync} from "node:child_process";
+import {createHash,randomBytes} from "node:crypto";
+import {mkdir,mkdtemp,readFile,rm,writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
-import {join,resolve} from "node:path";
+import {basename,join,resolve} from "node:path";
 import {chromium} from "playwright";
 import {p256} from "@noble/curves/nist.js";
 import registry from "../vendor/product-session-registry-b754ffc42.json" with {type:"json"};
@@ -10,14 +11,24 @@ import {createProductSessionRequest,encodeProductSessionWalletURL,parseProductSe
 
 const browserName=process.env.YNX_BROWSER||"chromium";
 const executablePath=browserName==="edge"?"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge":chromium.executablePath();
-const extensionPath=resolve("dist/chromium"),temporary=await mkdtemp(join(tmpdir(),"ynx-private-v2-"));
-const evidenceDir=resolve("evidence/private-v2");
+const temporary=await mkdtemp(join(tmpdir(),"ynx-private-v2-"));
+const archivePath=process.env.YNX_WALLET_EXTENSION_ARCHIVE?resolve(process.env.YNX_WALLET_EXTENSION_ARCHIVE):null;
+let extensionPath=resolve("dist/chromium"),artifact=null;
+if(archivePath){
+  const archive=await readFile(archivePath),entries=execFileSync("unzip",["-Z1",archivePath],{encoding:"utf8"}).trim().split("\n").filter(Boolean);
+  assert.equal(new Set(entries).size,entries.length);assert.ok(entries.every(entry=>!entry.startsWith("/")&&!entry.split("/").includes("..")));
+  extensionPath=join(temporary,"extension");await mkdir(extensionPath);execFileSync("unzip",["-q",archivePath,"-d",extensionPath]);
+  const identity=JSON.parse(await readFile(join(extensionPath,"build-identity.json"),"utf8"));
+  assert.equal(identity.sourceCommit,process.env.YNX_WALLET_WEB_SOURCE_COMMIT,"Candidate ZIP source must match the exact requested commit");
+  artifact={name:basename(archivePath),bytes:archive.length,sha256:createHash("sha256").update(archive).digest("hex"),sourceCommit:identity.sourceCommit};
+}
+const evidenceDir=resolve(process.env.YNX_WALLET_WEB_EVIDENCE_DIR||"evidence/private-v2");
 const password="ynx-disposable-private-test-password",secret=randomBytes(32).toString("hex"),origin="https://card.ynxweb4.com";
 const deviceKey=Buffer.from(p256.getPublicKey(Buffer.alloc(32,0x42),true)).toString("base64url");
 const scopes=["account:read","card:application:write","card:controls:write","card:finance:share"];
 const html='<!doctype html><html><head><meta charset="utf-8"></head><body><script>globalThis.providers=[];addEventListener("eip6963:announceProvider",e=>providers.push(e.detail.provider));dispatchEvent(new Event("eip6963:requestProvider"));</script></body></html>';
 let browser;
-const result={browser:browserName,fixtureOrigin:origin,fixtureOnly:true,gatewayVerified:false,passed:false};
+const result={browser:browserName,fixtureOrigin:origin,fixtureOnly:true,gatewayVerified:false,artifact,passed:false};
 function request(){const at=new Date(),token=()=>randomBytes(32).toString("base64url");const value=createProductSessionRequest(registry,{productId:"card",platform:"web",deviceId:`web_${token()}`,deviceKey,scopes,purpose:"Allow Card to manage your separately selected read-only sharing with YNX Finance. This grants no payment or trading authority.",nonce:token(),state:token()},at);return{value,url:encodeProductSessionWalletURL(registry,value,at)}}
 async function popup(){for(let i=0;i<100;i++){const found=browser.pages().find(page=>page.url().includes("/private-approval.html?"));if(found){await found.locator("#approve:not([disabled])").waitFor({timeout:5000});return found}await new Promise(resolveWait=>setTimeout(resolveWait,50))}throw Error("Private approval popup did not open")}
 async function ask(page,url){return page.evaluate(async value=>{const provider=providers.find(item=>item?.isYNXWallet);try{return{ok:true,result:await provider.requestProductSessionV2(value)}}catch(error){return{ok:false,code:error.code,message:error.message}}},url)}
