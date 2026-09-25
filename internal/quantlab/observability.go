@@ -130,7 +130,10 @@ func (s *Server) observe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-YNX-Request-ID", requestID(r))
 	w.Header().Set("X-YNX-Trace-ID", traceID(r))
 	observed := &observedWriter{ResponseWriter: w}
-	if r.Method != http.MethodGet && !publicResearchRequest(r) && !localPreviewRequest(r) {
+	// This one POST is a read-only account lookup with its own exact shared V2
+	// proof/Origin/scope check. It never mutates Paper or grants native execution.
+	privateAccountRead := r.Method == http.MethodPost && r.URL.Path == "/v1/wallet/private-account"
+	if r.Method != http.MethodGet && !privateAccountRead && !publicResearchRequest(r) && !localPreviewRequest(r) {
 		writeProblem(observed, r, http.StatusForbidden, "local_write_boundary_rejected")
 	} else {
 		s.mux.ServeHTTP(observed, r)
@@ -207,7 +210,8 @@ func (s *Server) metricsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	_, _ = fmt.Fprintf(w, "# TYPE ynx_quant_execution_pending_unknown gauge\nynx_quant_execution_pending_unknown %d\n# TYPE ynx_quant_build_info gauge\nynx_quant_build_info{product_id=\"%s\",version=\"%s\",service_role=\"%s\"} 1\n", pending, ProductID, Version, s.role)
+	storage := s.service.StorageStatus()
+	_, _ = fmt.Fprintf(w, "# TYPE ynx_quant_execution_pending_unknown gauge\nynx_quant_execution_pending_unknown %d\n# TYPE ynx_quant_storage_backend_info gauge\nynx_quant_storage_backend_info{backend=\"%s\",multi_instance=\"%t\"} 1\n# TYPE ynx_quant_build_info gauge\nynx_quant_build_info{product_id=\"%s\",version=\"%s\",service_role=\"%s\"} 1\n", pending, storage["backend"], storage["multiInstance"], ProductID, Version, s.role)
 }
 
 func newJSONLogger(writer io.Writer) *slog.Logger {

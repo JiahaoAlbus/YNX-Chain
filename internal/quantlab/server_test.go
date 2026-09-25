@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -48,71 +49,135 @@ func TestHTTPWriteBoundaryAndStrictSchema(t *testing.T) {
 	}
 }
 
-func TestPublicResearchIsRemoteSafeAndDoesNotMutateSharedState(t *testing.T) {
-	service, err := New(Config{StatePath: filepath.Join(t.TempDir(), "shared.json"), MarketData: fixtureMarket{bars: bars()}})
+func TestHealthAndVersionDiscloseFilesystemSnapshotIsNotMultiInstance(t *testing.T) {
+	s, err := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := httptest.NewServer(NewRoleServer(service, "research"))
+	server := httptest.NewServer(NewServer(s))
 	defer server.Close()
-	payload := `{"strategy":{"ID":"public-ma","Name":"Public MA","Family":"transparent","License":"Apache-2.0","Seed":7,"Params":{"fast":3,"slow":8}},"assumptions":{"FeeBPS":10,"SlippageBPS":5,"LatencyBars":1,"ParticipationBPS":1000,"Seed":7,"TrainEnd":10,"WalkForwardWindows":3}}`
-	req, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/public/research/backtests/from-market", strings.NewReader(payload))
-	req.Header.Set("Origin", "https://quant.ynxweb4.com")
-	response, err := server.Client().Do(req)
+	for _, path := range []string{"/health", "/version"} {
+		response, err := server.Client().Get(server.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var payload struct {
+			Storage struct {
+				Backend                      string `json:"backend"`
+				RestartPersistent            bool   `json:"restartPersistent"`
+				CrossProcessSharedFilesystem bool   `json:"crossProcessSharedFilesystem"`
+				MultiInstance                bool   `json:"multiInstance"`
+				ProductionDatabaseRequired   bool   `json:"productionDatabaseRequired"`
+			} `json:"storage"`
+		}
+		err = json.NewDecoder(response.Body).Decode(&payload)
+		_ = response.Body.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if response.StatusCode != http.StatusOK || payload.Storage.Backend != "filesystem_json_snapshot" || !payload.Storage.RestartPersistent || !payload.Storage.CrossProcessSharedFilesystem || payload.Storage.MultiInstance || !payload.Storage.ProductionDatabaseRequired {
+			t.Fatalf("path=%s status=%d storage=%+v", path, response.StatusCode, payload.Storage)
+		}
+	}
+}
+
+func TestSnapshotDisclosesSourceCoverageAndSingleHostDegradation(t *testing.T) {
+	s, err := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(s))
+	defer server.Close()
+	response, err := server.Client().Get(server.URL + "/v1/snapshot")
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer response.Body.Close()
-	if response.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(response.Body)
-		t.Fatalf("status=%d body=%s", response.StatusCode, body)
+	var payload struct {
+		SourceMetadata SnapshotSourceMetadata `json:"sourceMetadata"`
 	}
-	if len(service.Snapshot()["experiments"].(map[string]Experiment)) != 0 {
-		t.Fatal("public research mutated shared service state")
-	}
-	status, err := server.Client().Get(server.URL + "/v1/public/status")
-	if err != nil {
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	defer status.Body.Close()
-	var document map[string]any
-	if json.NewDecoder(status.Body).Decode(&document) != nil || document["mode"] != "public_stateless_research" {
-		t.Fatalf("status document=%v", document)
+	if response.StatusCode != http.StatusOK || payload.SourceMetadata.Source != "ynx-quant-authoritative-local-state" || payload.SourceMetadata.Classification != "testnet" || payload.SourceMetadata.Status != "degraded_single_host" || payload.SourceMetadata.Coverage == "" || payload.SourceMetadata.AsOf.IsZero() {
+		t.Fatalf("status=%d metadata=%+v", response.StatusCode, payload.SourceMetadata)
+	}
+	if multiInstance, _ := payload.SourceMetadata.Storage["multiInstance"].(bool); multiInstance {
+		t.Fatalf("filesystem snapshot overclaimed multi-instance state: %+v", payload.SourceMetadata.Storage)
 	}
 }
 
-func TestPublicResearchSupportsConcurrentIsolatedUsers(t *testing.T) {
-	service, err := New(Config{StatePath: filepath.Join(t.TempDir(), "shared.json"), MarketData: fixtureMarket{bars: bars()}})
+func TestReadyRejectsFilesystemSnapshotForDeployableQuantService(t *testing.T) {
+	s, err := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := httptest.NewServer(NewRoleServer(service, "research"))
+	server := httptest.NewServer(NewServer(s))
 	defer server.Close()
-	payload := `{"strategy":{"ID":"concurrent-ma","Name":"Concurrent MA","Family":"transparent","License":"Apache-2.0","Seed":7,"Params":{"fast":3,"slow":8}},"assumptions":{"FeeBPS":10,"SlippageBPS":5,"LatencyBars":1,"ParticipationBPS":1000,"Seed":7,"TrainEnd":10,"WalkForwardWindows":3}}`
-	var wait sync.WaitGroup
-	errors := make(chan error, 50)
-	for index := 0; index < 50; index++ {
-		wait.Add(1)
-		go func() {
-			defer wait.Done()
-			response, requestErr := http.Post(server.URL+"/v1/public/research/backtests/from-market", "application/json", strings.NewReader(payload))
-			if requestErr != nil {
-				errors <- requestErr
-				return
-			}
-			defer response.Body.Close()
-			if response.StatusCode != http.StatusCreated {
-				errors <- fmt.Errorf("status=%d", response.StatusCode)
-			}
-		}()
+	response, err := server.Client().Get(server.URL + "/ready")
+	if err != nil {
+		t.Fatal(err)
 	}
-	wait.Wait()
-	close(errors)
-	for requestErr := range errors {
-		t.Fatal(requestErr)
+	defer response.Body.Close()
+	var payload struct {
+		Status  string `json:"status"`
+		Storage struct {
+			Backend       string `json:"backend"`
+			MultiInstance bool   `json:"multiInstance"`
+		} `json:"storage"`
 	}
-	if len(service.Snapshot()["experiments"].(map[string]Experiment)) != 0 {
-		t.Fatal("concurrent public research mutated shared state")
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusServiceUnavailable || payload.Status != "not_ready" || payload.Storage.Backend != "filesystem_json_snapshot" || payload.Storage.MultiInstance {
+		t.Fatalf("filesystem readiness overclaimed deployability: status=%d payload=%+v", response.StatusCode, payload)
+	}
+}
+
+func TestReadyAcceptsMultiInstancePostgresStore(t *testing.T) {
+	service := &Service{store: conflictQuantStateStore{}, state: newQuantState()}
+	server := httptest.NewServer(NewServer(service))
+	defer server.Close()
+	response, err := server.Client().Get(server.URL + "/ready")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var payload struct {
+		Status  string `json:"status"`
+		Storage struct {
+			Backend       string `json:"backend"`
+			MultiInstance bool   `json:"multiInstance"`
+		} `json:"storage"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK || payload.Status != "ready" || payload.Storage.Backend != "postgresql" || !payload.Storage.MultiInstance {
+		t.Fatalf("durable readiness was not reported: status=%d payload=%+v", response.StatusCode, payload)
+	}
+}
+
+func TestTenantServerExposesHeaderlessReadinessWithoutOpeningTenantState(t *testing.T) {
+	tenantServer, err := NewTenantServer(Config{StatePath: filepath.Join(t.TempDir(), "s.json")}, "all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tenantServer.Close()
+	server := httptest.NewServer(tenantServer)
+	defer server.Close()
+	response, err := server.Client().Get(server.URL + "/ready")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("status=%d", response.StatusCode)
+	}
+	tenantServer.mu.Lock()
+	defer tenantServer.mu.Unlock()
+	if len(tenantServer.servers) != 0 {
+		t.Fatalf("readiness opened tenant state: %d", len(tenantServer.servers))
 	}
 }
 
@@ -139,6 +204,51 @@ func TestWebSocketSnapshotCarriesAuthorityMetadata(t *testing.T) {
 	}
 	if envelope["type"] != "snapshot" || envelope["source"] != "ynx-quant-authoritative-local-state" || envelope["confidence"] != "authoritative" || envelope["version"] != Version || envelope["requestId"] != "websocket-request-1" || envelope["traceId"] != "4bf92f3577b34da6a3ce929d0e0e4736" || envelope["asOf"] == nil || envelope["data"] == nil {
 		t.Fatalf("bad envelope: %#v", envelope)
+	}
+}
+
+func TestWebSocketReconcilesDurableQuantStateChanges(t *testing.T) {
+	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
+	quantServer := NewRoleServer(s, "all")
+	quantServer.streamPollInterval = 5 * time.Millisecond
+	server := httptest.NewServer(quantServer)
+	defer server.Close()
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/v1/stream"
+	connection, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer connection.Close()
+	_, firstPayload, err := connection.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var first map[string]any
+	if err := json.Unmarshal(firstPayload, &first); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Kill("stream reconciliation test"); err != nil {
+		t.Fatal(err)
+	}
+	connection.SetReadDeadline(time.Now().Add(time.Second))
+	_, secondPayload, err := connection.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var second map[string]any
+	if err := json.Unmarshal(secondPayload, &second); err != nil {
+		t.Fatal(err)
+	}
+	if second["type"] != "reconciled" || second["eventId"] == first["eventId"] {
+		t.Fatalf("missing durable reconciliation: first=%#v second=%#v", first, second)
+	}
+	data, ok := second["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("reconciled snapshot data missing: %#v", second)
+	}
+	paper, ok := data["paper"].(map[string]any)
+	if !ok || paper["KillSwitch"] != true {
+		t.Fatalf("reconciled state did not include durable kill switch: %#v", data)
 	}
 }
 
@@ -221,7 +331,7 @@ func TestInvalidCorrelationIDIsReplacedAndMetricsExposeAlertSignals(t *testing.T
 	metrics, _ := io.ReadAll(metricsResponse.Body)
 	_ = metricsResponse.Body.Close()
 	text := string(metrics)
-	for _, expected := range []string{"ynx_quant_http_requests_total 1", "ynx_quant_kill_switch_activations_total 1", "ynx_quant_kill_switch_active 1", "ynx_quant_reconciliation_delta 0", "ynx_quant_execution_pending_unknown 0", "ynx_quant_build_info"} {
+	for _, expected := range []string{"ynx_quant_http_requests_total 1", "ynx_quant_kill_switch_activations_total 1", "ynx_quant_kill_switch_active 1", "ynx_quant_reconciliation_delta 0", "ynx_quant_execution_pending_unknown 0", "ynx_quant_storage_backend_info{backend=\"filesystem_json_snapshot\",multi_instance=\"false\"} 1", "ynx_quant_build_info"} {
 		if !strings.Contains(text, expected) {
 			t.Fatalf("missing %q in %s", expected, text)
 		}
@@ -266,5 +376,73 @@ func TestHostileHTTPAndWebSocketProbesFailClosedWithoutInternalErrors(t *testing
 	}
 	if err == nil || handshake == nil || handshake.StatusCode != http.StatusForbidden {
 		t.Fatalf("websocket err=%v response=%v", err, handshake)
+	}
+}
+
+func TestPublicResearchIsRemoteSafeAndDoesNotMutateSharedState(t *testing.T) {
+	service, err := New(Config{StatePath: filepath.Join(t.TempDir(), "shared.json"), MarketData: fixtureMarket{bars: bars()}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewRoleServer(service, "research"))
+	defer server.Close()
+	payload := `{"strategy":{"ID":"public-ma","Name":"Public MA","Family":"transparent","License":"Apache-2.0","Seed":7,"Params":{"fast":3,"slow":8}},"assumptions":{"FeeBPS":10,"SlippageBPS":5,"LatencyBars":1,"ParticipationBPS":1000,"Seed":7,"TrainEnd":10,"WalkForwardWindows":3}}`
+	req, _ := http.NewRequest(http.MethodPost, server.URL+"/v1/public/research/backtests/from-market", strings.NewReader(payload))
+	req.Header.Set("Origin", "https://quant.ynxweb4.com")
+	response, err := server.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(response.Body)
+		t.Fatalf("status=%d body=%s", response.StatusCode, body)
+	}
+	if len(service.Snapshot()["experiments"].(map[string]Experiment)) != 0 {
+		t.Fatal("public research mutated shared service state")
+	}
+	status, err := server.Client().Get(server.URL + "/v1/public/status")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer status.Body.Close()
+	var document map[string]any
+	if json.NewDecoder(status.Body).Decode(&document) != nil || document["mode"] != "public_stateless_research" {
+		t.Fatalf("status document=%v", document)
+	}
+}
+
+func TestPublicResearchSupportsConcurrentIsolatedUsers(t *testing.T) {
+	service, err := New(Config{StatePath: filepath.Join(t.TempDir(), "shared.json"), MarketData: fixtureMarket{bars: bars()}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewRoleServer(service, "research"))
+	defer server.Close()
+	payload := `{"strategy":{"ID":"concurrent-ma","Name":"Concurrent MA","Family":"transparent","License":"Apache-2.0","Seed":7,"Params":{"fast":3,"slow":8}},"assumptions":{"FeeBPS":10,"SlippageBPS":5,"LatencyBars":1,"ParticipationBPS":1000,"Seed":7,"TrainEnd":10,"WalkForwardWindows":3}}`
+	var wait sync.WaitGroup
+	errors := make(chan error, 50)
+	for index := 0; index < 50; index++ {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			response, requestErr := http.Post(server.URL+"/v1/public/research/backtests/from-market", "application/json", strings.NewReader(payload))
+			if requestErr != nil {
+				errors <- requestErr
+				return
+			}
+			defer response.Body.Close()
+			if response.StatusCode != http.StatusCreated {
+				errors <- fmt.Errorf("status=%d", response.StatusCode)
+			}
+		}()
+	}
+	wait.Wait()
+	close(errors)
+	for requestErr := range errors {
+		t.Fatal(requestErr)
+	}
+	if len(service.Snapshot()["experiments"].(map[string]Experiment)) != 0 {
+		t.Fatal("concurrent public research mutated shared state")
 	}
 }

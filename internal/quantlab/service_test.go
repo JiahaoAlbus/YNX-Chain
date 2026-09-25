@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -13,7 +14,7 @@ import (
 
 type allowMandate struct{}
 
-func (allowMandate) VerifyMandate(m Mandate) error {
+func (allowMandate) VerifyMandate(_ context.Context, m Mandate, _ string) error {
 	if m.WalletSignature != "wallet-proof" {
 		return ErrForbidden
 	}
@@ -22,12 +23,12 @@ func (allowMandate) VerifyMandate(m Mandate) error {
 
 type testBroker struct{}
 
-func (testBroker) SubmitTestnet(o TestnetOrder) (string, error) {
-	return "committed-ynx-testnet-proof", nil
+func (testBroker) SubmitTestnet(_ context.Context, _ Mandate, o TestnetOrder, _ string) (TestnetExecutionReceipt, error) {
+	return TestnetExecutionReceipt{BrokerProof: "committed-ynx-testnet-proof", VenueOrderID: "exchange-order-1", VenueStatus: "open", AuthorizationDigest: strings.Repeat("a", 64)}, nil
 }
 
 func validMandate(now time.Time, strategyHash string) Mandate {
-	return Mandate{Account: "ynx1test", StrategyHash: strategyHash, Market: "YNXT-YUSD_TEST", ProductID: ProductID, BundleID: "com.ynx.quantlab.test", DeviceID: "device-test-001", NonceDomain: "ynx-quant-testnet-v1", Scope: "quant:testnet-execute", Nonce: 1, MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, MaxSlippageBPS: 50, MaxGas: 10_000, MaxOrdersPerMinute: 10, MaxLeverageBPS: 20_000, MaxDrawdown: 500_000, MinLiquidity: 2_000_000, MaxVaR: 300_000, MaxExpectedShortfall: 400_000, MaxDepegBPS: 100, MaxConcentrationBPS: 5000, MaxCancelRateBPS: 5000, MaxConsecutiveAPIFailures: 3, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
+	return Mandate{Account: "ynx1test", StrategyHash: strategyHash, Market: "YNXT-YUSD_TEST", ProductID: ProductID, BundleID: "com.ynx.quantlab.test", DeviceID: "device-test-001", NonceDomain: "quant:" + strategyHash, Scope: "quant:testnet-execute", Nonce: 1, MaxNotional: 2_000_000, MaxPosition: 2_000_000, MaxDailyLoss: 500_000, MaxSlippageBPS: 50, MaxGas: 10_000, MaxOrdersPerMinute: 10, MaxLeverageBPS: 20_000, MaxDrawdown: 500_000, MinLiquidity: 2_000_000, MaxVaR: 300_000, MaxExpectedShortfall: 400_000, MaxDepegBPS: 100, MaxConcentrationBPS: 5000, MaxCancelRateBPS: 5000, MaxConsecutiveAPIFailures: 3, ExpiresAt: now.Add(time.Hour), WalletSignature: "wallet-proof", TestnetOnly: true}
 }
 
 func validRisk(now time.Time) TestnetRiskObservation {
@@ -65,8 +66,21 @@ func TestBacktestIsDeterministicOOSAndPersistent(t *testing.T) {
 		t.Fatal(e)
 	}
 	snap := b.Snapshot()
-	if a.Status != "completed_oos" || a.Strategy.DataHash == "" || !a.LeakageChecksPassed || len(a.WalkForward) != 3 || len(a.Sensitivity) != 4 || len(a.Regimes) != 2 || a.NoTradeReturnBPS != 0 || !a.Attribution.Reconciled || a.Attribution.UserRealizedPnL+a.Attribution.UserUnrealizedPnL != a.Attribution.UserNetPnL || len(a.Attribution.UnsupportedComponents) != 7 || len(snap["experiments"].(map[string]Experiment)) != 1 {
+	if a.Status != "completed_oos" || a.Strategy.DataHash == "" || !a.LeakageChecksPassed || len(a.WalkForward) != 3 || len(a.Sensitivity) != 4 || len(a.Regimes) != 2 || a.NoTradeReturnBPS != 0 || len(a.EquityCurve) != len(request().Bars)-request().Assumptions.TrainEnd || len(a.MetricDefinitions) != 5 || a.Metrics.SharpeMilli == 0 || !a.Attribution.Reconciled || a.Attribution.UserRealizedPnL+a.Attribution.UserUnrealizedPnL != a.Attribution.UserNetPnL || len(a.Attribution.UnsupportedComponents) != 7 || len(snap["experiments"].(map[string]Experiment)) != 1 {
 		t.Fatalf("bad result %#v", a)
+	}
+	if a.EquityCurve[0].BenchmarkEquity != 100_000_000_000 || !strings.Contains(a.MetricDefinitions["sharpeMilli"], "sample standard deviation") {
+		t.Fatalf("metric evidence is incomplete: %+v %+v", a.EquityCurve[0], a.MetricDefinitions)
+	}
+}
+
+func TestRiskAdjustedMetricsUseSampleDeviationAndZeroRiskFreeRate(t *testing.T) {
+	sharpeMilli, volatilityBPS := riskAdjustedMetrics([]float64{0.01, -0.005, 0.02, 0.015})
+	if sharpeMilli != 1852 || volatilityBPS != 108 {
+		t.Fatalf("risk-adjusted metrics sharpeMilli=%d volatilityBPS=%d", sharpeMilli, volatilityBPS)
+	}
+	if sharpe, volatility := riskAdjustedMetrics([]float64{0.01}); sharpe != 0 || volatility != 0 {
+		t.Fatalf("insufficient sample was not zeroed: %d %d", sharpe, volatility)
 	}
 }
 func TestLookAheadAndUnknownJSONFailClosed(t *testing.T) {
@@ -156,7 +170,7 @@ func TestBoundedWalletMandateReplayExpiryLimitAndBrokerProof(t *testing.T) {
 		t.Fatalf("replay=%v", e)
 	}
 	o, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1", validRisk(now))
-	if e != nil || o.Status != "submitted_testnet" || o.BrokerProof == "" {
+	if e != nil || o.Status != "submitted_testnet" || o.BrokerProof == "" || o.VenueOrderID != "exchange-order-1" || o.VenueStatus != "open" || len(o.AuthorizationDigest) != 64 {
 		t.Fatalf("%+v %v", o, e)
 	}
 	again, e := s.SubmitTestnet(m.Digest, "buy", 1_000_000, 1_000_000, "bounded-order-1", validRisk(now))

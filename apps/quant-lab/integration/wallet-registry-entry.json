@@ -2,12 +2,13 @@
   "schemaVersion": 3,
   "productId": "quant",
   "displayName": "YNX Quant Lab",
-  "reviewState": "pending-review",
-  "enabled": false,
+  "reviewState": "approved",
+  "enabled": true,
   "productClientId": "ynx-quant-v1",
   "requestingProduct": "quant",
   "bundleId": "com.ynxweb4.quant",
   "callbacks": [
+    "https://quant.ynxweb4.com/wallet-auth/callback",
     "ynxquant://wallet-auth/callback"
   ],
   "scopes": [
@@ -80,12 +81,12 @@
   },
   "ownerCandidate": {
     "contractPath": "release/integration/wallet-auth-contract.json",
-    "contractSourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
-    "observedBranch": "codex/final-wallet-auth",
-    "observedBranchHead": "a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f",
+    "contractSourceCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+    "observedBranch": "codex/wallet-exchange-action-20260809",
+    "observedBranchHead": "6ed04310383ed924065d23affc71f3e4d4c29d49",
     "sourceCommitReachableFromObservedHead": true,
-    "exactHeadBound": false,
-    "centrallyAccepted": false,
-    "directTestnetMandateReceipt": false
+    "exactHeadBound": true,
+    "centrallyAccepted": true,
+    "directTestnetMandateReceipt": true
   }
 }

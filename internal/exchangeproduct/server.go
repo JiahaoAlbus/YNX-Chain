@@ -12,34 +12,43 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/nativewallet"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"golang.org/x/crypto/sha3"
 )
 
 type Server struct {
-	service *Service
-	mux     *http.ServeMux
+	service       *Service
+	mux           *http.ServeMux
+	privateScopes map[string]string
+	financeRead   *readintegration.Verifier
 }
 
+var marketDataStreamPollInterval = 5 * time.Second
+
 func NewServer(service *Service) *Server {
-	s := &Server{service: service, mux: http.NewServeMux()}
+	s := &Server{service: service, mux: http.NewServeMux(), privateScopes: make(map[string]string)}
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /ready", s.ready)
 	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /v1/config", s.config)
 	s.mux.HandleFunc("GET /v1/markets", s.markets)
 	s.mux.HandleFunc("GET /v1/orderbook", s.book)
 	s.mux.HandleFunc("GET /v1/market-data/trades", s.marketTrades)
-	s.mux.HandleFunc("GET /v1/account", s.account)
-	s.mux.HandleFunc("POST /v1/deposit-intents", s.depositIntent)
-	s.mux.HandleFunc("POST /v1/deposits", s.deposit)
-	s.mux.HandleFunc("POST /v1/deposits/{id}/refresh", s.refreshDeposit)
-	s.mux.HandleFunc("POST /v1/withdrawals/review", s.withdrawal)
-	s.mux.HandleFunc("POST /v1/orders", s.order)
-	s.mux.HandleFunc("POST /v1/orders/{id}/cancel", s.cancel)
-	s.mux.HandleFunc("PUT /v1/security", s.security)
-	s.mux.HandleFunc("POST /v1/support", s.support)
-	s.mux.HandleFunc("POST /v1/ai/drafts", s.ai)
-	s.mux.HandleFunc("POST /v1/ai/drafts/{id}/actions", s.aiAction)
+	s.mux.HandleFunc("GET /v1/market-data/snapshot", s.marketSnapshot)
+	s.mux.HandleFunc("GET /v1/market-data/stream", s.marketDataStream)
+	s.mux.HandleFunc("GET /v1/integrations/finance/account", s.financeAccount)
+	s.handlePrivate("GET /v1/account", "exchange:read", s.account)
+	s.handlePrivate("POST /v1/deposit-intents", "exchange:deposit", s.depositIntent)
+	s.handlePrivate("POST /v1/deposits", "exchange:deposit", s.deposit)
+	s.handlePrivate("POST /v1/deposits/{id}/refresh", "exchange:deposit", s.refreshDeposit)
+	s.handlePrivate("POST /v1/withdrawals/review", "exchange:withdrawal-review", s.withdrawal)
+	s.handlePrivate("POST /v1/orders", "exchange:trade", s.order)
+	s.handlePrivate("POST /v1/orders/{id}/cancel", "exchange:trade", s.cancel)
+	s.handlePrivate("PUT /v1/security", "exchange:read", s.security)
+	s.handlePrivate("POST /v1/support", "exchange:read", s.support)
+	s.handlePrivate("POST /v1/ai/drafts", "exchange:ai", s.ai)
+	s.handlePrivate("POST /v1/ai/drafts/{id}/actions", "exchange:ai", s.aiAction)
 	s.mux.HandleFunc("POST /v1/admin/test-credits", s.testCredits)
 	return s
 }
@@ -47,23 +56,147 @@ func NewServer(service *Service) *Server {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
-	s.mux.ServeHTTP(w, r)
+	if r.Method == http.MethodGet && r.URL.Path == FinanceReadRoute {
+		if err := s.service.WithFreshState(func() { s.mux.ServeHTTP(w, r) }); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "exchange durable state unavailable"})
+		}
+		return
+	}
+	// Remote introspection must not hold the persistent venue request lock.
+	// Each private v2 request gets its own fresh authority decision; no cache.
+	var authorized bool
+	r, authorized = s.authorizeSessionV2(w, r)
+	if !authorized {
+		return
+	}
+	// A long-lived stream performs its own bounded durable-state refresh for
+	// every snapshot. Keeping it inside the request-wide mutex would block all
+	// Exchange API calls and deadlock its own refresh loop.
+	if r.Method == http.MethodGet && r.URL.Path == "/v1/market-data/stream" {
+		s.mux.ServeHTTP(w, r)
+		return
+	}
+	if err := s.service.WithFreshState(func() { s.mux.ServeHTTP(w, r) }); err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "exchange durable state unavailable"})
+	}
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"status": "ok", "productId": ProductID, "version": Version, "commit": BuildCommit, "venue": "owned deterministic testnet only", "chainId": ChainID, "productionCustody": false})
+	backend, multiInstance := s.service.StorageStatus()
+	writeJSON(w, 200, map[string]any{"status": "ok", "productId": ProductID, "version": Version, "commit": BuildCommit, "venue": "owned deterministic testnet only", "chainId": ChainID, "productionCustody": false, "stateBackend": backend, "multiInstance": multiInstance})
+}
+func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
+	backend, multiInstance := s.service.StorageStatus()
+	if !multiInstance {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+			"status":        "not_ready",
+			"reason":        "multi-instance durable PostgreSQL state is required for a deployable Exchange venue",
+			"stateBackend":  backend,
+			"multiInstance": false,
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":        "ready",
+		"stateBackend":  backend,
+		"multiInstance": true,
+	})
 }
 func (s *Server) version(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit})
+	backend, multiInstance := s.service.StorageStatus()
+	writeJSON(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit, "stateBackend": backend, "multiInstance": multiInstance})
 }
 func (s *Server) config(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"chainId": ChainID, "evmChainId": EVMChainID, "nativeAsset": NativeAsset, "custodyAddress": s.service.state.CustodyAddress, "networks": s.service.Networks(), "integrations": s.service.Integrations(), "warnings": []string{"Not an exchange listing", "Not production custody", "No third-party liquidity, price, volume or market depth"}})
 }
 func (s *Server) markets(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"markets": Markets(), "source": "YNX-owned deterministic order state only"})
+	writeJSON(w, 200, map[string]any{"markets": Markets(), "source": "YNX-owned deterministic order state only", "sourceMetadata": s.service.readSource("market-catalog")})
 }
-func (s *Server) book(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Book()) }
+func (s *Server) book(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, publicBook(s.service.Book()))
+}
 func (s *Server) marketTrades(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "externalPrice": false, "trades": s.service.PublicTrades(1000)})
+	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "sourceMetadata": s.service.readSource("matched-trades"), "externalPrice": false, "trades": publicTrades(s.service.PublicTrades(1000))})
+}
+func (s *Server) marketSnapshot(w http.ResponseWriter, r *http.Request) {
+	snapshot, _ := s.service.marketDataSnapshot()
+	writeJSON(w, http.StatusOK, snapshot)
+}
+
+// marketDataStream is a product-owned, read-only SSE feed. Each subscriber
+// receives an actual durable-state snapshot and later reconciliations only
+// when the persisted revision changes. It never replays a Wallet action or
+// exposes a mutation endpoint through the event transport.
+func (s *Server) marketDataStream(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "streaming response writer unavailable"})
+		return
+	}
+	type streamSnapshot struct {
+		value       MarketDataSnapshot
+		fingerprint string
+	}
+	load := func() (streamSnapshot, error) {
+		var snapshot MarketDataSnapshot
+		var fingerprint string
+		err := s.service.WithFreshState(func() { snapshot, fingerprint = s.service.marketDataSnapshot() })
+		return streamSnapshot{value: snapshot, fingerprint: fingerprint}, err
+	}
+	snapshot, err := load()
+	if err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "exchange durable state unavailable"})
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+	lastFingerprint := ""
+	controller := http.NewResponseController(w)
+	emit := func(event string, stream streamSnapshot) error {
+		// The server's ordinary response deadline must not expire a healthy SSE
+		// subscription. Each write still has a bounded deadline for slow clients.
+		_ = controller.SetWriteDeadline(time.Now().Add(10 * time.Second))
+		value := stream.value
+		payload, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "id: state-%s\nevent: %s\ndata: %s\n\n", stream.fingerprint, event, payload); err != nil {
+			return err
+		}
+		flusher.Flush()
+		lastFingerprint = stream.fingerprint
+		return nil
+	}
+	if err := emit("snapshot", snapshot); err != nil {
+		return
+	}
+	ticker := time.NewTicker(marketDataStreamPollInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-ticker.C:
+			snapshot, err := load()
+			if err != nil {
+				_, _ = fmt.Fprint(w, "event: source-unavailable\ndata: {\"code\":\"FIN_SOURCE_UNAVAILABLE\",\"retryable\":true}\n\n")
+				flusher.Flush()
+				return
+			}
+			if snapshot.fingerprint != lastFingerprint {
+				if err := emit("reconciled", snapshot); err != nil {
+					return
+				}
+				continue
+			}
+			_ = controller.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if _, err := fmt.Fprintf(w, "event: heartbeat\ndata: {\"revision\":%d}\n\n", snapshot.value.Revision); err != nil {
+				return
+			}
+			flusher.Flush()
+		}
+	}
 }
 func (s *Server) account(w http.ResponseWriter, r *http.Request) {
 	session, ok := s.auth(w, r, "exchange:read")
@@ -221,6 +354,17 @@ func (s *Server) testCredits(w http.ResponseWriter, r *http.Request) {
 	respond(w, v, err, 201)
 }
 func (s *Server) auth(w http.ResponseWriter, r *http.Request, scope string) (WalletSession, bool) {
+	if auth, ok := r.Context().Value(exchangeSessionV2ContextKey{}).(exchangeSessionV2Authorization); ok {
+		if !time.Now().Before(auth.session.ExpiresAt) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "SESSION_EXPIRED", "privateService": "authorization_required"})
+			return WalletSession{}, false
+		}
+		if auth.scope != scope {
+			respond(w, nil, ErrForbidden, 200)
+			return WalletSession{}, false
+		}
+		return auth.session, true
+	}
 	v, err := s.service.Authenticate(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
 	if err != nil {
 		respond(w, nil, err, 200)

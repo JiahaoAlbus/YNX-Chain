@@ -1,12 +1,12 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "productId": "ynx-quant-lab",
   "ownerContractSnapshot": "owner-contract-snapshot.json",
-  "walletAuthSourceCommit": "61df5559c647d880cc1d435bece9d89ff66a07e1",
-  "walletAuthObservedBranch": "codex/final-wallet-auth",
-  "walletAuthObservedBranchHead": "a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f",
+  "walletAuthSourceCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+  "walletAuthObservedBranch": "codex/wallet-exchange-action-20260809",
+  "walletAuthObservedBranchHead": "6ed04310383ed924065d23affc71f3e4d4c29d49",
   "walletAuthSourceReachable": true,
-  "walletAuthExactHeadBound": false,
+  "walletAuthExactHeadBound": true,
   "registryEntry": "wallet-registry-entry.json",
   "walletProtocolVersions": {
     "productSession": 1,
@@ -26,16 +26,15 @@
     "POST /v1/wallet/mandates/emergency-exit"
   ],
   "centralAcceptance": {
-    "integrationBranch": "codex/final-integration",
-    "observedBranchHead": "20191a3e7f561882b7393686fc0ea39d7a08a5ed",
-    "matrixPath": "release/integration/acceptance-matrix.json",
-    "matrixGeneratedAt": "2026-07-29T02:29:14.029Z",
-    "centrallyAcceptedProducts": 0,
-    "quantAcceptedSourceCommit": null
+    "walletRegistrySha256": "77880fc25bccf4df99a63b0ac4c8f81b675d180a37570bafd63bd629d21319e1",
+    "walletSourceCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+    "exchangeSourceCommit": "cbfbd893af7384703b51e20cf8d75c9762d4485a",
+    "quantSourceCommit": "5fb7a35e658594719bd1b687ecbd3d28076a17e5",
+    "publicEvidence": "apps/quant-lab/evidence/public-wallet-quant-exchange-20260810.json"
   },
-  "integratedCentral": false,
-  "testnetExecutionEnabled": false,
-  "sharedTestnetVerified": false,
+  "integratedCentral": true,
+  "testnetExecutionEnabled": true,
+  "sharedTestnetVerified": true,
   "liveFundsEnabled": false,
-  "reason": "A reachable Wallet/Auth v2 candidate exists, but its Quant registration is pending-review and disabled; the contract is not bound to the observed branch head, the central acceptance matrix has no accepted products, and no direct shared-Testnet mandate receipt exists."
+  "reason": "The exact approved Quant client, bundle, HTTPS callback and scopes are live. Public Wallet completion, Quant-scoped Exchange introspection, exact mandate and order signatures, authoritative Testnet submission, restart persistence and proof replay rejection passed on 2026-08-10. Live-funds and Mainnet execution remain disabled."
 }

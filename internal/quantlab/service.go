@@ -1,7 +1,9 @@
 package quantlab
 
 import (
+	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -44,16 +46,34 @@ const (
 var BuildCommit = "development"
 
 type Config struct {
-	StatePath       string
-	Now             func() time.Time
-	MandateVerifier MandateVerifier
-	TestnetBroker   TestnetBroker
-	MarketData      MarketData
+	StatePath        string
+	DatabaseURL      string
+	StateNamespace   string
+	sharedDatabase   *sql.DB
+	Now              func() time.Time
+	MandateVerifier  MandateVerifier
+	TestnetBroker    TestnetBroker
+	SessionCompleter WalletSessionCompleter
+	PrivateSession   ProductSessionAuthorizer
+	FinanceReadKey   string
+	MarketData       MarketData
 }
 
-type MandateVerifier interface{ VerifyMandate(Mandate) error }
+type MandateVerifier interface {
+	VerifyMandate(context.Context, Mandate, string) error
+}
 type TestnetBroker interface {
-	SubmitTestnet(TestnetOrder) (string, error)
+	SubmitTestnet(context.Context, Mandate, TestnetOrder, string) (TestnetExecutionReceipt, error)
+}
+
+type TestnetExecutionReceipt struct {
+	BrokerProof         string `json:"brokerProof"`
+	VenueOrderID        string `json:"venueOrderId"`
+	VenueStatus         string `json:"venueStatus"`
+	AuthorizationDigest string `json:"authorizationDigest"`
+}
+type WalletSessionCompleter interface {
+	CompleteWalletSession(context.Context, []byte) ([]byte, int, error)
 }
 type Bar struct {
 	Time   time.Time `json:"time"`
@@ -102,12 +122,31 @@ type Assumptions struct {
 	TrainEnd            int
 	WalkForwardWindows  int
 }
+type StrategyRuntime struct {
+	Enabled         bool        `json:"enabled"`
+	Running         bool        `json:"running"`
+	IntervalSeconds int64       `json:"intervalSeconds"`
+	Assumptions     Assumptions `json:"assumptions"`
+	NextRunAt       time.Time   `json:"nextRunAt,omitempty"`
+	LastRunAt       time.Time   `json:"lastRunAt,omitempty"`
+	LastRunStatus   string      `json:"lastRunStatus,omitempty"`
+	LastExperiment  string      `json:"lastExperiment,omitempty"`
+	RunID           string      `json:"runId,omitempty"`
+}
 type StrategySpec struct {
 	ID, Name, Family, Source, SourceCommit, License, StrategyHash, ModelHash, DataHash, FeatureHash, Split, Limitations string
 	Seed                                                                                                                int64
 	Params                                                                                                              map[string]int64
 	Stage                                                                                                               string
 	CreatedAt                                                                                                           time.Time
+	Runtime                                                                                                             StrategyRuntime
+}
+type ScheduledRunReceipt struct {
+	StrategyID   string    `json:"strategyId"`
+	RunID        string    `json:"runId"`
+	Status       string    `json:"status"`
+	ExperimentID string    `json:"experimentId,omitempty"`
+	CompletedAt  time.Time `json:"completedAt"`
 }
 type LifecycleApproval struct {
 	TargetStage    string `json:"targetStage"`
@@ -117,14 +156,22 @@ type LifecycleApproval struct {
 	Actor          string `json:"actor"`
 }
 type BacktestRequest struct {
-	Strategy    StrategySpec `json:"strategy"`
-	Bars        []Bar        `json:"bars"`
-	Assumptions Assumptions  `json:"assumptions"`
+	Strategy      StrategySpec `json:"strategy"`
+	Bars          []Bar        `json:"bars"`
+	Assumptions   Assumptions  `json:"assumptions"`
+	scheduleRunID string
 }
 type Metrics struct {
 	ReturnBPS, BuyHoldBPS, MaxDrawdownBPS int64
+	SharpeMilli, VolatilityBPS            int64
 	Trades, PartialFills, DataGaps        int
 	NoTrade                               bool
+}
+type EquityPoint struct {
+	Time            time.Time `json:"time"`
+	Equity          int64     `json:"equity"`
+	BenchmarkEquity int64     `json:"benchmarkEquity"`
+	PeriodReturnBPS int64     `json:"periodReturnBps"`
 }
 type PnLAttribution struct {
 	Currency                 string   `json:"currency"`
@@ -159,6 +206,8 @@ type Experiment struct {
 	SensitivitySpreadBPS int64              `json:"sensitivitySpreadBPS"`
 	Regimes              map[string]Metrics `json:"regimes"`
 	NoTradeReturnBPS     int64              `json:"noTradeReturnBPS"`
+	EquityCurve          []EquityPoint      `json:"equityCurve"`
+	MetricDefinitions    map[string]string  `json:"metricDefinitions"`
 	Status               string             `json:"status"`
 	CreatedAt            time.Time          `json:"createdAt"`
 	AuditDigest          string             `json:"auditDigest"`
@@ -209,22 +258,28 @@ type TestnetRiskObservation struct {
 }
 
 type TestnetOrder struct {
-	ID             string    `json:"id"`
-	MandateDigest  string    `json:"mandateDigest"`
-	StrategyHash   string    `json:"strategyHash"`
-	Market         string    `json:"market"`
-	Side           string    `json:"side"`
-	Price          int64     `json:"price"`
-	Amount         int64     `json:"amount"`
-	IdempotencyKey string    `json:"idempotencyKey"`
-	BrokerProof    string    `json:"brokerProof"`
-	Status         string    `json:"status"`
-	CreatedAt      time.Time `json:"createdAt"`
+	ID                  string    `json:"id"`
+	MandateDigest       string    `json:"mandateDigest"`
+	StrategyHash        string    `json:"strategyHash"`
+	Market              string    `json:"market"`
+	Side                string    `json:"side"`
+	Price               int64     `json:"price"`
+	Amount              int64     `json:"amount"`
+	IdempotencyKey      string    `json:"idempotencyKey"`
+	WalletSignature     string    `json:"walletSignature,omitempty"`
+	BrokerProof         string    `json:"brokerProof"`
+	VenueOrderID        string    `json:"venueOrderId"`
+	VenueStatus         string    `json:"venueStatus"`
+	AuthorizationDigest string    `json:"authorizationDigest"`
+	Status              string    `json:"status"`
+	CreatedAt           time.Time `json:"createdAt"`
 }
 type PaperOrder struct {
 	ID, StrategyHash, Side, Status, Source string
 	Price, Amount, Filled                  int64
 	CreatedAt                              time.Time
+	// Omit legacy empty keys so existing persisted orders keep their integrity hash.
+	IdempotencyKey string `json:"IdempotencyKey,omitempty"`
 }
 type PaperState struct {
 	Cash, Position, RealizedPnL int64
@@ -262,6 +317,7 @@ type ExecutionLedgerRecord struct {
 	CompletedAt  time.Time            `json:"completedAt,omitempty"`
 }
 type state struct {
+	Revision         int64                            `json:"-"`
 	Schema           int                              `json:"schema"`
 	Sequence         int64                            `json:"sequence"`
 	Experiments      map[string]Experiment            `json:"experiments"`
@@ -280,44 +336,102 @@ type Service struct {
 	mu    sync.Mutex
 	cfg   Config
 	state state
+	store stateStore
+}
+
+type SnapshotSourceMetadata struct {
+	Source         string         `json:"source"`
+	AsOf           time.Time      `json:"asOf"`
+	Version        string         `json:"version"`
+	Classification string         `json:"classification"`
+	Status         string         `json:"status"`
+	Confidence     string         `json:"confidence"`
+	Coverage       string         `json:"coverage"`
+	Storage        map[string]any `json:"storage"`
+}
+
+// StorageStatus describes the persistence contract that this Service is
+// actually running. The file snapshot is durable across a process restart and
+// guarded against concurrent writers on one shared filesystem, but it is not
+// a distributed store: it must never be advertised as a multi-instance
+// production backend.
+func (s *Service) StorageStatus() map[string]any {
+	backend := "unavailable"
+	multiInstance := false
+	if s.store != nil {
+		backend = s.store.backend()
+		multiInstance = s.store.multiInstance()
+	}
+	return map[string]any{
+		"backend":                      backend,
+		"restartPersistent":            true,
+		"crossProcessSharedFilesystem": backend == "filesystem_json_snapshot",
+		"multiInstance":                multiInstance,
+		"productionDatabaseRequired":   !multiInstance,
+	}
+}
+
+func (s *Service) StorageSource() string {
+	if s.store != nil && s.store.backend() == "postgresql" {
+		return "ynx-quant-authoritative-postgresql-state"
+	}
+	return "ynx-quant-authoritative-local-state"
+}
+
+func (s *Service) snapshotSourceMetadata(status string) SnapshotSourceMetadata {
+	storage := s.StorageStatus()
+	if status == "" {
+		if multiInstance, _ := storage["multiInstance"].(bool); multiInstance {
+			status = "live"
+		} else {
+			status = "degraded_single_host"
+		}
+	}
+	return SnapshotSourceMetadata{
+		Source:         s.StorageSource(),
+		AsOf:           s.cfg.Now().UTC(),
+		Version:        Version,
+		Classification: "testnet",
+		Status:         status,
+		Confidence:     "authoritative-for-quant-owned-persisted-state",
+		Coverage:       "local-research-paper-and-bounded-testnet-records",
+		Storage:        storage,
+	}
 }
 
 func New(cfg Config) (*Service, error) {
+	cfg.DatabaseURL = strings.TrimSpace(cfg.DatabaseURL)
+	cfg.StateNamespace = strings.TrimSpace(cfg.StateNamespace)
 	if strings.TrimSpace(cfg.StatePath) == "" {
+		return nil, ErrInvalid
+	}
+	if strings.TrimSpace(cfg.DatabaseURL) != "" && !validStateNamespace(cfg.StateNamespace) {
 		return nil, ErrInvalid
 	}
 	if cfg.Now == nil {
 		cfg.Now = func() time.Time { return time.Now().UTC() }
 	}
-	s := state{Schema: StateSchema, Experiments: map[string]Experiment{}, Strategies: map[string]StrategySpec{}, Datasets: map[string]DatasetRecord{}, Mandates: map[string]Mandate{}, Paper: PaperState{Cash: 100_000_000_000}, ExecutionLedger: map[string]ExecutionLedgerRecord{}, AdapterSequences: map[string]int64{}}
-	s.TestnetOrders = map[string]TestnetOrder{}
-	s.Idempotency = map[string]string{}
-	b, err := os.ReadFile(cfg.StatePath)
-	if err == nil {
-		var loaded state
-		if json.Unmarshal(b, &loaded) != nil || !verifyIntegrity(loaded) {
-			return nil, fmt.Errorf("state integrity: %w", ErrForbidden)
-		}
-		s = loaded
-		if s.TestnetOrders == nil {
-			s.TestnetOrders = map[string]TestnetOrder{}
-		}
-		if s.Datasets == nil {
-			s.Datasets = map[string]DatasetRecord{}
-		}
-		if s.Idempotency == nil {
-			s.Idempotency = map[string]string{}
-		}
-		if s.ExecutionLedger == nil {
-			s.ExecutionLedger = map[string]ExecutionLedgerRecord{}
-		}
-		if s.AdapterSequences == nil {
-			s.AdapterSequences = map[string]int64{}
-		}
-	} else if !os.IsNotExist(err) {
+	store, err := openStateStore(cfg)
+	if err != nil {
 		return nil, err
 	}
-	return &Service{cfg: cfg, state: s}, nil
+	s, found, err := store.load()
+	if err != nil {
+		_ = store.close()
+		return nil, err
+	}
+	if !found {
+		s = newQuantState()
+	}
+	normalizeQuantState(&s)
+	return &Service{cfg: cfg, state: s, store: store}, nil
+}
+
+func (s *Service) Close() error {
+	if s.store == nil {
+		return nil
+	}
+	return s.store.close()
 }
 
 func (s *Service) RegisterDataset(record DatasetRecord) (DatasetRecord, error) {
@@ -377,13 +491,17 @@ func (s *Service) RegisterDataset(record DatasetRecord) (DatasetRecord, error) {
 }
 
 func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
+	return s.RegisterMandateWithSession(context.Background(), m, "")
+}
+
+func (s *Service) RegisterMandateWithSession(ctx context.Context, m Mandate, exchangeSession string) (Mandate, error) {
 	now := s.cfg.Now()
 	m.Account = strings.TrimSpace(m.Account)
 	m.StrategyHash = strings.ToLower(strings.TrimSpace(m.StrategyHash))
 	m.Market = strings.TrimSpace(m.Market)
 	if !m.TestnetOnly || len(m.StrategyHash) != 64 || m.Market != "YNXT-YUSD_TEST" ||
 		m.ProductID != ProductID || len(strings.TrimSpace(m.BundleID)) < 3 || len(strings.TrimSpace(m.DeviceID)) < 3 ||
-		m.NonceDomain != "ynx-quant-testnet-v1" || m.Scope != "quant:testnet-execute" || m.Nonce == 0 ||
+		m.NonceDomain != "quant:"+m.StrategyHash || m.Scope != "quant:testnet-execute" || m.Nonce == 0 ||
 		m.MaxNotional <= 0 || m.MaxPosition <= 0 || m.MaxDailyLoss <= 0 || m.MaxSlippageBPS <= 0 || m.MaxSlippageBPS > 10_000 ||
 		m.MaxGas <= 0 || m.MaxOrdersPerMinute <= 0 || m.MaxOrdersPerMinute > 60 || !m.ExpiresAt.After(now) ||
 		m.MaxLeverageBPS <= 0 || m.MaxDrawdown <= 0 || m.MinLiquidity <= 0 || m.MaxVaR <= 0 || m.MaxExpectedShortfall <= 0 ||
@@ -410,7 +528,10 @@ func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
 	if s.cfg.MandateVerifier == nil {
 		return Mandate{}, ErrUnavailable
 	}
-	if err := s.cfg.MandateVerifier.VerifyMandate(m); err != nil {
+	if err := s.cfg.MandateVerifier.VerifyMandate(ctx, m, exchangeSession); err != nil {
+		if errors.Is(err, ErrUnavailable) {
+			return Mandate{}, ErrUnavailable
+		}
 		return Mandate{}, ErrForbidden
 	}
 	s.mu.Lock()
@@ -429,6 +550,10 @@ func (s *Service) RegisterMandate(m Mandate) (Mandate, error) {
 }
 
 func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64, key string, risk TestnetRiskObservation) (TestnetOrder, error) {
+	return s.SubmitTestnetWithSession(context.Background(), mandateDigest, side, price, amount, key, "", "", risk)
+}
+
+func (s *Service) SubmitTestnetWithSession(ctx context.Context, mandateDigest, side string, price, amount int64, key, walletSignature, exchangeSession string, risk TestnetRiskObservation) (TestnetOrder, error) {
 	if (side != "buy" && side != "sell") || price <= 0 || amount <= 0 || len(key) < 8 || len(key) > 128 {
 		return TestnetOrder{}, ErrInvalid
 	}
@@ -436,17 +561,19 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		return TestnetOrder{}, ErrUnavailable
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	release, lockErr := s.lockAndReload()
 	if lockErr != nil {
+		s.mu.Unlock()
 		return TestnetOrder{}, lockErr
 	}
-	defer release()
+	unlock := func() { release(); s.mu.Unlock() }
 	if s.state.Paper.KillSwitch {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	m, ok := s.state.Mandates[mandateDigest]
 	if !ok || m.Revoked || !s.cfg.Now().Before(m.ExpiresAt) {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	now := s.cfg.Now()
@@ -455,21 +582,26 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		risk.AvailableLiquidity < 0 || risk.DepegBPS < 0 || risk.ConcentrationBPS < 0 || risk.OrdersObserved < 0 ||
 		risk.CancelsObserved < 0 || risk.CancelsObserved > risk.OrdersObserved || risk.ConsecutiveAPIFailures < 0 || risk.VaR < 0 || risk.ExpectedShortfall < 0 ||
 		risk.OracleAsOf.IsZero() || risk.OracleAsOf.After(now) || now.Sub(risk.OracleAsOf) > 30*time.Second {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	slippageBPS, safe := basisPoints(abs(price-risk.ReferencePrice), risk.ReferencePrice)
 	if !safe {
+		unlock()
 		return TestnetOrder{}, ErrInvalid
 	}
 	notional, safe := microNotional(price, amount)
 	if !safe {
+		unlock()
 		return TestnetOrder{}, ErrInvalid
 	}
 	if risk.GrossExposure > math.MaxInt64-notional {
+		unlock()
 		return TestnetOrder{}, ErrInvalid
 	}
 	projectedLeverageBPS, safe := basisPoints(risk.GrossExposure+notional, risk.Equity)
 	if !safe {
+		unlock()
 		return TestnetOrder{}, ErrInvalid
 	}
 	drawdown := risk.PeakEquity - risk.CurrentEquity
@@ -477,6 +609,7 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 	if risk.OrdersObserved > 0 {
 		cancelRateBPS, safe = basisPoints(risk.CancelsObserved, risk.OrdersObserved)
 		if !safe {
+			unlock()
 			return TestnetOrder{}, ErrInvalid
 		}
 	}
@@ -484,6 +617,7 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		projectedLeverageBPS > m.MaxLeverageBPS || drawdown >= m.MaxDrawdown || risk.AvailableLiquidity < m.MinLiquidity || risk.AvailableLiquidity < notional ||
 		risk.DepegBPS > m.MaxDepegBPS || risk.ConcentrationBPS > m.MaxConcentrationBPS || cancelRateBPS > m.MaxCancelRateBPS ||
 		risk.ConsecutiveAPIFailures >= m.MaxConsecutiveAPIFailures || risk.VaR > m.MaxVaR || risk.ExpectedShortfall > m.MaxExpectedShortfall {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	position := int64(0)
@@ -502,6 +636,7 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		}
 	}
 	if recentOrders >= m.MaxOrdersPerMinute {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	signedAmount := amount
@@ -509,6 +644,7 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 		signedAmount = -amount
 	}
 	if notional > m.MaxNotional || abs(position+signedAmount) > m.MaxPosition {
+		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
 	d := hash(struct {
@@ -517,27 +653,58 @@ func (s *Service) SubmitTestnet(mandateDigest, side string, price, amount int64,
 	}{mandateDigest, side, price, amount})
 	if prior, ok := s.state.Idempotency[key]; ok {
 		if prior != d {
+			unlock()
 			return TestnetOrder{}, ErrConflict
 		}
 		for _, o := range s.state.TestnetOrders {
 			if o.IdempotencyKey == key {
-				return o, nil
+				unlock()
+				if o.Status == "submitted_testnet" {
+					return o, nil
+				}
+				return TestnetOrder{}, ErrUnavailable
 			}
 		}
 	}
 	s.state.Sequence++
-	o := TestnetOrder{ID: fmt.Sprintf("testnet-%06d", s.state.Sequence), MandateDigest: mandateDigest, StrategyHash: m.StrategyHash, Market: m.Market, Side: side, Price: price, Amount: amount, IdempotencyKey: key, Status: "submitting", CreatedAt: s.cfg.Now()}
-	proof, err := s.cfg.TestnetBroker.SubmitTestnet(o)
+	o := TestnetOrder{ID: fmt.Sprintf("testnet-%06d", s.state.Sequence), MandateDigest: mandateDigest, StrategyHash: m.StrategyHash, Market: m.Market, Side: side, Price: price, Amount: amount, IdempotencyKey: key, WalletSignature: strings.TrimSpace(walletSignature), Status: "reserved_outcome_unknown", CreatedAt: s.cfg.Now()}
+	s.state.TestnetOrders[o.ID] = o
+	s.state.Idempotency[key] = d
+	s.audit("testnet_order_reserved", o.ID, hash(o))
+	if err := s.save(); err != nil {
+		unlock()
+		return TestnetOrder{}, err
+	}
+	unlock()
+
+	receipt, err := s.cfg.TestnetBroker.SubmitTestnet(ctx, m, o, exchangeSession)
 	if err != nil {
 		return TestnetOrder{}, ErrUnavailable
 	}
-	o.BrokerProof = strings.TrimSpace(proof)
-	if o.BrokerProof == "" {
+	o.BrokerProof = strings.TrimSpace(receipt.BrokerProof)
+	o.VenueOrderID = strings.TrimSpace(receipt.VenueOrderID)
+	o.VenueStatus = strings.TrimSpace(receipt.VenueStatus)
+	o.AuthorizationDigest = strings.TrimSpace(receipt.AuthorizationDigest)
+	if o.BrokerProof == "" || o.VenueOrderID == "" || (o.VenueStatus != "open" && o.VenueStatus != "partially_filled" && o.VenueStatus != "filled") || len(o.AuthorizationDigest) != sha256.Size*2 {
 		return TestnetOrder{}, ErrUnavailable
+	}
+	if _, err := hex.DecodeString(o.AuthorizationDigest); err != nil {
+		return TestnetOrder{}, ErrUnavailable
+	}
+	s.mu.Lock()
+	release, lockErr = s.lockAndReload()
+	if lockErr != nil {
+		s.mu.Unlock()
+		return TestnetOrder{}, lockErr
+	}
+	defer release()
+	defer s.mu.Unlock()
+	reserved, ok := s.state.TestnetOrders[o.ID]
+	if !ok || reserved.Status != "reserved_outcome_unknown" || reserved.IdempotencyKey != key || s.state.Idempotency[key] != d {
+		return TestnetOrder{}, ErrConflict
 	}
 	o.Status = "submitted_testnet"
 	s.state.TestnetOrders[o.ID] = o
-	s.state.Idempotency[key] = d
 	s.audit("testnet_order_submitted", o.ID, hash(o))
 	return o, s.save()
 }
@@ -589,7 +756,7 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 		Params map[string]int64
 	}{strategy.Family, strategy.Params})
 	strategy.Split = fmt.Sprintf("train[0:%d), out-of-sample[%d:%d), walk-forward=%d", req.Assumptions.TrainEnd, req.Assumptions.TrainEnd, len(req.Bars), req.Assumptions.WalkForwardWindows)
-	metrics, attribution := simulateDetailed(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, len(req.Bars))
+	metrics, attribution, equityCurve := simulateDetailed(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, len(req.Bars))
 	walkForward := make([]Metrics, 0, req.Assumptions.WalkForwardWindows)
 	oos := len(req.Bars) - req.Assumptions.TrainEnd
 	for i := 0; i < req.Assumptions.WalkForwardWindows; i++ {
@@ -632,10 +799,23 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 		return Experiment{}, lockErr
 	}
 	defer release()
+	if req.scheduleRunID != "" {
+		current, exists := s.state.Strategies[strategy.ID]
+		if !exists || !current.Runtime.Enabled || current.Runtime.RunID != req.scheduleRunID {
+			return Experiment{}, ErrConflict
+		}
+		strategy.Runtime = current.Runtime
+	}
 	s.state.Sequence++
 	id := fmt.Sprintf("experiment-%06d", s.state.Sequence)
 	now := s.cfg.Now()
-	e := Experiment{ID: id, Strategy: strategy, Assumptions: req.Assumptions, Metrics: metrics, Attribution: attribution, LeakageChecksPassed: true, WalkForward: walkForward, Sensitivity: sensitivity, SensitivitySpreadBPS: maxReturn - minReturn, Regimes: regimes, NoTradeReturnBPS: 0, Status: "completed_oos", CreatedAt: now}
+	e := Experiment{ID: id, Strategy: strategy, Assumptions: req.Assumptions, Metrics: metrics, Attribution: attribution, LeakageChecksPassed: true, WalkForward: walkForward, Sensitivity: sensitivity, SensitivitySpreadBPS: maxReturn - minReturn, Regimes: regimes, NoTradeReturnBPS: 0, EquityCurve: equityCurve, MetricDefinitions: map[string]string{
+		"returnBPS":      "(ending equity - starting equity) / starting equity × 10,000",
+		"buyHoldBPS":     "(ending close - starting close) / starting close × 10,000",
+		"maxDrawdownBPS": "maximum peak-to-trough equity loss / prior peak × 10,000",
+		"sharpeMilli":    "mean OOS period return / sample standard deviation of OOS period returns × sqrt(number of periods) × 1,000; risk-free rate is assumed zero",
+		"volatilityBPS":  "sample standard deviation of OOS period returns × 10,000; not annualized",
+	}, Status: "completed_oos", CreatedAt: now}
 	e.AuditDigest = hash(e)
 	s.state.Experiments[id] = e
 	s.state.Strategies[strategy.ID] = strategy
@@ -676,10 +856,10 @@ func simulate(b []Bar, st StrategySpec, a Assumptions) Metrics {
 	return simulateRange(b, st, a, a.TrainEnd, len(b))
 }
 func simulateRange(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) Metrics {
-	metrics, _ := simulateDetailed(b, st, a, startIndex, endIndex)
+	metrics, _, _ := simulateDetailed(b, st, a, startIndex, endIndex)
 	return metrics
 }
-func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, PnLAttribution) {
+func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, PnLAttribution, []EquityPoint) {
 	cash := int64(100_000_000_000)
 	start := cash
 	pos := int64(0)
@@ -708,13 +888,30 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 	if endIndex > len(b) {
 		endIndex = len(b)
 	}
+	equityCurve := make([]EquityPoint, 0, endIndex-startIndex)
+	periodReturns := make([]float64, 0, endIndex-startIndex)
+	previousEquity := start
+	benchmarkStart := b[startIndex].Close
+	recordEquity := func(index int) {
+		equity := cash + pos*b[index].Close/1_000_000
+		periodReturn := int64(0)
+		if previousEquity != 0 {
+			periodReturn = (equity - previousEquity) * 10000 / previousEquity
+			periodReturns = append(periodReturns, float64(equity-previousEquity)/float64(previousEquity))
+		}
+		benchmark := start * b[index].Close / benchmarkStart
+		equityCurve = append(equityCurve, EquityPoint{Time: b[index].Time, Equity: equity, BenchmarkEquity: benchmark, PeriodReturnBPS: periodReturn})
+		previousEquity = equity
+	}
 	for i := startIndex; i < endIndex; i++ {
 		if b[i].Time.Sub(b[i-1].Time) > 2*time.Minute {
 			gaps++
+			recordEquity(i)
 			continue
 		}
 		signalAt := i - 1 - a.LatencyBars
 		if signalAt < slow-1 {
+			recordEquity(i)
 			continue
 		}
 		f, sma := int64(0), int64(0)
@@ -733,10 +930,12 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 		target := signal * 1_000_000
 		delta := target - pos
 		if delta == 0 {
+			recordEquity(i)
 			continue
 		}
 		capFill := b[i].Volume * a.ParticipationBPS / 10000
 		if capFill <= 0 {
+			recordEquity(i)
 			continue
 		}
 		fill := abs(delta)
@@ -793,10 +992,12 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 		if dd > maxDD {
 			maxDD = dd
 		}
+		recordEquity(i)
 	}
 	end := cash + pos*b[endIndex-1].Close/1_000_000
 	buyHold := (b[endIndex-1].Close - b[startIndex].Close) * 10000 / b[startIndex].Close
-	metrics := Metrics{ReturnBPS: (end - start) * 10000 / start, BuyHoldBPS: buyHold, MaxDrawdownBPS: maxDD, Trades: trades, PartialFills: partial, DataGaps: gaps, NoTrade: trades == 0}
+	sharpeMilli, volatilityBPS := riskAdjustedMetrics(periodReturns)
+	metrics := Metrics{ReturnBPS: (end - start) * 10000 / start, BuyHoldBPS: buyHold, MaxDrawdownBPS: maxDD, SharpeMilli: sharpeMilli, VolatilityBPS: volatilityBPS, Trades: trades, PartialFills: partial, DataGaps: gaps, NoTrade: trades == 0}
 	net := end - start
 	beta := buyHold * start / 10000
 	gross := net + tradingFees + slippageCosts
@@ -807,7 +1008,29 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 	userRealized := realizedGross - tradingFees - slippageCosts
 	attribution := PnLAttribution{Currency: "YUSD_TEST_MICRO", Alpha: gross - beta, Beta: beta, TradingFee: tradingFees, Slippage: slippageCosts, AverageIdleCapital: averageIdle, UserRealizedPnL: userRealized, UserUnrealizedPnL: net - userRealized, UserNetPnL: net, UnsupportedComponents: []string{"carryFunding", "makerRebateLpFee", "gas", "mev", "oracleDrift", "computeDataFee", "managementPerformanceFee"}}
 	attribution.Reconciled = attribution.Alpha+attribution.Beta+attribution.CarryFunding+attribution.MakerRebateLPFee-attribution.TradingFee-attribution.Gas-attribution.Slippage-attribution.MEV-attribution.OracleDrift-attribution.ComputeDataFee-attribution.ManagementPerformanceFee == attribution.UserNetPnL && attribution.UserRealizedPnL+attribution.UserUnrealizedPnL == attribution.UserNetPnL
-	return metrics, attribution
+	return metrics, attribution, equityCurve
+}
+
+func riskAdjustedMetrics(returns []float64) (int64, int64) {
+	if len(returns) < 2 {
+		return 0, 0
+	}
+	mean := 0.0
+	for _, value := range returns {
+		mean += value
+	}
+	mean /= float64(len(returns))
+	variance := 0.0
+	for _, value := range returns {
+		delta := value - mean
+		variance += delta * delta
+	}
+	variance /= float64(len(returns) - 1)
+	deviation := math.Sqrt(variance)
+	if deviation == 0 {
+		return 0, 0
+	}
+	return int64(math.Round(mean / deviation * math.Sqrt(float64(len(returns))) * 1000)), int64(math.Round(deviation * 10000))
 }
 
 func cloneParams(input map[string]int64) map[string]int64 {
@@ -856,12 +1079,153 @@ func (s *Service) AdvanceStrategy(id string, approval LifecycleApproval) (Strate
 		}
 	}
 	v.Stage = approval.TargetStage
+	if v.Runtime.Enabled {
+		v.Runtime.Enabled = false
+		v.Runtime.Running = false
+		v.Runtime.NextRunAt = time.Time{}
+		v.Runtime.LastRunStatus = "stopped_stage_advanced"
+	}
 	s.state.Strategies[id] = v
 	s.audit("strategy_lifecycle_advanced", id, hash(struct {
 		Strategy StrategySpec
 		Approval LifecycleApproval
 	}{v, approval}))
 	return v, s.save()
+}
+
+func (s *Service) ConfigureStrategySchedule(id string, enabled bool, intervalSeconds int64, assumptions Assumptions) (StrategySpec, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, lockErr := s.lockAndReload()
+	if lockErr != nil {
+		return StrategySpec{}, lockErr
+	}
+	defer release()
+	strategy, ok := s.state.Strategies[id]
+	if !ok {
+		return StrategySpec{}, ErrInvalid
+	}
+	if !enabled {
+		strategy.Runtime.Enabled = false
+		strategy.Runtime.Running = false
+		strategy.Runtime.NextRunAt = time.Time{}
+		strategy.Runtime.LastRunStatus = "stopped_by_user"
+		s.state.Strategies[id] = strategy
+		s.audit("strategy_schedule_stopped", id, hash(strategy.Runtime))
+		return strategy, s.save()
+	}
+	if s.cfg.MarketData == nil || strategy.Stage != StageBacktest || intervalSeconds < 60 || intervalSeconds > 86400 || assumptions.FeeBPS < 0 || assumptions.SlippageBPS < 0 || assumptions.LatencyBars < 0 || assumptions.LatencyBars > 50 || assumptions.ParticipationBPS <= 0 || assumptions.ParticipationBPS > 10000 || assumptions.TrainEnd < 10 || assumptions.WalkForwardWindows < 1 || assumptions.WalkForwardWindows > 20 {
+		return StrategySpec{}, ErrInvalid
+	}
+	strategy.Runtime = StrategyRuntime{Enabled: true, IntervalSeconds: intervalSeconds, Assumptions: assumptions, NextRunAt: s.cfg.Now().Add(time.Duration(intervalSeconds) * time.Second), LastRunStatus: "scheduled"}
+	s.state.Strategies[id] = strategy
+	s.audit("strategy_schedule_started", id, hash(strategy.Runtime))
+	return strategy, s.save()
+}
+
+type scheduledRunClaim struct {
+	Strategy StrategySpec
+	RunID    string
+}
+
+func (s *Service) claimDueSchedules() ([]scheduledRunClaim, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	now := s.cfg.Now()
+	ids := make([]string, 0, len(s.state.Strategies))
+	for id := range s.state.Strategies {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	claims := make([]scheduledRunClaim, 0)
+	for _, id := range ids {
+		strategy := s.state.Strategies[id]
+		if !strategy.Runtime.Enabled || strategy.Runtime.NextRunAt.IsZero() || now.Before(strategy.Runtime.NextRunAt) {
+			continue
+		}
+		runID := hash(struct {
+			StrategyID string
+			DueAt      time.Time
+			Now        time.Time
+		}{id, strategy.Runtime.NextRunAt, now})
+		strategy.Runtime.Running = true
+		strategy.Runtime.RunID = runID
+		strategy.Runtime.LastRunStatus = "running"
+		strategy.Runtime.NextRunAt = now.Add(time.Duration(strategy.Runtime.IntervalSeconds) * time.Second)
+		s.state.Strategies[id] = strategy
+		s.audit("strategy_schedule_run_claimed", id, runID)
+		claims = append(claims, scheduledRunClaim{Strategy: strategy, RunID: runID})
+	}
+	if len(claims) == 0 {
+		return claims, nil
+	}
+	return claims, s.save()
+}
+
+func (s *Service) completeScheduledRun(claim scheduledRunClaim, experiment Experiment, runErr error) (ScheduledRunReceipt, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return ScheduledRunReceipt{}, err
+	}
+	defer release()
+	strategy, ok := s.state.Strategies[claim.Strategy.ID]
+	if !ok || strategy.Runtime.RunID != claim.RunID {
+		return ScheduledRunReceipt{}, ErrConflict
+	}
+	status := "completed"
+	if !strategy.Runtime.Enabled {
+		status = "cancelled_before_execution"
+	} else if errors.Is(runErr, ErrInvalid) || errors.Is(runErr, ErrConflict) {
+		status = "failed_invalid_or_cancelled_configuration"
+	} else if runErr != nil {
+		status = "failed_market_data_unavailable"
+	}
+	strategy.Runtime.Running = false
+	strategy.Runtime.LastRunAt = s.cfg.Now()
+	strategy.Runtime.LastRunStatus = status
+	strategy.Runtime.LastExperiment = experiment.ID
+	s.state.Strategies[strategy.ID] = strategy
+	receipt := ScheduledRunReceipt{StrategyID: strategy.ID, RunID: claim.RunID, Status: status, ExperimentID: experiment.ID, CompletedAt: strategy.Runtime.LastRunAt}
+	s.audit("strategy_schedule_run_"+status, strategy.ID, hash(receipt))
+	return receipt, s.save()
+}
+
+// RunDueSchedules atomically claims due research runs before fetching market
+// data. Multiple processes sharing the state path cannot execute the same due
+// run; a crashed claim becomes eligible again only at the next persisted due
+// time. Scheduled runs never submit Paper or Testnet orders.
+func (s *Service) RunDueSchedules() ([]ScheduledRunReceipt, error) {
+	claims, err := s.claimDueSchedules()
+	if err != nil {
+		return nil, err
+	}
+	receipts := make([]ScheduledRunReceipt, 0, len(claims))
+	for _, claim := range claims {
+		var experiment Experiment
+		var runErr error
+		if s.cfg.MarketData == nil {
+			runErr = ErrUnavailable
+		} else if bars, source, marketErr := s.cfg.MarketData.History("YNXT-YUSD_TEST", 10000); marketErr != nil || len(bars) < 20 {
+			runErr = ErrUnavailable
+		} else {
+			strategy := claim.Strategy
+			strategy.Source = source
+			experiment, runErr = s.RunBacktest(BacktestRequest{Strategy: strategy, Bars: bars, Assumptions: strategy.Runtime.Assumptions, scheduleRunID: claim.RunID})
+		}
+		receipt, completeErr := s.completeScheduledRun(claim, experiment, runErr)
+		if completeErr != nil {
+			return receipts, completeErr
+		}
+		receipts = append(receipts, receipt)
+	}
+	return receipts, nil
 }
 
 func (s *Service) ApplyPaperSignal(strategyHash, side string, price, amount, volume int64) (PaperOrder, error) {
@@ -876,6 +1240,11 @@ func (s *Service) ApplyPaperSignal(strategyHash, side string, price, amount, vol
 		return PaperOrder{}, lockErr
 	}
 	defer release()
+	return s.applyPaperSignalLocked(strategyHash, side, price, amount, volume, "")
+}
+
+// applyPaperSignalLocked runs with both the service and durable state locks held.
+func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amount, volume int64, key string) (PaperOrder, error) {
 	if s.state.Paper.KillSwitch {
 		return PaperOrder{}, ErrForbidden
 	}
@@ -902,7 +1271,7 @@ func (s *Service) ApplyPaperSignal(strategyHash, side string, price, amount, vol
 		return PaperOrder{}, ErrForbidden
 	}
 	s.state.Sequence++
-	o := PaperOrder{ID: fmt.Sprintf("paper-%06d", s.state.Sequence), StrategyHash: strategyHash, Side: side, Price: price, Amount: amount, Filled: fill, Status: "open", Source: "authoritative_market_adapter", CreatedAt: s.cfg.Now()}
+	o := PaperOrder{ID: fmt.Sprintf("paper-%06d", s.state.Sequence), StrategyHash: strategyHash, Side: side, Price: price, Amount: amount, Filled: fill, Status: "open", Source: "authoritative_market_adapter", CreatedAt: s.cfg.Now(), IdempotencyKey: key}
 	if fill == amount {
 		o.Status = "filled"
 	} else if fill > 0 {
@@ -926,6 +1295,75 @@ func (s *Service) ApplyPaperSignalFromMarket(strategyHash, side string, amount i
 		return PaperOrder{}, ErrUnavailable
 	}
 	return s.ApplyPaperSignal(strategyHash, side, tick.Price, amount, tick.Volume)
+}
+
+// SubmitPaperSignalFromMarket is the browser-local Paper HTTP boundary. Unlike
+// the lower-level execution adapter, it requires a saved strategy in this tenant
+// and a durable request key. It never grants native Testnet execution authority.
+func (s *Service) SubmitPaperSignalFromMarket(strategyHash, side string, amount int64, key string) (PaperOrder, error) {
+	decoded, err := hex.DecodeString(strategyHash)
+	if err != nil || len(decoded) != sha256.Size || strategyHash != strings.ToLower(strategyHash) ||
+		(side != "buy" && side != "sell") || amount <= 0 || len(key) < 8 || len(key) > 128 {
+		return PaperOrder{}, ErrInvalid
+	}
+	for _, ch := range key {
+		if !(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || strings.ContainsRune("._:-", ch)) {
+			return PaperOrder{}, ErrInvalid
+		}
+	}
+	// Replays return the original receipt even when the market feed is offline.
+	check := func() (PaperOrder, bool, error) {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		release, err := s.lockAndReload()
+		if err != nil {
+			return PaperOrder{}, false, err
+		}
+		defer release()
+		return s.paperSubmissionLocked(strategyHash, side, amount, key)
+	}
+	if order, found, err := check(); found || err != nil {
+		return order, err
+	}
+	if s.cfg.MarketData == nil {
+		return PaperOrder{}, ErrUnavailable
+	}
+	tick, err := s.cfg.MarketData.Latest("YNXT-YUSD_TEST")
+	if err != nil || tick.Price <= 0 || tick.Volume <= 0 || tick.Source == "" {
+		return PaperOrder{}, ErrUnavailable
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return PaperOrder{}, err
+	}
+	defer release()
+	// Another process may have committed this key or replaced the saved strategy
+	// while the market request was in flight. Recheck under the durable write lock.
+	if order, found, err := s.paperSubmissionLocked(strategyHash, side, amount, key); found || err != nil {
+		return order, err
+	}
+	return s.applyPaperSignalLocked(strategyHash, side, tick.Price, amount, tick.Volume, key)
+}
+
+func (s *Service) paperSubmissionLocked(strategyHash, side string, amount int64, key string) (PaperOrder, bool, error) {
+	// Paper orders are retained (and capped at 100). Their keys are independent
+	// from the Testnet idempotency namespace and persist in the same atomic state.
+	for _, order := range s.state.Paper.Orders {
+		if order.IdempotencyKey == key {
+			if order.StrategyHash != strategyHash || order.Side != side || order.Amount != amount {
+				return PaperOrder{}, false, ErrConflict
+			}
+			return order, true, nil
+		}
+	}
+	for _, strategy := range s.state.Strategies {
+		if strategy.StrategyHash == strategyHash {
+			return PaperOrder{}, false, nil
+		}
+	}
+	return PaperOrder{}, false, ErrForbidden
 }
 
 func (s *Service) Reconcile(authoritativeCash, authoritativePosition int64) (PaperState, error) {
@@ -960,6 +1398,18 @@ func (s *Service) Kill(reason string) (PaperState, error) {
 	return s.state.Paper, s.save()
 }
 func (s *Service) Snapshot() map[string]any {
+	snapshot, _ := s.snapshotWithFingerprint()
+	return snapshot
+}
+
+// streamSnapshot pairs a public snapshot with a durable-state fingerprint.
+// The fingerprint is used only to decide whether a subscriber needs a fresh
+// reconciliation; it is not an execution or Wallet capability.
+func (s *Service) streamSnapshot() (map[string]any, string) {
+	return s.snapshotWithFingerprint()
+}
+
+func (s *Service) snapshotWithFingerprint() (map[string]any, string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	release, refreshErr := s.lockAndReload()
@@ -970,24 +1420,35 @@ func (s *Service) Snapshot() map[string]any {
 	if refreshErr != nil {
 		failure = map[string]string{"code": "state_refresh_failed", "message": "authoritative state is temporarily unavailable"}
 	}
-	return map[string]any{
+	metadata := s.snapshotSourceMetadata("")
+	if refreshErr != nil {
+		metadata = s.snapshotSourceMetadata("unavailable")
+	}
+	publicOrders := make(map[string]TestnetOrder, len(s.state.TestnetOrders))
+	for id, order := range s.state.TestnetOrders {
+		order.WalletSignature = ""
+		publicOrders[id] = order
+	}
+	snapshot := map[string]any{
 		"productId":        ProductID,
 		"mode":             "SIMULATED / YNX TESTNET ONLY",
 		"liveFundsEnabled": false,
-		"source":           "ynx-quant-authoritative-local-state",
+		"source":           s.StorageSource(),
 		"asOf":             s.cfg.Now(),
 		"version":          Version,
 		"coverage":         "local-research-paper-and-bounded-testnet-records",
+		"sourceMetadata":   metadata,
 		"failure":          failure,
 		"paper":            s.state.Paper,
 		"datasets":         s.state.Datasets,
 		"strategies":       s.state.Strategies,
 		"experiments":      s.state.Experiments,
-		"testnetOrders":    s.state.TestnetOrders,
+		"testnetOrders":    publicOrders,
 		"executionLedger":  s.state.ExecutionLedger,
 		"adapterSequences": s.state.AdapterSequences,
 		"audit":            s.state.Audit,
 	}
+	return snapshot, fmt.Sprintf("%d:%s", s.state.Revision, s.state.Integrity)
 }
 
 func (s *Service) Backup(destination string) (BackupRecord, error) {
@@ -1089,6 +1550,12 @@ func (s *Service) DeleteAllLocalData(confirmation string) (DeletionRecord, error
 }
 
 func (s *Service) lockAndReload() (func(), error) {
+	if s.store != nil && !s.store.requiresFilesystemLock() {
+		if err := s.reload(); err != nil {
+			return nil, err
+		}
+		return func() {}, nil
+	}
 	lockPath := s.cfg.StatePath + ".lock"
 	if err := os.MkdirAll(filepath.Dir(lockPath), 0700); err != nil {
 		return nil, err
@@ -1113,41 +1580,14 @@ func (s *Service) lockAndReload() (func(), error) {
 }
 
 func (s *Service) reload() error {
-	b, err := os.ReadFile(s.cfg.StatePath)
-	if os.IsNotExist(err) {
-		return nil
-	}
+	latest, found, err := s.store.load()
 	if err != nil {
 		return err
 	}
-	var latest state
-	if json.Unmarshal(b, &latest) != nil || !verifyIntegrity(latest) {
-		return fmt.Errorf("state integrity: %w", ErrForbidden)
+	if !found {
+		return nil
 	}
-	if latest.Experiments == nil {
-		latest.Experiments = map[string]Experiment{}
-	}
-	if latest.Strategies == nil {
-		latest.Strategies = map[string]StrategySpec{}
-	}
-	if latest.Datasets == nil {
-		latest.Datasets = map[string]DatasetRecord{}
-	}
-	if latest.Mandates == nil {
-		latest.Mandates = map[string]Mandate{}
-	}
-	if latest.TestnetOrders == nil {
-		latest.TestnetOrders = map[string]TestnetOrder{}
-	}
-	if latest.Idempotency == nil {
-		latest.Idempotency = map[string]string{}
-	}
-	if latest.ExecutionLedger == nil {
-		latest.ExecutionLedger = map[string]ExecutionLedgerRecord{}
-	}
-	if latest.AdapterSequences == nil {
-		latest.AdapterSequences = map[string]int64{}
-	}
+	normalizeQuantState(&latest)
 	s.state = latest
 	return nil
 }
@@ -1164,8 +1604,14 @@ func (s *Service) audit(action, id, d string) {
 func (s *Service) save() error {
 	s.state.Integrity = ""
 	s.state.Integrity = hash(s.state)
-	b, _ := json.MarshalIndent(s.state, "", "  ")
-	return writeAtomic(s.cfg.StatePath, b)
+	if err := s.store.save(&s.state); err != nil {
+		_ = s.reload()
+		if errors.Is(err, errStateConflict) {
+			return ErrConflict
+		}
+		return err
+	}
+	return nil
 }
 func writeAtomic(path string, b []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
@@ -1187,6 +1633,44 @@ func verifyIntegrity(s state) bool {
 	// historical hash once, then the next atomic save upgrades the integrity
 	// envelope with the new fields.
 	return got != "" && s.ExecutionLedger == nil && s.AdapterSequences == nil && got == legacyIntegrityHash(s)
+}
+
+// verifyStateBytes preserves checksum compatibility when a nested schema gains
+// fields after a state was written. The fallback includes every persisted raw
+// nested value and accepts only the exact known top-level state shape, so a
+// newly added or removed top-level field cannot be silently discarded.
+func verifyStateBytes(encoded []byte, decoded state) bool {
+	if verifyIntegrity(decoded) {
+		return true
+	}
+	type persistedState struct {
+		Schema           json.RawMessage `json:"schema"`
+		Sequence         json.RawMessage `json:"sequence"`
+		Experiments      json.RawMessage `json:"experiments"`
+		Strategies       json.RawMessage `json:"strategies"`
+		Datasets         json.RawMessage `json:"datasets"`
+		Paper            json.RawMessage `json:"paper"`
+		Mandates         json.RawMessage `json:"mandates"`
+		TestnetOrders    json.RawMessage `json:"testnetOrders"`
+		Idempotency      json.RawMessage `json:"idempotency"`
+		ExecutionLedger  json.RawMessage `json:"executionLedger"`
+		AdapterSequences json.RawMessage `json:"adapterSequences"`
+		Audit            json.RawMessage `json:"audit"`
+		Integrity        string          `json:"integrity"`
+	}
+	var raw persistedState
+	var top map[string]json.RawMessage
+	if json.Unmarshal(encoded, &raw) != nil || json.Unmarshal(encoded, &top) != nil || len(top) != 13 || raw.Integrity == "" {
+		return false
+	}
+	for _, key := range []string{"schema", "sequence", "experiments", "strategies", "datasets", "paper", "mandates", "testnetOrders", "idempotency", "executionLedger", "adapterSequences", "audit", "integrity"} {
+		if _, ok := top[key]; !ok {
+			return false
+		}
+	}
+	want := raw.Integrity
+	raw.Integrity = ""
+	return want == hash(raw)
 }
 
 func legacyIntegrityHash(s state) string {
