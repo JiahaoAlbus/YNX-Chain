@@ -26,11 +26,25 @@ var ipQuotaBucket = []byte("ip-quota-v2")
 var admissionMeta = []byte("metadata-v1")
 
 type admissionRecord struct {
-	RequestID   string             `json:"requestId"`
-	Address     string             `json:"address"`
-	Amount      int64              `json:"amount"`
-	At          time.Time          `json:"at"`
-	Transaction *chain.Transaction `json:"transaction,omitempty"`
+	RequestID string    `json:"requestId"`
+	Address   string    `json:"address"`
+	Amount    int64     `json:"amount"`
+	At        time.Time `json:"at"`
+	// Async marks work accepted by the pending-response protocol. Only these
+	// records may be resumed automatically after a process restart.
+	Async         bool               `json:"async,omitempty"`
+	AsyncAttempts int                `json:"asyncAttempts,omitempty"`
+	AsyncNextAt   time.Time          `json:"asyncNextAt,omitempty"`
+	AsyncStopped  bool               `json:"asyncStopped,omitempty"`
+	Transaction   *chain.Transaction `json:"transaction,omitempty"`
+	// OperatorRecovery is written before the only permitted offline recovery
+	// POST. A crash leaves this marker in place and forbids another POST.
+	OperatorRecovery *operatorRecovery `json:"operatorRecovery,omitempty"`
+}
+
+type operatorRecovery struct {
+	ReservedAt time.Time `json:"reservedAt"`
+	Outcome    string    `json:"outcome"`
 }
 
 type admissionStore struct {
@@ -124,6 +138,13 @@ func syncAdmissionDirectory(path string) error {
 }
 
 func (s *Service) Close() error {
+	s.flightMu.Lock()
+	s.closing = true
+	s.flightMu.Unlock()
+	if s.workCancel != nil {
+		s.workCancel()
+	}
+	s.workWG.Wait()
 	if s.admissions != nil {
 		return s.admissions.db.Close()
 	}
@@ -229,6 +250,166 @@ func (s *admissionStore) admit(id, address, ip string, amount int64, now time.Ti
 		return requests.Put([]byte(id), data)
 	})
 	return record, replayed, err
+}
+
+func (s *admissionStore) pendingAsync() ([]admissionRecord, error) {
+	var records []admissionRecord
+	err := s.db.View(func(tx *bolt.Tx) error {
+		return tx.Bucket(admissionBucket).ForEach(func(key, value []byte) error {
+			var record admissionRecord
+			if err := json.Unmarshal(value, &record); err != nil {
+				return err
+			}
+			if record.RequestID != string(key) || record.Amount <= 0 {
+				return errors.New("invalid stored faucet admission")
+			}
+			if record.Async && !record.AsyncStopped && record.Transaction == nil && record.AsyncAttempts < maxAsyncFundingAttempts {
+				records = append(records, record)
+			}
+			return nil
+		})
+	})
+	return records, err
+}
+
+func (s *admissionStore) enableAsync(record admissionRecord) (admissionRecord, error) {
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		data := bucket.Get([]byte(record.RequestID))
+		var current admissionRecord
+		if data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != record.RequestID || current.Address != record.Address || current.Amount != record.Amount {
+			return errors.New("durable admission binding disappeared")
+		}
+		if current.Async {
+			record = current
+			return nil
+		}
+		current.Async = true
+		current.AsyncAttempts = 1 // The first Core POST is already in flight.
+		encoded, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		if err := bucket.Put([]byte(record.RequestID), encoded); err != nil {
+			return err
+		}
+		record = current
+		return nil
+	})
+	return record, err
+}
+
+func (s *admissionStore) scheduleAsyncRetry(id string, next time.Time) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		var current admissionRecord
+		if data := bucket.Get([]byte(id)); data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != id || !current.Async {
+			return errors.New("pending async admission disappeared")
+		}
+		if current.Transaction != nil {
+			return nil
+		}
+		current.AsyncNextAt = next.UTC()
+		data, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		return bucket.Put([]byte(id), data)
+	})
+}
+
+func (s *admissionStore) beginAsyncRetry(id string, limit int) (bool, error) {
+	started := false
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		var current admissionRecord
+		if data := bucket.Get([]byte(id)); data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != id || !current.Async {
+			return errors.New("pending async admission disappeared")
+		}
+		if current.Transaction != nil {
+			return nil
+		}
+		if current.AsyncAttempts >= limit {
+			return nil
+		}
+		current.AsyncAttempts++
+		current.AsyncNextAt = time.Time{}
+		data, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		if err := bucket.Put([]byte(id), data); err != nil {
+			return err
+		}
+		started = true
+		return nil
+	})
+	return started, err
+}
+
+func (s *admissionStore) stopAsync(id string) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		var current admissionRecord
+		if data := bucket.Get([]byte(id)); data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != id || !current.Async {
+			return errors.New("pending async admission disappeared")
+		}
+		if current.Transaction != nil {
+			return nil
+		}
+		current.AsyncStopped = true
+		data, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		return bucket.Put([]byte(id), data)
+	})
+}
+
+func (s *admissionStore) reserveOperatorRecovery(record admissionRecord) (bool, error) {
+	reserved := false
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		var current admissionRecord
+		data := bucket.Get([]byte(record.RequestID))
+		if data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != record.RequestID || current.Address != record.Address || current.Amount != record.Amount {
+			return errors.New("durable admission binding disappeared")
+		}
+		if current.Transaction != nil || current.OperatorRecovery != nil {
+			return nil
+		}
+		if !current.Async || (!current.AsyncStopped && current.AsyncAttempts < maxAsyncFundingAttempts) {
+			return errors.New("admission is not an exhausted async request")
+		}
+		current.OperatorRecovery = &operatorRecovery{ReservedAt: time.Now().UTC(), Outcome: "reserved_result_unknown"}
+		encoded, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		if err := bucket.Put([]byte(record.RequestID), encoded); err != nil {
+			return err
+		}
+		reserved = true
+		return nil
+	})
+	return reserved, err
+}
+
+func (s *admissionStore) noteOperatorRecovery(id, outcome string) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		var current admissionRecord
+		data := bucket.Get([]byte(id))
+		if data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != id || current.OperatorRecovery == nil {
+			return errors.New("operator recovery marker disappeared")
+		}
+		current.OperatorRecovery.Outcome = outcome
+		encoded, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		return bucket.Put([]byte(id), encoded)
+	})
 }
 
 func (s *admissionStore) complete(record admissionRecord, transaction chain.Transaction) error {

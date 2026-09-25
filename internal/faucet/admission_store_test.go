@@ -132,7 +132,9 @@ func TestDurableFaucetReceiptStoreFailureRetainsOriginalAdmission(t *testing.T) 
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		core.ServeHTTP(w, r)
 		if r.URL.Path == "/faucet/requests" {
-			closeOnce.Do(func() { _ = s.Close() })
+			// Inject a receipt-store failure without blocking the upstream handler
+			// on the service's graceful worker drain.
+			closeOnce.Do(func() { _ = s.admissions.db.Close() })
 		}
 	}))
 	defer upstream.Close()

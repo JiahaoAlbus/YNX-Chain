@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"log"
@@ -25,9 +26,42 @@ var (
 )
 
 func main() {
-	if err := runFaucet(); err != nil {
+	var err error
+	if len(os.Args) > 1 && os.Args[1] == "recover-request" {
+		err = runRecoverRequest(os.Args[2:])
+	} else {
+		err = runFaucet()
+	}
+	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// recover-request is deliberately a local offline CLI, not an HTTP handler.
+// It cannot share the admission DB lock with the running daemon.
+func runRecoverRequest(args []string) error {
+	flags := flag.NewFlagSet("recover-request", flag.ContinueOnError)
+	id := flags.String("request-id", "", "original admitted request ID")
+	address := flags.String("address", "", "original receiving address")
+	amount := flags.Int64("amount", 0, "original admitted amount")
+	chainID := flags.Int64("chain-id", 0, "explicit testnet chain ID (6423)")
+	rpcURL := flags.String("rpc", "", "original Core RPC URL")
+	dbPath := flags.String("admission-db", "", "existing offline admission database path")
+	tokenPath := flags.String("core-auth-token-file", "", "existing private Core token file; required only with --execute")
+	execute := flags.Bool("execute", false, "reserve and attempt one original-ID recovery POST")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if len(flags.Args()) != 0 || *id == "" || *address == "" || *amount <= 0 || *chainID != 6423 || *rpcURL == "" || *dbPath == "" {
+		return errors.New("recover-request requires --request-id, --address, --amount, --chain-id=6423, --rpc, and --admission-db")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	result, err := faucet.InspectOrRecoverRequest(ctx, faucet.Config{ChainID: *chainID, RPCURL: *rpcURL, AdmissionPath: *dbPath, CoreAuthTokenPath: *tokenPath}, *id, *address, *amount, *execute)
+	if encodeErr := json.NewEncoder(os.Stdout).Encode(result); encodeErr != nil {
+		return errors.Join(err, encodeErr)
+	}
+	return err
 }
 
 func runFaucet() (result error) {

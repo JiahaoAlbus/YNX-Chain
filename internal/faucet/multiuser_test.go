@@ -2,16 +2,161 @@ package faucet
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
+
+func TestCorePostTimeoutRecoversDurableReceiptWithoutResend(t *testing.T) {
+	core, err := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := api.NewServerWithConfig(core, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
+	var posts atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/faucet/requests" {
+			posts.Add(1)
+			handler.ServeHTTP(httptest.NewRecorder(), r)
+			time.Sleep(250 * time.Millisecond)
+			return
+		}
+		handler.ServeHTTP(w, r)
+	}))
+	defer upstream.Close()
+	s := openTestFaucet(t, admissionTestConfig(t, upstream.URL))
+	s.httpClient.Timeout = 100 * time.Millisecond
+	address := "0x0000000000000000000000000000000000000043"
+	receipt, status, err := s.Request(context.Background(), Request{Address: address, RequestID: admissionTestID}, "192.0.2.50:1000")
+	if err != nil || status != 201 || receipt.Status != "accepted" {
+		t.Fatalf("timeout recovery: %+v %d %v", receipt, status, err)
+	}
+	if posts.Load() != 1 {
+		t.Fatalf("funding POST repeated %d times", posts.Load())
+	}
+	if account, _ := core.Account(address); account.Balance != 100 {
+		t.Fatalf("balance %d", account.Balance)
+	}
+}
+
+func TestLostCoreResponseRecoversOnlyExactDurableReceipt(t *testing.T) {
+	for _, corruptReceipt := range []bool{false, true} {
+		t.Run(fmt.Sprint("corrupt=", corruptReceipt), func(t *testing.T) {
+			core, err := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			handler := api.NewServerWithConfig(core, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
+			var posts atomic.Int32
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method == http.MethodPost && r.URL.Path == "/faucet/requests" {
+					posts.Add(1)
+					recorder := httptest.NewRecorder()
+					handler.ServeHTTP(recorder, r)
+					conn, _, err := w.(http.Hijacker).Hijack()
+					if err != nil {
+						t.Error(err)
+						return
+					}
+					_ = conn.Close() // Core committed, but its HTTP acknowledgement was lost.
+					return
+				}
+				if corruptReceipt && r.Method == http.MethodGet && r.URL.Path != "/health" {
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(map[string]any{"status": "durable", "transaction": map[string]any{"to": "0x0000000000000000000000000000000000000001"}})
+					return
+				}
+				handler.ServeHTTP(w, r)
+			}))
+			defer upstream.Close()
+			s := openTestFaucet(t, admissionTestConfig(t, upstream.URL))
+			address := "0x0000000000000000000000000000000000000042"
+			receipt, status, err := s.Request(context.Background(), Request{Address: address, RequestID: admissionTestID}, "192.0.2.50:1000")
+			if corruptReceipt {
+				if err == nil || status != 503 || receipt.Status != "transaction_result_uncertain" || !receipt.RetrySameRequest {
+					t.Fatalf("unverified receipt accepted: %+v %d %v", receipt, status, err)
+				}
+			} else if err != nil || status != 201 || receipt.Status != "accepted" || receipt.TransactionHash != receipt.Transaction.Hash {
+				t.Fatalf("durable receipt not recovered: %+v %d %v", receipt, status, err)
+			}
+			if posts.Load() != 1 {
+				t.Fatalf("funding POST repeated %d times", posts.Load())
+			}
+			if account, _ := core.Account(address); account.Balance != 100 {
+				t.Fatalf("balance %d", account.Balance)
+			}
+		})
+	}
+}
+
+func TestLostACKRecoversAfterCoreAndFaucetRestartWithoutSecondFunding(t *testing.T) {
+	stateDir := t.TempDir()
+	core, err := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), stateDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var activeHandler atomic.Value
+	activeHandler.Store(api.NewServerWithConfig(core, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
+	var posts atomic.Int32
+	var failReads atomic.Bool
+	failReads.Store(true)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/faucet/requests" {
+			posts.Add(1)
+			recorder := httptest.NewRecorder()
+			activeHandler.Load().(http.Handler).ServeHTTP(recorder, r)
+			if recorder.Code != http.StatusCreated {
+				t.Errorf("Core funding failed before ACK loss: %d", recorder.Code)
+			}
+			http.Error(w, "ACK lost", http.StatusServiceUnavailable)
+			return
+		}
+		if failReads.Load() && r.Method == http.MethodGet && r.URL.Path != "/health" {
+			http.Error(w, "receipt read unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		activeHandler.Load().(http.Handler).ServeHTTP(w, r)
+	}))
+	defer upstream.Close()
+	cfg := admissionTestConfig(t, upstream.URL)
+	s := openTestFaucet(t, cfg)
+	req := Request{Address: "0x0000000000000000000000000000000000000044", RequestID: admissionTestID}
+	first, status, err := s.Request(context.Background(), req, "192.0.2.50:1000")
+	if err == nil || status != 503 || !first.RetrySameRequest || posts.Load() != 1 {
+		t.Fatalf("lost ACK must retain original request: %+v %d %v posts=%d", first, status, err, posts.Load())
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	// Reopen both durable stores, then restore only the read path. A retry must
+	// recover the original receipt and never issue a second funding POST.
+	core, err = chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), stateDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	activeHandler.Store(api.NewServerWithConfig(core, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
+	failReads.Store(false)
+	s = openTestFaucet(t, cfg)
+	recovered, status, err := s.RequestStatus(context.Background(), req.RequestID)
+	if err != nil || status != http.StatusOK || recovered.Status != "accepted" || recovered.Transaction.Hash != first.TransactionHash {
+		t.Fatalf("cold receipt recovery: %+v %d %v", recovered, status, err)
+	}
+	replayed, status, err := s.Request(context.Background(), req, "198.51.100.7:1000")
+	if err != nil || status != http.StatusOK || !replayed.Replayed || replayed.Transaction.Hash != recovered.Transaction.Hash || posts.Load() != 1 {
+		t.Fatalf("cold replay funded again: %+v %d %v posts=%d", replayed, status, err, posts.Load())
+	}
+	if account, _ := core.Account(req.Address); account.Balance != 100 {
+		t.Fatalf("recipient credited more than once after restart: %d", account.Balance)
+	}
+}
 
 func TestMultiuserSameNATPersistentCore(t *testing.T) {
 	for _, n := range []int{10, 50} {

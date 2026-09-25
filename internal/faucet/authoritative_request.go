@@ -16,6 +16,8 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
+var errUpstreamResultUnknown = errors.New("faucet result needs confirmation; retain the same request ID")
+
 func newDurableRequestID() (string, error) {
 	var value [16]byte
 	if _, err := rand.Read(value[:]); err != nil {
@@ -133,6 +135,19 @@ func (s *Service) requestAuthoritative(ctx context.Context, req Request, remote 
 	}
 	funded, joined := s.fundAdmitted(ctx, record, hash, entry)
 	transaction, status, err := funded.tx, funded.status, funded.err
+	if status == http.StatusAccepted && err == nil {
+		if !record.Async {
+			if _, err := s.admissions.enableAsync(record); err != nil {
+				s.recordAdmissionStoreError("enable_async")
+				result.Status = "admission_unavailable"
+				result.RetrySameRequest = true
+				return result, 503, errors.New("durable faucet pending state is unavailable")
+			}
+		}
+		result.Status = "pending"
+		result.RetrySameRequest = true
+		return result, http.StatusAccepted, nil
+	}
 	if err != nil {
 		result.Status = "transaction_result_uncertain"
 		result.RetrySameRequest = true
@@ -215,7 +230,7 @@ func (s *Service) sendDurableFaucetRequest(ctx context.Context, record admission
 	}
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return chain.Transaction{}, 503, errors.New("faucet result needs confirmation; retain the same request ID")
+		return chain.Transaction{}, 503, errUpstreamResultUnknown
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == 409 {
