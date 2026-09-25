@@ -1,5 +1,6 @@
 /** Display-only localization. No locale or translated text enters wallet IPC payloads. */
 import { EXTRA_MESSAGES } from "./desktop-i18n-extra.mjs";
+import { ERROR_MESSAGES } from "./desktop-error-text.mjs";
 export const LOCALES = Object.freeze([
   ["en", "English"], ["zh-CN", "简体中文"], ["zh-TW", "繁體中文"], ["ja", "日本語"],
   ["ko", "한국어"], ["es", "Español"], ["fr", "Français"], ["de", "Deutsch"],
@@ -85,7 +86,7 @@ const rows = [
   ["Wallet storage could not complete ({stage}). Existing recovery files were retained. Reopen Wallet before continuing.", "钱包存储未能完成（阶段：{stage}）。现有恢复文件已保留，请重新打开钱包后再继续。", "錢包儲存未完成（階段：{stage}）。現有復原檔案已保留，請重新開啟錢包再繼續。", "保存処理を完了できませんでした（{stage}）。既存の復元ファイルは保持されています。再起動してください。", "지갑 저장에 실패했습니다({stage}). 기존 복구 파일은 보존되었습니다. 지갑을 다시 여세요.", "No se pudo completar el almacenamiento ({stage}). Se conservaron los archivos de recuperación. Reabre la cartera.", "Stockage du portefeuille incomplet ({stage}). Les fichiers de récupération sont conservés. Rouvrez le portefeuille.", "Wallet-Speicherung fehlgeschlagen ({stage}). Wiederherstellungsdateien bleiben erhalten. Wallet neu öffnen.", "O armazenamento não foi concluído ({stage}). Os arquivos de recuperação foram mantidos. Reabra a carteira.", "Не удалось завершить сохранение ({stage}). Файлы восстановления сохранены. Откройте кошелёк заново.", "تعذر إكمال تخزين المحفظة ({stage}). حُفظت ملفات الاسترداد. أعد فتح المحفظة.", "वॉलेट स्टोरेज पूरा नहीं हुआ ({stage})। रिकवरी फ़ाइलें सुरक्षित हैं। वॉलेट फिर खोलें।"],
 ];
 const curated = Object.fromEntries(rows.map(row => [row[0], Object.freeze(Object.fromEntries(LOCALES.map(([code], index) => [code, code === "id" ? EXTRA_MESSAGES[row[0]]?.id : code === "hi" ? row[11] : row[index]])))]));
-export const MESSAGES = Object.freeze({ ...EXTRA_MESSAGES, ...curated });
+export const MESSAGES = Object.freeze({ ...EXTRA_MESSAGES, ...curated, ...ERROR_MESSAGES });
 
 export function createDesktopI18n({ systemLocale, storage, document: doc }) {
   let explicit = null;

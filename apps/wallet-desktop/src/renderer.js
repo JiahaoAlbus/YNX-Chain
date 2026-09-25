@@ -4,6 +4,7 @@ import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
 import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
 import { createDesktopI18n, LOCALES, MESSAGES } from "./desktop-i18n.mjs";
+import { desktopErrorText } from "./desktop-error-text.mjs";
 
 let displayStorage;
 try { displayStorage = window.localStorage; } catch { /* Display preference is optional. */ }
@@ -417,19 +418,7 @@ let transferInFlight = false;
 let balanceRevision = 0;
 let lastBalance = null;
 function errorText(result) {
-  const error = result?.error;
-  const code = typeof error?.code === "string" && /^[A-Z][A-Z0-9_]{0,63}$/.test(error.code) ? error.code : null;
-  const stage = typeof error?.storageStage === "string" && /^[a-z][a-z0-9-]{0,39}$/.test(error.storageStage) ? error.storageStage : null;
-  const key = error?.outcomeUnknown ? "The transaction outcome could not be checked. Keep its hash and try checking again."
-    : code === "PASSWORD_VAULT_UNLOCK_FAILED" ? "The password is incorrect or this encrypted Wallet changed. It remains locked."
-    : code === "PASSWORD_VAULT_FILE_CHANGED" ? "The stored Wallet changed. Reopen it before continuing; its previous files were retained."
-    : code === "PASSWORD_VAULT_STORAGE_FAILED" ? "Wallet storage cannot be read. Existing files are retained; reopen Wallet before continuing."
-    : code === "ACCOUNT_NOT_CREATED" ? "Create or import an account first"
-    : code === "ACCOUNT_CHANGED" ? "Your selected account changed. Connect again from the app."
-    : code?.startsWith("RPC_") ? "The network is unavailable. Your accounts and backups remain accessible. Try again to refresh balances or send."
-    : "The wallet is unavailable. Try again shortly.";
-  const hash = typeof error?.transactionHash === "string" && /^0x[0-9a-fA-F]{64}$/.test(error.transactionHash) ? error.transactionHash : null;
-  return `${t(key)}${code ? ` (${code}${stage ? ` · ${stage}` : ""})` : ""}${hash ? ` · ${t("Transaction hash")}: ${hash}` : ""}`;
+  return desktopErrorText(result, t);
 }
 let transactionRevision = 0;
 async function refreshTransactions() {

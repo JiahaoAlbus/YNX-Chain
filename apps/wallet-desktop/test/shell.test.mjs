@@ -7,6 +7,7 @@ import { StandardWalletConnection, YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain
 import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "../src/rpc.mjs";
 import { WALLET_AUTH_PROTOCOL_SOURCE, YNX_EVM_CHAIN_ID, YNX_TESTNET_CHAIN_QUANTITY as packagedChainId } from "../src/wallet-auth-contract.mjs";
 import { createPasswordVaultUI } from "../src/password-vault-ui.mjs";
+import { desktopErrorText } from "../src/desktop-error-text.mjs";
 
 test("desktop shell consumes the authoritative Product Session v2 contract and chain", async () => {
   assert.equal(YNX_TESTNET_CHAIN_QUANTITY, "0x1917");
@@ -221,6 +222,26 @@ test("locked Send opens the existing password form without unlocking or preparin
     assert.deepEqual(h.calls, []);
     h.context.passwordUI.cancel();
   }
+});
+
+test("prepare failure stays in Send, gives the code-specific correction and never opens approval", async () => {
+  const h=await sendEntryHarness();
+  h.context.keyState.locked=false;h.render({});
+  h.context.errorText=result=>desktopErrorText(result,key=>key);
+  await h.get("#open-send").click();
+  assert.equal(h.get("#send-sheet").open,true);
+  h.get("#transfer-to").value="0x1111111111111111111111111111111111111111";
+  h.get("#transfer-amount").value="1.5";
+  for(const [code,expected] of [["INVALID_TRANSFER",/valid recipient/],["INSUFFICIENT_FUNDS",/network fee/],["RPC_AMOUNT_UNSUPPORTED",/whole YNXT/]]){
+    h.api.prepareTransfer=async()=>{h.calls.push(["prepare",code]);return{ok:false,error:{code,message:"private fixture secret"}}};
+    await h.get("#transfer-form").emit("submit");
+    assert.match(h.get("#transfer-result").textContent,expected);
+    assert.match(h.get("#transfer-result").textContent,new RegExp(code));
+    assert.doesNotMatch(h.get("#transfer-result").textContent,/private fixture secret|network is unavailable/i);
+    assert.equal(h.get("#transfer-review").open,false);
+    assert.equal(h.context.transferReview,null);
+  }
+  assert.equal(h.calls.filter(([kind])=>kind==="send").length,0);
 });
 
 test("Send cannot bypass unavailable or in-progress unlock, including direct handler invocation", async () => {
