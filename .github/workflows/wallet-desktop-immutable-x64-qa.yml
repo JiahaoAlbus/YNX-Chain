@@ -8,6 +8,7 @@ name: Wallet immutable 0.6.10 x64 installed QA
     - ".github/workflows/wallet-desktop-immutable-x64-qa.yml"
     - apps/wallet-desktop/scripts/windows-password-installed-gate.mjs
     - apps/wallet-desktop/scripts/windows-password-form-state.mjs
+    - apps/wallet-desktop/scripts/windows-old-installed-profile.mjs
     - apps/wallet-desktop/scripts/windows-immutable-x64-artifact.mjs
     - apps/wallet-desktop/test/windows-password-form-state.test.mjs
   workflow_dispatch:
@@ -375,9 +376,23 @@ jobs:
   old-version-upgrade:
     runs-on: windows-2025
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        # Exact 0.6.8 account creation fails with PASSWORD_VAULT_STORAGE_FAILED
+        # in run 36125017201. Its failed-profile recovery is a separate gate.
+        - oldVersion: 0.6.9
+          oldSource: 3045436395fe636c91be417f41fc1e4ed2bc7515
+          oldBytes: 120980075
+          oldSHA256: 0df01cecc47c4af179d651892623b7936ac6dac52a5d9961212bed90eccde7e1
     env:
       YNX_ORIGINAL_SOURCE: ffaf3ca0d85f81622e6b1ba20c7648abb09a2574
       YNX_WALLET_EXPECTED_VERSION: 0.6.10
+      YNX_OLD_VERSION: ${{ matrix.oldVersion }}
+      YNX_OLD_SOURCE: ${{ matrix.oldSource }}
+      YNX_OLD_BYTES: ${{ matrix.oldBytes }}
+      YNX_OLD_SHA256: ${{ matrix.oldSHA256 }}
     steps:
     - name: Preserve committed bytes in this disposable runner checkout
       shell: bash
@@ -422,20 +437,20 @@ jobs:
         $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
         @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; installerBytes=$installer.Length; installerSHA256=(Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant(); authenticodeStatus=[string]$signature.Status; productionSigned=$false; oldVersionUpgradeVerified=$false; currentVersionLifecycleVerified=$false } | ConvertTo-Json | Set-Content 'apps/wallet-desktop/dist/windows-immutable-x64-identity.json'
         if ($signature.Status -ne 'NotSigned') { throw 'Unexpected installer signature status requires review' }
-    - name: Download and install exact public Windows 0.6.8 for in-place upgrade QA
+    - name: Download and install exact public Windows predecessor for in-place upgrade QA
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Stop'
-        $sha = 'da2e564eb680de0595202bd388eda9d524f40d62052b03da9b0bba4bf9da3716'
-        $name = 'ynx-wallet-desktop-0.6.8-x64.exe'
+        $sha = $env:YNX_OLD_SHA256
+        $name = "ynx-wallet-desktop-$($env:YNX_OLD_VERSION)-x64.exe"
         $url = "https://downloads.ynxweb4.com/wallet/sha256-$sha/$name"
         $old = Join-Path $env:RUNNER_TEMP $name
         if (Test-Path -LiteralPath $old) { throw 'Old installer destination is not empty' }
         & curl.exe --fail --silent --show-error --proto '=https' --tlsv1.2 --max-time 300 --output $old $url
         if ($LASTEXITCODE -ne 0) { throw 'Public old installer download failed' }
-        if ((Get-Item -LiteralPath $old).Length -ne 120954701 -or (Get-FileHash -LiteralPath $old -Algorithm SHA256).Hash.ToLowerInvariant() -ne $sha) { throw 'Public old installer bytes failed immutable hash verification' }
+        if ((Get-Item -LiteralPath $old).Length -ne [long]$env:YNX_OLD_BYTES -or (Get-FileHash -LiteralPath $old -Algorithm SHA256).Hash.ToLowerInvariant() -ne $sha) { throw 'Public old installer bytes failed immutable hash verification' }
         $signature = Get-AuthenticodeSignature -LiteralPath $old
-        @{ sourceCommit='6f332753baae5deaf6b05c8276b20a02cc4887c5'; version='0.6.8'; architecture='x64'; bytes=120954701; sha256=$sha; exactPublicBytesVerified=$true; authenticodeStatus=[string]$signature.Status; productionSigned=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-old-installer.json'
+        @{ sourceCommit=$env:YNX_OLD_SOURCE; version=$env:YNX_OLD_VERSION; architecture='x64'; bytes=[long]$env:YNX_OLD_BYTES; sha256=$sha; exactPublicBytesVerified=$true; authenticodeStatus=[string]$signature.Status; productionSigned=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-old-installer.json'
         $install = [Diagnostics.Process]::new()
         try {
           $install.StartInfo.FileName = $old
@@ -461,7 +476,7 @@ jobs:
         $exe = Join-Path $locations[0] 'YNX Wallet.exe'
         if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Old installed executable is missing' }
         "YNX_OLD_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-    - name: Create a protected old account in the installed 0.6.8 UI
+    - name: Create a protected old account in the installed public predecessor UI
       shell: bash
       run: node apps/wallet-desktop/scripts/windows-old-installed-profile.mjs
     - name: Install Windows and verify two locked cold starts
@@ -557,7 +572,7 @@ jobs:
         if ($locations.Count -ne 1) { throw 'Upgraded Wallet registration is not unique' }
         $exe = Join-Path $locations[0] 'YNX Wallet.exe'
         if ($exe -ne $env:YNX_OLD_INSTALLED_EXE) { throw 'Upgraded Wallet changed the installed executable identity' }
-        $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP '旧钱包 QA profile'
+        $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP "旧钱包 $($env:YNX_OLD_VERSION) QA profile"
         $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\upgrade-installed-smoke.json'
         $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
         if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $old.vaultSHA256) { throw 'Old encrypted Wallet changed before upgraded launch' }
@@ -578,7 +593,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
-        name: wallet-immutable-x64-upgrade-qa-${{ github.sha }}
+        name: wallet-immutable-x64-upgrade-${{ matrix.oldVersion }}-qa-${{ github.sha }}
         if-no-files-found: warn
         path: |
           apps/wallet-desktop/dist/*.deb

@@ -16,7 +16,7 @@ const importFixtures = Array.from({ length: 6 }, (_, index) => {
 async function vaultDigest() {
   const profile = process.env.YNX_WALLET_PROFILE_PATH;
   const relative = process.env.RUNNER_TEMP && profile ? path.relative(process.env.RUNNER_TEMP, profile) : "";
-  if (process.platform !== "win32" || !["钱包 QA profile", "离线 QA profile", "旧钱包 QA profile"].includes(relative)) throw new Error("QA_VAULT_PROFILE_UNAVAILABLE");
+  if (process.platform !== "win32" || !["钱包 QA profile", "离线 QA profile", "旧钱包 0.6.8 QA profile", "旧钱包 0.6.9 QA profile"].includes(relative)) throw new Error("QA_VAULT_PROFILE_UNAVAILABLE");
   return createHash("sha256").update(await readFile(path.join(process.env.YNX_WALLET_PROFILE_PATH, "wallet-vault-v3.json"))).digest("hex");
 }
 
@@ -229,7 +229,7 @@ try {
     await until(state => state.locked === true, "Explicit lock");
     const vaultBeforeWrongPassword = await vaultDigest();
     const installedVersion = await evaluate(`(async () => (await window.ynxWallet.appInfo()).version)()`, "WRONG_PASSWORD_INSTALLED_VERSION");
-    if (!["0.6.8", "0.6.10"].includes(installedVersion)) throw new Error("WRONG_PASSWORD_VERSION_UNSUPPORTED");
+    if (!["0.6.8", "0.6.9", "0.6.10"].includes(installedVersion)) throw new Error("WRONG_PASSWORD_VERSION_UNSUPPORTED");
     await evaluate(`(() => {
       const form=document.querySelector('#password-form'), submit=document.querySelector('#submit-password');
       const attempt={submitObserved:false,busyObserved:false};
