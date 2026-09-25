@@ -22,7 +22,7 @@ function makeController(overrides={}){return{beginYNX:async()=>connecting,retryY
 function wrapActualController(observer){
  const storage=execute(path.join(root,'src/productWalletStorage.ts'),{});
  class Delegate { get current(){return observer.current||{sessionState:{status:'disconnected'}}} beginYNX(){return observer.beginYNX()} retryYNX(){return observer.retryYNX()} handleReturn(url){return observer.handleReturn(url)} disconnect(){return observer.disconnect()} }
- const composition=execute(path.join(root,'src/productWalletConnection.ts'),{'./productWalletStorage':storage,'@ynx-chain/wallet-auth-card-provider-v2':{ProductSessionGatewayFetchAdapter:class{},RecoverableProductSessionClient:class{},WalletConnectionCoordinator:Delegate},'../vendor/product-session-registry-09e36b150.json':JSON.parse(fs.readFileSync(path.join(root,'vendor/product-session-registry-09e36b150.json')))});
+ const composition=execute(path.join(root,'src/productWalletConnection.ts'),{'./productWalletStorage':storage,'@ynx-chain/wallet-auth-card-provider-v2':{ProductSessionGatewayFetchAdapter:class{},RecoverableProductSessionClient:class{},WalletConnectionCoordinator:Delegate},'../vendor/product-session-registry-b754ffc42.json':JSON.parse(fs.readFileSync(path.join(root,'vendor/product-session-registry-b754ffc42.json')))});
  return composition.createCardProductWalletConnection({platform:'android',device:{},storage:{},fetch:()=>{throw Error('network prohibited')}});
 }
 async function makeMounted(factory,{initialURL=null,bootstrap=null}={}){
