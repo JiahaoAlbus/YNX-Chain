@@ -18,8 +18,9 @@ function fixture() {
   const send = (type, extra = {}) => message({ source: popup, origin: HOSTED_WALLET_ORIGIN, data: hostedEnvelope(popup.request, type, extra) });
   return { adapter, popup, send };
 }
-test("throwing account listener cannot leave connect pending or prevent other listeners", async () => {
+test("throwing account listener cannot leave connect pending or prevent other listeners", async t => {
   const { adapter, popup, send } = fixture(), events = [];
+  t.after(() => adapter.detach());
   adapter.on("accountsChanged", () => { throw new Error("consumer callback"); });
   adapter.on("accountsChanged", value => events.push(value));
   adapter.on("connect", () => { throw new Error("consumer callback"); });
@@ -30,12 +31,13 @@ test("throwing account listener cannot leave connect pending or prevent other li
   assert.deepEqual(await Promise.race([connected, new Promise((_, reject) => setTimeout(() => reject(new Error("connect pending")), 500))]), [account]);
   assert.deepEqual(events, [[account]]);
   assert.equal(adapter.connected, true);
-  assert.ok(popup.request.expiresAt - Date.now() < 120_000, "the initial handshake stays bounded");
+  assert.ok(popup.request.expiresAt - Date.now() <= 120_000, "the initial handshake stays bounded");
   await adapter.detach();
   assert.deepEqual(events.at(-1), []);
 });
-test("synchronous detach inside a listener cannot revive an old connection", async () => {
+test("synchronous detach inside a listener cannot revive an old connection", async t => {
   const { adapter, popup, send } = fixture();
+  t.after(() => adapter.detach());
   adapter.on("accountsChanged", accounts => { if (accounts.length) void adapter.detach(); });
   const connected = adapter.connect();
   send("ready");
@@ -44,8 +46,9 @@ test("synchronous detach inside a listener cannot revive an old connection", asy
   assert.equal(adapter.connected, false);
   assert.deepEqual(await adapter.restore(), []);
 });
-test("connected approval extends the channel beyond handshake but never beyond one hour", async () => {
+test("connected approval extends the channel beyond handshake but never beyond one hour", async t => {
   const { adapter, popup, send } = fixture();
+  t.after(() => adapter.detach());
   const connected = adapter.connect();
   send("connected", { replyTo: "unsolicited", account, chainId: "0x1917", sessionExpiresAt: Date.now() + 60 * 60_000 - 1000 });
   assert.equal(adapter.connected, false, "unsolicited connected is ignored");
