@@ -25,7 +25,7 @@ test('catalog failure remains truthful and never fabricates balances',()=>{
 });
 
 test('guest catalog and its risk text switch language without requesting an account',async()=>{
-  const target={innerHTML:''},selector={value:'en',addEventListener(){}};
+  const target={innerHTML:''},selector={value:'en',addEventListener(){},setAttribute(){}};
   const handlers=new Map(),storage=new Map();
   const document={readyState:'complete',documentElement:{lang:'en'},querySelector:s=>s==='#product-channels'?target:s==='#finance-language'?selector:null,querySelectorAll:()=>[],addEventListener:(name,handler)=>handlers.set(name,handler),dispatchEvent:event=>handlers.get(event.type)?.(event)};
   const catalog={schemaVersion:'finance-product-catalog-v1',aggregationPolicy:'never-merge-balances-cost-basis-pnl-or-performance-across-channels',channels:[

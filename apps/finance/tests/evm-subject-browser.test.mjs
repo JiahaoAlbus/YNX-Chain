@@ -14,20 +14,21 @@ import {
 } from '@ynx-chain/wallet-auth';
 
 const bundle = await readFile(fileURLToPath(new URL('../web/evm-subject.js', import.meta.url)));
+const financeLocale = await readFile(fileURLToPath(new URL('../web/finance-locale.js', import.meta.url)));
 const { build } = createRequire(new URL('../web/package.json', import.meta.url))('esbuild');
 const walletSecret = new Uint8Array(32).fill(7);
 const account = `0x${bytesToHex(keccak_256(secp256k1.getPublicKey(walletSecret, false).slice(1)).slice(-20))}`;
 const origin = 'https://finance.ynxweb4.com';
 const emptyDigest = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
 const html = `<!doctype html><html lang="en"><meta charset="utf-8"><body>
-<select id="finance-language"><option value="en">English</option><option value="zh-CN">简体中文</option></select>
+<select id="finance-language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-Hant">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="id">Bahasa Indonesia</option></select>
 <h3 id="evm-subject-heading"></h3><p id="evm-subject-explanation"></p>
 <button id="evm-subject-begin"></button><button id="evm-subject-read"></button><button id="evm-subject-end"></button>
 <p id="evm-subject-state"></p><p id="evm-subject-summary"></p>
 <a id="install-wallet" href="https://www.ynxweb4.com/dapp/download">Download YNX Wallet</a>
 <a id="install-metamask" href="https://metamask.io/download/">Install MetaMask</a>
 <script>window.walletStandard={status:'connected',chainId:'0x1917',account:'${account}',providerKind:'metamask'};window.walletRevision=1;window.YNXFinanceWallet={ready:Promise.resolve(),getStandardWalletState:()=>window.walletStandard,getStandardRevision:()=>window.walletRevision,signEVMLoginRequest:async request=>{try{return await window.signFinanceRequest(request)}catch{const error=new Error('USER_REJECTED');error.code=4001;throw error}}};</script>
-<script src="/evm-subject.js" defer></script></body></html>`;
+<script src="/finance-locale.js" defer></script><script src="/evm-subject.js" defer></script></body></html>`;
 
 function signMessage(message) {
   const signed = secp256k1.sign(ethereumPersonalMessageDigest(message), walletSecret, { prehash: false, format: 'recovered' });
@@ -53,6 +54,7 @@ test('real local Chromium keeps EVM-only identity separate, restores and revokes
     await page.route(`${origin}/**`, async route => {
       const request = route.request(), path = new URL(request.url()).pathname;
       if (path === '/test') return route.fulfill({ status: 200, contentType: 'text/html', body: html });
+      if (path === '/finance-locale.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: financeLocale });
       if (path === '/evm-subject.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: bundle });
       if (path === '/api/evm-subject/challenges') {
         const submitted = request.postDataJSON(), at = Date.now();
@@ -92,6 +94,15 @@ test('real local Chromium keeps EVM-only identity separate, restores and revokes
     await page.waitForFunction(() => window.YNXFinanceEVMSubject?.state().active === true);
     await page.locator('#finance-language').selectOption('zh-CN');
     assert.match(await page.locator('#evm-subject-state').textContent(), /EVM-only/u);
+    await page.locator('#finance-language').selectOption('en');
+    const englishReady=await page.locator('#evm-subject-state').textContent();
+    for(const locale of ['zh-CN','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']){
+      await page.locator('#finance-language').selectOption(locale);
+      const copy=await page.locator('#evm-subject-state').textContent();
+      assert.ok(copy.trim(),`${locale} EVM identity state`);
+      assert.notEqual(copy,englishReady,`${locale} EVM identity fell back to English`);
+      assert.equal(await page.locator('html').getAttribute('dir'),locale==='ar'?'rtl':'ltr');
+    }
     const revokeResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/evm-subject/revoke');
     await page.evaluate(() => { window.walletStandard = { status: 'wrong-chain', chainId: '0x1', account: window.walletStandard.account, providerKind: 'metamask' }; window.walletRevision++; window.dispatchEvent(new CustomEvent('ynx-finance-standard-state', { detail: window.walletStandard })); });
     await revokeResponse;
@@ -110,6 +121,7 @@ test('local Chromium rejects an EVM-only signature without dropping Standard Wal
     await page.route(`${origin}/**`, async route => {
       const path = new URL(route.request().url()).pathname;
       if (path === '/test') return route.fulfill({ status: 200, contentType: 'text/html', body: html });
+      if (path === '/finance-locale.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: financeLocale });
       if (path === '/evm-subject.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: bundle });
       if (path === '/api/evm-subject/challenges') {
         const submitted = route.request().postDataJSON(), at = Date.now();

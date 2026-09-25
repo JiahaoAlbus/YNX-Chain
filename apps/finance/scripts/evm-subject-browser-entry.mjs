@@ -14,19 +14,11 @@ const DEVICE_STORE = 'keys';
 const READ_PATH = '/api/evm-subject/identity';
 const REVOKE_PATH = '/api/evm-subject/revoke';
 const EMPTY_BODY_DIGEST = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-const messages = Object.freeze({
-  en: { heading: 'Private EVM-only identity', explanation: 'Optional five-minute access to your EVM-only Finance identity. This does not link a native account or authorize Broker orders, transfers, or trading.', begin: 'Authorize EVM-only identity', read: 'Refresh identity', end: 'End EVM-only session',
-    disconnected: 'Not authorized. Standard Wallet and public markets remain available.', waiting: 'Confirm this exact Finance identity request in your selected wallet.', ready: 'EVM-only identity verified. Native Finance and Broker remain separate.', denied: 'Identity request rejected. Standard Wallet remains connected.', degraded: 'Private identity service is unavailable. Standard Wallet remains connected.', revoked: 'EVM-only session ended. Standard Wallet remains connected.', revokePending: 'Local access stopped; server revocation could not be confirmed. The session expires within five minutes.', expired: 'EVM-only session expired.' },
-  'zh-CN': { heading: '仅 EVM 私有身份', explanation: '可选的五分钟 EVM-only Finance 身份访问；不关联原生账户，也不授权 Broker 订单、转账或交易。', begin: '授权 EVM-only 身份', read: '刷新身份', end: '结束 EVM-only 会话',
-    disconnected: '尚未授权。标准钱包及公开市场仍可用。', waiting: '请在所选钱包中确认这项 Finance 身份请求。', ready: 'EVM-only 身份已验证；原生 Finance 与 Broker 保持独立。', denied: '身份请求已拒绝；标准钱包保持连接。', degraded: '私有身份服务不可用；标准钱包保持连接。', revoked: 'EVM-only 会话已结束；标准钱包保持连接。', revokePending: '本地访问已停止；服务端撤销未获确认。会话将在五分钟内过期。', expired: 'EVM-only 会话已过期。' },
-});
-
 let active = null;
 let busy = false;
 let stateKey = 'disconnected';
 let revision = 0;
-const language = () => document.querySelector('#finance-language')?.value === 'zh-CN' ? 'zh-CN' : 'en';
-const label = key => messages[language()][key] || messages.en[key] || key;
+const label = key => window.YNXFinanceLocale?.text(`evmSubject${key.charAt(0).toUpperCase()}${key.slice(1)}`) || key;
 function render() {
   for (const [id, key] of [['#evm-subject-heading', 'heading'], ['#evm-subject-explanation', 'explanation'], ['#evm-subject-begin', 'begin'], ['#evm-subject-read', 'read'], ['#evm-subject-end', 'end'], ['#evm-subject-state', stateKey]]) {
     const element = document.querySelector(id);

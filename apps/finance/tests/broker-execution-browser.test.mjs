@@ -95,6 +95,24 @@ test('guest Finance workbench is English by default, switches Chinese and fits a
   }finally{await page.close()}
 });
 
+test('twelve guest locales render in a real narrow browser without page overflow or network translation',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  try{
+    await page.goto(base);
+    const english=await page.locator('#markets-heading').textContent();
+    for(const locale of ['zh-CN','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id','en']){
+      await page.locator('#finance-language').selectOption(locale);
+      const state=await page.evaluate(()=>({lang:document.documentElement.lang,dir:document.documentElement.dir,heading:document.querySelector('#markets-heading').textContent,overflow:document.documentElement.scrollWidth>document.documentElement.clientWidth}));
+      assert.equal(state.lang,locale);
+      assert.equal(state.dir,locale==='ar'?'rtl':'ltr');
+      assert.equal(state.overflow,false,`${locale} page overflow`);
+      assert.ok(state.heading.trim(),`${locale} heading`);
+      if(locale!=='en')assert.notEqual(state.heading,english,`${locale} remains English`);
+    }
+    assert.equal(await page.evaluate(()=>localStorage.getItem('ynx-finance-locale')),'en');
+  }finally{await page.close()}
+});
+
 test('saved Chinese locale renders Broker unknown states on a cold 390px load',async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844}});
   try{
@@ -584,7 +602,8 @@ test('concurrent submit events create one opaque ticket and Web copy does not na
     assert.match(await page.locator('#broker-order-preview').innerText(),/ACME.*10.*simulated USD/s);
     await page.locator('#finance-language').selectOption('zh-CN');
     const localizedPreview=await page.locator('#broker-order-preview').innerText();
-    for(const exactTerm of ['买入 1 ACME @ 10 模拟美元','最高金额: 10 USD','最高费用 1 USD','有效期至 2026-09-19T11:05:00.000Z'])assert.ok(localizedPreview.includes(exactTerm),exactTerm);
+    const localizedExpiry=await page.evaluate(()=>new Intl.DateTimeFormat('zh-CN',{dateStyle:'medium',timeStyle:'short'}).format(new Date('2026-09-19T11:05:00.000Z')));
+    for(const exactTerm of ['买入 1 ACME @ 10 模拟美元','最高金额: 10 USD','最高费用 1 USD',`有效期至 ${localizedExpiry}`])assert.ok(localizedPreview.includes(exactTerm),exactTerm);
     assert.equal(await page.locator('#broker-wallet-approve').getAttribute('data-wallet-review-url'),reviewURL);
     assert.equal(await page.locator('#broker-wallet-approve').innerText(),'复制安全的 YNX Wallet 审核链接');
     await page.locator('#finance-language').selectOption('en');
@@ -669,6 +688,6 @@ test('callback outage preserves exact request across reload and later records Wa
     await page.waitForFunction(()=>window.__orderWalletFixture.pending===null);
     assert.equal(callbackRequests.length,2);
     assert.equal((await page.evaluate(()=>window.__orderWalletFixture)).clearCalls,1);
-    assert.match(await page.locator('#notice').textContent(),/Wallet decision recorded/);
+    assert.match(await page.locator('#notice').textContent(),/Wallet review revoked/);
   }finally{await page.close();}
 });

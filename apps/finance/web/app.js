@@ -158,8 +158,8 @@ function renderBrokerWorkspace(workspace){
 function renderBrokerApprovalRoute(route,recovered=false){
   brokerApprovalDisplay={route,recovered};brokerApprovalMessageKey=null;
   const unsigned=route.request.unsigned,order=unsigned.order;
-  $('#broker-order-preview').innerHTML=order?`<strong>${esc(brokerWorkflowLabel(order.side))} ${esc(order.qty)} ${esc(order.symbol)} @ ${esc(order.limitPrice)} ${esc(financeText('brokerSimulatedUSD'))}</strong><br>${esc(financeText('brokerPreviewMaximum'))}: ${esc(order.maxCost)} USD · ${esc(financeText('brokerPreviewFee'))} ${esc(order.maxFee)} USD · ${esc(financeText('brokerPreviewExpires'))} ${esc(unsigned.expiresAt)}<br><small>${esc(financeText('brokerPreviewRequest'))} ${esc(short(unsigned.requestId))}. ${esc(financeText(recovered?'brokerRecovered':'brokerProviderNotContacted'))}</small>`:
-    `${esc(financeText('brokerConfidentialPending'))} · ${esc(financeText('brokerPreviewExpires'))} ${esc(unsigned.expiresAt)}. ${esc(financeText('brokerConfidentialNoStorage'))}`;
+  $('#broker-order-preview').innerHTML=order?`<strong>${esc(brokerWorkflowLabel(order.side))} ${esc(order.qty)} ${esc(order.symbol)} @ ${esc(order.limitPrice)} ${esc(financeText('brokerSimulatedUSD'))}</strong><br>${esc(financeText('brokerPreviewMaximum'))}: ${esc(order.maxCost)} USD · ${esc(financeText('brokerPreviewFee'))} ${esc(order.maxFee)} USD · ${esc(financeText('brokerPreviewExpires'))} ${esc(date(unsigned.expiresAt))}<br><small>${esc(financeText('brokerPreviewRequest'))} ${esc(short(unsigned.requestId))}. ${esc(financeText(recovered?'brokerRecovered':'brokerProviderNotContacted'))}</small>`:
+    `${esc(financeText('brokerConfidentialPending'))} · ${esc(financeText('brokerPreviewExpires'))} ${esc(date(unsigned.expiresAt))}. ${esc(financeText('brokerConfidentialNoStorage'))}`;
   const link=$('#broker-wallet-approve');link.hidden=false;link.rel='noreferrer';
   if(route.url.startsWith('ynxwallet://')){
     link.href='#';link.dataset.walletReviewUrl=route.url;link.textContent=financeText('brokerCopyReview');
@@ -191,15 +191,15 @@ async function requireBrokerOrderAuthority(){
   }
 }
 async function requestBrokerExecution(orderId){
-  try{await requireBrokerOrderAuthority();if(!state.brokerSubmissionEnabled)throw new Error('Controlled Sandbox execution is disabled by server policy.');if(!window.confirm('Queue this already approved Sandbox order for the controlled worker? The browser never contacts the provider directly.'))return;const idempotencyKey=`finance-execution-${orderId}`,result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/execution-request`,{method:'POST',body:JSON.stringify({idempotencyKey})});if(result?.schema!=='ynx-finance-broker-execution-request-v1'||result.providerWriteAttempted!==false)throw new Error('Execution request response is invalid.');notify('Controlled execution request queued once. Refresh shows provider status; no success is implied.');await refreshBrokerWorkspace()}catch(error){notify(error.message,true)}
+  try{await requireBrokerOrderAuthority();if(!state.brokerSubmissionEnabled)throw new Error('Controlled Sandbox execution is disabled by server policy.');if(!window.confirm(financeText('brokerExecutionConfirm')))return;const idempotencyKey=`finance-execution-${orderId}`,result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/execution-request`,{method:'POST',body:JSON.stringify({idempotencyKey})});if(result?.schema!=='ynx-finance-broker-execution-request-v1'||result.providerWriteAttempted!==false)throw new Error('Execution request response is invalid.');notify(`${financeText('brokerStateExecutionRequested')}. ${financeText('brokerProviderNotContacted')}`);await refreshBrokerWorkspace()}catch(error){notifyFailure(error,'brokerApprovalUnavailable')}
 }
 async function refreshBrokerExecutionStatus(orderId){
   try{
     const result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/execution-status`),outbox=result?.outbox;
     if(result?.schema!=='ynx-finance-broker-execution-status-v1'||result.providerWriteAttempted!==false||outbox?.orderId!==orderId||typeof outbox.status!=='string')throw new Error('Execution status response is invalid.');
-    notify(`Execution status: ${outbox.status}. This read did not reconcile the provider or submit an order.`);
+    notify(window.YNXFinanceLocale?.get()==='en'?`Execution status: ${outbox.status}. This read did not reconcile the provider or submit an order.`:`${financeText('brokerStateExecutionRequested')}: ${brokerWorkflowLabel(outbox.status)}. ${financeText('brokerProviderNotContacted')}`);
     await refreshBrokerWorkspace();
-  }catch(error){notify(error.message,true)}
+  }catch(error){notifyFailure(error,'brokerJournalUnavailable')}
 }
 async function refreshBrokerWorkspace(){
   if(!state.connected){brokerWorkspaceUnavailable=false;renderBrokerWorkspace(null);return null}
@@ -207,7 +207,7 @@ async function refreshBrokerWorkspace(){
 }
 async function createBrokerApproval(event){
   event.preventDefault();
-  if(brokerApprovalInFlight){notify('A Wallet order request is already being created. Wait for that exact request to finish.',true);return}
+  if(brokerApprovalInFlight){notify(financeText('brokerLegacyActive'),true);return}
   brokerApprovalInFlight=true;
   const submit=event.currentTarget.querySelector('button[type="submit"],button:not([type])'),wasDisabled=submit?.disabled===true;
   if(submit){submit.disabled=true;submit.setAttribute('aria-busy','true')}
@@ -224,8 +224,8 @@ async function createBrokerApproval(event){
     const owner=brokerOwnerAccount();if(!owner||result.challenge.account!==owner)throw new Error('Confidential challenge owner differs from the active Finance session.');
     const route={request:{unsigned:result.challenge},url:window.YNXFinanceOpaqueOrder.launchURL(result.ticket),approved:false};
     sessionStorage.setItem(OPAQUE_ORDER_PENDING_KEY,JSON.stringify({version:'2',ticket:result.ticket,account:owner,requestId:result.challenge.requestId,expiresAt:result.challenge.expiresAt}));
-    renderBrokerApprovalRoute(route);notify('Opaque review ticket created. Copy the link to YNX Wallet; this Web page will not launch a custom scheme or submit to the Broker.');await refreshBrokerWorkspace();
-  }catch(error){notify(error.message,true)}finally{brokerApprovalInFlight=false;if(submit){submit.disabled=wasDisabled;submit.removeAttribute('aria-busy')}}
+    renderBrokerApprovalRoute(route);notify(`${financeText('brokerCopyReview')}. ${financeText('brokerProviderNotContacted')}`);await refreshBrokerWorkspace();
+  }catch(error){notifyFailure(error,'brokerApprovalUnavailable')}finally{brokerApprovalInFlight=false;if(submit){submit.disabled=wasDisabled;submit.removeAttribute('aria-busy')}}
 }
 async function reconcileBroker(){
   if(!state.connected){notify(financeText('brokerPrivate'),true);return}
@@ -266,15 +266,15 @@ async function completeBrokerCallback(){
       const result=await api('/api/broker/order-handoff/exchange',{method:'POST',body:JSON.stringify({code,state:stateToken})});
       if(result?.version!=='2'||!['approved','rejected','revoked'].includes(result.status)||result.result?.providerWriteAttempted!==false)throw new Error('Confidential Wallet decision response is invalid.');
       pendingOpaqueBrokerReturnURL=null;sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);history.replaceState(null,'','/');$('#broker-complete-callback').hidden=true;hideBrokerApproval();
-      notify(result.status==='approved'?'Wallet approval queued one local Sandbox outbox. Provider submission has not occurred.':'Wallet decision recorded without a provider order.');
+      notify(`${brokerWorkflowLabel(result.status)}. ${financeText('brokerProviderNotContacted')}`);
       await refreshBrokerWorkspace();return;
     }
     const workspace=await refreshBrokerWorkspace();if(!workspace)throw new Error('Current Finance server time is unavailable.');
     const raw=await window.YNXFinanceOrderWallet.parseReturn(pendingLegacyBrokerReturnURL,workspace.serverTime);
     const result=await api('/api/broker/callback',{method:'POST',body:raw});
     if(result?.schema!=='ynx-finance-order-approval-consume-v1'||result.providerWriteAttempted!==false)throw new Error('Finance order callback response is invalid.');
-    window.YNXFinanceOrderWallet.clear();pendingLegacyBrokerReturnURL=null;history.replaceState(null,'','/');hideBrokerApproval();$('#broker-complete-callback').hidden=true;notify(result.status==='approved'?'Wallet approval consumed into the durable local outbox. Broker submission remains disabled.':'Wallet decision recorded. No broker submission occurred.');await refreshBrokerWorkspace();
-  }catch(error){notify(error.message,true)}finally{brokerCallbackInFlight=false}
+    window.YNXFinanceOrderWallet.clear();pendingLegacyBrokerReturnURL=null;history.replaceState(null,'','/');hideBrokerApproval();$('#broker-complete-callback').hidden=true;notify(`${brokerWorkflowLabel(result.status)}. ${financeText('brokerProviderNotContacted')}`);await refreshBrokerWorkspace();
+  }catch(error){notifyFailure(error,'brokerApprovalUnavailable')}finally{brokerCallbackInFlight=false}
 }
 const READ_RETRY_DELAYS=[0,600,1600];
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
@@ -305,8 +305,14 @@ async function api(path,options={}){
 }
 function scope(path){if(path.startsWith('/api/ai/'))return'finance.ai.draft';if(['/api/categories','/api/budgets','/api/reminders','/api/notes','/api/privacy','/api/account','/api/broker/challenges','/api/broker/callback','/api/broker/order-handoff/issue','/api/broker/order-handoff/exchange','/api/broker/watchlist','/api/broker/reconcile'].some(v=>path.startsWith(v))||/^\/api\/broker\/orders\/[^/]+\/(?:cancel-request|execution-request)$/.test(path)||path.includes('/category'))return'finance.profile.write';return'finance.portfolio.read'}
 function notify(message,error=false){const box=$('#notice');box.textContent=message;box.classList.toggle('error',error);box.classList.remove('hidden');clearTimeout(box.timer);box.timer=setTimeout(()=>box.classList.add('hidden'),6500)}
+function notifyFailure(error,key){
+  const raw=String(error?.message||'');
+  notify(window.YNXFinanceLocale?.get()==='en'?raw:financeText(key),true);
+  const code=String(error?.code||raw.match(/^([A-Z][A-Z_0-9]+)(?::|$)/u)?.[1]||'');
+  const box=$('#notice');if(code)box.dataset.diagnosticCode=code;else delete box.dataset.diagnosticCode;
+}
 
-async function signIn(){try{await window.YNXFinanceWallet.connect()}catch(error){notify(error.message,true)}}
+async function signIn(){try{await window.YNXFinanceWallet.connect()}catch(error){notifyFailure(error,'connectionUnavailable')}}
 async function verifyWalletIdentity(){
   if(walletIdentityBusy)return;
   const wallet=window.YNXFinanceWallet,selected=wallet.getStandardWalletState(),revision=wallet.getStandardRevision();
@@ -325,7 +331,7 @@ async function verifyWalletIdentity(){
     const result=await verify.json();unchanged();
     if(!verify.ok||result?.schemaVersion!=='finance-evm-login-verification-v1'||result.verified!==true||result.account!==selected.account||result.providerKind!==selected.providerKind||result.chainId!==6423||JSON.stringify(result.scopes)!=='["finance.account.read"]'||result.requestId!==requestId||result.privateFinanceAuthorized!==false||result.standardWalletUnchanged!==true)throw new Error('WALLET_LOGIN_VERIFICATION_REJECTED');
     walletIdentityState='identityVerified';
-  }catch(error){walletIdentityState='identityRejected';notify(`${financeText('identityRejected')} ${error?.code||error?.message||''}`.trim(),true)}
+  }catch(error){walletIdentityState='identityRejected';notifyFailure(error,'identityRejected')}
   finally{if(requestId){try{const pending=JSON.parse(sessionStorage.getItem('ynx.finance.evm-login.pending.v1')||'null');if(pending?.requestId===requestId)sessionStorage.removeItem('ynx.finance.evm-login.pending.v1')}catch{}}walletIdentityBusy=false;renderWalletIdentity()}
 }
 async function consumeCallback(){await window.YNXFinanceWallet.ready}
@@ -333,8 +339,8 @@ function clearPrivateView({clearOpaquePending=true}={}){state.context++;clearInt
 async function logout(){const result=await window.YNXFinanceWallet.disconnect();if(result?.status==='disconnected'){clearPrivateView()}else notify(financeText('privateLogoutUnconfirmed'),true)}
 function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.add('hidden');$('#logout').classList.add('hidden');sourceStatus('notConnected');$('#page-title').textContent=financeText('pageTitle');route()}
 
-async function load(){await window.YNXFinanceWallet.ready;state.connected=window.YNXFinanceWallet.connected();if(!state.connected){renderSignedOut();return}try{sourceStatus('checkingSources');const data=await api('/api/overview');state.overview=data;reconcileOpaqueBrokerOwner();render(data)}catch(error){if(error.status===401||error.status===403){window.YNXFinanceWallet.reportPrivateFailure();clearPrivateView();notify(financeText('privateReauthorize'),true)}else notify(error.message,true)}}
-async function reconnect(){try{await publicHealth();if(state.connected)await load()}catch(error){notify(error.message,true)}}
+async function load(){await window.YNXFinanceWallet.ready;state.connected=window.YNXFinanceWallet.connected();if(!state.connected){renderSignedOut();return}try{sourceStatus('checkingSources');const data=await api('/api/overview');state.overview=data;reconcileOpaqueBrokerOwner();render(data)}catch(error){if(error.status===401||error.status===403){window.YNXFinanceWallet.reportPrivateFailure();clearPrivateView();notify(financeText('privateReauthorize'),true)}else notifyFailure(error,'connectionUnavailable')}}
+async function reconnect(){try{await publicHealth();if(state.connected)await load()}catch(error){notifyFailure(error,'connectionUnavailable')}}
 function render(data){document.body.classList.remove('signed-out-state');$('#signed-out').classList.add('hidden');$('#workspace').classList.remove('hidden');$('#signin').classList.add('hidden');$('#logout').classList.remove('hidden');const p=data.portfolio,profile=data.profile;$('#account').textContent=p.account;$('#balance').textContent=p.explorerStatus.available?`${fmt(p.balanceYnxt)} YNXT`:'Unavailable';$('#staked').textContent=p.explorerStatus.available?`${fmt(p.stakedYnxt)} YNXT`:'Unavailable';$('#balance-source').textContent=p.explorerStatus.available?`Explorer evidence · ${date(p.asOf)}`:p.explorerStatus.error;const both=p.explorerStatus.available&&p.payStatus.available;sourceStatus(both?'sourcesLive':p.explorerStatus.available?'explorerLivePayUnavailable':'sourcesUnavailable',both?'live':'warning');renderAlerts(data.alerts);renderActivity(p.activity);renderReceipts(p.payReceipts,p.payStatus);renderPlanning(profile,data.budgetProgress);renderPrivacy(profile.privacy);renderAIRecords(p.activity);renderSupport(data.support);refreshBrokerSnapshot();refreshBrokerWorkspace().then(async workspace=>{if(workspace)try{await restoreBrokerApproval(workspace.serverTime)}catch(error){notify(error.message,true)}await completeBrokerCallback()});route()}
 function renderAlerts(alerts){const el=$('#alerts');if(!alerts.length){el.innerHTML='<div class="alert info"><div><strong>No source or rule alerts</strong><small>Finance alerts are informational and never freeze assets.</small></div></div>';return}el.innerHTML=alerts.map(a=>`<div class="alert ${a.severity==='info'?'info':''}"><div><strong>${esc(a.title)}</strong><small>${esc(a.detail)}</small></div></div>`).join('')}
 function activityRow(a){const sign=a.direction==='outgoing'?'-':'+';return `<div class="row"><div class="row-main"><strong>${esc(a.type||'YNXT activity')}</strong><small>${esc(date(a.timestamp))} · ${esc(short(a.id))}</small></div><div class="row-value">${sign}${fmt(a.amountYnxt)} YNXT<small>fee ${fmt(a.feeYnxt)}</small></div></div>`}
@@ -342,7 +348,7 @@ function renderActivity(items){$('#recent-activity').innerHTML=items.length?item
 function renderReceipts(items,status){const el=$('#recent-receipts');if(!status.available){el.innerHTML=`<div class="empty compact">${esc(status.error)}. No receipt placeholders are shown.</div>`;return}el.innerHTML=items.length?items.slice(0,5).map(r=>`<div class="row"><div class="row-main"><strong>${esc(r.status||'Pay record')}</strong><small>${esc(date(r.createdAt))} · ${esc(short(r.transactionHash||r.id))}</small></div><div class="row-value">${fmt(r.amountYnxt)} YNXT${r.disputeUrl?`<small><a href="${esc(r.disputeUrl)}" rel="noreferrer">Dispute link</a></small>`:''}</div></div>`).join(''):'<div class="empty compact">Pay is available, but returned no receipts owned by this account.</div>'}
 // The bounded activity API cannot prove a full-period total. Do not coerce
 // missing progress to zero or render a percentage of an unknown total.
-function budgetAmount(value){return Number.isSafeInteger(value)&&value>=0?`${new Intl.NumberFormat().format(value)} YNXT`:'Unknown (exact amount unavailable)'}
+function budgetAmount(value){return Number.isSafeInteger(value)&&value>=0?`${fmt(value)} YNXT`:financeText('unknown')}
 function budgetProgressRow(b,progress){
   const p=progress?.budgetId===b.id?progress:null;
   const observed=p?.calculationStatus==='partial'&&p.coverageComplete===false?budgetAmount(p.observedSpentYnxt):'Unknown';
@@ -356,7 +362,7 @@ function renderPrivacy(p){const f=$('#privacy-form');f.includePayInStatements.ch
 function renderAIRecords(items){$('#ai-records').innerHTML=items.length?items.map(a=>`<label class="check-item"><input type="checkbox" value="${esc(a.id)}"><span><strong>${esc(a.type)}</strong><br><small>${esc(date(a.timestamp))} · ${fmt(a.amountYnxt)} YNXT</small></span></label>`).join(''):'<div class="empty compact">No owned activity is available for AI context.</div>'}
 function renderSupport(s){$('#support-links').innerHTML=[['Help center',s.helpUrl],['Privacy request',s.privacyUrl],['Open a dispute',s.disputeUrl]].map(([label,url])=>`<a class="panel support-card" href="${esc(url)}" rel="noreferrer"><span>Verified path</span><strong>${esc(label)} →</strong></a>`).join('')}
 
-async function submitForm(form,path,body){body.idempotencyKey=crypto.randomUUID();try{await api(path,{method:'POST',body:JSON.stringify(body)});form.reset();notify(financeText('profileSaved'));await load()}catch(error){notify(error.message,true)}}
+async function submitForm(form,path,body){body.idempotencyKey=crypto.randomUUID();try{await api(path,{method:'POST',body:JSON.stringify(body)});form.reset();notify(financeText('profileSaved'));await load()}catch(error){notifyFailure(error,'unavailable')}}
 $('#category-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);submitForm(e.currentTarget,'/api/categories',{name:f.get('name'),color:f.get('color')})});
 $('#budget-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);submitForm(e.currentTarget,'/api/budgets',{name:f.get('name'),categoryId:f.get('categoryId'),limitYnxt:Number(f.get('limitYnxt')),period:f.get('period'),startsAt:new Date().toISOString()})});
 $('#reminder-form').addEventListener('submit',e=>{e.preventDefault();const f=new FormData(e.currentTarget);const raw=f.get('amountYnxt');submitForm(e.currentTarget,'/api/reminders',{title:f.get('title'),amountYnxt:raw===''?null:Number(raw),schedule:f.get('schedule'),nextDueAt:new Date(f.get('nextDueAt')).toISOString(),sourceRef:''})});

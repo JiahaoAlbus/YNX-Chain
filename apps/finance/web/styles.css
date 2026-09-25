@@ -30,6 +30,11 @@
 .test-market-gate{border:1px solid var(--line);border-radius:9px;padding:12px;background:var(--soft);overflow-wrap:anywhere}.test-market-gate strong{display:block;margin-bottom:5px}.test-market-gate small{display:block;margin-top:7px;color:var(--muted)}
 .test-market-gate form{display:grid;gap:9px;margin-top:12px}.test-market-gate form label{display:grid;gap:4px;min-width:0}.test-market-gate form input{width:100%;min-width:0}.test-market-gate form button{min-height:44px}.test-market-gate form p{min-height:1.5em;overflow-wrap:anywhere}
 .language-control{min-width:110px;font-size:11px}.language-control select{padding:7px 9px;font-size:13px}.channel-card h3{overflow-wrap:anywhere}@media(max-width:720px){.language-control{width:100%}.session{align-items:flex-end}.language-control select{max-width:180px}}
+html[dir="rtl"] .account-menu-panel{right:auto;left:0}
+html[dir="rtl"] .table-wrap th,html[dir="rtl"] .table-wrap td{text-align:start}
+html[dir="rtl"] .table-wrap .num,html[dir="rtl"] .risk dd{text-align:end}
+html[dir="rtl"] .evidence,html[dir="rtl"] input[name="quantity"],html[dir="rtl"] input[name="limitPrice"]{direction:ltr;unicode-bidi:isolate}
+.session,.panel,.channel-card,.account-menu-panel{min-width:0;overflow-wrap:anywhere}
 /* A privacy boundary must override display styles on link-shaped buttons. */
 [hidden]{display:none!important}
 
