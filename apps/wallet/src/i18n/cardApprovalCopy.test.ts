@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cardApprovalLimitYNXT } from "./cardApprovalCopy";
+import { cardApprovalLimitYNXT,providerCardAmount,providerCardCopy } from "./cardApprovalCopy";
 
 test("Card review preserves every wei in sub-token and large limits", () => {
   assert.equal(cardApprovalLimitYNXT("1"), "0.000000000000000001");
@@ -11,4 +11,12 @@ test("Card review preserves every wei in sub-token and large limits", () => {
 });
 test("Card review rejects noncanonical or out-of-range limits", () => {
   for (const input of ["0", "-1", "01", "1.0", "1e18", " 1", (2n ** 256n).toString()]) assert.throws(() => cardApprovalLimitYNXT(input));
+});
+test("provider Card review displays exact minor units and bilingual TEST consent",()=>{
+  assert.equal(providerCardAmount("1",2,"USD"),"0.01 USD");
+  assert.equal(providerCardAmount("10000",2,"USD"),"100.00 USD");
+  assert.equal(providerCardAmount("10000",0,"USD"),"10000 USD");
+  assert.throws(()=>providerCardAmount("01",2,"USD"));
+  assert.match(providerCardCopy("zh-Hans","sandbox"),/不会发卡/);
+  assert.match(providerCardCopy("en","sandbox"),/does not issue a card/);
 });

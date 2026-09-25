@@ -34,7 +34,7 @@ import { FinanceOrderOpaqueController } from "./src/protocol/financeOrderOpaqueC
 import { scopeExplanation } from "./src/i18n/scopeCopy";
 import { authorizationCopy } from "./src/i18n/authorizationCopy";
 import { applicationActionCopy } from "./src/i18n/applicationActionCopy";
-import { cardApprovalCopy, cardApprovalLimitYNXT } from "./src/i18n/cardApprovalCopy";
+import { cardApprovalCopy, cardApprovalLimitYNXT, providerCardAmount, providerCardCopy } from "./src/i18n/cardApprovalCopy";
 import { financeOrderApprovalCopy } from "./src/i18n/financeOrderApprovalCopy";
 import { WalletSessionInventoryClient, WalletSessionRevocationUnknown, type SessionInventoryItem, type WalletSessionInventory } from "./src/protocol/sessionInventory";
 import { assertStrongBiometrics, authorizeLocalKeyUse } from "./src/security/localAuthorization";
@@ -271,6 +271,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     {chainState.phase==="failed"||chainState.phase==="unrecorded"||chainState.activityPhase==="failed"?<SecondaryButton label={walletCopy(locale,"Refresh balance and activity")} onPress={()=>void refreshChain()}/>:null}
     <View style={styles.quickRow}><Quick icon={<ArrowUpRight color={ACTIVE_COLORS.blue}/>} label={translate(locale,"send")} onPress={()=>setSend(true)}/><Quick icon={<QrCode color={ACTIVE_COLORS.blue}/>} label={translate(locale,"receive")} onPress={()=>setQR(true)}/><Quick icon={<History color={ACTIVE_COLORS.blue}/>} label={translate(locale,"activity")} onPress={()=>setCenter(true)}/></View>
     <SecondaryButton label={walletCopy(locale,"Test YNXT")} onPress={()=>setFaucet(true)}/>
+    <SecondaryButton label={providerCardCopy(locale,"open")} onPress={()=>void Linking.openURL("https://card.ynxweb4.com/").catch(caught=>Alert.alert(providerCardCopy(locale,"open"),message(caught)))}/>
     <InfoCard title={translate(locale,"accountSafety")} body={walletCopy(locale,selected.backupConfirmed?"Offline backup confirmed. System biometrics protect unlock, authorization, recovery viewing and deletion.":"Backup is not confirmed. Do not receive assets until the recovery key is stored offline.")}/>
     <FaucetButton secondary label={walletCopy(locale,copied?"Native ynx1 address copied":"Copy native ynx1 address")} onPress={()=>void copy()}/>
     <FaucetButton secondary label={walletCopy(locale,"Rename account")} onPress={()=>setRename(true)}/>
@@ -298,14 +299,19 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
 
 function SetupModal({mode,accounts,pending,close,saved,busy,setBusy,setError}:{mode:"closed"|"create"|"import"|"recover";accounts:readonly WalletAccount[];pending:{secretHex:string;label:string}|null;close:()=>void;saved:(v:WalletManifest)=>void;busy:boolean;setBusy:(v:boolean)=>void;setError:(v:string|null)=>void}){
   const locale=useContext(WalletLocaleContext),requestRecovery=useContext(WalletRecoveryContext);
-  const operations=useWalletOperations(),scope=useOperationScope(mode!=="closed"),[confirmation,setConfirmation]=useState(""),[secret,setSecret]=useState(""),[label,setLabel]=useState(()=>walletCopy(locale,"Imported account"));
+  const operations=useWalletOperations(),scope=useOperationScope(mode!=="closed"),[confirmation,setConfirmation]=useState(""),[secret,setSecret]=useState(""),[label,setLabel]=useState(()=>walletCopy(locale,"Imported account")),[createReadinessError,setCreateReadinessError]=useState<string|null>(null);
   const [restoring,setRestoring]=useState<WalletAccount|null>(null);
   const review=useMemo(()=>reviewRecoveryKey(secret,accounts),[secret,accounts]);
   const existing=review.kind==="existing"?review.account:restoring;
-  const dismiss=()=>{scope.cancel();setSecret("");setConfirmation("");setRestoring(null);setBusy(false);close()};
-  useEffect(()=>{scope.cancel();setSecret("");setConfirmation("");setRestoring(null);setLabel(walletCopy(locale,"Imported account"));setBusy(false)},[mode,scope,locale,accounts]);
+  const dismiss=()=>{scope.cancel();setSecret("");setConfirmation("");setCreateReadinessError(null);setRestoring(null);setBusy(false);close()};
+  useEffect(()=>{scope.cancel();setSecret("");setConfirmation("");setCreateReadinessError(null);setRestoring(null);setLabel(walletCopy(locale,"Imported account"));setBusy(false)},[mode,scope,locale,accounts]);
   useEffect(()=>operations.subscribe(()=>{scope.cancel();setSecret("");setConfirmation("");setRestoring(null);setBusy(false)}),[operations,scope]);
-  const persistCreate=async()=>{if(!pending||confirmation!=="BACKED UP")return;let lease:WalletOperationLease|undefined;setBusy(true);try{lease=scope.begin({requireUnlocked:false});const next=await lease.step(()=>repository.addAccount({secretHex:pending.secretHex,label:pending.label,createdAt:new Date().toISOString(),backupConfirmed:true},lease!.assert));saved(next)}catch(caught){if(!lease||lease.ownsScope())setError(message(caught))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
+  const persistCreate=async()=>{if(!pending||confirmation!=="BACKED UP")return;let lease:WalletOperationLease|undefined;setBusy(true);setCreateReadinessError(null);try{
+    lease=scope.begin({requireUnlocked:false});
+    try{await lease.step(()=>assertStrongBiometrics(lease!.assert))}
+    catch(caught){if(lease.ownsScope())setCreateReadinessError(`${message(caught)}. Set a device screen lock and enroll strong system biometrics in Settings, then try again before this recovery view expires.`);return}
+    const next=await lease.step(()=>repository.addAccount({secretHex:pending.secretHex,label:pending.label,createdAt:new Date().toISOString(),backupConfirmed:true},lease!.assert));saved(next)
+  }catch(caught){if(!lease||lease.ownsScope())setError(message(caught))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
   const persistImport=async()=>{if(busy||review.kind!=="new")return;let lease:WalletOperationLease|undefined;const accountLabel=label.trim();setBusy(true);try{lease=scope.begin({requireUnlocked:false});const material=lease.holdSecret(secret.trim().toLowerCase());setSecret("");await lease.step(()=>authorizeLocalKeyUse("account-import"));const next=await lease.step(()=>repository.addAccount({secretHex:material.read(),label:accountLabel,createdAt:new Date().toISOString(),backupConfirmed:true},lease!.assert));material.clear();saved(next)}catch(caught){if(!lease||lease.ownsScope())setError(message(caught))}finally{if(!lease||lease.ownsScope()){setSecret("");setBusy(false)}lease?.finish()}};
   const persistRestore=async()=>{
     if(busy||mode!=="recover"||review.kind!=="existing")return;
@@ -314,7 +320,7 @@ function SetupModal({mode,accounts,pending,close,saved,busy,setBusy,setError}:{m
     catch(caught){if(!lease||lease.ownsScope())setError(message(caught))}
     finally{if(!lease||lease.ownsScope()){setSecret("");setRestoring(null);setBusy(false)}lease?.finish()}
   };
-  return <Modal visible={mode!=="closed"} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}>{mode==="create"&&pending?<RecoverySheet pending={pending} confirmation={confirmation} setConfirmation={setConfirmation} busy={busy} save={()=>void persistCreate()} close={dismiss}/>:<Sheet title={walletCopy(locale,mode==="recover"?"Recover Wallet":"Import account")} close={dismiss}><Text style={styles.sheetText}>{walletCopy(locale,mode==="recover"?"Replacement-device recovery restores only the native account. Connected Apps, sessions, device approvals and audit history must be re-created.":"Enter a 64-character YNX recovery key. Import requires system biometrics and does not restore product device sessions.")}</Text>{existing?<><ReviewRow label={translate(locale,"account")} value={`${existing.label}\n${existing.account}`}/><InfoCard title={walletCopy(locale,"This account is already stored in Wallet")} body={walletCopy(locale,mode==="recover"?"Confirm below to restore key protection for this exact existing account. Its label, account list and app sessions will not be replaced.":"Ordinary import cannot replace this account's protected key. Open account recovery and enter the offline key again to review an explicit restoration.")}/></>:<Field label={walletCopy(locale,"Account label")} value={label} onChangeText={setLabel}/>}<Field label={walletCopy(locale,"Recovery key")} value={secret} onChangeText={setSecret} secure multiline/>{mode==="recover"&&existing?<Button label={walletCopy(locale,"Restore key protection for this existing account")} disabled={busy||review.kind!=="existing"} onPress={()=>void persistRestore()}/>:existing?<SecondaryButton label={walletCopy(locale,"Open account recovery")} disabled={busy} onPress={()=>{dismiss();requestRecovery()}}/>:<Button label={walletCopy(locale,mode==="recover"?"Recover into secure storage":"Import into secure storage")} disabled={busy||review.kind!=="new"} onPress={()=>void persistImport()}/>}</Sheet>}</Modal>
+  return <Modal visible={mode!=="closed"} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}>{mode==="create"&&pending?<RecoverySheet pending={pending} confirmation={confirmation} setConfirmation={setConfirmation} busy={busy} error={createReadinessError} save={()=>void persistCreate()} close={dismiss}/>:<Sheet title={walletCopy(locale,mode==="recover"?"Recover Wallet":"Import account")} close={dismiss}><Text style={styles.sheetText}>{walletCopy(locale,mode==="recover"?"Replacement-device recovery restores only the native account. Connected Apps, sessions, device approvals and audit history must be re-created.":"Enter a 64-character YNX recovery key. Import requires system biometrics and does not restore product device sessions.")}</Text>{existing?<><ReviewRow label={translate(locale,"account")} value={`${existing.label}\n${existing.account}`}/><InfoCard title={walletCopy(locale,"This account is already stored in Wallet")} body={walletCopy(locale,mode==="recover"?"Confirm below to restore key protection for this exact existing account. Its label, account list and app sessions will not be replaced.":"Ordinary import cannot replace this account's protected key. Open account recovery and enter the offline key again to review an explicit restoration.")}/></>:<Field label={walletCopy(locale,"Account label")} value={label} onChangeText={setLabel}/>}<Field label={walletCopy(locale,"Recovery key")} value={secret} onChangeText={setSecret} secure multiline/>{mode==="recover"&&existing?<Button label={walletCopy(locale,"Restore key protection for this existing account")} disabled={busy||review.kind!=="existing"} onPress={()=>void persistRestore()}/>:existing?<SecondaryButton label={walletCopy(locale,"Open account recovery")} disabled={busy} onPress={()=>{dismiss();requestRecovery()}}/>:<Button label={walletCopy(locale,mode==="recover"?"Recover into secure storage":"Import into secure storage")} disabled={busy||review.kind!=="new"} onPress={()=>void persistImport()}/>}</Sheet>}</Modal>
 }
 
 function FaucetModal({account,close}:{account:WalletAccount;close:()=>void}){
@@ -593,9 +599,9 @@ function WalletControlCenter({visible,locale,close}:{visible:boolean;locale:Wall
 function CapitalReviewRow({review,locale,stale}:{review:CapitalReview;locale:WalletLocale;stale:boolean}){const[open,setOpen]=useState(false);return <View style={styles.nativeList}><Pressable accessibilityRole="button" accessibilityLabel={`${capitalName(review.productType)} capital risk inspector`} accessibilityState={{expanded:open}} onPress={()=>setOpen(!open)} style={styles.nativeListHeader}><View style={styles.infoCopy}><Text style={styles.infoTitle}>{capitalName(review.productType)} · {review.name}</Text><Text style={styles.infoBody}>{review.provider} · {stale?"STALE":"VERIFIED"} · {review.asOf}</Text></View><ChevronDown color={ACTIVE_COLORS.ink}/></Pressable>{open?<View style={styles.riskInspector}><ReviewRow label="Yield source" value={review.yieldSource}/><ReviewRow label="Historical yield" value={review.historicalYieldRange}/><ReviewRow label="Fees" value={review.fees}/><ReviewRow label="Lock / cooldown" value={`${review.lock}\n${review.cooldown}`}/><ReviewRow label="Slashing / drawdown" value={`${review.slashing}\n${review.drawdown}`}/><ReviewRow label="Withdrawal / reserve" value={`${review.withdrawalDelay}\n${review.reserveRatio}`}/><ReviewRow label="Contract" value={review.contract}/><ReviewRow label="Governance" value={review.governance}/><ReviewRow label="Risk" value={review.risk}/><ReviewRow label={controlCopy(locale,"exit")} value={review.immediateExit}/><ReviewRow label={controlCopy(locale,"revoke")} value={review.revoke}/><ReviewRow label="Source" value={`${review.source}\n${review.version}`}/></View>:null}</View>}
 function capitalName(value:string){return ({"native-staking":"Native Staking","liquid-staking-candidate":"Liquid Staking Candidate","withdrawal-queue":"Withdrawal Queue","safety-module":"Safety Module","service-security-pool":"Service Security Pool","dex-lp":"LP Position",vault:"Vault","trading-subaccount":"Trading Subaccount","api-wallet":"API Wallet","portfolio-margin":"Portfolio Margin",stablecoin:"Stablecoin","cross-chain-route":"Cross-chain Route","solver-auction":"Solver Auction","protocol-owned-liquidity":"Protocol-owned Liquidity","treasury-multisig":"Treasury Multisig"} as Record<string,string>)[value]??"Unsupported capital product"}
 
-function RecoverySheet({pending,confirmation,setConfirmation,busy,save,close}:{pending:{secretHex:string;label:string};confirmation:string;setConfirmation:(v:string)=>void;busy:boolean;save:()=>void;close:()=>void}){
+function RecoverySheet({pending,confirmation,setConfirmation,busy,error,save,close}:{pending:{secretHex:string;label:string};confirmation:string;setConfirmation:(v:string)=>void;busy:boolean;error:string|null;save:()=>void;close:()=>void}){
   useEffect(()=>{void preventScreenCaptureAsync("wallet-recovery");return()=>{void allowScreenCaptureAsync("wallet-recovery")}},[]);
-  return <Sheet title="Back up before saving" close={close}><Text style={styles.sheetText}>Write this recovery key offline. Clipboard export is disabled. Never paste it into Social, support, AI, a website or another product. YNX cannot recover it.</Text><Text accessibilityLabel="YNX Wallet recovery key" style={styles.recoveryKey}>{pending.secretHex}</Text><Field label="Type BACKED UP to confirm" value={confirmation} onChangeText={setConfirmation}/><Button label="Confirm backup and save" disabled={busy||confirmation!=="BACKED UP"} onPress={save}/></Sheet>
+  return <Sheet title="Back up before saving" close={close}><Text style={styles.sheetText}>Write this recovery key offline. Clipboard export is disabled. Never paste it into Social, support, AI, a website or another product. YNX cannot recover it.</Text><Text accessibilityLabel="YNX Wallet recovery key" style={styles.recoveryKey}>{pending.secretHex}</Text><Field label="Type BACKED UP to confirm" value={confirmation} onChangeText={setConfirmation}/>{error?<Text accessibilityRole="alert" style={styles.error}>{error}</Text>:null}<Button label="Confirm backup and save" disabled={busy||confirmation!=="BACKED UP"} onPress={save}/></Sheet>
 }
 
 function RecoveryExportModal({visible,account,close}:{visible:boolean;account:WalletAccount;close:()=>void}){
@@ -653,6 +659,7 @@ function ApplicationActionModal({locale,review,controller,close,onReturned}:{loc
 
 function CardApprovalModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:CardApplicationApprovalReview;controller:CardApplicationApprovalController;close:()=>void;onReturned:()=>void}){
   const {request,account:selected}=review;
+  const provider=request.version==="2";
   const scope=useOperationScope(true,selected.account);
   const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[returnReady,setReturnReady]=useState(()=>controller.hasReturn(review.id));
   const decide=async(action:"approve"|"reject"|"retryReturn")=>{
@@ -664,23 +671,35 @@ function CardApprovalModal({locale,review,controller,close,onReturned}:{locale:W
     finally{if(lease.ownsScope())setBusy(false);lease.finish()}
   };
   const dismiss=()=>{if(!busy){if(returnReady)close();else void decide("reject")}};
-  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={cardApprovalCopy(locale,"title")} close={dismiss}>
-    <Text style={styles.authorizationLead}>{cardApprovalCopy(locale,"sandbox")}</Text>
+  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={provider?providerCardCopy(locale,"title"):cardApprovalCopy(locale,"title")} close={dismiss}>
+    <Text style={styles.authorizationLead}>{provider?providerCardCopy(locale,"sandbox"):cardApprovalCopy(locale,"sandbox")}</Text>
     <ReviewRow label={translate(locale,"requestingApp")} value="YNX Card"/>
     <ReviewRow label={authorizationCopy(locale,"origin")} value={request.origin}/>
     <Text style={styles.scopeExplain}>{applicationActionCopy(locale,"unverifiedOrigin")}</Text>
     <ReviewRow label={translate(locale,"network")} value="YNX Testnet · 6423 · 0x1917"/>
     <ReviewRow label={translate(locale,"account")} value={selected.label+"\n"+selected.account}/>
     <ReviewRow label={cardApprovalCopy(locale,"application")} value={request.challenge.applicationId}/>
-    <ReviewRow label={cardApprovalCopy(locale,"nickname")} value={request.details.nickname}/>
-    <ReviewRow label={cardApprovalCopy(locale,"useCase")} value={request.details.useCase}/>
-    <ReviewRow label={cardApprovalCopy(locale,"limit")} value={cardApprovalLimitYNXT(request.details.limitWei)+" YNXT\n"+request.details.limitWei+" wei"}/>
-    <ReviewRow label={cardApprovalCopy(locale,"risk")} value={cardApprovalCopy(locale,"accepted")}/>
-    <ReviewRow label={cardApprovalCopy(locale,"terms")} value={request.details.termsVersion}/>
+    {request.version==="1"?<>
+      <ReviewRow label={cardApprovalCopy(locale,"nickname")} value={request.details.nickname}/>
+      <ReviewRow label={cardApprovalCopy(locale,"useCase")} value={request.details.useCase}/>
+      <ReviewRow label={cardApprovalCopy(locale,"limit")} value={cardApprovalLimitYNXT(request.details.limitWei)+" YNXT\n"+request.details.limitWei+" wei"}/>
+      <ReviewRow label={cardApprovalCopy(locale,"risk")} value={cardApprovalCopy(locale,"accepted")}/>
+      <ReviewRow label={cardApprovalCopy(locale,"terms")} value={request.details.termsVersion}/>
+    </>:<>
+      <ReviewRow label={providerCardCopy(locale,"card")} value={request.details.productCardId}/>
+      <ReviewRow label={providerCardCopy(locale,"provider")} value={request.details.provider}/>
+      <ReviewRow label={providerCardCopy(locale,"program")} value={request.details.programId}/>
+      <ReviewRow label={providerCardCopy(locale,"environment")} value={request.details.environment}/>
+      <ReviewRow label={providerCardCopy(locale,"funding")} value={`${request.details.fundingNetwork} · ${request.details.fundingAssetId}`}/>
+      <ReviewRow label={providerCardCopy(locale,"limit")} value={providerCardAmount(request.details.testSpendingLimitMinor,request.details.minorUnitDigits,request.details.cardAccountCurrency)}/>
+      <ReviewRow label={providerCardCopy(locale,"fees")} value={request.details.feeDisclosureText}/>
+      <ReviewRow label={providerCardCopy(locale,"terms")} value={`${request.details.termsVersion}\n${request.details.termsHash}`}/>
+      <ReviewRow label={providerCardCopy(locale,"risk")} value={`${request.details.riskVersion}\n${request.details.riskHash}`}/>
+    </>}
     <ReviewRow label={translate(locale,"expires")} value={formatDateTime(locale,request.expiresAt)}/>
     <ReviewRow label={authorizationCopy(locale,"callback")} value={request.callback}/>
     {error?<><Text style={styles.error}>{error}</Text><RecoveryRequiredNotice error={error}/><SecondaryButton label={authorizationCopy(locale,"closeRequest")} disabled={busy} onPress={close}/></>:null}
-    {returnReady?<Button label={authorizationCopy(locale,"retryReturn")} disabled={busy} onPress={()=>void decide("retryReturn")}/>:<View style={styles.approvalButtons}><SecondaryButton label={translate(locale,"reject")} disabled={busy} onPress={()=>void decide("reject")}/><Button label={cardApprovalCopy(locale,"approve")} disabled={busy} onPress={()=>void decide("approve")}/></View>}
+    {returnReady?<Button label={authorizationCopy(locale,"retryReturn")} disabled={busy} onPress={()=>void decide("retryReturn")}/>:<View style={styles.approvalButtons}><SecondaryButton label={translate(locale,"reject")} disabled={busy} onPress={()=>void decide("reject")}/><Button label={provider?providerCardCopy(locale,"approve"):cardApprovalCopy(locale,"approve")} disabled={busy} onPress={()=>void decide("approve")}/></View>}
   </Sheet></Modal>
 }
 

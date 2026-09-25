@@ -29,3 +29,17 @@ export function cardApprovalLimitYNXT(wei: string): string {
   const fractional = padded.slice(-18).replace(/0+$/, "");
   return padded.slice(0, -18) + (fractional ? "." + fractional : "");
 }
+
+type ProviderKey="open"|"title"|"sandbox"|"card"|"provider"|"program"|"environment"|"funding"|"limit"|"fees"|"terms"|"risk"|"approve";
+const providerCopy:Readonly<Record<"en"|"zh-Hans"|"zh-Hant",Readonly<Record<ProviderKey,string>>>>={
+  en:{open:"Card · test environment",title:"Approve test card application",sandbox:"This authorizes one TEST provider application only. It does not issue a card, move funds, or approve KYC.",card:"Product card",provider:"Provider",program:"Program",environment:"Environment",funding:"Funding asset and network",limit:"Test spending limit",fees:"Exact fee disclosure",terms:"Terms version and SHA-256",risk:"Risk version and SHA-256",approve:"Approve this test application"},
+  "zh-Hans":{open:"卡片 · 测试环境",title:"批准测试卡申请",sandbox:"仅授权一次 TEST 上游申请；不会发卡、转移资金或批准 KYC。",card:"产品卡",provider:"服务商",program:"卡项目",environment:"环境",funding:"资金资产与网络",limit:"测试消费限额",fees:"完整费用披露",terms:"条款版本与 SHA-256",risk:"风险文件版本与 SHA-256",approve:"批准此测试申请"},
+  "zh-Hant":{open:"卡片 · 測試環境",title:"核准測試卡申請",sandbox:"僅授權一次 TEST 上游申請；不會發卡、轉移資金或核准 KYC。",card:"產品卡",provider:"服務商",program:"卡項目",environment:"環境",funding:"資金資產與網路",limit:"測試消費限額",fees:"完整費用揭露",terms:"條款版本與 SHA-256",risk:"風險文件版本與 SHA-256",approve:"核准此測試申請"},
+};
+export function providerCardCopy(locale:WalletLocale,key:ProviderKey):string{return providerCopy[locale==="zh-Hans"||locale==="zh-Hant"?locale:"en"][key]}
+export function providerCardAmount(minor:string,digits:number,currency:string):string{
+  if(!/^(0|[1-9][0-9]{0,38})$/.test(minor)||!Number.isInteger(digits)||digits<0||digits>18||!/^[A-Z]{3,8}$/.test(currency))throw new Error("Invalid Card provider amount");
+  if(digits===0)return `${minor} ${currency}`;
+  const padded=minor.padStart(digits+1,"0"),whole=padded.slice(0,-digits),fraction=padded.slice(-digits);
+  return `${whole}.${fraction} ${currency}`;
+}

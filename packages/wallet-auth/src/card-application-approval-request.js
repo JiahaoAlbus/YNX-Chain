@@ -2,11 +2,12 @@ import { canonicalJSON, digestHex, exactFields, WalletAuthError } from "./canoni
 import { encodeBase64url, decodeBase64url } from "./base64url.js";
 import { evmAddressFromYNX } from "./crypto.js";
 import { productPlatformBinding } from "./product-session-registry.js";
-import { cardApplicationDetailsHash, verifySignedCardApplicationApproval } from "./card-application-approval.js";
+import { cardApplicationDetailsHash, cardProviderDetailsHash, CARD_PROVIDER_DETAILS_FIELDS, verifySignedCardApplicationApproval } from "./card-application-approval.js";
 
 const INPUT_FIELDS = ["productId", "platform", "account", "challenge", "details", "requestId", "state"];
 const REQUEST_FIELDS = ["version", "chainId", "productId", "platform", "applicationId", "origin", "callback", "account", "challenge", "details", "requestId", "state", "issuedAt", "expiresAt"];
 const CHALLENGE_FIELDS = ["id", "applicationId", "owner", "chainId", "purpose", "payloadHash", "nonce", "issuedAt", "expiresAt"];
+const PROVIDER_CHALLENGE_FIELDS = [...CHALLENGE_FIELDS, "requestBindingHash"];
 const DETAILS_FIELDS = ["nickname", "useCase", "limitWei", "riskAccepted", "termsVersion"];
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
 const REQUEST_LIMIT = 16 * 1024, RESULT_LIMIT = 24 * 1024, MAX_LIFETIME = 300_000;
@@ -18,20 +19,25 @@ const ROUTE = "ynxwallet://card-application-approval";
  */
 export function createCardApplicationApprovalRequest(registry, input, at = new Date()) {
   const data = fields(input, INPUT_FIELDS, "Card approval request input");
-  const challenge = challengeSnapshot(data.challenge);
+  const purpose = data.challenge && typeof data.challenge === "object" ? Object.getOwnPropertyDescriptor(data.challenge, "purpose")?.value : undefined;
+  const provider = purpose === "create-provider-test-card";
+  const providerInput=provider ? fields(data.challenge, Object.hasOwn(data.challenge,"requestBindingHash") ? PROVIDER_CHALLENGE_FIELDS : CHALLENGE_FIELDS, "Card provider challenge input") : null;
+  const challenge = provider ? challengeSnapshot({ ...providerInput, requestBindingHash: "0".repeat(64) }) : challengeSnapshot(data.challenge);
   const binding = productPlatformBinding(registry, data.productId, data.platform);
   const now = instant(at);
-  return parseCardApplicationApprovalRequest(registry, {
-    version: "1", chainId: "ynx_6423-1", ...data, challenge,
+  const request = {
+    version: provider ? "2" : "1", chainId: "ynx_6423-1", ...data, challenge,
     applicationId: binding.applicationId, origin: binding.origin, callback: binding.callback,
     issuedAt: now.toISOString(), expiresAt: new Date(Math.min(now.getTime() + MAX_LIFETIME, timestamp(challenge.expiresAt))).toISOString(),
-  }, now);
+  };
+  if (provider) request.challenge = Object.freeze({ ...challenge, requestBindingHash: cardProviderRequestBindingHash(request) });
+  return parseCardApplicationApprovalRequest(registry, request, now);
 }
 
 export function parseCardApplicationApprovalRequest(registry, input, at = new Date()) {
   const request = snapshot(input);
   const binding = productPlatformBinding(registry, request.productId, request.platform);
-  if (request.version !== "1" || request.chainId !== "ynx_6423-1" || request.productId !== "card"
+  if (!["1", "2"].includes(request.version) || request.version !== (request.challenge.purpose === "create-provider-test-card" ? "2" : "1") || request.chainId !== "ynx_6423-1" || request.productId !== "card"
     || !binding.callback || ["applicationId", "origin", "callback"].some(key => request[key] !== binding[key])) {
     fail("BINDING_MISMATCH", "Card approval must match the exact registered Card platform, origin and callback");
   }
@@ -40,6 +46,7 @@ export function parseCardApplicationApprovalRequest(registry, input, at = new Da
     || issued < timestamp(request.challenge.issuedAt) || expires > timestamp(request.challenge.expiresAt)) {
     fail("EXPIRED_CARD_APPROVAL_REQUEST", "Card review must be current and fit inside its challenge and 300 second lifetime");
   }
+  if(request.version === "2" && request.challenge.requestBindingHash !== cardProviderRequestBindingHash(request)) fail("BINDING_MISMATCH", "Card provider approval does not bind the request, origin and callback");
   return Object.freeze(request);
 }
 
@@ -47,7 +54,13 @@ export function parseCardApplicationApprovalRequest(registry, input, at = new Da
  * The digest does not authenticate the claimed DApp origin or caller process.
  */
 export function cardApplicationApprovalRequestDigest(request) {
-  return digestHex("YNX_CARD_APPLICATION_APPROVAL_REQUEST_V1", snapshot(request));
+  const value=snapshot(request);
+  return digestHex(value.version === "2" ? "YNX_CARD_PROVIDER_APPROVAL_REQUEST_V2" : "YNX_CARD_APPLICATION_APPROVAL_REQUEST_V1", value);
+}
+export function cardProviderRequestBindingHash(request) {
+  const value=fields(request, REQUEST_FIELDS, "Card provider approval request");
+  const binding=Object.fromEntries(["version","chainId","productId","platform","applicationId","origin","callback","account","requestId","state","issuedAt","expiresAt"].map(key=>[key,value[key]]));
+  return digestHex("YNX_CARD_PROVIDER_REQUEST_BINDING_V2",binding);
 }
 
 export function encodeCardApplicationApprovalWalletURL(registry, input, at = new Date()) {
@@ -63,7 +76,7 @@ export function createCardApplicationApprovalReturnURL(registry, input, decision
   const approved = dataStatus(decision) === "approved";
   const data = fields(decision, approved ? ["status", "approval"] : ["status", "reason"], "Card approval decision");
   const result = resultFor(request, {
-    kind: "card-application-approval", version: "1", requestDigest: cardApplicationApprovalRequestDigest(request), state: request.state, ...data,
+    kind: "card-application-approval", version: request.version, requestDigest: cardApplicationApprovalRequestDigest(request), state: request.state, ...data,
   }, at);
   return `${request.callback}?cardApplicationApprovalResult=${encode(result, RESULT_LIMIT)}`;
 }
@@ -81,7 +94,7 @@ export function parseCardApplicationApprovalReturnURL(registry, url, input, at =
 function resultFor(request, input, at) {
   const approved = dataStatus(input) === "approved";
   const result = fields(input, ["kind", "version", "requestDigest", "state", "status", approved ? "approval" : "reason"], "Card approval result");
-  if (result.kind !== "card-application-approval" || result.version !== "1" || result.requestDigest !== cardApplicationApprovalRequestDigest(request) || result.state !== request.state) {
+  if (result.kind !== "card-application-approval" || result.version !== request.version || result.requestDigest !== cardApplicationApprovalRequestDigest(request) || result.state !== request.state) {
     fail("BINDING_MISMATCH", "Card approval result does not match the exact pending request");
   }
   if (approved) {
@@ -98,10 +111,11 @@ function resultFor(request, input, at) {
 function snapshot(input) {
   const request = fields(input, REQUEST_FIELDS, "Card approval request");
   request.challenge = challengeSnapshot(request.challenge);
-  request.details = Object.freeze(fields(request.details, DETAILS_FIELDS, "Card application details"));
-  const payloadHash = cardApplicationDetailsHash(request.details);
+  const provider=request.challenge.purpose === "create-provider-test-card";
+  request.details = Object.freeze(fields(request.details, provider ? CARD_PROVIDER_DETAILS_FIELDS : DETAILS_FIELDS, "Card application details"));
+  const payloadHash = provider ? cardProviderDetailsHash(request.details) : cardApplicationDetailsHash(request.details);
   const accountAddress = evmAddressFromYNX(request.account);
-  if (request.challenge.payloadHash !== payloadHash || ownerAddress(request.challenge.owner) !== accountAddress) fail("BINDING_MISMATCH", "Card challenge must match the full application details and selected account");
+  if (request.challenge.payloadHash !== payloadHash || ownerAddress(request.challenge.owner) !== accountAddress || provider && ownerAddress(request.details.principalOwner) !== accountAddress) fail("BINDING_MISMATCH", "Card challenge must match the full application details and selected account");
   text(request.requestId, "requestId", new RegExp(`^${UUID}$`));
   text(request.state, "state", /^[A-Za-z0-9_-]{32,128}$/);
   timestamp(request.issuedAt); timestamp(request.expiresAt);
@@ -115,13 +129,15 @@ function snapshot(input) {
 function challengeSnapshot(input) {
   // Same public challenge schema as the frozen Card proof. Validation must not
   // manufacture a temporary signature or use any secret merely to parse it.
-  const challenge = fields(input, CHALLENGE_FIELDS, "Card business challenge");
+  const purpose=input && typeof input === "object" ? Object.getOwnPropertyDescriptor(input,"purpose")?.value : undefined;
+  const provider=purpose === "create-provider-test-card";
+  const challenge = fields(input, provider ? PROVIDER_CHALLENGE_FIELDS : CHALLENGE_FIELDS, "Card business challenge");
   text(challenge.id, "challenge id", new RegExp(`^challenge_${UUID}$`));
   text(challenge.applicationId, "Card application id", new RegExp(`^application_${UUID}$`));
   text(challenge.nonce, "challenge nonce", new RegExp(`^${UUID}$`));
   text(challenge.payloadHash, "payloadHash", /^[0-9a-f]{64}$/);
   ownerAddress(challenge.owner);
-  if (challenge.chainId !== "0x1917" || challenge.purpose !== "create-testnet-card") fail("INVALID_CARD_APPROVAL_REQUEST", "Card challenge chain or purpose is invalid");
+  if (challenge.chainId !== "0x1917" || !["create-testnet-card","create-provider-test-card"].includes(challenge.purpose) || provider && !/^[0-9a-f]{64}$/.test(challenge.requestBindingHash)) fail("INVALID_CARD_APPROVAL_REQUEST", "Card challenge chain, purpose or request binding is invalid");
   const issued = timestamp(challenge.issuedAt), expires = timestamp(challenge.expiresAt);
   if (expires <= issued || expires - issued > MAX_LIFETIME) fail("EXPIRED_CARD_APPROVAL_REQUEST", "Card challenge lifetime must be positive and at most 300 seconds");
   return Object.freeze(challenge);

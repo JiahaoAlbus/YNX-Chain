@@ -1,12 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createWalletConnectRequestReview, createWalletConnectSessionApproval, reviewWalletConnectSessionProposal, WalletConnectRequestReplayStore, type WalletConnectSessionApproval } from "@ynx-chain/wallet-auth";
-import { WalletConnectSecurityStore } from "./securityStore";
+import { WalletConnectFinalizationUnknownError, WalletConnectSecurityStore } from "./securityStore";
 import { WalletConnectRuntime } from "./runtime";
+import { persistAndPublishWalletConnectSession } from "./sessionApproval";
+import { WalletOperationLifecycle } from "../security/operationLifecycle";
 
 class MemoryStorage{value:string|null=null;async getItem(){return this.value}async setItem(_key:string,value:string){this.value=value}async removeItem(){this.value=null}}
 class FailingStorage extends MemoryStorage{fail=false;override async setItem(key:string,value:string){if(this.fail)throw new Error("secure storage unavailable");await super.setItem(key,value)}}
 class AmbiguousStorage extends MemoryStorage{throwAfterWrite=false;override async setItem(key:string,value:string){await super.setItem(key,value);if(this.throwAfterWrite)throw new Error("secure storage acknowledgement lost")}}
+function gate(){let release!:()=>void,entered!:()=>void;return{wait:new Promise<void>(resolve=>{release=resolve}),entered:new Promise<void>(resolve=>{entered=resolve}),release:()=>release(),notify:()=>entered()}}
+class DelayedFinalizationStorage extends MemoryStorage{pause=gate();override async setItem(key:string,value:string){if(this.value!==null&&JSON.parse(this.value).pendingTopics?.length&&JSON.parse(value).pendingTopics?.length===0){this.pause.notify();await this.pause.wait}await super.setItem(key,value)}}
+class UncertainFinalizationStorage extends MemoryStorage{mode:"committed"|"pending"="committed";armed=false;failRead=false;override async setItem(key:string,value:string){if(this.armed&&this.value!==null&&JSON.parse(this.value).pendingTopics?.length&&JSON.parse(value).pendingTopics?.length===0){this.armed=false;if(this.mode==="committed")await super.setItem(key,value);this.failRead=true;throw new Error("finalization write acknowledgement lost")}await super.setItem(key,value)}override async getItem(){if(this.failRead){this.failRead=false;throw new Error("secure storage read temporarily unavailable")}return super.getItem()}}
 const account=`0x${"1".repeat(40)}`,topic="a".repeat(64),namespaces={eip155:{chains:["eip155:6423"],methods:["eth_accounts"],events:["accountsChanged"],accounts:[`eip155:6423:${account}`]}} as const;
 const proposalTime=new Date("2026-09-20T00:00:00.000Z"),proposalSeconds=Math.floor(proposalTime.getTime()/1000);
 const proposalReview=reviewWalletConnectSessionProposal({id:1,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"https://example.com",isScam:false}},params:{id:1,expiryTimestamp:proposalSeconds+86_400,relays:[{protocol:"irn"}],proposer:{publicKey:"c".repeat(64),metadata:{name:"dApp",description:"test",url:"https://example.com",icons:["https://example.com/icon.png"]}},requiredNamespaces:{eip155:{chains:["eip155:6423"],methods:["eth_accounts"],events:["accountsChanged"]}},optionalNamespaces:{},pairingTopic:"b".repeat(64)}},{account,now:proposalTime});
@@ -78,6 +83,38 @@ test("legacy v2 approved sessions remain active when state advances to v3",async
   await store.saveSession(approval);
   assert.equal(JSON.parse(storage.value!).version,3);
   assert.deepEqual(JSON.parse(storage.value!).pendingTopics,[]);
+});
+
+test("unknown finalization remains quarantined until a fresh store resolves committed or pending state",async()=>{
+  for(const mode of ["committed","pending"] as const){
+    const storage=new UncertainFinalizationStorage();storage.mode=mode;const store=new WalletConnectSecurityStore(storage as any),handlers=new Map<string,(event:any)=>void>();
+    const active={[topic]:{topic,namespaces,peer:{metadata:{name:"dApp",url:"https://example.com"}}}};
+    const client={on(event:string,handler:(event:any)=>void){handlers.set(event,handler)},getActiveSessions:()=>active,pair:async()=>{},rejectSession:async()=>{},approveSession:async()=>active[topic],respondSessionRequest:async()=>{},disconnectSession:async()=>{throw new Error("Relay unavailable")}};
+    const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any);await runtime.start();storage.armed=true;
+    await assert.rejects(persistAndPublishWalletConnectSession(runtime,store,approval),WalletConnectFinalizationUnknownError);
+    assert.deepEqual(runtime.quarantinedTopics(),[topic]);assert.deepEqual(runtime.snapshot().sessions,[]);
+    const restarted=new WalletConnectSecurityStore(storage as any);
+    assert.equal((await restarted.session(topic))?.topic??null,mode==="committed"?topic:null);
+    assert.deepEqual(await restarted.pendingSessionTopics(),mode==="pending"?[topic]:[]);
+    const freshRuntime=new WalletConnectRuntime({projectId:"b".repeat(32)},(async()=>client) as any);await freshRuntime.start();
+    for(const pending of await restarted.pendingSessionTopics())freshRuntime.quarantineSession(pending);
+    assert.deepEqual(freshRuntime.snapshot().sessions.map(item=>item.topic),mode==="committed"?[topic]:[]);
+  }
+});
+
+test("lock and account switch during final storage write cannot authorize the new account",async()=>{
+  const storage=new DelayedFinalizationStorage(),store=new WalletConnectSecurityStore(storage as any),operations=new WalletOperationLifecycle();
+  operations.setAccount("native-account-a");const unlock=operations.scope().begin({requireUnlocked:false});operations.unlock(unlock);unlock.finish();
+  await store.stageSession(approval);
+  const lease=operations.scope().begin({account:"native-account-a"}),commit=store.finalizeStagedSession(topic,approval.sessionBinding,lease.assert);
+  await storage.pause.entered;operations.lock();operations.setAccount("native-account-b");storage.pause.release();await commit;
+  assert.throws(lease.assert);lease.finish();
+  const restarted=new WalletConnectSecurityStore(storage as any),newAccount=`0x${"2".repeat(40)}`;
+  assert.equal(await restarted.reconcileSession(topic,namespaces as any,newAccount),"changed");
+  await assert.rejects(restarted.reserveRequest({topic,id:1,params:{}},newAccount,proposalTime),/no longer authorized/);
+  const pruned=await restarted.reconcileActiveSessions([{topic,namespaces:namespaces as any}],newAccount);
+  assert.deepEqual(pruned.prunedTopics,[topic]);assert.deepEqual(pruned.disconnectTopics,[topic]);
+  operations.setAccount("native-account-a");assert.equal(await restarted.session(topic),null);
 });
 test("session namespace reconciliation keeps exact approval and rejects account or scope drift",async()=>{
   const storage=new MemoryStorage(),store=new WalletConnectSecurityStore(storage as any);await store.saveSession(approval);
