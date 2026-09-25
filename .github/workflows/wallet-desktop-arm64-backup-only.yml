@@ -126,7 +126,7 @@ jobs:
           $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\arm64-backup-installed-smoke.json'
           $first = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
           try {
-            @'
+            $preflight = @'
           const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
           let ready = false;
           for (let attempt = 0; attempt < 60 && !ready; attempt++) {
@@ -152,7 +152,8 @@ jobs:
           }
           if (!ready) throw Error('INSTALLED_UI_NOT_READY');
           console.log(JSON.stringify({ installedVisiblePasswordActionReady: true }));
-          '@ | node --input-type=module
+          '@
+            $preflight | node --input-type=module
             if ($LASTEXITCODE -ne 0) { throw 'Installed ARM password action never became interactive' }
             $created = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs create | ConvertFrom-Json
             if ($LASTEXITCODE -ne 0 -or -not $created.accountCreated) { throw 'ARM backup source account creation failed' }
@@ -164,7 +165,7 @@ jobs:
           try {
             $started = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs backup-start $created.account | ConvertFrom-Json
             if ($LASTEXITCODE -ne 0 -or -not $started.backupSubmittedThroughInstalledUI) { throw 'ARM native backup form not submitted' }
-            $diagnostic = [ordered]@{ stage='save-dialog-selection'; uiaLoaded=$false; topLevelWindowCount=0; matchingTitleCount=0; dialogFound=$false; editCount=0; fileNameEditFound=$false; saveButtonFound=$false; saveInvoked=$false; expectedFileAppeared=$false }
+            $diagnostic = [ordered]@{ stage='save-dialog-selection'; uiaLoaded=$false; topLevelWindowCount=0; matchingTitleCount=0; dialogFound=$false; editCount=0; comboCount=0; semanticFileNameHostCount=0; fileNameComboFound=$false; fileNameEditFound=$false; fileNameValuePatternAvailable=$false; saveButtonFound=$false; saveInvoked=$false; expectedFileAppeared=$false }
             try {
               Add-Type -AssemblyName UIAutomationClient
               $diagnostic.uiaLoaded = $true
@@ -205,10 +206,37 @@ jobs:
               $editCondition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Edit)
               $edits = $dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants, $editCondition)
               $diagnostic.editCount = $edits.Count
-              $fileNameEdit = @($edits | Where-Object { $_.Current.IsEnabled -and ($_.Current.AutomationId -match '^(1001|1148|FileNameControlHost.*)$' -or $_.Current.Name -match '^File name:?$') }) | Select-Object -First 1
+              function Test-FileNameLabel($control) {
+                try {
+                  if ($control.Current.AutomationId -match '^(1001|1148|FileNameControlHost.*)$' -or $control.Current.Name -match '^File name:?$') { return $true }
+                  $label = $control.Current.LabeledBy
+                  return $null -ne $label -and $label.Current.Name -match '^File name:?$'
+                } catch { return $false }
+              }
+              $fileNameEdit = @($edits | Where-Object { $_.Current.IsEnabled -and (Test-FileNameLabel $_) }) | Select-Object -First 1
+              if ($null -eq $fileNameEdit) {
+                $comboCondition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::ComboBox)
+                $combos = $dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants, $comboCondition)
+                $diagnostic.comboCount = $combos.Count
+                $fileNameCombo = @($combos | Where-Object { $_.Current.IsEnabled -and (Test-FileNameLabel $_) }) | Select-Object -First 1
+                if ($null -ne $fileNameCombo) {
+                  $diagnostic.fileNameComboFound = $true
+                  $fileNameEdit = $fileNameCombo.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $editCondition)
+                }
+              }
+              if ($null -eq $fileNameEdit) {
+                $controls = $dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition)
+                $hosts = @($controls | Where-Object { $_.Current.IsEnabled -and (Test-FileNameLabel $_) })
+                $diagnostic.semanticFileNameHostCount = $hosts.Count
+                foreach ($hostControl in $hosts) {
+                  $nested = $hostControl.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $editCondition)
+                  if ($null -ne $nested -and $nested.Current.IsEnabled) { $fileNameEdit = $nested; break }
+                }
+              }
               if ($null -eq $fileNameEdit) { throw 'ARM native backup File name control unavailable' }
               $diagnostic.fileNameEditFound = $true
               $value = [System.Windows.Automation.ValuePattern]$fileNameEdit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
+              $diagnostic.fileNameValuePatternAvailable = $null -ne $value
               $value.SetValue($env:YNX_WALLET_QA_BACKUP_FILE)
               $buttonCondition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button)
               $buttons = $dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants, $buttonCondition)
