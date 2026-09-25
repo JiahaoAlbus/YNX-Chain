@@ -31,7 +31,7 @@ test('missing session and invalid resource fail before proof or network; no auto
   const connected=new CardProviderClient({...options,identity,fetch:async()=>{calls++;throw Error('offline')}});await assert.rejects(connected.createDraft({},'draft-1'),/CARD_API_UNAVAILABLE/);assert.equal(calls,1);
 });
 test('wrong source/owner, HTML fallback, sensitive card fields and hostile hosted URL fail closed',async()=>{
-  for(const result of [envelope({}, {sourceCommit:'c'.repeat(40)}),envelope({}, {sessionOwner:'0x'+'d'.repeat(40)}),envelope({pan:'4111111111111111'}),new Response('<html>fallback</html>',{headers:{'Content-Type':'text/html'}})]){
+  for(const result of [envelope({}, {sourceCommit:'c'.repeat(40)}),envelope({}, {sessionOwner:'0x'+'d'.repeat(40)}),envelope({pan:'SYNTHETIC_PAN_MUST_NOT_LEAK'}),new Response('<html>fallback</html>',{headers:{'Content-Type':'text/html'}})]){
     const client=new CardProviderClient({expectedSourceCommit:source,identity,createIntrospectionProof:async()=>({proofHeader:'x'}),fetch:async()=>result.clone()});await assert.rejects(client.listApplications(),/INVALID_CARD_API_RESPONSE|SENSITIVE_CARD_DATA_REJECTED/);
   }
   const hosted=new CardProviderClient({expectedSourceCommit:source,identity,createIntrospectionProof:async()=>({proofHeader:'x'}),allowedHostedOrigins:['https://verify.test.immersve.com'],fetch:async()=>envelope({application:{status:'KYC_PENDING'},hostedUrl:'https://evil.example/kyc'})});

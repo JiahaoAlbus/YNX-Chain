@@ -139,7 +139,7 @@ test('simulation fee is conserved, idempotent and reconciled after restart',asyn
   const f=fixture(t),{card}=await funded(f),input={amountWei:'70',simulation:true as const,reason:'SANDBOX_PROCESSOR_FEE' as const};
   const result=f.service.applySimulationFee(principal(),card.id,input,'fee');
   assert.equal(result.card.balance.feeWei,'70');
-  assert.equal(result.card.balance.availableWei,'999999999999999930');
+  assert.equal(result.card.balance.availableWei,(10n ** 18n - 70n).toString());
   assert.deepEqual(f.service.applySimulationFee(principal(),card.id,input,'fee'),result);
   assert.throws(()=>f.service.applySimulationFee(principal(),card.id,{...input,amountWei:'71'},'fee'),/IDEMPOTENCY_CONFLICT/);
   assert.throws(()=>f.service.applySimulationFee({...principal(),scopes:['card:topup:write']},card.id,input,'no'),/PERMISSION_DENIED/);

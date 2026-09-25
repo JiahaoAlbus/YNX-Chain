@@ -13,7 +13,7 @@ function fixture(t:any,transport:typeof fetch,enabled=true,extra:Partial<Immersv
 const gate=()=>({ticket:'QA-OPERATOR-20260925',qaAccountId:'account-a',expiresAt:new Date(Date.now()+60000).toISOString(),maxDepositMinorUnits:'1000000',maxProviderCalls:1});
 test('fixed Test host, account-bound reads and no sensitive card fields',async t=>{
   const calls:{url:string;init:RequestInit}[]=[];
-  const transport=(async(url:string|URL|Request,init:RequestInit={})=>{calls.push({url:String(url),init});const path=String(url);return Response.json(path.includes('funding-sources')?{items:[{id:'source-1',accountId:'account-a',fundingChannelId:'channel-1'}]}:{accountId:'account-a',cardId:'card-1',status:'ACTIVE',pan:'4111111111111111',cvv:'123'})}) as typeof fetch;
+  const transport=(async(url:string|URL|Request,init:RequestInit={})=>{calls.push({url:String(url),init});const path=String(url);return Response.json(path.includes('funding-sources')?{items:[{id:'source-1',accountId:'account-a',fundingChannelId:'channel-1'}]}:{accountId:'account-a',cardId:'card-1',status:'ACTIVE',pan:'SYNTHETIC_PAN_MUST_NOT_LEAK',cvv:'123'})}) as typeof fetch;
   const adapter=fixture(t,transport);adapter.bindCardholder(ownerA,'account-a');adapter.bindResource(ownerA,'cardId','card-1');
   assert.deepEqual(await adapter.listFundingSources(ownerA),[{id:'source-1',accountId:'account-a',fundingChannelId:'channel-1'}]);
   const card=await adapter.getBoundCard(ownerA);assert.equal(card.spendable,false);assert.equal(JSON.stringify(card).includes('4111'),false);
