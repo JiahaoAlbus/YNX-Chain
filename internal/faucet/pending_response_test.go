@@ -149,3 +149,145 @@ func TestPendingResponseNeverConfirmsFailedCoreMutation(t *testing.T) {
 		t.Fatalf("uncommitted credit %d", account.Balance)
 	}
 }
+
+func TestPendingRecoversFromTransientCoreFailureWithoutRestart(t *testing.T) {
+	core := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	handler := api.NewServerWithConfig(core, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
+	gate := make(chan struct{})
+	var posts atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/faucet/requests" && posts.Add(1) == 1 {
+			<-gate
+			http.Error(w, "temporary outage", 503)
+			return
+		}
+		handler.ServeHTTP(w, r)
+	}))
+	defer upstream.Close()
+	s := openTestFaucet(t, admissionTestConfig(t, upstream.URL))
+	req := Request{Address: "0x00000000000000000000000000000000000000a4", RequestID: "transient_0123456789abcdef0123456789abcdef"}
+	first, code, err := s.Request(context.Background(), req, "192.0.2.11")
+	if err != nil || code != 202 || first.Status != "pending" {
+		t.Fatalf("first response: %d %+v %v", code, first, err)
+	}
+	close(gate)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		result, code, err := s.RequestStatus(context.Background(), req.RequestID)
+		if err == nil && code == 200 {
+			if result.Status != "accepted" || posts.Load() != 2 {
+				t.Fatalf("not exact recovery: %+v posts=%d", result, posts.Load())
+			}
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("never recovered: %d %+v %v posts=%d", code, result, err, posts.Load())
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if account, _ := core.Account(req.Address); account.Balance != 100 {
+		t.Fatalf("credited %d", account.Balance)
+	}
+}
+
+func TestPendingPersistentCoreFailureStopsAfterDurableRetryBudget(t *testing.T) {
+	core := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	handler := api.NewServerWithConfig(core, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
+	gate := make(chan struct{})
+	var posts atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/faucet/requests" {
+			if posts.Add(1) == 1 {
+				<-gate
+			}
+			http.Error(w, "persistent outage", 503)
+			return
+		}
+		handler.ServeHTTP(w, r)
+	}))
+	defer upstream.Close()
+	cfg := admissionTestConfig(t, upstream.URL)
+	s := openTestFaucet(t, cfg)
+	req := Request{Address: "0x00000000000000000000000000000000000000a5", RequestID: "exhausted_0123456789abcdef0123456789abcdef"}
+	first, code, err := s.Request(context.Background(), req, "192.0.2.12")
+	if err != nil || code != 202 || first.Status != "pending" {
+		t.Fatalf("first response: %d %+v %v", code, first, err)
+	}
+	close(gate)
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		result, code, err := s.RequestStatus(context.Background(), req.RequestID)
+		if code == 503 && result.Status == "retry_exhausted" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("retry budget not reported: %d %+v %v posts=%d", code, result, err, posts.Load())
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if posts.Load() != maxAsyncFundingAttempts {
+		t.Fatalf("mutation storm: %d", posts.Load())
+	}
+	if account, _ := core.Account(req.Address); account.Balance != 0 {
+		t.Fatalf("false credit %d", account.Balance)
+	}
+	if err := s.Close(); err != nil {
+		t.Fatal(err)
+	}
+	s, err = New(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if result, code, _ := s.RequestStatus(context.Background(), req.RequestID); code != 503 || result.Status != "retry_exhausted" || posts.Load() != maxAsyncFundingAttempts {
+		t.Fatalf("restart spent retry budget again: %d %+v posts=%d", code, result, posts.Load())
+	}
+}
+
+func TestPendingUnavailableReceiptReadNeverAuthorizesSecondPost(t *testing.T) {
+	core := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	handler := api.NewServerWithConfig(core, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
+	gate := make(chan struct{})
+	var posts atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/faucet/requests" {
+			posts.Add(1)
+			<-gate
+			http.Error(w, "write unavailable", 503)
+			return
+		}
+		if r.URL.Path != "/evm" && r.URL.Path != "/status" {
+			http.Error(w, "receipt read unavailable", 503)
+			return
+		}
+		handler.ServeHTTP(w, r)
+	}))
+	defer upstream.Close()
+	s := openTestFaucet(t, admissionTestConfig(t, upstream.URL))
+	req := Request{Address: "0x00000000000000000000000000000000000000a6", RequestID: "readfail_0123456789abcdef0123456789abcdef"}
+	first, code, err := s.Request(context.Background(), req, "192.0.2.13")
+	if err != nil || code != 202 || first.Status != "pending" {
+		t.Fatalf("first response: %d %+v %v", code, first, err)
+	}
+	close(gate)
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		record, found, err := s.admissions.lookup(req.RequestID)
+		if err != nil || !found {
+			t.Fatalf("admission lost: %v", err)
+		}
+		if record.AsyncStopped {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("read failures not bounded: %+v", record)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if posts.Load() != 1 {
+		t.Fatalf("unverified read authorized %d writes", posts.Load())
+	}
+	if account, _ := core.Account(req.Address); account.Balance != 0 {
+		t.Fatalf("false credit %d", account.Balance)
+	}
+}

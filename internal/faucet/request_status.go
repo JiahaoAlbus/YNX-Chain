@@ -37,6 +37,13 @@ func (s *Service) RequestStatus(ctx context.Context, id string) (Response, int, 
 			return result, 503, recovered.err
 		}
 		if recovered.pending {
+			s.flightMu.Lock()
+			active := s.fundingFlights[id] != nil
+			s.flightMu.Unlock()
+			if record.Async && (record.AsyncStopped || record.AsyncAttempts >= maxAsyncFundingAttempts) && !active {
+				result.Status = "retry_exhausted"
+				return result, 503, errors.New("faucet retry budget exhausted; retain the same request ID")
+			}
 			return result, 202, nil
 		}
 		record.Transaction = &recovered.tx

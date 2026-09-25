@@ -13,12 +13,14 @@ import (
 
 const capabilityFreshness = 20 * time.Second
 const firstResponseBudget = 1500 * time.Millisecond
+const maxAsyncFundingAttempts = 3
 
 type fundingResult struct {
 	tx                   chain.Transaction
 	status               int
 	err                  error
 	persistenceUncertain bool
+	persisted            bool
 }
 
 type fundingFlight struct {
@@ -133,22 +135,8 @@ func (s *Service) fundAdmitted(ctx context.Context, record admissionRecord, hash
 		s.workWG.Add(1)
 		go func() {
 			defer s.workWG.Done()
-			opCtx, cancel := context.WithTimeout(s.workCtx, 10*time.Second)
-			defer cancel()
-			f.result.tx, f.result.status, f.result.err = s.sendDurableFaucetRequest(opCtx, record, hash)
-			recoveredReceipt := false
-			// A lost Core HTTP response is not proof that the transaction failed.
-			// Read the exact durable receipt once; never send a second funding POST.
-			if errors.Is(f.result.err, errUpstreamResultUnknown) {
-				readCtx, readCancel := context.WithTimeout(context.Background(), 3*time.Second)
-				recovered := s.fetchAndPersistReceipt(readCtx, record, hash)
-				readCancel()
-				if recovered.err == nil && !recovered.pending {
-					f.result.tx, f.result.status, f.result.err = recovered.tx, http.StatusCreated, nil
-					recoveredReceipt = true
-				}
-			}
-			if f.result.err == nil && !recoveredReceipt {
+			f.result = s.runFunding(record, hash)
+			if f.result.err == nil && !f.result.persisted {
 				if err := s.admissions.complete(record, f.result.tx); err != nil {
 					s.recordAdmissionStoreError("complete")
 					f.result.status, f.result.err, f.result.persistenceUncertain = 503, errors.New("faucet receipt needs confirmation; retain the same request ID"), true
@@ -188,6 +176,97 @@ func (s *Service) fundAdmitted(ctx context.Context, record admissionRecord, hash
 	case <-time.After(firstResponseBudget):
 		return fundingResult{status: http.StatusAccepted}, joined
 	}
+}
+
+func (s *Service) fundOnce(record admissionRecord, hash string) fundingResult {
+	opCtx, cancel := context.WithTimeout(s.workCtx, 10*time.Second)
+	defer cancel()
+	tx, status, err := s.sendDurableFaucetRequest(opCtx, record, hash)
+	result := fundingResult{tx: tx, status: status, err: err}
+	if errors.Is(err, errUpstreamResultUnknown) {
+		readCtx, readCancel := context.WithTimeout(s.workCtx, 3*time.Second)
+		recovered := s.fetchAndPersistReceipt(readCtx, record, hash)
+		readCancel()
+		if recovered.err == nil && !recovered.pending {
+			return fundingResult{tx: recovered.tx, status: http.StatusCreated, persisted: true}
+		}
+	}
+	return result
+}
+
+func (s *Service) runFunding(record admissionRecord, hash string) fundingResult {
+	var result fundingResult
+	if !record.Async {
+		result = s.fundOnce(record, hash)
+		if result.err == nil {
+			return result
+		}
+		current, found, err := s.admissions.lookup(record.RequestID)
+		if err != nil || !found || !current.Async {
+			return result
+		}
+		record = current
+	}
+	// Only a durable 202 marker authorizes autonomous retries. Before each
+	// additional Core POST, read the exact deterministic receipt; an unavailable
+	// read path never authorizes another mutation.
+	readFailures := 0
+	for s.workCtx.Err() == nil {
+		current, found, err := s.admissions.lookup(record.RequestID)
+		if err != nil || !found {
+			return fundingResult{status: 503, err: errors.New("pending admission unavailable")}
+		}
+		if current.Transaction != nil {
+			return fundingResult{tx: *current.Transaction, status: 200, persisted: true}
+		}
+		if current.AsyncStopped || current.AsyncAttempts >= maxAsyncFundingAttempts {
+			return fundingResult{status: 503, err: errors.New("faucet retry budget exhausted; retain the same request ID")}
+		}
+		next := current.AsyncNextAt
+		if next.IsZero() || !next.After(time.Now()) {
+			next = time.Now().Add(time.Duration(current.AsyncAttempts*2) * time.Second)
+			if err := s.admissions.scheduleAsyncRetry(record.RequestID, next); err != nil {
+				return fundingResult{status: 503, err: err}
+			}
+		}
+		select {
+		case <-s.workCtx.Done():
+			return fundingResult{status: 503, err: s.workCtx.Err()}
+		case <-time.After(time.Until(next)):
+		}
+		readCtx, cancel := context.WithTimeout(s.workCtx, 3*time.Second)
+		recovered := s.fetchAndPersistReceipt(readCtx, record, hash)
+		cancel()
+		if recovered.err == nil && !recovered.pending {
+			return fundingResult{tx: recovered.tx, status: 200, persisted: true}
+		}
+		if recovered.err != nil {
+			readFailures++
+			if readFailures >= maxAsyncFundingAttempts {
+				if err := s.admissions.stopAsync(record.RequestID); err != nil {
+					return fundingResult{status: 503, err: err}
+				}
+				return fundingResult{status: 503, err: errors.New("receipt read unavailable; retain the same request ID")}
+			}
+			if err := s.admissions.scheduleAsyncRetry(record.RequestID, time.Now().Add(time.Duration(readFailures*2)*time.Second)); err != nil {
+				return fundingResult{status: 503, err: err}
+			}
+			continue
+		}
+		readFailures = 0
+		started, err := s.admissions.beginAsyncRetry(record.RequestID, maxAsyncFundingAttempts)
+		if err != nil {
+			return fundingResult{status: 503, err: err}
+		}
+		if !started {
+			continue
+		}
+		result = s.fundOnce(record, hash)
+		if result.err == nil {
+			return result
+		}
+	}
+	return fundingResult{status: 503, err: s.workCtx.Err()}
 }
 
 func (s *Service) flightMetrics() string {

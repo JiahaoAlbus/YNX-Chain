@@ -32,8 +32,11 @@ type admissionRecord struct {
 	At        time.Time `json:"at"`
 	// Async marks work accepted by the pending-response protocol. Only these
 	// records may be resumed automatically after a process restart.
-	Async       bool               `json:"async,omitempty"`
-	Transaction *chain.Transaction `json:"transaction,omitempty"`
+	Async         bool               `json:"async,omitempty"`
+	AsyncAttempts int                `json:"asyncAttempts,omitempty"`
+	AsyncNextAt   time.Time          `json:"asyncNextAt,omitempty"`
+	AsyncStopped  bool               `json:"asyncStopped,omitempty"`
+	Transaction   *chain.Transaction `json:"transaction,omitempty"`
 }
 
 type admissionStore struct {
@@ -252,7 +255,7 @@ func (s *admissionStore) pendingAsync() ([]admissionRecord, error) {
 			if record.RequestID != string(key) || record.Amount <= 0 {
 				return errors.New("invalid stored faucet admission")
 			}
-			if record.Async && record.Transaction == nil {
+			if record.Async && !record.AsyncStopped && record.Transaction == nil && record.AsyncAttempts < maxAsyncFundingAttempts {
 				records = append(records, record)
 			}
 			return nil
@@ -274,6 +277,7 @@ func (s *admissionStore) enableAsync(record admissionRecord) (admissionRecord, e
 			return nil
 		}
 		current.Async = true
+		current.AsyncAttempts = 1 // The first Core POST is already in flight.
 		encoded, err := json.Marshal(current)
 		if err != nil {
 			return err
@@ -285,6 +289,73 @@ func (s *admissionStore) enableAsync(record admissionRecord) (admissionRecord, e
 		return nil
 	})
 	return record, err
+}
+
+func (s *admissionStore) scheduleAsyncRetry(id string, next time.Time) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		var current admissionRecord
+		if data := bucket.Get([]byte(id)); data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != id || !current.Async {
+			return errors.New("pending async admission disappeared")
+		}
+		if current.Transaction != nil {
+			return nil
+		}
+		current.AsyncNextAt = next.UTC()
+		data, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		return bucket.Put([]byte(id), data)
+	})
+}
+
+func (s *admissionStore) beginAsyncRetry(id string, limit int) (bool, error) {
+	started := false
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		var current admissionRecord
+		if data := bucket.Get([]byte(id)); data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != id || !current.Async {
+			return errors.New("pending async admission disappeared")
+		}
+		if current.Transaction != nil {
+			return nil
+		}
+		if current.AsyncAttempts >= limit {
+			return nil
+		}
+		current.AsyncAttempts++
+		current.AsyncNextAt = time.Time{}
+		data, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		if err := bucket.Put([]byte(id), data); err != nil {
+			return err
+		}
+		started = true
+		return nil
+	})
+	return started, err
+}
+
+func (s *admissionStore) stopAsync(id string) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		var current admissionRecord
+		if data := bucket.Get([]byte(id)); data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != id || !current.Async {
+			return errors.New("pending async admission disappeared")
+		}
+		if current.Transaction != nil {
+			return nil
+		}
+		current.AsyncStopped = true
+		data, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		return bucket.Put([]byte(id), data)
+	})
 }
 
 func (s *admissionStore) complete(record admissionRecord, transaction chain.Transaction) error {

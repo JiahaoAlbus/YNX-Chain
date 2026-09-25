@@ -18,6 +18,7 @@ export class FaucetClient {
  }finally{this.inflight=false}}
  async reconcile(){this.restore();const p=this.pending;if(!p||p.state==='accepted')return false;
  if(p.durable){if(!this.config?.statusPath)return false;const {r,body:b}=await this.json(this.config.statusPath+'?requestId='+encodeURIComponent(p.requestId));
+ if(r.status===503&&b.status==='retry_exhausted'){if(b.requestId!==p.requestId)throw this.error('badReceipt');throw this.error('retryExhausted')}
  if(r.status!==200||b.status!=='accepted')return false;
  const tx=b.transaction,hash=b.transactionHash||tx?.hash;if(b.requestId!==p.requestId||b.address!==normalizeRecipient(p.address)||b.amount!==p.amount||b.nativeSymbol!=='YNXT'||!tx||tx.to!==b.address||tx.amount!==p.amount||tx.hash!==hash||!/^0x[0-9a-f]{64}$/.test(hash))throw this.error('badReceipt');
  this.save({...p,state:'accepted',transactionHash:hash,serviceRequestId:b.requestId,receipt:{replayed:true}});return true;}
