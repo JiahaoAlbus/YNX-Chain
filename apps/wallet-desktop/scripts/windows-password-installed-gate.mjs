@@ -112,6 +112,7 @@ try {
     console.log(JSON.stringify({ mode, passwordPersisted: true, accountCreated: true, wrongPasswordRejected: true, sameAccountAfterUnlock: true, account: created.account.account, ynxAccount: created.account.ynxAccount, custody: created.account.custody }));
   } else {
     if (!before.account.initialized || before.account.account !== expectedAccount || !before.locked) throw new Error(`Installed restore gate found different public account: ${JSON.stringify(before)}`);
+    await until(state => state.ui.unlockEnabled && /Unlock with local password|使用本地密码解锁/i.test(state.ui.unlockLabel), "Cold restart unlock UI readiness");
     await formSubmit(password);
     const restored = await until(state => state.locked === false && state.account?.account === expectedAccount, "Cold restart password unlock");
     console.log(JSON.stringify({ mode, sameAccountAfterRestart: true, account: restored.account.account, ynxAccount: restored.account.ynxAccount, custody: restored.account.custody }));
