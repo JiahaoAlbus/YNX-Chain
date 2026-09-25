@@ -1,0 +1,140 @@
+name: Wallet desktop x64 non-elevated same-artifact QA
+
+on:
+  push:
+    branches: [codex/wallet-desktop-same-artifact-qa-20260925]
+    paths: [.github/workflows/wallet-desktop-x64-nonadmin-same-artifact.yml]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  installed-x64-non-elevated:
+    runs-on: windows-2025
+    timeout-minutes: 35
+    env:
+      SOURCE_COMMIT: 3045436395fe636c91be417f41fc1e4ed2bc7515
+      SOURCE_RUN: '36095340351'
+      ARTIFACT_ID: '10846977760'
+      ARTIFACT_NAME: wallet-current-windows-x64-3045436395fe636c91be417f41fc1e4ed2bc7515
+      ARTIFACT_BYTES: '121015407'
+      ARTIFACT_SHA256: 587e294f51539ce22c8d396efcd38959aa1ea0bd01bbae07a4020483ee0f2986
+      INSTALLER_BYTES: '120980075'
+      INSTALLER_SHA256: 0df01cecc47c4af179d651892623b7936ac6dac52a5d9961212bed90eccde7e1
+    steps:
+      - name: Preserve exact committed bytes
+        shell: bash
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: 3045436395fe636c91be417f41fc1e4ed2bc7515
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+      - name: Bind original x64 artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne [Runtime.InteropServices.Architecture]::X64 -or [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture -ne [Runtime.InteropServices.Architecture]::X64) { throw 'Native Windows x64 runner required' }
+          if ((git rev-parse HEAD).Trim() -ne $env:SOURCE_COMMIT) { throw 'Verifier source commit mismatch' }
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json' }
+          $metadata = Invoke-RestMethod -Uri "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/$env:ARTIFACT_ID" -Headers $headers
+          if ($metadata.id -ne [long]$env:ARTIFACT_ID -or $metadata.name -ne $env:ARTIFACT_NAME -or $metadata.size_in_bytes -ne [long]$env:ARTIFACT_BYTES -or $metadata.digest -ne "sha256:$env:ARTIFACT_SHA256" -or $metadata.expired -or $metadata.workflow_run.id -ne [long]$env:SOURCE_RUN -or $metadata.workflow_run.head_sha -ne $env:SOURCE_COMMIT) { throw 'Original x64 artifact identity mismatch' }
+          New-Item -ItemType Directory -Path 'apps/wallet-desktop/dist' -Force | Out-Null
+          @{ originalRun=$env:SOURCE_RUN; originalSourceCommit=$env:SOURCE_COMMIT; artifactId=$metadata.id; artifactSHA256=$env:ARTIFACT_SHA256; exactMetadataBound=$true } | ConvertTo-Json -Depth 4 | Set-Content 'apps/wallet-desktop/dist/nonadmin-artifact.json'
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wallet-current-windows-x64-3045436395fe636c91be417f41fc1e4ed2bc7515
+          run-id: 36095340351
+          github-token: ${{ github.token }}
+          path: same-artifact
+      - name: Verify original installer and prepare restricted-token gate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installers = @(Get-ChildItem 'same-artifact' -Recurse -File -Filter 'ynx-wallet-desktop-0.6.9-x64.exe')
+          if ($installers.Count -ne 1) { throw 'Original x64 installer ambiguous or missing' }
+          $installer = $installers[0]
+          $sha = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($sha -ne $env:INSTALLER_SHA256 -or $installer.Length -ne [long]$env:INSTALLER_BYTES) { throw 'Original x64 installer bytes changed' }
+          $candidate = Join-Path (Resolve-Path 'apps/wallet-desktop/dist') $installer.Name
+          Copy-Item -LiteralPath $installer.FullName -Destination $candidate
+          if ((Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash.ToLowerInvariant() -ne $sha) { throw 'Copied installer bytes changed' }
+          "YNX_CANDIDATE_INSTALLER=$candidate" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+          if ($LASTEXITCODE -ne 0) { throw 'Wallet auth verifier dependencies failed' }
+          npm ci --ignore-scripts --prefix apps/wallet-desktop
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop verifier dependencies failed' }
+          $walletGuid = node --input-type=commonjs -e 'const {UUID}=require("./apps/wallet-desktop/node_modules/builder-util-runtime");const p=require("./apps/wallet-desktop/package.json");process.stdout.write(p.build.nsis.guid||UUID.v5(p.build.appId,UUID.parse("50e065bc-3134-11e6-9bab-38c9862bdaf3")))'
+          if ($LASTEXITCODE -ne 0 -or $walletGuid -notmatch '^[0-9a-f-]{36}$') { throw 'Stable installer identity unavailable' }
+          "YNX_WALLET_INSTALL_GUID=$walletGuid" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Install, create, lock, unlock and restart with non-elevated token
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $gate = Join-Path $env:RUNNER_TEMP 'ynx-non-elevated-wallet-gate.ps1'
+          @'
+          $ErrorActionPreference = 'Stop'
+          $stage = 'token'
+          $result = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\nonadmin-installed-lifecycle.json'
+          try {
+            $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+            $elevated = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            if ($elevated) { throw 'ELEVATED_TOKEN_REJECTED' }
+            Set-Location $env:GITHUB_WORKSPACE
+            $env:YNX_WALLET_QA_PASSWORD = 'Synthetic disposable native QA password 2026!'
+            $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP '普通用户 Wallet QA profile'
+            $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\nonadmin-installed-smoke.json'
+            $stage = 'install'
+            $install = Start-Process -FilePath $env:YNX_CANDIDATE_INSTALLER -ArgumentList '/S' -PassThru -Wait
+            if ($install.ExitCode -ne 0) { throw 'INSTALLER_NONZERO' }
+            $location = [string](Get-ItemProperty -LiteralPath "HKCU:\Software\$env:YNX_WALLET_INSTALL_GUID" -ErrorAction Stop).InstallLocation
+            $exe = Join-Path $location 'YNX Wallet.exe'
+            if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'INSTALLED_APP_MISSING' }
+            $stage = 'source'
+            $env:GITHUB_SHA = $env:SOURCE_COMMIT
+            node apps/wallet-desktop/scripts/release-provenance.mjs (Join-Path $location 'resources') apps/wallet-desktop/dist | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw 'SOURCE_MISMATCH' }
+            $stage = 'create'
+            $first = Start-Process -FilePath $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+            try {
+              $created = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs create | ConvertFrom-Json
+              if ($LASTEXITCODE -ne 0 -or -not $created.passwordPersisted -or -not $created.accountCreated -or -not $created.wrongPasswordRejected) { throw 'ACCOUNT_CREATE_FAILED' }
+            } finally { if (-not $first.HasExited) { [void]$first.CloseMainWindow(); [void]$first.WaitForExit(15000) } }
+            if (-not $first.HasExited) { throw 'FIRST_APP_EXIT_FAILED' }
+            $stage = 'restart'
+            $second = Start-Process -FilePath $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+            try {
+              $restored = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $created.account | ConvertFrom-Json
+              if ($LASTEXITCODE -ne 0 -or -not $restored.sameAccountAfterRestart -or $restored.account -ne $created.account) { throw 'SAME_ACCOUNT_RESTART_FAILED' }
+              @{ sourceCommit=$env:SOURCE_COMMIT; originalArtifactId=$env:ARTIFACT_ID; tokenElevated=$false; nonElevatedToken=$true; exactInstallerSHA256=$env:INSTALLER_SHA256; installedWithoutElevation=$true; passwordPersisted=$true; accountCreated=$true; wrongPasswordRejected=$true; lockUnlockAndAppRestartSameAccount=$true; userMachineVerified=$false; osRebootVerified=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $result
+            } finally { if (-not $second.HasExited) { [void]$second.CloseMainWindow(); [void]$second.WaitForExit(15000) } }
+            if (-not $second.HasExited) { throw 'SECOND_APP_EXIT_FAILED' }
+          } catch {
+            @{ sourceCommit=$env:SOURCE_COMMIT; stage=$stage; tokenElevated=$elevated; errorType=$_.Exception.GetType().Name; completed=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $result
+          }
+          '@ | Set-Content -LiteralPath $gate -Encoding utf8
+          & runas.exe /trustlevel:0x20000 "pwsh.exe -NoLogo -NoProfile -File $gate"
+          if ($LASTEXITCODE -ne 0) { throw 'Restricted-token launch failed' }
+          $result = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\nonadmin-installed-lifecycle.json'
+          $found = $false
+          for ($attempt = 0; $attempt -lt 480; $attempt++) {
+            if (Test-Path -LiteralPath $result -PathType Leaf) { $found = $true; break }
+            Start-Sleep -Milliseconds 500
+          }
+          if (-not $found) { throw 'Restricted-token Wallet gate produced no result within 240 seconds' }
+          $report = Get-Content -LiteralPath $result -Raw | ConvertFrom-Json
+          if (-not $report.nonElevatedToken -or $report.tokenElevated -or -not $report.installedWithoutElevation -or -not $report.lockUnlockAndAppRestartSameAccount) { throw "Restricted-token Wallet gate failed at $($report.stage)" }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: wallet-desktop-x64-nonadmin-same-artifact-${{ github.sha }}
+          if-no-files-found: warn
+          path: |
+            apps/wallet-desktop/dist/nonadmin-artifact.json
+            apps/wallet-desktop/dist/nonadmin-installed-lifecycle.json
+            apps/wallet-desktop/dist/nonadmin-installed-smoke.json
