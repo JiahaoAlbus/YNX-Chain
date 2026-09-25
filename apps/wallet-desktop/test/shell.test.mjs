@@ -29,6 +29,8 @@ test("desktop packaging exposes real platform installer formats", async () => {
   assert.equal(packageJson.build.mac.artifactName, "ynx-wallet-macos-${version}-${arch}.${ext}");
   assert.equal(packageJson.build.win.artifactName, "ynx-wallet-desktop-${version}-${arch}.${ext}");
   assert.equal(packageJson.build.win.executableName, "YNX Wallet");
+  assert.equal(packageJson.build.win.icon, "src/icon.png");
+  assert.notEqual(packageJson.build.win.verifyUpdateCodeSignature, false);
   assert.equal(packageJson.build.afterPack, "scripts/after-pack.mjs");
   assert.doesNotMatch(packageJson.scripts["dist:mac"], /zip/);
   const lock = JSON.parse(await readFile(new URL("../package-lock.json", import.meta.url), "utf8"));
@@ -137,6 +139,7 @@ test("security invalidation clears old unlock success while an unchanged locked 
     let invalidatedInputs = 0;
     runInNewContext(`${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
       document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
+      walletCopy: english => english, accountState: { initialized: true },
       approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null,
       passwordUI: { cancel() {}, render() {} }, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
     });
@@ -183,6 +186,7 @@ async function sendEntryHarness() {
     async transferAction() { calls.push(["send"]); throw new Error("Unexpected transaction submission"); },
   };
   const context = { document, window: { ynxWallet: api }, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
+    accountReadFailed: false, walletCopy: english => english,
     signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
     paymentDraftRevision: 0, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
     invalidatePaymentInput() { context.paymentDraftRevision++; },

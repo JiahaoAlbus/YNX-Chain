@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-desktop",
-  "version": "0.6.8",
+  "version": "0.6.9",
   "description": "YNX Testnet Wallet for desktop",
   "homepage": "https://www.ynxweb4.com/wallet",
   "author": {
@@ -97,9 +97,9 @@
       "target": [
         "nsis"
       ],
+      "icon": "src/icon.png",
       "executableName": "YNX Wallet",
-      "requestedExecutionLevel": "asInvoker",
-      "verifyUpdateCodeSignature": false
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": true,

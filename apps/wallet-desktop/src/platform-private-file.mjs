@@ -5,7 +5,12 @@ import path from "node:path";
 
 const execute = promisify(execFile);
 const VERSION = "ynx-private-file-v1";
-const unavailable = () => Object.assign(new Error("Private durable Wallet storage is unavailable."), { code: "PRIVATE_FILE_UNAVAILABLE" });
+const unavailable = stage => Object.assign(new Error("Private durable Wallet storage is unavailable."), {
+  code: "PRIVATE_FILE_UNAVAILABLE",
+  // A fixed operation name is safe to return to the UI; paths, ACLs and the
+  // PowerShell exception itself must never leave this process.
+  storageStage: stage,
+});
 
 // Paths are JSON data in a private child environment, never interpolated into the
 // command. No password, plaintext key, file contents, or signed payload is sent.
@@ -13,11 +18,14 @@ const unavailable = () => Object.assign(new Error("Private durable Wallet storag
 const WINDOWS_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+$script:phase = 'runtime'
 try {
   if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') { throw 'Unavailable' }
+  $script:phase = 'request'
   $request = $env:YNX_WALLET_PRIVATE_FILE_REQUEST | ConvertFrom-Json
   $current = [Security.Principal.WindowsIdentity]::GetCurrent().User
   function Resolve-LocalPath([string]$value) {
+    $script:phase = 'path'
     if ($value -notmatch '^[A-Za-z]:\\' -or $value.Substring(2).Contains(':')) { throw 'Invalid path' }
     $full = [IO.Path]::GetFullPath($value)
     $root = [IO.Path]::GetPathRoot($full)
@@ -31,10 +39,15 @@ try {
     }
     return $full
   }
-  function Read-PrivateAcl([string]$target) {
-    $acl = Get-Acl -LiteralPath $target
+  function Read-PrivateAcl([string]$target, [bool]$verify = $false) {
+    if (-not $verify) { $script:phase = 'acl-get' }
+    # .NET Framework ACL APIs do not depend on an inherited PSModulePath. A
+    # WindowsPowerShell child launched by PowerShell 7 may lack Get-Acl/Set-Acl.
+    $acl = if ([IO.Directory]::Exists($target)) { [IO.Directory]::GetAccessControl($target) } else { [IO.File]::GetAccessControl($target) }
+    if (-not $verify) { $script:phase = 'acl-owner' }
     $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
     if ($owner -ne $current.Value -and $owner -ne 'S-1-5-18' -and $owner -ne 'S-1-5-32-544') { throw 'Wrong owner' }
+    if (-not $verify) { $script:phase = 'acl-rules' }
     $rules = $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])
     $currentAllowed = $false
     foreach ($rule in $rules) {
@@ -47,9 +60,12 @@ try {
     if (-not $currentAllowed) { throw 'Missing owner access' }
   }
   function Protect-PrivateAcl([string]$target, [bool]$directory) {
-    $old = Get-Acl -LiteralPath $target
+    $script:phase = 'acl-get'
+    $old = if ($directory) { [IO.Directory]::GetAccessControl($target) } else { [IO.File]::GetAccessControl($target) }
+    $script:phase = 'acl-owner'
     $owner = $old.GetOwner([Security.Principal.SecurityIdentifier]).Value
     if ($owner -ne $current.Value -and $owner -ne 'S-1-5-18' -and $owner -ne 'S-1-5-32-544') { throw 'Wrong owner' }
+    $script:phase = 'acl-build'
     if ($directory) {
       $acl = [Security.AccessControl.DirectorySecurity]::new()
       $rule = [Security.AccessControl.FileSystemAccessRule]::new($current, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
@@ -60,11 +76,16 @@ try {
     $acl.SetOwner($current)
     $acl.SetAccessRuleProtection($true, $false)
     $acl.AddAccessRule($rule)
-    Set-Acl -LiteralPath $target -AclObject $acl
-    Read-PrivateAcl $target
+    $script:phase = 'acl-set'
+    if ($directory) { [IO.Directory]::SetAccessControl($target, $acl) } else { [IO.File]::SetAccessControl($target, $acl) }
+    $script:phase = 'acl-verify'
+    Read-PrivateAcl $target $true
   }
   $target = Resolve-LocalPath $request.path
-  if ($request.operation -eq 'probe' -or $request.operation -eq 'replace') {
+  # A probe only checks the path and NTFS volume. Compiling this P/Invoke on
+  # every cold probe can time out on native Windows ARM before any vault read.
+  if ($request.operation -eq 'replace') {
+    $script:phase = 'native-compile'
     Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
@@ -88,7 +109,25 @@ public static class YnxPrivateFileNative {
       if ([IO.File]::Exists($destination)) { Read-PrivateAcl $destination }
       # No COPY_ALLOWED or DELAY_UNTIL_REBOOT. The source is already file-fsynced.
       # Microsoft documents WRITE_THROUGH as returning only after the move is on disk.
-      if (-not [YnxPrivateFileNative]::MoveFileExW(('\\?\' + $target), ('\\?\' + $destination), 9)) { throw 'Move failed' }
+      $script:phase = 'native-replace'
+      if (-not [YnxPrivateFileNative]::MoveFileExW(('\\?\' + $target), ('\\?\' + $destination), 9)) {
+        # Capture immediately, before any other P/Invoke or filesystem call can
+        # overwrite the thread-local Win32 error. Only fixed categories leave
+        # this process; neither paths nor native exception text are exposed.
+        $nativeError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        $script:phase = switch ($nativeError) {
+          2 { 'native-replace-missing'; break }
+          3 { 'native-replace-missing'; break }
+          5 { 'native-replace-denied'; break }
+          32 { 'native-replace-sharing'; break }
+          33 { 'native-replace-lock'; break }
+          87 { 'native-replace-invalid'; break }
+          112 { 'native-replace-no-space'; break }
+          default { 'native-replace-other' }
+        }
+        throw 'Move failed'
+      }
+      $script:phase = 'native-flush'
       $stream = [IO.File]::Open($destination, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
       try { $stream.Flush($true) } finally { $stream.Dispose() }
       Read-PrivateAcl $destination
@@ -97,14 +136,21 @@ public static class YnxPrivateFileNative {
   }
   @{ version='ynx-private-file-v1'; operation=$request.operation; private=$true; durableMove=($request.operation -eq 'replace') } | ConvertTo-Json -Compress
 } catch {
-  [Console]::Error.WriteLine('Private durable Wallet storage is unavailable.')
+  # Only this fixed phase token crosses the process boundary. Exception text,
+  # paths, ACL entries and Windows identity remain private to this process.
+  if ($script:phase -eq 'acl-get') {
+    if (-not ([IO.Directory]::Exists($target) -or [IO.File]::Exists($target))) { $script:phase = 'acl-get-absent' }
+    elseif ($_.Exception.GetType().Name -match 'Unauthorized|Security') { $script:phase = 'acl-get-denied' }
+    else { $script:phase = 'acl-get-other' }
+  }
+  [Console]::Error.WriteLine('YNX_PRIVATE_FILE_STAGE:' + $script:phase)
   exit 1
 }
 `;
 
 async function windowsOperation(operation, filePath, destination) {
   const systemRoot = process.env.SystemRoot;
-  if (typeof systemRoot !== "string" || !/^[A-Za-z]:\\[^\0]*$/u.test(systemRoot)) throw unavailable();
+  if (typeof systemRoot !== "string" || !/^[A-Za-z]:\\[^\0]*$/u.test(systemRoot)) throw unavailable("windows-runtime");
   const executable = path.win32.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
   try {
     const { stdout } = await execute(executable, ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(WINDOWS_SCRIPT, "utf16le").toString("base64")], {
@@ -112,7 +158,11 @@ async function windowsOperation(operation, filePath, destination) {
       env: { ...process.env, YNX_WALLET_PRIVATE_FILE_REQUEST: JSON.stringify({ operation, path: filePath, ...(destination ? { destination } : {}) }) },
     });
     return JSON.parse(stdout.trim());
-  } catch { throw unavailable(); }
+  } catch (error) {
+    const phase = /^YNX_PRIVATE_FILE_STAGE:(runtime|request|path|acl-get(?:-(?:absent|denied|other))?|acl-owner|acl-rules|acl-build|acl-set|acl-verify|native-compile|native-replace(?:-(?:missing|denied|sharing|lock|invalid|no-space|other))?|native-flush)$/m.exec(error?.stderr ?? "")?.[1];
+    const suffix = phase ?? (error?.killed ? "timeout" : "unknown");
+    throw unavailable(`windows-${operation}-${suffix}`);
+  }
 }
 
 /** Native OS permission/commit checks; never treats Windows mode 0666 as private. */
@@ -121,7 +171,7 @@ export class PrivateFilePolicy {
   constructor({ io = fs, platform = process.platform, windows = windowsOperation } = {}) { this.io = io; this.platform = platform; this.windows = windows; }
   async #windows(operation, filePath, destination) {
     const result = await this.windows(operation, filePath, destination);
-    if (!result || result.version !== VERSION || result.operation !== operation || result.private !== true || result.durableMove !== (operation === "replace")) throw unavailable();
+    if (!result || result.version !== VERSION || result.operation !== operation || result.private !== true || result.durableMove !== (operation === "replace")) throw unavailable(`windows-${operation}`);
     return result;
   }
   async available(filePath) {
@@ -142,9 +192,9 @@ export class PrivateFilePolicy {
     await this.available(filePath);
     const entry = await this.io.lstat(filePath);
     stat ??= entry;
-    if (!entry.isFile() || entry.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1 || entry.dev !== stat.dev || entry.ino !== stat.ino) throw unavailable();
+    if (!entry.isFile() || entry.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1 || entry.dev !== stat.dev || entry.ino !== stat.ino) throw unavailable("file-identity");
     if (this.platform === "win32") { await this.#windows("inspect", filePath); return { protection: "windows-dacl", private: true }; }
-    if ((stat.mode & 0o077) !== 0) throw unavailable();
+    if ((stat.mode & 0o077) !== 0) throw unavailable("file-permissions");
     return { protection: "posix-mode", private: true };
   }
   async replace(source, destination) {

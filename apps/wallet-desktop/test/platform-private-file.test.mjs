@@ -23,7 +23,7 @@ test(`${process.platform} native private publication and actual permission widen
   assert.equal((await policy.assertPrivate(target)).protection, process.platform === "win32" ? "windows-dacl" : "posix-mode");
   if (process.platform === "win32") {
     // Deliberately broaden only this synthetic test file. chmod cannot test a DACL.
-    const script = "$ErrorActionPreference='Stop'; $p=$env:YNX_TEST_PRIVATE_FILE; $a=Get-Acl -LiteralPath $p; $sid=[Security.Principal.SecurityIdentifier]::new('S-1-1-0'); $a.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'Read','Allow')); Set-Acl -LiteralPath $p -AclObject $a";
+    const script = "$ErrorActionPreference='Stop'; $p=$env:YNX_TEST_PRIVATE_FILE; $a=[IO.File]::GetAccessControl($p); $sid=[Security.Principal.SecurityIdentifier]::new('S-1-1-0'); $a.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'Read','Allow')); [IO.File]::SetAccessControl($p,$a)";
     await promisify(execFile)(path.win32.join(process.env.SystemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe"), ["-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(script, "utf16le").toString("base64")], { windowsHide: true, env: { ...process.env, YNX_TEST_PRIVATE_FILE: target } });
   } else await fs.chmod(target, 0o644);
   await assert.rejects(policy.assertPrivate(target), code);

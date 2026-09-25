@@ -5,14 +5,16 @@ import path from "node:path";
 import { PrivateFilePolicy } from "./platform-private-file.mjs";
 
 export const vaultFileDigest = value => value === null ? null : createHash("sha256").update(value).digest("hex");
-export function vaultStorageError(code = "PASSWORD_VAULT_STORAGE_FAILED") {
+const safeStage = value => typeof value === "string" && /^[a-z][a-z0-9-]{0,39}$/.test(value) ? value : "unknown";
+export function vaultStorageError(code = "PASSWORD_VAULT_STORAGE_FAILED", stage = "unknown") {
   const messages = {
     PASSWORD_VAULT_STORAGE_FAILED: "Wallet storage could not complete. Existing recovery files were retained. Reopen Wallet before continuing.",
     PASSWORD_VAULT_FILE_CHANGED: "The stored Wallet changed. Unlock its current version before continuing.",
     PASSWORD_VAULT_FILE_INVALID: "Wallet storage is not a private regular file or exceeds the allowed size.",
     PASSWORD_VAULT_HISTORY_LIMIT: "This Wallet already retains 64 recovery generations. Preserve and manage those encrypted backups before replacing another password.",
   };
-  return Object.assign(new Error(messages[code]), { code: 4100, data: { code } });
+  const diagnosticStage = safeStage(stage);
+  return Object.assign(new Error(`${messages[code]}${code === "PASSWORD_VAULT_STORAGE_FAILED" ? ` Reference: ${diagnosticStage}.` : ""}`), { code: 4100, data: { code, storageStage: diagnosticStage } });
 }
 
 /** V3 writes are durable before publication. This store never touches the transaction journal. */
@@ -24,19 +26,23 @@ export class PasswordVaultFile {
   }
   async read(filePath = this.filePath, { legacy = false } = {}) {
     let handle;
+    let stage = "read-probe";
     try {
       await this.filePolicy.available(filePath);
+      stage = "read-open";
       handle = await this.io.open(filePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+      stage = "read-inspect";
       const stat = await handle.stat();
       if (!stat.isFile() || stat.size > 1_048_576) throw vaultStorageError("PASSWORD_VAULT_FILE_INVALID");
       if (!legacy) await this.filePolicy.assertPrivate(filePath, stat);
+      stage = "read-content";
       const text = await handle.readFile("utf8");
       if (Buffer.byteLength(text) > 1_048_576) throw vaultStorageError("PASSWORD_VAULT_FILE_INVALID");
       return Object.freeze({ text, digest: vaultFileDigest(text) });
     } catch (error) {
       if (error?.code === "ENOENT") return null;
       if (error?.data?.code) throw error;
-      throw vaultStorageError();
+      throw vaultStorageError("PASSWORD_VAULT_STORAGE_FAILED", error?.storageStage ?? stage);
     } finally { await handle?.close(); }
   }
   async assertCurrent(expected, guard) {
@@ -46,27 +52,48 @@ export class PasswordVaultFile {
   async publish(vault, expected, guard, verify, beforeCommit) {
     const text = `${JSON.stringify(vault)}\n`;
     const temporary = `${this.filePath}.${randomUUID()}.tmp`;
-    let handle, renamed = false;
+    let handle, renamed = false, stage = "publish-directory";
     try {
       guard.assert(); await this.filePolicy.directory(path.dirname(this.filePath)); guard.assert();
+      stage = "publish-create";
       handle = await this.io.open(temporary, "wx", 0o600);
+      stage = "publish-protect";
       await this.filePolicy.protect(temporary); guard.assert();
+      stage = "publish-write";
       await handle.writeFile(text, "utf8"); await handle.sync(); await handle.close(); handle = null;
+      stage = "publish-staged-readback";
       guard.assert();
       const readback = await this.read(temporary);
-      if (readback?.text !== text) throw vaultStorageError();
+      if (readback?.text !== text) throw vaultStorageError("PASSWORD_VAULT_STORAGE_FAILED", stage);
+      stage = "publish-crypto-verify";
       await verify(readback.text); guard.assert();
+      stage = "publish-generation-check";
       await this.assertCurrent(expected, guard);
-      if (beforeCommit) { await beforeCommit(); guard.assert(); await this.assertCurrent(expected, guard); }
+      if (beforeCommit) { stage = "publish-permission-revoke"; await beforeCommit(); guard.assert(); stage = "publish-generation-check"; await this.assertCurrent(expected, guard); }
       // Once rename starts it may have committed despite cancellation. Never delete
       // the target or report an old session as usable in that case.
-      await this.filePolicy.replace(temporary, this.filePath); renamed = true;
+      stage = "publish-replace";
+      for (let attempt = 0; ; attempt++) {
+        guard.assert();
+        try { await this.filePolicy.replace(temporary, this.filePath); break; }
+        catch (error) {
+          // ERROR_ACCESS_DENIED can be a short-lived Windows handle conflict.
+          // Retry only that exact native result, and only after confirming the
+          // previous encrypted generation still exists, is private and matches.
+          // An ambiguous committed move or any other failure must fail closed.
+          if (this.platform !== "win32" || error?.storageStage !== "windows-replace-native-replace-denied" || attempt >= 3) throw error;
+          await new Promise(resolve => setTimeout(resolve, 75 * (attempt + 1)));
+          await this.assertCurrent(expected, guard);
+        }
+      }
+      renamed = true;
+      stage = "publish-final-readback";
       const stored = await this.read();
-      if (stored?.text !== text) throw vaultStorageError();
+      if (stored?.text !== text) throw vaultStorageError("PASSWORD_VAULT_STORAGE_FAILED", stage);
       guard.assert(); return stored.digest;
     } catch (error) {
       if (error?.data?.code) throw error;
-      throw vaultStorageError();
+      throw vaultStorageError("PASSWORD_VAULT_STORAGE_FAILED", error?.storageStage ?? stage);
     } finally {
       await handle?.close().catch(() => {});
       if (!renamed) await this.io.unlink(temporary).catch(() => {});

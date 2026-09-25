@@ -56,6 +56,12 @@ export class PasswordWalletVault {
     return { sources, accounts, activeAccount: sources[0]?.vault.activeAccount ?? null };
   }
   async status() {
+    // On Windows a reader opened during native replacement may prevent the
+    // old encrypted file from being renamed. The entire public read holds a
+    // queue slot, so a mutation arriving after it cannot race its read handle.
+    return this.#serialize(() => this.#readStatus());
+  }
+  async #readStatus() {
     const snapshot = await this.files.read();
     let catalog, custody, formatError = null, configured = snapshot !== null;
     if (snapshot) {
@@ -134,7 +140,7 @@ export class PasswordWalletVault {
         }
         for (const source of legacy.sources) { const current = await this.files.read(source.filePath, { legacy: true }); guard.assert(); if (current?.digest !== source.snapshot.digest) throw vaultStorageError("PASSWORD_VAULT_FILE_CHANGED"); }
         await this.#publish(candidate, null, guard, false, beforePublish);
-        return this.status();
+        return this.#readStatus();
       } finally { closePasswordVaultSession(candidate?.session); password = null; confirmation = null; }
     });
   }
@@ -145,7 +151,7 @@ export class PasswordWalletVault {
     const guard = this.authorization.current();
     return this.#serialize(async () => {
       const current = await this.#readUnlocked(guard);
-      if (onlyFirst && current.vault.accounts.length) return this.status();
+      if (onlyFirst && current.vault.accounts.length) return this.#readStatus();
       if (current.vault.accounts.length >= 32) fail("ACCOUNT_LIMIT", "This Wallet supports up to 32 accounts.");
       let secret;
       try {
@@ -153,7 +159,7 @@ export class PasswordWalletVault {
         const identity = identityFor(secret);
         if (current.vault.accounts.some(record => record.account === identity.account)) fail("DUPLICATE_ACCOUNT", "This account already exists. Use explicit recovery to restore its key.");
         const candidate = await rewritePasswordVault(current.vault, { accounts: [...current.vault.accounts, { secretHex: secret }], activeAccount: identity.account }, current.session, options(guard));
-        await this.#publish(candidate, current.snapshot.digest, guard, true); return this.status();
+        await this.#publish(candidate, current.snapshot.digest, guard, true); return this.#readStatus();
       } finally { secret = null; }
     });
   }
@@ -163,7 +169,7 @@ export class PasswordWalletVault {
       const current = await this.#readUnlocked(guard);
       if (!current.vault.accounts.some(record => record.account === account)) fail("UNKNOWN_WALLET_ACCOUNT", "The selected account does not exist.");
       const candidate = await rewritePasswordVault(current.vault, { activeAccount: account }, current.session, options(guard));
-      await this.#publish(candidate, current.snapshot.digest, guard, true); return this.status();
+      await this.#publish(candidate, current.snapshot.digest, guard, true); return this.#readStatus();
     });
   }
   async withSecret(action) {
@@ -245,7 +251,7 @@ export class PasswordWalletVault {
           await beforePublish?.(); guard.assert();
           if (this.#preview !== preview || preview.expiresAt <= this.now()) throw cancelled();
         });
-        return this.status();
+        return this.#readStatus();
       } finally { this.cancelRecovery(); }
     });
   }

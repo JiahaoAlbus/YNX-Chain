@@ -56,6 +56,22 @@ test("locked custody never supplies a signing lease and a real expiry drops the 
   await assert.rejects(f.vault.withSecret(() => assert.fail()), cancelled);
 });
 
+test("V3 encrypted backup restores the same public account and wrong backup password preserves an empty vault", async t => {
+  const source = await fixture(t); await create(source);
+  const backupPassword = "independent portable backup password 2026";
+  const encrypted = await source.life.run(() => source.vault.encryptedBackup(backupPassword));
+  assert.equal(encrypted.includes(SECRET), false);
+  const target = await fixture(t); await setup(target); await unlock(target);
+  const emptyVault = await fs.readFile(target.filePath);
+  await assert.rejects(target.life.run(() => target.vault.importAccount({ kind: "encrypted-json", value: encrypted, password: "incorrect backup password" })), error => error.data?.code === "INVALID_IMPORT");
+  assert.deepEqual(await fs.readFile(target.filePath), emptyVault);
+  assert.equal((await target.vault.status()).initialized, false);
+  const imported = await target.life.run(() => target.vault.importAccount({ kind: "encrypted-json", value: encrypted, password: backupPassword }));
+  assert.equal(imported.account, accountFor(SECRET)); target.life.setAccount(imported.account);
+  target.life.lock(); await unlock(target);
+  assert.equal((await target.vault.status()).account, (await source.vault.status()).account);
+});
+
 test("blur and return during password derivation invalidates that attempt; it is not a Touch ID focus exception", async t => {
   const f = await fixture(t); await setup(f);
   const pending = unlock(f); f.life.setFocused(false); f.life.setFocused(true);
@@ -249,6 +265,89 @@ test("an ambiguous rename completion of an account mutation closes the app key g
   assert.equal(await f.life.run(() => f.vault.withSecret(secret => accountFor(secret))), accountFor(SECOND));
 });
 
+test("public status waits for encrypted replacement and returns the committed generation", async t => {
+  const f = await fixture(t); await create(f);
+  const replace = f.store.filePolicy.replace.bind(f.store.filePolicy);
+  const entered = deferred(), release = deferred();
+  let reads = 0;
+  const read = f.store.read.bind(f.store);
+  f.store.read = async (...args) => { reads++; return read(...args); };
+  f.store.filePolicy.replace = async (...args) => {
+    if (args[1] === f.filePath) { entered.resolve(); await release.promise; }
+    return replace(...args);
+  };
+  const mutation = f.life.run(() => f.vault.importAccount({ kind: "private-key", value: SECOND }));
+  await entered.promise;
+  const readsAtCommit = reads;
+  const status = f.vault.status();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(reads, readsAtCommit, "status must not open the encrypted target during replacement");
+  release.resolve();
+  const [committed, observed] = await Promise.all([mutation, status]);
+  assert.equal(committed.account, accountFor(SECOND));
+  assert.equal(observed.account, accountFor(SECOND));
+  assert.equal(observed.accounts.some(item => item.account === accountFor(SECRET)), true);
+});
+
+test("encrypted replacement waits for an earlier public status read to close", async t => {
+  const f = await fixture(t); await create(f);
+  const read = f.store.read.bind(f.store);
+  const entered = deferred(), release = deferred();
+  t.after(() => release.resolve());
+  let held = false, replaceStarted = false;
+  f.store.read = async (...args) => {
+    if (!held && (args[0] === undefined || args[0] === f.filePath)) {
+      held = true; entered.resolve(); await release.promise;
+    }
+    return read(...args);
+  };
+  const replace = f.store.filePolicy.replace.bind(f.store.filePolicy);
+  f.store.filePolicy.replace = async (...args) => { replaceStarted = true; return replace(...args); };
+  const status = f.vault.status();
+  await entered.promise;
+  const mutation = f.life.run(() => f.vault.importAccount({ kind: "private-key", value: SECOND }));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(replaceStarted, false, "a later mutation must not replace while status holds the old file");
+  release.resolve();
+  const [observed, committed] = await Promise.all([status, mutation]);
+  assert.equal(observed.account, accountFor(SECRET));
+  assert.equal(committed.account, accountFor(SECOND));
+  assert.equal(replaceStarted, true);
+});
+
+for (const deniedAttempts of [1, 4]) test(`Windows native replacement denied ${deniedAttempts} time(s) preserves the checked generation`, async t => {
+  const f = await fixture(t); await create(f); f.store.platform = "win32";
+  const original = await fs.readFile(f.filePath), replace = f.store.filePolicy.replace.bind(f.store.filePolicy);
+  let attempts = 0;
+  f.store.filePolicy.replace = async (...args) => {
+    if (args[1] === f.filePath && ++attempts <= deniedAttempts) throw Object.assign(new Error("synthetic native denial"), { storageStage: "windows-replace-native-replace-denied" });
+    return replace(...args);
+  };
+  if (deniedAttempts === 1) {
+    const imported = await f.life.run(() => f.vault.importAccount({ kind: "private-key", value: SECOND }));
+    assert.equal(imported.account, accountFor(SECOND)); assert.equal(attempts, 2);
+    assert.equal((await f.vault.status()).accounts.some(item => item.account === accountFor(SECRET)), true);
+    assert.notDeepEqual(await fs.readFile(f.filePath), original);
+  } else {
+    await assert.rejects(f.life.run(() => f.vault.importAccount({ kind: "private-key", value: SECOND })), error => error.data?.storageStage === "windows-replace-native-replace-denied");
+    assert.equal(attempts, 4); assert.deepEqual(await fs.readFile(f.filePath), original);
+    assert.equal((await f.vault.status()).account, accountFor(SECRET)); assert.equal(f.life.status().locked, true);
+  }
+});
+
+test("a denied native replacement never retries over a changed encrypted generation", async t => {
+  const f = await fixture(t); await create(f); f.store.platform = "win32";
+  const external = `${(await fs.readFile(f.filePath, "utf8")).trimEnd()}\n `;
+  let attempts = 0;
+  f.store.filePolicy.replace = async (...args) => {
+    if (args[1] !== f.filePath) return assert.fail("Unexpected recovery archive publication");
+    attempts++; await fs.writeFile(f.filePath, external);
+    throw Object.assign(new Error("synthetic native denial"), { storageStage: "windows-replace-native-replace-denied" });
+  };
+  await assert.rejects(f.life.run(() => f.vault.importAccount({ kind: "private-key", value: SECOND })), error => error.data?.code === "PASSWORD_VAULT_FILE_CHANGED");
+  assert.equal(attempts, 1); assert.equal(await fs.readFile(f.filePath, "utf8"), external); assert.equal(f.life.status().locked, true);
+});
+
 test("archive fsync failure followed by retry republishes verified bytes through the commit barrier", async t => {
   const io = { ...fs }, f = await fixture(t, { io }); await create(f); f.life.lock(); let syncs = 0, failOnce = true;
   io.open = async (file, ...args) => {
@@ -288,4 +387,22 @@ test("a live verified recovery invokes permission revocation before replacement 
   const preview = await f.life.custody(guard => f.vault.prepareRecovery({ account: accountFor(SECRET), kind: "private-key", value: SECRET, resetPassword: true, newPassword: NEXT_PASSWORD, confirmation: NEXT_PASSWORD }, guard));
   await f.life.custody(guard => f.vault.commitRecovery(preview.previewId, guard, { beforePublish: async () => { revocations++; assert.deepEqual(await fs.readFile(f.filePath), before); assert.throws(() => f.life.current(), cancelled); } }));
   assert.equal(revocations, 1); assert.notDeepEqual(await fs.readFile(f.filePath), before); await unlock(f, NEXT_PASSWORD);
+});
+
+test("Windows storage denial returns a fixed stage, retains originals, and never treats a failed read as an empty Wallet", async t => {
+  const f = await fixture(t);
+  await writeLegacy(f);
+  const originalV1 = await fs.readFile(f.v1), originalV2 = await fs.readFile(f.v2);
+  f.store.filePolicy.directory = async () => { throw Object.assign(new Error("C:\\Users\\person\\secret-profile"), { code: "PRIVATE_FILE_UNAVAILABLE", storageStage: "windows-protect-directory" }); };
+  await assert.rejects(f.life.custody(guard => f.vault.setup({ password: PASSWORD, confirmation: PASSWORD, migrateLegacy: true }, guard)), error => {
+    assert.equal(error.data.code, "PASSWORD_VAULT_STORAGE_FAILED");
+    assert.equal(error.data.storageStage, "windows-protect-directory");
+    assert.doesNotMatch(error.message, /person|secret-profile|independent fixture password/);
+    return true;
+  });
+  assert.deepEqual(await fs.readFile(f.v1), originalV1);
+  assert.deepEqual(await fs.readFile(f.v2), originalV2);
+  assert.equal(await f.store.read(), null);
+  f.store.filePolicy.available = async () => { throw Object.assign(new Error("C:\\Users\\person\\secret-profile"), { code: "PRIVATE_FILE_UNAVAILABLE", storageStage: "windows-probe" }); };
+  await assert.rejects(f.vault.status(), error => error.data.code === "PASSWORD_VAULT_STORAGE_FAILED" && error.data.storageStage === "windows-probe");
 });
