@@ -1,0 +1,134 @@
+name: Wallet desktop x64 same-artifact recheck
+
+on:
+  push:
+    branches: [codex/wallet-desktop-same-artifact-qa-20260925]
+    paths: [.github/workflows/wallet-desktop-x64-same-artifact-qa.yml]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  recheck-installed-x64:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    env:
+      SOURCE_COMMIT: 3045436395fe636c91be417f41fc1e4ed2bc7515
+      SOURCE_RUN: '36095340351'
+      ARTIFACT_ID: '10846977760'
+      ARTIFACT_NAME: wallet-current-windows-x64-3045436395fe636c91be417f41fc1e4ed2bc7515
+      ARTIFACT_BYTES: '121015407'
+      ARTIFACT_SHA256: 587e294f51539ce22c8d396efcd38959aa1ea0bd01bbae07a4020483ee0f2986
+      INSTALLER_BYTES: '120980075'
+      INSTALLER_SHA256: 0df01cecc47c4af179d651892623b7936ac6dac52a5d9961212bed90eccde7e1
+      YNX_WALLET_QA_PASSWORD: 'Synthetic native QA password 2026!'
+    steps:
+      - name: Preserve exact source bytes in the disposable checkout
+        shell: bash
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: 3045436395fe636c91be417f41fc1e4ed2bc7515
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+      - name: Bind the existing artifact to its original run and source
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne [Runtime.InteropServices.Architecture]::X64 -or [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture -ne [Runtime.InteropServices.Architecture]::X64) { throw 'Native x64 Windows runner required' }
+          if ((git rev-parse HEAD).Trim() -ne $env:SOURCE_COMMIT) { throw 'Verifier source commit differs from immutable installer source' }
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json' }
+          $metadata = Invoke-RestMethod -Uri "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/$env:ARTIFACT_ID" -Headers $headers
+          if ($metadata.id -ne [long]$env:ARTIFACT_ID -or $metadata.name -ne $env:ARTIFACT_NAME -or $metadata.size_in_bytes -ne [long]$env:ARTIFACT_BYTES -or $metadata.digest -ne "sha256:$env:ARTIFACT_SHA256" -or $metadata.expired -or $metadata.workflow_run.id -ne [long]$env:SOURCE_RUN -or $metadata.workflow_run.head_sha -ne $env:SOURCE_COMMIT) { throw 'Existing artifact identity is not exact' }
+          New-Item -ItemType Directory -Path 'apps/wallet-desktop/dist' -Force | Out-Null
+          @{ originalRun=$env:SOURCE_RUN; originalSourceCommit=$env:SOURCE_COMMIT; artifactId=$metadata.id; artifactName=$metadata.name; artifactBytes=$metadata.size_in_bytes; artifactSHA256=$env:ARTIFACT_SHA256; exactMetadataBound=$true } | ConvertTo-Json -Depth 4 | Set-Content 'apps/wallet-desktop/dist/same-artifact-metadata.json'
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wallet-current-windows-x64-3045436395fe636c91be417f41fc1e4ed2bc7515
+          run-id: 36095340351
+          github-token: ${{ github.token }}
+          path: same-artifact
+      - name: Verify original installer bytes, install once and change the same local account
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installers = @(Get-ChildItem 'same-artifact' -Recurse -File -Filter 'ynx-wallet-desktop-0.6.9-x64.exe')
+          if ($installers.Count -ne 1) { throw 'Existing artifact lacks one exact installer' }
+          $installer = $installers[0]
+          $hash = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($installer.Length -ne [long]$env:INSTALLER_BYTES -or $hash -ne $env:INSTALLER_SHA256) { throw 'Downloaded installer bytes differ from the original' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
+          @{ sourceCommit=$env:SOURCE_COMMIT; originalRun=$env:SOURCE_RUN; installerFilename=$installer.Name; installerBytes=$installer.Length; installerSHA256=$hash; authenticodeStatus=[string]$signature.Status; originalInstallerBytesVerified=$true; newlyBuilt=$false; productionSigned=$false } | ConvertTo-Json -Depth 4 | Set-Content 'apps/wallet-desktop/dist/same-artifact-installer.json'
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+          if ($LASTEXITCODE -ne 0) { throw 'Wallet auth verifier dependencies failed' }
+          npm ci --ignore-scripts --prefix apps/wallet-desktop
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop verifier dependencies failed' }
+          $install = [Diagnostics.Process]::new()
+          try {
+            $install.StartInfo.FileName = $installer.FullName
+            $install.StartInfo.ArgumentList.Add('/S')
+            $install.StartInfo.UseShellExecute = $false
+            if (-not $install.Start() -or -not $install.WaitForExit(180000)) { throw 'Original installer did not complete' }
+            $install.Refresh()
+            if ($install.ExitCode -ne 0) { throw 'Original installer failed' }
+          } finally { $install.Dispose() }
+          $walletGuid = node --input-type=commonjs -e 'const {UUID}=require("./apps/wallet-desktop/node_modules/builder-util-runtime");const p=require("./apps/wallet-desktop/package.json");process.stdout.write(p.build.nsis.guid||UUID.v5(p.build.appId,UUID.parse("50e065bc-3134-11e6-9bab-38c9862bdaf3")))'
+          if ($LASTEXITCODE -ne 0 -or $walletGuid -notmatch '^[0-9a-f-]{36}$') { throw 'Stable Wallet installer identity unavailable' }
+          $locations = @()
+          foreach ($view in @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)) {
+            $registry = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser, $view)
+            try {
+              $key = $registry.OpenSubKey("Software\$walletGuid", $false)
+              try { if ($null -ne $key) { $locations += [string]$key.GetValue('InstallLocation') } }
+              finally { if ($null -ne $key) { $key.Dispose() } }
+            } finally { $registry.Dispose() }
+          }
+          $locations = @($locations | Where-Object { $_ -and [IO.Path]::IsPathFullyQualified($_) } | Sort-Object -Unique)
+          if ($locations.Count -ne 1) { throw 'Installed Wallet registration is not unique' }
+          $exe = Join-Path $locations[0] 'YNX Wallet.exe'
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Installed Wallet executable is missing' }
+          $env:GITHUB_SHA = $env:SOURCE_COMMIT
+          node apps/wallet-desktop/scripts/release-provenance.mjs (Join-Path (Split-Path $exe) 'resources') apps/wallet-desktop/dist
+          if ($LASTEXITCODE -ne 0) { throw 'Installed source differs from original artifact' }
+          $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP '同包重复 QA profile'
+          $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\same-artifact-installed-smoke.json'
+          if (Test-Path -LiteralPath $env:YNX_WALLET_PROFILE_PATH) { throw 'Disposable recheck profile must start empty' }
+          $first = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $created = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs create | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $created.passwordPersisted -or -not $created.accountCreated -or -not $created.wrongPasswordRejected -or -not $created.sameAccountAfterUnlock -or $created.custody -ne 'password-encrypted-local') { throw 'Same-artifact installed account creation failed' }
+            $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
+            $initialHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+          } finally { if (-not $first.HasExited) { [void]$first.CloseMainWindow(); [void]$first.WaitForExit(15000) } }
+          if (-not $first.HasExited) { throw 'First same-artifact Wallet did not close' }
+          $second = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $imported = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs import $created.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $imported.imported -or $imported.importCount -ne 6 -or -not $imported.originalAccountRetained -or -not $imported.allPreviousAccountsRetained -or $imported.originalAccount -ne $created.account) { throw 'Same-artifact restart or account mutation failed' }
+            $changedHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($changedHash -eq $initialHash) { throw 'Same-artifact mutation did not update encrypted vault' }
+          } finally { if (-not $second.HasExited) { [void]$second.CloseMainWindow(); [void]$second.WaitForExit(15000) } }
+          if (-not $second.HasExited) { throw 'Second same-artifact Wallet did not close' }
+          $third = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $reopened = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $imported.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $reopened.sameAccountAfterRestart -or $reopened.account -ne $imported.account) { throw 'Same-artifact imported account changed after restart' }
+            if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $changedHash) { throw 'Same-artifact cold unlock changed encrypted vault' }
+            @{ sourceCommit=$env:SOURCE_COMMIT; originalRun=$env:SOURCE_RUN; originalArtifactId=$env:ARTIFACT_ID; installerSHA256=$env:INSTALLER_SHA256; freshDisposableProfile=$true; exactOriginalAccountAfterRestart=$true; sixEncryptedAccountImports=$true; priorAccountsRetained=$true; importedAccountAfterRestart=$true; vaultUnchangedByUnlock=$true; userMachineVerified=$false; osRebootVerified=$false; productRebuilt=$false } | ConvertTo-Json -Depth 4 | Set-Content 'apps/wallet-desktop/dist/same-artifact-recheck.json'
+          } finally { if (-not $third.HasExited) { [void]$third.CloseMainWindow(); [void]$third.WaitForExit(15000) } }
+          if (-not $third.HasExited) { throw 'Third same-artifact Wallet did not close' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: wallet-desktop-x64-same-artifact-recheck-${{ github.sha }}
+          if-no-files-found: warn
+          path: |
+            apps/wallet-desktop/dist/same-artifact-metadata.json
+            apps/wallet-desktop/dist/same-artifact-installer.json
+            apps/wallet-desktop/dist/same-artifact-installed-smoke.json
+            apps/wallet-desktop/dist/same-artifact-recheck.json
