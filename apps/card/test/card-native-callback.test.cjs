@@ -1,6 +1,20 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {makeMounted,makeController,deferred,url,connecting,rejected,act,tick}=require('./card-native-callback-fixture.cjs');
 const connected={sessionState:{status:'connected',session:{account:'ynx1'+'a'.repeat(38),sessionBinding:'synthetic observer binding',expiresAt:'2099-01-01T00:00:00Z'}}};
+test('cold Card application callback restores existing identity without sending it to login verification or opening Wallet',async t=>{
+ let restores=0,returns=0,begins=0;
+ const app=await makeMounted(async input=>{assert.equal(input.existingDeviceOnly,true);return makeController({restore:async()=>{restores++;return connected},handleReturn:async()=>{returns++;return rejected},beginYNX:async()=>{begins++;return connecting}})},{initialURL:'ynxcard://wallet-auth/callback?cardApplicationApprovalResult=synthetic-business-result'});
+ t.after(()=>app.unmount());
+ assert.equal(restores,1);assert.equal(returns,0);assert.equal(begins,0);assert.equal(app.props.privateSession.state,'PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY');
+});
+test('closing Card during business callback identity restore prevents late login publication',async t=>{
+ const pending=deferred();
+ const app=await makeMounted(async()=>makeController({restore:async()=>pending.promise}),{initialURL:'ynxcard://wallet-auth/callback?cardApplicationApprovalResult=synthetic-business-result'});
+ t.after(()=>app.unmount());
+ await app.mutate(()=>app.props.closeWalletChooser());const writes=app.metrics.stateWrites;
+ await app.mutate(()=>pending.resolve(connected));
+ assert.equal(app.metrics.stateWrites,writes);assert.equal(app.props.privateSession,null);
+});
 // These outcomes are inert SDK observations. They do not claim signature validity or an installed login.
 test('cold initial URL enters existing-only verification without automatically beginning',async t=>{
  let factories=0,returns=0,begins=0;

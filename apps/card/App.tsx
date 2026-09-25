@@ -134,7 +134,19 @@ export default function App(){
 
   const handleURL=useCallback(async(url:string)=>{
     if(!isCardWalletCallback(url))return;
-    if(new URL(url).searchParams.has('cardApplicationApprovalResult'))return;
+    if(new URL(url).searchParams.has('cardApplicationApprovalResult')){
+      if(Platform.OS==='web'||privateSessionRef.current?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY')return;
+      const callbackGeneration=nativeWalletGeneration.current,sequence=++nativeWalletRecoverySequence.current;
+      try{
+        const connection=await recoverNativeProductWalletForCallback();
+        if(!connection||!mounted.current||callbackGeneration!==nativeWalletGeneration.current||sequence!==nativeWalletRecoverySequence.current||nativeWalletCallbackBlocked.current)return;
+        // Restore the existing product identity only. The business callback is
+        // verified by ProviderExperience; never feed it to the login verifier.
+        const outcome=await connection.restoreSession();
+        if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&sequence===nativeWalletRecoverySequence.current&&!nativeWalletCallbackBlocked.current)setPrivateSession(productRuntime(outcome));
+      }catch(e){if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&sequence===nativeWalletRecoverySequence.current&&!nativeWalletCallbackBlocked.current)setWalletError(classifyCardWalletError(e).safeMessage)}
+      return;
+    }
     if(isCanonicalAuthorizationCallback(url)){
       const pendingAuthorizationValue=pendingAuthorization.current??await loadPendingAuthorization();
       if(!pendingAuthorizationValue){if(mounted.current)setWalletError("No pending YNX Wallet authorization matches this callback.");return;}
