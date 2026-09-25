@@ -92,6 +92,11 @@ const ERROR_ALIASES:Readonly<Record<string,string>>=Object.freeze({WALLET_USER_R
 export function classifyCardWalletError(input:unknown):CardWalletError{
   const source=object(input)?input:{};
   const raw=typeof input==="number"||typeof input==="string"?input:source.code;
+  if(raw==='CARD_WEB_PRIVATE_TRANSPORT_UNAVAILABLE')return Object.freeze({code:raw,retryable:false,safeMessage:'Private Card approval is not available in this browser yet. Your standard wallet connection remains available.',monitoringClass:'wallet-transport',userAction:'return-to-product'});
+  if(raw==='CARD_WEB_PRIVATE_TRANSPORT_TIMEOUT')return Object.freeze({code:raw,retryable:true,safeMessage:'Private Card approval timed out. Your standard wallet connection remains available. Retry starts a new request.',monitoringClass:'wallet-transport',userAction:'retry'});
+  if(raw==='CARD_WEB_PRIVATE_RETURN_INVALID')return Object.freeze({code:raw,retryable:false,safeMessage:'The private approval response was invalid. No Card session was created.',monitoringClass:'wallet-transport',userAction:'return-to-product'});
+  if(raw==='CARD_WEB_PRIVATE_CONTEXT_CHANGED')return Object.freeze({code:raw,retryable:false,safeMessage:'The wallet or Card scope changed. The previous private approval was discarded.',monitoringClass:'wallet-transport',userAction:'return-to-product'});
+  if(raw==='CARD_WEB_PRIVATE_REVOCATION_PENDING')return Object.freeze({code:raw,retryable:true,safeMessage:'Private Card session revocation is still pending. Your standard wallet remains available.',monitoringClass:'wallet-session',userAction:'retry'});
   const code=typeof raw==="string"?ERROR_ALIASES[raw]??raw:raw;
   if([source.requestId,source.traceId,source.errorId].some(value=>value!==undefined&&typeof value!=="string"))return unknownWalletError();
   const correlation={requestId:source.requestId as string|undefined,traceId:source.traceId as string|undefined,errorId:source.errorId as string|undefined};

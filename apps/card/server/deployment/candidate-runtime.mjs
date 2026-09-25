@@ -16,7 +16,7 @@ const state=mkdtempSync(join(tmpdir(),'ynx-card-candidate-state-'));
 const allocator=createServer();await new Promise(resolve=>allocator.listen(0,'127.0.0.1',resolve));
 const port=allocator.address().port;await new Promise(resolve=>allocator.close(resolve));
 const key=randomBytes(32);
-const child=spawn(process.execPath,['server/main.ts'],{cwd:root,env:{...process.env,
+const child=spawn(process.execPath,['--import','tsx','server/main.ts'],{cwd:root,env:{...process.env,
   YNX_CARD_SOURCE_COMMIT:sourceCommit,YNX_CARD_DATA_DIR:state,YNX_CARD_STATE_KEY_BASE64:key.toString('base64'),
   YNX_CARD_AUTH_ADAPTER_MODULE:resolve(root,'server/sharedWalletAuth.ts'),YNX_CARD_CORE_RPC_URL:'',YNX_CARD_TESTNET_FUNDING_ADDRESS:'',
   YNX_CARD_HOST:'127.0.0.1',YNX_CARD_PORT:String(port),YNX_CARD_ALLOWED_ORIGIN:'https://card.ynxweb4.com'},stdio:['ignore','pipe','pipe']});key.fill(0);

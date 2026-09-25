@@ -1,5 +1,7 @@
 import {ProductSessionServerAuthorizer} from './vendor/wallet-session-6f332753/product-session-server.mjs';
-import {registry} from './vendor/wallet-session-6f332753/registry.mjs';
+import {readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+const registry=JSON.parse(readFileSync(resolve(__dirname,'../vendor/product-session-registry-b754ffc42.json'),'utf8'));
 import {CardError,subject,type WalletAuthority} from './contracts.ts';
 import {scopeForRoute} from './permissions.ts';
 
