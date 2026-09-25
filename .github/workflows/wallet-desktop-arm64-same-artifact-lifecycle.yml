@@ -1,0 +1,245 @@
+name: Wallet desktop ARM64 same-artifact lifecycle
+
+on:
+  push:
+    branches: [codex/wallet-desktop-same-artifact-qa-20260925]
+    paths: [.github/workflows/wallet-desktop-arm64-same-artifact-lifecycle.yml]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  installed-arm64-lifecycle:
+    runs-on: windows-11-arm
+    timeout-minutes: 40
+    env:
+      SOURCE_COMMIT: 3045436395fe636c91be417f41fc1e4ed2bc7515
+      SOURCE_RUN: '36095340351'
+      ARTIFACT_ID: '10847408033'
+      ARTIFACT_NAME: wallet-current-windows-arm64-3045436395fe636c91be417f41fc1e4ed2bc7515
+      ARTIFACT_BYTES: '114647788'
+      ARTIFACT_SHA256: 22bbc357380c9f4a1f8e9c9aed254f5942235c626ddcdbe5b8ee860d4e7edee4
+      INSTALLER_BYTES: '114621969'
+      INSTALLER_SHA256: bf3770b761369b9c1282649708ce2e01c4a6933592fc07d6fcb38cde0371fb1f
+      YNX_WALLET_QA_PASSWORD: 'Synthetic native QA password 2026!'
+      YNX_WALLET_QA_BACKUP_PASSWORD: 'Synthetic portable QA backup password 2026!'
+    steps:
+      - name: Preserve exact committed bytes
+        shell: bash
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: 3045436395fe636c91be417f41fc1e4ed2bc7515
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+      - name: Bind the original native ARM artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture -ne [Runtime.InteropServices.Architecture]::Arm64 -or [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture -ne [Runtime.InteropServices.Architecture]::Arm64) { throw 'Native Windows ARM64 runner required' }
+          if ((git rev-parse HEAD).Trim() -ne $env:SOURCE_COMMIT) { throw 'Verifier source commit mismatch' }
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json' }
+          $metadata = Invoke-RestMethod -Uri "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/$env:ARTIFACT_ID" -Headers $headers
+          if ($metadata.id -ne [long]$env:ARTIFACT_ID -or $metadata.name -ne $env:ARTIFACT_NAME -or $metadata.size_in_bytes -ne [long]$env:ARTIFACT_BYTES -or $metadata.digest -ne "sha256:$env:ARTIFACT_SHA256" -or $metadata.expired -or $metadata.workflow_run.id -ne [long]$env:SOURCE_RUN -or $metadata.workflow_run.head_sha -ne $env:SOURCE_COMMIT) { throw 'Original native ARM artifact identity mismatch' }
+          New-Item -ItemType Directory -Path 'apps/wallet-desktop/dist' -Force | Out-Null
+          @{ originalRun=$env:SOURCE_RUN; originalSourceCommit=$env:SOURCE_COMMIT; artifactId=$metadata.id; artifactBytes=$metadata.size_in_bytes; artifactSHA256=$env:ARTIFACT_SHA256; exactMetadataBound=$true } | ConvertTo-Json -Depth 4 | Set-Content 'apps/wallet-desktop/dist/arm64-lifecycle-artifact.json'
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: wallet-current-windows-arm64-3045436395fe636c91be417f41fc1e4ed2bc7515
+          run-id: 36095340351
+          github-token: ${{ github.token }}
+          path: same-artifact
+      - name: Verify original candidate bytes and install verifier dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installers = @(Get-ChildItem 'same-artifact' -Recurse -File -Filter 'ynx-wallet-desktop-0.6.9-arm64.exe')
+          if ($installers.Count -ne 1) { throw 'Original native ARM installer is ambiguous or missing' }
+          $installer = $installers[0]
+          $hash = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($installer.Length -ne [long]$env:INSTALLER_BYTES -or $hash -ne $env:INSTALLER_SHA256) { throw 'Original native ARM installer hash mismatch' }
+          $checked = Join-Path (Resolve-Path 'apps/wallet-desktop/dist') $installer.Name
+          Copy-Item -LiteralPath $installer.FullName -Destination $checked -ErrorAction Stop
+          if ((Get-FileHash -LiteralPath $checked -Algorithm SHA256).Hash.ToLowerInvariant() -ne $hash) { throw 'Copied verifier installer changed' }
+          $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
+          @{ originalRun=$env:SOURCE_RUN; sourceCommit=$env:SOURCE_COMMIT; filename=$installer.Name; bytes=$installer.Length; sha256=$hash; originalBytesVerified=$true; authenticodeStatus=[string]$signature.Status; productionSigned=$false; productRebuilt=$false } | ConvertTo-Json -Depth 4 | Set-Content 'apps/wallet-desktop/dist/arm64-lifecycle-installer.json'
+          "YNX_CANDIDATE_INSTALLER=$checked" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+          if ($LASTEXITCODE -ne 0) { throw 'Wallet auth verifier dependencies failed' }
+          npm ci --ignore-scripts --prefix apps/wallet-desktop
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop verifier dependencies failed' }
+          $walletGuid = node --input-type=commonjs -e 'const {UUID}=require("./apps/wallet-desktop/node_modules/builder-util-runtime");const p=require("./apps/wallet-desktop/package.json");process.stdout.write(p.build.nsis.guid||UUID.v5(p.build.appId,UUID.parse("50e065bc-3134-11e6-9bab-38c9862bdaf3")))'
+          if ($LASTEXITCODE -ne 0 -or $walletGuid -notmatch '^[0-9a-f-]{36}$') { throw 'Stable Wallet installer identity unavailable' }
+          "YNX_WALLET_INSTALL_GUID=$walletGuid" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Install exact public ARM 0.6.8 and locate its app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sha = '122027d7f5668876ae5bdae8bab31c4bd34dee517096eae07813f66775b02902'
+          $name = 'ynx-wallet-desktop-0.6.8-arm64.exe'
+          $old = Join-Path $env:RUNNER_TEMP $name
+          & curl.exe --fail --silent --show-error --proto '=https' --tlsv1.2 --max-time 300 --output $old "https://downloads.ynxweb4.com/wallet/sha256-$sha/$name"
+          if ($LASTEXITCODE -ne 0 -or (Get-Item -LiteralPath $old).Length -ne 114596628 -or (Get-FileHash -LiteralPath $old -Algorithm SHA256).Hash.ToLowerInvariant() -ne $sha) { throw 'Public ARM 0.6.8 bytes mismatch' }
+          $install = [Diagnostics.Process]::new()
+          try {
+            $install.StartInfo.FileName = $old
+            $install.StartInfo.ArgumentList.Add('/S')
+            $install.StartInfo.UseShellExecute = $false
+            if (-not $install.Start() -or -not $install.WaitForExit(180000)) { throw 'Public ARM installer did not finish' }
+            $install.Refresh()
+            if ($install.ExitCode -ne 0) { throw 'Public ARM installer returned nonzero exit' }
+          } finally { $install.Dispose() }
+          $locations = @()
+          foreach ($view in @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)) {
+            $registry = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser, $view)
+            try {
+              $key = $registry.OpenSubKey("Software\$env:YNX_WALLET_INSTALL_GUID", $false)
+              try { if ($null -ne $key) { $locations += [string]$key.GetValue('InstallLocation') } }
+              finally { if ($null -ne $key) { $key.Dispose() } }
+            } finally { $registry.Dispose() }
+          }
+          $locations = @($locations | Where-Object { $_ -and [IO.Path]::IsPathFullyQualified($_) } | Sort-Object -Unique)
+          if ($locations.Count -ne 1) { throw 'Old ARM Wallet installation is not unique' }
+          $exe = Join-Path $locations[0] 'YNX Wallet.exe'
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Old installed ARM Wallet missing' }
+          "YNX_OLD_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          @{ oldVersion='0.6.8'; oldSourceCommit='6f332753baae5deaf6b05c8276b20a02cc4887c5'; oldBytes=114596628; oldSHA256=$sha; exactPublicBytesVerified=$true } | ConvertTo-Json -Depth 4 | Set-Content 'apps/wallet-desktop/dist/arm64-old-installer.json'
+      - name: Create a synthetic account in the old installed ARM UI
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import {spawn,execFile} from 'node:child_process';
+          import {createHash} from 'node:crypto';
+          import {readFile,writeFile} from 'node:fs/promises';
+          import path from 'node:path';
+          import {promisify} from 'node:util';
+          if(process.platform!=='win32'||process.arch!=='arm64')throw Error('NATIVE_ARM_REQUIRED');
+          const root=process.env.GITHUB_WORKSPACE, profile=path.win32.join(process.env.RUNNER_TEMP,'旧 ARM 钱包 QA profile');
+          const evidence=path.win32.join(root,'apps','wallet-desktop','dist','arm64-old-installed-smoke.json');
+          const env={...process.env,YNX_WALLET_PROFILE_PATH:profile,YNX_WALLET_EVIDENCE_PATH:evidence};
+          const app=spawn(process.env.YNX_OLD_INSTALLED_EXE,['--remote-debugging-port=9334'],{env,stdio:'ignore'});
+          try {
+            const {stdout}=await promisify(execFile)(process.execPath,['apps/wallet-desktop/scripts/windows-password-installed-gate.mjs','create'],{env,timeout:180000,maxBuffer:16384});
+            const created=JSON.parse(stdout.trim());
+            const launch=JSON.parse(await readFile(evidence,'utf8'));
+            if(!created.passwordPersisted||!created.accountCreated||!created.wrongPasswordRejected||launch.appVersion!=='0.6.8')throw Error('OLD_ARM_ACCOUNT_NOT_VERIFIED');
+            const vault=await readFile(path.win32.join(profile,'wallet-vault-v3.json'));
+            await writeFile(path.win32.join(root,'apps','wallet-desktop','dist','arm64-old-account.json'),JSON.stringify({sourceVersion:'0.6.8',account:created.account,ynxAccount:created.ynxAccount,vaultSHA256:createHash('sha256').update(vault).digest('hex'),oldAppTerminatedAfterCommit:true})+'\n',{flag:'wx'});
+            console.log(JSON.stringify({oldInstalledUIAccountCreated:true,account:created.account}));
+          } finally {
+            if(app.pid&&app.exitCode===null&&app.signalCode===null){const exited=new Promise(resolve=>app.once('exit',resolve));app.kill();await Promise.race([exited,new Promise((_,reject)=>setTimeout(()=>reject(Error('OLD_ARM_APP_EXIT_TIMEOUT')),15000))]);}
+          }
+          NODE
+      - name: Upgrade old ARM installation with the exact candidate and restore old account
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $install = [Diagnostics.Process]::new()
+          try {
+            $install.StartInfo.FileName = $env:YNX_CANDIDATE_INSTALLER
+            $install.StartInfo.ArgumentList.Add('/S')
+            $install.StartInfo.UseShellExecute = $false
+            if (-not $install.Start() -or -not $install.WaitForExit(180000)) { throw 'Candidate ARM installer did not finish' }
+            $install.Refresh()
+            if ($install.ExitCode -ne 0) { throw 'Candidate ARM installer returned nonzero exit' }
+          } finally { $install.Dispose() }
+          $exe = $env:YNX_OLD_INSTALLED_EXE
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Candidate ARM upgrade changed app identity' }
+          $env:GITHUB_SHA = $env:SOURCE_COMMIT
+          node apps/wallet-desktop/scripts/release-provenance.mjs (Join-Path (Split-Path $exe) 'resources') apps/wallet-desktop/dist
+          if ($LASTEXITCODE -ne 0) { throw 'Upgraded ARM source differs from original candidate' }
+          $old = Get-Content 'apps/wallet-desktop/dist/arm64-old-account.json' -Raw | ConvertFrom-Json
+          $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP '旧 ARM 钱包 QA profile'
+          $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\arm64-upgrade-installed-smoke.json'
+          $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
+          if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $old.vaultSHA256) { throw 'Old ARM encrypted vault changed before candidate launch' }
+          $app = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $restored = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $old.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $restored.sameAccountAfterRestart -or $restored.account -ne $old.account -or $restored.ynxAccount -ne $old.ynxAccount) { throw 'ARM upgrade did not restore exact old account' }
+            $launch = Get-Content $env:YNX_WALLET_EVIDENCE_PATH -Raw | ConvertFrom-Json
+            if ($launch.appVersion -ne '0.6.9' -or (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $old.vaultSHA256) { throw 'ARM upgrade changed version identity or old vault' }
+            @{ sourceCommit=$env:SOURCE_COMMIT; originalArtifactId=$env:ARTIFACT_ID; oldVersion='0.6.8'; candidateVersion='0.6.9'; exactOldPublicAccountRetained=$true; oldVaultCiphertextUnchanged=$true; userMachineVerified=$false; osRebootVerified=$false } | ConvertTo-Json -Depth 4 | Set-Content 'apps/wallet-desktop/dist/arm64-upgrade-lifecycle.json'
+          } finally { if (-not $app.HasExited) { [void]$app.CloseMainWindow(); [void]$app.WaitForExit(15000) } }
+          if (-not $app.HasExited) { throw 'Upgraded ARM Wallet did not close' }
+          "YNX_CANDIDATE_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Save native ARM encrypted backup and restore its exact public account
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = $env:YNX_CANDIDATE_INSTALLED_EXE
+          $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP 'ARM 备份源 QA profile'
+          $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\arm64-backup-installed-smoke.json'
+          $first = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $created = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs create | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $created.accountCreated) { throw 'ARM backup source account creation failed' }
+          } finally { if (-not $first.HasExited) { [void]$first.CloseMainWindow(); [void]$first.WaitForExit(15000) } }
+          if (-not $first.HasExited) { throw 'ARM backup source did not close' }
+          $env:YNX_WALLET_QA_BACKUP_FILE = Join-Path $env:RUNNER_TEMP 'ynx-wallet-arm-qa-backup.json'
+          if (Test-Path -LiteralPath $env:YNX_WALLET_QA_BACKUP_FILE) { throw 'ARM backup destination is not empty' }
+          $second = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $started = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs backup-start $created.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $started.backupSubmittedThroughInstalledUI) { throw 'ARM native backup form not submitted' }
+            $shell = New-Object -ComObject WScript.Shell
+            $dialog = $false
+            for ($attempt = 0; $attempt -lt 50; $attempt++) {
+              if ($shell.AppActivate('Save encrypted Wallet backup')) { $dialog = $true; break }
+              Start-Sleep -Milliseconds 200
+            }
+            if (-not $dialog) { throw 'ARM native backup Save dialog not found' }
+            $shell.SendKeys('%n')
+            $shell.SendKeys($env:YNX_WALLET_QA_BACKUP_FILE)
+            $shell.SendKeys('{ENTER}')
+            $saved = $false
+            for ($attempt = 0; $attempt -lt 100; $attempt++) {
+              if (Test-Path -LiteralPath $env:YNX_WALLET_QA_BACKUP_FILE -PathType Leaf) { $saved = $true; break }
+              Start-Sleep -Milliseconds 200
+            }
+            if (-not $saved) { throw 'ARM native Save dialog did not write backup file' }
+            $result = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs backup-result $created.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $result.nativeBackupSaved) { throw 'ARM installed UI did not confirm backup save' }
+            $env:YNX_BACKUP_EXPECTED_ACCOUNT = $created.account
+            node --input-type=module -e 'import {readFile} from "node:fs/promises";import {Wallet} from "./apps/wallet-desktop/node_modules/ethers/lib.esm/ethers.js";const text=await readFile(process.env.YNX_WALLET_QA_BACKUP_FILE,"utf8");if(Buffer.byteLength(text)>100000)throw Error("BACKUP_TOO_LARGE");let wrong=false;try{await Wallet.fromEncryptedJson(text,"incorrect synthetic password")}catch{wrong=true}if(!wrong)throw Error("BACKUP_WRONG_PASSWORD_ACCEPTED");const wallet=await Wallet.fromEncryptedJson(text,process.env.YNX_WALLET_QA_BACKUP_PASSWORD);if(wallet.address.toLowerCase()!==process.env.YNX_BACKUP_EXPECTED_ACCOUNT)throw Error("BACKUP_ACCOUNT_MISMATCH");console.log(JSON.stringify({encryptedBackupDecryptsToSamePublicAccount:true,wrongPasswordRejected:true}))'
+            if ($LASTEXITCODE -ne 0) { throw 'ARM saved backup did not decrypt to source account' }
+          } finally { if (-not $second.HasExited) { [void]$second.CloseMainWindow(); [void]$second.WaitForExit(15000) } }
+          if (-not $second.HasExited) { throw 'ARM native backup Wallet did not close' }
+          $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP 'ARM 备份恢复 QA profile'
+          $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\arm64-backup-restore-installed-smoke.json'
+          $third = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $imported = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs import-backup $created.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $imported.imported -or $imported.account -ne $created.account) { throw 'ARM encrypted backup file import changed account' }
+            $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
+            $beforeRestart = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+          } finally { if (-not $third.HasExited) { [void]$third.CloseMainWindow(); [void]$third.WaitForExit(15000) } }
+          if (-not $third.HasExited) { throw 'ARM restored Wallet did not close' }
+          $fourth = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $reopened = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $created.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $reopened.sameAccountAfterRestart -or $reopened.account -ne $created.account -or (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $beforeRestart) { throw 'ARM restored backup changed after restart' }
+            @{ sourceCommit=$env:SOURCE_COMMIT; originalArtifactId=$env:ARTIFACT_ID; nativeSaveDialogUsed=$true; encryptedBackupFileSaved=$true; wrongBackupPasswordRejected=$true; exactPublicAccountRestored=$true; sameAccountAfterAppRestart=$true; userMachineVerified=$false; osRebootVerified=$false } | ConvertTo-Json -Depth 4 | Set-Content 'apps/wallet-desktop/dist/arm64-backup-lifecycle.json'
+          } finally { if (-not $fourth.HasExited) { [void]$fourth.CloseMainWindow(); [void]$fourth.WaitForExit(15000) } }
+          if (-not $fourth.HasExited) { throw 'ARM backup cold restart Wallet did not close' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: wallet-desktop-arm64-same-artifact-lifecycle-${{ github.sha }}
+          if-no-files-found: warn
+          path: |
+            apps/wallet-desktop/dist/arm64-lifecycle-artifact.json
+            apps/wallet-desktop/dist/arm64-lifecycle-installer.json
+            apps/wallet-desktop/dist/arm64-old-installer.json
+            apps/wallet-desktop/dist/arm64-old-account.json
+            apps/wallet-desktop/dist/arm64-upgrade-lifecycle.json
+            apps/wallet-desktop/dist/arm64-backup-lifecycle.json
+            apps/wallet-desktop/dist/arm64-old-installed-smoke.json
+            apps/wallet-desktop/dist/arm64-upgrade-installed-smoke.json
+            apps/wallet-desktop/dist/arm64-backup-installed-smoke.json
+            apps/wallet-desktop/dist/arm64-backup-restore-installed-smoke.json
