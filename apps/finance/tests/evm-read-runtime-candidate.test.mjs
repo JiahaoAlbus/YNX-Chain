@@ -5,7 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
-const candidatePath = new URL('../evidence/evm-read-runtime-verifier-candidate-pr199-v2-20260925.json', import.meta.url);
+const candidatePath = new URL('../evidence/evm-read-runtime-verifier-candidate-final-ui-01130b50-v4-20260925.json', import.meta.url);
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 
 async function verifyCandidate(read = readFile) {
@@ -43,7 +43,7 @@ async function verifyCandidate(read = readFile) {
   assert.match(files.get('internal/finance/server.go'), /GET \/evm-read-session\.js/u);
   assert.match(files.get('internal/finance/drain.go'), /"\/evm-read-session\.js"/u);
   const pin = await read(new URL('../web/verify-wallet-connect.mjs', import.meta.url), 'utf8');
-  assert.match(pin, /REVIEWED_VERIFIER_MANIFEST_SHA256='32bfe7e88f15926933c14dc2ce838913508fae25a18ed0d5e06ccf9eeb3751eb'/u);
+  assert.match(pin, /REVIEWED_VERIFIER_MANIFEST_SHA256='13a8700cbd779a3398648427b9464272afc800e0611725bb79da9b5c8ef551cd'/u);
   return candidate;
 }
 
