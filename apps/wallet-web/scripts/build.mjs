@@ -167,6 +167,16 @@ const compiled=compilePwaShell(pwaInputs,await readFile(join(root,"public","sw.j
 for(const [file,bytes] of Object.entries(compiled.files))await writeFile(join(dist,"pwa",file),bytes);
 if(pwaOnly){console.log(`Built PWA shell ${compiled.buildId}`);return;}
 
+// A separate hosted signer surface on wallet.ynxweb4.com. The Companion PWA
+// remains an extension discovery page and never inherits this vault authority.
+const hosted = join(dist,"hosted");
+await mkdir(hosted,{recursive:true});
+await cp(join(root,"public","hosted-wallet.html"),join(hosted,"index.html"));
+await cp(join(root,"public","hosted-wallet.css"),join(hosted,"hosted-wallet.css"));
+await cp(join(root,"public","ynx-logo.png"),join(hosted,"ynx-logo.png"));
+await bundle({entryPoints:[join(root,"src","hosted-wallet-app.js")],outfile:join(hosted,"app.js"),bundle:true,format:"esm",platform:"browser",target:"chrome120",legalComments:"none",minify:true});
+await bundle({entryPoints:[join(root,"src","hosted-adapter.js")],outfile:join(hosted,"adapter.js"),bundle:true,format:"esm",platform:"browser",target:"chrome120",legalComments:"none",minify:true});
+
 const variants = [
   ["chromium", chromiumManifest],
   ["firefox", firefoxManifest],
