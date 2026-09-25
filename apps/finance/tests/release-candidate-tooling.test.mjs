@@ -62,4 +62,5 @@ test('weekly v3 builder imports the tracked runtime helper',()=>{
   assert.match(builder,/FINANCE_AUTHORITY_RUNTIME_SOURCE_BINDING_MISMATCH/);
   assert.match(builder,/repeatedBuildByteExact: true/);
   assert.match(builder,/FINANCE_WEEKLY_V3_CANDIDATE_NONDETERMINISTIC/);
+  assert.doesNotMatch(builder,/worktree',\s*'prune'/u,'a release build must not prune other managed worktrees');
 });

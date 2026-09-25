@@ -161,8 +161,8 @@
     },
     {
       "path": "../scripts/build-finance-weekly-v3-candidate.mjs",
-      "bytes": 8687,
-      "sha256": "b4ed1233970b2d6f587e44d27eea170525da8ceb1c47d82d52846d1663f5ef3b"
+      "bytes": 8588,
+      "sha256": "badd94ed500a54092a8631a4de67e52204d45c5dcbc055c3e4652864622ad672"
     },
     {
       "path": "verify-evm-read-candidate.mjs",
