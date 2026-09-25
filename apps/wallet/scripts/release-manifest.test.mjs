@@ -4,6 +4,7 @@ import test from "node:test";
 
 const walletRoot = new URL("../", import.meta.url);
 const publishedManifest = JSON.parse(await readFile(new URL("artifact-manifest.json", walletRoot), "utf8"));
+const activePublicationEvidence = JSON.parse(await readFile(new URL(publishedManifest.publicationEvidence, walletRoot), "utf8"));
 const manifest = JSON.parse(await readFile(new URL("artifact-candidate-1.0.20.json", walletRoot), "utf8"));
 const publication = JSON.parse(await readFile(new URL("artifact-publication-1.0.17.json", walletRoot), "utf8"));
 const publication118 = JSON.parse(await readFile(new URL("artifact-publication-1.0.18.json", walletRoot), "utf8"));
@@ -22,17 +23,20 @@ const publicationEvidence118 = JSON.parse(await readFile(new URL(publication118.
 const publicationEvidence119 = JSON.parse(await readFile(new URL(publication119.publicationEvidence, walletRoot), "utf8"));
 const installedEvidence119 = JSON.parse(await readFile(new URL(publication119.installedEvidence, walletRoot), "utf8"));
 
-const previous = Object.freeze({
-  tag: "wallet-android-testnet-preview-1.0.16-e9816a827",
+const activePublished = Object.freeze({
+  sourceCommit: "f3a12abadad793f250df42f1123e417ba6e8a5a6",
+  tag: "wallet-android-testnet-preview-1.0.20-f3a12abad",
   apk: Object.freeze({
-    url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
-    bytes: 116631255,
-    sha256: "89a842dc8641206a9154a6e41fd1c9e3cbb4b6cca2cea455ed5b7fc674b558c0",
+    assetId: 577942956,
+    filename: "ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk",
+    bytes: 116741810,
+    sha256: "143835c4931b190f0249818f04de6f82b1f2aaa0eb155684e929f365f3b1bfc0",
   }),
   aab: Object.freeze({
-    url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-local-test-signed.aab",
-    bytes: 71870019,
-    sha256: "117aee9610ef3878e5c2dc226acee57ae2820f1613cc8cabc536a12abd1ddd9a",
+    assetId: 577942957,
+    filename: "ynx-wallet-1.0.20-testnet-preview-f3a12abad-local-test-signed.aab",
+    bytes: 71877410,
+    sha256: "46d3f0e7f2738ac55aa5e6f24717ff4adef3b499f368ca6c3e253a7c3a4e6c4d",
   }),
 });
 const published117 = Object.freeze({
@@ -273,22 +277,72 @@ function validatePublicationEvidence(value, published) {
   assert.equal(value.aab.url, published.artifacts.find(({ name }) => name === "android-release-aab").url);
 }
 
-test("the active download manifest remains the compatible published 1.0.16 contract", () => {
-  assert.equal(publishedManifest.schemaVersion, 1);
-  assert.equal(publishedManifest.version, "1.0.16-testnet-preview");
-  assert.equal(publishedManifest.versionCode, 22);
-  assert.equal(publishedManifest.releaseStatus, "PUBLISHED_TESTNET_PRERELEASE");
-  assert.equal(publishedManifest.publishedRelease.tag, previous.tag);
-  assert.equal(publishedManifest.releaseImmutable, false);
-  assert.equal(publishedManifest.publisherCanReplaceAssets, true);
-  const apk = publishedManifest.artifacts.find(({ name }) => name === "android-release-apk");
-  const aab = publishedManifest.artifacts.find(({ name }) => name === "android-release-aab");
-  assert.equal(apk.url, previous.apk.url);
-  assert.equal(apk.bytes, previous.apk.bytes);
-  assert.equal(apk.sha256, previous.apk.sha256);
-  assert.equal(aab.url, previous.aab.url);
-  assert.equal(aab.bytes, previous.aab.bytes);
-  assert.equal(aab.sha256, previous.aab.sha256);
+function validateActivePublished(value, receipt) {
+  assert.equal(value.schemaVersion, 1);
+  assert.equal(value.productId, "wallet");
+  assert.equal(value.version, "1.0.20-testnet-preview");
+  assert.equal(value.versionCode, 26);
+  assert.equal(value.releaseStatus, "PUBLISHED_TESTNET_PRERELEASE");
+  assert.equal(value.sourceCommit, activePublished.sourceCommit);
+  assert.equal(value.releaseTag, activePublished.tag);
+  assert.equal(value.releaseUrl, `https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/${activePublished.tag}`);
+  assert.deepEqual(value.publishedRelease, {
+    tag: activePublished.tag,
+    prerelease: true,
+    publicationAfterMergeOnly: true,
+  });
+  assert.equal(value.publicationEvidence, "proof/wallet-android-1.0.20-publication-20260924.json");
+  assert.equal(value.releaseImmutable, false);
+  assert.equal(value.publisherCanReplaceAssets, true);
+  assert.equal(value.downloadTimeSha256Verified, false);
+  assert.equal(value.productionSigned, false);
+  assert.equal(value.storeReleased, false);
+  assert.equal(value.walletConnectRelayE2E, "NOT_VERIFIED");
+  assert.equal(value.physicalDevice, "NOT_VERIFIED");
+  assert.deepEqual(value.artifacts.map(({ name }) => name).sort(), ["android-release-aab", "android-release-apk"]);
+  assert.equal(receipt.schema, "ynx-wallet-mobile-preview-publication/v1");
+  assert.equal(receipt.targetCommit, activePublished.sourceCommit);
+  assert.equal(receipt.releaseTag, activePublished.tag);
+  assert.equal(receipt.releaseUrl, value.releaseUrl);
+  assert.equal(receipt.prerelease, true);
+  assert.equal(receipt.downloadTimeSha256Verified, true);
+  assert.equal(receipt.productionSigned, false);
+  assert.equal(receipt.storeReleased, false);
+  assert.equal(receipt.verificationBoundary.installed1020, false);
+  assert.equal(receipt.verificationBoundary.storePublication, false);
+  assert.equal(receipt.verificationBoundary.productionSigning, false);
+  for (const [name, kind] of [["android-release-apk", "apk"], ["android-release-aab", "aab"]]) {
+    const expected = activePublished[kind];
+    const artifact = value.artifacts.find(item => item.name === name);
+    const url = `https://github.com/JiahaoAlbus/YNX-Chain/releases/download/${activePublished.tag}/${expected.filename}`;
+    assert.deepEqual(
+      [artifact.filename, artifact.assetId, artifact.bytes, artifact.sha256, artifact.url, artifact.signingClass, artifact.productionSigned, artifact.versionCode, artifact.sourceCommit],
+      [expected.filename, expected.assetId, expected.bytes, expected.sha256, url, "local-test-signed", false, 26, activePublished.sourceCommit],
+    );
+    assert.equal(receipt[`${kind}AssetId`], expected.assetId);
+    assert.deepEqual([receipt[kind].url, receipt[kind].bytes, receipt[kind].sha256, receipt[kind].freshDownloadDigestMatched], [url, expected.bytes, expected.sha256, true]);
+  }
+  assert.deepEqual(value.publicArtifactUrls, value.artifacts.map(({ url }) => url));
+}
+
+test("the active 1.0.20 download manifest matches its exact published assets and limited receipt", () => {
+  validateActivePublished(publishedManifest, activePublicationEvidence);
+});
+
+test("the active publication rejects changed assets or inflated release claims", () => {
+  for (const mutate of [
+    (value) => { value.version = "1.0.16-testnet-preview"; },
+    (value) => { value.artifacts[0].sha256 = "0".repeat(64); },
+    (value) => { value.artifacts[1].assetId += 1; },
+    (value) => { value.productionSigned = true; },
+    (value) => { value.storeReleased = true; },
+    (value) => { value.physicalDevice = "VERIFIED"; },
+    (value) => { value.downloadTimeSha256Verified = true; },
+  ]) {
+    const copy = structuredClone(publishedManifest);
+    mutate(copy);
+    assert.throws(() => validateActivePublished(copy, activePublicationEvidence));
+  }
 });
 
 test("1.0.20 source candidate binds native versions and reconciliation source without inventing a release", () => {
