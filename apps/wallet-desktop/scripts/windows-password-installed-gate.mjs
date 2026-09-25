@@ -88,13 +88,14 @@ async function snapshot() {
   return JSON.parse(await evaluate(`(async () => {
     const [account, security] = await Promise.all([window.ynxWallet.accountStatus(), window.ynxWallet.securityStatus()]);
     const unlock = document.querySelector('#unlock-wallet');
+    const create = document.querySelector('#create-account');
     const sheet = document.querySelector('#password-sheet');
     const submit = document.querySelector('#submit-password');
     return JSON.stringify({
       account: account.ok ? { initialized: account.value.initialized, passwordConfigured: account.value.passwordConfigured, account: account.value.account, ynxAccount: account.value.ynxAccount, accounts: account.value.accounts?.map(item => item.account), custody: account.value.custody, recoveryRequired: account.value.recoveryRequired } : null,
       error: account.ok ? null : { code: account.error?.code, storageStage: account.error?.storageStage },
       locked: security.locked,
-      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: sheet?.open, passwordModeUnlock: sheet?.open ? document.querySelector('#local-confirm-group')?.hidden : null, passwordSubmitEnabled: Boolean(sheet?.open && submit && !submit.disabled && submit.getClientRects().length), unlockEnabled: Boolean(unlock && !unlock.disabled && unlock.getClientRects().length), unlockLabel: unlock?.textContent, wrongPasswordAttempt: window.__ynxQaWrongPassword ? { submitObserved: window.__ynxQaWrongPassword.submitObserved, busyObserved: window.__ynxQaWrongPassword.busyObserved, settled: Boolean(!sheet?.open || !submit?.disabled) } : null, importEnabled: !document.querySelector('#import-form button')?.disabled, importResult: document.querySelector('#import-result')?.textContent, backupEnabled: !document.querySelector('#save-backup')?.disabled, backupVisible: !document.querySelector('#backup-section')?.hidden, backupResult: document.querySelector('#backup-result')?.textContent }
+      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: sheet?.open, passwordModeUnlock: sheet?.open ? document.querySelector('#local-confirm-group')?.hidden : null, passwordSubmitEnabled: Boolean(sheet?.open && submit && !submit.disabled && submit.getClientRects().length), unlockEnabled: Boolean(unlock && !unlock.disabled && unlock.getClientRects().length), unlockLabel: unlock?.textContent, wrongPasswordAttempt: window.__ynxQaWrongPassword ? { submitObserved: window.__ynxQaWrongPassword.submitObserved, busyObserved: window.__ynxQaWrongPassword.busyObserved, settled: Boolean(!sheet?.open || !submit?.disabled) } : null, createEnabled: Boolean(create && !create.disabled && create.getClientRects().length), createAttempt: window.__ynxQaCreate ? { clickObserved: window.__ynxQaCreate.clickObserved, busyObserved: window.__ynxQaCreate.busyObserved } : null, importEnabled: !document.querySelector('#import-form button')?.disabled, importResult: document.querySelector('#import-result')?.textContent, backupEnabled: !document.querySelector('#save-backup')?.disabled, backupVisible: !document.querySelector('#backup-section')?.hidden, backupResult: document.querySelector('#backup-result')?.textContent }
     });
   })()`, "ACCOUNT_SNAPSHOT"));
 }
@@ -108,7 +109,8 @@ async function until(predicate, label, count = 100) {
   }
   const visible = `${state?.ui?.passwordResult ?? ""} ${state?.ui?.unlockResult ?? ""} ${state?.ui?.detail ?? ""} ${state?.ui?.importResult ?? ""} ${state?.ui?.backupResult ?? ""}`;
   const stage = /Reference: ([a-z][a-z0-9-]{0,79})\./.exec(visible)?.[1] ?? null;
-  throw new Error(`${label}: ${JSON.stringify({ account: state?.account && { initialized: state.account.initialized, passwordConfigured: state.account.passwordConfigured, account: state.account.account, custody: state.account.custody }, error: state?.error, locked: state?.locked, storageStage: stage, ui: { passwordSheetOpen: state?.ui?.passwordSheetOpen, unlockEnabled: state?.ui?.unlockEnabled, importEnabled: state?.ui?.importEnabled, backupEnabled: state?.ui?.backupEnabled, backupVisible: state?.ui?.backupVisible, importSucceeded: installedMessageIs(state?.ui?.importResult, "Account imported. Save a backup and keep it safe."), backupSaved: installedMessageIs(state?.ui?.backupResult, "Encrypted backup saved. Keep its password separately.") } })}`);
+  const createCode = /^([A-Z][A-Z0-9_]{2,79}):/.exec(String(state?.ui?.detail ?? ""))?.[1] ?? null;
+  throw new Error(`${label}: ${JSON.stringify({ account: state?.account && { initialized: state.account.initialized, passwordConfigured: state.account.passwordConfigured, account: state.account.account, custody: state.account.custody }, error: state?.error, locked: state?.locked, storageStage: stage, storageMessageVisible: /storage could not|存储未能完成|storage cannot be read|无法读取钱包存储/i.test(visible), createResultCode: createCode, ui: { passwordSheetOpen: state?.ui?.passwordSheetOpen, unlockEnabled: state?.ui?.unlockEnabled, createEnabled: state?.ui?.createEnabled, createAttempt: state?.ui?.createAttempt, importEnabled: state?.ui?.importEnabled, backupEnabled: state?.ui?.backupEnabled, backupVisible: state?.ui?.backupVisible, importSucceeded: installedMessageIs(state?.ui?.importResult, "Account imported. Save a backup and keep it safe."), backupSaved: installedMessageIs(state?.ui?.backupResult, "Encrypted backup saved. Keep its password separately.") } })}`);
 }
 async function formSubmit(value, confirmation) {
   const expectedUnlock = confirmation === undefined;
@@ -205,8 +207,24 @@ try {
     await until(state => passwordActionReady(state, true), "Password unlock UI readiness");
     await formSubmit(password);
     await until(state => state.locked === false && state.account?.passwordConfigured === true, "Password unlock");
-    await evaluate(`(() => { document.querySelector('nav [data-view="accounts"]')?.click(); document.querySelector('#create-account')?.click(); return true; })()`, "ACCOUNT_CREATE_CLICK");
+    await evaluate(`document.querySelector('nav [data-view="accounts"]')?.click(); true`, "ACCOUNT_CREATE_VIEW");
+    await until(state => state.locked === false && state.account?.initialized === false && state.ui.createEnabled === true, "Account creation UI readiness");
+    const createClicked = await evaluate(`(() => {
+      const create = document.querySelector('#create-account');
+      if (!create || create.disabled || !create.getClientRects().length) return false;
+      const attempt = { clickObserved: false, busyObserved: false };
+      window.__ynxQaCreate = attempt;
+      create.addEventListener('click', () => { attempt.clickObserved = true; }, { capture: true, once: true });
+      const observer = new MutationObserver(() => { if (create.disabled) attempt.busyObserved = true; });
+      observer.observe(create, { attributes: true, attributeFilter: ['disabled'] });
+      window.__ynxQaCreateObserver = observer;
+      create.click();
+      return attempt.clickObserved;
+    })()`, "ACCOUNT_CREATE_CLICK");
+    if (!createClicked) throw new Error("ACCOUNT_CREATE_CLICK_NOT_OBSERVED");
     const created = await until(state => state.account?.initialized === true && state.locked === false, "Account creation");
+    if (!created.ui.createAttempt?.busyObserved) throw new Error("ACCOUNT_CREATE_BUSY_NOT_OBSERVED");
+    await evaluate(`(() => { window.__ynxQaCreateObserver?.disconnect(); delete window.__ynxQaCreateObserver; delete window.__ynxQaCreate; return true; })()`, "ACCOUNT_CREATE_OBSERVATION_END");
     await evaluate(`document.querySelector('#lock-wallet')?.click(); true`, "EXPLICIT_LOCK_CLICK");
     await until(state => state.locked === true, "Explicit lock");
     const vaultBeforeWrongPassword = await vaultDigest();
