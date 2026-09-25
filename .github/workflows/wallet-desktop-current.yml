@@ -225,7 +225,7 @@ jobs:
           $third = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
           try {
             $imported = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs import $created.account | ConvertFrom-Json
-            if ($LASTEXITCODE -ne 0 -or -not $imported.imported -or -not $imported.originalAccountRetained -or $imported.originalAccount -ne $created.account -or $imported.account -eq $created.account -or $imported.custody -ne 'password-encrypted-local') { throw 'Installed encrypted account import did not pass' }
+            if ($LASTEXITCODE -ne 0 -or -not $imported.imported -or $imported.importCount -ne 6 -or -not $imported.originalAccountRetained -or -not $imported.allPreviousAccountsRetained -or $imported.originalAccount -ne $created.account -or $imported.account -eq $created.account -or $imported.custody -ne 'password-encrypted-local') { throw 'Installed encrypted account import did not pass' }
             $afterImportHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($afterImportHash -eq $beforeRestartHash) { throw 'Account import did not update the encrypted vault' }
           } finally {
@@ -238,7 +238,7 @@ jobs:
             if ($LASTEXITCODE -ne 0 -or -not $reopened.sameAccountAfterRestart -or $reopened.account -ne $imported.account) { throw 'Imported account changed after installed Wallet restart' }
             $afterImportRestartHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($afterImportRestartHash -ne $afterImportHash) { throw 'Unlock unexpectedly changed the imported encrypted vault file' }
-            @{ sourceCommit=$env:GITHUB_SHA; platform='windows'; architecture='${{ matrix.arch }}'; installedPasswordSetup=$true; accountCreated=$true; wrongPasswordRejected=$true; samePublicAddressAfterRestart=$true; encryptedSecondAccountImported=$true; originalAccountRetained=$true; importedAccountAfterRestart=$true; vaultCiphertextUnchangedByUnlock=$true; publicAccount=$created.account; publicYNXAccount=$created.ynxAccount; publicImportedAccount=$imported.account; userMachineVerified=$false; osRebootVerified=$false; signed=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $report
+            @{ sourceCommit=$env:GITHUB_SHA; platform='windows'; architecture='${{ matrix.arch }}'; installedPasswordSetup=$true; accountCreated=$true; wrongPasswordRejected=$true; samePublicAddressAfterRestart=$true; encryptedAccountImports=6; originalAndPriorAccountsRetained=$true; importedAccountAfterRestart=$true; vaultCiphertextUnchangedByUnlock=$true; publicAccount=$created.account; publicYNXAccount=$created.ynxAccount; publicImportedAccount=$imported.account; userMachineVerified=$false; osRebootVerified=$false; signed=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $report
           } finally {
             if (-not $fourth.HasExited) { [void]$fourth.CloseMainWindow(); [void]$fourth.WaitForExit(15000) }
           }

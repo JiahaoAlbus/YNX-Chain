@@ -4,8 +4,10 @@ import { Wallet } from "ethers";
 const [mode, expectedAccount = ""] = process.argv.slice(2);
 const password = process.env.YNX_WALLET_QA_PASSWORD;
 if (!["create", "restore", "import"].includes(mode) || typeof password !== "string" || password.length < 12) throw new Error("Installed V3 gate input is incomplete");
-const importKey = `0x${"42".repeat(32)}`; // Public, disposable fixture; never a user's key.
-const importAccount = new Wallet(importKey).address.toLowerCase();
+const importFixtures = Array.from({ length: 6 }, (_, index) => {
+  const key = `0x${(0x42 + index).toString(16).repeat(32)}`; // Public, disposable fixtures; never user keys.
+  return { key, account: new Wallet(key).address.toLowerCase() };
+});
 
 async function target() {
   for (let attempt = 0; attempt < 40; attempt++) {
@@ -121,20 +123,23 @@ try {
     const restored = await until(state => state.locked === false && state.account?.account === expectedAccount, "Cold restart password unlock");
     if (mode === "restore") console.log(JSON.stringify({ mode, sameAccountAfterRestart: true, account: restored.account.account, ynxAccount: restored.account.ynxAccount, custody: restored.account.custody }));
     else {
-      if (importAccount === expectedAccount) throw new Error("IMPORT_FIXTURE_ACCOUNT_COLLISION");
-      await until(state => state.ui.importEnabled, "Import UI readiness");
-      const submitted = await evaluate(`(() => {
-        document.querySelector('nav [data-view="accounts"]').click();
-        const form = document.querySelector('#import-form');
-        if (form.querySelector('button').disabled) return false;
-        document.querySelector('#import-kind').value = 'private-key';
-        document.querySelector('#import-value').value = ${JSON.stringify(importKey)};
-        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-        return true;
-      })()`, "ACCOUNT_IMPORT_SUBMIT");
-      if (!submitted) throw new Error("ACCOUNT_IMPORT_SUBMIT:BUTTON_DISABLED");
-      const imported = await until(state => state.account?.account === importAccount && state.account?.accounts?.includes(expectedAccount) && state.locked === false, "Encrypted account import");
-      console.log(JSON.stringify({ mode, imported: true, originalAccountRetained: true, account: imported.account.account, originalAccount: expectedAccount, custody: imported.account.custody }));
+      let imported;
+      for (const [index, fixture] of importFixtures.entries()) {
+        if (fixture.account === expectedAccount) throw new Error("IMPORT_FIXTURE_ACCOUNT_COLLISION");
+        await until(state => state.ui.importEnabled, `Import ${index + 1} UI readiness`);
+        const submitted = await evaluate(`(() => {
+          document.querySelector('nav [data-view="accounts"]').click();
+          const form = document.querySelector('#import-form');
+          if (form.querySelector('button').disabled) return false;
+          document.querySelector('#import-kind').value = 'private-key';
+          document.querySelector('#import-value').value = ${JSON.stringify(fixture.key)};
+          form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+          return true;
+        })()`, `ACCOUNT_IMPORT_${index + 1}_SUBMIT`);
+        if (!submitted) throw new Error(`ACCOUNT_IMPORT_${index + 1}_SUBMIT:BUTTON_DISABLED`);
+        imported = await until(state => state.account?.account === fixture.account && state.locked === false && [expectedAccount, ...importFixtures.slice(0, index + 1).map(item => item.account)].every(account => state.account?.accounts?.includes(account)), `Encrypted account import ${index + 1}`);
+      }
+      console.log(JSON.stringify({ mode, imported: true, importCount: importFixtures.length, originalAccountRetained: true, allPreviousAccountsRetained: true, account: imported.account.account, originalAccount: expectedAccount, custody: imported.account.custody }));
     }
   }
 } finally {
