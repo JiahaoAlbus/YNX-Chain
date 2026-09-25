@@ -92,6 +92,7 @@ const ERROR_ALIASES:Readonly<Record<string,string>>=Object.freeze({WALLET_USER_R
 export function classifyCardWalletError(input:unknown):CardWalletError{
   const source=object(input)?input:{};
   const raw=typeof input==="number"||typeof input==="string"?input:source.code;
+  if(raw==='CARD_WEB_PRIVATE_TRANSPORT_UNAVAILABLE')return Object.freeze({code:raw,retryable:false,safeMessage:'Private Card approval is not available in this browser yet. Your standard wallet connection remains available.',monitoringClass:'wallet-transport',userAction:'return-to-product'});
   const code=typeof raw==="string"?ERROR_ALIASES[raw]??raw:raw;
   if([source.requestId,source.traceId,source.errorId].some(value=>value!==undefined&&typeof value!=="string"))return unknownWalletError();
   const correlation={requestId:source.requestId as string|undefined,traceId:source.traceId as string|undefined,errorId:source.errorId as string|undefined};
