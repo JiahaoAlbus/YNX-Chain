@@ -27,7 +27,8 @@ const {evaluateProductWalletMigrationEvidence}=await import(new URL('../web/node
 
 test('product states its non-bank and non-custodial boundary',()=>{
   for(const phrase of ['No custody','bank account','No fiat conversion inferred','Finance cannot freeze assets']) assert.ok(html.includes(phrase),phrase);
-  assert.ok(js.includes('This is not a bank statement'));
+  assert.ok(locale.includes('This is not a bank statement.'));
+  assert.ok(js.includes("financeText('notBankStatement')"));
   for(const disclosure of ['Counterparty','Custody','Contract','Principal-loss risk','Fee','Liquidity risk','Jurisdiction risk','Signature boundary']) assert.ok(html.includes(disclosure),disclosure);
   for(const prohibited of ['APY 8%','Guaranteed return','Visa card balance']) assert.equal(html.includes(prohibited),false);
 });
@@ -93,7 +94,9 @@ test('Broker order approval consumes the exact Wallet transport and never auto-s
 });
 
 test('AI Broker order results remain drafts until copied and explicitly previewed',()=>{
-  for(const marker of ['draft_broker_order','Copy into order form','Search and select the exact provider-backed asset before previewing approval.'])assert.ok(html.includes(marker)||js.includes(marker),marker);
+  for(const marker of ['draft_broker_order','Copy into order form'])assert.ok(html.includes(marker)||js.includes(marker),marker);
+  assert.ok(locale.includes('Search and select the exact provider-backed asset before previewing approval.'));
+  assert.ok(js.includes("financeText('aiDraftCopied')"));
   assert.ok(js.includes("location.hash='broker-sandbox'"));
   assert.equal(js.includes('Submit AI order'),false);
 });

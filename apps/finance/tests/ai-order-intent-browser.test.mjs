@@ -8,7 +8,7 @@ import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 const web=new URL('../web/',import.meta.url);
 const walletStub=`window.YNXFinanceWallet={ready:Promise.resolve(),connected:()=>true,getRevision:()=>0,requireProof:async()=>({proofHeader:'TEST_ONLY',requestId:'req_test_finance_ai_0001'}),connect:async()=>{},disconnect:async()=>({status:'disconnected'}),reportPrivateFailure:()=>{}};`;
 const orderWalletStub=`window.YNXFinanceOrderWallet={pending:()=>null,clear:()=>{},begin:()=>{throw new Error('order Wallet is outside this AI fixture')},parseReturn:()=>{throw new Error('order Wallet is outside this AI fixture')}};`;
-let server,browser,base,aiRequests;
+let server,browser,base,aiRequests,aiFail=false;
 
 function json(res,status,value){res.writeHead(status,{'content-type':'application/json'});res.end(JSON.stringify(value));}
 test.before(async()=>{
@@ -27,6 +27,7 @@ test.before(async()=>{
     if(url.pathname==='/api/ai/jobs'&&req.method==='POST'){
       const chunks=[];for await(const chunk of req)chunks.push(chunk);
       aiRequests.push(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+      if(aiFail)return json(res,503,{error:'Untranslated upstream service failure',code:'AI_PROVIDER_UNAVAILABLE'});
       await new Promise(resolve=>setTimeout(resolve,75));
       return json(res,202,{id:'ai-browser-fixture',kind:'draft_broker_order',status:'ready',provider:'loopback-browser-fixture',model:'strict-schema-fixture',estimatedCost:'unverified',progress:'structured draft',result:{schemaVersion:'finance.ai.broker-order-draft.v1',draftOnly:true,orderDraft:{symbol:'ACME',side:'buy',qty:'2',limitPrice:'10.25',timeInForce:'day',warnings:['Review only']}}});
     }
@@ -42,7 +43,7 @@ test.before(async()=>{
 test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
 
 async function fixture(){
-  aiRequests=[];
+  aiRequests=[];aiFail=false;
   const page=await browser.newPage(),errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(base);
@@ -98,13 +99,43 @@ test('language switch relabels loaded AI records without dropping exact selected
     assert.match(await page.locator('#assistant .section-head p').textContent(),/获得同意后/u);
     assert.match(await page.locator('#activity thead th:nth-child(3)').textContent(),/方向/u);
     assert.match(await page.locator('#statement-form button').textContent(),/生成报表/u);
+    assert.match(await page.locator('#budget-form button').textContent(),/创建预算/u);
+    assert.match(await page.locator('#budget-form select[name=period] option[value=monthly]').textContent(),/每月/u);
+    assert.equal(await page.locator('#budget-form select[name=period] option[value=monthly]').getAttribute('value'),'monthly');
+    assert.equal(await page.locator('#reminder-form input[name=nextDueAt]').count(),1);
     assert.equal(await page.locator('#statement-form input[name=from]').count(),1);
     await page.selectOption('#finance-language','ar');
     assert.equal(await page.locator('#ai-records input:checked').inputValue(),selected);
     assert.equal(await page.locator('html').getAttribute('dir'),'rtl');
     assert.match(await page.locator('#assistant .section-head p').textContent(),/المعاينة/u);
+    assert.match(await page.locator('#reminder-form button').textContent(),/إضافة تذكير/u);
+    assert.match(await page.locator('#ai-kind option[value=draft_broker_order]').textContent(),/الوسيط/u);
+    assert.equal(await page.locator('#ai-kind').inputValue(),'draft_broker_order');
+    assert.equal(await page.locator('#ai-order-intent [name=side]').inputValue(),'buy');
+    assert.match(await page.locator('#ai-start').textContent(),/مسودة/u);
+    assert.match(await page.locator('#privacy-form button').textContent(),/الخصوصية/u);
+    assert.match(await page.locator('#support .protocol .chips span:nth-child(4)').textContent(),/خسارة/u);
+    assert.equal(await page.locator('#privacy-form [name=alertsEnabled]').count(),1);
+    assert.match(await page.locator('#assets .balance-card .eyebrow').textContent(),/للقراءة/u);
+    assert.match(await page.locator('#balance-source').textContent(),/دليل Explorer/u);
+    assert.match(await page.locator('#statement.statement-placeholder').textContent(),/اختر فترة/u);
     assert.deepEqual(errors,[]);
   }finally{await page.close()}
+});
+
+test('private AI failure keeps server code for diagnosis without exposing untranslated upstream text',async()=>{
+  const {page,errors}=await fixture();
+  try{
+    await page.evaluate(()=>window.YNXFinanceLocale.set('zh-CN'));
+    await fillIntent(page);
+    aiFail=true;
+    await page.locator('#ai-start').click();
+    await page.waitForFunction(()=>document.querySelector('#notice').dataset.diagnosticCode==='AI_PROVIDER_UNAVAILABLE');
+    assert.doesNotMatch(await page.locator('#notice').textContent(),/Untranslated upstream/u);
+    assert.match(await page.locator('#notice').textContent(),/[\u3400-\u9fff]/u);
+    assert.match(await page.locator('#ai-start').textContent(),/审阅草稿/u);
+    assert.deepEqual(errors,[]);
+  }finally{aiFail=false;await page.close()}
 });
 
 test('real Finance DOM rejects non-canonical AI order decimals before any request',async()=>{
