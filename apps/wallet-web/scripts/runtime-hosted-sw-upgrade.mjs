@@ -2,13 +2,27 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { historicalPwaFixture } from "./pwa-upgrade-browser-harness.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
-const old = await historicalPwaFixture("2f55f7924");
+const sha256 = bytes => createHash("sha256").update(bytes).digest("hex");
+async function exactOldRelease(path) {
+  const archive = await readFile(path), archiveSha256 = sha256(archive);
+  assert.equal(archiveSha256,"478e155646f7e269e7b075666362b904b57ad949ae101c3d5319f48aca76d5eb","0.1.3 release archive changed");
+  const names = execFileSync("unzip",["-Z1",path],{encoding:"utf8"}).trim().split("\n");
+  assert.ok(names.includes("sw.js") && names.includes("build-identity.json"));
+  assert.ok(names.every(name => /^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(name)),"release archive contains an unexpected path");
+  const files = Object.fromEntries(names.map(name => [name,execFileSync("unzip",["-p",path,name],{maxBuffer:10_000_000})]));
+  const sourceCommit = JSON.parse(files["build-identity.json"]).sourceCommit;
+  assert.equal(sourceCommit,"31f3ef16d3812870e0c3d23350565fd592482227");
+  assert.equal(sha256(files["sw.js"]),"b2a2b514c823bcf00a3f5ad82d914a0aab58d39738de7471a8457681799fc4f3");
+  return { files, sourceCommit, workerSha256: sha256(files["sw.js"]), archiveSha256, fixtureClass:"exact 0.1.3 prerelease ZIP bytes; public installed worker not verified" };
+}
+const old = process.env.YNX_OLD_PWA_ZIP ? await exactOldRelease(process.env.YNX_OLD_PWA_ZIP) : await historicalPwaFixture("2f55f7924");
 const hostedFiles = ["index.html","hosted-wallet.css","ynx-logo.png","app.js","adapter.js"];
 const hostedHashes = {};
 for (const file of hostedFiles) {
@@ -58,6 +72,6 @@ try {
   await page.goto(`${origin}/hosted/`);
   assert.equal(await page.title(), "YNX Wallet · Connect");
   assert.match(await page.locator("#status").textContent(), /registered product/u);
-  console.log(JSON.stringify({ isolatedBrowser: "Chromium", historicalWorkerSource: old.sourceCommit, historicalWorkerSHA256: old.workerSha256, oldServiceWorkerControlled: true, updatedWorkerHostedRouteNetworkOnly: true, hostedPageNotCompanionShell: true, publishedHostedHashes: hostedHashes, publicDeploymentVerified: false }));
+  console.log(JSON.stringify({ isolatedBrowser: "Chromium", previousWorkerSource: old.sourceCommit, previousWorkerSHA256: old.workerSha256, previousArchiveSHA256: old.archiveSha256 ?? null, previousFixtureClass: old.fixtureClass, oldServiceWorkerControlled: true, updatedWorkerHostedRouteNetworkOnly: true, hostedPageNotCompanionShell: true, publishedHostedHashes: hostedHashes, publicDeploymentVerified: false }));
   await context.close();
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
