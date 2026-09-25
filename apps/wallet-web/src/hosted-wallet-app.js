@@ -210,6 +210,7 @@ async function receive(event) {
     assertRequestLive(context);
     reply("response", { replyTo: data.messageId, ok: true, result });
   } catch (error) {
+    if (data.method === "eth_sendTransaction" && vault) await refreshTransactionStatus();
     reply("response", { replyTo: data.messageId, ok: false, code: typeof error?.code === "string" || Number.isInteger(error?.code) ? error.code : "HOSTED_REQUEST_FAILED" });
     messageKey("requestFailed");
   } finally { if (activeRequest === context) activeRequest = null; busy = false; }
