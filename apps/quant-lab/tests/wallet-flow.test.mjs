@@ -15,7 +15,8 @@ test.before(async()=>{
       res.writeHead(200,{'content-type':'application/json'});
       return res.end(JSON.stringify({access:{statefulPreview:true},paper:{Cash:100,Position:2,ReconciliationDelta:0},strategies:{},experiments:{},audit:[]}));
     }
-    const file=req.url==='/'?'index.html':String(req.url).slice(1);
+    const pathname=new URL(req.url,'http://127.0.0.1').pathname;
+    const file=pathname==='/'?'index.html':pathname.slice(1);
     if(!/^[a-z0-9.-]+$/.test(file)){res.writeHead(404);return res.end();}
     try{const bytes=await readFile(new URL(file,web));res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html'});res.end(bytes);}
     catch{res.writeHead(404);res.end();}
