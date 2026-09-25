@@ -162,7 +162,7 @@ async function restoreBrokerApproval(serverTime,{announce=false}={}){
   if(opaque){if(opaque.expired){brokerApprovalDisplay=null;brokerApprovalMessageKey='brokerTicketExpired';$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent=financeText('brokerTicketExpired');return opaque}
     renderBrokerApprovalRoute(opaque,true);if(announce)notify(financeText('brokerTicketStillActive'));return opaque}
   const legacyPending=window.YNXFinanceOrderWallet.pending();
-  if(!legacyPending)return null;
+  if(!legacyPending){hideBrokerApproval();return null}
   if(!brokerOwnerAccount()||legacyPending.request?.unsigned?.account!==brokerOwnerAccount()){
     window.YNXFinanceOrderWallet.clear();hideBrokerApproval();return null;
   }
@@ -176,8 +176,9 @@ async function requireBrokerOrderAuthority(){
   catch(error){
     state.brokerSubmissionEnabled=false;
     $('#broker-approval').textContent='Wallet Gateway and Finance Product Session are not yet verified by the shared endpoint authority. Order approval and submission are unavailable; public Finance views remain available.';
-    $('#broker-order-preview').textContent='Order actions are unavailable until the shared authority verifies both Wallet Gateway and Finance Product Session.';
-    $('#broker-wallet-approve').hidden=true;
+    brokerApprovalDisplay=null;brokerApprovalMessageKey='brokerAuthorityUnavailable';
+    $('#broker-order-preview').textContent=financeText('brokerAuthorityUnavailable');
+    const link=$('#broker-wallet-approve');link.hidden=true;delete link.dataset.walletReviewUrl;
     throw error;
   }
 }
@@ -421,5 +422,5 @@ $('#broker-wallet-approve').addEventListener('click',async event=>{
 });
 $('#broker-quote').addEventListener('click',refreshBrokerQuote);
 $('#broker-complete-callback').addEventListener('click',completeBrokerCallback);
-$('#broker-clear-approval').addEventListener('click',async()=>{try{const workspace=await refreshBrokerWorkspace();if(!workspace)throw new Error('Current Finance server time is unavailable.');const route=await restoreBrokerApproval(workspace.serverTime,{announce:true});if(!route){$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent='No local Wallet request is pending.'}}catch(error){notify(error.message,true)}});
+$('#broker-clear-approval').addEventListener('click',async()=>{try{const workspace=await refreshBrokerWorkspace();if(!workspace)throw new Error('Current Finance server time is unavailable.');const route=await restoreBrokerApproval(workspace.serverTime,{announce:true});if(!route)hideBrokerApproval()}catch(error){notify(error.message,true)}});
 refreshBrokerConfiguration();

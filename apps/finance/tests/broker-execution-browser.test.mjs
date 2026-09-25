@@ -533,6 +533,19 @@ test('concurrent submit events create one opaque ticket and Web copy does not na
     assert.match(await page.locator('#broker-order-preview').innerText(),/ACME.*10.*simulated USD/s);
     assert.equal(await page.locator('#broker-wallet-approve').getAttribute('data-wallet-review-url'),reviewURL);
     assert.equal(opaqueIssueRequests.length,1);
+    await page.evaluate(async()=>{window.__orderWalletFixture.authorityAllowed=false;await requireBrokerOrderAuthority().catch(()=>{})});
+    assert.equal(await page.locator('#broker-wallet-approve').isHidden(),true);
+    assert.equal(await page.locator('#broker-wallet-approve').getAttribute('data-wallet-review-url'),null);
+    assert.match(await page.locator('#broker-order-preview').innerText(),/private Wallet authority is verified/);
+    assert.ok(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.order-opaque.v2.pending')));
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.equal(await page.locator('#broker-wallet-approve').isHidden(),true);
+    assert.equal(await page.locator('#broker-wallet-approve').getAttribute('data-wallet-review-url'),null);
+    assert.match(await page.locator('#broker-order-preview').innerText(),/私有钱包权限验证前/);
+    await page.evaluate(async()=>{window.__orderWalletFixture.authorityAllowed=true;await restoreBrokerApproval('2026-09-19T11:00:00.000Z')});
+    assert.equal(await page.locator('#broker-wallet-approve').getAttribute('data-wallet-review-url'),reviewURL);
+    assert.equal(opaqueIssueRequests.length,1);
+    await page.locator('#finance-language').selectOption('en');
     const pageURL=page.url(),pagesBefore=browser.contexts().flatMap(context=>context.pages()).length;
     await page.locator('#broker-wallet-approve').click();
     assert.equal(page.url(),pageURL);
@@ -554,6 +567,30 @@ test('concurrent submit events create one opaque ticket and Web copy does not na
     assert.equal(await page.locator('#broker-wallet-approve').isHidden(),true);
     await page.waitForFunction(()=>document.querySelector('#broker-order-form button[type="submit"]').disabled===false);
   }finally{await page.close();}
+});
+
+test('expired opaque review cannot reappear after a language switch or clear action',async()=>{
+  const page=await browser.newPage();
+  try{
+    await page.goto(base);
+    await page.locator('#nav a[href="#orders"]').click();
+    await page.evaluate(async()=>{
+      const account='ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80';
+      state.connected=true;state.overview={portfolio:{account}};
+      sessionStorage.setItem('ynx.finance.order-opaque.v2.pending',JSON.stringify({version:'2',ticket:'ticket_0123456789abcdefghijklmnopqrst',account,requestId:'request_11111111-2222-4333-8444-555555555555',expiresAt:'2026-09-19T11:05:00.000Z'}));
+      await restoreBrokerApproval('2026-09-19T11:06:00.000Z');
+    });
+    assert.equal(await page.locator('#broker-wallet-approve').isHidden(),true);
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.order-opaque.v2.pending')),null);
+    assert.match(await page.locator('#broker-order-preview').innerText(),/ticket expired/);
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.equal(await page.locator('#broker-wallet-approve').isHidden(),true);
+    assert.match(await page.locator('#broker-order-preview').innerText(),/票据已过期/);
+    await page.locator('#broker-clear-approval').click();
+    await page.waitForFunction(()=>document.querySelector('#broker-order-preview')?.textContent==='尚未创建审核请求。');
+    assert.equal(await page.locator('#broker-wallet-approve').isHidden(),true);
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.order-opaque.v2.pending')),null);
+  }finally{await page.close()}
 });
 
 test('callback outage preserves exact request across reload and later records Wallet revocation once',async()=>{
