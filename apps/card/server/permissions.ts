@@ -4,9 +4,14 @@ import {CardError,type CardScope,type Principal} from './contracts.ts';
 // registry. They are never mapped from application/controls permission.
 const routeScopes:readonly [string,RegExp,CardScope][]=[
   ['GET',/^\/api\/card\/v2\/provider-overview$/,'account:read'],
+  ['GET',/^\/api\/card\/v2\/finance-consent$/,'account:read'],
+  ['POST',/^\/api\/card\/v2\/finance-consent(?:\/revoke)?$/,'card:finance:share'],
   ['GET',/^\/api\/card\/v2\/cards\/[^/]+\/provider-activity$/,'account:read'],
   ['GET',/^\/api\/card\/v2\/provider-applications(?:\/[^/]+)?$/,'account:read'],
+  ['GET',/^\/api\/card\/v2\/provider-applications\/[^/]+\/(?:status|funding|operation\/[^/]+|unknown-candidates|history)$/,'account:read'],
   ['POST',/^\/api\/card\/v2\/provider-applications(?:\/[^/]+\/(?:terms|hosted-kyc|cancel))?$/,'card:application:write'],
+  ['POST',/^\/api\/card\/v2\/provider-applications\/[^/]+\/(?:approval-request|approval-result|submit)$/,'card:application:write'],
+  ['POST',/^\/api\/card\/v2\/provider-applications\/[^/]+\/(?:freeze|unfreeze)$/,'card:controls:write'],
   ['GET',/^\/api\/card\/v1\/state$/,'account:read'],
   ['GET',/^\/api\/card\/v1\/cards\/[^/]+\/(statement|reconciliation)$/,'account:read'],
   ['POST',/^\/api\/card\/v1\/applications$/,'card:application:write'],

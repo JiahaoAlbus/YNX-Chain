@@ -50,9 +50,34 @@ export class ImmersveSandbox {
     if(!Array.isArray(body.items))throw Error('IMMERSVE_INVALID_RESPONSE');
     return body.items.map(value=>{const item=record(value);if(item.accountId!==accountId)throw Error('IMMERSVE_ACCOUNT_MISMATCH');return {id:id(item.id),accountId,fundingChannelId:typeof item.fundingChannelId==='string'?id(item.fundingChannelId):null};});
   }
+  async listFundingSourcesForAccount(accountId:string){accountId=id(accountId);const body=await this.get('/api/accounts/'+accountId+'/funding-sources',accountId);if(!Array.isArray(body.items))throw Error('IMMERSVE_INVALID_RESPONSE');return body.items.map(value=>{const item=record(value);if(item.accountId!==accountId)throw Error('IMMERSVE_ACCOUNT_MISMATCH');return {id:id(item.id),accountId,fundingChannelId:typeof item.fundingChannelId==='string'?id(item.fundingChannelId):null,balanceMinor:typeof item.balance==='string'&&/^(0|[1-9][0-9]{0,38})$/.test(item.balance)?item.balance:null,balanceCurrency:typeof item.balanceCurrency==='string'?id(item.balanceCurrency):null}})}
+  async readAccount(accountId:string){accountId=id(accountId);const body=await this.get('/api/accounts/'+accountId,accountId);if(body.id!==accountId||body.partnerAccountId!==this.config.partnerAccountId||body.type!=='cardholder'||body.liveness!=='test')throw Error('IMMERSVE_ACCOUNT_MISMATCH');if(typeof body.modifiedAt!=='string'||!Number.isFinite(Date.parse(body.modifiedAt)))throw Error('IMMERSVE_ACCOUNT_SOURCE_TIME_UNAVAILABLE');return {externalAccountId:accountId,status:body.isActive===true?'active':'inactive',sourceAsOf:body.modifiedAt}}
   async getBoundCard(owner:string){const {accountId,cardId}=this.binding(owner);if(!cardId)throw Error('IMMERSVE_CARD_UNBOUND');const body=await this.get('/api/cards/'+encodeURIComponent(cardId),accountId);
     if(body.accountId!==accountId||body.cardId!==cardId&&body.id!==cardId)throw Error('IMMERSVE_ACCOUNT_MISMATCH');
     return {cardId,accountId,status:typeof body.status==='string'?body.status:'UNKNOWN',provider:'Immersve Test',spendable:false};
+  }
+  /** These methods are called only by the Card lifecycle after its own owner,
+   * program, Wallet approval and durable operation checks. */
+  async readCard(accountId:string,cardId:string){accountId=id(accountId);cardId=id(cardId);const body=await this.get('/api/cards/'+cardId,accountId);
+    if(body.accountId!==accountId||(body.cardId!==cardId&&body.id!==cardId))throw Error('IMMERSVE_CARD_READBACK_MISMATCH');
+    const fundingSourceIds=Array.isArray(body.fundingSourceIds)?body.fundingSourceIds.map(id):[];
+    return {cardId,accountId,status:typeof body.status==='string'?body.status:'unknown',isBlocked:typeof body.isBlocked==='boolean'?body.isBlocked:null,cardProgramId:typeof body.cardProgramId==='string'?body.cardProgramId:null,fundingSourceIds,lastFour:typeof body.panLast4==='string'&&/^\d{4}$/.test(body.panLast4)?body.panLast4:null,sourceAsOf:typeof body.modifiedAt==='string'&&Number.isFinite(Date.parse(body.modifiedAt))?body.modifiedAt:null};
+  }
+  async listAccountCards(accountId:string,cursor?:string){accountId=id(accountId);if(cursor!==undefined&&(cursor.length>512||!/^[A-Za-z0-9._~:-]+$/.test(cursor)))throw Error('IMMERSVE_INVALID_CURSOR');const body=await this.get('/api/accounts/'+accountId+'/cards?limit=100'+(cursor?'&cursor='+encodeURIComponent(cursor):''),accountId);
+    if(!Array.isArray(body.items))throw Error('IMMERSVE_INVALID_RESPONSE');return {items:body.items.map(value=>{const item=record(value);if(item.accountId!==accountId)throw Error('IMMERSVE_ACCOUNT_MISMATCH');return {cardId:id(item.cardId??item.id),cardProgramId:id(item.cardProgramId),fundingSourceIds:Array.isArray(item.fundingSourceIds)?item.fundingSourceIds.map(id):[],status:typeof item.status==='string'?item.status:'unknown',isBlocked:typeof item.isBlocked==='boolean'?item.isBlocked:null}}),nextCursor:typeof record(body.pageInfo??{}).nextCursor==='string'?String(record(body.pageInfo).nextCursor):null};
+  }
+  async listAccountTransactions(accountId:string,cursor?:string){accountId=id(accountId);if(cursor!==undefined&&(cursor.length>512||!/^[A-Za-z0-9._~:-]+$/.test(cursor)))throw Error('IMMERSVE_INVALID_CURSOR');const body=await this.get('/api/accounts/'+accountId+'/transactions?limit=100&statuses=all'+(cursor?'&cursor='+encodeURIComponent(cursor):''),accountId);
+    if(!Array.isArray(body.items))throw Error('IMMERSVE_INVALID_RESPONSE');return {items:body.items.map(value=>record(value)),nextCursor:typeof record(body.pageInfo??{}).nextCursor==='string'?String(record(body.pageInfo).nextCursor):null};
+  }
+  async readTransaction(accountId:string,transactionId:string){accountId=id(accountId);transactionId=id(transactionId);return this.get('/api/transactions/'+transactionId,accountId)}
+  async submitCard(accountId:string,programId:string,fundingSourceId:string){accountId=id(accountId);programId=id(programId);fundingSourceId=id(fundingSourceId);
+    if(!this.writeGateReady()||this.config.operatorGate?.qaAccountId!==accountId)throw Error('IMMERSVE_TEST_WRITE_GATE_CLOSED');
+    const response=await this.transport(ORIGIN+'/api/cards',{method:'POST',headers:{'content-type':'application/json','x-api-key':this.config.apiKey!,'x-api-secret':this.config.apiSecret!,'x-account-id':accountId},body:JSON.stringify({cardProgramId:programId,fundingSourceId}),redirect:'error',signal:AbortSignal.timeout(5000)});
+    if(!response.ok)throw Error('IMMERSVE_CARD_SUBMIT_UNKNOWN');const raw=await response.text();if(raw.length>262144)throw Error('IMMERSVE_CARD_SUBMIT_UNKNOWN');const body=record(JSON.parse(raw));return id(body.cardId);
+  }
+  async setCardFrozen(accountId:string,cardId:string,frozen:boolean){accountId=id(accountId);cardId=id(cardId);if(!this.writeGateReady()||this.config.operatorGate?.qaAccountId!==accountId)throw Error('IMMERSVE_TEST_WRITE_GATE_CLOSED');
+    const response=await this.transport(ORIGIN+'/api/cards/'+cardId+'/'+(frozen?'freeze':'unfreeze'),{method:'POST',headers:{'x-api-key':this.config.apiKey!,'x-api-secret':this.config.apiSecret!,'x-account-id':accountId},redirect:'error',signal:AbortSignal.timeout(5000)});
+    if(!response.ok)throw Error('IMMERSVE_CARD_CONTROL_UNKNOWN');
   }
   async listWebhookDeliveryStatus(){const body=await this.get('/api/accounts/'+encodeURIComponent(this.config.partnerAccountId)+'/webhook-notifications');
     if(!Array.isArray(body.items))throw Error('IMMERSVE_INVALID_RESPONSE');return body.items.map(value=>{const item=record(value);return {messageId:id(item.messageId),deliveryStatus:typeof item.deliveryStatus==='string'?item.deliveryStatus:'UNKNOWN'};});

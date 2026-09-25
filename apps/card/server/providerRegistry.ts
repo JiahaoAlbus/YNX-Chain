@@ -64,6 +64,14 @@ export class CardProviderRegistry{
     if(!response||response.externalAccountId!==binding.externalAccountId)throw new CardError('PROVIDER_ACCOUNT_READ_MISMATCH',409);id(response.status,'PROVIDER_ACCOUNT_STATUS');iso(response.sourceAsOf,'SOURCE_TIME');
     return this.store.transaction(ownerKey(principal.owner),empty,state=>{const current=state.bindings[productCardId];if(!current||current.externalAccountId!==binding.externalAccountId||current.programId!==binding.programId||current.status==='LEGACY_READ_ONLY')throw new CardError('PROVIDER_ACCOUNT_READ_MISMATCH',409);if(current.accountReadbackAsOf&&Date.parse(response.sourceAsOf)<Date.parse(current.accountReadbackAsOf))throw new CardError('PROVIDER_ACCOUNT_READ_STALE',409);current.accountReadbackAsOf=response.sourceAsOf;current.status='ACCOUNT_READBACK_VERIFIED';current.updatedAt=now;return current});
   }
+  /** Server-side reference only, after a provider read confirms this account's
+   * funding source. The issuer still rechecks ownership before submission. */
+  bindTestFundingSource(principal:Principal,productCardId:string,externalFundingSourceId:string,now=new Date().toISOString()):ProviderBinding{
+    assertOwner(principal);id(productCardId,'PRODUCT_CARD_ID');const funding=id(externalFundingSourceId,'EXTERNAL_FUNDING_ID');iso(now,'TIMESTAMP');
+    return this.store.transaction(ownerKey(principal.owner),empty,state=>{const binding=state.bindings[productCardId];if(!binding||binding.environment!=='TEST'||binding.status!=='ACCOUNT_READBACK_VERIFIED'||!binding.externalAccountId)throw new CardError('PROVIDER_ACCOUNT_NOT_VERIFIED',409);
+      if(binding.externalFundingSourceId&&binding.externalFundingSourceId!==funding)throw new CardError('PROVIDER_FUNDING_SOURCE_CONFLICT',409);
+      this.store.claim('card-provider:'+binding.provider+':TEST:'+binding.programId+':funding',funding,principal.owner,productCardId);binding.externalFundingSourceId=funding;binding.updatedAt=now;return binding});
+  }
   /** Records a proposed Test reference, NOT proof of provider acceptance.
    * Verification needs an entitled provider read and separate Wallet consent. */
   recordSandboxReceipt(principal:Principal,productCardId:string,input:{externalAccountId:string;externalCardId:string;externalFundingSourceId?:string;sourceAsOf:string;evidenceId:string},now=new Date().toISOString()):ProviderBinding{
