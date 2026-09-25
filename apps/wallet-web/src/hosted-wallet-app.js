@@ -54,6 +54,18 @@ function cancelActiveRequest() {
   activeRequest.cancelled = true;
   if (currentReview?.context === activeRequest) finishReview({ approved: false });
 }
+function endSession(reason) {
+  cancelActiveRequest(); reply("disconnected"); session = null; finishReview({ approved: false });
+  if (!vault) setup.hidden = true;
+  $("setup-password").value = ""; $("setup-confirm").value = ""; $("setup-key").value = "";
+  $("backup-import-password").value = "";
+  messageKey(reason);
+}
+function currentConnection(connection) {
+  if (session !== connection) return false;
+  if (Date.now() >= session.expiresAt || window.opener?.closed) { endSession("connectionExpired"); return false; }
+  return true;
+}
 async function assertCurrentAccount() {
   const current = await store.read();
   if (!session || window.opener?.closed || Date.now() >= session.expiresAt || !current || current.account !== vault?.account || JSON.stringify(current) !== JSON.stringify(vault)) {
@@ -179,27 +191,35 @@ async function receive(event) {
   if (!session || Date.now() >= session.expiresAt || window.opener?.closed) return;
   let data;
   try { data = validateHostedMessage(event, window.opener, session, seen); } catch { return; }
+  // A product may cancel while this popup is still waiting for local Wallet setup.
+  // The validated channel must end before any account has been approved, too.
+  if (data.type === "request" && data.method === "wallet_disconnect" && Array.isArray(data.params) && data.params.length === 0) {
+    endSession("disconnected"); return;
+  }
   if (data.type === "ping" && session.approved === true) { try { await assertCurrentAccount(); reply("pong"); } catch { /* Disconnected by the account guard. */ } return; }
   if (data.type === "hello") {
     if (busy || vault === null) return;
     busy = true;
+    const connection = session;
     try {
       await store.consumeReplay(`connect:${session.origin}:${session.requestId}`, session.expiresAt);
+      if (!currentConnection(connection)) return;
       const requestingOrigin = session.origin, requestedAccount = vault.account;
       const choice = await askUser({ titleKey: "connectPrompt", detailFactory: language => `${requestingOrigin}\n${hostedCopy(language, "ynxAccount")}: ${toYNXAddress(requestedAccount)}\n${hostedCopy(language, "evmAddress")}: ${requestedAccount}\n${hostedDynamicCopy(language, "network")}\n${hostedDynamicCopy(language, "noBalance")}` });
+      if (!currentConnection(connection)) return;
       if (!choice.approved) { reply("rejected", { replyTo: data.messageId }); return; }
       await assertCurrentAccount();
+      if (!currentConnection(connection)) return;
       const sessionExpiresAt = Date.now() + HOSTED_SESSION_MS;
       reply("connected", { replyTo: data.messageId, account: vault.account, chainId: YNX_CHAIN_ID, sessionExpiresAt });
       session.expiresAt = sessionExpiresAt;
       messageKey("connected", { origin: session.origin });
       session.approved = true;
-    } catch { reply("rejected", { replyTo: data.messageId }); messageKey("connectFailed"); }
+    } catch { if (currentConnection(connection)) { reply("rejected", { replyTo: data.messageId }); messageKey("connectFailed"); } }
     finally { busy = false; }
     return;
   }
   if (data.type !== "request" || session.approved !== true) return;
-  if (data.method === "wallet_disconnect" && Array.isArray(data.params) && data.params.length === 0) { cancelActiveRequest(); reply("disconnected"); session = null; finishReview({ approved: false }); messageKey("disconnected"); return; }
   if (busy) { reply("response", { replyTo: data.messageId, ok: false, code: "HOSTED_APPROVAL_BUSY" }); return; }
   busy = true;
   const context = { messageId: data.messageId, expiresAt: data.expiresAt, cancelled: false };
@@ -211,13 +231,16 @@ async function receive(event) {
     reply("response", { replyTo: data.messageId, ok: true, result });
   } catch (error) {
     if (data.method === "eth_sendTransaction" && vault) { try { await refreshTransactionStatus(); } catch { /* Recovery display cannot replace the original transaction outcome. */ } }
-    reply("response", { replyTo: data.messageId, ok: false, code: typeof error?.code === "string" || Number.isInteger(error?.code) ? error.code : "HOSTED_REQUEST_FAILED" });
-    messageKey("requestFailed");
+    if (session) {
+      reply("response", { replyTo: data.messageId, ok: false, code: typeof error?.code === "string" || Number.isInteger(error?.code) ? error.code : "HOSTED_REQUEST_FAILED" });
+      messageKey("requestFailed");
+    }
   } finally { if (activeRequest === context) activeRequest = null; busy = false; }
 }
 
 $("setup-form").addEventListener("submit", async event => {
   event.preventDefault();
+  if (!session) return;
   const form = event.currentTarget, submit = form.querySelector("button[type=submit]");
   if (submit.disabled) return;
   const localPassword = $("setup-password").value, confirm = $("setup-confirm").value;
@@ -230,14 +253,15 @@ $("setup-form").addEventListener("submit", async event => {
     vault = created.vault; setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus();
     needsBackupAcknowledgement = !key;
     $("backup-confirmation").hidden = !needsBackupAcknowledgement;
-    messageKey(needsBackupAcknowledgement ? "backupBefore" : "walletSaved", { account: vault.account });
+    messageKey(session ? (needsBackupAcknowledgement ? "backupBefore" : "walletSaved") : "disconnected", { account: vault.account });
     $("export-backup").hidden = false;
     if (session && !needsBackupAcknowledgement) reply("ready");
-  } catch (error) { messageKey("createFailed", {}, error?.code ?? "HOSTED_STORAGE_UNAVAILABLE"); }
+  } catch (error) { if (session) messageKey("createFailed", {}, error?.code ?? "HOSTED_STORAGE_UNAVAILABLE"); }
   finally { $("setup-password").value = ""; $("setup-confirm").value = ""; $("setup-key").value = ""; submit.disabled = false; }
 });
 $("backup-import-form").addEventListener("submit", async event => {
   event.preventDefault();
+  if (!session) return;
   const file = $("backup-import-file").files?.[0], input = $("backup-import-password"), submit = event.currentTarget.querySelector("button[type=submit]");
   if (submit.disabled || !file || file.size < 100 || file.size > 20_000 || !$("backup-import-confirm").checked) { messageKey("chooseBackup"); return; }
   submit.disabled = true;
@@ -245,9 +269,9 @@ $("backup-import-form").addEventListener("submit", async event => {
     const record = JSON.parse(await file.text());
     const imported = await store.importEncrypted({ record, password: input.value });
     vault = imported.vault; setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); $("export-backup").hidden = false;
-    messageKey("backupRestored", { account: vault.account });
+    messageKey(session ? "backupRestored" : "disconnected", { account: vault.account });
     if (session) reply("ready");
-  } catch (error) { messageKey("restoreFailed", {}, error?.code ?? "HOSTED_BACKUP_INVALID"); }
+  } catch (error) { if (session) messageKey("restoreFailed", {}, error?.code ?? "HOSTED_BACKUP_INVALID"); }
   finally { input.value = ""; $("backup-import-file").value = ""; submit.disabled = false; }
 });
 $("add-account-form").addEventListener("submit", async event => {
@@ -302,11 +326,12 @@ async function start() {
   catch { messageKey("invalidConnect"); return; }
   history.replaceState(null, "", location.pathname);
   $("product-origin").textContent = session.origin;
-  try { vault = await store.read(); }
-  catch (error) { messageKey("storageUnreadable", {}, error?.code ?? "HOSTED_STORAGE_READ_FAILED"); return; }
-  if (vault) { setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); $("export-backup").hidden = false; messageKey("reviewFor", { account: toYNXAddress(vault.account) }); reply("ready"); }
-  else { setup.hidden = false; messageKey("createBefore"); }
   window.addEventListener("message", event => { void receive(event); });
-  window.setInterval(() => { if (session && (Date.now() >= session.expiresAt || window.opener?.closed)) { cancelActiveRequest(); finishReview({ approved: false }); session = null; messageKey("connectionExpired"); } }, 250);
+  window.setInterval(() => { if (session && (Date.now() >= session.expiresAt || window.opener?.closed)) endSession("connectionExpired"); }, 250);
+  try { vault = await store.read(); }
+  catch (error) { if (session) messageKey("storageUnreadable", {}, error?.code ?? "HOSTED_STORAGE_READ_FAILED"); return; }
+  if (!session) return;
+  if (vault) { setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); if (!session) return; $("export-backup").hidden = false; messageKey("reviewFor", { account: toYNXAddress(vault.account) }); reply("ready"); }
+  else { setup.hidden = false; messageKey("createBefore"); }
 }
 void start();

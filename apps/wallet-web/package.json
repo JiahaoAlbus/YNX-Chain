@@ -19,6 +19,7 @@
     "test:runtime:branded": "npm run build && node scripts/runtime-branded.mjs",
     "test:runtime:branded:cdp": "npm run build && node scripts/runtime-branded-cdp.mjs",
     "test:runtime:bridge": "npm run build && node scripts/runtime-bridge-gate.mjs",
+    "test:runtime:hosted-cancel": "node scripts/runtime-hosted-cancel.mjs",
     "test:runtime:approval": "npm run build && node scripts/runtime-approval-gate.mjs",
     "test:runtime:private-v2": "node scripts/runtime-private-product-session-v2.mjs",
     "test:runtime:preferences": "npm run build && node scripts/runtime-preferences-gate.mjs",
