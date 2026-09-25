@@ -12,6 +12,8 @@ YNX_EXCHANGE_CUSTODY_ADDRESS='ynx1...' \
 go run ./apps/exchange/server
 ```
 
+With no `YNX_EXCHANGE_DATABASE_URL`, the existing JSON snapshot is retained in a clearly single-host compatibility mode. Guest market views and the existing venue state remain available, but `/ready` returns 503 and `/health` reports `file_snapshot` / `multiInstance:false`; this is not a multi-instance release. Admission limits are process-local in this mode. If a PostgreSQL URL is configured, both the state store and shared admission must connect successfully or startup fails closed; the service never falls back to JSON or memory after a configured database failure. Leave `YNX_EXCHANGE_FINANCE_READ_KEY` unset to keep the separate Finance account-read route at 503. Do not switch an existing JSON venue to PostgreSQL by setting a URL alone: back up and validate the durable JSON state, then perform an explicit reviewed migration of balances, orders, fills, idempotency and audit records.
+
 Without both indexer and custody address, deposit is disabled. Cross-chain and `YUSD_TEST` deposit/withdrawal are always disabled. `YUSD_TEST` is a venue-only deterministic test credit, not a token or stablecoin. Operator allocation is audit-recorded through the API-key-protected test-credit endpoint.
 
 The current authoritative chain/indexer transfer API expresses native transfer amounts as integer YNXT units even though wallet metadata exposes 18 display decimals. The indexer adapter explicitly converts each committed integer unit to the venue ledger's fixed six-decimal representation; no floating point value is used in matching or balances.

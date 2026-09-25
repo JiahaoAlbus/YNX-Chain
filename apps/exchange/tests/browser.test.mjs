@@ -23,7 +23,7 @@ test.before(async()=>{
 test.after(async()=>{await browser?.close();if(server?.pid){try{process.kill(-server.pid,'SIGTERM')}catch{}}});
 
 test('desktop terminal is truthful, keyboard reachable and structurally dense',async()=>{
-  const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});const errors=[];page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});await page.goto(base,{waitUntil:'networkidle'});
+  const page=await browser.newPage({viewport:{width:1440,height:900},reducedMotion:'reduce'});const errors=[];page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});await page.goto(base,{waitUntil:'domcontentloaded'});
   await page.getByRole('heading',{name:'YNXT / YUSD_TEST'}).waitFor();
   await page.getByText('No public market depth').waitFor();
   assert.equal(await page.getByText('TESTNET ONLY').count(),1);
@@ -34,10 +34,10 @@ test('desktop terminal is truthful, keyboard reachable and structurally dense',a
 });
 
 test('mobile terminal is responsive without horizontal overflow',async()=>{
-  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true});await page.goto(base,{waitUntil:'networkidle'});
+  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true});await page.goto(base,{waitUntil:'domcontentloaded'});
   const metrics=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:document.documentElement.clientWidth}));assert.ok(metrics.scroll<=metrics.width,JSON.stringify(metrics));
   const chart=await page.locator('.chart').boundingBox(),book=await page.locator('.book').boundingBox();assert.ok(chart&&book&&book.y>chart.y+chart.height-2,'mobile panels should stack');
   await page.getByRole('button',{name:'Assets'}).click();await page.getByRole('heading',{name:'Deposit & withdrawal'}).waitFor();
 	assert.ok(await page.getByText('Cross-chain · unavailable').count()>=1);await page.evaluate(()=>{scrollTo(0,0);document.activeElement?.blur()});await page.screenshot({path:path.join(evidence,'mobile.png')});await page.close();
 });
-test('provider-only Wallet fallback remains in Exchange with truthful downloads',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Connect YNX Wallet'}).click();await page.getByText('No compatible injected Wallet provider was found.').waitFor();assert.equal(await page.url(),base+'/');assert.equal(await page.getByRole('link',{name:'Download YNX Wallet'}).count(),1);assert.equal(await page.getByRole('link',{name:'Use MetaMask'}).count(),1);await page.screenshot({path:path.join(evidence,'wallet-provider-fallback.png'),fullPage:true});await page.close()});
+test('provider-only Wallet fallback remains in Exchange with truthful downloads',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base,{waitUntil:'domcontentloaded'});await page.getByRole('button',{name:'Connect YNX Wallet'}).click();await page.getByText('No compatible injected Wallet provider was found.').waitFor();assert.equal(await page.url(),base+'/');assert.equal(await page.locator('#wallet-fallback a',{hasText:'Download YNX Wallet'}).count(),1);assert.equal(await page.locator('#wallet-fallback a',{hasText:'Use MetaMask'}).count(),1);await page.screenshot({path:path.join(evidence,'wallet-provider-fallback.png'),fullPage:true});await page.close()});

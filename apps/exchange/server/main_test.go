@@ -8,9 +8,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/exchangeproduct"
 )
 
 func TestGuestMarketModuleIsServedWithJavaScriptMIMEAndExactBytes(t *testing.T) {
@@ -83,6 +86,69 @@ func TestAdmissionFailsClosedWhenStoreIsUnavailable(t *testing.T) {
 func TestPostgresAdmissionRejectsMissingDatabaseURL(t *testing.T) {
 	if _, err := newPostgresAdmission(1, 1, time.Minute, " "); err == nil {
 		t.Fatal("missing database URL was accepted")
+	}
+}
+
+func TestSingleHostJSONCompatibilityKeepsGuestAndClosesUnconfiguredFinanceRead(t *testing.T) {
+	gate, err := newConfiguredAdmission(128, 600, time.Minute, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer gate.Close()
+	if _, ok := gate.store.(*memoryAdmissionStore); !ok {
+		t.Fatal("empty database URL did not select single-host admission")
+	}
+	statePath := filepath.Join(t.TempDir(), "exchange-state.json")
+	config := exchangeproduct.Config{StatePath: statePath, APIKey: strings.Repeat("k", 32), WalletCallback: "ynxexchange://wallet/callback"}
+	service, err := exchangeproduct.New(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer service.Close()
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("JSON state was not persisted: %v", err)
+	}
+	api := exchangeproduct.NewServer(service)
+	if err := api.ConfigureFinanceReadKey(""); err != nil {
+		t.Fatal(err)
+	}
+	for _, check := range []struct {
+		path string
+		want int
+	}{
+		{path: "/health", want: http.StatusOK},
+		{path: "/v1/markets", want: http.StatusOK},
+		{path: "/ready", want: http.StatusServiceUnavailable},
+		{path: exchangeproduct.FinanceReadRoute, want: http.StatusServiceUnavailable},
+	} {
+		response := httptest.NewRecorder()
+		gate.wrap(api).ServeHTTP(response, httptest.NewRequest(http.MethodGet, check.path, nil))
+		if response.Code != check.want {
+			t.Errorf("%s: status=%d want=%d body=%s", check.path, response.Code, check.want, response.Body.String())
+		}
+	}
+	if backend, multiInstance := service.StorageStatus(); backend != "file_snapshot" || multiInstance {
+		t.Fatalf("single-host JSON was overclaimed: backend=%s multiInstance=%t", backend, multiInstance)
+	}
+	before, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	restarted, err := exchangeproduct.New(config)
+	if err != nil {
+		t.Fatalf("second JSON startup failed: %v", err)
+	}
+	defer restarted.Close()
+	after, err := os.ReadFile(statePath)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatalf("second startup changed persisted JSON state: err=%v", err)
+	}
+}
+
+func TestConfiguredPostgresFailureNeverFallsBackToMemory(t *testing.T) {
+	gate, err := newConfiguredAdmission(128, 600, time.Minute, "postgres://127.0.0.1:not-a-port/exchange")
+	if err == nil || gate != nil {
+		t.Fatalf("configured PostgreSQL failure must stop startup: gate=%v err=%v", gate, err)
 	}
 }
 

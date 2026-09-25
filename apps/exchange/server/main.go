@@ -46,14 +46,14 @@ func main() {
 		log.Fatal(err)
 	}
 	defer service.Close()
-	if databaseURL == "" {
-		log.Fatal("YNX_EXCHANGE_DATABASE_URL is required: Exchange admission must use PostgreSQL in multi-instance mode")
-	}
-	admission, err := newPostgresAdmission(128, 600, time.Minute, databaseURL)
+	admission, err := newConfiguredAdmission(128, 600, time.Minute, databaseURL)
 	if err != nil {
-		log.Fatalf("configure PostgreSQL Exchange admission: %v", err)
+		log.Fatalf("configure Exchange admission: %v", err)
 	}
 	defer admission.Close()
+	if databaseURL == "" {
+		log.Print("Exchange file snapshot mode: single host only; multi-instance readiness remains unavailable")
+	}
 	api := exchangeproduct.NewServer(service)
 	if err := api.ConfigureFinanceReadKey(os.Getenv("YNX_EXCHANGE_FINANCE_READ_KEY")); err != nil {
 		log.Fatal("invalid Exchange Finance read key")
@@ -90,6 +90,15 @@ type admission struct {
 
 func newAdmission(maxConcurrent, limit int, window time.Duration) *admission {
 	return &admission{slots: make(chan struct{}, maxConcurrent), limit: limit, window: window, store: &memoryAdmissionStore{now: time.Now, clients: map[string]rateWindow{}}}
+}
+
+// The existing JSON venue is a single-host compatibility mode. A configured
+// PostgreSQL backend must be healthy; it is never silently replaced by memory.
+func newConfiguredAdmission(maxConcurrent, limit int, window time.Duration, databaseURL string) (*admission, error) {
+	if strings.TrimSpace(databaseURL) == "" {
+		return newAdmission(maxConcurrent, limit, window), nil
+	}
+	return newPostgresAdmission(maxConcurrent, limit, window, databaseURL)
 }
 
 func newPostgresAdmission(maxConcurrent, limit int, window time.Duration, databaseURL string) (*admission, error) {
