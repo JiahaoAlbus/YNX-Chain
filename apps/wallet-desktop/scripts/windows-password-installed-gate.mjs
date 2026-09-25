@@ -1,7 +1,9 @@
 /** Installed Windows-only V3 custody gate. Prints public state and fixed error codes only. */
 import { Wallet } from "ethers";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { installedMessageIs, passwordActionReady, passwordFormAction } from "./windows-password-form-state.mjs";
+import { installedMessageIs, passwordActionReady, passwordFormAction, wrongPasswordRejected } from "./windows-password-form-state.mjs";
 
 const [mode, expectedAccount = ""] = process.argv.slice(2);
 const password = process.env.YNX_WALLET_QA_PASSWORD;
@@ -10,6 +12,13 @@ const importFixtures = Array.from({ length: 6 }, (_, index) => {
   const key = `0x${(0x42 + index).toString(16).repeat(32)}`; // Public, disposable fixtures; never user keys.
   return { key, account: new Wallet(key).address.toLowerCase() };
 });
+
+async function vaultDigest() {
+  const profile = process.env.YNX_WALLET_PROFILE_PATH;
+  const relative = process.env.RUNNER_TEMP && profile ? path.relative(process.env.RUNNER_TEMP, profile) : "";
+  if (process.platform !== "win32" || !["钱包 QA profile", "离线 QA profile", "旧钱包 QA profile"].includes(relative)) throw new Error("QA_VAULT_PROFILE_UNAVAILABLE");
+  return createHash("sha256").update(await readFile(path.join(process.env.YNX_WALLET_PROFILE_PATH, "wallet-vault-v3.json"))).digest("hex");
+}
 
 async function target() {
   for (let attempt = 0; attempt < 40; attempt++) {
@@ -85,7 +94,7 @@ async function snapshot() {
       account: account.ok ? { initialized: account.value.initialized, passwordConfigured: account.value.passwordConfigured, account: account.value.account, ynxAccount: account.value.ynxAccount, accounts: account.value.accounts?.map(item => item.account), custody: account.value.custody, recoveryRequired: account.value.recoveryRequired } : null,
       error: account.ok ? null : { code: account.error?.code, storageStage: account.error?.storageStage },
       locked: security.locked,
-      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: sheet?.open, passwordModeUnlock: sheet?.open ? document.querySelector('#local-confirm-group')?.hidden : null, passwordSubmitEnabled: Boolean(sheet?.open && submit && !submit.disabled && submit.getClientRects().length), unlockEnabled: Boolean(unlock && !unlock.disabled && unlock.getClientRects().length), unlockLabel: unlock?.textContent, importEnabled: !document.querySelector('#import-form button')?.disabled, importResult: document.querySelector('#import-result')?.textContent, backupEnabled: !document.querySelector('#save-backup')?.disabled, backupVisible: !document.querySelector('#backup-section')?.hidden, backupResult: document.querySelector('#backup-result')?.textContent }
+      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: sheet?.open, passwordModeUnlock: sheet?.open ? document.querySelector('#local-confirm-group')?.hidden : null, passwordSubmitEnabled: Boolean(sheet?.open && submit && !submit.disabled && submit.getClientRects().length), unlockEnabled: Boolean(unlock && !unlock.disabled && unlock.getClientRects().length), unlockLabel: unlock?.textContent, wrongPasswordAttempt: window.__ynxQaWrongPassword ? { submitObserved: window.__ynxQaWrongPassword.submitObserved, busyObserved: window.__ynxQaWrongPassword.busyObserved, settled: Boolean(!sheet?.open || !submit?.disabled) } : null, importEnabled: !document.querySelector('#import-form button')?.disabled, importResult: document.querySelector('#import-result')?.textContent, backupEnabled: !document.querySelector('#save-backup')?.disabled, backupVisible: !document.querySelector('#backup-section')?.hidden, backupResult: document.querySelector('#backup-result')?.textContent }
     });
   })()`, "ACCOUNT_SNAPSHOT"));
 }
@@ -200,11 +209,26 @@ try {
     const created = await until(state => state.account?.initialized === true && state.locked === false, "Account creation");
     await evaluate(`document.querySelector('#lock-wallet')?.click(); true`, "EXPLICIT_LOCK_CLICK");
     await until(state => state.locked === true, "Explicit lock");
+    const vaultBeforeWrongPassword = await vaultDigest();
+    const installedVersion = await evaluate(`(async () => (await window.ynxWallet.appInfo()).version)()`, "WRONG_PASSWORD_INSTALLED_VERSION");
+    if (!["0.6.8", "0.6.10"].includes(installedVersion)) throw new Error("WRONG_PASSWORD_VERSION_UNSUPPORTED");
+    await evaluate(`(() => {
+      const form=document.querySelector('#password-form'), submit=document.querySelector('#submit-password');
+      const attempt={submitObserved:false,busyObserved:false};
+      window.__ynxQaWrongPassword=attempt;
+      form.addEventListener('submit',()=>{ attempt.submitObserved=true; },{capture:true,once:true});
+      const observer=new MutationObserver(()=>{ if(submit.disabled) attempt.busyObserved=true; });
+      observer.observe(submit,{attributes:true,attributeFilter:['disabled']});
+      window.__ynxQaWrongPasswordObserver=observer;
+      return true;
+    })()`, "WRONG_PASSWORD_OBSERVATION");
     await formSubmit("incorrect synthetic password");
-    await until(state => state.locked === true && [state.ui.passwordResult, state.ui.unlockResult].some(message => installedMessageIs(message, "The password is incorrect or this encrypted Wallet changed. It remains locked.")), "Wrong password leaves Wallet locked");
+    const rejected = await until(state => wrongPasswordRejected(state, created.account.account, installedVersion), "Wrong password leaves exact Wallet account locked");
+    if (await vaultDigest() !== vaultBeforeWrongPassword) throw new Error("WRONG_PASSWORD_CHANGED_ENCRYPTED_VAULT");
+    await evaluate(`(() => { window.__ynxQaWrongPasswordObserver?.disconnect(); delete window.__ynxQaWrongPasswordObserver; delete window.__ynxQaWrongPassword; return true; })()`, "WRONG_PASSWORD_OBSERVATION_END");
     await formSubmit(password);
     await until(state => state.locked === false && state.account?.account === created.account.account, "Correct password restores the same account");
-    console.log(JSON.stringify({ mode, passwordPersisted: true, accountCreated: true, wrongPasswordRejected: true, sameAccountAfterUnlock: true, account: created.account.account, ynxAccount: created.account.ynxAccount, custody: created.account.custody, ...(mode === "offline-create" ? { rpcUnavailableDuringAccountCreation: true } : {}) }));
+    console.log(JSON.stringify({ mode, passwordPersisted: true, accountCreated: true, wrongPasswordRejected: true, wrongPasswordVaultUnchanged: true, wrongAttemptProcessedByInstalledUI: rejected.ui.wrongPasswordAttempt.submitObserved && rejected.ui.wrongPasswordAttempt.busyObserved, wrongPasswordFeedbackMayDisappearInOldVersion: installedVersion === "0.6.8" && rejected.ui.passwordSheetOpen === false, sameAccountAfterUnlock: true, account: created.account.account, ynxAccount: created.account.ynxAccount, custody: created.account.custody, ...(mode === "offline-create" ? { rpcUnavailableDuringAccountCreation: true } : {}) }));
   } else {
     if (!before.account.initialized || before.account.account !== expectedAccount || !before.locked) throw new Error("INSTALLED_RESTORE_ACCOUNT_OR_LOCK_MISMATCH");
     await until(state => passwordActionReady(state, true), "Cold restart unlock UI readiness");
