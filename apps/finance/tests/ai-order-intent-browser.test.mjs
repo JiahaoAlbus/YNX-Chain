@@ -8,7 +8,7 @@ import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 const web=new URL('../web/',import.meta.url);
 const walletStub=`window.YNXFinanceWallet={ready:Promise.resolve(),connected:()=>true,getRevision:()=>0,requireProof:async()=>({proofHeader:'TEST_ONLY',requestId:'req_test_finance_ai_0001'}),connect:async()=>{},disconnect:async()=>({status:'disconnected'}),reportPrivateFailure:()=>{}};`;
 const orderWalletStub=`window.YNXFinanceOrderWallet={pending:()=>null,clear:()=>{},begin:()=>{throw new Error('order Wallet is outside this AI fixture')},parseReturn:()=>{throw new Error('order Wallet is outside this AI fixture')}};`;
-let server,browser,base,aiRequests,aiFail=false;
+let server,browser,base,aiRequests,aiFail=false,statementInvalid=false;
 
 function json(res,status,value){res.writeHead(status,{'content-type':'application/json'});res.end(JSON.stringify(value));}
 test.before(async()=>{
@@ -24,6 +24,7 @@ test.before(async()=>{
     if(url.pathname==='/api/broker/status')return json(res,200,{schema:'ynx-finance-broker-status-v1',status:{enabled:false,tradingEnvironment:'sandbox',chainEnvironment:'testnet',submissionEnabled:false,state:'DISABLED'}});
     if(url.pathname==='/api/broker/snapshot')return json(res,200,{schema:'ynx-finance-broker-snapshot-v1',snapshot:{provider:'alpaca_broker',environment:'sandbox',account:{providerAccountId:'11111111-2222-4333-8444-555555555555',currency:'USD',cash:'0',buyingPower:'0'},positions:[],orders:[]}});
     if(url.pathname==='/api/broker/orders')return json(res,200,{schema:'ynx-finance-broker-workspace-v1',workspace:{orders:[],outbox:[],journal:[],watchlist:[],serverTime:'2026-09-19T11:00:00.000Z'}});
+    if(url.pathname==='/api/statements'&&statementInvalid)return json(res,200,{schemaVersion:'finance-statement-v2',coverageComplete:true,activity:[],totals:{incomingYnxt:0,outgoingYnxt:0,feesYnxt:0}});
     if(url.pathname==='/api/ai/jobs'&&req.method==='POST'){
       const chunks=[];for await(const chunk of req)chunks.push(chunk);
       aiRequests.push(JSON.parse(Buffer.concat(chunks).toString('utf8')));
@@ -43,7 +44,7 @@ test.before(async()=>{
 test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
 
 async function fixture(){
-  aiRequests=[];aiFail=false;
+  aiRequests=[];aiFail=false;statementInvalid=false;
   const page=await browser.newPage(),errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(base);
@@ -136,6 +137,24 @@ test('private AI failure keeps server code for diagnosis without exposing untran
     assert.match(await page.locator('#ai-start').textContent(),/审阅草稿/u);
     assert.deepEqual(errors,[]);
   }finally{aiFail=false;await page.close()}
+});
+
+test('invalid statement is never cached and locale switch continues without a page error',async()=>{
+  const {page,errors}=await fixture();
+  try{
+    statementInvalid=true;
+    await page.evaluate(()=>{location.hash='statements'});
+    await page.waitForFunction(()=>document.querySelector('#statements').classList.contains('active-view'));
+    await page.locator('#statement-form input[name=from]').fill('2026-09-01');
+    await page.locator('#statement-form input[name=to]').fill('2026-09-30');
+    await page.locator('#statement-form button').click();
+    await page.waitForFunction(()=>document.querySelector('#notice').classList.contains('error'));
+    assert.equal(await page.evaluate(()=>state.statement),null);
+    await page.evaluate(()=>window.YNXFinanceLocale.set('ar'));
+    assert.match(await page.locator('#statement').textContent(),/[\u0600-\u06ff]/u);
+    assert.match(await page.locator('#ai-start').textContent(),/مسودة/u);
+    assert.deepEqual(errors,[]);
+  }finally{statementInvalid=false;await page.close()}
 });
 
 test('real Finance DOM rejects non-canonical AI order decimals before any request',async()=>{

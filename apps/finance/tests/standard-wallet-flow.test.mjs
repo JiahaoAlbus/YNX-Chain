@@ -89,12 +89,16 @@ test('local Chrome planning view shows fixture observations, not false complete 
       location.hash='#planning';
       // This exercises rendering only; no private authorization is inferred.
       state.connected=true;
-      render({portfolio:{account:'LOCAL_RENDER_FIXTURE_NOT_AUTHORIZATION',activity:[],payReceipts:[],explorerStatus:{available:false,error:'Local fixture'},payStatus:{available:false,error:'Local fixture'}},profile:{categories:[],budgets:[{id:'budget-fixture',name:'Local rendering fixture',period:'weekly',limitYnxt:100}],reminders:[],privacy:{}},budgetProgress:[{budgetId:'budget-fixture',spentYnxt:null,remainingYnxt:null,observedSpentYnxt:12,coverageComplete:false,calculationStatus:'partial',periodTimezone:'UTC',periodStart:'2026-09-07T00:00:00Z',effectiveFrom:'2026-09-07T00:00:00Z',coverage:'Latest 100 global records only'}],alerts:[],support:{}});
+      state.overview={portfolio:{account:'LOCAL_RENDER_FIXTURE_NOT_AUTHORIZATION',activity:[],payReceipts:[],explorerStatus:{available:false,error:'Local fixture'},payStatus:{available:false,error:'Local fixture'}},profile:{categories:[],budgets:[{id:'budget-fixture',name:'Local rendering fixture',period:'weekly',limitYnxt:100}],reminders:[],privacy:{}},budgetProgress:[{budgetId:'budget-fixture',spentYnxt:null,remainingYnxt:null,observedSpentYnxt:12,coverageComplete:false,calculationStatus:'partial',periodTimezone:'UTC',periodStart:'2026-09-07T00:00:00Z',effectiveFrom:'2026-09-07T00:00:00Z',coverage:'Latest 100 global records only'}],alerts:[],support:{}};
+      render(state.overview);
     });
     assert.equal(await page.locator('#planning').isVisible(),true);
     const text=await page.locator('#budgets').innerText();
     assert.match(text,/Observed spending: 12 YNXT/);assert.match(text,/Full-period spending: Unknown/);assert.match(text,/Remaining budget: Unknown/);
     assert.match(text,/2026-09-07T00:00:00Z/);assert.doesNotMatch(text,/88 YNXT|12%/);
+    assert.match(text,/Latest 100 global records only/);
+    await page.evaluate(()=>window.YNXFinanceLocale.set('zh-CN'));
+    assert.match(await page.locator('#budgets').innerText(),/Latest 100 global records only/);
     assert.deepEqual(await calls(page),[]);assert.deepEqual(page.financeErrors,[]);
   }finally{await page.close();}
 });
