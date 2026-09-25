@@ -64,6 +64,12 @@ jobs:
           if ($installer.Length -ne [long]$env:INSTALLER_BYTES -or $hash -ne $env:INSTALLER_SHA256) { throw 'Downloaded installer bytes differ from the original' }
           $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
           @{ sourceCommit=$env:SOURCE_COMMIT; originalRun=$env:SOURCE_RUN; installerFilename=$installer.Name; installerBytes=$installer.Length; installerSHA256=$hash; authenticodeStatus=[string]$signature.Status; originalInstallerBytesVerified=$true; newlyBuilt=$false; productionSigned=$false } | ConvertTo-Json -Depth 4 | Set-Content 'apps/wallet-desktop/dist/same-artifact-installer.json'
+          # The provenance verifier binds installed resources to the exact
+          # installer in its distribution directory. Copy checked bytes only;
+          # this never rebuilds or rewrites the original artifact.
+          $checkedInstaller = Join-Path (Resolve-Path 'apps/wallet-desktop/dist') $installer.Name
+          Copy-Item -LiteralPath $installer.FullName -Destination $checkedInstaller -ErrorAction Stop
+          if ((Get-FileHash -LiteralPath $checkedInstaller -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:INSTALLER_SHA256) { throw 'Copied verifier installer differs from the original' }
           npm ci --ignore-scripts --prefix packages/wallet-auth
           if ($LASTEXITCODE -ne 0) { throw 'Wallet auth verifier dependencies failed' }
           npm ci --ignore-scripts --prefix apps/wallet-desktop
