@@ -176,6 +176,15 @@ await cp(join(root,"public","hosted-wallet.css"),join(hosted,"hosted-wallet.css"
 await cp(join(root,"public","ynx-logo.png"),join(hosted,"ynx-logo.png"));
 await bundle({entryPoints:[join(root,"src","hosted-wallet-app.js")],outfile:join(hosted,"app.js"),bundle:true,format:"esm",platform:"browser",target:"chrome120",legalComments:"none",minify:true});
 await bundle({entryPoints:[join(root,"src","hosted-adapter.js")],outfile:join(hosted,"adapter.js"),bundle:true,format:"esm",platform:"browser",target:"chrome120",legalComments:"none",minify:true});
+// Vercel publishes dist/pwa, not the sibling dist/hosted build used by
+// first-party consumers to pin adapter.js. Preserve byte-for-byte identity.
+const publishedHosted = join(dist,"pwa","hosted");
+await mkdir(publishedHosted,{recursive:true});
+for (const file of ["index.html","hosted-wallet.css","ynx-logo.png","app.js","adapter.js"]) {
+  const bytes = await readFile(join(hosted,file));
+  await writeFile(join(publishedHosted,file),bytes);
+  if (!(await readFile(join(publishedHosted,file))).equals(bytes)) throw new Error(`Hosted publish asset mismatch: ${file}`);
+}
 
 const variants = [
   ["chromium", chromiumManifest],

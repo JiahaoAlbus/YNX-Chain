@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
@@ -8,6 +9,14 @@ import { historicalPwaFixture } from "./pwa-upgrade-browser-harness.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const old = await historicalPwaFixture("2f55f7924");
+const hostedFiles = ["index.html","hosted-wallet.css","ynx-logo.png","app.js","adapter.js"];
+const hostedHashes = {};
+for (const file of hostedFiles) {
+  const built = await readFile(resolve(root,"dist","hosted",file));
+  const published = await readFile(resolve(root,"dist","pwa","hosted",file));
+  assert.deepEqual(published,built,`published hosted asset differs: ${file}`);
+  hostedHashes[file] = createHash("sha256").update(published).digest("hex");
+}
 let phase = "old";
 const server = createServer(async (request, response) => {
   const pathname = new URL(request.url, "http://fixture").pathname;
@@ -17,7 +26,7 @@ const server = createServer(async (request, response) => {
   response.setHeader("service-worker-allowed", "/");
   let bytes;
   try {
-    if (pathname.startsWith("/hosted/")) bytes = await readFile(resolve(root, "dist", "hosted", pathname.slice(8) || "index.html"));
+    if (pathname.startsWith("/hosted/")) bytes = await readFile(resolve(root, "dist", "pwa", "hosted", pathname.slice(8) || "index.html"));
     else if (phase === "old") bytes = old.files[name];
     else bytes = await readFile(resolve(root, "dist", "pwa", name));
     if (!bytes) throw new Error("missing");
@@ -49,6 +58,6 @@ try {
   await page.goto(`${origin}/hosted/`);
   assert.equal(await page.title(), "YNX Wallet · Connect");
   assert.match(await page.locator("#status").textContent(), /registered product/u);
-  console.log(JSON.stringify({ isolatedBrowser: "Chromium", historicalWorkerSource: old.sourceCommit, historicalWorkerSHA256: old.workerSha256, oldServiceWorkerControlled: true, updatedWorkerHostedRouteNetworkOnly: true, hostedPageNotCompanionShell: true, publicDeploymentVerified: false }));
+  console.log(JSON.stringify({ isolatedBrowser: "Chromium", historicalWorkerSource: old.sourceCommit, historicalWorkerSHA256: old.workerSha256, oldServiceWorkerControlled: true, updatedWorkerHostedRouteNetworkOnly: true, hostedPageNotCompanionShell: true, publishedHostedHashes: hostedHashes, publicDeploymentVerified: false }));
   await context.close();
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
