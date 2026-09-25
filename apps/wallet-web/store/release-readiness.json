@@ -48,8 +48,12 @@
     "incognito": "not_allowed"
   },
   "publicDownloads": {
-    "sourceCommit": "c93e16be81beddc957ef5f27b7bbcdfa89c28db3",
-    "manifest": "../artifact-manifest.json",
+    "manifest": "../public-channel-manifest.json",
+    "channels": {
+      "pwaPackage": {"version": "0.1.1", "sourceCommit": "c93e16be81beddc957ef5f27b7bbcdfa89c28db3"},
+      "chromeEdgeExtension": {"version": "0.1.2", "sourceCommit": "40c2814d6e87e19ce2762737356c4f9d1128a69d"},
+      "firefoxExtension": {"version": "0.1.1", "sourceCommit": "c93e16be81beddc957ef5f27b7bbcdfa89c28db3"}
+    },
     "hosted": true,
     "productionSigned": false,
     "storeReleased": false

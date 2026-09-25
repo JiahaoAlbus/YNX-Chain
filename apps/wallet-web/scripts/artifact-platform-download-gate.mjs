@@ -9,12 +9,12 @@ const evidencePath=join(root,"evidence","runtime","built-platform-download-matri
 const sourceCommit=process.env.YNX_WALLET_WEB_SOURCE_COMMIT||execFileSync("git",["rev-parse","HEAD"],{cwd:repository,encoding:"utf8"}).trim();
 execFileSync(process.execPath,["scripts/build.mjs"],{cwd:root,stdio:"inherit",env:{...process.env,YNX_WALLET_WEB_SOURCE_COMMIT:sourceCommit}});
 
-const [provider,app,styles,nativeManifest,webManifest]=await Promise.all([
+const [provider,app,styles,nativeManifest,publicChannels]=await Promise.all([
   import(`${pathToFileURL(join(root,"dist","pwa","provider.js")).href}?built=${Date.now()}`),
   readFile(join(root,"dist","pwa","app.js"),"utf8"),
   readFile(join(root,"dist","pwa","styles.css"),"utf8"),
   readFile(join(repository,"apps","wallet","artifact-manifest.json"),"utf8").then(JSON.parse),
-  readFile(join(root,"artifact-manifest.json"),"utf8").then(JSON.parse),
+  readFile(join(root,"public-channel-manifest.json"),"utf8").then(JSON.parse),
 ]);
 const matrix=provider.WALLET_DOWNLOAD_MATRIX;
 const failures=[];
@@ -22,9 +22,9 @@ const require=(condition,message)=>{if(!condition)failures.push(message)};
 const android=nativeManifest.artifacts.find(item=>item.name==="android-release-apk");
 const officialWalletURL=artifact=>`https://downloads.ynxweb4.com/wallet/sha256-${artifact.sha256}/${artifact.url.split("/").pop()}`;
 require(android&&matrix.android?.url===android.url&&matrix.android?.bytes===android.bytes&&matrix.android?.sha256===android.sha256&&provider.isPinnedAndroidRelease(matrix.android),"Android install entry is not the current exact verified GitHub prerelease");
-for(const [key,name] of Object.entries({pwaPackage:"ynx-wallet-web-pwa-0.1.1.zip",chromeEdgeExtension:"ynx-wallet-chrome-edge-0.1.1.zip",firefoxExtension:"ynx-wallet-firefox-0.1.1.zip"})){
-  const artifact=webManifest.artifacts.find(item=>item.name===name),entry=matrix[key];
-  require(artifact&&entry?.hosted===true&&entry?.bytes===artifact.bytes&&entry?.sha256===artifact.sha256&&entry?.url?.endsWith(`/${name}`),`${key} does not match the published Wallet Web artifact`);
+for(const [key,artifact] of Object.entries(publicChannels.channels)){
+  const entry=matrix[key];
+  require(entry?.hosted===true&&entry?.bytes===artifact.bytes&&entry?.sha256===artifact.sha256&&entry?.url===artifact.url,`${key} does not match the published Wallet Web channel`);
 }
 for(const [key,entry] of Object.entries(matrix)){
   require(entry?.hosted===true,`${key} is incorrectly shown as unavailable`);

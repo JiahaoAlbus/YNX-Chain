@@ -2,17 +2,19 @@ import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
 import {extensionVersion} from "../src/extension-manifest.js";
 import {mkdir, readFile, readdir, rm, stat, utimes, writeFile} from "node:fs/promises";
-import {dirname, join, resolve} from "node:path";
+import {dirname, join, relative, resolve, sep} from "node:path";
 import {fileURLToPath} from "node:url";
 import {requirePackageSourceCommit} from "../src/package-source-identity.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repository = resolve(root, "..", "..");
-const dist = join(root, "dist"), artifacts = join(root, "artifacts");
+const sourceCommit = requirePackageSourceCommit(process.env.YNX_WALLET_WEB_SOURCE_COMMIT);
+const dist = join(root, "dist"), artifacts = join(root, "candidate-artifacts",extensionVersion,sourceCommit);
+const artifactPrefix=relative(root,artifacts).split(sep).join("/");
 const manifestOutput = process.env.YNX_WALLET_WEB_ARTIFACT_MANIFEST
   ? resolve(process.env.YNX_WALLET_WEB_ARTIFACT_MANIFEST)
-  : join(root, "artifact-manifest.json");
-const sourceCommit = requirePackageSourceCommit(process.env.YNX_WALLET_WEB_SOURCE_COMMIT);
+  : join(artifacts,"artifact-manifest.json");
+if(manifestOutput===join(root,"artifact-manifest.json"))throw new Error("Public artifact manifest is immutable; use a separate candidate manifest");
 try {
   execFileSync("git", ["cat-file", "-e", `${sourceCommit}^{commit}`], {cwd:repository, stdio:"ignore"});
 } catch {
@@ -53,7 +55,7 @@ for (const [name, folder, minimumOS, signingClass, browsers] of entries) {
   await rm(output, {force:true});
   execFileSync("zip", ["-X", "-q", "-r", output, "."], {cwd: join(dist, folder)});
   const data = await readFile(output); const info = await stat(output);
-  records.push({name, path:`artifacts/${name}`, bytes:info.size, sha256:createHash("sha256").update(data).digest("hex"), minimumOS, signingClass, browsers, installedLocal:false, productionSigned:false, storeReleased:false});
+  records.push({name, path:`${artifactPrefix}/${name}`, bytes:info.size, sha256:createHash("sha256").update(data).digest("hex"), minimumOS, signingClass, browsers, installedLocal:false, productionSigned:false, storeReleased:false});
 }
 const manifest = {schemaVersion:1,productId:"wallet-web",version:`${extensionVersion}-testnet-preview.1`,sourceCommit,implementedLocal:true,testedLocal:true,installedLocal:false,integratedCentral:false,deployedStaging:false,deployedPublic:false,downloadHosted:false,productionSigned:false,storeReleased:false,artifacts:records};
 await mkdir(dirname(manifestOutput), {recursive: true});
