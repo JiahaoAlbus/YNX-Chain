@@ -56,6 +56,22 @@ test("locked custody never supplies a signing lease and a real expiry drops the 
   await assert.rejects(f.vault.withSecret(() => assert.fail()), cancelled);
 });
 
+test("V3 encrypted backup restores the same public account and wrong backup password preserves an empty vault", async t => {
+  const source = await fixture(t); await create(source);
+  const backupPassword = "independent portable backup password 2026";
+  const encrypted = await source.life.run(() => source.vault.encryptedBackup(backupPassword));
+  assert.equal(encrypted.includes(SECRET), false);
+  const target = await fixture(t); await setup(target); await unlock(target);
+  const emptyVault = await fs.readFile(target.filePath);
+  await assert.rejects(target.life.run(() => target.vault.importAccount({ kind: "encrypted-json", value: encrypted, password: "incorrect backup password" })), error => error.data?.code === "INVALID_IMPORT");
+  assert.deepEqual(await fs.readFile(target.filePath), emptyVault);
+  assert.equal((await target.vault.status()).initialized, false);
+  const imported = await target.life.run(() => target.vault.importAccount({ kind: "encrypted-json", value: encrypted, password: backupPassword }));
+  assert.equal(imported.account, accountFor(SECRET)); target.life.setAccount(imported.account);
+  target.life.lock(); await unlock(target);
+  assert.equal((await target.vault.status()).account, (await source.vault.status()).account);
+});
+
 test("blur and return during password derivation invalidates that attempt; it is not a Touch ID focus exception", async t => {
   const f = await fixture(t); await setup(f);
   const pending = unlock(f); f.life.setFocused(false); f.life.setFocused(true);
