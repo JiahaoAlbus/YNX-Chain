@@ -29,9 +29,10 @@ type fundingFlight struct {
 }
 
 type statusResult struct {
-	tx      chain.Transaction
-	pending bool
-	err     error
+	tx       chain.Transaction
+	pending  bool
+	notFound bool
+	err      error
 }
 
 type statusFlight struct {

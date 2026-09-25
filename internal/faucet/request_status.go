@@ -93,6 +93,20 @@ func (s *Service) recoverReceipt(ctx context.Context, record admissionRecord, ha
 }
 
 func (s *Service) fetchAndPersistReceipt(ctx context.Context, record admissionRecord, hash string) statusResult {
+	result := s.fetchReceipt(ctx, record, hash)
+	if result.err != nil || result.pending {
+		return result
+	}
+	if err := s.admissions.complete(record, result.tx); err != nil {
+		s.recordAdmissionStoreError("complete")
+		return statusResult{err: errors.New("receipt persistence unavailable")}
+	}
+	return result
+}
+
+// fetchReceipt verifies the exact durable Core receipt without changing the
+// admission store. The offline operator's default inspection uses this path.
+func (s *Service) fetchReceipt(ctx context.Context, record admissionRecord, hash string) statusResult {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(s.cfg.RPCURL, "/")+"/v1/native-transactions/"+hash, nil)
 	if err != nil {
 		return statusResult{err: err}
@@ -103,7 +117,7 @@ func (s *Service) fetchAndPersistReceipt(ctx context.Context, record admissionRe
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == 404 {
-		return statusResult{pending: true}
+		return statusResult{pending: true, notFound: true}
 	}
 	if resp.StatusCode != 200 {
 		return statusResult{err: errors.New("receipt lookup unavailable")}
@@ -151,10 +165,6 @@ func (s *Service) fetchAndPersistReceipt(ctx context.Context, record admissionRe
 	raw, _ := json.Marshal(fields)
 	if json.Unmarshal(raw, &tx) != nil || !validAuthoritativeReceipt(tx, record, hash) {
 		return statusResult{err: errors.New("receipt does not match admitted intent")}
-	}
-	if err := s.admissions.complete(record, tx); err != nil {
-		s.recordAdmissionStoreError("complete")
-		return statusResult{err: errors.New("receipt persistence unavailable")}
 	}
 	return statusResult{tx: tx}
 }

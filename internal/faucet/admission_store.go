@@ -37,6 +37,14 @@ type admissionRecord struct {
 	AsyncNextAt   time.Time          `json:"asyncNextAt,omitempty"`
 	AsyncStopped  bool               `json:"asyncStopped,omitempty"`
 	Transaction   *chain.Transaction `json:"transaction,omitempty"`
+	// OperatorRecovery is written before the only permitted offline recovery
+	// POST. A crash leaves this marker in place and forbids another POST.
+	OperatorRecovery *operatorRecovery `json:"operatorRecovery,omitempty"`
+}
+
+type operatorRecovery struct {
+	ReservedAt time.Time `json:"reservedAt"`
+	Outcome    string    `json:"outcome"`
 }
 
 type admissionStore struct {
@@ -355,6 +363,52 @@ func (s *admissionStore) stopAsync(id string) error {
 			return err
 		}
 		return bucket.Put([]byte(id), data)
+	})
+}
+
+func (s *admissionStore) reserveOperatorRecovery(record admissionRecord) (bool, error) {
+	reserved := false
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		var current admissionRecord
+		data := bucket.Get([]byte(record.RequestID))
+		if data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != record.RequestID || current.Address != record.Address || current.Amount != record.Amount {
+			return errors.New("durable admission binding disappeared")
+		}
+		if current.Transaction != nil || current.OperatorRecovery != nil {
+			return nil
+		}
+		if !current.Async || (!current.AsyncStopped && current.AsyncAttempts < maxAsyncFundingAttempts) {
+			return errors.New("admission is not an exhausted async request")
+		}
+		current.OperatorRecovery = &operatorRecovery{ReservedAt: time.Now().UTC(), Outcome: "reserved_result_unknown"}
+		encoded, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		if err := bucket.Put([]byte(record.RequestID), encoded); err != nil {
+			return err
+		}
+		reserved = true
+		return nil
+	})
+	return reserved, err
+}
+
+func (s *admissionStore) noteOperatorRecovery(id, outcome string) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		var current admissionRecord
+		data := bucket.Get([]byte(id))
+		if data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != id || current.OperatorRecovery == nil {
+			return errors.New("operator recovery marker disappeared")
+		}
+		current.OperatorRecovery.Outcome = outcome
+		encoded, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		return bucket.Put([]byte(id), encoded)
 	})
 }
 
