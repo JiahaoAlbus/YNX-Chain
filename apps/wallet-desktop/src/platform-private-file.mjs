@@ -41,7 +41,9 @@ try {
   }
   function Read-PrivateAcl([string]$target, [bool]$verify = $false) {
     if (-not $verify) { $script:phase = 'acl-get' }
-    $acl = Get-Acl -LiteralPath $target
+    # .NET Framework ACL APIs do not depend on an inherited PSModulePath. A
+    # WindowsPowerShell child launched by PowerShell 7 may lack Get-Acl/Set-Acl.
+    $acl = if ([IO.Directory]::Exists($target)) { [IO.Directory]::GetAccessControl($target) } else { [IO.File]::GetAccessControl($target) }
     if (-not $verify) { $script:phase = 'acl-owner' }
     $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
     if ($owner -ne $current.Value -and $owner -ne 'S-1-5-18' -and $owner -ne 'S-1-5-32-544') { throw 'Wrong owner' }
@@ -59,7 +61,7 @@ try {
   }
   function Protect-PrivateAcl([string]$target, [bool]$directory) {
     $script:phase = 'acl-get'
-    $old = Get-Acl -LiteralPath $target
+    $old = if ($directory) { [IO.Directory]::GetAccessControl($target) } else { [IO.File]::GetAccessControl($target) }
     $script:phase = 'acl-owner'
     $owner = $old.GetOwner([Security.Principal.SecurityIdentifier]).Value
     if ($owner -ne $current.Value -and $owner -ne 'S-1-5-18' -and $owner -ne 'S-1-5-32-544') { throw 'Wrong owner' }
@@ -75,7 +77,7 @@ try {
     $acl.SetAccessRuleProtection($true, $false)
     $acl.AddAccessRule($rule)
     $script:phase = 'acl-set'
-    Set-Acl -LiteralPath $target -AclObject $acl
+    if ($directory) { [IO.Directory]::SetAccessControl($target, $acl) } else { [IO.File]::SetAccessControl($target, $acl) }
     $script:phase = 'acl-verify'
     Read-PrivateAcl $target $true
   }
