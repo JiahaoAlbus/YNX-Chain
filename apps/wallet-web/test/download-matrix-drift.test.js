@@ -38,7 +38,7 @@ test("Wallet install entry stays bound to current Android and published Web arti
     assert.equal(artifact.url.includes(`/sha256-${artifact.sha256}/`),true);
     assert.match(artifact.sourceCommit,/^[0-9a-f]{40}$/u);
   }
-  assert.equal(publicChannels.channels.chromeEdgeExtension.version,"0.1.2");
+  assert.equal(publicChannels.channels.chromeEdgeExtension.version,"0.1.3");
   assert.equal(publicChannels.channels.pwaPackage.version,"0.1.1");
   assert.equal(publicChannels.channels.firefoxExtension.version,"0.1.1");
 });

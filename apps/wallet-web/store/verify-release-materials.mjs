@@ -13,8 +13,8 @@ const json=async path=>JSON.parse(await readFile(path,"utf8"));
 const text=path=>readFile(path,"utf8");
 
 export async function verifyReleaseMaterials(){
-  const [readiness,assetManifest,published,publicChannels,candidate,evidence,listingEn,listingZh,permissions,privacyEn,privacyZh]=await Promise.all([
-    json(join(store,"release-readiness.json")),json(join(store,"store-assets.json")),json(join(root,"artifact-manifest.json")),json(join(root,"public-channel-manifest.json")),json(join(store,"candidate-artifact-manifest.json")),
+  const [readiness,assetManifest,published,publicChannels,chromeRelease,candidate,evidence,listingEn,listingZh,permissions,privacyEn,privacyZh]=await Promise.all([
+    json(join(store,"release-readiness.json")),json(join(store,"store-assets.json")),json(join(root,"artifact-manifest.json")),json(join(root,"public-channel-manifest.json")),json(join(root,"candidate-artifacts","0.1.3","31f3ef16d3812870e0c3d23350565fd592482227","artifact-manifest.json")),json(join(store,"candidate-artifact-manifest.json")),
     json(join(root,"evidence","runtime","extension-candidate-local-20260925.json")),text(join(store,"listing.en.md")),text(join(store,"listing.zh-CN.md")),
     text(join(store,"permissions-data-map.md")),text(join(store,"privacy-policy.draft.en.md")),text(join(store,"privacy-policy.draft.zh-CN.md")),
   ]);
@@ -48,8 +48,9 @@ export async function verifyReleaseMaterials(){
     assert.equal(artifact.url,`https://www.ynxweb4.com/downloads/wallet-web/sha256-${artifact.sha256}/${artifact.name}`);
     assert.ok(Number.isSafeInteger(artifact.bytes)&&artifact.bytes>0);
   }
-  assert.equal(publicChannels.channels.chromeEdgeExtension.sourceCommit,published.sourceCommit);
-  assert.deepEqual(identity([publicChannels.channels.chromeEdgeExtension]),identity([published.artifacts.find(item=>item.name===publicChannels.channels.chromeEdgeExtension.name)]));
+  assert.equal(publicChannels.channels.chromeEdgeExtension.sourceCommit,chromeRelease.sourceCommit);
+  assert.deepEqual(identity([publicChannels.channels.chromeEdgeExtension]),identity([chromeRelease.artifacts.find(item=>item.name===publicChannels.channels.chromeEdgeExtension.name)]));
+  assert.equal(chromeRelease.productionSigned,false);assert.equal(chromeRelease.storeReleased,false);
   assert.equal(readiness.candidateCommit,candidate.sourceCommit);
   assert.equal(evidence.sourceCommit,candidate.sourceCommit);
   assert.notEqual(candidate.sourceCommit,published.sourceCommit);
