@@ -16,7 +16,7 @@ let protectedDeviceInitializationPending=false;
 
 export type {CardProductWalletConnection} from "./productWalletConnection";
 
-export async function createRuntimeCardProductWalletConnection(input:Readonly<{launchLease?:()=>number;expectedLaunchLease?:number;existingDeviceOnly?:boolean}>={}):Promise<CardProductWalletConnection>{
+export async function createRuntimeCardProductWalletConnection(input:Readonly<{launchLease?:()=>number;expectedLaunchLease?:number;existingDeviceOnly?:boolean;financeSharing?:boolean}>={}):Promise<CardProductWalletConnection>{
   const platform=runtimePlatform();
   if(!await SecureStore.isAvailableAsync())throw new Error("Secure device storage is unavailable; a Product Session was not created.");
   const fetcher=globalThis.fetch;
@@ -26,7 +26,7 @@ export async function createRuntimeCardProductWalletConnection(input:Readonly<{l
   if(expectedLaunchLease<1||launchLease()!==expectedLaunchLease)throw new Error("Native Wallet launch capability expired before the Card Product Session initialized.");
   const device=await protectedDevice(input.existingDeviceOnly===true);
   if(launchLease()!==expectedLaunchLease)throw new Error("Native Wallet launch capability expired during Card Product Session initialization.");
-  return createCardProductWalletConnection({platform,walletInstalled:async()=>{const installed=await Linking.canOpenURL("ynxwallet://authorize").catch(()=>false);if(launchLease()!==expectedLaunchLease)return false;return installed;},schemeRegistered:async()=>{const registered=await Linking.canOpenURL("ynxwallet://authorize").catch(()=>false);if(launchLease()!==expectedLaunchLease)return false;return registered;},storage:protectedStorage(platform,()=>launchLease()===expectedLaunchLease),device,openWallet:createNativeWalletOpener(launchLease),fetch:async(url,init)=>await fetcher(url,init as RequestInit),tokenFactory:()=>encodeBase64url(randomBytes(32)),clock:()=>new Date()});
+  return createCardProductWalletConnection({platform,walletInstalled:async()=>{const installed=await Linking.canOpenURL("ynxwallet://authorize").catch(()=>false);if(launchLease()!==expectedLaunchLease)return false;return installed;},schemeRegistered:async()=>{const registered=await Linking.canOpenURL("ynxwallet://authorize").catch(()=>false);if(launchLease()!==expectedLaunchLease)return false;return registered;},storage:protectedStorage(platform,()=>launchLease()===expectedLaunchLease),device,openWallet:createNativeWalletOpener(launchLease),fetch:async(url,init)=>await fetcher(url,init as RequestInit),tokenFactory:()=>encodeBase64url(randomBytes(32)),clock:()=>new Date()},input.financeSharing===true);
 }
 
 function runtimePlatform():"ios"|"android"{if(Platform.OS==="ios"||Platform.OS==="android")return Platform.OS;throw new Error("Product Session native identity is unavailable on web; use a Standard EIP-1193 Wallet instead.");}

@@ -1,5 +1,5 @@
 import {ProductSessionGatewayFetchAdapter,RecoverableProductSessionClient,WalletConnectionCoordinator} from "@ynx-chain/wallet-auth-card-provider-v2";
-import registry from "../vendor/product-session-registry-09e36b150.json";
+import registry from "../vendor/product-session-registry-b754ffc42.json";
 import {isNativeStorageOwnerExpiredError} from "./productWalletStorage";
 
 export const CARD_PRODUCT_SESSION_V2_ORIGIN="https://wallet-auth.ynxweb4.com";
@@ -13,9 +13,9 @@ type ProtectedStorage=Readonly<{securityLevel:"os-protected";get:(key:string)=>P
 type GatewayFetch=(url:string,init:Readonly<Record<string,unknown>>)=>Promise<unknown>;
 export type CardProductWalletCapabilities=Readonly<{platform:"ios"|"android";walletInstalled:()=>Promise<boolean>;schemeRegistered:()=>Promise<boolean>;storage:ProtectedStorage;device:Device;openWallet:(input:Readonly<{url:string;request:Readonly<Record<string,unknown>>;requestId:string;automatic:boolean;productId:string;platform:string}>)=>Promise<Readonly<{opened:true}|{opened:false;code:string}>>;fetch:GatewayFetch;tokenFactory:()=>string;clock:()=>Date}>;
 
-export function createCardProductWalletConnection(capabilities:CardProductWalletCapabilities):CardProductWalletConnection{
+export function createCardProductWalletConnection(capabilities:CardProductWalletCapabilities,financeSharing=false):CardProductWalletConnection{
   const gateway=new ProductSessionGatewayFetchAdapter({endpoint:CARD_PRODUCT_SESSION_V2_ORIGIN,fetch:capabilities.fetch,walletInstalled:capabilities.walletInstalled,schemeRegistered:capabilities.schemeRegistered,timeoutMs:10_000});
-  const sessionClient=new RecoverableProductSessionClient({registry,productId:"card",platform:capabilities.platform,storage:capabilities.storage,gateway,device:{...capabilities.device,scopes:CARD_NATIVE_IDENTITY_SCOPES,purpose:"Read Card TEST records and request explicit application or freeze controls. This does not create a card or transfer funds."},tokenFactory:capabilities.tokenFactory,clock:capabilities.clock});
+  const sessionClient=new RecoverableProductSessionClient({registry,productId:"card",platform:capabilities.platform,storage:capabilities.storage,gateway,device:{...capabilities.device,scopes:financeSharing?[...CARD_NATIVE_IDENTITY_SCOPES,'card:finance:share']:CARD_NATIVE_IDENTITY_SCOPES,purpose:financeSharing?'Allow Card to manage your separately selected read-only sharing with YNX Finance. This grants no payment or trading authority.':"Read Card TEST records and request explicit application or freeze controls. This does not create a card or transfer funds."},tokenFactory:capabilities.tokenFactory,clock:capabilities.clock});
   return serializedCoordinator(new WalletConnectionCoordinator({registry,productId:"card",sessionClient,scope:globalThis,discoveryWaitMs:0,openWallet:capabilities.openWallet,openTimeoutMs:10_000}),sessionClient);
 }
 function serializedCoordinator(coordinator:WalletConnectionCoordinator,sessionClient:RecoverableProductSessionClient):CardProductWalletConnection{

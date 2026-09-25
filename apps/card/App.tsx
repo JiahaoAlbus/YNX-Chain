@@ -72,6 +72,7 @@ export default function App(){
 
   const mounted=useRef(true);
   const productWallet=useRef<CardProductWalletConnection|null>(null);
+  const financeSharingRequested=useRef(false);
   const productWalletPromise=useRef<Promise<CardProductWalletConnection>|null>(null);
   const nativeProductWalletLease=useRef(0);
   const nativeProductWalletPromiseLease=useRef(0);
@@ -89,7 +90,7 @@ export default function App(){
     if(!active())throw new Error("The native Wallet request lease expired before a controller was ready.");
     if(productWallet.current&&nativeProductWalletLease.current===lease)return productWallet.current;
     if(productWalletPromise.current&&nativeProductWalletPromiseLease.current===lease)return await productWalletPromise.current;
-    const created=createRuntimeCardProductWalletConnection({expectedLaunchLease:lease,existingDeviceOnly,launchLease:()=>active()?lease:0}).then(connection=>{
+    const created=createRuntimeCardProductWalletConnection({expectedLaunchLease:lease,existingDeviceOnly,financeSharing:financeSharingRequested.current,launchLease:()=>active()?lease:0}).then(connection=>{
       if(!active())throw new Error("The native Wallet request lease expired before a controller was ready.");
       productWallet.current=connection;nativeProductWalletLease.current=lease;
       return connection;
@@ -478,13 +479,14 @@ export default function App(){
     nativeWalletOperation.current=operation;try{await operation}finally{if(nativeWalletOperation.current===operation)nativeWalletOperation.current=null;}
   };
 
-  const signIn=async()=>{
+  const signIn=async(financeSharing=false)=>{
+    financeSharingRequested.current=financeSharing;
     setBusy(true);
     setError("");
     setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"PRIVATE_SESSION_CONNECTING"}));
     try{
       if(Platform.OS==="web"){
-        const outcome=await beginCardWebSession();setPrivateSession(productRuntime({sessionState:outcome}));
+        const outcome=await beginCardWebSession(financeSharing);setPrivateSession(productRuntime({sessionState:outcome}));
         return;
       }
       await beginYNXWalletAuthorization();
@@ -519,7 +521,7 @@ export default function App(){
     </View>
 
     {!session?
-      <GuestExperience locale={locale} connectWallet={openWalletChooser} connectMetaMaskWallet={connectMetaMask} connectYNXWallet={beginYNXWalletAuthorization} enablePrivateServices={signIn} retryNativeWallet={retryNativeWalletAuthorization} disconnectNativeWallet={disconnectNativeWalletIdentity} nativeAuthorizationPending={pending} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession} providerClient={providerClient} providerClientError={providerClientError} standardWalletState={standardWalletState} selectedWalletKind={walletProviderKind.current} closeWalletChooser={closeWalletChooser} disconnectWallet={disconnectWallet} switchWalletAccount={switchWalletAccount}/>
+      <GuestExperience locale={locale} connectWallet={openWalletChooser} connectMetaMaskWallet={connectMetaMask} connectYNXWallet={beginYNXWalletAuthorization} enablePrivateServices={signIn} requestFinancePermission={()=>signIn(true)} retryNativeWallet={retryNativeWalletAuthorization} disconnectNativeWallet={disconnectNativeWalletIdentity} nativeAuthorizationPending={pending} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession} providerClient={providerClient} providerClientError={providerClientError} standardWalletState={standardWalletState} selectedWalletKind={walletProviderKind.current} closeWalletChooser={closeWalletChooser} disconnectWallet={disconnectWallet} switchWalletAccount={switchWalletAccount}/>
     :
       <>
         <View style={s.stage}>

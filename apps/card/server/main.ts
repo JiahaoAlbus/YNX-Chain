@@ -25,7 +25,7 @@ async function main(){
   if(process.env.YNX_CARD_PROVIDER_TEST_WRITE_ENABLED!==undefined&&!['true','false'].includes(process.env.YNX_CARD_PROVIDER_TEST_WRITE_ENABLED))throw Error('Invalid YNX_CARD_PROVIDER_TEST_WRITE_ENABLED');
   const providerApplications=new CardProviderApplications(store,undefined,undefined,[],programs,providerRegistry);
   const immersve=ImmersveSandbox.fromEnvironment(store);
-  const walletRegistry=JSON.parse(readFileSync(resolve(__dirname,'../vendor/product-session-registry-09e36b150.json'),'utf8'));
+  const walletRegistry=JSON.parse(readFileSync(resolve(__dirname,'../vendor/product-session-registry-b754ffc42.json'),'utf8'));
   const providerLifecycle=new CardProviderLifecycle(store,providerApplications,providerRegistry,immersve,walletRegistry,programs,process.env.YNX_CARD_PROVIDER_TEST_WRITE_ENABLED==='true');
   const financeRead=new CardFinanceRead(store,providerRegistry,providerLifecycle,process.env.YNX_CARD_FINANCE_READ_KEY||undefined);
   const server=createCardServer({service,wallet,providerRegistry,providerApplications,providerLifecycle,financeRead,sourceCommit:process.env.YNX_CARD_SOURCE_COMMIT??'unbound-development',allowedOrigin:process.env.YNX_CARD_ALLOWED_ORIGIN??'https://card.ynxweb4.com',configurationReady:Boolean(adapter&&rpc&&recipient)});
