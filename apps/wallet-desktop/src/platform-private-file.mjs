@@ -18,11 +18,14 @@ const unavailable = stage => Object.assign(new Error("Private durable Wallet sto
 const WINDOWS_SCRIPT = String.raw`
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+$script:phase = 'runtime'
 try {
   if ($ExecutionContext.SessionState.LanguageMode -ne 'FullLanguage') { throw 'Unavailable' }
+  $script:phase = 'request'
   $request = $env:YNX_WALLET_PRIVATE_FILE_REQUEST | ConvertFrom-Json
   $current = [Security.Principal.WindowsIdentity]::GetCurrent().User
   function Resolve-LocalPath([string]$value) {
+    $script:phase = 'path'
     if ($value -notmatch '^[A-Za-z]:\\' -or $value.Substring(2).Contains(':')) { throw 'Invalid path' }
     $full = [IO.Path]::GetFullPath($value)
     $root = [IO.Path]::GetPathRoot($full)
@@ -36,10 +39,13 @@ try {
     }
     return $full
   }
-  function Read-PrivateAcl([string]$target) {
+  function Read-PrivateAcl([string]$target, [bool]$verify = $false) {
+    if (-not $verify) { $script:phase = 'acl-get' }
     $acl = Get-Acl -LiteralPath $target
+    if (-not $verify) { $script:phase = 'acl-owner' }
     $owner = $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value
     if ($owner -ne $current.Value -and $owner -ne 'S-1-5-18' -and $owner -ne 'S-1-5-32-544') { throw 'Wrong owner' }
+    if (-not $verify) { $script:phase = 'acl-rules' }
     $rules = $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])
     $currentAllowed = $false
     foreach ($rule in $rules) {
@@ -52,9 +58,12 @@ try {
     if (-not $currentAllowed) { throw 'Missing owner access' }
   }
   function Protect-PrivateAcl([string]$target, [bool]$directory) {
+    $script:phase = 'acl-get'
     $old = Get-Acl -LiteralPath $target
+    $script:phase = 'acl-owner'
     $owner = $old.GetOwner([Security.Principal.SecurityIdentifier]).Value
     if ($owner -ne $current.Value -and $owner -ne 'S-1-5-18' -and $owner -ne 'S-1-5-32-544') { throw 'Wrong owner' }
+    $script:phase = 'acl-build'
     if ($directory) {
       $acl = [Security.AccessControl.DirectorySecurity]::new()
       $rule = [Security.AccessControl.FileSystemAccessRule]::new($current, 'FullControl', 'ContainerInherit,ObjectInherit', 'None', 'Allow')
@@ -65,13 +74,16 @@ try {
     $acl.SetOwner($current)
     $acl.SetAccessRuleProtection($true, $false)
     $acl.AddAccessRule($rule)
+    $script:phase = 'acl-set'
     Set-Acl -LiteralPath $target -AclObject $acl
-    Read-PrivateAcl $target
+    $script:phase = 'acl-verify'
+    Read-PrivateAcl $target $true
   }
   $target = Resolve-LocalPath $request.path
   # A probe only checks the path and NTFS volume. Compiling this P/Invoke on
   # every cold probe can time out on native Windows ARM before any vault read.
   if ($request.operation -eq 'replace') {
+    $script:phase = 'native-compile'
     Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
@@ -95,7 +107,9 @@ public static class YnxPrivateFileNative {
       if ([IO.File]::Exists($destination)) { Read-PrivateAcl $destination }
       # No COPY_ALLOWED or DELAY_UNTIL_REBOOT. The source is already file-fsynced.
       # Microsoft documents WRITE_THROUGH as returning only after the move is on disk.
+      $script:phase = 'native-replace'
       if (-not [YnxPrivateFileNative]::MoveFileExW(('\\?\' + $target), ('\\?\' + $destination), 9)) { throw 'Move failed' }
+      $script:phase = 'native-flush'
       $stream = [IO.File]::Open($destination, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
       try { $stream.Flush($true) } finally { $stream.Dispose() }
       Read-PrivateAcl $destination
@@ -104,7 +118,9 @@ public static class YnxPrivateFileNative {
   }
   @{ version='ynx-private-file-v1'; operation=$request.operation; private=$true; durableMove=($request.operation -eq 'replace') } | ConvertTo-Json -Compress
 } catch {
-  [Console]::Error.WriteLine('Private durable Wallet storage is unavailable.')
+  # Only this fixed phase token crosses the process boundary. Exception text,
+  # paths, ACL entries and Windows identity remain private to this process.
+  [Console]::Error.WriteLine('YNX_PRIVATE_FILE_STAGE:' + $script:phase)
   exit 1
 }
 `;
@@ -119,7 +135,11 @@ async function windowsOperation(operation, filePath, destination) {
       env: { ...process.env, YNX_WALLET_PRIVATE_FILE_REQUEST: JSON.stringify({ operation, path: filePath, ...(destination ? { destination } : {}) }) },
     });
     return JSON.parse(stdout.trim());
-  } catch { throw unavailable(`windows-${operation}`); }
+  } catch (error) {
+    const phase = /^YNX_PRIVATE_FILE_STAGE:(runtime|request|path|acl-get|acl-owner|acl-rules|acl-build|acl-set|acl-verify|native-compile|native-replace|native-flush)$/m.exec(error?.stderr ?? "")?.[1];
+    const suffix = phase ?? (error?.killed ? "timeout" : "unknown");
+    throw unavailable(`windows-${operation}-${suffix}`);
+  }
 }
 
 /** Native OS permission/commit checks; never treats Windows mode 0666 as private. */
