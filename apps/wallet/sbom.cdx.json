@@ -9262,8 +9262,8 @@
       "type": "library",
       "name": "wallet-auth",
       "group": "@ynx-chain",
-      "version": "1.1.0",
-      "bom-ref": "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.1.0",
+      "version": "1.2.0",
+      "bom-ref": "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.2.0",
       "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
       "licenses": [
         {
@@ -32507,7 +32507,7 @@
         "@ynx-chain/wallet-app@1.0.0|@walletconnect/react-native-compat@2.25.0",
         "@ynx-chain/wallet-app@1.0.0|@walletconnect/types@2.25.0",
         "@ynx-chain/wallet-app@1.0.0|@walletconnect/utils@2.25.0",
-        "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.1.0",
+        "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.2.0",
         "@ynx-chain/wallet-app@1.0.0|ethers@6.17.0",
         "@ynx-chain/wallet-app@1.0.0|expo-application@7.0.8",
         "@ynx-chain/wallet-app@1.0.0|expo-camera@57.0.1",
@@ -33841,7 +33841,7 @@
       "ref": "@ynx-chain/wallet-app@1.0.0|@xmldom/xmldom@0.8.15"
     },
     {
-      "ref": "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.1.0",
+      "ref": "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.2.0",
       "dependsOn": [
         "@ynx-chain/wallet-app@1.0.0|@noble/curves@2.2.0",
         "@ynx-chain/wallet-app@1.0.0|@noble/hashes@2.2.0"
