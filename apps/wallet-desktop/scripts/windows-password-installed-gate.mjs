@@ -1,6 +1,7 @@
 /** Installed Windows-only V3 custody gate. Prints public state and fixed error codes only. */
 import { Wallet } from "ethers";
 import path from "node:path";
+import { passwordFormAction } from "./windows-password-form-state.mjs";
 
 const [mode, expectedAccount = ""] = process.argv.slice(2);
 const password = process.env.YNX_WALLET_QA_PASSWORD;
@@ -78,11 +79,13 @@ async function snapshot() {
   return JSON.parse(await evaluate(`(async () => {
     const [account, security] = await Promise.all([window.ynxWallet.accountStatus(), window.ynxWallet.securityStatus()]);
     const unlock = document.querySelector('#unlock-wallet');
+    const sheet = document.querySelector('#password-sheet');
+    const submit = document.querySelector('#submit-password');
     return JSON.stringify({
       account: account.ok ? { initialized: account.value.initialized, passwordConfigured: account.value.passwordConfigured, account: account.value.account, ynxAccount: account.value.ynxAccount, accounts: account.value.accounts?.map(item => item.account), custody: account.value.custody, recoveryRequired: account.value.recoveryRequired } : null,
       error: account.ok ? null : { code: account.error?.code, storageStage: account.error?.storageStage },
       locked: security.locked,
-      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: document.querySelector('#password-sheet')?.open, unlockEnabled: Boolean(unlock && !unlock.disabled && unlock.getClientRects().length), unlockLabel: unlock?.textContent, importEnabled: !document.querySelector('#import-form button')?.disabled, importResult: document.querySelector('#import-result')?.textContent, backupEnabled: !document.querySelector('#save-backup')?.disabled, backupVisible: !document.querySelector('#backup-section')?.hidden, backupResult: document.querySelector('#backup-result')?.textContent }
+      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: sheet?.open, passwordModeUnlock: sheet?.open ? document.querySelector('#local-confirm-group')?.hidden : null, passwordSubmitEnabled: Boolean(sheet?.open && submit && !submit.disabled && submit.getClientRects().length), unlockEnabled: Boolean(unlock && !unlock.disabled && unlock.getClientRects().length), unlockLabel: unlock?.textContent, importEnabled: !document.querySelector('#import-form button')?.disabled, importResult: document.querySelector('#import-result')?.textContent, backupEnabled: !document.querySelector('#save-backup')?.disabled, backupVisible: !document.querySelector('#backup-section')?.hidden, backupResult: document.querySelector('#backup-result')?.textContent }
     });
   })()`, "ACCOUNT_SNAPSHOT"));
 }
@@ -100,12 +103,19 @@ async function until(predicate, label, count = 100) {
 }
 async function formSubmit(value, confirmation) {
   const expectedUnlock = confirmation === undefined;
-  // The public 0.6.8 renderer can report custody through preload before its
-  // account-status event has enabled the visible password action. Exercise the
-  // real button only once it is interactive; a persistent disabled/error state
-  // still fails with the bounded, public-status diagnostic from until().
-  await until(state => state.ui.unlockEnabled === true && !state.ui.passwordSheetOpen, "Password action ready", 60);
+  // Custody may be readable before the visible action becomes interactive.
+  // An incorrect password leaves the same dialog open; submit again only after
+  // that dialog's real button is enabled. Neither path bypasses disabled UI.
+  const ready = await until(state => passwordFormAction(state.ui, expectedUnlock) !== null, "Password action ready", 60);
+  const action = passwordFormAction(ready.ui, expectedUnlock);
+  if (action === "mode-mismatch") throw new Error("PASSWORD_FORM_OPEN:MODE_MISMATCH");
   const opened = await evaluate(`(() => {
+    const sheet = document.querySelector('#password-sheet');
+    if (sheet?.open) {
+      const submit = document.querySelector('#submit-password');
+      if (!submit || submit.disabled || !submit.getClientRects().length) return { enabled: false };
+      return { enabled: true, sheetOpen: true, unlockMode: document.querySelector('#local-confirm-group')?.hidden };
+    }
     const open = document.querySelector('#unlock-wallet');
     if (!open || open.disabled || !open.getClientRects().length) return { enabled: false };
     open.click();
