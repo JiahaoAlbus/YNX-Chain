@@ -123,6 +123,8 @@ jobs:
           const evidence=path.win32.join(root,'apps','wallet-desktop','dist','arm64-old-installed-smoke.json');
           const env={...process.env,YNX_WALLET_PROFILE_PATH:profile,YNX_WALLET_EVIDENCE_PATH:evidence};
           const app=spawn(process.env.YNX_OLD_INSTALLED_EXE,['--remote-debugging-port=9334'],{env,stdio:'ignore'});
+          let launchError=false;
+          app.once('error',()=>{launchError=true});
           try {
             const {stdout}=await promisify(execFile)(process.execPath,['apps/wallet-desktop/scripts/windows-password-installed-gate.mjs','create'],{env,timeout:180000,maxBuffer:16384});
             const created=JSON.parse(stdout.trim());
@@ -131,6 +133,19 @@ jobs:
             const vault=await readFile(path.win32.join(profile,'wallet-vault-v3.json'));
             await writeFile(path.win32.join(root,'apps','wallet-desktop','dist','arm64-old-account.json'),JSON.stringify({sourceVersion:'0.6.8',account:created.account,ynxAccount:created.ynxAccount,vaultSHA256:createHash('sha256').update(vault).digest('hex'),oldAppTerminatedAfterCommit:true})+'\n',{flag:'wx'});
             console.log(JSON.stringify({oldInstalledUIAccountCreated:true,account:created.account}));
+          } catch (error) {
+            let cdpReachable=false, pageCount=0, filePageCount=0;
+            try {
+              const response=await fetch('http://127.0.0.1:9334/json/list',{signal:AbortSignal.timeout(1500)});
+              const targets=await response.json();
+              cdpReachable=response.ok;
+              pageCount=targets.filter(target=>target.type==='page').length;
+              filePageCount=targets.filter(target=>target.type==='page'&&target.url?.startsWith('file:')).length;
+            } catch {}
+            const report={stage:'old-arm-ui-ready',errorClass:error?.message==='WALLET_PAGE_UNAVAILABLE'?'WALLET_PAGE_UNAVAILABLE':'OLD_ARM_UI_OTHER',launchError,appExited:app.exitCode!==null||app.signalCode!==null,appExitCode:Number.isInteger(app.exitCode)?app.exitCode:null,cdpReachable,pageCount,filePageCount,launchEvidenceExists:await readFile(evidence).then(()=>true,()=>false)};
+            await writeFile(path.win32.join(root,'apps','wallet-desktop','dist','arm64-old-ui-diagnostic.json'),JSON.stringify(report)+'\n');
+            console.error(JSON.stringify(report));
+            throw error;
           } finally {
             if(app.pid&&app.exitCode===null&&app.signalCode===null){const exited=new Promise(resolve=>app.once('exit',resolve));app.kill();await Promise.race([exited,new Promise((_,reject)=>setTimeout(()=>reject(Error('OLD_ARM_APP_EXIT_TIMEOUT')),15000))]);}
           }
@@ -168,7 +183,31 @@ jobs:
           } finally { if (-not $app.HasExited) { [void]$app.CloseMainWindow(); [void]$app.WaitForExit(15000) } }
           if (-not $app.HasExited) { throw 'Upgraded ARM Wallet did not close' }
           "YNX_CANDIDATE_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Install original ARM candidate for independent backup validation
+        id: installed_candidate
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $candidate = $env:YNX_CANDIDATE_INSTALLER
+          if (-not $candidate -or -not (Test-Path -LiteralPath $candidate -PathType Leaf) -or (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:INSTALLER_SHA256) { throw 'Original ARM candidate not available for independent validation' }
+          $install = [Diagnostics.Process]::new()
+          try {
+            $install.StartInfo.FileName = $candidate
+            $install.StartInfo.ArgumentList.Add('/S')
+            $install.StartInfo.UseShellExecute = $false
+            if (-not $install.Start() -or -not $install.WaitForExit(180000)) { throw 'Original ARM candidate independent install did not finish' }
+            $install.Refresh()
+            if ($install.ExitCode -ne 0) { throw 'Original ARM candidate independent install returned nonzero exit' }
+          } finally { $install.Dispose() }
+          $exe = $env:YNX_OLD_INSTALLED_EXE
+          if (-not $exe -or -not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Independent ARM candidate installation missing' }
+          $env:GITHUB_SHA = $env:SOURCE_COMMIT
+          node apps/wallet-desktop/scripts/release-provenance.mjs (Join-Path (Split-Path $exe) 'resources') apps/wallet-desktop/dist
+          if ($LASTEXITCODE -ne 0) { throw 'Independent installed ARM source differs from candidate' }
+          "YNX_CANDIDATE_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Save native ARM encrypted backup and restore its exact public account
+        if: ${{ always() && steps.installed_candidate.outcome == 'success' }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -236,6 +275,7 @@ jobs:
             apps/wallet-desktop/dist/arm64-lifecycle-artifact.json
             apps/wallet-desktop/dist/arm64-lifecycle-installer.json
             apps/wallet-desktop/dist/arm64-old-installer.json
+            apps/wallet-desktop/dist/arm64-old-ui-diagnostic.json
             apps/wallet-desktop/dist/arm64-old-account.json
             apps/wallet-desktop/dist/arm64-upgrade-lifecycle.json
             apps/wallet-desktop/dist/arm64-backup-lifecycle.json
