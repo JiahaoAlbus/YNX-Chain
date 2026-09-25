@@ -180,10 +180,11 @@ try {
   await restoredFinance.evaluate(value => { window.expiredSend = window.ynxAdapter.request({ method: "eth_sendTransaction", params: [value] }).then(() => "sent", error => error.code); }, transaction);
   await restoredWallet.locator("#review").waitFor({ state: "visible" });
   await restoredWallet.locator("#approval-password").fill(password);
+  await restoredWallet.evaluate(() => { const panel = document.querySelector("#transaction-panel"); panel.remove(); window.__detachedTransactionPanel = panel; });
   await restoredWallet.evaluate(() => { window.__realNow = Date.now; Date.now = () => window.__realNow() + 31_000; });
   await restoredWallet.locator("#approve").click();
   assert.equal(await restoredFinance.evaluate(() => window.expiredSend), "HOSTED_REQUEST_EXPIRED");
-  await restoredWallet.evaluate(() => { Date.now = window.__realNow; delete window.__realNow; });
+  await restoredWallet.evaluate(() => { Date.now = window.__realNow; delete window.__realNow; document.querySelector("#status").before(window.__detachedTransactionPanel); delete window.__detachedTransactionPanel; });
   assert.equal(rpcSends.length, 0, "an expired transaction never reaches the RPC broadcaster");
   await restoredFinance.evaluate(value => { window.firstSend = window.ynxAdapter.request({ method: "eth_sendTransaction", params: [value] }).then(hash => ({ hash }), error => ({ code: error.code })); }, transaction);
   await restoredWallet.locator("#review").waitFor({ state: "visible" });
