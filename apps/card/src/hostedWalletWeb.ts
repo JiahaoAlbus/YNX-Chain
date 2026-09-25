@@ -54,8 +54,9 @@ export function createCardHostedWalletController(input:{window:Window;onState?:(
       // No awaited discovery or state preflight may precede this call.
       approval=selected.connect();
     }catch(error){detach();return Promise.resolve(publish("unavailable",null,null,codeOf(error)));}
-    const cancelled=new Promise<CardHostedState>(resolve=>{cancelPending=resolve;});
-    const watchdog=setTimeout(()=>invalidate("HOSTED_REQUEST_EXPIRED_OR_RELOADED"),125_000);
+    let finishPending!:(state:CardHostedState)=>void;
+    const cancelled=new Promise<CardHostedState>(resolve=>{finishPending=resolve;cancelPending=resolve;});
+    const watchdog=setTimeout(()=>{if(token===generation&&adapter===selected)invalidate("HOSTED_REQUEST_EXPIRED_OR_RELOADED");},125_000);
     const outcome=Promise.resolve(approval).then(async accounts=>{
       if(token!==generation||adapter!==selected)return state;
       if(announced.interrupted)throw Object.assign(new Error("HOSTED_CONNECTION_INTERRUPTED"),{code:"HOSTED_CONNECTION_INTERRUPTED"});
@@ -69,7 +70,7 @@ export function createCardHostedWalletController(input:{window:Window;onState?:(
       if(token!==generation||adapter!==selected)return state;
       const code=codeOf(error);detach();return publish(code==="USER_REJECTED"?"rejected":code==="WRONG_NETWORK"?"wrong-chain":"unavailable",null,null,code);
     });
-    const work=Promise.race([outcome,cancelled]).finally(()=>{clearTimeout(watchdog);if(pending===work)pending=null;if(cancelPending)cancelPending=null;});
+    const work=Promise.race([outcome,cancelled]).finally(()=>{clearTimeout(watchdog);if(pending===work)pending=null;if(cancelPending===finishPending)cancelPending=null;});
     pending=work;return work;
   };
   const disconnect=():Promise<CardHostedState>=>{

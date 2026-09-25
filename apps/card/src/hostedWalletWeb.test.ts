@@ -52,6 +52,30 @@ test("disconnect cancels pending approval immediately and discards late success"
   assert.equal(disconnected.status,"disconnected");assert.equal((await pending).status,"disconnected");
   h.approval.resolve([account]);await tick();assert.equal(h.controller.getState().status,"disconnected");assert.equal(h.states.filter(value=>value==="connected").length,0);
 });
+test("old cancelled popup and watchdog cannot clear or invalidate a new pending popup",async()=>{
+  const h=harness({onConnect:()=>new Promise<readonly string[]>(()=>{})});
+  const scheduled:Array<()=>void>=[];
+  const originalSetTimeout=globalThis.setTimeout;
+  let first:Promise<ReturnType<typeof h.controller.getState>>,second:Promise<ReturnType<typeof h.controller.getState>>;
+  try{
+    globalThis.setTimeout=((callback:(...args:unknown[])=>void)=>{scheduled.push(()=>callback());return 1 as unknown as NodeJS.Timeout;}) as typeof setTimeout;
+    first=h.controller.connect();
+    second=h.controller.switchAccount();
+  }finally{globalThis.setTimeout=originalSetTimeout;}
+  assert.equal(h.opens,2);
+  assert.equal(scheduled.length,2);
+  scheduled[0]();
+  assert.equal(h.controller.getState().status,"connecting");
+  assert.equal((await first).status,"disconnected");
+  await tick(); // First work.finally must not erase the second operation's cancel callback.
+  const disconnected=await h.controller.disconnect();
+  assert.equal(disconnected.status,"disconnected");
+  const result=await Promise.race([second, new Promise<"timeout">(resolve=>originalSetTimeout(()=>resolve("timeout"),40))]);
+  assert.notEqual(result,"timeout");
+  assert.equal(result.status,"disconnected");
+  scheduled[1]();
+  assert.equal(h.controller.getState().status,"disconnected");
+});
 test("account, chain and provider changes invalidate the approved subject",async()=>{
   for(const [event,value,error] of [["accountsChanged",["0x"+"b".repeat(40)],"HOSTED_ACCOUNT_CHANGED"],["chainChanged","0x1","WRONG_NETWORK"],["disconnect",undefined,"HOSTED_DISCONNECTED"]] as const){
     const h=harness({onConnect:async()=>[account]});assert.equal((await h.controller.connect()).status,"connected");
