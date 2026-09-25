@@ -15,7 +15,7 @@ test('Quant executable chain configuration is pinned to YNX Testnet only', () =>
   }
   assert.match(text[0], /mountPrivateSession/);
   assert.match(text[2], /ynx_6423-1/);
-  assert.match(text[1], /chainId:'0x1917'/);
-  assert.match(text[1], /chainName:'YNX Testnet'/);
+  assert.match(text[1], /METAMASK_EVM_CHAIN/);
+  assert.match(text[1], /metamask-evm-adapter\.js/);
   assert.match(text[2], /0x1917/);
 });

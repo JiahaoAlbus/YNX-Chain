@@ -1,4 +1,6 @@
-export const YNX_EVM_CHAIN=Object.freeze({chainId:'0x1917',chainName:'YNX Testnet',nativeCurrency:Object.freeze({name:'YNXT',symbol:'YNXT',decimals:18}),rpcUrls:Object.freeze(['https://rpc.ynxweb4.com/']),blockExplorerUrls:Object.freeze(['https://explorer.ynxweb4.com/'])});
+import {METAMASK_EVM_CHAIN} from '../../../packages/wallet-auth/src/metamask-evm-adapter.js';
+
+export const YNX_EVM_CHAIN=METAMASK_EVM_CHAIN;
 
 /**
  * Bring an explicitly selected EIP-1193 provider to YNX Testnet and verify it
