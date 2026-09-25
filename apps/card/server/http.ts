@@ -3,9 +3,10 @@ import {CardError,ENVIRONMENT,type WalletAuthority} from './contracts.ts';
 import {CardService} from './service.ts';
 import {requireScope,scopeForRoute} from './permissions.ts';
 import {CardProviderRegistry} from './providerRegistry.ts';
+import {CardProviderApplications} from './providerApplication.ts';
 async function body(request:IncomingMessage):Promise<any>{let bytes=0;const chunks:Buffer[]=[];for await(const chunk of request){const data=Buffer.from(chunk);bytes+=data.length;if(bytes>65536)throw new CardError('REQUEST_TOO_LARGE',413);chunks.push(data)}try{return chunks.length?JSON.parse(Buffer.concat(chunks).toString('utf8')):{}}catch{throw new CardError('INVALID_JSON',400)}}
 function rejectSensitive(value:any){if(Array.isArray(value)){value.forEach(rejectSensitive);return}if(!value||typeof value!=='object')return;for(const[key,child]of Object.entries(value)){if(/^(pan|cvv|cvc|pin|seed|mnemonic|privateKey|cryptogram|trackData|fullCardNumber)$/i.test(key))throw new CardError('SENSITIVE_PAYMENT_DATA_FORBIDDEN',400);rejectSensitive(child)}}
-export function createCardServer(options:{service:CardService;wallet:WalletAuthority;sourceCommit:string;allowedOrigin?:string;configurationReady:boolean;providerRegistry?:CardProviderRegistry}){
+export function createCardServer(options:{service:CardService;wallet:WalletAuthority;sourceCommit:string;allowedOrigin?:string;configurationReady:boolean;providerRegistry?:CardProviderRegistry;providerApplications?:CardProviderApplications}){
   return createServer(async(request,response)=>{
     response.setHeader('Cache-Control','no-store');response.setHeader('X-Content-Type-Options','nosniff');response.setHeader('Content-Type','application/json; charset=utf-8');
     const send=(status:number,value:unknown)=>{response.statusCode=status;response.end(JSON.stringify(value))};
@@ -23,6 +24,18 @@ export function createCardServer(options:{service:CardService;wallet:WalletAutho
       const principal=await options.wallet.authenticate({proofHeader:proof??'',...(origin?{origin}:{}),...(platform?{platform}:{}),operation:method==='GET'?'read':'write',method,path,requiredScopes:[requiredScope]});requireScope(principal,requiredScope);const input=await body(request);rejectSensitive(input);
       const key=String(request.headers['idempotency-key']??'');const service=options.service;let result:unknown;
       if(request.method==='GET'&&path==='/api/card/v2/provider-overview')result=options.providerRegistry?.overview(principal)??(()=>{throw new CardError('PROVIDER_REGISTRY_UNAVAILABLE',503)})();
+      else if(request.method==='GET'&&path==='/api/card/v2/provider-applications')result=options.providerApplications?.list(principal)??(()=>{throw new CardError('PROVIDER_APPLICATIONS_UNAVAILABLE',503)})();
+      else if(request.method==='GET'&&/^\/api\/card\/v2\/provider-applications\/[^/]+$/.test(path))result=options.providerApplications?.get(principal,path.split('/')[5]!)??(()=>{throw new CardError('PROVIDER_APPLICATIONS_UNAVAILABLE',503)})();
+      else if(request.method==='POST'&&path==='/api/card/v2/provider-applications'){
+        if(!options.providerApplications)throw new CardError('PROVIDER_APPLICATIONS_UNAVAILABLE',503);result=options.providerApplications.createDraft(principal,input,key);
+      }
+      else if(request.method==='POST'&&/^\/api\/card\/v2\/provider-applications\/[^/]+\/(terms|hosted-kyc|cancel)$/.test(path)){
+        if(!options.providerApplications)throw new CardError('PROVIDER_APPLICATIONS_UNAVAILABLE',503);
+        const parts=path.split('/'),applicationId=parts[5]!,action=parts[6];
+        if(action==='terms')result=options.providerApplications.acknowledgeTerms(principal,applicationId,input);
+        else if(action==='hosted-kyc')result=await options.providerApplications.beginHostedKyc(principal,applicationId);
+        else result=options.providerApplications.cancelLocal(principal,applicationId);
+      }
       else if(request.method==='GET'&&/^\/api\/card\/v2\/cards\/[^/]+\/provider-activity$/.test(path)){
         const cardId=path.split('/')[5]!;const rawCursor=parsedUrl.searchParams.get('cursor'),rawLimit=parsedUrl.searchParams.get('limit');if(parsedUrl.searchParams.size>Number(rawCursor!==null)+Number(rawLimit!==null))throw new CardError('INVALID_ACTIVITY_PAGE',400);
         if(!options.providerRegistry)throw new CardError('PROVIDER_REGISTRY_UNAVAILABLE',503);result=options.providerRegistry.activity(principal,cardId,rawCursor===null?0:Number(rawCursor),rawLimit===null?50:Number(rawLimit));

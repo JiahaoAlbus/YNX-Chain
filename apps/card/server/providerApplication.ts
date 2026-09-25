@@ -10,6 +10,7 @@ export type HostedKycStart={url:string;sessionId:string;expiresAt:string};
 export interface HostedKycAdapter{begin(application:Readonly<ProviderApplication>):Promise<HostedKycStart>}
 export type VerifiedKycEvent={eventId:string;owner:string;applicationId:string;provider:CardProvider;programId:string;environment:'TEST';sessionId:string;status:'PENDING'|'REVIEW'|'APPROVED'|'REJECTED';sourceAsOf:string};
 export interface HostedKycVerifier{verify(raw:Uint8Array,headers:Readonly<Record<string,string>>):Promise<VerifiedKycEvent>}
+export type ProviderProgramTerms={provider:CardProvider;programId:string;environment:'TEST';termsVersion:string;termsHash:string;feeDisclosureHash:string;cardAccountCurrency:string;minorUnitDigits:number;enabled:boolean};
 const empty=():State=>({applications:{},idempotency:{},kycEventIds:{}});
 const key=(owner:string)=>'card-provider-application:'+owner;
 const text=(value:unknown,name:string,max=128)=>{if(typeof value!=='string'||value.trim()!==value||value.length<1||value.length>max||/[\u0000-\u001f\u007f]/.test(value))throw new CardError('INVALID_'+name,400);return value};
@@ -24,13 +25,16 @@ function safe(application:ProviderApplication):ProviderApplication{return struct
 /** Test-only application record. No upstream issuance, KYC assertion, wallet
  * approval, card activation, or funding authority is inferred from this state. */
 export class CardProviderApplications{
-  constructor(private readonly store:CardStore,private readonly hostedKyc?:HostedKycAdapter,private readonly verifier?:HostedKycVerifier,private readonly allowedHostedOrigins:readonly string[]=[]){}
+  constructor(private readonly store:CardStore,private readonly hostedKyc?:HostedKycAdapter,private readonly verifier?:HostedKycVerifier,private readonly allowedHostedOrigins:readonly string[]=[],private readonly programs:readonly ProviderProgramTerms[]=[]){}
   list(principal:Principal){requireOwner(principal);return Object.values(this.store.read(key(principal.owner),empty).applications).map(safe)}
   get(principal:Principal,id:string){requireOwner(principal);ref(id,'APPLICATION_ID');const app=this.store.read(key(principal.owner),empty).applications[id];if(!app)throw new CardError('PROVIDER_APPLICATION_NOT_FOUND',404);return safe(app)}
   createDraft(principal:Principal,input:{provider:CardProvider;programId:string;nickname:string;useCase:string;testSpendingLimitMinor:string;cardAccountCurrency:string;minorUnitDigits:number;termsVersion:string;termsHash:string;feeDisclosureHash:string;riskAccepted:boolean},idempotencyKey:string,now=new Date().toISOString()){
     requireOwner(principal);const p=provider(input.provider),programId=ref(input.programId,'PROGRAM_ID'),nickname=text(input.nickname,'NICKNAME',40),useCase=text(input.useCase,'USE_CASE',160),termsVersion=ref(input.termsVersion,'TERMS_VERSION'),termsHash=hash(input.termsHash,'TERMS_HASH'),feeDisclosureHash=hash(input.feeDisclosureHash,'FEE_HASH');
     const limit=input.testSpendingLimitMinor;if(typeof limit!=='string'||! /^(0|[1-9][0-9]{0,17})$/.test(limit)||BigInt(limit)<=0n)throw new CardError('INVALID_TEST_SPENDING_LIMIT',400);
     if(typeof input.cardAccountCurrency!=='string'||! /^[A-Z]{3}$/.test(input.cardAccountCurrency)||!Number.isInteger(input.minorUnitDigits)||input.minorUnitDigits<0||input.minorUnitDigits>9)throw new CardError('INVALID_CARD_ACCOUNT_UNIT',400);
+    const matching=this.programs.filter(candidate=>candidate.provider===p&&candidate.programId===programId&&candidate.environment==='TEST'&&candidate.enabled);
+    if(matching.length!==1)throw new CardError('PROVIDER_PROGRAM_NOT_CONFIGURED',503);
+    const accepted=matching[0]!;if(accepted.termsVersion!==termsVersion||accepted.termsHash!==termsHash||accepted.feeDisclosureHash!==feeDisclosureHash||accepted.cardAccountCurrency!==input.cardAccountCurrency||accepted.minorUnitDigits!==input.minorUnitDigits)throw new CardError('PROVIDER_DISCLOSURE_MISMATCH',409);
     if(input.riskAccepted!==true)throw new CardError('TESTNET_RISK_ACKNOWLEDGEMENT_REQUIRED',400);ref(idempotencyKey,'IDEMPOTENCY_KEY');iso(now);
     const fields={provider:p,programId,nickname,useCase,testSpendingLimitMinor:limit,cardAccountCurrency:input.cardAccountCurrency,minorUnitDigits:input.minorUnitDigits,termsVersion,termsHash,feeDisclosureHash,riskAccepted:true};const inputDigest=digest(fields);
     return this.store.transaction(key(principal.owner),empty,state=>{const prior=state.idempotency[idempotencyKey];if(prior){if(prior.digest!==inputDigest)throw new CardError('APPLICATION_IDEMPOTENCY_CONFLICT');return safe(state.applications[prior.applicationId]!)}
@@ -56,5 +60,5 @@ export class CardProviderApplications{
   cancelLocal(principal:Principal,applicationId:string,now=new Date().toISOString()){
     requireOwner(principal);ref(applicationId,'APPLICATION_ID');iso(now);return this.store.transaction(key(principal.owner),empty,state=>{const app=state.applications[applicationId];if(!app)throw new CardError('PROVIDER_APPLICATION_NOT_FOUND',404);if(app.status==='CANCELLED')return app;if(app.status==='ACTIVE_SANDBOX')throw new CardError('PROVIDER_APPLICATION_STATE_CONFLICT');app.status='CANCELLED';app.updatedAt=now;app.audit.push({eventId:randomUUID(),type:'CANCELLED_LOCAL_UPSTREAM_UNCONFIRMED',at:now});return app});
   }
-  doctor(){return {schemaVersion:2,hostedKycConfigured:Boolean(this.hostedKyc&&this.allowedHostedOrigins.length),hostedKycVerifierConfigured:Boolean(this.verifier),providerSubmissionConfigured:false,providerActivationConfigured:false,productionIssuingEnabled:false} as const}
+  doctor(){return {schemaVersion:2,configuredTestPrograms:this.programs.filter(program=>program.enabled&&program.environment==='TEST').length,hostedKycConfigured:Boolean(this.hostedKyc&&this.allowedHostedOrigins.length),hostedKycVerifierConfigured:Boolean(this.verifier),providerSubmissionConfigured:false,providerActivationConfigured:false,productionIssuingEnabled:false} as const}
 }

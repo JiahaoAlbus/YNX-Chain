@@ -5,6 +5,8 @@ import {CardError,type CardScope,type Principal} from './contracts.ts';
 const routeScopes:readonly [string,RegExp,CardScope][]=[
   ['GET',/^\/api\/card\/v2\/provider-overview$/,'account:read'],
   ['GET',/^\/api\/card\/v2\/cards\/[^/]+\/provider-activity$/,'account:read'],
+  ['GET',/^\/api\/card\/v2\/provider-applications(?:\/[^/]+)?$/,'account:read'],
+  ['POST',/^\/api\/card\/v2\/provider-applications(?:\/[^/]+\/(?:terms|hosted-kyc|cancel))?$/,'card:application:write'],
   ['GET',/^\/api\/card\/v1\/state$/,'account:read'],
   ['GET',/^\/api\/card\/v1\/cards\/[^/]+\/(statement|reconciliation)$/,'account:read'],
   ['POST',/^\/api\/card\/v1\/applications$/,'card:application:write'],
