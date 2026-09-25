@@ -50,6 +50,7 @@
   "devDependencies": {
     "@types/node": "26.1.1",
     "@types/react": "~19.2.2",
+    "metro": "0.84.5",
     "react-test-renderer": "19.2.3",
     "typescript": "~6.0.3"
   },
