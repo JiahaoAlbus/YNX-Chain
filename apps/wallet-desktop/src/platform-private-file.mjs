@@ -69,7 +69,9 @@ try {
     Read-PrivateAcl $target
   }
   $target = Resolve-LocalPath $request.path
-  if ($request.operation -eq 'probe' -or $request.operation -eq 'replace') {
+  # A probe only checks the path and NTFS volume. Compiling this P/Invoke on
+  # every cold probe can time out on native Windows ARM before any vault read.
+  if ($request.operation -eq 'replace') {
     Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
