@@ -1,5 +1,6 @@
 import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter,type BrowserProductSessionAdapter} from '@ynx-chain/wallet-auth-card-provider-v2';
 import registry from '../vendor/product-session-registry-09e36b150.json';
+import {cardCallbackKind} from './providerCallback';
 
 const ATTEMPT='ynx.card.provider-session.v2.attempted';
 export const CARD_WEB_PROVIDER_SCOPES=Object.freeze(['account:read','card:application:write','card:controls:write'] as const);
@@ -14,7 +15,9 @@ export async function cardWebSession(){
 }
 export function cardWebSessionCurrent(){return adapter?.client.current??null}
 export async function restoreCardWebSession(){
-  const w=browser();const callback=w.location.pathname==='/wallet-auth/callback'&&w.location.search!=='';
+  const w=browser();const kind=cardCallbackKind(w.location.href);
+  if(kind==='invalid')throw Error('CARD_WALLET_CALLBACK_INVALID');
+  const callback=kind==='session';
   let attempted=false;try{attempted=w.localStorage.getItem(ATTEMPT)==='yes'}catch{}
   if(!attempted&&!callback)return null;
   const epoch=++generation,selected=await cardWebSession();const result=callback?await selected.client.handleReturn(w.location.href):await selected.client.restore(w.navigator.onLine);

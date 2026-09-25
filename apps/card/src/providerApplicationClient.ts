@@ -10,6 +10,7 @@ function resource(value:string):string{if(!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 export class CardProviderClient{
   private readonly fetcher:typeof fetch;
   constructor(private readonly capabilities:Capabilities){if(!/^[a-f0-9]{40}$/.test(capabilities.expectedSourceCommit))throw new CardProviderClientError('SOURCE_NOT_CONFIGURED','card-data');this.fetcher=capabilities.fetch??globalThis.fetch}
+  currentOwner(){return this.capabilities.identity()?.owner??null}
   private async request(path:string,options:RequestOptions):Promise<unknown>{
     const start=this.capabilities.identity();if(!start||!start.owner||!start.sessionBinding||Date.parse(start.expiresAt)<=Date.now())throw new CardProviderClientError('PRIVATE_SESSION_REQUIRED','product-session');
     if(options.method==='POST'&&(!options.idempotencyKey||! /^(?=.{1,128}$)[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(options.idempotencyKey)))throw new CardProviderClientError('IDEMPOTENCY_KEY_REQUIRED','card-data');
@@ -21,6 +22,7 @@ export class CardProviderClient{
     const after=this.capabilities.identity();if(!after||after.owner!==start.owner||after.sessionBinding!==start.sessionBinding)throw new CardProviderClientError('CARD_CONTEXT_CHANGED','product-session');
     if(!response.headers.get('content-type')?.startsWith('application/json'))throw new CardProviderClientError('INVALID_CARD_API_RESPONSE','card-data');
     let parsed:Record<string,unknown>;try{parsed=object(await response.json())}catch{throw new CardProviderClientError('INVALID_CARD_API_RESPONSE','card-data')}
+    const completed=this.capabilities.identity();if(!completed||completed.owner!==start.owner||completed.sessionBinding!==start.sessionBinding||Date.parse(completed.expiresAt)<=Date.now())throw new CardProviderClientError('CARD_CONTEXT_CHANGED','product-session');
     if(!response.ok){const error=object(parsed.error);const code=typeof error.code==='string'&&/^[A-Z0-9_]{3,80}$/.test(error.code)?error.code:'CARD_API_UNAVAILABLE';throw new CardProviderClientError(code,response.status===401||response.status===403?'product-session':'card-api')}
     if(parsed.schemaVersion!==2||parsed.sourceCommit!==this.capabilities.expectedSourceCommit||parsed.sessionOwner!==start.owner||parsed.environment!=='YNX_TESTNET_CARD_PAYMENT_SIMULATION'||parsed.productionRealPayments!==false)throw new CardProviderClientError('INVALID_CARD_API_RESPONSE','card-data');
     rejectSensitive(parsed.data);return parsed.data;

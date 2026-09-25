@@ -6,6 +6,16 @@ import {CardProviderClient,CardProviderClientError} from './providerApplicationC
 const source='a'.repeat(40),owner='0x'+'b'.repeat(40);
 const identity=()=>({owner,sessionBinding:'binding-a',expiresAt:'2099-01-01T00:00:00.000Z'});
 const envelope=(data:unknown,extra:Record<string,unknown>={})=>Response.json({schemaVersion:2,sourceCommit:source,sessionOwner:owner,environment:'YNX_TESTNET_CARD_PAYMENT_SIMULATION',productionRealPayments:false,data,...extra});
+test('account change while the response body arrives never publishes old account records',async()=>{
+  let current:ReturnType<typeof identity>|null=identity(),release!:()=>void;
+  const bodyReady=new Promise<void>(resolve=>release=resolve);
+  let started!:()=>void;const parsing=new Promise<void>(resolve=>started=resolve);
+  const response=envelope({privateRecord:'old-owner-record'});
+  response.json=async()=>{started();await bodyReady;return {schemaVersion:2,sourceCommit:source,sessionOwner:owner,environment:'YNX_TESTNET_CARD_PAYMENT_SIMULATION',productionRealPayments:false,data:{privateRecord:'old-owner-record'}}};
+  const client=new CardProviderClient({expectedSourceCommit:source,identity:()=>current,createIntrospectionProof:async()=>({proofHeader:'fresh'}),fetch:async()=>response});
+  const read=client.listApplications();await parsing;current=null;release();
+  await assert.rejects(read,/CARD_CONTEXT_CHANGED/);
+});
 test('provider application client uses only fixed same-origin v2, fresh proof and exact read/write scopes',async()=>{
   const calls:{url:string;init:RequestInit}[]=[],scopes:string[][]=[];let proofs=0;
   const client=new CardProviderClient({expectedSourceCommit:source,identity,createIntrospectionProof:async scope=>{scopes.push([...scope]);return {proofHeader:'proof-'+(++proofs)}},fetch:async(url,init)=>{calls.push({url:String(url),init:init??{}});return envelope([])}});
