@@ -42,34 +42,51 @@ jobs:
         working-directory: apps/wallet
       - run: npx pod-install ios
         working-directory: apps/wallet
-      - name: Build unsigned iOS Simulator app
+      - name: Build locally signed iOS Simulator app
         working-directory: apps/wallet
         run: >-
           xcodebuild -workspace ios/YNXWallet.xcworkspace -scheme YNXWallet
           -configuration Release -sdk iphonesimulator
           -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO clean build
-      - name: Install, cold launch and verify Wallet deep link
-        timeout-minutes: 10
+          CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- clean build
+      - name: Verify installed Wallet onboarding and invalid deep link
+        timeout-minutes: 20
         working-directory: apps/wallet
         run: |
           set -euo pipefail
           APP="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Release-iphonesimulator/YNXWallet.app' -print -quit)"
-          DEVICE="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/{print $2; exit}')"
           test -n "$APP"
-          test -n "$DEVICE"
           mkdir -p proof/ci-ios
-          xcrun simctl shutdown "$DEVICE" 2>/dev/null || true
-          xcrun simctl erase "$DEVICE"
+          codesign --verify --strict "$APP"
+          codesign -d --entitlements - "$APP" > proof/ci-ios/simulator-entitlements.plist
+          TEMPLATE="$(xcrun simctl list devices available -j | node -e 'let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{const d=JSON.parse(s).devices;for(const [runtime,items] of Object.entries(d)){const item=items.find(x=>x.isAvailable&&x.name.startsWith("iPhone"));if(item){console.log(`${item.deviceTypeIdentifier}\t${runtime}`);return}}process.exit(1)})')"
+          IFS=$'\t' read -r DEVICE_TYPE RUNTIME <<< "$TEMPLATE"
+          DEVICE="$(xcrun simctl create "YNX Wallet CI ${GITHUB_RUN_ID}" "$DEVICE_TYPE" "$RUNTIME")"
+          cleanup() {
+            result=$?
+            if [ "$result" -ne 0 ]; then
+              xcrun simctl io "$DEVICE" screenshot proof/ci-ios/installed-ui-failure.png || true
+              xcrun simctl spawn "$DEVICE" log show --last 8m --style compact --predicate 'process == "YNXWallet" OR process == "SpringBoard"' > proof/ci-ios/wallet-springboard.log || true
+            fi
+            xcrun simctl shutdown "$DEVICE" || true
+            xcrun simctl delete "$DEVICE" || true
+            exit "$result"
+          }
+          trap cleanup EXIT
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" "$APP"
-          xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet 2>/dev/null || true
-          xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/cold-launch.txt
-          xcrun simctl get_app_container "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/app-container.txt
-          xcrun simctl openurl "$DEVICE" 'ynxwallet://authorize?request=invalid' | tee proof/ci-ios/deep-link.txt
-          xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-deep-link-rejection.png
+          xcrun simctl get_app_container "$DEVICE" com.ynxweb4.wallet app > proof/ci-ios/app-container.txt
+          xcodebuild -project qa/ios/YNXWalletInstalledQA.xcodeproj -scheme YNXWalletInstalledQA \
+            -configuration Release -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -derivedDataPath "$RUNNER_TEMP/ynx-wallet-installed-ui-derived" \
+            -resultBundlePath proof/ci-ios/InstalledUI.xcresult \
+            -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test
+          xcrun xcresulttool export attachments --path proof/ci-ios/InstalledUI.xcresult --output-path proof/ci-ios/attachments
+          test -n "$(find proof/ci-ios/attachments -name '*.png' -print -quit)"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
         with:
           name: ynx-wallet-ios-simulator
           path: |
