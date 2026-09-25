@@ -11,6 +11,9 @@ try { displayStorage = window.localStorage; } catch { /* Display preference is o
 const i18n = createDesktopI18n({ systemLocale: navigator.language, storage: displayStorage, document });
 const t = (english, parameters) => i18n.t(english, parameters);
 const write = (node, english, parameters) => i18n.write(node, english, parameters);
+void window.ynxWallet.appInfo().then(info => {
+  if (typeof info?.version === "string" && /^\d+\.\d+\.\d+$/.test(info.version)) write(document.querySelector("#wallet-version"), "Version {version}", { version: info.version });
+}).catch(() => {});
 const languageSelect = document.querySelector("#display-language");
 for (const [code, label] of [["system", "System language"], ...LOCALES]) {
   const option = document.createElement("option"); option.value = code; option.textContent = code === "system" ? t(label) : label;

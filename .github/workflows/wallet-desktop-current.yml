@@ -289,6 +289,38 @@ jobs:
             if (-not $fourth.HasExited) { [void]$fourth.CloseMainWindow(); [void]$fourth.WaitForExit(15000) }
           }
           if (-not $fourth.HasExited) { throw 'Fourth installed Wallet did not close' }
+      - name: Verify installed Windows x64 Arabic display and same locked account across restart
+        if: matrix.platform == 'windows' && matrix.arch == 'x64'
+        shell: pwsh
+        env:
+          YNX_WALLET_QA_PASSWORD: 'Synthetic native QA password 2026!'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $rows = @(Get-Content 'apps/wallet-desktop/dist/windows-install-location.json' -Raw | ConvertFrom-Json)
+          $locations = @($rows | ForEach-Object { $_.installLocation } | Where-Object { $_ } | Sort-Object -Unique)
+          if ($locations.Count -ne 1) { throw 'Expected one exact current-user Wallet installation' }
+          $exe = Join-Path $locations[0] 'YNX Wallet.exe'
+          $account = (Get-Content 'apps/wallet-desktop/dist/windows-password-lifecycle.json' -Raw | ConvertFrom-Json).publicImportedAccount
+          if ($account -notmatch '^0x[0-9a-fA-F]{40}$') { throw 'Installed imported account unavailable for locale gate' }
+          $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP '钱包 QA profile'
+          $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\password-installed-smoke.json'
+          $env:YNX_WALLET_EXPECTED_VERSION = (Get-Content 'apps/wallet-desktop/package.json' -Raw | ConvertFrom-Json).version
+          $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
+          $before = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+          $results = @()
+          foreach ($phase in @('locale-set','locale-restore')) {
+            $app = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+            try {
+              $result = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs $phase $account | ConvertFrom-Json
+              if ($LASTEXITCODE -ne 0 -or -not $result.arabicRTL -or -not $result.samePublicAccount -or -not $result.remainedLocked -or $result.version -ne $env:YNX_WALLET_EXPECTED_VERSION -or ($phase -eq 'locale-restore' -and -not $result.preferenceRetained)) { throw 'Installed Arabic locale or custody gate failed' }
+              $results += $result
+            } finally {
+              if (-not $app.HasExited) { [void]$app.CloseMainWindow(); [void]$app.WaitForExit(15000) }
+            }
+            if (-not $app.HasExited) { throw 'Installed Arabic locale Wallet did not close' }
+          }
+          if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $before) { throw 'Changing display language modified the encrypted vault' }
+          @{ sourceCommit=$env:GITHUB_SHA; version=$env:YNX_WALLET_EXPECTED_VERSION; platform='windows'; architecture='x64'; installedExecutable=$true; arabicRTL=$true; preferenceAfterAppRestart=$true; samePublicAccount=$true; remainedLocked=$true; encryptedVaultUnchanged=$true; osRebootVerified=$false; userMachineVerified=$false; productionSigned=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-locale-lifecycle.json'
       - name: Verify installed Wallet creates and restores the same account without RPC
         if: matrix.platform == 'windows' && matrix.arch == 'x64'
         shell: pwsh
@@ -492,6 +524,7 @@ jobs:
             apps/wallet-desktop/dist/installed-smoke.json
             apps/wallet-desktop/dist/password-installed-smoke.json
             apps/wallet-desktop/dist/windows-password-lifecycle.json
+            apps/wallet-desktop/dist/windows-locale-lifecycle.json
             apps/wallet-desktop/dist/windows-old-installer.json
             apps/wallet-desktop/dist/windows-old-profile.json
             apps/wallet-desktop/dist/old-installed-smoke.json

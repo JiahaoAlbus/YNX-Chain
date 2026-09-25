@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   lock: () => ipcRenderer.invoke("wallet:lock"),
   onSecurityState: callback => ipcRenderer.on("wallet:security-state", (_event, value) => callback(value)),
   status: () => ipcRenderer.invoke("wallet:status"),
+  appInfo: () => ipcRenderer.invoke("wallet:app-info"),
   onStatus: callback => ipcRenderer.on("wallet:status-result", (_event, value) => callback(value)),
   onAuthorizationRequest: callback => ipcRenderer.on("wallet:authorization-request", (_event, value) => callback(value)),
   onAuthorizationError: callback => ipcRenderer.on("wallet:authorization-error", (_event, value) => callback(value)),

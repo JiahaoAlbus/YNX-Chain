@@ -765,20 +765,20 @@ export const EXTRA_MESSAGES = Object.freeze({
     "id": "Dompet YNX · Testnet",
     "hi": "YNX वॉलेट · टेस्टनेट"
   },
-  "Version 0.6.9": {
-    "en": "Version 0.6.9",
-    "zh-CN": "版本0.6.9",
-    "zh-TW": "版本0.6.9",
-    "ja": "バージョン0.6.9",
-    "ko": "버전 0.6.9",
-    "es": "Versión 0.6.9",
-    "fr": "Version 0.6.9",
-    "de": "Version 0.6.9",
-    "pt": "Versão 0.6.9",
-    "ru": "Версия 0.6.9",
-    "ar": "الإصدار 0.6.9",
-    "id": "Versi 0.6.9",
-    "hi": "संस्करण 0.6.9"
+  "Version {version}": {
+    "en": "Version {version}",
+    "zh-CN": "版本 {version}",
+    "zh-TW": "版本 {version}",
+    "ja": "バージョン {version}",
+    "ko": "버전 {version}",
+    "es": "Versión {version}",
+    "fr": "Version {version}",
+    "de": "Version {version}",
+    "pt": "Versão {version}",
+    "ru": "Версия {version}",
+    "ar": "الإصدار {version}",
+    "id": "Versi {version}",
+    "hi": "संस्करण {version}"
   },
   "Receive YNXT": {
     "en": "Receive YNXT",

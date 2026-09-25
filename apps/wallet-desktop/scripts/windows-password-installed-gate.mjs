@@ -4,7 +4,7 @@ import path from "node:path";
 
 const [mode, expectedAccount = ""] = process.argv.slice(2);
 const password = process.env.YNX_WALLET_QA_PASSWORD;
-if (!["create", "restore", "import", "backup-start", "backup-result", "import-backup", "offline-create", "offline-restore"].includes(mode) || typeof password !== "string" || password.length < 12) throw new Error("Installed V3 gate input is incomplete");
+if (!["create", "restore", "import", "backup-start", "backup-result", "import-backup", "offline-create", "offline-restore", "locale-set", "locale-restore"].includes(mode) || typeof password !== "string" || password.length < 12) throw new Error("Installed V3 gate input is incomplete");
 const importFixtures = Array.from({ length: 6 }, (_, index) => {
   const key = `0x${(0x42 + index).toString(16).repeat(32)}`; // Public, disposable fixtures; never user keys.
   return { key, account: new Wallet(key).address.toLowerCase() };
@@ -131,7 +131,19 @@ try {
     }
     if (!visible) throw new Error("OFFLINE_NETWORK_UI_NOT_PROVEN");
   }
-  if (mode === "backup-result") {
+  if (mode === "locale-set" || mode === "locale-restore") {
+    const version = process.env.YNX_WALLET_EXPECTED_VERSION;
+    if (!/^\d+\.\d+\.\d+$/.test(version ?? "") || before.account.account !== expectedAccount || !before.account.initialized || !before.locked) throw new Error("LOCALE_ACCOUNT_OR_VERSION_UNAVAILABLE");
+    if (mode === "locale-set") await evaluate(`(() => { document.querySelector('nav [data-view="settings"]').click(); const select=document.querySelector('#display-language'); select.value='ar'; select.dispatchEvent(new Event('change',{bubbles:true})); return true; })()`, "LOCALE_SELECT_ARABIC");
+    let displayed;
+    for (let attempt = 0; attempt < 40; attempt++) {
+      displayed = await evaluate(`(async () => { const info=await window.ynxWallet.appInfo(); return { version:info?.version, visible:document.querySelector('#wallet-version')?.textContent, lang:document.documentElement.lang, dir:document.documentElement.dir, selected:document.querySelector('#display-language')?.value, account:(await window.ynxWallet.accountStatus()).value?.account, locked:(await window.ynxWallet.securityStatus()).locked }; })()`, "LOCALE_INSTALLED_SNAPSHOT");
+      if (displayed?.version === version && displayed.visible?.includes(version) && displayed.lang === "ar" && displayed.dir === "rtl" && displayed.selected === "ar") break;
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+    if (displayed?.version !== version || !displayed.visible?.includes(version) || displayed.lang !== "ar" || displayed.dir !== "rtl" || displayed.selected !== "ar" || displayed.account !== expectedAccount || displayed.locked !== true) throw new Error("LOCALE_DISPLAY_OR_CUSTODY_CHANGED");
+    console.log(JSON.stringify({ mode, version, arabicRTL: true, preferenceRetained: mode === "locale-restore", samePublicAccount: true, remainedLocked: true, account: expectedAccount }));
+  } else if (mode === "backup-result") {
     if (!before.account.initialized || before.account.account !== expectedAccount) throw new Error("BACKUP_RESULT_ACCOUNT_UNAVAILABLE");
     await until(state => /Encrypted backup saved|加密备份已保存/i.test(state.ui.backupResult), "Native backup file saved");
     console.log(JSON.stringify({ mode, nativeBackupSaved: true, account: before.account.account }));
