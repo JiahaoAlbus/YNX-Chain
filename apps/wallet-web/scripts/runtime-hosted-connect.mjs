@@ -15,12 +15,13 @@ import { Transaction } from "ethers";
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const dist = resolve(root, "dist", "hosted");
 const password = "synthetic QA password 2026";
+const browserName = process.env.YNX_BROWSER === "edge" ? "Edge" : "Chromium";
 function financePrivateRequest() {
   const now = new Date(), token = () => randomBytes(32).toString("base64url");
   const value = createProductSessionRequest(registry, { productId: "finance", platform: "web", deviceId: `web_${token()}`, deviceKey: Buffer.from(p256.getPublicKey(Buffer.alloc(32, 0x42), true)).toString("base64url"), scopes: ["finance.pay.read"], purpose: "Read Finance testnet payment information after an explicit Wallet approval.", nonce: token(), state: token() }, now);
   return { value, url: encodeProductSessionWalletURL(registry, value, now) };
 }
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(browserName === "Edge" ? { executablePath: "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" } : {}) });
 async function routeFixture(context) {
   await context.route(/^https:\/\/(?:wallet|finance)\.ynxweb4\.com\//u, async route => {
     const url = new URL(route.request().url());
@@ -177,6 +178,6 @@ try {
   assert.equal(await switchedWallet.locator("#account-evm").textContent(), second.account);
   await switchedWallet.locator("#approve").click();
   assert.equal((await restoredFinance.evaluate(() => window.ynxConnection))[0], second.account);
-  console.log(JSON.stringify({ isolatedBrowser: "Chromium", hostedVaultCreatedAndReadBack: true, backupAcknowledgementBeforeConnect: true, zeroBalanceConnectionNoRpcRequired: true, account, chainId: "0x1917", explicitSignatureRejection: true, refreshDisconnected: true, wrongBackupPasswordRejected: true, encryptedBackupRestoresSamePublicAccount: true, privateV2SignedReturnLocallyVerified: true, privateV2Rejection: true, privateV2ReplayRejected: true, accountSwitchRequiresFreshApproval: true, concurrentAccountSwitchCancelsSignature: true, competingPopupSendBlocked: true, originalTransactionJournalRetained: true, mockRpcOnly: true, gatewayVerified: false, publicDeploymentVerified: false }));
+  console.log(JSON.stringify({ isolatedBrowser: browserName, hostedVaultCreatedAndReadBack: true, backupAcknowledgementBeforeConnect: true, zeroBalanceConnectionNoRpcRequired: true, account, chainId: "0x1917", explicitSignatureRejection: true, refreshDisconnected: true, wrongBackupPasswordRejected: true, encryptedBackupRestoresSamePublicAccount: true, privateV2SignedReturnLocallyVerified: true, privateV2Rejection: true, privateV2ReplayRejected: true, accountSwitchRequiresFreshApproval: true, concurrentAccountSwitchCancelsSignature: true, competingPopupSendBlocked: true, originalTransactionJournalRetained: true, mockRpcOnly: true, gatewayVerified: false, publicDeploymentVerified: false }));
   await fresh.close();
 } finally { await browser.close(); }

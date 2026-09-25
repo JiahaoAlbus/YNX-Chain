@@ -333,7 +333,7 @@ export function walletActionGates(provider, account, chainId, rpcVerified = fals
 }
 
 export function invalidatesConnectedSession(error) {
-  return ["ACCOUNT_CHANGED", "WRONG_NETWORK", "WALLET_NOT_FOUND", "WALLET_PROVIDER_UNSUPPORTED", 4900, 4901].includes(error?.code);
+  return ["ACCOUNT_CHANGED", "PROVIDER_ACCOUNT_UNAVAILABLE", "PROVIDER_ACCOUNT_CHANGED", "VAULT_TAMPERED", "PERMISSION_REVOKED", "WRONG_NETWORK", "WALLET_NOT_FOUND", "WALLET_PROVIDER_UNSUPPORTED", 4900, 4901].includes(error?.code);
 }
 
 export function subscribeProviderLifecycle(provider, handlers = {}) {

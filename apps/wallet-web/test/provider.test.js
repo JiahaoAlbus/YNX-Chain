@@ -443,7 +443,7 @@ test("network mutation never depends on a direct browser RPC probe", async () =>
 });
 
 test("only authoritative provider identity failures invalidate the connected UI session", () => {
-  for (const code of ["ACCOUNT_CHANGED","WRONG_NETWORK","WALLET_NOT_FOUND",4900,4901]) assert.equal(invalidatesConnectedSession({code}),true);
+  for (const code of ["ACCOUNT_CHANGED","PROVIDER_ACCOUNT_UNAVAILABLE","PROVIDER_ACCOUNT_CHANGED","VAULT_TAMPERED","PERMISSION_REVOKED","WRONG_NETWORK","WALLET_NOT_FOUND",4900,4901]) assert.equal(invalidatesConnectedSession({code}),true);
   for (const code of ["RPC_UNAVAILABLE","INVALID_MESSAGE",4001,-32603,undefined]) assert.equal(invalidatesConnectedSession({code}),false);
 });
 
