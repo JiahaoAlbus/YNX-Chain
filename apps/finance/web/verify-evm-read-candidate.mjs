@@ -23,7 +23,7 @@ const fail = code => { throw new Error(`FINANCE_EVM_READ_${code}`); };
 
 export async function verifyEVMReadCandidate({ root = repoRoot, read = readFile, pinnedCandidateSha256, candidatePath: reviewedCandidatePath = candidatePath } = {}) {
   if (!/^[0-9a-f]{64}$/u.test(pinnedCandidateSha256 || '')) fail('CANDIDATE_PIN_REQUIRED');
-  if (reviewedCandidatePath !== candidatePath && reviewedCandidatePath !== 'apps/finance/evidence/evm-read-runtime-verifier-candidate-final-ui-c5ba9b57-20260925.json') fail('CANDIDATE_PATH_UNREVIEWED');
+  if (reviewedCandidatePath !== candidatePath && reviewedCandidatePath !== 'apps/finance/evidence/evm-read-runtime-verifier-candidate-final-ui-17b76fcc-v3-20260925.json') fail('CANDIDATE_PATH_UNREVIEWED');
   const snapshot = new Map();
   const get = async path => {
     if (!snapshot.has(path)) snapshot.set(path, Buffer.from(await read(resolve(root, path))));

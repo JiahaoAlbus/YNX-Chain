@@ -14,9 +14,9 @@ const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 assert.equal(sha256(prior),'32bfe7e88f15926933c14dc2ce838913508fae25a18ed0d5e06ccf9eeb3751eb');
 assert.equal(version,'0.25.9');
 const priorManifest=JSON.parse(prior);
-const candidatePath='../evidence/evm-read-runtime-verifier-candidate-final-ui-c5ba9b57-20260925.json';
+const candidatePath='../evidence/evm-read-runtime-verifier-candidate-final-ui-17b76fcc-v3-20260925.json';
 const candidateBytes=readFileSync(resolve(root,candidatePath));
-const candidateSha256='6f91e7e83b2cd44e3d671acaccbbf4dd1b382021d2b07846d3e1043dd2f27280';
+const candidateSha256='514c92e996081e9cbec27db31242957df2307ae7c9961449213e8f01a26c771c';
 assert.equal(sha256(candidateBytes),candidateSha256);
 const buildOptions={absWorkingDir:root,entryPoints:[resolve(root,priorManifest.build.entry)],bundle:true,minify:true,platform:'browser',target:'es2022',write:false};
 const first=await build(buildOptions),second=await build(buildOptions);
@@ -41,7 +41,7 @@ const manifest={
   sourceBundleRelation:{byteReproducible:true,status:'VERIFIED_REPRODUCIBLE',cleanBuildCount:2,bytes:bundle.length,sha256:sha256(bundle)},
   files,
 };
-const output='../evidence/wallet-verifier-manifest-final-ui-c5ba9b57-20260925.json';
+const output='../evidence/wallet-verifier-manifest-final-ui-17b76fcc-v3-20260925.json';
 const body=Buffer.from(`${JSON.stringify(manifest,null,2)}\n`);
 writeFileSync(resolve(root,output),body,{flag:'wx',mode:0o644});
 console.log(JSON.stringify({path:`apps/finance/evidence/${output.split('/').at(-1)}`,bytes:body.length,sha256:sha256(body),walletBundle:{bytes:bundle.length,sha256:sha256(bundle)}}));

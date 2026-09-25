@@ -6,8 +6,8 @@ import { verifyEVMReadCandidate } from '../web/verify-evm-read-candidate.mjs';
 
 const candidate = new URL('../evidence/evm-read-runtime-verifier-candidate-pr199-v2-20260925.json', import.meta.url);
 const pin = createHash('sha256').update(await readFile(candidate)).digest('hex');
-const finalUICandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-final-ui-c5ba9b57-20260925.json';
-const finalUIPin = '6f91e7e83b2cd44e3d671acaccbbf4dd1b382021d2b07846d3e1043dd2f27280';
+const finalUICandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-final-ui-17b76fcc-v3-20260925.json';
+const finalUIPin = '514c92e996081e9cbec27db31242957df2307ae7c9961449213e8f01a26c771c';
 
 test('two independent snapshot builds bind full Wallet/Auth graph and both Finance bundles', async () => {
   const result = await verifyEVMReadCandidate({ pinnedCandidateSha256: pin });

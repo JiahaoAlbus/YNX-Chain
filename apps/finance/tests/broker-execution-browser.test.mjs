@@ -526,7 +526,7 @@ test('concurrent submit events create one opaque ticket and Web copy does not na
     assert.match(await page.locator('#broker-order-preview').innerText(),/ACME.*10.*simulated USD/s);
     await page.locator('#finance-language').selectOption('zh-CN');
     const localizedPreview=await page.locator('#broker-order-preview').innerText();
-    for(const exactTerm of ['ACME','1','10','最高金额','最高费用','有效期至'])assert.ok(localizedPreview.includes(exactTerm),exactTerm);
+    for(const exactTerm of ['买入 1 ACME @ 10 模拟美元','最高金额: 10 USD','最高费用 1 USD','有效期至 2026-09-19T11:05:00.000Z'])assert.ok(localizedPreview.includes(exactTerm),exactTerm);
     assert.equal(await page.locator('#broker-wallet-approve').getAttribute('data-wallet-review-url'),reviewURL);
     assert.equal(await page.locator('#broker-wallet-approve').innerText(),'复制安全的 YNX Wallet 审核链接');
     await page.locator('#finance-language').selectOption('en');
