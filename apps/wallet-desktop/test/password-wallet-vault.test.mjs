@@ -249,6 +249,39 @@ test("an ambiguous rename completion of an account mutation closes the app key g
   assert.equal(await f.life.run(() => f.vault.withSecret(secret => accountFor(secret))), accountFor(SECOND));
 });
 
+for (const deniedAttempts of [1, 4]) test(`Windows native replacement denied ${deniedAttempts} time(s) preserves the checked generation`, async t => {
+  const f = await fixture(t); await create(f); f.store.platform = "win32";
+  const original = await fs.readFile(f.filePath), replace = f.store.filePolicy.replace.bind(f.store.filePolicy);
+  let attempts = 0;
+  f.store.filePolicy.replace = async (...args) => {
+    if (args[1] === f.filePath && ++attempts <= deniedAttempts) throw Object.assign(new Error("synthetic native denial"), { storageStage: "windows-replace-native-replace-denied" });
+    return replace(...args);
+  };
+  if (deniedAttempts === 1) {
+    const imported = await f.life.run(() => f.vault.importAccount({ kind: "private-key", value: SECOND }));
+    assert.equal(imported.account, accountFor(SECOND)); assert.equal(attempts, 2);
+    assert.equal((await f.vault.status()).accounts.some(item => item.account === accountFor(SECRET)), true);
+    assert.notDeepEqual(await fs.readFile(f.filePath), original);
+  } else {
+    await assert.rejects(f.life.run(() => f.vault.importAccount({ kind: "private-key", value: SECOND })), error => error.data?.storageStage === "windows-replace-native-replace-denied");
+    assert.equal(attempts, 4); assert.deepEqual(await fs.readFile(f.filePath), original);
+    assert.equal((await f.vault.status()).account, accountFor(SECRET)); assert.equal(f.life.status().locked, true);
+  }
+});
+
+test("a denied native replacement never retries over a changed encrypted generation", async t => {
+  const f = await fixture(t); await create(f); f.store.platform = "win32";
+  const external = `${(await fs.readFile(f.filePath, "utf8")).trimEnd()}\n `;
+  let attempts = 0;
+  f.store.filePolicy.replace = async (...args) => {
+    if (args[1] !== f.filePath) return assert.fail("Unexpected recovery archive publication");
+    attempts++; await fs.writeFile(f.filePath, external);
+    throw Object.assign(new Error("synthetic native denial"), { storageStage: "windows-replace-native-replace-denied" });
+  };
+  await assert.rejects(f.life.run(() => f.vault.importAccount({ kind: "private-key", value: SECOND })), error => error.data?.code === "PASSWORD_VAULT_FILE_CHANGED");
+  assert.equal(attempts, 1); assert.equal(await fs.readFile(f.filePath, "utf8"), external); assert.equal(f.life.status().locked, true);
+});
+
 test("archive fsync failure followed by retry republishes verified bytes through the commit barrier", async t => {
   const io = { ...fs }, f = await fixture(t, { io }); await create(f); f.life.lock(); let syncs = 0, failOnce = true;
   io.open = async (file, ...args) => {

@@ -73,7 +73,20 @@ export class PasswordVaultFile {
       // Once rename starts it may have committed despite cancellation. Never delete
       // the target or report an old session as usable in that case.
       stage = "publish-replace";
-      await this.filePolicy.replace(temporary, this.filePath); renamed = true;
+      for (let attempt = 0; ; attempt++) {
+        guard.assert();
+        try { await this.filePolicy.replace(temporary, this.filePath); break; }
+        catch (error) {
+          // ERROR_ACCESS_DENIED can be a short-lived Windows handle conflict.
+          // Retry only that exact native result, and only after confirming the
+          // previous encrypted generation still exists, is private and matches.
+          // An ambiguous committed move or any other failure must fail closed.
+          if (this.platform !== "win32" || error?.storageStage !== "windows-replace-native-replace-denied" || attempt >= 3) throw error;
+          await new Promise(resolve => setTimeout(resolve, 75 * (attempt + 1)));
+          await this.assertCurrent(expected, guard);
+        }
+      }
+      renamed = true;
       stage = "publish-final-readback";
       const stored = await this.read();
       if (stored?.text !== text) throw vaultStorageError("PASSWORD_VAULT_STORAGE_FAILED", stage);
