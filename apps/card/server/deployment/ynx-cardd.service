@@ -15,7 +15,7 @@ Environment=YNX_CARD_PORT=18740
 Environment=YNX_CARD_DATA_DIR=/var/lib/ynx-card
 Environment=YNX_CARD_ALLOWED_ORIGIN=https://card.ynxweb4.com
 ExecStartPre=/usr/bin/node /opt/ynx-card/current/apps/card/server/deployment/preflight.mjs
-ExecStart=/usr/bin/node /opt/ynx-card/current/apps/card/server/main.ts
+ExecStart=/usr/bin/node --import tsx /opt/ynx-card/current/apps/card/server/main.ts
 StateDirectory=ynx-card
 StateDirectoryMode=0700
 UMask=0077
