@@ -23,7 +23,7 @@ let brokerConfigurationState='brokerStatusMissing';
 function renderBrokerConfigurationStatus(){const target=document.querySelector('#broker-status');if(target)target.textContent=financeText(brokerConfigurationState)}
 let brokerDiagnosticsState={approval:false,journal:false};
 function renderBrokerDiagnostics(){const approval=document.querySelector('#broker-approval'),journal=document.querySelector('#broker-journal');if(approval)approval.textContent=financeText(brokerDiagnosticsState.approval?'brokerApprovalAvailable':'brokerApprovalUnavailable');if(journal)journal.textContent=financeText(brokerDiagnosticsState.journal?'brokerJournalAvailable':'brokerJournalUnavailable')}
-document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();renderBrokerDiagnostics();renderWalletIdentity();renderBrokerSnapshot();renderSourceStatus();renderBrokerQuote();renderBrokerWorkspace(brokerWorkspaceDisplay);if(brokerAssetResults!==null)renderBrokerAssets(brokerAssetResults);if(!state.connected)route()});
+document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();renderBrokerDiagnostics();renderWalletIdentity();renderBrokerSnapshot();renderSourceStatus();renderBrokerQuote();renderBrokerWorkspace(brokerWorkspaceDisplay);if(brokerApprovalDisplay)renderBrokerApprovalRoute(brokerApprovalDisplay.route,brokerApprovalDisplay.recovered);else if(brokerApprovalMessageKey)$('#broker-order-preview').textContent=financeText(brokerApprovalMessageKey);if(brokerAssetResults!==null)renderBrokerAssets(brokerAssetResults);if(!state.connected)route()});
 // Guest-readable diagnostics only. This never requests a Wallet account, signs,
 // reads broker credentials or automatically enables order submission.
 let brokerCheckRevision=0;
@@ -103,8 +103,9 @@ async function refreshBrokerSnapshot(){
   }
 }
 let brokerCallbackInFlight=false,brokerApprovalInFlight=false;
+let brokerApprovalDisplay=null,brokerApprovalMessageKey='brokerNoApproval';
 const OPAQUE_ORDER_PENDING_KEY='ynx.finance.order-opaque.v2.pending';
-function hideBrokerApproval(){const link=$('#broker-wallet-approve');link.hidden=true;delete link.dataset.walletReviewUrl;$('#broker-order-preview').textContent=financeText('brokerNoApproval')}
+function hideBrokerApproval(){brokerApprovalDisplay=null;brokerApprovalMessageKey='brokerNoApproval';const link=$('#broker-wallet-approve');link.hidden=true;delete link.dataset.walletReviewUrl;$('#broker-order-preview').textContent=financeText('brokerNoApproval')}
 function reconcileOpaqueBrokerOwner(){
   const raw=sessionStorage.getItem(OPAQUE_ORDER_PENDING_KEY);if(!raw)return;
   let pending;try{pending=JSON.parse(raw)}catch{sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);hideBrokerApproval();return}
@@ -147,6 +148,7 @@ function renderBrokerWorkspace(workspace){
   renderBrokerWatchlist(workspace?.watchlist);
 }
 function renderBrokerApprovalRoute(route,recovered=false){
+  brokerApprovalDisplay={route,recovered};brokerApprovalMessageKey=null;
   const unsigned=route.request.unsigned,order=unsigned.order;
   $('#broker-order-preview').innerHTML=order?`<strong>${esc(brokerWorkflowLabel(order.side))} ${esc(order.qty)} ${esc(order.symbol)} @ ${esc(order.limitPrice)} ${esc(financeText('brokerSimulatedUSD'))}</strong><br>${esc(financeText('brokerPreviewMaximum'))}: ${esc(order.maxCost)} USD · ${esc(financeText('brokerPreviewFee'))} ${esc(order.maxFee)} USD · ${esc(financeText('brokerPreviewExpires'))} ${esc(unsigned.expiresAt)}<br><small>${esc(financeText('brokerPreviewRequest'))} ${esc(short(unsigned.requestId))}. ${esc(financeText(recovered?'brokerRecovered':'brokerProviderNotContacted'))}</small>`:
     `${esc(financeText('brokerConfidentialPending'))} · ${esc(financeText('brokerPreviewExpires'))} ${esc(unsigned.expiresAt)}. ${esc(financeText('brokerConfidentialNoStorage'))}`;
@@ -157,7 +159,7 @@ function renderBrokerApprovalRoute(route,recovered=false){
 }
 async function restoreBrokerApproval(serverTime,{announce=false}={}){
   const opaque=opaqueOrderPending(serverTime);
-  if(opaque){if(opaque.expired){$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent=financeText('brokerTicketExpired');return opaque}
+  if(opaque){if(opaque.expired){brokerApprovalDisplay=null;brokerApprovalMessageKey='brokerTicketExpired';$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent=financeText('brokerTicketExpired');return opaque}
     renderBrokerApprovalRoute(opaque,true);if(announce)notify(financeText('brokerTicketStillActive'));return opaque}
   const legacyPending=window.YNXFinanceOrderWallet.pending();
   if(!legacyPending)return null;
@@ -166,7 +168,7 @@ async function restoreBrokerApproval(serverTime,{announce=false}={}){
   }
   const route=await window.YNXFinanceOrderWallet.resume(serverTime);
   if(!route)return null;
-  if(route.expired){$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent=financeText('brokerLegacyExpired');if(announce)notify(financeText('brokerLegacyExpiredNotice'));return route}
+  if(route.expired){brokerApprovalDisplay=null;brokerApprovalMessageKey='brokerLegacyExpired';$('#broker-wallet-approve').hidden=true;$('#broker-order-preview').textContent=financeText('brokerLegacyExpired');if(announce)notify(financeText('brokerLegacyExpiredNotice'));return route}
   renderBrokerApprovalRoute(route,true);if(announce)notify(financeText('brokerLegacyActive'));return route
 }
 async function requireBrokerOrderAuthority(){
@@ -254,7 +256,7 @@ async function completeBrokerCallback(){
         callback.href!==`${callback.origin}/wallet-auth/callback?financeOrderCode=${code}&state=${stateToken}`)throw new Error('Confidential Wallet callback URL is not canonical.');
       const result=await api('/api/broker/order-handoff/exchange',{method:'POST',body:JSON.stringify({code,state:stateToken})});
       if(result?.version!=='2'||!['approved','rejected','revoked'].includes(result.status)||result.result?.providerWriteAttempted!==false)throw new Error('Confidential Wallet decision response is invalid.');
-      pendingOpaqueBrokerReturnURL=null;sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);history.replaceState(null,'','/');$('#broker-complete-callback').hidden=true;$('#broker-wallet-approve').hidden=true;
+      pendingOpaqueBrokerReturnURL=null;sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);history.replaceState(null,'','/');$('#broker-complete-callback').hidden=true;hideBrokerApproval();
       notify(result.status==='approved'?'Wallet approval queued one local Sandbox outbox. Provider submission has not occurred.':'Wallet decision recorded without a provider order.');
       await refreshBrokerWorkspace();return;
     }
@@ -262,7 +264,7 @@ async function completeBrokerCallback(){
     const raw=await window.YNXFinanceOrderWallet.parseReturn(pendingLegacyBrokerReturnURL,workspace.serverTime);
     const result=await api('/api/broker/callback',{method:'POST',body:raw});
     if(result?.schema!=='ynx-finance-order-approval-consume-v1'||result.providerWriteAttempted!==false)throw new Error('Finance order callback response is invalid.');
-    window.YNXFinanceOrderWallet.clear();pendingLegacyBrokerReturnURL=null;history.replaceState(null,'','/');$('#broker-wallet-approve').hidden=true;$('#broker-complete-callback').hidden=true;notify(result.status==='approved'?'Wallet approval consumed into the durable local outbox. Broker submission remains disabled.':'Wallet decision recorded. No broker submission occurred.');await refreshBrokerWorkspace();
+    window.YNXFinanceOrderWallet.clear();pendingLegacyBrokerReturnURL=null;history.replaceState(null,'','/');hideBrokerApproval();$('#broker-complete-callback').hidden=true;notify(result.status==='approved'?'Wallet approval consumed into the durable local outbox. Broker submission remains disabled.':'Wallet decision recorded. No broker submission occurred.');await refreshBrokerWorkspace();
   }catch(error){notify(error.message,true)}finally{brokerCallbackInFlight=false}
 }
 const READ_RETRY_DELAYS=[0,600,1600];

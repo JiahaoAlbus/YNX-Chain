@@ -81,6 +81,8 @@ test('Broker order approval consumes the exact Wallet transport and never auto-s
   assert.ok(orderWallet.includes("FINANCE_ORDER_AUTHORITY_TIME_INVALID"),'server time must be parsed at the trusted response boundary');
   for(const marker of ['FINANCE_ORDER_PENDING_EXISTS','resumeStored','expiresAt.getTime()'])assert.ok(orderWallet.includes(marker),marker);
   for(const marker of ['restoreBrokerApproval(workspace.serverTime','Clear expired request','brokerRecovered'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  assert.equal(/id="broker-order-preview"[^>]*data-finance-i18n/u.test(html),false,'locale application must not overwrite live order terms');
+  assert.equal(/id="broker-wallet-approve"[^>]*data-finance-i18n/u.test(html),false,'locale application must not overwrite the exact review action');
   assert.equal(orderWallet.includes('new Date()'),false,'order approval must not fall back to the device wall clock');
   assert.equal(html.includes('name="accountPublicKey"'),false,'Wallet public key must come from the persisted owner mapping');
   assert.equal(html.includes('Provider asset UUID<input'),false,'users must select provider-backed assets instead of typing UUIDs');

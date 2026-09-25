@@ -522,6 +522,17 @@ test('concurrent submit events create one opaque ticket and Web copy does not na
     await page.waitForFunction(()=>document.querySelector('#broker-wallet-approve')?.dataset.walletReviewUrl?.startsWith('ynxwallet://finance-order-approval?ticket='));
     assert.equal(await page.locator('#broker-wallet-approve').getAttribute('href'),'#');
     assert.match(await page.locator('#broker-wallet-approve').getAttribute('data-wallet-review-url'),/^ynxwallet:\/\/finance-order-approval\?ticket=/);
+    const reviewURL=await page.locator('#broker-wallet-approve').getAttribute('data-wallet-review-url');
+    assert.match(await page.locator('#broker-order-preview').innerText(),/ACME.*10.*simulated USD/s);
+    await page.locator('#finance-language').selectOption('zh-CN');
+    const localizedPreview=await page.locator('#broker-order-preview').innerText();
+    for(const exactTerm of ['ACME','1','10','最高金额','最高费用','有效期至'])assert.ok(localizedPreview.includes(exactTerm),exactTerm);
+    assert.equal(await page.locator('#broker-wallet-approve').getAttribute('data-wallet-review-url'),reviewURL);
+    assert.equal(await page.locator('#broker-wallet-approve').innerText(),'复制安全的 YNX Wallet 审核链接');
+    await page.locator('#finance-language').selectOption('en');
+    assert.match(await page.locator('#broker-order-preview').innerText(),/ACME.*10.*simulated USD/s);
+    assert.equal(await page.locator('#broker-wallet-approve').getAttribute('data-wallet-review-url'),reviewURL);
+    assert.equal(opaqueIssueRequests.length,1);
     const pageURL=page.url(),pagesBefore=browser.contexts().flatMap(context=>context.pages()).length;
     await page.locator('#broker-wallet-approve').click();
     assert.equal(page.url(),pageURL);
@@ -536,6 +547,9 @@ test('concurrent submit events create one opaque ticket and Web copy does not na
     assert.equal(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.order-opaque.v2.pending')),null);
     assert.equal(await page.locator('#broker-wallet-approve').isHidden(),true);
     assert.equal(await page.locator('#broker-order-preview').textContent(),'No approval request created.');
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.equal(await page.locator('#broker-wallet-approve').isHidden(),true);
+    assert.equal(await page.locator('#broker-order-preview').textContent(),'尚未创建审核请求。');
     await page.evaluate(async()=>{window.__financeTestAccount='ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80';state.connected=true;state.overview={portfolio:{account:window.__financeTestAccount}};await restoreBrokerApproval('2026-09-19T11:00:00.000Z')});
     assert.equal(await page.locator('#broker-wallet-approve').isHidden(),true);
     await page.waitForFunction(()=>document.querySelector('#broker-order-form button[type="submit"]').disabled===false);
