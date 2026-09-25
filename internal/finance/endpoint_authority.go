@@ -33,8 +33,6 @@ type nodeEndpointAuthority struct {
 	config             NodeEndpointAuthorityConfig
 	slots              chan struct{}
 	browserMu          sync.Mutex
-	browserConfig      []byte
-	browserConfigUntil time.Time
 }
 type unavailableEndpointAuthority struct{ code string }
 
@@ -102,9 +100,6 @@ func (g *nodeEndpointAuthority) RequiresProofPrevalidation() bool { return true 
 func (g *nodeEndpointAuthority) BrowserConfig(ctx context.Context) ([]byte, error) {
 	g.browserMu.Lock()
 	defer g.browserMu.Unlock()
-	if len(g.browserConfig) != 0 && time.Now().Before(g.browserConfigUntil) {
-		return append([]byte(nil), g.browserConfig...), nil
-	}
 	stdout, err := g.run(ctx, "browser-config")
 	if err != nil {
 		return nil, err
@@ -125,9 +120,9 @@ func (g *nodeEndpointAuthority) BrowserConfig(ctx context.Context) ([]byte, erro
 	if decodeErr := decoder.Decode(&response); decodeErr != nil || decoder.Decode(&struct{}{}) != io.EOF || response.SchemaVersion != "ynx-finance-endpoint-authority-browser-config/v1" || len(response.TrustRoot) == 0 || len(response.Manifest) == 0 || response.ServerCheckpoint.RootVersion < 1 || response.ServerCheckpoint.Sequence < 0 || !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(response.ServerCheckpoint.PayloadSHA256) || response.TrustedTimeMS < 0 {
 		return nil, &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_INVALID_RESPONSE", Status: 503}
 	}
-	g.browserConfig = append(g.browserConfig[:0], stdout...)
-	g.browserConfigUntil = time.Now().Add(15 * time.Second)
-	return append([]byte(nil), g.browserConfig...), nil
+	// A cached time anchor would restart the browser's monotonic clock on every
+	// reload and could extend an expired manifest. Fetch a fresh server sample.
+	return append([]byte(nil), stdout...), nil
 }
 
 func (g *nodeEndpointAuthority) run(ctx context.Context, outputMode string) ([]byte, error) {

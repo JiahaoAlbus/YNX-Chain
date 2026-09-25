@@ -34,6 +34,7 @@ func main() {
 		ExchangeURL:  os.Getenv("YNX_FINANCE_EXCHANGE_ACTION_URL"),
 		DEXURL:       os.Getenv("YNX_FINANCE_DEX_ACTION_URL"),
 		QuantURL:     os.Getenv("YNX_FINANCE_QUANT_ACTION_URL"),
+		CardURL:      os.Getenv("YNX_FINANCE_CARD_ACTION_URL"),
 		EconomicsURL: os.Getenv("YNX_FINANCE_ECONOMICS_ACTION_URL"),
 	}); err != nil {
 		log.Fatal(err)
@@ -45,6 +46,8 @@ func main() {
 		DEXKey:      os.Getenv("YNX_FINANCE_DEX_READ_KEY"),
 		QuantURL:    os.Getenv("YNX_FINANCE_QUANT_READ_URL"),
 		QuantKey:    os.Getenv("YNX_FINANCE_QUANT_READ_KEY"),
+		CardURL:     os.Getenv("YNX_FINANCE_CARD_READ_URL"),
+		CardKey:     os.Getenv("YNX_FINANCE_CARD_READ_KEY"),
 	}); err != nil {
 		log.Fatal(err)
 	}

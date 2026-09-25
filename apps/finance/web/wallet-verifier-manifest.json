@@ -66,18 +66,28 @@
     },
     {
       "path": "index.html",
-      "bytes": 28222,
-      "sha256": "2640700631254380435c720a5dc84b5538c01bd9033d3e310bcd49b018d10d7e"
+      "bytes": 28288,
+      "sha256": "e74e341d500520e44ad1c384648cda9bb27461afd015db584db7d3f425c33ae2"
     },
     {
       "path": "app.js",
-      "bytes": 63629,
-      "sha256": "c32c378b042b77fd5e54e9bd91306d3d4545d4c16b159b88b83610d9a268e80e"
+      "bytes": 63699,
+      "sha256": "955f19f43bff05c0ceaa77ee8ed24b519f7ac8b5ab0e2005a3883987aff03ac0"
     },
     {
       "path": "finance-locale.js",
-      "bytes": 36180,
-      "sha256": "626c3e12f012dde28da8fa4c494a7cd871105df9f6197019093abeaf9ac588fe"
+      "bytes": 37239,
+      "sha256": "ef142110d7d99468d6fae9ebadc650b16a00587fd2eca9b1f48cf2de2a4e989a"
+    },
+    {
+      "path": "read-sources.js",
+      "bytes": 18348,
+      "sha256": "a29b1b494f86a89c1aee12a0d27c200436b7ef33823fc8109323165b12eef63d"
+    },
+    {
+      "path": "styles.css",
+      "bytes": 24346,
+      "sha256": "8824130d0dce2f02ef1c6f6aa64c76641ec192dba0528f7987693df1687b9d40"
     },
     {
       "path": "product-catalog.js",
@@ -141,8 +151,13 @@
     },
     {
       "path": "../scripts/finance-nonregressive-runtime.mjs",
-      "bytes": 3040,
-      "sha256": "dbd0fa3ce50c691538f581492b62213476953d57e0bd0f45a07d6c60366a141e"
+      "bytes": 3181,
+      "sha256": "1cd69c32854af88b0b2aa8c0653f1a7868f369b2cecaffc0cdabbd608338322e"
+    },
+    {
+      "path": "../authority/trusted-time.mjs",
+      "bytes": 8558,
+      "sha256": "d5014f91737d3ccfd578cc7282ae6d14e4f23f598260162a25afe7de59fbbcbe"
     },
     {
       "path": "../scripts/build-finance-weekly-v3-candidate.mjs",

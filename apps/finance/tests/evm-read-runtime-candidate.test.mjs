@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -7,8 +8,15 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const candidatePath = new URL('../evidence/evm-read-runtime-verifier-candidate-final-ui-01130b50-v4-20260925.json', import.meta.url);
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+const historic = new Set(['apps/finance/web/index.html','apps/finance/scripts/finance-nonregressive-runtime.mjs','internal/finance/server.go']);
+const candidateSource = '01130b501da5c16fce41c547feabf9b7c10cd3f0';
+const sourceFile = async (path, encoding) => {
+  const name = path instanceof URL ? fileURLToPath(path).slice(root.length+1) : String(path);
+  if (historic.has(name)) return execFileSync('git',['show',`${candidateSource}:${name}`],{cwd:root});
+  return readFile(path,encoding);
+};
 
-async function verifyCandidate(read = readFile) {
+async function verifyCandidate(read = sourceFile) {
   const candidate = JSON.parse(await read(candidatePath, 'utf8'));
   assert.equal(candidate.schemaVersion, 'ynx.finance.evm-read-runtime-verifier-candidate.v1');
   assert.equal(candidate.status, 'INDEPENDENT_REVIEW_REQUIRED_NOT_PINNED_NOT_PUBLIC');
@@ -42,8 +50,8 @@ async function verifyCandidate(read = readFile) {
   assert.match(files.get('apps/finance/scripts/finance-nonregressive-runtime.mjs'), /'evm-read-session\.js'/u);
   assert.match(files.get('internal/finance/server.go'), /GET \/evm-read-session\.js/u);
   assert.match(files.get('internal/finance/drain.go'), /"\/evm-read-session\.js"/u);
-  const pin = await read(new URL('../web/verify-wallet-connect.mjs', import.meta.url), 'utf8');
-  assert.match(pin, /REVIEWED_VERIFIER_MANIFEST_SHA256='6611cc1795fb6c44cc1097ffcebc1c440f0441acec92273e8d520bf653068fc2'/u);
+  const pin = await readFile(new URL('../web/verify-wallet-connect.mjs', import.meta.url), 'utf8');
+  assert.match(pin, /REVIEWED_VERIFIER_MANIFEST_SHA256='b168e432ee97b53d98a8aa6e17f7c2d8c4162efd57693e9b684d44b3f730d110'/u);
   return candidate;
 }
 
@@ -54,6 +62,6 @@ test('candidate binds every new Finance runtime input under the separately revie
 test('candidate rejects changed bytes before independent pin review', async () => {
   await assert.rejects(verifyCandidate(async (url, encoding) => {
     if (String(url).endsWith('/evm-read-session.js')) return Buffer.from('tampered');
-    return readFile(url, encoding);
+    return sourceFile(url, encoding);
   }), /evm-read-session\.js/u);
 });

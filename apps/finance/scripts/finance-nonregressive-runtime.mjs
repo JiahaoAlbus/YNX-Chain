@@ -35,6 +35,7 @@ export const authorityRuntimeFiles=Object.freeze([
   Object.freeze({source:'apps/finance/scripts/finance-order-opaque-authority.bundle.mjs',destination:'authority-runtime/apps/finance/scripts/finance-order-opaque-authority.bundle.mjs'}),
   Object.freeze({source:'apps/finance/scripts/finance-endpoint-authority-v2.mjs',destination:'authority-runtime/apps/finance/scripts/finance-endpoint-authority-v2.mjs'}),
   Object.freeze({source:'apps/finance/authority/adapter.mjs',destination:'authority-runtime/apps/finance/authority/adapter.mjs'}),
+  Object.freeze({source:'apps/finance/authority/trusted-time.mjs',destination:'authority-runtime/apps/finance/authority/trusted-time.mjs'}),
   Object.freeze({source:'apps/finance/authority/config.mjs',destination:'authority-runtime/apps/finance/authority/config.mjs'}),
   Object.freeze({source:'apps/finance/authority/checkpoint-node.mjs',destination:'authority-runtime/apps/finance/authority/checkpoint-node.mjs'}),
   Object.freeze({source:'sdk/js/endpoint-authority-v2.js',destination:'authority-runtime/sdk/js/endpoint-authority-v2.js'}),

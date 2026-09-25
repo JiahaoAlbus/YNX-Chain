@@ -105,8 +105,12 @@ test('saved Chinese locale renders Broker unknown states on a cold 390px load',a
     assert.equal(await page.locator('#broker-account').textContent(),'未关联');
     assert.equal(await page.locator('#broker-cash').textContent(),'未知，并非零');
     assert.equal(await page.locator('#broker-buying-power').textContent(),'未知，并非零');
-    assert.equal(await page.locator('#broker-positions').innerText(),'未知：服务商尚未返回数据。');
-    assert.equal(await page.locator('#broker-orders').innerText(),'未知：服务商尚未返回数据。');
+    assert.equal(await page.locator('#broker-positions').innerText(),'连接后查看持仓和订单。');
+    assert.equal(await page.locator('#broker-orders').innerText(),'连接后查看持仓和订单。');
+    assert.equal(await page.locator('#broker-sandbox').evaluate(element=>element.classList.contains('broker-unlinked')),true);
+    assert.equal(await page.locator('#broker-positions').isVisible(),false);
+    assert.equal(await page.locator('#broker-asset-search button').evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(0, 47, 167)');
+    assert.equal(await page.locator('#broker-asset-results .empty').evaluate(element=>getComputedStyle(element).borderStyle),'none');
     assert.equal(await page.locator('#broker-order-preview').textContent(),'尚未创建审核请求。');
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   }finally{await page.close()}

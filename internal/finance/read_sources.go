@@ -27,6 +27,7 @@ type ReadSourceActionConfig struct {
 	ExchangeURL  string
 	DEXURL       string
 	QuantURL     string
+	CardURL      string
 	EconomicsURL string
 }
 
@@ -37,11 +38,14 @@ type ReadSourceIntegrationConfig struct {
 	DEXKey      string
 	QuantURL    string
 	QuantKey    string
+	CardURL     string
+	CardKey     string
 }
 
 type readSourceIntegration struct {
-	URL string
-	Key string
+	URL  string
+	Key  string
+	Path string
 }
 
 type ReadSourceAction struct {
@@ -106,6 +110,7 @@ var readSourceDefinitions = []readSourceDefinition{
 	{ID: "exchange", Name: "YNX Exchange", Owner: "07-exchange", Capability: "Authorized subaccounts, positions, fills, fees, funding and PnL evidence", Action: "Open YNX Exchange"},
 	{ID: "dex", Name: "YNX DEX", Owner: "27-dex", Capability: "Authorized vault, LP, swap, fee, redemption and emergency-exit evidence", Action: "Open YNX DEX"},
 	{ID: "quant", Name: "YNX Quant Lab", Owner: "08-quant-lab", Capability: "Authorized strategy, mandate, capital, PnL, fee, drawdown, risk and exit evidence", Action: "Open YNX Quant Lab"},
+	{ID: "card", Name: "YNX Card", Owner: "card", Capability: "Owner-consented TEST provider card activity and transaction readback; no spendable balance authority", Action: "Open YNX Card"},
 	{ID: "economics", Name: "YNXT Economics", Owner: "17-tokenomics", Capability: "Versioned issuance, burn, staking-source, treasury, service-fee and reserve evidence", Action: "Open YNXT Economics"},
 }
 
@@ -126,6 +131,11 @@ var forbiddenReadSourceCapabilities = []string{
 }
 
 var acceptedReadSourceContracts = map[string]AcceptedReadSourceContract{
+	"card": {
+		Accepted: true, SourceID: "card", Owner: "card",
+		OwnerContractVersion: "card-finance-read-v1", PayloadSchema: "ynx-card-finance-account-v1",
+		AllowedCapabilities: []string{"card.provider-activity.read", "card.provider-transactions.read"},
+	},
 	"exchange": {
 		Accepted:             true,
 		SourceID:             "exchange",
@@ -173,10 +183,11 @@ var acceptedReadSourceContracts = map[string]AcceptedReadSourceContract{
 }
 
 func (u *Upstreams) ConfigureReadSourceIntegrations(config ReadSourceIntegrationConfig) error {
-	candidates := []struct{ id, label, endpoint, key string }{
-		{id: "exchange", label: "Exchange", endpoint: config.ExchangeURL, key: config.ExchangeKey},
-		{id: "dex", label: "DEX", endpoint: config.DEXURL, key: config.DEXKey},
-		{id: "quant", label: "Quant", endpoint: config.QuantURL, key: config.QuantKey},
+	candidates := []struct{ id, label, endpoint, key, path string }{
+		{id: "exchange", label: "Exchange", endpoint: config.ExchangeURL, key: config.ExchangeKey, path: "/v1/integrations/finance/account"},
+		{id: "dex", label: "DEX", endpoint: config.DEXURL, key: config.DEXKey, path: "/v1/integrations/finance/account"},
+		{id: "quant", label: "Quant", endpoint: config.QuantURL, key: config.QuantKey, path: "/v1/integrations/finance/account"},
+		{id: "card", label: "Card", endpoint: config.CardURL, key: config.CardKey, path: "/api/card/v2/integrations/finance/account"},
 	}
 	integrations := map[string]readSourceIntegration{}
 	for _, candidate := range candidates {
@@ -194,7 +205,7 @@ func (u *Upstreams) ConfigureReadSourceIntegrations(config ReadSourceIntegration
 		if len(key) < 32 {
 			return fmt.Errorf("%s read key must contain at least 32 characters", candidate.label)
 		}
-		integrations[candidate.id] = readSourceIntegration{URL: strings.TrimRight(parsed.String(), "/"), Key: key}
+		integrations[candidate.id] = readSourceIntegration{URL: strings.TrimRight(parsed.String(), "/"), Key: key, Path: candidate.path}
 	}
 	if len(integrations) == 0 {
 		u.readIntegrations = nil
@@ -221,6 +232,7 @@ func (u *Upstreams) ConfigureReadSourceActions(config ReadSourceActionConfig) er
 		"exchange":  config.ExchangeURL,
 		"dex":       config.DEXURL,
 		"quant":     config.QuantURL,
+		"card":      config.CardURL,
 		"economics": config.EconomicsURL,
 	}
 	actions := make(map[string]string, len(values))
@@ -326,7 +338,7 @@ func (u *Upstreams) ReadSourcesForAccount(ctx context.Context, account string, o
 }
 
 func (u *Upstreams) readSourceForAccount(ctx context.Context, account string, observedAt time.Time, id string, integration readSourceIntegration, descriptor ReadSourceDescriptor, contract AcceptedReadSourceContract) ReadSourceDescriptor {
-	endpoint := integration.URL + "/v1/integrations/finance/account"
+	endpoint := integration.URL + integration.Path
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err == nil {
 		err = readintegration.Sign(request, integration.Key, "finance", id, account, observedAt)
@@ -353,6 +365,12 @@ func (u *Upstreams) readSourceForAccount(ctx context.Context, account string, ob
 	if readErr != nil || len(body) > maxReadSourceEnvelopeBytes || response.StatusCode != http.StatusOK {
 		descriptor.Status.Source = endpoint
 		descriptor.Status.SyncStatus = "owner-response-rejected"
+		if id == "card" && response.StatusCode == http.StatusForbidden {
+			descriptor.Status.SyncStatus = "owner-consent-required"
+		}
+		if id == "card" && response.StatusCode == http.StatusServiceUnavailable {
+			descriptor.Status.SyncStatus = "owner-integration-unconfigured"
+		}
 		if readErr != nil {
 			descriptor.Status.Error = readErr.Error()
 		} else if len(body) > maxReadSourceEnvelopeBytes {
@@ -464,7 +482,39 @@ func ValidateReadSourceEnvelope(raw []byte, expectedAccount string, contract Acc
 			return ReadSourceEnvelope{}, err
 		}
 	}
+	if contract.SourceID == "card" {
+		if err := validateCardReadPayload(payload, envelope.Capabilities); err != nil {
+			return ReadSourceEnvelope{}, err
+		}
+	}
 	return envelope, nil
+}
+
+func validateCardReadPayload(payload []byte, capabilities []string) error {
+	var body struct {
+		Product                             string            `json:"product"`
+		ProviderEnvironment                 string            `json:"providerEnvironment"`
+		Cards                               []json.RawMessage `json:"cards"`
+		Activities                          []json.RawMessage `json:"activities"`
+		Transactions                        []json.RawMessage `json:"transactions"`
+		SpendableBalance                    json.RawMessage   `json:"spendableBalance"`
+		BalanceAuthority                    string            `json:"balanceAuthority"`
+		SimulationAndProviderFundsSeparated bool              `json:"simulationAndProviderFundsSeparated"`
+	}
+	if json.Unmarshal(payload, &body) != nil || body.Product != "card" || body.ProviderEnvironment != "TEST" || body.Cards == nil || body.Activities == nil || body.Transactions == nil || string(bytes.TrimSpace(body.SpendableBalance)) != "null" || body.BalanceAuthority != "none" || !body.SimulationAndProviderFundsSeparated {
+		return errors.New("Card read-source payload boundary is invalid")
+	}
+	if len(body.Cards) > 5000 || len(body.Activities) > 5000 || len(body.Transactions) > 5000 {
+		return errors.New("Card read-source payload exceeds bounded records")
+	}
+	allowed := make(map[string]bool, len(capabilities))
+	for _, capability := range capabilities {
+		allowed[capability] = true
+	}
+	if (!allowed["card.provider-activity.read"] && len(body.Activities) != 0) || (!allowed["card.provider-transactions.read"] && len(body.Transactions) != 0) {
+		return errors.New("Card read-source records exceed owner consent")
+	}
+	return nil
 }
 
 // Quant paper balances and PnL are account-sensitive. The source envelope's

@@ -30,6 +30,7 @@ test('weekly v3 release tooling closes every served Finance runtime asset',()=>{
     'authority-runtime/apps/finance/scripts/finance-order-opaque-authority.bundle.mjs',
     'authority-runtime/apps/finance/scripts/finance-endpoint-authority-v2.mjs',
     'authority-runtime/apps/finance/authority/adapter.mjs',
+    'authority-runtime/apps/finance/authority/trusted-time.mjs',
     'authority-runtime/apps/finance/authority/config.mjs',
     'authority-runtime/apps/finance/authority/checkpoint-node.mjs',
     'authority-runtime/sdk/js/endpoint-authority-v2.js',

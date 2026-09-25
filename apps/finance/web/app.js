@@ -49,6 +49,7 @@ async function refreshBrokerConfiguration(){
 let brokerSnapshotState={kind:'guest'};
 function renderBrokerSnapshot(){
   const snapshot=brokerSnapshotState.kind==='data'?brokerSnapshotState.snapshot:null;
+  $('#broker-sandbox').classList.toggle('broker-unlinked',!snapshot);
   if(!snapshot){
     $('#broker-account').textContent=financeText('brokerNotLinked');$('#broker-cash').textContent=financeText('brokerUnknownNotZero');$('#broker-buying-power').textContent=financeText('brokerUnknownNotZero');
     $('#broker-private-status').textContent=financeText(brokerSnapshotState.kind==='unavailable'?'brokerSnapshotUnavailable':'brokerPrivate');

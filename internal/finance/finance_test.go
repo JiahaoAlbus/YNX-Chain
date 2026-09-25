@@ -233,14 +233,14 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 		t.Fatalf("Pay provenance and sync evidence are incomplete: %#v", payStatus)
 	}
 	readSources := p["readSources"].(map[string]any)
-	if len(readSources) != 4 {
+	if len(readSources) != 5 {
 		t.Fatalf("cross-product source registry is incomplete: %#v", readSources)
 	}
-	for _, id := range []string{"exchange", "dex", "quant", "economics"} {
+	for _, id := range []string{"exchange", "dex", "quant", "card", "economics"} {
 		source := readSources[id].(map[string]any)
 		status := source["status"].(map[string]any)
 		action := source["action"].(map[string]any)
-		wantAccepted := id == "exchange" || id == "dex" || id == "quant"
+		wantAccepted := id == "exchange" || id == "dex" || id == "quant" || id == "card"
 		wantStatus := "owner-contract-pending"
 		if wantAccepted {
 			wantStatus = "integration-unconfigured"
@@ -251,7 +251,7 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	}
 	var sourceRegistry map[string]any
 	requestJSON(t, ts.URL+"/api/sources", http.MethodGet, nil, session.Token, "", 200, &sourceRegistry)
-	if sourceRegistry["consumerEnvelopeVersion"] != ReadSourceEnvelopeVersion || sourceRegistry["readOnly"] != true || sourceRegistry["integrationState"] != "accepted=exchange,dex,quant;live=none;pending=economics" {
+	if sourceRegistry["consumerEnvelopeVersion"] != ReadSourceEnvelopeVersion || sourceRegistry["readOnly"] != true || sourceRegistry["integrationState"] != "accepted=exchange,dex,quant,card;live=none;pending=economics" {
 		t.Fatalf("source registry endpoint is not truthful: %#v", sourceRegistry)
 	}
 	var category Category

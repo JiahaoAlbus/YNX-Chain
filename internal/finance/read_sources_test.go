@@ -17,15 +17,15 @@ func TestReadSourcesStayPendingWithoutOwnerContracts(t *testing.T) {
 	upstreams := &Upstreams{}
 	observedAt := time.Date(2026, 7, 27, 14, 0, 0, 0, time.UTC)
 	sources := upstreams.ReadSources(observedAt)
-	if len(sources) != 4 {
-		t.Fatalf("read-source registry contains %d sources, want 4", len(sources))
+	if len(sources) != 5 {
+		t.Fatalf("read-source registry contains %d sources, want 5", len(sources))
 	}
-	for _, id := range []string{"exchange", "dex", "quant", "economics"} {
+	for _, id := range []string{"exchange", "dex", "quant", "card", "economics"} {
 		source, ok := sources[id]
 		if !ok {
 			t.Fatalf("read-source %s is missing", id)
 		}
-		wantAccepted := id == "exchange" || id == "dex" || id == "quant"
+		wantAccepted := id == "exchange" || id == "dex" || id == "quant" || id == "card"
 		wantStatus := "owner-contract-pending"
 		if wantAccepted {
 			wantStatus = "integration-unconfigured"
@@ -93,6 +93,76 @@ func TestExchangeReadSourceLoadsBoundAccountEvidence(t *testing.T) {
 	}
 	if exchange.Status.Version != "exchange-finance-read-v1" || exchange.Status.SyncStatus != "authoritative-persisted-exchange-state" {
 		t.Fatalf("Exchange provenance is incomplete: %+v", exchange.Status)
+	}
+}
+
+func TestCardReadSourceRequiresExactPathOwnerConsentAndNoBalance(t *testing.T) {
+	now := time.Date(2026, 9, 25, 12, 0, 0, 0, time.UTC)
+	secret := strings.Repeat("c", 32)
+	const cardPath = "/api/card/v2/integrations/finance/account"
+	verifier, err := readintegration.NewVerifier(secret, "finance", "card", func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	consented := false
+	owner := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != cardPath {
+			http.Error(w, "wrong path", http.StatusNotFound)
+			return
+		}
+		account, verifyErr := verifier.Verify(r, cardPath)
+		if verifyErr != nil {
+			http.Error(w, "invalid credential", http.StatusUnauthorized)
+			return
+		}
+		if !consented || account != testAccount {
+			http.Error(w, "consent required", http.StatusForbidden)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(ReadSourceEnvelope{
+			EnvelopeVersion: ReadSourceEnvelopeVersion, SourceID: "card", Owner: "card",
+			Network: ChainID, NativeAsset: "YNXT", AuthorizedAccount: account,
+			OwnerContractVersion: "card-finance-read-v1", PayloadSchema: "ynx-card-finance-account-v1",
+			AsOf: now, AsOfKind: "card-persisted-provider-read-model-observed-at", Coverage: "owner-consented Card TEST provider metadata and readback records",
+			SyncStatus: "local-read-model-provider-verification-independent", ReadOnly: true,
+			Capabilities: []string{"card.provider-activity.read", "card.provider-transactions.read"},
+			Payload:      json.RawMessage(`{"product":"card","providerEnvironment":"TEST","cards":[{"productCardId":"card-a","provider":"immersve","status":"PLANNED","spendableBalance":null}],"activities":[{"productCardId":"card-a","type":"STATUS","status":"PLANNED"}],"transactions":[],"spendableBalance":null,"balanceAuthority":"none","simulationAndProviderFundsSeparated":true}`),
+		})
+	}))
+	defer owner.Close()
+	u := &Upstreams{client: owner.Client()}
+	if err := u.ConfigureReadSourceIntegrations(ReadSourceIntegrationConfig{CardURL: owner.URL, CardKey: secret}); err != nil {
+		t.Fatal(err)
+	}
+	if got := u.ReadSourcesForAccount(context.Background(), testAccount, now)["card"]; got.Status.Available || got.Status.SyncStatus != "owner-consent-required" || got.Envelope != nil {
+		t.Fatalf("unconsented Card data leaked: %+v", got)
+	}
+	consented = true
+	if got := u.ReadSourcesForAccount(context.Background(), testAccount, now)["card"]; !got.Status.Available || got.Envelope == nil || !strings.Contains(string(got.Envelope.Payload), `"spendableBalance":null`) {
+		t.Fatalf("consented Card record unavailable: %+v", got)
+	}
+	other := "0x" + strings.Repeat("b", 40)
+	if got := u.ReadSourcesForAccount(context.Background(), other, now)["card"]; got.Status.Available || got.Status.SyncStatus != "owner-consent-required" {
+		t.Fatalf("other account read Card record: %+v", got)
+	}
+	if err := u.ConfigureReadSourceIntegrations(ReadSourceIntegrationConfig{CardURL: owner.URL, CardKey: "short"}); err == nil {
+		t.Fatal("short Card key accepted")
+	}
+}
+
+func TestCardPayloadRejectsInventedBalanceAndUnconsentedRecords(t *testing.T) {
+	base := `{"product":"card","providerEnvironment":"TEST","cards":[],"activities":[],"transactions":[],"spendableBalance":null,"balanceAuthority":"none","simulationAndProviderFundsSeparated":true}`
+	if err := validateCardReadPayload([]byte(base), []string{"card.provider-activity.read"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, bad := range []string{
+		strings.Replace(base, `"spendableBalance":null`, `"spendableBalance":"100"`, 1),
+		strings.Replace(base, `"providerEnvironment":"TEST"`, `"providerEnvironment":"LIVE"`, 1),
+		strings.Replace(base, `"transactions":[]`, `"transactions":[{"id":"foreign"}]`, 1),
+	} {
+		if err := validateCardReadPayload([]byte(bad), []string{"card.provider-activity.read"}); err == nil {
+			t.Fatalf("unsafe Card payload accepted: %s", bad)
+		}
 	}
 }
 

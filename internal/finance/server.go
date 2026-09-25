@@ -388,7 +388,7 @@ func (s *Server) sources(w http.ResponseWriter, r *http.Request, session Session
 	if len(live) > 0 {
 		liveState = strings.Join(live, ",")
 	}
-	integrationState := "accepted=exchange,dex,quant;live=" + liveState + ";pending=economics"
+	integrationState := "accepted=exchange,dex,quant,card;live=" + liveState + ";pending=economics"
 	writeJSON(w, http.StatusOK, map[string]any{
 		"consumerEnvelopeVersion": ReadSourceEnvelopeVersion,
 		"readOnly":                true,

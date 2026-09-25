@@ -99,12 +99,28 @@
     futureProducts:'未来产品尚未启用',brokerApprovalRecorded:'已记录钱包审核',brokerApprovalRejected:'钱包审核已拒绝',brokerApprovalRevoked:'钱包审核已撤销',brokerStateSubmitted:'已提交至沙盒',brokerStateSubmitting:'正在提交至沙盒',brokerStatePartial:'沙盒中部分成交',brokerStateFilled:'沙盒中已成交',brokerStateCancelRequested:'已请求撤单',brokerStateCancelled:'沙盒中已撤单',brokerStateAwaitingActivation:'执行尚未启用',brokerStateExecutionRequested:'已请求受控执行',brokerStateUnknown:'状态暂不可用',brokerJournalEvent:'订单事件',
     brokerPreviewMaximum:'最高金额',brokerPreviewFee:'最高费用',brokerPreviewExpires:'有效期至',brokerPreviewRequest:'请求',brokerRecovered:'已从此浏览器恢复；可审核或撤销同一请求。',brokerProviderNotContacted:'尚未联系券商服务商。',brokerConfidentialPending:'此账户的钱包保密审核仍在等待中。',brokerConfidentialNoStorage:'订单详情不会保存在浏览器会话中；请在 YNX Wallet 中核对准确条件。',brokerCopyReview:'复制安全的 YNX Wallet 审核链接',brokerReviewOrRevoke:'在 YNX Wallet 中审核或撤销准确授权',brokerReviewExact:'在 YNX Wallet 中审核准确订单',brokerTicketExpired:'钱包审核票据已过期；未向券商发送订单。',brokerTicketStillActive:'同一钱包审核票据仍有效；可再次复制或等待过期。',brokerLegacyExpired:'本地钱包请求已过期并清除；没有创建执行队列。',brokerLegacyExpiredNotice:'已清除过期钱包请求；未执行券商操作。',brokerLegacyActive:'已有钱包请求仍有效；请先重新打开或撤销，才能创建新请求。',brokerAuthorityUnavailable:'私有钱包权限验证前，订单审核不可用。原待处理请求未删除，也未向券商发送订单。',
   });
+  Object.assign(messages.en,{
+    brokerSearchIntro:'Search active Sandbox stocks by name or symbol.',
+    brokerSearchPlaceholder:'Search name or symbol',
+    brokerNoSearch:'Search to see available Sandbox assets.',
+    brokerWatchlistGuest:'Connect to save stocks to your watchlist.',
+    brokerNoProviderResult:'Connect to see your positions and orders.',
+  });
+  Object.assign(messages['zh-CN'],{
+    brokerSearchIntro:'按名称或代码查找可用的沙盒股票。',
+    brokerSearchPlaceholder:'搜索名称或代码',
+    brokerNoSearch:'搜索后查看可用沙盒资产。',
+    brokerWatchlistGuest:'连接后可将股票加入关注列表。',
+    brokerNoProviderResult:'连接后查看持仓和订单。',
+  });
   let current='en';
   try{if(localStorage.getItem('ynx-finance-locale')==='zh-CN')current='zh-CN'}catch{}
   function text(key){return messages[current][key]??messages.en[key]??key}
   function apply(){
     document.documentElement.lang=current;
     for(const element of document.querySelectorAll('[data-finance-i18n]'))element.textContent=text(element.dataset.financeI18n);
+    for(const element of document.querySelectorAll('[data-finance-i18n-placeholder]'))element.setAttribute('placeholder',text(element.dataset.financeI18nPlaceholder));
+    const search=document.querySelector('#broker-asset-search input[name="query"]');if(search)search.setAttribute('placeholder',text('brokerSearchPlaceholder'));
     const selector=document.querySelector('#finance-language');if(selector)selector.value=current;
     document.dispatchEvent(new CustomEvent('finance:localechange',{detail:{locale:current}}));
   }
