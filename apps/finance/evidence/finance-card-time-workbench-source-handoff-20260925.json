@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "ynx.finance.card-time-workbench-source-handoff.v1",
+  "source": {
+    "branch": "codex/finance-evm-read-session-pr193-20260924",
+    "implementationCommit": "9df2d375b521da2cef7b15b51d41efb084ed0613",
+    "candidateSourceCommit": "f66d9960525a0f1a86f37983b9ebd004e29268c4",
+    "candidateSourceTree": "59ffd252b5e5066ea78d23aa442e89ff5dd95f7d"
+  },
+  "scope": [
+    "Finance-only Card read consumer using the accepted Card-specific HMAC path and account isolation",
+    "Fixed Wallet Auth time source with protected high-water, bounded response body and restart rollback detection",
+    "Broker workspace guest-state density, mobile button styling and English/Chinese copy"
+  ],
+  "candidate": {
+    "localArchive": "/tmp/ynx-finance-f66d9960-weekly-v3.tar.gz",
+    "bytes": 30860189,
+    "sha256": "59e4fa8db7f43fc0c2864c945c328ff37cd20169001f262ce2bd0eda6e85ad82",
+    "sidecarSha256": "8903e9b6d88e0d81221c996afd05a663854d1db851545146de7c817491da1966",
+    "linuxAmd64BinarySha256": "d8460e327e1903d1d87f7ec7a52a2ee69a16a0158186698d56c2547c4a88b91f",
+    "repeatedBuildByteExact": true,
+    "deployed": false
+  },
+  "localBrowser": [
+    {
+      "path": "apps/finance/evidence/finance-broker-local-zh-390-f66d9960.png",
+      "viewportWidth": 390,
+      "bytes": 261118,
+      "sha256": "27813c463eb5bcff8e79227b6c164b01764a3245ddf1328d711fe8ecfb986840"
+    },
+    {
+      "path": "apps/finance/evidence/finance-broker-local-zh-1280-f66d9960.png",
+      "viewportWidth": 1280,
+      "bytes": 237354,
+      "sha256": "2cae40f967810e2b8ef6fa9fdc899f07edb5e118a8264c8f5d1871ef1535b50a"
+    }
+  ],
+  "verification": {
+    "financeNodeTests": "132/132 pass",
+    "financeGoTests": "go test ./internal/finance ./apps/finance/... pass",
+    "authorityClockTests": "21/21 pass including stalled body, oversized body, dead/live lock, restart expiry",
+    "securityCheck": "pass across 356 text files",
+    "walletVerifier": "pass; historical EVM candidate remains immutable and is not current-source proof",
+    "mobileAndDesktop": "local Chromium 390px and 1280px, no horizontal overflow, primary search button styled",
+    "publicBrowser": false,
+    "installedApp": false,
+    "realCardConsent": false,
+    "realWalletApproval": false,
+    "realBrokerOrder": false
+  },
+  "remaining": [
+    "Current-source public Finance publication requires an exact product deployment authority and independent rollback receipt.",
+    "Card owner must activate and prove card:finance:share consent and matching read key; absent consent remains 403, not a zero balance.",
+    "The user's visual acceptance and current public/mobile cache-byte verification remain pending; local screenshots are not public evidence."
+  ]
+}
