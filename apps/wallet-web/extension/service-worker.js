@@ -3,9 +3,10 @@ import {READ_ONLY_RPC_METHODS,YNX_CHAIN_ID,YNX_RPC_URL,broadcastExtensionTransac
 import {SensitiveAuthorizationGuard,consumeSensitiveRequest,deriveScopedSensitiveRequestId,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
 import {activeTabInjectionPlans,requireActiveDappTab} from "./active-tab-policy.js";
 import {runExtensionMigration} from "./extension-migration.js";
-import {PROVIDER_ACCOUNT_KEY,PROVIDER_PENDING_PREFIX,PROVIDER_PERMISSIONS_KEY,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,parseProviderAccount,providerContextForTab,providerPermissionKey,revokePermission} from "./extension-provider-permissions.js";
+import {PROVIDER_ACCOUNT_KEY,PROVIDER_PENDING_PREFIX,PROVIDER_PERMISSIONS_KEY,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,parseProviderAccount,providerContextForTab,providerPermissionKey,recoverMissingProviderAccount,revokePermission} from "./extension-provider-permissions.js";
 import {EXTENSION_VAULT_KEY,parseEncryptedVault,providerAccountFromVault,unlockEncryptedVault} from "./extension-vault.js";
 import {ExtensionBroadcastJournal} from "./extension-broadcast-journal.js";
+import {validateYNXChainMutation} from "./extension-chain-params.js";
 import {readNativeTransferCapability} from "./extension-fee-model.js";
 import {extensionReviewText,prepareExtensionRequest,signExtensionRequest} from "./extension-signer.js";
 
@@ -43,8 +44,7 @@ function pageWalletRequest(preference,input){
 globalThis.__YNX_INTERNAL_PAGE_WALLET_REQUEST__=pageWalletRequest;
 
 function exactMutationInput(method,params){
-  const expected=method==="wallet_addEthereumChain"?[YNX_CHAIN]:[{chainId:CHAIN_ID}];
-  if(JSON.stringify(params)!==JSON.stringify(expected))throw Object.assign(new Error("Rejected non-canonical YNX Testnet chain parameters."),{code:"INVALID_CHAIN_PARAMS"});
+  validateYNXChainMutation(method,params,YNX_CHAIN);
 }
 function requireLiveDeadline(deadlineAt){if(!Number.isSafeInteger(deadlineAt)||Date.now()>=deadlineAt)throw Object.assign(new Error("Wallet bridge request expired before mutation."),{code:"BRIDGE_EXPIRED"})}
 async function executeInTab(tabId,origin,preference,input){
@@ -68,7 +68,7 @@ async function executeActive(preference,input){
 async function emitToTab(tabId,origin,event,payload,documentLease){await authorizationGuard.assertDocument(documentLease);if(PROVIDER_EVENTS.includes(event))await extensionApi.tabs.sendMessage(tabId,{type:RUNTIME_EVENT,version:BRIDGE_VERSION,origin,event,payload,documentNonce:documentLease.documentNonce},documentMessageTarget(documentLease)).catch(()=>{})}
 function exactAccounts(value){if(!Array.isArray(value)||value.some((account)=>!/^0x[0-9a-fA-F]{40}$/u.test(account)))throw Object.assign(new Error("Wallet backend returned invalid accounts."),{code:"INVALID_ACCOUNT"});return value.map((account)=>account.toLowerCase())}
 
-async function configuredAccount(){const stored=await extensionApi.storage.local.get([PROVIDER_ACCOUNT_KEY,EXTENSION_VAULT_KEY]),account=parseProviderAccount(stored?.[PROVIDER_ACCOUNT_KEY]),vaultAccount=providerAccountFromVault(stored?.[EXTENSION_VAULT_KEY]);if(account.account!==vaultAccount.account)throw Object.assign(new Error("Provider account does not match the encrypted Wallet vault."),{code:"PROVIDER_ACCOUNT_UNAVAILABLE"});return account}
+async function configuredAccount(){const stored=await extensionApi.storage.local.get([PROVIDER_ACCOUNT_KEY,EXTENSION_VAULT_KEY]);if(stored?.[PROVIDER_ACCOUNT_KEY]!==undefined){const account=parseProviderAccount(stored[PROVIDER_ACCOUNT_KEY]),vaultAccount=providerAccountFromVault(stored?.[EXTENSION_VAULT_KEY]);if(account.account!==vaultAccount.account)throw Object.assign(new Error("Provider account does not match the encrypted Wallet vault."),{code:"PROVIDER_ACCOUNT_UNAVAILABLE"});return account}return mutateAuthority(()=>recoverMissingProviderAccount(extensionApi.storage.local,PROVIDER_ACCOUNT_KEY,EXTENSION_VAULT_KEY,providerAccountFromVault))}
 function requireExtensionPage(sender,page){if(sender?.tab?.incognito===true)throw Object.assign(new Error("YNX Wallet is unavailable in private browsing."),{code:"PRIVATE_BROWSING_UNAVAILABLE"});let actual,expected;try{actual=new URL(sender?.url);expected=new URL(extensionApi.runtime.getURL(page))}catch{throw Object.assign(new Error("Extension page identity is invalid."),{code:"EXTENSION_CALLER_REJECTED"})}if(sender?.id!==extensionApi.runtime.id||actual.origin!==expected.origin||actual.pathname!==expected.pathname)throw Object.assign(new Error("Rejected message from outside the expected extension page."),{code:"EXTENSION_CALLER_REJECTED"})}
 function requireVaultPage(sender){requireExtensionPage(sender,"vault.html")}
 function requireReviewPage(sender,page,requestId){requireExtensionPage(sender,page);if(new URL(sender.url).searchParams.get("requestId")!==requestId)throw Object.assign(new Error("Review window does not match this request."),{code:"EXTENSION_CALLER_REJECTED"})}

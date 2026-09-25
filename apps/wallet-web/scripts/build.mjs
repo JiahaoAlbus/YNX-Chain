@@ -185,6 +185,7 @@ for (const [name, manifest] of variants) {
   await cp(join(root, "src", "extension-bridge.js"), join(target, "extension-bridge.js"));
   await cp(join(root, "src", "extension-rpc.js"), join(target, "extension-rpc.js"));
   await cp(join(root, "src", "extension-provider-permissions.js"), join(target, "extension-provider-permissions.js"));
+  await cp(join(root, "src", "extension-chain-params.js"), join(target, "extension-chain-params.js"));
   await bundle({entryPoints:[join(root,"src","extension-vault.js")],outfile:join(target,"extension-vault.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await bundle({entryPoints:[join(root,"src","extension-broadcast-journal.js")],outfile:join(target,"extension-broadcast-journal.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await bundle({entryPoints:[join(root,"src","extension-signer.js")],outfile:join(target,"extension-signer.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});

@@ -129,6 +129,15 @@ async function confirmReview() {
 
 function setStatus(message, kind = "info") { state.errorCode=null;state.uncertainHash=null;const node = document.querySelector("#status"); node.classList.remove("hidden"); node.dataset.kind = kind; replaceMarkup(node,`<strong>${text("status")}:</strong> ${escape(message)}`); }
 function setError(error){state.uncertainHash=["transaction_durability_uncertain","transaction_durability_unavailable","transaction_confirmation_pending"].includes(error?.data?.status)&&/^0x[0-9a-fA-F]{64}$/.test(error?.data?.transactionHash||"")?error.data.transactionHash:null;state.errorCode=String(error?.code||"REQUEST_FAILED");const node=document.querySelector("#status");node.classList.remove("hidden");node.dataset.kind="error";replaceMarkup(node,`<strong>${text("status")}:</strong> ${statusContent()}`)}
+async function changeNetwork(action) {
+  const provider=state.provider,account=state.account;
+  const chainId=await action(provider);
+  if(account){
+    const accounts=await provider.request({method:"eth_accounts"});
+    if(!Array.isArray(accounts)||!accounts.some(value=>typeof value==="string"&&value.toLowerCase()===account.toLowerCase()))throw Object.assign(new Error("The Wallet account is no longer authorized."),{code:"ACCOUNT_CHANGED"});
+  }
+  return {chainId,account};
+}
 function localizedError(error) { const code=typeof error?.code==="string"||typeof error?.code==="number"?String(error.code):"REQUEST_FAILED"; return `${code}: ${text("requestFailed")}`; }
 async function act(work, success) {
   if (state.busy) return null;
@@ -245,8 +254,9 @@ function bind() {
     try{if(!runtime?.openOptionsPage)throw new Error("Account manager unavailable");await runtime.openOptionsPage()}
     catch{setStatus(text("accountManagementUnavailable"),"error")}
   });
-  document.querySelector("#add").addEventListener("click", () => act(() => addYNXChain(state.provider), () => text("testnet")));
-  document.querySelector("#switch").addEventListener("click", () => act(() => switchToYNXChain(state.provider), () => text("connected")));
+  const networkSuccess=({chainId,account})=>{if(account){state.chainId=chainId;rememberSession({account,chainId},state.wallet);return `${text("connected")} · ${toYNXAddress(account)}`}return `YNX Testnet · 6423 · ${text("disconnected")}`};
+  document.querySelector("#add").addEventListener("click", () => act(() => changeNetwork(addYNXChain), networkSuccess));
+  document.querySelector("#switch").addEventListener("click", () => act(() => changeNetwork(switchToYNXChain), networkSuccess));
   document.querySelector("#sign").addEventListener("click", () => act(() => signMessage(state.provider, state.account, document.querySelector("#message").value), (value) => `${text("signature")}: ${value}`));
   document.querySelector("#send").addEventListener("click", openReview);
   document.querySelector("#review-confirm").addEventListener("click", confirmReview);
