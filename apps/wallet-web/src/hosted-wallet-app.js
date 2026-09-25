@@ -12,12 +12,19 @@ const status = $("status"), setup = $("setup"), review = $("review"), reviewText
 const store = createHostedVaultStore();
 let vault = null, session = null, currentReview = null, busy = false, needsBackupAcknowledgement = false, backupDownloaded = false;
 const seen = new Set();
-const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
+const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 function fail(code) { throw Object.assign(new Error(code), { code }); }
 function message(value) { status.textContent = value; }
 function displayAccount() {
   $("account-card").hidden = !vault;
   if (vault) { $("account-ynx").textContent = toYNXAddress(vault.account); $("account-evm").textContent = vault.account; }
+}
+async function refreshAccountList() {
+  const section = $("account-switch-section"); section.hidden = !vault;
+  if (!vault) return;
+  const accounts = await store.listAccounts(), select = $("account-select"); select.replaceChildren();
+  for (const account of accounts) { const option = document.createElement("option"); option.value = account; option.textContent = toYNXAddress(account); select.append(option); }
+  select.value = vault.account;
 }
 function reply(type, extra = {}) {
   if (!session || window.opener?.closed || Date.now() >= session.expiresAt) return;
@@ -52,6 +59,8 @@ reject.addEventListener("click", () => finishReview({ approved: false }));
 window.addEventListener("pagehide", () => { reply("disconnected"); finishReview({ approved: false }); password.value = ""; });
 
 async function handleMethod(method, params) {
+  const current = await store.read();
+  if (!current || current.account !== vault.account) { reply("disconnected"); session = null; fail("HOSTED_ACCOUNT_CHANGED"); }
   if (method === "eth_accounts" || method === "eth_requestAccounts") return [vault.account];
   if (method === "eth_chainId") return YNX_CHAIN_ID;
   if (method === "wallet_disconnect") { reply("disconnected"); session = null; message("Disconnected. Reopen Wallet from the product to connect again."); return null; }
@@ -125,7 +134,7 @@ $("setup-form").addEventListener("submit", async event => {
   submit.disabled = true;
   try {
     const created = await store.create({ password: localPassword, ...(key ? { secretHex: key.replace(/^0x/u, "").toLowerCase() } : {}) });
-    vault = created.vault; setup.hidden = true; displayAccount();
+    vault = created.vault; setup.hidden = true; displayAccount(); await refreshAccountList();
     needsBackupAcknowledgement = !key;
     $("backup-confirmation").hidden = !needsBackupAcknowledgement;
     message(`Encrypted Wallet saved and read back. Public account: ${vault.account}. ${needsBackupAcknowledgement ? "Download and safeguard an encrypted backup before connecting." : "Your imported key remains encrypted here."}`);
@@ -142,11 +151,32 @@ $("backup-import-form").addEventListener("submit", async event => {
   try {
     const record = JSON.parse(await file.text());
     const imported = await store.importEncrypted({ record, password: input.value });
-    vault = imported.vault; setup.hidden = true; displayAccount(); $("export-backup").hidden = false;
+    vault = imported.vault; setup.hidden = true; displayAccount(); await refreshAccountList(); $("export-backup").hidden = false;
     message(`Encrypted backup restored and read back. Public account: ${vault.account}.`);
     if (session) reply("ready");
   } catch (error) { message(`Backup was not restored. Existing data was retained. (${error?.code ?? "HOSTED_BACKUP_INVALID"})`); }
   finally { input.value = ""; $("backup-import-file").value = ""; submit.disabled = false; }
+});
+$("add-account-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  const file = $("add-account-file").files?.[0], input = $("add-account-password"), submit = event.currentTarget.querySelector("button[type=submit]");
+  if (submit.disabled || !file || file.size < 100 || file.size > 20_000) return;
+  submit.disabled = true;
+  try {
+    const account = await store.addEncryptedAccount({ record: JSON.parse(await file.text()), password: input.value });
+    await refreshAccountList(); message(`Encrypted account ${toYNXAddress(account)} added. Select it to switch.`);
+  } catch (error) { message(`Account was not added. Existing accounts were retained. (${error?.code ?? "HOSTED_BACKUP_INVALID"})`); }
+  finally { input.value = ""; $("add-account-file").value = ""; submit.disabled = false; }
+});
+$("switch-account").addEventListener("click", async () => {
+  const account = $("account-select").value;
+  if (!account || account === vault?.account) return;
+  try {
+    const selected = await store.selectAccount(account);
+    reply("disconnected"); session = null; finishReview({ approved: false });
+    vault = selected; displayAccount(); await refreshAccountList();
+    message(`Switched to ${toYNXAddress(account)}. Reconnect from the product and approve the new account.`);
+  } catch (error) { message(`Account selection failed; current session is unchanged. (${error?.code ?? "HOSTED_ACCOUNT_UNAVAILABLE"})`); }
 });
 $("export-backup").addEventListener("click", async () => {
   try {
@@ -178,7 +208,7 @@ async function start() {
   $("product-origin").textContent = session.origin;
   try { vault = await store.read(); }
   catch (error) { message(`Wallet storage cannot be read. Existing data was retained. (${error?.code ?? "HOSTED_STORAGE_READ_FAILED"})`); return; }
-  if (vault) { setup.hidden = true; displayAccount(); $("export-backup").hidden = false; message(`Review the request for ${toYNXAddress(vault.account)}.`); reply("ready"); }
+  if (vault) { setup.hidden = true; displayAccount(); await refreshAccountList(); $("export-backup").hidden = false; message(`Review the request for ${toYNXAddress(vault.account)}.`); reply("ready"); }
   else { setup.hidden = false; message("Create or import a local encrypted Wallet before connecting."); }
   window.addEventListener("message", event => { void receive(event); });
   window.setInterval(() => { if (session && (Date.now() >= session.expiresAt || window.opener?.closed)) { finishReview({ approved: false }); session = null; message("The connection expired or its product window closed."); } }, 250);

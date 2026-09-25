@@ -1,7 +1,9 @@
 /** Explicit first-party browser adapter. It does not install window.ethereum. */
 import { HOSTED_CHAIN_ID, HOSTED_PROTOCOL, HOSTED_TIMEOUT_MS, HOSTED_WALLET_ORIGIN, HOSTED_WALLET_PATH, encodeHostedConnect, hostedEnvelope, randomHostedId, registeredProduct } from "./hosted-protocol.js";
+import { validateYNXChainMutation } from "./extension-chain-params.js";
 
 function failure(code) { return Object.assign(new Error(code), { code }); }
+const CHAIN = Object.freeze({ chainId: HOSTED_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 
 export function createHostedWalletAdapter({ window: browserWindow = globalThis.window, walletOrigin = HOSTED_WALLET_ORIGIN } = {}) {
   const origin = browserWindow.location.origin;
@@ -13,7 +15,7 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
     if (monitor) browserWindow.clearInterval(monitor);
     monitor = null; connected = false; account = null; request = null;
     for (const waiter of pending.values()) waiter.reject(failure(code));
-    pending.clear(); emit("disconnect", { code });
+    pending.clear(); emit("accountsChanged", []); emit("disconnect", { code });
   }
   function onMessage(event) {
     if (!request || !popup || event.source !== popup || event.origin !== HOSTED_WALLET_ORIGIN) return;
@@ -61,6 +63,7 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
     if (method === "eth_requestAccounts") return connect();
     if (method === "eth_accounts") return connected && popup && !popup.closed ? [account] : [];
     if (method === "eth_chainId") return HOSTED_CHAIN_ID;
+    if (method === "wallet_addEthereumChain" || method === "wallet_switchEthereumChain") { validateYNXChainMutation(method, params, CHAIN); return null; }
     if (!connected || !popup || popup.closed || !request) throw failure("HOSTED_DISCONNECTED");
     if (typeof method !== "string" || method.length > 80 || !Array.isArray(params) || JSON.stringify(params).length > 65536) throw failure("HOSTED_METHOD_INVALID");
     const envelope = hostedEnvelope(request, "request", { method, params });
@@ -70,10 +73,14 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
       popup.postMessage(envelope, HOSTED_WALLET_ORIGIN);
     });
   }
+  async function disconnect() { try { if (popup && !popup.closed && request) popup.postMessage(hostedEnvelope(request, "request", { method: "wallet_disconnect", params: [] }), HOSTED_WALLET_ORIGIN); } finally { close(); } }
   return Object.freeze({
     connect,
     request: requestMethod,
-    disconnect: async () => { try { if (popup && !popup.closed && request) popup.postMessage(hostedEnvelope(request, "request", { method: "wallet_disconnect", params: [] }), HOSTED_WALLET_ORIGIN); } finally { close(); } },
+    restore: async () => connected && popup && !popup.closed ? [account] : [],
+    disconnect,
+    revoke: disconnect,
+    detach: async () => { try { await disconnect(); } finally { browserWindow.removeEventListener("message", onMessage); } },
     on: (name, callback) => { if (typeof callback !== "function") throw new TypeError("callback"); if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(callback); },
     removeListener: (name, callback) => listeners.get(name)?.delete(callback),
     get connected() { return connected && Boolean(popup && !popup.closed); },
