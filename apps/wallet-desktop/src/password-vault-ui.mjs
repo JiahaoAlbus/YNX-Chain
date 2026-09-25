@@ -2,12 +2,23 @@
 export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, renderAccount, document: doc = document }) {
   const $ = selector => doc.querySelector(selector), passwordSheet = $("#password-sheet"), recoverySheet = $("#recovery-sheet");
   let generation = 0, viewIntent = 0, mode = "unlock", previewId = null, busy = false;
-  const message = result => result?.error?.message ?? "Wallet could not complete this operation. It remains locked.";
+  const chinese = doc.defaultView?.navigator?.language?.toLowerCase().startsWith("zh") === true;
+  const copy = (english, zh) => chinese ? zh : english;
+  const message = result => {
+    const error = result?.error;
+    if (error?.code === "PASSWORD_VAULT_STORAGE_FAILED") {
+      const stage = typeof error.storageStage === "string" && /^[a-z][a-z0-9-]{0,39}$/.test(error.storageStage) ? error.storageStage : "unknown";
+      return copy(`Wallet storage could not complete (${stage}). Existing recovery files were retained. Reopen Wallet before continuing.`, `钱包存储未能完成（阶段：${stage}）。现有恢复文件已保留，请重新打开钱包后再继续。`);
+    }
+    if (error?.code === "PASSWORD_VAULT_UNLOCK_FAILED") return copy("The password is incorrect or this encrypted Wallet changed. It remains locked.", "密码不正确或加密钱包已变更。钱包仍处于锁定状态。");
+    if (error?.code === "PASSWORD_VAULT_FILE_CHANGED") return copy("The stored Wallet changed. Reopen it before continuing; its previous files were retained.", "存储的钱包已变更。现有文件已保留，请重新打开钱包后继续。");
+    return error?.message ?? copy("Wallet could not complete this operation. It remains locked.", "钱包未能完成此操作，仍处于锁定状态。");
+  };
   const clear = () => { for (const field of doc.querySelectorAll('#password-sheet input,#recovery-sheet input')) field.value = ""; };
   async function refreshPublicStatus() {
     const revision = getKeyState().revision, intent = viewIntent;
     try { const status = await api.accountStatus(); if (revision === getKeyState().revision && intent === viewIntent) renderAccount(status); }
-    catch { if (revision === getKeyState().revision && intent === viewIntent) $("#unlock-result").textContent = "The current Wallet could not be read. Keep its files and reopen Wallet before continuing."; }
+    catch { if (revision === getKeyState().revision && intent === viewIntent) $("#unlock-result").textContent = copy("The current Wallet could not be read. Keep its files and reopen Wallet before continuing.", "无法读取当前钱包。请保留现有文件并重新打开钱包。"); }
   }
   function cancel({ explicit = false } = {}) { if (explicit) viewIntent++; generation++; previewId = null; busy = false; clear(); passwordSheet.close(); recoverySheet.close(); }
   function render() {
@@ -17,7 +28,7 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     $("#unlock-wallet").disabled = !status || !state.unlockAvailable || state.authenticating;
     $("#legacy-copy-notice").hidden = !status?.legacyCleanupPending;
     $("#legacy-copy-notice").textContent = "Original OS-encrypted Wallet files are retained on this device for recovery. Those old copies are not protected by the new Wallet password.";
-    $("#unlock-wallet").textContent = state.authenticating ? "Unlocking…" : status?.passwordConfigured ? "Unlock with local password" : status?.initialized ? "Set password and migrate accounts" : "Set local Wallet password";
+    $("#unlock-wallet").textContent = state.authenticating ? copy("Unlocking…", "正在解锁…") : status?.passwordConfigured ? copy("Unlock with local password", "使用本地密码解锁") : status?.initialized ? copy("Set password and migrate accounts", "设置密码并迁移账户") : copy("Set local Wallet password", "设置本地钱包密码");
   }
   function toggleRecovery() {
     const kind = $("#recovery-kind").value, reset = $("#recovery-password-mode").value === "reset";
@@ -37,19 +48,19 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     if (busy) return;
     viewIntent++; generation++; clear();
     const status = getAccountStatus(); mode = status?.passwordConfigured ? "unlock" : status?.initialized ? "migrate" : "setup";
-    $("#password-title").textContent = mode === "unlock" ? "Unlock Wallet" : "Protect your Wallet";
-    $("#password-explanation").textContent = mode === "unlock" ? "Enter the local password that encrypts this Wallet. It locks after two minutes, when you leave the app, or when you switch accounts." : "Choose a password of 12 to 256 characters. It encrypts your Wallet on this device. Keep your account backups safe; this password cannot be reset by YNX.";
+    $("#password-title").textContent = mode === "unlock" ? copy("Unlock Wallet", "解锁钱包") : copy("Protect your Wallet", "保护您的钱包");
+    $("#password-explanation").textContent = mode === "unlock" ? copy("Enter the local password that encrypts this Wallet. It locks after two minutes, when you leave the app, or when you switch accounts.", "输入加密此钱包的本地密码。离开应用、切换账户或两分钟后，钱包会自动锁定。") : copy("Choose a password of 12 to 256 characters. It encrypts your Wallet on this device. Keep your account backups safe; this password cannot be reset by YNX.", "设置 12 至 256 个字符的本地密码，在此设备上加密钱包。请妥善保存账户备份；YNX 无法重置此密码。");
     $("#local-password").autocomplete = mode === "unlock" ? "current-password" : "new-password";
     $("#local-confirm-group").hidden = mode === "unlock"; $("#local-confirm").required = mode !== "unlock";
     $("#migration-explanation").hidden = mode !== "migrate";
-    $("#submit-password").textContent = mode === "unlock" ? "Unlock Wallet" : mode === "migrate" ? "Encrypt and migrate all accounts" : "Set local password";
+    $("#submit-password").textContent = mode === "unlock" ? copy("Unlock Wallet", "解锁钱包") : mode === "migrate" ? copy("Encrypt and migrate all accounts", "加密并迁移全部账户") : copy("Set local password", "设置本地密码");
     $("#password-result").textContent = ""; $("#unlock-result").textContent = ""; setBusy(false); passwordSheet.showModal(); $("#local-password").focus();
   });
   $("#password-form").addEventListener("submit", async event => {
     event.preventDefault(); if (busy) return;
     const token = generation, operation = mode;
     let password = $("#local-password").value, confirmation = $("#local-confirm").value;
-    if (operation !== "unlock" && password !== confirmation) { $("#password-result").textContent = "The two passwords do not match."; return; }
+    if (operation !== "unlock" && password !== confirmation) { $("#password-result").textContent = copy("The two passwords do not match.", "两次输入的密码不一致。"); return; }
     clear(); setBusy(true);
     try {
       const result = operation === "unlock" ? await api.unlock({ password }) : await api.setupPassword({ password, confirmation, migrateLegacy: operation === "migrate" });
@@ -57,9 +68,9 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
       // finally may clear credentials entered in a newly opened dialog.
       if (result.ok) {
         if (token === generation) passwordSheet.close();
-        $("#unlock-result").textContent = operation === "unlock" ? getKeyState().locked ? "The unlock attempt finished, but Wallet is now locked." : "Wallet unlocked. Review each request before approving." : "Password protection is saved. Unlock with your local password to continue.";
+        $("#unlock-result").textContent = operation === "unlock" ? getKeyState().locked ? copy("The unlock attempt finished, but Wallet is now locked.", "解锁操作已结束，但钱包目前仍处于锁定状态。") : copy("Wallet unlocked. Review each request before approving.", "钱包已解锁。批准前请逐项核对请求。") : copy("Password protection is saved. Unlock with your local password to continue.", "密码保护已保存。请使用本地密码解锁后继续。");
       } else { if (token === generation) $("#password-result").textContent = message(result); $("#unlock-result").textContent = message(result); }
-    } catch { if (token === generation) $("#password-result").textContent = "Wallet did not finish. Reopen the current Wallet before continuing."; }
+    } catch { if (token === generation) $("#password-result").textContent = copy("Wallet did not finish. Reopen the current Wallet before continuing.", "钱包操作未完成。请重新打开当前钱包后继续。"); }
     finally { password = null; confirmation = null; await refreshPublicStatus(); if (token === generation) setBusy(false); }
   });
   $("#recover-wallet").addEventListener("click", async () => {

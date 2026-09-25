@@ -289,3 +289,21 @@ test("a live verified recovery invokes permission revocation before replacement 
   await f.life.custody(guard => f.vault.commitRecovery(preview.previewId, guard, { beforePublish: async () => { revocations++; assert.deepEqual(await fs.readFile(f.filePath), before); assert.throws(() => f.life.current(), cancelled); } }));
   assert.equal(revocations, 1); assert.notDeepEqual(await fs.readFile(f.filePath), before); await unlock(f, NEXT_PASSWORD);
 });
+
+test("Windows storage denial returns a fixed stage, retains originals, and never treats a failed read as an empty Wallet", async t => {
+  const f = await fixture(t);
+  await writeLegacy(f);
+  const originalV1 = await fs.readFile(f.v1), originalV2 = await fs.readFile(f.v2);
+  f.store.filePolicy.directory = async () => { throw Object.assign(new Error("C:\\Users\\person\\secret-profile"), { code: "PRIVATE_FILE_UNAVAILABLE", storageStage: "windows-protect-directory" }); };
+  await assert.rejects(f.life.custody(guard => f.vault.setup({ password: PASSWORD, confirmation: PASSWORD, migrateLegacy: true }, guard)), error => {
+    assert.equal(error.data.code, "PASSWORD_VAULT_STORAGE_FAILED");
+    assert.equal(error.data.storageStage, "windows-protect-directory");
+    assert.doesNotMatch(error.message, /person|secret-profile|independent fixture password/);
+    return true;
+  });
+  assert.deepEqual(await fs.readFile(f.v1), originalV1);
+  assert.deepEqual(await fs.readFile(f.v2), originalV2);
+  assert.equal(await f.store.read(), null);
+  f.store.filePolicy.available = async () => { throw Object.assign(new Error("C:\\Users\\person\\secret-profile"), { code: "PRIVATE_FILE_UNAVAILABLE", storageStage: "windows-probe" }); };
+  await assert.rejects(f.vault.status(), error => error.data.code === "PASSWORD_VAULT_STORAGE_FAILED" && error.data.storageStage === "windows-probe");
+});

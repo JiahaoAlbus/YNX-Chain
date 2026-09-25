@@ -5,7 +5,12 @@ import path from "node:path";
 
 const execute = promisify(execFile);
 const VERSION = "ynx-private-file-v1";
-const unavailable = () => Object.assign(new Error("Private durable Wallet storage is unavailable."), { code: "PRIVATE_FILE_UNAVAILABLE" });
+const unavailable = stage => Object.assign(new Error("Private durable Wallet storage is unavailable."), {
+  code: "PRIVATE_FILE_UNAVAILABLE",
+  // A fixed operation name is safe to return to the UI; paths, ACLs and the
+  // PowerShell exception itself must never leave this process.
+  storageStage: stage,
+});
 
 // Paths are JSON data in a private child environment, never interpolated into the
 // command. No password, plaintext key, file contents, or signed payload is sent.
@@ -104,7 +109,7 @@ public static class YnxPrivateFileNative {
 
 async function windowsOperation(operation, filePath, destination) {
   const systemRoot = process.env.SystemRoot;
-  if (typeof systemRoot !== "string" || !/^[A-Za-z]:\\[^\0]*$/u.test(systemRoot)) throw unavailable();
+  if (typeof systemRoot !== "string" || !/^[A-Za-z]:\\[^\0]*$/u.test(systemRoot)) throw unavailable("windows-runtime");
   const executable = path.win32.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
   try {
     const { stdout } = await execute(executable, ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(WINDOWS_SCRIPT, "utf16le").toString("base64")], {
@@ -112,7 +117,7 @@ async function windowsOperation(operation, filePath, destination) {
       env: { ...process.env, YNX_WALLET_PRIVATE_FILE_REQUEST: JSON.stringify({ operation, path: filePath, ...(destination ? { destination } : {}) }) },
     });
     return JSON.parse(stdout.trim());
-  } catch { throw unavailable(); }
+  } catch { throw unavailable(`windows-${operation}`); }
 }
 
 /** Native OS permission/commit checks; never treats Windows mode 0666 as private. */
@@ -121,7 +126,7 @@ export class PrivateFilePolicy {
   constructor({ io = fs, platform = process.platform, windows = windowsOperation } = {}) { this.io = io; this.platform = platform; this.windows = windows; }
   async #windows(operation, filePath, destination) {
     const result = await this.windows(operation, filePath, destination);
-    if (!result || result.version !== VERSION || result.operation !== operation || result.private !== true || result.durableMove !== (operation === "replace")) throw unavailable();
+    if (!result || result.version !== VERSION || result.operation !== operation || result.private !== true || result.durableMove !== (operation === "replace")) throw unavailable(`windows-${operation}`);
     return result;
   }
   async available(filePath) {
@@ -142,9 +147,9 @@ export class PrivateFilePolicy {
     await this.available(filePath);
     const entry = await this.io.lstat(filePath);
     stat ??= entry;
-    if (!entry.isFile() || entry.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1 || entry.dev !== stat.dev || entry.ino !== stat.ino) throw unavailable();
+    if (!entry.isFile() || entry.isSymbolicLink() || !stat.isFile() || stat.nlink !== 1 || entry.dev !== stat.dev || entry.ino !== stat.ino) throw unavailable("file-identity");
     if (this.platform === "win32") { await this.#windows("inspect", filePath); return { protection: "windows-dacl", private: true }; }
-    if ((stat.mode & 0o077) !== 0) throw unavailable();
+    if ((stat.mode & 0o077) !== 0) throw unavailable("file-permissions");
     return { protection: "posix-mode", private: true };
   }
   async replace(source, destination) {

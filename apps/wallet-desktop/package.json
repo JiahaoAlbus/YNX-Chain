@@ -96,9 +96,9 @@
       "target": [
         "nsis"
       ],
+      "icon": "src/icon.png",
       "executableName": "YNX Wallet",
-      "requestedExecutionLevel": "asInvoker",
-      "verifyUpdateCodeSignature": false
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": true,

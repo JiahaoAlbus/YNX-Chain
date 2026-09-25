@@ -3,7 +3,7 @@ name: Wallet desktop current installers
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-dedicated-auth-v2-20260906]
+    branches: [codex/wallet-dedicated-auth-v2-20260906, codex/wallet-desktop-storage-recovery-20260925]
     paths:
       - apps/wallet-desktop/**
       - packages/wallet-auth/**
@@ -163,6 +163,42 @@ jobs:
             if ($app.HasExited -or -not $app.CloseMainWindow() -or -not $app.WaitForExit(15000)) { throw 'Native application lifecycle failed' }
           }
           # This proves installed launch only; no account, signing, callback or transfer claim.
+      - name: Verify installed Windows password custody and same-account restart
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        env:
+          YNX_WALLET_QA_PASSWORD: 'Synthetic native QA password 2026!'
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $rows = @(Get-Content 'apps/wallet-desktop/dist/windows-install-location.json' -Raw | ConvertFrom-Json)
+          $locations = @($rows | ForEach-Object { $_.installLocation } | Where-Object { $_ } | Sort-Object -Unique)
+          if ($locations.Count -ne 1) { throw 'Expected one exact current-user Wallet install' }
+          $exe = Join-Path $locations[0] 'YNX Wallet.exe'
+          $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP '钱包 QA profile'
+          $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\password-installed-smoke.json'
+          $report = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\windows-password-lifecycle.json'
+          $first = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $created = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs create | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $created.passwordPersisted -or -not $created.accountCreated -or -not $created.wrongPasswordRejected -or -not $created.sameAccountAfterUnlock -or $created.custody -ne 'password-encrypted-local') { throw 'Installed password/account creation did not pass' }
+            $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
+            if (-not (Test-Path -LiteralPath $vault -PathType Leaf)) { throw 'Installed password vault was not persisted' }
+            $beforeRestartHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+          } finally {
+            if (-not $first.HasExited) { [void]$first.CloseMainWindow(); [void]$first.WaitForExit(15000) }
+          }
+          if (-not $first.HasExited) { throw 'First installed Wallet did not close' }
+          $second = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $restored = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $created.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $restored.sameAccountAfterRestart -or $restored.account -ne $created.account -or $restored.ynxAccount -ne $created.ynxAccount) { throw 'Installed password restart changed account identity' }
+            $afterRestartHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($afterRestartHash -ne $beforeRestartHash) { throw 'Unlock unexpectedly changed the encrypted vault file' }
+            @{ sourceCommit=$env:GITHUB_SHA; platform='windows'; architecture='${{ matrix.arch }}'; installedPasswordSetup=$true; accountCreated=$true; wrongPasswordRejected=$true; samePublicAddressAfterRestart=$true; vaultCiphertextUnchangedByUnlock=$true; publicAccount=$created.account; publicYNXAccount=$created.ynxAccount; userMachineVerified=$false; osRebootVerified=$false; signed=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $report
+          } finally {
+            if (-not $second.HasExited) { [void]$second.CloseMainWindow(); [void]$second.WaitForExit(15000) }
+          }
+          if (-not $second.HasExited) { throw 'Second installed Wallet did not close' }
       - name: Install Linux and verify two locked cold starts
         if: matrix.platform == 'linux'
         shell: bash
@@ -223,6 +259,8 @@ jobs:
             apps/wallet-desktop/dist/*.AppImage
             apps/wallet-desktop/dist/release-manifest.json
             apps/wallet-desktop/dist/installed-smoke.json
+            apps/wallet-desktop/dist/password-installed-smoke.json
+            apps/wallet-desktop/dist/windows-password-lifecycle.json
             apps/wallet-desktop/dist/windows-installer-result.json
             apps/wallet-desktop/dist/windows-install-location.json
             apps/wallet-desktop/dist/windows-archive-verification.json

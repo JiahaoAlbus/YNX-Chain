@@ -11,7 +11,7 @@ const receiveCodeUI = createReceiveCodeUI({
 });
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
-let accountState = null, passwordUI;
+let accountState = null, passwordUI, accountReadFailed = false;
 let paymentDraftRevision = 0;
 const paymentRecipientUI = createPaymentRecipientUI({
   getContext: () => ({ open: document.querySelector("#send-sheet").open, account: accountState?.account, locked: keyState.locked, keyRevision: keyState.revision }),
@@ -169,18 +169,36 @@ const signingShort = document.querySelector("#signing-short");
 const createAccount = document.querySelector("#create-account");
 const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
+const walletChinese = globalThis.navigator?.language?.toLowerCase().startsWith("zh") === true;
+const walletCopy = (english, chinese) => walletChinese ? chinese : english;
+document.documentElement.lang = walletChinese ? "zh-CN" : "en";
 function renderAccount(payload) {
   invalidatePaymentInput();
   if (payload?.ok === false) {
+    accountReadFailed = true;
     accountState = null;
+    activeAccount = null;
     receiveCodeUI.clear();
     document.querySelector("#receive-address").value = "";
     document.querySelector("#receive-evm-address").value = "";
     document.querySelector("#copy-address").disabled = true;
-    passwordUI?.render(); renderKeyDetail(); accountDetail.textContent = `${payload.error.code}: ${payload.error.message}`; return;
+    document.querySelector("#assets").hidden = true;
+    document.querySelector("#backup-section").hidden = true;
+    accountList.replaceChildren();
+    createAccount.hidden = true;
+    createAccount.disabled = true;
+    addAccount.hidden = true;
+    for (const control of document.querySelectorAll("#import-form input,#import-form select,#import-form button")) control.disabled = true;
+    accountTitle.textContent = walletCopy("Wallet status unavailable", "钱包状态暂不可读取");
+    accountDetail.textContent = walletCopy("Your existing recovery files have been retained. Reopen Wallet before continuing. Do not create or import an account while storage is unavailable.", "现有恢复文件已保留。请重新打开钱包，存储恢复前不要创建或导入账户。");
+    document.querySelector("#unlock-result").textContent = `${payload.error.code}${payload.error.storageStage ? ` · ${payload.error.storageStage}` : ""}: ${payload.error.message}`;
+    passwordUI?.render(); renderKeyDetail(); return;
   }
   const status = payload?.ok === true ? payload.value : payload;
+  accountReadFailed = false;
   accountState = status;
+  createAccount.disabled = keyState.locked;
+  for (const control of document.querySelectorAll("#import-form input,#import-form select,#import-form button")) control.disabled = keyState.locked;
   passwordUI?.render(); renderKeyDetail();
   const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
@@ -208,13 +226,13 @@ function renderAccount(payload) {
   document.querySelector("#transfer-review").close();
   if (status?.initialized) void refreshAssets();
   if (!status?.initialized) {
-    accountTitle.textContent = "No account created";
-    accountShort.textContent = "Not created";
+    accountTitle.textContent = status?.passwordConfigured ? walletCopy("Password protected · no account yet", "密码保护已开启 · 尚未创建账户") : walletCopy("Set up Wallet protection", "设置钱包保护");
+    accountShort.textContent = walletCopy("Not created", "尚未创建");
     signingShort.textContent = "Locked";
     createAccount.hidden = false;
     addAccount.hidden = true;
     accountList.replaceChildren();
-    accountDetail.textContent = status?.passwordConfigured ? "Unlock with your local password, then create or import an account." : "Set a local password to encrypt your Wallet before creating or importing an account.";
+    accountDetail.textContent = status?.passwordConfigured ? walletCopy("Your encrypted Wallet is saved. Unlock with your local password, then create or import an account.", "加密钱包已保存。请用本地密码解锁，再创建或导入账户。") : walletCopy("Set a local password to encrypt your Wallet before creating or importing an account.", "请先设置本地密码加密钱包，再创建或导入账户。");
     return;
   }
   accountTitle.textContent = "Your account";
@@ -598,20 +616,20 @@ function renderKeyDetail() {
   const send = document.querySelector("#open-send");
   send.textContent = state.authenticating ? "Unlocking…" : state.locked ? "Unlock to send" : "Send YNXT";
   send.disabled = !accountState?.initialized || state.authenticating || state.locked && !state.unlockAvailable;
-  detail.textContent = !accountState ? "Checking local Wallet protection…" : !accountState.passwordConfigured ? accountState.initialized ? "Existing accounts use OS protection. Set a local password to explicitly migrate all accounts." : "Set a local password to encrypt your Wallet before creating or importing accounts." : accountState.recoveryRequired ? "This account needs its offline backup. Public accounts remain visible; their previous keys are not silently replaced." : state.locked ? "Your local password encrypts this Wallet. Leaving the app, locking the screen or switching accounts cancels pending key operations." : "Review each request before approving. Wallet locks after two minutes or when it loses focus.";
+  detail.textContent = accountReadFailed ? walletCopy("Wallet storage cannot be read. Existing files are retained; reopen Wallet before continuing.", "无法读取钱包存储。现有文件已保留，请重新打开钱包后继续。") : !accountState ? walletCopy("Checking local Wallet protection…", "正在检查本地钱包保护…") : !accountState.passwordConfigured ? accountState.initialized ? walletCopy("Existing accounts use OS protection. Set a local password to explicitly migrate all accounts.", "现有账户使用系统保护。请设置本地密码并明确迁移全部账户。") : walletCopy("Set a local password to encrypt your Wallet before creating or importing accounts.", "请先设置本地密码加密钱包，再创建或导入账户。") : accountState.recoveryRequired ? walletCopy("This account needs its offline backup. Public accounts remain visible; their previous keys are not silently replaced.", "此账户需要离线备份才能恢复。公开账户仍可见，原有密钥不会被静默替换。") : state.locked ? walletCopy("Your local password encrypts this Wallet. Leaving the app, locking the screen or switching accounts cancels pending key operations.", "本地密码加密此钱包。离开应用、锁屏或切换账户会取消进行中的密钥操作。") : walletCopy("Review each request before approving. Wallet locks after two minutes or when it loses focus.", "批准前请逐项核对请求。钱包会在两分钟后或失去焦点时锁定。");
 }
 function renderKeyState(state) {
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   keyState = state;
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");
-  title.textContent = state.locked ? "Wallet locked" : "Wallet unlocked";
+  title.textContent = state.locked ? walletCopy("Wallet locked", "钱包已锁定") : walletCopy("Wallet unlocked", "钱包已解锁");
   renderKeyDetail();
   unlock.hidden = !state.locked;
   unlock.disabled = !state.unlockAvailable || state.authenticating;
   document.querySelector("#lock-wallet").disabled = state.locked && !state.authenticating;
   signingShort.textContent = state.locked ? "Locked" : "Approval required";
-  for (const element of document.querySelectorAll("#create-account,#add-account,#prepare-transfer,#paste-recipient,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) element.disabled = state.locked || element.dataset.account === activeAccount;
+  for (const element of document.querySelectorAll("#create-account,#add-account,#prepare-transfer,#paste-recipient,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) element.disabled = state.locked || !accountState || element.dataset.account === activeAccount;
   for (const button of document.querySelectorAll("[data-retry-transaction]")) button.disabled = state.locked;
   if (state.locked) {
     if (invalidated) {
