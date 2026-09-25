@@ -1,7 +1,7 @@
 /** Installed Windows-only V3 custody gate. Prints public state and fixed error codes only. */
 import { Wallet } from "ethers";
 import path from "node:path";
-import { passwordFormAction } from "./windows-password-form-state.mjs";
+import { installedMessageIs, passwordActionReady, passwordFormAction } from "./windows-password-form-state.mjs";
 
 const [mode, expectedAccount = ""] = process.argv.slice(2);
 const password = process.env.YNX_WALLET_QA_PASSWORD;
@@ -99,7 +99,7 @@ async function until(predicate, label, count = 100) {
   }
   const visible = `${state?.ui?.passwordResult ?? ""} ${state?.ui?.unlockResult ?? ""} ${state?.ui?.detail ?? ""} ${state?.ui?.importResult ?? ""} ${state?.ui?.backupResult ?? ""}`;
   const stage = /Reference: ([a-z][a-z0-9-]{0,79})\./.exec(visible)?.[1] ?? null;
-  throw new Error(`${label}: ${JSON.stringify({ account: state?.account && { initialized: state.account.initialized, passwordConfigured: state.account.passwordConfigured, account: state.account.account, custody: state.account.custody }, error: state?.error, locked: state?.locked, storageStage: stage, ui: { passwordSheetOpen: state?.ui?.passwordSheetOpen, unlockEnabled: state?.ui?.unlockEnabled, importEnabled: state?.ui?.importEnabled, backupEnabled: state?.ui?.backupEnabled, backupVisible: state?.ui?.backupVisible, importSucceeded: /Account imported|账户已导入/i.test(state?.ui?.importResult ?? ""), backupSaved: /Encrypted backup saved|加密备份已保存/i.test(state?.ui?.backupResult ?? "") } })}`);
+  throw new Error(`${label}: ${JSON.stringify({ account: state?.account && { initialized: state.account.initialized, passwordConfigured: state.account.passwordConfigured, account: state.account.account, custody: state.account.custody }, error: state?.error, locked: state?.locked, storageStage: stage, ui: { passwordSheetOpen: state?.ui?.passwordSheetOpen, unlockEnabled: state?.ui?.unlockEnabled, importEnabled: state?.ui?.importEnabled, backupEnabled: state?.ui?.backupEnabled, backupVisible: state?.ui?.backupVisible, importSucceeded: installedMessageIs(state?.ui?.importResult, "Account imported. Save a backup and keep it safe."), backupSaved: installedMessageIs(state?.ui?.backupResult, "Encrypted backup saved. Keep its password separately.") } })}`);
 }
 async function formSubmit(value, confirmation) {
   const expectedUnlock = confirmation === undefined;
@@ -161,16 +161,16 @@ try {
     console.log(JSON.stringify({ mode, version, arabicRTL: true, preferenceRetained: mode === "locale-restore", samePublicAccount: true, remainedLocked: true, account: expectedAccount }));
   } else if (mode === "backup-result") {
     if (!before.account.initialized || before.account.account !== expectedAccount) throw new Error("BACKUP_RESULT_ACCOUNT_UNAVAILABLE");
-    await until(state => /Encrypted backup saved|加密备份已保存/i.test(state.ui.backupResult), "Native backup file saved");
+    await until(state => installedMessageIs(state.ui.backupResult, "Encrypted backup saved. Keep its password separately."), "Native backup file saved");
     console.log(JSON.stringify({ mode, nativeBackupSaved: true, account: before.account.account }));
   } else if (mode === "import-backup") {
     const file = process.env.YNX_WALLET_QA_BACKUP_FILE;
     const backupPassword = process.env.YNX_WALLET_QA_BACKUP_PASSWORD;
     if (!path.win32.isAbsolute(file ?? "") || typeof backupPassword !== "string" || backupPassword.length < 12 || !expectedAccount || before.account.initialized || before.account.passwordConfigured) throw new Error("BACKUP_IMPORT_INPUT_UNAVAILABLE");
-    await until(state => state.ui.unlockEnabled && /Set local Wallet password|设置本地钱包密码/i.test(state.ui.unlockLabel), "Backup import setup UI readiness");
+    await until(state => passwordActionReady(state, false), "Backup import setup UI readiness");
     await formSubmit(password, password);
     await until(state => state.account?.passwordConfigured && !state.account.initialized, "Backup import password persistence");
-    await until(state => state.ui.unlockEnabled && /Unlock with local password|使用本地密码解锁/i.test(state.ui.unlockLabel), "Backup import unlock UI readiness");
+    await until(state => passwordActionReady(state, true), "Backup import unlock UI readiness");
     await formSubmit(password);
     await until(state => !state.locked && !state.account?.initialized, "Backup import unlock");
     await until(state => state.ui.importEnabled, "Backup import UI readiness");
@@ -193,7 +193,7 @@ try {
     if (before.account.initialized || before.account.passwordConfigured || !before.locked) throw new Error("Installed create gate requires a fresh, locked Wallet profile");
     await formSubmit(password, password);
     await until(state => state.account?.passwordConfigured === true && state.account.initialized === false, "Password persistence");
-    await until(state => state.ui.unlockEnabled && /Unlock with local password|使用本地密码解锁/i.test(state.ui.unlockLabel), "Password unlock UI readiness");
+    await until(state => passwordActionReady(state, true), "Password unlock UI readiness");
     await formSubmit(password);
     await until(state => state.locked === false && state.account?.passwordConfigured === true, "Password unlock");
     await evaluate(`(() => { document.querySelector('nav [data-view="accounts"]')?.click(); document.querySelector('#create-account')?.click(); return true; })()`, "ACCOUNT_CREATE_CLICK");
@@ -201,13 +201,13 @@ try {
     await evaluate(`document.querySelector('#lock-wallet')?.click(); true`, "EXPLICIT_LOCK_CLICK");
     await until(state => state.locked === true, "Explicit lock");
     await formSubmit("incorrect synthetic password");
-    await until(state => state.locked === true && /incorrect|不正确/i.test(`${state.ui.passwordResult} ${state.ui.unlockResult}`), "Wrong password leaves Wallet locked");
+    await until(state => state.locked === true && [state.ui.passwordResult, state.ui.unlockResult].some(message => installedMessageIs(message, "The password is incorrect or this encrypted Wallet changed. It remains locked.")), "Wrong password leaves Wallet locked");
     await formSubmit(password);
     await until(state => state.locked === false && state.account?.account === created.account.account, "Correct password restores the same account");
     console.log(JSON.stringify({ mode, passwordPersisted: true, accountCreated: true, wrongPasswordRejected: true, sameAccountAfterUnlock: true, account: created.account.account, ynxAccount: created.account.ynxAccount, custody: created.account.custody, ...(mode === "offline-create" ? { rpcUnavailableDuringAccountCreation: true } : {}) }));
   } else {
     if (!before.account.initialized || before.account.account !== expectedAccount || !before.locked) throw new Error("INSTALLED_RESTORE_ACCOUNT_OR_LOCK_MISMATCH");
-    await until(state => state.ui.unlockEnabled && /Unlock with local password|使用本地密码解锁/i.test(state.ui.unlockLabel), "Cold restart unlock UI readiness");
+    await until(state => passwordActionReady(state, true), "Cold restart unlock UI readiness");
     await formSubmit(password);
     const restored = await until(state => state.locked === false && state.account?.account === expectedAccount, "Cold restart password unlock");
     if (mode === "restore" || mode === "offline-restore") console.log(JSON.stringify({ mode, sameAccountAfterRestart: true, account: restored.account.account, ynxAccount: restored.account.ynxAccount, custody: restored.account.custody, ...(mode === "offline-restore" ? { rpcUnavailableDuringRestart: true } : {}) }));
@@ -236,7 +236,7 @@ try {
         // through the visible password dialog before the next one.
         const prior = await snapshot();
         if (prior.locked) {
-          await until(state => state.ui.unlockEnabled && /Unlock with local password|使用本地密码解锁/i.test(state.ui.unlockLabel), `Import ${index + 1} unlock UI readiness`);
+          await until(state => passwordActionReady(state, true), `Import ${index + 1} unlock UI readiness`);
           await formSubmit(password);
           await until(state => !state.locked && state.account?.accounts?.includes(expectedAccount), `Import ${index + 1} password unlock`);
         }
