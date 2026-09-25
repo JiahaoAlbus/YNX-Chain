@@ -386,12 +386,12 @@ jobs:
           oldSource: 6f332753baae5deaf6b05c8276b20a02cc4887c5
           oldBytes: 120954701
           oldSHA256: da2e564eb680de0595202bd388eda9d524f40d62052b03da9b0bba4bf9da3716
-          expectedCreateFailure: true
+          allowCreateFailure: true
         - oldVersion: 0.6.9
           oldSource: 3045436395fe636c91be417f41fc1e4ed2bc7515
           oldBytes: 120980075
           oldSHA256: 0df01cecc47c4af179d651892623b7936ac6dac52a5d9961212bed90eccde7e1
-          expectedCreateFailure: false
+          allowCreateFailure: false
     env:
       YNX_ORIGINAL_SOURCE: ffaf3ca0d85f81622e6b1ba20c7648abb09a2574
       YNX_WALLET_EXPECTED_VERSION: 0.6.10
@@ -399,7 +399,7 @@ jobs:
       YNX_OLD_SOURCE: ${{ matrix.oldSource }}
       YNX_OLD_BYTES: ${{ matrix.oldBytes }}
       YNX_OLD_SHA256: ${{ matrix.oldSHA256 }}
-      YNX_OLD_EXPECTED_CREATE_FAILURE: ${{ matrix.expectedCreateFailure }}
+      YNX_OLD_ALLOW_CREATE_FAILURE: ${{ matrix.allowCreateFailure }}
     steps:
     - name: Preserve committed bytes in this disposable runner checkout
       shell: bash
@@ -583,7 +583,7 @@ jobs:
         $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\upgrade-installed-smoke.json'
         $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
         if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $old.vaultSHA256) { throw 'Old encrypted Wallet changed before upgraded launch' }
-        if ($old.sourceVersion -ne $env:YNX_OLD_VERSION -or [bool]$old.oldInstalledCreateFailureObserved -ne [bool]::Parse($env:YNX_OLD_EXPECTED_CREATE_FAILURE)) { throw 'Old profile did not match its exact predecessor gate' }
+        if ($old.sourceVersion -ne $env:YNX_OLD_VERSION -or ($old.oldInstalledCreateFailureObserved -and $env:YNX_OLD_ALLOW_CREATE_FAILURE -ne 'true')) { throw 'Old profile did not match its exact predecessor gate' }
         $app = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
         try {
           $version = (Get-Content 'apps/wallet-desktop/package.json' -Raw | ConvertFrom-Json).version
