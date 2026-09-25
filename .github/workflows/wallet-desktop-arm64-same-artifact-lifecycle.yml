@@ -142,7 +142,8 @@ jobs:
               pageCount=targets.filter(target=>target.type==='page').length;
               filePageCount=targets.filter(target=>target.type==='page'&&target.url?.startsWith('file:')).length;
             } catch {}
-            const errorClass=error?.message==='WALLET_PAGE_UNAVAILABLE'?'WALLET_PAGE_UNAVAILABLE':/PASSWORD_VAULT_STORAGE_FAILED/.test(error?.message??'')?'OLD_068_STORAGE_FAILED':'OLD_ARM_UI_OTHER';
+            const failure=`${error?.message??''} ${error?.stderr??''}`;
+            const errorClass=/PASSWORD_VAULT_STORAGE_FAILED/.test(failure)?'OLD_068_STORAGE_FAILED':/WALLET_PAGE_UNAVAILABLE/.test(failure)?'WALLET_PAGE_UNAVAILABLE':'OLD_ARM_UI_OTHER';
             const report={stage:'old-arm-ui-ready',errorClass,launchError,appExited:app.exitCode!==null||app.signalCode!==null,appExitCode:Number.isInteger(app.exitCode)?app.exitCode:null,cdpReachable,pageCount,filePageCount,launchEvidenceExists:await readFile(evidence).then(()=>true,()=>false)};
             await writeFile(path.win32.join(root,'apps','wallet-desktop','dist','arm64-old-ui-diagnostic.json'),JSON.stringify(report)+'\n');
             console.error(JSON.stringify(report));
@@ -227,29 +228,55 @@ jobs:
           try {
             $started = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs backup-start $created.account | ConvertFrom-Json
             if ($LASTEXITCODE -ne 0 -or -not $started.backupSubmittedThroughInstalledUI) { throw 'ARM native backup form not submitted' }
-            $shell = New-Object -ComObject WScript.Shell
-            $dialog = $false
-            for ($attempt = 0; $attempt -lt 50; $attempt++) {
-              if ($shell.AppActivate('Save encrypted Wallet backup')) { $dialog = $true; break }
-              Start-Sleep -Milliseconds 200
+            $diagnostic = [ordered]@{ stage='save-dialog-selection'; uiaLoaded=$false; dialogFound=$false; editCount=0; fileNameEditFound=$false; saveButtonFound=$false; saveInvoked=$false; expectedFileAppeared=$false }
+            try {
+              Add-Type -AssemblyName UIAutomationClient
+              $diagnostic.uiaLoaded = $true
+              $nameCondition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty, 'Save encrypted Wallet backup')
+              $dialog = $null
+              for ($attempt = 0; $attempt -lt 50; $attempt++) {
+                $dialog = [System.Windows.Automation.AutomationElement]::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children, $nameCondition)
+                if ($null -ne $dialog) { break }
+                Start-Sleep -Milliseconds 200
+              }
+              if ($null -eq $dialog) { throw 'ARM native backup Save dialog not found by UI Automation' }
+              $diagnostic.dialogFound = $true
+              $editCondition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Edit)
+              $edits = $dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants, $editCondition)
+              $diagnostic.editCount = $edits.Count
+              $fileNameEdit = @($edits | Where-Object { $_.Current.IsEnabled -and ($_.Current.AutomationId -match '^(1001|1148|FileNameControlHost.*)$' -or $_.Current.Name -match '^File name:?$') }) | Select-Object -First 1
+              if ($null -eq $fileNameEdit) { throw 'ARM native backup File name control unavailable' }
+              $diagnostic.fileNameEditFound = $true
+              $value = [System.Windows.Automation.ValuePattern]$fileNameEdit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
+              $value.SetValue($env:YNX_WALLET_QA_BACKUP_FILE)
+              $buttonCondition = [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button)
+              $buttons = $dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants, $buttonCondition)
+              $save = @($buttons | Where-Object { $_.Current.IsEnabled -and ($_.Current.Name -eq 'Save' -or $_.Current.AutomationId -eq '1') }) | Select-Object -First 1
+              if ($null -eq $save) { throw 'ARM native backup Save control unavailable' }
+              $diagnostic.saveButtonFound = $true
+              $invoke = [System.Windows.Automation.InvokePattern]$save.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+              $invoke.Invoke()
+              $diagnostic.saveInvoked = $true
+            } catch {
+              $diagnostic.errorClass = $_.Exception.GetType().Name
+              $diagnostic | ConvertTo-Json -Depth 3 | Set-Content 'apps/wallet-desktop/dist/arm64-backup-dialog-diagnostic.json'
+              throw 'ARM native backup UI Automation could not select the file'
             }
-            if (-not $dialog) { throw 'ARM native backup Save dialog not found' }
-            Start-Sleep -Milliseconds 350
-            $shell.SendKeys('%n')
-            Start-Sleep -Milliseconds 350
-            $shell.SendKeys('^a')
-            $shell.SendKeys($env:YNX_WALLET_QA_BACKUP_FILE)
-            Start-Sleep -Milliseconds 600
-            $shell.SendKeys('{ENTER}')
             $saved = $false
             for ($attempt = 0; $attempt -lt 100; $attempt++) {
               if (Test-Path -LiteralPath $env:YNX_WALLET_QA_BACKUP_FILE -PathType Leaf) { $saved = $true; break }
               Start-Sleep -Milliseconds 200
             }
             if (-not $saved) {
-              @{ stage='save-dialog-write'; dialogActivated=$dialog; expectedFileAppeared=$false; dialogStillActive=[bool]$shell.AppActivate('Save encrypted Wallet backup'); similarNamedFileCount=@(Get-ChildItem -LiteralPath $env:RUNNER_TEMP -File -Filter '*ynx-wallet-arm-qa-backup*').Count } | ConvertTo-Json -Depth 3 | Set-Content 'apps/wallet-desktop/dist/arm64-backup-dialog-diagnostic.json'
+              $diagnostic.stage = 'save-dialog-write'
+              $diagnostic.dialogStillOpen = $null -ne [System.Windows.Automation.AutomationElement]::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Children, $nameCondition)
+              $diagnostic.similarNamedFileCount = @(Get-ChildItem -LiteralPath $env:RUNNER_TEMP -File -Filter '*ynx-wallet-arm-qa-backup*').Count
+              $diagnostic | ConvertTo-Json -Depth 3 | Set-Content 'apps/wallet-desktop/dist/arm64-backup-dialog-diagnostic.json'
               throw 'ARM native Save dialog did not write backup file'
             }
+            $diagnostic.expectedFileAppeared = $true
+            $diagnostic.stage = 'save-dialog-complete'
+            $diagnostic | ConvertTo-Json -Depth 3 | Set-Content 'apps/wallet-desktop/dist/arm64-backup-dialog-diagnostic.json'
             $result = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs backup-result $created.account | ConvertFrom-Json
             if ($LASTEXITCODE -ne 0 -or -not $result.nativeBackupSaved) { throw 'ARM installed UI did not confirm backup save' }
             $env:YNX_BACKUP_EXPECTED_ACCOUNT = $created.account
