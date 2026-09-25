@@ -120,11 +120,25 @@ try {
   await restoredWallet.locator("#add-account-password").fill(password);
   await restoredWallet.locator("#add-account-form button[type=submit]").click();
   await restoredWallet.waitForFunction(expected => [...document.querySelector("#account-select").options].some(option => option.value === expected), second.account);
-  await restoredWallet.locator("#account-select").selectOption(second.account);
-  await restoredWallet.locator("#switch-account").click();
+  await restoredFinance.evaluate(() => { window.racedSign = window.ynxAdapter.request({ method: "personal_sign", params: ["0x74657374", window.ynxAdapter.account] }).then(() => "signed", error => error.code); });
+  await restoredWallet.locator("#review").waitFor({ state: "visible" });
+  const secondFinance = await financePage(fresh);
+  const otherPopup = fresh.waitForEvent("page");
+  await secondFinance.locator("#connect").click();
+  const otherWallet = await otherPopup;
+  await otherWallet.locator("#review").waitFor({ state: "visible" });
+  await otherWallet.locator("#approve").click();
+  assert.equal((await secondFinance.evaluate(() => window.ynxConnection))[0], account);
+  await otherWallet.locator("#account-select").selectOption(second.account);
+  await otherWallet.locator("#switch-account").click();
+  await secondFinance.waitForFunction(() => window.ynxAdapter.connected === false);
+  await restoredWallet.locator("#approval-password").fill(password);
+  await restoredWallet.locator("#approve").click();
+  assert.notEqual(await restoredFinance.evaluate(() => window.racedSign), "signed");
   await restoredFinance.waitForFunction(() => window.ynxAdapter.connected === false);
   assert.deepEqual(await restoredFinance.evaluate(() => window.ynxAdapter.request({ method: "eth_accounts" })), []);
   await restoredWallet.close();
+  await otherWallet.close();
   const switchedPopup = fresh.waitForEvent("page");
   await restoredFinance.locator("#connect").click();
   const switchedWallet = await switchedPopup;
@@ -132,6 +146,6 @@ try {
   assert.equal(await switchedWallet.locator("#account-evm").textContent(), second.account);
   await switchedWallet.locator("#approve").click();
   assert.equal((await restoredFinance.evaluate(() => window.ynxConnection))[0], second.account);
-  console.log(JSON.stringify({ isolatedBrowser: "Chromium", hostedVaultCreatedAndReadBack: true, backupAcknowledgementBeforeConnect: true, zeroBalanceConnectionNoRpcRequired: true, account, chainId: "0x1917", explicitSignatureRejection: true, refreshDisconnected: true, wrongBackupPasswordRejected: true, encryptedBackupRestoresSamePublicAccount: true, privateV2SignedReturnLocallyVerified: true, privateV2Rejection: true, privateV2ReplayRejected: true, accountSwitchRequiresFreshApproval: true, gatewayVerified: false, publicDeploymentVerified: false }));
+  console.log(JSON.stringify({ isolatedBrowser: "Chromium", hostedVaultCreatedAndReadBack: true, backupAcknowledgementBeforeConnect: true, zeroBalanceConnectionNoRpcRequired: true, account, chainId: "0x1917", explicitSignatureRejection: true, refreshDisconnected: true, wrongBackupPasswordRejected: true, encryptedBackupRestoresSamePublicAccount: true, privateV2SignedReturnLocallyVerified: true, privateV2Rejection: true, privateV2ReplayRejected: true, accountSwitchRequiresFreshApproval: true, concurrentAccountSwitchCancelsSignature: true, gatewayVerified: false, publicDeploymentVerified: false }));
   await fresh.close();
 } finally { await browser.close(); }

@@ -2,6 +2,7 @@ import { createHostedVaultStore } from "./hosted-vault-store.js";
 import { unlockEncryptedVault } from "./extension-vault.js";
 import { validateYNXChainMutation } from "./extension-chain-params.js";
 import { forwardExtensionRpc, broadcastExtensionTransaction, YNX_CHAIN_ID } from "./extension-rpc.js";
+import { ExtensionBroadcastJournal } from "./extension-broadcast-journal.js";
 import { extensionReviewText, prepareExtensionRequest, signExtensionRequest } from "./extension-signer.js";
 import { parsePrivateRequest, privateProductName, privateReplayKey, rejectPrivateReturn, signPrivateReturn } from "./extension-product-session-v2.js";
 import { HOSTED_PROTOCOL, HOSTED_WALLET_ORIGIN, hostedEnvelope, parseHostedConnect, validateHostedMessage } from "./hosted-protocol.js";
@@ -10,11 +11,18 @@ import { toYNXAddress } from "./wallet-address.js";
 const $ = id => document.getElementById(id);
 const status = $("status"), setup = $("setup"), review = $("review"), reviewText = $("review-text"), password = $("approval-password"), approve = $("approve"), reject = $("reject");
 const store = createHostedVaultStore();
+const broadcastJournal = new ExtensionBroadcastJournal(store.journalStorage);
 let vault = null, session = null, currentReview = null, busy = false, needsBackupAcknowledgement = false, backupDownloaded = false;
 const seen = new Set();
 const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 function fail(code) { throw Object.assign(new Error(code), { code }); }
 function message(value) { status.textContent = value; }
+async function assertCurrentAccount() {
+  const current = await store.read();
+  if (!session || window.opener?.closed || Date.now() >= session.expiresAt || !current || current.account !== vault?.account || JSON.stringify(current) !== JSON.stringify(vault)) {
+    reply("disconnected"); session = null; fail("HOSTED_ACCOUNT_CHANGED_OR_EXPIRED");
+  }
+}
 function displayAccount() {
   $("account-card").hidden = !vault;
   if (vault) { $("account-ynx").textContent = toYNXAddress(vault.account); $("account-evm").textContent = vault.account; }
@@ -25,6 +33,17 @@ async function refreshAccountList() {
   const accounts = await store.listAccounts(), select = $("account-select"); select.replaceChildren();
   for (const account of accounts) { const option = document.createElement("option"); option.value = account; option.textContent = toYNXAddress(account); select.append(option); }
   select.value = vault.account;
+}
+async function refreshTransactionStatus(refresh = false) {
+  if (!vault) return;
+  try {
+    const record = await broadcastJournal.status(vault.account, { rpc: forwardExtensionRpc, refresh });
+    $("transaction-panel").hidden = !record;
+    if (record) $("transaction-status").textContent = `${record.transactionHash} · ${record.status}${record.blocksNewSend ? " · New sends paused until original transaction is resolved." : ""}`;
+  } catch (error) {
+    $("transaction-panel").hidden = false;
+    $("transaction-status").textContent = `Transaction history cannot be verified. Sending remains disabled. (${error?.code ?? "HOSTED_JOURNAL_UNAVAILABLE"})`;
+  }
 }
 function reply(type, extra = {}) {
   if (!session || window.opener?.closed || Date.now() >= session.expiresAt) return;
@@ -59,8 +78,7 @@ reject.addEventListener("click", () => finishReview({ approved: false }));
 window.addEventListener("pagehide", () => { reply("disconnected"); finishReview({ approved: false }); password.value = ""; });
 
 async function handleMethod(method, params) {
-  const current = await store.read();
-  if (!current || current.account !== vault.account) { reply("disconnected"); session = null; fail("HOSTED_ACCOUNT_CHANGED"); }
+  await assertCurrentAccount();
   if (method === "eth_accounts" || method === "eth_requestAccounts") return [vault.account];
   if (method === "eth_chainId") return YNX_CHAIN_ID;
   if (method === "wallet_disconnect") { reply("disconnected"); session = null; message("Disconnected. Reopen Wallet from the product to connect again."); return null; }
@@ -71,21 +89,28 @@ async function handleMethod(method, params) {
     await store.consumeReplay(replay, Date.parse(request.expiresAt));
     const choice = await askUser({ title: `Approve ${privateProductName(request)} access?`, detail: `${session.origin}\n${request.purpose}\nScopes: ${request.scopes.join(", ")}\nExpires: ${request.expiresAt}`, secretRequired: true });
     if (!choice.approved) return rejectPrivateReturn(request);
+    await assertCurrentAccount();
     const unlocked = await unlockEncryptedVault(vault, choice.password);
+    await assertCurrentAccount();
     if (unlocked.account !== vault.account) fail("HOSTED_ACCOUNT_CHANGED");
     return signPrivateReturn(request, unlocked.secretHex);
   }
   if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"].includes(method)) {
+    const perform = async () => {
     const prepared = await prepareExtensionRequest({ expectedAccount: vault.account, method, params, rpc: forwardExtensionRpc });
     const choice = await askUser({ title: method === "eth_sendTransaction" ? "Review transaction" : "Review signature", detail: `${session.origin}\n${extensionReviewText(prepared.review)}`, secretRequired: true });
     if (!choice.approved) fail("USER_REJECTED");
+    await assertCurrentAccount();
     const unlocked = await unlockEncryptedVault(vault, choice.password);
-    if (unlocked.account !== vault.account || !session || window.opener?.closed) fail("HOSTED_ACCOUNT_CHANGED");
-    const signed = await signExtensionRequest({ secretHex: unlocked.secretHex, expectedAccount: vault.account, prepared, rpc: forwardExtensionRpc, assertAuthorized: async () => { if (!session || window.opener?.closed || Date.now() >= session.expiresAt || document.visibilityState !== "visible") fail("HOSTED_APPROVAL_CANCELLED"); } });
+    await assertCurrentAccount();
+    if (unlocked.account !== vault.account) fail("HOSTED_ACCOUNT_CHANGED");
+    const assertAuthorized = async () => { await assertCurrentAccount(); if (document.visibilityState !== "visible") fail("HOSTED_APPROVAL_CANCELLED"); };
+    const signed = await signExtensionRequest({ secretHex: unlocked.secretHex, expectedAccount: vault.account, prepared, rpc: forwardExtensionRpc, assertAuthorized });
     if (method !== "eth_sendTransaction") return signed;
-    const hash = await broadcastExtensionTransaction(signed.rawTransaction);
-    if (hash !== signed.transactionHash?.toLowerCase()) fail("HOSTED_BROADCAST_HASH_MISMATCH");
-    return hash;
+    await assertCurrentAccount();
+    return broadcastJournal.broadcast({ account: vault.account, origin: session.origin, signed, broadcast: broadcastExtensionTransaction, assertAuthorized, rpc: forwardExtensionRpc });
+    };
+    return method === "eth_sendTransaction" ? broadcastJournal.run(vault.account, perform) : perform();
   }
   if (method.startsWith("eth_") || method.startsWith("net_") || method.startsWith("web3_")) return forwardExtensionRpc(method, params);
   fail("HOSTED_METHOD_UNSUPPORTED");
@@ -95,7 +120,7 @@ async function receive(event) {
   if (!session || Date.now() >= session.expiresAt || window.opener?.closed) return;
   let data;
   try { data = validateHostedMessage(event, window.opener, session, seen); } catch { return; }
-  if (data.type === "ping" && session.approved === true) { reply("pong"); return; }
+  if (data.type === "ping" && session.approved === true) { try { await assertCurrentAccount(); reply("pong"); } catch { /* Disconnected by the account guard. */ } return; }
   if (data.type === "hello") {
     if (busy || vault === null) return;
     busy = true;
@@ -103,6 +128,7 @@ async function receive(event) {
       await store.consumeReplay(`connect:${session.origin}:${session.requestId}`, session.expiresAt);
       const choice = await askUser({ title: "Connect YNX Wallet?", detail: `${session.origin}\nYNX account: ${toYNXAddress(vault.account)}\nEVM-compatible: ${vault.account}\nNetwork: YNX Testnet\nNo balance is required.` });
       if (!choice.approved) { reply("rejected"); return; }
+      await assertCurrentAccount();
       reply("connected", { account: vault.account, chainId: YNX_CHAIN_ID });
       message(`Connected to ${session.origin}. Keep this window open while using the product.`);
       session.approved = true;
@@ -134,7 +160,7 @@ $("setup-form").addEventListener("submit", async event => {
   submit.disabled = true;
   try {
     const created = await store.create({ password: localPassword, ...(key ? { secretHex: key.replace(/^0x/u, "").toLowerCase() } : {}) });
-    vault = created.vault; setup.hidden = true; displayAccount(); await refreshAccountList();
+    vault = created.vault; setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus();
     needsBackupAcknowledgement = !key;
     $("backup-confirmation").hidden = !needsBackupAcknowledgement;
     message(`Encrypted Wallet saved and read back. Public account: ${vault.account}. ${needsBackupAcknowledgement ? "Download and safeguard an encrypted backup before connecting." : "Your imported key remains encrypted here."}`);
@@ -151,7 +177,7 @@ $("backup-import-form").addEventListener("submit", async event => {
   try {
     const record = JSON.parse(await file.text());
     const imported = await store.importEncrypted({ record, password: input.value });
-    vault = imported.vault; setup.hidden = true; displayAccount(); await refreshAccountList(); $("export-backup").hidden = false;
+    vault = imported.vault; setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); $("export-backup").hidden = false;
     message(`Encrypted backup restored and read back. Public account: ${vault.account}.`);
     if (session) reply("ready");
   } catch (error) { message(`Backup was not restored. Existing data was retained. (${error?.code ?? "HOSTED_BACKUP_INVALID"})`); }
@@ -175,9 +201,11 @@ $("switch-account").addEventListener("click", async () => {
     const selected = await store.selectAccount(account);
     reply("disconnected"); session = null; finishReview({ approved: false });
     vault = selected; displayAccount(); await refreshAccountList();
+    await refreshTransactionStatus();
     message(`Switched to ${toYNXAddress(account)}. Reconnect from the product and approve the new account.`);
   } catch (error) { message(`Account selection failed; current session is unchanged. (${error?.code ?? "HOSTED_ACCOUNT_UNAVAILABLE"})`); }
 });
+$("refresh-transaction").addEventListener("click", () => { void refreshTransactionStatus(true); });
 $("export-backup").addEventListener("click", async () => {
   try {
     const record = await store.read();
@@ -208,7 +236,7 @@ async function start() {
   $("product-origin").textContent = session.origin;
   try { vault = await store.read(); }
   catch (error) { message(`Wallet storage cannot be read. Existing data was retained. (${error?.code ?? "HOSTED_STORAGE_READ_FAILED"})`); return; }
-  if (vault) { setup.hidden = true; displayAccount(); await refreshAccountList(); $("export-backup").hidden = false; message(`Review the request for ${toYNXAddress(vault.account)}.`); reply("ready"); }
+  if (vault) { setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); $("export-backup").hidden = false; message(`Review the request for ${toYNXAddress(vault.account)}.`); reply("ready"); }
   else { setup.hidden = false; message("Create or import a local encrypted Wallet before connecting."); }
   window.addEventListener("message", event => { void receive(event); });
   window.setInterval(() => { if (session && (Date.now() >= session.expiresAt || window.opener?.closed)) { finishReview({ approved: false }); session = null; message("The connection expired or its product window closed."); } }, 250);

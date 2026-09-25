@@ -5,6 +5,7 @@ const STORE = "vault";
 const REPLAY = "replay";
 const ACCOUNTS = "accounts";
 const META = "meta";
+const JOURNAL = "journal";
 const KEY = "primary";
 function problem(code) { return Object.assign(new Error(code), { code }); }
 function fail(code) { throw problem(code); }
@@ -12,12 +13,13 @@ function fail(code) { throw problem(code); }
 function openDatabase(factory) {
   return new Promise((resolve, reject) => {
     let request;
-    try { request = factory.open(DB_NAME, 3); } catch { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
+    try { request = factory.open(DB_NAME, 4); } catch { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(STORE)) request.result.createObjectStore(STORE);
       if (!request.result.objectStoreNames.contains(REPLAY)) request.result.createObjectStore(REPLAY);
       if (!request.result.objectStoreNames.contains(ACCOUNTS)) request.result.createObjectStore(ACCOUNTS);
       if (!request.result.objectStoreNames.contains(META)) request.result.createObjectStore(META);
+      if (!request.result.objectStoreNames.contains(JOURNAL)) request.result.createObjectStore(JOURNAL);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(problem("HOSTED_STORAGE_UNAVAILABLE"));
@@ -110,5 +112,28 @@ export function createHostedVaultStore(factory = globalThis.indexedDB, cryptoPro
     try { await transaction(await db(), "readwrite", store => store.add(deadlineAt, key), REPLAY); }
     catch { fail("HOSTED_REQUEST_REPLAYED_OR_STORAGE_UNAVAILABLE"); }
   }
-  return Object.freeze({ read, create, importEncrypted, listAccounts, addEncryptedAccount, selectAccount, consumeReplay });
+  const journalStorage = Object.freeze({
+    async get(keys) {
+      const result = {};
+      for (const key of Array.isArray(keys) ? keys : [keys]) {
+        if (typeof key !== "string" || key.length > 300) fail("HOSTED_JOURNAL_INVALID");
+        const value = await transaction(await db(), "readonly", store => store.get(key), JOURNAL);
+        if (value !== undefined) result[key] = value;
+      }
+      return result;
+    },
+    async set(records) {
+      if (!records || typeof records !== "object" || Array.isArray(records) || Object.keys(records).length < 1 || Object.keys(records).length > 4 || Object.keys(records).some(key => key.length > 300)) fail("HOSTED_JOURNAL_INVALID");
+      const currentDb = await db();
+      await new Promise((resolve, reject) => {
+        let tx;
+        try { tx = currentDb.transaction(JOURNAL, "readwrite"); } catch { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
+        tx.oncomplete = resolve;
+        tx.onabort = tx.onerror = () => reject(problem("HOSTED_STORAGE_WRITE_FAILED"));
+        try { for (const [key, value] of Object.entries(records)) tx.objectStore(JOURNAL).put(value, key); }
+        catch { tx.abort(); }
+      });
+    },
+  });
+  return Object.freeze({ read, create, importEncrypted, listAccounts, addEncryptedAccount, selectAccount, consumeReplay, journalStorage });
 }

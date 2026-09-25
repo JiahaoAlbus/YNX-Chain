@@ -48,7 +48,7 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
     seen.clear();
     request = { version: 1, origin, requestId: randomHostedId(), nonce: randomHostedId(), expiresAt: Date.now() + HOSTED_TIMEOUT_MS, chainId: HOSTED_CHAIN_ID };
     const url = `${HOSTED_WALLET_ORIGIN}${HOSTED_WALLET_PATH}#connect=${encodeHostedConnect(request)}`;
-    popup = browserWindow.open(url, "ynx-hosted-wallet", "popup,width=460,height=720");
+    popup = browserWindow.open(url, `ynx-hosted-${request.requestId}`, "popup,width=460,height=720");
     if (!popup) { request = null; throw failure("HOSTED_POPUP_BLOCKED"); }
     let resolve, reject;
     const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
