@@ -30,6 +30,28 @@ func TestGuestMarketModuleIsServedWithJavaScriptMIMEAndExactBytes(t *testing.T) 
 	}
 }
 
+func TestHTMLRefreshesBeforeVersionedExchangeAssets(t *testing.T) {
+	for _, route := range []string{"/", "/wallet-auth/callback", "/index.html"} {
+		res := httptest.NewRecorder()
+		spa(http.Dir("../web")).ServeHTTP(res, httptest.NewRequest(http.MethodGet, route, nil))
+		if res.Header().Get("Cache-Control") != "no-store" {
+			t.Fatalf("HTML route %s cache policy=%q", route, res.Header().Get("Cache-Control"))
+		}
+	}
+	for _, module := range []string{"market-data.js", "order-preview.js", "private-session.js", "app.js", "wallet-connect.js"} {
+		body, err := os.ReadFile("../web/" + module)
+		if err != nil {
+			t.Fatal(err)
+		}
+		digest := sha256.Sum256(body)
+		res := httptest.NewRecorder()
+		spa(http.Dir("../web")).ServeHTTP(res, httptest.NewRequest(http.MethodGet, "/"+module+"?v="+hex.EncodeToString(digest[:]), nil))
+		if res.Code != http.StatusOK || !bytes.Equal(res.Body.Bytes(), body) {
+			t.Fatalf("versioned Exchange module %s status=%d", module, res.Code)
+		}
+	}
+}
+
 func TestPrivateSessionCSPOnlyAddsFixedCanonicalAuthority(t *testing.T) {
 	w := httptest.NewRecorder()
 	securityHeaders(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })).ServeHTTP(w, httptest.NewRequest("GET", "/", nil))

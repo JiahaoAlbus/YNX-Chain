@@ -4,6 +4,7 @@ import {execFileSync} from "node:child_process";
 import {tmpdir} from "node:os";
 import {gzipSync} from "node:zlib";
 import path from "node:path";
+import {verifyExchangeVersionedAssets} from "../web/verify-versioned-assets.mjs";
 
 const root=path.resolve(import.meta.dirname,"../../..");
 const args=parseArgs(process.argv.slice(2));
@@ -28,6 +29,8 @@ await add(binary,`${release}/ynx-exchanged`,0o755);
 for(const name of ["app.js","market-data.js","order-preview.js","index.html","styles.css"])await add(path.join(root,"apps/exchange/web",name),`${release}/apps/exchange/web/${name}`,0o644);
 await add(walletBundle,`${release}/apps/exchange/web/wallet-connect.js`,0o644);
 await add(privateBundle,`${release}/apps/exchange/web/private-session.js`,0o644);
+const packedAsset=name=>files.find(file=>file.relative===`${release}/apps/exchange/web/${name}`)?.data;
+verifyExchangeVersionedAssets(packedAsset("index.html")?.toString("utf8"),packedAsset("app.js")?.toString("utf8"),name=>packedAsset(name));
 files.sort((a,b)=>a.relative.localeCompare(b.relative));
 const inventory=files.map(file=>({path:file.relative,sha256:sha256(file.data),bytes:file.data.length,mode:file.mode.toString(8)}));
 files.push({relative:`${release}/BUNDLE_MANIFEST.json`,data:Buffer.from(`${JSON.stringify({schemaVersion:1,productId:"ynx-exchange",sourceCommit:commit,sourceTree,release,build:{goos:"linux",goarch:"amd64",cgoEnabled:false,trimpath:true,buildVCS:false,buildTime:sourceTime},entries:inventory},null,2)}\n`),mode:0o644});

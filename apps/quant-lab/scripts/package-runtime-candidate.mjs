@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { gzipSync } from "node:zlib";
 import path from "node:path";
+import {verifyQuantVersionedAssets} from "./verify-versioned-assets.mjs";
 
 const root = path.resolve(import.meta.dirname, "../../..");
 const args = parseArgs(process.argv.slice(2));
@@ -38,6 +39,8 @@ for (const relative of await regularFiles(path.join(root, "apps/quant-lab/web"))
     await add(path.join(root, "apps/quant-lab/web", relative), `${release}/apps/quant-lab/web/${relative}`, 0o644);
   }
 }
+const packedAsset=name=>files.find(file=>file.relative===`${release}/apps/quant-lab/web/${name}`)?.data;
+verifyQuantVersionedAssets(packedAsset("index.html")?.toString("utf8"),name=>packedAsset(name));
 files.sort((a, b) => a.relative.localeCompare(b.relative));
 const inventory = files.map((file) => ({ path: file.relative, bytes: file.data.length, sha256: sha256(file.data), mode: file.mode.toString(8) }));
 files.push({ relative: `${release}/BUNDLE_MANIFEST.json`, mode: 0o644, data: Buffer.from(`${JSON.stringify({ schemaVersion: 1, productId: "ynx-quant-lab", sourceCommit: args.commit, sourceTree, release, dependencyProvenance: JSON.parse(await readFile(path.join(root, "apps/quant-lab/runtime-dependency-provenance.json"), "utf8")), build: { goos: "linux", goarch: "amd64", cgoEnabled: false, trimpath: true, buildVCS: false, buildTime: sourceTime }, entries: inventory }, null, 2)}\n`) });

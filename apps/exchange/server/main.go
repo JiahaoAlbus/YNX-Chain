@@ -279,11 +279,15 @@ func spa(root http.FileSystem) http.Handler {
 		if err == nil {
 			if info, e := f.Stat(); e == nil && !info.IsDir() {
 				f.Close()
+				if strings.HasSuffix(info.Name(), ".html") {
+					w.Header().Set("Cache-Control", "no-store")
+				}
 				http.FileServer(root).ServeHTTP(w, r)
 				return
 			}
 			f.Close()
 		}
+		w.Header().Set("Cache-Control", "no-store")
 		r.URL.Path = "/"
 		http.FileServer(root).ServeHTTP(w, r)
 	})

@@ -77,6 +77,9 @@ func env(k, v string) string {
 }
 func headers(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" || r.URL.Path == "/index.html" || r.URL.Path == "/wallet-auth/callback" || r.URL.Path == "/wallet-action/callback" {
+			w.Header().Set("Cache-Control", "no-store")
+		}
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-src 'none'; frame-ancestors 'none'; base-uri 'none'")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		n.ServeHTTP(w, r)
