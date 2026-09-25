@@ -77,11 +77,12 @@ async function waitForPreload() {
 async function snapshot() {
   return JSON.parse(await evaluate(`(async () => {
     const [account, security] = await Promise.all([window.ynxWallet.accountStatus(), window.ynxWallet.securityStatus()]);
+    const unlock = document.querySelector('#unlock-wallet');
     return JSON.stringify({
       account: account.ok ? { initialized: account.value.initialized, passwordConfigured: account.value.passwordConfigured, account: account.value.account, ynxAccount: account.value.ynxAccount, accounts: account.value.accounts?.map(item => item.account), custody: account.value.custody, recoveryRequired: account.value.recoveryRequired } : null,
       error: account.ok ? null : { code: account.error?.code, storageStage: account.error?.storageStage },
       locked: security.locked,
-      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: document.querySelector('#password-sheet')?.open, unlockEnabled: !document.querySelector('#unlock-wallet')?.disabled, unlockLabel: document.querySelector('#unlock-wallet')?.textContent, importEnabled: !document.querySelector('#import-form button')?.disabled, importResult: document.querySelector('#import-result')?.textContent, backupEnabled: !document.querySelector('#save-backup')?.disabled, backupVisible: !document.querySelector('#backup-section')?.hidden, backupResult: document.querySelector('#backup-result')?.textContent }
+      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: document.querySelector('#password-sheet')?.open, unlockEnabled: Boolean(unlock && !unlock.disabled && unlock.getClientRects().length), unlockLabel: unlock?.textContent, importEnabled: !document.querySelector('#import-form button')?.disabled, importResult: document.querySelector('#import-result')?.textContent, backupEnabled: !document.querySelector('#save-backup')?.disabled, backupVisible: !document.querySelector('#backup-section')?.hidden, backupResult: document.querySelector('#backup-result')?.textContent }
     });
   })()`, "ACCOUNT_SNAPSHOT"));
 }
@@ -99,9 +100,14 @@ async function until(predicate, label, count = 100) {
 }
 async function formSubmit(value, confirmation) {
   const expectedUnlock = confirmation === undefined;
+  // The public 0.6.8 renderer can report custody through preload before its
+  // account-status event has enabled the visible password action. Exercise the
+  // real button only once it is interactive; a persistent disabled/error state
+  // still fails with the bounded, public-status diagnostic from until().
+  await until(state => state.ui.unlockEnabled === true && !state.ui.passwordSheetOpen, "Password action ready", 60);
   const opened = await evaluate(`(() => {
     const open = document.querySelector('#unlock-wallet');
-    if (open.disabled) return { enabled: false };
+    if (!open || open.disabled || !open.getClientRects().length) return { enabled: false };
     open.click();
     return { enabled: true, sheetOpen: document.querySelector('#password-sheet').open, unlockMode: document.querySelector('#local-confirm-group').hidden };
   })()`, "PASSWORD_FORM_OPEN");
