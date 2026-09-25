@@ -1,0 +1,163 @@
+{
+  "schemaVersion": "ynx.finance.wallet-web-verifier.v1",
+  "build": {
+    "entry": "wallet-auth-entry.js",
+    "bundle": "wallet-auth.js",
+    "command": "esbuild wallet-auth-entry.js --bundle --minify --platform=browser --target=es2022 --outfile=wallet-auth.js",
+    "esbuildVersion": "0.25.9"
+  },
+  "evmRead": {
+    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-final-ui-c5ba9b57-20260925.json",
+    "candidateBytes": 6059,
+    "candidateSha256": "6f91e7e83b2cd44e3d671acaccbbf4dd1b382021d2b07846d3e1043dd2f27280"
+  },
+  "sourceBundleRelation": {
+    "byteReproducible": true,
+    "status": "VERIFIED_REPRODUCIBLE",
+    "cleanBuildCount": 2,
+    "bytes": 181663,
+    "sha256": "308714f5873469d528a49ce1df993fa9e3617ecabc60c7edaca7db063316893a"
+  },
+  "files": [
+    {
+      "path": "package.json",
+      "bytes": 993,
+      "sha256": "2c13d6fe0063a6954803bc1eb573b0635853f55e74aba179d1a057265a0c43b8"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 17389,
+      "sha256": "35743dedd9523cadf1d057a67bc0d4a7c5771c86a54e252e6fa7ff2015394c6f"
+    },
+    {
+      "path": "wallet-auth-entry.js",
+      "bytes": 10631,
+      "sha256": "70079afbeb0e5bf423e006fcf2a04cdb7200a0fb2f970754db7a140c5555c976"
+    },
+    {
+      "path": "private-wallet-entry.js",
+      "bytes": 6989,
+      "sha256": "66f35d98d6d59edac226cfdf2fbd9892be2465f15f32d1b708bcc194d3e47ede"
+    },
+    {
+      "path": "endpoint-authority-entry.js",
+      "bytes": 3893,
+      "sha256": "4ec36db5b858286ddecba0407388fc3fab260d9bb6b29d20b7744d0c3442adf6"
+    },
+    {
+      "path": "endpoint-authority-store.js",
+      "bytes": 3169,
+      "sha256": "a1d656fa8bba98775f1a1a6ea503821e3a3954184c38a24372f7da86eae16889"
+    },
+    {
+      "path": "order-wallet-entry.js",
+      "bytes": 3096,
+      "sha256": "7cce3977bc37def6e8ab72b51763634795a5c660f8bb85bddf8b63baa68c1609"
+    },
+    {
+      "path": "wallet-auth.js",
+      "bytes": 181663,
+      "sha256": "308714f5873469d528a49ce1df993fa9e3617ecabc60c7edaca7db063316893a"
+    },
+    {
+      "path": "order-wallet.js",
+      "bytes": 103577,
+      "sha256": "6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc"
+    },
+    {
+      "path": "index.html",
+      "bytes": 28298,
+      "sha256": "4ccd33a209062122ee66482e6d8ad0908a196df5c59a41acbd28aa8128e8f341"
+    },
+    {
+      "path": "app.js",
+      "bytes": 62464,
+      "sha256": "ae86101e71836f17b996bf0047cd07366d6b1adaf7e808c53267afd1bc2c8500"
+    },
+    {
+      "path": "finance-locale.js",
+      "bytes": 35866,
+      "sha256": "a7834542ccfb7f4d7a6a3761096c04a0cf54dd87f06b377e60007252b81a3d65"
+    },
+    {
+      "path": "product-catalog.js",
+      "bytes": 6085,
+      "sha256": "4b53ce3cf962a15ef4f1e116724f1625001705652194c0f0ed1fc6c230b6fc96"
+    },
+    {
+      "path": "vendor/standard-wallet-browser-c97f85e9.mjs",
+      "bytes": 22417,
+      "sha256": "b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43"
+    },
+    {
+      "path": "vendor/product-session-browser-a7dad7ec.mjs",
+      "bytes": 223235,
+      "sha256": "16b0d677ec21e84b5ce425138f175c37e1ac6d319db7fe5a85926b276dccd336"
+    },
+    {
+      "path": "vendor/product-session-registry-a7dad7ec.json",
+      "bytes": 7590,
+      "sha256": "e74e1668e631dd623a4364cc9580951a9fe96fcef0c66c5910d84c774f4fdc08"
+    },
+    {
+      "path": "../mobile/contract/endpoint-authority-pin.json",
+      "bytes": 428,
+      "sha256": "7af1131b1586b4db15796b49ca765973731c379a6fe2cf1d0637c2e011532ff2"
+    },
+    {
+      "path": "../../../sdk/js/index.js",
+      "bytes": 10159,
+      "sha256": "2962df19e020a5c1c4b594c2d71964e9e7a1e228fce14f832ceaae3f29d83140"
+    },
+    {
+      "path": "../../../sdk/js/endpoint-authority.js",
+      "bytes": 10246,
+      "sha256": "276048937143e788e4c6adf35fc2454a5fce1dbcef9f55fc832fc72631c66610"
+    },
+    {
+      "path": "../../../sdk/js/endpoint-authority-v2.js",
+      "bytes": 17998,
+      "sha256": "b02447c1869f57952f49ccf4e6f44190e133d71114edfc4cd6d2b6747ad1fb01"
+    },
+    {
+      "path": "../../../sdk/js/endpoint-authority-bundle.js",
+      "bytes": 7386,
+      "sha256": "768b00a2730001906b7339d1c81366084f56d8437d0abe2393c5d763a62e9c95"
+    },
+    {
+      "path": "../../../sdk/js/testnet-endpoints.js",
+      "bytes": 2423,
+      "sha256": "00216b41b29c5fa8478a36394627be1a18d232014d7d0ab9c2b36d5ec45c8316"
+    },
+    {
+      "path": "../../../sdk/js/ynx-testnet.js",
+      "bytes": 574,
+      "sha256": "0a619f9a56dd25b6f7e9991a2096d69580ba455fee2231aad1caab323ae27178"
+    },
+    {
+      "path": "../../../sdk/js/wallet.js",
+      "bytes": 2221,
+      "sha256": "2bffcdcdf41bfbf848f51389eaef1ca147b824b3ccc7761d813347b79493b3a0"
+    },
+    {
+      "path": "../scripts/finance-nonregressive-runtime.mjs",
+      "bytes": 3040,
+      "sha256": "dbd0fa3ce50c691538f581492b62213476953d57e0bd0f45a07d6c60366a141e"
+    },
+    {
+      "path": "../scripts/build-finance-weekly-v3-candidate.mjs",
+      "bytes": 8687,
+      "sha256": "b4ed1233970b2d6f587e44d27eea170525da8ceb1c47d82d52846d1663f5ef3b"
+    },
+    {
+      "path": "verify-evm-read-candidate.mjs",
+      "bytes": 7184,
+      "sha256": "6af2119e196dd3438c88da752070f59b90bf34c4e49548efeb74347659ef8ca8"
+    },
+    {
+      "path": "../evidence/evm-read-runtime-verifier-candidate-final-ui-c5ba9b57-20260925.json",
+      "bytes": 6059,
+      "sha256": "6f91e7e83b2cd44e3d671acaccbbf4dd1b382021d2b07846d3e1043dd2f27280"
+    }
+  ]
+}
