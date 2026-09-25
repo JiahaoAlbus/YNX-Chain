@@ -77,6 +77,17 @@ final class WalletInstalledUITests: XCTestCase {
     evidence(app, "05-empty-wallet-lock-control")
 
     app.open(URL(string: "ynxwallet://authorize?request=invalid")!)
+    // Some Simulator runtimes ask SpringBoard to confirm opening a custom
+    // scheme. This one-off QA choice is not Wallet authorization. Continue
+    // through the OS prompt, then require the app's own rejected-request UI.
+    let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+    let systemOpen = springboard.alerts.buttons["Open"]
+    if systemOpen.waitForExistence(timeout: 3) {
+      XCTAssertTrue(systemOpen.isHittable, "The Simulator deep-link confirmation cannot be completed")
+      systemOpen.tap()
+    }
+    XCTAssertFalse(springboard.alerts.firstMatch.exists, "A system deep-link prompt is still blocking Wallet")
+    XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15))
     let dismiss = app.descendants(matching: .any).matching(identifier: "Dismiss invalid authorization").firstMatch
     XCTAssertTrue(dismiss.waitForExistence(timeout: 15)); XCTAssertTrue(dismiss.isHittable); dismiss.tap()
     XCTAssertFalse(dismiss.exists)
