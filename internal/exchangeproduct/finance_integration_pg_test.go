@@ -25,14 +25,15 @@ func TestFinanceReadPostgresCrossInstanceNonceAndPersistedAccount(t *testing.T) 
 	}
 	defer firstService.Close()
 	store := firstService.stateRepository.(*postgresStateRepository)
-	if store.schemaMode != "revision" {
-		t.Skip("revision-layout PostgreSQL database is required; integrity layout is covered separately")
-	}
 	var nonce string
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_exchange_state WHERE id = 'primary'`)
+		if store.schemaMode == "revision" {
+			_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_exchange_state WHERE id = 'primary'`)
+		} else {
+			_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_exchange_state WHERE singleton = TRUE`)
+		}
 		if nonce != "" {
 			_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_exchange_finance_read_nonces WHERE nonce = $1`, nonce)
 		}

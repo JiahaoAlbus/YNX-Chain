@@ -3,12 +3,30 @@ package exchangeproduct
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 	"time"
 )
+
+// Export is opt-in and only for the isolated old/new binary startup check.
+// Refusing an existing destination prevents accidental overwrite of a state
+// file; the fixture itself contains no account secret or production data.
+func TestExportSyntheticSchemaV10ForBinaryCompatibility(t *testing.T) {
+	path := os.Getenv("YNX_EXCHANGE_SYNTHETIC_V10_EXPORT")
+	if path == "" {
+		t.Skip("isolated fixture export path is not configured")
+	}
+	if _, err := os.Lstat(path); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("fixture export target must be absent: %v", err)
+	}
+	state := syntheticSchemaV10State(t)
+	if err := saveState(path, &state); err != nil {
+		t.Fatal(err)
+	}
+}
 
 // This synthetic fixture uses no production state or real account. Every
 // schema-v10 collection is populated so a future field-set regression cannot
