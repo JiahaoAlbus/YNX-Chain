@@ -177,7 +177,7 @@ const manifestIcon=await sharp(logoBytes).resize(128,128,{fit:"contain",kernel:"
 for (const [name, manifest] of variants) {
   const target = join(dist, name); await mkdir(target, {recursive: true});
   for (const file of ["index.html", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
-  for (const file of ["approval.html","approval.css","approval.js","vault.html","vault.css","vault.js","signer.html","signer.css","signer.js"]) await cp(join(root,"extension",file),join(target,file));
+  for (const file of ["approval.html","approval.css","approval.js","private-approval.html","private-approval.css","private-approval.js","vault.html","vault.css","vault.js","signer.html","signer.css","signer.js"]) await cp(join(root,"extension",file),join(target,file));
   for (const file of ["provider.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(target, file));
   await writeFile(join(target,"wallet-address.js"),walletAddressAuthorityBytes);
   await cp(join(root, "src", "service-worker-policy.js"), join(target, "service-worker-policy.js"));
@@ -189,6 +189,7 @@ for (const [name, manifest] of variants) {
   await bundle({entryPoints:[join(root,"src","extension-vault.js")],outfile:join(target,"extension-vault.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await bundle({entryPoints:[join(root,"src","extension-broadcast-journal.js")],outfile:join(target,"extension-broadcast-journal.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await bundle({entryPoints:[join(root,"src","extension-signer.js")],outfile:join(target,"extension-signer.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
+  await bundle({entryPoints:[join(root,"src","extension-product-session-v2.js")],outfile:join(target,"extension-product-session-v2.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await cp(join(root, "src", "core-auth-consumer.js"), join(target, "core-auth-consumer.js"));
   await cp(join(root, "src", "extension-sensitive-policy.js"), join(target, "extension-sensitive-policy.js"));
   await cp(join(root, "src", "active-tab-policy.js"), join(target, "active-tab-policy.js"));

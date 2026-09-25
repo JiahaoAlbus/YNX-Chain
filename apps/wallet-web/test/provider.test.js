@@ -210,7 +210,7 @@ test("default download opens platform selection and Android uses the exact obser
   }
   assert.match(WALLET_DOWNLOAD_MATRIX.windowsX64.url,/ynx-wallet-desktop-0\.6\.8-x64\.exe$/);
   assert.match(WALLET_DOWNLOAD_MATRIX.macosUniversal.url,/ynx-wallet-macos-0\.6\.8-universal\.dmg$/);
-  assert.match(WALLET_DOWNLOAD_MATRIX.chromeEdgeExtension.url,/ynx-wallet-chrome-edge-0\.1\.1\.zip$/);
+  assert.match(WALLET_DOWNLOAD_MATRIX.chromeEdgeExtension.url,/ynx-wallet-chrome-edge-0\.1\.3\.zip$/);
   assert.match(WALLET_DOWNLOAD_MATRIX.firefoxExtension.url,/ynx-wallet-firefox-0\.1\.1\.zip$/);
   assert.equal(WALLET_DOWNLOAD_MATRIX.pwaPackage.publicStatusUrl,"https://www.ynxweb4.com/dapp/wallet");
 });

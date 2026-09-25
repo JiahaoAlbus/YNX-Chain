@@ -13,8 +13,8 @@ const json=async path=>JSON.parse(await readFile(path,"utf8"));
 const text=path=>readFile(path,"utf8");
 
 export async function verifyReleaseMaterials(){
-  const [readiness,assetManifest,published,candidate,evidence,listingEn,listingZh,permissions,privacyEn,privacyZh]=await Promise.all([
-    json(join(store,"release-readiness.json")),json(join(store,"store-assets.json")),json(join(root,"artifact-manifest.json")),json(join(store,"candidate-artifact-manifest.json")),
+  const [readiness,assetManifest,published,publicChannels,chromeRelease,candidate,evidence,listingEn,listingZh,permissions,privacyEn,privacyZh]=await Promise.all([
+    json(join(store,"release-readiness.json")),json(join(store,"store-assets.json")),json(join(root,"artifact-manifest.json")),json(join(root,"public-channel-manifest.json")),json(join(root,"candidate-artifacts","0.1.3","31f3ef16d3812870e0c3d23350565fd592482227","artifact-manifest.json")),json(join(store,"candidate-artifact-manifest.json")),
     json(join(root,"evidence","runtime","extension-candidate-local-20260925.json")),text(join(store,"listing.en.md")),text(join(store,"listing.zh-CN.md")),
     text(join(store,"permissions-data-map.md")),text(join(store,"privacy-policy.draft.en.md")),text(join(store,"privacy-policy.draft.zh-CN.md")),
   ]);
@@ -40,7 +40,17 @@ export async function verifyReleaseMaterials(){
   const followupSource=await readFile(join(store,"reviewer-archives",followup.reviewerSource.name));
   assert.equal(followupSource.length,followup.reviewerSource.bytes);
   assert.equal(createHash("sha256").update(followupSource).digest("hex"),followup.reviewerSource.sha256);
-  assert.equal(readiness.publicDownloads.sourceCommit,published.sourceCommit);
+  assert.equal(readiness.publicDownloads.manifest,"../public-channel-manifest.json");
+  assert.deepEqual(Object.keys(publicChannels.channels).sort(),["pwaPackage","chromeEdgeExtension","firefoxExtension"].sort());
+  for(const [channel,artifact] of Object.entries(publicChannels.channels)){
+    assert.deepEqual(readiness.publicDownloads.channels[channel],{version:artifact.version,sourceCommit:artifact.sourceCommit});
+    assert.match(artifact.sha256,/^[0-9a-f]{64}$/u);
+    assert.equal(artifact.url,`https://www.ynxweb4.com/downloads/wallet-web/sha256-${artifact.sha256}/${artifact.name}`);
+    assert.ok(Number.isSafeInteger(artifact.bytes)&&artifact.bytes>0);
+  }
+  assert.equal(publicChannels.channels.chromeEdgeExtension.sourceCommit,chromeRelease.sourceCommit);
+  assert.deepEqual(identity([publicChannels.channels.chromeEdgeExtension]),identity([chromeRelease.artifacts.find(item=>item.name===publicChannels.channels.chromeEdgeExtension.name)]));
+  assert.equal(chromeRelease.productionSigned,false);assert.equal(chromeRelease.storeReleased,false);
   assert.equal(readiness.candidateCommit,candidate.sourceCommit);
   assert.equal(evidence.sourceCommit,candidate.sourceCommit);
   assert.notEqual(candidate.sourceCommit,published.sourceCommit);
@@ -90,14 +100,14 @@ export async function verifyReleaseMaterials(){
     assert.match(policy,/PRIVACY_CONTACT/u);assert.match(policy,/RPC_OPERATOR_AND_PROCESSORS/u);assert.match(policy,/SERVER_RETENTION_AND_DELETION_PROCESS/u);
     assert.match(policy,/rpc-testnet\.ynxweb4\.com/u);assert.match(policy,/6423/u);
   }
-  assert.equal(published.version,"0.1.1-testnet-preview.1");
+  assert.equal(published.version,"0.1.2-testnet-preview.1");
   assert.equal(published.productionSigned,false);assert.equal(published.storeReleased,false);
-  const publishedFirefox=published.artifacts.find(item=>item.name==="ynx-wallet-firefox-0.1.1.zip");
-  assert.ok(publishedFirefox);assert.equal(publishedFirefox.minimumOS,"Firefox 142 desktop");
+  const publishedFirefox=publicChannels.channels.firefoxExtension;
+  assert.equal(publishedFirefox.name,"ynx-wallet-firefox-0.1.1.zip");
   const candidateFirefox=candidate.artifacts.find(item=>item.name===publishedFirefox.name);
   assert.ok(candidateFirefox);assert.equal(candidateFirefox.minimumOS,"Firefox 142 desktop");
   assert.equal(evidence.artifacts.find(item=>item.name===candidateFirefox.name)?.sha256,candidateFirefox.sha256);
-  return{version:extensionVersion,assets:assetManifest.assets.length,publishedArtifacts:published.artifacts.length,productionSigned:false,storeReleased:false};
+  return{version:extensionVersion,assets:assetManifest.assets.length,publishedChannels:Object.keys(publicChannels.channels).length,productionSigned:false,storeReleased:false};
 }
 
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){

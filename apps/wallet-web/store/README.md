@@ -13,7 +13,7 @@ Reviewed on 2026-09-25 against immutable candidate source `c5df9a9a1cc2a22ba7623
 | `generate-assets.mjs`, `verify-release-materials.mjs` | Deterministic brand-asset generation and fail-closed release-material validation |
 | `submission-build.md` | Exact build prerequisites, historical authorities and reviewer rebuild steps |
 | `release-readiness.json` | Machine-readable public/candidate boundaries and remaining external inputs |
-| `candidate-artifact-manifest.json` | Earlier local candidate ZIP hashes; the root artifact manifest continues to describe older public downloads |
+| `candidate-artifact-manifest.json` | Earlier local candidate ZIP hashes; the root artifact manifest records the 0.1.2 build, while `../public-channel-manifest.json` records the mixed public channels |
 | `revocation-followup-artifact-manifest.json`, `revocation-followup-candidate-20260925.json` | Newer local-only revocation-fix ZIP hashes and clean reviewer-source rebuild receipt |
 
 ## Current manifest and data disclosure
@@ -34,7 +34,7 @@ The kit includes the Chrome 128 × 128 icon, Chrome 440 × 280 small promotional
 
 ## Public download boundary
 
-`artifact-manifest.json` remains the receipt for the three currently published unsigned `0.1.1` downloads built from `c93e16be81beddc957ef5f27b7bbcdfa89c28db3`. `npm run test:public-artifacts` reads that manifest and the product download matrix, then downloads all three official URLs and checks exact bytes and SHA-256. The Firefox runtime evidence is also bound to that public Firefox tuple. A new candidate package is written to a separate manifest by setting `YNX_WALLET_WEB_ARTIFACT_MANIFEST`; preparation never rewrites public history.
+`public-channel-manifest.json` records the current mixed public set: PWA and Firefox remain unsigned `0.1.1` from `c93e16be81beddc957ef5f27b7bbcdfa89c28db3`; Chrome/Edge is unsigned `0.1.3` from `31f3ef16d3812870e0c3d23350565fd592482227`. Each channel has its own filename, byte count, SHA-256, source and URL. `artifact-manifest.json` remains the unchanged historical three-package `0.1.2` build receipt. The new `candidate-artifacts/0.1.3/<sourceCommit>/artifact-manifest.json` records all three `0.1.3` build outputs, but only Chrome/Edge is promoted publicly. `npm run test:public-artifacts` checks the exact official URLs. Firefox runtime evidence remains bound to public Firefox `0.1.1`. Future package output remains source-isolated and never overwrites old receipts or ZIPs.
 
 Public hosting does not make the packages production-signed or store-released. The store documents and automated gate require `productionSigned=false` and `storeReleased=false` until external receipts exist.
 

@@ -2,10 +2,10 @@
   "use strict";
   const expectedOrigin=location.origin;if(!/^https?:$/u.test(location.protocol)||globalThis.__YNX_COMPANION_PROVIDER_V1__)return;
   const PAGE_REQUEST="YNX_PAGE_REQUEST_V1",PAGE_RESPONSE="YNX_PAGE_RESPONSE_V1",PAGE_EVENT="YNX_PAGE_EVENT_V1",VERSION=1,TIMEOUT_MS=120000;
-  const METHODS=new Set(["eth_chainId","eth_accounts","eth_requestAccounts","wallet_getPermissions","wallet_requestPermissions","wallet_addEthereumChain","wallet_switchEthereumChain","wallet_revokePermissions","personal_sign","eth_signTypedData_v4","eth_sendTransaction","ynx_disconnect","ynx_getDurabilityModel","ynx_getTransactionDurability","ynx_getFeeModel","ynx_getBalanceDetails","eth_blockNumber","eth_call","eth_estimateGas","eth_gasPrice","eth_getBalance","eth_getBlockByHash","eth_getBlockByNumber","eth_getCode","eth_getLogs","eth_getStorageAt","eth_getTransactionByHash","eth_getTransactionCount","eth_getTransactionReceipt","eth_maxPriorityFeePerGas","net_version","web3_clientVersion"]),EVENTS=new Set(["connect","accountsChanged","chainChanged","disconnect"]),pending=new Map(),listeners=new Map();
+  const PRIVATE_METHOD="ynx_requestProductSessionV2",METHODS=new Set(["eth_chainId","eth_accounts","eth_requestAccounts","wallet_getPermissions","wallet_requestPermissions","wallet_addEthereumChain","wallet_switchEthereumChain","wallet_revokePermissions","personal_sign","eth_signTypedData_v4","eth_sendTransaction","ynx_disconnect","ynx_getDurabilityModel","ynx_getTransactionDurability","ynx_getFeeModel","ynx_getBalanceDetails","eth_blockNumber","eth_call","eth_estimateGas","eth_gasPrice","eth_getBalance","eth_getBlockByHash","eth_getBlockByNumber","eth_getCode","eth_getLogs","eth_getStorageAt","eth_getTransactionByHash","eth_getTransactionCount","eth_getTransactionReceipt","eth_maxPriorityFeePerGas","net_version","web3_clientVersion",PRIVATE_METHOD]),EVENTS=new Set(["connect","accountsChanged","chainChanged","disconnect"]),pending=new Map(),listeners=new Map();
   const emit=(event,payload)=>{for(const listener of listeners.get(event)||[]){try{listener(payload)}catch{}}};
   function bridgeRequest(input){
-    if(!input||typeof input!=="object"||!METHODS.has(input.method)||(input.params!==undefined&&!Array.isArray(input.params)))return Promise.reject(Object.assign(new Error("Unsupported or malformed wallet method."),{code:4200}));
+    if(!input||typeof input!=="object"||!METHODS.has(input.method)||(input.params!==undefined&&!Array.isArray(input.params))||(input.method===PRIVATE_METHOD&&(!Array.isArray(input.params)||input.params.length!==1||typeof input.params[0]!=="string"||input.params[0].length>16384)))return Promise.reject(Object.assign(new Error("Unsupported or malformed wallet method."),{code:4200}));
     const id=`ynx-${crypto.randomUUID()}`;
     return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{pending.delete(id);reject(Object.assign(new Error("Wallet extension request timed out."),{code:"BRIDGE_TIMEOUT"}))},TIMEOUT_MS);pending.set(id,{resolve,reject,timer});window.postMessage({type:PAGE_REQUEST,version:VERSION,requestId:id,origin:expectedOrigin,method:input.method,params:input.params},expectedOrigin)});
   }
@@ -17,7 +17,7 @@
   const provider=Object.freeze({
     isYNXWallet:true,isYnxWallet:true,isMetaMask:false,__ynxCompanion:true,
     providerInfo:Object.freeze({uuid:"6f4e2a77-7878-4f29-9c0d-191700000001",name:"YNX Wallet",icon:"__YNX_PROVIDER_ICON_DATA_URI__",rdns:"com.ynx.wallet"}),
-    request:bridgeRequest,disconnect:()=>bridgeRequest({method:"ynx_disconnect"}),
+    request:bridgeRequest,requestProductSessionV2:url=>bridgeRequest({method:PRIVATE_METHOD,params:[url]}),disconnect:()=>bridgeRequest({method:"ynx_disconnect"}),
     on(event,listener){if(EVENTS.has(event)&&typeof listener==="function"){if(!listeners.has(event))listeners.set(event,new Set());listeners.get(event).add(listener)}return provider},
     removeListener(event,listener){listeners.get(event)?.delete(listener);return provider},
   });

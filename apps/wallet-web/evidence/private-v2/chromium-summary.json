@@ -1,0 +1,18 @@
+{
+  "browser": "chromium",
+  "fixtureOrigin": "https://card.ynxweb4.com",
+  "fixtureOnly": true,
+  "gatewayVerified": false,
+  "passed": true,
+  "bilingualReviewRendered": true,
+  "approvedSignedReturn": true,
+  "standardAccountRemainsDisconnected": true,
+  "replayRejected": true,
+  "foreignOriginRejected": true,
+  "explicitReject": true,
+  "oldDocumentCancelled": true,
+  "restoredPendingNeedsFreshRequest": true,
+  "freshRequestAfterReload": true,
+  "windowCloseCancelled": true,
+  "vaultNavigationCancelled": true
+}
