@@ -7,7 +7,7 @@ import { installedMessageIs, passwordActionReady, passwordFormAction, wrongPassw
 
 const [mode, expectedAccount = ""] = process.argv.slice(2);
 const password = process.env.YNX_WALLET_QA_PASSWORD;
-if (!["create", "restore", "import", "backup-start", "backup-result", "import-backup", "offline-create", "offline-restore", "locale-set", "locale-restore"].includes(mode) || typeof password !== "string" || password.length < 12) throw new Error("Installed V3 gate input is incomplete");
+if (!["create", "recover-create", "restore", "import", "backup-start", "backup-result", "import-backup", "offline-create", "offline-restore", "locale-set", "locale-restore"].includes(mode) || typeof password !== "string" || password.length < 12) throw new Error("Installed V3 gate input is incomplete");
 const importFixtures = Array.from({ length: 6 }, (_, index) => {
   const key = `0x${(0x42 + index).toString(16).repeat(32)}`; // Public, disposable fixtures; never user keys.
   return { key, account: new Wallet(key).address.toLowerCase() };
@@ -200,6 +200,27 @@ try {
     if (!submitted) throw new Error("BACKUP_IMPORT_SUBMIT:FORM_UNAVAILABLE");
     const imported = await until(state => !state.locked && state.account?.account === expectedAccount && state.account?.custody === "password-encrypted-local", "Backup file restored same public account");
     console.log(JSON.stringify({ mode, imported: true, account: imported.account.account, ynxAccount: imported.account.ynxAccount, custody: imported.account.custody }));
+  } else if (mode === "recover-create") {
+    if (before.account.initialized || !before.account.passwordConfigured || !before.locked || before.account.custody !== "password-encrypted-local") throw new Error("OLD_FAILED_CREATE_PROFILE_NOT_PROTECTED");
+    const oldVault = await vaultDigest();
+    await until(state => passwordActionReady(state, true), "Old protected profile unlock UI readiness");
+    await formSubmit("incorrect synthetic password");
+    await until(state => state.locked === true && state.account?.initialized === false && state.account?.passwordConfigured === true && installedMessageIs(state.ui.passwordResult, "The password is incorrect or this encrypted Wallet changed. It remains locked."), "Old protected profile rejects wrong password after upgrade");
+    if (await vaultDigest() !== oldVault) throw new Error("OLD_FAILED_CREATE_VAULT_CHANGED_ON_WRONG_PASSWORD");
+    await formSubmit(password);
+    await until(state => state.locked === false && state.account?.passwordConfigured === true && state.account?.initialized === false, "Old password unlocks failed-create profile");
+    if (await vaultDigest() !== oldVault) throw new Error("OLD_FAILED_CREATE_VAULT_CHANGED_ON_UNLOCK");
+    await evaluate(`document.querySelector('nav [data-view="accounts"]')?.click(); true`, "RECOVER_CREATE_VIEW");
+    await until(state => state.locked === false && state.account?.initialized === false && state.ui.createEnabled === true, "Recovered account creation UI readiness");
+    const clicked = await evaluate(`(() => {
+      const create = document.querySelector('#create-account');
+      if (!create || create.disabled || !create.getClientRects().length) return false;
+      create.click(); return true;
+    })()`, "RECOVER_CREATE_CLICK");
+    if (!clicked) throw new Error("RECOVER_CREATE_CLICK_NOT_ACCEPTED");
+    const recovered = await until(state => state.account?.initialized === true && state.locked === false && /^0x[0-9a-fA-F]{40}$/.test(state.account?.account ?? ""), "Recovered account creation");
+    if (await vaultDigest() === oldVault) throw new Error("RECOVER_CREATE_VAULT_NOT_UPDATED");
+    console.log(JSON.stringify({ mode, oldWrongPasswordRejectedWithoutChangingVault: true, oldPasswordUnlockedWithoutChangingVault: true, accountCreatedAfterUpgrade: true, account: recovered.account.account, ynxAccount: recovered.account.ynxAccount, custody: recovered.account.custody }));
   } else if (mode === "create" || mode === "offline-create") {
     if (before.account.initialized || before.account.passwordConfigured || !before.locked) throw new Error("Installed create gate requires a fresh, locked Wallet profile");
     await formSubmit(password, password);
@@ -228,7 +249,10 @@ try {
     await evaluate(`document.querySelector('#lock-wallet')?.click(); true`, "EXPLICIT_LOCK_CLICK");
     await until(state => state.locked === true, "Explicit lock");
     const vaultBeforeWrongPassword = await vaultDigest();
-    const installedVersion = await evaluate(`(async () => (await window.ynxWallet.appInfo()).version)()`, "WRONG_PASSWORD_INSTALLED_VERSION");
+    const installedAppInfoVersion = await evaluate(`(async () => typeof window.ynxWallet.appInfo === 'function' ? (await window.ynxWallet.appInfo()).version : null)()`, "WRONG_PASSWORD_INSTALLED_VERSION");
+    // 0.6.9 predates the renderer appInfo bridge. Its exact installed version
+    // is independently bound to the immutable EXE and launch evidence in CI.
+    const installedVersion = installedAppInfoVersion ?? (process.env.YNX_OLD_VERSION === "0.6.9" ? "0.6.9" : null);
     if (!["0.6.8", "0.6.9", "0.6.10"].includes(installedVersion)) throw new Error("WRONG_PASSWORD_VERSION_UNSUPPORTED");
     await evaluate(`(() => {
       const form=document.querySelector('#password-form'), submit=document.querySelector('#submit-password');

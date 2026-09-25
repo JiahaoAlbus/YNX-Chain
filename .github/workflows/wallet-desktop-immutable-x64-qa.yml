@@ -380,12 +380,18 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        # Exact 0.6.8 account creation fails with PASSWORD_VAULT_STORAGE_FAILED
-        # in run 36125017201. Its failed-profile recovery is a separate gate.
+        # Exact 0.6.8 create failure is verified in run 36125017201. This
+        # separate row tests recovery of that protected failed-create state.
+        - oldVersion: 0.6.8
+          oldSource: 6f332753baae5deaf6b05c8276b20a02cc4887c5
+          oldBytes: 120954701
+          oldSHA256: da2e564eb680de0595202bd388eda9d524f40d62052b03da9b0bba4bf9da3716
+          expectedCreateFailure: true
         - oldVersion: 0.6.9
           oldSource: 3045436395fe636c91be417f41fc1e4ed2bc7515
           oldBytes: 120980075
           oldSHA256: 0df01cecc47c4af179d651892623b7936ac6dac52a5d9961212bed90eccde7e1
+          expectedCreateFailure: false
     env:
       YNX_ORIGINAL_SOURCE: ffaf3ca0d85f81622e6b1ba20c7648abb09a2574
       YNX_WALLET_EXPECTED_VERSION: 0.6.10
@@ -393,6 +399,7 @@ jobs:
       YNX_OLD_SOURCE: ${{ matrix.oldSource }}
       YNX_OLD_BYTES: ${{ matrix.oldBytes }}
       YNX_OLD_SHA256: ${{ matrix.oldSHA256 }}
+      YNX_OLD_EXPECTED_CREATE_FAILURE: ${{ matrix.expectedCreateFailure }}
     steps:
     - name: Preserve committed bytes in this disposable runner checkout
       shell: bash
@@ -562,7 +569,7 @@ jobs:
           if ($app.HasExited -or -not $app.CloseMainWindow() -or -not $app.WaitForExit(15000)) { throw 'Native application lifecycle failed' }
         }
         # This proves installed launch only; no account, signing, callback or transfer claim.
-    - name: Verify in-place upgrade retains the exact old public account
+    - name: Verify exact old account upgrade or protected failed-create recovery
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Stop'
@@ -576,19 +583,49 @@ jobs:
         $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\upgrade-installed-smoke.json'
         $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
         if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $old.vaultSHA256) { throw 'Old encrypted Wallet changed before upgraded launch' }
+        if ($old.sourceVersion -ne $env:YNX_OLD_VERSION -or [bool]$old.oldInstalledCreateFailureObserved -ne [bool]::Parse($env:YNX_OLD_EXPECTED_CREATE_FAILURE)) { throw 'Old profile did not match its exact predecessor gate' }
         $app = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
         try {
-          $restored = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $old.account | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0 -or -not $restored.sameAccountAfterRestart -or $restored.account -ne $old.account -or $restored.ynxAccount -ne $old.ynxAccount) { throw 'Upgrade did not restore exact old public account' }
-          $launch = Get-Content $env:YNX_WALLET_EVIDENCE_PATH -Raw | ConvertFrom-Json
           $version = (Get-Content 'apps/wallet-desktop/package.json' -Raw | ConvertFrom-Json).version
-          if ($launch.appVersion -ne $version -or $version -eq $old.sourceVersion) { throw 'Upgraded installed version is not the distinct candidate' }
-          if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $old.vaultSHA256) { throw 'Upgrade unlock changed the old encrypted vault bytes' }
-          @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; oldVersion=$old.sourceVersion; candidateVersion=$version; exactOldPublicAccountRetained=$true; oldVaultCiphertextUnchanged=$true; oldAppExitedUncleanly=$true; osRebootVerified=$false; userMachineVerified=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-upgrade-lifecycle.json'
+          if ($version -eq $old.sourceVersion) { throw 'Candidate is not a distinct installed version' }
+          $launchReady = $false
+          for ($attempt = 0; $attempt -lt 80; $attempt++) {
+            if (Test-Path -LiteralPath $env:YNX_WALLET_EVIDENCE_PATH) {
+              $launch = Get-Content $env:YNX_WALLET_EVIDENCE_PATH -Raw | ConvertFrom-Json
+              if ($launch.appVersion -eq $version -and $launch.visibleShellReady) { $launchReady = $true; break }
+            }
+            Start-Sleep -Milliseconds 250
+          }
+          if (-not $launchReady) { throw 'Upgraded installed version or visible shell was not verified' }
+          if ($old.oldInstalledCreateFailureObserved) {
+            if ($old.account -or $old.installedUIAccountCreated -or -not $old.oldPasswordConfigured) { throw 'Failed old create unexpectedly had a public account' }
+            $recovered = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs recover-create | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $recovered.oldPasswordUnlockedWithoutChangingVault -or -not $recovered.accountCreatedAfterUpgrade -or $recovered.custody -ne 'password-encrypted-local') { throw 'Candidate did not recover the exact old protected failed-create profile' }
+            $afterCreateHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($afterCreateHash -eq $old.vaultSHA256) { throw 'Recovery account was not persisted to the protected vault' }
+          } else {
+            if (-not $old.installedUIAccountCreated -or -not $old.account) { throw 'Old UI did not establish a protected public account' }
+            $restored = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $old.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $restored.sameAccountAfterRestart -or $restored.account -ne $old.account -or $restored.ynxAccount -ne $old.ynxAccount) { throw 'Upgrade did not restore exact old public account' }
+            if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $old.vaultSHA256) { throw 'Upgrade unlock changed the old encrypted vault bytes' }
+            @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; oldVersion=$old.sourceVersion; candidateVersion=$version; exactOldPublicAccountRetained=$true; oldVaultCiphertextUnchanged=$true; oldAppExitedUncleanly=$true; osRebootVerified=$false; userMachineVerified=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-upgrade-lifecycle.json'
+          }
         } finally {
           if (-not $app.HasExited) { [void]$app.CloseMainWindow(); [void]$app.WaitForExit(15000) }
         }
         if (-not $app.HasExited) { throw 'Upgraded Wallet did not close' }
+        if ($old.oldInstalledCreateFailureObserved) {
+          $app = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $reopened = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $recovered.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $reopened.sameAccountAfterRestart -or $reopened.account -ne $recovered.account -or $reopened.ynxAccount -ne $recovered.ynxAccount) { throw 'Recovered account did not survive candidate app restart' }
+            if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $afterCreateHash) { throw 'Recovered encrypted vault changed on correct unlock' }
+            @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; oldVersion=$old.sourceVersion; candidateVersion=$version; oldInstalledCreateFailureObserved=$true; exactOldPublicAccountRetained=$false; oldPasswordUnlockedWithoutChangingVault=$true; accountCreatedAfterUpgrade=$true; recoveredAccountAfterAppRestart=$true; recoveredPublicAccount=$recovered.account; oldAppExitedUncleanly=$true; osRebootVerified=$false; userMachineVerified=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-failed-create-recovery.json'
+          } finally {
+            if (-not $app.HasExited) { [void]$app.CloseMainWindow(); [void]$app.WaitForExit(15000) }
+          }
+          if (-not $app.HasExited) { throw 'Recovered Wallet did not close after restart' }
+        }
     - name: Upload exact artifacts and available evidence
       if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -607,6 +644,7 @@ jobs:
           apps/wallet-desktop/dist/windows-old-profile.json
           apps/wallet-desktop/dist/old-installed-smoke.json
           apps/wallet-desktop/dist/windows-upgrade-lifecycle.json
+          apps/wallet-desktop/dist/windows-failed-create-recovery.json
           apps/wallet-desktop/dist/upgrade-installed-smoke.json
           apps/wallet-desktop/dist/windows-backup-lifecycle.json
           apps/wallet-desktop/dist/windows-offline-lifecycle.json
