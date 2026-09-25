@@ -89,6 +89,19 @@ test('real Finance DOM rejects missing AI order fields before any request and re
   }finally{await page.close();}
 });
 
+test('language switch relabels loaded AI records without dropping exact selected owner IDs',async()=>{
+  const {page,errors}=await fixture();
+  try{
+    const selected=await page.locator('#ai-records input:checked').inputValue();
+    await page.evaluate(()=>window.YNXFinanceLocale.set('zh-CN'));
+    assert.equal(await page.locator('#ai-records input:checked').inputValue(),selected);
+    await page.selectOption('#finance-language','ar');
+    assert.equal(await page.locator('#ai-records input:checked').inputValue(),selected);
+    assert.equal(await page.locator('html').getAttribute('dir'),'rtl');
+    assert.deepEqual(errors,[]);
+  }finally{await page.close()}
+});
+
 test('real Finance DOM rejects non-canonical AI order decimals before any request',async()=>{
   const {page,errors}=await fixture();
   try{

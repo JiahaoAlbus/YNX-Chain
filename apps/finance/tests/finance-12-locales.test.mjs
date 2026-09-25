@@ -24,7 +24,7 @@ test('all twelve Finance locales have complete nonblank UI copy and selection op
   const {window}=fixture();
   assert.deepEqual(Array.from(window.YNXFinanceLocale.supported),locales);
   const keys=Object.keys(window.__messages.en);
-  assert.equal(keys.length,307);
+  assert.equal(keys.length,360);
   for(const locale of locales){
     assert.match(html,new RegExp(`<option value="${locale}"`));
     const messages=window.__messages[locale];
@@ -38,6 +38,10 @@ test('all twelve Finance locales have complete nonblank UI copy and selection op
   for(const key of ['testMarketUnverified','brokerApprovalIntro','walletRejected','brokerRiskSimple','evmSubjectReady','evmSubjectDenied','evmSubjectRevokePending']){
     for(const locale of locales.filter(value=>value!=='en'))assert.notEqual(window.__messages[locale][key],window.__messages.en[key],`${locale}:${key}`);
   }
+  for(const key of ['noAlerts','alertsInformational','noOwnedActivity','noExplorerActivity','noReceiptPlaceholders','noOwnedPayReceipts'])for(const locale of locales.filter(value=>value!=='en'))assert.notEqual(window.__messages[locale][key],window.__messages.en[key],`${locale}:${key}`);
+  for(const key of ['planningOnly','partialObservation','noCompletePeriodHistory','observedSpending','remainingBudget','noReminders'])for(const locale of locales.filter(value=>value!=='en'))assert.notEqual(window.__messages[locale][key],window.__messages.en[key],`${locale}:${key}`);
+  for(const key of ['statementCoverageInvalid','fullPeriodTotals','completeHistoryMissing','observedFees','notBankStatement'])for(const locale of locales.filter(value=>value!=='en'))assert.notEqual(window.__messages[locale][key],window.__messages.en[key],`${locale}:${key}`);
+  for(const key of ['aiNoOwnedActivity','aiConsentRequired','aiProviderUnavailable','aiStatusReady','aiStatusRejected'])for(const locale of locales.filter(value=>value!=='en'))assert.notEqual(window.__messages[locale][key],window.__messages.en[key],`${locale}:${key}`);
 });
 
 test('reviewed financial terminology keeps execution, reconciliation, test assets and token allowance distinct',()=>{
