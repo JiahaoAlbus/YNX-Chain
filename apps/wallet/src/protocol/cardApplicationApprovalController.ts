@@ -2,18 +2,12 @@ import {
   cardApplicationApprovalRequestDigest, createCardApplicationApprovalReturnURL, createSignedCardApplicationApproval,
   digestHex, parseCardApplicationApprovalRequest, parseCardApplicationApprovalReturnURL,
   parseCardApplicationApprovalWalletURL, parseSignedCardApplicationApproval, verifySignedCardApplicationApproval, canonicalJSON, walletIdentity,
+  type CardApplicationApprovalRequest,
 } from "@ynx-chain/wallet-auth";
 import type { SecureStorageAdapter, WalletAccount } from "../storage/walletRepository";
 import { PRODUCT_SESSION_REGISTRY } from "./registry";
 
-export type MobileCardApplicationApprovalRequest = Readonly<{
-  version: "1"; chainId: "ynx_6423-1"; productId: "card";
-  platform: "android" | "ios" | "web"; applicationId: string; origin: string; callback: string;
-  account: string;
-  challenge: Readonly<{ id: string; applicationId: string; owner: string; chainId: "0x1917"; purpose: "create-testnet-card"; payloadHash: string; nonce: string; issuedAt: string; expiresAt: string }>;
-  details: Readonly<{ nickname: string; useCase: string; limitWei: string; riskAccepted: true; termsVersion: "card-testnet-v1" }>;
-  requestId: string; state: string; issuedAt: string; expiresAt: string;
-}>;
+export type MobileCardApplicationApprovalRequest = CardApplicationApprovalRequest;
 export type CardApplicationApprovalReview = Readonly<{ id: string; request: MobileCardApplicationApprovalRequest; account: WalletAccount }>;
 type Dependencies = {
   platform: "android" | "ios";

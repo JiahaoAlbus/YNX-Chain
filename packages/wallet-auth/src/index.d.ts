@@ -150,17 +150,17 @@ export type SignedCardApplicationApproval = Readonly<{version:"1";productId:"car
 export declare const CARD_APPLICATION_APPROVAL_DOMAIN:"YNX_CARD_APPLICATION_APPROVAL_V1";
 export declare const CARD_PROVIDER_APPROVAL_DOMAIN:"YNX_CARD_PROVIDER_APPROVAL_V2";
 export declare const CARD_PROVIDER_DETAILS_FIELDS:readonly string[];
-export declare function createSignedCardApplicationApproval(input:Readonly<{accountSecret:string;challenge:CardApplicationChallenge;details:CardApplicationDetails}|{accountSecret:string;challenge:CardProviderChallenge;details:CardProviderDetails}>,at?:Date):SignedCardApplicationApproval;
+export declare function createSignedCardApplicationApproval(input:Readonly<{accountSecret:string;challenge:CardApplicationChallenge|CardProviderChallenge;details:CardApplicationDetails|CardProviderDetails}>,at?:Date):SignedCardApplicationApproval;
 export declare function parseSignedCardApplicationApproval(input:unknown):SignedCardApplicationApproval;
 /** The expected account must come from the authenticated session; challenge and details are current server records. */
-export declare function verifySignedCardApplicationApproval(input:unknown,expected:Readonly<{challenge:CardApplicationChallenge;details:CardApplicationDetails;account:string}|{challenge:CardProviderChallenge;details:CardProviderDetails;account:string}>,at?:Date):SignedCardApplicationApproval;
+export declare function verifySignedCardApplicationApproval(input:unknown,expected:Readonly<{challenge:CardApplicationChallenge|CardProviderChallenge;details:CardApplicationDetails|CardProviderDetails;account:string}>,at?:Date):SignedCardApplicationApproval;
 export declare function cardApplicationDetailsHash(details:CardApplicationDetails):string;
 export declare function cardProviderDetailsHash(details:CardProviderDetails):string;
 export declare function cardApplicationApprovalId(input:unknown):string;
 export type CardApplicationApprovalRequest = Readonly<{version:"1";chainId:"ynx_6423-1";productId:"card";platform:ProductSessionPlatform;applicationId:string;origin:string;callback:string;account:string;challenge:CardApplicationChallenge;details:CardApplicationDetails;requestId:string;state:string;issuedAt:string;expiresAt:string}>|Readonly<{version:"2";chainId:"ynx_6423-1";productId:"card";platform:ProductSessionPlatform;applicationId:string;origin:string;callback:string;account:string;challenge:CardProviderChallenge;details:CardProviderDetails;requestId:string;state:string;issuedAt:string;expiresAt:string}>;
 export type CardApplicationApprovalDecision = Readonly<{status:"approved";approval:SignedCardApplicationApproval}|{status:"rejected";reason:"USER_REJECTED"}>;
 export type CardApplicationApprovalResult = CardApplicationApprovalDecision & Readonly<{kind:"card-application-approval";version:"1"|"2";requestDigest:string;state:string}>;
-export declare function createCardApplicationApprovalRequest(registry:unknown,input:Readonly<{productId:"card";platform:ProductSessionPlatform;account:string;challenge:CardApplicationChallenge;details:CardApplicationDetails;requestId:string;state:string}|{productId:"card";platform:ProductSessionPlatform;account:string;challenge:Omit<CardProviderChallenge,"requestBindingHash">;details:CardProviderDetails;requestId:string;state:string}>,at?:Date):CardApplicationApprovalRequest;
+export declare function createCardApplicationApprovalRequest(registry:unknown,input:Readonly<{productId:"card";platform:ProductSessionPlatform;account:string;challenge:CardApplicationChallenge|CardProviderChallenge|Omit<CardProviderChallenge,"requestBindingHash">;details:CardApplicationDetails|CardProviderDetails;requestId:string;state:string}>,at?:Date):CardApplicationApprovalRequest;
 export declare function parseCardApplicationApprovalRequest(registry:unknown,input:unknown,at?:Date):CardApplicationApprovalRequest;
 export declare function cardApplicationApprovalRequestDigest(request:CardApplicationApprovalRequest):string;
 export declare function cardProviderRequestBindingHash(request:CardApplicationApprovalRequest):string;

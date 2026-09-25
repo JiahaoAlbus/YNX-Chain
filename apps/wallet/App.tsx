@@ -34,7 +34,7 @@ import { FinanceOrderOpaqueController } from "./src/protocol/financeOrderOpaqueC
 import { scopeExplanation } from "./src/i18n/scopeCopy";
 import { authorizationCopy } from "./src/i18n/authorizationCopy";
 import { applicationActionCopy } from "./src/i18n/applicationActionCopy";
-import { cardApprovalCopy, cardApprovalLimitYNXT } from "./src/i18n/cardApprovalCopy";
+import { cardApprovalCopy, cardApprovalLimitYNXT, providerCardAmount, providerCardCopy } from "./src/i18n/cardApprovalCopy";
 import { financeOrderApprovalCopy } from "./src/i18n/financeOrderApprovalCopy";
 import { WalletSessionInventoryClient, WalletSessionRevocationUnknown, type SessionInventoryItem, type WalletSessionInventory } from "./src/protocol/sessionInventory";
 import { assertStrongBiometrics, authorizeLocalKeyUse } from "./src/security/localAuthorization";
@@ -271,6 +271,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     {chainState.phase==="failed"||chainState.phase==="unrecorded"||chainState.activityPhase==="failed"?<SecondaryButton label={walletCopy(locale,"Refresh balance and activity")} onPress={()=>void refreshChain()}/>:null}
     <View style={styles.quickRow}><Quick icon={<ArrowUpRight color={ACTIVE_COLORS.blue}/>} label={translate(locale,"send")} onPress={()=>setSend(true)}/><Quick icon={<QrCode color={ACTIVE_COLORS.blue}/>} label={translate(locale,"receive")} onPress={()=>setQR(true)}/><Quick icon={<History color={ACTIVE_COLORS.blue}/>} label={translate(locale,"activity")} onPress={()=>setCenter(true)}/></View>
     <SecondaryButton label={walletCopy(locale,"Test YNXT")} onPress={()=>setFaucet(true)}/>
+    <SecondaryButton label={providerCardCopy(locale,"open")} onPress={()=>void Linking.openURL("https://card.ynxweb4.com/").catch(caught=>Alert.alert(providerCardCopy(locale,"open"),message(caught)))}/>
     <InfoCard title={translate(locale,"accountSafety")} body={walletCopy(locale,selected.backupConfirmed?"Offline backup confirmed. System biometrics protect unlock, authorization, recovery viewing and deletion.":"Backup is not confirmed. Do not receive assets until the recovery key is stored offline.")}/>
     <FaucetButton secondary label={walletCopy(locale,copied?"Native ynx1 address copied":"Copy native ynx1 address")} onPress={()=>void copy()}/>
     <FaucetButton secondary label={walletCopy(locale,"Rename account")} onPress={()=>setRename(true)}/>
@@ -653,6 +654,7 @@ function ApplicationActionModal({locale,review,controller,close,onReturned}:{loc
 
 function CardApprovalModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:CardApplicationApprovalReview;controller:CardApplicationApprovalController;close:()=>void;onReturned:()=>void}){
   const {request,account:selected}=review;
+  const provider=request.version==="2";
   const scope=useOperationScope(true,selected.account);
   const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[returnReady,setReturnReady]=useState(()=>controller.hasReturn(review.id));
   const decide=async(action:"approve"|"reject"|"retryReturn")=>{
@@ -664,23 +666,35 @@ function CardApprovalModal({locale,review,controller,close,onReturned}:{locale:W
     finally{if(lease.ownsScope())setBusy(false);lease.finish()}
   };
   const dismiss=()=>{if(!busy){if(returnReady)close();else void decide("reject")}};
-  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={cardApprovalCopy(locale,"title")} close={dismiss}>
-    <Text style={styles.authorizationLead}>{cardApprovalCopy(locale,"sandbox")}</Text>
+  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={provider?providerCardCopy(locale,"title"):cardApprovalCopy(locale,"title")} close={dismiss}>
+    <Text style={styles.authorizationLead}>{provider?providerCardCopy(locale,"sandbox"):cardApprovalCopy(locale,"sandbox")}</Text>
     <ReviewRow label={translate(locale,"requestingApp")} value="YNX Card"/>
     <ReviewRow label={authorizationCopy(locale,"origin")} value={request.origin}/>
     <Text style={styles.scopeExplain}>{applicationActionCopy(locale,"unverifiedOrigin")}</Text>
     <ReviewRow label={translate(locale,"network")} value="YNX Testnet · 6423 · 0x1917"/>
     <ReviewRow label={translate(locale,"account")} value={selected.label+"\n"+selected.account}/>
     <ReviewRow label={cardApprovalCopy(locale,"application")} value={request.challenge.applicationId}/>
-    <ReviewRow label={cardApprovalCopy(locale,"nickname")} value={request.details.nickname}/>
-    <ReviewRow label={cardApprovalCopy(locale,"useCase")} value={request.details.useCase}/>
-    <ReviewRow label={cardApprovalCopy(locale,"limit")} value={cardApprovalLimitYNXT(request.details.limitWei)+" YNXT\n"+request.details.limitWei+" wei"}/>
-    <ReviewRow label={cardApprovalCopy(locale,"risk")} value={cardApprovalCopy(locale,"accepted")}/>
-    <ReviewRow label={cardApprovalCopy(locale,"terms")} value={request.details.termsVersion}/>
+    {request.version==="1"?<>
+      <ReviewRow label={cardApprovalCopy(locale,"nickname")} value={request.details.nickname}/>
+      <ReviewRow label={cardApprovalCopy(locale,"useCase")} value={request.details.useCase}/>
+      <ReviewRow label={cardApprovalCopy(locale,"limit")} value={cardApprovalLimitYNXT(request.details.limitWei)+" YNXT\n"+request.details.limitWei+" wei"}/>
+      <ReviewRow label={cardApprovalCopy(locale,"risk")} value={cardApprovalCopy(locale,"accepted")}/>
+      <ReviewRow label={cardApprovalCopy(locale,"terms")} value={request.details.termsVersion}/>
+    </>:<>
+      <ReviewRow label={providerCardCopy(locale,"card")} value={request.details.productCardId}/>
+      <ReviewRow label={providerCardCopy(locale,"provider")} value={request.details.provider}/>
+      <ReviewRow label={providerCardCopy(locale,"program")} value={request.details.programId}/>
+      <ReviewRow label={providerCardCopy(locale,"environment")} value={request.details.environment}/>
+      <ReviewRow label={providerCardCopy(locale,"funding")} value={`${request.details.fundingNetwork} · ${request.details.fundingAssetId}`}/>
+      <ReviewRow label={providerCardCopy(locale,"limit")} value={providerCardAmount(request.details.testSpendingLimitMinor,request.details.minorUnitDigits,request.details.cardAccountCurrency)}/>
+      <ReviewRow label={providerCardCopy(locale,"fees")} value={request.details.feeDisclosureText}/>
+      <ReviewRow label={providerCardCopy(locale,"terms")} value={`${request.details.termsVersion}\n${request.details.termsHash}`}/>
+      <ReviewRow label={providerCardCopy(locale,"risk")} value={`${request.details.riskVersion}\n${request.details.riskHash}`}/>
+    </>}
     <ReviewRow label={translate(locale,"expires")} value={formatDateTime(locale,request.expiresAt)}/>
     <ReviewRow label={authorizationCopy(locale,"callback")} value={request.callback}/>
     {error?<><Text style={styles.error}>{error}</Text><RecoveryRequiredNotice error={error}/><SecondaryButton label={authorizationCopy(locale,"closeRequest")} disabled={busy} onPress={close}/></>:null}
-    {returnReady?<Button label={authorizationCopy(locale,"retryReturn")} disabled={busy} onPress={()=>void decide("retryReturn")}/>:<View style={styles.approvalButtons}><SecondaryButton label={translate(locale,"reject")} disabled={busy} onPress={()=>void decide("reject")}/><Button label={cardApprovalCopy(locale,"approve")} disabled={busy} onPress={()=>void decide("approve")}/></View>}
+    {returnReady?<Button label={authorizationCopy(locale,"retryReturn")} disabled={busy} onPress={()=>void decide("retryReturn")}/>:<View style={styles.approvalButtons}><SecondaryButton label={translate(locale,"reject")} disabled={busy} onPress={()=>void decide("reject")}/><Button label={provider?providerCardCopy(locale,"approve"):cardApprovalCopy(locale,"approve")} disabled={busy} onPress={()=>void decide("approve")}/></View>}
   </Sheet></Modal>
 }
 

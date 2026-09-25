@@ -21,7 +21,8 @@ export function createCardApplicationApprovalRequest(registry, input, at = new D
   const data = fields(input, INPUT_FIELDS, "Card approval request input");
   const purpose = data.challenge && typeof data.challenge === "object" ? Object.getOwnPropertyDescriptor(data.challenge, "purpose")?.value : undefined;
   const provider = purpose === "create-provider-test-card";
-  const challenge = provider ? challengeSnapshot({ ...fields(data.challenge, CHALLENGE_FIELDS, "Card provider challenge input"), requestBindingHash: "0".repeat(64) }) : challengeSnapshot(data.challenge);
+  const providerInput=provider ? fields(data.challenge, Object.hasOwn(data.challenge,"requestBindingHash") ? PROVIDER_CHALLENGE_FIELDS : CHALLENGE_FIELDS, "Card provider challenge input") : null;
+  const challenge = provider ? challengeSnapshot({ ...providerInput, requestBindingHash: "0".repeat(64) }) : challengeSnapshot(data.challenge);
   const binding = productPlatformBinding(registry, data.productId, data.platform);
   const now = instant(at);
   const request = {

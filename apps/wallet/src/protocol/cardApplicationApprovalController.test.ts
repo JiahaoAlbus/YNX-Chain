@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCardApplicationApprovalRequest, encodeCardApplicationApprovalWalletURL, parseCardApplicationApprovalReturnURL, cardApplicationDetailsHash, walletIdentity } from "@ynx-chain/wallet-auth";
+import { createHash } from "node:crypto";
+import { createCardApplicationApprovalRequest, encodeCardApplicationApprovalWalletURL, parseCardApplicationApprovalReturnURL, cardApplicationDetailsHash, cardProviderDetailsHash, walletIdentity } from "@ynx-chain/wallet-auth";
 import { CardApplicationApprovalController, CARD_APPLICATION_APPROVAL_REPLAY_KEY } from "./cardApplicationApprovalController";
 import { PRODUCT_SESSION_REGISTRY as registry } from "./registry";
 import { createProductSessionKeyAccess } from "../security/productSessionKeyAccess";
@@ -30,6 +31,20 @@ function fixture(values=new Map<string,string>()) {
   return{state,values,storage,operations,controller,make,url};
 }
 const fresh={requestId:"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",state:"t".repeat(32)};
+
+test("provider v2 approval reuses durable replay, OS key gate and exact callback",async()=>{
+  const f=fixture(),text="TEST provider fee: 0 USD. No real card or funds.",details={productCardId:"card-test-001",principalOwner:account.account,provider:"sandbox_provider",programId:"virtual_test",environment:"TEST" as const,externalAccountBindingHash:"a".repeat(64),appChain:"ynx_6423-1" as const,fundingNetwork:"eip155:84532",fundingAssetId:"test-usdc-84532",tokenContract:null,decimals:6,testSpendingLimitMinor:"10000",cardAccountCurrency:"USD",minorUnitDigits:2,termsVersion:"test-terms-v1",termsHash:"b".repeat(64),riskVersion:"test-risk-v1",riskHash:"c".repeat(64),feeDisclosureVersion:"test-fees-v1",feeDisclosureText:text,feeDisclosureHash:createHash("sha256").update(text).digest("hex"),idempotencyKey:"11111111-1111-4111-8111-111111111111"};
+  const providerChallenge={...challenge,purpose:"create-provider-test-card" as const,payloadHash:cardProviderDetailsHash(details)};
+  const request=createCardApplicationApprovalRequest(registry,{productId:"card",platform:"android",account:account.account,challenge:providerChallenge,details,requestId:"55555555-5555-4555-8555-555555555555",state:"p".repeat(32)},new Date(NOW));
+  const c=f.controller(),review=await c.receive(f.url(request));assert.equal(review.request.version,"2");
+  await c.approve(review.id);
+  assert.equal(f.state.keys,1);assert.equal(f.state.checks,1);assert.equal(f.state.opens.length,1);
+  const result=parseCardApplicationApprovalReturnURL(registry,f.state.opens[0]!,request,new Date(NOW));
+  assert.equal(result.status,"approved");if(result.status!=="approved")assert.fail("Expected approval");assert.equal(result.approval.version,"2");
+  const recovered=f.controller(),same=await recovered.receive(f.url(request));assert.equal(recovered.hasReturn(same.id),true);
+  await assert.rejects(recovered.approve(same.id),/consumed/);
+  await recovered.retryReturn(same.id);assert.equal(f.state.opens[1],f.state.opens[0]);
+});
 
 test("actual signer + key-access lease: explicit approve persists consumption before signed result and returns no broadcast",async()=>{
   const f=fixture(),c=f.controller(),request=f.make(),r=await c.receive(f.url(request));
