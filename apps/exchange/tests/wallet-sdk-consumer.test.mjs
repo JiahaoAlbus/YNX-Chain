@@ -38,9 +38,10 @@ test('4902 uses the exact Wallet-owned YNX chain metadata before account permiss
 });
 test('explicit Hosted approval uses Wallet-owned adapter and never grants Exchange private order authority',async()=>{
   const {scope,values}=environment([]);scope.location.origin='https://exchange.ynxweb4.com';const calls=[],adapter=new EventEmitter();
-  adapter.connect=()=>{calls.push('connect');adapter.emit('accountsChanged',[account]);return Promise.resolve([account])};
+  adapter.connected=false;adapter.account=null;
+  adapter.connect=()=>{calls.push('connect');adapter.connected=true;adapter.account=account;adapter.emit('accountsChanged',[account]);return Promise.resolve([account])};
   adapter.request=async request=>{calls.push(request.method);return '0x1917'};
-  adapter.disconnect=()=>{calls.push('disconnect')};
+  adapter.disconnect=()=>{calls.push('disconnect');adapter.connected=false;adapter.account=null};
   const wallet=createExchangeWallet({scope,createHostedAdapter:()=>adapter});
   const result=await wallet.connectHosted();assert.equal(result.status,'standard-connected');assert.equal(result.transport,'hosted-wallet-web');assert.equal(result.account,account);assert.deepEqual(calls,['connect','eth_chainId']);assert.equal(wallet.state().pendingIntent,null);assert.equal(wallet.state().chooserOpen,false);assert.deepEqual([...values],[],'Hosted approval is not silently restored');
   assert.deepEqual(await wallet.revoke(),{status:'unsupported',permissionRevoked:false,locallyDisconnected:false});
@@ -48,8 +49,23 @@ test('explicit Hosted approval uses Wallet-owned adapter and never grants Exchan
 });
 test('Hosted rejection and wrong chain fail closed without touching MetaMask or private authority',async()=>{
   for(const outcome of ['reject','wrong-chain']){
-    const {scope}=environment([]);scope.location.origin='https://exchange.ynxweb4.com';const adapter=new EventEmitter();adapter.connect=()=>outcome==='reject'?Promise.reject(Object.assign(new Error('Rejected'),{code:'USER_REJECTED'})):Promise.resolve([account]);adapter.request=async()=> '0x1';adapter.disconnect=()=>{};
+    const {scope}=environment([]);scope.location.origin='https://exchange.ynxweb4.com';const adapter=new EventEmitter();adapter.connected=false;adapter.account=null;adapter.connect=()=>{if(outcome==='reject')return Promise.reject(Object.assign(new Error('Rejected'),{code:'USER_REJECTED'}));adapter.connected=true;adapter.account=account;return Promise.resolve([account])};adapter.request=async()=> '0x1';adapter.disconnect=()=>{adapter.connected=false;adapter.account=null};
     const wallet=createExchangeWallet({scope,createHostedAdapter:()=>adapter});const result=await wallet.connectHosted();assert.notEqual(result.status,'standard-connected');assert.notEqual(wallet.state().status,'connected');wallet.disconnect();
+  }
+});
+test('Installed YNX selection after Hosted approval requests the injected provider, never reuses Hosted transport',async()=>{
+  const injected=provider('ynx'),{scope}=environment([injected]);scope.location.origin='https://exchange.ynxweb4.com';const adapter=new EventEmitter();adapter.connected=false;adapter.account=null;
+  adapter.connect=async()=>{adapter.connected=true;adapter.account=account;return [account]};adapter.request=async()=> '0x1917';adapter.disconnect=async()=>{adapter.connected=false;adapter.account=null;throw new Error('Hosted teardown rejected')};
+  const wallet=createExchangeWallet({scope,createHostedAdapter:()=>adapter});assert.equal((await wallet.connectHosted()).transport,'hosted-wallet-web');
+  const result=await wallet.connectYNX();assert.equal(result.status,'standard-connected');assert.equal(result.transport,'injected');assert.deepEqual(methods(injected),['wallet_switchEthereumChain','eth_chainId','eth_requestAccounts','eth_chainId']);wallet.disconnect();
+});
+test('Hosted pending disconnect, empty account, and wrong chain fence late approval',async()=>{
+  for(const event of ['disconnect','accountsChanged','chainChanged']){
+    const {scope}=environment([]);scope.location.origin='https://exchange.ynxweb4.com';const adapter=new EventEmitter();let approve;
+    adapter.connected=false;adapter.account=null;adapter.connect=()=>new Promise(resolve=>{approve=resolve});adapter.request=async()=> '0x1917';adapter.disconnect=()=>{adapter.connected=false;adapter.account=null};
+    const wallet=createExchangeWallet({scope,createHostedAdapter:()=>adapter}),attempt=wallet.connectHosted();
+    adapter.emit(event,event==='accountsChanged'?[]:event==='chainChanged'?'0x1':undefined);adapter.connected=true;adapter.account=account;approve([account]);
+    const result=await attempt;assert.notEqual(result.status,'standard-connected',event);assert.notEqual(wallet.state().status,'connected',event);wallet.disconnect();
   }
 });
 test('wrong chain fails before permission; no-provider fallback does not open a page',async()=>{

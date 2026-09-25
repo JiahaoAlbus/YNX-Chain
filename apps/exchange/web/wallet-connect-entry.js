@@ -18,7 +18,7 @@ export function createExchangeWallet({scope=globalThis,onState=()=>{},createHost
   const remember=kind=>{try{if(kind)scope.localStorage?.setItem(PROVIDER_PREFERENCE_KEY,kind);else scope.localStorage?.removeItem(PROVIDER_PREFERENCE_KEY)}catch{}};
   const remembered=()=>{try{const kind=scope.localStorage?.getItem(PROVIDER_PREFERENCE_KEY);return validKind(kind)?kind:null}catch{return null}};
   const detach=()=>{unsubscribe?.();unsubscribe=null;connection?.disconnect();connection=null;selectedKind=null};
-  const detachHosted=()=>{const previous=hosted;for(const [event,listener] of hostedListeners)previous?.removeListener(event,listener);hostedListeners=[];hosted=null;try{void previous?.disconnect()}catch{}};
+  const detachHosted=()=>{const previous=hosted;for(const [event,listener] of hostedListeners)previous?.removeListener(event,listener);hostedListeners=[];hosted=null;try{Promise.resolve(previous?.disconnect()).catch(()=>{})}catch{}};
   const assertCurrent=token=>{if(token!==generation)throw Object.assign(new Error('Wallet operation was superseded.'),{code:4100})};
   const publish=()=>{
     const session=connection?.current;
@@ -51,12 +51,14 @@ export function createExchangeWallet({scope=globalThis,onState=()=>{},createHost
     let selected,pending;
     try{
       selected=createHostedAdapter({window:scope});hosted=selected;
+      const abortPending=()=>{if(token!==generation||selected!==hosted||state.status==='connected')return;generation++;inFlight=null;detachHosted();transition({type:'DISCONNECT'})};
       const accountsChanged=accounts=>{
-        if(token!==generation||selected!==hosted||state.status!=='connected')return;
+        if(token!==generation||selected!==hosted)return;
+        if(state.status!=='connected'){if(!Array.isArray(accounts)||accounts.length===0)abortPending();return;}
         if(!Array.isArray(accounts)||accounts.length!==1||accounts[0]?.toLowerCase()!==state.account)disconnect();
       };
-      const chainChanged=chain=>{if(token===generation&&selected===hosted&&state.status==='connected'&&chain!==STANDARD_WALLET_CHAIN_ID)disconnect()};
-      const disconnected=()=>{if(token===generation&&selected===hosted&&state.status==='connected')disconnect()};
+      const chainChanged=chain=>{if(token===generation&&selected===hosted&&chain!==STANDARD_WALLET_CHAIN_ID){if(state.status==='connected')disconnect();else abortPending()}};
+      const disconnected=()=>{if(token===generation&&selected===hosted){if(state.status==='connected')disconnect();else abortPending()}};
       hostedListeners=[['accountsChanged',accountsChanged],['chainChanged',chainChanged],['disconnect',disconnected]];
       for(const [event,listener] of hostedListeners)selected.on(event,listener);
       pending=selected.connect();
@@ -66,6 +68,7 @@ export function createExchangeWallet({scope=globalThis,onState=()=>{},createHost
       assertCurrent(token);
       if(!Array.isArray(accounts)||accounts.length!==1||!/^0x[0-9a-f]{40}$/u.test(accounts[0]))throw Object.assign(new Error('Invalid Hosted account'),{code:'HOSTED_ACCOUNT_INVALID'});
       const chain=await selected.request({method:'eth_chainId'});assertCurrent(token);
+      if(selected.connected!==true||selected.account!==accounts[0])throw Object.assign(new Error('Hosted approval was no longer active'),{code:'HOSTED_APPROVAL_LOST'});
       transition({type:'ACCOUNT_APPROVED',account:accounts[0]});
       transition({type:'CHAIN_CONFIRMED',chainId:chain});
       if(state.status!=='connected')return result('wrong-chain');
@@ -74,7 +77,7 @@ export function createExchangeWallet({scope=globalThis,onState=()=>{},createHost
     inFlight=operation;return operation.promise;
   }
   async function performConnect(kind){
-    if(state.status==='connected'&&kind===selectedKind)return result('standard-connected');
+    if(state.status==='connected'&&kind===selectedKind&&transport==='injected')return result('standard-connected');
     const token=++generation;
     try{
       const missing=await select(kind,token);if(missing)return missing;
