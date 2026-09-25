@@ -1,3 +1,6 @@
+//go:build ignore
+
+// Standalone capacity command: build or run this file explicitly.
 package main
 
 import (
