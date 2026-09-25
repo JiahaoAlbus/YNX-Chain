@@ -237,6 +237,25 @@ test('local Chrome account change during a pending signature cannot submit stale
 test('local disconnect sends no revocation; late events cannot repopulate account',async()=>{
   const page=await fixture();try{await connect(page);await page.locator('#wallet-disconnect').click();await page.evaluate(()=>window.__financeFixture.metamask.emit('accountsChanged',['0x'+'c'.repeat(40)]));assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'disconnected');assert.equal((await calls(page)).some(call=>call.method==='wallet_revokePermissions'),false);assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),null);await page.reload();await page.evaluate(()=>window.YNXFinanceWallet.ready);assert.deepEqual(await calls(page),[]);}finally{await page.close();}
 });
+test('local disconnect displays one localized status in all supported languages while real errors remain visible',async()=>{
+  const page=await fixture();try{
+    await connect(page);
+    await page.locator('#wallet-disconnect').click();
+    const locales=await page.evaluate(()=>window.YNXFinanceLocale.supported);
+    assert.equal(locales.length,12);
+    for(const locale of locales){
+      await page.locator('#finance-language').selectOption(locale);
+      assert.equal(await page.locator('#wallet-state').innerText(),await page.evaluate(()=>window.YNXFinanceLocale.text('standardDisconnected')),locale);
+      assert.equal(await page.locator('#wallet-state').getAttribute('title'),'LOCAL_DISCONNECT_ONLY',locale);
+    }
+    assert.equal((await calls(page)).some(call=>call.method==='wallet_revokePermissions'),false);
+  }finally{await page.close();}
+  const missing=await fixture({missing:true});try{
+    await missing.locator('#connect-metamask').click();
+    await missing.waitForFunction(()=>document.querySelector('#wallet-state').title==='WALLET_NOT_FOUND');
+    assert.equal(await missing.locator('#wallet-state').innerText(),await missing.evaluate(()=>`${window.YNXFinanceLocale.text('walletNotFound')} · ${window.YNXFinanceLocale.text('standardDisconnected')}`));
+  }finally{await missing.close();}
+});
 test('cancellation fences delayed chain switching before any account request',async()=>{
   const page=await fixture({deferSwitch:true});try{await page.locator('#connect-metamask').click();await page.waitForFunction(()=>window.__financeFixture.pendingSwitch);await page.locator('#wallet-disconnect').click();await page.evaluate(()=>window.__financeFixture.pendingSwitch());await page.waitForTimeout(50);assert.deepEqual((await calls(page)).map(call=>call.method),['wallet_switchEthereumChain']);assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'disconnected');}finally{await page.close();}
 });

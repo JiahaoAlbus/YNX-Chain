@@ -148,7 +148,7 @@ function render(){
   if(connected&&standard.providerKind==='ynx-wallet'){
     try{const native=toYNXAddress(standard.account);if(toEVMAddress(native)===standard.account)accountLabel=`${native} · EVM ${standard.account}`;}catch{}
   }
-  if(status){status.textContent=(lastMessage?message(lastMessage)+' · ':'')+(connected?(standard.providerKind==='metamask'?'MetaMask':standard.transport==='hosted-wallet-web'?'YNX Wallet Web':'YNX Wallet')+' · '+accountLabel+' · '+standard.chainId+' · '+label('standardOnly'):busy?label('standardBusy'):label('standardDisconnected'));status.title=lastMessage||'';}
+  if(status){status.textContent=(lastMessage&&lastMessage!=='LOCAL_DISCONNECT_ONLY'?message(lastMessage)+' · ':'')+(connected?(standard.providerKind==='metamask'?'MetaMask':standard.transport==='hosted-wallet-web'?'YNX Wallet Web':'YNX Wallet')+' · '+accountLabel+' · '+standard.chainId+' · '+label('standardOnly'):busy?label('standardBusy'):label('standardDisconnected'));status.title=lastMessage||'';}
   for(const element of document.querySelectorAll('.connect,#connect-metamask'))element.disabled=busy;
   for(const id of ['wallet-details','wallet-disconnect','wallet-revoke','wallet-switch']){const element=document.querySelector('#'+id);if(element)element.hidden=!(connected||id==='wallet-disconnect'&&busy);}
   const revoke=document.querySelector('#wallet-revoke');if(revoke){revoke.disabled=busy;revoke.hidden=!connected||standard.transport==='hosted-wallet-web';}
