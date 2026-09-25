@@ -20,7 +20,7 @@ const configured=JSON.parse(deployedConfig.toString("utf8"));
 const expected=[
   {source:"/api/card/v1/:path*",destination:"https://api.ynxweb4.com/api/card/v1/:path*"},
   {source:"/api/card/v2/:path*",destination:"https://api.ynxweb4.com/api/card/v2/:path*"},
-  {source:"/wallet-auth/callback",destination:"/index.html"},
+  {source:"/wallet-auth/callback",destination:"/"},
 ];
 if(JSON.stringify(configured.rewrites)!==JSON.stringify(expected))throw new Error("Card routes must match the two narrow API proxies and exact Wallet callback");
 console.log(`Verified nested static deployment envelope with ${sourceFiles.length} files.`);
