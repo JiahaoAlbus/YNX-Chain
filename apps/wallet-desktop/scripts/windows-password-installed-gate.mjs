@@ -57,7 +57,7 @@ async function snapshot() {
       account: account.ok ? { initialized: account.value.initialized, passwordConfigured: account.value.passwordConfigured, account: account.value.account, ynxAccount: account.value.ynxAccount, custody: account.value.custody, recoveryRequired: account.value.recoveryRequired } : null,
       error: account.ok ? null : { code: account.error?.code, storageStage: account.error?.storageStage },
       locked: security.locked,
-      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: document.querySelector('#password-sheet')?.open }
+      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: document.querySelector('#password-sheet')?.open, unlockEnabled: !document.querySelector('#unlock-wallet')?.disabled, unlockLabel: document.querySelector('#unlock-wallet')?.textContent }
     });
   })()`, "ACCOUNT_SNAPSHOT"));
 }
@@ -72,10 +72,17 @@ async function until(predicate, label, count = 100) {
   throw new Error(`${label}: ${JSON.stringify(state)}`);
 }
 async function formSubmit(value, confirmation) {
-  await evaluate(`(() => {
+  const expectedUnlock = confirmation === undefined;
+  const opened = await evaluate(`(() => {
     const open = document.querySelector('#unlock-wallet');
-    if (open.disabled) return false;
+    if (open.disabled) return { enabled: false };
     open.click();
+    return { enabled: true, sheetOpen: document.querySelector('#password-sheet').open, unlockMode: document.querySelector('#local-confirm-group').hidden };
+  })()`, "PASSWORD_FORM_OPEN");
+  if (!opened?.enabled) throw new Error("PASSWORD_FORM_OPEN:BUTTON_DISABLED");
+  if (!opened.sheetOpen) throw new Error("PASSWORD_FORM_OPEN:SHEET_CLOSED");
+  if (opened.unlockMode !== expectedUnlock) throw new Error("PASSWORD_FORM_OPEN:MODE_MISMATCH");
+  await evaluate(`(() => {
     const form = document.querySelector('#password-form');
     document.querySelector('#local-password').value = ${JSON.stringify(value)};
     document.querySelector('#local-confirm').value = ${JSON.stringify(confirmation ?? "")};
@@ -91,6 +98,7 @@ try {
     if (before.account.initialized || before.account.passwordConfigured || !before.locked) throw new Error("Installed create gate requires a fresh, locked Wallet profile");
     await formSubmit(password, password);
     await until(state => state.account?.passwordConfigured === true && state.account.initialized === false, "Password persistence");
+    await until(state => state.ui.unlockEnabled && /Unlock with local password|使用本地密码解锁/i.test(state.ui.unlockLabel), "Password unlock UI readiness");
     await formSubmit(password);
     await until(state => state.locked === false && state.account?.passwordConfigured === true, "Password unlock");
     await evaluate(`(() => { document.querySelector('nav [data-view="accounts"]')?.click(); document.querySelector('#create-account')?.click(); return true; })()`, "ACCOUNT_CREATE_CLICK");
