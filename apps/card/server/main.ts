@@ -16,7 +16,8 @@ async function main(){
   const rpc=process.env.YNX_CARD_CORE_RPC_URL,recipient=process.env.YNX_CARD_TESTNET_FUNDING_ADDRESS;
   const core=rpc?new RpcCoreAuthority(rpc):unavailableCore;
   const service=new CardService({store,wallet,core,fundingAddress:recipient,minConfirmations:Number(process.env.YNX_CARD_MIN_CONFIRMATIONS??'2')});
-  const server=createCardServer({service,wallet,providerRegistry:new CardProviderRegistry(store),providerApplications:new CardProviderApplications(store),sourceCommit:process.env.YNX_CARD_SOURCE_COMMIT??'unbound-development',allowedOrigin:process.env.YNX_CARD_ALLOWED_ORIGIN??'https://card.ynxweb4.com',configurationReady:Boolean(adapter&&rpc&&recipient)});
+  const providerRegistry=new CardProviderRegistry(store);
+  const server=createCardServer({service,wallet,providerRegistry,providerApplications:new CardProviderApplications(store,undefined,undefined,[],[],providerRegistry),sourceCommit:process.env.YNX_CARD_SOURCE_COMMIT??'unbound-development',allowedOrigin:process.env.YNX_CARD_ALLOWED_ORIGIN??'https://card.ynxweb4.com',configurationReady:Boolean(adapter&&rpc&&recipient)});
   const port=Number(process.env.YNX_CARD_PORT??'3094');if(!Number.isSafeInteger(port)||port<1||port>65535)throw Error('Invalid YNX_CARD_PORT');
   server.listen(port,process.env.YNX_CARD_HOST??'127.0.0.1',()=>console.log(JSON.stringify({service:'ynx-card-business-backend',port,environment:'YNX_TESTNET_CARD_PAYMENT_SIMULATION',productionRealPayments:false})));
   const stop=()=>server.close(()=>{store.close();process.exitCode=0});process.once('SIGTERM',stop);process.once('SIGINT',stop);

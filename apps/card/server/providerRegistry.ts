@@ -3,15 +3,16 @@ import {CardStore} from './storage.ts';
 
 export type CardProvider='immersve'|'lithic';
 export type ProviderEnvironment='TEST'|'LIVE';
-export type ProviderBindingStatus='PLANNED'|'EXTERNAL_REFERENCE_UNVERIFIED'|'LEGACY_READ_ONLY'|'DEGRADED';
+export type ProviderBindingStatus='PLANNED'|'ACCOUNT_REFERENCE_UNVERIFIED'|'ACCOUNT_READBACK_VERIFIED'|'EXTERNAL_REFERENCE_UNVERIFIED'|'LEGACY_READ_ONLY'|'DEGRADED';
 export type FundingUnit=
   |{kind:'YNXT_TESTNET';assetId:'YNXT';appChain:'ynx_6423-1';fundingNetwork:string;tokenContract:string|null;decimals:number;manifestHash:string}
   |{kind:'TUSD_TESTNET';assetId:'tUSD';appChain:'ynx_6423-1';fundingNetwork:string;tokenContract:string;decimals:number;manifestHash:string}
   |{kind:'PROVIDER_TEST_ASSET';assetId:string;provider:CardProvider;programId:string;environment:'TEST';fundingNetwork:string;tokenContract:string|null;decimals:number;manifestHash:string}
   |{kind:'CARD_ACCOUNT';currency:string;provider:CardProvider;programId:string;environment:ProviderEnvironment;minorUnitDigits:number;manifestHash:string};
-export type ProviderBinding={productCardId:string;provider:CardProvider;programId:string;environment:ProviderEnvironment;status:ProviderBindingStatus;externalAccountId:string|null;externalCardId:string|null;externalFundingSourceId:string|null;sourceAsOf:string|null;bindingEvidenceId:string|null;createdAt:string;updatedAt:string};
+export type ProviderBinding={productCardId:string;provider:CardProvider;programId:string;environment:ProviderEnvironment;status:ProviderBindingStatus;externalAccountId:string|null;externalCardId:string|null;externalFundingSourceId:string|null;sourceAsOf:string|null;accountBindingEvidenceId:string|null;accountReadbackAsOf:string|null;bindingEvidenceId:string|null;createdAt:string;updatedAt:string};
 export type ProviderActivity={sequence:number;productCardId:string;provider:CardProvider;programId:string;environment:ProviderEnvironment;externalEventId:string;type:'AUTHORIZATION'|'CAPTURE'|'REVERSAL'|'REFUND'|'DISPUTE'|'FUNDING'|'STATUS';status:string;amount:string|null;unit:FundingUnit|null;occurredAt:string;recordedAt:string;sourceAsOf:string;source:'PROVIDER_TEST'|'PROVIDER_LIVE';spendableBalanceCreated:false};
 export type ProviderReadConnector={provider:CardProvider;programId:string;environment:'TEST';getCardStatus(accountId:string,cardId:string):Promise<{externalCardId:string;status:string;sourceAsOf:string;[key:string]:unknown}>};
+export type ProviderAccountReadConnector={provider:CardProvider;programId:string;environment:'TEST';getAccountStatus(accountId:string):Promise<{externalAccountId:string;status:string;sourceAsOf:string;[key:string]:unknown}>};
 type State={bindings:Record<string,ProviderBinding>;events:ProviderActivity[];nextSequence:number};
 const empty=():State=>({bindings:{},events:[],nextSequence:1});
 const id=(value:unknown,name:string)=>{if(typeof value!=='string'||! /^(?=.{1,128}$)[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(value))throw new CardError('INVALID_'+name,400);return value};
@@ -44,9 +45,24 @@ export class CardProviderRegistry{
     if(env!=='TEST')throw new CardError('LIVE_PROVIDER_BINDING_NOT_AUTHORIZED',403);
     return this.store.transaction(ownerKey(principal.owner),empty,state=>{
       const prior=state.bindings[productCardId];if(prior){if(prior.provider!==selected||prior.programId!==programId||prior.environment!==env)throw new CardError('CARD_PROVIDER_BINDING_IMMUTABLE');return prior}
-      const binding:ProviderBinding={productCardId,provider:selected,programId,environment:env,status:'PLANNED',externalAccountId:null,externalCardId:null,externalFundingSourceId:null,sourceAsOf:null,bindingEvidenceId:null,createdAt:now,updatedAt:now};
+      const binding:ProviderBinding={productCardId,provider:selected,programId,environment:env,status:'PLANNED',externalAccountId:null,externalCardId:null,externalFundingSourceId:null,sourceAsOf:null,accountBindingEvidenceId:null,accountReadbackAsOf:null,bindingEvidenceId:null,createdAt:now,updatedAt:now};
       state.bindings[productCardId]=binding;return binding;
     });
+  }
+  recordAccountReference(principal:Principal,productCardId:string,input:{externalAccountId:string;sourceAsOf:string;evidenceId:string},now=new Date().toISOString()):ProviderBinding{
+    assertOwner(principal);id(productCardId,'PRODUCT_CARD_ID');const account=id(input.externalAccountId,'EXTERNAL_ACCOUNT_ID'),evidence=id(input.evidenceId,'EVIDENCE_ID');iso(input.sourceAsOf,'SOURCE_TIME');iso(now,'TIMESTAMP');
+    return this.store.transaction(ownerKey(principal.owner),empty,state=>{const binding=state.bindings[productCardId];if(!binding)throw new CardError('CARD_PROVIDER_BINDING_NOT_FOUND',404);if(binding.environment!=='TEST'||binding.status==='LEGACY_READ_ONLY')throw new CardError('PROVIDER_ACCOUNT_BINDING_FORBIDDEN',403);
+      if(binding.externalAccountId){if(binding.externalAccountId!==account||binding.accountBindingEvidenceId!==evidence)throw new CardError('PROVIDER_ACCOUNT_BINDING_CONFLICT');return binding}
+      this.store.claim('card-provider:'+binding.provider+':'+binding.environment+':'+binding.programId+':account',account,principal.owner,productCardId);
+      binding.externalAccountId=account;binding.accountBindingEvidenceId=evidence;binding.sourceAsOf=input.sourceAsOf;binding.status='ACCOUNT_REFERENCE_UNVERIFIED';binding.updatedAt=now;return binding;
+    });
+  }
+  async verifyAccountReadback(principal:Principal,productCardId:string,connectors:readonly ProviderAccountReadConnector[],now=new Date().toISOString()):Promise<ProviderBinding>{
+    const binding=this.resolve(principal,productCardId);iso(now,'TIMESTAMP');if(binding.environment!=='TEST'||!binding.externalAccountId||!['ACCOUNT_REFERENCE_UNVERIFIED','ACCOUNT_READBACK_VERIFIED'].includes(binding.status))throw new CardError('PROVIDER_ACCOUNT_READ_UNAVAILABLE',503);
+    const matches=connectors.filter(connector=>connector.provider===binding.provider&&connector.programId===binding.programId&&connector.environment===binding.environment);if(matches.length!==1)throw new CardError('PROVIDER_ACCOUNT_READ_UNAVAILABLE',503);
+    let response:Awaited<ReturnType<ProviderAccountReadConnector['getAccountStatus']>>;try{response=await matches[0]!.getAccountStatus(binding.externalAccountId)}catch{throw new CardError('PROVIDER_ACCOUNT_READ_DEGRADED',503)}
+    if(!response||response.externalAccountId!==binding.externalAccountId)throw new CardError('PROVIDER_ACCOUNT_READ_MISMATCH',409);id(response.status,'PROVIDER_ACCOUNT_STATUS');iso(response.sourceAsOf,'SOURCE_TIME');
+    return this.store.transaction(ownerKey(principal.owner),empty,state=>{const current=state.bindings[productCardId];if(!current||current.externalAccountId!==binding.externalAccountId||current.programId!==binding.programId||current.status==='LEGACY_READ_ONLY')throw new CardError('PROVIDER_ACCOUNT_READ_MISMATCH',409);if(current.accountReadbackAsOf&&Date.parse(response.sourceAsOf)<Date.parse(current.accountReadbackAsOf))throw new CardError('PROVIDER_ACCOUNT_READ_STALE',409);current.accountReadbackAsOf=response.sourceAsOf;current.status='ACCOUNT_READBACK_VERIFIED';current.updatedAt=now;return current});
   }
   /** Records a proposed Test reference, NOT proof of provider acceptance.
    * Verification needs an entitled provider read and separate Wallet consent. */
@@ -55,6 +71,7 @@ export class CardProviderRegistry{
     return this.store.transaction(ownerKey(principal.owner),empty,state=>{
       const binding=state.bindings[productCardId];if(!binding)throw new CardError('CARD_PROVIDER_BINDING_NOT_FOUND',404);if(binding.environment!=='TEST')throw new CardError('LIVE_PROVIDER_BINDING_NOT_AUTHORIZED',403);
       if(binding.status==='LEGACY_READ_ONLY')throw new CardError('LEGACY_PROVIDER_WRITE_FORBIDDEN',403);
+      if(binding.externalAccountId&&binding.externalAccountId!==account)throw new CardError('PROVIDER_ACCOUNT_BINDING_CONFLICT');
       if(binding.bindingEvidenceId){if(binding.bindingEvidenceId!==evidence||binding.externalAccountId!==account||binding.externalCardId!==card||binding.externalFundingSourceId!==funding)throw new CardError('PROVIDER_RECEIPT_CONFLICT');return binding}
       for(const [kind,external] of [['account',account],['card',card],...(funding?[['funding',funding]]:[])] as [string,string][])this.store.claim('card-provider:'+binding.provider+':'+binding.environment+':'+binding.programId+':'+kind,external,principal.owner,productCardId);
       Object.assign(binding,{externalAccountId:account,externalCardId:card,externalFundingSourceId:funding,sourceAsOf:input.sourceAsOf,bindingEvidenceId:evidence,status:'EXTERNAL_REFERENCE_UNVERIFIED' as const,updatedAt:now});return binding;

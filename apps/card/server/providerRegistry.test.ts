@@ -85,6 +85,16 @@ test('one provider with two programs never borrows the other program connector',
   await assert.rejects(registry.readRoutedStatus(ownerA,'card-program-b',[b,b]),/CARD_PROVIDER_READ_UNAVAILABLE/);assert.equal(callsB,1);
 });
 
+test('account reference is separate from card issuance and readback is exact program-bound',async t=>{
+  const {registry}=fixture(t);registry.plan(ownerA,{productCardId:'future-card',provider:'immersve',programId:'program-a',environment:'TEST'},time);
+  const reference=registry.recordAccountReference(ownerA,'future-card',{externalAccountId:'account-a',sourceAsOf:time,evidenceId:'account-reference-a'},time);assert.equal(reference.externalCardId,null);assert.equal(reference.status,'ACCOUNT_REFERENCE_UNVERIFIED');
+  assert.throws(()=>registry.recordAccountReference(ownerA,'future-card',{externalAccountId:'other',sourceAsOf:time,evidenceId:'account-reference-a'},time),/PROVIDER_ACCOUNT_BINDING_CONFLICT/);
+  let calls=0;const connector={provider:'immersve',programId:'program-a',environment:'TEST',async getAccountStatus(accountId:string){calls++;return {externalAccountId:accountId,status:'KYC_PENDING',sourceAsOf:time,pan:'not-persisted'}}} as const;
+  await assert.rejects(registry.verifyAccountReadback(ownerA,'future-card',[{...connector,programId:'program-b'}],time),/PROVIDER_ACCOUNT_READ_UNAVAILABLE/);assert.equal(calls,0);
+  assert.equal((await registry.verifyAccountReadback(ownerA,'future-card',[connector],time)).status,'ACCOUNT_READBACK_VERIFIED');assert.equal(calls,1);assert.equal(JSON.stringify(registry.resolve(ownerA,'future-card')).includes('not-persisted'),false);
+  const card=registry.recordSandboxReceipt(ownerA,'future-card',{externalAccountId:'account-a',externalCardId:'card-a',sourceAsOf:time,evidenceId:'card-reference-a'},time);assert.equal(card.externalCardId,'card-a');assert.equal(card.status,'EXTERNAL_REFERENCE_UNVERIFIED');assert.equal(card.accountBindingEvidenceId,'account-reference-a');
+});
+
 test('v2 provider reads use the exact private account scope and source-bound, non-spendable envelope',async t=>{
   const {registry}=fixture(t);registry.plan(ownerA,{productCardId:'card-a',provider:'immersve',programId:'program-a',environment:'TEST'},time);
   const seen:string[]=[];const wallet:WalletAuthority={async authenticate(request){seen.push(request.path+':'+request.requiredScopes.join(','));if(request.proofHeader!=='proof')throw Error('missing proof');return ownerA},async approve(){throw Error('approval not invoked')}};

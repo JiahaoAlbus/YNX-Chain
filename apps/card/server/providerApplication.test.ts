@@ -19,6 +19,7 @@ function fixture(t:test.TestContext){const dir=mkdtempSync(join(tmpdir(),'card-p
 
 test('owner-bound local draft, exact consent, idempotency and no inferred provider card',t=>{
   const {service}=fixture(t);const app=service.createDraft(owner,draft,'create-1',now);assert.equal(app.status,'DRAFT');assert.equal(app.upstreamApplicationId,null);assert.equal(app.upstreamCardId,null);assert.equal(app.walletApprovalVerified,false);
+  assert.match(app.id,/^application_[0-9a-f-]{36}$/);assert.match(app.productCardId,/^card-[0-9a-f-]{36}$/);
   assert.equal(service.createDraft(owner,draft,'create-1',now).id,app.id);
   assert.throws(()=>service.createDraft(owner,{...draft,nickname:'Changed'},'create-1',now),/APPLICATION_IDEMPOTENCY_CONFLICT/);
   assert.equal(service.list(other).length,0);assert.throws(()=>service.get(other,app.id),/PROVIDER_APPLICATION_NOT_FOUND/);
@@ -57,6 +58,17 @@ test('hostile KYC URL, mismatched event and transport uncertainty remain fail-cl
   await assert.rejects(bad.beginHostedKyc(owner,app.id,now),/PROVIDER_APPLICATION_STATE_CONFLICT/);assert.equal(attempts,1);
   const verified=new CardProviderApplications(store,undefined,{async verify(){return {eventId:'e',owner:other.owner,applicationId:app.id,provider:'immersve',programId:'program-test',environment:'TEST' as const,sessionId:'session-a',status:'APPROVED' as const,sourceAsOf:now}}});
   await assert.rejects(verified.acceptVerifiedKyc(owner,new Uint8Array(),{},now),/HOSTED_KYC_BINDING_MISMATCH/);assert.equal(verified.get(owner,app.id).status,'KYC_SESSION_UNKNOWN');
+});
+
+test('out-of-order signed KYC events cannot regress REVIEW or override a newer source timestamp',async t=>{
+  const {store}=fixture(t);let current:VerifiedKycEvent={eventId:'event-review',owner:owner.owner,applicationId:'',provider:'immersve',programId:'program-test',environment:'TEST',sessionId:'session-order',status:'REVIEW',sourceAsOf:'2026-09-25T12:01:00Z'};
+  const service=new CardProviderApplications(store,{async begin(){return {url:'https://verify.test.immersve.com/kyc/session/order',sessionId:'session-order',expiresAt:'2026-09-25T12:10:00Z'}}},{async verify(){return current}},['https://verify.test.immersve.com'],programs);
+  const app=service.createDraft(owner,draft,'order-draft',now);current.applicationId=app.id;service.acknowledgeTerms(owner,app.id,{termsVersion:'test-1',termsHash:terms,feeDisclosureHash:fees,riskAccepted:true},now);await service.beginHostedKyc(owner,app.id,now);
+  assert.equal((await service.acceptVerifiedKyc(owner,new Uint8Array(),{},'2026-09-25T12:01:00Z')).status,'KYC_REVIEW');
+  current={...current,eventId:'event-old',status:'PENDING',sourceAsOf:now};await assert.rejects(service.acceptVerifiedKyc(owner,new Uint8Array(),{},'2026-09-25T12:02:00Z'),/HOSTED_KYC_EVENT_STALE/);
+  current={...current,eventId:'event-regression',sourceAsOf:'2026-09-25T12:02:00Z'};await assert.rejects(service.acceptVerifiedKyc(owner,new Uint8Array(),{},'2026-09-25T12:02:00Z'),/HOSTED_KYC_STATE_REGRESSION/);
+  current={...current,eventId:'event-approved',status:'APPROVED',sourceAsOf:'2026-09-25T12:03:00Z'};assert.equal((await service.acceptVerifiedKyc(owner,new Uint8Array(),{},'2026-09-25T12:03:00Z')).status,'APPROVAL_REQUIRED');
+  assert.equal(service.get(owner,app.id).walletApprovalVerified,false);
 });
 
 test('HTTP v2 application draft is Product Session scoped and never claims upstream acceptance',async t=>{

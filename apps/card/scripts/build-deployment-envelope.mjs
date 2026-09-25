@@ -7,6 +7,7 @@ const envelope=resolve(root,"deployment-envelope");
 rmSync(envelope,{recursive:true,force:true});
 mkdirSync(envelope,{recursive:true});
 cpSync(source,resolve(envelope,"dist-web"),{recursive:true});
+cpSync(resolve(root,"vercel.json"),resolve(envelope,"vercel.json"));
 const manifest=JSON.parse(readFileSync(resolve(root,"static-deploy-package.json"),"utf8"));
 manifest.scripts={"build:web":"node build-static.mjs"};
 writeFileSync(resolve(envelope,"package.json"),`${JSON.stringify(manifest,null,2)}\n`);

@@ -3,6 +3,10 @@
   "buildCommand": "npm run build:web",
   "outputDirectory": "dist-web",
   "cleanUrls": true,
+  "rewrites": [
+    {"source":"/api/card/v1/:path*","destination":"https://api.ynxweb4.com/api/card/v1/:path*"},
+    {"source":"/api/card/v2/:path*","destination":"https://api.ynxweb4.com/api/card/v2/:path*"}
+  ],
   "headers": [
     {
       "source": "/(.*)",
