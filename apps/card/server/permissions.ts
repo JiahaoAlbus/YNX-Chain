@@ -4,6 +4,7 @@ import {CardError,type CardScope,type Principal} from './contracts.ts';
 // registry. They are never mapped from application/controls permission.
 const routeScopes:readonly [string,RegExp,CardScope][]=[
   ['GET',/^\/api\/card\/v2\/provider-overview$/,'account:read'],
+  ['GET',/^\/api\/card\/v2\/provider-programs$/,'account:read'],
   ['GET',/^\/api\/card\/v2\/finance-consent$/,'account:read'],
   ['POST',/^\/api\/card\/v2\/finance-consent(?:\/revoke)?$/,'card:finance:share'],
   ['GET',/^\/api\/card\/v2\/cards\/[^/]+\/provider-activity$/,'account:read'],

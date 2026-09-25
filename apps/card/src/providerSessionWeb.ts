@@ -1,0 +1,38 @@
+import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter,type BrowserProductSessionAdapter} from '@ynx-chain/wallet-auth-card-provider-v2';
+import registry from '../vendor/product-session-registry-09e36b150.json';
+
+const ATTEMPT='ynx.card.provider-session.v2.attempted';
+export const CARD_WEB_PROVIDER_SCOPES=Object.freeze(['account:read','card:application:write','card:controls:write'] as const);
+let adapter:BrowserProductSessionAdapter|null=null;
+let initializing:Promise<BrowserProductSessionAdapter>|null=null;
+let generation=0;
+function browser(){if(typeof window==='undefined'||window.location.origin!=='https://card.ynxweb4.com'||window.isSecureContext!==true)throw Error('CARD_WEB_ORIGIN_UNAVAILABLE');return window}
+export async function cardWebSession(){
+  browser();if(adapter)return adapter;
+  if(!initializing)initializing=createBrowserProductSessionClient({registry,productId:'card',scopes:CARD_WEB_PROVIDER_SCOPES,purpose:'Read Card TEST records and request explicit application or freeze controls. This does not create a card or transfer funds.',gateway:new ProductSessionGatewayFetchAdapter({endpoint:'https://wallet-auth.ynxweb4.com',fetch:globalThis.fetch.bind(globalThis),walletInstalled:async()=>false,schemeRegistered:async()=>false,timeoutMs:10_000})}).then(value=>adapter=value).finally(()=>{initializing=null});
+  return initializing;
+}
+export function cardWebSessionCurrent(){return adapter?.client.current??null}
+export async function restoreCardWebSession(){
+  const w=browser();const callback=w.location.pathname==='/wallet-auth/callback'&&w.location.search!=='';
+  let attempted=false;try{attempted=w.localStorage.getItem(ATTEMPT)==='yes'}catch{}
+  if(!attempted&&!callback)return null;
+  const epoch=++generation,selected=await cardWebSession();const result=callback?await selected.client.handleReturn(w.location.href):await selected.client.restore(w.navigator.onLine);
+  if(epoch!==generation)return selected.client.current;
+  if(callback&&['connected','disconnected'].includes(String(result.status)))w.history.replaceState(null,'','/');
+  return result;
+}
+export async function beginCardWebSession(){
+  const w=browser();const epoch=++generation,selected=await cardWebSession();try{w.localStorage.setItem(ATTEMPT,'yes')}catch{}
+  const result=await selected.client.beginExplicit();if(epoch!==generation)return selected.client.current;
+  const route=result.route as {status?:string;url?:string}|undefined;
+  if(result.status==='connecting'&&route?.status==='ready'&&typeof route.url==='string'){
+    const url=new URL(route.url);if(url.protocol!=='ynxwallet:'||url.hostname!=='authorize'||url.username||url.password||url.hash)throw Error('CARD_WALLET_ROUTE_INVALID');
+    w.location.assign(route.url);
+  }
+  return result;
+}
+export async function retryCardWebSession(){const selected=await cardWebSession();return selected.client.retryDetected()}
+export async function disconnectCardWebSession(){generation++;const selected=await cardWebSession();return selected.client.disconnect()}
+export async function cardWebProof(scopes:readonly string[]){const selected=await cardWebSession();return selected.createIntrospectionProof(scopes)}
+export function closeCardWebSession(){generation++;adapter?.close();adapter=null}

@@ -2,7 +2,7 @@ import {CARD_BUSINESS_ORIGIN,type CardPrivateIdentity} from './cardBusinessClien
 
 export class CardProviderClientError extends Error{constructor(readonly code:string,readonly layer:'product-session'|'card-api'|'card-data'){super(code)}}
 type Capabilities={expectedSourceCommit:string;identity:()=>CardPrivateIdentity|null;createIntrospectionProof:(scopes:readonly string[])=>Promise<{proofHeader:string}>;fetch?:typeof fetch;platform?:'web'|'ios'|'android';allowedHostedOrigins?:readonly string[]};
-type RequestOptions={method:'GET'|'POST';scope:'account:read'|'card:application:write';body?:unknown;idempotencyKey?:string};
+type RequestOptions={method:'GET'|'POST';scope:'account:read'|'card:application:write'|'card:controls:write'|'card:finance:share';body?:unknown;idempotencyKey?:string};
 const pathPrefix='/api/card/v2';
 function object(value:unknown):Record<string,unknown>{if(!value||typeof value!=='object'||Array.isArray(value))throw new CardProviderClientError('INVALID_CARD_API_RESPONSE','card-data');return value as Record<string,unknown>}
 function rejectSensitive(value:unknown):void{if(Array.isArray(value)){value.forEach(rejectSensitive);return}if(!value||typeof value!=='object')return;for(const [key,child] of Object.entries(value)){if(/^(pan|cvv|cvc|pin|seed|mnemonic|privateKey|cryptogram|trackData|fullCardNumber|identityDocument|dateOfBirth)$/i.test(key))throw new CardProviderClientError('SENSITIVE_CARD_DATA_REJECTED','card-data');rejectSensitive(child)}}
@@ -32,5 +32,18 @@ export class CardProviderClient{
   async beginHostedKyc(id:string,idempotencyKey:string){const result=object(await this.request(pathPrefix+'/provider-applications/'+resource(id)+'/hosted-kyc',{method:'POST',scope:'card:application:write',body:{},idempotencyKey}));const url=result.hostedUrl;if(url!==null&&url!==undefined){if(typeof url!=='string')throw new CardProviderClientError('HOSTED_KYC_RESPONSE_UNTRUSTED','card-data');let parsed:URL;try{parsed=new URL(url)}catch{throw new CardProviderClientError('HOSTED_KYC_RESPONSE_UNTRUSTED','card-data')}if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.hash||!this.capabilities.allowedHostedOrigins?.includes(parsed.origin))throw new CardProviderClientError('HOSTED_KYC_RESPONSE_UNTRUSTED','card-data')}return result}
   cancelLocal(id:string,idempotencyKey:string){return this.request(pathPrefix+'/provider-applications/'+resource(id)+'/cancel',{method:'POST',scope:'card:application:write',body:{},idempotencyKey})}
   overview(){return this.request(pathPrefix+'/provider-overview',{method:'GET',scope:'account:read'})}
+  programs(){return this.request(pathPrefix+'/provider-programs',{method:'GET',scope:'account:read'})}
   activity(cardId:string,cursor=0,limit=50){if(!Number.isSafeInteger(cursor)||cursor<0||!Number.isSafeInteger(limit)||limit<1||limit>100)throw new CardProviderClientError('INVALID_ACTIVITY_PAGE','card-data');return this.request(pathPrefix+'/cards/'+resource(cardId)+'/provider-activity?cursor='+cursor+'&limit='+limit,{method:'GET',scope:'account:read'})}
+  prepareApproval(id:string,input:{platform:'web'|'ios'|'android';fundingSourceId:string;idempotencyKey:string},key:string){return this.request(pathPrefix+'/provider-applications/'+resource(id)+'/approval-request',{method:'POST',scope:'card:application:write',body:input,idempotencyKey:key})}
+  acceptApproval(id:string,resultURL:string,key:string){return this.request(pathPrefix+'/provider-applications/'+resource(id)+'/approval-result',{method:'POST',scope:'card:application:write',body:{resultURL},idempotencyKey:key})}
+  submit(id:string,approvedOperationId:string){return this.request(pathPrefix+'/provider-applications/'+resource(id)+'/submit',{method:'POST',scope:'card:application:write',body:{},idempotencyKey:approvedOperationId})}
+  status(id:string){return this.request(pathPrefix+'/provider-applications/'+resource(id)+'/status',{method:'GET',scope:'account:read'})}
+  funding(id:string){return this.request(pathPrefix+'/provider-applications/'+resource(id)+'/funding',{method:'GET',scope:'account:read'})}
+  history(id:string,cursor?:string){if(cursor!==undefined&&!/^[A-Za-z0-9._~:-]{1,512}$/.test(cursor))throw new CardProviderClientError('INVALID_PROVIDER_HISTORY_CURSOR','card-data');return this.request(pathPrefix+'/provider-applications/'+resource(id)+'/history'+(cursor?'?cursor='+encodeURIComponent(cursor):''),{method:'GET',scope:'account:read'})}
+  operation(id:string,operationId:string){return this.request(pathPrefix+'/provider-applications/'+resource(id)+'/operation/'+resource(operationId),{method:'GET',scope:'account:read'})}
+  unknownCreateCandidates(id:string){return this.request(pathPrefix+'/provider-applications/'+resource(id)+'/unknown-candidates',{method:'GET',scope:'account:read'})}
+  control(id:string,action:'freeze'|'unfreeze',key:string){return this.request(pathPrefix+'/provider-applications/'+resource(id)+'/'+action,{method:'POST',scope:'card:controls:write',body:{},idempotencyKey:key})}
+  financeConsent(){return this.request(pathPrefix+'/finance-consent',{method:'GET',scope:'account:read'})}
+  grantFinanceConsent(scopes:readonly ('card.provider-activity.read'|'card.provider-transactions.read')[],expiresAt:string,key:string){return this.request(pathPrefix+'/finance-consent',{method:'POST',scope:'card:finance:share',body:{consent:true,scopes,expiresAt},idempotencyKey:key})}
+  revokeFinanceConsent(key:string){return this.request(pathPrefix+'/finance-consent/revoke',{method:'POST',scope:'card:finance:share',body:{revoke:true},idempotencyKey:key})}
 }

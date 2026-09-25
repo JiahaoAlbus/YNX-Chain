@@ -27,3 +27,15 @@ test('wrong source/owner, HTML fallback, sensitive card fields and hostile hoste
   const hosted=new CardProviderClient({expectedSourceCommit:source,identity,createIntrospectionProof:async()=>({proofHeader:'x'}),allowedHostedOrigins:['https://verify.test.immersve.com'],fetch:async()=>envelope({application:{status:'KYC_PENDING'},hostedUrl:'https://evil.example/kyc'})});
   await assert.rejects(hosted.beginHostedKyc('application-a','start-a'),error=>error instanceof CardProviderClientError&&error.code==='HOSTED_KYC_RESPONSE_UNTRUSTED');
 });
+test('provider lifecycle and Finance consent use exact v2 routes and separate fresh scopes',async()=>{
+  const calls:{url:string;init:RequestInit}[]=[],scopes:string[][]=[];
+  const client=new CardProviderClient({expectedSourceCommit:source,identity,createIntrospectionProof:async required=>{scopes.push([...required]);return {proofHeader:'fresh-'+scopes.length}},fetch:async(url,init)=>{calls.push({url:String(url),init:init??{}});return envelope({})}});
+  await client.programs();await client.prepareApproval('application-a',{platform:'web',fundingSourceId:'source-a',idempotencyKey:'create-a'},'prepare-a');await client.acceptApproval('application-a','https://card.ynxweb4.com/wallet-auth/callback?cardApplicationApprovalResult=fixture','result-a');await client.submit('application-a','create-a');await client.status('application-a');await client.funding('application-a');await client.history('application-a','page-two');await client.control('application-a','freeze','freeze-a');await client.financeConsent();await client.grantFinanceConsent(['card.provider-transactions.read'],'2099-01-01T00:00:00Z','grant-a');await client.revokeFinanceConsent('revoke-a');
+  assert.deepEqual(scopes,[['account:read'],['card:application:write'],['card:application:write'],['card:application:write'],['account:read'],['account:read'],['account:read'],['card:controls:write'],['account:read'],['card:finance:share'],['card:finance:share']]);
+  assert.equal(calls[6]?.url,CARD_BUSINESS_ORIGIN+'/api/card/v2/provider-applications/application-a/history?cursor=page-two');
+  assert.equal(calls[7]?.url,CARD_BUSINESS_ORIGIN+'/api/card/v2/provider-applications/application-a/freeze');
+  assert.equal(calls[9]?.url,CARD_BUSINESS_ORIGIN+'/api/card/v2/finance-consent');
+  assert.equal(calls[10]?.url,CARD_BUSINESS_ORIGIN+'/api/card/v2/finance-consent/revoke');
+  assert.deepEqual(calls.map(call=>new Headers(call.init.headers).get('X-YNX-Product-Session-Proof-V2')),scopes.map((_,i)=>'fresh-'+(i+1)));
+  assert.throws(()=>client.history('application-a','bad&cursor=another'),/INVALID_PROVIDER_HISTORY_CURSOR/);
+});
