@@ -24,6 +24,9 @@ func TestWebsitePolicyAllowsSameOriginClaimAndExternalAssets(t *testing.T) {
 		if w.Code != 200 {
 			t.Fatalf("%s: %d", p, w.Code)
 		}
+		if w.Header().Get("Cache-Control") != "no-store" {
+			t.Fatalf("%s may retain a stale Faucet client", p)
+		}
 		if p == "/" {
 			if !strings.Contains(w.Header().Get("Content-Security-Policy"), "connect-src 'self'") || !strings.Contains(w.Body.String(), "/faucet-assets/app.js") {
 				t.Fatal("page cannot load its own assets and funding request")
