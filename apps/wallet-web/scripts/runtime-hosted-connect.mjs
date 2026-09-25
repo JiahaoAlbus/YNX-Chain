@@ -8,6 +8,9 @@ import { p256 } from "@noble/curves/nist.js";
 import registry from "../vendor/product-session-registry-b754ffc42.json" with { type: "json" };
 import { createProductSessionRequest, encodeProductSessionWalletURL, parseProductSessionReturnURL } from "@ynx-chain/wallet-auth-card-provider-v2";
 import { createEncryptedVault } from "../src/extension-vault.js";
+import { NATIVE_FEE_MODEL } from "../src/extension-fee-model.js";
+import { DURABILITY_MODEL } from "../src/extension-durability.js";
+import { Transaction } from "ethers";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const dist = resolve(root, "dist", "hosted");
@@ -81,6 +84,17 @@ try {
   await context.close();
   const fresh = await browser.newContext({ acceptDownloads: true });
   await routeFixture(fresh);
+  const rpcSends = [];
+  await fresh.route(/^https:\/\/(?:rpc-testnet|evm)\.ynxweb4\.com\//u, async route => {
+    const headers = { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "content-type", "content-type": "application/json" };
+    if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers, body: "" });
+    const body = route.request().postDataJSON();
+    const values = { eth_chainId: "0x1917", ynx_getFeeModel: { ...NATIVE_FEE_MODEL, enabled: true }, ynx_getDurabilityModel: DURABILITY_MODEL, eth_getTransactionCount: "0x1", eth_estimateGas: "0x61a8", eth_gasPrice: NATIVE_FEE_MODEL.gasPrice, eth_getBalance: "0x29a2241af62c0000", eth_getTransactionReceipt: null };
+    let result = values[body.method];
+    if (body.method === "eth_sendRawTransaction") { result = Transaction.from(body.params[0]).hash; rpcSends.push(result); }
+    if (!(body.method in values) && body.method !== "eth_sendRawTransaction") return route.fulfill({ status: 200, headers, body: JSON.stringify({ jsonrpc: "2.0", id: body.id, error: { code: -32601, message: "unsupported fixture method" } }) });
+    return route.fulfill({ status: 200, headers, body: JSON.stringify({ jsonrpc: "2.0", id: body.id, result }) });
+  });
   const restoredFinance = await financePage(fresh);
   const restoredPopup = fresh.waitForEvent("page");
   await restoredFinance.locator("#connect").click();
@@ -114,6 +128,28 @@ try {
   assert.equal(parseProductSessionReturnURL(registry, rejectedRequest.value, rejectedReturn.returnUrl).status, "user-rejected");
   const repeated = await restoredFinance.evaluate(async url => { try { await window.ynxAdapter.request({ method: "ynx_requestProductSessionV2", params: [url] }); return "unexpected"; } catch (error) { return error.code; } }, privateApproval.url);
   assert.equal(repeated, "HOSTED_REQUEST_REPLAYED_OR_STORAGE_UNAVAILABLE");
+  const secondFinance = await financePage(fresh);
+  const otherPopup = fresh.waitForEvent("page");
+  await secondFinance.locator("#connect").click();
+  const otherWallet = await otherPopup;
+  await otherWallet.locator("#review").waitFor({ state: "visible" });
+  await otherWallet.locator("#approve").click();
+  assert.equal((await secondFinance.evaluate(() => window.ynxConnection))[0], account);
+  const transaction = { from: account, to: `0x${"11".repeat(20)}`, value: "0xde0b6b3a7640000", data: "0x" };
+  await restoredFinance.evaluate(value => { window.firstSend = window.ynxAdapter.request({ method: "eth_sendTransaction", params: [value] }).then(hash => ({ hash }), error => ({ code: error.code })); }, transaction);
+  await restoredWallet.locator("#review").waitFor({ state: "visible" });
+  const blocked = await secondFinance.evaluate(async value => { try { return await window.ynxAdapter.request({ method: "eth_sendTransaction", params: [value] }); } catch (error) { return error.code; } }, transaction);
+  assert.equal(blocked, "HOSTED_ACCOUNT_BUSY");
+  assert.equal(rpcSends.length, 0);
+  await restoredWallet.bringToFront();
+  await restoredWallet.locator("#approval-password").fill(password);
+  await restoredWallet.locator("#approve").click();
+  const firstSend = await restoredFinance.evaluate(() => window.firstSend);
+  assert.match(firstSend.hash ?? "", /^0x[0-9a-f]{64}$/u);
+  assert.deepEqual(rpcSends, [firstSend.hash]);
+  const stillBlocked = await secondFinance.evaluate(async value => { try { return await window.ynxAdapter.request({ method: "eth_sendTransaction", params: [value] }); } catch (error) { return error.code; } }, transaction);
+  assert.equal(stillBlocked, -32002);
+  assert.deepEqual(rpcSends, [firstSend.hash]);
   const second = await createEncryptedVault({ password, secretHex: "42".repeat(32) });
   await restoredWallet.locator("#account-switch-section details").evaluate(node => { node.open = true; });
   await restoredWallet.locator("#add-account-file").setInputFiles({ name: "second-encrypted.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(second)) });
@@ -122,13 +158,8 @@ try {
   await restoredWallet.waitForFunction(expected => [...document.querySelector("#account-select").options].some(option => option.value === expected), second.account);
   await restoredFinance.evaluate(() => { window.racedSign = window.ynxAdapter.request({ method: "personal_sign", params: ["0x74657374", window.ynxAdapter.account] }).then(() => "signed", error => error.code); });
   await restoredWallet.locator("#review").waitFor({ state: "visible" });
-  const secondFinance = await financePage(fresh);
-  const otherPopup = fresh.waitForEvent("page");
-  await secondFinance.locator("#connect").click();
-  const otherWallet = await otherPopup;
-  await otherWallet.locator("#review").waitFor({ state: "visible" });
-  await otherWallet.locator("#approve").click();
-  assert.equal((await secondFinance.evaluate(() => window.ynxConnection))[0], account);
+  await otherWallet.locator("#account-select").focus();
+  await otherWallet.waitForFunction(expected => [...document.querySelector("#account-select").options].some(option => option.value === expected), second.account);
   await otherWallet.locator("#account-select").selectOption(second.account);
   await otherWallet.locator("#switch-account").click();
   await secondFinance.waitForFunction(() => window.ynxAdapter.connected === false);
@@ -146,6 +177,6 @@ try {
   assert.equal(await switchedWallet.locator("#account-evm").textContent(), second.account);
   await switchedWallet.locator("#approve").click();
   assert.equal((await restoredFinance.evaluate(() => window.ynxConnection))[0], second.account);
-  console.log(JSON.stringify({ isolatedBrowser: "Chromium", hostedVaultCreatedAndReadBack: true, backupAcknowledgementBeforeConnect: true, zeroBalanceConnectionNoRpcRequired: true, account, chainId: "0x1917", explicitSignatureRejection: true, refreshDisconnected: true, wrongBackupPasswordRejected: true, encryptedBackupRestoresSamePublicAccount: true, privateV2SignedReturnLocallyVerified: true, privateV2Rejection: true, privateV2ReplayRejected: true, accountSwitchRequiresFreshApproval: true, concurrentAccountSwitchCancelsSignature: true, gatewayVerified: false, publicDeploymentVerified: false }));
+  console.log(JSON.stringify({ isolatedBrowser: "Chromium", hostedVaultCreatedAndReadBack: true, backupAcknowledgementBeforeConnect: true, zeroBalanceConnectionNoRpcRequired: true, account, chainId: "0x1917", explicitSignatureRejection: true, refreshDisconnected: true, wrongBackupPasswordRejected: true, encryptedBackupRestoresSamePublicAccount: true, privateV2SignedReturnLocallyVerified: true, privateV2Rejection: true, privateV2ReplayRejected: true, accountSwitchRequiresFreshApproval: true, concurrentAccountSwitchCancelsSignature: true, competingPopupSendBlocked: true, originalTransactionJournalRetained: true, mockRpcOnly: true, gatewayVerified: false, publicDeploymentVerified: false }));
   await fresh.close();
 } finally { await browser.close(); }

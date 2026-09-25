@@ -1,4 +1,5 @@
 import { createHostedVaultStore } from "./hosted-vault-store.js";
+import { withHostedAccountLock } from "./hosted-account-lock.js";
 import { unlockEncryptedVault } from "./extension-vault.js";
 import { validateYNXChainMutation } from "./extension-chain-params.js";
 import { forwardExtensionRpc, broadcastExtensionTransaction, YNX_CHAIN_ID } from "./extension-rpc.js";
@@ -23,6 +24,10 @@ async function assertCurrentAccount() {
     reply("disconnected"); session = null; fail("HOSTED_ACCOUNT_CHANGED_OR_EXPIRED");
   }
 }
+async function assertSelectedAccount() {
+  const current = await store.read();
+  if (!current || current.account !== vault?.account || JSON.stringify(current) !== JSON.stringify(vault)) fail("HOSTED_ACCOUNT_CHANGED");
+}
 function displayAccount() {
   $("account-card").hidden = !vault;
   if (vault) { $("account-ynx").textContent = toYNXAddress(vault.account); $("account-evm").textContent = vault.account; }
@@ -37,7 +42,8 @@ async function refreshAccountList() {
 async function refreshTransactionStatus(refresh = false) {
   if (!vault) return;
   try {
-    const record = await broadcastJournal.status(vault.account, { rpc: forwardExtensionRpc, refresh });
+    const readStatus = () => broadcastJournal.status(vault.account, { rpc: forwardExtensionRpc, refresh });
+    const record = refresh ? await withHostedAccountLock(vault.account, async () => { await assertSelectedAccount(); return readStatus(); }) : await readStatus();
     $("transaction-panel").hidden = !record;
     if (record) $("transaction-status").textContent = `${record.transactionHash} · ${record.status}${record.blocksNewSend ? " · New sends paused until original transaction is resolved." : ""}`;
   } catch (error) {
@@ -110,7 +116,7 @@ async function handleMethod(method, params) {
     await assertCurrentAccount();
     return broadcastJournal.broadcast({ account: vault.account, origin: session.origin, signed, broadcast: broadcastExtensionTransaction, assertAuthorized, rpc: forwardExtensionRpc });
     };
-    return method === "eth_sendTransaction" ? broadcastJournal.run(vault.account, perform) : perform();
+    return method === "eth_sendTransaction" ? withHostedAccountLock(vault.account, async () => { await assertCurrentAccount(); return broadcastJournal.run(vault.account, perform); }) : perform();
   }
   if (method.startsWith("eth_") || method.startsWith("net_") || method.startsWith("web3_")) return forwardExtensionRpc(method, params);
   fail("HOSTED_METHOD_UNSUPPORTED");
@@ -144,7 +150,7 @@ async function receive(event) {
     const result = await handleMethod(data.method, data.params);
     reply("response", { replyTo: data.messageId, ok: true, result });
   } catch (error) {
-    reply("response", { replyTo: data.messageId, ok: false, code: typeof error?.code === "string" ? error.code : "HOSTED_REQUEST_FAILED" });
+    reply("response", { replyTo: data.messageId, ok: false, code: typeof error?.code === "string" || Number.isInteger(error?.code) ? error.code : "HOSTED_REQUEST_FAILED" });
     message("The request was not approved or could not be completed. Your account remains protected.");
   } finally { busy = false; }
 }
@@ -205,6 +211,7 @@ $("switch-account").addEventListener("click", async () => {
     message(`Switched to ${toYNXAddress(account)}. Reconnect from the product and approve the new account.`);
   } catch (error) { message(`Account selection failed; current session is unchanged. (${error?.code ?? "HOSTED_ACCOUNT_UNAVAILABLE"})`); }
 });
+$("account-select").addEventListener("focus", () => { void refreshAccountList().catch(() => message("Account list could not be read. Existing accounts were retained.")); });
 $("refresh-transaction").addEventListener("click", () => { void refreshTransactionStatus(true); });
 $("export-backup").addEventListener("click", async () => {
   try {

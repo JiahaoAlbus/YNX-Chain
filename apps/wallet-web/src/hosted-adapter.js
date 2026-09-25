@@ -39,7 +39,7 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
     if (!waiter) return;
     pending.delete(data.replyTo);
     if (data.ok === true) waiter.resolve(data.result);
-    else waiter.reject(failure(typeof data.code === "string" ? data.code : "HOSTED_REQUEST_FAILED"));
+    else waiter.reject(failure(typeof data.code === "string" || Number.isInteger(data.code) ? data.code : "HOSTED_REQUEST_FAILED"));
   }
   browserWindow.addEventListener("message", onMessage);
   async function connect() {
