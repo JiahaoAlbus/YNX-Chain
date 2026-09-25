@@ -1,14 +1,154 @@
 package exchangeproduct
 
 import (
+	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
+
+	_ "github.com/lib/pq"
 )
+
+var errStateConflict = errors.New("exchange state changed concurrently")
+
+// stateStore keeps the whole deterministic venue state durable. PostgreSQL is
+// the production-capable backend; the JSON implementation is retained only for
+// local development and isolated testnet fixtures.
+type stateStore interface {
+	load() (persistentState, bool, error)
+	save(*persistentState) error
+	close() error
+	backend() string
+	multiInstance() bool
+}
+
+type fileStateStore struct{ path string }
+
+func (s fileStateStore) load() (persistentState, bool, error) { return loadState(s.path) }
+func (s fileStateStore) save(state *persistentState) error    { return saveState(s.path, state) }
+func (s fileStateStore) close() error                         { return nil }
+func (s fileStateStore) backend() string                      { return "file_snapshot" }
+func (s fileStateStore) multiInstance() bool                  { return false }
+
+type postgresStateStore struct{ db *sql.DB }
+
+func openStateStore(statePath, databaseURL string) (stateStore, error) {
+	if strings.TrimSpace(databaseURL) == "" {
+		return fileStateStore{path: statePath}, nil
+	}
+	db, err := sql.Open("postgres", databaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("open exchange PostgreSQL state store: %w", err)
+	}
+	db.SetConnMaxLifetime(15 * time.Minute)
+	db.SetMaxOpenConns(16)
+	db.SetMaxIdleConns(4)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("ping exchange PostgreSQL state store: %w", err)
+	}
+	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS ynx_exchange_state (
+		id TEXT PRIMARY KEY,
+		revision BIGINT NOT NULL,
+		payload JSONB NOT NULL,
+		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+	)`); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("migrate exchange PostgreSQL state store: %w", err)
+	}
+	return &postgresStateStore{db: db}, nil
+}
+
+func (s *postgresStateStore) load() (persistentState, bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var revision int64
+	var payload []byte
+	err := s.db.QueryRowContext(ctx, `SELECT revision, payload FROM ynx_exchange_state WHERE id = 'primary'`).Scan(&revision, &payload)
+	if errors.Is(err, sql.ErrNoRows) {
+		return newState(), false, nil
+	}
+	if err != nil {
+		return persistentState{}, false, fmt.Errorf("load exchange PostgreSQL state: %w", err)
+	}
+	var state persistentState
+	if err := json.Unmarshal(payload, &state); err != nil {
+		return persistentState{}, false, fmt.Errorf("decode exchange PostgreSQL state: %w", err)
+	}
+	state.Revision = revision
+	if state.SchemaVersion != 1 || state.IntegrityHash == "" {
+		return persistentState{}, false, errors.New("exchange PostgreSQL state schema or integrity hash invalid")
+	}
+	expected, err := stateIntegrity(state)
+	if err != nil || expected != state.IntegrityHash {
+		return persistentState{}, false, errors.New("exchange PostgreSQL state integrity verification failed")
+	}
+	normalizeState(&state)
+	return state, true, nil
+}
+
+func (s *postgresStateStore) save(state *persistentState) error {
+	if state.Revision < 0 {
+		return errors.New("exchange PostgreSQL state revision invalid")
+	}
+	previousRevision := state.Revision
+	next := *state
+	next.Revision = 0 // revision is held by the database, not signed into payload.
+	hash, err := stateIntegrity(next)
+	if err != nil {
+		return err
+	}
+	next.IntegrityHash = hash
+	payload, err := json.Marshal(next)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if previousRevision == 0 {
+		result, err := s.db.ExecContext(ctx, `INSERT INTO ynx_exchange_state (id, revision, payload) VALUES ('primary', 1, $1::jsonb) ON CONFLICT (id) DO NOTHING`, string(payload))
+		if err != nil {
+			return fmt.Errorf("create exchange PostgreSQL state: %w", err)
+		}
+		rows, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("create exchange PostgreSQL state result: %w", err)
+		}
+		if rows != 1 {
+			return errStateConflict
+		}
+		state.Revision = 1
+		state.IntegrityHash = hash
+		return nil
+	}
+	result, err := s.db.ExecContext(ctx, `UPDATE ynx_exchange_state SET revision = $1, payload = $2::jsonb, updated_at = NOW() WHERE id = 'primary' AND revision = $3`, previousRevision+1, string(payload), previousRevision)
+	if err != nil {
+		return fmt.Errorf("save exchange PostgreSQL state: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("save exchange PostgreSQL state result: %w", err)
+	}
+	if rows != 1 {
+		return errStateConflict
+	}
+	state.Revision = previousRevision + 1
+	state.IntegrityHash = hash
+	return nil
+}
+
+func (s *postgresStateStore) close() error        { return s.db.Close() }
+func (s *postgresStateStore) backend() string     { return "postgresql" }
+func (s *postgresStateStore) multiInstance() bool { return true }
 
 type idempotencyRecord struct {
 	Action   string `json:"action"`
@@ -36,6 +176,7 @@ type persistentState struct {
 	Idempotency    map[string]idempotencyRecord `json:"idempotency"`
 	Audit          []AuditEvent                 `json:"audit"`
 	IntegrityHash  string                       `json:"integrityHash"`
+	Revision       int64                        `json:"-"`
 }
 
 func newState() persistentState {

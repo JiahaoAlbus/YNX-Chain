@@ -15,13 +15,20 @@ import (
 )
 
 type Server struct {
-	service       *Service
-	mux           *http.ServeMux
-	role          string
-	logger        *slog.Logger
-	metrics       serverMetrics
-	researchSlots chan struct{}
+	service            *Service
+	mux                *http.ServeMux
+	role               string
+	logger             *slog.Logger
+	metrics            serverMetrics
+	streamPollInterval time.Duration
+	streamPingInterval time.Duration
+	researchSlots      chan struct{}
 }
+
+const (
+	defaultQuantStreamPollInterval = 5 * time.Second
+	defaultQuantStreamPingInterval = 15 * time.Second
+)
 
 func NewServer(s *Service) *Server {
 	return NewRoleServer(s, "all")
@@ -36,19 +43,31 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 	if !allowed[role] {
 		panic("invalid quant service role")
 	}
-	v := &Server{service: s, mux: http.NewServeMux(), role: role, logger: newJSONLogger(logWriter), researchSlots: make(chan struct{}, 32)}
+	v := &Server{
+		service:            s,
+		researchSlots:      make(chan struct{}, 32),
+		mux:                http.NewServeMux(),
+		role:               role,
+		logger:             newJSONLogger(logWriter),
+		streamPollInterval: defaultQuantStreamPollInterval,
+		streamPingInterval: defaultQuantStreamPingInterval,
+	}
 	v.mux.HandleFunc("GET /health", v.health)
+	v.mux.HandleFunc("GET /ready", v.ready)
 	v.mux.HandleFunc("GET /version", v.version)
 	v.mux.HandleFunc("GET /v1/public/status", v.publicStatus)
 	v.mux.HandleFunc("GET /v1/snapshot", v.snapshot)
 	v.mux.HandleFunc("GET /v1/stream", v.stream)
 	v.mux.HandleFunc("GET /metrics", v.metricsHandler)
+	v.mux.HandleFunc("POST /v1/wallet/sessions/complete", v.completeWalletSession)
+	v.mux.HandleFunc("POST /v1/wallet/private-account", v.privateAccount)
 	if role == "all" || role == "research" {
 		v.mux.HandleFunc("POST /v1/public/research/backtests/from-market", v.publicBacktestFromMarket)
 		v.mux.HandleFunc("POST /v1/datasets", v.dataset)
 		v.mux.HandleFunc("POST /v1/backtests", v.backtest)
 		v.mux.HandleFunc("POST /v1/backtests/from-market", v.backtestFromMarket)
 		v.mux.HandleFunc("PUT /v1/strategies/{id}/stage", v.stage)
+		v.mux.HandleFunc("PUT /v1/strategies/{id}/schedule", v.schedule)
 	}
 	if role == "all" || role == "paper" {
 		v.mux.HandleFunc("POST /v1/paper/orders", v.paper)
@@ -59,11 +78,12 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 		v.mux.HandleFunc("POST /v1/testnet/mandates", v.mandate)
 		v.mux.HandleFunc("POST /v1/testnet/mandates/{digest}/revoke", v.revokeMandate)
 		v.mux.HandleFunc("POST /v1/testnet/orders", v.testnet)
+		v.mux.HandleFunc("POST /v1/testnet/signing-payloads/mandate", v.mandateSigningPayload)
+		v.mux.HandleFunc("POST /v1/testnet/signing-payloads/order", v.orderSigningPayload)
 	}
 	v.mux.HandleFunc("/", v.notFound)
 	return v
 }
-
 func publicResearchRequest(r *http.Request) bool {
 	return r.Method == http.MethodPost && r.URL.Path == "/v1/public/research/backtests/from-market"
 }
@@ -112,8 +132,26 @@ func (s *Server) publicBacktestFromMarket(w http.ResponseWriter, r *http.Request
 		writeProblem(w, r, http.StatusServiceUnavailable, "research_workspace_unavailable")
 		return
 	}
+	defer isolated.Close()
 	result, runErr := isolated.RunBacktestFromMarket(q.Strategy, q.Assumptions)
 	respond(w, r, result, runErr, http.StatusCreated)
+}
+
+func (s *Server) completeWalletSession(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, 256<<10)
+	body, err := io.ReadAll(r.Body)
+	if err != nil || s.service.cfg.SessionCompleter == nil {
+		writeProblem(w, r, http.StatusServiceUnavailable, "wallet_session_unavailable")
+		return
+	}
+	payload, status, err := s.service.cfg.SessionCompleter.CompleteWalletSession(r.Context(), body)
+	if err != nil {
+		writeProblem(w, r, http.StatusServiceUnavailable, "wallet_session_unavailable")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = w.Write(payload)
 }
 func (s *Server) dataset(w http.ResponseWriter, r *http.Request) {
 	var q DatasetRecord
@@ -153,13 +191,31 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 			pendingUnknown++
 		}
 	}
-	write(w, 200, map[string]any{"status": "ok", "ready": true, "productId": ProductID, "serviceRole": s.role, "version": Version, "commit": BuildCommit, "mode": "simulated_testnet_only", "liveFundsEnabled": false, "signals": map[string]any{"killSwitch": paper.KillSwitch, "reconciliationDelta": paper.ReconciliationDelta, "pendingUnknownExecutions": pendingUnknown}})
+	write(w, 200, map[string]any{"status": "ok", "ready": true, "productId": ProductID, "serviceRole": s.role, "version": Version, "commit": BuildCommit, "mode": "simulated_testnet_only", "liveFundsEnabled": false, "storage": s.service.StorageStatus(), "signals": map[string]any{"killSwitch": paper.KillSwitch, "reconciliationDelta": paper.ReconciliationDelta, "pendingUnknownExecutions": pendingUnknown}})
+}
+func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
+	storage := s.service.StorageStatus()
+	multiInstance, _ := storage["multiInstance"].(bool)
+	if !multiInstance {
+		write(w, http.StatusServiceUnavailable, map[string]any{
+			"status":  "not_ready",
+			"reason":  "multi-instance durable PostgreSQL state is required for a deployable Quant service",
+			"storage": storage,
+		})
+		return
+	}
+	write(w, http.StatusOK, map[string]any{
+		"status":  "ready",
+		"storage": storage,
+	})
 }
 func (s *Server) version(w http.ResponseWriter, r *http.Request) {
-	write(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit})
+	write(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit, "storage": s.service.StorageStatus()})
 }
 func (s *Server) snapshot(w http.ResponseWriter, r *http.Request) {
-	write(w, 200, s.service.Snapshot())
+	result := s.service.Snapshot()
+	result["access"] = map[string]bool{"statefulPreview": localPreviewRequest(r)}
+	write(w, 200, result)
 }
 func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{
@@ -178,32 +234,70 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 	defer connection.Close()
 	s.metrics.activeWebSockets.Add(1)
 	defer s.metrics.activeWebSockets.Add(^uint64(0))
-	connection.SetWriteDeadline(time.Now().Add(5 * time.Second))
-	if err := connection.WriteJSON(map[string]any{
-		"type":       "snapshot",
-		"requestId":  requestID(r),
-		"traceId":    traceID(r),
-		"source":     "ynx-quant-authoritative-local-state",
-		"asOf":       time.Now().UTC(),
-		"version":    Version,
-		"confidence": "authoritative",
-		"data":       s.service.Snapshot(),
-	}); err != nil {
+	snapshot, fingerprint := s.service.streamSnapshot()
+	if !s.writeStreamEnvelope(connection, r, "snapshot", snapshot, fingerprint) {
 		return
 	}
-	// Read until the client closes. This prevents a write-only connection from
-	// being retained forever and gives intermediaries a normal close path.
+	// Read until the client closes. Reads run separately from the sole writer so
+	// the durable reconciliation ticker never races concurrent WebSocket writes.
 	connection.SetReadLimit(1024)
 	connection.SetReadDeadline(time.Now().Add(35 * time.Second))
 	connection.SetPongHandler(func(string) error {
 		connection.SetReadDeadline(time.Now().Add(35 * time.Second))
 		return nil
 	})
+	closed := make(chan struct{})
+	go func() {
+		defer close(closed)
+		for {
+			if _, _, err := connection.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}()
+	poll := time.NewTicker(s.streamPollInterval)
+	defer poll.Stop()
+	ping := time.NewTicker(s.streamPingInterval)
+	defer ping.Stop()
 	for {
-		if _, _, err := connection.ReadMessage(); err != nil {
+		select {
+		case <-closed:
 			return
+		case <-poll.C:
+			snapshot, nextFingerprint := s.service.streamSnapshot()
+			if snapshot["failure"] != nil {
+				connection.SetWriteDeadline(time.Now().Add(5 * time.Second))
+				_ = connection.WriteJSON(map[string]any{"type": "source-unavailable", "code": "FIN_SOURCE_UNAVAILABLE", "retryable": true})
+				return
+			}
+			if nextFingerprint != fingerprint {
+				if !s.writeStreamEnvelope(connection, r, "reconciled", snapshot, nextFingerprint) {
+					return
+				}
+				fingerprint = nextFingerprint
+			}
+		case <-ping.C:
+			if err := connection.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second)); err != nil {
+				return
+			}
 		}
 	}
+}
+
+func (s *Server) writeStreamEnvelope(connection *websocket.Conn, r *http.Request, eventType string, snapshot map[string]any, fingerprint string) bool {
+	connection.SetWriteDeadline(time.Now().Add(5 * time.Second))
+	return connection.WriteJSON(map[string]any{
+		"type":           eventType,
+		"eventId":        "state-" + fingerprint,
+		"requestId":      requestID(r),
+		"traceId":        traceID(r),
+		"source":         snapshot["source"],
+		"asOf":           snapshot["asOf"],
+		"version":        Version,
+		"confidence":     "authoritative",
+		"sourceMetadata": snapshot["sourceMetadata"],
+		"data":           snapshot,
+	}) == nil
 }
 func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
 	writeProblem(w, r, http.StatusNotFound, "route_not_found")
@@ -244,6 +338,18 @@ func (s *Server) stage(w http.ResponseWriter, r *http.Request) {
 	v, e := s.service.AdvanceStrategy(r.PathValue("id"), q)
 	respond(w, r, v, e, 200)
 }
+func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		Enabled         bool        `json:"enabled"`
+		IntervalSeconds int64       `json:"intervalSeconds"`
+		Assumptions     Assumptions `json:"assumptions"`
+	}
+	if !decode(w, r, &q) {
+		return
+	}
+	v, e := s.service.ConfigureStrategySchedule(r.PathValue("id"), q.Enabled, q.IntervalSeconds, q.Assumptions)
+	respond(w, r, v, e, 200)
+}
 func (s *Server) revokeMandate(w http.ResponseWriter, r *http.Request) {
 	var q struct {
 		Actor string `json:"actor"`
@@ -256,14 +362,15 @@ func (s *Server) revokeMandate(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) paper(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		StrategyHash string `json:"strategyHash"`
-		Side         string `json:"side"`
-		Amount       int64  `json:"amount"`
+		StrategyHash   string `json:"strategyHash"`
+		Side           string `json:"side"`
+		Amount         int64  `json:"amount"`
+		IdempotencyKey string `json:"idempotencyKey"`
 	}
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.ApplyPaperSignalFromMarket(q.StrategyHash, q.Side, q.Amount)
+	v, e := s.service.SubmitPaperSignalFromMarket(q.StrategyHash, q.Side, q.Amount, q.IdempotencyKey)
 	respond(w, r, v, e, 201)
 }
 func (s *Server) reconcile(w http.ResponseWriter, r *http.Request) {
@@ -285,27 +392,64 @@ func (s *Server) kill(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, v, e, 200)
 }
 func (s *Server) mandate(w http.ResponseWriter, r *http.Request) {
+	if rejectV2NativeBridge(w, r) {
+		return
+	}
 	var q Mandate
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.RegisterMandate(q)
+	v, e := s.service.RegisterMandateWithSession(r.Context(), q, exchangeSession(r))
 	respond(w, r, v, e, 201)
 }
-func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
+
+func (s *Server) mandateSigningPayload(w http.ResponseWriter, r *http.Request) {
+	var q Mandate
+	if !decode(w, r, &q) {
+		return
+	}
+	payload := ExchangeMandateSigningPayload(q)
+	write(w, http.StatusOK, map[string]string{"domain": ExchangeQuantAdapterVersion, "payload": string(payload), "digest": hashBytes(payload)})
+}
+
+func (s *Server) orderSigningPayload(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		MandateDigest  string                 `json:"mandateDigest"`
-		Side           string                 `json:"side"`
-		Price          int64                  `json:"price"`
-		Amount         int64                  `json:"amount"`
-		IdempotencyKey string                 `json:"idempotencyKey"`
-		Risk           TestnetRiskObservation `json:"risk"`
+		Account        string `json:"account"`
+		Market         string `json:"market"`
+		Side           string `json:"side"`
+		Price          int64  `json:"price"`
+		Amount         int64  `json:"amount"`
+		IdempotencyKey string `json:"idempotencyKey"`
 	}
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.SubmitTestnet(q.MandateDigest, q.Side, q.Price, q.Amount, q.IdempotencyKey, q.Risk)
+	order := TestnetOrder{Market: q.Market, Side: q.Side, Price: q.Price, Amount: q.Amount, IdempotencyKey: q.IdempotencyKey}
+	payload := ExchangeOrderSigningPayload(q.Account, order)
+	write(w, http.StatusOK, map[string]string{"domain": "ynx-exchange-order-v1", "payload": string(payload), "digest": hashBytes(payload)})
+}
+func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
+	if rejectV2NativeBridge(w, r) {
+		return
+	}
+	var q struct {
+		MandateDigest   string                 `json:"mandateDigest"`
+		Side            string                 `json:"side"`
+		Price           int64                  `json:"price"`
+		Amount          int64                  `json:"amount"`
+		IdempotencyKey  string                 `json:"idempotencyKey"`
+		Risk            TestnetRiskObservation `json:"risk"`
+		WalletSignature string                 `json:"walletSignature"`
+	}
+	if !decode(w, r, &q) {
+		return
+	}
+	v, e := s.service.SubmitTestnetWithSession(r.Context(), q.MandateDigest, q.Side, q.Price, q.Amount, q.IdempotencyKey, q.WalletSignature, exchangeSession(r), q.Risk)
 	respond(w, r, v, e, 201)
+}
+
+func exchangeSession(r *http.Request) string {
+	return strings.TrimSpace(r.Header.Get("X-YNX-Quant-Product-Session-Proof"))
 }
 func decode(w http.ResponseWriter, r *http.Request, v any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, 8<<20)

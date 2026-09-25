@@ -3,6 +3,8 @@ package exchangeproduct
 import (
 	"errors"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
 var (
@@ -30,7 +32,11 @@ const (
 var BuildCommit = "development"
 
 type Config struct {
-	StatePath              string
+	StatePath string
+	// DatabaseURL enables the PostgreSQL state backend. When configured, it is
+	// authoritative over StatePath and supports compare-and-swap persistence
+	// across independently running Exchange instances.
+	DatabaseURL            string
 	APIKey                 string
 	WalletCallback         string
 	RequiredConfirmations  int64
@@ -43,9 +49,11 @@ type Config struct {
 	GatewayURL             string
 	GatewayClientID        string
 	Gateway                GatewayAuthorizer
-	IndexerURL             string
-	MaxOrderNotionalMicro  int64
-	MaxWithdrawalMicro     int64
+	// SessionV2 consumes the canonical authority independently of legacy sessions.
+	SessionV2             *productsessionv2.Client
+	IndexerURL            string
+	MaxOrderNotionalMicro int64
+	MaxWithdrawalMicro    int64
 }
 
 type GatewayAuthorizer interface {
@@ -53,12 +61,13 @@ type GatewayAuthorizer interface {
 }
 
 type IntegrationStatus struct {
-	Gateway        string `json:"gateway"`
-	GatewayReason  string `json:"gatewayReason,omitempty"`
-	WalletRegistry string `json:"walletRegistry"`
-	Custody        string `json:"custody"`
-	Indexer        string `json:"indexer"`
-	CrossChain     string `json:"crossChain"`
+	ProductSessionV2 string `json:"productSessionV2"`
+	Gateway          string `json:"gateway"`
+	GatewayReason    string `json:"gatewayReason,omitempty"`
+	WalletRegistry   string `json:"walletRegistry"`
+	Custody          string `json:"custody"`
+	Indexer          string `json:"indexer"`
+	CrossChain       string `json:"crossChain"`
 }
 
 type ChainTransfer struct {
@@ -85,6 +94,19 @@ type Market struct {
 	PriceScale    int64  `json:"priceScale"`
 	AmountScale   int64  `json:"amountScale"`
 	Status        string `json:"status"`
+}
+
+// SourceMetadata travels with every Exchange read model. It distinguishes a
+// truthful local/Testnet read from a deployable multi-instance public venue.
+type SourceMetadata struct {
+	Authority      string    `json:"authority"`
+	Version        string    `json:"version"`
+	AsOf           time.Time `json:"asOf"`
+	Classification string    `json:"classification"`
+	Status         string    `json:"status"`
+	Coverage       string    `json:"coverage"`
+	StateBackend   string    `json:"stateBackend"`
+	MultiInstance  bool      `json:"multiInstance"`
 }
 
 type AssetNetwork struct {
@@ -288,7 +310,8 @@ type AuditEvent struct {
 }
 
 type OrderBook struct {
-	Market string  `json:"market"`
-	Bids   []Order `json:"bids"`
-	Asks   []Order `json:"asks"`
+	Market         string         `json:"market"`
+	Bids           []Order        `json:"bids"`
+	Asks           []Order        `json:"asks"`
+	SourceMetadata SourceMetadata `json:"sourceMetadata"`
 }
