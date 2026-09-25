@@ -265,6 +265,56 @@ test("an ambiguous rename completion of an account mutation closes the app key g
   assert.equal(await f.life.run(() => f.vault.withSecret(secret => accountFor(secret))), accountFor(SECOND));
 });
 
+test("public status waits for encrypted replacement and returns the committed generation", async t => {
+  const f = await fixture(t); await create(f);
+  const replace = f.store.filePolicy.replace.bind(f.store.filePolicy);
+  const entered = deferred(), release = deferred();
+  let reads = 0;
+  const read = f.store.read.bind(f.store);
+  f.store.read = async (...args) => { reads++; return read(...args); };
+  f.store.filePolicy.replace = async (...args) => {
+    if (args[1] === f.filePath) { entered.resolve(); await release.promise; }
+    return replace(...args);
+  };
+  const mutation = f.life.run(() => f.vault.importAccount({ kind: "private-key", value: SECOND }));
+  await entered.promise;
+  const readsAtCommit = reads;
+  const status = f.vault.status();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(reads, readsAtCommit, "status must not open the encrypted target during replacement");
+  release.resolve();
+  const [committed, observed] = await Promise.all([mutation, status]);
+  assert.equal(committed.account, accountFor(SECOND));
+  assert.equal(observed.account, accountFor(SECOND));
+  assert.equal(observed.accounts.some(item => item.account === accountFor(SECRET)), true);
+});
+
+test("encrypted replacement waits for an earlier public status read to close", async t => {
+  const f = await fixture(t); await create(f);
+  const read = f.store.read.bind(f.store);
+  const entered = deferred(), release = deferred();
+  t.after(() => release.resolve());
+  let held = false, replaceStarted = false;
+  f.store.read = async (...args) => {
+    if (!held && (args[0] === undefined || args[0] === f.filePath)) {
+      held = true; entered.resolve(); await release.promise;
+    }
+    return read(...args);
+  };
+  const replace = f.store.filePolicy.replace.bind(f.store.filePolicy);
+  f.store.filePolicy.replace = async (...args) => { replaceStarted = true; return replace(...args); };
+  const status = f.vault.status();
+  await entered.promise;
+  const mutation = f.life.run(() => f.vault.importAccount({ kind: "private-key", value: SECOND }));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(replaceStarted, false, "a later mutation must not replace while status holds the old file");
+  release.resolve();
+  const [observed, committed] = await Promise.all([status, mutation]);
+  assert.equal(observed.account, accountFor(SECRET));
+  assert.equal(committed.account, accountFor(SECOND));
+  assert.equal(replaceStarted, true);
+});
+
 for (const deniedAttempts of [1, 4]) test(`Windows native replacement denied ${deniedAttempts} time(s) preserves the checked generation`, async t => {
   const f = await fixture(t); await create(f); f.store.platform = "win32";
   const original = await fs.readFile(f.filePath), replace = f.store.filePolicy.replace.bind(f.store.filePolicy);
