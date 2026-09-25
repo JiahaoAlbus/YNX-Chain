@@ -558,6 +558,26 @@ test('isolated activated fixture refreshes one persisted execution status withou
   }finally{await page.close();}
 });
 
+test('localized submitted and filled status reads never claim the provider was never contacted',async()=>{
+  executionRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='submitted';
+  const page=await browser.newPage();
+  try{
+    await page.goto(base);await page.evaluate(()=>{window.__orderWalletFixture.authorityAllowed=true;location.hash='broker-sandbox'});
+    for(const [locale,status,label] of [['zh-CN','submitted','已提交至沙盒'],['es','filled','Ejecutada en Sandbox']]){
+      outboxStatus=status;
+      await page.locator('#finance-language').selectOption(locale);
+      await page.waitForFunction(id=>!!document.querySelector(`[data-broker-order-refresh="${id}"]`),orderId);
+      await page.locator(`[data-broker-order-refresh="${orderId}"]`).click();
+      await page.waitForFunction(expected=>document.querySelector('#notice')?.textContent.includes(expected),label);
+      const notice=await page.locator('#notice').textContent();
+      assert.match(notice,locale==='zh-CN'?/本次状态查询没有提交订单/u:/Esta consulta no envió ninguna orden/u);
+      assert.doesNotMatch(notice,locale==='zh-CN'?/尚未联系券商服务商/u:/No se ha contactado al proveedor/u);
+    }
+    assert.equal(executionStatusRequests.length,2);
+    assert.deepEqual(reconcileRequests,[]);assert.deepEqual(executionRequests,[]);
+  }finally{await page.close()}
+});
+
 test('active pending request is restored and blocks double begin before challenge POST',async()=>{
   executionRequests=[];challengeRequests=[];callbackRequests=[];executionStatusRequests=[];reconcileRequests=[];outboxStatus='pending_unwired';callbackFailure=true;challengeSuccess=false;
   const page=await browser.newPage(),request={kind:'finance_order_approval_request',route:'ynxwallet://finance-order-approval',version:'1',unsigned:{account:'ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80',requestId:'request_same_pending',expiresAt:'2026-09-19T11:05:00.000Z',order:{side:'buy',qty:'1',symbol:'ACME',limitPrice:'10',maxCost:'10',maxFee:'1'}}},url='https://wallet.example/review?request=request_same_pending';

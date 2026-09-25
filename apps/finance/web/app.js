@@ -191,13 +191,13 @@ async function requireBrokerOrderAuthority(){
   }
 }
 async function requestBrokerExecution(orderId){
-  try{await requireBrokerOrderAuthority();if(!state.brokerSubmissionEnabled)throw new Error('Controlled Sandbox execution is disabled by server policy.');if(!window.confirm(financeText('brokerExecutionConfirm')))return;const idempotencyKey=`finance-execution-${orderId}`,result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/execution-request`,{method:'POST',body:JSON.stringify({idempotencyKey})});if(result?.schema!=='ynx-finance-broker-execution-request-v1'||result.providerWriteAttempted!==false)throw new Error('Execution request response is invalid.');notify(`${financeText('brokerStateExecutionRequested')}. ${financeText('brokerProviderNotContacted')}`);await refreshBrokerWorkspace()}catch(error){notifyFailure(error,'brokerApprovalUnavailable')}
+  try{await requireBrokerOrderAuthority();if(!state.brokerSubmissionEnabled)throw new Error('Controlled Sandbox execution is disabled by server policy.');if(!window.confirm(financeText('brokerExecutionConfirm')))return;const idempotencyKey=`finance-execution-${orderId}`,result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/execution-request`,{method:'POST',body:JSON.stringify({idempotencyKey})});if(result?.schema!=='ynx-finance-broker-execution-request-v1'||result.providerWriteAttempted!==false)throw new Error('Execution request response is invalid.');notify(`${financeText('brokerStateExecutionRequested')}. ${financeText('brokerExecutionQueuedNotConfirmed')}`);await refreshBrokerWorkspace()}catch(error){notifyFailure(error,'brokerApprovalUnavailable')}
 }
 async function refreshBrokerExecutionStatus(orderId){
   try{
     const result=await api(`/api/broker/orders/${encodeURIComponent(orderId)}/execution-status`),outbox=result?.outbox;
     if(result?.schema!=='ynx-finance-broker-execution-status-v1'||result.providerWriteAttempted!==false||outbox?.orderId!==orderId||typeof outbox.status!=='string')throw new Error('Execution status response is invalid.');
-    notify(window.YNXFinanceLocale?.get()==='en'?`Execution status: ${outbox.status}. This read did not reconcile the provider or submit an order.`:`${financeText('brokerStateExecutionRequested')}: ${brokerWorkflowLabel(outbox.status)}. ${financeText('brokerProviderNotContacted')}`);
+    notify(window.YNXFinanceLocale?.get()==='en'?`Execution status: ${outbox.status}. ${financeText('brokerStatusReadOnly')}`:`${financeText('brokerExecutionStatus')}: ${brokerWorkflowLabel(outbox.status)}. ${financeText('brokerStatusReadOnly')}`);
     await refreshBrokerWorkspace();
   }catch(error){notifyFailure(error,'brokerJournalUnavailable')}
 }

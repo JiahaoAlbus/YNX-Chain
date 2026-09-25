@@ -3247,6 +3247,21 @@
     id:{brokerStatePartial:'Sebagian order tereksekusi di Sandbox',brokerStateFilled:'Order tereksekusi di Sandbox',brokerCancelLegacy:'Status pembatalan lama tidak jelas. Rekonsiliasi status order sebelum tindakan lanjutan; jangan kirim ulang.',testDraftResult:'Hanya pratinjau lokal persyaratan order. Kuotasi, biaya, izin token, pihak lawan, persetujuan dompet, order, dan transaksi on-chain belum diverifikasi.'},
   };
   for(const [locale,copy] of Object.entries(financialTerminology))Object.assign(messages[locale],copy);
+  const executionStatusCopy={
+    en:['Execution status','This status read did not submit an order or reconcile with the provider. Historical order state comes from the server.','The execution request was queued; provider execution is not confirmed.'],
+    'zh-CN':['执行状态','本次状态查询没有提交订单或向服务商对账；历史订单状态以服务端记录为准。','已加入执行请求队列；尚未确认服务商执行。'],
+    'zh-Hant':['執行狀態','本次狀態查詢沒有提交訂單或向服務商對帳；歷史訂單狀態以伺服器記錄為準。','已加入執行請求佇列；尚未確認服務商執行。'],
+    ja:['執行状態','この状態照会では注文を送信せず、サービス提供者との照合も行いません。過去の注文状態はサーバー記録に基づきます。','執行リクエストはキューに入りました。提供者による執行は未確認です。'],
+    ko:['실행 상태','이번 상태 조회는 주문을 제출하거나 제공업체와 대조하지 않았습니다. 과거 주문 상태는 서버 기록을 따릅니다.','실행 요청이 대기열에 추가되었습니다. 제공업체 실행은 확인되지 않았습니다.'],
+    es:['Estado de ejecución','Esta consulta no envió ninguna orden ni concilió con el proveedor. El historial de la orden procede del servidor.','La solicitud de ejecución quedó en cola; no se ha confirmado la ejecución del proveedor.'],
+    fr:["État d'exécution","Cette consultation n'a ni soumis d'ordre ni rapproché les données avec le fournisseur. L'historique de l'ordre provient du serveur.","La demande d'exécution est en file d'attente ; l'exécution par le fournisseur n'est pas confirmée."],
+    de:['Ausführungsstatus','Diese Statusabfrage hat keinen Auftrag übermittelt und keinen Abgleich mit dem Anbieter durchgeführt. Der historische Auftragsstatus stammt vom Server.','Die Ausführungsanfrage wurde eingereiht; eine Ausführung durch den Anbieter ist nicht bestätigt.'],
+    pt:['Estado de execução','Esta consulta não enviou uma ordem nem conciliou com o provedor. O histórico da ordem vem do servidor.','A solicitação de execução entrou na fila; a execução pelo provedor não foi confirmada.'],
+    ru:['Статус исполнения','Этот запрос статуса не отправлял ордер и не сверял данные с провайдером. История ордера получена с сервера.','Запрос на исполнение поставлен в очередь; исполнение провайдером не подтверждено.'],
+    ar:['حالة التنفيذ','لم يرسل استعلام الحالة هذا أي أمر ولم يطابق البيانات مع المزوّد. مصدر حالة الأمر السابقة هو الخادم.','أُضيف طلب التنفيذ إلى قائمة الانتظار؛ ولم يُؤكَّد تنفيذ المزوّد.'],
+    id:['Status eksekusi','Pembacaan status ini tidak mengirim order atau merekonsiliasi dengan penyedia. Riwayat status order berasal dari server.','Permintaan eksekusi masuk antrean; eksekusi oleh penyedia belum dikonfirmasi.'],
+  };
+  for(const [locale,[brokerExecutionStatus,brokerStatusReadOnly,brokerExecutionQueuedNotConfirmed]] of Object.entries(executionStatusCopy))Object.assign(messages[locale],{brokerExecutionStatus,brokerStatusReadOnly,brokerExecutionQueuedNotConfirmed});
   const executionConfirm={
     en:'Queue this approved Sandbox order for the controlled worker? The browser never contacts the provider directly.',
     'zh-CN':'将这笔已批准的沙盒订单加入受控工作队列？浏览器不会直接联系券商。',

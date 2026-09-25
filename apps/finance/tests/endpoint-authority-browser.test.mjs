@@ -55,3 +55,12 @@ test('shipped browser path loads same-origin verified configuration without a cu
   try{const result=await invoke(fixture.page);assert.equal(result.ok,true);assert.equal(result.value.walletGateway,AUTHORITY_V2_URLS.walletGateway);assert.equal(fixture.requests.filter(url=>url.endsWith('/api/endpoint-authority/v2/config')).length,1);assert.deepEqual(fixture.requests.filter(url=>!url.startsWith(origin)),[]);}
   finally{await fixture.browser.close();}
 });
+
+test('parallel Finance authority reads of an unchanged signed checkpoint do not supersede one another',async()=>{
+  const manifest=signed(),fixture=await setup();
+  try{
+    await configure(fixture.page,manifest);
+    const outcomes=await fixture.page.evaluate(async()=>Promise.all([FinanceAuthorityTest.assertFinancePrivateAuthority(),FinanceAuthorityTest.assertFinancePrivateAuthority()].map(promise=>promise.then(()=>({ok:true}),error=>({ok:false,code:String(error?.message??error)})))));
+    assert.deepEqual(outcomes,[{ok:true},{ok:true}]);
+  }finally{await fixture.browser.close()}
+});
