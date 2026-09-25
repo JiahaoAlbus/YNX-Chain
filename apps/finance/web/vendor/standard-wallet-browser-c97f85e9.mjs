@@ -40,10 +40,11 @@ var STANDARD_WALLET_METHODS = Object.freeze([
   "eth_sendTransaction"
 ]);
 var Eip1193ProviderError = class extends Error {
-  constructor(code, message) {
+  constructor(code, message, data) {
     super(message);
     this.name = "Eip1193ProviderError";
     this.code = code;
+    if (data) this.data = Object.freeze(data);
   }
 };
 var StandardWalletConnection = class {
@@ -126,7 +127,8 @@ var StandardWalletConnection = class {
     }
   }
   /**
-   * Explicitly revoke eth_accounts, then confirm account exposure is empty.
+   * Explicitly revoke eth_accounts, then confirm both empty account exposure
+   * and absence of its permission. A locked wallet can hide still-granted accounts.
    * permissionRevoked=false means unconfirmed, not that a remote grant remains.
    * disconnect() is a separate local action. Neither revokes token approvals.
    */
@@ -151,9 +153,18 @@ var StandardWalletConnection = class {
       const accountsVersion = this.#accountsVersion;
       const accounts = await this.request({ method: "eth_accounts" });
       this.#assertRevocation(operation);
-      if (!Array.isArray(accounts) || accounts.length !== 0 || accountsVersion !== this.#accountsVersion && (!Array.isArray(this.#lastAccounts) || this.#lastAccounts.length !== 0)) {
-        throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet account revocation was not confirmed");
-      }
+      const assertAccountsAbsent = () => {
+        if (!Array.isArray(accounts) || accounts.length !== 0 || accountsVersion !== this.#accountsVersion && (!Array.isArray(this.#lastAccounts) || this.#lastAccounts.length !== 0)) {
+          throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet account revocation was not confirmed");
+        }
+      };
+      assertAccountsAbsent();
+      this.#assertRevocation(operation);
+      const permissions = await this.request({ method: "wallet_getPermissions" });
+      this.#assertRevocation(operation);
+      if (!accountPermissionAbsent(permissions)) throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet permission revocation was not confirmed");
+      assertAccountsAbsent();
+      this.#assertRevocation(operation);
       this.#revocation = null;
       this.disconnect();
       return this.#revokeResult("revoked", true);
@@ -189,7 +200,7 @@ var StandardWalletConnection = class {
     try {
       return await this.#provider.request(Object.hasOwn(input, "params") ? { method: input.method, params: input.params } : { method: input.method });
     } catch (error) {
-      throw normalizeProviderError(error);
+      throw normalizeProviderError(error, this.#provider, input.method);
     }
   }
   disconnect() {
@@ -287,10 +298,39 @@ function firstAccount(value) {
 function revokeAcknowledged(value) {
   return value === null || typeof value === "object" && value !== null && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null) && Object.keys(value).length === 0;
 }
-function providerError(code, message) {
-  return new Eip1193ProviderError(code, message);
+function accountPermissionAbsent(value) {
+  if (!Array.isArray(value) || value.length > 1024) return false;
+  for (let i = 0; i < value.length; i++) {
+    const entry = Object.getOwnPropertyDescriptor(value, String(i));
+    if (!entry || !Object.hasOwn(entry, "value")) return false;
+    const item = entry.value;
+    if (item === null || typeof item !== "object" || Array.isArray(item)) return false;
+    const field = Object.getOwnPropertyDescriptor(item, "parentCapability");
+    if (!field || !Object.hasOwn(field, "value")) return false;
+    const capability = field.value;
+    if (typeof capability !== "string" || capability.length < 1 || capability.length > 256 || capability === "eth_accounts") return false;
+  }
+  return true;
 }
-function normalizeProviderError(error) {
+function providerError(code, message, data) {
+  return new Eip1193ProviderError(code, message, data);
+}
+function ynxAccountRecovery(error, provider, method) {
+  if (method !== "eth_requestAccounts" && method !== "wallet_requestPermissions") return false;
+  try {
+    return error?.code === "PROVIDER_ACCOUNT_UNAVAILABLE" && provider?.__ynxCompanion === true && provider.isYNXWallet === true && provider.isMetaMask === false && provider.providerInfo?.rdns === "com.ynx.wallet";
+  } catch {
+    return false;
+  }
+}
+function normalizeProviderError(error, provider, method) {
+  if (ynxAccountRecovery(error, provider, method)) {
+    return providerError(
+      EIP1193_PROVIDER_CODE.PROVIDER_DISCONNECTED,
+      "Open the YNX Wallet extension account vault to check existing accounts, or create or restore one if none is available, then retry.",
+      { walletCode: "PROVIDER_ACCOUNT_UNAVAILABLE", stage: method, recovery: "open-wallet-vault" }
+    );
+  }
   const code = (() => {
     try {
       return Number(error?.code);

@@ -64,6 +64,7 @@ function render() {
       <p id="detected" class="availability">${text("unavailable")}</p>
       ${state.account?`<dl class="connection-facts"><div><dt>${text("wallet")}</dt><dd>YNX Wallet</dd></div><div><dt>${text("network")}</dt><dd>${state.chainId==="0x1917"?"YNX Testnet":""} <bdi class="mono">${escape(state.chainId||"")}</bdi></dd></div><div><dt>${text("connected")}</dt><dd class="address">${escape(toYNXAddress(state.account))}</dd></div></dl><button id="copy-address" type="button">${text("copyAddress")}</button><details><summary>${text("evmCompatibility")}</summary><p class="address mono">${escape(state.account)}</p></details>`:""}
       <div id="wallet-chooser" class="wallets ${providerChooserVisible?"":"hidden"}" data-mode="${state.connectState.chooserMode}" data-pending-intent="${state.connectState.pendingIntent?"true":"false"}"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="primary" rel="noreferrer" aria-describedby="download-meta">${text("download")}</a></div>
+      ${isExtension&&!state.account?`<div class="actions"><button id="open-account-vault" type="button">${text("setupAccount")}</button></div>`:""}
       <div id="connection-controls" class="actions ${connectionDetails?"":"hidden"}" data-mode="${state.connectState.chooserMode}">${isExtension?`<button id="switch-account" type="button">${text("manageAccount")}</button>`:""}<button id="disconnect" type="button">${text("disconnect")}</button></div>
       <p id="download-meta" class="download-meta">${text("previewNotice")}</p>
       <details id="platforms" class="platforms"><summary>${text("installDetails")}</summary>${packageSources(WALLET_DOWNLOAD_MATRIX.android,{primaryId:"android-download",fallbackId:"android-fallback-download"})}<p id="android-publication-boundary" class="download-meta">${escape(WALLET_DOWNLOAD_MATRIX.android.downloadNotice)}</p><details class="package-details"><summary>${text("packageDetails")}</summary><p class="download-meta mono">${escape(WALLET_DOWNLOAD_MATRIX.android.label)} · ${WALLET_DOWNLOAD_MATRIX.android.bytes.toLocaleString("en-US")} Bytes · SHA-256 ${escape(WALLET_DOWNLOAD_MATRIX.android.sha256)} · ${escape(WALLET_DOWNLOAD_MATRIX.android.signingClass)} · productionSigned=false</p></details><div class="platform-grid">${platformDownloads()}</div></details>
@@ -249,11 +250,13 @@ function bind() {
     }catch(error){setError(error)}
     finally{state.busy=false;applyActionGates()}
   });
-  document.querySelector("#switch-account")?.addEventListener("click",async()=>{
+  const openAccountVault=async()=>{
     const runtime=globalThis.browser?.runtime||globalThis.chrome?.runtime;
     try{if(!runtime?.openOptionsPage)throw new Error("Account manager unavailable");await runtime.openOptionsPage()}
     catch{setStatus(text("accountManagementUnavailable"),"error")}
-  });
+  };
+  document.querySelector("#open-account-vault")?.addEventListener("click",openAccountVault);
+  document.querySelector("#switch-account")?.addEventListener("click",openAccountVault);
   const networkSuccess=({chainId,account})=>{if(account){state.chainId=chainId;rememberSession({account,chainId},state.wallet);return `${text("connected")} · ${toYNXAddress(account)}`}return `YNX Testnet · 6423 · ${text("disconnected")}`};
   document.querySelector("#add").addEventListener("click", () => act(() => changeNetwork(addYNXChain), networkSuccess));
   document.querySelector("#switch").addEventListener("click", () => act(() => changeNetwork(switchToYNXChain), networkSuccess));

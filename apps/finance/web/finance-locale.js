@@ -3357,6 +3357,21 @@
     id:['Pusat bantuan','Permintaan privasi','Buka sengketa','Jalur terverifikasi','Draf order AI tidak lengkap dan tidak disalin.','Ketentuan draf AI disalin. Cari dan pilih aset penyedia yang tepat sebelum meninjau persetujuan.','Hapus draf AI, teks streaming, dan hasil ini? Catatan audit penghapusan minimal akan tetap ada.','Data draf dihapus. Catatan audit penghapusan minimal tetap ada.'],
   };
   for(const [locale,values] of Object.entries(recoveryCopy))Object.assign(messages[locale],Object.fromEntries(recoveryKeys.map((key,index)=>[key,values[index]])));
+  const walletAccountRecoveryCopy={
+    en:'Open the YNX Wallet account vault from your browser extensions and check existing accounts. If none is available, create or restore one. Then return here and retry. No account was connected.',
+    'zh-CN':'从浏览器扩展中打开 YNX Wallet 账户库，先检查现有账户；确认没有可用账户时，再创建或恢复。然后返回此处重试。尚未连接任何账户。',
+    'zh-Hant':'從瀏覽器擴充功能開啟 YNX Wallet 帳戶庫，先檢查現有帳戶；確認沒有可用帳戶時，再建立或還原。然後返回此處重試。尚未連線任何帳戶。',
+    ja:'ブラウザーの拡張機能から YNX Wallet のアカウント保管庫を開き、既存のアカウントを確認してください。利用できるアカウントがなければ作成または復元し、ここに戻って再試行してください。アカウントは接続されていません。',
+    ko:'브라우저 확장 프로그램에서 YNX Wallet 계정 보관함을 열고 기존 계정을 확인하세요. 사용 가능한 계정이 없다면 만들거나 복원한 뒤 여기로 돌아와 다시 시도하세요. 연결된 계정은 없습니다.',
+    es:'Abre la bóveda de cuentas de YNX Wallet desde las extensiones del navegador y revisa las cuentas existentes. Si no hay ninguna disponible, crea o restaura una. Después vuelve aquí y reintenta. No se conectó ninguna cuenta.',
+    fr:'Ouvrez le coffre de comptes YNX Wallet depuis les extensions du navigateur et vérifiez les comptes existants. Si aucun n’est disponible, créez ou restaurez-en un. Revenez ensuite ici et réessayez. Aucun compte n’a été connecté.',
+    de:'Öffne den Kontotresor von YNX Wallet über die Browsererweiterungen und prüfe vorhandene Konten. Wenn keines verfügbar ist, erstelle eines oder stelle es wieder her. Kehre dann hierher zurück und versuche es erneut. Es wurde kein Konto verbunden.',
+    pt:'Abra o cofre de contas da YNX Wallet nas extensões do navegador e confira as contas existentes. Se nenhuma estiver disponível, crie ou restaure uma. Depois volte aqui e tente novamente. Nenhuma conta foi conectada.',
+    ru:'Откройте хранилище аккаунтов YNX Wallet через расширения браузера и проверьте существующие аккаунты. Если доступных нет, создайте или восстановите аккаунт. Затем вернитесь и повторите попытку. Аккаунт не подключён.',
+    ar:'افتح خزنة حسابات YNX Wallet من إضافات المتصفح وتحقق من الحسابات الموجودة. إذا لم يتوفر أي حساب، فأنشئ حسابًا أو استعده. ثم ارجع إلى هنا وأعد المحاولة. لم يتم ربط أي حساب.',
+    id:'Buka brankas akun YNX Wallet dari ekstensi browser dan periksa akun yang ada. Jika tidak ada yang tersedia, buat atau pulihkan akun. Lalu kembali ke sini dan coba lagi. Belum ada akun yang terhubung.',
+  };
+  for(const [locale,value] of Object.entries(walletAccountRecoveryCopy))messages[locale].walletAccountUnavailable=value;
   const legacySectionKeys=['activityScopeIntro','planningNoControl','statementScopeIntro','aiScopeIntro','supportNoReversal'];
   const legacySectionCopy={
     en:['Amounts and fees are Explorer chain units from bounded observed records. This export is not a complete account history; no price or fiat value is estimated.','Planning does not reserve, freeze, transfer, or control YNXT.','Statements summarize available chain and Pay evidence, not complete account history or a bank statement.','Select exact owned records. The provider receives only the approved preview; results never execute an asset action.','Finance cannot reverse chain transactions. Pay disputes use the linked receipt and support path.'],

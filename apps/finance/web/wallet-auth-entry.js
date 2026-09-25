@@ -14,7 +14,7 @@ let standard=Object.freeze({status:'disconnected',providerKind:null,account:null
 let lastMessage='';
 function label(key){return window.YNXFinanceLocale?.text(key)??key;}
 function message(code){
-  const key=({WALLET_NOT_FOUND:'walletNotFound',USER_REJECTED:'walletRejected',WRONG_NETWORK:'walletWrongChain',LOCAL_DISCONNECT_ONLY:'standardDisconnected',PERMISSION_REVOKED:'walletRevoked',WALLET_DETAILS_ONLY:'walletDetailsOnly'})[code];
+  const key=({WALLET_NOT_FOUND:'walletNotFound',USER_REJECTED:'walletRejected',WRONG_NETWORK:'walletWrongChain',LOCAL_DISCONNECT_ONLY:'standardDisconnected',PERMISSION_REVOKED:'walletRevoked',WALLET_DETAILS_ONLY:'walletDetailsOnly',PROVIDER_ACCOUNT_UNAVAILABLE:'walletAccountUnavailable'})[code];
   return key?label(key):code?.startsWith('REVOCATION_')?label('walletRevocationUnconfirmed'):code?label('walletActionUnavailable'):'';
 }
 const ready=new Promise(resolve=>document.readyState==='loading'?document.addEventListener('DOMContentLoaded',resolve,{once:true}):resolve()).then(boot);
@@ -110,7 +110,7 @@ async function connect(kind){
     if(next.status!=='connected')throw new Error('WRONG_NETWORK');
     preference(kind);document.querySelector('#wallet-choice')?.classList.add('hidden');
     document.querySelector('#wallet-details')?.focus();return standard;
-  }catch(error){if(value===intent){detach();publish({status:'disconnected',providerKind:kind,account:null,chainId:null},error?.code===4001?'USER_REJECTED':error.message||'WALLET_UNAVAILABLE');}return null;}
+  }catch(error){if(value===intent){detach();const recovery=kind==='ynx-wallet'&&error?.data?.walletCode==='PROVIDER_ACCOUNT_UNAVAILABLE'&&error.data?.stage==='eth_requestAccounts'&&error.data?.recovery==='open-wallet-vault';publish({status:'disconnected',providerKind:kind,account:null,chainId:null},recovery?'PROVIDER_ACCOUNT_UNAVAILABLE':error?.code===4001?'USER_REJECTED':error.message||'WALLET_UNAVAILABLE');}return null;}
   finally{if(value===intent){busy=false;render();}}
 }
 async function restoreStandardWallet(){

@@ -15,7 +15,7 @@ export const STANDARD_WALLET_METHODS = Object.freeze([
 ]);
 
 export class Eip1193ProviderError extends Error {
-  constructor(code, message) { super(message); this.name = "Eip1193ProviderError"; this.code = code; }
+  constructor(code, message, data) { super(message); this.name = "Eip1193ProviderError"; this.code = code; if (data) this.data = Object.freeze(data); }
 }
 
 /**
@@ -161,7 +161,7 @@ export class StandardWalletConnection {
     if (input.method === "eth_sign") throw providerError(EIP1193_PROVIDER_CODE.UNSUPPORTED_METHOD, "Raw eth_sign is disabled because blind signing is unsafe");
     if (!STANDARD_WALLET_METHODS.includes(input.method)) throw providerError(EIP1193_PROVIDER_CODE.UNSUPPORTED_METHOD, "EIP-1193 method is not supported by this transport");
     try { return await this.#provider.request(Object.hasOwn(input, "params") ? { method: input.method, params: input.params } : { method: input.method }); }
-    catch (error) { throw normalizeProviderError(error); }
+    catch (error) { throw normalizeProviderError(error, this.#provider, input.method); }
   }
 
   disconnect() {
@@ -243,8 +243,22 @@ function accountPermissionAbsent(value) {
   }
   return true;
 }
-function providerError(code, message) { return new Eip1193ProviderError(code, message); }
-function normalizeProviderError(error) {
+function providerError(code, message, data) { return new Eip1193ProviderError(code, message, data); }
+function ynxAccountRecovery(error, provider, method) {
+  if (method !== "eth_requestAccounts" && method !== "wallet_requestPermissions") return false;
+  try {
+    return error?.code === "PROVIDER_ACCOUNT_UNAVAILABLE" && provider?.__ynxCompanion === true &&
+      provider.isYNXWallet === true && provider.isMetaMask === false && provider.providerInfo?.rdns === "com.ynx.wallet";
+  } catch { return false; }
+}
+function normalizeProviderError(error, provider, method) {
+  // Keep only a fixed, non-secret recovery hint for our own extension. Other
+  // providers retain the standard numeric EIP-1193 error contract.
+  if (ynxAccountRecovery(error, provider, method)) {
+    return providerError(EIP1193_PROVIDER_CODE.PROVIDER_DISCONNECTED,
+      "Open the YNX Wallet extension account vault to check existing accounts, or create or restore one if none is available, then retry.",
+      { walletCode: "PROVIDER_ACCOUNT_UNAVAILABLE", stage: method, recovery: "open-wallet-vault" });
+  }
   const code = (() => { try { return Number(error?.code); } catch { return NaN; } })();
   if (code === -32601) return providerError(EIP1193_PROVIDER_CODE.UNSUPPORTED_METHOD, "EIP-1193 method is not supported by this provider");
   if (Object.values(EIP1193_PROVIDER_CODE).includes(code)) return providerError(code, safeMessage(error?.message));

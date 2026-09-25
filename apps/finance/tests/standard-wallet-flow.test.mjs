@@ -22,19 +22,21 @@ test.before(async()=>{
   browser=await chromium.launch(await financeBrowserLaunchOptions());
 });
 test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
-async function fixture({saved=null,missing=false,revoke='success',deferSwitch=false,deferRevoke=false,rejectSign=false,deferSign=false}={}){
+async function fixture({saved=null,missing=false,revoke='success',deferSwitch=false,deferRevoke=false,rejectSign=false,deferSign=false,accountUnavailable=false}={}){
   const page=await browser.newPage();
   page.financeErrors=[];page.on('pageerror',error=>page.financeErrors.push(error.message));
-  await page.addInitScript(({saved,missing,revoke,deferSwitch,deferRevoke,rejectSign,deferSign,key})=>{
+  await page.addInitScript(({saved,missing,revoke,deferSwitch,deferRevoke,rejectSign,deferSign,accountUnavailable,key})=>{
     if(saved)localStorage.setItem(key,saved);
     const f={calls:[],revoke,deferSwitch,deferRevoke,rejectSign,deferSign,pendingSwitch:null,pendingRevoke:null,pendingSign:null};
-    function provider(kind,account){const listeners=new Map();return {isYNXWallet:kind==='ynx-wallet',isMetaMask:kind==='metamask',account,chain:'0x1917',on(e,fn){if(!listeners.has(e))listeners.set(e,new Set());listeners.get(e).add(fn);},removeListener(e,fn){listeners.get(e)?.delete(fn);},emit(e,v){if(e==='accountsChanged')this.account=v[0];if(e==='chainChanged')this.chain=v;for(const fn of listeners.get(e)||[])fn(v);},async request({method,params}){f.calls.push({kind,method,params});if(method==='wallet_switchEthereumChain'){if(f.deferSwitch)return new Promise(resolve=>{f.pendingSwitch=()=>{this.chain='0x1917';resolve(null);};});this.chain='0x1917';return null;}if(method==='wallet_addEthereumChain')return null;if(method==='eth_chainId')return this.chain;if(method==='eth_accounts'||method==='eth_requestAccounts')return this.account?[this.account]:[];if(method==='personal_sign'){if(f.rejectSign)throw Object.assign(new Error('fixture user rejected'),{code:4001});if(f.deferSign)return new Promise(resolve=>{f.pendingSign=()=>resolve('0x'+'1'.repeat(130));});return '0x'+'1'.repeat(130);}if(method==='wallet_revokePermissions'){if(f.revoke==='unsupported')throw Object.assign(new Error('fixture unsupported'),{code:4200});if(f.revoke==='reject')throw Object.assign(new Error('fixture rejected'),{code:4001});const done=()=>{if(f.revoke!=='nonempty')this.account=null;return null;};if(f.deferRevoke)return new Promise(resolve=>{f.pendingRevoke=()=>resolve(done());});return done();}throw new Error('Forbidden fixture method: '+method);}};}
+    function provider(kind,account){const listeners=new Map();return {isYNXWallet:kind==='ynx-wallet',isMetaMask:kind==='metamask',account,chain:'0x1917',on(e,fn){if(!listeners.has(e))listeners.set(e,new Set());listeners.get(e).add(fn);},removeListener(e,fn){listeners.get(e)?.delete(fn);},emit(e,v){if(e==='accountsChanged')this.account=v[0];if(e==='chainChanged')this.chain=v;for(const fn of listeners.get(e)||[])fn(v);},async request({method,params}){f.calls.push({kind,method,params});if(method==='wallet_switchEthereumChain'){if(f.deferSwitch)return new Promise(resolve=>{f.pendingSwitch=()=>{this.chain='0x1917';resolve(null);};});this.chain='0x1917';return null;}if(method==='wallet_addEthereumChain')return null;if(method==='eth_chainId')return this.chain;if(method==='wallet_getPermissions')return this.account?[{parentCapability:'eth_accounts'}]:[];if(method==='eth_accounts'||method==='eth_requestAccounts')return this.account?[this.account]:[];if(method==='personal_sign'){if(f.rejectSign)throw Object.assign(new Error('fixture user rejected'),{code:4001});if(f.deferSign)return new Promise(resolve=>{f.pendingSign=()=>resolve('0x'+'1'.repeat(130));});return '0x'+'1'.repeat(130);}if(method==='wallet_revokePermissions'){if(f.revoke==='unsupported')throw Object.assign(new Error('fixture unsupported'),{code:4200});if(f.revoke==='reject')throw Object.assign(new Error('fixture rejected'),{code:4001});const done=()=>{if(f.revoke!=='nonempty')this.account=null;return null;};if(f.deferRevoke)return new Promise(resolve=>{f.pendingRevoke=()=>resolve(done());});return done();}throw new Error('Forbidden fixture method: '+method);}};}
     f.metamask=provider('metamask','0x'+'a'.repeat(40));f.ynx=provider('ynx-wallet','0x'+'b'.repeat(40));
     f.ynx.providerInfo={rdns:'com.ynx.wallet',name:'YNX Wallet',uuid:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'};
+    f.ynx.__ynxCompanion=true;
+    if(accountUnavailable){const request=f.ynx.request.bind(f.ynx);f.ynx.request=async input=>{if(input.method==='eth_requestAccounts'){f.calls.push({kind:'ynx-wallet',method:input.method});throw Object.assign(new Error('untrusted fixture detail'),{code:'PROVIDER_ACCOUNT_UNAVAILABLE'});}return request(input);};}
     f.metamask.providerInfo={rdns:'io.metamask',name:'MetaMask',uuid:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'};
     window.addEventListener('eip6963:requestProvider',()=>{for(const p of missing?[f.ynx]:[f.ynx,f.metamask])window.dispatchEvent(new CustomEvent('eip6963:announceProvider',{detail:{info:p.providerInfo,provider:p}}));});window.__financeFixture=f;
     window.ethereum={providers:missing?[f.ynx]:[f.ynx,f.metamask]};
-  },{saved,missing,revoke,deferSwitch,deferRevoke,rejectSign,deferSign,key});
+  },{saved,missing,revoke,deferSwitch,deferRevoke,rejectSign,deferSign,accountUnavailable,key});
   await page.goto(base);await page.evaluate(()=>window.YNXFinanceWallet.ready);return page;
 }
 async function connect(page,id='#connect-metamask'){await page.locator(id).click();try{await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected',{},{timeout:3000});}catch(error){throw new Error(JSON.stringify({errors:page.financeErrors,state:await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState()),calls:await calls(page)}),{cause:error});}}
@@ -134,12 +136,26 @@ test('local Chrome refuses imprecise or missing chain-unit amounts',async()=>{
 
 test('SDK artifact is exact, and Finance source no longer creates or transports a legacy device secret',async()=>{
   const sdk=await readFile(new URL('vendor/standard-wallet-browser-c97f85e9.mjs',web));
-  assert.equal(sdk.length,22417);assert.equal(createHash('sha256').update(sdk).digest('hex'),'b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43');
+  assert.equal(sdk.length,24624);assert.equal(createHash('sha256').update(sdk).digest('hex'),'9bab403c5515c65562f2bb3a77e0c28978b64e56983158a1e9b23e77d0ecf365');
   const source=await readFile(new URL('wallet-auth-entry.js',web),'utf8');
   for(const banned of ['productDeviceSecret','createProductDeviceIdentity','location.href=','window.open(','iframe','indexedDB.open('])assert.equal(source.includes(banned),false,banned);
 });
 test('guest starts without account requests, missing selected wallet never falls back or navigates',async()=>{
   const page=await fixture({missing:true});try{assert.deepEqual(await calls(page),[]);await page.locator('#connect-metamask').click();await page.waitForTimeout(300);assert.deepEqual(await calls(page),[]);assert.equal(page.url(),base+'/');assert.equal(page.context().pages().length,1);assert.equal(await page.locator('#install-wallet').getAttribute('href'),'https://www.ynxweb4.com/dapp/download');assert.equal(await page.locator('#install-metamask').getAttribute('href'),'https://metamask.io/download/');assert.equal(await page.locator('#signed-out').isVisible(),true);}finally{await page.close();}
+});
+test('missing YNX extension account gives a localized vault recovery step without selecting MetaMask',async()=>{
+  const page=await fixture({accountUnavailable:true});try{
+    await page.locator('#connect-ynx').click();
+    await page.waitForFunction(()=>document.querySelector('#wallet-state').textContent.includes('check existing accounts'));
+    assert.match(await page.locator('#wallet-state').innerText(),/create or restore one/u);
+    assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'disconnected');
+    assert.equal((await calls(page)).some(call=>call.kind==='metamask'),false);
+    assert.equal(page.context().pages().length,1);
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.match(await page.locator('#wallet-state').innerText(),/先检查现有账户/u);
+    assert.equal((await calls(page)).filter(call=>call.method==='eth_requestAccounts').length,1);
+    assert.deepEqual(page.financeErrors,[]);
+  }finally{await page.close();}
 });
 test('pending shared authority blocks private Finance before any Wallet Gateway request',async()=>{
   const page=await fixture(),gatewayRequests=[];page.on('request',request=>{if(new URL(request.url()).origin==='https://wallet-auth.ynxweb4.com')gatewayRequests.push(request.url());});
