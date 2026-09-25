@@ -26,10 +26,13 @@ var ipQuotaBucket = []byte("ip-quota-v2")
 var admissionMeta = []byte("metadata-v1")
 
 type admissionRecord struct {
-	RequestID   string             `json:"requestId"`
-	Address     string             `json:"address"`
-	Amount      int64              `json:"amount"`
-	At          time.Time          `json:"at"`
+	RequestID string    `json:"requestId"`
+	Address   string    `json:"address"`
+	Amount    int64     `json:"amount"`
+	At        time.Time `json:"at"`
+	// Async marks work accepted by the pending-response protocol. Only these
+	// records may be resumed automatically after a process restart.
+	Async       bool               `json:"async,omitempty"`
 	Transaction *chain.Transaction `json:"transaction,omitempty"`
 }
 
@@ -124,6 +127,13 @@ func syncAdmissionDirectory(path string) error {
 }
 
 func (s *Service) Close() error {
+	s.flightMu.Lock()
+	s.closing = true
+	s.flightMu.Unlock()
+	if s.workCancel != nil {
+		s.workCancel()
+	}
+	s.workWG.Wait()
 	if s.admissions != nil {
 		return s.admissions.db.Close()
 	}
@@ -229,6 +239,52 @@ func (s *admissionStore) admit(id, address, ip string, amount int64, now time.Ti
 		return requests.Put([]byte(id), data)
 	})
 	return record, replayed, err
+}
+
+func (s *admissionStore) pendingAsync() ([]admissionRecord, error) {
+	var records []admissionRecord
+	err := s.db.View(func(tx *bolt.Tx) error {
+		return tx.Bucket(admissionBucket).ForEach(func(key, value []byte) error {
+			var record admissionRecord
+			if err := json.Unmarshal(value, &record); err != nil {
+				return err
+			}
+			if record.RequestID != string(key) || record.Amount <= 0 {
+				return errors.New("invalid stored faucet admission")
+			}
+			if record.Async && record.Transaction == nil {
+				records = append(records, record)
+			}
+			return nil
+		})
+	})
+	return records, err
+}
+
+func (s *admissionStore) enableAsync(record admissionRecord) (admissionRecord, error) {
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(admissionBucket)
+		data := bucket.Get([]byte(record.RequestID))
+		var current admissionRecord
+		if data == nil || json.Unmarshal(data, &current) != nil || current.RequestID != record.RequestID || current.Address != record.Address || current.Amount != record.Amount {
+			return errors.New("durable admission binding disappeared")
+		}
+		if current.Async {
+			record = current
+			return nil
+		}
+		current.Async = true
+		encoded, err := json.Marshal(current)
+		if err != nil {
+			return err
+		}
+		if err := bucket.Put([]byte(record.RequestID), encoded); err != nil {
+			return err
+		}
+		record = current
+		return nil
+	})
+	return record, err
 }
 
 func (s *admissionStore) complete(record admissionRecord, transaction chain.Transaction) error {

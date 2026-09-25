@@ -12,6 +12,7 @@ import (
 )
 
 const capabilityFreshness = 20 * time.Second
+const firstResponseBudget = 1500 * time.Millisecond
 
 type fundingResult struct {
 	tx                   chain.Transaction
@@ -118,6 +119,10 @@ func (s *Service) noteCapabilitySuccess() {
 // abandon an already charged admission.
 func (s *Service) fundAdmitted(ctx context.Context, record admissionRecord, hash string, entry LogEntry) (fundingResult, bool) {
 	s.flightMu.Lock()
+	if s.closing {
+		s.flightMu.Unlock()
+		return fundingResult{status: 503, err: errors.New("faucet is shutting down; retain the same request ID")}, false
+	}
 	f := s.fundingFlights[record.RequestID]
 	joined := f != nil
 	if f == nil {
@@ -125,8 +130,10 @@ func (s *Service) fundAdmitted(ctx context.Context, record admissionRecord, hash
 		s.fundingFlights[record.RequestID] = f
 		s.flightStats.fundingStarted++
 		s.flightStats.fundingActive++
+		s.workWG.Add(1)
 		go func() {
-			opCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer s.workWG.Done()
+			opCtx, cancel := context.WithTimeout(s.workCtx, 10*time.Second)
 			defer cancel()
 			f.result.tx, f.result.status, f.result.err = s.sendDurableFaucetRequest(opCtx, record, hash)
 			recoveredReceipt := false
@@ -178,6 +185,8 @@ func (s *Service) fundAdmitted(ctx context.Context, record admissionRecord, hash
 		return fundingResult{status: 503, err: errors.New("faucet request continues; check status with the same request ID")}, joined
 	case <-f.done:
 		return f.result, joined
+	case <-time.After(firstResponseBudget):
+		return fundingResult{status: http.StatusAccepted}, joined
 	}
 }
 

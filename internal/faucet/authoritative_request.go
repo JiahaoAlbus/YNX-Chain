@@ -135,6 +135,19 @@ func (s *Service) requestAuthoritative(ctx context.Context, req Request, remote 
 	}
 	funded, joined := s.fundAdmitted(ctx, record, hash, entry)
 	transaction, status, err := funded.tx, funded.status, funded.err
+	if status == http.StatusAccepted && err == nil {
+		if !record.Async {
+			if _, err := s.admissions.enableAsync(record); err != nil {
+				s.recordAdmissionStoreError("enable_async")
+				result.Status = "admission_unavailable"
+				result.RetrySameRequest = true
+				return result, 503, errors.New("durable faucet pending state is unavailable")
+			}
+		}
+		result.Status = "pending"
+		result.RetrySameRequest = true
+		return result, http.StatusAccepted, nil
+	}
 	if err != nil {
 		result.Status = "transaction_result_uncertain"
 		result.RetrySameRequest = true
