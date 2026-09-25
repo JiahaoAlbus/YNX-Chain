@@ -7,12 +7,12 @@ async function target() {
   for (let attempt = 0; attempt < 40; attempt++) {
     try {
       const pages = await (await fetch("http://127.0.0.1:9334/json/list")).json();
-      const page = pages.find(item => item.type === "page" && item.webSocketDebuggerUrl);
+      const page = pages.find(item => item.type === "page" && item.url?.startsWith("file:") && item.webSocketDebuggerUrl);
       if (page) return page;
     } catch {}
     await new Promise(resolve => setTimeout(resolve, 500));
   }
-  throw new Error("Installed Wallet page did not become available");
+  throw new Error("WALLET_PAGE_UNAVAILABLE");
 }
 
 const socket = new WebSocket((await target()).webSocketDebuggerUrl);
@@ -21,22 +21,34 @@ await new Promise((resolve, reject) => {
   socket.addEventListener("error", reject, { once: true });
 });
 let nextId = 0;
-async function evaluate(expression) {
+async function evaluate(expression, stage) {
   const id = ++nextId;
   const result = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => { socket.removeEventListener("message", listener); reject(new Error("Installed Wallet page did not answer")); }, 30_000);
+    const timeout = setTimeout(() => { socket.removeEventListener("message", listener); reject(new Error(`${stage}:PAGE_RESPONSE_TIMEOUT`)); }, 30_000);
     const listener = event => {
       let reply;
       try { reply = JSON.parse(event.data); } catch { return; }
       if (reply.id !== id) return;
       clearTimeout(timeout); socket.removeEventListener("message", listener);
-      if (reply.error || reply.result?.exceptionDetails) reject(new Error("Installed Wallet page evaluation failed"));
+      if (reply.error || reply.result?.exceptionDetails) {
+        const reported = reply.result?.exceptionDetails?.exception?.className;
+        const errorClass = ["Error", "TypeError", "ReferenceError", "SyntaxError", "RangeError"].includes(reported) ? reported.toUpperCase() : "UNKNOWN";
+        reject(new Error(`${stage}:PAGE_EVALUATION_${errorClass}`));
+      }
       else resolve(reply.result?.result?.value);
     };
     socket.addEventListener("message", listener);
   });
   socket.send(JSON.stringify({ id, method: "Runtime.evaluate", params: { expression, awaitPromise: true, returnByValue: true } }));
   return result;
+}
+async function waitForPreload() {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const ready = await evaluate(`Boolean(window.ynxWallet && typeof window.ynxWallet.accountStatus === "function" && typeof window.ynxWallet.securityStatus === "function")`, "PRELOAD_READY");
+    if (ready === true) return;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  throw new Error("PRELOAD_READY:WALLET_API_UNAVAILABLE");
 }
 async function snapshot() {
   return JSON.parse(await evaluate(`(async () => {
@@ -47,7 +59,7 @@ async function snapshot() {
       locked: security.locked,
       ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: document.querySelector('#password-sheet')?.open }
     });
-  })()`));
+  })()`, "ACCOUNT_SNAPSHOT"));
 }
 async function until(predicate, label, count = 100) {
   let state;
@@ -69,10 +81,11 @@ async function formSubmit(value, confirmation) {
     document.querySelector('#local-confirm').value = ${JSON.stringify(confirmation ?? "")};
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     return true;
-  })()`);
+  })()`, "PASSWORD_FORM_SUBMIT");
 }
 
 try {
+  await waitForPreload();
   const before = await until(state => state.account !== null, "Initial installed Wallet custody status");
   if (mode === "create") {
     if (before.account.initialized || before.account.passwordConfigured || !before.locked) throw new Error("Installed create gate requires a fresh, locked Wallet profile");
@@ -80,9 +93,9 @@ try {
     await until(state => state.account?.passwordConfigured === true && state.account.initialized === false, "Password persistence");
     await formSubmit(password);
     await until(state => state.locked === false && state.account?.passwordConfigured === true, "Password unlock");
-    await evaluate(`(() => { document.querySelector('nav [data-view="accounts"]')?.click(); document.querySelector('#create-account')?.click(); return true; })()`);
+    await evaluate(`(() => { document.querySelector('nav [data-view="accounts"]')?.click(); document.querySelector('#create-account')?.click(); return true; })()`, "ACCOUNT_CREATE_CLICK");
     const created = await until(state => state.account?.initialized === true && state.locked === false, "Account creation");
-    await evaluate(`document.querySelector('#lock-wallet')?.click(); true`);
+    await evaluate(`document.querySelector('#lock-wallet')?.click(); true`, "EXPLICIT_LOCK_CLICK");
     await until(state => state.locked === true, "Explicit lock");
     await formSubmit("incorrect synthetic password");
     await until(state => state.locked === true && /incorrect|不正确/i.test(`${state.ui.passwordResult} ${state.ui.unlockResult}`), "Wrong password leaves Wallet locked");
