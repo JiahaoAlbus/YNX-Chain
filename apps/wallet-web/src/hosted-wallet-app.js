@@ -13,11 +13,19 @@ const $ = id => document.getElementById(id);
 const status = $("status"), setup = $("setup"), review = $("review"), reviewText = $("review-text"), password = $("approval-password"), approve = $("approve"), reject = $("reject");
 const store = createHostedVaultStore();
 const broadcastJournal = new ExtensionBroadcastJournal(store.journalStorage);
-let vault = null, session = null, currentReview = null, busy = false, needsBackupAcknowledgement = false, backupDownloaded = false;
+let vault = null, session = null, currentReview = null, activeRequest = null, busy = false, needsBackupAcknowledgement = false, backupDownloaded = false;
 const seen = new Set();
 const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 function fail(code) { throw Object.assign(new Error(code), { code }); }
 function message(value) { status.textContent = value; }
+function assertRequestLive(context) {
+  if (!context || context !== activeRequest || context.cancelled || Date.now() >= context.expiresAt || !session || window.opener?.closed || Date.now() >= session.expiresAt) fail("HOSTED_REQUEST_EXPIRED");
+}
+function cancelActiveRequest() {
+  if (!activeRequest) return;
+  activeRequest.cancelled = true;
+  if (currentReview?.context === activeRequest) finishReview({ approved: false });
+}
 async function assertCurrentAccount() {
   const current = await store.read();
   if (!session || window.opener?.closed || Date.now() >= session.expiresAt || !current || current.account !== vault?.account || JSON.stringify(current) !== JSON.stringify(vault)) {
@@ -58,10 +66,12 @@ function reply(type, extra = {}) {
 function finishReview(accepted) {
   if (!currentReview) return;
   const pending = currentReview; currentReview = null;
+  if (pending.timer) window.clearTimeout(pending.timer);
   review.hidden = true; password.value = "";
   pending.resolve(accepted);
 }
-function askUser({ title, detail, secretRequired = false }) {
+function askUser({ title, detail, secretRequired = false, context = null }) {
+  if (context) assertRequestLive(context);
   if (currentReview) fail("HOSTED_APPROVAL_BUSY");
   $("review-title").textContent = title;
   reviewText.textContent = detail;
@@ -71,52 +81,63 @@ function askUser({ title, detail, secretRequired = false }) {
   review.hidden = false;
   approve.disabled = false; reject.disabled = false;
   window.focus();
-  return new Promise(resolve => { currentReview = { resolve, secretRequired }; });
+  return new Promise(resolve => {
+    currentReview = { resolve, secretRequired, context, timer: context ? window.setTimeout(() => { context.cancelled = true; finishReview({ approved: false }); }, Math.max(0, context.expiresAt - Date.now())) : null };
+  });
 }
 approve.addEventListener("click", () => {
   if (!currentReview) return;
+  if (currentReview.context) { try { assertRequestLive(currentReview.context); } catch { cancelActiveRequest(); return; } }
   if (currentReview.secretRequired && (password.value.length < 12 || password.value.length > 256)) { message("Enter your local Wallet password to approve this exact request."); return; }
   const secret = currentReview.secretRequired ? password.value : null;
   finishReview(secretRequiredResult(secret));
 });
 function secretRequiredResult(secret) { return secret === null ? { approved: true } : { approved: true, password: secret }; }
 reject.addEventListener("click", () => finishReview({ approved: false }));
-window.addEventListener("pagehide", () => { reply("disconnected"); finishReview({ approved: false }); password.value = ""; });
+window.addEventListener("pagehide", () => { cancelActiveRequest(); reply("disconnected"); finishReview({ approved: false }); password.value = ""; });
 
-async function handleMethod(method, params) {
+async function handleMethod(method, params, context) {
+  assertRequestLive(context);
   await assertCurrentAccount();
   if (method === "eth_accounts" || method === "eth_requestAccounts") return [vault.account];
   if (method === "eth_chainId") return YNX_CHAIN_ID;
-  if (method === "wallet_disconnect") { reply("disconnected"); session = null; message("Disconnected. Reopen Wallet from the product to connect again."); return null; }
+  if (method === "wallet_disconnect") { cancelActiveRequest(); reply("disconnected"); session = null; message("Disconnected. Reopen Wallet from the product to connect again."); return null; }
   if (method === "wallet_addEthereumChain" || method === "wallet_switchEthereumChain") { validateYNXChainMutation(method, params, chain); return null; }
   if (method === "ynx_requestProductSessionV2") {
     const request = parsePrivateRequest(params, session.origin);
     const replay = privateReplayKey(request);
     await store.consumeReplay(replay, Date.parse(request.expiresAt));
-    const choice = await askUser({ title: `Approve ${privateProductName(request)} access?`, detail: `${session.origin}\n${request.purpose}\nScopes: ${request.scopes.join(", ")}\nExpires: ${request.expiresAt}`, secretRequired: true });
+    const choice = await askUser({ title: `Approve ${privateProductName(request)} access?`, detail: `${session.origin}\n${request.purpose}\nScopes: ${request.scopes.join(", ")}\nExpires: ${request.expiresAt}`, secretRequired: true, context });
+    assertRequestLive(context);
     if (!choice.approved) return rejectPrivateReturn(request);
     await assertCurrentAccount();
     const unlocked = await unlockEncryptedVault(vault, choice.password);
+    assertRequestLive(context);
     await assertCurrentAccount();
     if (unlocked.account !== vault.account) fail("HOSTED_ACCOUNT_CHANGED");
     return signPrivateReturn(request, unlocked.secretHex);
   }
   if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"].includes(method)) {
     const perform = async () => {
+    assertRequestLive(context);
     const prepared = await prepareExtensionRequest({ expectedAccount: vault.account, method, params, rpc: forwardExtensionRpc });
-    const choice = await askUser({ title: method === "eth_sendTransaction" ? "Review transaction" : "Review signature", detail: `${session.origin}\n${extensionReviewText(prepared.review)}`, secretRequired: true });
+    assertRequestLive(context);
+    const choice = await askUser({ title: method === "eth_sendTransaction" ? "Review transaction" : "Review signature", detail: `${session.origin}\n${extensionReviewText(prepared.review)}`, secretRequired: true, context });
+    assertRequestLive(context);
     if (!choice.approved) fail("USER_REJECTED");
     await assertCurrentAccount();
     const unlocked = await unlockEncryptedVault(vault, choice.password);
+    assertRequestLive(context);
     await assertCurrentAccount();
     if (unlocked.account !== vault.account) fail("HOSTED_ACCOUNT_CHANGED");
-    const assertAuthorized = async () => { await assertCurrentAccount(); if (document.visibilityState !== "visible") fail("HOSTED_APPROVAL_CANCELLED"); };
+    const assertAuthorized = async () => { assertRequestLive(context); await assertCurrentAccount(); assertRequestLive(context); if (document.visibilityState !== "visible") fail("HOSTED_APPROVAL_CANCELLED"); };
     const signed = await signExtensionRequest({ secretHex: unlocked.secretHex, expectedAccount: vault.account, prepared, rpc: forwardExtensionRpc, assertAuthorized });
     if (method !== "eth_sendTransaction") return signed;
+    assertRequestLive(context);
     await assertCurrentAccount();
     return broadcastJournal.broadcast({ account: vault.account, origin: session.origin, signed, broadcast: broadcastExtensionTransaction, assertAuthorized, rpc: forwardExtensionRpc });
     };
-    return method === "eth_sendTransaction" ? withHostedAccountLock(vault.account, async () => { await assertCurrentAccount(); return broadcastJournal.run(vault.account, perform); }) : perform();
+    return method === "eth_sendTransaction" ? withHostedAccountLock(vault.account, async () => { assertRequestLive(context); await assertCurrentAccount(); return broadcastJournal.run(vault.account, perform); }) : perform();
   }
   if (method.startsWith("eth_") || method.startsWith("net_") || method.startsWith("web3_")) return forwardExtensionRpc(method, params);
   fail("HOSTED_METHOD_UNSUPPORTED");
@@ -145,16 +166,20 @@ async function receive(event) {
     return;
   }
   if (data.type !== "request" || session.approved !== true) return;
+  if (data.method === "wallet_disconnect" && Array.isArray(data.params) && data.params.length === 0) { cancelActiveRequest(); reply("disconnected"); session = null; finishReview({ approved: false }); message("Disconnected. Reopen Wallet from the product to connect again."); return; }
   if (busy) { reply("response", { replyTo: data.messageId, ok: false, code: "HOSTED_APPROVAL_BUSY" }); return; }
   busy = true;
+  const context = { messageId: data.messageId, expiresAt: data.expiresAt, cancelled: false };
+  activeRequest = context;
   try {
     if (!Array.isArray(data.params) || JSON.stringify(data.params).length > 65536 || typeof data.method !== "string" || data.method.length > 80) fail("HOSTED_METHOD_INVALID");
-    const result = await handleMethod(data.method, data.params);
+    const result = await handleMethod(data.method, data.params, context);
+    assertRequestLive(context);
     reply("response", { replyTo: data.messageId, ok: true, result });
   } catch (error) {
     reply("response", { replyTo: data.messageId, ok: false, code: typeof error?.code === "string" || Number.isInteger(error?.code) ? error.code : "HOSTED_REQUEST_FAILED" });
     message("The request was not approved or could not be completed. Your account remains protected.");
-  } finally { busy = false; }
+  } finally { if (activeRequest === context) activeRequest = null; busy = false; }
 }
 
 $("setup-form").addEventListener("submit", async event => {
@@ -207,7 +232,7 @@ $("switch-account").addEventListener("click", async () => {
   if (!account || account === vault?.account) return;
   try {
     const selected = await store.selectAccount(account);
-    reply("disconnected"); session = null; finishReview({ approved: false });
+    cancelActiveRequest(); reply("disconnected"); session = null; finishReview({ approved: false });
     vault = selected; displayAccount(); await refreshAccountList();
     await refreshTransactionStatus();
     message(`Switched to ${toYNXAddress(account)}. Reconnect from the product and approve the new account.`);
@@ -248,6 +273,6 @@ async function start() {
   if (vault) { setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); $("export-backup").hidden = false; message(`Review the request for ${toYNXAddress(vault.account)}.`); reply("ready"); }
   else { setup.hidden = false; message("Create or import a local encrypted Wallet before connecting."); }
   window.addEventListener("message", event => { void receive(event); });
-  window.setInterval(() => { if (session && (Date.now() >= session.expiresAt || window.opener?.closed)) { finishReview({ approved: false }); session = null; message("The connection expired or its product window closed."); } }, 250);
+  window.setInterval(() => { if (session && (Date.now() >= session.expiresAt || window.opener?.closed)) { cancelActiveRequest(); finishReview({ approved: false }); session = null; message("The connection expired or its product window closed."); } }, 250);
 }
 void start();

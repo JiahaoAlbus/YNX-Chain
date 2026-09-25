@@ -79,6 +79,14 @@ try {
   await wallet.locator("#review").waitFor({ state: "visible" });
   await wallet.locator("#reject").click();
   assert.equal(await finance.evaluate(() => window.signOutcome), "USER_REJECTED");
+  await finance.evaluate(() => { window.expiredSignOutcome = window.ynxAdapter.request({ method: "personal_sign", params: ["0x68656c6c6f", window.ynxAdapter.account] }).then(() => "signed", error => error.code); });
+  await wallet.locator("#review").waitFor({ state: "visible" });
+  await wallet.locator("#approval-password").fill(password);
+  await wallet.evaluate(() => { window.__realNow = Date.now; Date.now = () => window.__realNow() + 31_000; });
+  await wallet.locator("#approve").click();
+  assert.equal(await finance.evaluate(() => window.expiredSignOutcome), "HOSTED_REQUEST_EXPIRED");
+  await wallet.evaluate(() => { Date.now = window.__realNow; delete window.__realNow; });
+  assert.equal(await wallet.locator("#review").isVisible(), false);
   await wallet.reload();
   await finance.waitForFunction(() => window.ynxAdapter.connected === false, null, { timeout: 20_000 });
   assert.deepEqual(await finance.evaluate(() => window.ynxAdapter.request({ method: "eth_accounts" })), []);
@@ -137,6 +145,14 @@ try {
   await otherWallet.locator("#approve").click();
   assert.equal((await secondFinance.evaluate(() => window.ynxConnection))[0], account);
   const transaction = { from: account, to: `0x${"11".repeat(20)}`, value: "0xde0b6b3a7640000", data: "0x" };
+  await restoredFinance.evaluate(value => { window.expiredSend = window.ynxAdapter.request({ method: "eth_sendTransaction", params: [value] }).then(() => "sent", error => error.code); }, transaction);
+  await restoredWallet.locator("#review").waitFor({ state: "visible" });
+  await restoredWallet.locator("#approval-password").fill(password);
+  await restoredWallet.evaluate(() => { window.__realNow = Date.now; Date.now = () => window.__realNow() + 31_000; });
+  await restoredWallet.locator("#approve").click();
+  assert.equal(await restoredFinance.evaluate(() => window.expiredSend), "HOSTED_REQUEST_EXPIRED");
+  await restoredWallet.evaluate(() => { Date.now = window.__realNow; delete window.__realNow; });
+  assert.equal(rpcSends.length, 0, "an expired transaction never reaches the RPC broadcaster");
   await restoredFinance.evaluate(value => { window.firstSend = window.ynxAdapter.request({ method: "eth_sendTransaction", params: [value] }).then(hash => ({ hash }), error => ({ code: error.code })); }, transaction);
   await restoredWallet.locator("#review").waitFor({ state: "visible" });
   const blocked = await secondFinance.evaluate(async value => { try { return await window.ynxAdapter.request({ method: "eth_sendTransaction", params: [value] }); } catch (error) { return error.code; } }, transaction);
@@ -178,6 +194,6 @@ try {
   assert.equal(await switchedWallet.locator("#account-evm").textContent(), second.account);
   await switchedWallet.locator("#approve").click();
   assert.equal((await restoredFinance.evaluate(() => window.ynxConnection))[0], second.account);
-  console.log(JSON.stringify({ isolatedBrowser: browserName, hostedVaultCreatedAndReadBack: true, backupAcknowledgementBeforeConnect: true, zeroBalanceConnectionNoRpcRequired: true, account, chainId: "0x1917", explicitSignatureRejection: true, refreshDisconnected: true, wrongBackupPasswordRejected: true, encryptedBackupRestoresSamePublicAccount: true, privateV2SignedReturnLocallyVerified: true, privateV2Rejection: true, privateV2ReplayRejected: true, accountSwitchRequiresFreshApproval: true, concurrentAccountSwitchCancelsSignature: true, competingPopupSendBlocked: true, originalTransactionJournalRetained: true, mockRpcOnly: true, gatewayVerified: false, publicDeploymentVerified: false }));
+  console.log(JSON.stringify({ isolatedBrowser: browserName, hostedVaultCreatedAndReadBack: true, backupAcknowledgementBeforeConnect: true, zeroBalanceConnectionNoRpcRequired: true, account, chainId: "0x1917", explicitSignatureRejection: true, expiredSignatureNeverSigned: true, expiredTransactionNeverBroadcast: true, refreshDisconnected: true, wrongBackupPasswordRejected: true, encryptedBackupRestoresSamePublicAccount: true, privateV2SignedReturnLocallyVerified: true, privateV2Rejection: true, privateV2ReplayRejected: true, accountSwitchRequiresFreshApproval: true, concurrentAccountSwitchCancelsSignature: true, competingPopupSendBlocked: true, originalTransactionJournalRetained: true, mockRpcOnly: true, gatewayVerified: false, publicDeploymentVerified: false }));
   await fresh.close();
 } finally { await browser.close(); }
