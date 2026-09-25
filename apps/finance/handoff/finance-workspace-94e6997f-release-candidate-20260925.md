@@ -1,0 +1,16 @@
+# Finance Linux amd64 release candidate — source/build handoff
+
+This is an owner-source and local-container verification checkpoint, not a public deployment, installed Wallet approval, Broker activation, order, or transaction receipt.
+
+- Source: `94e6997f4d817233d93f9b4a96fc51b5f31e98bf`, tree `f7f8a5effe5c5ea9983ca42079ab99fa30c96ab9`, branch `codex/finance-evm-read-session-pr193-20260924`.
+- Release: `finance-weekly-v3-94e6997f4d81-linux-amd64`.
+- Local immutable archive: `/Users/huangjiahao/Desktop/YNX Finance Release Candidates/finance-workspace-94e6997f-linux-amd64.tar.gz`, 30,969,629 bytes, SHA-256 `7b84455b06e3fb1826c200420e4269eef367c15f7d0eed307d1b8e10335aa6bd`.
+- Adjacent sidecar `.tar.gz.manifest.json`: 531 bytes, SHA-256 `bc01f1c20d2c30ddb2f900abbf33d01f81a98b6eb060e4ca449f8d03352a0a8f`.
+- Adjacent clean-extraction and local Linux verification `.verification.json`: 13,352 bytes, SHA-256 `281bd39942805c26cc2cd5ac0a0ff4053ff6c14aafece38937a0cefae0824fa9`.
+- Binary `ynx-finance`: 21,024,916 bytes, SHA-256 `4a2b70a8a2923055564754d38edf7716eb54c2c0fc5fccfcdec2d7ecbc131f62`. Web `/`: 28,681 bytes, SHA-256 `d974c4c2a4a5aabe7559db6885b34918c5fd83d10d974849d47d345fa86006da`; `/app.js`: 67,341 bytes, SHA-256 `7ad2d2f7f5bdadd15a064fea8b43c886f6c70f0713106ddcdbb081b46821083a`; `/wallet-auth.js`: 182,014 bytes, SHA-256 `c6419bddc26227bf884583a79fa508b33e9321ee45201812263f38c9b455b63c`.
+
+Checks: independent double build byte-exact; archive member inventory and every file hash verified after clean extraction; Ubuntu 24.04 Linux amd64 absent-state and legacy-v1 read-only cold starts passed; seven local HTTP routes returned 200 with expected source commit; `npm test --prefix apps/finance` 153/153; `npm run security --prefix apps/finance` scanned 383 files with zero findings; `go test ./internal/finance/... ./apps/finance/...` passed; current Wallet verifier and nested EVM-read candidate gates passed. The security gate now distinguishes Spanish `todo` from uppercase TODO/FIXME without excluding locale files or weakening the existing pinned-vendor exception.
+
+The last direct public `/version` read before handoff was `3f9b9dacc21c627fb4de1d475dafd3eee1ec8676` (200, 148 bytes, SHA-256 `60d8bc9c61b0c7ec9b4d603bf083969631bfdec6c4c5b5c2da3126edf84d4101`), an ancestor of this candidate. This is not a fresh production rollback binding. The deployment owner must re-read live service/release/symlink, state, env, unit, Caddy, public endpoint and exact asset hashes immediately before mutation, preserve the old release as rollback target, and verify the candidate source/bytes on the public domain after deployment. No owner-side production write was performed.
+
+Finance Web currently uses an injected EIP-6963/EIP-1193 YNX provider, distinct from MetaMask, for `eth_requestAccounts` and 0x1917 add/switch/readback. It does not implement a standalone Wallet Web popup/pairing transport. Without an installed provider, YNX remains unavailable and a real download link is shown. Real YNX/MetaMask account approval, rejection, refresh and disconnect on the public candidate remain unverified; Product Session, signatures, orders, transactions and any installable Finance binary claim remain false. Consume a Wallet-owner accepted shared transport if one becomes available; do not invent a second protocol.

@@ -12,6 +12,9 @@ import {createNodeCheckpointStore} from './checkpoint-node.mjs';
 import {loadFinanceAuthorityConfig} from './config.mjs';
 
 const nowMs=Date.parse('2026-09-21T00:00:00.000Z');
+const originalFetch=globalThis.fetch;
+globalThis.fetch=async(_url,init)=>new Response(JSON.stringify({ok:true,requestId:init.headers['x-request-id'],result:{serverTime:new Date(nowMs).toISOString()},schemaVersion:2}),{status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-request-id':init.headers['x-request-id']}});
+after(()=>{globalThis.fetch=originalFetch});
 const tempRoot=path.resolve(`apps/finance/.authority-test-tmp-${process.pid}`);await fs.mkdir(tempRoot,{recursive:true,mode:0o700});after(()=>fs.rm(tempRoot,{recursive:true,force:true}));
 const iso=value=>new Date(value).toISOString();
 const sha=value=>createHash('sha256').update(value).digest('hex');
@@ -38,7 +41,7 @@ async function fixture(t,{manifest=signed(),trustedTimeMs=nowMs}={}){
   const dir=await fs.mkdtemp(path.join(tempRoot,'ynx-finance-authority-v2-'));
   t.after(()=>fs.rm(dir,{recursive:true,force:true}));
   const files={trustRootFile:path.join(dir,'trust-root.json'),manifestFile:path.join(dir,'manifest.json'),checkpointFile:path.join(dir,'checkpoint'),trustedTimeFile:path.join(dir,'trusted-time.json')};
-  await Promise.all([fs.writeFile(files.trustRootFile,JSON.stringify(root)),fs.writeFile(files.manifestFile,JSON.stringify(manifest)),fs.writeFile(files.trustedTimeFile,JSON.stringify({schemaVersion:'ynx-trusted-time/v1',unixTimeMs:trustedTimeMs}))]);
+  await Promise.all([fs.writeFile(files.trustRootFile,JSON.stringify(root)),fs.writeFile(files.manifestFile,JSON.stringify(manifest)),fs.writeFile(files.trustedTimeFile,JSON.stringify({schemaVersion:'ynx-trusted-time/v1',unixTimeMs:trustedTimeMs}),{mode:0o600})]);
   const env=Object.fromEntries(Object.entries(files).map(([name,value])=>[`YNX_FINANCE_ENDPOINT_AUTHORITY_V2_${name.replace(/File$/,'').replace(/[A-Z]/g,letter=>'_'+letter).toUpperCase()}_FILE`,value]));
   return {dir,files,env,manifest};
 }
@@ -64,7 +67,7 @@ test('exact signed Finance v2 selects only Wallet Gateway and keeps provider fla
 
 test('browser config is server-verified public metadata bound to the durable server checkpoint',async t=>{
   const value=await fixture(t),config=await resolveFinanceBrowserAuthorityConfig({env:value.env});
-  assert.equal(config.schemaVersion,'ynx-finance-endpoint-authority-browser-config/v1');assert.deepEqual(config.trustRoot,root);assert.deepEqual(config.manifest,value.manifest);assert.deepEqual(config.serverCheckpoint,{rootVersion:1,sequence:1,payloadSha256:value.manifest.integrity.payloadSha256});assert.equal(config.trustedTimeMs,nowMs);
+  assert.equal(config.schemaVersion,'ynx-finance-endpoint-authority-browser-config/v1');assert.deepEqual(config.trustRoot,root);assert.deepEqual(config.manifest,value.manifest);assert.deepEqual(config.serverCheckpoint,{rootVersion:1,sequence:1,payloadSha256:value.manifest.integrity.payloadSha256});assert.ok(config.trustedTimeMs>=nowMs&&config.trustedTimeMs<nowMs+3000);
 });
 
 test('persisted history permits a signed root rotation and rejects rotation back to the old root',async t=>{
@@ -90,6 +93,19 @@ test('origin, signature, clock rollback and storage loss/equivocation fail close
   await assert.rejects(resolveFinancePrivateAuthority({env:clock.env}),/EQUIVOCATION/);
   await fs.rm(transitionPath(clock.files.checkpointFile,root.anchor));
   await assert.rejects(resolveFinancePrivateAuthority({env:clock.env}),/CHECKPOINT_LOST/);
+});
+
+test('fresh Wallet Auth time expires a signed manifest across child restart and browser reload',async t=>{
+  const value=await fixture(t);
+  await resolveFinancePrivateAuthority({env:value.env});
+  const moduleURL=pathToFileURL(path.resolve('apps/finance/authority/adapter.mjs')).href;
+  const worker=`import {resolveFinancePrivateAuthority} from ${JSON.stringify(moduleURL)};const [envJSON,time]=process.argv.slice(1);globalThis.fetch=async(_url,init)=>new Response(JSON.stringify({ok:true,requestId:init.headers['x-request-id'],result:{serverTime:new Date(Number(time)).toISOString()},schemaVersion:2}),{status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-request-id':init.headers['x-request-id']}});try{await resolveFinancePrivateAuthority({env:JSON.parse(envJSON)});process.stdout.write('VERIFIED')}catch(error){process.stdout.write(String(error.message))}`;
+  const child=sample=>new Promise((resolve,reject)=>{const processChild=spawn(process.execPath,['--input-type=module','-e',worker,JSON.stringify(value.env),String(sample)],{stdio:['ignore','pipe','pipe']});let output='',stderr='';processChild.stdout.on('data',data=>output+=data);processChild.stderr.on('data',data=>stderr+=data);processChild.on('error',reject);processChild.on('close',code=>code===0?resolve(output):reject(Error(stderr)))});
+  const expired=nowMs+3600000;
+  assert.match(await child(expired),/EXPIRED_OR_FUTURE/);
+  const source=file=>import('./trusted-time.mjs').then(({sampleFinanceTrustedClock})=>sampleFinanceTrustedClock(file,{fetchImpl:async(_url,init)=>new Response(JSON.stringify({ok:true,requestId:init.headers['x-request-id'],result:{serverTime:new Date(expired).toISOString()},schemaVersion:2}),{status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-request-id':init.headers['x-request-id']}})}));
+  await assert.rejects(resolveFinanceBrowserAuthorityConfig({env:value.env,clockSource:source}),/EXPIRED_OR_FUTURE/);
+  assert.match(await child(expired-1000),/CLOCK_ROLLBACK/);
 });
 
 test('node checkpoint CAS serializes competing process views',async t=>{

@@ -10,6 +10,7 @@ import QRCodeView from "react-native-qrcode-svg";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
   createSignedNativeTransfer, evmAddressFromYNX, walletIdentity, ynxAddressFromEVM,
+  FINANCE_ORDER_OPAQUE_CLAIM_PATH, FINANCE_ORDER_OPAQUE_COMPLETE_PATH, FINANCE_ORDER_OPAQUE_RECOVER_LEGACY_PATH,
 } from "@ynx-chain/wallet-auth";
 import { GatewaySecurityReviewProvider, SecurityReviewController, type ReviewSnapshot } from "./src/ai/securityReview";
 import { NativeChainClient, loadNativeChainState, isNativeReadCancelled, nativeChainClientForStoredOrigin, type NativeChainState } from "./src/chain/nativeTransfer";
@@ -28,6 +29,7 @@ import { ProductSessionController, type ProductSessionReview, type MobileProduct
 import { ApplicationActionController, type ApplicationActionReview } from "./src/protocol/applicationActionController";
 import { CardApplicationApprovalController, type CardApplicationApprovalReview } from "./src/protocol/cardApplicationApprovalController";
 import { FinanceOrderApprovalController, type FinanceOrderApprovalReview } from "./src/protocol/financeOrderApprovalController";
+import { FinanceOrderOpaqueController } from "./src/protocol/financeOrderOpaqueController";
 import { scopeExplanation } from "./src/i18n/scopeCopy";
 import { authorizationCopy } from "./src/i18n/authorizationCopy";
 import { applicationActionCopy } from "./src/i18n/applicationActionCopy";
@@ -61,6 +63,18 @@ function useOperationScope(visible=true,account?:string){const operations=useWal
 const repository=new WalletRepository(platformSecureStorage);
 const nativeOutbox=new NativeTransferOutbox(platformSecureStorage);
 const authorizationAudit=new AuthorizationAuditStore(platformSecureStorage);
+async function postFinanceOrderHandoff(path:string,body:unknown):Promise<unknown>{
+  if(path!==FINANCE_ORDER_OPAQUE_CLAIM_PATH&&path!==FINANCE_ORDER_OPAQUE_COMPLETE_PATH&&path!==FINANCE_ORDER_OPAQUE_RECOVER_LEGACY_PATH)
+    throw new Error("Finance handoff route is not authorized");
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10_000);
+  try{
+    const response=await fetch("https://finance.ynxweb4.com"+path,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
+      body:JSON.stringify(body),credentials:"omit",redirect:"error",cache:"no-store",signal:controller.signal});
+    if(!response.ok||!(response.headers.get("content-type")??"").includes("application/json"))throw new Error("Finance confidential handoff unavailable; signed decision is retained for retry");
+    const raw=await response.text();if(raw.length>64*1024)throw new Error("Finance handoff response is too large");
+    return JSON.parse(raw);
+  }finally{clearTimeout(timeout)}
+}
 function chainClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new NativeChainClient(runtime?.baseURL)}
 function storedChainClient(origin:string){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return nativeChainClientForStoredOrigin(origin,runtime?.baseURL)}
 function evmSimulationClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new EvmSimulationClient(runtime?.evmRpcURL??runtime?.baseURL)}
@@ -106,7 +120,17 @@ function WalletApp(){
   const productSessions=useMemo(()=>new ProductSessionController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url),audit:(review,action,at)=>authorizationAudit.appendProductSession(review,{action,account:review.account.account,at:at.toISOString()})}),[operations]);
   const applicationActions=useMemo(()=>new ApplicationActionController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url)}),[operations]);
   const cardApprovals=useMemo(()=>new CardApplicationApprovalController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url)}),[operations]);
-  const financeOrderApprovals=useMemo(()=>new FinanceOrderApprovalController({storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),currentTime:(assertCurrent)=>walletSessionInventoryClient().currentTime(assertCurrent),openURL:(url)=>Linking.openURL(url)}),[operations]);
+  const financeOrderApprovals=useMemo(()=>{
+    const access=createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")});
+    const shared={storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:access,
+      currentTime:(assertCurrent:()=>void)=>walletSessionInventoryClient().currentTime(assertCurrent),openURL:(url:string)=>Linking.openURL(url)};
+    const legacy=new FinanceOrderApprovalController(shared);
+    return new FinanceOrderOpaqueController({...shared,randomToken:async()=>bytesToHex(await getRandomBytesAsync(32)),
+      claim:body=>postFinanceOrderHandoff(FINANCE_ORDER_OPAQUE_CLAIM_PATH,body),
+      complete:body=>postFinanceOrderHandoff(FINANCE_ORDER_OPAQUE_COMPLETE_PATH,body),
+      recoverLegacy:body=>postFinanceOrderHandoff(FINANCE_ORDER_OPAQUE_RECOVER_LEGACY_PATH,body),
+      inspectLegacy:url=>legacy.inspectForOpaqueMigration(url)});
+  },[operations]);
   const cancelAuthorization=useCallback(()=>{++linkRevision.current;productSessions.cancel();applicationActions.cancel();cardApprovals.cancel();financeOrderApprovals.cancel();setAuthorization(null);setApplicationAction(null);setCardApproval(null);setFinanceOrderApproval(null)},[productSessions,applicationActions,cardApprovals,financeOrderApprovals]);
   const lock=()=>{void walletConnectRuntime.rejectPendingForLock();operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
   const updateManifest=useCallback((next:WalletManifest)=>{void walletConnectRuntime.rejectPendingForLock();operations.invalidate();operations.setAccount(next.selectedAccountId);selectedRef.current=next.accounts.find(item=>item.account===next.selectedAccountId)??null;cancelAuthorization();setManifest(next)},[operations,cancelAuthorization]);
@@ -618,7 +642,7 @@ function CardApprovalModal({locale,review,controller,close,onReturned}:{locale:W
   </Sheet></Modal>
 }
 
-function FinanceOrderApprovalModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:FinanceOrderApprovalReview;controller:FinanceOrderApprovalController;close:()=>void;onReturned:()=>void}){
+function FinanceOrderApprovalModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:FinanceOrderApprovalReview;controller:FinanceOrderOpaqueController;close:()=>void;onReturned:()=>void}){
   const {request,account:selected}=review,approval=request.unsigned,order=approval.order;
   const scope=useOperationScope(true,selected.account);
   const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[expired,setExpired]=useState(false),[returnReady,setReturnReady]=useState(()=>controller.hasReturn(review.id)),[revocable,setRevocable]=useState(()=>controller.canRevoke(review.id));

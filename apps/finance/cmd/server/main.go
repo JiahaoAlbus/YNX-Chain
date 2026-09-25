@@ -34,6 +34,7 @@ func main() {
 		ExchangeURL:  os.Getenv("YNX_FINANCE_EXCHANGE_ACTION_URL"),
 		DEXURL:       os.Getenv("YNX_FINANCE_DEX_ACTION_URL"),
 		QuantURL:     os.Getenv("YNX_FINANCE_QUANT_ACTION_URL"),
+		CardURL:      os.Getenv("YNX_FINANCE_CARD_ACTION_URL"),
 		EconomicsURL: os.Getenv("YNX_FINANCE_ECONOMICS_ACTION_URL"),
 	}); err != nil {
 		log.Fatal(err)
@@ -45,6 +46,8 @@ func main() {
 		DEXKey:      os.Getenv("YNX_FINANCE_DEX_READ_KEY"),
 		QuantURL:    os.Getenv("YNX_FINANCE_QUANT_READ_URL"),
 		QuantKey:    os.Getenv("YNX_FINANCE_QUANT_READ_KEY"),
+		CardURL:     os.Getenv("YNX_FINANCE_CARD_READ_URL"),
+		CardKey:     os.Getenv("YNX_FINANCE_CARD_READ_KEY"),
 	}); err != nil {
 		log.Fatal(err)
 	}
@@ -92,7 +95,38 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
+	var evmRead *finance.NodeEVMReadAuthority
+	readNode, readScript := os.Getenv("YNX_FINANCE_EVM_READ_NODE_BINARY"), os.Getenv("YNX_FINANCE_EVM_READ_SCRIPT")
+	if readNode != "" || readScript != "" {
+		evmRead, err = finance.NewNodeEVMReadAuthority(readNode, readScript, 5*time.Second)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	var evmSubject *finance.NodeEVMReadAuthority
+	subjectNode, subjectScript := os.Getenv("YNX_FINANCE_EVM_SUBJECT_NODE_BINARY"), os.Getenv("YNX_FINANCE_EVM_SUBJECT_SCRIPT")
+	if subjectNode != "" || subjectScript != "" {
+		evmSubject, err = finance.NewNodeEVMReadAuthority(subjectNode, subjectScript, 5*time.Second)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	var brokerOpaque *finance.NodeEVMReadAuthority
+	opaqueNode, opaqueScript := os.Getenv("YNX_FINANCE_ORDER_OPAQUE_NODE_BINARY"), os.Getenv("YNX_FINANCE_ORDER_OPAQUE_SCRIPT")
+	if opaqueNode != "" || opaqueScript != "" {
+		brokerOpaque, err = finance.NewNodeEVMReadAuthority(opaqueNode, opaqueScript, 5*time.Second)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	var opaqueCutover time.Time
+	if raw := os.Getenv("YNX_FINANCE_ORDER_OPAQUE_LEGACY_CUTOVER_AT"); raw != "" {
+		opaqueCutover, err = time.Parse(time.RFC3339Nano, raw)
+		if err != nil || !strings.HasSuffix(raw, "Z") || opaqueCutover.IsZero() {
+			log.Fatal("invalid Finance opaque legacy cutover")
+		}
+	}
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, EVMReadAuthority: evmRead, EVMSubjectAuthority: evmSubject, BrokerOpaqueAuthority: brokerOpaque, BrokerOpaqueLegacyCutoverAt: opaqueCutover, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
 	if err != nil {
 		log.Fatal(err)
 	}

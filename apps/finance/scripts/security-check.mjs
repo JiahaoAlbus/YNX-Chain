@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, relative, resolve } from 'node:path';
-import { isNonRuntimeSentinelUse } from './security-policy.mjs';
+import { isNonRuntimeSentinelUse, runtimePlaceholderPatterns } from './security-policy.mjs';
 
 const root = resolve(import.meta.dirname, '../../..');
 const scanRoots = [
@@ -80,12 +80,12 @@ const rules = [
     pattern: deploymentFillerPattern,
     message: 'disallowed deployment filler or fake claim',
   },
-  {
+  ...runtimePlaceholderPatterns.map((pattern) => ({
     id: 'runtime-placeholder',
-    pattern: /\b(?:TODO|FIXME|Coming soon)\b|>\s*Placeholder\s*</gi,
+    pattern,
     message: 'unfinished runtime or visible public placeholder marker',
     runtimeOnly: true,
-  },
+  })),
 ];
 
 const runtimeRoots = [

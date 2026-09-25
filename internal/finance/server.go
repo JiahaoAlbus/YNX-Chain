@@ -26,22 +26,26 @@ import (
 const maxBodyBytes = 64 << 10
 
 type ServerConfig struct {
-	BrokerConfig         brokerage.Config
-	BrokerAdapter        brokerage.BrokerageAdapter
-	BrokerMaxFeeUSD      string
-	BrokerFeeBoundSource string
-	BrokerFeeEvidenceRef string
-	AllowedOrigins       []string
-	WebDir               string
-	CursorSigningKey     string
-	OperationsKey        string
-	WalletGatewayURL     string
-	WalletGatewayClient  *http.Client
-	LogWriter            io.Writer
-	Now                  func() time.Time
-	Build                buildinfo.Info
-	EndpointAuthority    EndpointAuthorityBrowserConfigProvider
-	EVMLoginAuthority    EVMLoginAuthority
+	BrokerConfig                brokerage.Config
+	BrokerAdapter               brokerage.BrokerageAdapter
+	BrokerMaxFeeUSD             string
+	BrokerFeeBoundSource        string
+	BrokerFeeEvidenceRef        string
+	AllowedOrigins              []string
+	WebDir                      string
+	CursorSigningKey            string
+	OperationsKey               string
+	WalletGatewayURL            string
+	WalletGatewayClient         *http.Client
+	LogWriter                   io.Writer
+	Now                         func() time.Time
+	Build                       buildinfo.Info
+	EndpointAuthority           EndpointAuthorityBrowserConfigProvider
+	EVMLoginAuthority           EVMLoginAuthority
+	EVMReadAuthority            *NodeEVMReadAuthority
+	EVMSubjectAuthority         *NodeEVMReadAuthority
+	BrokerOpaqueAuthority       *NodeEVMReadAuthority
+	BrokerOpaqueLegacyCutoverAt time.Time
 }
 
 type Server struct {
@@ -99,6 +103,14 @@ func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.dra
 func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/wallet-login/challenges", s.walletLoginChallenge)
 	s.mux.HandleFunc("POST /api/wallet-login/verify", s.walletLoginVerify)
+	s.mux.HandleFunc("POST /api/evm-read/challenges", s.evmReadChallenge)
+	s.mux.HandleFunc("POST /api/evm-read/sessions", s.evmReadIssueSession)
+	s.mux.HandleFunc("GET /api/evm-read/portfolio", s.evmReadPortfolio)
+	s.mux.HandleFunc("POST /api/wallet-login/revoke", s.evmReadRevoke)
+	s.mux.HandleFunc("POST /api/evm-subject/challenges", s.evmSubjectChallenge)
+	s.mux.HandleFunc("POST /api/evm-subject/sessions", s.evmSubjectIssueSession)
+	s.mux.HandleFunc("GET /api/evm-subject/identity", s.evmSubjectIdentity)
+	s.mux.HandleFunc("POST /api/evm-subject/revoke", s.evmSubjectRevoke)
 	s.mux.HandleFunc("GET /api/product-catalog", s.productCatalog)
 	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
 	s.mux.HandleFunc("GET /api/endpoint-authority/v2/config", s.endpointAuthorityBrowserConfig)
@@ -114,6 +126,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/broker/orders/{id}/execution-request", s.protected("finance.profile.write", s.brokerExecutionRequest))
 	s.mux.HandleFunc("POST /api/broker/challenges", s.protected("finance.profile.write", s.brokerChallenge))
 	s.mux.HandleFunc("POST /api/broker/callback", s.protected("finance.profile.write", s.brokerCallback))
+	s.mux.HandleFunc("POST /api/broker/order-handoff/issue", s.protected("finance.profile.write", s.brokerOpaqueIssue))
+	s.mux.HandleFunc("POST /api/broker/order-handoff/claim", s.brokerOpaqueClaim)
+	s.mux.HandleFunc("POST /api/broker/order-handoff/complete", s.brokerOpaqueComplete)
+	s.mux.HandleFunc("POST /api/broker/order-handoff/recover-legacy", s.brokerOpaqueRecoverLegacy)
+	s.mux.HandleFunc("POST /api/broker/order-handoff/exchange", s.protected("finance.profile.write", s.brokerOpaqueExchange))
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /ready", s.ready)
 	s.mux.HandleFunc("GET /version", s.version)
@@ -157,6 +174,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /wallet-auth/callback", s.web)
 	s.mux.HandleFunc("GET /wallet-auth.js", s.web)
 	s.mux.HandleFunc("GET /order-wallet.js", s.web)
+	s.mux.HandleFunc("GET /order-opaque.js", s.web)
+	s.mux.HandleFunc("GET /evm-read-session.js", s.web)
+	s.mux.HandleFunc("GET /evm-subject.js", s.web)
 	s.mux.HandleFunc("GET /build-identity.json", s.web)
 	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/complete", s.walletSessionComplete)
 	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/revoke", s.walletSessionRevoke)
@@ -368,7 +388,7 @@ func (s *Server) sources(w http.ResponseWriter, r *http.Request, session Session
 	if len(live) > 0 {
 		liveState = strings.Join(live, ",")
 	}
-	integrationState := "accepted=exchange,dex,quant;live=" + liveState + ";pending=economics"
+	integrationState := "accepted=exchange,dex,quant,card;live=" + liveState + ";pending=economics"
 	writeJSON(w, http.StatusOK, map[string]any{
 		"consumerEnvelopeVersion": ReadSourceEnvelopeVersion,
 		"readOnly":                true,
@@ -774,7 +794,11 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
-	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/finance-locale.js": "finance-locale.js", "/wallet-auth.js": "wallet-auth.js", "/order-wallet.js": "order-wallet.js", "/read-sources.js": "read-sources.js", "/product-catalog.js": "product-catalog.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
+	if r.URL.Path == "/wallet-auth/callback" || r.URL.Path == "/auth/callback" {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Pragma", "no-cache")
+	}
+	name := map[string]string{"/": "index.html", "/auth/callback": "index.html", "/wallet-auth/callback": "index.html", "/app.js": "app.js", "/finance-locale.js": "finance-locale.js", "/wallet-auth.js": "wallet-auth.js", "/order-wallet.js": "order-wallet.js", "/order-opaque.js": "order-opaque.js", "/evm-read-session.js": "evm-read-session.js", "/evm-subject.js": "evm-subject.js", "/read-sources.js": "read-sources.js", "/product-catalog.js": "product-catalog.js", "/styles.css": "styles.css", "/manifest.webmanifest": "manifest.webmanifest", "/ynx-logo.png": "ynx-logo.png", "/build-identity.json": "build-identity.json"}[r.URL.Path]
 	if name == "" || s.cfg.WebDir == "" {
 		http.NotFound(w, r)
 		return

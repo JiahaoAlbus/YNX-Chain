@@ -68,6 +68,21 @@ func TestDrainRejectsNewBusinessAndAllowsAdmittedRequestToFinish(t *testing.T) {
 	}
 }
 
+func TestDrainAllowsEVMSubjectBundleGetOnly(t *testing.T) {
+	get := httptest.NewRequest(http.MethodGet, "/evm-subject.js", nil)
+	if !drainExempt(get) {
+		t.Fatal("EVM-only browser bundle must remain available while draining")
+	}
+	post := httptest.NewRequest(http.MethodPost, "/evm-subject.js", nil)
+	if drainExempt(post) {
+		t.Fatal("only a static GET may bypass drain admission")
+	}
+	private := httptest.NewRequest(http.MethodGet, "/api/evm-subject/identity", nil)
+	if drainExempt(private) {
+		t.Fatal("private EVM subject reads must be rejected while draining")
+	}
+}
+
 func TestDrainReadinessControlMetricsAndStatePersistence(t *testing.T) {
 	now := time.Date(2026, 9, 20, 11, 0, 0, 0, time.UTC)
 	path := filepath.Join(t.TempDir(), "finance.json")

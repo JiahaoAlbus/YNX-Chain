@@ -4,6 +4,14 @@ const acceptedUpstreamComments = new Set([
   '// TODO: return `this`',
 ]);
 
+// Developer markers are case-sensitive: Spanish "todo" is ordinary product
+// copy, while uppercase TODO/FIXME still block a release. Visible filler is
+// intentionally case-insensitive.
+export const runtimePlaceholderPatterns = Object.freeze([
+  /\b(?:TODO|FIXME)\b/g,
+  /\bComing soon\b|>\s*Placeholder\s*</gi,
+]);
+
 export function isNonRuntimeSentinelUse(ruleID, rel, text, matchText, matchIndex) {
   if (ruleID === 'runtime-placeholder' && rel === pinnedProductSessionBundle && matchText === 'TODO') {
     const lineStart = text.lastIndexOf('\n', matchIndex) + 1;

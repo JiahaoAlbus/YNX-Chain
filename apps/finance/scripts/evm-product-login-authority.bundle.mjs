@@ -2897,12 +2897,12 @@ async function verifyEvmProductLoginProof(input, expected, at = /* @__PURE__ */ 
   if (Date.parse(proof.challenge.issuedAt) > now + skew) fail("ISSUED_IN_FUTURE", "EVM product login challenge was issued in the future");
   if (Date.parse(proof.challenge.notBefore) > now + skew) fail("NOT_YET_VALID", "EVM product login challenge is not active");
   if (Date.parse(proof.challenge.expirationTime) <= now) fail("LOGIN_EXPIRED", "EVM product login challenge expired");
-  const digest = ethereumPersonalMessageDigest(proof.message);
+  const digest2 = ethereumPersonalMessageDigest(proof.message);
   if (proof.challenge.accountType === "eoa") {
-    if (recoverEthereumAddress(proof.signature, digest) !== proof.challenge.account) fail("INVALID_SIGNATURE", "EVM product login signature does not match the selected account");
+    if (recoverEthereumAddress(proof.signature, digest2) !== proof.challenge.account) fail("INVALID_SIGNATURE", "EVM product login signature does not match the selected account");
   } else {
     if (typeof expected.verifyContractSignature !== "function") fail("CONTRACT_ACCOUNT_UNSUPPORTED", "Contract account login requires an EIP-1271 verifier");
-    const valid = await expected.verifyContractSignature(Object.freeze({ account: proof.challenge.account, chainId: proof.challenge.chainId, message: proof.message, digest: `0x${bytesToHex(digest)}`, signature: proof.signature }));
+    const valid = await expected.verifyContractSignature(Object.freeze({ account: proof.challenge.account, chainId: proof.challenge.chainId, message: proof.message, digest: `0x${bytesToHex(digest2)}`, signature: proof.signature }));
     if (valid !== true) fail("INVALID_SIGNATURE", "Contract account rejected the EVM product login signature");
   }
   return Object.freeze({ verified: true, account: proof.challenge.account, accountType: proof.challenge.accountType, chainId: proof.challenge.chainId, productId: proof.challenge.productId, scopes: proof.challenge.scopes, providerKind: proof.challenge.providerKind, nonce: proof.challenge.nonce, requestId: proof.challenge.requestId, message: proof.message });
@@ -2913,13 +2913,13 @@ function ethereumPersonalMessageDigest(message) {
 ${bytes.length}`);
   return keccak_256(concatBytes(prefix, bytes));
 }
-function recoverEthereumAddress(signature, digest) {
+function recoverEthereumAddress(signature, digest2) {
   try {
     const raw = hexToBytes(signature.slice(2)), recovery = raw[64] >= 27 ? raw[64] - 27 : raw[64];
     if (recovery !== 0 && recovery !== 1) fail("INVALID_SIGNATURE", "EVM product login recovery id is invalid");
     if (secp256k1.Signature.fromBytes(raw.slice(0, 64), "compact").hasHighS()) fail("INVALID_SIGNATURE", "EVM product login signature is malleable");
     const recovered = concatBytes(Uint8Array.of(recovery), raw.slice(0, 64));
-    const publicKey = secp256k1.recoverPublicKey(recovered, digest, { prehash: false });
+    const publicKey = secp256k1.recoverPublicKey(recovered, digest2, { prehash: false });
     const uncompressed = secp256k1.Point.fromBytes(publicKey).toBytes(false);
     return `0x${bytesToHex(keccak_256(uncompressed.slice(1)).slice(-20))}`;
   } catch (error) {
@@ -2980,6 +2980,13 @@ function pattern(value, label, regex) {
 function fail(code, message) {
   throw new WalletAuthError(code, message);
 }
+
+// packages/wallet-auth/src/evm-product-session.js
+var EVM_PRODUCT_SESSION_MAX_LIFETIME_MS = 15 * 6e4;
+
+// packages/wallet-auth/src/finance-evm-subject.js
+var HTTP = ["version", "sessionId", "challengeDigest", "subjectId", "account", "origin", "scope", "method", "target", "bodyDigest", "nonce", "issuedAt", "expiresAt"];
+var PROOF = [...HTTP, "deviceSignature"];
 
 // packages/wallet-auth/src/wallet-session-control.js
 var WALLET_SESSION_CONTROL_PATHS = Object.freeze(["/v2/product-sessions/wallet/sessions", "/v2/product-sessions/wallet/sessions/revoke"]);

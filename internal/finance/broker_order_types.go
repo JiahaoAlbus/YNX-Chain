@@ -1,6 +1,9 @@
 package finance
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 const (
 	FinanceOrderApprovalVersion = "1"
@@ -123,6 +126,33 @@ type BrokerApprovalChallenge struct {
 	UpdatedAt      time.Time                      `json:"updatedAt"`
 }
 
+// BrokerOrderHandoffRecord stays in persistedState, never AccountState: the
+// profile endpoint serializes AccountState and must not expose a callback
+// state, proof, or one-time code verifier. Ticket and code plaintext are never
+// persisted. The raw-v1 mode is reserved for a separately reviewed legacy
+// recovery route; fresh tickets must use sha256-v2. Fresh tickets bind the
+// issuing Product Session by hash. A raw-v1 recovered ticket has no original
+// session binding in its historical challenge: its separate owner-key recovery
+// proof plus the current same-account Product Session at exchange is an
+// explicit reauthentication exception, never an original-session claim.
+type BrokerOrderHandoffRecord struct {
+	TicketHash           string               `json:"ticketHash"`
+	Account              string               `json:"account"`
+	SessionBindingHash   string               `json:"sessionBindingHash"`
+	RequestID            string               `json:"requestId"`
+	CallbackState        string               `json:"callbackState"`
+	CallbackStateBinding string               `json:"callbackStateBinding"`
+	ClaimNonces          map[string]time.Time `json:"claimNonces,omitempty"`
+	DecisionStatus       string               `json:"decisionStatus,omitempty"`
+	DecisionProof        json.RawMessage      `json:"decisionProof,omitempty"`
+	DecisionProofHash    string               `json:"decisionProofHash,omitempty"`
+	CodeHash             string               `json:"codeHash,omitempty"`
+	CodeExpiresAt        time.Time            `json:"codeExpiresAt,omitempty"`
+	CodeConsumedAt       *time.Time           `json:"codeConsumedAt,omitempty"`
+	IssuedAt             time.Time            `json:"issuedAt"`
+	ExpiresAt            time.Time            `json:"expiresAt"`
+}
+
 type BrokerOrderRecord struct {
 	Order                 FinanceOrderV1 `json:"order"`
 	RequestID             string         `json:"requestId"`
@@ -139,6 +169,9 @@ type BrokerOrderRecord struct {
 	ProviderHTTPRequestID string         `json:"providerHttpRequestId,omitempty"`
 	ProviderEventCursor   string         `json:"providerEventCursor,omitempty"`
 	ProviderEventAt       time.Time      `json:"providerEventAt,omitempty"`
+	CancelPriorState      string         `json:"cancelPriorState,omitempty"`
+	CancelIntentAt        time.Time      `json:"cancelIntentAt,omitempty"`
+	CancelAttemptedAt     time.Time      `json:"cancelAttemptedAt,omitempty"`
 	CreatedAt             time.Time      `json:"createdAt"`
 	UpdatedAt             time.Time      `json:"updatedAt"`
 }

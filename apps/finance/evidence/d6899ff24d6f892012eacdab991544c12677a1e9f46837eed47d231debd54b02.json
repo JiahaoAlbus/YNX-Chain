@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "ynx-finance-public-acceptance/v2",
+  "acceptance": {
+    "origin": "https://finance.ynxweb4.com",
+    "source": {
+      "repository": "https://github.com/JiahaoAlbus/YNX-Chain",
+      "commit": "94e6997f4d817233d93f9b4a96fc51b5f31e98bf",
+      "tree": "f7f8a5effe5c5ea9983ca42079ab99fa30c96ab9"
+    },
+    "observedAt": "2026-09-25T08:57:54.000Z",
+    "registrySha256": "e74e1668e631dd623a4364cc9580951a9fe96fcef0c66c5910d84c774f4fdc08",
+    "callbackContractSha256": "16b0d677ec21e84b5ce425138f175c37e1ac6d319db7fe5a85926b276dccd336",
+    "currentPublicSourceAccepted": true,
+    "productSessionAccepted": true
+  },
+  "officialSandboxVerified": false,
+  "providerVerified": false,
+  "productionApproved": false
+}

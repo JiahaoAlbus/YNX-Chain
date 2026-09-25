@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "ynx.finance.weekly-v3-candidate-sidecar.v1",
+  "sourceCommit": "8b95488f32e2d73d320e8adec1040f45d61dc3ac",
+  "sourceTree": "4e85c727dbfcbb0d8f69884be3659ef8aef2c114",
+  "toolingCommit": "5cbc2eee35f474ddb9013d0c8bec037a96111978",
+  "release": "finance-weekly-v3-8b95488f32e2-linux-amd64",
+  "repeatedBuildByteExact": true,
+  "archive": {
+    "path": "finance-weekly-v3-8b95488f32e2-linux-amd64.tar.gz",
+    "bytes": 30850090,
+    "sha256": "6d64ce0b6046440094ea6468ef39a6b3f0e3d0a41f1190c53d77d1cbb1e6311f"
+  }
+}

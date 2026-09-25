@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "ynx.finance.weekly-v3-candidate-sidecar.v1",
+  "sourceCommit": "78cc3bc524ed71c9dc90e311fc14ded0a1d38a96",
+  "sourceTree": "41dee5f9b62c136afdbdd811bfd5d9a6cfdb17d9",
+  "toolingCommit": "78cc3bc524ed71c9dc90e311fc14ded0a1d38a96",
+  "release": "finance-weekly-v3-78cc3bc524ed-linux-amd64",
+  "repeatedBuildByteExact": true,
+  "archive": {
+    "path": "finance-broker-cold-state-78cc3bc5-linux-amd64.tar.gz",
+    "bytes": 30854891,
+    "sha256": "8707bc1531f01eac6c476511cf193c74147cdf1857fb59cc9eceba55ed84105c"
+  }
+}
