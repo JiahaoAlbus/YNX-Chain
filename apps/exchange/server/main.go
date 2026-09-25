@@ -37,15 +37,79 @@ func main() {
 	if gatewayURL != "" {
 		gateway = exchangeproduct.HTTPGatewayAuthorizer{BaseURL: gatewayURL, Client: &http.Client{Timeout: 5 * time.Second}}
 	}
+	oracleURL := strings.TrimSpace(os.Getenv("YNX_EXCHANGE_ORACLE_URL"))
+	var oracle exchangeproduct.RiskOracle
+	if oracleURL != "" {
+		oracle = exchangeproduct.HTTPRiskOracle{BaseURL: oracleURL, Client: &http.Client{Timeout: 5 * time.Second}}
+	}
 	sessionV2, err := exchangeproduct.NewProductSessionV2Client()
 	if err != nil {
 		log.Fatal("invalid registered Exchange Product Session v2 policy")
 	}
-	service, err := exchangeproduct.New(exchangeproduct.Config{StatePath: state, DatabaseURL: databaseURL, APIKey: apiKey, WalletCallback: callback, CustodyAddress: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_CUSTODY_ADDRESS")), GatewayURL: gatewayURL, GatewayClientID: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_GATEWAY_CLIENT_ID")), Gateway: gateway, SessionV2: sessionV2, IndexerURL: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_INDEXER_URL")), RequiredConfirmations: int64(envInt("YNX_EXCHANGE_CONFIRMATIONS", 12)), MakerFeeBPS: int64(envInt("YNX_EXCHANGE_MAKER_FEE_BPS", 10)), TakerFeeBPS: int64(envInt("YNX_EXCHANGE_TAKER_FEE_BPS", 20)), WithdrawalFeeMicroYNXT: envInt64("YNX_EXCHANGE_WITHDRAWAL_FEE_MICRO", 10000), MaxOrderNotionalMicro: envInt64("YNX_EXCHANGE_MAX_ORDER_NOTIONAL_MICRO", 100_000*exchangeproduct.AmountScale), MaxWithdrawalMicro: envInt64("YNX_EXCHANGE_MAX_WITHDRAWAL_MICRO", 25_000*exchangeproduct.AmountScale), Chain: chain})
+	service, err := exchangeproduct.New(exchangeproduct.Config{
+		StatePath: state, StateDatabaseURL: databaseURL, APIKey: apiKey, WalletCallback: callback,
+		CustodyAddress: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_CUSTODY_ADDRESS")),
+		GatewayURL:     gatewayURL, GatewayClientID: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_GATEWAY_CLIENT_ID")),
+		GatewayBundleID:      env("YNX_EXCHANGE_GATEWAY_BUNDLE_ID", "com.ynxweb4.exchange"),
+		QuantGatewayClientID: env("YNX_EXCHANGE_QUANT_GATEWAY_CLIENT_ID", "ynx-quant-v1"),
+		QuantGatewayBundleID: env("YNX_EXCHANGE_QUANT_GATEWAY_BUNDLE_ID", "com.ynxweb4.quant"),
+		Gateway:              gateway, SessionV2: sessionV2,
+		WalletSessionAttested:  strings.EqualFold(strings.TrimSpace(os.Getenv("YNX_EXCHANGE_WALLET_SESSION_ATTESTED")), "true"),
+		IndexerURL:             strings.TrimSpace(os.Getenv("YNX_EXCHANGE_INDEXER_URL")),
+		RequiredConfirmations:  int64(envInt("YNX_EXCHANGE_CONFIRMATIONS", 12)),
+		MakerFeeBPS:            int64(envInt("YNX_EXCHANGE_MAKER_FEE_BPS", 10)),
+		TakerFeeBPS:            int64(envInt("YNX_EXCHANGE_TAKER_FEE_BPS", 20)),
+		WithdrawalFeeMicroYNXT: envInt64("YNX_EXCHANGE_WITHDRAWAL_FEE_MICRO", 10000),
+		MaxOrderNotionalMicro:  envInt64("YNX_EXCHANGE_MAX_ORDER_NOTIONAL_MICRO", 100_000*exchangeproduct.AmountScale),
+		MaxWithdrawalMicro:     envInt64("YNX_EXCHANGE_MAX_WITHDRAWAL_MICRO", 25_000*exchangeproduct.AmountScale),
+		// A released server is public even when an old host lacks this env flag.
+		// Product-owned Strategy Vault evidence is a separate, explicit gate.
+		DeployedPublic:                 true,
+		// A process environment claim alone cannot establish product-owned
+		// custody, matching, and settlement evidence on the public Testnet.
+		StrategyVaultExecutionEvidence: false,
+		DEXGatewayURL:                  strings.TrimSpace(os.Getenv("YNX_EXCHANGE_DEX_GATEWAY_URL")),
+		DEXQuoteAssetID:                strings.TrimSpace(os.Getenv("YNX_EXCHANGE_DEX_QUOTE_ASSET_ID")),
+		DEXQuoteAssetAttestationDigest: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_DEX_QUOTE_ASSET_ATTESTATION_DIGEST")),
+		DEXGasMicro:                    envInt64("YNX_EXCHANGE_DEX_GAS_MICRO", 0),
+		DEXLatencyMillis:               envInt64("YNX_EXCHANGE_DEX_LATENCY_MILLIS", 0),
+		DEXFinalitySeconds:             envInt64("YNX_EXCHANGE_DEX_FINALITY_SECONDS", 0),
+		OracleURL:                      oracleURL, Oracle: oracle,
+		FinanceReadKey: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_FINANCE_READ_KEY")),
+		Chain:          chain,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer service.Close()
+	if _, err := service.SweepDeadMan(); err != nil {
+		log.Fatalf("initial Exchange dead-man sweep: %v", err)
+	}
+	if _, err := service.TickTWAP(); err != nil {
+		log.Fatalf("initial Exchange TWAP tick: %v", err)
+	}
+	if oracle != nil {
+		if _, err := service.RefreshRiskOracle(); err != nil {
+			log.Printf("initial Exchange oracle refresh degraded: %v", err)
+		}
+	}
+	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			if _, err := service.SweepDeadMan(); err != nil {
+				log.Printf("Exchange dead-man sweep degraded: %v", err)
+			}
+			if _, err := service.TickTWAP(); err != nil {
+				log.Printf("Exchange TWAP tick degraded: %v", err)
+			}
+			if oracle != nil {
+				if _, err := service.RefreshRiskOracle(); err != nil {
+					log.Printf("Exchange oracle refresh degraded: %v", err)
+				}
+			}
+		}
+	}()
 	admission, err := newConfiguredAdmission(128, 600, time.Minute, databaseURL)
 	if err != nil {
 		log.Fatalf("configure Exchange admission: %v", err)
