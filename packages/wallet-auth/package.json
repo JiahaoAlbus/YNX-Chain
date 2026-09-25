@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
@@ -36,6 +36,11 @@
       "import": "./src/wallet-provider-discovery.js",
       "default": "./src/wallet-provider-discovery.js"
     },
+    "./evm-product-login": {
+      "types": "./src/index.d.ts",
+      "import": "./src/evm-product-login.js",
+      "default": "./src/evm-product-login.js"
+    },
     "./metamask-evm": {
       "types": "./src/index.d.ts",
       "import": "./src/metamask-evm-adapter.js",
@@ -63,14 +68,25 @@
     }
   },
   "types": "./src/index.d.ts",
-  "files": ["src", "scripts", "testdata", "integration", "proposals", "central-registry.json", "product-session-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
+  "files": [
+    "src",
+    "scripts",
+    "testdata",
+    "integration",
+    "proposals",
+    "central-registry.json",
+    "product-session-registry.json",
+    "registry-conflict-evidence.json",
+    "CENTRAL_INTEGRATION.md"
+  ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
     "ynx-wallet-gateway-backup": "scripts/ynx-wallet-gateway-backup.mjs",
     "ynx-wallet-control-migrate-v3": "scripts/ynx-wallet-control-migrate-v3.mjs"
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "node --test test/*.test.mjs && npm run test:types",
+    "test:types": "tsc -p tsconfig.types.json",
     "check": "npm test",
     "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
     "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
@@ -81,6 +97,11 @@
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0"
   },
-  "engines": { "node": ">=22" },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "private": true
 }

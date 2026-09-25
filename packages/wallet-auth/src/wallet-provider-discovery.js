@@ -6,6 +6,60 @@ const METAMASK_RDNS = new Set(["io.metamask", "io.metamask.flask"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const discoveryStates = new WeakMap();
 
+/**
+ * Long-lived EIP-6963 discovery for product UIs. The selected provider remains
+ * an object reference supplied by the wallet; metadata is display-only. Call
+ * dispose when the owning page/controller is destroyed.
+ */
+export function createWalletProviderDiscovery(scope = globalThis) {
+  const add = safely(() => scope?.addEventListener), remove = safely(() => scope?.removeEventListener);
+  const dispatch = safely(() => scope?.dispatchEvent);
+  const byUuid = new Map(), conflicted = new Set(), announcedProviders = new WeakSet(), listeners = new Set();
+  let disposed = false, revision = 0;
+  const snapshot = () => selectWalletProviderCandidates(uniqueProviders([
+    ...byUuid.values(),
+    ...discoverInjectedWalletProviders(scope).candidates.filter((item) => !announcedProviders.has(item.provider)),
+  ]), conflicted.size);
+  const publish = () => {
+    const value = Object.freeze({ ...snapshot(), revision: ++revision });
+    for (const listener of [...listeners]) listener(value);
+    return value;
+  };
+  const announce = (event) => {
+    if (disposed) return;
+    const detail = safely(() => event?.detail), info = safely(() => detail?.info), provider = safely(() => detail?.provider);
+    if (validProvider(provider)) announcedProviders.add(provider);
+    const item = candidate(provider, info, "eip6963"), uuid = canonicalUuid(safely(() => info?.uuid));
+    if (!item || uuid === null || conflicted.has(uuid)) return;
+    const previous = byUuid.get(uuid);
+    if (previous?.provider === provider) return;
+    if (previous && previous.provider !== provider) { byUuid.delete(uuid); conflicted.add(uuid); publish(); return; }
+    byUuid.set(uuid, item); publish();
+  };
+  if (typeof add === "function") add.call(scope, "eip6963:announceProvider", announce);
+  const request = () => {
+    if (disposed) throw new TypeError("Wallet provider discovery is disposed");
+    const EventConstructor = safely(() => scope?.Event) ?? globalThis.Event;
+    if (typeof dispatch === "function" && typeof EventConstructor === "function") {
+      dispatch.call(scope, new EventConstructor("eip6963:requestProvider"));
+    }
+    return snapshot();
+  };
+  const subscribe = (listener, options = {}) => {
+    if (disposed || typeof listener !== "function") throw new TypeError("Wallet provider discovery listener is invalid");
+    listeners.add(listener);
+    if (options.emitCurrent !== false) listener(Object.freeze({ ...snapshot(), revision }));
+    return () => listeners.delete(listener);
+  };
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true; listeners.clear(); byUuid.clear(); conflicted.clear();
+    if (typeof remove === "function") remove.call(scope, "eip6963:announceProvider", announce);
+  };
+  request();
+  return Object.freeze({ request, snapshot, subscribe, dispose, get disposed() { return disposed; } });
+}
+
 export function discoverInjectedWalletProviders(scope = globalThis) {
   const ethereum = safely(() => scope?.ethereum);
   const declaredProviders = safely(() => ethereum?.providers);

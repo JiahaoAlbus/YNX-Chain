@@ -8,6 +8,7 @@ const manifest = JSON.parse(await readFile(new URL("artifact-candidate-1.0.20.js
 const publication = JSON.parse(await readFile(new URL("artifact-publication-1.0.17.json", walletRoot), "utf8"));
 const publication118 = JSON.parse(await readFile(new URL("artifact-publication-1.0.18.json", walletRoot), "utf8"));
 const publication119 = JSON.parse(await readFile(new URL("artifact-publication-1.0.19.json", walletRoot), "utf8"));
+const publication120 = JSON.parse(await readFile(new URL("artifact-publication-1.0.20.json", walletRoot), "utf8"));
 const app = JSON.parse(await readFile(new URL("app.json", walletRoot), "utf8")).expo;
 const android = await readFile(new URL("android/app/build.gradle", walletRoot), "utf8");
 const plist = await readFile(new URL("ios/YNXWallet/Info.plist", walletRoot), "utf8");
@@ -23,16 +24,16 @@ const publicationEvidence119 = JSON.parse(await readFile(new URL(publication119.
 const installedEvidence119 = JSON.parse(await readFile(new URL(publication119.installedEvidence, walletRoot), "utf8"));
 
 const previous = Object.freeze({
-  tag: "wallet-android-testnet-preview-1.0.16-e9816a827",
+  tag: "wallet-android-testnet-preview-1.0.20-f3a12abad",
   apk: Object.freeze({
-    url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
-    bytes: 116631255,
-    sha256: "89a842dc8641206a9154a6e41fd1c9e3cbb4b6cca2cea455ed5b7fc674b558c0",
+    url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk",
+    bytes: 116741810,
+    sha256: "143835c4931b190f0249818f04de6f82b1f2aaa0eb155684e929f365f3b1bfc0",
   }),
   aab: Object.freeze({
-    url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-local-test-signed.aab",
-    bytes: 71870019,
-    sha256: "117aee9610ef3878e5c2dc226acee57ae2820f1613cc8cabc536a12abd1ddd9a",
+    url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-local-test-signed.aab",
+    bytes: 71877410,
+    sha256: "46d3f0e7f2738ac55aa5e6f24717ff4adef3b499f368ca6c3e253a7c3a4e6c4d",
   }),
 });
 const published117 = Object.freeze({
@@ -273,10 +274,10 @@ function validatePublicationEvidence(value, published) {
   assert.equal(value.aab.url, published.artifacts.find(({ name }) => name === "android-release-aab").url);
 }
 
-test("the active download manifest remains the compatible published 1.0.16 contract", () => {
+test("the active download manifest tracks the fresh-verified published 1.0.20 contract", () => {
   assert.equal(publishedManifest.schemaVersion, 1);
-  assert.equal(publishedManifest.version, "1.0.16-testnet-preview");
-  assert.equal(publishedManifest.versionCode, 22);
+  assert.equal(publishedManifest.version, "1.0.20-testnet-preview");
+  assert.equal(publishedManifest.versionCode, 26);
   assert.equal(publishedManifest.releaseStatus, "PUBLISHED_TESTNET_PRERELEASE");
   assert.equal(publishedManifest.publishedRelease.tag, previous.tag);
   assert.equal(publishedManifest.releaseImmutable, false);
@@ -289,6 +290,10 @@ test("the active download manifest remains the compatible published 1.0.16 contr
   assert.equal(aab.url, previous.aab.url);
   assert.equal(aab.bytes, previous.aab.bytes);
   assert.equal(aab.sha256, previous.aab.sha256);
+  assert.equal(publication120.sourceCommit, "f3a12abadad793f250df42f1123e417ba6e8a5a6");
+  assert.equal(publication120.downloadTimeSha256Verified, true);
+  assert.equal(publication120.productionSigned, false);
+  assert.equal(publication120.storeReleased, false);
 });
 
 test("1.0.20 source candidate binds native versions and reconciliation source without inventing a release", () => {
