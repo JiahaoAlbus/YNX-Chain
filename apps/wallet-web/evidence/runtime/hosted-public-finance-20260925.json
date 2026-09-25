@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-25T13:27:30.116Z",
+  "browser": {
+    "name": "Chrome for Testing",
+    "version": "151.0.7922.34"
+  },
+  "runtimeClass": "real public HTTPS Finance and Hosted Wallet in disposable browser contexts; no response routes or provider injection",
+  "publicFinance": "https://finance.ynxweb4.com",
+  "publicWallet": "https://wallet.ynxweb4.com/hosted/",
+  "passed": true,
+  "steps": [
+    {
+      "name": "finance-public-loaded",
+      "elapsedMs": 1933
+    },
+    {
+      "name": "first-request-rejected",
+      "elapsedMs": 3425
+    },
+    {
+      "name": "second-request-approved",
+      "elapsedMs": 3674
+    },
+    {
+      "name": "finance-disconnected",
+      "elapsedMs": 3710
+    },
+    {
+      "name": "reopened-same-account",
+      "elapsedMs": 3959
+    },
+    {
+      "name": "encrypted-backup-restored-same-account",
+      "elapsedMs": 7536
+    }
+  ],
+  "assets": {
+    "financeDocument": {
+      "status": 200,
+      "sha256": "3002dbb1aeb6ae7e47eda87aef95e1abc23a11c034f87f6dcdf62a9446c9bec9"
+    },
+    "hostedDocument": {
+      "status": 200,
+      "sha256": "d4ce103bac1bb5a518aeacecc8dd52c04d132244cc95b2c3f51b46db8d8913b1"
+    }
+  },
+  "popupOriginBound": true,
+  "newVaultCreated": true,
+  "encryptedBackupDownloaded": true,
+  "rejectedBeforeConnection": true,
+  "approvedSameAccount": true,
+  "financeDisconnected": true,
+  "reopenedSameAccount": true,
+  "backupRestoredSameAccount": true,
+  "privateFinanceAuthorized": false,
+  "signatureRequested": false,
+  "transactionSubmitted": false,
+  "account": "0x00be818b7e84b79d08c391db62969d6b6987f9ee",
+  "approvedState": {
+    "status": "connected",
+    "transport": "hosted-wallet-web",
+    "account": "0x00be818b7e84b79d08c391db62969d6b6987f9ee",
+    "chainId": "0x1917"
+  }
+}
