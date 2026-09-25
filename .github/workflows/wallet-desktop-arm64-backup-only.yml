@@ -126,6 +126,34 @@ jobs:
           $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\arm64-backup-installed-smoke.json'
           $first = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
           try {
+            @'
+          const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+          let ready = false;
+          for (let attempt = 0; attempt < 60 && !ready; attempt++) {
+            try {
+              const pages = await (await fetch('http://127.0.0.1:9334/json/list')).json();
+              const page = pages.find(item => item.type === 'page' && item.url?.startsWith('file:') && item.webSocketDebuggerUrl);
+              if (!page) { await pause(500); continue; }
+              const socket = new WebSocket(page.webSocketDebuggerUrl);
+              await new Promise((resolve, reject) => { socket.addEventListener('open', resolve, { once: true }); socket.addEventListener('error', reject, { once: true }); });
+              ready = await new Promise((resolve, reject) => {
+                const timer = setTimeout(() => reject(Error('UI_READY_RESPONSE_TIMEOUT')), 5000);
+                socket.addEventListener('message', event => {
+                  const reply = JSON.parse(event.data);
+                  if (reply.id !== 1) return;
+                  clearTimeout(timer);
+                  resolve(reply.result?.result?.value === true);
+                });
+                socket.send(JSON.stringify({ id: 1, method: 'Runtime.evaluate', params: { expression: 'Boolean(window.ynxWallet && typeof window.ynxWallet.accountStatus === "function" && document.querySelector("#unlock-wallet") && !document.querySelector("#unlock-wallet").disabled)', returnByValue: true } }));
+              });
+              socket.close();
+            } catch { ready = false; }
+            if (!ready) await pause(500);
+          }
+          if (!ready) throw Error('INSTALLED_UI_NOT_READY');
+          console.log(JSON.stringify({ installedVisiblePasswordActionReady: true }));
+          '@ | node --input-type=module
+            if ($LASTEXITCODE -ne 0) { throw 'Installed ARM password action never became interactive' }
             $created = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs create | ConvertFrom-Json
             if ($LASTEXITCODE -ne 0 -or -not $created.accountCreated) { throw 'ARM backup source account creation failed' }
           } finally { if (-not $first.HasExited) { [void]$first.CloseMainWindow(); [void]$first.WaitForExit(15000) } }
