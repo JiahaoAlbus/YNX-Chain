@@ -13,9 +13,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -610,6 +613,93 @@ func TestEVMRPCSubset(t *testing.T) {
 	filteredLogs := out["result"].([]any)
 	if len(filteredLogs) != 1 || filteredLogs[0].(map[string]any)["transactionHash"] != transfer.Hash {
 		t.Fatalf("expected filtered EVM log, got %v", out)
+	}
+}
+
+func TestStaticEVMIdentifiersDoNotWaitForDevnetWriteLock(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := httptest.NewServer(NewServer(devnet))
+	defer server.Close()
+
+	// Hold the real Devnet state lock as a complete replication snapshot can.
+	// Reflection is test-only: no production lock hook is added to chain.
+	field := reflect.ValueOf(devnet).Elem().FieldByName("mu")
+	if !field.IsValid() || !field.CanAddr() {
+		t.Fatal("Devnet state lock is unavailable")
+	}
+	stateLock := (*sync.RWMutex)(unsafe.Pointer(field.UnsafeAddr()))
+	stateLock.Lock()
+	locked := true
+	defer func() {
+		if locked {
+			stateLock.Unlock()
+		}
+	}()
+
+	client := &http.Client{Timeout: time.Second}
+	for _, tc := range []struct {
+		path, method, params, result, errorMessage string
+	}{
+		{"/evm", "eth_chainId", `[]`, "0x1917", ""},
+		{"/", "net_version", `[]`, "6423", ""},
+		{"/evm", "eth_chainId", `["unexpected"]`, "", "eth_chainId accepts no parameters"},
+		{"/", "net_version", `["unexpected"]`, "", "net_version accepts no parameters"},
+	} {
+		body := fmt.Sprintf(`{"jsonrpc":"2.0","id":7,"method":%q,"params":%s}`, tc.method, tc.params)
+		resp, err := client.Post(server.URL+tc.path, "application/json", strings.NewReader(body))
+		if err != nil {
+			t.Fatalf("%s under Devnet write lock: %v", tc.method, err)
+		}
+		var out map[string]any
+		err = json.NewDecoder(resp.Body).Decode(&out)
+		_ = resp.Body.Close()
+		if err != nil || resp.StatusCode != http.StatusOK || out["id"] != float64(7) {
+			t.Fatalf("%s: status=%d response=%v decode=%v", tc.method, resp.StatusCode, out, err)
+		}
+		if tc.errorMessage == "" {
+			if out["result"] != tc.result {
+				t.Fatalf("%s: expected %q, got %v", tc.method, tc.result, out)
+			}
+		} else if rpcErr, ok := out["error"].(map[string]any); !ok || rpcErr["code"] != float64(-32602) || rpcErr["message"] != tc.errorMessage {
+			t.Fatalf("%s: expected unchanged invalid-params error, got %v", tc.method, out)
+		}
+	}
+
+	// A state-dependent method must still wait rather than returning a stale
+	// height, and it must complete normally once the writer releases the lock.
+	dynamicResult := make(chan error, 1)
+	go func() {
+		resp, err := client.Post(server.URL+"/evm", "application/json", strings.NewReader(`{"jsonrpc":"2.0","id":8,"method":"eth_blockNumber","params":[]}`))
+		if err != nil {
+			dynamicResult <- err
+			return
+		}
+		defer resp.Body.Close()
+		var out map[string]any
+		if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+			dynamicResult <- err
+			return
+		}
+		if resp.StatusCode != http.StatusOK || out["result"] != "0x0" {
+			dynamicResult <- fmt.Errorf("unexpected dynamic result: status=%d body=%v", resp.StatusCode, out)
+			return
+		}
+		dynamicResult <- nil
+	}()
+	select {
+	case err := <-dynamicResult:
+		t.Fatalf("state-dependent RPC did not wait for the write lock: %v", err)
+	case <-time.After(50 * time.Millisecond):
+	}
+	stateLock.Unlock()
+	locked = false
+	select {
+	case err := <-dynamicResult:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("state-dependent RPC did not resume after write lock release")
 	}
 }
 
