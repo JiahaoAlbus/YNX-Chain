@@ -32,9 +32,25 @@ test('MetaMask selection never requests YNX provider; shared SDK verifies accoun
   const result=await wallet.connectMetaMask();assert.equal(result.status,'standard-connected');assert.equal(result.providerKind,'metamask');
   assert.deepEqual(methods(meta),['wallet_switchEthereumChain','eth_chainId','eth_requestAccounts','eth_chainId']);assert.deepEqual(ynx.calls,[]);assert.deepEqual([...values],[[PROVIDER_PREFERENCE_KEY,'metamask']]);assert.equal(wallet.state().pendingIntent,null);assert.equal(wallet.state().chooserOpen,false);wallet.disconnect();
 });
-test('4902 add/reswitch occurs before account permission and exact chain readback',async()=>{
+test('4902 uses the exact Wallet-owned YNX chain metadata before account permission',async()=>{
   const p=provider('ynx',{missing:true}),{scope}=environment([p]),wallet=createExchangeWallet({scope});
-  assert.equal((await wallet.connectYNX()).status,'standard-connected');assert.deepEqual(methods(p),['wallet_switchEthereumChain','wallet_addEthereumChain','wallet_switchEthereumChain','eth_chainId','eth_requestAccounts','eth_chainId']);assert.equal(p.calls[1].params[0].chainId,'0x1917');wallet.disconnect();
+  assert.equal((await wallet.connectYNX()).status,'standard-connected');assert.deepEqual(methods(p),['wallet_switchEthereumChain','wallet_addEthereumChain','wallet_switchEthereumChain','eth_chainId','eth_requestAccounts','eth_chainId']);assert.deepEqual(p.calls[1].params[0],{chainId:'0x1917',chainName:'YNX Testnet',nativeCurrency:{name:'YNX Testnet',symbol:'YNXT',decimals:18},rpcUrls:['https://rpc-testnet.ynxweb4.com','https://evm.ynxweb4.com'],blockExplorerUrls:['https://explorer.ynxweb4.com']});wallet.disconnect();
+});
+test('explicit Hosted approval uses Wallet-owned adapter and never grants Exchange private order authority',async()=>{
+  const {scope,values}=environment([]);scope.location.origin='https://exchange.ynxweb4.com';const calls=[],adapter=new EventEmitter();
+  adapter.connect=()=>{calls.push('connect');adapter.emit('accountsChanged',[account]);return Promise.resolve([account])};
+  adapter.request=async request=>{calls.push(request.method);return '0x1917'};
+  adapter.disconnect=()=>{calls.push('disconnect')};
+  const wallet=createExchangeWallet({scope,createHostedAdapter:()=>adapter});
+  const result=await wallet.connectHosted();assert.equal(result.status,'standard-connected');assert.equal(result.transport,'hosted-wallet-web');assert.equal(result.account,account);assert.deepEqual(calls,['connect','eth_chainId']);assert.equal(wallet.state().pendingIntent,null);assert.equal(wallet.state().chooserOpen,false);assert.deepEqual([...values],[],'Hosted approval is not silently restored');
+  assert.deepEqual(await wallet.revoke(),{status:'unsupported',permissionRevoked:false,locallyDisconnected:false});
+  adapter.emit('accountsChanged',['0x1111111111111111111111111111111111111111']);assert.notEqual(wallet.state().status,'connected');assert.ok(calls.includes('disconnect'));
+});
+test('Hosted rejection and wrong chain fail closed without touching MetaMask or private authority',async()=>{
+  for(const outcome of ['reject','wrong-chain']){
+    const {scope}=environment([]);scope.location.origin='https://exchange.ynxweb4.com';const adapter=new EventEmitter();adapter.connect=()=>outcome==='reject'?Promise.reject(Object.assign(new Error('Rejected'),{code:'USER_REJECTED'})):Promise.resolve([account]);adapter.request=async()=> '0x1';adapter.disconnect=()=>{};
+    const wallet=createExchangeWallet({scope,createHostedAdapter:()=>adapter});const result=await wallet.connectHosted();assert.notEqual(result.status,'standard-connected');assert.notEqual(wallet.state().status,'connected');wallet.disconnect();
+  }
 });
 test('wrong chain fails before permission; no-provider fallback does not open a page',async()=>{
   const p=provider('ynx',{wrong:true}),{scope}=environment([p]),wallet=createExchangeWallet({scope});assert.equal((await wallet.connectYNX()).status,'wrong-chain');assert.deepEqual(methods(p),['wallet_switchEthereumChain','eth_chainId']);wallet.disconnect();
