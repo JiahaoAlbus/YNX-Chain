@@ -1,0 +1,69 @@
+{
+  "sourceBase": "22e5f3db9dee0e091b06e3bca14673b828a57815",
+  "branch": "codex/card-funding-boundary-20260912",
+  "nodeVersion": "v26.7.0",
+  "scope": "Local source regressions and typecheck only; reused exact baseline dependencies read-only, no install/build/device/network/wallet actions",
+  "records": [
+    {
+      "name": "funding-and-processor-regressions",
+      "argv": [
+        "/opt/homebrew/Cellar/node/26.7.0/bin/node",
+        "--import",
+        "./node_modules/tsx/dist/loader.mjs",
+        "--test",
+        "src/dataFabric.test.ts",
+        "src/processor.test.ts",
+        "src/processor.boundaries.test.ts"
+      ],
+      "cwd": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card",
+      "startedAt": "2026-09-12T08:58:27.036Z",
+      "completedAt": "2026-09-12T08:58:27.255Z",
+      "exitCode": 0,
+      "signal": null,
+      "stdoutSha256": "78c81330c034b9ccd08cd864c0581f803f775716cf6cd310997af2c1c7c94739",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "typecheck",
+      "argv": [
+        "/opt/homebrew/Cellar/node/26.7.0/bin/node",
+        "--stack_size=8192",
+        "./node_modules/typescript/bin/tsc",
+        "--noEmit"
+      ],
+      "cwd": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card",
+      "startedAt": "2026-09-12T08:58:27.257Z",
+      "completedAt": "2026-09-12T08:58:28.371Z",
+      "exitCode": 0,
+      "signal": null,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "apps/card/src/dataFabric.ts",
+      "bytes": 4338,
+      "sha256": "c8044074ba9ad5913dc55a79b7fee392b53460996c7d1be55c7b71ea22aca571"
+    },
+    {
+      "path": "apps/card/src/dataFabric.test.ts",
+      "bytes": 4210,
+      "sha256": "fa800984455240d6ca2dc463243501e01a186c727f02b6880e48a2396e4e8805"
+    }
+  ],
+  "originalRedResult": {
+    "path": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/card-owner-22e5-build-intake-20260912/next-slice-review/result.json",
+    "sha256": "15ef5bf322e469413337345ee16ee8288e45572e4c6bfbcd79e40b04f5d23058",
+    "exitCode": 1
+  },
+  "boundaries": {
+    "simulationRecordsPreserved": true,
+    "realFundingAdapterAvailable": false,
+    "realFundingVerified": false,
+    "newBuild": false,
+    "newDeployment": false,
+    "productionRealPayments": false,
+    "wholeProductReady": false
+  }
+}

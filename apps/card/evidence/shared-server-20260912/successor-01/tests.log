@@ -1,0 +1,143 @@
+✔ business client reaches actual local HTTP/SQLite routes with fresh scoped proofs and fails closed on unsigned approval (60.187416ms)
+✔ Core adapter verifies exact wei, canonical block and confirmation readback without sending transactions (22.641625ms)
+✔ Core transport does not follow authority redirects (2.874291ms)
+✔ wrong chain is rejected before transaction inspection (1.173084ms)
+✔ missing and failed receipts cannot be credited (2.777ms)
+✔ wrong sender, recipient and exact amount are rejected (1.83925ms)
+✔ insufficient confirmations and changed canonical block reject (2.367584ms)
+✔ reorg during verification cannot be accepted (2.331958ms)
+✔ transaction outside the accepted intent time is rejected (1.287917ms)
+✔ Core endpoint rejects credentials, query, fragment and non-HTTPS configuration (0.292666ms)
+✔ public prefixed version binds source without leaking private state or invoking Wallet (89.862625ms)
+✔ duplicate Origin is rejected before shared authentication (2.929708ms)
+✔ duplicate X-YNX-Product-Session-Proof-V2 is rejected before shared authentication (1.29175ms)
+✔ duplicate X-YNX-Card-Platform is rejected before shared authentication (5.474958ms)
+✔ duplicate Idempotency-Key is rejected before shared authentication (3.142875ms)
+✔ unknown platform cannot select an authorizer (2.022125ms)
+✔ each Card route binds one minimum scope without legacy escalation (1.953208ms)
+✔ internal mutation operations also enforce exact permission before cache use (0.614542ms)
+✔ persistent drafts are isolated, idempotent and encrypted on disk (38.328334ms)
+✔ missing approval verifier persists DEGRADED without a card (12.344167ms)
+✔ an explicit rejection is durable and never creates a card (5.675666ms)
+✔ expired or mismatched approval cannot activate a card (9.198667ms)
+✔ active application submission retries do not request a second approval (4.945292ms)
+✔ cached approval still requires current identity, ownership, scope and identical input (49.797542ms)
+✔ pending submissions do not replay the external approval call (10.260125ms)
+✔ verified fixture funding, partial settlement, restart and duplicate credit conserve wei (25.07075ms)
+✔ mismatched Core evidence never reaches the ledger (26.131334ms)
+✔ frozen and insufficient-balance authorizations decline and survive restart (16.903208ms)
+✔ real HTTP boundary exposes preview identity but denies private requests without verifier (80.362542ms)
+✔ coarse legacy scopes cannot read, mutate or recover cached application results (2.561792ms)
+✔ application-only permission cannot control, fund or simulate, including before resource lookup (2.915375ms)
+✔ controls, funding and simulation scopes grant only their own operations (6.575417ms)
+✔ application approval receives the exact persisted five details, not unsigned controls (3.490792ms)
+✔ native YNX subjects can apply but have no inferred EVM funding authorization (3.478ms)
+✔ internal outbox retries preserve stable event ids across restart (5.283375ms)
+✔ HTTP selects exact proof scopes before authentication and denies mismatched grants (24.087958ms)
+✔ simulation fee is conserved, idempotent and reconciled after restart (10.774542ms)
+✔ reconciliation finds inconsistent snapshots instead of claiming ledger success (5.431916ms)
+✔ a transaction cannot fund a second intent and the failed claim is atomic (5.093208ms)
+✔ exact unchanged Wallet fixture and server artifact hashes remain bound (1.261959ms)
+✔ Card consumes the shared live-introspection interface at one fixed URL and maps only its returned principal (40.698ms)
+✔ replay rejection propagates and no cached principal bypasses the authority (6.720875ms)
+✔ wrong platform, missing web Origin, foreign Origin and missing native platform fail before introspection (0.818209ms)
+✔ route-required scope cannot be replaced by a caller claim or a differently scoped proof (2.765166ms)
+✔ missing or malformed proof is an authentication error, not a claimed authority outage (0.525708ms)
+✔ changed authority account cannot authenticate a Card user (2.573584ms)
+✔ changed authority deviceId cannot authenticate a Card user (3.888625ms)
+✔ changed authority platform cannot authenticate a Card user (1.32025ms)
+✔ changed authority callback cannot authenticate a Card user (2.925459ms)
+✔ changed authority chainId cannot authenticate a Card user (0.91725ms)
+✔ changed authority scopes cannot authenticate a Card user (2.755125ms)
+✔ expired proof and expiry during response fail without local success (2.498458ms)
+✔ authority network failure is private degradation without retry or Standard Wallet mutation (1.439083ms)
+✔ shared Session authentication plus actual local HTTP/SQLite creates only a durable DRAFT, never a card (38.534792ms)
+✔ new database has explicit schema version and private filesystem mode (6.162041ms)
+✔ legacy version zero upgrades without rewriting encrypted owners or global claims (10.308667ms)
+✔ future database versions fail closed and retain their version (2.049833ms)
+✔ malformed legacy schema rolls back migration without marking version one (1.453666ms)
+✔ live WAL backup restores encrypted owner state and cross-owner transaction deduplication (96.080958ms)
+✔ failed business mutation rolls back both the owner state and global transaction claim (4.289542ms)
+✔ Card consumes the exact verification-only artifact and public signed fixture (0.829709ms)
+✔ the accepted signed fixture maps to an approval and public-key-bound sender (36.928625ms)
+✔ changed signature, unsigned sender, high-S signature and unsigned rejection grant no approval (1.828875ms)
+✔ current challenge, complete persisted details and live authenticated owner must match (4.8595ms)
+✔ historical signature parsing cannot bypass current proof expiry (34.307541ms)
+✔ a configured authentication adapter cannot override Card business approval (0.140916ms)
+✔ verified fixture activates once, persists sender binding and does not credit any funding (19.209083ms)
+✔ constructing a Card client does not contact a wallet or service (0.693334ms)
+✔ Card state uses fixed same-origin API, exact V2 proof and read scope (19.991041ms)
+✔ network retry creates a new proof but retains the explicit business idempotency key (2.421416ms)
+✔ missing identity, invalid resource and missing mutation key fail before proof minting (0.753875ms)
+✔ account change during proof creation cannot send an old-owner request (0.389583ms)
+✔ session rotation during a response cannot publish old private account state (1.19525ms)
+✔ explicit invalidation aborts a pending API call without changing the Standard Wallet (0.456083ms)
+✔ stalled SDK proof creation has a bounded timeout and never contacts Card (5.580042ms)
+✔ unbound source, foreign session and non-Testnet envelopes are rejected (2.492583ms)
+✔ HTML fallback, sensitive fields and unvalidated ACTIVE state never become Card data (3.665334ms)
+✔ Card API error codes remain separate and remote human text is never surfaced (0.682041ms)
+✔ pending funding response cannot be presented as a credited balance (1.10075ms)
+✔ accepted Wallet expiry and rejection codes survive private proof failures (0.589834ms)
+✖ business transport uses explicit default web selection without inventing Origin (3.693166ms)
+✖ business transport uses explicit web selection without inventing Origin (0.348167ms)
+✖ business transport uses explicit ios selection without inventing Origin (0.231667ms)
+✖ business transport uses explicit android selection without inventing Origin (0.229917ms)
+✔ unknown platform fails before any proof or network request (0.296416ms)
+ℹ tests 85
+ℹ suites 0
+ℹ pass 81
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 527.275916
+
+✖ failing tests:
+
+test at src/cardBusinessPlatform.test.ts:2:1681
+✖ business transport uses explicit default web selection without inventing Origin (3.693166ms)
+  Error [CardBusinessError]: CARD_API_UNAVAILABLE
+      at CardBusinessClient.request (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/src/cardBusinessClient.ts:121:132)
+      at async TestContext.<anonymous> (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/src/cardBusinessPlatform.test.ts:13:3)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    code: 'CARD_API_UNAVAILABLE',
+    layer: 'card-api',
+    retryable: true
+  }
+
+test at src/cardBusinessPlatform.test.ts:2:1681
+✖ business transport uses explicit web selection without inventing Origin (0.348167ms)
+  Error [CardBusinessError]: CARD_API_UNAVAILABLE
+      at CardBusinessClient.request (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/src/cardBusinessClient.ts:121:132)
+      at async TestContext.<anonymous> (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/src/cardBusinessPlatform.test.ts:13:3)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    code: 'CARD_API_UNAVAILABLE',
+    layer: 'card-api',
+    retryable: true
+  }
+
+test at src/cardBusinessPlatform.test.ts:2:1681
+✖ business transport uses explicit ios selection without inventing Origin (0.231667ms)
+  Error [CardBusinessError]: CARD_API_UNAVAILABLE
+      at CardBusinessClient.request (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/src/cardBusinessClient.ts:121:132)
+      at async TestContext.<anonymous> (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/src/cardBusinessPlatform.test.ts:13:3)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    code: 'CARD_API_UNAVAILABLE',
+    layer: 'card-api',
+    retryable: true
+  }
+
+test at src/cardBusinessPlatform.test.ts:2:1681
+✖ business transport uses explicit android selection without inventing Origin (0.229917ms)
+  Error [CardBusinessError]: CARD_API_UNAVAILABLE
+      at CardBusinessClient.request (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/src/cardBusinessClient.ts:121:132)
+      at async TestContext.<anonymous> (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/src/cardBusinessPlatform.test.ts:13:3)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    code: 'CARD_API_UNAVAILABLE',
+    layer: 'card-api',
+    retryable: true
+  }

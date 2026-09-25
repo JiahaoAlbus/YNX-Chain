@@ -1,0 +1,7 @@
+
+> @ynx-chain/card@1.0.0 typecheck
+> node --stack_size=8192 ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/typescript/bin/tsc --project server/tsconfig.json
+
+server/core.ts(6,284): error TS2339: Property 'timeout' does not exist on type 'typeof AbortSignal'.
+src/wallet.ts(3,41): error TS7016: Could not find a declaration file for module '@ynx/dapp-connect-sdk'. '/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/continuation-01a075bd/card-22e5-root-build-20260912/build-source/apps/card/node_modules/@ynx/dapp-connect-sdk/src/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/ynx__dapp-connect-sdk` if it exists or add a new declaration (.d.ts) file containing `declare module '@ynx/dapp-connect-sdk';`

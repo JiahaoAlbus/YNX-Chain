@@ -1,0 +1,49 @@
+{
+  "text": {
+    "title": "Buat pengajuan Card Testnet",
+    "disclaimer": "Card tidak dibuat secara otomatis. Alur yang terikat pada dompet ini hanya untuk Testnet dan tidak dapat menerbitkan kartu nyata, PAN, CVV, saldo, isi ulang fiat, atau pembayaran pedagang.",
+    "nativeUnavailable": "Pengajuan Card di aplikasi native belum tersedia",
+    "nativeDetails": "Pengajuan Card belum terhubung di aplikasi native ini. Anda belum dapat memulai pengajuan di sini.",
+    "nativeAuthority": "Otorisasi YNX Wallet hanya memverifikasi identitas. Otorisasi ini tidak membuat pengajuan Card atau memberikan izin pendanaan.",
+    "connectRequired": "Hubungkan dompet standar sebelum memulai pengajuan Card Testnet di web.",
+    "draftCreated": "Draf pengajuan Testnet yang terikat pada dompet telah dibuat.",
+    "invalidApplication": "Pengajuan tidak dapat diperbarui. Periksa detailnya lalu coba lagi.",
+    "approvalPrepared": "Pengajuan telah disiapkan. Tanda tangan dompet asli dan bukti penerimaan backend sandbox yang diterima masih diperlukan.",
+    "cannotApprove": "Persetujuan dompet tidak dapat disiapkan. Periksa pengajuan lalu coba lagi.",
+    "backendDegraded": "Pengajuan dijeda hingga bukti penerimaan backend yang diterima tersedia. Tidak ada tanda tangan, akun, kartu aktif, saldo, atau niat isi ulang yang dibuat.",
+    "cannotSubmit": "Kesiapan sandbox tidak dapat diperiksa. Coba lagi nanti.",
+    "start": "Mulai pengajuan",
+    "nickname": "Nama panggilan kartu",
+    "useCase": "Tujuan penggunaan Testnet",
+    "useCasePlaceholder": "Apa yang ingin Anda latih?",
+    "limit": "Batas belanja YNXT Testnet",
+    "limitPlaceholder": "Batas belanja YNXT",
+    "risk": "Saya menerima risiko Testnet dan memahami bahwa ini hanya simulasi.",
+    "acceptTerms": "Terima ketentuan Testnet",
+    "prepareApproval": "Siapkan persetujuan dompet",
+    "submit": "Periksa kesiapan sandbox",
+    "cancel": "Batalkan pengajuan",
+    "standardRequired": "Pengajuan di web memerlukan dompet EVM standar.",
+    "draftOnly": "Hanya pengajuan dalam status draf yang dapat diedit.",
+    "completeDetails": "Masukkan nama panggilan 2–48 karakter, tujuan penggunaan 4–160 karakter, dan batas minimal 1 YNXT dengan maksimal 6 digit bilangan bulat dan 6 digit desimal.",
+    "acceptDetails": "Lengkapi detail pengajuan dan terima ketentuan Testnet sebelum menyiapkan persetujuan.",
+    "notAwaiting": "Pengajuan ini tidak sedang menunggu persetujuan.",
+    "activeCannotCancel": "Pengajuan aktif tidak dapat dibatalkan di sini.",
+    "storageLoadFailure": "Pengajuan tersimpan tidak dapat dimuat. Coba lagi nanti.",
+    "storageSaveFailure": "Pengajuan tidak dapat disimpan. Perubahan mungkin hilang saat Anda meninggalkan layar ini.",
+    "cannotCancel": "Pengajuan tidak dapat dibatalkan. Coba lagi nanti."
+  },
+  "statuses": {
+    "DRAFT": "Draf",
+    "SUBMITTED": "Diajukan",
+    "APPROVAL_REQUIRED": "Persetujuan diperlukan",
+    "ACTIVE": "Aktif",
+    "REJECTED": "Ditolak",
+    "CANCELLED": "Dibatalkan",
+    "DEGRADED": "Layanan tidak tersedia"
+  },
+  "templates": {
+    "status": "Status pengajuan: {status}",
+    "audit": "Catatan audit: {count}. Hanya bukti penerimaan sandbox terverifikasi yang dapat mengaktifkan Card; selain itu, isi ulang tetap terkunci."
+  }
+}

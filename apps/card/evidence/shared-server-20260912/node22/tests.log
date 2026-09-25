@@ -1,0 +1,172 @@
+TAP version 13
+# (node:1681124) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: public prefixed version binds source without leaking private state or invoking Wallet
+ok 1 - public prefixed version binds source without leaking private state or invoking Wallet
+  ---
+  duration_ms: 19.731527
+  type: 'test'
+  ...
+# Subtest: duplicate Origin is rejected before shared authentication
+ok 2 - duplicate Origin is rejected before shared authentication
+  ---
+  duration_ms: 5.73408
+  type: 'test'
+  ...
+# Subtest: duplicate X-YNX-Product-Session-Proof-V2 is rejected before shared authentication
+ok 3 - duplicate X-YNX-Product-Session-Proof-V2 is rejected before shared authentication
+  ---
+  duration_ms: 3.568832
+  type: 'test'
+  ...
+# Subtest: duplicate X-YNX-Card-Platform is rejected before shared authentication
+ok 4 - duplicate X-YNX-Card-Platform is rejected before shared authentication
+  ---
+  duration_ms: 3.371683
+  type: 'test'
+  ...
+# Subtest: duplicate Idempotency-Key is rejected before shared authentication
+ok 5 - duplicate Idempotency-Key is rejected before shared authentication
+  ---
+  duration_ms: 3.325317
+  type: 'test'
+  ...
+# Subtest: unknown platform cannot select an authorizer
+ok 6 - unknown platform cannot select an authorizer
+  ---
+  duration_ms: 2.898501
+  type: 'test'
+  ...
+# (node:1681125) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: exact unchanged Wallet fixture and server artifact hashes remain bound
+ok 7 - exact unchanged Wallet fixture and server artifact hashes remain bound
+  ---
+  duration_ms: 1.812243
+  type: 'test'
+  ...
+# Subtest: Card consumes the shared live-introspection interface at one fixed URL and maps only its returned principal
+ok 8 - Card consumes the shared live-introspection interface at one fixed URL and maps only its returned principal
+  ---
+  duration_ms: 13.951591
+  type: 'test'
+  ...
+# Subtest: replay rejection propagates and no cached principal bypasses the authority
+ok 9 - replay rejection propagates and no cached principal bypasses the authority
+  ---
+  duration_ms: 6.378081
+  type: 'test'
+  ...
+# Subtest: wrong platform, missing web Origin, foreign Origin and missing native platform fail before introspection
+ok 10 - wrong platform, missing web Origin, foreign Origin and missing native platform fail before introspection
+  ---
+  duration_ms: 1.793895
+  type: 'test'
+  ...
+# Subtest: route-required scope cannot be replaced by a caller claim or a differently scoped proof
+ok 11 - route-required scope cannot be replaced by a caller claim or a differently scoped proof
+  ---
+  duration_ms: 1.927701
+  type: 'test'
+  ...
+# Subtest: changed authority account cannot authenticate a Card user
+ok 12 - changed authority account cannot authenticate a Card user
+  ---
+  duration_ms: 2.910269
+  type: 'test'
+  ...
+# Subtest: changed authority deviceId cannot authenticate a Card user
+ok 13 - changed authority deviceId cannot authenticate a Card user
+  ---
+  duration_ms: 2.810441
+  type: 'test'
+  ...
+# Subtest: changed authority platform cannot authenticate a Card user
+ok 14 - changed authority platform cannot authenticate a Card user
+  ---
+  duration_ms: 2.564256
+  type: 'test'
+  ...
+# Subtest: changed authority callback cannot authenticate a Card user
+ok 15 - changed authority callback cannot authenticate a Card user
+  ---
+  duration_ms: 2.91598
+  type: 'test'
+  ...
+# Subtest: changed authority chainId cannot authenticate a Card user
+ok 16 - changed authority chainId cannot authenticate a Card user
+  ---
+  duration_ms: 2.664406
+  type: 'test'
+  ...
+# Subtest: changed authority scopes cannot authenticate a Card user
+ok 17 - changed authority scopes cannot authenticate a Card user
+  ---
+  duration_ms: 3.851833
+  type: 'test'
+  ...
+# Subtest: expired proof and expiry during response fail without local success
+ok 18 - expired proof and expiry during response fail without local success
+  ---
+  duration_ms: 4.562918
+  type: 'test'
+  ...
+# Subtest: authority network failure is private degradation without retry or Standard Wallet mutation
+ok 19 - authority network failure is private degradation without retry or Standard Wallet mutation
+  ---
+  duration_ms: 2.257158
+  type: 'test'
+  ...
+# Subtest: shared Session authentication plus actual local HTTP/SQLite creates only a durable DRAFT, never a card
+ok 20 - shared Session authentication plus actual local HTTP/SQLite creates only a durable DRAFT, never a card
+  ---
+  duration_ms: 65.868929
+  type: 'test'
+  ...
+# (node:1681131) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: new database has explicit schema version and private filesystem mode
+ok 21 - new database has explicit schema version and private filesystem mode
+  ---
+  duration_ms: 101.022854
+  type: 'test'
+  ...
+# Subtest: legacy version zero upgrades without rewriting encrypted owners or global claims
+ok 22 - legacy version zero upgrades without rewriting encrypted owners or global claims
+  ---
+  duration_ms: 20.571799
+  type: 'test'
+  ...
+# Subtest: future database versions fail closed and retain their version
+ok 23 - future database versions fail closed and retain their version
+  ---
+  duration_ms: 4.530882
+  type: 'test'
+  ...
+# Subtest: malformed legacy schema rolls back migration without marking version one
+ok 24 - malformed legacy schema rolls back migration without marking version one
+  ---
+  duration_ms: 5.100333
+  type: 'test'
+  ...
+# Subtest: live WAL backup restores encrypted owner state and cross-owner transaction deduplication
+ok 25 - live WAL backup restores encrypted owner state and cross-owner transaction deduplication
+  ---
+  duration_ms: 25.871562
+  type: 'test'
+  ...
+# Subtest: failed business mutation rolls back both the owner state and global transaction claim
+ok 26 - failed business mutation rolls back both the owner state and global transaction claim
+  ---
+  duration_ms: 9.869692
+  type: 'test'
+  ...
+1..26
+# tests 26
+# suites 0
+# pass 26
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 298.789253

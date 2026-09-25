@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-12T10:15:35.600Z",
+  "testsExit": 0,
+  "typecheckExit": 0,
+  "logs": {
+    "tests.log": "e31b084a8310cd1348614d58153a377d4ce096a5dd8c2bb168580436e41ed64a",
+    "typecheck.log": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+  },
+  "walletSource": "ff5b7d49dd515d31d567c352dd049ac7b79d4139",
+  "syntheticPublicFixtureOnly": true,
+  "installedApproval": false,
+  "realFunding": false,
+  "publicDeployed": false
+}

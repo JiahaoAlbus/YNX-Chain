@@ -1,0 +1,49 @@
+{
+  "at": "2026-09-12T10:48:45.479Z",
+  "sourceCommit": "d0bce66d12b8d7ebb804e75700257a62c6a45417",
+  "node": "v26.7.0",
+  "command": "node server/main.ts",
+  "localOnly": true,
+  "publicDeployed": false,
+  "realApproval": false,
+  "realFunding": false,
+  "responses": [
+    {
+      "path": "/version",
+      "status": 200,
+      "bytes": 256,
+      "sha256": "39f36f98e4eb2cf5c4422597a11ad0f77bf5f15f07405237b2274fa8201c1443",
+      "headers": {
+        "cache-control": "no-store",
+        "connection": "keep-alive",
+        "content-length": "256",
+        "content-type": "application/json; charset=utf-8",
+        "date": "Sat, 12 Sep 2026 10:48:45 GMT",
+        "keep-alive": "timeout=5",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "path": "/api/card/v1/state",
+      "status": 503,
+      "bytes": 165,
+      "sha256": "b7cead2ef0478fb8cb3b6e467b1cc6bb8469d62d5578e6760f8bddb058c7c321",
+      "headers": {
+        "cache-control": "no-store",
+        "connection": "keep-alive",
+        "content-length": "165",
+        "content-type": "application/json; charset=utf-8",
+        "date": "Sat, 12 Sep 2026 10:48:45 GMT",
+        "keep-alive": "timeout=5",
+        "x-content-type-options": "nosniff"
+      }
+    }
+  ],
+  "passed": true,
+  "processExit": {
+    "code": 0,
+    "signal": null
+  },
+  "stdoutSha256": "bfe29a28f69cd54f8738f52f3c49da5832b5730d052c12c3d9e1a1ebcad3ebfd",
+  "stderrSha256": "a3ecb7d87b15ec2881019690993d5df7288a0fa6ed7726fe94ba66dfd5ea676b"
+}

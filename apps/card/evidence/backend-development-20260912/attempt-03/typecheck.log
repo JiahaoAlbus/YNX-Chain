@@ -1,0 +1,5 @@
+
+> @ynx-chain/card@1.0.0 typecheck
+> node --stack_size=8192 ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/typescript/bin/tsc --project server/tsconfig.json
+
+server/service.test.ts(99,51): error TS18047: 'result.card' is possibly 'null'.

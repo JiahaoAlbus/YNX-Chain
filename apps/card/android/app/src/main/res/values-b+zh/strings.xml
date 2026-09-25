@@ -1,0 +1,4 @@
+<resources>
+  <string name="CFBundleDisplayName">"YNX 卡"</string>
+  <string name="NSFaceIDUsageDescription">"在显示安全的 YNX 卡引用前验证身份。"</string>
+</resources>

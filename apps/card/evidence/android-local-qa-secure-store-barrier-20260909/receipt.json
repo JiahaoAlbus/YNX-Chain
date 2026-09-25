@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-09",
+  "purpose": "Offline Android local-QA candidate receipt for the Card SecureStore write barrier. This is not installed-device, production-signing, store, account, signature, transaction, Card API, or funding evidence.",
+  "sourceBinding": {
+    "baseCommit": "94df1f7eeba4aa4d0423fa31f148ac838f8ba13d",
+    "commit": "5d20c694018eb484263a47c0128bc83344dce0e2",
+    "tree": "b735a31c94427d3401093675e46d0cf823c8f643",
+    "appJsonSha256": "27b5fd3d91b517faba72eb4fd9cc8d782b10a0f4005a2f8b81cc8368aaad77be",
+    "packageJsonSha256": "1721a736e6088f403edd3f2cb07b5dcefd827e66b7c6d31a7e2a0f96e17b6002",
+    "packageLockSha256": "6f5a4af5cbde7f8e1a04260011a2c63095d19c0095ca2b6cba9f1796ac4c1c75"
+  },
+  "secureStoreBarrier": {
+    "package": "expo-secure-store",
+    "version": "57.0.3",
+    "resolved": "https://registry.npmjs.org/expo-secure-store/-/expo-secure-store-57.0.3.tgz",
+    "integrity": "sha512-w7XkSQeUiYXPoKXo1jSrQqql7pyCSyIzOp2k0apsZZBE+RkoLTQIMjcbqc181y6KgupfNnYxkaKe+4MEg94+SA==",
+    "patchedModuleSha256": "9d5ba89067e9c72f2c9607c73d5747e1a10a81918ddd04ac4fb2023123955524",
+    "barrierSha256": "ea2af95d0863f96ee668a1ab5b79a8145bfe793222797625055463c3fb948082",
+    "metadataSha256": "594e5f2c6828bac294b638b4fcf981df90c90dd296386b71ea38d8c94bbffddf",
+    "compileFromSource": true,
+    "processWideStickyQuarantine": true
+  },
+  "reproducibility": {
+    "install": "npm ci --registry=https://registry.npmjs.org",
+    "postinstallAppliedPatch": true,
+    "nativePatchCheck": "pass",
+    "nativePatchTests": {"passed": 11, "failed": 0},
+    "releaseBuild": ":app:assembleRelease",
+    "javaRuntime": "OpenJDK 17.0.17",
+    "releaseCredentialEnvironmentRead": false,
+    "releaseCredentialEnvironmentSet": false
+  },
+  "artifact": {
+    "unsignedPath": "../../android/app/build/outputs/apk/release/app-release-unsigned.apk",
+    "unsignedBytes": 79387075,
+    "unsignedSha256": "bd382079c2643b10f3c5ef72caaffcf291a3474f53352f09ad9ba7d3a049cd54",
+    "alignedUnsignedPath": "ynx-card-1.0.0-secure-store-barrier-release-unsigned-aligned.apk",
+    "alignedUnsignedSha256": "bd382079c2643b10f3c5ef72caaffcf291a3474f53352f09ad9ba7d3a049cd54",
+    "localQaSignedPath": "ynx-card-1.0.0-secure-store-barrier-local-test-signed.apk",
+    "localQaSignedBytes": 79485922,
+    "localQaSignedSha256": "02e4425f962666a2afcc8414ff5adf8f574ec03c9101f38ff12a4ef8500b472d",
+    "signingClass": "operator-local Android Debug certificate, not production or store signing",
+    "certificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "signatureSchemes": ["v2", "v3"],
+    "zipalign4ByteVerified": true,
+    "zipalign16KiBVerified": true
+  },
+  "offlineContents": {
+    "applicationId": "com.ynxweb4.card",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "debuggable": false,
+    "embeddedBundle": {"entry": "assets/index.android.bundle", "bytes": 3690784, "magicHex": "c61fbc03c103191f", "format": "Hermes bytecode"},
+    "nativeLibraries": {"arm64-v8a": 16, "armeabi-v7a": 16, "x86": 16, "x86_64": 16, "total": 64},
+    "dexFiles": 3,
+    "dexBarrierEvidenceMatches": 71
+  },
+  "falseGates": {
+    "installedOrLaunched": false,
+    "deviceFaultInjection": false,
+    "productionSigned": false,
+    "storeUploaded": false,
+    "walletAccountRequested": false,
+    "signatureRequested": false,
+    "transactionSubmitted": false,
+    "cardApiActivated": false,
+    "ynxtFundingVerified": false
+  }
+}

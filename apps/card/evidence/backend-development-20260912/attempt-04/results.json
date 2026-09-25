@@ -1,0 +1,13 @@
+{
+  "at": "2026-09-12T09:52:24.084Z",
+  "testsExit": 0,
+  "typecheckExit": 0,
+  "logs": {
+    "tests.log": "f4ab7193bc9560939c0aac944e7baf7acb2aa27eafa10fb898c09b7c32481695",
+    "typecheck.log": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+  },
+  "fixtureOnly": true,
+  "realApproval": false,
+  "realFunding": false,
+  "publicDeployed": false
+}

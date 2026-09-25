@@ -1,0 +1,61 @@
+{
+  "syntheticOnly": true,
+  "sourceCommit": "a7dad7ec1bc7c06577978bdd5fea8dc9c7a248a9",
+  "authorityTime": "2026-09-12T00:00:30.000Z",
+  "platform": "android",
+  "requiredScopes": [
+    "account:read"
+  ],
+  "proof": {
+    "version": "2",
+    "sessionBinding": "f236746849e7c36727f52ceaa3f90a41a889b8d66eab752a58366f4dffed8523",
+    "productId": "card",
+    "clientId": "ynx-card-v1",
+    "applicationId": "com.ynxweb4.card",
+    "bundleId": null,
+    "packageId": "com.ynxweb4.card",
+    "origin": "app://android/com.ynxweb4.card",
+    "callback": "ynxcard://wallet-auth/callback",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "deviceId": "introspection-fixture-device",
+    "deviceKey": "AnE1-k_ZOgnc6Yu_aBtL_PUOfA1jVOYq-wv_KjQpYXhl",
+    "method": "POST",
+    "path": "/v2/product-sessions/introspect",
+    "bodyDigest": "60528c7ec5dd19b546f21747ec9b1022d4710da9515089bbb55c5b94d1230fb8",
+    "nonce": "RSnQ3OqdV7cn4U5HibfrEB9zCMpUHG_xscLscRlUhOA",
+    "issuedAt": "2026-09-12T00:00:30.000Z",
+    "expiresAt": "2026-09-12T00:01:00.000Z",
+    "signature": "MEQCIHrhhlxvffeG3v6epGjE92qfZec8SWBDOBPWYVHGN-uTAiA82Jhw6co4P14psY4dTbUEdfDeHamy9X0UwaB5Cz58Iw"
+  },
+  "proofHeader": "eyJhY2NvdW50IjoieW54MTBlMDUyNXNmcmY1M3loMmFsam1tM3NuOWpxNW5qazdsbHFobjgwIiwiYXBwbGljYXRpb25JZCI6ImNvbS55bnh3ZWI0LmNhcmQiLCJib2R5RGlnZXN0IjoiNjA1MjhjN2VjNWRkMTliNTQ2ZjIxNzQ3ZWM5YjEwMjJkNDcxMGRhOTUxNTA4OWJiYjU1YzViOTRkMTIzMGZiOCIsImJ1bmRsZUlkIjpudWxsLCJjYWxsYmFjayI6InlueGNhcmQ6Ly93YWxsZXQtYXV0aC9jYWxsYmFjayIsImNsaWVudElkIjoieW54LWNhcmQtdjEiLCJkZXZpY2VJZCI6ImludHJvc3BlY3Rpb24tZml4dHVyZS1kZXZpY2UiLCJkZXZpY2VLZXkiOiJBbkUxLWtfWk9nbmM2WXVfYUJ0TF9QVU9mQTFqVk9ZcS13dl9LalFwWVhobCIsImV4cGlyZXNBdCI6IjIwMjYtMDktMTJUMDA6MDE6MDAuMDAwWiIsImlzc3VlZEF0IjoiMjAyNi0wOS0xMlQwMDowMDozMC4wMDBaIiwibWV0aG9kIjoiUE9TVCIsIm5vbmNlIjoiUlNuUTNPcWRWN2NuNFU1SGliZnJFQjl6Q01wVUhHX3hzY0xzY1JsVWhPQSIsIm9yaWdpbiI6ImFwcDovL2FuZHJvaWQvY29tLnlueHdlYjQuY2FyZCIsInBhY2thZ2VJZCI6ImNvbS55bnh3ZWI0LmNhcmQiLCJwYXRoIjoiL3YyL3Byb2R1Y3Qtc2Vzc2lvbnMvaW50cm9zcGVjdCIsInByb2R1Y3RJZCI6ImNhcmQiLCJzZXNzaW9uQmluZGluZyI6ImYyMzY3NDY4NDllN2MzNjcyN2Y1MmNlYWEzZjkwYTQxYTg4OWI4ZDY2ZWFiNzUyYTU4MzY2ZjRkZmZlZDg1MjMiLCJzaWduYXR1cmUiOiJNRVFDSUhyaGhseHZmZmVHM3Y2ZXBHakU5MnFmWmVjOFNXQkRPQlBXWVZIR04tdVRBaUE4MkpodzZjbzRQMTRwc1k0ZFRiVUVkZkRlSGFteTlYMFV3YUI1Q3o1OEl3IiwidmVyc2lvbiI6IjIifQ",
+  "body": "{\"requiredScopes\":[\"account:read\"]}",
+  "requestId": "req_ps_i_oYqS4ZG7-0LorEJJZqVwjlaYruy2xKgML2vDA5T-i9A",
+  "activeSession": {
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "applicationId": "com.ynxweb4.card",
+    "approvalDigest": "442f39f1bb2cdc1d1fd15c567509c60689911c6d02e31f4ef55b55199273109f",
+    "bundleId": null,
+    "callback": "ynxcard://wallet-auth/callback",
+    "chainId": "ynx_6423-1",
+    "clientId": "ynx-card-v1",
+    "deviceAlgorithm": "p256-sha256",
+    "deviceBinding": "2a0371fdc02ac60cb06a125018e898845c56ddd3e61cf99f4c585c76bd6b59fb",
+    "deviceId": "introspection-fixture-device",
+    "deviceKey": "AnE1-k_ZOgnc6Yu_aBtL_PUOfA1jVOYq-wv_KjQpYXhl",
+    "expiresAt": "2026-09-12T00:03:30.000Z",
+    "issuedAt": "2026-09-12T00:00:30.000Z",
+    "nonce": "mggQ-06ZIjgmhbkMmUN5NmZBlCtScXf2GeSyyoFM9NQ",
+    "origin": "app://android/com.ynxweb4.card",
+    "packageId": "com.ynxweb4.card",
+    "platform": "android",
+    "productId": "card",
+    "requestDigest": "d6cdda7ac619b79ff1a3536bad8d07997bed1a5136ec57e896279237200ccd84",
+    "scopes": [
+      "account:read",
+      "card:application:write"
+    ],
+    "sessionBinding": "f236746849e7c36727f52ceaa3f90a41a889b8d66eab752a58366f4dffed8523",
+    "state": "T2pJg_0a4OX58wlz-FoZgj4SsCHGULhvHcFaRTG8Jtk",
+    "version": "2"
+  }
+}

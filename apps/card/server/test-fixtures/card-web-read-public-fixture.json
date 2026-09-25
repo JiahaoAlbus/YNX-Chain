@@ -1,0 +1,61 @@
+{
+  "syntheticOnly": true,
+  "sourceCommit": "6f332753baae5deaf6b05c8276b20a02cc4887c5",
+  "authorityTime": "2026-09-12T00:00:30.000Z",
+  "platform": "web",
+  "requiredScopes": [
+    "account:read"
+  ],
+  "proof": {
+    "version": "2",
+    "sessionBinding": "97e65432ead0c5874f1d00370fef3602d841cfae87bdee3600e69bac52c01cab",
+    "productId": "card",
+    "clientId": "ynx-card-v1",
+    "applicationId": "com.ynxweb4.card.web",
+    "bundleId": null,
+    "packageId": null,
+    "origin": "https://card.ynxweb4.com",
+    "callback": "https://card.ynxweb4.com/wallet-auth/callback",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "deviceId": "introspection-fixture-device",
+    "deviceKey": "AnE1-k_ZOgnc6Yu_aBtL_PUOfA1jVOYq-wv_KjQpYXhl",
+    "method": "POST",
+    "path": "/v2/product-sessions/introspect",
+    "bodyDigest": "60528c7ec5dd19b546f21747ec9b1022d4710da9515089bbb55c5b94d1230fb8",
+    "nonce": "RSnQ3OqdV7cn4U5HibfrEB9zCMpUHG_xscLscRlUhOA",
+    "issuedAt": "2026-09-12T00:00:30.000Z",
+    "expiresAt": "2026-09-12T00:01:00.000Z",
+    "signature": "MEUCIQDn7J8ekVONFf5Cv_KVxBhsS4piJjXtF48di6_V8KZwNgIgRVDoZDi59pZdpsvYJ0dpXA-J_aMC7vgKwmkXscTw3lw"
+  },
+  "proofHeader": "eyJhY2NvdW50IjoieW54MTBlMDUyNXNmcmY1M3loMmFsam1tM3NuOWpxNW5qazdsbHFobjgwIiwiYXBwbGljYXRpb25JZCI6ImNvbS55bnh3ZWI0LmNhcmQud2ViIiwiYm9keURpZ2VzdCI6IjYwNTI4YzdlYzVkZDE5YjU0NmYyMTc0N2VjOWIxMDIyZDQ3MTBkYTk1MTUwODliYmI1NWM1Yjk0ZDEyMzBmYjgiLCJidW5kbGVJZCI6bnVsbCwiY2FsbGJhY2siOiJodHRwczovL2NhcmQueW54d2ViNC5jb20vd2FsbGV0LWF1dGgvY2FsbGJhY2siLCJjbGllbnRJZCI6InlueC1jYXJkLXYxIiwiZGV2aWNlSWQiOiJpbnRyb3NwZWN0aW9uLWZpeHR1cmUtZGV2aWNlIiwiZGV2aWNlS2V5IjoiQW5FMS1rX1pPZ25jNll1X2FCdExfUFVPZkExalZPWXEtd3ZfS2pRcFlYaGwiLCJleHBpcmVzQXQiOiIyMDI2LTA5LTEyVDAwOjAxOjAwLjAwMFoiLCJpc3N1ZWRBdCI6IjIwMjYtMDktMTJUMDA6MDA6MzAuMDAwWiIsIm1ldGhvZCI6IlBPU1QiLCJub25jZSI6IlJTblEzT3FkVjdjbjRVNUhpYmZyRUI5ekNNcFVIR194c2NMc2NSbFVoT0EiLCJvcmlnaW4iOiJodHRwczovL2NhcmQueW54d2ViNC5jb20iLCJwYWNrYWdlSWQiOm51bGwsInBhdGgiOiIvdjIvcHJvZHVjdC1zZXNzaW9ucy9pbnRyb3NwZWN0IiwicHJvZHVjdElkIjoiY2FyZCIsInNlc3Npb25CaW5kaW5nIjoiOTdlNjU0MzJlYWQwYzU4NzRmMWQwMDM3MGZlZjM2MDJkODQxY2ZhZTg3YmRlZTM2MDBlNjliYWM1MmMwMWNhYiIsInNpZ25hdHVyZSI6Ik1FVUNJUURuN0o4ZWtWT05GZjVDdl9LVnhCaHNTNHBpSmpYdEY0OGRpNl9WOEtad05nSWdSVkRvWkRpNTlwWmRwc3ZZSjBkcFhBLUpfYU1DN3ZnS3dta1hzY1R3M2x3IiwidmVyc2lvbiI6IjIifQ",
+  "body": "{\"requiredScopes\":[\"account:read\"]}",
+  "requestId": "req_ps_i_oYqS4ZG7-0LorEJJZqVwjlaYruy2xKgML2vDA5T-i9A",
+  "activeSession": {
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "applicationId": "com.ynxweb4.card.web",
+    "approvalDigest": "7a09b951e88e86745b4f11ef4b9cc9f2a8343daad378bedc90b3ee306c575fac",
+    "bundleId": null,
+    "callback": "https://card.ynxweb4.com/wallet-auth/callback",
+    "chainId": "ynx_6423-1",
+    "clientId": "ynx-card-v1",
+    "deviceAlgorithm": "p256-sha256",
+    "deviceBinding": "c8d1ceeb33c103ad4591944e6c04bdece6de411927c76c5cec8cd9e5940dcffb",
+    "deviceId": "introspection-fixture-device",
+    "deviceKey": "AnE1-k_ZOgnc6Yu_aBtL_PUOfA1jVOYq-wv_KjQpYXhl",
+    "expiresAt": "2026-09-12T00:03:30.000Z",
+    "issuedAt": "2026-09-12T00:00:30.000Z",
+    "nonce": "mggQ-06ZIjgmhbkMmUN5NmZBlCtScXf2GeSyyoFM9NQ",
+    "origin": "https://card.ynxweb4.com",
+    "packageId": null,
+    "platform": "web",
+    "productId": "card",
+    "requestDigest": "3a49da441c1a77c74fd3e235c9750243d83e927b6e7f680d00f80f1bcbf72abf",
+    "scopes": [
+      "account:read",
+      "card:application:write"
+    ],
+    "sessionBinding": "97e65432ead0c5874f1d00370fef3602d841cfae87bdee3600e69bac52c01cab",
+    "state": "T2pJg_0a4OX58wlz-FoZgj4SsCHGULhvHcFaRTG8Jtk",
+    "version": "2"
+  }
+}

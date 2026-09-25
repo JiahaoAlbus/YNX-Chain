@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 3,
+  "chainId": "ynx_6423-1",
+  "wallet": {
+    "authorizeCallback": "ynxwallet://authorize",
+    "downloadUrl": "https://www.ynxweb4.com/dapp/download",
+    "metaMaskDownloadUrl": "https://metamask.io/download"
+  },
+  "products": [
+    {
+      "productId": "calendar",
+      "clientId": "ynx-calendar-v1",
+      "displayName": "YNX Calendar",
+      "applicationId": "com.ynxweb4.calendar",
+      "webOrigin": "https://calendar.ynxweb4.com",
+      "nativeCallback": "ynxcalendar://wallet-auth/callback",
+      "legacyCallbacks": ["ynxcalendar", "ynxcalendar://wallet-auth/callback"],
+      "scopes": ["calendar:account", "calendar:recover"],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 240,
+      "retiredClients": []
+    },
+    {
+      "productId": "card",
+      "clientId": "ynx-card-v1",
+      "displayName": "YNX Card",
+      "applicationId": "com.ynxweb4.card",
+      "webOrigin": "https://card.ynxweb4.com",
+      "nativeCallback": "ynxcard://wallet-auth/callback",
+      "legacyCallbacks": ["ynxcard", "ynxcard://wallet-auth/callback"],
+      "scopes": ["account:read", "card:application:write", "card:controls:write", "card:dispute:write"],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
+    },
+    {
+      "productId": "creator-studio",
+      "clientId": "ynx-creator-studio-web-v1",
+      "displayName": "YNX Creator Studio",
+      "applicationId": "com.ynxweb4.creator-studio.web",
+      "webOrigin": "https://creator.ynxweb4.com",
+      "nativeCallback": "ynxcreator://wallet-auth/callback",
+      "legacyCallbacks": ["ynxcreator", "ynxcreator://wallet-auth/callback"],
+      "scopes": ["creator:account", "creator:publish", "creator:revenue"],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 240,
+      "retiredClients": []
+    },
+    {
+      "productId": "developer",
+      "clientId": "ynx-developer-v1",
+      "displayName": "YNX Developer",
+      "applicationId": "com.ynxweb4.developer.testnetpreview",
+      "webOrigin": "https://developer.ynxweb4.com",
+      "nativeCallback": "ynxdeveloper://wallet-auth/callback",
+      "legacyCallbacks": ["ynxdeveloper", "ynxdeveloper://wallet-auth/callback"],
+      "scopes": ["account:read", "developer:deploy"],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
+    },
+    {
+      "productId": "dex",
+      "clientId": "ynx-dex-v1",
+      "displayName": "YNX DEX",
+      "applicationId": "com.ynxweb4.dex",
+      "webOrigin": "https://dex.ynxweb4.com",
+      "nativeCallback": "ynxdex://wallet-auth/callback",
+      "legacyCallbacks": ["ynxdex", "ynxdex://wallet-auth/callback"],
+      "scopes": ["dex:account", "dex:orders", "dex:trade"],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
+    },
+    {
+      "productId": "exchange",
+      "clientId": "ynx-exchange-v1",
+      "displayName": "YNX Exchange",
+      "applicationId": "com.ynxweb4.exchange",
+      "webOrigin": "https://exchange.ynxweb4.com",
+      "nativeCallback": "ynxexchange://wallet-auth/callback",
+      "legacyCallbacks": ["ynxexchange", "ynxexchange://wallet-auth/callback"],
+      "scopes": ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
+    },
+    {
+      "productId": "finance",
+      "clientId": "ynx-finance-v1",
+      "displayName": "YNX Finance",
+      "applicationId": "com.ynxweb4.finance",
+      "webOrigin": "https://finance.ynxweb4.com",
+      "nativeCallback": "ynxfinance://wallet-auth/callback",
+      "legacyCallbacks": ["ynxfinance", "ynxfinance://wallet-auth/callback"],
+      "scopes": ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 240,
+      "retiredClients": []
+    },
+    {
+      "productId": "pay",
+      "clientId": "ynx-pay-v1",
+      "displayName": "YNX Pay",
+      "applicationId": "com.ynxweb4.pay",
+      "webOrigin": "https://pay.ynxweb4.com",
+      "nativeCallback": "ynxpay://wallet-auth/callback",
+      "legacyCallbacks": ["ynxpay", "ynxpay://wallet-auth/callback"],
+      "scopes": ["account:read", "pay:case:create", "pay:settlement:submit"],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
+    },
+    {
+      "productId": "quant",
+      "clientId": "ynx-quant-v1",
+      "displayName": "YNX Quant",
+      "applicationId": "com.ynxweb4.quant",
+      "webOrigin": "https://quant.ynxweb4.com",
+      "nativeCallback": "ynxquant://wallet-auth/callback",
+      "legacyCallbacks": ["ynxquant", "ynxquant://wallet-auth/callback"],
+      "scopes": ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke"],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
+    },
+    {
+      "productId": "shop",
+      "clientId": "ynx-shop-v1",
+      "displayName": "YNX Shop",
+      "applicationId": "com.ynxweb4.shop",
+      "webOrigin": "https://shop.ynxweb4.com",
+      "nativeCallback": "ynxshop://wallet-auth/callback",
+      "legacyCallbacks": ["ynxshop", "ynxshop://wallet-auth/callback"],
+      "scopes": ["account:read", "shop:orders:write", "shop:profile:write"],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 240,
+      "retiredClients": [
+        {
+          "platform": "android",
+          "applicationId": "com.ynxweb4.shop",
+          "callback": "ynxshop://wallet-auth/callback",
+          "retiredAt": "2026-08-20T00:00:00.000Z",
+          "lastSupportedVersion": "0.3.0-testnet-preview",
+          "replacementUrl": "https://shop.ynxweb4.com/shop"
+        }
+      ]
+    },
+    {
+      "productId": "social",
+      "clientId": "ynx-social-v1",
+      "displayName": "YNX Social",
+      "applicationId": "com.ynx.social",
+      "webOrigin": "https://social.ynxweb4.com",
+      "nativeCallback": "ynx-social://com.ynx.social",
+      "legacyCallbacks": ["ynx-social", "ynx-social://com.ynx.social"],
+      "scopes": ["account:read", "profile:link"],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 240,
+      "retiredClients": []
+    },
+    {
+      "productId": "video",
+      "clientId": "ynx-video-mobile-v1",
+      "displayName": "YNX Video",
+      "applicationId": "com.ynxweb4.video",
+      "webOrigin": "https://video.ynxweb4.com",
+      "nativeCallback": "ynxvideo://wallet-auth/callback",
+      "legacyCallbacks": ["ynxvideo", "ynxvideo://wallet-auth/callback"],
+      "scopes": ["video:account", "video:library", "video:playback"],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 300,
+      "retiredClients": []
+    },
+    {
+      "productId": "wallet-web-companion",
+      "clientId": "ynx-wallet-web-companion-v1",
+      "displayName": "YNX Wallet Web Companion",
+      "applicationId": "web.ynx.wallet.companion",
+      "webOrigin": "https://www.ynxweb4.com",
+      "nativeCallback": "ynxwalletcompanion://wallet-auth/callback",
+      "legacyCallbacks": ["ynxwalletcompanion://wallet-auth/callback"],
+      "scopes": ["account:read", "chain:network:add", "chain:network:switch", "wallet:session:request"],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "retiredClients": [],
+      "platforms": ["web"],
+      "webApplicationId": "web.ynx.wallet.companion",
+      "webCallback": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"
+    }
+  ]
+}

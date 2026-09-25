@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Card",
+  "scope": "Testnet simulation only",
+  "source": {
+    "commit": "23cf5184811892e5c184b27b09ccd26590c285d6",
+    "sharedProviderConnectSource": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sharedProviderConnectTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "sharedProviderConnectEvidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "vendorArchive": "apps/card/vendor/ynx-chain-wallet-auth-1.0.0-98c6d5d7-provider.tgz",
+    "vendorArchiveSha256": "7ea54d8d809932867e38b1d69e349f290a855f3224e249b3f4efda7bb2d91d19"
+  },
+  "verification": {
+    "cleanInstall": true,
+    "tests": "41/41",
+    "typecheck": true,
+    "webBuild": true,
+    "deploymentId": "dpl_8ZXGJJsEhoJM827TDCJNyGbFqim3",
+    "deploymentUrl": "https://ynx-card-testnet-simulation-d1dq1jvx2-jiahaoalbus-projects.vercel.app",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "canonicalHttpStatus": 200,
+    "html": {"bytes": 1717, "sha256": "baa329913f7dd49b48375eb4d4c529a3725dd76eb0bd2902f0971c36eaf7942c"},
+    "bundle": {"path": "/_expo/static/js/web/index-47e32284f9f7cbf4ca51cc5cb52e4989.js", "bytes": 2906163, "sha256": "705fe8e7fc1a068e7e17c39a7a2562fc469c1a5aeb80c6a943f5c62e7b3e7edf"},
+    "chrome": {
+      "guestEntry": true,
+      "guestSimulation": true,
+      "registrationEntry": true,
+      "registrationRequiresWallet": true,
+      "englishDefaultNoCjk": true,
+      "walletChoicesVisible": true,
+      "urlStable": true,
+      "newTopLevelTabs": 0,
+      "consoleErrors": 0,
+      "desktopScreenshot": {"viewport": "1440x900", "sha256": "246ffa403d2e32a849632c737da5e778cae655a7e344e26cb42bc6cdc3776c9d"},
+      "mobileScreenshot": {"viewport": "390x844", "sha256": "82259874baab4a17ca499db6293a64205bc7597cbba3a3d11430f9fa00c40abc"}
+    }
+  },
+  "rollback": {"deploymentId": "dpl_Dz6EpJXkREr79xHwnU5wAMNMTz9A", "deploymentUrl": "https://ynx-card-testnet-simulation-rnrp4dlir-jiahaoalbus-projects.vercel.app"},
+  "falseGates": {
+    "realProviderApproval": "WAITING_EXTERNAL",
+    "realProviderReject": "WAITING_EXTERNAL",
+    "realProviderChainSwitch": "WAITING_EXTERNAL",
+    "realProviderRefreshDisconnect": "WAITING_EXTERNAL",
+    "walletCallback": false,
+    "productSessionV2Migrated": false,
+    "realYnxtTopup": false,
+    "realCard": false,
+    "panOrCvv": false,
+    "fiat": false,
+    "realMerchantPayment": false,
+    "computerControl": false
+  }
+}

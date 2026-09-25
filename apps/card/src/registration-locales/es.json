@@ -1,0 +1,49 @@
+{
+  "text": {
+    "title": "Crear una solicitud de Card de Testnet",
+    "disclaimer": "Una Card nunca se da por creada. Este flujo vinculado a la billetera es exclusivo de Testnet y no puede emitir una tarjeta real, PAN, CVV, saldo, financiación en moneda fiduciaria ni pagos a comercios.",
+    "nativeUnavailable": "Las solicitudes de Card en la aplicación nativa aún no están disponibles",
+    "nativeDetails": "Las solicitudes de Card aún no están conectadas en esta aplicación nativa. No se puede iniciar una solicitud aquí.",
+    "nativeAuthority": "La autorización de YNX Wallet solo verifica la identidad. No crea una solicitud de Card ni autoriza la financiación.",
+    "connectRequired": "Conecta una billetera estándar antes de iniciar una solicitud de Card de Testnet en la web.",
+    "draftCreated": "Se ha creado un borrador de solicitud de Testnet vinculado a la billetera.",
+    "invalidApplication": "No se pudo actualizar la solicitud. Revisa los datos e inténtalo de nuevo.",
+    "approvalPrepared": "Solicitud preparada. Aún se requieren una firma real de la billetera y un comprobante aceptado del servidor del entorno de pruebas.",
+    "cannotApprove": "No se pudo preparar la aprobación de la billetera. Revisa la solicitud e inténtalo de nuevo.",
+    "backendDegraded": "La solicitud está en pausa hasta que haya un comprobante aceptado del servidor. No se ha creado ninguna firma, cuenta, tarjeta activa, saldo ni intención de recarga.",
+    "cannotSubmit": "No se pudo comprobar la disponibilidad del entorno de pruebas. Inténtalo más tarde.",
+    "start": "Iniciar solicitud",
+    "nickname": "Apodo de la tarjeta",
+    "useCase": "Uso previsto en Testnet",
+    "useCasePlaceholder": "¿Qué quieres practicar?",
+    "limit": "Límite de gasto de YNXT en Testnet",
+    "limitPlaceholder": "Límite de gasto de YNXT",
+    "risk": "Acepto los riesgos de Testnet y entiendo que esto es solo una simulación.",
+    "acceptTerms": "Aceptar las condiciones de Testnet",
+    "prepareApproval": "Preparar la aprobación de la billetera",
+    "submit": "Comprobar el entorno de pruebas",
+    "cancel": "Cancelar solicitud",
+    "standardRequired": "Las solicitudes en la web requieren una billetera EVM estándar.",
+    "draftOnly": "Solo se pueden editar las solicitudes en borrador.",
+    "completeDetails": "Introduce un apodo de 2–48 caracteres, un uso previsto de 4–160 caracteres y un límite de al menos 1 YNXT con un máximo de 6 dígitos enteros y 6 decimales.",
+    "acceptDetails": "Completa los datos de la solicitud y acepta las condiciones de Testnet antes de preparar la aprobación.",
+    "notAwaiting": "Esta solicitud no está pendiente de aprobación.",
+    "activeCannotCancel": "No se puede cancelar aquí una solicitud activa.",
+    "storageLoadFailure": "No se pudo cargar la solicitud guardada. Inténtalo más tarde.",
+    "storageSaveFailure": "No se pudo guardar la solicitud. Los cambios pueden perderse al salir de esta pantalla.",
+    "cannotCancel": "No se pudo cancelar la solicitud. Inténtalo más tarde."
+  },
+  "statuses": {
+    "DRAFT": "Borrador",
+    "SUBMITTED": "Enviada",
+    "APPROVAL_REQUIRED": "Requiere aprobación",
+    "ACTIVE": "Activa",
+    "REJECTED": "Rechazada",
+    "CANCELLED": "Cancelada",
+    "DEGRADED": "Servicio no disponible"
+  },
+  "templates": {
+    "status": "Estado de la solicitud: {status}",
+    "audit": "Registros de auditoría: {count}. Solo un comprobante verificado del entorno de pruebas puede activar una Card; de lo contrario, la recarga permanece bloqueada."
+  }
+}

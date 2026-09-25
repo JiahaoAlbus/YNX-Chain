@@ -1,0 +1,15 @@
+{
+  "at": "2026-09-12T10:39:41.122Z",
+  "testsExit": 0,
+  "typecheckExit": 0,
+  "logs": {
+    "tests.log": "69579b200b2da621b8ca8a9204af6975a66eced443cf78d9c53b654671d68b04",
+    "typecheck.log": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+  },
+  "localHttpSQLite": true,
+  "authenticationFixtureOnly": true,
+  "privateSessionLive": false,
+  "realApproval": false,
+  "realFunding": false,
+  "publicDeployed": false
+}

@@ -1,0 +1,134 @@
+
+> @ynx-chain/card@1.0.0 test:backend
+> node --import tsx --test server/*.test.ts
+
+✔ business client reaches actual local HTTP/SQLite routes with fresh scoped proofs and fails closed on unsigned approval (59.439916ms)
+✔ Core adapter verifies exact wei, canonical block and confirmation readback without sending transactions (16.849667ms)
+✔ Core transport does not follow authority redirects (1.175125ms)
+✔ wrong chain is rejected before transaction inspection (1.080959ms)
+✔ missing and failed receipts cannot be credited (1.035916ms)
+✔ wrong sender, recipient and exact amount are rejected (1.5355ms)
+✔ insufficient confirmations and changed canonical block reject (1.554458ms)
+✔ reorg during verification cannot be accepted (0.61975ms)
+✔ transaction outside the accepted intent time is rejected (1.169208ms)
+✔ Core endpoint rejects credentials, query, fragment and non-HTTPS configuration (0.255959ms)
+✖ public prefixed version binds source without leaking private state or invoking Wallet (42.386042ms)
+✖ duplicate Origin is rejected before shared authentication (8.249959ms)
+✖ duplicate X-YNX-Product-Session-Proof-V2 is rejected before shared authentication (4.237167ms)
+✖ duplicate X-YNX-Card-Platform is rejected before shared authentication (4.08875ms)
+✖ duplicate Idempotency-Key is rejected before shared authentication (2.788125ms)
+✖ unknown platform cannot select an authorizer (1.422625ms)
+✔ each Card route binds one minimum scope without legacy escalation (4.263667ms)
+✔ internal mutation operations also enforce exact permission before cache use (0.608667ms)
+✔ persistent drafts are isolated, idempotent and encrypted on disk (28.91025ms)
+✔ missing approval verifier persists DEGRADED without a card (26.082291ms)
+✔ an explicit rejection is durable and never creates a card (12.851167ms)
+✔ expired or mismatched approval cannot activate a card (19.345875ms)
+✔ active application submission retries do not request a second approval (5.673708ms)
+✔ cached approval still requires current identity, ownership, scope and identical input (14.351542ms)
+✔ pending submissions do not replay the external approval call (10.5205ms)
+✔ verified fixture funding, partial settlement, restart and duplicate credit conserve wei (20.591375ms)
+✔ mismatched Core evidence never reaches the ledger (12.78325ms)
+✔ frozen and insufficient-balance authorizations decline and survive restart (9.676333ms)
+✔ real HTTP boundary exposes preview identity but denies private requests without verifier (62.300667ms)
+✔ coarse legacy scopes cannot read, mutate or recover cached application results (3.458458ms)
+✔ application-only permission cannot control, fund or simulate, including before resource lookup (4.172333ms)
+✔ controls, funding and simulation scopes grant only their own operations (8.412709ms)
+✔ application approval receives the exact persisted five details, not unsigned controls (2.658166ms)
+✔ native YNX subjects can apply but have no inferred EVM funding authorization (5.753625ms)
+✔ internal outbox retries preserve stable event ids across restart (7.968542ms)
+✔ HTTP selects exact proof scopes before authentication and denies mismatched grants (21.666125ms)
+✔ simulation fee is conserved, idempotent and reconciled after restart (8.539375ms)
+✔ reconciliation finds inconsistent snapshots instead of claiming ledger success (5.226583ms)
+✔ a transaction cannot fund a second intent and the failed claim is atomic (5.87825ms)
+✔ exact unchanged Wallet fixture and server artifact hashes remain bound (1.341792ms)
+✔ Card consumes the shared live-introspection interface at one fixed URL and maps only its returned principal (37.3755ms)
+✔ replay rejection propagates and no cached principal bypasses the authority (5.45475ms)
+✔ wrong platform, missing web Origin, foreign Origin and missing native platform fail before introspection (2.940042ms)
+✔ route-required scope cannot be replaced by a caller claim or a differently scoped proof (2.121084ms)
+✔ changed authority account cannot authenticate a Card user (1.837208ms)
+✔ changed authority deviceId cannot authenticate a Card user (7.366666ms)
+✔ changed authority platform cannot authenticate a Card user (2.413125ms)
+✔ changed authority callback cannot authenticate a Card user (1.987708ms)
+✔ changed authority chainId cannot authenticate a Card user (1.896709ms)
+✔ changed authority scopes cannot authenticate a Card user (1.811584ms)
+✔ expired proof and expiry during response fail without local success (6.906666ms)
+✔ authority network failure is private degradation without retry or Standard Wallet mutation (1.575417ms)
+✔ shared Session authentication plus actual local HTTP/SQLite creates only a durable DRAFT, never a card (48.231541ms)
+✔ new database has explicit schema version and private filesystem mode (8.105916ms)
+✔ legacy version zero upgrades without rewriting encrypted owners or global claims (10.161792ms)
+✔ future database versions fail closed and retain their version (0.989208ms)
+✔ malformed legacy schema rolls back migration without marking version one (2.263667ms)
+✔ live WAL backup restores encrypted owner state and cross-owner transaction deduplication (60.305542ms)
+✔ failed business mutation rolls back both the owner state and global transaction claim (7.283209ms)
+✔ Card consumes the exact verification-only artifact and public signed fixture (0.541583ms)
+✔ the accepted signed fixture maps to an approval and public-key-bound sender (48.247333ms)
+✔ changed signature, unsigned sender, high-S signature and unsigned rejection grant no approval (2.485125ms)
+✔ current challenge, complete persisted details and live authenticated owner must match (12.95ms)
+✔ historical signature parsing cannot bypass current proof expiry (40.436458ms)
+✔ a configured authentication adapter cannot override Card business approval (0.241916ms)
+✔ verified fixture activates once, persists sender binding and does not credit any funding (26.434334ms)
+ℹ tests 66
+ℹ suites 0
+ℹ pass 60
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 496.061708
+
+✖ failing tests:
+
+test at server/httpSecurity.test.ts:2:2487
+✖ public prefixed version binds source without leaking private state or invoking Wallet (42.386042ms)
+  SyntaxError: Unexpected end of JSON input
+      at JSON.parse (<anonymous>)
+      at IncomingMessage.<anonymous> (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/server/httpSecurity.test.ts:23:156)
+      at IncomingMessage.emit (node:events:526:24)
+      at endReadableNT (node:internal/streams/readable:1772:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+test at server/httpSecurity.test.ts:2:3222
+✖ duplicate Origin is rejected before shared authentication (8.249959ms)
+  SyntaxError: Unexpected end of JSON input
+      at JSON.parse (<anonymous>)
+      at IncomingMessage.<anonymous> (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/server/httpSecurity.test.ts:23:156)
+      at IncomingMessage.emit (node:events:526:24)
+      at endReadableNT (node:internal/streams/readable:1772:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+test at server/httpSecurity.test.ts:2:3222
+✖ duplicate X-YNX-Product-Session-Proof-V2 is rejected before shared authentication (4.237167ms)
+  SyntaxError: Unexpected end of JSON input
+      at JSON.parse (<anonymous>)
+      at IncomingMessage.<anonymous> (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/server/httpSecurity.test.ts:23:156)
+      at IncomingMessage.emit (node:events:526:24)
+      at endReadableNT (node:internal/streams/readable:1772:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+test at server/httpSecurity.test.ts:2:3222
+✖ duplicate X-YNX-Card-Platform is rejected before shared authentication (4.08875ms)
+  SyntaxError: Unexpected end of JSON input
+      at JSON.parse (<anonymous>)
+      at IncomingMessage.<anonymous> (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/server/httpSecurity.test.ts:23:156)
+      at IncomingMessage.emit (node:events:526:24)
+      at endReadableNT (node:internal/streams/readable:1772:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+test at server/httpSecurity.test.ts:2:3222
+✖ duplicate Idempotency-Key is rejected before shared authentication (2.788125ms)
+  SyntaxError: Unexpected end of JSON input
+      at JSON.parse (<anonymous>)
+      at IncomingMessage.<anonymous> (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/server/httpSecurity.test.ts:23:156)
+      at IncomingMessage.emit (node:events:526:24)
+      at endReadableNT (node:internal/streams/readable:1772:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+
+test at server/httpSecurity.test.ts:2:3606
+✖ unknown platform cannot select an authorizer (1.422625ms)
+  SyntaxError: Unexpected end of JSON input
+      at JSON.parse (<anonymous>)
+      at IncomingMessage.<anonymous> (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/server/httpSecurity.test.ts:23:156)
+      at IncomingMessage.emit (node:events:526:24)
+      at endReadableNT (node:internal/streams/readable:1772:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:90:21)

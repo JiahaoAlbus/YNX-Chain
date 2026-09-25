@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-09",
+  "purpose": "Offline local-QA candidate for Guest navigation reachability, section reset, native YNX labeling, RTL text direction, and overflow containment. This is not installed-device, wallet, Card API, or funding evidence.",
+  "source": {
+    "commit": "a60e48fc83aeabcdb8f9fb411feabe2d28bad4b7",
+    "tree": "b5bbe772c14b23b07c066eb1ed4d242e4f5741fa",
+    "guestExperienceSha256": "2ce4dcd50c08b10906751fa02e72fe107482454caba586bad80f80b4ebf94766",
+    "secureStoreBarrierSource": "5d20c694018eb484263a47c0128bc83344dce0e2"
+  },
+  "uiChanges": {
+    "compactNavigation": "six tabs wrap into a reachable two-column grid instead of an overflow-hidden row",
+    "sectionChange": "ScrollView resets to top after each section change",
+    "overflowContainment": "Top up, requirements, Help, and recovery prose use a shrinkable copy column",
+    "nativeHeader": "native header exposes Connect YNX Wallet and uses the existing YNX handler; web retains the Standard EVM wallet path",
+    "locale": "Guest core navigation and actions use the existing twelve-locale catalog; Arabic applies RTL text direction"
+  },
+  "validation": {
+    "typecheck": "pass",
+    "webLocaleGate": {"passed": 1, "failed": 0},
+    "releaseBuild": ":app:assembleRelease",
+    "javaRuntime": "OpenJDK 17.0.17",
+    "releaseCredentialsRead": false,
+    "releaseCredentialsSet": false
+  },
+  "artifact": {
+    "unsignedPath": "../../android/app/build/outputs/apk/release/app-release-unsigned.apk",
+    "unsignedBytes": 79388215,
+    "unsignedSha256": "36528bc14b01de271c055dbf107f1f5d11a8010eca04a4862444d3bb0fb30982",
+    "localQaSignedPath": "ynx-card-1.0.0-a60e48f-local-test-signed.apk",
+    "localQaSignedBytes": 79485922,
+    "localQaSignedSha256": "da59994cc6fe81235083d6e469ca479cbb84013f6b386efac0ecc2e3d8c7e3cb",
+    "signingClass": "operator-local Android Debug certificate, not production or store signing",
+    "certificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "signatureSchemes": ["v2", "v3"],
+    "zipalign16KiBVerified": true
+  },
+  "offlineContents": {
+    "applicationId": "com.ynxweb4.card",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "debuggable": false,
+    "embeddedBundle": {"entry": "assets/index.android.bundle", "bytes": 3691924, "magicHex": "c61fbc03c103191f", "format": "Hermes bytecode"},
+    "nativeLibraries": {"arm64-v8a": 16, "armeabi-v7a": 16, "x86": 16, "x86_64": 16, "total": 64}
+  },
+  "falseGates": {
+    "installedOrLaunched": false,
+    "productionSigned": false,
+    "storeUploaded": false,
+    "walletAccountRequested": false,
+    "signatureRequested": false,
+    "transactionSubmitted": false,
+    "cardApiActivated": false,
+    "ynxtFundingVerified": false
+  }
+}

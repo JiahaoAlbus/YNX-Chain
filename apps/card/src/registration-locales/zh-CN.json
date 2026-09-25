@@ -1,0 +1,49 @@
+{
+  "text": {
+    "title": "创建测试网 Card 申请",
+    "disclaimer": "此流程不会默认创建卡片。申请与钱包绑定，仅用于测试网，不能发行真实卡片、PAN、CVV、余额、法币充值或商户付款。",
+    "nativeUnavailable": "原生 Card 申请暂未开放",
+    "nativeDetails": "当前原生应用尚未接通 Card 申请流程，无法在此发起申请。",
+    "nativeAuthority": "YNX Wallet 授权仅验证身份，不会创建 Card 申请或授予充值权限。",
+    "connectRequired": "在网页端发起测试网 Card 申请前，请先连接标准钱包。",
+    "draftCreated": "已创建与钱包绑定的测试网申请草稿。",
+    "invalidApplication": "无法更新申请，请检查内容后重试。",
+    "approvalPrepared": "申请已准备就绪，仍需真实的钱包签名及已获接受的沙盒后端回执。",
+    "cannotApprove": "无法准备钱包授权，请检查申请后重试。",
+    "backendDegraded": "申请已暂停，等待获接受的后端回执。未创建签名、账户、已激活卡片、余额或充值意图。",
+    "cannotSubmit": "无法检查沙盒准备情况，请稍后重试。",
+    "start": "开始申请",
+    "nickname": "卡片昵称",
+    "useCase": "测试网用途",
+    "useCasePlaceholder": "你想练习什么？",
+    "limit": "YNXT 测试网消费限额",
+    "limitPlaceholder": "YNXT 消费限额",
+    "risk": "我接受测试网风险，并理解这仅是模拟。",
+    "acceptTerms": "接受测试网条款",
+    "prepareApproval": "准备钱包授权",
+    "submit": "检查沙盒准备情况",
+    "cancel": "取消申请",
+    "standardRequired": "网页端申请需要标准 EVM 钱包。",
+    "draftOnly": "只有草稿状态的申请可以编辑。",
+    "completeDetails": "请输入 2–48 个字符的昵称、4–160 个字符的用途，以及至少为 1 YNXT、整数部分最多 6 位、小数部分最多 6 位的限额。",
+    "acceptDetails": "准备授权前，请填写完整申请信息并接受测试网条款。",
+    "notAwaiting": "此申请当前并未等待授权。",
+    "activeCannotCancel": "无法在此取消已激活的申请。",
+    "storageLoadFailure": "无法加载已保存的申请，请稍后重试。",
+    "storageSaveFailure": "无法保存申请，离开此页面后可能丢失更改。",
+    "cannotCancel": "无法取消申请，请稍后重试。"
+  },
+  "statuses": {
+    "DRAFT": "草稿",
+    "SUBMITTED": "已提交",
+    "APPROVAL_REQUIRED": "需要授权",
+    "ACTIVE": "已激活",
+    "REJECTED": "已拒绝",
+    "CANCELLED": "已取消",
+    "DEGRADED": "服务不可用"
+  },
+  "templates": {
+    "status": "申请状态：{status}",
+    "audit": "审计记录：{count} 条。只有经过验证的沙盒回执才能激活 Card，否则充值功能将保持锁定。"
+  }
+}

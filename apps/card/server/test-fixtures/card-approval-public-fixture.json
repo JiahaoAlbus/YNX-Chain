@@ -1,0 +1,56 @@
+{
+  "sourceCommit": "ff5b7d49dd515d31d567c352dd049ac7b79d4139",
+  "syntheticPublicTestIdentity": true,
+  "clock": "2026-09-12T00:00:30.000Z",
+  "authenticatedAccount": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+  "challenge": {
+    "id": "challenge_11111111-1111-4111-8111-111111111111",
+    "applicationId": "application_22222222-2222-4222-8222-222222222222",
+    "owner": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+    "chainId": "0x1917",
+    "purpose": "create-testnet-card",
+    "payloadHash": "c70ed75f022e6122e986d75f872765d73cb7491dd3e0713e60ed019ee5cb39b3",
+    "nonce": "33333333-3333-4333-8333-333333333333",
+    "issuedAt": "2026-09-12T00:00:00.000Z",
+    "expiresAt": "2026-09-12T00:05:00.000Z"
+  },
+  "details": {
+    "nickname": "Travel & café",
+    "useCase": "Testnet \"travel\" spending",
+    "limitWei": "10000000000000000000",
+    "riskAccepted": true,
+    "termsVersion": "card-testnet-v1"
+  },
+  "proof": {
+    "version": "1",
+    "productId": "card",
+    "challenge": {
+      "id": "challenge_11111111-1111-4111-8111-111111111111",
+      "applicationId": "application_22222222-2222-4222-8222-222222222222",
+      "owner": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "chainId": "0x1917",
+      "purpose": "create-testnet-card",
+      "payloadHash": "c70ed75f022e6122e986d75f872765d73cb7491dd3e0713e60ed019ee5cb39b3",
+      "nonce": "33333333-3333-4333-8333-333333333333",
+      "issuedAt": "2026-09-12T00:00:00.000Z",
+      "expiresAt": "2026-09-12T00:05:00.000Z"
+    },
+    "details": {
+      "nickname": "Travel & café",
+      "useCase": "Testnet \"travel\" spending",
+      "limitWei": "10000000000000000000",
+      "riskAccepted": true,
+      "termsVersion": "card-testnet-v1"
+    },
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "accountPublicKey": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    "issuedAt": "2026-09-12T00:00:30.000Z",
+    "expiresAt": "2026-09-12T00:05:00.000Z",
+    "signature": "14cb29a8ce33c02b9fb9d3188c04d032353faff276e972d54a3ff8ee2622693c79093c4d76cb0e5d5a67c43813b6d24244418df0d81e53b9bc123802c2bf9869"
+  },
+  "expected": {
+    "approvalId": "card_approval_776fd67316ba8f29f61677fdebe0ca59fd68c9a9e2b0620932db445ddeab95a0",
+    "evmAddress": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+  },
+  "broadcast": false
+}

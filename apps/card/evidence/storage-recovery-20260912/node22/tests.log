@@ -1,0 +1,48 @@
+TAP version 13
+# (node:1678190) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: new database has explicit schema version and private filesystem mode
+ok 1 - new database has explicit schema version and private filesystem mode
+  ---
+  duration_ms: 8.71238
+  type: 'test'
+  ...
+# Subtest: legacy version zero upgrades without rewriting encrypted owners or global claims
+ok 2 - legacy version zero upgrades without rewriting encrypted owners or global claims
+  ---
+  duration_ms: 17.391243
+  type: 'test'
+  ...
+# Subtest: future database versions fail closed and retain their version
+ok 3 - future database versions fail closed and retain their version
+  ---
+  duration_ms: 3.818356
+  type: 'test'
+  ...
+# Subtest: malformed legacy schema rolls back migration without marking version one
+ok 4 - malformed legacy schema rolls back migration without marking version one
+  ---
+  duration_ms: 4.168848
+  type: 'test'
+  ...
+# Subtest: live WAL backup restores encrypted owner state and cross-owner transaction deduplication
+ok 5 - live WAL backup restores encrypted owner state and cross-owner transaction deduplication
+  ---
+  duration_ms: 24.263203
+  type: 'test'
+  ...
+# Subtest: failed business mutation rolls back both the owner state and global transaction claim
+ok 6 - failed business mutation rolls back both the owner state and global transaction claim
+  ---
+  duration_ms: 9.312667
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 175.408727

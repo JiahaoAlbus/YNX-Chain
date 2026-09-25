@@ -1,0 +1,4 @@
+<resources>
+  <string name="CFBundleDisplayName">"بطاقة YNX"</string>
+  <string name="NSFaceIDUsageDescription">"تحقق من هويتك قبل عرض مراجع بطاقة YNX الآمنة."</string>
+</resources>

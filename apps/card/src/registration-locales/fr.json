@@ -1,0 +1,49 @@
+{
+  "text": {
+    "title": "Créer une demande de Card sur le réseau de test",
+    "disclaimer": "La création d’une Card n’est jamais présumée. Ce parcours lié au portefeuille est réservé au réseau de test et ne peut fournir de carte réelle, PAN, CVV, solde, financement en monnaie fiduciaire ou paiement marchand.",
+    "nativeUnavailable": "Les demandes de Card dans l’application native ne sont pas encore disponibles",
+    "nativeDetails": "Les demandes de Card ne sont pas encore raccordées à cette application native. Aucune demande ne peut être lancée ici.",
+    "nativeAuthority": "L’autorisation YNX Wallet vérifie uniquement l’identité. Elle ne crée pas de demande de Card et n’autorise aucun financement.",
+    "connectRequired": "Connectez un portefeuille standard avant de lancer une demande de Card sur le réseau de test depuis le Web.",
+    "draftCreated": "Un brouillon de demande sur le réseau de test lié au portefeuille a été créé.",
+    "invalidApplication": "La demande n’a pas pu être mise à jour. Vérifiez les informations et réessayez.",
+    "approvalPrepared": "La demande est préparée. Une véritable signature du portefeuille et un reçu accepté du serveur de test restent nécessaires.",
+    "cannotApprove": "L’approbation du portefeuille n’a pas pu être préparée. Vérifiez la demande et réessayez.",
+    "backendDegraded": "La demande est suspendue jusqu’à la réception d’un reçu accepté du serveur. Aucune signature, aucun compte, aucune carte active, aucun solde ni aucune intention de recharge n’ont été créés.",
+    "cannotSubmit": "La disponibilité de l’environnement de test n’a pas pu être vérifiée. Réessayez plus tard.",
+    "start": "Commencer la demande",
+    "nickname": "Surnom de la carte",
+    "useCase": "Usage prévu sur le réseau de test",
+    "useCasePlaceholder": "Que souhaitez-vous essayer ?",
+    "limit": "Plafond de dépenses YNXT sur le réseau de test",
+    "limitPlaceholder": "Plafond de dépenses YNXT",
+    "risk": "J’accepte les risques du réseau de test et je comprends qu’il s’agit uniquement d’une simulation.",
+    "acceptTerms": "Accepter les conditions du réseau de test",
+    "prepareApproval": "Préparer l’approbation du portefeuille",
+    "submit": "Vérifier l’environnement de test",
+    "cancel": "Annuler la demande",
+    "standardRequired": "Les demandes sur le Web nécessitent un portefeuille EVM standard.",
+    "draftOnly": "Seules les demandes à l’état de brouillon peuvent être modifiées.",
+    "completeDetails": "Saisissez un surnom de 2 à 48 caractères, un usage prévu de 4 à 160 caractères et un plafond d’au moins 1 YNXT avec au maximum 6 chiffres entiers et 6 décimales.",
+    "acceptDetails": "Complétez les informations de la demande et acceptez les conditions du réseau de test avant de préparer l’approbation.",
+    "notAwaiting": "Cette demande n’est pas en attente d’approbation.",
+    "activeCannotCancel": "Une demande active ne peut pas être annulée ici.",
+    "storageLoadFailure": "La demande enregistrée n’a pas pu être chargée. Réessayez plus tard.",
+    "storageSaveFailure": "La demande n’a pas pu être enregistrée. Les modifications risquent d’être perdues en quittant cet écran.",
+    "cannotCancel": "La demande n’a pas pu être annulée. Réessayez plus tard."
+  },
+  "statuses": {
+    "DRAFT": "Brouillon",
+    "SUBMITTED": "Envoyée",
+    "APPROVAL_REQUIRED": "Approbation requise",
+    "ACTIVE": "Activée",
+    "REJECTED": "Rejetée",
+    "CANCELLED": "Annulée",
+    "DEGRADED": "Service indisponible"
+  },
+  "templates": {
+    "status": "État de la demande : {status}",
+    "audit": "Enregistrements d’audit : {count}. Seul un reçu vérifié de l’environnement de test peut activer une Card ; sinon, la recharge reste verrouillée."
+  }
+}

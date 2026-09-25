@@ -1,0 +1,9 @@
+
+> @ynx-chain/card@1.0.0 typecheck
+> node --stack_size=8192 ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/typescript/bin/tsc --project server/tsconfig.json
+
+server/sharedWalletAuth.test.ts(90,86): error TS18046: 'empty' is of type 'unknown'.
+server/sharedWalletAuth.test.ts(92,85): error TS18046: 'result' is of type 'unknown'.
+server/sharedWalletAuth.test.ts(92,146): error TS18046: 'result' is of type 'unknown'.
+server/sharedWalletAuth.test.ts(92,187): error TS18046: 'result' is of type 'unknown'.
+server/sharedWalletAuth.test.ts(94,47): error TS18046: 'result' is of type 'unknown'.

@@ -1,0 +1,18 @@
+(node:33694) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260912-card-funding-boundary/apps/card/server/storage.test.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ new database has explicit schema version and private filesystem mode (2.803375ms)
+✔ legacy version zero upgrades without rewriting encrypted owners or global claims (3.542625ms)
+✔ future database versions fail closed and retain their version (0.622167ms)
+✔ malformed legacy schema rolls back migration without marking version one (0.804875ms)
+✔ live WAL backup restores encrypted owner state and cross-owner transaction deduplication (60.90275ms)
+✔ failed business mutation rolls back both the owner state and global transaction claim (1.91225ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 154.514542

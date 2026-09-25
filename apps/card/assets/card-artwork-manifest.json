@@ -1,0 +1,25 @@
+{
+  "schema": "cardArtworkManifest@1.0.0-p0.0",
+  "owner": "card",
+  "environment": "YNX_TESTNET_CARD_PAYMENT_SIMULATION",
+  "files": [
+    {
+      "path": "apps/card/assets/card-testnet-identity.svg",
+      "bytes": 2514,
+      "sha256": "4e689957655b9599b543b10a447dc723c94b2e1d78ec7cf51923836a26f1726a"
+    },
+    {
+      "path": "apps/card/assets/card-testnet-download-cover.svg",
+      "bytes": 2230,
+      "sha256": "30c7b7aa27bf70160d1c681cc90c22758d59c258d25567b652b6514fa3d12524"
+    }
+  ],
+  "usage": {
+    "masterVector": "assets/card-testnet-identity.svg",
+    "downloadCover": "assets/card-testnet-download-cover.svg",
+    "paymentCredentialRepresentation": false,
+    "realNetworkBranding": false,
+    "realWorldPaymentCapability": false
+  },
+  "boundary": "Artwork is original YNX Card Testnet simulation identity only. It must not be represented as a bank card, a real payment credential, or network acceptance proof."
+}
