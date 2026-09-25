@@ -6,6 +6,7 @@ import {
 
 // These are unverified discovery candidates, never account approval or authentication.
 const selectedKinds = new WeakMap<object, "ynx-wallet" | "metamask">();
+const discoveredYNX = new WeakMap<object,object|null>();
 const connections = new WeakMap<object, StandardWalletConnection>();
 const operationEpochs = new WeakMap<object, number>();
 
@@ -18,11 +19,20 @@ export function beginStandardWalletOperation(provider:object):()=>boolean {
 
 export async function discoverWalletProviders(scope:unknown=globalThis,waitMs=160) {
   const discovery=await discoverSharedWalletProviders(scope,waitMs);
+  if(scope&&typeof scope==="object")discoveredYNX.set(scope,discovery.ynx?.provider??null);
   for(const candidate of discovery.candidates)selectedKinds.delete(candidate.provider);
   for(const candidate of [discovery.ynx,discovery.metamask]) {
     if(candidate)selectedKinds.set(candidate.provider,candidate.kind);
   }
   return discovery;
+}
+
+export function peekExactYNXProvider(scope:unknown=globalThis):object|null {
+  if(!scope||typeof scope!=="object")return null;
+  const injected=discoverInjectedWalletProviders(scope).ynx?.provider;
+  if(injected&&isSharedWalletProvider(injected,"ynx-wallet"))return injected;
+  const announced=discoveredYNX.get(scope);
+  return announced&&isSharedWalletProvider(announced,"ynx-wallet")?announced:null;
 }
 
 export function isSharedWalletProvider(provider:unknown,kind:"ynx-wallet"|"metamask"):boolean {

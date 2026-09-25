@@ -15,7 +15,7 @@
     "card:doctor": "node --import tsx server/cardSandboxVerify.ts doctor",
     "card:sandbox:verify": "node --import tsx server/cardSandboxVerify.ts readback",
     "test:backend": "node --import tsx --test server/*.test.ts",
-    "test": "tsx --test src/**/*.test.ts && node --test test/card-native-callback.test.cjs test/card-web-private-ui-race.test.cjs test/provider-experience-race.test.cjs && npm run native-patch:test",
+    "test": "tsx --test src/**/*.test.ts && node --test test/card-hosted-app.test.cjs test/card-native-callback.test.cjs test/card-web-private-ui-race.test.cjs test/provider-experience-race.test.cjs && npm run native-patch:test",
     "bundle-check": "expo export --platform android --platform ios --output-dir dist",
     "check": "npm run security-check && npm run native-patch:check && npm run native-patch:test && npm run typecheck && npm test && npm run bundle-check",
     "native-patch:apply": "node scripts/secure-store-native-patch.mjs",
