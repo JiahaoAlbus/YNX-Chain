@@ -258,7 +258,8 @@ export declare function credentialCandidateDigest(input:unknown,at?:Date):string
 
 export declare const EIP1193_PROVIDER_CODE:Readonly<{USER_REJECTED:4001;UNAUTHORIZED:4100;UNSUPPORTED_METHOD:4200;PROVIDER_DISCONNECTED:4900;CHAIN_DISCONNECTED:4901;UNKNOWN_CHAIN:4902}>;
 export declare const STANDARD_WALLET_METHODS:readonly ["wallet_addEthereumChain","wallet_switchEthereumChain","wallet_requestPermissions","wallet_getPermissions","wallet_revokePermissions","wallet_watchAsset","eth_requestAccounts","eth_accounts","eth_chainId","personal_sign","eth_signTypedData_v4","eth_sendTransaction"];
-export declare class Eip1193ProviderError extends Error { readonly code:4001|4100|4200|4900|4901|4902; }
+export type YnxWalletAccountRecovery = Readonly<{walletCode:"PROVIDER_ACCOUNT_UNAVAILABLE";stage:"eth_requestAccounts"|"wallet_requestPermissions";recovery:"open-wallet-vault"}>;
+export declare class Eip1193ProviderError extends Error { constructor(code:4001|4100|4200|4900|4901|4902,message:string,data?:YnxWalletAccountRecovery);readonly code:4001|4100|4200|4900|4901|4902;readonly data?:YnxWalletAccountRecovery; }
 export type StandardWalletRevocationResult = Readonly<{status:"revoked"|"unsupported"|"rejected"|"failed"|"superseded";permissionRevoked:boolean;locallyDisconnected:boolean;error?:Readonly<{code:number;message:string}>}>;
 export declare class StandardWalletConnection { constructor(config:Readonly<{provider:unknown;origin:string;metadata:Readonly<{name:string;url:string}>}>); readonly current:Readonly<Record<string,unknown>>|null; connect():Promise<Readonly<Record<string,unknown>>>; restore():Promise<Readonly<Record<string,unknown>>|null>; revoke():Promise<StandardWalletRevocationResult>; request(input:Readonly<{method:string;params?:unknown}>):Promise<unknown>; disconnect():void; subscribe(listener:(event:Readonly<{event:string;value:unknown}>)=>void):()=>boolean; }
 export declare const WALLETCONNECT_PROTOCOL_VERSION:2;

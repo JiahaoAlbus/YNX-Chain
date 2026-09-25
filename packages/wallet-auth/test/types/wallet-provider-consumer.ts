@@ -1,5 +1,6 @@
 import {
   WALLET_PROVIDER_KIND,
+  Eip1193ProviderError,
   createWalletProviderDiscovery,
   type ContinuousWalletProviderDiscovery,
   type WalletProviderCandidate,
@@ -21,3 +22,11 @@ const snapshot: WalletProviderDiscoverySnapshot = discovery.snapshot();
 snapshot.candidates.concat(candidate);
 subpathDiscovery.dispose();
 discovery.dispose();
+
+const accountRecovery = new Eip1193ProviderError(4900, "Open Wallet vault", {
+  walletCode: "PROVIDER_ACCOUNT_UNAVAILABLE", stage: "eth_requestAccounts", recovery: "open-wallet-vault",
+});
+const recoveryStage: "eth_requestAccounts" | "wallet_requestPermissions" | undefined = accountRecovery.data?.stage;
+void recoveryStage;
+// @ts-expect-error Recovery data cannot be widened to an arbitrary provider message.
+new Eip1193ProviderError(4900, "Open Wallet vault", {walletCode:"PROVIDER_ACCOUNT_UNAVAILABLE",stage:"eth_sign",recovery:"open-wallet-vault"});
