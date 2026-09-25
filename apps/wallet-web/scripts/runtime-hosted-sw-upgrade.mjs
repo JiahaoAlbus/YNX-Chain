@@ -23,6 +23,24 @@ async function exactOldRelease(path) {
   return { files, sourceCommit, workerSha256: sha256(files["sw.js"]), archiveSha256, fixtureClass:"exact 0.1.3 prerelease ZIP bytes; public installed worker not verified" };
 }
 const old = process.env.YNX_OLD_PWA_ZIP ? await exactOldRelease(process.env.YNX_OLD_PWA_ZIP) : await historicalPwaFixture("2f55f7924");
+if (process.env.YNX_PUBLIC_SW_CAPTURE) {
+  if (!old.archiveSha256) throw new Error("Exact official 0.1.3 archive is required with public capture");
+  const directory = process.env.YNX_PUBLIC_SW_CAPTURE, receipt = JSON.parse(await readFile(resolve(directory,"capture.json"),"utf8"));
+  assert.equal(receipt.origin,"https://wallet.ynxweb4.com");
+  assert.equal(receipt.sourceCommit,old.sourceCommit);
+  assert.equal(receipt.tlsVerified,true);
+  assert.equal(receipt.httpStatus,200);
+  assert.equal(receipt.proxyUsed,false);
+  for (const file of ["sw.js","asset-integrity.js","service-worker-policy.js","build-identity.json"]) {
+    const captured = await readFile(resolve(directory,file));
+    assert.equal(captured.length,receipt.files[file].bytes);
+    assert.equal(sha256(captured),receipt.files[file].sha256);
+    assert.deepEqual(captured,old.files[file],`public captured ${file} differs from official 0.1.3 release archive`);
+    old.files[file] = captured;
+  }
+  old.publicCapturedWorker = true;
+  old.fixtureClass = "public-captured worker/policy/integrity/identity plus exact official 0.1.3 shell; not an installed user's cache";
+}
 const hostedFiles = ["index.html","hosted-wallet.css","ynx-logo.png","app.js","adapter.js"];
 const hostedHashes = {};
 for (const file of hostedFiles) {
@@ -72,6 +90,6 @@ try {
   await page.goto(`${origin}/hosted/`);
   assert.equal(await page.title(), "YNX Wallet · Connect");
   assert.match(await page.locator("#status").textContent(), /registered product/u);
-  console.log(JSON.stringify({ isolatedBrowser: "Chromium", previousWorkerSource: old.sourceCommit, previousWorkerSHA256: old.workerSha256, previousArchiveSHA256: old.archiveSha256 ?? null, previousFixtureClass: old.fixtureClass, oldServiceWorkerControlled: true, updatedWorkerHostedRouteNetworkOnly: true, hostedPageNotCompanionShell: true, publishedHostedHashes: hostedHashes, publicDeploymentVerified: false }));
+  console.log(JSON.stringify({ isolatedBrowser: "Chromium", previousWorkerSource: old.sourceCommit, previousWorkerSHA256: old.workerSha256, previousArchiveSHA256: old.archiveSha256 ?? null, publicCapturedWorker: old.publicCapturedWorker === true, previousFixtureClass: old.fixtureClass, oldServiceWorkerControlled: true, updatedWorkerHostedRouteNetworkOnly: true, hostedPageNotCompanionShell: true, publishedHostedHashes: hostedHashes, publicReadbackVerified: old.publicCapturedWorker === true, installedUserCacheVerified: false, candidateDeployed: false }));
   await context.close();
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

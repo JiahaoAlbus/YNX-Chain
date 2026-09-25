@@ -153,6 +153,14 @@ try {
   const privateReturn = await restoredFinance.evaluate(() => window.privateOutcome);
   assert.equal(parseProductSessionReturnURL(registry, privateApproval.value, privateReturn.returnUrl).status, "ready");
   await restoredWallet.locator("#locale-select").selectOption("en");
+  const expiredPrivateRequest = financePrivateRequest();
+  await restoredFinance.evaluate(url => { window.expiredPrivate = window.ynxAdapter.request({ method: "ynx_requestProductSessionV2", params: [url] }).then(() => "signed", error => error.code); }, expiredPrivateRequest.url);
+  await restoredWallet.locator("#review").waitFor({ state: "visible" });
+  await restoredWallet.locator("#approval-password").fill(password);
+  await restoredWallet.evaluate(() => { window.__realNow = Date.now; Date.now = () => window.__realNow() + 31_000; });
+  await restoredWallet.locator("#approve").click();
+  assert.equal(await restoredFinance.evaluate(() => window.expiredPrivate), "HOSTED_REQUEST_EXPIRED");
+  await restoredWallet.evaluate(() => { Date.now = window.__realNow; delete window.__realNow; });
   const rejectedRequest = financePrivateRequest();
   await restoredFinance.evaluate(url => { window.rejectedPrivate = window.ynxAdapter.request({ method: "ynx_requestProductSessionV2", params: [url] }); }, rejectedRequest.url);
   await restoredWallet.locator("#review").waitFor({ state: "visible" });
@@ -222,6 +230,6 @@ try {
   assert.equal(await switchedWallet.locator("#account-evm").textContent(), second.account);
   await switchedWallet.locator("#approve").click();
   assert.equal((await restoredFinance.evaluate(() => window.ynxConnection))[0], second.account);
-  console.log(JSON.stringify({ isolatedBrowser: browserName, hostedVaultCreatedAndReadBack: true, backupAcknowledgementBeforeConnect: true, zeroBalanceConnectionNoRpcRequired: true, account, chainId: "0x1917", explicitSignatureRejection: true, expiredSignatureNeverSigned: true, expiredTransactionNeverBroadcast: true, refreshDisconnected: true, wrongBackupPasswordRejected: true, encryptedBackupRestoresSamePublicAccount: true, privateV2SignedReturnLocallyVerified: true, privateV2Rejection: true, privateV2ReplayRejected: true, accountSwitchRequiresFreshApproval: true, concurrentAccountSwitchCancelsSignature: true, competingPopupSendBlocked: true, originalTransactionJournalRetained: true, mockRpcOnly: true, gatewayVerified: false, publicDeploymentVerified: false }));
+  console.log(JSON.stringify({ isolatedBrowser: browserName, hostedVaultCreatedAndReadBack: true, backupAcknowledgementBeforeConnect: true, zeroBalanceConnectionNoRpcRequired: true, account, chainId: "0x1917", explicitSignatureRejection: true, expiredSignatureNeverSigned: true, expiredPrivateV2NeverSigned: true, expiredTransactionNeverBroadcast: true, refreshDisconnected: true, wrongBackupPasswordRejected: true, encryptedBackupRestoresSamePublicAccount: true, privateV2SignedReturnLocallyVerified: true, privateV2Rejection: true, privateV2ReplayRejected: true, accountSwitchRequiresFreshApproval: true, concurrentAccountSwitchCancelsSignature: true, competingPopupSendBlocked: true, originalTransactionJournalRetained: true, mockRpcOnly: true, gatewayVerified: false, publicDeploymentVerified: false }));
   await fresh.close();
 } finally { await browser.close(); }
