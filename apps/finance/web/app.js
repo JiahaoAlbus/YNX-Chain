@@ -50,6 +50,11 @@ let brokerSnapshotState={kind:'guest'};
 function renderBrokerSnapshot(){
   const snapshot=brokerSnapshotState.kind==='data'?brokerSnapshotState.snapshot:null;
   $('#broker-sandbox').classList.toggle('broker-unlinked',!snapshot);
+  const hasSavedOrders=Array.isArray(brokerWorkspaceDisplay?.orders)&&brokerWorkspaceDisplay.orders.length>0;
+  $('#broker-sandbox').classList.toggle('broker-no-trading',!snapshot&&!brokerApprovalDisplay&&!hasSavedOrders);
+  let connect=$('#broker-connect-action');
+  if(!connect){connect=document.createElement('a');connect.id='broker-connect-action';connect.className='button primary';connect.href='#wallet-connect';$('#broker-private-status').insertAdjacentElement('afterend',connect)}
+  connect.textContent=financeText('brokerConnectAction');connect.hidden=Boolean(snapshot);
   if(!snapshot){
     $('#broker-account').textContent=financeText('brokerNotLinked');$('#broker-cash').textContent=financeText('brokerUnknownNotZero');$('#broker-buying-power').textContent=financeText('brokerUnknownNotZero');
     $('#broker-private-status').textContent=financeText(brokerSnapshotState.kind==='unavailable'?'brokerSnapshotUnavailable':'brokerPrivate');
@@ -135,6 +140,7 @@ let brokerWorkspaceUnavailable=false;
 function brokerWorkflowLabel(value){const key={buy:'brokerBuy',sell:'brokerSell',consumed:'brokerApprovalRecorded',approved:'brokerApprovalRecorded',rejected:'brokerApprovalRejected',revoked:'brokerApprovalRevoked',submitted:'brokerStateSubmitted',submitting:'brokerStateSubmitting',partially_filled:'brokerStatePartial',filled:'brokerStateFilled',cancel_requested:'brokerStateCancelRequested',cancelled:'brokerStateCancelled',pending_unwired:'brokerStateAwaitingActivation',execution_requested:'brokerStateExecutionRequested'}[value];return financeText(key||'brokerStateUnknown')}
 function renderBrokerWorkspace(workspace){
   brokerWorkspaceDisplay=workspace;
+  renderBrokerSnapshot();
   const orders=Array.isArray(workspace?.orders)?workspace.orders:[];
   const outbox=new Map((Array.isArray(workspace?.outbox)?workspace.outbox:[]).map(item=>[item.orderId,item]));
   $('#broker-local-orders').innerHTML=brokerWorkspaceUnavailable?`<div class="empty compact">${esc(financeText('brokerLocalOrdersUnavailable'))}</div>`:orders.length?orders.map(record=>{
@@ -374,12 +380,14 @@ $('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListen
 $('#ai-order-intent').addEventListener('submit',event=>{event.preventDefault();startAI()});
 $('#ai-kind').addEventListener('change',()=>$('#ai-order-intent').classList.toggle('hidden',$('#ai-kind').value!=='draft_broker_order'));
 
+let lastFinanceRoute=null;
 function route(){
   const requested=(location.hash||'#overview').slice(1);
   const aliases={orders:'broker-sandbox',privacy:'settings',budgets:'planning',ai:'assistant',reports:'statements'};
   const known=new Set(['overview','assets','markets','broker-sandbox','strategies','planning','statements','assistant','settings','activity','support']);
   const target=requested==='wallet-connect'?'overview':aliases[requested]||requested;
   const section=known.has(target)?target:'overview';
+  document.body.classList.toggle('finance-route-broker',section==='broker-sandbox');
   const privateSection=!['markets','broker-sandbox'].includes(section);
   let visible=section;
   if(!state.connected&&privateSection){
@@ -396,6 +404,8 @@ function route(){
     }
   }
   $$('.view').forEach(view=>view.classList.toggle('active-view',view.id===visible));
+  if(section==='broker-sandbox'&&lastFinanceRoute!==section)requestAnimationFrame(()=>$('#broker-sandbox').scrollIntoView({block:'start'}));
+  lastFinanceRoute=section;
   const active={"broker-sandbox":'orders',activity:'assets',statements:'planning',support:'settings'}[section]||section;
   $$('#nav a').forEach(link=>{const selected=link.hash===`#${active}`;link.classList.toggle('active',selected);if(selected)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
   $('#page-title').textContent=financeText('appName');

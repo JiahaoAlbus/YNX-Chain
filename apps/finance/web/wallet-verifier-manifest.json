@@ -71,13 +71,13 @@
     },
     {
       "path": "app.js",
-      "bytes": 63699,
-      "sha256": "955f19f43bff05c0ceaa77ee8ed24b519f7ac8b5ab0e2005a3883987aff03ac0"
+      "bytes": 64586,
+      "sha256": "c4d170def456bd338486000b742f59ef194a5e75bb2e9232fc05f5aff0e6dd58"
     },
     {
       "path": "finance-locale.js",
-      "bytes": 37239,
-      "sha256": "ef142110d7d99468d6fae9ebadc650b16a00587fd2eca9b1f48cf2de2a4e989a"
+      "bytes": 37364,
+      "sha256": "fd1fd7f4e7282acd282958d4fd11b0d6414db5bdf1c13564e4af20edf1549a94"
     },
     {
       "path": "read-sources.js",
@@ -86,8 +86,8 @@
     },
     {
       "path": "styles.css",
-      "bytes": 24346,
-      "sha256": "8824130d0dce2f02ef1c6f6aa64c76641ec192dba0528f7987693df1687b9d40"
+      "bytes": 24990,
+      "sha256": "7e47493031c438dfdcbc75cbc0c6988a886747d6eb4f0cac406418b007ac0f70"
     },
     {
       "path": "product-catalog.js",

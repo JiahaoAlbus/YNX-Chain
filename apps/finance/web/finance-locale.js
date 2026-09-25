@@ -105,6 +105,7 @@
     brokerNoSearch:'Search to see available Sandbox assets.',
     brokerWatchlistGuest:'Connect to save stocks to your watchlist.',
     brokerNoProviderResult:'Connect to see your positions and orders.',
+    brokerConnectAction:'Connect to view your Sandbox account',
   });
   Object.assign(messages['zh-CN'],{
     brokerSearchIntro:'按名称或代码查找可用的沙盒股票。',
@@ -112,6 +113,7 @@
     brokerNoSearch:'搜索后查看可用沙盒资产。',
     brokerWatchlistGuest:'连接后可将股票加入关注列表。',
     brokerNoProviderResult:'连接后查看持仓和订单。',
+    brokerConnectAction:'连接后查看我的沙盒账户',
   });
   let current='en';
   try{if(localStorage.getItem('ynx-finance-locale')==='zh-CN')current='zh-CN'}catch{}

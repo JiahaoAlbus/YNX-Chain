@@ -109,6 +109,16 @@ test('saved Chinese locale renders Broker unknown states on a cold 390px load',a
     assert.equal(await page.locator('#broker-orders').innerText(),'连接后查看持仓和订单。');
     assert.equal(await page.locator('#broker-sandbox').evaluate(element=>element.classList.contains('broker-unlinked')),true);
     assert.equal(await page.locator('#broker-positions').isVisible(),false);
+    assert.equal(await page.locator('#broker-order-form').isVisible(),false);
+    assert.equal(await page.locator('#signed-out').isVisible(),false);
+    assert.equal(await page.locator('#wallet-connect').isVisible(),false);
+    assert.equal(await page.locator('#broker-connect-action').isVisible(),true);
+    await page.locator('#broker-asset-search input[name="query"]').scrollIntoViewIfNeeded();
+    assert.equal(await page.evaluate(()=>document.querySelector('#broker-asset-search input[name="query"]').getBoundingClientRect().bottom<document.querySelector('.sidebar').getBoundingClientRect().top),true);
+    await page.locator('#broker-connect-action').click();
+    await page.waitForFunction(()=>location.hash==='#wallet-connect'&&!document.body.classList.contains('finance-route-broker'));
+    assert.equal(await page.locator('#wallet-connect').isVisible(),true);
+    assert.equal(await page.locator('#broker-sandbox').isVisible(),false);
     assert.equal(await page.locator('#broker-asset-search button').evaluate(element=>getComputedStyle(element).backgroundColor),'rgb(0, 47, 167)');
     assert.equal(await page.locator('#broker-asset-results .empty').evaluate(element=>getComputedStyle(element).borderStyle),'none');
     assert.equal(await page.locator('#broker-order-preview').textContent(),'尚未创建审核请求。');
