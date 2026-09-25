@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "productId": "wallet-web",
-  "version": "0.1.1-testnet-preview.1",
-  "sourceCommit": "c93e16be81beddc957ef5f27b7bbcdfa89c28db3",
+  "version": "0.1.2-testnet-preview.1",
+  "sourceCommit": "40c2814d6e87e19ce2762737356c4f9d1128a69d",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
@@ -14,10 +14,10 @@
   "storeReleased": false,
   "artifacts": [
     {
-      "name": "ynx-wallet-web-pwa-0.1.1.zip",
-      "path": "artifacts/ynx-wallet-web-pwa-0.1.1.zip",
-      "bytes": 312868,
-      "sha256": "6e7e6dd17e9e729a44ed915e46433124c1a3794e06a0d072c55097084cc45e13",
+      "name": "ynx-wallet-web-pwa-0.1.2.zip",
+      "path": "artifacts/ynx-wallet-web-pwa-0.1.2.zip",
+      "bytes": 315700,
+      "sha256": "0acd71a2e3bb445fc0c0deaa2ecc021ad6db4d2aeab0e2a6334800dc18e9639e",
       "minimumOS": "modern browser with Service Worker and Web Crypto support",
       "signingClass": "unsigned-web-bundle",
       "browsers": [
@@ -28,10 +28,10 @@
       "storeReleased": false
     },
     {
-      "name": "ynx-wallet-chrome-edge-0.1.1.zip",
-      "path": "artifacts/ynx-wallet-chrome-edge-0.1.1.zip",
-      "bytes": 547479,
-      "sha256": "09066d82a94cb6b8108120f980ab2cc40c42dc830ffce166529cbd570eb6a6b2",
+      "name": "ynx-wallet-chrome-edge-0.1.2.zip",
+      "path": "artifacts/ynx-wallet-chrome-edge-0.1.2.zip",
+      "bytes": 551365,
+      "sha256": "35a1755777ab0c7472c1a81910f9e127f81d19d5e387238a7e0ef6afc1f1cafb",
       "minimumOS": "Chrome 120 / Edge 120",
       "signingClass": "unsigned-unpacked-extension",
       "browsers": [
@@ -43,10 +43,10 @@
       "storeReleased": false
     },
     {
-      "name": "ynx-wallet-firefox-0.1.1.zip",
-      "path": "artifacts/ynx-wallet-firefox-0.1.1.zip",
-      "bytes": 547577,
-      "sha256": "6ac256415c34b4b492dc6094be8be8c9f0acf6a40653e2e18fde64dd20f801e0",
+      "name": "ynx-wallet-firefox-0.1.2.zip",
+      "path": "artifacts/ynx-wallet-firefox-0.1.2.zip",
+      "bytes": 551463,
+      "sha256": "b0b3ff272ce4c58c342cd62fa09f9ef4028cded899d7188c2b7bc7271a84df79",
       "minimumOS": "Firefox 142 desktop",
       "signingClass": "unsigned-unpacked-extension",
       "browsers": [

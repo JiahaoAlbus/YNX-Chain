@@ -1,17 +1,17 @@
 {
   "schemaVersion": 2,
   "sourceCommit": "40c2814d6e87e19ce2762737356c4f9d1128a69d",
-  "generatedAt": "2026-09-25T03:08:43.477Z",
+  "generatedAt": "2026-09-25T03:10:05.512Z",
   "hostLoadAverageStart": [
-    13.63916015625,
-    93.16748046875,
-    143.505859375
+    5.71337890625,
+    72.00927734375,
+    130.90771484375
   ],
   "browser": {
-    "id": "chromium",
-    "name": "Chrome for Testing",
-    "version": "151.0.7922.34",
-    "branded": false
+    "id": "edge",
+    "name": "Microsoft Edge",
+    "version": "153.0.4234.48",
+    "branded": true
   },
   "runtimeClass": "temporary unpacked extension in an isolated disposable profile",
   "fixtureAuthority": "local HTTPS DApp with an immutable foreign MetaMask-shaped provider; no account, signature or transaction fixture implementation",
@@ -19,7 +19,11 @@
     "manifestSha256": "2124da457296c7d7eecf31ab9c8461ae5e65e4ff85c202635b49ecb610b91a0e",
     "pageProviderSha256": "03ab34029146cd37c8a7f13a4c25cbc33ebcf4bba7204058a7c0477eb0b35e8a",
     "buildSourceCommit": "40c2814d6e87e19ce2762737356c4f9d1128a69d",
-    "sourceDirectory": "dist/chromium"
+    "localArchive": {
+      "name": "ynx-wallet-chrome-edge-0.1.2.zip",
+      "bytes": 551365,
+      "sha256": "35a1755777ab0c7472c1a81910f9e127f81d19d5e387238a7e0ef6afc1f1cafb"
+    }
   },
   "passed": true,
   "providerDiscovered": true,
@@ -46,13 +50,13 @@
   "storeReleased": false,
   "serviceWorker": {
     "started": true,
-    "url": "chrome-extension://onflbfnacciilfdkgckmfebopacildgo/service-worker.js"
+    "url": "chrome-extension://bmfpfchnjenemfkennlngaolfnnhhmja/service-worker.js"
   },
-  "account": "0x949877744305b7fab9bdf914e435afea025415d7",
+  "account": "0xc3e438530d6ac1bc7a6635c773f0a978ceaeaebb",
   "steps": [
     {
       "name": "discovered",
-      "elapsedMs": 1
+      "elapsedMs": 0
     },
     {
       "name": "chain-returned",
@@ -64,45 +68,45 @@
     },
     {
       "name": "approval-clicked",
-      "elapsedMs": 143
+      "elapsedMs": 134
     },
     {
       "name": "account-returned",
-      "elapsedMs": 159
+      "elapsedMs": 150
     },
     {
       "name": "network-checked",
-      "elapsedMs": 170
+      "elapsedMs": 159
     },
     {
       "name": "permission-revoked",
-      "elapsedMs": 463
+      "elapsedMs": 523
     },
     {
       "name": "approval-rejected",
-      "elapsedMs": 613
+      "elapsedMs": 671
     },
     {
       "name": "page-refreshed",
-      "elapsedMs": 694
+      "elapsedMs": 710
     },
     {
       "name": "account-switched-in-vault",
-      "elapsedMs": 947
+      "elapsedMs": 952
     },
     {
       "name": "new-account-returned",
-      "elapsedMs": 1098
+      "elapsedMs": 1103
     }
   ],
   "connectedAccounts": [
-    "0x949877744305b7fab9bdf914e435afea025415d7"
+    "0xc3e438530d6ac1bc7a6635c773f0a978ceaeaebb"
   ],
-  "signatureSha256": "54d9955ebbb9ddc7dc7fe2348c2efb6bea560c2b7a69243a4e3646bad1825872",
-  "replacementAccount": "0xa6a1754ddfa470d409de1f8b9482313b131d7c1f",
+  "signatureSha256": "bba048799b8edcfb9cbcab77496e6f7245c2c0dce6365e87aea5353e0c3c62a4",
+  "replacementAccount": "0x107cca526e5ebf6ae080affe306d052c6d6541ff",
   "hostLoadAverageEnd": [
-    13.63916015625,
-    93.16748046875,
-    143.505859375
+    5.255859375,
+    70.8134765625,
+    130.140625
   ]
 }

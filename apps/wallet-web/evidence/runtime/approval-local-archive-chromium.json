@@ -1,11 +1,11 @@
 {
   "schemaVersion": 2,
   "sourceCommit": "40c2814d6e87e19ce2762737356c4f9d1128a69d",
-  "generatedAt": "2026-09-25T03:08:43.477Z",
+  "generatedAt": "2026-09-25T03:09:49.077Z",
   "hostLoadAverageStart": [
-    13.63916015625,
-    93.16748046875,
-    143.505859375
+    7.07080078125,
+    75.66796875,
+    133.21923828125
   ],
   "browser": {
     "id": "chromium",
@@ -19,7 +19,11 @@
     "manifestSha256": "2124da457296c7d7eecf31ab9c8461ae5e65e4ff85c202635b49ecb610b91a0e",
     "pageProviderSha256": "03ab34029146cd37c8a7f13a4c25cbc33ebcf4bba7204058a7c0477eb0b35e8a",
     "buildSourceCommit": "40c2814d6e87e19ce2762737356c4f9d1128a69d",
-    "sourceDirectory": "dist/chromium"
+    "localArchive": {
+      "name": "ynx-wallet-chrome-edge-0.1.2.zip",
+      "bytes": 551365,
+      "sha256": "35a1755777ab0c7472c1a81910f9e127f81d19d5e387238a7e0ef6afc1f1cafb"
+    }
   },
   "passed": true,
   "providerDiscovered": true,
@@ -46,13 +50,13 @@
   "storeReleased": false,
   "serviceWorker": {
     "started": true,
-    "url": "chrome-extension://onflbfnacciilfdkgckmfebopacildgo/service-worker.js"
+    "url": "chrome-extension://ldlgjhilkemfpbohocehgfcmnikmplmn/service-worker.js"
   },
-  "account": "0x949877744305b7fab9bdf914e435afea025415d7",
+  "account": "0xf724edb162c4b89b54be7ca8307b49c5fcbe6fb7",
   "steps": [
     {
       "name": "discovered",
-      "elapsedMs": 1
+      "elapsedMs": 0
     },
     {
       "name": "chain-returned",
@@ -64,45 +68,45 @@
     },
     {
       "name": "approval-clicked",
-      "elapsedMs": 143
+      "elapsedMs": 150
     },
     {
       "name": "account-returned",
-      "elapsedMs": 159
+      "elapsedMs": 164
     },
     {
       "name": "network-checked",
-      "elapsedMs": 170
+      "elapsedMs": 172
     },
     {
       "name": "permission-revoked",
-      "elapsedMs": 463
+      "elapsedMs": 794
     },
     {
       "name": "approval-rejected",
-      "elapsedMs": 613
+      "elapsedMs": 952
     },
     {
       "name": "page-refreshed",
-      "elapsedMs": 694
+      "elapsedMs": 1032
     },
     {
       "name": "account-switched-in-vault",
-      "elapsedMs": 947
+      "elapsedMs": 1284
     },
     {
       "name": "new-account-returned",
-      "elapsedMs": 1098
+      "elapsedMs": 1432
     }
   ],
   "connectedAccounts": [
-    "0x949877744305b7fab9bdf914e435afea025415d7"
+    "0xf724edb162c4b89b54be7ca8307b49c5fcbe6fb7"
   ],
-  "signatureSha256": "54d9955ebbb9ddc7dc7fe2348c2efb6bea560c2b7a69243a4e3646bad1825872",
-  "replacementAccount": "0xa6a1754ddfa470d409de1f8b9482313b131d7c1f",
+  "signatureSha256": "277e725abc52b0592f943d1e19010fddd9cd64cee83e0195b9b465c5f7de99cb",
+  "replacementAccount": "0x7b223bbdd40e40c946b4f3b30ef76bbebac4a253",
   "hostLoadAverageEnd": [
-    13.63916015625,
-    93.16748046875,
-    143.505859375
+    7.07080078125,
+    75.66796875,
+    133.21923828125
   ]
 }
