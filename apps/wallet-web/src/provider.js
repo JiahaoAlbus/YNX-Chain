@@ -1,18 +1,18 @@
 // Independently downloaded GitHub prerelease; no unverified CDN mirror.
 export const ANDROID_PREVIEW_DOWNLOAD = Object.freeze({
-  filename: "ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
-  releaseTag: "wallet-android-testnet-preview-1.0.16-e9816a827",
-  assetPath: "/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
+  filename: "ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk",
+  releaseTag: "wallet-android-testnet-preview-1.0.20-f3a12abad",
+  assetPath: "/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk",
   releaseImmutable: false,
   publisherCanReplaceAssets: true,
   downloadTimeSha256Verified: false,
-  releaseMetadataObservedAt: "2026-09-20T10:30:53Z",
+  releaseMetadataObservedAt: "2026-09-24T12:53:59Z",
   downloadNotice: "releaseImmutable=false: publisher can replace assets. SHA-256 is not recomputed during download; verify the digest yourself.",
-  label: "Android API 24+ · universal · 1.0.16",
-  url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
-  fallbackUrl: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk",
-  hosted: true, bytes: 116631255,
-  sha256: "89a842dc8641206a9154a6e41fd1c9e3cbb4b6cca2cea455ed5b7fc674b558c0",
+  label: "Android API 24+ · universal · 1.0.20",
+  url: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk",
+  fallbackUrl: "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk",
+  hosted: true, bytes: 116741810,
+  sha256: "143835c4931b190f0249818f04de6f82b1f2aaa0eb155684e929f365f3b1bfc0",
   contentType: "application/vnd.android.package-archive",
   signingClass: "local-test-signed Testnet Preview", productionSigned: false,
 });
@@ -38,7 +38,7 @@ export const WALLET_DOWNLOAD_MATRIX = Object.freeze({
   macosUniversal: Object.freeze({label:"macOS universal · 0.6.8",url:"https://downloads.ynxweb4.com/wallet/sha256-f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f/ynx-wallet-macos-0.6.8-universal.dmg",fallbackUrl:"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-desktop-testnet-preview-6f332753/ynx-wallet-macos-0.6.8-universal.dmg",hosted:true,bytes:258681947,sha256:"f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f",contentType:"application/x-apple-diskimage",signingClass:"ad-hoc signed; not notarized",productionSigned:false}),
   linuxX64: Object.freeze({label:"Linux x64 DEB · 0.6.8",url:"https://downloads.ynxweb4.com/wallet/sha256-0a06a27486c7eabf3569d0e9d225ae9f0ec6e2e7a31076cc789c1cbce7bf6dce/ynx-wallet-desktop-0.6.8-amd64.deb",fallbackUrl:"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-desktop-testnet-preview-6f332753/ynx-wallet-desktop-0.6.8-amd64.deb",hosted:true,bytes:95869208,sha256:"0a06a27486c7eabf3569d0e9d225ae9f0ec6e2e7a31076cc789c1cbce7bf6dce",contentType:"application/vnd.debian.binary-package",signingClass:"unsigned Testnet Preview",productionSigned:false}),
   linuxArm64: Object.freeze({label:"Linux arm64 DEB · 0.6.8",url:"https://downloads.ynxweb4.com/wallet/sha256-e8d3f5e902b290432fc4ee27952bbcd1972124ace89b0ac3d1e83ec4d1c43fb7/ynx-wallet-desktop-0.6.8-arm64.deb",fallbackUrl:"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-desktop-testnet-preview-6f332753/ynx-wallet-desktop-0.6.8-arm64.deb",hosted:true,bytes:89954040,sha256:"e8d3f5e902b290432fc4ee27952bbcd1972124ace89b0ac3d1e83ec4d1c43fb7",contentType:"application/vnd.debian.binary-package",signingClass:"unsigned Testnet Preview",productionSigned:false}),
-  chromeEdgeExtension: Object.freeze({label:"Chrome / Edge extension · 0.1.1",url:"https://www.ynxweb4.com/downloads/wallet-web/sha256-09066d82a94cb6b8108120f980ab2cc40c42dc830ffce166529cbd570eb6a6b2/ynx-wallet-chrome-edge-0.1.1.zip",hosted:true,bytes:547479,sha256:"09066d82a94cb6b8108120f980ab2cc40c42dc830ffce166529cbd570eb6a6b2",contentType:"application/zip",signingClass:"unsigned unpacked Testnet Preview",productionSigned:false}),
+  chromeEdgeExtension: Object.freeze({label:"Chrome / Edge extension · 0.1.3",url:"https://www.ynxweb4.com/downloads/wallet-web/sha256-5c6ff4c16805965aa86febdc6a9f7a812ea2d1e9c8fa556611dafeadfb2e707b/ynx-wallet-chrome-edge-0.1.3.zip",hosted:true,bytes:584777,sha256:"5c6ff4c16805965aa86febdc6a9f7a812ea2d1e9c8fa556611dafeadfb2e707b",contentType:"application/zip",signingClass:"unsigned unpacked Testnet Preview",productionSigned:false}),
   firefoxExtension: Object.freeze({label:"Firefox extension · 0.1.1",url:"https://www.ynxweb4.com/downloads/wallet-web/sha256-6ac256415c34b4b492dc6094be8be8c9f0acf6a40653e2e18fde64dd20f801e0/ynx-wallet-firefox-0.1.1.zip",hosted:true,bytes:547577,sha256:"6ac256415c34b4b492dc6094be8be8c9f0acf6a40653e2e18fde64dd20f801e0",contentType:"application/zip",signingClass:"unsigned temporary-addon Testnet Preview",productionSigned:false}),
   pwaPackage: Object.freeze({label:"PWA package · 0.1.1",url:"https://www.ynxweb4.com/downloads/wallet-web/sha256-6e7e6dd17e9e729a44ed915e46433124c1a3794e06a0d072c55097084cc45e13/ynx-wallet-web-pwa-0.1.1.zip",hosted:true,bytes:312868,sha256:"6e7e6dd17e9e729a44ed915e46433124c1a3794e06a0d072c55097084cc45e13",contentType:"application/zip",signingClass:"unsigned PWA Testnet Preview",productionSigned:false,publicStatusUrl:"https://www.ynxweb4.com/dapp/wallet"}),
 });
@@ -252,6 +252,23 @@ export async function connectWallet(provider, options = {}) {
   return (await connectStandardWallet(provider,options.wallet||"ynx",options)).session;
 }
 
+/** Revoke the selected DApp's account grant before the companion forgets its
+ * own display state. A successful provider method alone is insufficient. */
+export async function disconnectStandardWallet(provider){
+  requireYNXProvider(provider);
+  try{
+    try{await requestYNX(provider,{method:"wallet_revokePermissions",params:[{eth_accounts:{}}]})}
+    catch(error){
+      const code=error?.code??error?.data?.code;
+      if(![-32601,4200,"-32601","4200"].includes(code))throw error;
+      await requestYNX(provider,{method:"ynx_disconnect",params:[]});
+    }
+    const accounts=await requestYNX(provider,{method:"eth_accounts"});
+    if(!Array.isArray(accounts)||accounts.length!==0)throw new Error("Provider still reports an approved account after revocation.");
+  }catch(error){fail("PERMISSION_REVOCATION_UNVERIFIED","Wallet permission revocation could not be verified. Check the connected site in YNX Wallet.",error)}
+  return true;
+}
+
 export async function restoreTestnetSession(provider, storage = globalThis.localStorage, {assertCurrent=()=>{}}={}) {
   assertCurrent();
   if (!storage) return null;
@@ -316,7 +333,7 @@ export function walletActionGates(provider, account, chainId, rpcVerified = fals
 }
 
 export function invalidatesConnectedSession(error) {
-  return ["ACCOUNT_CHANGED", "WRONG_NETWORK", "WALLET_NOT_FOUND", "WALLET_PROVIDER_UNSUPPORTED", 4900, 4901].includes(error?.code);
+  return ["ACCOUNT_CHANGED", "PROVIDER_ACCOUNT_UNAVAILABLE", "PROVIDER_ACCOUNT_CHANGED", "VAULT_TAMPERED", "PERMISSION_REVOKED", "WRONG_NETWORK", "WALLET_NOT_FOUND", "WALLET_PROVIDER_UNSUPPORTED", 4900, 4901].includes(error?.code);
 }
 
 export function subscribeProviderLifecycle(provider, handlers = {}) {

@@ -7,6 +7,16 @@ import {execFileSync} from "node:child_process";
 import {buildAll, validateExtensionModuleGraph} from "../scripts/build.mjs";
 import sharp from "sharp";
 
+async function assertEqualTree(left,right,label){
+  const entries=(await readdir(left,{withFileTypes:true})).sort((a,b)=>a.name.localeCompare(b.name));
+  assert.deepEqual((await readdir(right)).sort(),entries.map(entry=>entry.name).sort(),label);
+  for(const entry of entries){
+    const path=join(left,entry.name),comparison=join(right,entry.name);
+    if(entry.isDirectory())await assertEqualTree(path,comparison,`${label}/${entry.name}`);
+    else assert.deepEqual(await readFile(comparison),await readFile(path),`${label}/${entry.name}`);
+  }
+}
+
 test("actual extension artifacts have complete browser module and manifest graphs", async t => {
   const dist = await mkdtemp(join(tmpdir(), "ynx-extension-artifact-"));
   t.after(() => rm(dist, {recursive: true, force: true}));
@@ -18,10 +28,7 @@ test("actual extension artifacts have complete browser module and manifest graph
   await buildAll({dist,authorityOutput:authorityFile,sourceCommit});
   await t.test("explicit archive authority mode reproduces every Git-build output byte",async()=>{
     const replay=join(authorityDirectory,"replay");await buildAll({dist:replay,authorityFile,sourceCommit});
-    for(const variant of ["chromium","firefox","pwa"]){
-      const names=(await readdir(join(dist,variant))).sort();assert.deepEqual((await readdir(join(replay,variant))).sort(),names);
-      for(const name of names)assert.deepEqual(await readFile(join(replay,variant,name)),await readFile(join(dist,variant,name)),`${variant}/${name}`);
-    }
+    for(const variant of ["chromium","firefox","pwa","hosted"])await assertEqualTree(join(dist,variant),join(replay,variant),variant);
     const tampered=JSON.parse(await readFile(authorityFile,"utf8"));tampered.records[0].commit="b".repeat(40);
     const bad=join(authorityDirectory,"wrong-authority.json");await writeFile(bad,JSON.stringify(tampered));
     await assert.rejects(buildAll({dist:join(authorityDirectory,"bad"),authorityFile:bad,sourceCommit}),/Immutable Wallet build authority archive changed|Missing or changed build authority/);

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
   "product": "YNX Wallet browser extension",
-  "reviewDate": "2026-09-20",
+  "reviewDate": "2026-09-25",
   "baseWebCommit": "6bbf12d87a7274d73b7f2157157954d061b8efd0",
-  "candidateCommit": "9553b6d26d1bd0adda3bca6a8a61b1786ae91e51",
-  "state": "technical-release-kit-prepared-external-publisher-inputs-pending",
+  "candidateCommit": "c5df9a9a1cc2a22ba7623ba2b85da138b66c3b5f",
+  "state": "local-technical-candidate-branded-firefox-and-publisher-gates-pending",
   "submitted": false,
   "storeReleased": false,
   "productionSigned": false,
@@ -48,36 +48,40 @@
     "incognito": "not_allowed"
   },
   "publicDownloads": {
-    "sourceCommit": "c93e16be81beddc957ef5f27b7bbcdfa89c28db3",
-    "manifest": "../artifact-manifest.json",
+    "manifest": "../public-channel-manifest.json",
+    "channels": {
+      "pwaPackage": {"version": "0.1.1", "sourceCommit": "c93e16be81beddc957ef5f27b7bbcdfa89c28db3"},
+      "chromeEdgeExtension": {"version": "0.1.3", "sourceCommit": "31f3ef16d3812870e0c3d23350565fd592482227"},
+      "firefoxExtension": {"version": "0.1.1", "sourceCommit": "c93e16be81beddc957ef5f27b7bbcdfa89c28db3"}
+    },
     "hosted": true,
     "productionSigned": false,
     "storeReleased": false
   },
   "candidateReceipt": {
-    "sourceCommit": "9553b6d26d1bd0adda3bca6a8a61b1786ae91e51",
+    "sourceCommit": "c5df9a9a1cc2a22ba7623ba2b85da138b66c3b5f",
     "artifacts": [
       {
         "name": "ynx-wallet-web-pwa-0.1.1.zip",
-        "bytes": 312860,
-        "sha256": "0f3709480d22eeffd6efa89a1afb8af3bc12210a9a83b31f9428239ad051bae2"
+        "bytes": 313957,
+        "sha256": "39c11c13fcb5b0108c7d00247b9577d99c1bd167cee09a3f470daad7d5344d08"
       },
       {
         "name": "ynx-wallet-chrome-edge-0.1.1.zip",
-        "bytes": 547476,
-        "sha256": "f02b070e57808fc8be2371eea674f24274d5f0cf69029b3ebc368511c1a40234"
+        "bytes": 548691,
+        "sha256": "6943d03d2f71ac4e2efb1ac541c67da95b42aaa539dba66fe8128cb31a88cda0"
       },
       {
         "name": "ynx-wallet-firefox-0.1.1.zip",
-        "bytes": 547574,
-        "sha256": "c08f1e9ea8c48e93a1d8aae4492115acb897aed8ecc9b662b8db89c97db83ec9"
+        "bytes": 548789,
+        "sha256": "cd2e5af9ff8da36dcb764db6cf01935fc3bec038f435365b5ca769b0fdbf95e1"
       }
     ],
     "reviewerSource": {
-      "name": "ynx-wallet-reviewer-source-9553b6d.zip",
-      "bytes": 1091650,
-      "sha256": "f1df88ae2302a47b40c6ad56f8bda853c91f8110dec6dd3d4fa84a3ec755e7d6",
-      "sourceFileCount": 239,
+      "name": "ynx-wallet-reviewer-source-c5df9a9.zip",
+      "bytes": 1131985,
+      "sha256": "4d14904d6da51653b9be0a45c2964be9697449400f631b7a3d98076438078d99",
+      "sourceFileCount": 247,
       "authorityRecords": 14,
       "expectedOutputFiles": 110,
       "cleanExtractedRebuild": {

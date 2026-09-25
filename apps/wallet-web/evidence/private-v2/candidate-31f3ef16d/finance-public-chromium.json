@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-25T04:30:46.601Z",
+  "sourceCommit": "31f3ef16d3812870e0c3d23350565fd592482227",
+  "hostLoadAverageStart": [
+    1.53173828125,
+    2.47705078125,
+    3.15234375
+  ],
+  "browser": {
+    "name": "Chrome for Testing",
+    "version": "151.0.7922.34"
+  },
+  "runtimeClass": "real temporarily unpacked candidate ZIP in an isolated disposable browser profile",
+  "publicOrigin": "https://finance.ynxweb4.com",
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.3.zip",
+    "bytes": 584777,
+    "sha256": "5c6ff4c16805965aa86febdc6a9f7a812ea2d1e9c8fa556611dafeadfb2e707b"
+  },
+  "passed": true,
+  "providerDiscovered": true,
+  "vaultCreatedThroughUi": true,
+  "rejectionReturnedToFinance": true,
+  "standardConnected": true,
+  "financeLocalDisconnect": true,
+  "refreshDisconnected": true,
+  "permissionRevoked": true,
+  "privateFinanceAuthorized": false,
+  "brokerLoginAuthorized": false,
+  "transactionSubmitted": false,
+  "publicWalletReleased": false,
+  "steps": [
+    {
+      "name": "vault-ready",
+      "elapsedMs": 838
+    },
+    {
+      "name": "finance-loaded",
+      "elapsedMs": 12291
+    },
+    {
+      "name": "finance-rejected",
+      "elapsedMs": 13186
+    },
+    {
+      "name": "finance-connected",
+      "elapsedMs": 13610
+    },
+    {
+      "name": "finance-local-disconnect",
+      "elapsedMs": 13632
+    },
+    {
+      "name": "finance-refreshed",
+      "elapsedMs": 13975
+    },
+    {
+      "name": "finance-revoked",
+      "elapsedMs": 14506
+    }
+  ],
+  "account": "0x6d675c1944d7ce968fa80c2f64befeace81ffd59",
+  "pageErrors": [],
+  "publicStatus": 200,
+  "rejectionState": {
+    "walletState": "Wallet request rejected. · Standard Wallet is not connected. Choose YNX Wallet or MetaMask; public pages remain available.",
+    "standard": {
+      "status": "disconnected",
+      "providerKind": "ynx-wallet",
+      "account": null,
+      "chainId": null
+    }
+  },
+  "connectedState": {
+    "status": "connected",
+    "providerKind": "ynx-wallet",
+    "account": "0x6d675c1944d7ce968fa80c2f64befeace81ffd59",
+    "chainId": "0x1917"
+  },
+  "hostLoadAverageEnd": [
+    1.369140625,
+    2.4111328125,
+    3.12109375
+  ]
+}

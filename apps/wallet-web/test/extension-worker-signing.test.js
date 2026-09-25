@@ -11,6 +11,9 @@ import {createEncryptedVault,extensionIdentity} from "../src/extension-vault.js"
 import {PROVIDER_ACCOUNT_KEY,PROVIDER_PERMISSIONS_KEY,grantPermission} from "../src/extension-provider-permissions.js";
 import {EXTENSION_VAULT_KEY} from "../src/extension-vault.js";
 import {BRIDGE_VERSION,RUNTIME_REQUEST} from "../src/extension-bridge.js";
+import {p256} from "@noble/curves/nist.js";
+import {createProductSessionRequest,encodeProductSessionWalletURL} from "@ynx-chain/wallet-auth-card-provider-v2";
+import registry from "../vendor/product-session-registry-b754ffc42.json" with {type:"json"};
 
 // Executes the real worker handlers with simulated browser APIs and RPC only.
 const SECRET="1".padStart(64,"0"),PASSWORD="public-fixture-password-only",ACCOUNT=extensionIdentity(SECRET).account,ORIGIN="https://fixture-dapp.example",TO=`0x${"22".repeat(20)}`;
@@ -19,12 +22,54 @@ const vaultPromise=createEncryptedVault({password:PASSWORD,secretHex:SECRET},web
 const source=await readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8"),bindings={};
 for(const match of source.matchAll(/^import \{([^}]+)\} from "\.\/([^"]+)";$/gm)){const module=await import(new URL(`../src/${match[2]}`,import.meta.url));for(const name of match[1].split(","))bindings[name]=module[name]}
 const executable=source.replace(/^import .*;\n/gm,"");
-async function fixture(t,{permitted=true,existingLocal=null,existingSession=null,firefox=false,browserContext="firefox-container-1"}={}){
+
+test("orphaned index and permission never expose an account without its encrypted vault",async t=>{
+  const indexed={version:1,source:"ynx-wallet-vault",account:ACCOUNT};
+  const f=await fixture(t,{existingLocal:{[PROVIDER_ACCOUNT_KEY]:indexed,[PROVIDER_PERMISSIONS_KEY]:grantPermission({},ORIGIN,indexed)}});
+  assert.deepEqual(Array.from((await f.request("eth_accounts",[]).result).result),[]);
+  assert.equal((await f.request("eth_requestAccounts",[]).result).error.code,"PROVIDER_ACCOUNT_UNAVAILABLE");
+  assert.equal(f.state.opened.length,0);
+});
+
+function cardPrivateURL(nonce="b".repeat(43)){
+  const now=new Date(),deviceKey=Buffer.from(p256.getPublicKey(Buffer.alloc(32,0x42),true)).toString("base64url");
+  const request=createProductSessionRequest(registry,{productId:"card",platform:"web",deviceId:`web_${"a".repeat(43)}`,deviceKey,scopes:["account:read","card:application:write","card:controls:write","card:finance:share"],purpose:"Card TEST access with separately selected Finance sharing.",nonce,state:"c".repeat(43)},now);
+  return encodeProductSessionWalletURL(registry,request,now);
+}
+
+test("closing private approval immediately cancels its DApp request",async t=>{
+  const f=await fixture(t,{origin:"https://card.ynxweb4.com"}),pending=f.request("ynx_requestProductSessionV2",[cardPrivateURL()]);
+  const popup=await f.nextWindow(),reviewId=await pending.reviewId;
+  assert.equal((await f.privateGet(reviewId)).request.productName,"YNX Card");
+  f.closeWindow(popup.id);
+  assert.equal((await pending.result).error.code,"PRIVATE_APPROVAL_CLOSED");
+  assert.equal(f.state.privateSigns,0);
+});
+
+test("closing private approval during vault unlock cannot sign or return approval",async t=>{
+  const f=await fixture(t,{origin:"https://card.ynxweb4.com"}),pending=f.request("ynx_requestProductSessionV2",[cardPrivateURL("d".repeat(43))]);
+  const popup=await f.nextWindow(),reviewId=await pending.reviewId;
+  let entered,release;const unlocking=new Promise(resolve=>entered=resolve);f.state.beforeUnlock=()=>new Promise(resolve=>{release=resolve;entered()});
+  const decision=f.privateDecide(reviewId);await unlocking;f.closeWindow(popup.id);release();
+  assert.equal((await pending.result).error.code,"PRIVATE_APPROVAL_CLOSED");
+  assert.equal((await decision).error.code,"PRIVATE_APPROVAL_CLOSED");
+  assert.equal(f.state.privateSigns,0);
+});
+
+test("existing vault with missing provider index requires fresh site approval",async t=>{
+  const vault=await vaultPromise,indexed={version:1,source:"ynx-wallet-vault",account:ACCOUNT};
+  const f=await fixture(t,{existingLocal:{[EXTENSION_VAULT_KEY]:vault,[PROVIDER_PERMISSIONS_KEY]:grantPermission({},ORIGIN,indexed)}});
+  const request=f.request("eth_requestAccounts",[]);await f.nextWindow();
+  assert.deepEqual(f.localState[PROVIDER_PERMISSIONS_KEY],{});
+  await f.connectDecision(request.reviewId);
+  assert.deepEqual(Array.from((await request.result).result),[ACCOUNT]);
+});
+async function fixture(t,{permitted=true,existingLocal=null,existingSession=null,firefox=false,browserContext="firefox-container-1",origin=ORIGIN}={}){
   const vault=await vaultPromise,account={version:1,source:"ynx-wallet-vault",account:ACCOUNT},localState=existingLocal??{[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:permitted?grantPermission({},ORIGIN,account):{}};
-  const state={documentNonce:"a".repeat(64),documentId:firefox?undefined:"FF2F212A00379D284FE8558A23819E2D",probes:0,tabId:1,incognito:false,cookieStoreId:firefox?browserContext:undefined,contextByTab:{},url:`${ORIGIN}/request`,nonce:"0x1",chain:"0x1917",calls:[],signCalls:0,broadcasts:0,unlocks:0,opened:[],closed:[],events:[]};
+  const state={documentNonce:"a".repeat(64),documentId:firefox?undefined:"FF2F212A00379D284FE8558A23819E2D",probes:0,tabId:1,incognito:false,cookieStoreId:firefox?browserContext:undefined,contextByTab:{},url:`${origin}/request`,nonce:"0x1",chain:"0x1917",calls:[],signCalls:0,privateSigns:0,broadcasts:0,unlocks:0,opened:[],closed:[],events:[]};
   const storage=data=>({async get(keys){const list=Array.isArray(keys)?keys:[keys],result=structuredClone(Object.fromEntries(list.filter(key=>Object.hasOwn(data,key)).map(key=>[key,data[key]])));if(state.afterGet)await state.afterGet(keys);return result},async set(values){Object.assign(data,structuredClone(values));if(state.afterSet)await state.afterSet(values)},async remove(keys){for(const key of Array.isArray(keys)?keys:[keys])delete data[key]}});
-  const waiting=[],timers=new Set(),sessionState=existingSession??{};let listener;
-  const api={runtime:{id:"fixture",getURL:page=>`${firefox?"moz":"chrome"}-extension://fixture/${page}`,onMessage:{addListener:callback=>{listener=callback}}},storage:{local:storage(localState),session:storage(sessionState)},tabs:{onUpdated:{addListener:fn=>state.tabUpdated=fn},onRemoved:{addListener:fn=>state.tabRemoved=fn},async query(){if(state.beforeTabQuery)await state.beforeTabQuery();return[{id:state.tabId,url:state.url,incognito:state.incognito,cookieStoreId:state.cookieStoreId}]},async get(id){if(id===2&&state.vaultClosed)throw new Error("Vault tab closed");return{id,incognito:state.incognito,cookieStoreId:Object.hasOwn(state.contextByTab,id)?state.contextByTab[id]:state.cookieStoreId,url:id===2?api.runtime.getURL("vault.html?requestId=unused"):state.url}},async sendMessage(id,message,target){if(message.type==="YNX_DAPP_DOCUMENT_PROBE_V1"){state.probes++;if(state.beforeProbe)await state.beforeProbe();if(target?.documentId&&target.documentId!==state.documentId)throw new Error("Document no longer active");if(state.contentProbe){let response;state.contentProbe(message,{id:"fixture"},value=>{response=value});return response}return{version:1,origin:message.origin,challenge:message.challenge,documentNonce:state.documentNonce}}state.events.push(message)}},scripting:{async executeScript(){if(state.beforeInjection)await state.beforeInjection();return state.documentId===undefined?[]:[{frameId:0,documentId:state.documentId}]}},windows:{async create(options){const created={id:state.opened.length+1,...options};state.opened.push(created);waiting.shift()?.(created);return created},async remove(id){state.closed.push(id)}}};
+  const waiting=[],timers=new Set(),sessionState=existingSession??{};let listener,windowRemoved;
+  const api={runtime:{id:"fixture",getURL:page=>`${firefox?"moz":"chrome"}-extension://fixture/${page}`,onMessage:{addListener:callback=>{listener=callback}}},storage:{local:storage(localState),session:storage(sessionState)},tabs:{onUpdated:{addListener:fn=>state.tabUpdated=fn},onRemoved:{addListener:fn=>state.tabRemoved=fn},async query(){if(state.beforeTabQuery)await state.beforeTabQuery();return[{id:state.tabId,url:state.url,incognito:state.incognito,cookieStoreId:state.cookieStoreId}]},async get(id){if(id===2&&state.vaultClosed)throw new Error("Vault tab closed");return{id,incognito:state.incognito,cookieStoreId:Object.hasOwn(state.contextByTab,id)?state.contextByTab[id]:state.cookieStoreId,url:id===2?api.runtime.getURL("vault.html?requestId=unused"):state.url}},async sendMessage(id,message,target){if(message.type==="YNX_DAPP_DOCUMENT_PROBE_V1"){state.probes++;if(state.beforeProbe)await state.beforeProbe();if(target?.documentId&&target.documentId!==state.documentId)throw new Error("Document no longer active");if(state.contentProbe){let response;state.contentProbe(message,{id:"fixture"},value=>{response=value});return response}return{version:1,origin:message.origin,challenge:message.challenge,documentNonce:state.documentNonce}}state.events.push(message)}},scripting:{async executeScript(){if(state.beforeInjection)await state.beforeInjection();return state.documentId===undefined?[]:[{frameId:0,documentId:state.documentId}]}},windows:{onRemoved:{addListener:fn=>windowRemoved=fn},async create(options){const created={id:state.opened.length+1,...options};state.opened.push(created);waiting.shift()?.(created);return created},async remove(id){state.closed.push(id);windowRemoved?.(id)}}};
   const actualSign=bindings.signExtensionRequest,actualUnlock=bindings.unlockEncryptedVault,actualDerive=bindings.deriveScopedSensitiveRequestId;
   const fetcher=async(_url,options)=>{const{method,params}=JSON.parse(options.body);state.calls.push({method,params});if(state.beforeRpc)await state.beforeRpc(method);if(state.unavailable===method)throw new Error("RPC fixture unavailable");if(state.rpcErrors?.[method])return{ok:true,redirected:false,url:"https://rpc-testnet.ynxweb4.com/",json:async()=>({jsonrpc:"2.0",id:6423,error:state.rpcErrors[method]})};let result;
     if(method==="eth_sendRawTransaction"){state.broadcasts++;state.transaction=Transaction.from(params[0]);if(state.broadcastHook)await state.broadcastHook();if(state.transportFailure)throw new Error("ACK lost");if(state.broadcastError)return{ok:state.broadcastHttpSuccess!==false,redirected:false,url:"https://rpc-testnet.ynxweb4.com/",json:async()=>({jsonrpc:"2.0",id:6423,error:state.broadcastError})};result=state.ackHash??state.transaction.hash}
@@ -34,15 +79,16 @@ async function fixture(t,{permitted=true,existingLocal=null,existingSession=null
     forwardExtensionRpc:(method,params)=>bindings.forwardExtensionRpc(method,params,fetcher),
     deriveScopedSensitiveRequestId:async input=>{const id=await actualDerive(input);if(state.afterHash)await state.afterHash();return id},
     unlockEncryptedVault:async(...args)=>{state.unlocks++;if(state.beforeUnlock)await state.beforeUnlock();return actualUnlock(...args)},
+    signPrivateReturn:(...args)=>{state.privateSigns++;return bindings.signPrivateReturn(...args)},
     signExtensionRequest:async args=>{state.signCalls++;const result=await actualSign(args);if(state.afterSign)await state.afterSign();return result},
     broadcastExtensionTransaction:raw=>bindings.broadcastExtensionTransaction(raw,fetcher)
   });vm.runInContext(executable,context);
   t.after(()=>{vm.runInContext('invalidateWaiters("FIXTURE_CLOSED","Fixture closed.")',context);for(const timer of timers)clearTimeout(timer)});
   const send=(message,sender)=>new Promise(resolve=>{const accepted=listener(message,sender,resolve);if(accepted===false)resolve({ok:false,error:{code:"UNHANDLED"}})});
   let count=0,windowCursor=0;
-  const request=(method,params,deadlineAt=Date.now()+5000,extra={})=>{const requestId=`ynx-${(++count).toString(16).padStart(8,"0")}-1111-4111-8111-111111111111`,message={type:RUNTIME_REQUEST,version:BRIDGE_VERSION,requestId,origin:ORIGIN,deadlineAt,method,params,documentNonce:state.documentNonce,...extra};const reviewId=actualDerive({browserContext:firefox?state.cookieStoreId:"chromium-default",origin:ORIGIN,requestId:message.requestId});void reviewId.catch(()=>{});return{requestId:message.requestId,reviewId,result:send(message,{...(firefox?{}:{documentId:state.documentId,documentLifecycle:"active"}),tab:{id:state.tabId,url:state.url,incognito:state.incognito,cookieStoreId:state.cookieStoreId},frameId:0,url:state.url})}};
+  const request=(method,params,deadlineAt=Date.now()+5000,extra={})=>{const requestId=`ynx-${(++count).toString(16).padStart(8,"0")}-1111-4111-8111-111111111111`,message={type:RUNTIME_REQUEST,version:BRIDGE_VERSION,requestId,origin,deadlineAt,method,params,documentNonce:state.documentNonce,...extra};const reviewId=actualDerive({browserContext:firefox?state.cookieStoreId:"chromium-default",origin,requestId:message.requestId});void reviewId.catch(()=>{});return{requestId:message.requestId,reviewId,result:send(message,{...(firefox?{}:{documentId:state.documentId,documentLifecycle:"active"}),tab:{id:state.tabId,url:state.url,incognito:state.incognito,cookieStoreId:state.cookieStoreId},frameId:0,url:state.url})}};
   const page=(page,requestId)=>({id:"fixture",url:api.runtime.getURL(`${page}?requestId=${requestId}`)});
-  return{state,localState,sessionState,request,rawSend:send,reviewFrom:(pageId,bodyId)=>send({type:"YNX_PROVIDER_APPROVAL_DECIDE_V1",requestId:bodyId,decision:"approve"},page("approval.html",pageId)),pageRequest:(preference,input,providers)=>{context.ethereum={providers};return context.__YNX_INTERNAL_PAGE_WALLET_REQUEST__(preference,input)},popupRequest:(method,params,preference="ynx")=>send({type:"YNX_WALLET_REQUEST",preference,input:{method,params}},page("popup.html","unused")),nextWindow:()=>windowCursor<state.opened.length?Promise.resolve(state.opened[windowCursor++]):new Promise(resolve=>waiting.push(value=>{windowCursor++;resolve(value)})),
+  return{state,localState,sessionState,request,rawSend:send,closeWindow:id=>windowRemoved?.(id),privateGet:async requestId=>send({type:"YNX_PRIVATE_APPROVAL_GET_V2",requestId:await requestId},page("private-approval.html",await requestId)),privateDecide:async(requestId,decision="approve")=>send({type:"YNX_PRIVATE_APPROVAL_DECIDE_V2",requestId:await requestId,decision,password:PASSWORD},page("private-approval.html",await requestId)),reviewFrom:(pageId,bodyId)=>send({type:"YNX_PROVIDER_APPROVAL_DECIDE_V1",requestId:bodyId,decision:"approve"},page("approval.html",pageId)),pageRequest:(preference,input,providers)=>{context.ethereum={providers};return context.__YNX_INTERNAL_PAGE_WALLET_REQUEST__(preference,input)},popupRequest:(method,params,preference="ynx")=>send({type:"YNX_WALLET_REQUEST",preference,input:{method,params}},page("popup.html","unused")),nextWindow:()=>windowCursor<state.opened.length?Promise.resolve(state.opened[windowCursor++]):new Promise(resolve=>waiting.push(value=>{windowCursor++;resolve(value)})),
     review:async requestId=>{requestId=await requestId;return send({type:"YNX_SIGNER_GET_V1",requestId},page("signer.html",requestId))},
     decide:async(requestId,decision="approve")=>{requestId=await requestId;return send({type:"YNX_SIGNER_DECIDE_V1",requestId,decision,password:PASSWORD},page("signer.html",requestId))},
     connectDecision:async requestId=>{requestId=await requestId;return send({type:"YNX_PROVIDER_APPROVAL_DECIDE_V1",requestId,decision:"approve"},page("approval.html",requestId))},

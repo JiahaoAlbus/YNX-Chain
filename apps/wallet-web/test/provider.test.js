@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   SESSION_KEY, WALLET_DOWNLOAD_MATRIX, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
-  addYNXChain, connectStandardWallet, connectWallet, createExtensionProvider, discoverEip6963, discoverInjectedProviders, discoverWallets, extensionWalletAvailability,
+  addYNXChain, connectStandardWallet, connectWallet, createExtensionProvider, disconnectStandardWallet, discoverEip6963, discoverInjectedProviders, discoverWallets, extensionWalletAvailability,
   forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
   invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
@@ -50,6 +50,23 @@ function extensionRuntime(responses = {}) {
     },
   };
 }
+
+test("disconnect revokes the exact YNX account permission and confirms eth_accounts is empty",async()=>{
+  const wallet=provider({wallet_revokePermissions:null,eth_accounts:[]});
+  assert.equal(await disconnectStandardWallet(wallet),true);
+  assert.deepEqual(wallet.calls,[{method:"wallet_revokePermissions",params:[{eth_accounts:{}}]},{method:"eth_accounts"}]);
+});
+
+test("disconnect falls back only for an unsupported method and never claims an unverified revoke",async()=>{
+  const wallet=provider({ynx_disconnect:null,eth_accounts:[]});
+  assert.equal(await disconnectStandardWallet(wallet),true);
+  assert.deepEqual(wallet.calls.map(call=>call.method),["wallet_revokePermissions","ynx_disconnect","eth_accounts"]);
+  const stillAuthorized=provider({wallet_revokePermissions:null,eth_accounts:[ACCOUNT]});
+  await assert.rejects(disconnectStandardWallet(stillAuthorized),{code:"PERMISSION_REVOCATION_UNVERIFIED"});
+  const denied=provider({wallet_revokePermissions:()=>{throw Object.assign(new Error("denied"),{code:4001})}});
+  await assert.rejects(disconnectStandardWallet(denied),{code:"PERMISSION_REVOCATION_UNVERIFIED"});
+  assert.deepEqual(denied.calls.map(call=>call.method),["wallet_revokePermissions"]);
+});
 
 test("frozen chain metadata is exact and complete", () => {
   assert.deepEqual(YNX_CHAIN, {chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:{name:"YNX Testnet",symbol:"YNXT",decimals:18},rpcUrls:["https://rpc-testnet.ynxweb4.com","https://evm.ynxweb4.com"],blockExplorerUrls:["https://explorer.ynxweb4.com"]});
@@ -178,9 +195,9 @@ test("canonical YNX mobile authorization stays closed until Core freezes the exa
 test("default download opens platform selection and Android uses the exact observed release", () => {
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.hosted,true);
   assert.equal(YNX_DOWNLOAD_URL,"https://www.ynxweb4.com/dapp/wallet/open-download");
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.16-e9816a827/ynx-wallet-1.0.16-testnet-preview-e9816a827-universal-local-test-signed.apk");
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.bytes,116631255);
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,"89a842dc8641206a9154a6e41fd1c9e3cbb4b6cca2cea455ed5b7fc674b558c0");
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk");
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.bytes,116741810);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,"143835c4931b190f0249818f04de6f82b1f2aaa0eb155684e929f365f3b1bfc0");
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.contentType,"application/vnd.android.package-archive");
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.productionSigned,false);
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
@@ -193,7 +210,7 @@ test("default download opens platform selection and Android uses the exact obser
   }
   assert.match(WALLET_DOWNLOAD_MATRIX.windowsX64.url,/ynx-wallet-desktop-0\.6\.8-x64\.exe$/);
   assert.match(WALLET_DOWNLOAD_MATRIX.macosUniversal.url,/ynx-wallet-macos-0\.6\.8-universal\.dmg$/);
-  assert.match(WALLET_DOWNLOAD_MATRIX.chromeEdgeExtension.url,/ynx-wallet-chrome-edge-0\.1\.1\.zip$/);
+  assert.match(WALLET_DOWNLOAD_MATRIX.chromeEdgeExtension.url,/ynx-wallet-chrome-edge-0\.1\.3\.zip$/);
   assert.match(WALLET_DOWNLOAD_MATRIX.firefoxExtension.url,/ynx-wallet-firefox-0\.1\.1\.zip$/);
   assert.equal(WALLET_DOWNLOAD_MATRIX.pwaPackage.publicStatusUrl,"https://www.ynxweb4.com/dapp/wallet");
 });
@@ -426,7 +443,7 @@ test("network mutation never depends on a direct browser RPC probe", async () =>
 });
 
 test("only authoritative provider identity failures invalidate the connected UI session", () => {
-  for (const code of ["ACCOUNT_CHANGED","WRONG_NETWORK","WALLET_NOT_FOUND",4900,4901]) assert.equal(invalidatesConnectedSession({code}),true);
+  for (const code of ["ACCOUNT_CHANGED","PROVIDER_ACCOUNT_UNAVAILABLE","PROVIDER_ACCOUNT_CHANGED","VAULT_TAMPERED","PERMISSION_REVOKED","WRONG_NETWORK","WALLET_NOT_FOUND",4900,4901]) assert.equal(invalidatesConnectedSession({code}),true);
   for (const code of ["RPC_UNAVAILABLE","INVALID_MESSAGE",4001,-32603,undefined]) assert.equal(invalidatesConnectedSession({code}),false);
 });
 

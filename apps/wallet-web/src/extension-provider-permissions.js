@@ -41,6 +41,22 @@ export function parseProviderAccount(value){
   return Object.freeze({version:1,source:"ynx-wallet-vault",account:value.account.toLowerCase()});
 }
 
+// The encrypted vault is the account authority. Older installs may have a vault
+// but no separate provider index; recover that index without reusing site grants.
+export async function recoverMissingProviderAccount(storage,vaultAccountKey,vaultKey,accountFromVault){
+  const values=await storage.get([vaultAccountKey,vaultKey,PROVIDER_PERMISSIONS_KEY]);
+  const indexed=values?.[vaultAccountKey];
+  if(values?.[vaultKey]===undefined)fail("PROVIDER_ACCOUNT_UNAVAILABLE","No encrypted YNX Wallet vault is available. Open the existing Wallet vault or import your recovery key without clearing browser data.");
+  const vaultAccount=accountFromVault(values?.[vaultKey]);
+  if(indexed!==undefined){
+    const account=parseProviderAccount(indexed);
+    if(account.account!==vaultAccount.account)fail("PROVIDER_ACCOUNT_UNAVAILABLE","Provider account does not match the encrypted Wallet vault.");
+    return account;
+  }
+  await storage.set({[vaultAccountKey]:vaultAccount,[PROVIDER_PERMISSIONS_KEY]:{}});
+  return vaultAccount;
+}
+
 export function parsePermissionStore(value){
   if(value===undefined)return Object.freeze({});
   if(!record(value))fail("PERMISSION_STORE_TAMPERED","Wallet permission storage is invalid.");

@@ -1,0 +1,47 @@
+{
+  "schema": "ynx-wallet-mobile-preview-publication/v1",
+  "releaseTag": "wallet-android-testnet-preview-1.0.20-f3a12abad",
+  "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-1.0.20-f3a12abad",
+  "targetCommit": "f3a12abadad793f250df42f1123e417ba6e8a5a6",
+  "prerelease": true,
+  "releaseImmutable": false,
+  "publisherCanReplaceAssets": true,
+  "downloadTimeSha256Verified": true,
+  "githubReleaseId": 392641001,
+  "releaseCreatedAt": "2026-09-21T01:13:15Z",
+  "releasePublishedAt": "2026-09-21T01:26:45Z",
+  "observedAt": "2026-09-24T12:53:59Z",
+  "apkAssetId": 577942956,
+  "aabAssetId": 577942957,
+  "apk": {
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk",
+    "bytes": 116741810,
+    "sha256": "143835c4931b190f0249818f04de6f82b1f2aaa0eb155684e929f365f3b1bfc0",
+    "freshDownloadDigestMatched": true,
+    "versionCode": 26,
+    "versionName": "1.0.20-testnet-preview"
+  },
+  "aab": {
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-local-test-signed.aab",
+    "bytes": 71877410,
+    "sha256": "46d3f0e7f2738ac55aa5e6f24717ff4adef3b499f368ca6c3e253a7c3a4e6c4d",
+    "freshDownloadDigestMatched": true,
+    "versionCode": 26
+  },
+  "signerCertificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+  "signingClass": "local-test-signed Android Debug certificate",
+  "productionSigned": false,
+  "storeReleased": false,
+  "walletConnectRelayE2E": false,
+  "physicalDevice": false,
+  "officialWebsiteSourceUpdated": true,
+  "verificationBoundary": {
+    "freshDownloadedApk": true,
+    "freshDownloadedAab": true,
+    "apkSignatureIdentity": "reused from independently verified handoff",
+    "installed1020": false,
+    "storePublication": false,
+    "productionSigning": false
+  },
+  "generatedAt": "2026-09-24T12:53:59Z"
+}

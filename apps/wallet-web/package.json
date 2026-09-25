@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-web",
-  "version": "0.1.1-testnet-preview.1",
+  "version": "0.1.3-testnet-preview.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -15,10 +15,12 @@
     "verify:package": "node scripts/verify-package.mjs",
     "store:assets": "node store/generate-assets.mjs",
     "verify:store": "node store/verify-release-materials.mjs",
+    "verify:store-candidate": "node store/verify-release-materials.mjs --require-local-candidate",
     "test:runtime:branded": "npm run build && node scripts/runtime-branded.mjs",
     "test:runtime:branded:cdp": "npm run build && node scripts/runtime-branded-cdp.mjs",
     "test:runtime:bridge": "npm run build && node scripts/runtime-bridge-gate.mjs",
     "test:runtime:approval": "npm run build && node scripts/runtime-approval-gate.mjs",
+    "test:runtime:private-v2": "node scripts/runtime-private-product-session-v2.mjs",
     "test:runtime:preferences": "npm run build && node scripts/runtime-preferences-gate.mjs",
     "test:runtime:cache-integrity": "npm run build && node scripts/runtime-cache-integrity-gate.mjs",
     "test:runtime:v8-upgrade": "npm run build && node scripts/runtime-v8-upgrade-gate.mjs",
@@ -49,6 +51,7 @@
   "dependencies": {
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",
+    "@ynx-chain/wallet-auth-card-provider-v2": "file:vendor/ynx-chain-wallet-auth-1.2.0-09e36b150.tgz",
     "ethers": "6.17.0"
   },
   "overrides": {

@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 2,
+  "sourceCommit": "40c2814d6e87e19ce2762737356c4f9d1128a69d",
+  "generatedAt": "2026-09-25T03:09:49.077Z",
+  "hostLoadAverageStart": [
+    7.07080078125,
+    75.66796875,
+    133.21923828125
+  ],
+  "browser": {
+    "id": "chromium",
+    "name": "Chrome for Testing",
+    "version": "151.0.7922.34",
+    "branded": false
+  },
+  "runtimeClass": "temporary unpacked extension in an isolated disposable profile",
+  "fixtureAuthority": "local HTTPS DApp with an immutable foreign MetaMask-shaped provider; no account, signature or transaction fixture implementation",
+  "artifact": {
+    "manifestSha256": "2124da457296c7d7eecf31ab9c8461ae5e65e4ff85c202635b49ecb610b91a0e",
+    "pageProviderSha256": "03ab34029146cd37c8a7f13a4c25cbc33ebcf4bba7204058a7c0477eb0b35e8a",
+    "buildSourceCommit": "40c2814d6e87e19ce2762737356c4f9d1128a69d",
+    "localArchive": {
+      "name": "ynx-wallet-chrome-edge-0.1.2.zip",
+      "bytes": 551365,
+      "sha256": "35a1755777ab0c7472c1a81910f9e127f81d19d5e387238a7e0ef6afc1f1cafb"
+    }
+  },
+  "passed": true,
+  "providerDiscovered": true,
+  "foreignProviderPreserved": true,
+  "vaultCreatedThroughUi": true,
+  "providerConnected": true,
+  "accountAuthorized": true,
+  "chainIdProved": true,
+  "addChainAccepted": true,
+  "switchChainAccepted": true,
+  "invalidChainRejected": true,
+  "approvalRejected": true,
+  "refreshDisconnected": true,
+  "accountSwitchRevoked": true,
+  "accountSwitched": true,
+  "messageSigned": true,
+  "signatureRecovered": true,
+  "permissionRevoked": true,
+  "postRevokeDenied": true,
+  "transactionSubmitted": false,
+  "installedLocal": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "serviceWorker": {
+    "started": true,
+    "url": "chrome-extension://ldlgjhilkemfpbohocehgfcmnikmplmn/service-worker.js"
+  },
+  "account": "0xf724edb162c4b89b54be7ca8307b49c5fcbe6fb7",
+  "steps": [
+    {
+      "name": "discovered",
+      "elapsedMs": 0
+    },
+    {
+      "name": "chain-returned",
+      "elapsedMs": 4
+    },
+    {
+      "name": "approval-opened",
+      "elapsedMs": 107
+    },
+    {
+      "name": "approval-clicked",
+      "elapsedMs": 150
+    },
+    {
+      "name": "account-returned",
+      "elapsedMs": 164
+    },
+    {
+      "name": "network-checked",
+      "elapsedMs": 172
+    },
+    {
+      "name": "permission-revoked",
+      "elapsedMs": 794
+    },
+    {
+      "name": "approval-rejected",
+      "elapsedMs": 952
+    },
+    {
+      "name": "page-refreshed",
+      "elapsedMs": 1032
+    },
+    {
+      "name": "account-switched-in-vault",
+      "elapsedMs": 1284
+    },
+    {
+      "name": "new-account-returned",
+      "elapsedMs": 1432
+    }
+  ],
+  "connectedAccounts": [
+    "0xf724edb162c4b89b54be7ca8307b49c5fcbe6fb7"
+  ],
+  "signatureSha256": "277e725abc52b0592f943d1e19010fddd9cd64cee83e0195b9b465c5f7de99cb",
+  "replacementAccount": "0x7b223bbdd40e40c946b4f3b30ef76bbebac4a253",
+  "hostLoadAverageEnd": [
+    7.07080078125,
+    75.66796875,
+    133.21923828125
+  ]
+}

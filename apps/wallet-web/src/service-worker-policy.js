@@ -62,6 +62,9 @@ export function serviceWorkerRoute(request, scopeUrl) {
   let url, scope;
   try { url = new URL(request.url); scope = new URL(scopeUrl); } catch { return "network-only"; }
   if (url.origin !== scope.origin) return "network-only";
+  // The hosted signer has its own vault and CSP. A previously installed
+  // Companion shell must never replace its navigation or JavaScript assets.
+  if (url.pathname === "/hosted" || url.pathname.startsWith("/hosted/")) return "network-only";
   const scopePath = scope.pathname.endsWith("/") ? scope.pathname : `${scope.pathname}/`;
   const scopeRoot = scopePath === "/" ? "/" : scopePath.slice(0, -1);
   if (url.pathname !== scopeRoot && !url.pathname.startsWith(scopePath)) return "network-only";

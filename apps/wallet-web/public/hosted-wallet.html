@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'">
+  <title>YNX Wallet · Connect</title>
+  <link rel="stylesheet" href="./hosted-wallet.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header><img src="./ynx-logo.png" alt="YNX"><span>YNX Wallet</span><span class="network">TESTNET · 6423</span><label class="locale-choice"><span data-i18n="language">Language</span><select id="locale-select" aria-label="Language"></select></label></header>
+    <div class="content">
+      <p class="eyebrow" data-i18n="secure">SECURE CONNECTION</p>
+      <h1 data-i18n="title">Your Wallet, your decision.</h1>
+      <p class="lede" data-i18n="intro">Review each product connection, signature and transaction. Your recovery key stays in this Wallet origin.</p>
+      <div class="origin"><span data-i18n="product">Requesting product</span><strong id="product-origin">Checking…</strong></div>
+      <div id="account-card" class="origin" hidden><span data-i18n="ynxAccount">Your YNX account</span><strong id="account-ynx"></strong><details><summary data-i18n="evmAddress">EVM-compatible address</summary><code id="account-evm"></code></details></div>
+      <section id="account-switch-section" hidden>
+        <label><span data-i18n="walletAccount">Wallet account</span> <select id="account-select"></select></label>
+        <button id="switch-account" type="button" data-i18n="switchAccount">Switch account</button>
+        <details><summary data-i18n="addAccount">Add another encrypted account</summary>
+          <form id="add-account-form">
+            <p data-i18n="addAccountHelp">Add an encrypted backup belonging to another account. Existing accounts remain stored.</p>
+            <label><span data-i18n="backupFile">Encrypted backup file</span> <input id="add-account-file" type="file" accept="application/json,.json" required></label>
+            <label><span data-i18n="backupPassword">Backup password</span> <input id="add-account-password" type="password" autocomplete="off" required></label>
+            <button type="submit" data-i18n="addAccount">Add encrypted account</button>
+          </form>
+        </details>
+      </section>
+      <div id="transaction-panel" class="origin" hidden><span data-i18n="txRecovery">Transaction recovery</span><strong id="transaction-status"></strong><button id="refresh-transaction" type="button" data-i18n="checkTx">Check original transaction</button></div>
+      <p id="status" role="status" aria-live="polite">Opening Wallet…</p>
+      <section id="setup" hidden>
+        <h2 data-i18n="protect">Protect your Wallet</h2>
+        <p data-i18n="createHelp">Create a new account or enter an existing private key you already control. Import never reads an extension or another site.</p>
+        <form id="setup-form" autocomplete="off">
+          <label><span data-i18n="localPassword">Local password</span> <input id="setup-password" type="password" minlength="12" maxlength="256" required autocomplete="new-password"></label>
+          <label><span data-i18n="confirmPassword">Confirm password</span> <input id="setup-confirm" type="password" minlength="12" maxlength="256" required autocomplete="new-password"></label>
+          <label><span data-i18n="privateKey">Existing private key (optional)</span> <input id="setup-key" type="password" autocomplete="off" spellcheck="false" data-i18n-placeholder="privateKeyPlaceholder" placeholder="Leave blank to create a new account"></label>
+          <label class="check"><input id="import-confirm" type="checkbox"><span data-i18n="importConfirm">If importing, I have a separate recovery backup.</span></label>
+          <button type="submit" class="primary" data-i18n="saveWallet">Save encrypted Wallet</button>
+        </form>
+        <form id="backup-import-form">
+          <h2 data-i18n="restore">Restore an encrypted backup</h2>
+          <p data-i18n="restoreHelp">Restore the exact public account from an existing YNX Wallet encrypted backup. An existing Wallet here is never overwritten.</p>
+          <label><span data-i18n="backupFile">Encrypted backup file</span> <input id="backup-import-file" type="file" accept="application/json,.json" required></label>
+          <label><span data-i18n="backupPassword">Backup password</span> <input id="backup-import-password" type="password" required autocomplete="off"></label>
+          <label class="check"><input id="backup-import-confirm" type="checkbox" required><span data-i18n="restoreConfirm">I have checked that this is my backup and understand the account it restores.</span></label>
+          <button type="submit" data-i18n="restore">Restore encrypted backup</button>
+        </form>
+      </section>
+      <button id="export-backup" type="button" hidden data-i18n="downloadBackup">Download encrypted backup</button>
+      <div id="backup-confirmation" class="backup-confirmation" hidden>
+        <p data-i18n="backupWarning">Browser storage can be lost. An exported file is useful only if you keep it and its password separately. Wallet cannot verify where you saved it.</p>
+        <label class="check"><input id="backup-ack" type="checkbox"><span data-i18n="backupAck">I saved my encrypted backup and password separately.</span></label>
+        <button id="backup-continue" type="button" class="primary" disabled data-i18n="continueConnect">Continue to connection</button>
+      </div>
+      <section id="review" hidden aria-label="Request review" data-i18n-aria="reviewRequest">
+        <p class="eyebrow" data-i18n="explicitApproval">EXPLICIT APPROVAL</p>
+        <h2 id="review-title" data-i18n="reviewRequest">Review request</h2>
+        <pre id="review-text"></pre>
+        <label id="approval-password-label"><span data-i18n="localPassword">Local Wallet password</span> <input id="approval-password" type="password" autocomplete="off" hidden></label>
+        <div class="actions"><button id="reject" type="button" data-i18n="reject">Reject</button><button id="approve" class="primary" type="button" data-i18n="approve">Approve</button></div>
+      </section>
+      <p class="foot" data-i18n="foot">Connection does not grant Finance payments or private product access. Those requests require separate approval.</p>
+    </div>
+  </main>
+</body>
+</html>

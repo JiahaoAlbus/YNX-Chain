@@ -3,17 +3,20 @@ import {READ_ONLY_RPC_METHODS,YNX_CHAIN_ID,YNX_RPC_URL,broadcastExtensionTransac
 import {SensitiveAuthorizationGuard,consumeSensitiveRequest,deriveScopedSensitiveRequestId,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
 import {activeTabInjectionPlans,requireActiveDappTab} from "./active-tab-policy.js";
 import {runExtensionMigration} from "./extension-migration.js";
-import {PROVIDER_ACCOUNT_KEY,PROVIDER_PENDING_PREFIX,PROVIDER_PERMISSIONS_KEY,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,parseProviderAccount,providerContextForTab,providerPermissionKey,revokePermission} from "./extension-provider-permissions.js";
+import {PROVIDER_ACCOUNT_KEY,PROVIDER_PENDING_PREFIX,PROVIDER_PERMISSIONS_KEY,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,parseProviderAccount,providerContextForTab,providerPermissionKey,recoverMissingProviderAccount,revokePermission} from "./extension-provider-permissions.js";
 import {EXTENSION_VAULT_KEY,parseEncryptedVault,providerAccountFromVault,unlockEncryptedVault} from "./extension-vault.js";
 import {ExtensionBroadcastJournal} from "./extension-broadcast-journal.js";
+import {validateYNXChainMutation} from "./extension-chain-params.js";
 import {readNativeTransferCapability} from "./extension-fee-model.js";
 import {extensionReviewText,prepareExtensionRequest,signExtensionRequest} from "./extension-signer.js";
+import {PRIVATE_METHOD,consumePrivateReplay,parsePrivateRequest,privateProductName,privateReplayKey,rejectPrivateReturn,signPrivateReturn} from "./extension-product-session-v2.js";
 
 const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
 const firefoxContext=new URL(extensionApi.runtime.getURL("")).protocol==="moz-extension:";
 const browserContextForTab=tab=>providerContextForTab(tab,{firefox:firefoxContext});
 const approvalWaiters=new Map();
 const signerWaiters=new Map();
+const privateWaiters=new Map();
 const broadcastJournal=new ExtensionBroadcastJournal(extensionApi.storage.local);
 const authorizationGuard=new SensitiveAuthorizationGuard({getTab:id=>extensionApi.tabs.get(id),getAccount:()=>configuredAccount(),getPermission:async (origin,context)=>(await approvedState(origin,context))?.permission,getDocument:lease=>readCurrentDappDocument(extensionApi,lease)});
 let authorityMutation=Promise.resolve(),vaultRevision=0;
@@ -24,8 +27,14 @@ function invalidateDocument(tabId){authorizationGuard.invalidateTab(tabId);cance
 // departing page's best-effort Cancel message is lost.
 extensionApi.tabs.onUpdated?.addListener((tabId,change)=>{if(change.status==="loading"||typeof change.url==="string")invalidateDocument(tabId)});
 extensionApi.tabs.onRemoved?.addListener(tabId=>invalidateDocument(tabId));
+extensionApi.windows.onRemoved?.addListener(windowId=>{for(const waiter of privateWaiters.values())if(waiter.windowId===windowId&&!waiter.decided){waiter.cancelled=true;waiter.reject(Object.assign(new Error("Private approval window was closed."),{code:"PRIVATE_APPROVAL_CLOSED"}))}});
+extensionApi.tabs.onActivated?.addListener(({tabId,windowId})=>{void Promise.all([extensionApi.tabs.get(tabId),extensionApi.windows.get(windowId)]).then(([tab,window])=>{
+  // Opening the Wallet review popup changes focus to an extension-owned window.
+  if(window?.type==="popup"||tab?.url?.startsWith(extensionApi.runtime.getURL(""))||tab?.pendingUrl?.startsWith(extensionApi.runtime.getURL("")))return;
+  for(const waiter of privateWaiters.values())if(waiter.pending.tabId!==tabId){waiter.cancelled=true;waiter.reject(Object.assign(new Error("The requesting tab lost focus."),{code:"PRIVATE_TAB_CHANGED"}));privateWaiters.delete(waiter.pending.requestId)}
+}).catch(()=>{})});
 function mutateAuthority(action){const operation=authorityMutation.then(action);authorityMutation=operation.catch(()=>{});return operation}
-function invalidateWaiters(code,message,origin=null,tabId=null,browserContext=null){for(const collection of[approvalWaiters,signerWaiters])for(const[id,waiter]of collection)if((origin===null||waiter.pending.origin===origin)&&(tabId===null||waiter.pending.tabId===tabId)&&(browserContext===null||waiter.lease.browserContext===browserContext)){waiter.reject(Object.assign(new Error(message),{code}));collection.delete(id)}}
+function invalidateWaiters(code,message,origin=null,tabId=null,browserContext=null){for(const collection of[approvalWaiters,signerWaiters,privateWaiters])for(const[id,waiter]of collection)if((origin===null||waiter.pending.origin===origin)&&(tabId===null||waiter.pending.tabId===tabId)&&(browserContext===null||waiter.lease.browserContext===browserContext)){if(collection===privateWaiters)waiter.cancelled=true;waiter.reject(Object.assign(new Error(message),{code}));collection.delete(id)}}
 const migrationPromise=runExtensionMigration(extensionApi,{alarmsDeclared:false}).then(report=>({ok:true,report}),error=>({ok:false,error}));
 async function requireMigrationReady(){const state=await migrationPromise;if(!state.ok)throw Object.assign(new Error("Extension upgrade cleanup is incomplete; wallet access remains disabled."),{code:"MIGRATION_INCOMPLETE",cause:state.error});return state.report}
 const YNX_CHAIN=Object.freeze({chainId:CHAIN_ID,chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://rpc-testnet.ynxweb4.com","https://evm.ynxweb4.com"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com"])});
@@ -43,8 +52,7 @@ function pageWalletRequest(preference,input){
 globalThis.__YNX_INTERNAL_PAGE_WALLET_REQUEST__=pageWalletRequest;
 
 function exactMutationInput(method,params){
-  const expected=method==="wallet_addEthereumChain"?[YNX_CHAIN]:[{chainId:CHAIN_ID}];
-  if(JSON.stringify(params)!==JSON.stringify(expected))throw Object.assign(new Error("Rejected non-canonical YNX Testnet chain parameters."),{code:"INVALID_CHAIN_PARAMS"});
+  validateYNXChainMutation(method,params,YNX_CHAIN);
 }
 function requireLiveDeadline(deadlineAt){if(!Number.isSafeInteger(deadlineAt)||Date.now()>=deadlineAt)throw Object.assign(new Error("Wallet bridge request expired before mutation."),{code:"BRIDGE_EXPIRED"})}
 async function executeInTab(tabId,origin,preference,input){
@@ -68,7 +76,7 @@ async function executeActive(preference,input){
 async function emitToTab(tabId,origin,event,payload,documentLease){await authorizationGuard.assertDocument(documentLease);if(PROVIDER_EVENTS.includes(event))await extensionApi.tabs.sendMessage(tabId,{type:RUNTIME_EVENT,version:BRIDGE_VERSION,origin,event,payload,documentNonce:documentLease.documentNonce},documentMessageTarget(documentLease)).catch(()=>{})}
 function exactAccounts(value){if(!Array.isArray(value)||value.some((account)=>!/^0x[0-9a-fA-F]{40}$/u.test(account)))throw Object.assign(new Error("Wallet backend returned invalid accounts."),{code:"INVALID_ACCOUNT"});return value.map((account)=>account.toLowerCase())}
 
-async function configuredAccount(){const stored=await extensionApi.storage.local.get([PROVIDER_ACCOUNT_KEY,EXTENSION_VAULT_KEY]),account=parseProviderAccount(stored?.[PROVIDER_ACCOUNT_KEY]),vaultAccount=providerAccountFromVault(stored?.[EXTENSION_VAULT_KEY]);if(account.account!==vaultAccount.account)throw Object.assign(new Error("Provider account does not match the encrypted Wallet vault."),{code:"PROVIDER_ACCOUNT_UNAVAILABLE"});return account}
+async function configuredAccount(){const stored=await extensionApi.storage.local.get([PROVIDER_ACCOUNT_KEY,EXTENSION_VAULT_KEY]);if(stored?.[EXTENSION_VAULT_KEY]===undefined)throw Object.assign(new Error("No encrypted YNX Wallet vault is available. Open the existing Wallet vault or import your recovery key without clearing browser data."),{code:"PROVIDER_ACCOUNT_UNAVAILABLE"});if(stored?.[PROVIDER_ACCOUNT_KEY]!==undefined){const account=parseProviderAccount(stored[PROVIDER_ACCOUNT_KEY]),vaultAccount=providerAccountFromVault(stored[EXTENSION_VAULT_KEY]);if(account.account!==vaultAccount.account)throw Object.assign(new Error("Provider account does not match the encrypted Wallet vault."),{code:"PROVIDER_ACCOUNT_UNAVAILABLE"});return account}return mutateAuthority(()=>recoverMissingProviderAccount(extensionApi.storage.local,PROVIDER_ACCOUNT_KEY,EXTENSION_VAULT_KEY,providerAccountFromVault))}
 function requireExtensionPage(sender,page){if(sender?.tab?.incognito===true)throw Object.assign(new Error("YNX Wallet is unavailable in private browsing."),{code:"PRIVATE_BROWSING_UNAVAILABLE"});let actual,expected;try{actual=new URL(sender?.url);expected=new URL(extensionApi.runtime.getURL(page))}catch{throw Object.assign(new Error("Extension page identity is invalid."),{code:"EXTENSION_CALLER_REJECTED"})}if(sender?.id!==extensionApi.runtime.id||actual.origin!==expected.origin||actual.pathname!==expected.pathname)throw Object.assign(new Error("Rejected message from outside the expected extension page."),{code:"EXTENSION_CALLER_REJECTED"})}
 function requireVaultPage(sender){requireExtensionPage(sender,"vault.html")}
 function requireReviewPage(sender,page,requestId){requireExtensionPage(sender,page);if(new URL(sender.url).searchParams.get("requestId")!==requestId)throw Object.assign(new Error("Review window does not match this request."),{code:"EXTENSION_CALLER_REJECTED"})}
@@ -99,7 +107,7 @@ async function retryVaultTransaction(message,sender){
   await assertAuthorized();return{transaction};
 }
 async function approvedState(origin,context){
-  try{return await loadProviderState(extensionApi.storage.local,origin,context)}catch(error){if(error?.code==="PROVIDER_ACCOUNT_UNAVAILABLE")return null;throw error}
+  try{await configuredAccount();return await loadProviderState(extensionApi.storage.local,origin,context)}catch(error){if(error?.code==="PROVIDER_ACCOUNT_UNAVAILABLE")return null;throw error}
 }
 async function persistPermission(origin,account,lease){
   return mutateAuthority(async()=>{await authorizationGuard.assert(lease,{permissionRequired:false});const stored=await extensionApi.storage.local.get(PROVIDER_PERMISSIONS_KEY),next=grantPermission(stored?.[PROVIDER_PERMISSIONS_KEY],origin,account,Date.now(),lease.browserContext);await authorizationGuard.assert(lease,{permissionRequired:false});await extensionApi.storage.local.set({[PROVIDER_PERMISSIONS_KEY]:next});try{await authorizationGuard.assert(lease,{permissionRequired:false})}catch(error){await extensionApi.storage.local.set({[PROVIDER_PERMISSIONS_KEY]:revokePermission(next,origin,lease.browserContext)});throw error}return next[providerPermissionKey(origin,lease.browserContext)]})
@@ -175,6 +183,28 @@ async function requestSignerReview(tabId,origin,requestId,deadlineAt,prepared,le
   try{await authorizationGuard.assert(lease);const created=await extensionApi.windows.create({url:extensionApi.runtime.getURL(`signer.html?requestId=${encodeURIComponent(requestId)}`),type:"popup",width:440,height:720,focused:true});windowId=created?.id;const result=await decision;if(result.decision!=="approve")throw Object.assign(new Error("User rejected the wallet request."),{code:4001});await authorizationGuard.assert(lease);return result.password}
   finally{clearTimeout(timer);await cleanupSigner(requestId,windowId)}
 }
+async function requestPrivateReview(tabId,origin,requestId,deadlineAt,request,documentLease){
+  const account=await configuredAccount(),lease=authorizationGuard.bind(documentLease,{account:account.account});
+  await authorizationGuard.assert(lease,{permissionRequired:false});
+  const pending=Object.freeze({version:2,requestId,origin,tabId,browserContext:lease.browserContext,account:account.account,productId:request.productId,productName:privateProductName(request),applicationId:request.applicationId,scopes:request.scopes,purpose:request.purpose,issuedAt:request.issuedAt,expiresAt:request.expiresAt,deadlineAt});
+  let windowId=null,timer;
+  const decision=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error("Private Product Session approval expired."),{code:"PRIVATE_APPROVAL_EXPIRED"})),Math.max(1,deadlineAt-Date.now()));privateWaiters.set(requestId,{resolve,reject,pending,request,lease,decided:false,busy:false,cancelled:false,get windowId(){return windowId}})});void decision.catch(()=>{});
+  try{
+    await authorizationGuard.assert(lease,{permissionRequired:false});
+    const created=await extensionApi.windows.create({url:extensionApi.runtime.getURL(`private-approval.html?requestId=${encodeURIComponent(requestId)}`),type:"popup",width:480,height:740,focused:true});windowId=created?.id;
+    const result=await decision;await authorizationGuard.assert(lease,{permissionRequired:false});return result;
+  }finally{clearTimeout(timer);privateWaiters.delete(requestId);if(Number.isInteger(windowId))await extensionApi.windows.remove(windowId).catch(()=>{})}
+}
+
+async function handlePrivateRequest(message,documentLease){
+  const request=parsePrivateRequest(message.params,message.origin);
+  const deadlineAt=Math.min(message.deadlineAt,Date.parse(request.expiresAt));
+  requireLiveDeadline(deadlineAt);
+  await authorizationGuard.assertDocument(documentLease);
+  await consumePrivateReplay(extensionApi.storage?.session,privateReplayKey(request),Date.parse(request.expiresAt));
+  await authorizationGuard.assertDocument(documentLease);
+  return requestPrivateReview(documentLease.tabId,message.origin,message.requestId,deadlineAt,request,documentLease);
+}
 function exactPermissionParams(method,params){
   const request=Array.isArray(params)&&params.length===1?params[0]:null;
   if(!request||typeof request!=="object"||Array.isArray(request)||Object.keys(request).join(",")!=="eth_accounts"||typeof request.eth_accounts!=="object"||request.eth_accounts===null||Array.isArray(request.eth_accounts)||Object.keys(request.eth_accounts).length!==0)throw Object.assign(new Error(`${method} accepts only eth_accounts.`),{code:-32602});
@@ -221,8 +251,8 @@ async function handleDappRequest(message,sender){
   const sensitive=parseSensitiveRequest(message);
   await requireMigrationReady();await authorizationGuard.assertDocument(documentLease);
   let internalRequestId=message.requestId;
-  if(sensitive){internalRequestId=await deriveScopedSensitiveRequestId({...documentLease,requestId:message.requestId});await authorizationGuard.assertDocument(documentLease);await consumeSensitiveRequest(extensionApi.storage?.session,{...message,requestId:internalRequestId},Date.now(),{scopeBound:true})}
-  const result=await handleProviderMethod({tabId,origin,requestId:internalRequestId,deadlineAt:message.deadlineAt,method:message.method,params:message.params,documentLease});
+  if(sensitive||message.method===PRIVATE_METHOD){internalRequestId=await deriveScopedSensitiveRequestId({...documentLease,requestId:message.requestId});await authorizationGuard.assertDocument(documentLease);if(sensitive)await consumeSensitiveRequest(extensionApi.storage?.session,{...message,requestId:internalRequestId},Date.now(),{scopeBound:true})}
+  const result=message.method===PRIVATE_METHOD?await handlePrivateRequest({...message,requestId:internalRequestId},documentLease):await handleProviderMethod({tabId,origin,requestId:internalRequestId,deadlineAt:message.deadlineAt,method:message.method,params:message.params,documentLease});
   await authorizationGuard.assertDocument(documentLease);if(sensitive)authorizationGuard.assertCurrent(documentLease);
   return sensitive?validateSensitiveResult(message.method,result):result;
 }
@@ -236,6 +266,29 @@ async function activeProviderRequest(preference,input){
 }
 
 extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
+  if(message?.type==="YNX_PRIVATE_APPROVAL_GET_V2"||message?.type==="YNX_PRIVATE_APPROVAL_DECIDE_V2"){
+    Promise.resolve().then(()=>requireReviewPage(sender,"private-approval.html",message.requestId)).then(async()=>{
+      const waiter=privateWaiters.get(message.requestId);
+      if(!waiter||waiter.cancelled||waiter.decided||waiter.pending.deadlineAt<=Date.now())throw Object.assign(new Error("Private approval has no active page request."),{code:"PRIVATE_APPROVAL_UNAVAILABLE"});
+      await authorizationGuard.assert(waiter.lease,{permissionRequired:false});
+      if(message.type==="YNX_PRIVATE_APPROVAL_GET_V2")return{request:waiter.pending};
+      if(waiter.busy||!["approve","reject"].includes(message.decision)||message.decision==="approve"&&(typeof message.password!=="string"||message.password.length<12||message.password.length>256))throw Object.assign(new Error("Private approval decision is invalid."),{code:"PRIVATE_DECISION_INVALID"});
+      waiter.busy=true;
+      try{
+        const live=()=>{if(waiter.cancelled)throw Object.assign(new Error("Private approval window was closed."),{code:"PRIVATE_APPROVAL_CLOSED"})};
+        let result;
+        if(message.decision==="reject")result=rejectPrivateReturn(waiter.request);
+        else{
+          const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY);live();await authorizationGuard.assert(waiter.lease,{permissionRequired:false});live();
+          const unlocked=await unlockEncryptedVault(stored?.[EXTENSION_VAULT_KEY],message.password);live();await authorizationGuard.assert(waiter.lease,{permissionRequired:false});live();
+          if(unlocked.account!==waiter.lease.account)throw Object.assign(new Error("Wallet account changed during private approval."),{code:"PROVIDER_ACCOUNT_CHANGED"});
+          result=signPrivateReturn(waiter.request,unlocked.secretHex);live();await authorizationGuard.assert(waiter.lease,{permissionRequired:false});live();
+        }
+        live();
+        waiter.decided=true;waiter.resolve(result);return{decided:true};
+      }finally{waiter.busy=false}
+    }).then(result=>sendResponse({ok:true,...result})).catch(error=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
+  }
   if(message?.type==="YNX_VAULT_STATUS_V1"||message?.type==="YNX_VAULT_STORE_V1"||message?.type==="YNX_VAULT_REMOVE_V1"||message?.type==="YNX_VAULT_TRANSACTION_CHECK_V1"||message?.type==="YNX_VAULT_TRANSACTION_CHECK_V2"||message?.type==="YNX_VAULT_TRANSACTION_RETRY_V2"||message?.type==="YNX_VAULT_TRANSACTION_CANCEL_V2"){
     Promise.resolve().then(()=>requireVaultPage(sender)).then(async()=>{
       if(message.type==="YNX_VAULT_STATUS_V1")return vaultStatus();

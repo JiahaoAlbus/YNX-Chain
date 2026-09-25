@@ -5,9 +5,11 @@ import vm from "node:vm";
 import test from "node:test";
 import {BRIDGE_VERSION,RUNTIME_REQUEST,RUNTIME_EVENT,RUNTIME_DOCUMENT_PROBE} from "../src/extension-bridge.js";
 import {PROVIDER_ACCOUNT_KEY,PROVIDER_PERMISSIONS_KEY,grantPermission,providerPermissionKey} from "../src/extension-provider-permissions.js";
+import {EXTENSION_VAULT_KEY} from "../src/extension-vault.js";
 
 // Actual worker and policy modules; only browser APIs and public grant storage
-// are simulated. No vault, private key, signing, approval or network fixture.
+// are simulated. The vault identity is stubbed; no private key, signing,
+// approval or network fixture is available.
 const ORIGIN="https://fixture-dapp.example",OTHER="https://other.example";
 const ACCOUNT={version:1,source:"ynx-wallet-vault",account:`0x${"11".repeat(20)}`};
 const source=await readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8"),bindings={};
@@ -20,7 +22,7 @@ const plain=value=>JSON.parse(JSON.stringify(value));
 
 function fixture(t,{firefox=false,withDocumentId=true,manualTimers=false,deadlineMs=10000}={}){
   const scope=firefox?"firefox-container-1":"chromium-default",tabs=new Map(),events=[],injections=[],probes=[],timers=new Set(),hooks={};
-  const local={[PROVIDER_ACCOUNT_KEY]:ACCOUNT,[PROVIDER_PERMISSIONS_KEY]:grantPermission({},ORIGIN,ACCOUNT,1,scope)};
+  const local={[EXTENSION_VAULT_KEY]:{account:ACCOUNT.account},[PROVIDER_ACCOUNT_KEY]:ACCOUNT,[PROVIDER_PERMISSIONS_KEY]:grantPermission({},ORIGIN,ACCOUNT,1,scope)};
   let listener,onUpdated,onRemoved,count=0;
   const addTab=(id,extra={})=>{
     const digits=id.toString(16).padStart(32,"a");
@@ -55,7 +57,7 @@ function fixture(t,{firefox=false,withDocumentId=true,manualTimers=false,deadlin
   const forbidden=()=>{throw new Error("Vault/signing/network forbidden in revocation fixture")};
   const context=vm.createContext({...bindings,chrome:api,URL,Date,crypto:webcrypto,
     setTimeout:(fn,ms)=>{const timer=manualTimers?{fn,ms}:setTimeout(fn,ms);timers.add(timer);return timer},clearTimeout:timer=>{if(!manualTimers)clearTimeout(timer);timers.delete(timer)},
-    runExtensionMigration:async()=>({fixture:true}),forwardExtensionRpc:forbidden,broadcastExtensionTransaction:forbidden,unlockEncryptedVault:forbidden,signExtensionRequest:forbidden,fetch:forbidden});
+    runExtensionMigration:async()=>({fixture:true}),providerAccountFromVault:()=>ACCOUNT,forwardExtensionRpc:forbidden,broadcastExtensionTransaction:forbidden,unlockEncryptedVault:forbidden,signExtensionRequest:forbidden,fetch:forbidden});
   vm.runInContext(executable,context);t.after(()=>{if(!manualTimers)for(const timer of timers)clearTimeout(timer)});
   const request=(id,method="wallet_revokePermissions",params=[{eth_accounts:{}}])=>{
     const tab=tabs.get(id),sender={tab:publicTab(tab),frameId:0,url:tab.url,...(tab.documentId!==undefined?{documentId:tab.documentId,documentLifecycle:"active"}:{})};

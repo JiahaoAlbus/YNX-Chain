@@ -1,0 +1,8 @@
+@import "./signer.css";
+header .language{margin-left:auto;min-width:64px;min-height:32px;padding:4px 8px;font-size:12px;letter-spacing:0}
+.identity dd{font-family:inherit;font-size:14px;line-height:1.5;unicode-bidi:plaintext}
+#origin,#account,#application,#browser-context,#scope-ids{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+#scopes{display:grid;gap:8px}
+.scope-item{display:block;padding:8px 10px;border-radius:8px;background:#f2f5ff;color:#182b58;font-size:13px}
+details .identity{margin:10px 0 0}
+.actions{position:static}

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "class": "local-followup-candidate",
+  "sourceCommit": "ab82417086b6f067512e30507813af3c22ee07e5",
+  "previousStoreCandidateCommit": "c5df9a9a1cc2a22ba7623ba2b85da138b66c3b5f",
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.1.zip",
+      "bytes": 315532,
+      "sha256": "7b94951cc88ff187341376e074c4c6a2030d1cae1c23608a6325b301b596a031"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.1.zip",
+      "bytes": 550262,
+      "sha256": "0c1df1e21d6077566163ba1bf848a5391d98970767396ca7dafd4d2e24c8a4ed"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.1.zip",
+      "bytes": 550360,
+      "sha256": "5fb90533276c7f9e2f8e615ca871f0282a32ea478dce778ca2625bb25efed669"
+    }
+  ],
+  "reviewerSource": {
+    "name": "ynx-wallet-reviewer-source-ab82417.zip",
+    "bytes": 2268111,
+    "sha256": "8286652ef4aad82e9af9a69f9b831b971d2e3ac6f2a89180fbfcaaecf72b961c",
+    "sourceFileCount": 249,
+    "authorityRecords": 14,
+    "expectedOutputFiles": 110,
+    "cleanExtractedRebuild": {
+      "verifiedSourceFiles": 249,
+      "verifiedOutputFiles": 110,
+      "authorityArchiveSha256": "4a7eed2da6b1626cce94713a0d4420c56ebedef0d71ee39b7e2cd9bc6762ead7",
+      "gitRepositoryRequired": false,
+      "externalDependencySymlinks": false,
+      "allBytesMatch": true
+    }
+  },
+  "installedLocal": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false
+}

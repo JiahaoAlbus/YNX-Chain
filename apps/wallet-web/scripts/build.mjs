@@ -167,6 +167,25 @@ const compiled=compilePwaShell(pwaInputs,await readFile(join(root,"public","sw.j
 for(const [file,bytes] of Object.entries(compiled.files))await writeFile(join(dist,"pwa",file),bytes);
 if(pwaOnly){console.log(`Built PWA shell ${compiled.buildId}`);return;}
 
+// A separate hosted signer surface on wallet.ynxweb4.com. The Companion PWA
+// remains an extension discovery page and never inherits this vault authority.
+const hosted = join(dist,"hosted");
+await mkdir(hosted,{recursive:true});
+await cp(join(root,"public","hosted-wallet.html"),join(hosted,"index.html"));
+await cp(join(root,"public","hosted-wallet.css"),join(hosted,"hosted-wallet.css"));
+await cp(join(root,"public","ynx-logo.png"),join(hosted,"ynx-logo.png"));
+await bundle({entryPoints:[join(root,"src","hosted-wallet-app.js")],outfile:join(hosted,"app.js"),bundle:true,format:"esm",platform:"browser",target:"chrome120",legalComments:"none",minify:true});
+await bundle({entryPoints:[join(root,"src","hosted-adapter.js")],outfile:join(hosted,"adapter.js"),bundle:true,format:"esm",platform:"browser",target:"chrome120",legalComments:"none",minify:true});
+// Vercel publishes dist/pwa, not the sibling dist/hosted build used by
+// first-party consumers to pin adapter.js. Preserve byte-for-byte identity.
+const publishedHosted = join(dist,"pwa","hosted");
+await mkdir(publishedHosted,{recursive:true});
+for (const file of ["index.html","hosted-wallet.css","ynx-logo.png","app.js","adapter.js"]) {
+  const bytes = await readFile(join(hosted,file));
+  await writeFile(join(publishedHosted,file),bytes);
+  if (!(await readFile(join(publishedHosted,file))).equals(bytes)) throw new Error(`Hosted publish asset mismatch: ${file}`);
+}
+
 const variants = [
   ["chromium", chromiumManifest],
   ["firefox", firefoxManifest],
@@ -177,7 +196,7 @@ const manifestIcon=await sharp(logoBytes).resize(128,128,{fit:"contain",kernel:"
 for (const [name, manifest] of variants) {
   const target = join(dist, name); await mkdir(target, {recursive: true});
   for (const file of ["index.html", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
-  for (const file of ["approval.html","approval.css","approval.js","vault.html","vault.css","vault.js","signer.html","signer.css","signer.js"]) await cp(join(root,"extension",file),join(target,file));
+  for (const file of ["approval.html","approval.css","approval.js","private-approval.html","private-approval.css","private-approval.js","vault.html","vault.css","vault.js","signer.html","signer.css","signer.js"]) await cp(join(root,"extension",file),join(target,file));
   for (const file of ["provider.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(target, file));
   await writeFile(join(target,"wallet-address.js"),walletAddressAuthorityBytes);
   await cp(join(root, "src", "service-worker-policy.js"), join(target, "service-worker-policy.js"));
@@ -185,9 +204,11 @@ for (const [name, manifest] of variants) {
   await cp(join(root, "src", "extension-bridge.js"), join(target, "extension-bridge.js"));
   await cp(join(root, "src", "extension-rpc.js"), join(target, "extension-rpc.js"));
   await cp(join(root, "src", "extension-provider-permissions.js"), join(target, "extension-provider-permissions.js"));
+  await cp(join(root, "src", "extension-chain-params.js"), join(target, "extension-chain-params.js"));
   await bundle({entryPoints:[join(root,"src","extension-vault.js")],outfile:join(target,"extension-vault.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await bundle({entryPoints:[join(root,"src","extension-broadcast-journal.js")],outfile:join(target,"extension-broadcast-journal.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await bundle({entryPoints:[join(root,"src","extension-signer.js")],outfile:join(target,"extension-signer.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
+  await bundle({entryPoints:[join(root,"src","extension-product-session-v2.js")],outfile:join(target,"extension-product-session-v2.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await cp(join(root, "src", "core-auth-consumer.js"), join(target, "core-auth-consumer.js"));
   await cp(join(root, "src", "extension-sensitive-policy.js"), join(target, "extension-sensitive-policy.js"));
   await cp(join(root, "src", "active-tab-policy.js"), join(target, "active-tab-policy.js"));

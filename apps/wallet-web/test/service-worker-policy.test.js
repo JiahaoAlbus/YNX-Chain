@@ -11,6 +11,8 @@ test("PWA routes only same-origin GET navigation and assets into cache strategie
   assert.equal(PWA_CACHE.startsWith("ynx-wallet-web-v"),false);
   assert.equal(serviceWorkerRoute(request(`${origin}/wallet`,"GET","navigate"),origin),"navigation-network-first");
   assert.equal(serviceWorkerRoute(request(`${origin}/app.js`),origin),"asset-cache-first");
+  assert.equal(serviceWorkerRoute(request(`${origin}/hosted/`,`GET`,`navigate`),origin),"network-only");
+  assert.equal(serviceWorkerRoute(request(`${origin}/hosted/app.js`),origin),"network-only");
   assert.equal(serviceWorkerRoute(request("https://rpc-testnet.ynxweb4.com","POST"),origin),"network-only");
   assert.equal(serviceWorkerRoute(request("https://metamask.io/download"),origin),"network-only");
   assert.equal(serviceWorkerRoute(request("https://www.ynxweb4.com/downloads/wallet.apk"),origin),"network-only");
