@@ -2,9 +2,10 @@ import {createServer,type IncomingMessage} from 'node:http';
 import {CardError,ENVIRONMENT,type WalletAuthority} from './contracts.ts';
 import {CardService} from './service.ts';
 import {requireScope,scopeForRoute} from './permissions.ts';
+import {CardProviderRegistry} from './providerRegistry.ts';
 async function body(request:IncomingMessage):Promise<any>{let bytes=0;const chunks:Buffer[]=[];for await(const chunk of request){const data=Buffer.from(chunk);bytes+=data.length;if(bytes>65536)throw new CardError('REQUEST_TOO_LARGE',413);chunks.push(data)}try{return chunks.length?JSON.parse(Buffer.concat(chunks).toString('utf8')):{}}catch{throw new CardError('INVALID_JSON',400)}}
 function rejectSensitive(value:any){if(Array.isArray(value)){value.forEach(rejectSensitive);return}if(!value||typeof value!=='object')return;for(const[key,child]of Object.entries(value)){if(/^(pan|cvv|cvc|pin|seed|mnemonic|privateKey|cryptogram|trackData|fullCardNumber)$/i.test(key))throw new CardError('SENSITIVE_PAYMENT_DATA_FORBIDDEN',400);rejectSensitive(child)}}
-export function createCardServer(options:{service:CardService;wallet:WalletAuthority;sourceCommit:string;allowedOrigin?:string;configurationReady:boolean}){
+export function createCardServer(options:{service:CardService;wallet:WalletAuthority;sourceCommit:string;allowedOrigin?:string;configurationReady:boolean;providerRegistry?:CardProviderRegistry}){
   return createServer(async(request,response)=>{
     response.setHeader('Cache-Control','no-store');response.setHeader('X-Content-Type-Options','nosniff');response.setHeader('Content-Type','application/json; charset=utf-8');
     const send=(status:number,value:unknown)=>{response.statusCode=status;response.end(JSON.stringify(value))};
@@ -13,7 +14,7 @@ export function createCardServer(options:{service:CardService;wallet:WalletAutho
       if(['origin','x-ynx-product-session-proof-v2','x-ynx-card-platform','idempotency-key'].some(name=>(counts.get(name)??0)>1))throw new CardError('DUPLICATE_CARD_SECURITY_HEADER',400);
       const origin=request.headers.origin;if(origin&&origin!==options.allowedOrigin)throw new CardError('CARD_ORIGIN_NOT_ALLOWED',403);if(origin){response.setHeader('Access-Control-Allow-Origin',origin);response.setHeader('Vary','Origin')}
       if(request.method==='OPTIONS'){response.setHeader('Access-Control-Allow-Headers','X-YNX-Product-Session-Proof-V2, X-YNX-Card-Platform, Content-Type, Idempotency-Key');response.setHeader('Access-Control-Allow-Methods','GET, POST, PUT, PATCH, OPTIONS');response.statusCode=204;response.end();return}
-      const path=new URL(request.url??'/','http://card-backend.invalid').pathname;
+      const parsedUrl=new URL(request.url??'/','http://card-backend.invalid'),path=parsedUrl.pathname;
       if(request.method==='GET'&&(path==='/healthz'||path==='/version'||path==='/api/card/v1/version')){send(200,{service:'ynx-card-business-backend',schemaVersion:1,sourceCommit:options.sourceCommit,environment:ENVIRONMENT,configurationReady:options.configurationReady,runtimeFundingVerified:false,productionRealPayments:false});return}
       const method=request.method??'',requiredScope=scopeForRoute(method,path);
       if(request.headers.authorization||request.headers['x-ynx-product-session-proof'])throw new CardError('LEGACY_CARD_AUTH_NOT_SUPPORTED',401);
@@ -21,7 +22,12 @@ export function createCardServer(options:{service:CardService;wallet:WalletAutho
       const platform=request.headers['x-ynx-card-platform'];if(platform!==undefined&&platform!=='web'&&platform!=='ios'&&platform!=='android')throw new CardError('INVALID_CARD_PLATFORM',400);
       const principal=await options.wallet.authenticate({proofHeader:proof??'',...(origin?{origin}:{}),...(platform?{platform}:{}),operation:method==='GET'?'read':'write',method,path,requiredScopes:[requiredScope]});requireScope(principal,requiredScope);const input=await body(request);rejectSensitive(input);
       const key=String(request.headers['idempotency-key']??'');const service=options.service;let result:unknown;
-      if(request.method==='GET'&&path==='/api/card/v1/state')result=service.getState(principal);
+      if(request.method==='GET'&&path==='/api/card/v2/provider-overview')result=options.providerRegistry?.overview(principal)??(()=>{throw new CardError('PROVIDER_REGISTRY_UNAVAILABLE',503)})();
+      else if(request.method==='GET'&&/^\/api\/card\/v2\/cards\/[^/]+\/provider-activity$/.test(path)){
+        const cardId=path.split('/')[5]!;const rawCursor=parsedUrl.searchParams.get('cursor'),rawLimit=parsedUrl.searchParams.get('limit');if(parsedUrl.searchParams.size>Number(rawCursor!==null)+Number(rawLimit!==null))throw new CardError('INVALID_ACTIVITY_PAGE',400);
+        if(!options.providerRegistry)throw new CardError('PROVIDER_REGISTRY_UNAVAILABLE',503);result=options.providerRegistry.activity(principal,cardId,rawCursor===null?0:Number(rawCursor),rawLimit===null?50:Number(rawLimit));
+      }
+      else if(request.method==='GET'&&path==='/api/card/v1/state')result=service.getState(principal);
       else if(request.method==='POST'&&path==='/api/card/v1/applications')result=service.createApplication(principal,input,key);
       else if(request.method==='POST'&&path==='/api/card/v1/topups')result=await service.confirmTopup(principal,input.intentId,input.txHash,key);
       else {
@@ -42,7 +48,7 @@ export function createCardServer(options:{service:CardService;wallet:WalletAutho
         else if(settlement&&request.method==='POST'&&((settlement[1]==='captures'&&settlement[3]==='refund')||(settlement[1]==='authorizations'&&settlement[3]!=='refund')))result=service.settle(principal,settlement[2]!,settlement[3] as 'capture'|'reverse'|'refund',input,key);
         else throw new CardError('CARD_ROUTE_NOT_FOUND',404);
       }
-      send(200,{schemaVersion:1,sourceCommit:options.sourceCommit,sessionOwner:principal.owner,environment:ENVIRONMENT,productionRealPayments:false,data:result});
+      send(200,{schemaVersion:path.startsWith('/api/card/v2/')?2:1,sourceCommit:options.sourceCommit,sessionOwner:principal.owner,environment:ENVIRONMENT,productionRealPayments:false,data:result});
     }catch(error){const known=error instanceof CardError;send(known?error.status:503,{error:{code:known?error.code:'PRIVATE_SERVICE_DEGRADED',message:known?error.code:'Card private service is unavailable'},environment:ENVIRONMENT,productionRealPayments:false})}
   });
 }
