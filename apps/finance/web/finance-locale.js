@@ -22,6 +22,10 @@
     }
   };
   Object.assign(messages.en,{
+    testMarketIdentityBoundary:'YNX-owned accounts use native ynx addresses. A 0x EVM wallet address is separate until an explicit verified account link exists; changing its prefix does not link ownership.',
+    testDraftQuote:'Locally calculated test quote',
+    testDraftMaximumFee:'Contract maximum fee bound (5%, not a verified live fee)',
+    testDraftMaximumDebit:'Maximum buyer debit at that bound',
     assets:'Assets',orders:'Orders',strategies:'Strategies',budgetsReports:'Budgets & reports',settings:'Settings',appName:'YNX Finance',accountMenu:'Account',walletPermissions:'Wallet & permissions',
     boundaryShort:'Evidence first',boundarySummary:'No custody. Finance is not a bank account. Testnet and Sandbox data are separate; unavailable sources stay unknown.',
     walletHeading:'Connect to Finance',walletIntro:'Browse without a wallet. Connect one to see your own available testnet records.',walletMore:'More account permissions and recovery',
@@ -61,6 +65,10 @@
     brokerPreviewMaximum:'Maximum',brokerPreviewFee:'maximum fee',brokerPreviewExpires:'expires',brokerPreviewRequest:'Request',brokerRecovered:'Recovered from this browser; review or revoke the same request.',brokerProviderNotContacted:'Broker provider has not been contacted.',brokerConfidentialPending:'Confidential Wallet review is pending for this account.',brokerConfidentialNoStorage:'Order details are not stored in browser session storage. Review exact terms in YNX Wallet.',brokerCopyReview:'Copy secure YNX Wallet review link',brokerReviewOrRevoke:'Review or revoke exact approval in YNX Wallet',brokerReviewExact:'Review exact order in YNX Wallet',brokerTicketExpired:'The Wallet review ticket expired. No Broker order was sent.',brokerTicketStillActive:'The same Wallet review ticket remains active. Copy it again or wait for expiry.',brokerLegacyExpired:'The local Wallet request expired and was cleared. No execution outbox was created.',brokerLegacyExpiredNotice:'Expired Wallet request cleared. No Broker action occurred.',brokerLegacyActive:'An existing Wallet request remains active. Reopen or revoke it before creating another.',brokerAuthorityUnavailable:'Order review is unavailable until private Wallet authority is verified. The exact pending request was not deleted; no Broker order was sent.',
   });
   Object.assign(messages['zh-CN'],{
+    testMarketIdentityBoundary:'YNX 自有账户使用原生 ynx 地址。0x EVM 钱包地址在完成明确验证的账户关联前属于独立身份；更换地址前缀不能证明所有权。',
+    testDraftQuote:'本地计算的测试报价',
+    testDraftMaximumFee:'合约最高费用边界（5%，并非已验证的实时费率）',
+    testDraftMaximumDebit:'按该边界计算的买方最高支出',
     assets:'资产',orders:'订单',strategies:'策略',budgetsReports:'预算与报表',settings:'设置',appName:'YNX Finance',accountMenu:'账户',walletPermissions:'钱包与权限',
     boundaryShort:'证据优先',boundarySummary:'Finance 不托管资产，也不是银行账户。测试网与券商沙盒数据彼此独立；来源不可用时显示未知。',
     walletHeading:'连接 Finance',walletIntro:'无需钱包也可浏览。连接钱包后可按权限查看自己的测试网记录。',walletMore:'更多账户权限与恢复选项',

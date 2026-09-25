@@ -431,7 +431,9 @@ test('real browser previews a test-only DvP draft without Wallet or chain writes
     await page.getByLabel('TEST-AAPL quantity').fill('1.25');
     await page.getByLabel('Your limit price in tUSD per share').fill('2.500000');
     await page.getByRole('button',{name:'Preview test-only terms'}).click();
-    assert.match(await page.locator('#test-market-draft-result').textContent(),/1.25 TEST-AAPL @ 2.500000 tUSD/);
+    assert.match(await page.locator('#test-market-draft-result').textContent(),/1.250000 TEST-AAPL @ 2.500000 tUSD/);
+    assert.match(await page.locator('#test-market-draft-result').textContent(),/3.125000 tUSD/);
+    assert.match(await page.locator('#test-market-draft-result').textContent(),/0.156250 tUSD/);
     assert.match(await page.locator('#test-market-draft-result').textContent(),/No market quote, fee, allowance, counterparty/);
     assert.equal(posts.length,before);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);

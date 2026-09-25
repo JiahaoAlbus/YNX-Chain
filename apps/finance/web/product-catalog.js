@@ -2,6 +2,23 @@
   const escapeHTML=(value)=>String(value??'').replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
   const text=(key)=>window.YNXFinanceLocale?.text(key)??key;
   const localized=(key,source)=>source===window.YNXFinanceLocale?.source(key)?text(key):source;
+  const parseUnits=(value)=>{
+    if(!/^(?:0|[1-9][0-9]{0,12})(?:\.[0-9]{1,6})?$/u.test(value))return null;
+    const [whole,fraction='']=value.split('.');
+    const units=BigInt(whole)*1000000n+BigInt(fraction.padEnd(6,'0')||'0');
+    return units>0n?units:null;
+  };
+  const formatUnits=(units)=>`${units/1000000n}.${String(units%1000000n).padStart(6,'0')}`;
+  // This is a local upper-bound calculation from the pinned QA contract, never a live quote.
+  const previewTestDvP=(quantity,price)=>{
+    const shares=parseUnits(quantity),priceUnits=parseUnits(price);
+    if(shares===null||priceUnits===null||shares>1000000000000n)return null;
+    const quote=shares*priceUnits/1000000n;
+    if(quote===0n||quote>10000000000000n)return null;
+    const maximumFee=quote*500n/10000n;
+    if(quote+maximumFee>10000000000000n)return null;
+    return Object.freeze({shares:formatUnits(shares),price:formatUnits(priceUnits),quote:formatUnits(quote),maximumFee:formatUnits(maximumFee),maximumBuyerDebit:formatUnits(quote+maximumFee)});
+  };
   let currentCatalog=null;
   const render=(catalog)=>{
     const target=document.querySelector('#product-channels');
@@ -34,7 +51,7 @@
       const safeTestDirectory=gate?.chainId===6423&&gate.sourceCommit==='6663df43e2f973a90a591cc88fc120a540df7f4a'&&gate.dryRunManifestSha256==='efd4d0c8f372a6a5c94a8687c17321b02144c4b812602a5e672252469a585802'&&gate.testOnly===true&&gate.deploymentVerified===false&&gate.chainSubmissionEnabled===false&&gate.publicAddresses===null&&
         Array.isArray(gate.assets)&&gate.assets.length===2&&gate.assets.includes('TEST-AAPL')&&gate.assets.includes('tUSD')&&gate.settlementContract==='TestDvP';
       const draftForm=safeTestDirectory?`<form id="test-market-draft" autocomplete="off"><label>${escapeHTML(text('testDraftQty'))}<input name="quantity" inputmode="decimal" maxlength="24" required></label><label>${escapeHTML(text('testDraftPrice'))}<input name="limitPrice" inputmode="decimal" maxlength="24" required></label><button type="submit">${escapeHTML(text('testDraftPreview'))}</button><p id="test-market-draft-result" role="status" aria-live="polite"></p></form>`:'';
-      const testMarketNotice=channel.id==='ynx-evm-test'?`<div class="test-market-gate" data-chain-submission="disabled"><strong>${escapeHTML(text('testAssetDirectory'))}</strong><p>${escapeHTML(text('testMarketPublicUnavailable'))}</p>${draftForm}</div>`:'';
+      const testMarketNotice=channel.id==='ynx-evm-test'?`<div class="test-market-gate" data-chain-submission="disabled"><strong>${escapeHTML(text('testAssetDirectory'))}</strong><p>${escapeHTML(text('testMarketPublicUnavailable'))}</p><p>${escapeHTML(text('testMarketIdentityBoundary'))}</p>${draftForm}</div>`:'';
       const card=`<article class="panel channel-card" data-channel="${escapeHTML(channel.id)}"><div class="panel-head"><div><span class="eyebrow">${escapeHTML(environment)}</span><h3>${escapeHTML(label)}</h3></div><span class="pill ${channel.availability==='disabled'?'warning':'neutral'}">${escapeHTML(availability)}</span></div><p>${escapeHTML(risk)}</p>${testMarketNotice}${action?`<a class="button ${channel.id==='broker-sandbox'?'primary':'ghost'}" href="${action.href}">${escapeHTML(text(action.label))}</a>`:`<button type="button" disabled>${escapeHTML(text('unavailable'))}</button>`}<details><summary>${escapeHTML(text('boundary'))}</summary><p><small>${escapeHTML(channel.availability)}${gate?.reason?` · ${escapeHTML(gate.reason)}`:''}</small></p>${channel.id==='ynx-evm-test'?`<p>${escapeHTML(text('testMarketUnverified'))}</p>${safeTestDirectory?`<small>${escapeHTML(gate.assets.join(' · '))} · ${escapeHTML(gate.settlementContract)}</small>`:''}`:''}<dl><div><dt>${escapeHTML(text('unit'))}</dt><dd>${escapeHTML(channel.unit)}</dd></div><div><dt>${escapeHTML(text('settlement'))}</dt><dd>${escapeHTML(channel.settlement)}</dd></div><div><dt>${escapeHTML(text('custody'))}</dt><dd>${escapeHTML(channel.custody)}</dd></div></dl><small>${(channel.capabilities||[]).length?escapeHTML(channel.capabilities.join(' · ')):escapeHTML(text('noCapabilities'))}</small></details></article>`;
       return channel.id==='future-live'?`<details class="future-products"><summary>${escapeHTML(text('futureProducts'))}</summary>${card}</details>`:card;
     }).join('');
@@ -44,9 +61,9 @@
     event.preventDefault();
     const form=event.target,result=form.querySelector('#test-market-draft-result');
     const quantity=String(form.elements.quantity.value).trim(),price=String(form.elements.limitPrice.value).trim();
-    const positive=value=>/^(?:0|[1-9][0-9]{0,12})(?:\.[0-9]{1,6})?$/u.test(value)&&/[1-9]/u.test(value);
-    if(!positive(quantity)||!positive(price)){result.textContent=text('testDraftInvalid');return}
-    result.textContent=`${quantity} TEST-AAPL @ ${price} tUSD. ${text('testDraftResult')}`;
+    const preview=previewTestDvP(quantity,price);
+    if(!preview){result.textContent=text('testDraftInvalid');return}
+    result.textContent=`${preview.shares} TEST-AAPL @ ${preview.price} tUSD. ${text('testDraftQuote')}: ${preview.quote} tUSD. ${text('testDraftMaximumFee')}: ${preview.maximumFee} tUSD. ${text('testDraftMaximumDebit')}: ${preview.maximumBuyerDebit} tUSD. ${text('testDraftResult')}`;
   });
   fetch('/api/product-catalog',{headers:{Accept:'application/json'}}).then(response=>{
     if(!response.ok)throw new Error('catalog unavailable');
