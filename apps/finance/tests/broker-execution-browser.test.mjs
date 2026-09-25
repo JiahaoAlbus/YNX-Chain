@@ -95,6 +95,48 @@ test('guest Finance workbench is English by default, switches Chinese and fits a
   }finally{await page.close()}
 });
 
+test('saved Chinese locale renders Broker unknown states on a cold 390px load',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  try{
+    await page.addInitScript(()=>localStorage.setItem('ynx-finance-locale','zh-CN'));
+    await page.route('**/api/broker/snapshot',route=>route.fulfill({status:503,contentType:'application/json',body:'{}'}));
+    await page.goto(base+'/#orders');
+    assert.equal(await page.locator('html').getAttribute('lang'),'zh-CN');
+    assert.equal(await page.locator('#broker-account').textContent(),'未关联');
+    assert.equal(await page.locator('#broker-cash').textContent(),'未知，并非零');
+    assert.equal(await page.locator('#broker-buying-power').textContent(),'未知，并非零');
+    assert.equal(await page.locator('#broker-positions').innerText(),'未知：服务商尚未返回数据。');
+    assert.equal(await page.locator('#broker-orders').innerText(),'未知：服务商尚未返回数据。');
+    assert.equal(await page.locator('#broker-order-preview').textContent(),'尚未创建审核请求。');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  }finally{await page.close()}
+});
+
+test('failed Broker asset search is not an empty result and invalidates an old selection',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844}});let mode='asset';const posts=[];
+  page.on('request',request=>{if(request.method()==='POST')posts.push(new URL(request.url()).pathname)});
+  try{
+    await page.route('**/api/broker/assets?*',route=>mode==='failure'?route.fulfill({status:503,contentType:'application/json',body:'{}'}):route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({schema:'ynx-finance-broker-assets-v1',assets:mode==='empty'?[]:[{id:'11111111-2222-4333-8444-555555555555',symbol:'ACME',name:'ACME fixture asset',status:'active',tradable:true}]})}));
+    await page.goto(base+'/#orders');
+    await page.locator('#broker-asset-search button[type=submit]').click();
+    await page.locator('#broker-asset-results [data-broker-select]').click();
+    assert.equal(await page.locator('#broker-order-form [name=assetId]').inputValue(),'11111111-2222-4333-8444-555555555555');
+    mode='failure';await page.locator('#broker-asset-search button[type=submit]').click();
+    await page.waitForFunction(()=>document.querySelector('#broker-asset-results')?.textContent==='Sandbox asset directory is unavailable.');
+    assert.equal(await page.locator('#broker-asset-results [data-broker-select]').count(),0);
+    assert.equal(await page.locator('#broker-order-form [name=assetId]').inputValue(),'');
+    assert.equal(await page.locator('#broker-order-form [name=symbol]').inputValue(),'');
+    assert.equal(await page.locator('#broker-order-preview').textContent(),'No approval request created.');
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.equal(await page.locator('#broker-asset-results').innerText(),'沙盒资产目录暂不可用。');
+    mode='empty';await page.locator('#broker-asset-search button[type=submit]').click();
+    await page.waitForFunction(()=>document.querySelector('#broker-asset-results')?.textContent==='没有匹配的可交易官方资产，不会替换为示例数据。');
+    await page.locator('#finance-language').selectOption('en');
+    assert.equal(await page.locator('#broker-asset-results').innerText(),'No active tradable provider asset matched. Nothing was substituted.');
+    assert.deepEqual(posts,[]);
+  }finally{await page.close()}
+});
+
 test('Broker order main state localizes while machine codes stay behind details',async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844}});
   try{

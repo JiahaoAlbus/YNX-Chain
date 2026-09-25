@@ -23,7 +23,7 @@ let brokerConfigurationState='brokerStatusMissing';
 function renderBrokerConfigurationStatus(){const target=document.querySelector('#broker-status');if(target)target.textContent=financeText(brokerConfigurationState)}
 let brokerDiagnosticsState={approval:false,journal:false};
 function renderBrokerDiagnostics(){const approval=document.querySelector('#broker-approval'),journal=document.querySelector('#broker-journal');if(approval)approval.textContent=financeText(brokerDiagnosticsState.approval?'brokerApprovalAvailable':'brokerApprovalUnavailable');if(journal)journal.textContent=financeText(brokerDiagnosticsState.journal?'brokerJournalAvailable':'brokerJournalUnavailable')}
-document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();renderBrokerDiagnostics();renderWalletIdentity();renderBrokerSnapshot();renderSourceStatus();renderBrokerQuote();renderBrokerWorkspace(brokerWorkspaceDisplay);if(brokerApprovalDisplay)renderBrokerApprovalRoute(brokerApprovalDisplay.route,brokerApprovalDisplay.recovered);else if(brokerApprovalMessageKey)$('#broker-order-preview').textContent=financeText(brokerApprovalMessageKey);if(brokerAssetResults!==null)renderBrokerAssets(brokerAssetResults);if(!state.connected)route()});
+document.addEventListener('finance:localechange',()=>{renderBrokerConfigurationStatus();renderBrokerDiagnostics();renderWalletIdentity();renderBrokerSnapshot();renderSourceStatus();renderBrokerQuote();renderBrokerWorkspace(brokerWorkspaceDisplay);if(brokerApprovalDisplay)renderBrokerApprovalRoute(brokerApprovalDisplay.route,brokerApprovalDisplay.recovered);else if(brokerApprovalMessageKey)$('#broker-order-preview').textContent=financeText(brokerApprovalMessageKey);if(brokerAssetResults!==null)renderBrokerAssets(brokerAssetResults,brokerAssetSearchFailed);if(!state.connected)route()});
 // Guest-readable diagnostics only. This never requests a Wallet account, signs,
 // reads broker credentials or automatically enables order submission.
 let brokerCheckRevision=0;
@@ -67,18 +67,19 @@ function selectBrokerAsset(asset){
   state.brokerSelectedAsset=asset;const form=$('#broker-order-form');form.elements.assetId.value=asset.id;form.elements.symbol.value=asset.symbol;
   $('#broker-order-preview').textContent=`${financeText('brokerAssetSelected')} ${asset.symbol} · ${asset.name}. ${financeText('brokerNoWrite')}`;
 }
-let brokerAssetResults=null,brokerAssetSearchRevision=0,brokerAssetSearchController=null;
-function renderBrokerAssets(assets){
+let brokerAssetResults=null,brokerAssetSearchFailed=false,brokerAssetSearchRevision=0,brokerAssetSearchController=null;
+function renderBrokerAssets(assets,failed=false){
   brokerAssetResults=assets;
+  brokerAssetSearchFailed=failed;
   state.brokerAssets=new Map(assets.map(asset=>[asset.id,asset]));
-  $('#broker-asset-results').innerHTML=assets.length?assets.map(asset=>`<div class="row"><div class="row-main"><strong>${esc(asset.symbol)}</strong><small>${esc(asset.name)} · ${esc(financeText('brokerActiveAsset'))}</small></div><div class="wallet-choice"><button type="button" data-broker-select="${esc(asset.id)}">${esc(financeText('brokerSelect'))}</button>${state.connected?`<button type="button" data-broker-watch="${esc(asset.id)}">${esc(financeText('brokerAddWatch'))}</button>`:''}</div></div>`).join(''):`<div class="empty compact">${esc(financeText('brokerNoAssets'))}</div>`;
+  $('#broker-asset-results').innerHTML=failed?`<div class="empty compact">${esc(financeText('brokerAssetsUnavailable'))}</div>`:assets.length?assets.map(asset=>`<div class="row"><div class="row-main"><strong>${esc(asset.symbol)}</strong><small>${esc(asset.name)} · ${esc(financeText('brokerActiveAsset'))}</small></div><div class="wallet-choice"><button type="button" data-broker-select="${esc(asset.id)}">${esc(financeText('brokerSelect'))}</button>${state.connected?`<button type="button" data-broker-watch="${esc(asset.id)}">${esc(financeText('brokerAddWatch'))}</button>`:''}</div></div>`).join(''):`<div class="empty compact">${esc(financeText('brokerNoAssets'))}</div>`;
 }
 async function searchBrokerAssets(event){
   event?.preventDefault();const query=String(new FormData($('#broker-asset-search')).get('query')||'').trim();
   const revision=++brokerAssetSearchRevision;
   brokerAssetSearchController?.abort();const controller=new AbortController();brokerAssetSearchController=controller;
   const timer=setTimeout(()=>controller.abort(),5000);
-  try{const response=await fetch(`/api/broker/assets?query=${encodeURIComponent(query)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-assets-v1'||!Array.isArray(result.assets))throw new Error('Sandbox asset directory is unavailable.');if(revision===brokerAssetSearchRevision)renderBrokerAssets(result.assets)}catch{if(revision===brokerAssetSearchRevision){renderBrokerAssets([]);notify(financeText('brokerAssetsUnavailable'),true)}}finally{clearTimeout(timer);if(revision===brokerAssetSearchRevision)brokerAssetSearchController=null}
+  try{const response=await fetch(`/api/broker/assets?query=${encodeURIComponent(query)}`,{cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),result=await response.json();if(!response.ok||result?.schema!=='ynx-finance-broker-assets-v1'||!Array.isArray(result.assets))throw new Error('Sandbox asset directory is unavailable.');if(revision===brokerAssetSearchRevision)renderBrokerAssets(result.assets)}catch{if(revision===brokerAssetSearchRevision){state.brokerSelectedAsset=null;const form=$('#broker-order-form');form.elements.assetId.value='';form.elements.symbol.value='';brokerQuoteRevision++;brokerQuoteController?.abort();brokerQuoteDisplay={kind:'none'};renderBrokerQuote();renderBrokerAssets([],true);if(!brokerApprovalDisplay)$('#broker-order-preview').textContent=financeText('brokerNoApproval');notify(financeText('brokerAssetsUnavailable'),true)}}finally{clearTimeout(timer);if(revision===brokerAssetSearchRevision)brokerAssetSearchController=null}
 }
 function renderBrokerWatchlist(items){
   const list=Array.isArray(items)?items:[];
@@ -402,6 +403,7 @@ window.addEventListener('ynx-finance-standard-state',()=>{state.context++;clearI
 window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('offlineRetry','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
 $('#wallet-login-verify').addEventListener('click',verifyWalletIdentity);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);
+renderBrokerSnapshot();$('#broker-order-preview').textContent=financeText(brokerApprovalMessageKey);
 route();consumeCallback().then(load).then(()=>{if(!state.connected)return publicHealth()}).catch(error=>notify(error.message,true));
 document.querySelector('#broker-refresh').addEventListener('click',async()=>{await refreshBrokerConfiguration();await refreshBrokerSnapshot();await refreshBrokerWorkspace()});
 $('#broker-reconcile').addEventListener('click',reconcileBroker);
