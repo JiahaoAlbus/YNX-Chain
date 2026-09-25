@@ -218,6 +218,9 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	if cfg.DeployedPublic && existed && s.SchemaVersion < currentStateSchemaVersion {
+		return nil, fmt.Errorf("%w: public Exchange state requires an explicit reviewed schema migration", ErrConflict)
+	}
 	loadedIntegrity := s.IntegrityHash
 	if cfg.CustodyAddress != "" {
 		s.CustodyAddress = cfg.CustodyAddress

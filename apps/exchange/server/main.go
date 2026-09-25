@@ -46,6 +46,10 @@ func main() {
 	if err != nil {
 		log.Fatal("invalid registered Exchange Product Session v2 policy")
 	}
+	// No product-owned Chain Core v1.35 custody/settlement evidence has been
+	// accepted for this public venue. HTTP writes and background execution must
+	// remain closed together; an environment flag cannot assert that evidence.
+	const strategyVaultExecutionEvidence = false
 	service, err := exchangeproduct.New(exchangeproduct.Config{
 		StatePath: state, StateDatabaseURL: databaseURL, APIKey: apiKey, WalletCallback: callback,
 		CustodyAddress: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_CUSTODY_ADDRESS")),
@@ -64,10 +68,10 @@ func main() {
 		MaxWithdrawalMicro:     envInt64("YNX_EXCHANGE_MAX_WITHDRAWAL_MICRO", 25_000*exchangeproduct.AmountScale),
 		// A released server is public even when an old host lacks this env flag.
 		// Product-owned Strategy Vault evidence is a separate, explicit gate.
-		DeployedPublic:                 true,
+		DeployedPublic: true,
 		// A process environment claim alone cannot establish product-owned
 		// custody, matching, and settlement evidence on the public Testnet.
-		StrategyVaultExecutionEvidence: false,
+		StrategyVaultExecutionEvidence: strategyVaultExecutionEvidence,
 		DEXGatewayURL:                  strings.TrimSpace(os.Getenv("YNX_EXCHANGE_DEX_GATEWAY_URL")),
 		DEXQuoteAssetID:                strings.TrimSpace(os.Getenv("YNX_EXCHANGE_DEX_QUOTE_ASSET_ID")),
 		DEXQuoteAssetAttestationDigest: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_DEX_QUOTE_ASSET_ATTESTATION_DIGEST")),
@@ -82,34 +86,36 @@ func main() {
 		log.Fatal(err)
 	}
 	defer service.Close()
-	if _, err := service.SweepDeadMan(); err != nil {
-		log.Fatalf("initial Exchange dead-man sweep: %v", err)
-	}
-	if _, err := service.TickTWAP(); err != nil {
-		log.Fatalf("initial Exchange TWAP tick: %v", err)
-	}
-	if oracle != nil {
-		if _, err := service.RefreshRiskOracle(); err != nil {
-			log.Printf("initial Exchange oracle refresh degraded: %v", err)
+	if strategyVaultExecutionEvidence {
+		if _, err := service.SweepDeadMan(); err != nil {
+			log.Fatalf("initial Exchange dead-man sweep: %v", err)
 		}
-	}
-	go func() {
-		ticker := time.NewTicker(time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			if _, err := service.SweepDeadMan(); err != nil {
-				log.Printf("Exchange dead-man sweep degraded: %v", err)
+		if _, err := service.TickTWAP(); err != nil {
+			log.Fatalf("initial Exchange TWAP tick: %v", err)
+		}
+		if oracle != nil {
+			if _, err := service.RefreshRiskOracle(); err != nil {
+				log.Printf("initial Exchange oracle refresh degraded: %v", err)
 			}
-			if _, err := service.TickTWAP(); err != nil {
-				log.Printf("Exchange TWAP tick degraded: %v", err)
-			}
-			if oracle != nil {
-				if _, err := service.RefreshRiskOracle(); err != nil {
-					log.Printf("Exchange oracle refresh degraded: %v", err)
+		}
+		go func() {
+			ticker := time.NewTicker(time.Second)
+			defer ticker.Stop()
+			for range ticker.C {
+				if _, err := service.SweepDeadMan(); err != nil {
+					log.Printf("Exchange dead-man sweep degraded: %v", err)
+				}
+				if _, err := service.TickTWAP(); err != nil {
+					log.Printf("Exchange TWAP tick degraded: %v", err)
+				}
+				if oracle != nil {
+					if _, err := service.RefreshRiskOracle(); err != nil {
+						log.Printf("Exchange oracle refresh degraded: %v", err)
+					}
 				}
 			}
-		}
-	}()
+		}()
+	}
 	admission, err := newConfiguredAdmission(128, 600, time.Minute, databaseURL)
 	if err != nil {
 		log.Fatalf("configure Exchange admission: %v", err)

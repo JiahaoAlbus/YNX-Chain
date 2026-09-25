@@ -33,20 +33,17 @@ func TestExecutionRequiresStrategyVaultCustodyEvidence(t *testing.T) {
 	s.cfg.DeployedPublic = true
 	server := httptest.NewServer(NewServer(s))
 	defer server.Close()
-	response, err := http.Post(server.URL+"/v1/orders", "application/json", strings.NewReader(`{}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusServiceUnavailable {
-		t.Fatalf("status=%d", response.StatusCode)
-	}
-	var body map[string]any
-	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
-		t.Fatal(err)
-	}
-	if body["code"] != "strategy_vault_custody_evidence_required" {
-		t.Fatalf("body=%v", body)
+	for _, route := range []string{"/v1/orders", "/v1/admin/test-credits", "/v1/admin/perpetual/funding/settle"} {
+		response, err := http.Post(server.URL+route, "application/json", strings.NewReader(`{}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var body map[string]any
+		decodeErr := json.NewDecoder(response.Body).Decode(&body)
+		response.Body.Close()
+		if response.StatusCode != http.StatusServiceUnavailable || decodeErr != nil || body["code"] != "strategy_vault_custody_evidence_required" {
+			t.Fatalf("route=%s status=%d body=%v decode=%v", route, response.StatusCode, body, decodeErr)
+		}
 	}
 }
 

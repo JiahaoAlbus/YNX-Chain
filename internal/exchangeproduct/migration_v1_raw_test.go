@@ -31,4 +31,11 @@ func TestSchemaV1RawIntegritySurvivesHistoricalNestedShape(t *testing.T) {
 	if _, ok := state.Orders["historical"]; !ok {
 		t.Fatal("historical order identity was not retained")
 	}
+	if _, err := New(Config{StatePath: path, APIKey: "fixture-only-admin-key-123456", WalletCallback: "ynxexchange://wallet/callback", DeployedPublic: true}); err == nil {
+		t.Fatal("public server silently migrated historical state")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(indented.Bytes(), after) {
+		t.Fatal("failed public startup changed historical state")
+	}
 }
