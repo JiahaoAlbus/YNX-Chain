@@ -139,7 +139,7 @@ test("security invalidation clears old unlock success while an unchanged locked 
     let invalidatedInputs = 0;
     runInNewContext(`${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
       document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
-      walletCopy: english => english, accountState: { initialized: true },
+      walletCopy: english => english, t: english => english, accountState: { initialized: true },
       approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null,
       passwordUI: { cancel() {}, render() {} }, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
     });
@@ -186,7 +186,7 @@ async function sendEntryHarness() {
     async transferAction() { calls.push(["send"]); throw new Error("Unexpected transaction submission"); },
   };
   const context = { document, window: { ynxWallet: api }, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
-    accountReadFailed: false, walletCopy: english => english,
+    accountReadFailed: false, walletCopy: english => english, t: english => english,
     signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
     paymentDraftRevision: 0, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
     invalidatePaymentInput() { context.paymentDraftRevision++; },
@@ -241,7 +241,7 @@ test("password failure and cancellation preserve locked Send and do not prepare 
   h.get("#local-password").value = "local-fixture-password";
   await h.get("#password-form").emit("submit");
   assert.equal(h.calls.length, 1); assert.equal(h.calls[0][0], "unlock");
-  assert.equal(h.get("#password-result").textContent, "Fixture password rejected");
+  assert.equal(h.get("#password-result").textContent, "Wallet could not complete this operation. It remains locked.");
   assert.equal(h.context.keyState.locked, true); assert.equal(h.get("#send-sheet").open, false);
   await h.get("#custody-cancel").click();
   assert.equal(h.get("#password-sheet").open, false); assert.equal(h.get("#local-password").value, "");

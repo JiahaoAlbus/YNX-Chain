@@ -17,31 +17,34 @@ export function drawReceiveCode(canvas, code, expectedAccount) {
   }
 }
 
-export function createReceiveCodeUI({ canvas, status, requestCode, draw = drawReceiveCode }) {
+export function createReceiveCodeUI({ canvas, status, requestCode, draw = drawReceiveCode, translate = english => english }) {
   let revision = 0;
+  let statusKey = null, statusText = "";
+  function show(key) { statusKey = key; statusText = translate(key); status.textContent = statusText; }
   function clear() {
     revision++;
     canvas.hidden = true;
     canvas.width = canvas.height = 1;
+    statusKey = null; statusText = "";
     status.textContent = "";
   }
   async function refresh(account) {
     clear();
     if (!account) return;
     const current = revision;
-    status.textContent = "Preparing your receiving code…";
+    show("Preparing your receiving code…");
     try {
       const result = await requestCode(account);
       if (current !== revision) return;
       if (!result?.ok) throw new Error("Receiving account unavailable");
       draw(canvas, result.value, account);
       canvas.hidden = false;
-      status.textContent = "Scan with a Wallet that supports YNX Testnet.";
+      show("Scan with a Wallet that supports YNX Testnet.");
     } catch {
       if (current !== revision) return;
       canvas.hidden = true;
-      status.textContent = "The receiving code is unavailable. Reopen Receive to try again.";
+      show("The receiving code is unavailable. Reopen Receive to try again.");
     }
   }
-  return { clear, refresh };
+  return { clear, refresh, retranslate() { if (statusKey && status.textContent === statusText) show(statusKey); } };
 }

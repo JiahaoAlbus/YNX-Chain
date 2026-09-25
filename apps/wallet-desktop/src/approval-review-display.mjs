@@ -16,7 +16,7 @@ export function visibleText(value) {
     character => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
 }
 
-export function formatApprovalReview(review) {
+export function formatApprovalReview(review, translate = english => english) {
   const lines = [];
   for (const [field, value] of Object.entries(review)) {
     if (field === "title" || value === undefined) continue;
@@ -25,16 +25,16 @@ export function formatApprovalReview(review) {
       try {
         const bytes = Uint8Array.from(value.slice(2).match(/../g) ?? [], part => parseInt(part, 16));
         const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-        content = `Text: ${visibleText(text)}\nExact bytes: ${value}`;
-      } catch { content = `Exact bytes: ${value}`; }
+        content = `${translate("Text")}: ${visibleText(text)}\n${translate("Exact bytes")}: ${value}`;
+      } catch { content = `${translate("Exact bytes")}: ${value}`; }
     } else if (field === "value" && /^0x[0-9a-f]+$/i.test(content)) {
       const amount = BigInt(content), whole = amount / 10n ** 18n;
       const fraction = (amount % 10n ** 18n).toString().padStart(18, "0").replace(/0+$/, "");
-      content = `${whole}${fraction ? `.${fraction}` : ""} YNXT\nExact value: ${content} wei`;
+      content = `${whole}${fraction ? `.${fraction}` : ""} YNXT\n${translate("Exact value")}: ${content} wei`;
     } else if (field === "chainId" && ["0x1917", "6423"].includes(content)) {
       content = "YNX Testnet · 6423 (0x1917)";
     }
-    lines.push(`${labels[field] ?? field}: ${visibleText(content)}`);
+    lines.push(`${translate(labels[field] ?? field)}: ${visibleText(content)}`);
   }
   return lines.join("\n\n");
 }

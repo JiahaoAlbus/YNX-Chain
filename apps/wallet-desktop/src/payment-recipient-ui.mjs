@@ -1,6 +1,8 @@
 /** An asynchronous input lease owns only a Send draft, never a signing operation. */
-export function createPaymentRecipientUI({ getContext, parse, decode, apply, report, onStart = () => {} }) {
+export function createPaymentRecipientUI({ getContext, parse, decode, apply, report, onStart = () => {}, translate = english => english }) {
   let revision = 0;
+  let statusKey = null, statusText = "";
+  function show(key) { statusKey = key; statusText = translate(key); report(statusText); }
   const invalidate = () => { revision++; };
   function capture() {
     const current = ++revision, before = getContext();
@@ -14,7 +16,7 @@ export function createPaymentRecipientUI({ getContext, parse, decode, apply, rep
     const live = capture();
     if (!live()) return;
     onStart();
-    report("Reading recipient locally…");
+    show("Reading recipient locally…");
     try {
       const input = await load();
       if (!live()) return;
@@ -23,9 +25,9 @@ export function createPaymentRecipientUI({ getContext, parse, decode, apply, rep
       if (!result?.ok || !/^ynx1[023456789acdefghjklmnpqrstuvwxyz]+$/u.test(result.value?.ynxAccount ?? "") ||
           result.value.chainId !== "ynx_6423-1" || result.value.asset !== "YNXT") throw new Error("invalid");
       apply(result.value.ynxAccount);
-      report("Recipient filled. Enter the amount, then review the address and fee.");
+      show("Recipient filled. Enter the amount, then review the address and fee.");
     } catch {
-      if (live()) report("Recipient unavailable. Use a YNX Testnet address, receiving link or its QR image.");
+      if (live()) show("Recipient unavailable. Use a YNX Testnet address, receiving link or its QR image.");
     }
   }
   function text(value) { return consume(typeof value === "function" ? value : async () => value, false); }
@@ -37,5 +39,5 @@ export function createPaymentRecipientUI({ getContext, parse, decode, apply, rep
       return { bytes, mimeType: file.type };
     }, true);
   }
-  return { invalidate, text, image };
+  return { invalidate, text, image, retranslate(currentText) { if (statusKey && currentText === statusText) show(statusKey); } };
 }
