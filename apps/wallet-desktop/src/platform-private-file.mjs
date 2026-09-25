@@ -120,6 +120,11 @@ public static class YnxPrivateFileNative {
 } catch {
   # Only this fixed phase token crosses the process boundary. Exception text,
   # paths, ACL entries and Windows identity remain private to this process.
+  if ($script:phase -eq 'acl-get') {
+    if (-not ([IO.Directory]::Exists($target) -or [IO.File]::Exists($target))) { $script:phase = 'acl-get-absent' }
+    elseif ($_.Exception.GetType().Name -match 'Unauthorized|Security') { $script:phase = 'acl-get-denied' }
+    else { $script:phase = 'acl-get-other' }
+  }
   [Console]::Error.WriteLine('YNX_PRIVATE_FILE_STAGE:' + $script:phase)
   exit 1
 }
@@ -136,7 +141,7 @@ async function windowsOperation(operation, filePath, destination) {
     });
     return JSON.parse(stdout.trim());
   } catch (error) {
-    const phase = /^YNX_PRIVATE_FILE_STAGE:(runtime|request|path|acl-get|acl-owner|acl-rules|acl-build|acl-set|acl-verify|native-compile|native-replace|native-flush)$/m.exec(error?.stderr ?? "")?.[1];
+    const phase = /^YNX_PRIVATE_FILE_STAGE:(runtime|request|path|acl-get(?:-(?:absent|denied|other))?|acl-owner|acl-rules|acl-build|acl-set|acl-verify|native-compile|native-replace|native-flush)$/m.exec(error?.stderr ?? "")?.[1];
     const suffix = phase ?? (error?.killed ? "timeout" : "unknown");
     throw unavailable(`windows-${operation}-${suffix}`);
   }
