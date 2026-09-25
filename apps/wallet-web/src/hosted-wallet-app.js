@@ -8,16 +8,44 @@ import { extensionReviewText, prepareExtensionRequest, signExtensionRequest } fr
 import { parsePrivateRequest, privateProductName, privateReplayKey, rejectPrivateReturn, signPrivateReturn } from "./extension-product-session-v2.js";
 import { HOSTED_PROTOCOL, HOSTED_SESSION_MS, HOSTED_WALLET_ORIGIN, hostedEnvelope, parseHostedConnect, validateHostedMessage } from "./hosted-protocol.js";
 import { toYNXAddress } from "./wallet-address.js";
+import { HOSTED_LOCALES, HOSTED_LOCALE_KEY, hostedCopy, hostedDynamicCopy, normalizeHostedLocale } from "./hosted-i18n.js";
 
 const $ = id => document.getElementById(id);
 const status = $("status"), setup = $("setup"), review = $("review"), reviewText = $("review-text"), password = $("approval-password"), approve = $("approve"), reject = $("reject");
 const store = createHostedVaultStore();
 const broadcastJournal = new ExtensionBroadcastJournal(store.journalStorage);
 let vault = null, session = null, currentReview = null, activeRequest = null, busy = false, needsBackupAcknowledgement = false, backupDownloaded = false;
+let locale = (() => { try { return normalizeHostedLocale(localStorage.getItem(HOSTED_LOCALE_KEY) || navigator.language); } catch { return normalizeHostedLocale(navigator.language); } })();
+let lastStatus = { key: "opening", variables: {}, code: null }, transactionRecord = null, transactionError = null;
 const seen = new Set();
 const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 function fail(code) { throw Object.assign(new Error(code), { code }); }
-function message(value) { status.textContent = value; }
+function copy(key, variables) { return hostedDynamicCopy(locale, key, variables); }
+function messageKey(key, variables = {}, code = null) { lastStatus = { key, variables, code }; status.textContent = `${copy(key, variables)}${code === null ? "" : ` (${code})`}`; }
+function reviewDetails() {
+  if (!currentReview) return;
+  $("review-title").textContent = currentReview.titleKey ? copy(currentReview.titleKey, currentReview.titleVariables) : currentReview.title;
+  reviewText.textContent = currentReview.detailFactory ? currentReview.detailFactory(locale) : currentReview.detail;
+}
+function renderTransactionStatus() {
+  if (transactionError) { $("transaction-status").textContent = `${copy("txUnavailable")} (${transactionError})`; return; }
+  if (!transactionRecord) return;
+  $("transaction-status").textContent = `${transactionRecord.transactionHash} · ${transactionRecord.status}${transactionRecord.blocksNewSend ? ` · ${copy("txPaused")}` : ""}`;
+}
+function applyLocale(next) {
+  locale = normalizeHostedLocale(next);
+  document.documentElement.lang = locale;
+  document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+  $("locale-select").value = locale;
+  for (const element of document.querySelectorAll("[data-i18n]")) element.textContent = hostedCopy(locale, element.dataset.i18n);
+  for (const element of document.querySelectorAll("[data-i18n-placeholder]")) element.placeholder = hostedCopy(locale, element.dataset.i18nPlaceholder);
+  for (const element of document.querySelectorAll("[data-i18n-aria]")) element.setAttribute("aria-label", hostedCopy(locale, element.dataset.i18nAria));
+  messageKey(lastStatus.key, lastStatus.variables, lastStatus.code);
+  renderTransactionStatus(); reviewDetails();
+}
+for (const [code, label] of HOSTED_LOCALES) { const option = document.createElement("option"); option.value = code; option.textContent = label; $("locale-select").append(option); }
+$("locale-select").addEventListener("change", event => { applyLocale(event.target.value); try { localStorage.setItem(HOSTED_LOCALE_KEY, locale); } catch { /* Display choice remains active for this window. */ } });
+applyLocale(locale);
 function assertRequestLive(context) {
   if (!context || context !== activeRequest || context.cancelled || Date.now() >= context.expiresAt || !session || window.opener?.closed || Date.now() >= session.expiresAt) fail("HOSTED_REQUEST_EXPIRED");
 }
@@ -53,10 +81,10 @@ async function refreshTransactionStatus(refresh = false) {
     const readStatus = () => broadcastJournal.status(vault.account, { rpc: forwardExtensionRpc, refresh });
     const record = refresh ? await withHostedAccountLock(vault.account, async () => { await assertSelectedAccount(); return readStatus(); }) : await readStatus();
     $("transaction-panel").hidden = !record;
-    if (record) $("transaction-status").textContent = `${record.transactionHash} · ${record.status}${record.blocksNewSend ? " · New sends paused until original transaction is resolved." : ""}`;
+    transactionRecord = record; transactionError = null; renderTransactionStatus();
   } catch (error) {
     $("transaction-panel").hidden = false;
-    $("transaction-status").textContent = `Transaction history cannot be verified. Sending remains disabled. (${error?.code ?? "HOSTED_JOURNAL_UNAVAILABLE"})`;
+    transactionRecord = null; transactionError = error?.code ?? "HOSTED_JOURNAL_UNAVAILABLE"; renderTransactionStatus();
   }
 }
 function reply(type, extra = {}) {
@@ -70,11 +98,9 @@ function finishReview(accepted) {
   review.hidden = true; password.value = "";
   pending.resolve(accepted);
 }
-function askUser({ title, detail, secretRequired = false, context = null }) {
+function askUser({ title, detail, titleKey = null, titleVariables = {}, detailFactory = null, secretRequired = false, context = null }) {
   if (context) assertRequestLive(context);
   if (currentReview) fail("HOSTED_APPROVAL_BUSY");
-  $("review-title").textContent = title;
-  reviewText.textContent = detail;
   $("approval-password-label").hidden = !secretRequired;
   password.hidden = !secretRequired;
   password.value = "";
@@ -82,13 +108,14 @@ function askUser({ title, detail, secretRequired = false, context = null }) {
   approve.disabled = false; reject.disabled = false;
   window.focus();
   return new Promise(resolve => {
-    currentReview = { resolve, secretRequired, context, timer: context ? window.setTimeout(() => { context.cancelled = true; finishReview({ approved: false }); }, Math.max(0, context.expiresAt - Date.now())) : null };
+    currentReview = { resolve, secretRequired, context, title, detail, titleKey, titleVariables, detailFactory, timer: context ? window.setTimeout(() => { context.cancelled = true; finishReview({ approved: false }); }, Math.max(0, context.expiresAt - Date.now())) : null };
+    reviewDetails();
   });
 }
 approve.addEventListener("click", () => {
   if (!currentReview) return;
   if (currentReview.context) { try { assertRequestLive(currentReview.context); } catch { cancelActiveRequest(); return; } }
-  if (currentReview.secretRequired && (password.value.length < 12 || password.value.length > 256)) { message("Enter your local Wallet password to approve this exact request."); return; }
+  if (currentReview.secretRequired && (password.value.length < 12 || password.value.length > 256)) { messageKey("passwordRequired"); return; }
   const secret = currentReview.secretRequired ? password.value : null;
   finishReview(secretRequiredResult(secret));
 });
@@ -101,19 +128,21 @@ async function handleMethod(method, params, context) {
   await assertCurrentAccount();
   if (method === "eth_accounts" || method === "eth_requestAccounts") return [vault.account];
   if (method === "eth_chainId") return YNX_CHAIN_ID;
-  if (method === "wallet_disconnect") { cancelActiveRequest(); reply("disconnected"); session = null; message("Disconnected. Reopen Wallet from the product to connect again."); return null; }
+  if (method === "wallet_disconnect") { cancelActiveRequest(); reply("disconnected"); session = null; messageKey("disconnected"); return null; }
   if (method === "wallet_addEthereumChain" || method === "wallet_switchEthereumChain") { validateYNXChainMutation(method, params, chain); return null; }
   if (method === "ynx_requestProductSessionV2") {
     const request = parsePrivateRequest(params, session.origin);
     const replay = privateReplayKey(request);
     await store.consumeReplay(replay, Date.parse(request.expiresAt));
-    const choice = await askUser({ title: `Approve ${privateProductName(request)} access?`, detail: `${session.origin}\n${request.purpose}\nScopes: ${request.scopes.join(", ")}\nExpires: ${request.expiresAt}`, secretRequired: true, context });
+    const product = privateProductName(request), requestingOrigin = session.origin;
+    const choice = await askUser({ titleKey: "privateApprove", titleVariables: { product }, detailFactory: language => `${requestingOrigin}\n${request.purpose}\n${hostedDynamicCopy(language, "scopes", { scopes: request.scopes.join(", ") })}\n${hostedDynamicCopy(language, "expires", { expires: new Intl.DateTimeFormat(language, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(request.expiresAt)) + " UTC" })}`, secretRequired: true, context });
     assertRequestLive(context);
     if (!choice.approved) return rejectPrivateReturn(request);
     await assertCurrentAccount();
     const unlocked = await unlockEncryptedVault(vault, choice.password);
     assertRequestLive(context);
     await assertCurrentAccount();
+    assertRequestLive(context);
     if (unlocked.account !== vault.account) fail("HOSTED_ACCOUNT_CHANGED");
     return signPrivateReturn(request, unlocked.secretHex);
   }
@@ -122,7 +151,8 @@ async function handleMethod(method, params, context) {
     assertRequestLive(context);
     const prepared = await prepareExtensionRequest({ expectedAccount: vault.account, method, params, rpc: forwardExtensionRpc });
     assertRequestLive(context);
-    const choice = await askUser({ title: method === "eth_sendTransaction" ? "Review transaction" : "Review signature", detail: `${session.origin}\n${extensionReviewText(prepared.review)}`, secretRequired: true, context });
+    const requestingOrigin = session.origin, transaction = method === "eth_sendTransaction";
+    const choice = await askUser({ titleKey: transaction ? "reviewTx" : "reviewSignature", detailFactory: language => `${requestingOrigin}\n${extensionReviewText({ ...prepared.review, warning: hostedDynamicCopy(language, transaction ? "transactionWarning" : "signatureWarning") })}`, secretRequired: true, context });
     assertRequestLive(context);
     if (!choice.approved) fail("USER_REJECTED");
     await assertCurrentAccount();
@@ -135,7 +165,9 @@ async function handleMethod(method, params, context) {
     if (method !== "eth_sendTransaction") return signed;
     assertRequestLive(context);
     await assertCurrentAccount();
-    return broadcastJournal.broadcast({ account: vault.account, origin: session.origin, signed, broadcast: broadcastExtensionTransaction, assertAuthorized, rpc: forwardExtensionRpc });
+    const result = await broadcastJournal.broadcast({ account: vault.account, origin: session.origin, signed, broadcast: broadcastExtensionTransaction, assertAuthorized, rpc: forwardExtensionRpc });
+    await refreshTransactionStatus();
+    return result;
     };
     return method === "eth_sendTransaction" ? withHostedAccountLock(vault.account, async () => { assertRequestLive(context); await assertCurrentAccount(); return broadcastJournal.run(vault.account, perform); }) : perform();
   }
@@ -153,20 +185,21 @@ async function receive(event) {
     busy = true;
     try {
       await store.consumeReplay(`connect:${session.origin}:${session.requestId}`, session.expiresAt);
-      const choice = await askUser({ title: "Connect YNX Wallet?", detail: `${session.origin}\nYNX account: ${toYNXAddress(vault.account)}\nEVM-compatible: ${vault.account}\nNetwork: YNX Testnet\nNo balance is required.` });
+      const requestingOrigin = session.origin, requestedAccount = vault.account;
+      const choice = await askUser({ titleKey: "connectPrompt", detailFactory: language => `${requestingOrigin}\n${hostedCopy(language, "ynxAccount")}: ${toYNXAddress(requestedAccount)}\n${hostedCopy(language, "evmAddress")}: ${requestedAccount}\n${hostedDynamicCopy(language, "network")}\n${hostedDynamicCopy(language, "noBalance")}` });
       if (!choice.approved) { reply("rejected", { replyTo: data.messageId }); return; }
       await assertCurrentAccount();
       const sessionExpiresAt = Date.now() + HOSTED_SESSION_MS;
       reply("connected", { replyTo: data.messageId, account: vault.account, chainId: YNX_CHAIN_ID, sessionExpiresAt });
       session.expiresAt = sessionExpiresAt;
-      message(`Connected to ${session.origin}. Keep this window open while using the product.`);
+      messageKey("connected", { origin: session.origin });
       session.approved = true;
-    } catch { reply("rejected", { replyTo: data.messageId }); message("Connection could not be saved safely. Try again."); }
+    } catch { reply("rejected", { replyTo: data.messageId }); messageKey("connectFailed"); }
     finally { busy = false; }
     return;
   }
   if (data.type !== "request" || session.approved !== true) return;
-  if (data.method === "wallet_disconnect" && Array.isArray(data.params) && data.params.length === 0) { cancelActiveRequest(); reply("disconnected"); session = null; finishReview({ approved: false }); message("Disconnected. Reopen Wallet from the product to connect again."); return; }
+  if (data.method === "wallet_disconnect" && Array.isArray(data.params) && data.params.length === 0) { cancelActiveRequest(); reply("disconnected"); session = null; finishReview({ approved: false }); messageKey("disconnected"); return; }
   if (busy) { reply("response", { replyTo: data.messageId, ok: false, code: "HOSTED_APPROVAL_BUSY" }); return; }
   busy = true;
   const context = { messageId: data.messageId, expiresAt: data.expiresAt, cancelled: false };
@@ -178,7 +211,7 @@ async function receive(event) {
     reply("response", { replyTo: data.messageId, ok: true, result });
   } catch (error) {
     reply("response", { replyTo: data.messageId, ok: false, code: typeof error?.code === "string" || Number.isInteger(error?.code) ? error.code : "HOSTED_REQUEST_FAILED" });
-    message("The request was not approved or could not be completed. Your account remains protected.");
+    messageKey("requestFailed");
   } finally { if (activeRequest === context) activeRequest = null; busy = false; }
 }
 
@@ -187,33 +220,33 @@ $("setup-form").addEventListener("submit", async event => {
   const form = event.currentTarget, submit = form.querySelector("button[type=submit]");
   if (submit.disabled) return;
   const localPassword = $("setup-password").value, confirm = $("setup-confirm").value;
-  if (localPassword !== confirm || localPassword.length < 12) { message("Use a matching local password of at least 12 characters."); return; }
+  if (localPassword !== confirm || localPassword.length < 12) { messageKey("passwordRule"); return; }
   const key = $("setup-key").value.trim();
-  if (key && !$("import-confirm").checked) { message("Confirm that you have a separate recovery backup before importing."); return; }
+  if (key && !$("import-confirm").checked) { messageKey("importBackupRequired"); return; }
   submit.disabled = true;
   try {
     const created = await store.create({ password: localPassword, ...(key ? { secretHex: key.replace(/^0x/u, "").toLowerCase() } : {}) });
     vault = created.vault; setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus();
     needsBackupAcknowledgement = !key;
     $("backup-confirmation").hidden = !needsBackupAcknowledgement;
-    message(`Encrypted Wallet saved and read back. Public account: ${vault.account}. ${needsBackupAcknowledgement ? "Download and safeguard an encrypted backup before connecting." : "Your imported key remains encrypted here."}`);
+    messageKey(needsBackupAcknowledgement ? "backupBefore" : "walletSaved", { account: vault.account });
     $("export-backup").hidden = false;
     if (session && !needsBackupAcknowledgement) reply("ready");
-  } catch (error) { message(`Wallet was not created. Existing recovery data was retained. (${error?.code ?? "HOSTED_STORAGE_UNAVAILABLE"})`); }
+  } catch (error) { messageKey("createFailed", {}, error?.code ?? "HOSTED_STORAGE_UNAVAILABLE"); }
   finally { $("setup-password").value = ""; $("setup-confirm").value = ""; $("setup-key").value = ""; submit.disabled = false; }
 });
 $("backup-import-form").addEventListener("submit", async event => {
   event.preventDefault();
   const file = $("backup-import-file").files?.[0], input = $("backup-import-password"), submit = event.currentTarget.querySelector("button[type=submit]");
-  if (submit.disabled || !file || file.size < 100 || file.size > 20_000 || !$("backup-import-confirm").checked) { message("Choose a supported encrypted backup and confirm the restore."); return; }
+  if (submit.disabled || !file || file.size < 100 || file.size > 20_000 || !$("backup-import-confirm").checked) { messageKey("chooseBackup"); return; }
   submit.disabled = true;
   try {
     const record = JSON.parse(await file.text());
     const imported = await store.importEncrypted({ record, password: input.value });
     vault = imported.vault; setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); $("export-backup").hidden = false;
-    message(`Encrypted backup restored and read back. Public account: ${vault.account}.`);
+    messageKey("backupRestored", { account: vault.account });
     if (session) reply("ready");
-  } catch (error) { message(`Backup was not restored. Existing data was retained. (${error?.code ?? "HOSTED_BACKUP_INVALID"})`); }
+  } catch (error) { messageKey("restoreFailed", {}, error?.code ?? "HOSTED_BACKUP_INVALID"); }
   finally { input.value = ""; $("backup-import-file").value = ""; submit.disabled = false; }
 });
 $("add-account-form").addEventListener("submit", async event => {
@@ -223,8 +256,8 @@ $("add-account-form").addEventListener("submit", async event => {
   submit.disabled = true;
   try {
     const account = await store.addEncryptedAccount({ record: JSON.parse(await file.text()), password: input.value });
-    await refreshAccountList(); message(`Encrypted account ${toYNXAddress(account)} added. Select it to switch.`);
-  } catch (error) { message(`Account was not added. Existing accounts were retained. (${error?.code ?? "HOSTED_BACKUP_INVALID"})`); }
+    await refreshAccountList(); messageKey("accountAdded", { account: toYNXAddress(account) });
+  } catch (error) { messageKey("accountAddFailed", {}, error?.code ?? "HOSTED_BACKUP_INVALID"); }
   finally { input.value = ""; $("add-account-file").value = ""; submit.disabled = false; }
 });
 $("switch-account").addEventListener("click", async () => {
@@ -235,10 +268,10 @@ $("switch-account").addEventListener("click", async () => {
     cancelActiveRequest(); reply("disconnected"); session = null; finishReview({ approved: false });
     vault = selected; displayAccount(); await refreshAccountList();
     await refreshTransactionStatus();
-    message(`Switched to ${toYNXAddress(account)}. Reconnect from the product and approve the new account.`);
-  } catch (error) { message(`Account selection failed; current session is unchanged. (${error?.code ?? "HOSTED_ACCOUNT_UNAVAILABLE"})`); }
+    messageKey("accountSwitched", { account: toYNXAddress(account) });
+  } catch (error) { messageKey("accountSwitchFailed", {}, error?.code ?? "HOSTED_ACCOUNT_UNAVAILABLE"); }
 });
-$("account-select").addEventListener("focus", () => { void refreshAccountList().catch(() => message("Account list could not be read. Existing accounts were retained.")); });
+$("account-select").addEventListener("focus", () => { void refreshAccountList().catch(() => messageKey("accountListFailed")); });
 $("refresh-transaction").addEventListener("click", () => { void refreshTransactionStatus(true); });
 $("export-backup").addEventListener("click", async () => {
   try {
@@ -249,30 +282,30 @@ $("export-backup").addEventListener("click", async () => {
     window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     backupDownloaded = true;
     $("backup-continue").disabled = !$("backup-ack").checked;
-    message("Encrypted backup downloaded. Keep its password and file separately.");
-  } catch (error) { message(`Backup unavailable. Existing Wallet remains unchanged. (${error?.code ?? "HOSTED_STORAGE_READ_FAILED"})`); }
+    messageKey("backupDownloaded");
+  } catch (error) { messageKey("backupUnavailable", {}, error?.code ?? "HOSTED_STORAGE_READ_FAILED"); }
 });
 $("backup-ack").addEventListener("change", () => { $("backup-continue").disabled = !backupDownloaded || !$("backup-ack").checked; });
 $("backup-continue").addEventListener("click", () => {
   if (!backupDownloaded || !$("backup-ack").checked) return;
   needsBackupAcknowledgement = false;
   $("backup-confirmation").hidden = true;
-  message("Backup acknowledgement recorded for this connection. Wallet cannot verify external backup safety.");
+  messageKey("backupAcknowledged");
   if (session) reply("ready");
 });
 
 async function start() {
-  if (location.origin !== HOSTED_WALLET_ORIGIN || window.top !== window || !window.opener) { message("Open this Wallet from a registered product."); return; }
+  if (location.origin !== HOSTED_WALLET_ORIGIN || window.top !== window || !window.opener) { messageKey("registeredOnly"); return; }
   const encoded = location.hash.startsWith("#connect=") ? location.hash.slice(9) : "";
   try { session = { ...parseHostedConnect(encoded), approved: false }; }
-  catch { message("This connection request is invalid or expired."); return; }
+  catch { messageKey("invalidConnect"); return; }
   history.replaceState(null, "", location.pathname);
   $("product-origin").textContent = session.origin;
   try { vault = await store.read(); }
-  catch (error) { message(`Wallet storage cannot be read. Existing data was retained. (${error?.code ?? "HOSTED_STORAGE_READ_FAILED"})`); return; }
-  if (vault) { setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); $("export-backup").hidden = false; message(`Review the request for ${toYNXAddress(vault.account)}.`); reply("ready"); }
-  else { setup.hidden = false; message("Create or import a local encrypted Wallet before connecting."); }
+  catch (error) { messageKey("storageUnreadable", {}, error?.code ?? "HOSTED_STORAGE_READ_FAILED"); return; }
+  if (vault) { setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); $("export-backup").hidden = false; messageKey("reviewFor", { account: toYNXAddress(vault.account) }); reply("ready"); }
+  else { setup.hidden = false; messageKey("createBefore"); }
   window.addEventListener("message", event => { void receive(event); });
-  window.setInterval(() => { if (session && (Date.now() >= session.expiresAt || window.opener?.closed)) { cancelActiveRequest(); finishReview({ approved: false }); session = null; message("The connection expired or its product window closed."); } }, 250);
+  window.setInterval(() => { if (session && (Date.now() >= session.expiresAt || window.opener?.closed)) { cancelActiveRequest(); finishReview({ approved: false }); session = null; messageKey("connectionExpired"); } }, 250);
 }
 void start();
