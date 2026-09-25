@@ -96,6 +96,9 @@ test('language switch relabels loaded AI records without dropping exact selected
     await page.evaluate(()=>window.YNXFinanceLocale.set('zh-CN'));
     assert.equal(await page.locator('#ai-records input:checked').inputValue(),selected);
     assert.match(await page.locator('#assistant .section-head p').textContent(),/获得同意后/u);
+    assert.match(await page.locator('#activity thead th:nth-child(3)').textContent(),/方向/u);
+    assert.match(await page.locator('#statement-form button').textContent(),/生成报表/u);
+    assert.equal(await page.locator('#statement-form input[name=from]').count(),1);
     await page.selectOption('#finance-language','ar');
     assert.equal(await page.locator('#ai-records input:checked').inputValue(),selected);
     assert.equal(await page.locator('html').getAttribute('dir'),'rtl');

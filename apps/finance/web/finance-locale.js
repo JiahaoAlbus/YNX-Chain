@@ -3389,6 +3389,22 @@
     id:['Formulir niat order broker tidak tersedia.','Masukkan simbol broker dengan format baku.','Pilih beli atau jual.','Kuantitas harus berupa saham bulat dari 1 hingga 1000000.','Harga batas harus berupa desimal tetap baku dari 0.0001 hingga 999999999.9999.'],
   };
   for(const [locale,values] of Object.entries(aiInputCopy))Object.assign(messages[locale],Object.fromEntries(aiInputKeys.map((key,index)=>[key,values[index]])));
+  const legacyFormKeys=['indexedRecords','exportObservedCsv','activityDate','activityType','activityDirection','activityAmount','activityEvidence','categoriesLabel','nameLabel','colorLabel','fromLabel','throughLabel','generateStatement','workflowLabel'];
+  const legacyFormCopy={
+    en:['Indexed records','Export observed CSV','Date','Type','Direction','Amount','Evidence','Categories','Name','Color','From','Through','Generate statement','Workflow'],
+    'zh-CN':['索引记录','导出已观察 CSV','日期','类型','方向','金额','证据','分类','名称','颜色','从','至','生成报表','工作流程'],
+    'zh-Hant':['索引紀錄','匯出已觀察 CSV','日期','類型','方向','金額','證據','分類','名稱','顏色','從','至','產生報表','工作流程'],
+    ja:['インデックス済み記録','観測済み CSV をエクスポート','日付','種類','方向','金額','証拠','カテゴリ','名前','色','開始','終了','明細を作成','ワークフロー'],
+    ko:['색인된 기록','관측 CSV 내보내기','날짜','유형','방향','금액','증거','카테고리','이름','색상','시작','종료','명세서 생성','작업 흐름'],
+    es:['Registros indexados','Exportar CSV observado','Fecha','Tipo','Dirección','Importe','Evidencia','Categorías','Nombre','Color','Desde','Hasta','Generar estado','Flujo de trabajo'],
+    fr:['Enregistrements indexés','Exporter le CSV observé','Date','Type','Sens','Montant','Preuve','Catégories','Nom','Couleur','Du','Au','Générer le relevé','Flux de travail'],
+    de:['Indexierte Einträge','Beobachtete CSV exportieren','Datum','Typ','Richtung','Betrag','Nachweis','Kategorien','Name','Farbe','Von','Bis','Übersicht erstellen','Arbeitsablauf'],
+    pt:['Registros indexados','Exportar CSV observado','Data','Tipo','Direção','Valor','Evidência','Categorias','Nome','Cor','De','Até','Gerar extrato','Fluxo de trabalho'],
+    ru:['Индексированные записи','Экспорт наблюдаемых данных CSV','Дата','Тип','Направление','Сумма','Подтверждение','Категории','Название','Цвет','С','По','Создать выписку','Рабочий процесс'],
+    ar:['السجلات المفهرسة','تصدير CSV المرصود','التاريخ','النوع','الاتجاه','المبلغ','الدليل','الفئات','الاسم','اللون','من','حتى','إنشاء الكشف','سير العمل'],
+    id:['Catatan terindeks','Ekspor CSV teramati','Tanggal','Jenis','Arah','Jumlah','Bukti','Kategori','Nama','Warna','Dari','Sampai','Buat laporan','Alur kerja'],
+  };
+  for(const [locale,values] of Object.entries(legacyFormCopy))Object.assign(messages[locale],Object.fromEntries(legacyFormKeys.map((key,index)=>[key,values[index]])));
   const supported=Object.freeze(['en','zh-CN','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']);
   const canonical=value=>value==='zh-Hans'?'zh-CN':value;
   let current='en';
@@ -3402,12 +3418,24 @@
     for(const [selector,key] of [
       ['#overview .grid.two article:first-child .panel-head h3','activity'],
       ['#overview .grid.two article:nth-child(2) .panel-head h3','payRecord'],
+      ['#activity .section-head .eyebrow','indexedRecords'],
       ['#activity .section-head h2','ynxtActivity'],['#activity .section-head p','activityScopeIntro'],
+      ['#activity .section-head a[data-auth-download]','exportObservedCsv'],
+      ['#activity thead th:nth-child(1)','activityDate'],['#activity thead th:nth-child(2)','activityType'],
+      ['#activity thead th:nth-child(3)','activityDirection'],['#activity thead th:nth-child(4)','activityAmount'],
+      ['#activity thead th:nth-child(5)','feeLabel'],['#activity thead th:nth-child(6)','activityEvidence'],
       ['#planning .section-head p','planningNoControl'],
+      ['#planning .grid.two article:first-child h3','categoriesLabel'],
       ['#statements .section-head h2','statements'],['#statements .section-head p','statementScopeIntro'],
+      ['#statement-form button','generateStatement'],
       ['#assistant .section-head h2','ai'],['#assistant .section-head p','aiScopeIntro'],
       ['#support .section-head h2','support'],['#support .section-head p','supportNoReversal'],
     ]){const element=document.querySelector(selector);if(element)element.textContent=text(key)}
+    for(const [selector,key] of [
+      ['#category-form label:nth-child(1)','nameLabel'],['#category-form label:nth-child(2)','colorLabel'],
+      ['#statement-form label:nth-child(1)','fromLabel'],['#statement-form label:nth-child(2)','throughLabel'],
+      ['#ai-kind','workflowLabel'],
+    ]){const element=selector==='#ai-kind'?document.querySelector(selector)?.parentElement:document.querySelector(selector);if(element?.firstChild?.nodeType===3)element.firstChild.textContent=text(key)}
     const search=document.querySelector('#broker-asset-search input[name="query"]');if(search)search.setAttribute('placeholder',text('brokerSearchPlaceholder'));
     const selector=document.querySelector('#finance-language');if(selector)selector.value=current;
     if(selector)selector.setAttribute('aria-label',text('language'));
