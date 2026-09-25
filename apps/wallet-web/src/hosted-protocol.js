@@ -5,6 +5,7 @@ export const HOSTED_WALLET_ORIGIN = "https://wallet.ynxweb4.com";
 export const HOSTED_WALLET_PATH = "/hosted/";
 export const HOSTED_CHAIN_ID = "0x1917";
 export const HOSTED_TIMEOUT_MS = 120_000;
+export const HOSTED_SESSION_MS = 60 * 60_000;
 const ID = /^[A-Za-z0-9_-]{22,64}$/u;
 const MAX_REQUEST_BYTES = 4096;
 

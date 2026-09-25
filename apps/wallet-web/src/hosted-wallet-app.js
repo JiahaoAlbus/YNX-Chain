@@ -6,7 +6,7 @@ import { forwardExtensionRpc, broadcastExtensionTransaction, YNX_CHAIN_ID } from
 import { ExtensionBroadcastJournal } from "./extension-broadcast-journal.js";
 import { extensionReviewText, prepareExtensionRequest, signExtensionRequest } from "./extension-signer.js";
 import { parsePrivateRequest, privateProductName, privateReplayKey, rejectPrivateReturn, signPrivateReturn } from "./extension-product-session-v2.js";
-import { HOSTED_PROTOCOL, HOSTED_WALLET_ORIGIN, hostedEnvelope, parseHostedConnect, validateHostedMessage } from "./hosted-protocol.js";
+import { HOSTED_PROTOCOL, HOSTED_SESSION_MS, HOSTED_WALLET_ORIGIN, hostedEnvelope, parseHostedConnect, validateHostedMessage } from "./hosted-protocol.js";
 import { toYNXAddress } from "./wallet-address.js";
 
 const $ = id => document.getElementById(id);
@@ -133,12 +133,14 @@ async function receive(event) {
     try {
       await store.consumeReplay(`connect:${session.origin}:${session.requestId}`, session.expiresAt);
       const choice = await askUser({ title: "Connect YNX Wallet?", detail: `${session.origin}\nYNX account: ${toYNXAddress(vault.account)}\nEVM-compatible: ${vault.account}\nNetwork: YNX Testnet\nNo balance is required.` });
-      if (!choice.approved) { reply("rejected"); return; }
+      if (!choice.approved) { reply("rejected", { replyTo: data.messageId }); return; }
       await assertCurrentAccount();
-      reply("connected", { account: vault.account, chainId: YNX_CHAIN_ID });
+      const sessionExpiresAt = Date.now() + HOSTED_SESSION_MS;
+      reply("connected", { replyTo: data.messageId, account: vault.account, chainId: YNX_CHAIN_ID, sessionExpiresAt });
+      session.expiresAt = sessionExpiresAt;
       message(`Connected to ${session.origin}. Keep this window open while using the product.`);
       session.approved = true;
-    } catch { reply("rejected"); message("Connection could not be saved safely. Try again."); }
+    } catch { reply("rejected", { replyTo: data.messageId }); message("Connection could not be saved safely. Try again."); }
     finally { busy = false; }
     return;
   }

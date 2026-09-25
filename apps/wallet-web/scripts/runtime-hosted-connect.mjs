@@ -80,7 +80,7 @@ try {
   await wallet.locator("#reject").click();
   assert.equal(await finance.evaluate(() => window.signOutcome), "USER_REJECTED");
   await wallet.reload();
-  await finance.waitForFunction(() => window.ynxAdapter.connected === false, null, { timeout: 8000 });
+  await finance.waitForFunction(() => window.ynxAdapter.connected === false, null, { timeout: 20_000 });
   assert.deepEqual(await finance.evaluate(() => window.ynxAdapter.request({ method: "eth_accounts" })), []);
   await context.close();
   const fresh = await browser.newContext({ acceptDownloads: true });

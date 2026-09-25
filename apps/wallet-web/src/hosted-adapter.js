@@ -1,5 +1,5 @@
 /** Explicit first-party browser adapter. It does not install window.ethereum. */
-import { HOSTED_CHAIN_ID, HOSTED_PROTOCOL, HOSTED_TIMEOUT_MS, HOSTED_WALLET_ORIGIN, HOSTED_WALLET_PATH, encodeHostedConnect, hostedEnvelope, randomHostedId, registeredProduct } from "./hosted-protocol.js";
+import { HOSTED_CHAIN_ID, HOSTED_PROTOCOL, HOSTED_SESSION_MS, HOSTED_TIMEOUT_MS, HOSTED_WALLET_ORIGIN, HOSTED_WALLET_PATH, encodeHostedConnect, hostedEnvelope, randomHostedId, registeredProduct } from "./hosted-protocol.js";
 import { validateYNXChainMutation } from "./extension-chain-params.js";
 
 function failure(code) { return Object.assign(new Error(code), { code }); }
@@ -8,14 +8,18 @@ const CHAIN = Object.freeze({ chainId: HOSTED_CHAIN_ID, chainName: "YNX Testnet"
 export function createHostedWalletAdapter({ window: browserWindow = globalThis.window, walletOrigin = HOSTED_WALLET_ORIGIN } = {}) {
   const origin = browserWindow.location.origin;
   if (!registeredProduct(origin) || walletOrigin !== HOSTED_WALLET_ORIGIN) throw failure("HOSTED_ORIGIN_UNREGISTERED");
-  let popup = null, request = null, account = null, connected = false, monitor = null, lastPong = 0;
+  let popup = null, request = null, account = null, connected = false, monitor = null, lastPong = 0, closing = false, helloId = null;
   const pending = new Map(), listeners = new Map(), seen = new Set();
-  function emit(name, value) { for (const callback of listeners.get(name) ?? []) callback(value); }
+  function live() { return connected && Boolean(popup && !popup.closed && request && Date.now() < request.expiresAt); }
+  function emit(name, value) { for (const callback of [...listeners.get(name) ?? []]) { try { callback(value); } catch { /* A consumer callback cannot interrupt custody or channel state. */ } } }
   function close(code = "HOSTED_DISCONNECTED") {
+    if (closing) return;
+    closing = true;
     if (monitor) browserWindow.clearInterval(monitor);
-    monitor = null; connected = false; account = null; request = null;
+    monitor = null; connected = false; account = null; request = null; helloId = null;
     for (const waiter of pending.values()) waiter.reject(failure(code));
     pending.clear(); emit("accountsChanged", []); emit("disconnect", { code });
+    closing = false;
   }
   function onMessage(event) {
     if (!request || !popup || event.source !== popup || event.origin !== HOSTED_WALLET_ORIGIN) return;
@@ -23,16 +27,24 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
     if (!data || data.protocol !== HOSTED_PROTOCOL || data.requestId !== request.requestId || data.nonce !== request.nonce || !/^[A-Za-z0-9_-]{22,64}$/u.test(data.messageId ?? "") || seen.has(data.messageId) || !Number.isSafeInteger(data.expiresAt) || data.expiresAt <= Date.now() || data.expiresAt > request.expiresAt) return;
     seen.add(data.messageId);
     if (data.type === "ready") {
-      popup.postMessage(hostedEnvelope(request, "hello"), HOSTED_WALLET_ORIGIN);
+      if (helloId) return;
+      const hello = hostedEnvelope(request, "hello");
+      helloId = hello.messageId;
+      popup.postMessage(hello, HOSTED_WALLET_ORIGIN);
       return;
     }
     if (data.type === "pong") { lastPong = Date.now(); return; }
     if (data.type === "connected") {
-      if (!pending.has("connect") || !/^0x[0-9a-f]{40}$/u.test(data.account ?? "") || data.chainId !== HOSTED_CHAIN_ID) return;
-      account = data.account; connected = true; lastPong = Date.now(); emit("accountsChanged", [account]); emit("connect", { chainId: HOSTED_CHAIN_ID });
-      pending.get("connect")?.resolve([account]); pending.delete("connect"); return;
+      if (!pending.has("connect") || !helloId || data.replyTo !== helloId || !/^0x[0-9a-f]{40}$/u.test(data.account ?? "") || data.chainId !== HOSTED_CHAIN_ID || !Number.isSafeInteger(data.sessionExpiresAt) || data.sessionExpiresAt <= Date.now() || data.sessionExpiresAt > Date.now() + HOSTED_SESSION_MS) return;
+      const connectedRequest = request, waiter = pending.get("connect");
+      request = { ...request, expiresAt: data.sessionExpiresAt };
+      account = data.account; connected = true; lastPong = Date.now(); emit("accountsChanged", [account]);
+      if (!connected || request?.requestId !== connectedRequest.requestId) return;
+      emit("connect", { chainId: HOSTED_CHAIN_ID });
+      if (!connected || request?.requestId !== connectedRequest.requestId) return;
+      waiter.resolve([account]); pending.delete("connect"); return;
     }
-    if (data.type === "rejected") { pending.get("connect")?.reject(failure("USER_REJECTED")); pending.delete("connect"); close("USER_REJECTED"); return; }
+    if (data.type === "rejected") { if (!helloId || data.replyTo !== helloId) return; pending.get("connect")?.reject(failure("USER_REJECTED")); pending.delete("connect"); close("USER_REJECTED"); return; }
     if (data.type === "disconnected") { close(); return; }
     if (data.type !== "response" || typeof data.replyTo !== "string") return;
     const waiter = pending.get(data.replyTo);
@@ -43,9 +55,10 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
   }
   browserWindow.addEventListener("message", onMessage);
   async function connect() {
-    if (connected && popup && !popup.closed) return [account];
+    if (live()) return [account];
+    if (connected) close("HOSTED_REQUEST_EXPIRED_OR_RELOADED");
     if (pending.has("connect")) return pending.get("connect").promise;
-    seen.clear();
+    seen.clear(); helloId = null;
     request = { version: 1, origin, requestId: randomHostedId(), nonce: randomHostedId(), expiresAt: Date.now() + HOSTED_TIMEOUT_MS, chainId: HOSTED_CHAIN_ID };
     const url = `${HOSTED_WALLET_ORIGIN}${HOSTED_WALLET_PATH}#connect=${encodeHostedConnect(request)}`;
     popup = browserWindow.open(url, `ynx-hosted-${request.requestId}`, "popup,width=460,height=720");
@@ -54,17 +67,17 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
     const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
     pending.set("connect", { resolve, reject, promise });
     monitor = browserWindow.setInterval(() => {
-      if (popup?.closed || Date.now() >= request?.expiresAt || connected && Date.now() - lastPong > 5000) { close(popup?.closed ? "HOSTED_POPUP_CLOSED" : "HOSTED_REQUEST_EXPIRED_OR_RELOADED"); return; }
+      if (popup?.closed || Date.now() >= request?.expiresAt || connected && Date.now() - lastPong > 15_000) { close(popup?.closed ? "HOSTED_POPUP_CLOSED" : "HOSTED_REQUEST_EXPIRED_OR_RELOADED"); return; }
       if (connected) popup.postMessage(hostedEnvelope(request, "ping"), HOSTED_WALLET_ORIGIN);
     }, 1000);
     return promise;
   }
   async function requestMethod({ method, params = [] }) {
     if (method === "eth_requestAccounts") return connect();
-    if (method === "eth_accounts") return connected && popup && !popup.closed ? [account] : [];
+    if (method === "eth_accounts") return live() ? [account] : [];
     if (method === "eth_chainId") return HOSTED_CHAIN_ID;
     if (method === "wallet_addEthereumChain" || method === "wallet_switchEthereumChain") { validateYNXChainMutation(method, params, CHAIN); return null; }
-    if (!connected || !popup || popup.closed || !request) throw failure("HOSTED_DISCONNECTED");
+    if (!live()) { if (connected) close("HOSTED_REQUEST_EXPIRED_OR_RELOADED"); throw failure("HOSTED_DISCONNECTED"); }
     if (typeof method !== "string" || method.length > 80 || !Array.isArray(params) || JSON.stringify(params).length > 65536) throw failure("HOSTED_METHOD_INVALID");
     const envelope = hostedEnvelope(request, "request", { method, params });
     return new Promise((resolve, reject) => {
@@ -77,13 +90,13 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
   return Object.freeze({
     connect,
     request: requestMethod,
-    restore: async () => connected && popup && !popup.closed ? [account] : [],
+    restore: async () => live() ? [account] : [],
     disconnect,
     revoke: disconnect,
     detach: async () => { try { await disconnect(); } finally { browserWindow.removeEventListener("message", onMessage); } },
     on: (name, callback) => { if (typeof callback !== "function") throw new TypeError("callback"); if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(callback); },
     removeListener: (name, callback) => listeners.get(name)?.delete(callback),
-    get connected() { return connected && Boolean(popup && !popup.closed); },
-    get account() { return connected ? account : null; },
+    get connected() { return live(); },
+    get account() { return live() ? account : null; },
   });
 }
