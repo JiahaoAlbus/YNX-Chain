@@ -110,7 +110,23 @@ public static class YnxPrivateFileNative {
       # No COPY_ALLOWED or DELAY_UNTIL_REBOOT. The source is already file-fsynced.
       # Microsoft documents WRITE_THROUGH as returning only after the move is on disk.
       $script:phase = 'native-replace'
-      if (-not [YnxPrivateFileNative]::MoveFileExW(('\\?\' + $target), ('\\?\' + $destination), 9)) { throw 'Move failed' }
+      if (-not [YnxPrivateFileNative]::MoveFileExW(('\\?\' + $target), ('\\?\' + $destination), 9)) {
+        # Capture immediately, before any other P/Invoke or filesystem call can
+        # overwrite the thread-local Win32 error. Only fixed categories leave
+        # this process; neither paths nor native exception text are exposed.
+        $nativeError = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        $script:phase = switch ($nativeError) {
+          2 { 'native-replace-missing'; break }
+          3 { 'native-replace-missing'; break }
+          5 { 'native-replace-denied'; break }
+          32 { 'native-replace-sharing'; break }
+          33 { 'native-replace-lock'; break }
+          87 { 'native-replace-invalid'; break }
+          112 { 'native-replace-no-space'; break }
+          default { 'native-replace-other' }
+        }
+        throw 'Move failed'
+      }
       $script:phase = 'native-flush'
       $stream = [IO.File]::Open($destination, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
       try { $stream.Flush($true) } finally { $stream.Dispose() }
@@ -143,7 +159,7 @@ async function windowsOperation(operation, filePath, destination) {
     });
     return JSON.parse(stdout.trim());
   } catch (error) {
-    const phase = /^YNX_PRIVATE_FILE_STAGE:(runtime|request|path|acl-get(?:-(?:absent|denied|other))?|acl-owner|acl-rules|acl-build|acl-set|acl-verify|native-compile|native-replace|native-flush)$/m.exec(error?.stderr ?? "")?.[1];
+    const phase = /^YNX_PRIVATE_FILE_STAGE:(runtime|request|path|acl-get(?:-(?:absent|denied|other))?|acl-owner|acl-rules|acl-build|acl-set|acl-verify|native-compile|native-replace(?:-(?:missing|denied|sharing|lock|invalid|no-space|other))?|native-flush)$/m.exec(error?.stderr ?? "")?.[1];
     const suffix = phase ?? (error?.killed ? "timeout" : "unknown");
     throw unavailable(`windows-${operation}-${suffix}`);
   }
