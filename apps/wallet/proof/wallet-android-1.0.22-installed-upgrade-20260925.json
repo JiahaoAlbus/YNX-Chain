@@ -1,0 +1,43 @@
+{
+  "schema": "ynx-wallet-mobile-preview-installed-qa/v1",
+  "sourceCommit": "5315d018a3ae795dd1dac94747fa7cb04c835136",
+  "platform": "android-emulator",
+  "avd": "YNX_WALLET_1022_QA",
+  "androidApi": 36,
+  "testAccount": "newly generated in disposable QA emulator; no imported or funded account",
+  "publishedBaseline": {
+    "version": "1.0.20-testnet-preview",
+    "versionCode": 26,
+    "apkSha256": "143835c4931b190f0249818f04de6f82b1f2aaa0eb155684e929f365f3b1bfc0",
+    "downloadDigestVerified": true
+  },
+  "candidate": {
+    "version": "1.0.22-testnet-preview",
+    "versionCode": 28,
+    "unsignedApkSha256": "b1e79ceb5889475d0546bfae8a8299d289156a107e7e8891dc3bb7e72b486562",
+    "localTestSignedApkSha256": "4ce6595497c4be6839b91d1ca4c24fa123c176c18dadb229f7e6e96febf2242c",
+    "signingClass": "local-android-debug-test-signed",
+    "signerCertificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "sameSignerAsPublishedBaseline": true,
+    "productionSigned": false
+  },
+  "checks": {
+    "baselineInstalledAndColdLaunched": true,
+    "baselineNewAccountCreatedWithEmulatorFingerprint": true,
+    "baselineBackupConfirmedAndUnlocked": true,
+    "adbInstallRWithoutDataClear": true,
+    "packageNameAndVersionCodeAfterUpgrade": true,
+    "sameTestAccountVisibleLockedAfterUpgrade": true,
+    "sameTestAccountUnlockedWithEmulatorFingerprint": true,
+    "backupConfirmedAfterUpgrade": true,
+    "invalidOpaqueFinanceTicketRejected": true,
+    "derivedEvmAddressAndReadOnlySimulationVisible": true,
+    "walletConnectDisabledWithoutProjectIdShown": true,
+    "walletConnectRelayPairing": "NOT_VERIFIED",
+    "financeBackendFourRouteE2E": "NOT_VERIFIED",
+    "physicalAndroidDevice": "NOT_VERIFIED"
+  },
+  "publicRelease": false,
+  "officialWebsiteUpdated": false,
+  "observedAt": "2026-09-24T17:58:32Z"
+}

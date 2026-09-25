@@ -1,8 +1,8 @@
 import { evmAddressFromYNX, nativeTransferHash, parseSignedNativeTransfer, type SignedNativeTransfer } from "@ynx-chain/wallet-auth";
 import { createNativeDurabilityEvidence, NativeDurabilityInvalid, parseNativeDurabilityModel, parseNativeDurabilityState, type NativeDurabilityCheck } from "./nativeDurability";
+import { DEFAULT_CHAIN_API, LEGACY_CHAIN_API } from "./nativeChainOrigins";
 
-export const DEFAULT_CHAIN_API="https://rpc-testnet.ynxweb4.com";
-export const LEGACY_CHAIN_API="https://rpc.ynxweb4.com";
+export { DEFAULT_CHAIN_API, LEGACY_CHAIN_API } from "./nativeChainOrigins";
 export type ChainAccount=Readonly<{address:string;balance:number;nonce:number}>;
 export type ChainActivity=Readonly<{hash:string;type:string;from:string;to:string;amount:number;fee:number;nonce:number;timestamp?:string}>;
 export type BroadcastResult=Readonly<{hash:string;replayed:boolean;truthfulStatus:"signature-verified-authoritative-native-transfer";durabilityConfirmed:boolean;durabilityEvidence:Readonly<Record<string,unknown>>|null}>;
@@ -45,7 +45,7 @@ export async function loadNativeChainState(client:NativeChainClient,selectedAcco
 export class NativeChainClient{
   readonly #baseURL:string;readonly #readBaseURLs:readonly string[];readonly #fetch:FetchLike;
   private rpcSequence=0;
-  constructor(baseURL=DEFAULT_CHAIN_API,fetcher:FetchLike=fetch,private readonly rpcReadTimeoutMs=READ_TIMEOUT_MS){if(!Number.isSafeInteger(rpcReadTimeoutMs)||rpcReadTimeoutMs<1)throw new Error("YNX chain RPC timeout is invalid");this.#baseURL=base(baseURL);this.#readBaseURLs=Object.freeze(this.#baseURL===DEFAULT_CHAIN_API?[this.#baseURL,LEGACY_CHAIN_API]:[this.#baseURL]);this.#fetch=fetcher}
+  constructor(baseURL=DEFAULT_CHAIN_API,fetcher:FetchLike=fetch,private readonly rpcReadTimeoutMs=READ_TIMEOUT_MS,private readonly rpcReadAttempts=RPC_READ_ATTEMPTS){if(!Number.isSafeInteger(rpcReadTimeoutMs)||rpcReadTimeoutMs<1||!Number.isSafeInteger(rpcReadAttempts)||rpcReadAttempts<1||rpcReadAttempts>RPC_READ_ATTEMPTS)throw new Error("YNX chain RPC timeout or retry count is invalid");this.#baseURL=base(baseURL);this.#readBaseURLs=Object.freeze(this.#baseURL===DEFAULT_CHAIN_API?[this.#baseURL,LEGACY_CHAIN_API]:[this.#baseURL]);this.#fetch=fetcher}
   get origin():string{return this.#baseURL}
 
   async requireDurabilityCapability():Promise<void>{
@@ -143,6 +143,19 @@ export class NativeChainClient{
   }
 
   async checkTransferDurability(expected:SignedNativeTransfer,expectedHash:string):Promise<NativeDurabilityCheck>{
+    if(this.#baseURL!==DEFAULT_CHAIN_API)return this.#checkTransferDurabilityAtOrigin(expected,expectedHash);
+    // Only public reads for the exact saved hash may cross from the default
+    // broadcast origin to the already-approved legacy Testnet profile.
+    let primary:NativeDurabilityCheck|undefined;
+    try{primary=await new NativeChainClient(DEFAULT_CHAIN_API,this.#fetch,Math.min(this.rpcReadTimeoutMs,5_000),1).#checkTransferDurabilityAtOrigin(expected,expectedHash);if(primary.status==="durable")return primary}
+    catch(error){if(!(error instanceof NativeReadError)||!error.retryable)throw error}
+    try{
+      const alternate=await new NativeChainClient(LEGACY_CHAIN_API,this.#fetch,Math.min(this.rpcReadTimeoutMs,12_000),1).#checkTransferDurabilityAtOrigin(expected,expectedHash);
+      return alternate.status==="durable"?alternate:primary??alternate;
+    }catch(error){if(primary&&error instanceof NativeReadError&&error.retryable)return primary;throw error}
+  }
+
+  async #checkTransferDurabilityAtOrigin(expected:SignedNativeTransfer,expectedHash:string):Promise<NativeDurabilityCheck>{
     if(await this.#rpc("eth_chainId",[])!=="0x1917")throw new NativeDurabilityInvalid();
     let model:unknown;
     try{model=await this.#rpc("ynx_getDurabilityModel",[])}catch(error){if(error instanceof NativeDurabilityRPCError&&error.code===-32601)return Object.freeze({status:"unsupported",evidence:null});throw error}
@@ -169,10 +182,10 @@ export class NativeChainClient{
 
   async #rpc(method:string,params:readonly unknown[]):Promise<unknown>{
     let last:NativeRPCReadTransportError|undefined;
-    for(let attempt=0;attempt<RPC_READ_ATTEMPTS;attempt++){
+    for(let attempt=0;attempt<this.rpcReadAttempts;attempt++){
       try{return await this.#rpcAttempt(method,params)}catch(error){
         if(!(error instanceof NativeRPCReadTransportError))throw error;
-        last=error;if(attempt+1<RPC_READ_ATTEMPTS)await readRetryDelay();
+        last=error;if(attempt+1<this.rpcReadAttempts)await readRetryDelay();
       }
     }
     throw new NativeReadError("NATIVE_READ_UNAVAILABLE",last?.httpStatus?`The YNX node is temporarily unavailable (${last.httpStatus}). Please refresh again.`:"The network connection was interrupted. Please refresh again.",true,last?.httpStatus);

@@ -191,6 +191,63 @@ test("a legacy-origin outbox is recovered by exact-origin public reads after the
   assert.equal(recovered?.phase,"done");assert.equal((await fixtureOutbox(storage).resolution(account,signed.hash))?.hash,signed.hash);assert.ok(calls.length>=4);assert.ok(calls.every(url=>url===LEGACY_CHAIN_API+"/evm"));
 });
 
+test("default-origin lost ACK recovers from approved legacy exact-hash reads without moving its broadcast origin",async()=>{
+  const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);
+  const original=new NativeChainClient(DEFAULT_CHAIN_API,async(url,init)=>{
+    if(url.endsWith("/transactions/broadcast"))throw new TypeError("lost ACK");
+    const {id,method}=JSON.parse(String(init?.body));
+    const value=method==="eth_chainId"?"0x1917":NATIVE_DURABILITY_MODEL;
+    return response({jsonrpc:"2.0",id,result:value});
+  });
+  await outbox.sendNew(account,original,noGuard,async()=>signed);
+  const stored=await outbox.read(account);assert.equal(stored?.origin,DEFAULT_CHAIN_API);assert.equal(stored?.phase,"unknown");
+  const calls:string[]=[];
+  const recovery=new NativeChainClient(DEFAULT_CHAIN_API,async(url,init)=>{
+    calls.push(url);assert.equal(init?.method,"POST");assert.ok(url.endsWith("/evm"),"recovery must never broadcast or sign");
+    if(url.startsWith(DEFAULT_CHAIN_API))throw new TypeError("canonical RPC unavailable");
+    assert.equal(url,LEGACY_CHAIN_API+"/evm");
+    const {id,method,params}=JSON.parse(String(init?.body));
+    assert.deepEqual(params,method==="eth_chainId"||method==="ynx_getDurabilityModel"?[]:[signed.hash]);
+    const values:Record<string,unknown>={eth_chainId:"0x1917",ynx_getDurabilityModel:NATIVE_DURABILITY_MODEL,ynx_getTransactionDurability:receipt().ynxDurability,eth_getTransactionReceipt:receipt()};
+    return response({jsonrpc:"2.0",id,result:values[method]});
+  },5);
+  const resolved=await fixtureOutbox(storage).recover(account,recovery,noGuard);
+  assert.equal(resolved?.phase,"done");assert.equal(resolved.origin,DEFAULT_CHAIN_API);assert.equal(resolved.durabilityEvidence?.origin,LEGACY_CHAIN_API);
+  assert.equal((await fixtureOutbox(storage).resolution(account,signed.hash))?.durabilityEvidence.origin,LEGACY_CHAIN_API);
+  assert.ok(calls.includes(DEFAULT_CHAIN_API+"/evm"));assert.ok(calls.includes(LEGACY_CHAIN_API+"/evm"));
+  assert.equal((await fixtureOutbox(storage).read(account))?.phase,"done","verified fallback evidence survives restart");
+});
+
+test("approved legacy can resolve a default-origin pending snapshot but invalid alternate proof never releases it",async()=>{
+  for(const invalid of ["none","chain","model","receipt"] as const){
+    const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);
+    const original=new NativeChainClient(DEFAULT_CHAIN_API,async(url,init)=>{
+      if(url.endsWith("/transactions/broadcast"))throw new TypeError("lost ACK");
+      const {id,method}=JSON.parse(String(init?.body));return response({jsonrpc:"2.0",id,result:method==="eth_chainId"?"0x1917":NATIVE_DURABILITY_MODEL});
+    });
+    await outbox.sendNew(account,original,noGuard,async()=>signed);
+    const remote=new NativeChainClient(DEFAULT_CHAIN_API,async(url,init)=>{
+      assert.ok(url.endsWith("/evm"));const {id,method}=JSON.parse(String(init?.body));
+      const pending={version:NATIVE_DURABILITY_MODEL.version,scope:"local-snapshot",status:"pending_durable",transactionHash:signed.hash,checkpointBlockNumber:"0x0",checkpointBlockHash:blockHash,snapshotIntegrity:"0x"+"b".repeat(64)};
+      const alternate=url.startsWith(LEGACY_CHAIN_API),badReceipt={...receipt(),ynxNativeTransaction:{...receipt().ynxNativeTransaction,amountYNXT:"26"}};
+      const values:Record<string,unknown>={eth_chainId:invalid==="chain"&&alternate?"0x1":"0x1917",ynx_getDurabilityModel:invalid==="model"&&alternate?{...NATIVE_DURABILITY_MODEL,version:"future"}:NATIVE_DURABILITY_MODEL,ynx_getTransactionDurability:alternate?receipt().ynxDurability:pending,eth_getTransactionReceipt:invalid==="receipt"&&alternate?badReceipt:receipt()};
+      return response({jsonrpc:"2.0",id,result:values[method]});
+    },100);
+    if(invalid!=="none"){await assert.rejects(()=>fixtureOutbox(storage).recover(account,remote,noGuard));assert.equal((await fixtureOutbox(storage).read(account))?.phase,"unknown");await assert.rejects(()=>fixtureOutbox(storage).sendNew(account,original,noGuard,async()=>{throw new Error("must not sign")}),NativeOutboxBlocked)}
+    else{const recovered=await fixtureOutbox(storage).recover(account,remote,noGuard);assert.equal(recovered?.phase,"done");assert.equal(recovered?.durabilityEvidence?.origin,LEGACY_CHAIN_API)}
+  }
+});
+
+test("invalid default-origin chain cannot be bypassed by a valid legacy receipt",async()=>{
+  const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);
+  const original=new NativeChainClient(DEFAULT_CHAIN_API,async(url,init)=>{if(url.endsWith("/transactions/broadcast"))throw new TypeError("lost ACK");const {id,method}=JSON.parse(String(init?.body));return response({jsonrpc:"2.0",id,result:method==="eth_chainId"?"0x1917":NATIVE_DURABILITY_MODEL})});
+  await outbox.sendNew(account,original,noGuard,async()=>signed);
+  let legacyReads=0;
+  const remote=new NativeChainClient(DEFAULT_CHAIN_API,async(url,init)=>{if(url.startsWith(LEGACY_CHAIN_API)){legacyReads++;throw new Error("alternate must not be used")};const {id}=JSON.parse(String(init?.body));return response({jsonrpc:"2.0",id,result:"0x1"})},100);
+  await assert.rejects(()=>fixtureOutbox(storage).recover(account,remote,noGuard));assert.equal(legacyReads,0);
+  assert.equal((await fixtureOutbox(storage).read(account))?.phase,"unknown");
+});
+
 test("unsafe whole-YNXT totals and mismatched locally signed identity stop before any POST",async()=>{
   let calls=0;const remote=client(async()=>{calls++;return response(success())});
   const excessive=createSignedNativeTransfer({accountSecret:"0".repeat(63)+"1",to,amount:Number.MAX_SAFE_INTEGER,nonce:7});

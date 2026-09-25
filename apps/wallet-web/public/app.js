@@ -11,7 +11,7 @@ import {createWalletWebCompanionLifecycle} from "./wallet-web-companion-lifecycl
 import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_CONNECT_STATUS} from "./standard-wallet-connect-state.js";
 import {PWA_CACHE,cleanPwaNavigationUrl,obsoletePwaCaches,upgradeNavigationUrl} from "./service-worker-policy.js";
 import {
-  WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectStandardWallet, createExtensionProvider, discoverWallets,
+  WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectStandardWallet, createExtensionProvider, disconnectStandardWallet, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
   invalidatesConnectedSession, resolveRememberedWallet, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, walletActionGates, walletDiscoveryPresentation,
@@ -43,7 +43,7 @@ function escape(value) { return String(value).replaceAll("&", "&amp;").replaceAl
 function replaceMarkup(target,markup){const parsed=new DOMParser().parseFromString(`<body>${markup}</body>`,"text/html");target.replaceChildren(...parsed.body.childNodes)}
 function packageSources(item,{primaryId="",fallbackId=""}={}){return`<div class="package-sources"><a ${primaryId?`id="${primaryId}" `:""}href="${escape(item.url)}" rel="noreferrer">${escape(item.label)} · ${text("download")}</a>${item.fallbackUrl?`<a ${fallbackId?`id="${fallbackId}" `:""}href="${escape(item.fallbackUrl)}" rel="noreferrer" class="fallback-download">GitHub</a>`:""}</div>`}
 function platformDownloads(){return Object.entries(WALLET_DOWNLOAD_MATRIX).filter(([platform])=>platform!=="android").map(([,item])=>item.hosted===true&&item.url?`<div class="package-download">${packageSources(item)}<details class="package-details"><summary>${text("packageDetails")}</summary><p class="download-meta mono">${item.bytes.toLocaleString("en-US")} Bytes · SHA-256 ${escape(item.sha256)} · ${escape(item.signingClass)} · productionSigned=${String(item.productionSigned===true)}</p></details></div>`:`<button type="button" disabled aria-disabled="true" data-permanent-disabled="true">${escape(item.label)} · ${text("otherDownloads")}</button>`).join("")}
-function statusContent(){if(state.errorCode)return`${escape(state.errorCode)}: ${state.uncertainHash?`<p>The original transaction is unresolved and may already have been submitted. Open the extension account vault to check its status or explicitly retry the original transaction. Do not send a replacement.</p><p class="mono address">${escape(state.uncertainHash)}</p>`:text("requestFailed")}`;return state.account?`${text("connected")} · <span class="mono">${escape(toYNXAddress(state.account))}</span>`:text("disconnected")}
+function statusContent(){if(state.errorCode)return`${escape(state.errorCode)}: ${state.errorCode==="PERMISSION_REVOCATION_UNVERIFIED"?text("revocationUnverified"):state.uncertainHash?`<p>The original transaction is unresolved and may already have been submitted. Open the extension account vault to check its status or explicitly retry the original transaction. Do not send a replacement.</p><p class="mono address">${escape(state.uncertainHash)}</p>`:text("requestFailed")}`;return state.account?`${text("connected")} · <span class="mono">${escape(toYNXAddress(state.account))}</span>`:text("disconnected")}
 
 function render() {
   state.review = null;
@@ -64,7 +64,7 @@ function render() {
       <p id="detected" class="availability">${text("unavailable")}</p>
       ${state.account?`<dl class="connection-facts"><div><dt>${text("wallet")}</dt><dd>YNX Wallet</dd></div><div><dt>${text("network")}</dt><dd>${state.chainId==="0x1917"?"YNX Testnet":""} <bdi class="mono">${escape(state.chainId||"")}</bdi></dd></div><div><dt>${text("connected")}</dt><dd class="address">${escape(toYNXAddress(state.account))}</dd></div></dl><button id="copy-address" type="button">${text("copyAddress")}</button><details><summary>${text("evmCompatibility")}</summary><p class="address mono">${escape(state.account)}</p></details>`:""}
       <div id="wallet-chooser" class="wallets ${providerChooserVisible?"":"hidden"}" data-mode="${state.connectState.chooserMode}" data-pending-intent="${state.connectState.pendingIntent?"true":"false"}"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="primary" rel="noreferrer" aria-describedby="download-meta">${text("download")}</a></div>
-      <div id="connection-controls" class="actions ${connectionDetails?"":"hidden"}" data-mode="${state.connectState.chooserMode}"><button id="switch-account" type="button">${text("switchAccount")}</button><button id="disconnect" type="button">${text("disconnect")}</button></div>
+      <div id="connection-controls" class="actions ${connectionDetails?"":"hidden"}" data-mode="${state.connectState.chooserMode}">${isExtension?`<button id="switch-account" type="button">${text("manageAccount")}</button>`:""}<button id="disconnect" type="button">${text("disconnect")}</button></div>
       <p id="download-meta" class="download-meta">${text("previewNotice")}</p>
       <details id="platforms" class="platforms"><summary>${text("installDetails")}</summary>${packageSources(WALLET_DOWNLOAD_MATRIX.android,{primaryId:"android-download",fallbackId:"android-fallback-download"})}<p id="android-publication-boundary" class="download-meta">${escape(WALLET_DOWNLOAD_MATRIX.android.downloadNotice)}</p><details class="package-details"><summary>${text("packageDetails")}</summary><p class="download-meta mono">${escape(WALLET_DOWNLOAD_MATRIX.android.label)} · ${WALLET_DOWNLOAD_MATRIX.android.bytes.toLocaleString("en-US")} Bytes · SHA-256 ${escape(WALLET_DOWNLOAD_MATRIX.android.sha256)} · ${escape(WALLET_DOWNLOAD_MATRIX.android.signingClass)} · productionSigned=false</p></details><div class="platform-grid">${platformDownloads()}</div></details>
       <div class="status ${!state.errorCode&&!state.account?"hidden":""}" id="status" role="status" aria-live="polite"><strong>${text("status")}:</strong> ${statusContent()}</div>
@@ -230,8 +230,21 @@ function bind() {
   });
   document.querySelector("#copy-address")?.addEventListener("click",()=>{const account=state.account,epoch=state.epoch;if(state.wallet!=="ynx"||!account)return;void navigator.clipboard.writeText(toYNXAddress(account)).then(()=>{if(epoch===state.epoch&&account===state.account)setStatus(text("addressCopied"))}).catch(setError)});
   document.querySelector("#wallet-connect-trigger").addEventListener("click",()=>{state.connectState=reduceStandardWalletConnectState(state.connectState,{type:state.connectState.chooserOpen?"CLOSE_CHOOSER":"OPEN_CHOOSER"});render();document.querySelector("#wallet-connect-trigger")?.focus()});
-  document.querySelector("#disconnect")?.addEventListener("click",()=>{clearConnectedSession();detect({preserveConnection:false}).catch(setError);queueMicrotask(()=>document.querySelector("#wallet-connect-trigger")?.focus())});
-  document.querySelector("#switch-account")?.addEventListener("click",()=>connect(state.wallet));
+  document.querySelector("#disconnect")?.addEventListener("click",async()=>{
+    if(state.busy||!state.provider)return;
+    const provider=state.provider;state.busy=true;applyActionGates();
+    try{
+      await disconnectStandardWallet(provider);
+      clearConnectedSession();await detect({preserveConnection:false});
+      setStatus(text("disconnected"));queueMicrotask(()=>document.querySelector("#wallet-connect-trigger")?.focus());
+    }catch(error){setError(error)}
+    finally{state.busy=false;applyActionGates()}
+  });
+  document.querySelector("#switch-account")?.addEventListener("click",async()=>{
+    const runtime=globalThis.browser?.runtime||globalThis.chrome?.runtime;
+    try{if(!runtime?.openOptionsPage)throw new Error("Account manager unavailable");await runtime.openOptionsPage()}
+    catch{setStatus(text("accountManagementUnavailable"),"error")}
+  });
   document.querySelector("#add").addEventListener("click", () => act(() => addYNXChain(state.provider), () => text("testnet")));
   document.querySelector("#switch").addEventListener("click", () => act(() => switchToYNXChain(state.provider), () => text("connected")));
   document.querySelector("#sign").addEventListener("click", () => act(() => signMessage(state.provider, state.account, document.querySelector("#message").value), (value) => `${text("signature")}: ${value}`));

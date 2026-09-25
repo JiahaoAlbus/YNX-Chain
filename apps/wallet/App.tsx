@@ -21,6 +21,7 @@ import { PaymentRecipientInput, type PaymentRecipientInputAttempt } from "./src/
 import { FaucetFlow, faucetStatusCopy, productionFaucetConfiguration, type FaucetAction } from "./src/state/faucetFlow";
 import { faucetRecoveryCopy } from "./src/i18n/faucetRecoveryCopy";
 import { EvmSimulationClient, type EvmSimulationResult } from "./src/chain/evmSimulation";
+import { TEST_MARKET_DIRECTORY, TestMarketAssetClient, type TestMarketAssetView } from "./src/chain/testMarketAssets";
 import { buildWalletControlView, type CapitalReview } from "./src/control/controlSurface";
 import { controlCopy } from "./src/control/controlCopy";
 import { formatDateTime, formatYNXT, isRTL, loadLocale, localizeError, localizeProductSessionError, saveLocale, SUPPORTED_LOCALES, translate, walletAccessibilitySummary, walletCopy, walletDetailError, type WalletLocale } from "./src/i18n/i18n";
@@ -46,7 +47,7 @@ import { needsOfflineKeyRecovery, reviewRecoveryKey } from "./src/state/recovery
 import { assertSecureStorageAvailable, platformSecureStorage, platformStorageHealth } from "./src/storage/secureStorage";
 import { type WalletAccount, type WalletManifest, WalletRepository } from "./src/storage/walletRepository";
 import { COLORS, HIGH_CONTRAST_LIGHT } from "./src/theme";
-import { WalletConnectButton, walletConnectRuntime } from "./src/walletConnect/WalletConnectModal";
+import { WalletConnectButton, closeWalletConnectForLock, walletConnectRuntime } from "./src/walletConnect/WalletConnectModal";
 import { offerWalletConnectDeepLink } from "./src/walletConnect/inbox";
 
 let ACTIVE_COLORS=COLORS;
@@ -132,14 +133,14 @@ function WalletApp(){
       inspectLegacy:url=>legacy.inspectForOpaqueMigration(url)});
   },[operations]);
   const cancelAuthorization=useCallback(()=>{++linkRevision.current;productSessions.cancel();applicationActions.cancel();cardApprovals.cancel();financeOrderApprovals.cancel();setAuthorization(null);setApplicationAction(null);setCardApproval(null);setFinanceOrderApproval(null)},[productSessions,applicationActions,cardApprovals,financeOrderApprovals]);
-  const lock=()=>{void walletConnectRuntime.rejectPendingForLock();operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
-  const updateManifest=useCallback((next:WalletManifest)=>{void walletConnectRuntime.rejectPendingForLock();operations.invalidate();operations.setAccount(next.selectedAccountId);selectedRef.current=next.accounts.find(item=>item.account===next.selectedAccountId)??null;cancelAuthorization();setManifest(next)},[operations,cancelAuthorization]);
+  const lock=()=>{closeWalletConnectForLock(selectedRef.current?.account);operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
+  const updateManifest=useCallback((next:WalletManifest)=>{closeWalletConnectForLock(selectedRef.current?.account);operations.invalidate();operations.setAccount(next.selectedAccountId);selectedRef.current=next.accounts.find(item=>item.account===next.selectedAccountId)??null;cancelAuthorization();setManifest(next)},[operations,cancelAuthorization]);
 
   useEffect(()=>platformStorageHealth.subscribe(()=>{
     // Cancel scopes immediately, before React renders the restart page. Keep
     // the durable account/outbox records; an interrupted send can be unknown.
     ++loadRevision.current;readyRef.current=false;queuedLink.current=null;
-    void walletConnectRuntime.rejectPendingForLock();operations.lock();rootScope.cancel();corruptReset.cancel();cancelAuthorization();
+    closeWalletConnectForLock(selectedRef.current?.account);operations.lock();rootScope.cancel();corruptReset.cancel();cancelAuthorization();
     setPendingRecovery(null);setSetup("closed");setSettings(false);setBusy(false);
     setNotice(null);setLoading(false);setStorageRestartRequired(true);
     dispatchLock({type:"lock",reason:"user"});
@@ -157,11 +158,20 @@ function WalletApp(){
   const loadHandler=useRef(load);loadHandler.current=load;
   const handleLink=useCallback((url:string)=>{
     if(platformStorageHealth.requiresRestart)return;
-    if(!readyRef.current||AppState.currentState!=="active"){queuedLink.current=url;return}
-    if(linkIntake.current||productSessions.current||applicationActions.current||cardApprovals.current||financeOrderApprovals.current){setAuthorizationError(localizeError(locale,new Error("Finish or reject the current Wallet request before opening another")));return}
     let actionRoute=false,cardRoute=false,financeRoute=false,walletConnectRoute=false;
     try{const target=new URL(url);actionRoute=target.protocol==="ynxwallet:"&&target.hostname==="application-action";cardRoute=target.protocol==="ynxwallet:"&&target.hostname==="card-application-approval";financeRoute=target.protocol==="ynxwallet:"&&target.hostname==="finance-order-approval";walletConnectRoute=target.protocol==="ynxwallet:"&&target.hostname==="wc"}catch{}
-    if(walletConnectRoute){offerWalletConnectDeepLink(url);return}
+    if(walletConnectRoute){
+      if(readyRef.current&&AppState.currentState==="active"&&(linkIntake.current||productSessions.current||applicationActions.current||cardApprovals.current||financeOrderApprovals.current)){
+        setAuthorizationError(localizeError(locale,new Error("Finish or reject the current Wallet request before opening another")));return;
+      }
+      try{offerWalletConnectDeepLink(url);setAuthorizationError(null)}catch(caught){setAuthorizationError(localizeError(locale,caught))}return;
+    }
+    if(!readyRef.current||AppState.currentState!=="active"){
+      if(queuedLink.current&&queuedLink.current!==url)setAuthorizationError(localizeError(locale,new Error("Another Wallet link is already waiting. Finish it before opening a new one.")));
+      else queuedLink.current=url;
+      return;
+    }
+    if(linkIntake.current||productSessions.current||applicationActions.current||cardApprovals.current||financeOrderApprovals.current){setAuthorizationError(localizeError(locale,new Error("Finish or reject the current Wallet request before opening another")));return}
     const revision=++linkRevision.current;linkIntake.current=true;
     const pending=financeRoute?financeOrderApprovals.receive(url).then(review=>{if(revision===linkRevision.current&&financeOrderApprovals.current?.id===review.id){setFinanceOrderApproval(review);setAuthorizationError(null)}}):cardRoute?cardApprovals.receive(url).then(review=>{if(revision===linkRevision.current&&cardApprovals.current?.id===review.id){setCardApproval(review);setAuthorizationError(null)}}):actionRoute?applicationActions.receive(url).then(review=>{if(revision===linkRevision.current&&applicationActions.current?.id===review.id){setApplicationAction(review);setAuthorizationError(null)}}):productSessions.receive(url).then(review=>{if(revision===linkRevision.current&&productSessions.current?.id===review.id){setAuthorization(review);setAuthorizationError(null)}});
     void pending.catch(caught=>{if(revision===linkRevision.current)setAuthorizationError(localizeError(locale,caught))}).finally(()=>{linkIntake.current=false});
@@ -170,7 +180,7 @@ function WalletApp(){
   useEffect(()=>{void load()},[load]);
   useEffect(()=>{if(!initialLinkRead.current){initialLinkRead.current=true;void Linking.getInitialURL().then((url)=>{if(url)handleLink(url)})}const sub=Linking.addEventListener("url",({url})=>handleLink(url));return()=>sub.remove()},[handleLink]);
   useEffect(()=>{if(!storageRestartRequired&&!loading&&manifest&&queuedLink.current){const url=queuedLink.current;queuedLink.current=null;handleLink(url)}},[storageRestartRequired,loading,manifest,handleLink]);
-  useEffect(()=>{operations.setAppState(AppState.currentState);let reloadOnActive=AppState.currentState==="background";const sub=AppState.addEventListener("change",(next)=>{operations.setAppState(next);if(next==="background"){void walletConnectRuntime.rejectPendingForLock();reloadOnActive=true;rootScope.cancel();dispatchLock({type:"lock",reason:"background"});cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false)}else if(next==="active"&&reloadOnActive){reloadOnActive=false;void loadHandler.current();void walletConnectRuntime.restore()}});return()=>{operations.lock();rootScope.cancel();sub.remove()}},[cancelAuthorization,operations,rootScope]);
+  useEffect(()=>{operations.setAppState(AppState.currentState);let reloadOnActive=AppState.currentState==="background";const sub=AppState.addEventListener("change",(next)=>{operations.setAppState(next);if(next==="background"){closeWalletConnectForLock(selectedRef.current?.account);reloadOnActive=true;rootScope.cancel();dispatchLock({type:"lock",reason:"background"});cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false)}else if(next==="active"&&reloadOnActive){reloadOnActive=false;void loadHandler.current();void walletConnectRuntime.restore()}});return()=>{operations.lock();rootScope.cancel();sub.remove()}},[cancelAuthorization,operations,rootScope]);
   useEffect(()=>{if(!pendingRecovery)return;const timer=setTimeout(()=>{rootScope.cancel();operations.invalidate();setPendingRecovery(null);setSetup("closed");setBusy(false);setNotice("Recovery display expired. Generate a new account if it was not saved.")},RECOVERY_DISPLAY_MS);return()=>clearTimeout(timer)},[pendingRecovery,operations,rootScope]);
   useEffect(()=>{void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);void AccessibilityInfo.isHighTextContrastEnabled().then(setHighContrast);const sub=AccessibilityInfo.addEventListener("reduceMotionChanged",setReducedMotion);return()=>sub.remove()},[]);
   useEffect(()=>{let active=true;setPrivacyState({ready:false,error:null});void preventScreenCaptureAsync("wallet-runtime").then(()=>{if(active)setPrivacyState({ready:true,error:null})}).catch((caught)=>{if(active){operations.lock();dispatchLock({type:"lock",reason:"user"});setPrivacyState({ready:false,error:`Wallet privacy protection failed: ${message(caught)}`})}});return()=>{active=false;void allowScreenCaptureAsync("wallet-runtime")}},[privacyAttempt,operations]);
@@ -258,6 +268,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <Pressable accessibilityLabel={walletCopy(locale,"Switch Wallet account")} accessibilityState={{expanded:accountsOpen}} onPress={()=>setAccountsOpen(!accountsOpen)} style={styles.accountPicker}><View><Text style={styles.accountLabel}>{selected.label}</Text><Text style={styles.address}>{short(selected.account)}</Text></View><ChevronDown color={ACTIVE_COLORS.ink}/></Pressable>
     {accountsOpen?<View style={styles.accountMenu}>{manifest.accounts.map((item)=><Pressable accessibilityRole="radio" accessibilityState={{checked:item.account===selected.account}} accessibilityLabel={`${translate(locale,"account")} ${item.label}`} key={item.account} onPress={()=>{select(item.account);setAccountsOpen(false)}} style={styles.accountRow}><View><Text style={styles.accountLabel}>{item.label}</Text><Text style={styles.smallAddress}>{short(item.account)}</Text></View>{item.account===selected.account?<Check color={ACTIVE_COLORS.blue}/>:null}</Pressable>)}<Pressable accessibilityLabel={translate(locale,"createAnother")} onPress={create} style={styles.accountRow}><Plus color={ACTIVE_COLORS.blue}/><Text style={styles.link}>{translate(locale,"createAnother")}</Text></Pressable><Pressable accessibilityLabel={translate(locale,"importAnother")} onPress={add} style={styles.accountRow}><KeyRound color={ACTIVE_COLORS.blue}/><Text style={styles.link}>{translate(locale,"importAnother")}</Text></Pressable></View>:null}
     <View style={styles.balanceCard}><Text style={styles.balanceLabel}>{walletCopy(locale,"Native asset · authoritative testnet")}</Text><Text style={styles.balance}>{chainState.account?formatYNXT(locale,chainState.account.balance):"— YNXT"}</Text><Text style={styles.balanceMeta}>{chainState.phase==="loading"?walletCopy(locale,"Loading balance and nonce…"):chainState.phase==="unrecorded"?`${walletCopy(locale,"This address has no on-chain account record yet. Receive testnet YNXT to get started. Balance and nonce are not available yet.")} ${walletCopy(locale,"Sending becomes available after balance and nonce are confirmed.")}`:chainState.phase==="failed"?`${walletCopy(locale,"Balance unavailable")}: ${networkRecoveryCopy(locale,chainState.error??"")}`:`${walletCopy(locale,"Nonce {nonce}",{nonce:chainState.account?chainState.account.nonce:"—"})} · ${chainState.activityPhase==="ready"?walletCopy(locale,"{count} matching transactions in the latest 25 chain transactions",{count:chainState.activity.length}):walletCopy(locale,"Activity · unavailable")}`}</Text></View>
+    {chainState.phase==="failed"||chainState.phase==="unrecorded"||chainState.activityPhase==="failed"?<SecondaryButton label={walletCopy(locale,"Refresh balance and activity")} onPress={()=>void refreshChain()}/>:null}
     <View style={styles.quickRow}><Quick icon={<ArrowUpRight color={ACTIVE_COLORS.blue}/>} label={translate(locale,"send")} onPress={()=>setSend(true)}/><Quick icon={<QrCode color={ACTIVE_COLORS.blue}/>} label={translate(locale,"receive")} onPress={()=>setQR(true)}/><Quick icon={<History color={ACTIVE_COLORS.blue}/>} label={translate(locale,"activity")} onPress={()=>setCenter(true)}/></View>
     <SecondaryButton label={walletCopy(locale,"Test YNXT")} onPress={()=>setFaucet(true)}/>
     <InfoCard title={translate(locale,"accountSafety")} body={walletCopy(locale,selected.backupConfirmed?"Offline backup confirmed. System biometrics protect unlock, authorization, recovery viewing and deletion.":"Backup is not confirmed. Do not receive assets until the recovery key is stored offline.")}/>
@@ -266,7 +277,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <FaucetButton secondary label={walletCopy(locale,"View offline recovery key")} onPress={()=>setRecovery(true)}/>
     <FaucetButton secondary label={walletCopy(locale,"0x EVM compatibility and contract simulation")} onPress={()=>setEvm(true)}/>
     <SecondaryButton label={walletCopy(locale,"Connected Apps, Sessions and Devices")} onPress={()=>setCenter(true)}/>
-    <WalletConnectButton account={selected} withAccountSecret={walletConnectKeyAccess}/>
+    <WalletConnectButton account={selected} withAccountSecret={walletConnectKeyAccess} operations={operations}/>
     <SecondaryButton label={walletCopy(locale,"Review stored transfer")} onPress={()=>setSend(true)}/>
     <SecondaryButton label={controlCopy(locale,"open")} onPress={()=>setControls(true)}/>
     <SecondaryButton label={translate(locale,"lockWallet")} onPress={lock}/>
@@ -464,6 +475,7 @@ function WalletCenter({visible,account,chainState,close,openAudit,retry}:{visibl
   const cancelSessions=useRef<()=>void>(()=>{});
   const dismiss=()=>{cancelSessions.current();close()};
   return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={walletCopy(locale,"Wallet Center")} close={dismiss}><Text style={styles.eyebrow}>{walletCopy(locale,"ASSETS / ACTIVITY")}</Text><InfoCard title={chainState.account?`${chainState.account.balance} YNXT`:chainState.phase==="loading"?walletCopy(locale,"YNXT · loading"):chainState.phase==="unrecorded"?walletCopy(locale,"YNXT · no account record"):walletCopy(locale,"YNXT · unavailable")} body={chainState.phase==="loading"?walletCopy(locale,"Loading balance and nonce…"):chainState.phase==="unrecorded"?walletCopy(locale,"This address has no on-chain account record yet. Receive testnet YNXT to get started. Balance and nonce are not available yet."):chainState.phase==="failed"?networkRecoveryCopy(locale,chainState.error??walletCopy(locale,"Balance unavailable")):walletCopy(locale,"Authoritative nonce {nonce} on ynx_6423-1.",{nonce:chainState.account?.nonce??"—"})}/>{chainState.activityPhase==="loading"?<InfoCard title={walletCopy(locale,"Activity · loading")} body={walletCopy(locale,"Loading recent chain transactions…")}/>:chainState.activityPhase==="failed"?<InfoCard title={walletCopy(locale,"Activity · unavailable")} body={networkRecoveryCopy(locale,chainState.activityError??walletCopy(locale,"Recent transactions could not be loaded."))}/>:chainState.activity.length===0?<InfoCard title={walletCopy(locale,"Activity · empty")} body={walletCopy(locale,"No matching account activity appears in the latest 25 chain transactions.")}/>:chainState.activity.map((item)=><View key={item.hash} style={styles.auditRow}><Text style={styles.infoTitle}>{item.to===evmAddressFromYNX(account.account)?walletCopy(locale,"Received"):walletCopy(locale,"Sent")} · {item.amount} YNXT</Text><Text style={styles.infoBody}>{short(item.hash)} · {walletCopy(locale,"fee {fee} · nonce {nonce}",{fee:item.fee,nonce:item.nonce})}</Text></View>)}{chainState.phase==="failed"||chainState.phase==="unrecorded"||chainState.activityPhase==="failed"?<SecondaryButton label={walletCopy(locale,"Refresh balance and activity")} onPress={retry}/>:null}
+    <TestMarketAssets key={account.account} visible={visible} account={account}/>
     <ConnectedApps visible={visible} account={account} cancelRef={cancelSessions}/>
     <SecondaryButton label={walletCopy(locale,"Open Authorization Audit")} onPress={openAudit}/>
     <Text style={[styles.eyebrow,styles.sectionLabel]}>{walletCopy(locale,"RECOVERY / SECURITY / NETWORK")}</Text>
@@ -471,6 +483,36 @@ function WalletCenter({visible,account,chainState,close,openAudit,retry}:{visibl
     <InfoCard title={walletCopy(locale,"Security")} body={walletCopy(locale,"Wallet locks in the background. Viewing app sessions, revoking a session and using a private key each require system biometrics.")}/>
     <InfoCard title={translate(locale,"network")} body={walletCopy(locale,"YNX testnet · ynx_6423-1 · native YNXT · rpc-testnet.ynxweb4.com. EVM chain ID 6423 is available in the compatibility view.")}/>
   </Sheet></Modal>
+}
+
+function TestMarketAssets({visible,account}:{visible:boolean;account:WalletAccount}){
+  const locale=useContext(WalletLocaleContext);
+  const [state,setState]=useState<{phase:"unverified"|"loading"|"ready"|"failed";assets?:readonly TestMarketAssetView[];error?:string}>({phase:"unverified"});
+  const address=evmAddressFromYNX(account.account);
+  useEffect(()=>{
+    let current=true;
+    setState({phase:"unverified"});
+    if(!visible||TEST_MARKET_DIRECTORY.status!=="VERIFIED")return()=>{current=false};
+    setState({phase:"loading"});
+    const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;
+    new TestMarketAssetClient(runtime?.evmRpcURL??runtime?.baseURL).read(address).then(
+      assets=>{if(current)setState({phase:"ready",assets})},
+      caught=>{if(current)setState({phase:"failed",error:message(caught)})},
+    );
+    return()=>{current=false};
+  },[visible,address]);
+  return <View>
+    <Text style={[styles.eyebrow,styles.sectionLabel]}>TEST MARKET · ASSETS</Text>
+    {state.phase==="unverified"?<InfoCard title="TEST-AAPL / tUSD · unavailable" body="Valueless test assets. No verified YNX testnet deployment or contract addresses are pinned. Balances, transfers, allowances and order approval are unavailable."/>:
+      state.phase==="loading"?<InfoCard title="Test market · verifying" body="Checking deployment receipt, code and balances at a pinned chain block…"/>:
+      state.phase==="failed"?<InfoCard title="Test market · unavailable" body={state.error??"Chain verification failed. No balance or approval is available."}/>:
+      state.assets?.map(asset=><InfoCard key={asset.symbol} title={`${asset.symbol} · ${formatTestMarketUnits(asset.balanceUnits,asset.decimals)}`} body={`Valueless test asset · allowance to DvP ${formatTestMarketUnits(asset.allowanceToDvpUnits,asset.decimals)} · block ${asset.blockNumber} (${short(asset.blockHash)}) · ${asset.source} · ${asset.asOf}. Transfers and order approval remain unavailable.`}/>)}
+  </View>;
+}
+
+function formatTestMarketUnits(units:string,decimals:6):string{
+  const padded=units.padStart(decimals+1,"0"),whole=padded.slice(0,-decimals),fraction=padded.slice(-decimals).replace(/0+$/g,"");
+  return fraction?`${whole}.${fraction}`:whole;
 }
 
 function ConnectedApps({visible,account,cancelRef}:{visible:boolean;account:WalletAccount;cancelRef:{current:()=>void}}){
