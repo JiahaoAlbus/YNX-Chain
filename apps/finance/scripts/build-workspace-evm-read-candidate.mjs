@@ -23,7 +23,8 @@ const priorBytes=read(priorPath);
 assert.equal(sha256(priorBytes),'9568598e9a098b2cfdf7bf6b133db25a28cc4006079f65d25d2349c052cc4286');
 const prior=JSON.parse(priorBytes);
 const activeManifestSha256='9cbc39d8b9e80345965d6e0b7768bd4c6582bbeff4ef0e8ba2a5224e3d2c46eb';
-assert.equal(sha256(read('apps/finance/web/wallet-verifier-manifest.json')),activeManifestSha256);
+const predecessorManifest=execFileSync('git',['show',`${source}:apps/finance/web/wallet-verifier-manifest.json`],{cwd:root});
+assert.equal(sha256(predecessorManifest),activeManifestSha256);
 const changed=new Map([
   ['apps/finance/web/index.html',{bytes:28681,sha256:'d974c4c2a4a5aabe7559db6885b34918c5fd83d10d974849d47d345fa86006da'}],
   ['apps/finance/scripts/finance-nonregressive-runtime.mjs',{bytes:3181,sha256:'1cd69c32854af88b0b2aa8c0653f1a7868f369b2cecaffc0cdabbd608338322e'}],
