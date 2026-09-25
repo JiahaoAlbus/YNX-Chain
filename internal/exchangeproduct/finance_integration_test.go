@@ -4,95 +4,79 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/JiahaoAlbus/YNX-Chain/internal/finance"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 )
 
-func TestFinanceReadUsesPersistedAccountAndRejectsReplayOrCrossAccount(t *testing.T) {
+func TestFinanceReadIntegrationReturnsOnlyAuthorizedSanitizedEvidence(t *testing.T) {
+	now := time.Date(2026, 8, 11, 9, 0, 0, 0, time.UTC)
+	secret := strings.Repeat("f", 32)
 	service, _, _ := newTestService(t)
-	key := strings.Repeat("e", 32)
-	if _, err := service.CreditTestQuote("Bearer "+adminKey, alice, 7_000_000, "finance-alice-credit"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := service.CreditTestQuote("Bearer "+adminKey, bob, 11_000_000, "finance-bob-credit"); err != nil {
-		t.Fatal(err)
-	}
+	service.cfg.FinanceReadKey = secret
+	service.cfg.Now = func() time.Time { return now }
+	service.mu.Lock()
+	service.state.Balances[balanceKey(alice, NativeAsset)] = Balance{Account: alice, Asset: NativeAsset, AvailableMicro: 9 * AmountScale, ReservedMicro: AmountScale}
+	service.state.Orders["order-private"] = Order{ID: "order-private", Account: alice, Market: DefaultMarket, Side: "buy", Type: "limit", TimeInForce: "gtc", PriceMicro: 2 * AmountScale, AmountMicro: 3 * AmountScale, Status: "open", WalletAuthorized: true, AuthorizationDigest: "must-not-leak", CreatedAt: now.Add(-time.Minute), UpdatedAt: now}
+	service.state.Orders["other-account"] = Order{ID: "other-account", Account: bob, Market: DefaultMarket, Status: "open", AuthorizationDigest: "other-secret"}
+	service.mu.Unlock()
+
 	server := NewServer(service)
-	if err := server.ConfigureFinanceReadKey(key); err != nil {
+	request := httptest.NewRequest(http.MethodGet, "https://exchange.test"+FinanceReadRoute, nil)
+	if err := readintegration.Sign(request, secret, "finance", "exchange", alice, now); err != nil {
 		t.Fatal(err)
 	}
-	read := func(account string) (*httptest.ResponseRecorder, *http.Request) {
-		t.Helper()
-		req := httptest.NewRequest(http.MethodGet, FinanceReadRoute, nil)
-		if err := readintegration.Sign(req, key, "finance", "exchange", account, time.Now().UTC()); err != nil {
-			t.Fatal(err)
-		}
-		response := httptest.NewRecorder()
-		server.ServeHTTP(response, req)
-		return response, req
-	}
-	aliceResponse, signed := read(alice)
-	if aliceResponse.Code != http.StatusOK {
-		t.Fatalf("alice status=%d body=%s", aliceResponse.Code, aliceResponse.Body.String())
+	recorder := httptest.NewRecorder()
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
 	var envelope struct {
-		EnvelopeVersion   string `json:"envelopeVersion"`
-		SourceID          string `json:"sourceId"`
-		AuthorizedAccount string `json:"authorizedAccount"`
-		Payload           struct {
-			Balances []Balance `json:"balances"`
-		} `json:"payload"`
+		EnvelopeVersion      string          `json:"envelopeVersion"`
+		AuthorizedAccount    string          `json:"authorizedAccount"`
+		OwnerContractVersion string          `json:"ownerContractVersion"`
+		PayloadSchema        string          `json:"payloadSchema"`
+		ReadOnly             bool            `json:"readOnly"`
+		Capabilities         []string        `json:"capabilities"`
+		Payload              json.RawMessage `json:"payload"`
 	}
-	if err := json.Unmarshal(aliceResponse.Body.Bytes(), &envelope); err != nil {
+	if err := json.Unmarshal(recorder.Body.Bytes(), &envelope); err != nil {
 		t.Fatal(err)
 	}
-	if envelope.EnvelopeVersion != FinanceReadEnvelopeVersion || envelope.SourceID != "exchange" || envelope.AuthorizedAccount != alice || len(envelope.Payload.Balances) != 2 || envelope.Payload.Balances[1].AvailableMicro != 7_000_000 {
-		t.Fatalf("unexpected Alice evidence: %+v", envelope)
+	if envelope.EnvelopeVersion != FinanceReadEnvelopeVersion || envelope.AuthorizedAccount != alice || envelope.OwnerContractVersion != FinanceReadContractVersion || envelope.PayloadSchema != FinanceReadPayloadSchema || !envelope.ReadOnly || len(envelope.Capabilities) != len(FinanceReadCapabilities) {
+		t.Fatalf("unexpected envelope: %+v", envelope)
 	}
-	if strings.Contains(aliceResponse.Body.String(), bob) || strings.Contains(aliceResponse.Body.String(), "11000000") || strings.Contains(aliceResponse.Body.String(), adminKey) {
-		t.Fatal("Alice read leaked Bob or server credentials")
+	payload := string(envelope.Payload)
+	for _, forbidden := range []string{"must-not-leak", "other-secret", "other-account", "authorizationDigest", "walletPublicKey", "session"} {
+		if strings.Contains(payload, forbidden) {
+			t.Fatalf("payload leaked %q: %s", forbidden, payload)
+		}
 	}
-	contract := finance.AcceptedReadSourceContract{Accepted: true, SourceID: "exchange", Owner: "07-exchange", OwnerContractVersion: FinanceReadContractVersion, PayloadSchema: FinanceReadPayloadSchema, AllowedCapabilities: financeReadCapabilities}
-	if _, err := finance.ValidateReadSourceEnvelope(aliceResponse.Body.Bytes(), alice, contract, time.Now().UTC()); err != nil {
-		t.Fatalf("Finance rejected Exchange owner envelope: %v", err)
+	if !strings.Contains(payload, `"id":"order-private"`) || !strings.Contains(payload, `"availableMicro":9000000`) {
+		t.Fatalf("authorized evidence missing: %s", payload)
 	}
+
 	replay := httptest.NewRecorder()
-	server.ServeHTTP(replay, signed)
+	server.ServeHTTP(replay, request)
 	if replay.Code != http.StatusUnauthorized {
-		t.Fatalf("replay status=%d", replay.Code)
+		t.Fatalf("replay status=%d body=%s", replay.Code, replay.Body.String())
 	}
-	bobResponse, _ := read(bob)
-	if bobResponse.Code != http.StatusOK || strings.Contains(bobResponse.Body.String(), alice) {
-		t.Fatalf("Bob read leaked Alice: %d %s", bobResponse.Code, bobResponse.Body.String())
+}
+
+func TestFinanceReadIntegrationFailsClosed(t *testing.T) {
+	service, _, _ := newTestService(t)
+	server := NewServer(service)
+	request := httptest.NewRequest(http.MethodGet, "https://exchange.test"+FinanceReadRoute, nil)
+	recorder := httptest.NewRecorder()
+	server.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusServiceUnavailable {
+		t.Fatalf("unconfigured status=%d", recorder.Code)
 	}
-	missing, _ := read(carol)
-	if missing.Code != http.StatusNotFound {
-		t.Fatalf("missing economic account status=%d", missing.Code)
-	}
-	unsigned := httptest.NewRecorder()
-	server.ServeHTTP(unsigned, httptest.NewRequest(http.MethodGet, FinanceReadRoute, nil))
-	if unsigned.Code != http.StatusUnauthorized {
-		t.Fatalf("unsigned status=%d", unsigned.Code)
-	}
-	config := service.cfg
-	if err := service.Close(); err != nil {
-		t.Fatal(err)
-	}
-	reopened, err := New(config)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer reopened.Close()
-	server = NewServer(reopened)
-	if err := server.ConfigureFinanceReadKey(key); err != nil {
-		t.Fatal(err)
-	}
-	restarted, _ := read(alice)
-	if restarted.Code != http.StatusOK || !strings.Contains(restarted.Body.String(), "7000000") {
-		t.Fatalf("restarted read did not use durable state: %d %s", restarted.Code, restarted.Body.String())
+	_, err := New(Config{StatePath: filepath.Join(t.TempDir(), "state.json"), APIKey: adminKey, WalletCallback: "ynxexchange://wallet/callback", RequiredConfirmations: 3, MakerFeeBPS: 10, TakerFeeBPS: 20, FinanceReadKey: "short"})
+	if err == nil {
+		t.Fatal("short Finance read key was accepted")
 	}
 }

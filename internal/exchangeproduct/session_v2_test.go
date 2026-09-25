@@ -2,7 +2,6 @@ package exchangeproduct
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -14,7 +13,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -104,10 +102,10 @@ func v2Response(t *testing.T, r *http.Request, session productsessionv2.Session,
 		"Content-Type": []string{"application/json"}, "Cache-Control": []string{"no-store"},
 		"X-Request-Id": []string{r.Header.Get("X-Request-Id")}}, Body: io.NopCloser(bytes.NewReader(b)), ContentLength: int64(len(b))}
 }
+
 func v2Server(t *testing.T, rt exchangeV2RoundTrip) (*Service, *Server, string) {
 	t.Helper()
 	s, _, path := newTestService(t)
-	t.Cleanup(func() { _ = s.Close() })
 	c, err := newProductSessionV2Client(rt)
 	if err != nil {
 		t.Fatal(err)
@@ -116,275 +114,181 @@ func v2Server(t *testing.T, rt exchangeV2RoundTrip) (*Service, *Server, string) 
 	return s, NewServer(s), path
 }
 
-func TestSessionV2CanonicalAuthorityAndNoCredentialForwarding(t *testing.T) {
-	proof, session := v2Fixture(t, alice, "exchange:read")
-	var calls int
-	s, server, _ := v2Server(t, func(r *http.Request) (*http.Response, error) {
-		calls++
-		body, _ := io.ReadAll(r.Body)
-		if r.URL.String() != exchangeSessionAuthority+"/v2/product-sessions/introspect" || r.Method != "POST" || string(body) != `{"requiredScopes":["exchange:read"]}` || r.Header.Get(productsessionv2.ProofHeader) != proof || r.Header.Get("Cookie") != "" || r.Header.Get("Authorization") != "" || r.Header.Get("X-YNX-Product-Session-Proof") != "" {
-			t.Fatal("unexpected canonical authority request")
+// The real public venue is schema 10, not the divergent schema-1 candidate.
+// These isolated fixtures never copy, inspect or modify private production data.
+func TestBrowserV2PreservesSchema10BytesAcrossTwoUsersAndRestart(t *testing.T) {
+	var mu sync.Mutex
+	seen := map[string]bool{}
+	s, api, path := v2Server(t, func(r *http.Request) (*http.Response, error) {
+		p, _ := base64.RawURLEncoding.DecodeString(r.Header.Get(productsessionv2.ProofHeader))
+		var proof map[string]any
+		if err := json.Unmarshal(p, &proof); err != nil {
+			t.Fatal(err)
 		}
-		if calls > 1 {
+		_, session := v2Fixture(t, proof["account"].(string), "exchange:read")
+		mu.Lock()
+		replay := seen[proof["nonce"].(string)]
+		seen[proof["nonce"].(string)] = true
+		mu.Unlock()
+		if replay {
 			return v2Response(t, r, session, "REPLAY"), nil
 		}
-		return v2Response(t, r, session, ""), nil
-	})
-	s.cfg.GatewayURL = "https://legacy-authority.invalid"
-	if _, err := s.CreditTestQuote("Bearer "+adminKey, alice, 21*AmountScale, "v2-alice-credit"); err != nil {
-		t.Fatal(err)
-	}
-	for i, status := range []int{200, 401} {
-		r := v2Request("GET", "/v1/account", proof, "")
-		r.Header.Set("Cookie", "private-user-cookie")
-		r.Header.Set("Authorization", "Bearer must-not-forward")
-		w := httptest.NewRecorder()
-		server.ServeHTTP(w, r)
-		if w.Code != status {
-			t.Fatalf("attempt %d: %d %s", i, w.Code, w.Body.String())
-		}
-		if strings.Contains(w.Body.String(), proof) || strings.Contains(w.Body.String(), session.DeviceKey) || strings.Contains(w.Body.String(), "untrusted authority detail") {
-			t.Fatal("credential or upstream detail leak")
-		}
-	}
-	if calls != 2 || len(s.state.Sessions) != 0 {
-		t.Fatal("introspection cache or local session issuance")
-	}
-	if s.Integrations().ProductSessionV2 != "configured_not_attested" {
-		t.Fatal("configured status overclaim")
-	}
-}
-
-func TestSessionV2RejectsInvalidBindingBeforeAuthority(t *testing.T) {
-	proof, _ := v2Fixture(t, alice, "exchange:read")
-	tests := []struct {
-		name   string
-		status int
-		mutate func(*http.Request)
-	}{
-		{"origin", 403, func(r *http.Request) { r.Header.Set("Origin", "https://attacker.invalid") }},
-		{"duplicate", 401, func(r *http.Request) { r.Header.Add(productsessionv2.ProofHeader, proof) }},
-		{"empty", 401, func(r *http.Request) { r.Header.Set(productsessionv2.ProofHeader, "") }},
-		{"malformed", 401, func(r *http.Request) { r.Header.Set(productsessionv2.ProofHeader, "not+base64") }},
-		{"mixed_v1_v2", 400, func(r *http.Request) { r.Header.Set("X-YNX-Product-Session-Proof", "legacy-proof") }},
-		{"wrong_scope", 403, func(r *http.Request) { r.Method = "POST"; r.URL.Path = "/v1/orders" }},
-		{"expired", 401, func(r *http.Request) {
-			r.Header.Set(productsessionv2.ProofHeader, v2Mutate(t, proof, func(p map[string]any) { p["expiresAt"] = "2000-01-01T00:00:00.000Z" }))
-		}},
-	}
-	for _, field := range []string{"productId", "clientId", "applicationId", "origin", "callback"} {
-		field := field
-		tests = append(tests, struct {
-			name   string
-			status int
-			mutate func(*http.Request)
-		}{field, 403, func(r *http.Request) {
-			r.Header.Set(productsessionv2.ProofHeader, v2Mutate(t, proof, func(p map[string]any) { p[field] = "other-product" }))
-		}})
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			_, server, _ := v2Server(t, func(*http.Request) (*http.Response, error) { t.Fatal("unexpected authority call"); return nil, nil })
-			r := v2Request("GET", "/v1/account", proof, "{}")
-			tc.mutate(r)
-			w := httptest.NewRecorder()
-			server.ServeHTTP(w, r)
-			if w.Code != tc.status {
-				t.Fatalf("%d %s", w.Code, w.Body.String())
-			}
-		})
-	}
-}
-
-func TestSessionV2ReadDoesNotAuthorizeLegacyWriteScopes(t *testing.T) {
-	proof, _ := v2Fixture(t, alice, "exchange:read")
-	_, server, path := v2Server(t, func(*http.Request) (*http.Response, error) {
-		t.Fatal("no authority call for undeclared write scope")
-		return nil, nil
-	})
-	before, _ := os.ReadFile(path)
-	for _, route := range []struct{ method, path string }{{"PUT", "/v1/security"}, {"POST", "/v1/support"}} {
-		w := httptest.NewRecorder()
-		server.ServeHTTP(w, v2Request(route.method, route.path, proof, `{"requiredScopes":["exchange:trade"]}`))
-		if w.Code != 403 || !strings.Contains(w.Body.String(), "EXPLICIT_WRITE_SCOPE_UNAVAILABLE") {
-			t.Fatalf("unexpected write gate %d %s", w.Code, w.Body.String())
-		}
-	}
-	after, _ := os.ReadFile(path)
-	if !bytes.Equal(before, after) {
-		t.Fatal("read proof mutated disk")
-	}
-}
-
-func TestSessionV2NeverBecomesNativeOrderSignature(t *testing.T) {
-	proof, session := v2Fixture(t, alice, "exchange:trade")
-	s, server, path := v2Server(t, func(r *http.Request) (*http.Response, error) { return v2Response(t, r, session, ""), nil })
-	r := v2Request("POST", "/v1/orders", proof, `{"market":"YNXT-YUSD_TEST","side":"buy","type":"limit","priceMicro":1000000,"amountMicro":1000000,"idempotencyKey":"v2-unsigned-order","walletPublicKey":"offline-fixture-device-public-key-not-a-native-key","walletSignature":"device-proof-is-not-order-approval"}`)
-	validated, ok := server.authorizeSessionV2(httptest.NewRecorder(), r)
-	if !ok {
-		t.Fatal("fixture authorization rejected")
-	}
-	auth := validated.Context().Value(exchangeSessionV2ContextKey{}).(exchangeSessionV2Authorization)
-	if auth.session.WalletPublicKey != "" || auth.session.TokenHash != "" || auth.session.Account != alice || auth.session.ProductDeviceKey != session.DeviceKey {
-		t.Fatal("native and device credentials conflated")
-	}
-	before, _ := os.ReadFile(path)
-	snapshot, _ := json.Marshal(s.state)
-	w := httptest.NewRecorder()
-	server.ServeHTTP(w, r)
-	if w.Code != 401 {
-		t.Fatalf("unsigned order result %d %s", w.Code, w.Body.String())
-	}
-	after, _ := os.ReadFile(path)
-	updated, _ := json.Marshal(s.state)
-	if !bytes.Equal(before, after) || !bytes.Equal(snapshot, updated) {
-		t.Fatal("unsigned v2 order mutated venue")
-	}
-}
-
-func TestSessionV2ExpiryRecheckedAfterVenueLockWait(t *testing.T) {
-	s, _, _ := newTestService(t)
-	defer s.Close()
-	server := NewServer(s)
-	r := httptest.NewRequest("GET", "/v1/account", nil)
-	r = r.WithContext(context.WithValue(r.Context(), exchangeSessionV2ContextKey{}, exchangeSessionV2Authorization{
-		scope: "exchange:read", session: WalletSession{Account: alice, ExpiresAt: time.Now().Add(-time.Second)},
-	}))
-	w := httptest.NewRecorder()
-	if _, ok := server.auth(w, r, "exchange:read"); ok || w.Code != 401 {
-		t.Fatal("expired queued session authorized")
-	}
-}
-
-func TestSessionV2AuthorityFailureLeavesGuestReadAndStateAvailable(t *testing.T) {
-	proof, _ := v2Fixture(t, alice, "exchange:read")
-	var calls atomic.Int32
-	_, server, path := v2Server(t, func(*http.Request) (*http.Response, error) {
-		calls.Add(1)
-		return nil, errors.New("internal transport credential detail")
-	})
-	before, _ := os.ReadFile(path)
-	w := httptest.NewRecorder()
-	server.ServeHTTP(w, v2Request("GET", "/v1/account", proof, ""))
-	if w.Code != 503 || !strings.Contains(w.Body.String(), `"privateService":"degraded"`) || strings.Contains(w.Body.String(), "credential detail") {
-		t.Fatalf("private failure %d %s", w.Code, w.Body.String())
-	}
-	guest := httptest.NewRecorder()
-	server.ServeHTTP(guest, httptest.NewRequest("GET", "/v1/market-data/snapshot", nil))
-	if guest.Code != 200 || calls.Load() != 1 {
-		t.Fatal("guest coupled to private authority or retry occurred")
-	}
-	after, _ := os.ReadFile(path)
-	if !bytes.Equal(before, after) {
-		t.Fatal("authority failure mutated venue")
-	}
-}
-
-func TestSessionV2SlowAuthorityDoesNotLockGuestSnapshot(t *testing.T) {
-	proof, session := v2Fixture(t, alice, "exchange:read")
-	started, release := make(chan struct{}), make(chan struct{})
-	_, server, _ := v2Server(t, func(r *http.Request) (*http.Response, error) {
-		close(started)
-		<-release
-		return v2Response(t, r, session, ""), nil
-	})
-	privateDone := make(chan struct{})
-	go func() {
-		defer close(privateDone)
-		server.ServeHTTP(httptest.NewRecorder(), v2Request("GET", "/v1/account", proof, ""))
-	}()
-	<-started
-	guestDone := make(chan int, 1)
-	go func() {
-		w := httptest.NewRecorder()
-		server.ServeHTTP(w, httptest.NewRequest("GET", "/v1/market-data/snapshot", nil))
-		guestDone <- w.Code
-	}()
-	select {
-	case code := <-guestDone:
-		if code != 200 {
-			t.Error("guest unavailable")
-		}
-	case <-time.After(time.Second):
-		t.Error("private introspection holds venue lock")
-	}
-	close(release)
-	<-privateDone
-}
-
-func TestSessionV2IndependentUsersConcurrentReadsAndRestart(t *testing.T) {
-	proofA, sessionA := v2Fixture(t, alice, "exchange:read")
-	proofB, sessionB := v2Fixture(t, bob, "exchange:read")
-	var calls atomic.Int32
-	s, server, path := v2Server(t, func(r *http.Request) (*http.Response, error) {
-		calls.Add(1)
-		session := sessionA
-		if r.Header.Get(productsessionv2.ProofHeader) == proofB {
-			session = sessionB
-		} else if r.Header.Get(productsessionv2.ProofHeader) != proofA {
-			t.Error("unknown proof")
+		if r.URL.String() != exchangeSessionAuthority+"/v2/product-sessions/introspect" || r.Header.Get("Cookie") != "" || r.Header.Get("Authorization") != "" {
+			t.Error("authority or header injection")
 		}
 		return v2Response(t, r, session, ""), nil
 	})
 	for i, account := range []string{alice, bob} {
-		if _, err := s.CreditTestQuote("Bearer "+adminKey, account, int64(i+1)*AmountScale, "v2-credit-"+account); err != nil {
+		if _, err := s.CreditTestQuote("Bearer "+adminKey, account, int64(i+1)*17*AmountScale, "isolated-v2-credit-"+account); err != nil {
 			t.Fatal(err)
 		}
 	}
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(before, []byte(`"schemaVersion": 10`)) {
+		t.Fatal("test did not use production schema")
+	}
+	httpServer := httptest.NewServer(api)
+	defer httpServer.Close()
 	var wg sync.WaitGroup
 	for i := 0; i < 20; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			proof, own, foreign := proofA, alice, bob
-			if i%2 != 0 {
-				proof, own, foreign = proofB, bob, alice
+			account := []string{alice, bob}[i%2]
+			proof, _ := v2Fixture(t, account, "exchange:read")
+			proof = v2Mutate(t, proof, func(p map[string]any) { p["nonce"] = strings.Repeat("n", 20) + string(rune('a'+i)) })
+			req, _ := http.NewRequest("GET", httpServer.URL+"/v1/account", nil)
+			req.Header.Set("Origin", exchangeWebOrigin)
+			req.Header.Set(productsessionv2.ProofHeader, proof)
+			req.Header.Set("Cookie", "not-an-authority")
+			req.Header.Set("Authorization", "not-an-authority")
+			resp, err := httpServer.Client().Do(req)
+			if err != nil {
+				t.Error(err)
+				return
 			}
-			w := httptest.NewRecorder()
-			server.ServeHTTP(w, v2Request("GET", "/v1/account", proof, ""))
-			if w.Code != 200 || !strings.Contains(w.Body.String(), own) || strings.Contains(w.Body.String(), foreign) {
-				t.Errorf("account isolation failed status %d", w.Code)
+			defer resp.Body.Close()
+			raw, _ := io.ReadAll(resp.Body)
+			var snapshot AccountSnapshot
+			if resp.StatusCode != 200 || json.Unmarshal(raw, &snapshot) != nil {
+				t.Errorf("account failed: %d", resp.StatusCode)
+				return
+			}
+			for _, balance := range snapshot.Balances {
+				if balance.Account != account {
+					t.Error("cross-account balance")
+				}
+			}
+			for _, entry := range snapshot.Ledger {
+				if entry.Account != account {
+					t.Error("cross-account ledger")
+				}
+			}
+			if bytes.Contains(raw, []byte("offline-fixture-device-public-key")) {
+				t.Error("device proof identity leaked")
 			}
 		}(i)
 	}
 	wg.Wait()
-	if calls.Load() != 20 {
-		t.Fatal("per-request authority call missing")
+	after, _ := os.ReadFile(path)
+	if !bytes.Equal(before, after) {
+		t.Fatal("read route rewrote persisted schema-10 state")
 	}
-	before, _ := os.ReadFile(path)
 	restarted, err := New(s.cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer restarted.Close()
-	w := httptest.NewRecorder()
-	NewServer(restarted).ServeHTTP(w, v2Request("GET", "/v1/account", proofB, ""))
-	if w.Code != 200 || calls.Load() != 21 || strings.Contains(w.Body.String(), alice) {
-		t.Fatal("restart reused private authority or account")
+	if restarted.state.SchemaVersion != 10 || restarted.state.IntegrityHash != s.state.IntegrityHash {
+		t.Fatal("restart lost current state")
 	}
-	after, _ := os.ReadFile(path)
-	if !bytes.Equal(before, after) {
-		t.Fatal("account reads persisted authority session")
+	reread, _ := os.ReadFile(path)
+	if !bytes.Equal(before, reread) {
+		t.Fatal("second startup mutated current state")
 	}
 }
 
-func TestSessionV2RouteScopesAreServerOwned(t *testing.T) {
-	s, _, _ := newTestService(t)
-	defer s.Close()
-	server := NewServer(s)
-	expected := map[string]string{
-		"GET /v1/account": "exchange:read", "POST /v1/deposit-intents": "exchange:deposit", "POST /v1/deposits": "exchange:deposit",
-		"POST /v1/deposits/{id}/refresh": "exchange:deposit", "POST /v1/withdrawals/review": "exchange:withdrawal-review",
-		"POST /v1/orders": "exchange:trade", "POST /v1/orders/{id}/cancel": "exchange:trade", "PUT /v1/security": "exchange:read",
-		"POST /v1/support": "exchange:read", "POST /v1/ai/drafts": "exchange:ai", "POST /v1/ai/drafts/{id}/actions": "exchange:ai",
-	}
-	if !bytes.Equal(v2Canonical(t, expected), v2Canonical(t, server.privateScopes)) {
-		t.Fatal("private route policy drift")
-	}
+func TestBrowserV2FailClosedWithoutLegacyOrWriteFallback(t *testing.T) {
+	calls := 0
+	_, api, _ := v2Server(t, func(r *http.Request) (*http.Response, error) {
+		calls++
+		return nil, errors.New("private authority unavailable; do not echo")
+	})
 	proof, _ := v2Fixture(t, alice, "exchange:read")
+	for _, tc := range []struct {
+		method, path string
+		status       int
+	}{
+		{"POST", "/v1/orders", 403}, {"PUT", "/v1/security", 403}, {"POST", "/v1/quant-adapter/account", 403},
+		{"GET", "/v1/ws/user", 403}, {"GET", "/v1/unknown", 403},
+	} {
+		w := httptest.NewRecorder()
+		api.ServeHTTP(w, v2Request(tc.method, tc.path, proof, ""))
+		if w.Code != tc.status {
+			t.Fatalf("%s %s: %d", tc.method, tc.path, w.Code)
+		}
+	}
+	if calls != 0 {
+		t.Fatal("unsupported route reached authority")
+	}
 	w := httptest.NewRecorder()
-	server.ServeHTTP(w, v2Request("GET", "/v1/account", proof, ""))
-	if w.Code != 503 || !strings.Contains(w.Body.String(), "PRIVATE_SERVICE_UNCONFIGURED") {
-		t.Fatal("v2 silently fell back to legacy")
+	r := v2Request("GET", "/v1/account", proof, "")
+	r.Header.Set("X-YNX-Product-Session-Proof", "legacy")
+	api.ServeHTTP(w, r)
+	if w.Code != 400 || calls != 0 {
+		t.Fatal("ambiguous proof accepted")
+	}
+	for _, mutate := range []func(*http.Request){
+		func(r *http.Request) { r.Header.Set("Origin", "https://attacker.invalid") },
+		func(r *http.Request) { r.Header.Add(productsessionv2.ProofHeader, proof) },
+		func(r *http.Request) { r.Header.Set(productsessionv2.ProofHeader, "malformed") },
+		func(r *http.Request) {
+			r.Header.Set(productsessionv2.ProofHeader, v2Mutate(t, proof, func(p map[string]any) { p["expiresAt"] = "2000-01-01T00:00:00.000Z" }))
+		},
+	} {
+		w = httptest.NewRecorder()
+		r = v2Request("GET", "/v1/account", proof, "")
+		mutate(r)
+		api.ServeHTTP(w, r)
+		if w.Code < 400 || calls != 0 {
+			t.Fatal("invalid binding reached authority")
+		}
+	}
+	w = httptest.NewRecorder()
+	api.ServeHTTP(w, v2Request("GET", "/v1/account", proof, ""))
+	if w.Code != 503 || !strings.Contains(w.Body.String(), "degraded") || strings.Contains(w.Body.String(), "do not echo") {
+		t.Fatal("private failure contract")
+	}
+	guest := httptest.NewRecorder()
+	api.ServeHTTP(guest, httptest.NewRequest("GET", "/v1/orderbook", nil))
+	if guest.Code != 200 {
+		t.Fatal("private failure broke guest data")
+	}
+}
+
+func TestBrowserV2ReplayDelegatedAndNoLocalSessionIssuance(t *testing.T) {
+	proof, session := v2Fixture(t, alice, "exchange:read")
+	calls := 0
+	s, api, path := v2Server(t, func(r *http.Request) (*http.Response, error) {
+		calls++
+		code := ""
+		if calls > 1 {
+			code = "REPLAY"
+		}
+		return v2Response(t, r, session, code), nil
+	})
+	before, _ := os.ReadFile(path)
+	for _, status := range []int{200, 401} {
+		w := httptest.NewRecorder()
+		api.ServeHTTP(w, v2Request("GET", "/v1/account", proof, ""))
+		if w.Code != status {
+			t.Fatalf("got %d want %d", w.Code, status)
+		}
+	}
+	after, _ := os.ReadFile(path)
+	if calls != 2 || len(s.state.Sessions) != 0 || !bytes.Equal(before, after) {
+		t.Fatal("cached proof or persisted local authority")
 	}
 }

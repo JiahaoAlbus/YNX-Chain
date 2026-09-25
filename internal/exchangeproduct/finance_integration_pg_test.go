@@ -18,18 +18,22 @@ func TestFinanceReadPostgresCrossInstanceNonceAndPersistedAccount(t *testing.T) 
 		t.Skip("YNX_EXCHANGE_POSTGRES_TEST_URL is not configured")
 	}
 	key := strings.Repeat("e", 32)
-	config := Config{DatabaseURL: databaseURL, APIKey: adminKey, WalletCallback: "ynxexchange://wallet/callback"}
+	config := Config{StateDatabaseURL: databaseURL, APIKey: adminKey, WalletCallback: "ynxexchange://wallet/callback"}
 	firstService, err := New(config)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer firstService.Close()
-	store := firstService.store.(*postgresStateStore)
+	store := firstService.stateRepository.(*postgresStateRepository)
 	var nonce string
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_exchange_state WHERE id = 'primary'`)
+		if store.schemaMode == "revision" {
+			_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_exchange_state WHERE id = 'primary'`)
+		} else {
+			_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_exchange_state WHERE singleton = TRUE`)
+		}
 		if nonce != "" {
 			_, _ = store.db.ExecContext(ctx, `DELETE FROM ynx_exchange_finance_read_nonces WHERE nonce = $1`, nonce)
 		}

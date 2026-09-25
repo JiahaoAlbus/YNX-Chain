@@ -14,15 +14,19 @@ func TestPostgreSQLStateStoreMultiInstanceCASAndRestartRecovery(t *testing.T) {
 	if databaseURL == "" {
 		t.Skip("YNX_EXCHANGE_POSTGRES_TEST_URL is not configured")
 	}
-	config := Config{DatabaseURL: databaseURL, APIKey: adminKey, WalletCallback: "ynxexchange://wallet/callback"}
+	config := Config{StateDatabaseURL: databaseURL, APIKey: adminKey, WalletCallback: "ynxexchange://wallet/callback"}
 	seed, err := New(config)
 	if err != nil {
 		t.Fatal(err)
 	}
-	store, ok := seed.store.(*postgresStateStore)
+	store, ok := seed.stateRepository.(*postgresStateRepository)
 	if !ok {
 		_ = seed.Close()
 		t.Fatal("PostgreSQL store was not selected")
+	}
+	if store.schemaMode != "revision" {
+		_ = seed.Close()
+		t.Skip("revision-layout PostgreSQL database is required; integrity layout has separate CAS tests")
 	}
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -48,17 +52,18 @@ func TestPostgreSQLStateStoreMultiInstanceCASAndRestartRecovery(t *testing.T) {
 	second.mu.Lock()
 	second.state.Sequence++
 	second.mu.Unlock()
+	firstHash, secondHash := first.state.IntegrityHash, second.state.IntegrityHash
 	firstErr := make(chan error, 1)
 	secondErr := make(chan error, 1)
-	go func() { firstErr <- first.store.save(&first.state) }()
-	go func() { secondErr <- second.store.save(&second.state) }()
+	go func() { firstErr <- first.stateRepository.Save(firstHash, &first.state) }()
+	go func() { secondErr <- second.stateRepository.Save(secondHash, &second.state) }()
 	errs := []error{<-firstErr, <-secondErr}
 	successes, conflicts := 0, 0
 	for _, err := range errs {
 		if err == nil {
 			successes++
 		}
-		if errors.Is(err, errStateConflict) {
+		if errors.Is(err, ErrConflict) {
 			conflicts++
 		}
 	}

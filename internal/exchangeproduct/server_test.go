@@ -20,6 +20,12 @@ type streamingRecorder struct {
 	once   sync.Once
 }
 
+type readyTestRepository struct{ state persistentState }
+
+func (r readyTestRepository) Load() (persistentState, bool, error) { return r.state, true, nil }
+func (readyTestRepository) Save(string, *persistentState) error    { return nil }
+func (readyTestRepository) Mode() string                           { return "postgres-cas-multi-instance" }
+
 func newStreamingRecorder() *streamingRecorder {
 	return &streamingRecorder{header: make(http.Header), wrote: make(chan struct{})}
 }
@@ -40,7 +46,7 @@ func (w *streamingRecorder) String() string {
 	return w.body.String()
 }
 
-func TestHealthDisclosesFileSnapshotIsNotMultiInstance(t *testing.T) {
+func TestHealthDoesNotClaimExecutionWithoutStrategyVaultEvidence(t *testing.T) {
 	service, _, _ := newTestService(t)
 	server := NewServer(service)
 	request := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -50,14 +56,14 @@ func TestHealthDisclosesFileSnapshotIsNotMultiInstance(t *testing.T) {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 	var body struct {
-		StateBackend  string `json:"stateBackend"`
-		MultiInstance bool   `json:"multiInstance"`
+		RoutingAvailable  bool `json:"routingAvailable"`
+		ProductionCustody bool `json:"productionCustody"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if body.StateBackend != "file_snapshot" || body.MultiInstance {
-		t.Fatalf("storage readiness overclaimed multi-instance support: %+v", body)
+	if body.RoutingAvailable || body.ProductionCustody {
+		t.Fatalf("health overclaimed execution or custody: %+v", body)
 	}
 }
 
@@ -71,20 +77,22 @@ func TestReadyRejectsFileSnapshotForDeployableVenue(t *testing.T) {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 	var body struct {
-		Status        string `json:"status"`
-		StateBackend  string `json:"stateBackend"`
-		MultiInstance bool   `json:"multiInstance"`
+		Status             string `json:"status"`
+		StateStore         string `json:"stateStore"`
+		MultiInstanceState bool   `json:"multiInstanceState"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if body.Status != "not_ready" || body.StateBackend != "file_snapshot" || body.MultiInstance {
+	if body.Status != "degraded_single_host" || body.StateStore != "file-cas-single-host" || body.MultiInstanceState {
 		t.Fatalf("file snapshot readiness overclaimed deployability: %+v", body)
 	}
 }
 
 func TestReadyAcceptsMultiInstanceDurableStore(t *testing.T) {
-	service := &Service{store: conflictStateStore{}, state: newState()}
+	state := newState()
+	state.IntegrityHash, _ = stateIntegrity(state)
+	service := &Service{stateRepository: readyTestRepository{state: state}, state: state}
 	server := NewServer(service)
 	request := httptest.NewRequest(http.MethodGet, "/ready", nil)
 	response := httptest.NewRecorder()
@@ -93,14 +101,14 @@ func TestReadyAcceptsMultiInstanceDurableStore(t *testing.T) {
 		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
 	}
 	var body struct {
-		Status        string `json:"status"`
-		StateBackend  string `json:"stateBackend"`
-		MultiInstance bool   `json:"multiInstance"`
+		Status             string `json:"status"`
+		StateStore         string `json:"stateStore"`
+		MultiInstanceState bool   `json:"multiInstanceState"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if body.Status != "ready" || body.StateBackend != "postgresql" || !body.MultiInstance {
+	if body.Status != "ready_local_engine" || body.StateStore != "postgres-cas-multi-instance" || !body.MultiInstanceState {
 		t.Fatalf("durable backend readiness was not reported: %+v", body)
 	}
 }

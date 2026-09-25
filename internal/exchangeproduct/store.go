@@ -1,154 +1,15 @@
 package exchangeproduct
 
 import (
-	"context"
+	"bytes"
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
-
-	_ "github.com/lib/pq"
 )
-
-var errStateConflict = errors.New("exchange state changed concurrently")
-
-// stateStore keeps the whole deterministic venue state durable. PostgreSQL is
-// the production-capable backend; the JSON implementation is retained only for
-// local development and isolated testnet fixtures.
-type stateStore interface {
-	load() (persistentState, bool, error)
-	save(*persistentState) error
-	close() error
-	backend() string
-	multiInstance() bool
-}
-
-type fileStateStore struct{ path string }
-
-func (s fileStateStore) load() (persistentState, bool, error) { return loadState(s.path) }
-func (s fileStateStore) save(state *persistentState) error    { return saveState(s.path, state) }
-func (s fileStateStore) close() error                         { return nil }
-func (s fileStateStore) backend() string                      { return "file_snapshot" }
-func (s fileStateStore) multiInstance() bool                  { return false }
-
-type postgresStateStore struct{ db *sql.DB }
-
-func openStateStore(statePath, databaseURL string) (stateStore, error) {
-	if strings.TrimSpace(databaseURL) == "" {
-		return fileStateStore{path: statePath}, nil
-	}
-	db, err := sql.Open("postgres", databaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("open exchange PostgreSQL state store: %w", err)
-	}
-	db.SetConnMaxLifetime(15 * time.Minute)
-	db.SetMaxOpenConns(16)
-	db.SetMaxIdleConns(4)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := db.PingContext(ctx); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("ping exchange PostgreSQL state store: %w", err)
-	}
-	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS ynx_exchange_state (
-		id TEXT PRIMARY KEY,
-		revision BIGINT NOT NULL,
-		payload JSONB NOT NULL,
-		updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-	)`); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("migrate exchange PostgreSQL state store: %w", err)
-	}
-	return &postgresStateStore{db: db}, nil
-}
-
-func (s *postgresStateStore) load() (persistentState, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	var revision int64
-	var payload []byte
-	err := s.db.QueryRowContext(ctx, `SELECT revision, payload FROM ynx_exchange_state WHERE id = 'primary'`).Scan(&revision, &payload)
-	if errors.Is(err, sql.ErrNoRows) {
-		return newState(), false, nil
-	}
-	if err != nil {
-		return persistentState{}, false, fmt.Errorf("load exchange PostgreSQL state: %w", err)
-	}
-	var state persistentState
-	if err := json.Unmarshal(payload, &state); err != nil {
-		return persistentState{}, false, fmt.Errorf("decode exchange PostgreSQL state: %w", err)
-	}
-	state.Revision = revision
-	if state.SchemaVersion != 1 || state.IntegrityHash == "" {
-		return persistentState{}, false, errors.New("exchange PostgreSQL state schema or integrity hash invalid")
-	}
-	expected, err := stateIntegrity(state)
-	if err != nil || expected != state.IntegrityHash {
-		return persistentState{}, false, errors.New("exchange PostgreSQL state integrity verification failed")
-	}
-	normalizeState(&state)
-	return state, true, nil
-}
-
-func (s *postgresStateStore) save(state *persistentState) error {
-	if state.Revision < 0 {
-		return errors.New("exchange PostgreSQL state revision invalid")
-	}
-	previousRevision := state.Revision
-	next := *state
-	next.Revision = 0 // revision is held by the database, not signed into payload.
-	hash, err := stateIntegrity(next)
-	if err != nil {
-		return err
-	}
-	next.IntegrityHash = hash
-	payload, err := json.Marshal(next)
-	if err != nil {
-		return err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if previousRevision == 0 {
-		result, err := s.db.ExecContext(ctx, `INSERT INTO ynx_exchange_state (id, revision, payload) VALUES ('primary', 1, $1::jsonb) ON CONFLICT (id) DO NOTHING`, string(payload))
-		if err != nil {
-			return fmt.Errorf("create exchange PostgreSQL state: %w", err)
-		}
-		rows, err := result.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("create exchange PostgreSQL state result: %w", err)
-		}
-		if rows != 1 {
-			return errStateConflict
-		}
-		state.Revision = 1
-		state.IntegrityHash = hash
-		return nil
-	}
-	result, err := s.db.ExecContext(ctx, `UPDATE ynx_exchange_state SET revision = $1, payload = $2::jsonb, updated_at = NOW() WHERE id = 'primary' AND revision = $3`, previousRevision+1, string(payload), previousRevision)
-	if err != nil {
-		return fmt.Errorf("save exchange PostgreSQL state: %w", err)
-	}
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("save exchange PostgreSQL state result: %w", err)
-	}
-	if rows != 1 {
-		return errStateConflict
-	}
-	state.Revision = previousRevision + 1
-	state.IntegrityHash = hash
-	return nil
-}
-
-func (s *postgresStateStore) close() error        { return s.db.Close() }
-func (s *postgresStateStore) backend() string     { return "postgresql" }
-func (s *postgresStateStore) multiInstance() bool { return true }
 
 type idempotencyRecord struct {
 	Action   string `json:"action"`
@@ -156,7 +17,53 @@ type idempotencyRecord struct {
 	ObjectID string `json:"objectId"`
 }
 
+const currentStateSchemaVersion = 10
+
 type persistentState struct {
+	SchemaVersion      int                           `json:"schemaVersion"`
+	Sequence           int64                         `json:"sequence"`
+	EventSequence      int64                         `json:"eventSequence"`
+	CustodyAddress     string                        `json:"custodyAddress"`
+	Challenges         map[string]WalletChallenge    `json:"challenges"`
+	Sessions           map[string]WalletSession      `json:"sessions"`
+	Balances           map[string]Balance            `json:"balances"`
+	Ledger             []LedgerEntry                 `json:"ledger"`
+	DepositIntents     map[string]DepositIntent      `json:"depositIntents"`
+	Deposits           map[string]Deposit            `json:"deposits"`
+	Withdrawals        map[string]Withdrawal         `json:"withdrawals"`
+	Orders             map[string]Order              `json:"orders"`
+	ConditionalOrders  map[string]ConditionalOrder   `json:"conditionalOrders"`
+	OCOGroups          map[string]OCOGroup           `json:"ocoGroups"`
+	TWAPOrders         map[string]TWAPOrder          `json:"twapOrders"`
+	ScaleOrders        map[string]ScaleOrder         `json:"scaleOrders"`
+	DeadMan            map[string]DeadManSwitch      `json:"deadMan"`
+	QuantStrategyKills map[string]QuantStrategyKill  `json:"quantStrategyKills"`
+	RiskOracle         map[string]RiskOracleSnapshot `json:"riskOracle"`
+	RiskMarkets        map[string]RiskMarketState    `json:"riskMarkets"`
+	MarginAccounts     map[string]MarginAccount      `json:"marginAccounts"`
+	PerpetualPositions map[string]PerpetualPosition  `json:"perpetualPositions"`
+	PerpetualOrders    map[string]PerpetualOrder     `json:"perpetualOrders"`
+	PerpetualTrades    []PerpetualTrade              `json:"perpetualTrades"`
+	FundingSettlements []FundingSettlement           `json:"fundingSettlements"`
+	Liquidations       []LiquidationEvent            `json:"liquidations"`
+	InsuranceFund      InsuranceFund                 `json:"insuranceFund"`
+	ExecutionEvents    []ExecutionEvent              `json:"executionEvents"`
+	Trades             []Trade                       `json:"trades"`
+	Fees               []FeeRecord                   `json:"fees"`
+	Security           map[string]SecuritySettings   `json:"security"`
+	Support            map[string]SupportCase        `json:"support"`
+	AI                 map[string]AIRecord           `json:"ai"`
+	Idempotency        map[string]idempotencyRecord  `json:"idempotency"`
+	Audit              []AuditEvent                  `json:"audit"`
+	IntegrityHash      string                        `json:"integrityHash"`
+	Revision           int64                         `json:"-"`
+}
+
+// legacyPersistentStateV1 preserves the exact JSON field set and field order
+// used by the original exchange state schema. Integrity hashes were computed
+// from this shape, so a v1 file must be verified against it before new fields
+// are normalized and the state is migrated to the current schema.
+type legacyPersistentStateV1 struct {
 	SchemaVersion  int                          `json:"schemaVersion"`
 	Sequence       int64                        `json:"sequence"`
 	CustodyAddress string                       `json:"custodyAddress"`
@@ -176,11 +83,73 @@ type persistentState struct {
 	Idempotency    map[string]idempotencyRecord `json:"idempotency"`
 	Audit          []AuditEvent                 `json:"audit"`
 	IntegrityHash  string                       `json:"integrityHash"`
-	Revision       int64                        `json:"-"`
+}
+
+// legacyPersistentStateV8 preserves the exact field set and order emitted by
+// schema v8 so its integrity hash can be verified before adding strategy kills.
+type legacyPersistentStateV8 struct {
+	SchemaVersion     int                          `json:"schemaVersion"`
+	Sequence          int64                        `json:"sequence"`
+	EventSequence     int64                        `json:"eventSequence"`
+	CustodyAddress    string                       `json:"custodyAddress"`
+	Challenges        map[string]WalletChallenge   `json:"challenges"`
+	Sessions          map[string]WalletSession     `json:"sessions"`
+	Balances          map[string]Balance           `json:"balances"`
+	Ledger            []LedgerEntry                `json:"ledger"`
+	DepositIntents    map[string]DepositIntent     `json:"depositIntents"`
+	Deposits          map[string]Deposit           `json:"deposits"`
+	Withdrawals       map[string]Withdrawal        `json:"withdrawals"`
+	Orders            map[string]Order             `json:"orders"`
+	ConditionalOrders map[string]ConditionalOrder  `json:"conditionalOrders"`
+	OCOGroups         map[string]OCOGroup          `json:"ocoGroups"`
+	TWAPOrders        map[string]TWAPOrder         `json:"twapOrders"`
+	ScaleOrders       map[string]ScaleOrder        `json:"scaleOrders"`
+	DeadMan           map[string]DeadManSwitch     `json:"deadMan"`
+	ExecutionEvents   []ExecutionEvent             `json:"executionEvents"`
+	Trades            []Trade                      `json:"trades"`
+	Fees              []FeeRecord                  `json:"fees"`
+	Security          map[string]SecuritySettings  `json:"security"`
+	Support           map[string]SupportCase       `json:"support"`
+	AI                map[string]AIRecord          `json:"ai"`
+	Idempotency       map[string]idempotencyRecord `json:"idempotency"`
+	Audit             []AuditEvent                 `json:"audit"`
+	IntegrityHash     string                       `json:"integrityHash"`
+}
+
+// legacyPersistentStateV9 preserves the exact schema emitted before the
+// Margin/Perpetual risk domain was added. It is verified before migration.
+type legacyPersistentStateV9 struct {
+	SchemaVersion      int                          `json:"schemaVersion"`
+	Sequence           int64                        `json:"sequence"`
+	EventSequence      int64                        `json:"eventSequence"`
+	CustodyAddress     string                       `json:"custodyAddress"`
+	Challenges         map[string]WalletChallenge   `json:"challenges"`
+	Sessions           map[string]WalletSession     `json:"sessions"`
+	Balances           map[string]Balance           `json:"balances"`
+	Ledger             []LedgerEntry                `json:"ledger"`
+	DepositIntents     map[string]DepositIntent     `json:"depositIntents"`
+	Deposits           map[string]Deposit           `json:"deposits"`
+	Withdrawals        map[string]Withdrawal        `json:"withdrawals"`
+	Orders             map[string]Order             `json:"orders"`
+	ConditionalOrders  map[string]ConditionalOrder  `json:"conditionalOrders"`
+	OCOGroups          map[string]OCOGroup          `json:"ocoGroups"`
+	TWAPOrders         map[string]TWAPOrder         `json:"twapOrders"`
+	ScaleOrders        map[string]ScaleOrder        `json:"scaleOrders"`
+	DeadMan            map[string]DeadManSwitch     `json:"deadMan"`
+	QuantStrategyKills map[string]QuantStrategyKill `json:"quantStrategyKills"`
+	ExecutionEvents    []ExecutionEvent             `json:"executionEvents"`
+	Trades             []Trade                      `json:"trades"`
+	Fees               []FeeRecord                  `json:"fees"`
+	Security           map[string]SecuritySettings  `json:"security"`
+	Support            map[string]SupportCase       `json:"support"`
+	AI                 map[string]AIRecord          `json:"ai"`
+	Idempotency        map[string]idempotencyRecord `json:"idempotency"`
+	Audit              []AuditEvent                 `json:"audit"`
+	IntegrityHash      string                       `json:"integrityHash"`
 }
 
 func newState() persistentState {
-	return persistentState{SchemaVersion: 1, CustodyAddress: "", Challenges: map[string]WalletChallenge{}, Sessions: map[string]WalletSession{}, Balances: map[string]Balance{}, Ledger: []LedgerEntry{}, DepositIntents: map[string]DepositIntent{}, Deposits: map[string]Deposit{}, Withdrawals: map[string]Withdrawal{}, Orders: map[string]Order{}, Trades: []Trade{}, Fees: []FeeRecord{}, Security: map[string]SecuritySettings{}, Support: map[string]SupportCase{}, AI: map[string]AIRecord{}, Idempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{}}
+	return persistentState{SchemaVersion: currentStateSchemaVersion, CustodyAddress: "", Challenges: map[string]WalletChallenge{}, Sessions: map[string]WalletSession{}, Balances: map[string]Balance{}, Ledger: []LedgerEntry{}, DepositIntents: map[string]DepositIntent{}, Deposits: map[string]Deposit{}, Withdrawals: map[string]Withdrawal{}, Orders: map[string]Order{}, ConditionalOrders: map[string]ConditionalOrder{}, OCOGroups: map[string]OCOGroup{}, TWAPOrders: map[string]TWAPOrder{}, ScaleOrders: map[string]ScaleOrder{}, DeadMan: map[string]DeadManSwitch{}, QuantStrategyKills: map[string]QuantStrategyKill{}, RiskOracle: map[string]RiskOracleSnapshot{}, RiskMarkets: map[string]RiskMarketState{}, MarginAccounts: map[string]MarginAccount{}, PerpetualPositions: map[string]PerpetualPosition{}, PerpetualOrders: map[string]PerpetualOrder{}, PerpetualTrades: []PerpetualTrade{}, FundingSettlements: []FundingSettlement{}, Liquidations: []LiquidationEvent{}, InsuranceFund: InsuranceFund{Asset: QuoteAsset, Status: "unfunded"}, ExecutionEvents: []ExecutionEvent{}, Trades: []Trade{}, Fees: []FeeRecord{}, Security: map[string]SecuritySettings{}, Support: map[string]SupportCase{}, AI: map[string]AIRecord{}, Idempotency: map[string]idempotencyRecord{}, Audit: []AuditEvent{}}
 }
 
 func normalizeState(s *persistentState) {
@@ -207,6 +176,54 @@ func normalizeState(s *persistentState) {
 	}
 	if s.Orders == nil {
 		s.Orders = map[string]Order{}
+	}
+	if s.ConditionalOrders == nil {
+		s.ConditionalOrders = map[string]ConditionalOrder{}
+	}
+	if s.OCOGroups == nil {
+		s.OCOGroups = map[string]OCOGroup{}
+	}
+	if s.TWAPOrders == nil {
+		s.TWAPOrders = map[string]TWAPOrder{}
+	}
+	if s.ScaleOrders == nil {
+		s.ScaleOrders = map[string]ScaleOrder{}
+	}
+	if s.DeadMan == nil {
+		s.DeadMan = map[string]DeadManSwitch{}
+	}
+	if s.QuantStrategyKills == nil {
+		s.QuantStrategyKills = map[string]QuantStrategyKill{}
+	}
+	if s.RiskOracle == nil {
+		s.RiskOracle = map[string]RiskOracleSnapshot{}
+	}
+	if s.RiskMarkets == nil {
+		s.RiskMarkets = map[string]RiskMarketState{}
+	}
+	if s.MarginAccounts == nil {
+		s.MarginAccounts = map[string]MarginAccount{}
+	}
+	if s.PerpetualPositions == nil {
+		s.PerpetualPositions = map[string]PerpetualPosition{}
+	}
+	if s.PerpetualOrders == nil {
+		s.PerpetualOrders = map[string]PerpetualOrder{}
+	}
+	if s.PerpetualTrades == nil {
+		s.PerpetualTrades = []PerpetualTrade{}
+	}
+	if s.FundingSettlements == nil {
+		s.FundingSettlements = []FundingSettlement{}
+	}
+	if s.Liquidations == nil {
+		s.Liquidations = []LiquidationEvent{}
+	}
+	if s.InsuranceFund.Asset == "" {
+		s.InsuranceFund = InsuranceFund{Asset: QuoteAsset, Status: "unfunded"}
+	}
+	if s.ExecutionEvents == nil {
+		s.ExecutionEvents = []ExecutionEvent{}
 	}
 	if s.Trades == nil {
 		s.Trades = []Trade{}
@@ -256,7 +273,172 @@ func normalizeAuditChain(s *persistentState) (bool, error) {
 	return changed, nil
 }
 
+func verifyExecutionChain(s *persistentState) error {
+	previous := ""
+	var sequence int64
+	for _, event := range s.ExecutionEvents {
+		if event.Sequence <= sequence || event.PreviousHash != previous || event.Hash == "" {
+			return errors.New("exchange execution event chain verification failed")
+		}
+		stored := event.Hash
+		event.Hash = ""
+		if digest(event) != stored {
+			return errors.New("exchange execution event verification failed")
+		}
+		sequence = event.Sequence
+		previous = stored
+	}
+	if len(s.ExecutionEvents) > 0 && s.EventSequence < sequence {
+		return errors.New("exchange execution sequence invalid")
+	}
+	return nil
+}
+
 func stateIntegrity(s persistentState) (string, error) {
+	s.IntegrityHash = ""
+	b, err := json.Marshal(s)
+	if err != nil {
+		return "", err
+	}
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:]), nil
+}
+
+func legacyStateV1(s persistentState) legacyPersistentStateV1 {
+	return legacyPersistentStateV1{
+		SchemaVersion:  s.SchemaVersion,
+		Sequence:       s.Sequence,
+		CustodyAddress: s.CustodyAddress,
+		Challenges:     s.Challenges,
+		Sessions:       s.Sessions,
+		Balances:       s.Balances,
+		Ledger:         s.Ledger,
+		DepositIntents: s.DepositIntents,
+		Deposits:       s.Deposits,
+		Withdrawals:    s.Withdrawals,
+		Orders:         s.Orders,
+		Trades:         s.Trades,
+		Fees:           s.Fees,
+		Security:       s.Security,
+		Support:        s.Support,
+		AI:             s.AI,
+		Idempotency:    s.Idempotency,
+		Audit:          s.Audit,
+		IntegrityHash:  s.IntegrityHash,
+	}
+}
+
+func legacyStateIntegrityV1(s legacyPersistentStateV1) (string, error) {
+	s.IntegrityHash = ""
+	b, err := json.Marshal(s)
+	if err != nil {
+		return "", err
+	}
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:]), nil
+}
+
+// legacyRawIntegrity verifies the exact serialized shape emitted by a previous
+// schema implementation. Historical nested record types can gain fields over
+// time, so re-marshalling them through current Go structs is not a byte-stable
+// compatibility check. The original writer always stored the top-level
+// integrityHash last; compacting the original JSON after blanking only that
+// final field recreates the exact byte sequence that was hashed.
+func legacyRawIntegrity(raw []byte, stored string) (string, error) {
+	if len(stored) != 64 {
+		return "", errors.New("legacy integrity hash invalid")
+	}
+	marker := []byte(`"integrityHash": "` + stored + `"`)
+	index := bytes.LastIndex(raw, marker)
+	if index < 0 {
+		return "", errors.New("legacy integrity field unavailable")
+	}
+	rewritten := make([]byte, 0, len(raw)-len(stored))
+	rewritten = append(rewritten, raw[:index]...)
+	rewritten = append(rewritten, []byte(`"integrityHash": ""`)...)
+	rewritten = append(rewritten, raw[index+len(marker):]...)
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, rewritten); err != nil {
+		return "", errors.New("legacy state JSON invalid")
+	}
+	h := sha256.Sum256(compact.Bytes())
+	return hex.EncodeToString(h[:]), nil
+}
+
+func legacyStateV8(s persistentState) legacyPersistentStateV8 {
+	return legacyPersistentStateV8{
+		SchemaVersion:     s.SchemaVersion,
+		Sequence:          s.Sequence,
+		EventSequence:     s.EventSequence,
+		CustodyAddress:    s.CustodyAddress,
+		Challenges:        s.Challenges,
+		Sessions:          s.Sessions,
+		Balances:          s.Balances,
+		Ledger:            s.Ledger,
+		DepositIntents:    s.DepositIntents,
+		Deposits:          s.Deposits,
+		Withdrawals:       s.Withdrawals,
+		Orders:            s.Orders,
+		ConditionalOrders: s.ConditionalOrders,
+		OCOGroups:         s.OCOGroups,
+		TWAPOrders:        s.TWAPOrders,
+		ScaleOrders:       s.ScaleOrders,
+		DeadMan:           s.DeadMan,
+		ExecutionEvents:   s.ExecutionEvents,
+		Trades:            s.Trades,
+		Fees:              s.Fees,
+		Security:          s.Security,
+		Support:           s.Support,
+		AI:                s.AI,
+		Idempotency:       s.Idempotency,
+		Audit:             s.Audit,
+		IntegrityHash:     s.IntegrityHash,
+	}
+}
+
+func legacyStateIntegrityV8(s legacyPersistentStateV8) (string, error) {
+	s.IntegrityHash = ""
+	b, err := json.Marshal(s)
+	if err != nil {
+		return "", err
+	}
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:]), nil
+}
+
+func legacyStateV9(s persistentState) legacyPersistentStateV9 {
+	return legacyPersistentStateV9{
+		SchemaVersion:      s.SchemaVersion,
+		Sequence:           s.Sequence,
+		EventSequence:      s.EventSequence,
+		CustodyAddress:     s.CustodyAddress,
+		Challenges:         s.Challenges,
+		Sessions:           s.Sessions,
+		Balances:           s.Balances,
+		Ledger:             s.Ledger,
+		DepositIntents:     s.DepositIntents,
+		Deposits:           s.Deposits,
+		Withdrawals:        s.Withdrawals,
+		Orders:             s.Orders,
+		ConditionalOrders:  s.ConditionalOrders,
+		OCOGroups:          s.OCOGroups,
+		TWAPOrders:         s.TWAPOrders,
+		ScaleOrders:        s.ScaleOrders,
+		DeadMan:            s.DeadMan,
+		QuantStrategyKills: s.QuantStrategyKills,
+		ExecutionEvents:    s.ExecutionEvents,
+		Trades:             s.Trades,
+		Fees:               s.Fees,
+		Security:           s.Security,
+		Support:            s.Support,
+		AI:                 s.AI,
+		Idempotency:        s.Idempotency,
+		Audit:              s.Audit,
+		IntegrityHash:      s.IntegrityHash,
+	}
+}
+
+func legacyStateIntegrityV9(s legacyPersistentStateV9) (string, error) {
 	s.IntegrityHash = ""
 	b, err := json.Marshal(s)
 	if err != nil {
@@ -274,19 +456,66 @@ func loadState(path string) (persistentState, bool, error) {
 	if err != nil {
 		return persistentState{}, false, fmt.Errorf("read exchange state: %w", err)
 	}
+	s, err := decodeStateBytes(b)
+	if err != nil {
+		return persistentState{}, false, err
+	}
+	return s, true, nil
+}
+
+func decodeStateBytes(b []byte) (persistentState, error) {
 	var s persistentState
 	if err := json.Unmarshal(b, &s); err != nil {
-		return persistentState{}, false, fmt.Errorf("decode exchange state: %w", err)
+		return persistentState{}, fmt.Errorf("decode exchange state: %w", err)
 	}
-	if s.SchemaVersion != 1 || s.IntegrityHash == "" {
-		return persistentState{}, false, errors.New("exchange state schema or integrity hash invalid")
+	if s.SchemaVersion < 1 || s.SchemaVersion > currentStateSchemaVersion || s.IntegrityHash == "" {
+		return persistentState{}, errors.New("exchange state schema or integrity hash invalid")
 	}
 	expected, err := stateIntegrity(s)
-	if err != nil || expected != s.IntegrityHash {
-		return persistentState{}, false, errors.New("exchange state integrity verification failed")
+	if err != nil {
+		return persistentState{}, errors.New("exchange state integrity verification failed")
+	}
+	if expected != s.IntegrityHash {
+		switch s.SchemaVersion {
+		case 1:
+			var legacy legacyPersistentStateV1
+			if err := json.Unmarshal(b, &legacy); err != nil {
+				return persistentState{}, errors.New("exchange state integrity verification failed")
+			}
+			legacyExpected, legacyErr := legacyStateIntegrityV1(legacy)
+			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
+				legacyExpected, legacyErr = legacyRawIntegrity(b, legacy.IntegrityHash)
+			}
+			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
+				return persistentState{}, errors.New("exchange state integrity verification failed")
+			}
+		case 8:
+			var legacy legacyPersistentStateV8
+			if err := json.Unmarshal(b, &legacy); err != nil {
+				return persistentState{}, errors.New("exchange state integrity verification failed")
+			}
+			legacyExpected, legacyErr := legacyStateIntegrityV8(legacy)
+			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
+				return persistentState{}, errors.New("exchange state integrity verification failed")
+			}
+		case 9:
+			var legacy legacyPersistentStateV9
+			if err := json.Unmarshal(b, &legacy); err != nil {
+				return persistentState{}, errors.New("exchange state integrity verification failed")
+			}
+			legacyExpected, legacyErr := legacyStateIntegrityV9(legacy)
+			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
+				legacyExpected, legacyErr = legacyRawIntegrity(b, legacy.IntegrityHash)
+			}
+			if legacyErr != nil || legacyExpected != legacy.IntegrityHash {
+				return persistentState{}, errors.New("exchange state integrity verification failed")
+			}
+		default:
+			return persistentState{}, errors.New("exchange state integrity verification failed")
+		}
 	}
 	normalizeState(&s)
-	return s, true, nil
+	return s, nil
 }
 
 func saveState(path string, s *persistentState) error {

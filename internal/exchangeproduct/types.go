@@ -1,6 +1,7 @@
 package exchangeproduct
 
 import (
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -31,12 +32,22 @@ const (
 // BuildCommit is overridden by release builds with -ldflags -X.
 var BuildCommit = "development"
 
+// SourceMetadata distinguishes durable venue observations from external
+// prices and from single-host development snapshots.
+type SourceMetadata struct {
+	Authority      string    `json:"authority"`
+	Version        string    `json:"version"`
+	AsOf           time.Time `json:"asOf"`
+	Classification string    `json:"classification"`
+	Status         string    `json:"status"`
+	Coverage       string    `json:"coverage"`
+	StateBackend   string    `json:"stateBackend"`
+	MultiInstance  bool      `json:"multiInstance"`
+}
+
 type Config struct {
-	StatePath string
-	// DatabaseURL enables the PostgreSQL state backend. When configured, it is
-	// authoritative over StatePath and supports compare-and-swap persistence
-	// across independently running Exchange instances.
-	DatabaseURL            string
+	StatePath              string
+	StateDatabaseURL       string
 	APIKey                 string
 	WalletCallback         string
 	RequiredConfirmations  int64
@@ -48,16 +59,34 @@ type Config struct {
 	CustodyAddress         string
 	GatewayURL             string
 	GatewayClientID        string
+	GatewayBundleID        string
+	QuantGatewayClientID   string
+	QuantGatewayBundleID   string
 	Gateway                GatewayAuthorizer
-	// SessionV2 consumes the canonical authority independently of legacy sessions.
+	// Read-only browser v2 authority; never an order-signing key or legacy token.
 	SessionV2             *productsessionv2.Client
+	WalletSessionAttested bool
 	IndexerURL            string
 	MaxOrderNotionalMicro int64
 	MaxWithdrawalMicro    int64
+	DeployedPublic        bool
+	// StrategyVaultExecutionEvidence is a product-owned release gate. Public
+	// routing stays read-only until the Exchange has evidence for Chain Core
+	// v1.35 custody invariants; it is never implied by DeployedPublic.
+	StrategyVaultExecutionEvidence bool
+	DEXGatewayURL                  string
+	DEXQuoteAssetID                string
+	DEXQuoteAssetAttestationDigest string
+	DEXGasMicro                    int64
+	DEXLatencyMillis               int64
+	DEXFinalitySeconds             int64
+	OracleURL                      string
+	Oracle                         RiskOracle
+	FinanceReadKey                 string
 }
 
 type GatewayAuthorizer interface {
-	Authorize(productSessionProof, scope, clientID string) (WalletSession, error)
+	Authorize(proof, scope, clientID, bundleID string) (WalletSession, error)
 }
 
 type IntegrationStatus struct {
@@ -65,6 +94,7 @@ type IntegrationStatus struct {
 	Gateway          string `json:"gateway"`
 	GatewayReason    string `json:"gatewayReason,omitempty"`
 	WalletRegistry   string `json:"walletRegistry"`
+	QuantRegistry    string `json:"quantRegistry"`
 	Custody          string `json:"custody"`
 	Indexer          string `json:"indexer"`
 	CrossChain       string `json:"crossChain"`
@@ -83,6 +113,21 @@ type ChainReader interface {
 	Transfer(hash string) (ChainTransfer, error)
 }
 
+// ChainBalanceReader is an optional extension implemented by chain readers
+// that can prove the committed native balance of the configured custody
+// account. Solvency reporting fails closed when this capability is absent.
+type ChainBalanceReader interface {
+	AccountBalance(address string) (ChainBalance, error)
+}
+
+type ChainBalance struct {
+	Address         string `json:"address"`
+	Asset           string `json:"asset"`
+	AmountMicro     int64  `json:"amountMicro"`
+	CommittedHeight uint64 `json:"committedHeight"`
+	Source          string `json:"source"`
+}
+
 type Market struct {
 	Symbol        string `json:"symbol"`
 	BaseAsset     string `json:"baseAsset"`
@@ -94,19 +139,6 @@ type Market struct {
 	PriceScale    int64  `json:"priceScale"`
 	AmountScale   int64  `json:"amountScale"`
 	Status        string `json:"status"`
-}
-
-// SourceMetadata travels with every Exchange read model. It distinguishes a
-// truthful local/Testnet read from a deployable multi-instance public venue.
-type SourceMetadata struct {
-	Authority      string    `json:"authority"`
-	Version        string    `json:"version"`
-	AsOf           time.Time `json:"asOf"`
-	Classification string    `json:"classification"`
-	Status         string    `json:"status"`
-	Coverage       string    `json:"coverage"`
-	StateBackend   string    `json:"stateBackend"`
-	MultiInstance  bool      `json:"multiInstance"`
 }
 
 type AssetNetwork struct {
@@ -219,13 +251,20 @@ type Withdrawal struct {
 
 type Order struct {
 	ID                  string    `json:"id"`
+	ParentOrderID       string    `json:"parentOrderId,omitempty"`
 	Account             string    `json:"account"`
+	QuantNonceDomain    string    `json:"quantNonceDomain,omitempty"`
 	Market              string    `json:"market"`
 	Side                string    `json:"side"`
 	Type                string    `json:"type"`
+	TimeInForce         string    `json:"timeInForce"`
+	PostOnly            bool      `json:"postOnly"`
 	PriceMicro          int64     `json:"priceMicro"`
 	AmountMicro         int64     `json:"amountMicro"`
 	FilledMicro         int64     `json:"filledMicro"`
+	DisplayAmountMicro  int64     `json:"displayAmountMicro,omitempty"`
+	VisibleUntilMicro   int64     `json:"visibleUntilMicro,omitempty"`
+	PrioritySequence    int64     `json:"prioritySequence,omitempty"`
 	ReservedMicro       int64     `json:"reservedMicro"`
 	Status              string    `json:"status"`
 	RejectReason        string    `json:"rejectReason,omitempty"`
@@ -233,6 +272,138 @@ type Order struct {
 	CreatedAt           time.Time `json:"createdAt"`
 	UpdatedAt           time.Time `json:"updatedAt"`
 	AuthorizationDigest string    `json:"authorizationDigest"`
+}
+
+type OCOGroup struct {
+	ID                      string    `json:"id"`
+	Account                 string    `json:"account"`
+	QuantNonceDomain        string    `json:"quantNonceDomain,omitempty"`
+	Market                  string    `json:"market"`
+	Side                    string    `json:"side"`
+	AmountMicro             int64     `json:"amountMicro"`
+	ReservedMicro           int64     `json:"reservedMicro"`
+	StopConditionalID       string    `json:"stopConditionalId"`
+	TakeProfitConditionalID string    `json:"takeProfitConditionalId"`
+	TriggeredConditionalID  string    `json:"triggeredConditionalId,omitempty"`
+	ActivatedOrderID        string    `json:"activatedOrderId,omitempty"`
+	Status                  string    `json:"status"`
+	RejectReason            string    `json:"rejectReason,omitempty"`
+	AuthorizationDigest     string    `json:"authorizationDigest"`
+	CreatedAt               time.Time `json:"createdAt"`
+	UpdatedAt               time.Time `json:"updatedAt"`
+}
+
+type TWAPOrder struct {
+	ID                  string    `json:"id"`
+	Account             string    `json:"account"`
+	QuantNonceDomain    string    `json:"quantNonceDomain,omitempty"`
+	Market              string    `json:"market"`
+	Side                string    `json:"side"`
+	LimitPriceMicro     int64     `json:"limitPriceMicro"`
+	TotalAmountMicro    int64     `json:"totalAmountMicro"`
+	ScheduledMicro      int64     `json:"scheduledMicro"`
+	ReservedMicro       int64     `json:"reservedMicro"`
+	Slices              int       `json:"slices"`
+	SlicesExecuted      int       `json:"slicesExecuted"`
+	IntervalSeconds     int64     `json:"intervalSeconds"`
+	NextRunAt           time.Time `json:"nextRunAt"`
+	Status              string    `json:"status"`
+	ChildOrderIDs       []string  `json:"childOrderIds"`
+	RejectReason        string    `json:"rejectReason,omitempty"`
+	AuthorizationDigest string    `json:"authorizationDigest"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+}
+
+type ScaleOrder struct {
+	ID                  string    `json:"id"`
+	Account             string    `json:"account"`
+	QuantNonceDomain    string    `json:"quantNonceDomain,omitempty"`
+	Market              string    `json:"market"`
+	Side                string    `json:"side"`
+	StartPriceMicro     int64     `json:"startPriceMicro"`
+	EndPriceMicro       int64     `json:"endPriceMicro"`
+	TotalAmountMicro    int64     `json:"totalAmountMicro"`
+	FilledMicro         int64     `json:"filledMicro"`
+	ReservedMicro       int64     `json:"reservedMicro"`
+	Levels              int       `json:"levels"`
+	PostOnly            bool      `json:"postOnly"`
+	ChildOrderIDs       []string  `json:"childOrderIds"`
+	Status              string    `json:"status"`
+	RejectReason        string    `json:"rejectReason,omitempty"`
+	AuthorizationDigest string    `json:"authorizationDigest"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+}
+
+type ConditionalOrder struct {
+	ID                  string    `json:"id"`
+	GroupID             string    `json:"groupId,omitempty"`
+	Account             string    `json:"account"`
+	QuantNonceDomain    string    `json:"quantNonceDomain,omitempty"`
+	Market              string    `json:"market"`
+	Side                string    `json:"side"`
+	Kind                string    `json:"kind"`
+	TriggerPriceMicro   int64     `json:"triggerPriceMicro"`
+	TrailOffsetMicro    int64     `json:"trailOffsetMicro,omitempty"`
+	WatermarkMicro      int64     `json:"watermarkMicro,omitempty"`
+	LimitPriceMicro     int64     `json:"limitPriceMicro"`
+	AmountMicro         int64     `json:"amountMicro"`
+	ReservedMicro       int64     `json:"reservedMicro"`
+	Status              string    `json:"status"`
+	TriggeredByTradeID  string    `json:"triggeredByTradeId,omitempty"`
+	ActivatedOrderID    string    `json:"activatedOrderId,omitempty"`
+	RejectReason        string    `json:"rejectReason,omitempty"`
+	WalletAuthorized    bool      `json:"walletAuthorized"`
+	AuthorizationDigest string    `json:"authorizationDigest"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
+}
+
+type CancelResult struct {
+	Orders            []Order            `json:"orders"`
+	ConditionalOrders []ConditionalOrder `json:"conditionalOrders"`
+	OCOGroups         []OCOGroup         `json:"ocoGroups"`
+	TWAPOrders        []TWAPOrder        `json:"twapOrders"`
+	ScaleOrders       []ScaleOrder       `json:"scaleOrders"`
+	Count             int                `json:"count"`
+}
+
+type DeadManSwitch struct {
+	Account        string    `json:"account"`
+	Market         string    `json:"market"`
+	TimeoutSeconds int64     `json:"timeoutSeconds"`
+	NonceDomain    string    `json:"nonceDomain"`
+	Status         string    `json:"status"`
+	ExpiresAt      time.Time `json:"expiresAt,omitempty"`
+	LastHeartbeat  time.Time `json:"lastHeartbeat,omitempty"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+	Cancelled      int       `json:"cancelled"`
+}
+
+type ExecutionEvent struct {
+	Sequence      int64           `json:"sequence"`
+	Stream        string          `json:"stream"`
+	Type          string          `json:"type"`
+	Account       string          `json:"account,omitempty"`
+	Market        string          `json:"market"`
+	ObjectType    string          `json:"objectType"`
+	ObjectID      string          `json:"objectId"`
+	PayloadDigest string          `json:"payloadDigest"`
+	Payload       json.RawMessage `json:"payload"`
+	AsOf          time.Time       `json:"asOf"`
+	Source        string          `json:"source"`
+	Version       string          `json:"version"`
+	PreviousHash  string          `json:"previousHash,omitempty"`
+	Hash          string          `json:"hash"`
+}
+
+type StreamSnapshot struct {
+	Sequence int64            `json:"sequence"`
+	Market   string           `json:"market"`
+	Book     OrderBook        `json:"book"`
+	Events   []ExecutionEvent `json:"events"`
+	Source   QuantSource      `json:"source"`
 }
 
 type Trade struct {
@@ -313,5 +484,126 @@ type OrderBook struct {
 	Market         string         `json:"market"`
 	Bids           []Order        `json:"bids"`
 	Asks           []Order        `json:"asks"`
-	SourceMetadata SourceMetadata `json:"sourceMetadata"`
+	SourceMetadata SourceMetadata `json:"sourceMetadata,omitempty"`
+}
+
+type SolvencyAsset struct {
+	Asset                     string `json:"asset"`
+	LiabilitiesMicro          int64  `json:"liabilitiesMicro"`
+	AvailableLiabilitiesMicro int64  `json:"availableLiabilitiesMicro"`
+	ReservedLiabilitiesMicro  int64  `json:"reservedLiabilitiesMicro"`
+	AssetsMicro               *int64 `json:"assetsMicro,omitempty"`
+	EncumberedAssetsMicro     *int64 `json:"encumberedAssetsMicro,omitempty"`
+	ReserveRatioBPS           *int64 `json:"reserveRatioBps,omitempty"`
+	WithdrawalCapacityMicro   *int64 `json:"withdrawalCapacityMicro,omitempty"`
+	AssetProofStatus          string `json:"assetProofStatus"`
+	AssetProofSource          string `json:"assetProofSource,omitempty"`
+	UnavailableReason         string `json:"unavailableReason,omitempty"`
+}
+
+type SolvencySnapshot struct {
+	Version             string          `json:"version"`
+	AsOf                time.Time       `json:"asOf"`
+	StateSchemaVersion  int             `json:"stateSchemaVersion"`
+	StateIntegrityHash  string          `json:"stateIntegrityHash"`
+	LiabilityMerkleRoot string          `json:"liabilityMerkleRoot"`
+	LiabilityLeafCount  int             `json:"liabilityLeafCount"`
+	CustodyAddress      string          `json:"custodyAddress,omitempty"`
+	CommittedHeight     uint64          `json:"committedHeight,omitempty"`
+	Assets              []SolvencyAsset `json:"assets"`
+	InsuranceFundStatus string          `json:"insuranceFundStatus"`
+	Status              string          `json:"status"`
+	Disclosure          string          `json:"disclosure"`
+}
+
+type MerkleStep struct {
+	Hash     string `json:"hash"`
+	Position string `json:"position"`
+}
+
+type LiabilityProof struct {
+	Version      string       `json:"version"`
+	Account      string       `json:"account"`
+	Balance      Balance      `json:"balance"`
+	LeafHash     string       `json:"leafHash"`
+	LeafIndex    int          `json:"leafIndex"`
+	LeafCount    int          `json:"leafCount"`
+	MerkleRoot   string       `json:"merkleRoot"`
+	Proof        []MerkleStep `json:"proof"`
+	Verified     bool         `json:"verified"`
+	SnapshotAsOf time.Time    `json:"snapshotAsOf"`
+}
+
+type LiquidityQuoteRequest struct {
+	Market      string `json:"market"`
+	Side        string `json:"side"`
+	AmountMicro int64  `json:"amountMicro"`
+}
+
+type LiquidityCostFactors struct {
+	TradingFeeMicro     int64    `json:"tradingFeeMicro"`
+	PriceImpactMicro    *int64   `json:"priceImpactMicro,omitempty"`
+	GasMicro            *int64   `json:"gasMicro,omitempty"`
+	LatencyMillis       *int64   `json:"latencyMillis,omitempty"`
+	FillProbabilityBPS  *int64   `json:"fillProbabilityBps,omitempty"`
+	FailureRiskBPS      *int64   `json:"failureRiskBps,omitempty"`
+	BridgeRiskBPS       *int64   `json:"bridgeRiskBps,omitempty"`
+	OracleConfidenceBPS *int64   `json:"oracleConfidenceBps,omitempty"`
+	FinalitySeconds     *int64   `json:"finalitySeconds,omitempty"`
+	UnavailableFactors  []string `json:"unavailableFactors"`
+}
+
+type LiquidityVenueQuote struct {
+	Venue                       string               `json:"venue"`
+	VenueType                   string               `json:"venueType"`
+	Status                      string               `json:"status"`
+	UnavailableReason           string               `json:"unavailableReason,omitempty"`
+	Market                      string               `json:"market"`
+	Side                        string               `json:"side"`
+	BaseAmountMicro             int64                `json:"baseAmountMicro"`
+	GrossQuoteMicro             int64                `json:"grossQuoteMicro"`
+	NetQuoteMicro               int64                `json:"netQuoteMicro"`
+	AllInQuoteMicro             int64                `json:"allInQuoteMicro"`
+	AveragePriceMicro           int64                `json:"averagePriceMicro"`
+	Executable                  bool                 `json:"executable"`
+	ExecutionMethod             string               `json:"executionMethod,omitempty"`
+	SourceVersion               string               `json:"sourceVersion"`
+	SourceSequence              int64                `json:"sourceSequence,omitempty"`
+	SourceBlockHeight           int64                `json:"sourceBlockHeight,omitempty"`
+	SourceAuditHash             string               `json:"sourceAuditHash,omitempty"`
+	QuoteAssetAttestationDigest string               `json:"quoteAssetAttestationDigest,omitempty"`
+	ObservedAt                  time.Time            `json:"observedAt"`
+	Cost                        LiquidityCostFactors `json:"cost"`
+}
+
+type LiquidityRouteQuote struct {
+	Version       string                `json:"version"`
+	Request       LiquidityQuoteRequest `json:"request"`
+	SelectedVenue string                `json:"selectedVenue,omitempty"`
+	Selected      *LiquidityVenueQuote  `json:"selected,omitempty"`
+	Candidates    []LiquidityVenueQuote `json:"candidates"`
+	Status        string                `json:"status"`
+	SelectionRule string                `json:"selectionRule"`
+	Disclosure    string                `json:"disclosure"`
+	ObservedAt    time.Time             `json:"observedAt"`
+}
+
+type LiquidityExecutionRequest struct {
+	Quote             LiquidityQuoteRequest `json:"quote"`
+	SelectedVenueType string                `json:"selectedVenueType"`
+	MaxSpendMicro     int64                 `json:"maxSpendMicro,omitempty"`
+	MinReceiveMicro   int64                 `json:"minReceiveMicro,omitempty"`
+	ExpiresAt         time.Time             `json:"expiresAt"`
+	NativeOrder       PlaceOrderRequest     `json:"nativeOrder"`
+	IdempotencyKey    string                `json:"idempotencyKey"`
+	WalletSignature   string                `json:"walletSignature"`
+}
+
+type LiquidityExecutionResult struct {
+	Version       string              `json:"version"`
+	VenueType     string              `json:"venueType"`
+	Status        string              `json:"status"`
+	Quote         LiquidityVenueQuote `json:"quote"`
+	NativeOrder   *Order              `json:"nativeOrder,omitempty"`
+	ExecutionTime time.Time           `json:"executionTime"`
 }
