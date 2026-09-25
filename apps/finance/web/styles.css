@@ -56,6 +56,21 @@
 #assets .balance-card{margin-bottom:22px}
 #overview .task-strip{margin:24px 0}
 #strategies .panel{max-width:100%}
+.account-menu{position:relative}
+.account-menu summary{list-style:none;min-height:44px;display:flex;align-items:center;border:1px solid var(--line);border-radius:9px;padding:8px 14px;cursor:pointer;font-weight:700;color:var(--blue);background:#fff}
+.account-menu summary::-webkit-details-marker{display:none}
+.account-menu summary:focus-visible{outline:3px solid rgba(0,47,167,.28);outline-offset:2px}
+.account-menu-panel{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:220px;display:grid;gap:6px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:var(--shadow)}
+.account-menu-panel a{min-height:44px;display:flex;align-items:center;padding:8px 10px;text-decoration:none;color:var(--ink);border-radius:8px}
+.account-menu-panel a:hover{background:var(--soft)}
+.account-menu-panel button{width:100%}
+.future-products{grid-column:1/-1;border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--muted)}
+.future-products summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:700;color:var(--ink)}
+.future-products .channel-card{margin-top:10px;box-shadow:none}
+.broker-diagnostics{border-top:1px solid var(--line);margin-top:20px;padding-top:12px}
+.broker-diagnostics summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--blue);font-weight:700}
+.order-machine-state{margin-top:8px;font-size:12px;color:var(--muted)}
+.order-machine-state summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
 @media(min-width:721px) and (max-width:1000px){
   .shell{grid-template-columns:190px minmax(0,1fr)}
   .sidebar{padding:22px 12px}
@@ -66,12 +81,13 @@
 }
 @media(max-width:720px){
   .signed-out-state .shell{display:block}
-  .signed-out-state main{padding:0 18px 100px}
+  .signed-out-state main{padding:0 18px 150px}
+  main{padding-bottom:150px}
   .sidebar,.signed-out-state .sidebar{display:flex}
-  nav{justify-content:flex-start;scroll-snap-type:x proximity}
-  nav a{font-size:12px;min-width:94px;scroll-snap-align:start}
+  nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;overflow:visible}
+  nav a{display:grid;place-items:center;text-align:center;font-size:11px;line-height:1.15;min-width:0;min-height:52px;padding:6px 3px;overflow-wrap:anywhere}
   .signed-out-state .hero{padding:28px 0}
-  .hero h2{font-size:clamp(30px,9vw,44px)}
+  .hero h2{font-size:clamp(29px,8vw,40px)}
   .task-strip{display:grid}
   .task-link{width:100%}
   #wallet-connect{margin-top:18px}

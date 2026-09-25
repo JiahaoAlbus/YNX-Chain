@@ -45,6 +45,8 @@ test('guest navigation keeps eight product destinations visible and localizes Wa
       await page.setViewportSize({width,height:900});
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`horizontal overflow at ${width}`);
       assert.equal(await page.locator('#nav a').count(),8);
+      for(const link of await page.locator('#nav a').all())assert.equal(await link.isVisible(),true,`navigation hidden at ${width}`);
+      assert.equal(await page.locator('.account-menu > summary').isVisible(),true);
       await page.locator('#nav a[href="#assets"]').click();
       await page.waitForFunction(()=>document.querySelector('#guest-gate').classList.contains('active-view'));
       assert.equal(await page.locator('#guest-gate').isVisible(),true);
@@ -56,6 +58,9 @@ test('guest navigation keeps eight product destinations visible and localizes Wa
       assert.equal(await page.locator('#broker-sandbox').isVisible(),true);
     }
     await page.locator('#finance-language').selectOption('zh-CN');
+    await page.locator('.account-menu > summary').click();
+    assert.equal(await page.locator('.account-menu-panel a[href="#settings"]').innerText(),'设置');
+    await page.locator('.account-menu > summary').click();
     assert.match(await page.locator('#wallet-state').innerText(),/标准钱包未连接/);
     await page.locator('#nav a[href="#strategies"]').click();
     await page.waitForFunction(()=>document.querySelector('#guest-gate-heading').textContent==='策略');

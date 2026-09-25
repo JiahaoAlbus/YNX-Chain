@@ -95,6 +95,25 @@ test('guest Finance workbench is English by default, switches Chinese and fits a
   }finally{await page.close()}
 });
 
+test('Broker order main state localizes while machine codes stay behind details',async()=>{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  try{
+    await page.goto(base);
+    await page.locator('#nav a[href="#orders"]').click();
+    await page.waitForFunction(()=>document.querySelector('#broker-sandbox')?.classList.contains('active-view'));
+    await page.evaluate(()=>renderBrokerWorkspace({orders:[{requestId:'request_fixture',approvalState:'consumed',state:'cancel_requested',order:{orderId:'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',symbol:'ACME',side:'buy',qty:'2',maxCost:'21'}}],outbox:[],journal:[],watchlist:[]}));
+    assert.match(await page.locator('#broker-local-orders').innerText(),/Wallet review recorded/);
+    assert.equal(await page.locator('#broker-local-orders .order-machine-state').first().isVisible(),true);
+    assert.equal(await page.locator('#broker-local-orders .order-machine-state').first().getAttribute('open'),null);
+    await page.locator('#finance-language').selectOption('zh-CN');
+    assert.match(await page.locator('#broker-local-orders').innerText(),/已记录钱包审核/);
+    assert.match(await page.locator('#broker-local-orders').innerText(),/已请求撤单/);
+    assert.equal(await page.locator('#broker-local-orders').innerText().then(value=>value.includes('cancel_requested')),false);
+    await page.locator('#broker-local-orders .order-machine-state').first().locator('summary').click();
+    assert.match(await page.locator('#broker-local-orders').innerText(),/cancel_requested/);
+  }finally{await page.close()}
+});
+
 test('desktop guest Finance keeps dynamic Broker absence and date copy in the selected language',async()=>{
   const page=await browser.newPage({viewport:{width:1280,height:800}});
   try{

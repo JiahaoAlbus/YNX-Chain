@@ -71,7 +71,7 @@ test('Broker Sandbox snapshot is authenticated, owner-mapped and never substitut
 
 test('Broker order approval consumes the exact Wallet transport and never auto-submits or opens a blank tab',()=>{
   for(const marker of ['createFinanceOrderApprovalRequest','encodeFinanceOrderApprovalWalletURL','parseFinanceOrderApprovalReturnURL','@ynx-chain/wallet-auth-finance-order'])assert.ok(orderWallet.includes(marker),marker);
-  for(const marker of ['/api/broker/challenges','/api/broker/callback','providerWriteAttempted!==false','Review exact order in YNX Wallet','Broker provider has not been contacted'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  for(const marker of ['/api/broker/challenges','/api/broker/callback','providerWriteAttempted!==false','brokerReviewExact','brokerProviderNotContacted'])assert.ok(js.includes(marker)||html.includes(marker),marker);
   for(const forbidden of ['window.open(','location.href=','fetch(route.url','provider.request({method:"eth_sendTransaction"'])assert.equal(orderWallet.includes(forbidden)||js.includes(forbidden),false,forbidden);
   assert.ok(html.includes('order-wallet.js'));
   assert.ok(js.includes("pendingLegacyBrokerReturnURL=location.href;"),'legacy callback must be captured only for the current page lifetime');
@@ -80,7 +80,7 @@ test('Broker order approval consumes the exact Wallet transport and never auto-s
   assert.ok(js.includes("'/api/broker/challenges','/api/broker/callback'"),'Broker writes must request finance.profile.write');
   assert.ok(orderWallet.includes("FINANCE_ORDER_AUTHORITY_TIME_INVALID"),'server time must be parsed at the trusted response boundary');
   for(const marker of ['FINANCE_ORDER_PENDING_EXISTS','resumeStored','expiresAt.getTime()'])assert.ok(orderWallet.includes(marker),marker);
-  for(const marker of ['restoreBrokerApproval(workspace.serverTime','Clear expired request','same request can be reviewed or revoked'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  for(const marker of ['restoreBrokerApproval(workspace.serverTime','Clear expired request','brokerRecovered'])assert.ok(js.includes(marker)||html.includes(marker),marker);
   assert.equal(orderWallet.includes('new Date()'),false,'order approval must not fall back to the device wall clock');
   assert.equal(html.includes('name="accountPublicKey"'),false,'Wallet public key must come from the persisted owner mapping');
   assert.equal(html.includes('Provider asset UUID<input'),false,'users must select provider-backed assets instead of typing UUIDs');
