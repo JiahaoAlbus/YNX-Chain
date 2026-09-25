@@ -16,6 +16,7 @@ import{GuestExperience}from"./src/GuestExperience";
 import{CardProviderClient}from"./src/providerApplicationClient";
 import{createRuntimeProviderClient}from"./src/providerClientRuntime";
 import{beginCardWebSession,cardWebProof,disconnectCardWebSession,restoreCardWebSession,retryCardWebSession}from"./src/providerSessionWeb";
+let cardWebUiGeneration=0;
 
 const BLUE="#002FA7",RED="#B42318",GREEN="#067647",ORANGE="#B54708";
 type Tab="card"|"activity"|"controls"|"simulation"|"support";
@@ -168,8 +169,11 @@ export default function App(){
       if(!mounted.current||callbackGeneration!==nativeWalletGeneration.current||recoverySequence!==nativeWalletRecoverySequence.current||nativeWalletCallbackBlocked.current)return;
     }
     if(!connection&&Platform.OS==='web'){
-      try{const outcome=await restoreCardWebSession();if(mounted.current&&outcome)setPrivateSession(productRuntime({sessionState:outcome}));}
-      catch(e){if(mounted.current)setPrivateSession({state:'PRIVATE_SERVICE_DEGRADED',...classifyCardWalletError(e)})}
+      const epoch=++cardWebUiGeneration;
+      setBusy(true);
+      try{const outcome=await restoreCardWebSession();if(mounted.current&&epoch===cardWebUiGeneration&&outcome)setPrivateSession(productRuntime({sessionState:outcome}));}
+      catch(e){if(mounted.current&&epoch===cardWebUiGeneration)setPrivateSession({state:'PRIVATE_SERVICE_DEGRADED',...classifyCardWalletError(e)})}
+      finally{if(mounted.current&&epoch===cardWebUiGeneration)setBusy(false)}
       return;
     }
     if(!connection)return;
@@ -189,7 +193,7 @@ export default function App(){
   handleURLRef.current=handleURL;refreshRef.current=refresh;
   useEffect(()=>{
     mounted.current=true;
-    if(Platform.OS==='web')void restoreCardWebSession().then(outcome=>{if(mounted.current&&outcome)setPrivateSession(productRuntime({sessionState:outcome}))}).catch(e=>{if(mounted.current)setPrivateSession({state:'PRIVATE_SERVICE_DEGRADED',...classifyCardWalletError(e)})});
+    if(Platform.OS==='web'){const epoch=++cardWebUiGeneration;void restoreCardWebSession().then(outcome=>{if(mounted.current&&epoch===cardWebUiGeneration&&outcome)setPrivateSession(productRuntime({sessionState:outcome}))}).catch(e=>{if(mounted.current&&epoch===cardWebUiGeneration)setPrivateSession({state:'PRIVATE_SERVICE_DEGRADED',...classifyCardWalletError(e)})});}
     void(async()=>{
       const[savedLocale,savedSession,savedLedger,savedAuthorization]=await Promise.all([
         loadLocale(),
@@ -469,7 +473,7 @@ export default function App(){
     try{return await operation}finally{if(nativeWalletOperation.current===operation)nativeWalletOperation.current=null;}
   };
   const retryNativeWalletAuthorization=async()=>{
-    if(Platform.OS==="web"){try{const outcome=await retryCardWebSession();setPrivateSession(productRuntime({sessionState:outcome}))}catch(e){setPrivateSession({state:'PRIVATE_SERVICE_DEGRADED',...classifyCardWalletError(e)})}return;}
+    if(Platform.OS==="web"){const epoch=++cardWebUiGeneration;setBusy(true);setError("");try{const outcome=await retryCardWebSession();if(mounted.current&&epoch===cardWebUiGeneration)setPrivateSession(productRuntime({sessionState:outcome}))}catch(e){if(mounted.current&&epoch===cardWebUiGeneration){const classified=classifyCardWalletError(e);setPrivateSession({state:'PRIVATE_SERVICE_DEGRADED',...classified});setError(classified.safeMessage)}}finally{if(mounted.current&&epoch===cardWebUiGeneration)setBusy(false)}return;}
     if(nativeWalletOperation.current){await nativeWalletOperation.current;return;}
     const generation=++nativeWalletGeneration.current;nativeWalletCallbackBlocked.current=false;setBusy(true);setWalletBusy(true);setWalletError("");
     nativeWalletLaunchLease.current+=1;const lease=nativeWalletLaunchLease.current;
@@ -480,7 +484,7 @@ export default function App(){
     nativeWalletOperation.current=operation;try{await operation}finally{if(nativeWalletOperation.current===operation)nativeWalletOperation.current=null;}
   };
   const disconnectNativeWalletIdentity=async()=>{
-    if(Platform.OS==="web"){try{const outcome=await disconnectCardWebSession();setPrivateSession(productRuntime({sessionState:outcome}));setProviderClient(null)}catch(e){setPrivateSession({state:'PRIVATE_SERVICE_DEGRADED',...classifyCardWalletError(e)})}return;}
+    if(Platform.OS==="web"){const epoch=++cardWebUiGeneration;setBusy(true);setError("");try{const outcome=await disconnectCardWebSession();if(mounted.current&&epoch===cardWebUiGeneration){setPrivateSession(outcome.status==='disconnected'?null:productRuntime({sessionState:outcome}));setProviderClient(null)}}catch(e){if(mounted.current&&epoch===cardWebUiGeneration){const classified=classifyCardWalletError(e);setPrivateSession({state:'PRIVATE_SERVICE_DEGRADED',...classified});setError(classified.safeMessage)}}finally{if(mounted.current&&epoch===cardWebUiGeneration)setBusy(false)}return;}
     if(nativeWalletOperation.current){await nativeWalletOperation.current;return;}
     if(!productWallet.current)return;
     const generation=++nativeWalletGeneration.current;nativeWalletLaunchLease.current+=1;nativeWalletCallbackBlocked.current=true;setBusy(true);setWalletBusy(true);setWalletError("");
@@ -492,20 +496,22 @@ export default function App(){
   };
 
   const signIn=async(financeSharing=false)=>{
+    const webUiEpoch=Platform.OS==="web"?++cardWebUiGeneration:0;
     financeSharingRequested.current=financeSharing;
     setBusy(true);
     setError("");
     setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"PRIVATE_SESSION_CONNECTING"}));
     try{
       if(Platform.OS==="web"){
-        const outcome=await beginCardWebSession(financeSharing);setPrivateSession(productRuntime({sessionState:outcome}));
+        const outcome=await beginCardWebSession(financeSharing);if(mounted.current&&webUiEpoch===cardWebUiGeneration)setPrivateSession(productRuntime({sessionState:outcome}));
         return;
       }
       await beginYNXWalletAuthorization();
     }catch(e){
+      if(Platform.OS==="web"&&(!mounted.current||webUiEpoch!==cardWebUiGeneration))return;
       setPending(false);
       const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"PRIVATE_SESSION_DEGRADED",code:classified.code}));setError(classified.safeMessage);
-    }finally{setBusy(false)}
+    }finally{if(Platform.OS!=="web"||mounted.current&&webUiEpoch===cardWebUiGeneration)setBusy(false)}
   };
 
   const setLocale=async(value:Locale)=>{setLocaleState(value);await saveLocale(value)};
