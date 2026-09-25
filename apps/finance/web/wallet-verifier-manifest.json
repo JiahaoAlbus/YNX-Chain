@@ -65,9 +65,34 @@
       "sha256": "6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc"
     },
     {
+      "path": "order-opaque.js",
+      "bytes": 10618,
+      "sha256": "c390bfe8d036a9f492a0b393ea2145d086dd9065fa63d0a826701c7190427de0"
+    },
+    {
+      "path": "evm-read-session.js",
+      "bytes": 66226,
+      "sha256": "1948d6cb586580505ff92abb0afbdbae596efffbc5904a99a1518aee3c210e34"
+    },
+    {
+      "path": "evm-subject.js",
+      "bytes": 61937,
+      "sha256": "8fe55f719f8899a5b57f25287a18a16338a1bfb64da266f23580e07183b8f161"
+    },
+    {
+      "path": "manifest.webmanifest",
+      "bytes": 241,
+      "sha256": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05"
+    },
+    {
+      "path": "ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
       "path": "index.html",
-      "bytes": 28681,
-      "sha256": "d974c4c2a4a5aabe7559db6885b34918c5fd83d10d974849d47d345fa86006da"
+      "bytes": 29552,
+      "sha256": "da7688866e4c7db64998f286a5a2fde7d1845ea69a58d6b2fc3612eb13f04c89"
     },
     {
       "path": "app.js",
@@ -161,8 +186,8 @@
     },
     {
       "path": "../scripts/build-finance-weekly-v3-candidate.mjs",
-      "bytes": 8588,
-      "sha256": "badd94ed500a54092a8631a4de67e52204d45c5dcbc055c3e4652864622ad672"
+      "bytes": 8750,
+      "sha256": "965ecc99aa1b1a61dfca6efff3dff1ab73cd67b99ebacfa043299bbd0ebb1152"
     },
     {
       "path": "verify-evm-read-candidate.mjs",
@@ -223,6 +248,11 @@
       "path": "vendor/hosted-wallet-adapter-19d8a9a2.js",
       "bytes": 11468,
       "sha256": "96da4fe51649b237fa26efa7253a6efc9f6695a35c588ba192f03e0bec7d2126"
+    },
+    {
+      "path": "verify-versioned-assets.mjs",
+      "bytes": 1290,
+      "sha256": "8d755331f4f9391b5fca87a3334a381be256a150afe1698134dc7440e0af48fb"
     }
   ]
 }

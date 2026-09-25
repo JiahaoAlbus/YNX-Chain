@@ -12,8 +12,9 @@ const web=new URL('../web/',import.meta.url),key='ynx.finance.standard-wallet.pr
 let server,browser,base;
 test.before(async()=>{
   server=createServer(async(req,res)=>{
-    if(req.url==='/health'){res.writeHead(200,{'content-type':'application/json'});return res.end(JSON.stringify({ok:true,chainId:'ynx_6423-1',portfolio:'read-only'}));}
-    const file=req.url==='/'?'index.html':req.url.slice(1);
+    const path=new URL(req.url,'http://fixture').pathname;
+    if(path==='/health'){res.writeHead(200,{'content-type':'application/json'});return res.end(JSON.stringify({ok:true,chainId:'ynx_6423-1',portfolio:'read-only'}));}
+    const file=path==='/'?'index.html':path.slice(1);
     if(!/^[a-z0-9.-]+$/.test(file)){res.writeHead(404);return res.end();}
     try{const bytes=await readFile(new URL(file,web));res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html'});res.end(bytes);}catch{res.writeHead(404);res.end();}
   });

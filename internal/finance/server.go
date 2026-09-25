@@ -794,7 +794,7 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request, session Sessio
 }
 
 func (s *Server) web(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/wallet-auth/callback" || r.URL.Path == "/auth/callback" {
+	if r.URL.Path == "/" || r.URL.Path == "/wallet-auth/callback" || r.URL.Path == "/auth/callback" {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("Pragma", "no-cache")
 	}

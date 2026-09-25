@@ -3,7 +3,9 @@ package finance
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -161,6 +163,16 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	}
 	ts := httptest.NewServer(server.Handler())
 	defer ts.Close()
+	for _, path := range []string{"/", "/auth/callback", "/wallet-auth/callback"} {
+		page, err := http.Get(ts.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		page.Body.Close()
+		if page.StatusCode != http.StatusOK || page.Header.Get("Cache-Control") != "no-store" {
+			t.Fatalf("Finance HTML must refresh before versioned assets: path=%s status=%d cache=%q", path, page.StatusCode, page.Header.Get("Cache-Control"))
+		}
+	}
 	for _, path := range []string{"/health", "/version"} {
 		response, err := http.Get(ts.URL + path)
 		if err != nil {
@@ -195,6 +207,22 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	readBundleResponse.Body.Close()
 	if readBundleErr != nil || readBundleResponse.StatusCode != http.StatusOK || !bytes.Equal(servedReadBundle, readBundle) {
 		t.Fatalf("EVM read browser authority is not served byte-exact: status=%d readErr=%v", readBundleResponse.StatusCode, readBundleErr)
+	}
+	for _, name := range []string{"wallet-auth.js", "styles.css"} {
+		body, err := os.ReadFile(filepath.Join("..", "..", "apps", "finance", "web", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		digest := sha256.Sum256(body)
+		versioned, err := http.Get(ts.URL + "/" + name + "?v=" + hex.EncodeToString(digest[:]))
+		if err != nil {
+			t.Fatal(err)
+		}
+		served, err := io.ReadAll(versioned.Body)
+		versioned.Body.Close()
+		if err != nil || versioned.StatusCode != http.StatusOK || !bytes.Equal(served, body) {
+			t.Fatalf("versioned asset is not served byte-exact: path=%s status=%d readErr=%v", name, versioned.StatusCode, err)
+		}
 	}
 
 	identityRoot := t.TempDir()

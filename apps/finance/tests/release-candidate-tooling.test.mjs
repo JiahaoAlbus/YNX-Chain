@@ -51,7 +51,7 @@ test('weekly v3 release tooling closes every served Finance runtime asset',()=>{
 
   const index=readFileSync(join(webRoot,'index.html'),'utf8');
   for(const script of ['finance-locale.js','wallet-auth.js','order-wallet.js','evm-read-session.js','evm-subject.js','app.js','read-sources.js','product-catalog.js']){
-    assert.match(index,new RegExp(`<script src="/${script.replace('.','\\.')}" defer></script>`));
+    assert.match(index,new RegExp(`<script src="/${script.replace('.','\\.')}\\?v=[0-9a-f]{64}" defer></script>`));
   }
   assert.equal(sha256(Buffer.from('ynx-finance-release')),'17b99d3a55fae95ecefdb1bcab7c09a951f7af0bdc04acc47b28f5921d4bdbed');
 });

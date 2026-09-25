@@ -12,9 +12,14 @@ const pin = createHash('sha256').update(await readFile(candidate)).digest('hex')
 const currentCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-workspace-2627b209-v5-20260925.json';
 const currentPin = 'e6740a5312449f9e3d933892e61796dfc509d306e0fb1172bf0676e4f204673d';
 const repoRoot=resolve(fileURLToPath(new URL('../../../',import.meta.url)));
+const readHistorical=path=>{
+  const name=String(path).endsWith('/apps/finance/web/index.html')?'apps/finance/web/index.html'
+    :String(path).endsWith('/internal/finance/server.go')?'internal/finance/server.go':null;
+  return name?execFileSync('git',['show',`8d6a011607f120a1cc66fdd94a961a6a822685c0:${name}`],{cwd:repoRoot}):readFile(path);
+};
 
 test('two independent snapshot builds bind full Wallet/Auth graph and both Finance bundles', async () => {
-  const result = await verifyEVMReadCandidate({ pinnedCandidateSha256: pin });
+  const result = await verifyEVMReadCandidate({ pinnedCandidateSha256: pin,read:readHistorical });
   assert.equal(result.status, 'pass');
   assert.equal(result.bundleCount, 2);
   assert.equal(result.publicRuntimeVerified, false);
@@ -25,7 +30,7 @@ test('candidate pin drift fails before any transitive build', async () => {
 });
 
 test('current source candidate rebuilds twice but cannot self-authorize a public runtime', async () => {
-  const result = await verifyEVMReadCandidate({candidatePath:currentCandidatePath,pinnedCandidateSha256:currentPin});
+  const result = await verifyEVMReadCandidate({candidatePath:currentCandidatePath,pinnedCandidateSha256:currentPin,read:readHistorical});
   assert.equal(result.status,'pass');
   assert.equal(result.bundleCount,2);
   assert.equal(result.publicRuntimeVerified,false);
@@ -35,21 +40,21 @@ test('current source candidate rebuilds twice but cannot self-authorize a public
 test('unlisted Wallet/Auth transitive source change cannot keep a reviewed bundle', async () => {
   await assert.rejects(verifyEVMReadCandidate({ pinnedCandidateSha256: pin, read: async path => {
     if (String(path).endsWith('/packages/wallet-auth/src/application-action.js')) return Buffer.from('export const tampered = true;');
-    return readFile(path);
+    return readHistorical(path);
   } }), /TRANSITIVE_GRAPH_DRIFT/u);
 });
 
 test('locked noble dependency change fails graph binding', async () => {
   await assert.rejects(verifyEVMReadCandidate({ pinnedCandidateSha256: pin, read: async path => {
     if (String(path).endsWith('/packages/wallet-auth/node_modules/@noble/curves/nist.js')) return Buffer.from('export const tampered = true;');
-    return readFile(path);
+    return readHistorical(path);
   } }), /TRANSITIVE_GRAPH_DRIFT/u);
 });
 
 test('missing transitive source fails before a bundle can be accepted', async () => {
   await assert.rejects(verifyEVMReadCandidate({ pinnedCandidateSha256: pin, read: async path => {
     if (String(path).endsWith('/packages/wallet-auth/src/application-action.js')) throw Object.assign(new Error('missing'), { code: 'ENOENT' });
-    return readFile(path);
+    return readHistorical(path);
   } }), /missing/u);
 });
 

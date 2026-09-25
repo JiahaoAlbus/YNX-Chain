@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { authorityRuntimeFiles, runtimeFiles, sha256 } from './finance-nonregressive-runtime.mjs';
+import { verifyFinanceVersionedAssets } from '../web/verify-versioned-assets.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = dirname(scriptPath);
@@ -88,6 +89,7 @@ function buildOnce(sourceRoot, destination) {
     }
     const html = readFileSync(join(webRoot, 'index.html'), 'utf8');
     if (!html.includes('wallet-auth.js') || html.includes('wallet-connect.js')) throw new Error('FINANCE_WALLET_SCRIPT_BINDING_REGRESSION');
+    verifyFinanceVersionedAssets(html,name=>readFileSync(join(webRoot,name)));
 
     for (const name of walk(packageRoot)) if (!programs.some(([program]) => program === name)) chmodSync(join(packageRoot, name), 0o644);
     const payloadFiles = walk(packageRoot).map(path => ({
