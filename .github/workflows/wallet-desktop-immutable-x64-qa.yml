@@ -1,0 +1,666 @@
+---
+name: Wallet immutable 0.6.10 x64 installed QA
+'on':
+  push:
+    branches:
+    - codex/wallet-desktop-i18n-12-20260925
+    paths:
+    - ".github/workflows/wallet-desktop-immutable-x64-qa.yml"
+    - apps/wallet-desktop/scripts/windows-password-installed-gate.mjs
+    - apps/wallet-desktop/scripts/windows-password-form-state.mjs
+    - apps/wallet-desktop/scripts/windows-old-installed-profile.mjs
+    - apps/wallet-desktop/scripts/windows-immutable-x64-artifact.mjs
+    - apps/wallet-desktop/test/windows-password-form-state.test.mjs
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  candidate-lifecycle:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    env:
+      YNX_ORIGINAL_SOURCE: ffaf3ca0d85f81622e6b1ba20c7648abb09a2574
+      YNX_WALLET_EXPECTED_VERSION: 0.6.10
+    steps:
+    - name: Preserve committed bytes in this disposable runner checkout
+      shell: bash
+      run: git config --global core.autocrlf false
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 24.18.0
+    - name: Install exact verifier dependencies and test password gate state
+      shell: bash
+      run: |
+        set -euo pipefail
+        node -e 'if(process.arch!=="x64")process.exit(1)'
+        npm ci --ignore-scripts --prefix packages/wallet-auth
+        npm ci --prefix apps/wallet-desktop
+        node --test apps/wallet-desktop/test/windows-password-form-state.test.mjs
+    - name: Generate and mask disposable QA-only passwords
+      shell: pwsh
+      run: |
+        $password = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
+        $backupPassword = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
+        Write-Host "::add-mask::$password"
+        Write-Host "::add-mask::$backupPassword"
+        "YNX_WALLET_QA_PASSWORD=$password" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "YNX_WALLET_QA_BACKUP_PASSWORD=$backupPassword" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+    - name: Download and hash the original immutable x64 artifact
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: "${{ github.token }}"
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $archive = Join-Path $env:RUNNER_TEMP 'ynx-wallet-0.6.10-original-x64.zip'
+        node apps/wallet-desktop/scripts/windows-immutable-x64-artifact.mjs download $archive
+        if ($LASTEXITCODE -ne 0) { throw 'Original artifact download or full archive hash failed' }
+        $extracted = Join-Path $env:RUNNER_TEMP 'ynx-wallet-0.6.10-original-x64-extracted'
+        [IO.Compression.ZipFile]::ExtractToDirectory($archive, $extracted)
+        node apps/wallet-desktop/scripts/windows-immutable-x64-artifact.mjs verify $extracted 'apps/wallet-desktop/dist'
+        if ($LASTEXITCODE -ne 0) { throw 'Original installer or source manifest binding failed' }
+        $installer = Get-Item 'apps/wallet-desktop/dist/ynx-wallet-desktop-0.6.10-x64.exe'
+        $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
+        @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; installerBytes=$installer.Length; installerSHA256=(Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant(); authenticodeStatus=[string]$signature.Status; productionSigned=$false; oldVersionUpgradeVerified=$false; currentVersionLifecycleVerified=$false } | ConvertTo-Json | Set-Content 'apps/wallet-desktop/dist/windows-immutable-x64-identity.json'
+        if ($signature.Status -ne 'NotSigned') { throw 'Unexpected installer signature status requires review' }
+    - name: Install Windows and verify two locked cold starts
+      shell: pwsh
+      env:
+        UNPACKED: win-unpacked
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $installer = @(Get-ChildItem apps/wallet-desktop/dist/*.exe)
+        if ($installer.Count -ne 1) { throw 'Expected one exact installer' }
+        $installResult = [ordered]@{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; installerPath=$installer[0].FullName; arguments=@('/S'); installAttemptCount=1; startedAt=(Get-Date).ToUniversalTime().ToString('o'); osArchitecture=[string][Runtime.InteropServices.RuntimeInformation]::OSArchitecture; processArchitecture=[string][Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture; exited=$false; exitCode=$null; exitCodeType=$null; successfulExit=$false; failure=$null }
+        $install = [Diagnostics.Process]::new()
+        try {
+          # Retain the native process handle, as verified by the immutable ARM64 QA.
+          # One normal /S invocation; no automatic retry or weakened exit-code gate.
+          $install.StartInfo.FileName = $installer[0].FullName
+          $install.StartInfo.ArgumentList.Add('/S')
+          $install.StartInfo.UseShellExecute = $false
+          if (-not $install.Start()) { throw 'Installer process did not start' }
+          $installResult.installerPid = $install.Id
+          $installResult.exited = $install.WaitForExit(180000)
+          $install.Refresh()
+          if ($installResult.exited) {
+            $installResult.exitCode = $install.ExitCode
+            if ($null -ne $installResult.exitCode) { $installResult.exitCodeType = $installResult.exitCode.GetType().FullName }
+          }
+          if (-not $installResult.exited -or $null -eq $installResult.exitCode -or $installResult.exitCode -ne 0) { throw 'Installer did not return a verified successful exit code' }
+          $installResult.successfulExit = $true
+        } catch {
+          $installResult.failure = $_.Exception.Message
+          throw
+        } finally {
+          $installResult.completedAt = (Get-Date).ToUniversalTime().ToString('o')
+          $installResult | ConvertTo-Json -Depth 5 | Set-Content 'apps/wallet-desktop/dist/windows-installer-result.json'
+          $install.Dispose()
+        }
+        # Preserve the ordinary /S install. Resolve its exact current-user
+        # registration instead of guessing a Known Folder or finding a temp copy.
+        $walletGuid = node --input-type=commonjs -e 'const {UUID}=require("./apps/wallet-desktop/node_modules/builder-util-runtime");const p=require("./apps/wallet-desktop/package.json");process.stdout.write(p.build.nsis.guid||UUID.v5(p.build.appId,UUID.parse("50e065bc-3134-11e6-9bab-38c9862bdaf3")))'
+        if ($LASTEXITCODE -ne 0 -or $walletGuid -notmatch '^[0-9a-f-]{36}$') { throw 'Unable to resolve the exact installer registration key' }
+        $walletInstallRows = @()
+        foreach ($walletRegistryView in @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)) {
+          $walletRegistry = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser, $walletRegistryView)
+          $walletInstallKey = $null
+          try {
+            $walletInstallKey = $walletRegistry.OpenSubKey("Software\$walletGuid", $false)
+            $walletLocation = if ($null -ne $walletInstallKey) { [string]$walletInstallKey.GetValue('InstallLocation') } else { '' }
+            $walletInstallRows += [ordered]@{ view=[string]$walletRegistryView; registryKey="HKCU\Software\$walletGuid"; installLocation=$walletLocation }
+          } finally {
+            if ($null -ne $walletInstallKey) { $walletInstallKey.Dispose() }
+            $walletRegistry.Dispose()
+          }
+        }
+        $walletInstallRows | ConvertTo-Json -Depth 5 | Set-Content 'apps/wallet-desktop/dist/windows-install-location.json'
+        $walletLocations = @($walletInstallRows | ForEach-Object { $_.installLocation } | Where-Object { $_ -and [IO.Path]::IsPathFullyQualified($_) } | Sort-Object -Unique)
+        if ($walletLocations.Count -ne 1) { throw 'A unique registered current-user Wallet installation is required' }
+        $exe = Join-Path $walletLocations[0] 'YNX Wallet.exe'
+        $pe = [IO.File]::ReadAllBytes($exe)
+        $peOffset = [BitConverter]::ToInt32($pe, 0x3c)
+        if ($peOffset -lt 0 -or $peOffset + 6 -gt $pe.Length -or [BitConverter]::ToUInt32($pe, $peOffset) -ne 0x00004550 -or [BitConverter]::ToUInt16($pe, $peOffset + 4) -ne 0x8664) { throw 'Installed Wallet PE is not native x64' }
+        $originalManifest = Get-Content 'apps/wallet-desktop/dist/release-manifest.json' -Raw | ConvertFrom-Json
+        $installedAsar = Join-Path $walletLocations[0] 'resources\app.asar'
+        if (-not (Test-Path -LiteralPath $installedAsar -PathType Leaf) -or (Get-FileHash -LiteralPath $installedAsar -Algorithm SHA256).Hash.ToLowerInvariant() -ne $originalManifest.asarSHA256) { throw 'Installed runtime archive differs from the exact original build manifest' }
+        if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'The registered Wallet executable is missing' }
+        if ($originalManifest.sourceCommit -ne $env:YNX_ORIGINAL_SOURCE -or $originalManifest.version -ne '0.6.10') { throw 'Installed source identity differs from original immutable artifact' }
+        node apps/wallet-desktop/scripts/verify-sandbox-rejection.mjs $exe apps/wallet-desktop/dist/sandbox-refusal.json
+        if ($LASTEXITCODE -ne 0) { throw 'Installed Wallet did not explicitly reject disabled sandboxing' }
+        $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP 'wallet-current-qa-profile'
+        $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\installed-smoke.json'
+        $expectedVersion = (Get-Content 'apps/wallet-desktop/package.json' -Raw | ConvertFrom-Json).version
+        for ($phase = 1; $phase -le 2; $phase++) {
+          $app = Start-Process $exe -PassThru
+          $ready = $false
+          for ($attempt = 0; $attempt -lt 45; $attempt++) {
+            Start-Sleep -Seconds 1
+            if (Test-Path $env:YNX_WALLET_EVIDENCE_PATH) {
+              $e = Get-Content $env:YNX_WALLET_EVIDENCE_PATH -Raw | ConvertFrom-Json
+              if ($e.launches -eq $phase) { $ready = $true; break }
+            }
+          }
+          if (-not $ready -or -not $e.visibleShellReady -or -not $e.window.visible -or -not $e.keySecurity.locked -or $e.signingEnabled -or $e.providerAuthority.accountCreated -ne $false -or $e.appVersion -ne $expectedVersion) { throw 'Locked cold-start check failed' }
+          $app.Refresh()
+          if ($app.HasExited -or -not $app.CloseMainWindow() -or -not $app.WaitForExit(15000)) { throw 'Native application lifecycle failed' }
+        }
+        # This proves installed launch only; no account, signing, callback or transfer claim.
+    - name: Verify installed Windows password custody and same-account restart
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $rows = @(Get-Content 'apps/wallet-desktop/dist/windows-install-location.json' -Raw | ConvertFrom-Json)
+        $locations = @($rows | ForEach-Object { $_.installLocation } | Where-Object { $_ } | Sort-Object -Unique)
+        if ($locations.Count -ne 1) { throw 'Expected one exact current-user Wallet install' }
+        $exe = Join-Path $locations[0] 'YNX Wallet.exe'
+        $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP '钱包 QA profile'
+        $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\password-installed-smoke.json'
+        $report = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\windows-password-lifecycle.json'
+        $first = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+        try {
+          $created = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs create | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $created.passwordPersisted -or -not $created.accountCreated -or -not $created.wrongPasswordRejected -or -not $created.sameAccountAfterUnlock -or $created.custody -ne 'password-encrypted-local') { throw 'Installed password/account creation did not pass' }
+          $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
+          if (-not (Test-Path -LiteralPath $vault -PathType Leaf)) { throw 'Installed password vault was not persisted' }
+          $beforeRestartHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+        } finally {
+          if (-not $first.HasExited) { [void]$first.CloseMainWindow(); [void]$first.WaitForExit(15000) }
+        }
+        if (-not $first.HasExited) { throw 'First installed Wallet did not close' }
+        $second = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+        try {
+          $restored = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $created.account | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $restored.sameAccountAfterRestart -or $restored.account -ne $created.account -or $restored.ynxAccount -ne $created.ynxAccount) { throw 'Installed password restart changed account identity' }
+          $afterRestartHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($afterRestartHash -ne $beforeRestartHash) { throw 'Unlock unexpectedly changed the encrypted vault file' }
+        } finally {
+          if (-not $second.HasExited) { [void]$second.CloseMainWindow(); [void]$second.WaitForExit(15000) }
+        }
+        if (-not $second.HasExited) { throw 'Second installed Wallet did not close' }
+        $third = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+        try {
+          $imported = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs import $created.account | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $imported.imported -or $imported.importCount -ne 6 -or -not $imported.originalAccountRetained -or -not $imported.allPreviousAccountsRetained -or $imported.originalAccount -ne $created.account -or $imported.account -eq $created.account -or $imported.custody -ne 'password-encrypted-local') { throw 'Installed encrypted account import did not pass' }
+          $afterImportHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($afterImportHash -eq $beforeRestartHash) { throw 'Account import did not update the encrypted vault' }
+        } finally {
+          if (-not $third.HasExited) { [void]$third.CloseMainWindow(); [void]$third.WaitForExit(15000) }
+        }
+        if (-not $third.HasExited) { throw 'Third installed Wallet did not close' }
+        $fourth = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+        try {
+          $reopened = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $imported.account | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $reopened.sameAccountAfterRestart -or $reopened.account -ne $imported.account) { throw 'Imported account changed after installed Wallet restart' }
+          $afterImportRestartHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($afterImportRestartHash -ne $afterImportHash) { throw 'Unlock unexpectedly changed the imported encrypted vault file' }
+          @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; platform='windows'; architecture='x64'; installedPasswordSetup=$true; accountCreated=$true; wrongPasswordRejected=$true; samePublicAddressAfterRestart=$true; encryptedAccountImports=6; originalAndPriorAccountsRetained=$true; importedAccountAfterRestart=$true; vaultCiphertextUnchangedByUnlock=$true; publicAccount=$created.account; publicYNXAccount=$created.ynxAccount; publicImportedAccount=$imported.account; userMachineVerified=$false; osRebootVerified=$false; signed=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $report
+        } finally {
+          if (-not $fourth.HasExited) { [void]$fourth.CloseMainWindow(); [void]$fourth.WaitForExit(15000) }
+        }
+        if (-not $fourth.HasExited) { throw 'Fourth installed Wallet did not close' }
+    - name: Verify installed Windows x64 Arabic display and same locked account across
+        restart
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $rows = @(Get-Content 'apps/wallet-desktop/dist/windows-install-location.json' -Raw | ConvertFrom-Json)
+        $locations = @($rows | ForEach-Object { $_.installLocation } | Where-Object { $_ } | Sort-Object -Unique)
+        if ($locations.Count -ne 1) { throw 'Expected one exact current-user Wallet installation' }
+        $exe = Join-Path $locations[0] 'YNX Wallet.exe'
+        $account = (Get-Content 'apps/wallet-desktop/dist/windows-password-lifecycle.json' -Raw | ConvertFrom-Json).publicImportedAccount
+        if ($account -notmatch '^0x[0-9a-fA-F]{40}$') { throw 'Installed imported account unavailable for locale gate' }
+        $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP '钱包 QA profile'
+        $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\password-installed-smoke.json'
+        $env:YNX_WALLET_EXPECTED_VERSION = (Get-Content 'apps/wallet-desktop/package.json' -Raw | ConvertFrom-Json).version
+        $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
+        $before = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+        $results = @()
+        foreach ($phase in @('locale-set','locale-restore')) {
+          $app = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $result = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs $phase $account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $result.arabicRTL -or -not $result.samePublicAccount -or -not $result.remainedLocked -or $result.version -ne $env:YNX_WALLET_EXPECTED_VERSION -or ($phase -eq 'locale-restore' -and -not $result.preferenceRetained)) { throw 'Installed Arabic locale or custody gate failed' }
+            $results += $result
+          } finally {
+            if (-not $app.HasExited) { [void]$app.CloseMainWindow(); [void]$app.WaitForExit(15000) }
+          }
+          if (-not $app.HasExited) { throw 'Installed Arabic locale Wallet did not close' }
+        }
+        if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $before) { throw 'Changing display language modified the encrypted vault' }
+        @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; version=$env:YNX_WALLET_EXPECTED_VERSION; platform='windows'; architecture='x64'; installedExecutable=$true; arabicRTL=$true; preferenceAfterAppRestart=$true; samePublicAccount=$true; remainedLocked=$true; encryptedVaultUnchanged=$true; osRebootVerified=$false; userMachineVerified=$false; productionSigned=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-locale-lifecycle.json'
+    - name: Verify installed Wallet creates and restores the same account without
+        RPC
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $rows = @(Get-Content 'apps/wallet-desktop/dist/windows-install-location.json' -Raw | ConvertFrom-Json)
+        $locations = @($rows | ForEach-Object { $_.installLocation } | Where-Object { $_ } | Sort-Object -Unique)
+        if ($locations.Count -ne 1) { throw 'Expected one exact current-user Wallet installation' }
+        $exe = Join-Path $locations[0] 'YNX Wallet.exe'
+        $rule = "YNX Wallet disposable offline QA $env:GITHUB_RUN_ID"
+        $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP '离线 QA profile'
+        $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\offline-installed-smoke.json'
+        & netsh.exe advfirewall firewall add rule name="$rule" dir=out action=block program="$exe" enable=yes
+        if ($LASTEXITCODE -ne 0) { throw 'Disposable installed Wallet firewall rule could not be installed' }
+        try {
+          $first = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $created = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs offline-create | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $created.rpcUnavailableDuringAccountCreation -or -not $created.accountCreated -or -not $created.wrongPasswordRejected) { throw 'Offline installed account creation did not pass' }
+            $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
+            $beforeRestart = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+          } finally {
+            if (-not $first.HasExited) { [void]$first.CloseMainWindow(); [void]$first.WaitForExit(15000) }
+          }
+          if (-not $first.HasExited) { throw 'Offline account creation Wallet did not close' }
+          $second = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $restored = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs offline-restore $created.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $restored.rpcUnavailableDuringRestart -or -not $restored.sameAccountAfterRestart -or $restored.account -ne $created.account -or $restored.ynxAccount -ne $created.ynxAccount) { throw 'Offline installed restart did not restore exact account' }
+            if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $beforeRestart) { throw 'Offline unlock changed encrypted vault bytes' }
+            @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; architecture='x64'; installedExecutableFirewallBlocked=$true; rpcUnavailableDuringCreation=$true; exactAccountRestoredWhileOffline=$true; encryptedVaultUnchangedOnRestart=$true; userMachineVerified=$false; osRebootVerified=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-offline-lifecycle.json'
+          } finally {
+            if (-not $second.HasExited) { [void]$second.CloseMainWindow(); [void]$second.WaitForExit(15000) }
+          }
+          if (-not $second.HasExited) { throw 'Offline restart Wallet did not close' }
+        } finally {
+          & netsh.exe advfirewall firewall delete rule name="$rule" program="$exe" | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw 'Disposable installed Wallet firewall rule could not be removed' }
+        }
+    - name: Verify native Save dialog backup and installed encrypted-file restoration
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $rows = @(Get-Content 'apps/wallet-desktop/dist/windows-install-location.json' -Raw | ConvertFrom-Json)
+        $locations = @($rows | ForEach-Object { $_.installLocation } | Where-Object { $_ } | Sort-Object -Unique)
+        if ($locations.Count -ne 1) { throw 'Expected one exact current-user Wallet installation' }
+        $exe = Join-Path $locations[0] 'YNX Wallet.exe'
+        $source = Get-Content 'apps/wallet-desktop/dist/windows-password-lifecycle.json' -Raw | ConvertFrom-Json
+        $account = $source.publicImportedAccount
+        if ($account -notmatch '^0x[0-9a-f]{40}$') { throw 'Backup source public account is invalid' }
+        $env:YNX_WALLET_QA_BACKUP_FILE = Join-Path $env:RUNNER_TEMP 'ynx-wallet-qa-portable-backup.json'
+        if (Test-Path -LiteralPath $env:YNX_WALLET_QA_BACKUP_FILE) { throw 'Backup destination is not empty' }
+        $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP '钱包 QA profile'
+        $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\backup-installed-smoke.json'
+        $first = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+        try {
+          $started = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs backup-start $account | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $started.backupSubmittedThroughInstalledUI -or $started.account -ne $account) { throw 'Installed backup form was not submitted' }
+          $shell = New-Object -ComObject WScript.Shell
+          $dialog = $false
+          for ($attempt = 0; $attempt -lt 50; $attempt++) {
+            if ($shell.AppActivate('Save encrypted Wallet backup')) { $dialog = $true; break }
+            Start-Sleep -Milliseconds 200
+          }
+          if (-not $dialog) { throw 'Native backup Save dialog was not found' }
+          $shell.SendKeys('%n')
+          $shell.SendKeys($env:YNX_WALLET_QA_BACKUP_FILE)
+          $shell.SendKeys('{ENTER}')
+          $savedFile = $false
+          for ($attempt = 0; $attempt -lt 100; $attempt++) {
+            if (Test-Path -LiteralPath $env:YNX_WALLET_QA_BACKUP_FILE -PathType Leaf) { $savedFile = $true; break }
+            Start-Sleep -Milliseconds 200
+          }
+          if (-not $savedFile) { throw 'Native Save dialog did not create an encrypted backup file' }
+          $saved = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs backup-result $account | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $saved.nativeBackupSaved -or $saved.account -ne $account) { throw 'Installed UI did not confirm backup save' }
+          $env:YNX_BACKUP_EXPECTED_ACCOUNT = $account
+          node --input-type=module -e 'import {readFile} from "node:fs/promises";import {Wallet} from "./apps/wallet-desktop/node_modules/ethers/lib.esm/ethers.js";const text=await readFile(process.env.YNX_WALLET_QA_BACKUP_FILE,"utf8");if(Buffer.byteLength(text)>100000)throw Error("BACKUP_TOO_LARGE");let wrong=false;try{await Wallet.fromEncryptedJson(text,"incorrect synthetic password")}catch{wrong=true}if(!wrong)throw Error("BACKUP_WRONG_PASSWORD_ACCEPTED");const wallet=await Wallet.fromEncryptedJson(text,process.env.YNX_WALLET_QA_BACKUP_PASSWORD);if(wallet.address.toLowerCase()!==process.env.YNX_BACKUP_EXPECTED_ACCOUNT)throw Error("BACKUP_ACCOUNT_MISMATCH");console.log(JSON.stringify({encryptedBackupDecryptsToSamePublicAccount:true,wrongPasswordRejected:true}))'
+          if ($LASTEXITCODE -ne 0) { throw 'Saved backup did not decrypt to exact source account' }
+        } finally {
+          if (-not $first.HasExited) { [void]$first.CloseMainWindow(); [void]$first.WaitForExit(15000) }
+        }
+        if (-not $first.HasExited) { throw 'Backup source Wallet did not close' }
+        $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP '备份恢复 QA profile'
+        $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\backup-restore-installed-smoke.json'
+        $second = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+        try {
+          $restored = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs import-backup $account | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $restored.imported -or $restored.account -ne $account -or $restored.custody -ne 'password-encrypted-local') { throw 'Installed encrypted backup import changed the public account' }
+          $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
+          $beforeRestart = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+        } finally {
+          if (-not $second.HasExited) { [void]$second.CloseMainWindow(); [void]$second.WaitForExit(15000) }
+        }
+        if (-not $second.HasExited) { throw 'Restored Wallet did not close' }
+        $third = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+        try {
+          $reopened = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $account | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $reopened.sameAccountAfterRestart -or $reopened.account -ne $account) { throw 'Restored backup account changed after installed Wallet restart' }
+          if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $beforeRestart) { throw 'Restored backup vault changed on unlock' }
+          @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; architecture='x64'; nativeSaveDialogUsed=$true; encryptedBackupFileSaved=$true; wrongBackupPasswordRejected=$true; exactPublicAccountRestored=$true; restoredAccountAfterAppRestart=$true; userMachineVerified=$false; osRebootVerified=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-backup-lifecycle.json'
+        } finally {
+          if (-not $third.HasExited) { [void]$third.CloseMainWindow(); [void]$third.WaitForExit(15000) }
+        }
+        if (-not $third.HasExited) { throw 'Backup cold restart Wallet did not close' }
+    - name: Upload exact artifacts and available evidence
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: wallet-immutable-x64-candidate-qa-${{ github.sha }}
+        if-no-files-found: warn
+        path: |
+          apps/wallet-desktop/dist/*.deb
+          apps/wallet-desktop/dist/*.AppImage
+          apps/wallet-desktop/dist/release-manifest.json
+          apps/wallet-desktop/dist/installed-smoke.json
+          apps/wallet-desktop/dist/password-installed-smoke.json
+          apps/wallet-desktop/dist/windows-password-lifecycle.json
+          apps/wallet-desktop/dist/windows-locale-lifecycle.json
+          apps/wallet-desktop/dist/windows-old-installer.json
+          apps/wallet-desktop/dist/windows-old-profile.json
+          apps/wallet-desktop/dist/old-installed-smoke.json
+          apps/wallet-desktop/dist/windows-upgrade-lifecycle.json
+          apps/wallet-desktop/dist/upgrade-installed-smoke.json
+          apps/wallet-desktop/dist/windows-backup-lifecycle.json
+          apps/wallet-desktop/dist/windows-offline-lifecycle.json
+          apps/wallet-desktop/dist/offline-installed-smoke.json
+          apps/wallet-desktop/dist/backup-installed-smoke.json
+          apps/wallet-desktop/dist/backup-restore-installed-smoke.json
+          apps/wallet-desktop/dist/windows-installer-result.json
+          apps/wallet-desktop/dist/windows-install-location.json
+          apps/wallet-desktop/dist/windows-archive-verification.json
+          apps/wallet-desktop/dist/windows-archive-verification.json.listing.txt
+          apps/wallet-desktop/dist/windows-pe-verification.json
+          apps/wallet-desktop/dist/sandbox-refusal.json
+          apps/wallet-desktop/dist/*.launcher.json
+          apps/wallet-desktop/dist/*.AppRun.txt
+          apps/wallet-desktop/dist/appimage-source-verification.json
+          ${{ runner.temp }}/wallet-current-launch-*.log
+          apps/wallet-desktop/dist/windows-immutable-x64-identity.json
+          apps/wallet-desktop/dist/windows-immutable-x64-artifact.json
+  old-version-upgrade:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        # A 0.6.8 create failure was observed in run 36125017201. Recovery is
+        # proved here only if this isolated runner reproduces that exact state;
+        # otherwise this row proves an existing-account upgrade.
+        - oldVersion: 0.6.8
+          oldSource: 6f332753baae5deaf6b05c8276b20a02cc4887c5
+          oldBytes: 120954701
+          oldSHA256: da2e564eb680de0595202bd388eda9d524f40d62052b03da9b0bba4bf9da3716
+          allowCreateFailure: true
+        - oldVersion: 0.6.9
+          oldSource: 3045436395fe636c91be417f41fc1e4ed2bc7515
+          oldBytes: 120980075
+          oldSHA256: 0df01cecc47c4af179d651892623b7936ac6dac52a5d9961212bed90eccde7e1
+          allowCreateFailure: false
+    env:
+      YNX_ORIGINAL_SOURCE: ffaf3ca0d85f81622e6b1ba20c7648abb09a2574
+      YNX_WALLET_EXPECTED_VERSION: 0.6.10
+      YNX_OLD_VERSION: ${{ matrix.oldVersion }}
+      YNX_OLD_SOURCE: ${{ matrix.oldSource }}
+      YNX_OLD_BYTES: ${{ matrix.oldBytes }}
+      YNX_OLD_SHA256: ${{ matrix.oldSHA256 }}
+      YNX_OLD_ALLOW_CREATE_FAILURE: ${{ matrix.allowCreateFailure }}
+    steps:
+    - name: Preserve committed bytes in this disposable runner checkout
+      shell: bash
+      run: git config --global core.autocrlf false
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 24.18.0
+    - name: Install exact verifier dependencies and test password gate state
+      shell: bash
+      run: |
+        set -euo pipefail
+        node -e 'if(process.arch!=="x64")process.exit(1)'
+        npm ci --ignore-scripts --prefix packages/wallet-auth
+        npm ci --prefix apps/wallet-desktop
+        node --test apps/wallet-desktop/test/windows-password-form-state.test.mjs
+    - name: Generate and mask disposable QA-only passwords
+      shell: pwsh
+      run: |
+        $password = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
+        $backupPassword = [Convert]::ToHexString([Security.Cryptography.RandomNumberGenerator]::GetBytes(24))
+        Write-Host "::add-mask::$password"
+        Write-Host "::add-mask::$backupPassword"
+        "YNX_WALLET_QA_PASSWORD=$password" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "YNX_WALLET_QA_BACKUP_PASSWORD=$backupPassword" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+    - name: Download and hash the original immutable x64 artifact
+      shell: pwsh
+      env:
+        GITHUB_TOKEN: "${{ github.token }}"
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $archive = Join-Path $env:RUNNER_TEMP 'ynx-wallet-0.6.10-original-x64.zip'
+        node apps/wallet-desktop/scripts/windows-immutable-x64-artifact.mjs download $archive
+        if ($LASTEXITCODE -ne 0) { throw 'Original artifact download or full archive hash failed' }
+        $extracted = Join-Path $env:RUNNER_TEMP 'ynx-wallet-0.6.10-original-x64-extracted'
+        [IO.Compression.ZipFile]::ExtractToDirectory($archive, $extracted)
+        node apps/wallet-desktop/scripts/windows-immutable-x64-artifact.mjs verify $extracted 'apps/wallet-desktop/dist'
+        if ($LASTEXITCODE -ne 0) { throw 'Original installer or source manifest binding failed' }
+        $installer = Get-Item 'apps/wallet-desktop/dist/ynx-wallet-desktop-0.6.10-x64.exe'
+        $signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
+        @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; installerBytes=$installer.Length; installerSHA256=(Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant(); authenticodeStatus=[string]$signature.Status; productionSigned=$false; oldVersionUpgradeVerified=$false; currentVersionLifecycleVerified=$false } | ConvertTo-Json | Set-Content 'apps/wallet-desktop/dist/windows-immutable-x64-identity.json'
+        if ($signature.Status -ne 'NotSigned') { throw 'Unexpected installer signature status requires review' }
+    - name: Download and install exact public Windows predecessor for in-place upgrade QA
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $sha = $env:YNX_OLD_SHA256
+        $name = "ynx-wallet-desktop-$($env:YNX_OLD_VERSION)-x64.exe"
+        $url = "https://downloads.ynxweb4.com/wallet/sha256-$sha/$name"
+        $old = Join-Path $env:RUNNER_TEMP $name
+        if (Test-Path -LiteralPath $old) { throw 'Old installer destination is not empty' }
+        & curl.exe --fail --silent --show-error --proto '=https' --tlsv1.2 --max-time 300 --output $old $url
+        if ($LASTEXITCODE -ne 0) { throw 'Public old installer download failed' }
+        if ((Get-Item -LiteralPath $old).Length -ne [long]$env:YNX_OLD_BYTES -or (Get-FileHash -LiteralPath $old -Algorithm SHA256).Hash.ToLowerInvariant() -ne $sha) { throw 'Public old installer bytes failed immutable hash verification' }
+        $signature = Get-AuthenticodeSignature -LiteralPath $old
+        @{ sourceCommit=$env:YNX_OLD_SOURCE; version=$env:YNX_OLD_VERSION; architecture='x64'; bytes=[long]$env:YNX_OLD_BYTES; sha256=$sha; exactPublicBytesVerified=$true; authenticodeStatus=[string]$signature.Status; productionSigned=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-old-installer.json'
+        $install = [Diagnostics.Process]::new()
+        try {
+          $install.StartInfo.FileName = $old
+          $install.StartInfo.ArgumentList.Add('/S')
+          $install.StartInfo.UseShellExecute = $false
+          if (-not $install.Start() -or -not $install.WaitForExit(180000)) { throw 'Old installer did not finish' }
+          $install.Refresh()
+          if ($install.ExitCode -ne 0) { throw 'Old installer returned a nonzero exit code' }
+        } finally { $install.Dispose() }
+        $walletGuid = node --input-type=commonjs -e 'const {UUID}=require("./apps/wallet-desktop/node_modules/builder-util-runtime");const p=require("./apps/wallet-desktop/package.json");process.stdout.write(p.build.nsis.guid||UUID.v5(p.build.appId,UUID.parse("50e065bc-3134-11e6-9bab-38c9862bdaf3")))'
+        if ($LASTEXITCODE -ne 0 -or $walletGuid -notmatch '^[0-9a-f-]{36}$') { throw 'Unable to resolve stable Wallet installer identity' }
+        $locations = @()
+        foreach ($view in @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)) {
+          $registry = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser, $view)
+          try {
+            $key = $registry.OpenSubKey("Software\$walletGuid", $false)
+            try { if ($null -ne $key) { $locations += [string]$key.GetValue('InstallLocation') } }
+            finally { if ($null -ne $key) { $key.Dispose() } }
+          } finally { $registry.Dispose() }
+        }
+        $locations = @($locations | Where-Object { $_ -and [IO.Path]::IsPathFullyQualified($_) } | Sort-Object -Unique)
+        if ($locations.Count -ne 1) { throw 'Old installer registration is not unique' }
+        $exe = Join-Path $locations[0] 'YNX Wallet.exe'
+        if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'Old installed executable is missing' }
+        "YNX_OLD_INSTALLED_EXE=$exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+    - name: Create a protected old account in the installed public predecessor UI
+      shell: bash
+      run: node apps/wallet-desktop/scripts/windows-old-installed-profile.mjs
+    - name: Install Windows and verify two locked cold starts
+      shell: pwsh
+      env:
+        UNPACKED: win-unpacked
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $installer = @(Get-ChildItem apps/wallet-desktop/dist/*.exe)
+        if ($installer.Count -ne 1) { throw 'Expected one exact installer' }
+        $installResult = [ordered]@{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; installerPath=$installer[0].FullName; arguments=@('/S'); installAttemptCount=1; startedAt=(Get-Date).ToUniversalTime().ToString('o'); osArchitecture=[string][Runtime.InteropServices.RuntimeInformation]::OSArchitecture; processArchitecture=[string][Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture; exited=$false; exitCode=$null; exitCodeType=$null; successfulExit=$false; failure=$null }
+        $install = [Diagnostics.Process]::new()
+        try {
+          # Retain the native process handle, as verified by the immutable ARM64 QA.
+          # One normal /S invocation; no automatic retry or weakened exit-code gate.
+          $install.StartInfo.FileName = $installer[0].FullName
+          $install.StartInfo.ArgumentList.Add('/S')
+          $install.StartInfo.UseShellExecute = $false
+          if (-not $install.Start()) { throw 'Installer process did not start' }
+          $installResult.installerPid = $install.Id
+          $installResult.exited = $install.WaitForExit(180000)
+          $install.Refresh()
+          if ($installResult.exited) {
+            $installResult.exitCode = $install.ExitCode
+            if ($null -ne $installResult.exitCode) { $installResult.exitCodeType = $installResult.exitCode.GetType().FullName }
+          }
+          if (-not $installResult.exited -or $null -eq $installResult.exitCode -or $installResult.exitCode -ne 0) { throw 'Installer did not return a verified successful exit code' }
+          $installResult.successfulExit = $true
+        } catch {
+          $installResult.failure = $_.Exception.Message
+          throw
+        } finally {
+          $installResult.completedAt = (Get-Date).ToUniversalTime().ToString('o')
+          $installResult | ConvertTo-Json -Depth 5 | Set-Content 'apps/wallet-desktop/dist/windows-installer-result.json'
+          $install.Dispose()
+        }
+        # Preserve the ordinary /S install. Resolve its exact current-user
+        # registration instead of guessing a Known Folder or finding a temp copy.
+        $walletGuid = node --input-type=commonjs -e 'const {UUID}=require("./apps/wallet-desktop/node_modules/builder-util-runtime");const p=require("./apps/wallet-desktop/package.json");process.stdout.write(p.build.nsis.guid||UUID.v5(p.build.appId,UUID.parse("50e065bc-3134-11e6-9bab-38c9862bdaf3")))'
+        if ($LASTEXITCODE -ne 0 -or $walletGuid -notmatch '^[0-9a-f-]{36}$') { throw 'Unable to resolve the exact installer registration key' }
+        $walletInstallRows = @()
+        foreach ($walletRegistryView in @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)) {
+          $walletRegistry = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser, $walletRegistryView)
+          $walletInstallKey = $null
+          try {
+            $walletInstallKey = $walletRegistry.OpenSubKey("Software\$walletGuid", $false)
+            $walletLocation = if ($null -ne $walletInstallKey) { [string]$walletInstallKey.GetValue('InstallLocation') } else { '' }
+            $walletInstallRows += [ordered]@{ view=[string]$walletRegistryView; registryKey="HKCU\Software\$walletGuid"; installLocation=$walletLocation }
+          } finally {
+            if ($null -ne $walletInstallKey) { $walletInstallKey.Dispose() }
+            $walletRegistry.Dispose()
+          }
+        }
+        $walletInstallRows | ConvertTo-Json -Depth 5 | Set-Content 'apps/wallet-desktop/dist/windows-install-location.json'
+        $walletLocations = @($walletInstallRows | ForEach-Object { $_.installLocation } | Where-Object { $_ -and [IO.Path]::IsPathFullyQualified($_) } | Sort-Object -Unique)
+        if ($walletLocations.Count -ne 1) { throw 'A unique registered current-user Wallet installation is required' }
+        $exe = Join-Path $walletLocations[0] 'YNX Wallet.exe'
+        $pe = [IO.File]::ReadAllBytes($exe)
+        $peOffset = [BitConverter]::ToInt32($pe, 0x3c)
+        if ($peOffset -lt 0 -or $peOffset + 6 -gt $pe.Length -or [BitConverter]::ToUInt32($pe, $peOffset) -ne 0x00004550 -or [BitConverter]::ToUInt16($pe, $peOffset + 4) -ne 0x8664) { throw 'Installed Wallet PE is not native x64' }
+        $originalManifest = Get-Content 'apps/wallet-desktop/dist/release-manifest.json' -Raw | ConvertFrom-Json
+        $installedAsar = Join-Path $walletLocations[0] 'resources\app.asar'
+        if (-not (Test-Path -LiteralPath $installedAsar -PathType Leaf) -or (Get-FileHash -LiteralPath $installedAsar -Algorithm SHA256).Hash.ToLowerInvariant() -ne $originalManifest.asarSHA256) { throw 'Installed runtime archive differs from the exact original build manifest' }
+        if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'The registered Wallet executable is missing' }
+        if ($originalManifest.sourceCommit -ne $env:YNX_ORIGINAL_SOURCE -or $originalManifest.version -ne '0.6.10') { throw 'Installed source identity differs from original immutable artifact' }
+        node apps/wallet-desktop/scripts/verify-sandbox-rejection.mjs $exe apps/wallet-desktop/dist/sandbox-refusal.json
+        if ($LASTEXITCODE -ne 0) { throw 'Installed Wallet did not explicitly reject disabled sandboxing' }
+        $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP 'wallet-current-qa-profile'
+        $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\installed-smoke.json'
+        $expectedVersion = (Get-Content 'apps/wallet-desktop/package.json' -Raw | ConvertFrom-Json).version
+        for ($phase = 1; $phase -le 2; $phase++) {
+          $app = Start-Process $exe -PassThru
+          $ready = $false
+          for ($attempt = 0; $attempt -lt 45; $attempt++) {
+            Start-Sleep -Seconds 1
+            if (Test-Path $env:YNX_WALLET_EVIDENCE_PATH) {
+              $e = Get-Content $env:YNX_WALLET_EVIDENCE_PATH -Raw | ConvertFrom-Json
+              if ($e.launches -eq $phase) { $ready = $true; break }
+            }
+          }
+          if (-not $ready -or -not $e.visibleShellReady -or -not $e.window.visible -or -not $e.keySecurity.locked -or $e.signingEnabled -or $e.providerAuthority.accountCreated -ne $false -or $e.appVersion -ne $expectedVersion) { throw 'Locked cold-start check failed' }
+          $app.Refresh()
+          if ($app.HasExited -or -not $app.CloseMainWindow() -or -not $app.WaitForExit(15000)) { throw 'Native application lifecycle failed' }
+        }
+        # This proves installed launch only; no account, signing, callback or transfer claim.
+    - name: Verify exact old account upgrade or protected failed-create recovery
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $old = Get-Content 'apps/wallet-desktop/dist/windows-old-profile.json' -Raw | ConvertFrom-Json
+        $rows = @(Get-Content 'apps/wallet-desktop/dist/windows-install-location.json' -Raw | ConvertFrom-Json)
+        $locations = @($rows | ForEach-Object { $_.installLocation } | Where-Object { $_ } | Sort-Object -Unique)
+        if ($locations.Count -ne 1) { throw 'Upgraded Wallet registration is not unique' }
+        $exe = Join-Path $locations[0] 'YNX Wallet.exe'
+        if ($exe -ne $env:YNX_OLD_INSTALLED_EXE) { throw 'Upgraded Wallet changed the installed executable identity' }
+        $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP "旧钱包 $($env:YNX_OLD_VERSION) QA profile"
+        $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\upgrade-installed-smoke.json'
+        $vault = Join-Path $env:YNX_WALLET_PROFILE_PATH 'wallet-vault-v3.json'
+        if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $old.vaultSHA256) { throw 'Old encrypted Wallet changed before upgraded launch' }
+        if ($old.sourceVersion -ne $env:YNX_OLD_VERSION -or ($old.oldInstalledCreateFailureObserved -and $env:YNX_OLD_ALLOW_CREATE_FAILURE -ne 'true')) { throw 'Old profile did not match its exact predecessor gate' }
+        $app = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+        try {
+          $version = (Get-Content 'apps/wallet-desktop/package.json' -Raw | ConvertFrom-Json).version
+          if ($version -eq $old.sourceVersion) { throw 'Candidate is not a distinct installed version' }
+          $launchReady = $false
+          for ($attempt = 0; $attempt -lt 80; $attempt++) {
+            if (Test-Path -LiteralPath $env:YNX_WALLET_EVIDENCE_PATH) {
+              $launch = Get-Content $env:YNX_WALLET_EVIDENCE_PATH -Raw | ConvertFrom-Json
+              if ($launch.appVersion -eq $version -and $launch.visibleShellReady) { $launchReady = $true; break }
+            }
+            Start-Sleep -Milliseconds 250
+          }
+          if (-not $launchReady) { throw 'Upgraded installed version or visible shell was not verified' }
+          if ($old.oldInstalledCreateFailureObserved) {
+            if ($old.account -or $old.installedUIAccountCreated -or -not $old.oldPasswordConfigured) { throw 'Failed old create unexpectedly had a public account' }
+            $recovered = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs recover-create | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $recovered.oldPasswordUnlockedWithoutChangingVault -or -not $recovered.accountCreatedAfterUpgrade -or $recovered.custody -ne 'password-encrypted-local') { throw 'Candidate did not recover the exact old protected failed-create profile' }
+            $afterCreateHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($afterCreateHash -eq $old.vaultSHA256) { throw 'Recovery account was not persisted to the protected vault' }
+          } else {
+            if (-not $old.installedUIAccountCreated -or -not $old.account) { throw 'Old UI did not establish a protected public account' }
+            $restored = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $old.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $restored.sameAccountAfterRestart -or $restored.account -ne $old.account -or $restored.ynxAccount -ne $old.ynxAccount) { throw 'Upgrade did not restore exact old public account' }
+            if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $old.vaultSHA256) { throw 'Upgrade unlock changed the old encrypted vault bytes' }
+            @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; oldVersion=$old.sourceVersion; candidateVersion=$version; exactOldPublicAccountRetained=$true; oldVaultCiphertextUnchanged=$true; oldAppExitedUncleanly=$true; osRebootVerified=$false; userMachineVerified=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-upgrade-lifecycle.json'
+          }
+        } finally {
+          if (-not $app.HasExited) { [void]$app.CloseMainWindow(); [void]$app.WaitForExit(15000) }
+        }
+        if (-not $app.HasExited) { throw 'Upgraded Wallet did not close' }
+        if ($old.oldInstalledCreateFailureObserved) {
+          $app = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $reopened = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $recovered.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $reopened.sameAccountAfterRestart -or $reopened.account -ne $recovered.account -or $reopened.ynxAccount -ne $recovered.ynxAccount) { throw 'Recovered account did not survive candidate app restart' }
+            if ((Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant() -ne $afterCreateHash) { throw 'Recovered encrypted vault changed on correct unlock' }
+            @{ sourceCommit=$env:YNX_ORIGINAL_SOURCE; qaCommit=$env:GITHUB_SHA; oldVersion=$old.sourceVersion; candidateVersion=$version; oldInstalledCreateFailureObserved=$true; exactOldPublicAccountRetained=$false; oldPasswordUnlockedWithoutChangingVault=$true; accountCreatedAfterUpgrade=$true; recoveredAccountAfterAppRestart=$true; recoveredPublicAccount=$recovered.account; oldAppExitedUncleanly=$true; osRebootVerified=$false; userMachineVerified=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath 'apps/wallet-desktop/dist/windows-failed-create-recovery.json'
+          } finally {
+            if (-not $app.HasExited) { [void]$app.CloseMainWindow(); [void]$app.WaitForExit(15000) }
+          }
+          if (-not $app.HasExited) { throw 'Recovered Wallet did not close after restart' }
+        }
+    - name: Upload exact artifacts and available evidence
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: wallet-immutable-x64-upgrade-${{ matrix.oldVersion }}-qa-${{ github.sha }}
+        if-no-files-found: warn
+        path: |
+          apps/wallet-desktop/dist/*.deb
+          apps/wallet-desktop/dist/*.AppImage
+          apps/wallet-desktop/dist/release-manifest.json
+          apps/wallet-desktop/dist/installed-smoke.json
+          apps/wallet-desktop/dist/password-installed-smoke.json
+          apps/wallet-desktop/dist/windows-password-lifecycle.json
+          apps/wallet-desktop/dist/windows-locale-lifecycle.json
+          apps/wallet-desktop/dist/windows-old-installer.json
+          apps/wallet-desktop/dist/windows-old-profile.json
+          apps/wallet-desktop/dist/old-installed-smoke.json
+          apps/wallet-desktop/dist/windows-upgrade-lifecycle.json
+          apps/wallet-desktop/dist/windows-failed-create-recovery.json
+          apps/wallet-desktop/dist/upgrade-installed-smoke.json
+          apps/wallet-desktop/dist/windows-backup-lifecycle.json
+          apps/wallet-desktop/dist/windows-offline-lifecycle.json
+          apps/wallet-desktop/dist/offline-installed-smoke.json
+          apps/wallet-desktop/dist/backup-installed-smoke.json
+          apps/wallet-desktop/dist/backup-restore-installed-smoke.json
+          apps/wallet-desktop/dist/windows-installer-result.json
+          apps/wallet-desktop/dist/windows-install-location.json
+          apps/wallet-desktop/dist/windows-archive-verification.json
+          apps/wallet-desktop/dist/windows-archive-verification.json.listing.txt
+          apps/wallet-desktop/dist/windows-pe-verification.json
+          apps/wallet-desktop/dist/sandbox-refusal.json
+          apps/wallet-desktop/dist/*.launcher.json
+          apps/wallet-desktop/dist/*.AppRun.txt
+          apps/wallet-desktop/dist/appimage-source-verification.json
+          ${{ runner.temp }}/wallet-current-launch-*.log
+          apps/wallet-desktop/dist/windows-immutable-x64-identity.json
+          apps/wallet-desktop/dist/windows-immutable-x64-artifact.json

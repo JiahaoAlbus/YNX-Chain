@@ -1,0 +1,95 @@
+{
+  "recoveredReceipt": {
+    "blockHash": "0x6d99b640d5ee882a9d8579301c333e6fbf0794d82c8899a2fce2db53ab408500",
+    "blockNumber": "0x2",
+    "contractAddress": null,
+    "cumulativeGasUsed": "0x61a8",
+    "effectiveGasPrice": "0x246139ca8000",
+    "from": "0x9d8a62f656a8d1615c1294fd71e9cfb3e4855a4f",
+    "gasUsed": "0x61a8",
+    "logs": [
+      {
+        "address": "0x3535353535353535353535353535353535353535",
+        "blockHash": "0x6d99b640d5ee882a9d8579301c333e6fbf0794d82c8899a2fce2db53ab408500",
+        "blockNumber": "0x2",
+        "data": "0x0000000000000000000000000000000000000000000000000000000000000002",
+        "logIndex": "0x0",
+        "removed": false,
+        "topics": [
+          "0xc033c4e32955d645ceb56c016534f96606e19cfc3af5087ece0f21c797b37c6e",
+          "0x6f879a73f507025346be5fbd4aa15116f4af72c44b1b5da3aa6fbb8bf80746f0",
+          "0xf11a49101a627886358ffe8af3754188afcbf45cc01eb6aaf0af3a0aa6adcbd4"
+        ],
+        "transactionHash": "0x991db3ee54e9b3a9365490f8502c18c2c3f00b7af970417effe38a41dd3d9f19",
+        "transactionIndex": "0x0"
+      }
+    ],
+    "logsBloom": "0x00000000000010000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000002000000008000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080011000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000400000000000000001000000000000000000000000000000000000000000000000000000000000000000000",
+    "status": "0x1",
+    "to": "0x3535353535353535353535353535353535353535",
+    "transactionHash": "0x991db3ee54e9b3a9365490f8502c18c2c3f00b7af970417effe38a41dd3d9f19",
+    "transactionIndex": "0x0",
+    "type": "0x0",
+    "ynxDurability": {
+      "blockHash": "0x6d99b640d5ee882a9d8579301c333e6fbf0794d82c8899a2fce2db53ab408500",
+      "blockNumber": "0x2",
+      "checkpointBlockHash": "0x6d99b640d5ee882a9d8579301c333e6fbf0794d82c8899a2fce2db53ab408500",
+      "checkpointBlockNumber": "0x2",
+      "scope": "local-snapshot",
+      "snapshotIntegrity": "0x9ce4005156d28219fbf53fdf6bcfe796f2175900c2d41a2736557ef17e3046c1",
+      "status": "durable",
+      "transactionHash": "0x991db3ee54e9b3a9365490f8502c18c2c3f00b7af970417effe38a41dd3d9f19",
+      "version": "ynx-local-durability-v1"
+    },
+    "ynxFeeWei": "0xde0b6b3a7640000",
+    "ynxLogSemantics": "native provenance events; no EVM execution",
+    "ynxNativeTransaction": {
+      "amountYNXT": "2",
+      "feeYNXT": "1",
+      "nonce": "0x1",
+      "type": "transfer"
+    }
+  },
+  "uncertainReceipt": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "error": {
+      "code": -32002,
+      "data": {
+        "durabilityVersion": "ynx-local-durability-v1",
+        "status": "transaction_durability_uncertain",
+        "transactionHash": "0x991db3ee54e9b3a9365490f8502c18c2c3f00b7af970417effe38a41dd3d9f19",
+        "ynxDurability": {
+          "blockHash": "0x6d99b640d5ee882a9d8579301c333e6fbf0794d82c8899a2fce2db53ab408500",
+          "blockNumber": "0x2",
+          "scope": "local-snapshot",
+          "status": "uncertain",
+          "transactionHash": "0x991db3ee54e9b3a9365490f8502c18c2c3f00b7af970417effe38a41dd3d9f19",
+          "version": "ynx-local-durability-v1"
+        }
+      },
+      "message": "local durable block inclusion is not confirmed"
+    }
+  },
+  "uncertainReplay": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "error": {
+      "code": -32002,
+      "data": {
+        "durabilityVersion": "ynx-local-durability-v1",
+        "status": "transaction_durability_uncertain",
+        "transactionHash": "0x991db3ee54e9b3a9365490f8502c18c2c3f00b7af970417effe38a41dd3d9f19",
+        "ynxDurability": {
+          "blockHash": "0x6d99b640d5ee882a9d8579301c333e6fbf0794d82c8899a2fce2db53ab408500",
+          "blockNumber": "0x2",
+          "scope": "local-snapshot",
+          "status": "uncertain",
+          "transactionHash": "0x991db3ee54e9b3a9365490f8502c18c2c3f00b7af970417effe38a41dd3d9f19",
+          "version": "ynx-local-durability-v1"
+        }
+      },
+      "message": "transaction durability needs confirmation; retry the identical signed transaction and require a durable mined receipt"
+    }
+  }
+}
