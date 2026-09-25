@@ -51,7 +51,23 @@ jobs:
           node -e 'if(process.arch!==process.env.EXPECTED_ARCH)process.exit(1)'
           npm ci --ignore-scripts --prefix packages/wallet-auth
           npm ci --prefix apps/wallet-desktop
+          # Windows ARM's Git Bash parent can stall each WindowsPowerShell child.
+          # The full native ARM suite runs below from the same pwsh parent used
+          # to launch the installed app; no assertions are skipped.
+          if [[ "${RUNNER_OS}" != "Windows" || "${EXPECTED_ARCH}" != "arm64" ]]; then
+            npm test --prefix apps/wallet-desktop
+          fi
+      - name: Verify native Windows ARM custody serially and with the full test suite
+        if: matrix.platform == 'windows' && matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
+          node --test --test-concurrency=1 apps/wallet-desktop/test/password-wallet-vault.test.mjs apps/wallet-desktop/test/platform-private-file.test.mjs
+          $serialExit = $LASTEXITCODE
           npm test --prefix apps/wallet-desktop
+          $fullExit = $LASTEXITCODE
+          if ($serialExit -ne 0 -or $fullExit -ne 0) { throw 'Native Windows ARM custody/full suite failed' }
       - name: Build Windows installer
         if: matrix.platform == 'windows'
         shell: pwsh
