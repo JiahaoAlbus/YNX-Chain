@@ -1,7 +1,11 @@
 /** Installed Windows-only V3 custody gate. Prints public state and fixed error codes only. */
+import { Wallet } from "ethers";
+
 const [mode, expectedAccount = ""] = process.argv.slice(2);
 const password = process.env.YNX_WALLET_QA_PASSWORD;
-if (!["create", "restore"].includes(mode) || typeof password !== "string" || password.length < 12) throw new Error("Installed V3 gate input is incomplete");
+if (!["create", "restore", "import"].includes(mode) || typeof password !== "string" || password.length < 12) throw new Error("Installed V3 gate input is incomplete");
+const importKey = `0x${"42".repeat(32)}`; // Public, disposable fixture; never a user's key.
+const importAccount = new Wallet(importKey).address.toLowerCase();
 
 async function target() {
   for (let attempt = 0; attempt < 40; attempt++) {
@@ -54,10 +58,10 @@ async function snapshot() {
   return JSON.parse(await evaluate(`(async () => {
     const [account, security] = await Promise.all([window.ynxWallet.accountStatus(), window.ynxWallet.securityStatus()]);
     return JSON.stringify({
-      account: account.ok ? { initialized: account.value.initialized, passwordConfigured: account.value.passwordConfigured, account: account.value.account, ynxAccount: account.value.ynxAccount, custody: account.value.custody, recoveryRequired: account.value.recoveryRequired } : null,
+      account: account.ok ? { initialized: account.value.initialized, passwordConfigured: account.value.passwordConfigured, account: account.value.account, ynxAccount: account.value.ynxAccount, accounts: account.value.accounts?.map(item => item.account), custody: account.value.custody, recoveryRequired: account.value.recoveryRequired } : null,
       error: account.ok ? null : { code: account.error?.code, storageStage: account.error?.storageStage },
       locked: security.locked,
-      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: document.querySelector('#password-sheet')?.open, unlockEnabled: !document.querySelector('#unlock-wallet')?.disabled, unlockLabel: document.querySelector('#unlock-wallet')?.textContent }
+      ui: { title: document.querySelector('#account-title')?.textContent, detail: document.querySelector('#account-detail')?.textContent, passwordResult: document.querySelector('#password-result')?.textContent, unlockResult: document.querySelector('#unlock-result')?.textContent, passwordSheetOpen: document.querySelector('#password-sheet')?.open, unlockEnabled: !document.querySelector('#unlock-wallet')?.disabled, unlockLabel: document.querySelector('#unlock-wallet')?.textContent, importEnabled: !document.querySelector('#import-form button')?.disabled, importResult: document.querySelector('#import-result')?.textContent }
     });
   })()`, "ACCOUNT_SNAPSHOT"));
 }
@@ -115,7 +119,23 @@ try {
     await until(state => state.ui.unlockEnabled && /Unlock with local password|使用本地密码解锁/i.test(state.ui.unlockLabel), "Cold restart unlock UI readiness");
     await formSubmit(password);
     const restored = await until(state => state.locked === false && state.account?.account === expectedAccount, "Cold restart password unlock");
-    console.log(JSON.stringify({ mode, sameAccountAfterRestart: true, account: restored.account.account, ynxAccount: restored.account.ynxAccount, custody: restored.account.custody }));
+    if (mode === "restore") console.log(JSON.stringify({ mode, sameAccountAfterRestart: true, account: restored.account.account, ynxAccount: restored.account.ynxAccount, custody: restored.account.custody }));
+    else {
+      if (importAccount === expectedAccount) throw new Error("IMPORT_FIXTURE_ACCOUNT_COLLISION");
+      await until(state => state.ui.importEnabled, "Import UI readiness");
+      const submitted = await evaluate(`(() => {
+        document.querySelector('nav [data-view="accounts"]').click();
+        const form = document.querySelector('#import-form');
+        if (form.querySelector('button').disabled) return false;
+        document.querySelector('#import-kind').value = 'private-key';
+        document.querySelector('#import-value').value = ${JSON.stringify(importKey)};
+        form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        return true;
+      })()`, "ACCOUNT_IMPORT_SUBMIT");
+      if (!submitted) throw new Error("ACCOUNT_IMPORT_SUBMIT:BUTTON_DISABLED");
+      const imported = await until(state => state.account?.account === importAccount && state.account?.accounts?.includes(expectedAccount) && state.locked === false, "Encrypted account import");
+      console.log(JSON.stringify({ mode, imported: true, originalAccountRetained: true, account: imported.account.account, originalAccount: expectedAccount, custody: imported.account.custody }));
+    }
   }
 } finally {
   socket.close();

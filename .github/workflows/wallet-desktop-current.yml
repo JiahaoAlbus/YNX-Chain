@@ -218,11 +218,31 @@ jobs:
             if ($LASTEXITCODE -ne 0 -or -not $restored.sameAccountAfterRestart -or $restored.account -ne $created.account -or $restored.ynxAccount -ne $created.ynxAccount) { throw 'Installed password restart changed account identity' }
             $afterRestartHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($afterRestartHash -ne $beforeRestartHash) { throw 'Unlock unexpectedly changed the encrypted vault file' }
-            @{ sourceCommit=$env:GITHUB_SHA; platform='windows'; architecture='${{ matrix.arch }}'; installedPasswordSetup=$true; accountCreated=$true; wrongPasswordRejected=$true; samePublicAddressAfterRestart=$true; vaultCiphertextUnchangedByUnlock=$true; publicAccount=$created.account; publicYNXAccount=$created.ynxAccount; userMachineVerified=$false; osRebootVerified=$false; signed=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $report
           } finally {
             if (-not $second.HasExited) { [void]$second.CloseMainWindow(); [void]$second.WaitForExit(15000) }
           }
           if (-not $second.HasExited) { throw 'Second installed Wallet did not close' }
+          $third = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $imported = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs import $created.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $imported.imported -or -not $imported.originalAccountRetained -or $imported.originalAccount -ne $created.account -or $imported.account -eq $created.account -or $imported.custody -ne 'password-encrypted-local') { throw 'Installed encrypted account import did not pass' }
+            $afterImportHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($afterImportHash -eq $beforeRestartHash) { throw 'Account import did not update the encrypted vault' }
+          } finally {
+            if (-not $third.HasExited) { [void]$third.CloseMainWindow(); [void]$third.WaitForExit(15000) }
+          }
+          if (-not $third.HasExited) { throw 'Third installed Wallet did not close' }
+          $fourth = Start-Process $exe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          try {
+            $reopened = node apps/wallet-desktop/scripts/windows-password-installed-gate.mjs restore $imported.account | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or -not $reopened.sameAccountAfterRestart -or $reopened.account -ne $imported.account) { throw 'Imported account changed after installed Wallet restart' }
+            $afterImportRestartHash = (Get-FileHash -LiteralPath $vault -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($afterImportRestartHash -ne $afterImportHash) { throw 'Unlock unexpectedly changed the imported encrypted vault file' }
+            @{ sourceCommit=$env:GITHUB_SHA; platform='windows'; architecture='${{ matrix.arch }}'; installedPasswordSetup=$true; accountCreated=$true; wrongPasswordRejected=$true; samePublicAddressAfterRestart=$true; encryptedSecondAccountImported=$true; originalAccountRetained=$true; importedAccountAfterRestart=$true; vaultCiphertextUnchangedByUnlock=$true; publicAccount=$created.account; publicYNXAccount=$created.ynxAccount; publicImportedAccount=$imported.account; userMachineVerified=$false; osRebootVerified=$false; signed=$false } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $report
+          } finally {
+            if (-not $fourth.HasExited) { [void]$fourth.CloseMainWindow(); [void]$fourth.WaitForExit(15000) }
+          }
+          if (-not $fourth.HasExited) { throw 'Fourth installed Wallet did not close' }
       - name: Install Linux and verify two locked cold starts
         if: matrix.platform == 'linux'
         shell: bash
