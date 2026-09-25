@@ -1,0 +1,11 @@
+# Finance workspace verifier candidate (source-only)
+
+- Source checkpoint: `9204e84304f5bb088db3012c63c654b061b12622` on `codex/finance-evm-read-session-pr193-20260924`.
+- Active verifier manifest remains unchanged: SHA-256 `9cbc39d8b9e80345965d6e0b7768bd4c6582bbeff4ef0e8ba2a5224e3d2c46eb`. Its expected failure against current Web bytes is not public or release proof.
+- Proposed versioned candidate: `apps/finance/evidence/wallet-verifier-manifest-workspace-9204e843-v7-20260925.json`, 5,892 bytes, SHA-256 `2d465d08c767eb310bdfa1199a0d404a80ed4855526c491edced9f5378e6c178`.
+- Exactly eight changed verifier file records: `app.js`, `endpoint-authority-entry.js`, `endpoint-authority-store.js`, `finance-locale.js`, `index.html`, `product-catalog.js`, `styles.css`, and `wallet-auth.js`. The candidate generator checks every unchanged entry byte-for-byte against the active predecessor, and checks every changed source against an explicit bytes/SHA-256 freeze.
+- Wallet browser bundle: two no-write esbuild 0.25.9 builds are byte-identical to each other and the committed bundle, 182,014 bytes, SHA-256 `c6419bddc26227bf884583a79fa508b33e9321ee45201812263f38c9b455b63c`.
+- Non-file verifier contract is unchanged except for the observed `sourceBundleRelation.bytes` and `.sha256`. The previous EVM candidate is historical pinned evidence, not a claim that it binds this source checkpoint.
+- Local tests: `node --test apps/finance/tests/workspace-wallet-verifier-candidate.test.mjs` 2/2; `node --test apps/finance/tests/finance-12-locales.test.mjs apps/finance/tests/ai-order-intent-browser.test.mjs` 9/9; `node --test apps/finance/tests/contracts.test.mjs` 13/13; `go test ./internal/finance/... ./apps/finance/...` passed.
+- Current `npm test --prefix apps/finance` does not pass because the active immutable verifier pin and several historical candidate tests still assert former source bytes. Do not weaken the verifier. Independent review of this new candidate must precede active-manifest/pin update; rerun full test, clean build and release evidence afterward.
+- Public deployment, installed runtime, real Wallet approval, signature, order and transaction evidence remain false. No deployment lease is held. Existing public release is the rollback anchor until a separately authorized release.
