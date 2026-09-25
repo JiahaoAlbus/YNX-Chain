@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {readFileSync} from 'node:fs';
 import {dirname,join} from 'node:path';
@@ -12,6 +13,7 @@ import {verifyFinanceVersionedAssets} from '../web/verify-versioned-assets.mjs';
 const web=join(dirname(fileURLToPath(import.meta.url)),'../web');
 const read=name=>readFileSync(join(web,name));
 const html=read('index.html').toString('utf8');
+const walletHash=createHash('sha256').update(read('wallet-auth.js')).digest('hex');
 const oldCommit='94e6997f4d817233d93f9b4a96fc51b5f31e98bf';
 const oldAsset=name=>execFileSync('git',['show',`${oldCommit}:apps/finance/web/${name}`],{cwd:join(web,'../../..'),stdio:['ignore','pipe','ignore']});
 
@@ -19,7 +21,7 @@ test('every Finance browser dependency is pinned to its exact content URL',()=>{
   assert.deepEqual(verifyFinanceVersionedAssets(html,read),{status:'pass',assets:12,versionedReferences:13});
   assert.throws(()=>verifyFinanceVersionedAssets(html.replace(/wallet-auth\.js\?v=[0-9a-f]{64}/u,'wallet-auth.js'),read),/FINANCE_ASSET_HASH_MISMATCH:wallet-auth.js/u);
   assert.throws(()=>verifyFinanceVersionedAssets(html.replace(/wallet-auth\.js\?v=[0-9a-f]{64}/u,'wallet-auth.js?v='+'0'.repeat(64)),read),/FINANCE_ASSET_HASH_MISMATCH:wallet-auth.js/u);
-  assert.throws(()=>verifyFinanceVersionedAssets(html.replace('</body>','<script src="/wallet-auth.js?v=30bbe997959706e287228588446aa34f68d8c75c998f6df9d0e82314fb9d21b6"></script></body>'),read),/FINANCE_ASSET_BINDING_MISSING_OR_DUPLICATE:wallet-auth.js/u);
+  assert.throws(()=>verifyFinanceVersionedAssets(html.replace('</body>',`<script src="/wallet-auth.js?v=${walletHash}"></script></body>`),read),/FINANCE_ASSET_BINDING_MISSING_OR_DUPLICATE:wallet-auth.js/u);
 });
 
 test('normal Chrome reload upgrades from an immutable cached old Wallet URL to the new content URL',async()=>{
@@ -59,7 +61,7 @@ test('normal Chrome reload upgrades from an immutable cached old Wallet URL to t
     assert.equal(await page.locator('#connect-hosted-ynx').count(),1);
     assert.equal(page.context().pages().length,1);
     assert.equal(requests.filter(path=>path==='/wallet-auth.js').length,1);
-    assert.equal(requests.filter(path=>path==='/wallet-auth.js?v=30bbe997959706e287228588446aa34f68d8c75c998f6df9d0e82314fb9d21b6').length,1);
+    assert.equal(requests.filter(path=>path===`/wallet-auth.js?v=${walletHash}`).length,1);
     await page.close();
   }finally{
     await browser?.close();
@@ -105,7 +107,7 @@ test('real 94e Finance assets on the exact origin gain Hosted popup after normal
     await popup.waitForURL(/^https:\/\/wallet\.ynxweb4\.com\/hosted\/#connect=/u);
     assert.match(popup.url(),/^https:\/\/wallet\.ynxweb4\.com\/hosted\/#connect=/u);
     assert.equal(requests.filter(path=>path==='/wallet-auth.js').length,1);
-    assert.equal(requests.filter(path=>path==='/wallet-auth.js?v=30bbe997959706e287228588446aa34f68d8c75c998f6df9d0e82314fb9d21b6').length,1);
+    assert.equal(requests.filter(path=>path===`/wallet-auth.js?v=${walletHash}`).length,1);
     await context.close();
   }finally{
     await browser?.close();

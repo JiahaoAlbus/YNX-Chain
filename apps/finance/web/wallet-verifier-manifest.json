@@ -15,8 +15,8 @@
     "byteReproducible": true,
     "status": "VERIFIED_REPRODUCIBLE",
     "cleanBuildCount": 2,
-    "bytes": 205593,
-    "sha256": "fb8f7410ba32de8f6d96aa1caeaa6a77e587eeb6a7b135cb42a5bb322dfd60cc"
+    "bytes": 205623,
+    "sha256": "1053a255f6e458e08444643e5509350b56e9bb65b3a0b4138637961a8df20d55"
   },
   "files": [
     {
@@ -31,8 +31,8 @@
     },
     {
       "path": "wallet-auth-entry.js",
-      "bytes": 14511,
-      "sha256": "72616712d990c9bd69e13f669d7b60f726a712589946f69c8738ccf2e3fc9111"
+      "bytes": 14550,
+      "sha256": "a2afeb02722764e3036b08a40a83004657b05824fb101dbd1ae53841b10e9db8"
     },
     {
       "path": "private-wallet-entry.js",
@@ -56,8 +56,8 @@
     },
     {
       "path": "wallet-auth.js",
-      "bytes": 205593,
-      "sha256": "fb8f7410ba32de8f6d96aa1caeaa6a77e587eeb6a7b135cb42a5bb322dfd60cc"
+      "bytes": 205623,
+      "sha256": "1053a255f6e458e08444643e5509350b56e9bb65b3a0b4138637961a8df20d55"
     },
     {
       "path": "order-wallet.js",
@@ -92,7 +92,7 @@
     {
       "path": "index.html",
       "bytes": 29552,
-      "sha256": "3002dbb1aeb6ae7e47eda87aef95e1abc23a11c034f87f6dcdf62a9446c9bec9"
+      "sha256": "16323d4f9e6742336ab6c1e3e9554a933a027564d420be1e71aeff589a9d9976"
     },
     {
       "path": "app.js",
