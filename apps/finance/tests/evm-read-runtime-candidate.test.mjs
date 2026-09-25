@@ -50,7 +50,7 @@ async function verifyCandidate(read = sourceFile) {
   assert.match(files.get('apps/finance/scripts/finance-nonregressive-runtime.mjs'), /'evm-read-session\.js'/u);
   assert.match(files.get('internal/finance/server.go'), /GET \/evm-read-session\.js/u);
   assert.match(files.get('internal/finance/drain.go'), /"\/evm-read-session\.js"/u);
-  const pin = await readFile(new URL('../web/verify-wallet-connect.mjs', import.meta.url), 'utf8');
+  const pin = execFileSync('git',['show','8067e5c2c6a785e6ca4f5451ec3345328adf5b05:apps/finance/web/verify-wallet-connect.mjs'],{cwd:root,encoding:'utf8'});
   assert.match(pin, /REVIEWED_VERIFIER_MANIFEST_SHA256='462ae0743b1bb7ea641ff5be28de9a1bd4df0cd145ae5c7b669418ed02112865'/u);
   return candidate;
 }

@@ -140,7 +140,7 @@ test('Broker Sandbox product entry exposes provider search, owner watchlist, rec
 
 test('Web Wallet consumes the pinned Standard SDK and isolates unavailable legacy private authorization',()=>{
   for(const marker of ['StandardWalletConnection','discoverWalletProviders','selected.connect()','selected.restore()','selected.revoke()','eth_chainId','wallet_switchEthereumChain','wallet_addEthereumChain','0x1917'])assert.ok(webWallet.includes(marker),marker);
-  assert.ok(webWallet.includes("rpcUrls:['https://rpc-testnet.ynxweb4.com/evm','https://rpc.ynxweb4.com/evm']"),'wallet_addEthereumChain keeps canonical Testnet EVM RPC first and the legacy fallback second');
+  assert.ok(webWallet.includes("import {METAMASK_EVM_CHAIN}")&&webWallet.includes('CHAIN=METAMASK_EVM_CHAIN'),'wallet_addEthereumChain consumes the shared reviewed 0x1917 chain definition');
   for(const forbidden of ['iframe','window.open','location.href=','createProductDeviceIdentity','productDeviceSecret','createGatewayChallenge','signGatewayChallenge'])assert.equal(webWallet.includes(forbidden),false,forbidden);
   assert.equal(/fetch\s*\(\s*[`'"]https:\/\/rpc-testnet\.ynxweb4\.com\/evm/.test(webWallet),false,'direct canonical RPC probing cannot gate provider connection');
   assert.equal(/fetch\s*\(\s*[`'"]https:\/\/rpc\.ynxweb4\.com\/evm/.test(webWallet),false,'direct browser RPC probing cannot gate provider connection');

@@ -26,17 +26,16 @@ test('historical v8 candidate froze reviewed Web drift without activating the pr
   assert.deepEqual(candidate.evmRead,{candidatePath:changed[0],candidateBytes:6059,candidateSha256:'e6740a5312449f9e3d933892e61796dfc509d306e0fb1172bf0676e4f204673d'});
 });
 
-test('activated v9 manifest differs from reviewed v8 only in the nested verifier input',()=>{
-  const activated=readFileSync(resolve(root,'web/wallet-verifier-manifest.json'));
+test('historical activated v9 manifest differs from reviewed v8 only in the nested verifier input',()=>{
+  const activated=execFileSync('git',['show','8067e5c2c6a785e6ca4f5451ec3345328adf5b05:apps/finance/web/wallet-verifier-manifest.json'],{cwd:resolve(root,'../..')});
   const versioned=readFileSync(resolve(root,'evidence/wallet-verifier-manifest-workspace-2627b209-v9-20260925.json'));
   assert.deepEqual(activated,versioned);
   assert.equal(sha256(activated),'462ae0743b1bb7ea641ff5be28de9a1bd4df0cd145ae5c7b669418ed02112865');
   const old=JSON.parse(candidateBytes),next=JSON.parse(activated);
   assert.deepEqual({...next,files:old.files},old);
   assert.deepEqual(next.files.filter((file,index)=>JSON.stringify(file)!==JSON.stringify(old.files[index])).map(file=>file.path),['verify-evm-read-candidate.mjs']);
-  const output=JSON.parse(execFileSync(process.execPath,[resolve(root,'scripts/build-workspace-wallet-verifier-activation.mjs')],{encoding:'utf8'}));
-  assert.equal(output.sha256,sha256(activated));
-  assert.equal(output.walletBuilds,2);
+  // The v9 activation command is historical; running it against a v10
+  // working tree would compare unrelated source revisions.
 });
 
 test('superseded v7 candidate remains an immutable historical snapshot',()=>{

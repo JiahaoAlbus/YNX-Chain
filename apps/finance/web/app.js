@@ -422,7 +422,10 @@ function route(){
   $$('#nav a').forEach(link=>{const selected=link.hash===`#${active}`;link.classList.toggle('active',selected);if(selected)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
   $('#page-title').textContent=financeText('appName');
 }
-window.addEventListener('ynx-finance-standard-state',()=>{state.context++;clearInterval(state.aiTimer);walletIdentityState='identityUnverified';renderWalletIdentity()});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected')load()});
+window.addEventListener('ynx-finance-standard-state',()=>{
+  state.context++;clearInterval(state.aiTimer);walletIdentityState='identityUnverified';renderWalletIdentity();
+  if(window.YNXFinanceWallet?.connected?.()&&!window.YNXFinanceWallet.privateAccountMatchesSelected?.())clearPrivateView({clearOpaquePending:false});
+});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected')load()});
 window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('offlineRetry','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
 $('#wallet-login-verify').addEventListener('click',verifyWalletIdentity);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);

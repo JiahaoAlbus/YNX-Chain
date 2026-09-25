@@ -24,7 +24,7 @@ test('all twelve Finance locales have complete nonblank UI copy and selection op
   const {window}=fixture();
   assert.deepEqual(Array.from(window.YNXFinanceLocale.supported),locales);
   const keys=Object.keys(window.__messages.en);
-  assert.equal(keys.length,474);
+  assert.equal(keys.length,484);
   for(const locale of locales){
     assert.match(html,new RegExp(`<option value="${locale}"`));
     const messages=window.__messages[locale];
