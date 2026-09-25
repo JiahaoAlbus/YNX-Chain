@@ -34,6 +34,14 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24.18.0
+      - name: Compare native Windows ACL capability from Bash parent
+        if: matrix.platform == 'windows'
+        shell: bash
+        run: node apps/wallet-desktop/scripts/windows-acl-context-probe.mjs bash
+      - name: Compare native Windows ACL capability from PowerShell parent
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: node apps/wallet-desktop/scripts/windows-acl-context-probe.mjs pwsh
       - name: Check native architecture and install pinned dependencies
         shell: bash
         env:
