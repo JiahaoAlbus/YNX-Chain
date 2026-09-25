@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import {mkdtemp,mkdir,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname,join,resolve} from 'node:path';
@@ -9,6 +10,21 @@ import {verifyFinanceWalletBundle} from '../web/verify-wallet-connect.mjs';
 
 const financeRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..'),webRoot=join(financeRoot,'web');
 const reviewedManifest=JSON.parse(await readFile(join(webRoot,'wallet-verifier-manifest.json'),'utf8'));
+
+test('Broker cold-state pin changes only the reviewed app bytes',async()=>{
+  const previous=JSON.parse(await readFile(join(financeRoot,'evidence/wallet-verifier-manifest-final-ui-01130b50-v5-20260925.json'),'utf8'));
+  const versioned=await readFile(join(financeRoot,'evidence/wallet-verifier-manifest-broker-cold-state-32bacf14-v6-20260925.json'));
+  const active=await readFile(join(webRoot,'wallet-verifier-manifest.json'));
+  const app=execFileSync('git',['show','2e2b6c2255197ad62df9dcde88434c20e20846e9:apps/finance/web/app.js'],{cwd:resolve(financeRoot,'../..')});
+  const expected=structuredClone(previous),entry=expected.files.find(file=>file.path==='app.js');
+  entry.bytes=app.length;entry.sha256=createHash('sha256').update(app).digest('hex');
+  assert.equal(entry.bytes,63629);
+  assert.equal(entry.sha256,'c32c378b042b77fd5e54e9bd91306d3d4545d4c16b159b88b83610d9a268e80e');
+  assert.deepEqual(JSON.parse(versioned),expected);
+  assert.deepEqual(JSON.parse(versioned),expected);
+  assert.notDeepEqual(active,versioned,'the historical v6 manifest must not be mistaken for the current source');
+  assert.equal(createHash('sha256').update(active).digest('hex'),'2b65b95ae91ecf28623cac394c51faa6308daffb592b596acc63c28f4d6ba0e2');
+});
 
 async function fixture(){
   const root=await mkdtemp(join(tmpdir(),'ynx-finance-wallet-verifier-test-')),web=join(root,'repo/apps/finance/web');
@@ -27,8 +43,8 @@ test('current Finance Wallet files match the exact reviewed verifier manifest',a
   assert.equal(result.sourceBundleReproducible,true);
   assert.equal(result.sourceBundleReproducibilityStatus,'VERIFIED_REPRODUCIBLE');
   assert.equal(result.cleanBuildCount,2);
-  assert.equal(result.bytes,180425);
-  assert.equal(result.sha256,'0e12ea5a77c0768411e1557ed946b63bfa744065b8e61c27ccbc7c8d18da9e14');
+  assert.equal(result.bytes,204110);
+  assert.equal(result.sha256,'30bbe997959706e287228588446aa34f68d8c75c998f6df9d0e82314fb9d21b6');
 });
 
 test('missing current bundle fails closed',async()=>{

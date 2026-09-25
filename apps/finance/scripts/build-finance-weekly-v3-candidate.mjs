@@ -162,5 +162,4 @@ try {
   rmSync(`${second}.tar.gz`, { force: true });
   try { execFileSync('git', ['worktree', 'remove', '--force', sourceRoot], { cwd: repoRoot, stdio: 'ignore' }); } catch {}
   rmSync(sourceRoot, { recursive: true, force: true });
-  try { execFileSync('git', ['worktree', 'prune'], { cwd: repoRoot, stdio: 'ignore' }); } catch {}
 }

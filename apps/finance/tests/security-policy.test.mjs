@@ -1,7 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { isNonRuntimeSentinelUse } from '../scripts/security-policy.mjs';
+import { isNonRuntimeSentinelUse, runtimePlaceholderPatterns } from '../scripts/security-policy.mjs';
+
+function runtimeMarkers(text) {
+  return runtimePlaceholderPatterns.flatMap((pattern) => [...text.matchAll(pattern)].map((match) => match[0]));
+}
+
+test('security gate accepts Spanish todo but rejects real developer and visible placeholders', () => {
+  assert.deepEqual(runtimeMarkers('Ver todo · Gasto de todo el período'), []);
+  assert.deepEqual(runtimeMarkers('// TODO: wire a fake button'), ['TODO']);
+  assert.deepEqual(runtimeMarkers('// FIXME: finish this route'), ['FIXME']);
+  assert.deepEqual(runtimeMarkers('Coming soon'), ['Coming soon']);
+  assert.deepEqual(runtimeMarkers('coming soon'), ['coming soon']);
+  assert.deepEqual(runtimeMarkers('<span>Placeholder</span>'), ['>Placeholder<']);
+});
 
 test('security policy ignores only the two reviewed pinned-bundle comments', () => {
   const pinned = 'apps/finance/web/vendor/product-session-browser-a7dad7ec.mjs';

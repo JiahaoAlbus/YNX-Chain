@@ -13,5 +13,6 @@
     "verify:release-evidence": "node scripts/verify-p0-release-evidence.mjs",
     "probe:connectivity": "node scripts/probe-accepted-connectivity.mjs"
   },
+  "dependencies": {"@ynx-chain/wallet-auth":"file:../../packages/wallet-auth"},
   "devDependencies": {"playwright":"1.58.2"}
 }

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "ynx.finance.evm-subject-a-source-handoff.v1",
+  "reviewedImplementation": {
+    "branch": "codex/finance-evm-read-session-pr193-20260924",
+    "commit": "96b17a510ad14ea4a42a9bbdcf4c990d9b1a8e8b",
+    "tree": "7898f5138c6c0e5a9eb49c045e576555ff2cba96",
+    "walletAuthSourceCommit": "a4651b8cd3e377677f5ad384fa55062c8132ad34",
+    "walletAuthSourceTree": "7e4826b90c83f8624e60aa66d470e0d94aa924a7"
+  },
+  "exactFiles": [
+    {"path":"apps/finance/scripts/evm-subject-authority.mjs","blob":"1c1502d0ffab825afff35498ecc12230ffc73044","bytes":2576,"sha256":"a2f847bab004375591073b45bdd6e09e401105a0cfe555d1a17cd658faf147ec"},
+    {"path":"apps/finance/scripts/evm-subject-authority.bundle.mjs","blob":"38e5f100c756b267f5225cf97ccbbdadd09dc7a6","bytes":117325,"sha256":"de670def6bc88881acf3489fbe25df80246f667d562eafe881dc38b6b1cbb5b3"},
+    {"path":"apps/finance/scripts/evm-subject-browser-entry.mjs","blob":"5f2dd32d8a855f8d0358752939b114c8bc4eb505","bytes":14957,"sha256":"197bcc242e1ae42586459a33e7abb9b95bc81e05752ea2c305f718b1f0a4ed34"},
+    {"path":"apps/finance/web/evm-subject.js","blob":"f3d6bd9e15bff9f63269479db3f54382e8c8316b","bytes":64252,"sha256":"0a7c613b07e9cab920d1ce8402aed6d481e8f8caa99177d99e36464e8568ca25"},
+    {"path":"internal/finance/evm_subject_http.go","blob":"e483c04b5fca39295ee27135870aac1b8f04ec4a","bytes":16204,"sha256":"d782de559b133b48f8a3df5d0f226e8a027cfaf0cb34632c38f5ab72bec5915d"},
+    {"path":"internal/finance/evm_subject_store.go","blob":"32a68aa712ac93dc169689d60f760dba2a7ce925","bytes":13666,"sha256":"8da8d3c74ffaebbfd6f7bcda5e98fbbcbdd33b0cc5892a5783de36189f87c6bf"}
+  ],
+  "retainedOldPins": {
+    "walletVerifierManifest": {"path":"apps/finance/web/wallet-verifier-manifest.json","blob":"9767ef22ee6a30d334517a3e442a0b3c52465159","bytes":4715,"sha256":"fe22be4766486090a1e99b120fe445e4174db1ba98938ca528a6e4d542c0c599"},
+    "evmReadCandidate": {"path":"apps/finance/evidence/evm-read-runtime-verifier-candidate-20260924.json","blob":"5201c9ef71270da8b4a59b282a0ae7da8524c4e6","bytes":5657,"sha256":"fd19147b0a563daead96f7e2f3c0f930601add99231d8797c37976bacaac3c15"}
+  },
+  "verification": {
+    "goRace": "PASS ./internal/finance ./apps/finance/cmd/server",
+    "focusedNode": "PASS 6/6 including local Chromium approval, rejection, refresh, account or chain change, no blank tabs",
+    "brokerLegacyURLMitigation": "PASS local Chromium strips legacy callback URL before async work and subresource referrers",
+    "financeSecurityScan": "PASS 310 text files",
+    "fullFinanceNpmTest": "FAIL_CLOSED_OLD_REVIEWED_PINS_AND_BUNDLES_MISMATCH_NEW_SOURCE_104_TESTS_91_PASS_13_FAIL_AT_LAST_FULL_RUN"
+  },
+  "truth": {
+    "sourceBuiltLocally": true,
+    "newIndependentReleasePinAccepted": false,
+    "publicFinanceDeployedFromThisSource": false,
+    "realYNXWalletApproval": false,
+    "realMetaMaskApproval": false,
+    "installedAndroidOrWindowsVerified": false,
+    "nativeOrderV2BackendImplemented": false,
+    "brokerOrderOrTransactionAuthorizedByEvmSubject": false
+  },
+  "nextGate": "Independently review and pin the new Wallet/Auth dependency graph and four Finance EVM bundles before any source-bound public candidate; native opaque order transport requires separate backend and Wallet protocol review."
+}

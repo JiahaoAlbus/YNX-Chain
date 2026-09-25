@@ -113,10 +113,17 @@ type AccountState struct {
 }
 
 type persistedState struct {
-	Version  int                     `json:"version"`
-	Accounts map[string]AccountState `json:"accounts"`
-	Audit    []AuditEvent            `json:"audit"`
-	Nonces   map[string]time.Time    `json:"usedWalletNonces"`
+	Version               int                                   `json:"version"`
+	Accounts              map[string]AccountState               `json:"accounts"`
+	Audit                 []AuditEvent                          `json:"audit"`
+	Nonces                map[string]time.Time                  `json:"usedWalletNonces"`
+	WalletLoginChallenges map[string]WalletLoginChallengeRecord `json:"walletLoginChallenges,omitempty"`
+	EVMReadChallenges     map[string]EVMReadChallengeRecord     `json:"evmReadChallenges,omitempty"`
+	EVMReadSessions       map[string]EVMReadSessionRecord       `json:"evmReadSessions,omitempty"`
+	EVMSubjects           map[string]EVMSubjectRecord           `json:"evmSubjects,omitempty"`
+	EVMSubjectChallenges  map[string]EVMSubjectChallengeRecord  `json:"evmSubjectChallenges,omitempty"`
+	EVMSubjectSessions    map[string]EVMSubjectSessionRecord    `json:"evmSubjectSessions,omitempty"`
+	BrokerOrderHandoffs   map[string]BrokerOrderHandoffRecord   `json:"brokerOrderHandoffs,omitempty"`
 }
 
 type Activity struct {

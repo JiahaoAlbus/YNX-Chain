@@ -18,6 +18,7 @@ var errBrokerStateUnchanged = errors.New("Broker state already reflects the requ
 
 type BrokerChallengeRequest struct {
 	AccountPublicKey    string
+	CallbackState       string
 	Order               FinanceOrderV1
 	FeeEvidenceRef      string
 	FeeBoundEstablished bool
@@ -161,6 +162,24 @@ func (s *Store) SetBrokerWatchlistItem(account string, asset BrokerWatchlistItem
 }
 
 func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallengeRequest, now time.Time) (BrokerApprovalChallenge, error) {
+	if request.CallbackState != "" {
+		return BrokerApprovalChallenge{}, errors.New("opaque callback state requires atomic ticket issuance")
+	}
+	return s.createBrokerOrderChallenge(account, request, "", "", now)
+}
+
+func (s *Store) CreateBrokerOrderChallengeWithHandoff(account string, request BrokerChallengeRequest, ticketHash, sessionBinding string, now time.Time) (BrokerApprovalChallenge, error) {
+	if !brokerHandoffToken.MatchString(request.CallbackState) || !brokerHandoffHex.MatchString(ticketHash) {
+		return BrokerApprovalChallenge{}, errors.New("opaque callback state and ticket hash are required")
+	}
+	sessionHash, err := brokerHandoffSessionHash(sessionBinding)
+	if err != nil {
+		return BrokerApprovalChallenge{}, err
+	}
+	return s.createBrokerOrderChallenge(account, request, ticketHash, sessionHash, now)
+}
+
+func (s *Store) createBrokerOrderChallenge(account string, request BrokerChallengeRequest, ticketHash, sessionHash string, now time.Time) (BrokerApprovalChallenge, error) {
 	if !request.FeeBoundEstablished || strings.TrimSpace(request.FeeEvidenceRef) == "" || len(request.FeeEvidenceRef) > 256 {
 		return BrokerApprovalChallenge{}, errors.New("a bounded, auditable fee source is required")
 	}
@@ -199,6 +218,14 @@ func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallen
 	if _, err := rand.Read(callbackBytes); err != nil {
 		return BrokerApprovalChallenge{}, err
 	}
+	callbackStateHash := hex.EncodeToString(callbackBytes)
+	if request.CallbackState != "" {
+		if !brokerHandoffToken.MatchString(request.CallbackState) {
+			return BrokerApprovalChallenge{}, errors.New("Finance opaque callback state is invalid")
+		}
+		digest := sha256.Sum256([]byte(request.CallbackState))
+		callbackStateHash = hex.EncodeToString(digest[:])
+	}
 	issuedAt := now.UTC().Truncate(time.Millisecond)
 	lifetime := request.Lifetime
 	if lifetime == 0 {
@@ -209,7 +236,7 @@ func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallen
 	}
 
 	var result BrokerApprovalChallenge
-	err = s.updateBrokerCAS(account, "broker.approval.challenge", order.OrderID, func(state *AccountState) error {
+	apply := func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)
 		if _, err := expireDueBrokerOrders(state, issuedAt); err != nil {
 			return err
@@ -228,7 +255,7 @@ func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallen
 		}
 		unsigned := FinanceOrderApprovalUnsignedV1{
 			Account: account, AccountPublicKey: request.AccountPublicKey, ApplicationID: FinanceOrderApplicationID,
-			BrokerAccountID: mapping.BrokerAccountID, CallbackStateHash: hex.EncodeToString(callbackBytes),
+			BrokerAccountID: mapping.BrokerAccountID, CallbackStateHash: callbackStateHash,
 			ChainEnvironment: FinanceOrderChainEnv, ChainID: FinanceOrderChainID, ChallengeID: "challenge_" + challengeUUID,
 			ExpiresAt: issuedAt.Add(lifetime).Format("2006-01-02T15:04:05.000Z"), IssuedAt: issuedAt.Format("2006-01-02T15:04:05.000Z"),
 			Nonce: nonce, Order: order, OrderHash: orderHash, Origin: FinanceOrderOrigin, Platform: FinanceOrderPlatform,
@@ -241,7 +268,46 @@ func (s *Store) CreateBrokerOrderChallenge(account string, request BrokerChallen
 		appendBrokerJournal(&state.Brokerage, order.OrderID, unsigned.RequestID, "approval.challenge_created", "pending", "approval_pending", issuedAt)
 		state.Idempotency["broker.fee-evidence:"+order.OrderID] = request.FeeEvidenceRef
 		return nil
-	})
+	}
+	if ticketHash == "" {
+		err = s.updateBrokerCAS(account, "broker.approval.challenge", order.OrderID, apply)
+	} else {
+		for attempt := 0; attempt < brokerCASAttempts; attempt++ {
+			err = s.updateAllState(account, "broker.approval.challenge_opaque", order.OrderID, func(all *persistedState) error {
+				if _, duplicate := all.BrokerOrderHandoffs[ticketHash]; duplicate {
+					return errors.New("opaque ticket hash already exists")
+				}
+				state := all.Accounts[account]
+				if err := apply(&state); err != nil {
+					return err
+				}
+				expires, parseErr := parseFinanceMilliseconds(result.Unsigned.ExpiresAt)
+				if parseErr != nil {
+					return parseErr
+				}
+				record := BrokerOrderHandoffRecord{TicketHash: ticketHash, Account: account, SessionBindingHash: sessionHash, RequestID: result.Unsigned.RequestID,
+					CallbackState: request.CallbackState, CallbackStateBinding: "sha256-v2", IssuedAt: issuedAt, ExpiresAt: expires}
+				shadow := *all
+				shadow.Accounts = make(map[string]AccountState, len(all.Accounts)+1)
+				for key, existing := range all.Accounts {
+					shadow.Accounts[key] = existing
+				}
+				shadow.Accounts[account] = state
+				if err := validateBrokerOrderHandoff(shadow, ticketHash, record); err != nil {
+					return err
+				}
+				all.Accounts[account] = state
+				if all.BrokerOrderHandoffs == nil {
+					all.BrokerOrderHandoffs = map[string]BrokerOrderHandoffRecord{}
+				}
+				all.BrokerOrderHandoffs[ticketHash] = record
+				return nil
+			})
+			if !errors.Is(err, errFinanceStateConflict) {
+				break
+			}
+		}
+	}
 	return result, err
 }
 
@@ -254,7 +320,7 @@ func (s *Store) ApproveBrokerOrder(account string, approval FinanceOrderApproval
 		return BrokerOrderRecord{}, errors.New("Finance approval does not match the authenticated account")
 	}
 	var result BrokerOrderRecord
-	err = s.updateBrokerCAS(account, "broker.approval.approved", approval.Order.OrderID, func(state *AccountState) error {
+	err = s.updateBrokerCASWithOpaqueFence(account, approval.RequestID, "broker.approval.approved", approval.Order.OrderID, func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)
 		challenge, ok := state.Brokerage.Challenges[approval.RequestID]
 		if !ok || string(mustFinanceCanonical(challenge.Unsigned)) != string(mustFinanceCanonical(approval.FinanceOrderApprovalUnsignedV1)) {
@@ -344,7 +410,7 @@ func expireDueBrokerOrders(state *AccountState, now time.Time) (int, error) {
 
 func (s *Store) transitionUnapprovedBrokerOrder(account, requestID, callbackStateHash, target, action string, now time.Time) (BrokerOrderRecord, error) {
 	var result BrokerOrderRecord
-	err := s.updateBrokerCAS(account, action, requestID, func(state *AccountState) error {
+	mutate := func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)
 		challenge, ok := state.Brokerage.Challenges[requestID]
 		if !ok {
@@ -374,13 +440,19 @@ func (s *Store) transitionUnapprovedBrokerOrder(account, requestID, callbackStat
 		appendBrokerJournal(&state.Brokerage, order.Order.OrderID, requestID, action, target, "draft", now.UTC())
 		result = order
 		return nil
-	})
+	}
+	var err error
+	if target == "rejected" {
+		err = s.updateBrokerCASWithOpaqueFence(account, requestID, action, requestID, mutate)
+	} else {
+		err = s.updateBrokerCAS(account, action, requestID, mutate)
+	}
 	return result, err
 }
 
 func (s *Store) RevokeBrokerOrder(account, callbackStateHash string, revocation FinanceOrderRevocationV1, now time.Time) (BrokerOrderRecord, error) {
 	var result BrokerOrderRecord
-	err := s.updateBrokerCAS(account, "broker.approval.revoked", revocation.RequestID, func(state *AccountState) error {
+	err := s.updateBrokerCASWithOpaqueFence(account, revocation.RequestID, "broker.approval.revoked", revocation.RequestID, func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)
 		challenge, ok := state.Brokerage.Challenges[revocation.RequestID]
 		if !ok {
@@ -428,7 +500,7 @@ func (s *Store) RevokeBrokerOrder(account, callbackStateHash string, revocation 
 
 func (s *Store) ConsumeBrokerOrder(account, requestID, approvalDigest string, now time.Time) (BrokerConsumeResult, error) {
 	var result BrokerConsumeResult
-	err := s.updateBrokerCAS(account, "broker.approval.consumed", requestID, func(state *AccountState) error {
+	err := s.updateBrokerCASWithOpaqueFence(account, requestID, "broker.approval.consumed", requestID, func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)
 		challenge, ok := state.Brokerage.Challenges[requestID]
 		if !ok {
@@ -482,7 +554,7 @@ func (s *Store) VerifyAndConsumeBrokerOrder(account string, approval FinanceOrde
 		return BrokerConsumeResult{}, errors.New("Finance approval does not match the authenticated account")
 	}
 	var result BrokerConsumeResult
-	err = s.updateBrokerCAS(account, "broker.approval.verified_consumed", approval.RequestID, func(state *AccountState) error {
+	err = s.updateBrokerCASWithOpaqueFence(account, approval.RequestID, "broker.approval.verified_consumed", approval.RequestID, func(state *AccountState) error {
 		normalizeBrokerageState(&state.Brokerage)
 		challenge, ok := state.Brokerage.Challenges[approval.RequestID]
 		if !ok || string(mustFinanceCanonical(challenge.Unsigned)) != string(mustFinanceCanonical(approval.FinanceOrderApprovalUnsignedV1)) {
@@ -524,6 +596,32 @@ func (s *Store) VerifyAndConsumeBrokerOrder(account string, approval FinanceOrde
 		return nil
 	})
 	return result, err
+}
+
+func (s *Store) updateBrokerCASWithOpaqueFence(account, requestID, action, objectID string, fn func(*AccountState) error) error {
+	var err error
+	for attempt := 0; attempt < brokerCASAttempts; attempt++ {
+		err = s.updateAllState(account, action, objectID, func(all *persistedState) error {
+			for _, record := range all.BrokerOrderHandoffs {
+				if record.Account == account && record.RequestID == requestID {
+					return errors.New("opaque Finance order requires the one-time code exchange")
+				}
+			}
+			state := all.Accounts[account]
+			if err := fn(&state); err != nil {
+				return err
+			}
+			all.Accounts[account] = state
+			return nil
+		})
+		if errors.Is(err, errBrokerStateUnchanged) {
+			return nil
+		}
+		if !errors.Is(err, errFinanceStateConflict) {
+			return err
+		}
+	}
+	return errors.New("Broker state CAS retry limit reached")
 }
 
 func (s *Store) updateBrokerCAS(account, action, objectID string, fn func(*AccountState) error) error {

@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 const base=new URL('../',import.meta.url);
 const html=await readFile(new URL('web/index.html',base),'utf8');
 const js=await readFile(new URL('web/app.js',base),'utf8');
+const locale=await readFile(new URL('web/finance-locale.js',base),'utf8');
 const css=await readFile(new URL('web/styles.css',base),'utf8');
 const wallet=await readFile(new URL('mobile/src/wallet.ts',base),'utf8');
 const walletCompletion=await readFile(new URL('mobile/src/wallet-completion.ts',base),'utf8');
@@ -26,9 +27,18 @@ const {evaluateProductWalletMigrationEvidence}=await import(new URL('../web/node
 
 test('product states its non-bank and non-custodial boundary',()=>{
   for(const phrase of ['No custody','bank account','No fiat conversion inferred','Finance cannot freeze assets']) assert.ok(html.includes(phrase),phrase);
-  assert.ok(js.includes('This is not a bank statement'));
+  assert.ok(locale.includes('This is not a bank statement.'));
+  assert.ok(js.includes("financeText('notBankStatement')"));
   for(const disclosure of ['Counterparty','Custody','Contract','Principal-loss risk','Fee','Liquidity risk','Jurisdiction risk','Signature boundary']) assert.ok(html.includes(disclosure),disclosure);
   for(const prohibited of ['APY 8%','Guaranteed return','Visa card balance']) assert.equal(html.includes(prohibited),false);
+});
+
+test('activity exports identify bounded observations instead of complete history',()=>{
+  assert.ok(html.includes('Export observed CSV'));
+  assert.ok(html.includes('Export available JSON'));
+  assert.ok(html.includes('not a complete account history'));
+  assert.ok(js.includes('ynx-finance-observed-activity.csv'));
+  assert.ok(js.includes('ynx-finance-observed-export.json'));
 });
 
 test('mobile Wallet approval uses current package roots and pending private authority fails closed',()=>{
@@ -54,21 +64,26 @@ test('responsive and accessibility contracts exist',()=>{
 test('Broker Sandbox snapshot is authenticated, owner-mapped and never substitutes guest values',()=>{
   for(const marker of ['/api/broker/snapshot','snapshot.account.providerAccountId','snapshot.account.cash','snapshot.account.buyingPower','snapshot.positions','snapshot.orders'])assert.ok(js.includes(marker),marker);
   for(const marker of ['Guest mode never receives balances, positions or orders.','Unknown — not zero','simulated USD'])assert.ok(html.includes(marker)||js.includes(marker),marker);
-  assert.ok(js.includes("if(!state.connected){clearBrokerSnapshot();return}"));
+  assert.ok(js.includes("if(!state.connected){brokerSnapshotState={kind:'guest'};renderBrokerSnapshot();return}"));
+  assert.ok(js.includes("brokerSnapshotState={kind:'unavailable'};renderBrokerSnapshot()"),'failed provider reads must clear previously rendered account data');
   assert.ok(js.includes("await api('/api/broker/snapshot')"));
   assert.equal(js.includes("fetch('/api/broker/snapshot'"),false,'private Broker reads must use the authenticated Finance API helper');
 });
 
 test('Broker order approval consumes the exact Wallet transport and never auto-submits or opens a blank tab',()=>{
   for(const marker of ['createFinanceOrderApprovalRequest','encodeFinanceOrderApprovalWalletURL','parseFinanceOrderApprovalReturnURL','@ynx-chain/wallet-auth-finance-order'])assert.ok(orderWallet.includes(marker),marker);
-  for(const marker of ['/api/broker/challenges','/api/broker/callback','providerWriteAttempted!==false','Review exact order in YNX Wallet','Broker provider has not been contacted'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  for(const marker of ['/api/broker/challenges','/api/broker/callback','providerWriteAttempted!==false','brokerReviewExact','brokerProviderNotContacted'])assert.ok(js.includes(marker)||html.includes(marker),marker);
   for(const forbidden of ['window.open(','location.href=','fetch(route.url','provider.request({method:"eth_sendTransaction"'])assert.equal(orderWallet.includes(forbidden)||js.includes(forbidden),false,forbidden);
   assert.ok(html.includes('order-wallet.js'));
-  assert.ok(js.includes("window.YNXFinanceOrderWallet.clear();history.replaceState"));
+  assert.ok(js.includes("pendingLegacyBrokerReturnURL=location.href;"),'legacy callback must be captured only for the current page lifetime');
+  assert.ok(js.includes("history.replaceState(null,'','/wallet-auth/callback');"),'legacy callback query must be scrubbed before async work');
+  assert.ok(js.includes("window.YNXFinanceOrderWallet.clear();pendingLegacyBrokerReturnURL=null;history.replaceState"),'consumed callback must clear the in-memory proof');
   assert.ok(js.includes("'/api/broker/challenges','/api/broker/callback'"),'Broker writes must request finance.profile.write');
   assert.ok(orderWallet.includes("FINANCE_ORDER_AUTHORITY_TIME_INVALID"),'server time must be parsed at the trusted response boundary');
   for(const marker of ['FINANCE_ORDER_PENDING_EXISTS','resumeStored','expiresAt.getTime()'])assert.ok(orderWallet.includes(marker),marker);
-  for(const marker of ['restoreBrokerApproval(workspace.serverTime','Clear expired request','same request can be reviewed or revoked'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  for(const marker of ['restoreBrokerApproval(workspace.serverTime','Clear expired request','brokerRecovered'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  assert.equal(/id="broker-order-preview"[^>]*data-finance-i18n/u.test(html),false,'locale application must not overwrite live order terms');
+  assert.equal(/id="broker-wallet-approve"[^>]*data-finance-i18n/u.test(html),false,'locale application must not overwrite the exact review action');
   assert.equal(orderWallet.includes('new Date()'),false,'order approval must not fall back to the device wall clock');
   assert.equal(html.includes('name="accountPublicKey"'),false,'Wallet public key must come from the persisted owner mapping');
   assert.equal(html.includes('Provider asset UUID<input'),false,'users must select provider-backed assets instead of typing UUIDs');
@@ -79,7 +94,9 @@ test('Broker order approval consumes the exact Wallet transport and never auto-s
 });
 
 test('AI Broker order results remain drafts until copied and explicitly previewed',()=>{
-  for(const marker of ['draft_broker_order','Copy into order form','Search and select the exact provider-backed asset before previewing approval.'])assert.ok(html.includes(marker)||js.includes(marker),marker);
+  for(const marker of ['draft_broker_order','Copy into order form'])assert.ok(html.includes(marker)||js.includes(marker),marker);
+  assert.ok(locale.includes('Search and select the exact provider-backed asset before previewing approval.'));
+  assert.ok(js.includes("financeText('aiDraftCopied')"));
   assert.ok(js.includes("location.hash='broker-sandbox'"));
   assert.equal(js.includes('Submit AI order'),false);
 });
@@ -113,16 +130,19 @@ test('Broker activation schema, env, operator request and documentation match th
 });
 
 test('Broker Sandbox product entry exposes provider search, owner watchlist, reconcile and cancellation intent without browser provider writes',()=>{
-  for(const marker of ['/api/broker/assets?query=','/api/broker/watchlist','/api/broker/reconcile','/cancel-request','providerWriteAttempted!==false','My Sandbox watchlist','Reconcile provider state','Request cancellation'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  for(const marker of ['/api/broker/assets?query=','/api/broker/watchlist','/api/broker/reconcile','/cancel-request','providerWriteAttempted!==false','My Sandbox watchlist','Reconcile provider state'])assert.ok(js.includes(marker)||html.includes(marker),marker);
+  assert.ok(js.includes("financeText('brokerRequestCancel')")&&locale.includes("brokerRequestCancel:'Request cancellation'"));
   assert.ok(js.includes("finance.profile.write"));
   assert.ok(js.includes("state.brokerSelectedAsset.id!==draft.assetId"));
-  assert.ok(html.includes('The browser will not contact the provider')||js.includes('The browser will not contact the provider'));
+  assert.ok(html.includes('The browser will not contact the provider')||js.includes('The browser will not contact the provider')||locale.includes('The browser will not contact the provider'));
   for(const forbidden of ['ALPACA_BROKER_API_KEY','ALPACA_BROKER_API_SECRET','/v1/trading/accounts/'])assert.equal(js.includes(forbidden),false,forbidden);
 });
 
 test('Web Wallet consumes the pinned Standard SDK and isolates unavailable legacy private authorization',()=>{
   for(const marker of ['StandardWalletConnection','discoverWalletProviders','selected.connect()','selected.restore()','selected.revoke()','eth_chainId','wallet_switchEthereumChain','wallet_addEthereumChain','0x1917'])assert.ok(webWallet.includes(marker),marker);
+  assert.ok(webWallet.includes("import {METAMASK_EVM_CHAIN}")&&webWallet.includes('CHAIN=METAMASK_EVM_CHAIN'),'wallet_addEthereumChain consumes the shared reviewed 0x1917 chain definition');
   for(const forbidden of ['iframe','window.open','location.href=','createProductDeviceIdentity','productDeviceSecret','createGatewayChallenge','signGatewayChallenge'])assert.equal(webWallet.includes(forbidden),false,forbidden);
+  assert.equal(/fetch\s*\(\s*[`'"]https:\/\/rpc-testnet\.ynxweb4\.com\/evm/.test(webWallet),false,'direct canonical RPC probing cannot gate provider connection');
   assert.equal(/fetch\s*\(\s*[`'"]https:\/\/rpc\.ynxweb4\.com\/evm/.test(webWallet),false,'direct browser RPC probing cannot gate provider connection');
   assert.ok(html.includes('wallet-choice'));
   assert.ok(html.includes('Download YNX Wallet'));

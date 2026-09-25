@@ -3,6 +3,7 @@ package finance
 import (
 	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -129,7 +130,7 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 		case strings.HasPrefix(r.URL.Path, "/api/accounts/"):
 			_ = json.NewEncoder(w).Encode(map[string]any{"account": map[string]any{"address": testAccount, "balance": 420, "staked": 20, "nonce": 2, "resourceUsage": map[string]any{}, "lots": map[string]any{}}})
 		case r.URL.Path == "/api/txs":
-			_ = json.NewEncoder(w).Encode(map[string]any{"transactions": []map[string]any{{"hash": "tx-owned", "type": "transfer", "from": testAccount, "to": "ynx1recipient", "amount": 40, "fee": 1, "blockNumber": 9, "timestamp": txTime}, {"hash": "tx-owned-2", "type": "transfer", "from": "ynx1sender", "to": testAccount, "amount": 15, "fee": 0, "blockNumber": 8, "timestamp": txTime.Add(-time.Hour)}}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"transactions": []map[string]any{{"hash": "tx-owned", "type": "transfer", "from": testAccount, "to": "ynx1recipient", "amount": 40, "fee": 1, "blockNumber": 9, "timestamp": txTime}, {"hash": "tx-owned-2", "type": "=1+1", "from": "ynx1sender", "to": testAccount, "amount": 15, "fee": 0, "blockNumber": 8, "timestamp": txTime.Add(-time.Hour)}}})
 		default:
 			http.NotFound(w, r)
 		}
@@ -181,6 +182,20 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	if readErr != nil || assetResponse.StatusCode != http.StatusOK || !strings.Contains(string(assetRaw), "owner-contract-pending") {
 		t.Fatalf("Web read-source renderer is unavailable: status=%d readErr=%v", assetResponse.StatusCode, readErr)
 	}
+	readBundlePath := filepath.Join("..", "..", "apps", "finance", "web", "evm-read-session.js")
+	readBundle, err := os.ReadFile(readBundlePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	readBundleResponse, err := http.Get(ts.URL + "/evm-read-session.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	servedReadBundle, readBundleErr := io.ReadAll(readBundleResponse.Body)
+	readBundleResponse.Body.Close()
+	if readBundleErr != nil || readBundleResponse.StatusCode != http.StatusOK || !bytes.Equal(servedReadBundle, readBundle) {
+		t.Fatalf("EVM read browser authority is not served byte-exact: status=%d readErr=%v", readBundleResponse.StatusCode, readBundleErr)
+	}
 
 	identityRoot := t.TempDir()
 	identityBody := `{"sourceCommit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","release":"ynx-finance-test","buildTime":"2026-08-11T09:00:00.000Z","frontendSourceCommit":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}`
@@ -218,14 +233,14 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 		t.Fatalf("Pay provenance and sync evidence are incomplete: %#v", payStatus)
 	}
 	readSources := p["readSources"].(map[string]any)
-	if len(readSources) != 4 {
+	if len(readSources) != 5 {
 		t.Fatalf("cross-product source registry is incomplete: %#v", readSources)
 	}
-	for _, id := range []string{"exchange", "dex", "quant", "economics"} {
+	for _, id := range []string{"exchange", "dex", "quant", "card", "economics"} {
 		source := readSources[id].(map[string]any)
 		status := source["status"].(map[string]any)
 		action := source["action"].(map[string]any)
-		wantAccepted := id == "exchange" || id == "dex" || id == "quant"
+		wantAccepted := id == "exchange" || id == "dex" || id == "quant" || id == "card"
 		wantStatus := "owner-contract-pending"
 		if wantAccepted {
 			wantStatus = "integration-unconfigured"
@@ -236,7 +251,7 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	}
 	var sourceRegistry map[string]any
 	requestJSON(t, ts.URL+"/api/sources", http.MethodGet, nil, session.Token, "", 200, &sourceRegistry)
-	if sourceRegistry["consumerEnvelopeVersion"] != ReadSourceEnvelopeVersion || sourceRegistry["readOnly"] != true || sourceRegistry["integrationState"] != "accepted=exchange,dex,quant;live=none;pending=economics" {
+	if sourceRegistry["consumerEnvelopeVersion"] != ReadSourceEnvelopeVersion || sourceRegistry["readOnly"] != true || sourceRegistry["integrationState"] != "accepted=exchange,dex,quant,card;live=none;pending=economics" {
 		t.Fatalf("source registry endpoint is not truthful: %#v", sourceRegistry)
 	}
 	var category Category
@@ -278,6 +293,12 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	if monthly["coverageComplete"] != false || monthly["calculationStatus"] != "partial" || monthly["totals"].(map[string]any)["outgoingYnxt"] != nil || monthly["observedTotals"] == nil {
 		t.Fatalf("monthly HTTP response promoted bounded data to complete totals: %#v", monthly)
 	}
+	var statement map[string]any
+	requestJSON(t, ts.URL+"/api/statements?from=2026-07-01T00:00:00Z&to=2026-08-01T00:00:00Z", http.MethodGet, nil, session.Token, "", 200, &statement)
+	observed, ok := statement["observedTotals"].(map[string]any)
+	if !ok || statement["schemaVersion"] != "finance-statement-v2" || statement["coverageComplete"] != false || statement["calculationStatus"] != "partial" || statement["totals"].(map[string]any)["incomingYnxt"] != nil || statement["totals"].(map[string]any)["outgoingYnxt"] != nil || statement["totals"].(map[string]any)["feesYnxt"] != nil || observed["incomingYnxt"] != float64(15) || observed["outgoingYnxt"] != float64(40) || observed["feesYnxt"] != float64(1) {
+		t.Fatalf("statement promoted bounded records to full-period totals: %#v", statement)
+	}
 	requestJSON(t, ts.URL+"/api/activity/tx-owned/category", http.MethodPut, map[string]any{"categoryId": category.ID, "idempotencyKey": "classification-key-0001"}, session.Token, "https://finance.example", 200, &map[string]any{})
 	requestJSON(t, ts.URL+"/api/privacy", http.MethodPut, map[string]any{"includePayInStatements": true, "allowAiActivityContext": true, "alertsEnabled": true}, session.Token, "https://finance.example", 200, &map[string]any{})
 	var job AIJob
@@ -298,16 +319,47 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 		t.Fatalf("AI rejection not audited: %+v", job)
 	}
 	resp, _ := authorizedRequest(ts.URL+"/api/export?format=csv", http.MethodGet, nil, session.Token, "")
-	if resp.StatusCode != 200 || !strings.Contains(resp.Header.Get("Content-Type"), "text/csv") {
+	if resp.StatusCode != 200 || !strings.Contains(resp.Header.Get("Content-Type"), "text/csv") || resp.Header.Get("X-YNX-Activity-Coverage-Complete") != "false" || resp.Header.Get("X-YNX-Activity-Coverage") != boundedActivityCoverage || !strings.Contains(resp.Header.Get("Content-Disposition"), "observed-activity.csv") {
 		t.Fatalf("CSV export failed: %d", resp.StatusCode)
 	}
+	rows, parseErr := csv.NewReader(resp.Body).ReadAll()
 	resp.Body.Close()
+	if parseErr != nil || len(rows) != 3 || rows[2][3] != "'=1+1" {
+		t.Fatalf("CSV export did not neutralize upstream formula text: rows=%#v err=%v", rows, parseErr)
+	}
+	var exported map[string]any
+	requestJSON(t, ts.URL+"/api/export?format=json", http.MethodGet, nil, session.Token, "", 200, &exported)
+	if exported["activityCoverageComplete"] != false || exported["activityCoverage"] != boundedActivityCoverage {
+		t.Fatalf("JSON export omitted its bounded-activity coverage: %#v", exported)
+	}
+	activity := exported["portfolio"].(map[string]any)["activity"].([]any)
+	if activity[1].(map[string]any)["type"] != "=1+1" {
+		t.Fatalf("CSV protection modified the source evidence: %#v", activity)
+	}
 	reopened, err := OpenStore(statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(reopened.Account(testAccount).Budgets) != 1 || len(reopened.Account(testAccount).AIJobs) != 1 || len(reopened.Account(testAccount).Notes) != 1 {
 		t.Fatal("account state did not survive restart")
+	}
+}
+
+func TestCSVSafeTextRejectsSpreadsheetFormulas(t *testing.T) {
+	cases := map[string]string{
+		"transfer": "transfer",
+		"'=1+1":    "'=1+1",
+		"=1+1":     "'=1+1",
+		" +SUM(1)": "' +SUM(1)",
+		"\t@NOW()": "'\t@NOW()",
+		"\r\n-2":   "'\r\n-2",
+		"\ufeff=3": "'\ufeff=3",
+		"\u200b=4": "'\u200b=4",
+	}
+	for input, want := range cases {
+		if got := csvSafeText(input); got != want {
+			t.Errorf("csvSafeText(%q) = %q, want %q", input, got, want)
+		}
 	}
 }
 

@@ -538,6 +538,45 @@ func validatePersistedState(state persistedState) error {
 			return errors.New("finance state contains an invalid Wallet nonce record")
 		}
 	}
+	for requestID, challenge := range state.WalletLoginChallenges {
+		if requestID != challenge.RequestID || validateWalletLoginChallenge(challenge) != nil {
+			return errors.New("finance state contains an invalid Wallet login challenge")
+		}
+	}
+	for requestID, challenge := range state.EVMReadChallenges {
+		if requestID != challenge.RequestID || validateEVMReadChallenge(challenge) != nil {
+			return errors.New("finance state contains an invalid EVM read challenge")
+		}
+	}
+	for sessionID, session := range state.EVMReadSessions {
+		if sessionID != session.SessionID || validateEVMReadSession(session) != nil {
+			return errors.New("finance state contains an invalid EVM read session")
+		}
+	}
+	for key, subject := range state.EVMSubjects {
+		if validateEVMSubjectRecord(key, subject) != nil {
+			return errors.New("finance state contains an invalid EVM-only subject")
+		}
+	}
+	for requestID, challenge := range state.EVMSubjectChallenges {
+		if requestID != challenge.RequestID || validateEVMSubjectChallenge(challenge) != nil {
+			return errors.New("finance state contains an invalid EVM subject challenge")
+		}
+	}
+	for sessionID, session := range state.EVMSubjectSessions {
+		if sessionID != session.SessionID || validateEVMSubjectSession(session) != nil {
+			return errors.New("finance state contains an invalid EVM subject session")
+		}
+		subject, ok := state.EVMSubjects[evmSubjectKey(session.Account)]
+		if !ok || subject.SubjectID != session.SubjectID || subject.AccountType != session.AccountType {
+			return errors.New("finance EVM subject session has no matching durable owner")
+		}
+	}
+	for ticketHash, handoff := range state.BrokerOrderHandoffs {
+		if validateBrokerOrderHandoff(state, ticketHash, handoff) != nil {
+			return errors.New("finance state contains an invalid confidential Broker order handoff")
+		}
+	}
 	return nil
 }
 
@@ -593,6 +632,24 @@ func migrateLegacyBrokerLocalExecutionBlocks(state *persistedState) {
 }
 
 func normalizePersistedState(state *persistedState) {
+	if state.WalletLoginChallenges == nil {
+		state.WalletLoginChallenges = map[string]WalletLoginChallengeRecord{}
+	}
+	if state.EVMReadChallenges == nil {
+		state.EVMReadChallenges = map[string]EVMReadChallengeRecord{}
+	}
+	if state.EVMReadSessions == nil {
+		state.EVMReadSessions = map[string]EVMReadSessionRecord{}
+	}
+	if state.EVMSubjects == nil {
+		state.EVMSubjects = map[string]EVMSubjectRecord{}
+	}
+	if state.EVMSubjectChallenges == nil {
+		state.EVMSubjectChallenges = map[string]EVMSubjectChallengeRecord{}
+	}
+	if state.EVMSubjectSessions == nil {
+		state.EVMSubjectSessions = map[string]EVMSubjectSessionRecord{}
+	}
 	if state.Audit == nil {
 		state.Audit = []AuditEvent{}
 	}
@@ -667,7 +724,7 @@ func validateBrokeragePersistence(account string, state BrokerageAccountState) e
 		}
 	}
 	for orderID, order := range state.Orders {
-		if orderID != order.Order.OrderID || !validApproval[order.ApprovalState] || !validOrder[order.State] || (order.ProviderRawStatus != "" && !brokerageCursor(order.ProviderRawStatus)) || (order.ProviderHTTPRequestID != "" && !brokerageCursor(order.ProviderHTTPRequestID)) || (order.ProviderEventCursor != "" && !brokerageCursor(order.ProviderEventCursor)) {
+		if orderID != order.Order.OrderID || !validApproval[order.ApprovalState] || !validOrder[order.State] || (order.ProviderRawStatus != "" && !brokerageCursor(order.ProviderRawStatus)) || (order.ProviderHTTPRequestID != "" && !brokerageCursor(order.ProviderHTTPRequestID)) || (order.ProviderEventCursor != "" && !brokerageCursor(order.ProviderEventCursor)) || (!order.CancelAttemptedAt.IsZero() && order.CancelIntentAt.IsZero()) {
 			return errors.New("finance state contains an invalid Broker order")
 		}
 		if order.ApprovalState == "consumed" {

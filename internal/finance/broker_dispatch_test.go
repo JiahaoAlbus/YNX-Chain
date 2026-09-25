@@ -3,7 +3,10 @@ package finance
 import (
 	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -326,6 +329,249 @@ func TestOperatorCancelAcceptsExistingBrowserCancellationIntent(t *testing.T) {
 	record, err := dispatcher.Cancel(context.Background(), account, orderID)
 	if err != nil || calls != 1 || record.State != "cancel_requested" {
 		t.Fatalf("record=%+v calls=%d err=%v", record, calls, err)
+	}
+}
+
+func TestBrokerCancellationProviderDeleteIsOneShotAcrossWorkersAndRestart(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	claim, err := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: claim.Order.Order.AssetID, Symbol: claim.Order.Order.Symbol, Side: claim.Order.Order.Side, Qty: claim.Order.Order.Qty, Type: claim.Order.Order.OrderType, LimitPrice: claim.Order.Order.LimitPrice, TimeInForce: claim.Order.Order.TimeInForce, Status: "accepted"}
+	if _, err := store.CompleteBrokerDispatch(account, orderID, &providerOrder, nil, now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.RequestBrokerCancel(account, orderID, now.Add(3*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	var providerCalls atomic.Int32
+	adapter := dispatchAdapter{cancel: func(id string) error {
+		if id != providerOrder.ID {
+			return errors.New("wrong provider order")
+		}
+		providerCalls.Add(1)
+		time.Sleep(10 * time.Millisecond)
+		return nil
+	}}
+	var wg sync.WaitGroup
+	results := make(chan error, 2)
+	for range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			dispatcher := BrokerDispatcher{Store: store, Adapter: adapter, Now: func() time.Time { return now.Add(4 * time.Minute) }}
+			_, err := dispatcher.Cancel(context.Background(), account, orderID)
+			results <- err
+		}()
+	}
+	wg.Wait()
+	close(results)
+	succeeded, rejected := 0, 0
+	for err := range results {
+		if err == nil {
+			succeeded++
+		} else {
+			rejected++
+		}
+	}
+	if succeeded != 1 || rejected != 1 || providerCalls.Load() != 1 {
+		t.Fatalf("cancellation results success=%d rejected=%d providerCalls=%d", succeeded, rejected, providerCalls.Load())
+	}
+	reopened, err := OpenStore(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dispatcher := BrokerDispatcher{Store: reopened, Adapter: adapter, Now: func() time.Time { return now.Add(5 * time.Minute) }}
+	if _, err := dispatcher.Cancel(context.Background(), account, orderID); err == nil || providerCalls.Load() != 1 {
+		t.Fatalf("restarted worker repeated a provider cancellation: err=%v calls=%d", err, providerCalls.Load())
+	}
+	order := reopened.BrokerWorkspace(account, now.Add(5*time.Minute)).Orders[0]
+	if order.CancelIntentAt.IsZero() || order.CancelAttemptedAt.IsZero() || order.State != "cancel_requested" {
+		t.Fatalf("one-shot cancellation fence was not persisted: %+v", order)
+	}
+	partial := providerOrder
+	partial.FilledQty, partial.Status = "0.5", "partially_filled"
+	event := brokerage.TradeEvent{Cursor: "cancel-partial-after-restart", ProviderAccountID: claim.Order.BrokerAccountID, Event: "partial_fill", Timestamp: now.Add(6 * time.Minute), Order: partial}
+	if err := reopened.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{event}, event.Cursor, now.Add(6*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reopened.RequestBrokerCancel(account, orderID, now.Add(7*time.Minute)); err == nil {
+		t.Fatal("partial fill after cancellation allowed a second provider DELETE")
+	}
+}
+
+func TestBrokerCancellationClaimWithoutCompletionStaysUnknownAfterRestart(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	claim, err := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: claim.Order.Order.AssetID, Symbol: claim.Order.Order.Symbol, Side: claim.Order.Order.Side, Qty: claim.Order.Order.Qty, Type: claim.Order.Order.OrderType, LimitPrice: claim.Order.Order.LimitPrice, TimeInForce: claim.Order.Order.TimeInForce, Status: "accepted"}
+	if _, err := store.CompleteBrokerDispatch(account, orderID, &providerOrder, nil, now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.RequestBrokerCancel(account, orderID, now.Add(3*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.ClaimBrokerCancel(account, orderID, now.Add(4*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := OpenStore(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	called := false
+	dispatcher := BrokerDispatcher{Store: reopened, Adapter: dispatchAdapter{cancel: func(string) error { called = true; return nil }}, Now: func() time.Time { return now.Add(5 * time.Minute) }}
+	if _, err := dispatcher.Cancel(context.Background(), account, orderID); err == nil || called {
+		t.Fatalf("ambiguous pre-restart cancel was resent: err=%v providerCalled=%t", err, called)
+	}
+}
+
+func TestBrokerCancelNotAttemptedRestoresExactPriorStateAcrossRestart(t *testing.T) {
+	for _, prior := range []string{"submitted", "partially_filled"} {
+		t.Run(prior, func(t *testing.T) {
+			store, account, orderID, now := consumedBrokerFixture(t)
+			claim, err := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Minute))
+			if err != nil {
+				t.Fatal(err)
+			}
+			providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: claim.Order.Order.AssetID, Symbol: claim.Order.Order.Symbol, Side: claim.Order.Order.Side, Qty: claim.Order.Order.Qty, FilledQty: "0", Type: claim.Order.Order.OrderType, LimitPrice: claim.Order.Order.LimitPrice, TimeInForce: claim.Order.Order.TimeInForce, Status: "accepted"}
+			if _, err := store.CompleteBrokerDispatch(account, orderID, &providerOrder, nil, now.Add(2*time.Minute)); err != nil {
+				t.Fatal(err)
+			}
+			if prior == "partially_filled" {
+				providerOrder.Status, providerOrder.FilledQty = "partially_filled", "0.5"
+				if err := store.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{RequestIDs: []string{"partial-fill-before-cancel"}, Orders: []brokerage.Order{providerOrder}}, now.Add(3*time.Minute)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if _, err := store.RequestBrokerCancel(account, orderID, now.Add(4*time.Minute)); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := store.ClaimBrokerCancel(account, orderID, now.Add(5*time.Minute)); err != nil {
+				t.Fatal(err)
+			}
+			completed, err := store.CompleteBrokerCancel(account, orderID, "", &brokerage.Error{Code: "ORDER_CANCELLATION_DISABLED"}, now.Add(6*time.Minute))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if completed.State != prior || completed.CancelPriorState != "" || !completed.CancelIntentAt.IsZero() || !completed.CancelAttemptedAt.IsZero() {
+				t.Fatalf("local pre-provider rejection lost the prior state: %+v", completed)
+			}
+			reopened, err := OpenStore(store.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			persisted := reopened.BrokerWorkspace(account, now.Add(7*time.Minute)).Orders[0]
+			if persisted.State != prior || persisted.CancelPriorState != "" || !persisted.CancelIntentAt.IsZero() || !persisted.CancelAttemptedAt.IsZero() {
+				t.Fatalf("reopened state lost the prior fill classification: %+v", persisted)
+			}
+		})
+	}
+}
+
+func TestBrokerReconciliationKeepsPendingCancellationWhenProviderStillReportsAccepted(t *testing.T) {
+	for _, source := range []string{"poll", "event"} {
+		for _, claimed := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/claimed=%t", source, claimed), func(t *testing.T) {
+				store, account, orderID, now := consumedBrokerFixture(t)
+				claim, err := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Minute))
+				if err != nil {
+					t.Fatal(err)
+				}
+				providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: claim.Order.Order.AssetID, Symbol: claim.Order.Order.Symbol, Side: claim.Order.Order.Side, Qty: claim.Order.Order.Qty, FilledQty: "0", Type: claim.Order.Order.OrderType, LimitPrice: claim.Order.Order.LimitPrice, TimeInForce: claim.Order.Order.TimeInForce, Status: "accepted"}
+				if _, err := store.CompleteBrokerDispatch(account, orderID, &providerOrder, nil, now.Add(2*time.Minute)); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := store.RequestBrokerCancel(account, orderID, now.Add(3*time.Minute)); err != nil {
+					t.Fatal(err)
+				}
+				if claimed {
+					if _, err := store.ClaimBrokerCancel(account, orderID, now.Add(4*time.Minute)); err != nil {
+						t.Fatal(err)
+					}
+				}
+				apply := func(status, cursor string, at time.Time) error {
+					providerOrder.Status = status
+					if source == "poll" {
+						return store.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{RequestIDs: []string{cursor}, Orders: []brokerage.Order{providerOrder}}, at)
+					}
+					return store.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{{Cursor: cursor, ProviderAccountID: claim.Order.BrokerAccountID, Event: status, Timestamp: at, Order: providerOrder}}, cursor, at)
+				}
+				if err := apply("accepted", "cancel-in-flight-accepted", now.Add(5*time.Minute)); err != nil {
+					t.Fatal(err)
+				}
+				reopened, err := OpenStore(store.path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				pending := reopened.BrokerWorkspace(account, now.Add(6*time.Minute)).Orders[0]
+				if pending.State != "cancel_requested" || pending.ProviderRawStatus != "accepted" || pending.CancelIntentAt.IsZero() || (claimed && pending.CancelAttemptedAt.IsZero()) {
+					t.Fatalf("accepted provider snapshot erased cancellation intent: %+v", pending)
+				}
+				if claimed {
+					if _, err := reopened.RequestBrokerCancel(account, orderID, now.Add(6*time.Minute)); err != nil {
+						t.Fatalf("idempotent cancellation intent lookup failed: %v", err)
+					}
+					if _, err := reopened.ClaimBrokerCancel(account, orderID, now.Add(6*time.Minute)); err == nil {
+						t.Fatal("accepted provider snapshot allowed a second DELETE claim")
+					}
+				}
+				providerOrder.Status = "canceled"
+				if source == "poll" {
+					err = reopened.ApplyBrokerReconciliation(account, brokerage.AccountSnapshot{RequestIDs: []string{"cancel-terminal"}, Orders: []brokerage.Order{providerOrder}}, now.Add(7*time.Minute))
+				} else {
+					err = reopened.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{{Cursor: "cancel-terminal", ProviderAccountID: claim.Order.BrokerAccountID, Event: "canceled", Timestamp: now.Add(7 * time.Minute), Order: providerOrder}}, "cancel-terminal", now.Add(7*time.Minute))
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				if final := reopened.BrokerWorkspace(account, now.Add(8*time.Minute)).Orders[0]; final.State != "canceled" {
+					t.Fatalf("terminal cancellation failed to advance after accepted interim state: %+v", final)
+				}
+			})
+		}
+	}
+}
+
+func TestLegacyAmbiguousCancellationCannotBeResentAfterPartialFill(t *testing.T) {
+	store, account, orderID, now := consumedBrokerFixture(t)
+	claim, err := store.ClaimBrokerDispatch(account, orderID, now.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	providerOrder := brokerage.Order{ID: "22222222-3333-4444-8555-666666666666", ClientOrderID: orderID, AssetID: claim.Order.Order.AssetID, Symbol: claim.Order.Order.Symbol, Side: claim.Order.Order.Side, Qty: claim.Order.Order.Qty, Type: claim.Order.Order.OrderType, LimitPrice: claim.Order.Order.LimitPrice, TimeInForce: claim.Order.Order.TimeInForce, Status: "accepted"}
+	if _, err := store.CompleteBrokerDispatch(account, orderID, &providerOrder, nil, now.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.RequestBrokerCancel(account, orderID, now.Add(3*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Update(account, "test.legacy.cancel", orderID, func(state *AccountState) error {
+		order := state.Brokerage.Orders[orderID]
+		order.CancelIntentAt, order.CancelAttemptedAt = time.Time{}, time.Time{}
+		state.Brokerage.Orders[orderID] = order
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := OpenStore(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	partial := providerOrder
+	partial.Status, partial.FilledQty = "partially_filled", "0.5"
+	event := brokerage.TradeEvent{Cursor: "legacy-cancel-partial", ProviderAccountID: claim.Order.BrokerAccountID, Event: "partial_fill", Timestamp: now.Add(4 * time.Minute), Order: partial}
+	if err := reopened.ApplyBrokerTradeEvents(account, []brokerage.TradeEvent{event}, event.Cursor, now.Add(4*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reopened.RequestBrokerCancel(account, orderID, now.Add(5*time.Minute)); err == nil {
+		t.Fatal("legacy ambiguous cancellation was resent after a partial fill")
+	}
+	order := reopened.BrokerWorkspace(account, now.Add(5*time.Minute)).Orders[0]
+	if order.State != "partially_filled" || order.CancelIntentAt.IsZero() || order.CancelAttemptedAt.IsZero() {
+		t.Fatalf("legacy cancel was not fenced after provider progress: %+v", order)
 	}
 }
 

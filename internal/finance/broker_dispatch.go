@@ -184,12 +184,36 @@ func (s *Store) RequestBrokerCancel(account, orderID string, now time.Time) (Bro
 			result = order
 			return errBrokerStateUnchanged
 		}
+		if ok && !order.CancelAttemptedAt.IsZero() {
+			return errors.New("Broker cancellation was already attempted; reconcile its provider outcome without another DELETE")
+		}
 		if !ok || order.ProviderOrderID == "" || (order.State != "submitted" && order.State != "partially_filled") {
 			return errors.New("Broker order is not cancelable")
 		}
-		order.State, order.UpdatedAt = "cancel_requested", now.UTC()
+		order.CancelPriorState = order.State
+		order.State, order.CancelIntentAt, order.CancelAttemptedAt, order.UpdatedAt = "cancel_requested", now.UTC(), time.Time{}, now.UTC()
 		state.Brokerage.Orders[orderID] = order
 		appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, "provider.cancel_requested", order.ApprovalState, order.State, now.UTC())
+		result = order
+		return nil
+	})
+	return result, err
+}
+
+// ClaimBrokerCancel persists a one-shot fence before the operator issues the
+// provider DELETE. A previously persisted cancel_requested record without a
+// new-format intent timestamp is ambiguous after restart and cannot be sent
+// again; reconciliation must establish its provider state first.
+func (s *Store) ClaimBrokerCancel(account, orderID string, now time.Time) (BrokerOrderRecord, error) {
+	var result BrokerOrderRecord
+	err := s.updateBrokerCAS(account, "broker.cancel.claimed", orderID, func(state *AccountState) error {
+		order, ok := state.Brokerage.Orders[orderID]
+		if !ok || order.State != "cancel_requested" || order.ProviderOrderID == "" || order.CancelIntentAt.IsZero() || !order.CancelAttemptedAt.IsZero() {
+			return errors.New("Broker cancellation was already attempted or has no unambiguous intent")
+		}
+		order.CancelAttemptedAt, order.UpdatedAt = now.UTC(), now.UTC()
+		state.Brokerage.Orders[orderID] = order
+		appendBrokerJournal(&state.Brokerage, orderID, order.RequestID, "provider.cancel_claimed", order.ApprovalState, order.State, now.UTC())
 		result = order
 		return nil
 	})
@@ -200,7 +224,7 @@ func (s *Store) CompleteBrokerCancel(account, orderID, providerRequestID string,
 	var result BrokerOrderRecord
 	err := s.updateBrokerCAS(account, "broker.cancel.complete", orderID, func(state *AccountState) error {
 		order, ok := state.Brokerage.Orders[orderID]
-		if !ok || order.State != "cancel_requested" {
+		if !ok || order.State != "cancel_requested" || order.CancelAttemptedAt.IsZero() {
 			return errors.New("Broker cancel request is not active")
 		}
 		action := "provider.cancel_accepted"
@@ -211,7 +235,17 @@ func (s *Store) CompleteBrokerCancel(account, orderID, providerRequestID string,
 		if providerErr != nil {
 			code := brokerage.ErrorCode(providerErr)
 			if code == "ORDER_CANCELLATION_DISABLED" || code == "BROKER_NOT_CONFIGURED" || code == "ACCOUNT_NOT_LINKED" || code == "ORDER_REQUEST_INVALID" {
-				order.State, action = "submitted", "provider.cancel_not_attempted"
+				// These adapter errors occur before a provider DELETE. Restore the
+				// exact prior state so a partial fill is never reported as unfilled.
+				if order.CancelPriorState == "partially_filled" {
+					order.State = "partially_filled"
+				} else {
+					order.State = "submitted"
+				}
+				action = "provider.cancel_not_attempted"
+				order.CancelAttemptedAt = time.Time{}
+				order.CancelIntentAt = time.Time{}
+				order.CancelPriorState = ""
 			} else {
 				// A transport or provider failure cannot prove whether cancellation
 				// took effect. Reconciliation, not a blind retry, resolves it.
@@ -251,10 +285,11 @@ func (s *Store) ApplyBrokerReconciliation(account string, snapshot brokerage.Acc
 			if !brokerOrderIdentityMatches(order, providerOrder) {
 				return errors.New("Broker reconciliation order identity mismatch")
 			}
-			next := normalizeBrokerOrderState(providerOrder.Status)
+			next := reconciledBrokerOrderState(order, providerOrder.Status)
 			if !brokerOrderTransitionAllowed(order.State, next) {
 				return errors.New("Broker reconciliation would regress order state")
 			}
+			fenceLegacyBrokerCancel(&order, now)
 			outbox.Status, outbox.ProviderOrderID, outbox.ProviderRawStatus, outbox.ProviderHTTPRequestID, outbox.LastErrorCode, outbox.UpdatedAt = brokerOutboxStatus(next), providerOrder.ID, providerOrder.Status, providerOrder.RequestID, brokerOutboxError(next), now.UTC()
 			order.ProviderOrderID, order.ProviderRawStatus, order.ProviderHTTPRequestID, order.State, order.UpdatedAt = providerOrder.ID, providerOrder.Status, providerOrder.RequestID, next, now.UTC()
 			state.Brokerage.Outbox[orderID], state.Brokerage.Orders[orderID] = outbox, order
@@ -307,10 +342,11 @@ func (s *Store) ApplyBrokerTradeEvents(account string, events []brokerage.TradeE
 			if event.Timestamp.IsZero() || (!order.ProviderEventAt.IsZero() && !event.Timestamp.After(order.ProviderEventAt)) {
 				return errors.New("Broker trade event cursor is stale")
 			}
-			next := normalizeBrokerOrderState(event.Order.Status)
+			next := reconciledBrokerOrderState(order, event.Order.Status)
 			if !brokerOrderTransitionAllowed(order.State, next) {
 				return errors.New("Broker trade event would regress order state")
 			}
+			fenceLegacyBrokerCancel(&order, now)
 			order.ProviderOrderID, order.ProviderRawStatus, order.State, order.ProviderEventCursor, order.ProviderEventAt, order.UpdatedAt = event.Order.ID, event.Order.Status, next, event.Cursor, event.Timestamp.UTC(), now.UTC()
 			state.Brokerage.Orders[event.Order.ClientOrderID] = order
 			if outbox, ok := state.Brokerage.Outbox[event.Order.ClientOrderID]; ok {
@@ -326,6 +362,28 @@ func (s *Store) ApplyBrokerTradeEvents(account string, events []brokerage.TradeE
 
 func brokerOrderIdentityMatches(order BrokerOrderRecord, provider brokerage.Order) bool {
 	return provider.ClientOrderID == order.Order.OrderID && provider.AssetID == order.Order.AssetID && provider.Symbol == order.Order.Symbol && provider.Side == order.Order.Side && provider.Qty == order.Order.Qty && provider.Type == order.Order.OrderType && provider.LimitPrice == order.Order.LimitPrice && provider.TimeInForce == order.Order.TimeInForce && provider.ExtendedHours == order.Order.ExtendedHours && (order.ProviderOrderID == "" || provider.ID == order.ProviderOrderID)
+}
+
+func fenceLegacyBrokerCancel(order *BrokerOrderRecord, now time.Time) {
+	// Older persisted cancel_requested records did not distinguish a browser
+	// intent from a provider DELETE already sent before a process crash. Once a
+	// provider event or poll moves that order forward, keep the ambiguity fenced
+	// instead of allowing a second cancellation attempt after restart.
+	if order.State == "cancel_requested" && order.CancelIntentAt.IsZero() {
+		order.CancelIntentAt, order.CancelAttemptedAt = now.UTC(), now.UTC()
+	}
+}
+
+func reconciledBrokerOrderState(order BrokerOrderRecord, providerStatus string) string {
+	next := normalizeBrokerOrderState(providerStatus)
+	// An accepted/new provider snapshot can be in flight while a local cancel
+	// intent or a one-shot provider DELETE is pending. It does not prove that
+	// cancellation failed. Keep the intent and its persisted retry fence until
+	// a later provider event establishes partial fill or a terminal outcome.
+	if order.State == "cancel_requested" && next == "submitted" {
+		return "cancel_requested"
+	}
+	return next
 }
 
 func brokerOrderTransitionAllowed(current, next string) bool {
@@ -510,7 +568,10 @@ func (d BrokerDispatcher) Cancel(ctx context.Context, account, orderID string) (
 	if d.Now != nil {
 		now = d.Now
 	}
-	claimed, err := d.Store.RequestBrokerCancel(account, orderID, now())
+	if _, err := d.Store.RequestBrokerCancel(account, orderID, now()); err != nil {
+		return BrokerOrderRecord{}, err
+	}
+	claimed, err := d.Store.ClaimBrokerCancel(account, orderID, now())
 	if err != nil {
 		return BrokerOrderRecord{}, err
 	}

@@ -1,10 +1,12 @@
 import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} from './vendor/product-session-browser-a7dad7ec.mjs';
-import registry from './vendor/product-session-registry-a7dad7ec.json';
+import registry from './vendor/product-session-registry-a7dad7ec.json' with {type:'json'};
 import {assertFinancePrivateAuthority,financePrivateAuthorityRevision,invalidateFinancePrivateAuthority} from './endpoint-authority-entry.js';
+import {privateSubjectMatchesSelectedWallet} from './private-subject-boundary.js';
 const ATTEMPT_KEY='ynx.finance.browser-private.9840ef87.wallet-auth.attempted';
 const SCOPES=Object.freeze(['finance.ai.draft','finance.pay.read','finance.portfolio.read','finance.profile.write']);
 let adapter=null,initializing=null,generation=0,revision=0,busy=false;
 let current=Object.freeze({status:'disconnected',session:null}),lastCode='';
+function label(key){return window.YNXFinanceLocale?.text(key)??key;}
 function publish(next,code=''){
   current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,route:next.route,installation:next.installation});
   revision++;lastCode=code;render();window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:current.status,account:current.session?.account??null,revision}}));
@@ -43,21 +45,31 @@ function guest(){generation++;busy=false;const state=adapter?.client.enterGuest(
 function reportFailure(){publish({status:'degraded',session:null},'PRIVATE_SERVICE_DEGRADED');}
 async function proof(scope){
   if(!SCOPES.includes(scope)||current.status!=='connected'||!current.session||!adapter)throw new Error('PRIVATE_SERVICE_DEGRADED: Private Finance requires separate Wallet approval.');
+  const standardRevision=window.YNXFinanceWallet?.getStandardRevision?.();
+  if(!privateSubjectMatchesSelectedWallet(current.session,window.YNXFinanceWallet?.getStandardWalletState?.()))throw new Error('FINANCE_ACCOUNT_MISMATCH: Selected Wallet differs from the approved private Finance subject.');
   const attempt=generation,view=current,selected=adapter;
-  try{await assertFinancePrivateAuthority();const authorityRevision=financePrivateAuthorityRevision(),authorization=await selected.createIntrospectionProof([scope]);if(authorityRevision!==financePrivateAuthorityRevision()||attempt!==generation||current!==view||selected!==adapter)throw new Error('FINANCE_CONTEXT_CHANGED');return authorization;}
-  catch(error){if(attempt===generation)reportFailure();throw error;}
+  try{await assertFinancePrivateAuthority();const authorityRevision=financePrivateAuthorityRevision(),authorization=await selected.createIntrospectionProof([scope]);if(authorityRevision!==financePrivateAuthorityRevision()||attempt!==generation||current!==view||selected!==adapter||standardRevision!==window.YNXFinanceWallet?.getStandardRevision?.()||!privateSubjectMatchesSelectedWallet(view.session,window.YNXFinanceWallet?.getStandardWalletState?.()))throw new Error('FINANCE_CONTEXT_CHANGED');return authorization;}
+  catch(error){if(attempt===generation&&error?.message!=='FINANCE_CONTEXT_CHANGED')reportFailure();throw error;}
 }
 function render(){
   const status=document.querySelector('#private-state'),account=current.session?.account;
-  if(status)status.textContent=(lastCode?lastCode+' · ':'')+(current.status==='connected'?'Private Finance verified for '+account+'. Standard EVM connection is separate.':current.status==='connecting'?'Request saved. Native installation is unverified. Click Open YNX Wallet yourself; only a verified Wallet callback can authorize Finance.':busy?'Checking the separate private Wallet authority…':'Private Finance: '+current.status+'. Public information and Standard Wallet remain available. Legacy sessions stay isolated with their original authority.');
+  if(status){
+    const key=current.status==='network-unavailable'||current.status==='retry-required'?'privateNetwork':current.status==='degraded'?'privateDegraded':'privateGuestState';
+    const mismatch=current.status==='connected'&&!privateSubjectMatchesSelectedWallet(current.session,window.YNXFinanceWallet?.getStandardWalletState?.());
+    status.textContent=current.status==='connected'?`${label('privateConnected')} ${account}. ${label('privateConnectedSuffix')}${mismatch?` ${label('privateAccountMismatch')}`:''}`:current.status==='connecting'?label('privateConnecting'):busy?label('privateChecking'):label(key);
+    status.title=lastCode||'';
+  }
   const open=document.querySelector('#private-open');
   // Exact SDK route, explicit user click only: no automatic navigation or install claim.
   if(open){const available=current.status==='connecting'&&current.route?.status==='ready'&&current.installation==='unverified';open.hidden=!available;if(available)open.setAttribute('href',current.route.url);else open.removeAttribute('href');}
   for(const id of ['private-begin','private-retry','private-revoke']){const element=document.querySelector('#'+id);if(element)element.disabled=busy;}
 }
 export const privateFinance=Object.freeze({restore,begin,retry,disconnect,guest,proof,reportFailure,revision:()=>revision,
-  connected:()=>current.status==='connected'&&!!current.session,session:()=>current.session,state:()=>current});
+  connected:()=>current.status==='connected'&&!!current.session,session:()=>current.session,state:()=>current,
+  accountMatchesSelected:()=>privateSubjectMatchesSelectedWallet(current.session,window.YNXFinanceWallet?.getStandardWalletState?.())});
 export function bindPrivateFinanceUI(){
+  document.addEventListener('finance:localechange',render);
+  window.addEventListener('ynx-finance-standard-state',render);
   document.querySelector('#private-begin')?.addEventListener('click',begin);
   document.querySelector('#private-retry')?.addEventListener('click',retry);
   document.querySelector('#private-revoke')?.addEventListener('click',disconnect);

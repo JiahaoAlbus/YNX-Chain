@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "ynx.finance.broker-focused-source-handoff.v1",
+  "supersedes": "apps/finance/evidence/finance-card-time-workbench-source-handoff-20260925.json for Broker visual candidate only",
+  "branch": "codex/finance-evm-read-session-pr193-20260924",
+  "sourceCommit": "3f9b9dacc21c627fb4de1d475dafd3eee1ec8676",
+  "sourceTree": "c69a9436f35afa42ce954aae49fdc2469e05aba6",
+  "releaseCandidate": {
+    "localPath": "/tmp/ynx-finance-3f9b9dac-weekly-v3.tar.gz",
+    "bytes": 30860726,
+    "sha256": "9dabf7ce0a0f32ea6c241c8ef6d01b45211063ec6e29d9939e52417ba6b1e947",
+    "sidecarSha256": "cdf5834453c8bc9907f2c0d78dfdfb2914f60db0526420e5950f4bfa13c1fc4a",
+    "linuxAmd64BinarySha256": "b8b04cc3a02f2f952217497109477b79d72f20f10bf62416b3159804b1240499",
+    "repeatedBuildByteExact": true
+  },
+  "localBrowserScreenshots": [
+    {
+      "path": "apps/finance/evidence/finance-broker-focused-local-zh-390-3f9b9dac.png",
+      "viewport": "390x844",
+      "bytes": 69349,
+      "sha256": "b74b31ab85d758758fe4a3ec805ecfe4117eae1ddf67589a072986c93ca0b646"
+    },
+    {
+      "path": "apps/finance/evidence/finance-broker-focused-local-zh-1280-3f9b9dac.png",
+      "viewport": "1280x844",
+      "bytes": 111551,
+      "sha256": "fdbae6fdfd326982f1e46c86725c2d1e44a51bb9039b2c55e1111ed2a7decf62"
+    }
+  ],
+  "directLocalBrowserAssertions": {
+    "guestAssetSearchVisible": true,
+    "unlinkedOrderFormHidden": true,
+    "unlinkedRepeatedPositionsHidden": true,
+    "signedOutOverviewHiddenOnOrdersRoute": true,
+    "walletPanelHiddenOnOrdersRoute": true,
+    "connectCallToActionRoutesToWalletPanel": true,
+    "mobileSearchInputCanScrollAboveNavigation": true,
+    "horizontalOverflowAt390Or1280": false
+  },
+  "tests": {
+    "financeNode": "132/132 pass",
+    "financeGo": "go test ./internal/finance ./apps/finance/... pass from predecessor; Go files unchanged",
+    "security": "Finance security gate pass from predecessor; no new transport or secret-handling code",
+    "walletVerifierManifestSha256": "9cbc39d8b9e80345965d6e0b7768bd4c6582bbeff4ef0e8ba2a5224e3d2c46eb"
+  },
+  "truth": {
+    "publicDeployed": false,
+    "publicCacheByteVerified": false,
+    "installedAppVerified": false,
+    "realBrokerAccount": false,
+    "realBrokerOrder": false,
+    "walletApproval": false,
+    "userVisualAcceptance": false
+  },
+  "next": "Central Finance deployment owner should bind this exact artifact to a one-use rollback-first release, verify actual public HTML/CSS/JS bytes and 390px plus desktop routes in a real browser, and request user visual acceptance. No account, signature or trade action is implied."
+}
