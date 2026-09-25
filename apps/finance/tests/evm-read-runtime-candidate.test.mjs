@@ -43,7 +43,7 @@ async function verifyCandidate(read = readFile) {
   assert.match(files.get('internal/finance/server.go'), /GET \/evm-read-session\.js/u);
   assert.match(files.get('internal/finance/drain.go'), /"\/evm-read-session\.js"/u);
   const pin = await read(new URL('../web/verify-wallet-connect.mjs', import.meta.url), 'utf8');
-  assert.match(pin, /REVIEWED_VERIFIER_MANIFEST_SHA256='13a8700cbd779a3398648427b9464272afc800e0611725bb79da9b5c8ef551cd'/u);
+  assert.match(pin, /REVIEWED_VERIFIER_MANIFEST_SHA256='6611cc1795fb6c44cc1097ffcebc1c440f0441acec92273e8d520bf653068fc2'/u);
   return candidate;
 }
 

@@ -10,6 +10,20 @@ import {verifyFinanceWalletBundle} from '../web/verify-wallet-connect.mjs';
 const financeRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..'),webRoot=join(financeRoot,'web');
 const reviewedManifest=JSON.parse(await readFile(join(webRoot,'wallet-verifier-manifest.json'),'utf8'));
 
+test('Broker cold-state pin changes only the reviewed app bytes',async()=>{
+  const previous=JSON.parse(await readFile(join(financeRoot,'evidence/wallet-verifier-manifest-final-ui-01130b50-v5-20260925.json'),'utf8'));
+  const versioned=await readFile(join(financeRoot,'evidence/wallet-verifier-manifest-broker-cold-state-32bacf14-v6-20260925.json'));
+  const active=await readFile(join(webRoot,'wallet-verifier-manifest.json'));
+  const app=await readFile(join(webRoot,'app.js'));
+  const expected=structuredClone(previous),entry=expected.files.find(file=>file.path==='app.js');
+  entry.bytes=app.length;entry.sha256=createHash('sha256').update(app).digest('hex');
+  assert.equal(entry.bytes,63629);
+  assert.equal(entry.sha256,'c32c378b042b77fd5e54e9bd91306d3d4545d4c16b159b88b83610d9a268e80e');
+  assert.deepEqual(JSON.parse(versioned),expected);
+  assert.deepEqual(active,versioned);
+  assert.equal(createHash('sha256').update(active).digest('hex'),'6611cc1795fb6c44cc1097ffcebc1c440f0441acec92273e8d520bf653068fc2');
+});
+
 async function fixture(){
   const root=await mkdtemp(join(tmpdir(),'ynx-finance-wallet-verifier-test-')),web=join(root,'repo/apps/finance/web');
   const files=['wallet-verifier-manifest.json',...reviewedManifest.files.map(file=>file.path)];
