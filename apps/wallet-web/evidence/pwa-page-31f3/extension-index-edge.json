@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "31f3ef16d3812870e0c3d23350565fd592482227",
+  "archive": {
+    "bytes": 584777,
+    "sha256": "5c6ff4c16805965aa86febdc6a9f7a812ea2d1e9c8fa556611dafeadfb2e707b"
+  },
+  "browser": "edge",
+  "runtimeClass": "frozen extension ZIP in disposable HTTPS DApp profile",
+  "fixtureOnly": true,
+  "initialVaultCreated": true,
+  "priorGrantWritten": true,
+  "indexDeleted": true,
+  "coldRestart": true,
+  "indexRecovered": true,
+  "vaultUnchanged": true,
+  "samePublicAccount": true,
+  "grantsReset": true,
+  "providerAccountsStayedDisconnected": true,
+  "installedLocal": false,
+  "deployedPublic": false,
+  "passed": true
+}

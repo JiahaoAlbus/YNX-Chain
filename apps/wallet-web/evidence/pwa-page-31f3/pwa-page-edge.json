@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "31f3ef16d3812870e0c3d23350565fd592482227",
+  "archive": {
+    "name": "ynx-wallet-web-pwa-0.1.3.zip",
+    "bytes": 315715,
+    "sha256": "478e155646f7e269e7b075666362b904b57ad949ae101c3d5319f48aca76d5eb"
+  },
+  "browser": "edge",
+  "runtimeClass": "frozen PWA ZIP in disposable browser profile with simulated EIP-1193 provider and local static server",
+  "fixtureOnly": true,
+  "providerConnected": false,
+  "extensionMigrationVerified": false,
+  "installedPwa": false,
+  "deployedPublic": false,
+  "passed": true,
+  "rejectedConnectStayedDisconnected": true,
+  "switchWithoutAccountDisconnected": {
+    "status": "Status: YNX Testnet · 6423 · Not connected",
+    "session": null,
+    "accounts": [],
+    "calls": [
+      "eth_requestAccounts",
+      "wallet_switchEthereumChain",
+      "eth_chainId"
+    ]
+  },
+  "addParams": {
+    "chainId": "0x1917",
+    "chainName": "YNX Testnet",
+    "nativeCurrency": {
+      "name": "YNX Testnet",
+      "symbol": "YNXT",
+      "decimals": 18
+    },
+    "rpcUrls": [
+      "https://rpc-testnet.ynxweb4.com",
+      "https://evm.ynxweb4.com"
+    ],
+    "blockExplorerUrls": [
+      "https://explorer.ynxweb4.com"
+    ]
+  },
+  "connectedAccount": "0x1111111111111111111111111111111111111111",
+  "restoredAccount": "0x1111111111111111111111111111111111111111",
+  "revokedAfterSwitch": {
+    "status": "Status: ACCOUNT_CHANGED: The request could not be completed. Check your wallet before trying again.",
+    "session": null
+  }
+}
