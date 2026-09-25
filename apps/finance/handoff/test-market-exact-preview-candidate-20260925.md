@@ -22,6 +22,15 @@ returns `FINANCE_WALLET_FILE_INTEGRITY_MISMATCH`. Do not bypass the gate or
 publish this candidate. Independent review and a new exact manifest pin are
 required before a source-bound release; production remains at its prior source.
 
+After independent read-only review, a separate versioned verifier-manifest
+candidate was generated at
+`evidence/wallet-verifier-manifest-test-market-preview-6d7ebb4d-v1-20260925.json`
+(5,891 bytes; SHA-256
+`efe0952ad4431fa1be0960f1f72c098891756930be345abd132a8974a0318522`).
+It updates exactly the two page bindings above; the other 29 entries and the
+Wallet bundle are unchanged. The active manifest and hard-coded verifier pin
+remain untouched pending independent candidate review and owner activation.
+
 Candidate asset identities before independent review:
 
 | Finance file | Bytes | SHA-256 |
