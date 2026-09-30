@@ -86,15 +86,15 @@ This is local Gateway/Go/Chromium QA with isolated approval keys, not a public
 Wallet or a verified asset balance/history claim.
 
 Hosted central identity remains separate from product native authorization.
-The accepted Hosted artifact in this checkpoint does not provide the product
-`ynx_requestProductSessionV2` signing route. Finance presently requires a
-selected injected native provider for that operation. The Wallet provider owner
-must accept a successor artifact before the consumer can enable the Hosted
-private route. The consumer will pass the exact official SDK route URL and
-receive `{version:2,returnUrl}`, with account/chain/provider/revision fencing,
-then use the existing `handleReturn` and protected-API proofs. Central identity
-will never substitute for product scopes or convert an EVM address into a
-native approval.
+Correction to the initial follow-up diagnosis: the accepted Wallet handler and
+adapter already support `ynx_requestProductSessionV2` for exact registered
+product origins. Only the central issuer is identity/lifecycle restricted.
+Finance's injected-only consumer gate was the native authorization defect;
+there was no missing product signing handler. The successor consumer uses the
+exact official SDK route URL, strict `{version:2,returnUrl}`, controller
+generation and account/chain/provider/revision fencing, then the original
+`handleReturn` and protected-API proofs. Central identity never substitutes for
+product scopes or converts an EVM address into a native approval.
 
 A read-only public check during this follow-up still reported Finance source
 567ee5164db630872102cd25ef78069e0fbc0dce, not this candidate. Its app.js was

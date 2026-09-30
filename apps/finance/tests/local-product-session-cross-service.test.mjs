@@ -25,6 +25,7 @@ const root=fileURLToPath(new URL('../../../',import.meta.url));
 const web=resolve(root,'apps/finance/web');
 const financeOrigin='https://finance.ynxweb4.com';
 const gatewayOrigin='https://wallet-auth.ynxweb4.com';
+const hostedWalletDist=process.env.YNX_FINANCE_HOSTED_WALLET_DIST;
 const registry=JSON.parse(await readFile(new URL('../../../packages/wallet-auth/product-session-registry.json',import.meta.url)));
 const sha=value=>createHash('sha256').update(value).digest('hex');
 const iso=value=>new Date(value).toISOString();
@@ -73,7 +74,7 @@ async function relay(route,base){
   await route.fulfill({status:response.status,headers:returned,body:Buffer.from(await response.arrayBuffer())});
 }
 
-for(const variant of ['native-callback','selected-provider','selected-provider-context-change','selected-login','selected-login-rejected','central-selected-login'])test(`local QA ${variant} reaches durable Gateway NodeHost and real Finance Go v2 verifier`,async t=>{
+for(const variant of ['native-callback','selected-provider','selected-provider-context-change','selected-login','selected-login-rejected','central-selected-login','hosted-provider'])test(`local QA ${variant} reaches durable Gateway NodeHost and real Finance Go v2 verifier`,{skip:variant==='hosted-provider'&&!hostedWalletDist&&'YNX_FINANCE_HOSTED_WALLET_DIST not supplied'},async t=>{
   const centralSSO=variant==='central-selected-login',transport=centralSSO?'selected-login':variant;
   const directory=await mkdtemp(join(tmpdir(),'ynx-finance-local-v2-'));await chmod(directory,0o700);
   const statePath=join(directory,'gateway-state.json');
@@ -105,11 +106,16 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
   let browser;
   try{
     const gatewayBase=await listen(gateway),financeBase=await listen(finance);
-    if(transport==='selected-login')go=await startGoBrowserServer(gatewayBase,centralSSO);
+    if(transport==='selected-login'||transport==='hosted-provider')go=await startGoBrowserServer(gatewayBase,centralSSO);
     browser=await chromium.launch(await financeBrowserLaunchOptions());
     const context=await browser.newContext();
     const routeTrace=[];
     if(!centralSSO)await context.route('**/*',route=>{const url=new URL(route.request().url()),origin=url.origin;routeTrace.push({origin,path:url.pathname});return origin===financeOrigin?relay(route,financeBase):origin===gatewayOrigin?relay(route,gatewayBase):route.abort();});
+    if(transport==='hosted-provider')await context.route('https://wallet.ynxweb4.com/hosted/**',async route=>{
+      const path=new URL(route.request().url()).pathname.replace(/^\/hosted\//u,'')||'index.html';
+      if(!['index.html','app.js','hosted-wallet.css','ynx-logo.png'].includes(path))return route.abort();
+      return route.fulfill({status:200,contentType:path.endsWith('.js')?'text/javascript':path.endsWith('.css')?'text/css':path.endsWith('.png')?'image/png':'text/html',body:await readFile(resolve(hostedWalletDist,path))});
+    });
     const page=await context.newPage();
     if(centralSSO){
       // Playwright route interception covers only the first URL in this
@@ -150,6 +156,43 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
     page.on('pageerror',error=>browserErrors.push(error.message.slice(0,160)));
     page.on('response',response=>{const url=new URL(response.url());if(url.pathname.startsWith('/api/')||url.pathname.includes('product-sessions'))requests.push(`${url.pathname}:${response.status()}`)});
     await page.goto(financeOrigin);
+    if(transport==='hosted-provider'){
+      // Real Wallet-owned encrypted vault/review/signing UI, isolated local
+      // origin transport. No installed/public claim or stub approval function.
+      const password='isolated Finance Hosted QA password 2026';
+      const opened=context.waitForEvent('page');await page.click('#connect-hosted-ynx');const wallet=await opened;
+      await wallet.locator('#setup-password').fill(password);await wallet.locator('#setup-confirm').fill(password);await wallet.locator('#setup-form button[type=submit]').click();
+      await wallet.locator('#backup-confirmation').waitFor({state:'visible'});const backup=wallet.waitForEvent('download');await wallet.click('#export-backup');await backup;
+      await wallet.locator('#backup-ack').check();await wallet.click('#backup-continue');await wallet.locator('#review').waitFor({state:'visible'});await wallet.click('#approve');
+      await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected');
+      assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.privateProviderAvailable()),true);
+      assert.equal(host.snapshot().authority.sessions.length,0,'connection alone must not create a native session');
+      await page.evaluate(()=>{void window.YNXFinanceWallet.beginPrivate()});await wallet.locator('#review').waitFor({state:'visible'});await wallet.click('#reject');
+      await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='disconnected');
+      assert.equal(host.snapshot().authority.sessions.length,0);assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connected');
+      await page.evaluate(()=>{void window.YNXFinanceWallet.beginPrivate()});await wallet.locator('#review').waitFor({state:'visible'});
+      assert.match(await wallet.locator('#review-text').textContent(),/finance\.portfolio\.read/u);
+      await wallet.locator('#approval-password').fill(password);await wallet.click('#approve');
+      await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='connected'&&document.querySelector('#workspace').dataset.dataState==='ready');
+      const nativeAccount=await wallet.locator('#account-ynx').textContent(),session=await page.evaluate(()=>window.YNXFinanceWallet.session().sessionId);
+      assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.session().account),nativeAccount);
+      assert.equal(host.snapshot().authority.sessions.length,1);
+      const proof=await page.evaluate(()=>window.YNXFinanceWallet.requireProof('finance.portfolio.read'));
+      const verified=await runGoVerifier({YNX_FINANCE_QA_GATEWAY_LOOPBACK:gatewayBase,YNX_FINANCE_QA_PROOF_HEADER:proof.proofHeader,YNX_FINANCE_QA_ACCOUNT:nativeAccount});assert.equal(verified.status,0);
+      assert.equal(await page.evaluate(async()=>{await api('/api/categories',{method:'POST',body:JSON.stringify({name:'Hosted owned category',color:'#002fa7',idempotencyKey:'hosted-owned-category-qa-000001'})});return (await api('/api/profile')).categories.some(item=>item.name==='Hosted owned category')}),true);
+      await wallet.close();
+      await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='transport-unavailable',null,{timeout:5000}).catch(async error=>{throw new Error(JSON.stringify(await page.evaluate(()=>({phase:'hosted-close',standard:window.YNXFinanceWallet.getStandardWalletState().status,reason:window.YNXFinanceWallet.getStandardWalletState().disconnectReason,private:window.YNXFinanceWallet.getPrivateState().status,hosted:window.YNXFinanceHostedWallet.getState().status,code:window.YNXFinanceHostedWallet.getState().error}))),{cause:error})});
+      assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getPrivateState().status),'connected');
+      assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.privateProviderAvailable()),false,'valid business session is not a live signing transport');
+      assert.equal(await page.evaluate(async()=>{try{await window.YNXFinanceWallet.requestProductSessionV2('ynxwallet://authorize?request=untrusted');return 'unexpected'}catch(error){return error.message}}),'PRIVATE_TRANSPORT_UNAVAILABLE');
+      assert.equal(await page.evaluate(async()=>{return (await api('/api/profile')).categories.some(item=>item.name==='Hosted owned category')}),true,'closing Wallet transport must not revoke the valid bound business session');
+      await page.reload();await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='connected'&&document.querySelector('#workspace').dataset.dataState==='ready');
+      assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.session().sessionId),session);
+      assert.equal(await page.evaluate(async()=>{return (await api('/api/profile')).categories.some(item=>item.name==='Hosted owned category')}),true);
+      await page.evaluate(()=>window.YNXFinanceWallet.disconnect());
+      assert.ok(host.snapshot().authority.sessions.every(item=>host.snapshot().authority.revokedSessions.includes(item.sessionBinding)));
+      assert.deepEqual(browserErrors,[]);await context.close();return;
+    }
     if(centralSSO){await page.waitForSelector('#browser-signin:not([hidden])');await page.goto(`${financeOrigin}/#planning`);await page.click('#browser-signin-start');await page.waitForURL(`${gatewayOrigin}/v2/browser-sessions/authorize?**`);
       await page.waitForSelector('#wallet',{timeout:3000}).catch(async error=>{throw new Error(JSON.stringify({browserErrors,gatewayTrace,routeTrace,code:await page.evaluate(()=>{try{return JSON.parse(document.body.textContent).error?.code??'unknown'}catch{return 'non-json-response'}})}),{cause:error})});
       await page.selectOption('#wallet','0');await page.click('#approve');await page.waitForURL(`${financeOrigin}/#planning`);await page.waitForFunction(()=>document.querySelector('#browser-signin-state')?.textContent.startsWith('ynx1'),null,{timeout:3000}).catch(async error=>{throw new Error(JSON.stringify({browserErrors,gatewayTrace,requests,state:await page.evaluate(()=>({sso:document.querySelector('#browser-signin-state')?.textContent,enabled:browserSSOEnabled,hasIdentity:!!browserIdentity}))}),{cause:error})});}

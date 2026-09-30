@@ -15,12 +15,12 @@ import {centralBrowserConsentSignBytes} from '../../../packages/wallet-auth/src/
 import {canonicalJSON} from '../../../packages/wallet-auth/src/canonical.js';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
-import {createHostedWalletAdapter} from '../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-39c063da.js';
+import {createHostedWalletAdapter} from '../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js';
 const {build}=createRequire(new URL('../web/package.json',import.meta.url))('esbuild');
 const registry=JSON.parse(await readFile(new URL('../../../packages/wallet-auth/product-session-registry.json',import.meta.url)));
 const issuer='https://wallet-auth.ynxweb4.com',key='1'.padStart(64,'0'),identity=walletIdentity(key),token=()=>randomBytes(32).toString('base64url');
 test('accepted Hosted central adapter bytes restrict the issuer to identity/lifecycle, never EVM or product permissions',async()=>{
-  const bytes=await readFile(new URL('../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-39c063da.js',import.meta.url));assert.equal(bytes.length,12509);assert.equal(createHash('sha256').update(bytes).digest('hex'),'fef4c040721b2759af7ca0928fe5363f3850bf59d66c425f724b3e79b00c11cc');
+  const bytes=await readFile(new URL('../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js',import.meta.url));assert.equal(bytes.length,12659);assert.equal(createHash('sha256').update(bytes).digest('hex'),'2567f4ec0958852ef27ee382067b6b104e33fe5dc3feba3aa94d710caa7f2c0a');
   assert.throws(()=>createHostedWalletAdapter({window:{location:{origin:'https://unknown.ynxweb4.com'}}}),error=>error.code==='HOSTED_ORIGIN_UNREGISTERED');
   const adapter=createHostedWalletAdapter({window:{location:{origin:issuer},addEventListener(){},removeEventListener(){}}});
   for(const method of ['personal_sign','eth_signTypedData_v4','eth_sendTransaction','ynx_requestProductSessionV2'])await assert.rejects(adapter.request({method,params:[]}),error=>error.code==='HOSTED_IDENTITY_ONLY');
