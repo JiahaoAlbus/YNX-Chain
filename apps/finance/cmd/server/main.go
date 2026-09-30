@@ -60,7 +60,8 @@ func main() {
 	var auth *finance.Authenticator
 	var endpointAuthority finance.EndpointAuthorityGate
 	legacyGateway := ""
-	switch envDefault("YNX_FINANCE_AUTH_MODE", "product-session-v2") {
+	authMode := envDefault("YNX_FINANCE_AUTH_MODE", "product-session-v2")
+	switch authMode {
 	case "product-session-v2":
 		endpointAuthority, err = finance.NewNodeEndpointAuthority(finance.NodeEndpointAuthorityConfig{
 			NodeBinary: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_NODE_BINARY"), Script: os.Getenv("YNX_FINANCE_ENDPOINT_AUTHORITY_V2_SCRIPT"),
@@ -82,6 +83,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Central browser identity has its own official backend in v2 mode.
+	// This does not enable the isolated legacy proof/session proxy.
+	walletGateway := walletGatewayForMode(authMode, centralBrowserSSO, legacyGateway)
 	service := &finance.Service{Store: store, Upstreams: upstreams, AI: &finance.HTTPAIProvider{URL: os.Getenv("YNX_AI_GATEWAY_URL"), APIKey: os.Getenv("YNX_AI_GATEWAY_KEY")}, Support: finance.SupportLinks{HelpURL: required("YNX_FINANCE_HELP_URL"), PrivacyURL: required("YNX_FINANCE_PRIVACY_URL"), DisputeURL: required("YNX_FINANCE_DISPUTE_URL")}}
 	webDir := os.Getenv("YNX_FINANCE_WEB_DIR")
 	if webDir == "" {
@@ -130,7 +134,7 @@ func main() {
 			log.Fatal("invalid Finance opaque legacy cutover")
 		}
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{CentralBrowserSSO: centralBrowserSSO, BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, EVMReadAuthority: evmRead, EVMSubjectAuthority: evmSubject, BrokerOpaqueAuthority: brokerOpaque, BrokerOpaqueLegacyCutoverAt: opaqueCutover, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{CentralBrowserSSO: centralBrowserSSO, BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: walletGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, EVMReadAuthority: evmRead, EVMSubjectAuthority: evmSubject, BrokerOpaqueAuthority: brokerOpaque, BrokerOpaqueLegacyCutoverAt: opaqueCutover, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -145,6 +149,16 @@ func main() {
 	if err := serveUntilShutdown(signalContext, httpServer, server.BeginDrain, timeout); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func walletGatewayForMode(authMode string, centralBrowserSSO bool, legacyGateway string) string {
+	if authMode == "product-session-v2" && centralBrowserSSO {
+		return finance.BrowserWalletAuthority
+	}
+	if authMode == "legacy-v1" {
+		return legacyGateway
+	}
+	return ""
 }
 
 type httpLifecycle interface {
