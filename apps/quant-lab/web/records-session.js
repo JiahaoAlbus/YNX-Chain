@@ -5,7 +5,7 @@ import {privateSessionCopy} from './private-session-copy.js';
 // A different SDK scope namespace/device from the old account-only session.
 const SCOPES=Object.freeze(['quant:records:read']);
 const STARTED='ynx.quant.records-session.v1.started';
-let adapter=null,initializing=null,pending=null,epoch=0,closed=false;
+let adapter=null,initializing=null,pending=null,pendingCancel=null,retiring=null,epoch=0,closed=false,selectionBinding=null;
 let state={status:'guest',account:null},lastRecords=null;
 function fail(code){throw Object.assign(new Error(code),{code});}
 function render(){
@@ -28,13 +28,23 @@ async function client(){
   }
   return initializing;
 }
-function publish(result){state={status:result.status,account:result.status==='connected'?result.session.account:null};lastRecords=null;render();}
+function publish(result){state={status:result.status,account:result.status==='connected'?result.session.account:null};if(state.status!=='connected')selectionBinding=null;lastRecords=null;render();}
+function retireClient(selected=adapter){
+  if(retiring)return retiring;
+  if(!selected)return Promise.resolve(null);
+  const own=selected.client.disconnect().finally(()=>{if(retiring===own)retiring=null;});retiring=own;return own;
+}
 export function beginRecordsSession(){
   if(pending){render();return pending;}
   if(state.status==='connected')return Promise.resolve(adapter.client.current);
   const revision=++epoch;
   pending=(async()=>{
+    if(retiring)await retiring;
+    if(epoch!==revision||closed)fail('PRIVATE_OPERATION_SUPERSEDED');
     const selected=await client();
+    let retirement=null;
+    const retire=()=>retirement??=(retireClient(selected).catch(()=>null));
+    pendingCancel=retire;
     const snapshot=window.YNXQuantWallet.getPrivateWalletContext();
     const current=()=>{const next=window.YNXQuantWallet.getPrivateWalletContext();if(closed||epoch!==revision||snapshot.provider!==next.provider||snapshot.account!==next.account||snapshot.chainId!==next.chainId||snapshot.providerKind!==next.providerKind||snapshot.revision!==next.revision||next.status!=='connected')fail('PRIVATE_OPERATION_SUPERSEDED');};
     try{
@@ -42,18 +52,18 @@ export function beginRecordsSession(){
       const request=await selected.client.beginExplicit();current();
       if(request.status!=='connecting'||typeof request.route?.url!=='string')fail('PRIVATE_REQUEST_UNAVAILABLE');
       const response=await window.YNXQuantWallet.requestProductSessionV2(request.route.url);current();
-      const result=await selected.client.handleReturn(response.returnUrl);current();publish(result);return result;
+      const result=await selected.client.handleReturn(response.returnUrl);current();publish(result);if(result.status==='connected')selectionBinding=snapshot;return result;
     }catch(error){
       // Guest presentation alone does not clear a durable pending challenge.
       // Original SDK disconnect owns cancel/revocation confirmation and retry.
-      await selected.client.disconnect().catch(()=>null);
+      await retire();
       if(epoch===revision){state={status:'degraded',account:null};lastRecords=null;render();}
       throw error;
-    }
+    }finally{if(pendingCancel===retire)pendingCancel=null;}
   })();
   const own=pending;own.finally(()=>{if(pending===own){pending=null;render();}}).catch(()=>null);render();return own;
 }
-export async function revokeRecordsSession(){epoch++;lastRecords=null;render();const selected=await client();const revision=epoch;const result=await selected.client.disconnect();if(epoch===revision)publish(result);return result;}
+export async function revokeRecordsSession(){epoch++;lastRecords=null;render();const selected=await client();const revision=epoch;const result=await (pendingCancel?pendingCancel():retireClient(selected));if(epoch===revision){if(result)publish(result);else{state={status:'degraded',account:null};render();}}return result;}
 export async function readPrivateRecords(){
   if(pending||state.status!=='connected')fail('PRIVATE_SIGN_IN_REQUIRED');
   const revision=epoch,context=window.YNXQuantWallet.getPrivateWalletContext(),selected=await client();
@@ -70,8 +80,9 @@ export async function readPrivateRecords(){
     const next=window.YNXQuantWallet.getPrivateWalletContext();
     if(epoch!==revision||context.revision!==next.revision||context.provider!==next.provider||context.account!==next.account||context.chainId!==next.chainId||context.providerKind!==next.providerKind)fail('PRIVATE_OPERATION_SUPERSEDED');
     if(!after||before.account!==after.account||before.sessionBinding!==after.sessionBinding||result.account!==after.account||result.sessionBinding!==after.sessionBinding||result.nativeExecutionEnabled!==false||result.paperWorkspaceLinked!==false||!Array.isArray(result.records?.mandates)||!Array.isArray(result.records?.executions))fail('PRIVATE_RECORDS_BINDING_MISMATCH');
+    if(next.status==='connected')selectionBinding=next;
     lastRecords=result.records;render();return result;
-  }catch(error){lastRecords=null;if(error.code==='PRIVATE_AUTHORIZATION_REJECTED'){state={status:'guest',account:null};epoch++;}render();throw error;}finally{clearTimeout(timer);}
+  }catch(error){if(epoch===revision){lastRecords=null;if(error.code==='PRIVATE_AUTHORIZATION_REJECTED'){state={status:'guest',account:null};epoch++;}render();}throw error;}finally{clearTimeout(timer);}
 }
 export function mountRecordsSession(){
   const run=fn=>fn().catch(()=>render());
@@ -83,7 +94,16 @@ export function mountRecordsSession(){
     // A lost transport is not a revoked server grant. Clear in-flight display,
     // but later reads still use fresh SDK/server verification of the native user.
     epoch++;lastRecords=null;render();
-    if(event.detail.identityChanged===true&&adapter){state={status:'guest',account:null};render();const revision=epoch;adapter.client.disconnect().then(result=>{if(epoch===revision)publish(result);}).catch(()=>{if(epoch===revision){state={status:'degraded',account:null};render();}});}
+    if((event.detail.identityChanged===true||pending)&&adapter){selectionBinding=null;state={status:'guest',account:null};render();const revision=epoch;(pendingCancel?pendingCancel():retireClient()).then(result=>{if(epoch===revision&&result)publish(result);}).catch(()=>{if(epoch===revision){state={status:'degraded',account:null};render();}});}
+  });
+  window.addEventListener('ynx:quant-wallet-state',()=>{
+    const next=window.YNXQuantWallet.getPrivateWalletContext();
+    if(!selectionBinding){if(state.status==='connected'&&next.status==='connected')selectionBinding=next;return;}
+    if(selectionBinding.provider===next.provider&&selectionBinding.account===next.account&&selectionBinding.chainId===next.chainId&&selectionBinding.providerKind===next.providerKind&&['connected','transport-unavailable'].includes(next.status))return;
+    // Transport continuity is not native identity mapping. A proven selected
+    // account/provider/network change retires the old approved read context.
+    selectionBinding=null;epoch++;lastRecords=null;state={status:'guest',account:null};render();
+    const revision=epoch;(pendingCancel?pendingCancel():retireClient()).then(result=>{if(epoch===revision&&result)publish(result);}).catch(()=>{if(epoch===revision){state={status:'degraded',account:null};render();}});
   });
   window.addEventListener('pagehide',()=>{epoch++;closed=true;adapter?.close();adapter=null;initializing=null;});
   // Restore only the SDK's existing server session; never begin/sign on refresh.

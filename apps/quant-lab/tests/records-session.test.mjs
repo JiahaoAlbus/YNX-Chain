@@ -19,11 +19,12 @@ test.before(async()=>{browser=await chromium.launch({headless:true,executablePat
 test.after(()=>browser.close());
 async function setup(mode='approve'){
   const context=await browser.newContext(),kernel=new ProductSessionGatewayHttpHandler(registry,()=>randomBytes(32).toString('base64url'));
-  let approvals=0,proofs=0,unavailable=false,releaseRead=null;
+  let approvals=0,proofs=0,unavailable=false,releaseRead=null,releaseApproval=null,completions=0;
   const page=await context.newPage();
   await page.exposeFunction('qaReadPending',()=>typeof releaseRead==='function');
-  await page.exposeFunction('qaNativeReturn',route=>{
+  await page.exposeFunction('qaNativeReturn',async route=>{
     approvals++;const request=parseProductSessionWalletURL(registry,route);
+    if(mode==='deferred'){const held=new Promise(resolve=>{releaseApproval=resolve;});await page.evaluate(()=>{window.nativeApprovalPendingQA=true;});await held;}
     assert.deepEqual(request.scopes,['quant:records:read']);assert.match(request.purpose,/No creation, execution, revocation, Paper or tenant permission/);
     const now=new Date(),result=mode==='reject'?{result:'rejected',reason:'user_rejected'}:{result:'approved',approval:signProductSessionApproval(registry,request,{accountSecret:'1'.padStart(64,'0'),scopes:request.scopes,expiresAt:new Date(now.getTime()+180000).toISOString()},now)};
     return {version:2,returnUrl:createProductSessionReturnURL(registry,request,result,now)};
@@ -42,6 +43,7 @@ async function setup(mode='approve'){
       const cors={'access-control-allow-origin':ORIGIN,'access-control-allow-methods':'GET, POST, OPTIONS','access-control-allow-headers':'x-request-id, content-type, x-ynx-product-session-proof-v2','access-control-expose-headers':'x-request-id, cache-control'};
       if(r.method()==='OPTIONS')return route.fulfill({status:204,headers:cors});
       const requestId=r.headers()['x-request-id'];
+      if(url.pathname.endsWith('/complete'))completions++;
       if(url.pathname.endsWith('/time'))return route.fulfill({headers:{...cors,'content-type':'application/json','cache-control':'no-store','x-request-id':requestId},body:canonicalJSON({schemaVersion:2,ok:true,requestId,result:{serverTime:new Date().toISOString()}})});
       const result=kernel.handle({requestId,method:r.method(),path:url.pathname,contentType:'application/json',body:r.postData()||'{}',proofHeader:r.headers()['x-ynx-product-session-proof-v2']||null,networkAvailable:true},new Date());
       return route.fulfill({status:result.status,headers:{...cors,...result.headers},body:result.body});
@@ -59,7 +61,7 @@ async function setup(mode='approve'){
     return route.fulfill({contentType:'text/html',body:'<select id="locale"></select><button id="records-authorize"></button><button id="records-read"></button><button id="records-revoke"></button><small id="records-status"></small><ul id="records-owned"></ul><script src="/bundle.js"></script>'});
   });
   await page.goto(ORIGIN);await page.waitForFunction(()=>!!window.recordsQA);
-  return {context,page,approvals:()=>approvals,proofs:()=>proofs,unavailable:value=>{unavailable=value;},hold:()=>{releaseRead=true;},release:()=>{const done=releaseRead;releaseRead=null;if(typeof done==='function')done();}};
+  return {context,page,approvals:()=>approvals,proofs:()=>proofs,completions:()=>completions,releaseApproval:()=>{const done=releaseApproval;releaseApproval=null;done?.();},unavailable:value=>{unavailable=value;},hold:()=>{releaseRead=true;},release:()=>{const done=releaseRead;releaseRead=null;if(typeof done==='function')done();}};
 }
 test('explicit records uses its own SDK scope, one pending intent, fresh reads and restore without re-sign',async()=>{
   const f=await setup();try{
@@ -86,6 +88,21 @@ test('records rejection does not log out the independent identity or create gran
     await assert.rejects(f.page.evaluate(()=>window.recordsQA.readPrivateRecords('e'.repeat(64))));
     assert.equal(f.proofs(),0);assert.equal(await f.page.locator('#records-owned li').count(),0);
   }finally{await f.context.close();}
+});
+
+test('approval pending transport loss clears SDK pending and rejects a cold late callback without completing',async()=>{
+  const f=await setup('deferred');try{
+    await f.page.evaluate(()=>{window.pendingQA=window.recordsQA.beginRecordsSession().then(()=>false,()=>true);});
+    await f.page.waitForFunction(()=>window.nativeApprovalPendingQA===true);
+    assert.equal(f.approvals(),1);
+    await f.page.evaluate(()=>window.disconnectContextQA());
+    f.releaseApproval();assert.equal(await f.page.evaluate(()=>window.pendingQA),true);
+    assert.equal(f.completions(),0);assert.equal(f.proofs(),0);
+    await f.page.reload();await f.page.waitForFunction(()=>document.getElementById('records-status').dataset.pending==='false');
+    assert.doesNotMatch(await f.page.locator('#records-status').textContent(),/ynx1/);
+    await assert.rejects(f.page.evaluate(()=>window.recordsQA.readPrivateRecords()));
+    assert.equal(f.completions(),0);assert.equal(f.approvals(),1);
+  }finally{f.releaseApproval();await f.context.close();}
 });
 
 test('pagehide/pageshow cannot adopt or clean up a newer deferred client initialization',async()=>{

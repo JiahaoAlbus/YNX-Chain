@@ -5,7 +5,7 @@ test('Quant Web consumes the exact shared runtime and reducer without a browser 
   for(const marker of ['wallet_switchEthereumChain','wallet_addEthereumChain','METAMASK_EVM_CHAIN'])assert.ok(chain.includes(marker),marker);
   for(const prohibited of ['ynxwallet://authorize','window.open','<iframe','location.assign','location.href=','createProductWalletConnection','fetch('])assert.equal(wallet.includes(prohibited),false,prohibited);
   for(const id of ['connect-wallet','connect-hosted','connect-metamask','install-wallet','install-metamask','wallet-revoke'])assert.ok(html.includes(`id="${id}"`));
-  assert.ok(wallet.includes('createHostedWalletAdapter'));assert.ok(wallet.includes('hosted-wallet-adapter-19d8a9a2.js'));
+  assert.ok(wallet.includes('createHostedWalletAdapter'));assert.ok(wallet.includes('hosted-wallet-adapter-4bccefef.js'));
   assert.match(lock,/provider-connect-state-p0/);
   const {createHash}=await import('node:crypto');
   const runtime=await readFile(root+'vendor/standard-wallet-browser-c97f85e9.mjs');
@@ -14,6 +14,9 @@ test('Quant Web consumes the exact shared runtime and reducer without a browser 
   const hosted=await readFile(root+'vendor/hosted-wallet-adapter-19d8a9a2.js');
   assert.equal(hosted.length,11468);
   assert.equal(createHash('sha256').update(hosted).digest('hex'),'96da4fe51649b237fa26efa7253a6efc9f6695a35c588ba192f03e0bec7d2126');
+  const accepted=await readFile(root+'../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js');
+  assert.equal(accepted.length,12659);
+  assert.equal(createHash('sha256').update(accepted).digest('hex'),'2567f4ec0958852ef27ee382067b6b104e33fe5dc3feba3aa94d710caa7f2c0a');
 });
 test('shared reducer closes the chooser, preserves a connected Wallet through RPC degradation, and restores a prior account',()=>{let state=createStandardWalletConnectState();state=reduceStandardWalletConnectState(state,{type:'BEGIN',pendingIntent:'quant_provider_connect_1234'});state=reduceStandardWalletConnectState(state,{type:'PROVIDER_SELECTED',providerKind:'metamask'});state=reduceStandardWalletConnectState(state,{type:'ACCOUNT_APPROVED',account:'0x1111111111111111111111111111111111111111'});state=reduceStandardWalletConnectState(state,{type:'CHAIN_CONFIRMED',chainId:'0x1917'});assert.equal(state.status,'connected');assert.equal(state.chooserOpen,false);assert.equal(state.pendingIntent,null);state=reduceStandardWalletConnectState(state,{type:'RPC_PROBE_DEGRADED',probeTransport:STANDARD_WALLET_RPC_PROBE_TRANSPORT,code:'RPC_PROBE_UNAVAILABLE'});assert.equal(state.status,'connected');assert.equal(state.account,'0x1111111111111111111111111111111111111111');assert.equal(state.chooserOpen,false);state=reduceStandardWalletConnectState(state,{type:'RESTORE',providerKind:'metamask',accounts:['0x1111111111111111111111111111111111111111'],chainId:'0x1917'});assert.equal(state.status,'connected');assert.equal(state.focusRestoreTarget,'wallet-connect-trigger');});
 test('Quant verifies or adds YNX Testnet before any account permission is requested',async()=>{const calls=[];let switches=0;const provider={request:async request=>{calls.push(request.method);if(request.method==='wallet_switchEthereumChain'&&++switches===1)throw Object.assign(new Error('unknown chain'),{code:4902});if(request.method==='wallet_switchEthereumChain'||request.method==='wallet_addEthereumChain')return null;if(request.method==='eth_chainId')return '0x1917';throw new Error(`unexpected request: ${request.method}`);}};await assert.doesNotReject(ensureYNXTestnet(provider));assert.deepEqual(calls,['wallet_switchEthereumChain','wallet_addEthereumChain','wallet_switchEthereumChain','eth_chainId']);});
