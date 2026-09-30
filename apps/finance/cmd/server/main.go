@@ -22,6 +22,10 @@ var buildRelease = "local"
 var buildTime = "unknown"
 
 func main() {
+	centralBrowserSSO, err := centralBrowserSSOEnabled(os.Getenv("YNX_FINANCE_CENTRAL_BROWSER_SSO"))
+	if err != nil {
+		log.Fatal(err)
+	}
 	store, err := finance.OpenStoreWithDatabase(required("YNX_FINANCE_STATE_PATH"), os.Getenv("YNX_FINANCE_DATABASE_URL"))
 	if err != nil {
 		log.Fatal(err)
@@ -126,7 +130,7 @@ func main() {
 			log.Fatal("invalid Finance opaque legacy cutover")
 		}
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, EVMReadAuthority: evmRead, EVMSubjectAuthority: evmSubject, BrokerOpaqueAuthority: brokerOpaque, BrokerOpaqueLegacyCutoverAt: opaqueCutover, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{CentralBrowserSSO: centralBrowserSSO, BrokerConfig: brokerage.LoadConfig(os.Getenv), BrokerMaxFeeUSD: os.Getenv("YNX_FINANCE_BROKER_MAX_FEE_USD"), BrokerFeeBoundSource: os.Getenv("YNX_FINANCE_BROKER_FEE_BOUND_SOURCE"), BrokerFeeEvidenceRef: os.Getenv("YNX_FINANCE_BROKER_FEE_EVIDENCE_REF"), AllowedOrigins: split(envDefault("YNX_FINANCE_ALLOWED_ORIGINS", finance.BrowserFinanceOrigin)), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: legacyGateway, EndpointAuthority: browserAuthority, EVMLoginAuthority: evmLogin, EVMReadAuthority: evmRead, EVMSubjectAuthority: evmSubject, BrokerOpaqueAuthority: brokerOpaque, BrokerOpaqueLegacyCutoverAt: opaqueCutover, LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -197,6 +201,17 @@ func shutdownTimeout(raw string) (time.Duration, error) {
 		return 0, errors.New("YNX_FINANCE_SHUTDOWN_TIMEOUT_SECONDS must be an integer from 1 to 300")
 	}
 	return time.Duration(seconds) * time.Second, nil
+}
+
+func centralBrowserSSOEnabled(raw string) (bool, error) {
+	switch raw {
+	case "", "false":
+		return false, nil
+	case "true":
+		return true, nil
+	default:
+		return false, errors.New("YNX_FINANCE_CENTRAL_BROWSER_SSO must be exactly true or false")
+	}
 }
 
 func required(key string) string {

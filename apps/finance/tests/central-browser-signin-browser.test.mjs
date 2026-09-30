@@ -1,0 +1,76 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {chromium} from 'playwright';
+import {mkdtemp,rm,readFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {createServer} from 'node:http';
+import {randomBytes,createHash} from 'node:crypto';
+import {secp256k1} from '../../../packages/wallet-auth/node_modules/@noble/curves/secp256k1.js';
+import {sha256} from '../../../packages/wallet-auth/node_modules/@noble/hashes/sha2.js';
+import {bytesToHex,hexToBytes,utf8ToBytes} from '../../../packages/wallet-auth/node_modules/@noble/hashes/utils.js';
+import {walletIdentity,evmAddressFromYNX} from '../../../packages/wallet-auth/src/crypto.js';
+import {ProductSessionGatewayNodeHost} from '../../../packages/wallet-auth/src/product-session-gateway-node-host.js';
+import {centralBrowserConsentSignBytes} from '../../../packages/wallet-auth/src/central-browser-session-contract.js';
+const registry=JSON.parse(await readFile(new URL('../../../packages/wallet-auth/product-session-registry.json',import.meta.url)));
+const issuer='https://wallet-auth.ynxweb4.com',key='1'.padStart(64,'0'),identity=walletIdentity(key),token=()=>randomBytes(32).toString('base64url');
+test('Finance preserves Klein blue and white under both OS color-scheme preferences',async()=>{
+  const styles=await readFile(new URL('../web/styles.css',import.meta.url),'utf8');
+  const browser=await chromium.launch({headless:true});try{
+    const page=await browser.newPage();await page.setContent(`<style>${styles}</style><body><div class="source-metrics"><div>Source</div></div></body>`);
+    for(const colorScheme of ['light','dark']){await page.emulateMedia({colorScheme});assert.deepEqual(await page.evaluate(()=>({blue:getComputedStyle(document.documentElement).getPropertyValue('--blue').trim(),background:getComputedStyle(document.body).backgroundColor,source:getComputedStyle(document.querySelector('.source-metrics>div')).backgroundColor})),{blue:'#002FA7',background:'rgb(255, 255, 255)',source:'rgb(255, 255, 255)'});}
+  }finally{await browser.close();}
+});
+test('central guest page uses explicit selected native RPC, actual backend consent and original PKCE callback; cancellation has no code',async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'ynx-central-page-'));
+  const host=new ProductSessionGatewayNodeHost(registry,{now:()=>new Date(),statePath:join(directory,'gateway'),tokenFactory:token,centralBrowser:true});
+  const server=createServer(host.handler());await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  const browser=await chromium.launch({headless:true});
+  try{for(const mode of ['approve','switch-4902','cancel','cancel-complete','account-rpc','account-complete','chain-complete','timeout-rpc','timeout-connect','timeout-accountread']){
+    const cancel=mode.startsWith('cancel'),negative=mode.startsWith('account')||mode.startsWith('chain');let completedCookie=null,releaseComplete;
+    const completion=new Promise(resolve=>releaseComplete=resolve);let notifyComplete;
+    const completeReached=new Promise(resolve=>notifyComplete=resolve);
+    const context=await browser.newContext();const page=await context.newPage();
+    if(mode.startsWith('timeout'))await page.clock.install();
+    let completeCalls=0;
+    await context.route(`${issuer}/**`,async route=>{const url=new URL(route.request().url());if(url.pathname.endsWith('/complete'))completeCalls++;const response=await route.fetch({url:`http://127.0.0.1:${server.address().port}${url.pathname}${url.search}`,maxRedirects:0,timeout:5000});
+      if(mode.endsWith('-complete')&&url.pathname.endsWith('/complete')){completedCookie=response.headers()['set-cookie'].split(';')[0];notifyComplete();await Promise.race([completion,new Promise(resolve=>setTimeout(resolve,5000))]);}
+      await route.fulfill({response}).catch(()=>{});
+    });
+    await context.route('https://finance.ynxweb4.com/**',route=>route.fulfill({body:'Returned to Finance'}));
+    await page.exposeFunction('qaApproval',challenge=>({challengeId:challenge.challengeId,...identity,walletSignature:bytesToHex(secp256k1.sign(sha256(utf8ToBytes(centralBrowserConsentSignBytes(challenge,identity.account,identity.accountPublicKey))),hexToBytes(key),{prehash:false,format:'compact',lowS:true}))}));
+    await page.addInitScript(({account,mode})=>{
+      const listeners=new Map(),emit=(event,value)=>{for(const listener of listeners.get(event)??[])listener(value);};
+      let chain=mode==='switch-4902'?'0x1':'0x1917',known=mode!=='switch-4902';window.qaEmit=emit;
+      window.qaCalls=[];window.ethereum={isYNXWallet:true,providerInfo:{rdns:'com.ynx.wallet'},on(event,listener){if(!listeners.has(event))listeners.set(event,new Set());listeners.get(event).add(listener);},removeListener(event,listener){listeners.get(event)?.delete(listener);},async request({method,params}){window.qaCalls.push(method);
+        if(mode==='timeout-rpc'&&method==='ynx_requestCentralBrowserSignIn'||mode==='timeout-connect'&&method==='eth_requestAccounts'||mode==='timeout-accountread'&&method==='eth_accounts'){const late=method==='ynx_requestCentralBrowserSignIn'?await window.qaApproval(params[0]):[account];return new Promise(resolve=>window.qaRelease=()=>resolve(late));}
+        if(method==='eth_requestAccounts'){emit('connect',{chainId:chain});emit('accountsChanged',[account]);emit('chainChanged',chain);return [account];}if(method==='eth_accounts')return [account];if(method==='eth_chainId')return chain;
+        if(method==='wallet_switchEthereumChain'){if(!known)throw Object.assign(new Error('unknown chain'),{code:4902});chain='0x1917';emit('chainChanged',chain);return null;}
+        if(method==='wallet_addEthereumChain'){known=true;return null;}
+        if(method==='ynx_requestCentralBrowserSignIn'){const result=await window.qaApproval(params[0]);if(mode==='account-rpc')emit('accountsChanged',['0x'+'2'.repeat(40)]);return result;}throw new Error('unsupported');}};
+    },{account:evmAddressFromYNX(identity.account),mode});
+    const state=token(),verifier=token(),query=new URLSearchParams({clientId:'ynx-finance-v1-sso-v1',origin:'https://finance.ynxweb4.com',redirectUri:'https://finance.ynxweb4.com/sso/callback',state,codeChallenge:createHash('sha256').update(verifier).digest('base64url'),codeChallengeMethod:'S256'});
+    await page.goto(`${issuer}/v2/browser-sessions/authorize?${query}`);
+    assert.deepEqual(await page.evaluate(()=>window.qaCalls),[]);
+    if(mode==='cancel')await page.click('#cancel');else{await page.selectOption('#wallet','0');await page.click('#approve');
+      if(mode.endsWith('-complete')){await completeReached;if(mode==='cancel-complete')await page.click('#cancel');else{await page.evaluate(mode=>window.qaEmit(mode==='account-complete'?'accountsChanged':'chainChanged',mode==='account-complete'?['0x'+'2'.repeat(40)]:'0x1'),mode);releaseComplete();}}}
+    if(mode.startsWith('timeout')){await page.waitForFunction(()=>typeof window.qaRelease==='function');await page.clock.fastForward(30001);await page.waitForSelector('#restart:not([hidden])');await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('request timed out'));
+      await page.evaluate(async()=>{window.qaRelease();await Promise.resolve();await Promise.resolve()});assert.equal(completeCalls,0);assert.equal(new URL(page.url()).origin,issuer);
+      await page.click('#restart');await page.waitForURL('https://finance.ynxweb4.com/sso/callback?**');assert.equal(new URL(page.url()).searchParams.get('error'),'access_denied');assert.equal(completeCalls,0);await context.close();continue;
+    }
+    if(negative){await page.waitForFunction(()=>document.getElementById('status').textContent.includes('context changed'));
+      assert.equal(new URL(page.url()).origin,issuer);
+      if(completedCookie){const response=await fetch(`http://127.0.0.1:${server.address().port}/v2/browser-sessions/status`,{headers:{cookie:completedCookie}});assert.equal(response.status,401);}
+      await context.close();continue;
+    }
+    await page.waitForURL('https://finance.ynxweb4.com/sso/callback?**',{timeout:10000});
+    const result=new URL(page.url());assert.equal(result.searchParams.get('state'),state);
+    assert.equal(result.searchParams.has('code'),!cancel);assert.equal(result.searchParams.get('error'),cancel?'access_denied':null);
+    if(mode==='cancel-complete'){releaseComplete();const response=await fetch(`http://127.0.0.1:${server.address().port}/v2/browser-sessions/status`,{headers:{cookie:completedCookie}});assert.equal(response.status,401);}
+    if(!cancel){const response=await fetch(`http://127.0.0.1:${server.address().port}/v2/browser-sessions/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({clientId:'ynx-finance-v1-sso-v1',code:result.searchParams.get('code'),codeVerifier:verifier,origin:'https://finance.ynxweb4.com',redirectUri:'https://finance.ynxweb4.com/sso/callback',state})});
+      // The wire is canonical; key order above is deliberately lexicographic.
+      assert.equal(response.status,200);assert.equal((await response.json()).identity.account,identity.account);
+    }
+    await context.close();
+  }}finally{await browser.close();await new Promise(resolve=>server.close(resolve));await rm(directory,{recursive:true,force:true});}
+});

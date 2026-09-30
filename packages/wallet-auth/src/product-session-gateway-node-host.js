@@ -10,6 +10,9 @@ import { ProductSessionGatewayHttpHandler } from "./product-session-gateway-http
 import { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION } from "./product-session-gateway.js";
 import { parseProductSessionRegistry } from "./product-session-registry.js";
 import { WALLET_SESSION_CONTROL_PATHS, WALLET_SESSION_CONTROL_PROOF_HEADER, walletSessionControlClockFloor } from "./wallet-session-control.js";
+import {createCentralBrowserSessionRegistry} from './central-browser-session-registry.js';
+import {CentralBrowserSessionStore} from './central-browser-session-store.js';
+import {CentralBrowserSessionAuthority,CentralBrowserSessionNodeRoutes} from './central-browser-session.js';
 
 export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 const STATE_FIELDS = ["schemaVersion", "snapshotDigest", "snapshot"];
@@ -29,10 +32,11 @@ const WALLET_CORS_ALLOWED_HEADERS = `content-type, x-request-id, ${WALLET_SESSIO
 const MAX_STATE_BYTES = 32 * 1024 * 1024;
 
 export class ProductSessionGatewayNodeHost {
-  #handler; #now; #origins; #registry; #stateIdentity; #statePath; #tokens;
+  #handler; #now; #origins; #registry; #stateIdentity; #statePath; #tokens; #central;
 
   constructor(registryInput, options) {
-    exactFields(options, ["now", "statePath", "tokenFactory"], "Product Session Gateway Node host options");
+    exactFields(options, Object.hasOwn(options,'centralBrowser')?["now","statePath","tokenFactory","centralBrowser"]:["now", "statePath", "tokenFactory"], "Product Session Gateway Node host options");
+    if(Object.hasOwn(options,'centralBrowser')&&typeof options.centralBrowser!=='boolean')fail('INVALID_HOST','Central browser adoption must be explicit');
     if (typeof options.now !== "function" || typeof options.tokenFactory !== "function") fail("INVALID_HOST", "Product Session Gateway Node host dependencies are invalid");
     if (typeof options.statePath !== "string" || !isAbsolute(options.statePath) || options.statePath === "/") fail("INVALID_STATE_PATH", "Product Session Gateway state path must be an absolute file path");
     this.#registry = parseProductSessionRegistry(registryInput);
@@ -42,6 +46,7 @@ export class ProductSessionGatewayNodeHost {
     this.#handler = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokens, stored?.snapshot);
     if (stored === null) this.#persist(this.#handler.snapshot());
     else this.#stateIdentity = stored.identity;
+    if(options.centralBrowser)this.#central=new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(this.#registry),new CentralBrowserSessionStore(`${this.#statePath}.browser`),{now:()=>this.#now().getTime(),tokenFactory:this.#tokens}));
   }
 
   handler() {
@@ -50,7 +55,13 @@ export class ProductSessionGatewayNodeHost {
       let corsHeaders = {};
       try {
         this.#assertStateIdentity();
-        const route = pathname(request.url);
+        const browserPath=this.#central?new URL(request.url,'http://127.0.0.1').pathname:null;
+        const route=this.#central?.handles(browserPath)?browserPath:pathname(request.url);
+        if(this.#central?.handles(route)){
+          const body=request.method==='POST'?await boundedBody(request):'';
+          const result=this.#central.handle({method:request.method,url:request.url,headers:request.headers,body});
+          response.writeHead(result.status,result.headers);response.end(result.body);return;
+        }
         corsHeaders = this.#corsHeaders(request.headers.origin, route);
         if (request.method === "OPTIONS") {
           const method = this.#preflight(request, corsHeaders);

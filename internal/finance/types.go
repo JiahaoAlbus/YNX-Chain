@@ -113,6 +113,7 @@ type AccountState struct {
 }
 
 type persistedState struct {
+	BrowserSSOBindings    map[string]FinanceBrowserSSOBinding   `json:"browserSSOBindings,omitempty"`
 	Version               int                                   `json:"version"`
 	Accounts              map[string]AccountState               `json:"accounts"`
 	Audit                 []AuditEvent                          `json:"audit"`

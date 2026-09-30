@@ -118,6 +118,7 @@
     "ynx-wallet-control-migrate-v3": "scripts/ynx-wallet-control-migrate-v3.mjs"
   },
   "scripts": {
+    "build:central-browser": "esbuild src/central-browser-session-browser.js --bundle --platform=browser --format=iife --legal-comments=none --outfile=src/central-browser-session-browser.bundle.js",
     "test": "node --test test/*.test.mjs && npm run test:types",
     "test:types": "tsc -p tsconfig.types.json",
     "check": "npm test",

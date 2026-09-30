@@ -517,6 +517,17 @@ func validatePersistedState(state persistedState) error {
 	if state.Accounts == nil || state.Nonces == nil {
 		return errors.New("incomplete finance state")
 	}
+	if len(state.BrowserSSOBindings) > 10000 {
+		return errors.New("invalid browser association capacity")
+	}
+	for key, binding := range state.BrowserSSOBindings {
+		if len(key) != 64 || len(binding.GrantDigest) != 64 || binding.Account == "" || len(binding.SealedGrant) < 64 || len(binding.SealedGrant) > 4096 || binding.ExpiresAt.IsZero() {
+			return errors.New("invalid browser private-session association")
+		}
+		if _, err := hex.DecodeString(key); err != nil {
+			return errors.New("invalid browser association key")
+		}
+	}
 	brokerAccountOwners := map[string]string{}
 	for account, accountState := range state.Accounts {
 		if account == "" {

@@ -1,0 +1,326 @@
+package finance
+
+import (
+	"bufio"
+	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
+	"net/http/cookiejar"
+	"net/http/httptest"
+	"net/url"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"syscall"
+	"testing"
+	"time"
+)
+
+func centralBrowserQAGateway(t *testing.T) string {
+	t.Helper()
+	script, err := filepath.Abs(filepath.Join("..", "..", "apps", "finance", "scripts", "central-browser-session-local-qa.mjs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command("node", script)
+	pipe, err := command.StdoutPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = command.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = command.Process.Signal(syscall.SIGTERM); _ = command.Wait() })
+	ready := make(chan string, 1)
+	go func() {
+		scanner := bufio.NewScanner(pipe)
+		if scanner.Scan() {
+			ready <- scanner.Text()
+		} else {
+			ready <- ""
+		}
+	}()
+	select {
+	case line := <-ready:
+		if !strings.HasPrefix(line, "FINANCE_CENTRAL_QA=http://127.0.0.1:") {
+			t.Fatal("isolated central QA did not start")
+		}
+		return strings.TrimPrefix(line, "FINANCE_CENTRAL_QA=")
+	case <-time.After(5 * time.Second):
+		t.Fatal("isolated central QA startup exceeded deadline")
+	}
+	return ""
+}
+func centralQARequest(t *testing.T, endpoint string, body any, cookie *http.Cookie, csrf string) (*http.Response, map[string]any) {
+	t.Helper()
+	var reader io.Reader
+	method := "GET"
+	if body != nil {
+		encoded, err := json.Marshal(body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reader = bytes.NewReader(encoded)
+		method = "POST"
+	}
+	request, err := http.NewRequest(method, endpoint, reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if body != nil {
+		request.Header.Set("Content-Type", "application/json")
+		request.Header.Set("Origin", BrowserWalletAuthority)
+	}
+	if cookie != nil {
+		request.AddCookie(cookie)
+	}
+	if csrf != "" {
+		request.Header.Set("X-YNX-Browser-CSRF", csrf)
+	}
+	response, err := (&http.Client{Timeout: 5 * time.Second}).Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var result map[string]any
+	if response.StatusCode != 204 {
+		if err = json.NewDecoder(response.Body).Decode(&result); err != nil {
+			t.Fatal("isolated central response was invalid")
+		}
+	}
+	return response, result
+}
+func TestCentralBrowserSSORealGatewayFinanceCookieOwnershipRecoveryAndLogout(t *testing.T) {
+	gateway := centralBrowserQAGateway(t)
+	store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	upstreams, err := NewUpstreams("https://explorer.example", "", "", "https://support.example/disputes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	auth, _ := testAuthenticator(t, "unused-native-product-proof")
+	server, err := NewServer(&Service{Store: store, Upstreams: upstreams, AI: fakeAI{}, Support: SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"}}, auth, ServerConfig{AllowedOrigins: []string{BrowserFinanceOrigin}, CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey, CentralBrowserSSO: true, WalletGatewayURL: gateway})
+	if err != nil {
+		t.Fatal(err)
+	}
+	product := httptest.NewTLSServer(server.Handler())
+	defer product.Close()
+	clients := map[string]*http.Client{}
+	accounts := map[string]string{}
+	for _, account := range []string{"A", "B"} {
+		jar, _ := cookiejar.New(nil)
+		isolatedClient := *product.Client()
+		isolatedClient.Timeout = 5 * time.Second
+		client := &isolatedClient
+		client.Jar = jar
+		client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		clients[account] = client
+		start, err := client.Get(product.URL + "/sso/start?target=planning")
+		if err != nil {
+			t.Fatal(err)
+		}
+		start.Body.Close()
+		if start.StatusCode != 303 {
+			t.Fatal("SSO start did not navigate to issuer")
+		}
+		location, err := url.Parse(start.Header.Get("Location"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		parameters := location.Query()
+		if location.Scheme+"://"+location.Host != BrowserWalletAuthority {
+			t.Fatal("SSO issuer was not fixed")
+		}
+		// Repeated start keeps the original PKCE/state/target transaction.
+		repeated, err := client.Get(product.URL + "/sso/start?target=assets")
+		if err != nil {
+			t.Fatal(err)
+		}
+		repeated.Body.Close()
+		if repeated.Header.Get("Location") != start.Header.Get("Location") {
+			t.Fatal("SSO start replaced an active pending transaction")
+		}
+		boot, bootstrap := centralQARequest(t, gateway+"/v2/browser-sessions/bootstrap", nil, nil, "")
+		transaction := boot.Cookies()[0]
+		initiator := map[string]string{}
+		for key, values := range parameters {
+			initiator[key] = values[0]
+		}
+		challenged, challenge := centralQARequest(t, gateway+"/v2/browser-sessions/challenge", initiator, transaction, bootstrap["csrfToken"].(string))
+		if challenged.StatusCode != 200 {
+			t.Fatal("real central challenge failed")
+		}
+		_, approval := centralQARequest(t, gateway+"/__qa/approve", map[string]any{"challenge": challenge["challenge"], "account": account}, nil, "")
+		completed, _ := centralQARequest(t, gateway+"/v2/browser-sessions/complete", approval, transaction, bootstrap["csrfToken"].(string))
+		if completed.StatusCode != 200 {
+			t.Fatal("native canonical central consent was not verified")
+		}
+		central := completed.Cookies()[0]
+		request, _ := http.NewRequest("GET", gateway+"/v2/browser-sessions/authorize?"+parameters.Encode(), nil)
+		request.AddCookie(central)
+		noRedirect := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+		authorized, err := noRedirect.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		authorized.Body.Close()
+		if authorized.StatusCode != 303 {
+			t.Fatal("central browser did not authorize registered Finance")
+		}
+		callback, _ := url.Parse(authorized.Header.Get("Location"))
+		callback.Path = "/sso/callback"
+		wrong, err := client.Get(product.URL + "/sso/callback?code=" + url.QueryEscape(callback.Query().Get("code")) + "&state=wrong")
+		if err != nil {
+			t.Fatal(err)
+		}
+		wrong.Body.Close()
+		if wrong.StatusCode != 400 {
+			t.Fatal("wrong callback state was accepted")
+		}
+		finished, err := client.Get(product.URL + callback.RequestURI())
+		if err != nil {
+			t.Fatal(err)
+		}
+		finished.Body.Close()
+		if finished.StatusCode != 303 || finished.Header.Get("Location") != "/#planning" {
+			t.Fatal("SSO callback lost original target")
+		}
+		for _, cookie := range finished.Cookies() {
+			if cookie.Name == financeSSOCookieName && (!cookie.Secure || !cookie.HttpOnly || cookie.Domain != "" || cookie.Path != "/") {
+				t.Fatal("product cookie policy widened")
+			}
+		}
+		accounts[account] = approval["account"].(string)
+		owned, err := client.Get(product.URL + "/api/sso/account")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var result map[string]any
+		_ = json.NewDecoder(owned.Body).Decode(&result)
+		owned.Body.Close()
+		if owned.StatusCode != 200 || result["account"] != accounts[account] || result["privateWorkspaceAuthorized"] != false {
+			t.Fatal("identity grant did not bind original native subject or widened private authority")
+		}
+		private, err := client.Get(product.URL + "/api/overview")
+		if err != nil {
+			t.Fatal(err)
+		}
+		private.Body.Close()
+		if private.StatusCode != 401 {
+			t.Fatal("identity grant bypassed native product scope approval")
+		}
+		replayed, err := client.Get(product.URL + callback.RequestURI())
+		if err != nil {
+			t.Fatal(err)
+		}
+		replayed.Body.Close()
+		if replayed.StatusCode != 400 {
+			t.Fatal("consumed callback was accepted")
+		}
+	}
+	if accounts["A"] == accounts["B"] {
+		t.Fatal("isolated native QA subjects were merged")
+	}
+	client := clients["A"]
+	address, _ := url.Parse(product.URL)
+	privateA := Session{Verifier: "wallet-auth-v2", ProductClient: "ynx-finance-v1", SessionBinding: strings.Repeat("a", 64), Account: accounts["A"], ExpiresAt: time.Now().Add(time.Hour)}
+	privateRequest := func(account string) *http.Request {
+		request, _ := http.NewRequest("GET", product.URL+"/api/overview", nil)
+		for _, cookie := range clients[account].Jar.Cookies(address) {
+			request.AddCookie(cookie)
+		}
+		return request
+	}
+	// Existing native permission is a separate input here; this assertion tests
+	// durable browser association, not a substitute Wallet approval or core API.
+	if server.authorizeBrowserSSOContext(privateRequest("B"), privateA) != 401 {
+		t.Fatal("central B accepted existing native permission A")
+	}
+	var firstReads sync.WaitGroup
+	results := make(chan int, 6)
+	for i := 0; i < 6; i++ {
+		firstReads.Add(1)
+		go func() {
+			defer firstReads.Done()
+			results <- server.authorizeBrowserSSOContext(privateRequest("A"), privateA)
+		}()
+	}
+	firstReads.Wait()
+	close(results)
+	for status := range results {
+		if status != 200 {
+			t.Fatal("same-account concurrent first private reads were not idempotent")
+		}
+	}
+	if server.authorizeBrowserSSOContext(privateRequest("B"), privateA) != 401 {
+		t.Fatal("linked native A crossed central browser B")
+	}
+	before := client.Jar.Cookies(address)
+	_, _ = centralQARequest(t, gateway+"/__qa/unavailable", map[string]any{}, nil, "")
+	unavailable, err := client.Get(product.URL + "/api/sso/account")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unavailable.Body.Close()
+	if unavailable.StatusCode != 503 {
+		t.Fatal("temporary central failure was not distinct from logout")
+	}
+	after := client.Jar.Cookies(address)
+	if len(after) != len(before) || after[0].Value != before[0].Value {
+		t.Fatal("temporary failure cleared or rotated verified product cookie")
+	}
+	_, _ = centralQARequest(t, gateway+"/__qa/available", map[string]any{}, nil, "")
+	verified, err := client.Get(product.URL + "/api/sso/account")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var identityResult map[string]any
+	_ = json.NewDecoder(verified.Body).Decode(&identityResult)
+	verified.Body.Close()
+	if verified.StatusCode != 200 {
+		t.Fatal("same product session did not recover")
+	}
+	logoutRequest, _ := http.NewRequest("POST", product.URL+"/api/sso/logout", strings.NewReader("{}"))
+	logoutRequest.Header.Set("Origin", BrowserFinanceOrigin)
+	logoutRequest.Header.Set("X-YNX-SSO-CSRF", identityResult["csrfToken"].(string))
+	logout, err := client.Do(logoutRequest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logout.Body.Close()
+	if logout.StatusCode != 200 {
+		t.Fatal("product grant logout was not verified")
+	}
+	denied, err := client.Get(product.URL + "/api/sso/account")
+	if err != nil {
+		t.Fatal(err)
+	}
+	denied.Body.Close()
+	if denied.StatusCode != 401 {
+		t.Fatal("logout identity remained authorized")
+	}
+	withoutCookie, _ := http.NewRequest("GET", product.URL+"/api/overview", nil)
+	if server.authorizeBrowserSSOContext(withoutCookie, privateA) != 401 {
+		t.Fatal("clearing cookie bypassed linked product logout")
+	}
+	restartedStore, err := OpenStore(store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.service.Store = restartedStore
+	if server.authorizeBrowserSSOContext(withoutCookie, privateA) != 401 {
+		t.Fatal("restart lost product logout association")
+	}
+	other, err := clients["B"].Get(product.URL + "/api/sso/account")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other.Body.Close()
+	if other.StatusCode != 200 {
+		t.Fatal("one browser logout invalidated another QA browser")
+	}
+}
