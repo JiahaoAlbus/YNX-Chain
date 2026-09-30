@@ -10,8 +10,8 @@ import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
-const source='15a9aebc8';
-const output='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-15a9aebc-20260930.json';
+const source='be66f7582';
+const output='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-be66f758-20260930.json';
 const priorPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-workspace-2627b209-v5-20260925.json';
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 const read=path=>readFileSync(resolve(root,path));

@@ -7,6 +7,7 @@ import { build, version as esbuildVersion } from 'esbuild';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const candidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-workspace-2627b209-v5-20260925.json';
 const guoqingCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-15a9aebc-20260930.json';
+const transportCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-be66f758-20260930.json';
 const expectedInputs = Object.freeze([
   'apps/finance/package.json', 'apps/finance/package-lock.json',
   'apps/finance/web/package.json', 'apps/finance/web/package-lock.json',
@@ -24,7 +25,7 @@ const fail = code => { throw new Error(`FINANCE_EVM_READ_${code}`); };
 
 export async function verifyEVMReadCandidate({ root = repoRoot, read = readFile, pinnedCandidateSha256, candidatePath: reviewedCandidatePath = candidatePath } = {}) {
   if (!/^[0-9a-f]{64}$/u.test(pinnedCandidateSha256 || '')) fail('CANDIDATE_PIN_REQUIRED');
-  if (![candidatePath,guoqingCandidatePath].includes(reviewedCandidatePath)) fail('CANDIDATE_PATH_UNREVIEWED');
+  if (![candidatePath,guoqingCandidatePath,transportCandidatePath].includes(reviewedCandidatePath)) fail('CANDIDATE_PATH_UNREVIEWED');
   const snapshot = new Map();
   const get = async path => {
     if (!snapshot.has(path)) snapshot.set(path, Buffer.from(await read(resolve(root, path))));
@@ -39,7 +40,8 @@ export async function verifyEVMReadCandidate({ root = repoRoot, read = readFile,
       candidate.truth?.deployedPublic !== false || candidate.truth?.privateFinanceAuthorized !== false ||
       candidate.truth?.realWalletApproval !== false || candidate.truth?.orderOrTransactionAuthorized !== false ||
       candidate.existingVerifierPin?.pinChanged !== false) fail('CANDIDATE_AUTHORITY_DRIFT');
-  const inputs=reviewedCandidatePath===guoqingCandidatePath?[...expectedInputs,'apps/finance/web/app.js','apps/finance/web/finance-locale.js']:expectedInputs;
+  const currentShape=reviewedCandidatePath===guoqingCandidatePath||reviewedCandidatePath===transportCandidatePath;
+  const inputs=currentShape?[...expectedInputs,'apps/finance/web/app.js','apps/finance/web/finance-locale.js']:expectedInputs;
   if (JSON.stringify(candidate.exactInputs?.map(item => item.path)) !== JSON.stringify(inputs)) fail('INPUT_SET_DRIFT');
   for (const item of candidate.exactInputs) {
     if (!Number.isSafeInteger(item.bytes) || item.bytes <= 0 || !/^[0-9a-f]{64}$/u.test(item.sha256)) fail('INPUT_IDENTITY_INVALID');
@@ -56,13 +58,13 @@ export async function verifyEVMReadCandidate({ root = repoRoot, read = readFile,
   const runtime = (await get('apps/finance/scripts/finance-nonregressive-runtime.mjs')).toString('utf8');
   const server = (await get('internal/finance/server.go')).toString('utf8');
   const drain = (await get('internal/finance/drain.go')).toString('utf8');
-  const scriptPattern=reviewedCandidatePath===guoqingCandidatePath?/<script src="\/evm-read-session\.js\?v=[0-9a-f]{64}" defer><\/script>/gu:/<script src="\/evm-read-session\.js" defer><\/script>/gu;
+  const scriptPattern=currentShape?/<script src="\/evm-read-session\.js\?v=[0-9a-f]{64}" defer><\/script>/gu:/<script src="\/evm-read-session\.js" defer><\/script>/gu;
   if ((html.match(scriptPattern) || []).length !== 1 ||
       !runtime.includes("'evm-read-session.js'") ||
       !runtime.includes("authority-runtime/apps/finance/scripts/evm-read-session-authority.bundle.mjs") ||
       !server.includes('GET /evm-read-session.js') || !server.includes('"/evm-read-session.js": "evm-read-session.js"') ||
       !drain.includes('"/evm-read-session.js"')) fail('RUNTIME_CLOSURE_DRIFT');
-  if(reviewedCandidatePath===guoqingCandidatePath)for(const name of ['app.js','finance-locale.js','evm-read-session.js']){
+  if(currentShape)for(const name of ['app.js','finance-locale.js','evm-read-session.js']){
     const expected=`/${name}?v=${sha256(await get(`apps/finance/web/${name}`))}`;
     if(!html.includes(`src="${expected}"`))fail(`ASSET_CACHE_BINDING_DRIFT:${name}`);
   }
