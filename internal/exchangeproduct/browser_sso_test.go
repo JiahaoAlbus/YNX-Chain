@@ -250,6 +250,38 @@ func TestBrowserSSOV10OwnedReadsAndDurableProductRevocation(t *testing.T) {
 	if oldRead.StatusCode != 401 {
 		t.Fatal("restarted linked session bypassed product revocation without cookie")
 	}
+	// A pre-b8 typed reader does not know the optional binding field. It drops
+	// it before stateIntegrity, so the new integrity hash must fail closed. A
+	// rollback must retain this compatible reader, not restore older state.
+	legacyView := cloneState(restarted.state)
+	legacyView.BrowserSSOBindings = nil
+	legacyHash, err := stateIntegrity(legacyView)
+	if err != nil || legacyHash == restarted.state.IntegrityHash {
+		t.Fatal("old reader unexpectedly accepts state containing linked authorization history")
+	}
+	restarted.cfg.BrowserSSO = nil
+	if readB(bob) != 401 {
+		t.Fatal("disabling SSO bypassed linked authorization history")
+	}
+	if _, err := restarted.CreditTestQuote("Bearer "+adminKey, bob, AmountScale, "sso-compatible-reader-save"); err != nil {
+		t.Fatal(err)
+	}
+	if err := restarted.Close(); err != nil {
+		t.Fatal(err)
+	}
+	rollbackReader, err := New(restarted.cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rollbackReader.Close()
+	rollbackReader.mu.Lock()
+	aliceBalance := rollbackReader.balanceLocked(alice, "YUSD_TEST")
+	bobBalance := rollbackReader.balanceLocked(bob, "YUSD_TEST")
+	links := len(rollbackReader.state.BrowserSSOBindings)
+	rollbackReader.mu.Unlock()
+	if aliceBalance.AvailableMicro != 17*AmountScale || bobBalance.AvailableMicro != 32*AmountScale || links != 2 {
+		t.Fatal("compatible disabled-SSO reader/save lost existing balances or linked history")
+	}
 }
 
 func assertSSOOwnedQuote(t *testing.T, snapshot AccountSnapshot, account string, amount int64) {
