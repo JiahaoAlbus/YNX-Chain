@@ -60,7 +60,7 @@ const indicator = document.querySelector("#indicator");
 function render(status) {
   indicator.className = `indicator ${status.available ? "ok" : "failed"}`;
   write(network, status.available ? "YNX Testnet network available" : "YNX Testnet unavailable");
-  if (status.available) chain.textContent = status.chainId; else write(chain, "Unavailable");
+  if (status.available) write(chain, status.chainId); else write(chain, "Unavailable");
   write(detail, status.available
     ? "The network is reachable. Connecting an app still requires account approval."
     : "The network is unavailable. Your accounts and backups remain accessible. Try again to refresh balances or send.");
@@ -307,10 +307,10 @@ function renderWalletConnect(payload) {
   lastWalletConnectStatus = payload;
   const status = payload?.ok === true ? payload.value : payload;
   const startupFailed = status?.configured && status?.code && status.code !== "WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED";
-  walletConnectTitle.textContent = startupFailed ? t("WalletConnect unavailable") : status?.relayConnected ? t("Ready to connect an app") : status?.started ? t("Connecting to WalletConnect…") : status?.configured ? t("WalletConnect unavailable") : t("Cross-device connections are coming");
+  walletConnectTitle.textContent = startupFailed ? t("WalletConnect unavailable") : status?.relayConnected ? t("Ready to connect an app") : status?.started ? t("Paste a WalletConnect link") : status?.configured ? t("WalletConnect unavailable") : t("Cross-device connections are coming");
   walletConnectDetail.textContent = status?.relayConnected && !startupFailed
     ? t("{count} connected apps. You review every signature and transaction.", { count: i18n.formatNumber(status.activeSessionCount) })
-    : status?.configured ? t("The connection service is unavailable. Your wallet and accounts remain accessible.") : t("WalletConnect is not enabled in this build. You can still connect directly from supported YNX apps.");
+    : status?.started && !startupFailed ? t("Pair an app to check the connection service. No connection has been confirmed yet.") : status?.configured ? t("The connection service is unavailable. Your wallet and accounts remain accessible.") : t("WalletConnect is not enabled in this build. You can still connect directly from supported YNX apps.");
   pairButton.disabled = !status?.started || startupFailed;
 }
 async function refreshWalletConnectSessions() {
