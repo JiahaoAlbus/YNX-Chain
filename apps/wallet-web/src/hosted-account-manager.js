@@ -6,8 +6,10 @@ export class HostedAccountManager {
   constructor(store,unlock=unlockEncryptedVault){this.store=store;this.unlockVault=unlock;}
   lock(){this.#generation++;this.#record=null;}
   isUnlocked(vault){return this.#record!==null&&this.#record===JSON.stringify(vault);}
-  async unlock(vault,password){
-    this.lock();const generation=this.#generation,record=JSON.stringify(vault);
+  begin(){this.lock();return this.#generation;}
+  isCurrent(generation){return generation===this.#generation;}
+  async unlock(vault,password,generation=this.begin()){
+    const record=JSON.stringify(vault);
     const assertCurrent=async()=>{if(generation!==this.#generation)fail("HOSTED_UNLOCK_CANCELLED");if(JSON.stringify(await this.store.read())!==record)fail("HOSTED_ACCOUNT_CHANGED");if(generation!==this.#generation)fail("HOSTED_UNLOCK_CANCELLED");};
     await assertCurrent();
     const unlocked=await this.unlockVault(vault,password);
