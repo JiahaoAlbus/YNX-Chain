@@ -13,6 +13,9 @@ import {walletIdentity,evmAddressFromYNX} from '../../../packages/wallet-auth/sr
 import {ProductSessionGatewayNodeHost} from '../../../packages/wallet-auth/src/product-session-gateway-node-host.js';
 import {centralBrowserConsentSignBytes} from '../../../packages/wallet-auth/src/central-browser-session-contract.js';
 import {canonicalJSON} from '../../../packages/wallet-auth/src/canonical.js';
+import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
+const {build}=createRequire(new URL('../web/package.json',import.meta.url))('esbuild');
 const registry=JSON.parse(await readFile(new URL('../../../packages/wallet-auth/product-session-registry.json',import.meta.url)));
 const issuer='https://wallet-auth.ynxweb4.com',key='1'.padStart(64,'0'),identity=walletIdentity(key),token=()=>randomBytes(32).toString('base64url');
 test('Finance preserves Klein blue and white under both OS color-scheme preferences',async()=>{
@@ -27,20 +30,24 @@ test('central guest page uses explicit selected native RPC, actual backend conse
   const host=new ProductSessionGatewayNodeHost(registry,{now:()=>new Date(),statePath:join(directory,'gateway'),tokenFactory:token,centralBrowser:true});
   const server=createServer(host.handler());await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const browser=await chromium.launch({headless:true});
-  try{for(const mode of ['approve','switch-4902','cancel','cancel-complete','account-rpc','account-complete','chain-complete','timeout-rpc','timeout-connect','timeout-accountread']){
-    const cancel=mode.startsWith('cancel'),negative=mode.startsWith('account')||mode.startsWith('chain');let completedCookie=null,releaseComplete;
+  // This fixture replaces only SignClient network transport at build time.
+  // Production uses the official locked SDK; this is not a Relay/Wallet receipt.
+  const pairFixture=await build({entryPoints:[fileURLToPath(new URL('../../../packages/wallet-auth/src/central-browser-session-browser.js',import.meta.url))],bundle:true,write:false,platform:'browser',format:'iife',plugins:[{name:'isolated-signclient-fixture',setup(build){build.onResolve({filter:/^@walletconnect\/sign-client$/},()=>({path:'fixture',namespace:'qa'}));build.onLoad({filter:/.*/,namespace:'qa'},()=>({contents:`export default {async init(){window.qaPairCalls=[];const topic='a'.repeat(64);return {on(){},session:{getAll:()=>[]},core:{pairing:{disconnect:async()=>window.qaPairCalls.push('cancel')}},async connect(){window.qaPairCalls.push('connect');return {uri:'wc:'+topic+'@2?relay-protocol=irn&symKey='+'2'.repeat(64),approval:()=>new Promise(resolve=>window.qaPairApprove=()=>resolve({topic,expiry:Math.floor(Date.now()/1000)+300,peer:{metadata:{url:'https://wallet.ynxweb4.com'}},namespaces:{eip155:{accounts:['eip155:6423:'+window.qaPairAccount],methods:['ynx_requestCentralBrowserSignIn'],chains:['eip155:6423']}}}))}},async request(input){window.qaPairCalls.push(input.request.method);return window.qaApproval(input.request.params[0]);},async disconnect(){window.qaPairCalls.push('disconnect');}}}};`,loader:'js'}));}}]});
+  try{for(const mode of ['approve','switch-4902','cancel','cancel-complete','account-rpc','account-complete','chain-complete','timeout-rpc','timeout-connect','timeout-accountread','pair-approve','pair-cancel']){
+    const cancel=mode.startsWith('cancel')||mode==='pair-cancel',negative=mode.startsWith('account')||mode.startsWith('chain');let completedCookie=null,releaseComplete;
     const completion=new Promise(resolve=>releaseComplete=resolve);let notifyComplete;
     const completeReached=new Promise(resolve=>notifyComplete=resolve);
     const context=await browser.newContext();const page=await context.newPage();
     if(mode.startsWith('timeout'))await page.clock.install();
     let completeCalls=0;
-    await context.route(`${issuer}/**`,async route=>{const url=new URL(route.request().url());if(url.pathname.endsWith('/complete'))completeCalls++;const response=await route.fetch({url:`http://127.0.0.1:${server.address().port}${url.pathname}${url.search}`,maxRedirects:0,timeout:5000});
+    await context.route(`${issuer}/**`,async route=>{const url=new URL(route.request().url());if(mode.startsWith('pair')&&url.pathname==='/sso/browser.js')return route.fulfill({body:pairFixture.outputFiles[0].text,contentType:'text/javascript'});if(url.pathname.endsWith('/complete'))completeCalls++;const response=await route.fetch({url:`http://127.0.0.1:${server.address().port}${url.pathname}${url.search}`,maxRedirects:0,timeout:5000});
       if(mode.endsWith('-complete')&&url.pathname.endsWith('/complete')){completedCookie=response.headers()['set-cookie'].split(';')[0];notifyComplete();await Promise.race([completion,new Promise(resolve=>setTimeout(resolve,5000))]);}
       await route.fulfill({response}).catch(()=>{});
     });
     await context.route('https://finance.ynxweb4.com/**',route=>route.fulfill({body:'Returned to Finance'}));
     await page.exposeFunction('qaApproval',challenge=>({challengeId:challenge.challengeId,...identity,walletSignature:bytesToHex(secp256k1.sign(sha256(utf8ToBytes(centralBrowserConsentSignBytes(challenge,identity.account,identity.accountPublicKey))),hexToBytes(key),{prehash:false,format:'compact',lowS:true}))}));
     await page.addInitScript(({account,mode})=>{
+      window.qaPairAccount=account;
       const listeners=new Map(),emit=(event,value)=>{for(const listener of listeners.get(event)??[])listener(value);};
       let chain=mode==='switch-4902'?'0x1':'0x1917',known=mode!=='switch-4902';window.qaEmit=emit;
       window.qaCalls=[];window.ethereum={isYNXWallet:true,providerInfo:{rdns:'com.ynx.wallet'},on(event,listener){if(!listeners.has(event))listeners.set(event,new Set());listeners.get(event).add(listener);},removeListener(event,listener){listeners.get(event)?.delete(listener);},async request({method,params}){window.qaCalls.push(method);
@@ -53,7 +60,12 @@ test('central guest page uses explicit selected native RPC, actual backend conse
     const state=token(),verifier=token(),query=new URLSearchParams({clientId:'ynx-finance-v1-sso-v1',origin:'https://finance.ynxweb4.com',redirectUri:'https://finance.ynxweb4.com/sso/callback',state,codeChallenge:createHash('sha256').update(verifier).digest('base64url'),codeChallengeMethod:'S256'});
     await page.goto(`${issuer}/v2/browser-sessions/authorize?${query}`);
     assert.deepEqual(await page.evaluate(()=>window.qaCalls),[]);
-    if(mode==='cancel')await page.click('#cancel');else{await page.selectOption('#wallet','0');await page.click('#approve');
+    if(mode.startsWith('pair')){
+      await page.click('#pair');await page.waitForFunction(()=>document.querySelector('#pair-request canvas').width===240);
+      assert.deepEqual(await page.evaluate(()=>window.qaPairCalls),['connect']);assert.equal(completeCalls,0);
+      if(mode==='pair-cancel'){await page.click('#cancel');await page.evaluate(()=>window.qaPairApprove());}
+      else{await page.evaluate(()=>window.qaPairApprove());await page.waitForFunction(()=>!document.querySelector('#approve').disabled);assert.equal(await page.locator('#pair-request').isHidden(),true);await page.click('#approve');}
+    }else if(mode==='cancel')await page.click('#cancel');else{await page.selectOption('#wallet','0');await page.click('#approve');
       if(mode.endsWith('-complete')){await completeReached;if(mode==='cancel-complete')await page.click('#cancel');else{await page.evaluate(mode=>window.qaEmit(mode==='account-complete'?'accountsChanged':'chainChanged',mode==='account-complete'?['0x'+'2'.repeat(40)]:'0x1'),mode);releaseComplete();}}}
     if(mode.startsWith('timeout')){await page.waitForFunction(()=>typeof window.qaRelease==='function');await page.clock.fastForward(30001);await page.waitForSelector('#restart:not([hidden])');await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('request timed out'));
       await page.evaluate(async()=>{window.qaRelease();await Promise.resolve();await Promise.resolve()});assert.equal(completeCalls,0);assert.equal(new URL(page.url()).origin,issuer);

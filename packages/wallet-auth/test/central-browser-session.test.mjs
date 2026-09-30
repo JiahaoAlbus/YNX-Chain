@@ -157,6 +157,9 @@ test('actual NodeHost SSO endpoints enforce central CSRF, backend-only code exch
   const send=(path,{body,origin,cookie,csrf}={})=>fetch(`${base}/v2/browser-sessions/${path}`,{method:body===undefined?'GET':'POST',redirect:'manual',headers:{...(body===undefined?{}:{'content-type':'application/json'}),...(origin?{origin}:{}),...(cookie?{cookie}:{}),...(csrf?{'x-ynx-browser-csrf':csrf}:{})},body:body===undefined?undefined:canonicalJSON(body)});
   try{
     const boot=await send('bootstrap'),bootstrap=await boot.json(),transactionCookie=boot.headers.getSetCookie()[0].split(';')[0],request=intent();
+    const guest=await send(`authorize?${new URLSearchParams(request.input)}`),policy=guest.headers.get('content-security-policy');assert.equal(guest.status,200);
+    assert.ok(policy.includes("frame-src https://verify.walletconnect.org;"));assert.ok(policy.includes("frame-ancestors 'none'"));assert.ok(!policy.includes('*')&&!policy.includes('ynx:')&&!policy.includes('walletconnect:'));
+    assert.ok(policy.includes("connect-src 'self' wss://relay.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com;"));
     let response=await send('challenge',{body:request.input,origin:issuer,cookie:transactionCookie,csrf:'incorrect'});assert.equal(response.status,403);
     response=await send('challenge',{body:request.input,origin:'https://unknown.ynxweb4.com',cookie:transactionCookie,csrf:bootstrap.csrfToken});assert.equal(response.status,403);
     const challenged=await send('challenge',{body:request.input,origin:issuer,cookie:transactionCookie,csrf:bootstrap.csrfToken});assert.equal(challenged.status,200);assert.equal(challenged.headers.has('access-control-allow-origin'),false);
