@@ -7,9 +7,9 @@
     "esbuildVersion": "0.25.9"
   },
   "evmRead": {
-    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-native-d334806c-20261001.json",
+    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-explicit-sso-3d2fe39c-20261001.json",
     "candidateBytes": 74031,
-    "candidateSha256": "0aa296f795b703377b1373841787e9ff531ff9e9d61353156ec642557b6e2fe6"
+    "candidateSha256": "07fccaad95a8cd385d5420ac0698e8d4cdd04bf7d23e8472b97e4508b8d7eac8"
   },
   "sourceBundleRelation": {
     "byteReproducible": true,
@@ -92,12 +92,12 @@
     {
       "path": "index.html",
       "bytes": 32397,
-      "sha256": "05d57c60e30426081095f157ee3d26f48b8bbfd64fd29a61110fb8c0750b81da"
+      "sha256": "cf3b2ccc253633b2582a16859820e169df719b0021d67325525c90832a1cfd13"
     },
     {
       "path": "app.js",
-      "bytes": 79797,
-      "sha256": "cff45a9182e6317d8dea37935ce0f153e57d0f16f33e9d22ff9c130781302e87"
+      "bytes": 79951,
+      "sha256": "6811107c1942cda53445954b523744630e85843cf29842e889920d3bf3d06ab3"
     },
     {
       "path": "finance-locale.js",
@@ -191,13 +191,13 @@
     },
     {
       "path": "verify-evm-read-candidate.mjs",
-      "bytes": 14502,
-      "sha256": "515c4f1067f00b0dfdfdf646f4e65f1225fa59f4f302908aa75ebcac2c32c032"
+      "bytes": 14867,
+      "sha256": "6b376a288c88c3e46759ae0807d04bfca60f7dff71bddb07712a165cfba0891a"
     },
     {
-      "path": "../evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-native-d334806c-20261001.json",
+      "path": "../evidence/evm-read-runtime-verifier-candidate-explicit-sso-3d2fe39c-20261001.json",
       "bytes": 74031,
-      "sha256": "0aa296f795b703377b1373841787e9ff531ff9e9d61353156ec642557b6e2fe6"
+      "sha256": "07fccaad95a8cd385d5420ac0698e8d4cdd04bf7d23e8472b97e4508b8d7eac8"
     },
     {
       "path": "../../../packages/wallet-auth/node_modules/@noble/hashes/_md.js",
