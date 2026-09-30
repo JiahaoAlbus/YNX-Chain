@@ -142,3 +142,7 @@ body.finance-route-broker #wallet-connect,body.finance-route-broker #broker-nav{
 #broker-order-preview:empty,#broker-quote-status:empty{display:none}
 @media(max-width:720px){#broker-sandbox{padding:20px 16px}#broker-sandbox>dl{grid-template-columns:1fr 1fr}#broker-sandbox>dl dt,#broker-sandbox>dl dd{padding-inline:12px}#broker-sandbox>dl dt:nth-of-type(3),#broker-sandbox>dl dd:nth-of-type(3){grid-column:1/-1;grid-row:2}#broker-sandbox>dl dd{font-size:15px}#broker-sandbox>article,#broker-sandbox>.grid{padding-top:20px;margin-top:20px}#broker-asset-search{display:grid;grid-template-columns:1fr}#broker-asset-search button{width:100%}#broker-order-form{grid-template-columns:repeat(2,minmax(0,1fr))}#broker-order-form label:first-of-type{grid-column:1/-1}#broker-order-form button{grid-column:1/-1}}
 @media(max-width:390px){#broker-sandbox>dl{grid-template-columns:1fr 1fr}#broker-order-form{grid-template-columns:1fr}#broker-order-form label:first-of-type{grid-column:auto}}
+#wallet-picker{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);border-radius:16px;padding:24px;color:var(--text);background:#fff}
+#wallet-picker::backdrop{background:rgb(15 35 65 / .35)}
+#wallet-picker button{min-height:44px;white-space:normal}
+#wallet-picker .wallet-choice{display:grid;grid-template-columns:1fr;gap:12px}

@@ -13,9 +13,10 @@ const CHAIN=METAMASK_EVM_CHAIN;
 let connection=null,selectedProvider=null,providerRegistry=null,hosted=null,activeTransport=null,unsubscribe=()=>{},intent=0,revision=0,busy=false,revoking=null;
 let standard=Object.freeze({status:'disconnected',providerKind:null,account:null,chainId:null});
 let lastMessage='';
+let pendingConnection=null;
 function label(key){return window.YNXFinanceLocale?.text(key)??key;}
 function message(code){
-  const key=({WALLET_NOT_FOUND:'walletNotFound',USER_REJECTED:'walletRejected',WRONG_NETWORK:'walletWrongChain',LOCAL_DISCONNECT_ONLY:'standardDisconnected',PERMISSION_REVOKED:'walletRevoked',WALLET_DETAILS_ONLY:'walletDetailsOnly',PROVIDER_ACCOUNT_UNAVAILABLE:'walletAccountUnavailable'})[code];
+  const key=({REQUEST_PENDING:'standardBusy',WALLET_NOT_FOUND:'walletNotFound',USER_REJECTED:'walletRejected',WRONG_NETWORK:'walletWrongChain',LOCAL_DISCONNECT_ONLY:'standardDisconnected',PERMISSION_REVOKED:'walletRevoked',WALLET_DETAILS_ONLY:'walletDetailsOnly',PROVIDER_ACCOUNT_UNAVAILABLE:'walletAccountUnavailable'})[code];
   return key?label(key):code?.startsWith('REVOCATION_')?label('walletRevocationUnconfirmed'):code?label('walletActionUnavailable'):'';
 }
 const ready=new Promise(resolve=>document.readyState==='loading'?document.addEventListener('DOMContentLoaded',resolve,{once:true}):resolve()).then(boot);
@@ -131,7 +132,17 @@ async function requestProductSessionV2(url){
   if(result?.version!==2||typeof result.returnUrl!=='string'||result.returnUrl.length>16384)throw new Error('PRIVATE_RETURN_INVALID');
   return result;
 }
-async function connect(kind){
+function connect(kind){
+  if(pendingConnection){
+    lastMessage='REQUEST_PENDING';render();document.querySelector('#wallet-state')?.focus();
+    return pendingConnection.kind===kind&&!pendingConnection.cancelled?pendingConnection.promise:Promise.resolve(null);
+  }
+  const pending={kind,promise:null,cancelled:false};
+  pendingConnection=pending;
+  pending.promise=performConnect(kind).finally(()=>{if(pendingConnection===pending)pendingConnection=null});
+  return pending.promise;
+}
+async function performConnect(kind){
   if(!['ynx-wallet','metamask'].includes(kind))throw new Error('WALLET_SELECTION_INVALID');
   const value=++intent;activeTransport='injected';void hosted?.disconnect();detach();preference(null);busy=true;publish({status:'connecting',providerKind:kind,account:null,chainId:null,transport:'injected'});
   try{
@@ -159,7 +170,7 @@ async function restoreStandardWallet(){
     publish(snapshot(selected,kind));if(standard.status!=='connected')preference(null);return standard;
   }catch(error){if(value===intent){detach();publish({status:'disconnected',providerKind:kind,account:null,chainId:null},error.message||'WALLET_UNAVAILABLE');}return null;}
 }
-function disconnectStandardWallet(){intent++;activeTransport=null;busy=false;preference(null);detach();void hosted?.disconnect();publish({status:'disconnected',providerKind:null,account:null,chainId:null,disconnectReason:'explicit-local'},'LOCAL_DISCONNECT_ONLY');}
+function disconnectStandardWallet(){if(pendingConnection)pendingConnection.cancelled=true;intent++;activeTransport=null;busy=false;preference(null);detach();void hosted?.disconnect();publish({status:'disconnected',providerKind:null,account:null,chainId:null,disconnectReason:'explicit-local'},'LOCAL_DISCONNECT_ONLY');}
 async function revokeStandardWallet(){
   if(activeTransport==='hosted'){
     busy=true;render();

@@ -44,18 +44,19 @@ let revision = 0;
 let statusKey = 'disconnected';
 let verifiedData = null;
 let operation = 0;
+let serverConfirmed = false;
 
 // Only publish data after the server has verified a fresh, exact device proof.
 // A locally restored session descriptor is not a successful business read.
 function publish() {
   window.dispatchEvent(new CustomEvent('ynx-finance-account-session', { detail: {
     status: statusKey, account: active?.account || null, providerKind: active?.providerKind || null, revision,
-    expiresAt: active?.session.expiresAt || null, data: verifiedData,
+    expiresAt: active?.session.expiresAt || null, active: Boolean(active), serverConfirmed, data: verifiedData,
   } }));
 }
 
 function language() { return document.querySelector('#finance-language')?.value === 'zh-CN' ? 'zh-CN' : 'en'; }
-function message(key) { return copy[language()][key] || copy.en[key] || key; }
+function message(key) { return key==='loading'?window.YNXFinanceLocale?.text('checkingSources')??'Checking sources':copy[language()][key] || copy.en[key] || key; }
 function status(key) {
   statusKey = key;
   const element = document.querySelector('#evm-read-state');
@@ -143,6 +144,7 @@ function signer(privateKey) {
 }
 function clearLocal() {
   active = null;
+  serverConfirmed = false;
   verifiedData = null;
   revision++;
   try { sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(PENDING_KEY); } catch {}
@@ -186,6 +188,7 @@ async function begin() {
     const session = parseEvmProductSession(response.session);
     if (response.schemaVersion !== 'finance-evm-read-session-v1' || response.evmAccountReadAuthorized !== true || response.privateFinanceAuthorized !== false || response.extensionLiveStateAttested !== false || session.account !== selected.account || session.deviceId !== device.deviceId || session.deviceKey !== device.deviceKey) throw new Error('SESSION_BINDING_MISMATCH');
     active = { session, deviceId: device.deviceId, account: selected.account, providerKind: selected.providerKind };
+    serverConfirmed = true;
     try { unchanged(selected); } catch (error) { await revoke(); throw error; }
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(active));
     sessionStorage.removeItem(PENDING_KEY);
@@ -205,6 +208,9 @@ async function read() {
   if (!active) return null;
   const current = active, at = Date.now(), expiresAt = Math.min(at + 30000, Date.parse(current.session.expiresAt));
   if (expiresAt <= at) { clearLocal(); status('expired'); return null; }
+  verifiedData = null;
+  const summary=document.querySelector('#evm-read-summary');if(summary)summary.textContent='';
+  status('loading');
   try {
     const selected = readSnapshot(current);
     const privateKey = await deviceKey(current.deviceId);
@@ -215,6 +221,7 @@ async function read() {
     if (active !== current || window.YNXFinanceWallet.getStandardRevision() !== selected.revision || data?.schemaVersion !== 'finance-evm-account-read-v1' || data.account !== current.account || data.evmAccountReadAuthorized !== true || data.privateFinanceAuthorized !== false || data.extensionLiveStateAttested !== false) throw new Error('READ_BINDING_MISMATCH');
     if (data.portfolio?.account !== current.account) throw new Error('PORTFOLIO_ACCOUNT_MISMATCH');
     verifiedData = data;
+    serverConfirmed = true;
     const portfolio = data.portfolio;
     const summary = document.querySelector('#evm-read-summary');
     if (summary) summary.textContent = portfolio?.explorerStatus?.available === true ? `${current.account} · ${portfolio.balanceYnxt} YNXT · Explorer` : `${current.account} · Explorer data unavailable`;
@@ -270,6 +277,7 @@ async function restore() {
       return;
     }
     active = restored;
+    serverConfirmed = false;
     revision++;
     return await read();
   } catch { clearLocal(); status('disconnected'); }
@@ -291,5 +299,5 @@ async function boot() {
   await restore();
 }
 
-window.YNXFinanceEVMRead = Object.freeze({ begin, read, revoke, restore, state: () => ({ active: Boolean(active), status: statusKey, account: active?.account || null, providerKind: active?.providerKind || null, expiresAt: active?.session.expiresAt || null, revision, data: verifiedData }) });
+window.YNXFinanceEVMRead = Object.freeze({ begin, read, revoke, restore, state: () => ({ active: Boolean(active), serverConfirmed, status: statusKey, account: active?.account || null, providerKind: active?.providerKind || null, expiresAt: active?.session.expiresAt || null, revision, data: verifiedData }) });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true }); else boot();

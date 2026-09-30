@@ -69,14 +69,14 @@ async function begin(){
 async function retry(){return operation(selected=>selected.client.retryDetected());}
 async function disconnect(){return operation(selected=>selected.client.disconnect());}
 function guest(){generation++;busy=false;const state=adapter?.client.enterGuest()??{status:'guest',session:null};publish(state);return state;}
-function reportFailure(){publish({status:'degraded',session:null},'PRIVATE_SERVICE_DEGRADED');}
+function reportFailure(error){publish({status:'degraded',session:null},error?code(error):'PRIVATE_SERVICE_DEGRADED');}
 async function proof(scope){
   if(!SCOPES.includes(scope)||current.status!=='connected'||!current.session||!adapter)throw new Error('PRIVATE_SERVICE_DEGRADED: Private Finance requires separate Wallet approval.');
   const standardRevision=window.YNXFinanceWallet?.getStandardRevision?.();
   if(!privateSubjectMatchesSelectedWallet(current.session,window.YNXFinanceWallet?.getStandardWalletState?.()))throw new Error('FINANCE_ACCOUNT_MISMATCH: Selected Wallet differs from the approved private Finance subject.');
   const attempt=generation,view=current,selected=adapter;
   try{await assertFinancePrivateAuthority();const authorityRevision=financePrivateAuthorityRevision(),authorization=await selected.createIntrospectionProof([scope]);if(authorityRevision!==financePrivateAuthorityRevision()||attempt!==generation||current!==view||selected!==adapter||standardRevision!==window.YNXFinanceWallet?.getStandardRevision?.()||!privateSubjectMatchesSelectedWallet(view.session,window.YNXFinanceWallet?.getStandardWalletState?.()))throw new Error('FINANCE_CONTEXT_CHANGED');return authorization;}
-  catch(error){if(attempt===generation&&error?.message!=='FINANCE_CONTEXT_CHANGED')reportFailure();throw error;}
+  catch(error){if(attempt===generation&&error?.message!=='FINANCE_CONTEXT_CHANGED')reportFailure(error);throw error;}
 }
 function render(){
   const status=document.querySelector('#private-state'),account=current.session?.account;

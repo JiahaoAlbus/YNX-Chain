@@ -66,6 +66,34 @@ test('selected private-provider transport refuses a late return after the accoun
     assert.equal(await page.evaluate(()=>window.privateTransportResult),'FINANCE_CONTEXT_CHANGED');
   }finally{await page.close()}
 });
+test('main wallet chooser is named, keyboard cancellable, and never asks for accounts or signatures on open',async()=>{
+  const page=await fixture();try{
+    await page.locator('#wallet-entry').click();
+    assert.equal(await page.getByRole('dialog',{name:'Connect to Finance'}).isVisible(),true);
+    assert.deepEqual(await calls(page),[]);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#wallet-picker').isVisible(),false);
+    assert.equal(await page.evaluate(()=>document.activeElement.id),'wallet-entry');
+    await page.locator('#wallet-entry').click();await page.locator('#picker-metamask').click();
+    await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected');
+    assert.equal((await calls(page)).some(call=>call.method==='personal_sign'),false);
+    assert.equal(await page.locator('#wallet-picker').isVisible(),false);
+  }finally{await page.close()}
+});
+test('same pending connection promise issues one request; different selection and cancel cannot authorize twice',async()=>{
+  const page=await fixture({deferSwitch:true});try{
+    await page.evaluate(()=>{window.pendingOne=window.YNXFinanceWallet.connect();window.pendingTwo=window.YNXFinanceWallet.connect();window.samePending=window.pendingOne===window.pendingTwo});
+    assert.equal(await page.evaluate(()=>window.samePending),true);
+    await page.waitForFunction(()=>window.__financeFixture.pendingSwitch);
+    await page.evaluate(()=>window.YNXFinanceWallet.connectMetaMask());
+    assert.equal((await calls(page)).filter(call=>call.method==='wallet_switchEthereumChain').length,1);
+    await page.evaluate(()=>window.YNXFinanceWallet.disconnectStandardWallet());
+    await page.evaluate(()=>window.__financeFixture.pendingSwitch());
+    assert.equal(await page.evaluate(()=>window.pendingOne),null);
+    assert.equal((await calls(page)).some(call=>call.method==='eth_requestAccounts'),false);
+    assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'disconnected');
+  }finally{await page.close()}
+});
 async function readChallenge(page,account,requestId){
   await page.route('**/api/evm-read/challenges',route=>{
     const device=route.request().postDataJSON(),at=Date.now();

@@ -8,7 +8,7 @@
   <meta name="description" content="Read-only YNXT activity, private planning, statements, and evidence-linked Pay receipts.">
   <link rel="manifest" href="/manifest.webmanifest?v=3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05">
   <link rel="icon" href="/ynx-logo.png?v=df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d" type="image/png">
-  <link rel="stylesheet" href="/styles.css?v=de0bbb7a430ddbd98dda31ea7df8e801ef9a9f4653d5a8da6dc108194939e900">
+  <link rel="stylesheet" href="/styles.css?v=f8d1c66984ba867ae02b572450c68a1b2d7772bd4afdb991b3be78d239d41c00">
   <title>YNX Finance</title>
 </head>
 <body>
@@ -23,6 +23,15 @@
     </aside>
     <main id="main" tabindex="-1">
       <header class="topbar"><div><span class="eyebrow" data-finance-i18n="chain">YNX Chain public testnet · YNXT</span><h1 id="page-title" data-finance-i18n="appName">YNX Finance</h1></div><div class="session"><label class="language-control"><span data-finance-i18n="language">Language</span><select id="finance-language" aria-label="Finance language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-Hant">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="id">Bahasa Indonesia</option></select></label><span id="source-pill" class="pill neutral">Not connected</span><button id="network-retry" class="ghost" type="button" data-finance-i18n="reconnect">Reconnect YNX Chain</button><details class="account-menu"><summary data-finance-i18n="accountMenu">Account</summary><div class="account-menu-panel"><a href="#wallet-connect" data-finance-i18n="walletPermissions">Wallet & permissions</a><a href="#settings" data-finance-i18n="settings">Settings</a><button id="signin" class="primary hidden" type="button" data-finance-i18n="walletSignIn">Connect YNX Wallet</button><button id="logout" class="ghost hidden" type="button" data-finance-i18n="walletSignOut">Sign out</button></div></details></div></header>
+      <button id="wallet-entry" class="primary" type="button" data-finance-i18n="connect">Connect a wallet</button>
+      <dialog id="wallet-picker" aria-labelledby="wallet-picker-heading">
+        <h2 id="wallet-picker-heading" data-finance-i18n="walletHeading">Connect to Finance</h2>
+        <p data-finance-i18n="walletIntro">Choose a wallet. Connecting does not authorize private Finance.</p>
+        <div class="wallet-choice"><button id="picker-ynx" type="button" data-finance-i18n="connectYNX">YNX Wallet</button><button id="picker-metamask" type="button" data-finance-i18n="connectMetaMask">MetaMask</button><button id="picker-hosted" type="button" data-finance-i18n="hostedConnect">YNX Wallet Web</button></div>
+        <p data-finance-i18n="pairUnavailable">Mobile pairing is not configured for this Finance release.</p>
+        <p id="wallet-picker-state" role="status" aria-live="polite"></p>
+        <button id="wallet-picker-close" type="button" data-finance-i18n="walletCancel">Cancel</button>
+      </dialog>
       <section id="wallet-connect" class="panel" aria-label="Standard Wallet connection">
         <div class="panel-head"><div><h2 data-finance-i18n="walletHeading">Connect to Finance</h2><p data-finance-i18n="walletIntro">Browse without a wallet. Connect one to see your own available testnet records.</p></div></div>
         <div id="wallet-choice" class="wallet-choice"><button id="connect-ynx" class="primary connect" type="button" data-finance-i18n="connectYNX">Connect YNX Wallet</button><button id="connect-metamask" class="ghost" type="button" data-finance-i18n="connectMetaMask">Connect MetaMask</button><a id="install-wallet" class="button ghost" href="https://www.ynxweb4.com/dapp/download" data-finance-i18n="downloadYNX">Download YNX Wallet</a><a id="install-metamask" class="button ghost" href="https://metamask.io/download/" data-finance-i18n="installMetaMask">Install MetaMask</a></div>
@@ -86,6 +95,7 @@
         <div id="account-session-activity" class="rows"></div>
       </section>
       <div id="workspace" class="hidden">
+        <div id="workspace-data-warning" class="hidden" role="status"><p data-finance-i18n="dataUnavailableDraft">Data is temporarily unavailable. Previous values are not current; your draft is preserved.</p><button id="workspace-data-retry" type="button" data-finance-i18n="refreshSources">Refresh sources</button></div>
         <section id="overview" class="view" aria-labelledby="overview-heading">
           <div class="section-head"><div><span class="eyebrow" data-finance-i18n="overviewEyebrow">Finance overview</span><h2 id="overview-heading" data-finance-i18n="overview">Overview</h2><p data-finance-i18n="overviewIntro">Your recent source-backed records and items that need attention.</p></div><button class="ghost" id="refresh" data-finance-i18n="refreshSources">Refresh sources</button></div>
           <div class="task-strip"><a class="task-link primary" href="#assets" data-finance-i18n="assets">Assets</a><a class="task-link ghost" href="#orders" data-finance-i18n="orders">Orders</a><a class="task-link ghost" href="#strategies" data-finance-i18n="strategies">Strategies</a><a class="task-link ghost" href="#planning" data-finance-i18n="budgetsReports">Budgets & reports</a></div>
@@ -114,13 +124,13 @@
       </div>
     </main>
   </div>
-  <script src="/finance-locale.js?v=eae6ab55bb514dc6d902bd67ce9bfc63c451d00027c5490e88d64eab6cdab715" defer></script>
-  <script src="/wallet-auth.js?v=ce4a1be7203ea696e6093cfd952f3eaea140e09a2bca5924ebec221c1914598c" defer></script>
+  <script src="/finance-locale.js?v=5925b784a2a69d9bcbf06f25e7314430d46b6b30dac33d6dcd272f04e4b76d00" defer></script>
+  <script src="/wallet-auth.js?v=ff23421f0c1ee935a6dfeaeaf96c1fd75836cf3a27923069c26533cc2b1daf24" defer></script>
   <script src="/order-wallet.js?v=6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc" defer></script>
   <script src="/order-opaque.js?v=c390bfe8d036a9f492a0b393ea2145d086dd9065fa63d0a826701c7190427de0" defer></script>
-  <script src="/evm-read-session.js?v=caa0dc422dcd3cd49ccc018b26eba9bcfdd896af51fcf82dec6409db5ffb6b88" defer></script>
+  <script src="/evm-read-session.js?v=be89b770dd33af4f97babc3e50f119fcdf12dabaf7fd779ee05ee3401a24ee83" defer></script>
   <script src="/evm-subject.js?v=8fe55f719f8899a5b57f25287a18a16338a1bfb64da266f23580e07183b8f161" defer></script>
-  <script src="/app.js?v=39ecc052393e163c0b8f13c8d587935e8c70e76d0e14413a885187207ce7b16c" defer></script>
+  <script src="/app.js?v=359f5913864a965fcd504841967bca0d9f4d6d97623384ff55fd28419b6c71a6" defer></script>
   <script src="/read-sources.js?v=a29b1b494f86a89c1aee12a0d27c200436b7ef33823fc8109323165b12eef63d" defer></script>
   <script src="/product-catalog.js?v=dc98fedb9734207a2688f0a5ce154a16b0be11240947a4910414bb212eed9088" defer></script>
 </body>

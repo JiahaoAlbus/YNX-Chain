@@ -47,7 +47,7 @@ test('browser read-only bundle is byte-reproducible from the shared Wallet/Auth 
   assert.deepEqual(Buffer.from(first.outputFiles[0].contents), bundle);
 });
 
-for (const recovery of ['account-change','offline-logout','late-revoke','read-rejected','transport-close','offline-empty-account','offline-changed-account']) test(`main Finance login reads owned workspace and handles ${recovery}`, async () => {
+for (const recovery of ['account-change','offline-logout','late-revoke','read-rejected','read-temporary','transport-close','offline-empty-account','offline-changed-account']) test(`main Finance login reads owned workspace and handles ${recovery}`, async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -79,7 +79,7 @@ for (const recovery of ['account-change','offline-logout','late-revoke','read-re
         return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 'finance-evm-read-session-v1', session, evmAccountReadAuthorized: true, privateFinanceAuthorized: false, extensionLiveStateAttested: false }) });
       }
       if (path === '/api/evm-read/portfolio') {
-        if (rejectRead) return route.fulfill({ status: 401, contentType: 'application/json', body: '{"code":"evm_read_session_unavailable"}' });
+        if (rejectRead) return route.fulfill({ status: rejectRead===503?503:401, contentType: 'application/json', body: '{"code":"evm_read_session_unavailable"}' });
         const proof = JSON.parse(Buffer.from(request.headers()['x-ynx-evm-read-proof'], 'base64url').toString());
         const target = new URL(request.url()).pathname;
         await verifyAndConsumeEvmProductSessionHttpProof(proof, async () => session, { origin, method: 'GET', target, bodyDigest: emptyDigest, requiredScope: 'finance.account.read', allowedTargets: ['/api/evm-read/portfolio'] }, { currentAccount: account, currentChainId: 6423, connected: true, revoked: false }, async ({ nonce }) => { if (used.has(nonce)) return false; used.add(nonce); return true; }, new Date());
@@ -113,6 +113,27 @@ for (const recovery of ['account-change','offline-logout','late-revoke','read-re
     await page.waitForFunction(() => document.querySelector('#evm-read-summary').textContent.includes('123 YNXT'));
     await page.locator('#finance-language').selectOption('zh-CN');
     assert.match(await page.locator('#evm-read-state').textContent(), /只读/u);
+    if(recovery==='read-temporary'){
+      rejectRead=503;
+      await page.locator('#account-session-refresh').click();
+      await page.waitForFunction(()=>window.YNXFinanceEVMRead.state().status==='degraded');
+      assert.equal(await page.locator('#account-workspace').getAttribute('data-authorized'),'true');
+      assert.equal(await page.locator('#account-workspace').getAttribute('data-data-state'),'unavailable');
+      assert.equal(await page.evaluate(()=>window.YNXFinanceEVMRead.state().data),null);
+      assert.equal(await page.locator('#account-session-account').textContent(),account);
+      assert.equal(await page.locator('#account-workspace').evaluate(node=>node.classList.contains('active-view')),true);
+      assert.notEqual(await page.locator('#account-session-balance').textContent(),'123 YNXT');
+      await page.reload();
+      await page.waitForFunction(()=>window.YNXFinanceEVMRead.state().status==='degraded');
+      assert.equal(await page.locator('#account-workspace').getAttribute('data-authorized'),'false');
+      assert.equal(await page.locator('#account-workspace').getAttribute('data-recovering'),'true');
+      rejectRead=false;
+      await page.locator('#account-session-refresh').click();
+      await page.waitForFunction(()=>window.YNXFinanceEVMRead.state().status==='ready');
+      assert.equal(await page.locator('#account-workspace').getAttribute('data-authorized'),'true');
+      assert.equal(signatureCount,1);assert.equal(revokeCount,0);
+      return;
+    }
     if(recovery.startsWith('offline-')&&recovery!=='offline-logout'){
       await page.evaluate(()=>{window.walletStandard={...window.walletStandard,status:'transport-unavailable',disconnectReason:'transport-unavailable'};window.walletRevision++;window.dispatchEvent(new CustomEvent('ynx-finance-standard-state',{detail:window.walletStandard}))});
       await page.evaluate(changed=>{window.walletStandard={status:'disconnected',account:changed?'0x'+'a'.repeat(40):null,providerKind:'metamask',chainId:changed?'0x1917':null,disconnectReason:'account-changed'};window.walletRevision++;window.dispatchEvent(new CustomEvent('ynx-finance-standard-state',{detail:window.walletStandard}))},recovery==='offline-changed-account');
