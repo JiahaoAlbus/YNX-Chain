@@ -15,6 +15,8 @@ import {
 } from '@ynx-chain/wallet-auth';
 
 const bundle = await readFile(fileURLToPath(new URL('../web/evm-read-session.js', import.meta.url)));
+const appSource = await readFile(fileURLToPath(new URL('../web/app.js', import.meta.url)));
+const workspaceHTML = await readFile(fileURLToPath(new URL('../web/index.html', import.meta.url)), 'utf8');
 const { build } = createRequire(new URL('../web/package.json', import.meta.url))('esbuild');
 const walletSecret = new Uint8Array(32).fill(7);
 const account = `0x${bytesToHex(keccak_256(secp256k1.getPublicKey(walletSecret, false).slice(1)).slice(-20))}`;
@@ -28,7 +30,7 @@ const html = `<!doctype html><html lang="en"><meta charset="utf-8"><body>
 <p id="evm-read-state"></p><p id="evm-read-summary"></p>
 <a id="install-wallet" href="https://www.ynxweb4.com/dapp/download">Download YNX Wallet</a>
 <a id="install-metamask" href="https://metamask.io/download/">Install MetaMask</a>
-<script>window.walletStandard={status:'connected',chainId:'0x1917',account:'${account}',providerKind:'metamask'};window.walletRevision=1;window.YNXFinanceWallet={ready:Promise.resolve(),getStandardWalletState:()=>window.walletStandard,getStandardRevision:()=>window.walletRevision,signEVMLoginRequest:async request=>{try{return await window.signFinanceRequest(request)}catch{const error=new Error('USER_REJECTED');error.code=4001;throw error}}};</script>
+<script>window.walletStandard={status:'connected',chainId:'0x1917',account:'${account}',providerKind:'metamask'};window.walletRevision=1;window.YNXFinanceWallet={ready:Promise.resolve(),connected:()=>false,getRevision:()=>window.walletRevision,getStandardWalletState:()=>window.walletStandard,getStandardRevision:()=>window.walletRevision,signEVMLoginRequest:async request=>{try{return await window.signFinanceRequest(request)}catch{const error=new Error('USER_REJECTED');error.code=4001;throw error}}};</script>
 <script src="/evm-read-session.js" defer></script></body></html>`;
 
 function signMessage(message) {
@@ -45,19 +47,21 @@ test('browser read-only bundle is byte-reproducible from the shared Wallet/Auth 
   assert.deepEqual(Buffer.from(first.outputFiles[0].contents), bundle);
 });
 
-test('real Chromium preserves short EVM-only session across refresh and revokes on account change without tabs', async () => {
+for (const recovery of ['account-change','offline-logout','late-revoke','read-rejected']) test(`main Finance login reads owned workspace and handles ${recovery}`, async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
-  let challenge, session, revokeCount = 0;
+  let challenge, session, revokeCount = 0, rejectRead = false, releaseRevoke;
   const used = new Set(), requests = [];
   try {
     await page.exposeFunction('signFinanceRequest', async request => signMessage(request.message));
     page.on('request', request => requests.push(request.url()));
     await page.route(`${origin}/**`, async route => {
       const request = route.request(), path = new URL(request.url()).pathname;
-      if (path === '/test') return route.fulfill({ status: 200, contentType: 'text/html', body: html });
+      if (path === '/test') return route.fulfill({ status: 200, contentType: 'text/html', body: workspaceHTML.replace('</head>', `${html.match(/<script>.*?<\/script>/s)[0]}</head>`) });
       if (path === '/evm-read-session.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: bundle });
+      if (path === '/app.js') return route.fulfill({ status: 200, contentType: 'application/javascript', body: appSource });
+      if (path.endsWith('.js')) return route.fulfill({ status: 200, contentType: 'application/javascript', body: '' });
       if (path === '/api/evm-read/challenges') {
         const submitted = request.postDataJSON(), at = Date.now();
         challenge = createEvmProductSessionChallenge({ chainId: 6423, account, productId: 'finance', origin,
@@ -75,36 +79,76 @@ test('real Chromium preserves short EVM-only session across refresh and revokes 
         return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 'finance-evm-read-session-v1', session, evmAccountReadAuthorized: true, privateFinanceAuthorized: false, extensionLiveStateAttested: false }) });
       }
       if (path === '/api/evm-read/portfolio') {
+        if (rejectRead) return route.fulfill({ status: 401, contentType: 'application/json', body: '{"code":"evm_read_session_unavailable"}' });
         const proof = JSON.parse(Buffer.from(request.headers()['x-ynx-evm-read-proof'], 'base64url').toString());
         const target = new URL(request.url()).pathname;
         await verifyAndConsumeEvmProductSessionHttpProof(proof, async () => session, { origin, method: 'GET', target, bodyDigest: emptyDigest, requiredScope: 'finance.account.read', allowedTargets: ['/api/evm-read/portfolio'] }, { currentAccount: account, currentChainId: 6423, connected: true, revoked: false }, async ({ nonce }) => { if (used.has(nonce)) return false; used.add(nonce); return true; }, new Date());
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 'finance-evm-account-read-v1', account, portfolio: { account, balanceYnxt: 123, explorerStatus: { available: true } }, evmAccountReadAuthorized: true, privateFinanceAuthorized: false, extensionLiveStateAttested: false }) });
       }
       if (path === '/api/wallet-login/revoke') {
+        if (recovery === 'offline-logout') return route.abort('internetdisconnected');
         const proof = JSON.parse(Buffer.from(request.headers()['x-ynx-evm-read-proof'], 'base64url').toString());
         await verifyAndConsumeEvmProductSessionRevokeProof(proof, async () => session, { origin, method: 'POST', target: path, bodyDigest: emptyDigest }, async () => { revokeCount++; return true; }, new Date());
+        if (recovery === 'late-revoke') await new Promise(resolve => { releaseRevoke = resolve; });
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schemaVersion: 'finance-evm-read-revoke-v1', revoked: true, standardWalletUnchanged: true }) });
       }
       return route.fulfill({ status: 404, body: '' });
     });
     await page.goto(`${origin}/test`);
-    await page.getByRole('button', { name: 'Authorize read-only account' }).click();
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ynx-finance-standard-state', { detail: window.walletStandard })));
+    await page.locator('#wallet-login-verify').click();
     await page.waitForFunction(() => window.YNXFinanceEVMRead?.state().active === true && document.querySelector('#evm-read-summary').textContent.includes('123 YNXT'));
+    await page.waitForFunction(() => document.querySelector('#account-workspace').classList.contains('active-view'));
+    assert.equal(await page.locator('#account-session-balance').textContent(), '123 YNXT');
+    assert.equal(await page.locator('#workspace').getAttribute('class'), 'hidden');
+    assert.equal(requests.some(url => url.includes('/api/wallet-login/verify')), false);
     assert.equal(await page.locator('#evm-read-state').textContent(), 'Read-only EVM account is authorized for this short session. This does not authorize private native Finance, orders, or transfers.');
     assert.equal(await page.locator('#evm-read-begin').isHidden(), true);
     assert.equal(context.pages().length, 1);
     await page.evaluate(() => sessionStorage.setItem('ynx.finance.evm-read.pending.v1', JSON.stringify({ requestId: 'stale-reload-request' })));
     await page.reload();
-    await page.waitForFunction(() => window.YNXFinanceEVMRead?.state().active === true);
+    await page.waitForFunction(() => window.YNXFinanceEVMRead?.state().data?.account === window.walletStandard.account && document.querySelector('#account-workspace').dataset.authorized === 'true');
     assert.equal(await page.evaluate(() => sessionStorage.getItem('ynx.finance.evm-read.pending.v1')), null);
-    await page.getByRole('button', { name: 'Refresh account view' }).click();
+    await page.locator('#account-session-refresh').click();
     await page.waitForFunction(() => document.querySelector('#evm-read-summary').textContent.includes('123 YNXT'));
     await page.locator('#finance-language').selectOption('zh-CN');
     assert.match(await page.locator('#evm-read-state').textContent(), /只读/u);
+    if (recovery === 'offline-logout') {
+      await page.locator('#account-session-logout').click();
+      await page.waitForFunction(() => window.YNXFinanceEVMRead.state().status === 'revokePending');
+      assert.equal(await page.locator('#account-workspace').getAttribute('data-authorized'), 'false');
+      await page.reload();
+      await page.waitForFunction(() => window.YNXFinanceEVMRead.state().status === 'revokePending');
+      assert.equal(await page.evaluate(() => window.YNXFinanceEVMRead.state().data), null);
+      assert.equal(await page.evaluate(() => window.YNXFinanceEVMRead.state().active), false);
+      return;
+    }
+    if (recovery === 'read-rejected') {
+      rejectRead = true;
+      await page.locator('#account-session-refresh').click();
+      await page.waitForFunction(() => window.YNXFinanceEVMRead.state().status === 'expired');
+      assert.equal(await page.locator('#account-workspace').getAttribute('data-authorized'), 'false');
+      assert.equal(await page.locator('#account-session-account').textContent(), '—');
+      return;
+    }
+    if (recovery === 'late-revoke') {
+      await page.evaluate(() => { void window.YNXFinanceEVMRead.revoke(); });
+      await page.waitForFunction(() => window.YNXFinanceEVMRead.state().active === false);
+      while (!releaseRevoke) await new Promise(resolve => setTimeout(resolve, 10));
+      await page.evaluate(() => window.YNXFinanceEVMRead.begin());
+      await page.waitForFunction(() => window.YNXFinanceEVMRead.state().status === 'ready');
+      releaseRevoke();
+      await page.waitForResponse(response => new URL(response.url()).pathname === '/api/wallet-login/revoke');
+      assert.equal(await page.evaluate(() => window.YNXFinanceEVMRead.state().status), 'ready');
+      assert.equal(await page.locator('#account-workspace').getAttribute('data-authorized'), 'true');
+      return;
+    }
     const revokeResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/wallet-login/revoke');
     await page.evaluate(() => { window.walletStandard = { status: 'wrong-chain', chainId: '0x1', account: window.walletStandard.account, providerKind: 'metamask' }; window.walletRevision++; window.dispatchEvent(new CustomEvent('ynx-finance-standard-state', { detail: window.walletStandard })); });
     await revokeResponse;
     await page.waitForFunction(() => window.YNXFinanceEVMRead?.state().active === false);
+    assert.equal(await page.locator('#account-session-account').textContent(), '—');
+    assert.equal(await page.locator('#account-workspace').getAttribute('data-authorized'), 'false');
     assert.equal(revokeCount, 1);
     assert.equal(context.pages().length, 1);
     assert.equal(requests.some(url => url.startsWith('ynxwallet:')), false);

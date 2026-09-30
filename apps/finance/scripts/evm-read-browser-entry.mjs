@@ -9,6 +9,7 @@ import {
 
 const SESSION_KEY = 'ynx.finance.evm-read.session.v1';
 const PENDING_KEY = 'ynx.finance.evm-read.pending.v1';
+const REVOKE_PENDING_KEY = 'ynx.finance.evm-read.revoke-unknown.v1';
 const DEVICE_DATABASE = 'ynx-finance-evm-read-device-v1';
 const DEVICE_STORE = 'keys';
 const READ_PATH = '/api/evm-read/portfolio';
@@ -41,6 +42,17 @@ let active = null;
 let busy = false;
 let revision = 0;
 let statusKey = 'disconnected';
+let verifiedData = null;
+let operation = 0;
+
+// Only publish data after the server has verified a fresh, exact device proof.
+// A locally restored session descriptor is not a successful business read.
+function publish() {
+  window.dispatchEvent(new CustomEvent('ynx-finance-account-session', { detail: {
+    status: statusKey, account: active?.account || null, providerKind: active?.providerKind || null, revision,
+    expiresAt: active?.session.expiresAt || null, data: verifiedData,
+  } }));
+}
 
 function language() { return document.querySelector('#finance-language')?.value === 'zh-CN' ? 'zh-CN' : 'en'; }
 function message(key) { return copy[language()][key] || copy.en[key] || key; }
@@ -49,6 +61,7 @@ function status(key) {
   const element = document.querySelector('#evm-read-state');
   if (element) element.textContent = message(key);
   render();
+  publish();
 }
 function render() {
   const standard = window.YNXFinanceWallet?.getStandardWalletState?.();
@@ -122,11 +135,13 @@ function signer(privateKey) {
 }
 function clearLocal() {
   active = null;
+  verifiedData = null;
   revision++;
   try { sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(PENDING_KEY); } catch {}
   const summary = document.querySelector('#evm-read-summary');
   if (summary) summary.textContent = '';
   render();
+  publish();
 }
 async function jsonRequest(path, options) {
   const response = await fetch(path, { cache: 'no-store', credentials: 'omit', redirect: 'error', signal: AbortSignal.timeout(10000), ...options });
@@ -135,8 +150,11 @@ async function jsonRequest(path, options) {
   return result;
 }
 async function begin() {
-  if (busy || active) return;
+  if (busy) return null;
+  if (active && Date.parse(active.session.expiresAt) > Date.now()) return read();
+  if (active) clearLocal();
   busy = true; render();
+  const attempt = ++operation;
   let requestId = '';
   try {
     const selected = standardSnapshot();
@@ -155,6 +173,8 @@ async function begin() {
     const proof = await createEvmProductSessionLoginProofWith(challenge, walletSignature, signer(device.privateKey));
     unchanged(selected);
     const response = await jsonRequest('/api/evm-read/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proof }) });
+    unchanged(selected);
+    if (attempt !== operation) throw new Error('SESSION_OPERATION_SUPERSEDED');
     const session = parseEvmProductSession(response.session);
     if (response.schemaVersion !== 'finance-evm-read-session-v1' || response.evmAccountReadAuthorized !== true || response.privateFinanceAuthorized !== false || response.extensionLiveStateAttested !== false || session.account !== selected.account || session.deviceId !== device.deviceId || session.deviceKey !== device.deviceKey) throw new Error('SESSION_BINDING_MISMATCH');
     active = { session, deviceId: device.deviceId, account: selected.account, providerKind: selected.providerKind };
@@ -163,7 +183,7 @@ async function begin() {
     sessionStorage.removeItem(PENDING_KEY);
     revision++;
     status('ready');
-    await read();
+    return await read();
   } catch (error) {
     if (!active) status(error?.code === 4001 ? 'denied' : 'degraded');
   } finally {
@@ -186,35 +206,53 @@ async function read() {
     if (active !== current || window.YNXFinanceWallet.getStandardRevision() !== selected.revision) throw new Error('STANDARD_WALLET_CHANGED');
     const data = await jsonRequest(READ_PATH, { method: 'GET', headers: { 'X-YNX-EVM-Read-Proof': encode(new TextEncoder().encode(JSON.stringify(proof))) } });
     if (active !== current || window.YNXFinanceWallet.getStandardRevision() !== selected.revision || data?.schemaVersion !== 'finance-evm-account-read-v1' || data.account !== current.account || data.evmAccountReadAuthorized !== true || data.privateFinanceAuthorized !== false || data.extensionLiveStateAttested !== false) throw new Error('READ_BINDING_MISMATCH');
+    if (data.portfolio?.account !== current.account) throw new Error('PORTFOLIO_ACCOUNT_MISMATCH');
+    verifiedData = data;
     const portfolio = data.portfolio;
     const summary = document.querySelector('#evm-read-summary');
     if (summary) summary.textContent = portfolio?.explorerStatus?.available === true ? `${current.account} · ${portfolio.balanceYnxt} YNXT · Explorer` : `${current.account} · Explorer data unavailable`;
     status('ready');
     return data;
-  } catch {
-    if (active === current) status('degraded');
+  } catch (error) {
+    if (active === current) {
+      verifiedData = null;
+      if (error?.status === 401 || error?.status === 403) { clearLocal(); status('expired'); }
+      else status('degraded');
+    }
     return null;
   }
 }
 async function revoke() {
   const previous = active;
   if (!previous) return;
+  const attempt = ++operation;
   clearLocal();
+  const marker = { sessionId: previous.session.sessionId, account: previous.account, providerKind: previous.providerKind, expiresAt: previous.session.expiresAt };
+  try { sessionStorage.setItem(REVOKE_PENDING_KEY, JSON.stringify(marker)); } catch {}
+  const current = () => attempt === operation && active === null;
+  const confirmed = () => { try { const saved = JSON.parse(sessionStorage.getItem(REVOKE_PENDING_KEY) || 'null'); if (saved?.sessionId === marker.sessionId && saved?.account === marker.account && saved?.expiresAt === marker.expiresAt) sessionStorage.removeItem(REVOKE_PENDING_KEY); } catch {} };
   try {
     const privateKey = await deviceKey(previous.deviceId);
     if (!privateKey) throw new Error('DEVICE_KEY_UNAVAILABLE');
     const at = Date.now(), expiresAt = Math.min(at + 30000, Date.parse(previous.session.expiresAt));
-    if (expiresAt <= at) { status('expired'); return; }
+    if (expiresAt <= at) { confirmed(); if (current()) status('expired'); return; }
     const proof = await createEvmProductSessionRevokeProofWith(previous.session, { bodyDigest: EMPTY_BODY_DIGEST, nonce: randomToken(), issuedAt: nowISO(at), expiresAt: nowISO(expiresAt) }, signer(privateKey));
     const result = await jsonRequest(REVOKE_PATH, { method: 'POST', headers: { 'X-YNX-EVM-Read-Proof': encode(new TextEncoder().encode(JSON.stringify(proof))) }, body: '' });
-    status(result?.revoked === true && result.standardWalletUnchanged === true ? 'revoked' : 'revokePending');
-  } catch { status('revokePending'); }
+    const success = result?.revoked === true && result.standardWalletUnchanged === true;
+    if (success) confirmed();
+    if (current()) status(success ? 'revoked' : 'revokePending');
+  } catch { if (current()) status('revokePending'); }
 }
 async function restore() {
   try { sessionStorage.removeItem(PENDING_KEY); } catch {}
   try {
     const stored = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
-    if (!stored) { status('disconnected'); return; }
+    if (!stored) {
+      const pending = JSON.parse(sessionStorage.getItem(REVOKE_PENDING_KEY) || 'null');
+      if (pending && /^[A-Za-z0-9_-]{32,64}$/.test(pending.sessionId) && /^0x[0-9a-f]{40}$/.test(pending.account) && ['ynx-wallet','metamask'].includes(pending.providerKind) && Number.isFinite(Date.parse(pending.expiresAt)) && Date.parse(pending.expiresAt) > Date.now() && Date.parse(pending.expiresAt) <= Date.now() + 300000) status('revokePending');
+      else { sessionStorage.removeItem(REVOKE_PENDING_KEY); status('disconnected'); }
+      return;
+    }
     const session = parseEvmProductSession(stored.session);
     if (session.account !== stored.account || session.deviceId !== stored.deviceId || !await deviceKey(stored.deviceId)) throw new Error('SESSION_RESTORE_INVALID');
     if (Date.parse(session.expiresAt) <= Date.now()) { clearLocal(); status('expired'); return; }
@@ -226,7 +264,8 @@ async function restore() {
       return;
     }
     active = { session, deviceId: stored.deviceId, account: selected.account, providerKind: selected.providerKind };
-    status('ready');
+    revision++;
+    return await read();
   } catch { clearLocal(); status('disconnected'); }
 }
 async function onStandardChange(event) {
@@ -246,5 +285,5 @@ async function boot() {
   await restore();
 }
 
-window.YNXFinanceEVMRead = Object.freeze({ begin, read, revoke, restore, state: () => ({ active: Boolean(active), account: active?.account || null, expiresAt: active?.session.expiresAt || null, revision }) });
+window.YNXFinanceEVMRead = Object.freeze({ begin, read, revoke, restore, state: () => ({ active: Boolean(active), status: statusKey, account: active?.account || null, providerKind: active?.providerKind || null, expiresAt: active?.session.expiresAt || null, revision, data: verifiedData }) });
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true }); else boot();

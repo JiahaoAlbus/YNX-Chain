@@ -79,6 +79,12 @@
       </section>
       <section id="guest-gate" class="view panel guest-gate" aria-labelledby="guest-gate-heading"><span class="eyebrow" data-finance-i18n="privateArea">Private area</span><h2 id="guest-gate-heading"></h2><p id="guest-gate-description"></p><div class="task-strip"><a class="task-link primary" href="#wallet-connect" data-finance-i18n="connect">Connect a wallet</a><a class="task-link ghost" href="#markets" data-finance-i18n="markets">Markets</a></div></section>
 
+      <section id="account-workspace" class="view panel" data-authorized="false" aria-labelledby="account-session-heading">
+        <div class="section-head"><div><h2 id="account-session-heading" data-finance-i18n="assets">Assets</h2><p data-finance-i18n="accountSessionBoundary">Signed in for this account's read-only records. Native planning and other product permissions require separate Wallet approval.</p></div><div><button id="account-session-refresh" type="button" data-finance-i18n="refreshSources">Refresh sources</button><button id="account-session-logout" type="button" data-finance-i18n="walletSignOut">Sign out</button></div></div>
+        <p id="account-session-account" class="account">—</p><strong id="account-session-balance">—</strong>
+        <p><span data-finance-i18n="accountSessionExpiry">Session expires</span>: <span id="account-session-expiry">—</span></p>
+        <div id="account-session-activity" class="rows"></div>
+      </section>
       <div id="workspace" class="hidden">
         <section id="overview" class="view" aria-labelledby="overview-heading">
           <div class="section-head"><div><span class="eyebrow" data-finance-i18n="overviewEyebrow">Finance overview</span><h2 id="overview-heading" data-finance-i18n="overview">Overview</h2><p data-finance-i18n="overviewIntro">Your recent source-backed records and items that need attention.</p></div><button class="ghost" id="refresh" data-finance-i18n="refreshSources">Refresh sources</button></div>
@@ -108,13 +114,13 @@
       </div>
     </main>
   </div>
-  <script src="/finance-locale.js?v=e9f860f4b71699a84f4fb57c80f5977360c32b361afe84037b9d5572511a8fc6" defer></script>
+  <script src="/finance-locale.js?v=eae6ab55bb514dc6d902bd67ce9bfc63c451d00027c5490e88d64eab6cdab715" defer></script>
   <script src="/wallet-auth.js?v=1053a255f6e458e08444643e5509350b56e9bb65b3a0b4138637961a8df20d55" defer></script>
   <script src="/order-wallet.js?v=6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc" defer></script>
   <script src="/order-opaque.js?v=c390bfe8d036a9f492a0b393ea2145d086dd9065fa63d0a826701c7190427de0" defer></script>
-  <script src="/evm-read-session.js?v=1948d6cb586580505ff92abb0afbdbae596efffbc5904a99a1518aee3c210e34" defer></script>
+  <script src="/evm-read-session.js?v=9a34575a1239a51420de1b3041be458bac3ee0498352b0cc208fb644c15a5528" defer></script>
   <script src="/evm-subject.js?v=8fe55f719f8899a5b57f25287a18a16338a1bfb64da266f23580e07183b8f161" defer></script>
-  <script src="/app.js?v=b94d066bdc0f7b827872a597e471708928c40755cf53cc5d64885d52fe6f643e" defer></script>
+  <script src="/app.js?v=f1f7ad7ccd603244f63a76dd1b752a3686dca286cc3a853138ea4ec602dcf20d" defer></script>
   <script src="/read-sources.js?v=a29b1b494f86a89c1aee12a0d27c200436b7ef33823fc8109323165b12eef63d" defer></script>
   <script src="/product-catalog.js?v=dc98fedb9734207a2688f0a5ce154a16b0be11240947a4910414bb212eed9088" defer></script>
 </body>

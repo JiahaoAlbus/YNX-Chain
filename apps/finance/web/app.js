@@ -323,21 +323,30 @@ async function verifyWalletIdentity(){
   const wallet=window.YNXFinanceWallet,selected=wallet.getStandardWalletState(),revision=wallet.getStandardRevision();
   if(selected.status!=='connected'||selected.chainId!=='0x1917'||!selected.account){walletIdentityState='identityRejected';renderWalletIdentity();return}
   walletIdentityBusy=true;walletIdentityState='identityChecking';renderWalletIdentity();
-  let requestId='';
   const unchanged=()=>{const current=wallet.getStandardWalletState();if(wallet.getStandardRevision()!==revision||current.status!=='connected'||current.account!==selected.account||current.providerKind!==selected.providerKind||current.chainId!=='0x1917')throw new Error('WALLET_CONTEXT_CHANGED')};
   try{
-    const issue=await fetch('/api/wallet-login/challenges',{method:'POST',cache:'no-store',credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({account:selected.account,providerKind:selected.providerKind}),signal:AbortSignal.timeout(10000)});
-    const issued=await issue.json();unchanged();
-    if(!issue.ok||issued?.schemaVersion!=='finance-evm-login-challenge-v1'||issued?.privateFinanceAuthorized!==false||issued.challenge?.account!==selected.account||issued.challenge?.providerKind!==selected.providerKind||issued.challenge?.chainId!==6423||issued.challenge?.productId!=='finance'||JSON.stringify(issued.challenge?.scopes)!=='["finance.account.read"]'||!/^finance-login-[0-9a-f]{32}$/.test(issued.challenge?.requestId||'')||issued.signingRequest?.method!=='personal_sign')throw new Error('WALLET_LOGIN_CHALLENGE_UNAVAILABLE');
-    requestId=issued.challenge.requestId;
-    try{sessionStorage.setItem('ynx.finance.evm-login.pending.v1',JSON.stringify({requestId,account:selected.account,providerKind:selected.providerKind,expiresAt:issued.challenge.expirationTime}))}catch{}
-    const signature=await wallet.signEVMLoginRequest(issued.signingRequest);unchanged();
-    const verify=await fetch('/api/wallet-login/verify',{method:'POST',cache:'no-store',credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({proof:{challenge:issued.challenge,message:issued.signingRequest.message,signature}}),signal:AbortSignal.timeout(10000)});
-    const result=await verify.json();unchanged();
-    if(!verify.ok||result?.schemaVersion!=='finance-evm-login-verification-v1'||result.verified!==true||result.account!==selected.account||result.providerKind!==selected.providerKind||result.chainId!==6423||JSON.stringify(result.scopes)!=='["finance.account.read"]'||result.requestId!==requestId||result.privateFinanceAuthorized!==false||result.standardWalletUnchanged!==true)throw new Error('WALLET_LOGIN_VERIFICATION_REJECTED');
+    // Reuse the existing durable, device-bound Finance account session instead
+    // of ending at the old one-shot verified:true response. This grants only
+    // finance.account.read; native Product Session remains a separate approval.
+    const result=await window.YNXFinanceEVMRead.begin();unchanged();
+    if(!result||result.account!==selected.account||result.evmAccountReadAuthorized!==true)throw new Error('WALLET_LOGIN_VERIFICATION_REJECTED');
     walletIdentityState='identityVerified';
+    location.hash='assets';
   }catch(error){walletIdentityState='identityRejected';notifyFailure(error,'identityRejected')}
-  finally{if(requestId){try{const pending=JSON.parse(sessionStorage.getItem('ynx.finance.evm-login.pending.v1')||'null');if(pending?.requestId===requestId)sessionStorage.removeItem('ynx.finance.evm-login.pending.v1')}catch{}}walletIdentityBusy=false;renderWalletIdentity()}
+  finally{walletIdentityBusy=false;renderWalletIdentity()}
+}
+function renderAccountSession(){
+  const session=window.YNXFinanceEVMRead?.state(),data=session?.status==='ready'?session.data:null;
+  const section=$('#account-workspace');if(!section)return;
+  const selected=window.YNXFinanceWallet?.getStandardWalletState?.();
+  const valid=data?.portfolio?.account===data?.account&&Boolean(data?.account)&&session.account===selected?.account&&session.providerKind===selected.providerKind&&selected.status==='connected'&&selected.chainId==='0x1917'&&Date.parse(session.expiresAt)>Date.now();
+  section.dataset.authorized=String(Boolean(valid));
+  if(!walletIdentityBusy){if(valid)walletIdentityState='identityVerified';else if(walletIdentityState==='identityVerified')walletIdentityState='identityUnverified';renderWalletIdentity();}
+  $('#account-session-account').textContent=valid?data.account:'—';
+  $('#account-session-balance').textContent=valid&&data.portfolio.explorerStatus?.available?`${fmt(data.portfolio.balanceYnxt)} YNXT`:financeText('unavailable');
+  $('#account-session-activity').innerHTML=valid?(Array.isArray(data.portfolio.activity)?data.portfolio.activity:[]).map(activityRow).join(''):`<div class="empty">${esc(financeText('privateReauthorize'))}</div>`;
+  $('#account-session-expiry').textContent=valid?date(session.expiresAt):'—';
+  route();
 }
 async function consumeCallback(){await window.YNXFinanceWallet.ready}
 function clearPrivateView({clearOpaquePending=true}={}){state.context++;clearInterval(state.aiTimer);state.aiJob=null;state.statement=null;state.statementError=false;state.overview=null;state.connected=false;if(clearOpaquePending){sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);window.YNXFinanceOrderWallet?.clear()}hideBrokerApproval();for(const id of ['account','balance','staked','balance-source','statement','ai-status']){const element=$('#'+id);if(element)element.textContent='—'}brokerSnapshotState={kind:'guest'};brokerWorkspaceUnavailable=false;renderBrokerSnapshot();renderBrokerWorkspace(null);renderSignedOut()}
@@ -415,6 +424,9 @@ function route(){
       $('#guest-gate-description').textContent=financeText(gate[1]);
     }
   }
+  // Account-read authorization is not native product authorization. Display
+  // its real owned result without exposing native planning/order/write views.
+  if(!state.connected&&['overview','assets','activity'].includes(section)&&$('#account-workspace')?.dataset.authorized==='true')visible='account-workspace';
   $$('.view').forEach(view=>view.classList.toggle('active-view',view.id===visible));
   if(section==='broker-sandbox'&&lastFinanceRoute!==section)requestAnimationFrame(()=>$('#broker-sandbox').scrollIntoView({block:'start'}));
   lastFinanceRoute=section;
@@ -424,10 +436,16 @@ function route(){
 }
 window.addEventListener('ynx-finance-standard-state',()=>{
   state.context++;clearInterval(state.aiTimer);walletIdentityState='identityUnverified';renderWalletIdentity();
+  renderAccountSession();
   if(window.YNXFinanceWallet?.connected?.()&&!window.YNXFinanceWallet.privateAccountMatchesSelected?.())clearPrivateView({clearOpaquePending:false});
 });window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected')load()});
 window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('offlineRetry','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
 $('#wallet-login-verify').addEventListener('click',verifyWalletIdentity);
+window.addEventListener('ynx-finance-account-session',renderAccountSession);
+document.addEventListener('finance:localechange',renderAccountSession);
+$('#account-session-refresh')?.addEventListener('click',()=>window.YNXFinanceEVMRead.read());
+$('#account-session-logout')?.addEventListener('click',()=>window.YNXFinanceEVMRead.revoke());
+setInterval(()=>{const session=window.YNXFinanceEVMRead?.state();if($('#account-workspace')?.dataset.authorized==='true'&&Date.parse(session?.expiresAt)<=Date.now())renderAccountSession()},1000);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);
 renderBrokerSnapshot();$('#broker-order-preview').textContent=financeText(brokerApprovalMessageKey);
 route();consumeCallback().then(load).then(()=>{if(!state.connected)return publicHealth()}).catch(error=>notify(error.message,true));

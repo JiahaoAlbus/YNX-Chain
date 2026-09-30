@@ -3518,6 +3518,21 @@
     id:'Dompet standar yang dipilih adalah akun lain. Permintaan Finance privat dijeda hingga akun cocok.',
   };
   for(const [locale,value] of Object.entries(privateAccountMismatchCopy))messages[locale].privateAccountMismatch=value;
+  const accountSessionCopy={
+    en:['Sign in to read my account','Signed in for read-only account records. Native planning and other product permissions require separate Wallet approval.','Session expires'],
+    'zh-CN':['登录并读取本人账户','已登录本人账户只读记录；原生规划与其他产品权限仍需单独钱包授权。','会话到期'],
+    'zh-Hant':['登入並讀取本人帳戶','已登入本人帳戶唯讀記錄；原生規劃與其他產品權限仍需單獨錢包授權。','工作階段到期'],
+    ja:['自分のアカウントにログイン','口座記録の読み取り専用ログインです。ネイティブ機能や他の製品には別途ウォレット承認が必要です。','セッション期限'],
+    ko:['내 계정 읽기 로그인','계정 기록의 읽기 전용 로그인입니다. 네이티브 기능과 다른 제품 권한은 별도 지갑 승인이 필요합니다.','세션 만료'],
+    es:['Iniciar sesión para leer mi cuenta','Sesión de solo lectura de esta cuenta. Las funciones nativas y otros productos requieren aprobación separada.','La sesión caduca'],
+    fr:['Se connecter pour lire mon compte','Session en lecture seule de ce compte. Les fonctions natives et autres produits nécessitent une autorisation distincte.','Expiration de session'],
+    de:['Zum Lesen meines Kontos anmelden','Nur-Lese-Sitzung für dieses Konto. Native Funktionen und andere Produkte erfordern separate Wallet-Freigaben.','Sitzung läuft ab'],
+    pt:['Entrar para ler minha conta','Sessão de leitura desta conta. Funções nativas e outros produtos exigem autorização separada.','A sessão expira'],
+    ru:['Войти для чтения моего счёта','Сеанс только для чтения этого счёта. Нативные функции и другие продукты требуют отдельного разрешения.','Срок сеанса'],
+    ar:['تسجيل الدخول لقراءة حسابي','جلسة لقراءة سجلات هذا الحساب فقط. الوظائف الأصلية والمنتجات الأخرى تتطلب موافقة منفصلة.','انتهاء الجلسة'],
+    id:['Masuk untuk membaca akun saya','Sesi hanya-baca akun ini. Fitur asli dan produk lain memerlukan persetujuan dompet terpisah.','Sesi berakhir'],
+  };
+  for(const [locale,[verifyIdentity,accountSessionBoundary,accountSessionExpiry]] of Object.entries(accountSessionCopy))Object.assign(messages[locale],{verifyIdentity,accountSessionBoundary,accountSessionExpiry,identityVerified:accountSessionBoundary});
   const supported=Object.freeze(['en','zh-CN','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']);
   const canonical=value=>value==='zh-Hans'?'zh-CN':value;
   let current='en';
