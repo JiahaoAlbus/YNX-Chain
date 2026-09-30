@@ -6,6 +6,13 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import afterPack from "../scripts/after-pack.mjs";
 import { buildPublicWalletConnectConfig, loadPublicWalletConnectConfig, parsePublicWalletConnectConfig } from "../src/walletconnect-public-config.mjs";
+import { createWalletConnectCore } from "../src/walletconnect-transport.mjs";
+
+test("the pinned real Node SDK constructs its default storage before any Relay connection", () => {
+  const core = createWalletConnectCore({projectId:buildPublicWalletConnectConfig({}).projectId,logger:"silent"});
+  assert.equal(typeof core.storage.getItem,"function");
+  assert.equal(core.relayer.connected,false);
+});
 const projectId = "a".repeat(32);
 test("final package loads public Pair config with an empty user environment", async () => {
   const shipped = buildPublicWalletConnectConfig({ YNX_WALLETCONNECT_PROJECT_ID: projectId, API_SECRET: "must-never-be-packaged" });
@@ -39,7 +46,8 @@ test("actual packaging hook writes resources read back from disk with an empty u
   }
 });
 test("missing genuine Project ID remains unconfigured; malformed config never downgrades silently", async () => {
-  assert.equal(buildPublicWalletConnectConfig({}).projectId, null);
+  assert.equal(buildPublicWalletConnectConfig({}).projectId, "41857128a14a593ca4e4a7cb7c838d71");
+  assert.equal(buildPublicWalletConnectConfig({ YNX_WALLETCONNECT_PROJECT_ID: "" }).projectId, null);
   const missing = await loadPublicWalletConnectConfig({ resourcesPath: "/qa/resources", environment: {}, read: async () => { throw Object.assign(new Error(), { code: "ENOENT" }); } });
   assert.equal(missing.projectId, null);
   for (const change of [{ chainId: "eip155:1" }, { projectId: "wc:secret@2?secret=value" }, { secret: "hidden" }, { schemaVersion: 2 }]) assert.throws(() => parsePublicWalletConnectConfig({ ...buildPublicWalletConnectConfig({}), ...change }), error => error.code === "WALLETCONNECT_CONFIG_INVALID");

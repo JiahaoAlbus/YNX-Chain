@@ -136,7 +136,8 @@ export class WalletConnectRuntime {
 }
 
 export function walletConnectRuntimeConfig(environment: Record<string, string | undefined> = process.env): RuntimeConfig | null {
-  const raw = environment.EXPO_PUBLIC_REOWN_PROJECT_ID?.trim();
+  // Public application configuration, not a Relay secret or session credential.
+  const raw = (environment.EXPO_PUBLIC_REOWN_PROJECT_ID ?? "41857128a14a593ca4e4a7cb7c838d71").trim();
   if (!raw) return null;
   return parseWalletConnectRuntimeConfig({ projectId: raw.toLowerCase() });
 }

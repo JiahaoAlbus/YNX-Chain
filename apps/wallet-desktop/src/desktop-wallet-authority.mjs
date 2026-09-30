@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Wallet, TypedDataEncoder, formatEther, getBytes, isAddress, isHexString } from "ethers";
-import { createProductSessionReturnURL, signProductSessionApproval } from "@ynx-chain/wallet-auth";
+import { createProductSessionReturnURL, parseProductSessionWalletURL, signProductSessionApproval } from "@ynx-chain/wallet-auth";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PRODUCT_SESSION_REGISTRY, YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
 
@@ -14,7 +14,8 @@ export const APPROVAL_METHODS = Object.freeze([
   "wallet_requestPermissions",
   "personal_sign",
   "eth_signTypedData_v4",
-  "eth_sendTransaction"
+  "eth_sendTransaction",
+  "ynx_requestProductSessionV2"
 ]);
 
 export class DesktopWalletAuthority {
@@ -74,10 +75,16 @@ export class DesktopWalletAuthority {
     }
     if (!APPROVAL_METHODS.includes(method)) throw providerError(4200, "UNSUPPORTED_PROVIDER_METHOD", `Unsupported Provider method: ${method}`);
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create a Wallet account before connecting a DApp");
-    if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"].includes(method) && !(await this.permissions.hasAccount(origin, status.account))) {
+    if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction", "ynx_requestProductSessionV2"].includes(method) && !(await this.permissions.hasAccount(origin, status.account))) {
       throw providerError(4100, "ACCOUNT_PERMISSION_REQUIRED", "The DApp has not been approved for this account");
     }
-    const normalized = normalizeApproval(method, params, status.account);
+    let normalized;
+    if(method === "ynx_requestProductSessionV2") {
+      if(params.length !== 1 || typeof params[0] !== "string" || params[0].length > 32768) invalidParams("Product Session requires one exact official Wallet route");
+      const request = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY, params[0], this.clock());
+      if(request.origin !== origin) throw providerError(4100,"PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this connected app");
+      normalized = {params:[params[0]],review:{title:"Sign in",account:status.account,chainId:YNX_EVM_CHAIN_ID,request,warning:"Review the exact product, origin, scopes and expiry. This approval does not grant automatic transfers or future signatures."}};
+    } else normalized = normalizeApproval(method, params, status.account);
     if (method === "eth_sendTransaction") {
       if (typeof this.transactionSender?.prepare !== "function") throw providerError(4200, "TRANSACTION_TRANSPORT_UNAVAILABLE", "Canonical transaction preparation is unavailable");
       const snapshot = await this.transactionSender.prepare(status.account, normalized.params[0]);
@@ -107,10 +114,16 @@ export class DesktopWalletAuthority {
     guard?.assert();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Wallet account is unavailable");
     if (pending.review.account !== status.account) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the request again.");
-    if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"].includes(pending.method) && !(await this.permissions.hasAccount(pending.origin, status.account))) {
+    if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction", "ynx_requestProductSessionV2"].includes(pending.method) && !(await this.permissions.hasAccount(pending.origin, status.account))) {
       throw providerError(4100, "ACCOUNT_PERMISSION_REVOKED", "The DApp account permission was revoked before approval");
     }
     switch (pending.method) {
+      case "ynx_requestProductSessionV2": {
+        const request = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,pending.params[0],this.clock());
+        if(request.origin !== pending.origin) throw providerError(4100,"PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this connected app");
+        const result = await this.approveCanonicalAuthorization(request,this.clock().toISOString(),pending.review.account);
+        return success({version:2,returnUrl:result.callbackUrl});
+      }
       case "eth_requestAccounts":
       case "wallet_requestPermissions":
         { const existing = await this.permissions.hasAccount(pending.origin, status.account);

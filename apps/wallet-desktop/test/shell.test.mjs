@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
 import { ApprovalReviewQueue } from "../src/approval-review-queue.mjs";
+import { walletReadiness } from "../src/wallet-readiness.mjs";
 import { StandardWalletConnection, YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
 import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "../src/rpc.mjs";
 import { WALLET_AUTH_PROTOCOL_SOURCE, YNX_EVM_CHAIN_ID, YNX_TESTNET_CHAIN_QUANTITY as packagedChainId } from "../src/wallet-auth-contract.mjs";
@@ -200,7 +201,7 @@ async function sendEntryHarness() {
     async transferAction() { calls.push(["send"]); throw new Error("Unexpected transaction submission"); },
   };
   const context = { document, window: { ynxWallet: api }, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
-    accountReadFailed: false, walletCopy: english => english, t: english => english,
+    accountReadFailed: false, walletReadiness, walletCopy: english => english, t: english => english,
     signingShort: {}, activeAccount: account.account, approvalQueue: new ApprovalReviewQueue(), authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
     paymentDraftRevision: 0, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
     invalidatePaymentInput() { context.paymentDraftRevision++; },

@@ -416,6 +416,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   catch { pairConfigurationError = "WALLETCONNECT_CONFIG_INVALID"; }
   walletConnect = new WalletConnectTransport({
     projectId: pairConfig?.projectId,
+    storagePath: path.join(app.getPath("userData"), "walletconnect", "sdk-store"),
     configurationError: pairConfigurationError,
     metadata: { name: "YNX Wallet", description: "YNX Testnet self-custody Wallet", url: "https://wallet.ynxweb4.com", icons: ["https://www.ynxweb4.com/ynx-icon-512.png"], redirect: { native: "ynxwallet://wc" } }
   });

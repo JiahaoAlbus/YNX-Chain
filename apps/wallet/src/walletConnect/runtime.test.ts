@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { WalletConnectRuntime, walletConnectRuntimeConfig } from "./runtime";
 
-test("WalletConnect is explicitly disabled without a project ID", () => {
-  assert.equal(walletConnectRuntimeConfig({}), null);
+test("WalletConnect uses the authorized public project ID unless explicitly disabled", () => {
+  assert.deepEqual(walletConnectRuntimeConfig({}), {projectId:"41857128a14a593ca4e4a7cb7c838d71",relayUrl:"wss://relay.walletconnect.com"});
   assert.equal(walletConnectRuntimeConfig({ EXPO_PUBLIC_REOWN_PROJECT_ID: "" }), null);
   assert.equal(walletConnectRuntimeConfig({ EXPO_PUBLIC_REOWN_PROJECT_ID: " " }), null);
 });
