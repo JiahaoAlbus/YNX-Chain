@@ -2,7 +2,7 @@ import {StandardWalletConnection} from './vendor/standard-wallet-browser-c97f85e
 import {createWalletProviderDiscovery} from '../../../packages/wallet-auth/src/wallet-provider-discovery.js';
 import {METAMASK_EVM_CHAIN} from '../../../packages/wallet-auth/src/metamask-evm-adapter.js';
 import {toYNXAddress,toEVMAddress} from '../../../sdk/js/index.js';
-import {createHostedWalletAdapter} from './vendor/hosted-wallet-adapter-19d8a9a2.js';
+import {createHostedWalletAdapter} from '../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js';
 import {mountFinanceHostedWalletUI} from './hosted-wallet-controller.js';
 import {privateFinance,bindPrivateFinanceUI} from './private-wallet-entry.js';
 
@@ -25,7 +25,7 @@ window.YNXFinanceWallet=Object.freeze({
   restoreStandardWallet,disconnectStandardWallet,revokeStandardWallet,
   getStandardWalletState:()=>standard,getStandardRevision:()=>revision,getRevision:()=>revision+privateFinance.revision(),
   signEVMLoginRequest,requestProductSessionV2,
-  privateProviderAvailable:()=>standard.status==='connected'&&standard.providerKind==='ynx-wallet'&&activeTransport==='injected'&&!!selectedProvider,
+  privateProviderAvailable:()=>standard.status==='connected'&&standard.providerKind==='ynx-wallet'&&standard.chainId==='0x1917'&&(activeTransport==='injected'&&!!selectedProvider||activeTransport==='hosted'&&hosted?.getState().status==='connected'),
   connected:privateFinance.connected,session:privateFinance.session,requireProof:privateFinance.proof,
   privateAccountMatchesSelected:privateFinance.accountMatchesSelected,
   disconnect:privateFinance.disconnect,reportPrivateFailure:privateFinance.reportFailure,
@@ -40,12 +40,12 @@ function hostedStateChanged(next){
   busy=next.status==='connecting';
   // Account changes invalidate the old local private subject; this is not a
   // claim that Wallet/Gateway permission was revoked remotely.
-  if(next.error==='HOSTED_ACCOUNT_CHANGED')privateFinance.guest();
+  if(next.error==='HOSTED_ACCOUNT_CHANGED'||next.error==='HOSTED_DISCONNECTED')privateFinance.guest();
   if(next.error==='HOSTED_LOCAL_DISCONNECT'){
     privateFinance.guest();
     publish({status:'disconnected',providerKind:'ynx-wallet',account:null,chainId:null,transport:'hosted-wallet-web',disconnectReason:'explicit-local'},next.error);return;
   }
-  if(next.error==='HOSTED_DISCONNECTED'&&standard.account&&standard.chainId==='0x1917'){
+  if(next.status==='transport-unavailable'&&['HOSTED_POPUP_CLOSED','HOSTED_REQUEST_EXPIRED_OR_RELOADED'].includes(next.error)&&standard.account&&standard.chainId==='0x1917'){
     publish({...standard,status:'transport-unavailable',disconnectReason:'transport-unavailable'},next.error);return;
   }
   const connected=next.status==='connected'&&next.chainId==='0x1917'&&/^0x[0-9a-f]{40}$/.test(next.account??'');
@@ -120,16 +120,16 @@ async function signEVMLoginRequest(request){
   return signature;
 }
 async function requestProductSessionV2(url){
-  const provider=selectedProvider,selected=connection,value=intent,account=standard.account,chain=standard.chainId,atRevision=revision;
-  if(!provider||!selected||activeTransport!=='injected'||standard.providerKind!=='ynx-wallet'||standard.status!=='connected'||chain!=='0x1917')throw new Error('PRIVATE_TRANSPORT_UNAVAILABLE');
+  const transport=activeTransport,useHosted=transport==='hosted',provider=useHosted?hosted:selectedProvider,selected=useHosted?hosted:connection,value=intent,account=standard.account,chain=standard.chainId,atRevision=revision;
+  if(!provider||!selected||!['injected','hosted'].includes(transport)||standard.providerKind!=='ynx-wallet'||standard.status!=='connected'||chain!=='0x1917'||useHosted&&hosted.getState().status!=='connected')throw new Error('PRIVATE_TRANSPORT_UNAVAILABLE');
   if(typeof url!=='string'||url.length>16384)throw new Error('PRIVATE_REQUEST_INVALID');
-  const assertSelected=()=>{if(value!==intent||selected!==connection||provider!==selectedProvider||atRevision!==revision||standard.account!==account||standard.chainId!==chain||standard.status!=='connected')throw new Error('FINANCE_CONTEXT_CHANGED')};
+  const assertSelected=()=>{const hostedState=useHosted?hosted?.getState():null;if(value!==intent||transport!==activeTransport||(useHosted?selected!==hosted||hostedState?.status!=='connected'||hostedState.account!==account||hostedState.chainId!==chain:selected!==connection||provider!==selectedProvider)||atRevision!==revision||standard.account!==account||standard.chainId!==chain||standard.status!=='connected')throw new Error('FINANCE_CONTEXT_CHANGED')};
   assertSelected();
   // The Wallet owns parsing, review and the native account signature. This
   // sends the official SDK route as data, not a browser scheme navigation.
   const result=typeof provider.requestProductSessionV2==='function'?await provider.requestProductSessionV2(url):await provider.request({method:'ynx_requestProductSessionV2',params:[url]});
   assertSelected();
-  if(result?.version!==2||typeof result.returnUrl!=='string'||result.returnUrl.length>16384)throw new Error('PRIVATE_RETURN_INVALID');
+  if(result?.version!==2||typeof result.returnUrl!=='string'||result.returnUrl.length>16384||Object.keys(result).sort().join(',')!=='returnUrl,version')throw new Error('PRIVATE_RETURN_INVALID');
   return result;
 }
 function connect(kind){

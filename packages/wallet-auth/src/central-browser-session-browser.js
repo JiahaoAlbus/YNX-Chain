@@ -6,7 +6,7 @@ import {createWalletProviderDiscovery,WALLET_PROVIDER_KIND} from './wallet-provi
 import {parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval} from './central-browser-session-contract.js';
 import {WalletConnectDAppConnection} from './walletconnect-dapp-connection.js';
 import QRCode from 'qrcode';
-import {createHostedWalletAdapter} from './vendor/hosted-wallet-adapter-39c063da.js';
+import {createHostedWalletAdapter} from './vendor/hosted-wallet-adapter-4bccefef.js';
 
 const context=JSON.parse(document.getElementById('context').textContent);
 if(context.mode==='session'){

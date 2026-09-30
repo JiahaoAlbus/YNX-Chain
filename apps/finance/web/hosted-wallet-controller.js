@@ -41,9 +41,15 @@ export function createFinanceHostedWalletController({createHostedWalletAdapter, 
       const account = Array.isArray(accounts) && accounts.length === 1 ? accounts[0] : null;
       if (!ACCOUNT.test(account ?? '')) {
         if (state.status === 'connecting') { onConnectingSignal('empty'); return; }
-        generation++;
-        detach();
-        publish('disconnected', null, null, 'HOSTED_ACCOUNT_CHANGED');
+        // The accepted adapter emits [] immediately before its typed close
+        // event. Only that same synchronous batch may classify a transport
+        // close; an independent empty-account event still fails closed.
+        queueMicrotask(() => {
+          if (token !== generation || selected !== adapter) return;
+          generation++;
+          detach();
+          publish('disconnected', null, null, 'HOSTED_ACCOUNT_CHANGED');
+        });
       } else if (state.status === 'connecting') onConnectingAccount(account.toLowerCase());
       else if (state.status === 'connected' && account.toLowerCase() !== state.account) {
         generation++;
@@ -59,12 +65,14 @@ export function createFinanceHostedWalletController({createHostedWalletAdapter, 
         publish('wrong-chain', null, null, 'WRONG_NETWORK');
       }
     };
-    const disconnected = () => {
+    const disconnected = signal => {
       if (token !== generation || selected !== adapter) return;
       if (state.status === 'connecting') { onConnectingSignal('disconnected'); return; }
+      const previous=state,transportClose=['HOSTED_POPUP_CLOSED','HOSTED_REQUEST_EXPIRED_OR_RELOADED'].includes(signal?.code);
       generation++;
       detach();
-      publish('disconnected', null, null, 'HOSTED_DISCONNECTED');
+      if(transportClose&&previous.status==='connected')publish('transport-unavailable',previous.account,previous.chainId,signal.code);
+      else publish('disconnected', null, null, 'HOSTED_DISCONNECTED');
     };
     listeners = [['accountsChanged', accountChanged], ['chainChanged', chainChanged], ['disconnect', disconnected]];
     for (const [name, listener] of listeners) selected.on(name, listener);

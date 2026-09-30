@@ -62,6 +62,21 @@ test('Hosted rejection and a late event never create a connection',async()=>{
   assert.equal(value.adapter.detached,1);
 });
 
+test('only a same-batch typed transport close retains the previously approved account',async()=>{
+  for(const code of ['HOSTED_POPUP_CLOSED','HOSTED_REQUEST_EXPIRED_OR_RELOADED']){
+    const value=fixture();await value.controller.connect();
+    value.adapter.emit('accountsChanged',[]);value.adapter.emit('disconnect',{code});await Promise.resolve();
+    assert.equal(value.controller.getState().status,'transport-unavailable');assert.equal(value.controller.getState().account,ACCOUNT);
+    assert.equal(value.controller.getState().error,code);
+    await assert.rejects(value.controller.request({method:'ynx_requestProductSessionV2',params:[]}),error=>error.code==='HOSTED_NOT_CONNECTED');
+  }
+  const empty=fixture();await empty.controller.connect();empty.adapter.emit('accountsChanged',[]);await Promise.resolve();
+  assert.equal(empty.controller.getState().error,'HOSTED_ACCOUNT_CHANGED');assert.equal(empty.controller.getState().account,null);
+  empty.adapter.emit('disconnect',{code:'HOSTED_POPUP_CLOSED'});assert.equal(empty.controller.getState().account,null,'late transport label cannot restore a removed identity');
+  const unknown=fixture();await unknown.controller.connect();unknown.adapter.emit('accountsChanged',[]);unknown.adapter.emit('disconnect',{code:'unclassified'});await Promise.resolve();
+  assert.equal(unknown.controller.getState().status,'disconnected');assert.equal(unknown.controller.getState().account,null);
+});
+
 test('Hosted wrong chain and empty accounts fail closed without a standard-wallet fallback',async()=>{
   const wrong=fixture({chainId:'0x1'});assert.equal((await wrong.controller.connect()).status,'wrong-chain');
   assert.equal(wrong.controller.getState().account,null);assert.equal(wrong.adapter.detached,1);
