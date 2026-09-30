@@ -25,13 +25,14 @@ function storage() {
   const records = new Map();
   return { records, async getItem(key) { return structuredClone(records.get(key)); }, async setItem(key, value) { records.set(key, structuredClone(value)); } };
 }
-async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCOUNT_B)], store = storage(), disconnect = async () => {}, handlers: callbacks = {} } = {}) {
+async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCOUNT_B)], pendingRequests = [], store = storage(), disconnect = async () => {}, handlers: callbacks = {} } = {}) {
   const active = Object.fromEntries(sessions.map(value => [value.topic, value]));
   const handlers = new Map(), responses = [], events = [], approvals = [];
   const kit = {
     core: { storage: store, relayer: { connected: false } },
     on(name, callback) { handlers.set(name, callback); },
     getActiveSessions() { return active; },
+    getPendingSessionRequests() { return pendingRequests; },
     disconnectSession: disconnect,
     async respondSessionRequest(response) { responses.push(response); },
     async emitSessionEvent(event) { events.push(event); },
@@ -42,6 +43,15 @@ async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCO
   return { transport, kit, active, handlers, responses, events, approvals, store };
 }
 function code(expected) { return error => error?.code === expected; }
+
+test("cold startup reoffers SDK pending requests for fresh review without executing or approving", async () => {
+  const pending = request("topic-a", "personal_sign", ACCOUNT_A);
+  pending.params.request.expiryTimestamp = NOW / 1000 + 60;
+  const received = [], { approvals, responses } = await fixture({ pendingRequests: [pending], handlers: { onSessionRequest: event => received.push(event) } });
+  assert.equal(received.length, 1); assert.equal(received[0].restored, true);
+  assert.deepEqual(received[0].params, pending.params);
+  assert.deepEqual(approvals, []); assert.deepEqual(responses, []);
+});
 
 test("all signing methods require the requested account in this topic and selected in the Wallet", async () => {
   const { transport } = await fixture();

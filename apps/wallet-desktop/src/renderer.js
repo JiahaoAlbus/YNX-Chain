@@ -659,7 +659,7 @@ function renderKeyState(state) {
   if (state.locked) {
     if (invalidated) {
       document.querySelector("#unlock-result").textContent = "";
-      approvalQueue.clear(); authorizationChoices.clear(); transferReview = null; passwordUI?.cancel();
+      approvalQueue.suspend(); transferReview = null; passwordUI?.cancel();
       for (const field of document.querySelectorAll('input[type="password"],input[type="file"]')) field.value = "";
       for (const dialog of document.querySelectorAll("dialog[open]")) dialog.close();
     }
