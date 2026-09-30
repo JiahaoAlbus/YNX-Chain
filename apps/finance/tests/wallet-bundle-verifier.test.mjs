@@ -23,7 +23,7 @@ test('Broker cold-state pin changes only the reviewed app bytes',async()=>{
   assert.deepEqual(JSON.parse(versioned),expected);
   assert.deepEqual(JSON.parse(versioned),expected);
   assert.notDeepEqual(active,versioned,'the historical v6 manifest must not be mistaken for the current source');
-  assert.equal(createHash('sha256').update(active).digest('hex'),'50b313a71662b44d8ec9b998dddbd39b082a0b6a4704d66e055a427c08adecf3');
+  assert.equal(createHash('sha256').update(active).digest('hex'),'52b0ccc66e2338331a3f39f8cb9cc2b0e274cb6f591a14253e70902bff1f74e7');
 });
 
 async function fixture(){

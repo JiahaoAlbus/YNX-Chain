@@ -7,16 +7,16 @@
     "esbuildVersion": "0.25.9"
   },
   "evmRead": {
-    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-012e1ff68-20261001.json",
-    "candidateBytes": 73830,
-    "candidateSha256": "6eb01b4b7be4010546fcf13d9f1eff593477a5c4f5b4a338a70f7d913938db67"
+    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-native-d334806c-20261001.json",
+    "candidateBytes": 74031,
+    "candidateSha256": "0aa296f795b703377b1373841787e9ff531ff9e9d61353156ec642557b6e2fe6"
   },
   "sourceBundleRelation": {
     "byteReproducible": true,
     "status": "VERIFIED_REPRODUCIBLE",
     "cleanBuildCount": 2,
-    "bytes": 209482,
-    "sha256": "19a4f68e6be82621eba95b73fae4cf5748d2ab30723d19b7736a5dd2e5a87de7"
+    "bytes": 211324,
+    "sha256": "fe50d473914ee5f56590865f270cd6d09b09e328a840ac40a362cfa81c638190"
   },
   "files": [
     {
@@ -31,8 +31,8 @@
     },
     {
       "path": "wallet-auth-entry.js",
-      "bytes": 17592,
-      "sha256": "357bb976f1289843d5a83c864dcb1b7d5aa4efe74b1615d9b122f274e008eba2"
+      "bytes": 18268,
+      "sha256": "5a58fed8e8406e1b69fd721134c301e70ee5035904385ebf38cf54537b1bb418"
     },
     {
       "path": "private-wallet-entry.js",
@@ -56,8 +56,8 @@
     },
     {
       "path": "wallet-auth.js",
-      "bytes": 209482,
-      "sha256": "19a4f68e6be82621eba95b73fae4cf5748d2ab30723d19b7736a5dd2e5a87de7"
+      "bytes": 211324,
+      "sha256": "fe50d473914ee5f56590865f270cd6d09b09e328a840ac40a362cfa81c638190"
     },
     {
       "path": "order-wallet.js",
@@ -92,7 +92,7 @@
     {
       "path": "index.html",
       "bytes": 32397,
-      "sha256": "4c17a60da70c5d5c8e1e337829ae240e295aa0728c1601d0c7278bd005be29b0"
+      "sha256": "05d57c60e30426081095f157ee3d26f48b8bbfd64fd29a61110fb8c0750b81da"
     },
     {
       "path": "app.js",
@@ -191,13 +191,13 @@
     },
     {
       "path": "verify-evm-read-candidate.mjs",
-      "bytes": 14007,
-      "sha256": "1e4a459edf1952878be22c97557f161f87ab6c825aec8186c1174220b039b1b6"
+      "bytes": 14502,
+      "sha256": "515c4f1067f00b0dfdfdf646f4e65f1225fa59f4f302908aa75ebcac2c32c032"
     },
     {
-      "path": "../evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-012e1ff68-20261001.json",
-      "bytes": 73830,
-      "sha256": "6eb01b4b7be4010546fcf13d9f1eff593477a5c4f5b4a338a70f7d913938db67"
+      "path": "../evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-native-d334806c-20261001.json",
+      "bytes": 74031,
+      "sha256": "0aa296f795b703377b1373841787e9ff531ff9e9d61353156ec642557b6e2fe6"
     },
     {
       "path": "../../../packages/wallet-auth/node_modules/@noble/hashes/_md.js",
@@ -236,8 +236,8 @@
     },
     {
       "path": "hosted-wallet-controller.js",
-      "bytes": 9687,
-      "sha256": "da50ab0ff21a74eaace3c954e5a3f5f9eadca582bf08de451d1e1eb63263a0af"
+      "bytes": 10300,
+      "sha256": "9f4ba9feadfb0dd3174d7e4595f2026f5c5f2b44b3341c9fee5d320ac0fcdc10"
     },
     {
       "path": "private-subject-boundary.js",
