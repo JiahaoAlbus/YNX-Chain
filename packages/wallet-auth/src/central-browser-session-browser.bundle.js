@@ -11,10 +11,10 @@
       const prefix = title && `"${title}" `;
       const ofLen = needsLen ? ` of length ${length}` : "";
       const got = bytes ? `length=${len}` : `type=${typeof value}`;
-      const message2 = prefix + "expected Uint8Array" + ofLen + ", got " + got;
+      const message = prefix + "expected Uint8Array" + ofLen + ", got " + got;
       if (!bytes)
-        throw new TypeError(message2);
-      throw new RangeError(message2);
+        throw new TypeError(message);
+      throw new RangeError(message);
     }
     return value;
   }
@@ -55,8 +55,8 @@
     return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJSON(value[key])}`).join(",")}}`;
   }
   var WalletAuthError = class extends Error {
-    constructor(code, message2) {
-      super(message2);
+    constructor(code, message) {
+      super(message);
       this.name = "WalletAuthError";
       this.code = code;
     }
@@ -132,8 +132,8 @@
     "eth_sendTransaction"
   ]);
   var Eip1193ProviderError = class extends Error {
-    constructor(code, message2, data) {
-      super(message2);
+    constructor(code, message, data) {
+      super(message);
       this.name = "Eip1193ProviderError";
       this.code = code;
       if (data) this.data = Object.freeze(data);
@@ -267,16 +267,16 @@
           providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet revocation was superseded by a newer connection intent")
         );
         const normalized = normalizeProviderError(error);
-        const status2 = stage === "revoke" && normalized.code === EIP1193_PROVIDER_CODE.UNSUPPORTED_METHOD ? "unsupported" : stage === "revoke" && normalized.code === EIP1193_PROVIDER_CODE.USER_REJECTED ? "rejected" : "failed";
-        return this.#revokeResult(status2, false, normalized);
+        const status = stage === "revoke" && normalized.code === EIP1193_PROVIDER_CODE.UNSUPPORTED_METHOD ? "unsupported" : stage === "revoke" && normalized.code === EIP1193_PROVIDER_CODE.USER_REJECTED ? "rejected" : "failed";
+        return this.#revokeResult(status, false, normalized);
       }
     }
     #assertRevocation(operation) {
       if (operation.intent !== this.#intent) throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet revocation was superseded");
     }
-    #revokeResult(status2, permissionRevoked, error) {
+    #revokeResult(status, permissionRevoked, error) {
       return Object.freeze({
-        status: status2,
+        status,
         permissionRevoked,
         locallyDisconnected: this.#session === null,
         ...error ? { error: Object.freeze({ code: error.code, message: error.message }) } : {}
@@ -404,8 +404,8 @@
     }
     return true;
   }
-  function providerError(code, message2, data) {
-    return new Eip1193ProviderError(code, message2, data);
+  function providerError(code, message, data) {
+    return new Eip1193ProviderError(code, message, data);
   }
   function ynxAccountRecovery(error, provider, method) {
     if (method !== "eth_requestAccounts" && method !== "wallet_requestPermissions") return false;
@@ -470,13 +470,13 @@
     const add = safely(() => scope?.addEventListener), remove = safely(() => scope?.removeEventListener);
     const dispatch = safely(() => scope?.dispatchEvent);
     const byUuid = /* @__PURE__ */ new Map(), conflicted = /* @__PURE__ */ new Set(), announcedProviders = /* @__PURE__ */ new WeakSet(), listeners = /* @__PURE__ */ new Set();
-    let disposed = false, revision2 = 0;
+    let disposed = false, revision = 0;
     const snapshot = () => selectWalletProviderCandidates(uniqueProviders([
       ...byUuid.values(),
       ...discoverInjectedWalletProviders(scope).candidates.filter((item) => !announcedProviders.has(item.provider))
     ]), conflicted.size);
     const publish = () => {
-      const value = Object.freeze({ ...snapshot(), revision: ++revision2 });
+      const value = Object.freeze({ ...snapshot(), revision: ++revision });
       for (const listener of [...listeners]) listener(value);
       return value;
     };
@@ -498,7 +498,7 @@
       publish();
     };
     if (typeof add === "function") add.call(scope, "eip6963:announceProvider", announce);
-    const request2 = () => {
+    const request = () => {
       if (disposed) throw new TypeError("Wallet provider discovery is disposed");
       const EventConstructor = safely(() => scope?.Event) ?? globalThis.Event;
       if (typeof dispatch === "function" && typeof EventConstructor === "function") {
@@ -509,7 +509,7 @@
     const subscribe = (listener, options = {}) => {
       if (disposed || typeof listener !== "function") throw new TypeError("Wallet provider discovery listener is invalid");
       listeners.add(listener);
-      if (options.emitCurrent !== false) listener(Object.freeze({ ...snapshot(), revision: revision2 }));
+      if (options.emitCurrent !== false) listener(Object.freeze({ ...snapshot(), revision }));
       return () => listeners.delete(listener);
     };
     const dispose = () => {
@@ -520,8 +520,8 @@
       conflicted.clear();
       if (typeof remove === "function") remove.call(scope, "eip6963:announceProvider", announce);
     };
-    request2();
-    return Object.freeze({ request: request2, snapshot, subscribe, dispose, get disposed() {
+    request();
+    return Object.freeze({ request, snapshot, subscribe, dispose, get disposed() {
       return disposed;
     } });
   }
@@ -626,18 +626,18 @@
   // src/central-browser-session-contract.js
   var CENTRAL_BROWSER_PURPOSE = "Sign in to registered YNX official apps in this browser. Identity only; no automatic signing, transfers or sensitive product scopes.";
   var token = (value) => typeof value === "string" && /^[A-Za-z0-9_-]{43}$/.test(value);
-  function parseCentralBrowserSignInChallenge(challenge2, registry, { peerOrigin, now = Date.now() } = {}) {
-    exactFields(challenge2, ["version", "issuer", "purpose", "challengeId", "browserBinding", "nonce", "initiator", "clients", "issuedAt", "expiresAt"], "Central browser challenge");
-    if (challenge2.version !== 1 || challenge2.issuer !== CENTRAL_BROWSER_ISSUER || peerOrigin !== CENTRAL_BROWSER_ISSUER || challenge2.purpose !== CENTRAL_BROWSER_PURPOSE || !token(challenge2.challengeId) || !token(challenge2.nonce) || typeof challenge2.browserBinding !== "string" || !/^[a-f0-9]{64}$/.test(challenge2.browserBinding)) fail2("SSO_CHALLENGE_INVALID");
-    const initiator = challenge2.initiator;
+  function parseCentralBrowserSignInChallenge(challenge, registry, { peerOrigin, now = Date.now() } = {}) {
+    exactFields(challenge, ["version", "issuer", "purpose", "challengeId", "browserBinding", "nonce", "initiator", "clients", "issuedAt", "expiresAt"], "Central browser challenge");
+    if (challenge.version !== 1 || challenge.issuer !== CENTRAL_BROWSER_ISSUER || peerOrigin !== CENTRAL_BROWSER_ISSUER || challenge.purpose !== CENTRAL_BROWSER_PURPOSE || !token(challenge.challengeId) || !token(challenge.nonce) || typeof challenge.browserBinding !== "string" || !/^[a-f0-9]{64}$/.test(challenge.browserBinding)) fail2("SSO_CHALLENGE_INVALID");
+    const initiator = challenge.initiator;
     exactFields(initiator, ["clientId", "origin", "redirectUri", "state", "codeChallenge", "codeChallengeMethod"], "Central browser initiator");
     centralBrowserClient(registry, { clientId: initiator.clientId, origin: initiator.origin, redirectUri: initiator.redirectUri });
     if (!token(initiator.state) || !token(initiator.codeChallenge) || initiator.codeChallengeMethod !== "S256") fail2("SSO_TRANSACTION_INVALID");
     const clients = registry.map((value) => ({ clientId: value.clientId, origin: value.origin, audience: value.audience, scopes: [...value.scopes] })).sort((a, b) => a.clientId.localeCompare(b.clientId));
-    if (canonicalJSON(challenge2.clients) !== canonicalJSON(clients)) fail2("SSO_CLIENTS_MISMATCH");
-    const issued = Date.parse(challenge2.issuedAt), expires = Date.parse(challenge2.expiresAt);
-    if (!Number.isSafeInteger(now) || !Number.isFinite(issued) || !Number.isFinite(expires) || new Date(issued).toISOString() !== challenge2.issuedAt || new Date(expires).toISOString() !== challenge2.expiresAt || issued > now + 3e4 || expires <= now || expires <= issued || expires - issued > 12e4) fail2("SSO_CHALLENGE_EXPIRED");
-    return Object.freeze(structuredClone(challenge2));
+    if (canonicalJSON(challenge.clients) !== canonicalJSON(clients)) fail2("SSO_CLIENTS_MISMATCH");
+    const issued = Date.parse(challenge.issuedAt), expires = Date.parse(challenge.expiresAt);
+    if (!Number.isSafeInteger(now) || !Number.isFinite(issued) || !Number.isFinite(expires) || new Date(issued).toISOString() !== challenge.issuedAt || new Date(expires).toISOString() !== challenge.expiresAt || issued > now + 3e4 || expires <= now || expires <= issued || expires - issued > 12e4) fail2("SSO_CHALLENGE_EXPIRED");
+    return Object.freeze(structuredClone(challenge));
   }
   function parseCentralBrowserSignInApproval(approval) {
     exactFields(approval, ["challengeId", "account", "accountPublicKey", "walletSignature"], "Central browser approval");
@@ -650,180 +650,215 @@
 
   // src/central-browser-session-browser.js
   var context = JSON.parse(document.getElementById("context").textContent);
-  var challenge = parseCentralBrowserSignInChallenge(context.challenge, context.registry, { peerOrigin: location.origin });
-  var picker = document.getElementById("wallet");
-  var approve = document.getElementById("approve");
-  var cancel = document.getElementById("cancel");
-  var status = document.getElementById("status");
-  var discovery = createWalletProviderDiscovery(window);
-  var restart = document.createElement("button");
-  restart.id = "restart";
-  restart.hidden = true;
-  restart.textContent = "Return to product and retry";
-  cancel.after(restart);
-  restart.addEventListener("click", () => cancel.click());
-  var providers = [];
-  var selected = null;
-  var pending = null;
-  var revision = 0;
-  var cancelled = false;
-  var message = (value) => {
-    status.textContent = value;
-  };
-  var request = async (path, input) => {
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 1e4);
-    try {
-      const response = await fetch(`/v2/browser-sessions/${path}`, { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json", "x-ynx-browser-csrf": context.csrfToken }, body: canonicalJSON(input), signal: controller.signal });
+  if (context.mode === "session") {
+    const status = document.getElementById("status"), button = document.getElementById("global-logout");
+    let pending = false;
+    const read = async (path, options = {}) => {
+      const response = await fetch(`/v2/browser-sessions/${path}`, { credentials: "same-origin", ...options, signal: AbortSignal.timeout(1e4) });
       const value = await response.json();
       if (!response.ok) throw new Error(value.error?.code ?? "SSO_REQUEST_FAILED");
       return value;
-    } finally {
-      clearTimeout(timer);
-    }
-  };
-  discovery.subscribe((snapshot) => {
-    providers = snapshot.candidates.filter((value) => value.kind === WALLET_PROVIDER_KIND.YNX).map((value) => value.provider);
-    const previous = selected;
-    picker.replaceChildren();
-    const placeholder = document.createElement("option");
-    placeholder.value = "";
-    placeholder.textContent = "Choose YNX Wallet";
-    picker.append(placeholder);
-    providers.forEach((provider, index) => {
-      const option = document.createElement("option");
-      option.value = String(index);
-      option.textContent = `YNX Wallet ${index + 1}`;
-      picker.append(option);
-    });
-    if (previous && providers.includes(previous)) {
-      picker.value = String(providers.indexOf(previous));
-    } else if (previous) {
-      selected = null;
-      revision++;
-    }
-    approve.disabled = !selected || cancelled;
-    if (!providers.length) message("YNX Wallet is not available. Install or unlock it, then try again.");
-  });
-  picker.addEventListener("change", () => {
-    selected = picker.value === "" ? null : providers[Number(picker.value)];
-    revision++;
-    approve.disabled = !selected || cancelled;
-    message(pending ? "Finish or cancel the current request before switching wallets." : "Connection is separate from browser sign-in approval.");
-  });
-  approve.addEventListener("click", () => {
-    if (pending) {
-      message("Your request is already open in YNX Wallet.");
-      return;
-    }
-    if (!selected || cancelled) return;
-    const provider = selected, epoch = revision;
-    let account = null, chain = null, invalid = false, unsubscribe = () => {
     };
-    const operationAbort = new AbortController();
-    const walletWait = async (work) => {
-      let timer, onAbort;
+    const refresh = async () => {
       try {
-        return await Promise.race([work, new Promise((_, reject) => {
-          timer = setTimeout(() => reject(new Error("SSO_REQUEST_TIMEOUT")), Math.max(1, Math.min(3e4, Date.parse(challenge.expiresAt) - Date.now())));
-          onAbort = () => reject(new Error("SSO_CONTEXT_CHANGED"));
-          operationAbort.signal.addEventListener("abort", onAbort, { once: true });
-        })]);
+        const identity = await read("status");
+        status.textContent = identity.account;
+        button.disabled = false;
+      } catch (error) {
+        status.textContent = error.message === "SSO_LOGIN_REQUIRED" ? "You are signed out." : "Session status is unavailable. Retry checking before signing out.";
+        button.disabled = error.message === "SSO_LOGIN_REQUIRED";
+      }
+    };
+    button.addEventListener("click", async () => {
+      if (pending) return;
+      pending = true;
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+      try {
+        const boot = await read("bootstrap");
+        await read("logout", { method: "POST", headers: { "content-type": "application/json", "x-ynx-browser-csrf": boot.sessionCsrfToken }, body: canonicalJSON({}) });
+        status.textContent = "Signed out of all YNX products.";
+      } catch {
+        status.textContent = "Global sign-out is not confirmed. Retry; no successful revocation is assumed.";
+        button.disabled = false;
+      } finally {
+        pending = false;
+        button.removeAttribute("aria-busy");
+      }
+    });
+    window.addEventListener("focus", () => {
+      if (!pending) void refresh();
+    });
+    void refresh();
+  } else {
+    const challenge = parseCentralBrowserSignInChallenge(context.challenge, context.registry, { peerOrigin: location.origin });
+    const picker = document.getElementById("wallet"), approve = document.getElementById("approve"), cancel = document.getElementById("cancel"), status = document.getElementById("status");
+    const discovery = createWalletProviderDiscovery(window);
+    const restart = document.createElement("button");
+    restart.id = "restart";
+    restart.hidden = true;
+    restart.textContent = "Return to product and retry";
+    cancel.after(restart);
+    restart.addEventListener("click", () => cancel.click());
+    let providers = [], selected = null, pending = null, revision = 0, cancelled = false;
+    const message = (value) => {
+      status.textContent = value;
+    };
+    const request = async (path, input) => {
+      const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 1e4);
+      try {
+        const response = await fetch(`/v2/browser-sessions/${path}`, { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json", "x-ynx-browser-csrf": context.csrfToken }, body: canonicalJSON(input), signal: controller.signal });
+        const value = await response.json();
+        if (!response.ok) throw new Error(value.error?.code ?? "SSO_REQUEST_FAILED");
+        return value;
       } finally {
         clearTimeout(timer);
-        operationAbort.signal.removeEventListener("abort", onAbort);
       }
     };
-    const connection = new StandardWalletConnection({ provider, origin: location.origin, metadata: { name: "YNX browser sign-in", url: location.origin } });
-    const changed = () => {
-      invalid = true;
-      revision++;
-      operationAbort.abort();
-    };
-    const assert = () => {
-      if (cancelled || invalid || epoch !== revision || selected !== provider) throw new Error("SSO_CONTEXT_CHANGED");
-      if (Date.parse(challenge.expiresAt) <= Date.now()) throw new Error("SSO_CHALLENGE_EXPIRED");
-    };
-    message("Opening YNX Wallet. Unlock and review browser sign-in.");
-    approve.setAttribute("aria-busy", "true");
-    pending = (async () => {
-      assert();
-      await walletWait(connection.connect());
-      assert();
-      if (connection.current?.selectedChain !== METAMASK_EVM_CHAIN.chainId) {
-        try {
-          await walletWait(connection.request({ method: "wallet_switchEthereumChain", params: [{ chainId: METAMASK_EVM_CHAIN.chainId }] }));
-        } catch (error) {
-          assert();
-          if (Number(error?.code) !== 4902) throw error;
-          await walletWait(connection.request({ method: "wallet_addEthereumChain", params: [METAMASK_EVM_CHAIN] }));
-          assert();
-          await walletWait(connection.request({ method: "wallet_switchEthereumChain", params: [{ chainId: METAMASK_EVM_CHAIN.chainId }] }));
-        }
-        assert();
-        await walletWait(connection.restore());
-        assert();
-      }
-      account = connection.current?.selectedAccount;
-      chain = connection.current?.selectedChain;
-      if (!account || chain !== METAMASK_EVM_CHAIN.chainId) throw new Error("PROVIDER_WRONG_CHAIN");
-      unsubscribe = connection.subscribe((event) => {
-        if (["accountsChanged", "chainChanged", "disconnect"].includes(event.event)) changed();
+    discovery.subscribe((snapshot) => {
+      providers = snapshot.candidates.filter((value) => value.kind === WALLET_PROVIDER_KIND.YNX).map((value) => value.provider);
+      const previous = selected;
+      picker.replaceChildren();
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Choose YNX Wallet";
+      picker.append(placeholder);
+      providers.forEach((provider, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = `YNX Wallet ${index + 1}`;
+        picker.append(option);
       });
-      const approval = parseCentralBrowserSignInApproval(await walletWait(provider.request({ method: "ynx_requestCentralBrowserSignIn", params: [challenge] })));
-      assert();
-      const current = await walletWait(provider.request({ method: "eth_accounts" })), currentChain = await walletWait(provider.request({ method: "eth_chainId" }));
-      assert();
-      if (!Array.isArray(current) || current[0]?.toLowerCase() !== account || currentChain !== chain || approval.challengeId !== challenge.challengeId || evmAddressFromYNX(approval.account).toLowerCase() !== account) throw new Error("SSO_CONTEXT_CHANGED");
-      await request("complete", approval);
-      assert();
-      message("Sign-in approved. Returning to your product.");
-      location.reload();
-    })().catch(async (error) => {
-      if (error?.message === "SSO_REQUEST_TIMEOUT" || error?.message === "SSO_CHALLENGE_EXPIRED") {
+      if (previous && providers.includes(previous)) {
+        picker.value = String(providers.indexOf(previous));
+      } else if (previous) {
+        selected = null;
+        revision++;
+      }
+      approve.disabled = !selected || cancelled;
+      if (!providers.length) message("YNX Wallet is not available. Install or unlock it, then try again.");
+    });
+    picker.addEventListener("change", () => {
+      selected = picker.value === "" ? null : providers[Number(picker.value)];
+      revision++;
+      approve.disabled = !selected || cancelled;
+      message(pending ? "Finish or cancel the current request before switching wallets." : "Connection is separate from browser sign-in approval.");
+    });
+    approve.addEventListener("click", () => {
+      if (pending) {
+        message("Your request is already open in YNX Wallet.");
+        return;
+      }
+      if (!selected || cancelled) return;
+      const provider = selected, epoch = revision;
+      let account = null, chain = null, invalid = false, unsubscribe = () => {
+      };
+      const operationAbort = new AbortController();
+      const walletWait = async (work) => {
+        let timer, onAbort;
+        try {
+          return await Promise.race([work, new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error("SSO_REQUEST_TIMEOUT")), Math.max(1, Math.min(3e4, Date.parse(challenge.expiresAt) - Date.now())));
+            onAbort = () => reject(new Error("SSO_CONTEXT_CHANGED"));
+            operationAbort.signal.addEventListener("abort", onAbort, { once: true });
+          })]);
+        } finally {
+          clearTimeout(timer);
+          operationAbort.signal.removeEventListener("abort", onAbort);
+        }
+      };
+      const connection = new StandardWalletConnection({ provider, origin: location.origin, metadata: { name: "YNX browser sign-in", url: location.origin } });
+      const changed = () => {
         invalid = true;
         revision++;
         operationAbort.abort();
-        approve.disabled = true;
-        restart.hidden = false;
-      }
-      if (invalid || cancelled || epoch !== revision) {
-        approve.disabled = true;
-        restart.hidden = false;
-        try {
-          await request("cancel", { challengeId: challenge.challengeId });
-        } catch {
+      };
+      const assert = () => {
+        if (cancelled || invalid || epoch !== revision || selected !== provider) throw new Error("SSO_CONTEXT_CHANGED");
+        if (Date.parse(challenge.expiresAt) <= Date.now()) throw new Error("SSO_CHALLENGE_EXPIRED");
+      };
+      message("Opening YNX Wallet. Unlock and review browser sign-in.");
+      approve.setAttribute("aria-busy", "true");
+      pending = (async () => {
+        assert();
+        await walletWait(connection.connect());
+        assert();
+        if (connection.current?.selectedChain !== METAMASK_EVM_CHAIN.chainId) {
+          try {
+            await walletWait(connection.request({ method: "wallet_switchEthereumChain", params: [{ chainId: METAMASK_EVM_CHAIN.chainId }] }));
+          } catch (error) {
+            assert();
+            if (Number(error?.code) !== 4902) throw error;
+            await walletWait(connection.request({ method: "wallet_addEthereumChain", params: [METAMASK_EVM_CHAIN] }));
+            assert();
+            await walletWait(connection.request({ method: "wallet_switchEthereumChain", params: [{ chainId: METAMASK_EVM_CHAIN.chainId }] }));
+          }
+          assert();
+          await walletWait(connection.restore());
+          assert();
         }
-      }
-      if (!cancelled) message(error?.code === 4001 || error?.code === "USER_REJECTED" ? "Sign-in was declined. Your existing product permissions are unchanged." : `Sign-in could not finish (${error?.message === "SSO_CONTEXT_CHANGED" ? "context changed" : error?.message === "SSO_CHALLENGE_EXPIRED" ? "request expired" : error?.message === "SSO_REQUEST_TIMEOUT" ? "request timed out" : "wallet or service unavailable"}). Retry or cancel.`);
-    }).finally(() => {
-      operationAbort.abort();
-      unsubscribe();
-      connection.disconnect();
-      pending = null;
-      approve.removeAttribute("aria-busy");
+        account = connection.current?.selectedAccount;
+        chain = connection.current?.selectedChain;
+        if (!account || chain !== METAMASK_EVM_CHAIN.chainId) throw new Error("PROVIDER_WRONG_CHAIN");
+        unsubscribe = connection.subscribe((event) => {
+          if (["accountsChanged", "chainChanged", "disconnect"].includes(event.event)) changed();
+        });
+        const approval = parseCentralBrowserSignInApproval(await walletWait(provider.request({ method: "ynx_requestCentralBrowserSignIn", params: [challenge] })));
+        assert();
+        const current = await walletWait(provider.request({ method: "eth_accounts" })), currentChain = await walletWait(provider.request({ method: "eth_chainId" }));
+        assert();
+        if (!Array.isArray(current) || current[0]?.toLowerCase() !== account || currentChain !== chain || approval.challengeId !== challenge.challengeId || evmAddressFromYNX(approval.account).toLowerCase() !== account) throw new Error("SSO_CONTEXT_CHANGED");
+        await request("complete", approval);
+        assert();
+        message("Sign-in approved. Returning to your product.");
+        location.reload();
+      })().catch(async (error) => {
+        if (error?.message === "SSO_REQUEST_TIMEOUT" || error?.message === "SSO_CHALLENGE_EXPIRED") {
+          invalid = true;
+          revision++;
+          operationAbort.abort();
+          approve.disabled = true;
+          restart.hidden = false;
+        }
+        if (invalid || cancelled || epoch !== revision) {
+          approve.disabled = true;
+          restart.hidden = false;
+          try {
+            await request("cancel", { challengeId: challenge.challengeId });
+          } catch {
+          }
+        }
+        if (!cancelled) message(error?.code === 4001 || error?.code === "USER_REJECTED" ? "Sign-in was declined. Your existing product permissions are unchanged." : `Sign-in could not finish (${error?.message === "SSO_CONTEXT_CHANGED" ? "context changed" : error?.message === "SSO_CHALLENGE_EXPIRED" ? "request expired" : error?.message === "SSO_REQUEST_TIMEOUT" ? "request timed out" : "wallet or service unavailable"}). Retry or cancel.`);
+      }).finally(() => {
+        operationAbort.abort();
+        unsubscribe();
+        connection.disconnect();
+        pending = null;
+        approve.removeAttribute("aria-busy");
+      });
     });
-  });
-  cancel.addEventListener("click", async () => {
-    if (cancelled) return;
-    cancelled = true;
-    revision++;
-    approve.disabled = true;
-    cancel.disabled = true;
-    message("Cancelling this sign-in request\u2026");
-    try {
-      const result = await request("cancel", { challengeId: challenge.challengeId });
-      const redirect = new URL(result.redirectUri);
-      if (redirect.origin !== challenge.initiator.origin || redirect.pathname !== new URL(challenge.initiator.redirectUri).pathname || redirect.searchParams.get("state") !== challenge.initiator.state || redirect.searchParams.get("error") !== "access_denied") throw new Error("SSO_REDIRECT_INVALID");
-      location.assign(redirect.href);
-    } catch {
-      message("Cancellation is not confirmed. Retry cancellation; no late approval will be used on this page.");
-      cancelled = false;
-      cancel.disabled = false;
-    }
-  });
-  window.addEventListener("pagehide", () => {
-    revision++;
-    cancelled = true;
-    discovery.dispose();
-  });
+    cancel.addEventListener("click", async () => {
+      if (cancelled) return;
+      cancelled = true;
+      revision++;
+      approve.disabled = true;
+      cancel.disabled = true;
+      message("Cancelling this sign-in request\u2026");
+      try {
+        const result = await request("cancel", { challengeId: challenge.challengeId });
+        const redirect = new URL(result.redirectUri);
+        if (redirect.origin !== challenge.initiator.origin || redirect.pathname !== new URL(challenge.initiator.redirectUri).pathname || redirect.searchParams.get("state") !== challenge.initiator.state || redirect.searchParams.get("error") !== "access_denied") throw new Error("SSO_REDIRECT_INVALID");
+        location.assign(redirect.href);
+      } catch {
+        message("Cancellation is not confirmed. Retry cancellation; no late approval will be used on this page.");
+        cancelled = false;
+        cancel.disabled = false;
+      }
+    });
+    window.addEventListener("pagehide", () => {
+      revision++;
+      cancelled = true;
+      discovery.dispose();
+    });
+  }
 })();

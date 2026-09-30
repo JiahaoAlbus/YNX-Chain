@@ -6,6 +6,14 @@ import {createWalletProviderDiscovery,WALLET_PROVIDER_KIND} from './wallet-provi
 import {parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval} from './central-browser-session-contract.js';
 
 const context=JSON.parse(document.getElementById('context').textContent);
+if(context.mode==='session'){
+  const status=document.getElementById('status'),button=document.getElementById('global-logout');
+  let pending=false;
+  const read=async(path,options={})=>{const response=await fetch(`/v2/browser-sessions/${path}`,{credentials:'same-origin',...options,signal:AbortSignal.timeout(10000)});const value=await response.json();if(!response.ok)throw new Error(value.error?.code??'SSO_REQUEST_FAILED');return value;};
+  const refresh=async()=>{try{const identity=await read('status');status.textContent=identity.account;button.disabled=false;}catch(error){status.textContent=error.message==='SSO_LOGIN_REQUIRED'?'You are signed out.':'Session status is unavailable. Retry checking before signing out.';button.disabled=error.message==='SSO_LOGIN_REQUIRED';}};
+  button.addEventListener('click',async()=>{if(pending)return;pending=true;button.disabled=true;button.setAttribute('aria-busy','true');try{const boot=await read('bootstrap');await read('logout',{method:'POST',headers:{'content-type':'application/json','x-ynx-browser-csrf':boot.sessionCsrfToken},body:canonicalJSON({})});status.textContent='Signed out of all YNX products.';}catch{status.textContent='Global sign-out is not confirmed. Retry; no successful revocation is assumed.';button.disabled=false;}finally{pending=false;button.removeAttribute('aria-busy');}});
+  window.addEventListener('focus',()=>{if(!pending)void refresh();});void refresh();
+}else{
 const challenge=parseCentralBrowserSignInChallenge(context.challenge,context.registry,{peerOrigin:location.origin});
 const picker=document.getElementById('wallet'),approve=document.getElementById('approve'),cancel=document.getElementById('cancel'),status=document.getElementById('status');
 const discovery=createWalletProviderDiscovery(window);
@@ -64,3 +72,4 @@ cancel.addEventListener('click',async()=>{
   }catch{message('Cancellation is not confirmed. Retry cancellation; no late approval will be used on this page.');cancelled=false;cancel.disabled=false;}
 });
 window.addEventListener('pagehide',()=>{revision++;cancelled=true;discovery.dispose();});
+}

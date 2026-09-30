@@ -12,6 +12,7 @@ import {bytesToHex,hexToBytes,utf8ToBytes} from '../../../packages/wallet-auth/n
 import {walletIdentity,evmAddressFromYNX} from '../../../packages/wallet-auth/src/crypto.js';
 import {ProductSessionGatewayNodeHost} from '../../../packages/wallet-auth/src/product-session-gateway-node-host.js';
 import {centralBrowserConsentSignBytes} from '../../../packages/wallet-auth/src/central-browser-session-contract.js';
+import {canonicalJSON} from '../../../packages/wallet-auth/src/canonical.js';
 const registry=JSON.parse(await readFile(new URL('../../../packages/wallet-auth/product-session-registry.json',import.meta.url)));
 const issuer='https://wallet-auth.ynxweb4.com',key='1'.padStart(64,'0'),identity=walletIdentity(key),token=()=>randomBytes(32).toString('base64url');
 test('Finance preserves Klein blue and white under both OS color-scheme preferences',async()=>{
@@ -69,7 +70,13 @@ test('central guest page uses explicit selected native RPC, actual backend conse
     if(mode==='cancel-complete'){releaseComplete();const response=await fetch(`http://127.0.0.1:${server.address().port}/v2/browser-sessions/status`,{headers:{cookie:completedCookie}});assert.equal(response.status,401);}
     if(!cancel){const response=await fetch(`http://127.0.0.1:${server.address().port}/v2/browser-sessions/token`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({clientId:'ynx-finance-v1-sso-v1',code:result.searchParams.get('code'),codeVerifier:verifier,origin:'https://finance.ynxweb4.com',redirectUri:'https://finance.ynxweb4.com/sso/callback',state})});
       // The wire is canonical; key order above is deliberately lexicographic.
-      assert.equal(response.status,200);assert.equal((await response.json()).identity.account,identity.account);
+      assert.equal(response.status,200);const grant=await response.json();assert.equal(grant.identity.account,identity.account);
+      if(mode==='approve'){
+        await page.goto(`${issuer}/sso/session`);await page.waitForFunction(()=>!document.getElementById('global-logout').disabled);
+        await page.click('#global-logout');await page.waitForFunction(()=>document.getElementById('status').textContent==='Signed out of all YNX products.');
+        const introspected=await fetch(`http://127.0.0.1:${server.address().port}/v2/browser-sessions/introspect`,{method:'POST',headers:{'content-type':'application/json'},body:canonicalJSON({clientId:'ynx-finance-v1-sso-v1',grantToken:grant.grantToken})});assert.equal(introspected.status,401);
+        await page.reload();await page.waitForFunction(()=>document.getElementById('status').textContent==='You are signed out.');assert.equal(await page.locator('#global-logout').isDisabled(),true);
+      }
     }
     await context.close();
   }}finally{await browser.close();await new Promise(resolve=>server.close(resolve));await rm(directory,{recursive:true,force:true});}

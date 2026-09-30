@@ -161,7 +161,7 @@ export class CentralBrowserSessionAuthority {
 function fail(code){throw new WalletAuthError(code,'Central browser authorization failed closed');}
 
 export const CENTRAL_BROWSER_ROUTES=Object.freeze([
-  '/sso/browser.js',
+  '/sso/browser.js','/sso/session',
   '/v2/browser-sessions/bootstrap','/v2/browser-sessions/challenge','/v2/browser-sessions/complete',
   '/v2/browser-sessions/cancel','/v2/browser-sessions/status','/v2/browser-sessions/authorize',
   '/v2/browser-sessions/token','/v2/browser-sessions/introspect','/v2/browser-sessions/logout','/v2/browser-sessions/logout-grant',
@@ -177,6 +177,10 @@ export class CentralBrowserSessionNodeRoutes {
       if(path==='/sso/browser.js'){
         if(method!=='GET'||parsedUrl.search||parsedUrl.hash)fail('SSO_METHOD_NOT_ALLOWED');
         return {status:200,headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'},body:readFileSync(new URL('./central-browser-session-browser.bundle.js',import.meta.url),'utf8')};
+      }
+      if(path==='/sso/session'){
+        if(method!=='GET'||parsedUrl.search||parsedUrl.hash)fail('SSO_METHOD_NOT_ALLOWED');
+        return {status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"},body:'<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YNX · Browser session</title><style>body{background:#fff;color:#122247;font:17px/1.6 system-ui;margin:0}main{max-width:560px;margin:8vh auto;padding:24px}button{min-height:44px;padding:12px 18px;border:0;border-radius:12px;background:#002FA7;color:#fff;font:inherit}button:disabled{opacity:.65}</style><main><h1>YNX browser session</h1><p id="status" role="status" aria-live="polite">Checking your server session…</p><p>Signing out here ends browser identity access across all linked YNX products. It does not revoke unrelated Wallet connection permissions.</p><button id="global-logout" type="button" disabled>Sign out of all YNX products</button><script id="context" type="application/json">{"mode":"session"}</script><script src="/sso/browser.js" defer></script></main></html>'};
       }
       if(parsedUrl.hash||parsedUrl.search&&path!=='/v2/browser-sessions/authorize')fail('SSO_TRANSACTION_INVALID');
       const backend=['/v2/browser-sessions/token','/v2/browser-sessions/introspect','/v2/browser-sessions/logout-grant'].includes(path);
