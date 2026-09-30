@@ -21,8 +21,8 @@ export function passwordActionReady(state, expectedUnlock) {
 }
 
 /** 0.6.8 can discard its own error label after a rejected attempt closes the dialog. */
-export function wrongPasswordRejected(state, expectedAccount, installedVersion) {
-  if (state?.error || state?.locked !== true || state.account?.account !== expectedAccount || state.account?.initialized !== true || state.account?.passwordConfigured !== true) return false;
+export function wrongPasswordRejected(state, expectedAccount, installedVersion, expectedInitialized = true) {
+  if (state?.error || state?.locked !== true || state.account?.account !== expectedAccount || state.account?.initialized !== expectedInitialized || state.account?.passwordConfigured !== true) return false;
   const attempt = state.ui?.wrongPasswordAttempt;
   if (attempt?.submitObserved !== true || attempt.busyObserved !== true || state.ui?.unlockEnabled !== true) return false;
   const current = "The password is incorrect or this encrypted Wallet changed. It remains locked.";

@@ -48,3 +48,12 @@ test("old installed wrong-password gate requires real busy submit, same locked a
   assert.equal(wrongPasswordRejected({ ...state, error: { code: "STORAGE_UNAVAILABLE" } }, "0x123", "0.6.8"), false);
   assert.equal(wrongPasswordRejected({ ...state, ui: { ...state.ui, unlockResult: "The password is incorrect or the encrypted Wallet was changed." } }, "0x123", "0.6.8"), true);
 });
+
+test("failed-create recovery requires real rejected submit and exact localized label from either result slot", () => {
+ const message="The password is incorrect or this encrypted Wallet changed. It remains locked.";
+ const state={account:{initialized:false,passwordConfigured:true,account:null},locked:true,error:null,ui:{passwordResult:"",unlockResult:MESSAGES[message].ar,unlockEnabled:true,passwordSheetOpen:false,wrongPasswordAttempt:{submitObserved:true,busyObserved:true,settled:true}}};
+ assert.equal(wrongPasswordRejected(state,null,"0.6.16",false),true);
+ assert.equal(wrongPasswordRejected(state,null,"0.6.16"),false);
+ for(const change of [{locked:false},{account:{...state.account,initialized:true}},{account:{...state.account,account:"0x123"}},{error:{code:"STORAGE_UNAVAILABLE"}},{ui:{...state.ui,unlockResult:"unknown"}},{ui:{...state.ui,wrongPasswordAttempt:{submitObserved:true,busyObserved:false}}},{ui:{...state.ui,wrongPasswordAttempt:{submitObserved:false,busyObserved:true}}}])assert.equal(wrongPasswordRejected({...state,...change},null,"0.6.16",false),false);
+ assert.equal(wrongPasswordRejected({...state,ui:{...state.ui,unlockResult:"",passwordResult:MESSAGES[message]["zh-CN"]}},null,"0.6.16",false),true);
+});
