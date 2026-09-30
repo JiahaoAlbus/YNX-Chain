@@ -1,4 +1,4 @@
-export const extensionVersion = "0.1.8";
+export const extensionVersion = "0.1.9";
 export const extensionHomepage = "https://www.ynxweb4.com/";
 
 const sharedManifest = {
