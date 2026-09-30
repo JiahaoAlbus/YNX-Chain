@@ -2,6 +2,7 @@ package finance
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
@@ -56,6 +58,30 @@ func TestLocalNodeHostProductSessionBridge(t *testing.T) {
 	}
 	product := httptest.NewServer(server.Handler())
 	defer product.Close()
+	if os.Getenv("YNX_FINANCE_QA_SERVE_BROWSER") == "yes" {
+		stop := make(chan struct{}, 1)
+		bridge := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/__qa_stop" && r.Method == http.MethodPost {
+				select {
+				case stop <- struct{}{}:
+				default:
+				}
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			server.Handler().ServeHTTP(w, r)
+		}))
+		defer bridge.Close()
+		// Only the ephemeral loopback socket address is emitted. No proofs,
+		// credentials or account secrets are written to stdout.
+		fmt.Printf("FINANCE_QA_LISTEN=%s\n", bridge.URL)
+		select {
+		case <-stop:
+		case <-time.After(60 * time.Second):
+			t.Fatal("isolated browser QA did not close its finite server")
+		}
+		return
+	}
 	call := func() (*http.Response, error) {
 		request, err := http.NewRequest(http.MethodGet, product.URL+"/api/overview", nil)
 		if err != nil {

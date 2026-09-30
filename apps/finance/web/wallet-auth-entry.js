@@ -1,4 +1,5 @@
-import {StandardWalletConnection,discoverWalletProviders} from './vendor/standard-wallet-browser-c97f85e9.mjs';
+import {StandardWalletConnection} from './vendor/standard-wallet-browser-c97f85e9.mjs';
+import {createWalletProviderDiscovery} from '../../../packages/wallet-auth/src/wallet-provider-discovery.js';
 import {METAMASK_EVM_CHAIN} from '../../../packages/wallet-auth/src/metamask-evm-adapter.js';
 import {toYNXAddress,toEVMAddress} from '../../../sdk/js/index.js';
 import {createHostedWalletAdapter} from './vendor/hosted-wallet-adapter-19d8a9a2.js';
@@ -9,12 +10,13 @@ const ORIGIN='https://finance.ynxweb4.com';
 const PROVIDER_KEY='ynx.finance.standard-wallet.provider.v2';
 const DOWNLOAD='https://www.ynxweb4.com/dapp/download',METAMASK='https://metamask.io/download/';
 const CHAIN=METAMASK_EVM_CHAIN;
-let connection=null,hosted=null,activeTransport=null,discoveredYNX=null,unsubscribe=()=>{},intent=0,revision=0,busy=false,revoking=null;
+let connection=null,selectedProvider=null,providerRegistry=null,hosted=null,activeTransport=null,unsubscribe=()=>{},intent=0,revision=0,busy=false,revoking=null;
 let standard=Object.freeze({status:'disconnected',providerKind:null,account:null,chainId:null});
 let lastMessage='';
+let pendingConnection=null;
 function label(key){return window.YNXFinanceLocale?.text(key)??key;}
 function message(code){
-  const key=({WALLET_NOT_FOUND:'walletNotFound',USER_REJECTED:'walletRejected',WRONG_NETWORK:'walletWrongChain',LOCAL_DISCONNECT_ONLY:'standardDisconnected',PERMISSION_REVOKED:'walletRevoked',WALLET_DETAILS_ONLY:'walletDetailsOnly',PROVIDER_ACCOUNT_UNAVAILABLE:'walletAccountUnavailable'})[code];
+  const key=({REQUEST_PENDING:'standardBusy',WALLET_NOT_FOUND:'walletNotFound',USER_REJECTED:'walletRejected',WRONG_NETWORK:'walletWrongChain',LOCAL_DISCONNECT_ONLY:'standardDisconnected',PERMISSION_REVOKED:'walletRevoked',WALLET_DETAILS_ONLY:'walletDetailsOnly',PROVIDER_ACCOUNT_UNAVAILABLE:'walletAccountUnavailable'})[code];
   return key?label(key):code?.startsWith('REVOCATION_')?label('walletRevocationUnconfirmed'):code?label('walletActionUnavailable'):'';
 }
 const ready=new Promise(resolve=>document.readyState==='loading'?document.addEventListener('DOMContentLoaded',resolve,{once:true}):resolve()).then(boot);
@@ -22,7 +24,8 @@ window.YNXFinanceWallet=Object.freeze({
   ready,connect:connectYNXWallet,connectMetaMask:()=>connect('metamask'),
   restoreStandardWallet,disconnectStandardWallet,revokeStandardWallet,
   getStandardWalletState:()=>standard,getStandardRevision:()=>revision,getRevision:()=>revision+privateFinance.revision(),
-  signEVMLoginRequest,
+  signEVMLoginRequest,requestProductSessionV2,
+  privateProviderAvailable:()=>standard.status==='connected'&&standard.providerKind==='ynx-wallet'&&activeTransport==='injected'&&!!selectedProvider,
   connected:privateFinance.connected,session:privateFinance.session,requireProof:privateFinance.proof,
   privateAccountMatchesSelected:privateFinance.accountMatchesSelected,
   disconnect:privateFinance.disconnect,reportPrivateFailure:privateFinance.reportFailure,
@@ -31,13 +34,20 @@ window.YNXFinanceWallet=Object.freeze({
 });
 function preference(value){try{if(value===undefined){const saved=localStorage.getItem(PROVIDER_KEY);return ['ynx-wallet','metamask'].includes(saved)?saved:null;}if(value)localStorage.setItem(PROVIDER_KEY,value);else localStorage.removeItem(PROVIDER_KEY);}catch{}return null;}
 function isCurrent(value,selected=connection){if(value!==intent||selected!==connection)throw new Error('WALLET_REQUEST_SUPERSEDED');}
-function detach(){unsubscribe();unsubscribe=()=>{};const old=connection;connection=null;old?.disconnect();}
+function detach(){unsubscribe();unsubscribe=()=>{};const old=connection;connection=null;selectedProvider=null;old?.disconnect();}
 function hostedStateChanged(next){
   if(activeTransport!=='hosted')return;
   busy=next.status==='connecting';
   // Account changes invalidate the old local private subject; this is not a
   // claim that Wallet/Gateway permission was revoked remotely.
   if(next.error==='HOSTED_ACCOUNT_CHANGED')privateFinance.guest();
+  if(next.error==='HOSTED_LOCAL_DISCONNECT'){
+    privateFinance.guest();
+    publish({status:'disconnected',providerKind:'ynx-wallet',account:null,chainId:null,transport:'hosted-wallet-web',disconnectReason:'explicit-local'},next.error);return;
+  }
+  if(next.error==='HOSTED_DISCONNECTED'&&standard.account&&standard.chainId==='0x1917'){
+    publish({...standard,status:'transport-unavailable',disconnectReason:'transport-unavailable'},next.error);return;
+  }
   const connected=next.status==='connected'&&next.chainId==='0x1917'&&/^0x[0-9a-f]{40}$/.test(next.account??'');
   if(connected){
     try{if(toEVMAddress(toYNXAddress(next.account))!==next.account)throw new Error('HOSTED_ADDRESS_ROUNDTRIP_FAILED');}
@@ -51,23 +61,36 @@ function hostedAttempt(){
   publish({status:'connecting',providerKind:'ynx-wallet',account:null,chainId:null,transport:'hosted-wallet-web'});
 }
 function connectYNXWallet(){
-  const legacy=window.ethereum?.providers?.find(provider=>provider?.isYNXWallet===true)||
-    (window.ethereum?.isYNXWallet===true?window.ethereum:null);
-  if(discoveredYNX||legacy)return connect('ynx-wallet');
-  // The browser has no selected YNX extension provider. Launch the official
-  // Hosted Wallet synchronously within this user gesture, never a bare scheme.
-  if(!hosted)throw new Error('HOSTED_WALLET_NOT_READY');
-  hostedAttempt();return hosted.connect();
+  // Installed/provider choice never silently switches to the independent
+  // Hosted Wallet. Hosted remains available through its explicit own button.
+  return connect('ynx-wallet');
+}
+async function providers(){
+  if(!providerRegistry||providerRegistry.disposed)providerRegistry=createWalletProviderDiscovery(window);
+  providerRegistry.request();
+  await new Promise(resolve=>setTimeout(resolve,160));
+  return providerRegistry.snapshot();
 }
 function publish(next,message=''){standard=Object.freeze({...next});revision++;lastMessage=message;render();window.dispatchEvent(new CustomEvent('ynx-finance-standard-state',{detail:{...standard,revision}}));}
 function snapshot(selected,kind){const session=selected.current;return session?{status:session.selectedChain==='0x1917'?'connected':'wrong-chain',providerKind:kind,account:session.selectedAccount,chainId:session.selectedChain}:{status:'disconnected',providerKind:kind,account:null,chainId:null};}
 function attach(provider,kind){
   const selected=new StandardWalletConnection({provider,origin:ORIGIN,metadata:{name:'YNX Finance',url:ORIGIN}});
   connection=selected;
+  selectedProvider=provider;
   unsubscribe=selected.subscribe(({event})=>{
     if(selected!==connection||!['accountsChanged','chainChanged','disconnect'].includes(event))return;
     const next=snapshot(selected,kind);
-    if(event==='accountsChanged'&&standard.status==='connected'&&next.account!==standard.account)privateFinance.guest();
+    if(event==='disconnect'&&standard.account&&standard.chainId==='0x1917'){
+      publish({...standard,status:'transport-unavailable',disconnectReason:'transport-unavailable'});return;
+    }
+    if(event==='accountsChanged'&&standard.account&&next.account!==standard.account){
+      privateFinance.guest();
+      next.disconnectReason='account-changed';
+    }
+    if(event==='chainChanged'&&standard.account&&next.chainId!==standard.chainId){
+      privateFinance.guest();
+      next.disconnectReason='chain-changed';
+    }
     if(next.status==='disconnected'&&selected!==revoking)preference(null);
     if(JSON.stringify(next)!==JSON.stringify(standard))publish(next);
   });
@@ -96,11 +119,34 @@ async function signEVMLoginRequest(request){
   if(typeof signature!=='string'||!/^0x[0-9a-fA-F]{130}$/.test(signature))throw new Error('WALLET_LOGIN_SIGNATURE_INVALID');
   return signature;
 }
-async function connect(kind){
+async function requestProductSessionV2(url){
+  const provider=selectedProvider,selected=connection,value=intent,account=standard.account,chain=standard.chainId,atRevision=revision;
+  if(!provider||!selected||activeTransport!=='injected'||standard.providerKind!=='ynx-wallet'||standard.status!=='connected'||chain!=='0x1917')throw new Error('PRIVATE_TRANSPORT_UNAVAILABLE');
+  if(typeof url!=='string'||url.length>16384)throw new Error('PRIVATE_REQUEST_INVALID');
+  const assertSelected=()=>{if(value!==intent||selected!==connection||provider!==selectedProvider||atRevision!==revision||standard.account!==account||standard.chainId!==chain||standard.status!=='connected')throw new Error('FINANCE_CONTEXT_CHANGED')};
+  assertSelected();
+  // The Wallet owns parsing, review and the native account signature. This
+  // sends the official SDK route as data, not a browser scheme navigation.
+  const result=typeof provider.requestProductSessionV2==='function'?await provider.requestProductSessionV2(url):await provider.request({method:'ynx_requestProductSessionV2',params:[url]});
+  assertSelected();
+  if(result?.version!==2||typeof result.returnUrl!=='string'||result.returnUrl.length>16384)throw new Error('PRIVATE_RETURN_INVALID');
+  return result;
+}
+function connect(kind){
+  if(pendingConnection){
+    lastMessage='REQUEST_PENDING';render();document.querySelector('#wallet-state')?.focus();
+    return pendingConnection.kind===kind&&!pendingConnection.cancelled?pendingConnection.promise:Promise.resolve(null);
+  }
+  const pending={kind,promise:null,cancelled:false};
+  pendingConnection=pending;
+  pending.promise=performConnect(kind).finally(()=>{if(pendingConnection===pending)pendingConnection=null});
+  return pending.promise;
+}
+async function performConnect(kind){
   if(!['ynx-wallet','metamask'].includes(kind))throw new Error('WALLET_SELECTION_INVALID');
   const value=++intent;activeTransport='injected';void hosted?.disconnect();detach();preference(null);busy=true;publish({status:'connecting',providerKind:kind,account:null,chainId:null,transport:'injected'});
   try{
-    const discovery=await discoverWalletProviders(window,160);isCurrent(value);
+    const discovery=await providers();isCurrent(value);
     const provider=(kind==='ynx-wallet'?discovery.ynx:discovery.metamask)?.provider;
     if(!provider){publish({status:'unavailable',providerKind:kind,account:null,chainId:null},'WALLET_NOT_FOUND');return null;}
     const selected=attach(provider,kind);
@@ -117,14 +163,14 @@ async function restoreStandardWallet(){
   const kind=preference(),value=++intent;activeTransport=kind?'injected':null;detach();busy=false;publish({status:'disconnected',providerKind:kind,account:null,chainId:null});
   if(!kind)return null;
   try{
-    const discovery=await discoverWalletProviders(window,160);isCurrent(value);
+    const discovery=await providers();isCurrent(value);
     const provider=(kind==='ynx-wallet'?discovery.ynx:discovery.metamask)?.provider;
     if(!provider){lastMessage='WALLET_NOT_FOUND';render();return null;}
     const selected=attach(provider,kind);await selected.restore();isCurrent(value,selected);
     publish(snapshot(selected,kind));if(standard.status!=='connected')preference(null);return standard;
   }catch(error){if(value===intent){detach();publish({status:'disconnected',providerKind:kind,account:null,chainId:null},error.message||'WALLET_UNAVAILABLE');}return null;}
 }
-function disconnectStandardWallet(){intent++;activeTransport=null;busy=false;preference(null);detach();void hosted?.disconnect();publish({status:'disconnected',providerKind:null,account:null,chainId:null},'LOCAL_DISCONNECT_ONLY');}
+function disconnectStandardWallet(){if(pendingConnection)pendingConnection.cancelled=true;intent++;activeTransport=null;busy=false;preference(null);detach();void hosted?.disconnect();publish({status:'disconnected',providerKind:null,account:null,chainId:null,disconnectReason:'explicit-local'},'LOCAL_DISCONNECT_ONLY');}
 async function revokeStandardWallet(){
   if(activeTransport==='hosted'){
     busy=true;render();
@@ -136,7 +182,7 @@ async function revokeStandardWallet(){
   try{
     const result=await selected.revoke();
     if(value!==intent||selected!==connection)return {status:'superseded',permissionRevoked:false,locallyDisconnected:standard.status!=='connected'};
-    if(result.permissionRevoked){preference(null);detach();publish({status:'disconnected',providerKind:null,account:null,chainId:null},'PERMISSION_REVOKED');}
+    if(result.permissionRevoked){preference(null);detach();publish({status:'disconnected',providerKind:null,account:null,chainId:null,disconnectReason:'permission-revoked'},'PERMISSION_REVOKED');}
     else {lastMessage='REVOCATION_'+result.status.toUpperCase();render();}
     return result;
   }finally{if(value===intent){busy=false;revoking=null;render();}}
@@ -158,7 +204,8 @@ function render(){
 async function boot(){
   hosted=mountFinanceHostedWalletUI({document,window,createHostedWalletAdapter,text:label,onAttempt:hostedAttempt,onChange:hostedStateChanged});
   window.YNXFinanceHostedWallet=hosted;
-  void discoverWalletProviders(window,160).then(found=>{discoveredYNX=found.ynx?.provider??null;}).catch(()=>{});
+  providerRegistry=createWalletProviderDiscovery(window);
+  providerRegistry.subscribe(()=>render());
   document.querySelector('#connect-metamask')?.addEventListener('click',()=>connect('metamask'));
   document.querySelector('#wallet-disconnect')?.addEventListener('click',disconnectStandardWallet);
   document.querySelector('#wallet-revoke')?.addEventListener('click',()=>revokeStandardWallet());

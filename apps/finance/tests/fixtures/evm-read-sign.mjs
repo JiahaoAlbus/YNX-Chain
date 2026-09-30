@@ -10,12 +10,13 @@ import {
 } from '@ynx-chain/wallet-auth';
 
 // Deterministic TEST KEYS ONLY. Never import this fixture into a runtime build.
-const wallet = new Uint8Array(32).fill(7);
-const device = new Uint8Array(32).fill(9);
+const input = JSON.parse(readFileSync(0, 'utf8'));
+if (input.testUser !== undefined && ![0, 1].includes(input.testUser)) throw new Error('unsupported QA identity');
+const wallet = new Uint8Array(32).fill(7 + (input.testUser || 0));
+const device = new Uint8Array(32).fill(9 + (input.testUser || 0));
 const account = `0x${bytesToHex(keccak_256(secp256k1.getPublicKey(wallet, false).slice(1)).slice(-20))}`;
 const deviceKey = Buffer.from(p256.getPublicKey(device, true)).toString('base64url');
 const secret = Buffer.from(device).toString('base64url');
-const input = JSON.parse(readFileSync(0, 'utf8'));
 let result;
 if (input.action === 'identity') {
   result = { account, deviceId: 'finance-test-browser-device-000001', deviceKey };

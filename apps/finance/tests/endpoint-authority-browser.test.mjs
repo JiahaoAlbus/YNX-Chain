@@ -42,6 +42,69 @@ const manifestCheckpoint=manifest=>({rootVersion:root.rootVersion,sequence:manif
 async function configure(page,manifest=signed(),trustRoot=root,clock=nowMs,serverCheckpoint=manifestCheckpoint(manifest)){await page.evaluate(({manifest,trustRoot,clock,serverCheckpoint})=>{globalThis.__financeClock=clock;globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__={manifest,serverCheckpoint,trustRoot,trustedClock:()=>globalThis.__financeClock};},{manifest,trustRoot,clock,serverCheckpoint});}
 const invoke=page=>page.evaluate(async()=>{try{return {ok:true,value:await FinanceAuthorityTest.assertFinancePrivateAuthority()};}catch(error){return {ok:false,error:String(error?.message??error)};}});
 
+test('concurrent authority HTTP readers share one trusted anchor but completed validation never masks real rollback',async()=>{
+  const fixture=await setup(),manifest=signed();let requests=0,rollback=false;
+  try{
+    await fixture.context.route('**/api/endpoint-authority/v2/config',async route=>{
+      requests++;await new Promise(resolve=>setTimeout(resolve,30));
+      await route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-browser-config/v1',manifest,trustRoot:root,serverCheckpoint:manifestCheckpoint(manifest),trustedTimeMs:rollback?nowMs-1000:nowMs})});
+    });
+    const result=await fixture.page.evaluate(async()=>{
+      const first=FinanceAuthorityTest.assertFinancePrivateAuthority(),second=FinanceAuthorityTest.assertFinancePrivateAuthority();
+      await Promise.all([first,second]);return {same:first===second};
+    });
+    assert.equal(result.same,true);assert.equal(requests,1);
+    rollback=true;const rejected=await invoke(fixture.page);
+    assert.equal(requests,2);assert.equal(rejected.ok,false);assert.match(rejected.error,/CLOCK_ROLLBACK/);
+  }finally{await fixture.browser.close()}
+});
+
+test('a fixed global wire configuration keeps its original monotonic trusted clock instead of reanchoring backwards',async()=>{
+  const fixture=await setup(),manifest=signed();
+  try{
+    await fixture.page.evaluate(config=>{globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__=config},{schemaVersion:'ynx-finance-endpoint-authority-browser-config/v1',manifest,trustRoot:root,serverCheckpoint:manifestCheckpoint(manifest),trustedTimeMs:nowMs});
+    assert.equal((await invoke(fixture.page)).ok,true);
+    await fixture.page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,25)));
+    assert.equal((await invoke(fixture.page)).ok,true);
+    assert.equal((await invoke(fixture.page)).ok,true);
+    await fixture.page.evaluate(()=>{globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__.extra=true});
+    const malformed=await invoke(fixture.page);assert.equal(malformed.ok,false);assert.match(malformed.error,/CONFIGURATION_INVALID/);
+    await fixture.page.evaluate(()=>{delete globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__.extra;globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__.trustedTimeMs-=1000});
+    const rollback=await invoke(fixture.page);assert.equal(rollback.ok,false);assert.match(rollback.error,/CLOCK_ROLLBACK/);
+  }finally{await fixture.browser.close()}
+});
+
+test('same-origin tabs serialize fresh HTTP anchors before the shared durable clock high-water',async()=>{
+  const fixture=await setup(),manifest=signed();let pending=0,maximum=0,count=0;
+  const started=performance.now();
+  try{
+    await fixture.context.route('**/api/endpoint-authority/v2/config',async route=>{
+      pending++;maximum=Math.max(maximum,pending);count++;
+      const trustedTimeMs=nowMs+Math.floor(performance.now()-started);
+      await new Promise(resolve=>setTimeout(resolve,count===1?60:5));
+      await route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-browser-config/v1',manifest,trustRoot:root,serverCheckpoint:manifestCheckpoint(manifest),trustedTimeMs})});pending--;
+    });
+    const second=await fixture.context.newPage();await second.goto(origin);await second.waitForFunction(()=>!!globalThis.FinanceAuthorityTest);
+    const outcomes=await Promise.all([invoke(fixture.page),invoke(second)]);
+    assert.ok(outcomes.every(result=>result.ok),JSON.stringify(outcomes));assert.equal(count,2);assert.equal(maximum,1);
+    await second.close();
+  }finally{await fixture.browser.close()}
+});
+
+test('a hung configuration fetch expires and releases the authority lock for a fresh validation',async()=>{
+  const fixture=await setup(),manifest=signed();let hang=true;
+  try{
+    await fixture.context.route('**/api/endpoint-authority/v2/config',async route=>{
+      if(hang)return; // deliberately unanswered; browser AbortController owns the deadline
+      await route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-browser-config/v1',manifest,trustRoot:root,serverCheckpoint:manifestCheckpoint(manifest),trustedTimeMs:nowMs})});
+    });
+    const failed=await invoke(fixture.page);assert.equal(failed.ok,false);assert.match(failed.error,/NETWORK_UNAVAILABLE/);
+    hang=false;assert.equal((await invoke(fixture.page)).ok,true);
+    await configure(fixture.page,signed('f'.repeat(40)),root,nowMs+1000);
+    const invalid=await invoke(fixture.page);assert.equal(invalid.ok,false);assert.match(invalid.error,/EQUIVOCATION/);
+  }finally{await fixture.browser.close()}
+});
+
 test('browser authority uses durable CAS and rejects equivocation, storage loss, clock rollback, expiry and revocation before network',async()=>{
   const fixture=await setup();
   try{
