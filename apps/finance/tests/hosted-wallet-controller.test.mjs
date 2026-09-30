@@ -43,6 +43,15 @@ test('Hosted request is unavailable after account change and requires a fresh ap
   await assert.rejects(value.controller.request({method:'personal_sign',params:[]}),error=>error.code==='HOSTED_NOT_CONNECTED');
   assert.equal(value.controller.getState().account,null);
 });
+test('Hosted transport close and explicit user disconnect have distinct reasons, not remote revoke receipts',async()=>{
+  const transport=fixture();await transport.controller.connect();transport.adapter.emit('disconnect',{code:'HOSTED_DISCONNECTED'});
+  assert.equal(transport.controller.getState().error,'HOSTED_DISCONNECTED');
+  const explicit=fixture();await explicit.controller.connect();await explicit.controller.disconnect();
+  assert.equal(explicit.controller.getState().error,'HOSTED_LOCAL_DISCONNECT');
+  const revoke=fixture();await revoke.controller.connect();
+  const result=await revoke.controller.revoke();
+  assert.equal(result.permissionRevoked,false);
+});
 
 test('Hosted rejection and a late event never create a connection',async()=>{
   const value=fixture({reject:'USER_REJECTED'});

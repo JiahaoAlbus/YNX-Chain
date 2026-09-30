@@ -38,7 +38,34 @@ async function restore(){
   if(callback&&['connected','disconnected'].includes(result.status))history.replaceState(null,'',location.pathname);
   return result;
 });}
-async function begin(){return operation(selected=>{try{localStorage.setItem(ATTEMPT_KEY,'yes');}catch{}return selected.client.beginExplicit();});}
+async function begin(){
+  if(busy)return current;
+  const wallet=window.YNXFinanceWallet,standardRevision=wallet?.getStandardRevision?.();
+  const assertSelected=()=>{if(standardRevision!==wallet?.getStandardRevision?.())throw Object.assign(new Error('FINANCE_CONTEXT_CHANGED'),{code:'FINANCE_CONTEXT_CHANGED'})};
+  return operation(async selected=>{
+    try{
+    assertSelected();try{localStorage.setItem(ATTEMPT_KEY,'yes');}catch{}
+    const pending=await selected.client.beginExplicit();assertSelected();
+    // An explicitly selected native link remains available when no selected
+    // YNX provider transport exists. Never infer installation or switch to
+    // Hosted/MetaMask. The exact route is created and stored by the shared SDK.
+    if(pending.status!=='connecting'||pending.route?.status!=='ready'||!wallet?.privateProviderAvailable?.())return pending;
+    const response=await wallet.requestProductSessionV2(pending.route.url);assertSelected();
+    const settled=await selected.client.handleReturn(response.returnUrl);
+    assertSelected();
+    if(settled.status==='connected'&&!privateSubjectMatchesSelectedWallet(settled.session,wallet.getStandardWalletState())){
+      await selected.client.disconnect();throw new Error('FINANCE_ACCOUNT_MISMATCH');
+    }
+    return settled;
+    }catch(error){
+      // enterGuest only changes presentation. Canonical disconnect serializes
+      // with SDK begin/return, clears its pending callback and retains any
+      // unconfirmed revocation intent for recovery. Never forge a cleared ack.
+      if(error?.message==='FINANCE_CONTEXT_CHANGED'||error?.message==='WALLET_REQUEST_SUPERSEDED')await selected.client.disconnect();
+      throw error;
+    }
+  });
+}
 async function retry(){return operation(selected=>selected.client.retryDetected());}
 async function disconnect(){return operation(selected=>selected.client.disconnect());}
 function guest(){generation++;busy=false;const state=adapter?.client.enterGuest()??{status:'guest',session:null};publish(state);return state;}

@@ -11,7 +11,7 @@ import {chromium} from 'playwright';
 import {AUTHORITY_V2_REPOSITORY,AUTHORITY_V2_URLS,authorityV2SigningMessage} from '../../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft} from '../../../scripts/ops/endpoint-authority-v2.mjs';
 import {ProductSessionGatewayNodeHost} from '../../../packages/wallet-auth/src/product-session-gateway-node-host.js';
-import {signProductSessionApproval,createProductSessionReturnURL} from '../../../packages/wallet-auth/src/index.js';
+import {signProductSessionApproval,createProductSessionReturnURL,parseProductSessionWalletURL,walletIdentity,evmAddressFromYNX} from '../../../packages/wallet-auth/src/index.js';
 import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 
 // All HTTP responses below come from a real loopback NodeHost or the actual
@@ -58,7 +58,7 @@ async function relay(route,base){
   await route.fulfill({status:response.status,headers:returned,body:Buffer.from(await response.arrayBuffer())});
 }
 
-test('local QA browser callback reaches durable Gateway NodeHost and real Finance Go v2 verifier',async t=>{
+for(const transport of ['native-callback','selected-provider','selected-provider-context-change'])test(`local QA ${transport} reaches durable Gateway NodeHost and real Finance Go v2 verifier`,async t=>{
   const directory=await mkdtemp(join(tmpdir(),'ynx-finance-local-v2-'));await chmod(directory,0o700);
   const statePath=join(directory,'gateway-state.json');
   const host=new ProductSessionGatewayNodeHost(registry,{statePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url')});
@@ -80,26 +80,63 @@ test('local QA browser callback reaches durable Gateway NodeHost and real Financ
     await context.route(`${financeOrigin}/**`,route=>relay(route,financeBase));
     await context.route(`${gatewayOrigin}/**`,route=>relay(route,gatewayBase));
     const page=await context.newPage();
+    let lateCallback;
+    if(transport.startsWith('selected-provider')){
+      await page.exposeFunction('approveFinanceLocalQA',url=>{
+        const pending=parseProductSessionWalletURL(registry,url),at=new Date();
+        const approval=signProductSessionApproval(registry,pending,{accountSecret:'1'.padStart(64,'0'),scopes:pending.scopes,expiresAt:pending.expiresAt},at);
+        lateCallback=createProductSessionReturnURL(registry,pending,{result:'approved',approval},at);
+        return {version:2,returnUrl:lateCallback};
+      });
+      await page.addInitScript(({account,changed})=>{
+        const listeners=new Map();
+        const provider={isYNXWallet:true,__ynxCompanion:true,on(name,fn){if(!listeners.has(name))listeners.set(name,new Set());listeners.get(name).add(fn)},removeListener(name,fn){listeners.get(name)?.delete(fn)},request:async({method})=>method==='eth_chainId'?'0x1917':['eth_accounts','eth_requestAccounts'].includes(method)?[account]:method==='wallet_switchEthereumChain'?null:Promise.reject(new Error('QA method forbidden')),async requestProductSessionV2(url){const response=await window.approveFinanceLocalQA(url);if(changed)for(const fn of listeners.get('accountsChanged')||[])fn(['0x'+'c'.repeat(40)]);return response}};
+        const info={rdns:'com.ynx.wallet',name:'YNX Wallet',uuid:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'};
+        window.addEventListener('eip6963:requestProvider',()=>window.dispatchEvent(new CustomEvent('eip6963:announceProvider',{detail:{info,provider}})));
+      },{account:evmAddressFromYNX(walletIdentity('1'.padStart(64,'0')).account),changed:transport==='selected-provider-context-change'});
+    }
     const browserErrors=[],requests=[];
     page.on('pageerror',error=>browserErrors.push(error.message.slice(0,160)));
     page.on('response',response=>{const url=new URL(response.url());if(url.pathname.includes('endpoint-authority')||url.pathname.includes('product-sessions'))requests.push(`${url.pathname}:${response.status()}`)});
     await page.goto(financeOrigin);
+    if(transport.startsWith('selected-provider')){
+      await page.locator('#connect-ynx').click();
+      await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected');
+    }
     await page.locator('#wallet-more > summary').click();
+    if(transport==='selected-provider-context-change'){
+      await page.evaluate(()=>window.YNXFinanceWallet.beginPrivate());
+      assert.notEqual(await page.evaluate(()=>window.YNXFinanceWallet.getPrivateState().status),'connected');
+      assert.equal(host.snapshot().authority.sessions.length,0);
+      assert.ok(lateCallback);
+      const pendingCount=await page.evaluate(()=>new Promise((resolve,reject)=>{
+        const open=indexedDB.open('ynx-product-session-web-v2');open.onerror=()=>reject(new Error('QA state inaccessible'));
+        open.onsuccess=()=>{const db=open.result,read=db.transaction('state').objectStore('state').getAll();read.onerror=()=>reject(new Error('QA state unreadable'));read.onsuccess=()=>{const count=read.result.flatMap(record=>Object.keys(record.values)).filter(key=>key.endsWith(':pending')).length;db.close();resolve(count)}};
+      }));
+      assert.equal(pendingCount,0,'canonical SDK pending request must be cleared before accepting a cold callback');
+      await page.goto(lateCallback);
+      await page.waitForFunction(()=>['disconnected','guest','degraded'].includes(window.YNXFinanceWallet.getPrivateState().status));
+      assert.notEqual(await page.evaluate(()=>window.YNXFinanceWallet.getPrivateState().status),'connected');
+      assert.equal(host.snapshot().authority.sessions.length,0);
+      await context.close();return;
+    }
     await page.locator('#private-begin').click();
     await page.waitForFunction(()=>{
       const state=window.YNXFinanceWallet.getPrivateState();
-      return state.route?.request||state.status==='degraded';
+      return state.route?.request||state.status==='connected'||state.status==='degraded';
     },null,{timeout:12_000});
     const beginStatus=await page.evaluate(()=>({status:window.YNXFinanceWallet.getPrivateState().status,code:document.querySelector('#private-state')?.title||''}));
     assert.notEqual(beginStatus.status,'degraded',`Private begin degraded: ${JSON.stringify({beginStatus,browserErrors,requests})}`);
+    if(transport==='native-callback'){
     const pending=await page.evaluate(()=>window.YNXFinanceWallet.getPrivateState().route.request);
     assert.equal(pending.productId,'finance');
     const approvedAt=new Date(),approval=signProductSessionApproval(registry,pending,{accountSecret:'1'.padStart(64,'0'),scopes:pending.scopes,expiresAt:pending.expiresAt},approvedAt);
     const callback=createProductSessionReturnURL(registry,pending,{result:'approved',approval},approvedAt);
     await page.goto(callback);
+    }
     await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='connected');
     const privateState=await page.evaluate(()=>({standard:window.YNXFinanceWallet.getStandardWalletState().status,privateStatus:window.YNXFinanceWallet.getPrivateState().status,account:window.YNXFinanceWallet.getPrivateState().session.account}));
-    assert.equal(privateState.standard,'disconnected');assert.equal(privateState.privateStatus,'connected');
+    assert.equal(privateState.standard,transport==='selected-provider'?'connected':'disconnected');assert.equal(privateState.privateStatus,'connected');
     const proof=await page.evaluate(()=>window.YNXFinanceWallet.requireProof('finance.portfolio.read'));
     assert.ok(proof.proofHeader);
     const child=await runGoVerifier({YNX_FINANCE_QA_GATEWAY_LOOPBACK:gatewayBase,YNX_FINANCE_QA_PROOF_HEADER:proof.proofHeader,YNX_FINANCE_QA_ACCOUNT:privateState.account});

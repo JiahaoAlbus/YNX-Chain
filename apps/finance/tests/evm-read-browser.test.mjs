@@ -30,7 +30,7 @@ const html = `<!doctype html><html lang="en"><meta charset="utf-8"><body>
 <p id="evm-read-state"></p><p id="evm-read-summary"></p>
 <a id="install-wallet" href="https://www.ynxweb4.com/dapp/download">Download YNX Wallet</a>
 <a id="install-metamask" href="https://metamask.io/download/">Install MetaMask</a>
-<script>window.walletStandard={status:'connected',chainId:'0x1917',account:'${account}',providerKind:'metamask'};window.walletRevision=1;window.YNXFinanceWallet={ready:Promise.resolve(),connected:()=>false,getRevision:()=>window.walletRevision,getStandardWalletState:()=>window.walletStandard,getStandardRevision:()=>window.walletRevision,signEVMLoginRequest:async request=>{try{return await window.signFinanceRequest(request)}catch{const error=new Error('USER_REJECTED');error.code=4001;throw error}}};</script>
+<script>window.walletStandard={status:'connected',chainId:'0x1917',account:'${account}',providerKind:'metamask'};if(sessionStorage.getItem('qa.transport.closed')==='yes')window.walletStandard={status:'disconnected',account:null,providerKind:null,chainId:null};window.walletRevision=1;window.YNXFinanceWallet={ready:Promise.resolve(),connected:()=>false,getRevision:()=>window.walletRevision,getStandardWalletState:()=>window.walletStandard,getStandardRevision:()=>window.walletRevision,signEVMLoginRequest:async request=>{try{return await window.signFinanceRequest(request)}catch{const error=new Error('USER_REJECTED');error.code=4001;throw error}}};</script>
 <script src="/evm-read-session.js" defer></script></body></html>`;
 
 function signMessage(message) {
@@ -47,14 +47,14 @@ test('browser read-only bundle is byte-reproducible from the shared Wallet/Auth 
   assert.deepEqual(Buffer.from(first.outputFiles[0].contents), bundle);
 });
 
-for (const recovery of ['account-change','offline-logout','late-revoke','read-rejected']) test(`main Finance login reads owned workspace and handles ${recovery}`, async () => {
+for (const recovery of ['account-change','offline-logout','late-revoke','read-rejected','transport-close','offline-empty-account','offline-changed-account']) test(`main Finance login reads owned workspace and handles ${recovery}`, async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext();
   const page = await context.newPage();
-  let challenge, session, revokeCount = 0, rejectRead = false, releaseRevoke;
+  let challenge, session, revokeCount = 0, signatureCount = 0, rejectRead = false, releaseRevoke;
   const used = new Set(), requests = [];
   try {
-    await page.exposeFunction('signFinanceRequest', async request => signMessage(request.message));
+    await page.exposeFunction('signFinanceRequest', async request => {signatureCount++;return signMessage(request.message)});
     page.on('request', request => requests.push(request.url()));
     await page.route(`${origin}/**`, async route => {
       const request = route.request(), path = new URL(request.url()).pathname;
@@ -113,6 +113,27 @@ for (const recovery of ['account-change','offline-logout','late-revoke','read-re
     await page.waitForFunction(() => document.querySelector('#evm-read-summary').textContent.includes('123 YNXT'));
     await page.locator('#finance-language').selectOption('zh-CN');
     assert.match(await page.locator('#evm-read-state').textContent(), /只读/u);
+    if(recovery.startsWith('offline-')&&recovery!=='offline-logout'){
+      await page.evaluate(()=>{window.walletStandard={...window.walletStandard,status:'transport-unavailable',disconnectReason:'transport-unavailable'};window.walletRevision++;window.dispatchEvent(new CustomEvent('ynx-finance-standard-state',{detail:window.walletStandard}))});
+      await page.evaluate(changed=>{window.walletStandard={status:'disconnected',account:changed?'0x'+'a'.repeat(40):null,providerKind:'metamask',chainId:changed?'0x1917':null,disconnectReason:'account-changed'};window.walletRevision++;window.dispatchEvent(new CustomEvent('ynx-finance-standard-state',{detail:window.walletStandard}))},recovery==='offline-changed-account');
+      await page.waitForFunction(()=>!window.YNXFinanceEVMRead.state().active);
+      assert.equal(await page.locator('#account-workspace').getAttribute('data-authorized'),'false');
+      assert.equal(await page.locator('#account-session-account').textContent(),'—');
+      assert.equal(signatureCount,1);
+      return;
+    }
+    if(recovery==='transport-close'){
+      await page.evaluate(()=>{window.walletStandard={...window.walletStandard,status:'transport-unavailable',disconnectReason:'transport-unavailable'};window.walletRevision++;window.dispatchEvent(new CustomEvent('ynx-finance-standard-state',{detail:window.walletStandard}));sessionStorage.setItem('qa.transport.closed','yes')});
+      await page.locator('#account-session-refresh').click();
+      await page.waitForFunction(()=>window.YNXFinanceEVMRead.state().status==='ready');
+      assert.equal(await page.locator('#account-workspace').getAttribute('data-authorized'),'true');
+      await page.reload();
+      await page.waitForFunction(()=>window.YNXFinanceEVMRead.state().data?.account&&document.querySelector('#account-workspace').dataset.authorized==='true');
+      assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'disconnected');
+      assert.equal(revokeCount,0);
+      assert.equal(signatureCount,1);
+      return;
+    }
     if (recovery === 'offline-logout') {
       await page.locator('#account-session-logout').click();
       await page.waitForFunction(() => window.YNXFinanceEVMRead.state().status === 'revokePending');

@@ -339,7 +339,8 @@ function renderAccountSession(){
   const session=window.YNXFinanceEVMRead?.state(),data=session?.status==='ready'?session.data:null;
   const section=$('#account-workspace');if(!section)return;
   const selected=window.YNXFinanceWallet?.getStandardWalletState?.();
-  const valid=data?.portfolio?.account===data?.account&&Boolean(data?.account)&&session.account===selected?.account&&session.providerKind===selected.providerKind&&selected.status==='connected'&&selected.chainId==='0x1917'&&Date.parse(session.expiresAt)>Date.now();
+  const compatible=selected?.status!=='connecting'&&selected?.status!=='wrong-chain'&&!['explicit-local','permission-revoked','account-changed','chain-changed'].includes(selected?.disconnectReason)&&(!selected?.account||session?.account===selected.account&&session.providerKind===selected.providerKind&&selected.chainId==='0x1917');
+  const valid=data?.portfolio?.account===data?.account&&Boolean(data?.account)&&compatible&&Date.parse(session.expiresAt)>Date.now();
   section.dataset.authorized=String(Boolean(valid));
   if(!walletIdentityBusy){if(valid)walletIdentityState='identityVerified';else if(walletIdentityState==='identityVerified')walletIdentityState='identityUnverified';renderWalletIdentity();}
   $('#account-session-account').textContent=valid?data.account:'—';

@@ -99,6 +99,14 @@ function unchanged(selected) {
   const current = standardSnapshot();
   if (current.account !== selected.account || current.providerKind !== selected.providerKind || current.revision !== selected.revision) throw new Error('STANDARD_WALLET_CHANGED');
 }
+function readSnapshot(current) {
+  const selected=window.YNXFinanceWallet?.getStandardWalletState?.();
+  if(selected?.status==='connecting'||selected?.status==='wrong-chain'||['explicit-local','permission-revoked','account-changed','chain-changed'].includes(selected?.disconnectReason))throw new Error('STANDARD_WALLET_CHANGED');
+  if(selected?.account&&(selected.account!==current.account||selected.providerKind!==current.providerKind||selected.chainId!=='0x1917'))throw new Error('STANDARD_WALLET_CHANGED');
+  // Session reads use the existing non-exportable device key and fresh server
+  // proof. A transport's availability is not account revocation or logout.
+  return {revision:window.YNXFinanceWallet.getStandardRevision()};
+}
 function openDeviceStore() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DEVICE_DATABASE, 1);
@@ -198,8 +206,7 @@ async function read() {
   const current = active, at = Date.now(), expiresAt = Math.min(at + 30000, Date.parse(current.session.expiresAt));
   if (expiresAt <= at) { clearLocal(); status('expired'); return null; }
   try {
-    const selected = standardSnapshot();
-    if (selected.account !== current.account || selected.providerKind !== current.providerKind) throw new Error('STANDARD_WALLET_CHANGED');
+    const selected = readSnapshot(current);
     const privateKey = await deviceKey(current.deviceId);
     if (!privateKey) throw new Error('DEVICE_KEY_UNAVAILABLE');
     const proof = await createEvmProductSessionHttpProofWith(current.session, { method: 'GET', target: READ_PATH, bodyDigest: EMPTY_BODY_DIGEST, nonce: randomToken(), issuedAt: nowISO(at), expiresAt: nowISO(expiresAt) }, signer(privateKey));
@@ -256,14 +263,13 @@ async function restore() {
     const session = parseEvmProductSession(stored.session);
     if (session.account !== stored.account || session.deviceId !== stored.deviceId || !await deviceKey(stored.deviceId)) throw new Error('SESSION_RESTORE_INVALID');
     if (Date.parse(session.expiresAt) <= Date.now()) { clearLocal(); status('expired'); return; }
-    let selected;
-    try { selected = standardSnapshot(); } catch {}
-    if (!selected || session.account !== selected.account || stored.providerKind !== selected.providerKind) {
+    const restored={session,deviceId:stored.deviceId,account:stored.account,providerKind:stored.providerKind};
+    try { readSnapshot(restored); } catch {
       active = { session, deviceId: stored.deviceId, account: stored.account, providerKind: stored.providerKind };
       await revoke();
       return;
     }
-    active = { session, deviceId: stored.deviceId, account: selected.account, providerKind: selected.providerKind };
+    active = restored;
     revision++;
     return await read();
   } catch { clearLocal(); status('disconnected'); }
@@ -272,7 +278,7 @@ async function onStandardChange(event) {
   const previous = active;
   if (!previous) { render(); return; }
   const next = event.detail;
-  if (next?.status !== 'connected' || next.account !== previous.account || next.chainId !== '0x1917' || next.providerKind !== previous.providerKind) await revoke();
+  if(['explicit-local','permission-revoked','account-changed','chain-changed'].includes(next?.disconnectReason)||next?.status==='wrong-chain'||next?.account&&(next.account!==previous.account||next.chainId!=='0x1917'||next.providerKind!==previous.providerKind))await revoke();
   render();
 }
 async function boot() {
