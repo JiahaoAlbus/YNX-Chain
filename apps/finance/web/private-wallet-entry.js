@@ -11,7 +11,7 @@ function publish(next,code=''){
   current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,route:next.route,installation:next.installation});
   revision++;lastCode=code;render();window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:current.status,account:current.session?.account??null,revision}}));
 }
-function code(error){return /^[A-Z][A-Z0-9_]{1,80}$/.test(error?.code??'')?error.code:'PRIVATE_SERVICE_DEGRADED';}
+function code(error){const value=error?.code||error?.message?.match(/^([A-Z][A-Z0-9_]{1,80})(?::|$)/)?.[1];return /^[A-Z][A-Z0-9_]{1,80}$/.test(value??'')?value:'PRIVATE_SERVICE_DEGRADED';}
 async function initialize(){
   if(adapter)return adapter;
   if(!initializing)initializing=assertFinancePrivateAuthority().then(authority=>createBrowserProductSessionClient({registry,productId:'finance',scopes:SCOPES,
@@ -74,9 +74,15 @@ async function proof(scope){
   if(!SCOPES.includes(scope)||current.status!=='connected'||!current.session||!adapter)throw new Error('PRIVATE_SERVICE_DEGRADED: Private Finance requires separate Wallet approval.');
   const standardRevision=window.YNXFinanceWallet?.getStandardRevision?.();
   if(!privateSubjectMatchesSelectedWallet(current.session,window.YNXFinanceWallet?.getStandardWalletState?.()))throw new Error('FINANCE_ACCOUNT_MISMATCH: Selected Wallet differs from the approved private Finance subject.');
-  const attempt=generation,view=current,selected=adapter;
-  try{await assertFinancePrivateAuthority();const authorityRevision=financePrivateAuthorityRevision(),authorization=await selected.createIntrospectionProof([scope]);if(authorityRevision!==financePrivateAuthorityRevision()||attempt!==generation||current!==view||selected!==adapter||standardRevision!==window.YNXFinanceWallet?.getStandardRevision?.()||!privateSubjectMatchesSelectedWallet(view.session,window.YNXFinanceWallet?.getStandardWalletState?.()))throw new Error('FINANCE_CONTEXT_CHANGED');return authorization;}
-  catch(error){if(attempt===generation&&error?.message!=='FINANCE_CONTEXT_CHANGED')reportFailure(error);throw error;}
+  const attempt=generation,view=current,selected=adapter;let phase='AUTHORITY';
+  try{await assertFinancePrivateAuthority();phase='DEVICE_PROOF';const authorityRevision=financePrivateAuthorityRevision(),authorization=await selected.createIntrospectionProof([scope]);if(authorityRevision!==financePrivateAuthorityRevision()||attempt!==generation||current!==view||selected!==adapter||standardRevision!==window.YNXFinanceWallet?.getStandardRevision?.()||!privateSubjectMatchesSelectedWallet(view.session,window.YNXFinanceWallet?.getStandardWalletState?.()))throw new Error('FINANCE_CONTEXT_CHANGED');return authorization;}
+  catch(error){if(attempt===generation&&error?.message!=='FINANCE_CONTEXT_CHANGED'){
+    const failure=code(error);
+    // A temporary failure to obtain fresh proof blocks this request, not the
+    // already server-verified identity. Never create proof from a stale clock.
+    if(['NETWORK_UNAVAILABLE','CLOCK_UNAVAILABLE'].includes(failure)||error?.name==='TimeoutError'){lastCode=failure;render();}
+    else reportFailure(failure!=='PRIVATE_SERVICE_DEGRADED'?error:{code:`PRIVATE_${phase}_${/^[A-Za-z]{1,30}$/.test(error?.name??'')?error.name.toUpperCase():'ERROR'}`});
+  }throw error;}
 }
 function render(){
   const status=document.querySelector('#private-state'),account=current.session?.account;

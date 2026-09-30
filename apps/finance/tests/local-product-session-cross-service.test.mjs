@@ -150,7 +150,9 @@ for(const transport of ['native-callback','selected-provider','selected-provider
         state.overview={portfolio:{account:'ynx1different-qa-subject'}};
         completeLoginTarget(newIntent,state.context);
         const ownerBound=loginIntent===newIntent&&location.hash==='#planning';
-        state.overview=originalOverview;state.context=originalContext;clearLoginIntent();
+        // Production epochs are monotonic; never roll back around concurrent
+        // module reads that still own the original context.
+        state.overview=originalOverview;clearLoginIntent();
         return {isolated,ownerBound};
       }),{isolated:true,ownerBound:true});
       const initialSession=await page.evaluate(()=>window.YNXFinanceWallet.session().sessionId);
