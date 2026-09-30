@@ -253,7 +253,7 @@ try {
     // Public 0.6.8 and 0.6.9 predate the renderer appInfo bridge. Their
     // versions are independently bound to the immutable EXE and launch evidence.
     const installedVersion = installedAppInfoVersion ?? (["0.6.8", "0.6.9"].includes(process.env.YNX_OLD_VERSION) ? process.env.YNX_OLD_VERSION : null);
-    if (!["0.6.8", "0.6.9", "0.6.10"].includes(installedVersion)) throw new Error("WRONG_PASSWORD_VERSION_UNSUPPORTED");
+    if (!["0.6.8", "0.6.9", "0.6.10", "0.6.15"].includes(installedVersion)) throw new Error("WRONG_PASSWORD_VERSION_UNSUPPORTED");
     await evaluate(`(() => {
       const form=document.querySelector('#password-form'), submit=document.querySelector('#submit-password');
       const attempt={submitObserved:false,busyObserved:false};
