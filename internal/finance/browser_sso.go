@@ -30,6 +30,7 @@ type financeSSOPending struct {
 	Verifier  string    `json:"verifier"`
 	Target    string    `json:"target"`
 	ExpiresAt time.Time `json:"expiresAt"`
+	Silent    bool      `json:"silent,omitempty"`
 }
 type financeSSOIdentity struct {
 	Subject    string    `json:"subject"`
@@ -142,8 +143,25 @@ func (s *Server) ssoStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Reuse the same bounded browser pending transaction across repeat clicks.
+	prompt := r.URL.Query().Get("prompt")
+	if prompt != "" && prompt != "none" {
+		writeJSON(w, 400, map[string]string{"code": "SSO_REQUEST_REJECTED"})
+		return
+	}
+	silent := prompt == "none"
+	if silent && !s.ssoSilentAllowed(r) {
+		http.Redirect(w, r, "/#"+ssoTarget(r.URL.Query().Get("target")), 303)
+		return
+	}
+	if !silent {
+		for _, cookie := range r.Cookies() {
+			if cookie.Name == financeSSOCookieName+"-signedout" || cookie.Name == financeSSOCookieName+"-attempt" {
+				clearSSOCookie(w, cookie.Name)
+			}
+		}
+	}
 	var pending financeSSOPending
-	if s.openSSOCookie(r, financeSSOPendingName, &pending) != nil || !pending.ExpiresAt.After(s.now()) {
+	if s.openSSOCookie(r, financeSSOPendingName, &pending) != nil || !pending.ExpiresAt.After(s.now()) || pending.Silent != silent {
 		state, err := ssoRandom()
 		if err != nil {
 			writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
@@ -154,7 +172,7 @@ func (s *Server) ssoStart(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
 			return
 		}
-		pending = financeSSOPending{State: state, Verifier: verifier, Target: ssoTarget(r.URL.Query().Get("target")), ExpiresAt: s.now().Add(2 * time.Minute)}
+		pending = financeSSOPending{State: state, Verifier: verifier, Target: ssoTarget(r.URL.Query().Get("target")), ExpiresAt: s.now().Add(2 * time.Minute), Silent: silent}
 		// Target-only denial recovery outlives authorization, never code redemption.
 		if err := s.sealSSOCookie(w, financeSSOPendingName, pending, pending.ExpiresAt.Add(8*time.Minute)); err != nil {
 			writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
@@ -163,6 +181,13 @@ func (s *Server) ssoStart(w http.ResponseWriter, r *http.Request) {
 	}
 	hash := sha256.Sum256([]byte(pending.Verifier))
 	parameters := url.Values{"clientId": {financeSSOClient}, "origin": {BrowserFinanceOrigin}, "redirectUri": {BrowserFinanceOrigin + "/sso/callback"}, "state": {pending.State}, "codeChallenge": {base64.RawURLEncoding.EncodeToString(hash[:])}, "codeChallengeMethod": {"S256"}}
+	if silent {
+		if s.sealSSOCookie(w, financeSSOCookieName+"-attempt", true, s.now().Add(time.Minute)) != nil {
+			writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
+			return
+		}
+		parameters.Set("prompt", "none")
+	}
 	// Browser navigates the sole registered public issuer, not a test/proxy URL.
 	http.Redirect(w, r, BrowserWalletAuthority+"/v2/browser-sessions/authorize?"+parameters.Encode(), http.StatusSeeOther)
 }
@@ -237,7 +262,7 @@ func (s *Server) ssoCallback(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, 400, map[string]string{"code": "SSO_CALLBACK_REJECTED"})
 		return
 	}
-	if len(r.URL.Query()["error"]) == 1 && r.URL.Query().Get("error") == "access_denied" {
+	if len(r.URL.Query()["error"]) == 1 && (r.URL.Query().Get("error") == "access_denied" || pending.Silent && r.URL.Query().Get("error") == "login_required") {
 		clearSSOCookie(w, financeSSOPendingName)
 		http.Redirect(w, r, "/#"+ssoTarget(pending.Target), http.StatusSeeOther)
 		return
@@ -311,5 +336,18 @@ func (s *Server) ssoLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	clearSSOCookie(w, financeSSOCookieName)
+	if s.sealSSOCookie(w, financeSSOCookieName+"-signedout", true, s.now().Add(30*24*time.Hour)) != nil {
+		writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
+		return
+	}
 	writeJSON(w, 200, map[string]bool{"revoked": true})
+}
+
+func (s *Server) ssoSilentAllowed(r *http.Request) bool {
+	for _, cookie := range r.Cookies() {
+		if cookie.Name == financeSSOCookieName+"-signedout" || cookie.Name == financeSSOCookieName+"-attempt" {
+			return false
+		}
+	}
+	return true
 }

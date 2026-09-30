@@ -64,6 +64,83 @@ func TestBrowserSSOExpiredTransactionReturnsTargetWithoutRedeeming(t *testing.T)
 	}
 }
 
+func TestBrowserSSOSilentGuestAndLogoutSuppressionAreBounded(t *testing.T) {
+	for _, product := range []string{"finance", "exchange", "quant"} {
+		s, _ := NewBrowserSSO(product, browserIssuer, []byte(strings.Repeat("s", 32)), []string{"overview", "risk"}, roundTrip(func(*http.Request) (*http.Response, error) {
+			t.Fatal("quiet guest tried token exchange")
+			return nil, nil
+		}))
+		now := time.Now()
+		s.now = func() time.Time { return now }
+		start := httptest.NewRecorder()
+		s.Start(start, httptest.NewRequest("GET", s.origin+"/sso/start?prompt=none&target=risk", nil))
+		u := mustParseURL(t, start.Header().Get("Location"))
+		if start.Code != 303 || u.Query().Get("prompt") != "none" {
+			t.Fatal("silent start became interactive")
+		}
+		var pending, attempt *http.Cookie
+		for _, c := range start.Result().Cookies() {
+			if c.Name == s.pendingCookie {
+				pending = c
+			}
+			if c.Name == s.identityCookie+"-attempt" {
+				attempt = c
+			}
+		}
+		if pending == nil || attempt == nil || attempt.MaxAge != 60 || !attempt.HttpOnly {
+			t.Fatal("quiet redirect lacks bounded anti-bounce cookie")
+		}
+		for _, sample := range []struct {
+			q      string
+			status int
+		}{
+			{"state=" + u.Query().Get("state") + "&error=login_required", 303},
+			{"state=" + strings.Repeat("x", 43) + "&error=login_required", 400},
+			{"state=" + u.Query().Get("state") + "&state=" + u.Query().Get("state") + "&error=login_required", 400},
+		} {
+			r := httptest.NewRequest("GET", s.origin+"/sso/callback?"+sample.q, nil)
+			r.AddCookie(pending)
+			w := httptest.NewRecorder()
+			s.Callback(w, r)
+			if w.Code != sample.status {
+				t.Fatal("quiet guest callback state boundary failed")
+			}
+			for _, c := range w.Result().Cookies() {
+				if c.Name == s.identityCookie {
+					t.Fatal("quiet denial issued identity")
+				}
+			}
+		}
+		interactive := httptest.NewRecorder()
+		s.Start(interactive, httptest.NewRequest("GET", s.origin+"/sso/start?target=risk", nil))
+		p := interactive.Result().Cookies()[0]
+		ui := mustParseURL(t, interactive.Header().Get("Location"))
+		r := httptest.NewRequest("GET", s.origin+"/sso/callback?state="+ui.Query().Get("state")+"&error=login_required", nil)
+		r.AddCookie(p)
+		w := httptest.NewRecorder()
+		s.Callback(w, r)
+		if w.Code != 400 {
+			t.Fatal("interactive callback accepted quiet error")
+		}
+		for _, marker := range []*http.Cookie{attempt, {Name: s.identityCookie + "-signedout", Value: "malformed"}} {
+			r := httptest.NewRequest("GET", s.origin+"/sso/start?prompt=none&target=risk", nil)
+			r.AddCookie(marker)
+			w := httptest.NewRecorder()
+			s.Start(w, r)
+			if w.Header().Get("Location") != "/#risk" || s.SilentAllowed(r) {
+				t.Fatal("suppression did not stop automatic redirect")
+			}
+			r = httptest.NewRequest("GET", s.origin+"/sso/start?target=risk", nil)
+			r.AddCookie(marker)
+			w = httptest.NewRecorder()
+			s.Start(w, r)
+			if !strings.HasPrefix(w.Header().Get("Location"), browserIssuer) {
+				t.Fatal("explicit start could not restart")
+			}
+		}
+	}
+}
+
 func mustParseURL(t *testing.T, value string) *url.URL {
 	t.Helper()
 	u, err := url.Parse(value)
@@ -174,7 +251,7 @@ func TestBrowserSSORegisteredConsumersKeepIdentityAndPrivatePermissionSeparate(t
 			logoutRequest.Header.Set("X-YNX-SSO-CSRF", local.CSRF)
 			logout := httptest.NewRecorder()
 			s.Logout(logout, logoutRequest)
-			if logout.Code != 200 || len(logout.Result().Cookies()) != 2 {
+			if logout.Code != 200 || len(logout.Result().Cookies()) != 3 {
 				t.Fatal("logout did not clear identity and pending callbacks")
 			}
 			if _, status := s.VerifyBinding(context.Background(), binding, account); status != 401 {

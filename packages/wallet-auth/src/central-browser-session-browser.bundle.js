@@ -38,13 +38,13 @@
   var require_events = __commonJS({
     "node_modules/events/events.js"(exports, module) {
       "use strict";
-      var R3 = typeof Reflect === "object" ? Reflect : null;
-      var ReflectApply = R3 && typeof R3.apply === "function" ? R3.apply : function ReflectApply2(target, receiver, args) {
+      var R4 = typeof Reflect === "object" ? Reflect : null;
+      var ReflectApply = R4 && typeof R4.apply === "function" ? R4.apply : function ReflectApply2(target, receiver, args) {
         return Function.prototype.apply.call(target, receiver, args);
       };
       var ReflectOwnKeys;
-      if (R3 && typeof R3.ownKeys === "function") {
-        ReflectOwnKeys = R3.ownKeys;
+      if (R4 && typeof R4.ownKeys === "function") {
+        ReflectOwnKeys = R4.ownKeys;
       } else if (Object.getOwnPropertySymbols) {
         ReflectOwnKeys = function ReflectOwnKeys2(target) {
           return Object.getOwnPropertyNames(target).concat(Object.getOwnPropertySymbols(target));
@@ -176,12 +176,12 @@
           m2 = _getMaxListeners(target);
           if (m2 > 0 && existing.length > m2 && !existing.warned) {
             existing.warned = true;
-            var w4 = new Error("Possible EventEmitter memory leak detected. " + existing.length + " " + String(type) + " listeners added. Use emitter.setMaxListeners() to increase limit");
-            w4.name = "MaxListenersExceededWarning";
-            w4.emitter = target;
-            w4.type = type;
-            w4.count = existing.length;
-            ProcessEmitWarning(w4);
+            var w5 = new Error("Possible EventEmitter memory leak detected. " + existing.length + " " + String(type) + " listeners added. Use emitter.setMaxListeners() to increase limit");
+            w5.name = "MaxListenersExceededWarning";
+            w5.emitter = target;
+            w5.type = type;
+            w5.count = existing.length;
+            ProcessEmitWarning(w5);
           }
         }
         return target;
@@ -493,7 +493,7 @@
     var _3 = { label: 0, sent: function() {
       if (t[0] & 1) throw t[1];
       return t[1];
-    }, trys: [], ops: [] }, f2, y6, t, g4;
+    }, trys: [], ops: [] }, f2, y7, t, g4;
     return g4 = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g4[Symbol.iterator] = function() {
       return this;
     }), g4;
@@ -505,8 +505,8 @@
     function step(op) {
       if (f2) throw new TypeError("Generator is already executing.");
       while (_3) try {
-        if (f2 = 1, y6 && (t = op[0] & 2 ? y6["return"] : op[0] ? y6["throw"] || ((t = y6["return"]) && t.call(y6), 0) : y6.next) && !(t = t.call(y6, op[1])).done) return t;
-        if (y6 = 0, t) op = [op[0] & 2, t.value];
+        if (f2 = 1, y7 && (t = op[0] & 2 ? y7["return"] : op[0] ? y7["throw"] || ((t = y7["return"]) && t.call(y7), 0) : y7.next) && !(t = t.call(y7, op[1])).done) return t;
+        if (y7 = 0, t) op = [op[0] & 2, t.value];
         switch (op[0]) {
           case 0:
           case 1:
@@ -517,7 +517,7 @@
             return { value: op[1], done: false };
           case 5:
             _3.label++;
-            y6 = op[1];
+            y7 = op[1];
             op = [0];
             continue;
           case 7:
@@ -550,7 +550,7 @@
         op = body.call(thisArg, _3);
       } catch (e2) {
         op = [6, e2];
-        y6 = 0;
+        y7 = 0;
       } finally {
         f2 = t = 0;
       }
@@ -558,9 +558,9 @@
       return { value: op[0] ? op[1] : void 0, done: true };
     }
   }
-  function __createBinding(o4, m2, k5, k22) {
-    if (k22 === void 0) k22 = k5;
-    o4[k22] = m2[k5];
+  function __createBinding(o4, m2, k6, k22) {
+    if (k22 === void 0) k22 = k6;
+    o4[k22] = m2[k6];
   }
   function __exportStar(m2, exports) {
     for (var p4 in m2) if (p4 !== "default" && !exports.hasOwnProperty(p4)) exports[p4] = m2[p4];
@@ -600,9 +600,9 @@
   }
   function __spreadArrays() {
     for (var s2 = 0, i3 = 0, il = arguments.length; i3 < il; i3++) s2 += arguments[i3].length;
-    for (var r3 = Array(s2), k5 = 0, i3 = 0; i3 < il; i3++)
-      for (var a3 = arguments[i3], j4 = 0, jl = a3.length; j4 < jl; j4++, k5++)
-        r3[k5] = a3[j4];
+    for (var r3 = Array(s2), k6 = 0, i3 = 0; i3 < il; i3++)
+      for (var a3 = arguments[i3], j5 = 0, jl = a3.length; j5 < jl; j5++, k6++)
+        r3[k6] = a3[j5];
     return r3;
   }
   function __await(v7) {
@@ -610,14 +610,14 @@
   }
   function __asyncGenerator(thisArg, _arguments, generator) {
     if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-    var g4 = generator.apply(thisArg, _arguments || []), i3, q4 = [];
+    var g4 = generator.apply(thisArg, _arguments || []), i3, q5 = [];
     return i3 = {}, verb("next"), verb("throw"), verb("return"), i3[Symbol.asyncIterator] = function() {
       return this;
     }, i3;
     function verb(n4) {
       if (g4[n4]) i3[n4] = function(v7) {
         return new Promise(function(a3, b4) {
-          q4.push([n4, v7, a3, b4]) > 1 || resume(n4, v7);
+          q5.push([n4, v7, a3, b4]) > 1 || resume(n4, v7);
         });
       };
     }
@@ -625,11 +625,11 @@
       try {
         step(g4[n4](v7));
       } catch (e2) {
-        settle(q4[0][3], e2);
+        settle(q5[0][3], e2);
       }
     }
     function step(r3) {
-      r3.value instanceof __await ? Promise.resolve(r3.value.v).then(fulfill, reject) : settle(q4[0][2], r3);
+      r3.value instanceof __await ? Promise.resolve(r3.value.v).then(fulfill, reject) : settle(q5[0][2], r3);
     }
     function fulfill(value) {
       resume("next", value);
@@ -638,7 +638,7 @@
       resume("throw", value);
     }
     function settle(f2, v7) {
-      if (f2(v7), q4.shift(), q4.length) resume(q4[0][0], q4[0][1]);
+      if (f2(v7), q5.shift(), q5.length) resume(q5[0][0], q5[0][1]);
     }
   }
   function __asyncDelegator(o4) {
@@ -685,7 +685,7 @@
     if (mod3 && mod3.__esModule) return mod3;
     var result = {};
     if (mod3 != null) {
-      for (var k5 in mod3) if (Object.hasOwnProperty.call(mod3, k5)) result[k5] = mod3[k5];
+      for (var k6 in mod3) if (Object.hasOwnProperty.call(mod3, k6)) result[k6] = mod3[k6];
     }
     result.default = mod3;
     return result;
@@ -1885,14 +1885,14 @@
       if (f2 === 1) return e2;
       var h4 = new Array(f2);
       h4[0] = s2(e2);
-      for (var u2 = 1; u2 < f2; u2++) h4[u2] = s2(t[u2]);
+      for (var u3 = 1; u3 < f2; u3++) h4[u3] = s2(t[u3]);
       return h4.join(" ");
     }
     if (typeof e2 != "string") return e2;
     var c4 = t.length;
     if (c4 === 0) return e2;
-    for (var n4 = "", o4 = 1 - i3, l4 = -1, L = e2 && e2.length || 0, a3 = 0; a3 < L; ) {
-      if (e2.charCodeAt(a3) === 37 && a3 + 1 < L) {
+    for (var n4 = "", o4 = 1 - i3, l4 = -1, L2 = e2 && e2.length || 0, a3 = 0; a3 < L2; ) {
+      if (e2.charCodeAt(a3) === 37 && a3 + 1 < L2) {
         switch (l4 = l4 > -1 ? l4 : 0, e2.charCodeAt(a3 + 1)) {
           case 100:
           case 102:
@@ -1931,7 +1931,7 @@
       }
       ++a3;
     }
-    return l4 === -1 ? e2 : (l4 < L && (n4 += e2.slice(l4)), n4);
+    return l4 === -1 ? e2 : (l4 < L2 && (n4 += e2.slice(l4)), n4);
   }
   function m(e2, t) {
     return e2 === "silent" ? 1 / 0 : t.levels.values[e2];
@@ -1960,13 +1960,13 @@
     const s2 = e2.serializers || {}, i3 = ce(e2.browser.serialize, s2);
     let f2 = e2.browser.serialize;
     Array.isArray(e2.browser.serialize) && e2.browser.serialize.indexOf("!stdSerializers.err") > -1 && (f2 = false);
-    const h4 = Object.keys(e2.customLevels || {}), u2 = ["error", "fatal", "warn", "info", "debug", "trace"].concat(h4);
-    typeof r3 == "function" && u2.forEach(function(g4) {
+    const h4 = Object.keys(e2.customLevels || {}), u3 = ["error", "fatal", "warn", "info", "debug", "trace"].concat(h4);
+    typeof r3 == "function" && u3.forEach(function(g4) {
       r3[g4] = r3;
     }), (e2.enabled === false || e2.browser.disabled) && (e2.level = "silent");
     const c4 = e2.level || "info", n4 = Object.create(r3);
-    n4.log || (n4.log = z2), ue(n4, u2, r3), R({}, n4), Object.defineProperty(n4, "levelVal", { get: l4 }), Object.defineProperty(n4, "level", { get: L, set: a3 });
-    const o4 = { transmit: t, serialize: i3, asObject: e2.browser.asObject, asObjectBindingsOnly: e2.browser.asObjectBindingsOnly, formatters: e2.browser.formatters, levels: u2, timestamp: ye(e2), messageKey: e2.messageKey || "msg", onChild: e2.onChild || z2 };
+    n4.log || (n4.log = z2), ue(n4, u3, r3), R({}, n4), Object.defineProperty(n4, "levelVal", { get: l4 }), Object.defineProperty(n4, "level", { get: L2, set: a3 });
+    const o4 = { transmit: t, serialize: i3, asObject: e2.browser.asObject, asObjectBindingsOnly: e2.browser.asObjectBindingsOnly, formatters: e2.browser.formatters, levels: u3, timestamp: ye(e2), messageKey: e2.messageKey || "msg", onChild: e2.onChild || z2 };
     n4.levels = fe(e2), n4.level = c4, n4.isLevelEnabled = function(g4) {
       return this.levels.values[g4] ? this.levels.values[g4] >= this.levels.values[this.level] : false;
     }, n4.setMaxListeners = n4.getMaxListeners = n4.emit = n4.addListener = n4.on = n4.prependListener = n4.once = n4.prependOnceListener = n4.removeListener = n4.removeAllListeners = n4.listeners = n4.listenerCount = n4.eventNames = n4.write = n4.flush = z2, n4.serializers = s2, n4._serialize = i3, n4._stdErrSerialize = f2, n4.child = function(...g4) {
@@ -1975,7 +1975,7 @@
     function l4() {
       return m(this.level, this);
     }
-    function L() {
+    function L2() {
       return this._level;
     }
     function a3(g4) {
@@ -1984,22 +1984,22 @@
         O2(this, o4, n4, d3);
       });
     }
-    function _3(g4, d3, j4) {
+    function _3(g4, d3, j5) {
       if (!d3) throw new Error("missing bindings for child Pino");
-      j4 = j4 || {}, i3 && d3.serializers && (j4.serializers = d3.serializers);
-      const F3 = j4.serializers;
+      j5 = j5 || {}, i3 && d3.serializers && (j5.serializers = d3.serializers);
+      const F3 = j5.serializers;
       if (i3 && F3) {
-        var C4 = Object.assign({}, s2, F3), M4 = e2.browser.serialize === true ? Object.keys(C4) : i3;
-        delete d3.serializers, V([d3], M4, C4, this._stdErrSerialize);
+        var C4 = Object.assign({}, s2, F3), M5 = e2.browser.serialize === true ? Object.keys(C4) : i3;
+        delete d3.serializers, V([d3], M5, C4, this._stdErrSerialize);
       }
       function D5(I2) {
-        this._childLevel = (I2._childLevel | 0) + 1, this.bindings = d3, C4 && (this.serializers = C4, this._serialize = M4), t && (this._logEvent = N2([].concat(I2._logEvent.bindings, d3)));
+        this._childLevel = (I2._childLevel | 0) + 1, this.bindings = d3, C4 && (this.serializers = C4, this._serialize = M5), t && (this._logEvent = N2([].concat(I2._logEvent.bindings, d3)));
       }
       D5.prototype = this;
-      const S4 = new D5(this);
-      return R(this, S4), S4.child = function(...I2) {
+      const S5 = new D5(this);
+      return R(this, S5), S5.child = function(...I2) {
         return _3.call(this, g4, ...I2);
-      }, S4.level = j4.level || this.level, g4.onChild(S4), S4;
+      }, S5.level = j5.level || this.level, g4.onChild(S5), S5;
     }
     return n4;
   }
@@ -2038,20 +2038,20 @@
   function de(e2, t, r3, s2) {
     return /* @__PURE__ */ (function(i3) {
       return function() {
-        const h4 = t.timestamp(), u2 = new Array(arguments.length), c4 = Object.getPrototypeOf && Object.getPrototypeOf(this) === E2 ? E2 : this;
-        for (var n4 = 0; n4 < u2.length; n4++) u2[n4] = arguments[n4];
+        const h4 = t.timestamp(), u3 = new Array(arguments.length), c4 = Object.getPrototypeOf && Object.getPrototypeOf(this) === E2 ? E2 : this;
+        for (var n4 = 0; n4 < u3.length; n4++) u3[n4] = arguments[n4];
         var o4 = false;
-        if (t.serialize && (V(u2, this._serialize, this.serializers, this._stdErrSerialize), o4 = true), t.asObject || t.formatters ? i3.call(c4, ...ve(this, s2, u2, h4, t)) : i3.apply(c4, u2), t.transmit) {
-          const l4 = t.transmit.level || e2._level, L = m(l4, r3), a3 = m(s2, r3);
-          if (a3 < L) return;
-          me(this, { ts: h4, methodLevel: s2, methodValue: a3, transmitLevel: l4, transmitValue: r3.levels.values[t.transmit.level || e2._level], send: t.transmit.send, val: m(e2._level, r3) }, u2, o4);
+        if (t.serialize && (V(u3, this._serialize, this.serializers, this._stdErrSerialize), o4 = true), t.asObject || t.formatters ? i3.call(c4, ...ve(this, s2, u3, h4, t)) : i3.apply(c4, u3), t.transmit) {
+          const l4 = t.transmit.level || e2._level, L2 = m(l4, r3), a3 = m(s2, r3);
+          if (a3 < L2) return;
+          me(this, { ts: h4, methodLevel: s2, methodValue: a3, transmitLevel: l4, transmitValue: r3.levels.values[t.transmit.level || e2._level], send: t.transmit.send, val: m(e2._level, r3) }, u3, o4);
         }
       };
     })(e2[A][s2]);
   }
   function ve(e2, t, r3, s2, i3) {
-    const { level: f2, log: h4 = (l4) => l4 } = i3.formatters || {}, u2 = r3.slice();
-    let c4 = u2[0];
+    const { level: f2, log: h4 = (l4) => l4 } = i3.formatters || {}, u3 = r3.slice();
+    let c4 = u3[0];
     const n4 = {};
     let o4 = (e2._childLevel | 0) + 1;
     if (o4 < 1 && (o4 = 1), s2 && (n4.time = s2), f2) {
@@ -2059,13 +2059,13 @@
       Object.assign(n4, l4);
     } else n4.level = e2.levels.values[t];
     if (i3.asObjectBindingsOnly) {
-      if (c4 !== null && typeof c4 == "object") for (; o4-- && typeof u2[0] == "object"; ) Object.assign(n4, u2.shift());
-      return [h4(n4), ...u2];
+      if (c4 !== null && typeof c4 == "object") for (; o4-- && typeof u3[0] == "object"; ) Object.assign(n4, u3.shift());
+      return [h4(n4), ...u3];
     } else {
       if (c4 !== null && typeof c4 == "object") {
-        for (; o4-- && typeof u2[0] == "object"; ) Object.assign(n4, u2.shift());
-        c4 = u2.length ? G(u2.shift(), u2) : void 0;
-      } else typeof c4 == "string" && (c4 = G(u2.shift(), u2));
+        for (; o4-- && typeof u3[0] == "object"; ) Object.assign(n4, u3.shift());
+        c4 = u3.length ? G(u3.shift(), u3) : void 0;
+      } else typeof c4 == "string" && (c4 = G(u3.shift(), u3));
       return c4 !== void 0 && (n4[i3.messageKey] = c4), [h4(n4)];
     }
   }
@@ -2074,10 +2074,10 @@
     else if (typeof e2[i3] == "object" && !Array.isArray(e2[i3]) && t) for (const f2 in e2[i3]) t.indexOf(f2) > -1 && f2 in r3 && (e2[i3][f2] = r3[f2](e2[i3][f2]));
   }
   function me(e2, t, r3, s2 = false) {
-    const i3 = t.send, f2 = t.ts, h4 = t.methodLevel, u2 = t.methodValue, c4 = t.val, n4 = e2._logEvent.bindings;
+    const i3 = t.send, f2 = t.ts, h4 = t.methodLevel, u3 = t.methodValue, c4 = t.val, n4 = e2._logEvent.bindings;
     s2 || V(r3, e2._serialize || Object.keys(e2.serializers), e2.serializers, e2._stdErrSerialize === void 0 ? true : e2._stdErrSerialize), e2._logEvent.ts = f2, e2._logEvent.messages = r3.filter(function(o4) {
       return n4.indexOf(o4) === -1;
-    }), e2._logEvent.level.label = h4, e2._logEvent.level.value = u2, i3(h4, e2._logEvent, c4), e2._logEvent = N2(n4);
+    }), e2._logEvent.level.label = h4, e2._logEvent.level.value = u3, i3(h4, e2._logEvent, c4), e2._logEvent = N2(n4);
   }
   function N2(e2) {
     return { ts: 0, messages: [], bindings: e2 || [], level: { label: "", value: 0 } };
@@ -2434,8 +2434,8 @@
   }
   function Cn(t, e2, n4, r3) {
     if (typeof t.setBigUint64 == "function") return t.setBigUint64(e2, n4, r3);
-    const o4 = BigInt(32), s2 = BigInt(4294967295), a3 = Number(n4 >> o4 & s2), u2 = Number(n4 & s2), i3 = r3 ? 4 : 0, D5 = r3 ? 0 : 4;
-    t.setUint32(e2 + i3, a3, r3), t.setUint32(e2 + D5, u2, r3);
+    const o4 = BigInt(32), s2 = BigInt(4294967295), a3 = Number(n4 >> o4 & s2), u3 = Number(n4 & s2), i3 = r3 ? 4 : 0, D5 = r3 ? 0 : 4;
+    t.setUint32(e2 + i3, a3, r3), t.setUint32(e2 + D5, u3, r3);
   }
   function le2(t, e2 = false) {
     return e2 ? { h: Number(t & wt), l: Number(t >> St & wt) } : { h: Number(t >> St & wt) | 0, l: Number(t & wt) | 0 };
@@ -2482,12 +2482,12 @@
     if (e2 % 2) throw new Error("hex string expected, got unpadded hex of length " + e2);
     const r3 = new Uint8Array(n4);
     for (let o4 = 0, s2 = 0; o4 < n4; o4++, s2 += 2) {
-      const a3 = we2(t.charCodeAt(s2)), u2 = we2(t.charCodeAt(s2 + 1));
-      if (a3 === void 0 || u2 === void 0) {
+      const a3 = we2(t.charCodeAt(s2)), u3 = we2(t.charCodeAt(s2 + 1));
+      if (a3 === void 0 || u3 === void 0) {
         const i3 = t[s2] + t[s2 + 1];
         throw new Error('hex string expected, got non-hex character "' + i3 + '" at index ' + s2);
       }
-      r3[o4] = a3 * 16 + u2;
+      r3[o4] = a3 * 16 + u3;
     }
     return r3;
   }
@@ -2542,10 +2542,10 @@
   }
   function Ot(t, e2, n4 = {}) {
     const r3 = (o4, s2, a3) => {
-      const u2 = nr[s2];
-      if (typeof u2 != "function") throw new Error("invalid validator function");
+      const u3 = nr[s2];
+      if (typeof u3 != "function") throw new Error("invalid validator function");
       const i3 = t[o4];
-      if (!(a3 && i3 === void 0) && !u2(i3, t)) throw new Error("param " + String(o4) + " is invalid. Expected " + s2 + ", got " + i3);
+      if (!(a3 && i3 === void 0) && !u3(i3, t)) throw new Error("param " + String(o4) + " is invalid. Expected " + s2 + ", got " + i3);
     };
     for (const [o4, s2] of Object.entries(e2)) r3(o4, s2, false);
     for (const [o4, s2] of Object.entries(n4)) r3(o4, s2, true);
@@ -2582,7 +2582,7 @@
     if (e2 <= M2) throw new Error("invert: expected positive modulus, got " + e2);
     let n4 = H2(t, e2), r3 = e2, o4 = M2, s2 = N3;
     for (; n4 !== M2; ) {
-      const u2 = r3 / n4, i3 = r3 % n4, D5 = o4 - s2 * u2;
+      const u3 = r3 / n4, i3 = r3 % n4, D5 = o4 - s2 * u3;
       r3 = n4, n4 = i3, o4 = s2, s2 = D5;
     }
     if (r3 !== N3) throw new Error("invert: does not exist");
@@ -2602,15 +2602,15 @@
       };
     }
     const s2 = (n4 + N3) / nt;
-    return function(u2, i3) {
-      if (u2.pow(i3, e2) === u2.neg(u2.ONE)) throw new Error("Cannot find square root");
-      let D5 = r3, c4 = u2.pow(u2.mul(u2.ONE, o4), n4), l4 = u2.pow(i3, s2), p4 = u2.pow(i3, n4);
-      for (; !u2.eql(p4, u2.ONE); ) {
-        if (u2.eql(p4, u2.ZERO)) return u2.ZERO;
-        let w4 = 1;
-        for (let g4 = u2.sqr(p4); w4 < D5 && !u2.eql(g4, u2.ONE); w4++) g4 = u2.sqr(g4);
-        const h4 = u2.pow(c4, N3 << BigInt(D5 - w4 - 1));
-        c4 = u2.sqr(h4), l4 = u2.mul(l4, h4), p4 = u2.mul(p4, c4), D5 = w4;
+    return function(u3, i3) {
+      if (u3.pow(i3, e2) === u3.neg(u3.ONE)) throw new Error("Cannot find square root");
+      let D5 = r3, c4 = u3.pow(u3.mul(u3.ONE, o4), n4), l4 = u3.pow(i3, s2), p4 = u3.pow(i3, n4);
+      for (; !u3.eql(p4, u3.ONE); ) {
+        if (u3.eql(p4, u3.ZERO)) return u3.ZERO;
+        let w5 = 1;
+        for (let g4 = u3.sqr(p4); w5 < D5 && !u3.eql(g4, u3.ONE); w5++) g4 = u3.sqr(g4);
+        const h4 = u3.pow(c4, N3 << BigInt(D5 - w5 - 1));
+        c4 = u3.sqr(h4), l4 = u3.mul(l4, h4), p4 = u3.mul(p4, c4), D5 = w5;
       }
       return l4;
     };
@@ -2627,7 +2627,7 @@
     if (t % Ce2 === Be2) {
       const e2 = (t - Be2) / Ce2;
       return function(r3, o4) {
-        const s2 = r3.mul(o4, nt), a3 = r3.pow(s2, e2), u2 = r3.mul(o4, a3), i3 = r3.mul(r3.mul(u2, nt), a3), D5 = r3.mul(u2, r3.sub(i3, r3.ONE));
+        const s2 = r3.mul(o4, nt), a3 = r3.pow(s2, e2), u3 = r3.mul(o4, a3), i3 = r3.mul(r3.mul(u3, nt), a3), D5 = r3.mul(u3, r3.sub(i3, r3.ONE));
         if (!r3.eql(r3.sqr(D5), o4)) throw new Error("Cannot find square root");
         return D5;
       };
@@ -2647,8 +2647,8 @@
     return r3;
   }
   function Dr(t, e2) {
-    const n4 = new Array(e2.length), r3 = e2.reduce((s2, a3, u2) => t.is0(a3) ? s2 : (n4[u2] = s2, t.mul(s2, a3)), t.ONE), o4 = t.inv(r3);
-    return e2.reduceRight((s2, a3, u2) => t.is0(a3) ? s2 : (n4[u2] = t.mul(s2, n4[u2]), t.mul(s2, a3)), o4), n4;
+    const n4 = new Array(e2.length), r3 = e2.reduce((s2, a3, u3) => t.is0(a3) ? s2 : (n4[u3] = s2, t.mul(s2, a3)), t.ONE), o4 = t.inv(r3);
+    return e2.reduceRight((s2, a3, u3) => t.is0(a3) ? s2 : (n4[u3] = t.mul(s2, n4[u3]), t.mul(s2, a3)), o4), n4;
   }
   function me2(t, e2) {
     const n4 = e2 !== void 0 ? e2 : t.toString(2).length, r3 = Math.ceil(n4 / 8);
@@ -2659,14 +2659,14 @@
     const { nBitLength: o4, nByteLength: s2 } = me2(t, e2);
     if (s2 > 2048) throw new Error("invalid field: expected ORDER of <= 2048 bytes");
     let a3;
-    const u2 = Object.freeze({ ORDER: t, isLE: n4, BITS: o4, BYTES: s2, MASK: er(o4), ZERO: M2, ONE: N3, create: (i3) => H2(i3, t), isValid: (i3) => {
+    const u3 = Object.freeze({ ORDER: t, isLE: n4, BITS: o4, BYTES: s2, MASK: er(o4), ZERO: M2, ONE: N3, create: (i3) => H2(i3, t), isValid: (i3) => {
       if (typeof i3 != "bigint") throw new Error("invalid field element: expected bigint, got " + typeof i3);
       return M2 <= i3 && i3 < t;
-    }, is0: (i3) => i3 === M2, isOdd: (i3) => (i3 & N3) === N3, neg: (i3) => H2(-i3, t), eql: (i3, D5) => i3 === D5, sqr: (i3) => H2(i3 * i3, t), add: (i3, D5) => H2(i3 + D5, t), sub: (i3, D5) => H2(i3 - D5, t), mul: (i3, D5) => H2(i3 * D5, t), pow: (i3, D5) => fr(u2, i3, D5), div: (i3, D5) => H2(i3 * Ae2(D5, t), t), sqrN: (i3) => i3 * i3, addN: (i3, D5) => i3 + D5, subN: (i3, D5) => i3 - D5, mulN: (i3, D5) => i3 * D5, inv: (i3) => Ae2(i3, t), sqrt: r3.sqrt || ((i3) => (a3 || (a3 = ir(t)), a3(u2, i3))), invertBatch: (i3) => Dr(u2, i3), cmov: (i3, D5, c4) => c4 ? D5 : i3, toBytes: (i3) => n4 ? Nt(i3, s2) : ge2(i3, s2), fromBytes: (i3) => {
+    }, is0: (i3) => i3 === M2, isOdd: (i3) => (i3 & N3) === N3, neg: (i3) => H2(-i3, t), eql: (i3, D5) => i3 === D5, sqr: (i3) => H2(i3 * i3, t), add: (i3, D5) => H2(i3 + D5, t), sub: (i3, D5) => H2(i3 - D5, t), mul: (i3, D5) => H2(i3 * D5, t), pow: (i3, D5) => fr(u3, i3, D5), div: (i3, D5) => H2(i3 * Ae2(D5, t), t), sqrN: (i3) => i3 * i3, addN: (i3, D5) => i3 + D5, subN: (i3, D5) => i3 - D5, mulN: (i3, D5) => i3 * D5, inv: (i3) => Ae2(i3, t), sqrt: r3.sqrt || ((i3) => (a3 || (a3 = ir(t)), a3(u3, i3))), invertBatch: (i3) => Dr(u3, i3), cmov: (i3, D5, c4) => c4 ? D5 : i3, toBytes: (i3) => n4 ? Nt(i3, s2) : ge2(i3, s2), fromBytes: (i3) => {
       if (i3.length !== s2) throw new Error("Field.fromBytes: expected " + s2 + " bytes, got " + i3.length);
       return n4 ? Et(i3) : Pn(i3);
     } });
-    return Object.freeze(u2);
+    return Object.freeze(u3);
   }
   function zt(t, e2) {
     const n4 = e2.negate();
@@ -2704,34 +2704,34 @@
       return o4;
     }, precomputeWindow(n4, r3) {
       const { windows: o4, windowSize: s2 } = Mt(r3, e2), a3 = [];
-      let u2 = n4, i3 = u2;
+      let u3 = n4, i3 = u3;
       for (let D5 = 0; D5 < o4; D5++) {
-        i3 = u2, a3.push(i3);
-        for (let c4 = 1; c4 < s2; c4++) i3 = i3.add(u2), a3.push(i3);
-        u2 = i3.double();
+        i3 = u3, a3.push(i3);
+        for (let c4 = 1; c4 < s2; c4++) i3 = i3.add(u3), a3.push(i3);
+        u3 = i3.double();
       }
       return a3;
     }, wNAF(n4, r3, o4) {
       const { windows: s2, windowSize: a3 } = Mt(n4, e2);
-      let u2 = t.ZERO, i3 = t.BASE;
+      let u3 = t.ZERO, i3 = t.BASE;
       const D5 = BigInt(2 ** n4 - 1), c4 = 2 ** n4, l4 = BigInt(n4);
       for (let p4 = 0; p4 < s2; p4++) {
-        const w4 = p4 * a3;
+        const w5 = p4 * a3;
         let h4 = Number(o4 & D5);
         o4 >>= l4, h4 > a3 && (h4 -= c4, o4 += gt);
-        const g4 = w4, S4 = w4 + Math.abs(h4) - 1, v7 = p4 % 2 !== 0, L = h4 < 0;
-        h4 === 0 ? i3 = i3.add(zt(v7, r3[g4])) : u2 = u2.add(zt(L, r3[S4]));
+        const g4 = w5, S5 = w5 + Math.abs(h4) - 1, v7 = p4 % 2 !== 0, L2 = h4 < 0;
+        h4 === 0 ? i3 = i3.add(zt(v7, r3[g4])) : u3 = u3.add(zt(L2, r3[S5]));
       }
-      return { p: u2, f: i3 };
+      return { p: u3, f: i3 };
     }, wNAFUnsafe(n4, r3, o4, s2 = t.ZERO) {
-      const { windows: a3, windowSize: u2 } = Mt(n4, e2), i3 = BigInt(2 ** n4 - 1), D5 = 2 ** n4, c4 = BigInt(n4);
+      const { windows: a3, windowSize: u3 } = Mt(n4, e2), i3 = BigInt(2 ** n4 - 1), D5 = 2 ** n4, c4 = BigInt(n4);
       for (let l4 = 0; l4 < a3; l4++) {
-        const p4 = l4 * u2;
+        const p4 = l4 * u3;
         if (o4 === Se2) break;
-        let w4 = Number(o4 & i3);
-        if (o4 >>= c4, w4 > u2 && (w4 -= D5, o4 += gt), w4 === 0) continue;
-        let h4 = r3[p4 + Math.abs(w4) - 1];
-        w4 < 0 && (h4 = h4.negate()), s2 = s2.add(h4);
+        let w5 = Number(o4 & i3);
+        if (o4 >>= c4, w5 > u3 && (w5 -= D5, o4 += gt), w5 === 0) continue;
+        let h4 = r3[p4 + Math.abs(w5) - 1];
+        w5 < 0 && (h4 = h4.negate()), s2 = s2.add(h4);
       }
       return s2;
     }, getPrecomputes(n4, r3, o4) {
@@ -2749,17 +2749,17 @@
   }
   function br(t, e2, n4, r3) {
     if (dr(n4, t), hr(r3, e2), n4.length !== r3.length) throw new Error("arrays of points and scalars must have equal length");
-    const o4 = t.ZERO, s2 = tr(BigInt(n4.length)), a3 = s2 > 12 ? s2 - 3 : s2 > 4 ? s2 - 2 : s2 ? 2 : 1, u2 = (1 << a3) - 1, i3 = new Array(u2 + 1).fill(o4), D5 = Math.floor((e2.BITS - 1) / a3) * a3;
+    const o4 = t.ZERO, s2 = tr(BigInt(n4.length)), a3 = s2 > 12 ? s2 - 3 : s2 > 4 ? s2 - 2 : s2 ? 2 : 1, u3 = (1 << a3) - 1, i3 = new Array(u3 + 1).fill(o4), D5 = Math.floor((e2.BITS - 1) / a3) * a3;
     let c4 = o4;
     for (let l4 = D5; l4 >= 0; l4 -= a3) {
       i3.fill(o4);
-      for (let w4 = 0; w4 < r3.length; w4++) {
-        const h4 = r3[w4], g4 = Number(h4 >> BigInt(l4) & BigInt(u2));
-        i3[g4] = i3[g4].add(n4[w4]);
+      for (let w5 = 0; w5 < r3.length; w5++) {
+        const h4 = r3[w5], g4 = Number(h4 >> BigInt(l4) & BigInt(u3));
+        i3[g4] = i3[g4].add(n4[w5]);
       }
       let p4 = o4;
-      for (let w4 = i3.length - 1, h4 = o4; w4 > 0; w4--) h4 = h4.add(i3[w4]), p4 = p4.add(h4);
-      if (c4 = c4.add(p4), l4 !== 0) for (let w4 = 0; w4 < a3; w4++) c4 = c4.double();
+      for (let w5 = i3.length - 1, h4 = o4; w5 > 0; w5--) h4 = h4.add(i3[w5]), p4 = p4.add(h4);
+      if (c4 = c4.add(p4), l4 !== 0) for (let w5 = 0; w5 < a3; w5++) c4 = c4.double();
     }
     return c4;
   }
@@ -2771,41 +2771,41 @@
     return Ot(t, { hash: "function", a: "bigint", d: "bigint", randomBytes: "function" }, { adjustScalarBytes: "function", domain: "function", uvRatio: "function", mapToCurve: "function" }), Object.freeze({ ...e2 });
   }
   function yr(t) {
-    const e2 = gr(t), { Fp: n4, n: r3, prehash: o4, hash: s2, randomBytes: a3, nByteLength: u2, h: i3 } = e2, D5 = yt << BigInt(u2 * 8) - j2, c4 = n4.create, l4 = _e2(e2.n, e2.nBitLength), p4 = e2.uvRatio || ((y6, f2) => {
+    const e2 = gr(t), { Fp: n4, n: r3, prehash: o4, hash: s2, randomBytes: a3, nByteLength: u3, h: i3 } = e2, D5 = yt << BigInt(u3 * 8) - j2, c4 = n4.create, l4 = _e2(e2.n, e2.nBitLength), p4 = e2.uvRatio || ((y7, f2) => {
       try {
-        return { isValid: true, value: n4.sqrt(y6 * n4.inv(f2)) };
+        return { isValid: true, value: n4.sqrt(y7 * n4.inv(f2)) };
       } catch {
         return { isValid: false, value: G2 };
       }
-    }), w4 = e2.adjustScalarBytes || ((y6) => y6), h4 = e2.domain || ((y6, f2, b4) => {
+    }), w5 = e2.adjustScalarBytes || ((y7) => y7), h4 = e2.domain || ((y7, f2, b4) => {
       if (Tt("phflag", b4), f2.length || b4) throw new Error("Contexts/pre-hash are not supported");
-      return y6;
+      return y7;
     });
-    function g4(y6, f2) {
-      ft("coordinate " + y6, f2, G2, D5);
+    function g4(y7, f2) {
+      ft("coordinate " + y7, f2, G2, D5);
     }
-    function S4(y6) {
-      if (!(y6 instanceof d3)) throw new Error("ExtendedPoint expected");
+    function S5(y7) {
+      if (!(y7 instanceof d3)) throw new Error("ExtendedPoint expected");
     }
-    const v7 = xe2((y6, f2) => {
-      const { ex: b4, ey: E4, ez: B3 } = y6, C4 = y6.is0();
-      f2 == null && (f2 = C4 ? wr : n4.inv(B3));
-      const A4 = c4(b4 * f2), U3 = c4(E4 * f2), _3 = c4(B3 * f2);
+    const v7 = xe2((y7, f2) => {
+      const { ex: b4, ey: E5, ez: B4 } = y7, C4 = y7.is0();
+      f2 == null && (f2 = C4 ? wr : n4.inv(B4));
+      const A4 = c4(b4 * f2), U3 = c4(E5 * f2), _3 = c4(B4 * f2);
       if (C4) return { x: G2, y: j2 };
       if (_3 !== j2) throw new Error("invZ was invalid");
       return { x: A4, y: U3 };
-    }), L = xe2((y6) => {
+    }), L2 = xe2((y7) => {
       const { a: f2, d: b4 } = e2;
-      if (y6.is0()) throw new Error("bad point: ZERO");
-      const { ex: E4, ey: B3, ez: C4, et: A4 } = y6, U3 = c4(E4 * E4), _3 = c4(B3 * B3), T5 = c4(C4 * C4), $5 = c4(T5 * T5), R3 = c4(U3 * f2), V3 = c4(T5 * c4(R3 + _3)), Y4 = c4($5 + c4(b4 * c4(U3 * _3)));
-      if (V3 !== Y4) throw new Error("bad point: equation left != right (1)");
-      const Z4 = c4(E4 * B3), X3 = c4(C4 * A4);
-      if (Z4 !== X3) throw new Error("bad point: equation left != right (2)");
+      if (y7.is0()) throw new Error("bad point: ZERO");
+      const { ex: E5, ey: B4, ez: C4, et: A4 } = y7, U3 = c4(E5 * E5), _3 = c4(B4 * B4), T5 = c4(C4 * C4), $6 = c4(T5 * T5), R4 = c4(U3 * f2), V4 = c4(T5 * c4(R4 + _3)), Y4 = c4($6 + c4(b4 * c4(U3 * _3)));
+      if (V4 !== Y4) throw new Error("bad point: equation left != right (1)");
+      const Z4 = c4(E5 * B4), X4 = c4(C4 * A4);
+      if (Z4 !== X4) throw new Error("bad point: equation left != right (2)");
       return true;
     });
     class d3 {
-      constructor(f2, b4, E4, B3) {
-        this.ex = f2, this.ey = b4, this.ez = E4, this.et = B3, g4("x", f2), g4("y", b4), g4("z", E4), g4("t", B3), Object.freeze(this);
+      constructor(f2, b4, E5, B4) {
+        this.ex = f2, this.ey = b4, this.ez = E5, this.et = B4, g4("x", f2), g4("y", b4), g4("z", E5), g4("t", B4), Object.freeze(this);
       }
       get x() {
         return this.toAffine().x;
@@ -2815,26 +2815,26 @@
       }
       static fromAffine(f2) {
         if (f2 instanceof d3) throw new Error("extended point not allowed");
-        const { x: b4, y: E4 } = f2 || {};
-        return g4("x", b4), g4("y", E4), new d3(b4, E4, j2, c4(b4 * E4));
+        const { x: b4, y: E5 } = f2 || {};
+        return g4("x", b4), g4("y", E5), new d3(b4, E5, j2, c4(b4 * E5));
       }
       static normalizeZ(f2) {
-        const b4 = n4.invertBatch(f2.map((E4) => E4.ez));
-        return f2.map((E4, B3) => E4.toAffine(b4[B3])).map(d3.fromAffine);
+        const b4 = n4.invertBatch(f2.map((E5) => E5.ez));
+        return f2.map((E5, B4) => E5.toAffine(b4[B4])).map(d3.fromAffine);
       }
       static msm(f2, b4) {
         return br(d3, l4, f2, b4);
       }
       _setWindowSize(f2) {
-        q4.setWindowSize(this, f2);
+        q5.setWindowSize(this, f2);
       }
       assertValidity() {
-        L(this);
+        L2(this);
       }
       equals(f2) {
-        S4(f2);
-        const { ex: b4, ey: E4, ez: B3 } = this, { ex: C4, ey: A4, ez: U3 } = f2, _3 = c4(b4 * U3), T5 = c4(C4 * B3), $5 = c4(E4 * U3), R3 = c4(A4 * B3);
-        return _3 === T5 && $5 === R3;
+        S5(f2);
+        const { ex: b4, ey: E5, ez: B4 } = this, { ex: C4, ey: A4, ez: U3 } = f2, _3 = c4(b4 * U3), T5 = c4(C4 * B4), $6 = c4(E5 * U3), R4 = c4(A4 * B4);
+        return _3 === T5 && $6 === R4;
       }
       is0() {
         return this.equals(d3.ZERO);
@@ -2843,42 +2843,42 @@
         return new d3(c4(-this.ex), this.ey, this.ez, c4(-this.et));
       }
       double() {
-        const { a: f2 } = e2, { ex: b4, ey: E4, ez: B3 } = this, C4 = c4(b4 * b4), A4 = c4(E4 * E4), U3 = c4(yt * c4(B3 * B3)), _3 = c4(f2 * C4), T5 = b4 + E4, $5 = c4(c4(T5 * T5) - C4 - A4), R3 = _3 + A4, V3 = R3 - U3, Y4 = _3 - A4, Z4 = c4($5 * V3), X3 = c4(R3 * Y4), et4 = c4($5 * Y4), pt4 = c4(V3 * R3);
-        return new d3(Z4, X3, pt4, et4);
+        const { a: f2 } = e2, { ex: b4, ey: E5, ez: B4 } = this, C4 = c4(b4 * b4), A4 = c4(E5 * E5), U3 = c4(yt * c4(B4 * B4)), _3 = c4(f2 * C4), T5 = b4 + E5, $6 = c4(c4(T5 * T5) - C4 - A4), R4 = _3 + A4, V4 = R4 - U3, Y4 = _3 - A4, Z4 = c4($6 * V4), X4 = c4(R4 * Y4), et4 = c4($6 * Y4), pt4 = c4(V4 * R4);
+        return new d3(Z4, X4, pt4, et4);
       }
       add(f2) {
-        S4(f2);
-        const { a: b4, d: E4 } = e2, { ex: B3, ey: C4, ez: A4, et: U3 } = this, { ex: _3, ey: T5, ez: $5, et: R3 } = f2;
+        S5(f2);
+        const { a: b4, d: E5 } = e2, { ex: B4, ey: C4, ez: A4, et: U3 } = this, { ex: _3, ey: T5, ez: $6, et: R4 } = f2;
         if (b4 === BigInt(-1)) {
-          const re4 = c4((C4 - B3) * (T5 + _3)), oe4 = c4((C4 + B3) * (T5 - _3)), mt = c4(oe4 - re4);
+          const re4 = c4((C4 - B4) * (T5 + _3)), oe4 = c4((C4 + B4) * (T5 - _3)), mt = c4(oe4 - re4);
           if (mt === G2) return this.double();
-          const se4 = c4(A4 * yt * R3), ie4 = c4(U3 * yt * $5), ue4 = ie4 + se4, ce3 = oe4 + re4, ae4 = ie4 - se4, Dn = c4(ue4 * mt), dn = c4(ce3 * ae4), hn = c4(ue4 * ae4), ln = c4(mt * ce3);
+          const se5 = c4(A4 * yt * R4), ie4 = c4(U3 * yt * $6), ue4 = ie4 + se5, ce3 = oe4 + re4, ae5 = ie4 - se5, Dn = c4(ue4 * mt), dn = c4(ce3 * ae5), hn = c4(ue4 * ae5), ln = c4(mt * ce3);
           return new d3(Dn, dn, ln, hn);
         }
-        const V3 = c4(B3 * _3), Y4 = c4(C4 * T5), Z4 = c4(U3 * E4 * R3), X3 = c4(A4 * $5), et4 = c4((B3 + C4) * (_3 + T5) - V3 - Y4), pt4 = X3 - Z4, ee4 = X3 + Z4, ne4 = c4(Y4 - b4 * V3), un = c4(et4 * pt4), cn = c4(ee4 * ne4), an = c4(et4 * ne4), fn = c4(pt4 * ee4);
+        const V4 = c4(B4 * _3), Y4 = c4(C4 * T5), Z4 = c4(U3 * E5 * R4), X4 = c4(A4 * $6), et4 = c4((B4 + C4) * (_3 + T5) - V4 - Y4), pt4 = X4 - Z4, ee4 = X4 + Z4, ne4 = c4(Y4 - b4 * V4), un = c4(et4 * pt4), cn = c4(ee4 * ne4), an = c4(et4 * ne4), fn = c4(pt4 * ee4);
         return new d3(un, cn, fn, an);
       }
       subtract(f2) {
         return this.add(f2.negate());
       }
       wNAF(f2) {
-        return q4.wNAFCached(this, f2, d3.normalizeZ);
+        return q5.wNAFCached(this, f2, d3.normalizeZ);
       }
       multiply(f2) {
         const b4 = f2;
         ft("scalar", b4, j2, r3);
-        const { p: E4, f: B3 } = this.wNAF(b4);
-        return d3.normalizeZ([E4, B3])[0];
+        const { p: E5, f: B4 } = this.wNAF(b4);
+        return d3.normalizeZ([E5, B4])[0];
       }
       multiplyUnsafe(f2, b4 = d3.ZERO) {
-        const E4 = f2;
-        return ft("scalar", E4, G2, r3), E4 === G2 ? F3 : this.is0() || E4 === j2 ? this : q4.wNAFCachedUnsafe(this, E4, d3.normalizeZ, b4);
+        const E5 = f2;
+        return ft("scalar", E5, G2, r3), E5 === G2 ? F3 : this.is0() || E5 === j2 ? this : q5.wNAFCachedUnsafe(this, E5, d3.normalizeZ, b4);
       }
       isSmallOrder() {
         return this.multiplyUnsafe(i3).is0();
       }
       isTorsionFree() {
-        return q4.unsafeLadder(this, r3).is0();
+        return q5.unsafeLadder(this, r3).is0();
       }
       toAffine(f2) {
         return v7(this, f2);
@@ -2888,80 +2888,80 @@
         return f2 === j2 ? this : this.multiplyUnsafe(f2);
       }
       static fromHex(f2, b4 = false) {
-        const { d: E4, a: B3 } = e2, C4 = n4.BYTES;
+        const { d: E5, a: B4 } = e2, C4 = n4.BYTES;
         f2 = W2("pointHex", f2, C4), Tt("zip215", b4);
         const A4 = f2.slice(), U3 = f2[C4 - 1];
         A4[C4 - 1] = U3 & -129;
         const _3 = Et(A4), T5 = b4 ? D5 : n4.ORDER;
         ft("pointHex.y", _3, G2, T5);
-        const $5 = c4(_3 * _3), R3 = c4($5 - j2), V3 = c4(E4 * $5 - B3);
-        let { isValid: Y4, value: Z4 } = p4(R3, V3);
+        const $6 = c4(_3 * _3), R4 = c4($6 - j2), V4 = c4(E5 * $6 - B4);
+        let { isValid: Y4, value: Z4 } = p4(R4, V4);
         if (!Y4) throw new Error("Point.fromHex: invalid y coordinate");
-        const X3 = (Z4 & j2) === j2, et4 = (U3 & 128) !== 0;
+        const X4 = (Z4 & j2) === j2, et4 = (U3 & 128) !== 0;
         if (!b4 && Z4 === G2 && et4) throw new Error("Point.fromHex: x=0 and x_0=1");
-        return et4 !== X3 && (Z4 = c4(-Z4)), d3.fromAffine({ x: Z4, y: _3 });
+        return et4 !== X4 && (Z4 = c4(-Z4)), d3.fromAffine({ x: Z4, y: _3 });
       }
       static fromPrivateKey(f2) {
-        return O4(f2).point;
+        return O5(f2).point;
       }
       toRawBytes() {
-        const { x: f2, y: b4 } = this.toAffine(), E4 = Nt(b4, n4.BYTES);
-        return E4[E4.length - 1] |= f2 & j2 ? 128 : 0, E4;
+        const { x: f2, y: b4 } = this.toAffine(), E5 = Nt(b4, n4.BYTES);
+        return E5[E5.length - 1] |= f2 & j2 ? 128 : 0, E5;
       }
       toHex() {
         return Ft(this.toRawBytes());
       }
     }
     d3.BASE = new d3(e2.Gx, e2.Gy, j2, c4(e2.Gx * e2.Gy)), d3.ZERO = new d3(G2, j2, j2, G2);
-    const { BASE: m2, ZERO: F3 } = d3, q4 = lr(d3, u2 * 8);
-    function z4(y6) {
-      return H2(y6, r3);
+    const { BASE: m2, ZERO: F3 } = d3, q5 = lr(d3, u3 * 8);
+    function z5(y7) {
+      return H2(y7, r3);
     }
-    function I2(y6) {
-      return z4(Et(y6));
+    function I2(y7) {
+      return z5(Et(y7));
     }
-    function O4(y6) {
+    function O5(y7) {
       const f2 = n4.BYTES;
-      y6 = W2("private key", y6, f2);
-      const b4 = W2("hashed private key", s2(y6), 2 * f2), E4 = w4(b4.slice(0, f2)), B3 = b4.slice(f2, 2 * f2), C4 = I2(E4), A4 = m2.multiply(C4), U3 = A4.toRawBytes();
-      return { head: E4, prefix: B3, scalar: C4, point: A4, pointBytes: U3 };
+      y7 = W2("private key", y7, f2);
+      const b4 = W2("hashed private key", s2(y7), 2 * f2), E5 = w5(b4.slice(0, f2)), B4 = b4.slice(f2, 2 * f2), C4 = I2(E5), A4 = m2.multiply(C4), U3 = A4.toRawBytes();
+      return { head: E5, prefix: B4, scalar: C4, point: A4, pointBytes: U3 };
     }
-    function ot3(y6) {
-      return O4(y6).pointBytes;
+    function ot3(y7) {
+      return O5(y7).pointBytes;
     }
-    function tt2(y6 = new Uint8Array(), ...f2) {
+    function tt2(y7 = new Uint8Array(), ...f2) {
       const b4 = ye2(...f2);
-      return I2(s2(h4(b4, W2("context", y6), !!o4)));
+      return I2(s2(h4(b4, W2("context", y7), !!o4)));
     }
-    function st3(y6, f2, b4 = {}) {
-      y6 = W2("message", y6), o4 && (y6 = o4(y6));
-      const { prefix: E4, scalar: B3, pointBytes: C4 } = O4(f2), A4 = tt2(b4.context, E4, y6), U3 = m2.multiply(A4).toRawBytes(), _3 = tt2(b4.context, U3, C4, y6), T5 = z4(A4 + _3 * B3);
+    function st3(y7, f2, b4 = {}) {
+      y7 = W2("message", y7), o4 && (y7 = o4(y7));
+      const { prefix: E5, scalar: B4, pointBytes: C4 } = O5(f2), A4 = tt2(b4.context, E5, y7), U3 = m2.multiply(A4).toRawBytes(), _3 = tt2(b4.context, U3, C4, y7), T5 = z5(A4 + _3 * B4);
       ft("signature.s", T5, G2, r3);
-      const $5 = ye2(U3, Nt(T5, n4.BYTES));
-      return W2("result", $5, n4.BYTES * 2);
+      const $6 = ye2(U3, Nt(T5, n4.BYTES));
+      return W2("result", $6, n4.BYTES * 2);
     }
     const at3 = Er;
-    function Ct2(y6, f2, b4, E4 = at3) {
-      const { context: B3, zip215: C4 } = E4, A4 = n4.BYTES;
-      y6 = W2("signature", y6, 2 * A4), f2 = W2("message", f2), b4 = W2("publicKey", b4, A4), C4 !== void 0 && Tt("zip215", C4), o4 && (f2 = o4(f2));
-      const U3 = Et(y6.slice(A4, 2 * A4));
-      let _3, T5, $5;
+    function Ct2(y7, f2, b4, E5 = at3) {
+      const { context: B4, zip215: C4 } = E5, A4 = n4.BYTES;
+      y7 = W2("signature", y7, 2 * A4), f2 = W2("message", f2), b4 = W2("publicKey", b4, A4), C4 !== void 0 && Tt("zip215", C4), o4 && (f2 = o4(f2));
+      const U3 = Et(y7.slice(A4, 2 * A4));
+      let _3, T5, $6;
       try {
-        _3 = d3.fromHex(b4, C4), T5 = d3.fromHex(y6.slice(0, A4), C4), $5 = m2.multiplyUnsafe(U3);
+        _3 = d3.fromHex(b4, C4), T5 = d3.fromHex(y7.slice(0, A4), C4), $6 = m2.multiplyUnsafe(U3);
       } catch {
         return false;
       }
       if (!C4 && _3.isSmallOrder()) return false;
-      const R3 = tt2(B3, T5.toRawBytes(), _3.toRawBytes(), f2);
-      return T5.add(_3.multiplyUnsafe(R3)).subtract($5).clearCofactor().equals(d3.ZERO);
+      const R4 = tt2(B4, T5.toRawBytes(), _3.toRawBytes(), f2);
+      return T5.add(_3.multiplyUnsafe(R4)).subtract($6).clearCofactor().equals(d3.ZERO);
     }
-    return m2._setWindowSize(8), { CURVE: e2, getPublicKey: ot3, sign: st3, verify: Ct2, ExtendedPoint: d3, utils: { getExtendedPublicKey: O4, randomPrivateKey: () => a3(n4.BYTES), precompute(y6 = 8, f2 = d3.BASE) {
-      return f2._setWindowSize(y6), f2.multiply(BigInt(3)), f2;
+    return m2._setWindowSize(8), { CURVE: e2, getPublicKey: ot3, sign: st3, verify: Ct2, ExtendedPoint: d3, utils: { getExtendedPublicKey: O5, randomPrivateKey: () => a3(n4.BYTES), precompute(y7 = 8, f2 = d3.BASE) {
+      return f2._setWindowSize(y7), f2.multiply(BigInt(3)), f2;
     } } };
   }
   function Ar(t) {
-    const e2 = BigInt(10), n4 = BigInt(20), r3 = BigInt(40), o4 = BigInt(80), s2 = kt, u2 = t * t % s2 * t % s2, i3 = J2(u2, Te2, s2) * u2 % s2, D5 = J2(i3, xr, s2) * t % s2, c4 = J2(D5, Br, s2) * D5 % s2, l4 = J2(c4, e2, s2) * c4 % s2, p4 = J2(l4, n4, s2) * l4 % s2, w4 = J2(p4, r3, s2) * p4 % s2, h4 = J2(w4, o4, s2) * w4 % s2, g4 = J2(h4, o4, s2) * w4 % s2, S4 = J2(g4, e2, s2) * c4 % s2;
-    return { pow_p_5_8: J2(S4, Te2, s2) * t % s2, b2: u2 };
+    const e2 = BigInt(10), n4 = BigInt(20), r3 = BigInt(40), o4 = BigInt(80), s2 = kt, u3 = t * t % s2 * t % s2, i3 = J2(u3, Te2, s2) * u3 % s2, D5 = J2(i3, xr, s2) * t % s2, c4 = J2(D5, Br, s2) * D5 % s2, l4 = J2(c4, e2, s2) * c4 % s2, p4 = J2(l4, n4, s2) * l4 % s2, w5 = J2(p4, r3, s2) * p4 % s2, h4 = J2(w5, o4, s2) * w5 % s2, g4 = J2(h4, o4, s2) * w5 % s2, S5 = J2(g4, e2, s2) * c4 % s2;
+    return { pow_p_5_8: J2(S5, Te2, s2) * t % s2, b2: u3 };
   }
   function mr(t) {
     return t[0] &= 248, t[31] &= 127, t[31] |= 64, t;
@@ -2969,7 +2969,7 @@
   function _r(t, e2) {
     const n4 = kt, r3 = H2(e2 * e2 * e2, n4), o4 = H2(r3 * r3 * e2, n4), s2 = Ar(t * o4).pow_p_5_8;
     let a3 = H2(t * r3 * s2, n4);
-    const u2 = H2(e2 * a3 * a3, n4), i3 = a3, D5 = H2(a3 * Ue2, n4), c4 = u2 === t, l4 = u2 === H2(-t, n4), p4 = u2 === H2(-t * Ue2, n4);
+    const u3 = H2(e2 * a3 * a3, n4), i3 = a3, D5 = H2(a3 * Ue2, n4), c4 = u3 === t, l4 = u3 === H2(-t, n4), p4 = u3 === H2(-t * Ue2, n4);
     return c4 && (a3 = i3), (l4 || p4) && (a3 = D5), ur(a3, n4) && (a3 = H2(-a3, n4)), { isValid: c4 || l4, value: a3 };
   }
   function Xt(t) {
@@ -2993,46 +2993,46 @@
       if (n4[a3] !== 255) throw new TypeError(s2 + " is ambiguous");
       n4[a3] = o4;
     }
-    var u2 = t.length, i3 = t.charAt(0), D5 = Math.log(u2) / Math.log(256), c4 = Math.log(256) / Math.log(u2);
+    var u3 = t.length, i3 = t.charAt(0), D5 = Math.log(u3) / Math.log(256), c4 = Math.log(256) / Math.log(u3);
     function l4(h4) {
       if (h4 instanceof Uint8Array || (ArrayBuffer.isView(h4) ? h4 = new Uint8Array(h4.buffer, h4.byteOffset, h4.byteLength) : Array.isArray(h4) && (h4 = Uint8Array.from(h4))), !(h4 instanceof Uint8Array)) throw new TypeError("Expected Uint8Array");
       if (h4.length === 0) return "";
-      for (var g4 = 0, S4 = 0, v7 = 0, L = h4.length; v7 !== L && h4[v7] === 0; ) v7++, g4++;
-      for (var d3 = (L - v7) * c4 + 1 >>> 0, m2 = new Uint8Array(d3); v7 !== L; ) {
-        for (var F3 = h4[v7], q4 = 0, z4 = d3 - 1; (F3 !== 0 || q4 < S4) && z4 !== -1; z4--, q4++) F3 += 256 * m2[z4] >>> 0, m2[z4] = F3 % u2 >>> 0, F3 = F3 / u2 >>> 0;
+      for (var g4 = 0, S5 = 0, v7 = 0, L2 = h4.length; v7 !== L2 && h4[v7] === 0; ) v7++, g4++;
+      for (var d3 = (L2 - v7) * c4 + 1 >>> 0, m2 = new Uint8Array(d3); v7 !== L2; ) {
+        for (var F3 = h4[v7], q5 = 0, z5 = d3 - 1; (F3 !== 0 || q5 < S5) && z5 !== -1; z5--, q5++) F3 += 256 * m2[z5] >>> 0, m2[z5] = F3 % u3 >>> 0, F3 = F3 / u3 >>> 0;
         if (F3 !== 0) throw new Error("Non-zero carry");
-        S4 = q4, v7++;
+        S5 = q5, v7++;
       }
-      for (var I2 = d3 - S4; I2 !== d3 && m2[I2] === 0; ) I2++;
-      for (var O4 = i3.repeat(g4); I2 < d3; ++I2) O4 += t.charAt(m2[I2]);
-      return O4;
+      for (var I2 = d3 - S5; I2 !== d3 && m2[I2] === 0; ) I2++;
+      for (var O5 = i3.repeat(g4); I2 < d3; ++I2) O5 += t.charAt(m2[I2]);
+      return O5;
     }
     function p4(h4) {
       if (typeof h4 != "string") throw new TypeError("Expected String");
       if (h4.length === 0) return new Uint8Array();
       var g4 = 0;
       if (h4[g4] !== " ") {
-        for (var S4 = 0, v7 = 0; h4[g4] === i3; ) S4++, g4++;
-        for (var L = (h4.length - g4) * D5 + 1 >>> 0, d3 = new Uint8Array(L); h4[g4]; ) {
+        for (var S5 = 0, v7 = 0; h4[g4] === i3; ) S5++, g4++;
+        for (var L2 = (h4.length - g4) * D5 + 1 >>> 0, d3 = new Uint8Array(L2); h4[g4]; ) {
           var m2 = n4[h4.charCodeAt(g4)];
           if (m2 === 255) return;
-          for (var F3 = 0, q4 = L - 1; (m2 !== 0 || F3 < v7) && q4 !== -1; q4--, F3++) m2 += u2 * d3[q4] >>> 0, d3[q4] = m2 % 256 >>> 0, m2 = m2 / 256 >>> 0;
+          for (var F3 = 0, q5 = L2 - 1; (m2 !== 0 || F3 < v7) && q5 !== -1; q5--, F3++) m2 += u3 * d3[q5] >>> 0, d3[q5] = m2 % 256 >>> 0, m2 = m2 / 256 >>> 0;
           if (m2 !== 0) throw new Error("Non-zero carry");
           v7 = F3, g4++;
         }
         if (h4[g4] !== " ") {
-          for (var z4 = L - v7; z4 !== L && d3[z4] === 0; ) z4++;
-          for (var I2 = new Uint8Array(S4 + (L - z4)), O4 = S4; z4 !== L; ) I2[O4++] = d3[z4++];
+          for (var z5 = L2 - v7; z5 !== L2 && d3[z5] === 0; ) z5++;
+          for (var I2 = new Uint8Array(S5 + (L2 - z5)), O5 = S5; z5 !== L2; ) I2[O5++] = d3[z5++];
           return I2;
         }
       }
     }
-    function w4(h4) {
+    function w5(h4) {
       var g4 = p4(h4);
       if (g4) return g4;
       throw new Error(`Non-${e2} character`);
     }
-    return { encode: l4, decodeUnsafe: p4, decode: w4 };
+    return { encode: l4, decodeUnsafe: p4, decode: w5 };
   }
   function xo(t) {
     return t.reduce((e2, n4) => (e2 += go[n4], e2), "");
@@ -3053,9 +3053,9 @@
     return e2[n4] = t | 0, $e2.bytes = n4 - r3 + 1, e2;
   }
   function Pt(t, r3) {
-    var n4 = 0, r3 = r3 || 0, o4 = 0, s2 = r3, a3, u2 = t.length;
+    var n4 = 0, r3 = r3 || 0, o4 = 0, s2 = r3, a3, u3 = t.length;
     do {
-      if (s2 >= u2) throw Pt.bytes = 0, new RangeError("Could not decode varint");
+      if (s2 >= u3) throw Pt.bytes = 0, new RangeError("Could not decode varint");
       a3 = t[s2++], n4 += o4 < 28 ? (a3 & ke2) << o4 : (a3 & ke2) * Math.pow(2, o4), o4 += 7;
     } while (a3 >= Uo);
     return Pt.bytes = s2 - r3, n4;
@@ -3104,7 +3104,7 @@
     return { secretKey: Oe2([t, e2]), publicKey: e2 };
   }
   async function Qo(t, e2, n4, r3, o4 = (0, import_time2.fromMiliseconds)(Date.now())) {
-    const s2 = { alg: jt, typ: Zt }, a3 = Qe(r3.publicKey), u2 = o4 + n4, i3 = { iss: a3, sub: t, aud: e2, iat: o4, exp: u2 }, D5 = rn({ header: s2, payload: i3 }), c4 = Rt.sign(D5, r3.secretKey.slice(0, 32));
+    const s2 = { alg: jt, typ: Zt }, a3 = Qe(r3.publicKey), u3 = o4 + n4, i3 = { iss: a3, sub: t, aud: e2, iat: o4, exp: u3 }, D5 = rn({ header: s2, payload: i3 }), c4 = Rt.sign(D5, r3.secretKey.slice(0, 32));
     return on({ header: s2, payload: i3, signature: c4 });
   }
   var import_time2, it, _t, xn, An, wt, St, _n, Sn, vn, In, Un, Tn, Fn, Nn, Ln, On, Hn, zn, Mn, $n, kn, Rn, jn, Zn, Gn, x4, Vn, Yn, P2, Q2, Jn, Kn, vt, be2, Wn, Xn, K3, Lt, er, nr, M2, N3, nt, rr, Ht, Be2, Ce2, ur, cr, Se2, gt, qt, Ie2, G2, j2, yt, wr, Er, kt, Ue2, xr, Te2, Br, Cr, Sr, vr, Rt, jt, Zt, ut, Dt, Gt, xt, Vt, Yt, Jt, dt, Kt, Wt, Ne2, Ur, Tr, He, Fr, Nr, Lr, Or, Hr, ze2, zr, Bt, ht, Mr, qr, k3, $r, kr, Rr, jr, Zr, Gr, Vr, Yr, Jr, Kr, Wr, Xr, Pr, Qr, to, eo, no, ro, oo, so, io, uo, co, ao, fo, Do, ho, lo, bo, po, wo, Eo, Me2, go, yo, Co, Ao, mo, qe, _o, So, vo, Io, Uo, ke2, To, Fo, No, Lo, Oo, Ho, zo, Mo, qo, $o, ko, Re2, je2, Ze, Qt, Ro, Ge2, jo, Ve2, Zo, Go, Vo, Ye, Yo, Je, Jo, Ko, Wo, Ke, Xe, te2, Pe2;
@@ -3129,13 +3129,13 @@
           e2 = de2(e2);
           const s2 = e2.length;
           for (let a3 = 0; a3 < s2; ) {
-            const u2 = Math.min(o4 - this.pos, s2 - a3);
-            if (u2 === o4) {
+            const u3 = Math.min(o4 - this.pos, s2 - a3);
+            if (u3 === o4) {
               const i3 = _t(e2);
               for (; o4 <= s2 - a3; a3 += o4) this.process(i3, a3);
               continue;
             }
-            r3.set(e2.subarray(a3, a3 + u2), this.pos), this.pos += u2, a3 += u2, this.pos === o4 && (this.process(n4, 0), this.pos = 0);
+            r3.set(e2.subarray(a3, a3 + u3), this.pos), this.pos += u3, a3 += u3, this.pos === o4 && (this.process(n4, 0), this.pos = 0);
           }
           return this.length += e2.length, this.roundClean(), this;
         }
@@ -3146,11 +3146,11 @@
           n4[a3++] = 128, this.buffer.subarray(a3).fill(0), this.padOffset > o4 - a3 && (this.process(r3, 0), a3 = 0);
           for (let l4 = a3; l4 < o4; l4++) n4[l4] = 0;
           Cn(r3, o4 - 8, BigInt(this.length * 8), s2), this.process(r3, 0);
-          const u2 = _t(e2), i3 = this.outputLen;
+          const u3 = _t(e2), i3 = this.outputLen;
           if (i3 % 4) throw new Error("_sha2: outputLen should be aligned to 32bit");
           const D5 = i3 / 4, c4 = this.get();
           if (D5 > c4.length) throw new Error("_sha2: outputLen bigger than state");
-          for (let l4 = 0; l4 < D5; l4++) u2.setUint32(4 * l4, c4[l4], s2);
+          for (let l4 = 0; l4 < D5; l4++) u3.setUint32(4 * l4, c4[l4], s2);
         }
         digest() {
           const { buffer: e2, outputLen: n4 } = this;
@@ -3160,8 +3160,8 @@
         }
         _cloneInto(e2) {
           e2 || (e2 = new this.constructor()), e2.set(...this.get());
-          const { blockLen: n4, buffer: r3, length: o4, finished: s2, destroyed: a3, pos: u2 } = this;
-          return e2.length = o4, e2.pos = u2, e2.finished = s2, e2.destroyed = a3, o4 % n4 && e2.buffer.set(r3), e2;
+          const { blockLen: n4, buffer: r3, length: o4, finished: s2, destroyed: a3, pos: u3 } = this;
+          return e2.length = o4, e2.pos = u3, e2.finished = s2, e2.destroyed = a3, o4 % n4 && e2.buffer.set(r3), e2;
         }
       };
       wt = BigInt(2 ** 32 - 1);
@@ -3194,26 +3194,26 @@
           super(128, 64, 16, false), this.Ah = 1779033703, this.Al = -205731576, this.Bh = -1150833019, this.Bl = -2067093701, this.Ch = 1013904242, this.Cl = -23791573, this.Dh = -1521486534, this.Dl = 1595750129, this.Eh = 1359893119, this.El = -1377402159, this.Fh = -1694144372, this.Fl = 725511199, this.Gh = 528734635, this.Gl = -79577749, this.Hh = 1541459225, this.Hl = 327033209;
         }
         get() {
-          const { Ah: e2, Al: n4, Bh: r3, Bl: o4, Ch: s2, Cl: a3, Dh: u2, Dl: i3, Eh: D5, El: c4, Fh: l4, Fl: p4, Gh: w4, Gl: h4, Hh: g4, Hl: S4 } = this;
-          return [e2, n4, r3, o4, s2, a3, u2, i3, D5, c4, l4, p4, w4, h4, g4, S4];
+          const { Ah: e2, Al: n4, Bh: r3, Bl: o4, Ch: s2, Cl: a3, Dh: u3, Dl: i3, Eh: D5, El: c4, Fh: l4, Fl: p4, Gh: w5, Gl: h4, Hh: g4, Hl: S5 } = this;
+          return [e2, n4, r3, o4, s2, a3, u3, i3, D5, c4, l4, p4, w5, h4, g4, S5];
         }
-        set(e2, n4, r3, o4, s2, a3, u2, i3, D5, c4, l4, p4, w4, h4, g4, S4) {
-          this.Ah = e2 | 0, this.Al = n4 | 0, this.Bh = r3 | 0, this.Bl = o4 | 0, this.Ch = s2 | 0, this.Cl = a3 | 0, this.Dh = u2 | 0, this.Dl = i3 | 0, this.Eh = D5 | 0, this.El = c4 | 0, this.Fh = l4 | 0, this.Fl = p4 | 0, this.Gh = w4 | 0, this.Gl = h4 | 0, this.Hh = g4 | 0, this.Hl = S4 | 0;
+        set(e2, n4, r3, o4, s2, a3, u3, i3, D5, c4, l4, p4, w5, h4, g4, S5) {
+          this.Ah = e2 | 0, this.Al = n4 | 0, this.Bh = r3 | 0, this.Bl = o4 | 0, this.Ch = s2 | 0, this.Cl = a3 | 0, this.Dh = u3 | 0, this.Dl = i3 | 0, this.Eh = D5 | 0, this.El = c4 | 0, this.Fh = l4 | 0, this.Fl = p4 | 0, this.Gh = w5 | 0, this.Gl = h4 | 0, this.Hh = g4 | 0, this.Hl = S5 | 0;
         }
         process(e2, n4) {
           for (let d3 = 0; d3 < 16; d3++, n4 += 4) P2[d3] = e2.getUint32(n4), Q2[d3] = e2.getUint32(n4 += 4);
           for (let d3 = 16; d3 < 80; d3++) {
-            const m2 = P2[d3 - 15] | 0, F3 = Q2[d3 - 15] | 0, q4 = x4.rotrSH(m2, F3, 1) ^ x4.rotrSH(m2, F3, 8) ^ x4.shrSH(m2, F3, 7), z4 = x4.rotrSL(m2, F3, 1) ^ x4.rotrSL(m2, F3, 8) ^ x4.shrSL(m2, F3, 7), I2 = P2[d3 - 2] | 0, O4 = Q2[d3 - 2] | 0, ot3 = x4.rotrSH(I2, O4, 19) ^ x4.rotrBH(I2, O4, 61) ^ x4.shrSH(I2, O4, 6), tt2 = x4.rotrSL(I2, O4, 19) ^ x4.rotrBL(I2, O4, 61) ^ x4.shrSL(I2, O4, 6), st3 = x4.add4L(z4, tt2, Q2[d3 - 7], Q2[d3 - 16]), at3 = x4.add4H(st3, q4, ot3, P2[d3 - 7], P2[d3 - 16]);
+            const m2 = P2[d3 - 15] | 0, F3 = Q2[d3 - 15] | 0, q5 = x4.rotrSH(m2, F3, 1) ^ x4.rotrSH(m2, F3, 8) ^ x4.shrSH(m2, F3, 7), z5 = x4.rotrSL(m2, F3, 1) ^ x4.rotrSL(m2, F3, 8) ^ x4.shrSL(m2, F3, 7), I2 = P2[d3 - 2] | 0, O5 = Q2[d3 - 2] | 0, ot3 = x4.rotrSH(I2, O5, 19) ^ x4.rotrBH(I2, O5, 61) ^ x4.shrSH(I2, O5, 6), tt2 = x4.rotrSL(I2, O5, 19) ^ x4.rotrBL(I2, O5, 61) ^ x4.shrSL(I2, O5, 6), st3 = x4.add4L(z5, tt2, Q2[d3 - 7], Q2[d3 - 16]), at3 = x4.add4H(st3, q5, ot3, P2[d3 - 7], P2[d3 - 16]);
             P2[d3] = at3 | 0, Q2[d3] = st3 | 0;
           }
-          let { Ah: r3, Al: o4, Bh: s2, Bl: a3, Ch: u2, Cl: i3, Dh: D5, Dl: c4, Eh: l4, El: p4, Fh: w4, Fl: h4, Gh: g4, Gl: S4, Hh: v7, Hl: L } = this;
+          let { Ah: r3, Al: o4, Bh: s2, Bl: a3, Ch: u3, Cl: i3, Dh: D5, Dl: c4, Eh: l4, El: p4, Fh: w5, Fl: h4, Gh: g4, Gl: S5, Hh: v7, Hl: L2 } = this;
           for (let d3 = 0; d3 < 80; d3++) {
-            const m2 = x4.rotrSH(l4, p4, 14) ^ x4.rotrSH(l4, p4, 18) ^ x4.rotrBH(l4, p4, 41), F3 = x4.rotrSL(l4, p4, 14) ^ x4.rotrSL(l4, p4, 18) ^ x4.rotrBL(l4, p4, 41), q4 = l4 & w4 ^ ~l4 & g4, z4 = p4 & h4 ^ ~p4 & S4, I2 = x4.add5L(L, F3, z4, Yn[d3], Q2[d3]), O4 = x4.add5H(I2, v7, m2, q4, Vn[d3], P2[d3]), ot3 = I2 | 0, tt2 = x4.rotrSH(r3, o4, 28) ^ x4.rotrBH(r3, o4, 34) ^ x4.rotrBH(r3, o4, 39), st3 = x4.rotrSL(r3, o4, 28) ^ x4.rotrBL(r3, o4, 34) ^ x4.rotrBL(r3, o4, 39), at3 = r3 & s2 ^ r3 & u2 ^ s2 & u2, Ct2 = o4 & a3 ^ o4 & i3 ^ a3 & i3;
-            v7 = g4 | 0, L = S4 | 0, g4 = w4 | 0, S4 = h4 | 0, w4 = l4 | 0, h4 = p4 | 0, { h: l4, l: p4 } = x4.add(D5 | 0, c4 | 0, O4 | 0, ot3 | 0), D5 = u2 | 0, c4 = i3 | 0, u2 = s2 | 0, i3 = a3 | 0, s2 = r3 | 0, a3 = o4 | 0;
+            const m2 = x4.rotrSH(l4, p4, 14) ^ x4.rotrSH(l4, p4, 18) ^ x4.rotrBH(l4, p4, 41), F3 = x4.rotrSL(l4, p4, 14) ^ x4.rotrSL(l4, p4, 18) ^ x4.rotrBL(l4, p4, 41), q5 = l4 & w5 ^ ~l4 & g4, z5 = p4 & h4 ^ ~p4 & S5, I2 = x4.add5L(L2, F3, z5, Yn[d3], Q2[d3]), O5 = x4.add5H(I2, v7, m2, q5, Vn[d3], P2[d3]), ot3 = I2 | 0, tt2 = x4.rotrSH(r3, o4, 28) ^ x4.rotrBH(r3, o4, 34) ^ x4.rotrBH(r3, o4, 39), st3 = x4.rotrSL(r3, o4, 28) ^ x4.rotrBL(r3, o4, 34) ^ x4.rotrBL(r3, o4, 39), at3 = r3 & s2 ^ r3 & u3 ^ s2 & u3, Ct2 = o4 & a3 ^ o4 & i3 ^ a3 & i3;
+            v7 = g4 | 0, L2 = S5 | 0, g4 = w5 | 0, S5 = h4 | 0, w5 = l4 | 0, h4 = p4 | 0, { h: l4, l: p4 } = x4.add(D5 | 0, c4 | 0, O5 | 0, ot3 | 0), D5 = u3 | 0, c4 = i3 | 0, u3 = s2 | 0, i3 = a3 | 0, s2 = r3 | 0, a3 = o4 | 0;
             const At2 = x4.add3L(ot3, st3, Ct2);
-            r3 = x4.add3H(At2, O4, tt2, at3), o4 = At2 | 0;
+            r3 = x4.add3H(At2, O5, tt2, at3), o4 = At2 | 0;
           }
-          ({ h: r3, l: o4 } = x4.add(this.Ah | 0, this.Al | 0, r3 | 0, o4 | 0)), { h: s2, l: a3 } = x4.add(this.Bh | 0, this.Bl | 0, s2 | 0, a3 | 0), { h: u2, l: i3 } = x4.add(this.Ch | 0, this.Cl | 0, u2 | 0, i3 | 0), { h: D5, l: c4 } = x4.add(this.Dh | 0, this.Dl | 0, D5 | 0, c4 | 0), { h: l4, l: p4 } = x4.add(this.Eh | 0, this.El | 0, l4 | 0, p4 | 0), { h: w4, l: h4 } = x4.add(this.Fh | 0, this.Fl | 0, w4 | 0, h4 | 0), { h: g4, l: S4 } = x4.add(this.Gh | 0, this.Gl | 0, g4 | 0, S4 | 0), { h: v7, l: L } = x4.add(this.Hh | 0, this.Hl | 0, v7 | 0, L | 0), this.set(r3, o4, s2, a3, u2, i3, D5, c4, l4, p4, w4, h4, g4, S4, v7, L);
+          ({ h: r3, l: o4 } = x4.add(this.Ah | 0, this.Al | 0, r3 | 0, o4 | 0)), { h: s2, l: a3 } = x4.add(this.Bh | 0, this.Bl | 0, s2 | 0, a3 | 0), { h: u3, l: i3 } = x4.add(this.Ch | 0, this.Cl | 0, u3 | 0, i3 | 0), { h: D5, l: c4 } = x4.add(this.Dh | 0, this.Dl | 0, D5 | 0, c4 | 0), { h: l4, l: p4 } = x4.add(this.Eh | 0, this.El | 0, l4 | 0, p4 | 0), { h: w5, l: h4 } = x4.add(this.Fh | 0, this.Fl | 0, w5 | 0, h4 | 0), { h: g4, l: S5 } = x4.add(this.Gh | 0, this.Gl | 0, g4 | 0, S5 | 0), { h: v7, l: L2 } = x4.add(this.Hh | 0, this.Hl | 0, v7 | 0, L2 | 0), this.set(r3, o4, s2, a3, u3, i3, D5, c4, l4, p4, w5, h4, g4, S5, v7, L2);
         }
         roundClean() {
           P2.fill(0), Q2.fill(0);
@@ -3344,20 +3344,20 @@
         let s2 = t.length;
         for (; t[s2 - 1] === "="; ) --s2;
         const a3 = new Uint8Array(s2 * n4 / 8 | 0);
-        let u2 = 0, i3 = 0, D5 = 0;
+        let u3 = 0, i3 = 0, D5 = 0;
         for (let c4 = 0; c4 < s2; ++c4) {
           const l4 = o4[t[c4]];
           if (l4 === void 0) throw new SyntaxError(`Non-${r3} character`);
-          i3 = i3 << n4 | l4, u2 += n4, u2 >= 8 && (u2 -= 8, a3[D5++] = 255 & i3 >> u2);
+          i3 = i3 << n4 | l4, u3 += n4, u3 >= 8 && (u3 -= 8, a3[D5++] = 255 & i3 >> u3);
         }
-        if (u2 >= n4 || 255 & i3 << 8 - u2) throw new SyntaxError("Unexpected end of data");
+        if (u3 >= n4 || 255 & i3 << 8 - u3) throw new SyntaxError("Unexpected end of data");
         return a3;
       };
       qr = (t, e2, n4) => {
         const r3 = e2[e2.length - 1] === "=", o4 = (1 << n4) - 1;
-        let s2 = "", a3 = 0, u2 = 0;
-        for (let i3 = 0; i3 < t.length; ++i3) for (u2 = u2 << 8 | t[i3], a3 += 8; a3 > n4; ) a3 -= n4, s2 += e2[o4 & u2 >> a3];
-        if (a3 && (s2 += e2[o4 & u2 << n4 - a3]), r3) for (; s2.length * n4 & 7; ) s2 += "=";
+        let s2 = "", a3 = 0, u3 = 0;
+        for (let i3 = 0; i3 < t.length; ++i3) for (u3 = u3 << 8 | t[i3], a3 += 8; a3 > n4; ) a3 -= n4, s2 += e2[o4 & u3 >> a3];
+        if (a3 && (s2 += e2[o4 & u3 << n4 - a3]), r3) for (; s2.length * n4 & 7; ) s2 += "=";
         return s2;
       };
       k3 = ({ name: t, prefix: e2, bitsPerChar: n4, alphabet: r3 }) => Bt({ prefix: e2, name: t, encode(o4) {
@@ -3481,8 +3481,8 @@
       throw new TypeError("Alphabet too long");
     }
     var BASE_MAP = new Uint8Array(256);
-    for (var j4 = 0; j4 < BASE_MAP.length; j4++) {
-      BASE_MAP[j4] = 255;
+    for (var j5 = 0; j5 < BASE_MAP.length; j5++) {
+      BASE_MAP[j5] = 255;
     }
     for (var i3 = 0; i3 < ALPHABET.length; i3++) {
       var x7 = ALPHABET.charAt(i3);
@@ -3587,9 +3587,9 @@
         it42++;
       }
       var vch = new Uint8Array(zeroes + (size3 - it42));
-      var j5 = zeroes;
+      var j6 = zeroes;
       while (it42 !== size3) {
-        vch[j5++] = b256[it42++];
+        vch[j6++] = b256[it42++];
       }
       return vch;
     }
@@ -5358,7 +5358,7 @@ if (cid) {
       init_crypto();
       isLE = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
       swap8IfBE = isLE ? (n4) => n4 : (n4) => byteSwap(n4);
-      swap32IfBE = isLE ? (u2) => u2 : byteSwap32;
+      swap32IfBE = isLE ? (u3) => u3 : byteSwap32;
       hasHexBuiltin2 = /* @__PURE__ */ (() => (
         // @ts-ignore
         typeof Uint8Array.from([]).toHex === "function" && typeof Uint8Array.fromHex === "function"
@@ -5372,20 +5372,20 @@ if (cid) {
 
   // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha3.js
   function keccakP(s2, rounds = 24) {
-    const B3 = new Uint32Array(5 * 2);
+    const B4 = new Uint32Array(5 * 2);
     for (let round = 24 - rounds; round < 24; round++) {
       for (let x7 = 0; x7 < 10; x7++)
-        B3[x7] = s2[x7] ^ s2[x7 + 10] ^ s2[x7 + 20] ^ s2[x7 + 30] ^ s2[x7 + 40];
+        B4[x7] = s2[x7] ^ s2[x7 + 10] ^ s2[x7 + 20] ^ s2[x7 + 30] ^ s2[x7 + 40];
       for (let x7 = 0; x7 < 10; x7 += 2) {
         const idx1 = (x7 + 8) % 10;
         const idx0 = (x7 + 2) % 10;
-        const B0 = B3[idx0];
-        const B1 = B3[idx0 + 1];
-        const Th = rotlH(B0, B1, 1) ^ B3[idx1];
-        const Tl = rotlL(B0, B1, 1) ^ B3[idx1 + 1];
-        for (let y6 = 0; y6 < 50; y6 += 10) {
-          s2[x7 + y6] ^= Th;
-          s2[x7 + y6 + 1] ^= Tl;
+        const B0 = B4[idx0];
+        const B1 = B4[idx0 + 1];
+        const Th = rotlH(B0, B1, 1) ^ B4[idx1];
+        const Tl = rotlL(B0, B1, 1) ^ B4[idx1 + 1];
+        for (let y7 = 0; y7 < 50; y7 += 10) {
+          s2[x7 + y7] ^= Th;
+          s2[x7 + y7 + 1] ^= Tl;
         }
       }
       let curH = s2[2];
@@ -5400,16 +5400,16 @@ if (cid) {
         s2[PI] = Th;
         s2[PI + 1] = Tl;
       }
-      for (let y6 = 0; y6 < 50; y6 += 10) {
+      for (let y7 = 0; y7 < 50; y7 += 10) {
         for (let x7 = 0; x7 < 10; x7++)
-          B3[x7] = s2[y6 + x7];
+          B4[x7] = s2[y7 + x7];
         for (let x7 = 0; x7 < 10; x7++)
-          s2[y6 + x7] ^= ~B3[(x7 + 2) % 10] & B3[(x7 + 4) % 10];
+          s2[y7 + x7] ^= ~B4[(x7 + 2) % 10] & B4[(x7 + 4) % 10];
       }
       s2[0] ^= SHA3_IOTA_H[round];
       s2[1] ^= SHA3_IOTA_L[round];
     }
-    clean(B3);
+    clean(B4);
   }
   var _0n, _1n, _2n, _7n, _256n, _0x71n, SHA3_PI, SHA3_ROTL, _SHA3_IOTA, IOTAS, SHA3_IOTA_H, SHA3_IOTA_L, rotlH, rotlL, Keccak, gen, keccak_256;
   var init_sha3 = __esm({
@@ -5425,15 +5425,15 @@ if (cid) {
       SHA3_PI = [];
       SHA3_ROTL = [];
       _SHA3_IOTA = [];
-      for (let round = 0, R3 = _1n, x7 = 1, y6 = 0; round < 24; round++) {
-        [x7, y6] = [y6, (2 * x7 + 3 * y6) % 5];
-        SHA3_PI.push(2 * (5 * y6 + x7));
+      for (let round = 0, R4 = _1n, x7 = 1, y7 = 0; round < 24; round++) {
+        [x7, y7] = [y7, (2 * x7 + 3 * y7) % 5];
+        SHA3_PI.push(2 * (5 * y7 + x7));
         SHA3_ROTL.push((round + 1) * (round + 2) / 2 % 64);
         let t = _0n;
-        for (let j4 = 0; j4 < 7; j4++) {
-          R3 = (R3 << _1n ^ (R3 >> _7n) * _0x71n) % _256n;
-          if (R3 & _2n)
-            t ^= _1n << (_1n << /* @__PURE__ */ BigInt(j4)) - _1n;
+        for (let j5 = 0; j5 < 7; j5++) {
+          R4 = (R4 << _1n ^ (R4 >> _7n) * _0x71n) % _256n;
+          if (R4 & _2n)
+            t ^= _1n << (_1n << /* @__PURE__ */ BigInt(j5)) - _1n;
         }
         _SHA3_IOTA.push(t);
       }
@@ -5793,7 +5793,7 @@ if (cid) {
     "node_modules/ox/node_modules/@noble/hashes/esm/utils.js"() {
       init_crypto2();
       isLE2 = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
-      swap32IfBE2 = isLE2 ? (u2) => u2 : byteSwap322;
+      swap32IfBE2 = isLE2 ? (u3) => u3 : byteSwap322;
       Hash2 = class {
       };
     }
@@ -5955,20 +5955,20 @@ if (cid) {
 
   // node_modules/ox/node_modules/@noble/hashes/esm/sha3.js
   function keccakP2(s2, rounds = 24) {
-    const B3 = new Uint32Array(5 * 2);
+    const B4 = new Uint32Array(5 * 2);
     for (let round = 24 - rounds; round < 24; round++) {
       for (let x7 = 0; x7 < 10; x7++)
-        B3[x7] = s2[x7] ^ s2[x7 + 10] ^ s2[x7 + 20] ^ s2[x7 + 30] ^ s2[x7 + 40];
+        B4[x7] = s2[x7] ^ s2[x7 + 10] ^ s2[x7 + 20] ^ s2[x7 + 30] ^ s2[x7 + 40];
       for (let x7 = 0; x7 < 10; x7 += 2) {
         const idx1 = (x7 + 8) % 10;
         const idx0 = (x7 + 2) % 10;
-        const B0 = B3[idx0];
-        const B1 = B3[idx0 + 1];
-        const Th = rotlH2(B0, B1, 1) ^ B3[idx1];
-        const Tl = rotlL2(B0, B1, 1) ^ B3[idx1 + 1];
-        for (let y6 = 0; y6 < 50; y6 += 10) {
-          s2[x7 + y6] ^= Th;
-          s2[x7 + y6 + 1] ^= Tl;
+        const B0 = B4[idx0];
+        const B1 = B4[idx0 + 1];
+        const Th = rotlH2(B0, B1, 1) ^ B4[idx1];
+        const Tl = rotlL2(B0, B1, 1) ^ B4[idx1 + 1];
+        for (let y7 = 0; y7 < 50; y7 += 10) {
+          s2[x7 + y7] ^= Th;
+          s2[x7 + y7 + 1] ^= Tl;
         }
       }
       let curH = s2[2];
@@ -5983,16 +5983,16 @@ if (cid) {
         s2[PI] = Th;
         s2[PI + 1] = Tl;
       }
-      for (let y6 = 0; y6 < 50; y6 += 10) {
+      for (let y7 = 0; y7 < 50; y7 += 10) {
         for (let x7 = 0; x7 < 10; x7++)
-          B3[x7] = s2[y6 + x7];
+          B4[x7] = s2[y7 + x7];
         for (let x7 = 0; x7 < 10; x7++)
-          s2[y6 + x7] ^= ~B3[(x7 + 2) % 10] & B3[(x7 + 4) % 10];
+          s2[y7 + x7] ^= ~B4[(x7 + 2) % 10] & B4[(x7 + 4) % 10];
       }
       s2[0] ^= SHA3_IOTA_H2[round];
       s2[1] ^= SHA3_IOTA_L2[round];
     }
-    clean2(B3);
+    clean2(B4);
   }
   var _0n2, _1n2, _2n2, _7n2, _256n2, _0x71n2, SHA3_PI2, SHA3_ROTL2, _SHA3_IOTA2, IOTAS2, SHA3_IOTA_H2, SHA3_IOTA_L2, rotlH2, rotlL2, Keccak2, gen2, keccak_2562;
   var init_sha32 = __esm({
@@ -6008,15 +6008,15 @@ if (cid) {
       SHA3_PI2 = [];
       SHA3_ROTL2 = [];
       _SHA3_IOTA2 = [];
-      for (let round = 0, R3 = _1n2, x7 = 1, y6 = 0; round < 24; round++) {
-        [x7, y6] = [y6, (2 * x7 + 3 * y6) % 5];
-        SHA3_PI2.push(2 * (5 * y6 + x7));
+      for (let round = 0, R4 = _1n2, x7 = 1, y7 = 0; round < 24; round++) {
+        [x7, y7] = [y7, (2 * x7 + 3 * y7) % 5];
+        SHA3_PI2.push(2 * (5 * y7 + x7));
         SHA3_ROTL2.push((round + 1) * (round + 2) / 2 % 64);
         let t = _0n2;
-        for (let j4 = 0; j4 < 7; j4++) {
-          R3 = (R3 << _1n2 ^ (R3 >> _7n2) * _0x71n2) % _256n2;
-          if (R3 & _2n2)
-            t ^= _1n2 << (_1n2 << /* @__PURE__ */ BigInt(j4)) - _1n2;
+        for (let j5 = 0; j5 < 7; j5++) {
+          R4 = (R4 << _1n2 ^ (R4 >> _7n2) * _0x71n2) % _256n2;
+          if (R4 & _2n2)
+            t ^= _1n2 << (_1n2 << /* @__PURE__ */ BigInt(j5)) - _1n2;
         }
         _SHA3_IOTA2.push(t);
       }
@@ -6227,19 +6227,19 @@ if (cid) {
           this.H = SHA256_IV[7] | 0;
         }
         get() {
-          const { A: A4, B: B3, C: C4, D: D5, E: E4, F: F3, G: G4, H: H5 } = this;
-          return [A4, B3, C4, D5, E4, F3, G4, H5];
+          const { A: A4, B: B4, C: C4, D: D5, E: E5, F: F3, G: G5, H: H6 } = this;
+          return [A4, B4, C4, D5, E5, F3, G5, H6];
         }
         // prettier-ignore
-        set(A4, B3, C4, D5, E4, F3, G4, H5) {
+        set(A4, B4, C4, D5, E5, F3, G5, H6) {
           this.A = A4 | 0;
-          this.B = B3 | 0;
+          this.B = B4 | 0;
           this.C = C4 | 0;
           this.D = D5 | 0;
-          this.E = E4 | 0;
+          this.E = E5 | 0;
           this.F = F3 | 0;
-          this.G = G4 | 0;
-          this.H = H5 | 0;
+          this.G = G5 | 0;
+          this.H = H6 | 0;
         }
         process(view, offset) {
           for (let i3 = 0; i3 < 16; i3++, offset += 4)
@@ -6251,30 +6251,30 @@ if (cid) {
             const s1 = rotr2(W22, 17) ^ rotr2(W22, 19) ^ W22 >>> 10;
             SHA256_W[i3] = s1 + SHA256_W[i3 - 7] + s0 + SHA256_W[i3 - 16] | 0;
           }
-          let { A: A4, B: B3, C: C4, D: D5, E: E4, F: F3, G: G4, H: H5 } = this;
+          let { A: A4, B: B4, C: C4, D: D5, E: E5, F: F3, G: G5, H: H6 } = this;
           for (let i3 = 0; i3 < 64; i3++) {
-            const sigma1 = rotr2(E4, 6) ^ rotr2(E4, 11) ^ rotr2(E4, 25);
-            const T12 = H5 + sigma1 + Chi(E4, F3, G4) + SHA256_K[i3] + SHA256_W[i3] | 0;
+            const sigma1 = rotr2(E5, 6) ^ rotr2(E5, 11) ^ rotr2(E5, 25);
+            const T12 = H6 + sigma1 + Chi(E5, F3, G5) + SHA256_K[i3] + SHA256_W[i3] | 0;
             const sigma0 = rotr2(A4, 2) ^ rotr2(A4, 13) ^ rotr2(A4, 22);
-            const T22 = sigma0 + Maj(A4, B3, C4) | 0;
-            H5 = G4;
-            G4 = F3;
-            F3 = E4;
-            E4 = D5 + T12 | 0;
+            const T22 = sigma0 + Maj(A4, B4, C4) | 0;
+            H6 = G5;
+            G5 = F3;
+            F3 = E5;
+            E5 = D5 + T12 | 0;
             D5 = C4;
-            C4 = B3;
-            B3 = A4;
+            C4 = B4;
+            B4 = A4;
             A4 = T12 + T22 | 0;
           }
           A4 = A4 + this.A | 0;
-          B3 = B3 + this.B | 0;
+          B4 = B4 + this.B | 0;
           C4 = C4 + this.C | 0;
           D5 = D5 + this.D | 0;
-          E4 = E4 + this.E | 0;
+          E5 = E5 + this.E | 0;
           F3 = F3 + this.F | 0;
-          G4 = G4 + this.G | 0;
-          H5 = H5 + this.H | 0;
-          this.set(A4, B3, C4, D5, E4, F3, G4, H5);
+          G5 = G5 + this.G | 0;
+          H6 = H6 + this.H | 0;
+          this.set(A4, B4, C4, D5, E5, F3, G5, H6);
         }
         roundClean() {
           clean2(SHA256_W);
@@ -6416,20 +6416,20 @@ if (cid) {
     if (typeof hmacFn !== "function")
       throw new Error("hmacFn must be a function");
     let v7 = u8n(hashLen);
-    let k5 = u8n(hashLen);
+    let k6 = u8n(hashLen);
     let i3 = 0;
     const reset = () => {
       v7.fill(1);
-      k5.fill(0);
+      k6.fill(0);
       i3 = 0;
     };
-    const h4 = (...b4) => hmacFn(k5, v7, ...b4);
+    const h4 = (...b4) => hmacFn(k6, v7, ...b4);
     const reseed = (seed = u8n(0)) => {
-      k5 = h4(u8fr([0]), seed);
+      k6 = h4(u8fr([0]), seed);
       v7 = h4();
       if (seed.length === 0)
         return;
-      k5 = h4(u8fr([1]), seed);
+      k6 = h4(u8fr([1]), seed);
       v7 = h4();
     };
     const gen3 = () => {
@@ -6861,11 +6861,11 @@ if (cid) {
       hexString = `0${hexString}`;
     const length2 = hexString.length / 2;
     const bytes = new Uint8Array(length2);
-    for (let index = 0, j4 = 0; index < length2; index++) {
-      const nibbleLeft = charCodeToBase16(hexString.charCodeAt(j4++));
-      const nibbleRight = charCodeToBase16(hexString.charCodeAt(j4++));
+    for (let index = 0, j5 = 0; index < length2; index++) {
+      const nibbleLeft = charCodeToBase16(hexString.charCodeAt(j5++));
+      const nibbleRight = charCodeToBase16(hexString.charCodeAt(j5++));
       if (nibbleLeft === void 0 || nibbleRight === void 0) {
-        throw new BaseError(`Invalid byte sequence ("${hexString[j4 - 2]}${hexString[j4 - 1]}" in "${hexString}").`);
+        throw new BaseError(`Invalid byte sequence ("${hexString[j5 - 2]}${hexString[j5 - 1]}" in "${hexString}").`);
       }
       bytes[index] = nibbleLeft * 16 + nibbleRight;
     }
@@ -7008,8 +7008,8 @@ if (cid) {
   // node_modules/ox/_esm/core/PublicKey.js
   function assert3(publicKey, options = {}) {
     const { compressed } = options;
-    const { prefix, x: x7, y: y6 } = publicKey;
-    if (compressed === false || typeof x7 === "bigint" && typeof y6 === "bigint") {
+    const { prefix, x: x7, y: y7 } = publicKey;
+    if (compressed === false || typeof x7 === "bigint" && typeof y7 === "bigint") {
       if (prefix !== 4)
         throw new InvalidPrefixError({
           prefix,
@@ -7017,7 +7017,7 @@ if (cid) {
         });
       return;
     }
-    if (compressed === true || typeof x7 === "bigint" && typeof y6 === "undefined") {
+    if (compressed === true || typeof x7 === "bigint" && typeof y7 === "undefined") {
       if (prefix !== 3 && prefix !== 2)
         throw new InvalidPrefixError({
           prefix,
@@ -7033,9 +7033,9 @@ if (cid) {
         return fromHex2(value);
       if (validate2(value))
         return fromBytes2(value);
-      const { prefix, x: x7, y: y6 } = value;
-      if (typeof x7 === "bigint" && typeof y6 === "bigint")
-        return { prefix: prefix ?? 4, x: x7, y: y6 };
+      const { prefix, x: x7, y: y7 } = value;
+      if (typeof x7 === "bigint" && typeof y7 === "bigint")
+        return { prefix: prefix ?? 4, x: x7, y: y7 };
       return { prefix, x: x7 };
     })();
     assert3(publicKey);
@@ -7049,21 +7049,21 @@ if (cid) {
       throw new InvalidSerializedSizeError({ publicKey });
     if (publicKey.length === 130) {
       const x8 = BigInt(slice(publicKey, 0, 32));
-      const y6 = BigInt(slice(publicKey, 32, 64));
+      const y7 = BigInt(slice(publicKey, 32, 64));
       return {
         prefix: 4,
         x: x8,
-        y: y6
+        y: y7
       };
     }
     if (publicKey.length === 132) {
       const prefix2 = Number(slice(publicKey, 0, 1));
       const x8 = BigInt(slice(publicKey, 1, 33));
-      const y6 = BigInt(slice(publicKey, 33, 65));
+      const y7 = BigInt(slice(publicKey, 33, 65));
       return {
         prefix: prefix2,
         x: x8,
-        y: y6
+        y: y7
       };
     }
     const prefix = Number(slice(publicKey, 0, 1));
@@ -7078,13 +7078,13 @@ if (cid) {
   }
   function toHex(publicKey, options = {}) {
     assert3(publicKey);
-    const { prefix, x: x7, y: y6 } = publicKey;
+    const { prefix, x: x7, y: y7 } = publicKey;
     const { includePrefix = true } = options;
     const publicKey_ = concat(
       includePrefix ? fromNumber(prefix, { size: 1 }) : "0x",
       fromNumber(x7, { size: 32 }),
       // If the public key is not compressed, add the y coordinate.
-      typeof y6 === "bigint" ? fromNumber(y6, { size: 32 }) : "0x"
+      typeof y7 === "bigint" ? fromNumber(y7, { size: 32 }) : "0x"
     );
     return publicKey_;
   }
@@ -7629,13 +7629,13 @@ if (cid) {
       throw new Error("invert: expected positive modulus, got " + modulo);
     let a3 = mod(number, modulo);
     let b4 = modulo;
-    let x7 = _0n4, y6 = _1n4, u2 = _1n4, v7 = _0n4;
+    let x7 = _0n4, y7 = _1n4, u3 = _1n4, v7 = _0n4;
     while (a3 !== _0n4) {
-      const q4 = b4 / a3;
+      const q5 = b4 / a3;
       const r3 = b4 % a3;
-      const m2 = x7 - u2 * q4;
-      const n4 = y6 - v7 * q4;
-      b4 = a3, a3 = r3, x7 = u2, y6 = v7, u2 = m2, v7 = n4;
+      const m2 = x7 - u3 * q5;
+      const n4 = y7 - v7 * q5;
+      b4 = a3, a3 = r3, x7 = u3, y7 = v7, u3 = m2, v7 = n4;
     }
     const gcd2 = b4;
     if (gcd2 !== _1n4)
@@ -7664,10 +7664,10 @@ if (cid) {
     if (P5 < BigInt(3))
       throw new Error("sqrt is not defined for small field");
     let Q4 = P5 - _1n4;
-    let S4 = 0;
+    let S5 = 0;
     while (Q4 % _2n3 === _0n4) {
       Q4 /= _2n3;
-      S4++;
+      S5++;
     }
     let Z4 = _2n3;
     const _Fp = Field(P5);
@@ -7675,7 +7675,7 @@ if (cid) {
       if (Z4++ > 1e3)
         throw new Error("Cannot find square root: probably non-prime P");
     }
-    if (S4 === 1)
+    if (S5 === 1)
       return sqrt3mod4;
     let cc = _Fp.pow(Z4, Q4);
     const Q1div2 = (Q4 + _1n4) / _2n3;
@@ -7684,10 +7684,10 @@ if (cid) {
         return n4;
       if (FpLegendre(Fp2, n4) !== 1)
         throw new Error("Cannot find square root");
-      let M4 = S4;
+      let M5 = S5;
       let c4 = Fp2.mul(Fp2.ONE, cc);
       let t = Fp2.pow(n4, Q4);
-      let R3 = Fp2.pow(n4, Q1div2);
+      let R4 = Fp2.pow(n4, Q1div2);
       while (!Fp2.eql(t, Fp2.ONE)) {
         if (Fp2.is0(t))
           return Fp2.ZERO;
@@ -7696,17 +7696,17 @@ if (cid) {
         while (!Fp2.eql(t_tmp, Fp2.ONE)) {
           i3++;
           t_tmp = Fp2.sqr(t_tmp);
-          if (i3 === M4)
+          if (i3 === M5)
             throw new Error("Cannot find square root");
         }
-        const exponent = _1n4 << BigInt(M4 - i3 - 1);
+        const exponent = _1n4 << BigInt(M5 - i3 - 1);
         const b4 = Fp2.pow(c4, exponent);
-        M4 = i3;
+        M5 = i3;
         c4 = Fp2.sqr(b4);
         t = Fp2.mul(t, c4);
-        R3 = Fp2.mul(R3, b4);
+        R4 = Fp2.mul(R4, b4);
       }
-      return R3;
+      return R4;
     };
   }
   function FpSqrt(P5) {
@@ -7895,17 +7895,17 @@ if (cid) {
     const neg = item.negate();
     return condition ? neg : item;
   }
-  function validateW(W5, bits) {
-    if (!Number.isSafeInteger(W5) || W5 <= 0 || W5 > bits)
-      throw new Error("invalid window size, expected [1.." + bits + "], got W=" + W5);
+  function validateW(W6, bits) {
+    if (!Number.isSafeInteger(W6) || W6 <= 0 || W6 > bits)
+      throw new Error("invalid window size, expected [1.." + bits + "], got W=" + W6);
   }
-  function calcWOpts(W5, scalarBits) {
-    validateW(W5, scalarBits);
-    const windows = Math.ceil(scalarBits / W5) + 1;
-    const windowSize = 2 ** (W5 - 1);
-    const maxNumber = 2 ** W5;
-    const mask = bitMask(W5);
-    const shiftBy = BigInt(W5);
+  function calcWOpts(W6, scalarBits) {
+    validateW(W6, scalarBits);
+    const windows = Math.ceil(scalarBits / W6) + 1;
+    const windowSize = 2 ** (W6 - 1);
+    const maxNumber = 2 ** W6;
+    const mask = bitMask(W6);
+    const shiftBy = BigInt(W6);
     return { windows, windowSize, mask, maxNumber, shiftBy };
   }
   function calcOffsets(n4, window2, wOpts) {
@@ -7972,8 +7972,8 @@ if (cid) {
        * @param W window size
        * @returns precomputed point tables flattened to a single array
        */
-      precomputeWindow(elm, W5) {
-        const { windows, windowSize } = calcWOpts(W5, bits);
+      precomputeWindow(elm, W6) {
+        const { windows, windowSize } = calcWOpts(W6, bits);
         const points = [];
         let p4 = elm;
         let base3 = p4;
@@ -7995,10 +7995,10 @@ if (cid) {
        * @param n scalar (we don't check here, but should be less than curve order)
        * @returns real and fake (for const-time) points
        */
-      wNAF(W5, precomputes, n4) {
+      wNAF(W6, precomputes, n4) {
         let p4 = c4.ZERO;
         let f2 = c4.BASE;
-        const wo3 = calcWOpts(W5, bits);
+        const wo3 = calcWOpts(W6, bits);
         for (let window2 = 0; window2 < wo3.windows; window2++) {
           const { nextN, offset, isZero, isNeg, isNegF, offsetF } = calcOffsets(n4, window2, wo3);
           n4 = nextN;
@@ -8018,8 +8018,8 @@ if (cid) {
        * @param acc accumulator point to add result of multiplication
        * @returns point
        */
-      wNAFUnsafe(W5, precomputes, n4, acc = c4.ZERO) {
-        const wo3 = calcWOpts(W5, bits);
+      wNAFUnsafe(W6, precomputes, n4, acc = c4.ZERO) {
+        const wo3 = calcWOpts(W6, bits);
         for (let window2 = 0; window2 < wo3.windows; window2++) {
           if (n4 === _0n5)
             break;
@@ -8034,31 +8034,31 @@ if (cid) {
         }
         return acc;
       },
-      getPrecomputes(W5, P5, transform) {
+      getPrecomputes(W6, P5, transform) {
         let comp = pointPrecomputes.get(P5);
         if (!comp) {
-          comp = this.precomputeWindow(P5, W5);
-          if (W5 !== 1)
+          comp = this.precomputeWindow(P5, W6);
+          if (W6 !== 1)
             pointPrecomputes.set(P5, transform(comp));
         }
         return comp;
       },
       wNAFCached(P5, n4, transform) {
-        const W5 = getW(P5);
-        return this.wNAF(W5, this.getPrecomputes(W5, P5, transform), n4);
+        const W6 = getW(P5);
+        return this.wNAF(W6, this.getPrecomputes(W6, P5, transform), n4);
       },
       wNAFCachedUnsafe(P5, n4, transform, prev) {
-        const W5 = getW(P5);
-        if (W5 === 1)
+        const W6 = getW(P5);
+        if (W6 === 1)
           return this.unsafeLadder(P5, n4, prev);
-        return this.wNAFUnsafe(W5, this.getPrecomputes(W5, P5, transform), n4, prev);
+        return this.wNAFUnsafe(W6, this.getPrecomputes(W6, P5, transform), n4, prev);
       },
       // We calculate precomputes for elliptic curve point multiplication
       // using windowed method. This specifies window size and
       // stores precomputed values. Usually only base point would be precomputed.
-      setWindowSize(P5, W5) {
-        validateW(W5, bits);
-        pointWindowSizes.set(P5, W5);
+      setWindowSize(P5, W6) {
+        validateW(W6, bits);
+        pointWindowSizes.set(P5, W6);
         pointPrecomputes.delete(P5);
       }
     };
@@ -8085,19 +8085,19 @@ if (cid) {
     let sum = zero;
     for (let i3 = lastBits; i3 >= 0; i3 -= windowSize) {
       buckets.fill(zero);
-      for (let j4 = 0; j4 < slength; j4++) {
-        const scalar = scalars[j4];
+      for (let j5 = 0; j5 < slength; j5++) {
+        const scalar = scalars[j5];
         const wbits2 = Number(scalar >> BigInt(i3) & MASK);
-        buckets[wbits2] = buckets[wbits2].add(points[j4]);
+        buckets[wbits2] = buckets[wbits2].add(points[j5]);
       }
       let resI = zero;
-      for (let j4 = buckets.length - 1, sumI = zero; j4 > 0; j4--) {
-        sumI = sumI.add(buckets[j4]);
+      for (let j5 = buckets.length - 1, sumI = zero; j5 > 0; j5--) {
+        sumI = sumI.add(buckets[j5]);
         resI = resI.add(sumI);
       }
       sum = sum.add(resI);
       if (i3 !== 0)
-        for (let j4 = 0; j4 < windowSize; j4++)
+        for (let j5 = 0; j5 < windowSize; j5++)
           sum = sum.double();
     }
     return sum;
@@ -8177,8 +8177,8 @@ if (cid) {
     const fromBytes4 = CURVE.fromBytes || ((bytes) => {
       const tail = bytes.subarray(1);
       const x7 = Fp2.fromBytes(tail.subarray(0, Fp2.BYTES));
-      const y6 = Fp2.fromBytes(tail.subarray(Fp2.BYTES, 2 * Fp2.BYTES));
-      return { x: x7, y: y6 };
+      const y7 = Fp2.fromBytes(tail.subarray(Fp2.BYTES, 2 * Fp2.BYTES));
+      return { x: x7, y: y7 };
     });
     function weierstrassEquation(x7) {
       const { a: a3, b: b4 } = CURVE;
@@ -8186,8 +8186,8 @@ if (cid) {
       const x32 = Fp2.mul(x22, x7);
       return Fp2.add(Fp2.add(x32, Fp2.mul(x7, a3)), b4);
     }
-    function isValidXY(x7, y6) {
-      const left = Fp2.sqr(y6);
+    function isValidXY(x7, y7) {
+      const left = Fp2.sqr(y7);
       const right = weierstrassEquation(x7);
       return Fp2.eql(left, right);
     }
@@ -8225,15 +8225,15 @@ if (cid) {
         throw new Error("ProjectivePoint expected");
     }
     const toAffineMemo = memoized((p4, iz) => {
-      const { px: x7, py: y6, pz: z4 } = p4;
-      if (Fp2.eql(z4, Fp2.ONE))
-        return { x: x7, y: y6 };
+      const { px: x7, py: y7, pz: z5 } = p4;
+      if (Fp2.eql(z5, Fp2.ONE))
+        return { x: x7, y: y7 };
       const is0 = p4.is0();
       if (iz == null)
-        iz = is0 ? Fp2.ONE : Fp2.inv(z4);
+        iz = is0 ? Fp2.ONE : Fp2.inv(z5);
       const ax = Fp2.mul(x7, iz);
-      const ay = Fp2.mul(y6, iz);
-      const zz = Fp2.mul(z4, iz);
+      const ay = Fp2.mul(y7, iz);
+      const zz = Fp2.mul(z5, iz);
       if (is0)
         return { x: Fp2.ZERO, y: Fp2.ZERO };
       if (!Fp2.eql(zz, Fp2.ONE))
@@ -8246,10 +8246,10 @@ if (cid) {
           return;
         throw new Error("bad point: ZERO");
       }
-      const { x: x7, y: y6 } = p4.toAffine();
-      if (!Fp2.isValid(x7) || !Fp2.isValid(y6))
+      const { x: x7, y: y7 } = p4.toAffine();
+      if (!Fp2.isValid(x7) || !Fp2.isValid(y7))
         throw new Error("bad point: x or y not FE");
-      if (!isValidXY(x7, y6))
+      if (!isValidXY(x7, y7))
         throw new Error("bad point: equation left != right");
       if (!p4.isTorsionFree())
         throw new Error("bad point: not in prime-order subgroup");
@@ -8271,15 +8271,15 @@ if (cid) {
       // Does not validate if the point is on-curve.
       // Use fromHex instead, or call assertValidity() later.
       static fromAffine(p4) {
-        const { x: x7, y: y6 } = p4 || {};
-        if (!p4 || !Fp2.isValid(x7) || !Fp2.isValid(y6))
+        const { x: x7, y: y7 } = p4 || {};
+        if (!p4 || !Fp2.isValid(x7) || !Fp2.isValid(y7))
           throw new Error("invalid affine point");
         if (p4 instanceof Point)
           throw new Error("projective point not allowed");
         const is0 = (i3) => Fp2.eql(i3, Fp2.ZERO);
-        if (is0(x7) && is0(y6))
+        if (is0(x7) && is0(y7))
           return Point.ZERO;
-        return new Point(x7, y6, Fp2.ONE);
+        return new Point(x7, y7, Fp2.ONE);
       }
       get x() {
         return this.toAffine().x;
@@ -8323,9 +8323,9 @@ if (cid) {
         assertValidMemo(this);
       }
       hasEvenY() {
-        const { y: y6 } = this.toAffine();
+        const { y: y7 } = this.toAffine();
         if (Fp2.isOdd)
-          return !Fp2.isOdd(y6);
+          return !Fp2.isOdd(y7);
         throw new Error("Field doesn't support isOdd");
       }
       /**
@@ -8353,7 +8353,7 @@ if (cid) {
         const { a: a3, b: b4 } = CURVE;
         const b32 = Fp2.mul(b4, _3n2);
         const { px: X1, py: Y1, pz: Z1 } = this;
-        let X3 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
+        let X32 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
         let t0 = Fp2.mul(X1, X1);
         let t1 = Fp2.mul(Y1, Y1);
         let t2 = Fp2.mul(Z1, Z1);
@@ -8361,13 +8361,13 @@ if (cid) {
         t3 = Fp2.add(t3, t3);
         Z32 = Fp2.mul(X1, Z1);
         Z32 = Fp2.add(Z32, Z32);
-        X3 = Fp2.mul(a3, Z32);
+        X32 = Fp2.mul(a3, Z32);
         Y32 = Fp2.mul(b32, t2);
-        Y32 = Fp2.add(X3, Y32);
-        X3 = Fp2.sub(t1, Y32);
+        Y32 = Fp2.add(X32, Y32);
+        X32 = Fp2.sub(t1, Y32);
         Y32 = Fp2.add(t1, Y32);
-        Y32 = Fp2.mul(X3, Y32);
-        X3 = Fp2.mul(t3, X3);
+        Y32 = Fp2.mul(X32, Y32);
+        X32 = Fp2.mul(t3, X32);
         Z32 = Fp2.mul(b32, Z32);
         t2 = Fp2.mul(a3, t2);
         t3 = Fp2.sub(t0, t2);
@@ -8381,11 +8381,11 @@ if (cid) {
         t2 = Fp2.mul(Y1, Z1);
         t2 = Fp2.add(t2, t2);
         t0 = Fp2.mul(t2, t3);
-        X3 = Fp2.sub(X3, t0);
+        X32 = Fp2.sub(X32, t0);
         Z32 = Fp2.mul(t2, t1);
         Z32 = Fp2.add(Z32, Z32);
         Z32 = Fp2.add(Z32, Z32);
-        return new Point(X3, Y32, Z32);
+        return new Point(X32, Y32, Z32);
       }
       // Renes-Costello-Batina exception-free addition formula.
       // There is 30% faster Jacobian formula, but it is not complete.
@@ -8395,7 +8395,7 @@ if (cid) {
         aprjpoint(other);
         const { px: X1, py: Y1, pz: Z1 } = this;
         const { px: X22, py: Y22, pz: Z22 } = other;
-        let X3 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
+        let X32 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
         const a3 = CURVE.a;
         const b32 = Fp2.mul(CURVE.b, _3n2);
         let t0 = Fp2.mul(X1, X22);
@@ -8412,16 +8412,16 @@ if (cid) {
         t5 = Fp2.add(t0, t2);
         t4 = Fp2.sub(t4, t5);
         t5 = Fp2.add(Y1, Z1);
-        X3 = Fp2.add(Y22, Z22);
-        t5 = Fp2.mul(t5, X3);
-        X3 = Fp2.add(t1, t2);
-        t5 = Fp2.sub(t5, X3);
+        X32 = Fp2.add(Y22, Z22);
+        t5 = Fp2.mul(t5, X32);
+        X32 = Fp2.add(t1, t2);
+        t5 = Fp2.sub(t5, X32);
         Z32 = Fp2.mul(a3, t4);
-        X3 = Fp2.mul(b32, t2);
-        Z32 = Fp2.add(X3, Z32);
-        X3 = Fp2.sub(t1, Z32);
+        X32 = Fp2.mul(b32, t2);
+        Z32 = Fp2.add(X32, Z32);
+        X32 = Fp2.sub(t1, Z32);
         Z32 = Fp2.add(t1, Z32);
-        Y32 = Fp2.mul(X3, Z32);
+        Y32 = Fp2.mul(X32, Z32);
         t1 = Fp2.add(t0, t0);
         t1 = Fp2.add(t1, t0);
         t2 = Fp2.mul(a3, t2);
@@ -8433,12 +8433,12 @@ if (cid) {
         t0 = Fp2.mul(t1, t4);
         Y32 = Fp2.add(Y32, t0);
         t0 = Fp2.mul(t5, t4);
-        X3 = Fp2.mul(t3, X3);
-        X3 = Fp2.sub(X3, t0);
+        X32 = Fp2.mul(t3, X32);
+        X32 = Fp2.sub(X32, t0);
         t0 = Fp2.mul(t3, t1);
         Z32 = Fp2.mul(t5, Z32);
         Z32 = Fp2.add(Z32, t0);
-        return new Point(X3, Y32, Z32);
+        return new Point(X32, Y32, Z32);
       }
       subtract(other) {
         return this.add(other.negate());
@@ -8520,8 +8520,8 @@ if (cid) {
        * @returns non-zero affine point
        */
       multiplyAndAddUnsafe(Q4, a3, b4) {
-        const G4 = Point.BASE;
-        const mul = (P5, a4) => a4 === _0n6 || a4 === _1n6 || !P5.equals(G4) ? P5.multiplyUnsafe(a4) : P5.multiply(a4);
+        const G5 = Point.BASE;
+        const mul = (P5, a4) => a4 === _0n6 || a4 === _1n6 || !P5.equals(G5) ? P5.multiplyUnsafe(a4) : P5.multiply(a4);
         const sum = mul(this, a3).add(mul(Q4, b4));
         return sum.is0() ? void 0 : sum;
       }
@@ -8615,22 +8615,22 @@ if (cid) {
           if (!inRange(x7, _1n6, Fp2.ORDER))
             throw new Error("Point is not on curve");
           const y22 = weierstrassEquation(x7);
-          let y6;
+          let y7;
           try {
-            y6 = Fp2.sqrt(y22);
+            y7 = Fp2.sqrt(y22);
           } catch (sqrtError) {
             const suffix = sqrtError instanceof Error ? ": " + sqrtError.message : "";
             throw new Error("Point is not on curve" + suffix);
           }
-          const isYOdd = (y6 & _1n6) === _1n6;
+          const isYOdd = (y7 & _1n6) === _1n6;
           const isHeadOdd = (head & 1) === 1;
           if (isHeadOdd !== isYOdd)
-            y6 = Fp2.neg(y6);
-          return { x: x7, y: y6 };
+            y7 = Fp2.neg(y7);
+          return { x: x7, y: y7 };
         } else if (len === uncompressedLen && head === 4) {
           const x7 = Fp2.fromBytes(tail.subarray(0, Fp2.BYTES));
-          const y6 = Fp2.fromBytes(tail.subarray(Fp2.BYTES, 2 * Fp2.BYTES));
-          return { x: x7, y: y6 };
+          const y7 = Fp2.fromBytes(tail.subarray(Fp2.BYTES, 2 * Fp2.BYTES));
+          return { x: x7, y: y7 };
         } else {
           const cl = compressedLen;
           const ul = uncompressedLen;
@@ -8686,11 +8686,11 @@ if (cid) {
         if (radj >= Fp2.ORDER)
           throw new Error("recovery id 2 or 3 invalid");
         const prefix = (rec & 1) === 0 ? "02" : "03";
-        const R3 = Point.fromHex(prefix + numToSizedHex(radj, Fp2.BYTES));
+        const R4 = Point.fromHex(prefix + numToSizedHex(radj, Fp2.BYTES));
         const ir3 = invN(radj);
         const u1 = modN(-h4 * ir3);
-        const u2 = modN(s2 * ir3);
-        const Q4 = Point.BASE.multiplyAndAddUnsafe(R3, u1, u2);
+        const u22 = modN(s2 * ir3);
+        const Q4 = Point.BASE.multiplyAndAddUnsafe(R4, u1, u22);
         if (!Q4)
           throw new Error("point at infinify");
         Q4.assertValidity();
@@ -8794,7 +8794,7 @@ if (cid) {
       return numberToBytesBE(num, nByteLength);
     }
     function prepSig(msgHash, privateKey, opts = defaultSigOpts) {
-      if (["recovered", "canonical"].some((k5) => k5 in opts))
+      if (["recovered", "canonical"].some((k6) => k6 in opts))
         throw new Error("sign() legacy options not supported");
       const { hash, randomBytes: randomBytes3 } = CURVE;
       let { lowS, prehash, extraEntropy: ent } = opts;
@@ -8814,18 +8814,18 @@ if (cid) {
       const seed = concatBytes3(...seedArgs);
       const m2 = h1int;
       function k2sig(kBytes) {
-        const k5 = bits2int(kBytes);
-        if (!isWithinCurveOrder(k5))
+        const k6 = bits2int(kBytes);
+        if (!isWithinCurveOrder(k6))
           return;
-        const ik = invN(k5);
-        const q4 = Point.BASE.multiply(k5).toAffine();
-        const r3 = modN(q4.x);
+        const ik = invN(k6);
+        const q5 = Point.BASE.multiply(k6).toAffine();
+        const r3 = modN(q5.x);
         if (r3 === _0n6)
           return;
         const s2 = modN(ik * modN(m2 + r3 * d3));
         if (s2 === _0n6)
           return;
-        let recovery = (q4.x === r3 ? 0 : 2) | Number(q4.y & _1n6);
+        let recovery = (q5.x === r3 ? 0 : 2) | Number(q5.y & _1n6);
         let normS = s2;
         if (lowS && isBiggerThanHalfOrder(s2)) {
           normS = normalizeS(s2);
@@ -8888,11 +8888,11 @@ if (cid) {
       const h4 = bits2int_modN(msgHash);
       const is = invN(s2);
       const u1 = modN(h4 * is);
-      const u2 = modN(r3 * is);
-      const R3 = Point.BASE.multiplyAndAddUnsafe(P5, u1, u2)?.toAffine();
-      if (!R3)
+      const u22 = modN(r3 * is);
+      const R4 = Point.BASE.multiplyAndAddUnsafe(P5, u1, u22)?.toAffine();
+      if (!R4)
         return false;
-      const v7 = modN(R3.x);
+      const v7 = modN(R4.x);
       return v7 === r3;
     }
     return {
@@ -8923,27 +8923,27 @@ if (cid) {
         // Basic building block is TLV (Tag-Length-Value)
         _tlv: {
           encode: (tag, data) => {
-            const { Err: E4 } = DER;
+            const { Err: E5 } = DER;
             if (tag < 0 || tag > 256)
-              throw new E4("tlv.encode: wrong tag");
+              throw new E5("tlv.encode: wrong tag");
             if (data.length & 1)
-              throw new E4("tlv.encode: unpadded data");
+              throw new E5("tlv.encode: unpadded data");
             const dataLen = data.length / 2;
             const len = numberToHexUnpadded(dataLen);
             if (len.length / 2 & 128)
-              throw new E4("tlv.encode: long form length too big");
+              throw new E5("tlv.encode: long form length too big");
             const lenLen = dataLen > 127 ? numberToHexUnpadded(len.length / 2 | 128) : "";
             const t = numberToHexUnpadded(tag);
             return t + lenLen + len + data;
           },
           // v - value, l - left bytes (unparsed)
           decode(tag, data) {
-            const { Err: E4 } = DER;
+            const { Err: E5 } = DER;
             let pos = 0;
             if (tag < 0 || tag > 256)
-              throw new E4("tlv.encode: wrong tag");
+              throw new E5("tlv.encode: wrong tag");
             if (data.length < 2 || data[pos++] !== tag)
-              throw new E4("tlv.decode: wrong tlv");
+              throw new E5("tlv.decode: wrong tlv");
             const first = data[pos++];
             const isLong = !!(first & 128);
             let length2 = 0;
@@ -8952,23 +8952,23 @@ if (cid) {
             else {
               const lenLen = first & 127;
               if (!lenLen)
-                throw new E4("tlv.decode(long): indefinite length not supported");
+                throw new E5("tlv.decode(long): indefinite length not supported");
               if (lenLen > 4)
-                throw new E4("tlv.decode(long): byte length is too big");
+                throw new E5("tlv.decode(long): byte length is too big");
               const lengthBytes = data.subarray(pos, pos + lenLen);
               if (lengthBytes.length !== lenLen)
-                throw new E4("tlv.decode: length bytes not complete");
+                throw new E5("tlv.decode: length bytes not complete");
               if (lengthBytes[0] === 0)
-                throw new E4("tlv.decode(long): zero leftmost byte");
+                throw new E5("tlv.decode(long): zero leftmost byte");
               for (const b4 of lengthBytes)
                 length2 = length2 << 8 | b4;
               pos += lenLen;
               if (length2 < 128)
-                throw new E4("tlv.decode(long): not minimal encoding");
+                throw new E5("tlv.decode(long): not minimal encoding");
             }
             const v7 = data.subarray(pos, pos + length2);
             if (v7.length !== length2)
-              throw new E4("tlv.decode: wrong value length");
+              throw new E5("tlv.decode: wrong value length");
             return { v: v7, l: data.subarray(pos + length2) };
           }
         },
@@ -8978,35 +8978,35 @@ if (cid) {
         // - if next byte doesn't have a flag, leading zero is not allowed (minimal encoding)
         _int: {
           encode(num) {
-            const { Err: E4 } = DER;
+            const { Err: E5 } = DER;
             if (num < _0n6)
-              throw new E4("integer: negative integers are not allowed");
+              throw new E5("integer: negative integers are not allowed");
             let hex = numberToHexUnpadded(num);
             if (Number.parseInt(hex[0], 16) & 8)
               hex = "00" + hex;
             if (hex.length & 1)
-              throw new E4("unexpected DER parsing assertion: unpadded hex");
+              throw new E5("unexpected DER parsing assertion: unpadded hex");
             return hex;
           },
           decode(data) {
-            const { Err: E4 } = DER;
+            const { Err: E5 } = DER;
             if (data[0] & 128)
-              throw new E4("invalid signature integer: negative");
+              throw new E5("invalid signature integer: negative");
             if (data[0] === 0 && !(data[1] & 128))
-              throw new E4("invalid signature integer: unnecessary leading zero");
+              throw new E5("invalid signature integer: unnecessary leading zero");
             return bytesToNumberBE(data);
           }
         },
         toSig(hex) {
-          const { Err: E4, _int: int, _tlv: tlv } = DER;
+          const { Err: E5, _int: int, _tlv: tlv } = DER;
           const data = ensureBytes("signature", hex);
           const { v: seqBytes, l: seqLeftBytes } = tlv.decode(48, data);
           if (seqLeftBytes.length)
-            throw new E4("invalid signature: left bytes after parsing");
+            throw new E5("invalid signature: left bytes after parsing");
           const { v: rBytes, l: rLeftBytes } = tlv.decode(2, seqBytes);
           const { v: sBytes, l: sLeftBytes } = tlv.decode(2, rLeftBytes);
           if (sLeftBytes.length)
-            throw new E4("invalid signature: left bytes after parsing");
+            throw new E5("invalid signature: left bytes after parsing");
           return { r: int.decode(rBytes), s: int.decode(sBytes) };
         },
         hexFromSig(sig) {
@@ -9046,12 +9046,12 @@ if (cid) {
   });
 
   // node_modules/ox/node_modules/@noble/curves/esm/secp256k1.js
-  function sqrtMod(y6) {
+  function sqrtMod(y7) {
     const P5 = secp256k1P;
     const _3n6 = BigInt(3), _6n = BigInt(6), _11n = BigInt(11), _22n = BigInt(22);
     const _23n = BigInt(23), _44n = BigInt(44), _88n = BigInt(88);
-    const b22 = y6 * y6 * y6 % P5;
-    const b32 = b22 * b22 * y6 % P5;
+    const b22 = y7 * y7 * y7 % P5;
+    const b32 = b22 * b22 * y7 % P5;
     const b6 = pow2(b32, _3n6, P5) * b32 % P5;
     const b9 = pow2(b6, _3n6, P5) * b32 % P5;
     const b11 = pow2(b9, _2n5, P5) * b22 % P5;
@@ -9064,7 +9064,7 @@ if (cid) {
     const t1 = pow2(b223, _23n, P5) * b222 % P5;
     const t2 = pow2(t1, _6n, P5) * b22 % P5;
     const root = pow2(t2, _2n5, P5);
-    if (!Fpk1.eql(Fpk1.sqr(root), y6))
+    if (!Fpk1.eql(Fpk1.sqr(root), y7))
       throw new Error("Cannot find square root");
     return root;
   }
@@ -9094,16 +9094,16 @@ if (cid) {
         endo: {
           // Endomorphism, see above
           beta: BigInt("0x7ae96a2b657c07106e64479eac3434e99cf0497512f58995c1396c28719501ee"),
-          splitScalar: (k5) => {
+          splitScalar: (k6) => {
             const n4 = secp256k1N;
             const a1 = BigInt("0x3086d221a7d46bcde86c90e49284eb15");
             const b1 = -_1n7 * BigInt("0xe4437ed6010e88286f547fa90abfe4c3");
             const a22 = BigInt("0x114ca50f7a8e2f3f657c1108d9d44cfd8");
             const b22 = a1;
             const POW_2_128 = BigInt("0x100000000000000000000000000000000");
-            const c1 = divNearest(b22 * k5, n4);
-            const c22 = divNearest(-b1 * k5, n4);
-            let k1 = mod(k5 - c1 * a1 - c22 * a22, n4);
+            const c1 = divNearest(b22 * k6, n4);
+            const c22 = divNearest(-b1 * k6, n4);
+            let k1 = mod(k6 - c1 * a1 - c22 * a22, n4);
             let k22 = mod(-c1 * b1 - c22 * b22, n4);
             const k1neg = k1 > POW_2_128;
             const k2neg = k22 > POW_2_128;
@@ -9112,7 +9112,7 @@ if (cid) {
             if (k2neg)
               k22 = n4 - k22;
             if (k1 > POW_2_128 || k22 > POW_2_128) {
-              throw new Error("splitScalar: Endomorphism failed, k=" + k5);
+              throw new Error("splitScalar: Endomorphism failed, k=" + k6);
             }
             return { k1neg, k1, k2neg, k2: k22 };
           }
@@ -10189,7 +10189,7 @@ if (cid) {
           }
           listeners.fn.apply(listeners.context, args);
         } else {
-          var length2 = listeners.length, j4;
+          var length2 = listeners.length, j5;
           for (i3 = 0; i3 < length2; i3++) {
             if (listeners[i3].once) this.removeListener(event, listeners[i3].fn, void 0, true);
             switch (len) {
@@ -10206,8 +10206,8 @@ if (cid) {
                 listeners[i3].fn.call(listeners[i3].context, a1, a22, a3);
                 break;
               default:
-                if (!args) for (j4 = 1, args = new Array(len - 1); j4 < len; j4++) {
-                  args[j4 - 1] = arguments[j4];
+                if (!args) for (j5 = 1, args = new Array(len - 1); j5 < len; j5++) {
+                  args[j5 - 1] = arguments[j5];
                 }
                 listeners[i3].fn.apply(listeners[i3].context, args);
             }
@@ -11433,19 +11433,19 @@ if (cid) {
           this.H = SHA256_IV2[7] | 0;
         }
         get() {
-          const { A: A4, B: B3, C: C4, D: D5, E: E4, F: F3, G: G4, H: H5 } = this;
-          return [A4, B3, C4, D5, E4, F3, G4, H5];
+          const { A: A4, B: B4, C: C4, D: D5, E: E5, F: F3, G: G5, H: H6 } = this;
+          return [A4, B4, C4, D5, E5, F3, G5, H6];
         }
         // prettier-ignore
-        set(A4, B3, C4, D5, E4, F3, G4, H5) {
+        set(A4, B4, C4, D5, E5, F3, G5, H6) {
           this.A = A4 | 0;
-          this.B = B3 | 0;
+          this.B = B4 | 0;
           this.C = C4 | 0;
           this.D = D5 | 0;
-          this.E = E4 | 0;
+          this.E = E5 | 0;
           this.F = F3 | 0;
-          this.G = G4 | 0;
-          this.H = H5 | 0;
+          this.G = G5 | 0;
+          this.H = H6 | 0;
         }
         process(view, offset) {
           for (let i3 = 0; i3 < 16; i3++, offset += 4)
@@ -11457,30 +11457,30 @@ if (cid) {
             const s1 = rotr(W22, 17) ^ rotr(W22, 19) ^ W22 >>> 10;
             SHA256_W2[i3] = s1 + SHA256_W2[i3 - 7] + s0 + SHA256_W2[i3 - 16] | 0;
           }
-          let { A: A4, B: B3, C: C4, D: D5, E: E4, F: F3, G: G4, H: H5 } = this;
+          let { A: A4, B: B4, C: C4, D: D5, E: E5, F: F3, G: G5, H: H6 } = this;
           for (let i3 = 0; i3 < 64; i3++) {
-            const sigma1 = rotr(E4, 6) ^ rotr(E4, 11) ^ rotr(E4, 25);
-            const T12 = H5 + sigma1 + Chi2(E4, F3, G4) + SHA256_K2[i3] + SHA256_W2[i3] | 0;
+            const sigma1 = rotr(E5, 6) ^ rotr(E5, 11) ^ rotr(E5, 25);
+            const T12 = H6 + sigma1 + Chi2(E5, F3, G5) + SHA256_K2[i3] + SHA256_W2[i3] | 0;
             const sigma0 = rotr(A4, 2) ^ rotr(A4, 13) ^ rotr(A4, 22);
-            const T22 = sigma0 + Maj2(A4, B3, C4) | 0;
-            H5 = G4;
-            G4 = F3;
-            F3 = E4;
-            E4 = D5 + T12 | 0;
+            const T22 = sigma0 + Maj2(A4, B4, C4) | 0;
+            H6 = G5;
+            G5 = F3;
+            F3 = E5;
+            E5 = D5 + T12 | 0;
             D5 = C4;
-            C4 = B3;
-            B3 = A4;
+            C4 = B4;
+            B4 = A4;
             A4 = T12 + T22 | 0;
           }
           A4 = A4 + this.A | 0;
-          B3 = B3 + this.B | 0;
+          B4 = B4 + this.B | 0;
           C4 = C4 + this.C | 0;
           D5 = D5 + this.D | 0;
-          E4 = E4 + this.E | 0;
+          E5 = E5 + this.E | 0;
           F3 = F3 + this.F | 0;
-          G4 = G4 + this.G | 0;
-          H5 = H5 + this.H | 0;
-          this.set(A4, B3, C4, D5, E4, F3, G4, H5);
+          G5 = G5 + this.G | 0;
+          H6 = H6 + this.H | 0;
+          this.set(A4, B4, C4, D5, E5, F3, G5, H6);
         }
         roundClean() {
           clean(SHA256_W2);
@@ -12263,25 +12263,25 @@ if (cid) {
             BBUF[28] = ~BBUF[28];
             BBUF[29] = ~BBUF[29];
           }
-          let j4 = 0;
+          let j5 = 0;
           const s2 = BSIGMA;
           for (let i3 = 0; i3 < 12; i3++) {
-            G1b(0, 4, 8, 12, msg, offset + 2 * s2[j4++]);
-            G2b(0, 4, 8, 12, msg, offset + 2 * s2[j4++]);
-            G1b(1, 5, 9, 13, msg, offset + 2 * s2[j4++]);
-            G2b(1, 5, 9, 13, msg, offset + 2 * s2[j4++]);
-            G1b(2, 6, 10, 14, msg, offset + 2 * s2[j4++]);
-            G2b(2, 6, 10, 14, msg, offset + 2 * s2[j4++]);
-            G1b(3, 7, 11, 15, msg, offset + 2 * s2[j4++]);
-            G2b(3, 7, 11, 15, msg, offset + 2 * s2[j4++]);
-            G1b(0, 5, 10, 15, msg, offset + 2 * s2[j4++]);
-            G2b(0, 5, 10, 15, msg, offset + 2 * s2[j4++]);
-            G1b(1, 6, 11, 12, msg, offset + 2 * s2[j4++]);
-            G2b(1, 6, 11, 12, msg, offset + 2 * s2[j4++]);
-            G1b(2, 7, 8, 13, msg, offset + 2 * s2[j4++]);
-            G2b(2, 7, 8, 13, msg, offset + 2 * s2[j4++]);
-            G1b(3, 4, 9, 14, msg, offset + 2 * s2[j4++]);
-            G2b(3, 4, 9, 14, msg, offset + 2 * s2[j4++]);
+            G1b(0, 4, 8, 12, msg, offset + 2 * s2[j5++]);
+            G2b(0, 4, 8, 12, msg, offset + 2 * s2[j5++]);
+            G1b(1, 5, 9, 13, msg, offset + 2 * s2[j5++]);
+            G2b(1, 5, 9, 13, msg, offset + 2 * s2[j5++]);
+            G1b(2, 6, 10, 14, msg, offset + 2 * s2[j5++]);
+            G2b(2, 6, 10, 14, msg, offset + 2 * s2[j5++]);
+            G1b(3, 7, 11, 15, msg, offset + 2 * s2[j5++]);
+            G2b(3, 7, 11, 15, msg, offset + 2 * s2[j5++]);
+            G1b(0, 5, 10, 15, msg, offset + 2 * s2[j5++]);
+            G2b(0, 5, 10, 15, msg, offset + 2 * s2[j5++]);
+            G1b(1, 6, 11, 12, msg, offset + 2 * s2[j5++]);
+            G2b(1, 6, 11, 12, msg, offset + 2 * s2[j5++]);
+            G1b(2, 7, 8, 13, msg, offset + 2 * s2[j5++]);
+            G2b(2, 7, 8, 13, msg, offset + 2 * s2[j5++]);
+            G1b(3, 4, 9, 14, msg, offset + 2 * s2[j5++]);
+            G2b(3, 4, 9, 14, msg, offset + 2 * s2[j5++]);
           }
           this.v0l ^= BBUF[0] ^ BBUF[16];
           this.v0h ^= BBUF[1] ^ BBUF[17];
@@ -13147,8 +13147,8 @@ if (cid) {
           const records = this.caches[byteLength - 1];
           FIND_CHUNK: for (const record of records) {
             const recordBytes = record.bytes;
-            for (let j4 = 0; j4 < byteLength; j4++) {
-              if (recordBytes[j4] !== bytes[inputOffset + j4]) {
+            for (let j5 = 0; j5 < byteLength; j5++) {
+              if (recordBytes[j5] !== bytes[inputOffset + j5]) {
                 continue FIND_CHUNK;
               }
             }
@@ -13932,16 +13932,16 @@ if (cid) {
         const pos32 = pos / 4;
         if (pos % 4 !== 0)
           throw new Error("arx: invalid block position");
-        for (let j4 = 0, posj; j4 < BLOCK_LEN32; j4++) {
-          posj = pos32 + j4;
-          o32[posj] = d32[posj] ^ b32[j4];
+        for (let j5 = 0, posj; j5 < BLOCK_LEN32; j5++) {
+          posj = pos32 + j5;
+          o32[posj] = d32[posj] ^ b32[j5];
         }
         pos += BLOCK_LEN;
         continue;
       }
-      for (let j4 = 0, posj; j4 < take; j4++) {
-        posj = pos + j4;
-        output[posj] = data[posj] ^ block[j4];
+      for (let j5 = 0, posj; j5 < take; j5++) {
+        posj = pos + j5;
+        output[posj] = data[posj] ^ block[j5];
       }
       pos += take;
     }
@@ -13969,23 +13969,23 @@ if (cid) {
         throw new Error(`arx: output (${output.length}) is shorter than data (${len})`);
       const toClean = [];
       let l4 = key.length;
-      let k5;
+      let k6;
       let sigma;
       if (l4 === 32) {
-        toClean.push(k5 = copyBytes(key));
+        toClean.push(k6 = copyBytes(key));
         sigma = sigma32_32;
       } else if (l4 === 16 && allowShortKeys) {
-        k5 = new Uint8Array(32);
-        k5.set(key);
-        k5.set(key, 16);
+        k6 = new Uint8Array(32);
+        k6.set(key);
+        k6.set(key, 16);
         sigma = sigma16_32;
-        toClean.push(k5);
+        toClean.push(k6);
       } else {
         throw new Error(`arx: invalid 32-byte key, got length=${l4}`);
       }
       if (!isAligned322(nonce))
         toClean.push(nonce = copyBytes(nonce));
-      const k32 = u323(k5);
+      const k32 = u323(k6);
       if (extendNonceFn) {
         if (nonce.length !== 24)
           throw new Error(`arx: extended nonce must be 24 bytes`);
@@ -14285,8 +14285,8 @@ if (cid) {
   });
 
   // node_modules/@noble/ciphers/esm/chacha.js
-  function chachaCore(s2, k5, n4, out, cnt, rounds = 20) {
-    let y00 = s2[0], y01 = s2[1], y02 = s2[2], y03 = s2[3], y04 = k5[0], y05 = k5[1], y06 = k5[2], y07 = k5[3], y08 = k5[4], y09 = k5[5], y10 = k5[6], y11 = k5[7], y12 = cnt, y13 = n4[0], y14 = n4[1], y15 = n4[2];
+  function chachaCore(s2, k6, n4, out, cnt, rounds = 20) {
+    let y00 = s2[0], y01 = s2[1], y02 = s2[2], y03 = s2[3], y04 = k6[0], y05 = k6[1], y06 = k6[2], y07 = k6[3], y08 = k6[4], y09 = k6[5], y10 = k6[6], y11 = k6[7], y12 = cnt, y13 = n4[0], y14 = n4[1], y15 = n4[2];
     let x00 = y00, x01 = y01, x02 = y02, x03 = y03, x04 = y04, x05 = y05, x06 = y06, x07 = y07, x08 = y08, x09 = y09, x10 = y10, x11 = y11, x12 = y12, x13 = y13, x14 = y14, x15 = y15;
     for (let r3 = 0; r3 < rounds; r3 += 2) {
       x00 = x00 + x04 | 0;
@@ -14372,8 +14372,8 @@ if (cid) {
     out[oi++] = y14 + x14 | 0;
     out[oi++] = y15 + x15 | 0;
   }
-  function hchacha(s2, k5, i3, o32) {
-    let x00 = s2[0], x01 = s2[1], x02 = s2[2], x03 = s2[3], x04 = k5[0], x05 = k5[1], x06 = k5[2], x07 = k5[3], x08 = k5[4], x09 = k5[5], x10 = k5[6], x11 = k5[7], x12 = i3[0], x13 = i3[1], x14 = i3[2], x15 = i3[3];
+  function hchacha(s2, k6, i3, o32) {
+    let x00 = s2[0], x01 = s2[1], x02 = s2[2], x03 = s2[3], x04 = k6[0], x05 = k6[1], x06 = k6[2], x07 = k6[3], x08 = k6[4], x09 = k6[5], x10 = k6[6], x11 = k6[7], x12 = i3[0], x13 = i3[1], x14 = i3[2], x15 = i3[3];
     for (let r3 = 0; r3 < 20; r3 += 2) {
       x00 = x00 + x04 | 0;
       x12 = rotl(x12 ^ x00, 16);
@@ -14739,20 +14739,20 @@ if (cid) {
     const u8n2 = (len) => new Uint8Array(len);
     const u8of = (byte) => Uint8Array.of(byte);
     let v7 = u8n2(hashLen);
-    let k5 = u8n2(hashLen);
+    let k6 = u8n2(hashLen);
     let i3 = 0;
     const reset = () => {
       v7.fill(1);
-      k5.fill(0);
+      k6.fill(0);
       i3 = 0;
     };
-    const h4 = (...b4) => hmacFn(k5, v7, ...b4);
+    const h4 = (...b4) => hmacFn(k6, v7, ...b4);
     const reseed = (seed = u8n2(0)) => {
-      k5 = h4(u8of(0), seed);
+      k6 = h4(u8of(0), seed);
       v7 = h4();
       if (seed.length === 0)
         return;
-      k5 = h4(u8of(1), seed);
+      k6 = h4(u8of(1), seed);
       v7 = h4();
     };
     const gen3 = () => {
@@ -14790,8 +14790,8 @@ if (cid) {
       if (current !== expectedType || val === null)
         throw new Error(`param "${fieldName}" is invalid: expected ${expectedType}, got ${current}`);
     }
-    Object.entries(fields).forEach(([k5, v7]) => checkField(k5, v7, false));
-    Object.entries(optFields).forEach(([k5, v7]) => checkField(k5, v7, true));
+    Object.entries(fields).forEach(([k6, v7]) => checkField(k6, v7, false));
+    Object.entries(optFields).forEach(([k6, v7]) => checkField(k6, v7, true));
   }
   function memoized2(fn) {
     const map = /* @__PURE__ */ new WeakMap();
@@ -14839,13 +14839,13 @@ if (cid) {
       throw new Error("invert: expected positive modulus, got " + modulo);
     let a3 = mod2(number, modulo);
     let b4 = modulo;
-    let x7 = _0n9, y6 = _1n9, u2 = _1n9, v7 = _0n9;
+    let x7 = _0n9, y7 = _1n9, u3 = _1n9, v7 = _0n9;
     while (a3 !== _0n9) {
-      const q4 = b4 / a3;
+      const q5 = b4 / a3;
       const r3 = b4 % a3;
-      const m2 = x7 - u2 * q4;
-      const n4 = y6 - v7 * q4;
-      b4 = a3, a3 = r3, x7 = u2, y6 = v7, u2 = m2, v7 = n4;
+      const m2 = x7 - u3 * q5;
+      const n4 = y7 - v7 * q5;
+      b4 = a3, a3 = r3, x7 = u3, y7 = v7, u3 = m2, v7 = n4;
     }
     const gcd2 = b4;
     if (gcd2 !== _1n9)
@@ -14898,10 +14898,10 @@ if (cid) {
     if (P5 < _3n3)
       throw new Error("sqrt is not defined for small field");
     let Q4 = P5 - _1n9;
-    let S4 = 0;
+    let S5 = 0;
     while (Q4 % _2n6 === _0n9) {
       Q4 /= _2n6;
-      S4++;
+      S5++;
     }
     let Z4 = _2n6;
     const _Fp = Field2(P5);
@@ -14909,7 +14909,7 @@ if (cid) {
       if (Z4++ > 1e3)
         throw new Error("Cannot find square root: probably non-prime P");
     }
-    if (S4 === 1)
+    if (S5 === 1)
       return sqrt3mod42;
     let cc = _Fp.pow(Z4, Q4);
     const Q1div2 = (Q4 + _1n9) / _2n6;
@@ -14918,10 +14918,10 @@ if (cid) {
         return n4;
       if (FpLegendre2(Fp2, n4) !== 1)
         throw new Error("Cannot find square root");
-      let M4 = S4;
+      let M5 = S5;
       let c4 = Fp2.mul(Fp2.ONE, cc);
       let t = Fp2.pow(n4, Q4);
-      let R3 = Fp2.pow(n4, Q1div2);
+      let R4 = Fp2.pow(n4, Q1div2);
       while (!Fp2.eql(t, Fp2.ONE)) {
         if (Fp2.is0(t))
           return Fp2.ZERO;
@@ -14930,17 +14930,17 @@ if (cid) {
         while (!Fp2.eql(t_tmp, Fp2.ONE)) {
           i3++;
           t_tmp = Fp2.sqr(t_tmp);
-          if (i3 === M4)
+          if (i3 === M5)
             throw new Error("Cannot find square root");
         }
-        const exponent = _1n9 << BigInt(M4 - i3 - 1);
+        const exponent = _1n9 << BigInt(M5 - i3 - 1);
         const b4 = Fp2.pow(c4, exponent);
-        M4 = i3;
+        M5 = i3;
         c4 = Fp2.sqr(b4);
         t = Fp2.mul(t, c4);
-        R3 = Fp2.mul(R3, b4);
+        R4 = Fp2.mul(R4, b4);
       }
-      return R3;
+      return R4;
     };
   }
   function FpSqrt2(P5) {
@@ -15180,17 +15180,17 @@ if (cid) {
     const invertedZs = FpInvertBatch2(c4.Fp, points.map((p4) => p4.Z));
     return points.map((p4, i3) => c4.fromAffine(p4.toAffine(invertedZs[i3])));
   }
-  function validateW2(W5, bits) {
-    if (!Number.isSafeInteger(W5) || W5 <= 0 || W5 > bits)
-      throw new Error("invalid window size, expected [1.." + bits + "], got W=" + W5);
+  function validateW2(W6, bits) {
+    if (!Number.isSafeInteger(W6) || W6 <= 0 || W6 > bits)
+      throw new Error("invalid window size, expected [1.." + bits + "], got W=" + W6);
   }
-  function calcWOpts2(W5, scalarBits) {
-    validateW2(W5, scalarBits);
-    const windows = Math.ceil(scalarBits / W5) + 1;
-    const windowSize = 2 ** (W5 - 1);
-    const maxNumber = 2 ** W5;
-    const mask = bitMask2(W5);
-    const shiftBy = BigInt(W5);
+  function calcWOpts2(W6, scalarBits) {
+    validateW2(W6, scalarBits);
+    const windows = Math.ceil(scalarBits / W6) + 1;
+    const windowSize = 2 ** (W6 - 1);
+    const maxNumber = 2 ** W6;
+    const mask = bitMask2(W6);
+    const shiftBy = BigInt(W6);
     return { windows, windowSize, mask, maxNumber, shiftBy };
   }
   function calcOffsets2(n4, window2, wOpts) {
@@ -15269,19 +15269,19 @@ if (cid) {
     let sum = zero;
     for (let i3 = lastBits; i3 >= 0; i3 -= windowSize) {
       buckets.fill(zero);
-      for (let j4 = 0; j4 < slength; j4++) {
-        const scalar = scalars[j4];
+      for (let j5 = 0; j5 < slength; j5++) {
+        const scalar = scalars[j5];
         const wbits2 = Number(scalar >> BigInt(i3) & MASK);
-        buckets[wbits2] = buckets[wbits2].add(points[j4]);
+        buckets[wbits2] = buckets[wbits2].add(points[j5]);
       }
       let resI = zero;
-      for (let j4 = buckets.length - 1, sumI = zero; j4 > 0; j4--) {
-        sumI = sumI.add(buckets[j4]);
+      for (let j5 = buckets.length - 1, sumI = zero; j5 > 0; j5--) {
+        sumI = sumI.add(buckets[j5]);
         resI = resI.add(sumI);
       }
       sum = sum.add(resI);
       if (i3 !== 0)
-        for (let j4 = 0; j4 < windowSize; j4++)
+        for (let j5 = 0; j5 < windowSize; j5++)
           sum = sum.double();
     }
     return sum;
@@ -15357,8 +15357,8 @@ if (cid) {
          * @param W window size
          * @returns precomputed point tables flattened to a single array
          */
-        precomputeWindow(point, W5) {
-          const { windows, windowSize } = calcWOpts2(W5, this.bits);
+        precomputeWindow(point, W6) {
+          const { windows, windowSize } = calcWOpts2(W6, this.bits);
           const points = [];
           let p4 = point;
           let base3 = p4;
@@ -15379,12 +15379,12 @@ if (cid) {
          * https://github.com/paulmillr/noble-secp256k1/blob/47cb1669b6e506ad66b35fe7d76132ae97465da2/index.ts#L502-L541
          * @returns real and fake (for const-time) points
          */
-        wNAF(W5, precomputes, n4) {
+        wNAF(W6, precomputes, n4) {
           if (!this.Fn.isValid(n4))
             throw new Error("invalid scalar");
           let p4 = this.ZERO;
           let f2 = this.BASE;
-          const wo3 = calcWOpts2(W5, this.bits);
+          const wo3 = calcWOpts2(W6, this.bits);
           for (let window2 = 0; window2 < wo3.windows; window2++) {
             const { nextN, offset, isZero, isNeg, isNegF, offsetF } = calcOffsets2(n4, window2, wo3);
             n4 = nextN;
@@ -15402,8 +15402,8 @@ if (cid) {
          * @param acc accumulator point to add result of multiplication
          * @returns point
          */
-        wNAFUnsafe(W5, precomputes, n4, acc = this.ZERO) {
-          const wo3 = calcWOpts2(W5, this.bits);
+        wNAFUnsafe(W6, precomputes, n4, acc = this.ZERO) {
+          const wo3 = calcWOpts2(W6, this.bits);
           for (let window2 = 0; window2 < wo3.windows; window2++) {
             if (n4 === _0n10)
               break;
@@ -15419,11 +15419,11 @@ if (cid) {
           assert0(n4);
           return acc;
         }
-        getPrecomputes(W5, point, transform) {
+        getPrecomputes(W6, point, transform) {
           let comp = pointPrecomputes2.get(point);
           if (!comp) {
-            comp = this.precomputeWindow(point, W5);
-            if (W5 !== 1) {
+            comp = this.precomputeWindow(point, W6);
+            if (W6 !== 1) {
               if (typeof transform === "function")
                 comp = transform(comp);
               pointPrecomputes2.set(point, comp);
@@ -15432,21 +15432,21 @@ if (cid) {
           return comp;
         }
         cached(point, scalar, transform) {
-          const W5 = getW2(point);
-          return this.wNAF(W5, this.getPrecomputes(W5, point, transform), scalar);
+          const W6 = getW2(point);
+          return this.wNAF(W6, this.getPrecomputes(W6, point, transform), scalar);
         }
         unsafe(point, scalar, transform, prev) {
-          const W5 = getW2(point);
-          if (W5 === 1)
+          const W6 = getW2(point);
+          if (W6 === 1)
             return this._unsafeLadder(point, scalar, prev);
-          return this.wNAFUnsafe(W5, this.getPrecomputes(W5, point, transform), scalar, prev);
+          return this.wNAFUnsafe(W6, this.getPrecomputes(W6, point, transform), scalar, prev);
         }
         // We calculate precomputes for elliptic curve point multiplication
         // using windowed method. This specifies window size and
         // stores precomputed values. Usually only base point would be precomputed.
-        createCache(P5, W5) {
-          validateW2(W5, this.bits);
-          pointWindowSizes2.set(P5, W5);
+        createCache(P5, W6) {
+          validateW2(W6, this.bits);
+          pointWindowSizes2.set(P5, W6);
           pointPrecomputes2.delete(P5);
         }
         hasCache(elm) {
@@ -15457,9 +15457,9 @@ if (cid) {
   });
 
   // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/edwards.js
-  function isEdValidXY(Fp2, CURVE, x7, y6) {
+  function isEdValidXY(Fp2, CURVE, x7, y7) {
     const x22 = Fp2.sqr(x7);
-    const y22 = Fp2.sqr(y6);
+    const y22 = Fp2.sqr(y7);
     const left = Fp2.add(Fp2.mul(CURVE.a, x22), y22);
     const right = Fp2.add(Fp2.ONE, Fp2.mul(CURVE.d, Fp2.mul(x22, y22)));
     return Fp2.eql(left, right);
@@ -15472,9 +15472,9 @@ if (cid) {
     _validateObject(extraOpts, {}, { uvRatio: "function" });
     const MASK = _2n7 << BigInt(Fn4.BYTES * 8) - _1n11;
     const modP = (n4) => Fp2.create(n4);
-    const uvRatio2 = extraOpts.uvRatio || ((u2, v7) => {
+    const uvRatio2 = extraOpts.uvRatio || ((u3, v7) => {
       try {
-        return { isValid: true, value: Fp2.sqrt(Fp2.div(u2, v7)) };
+        return { isValid: true, value: Fp2.sqrt(Fp2.div(u3, v7)) };
       } catch (e2) {
         return { isValid: false, value: _0n11 };
       }
@@ -15491,25 +15491,25 @@ if (cid) {
         throw new Error("ExtendedPoint expected");
     }
     const toAffineMemo = memoized2((p4, iz) => {
-      const { X: X3, Y: Y4, Z: Z4 } = p4;
+      const { X: X4, Y: Y4, Z: Z4 } = p4;
       const is0 = p4.is0();
       if (iz == null)
         iz = is0 ? _8n3 : Fp2.inv(Z4);
-      const x7 = modP(X3 * iz);
-      const y6 = modP(Y4 * iz);
+      const x7 = modP(X4 * iz);
+      const y7 = modP(Y4 * iz);
       const zz = Fp2.mul(Z4, iz);
       if (is0)
         return { x: _0n11, y: _1n11 };
       if (zz !== _1n11)
         throw new Error("invZ was invalid");
-      return { x: x7, y: y6 };
+      return { x: x7, y: y7 };
     });
     const assertValidMemo = memoized2((p4) => {
       const { a: a3, d: d3 } = CURVE;
       if (p4.is0())
         throw new Error("bad point: ZERO");
-      const { X: X3, Y: Y4, Z: Z4, T: T5 } = p4;
-      const X22 = modP(X3 * X3);
+      const { X: X4, Y: Y4, Z: Z4, T: T5 } = p4;
+      const X22 = modP(X4 * X4);
       const Y22 = modP(Y4 * Y4);
       const Z22 = modP(Z4 * Z4);
       const Z42 = modP(Z22 * Z22);
@@ -15518,15 +15518,15 @@ if (cid) {
       const right = modP(Z42 + modP(d3 * modP(X22 * Y22)));
       if (left !== right)
         throw new Error("bad point: equation left != right (1)");
-      const XY = modP(X3 * Y4);
+      const XY = modP(X4 * Y4);
       const ZT = modP(Z4 * T5);
       if (XY !== ZT)
         throw new Error("bad point: equation left != right (2)");
       return true;
     });
     class Point {
-      constructor(X3, Y4, Z4, T5) {
-        this.X = acoord("x", X3);
+      constructor(X4, Y4, Z4, T5) {
+        this.X = acoord("x", X4);
         this.Y = acoord("y", Y4);
         this.Z = acoord("z", Z4, true);
         this.T = acoord("t", T5);
@@ -15538,10 +15538,10 @@ if (cid) {
       static fromAffine(p4) {
         if (p4 instanceof Point)
           throw new Error("extended point not allowed");
-        const { x: x7, y: y6 } = p4 || {};
+        const { x: x7, y: y7 } = p4 || {};
         acoord("x", x7);
-        acoord("y", y6);
-        return new Point(x7, y6, _1n11, modP(x7 * y6));
+        acoord("y", y7);
+        return new Point(x7, y7, _1n11, modP(x7 * y7));
       }
       // Uses algo from RFC8032 5.1.3.
       static fromBytes(bytes, zip215 = false) {
@@ -15552,13 +15552,13 @@ if (cid) {
         const normed = copyBytes2(bytes);
         const lastByte = bytes[len - 1];
         normed[len - 1] = lastByte & ~128;
-        const y6 = bytesToNumberLE2(normed);
+        const y7 = bytesToNumberLE2(normed);
         const max = zip215 ? MASK : Fp2.ORDER;
-        aInRange2("point.y", y6, _0n11, max);
-        const y22 = modP(y6 * y6);
-        const u2 = modP(y22 - _1n11);
+        aInRange2("point.y", y7, _0n11, max);
+        const y22 = modP(y7 * y7);
+        const u3 = modP(y22 - _1n11);
         const v7 = modP(d3 * y22 - a3);
-        let { isValid, value: x7 } = uvRatio2(u2, v7);
+        let { isValid, value: x7 } = uvRatio2(u3, v7);
         if (!isValid)
           throw new Error("bad point: invalid y coordinate");
         const isXOdd = (x7 & _1n11) === _1n11;
@@ -15567,7 +15567,7 @@ if (cid) {
           throw new Error("bad point: x=0 and x_0=1");
         if (isLastByteOdd !== isXOdd)
           x7 = modP(-x7);
-        return Point.fromAffine({ x: x7, y: y6 });
+        return Point.fromAffine({ x: x7, y: y7 });
       }
       static fromHex(bytes, zip215 = false) {
         return Point.fromBytes(ensureBytes2("point", bytes), zip215);
@@ -15612,19 +15612,19 @@ if (cid) {
         const { a: a3 } = CURVE;
         const { X: X1, Y: Y1, Z: Z1 } = this;
         const A4 = modP(X1 * X1);
-        const B3 = modP(Y1 * Y1);
+        const B4 = modP(Y1 * Y1);
         const C4 = modP(_2n7 * modP(Z1 * Z1));
         const D5 = modP(a3 * A4);
         const x1y1 = X1 + Y1;
-        const E4 = modP(modP(x1y1 * x1y1) - A4 - B3);
-        const G4 = D5 + B3;
-        const F3 = G4 - C4;
-        const H5 = D5 - B3;
-        const X3 = modP(E4 * F3);
-        const Y32 = modP(G4 * H5);
-        const T32 = modP(E4 * H5);
-        const Z32 = modP(F3 * G4);
-        return new Point(X3, Y32, Z32, T32);
+        const E5 = modP(modP(x1y1 * x1y1) - A4 - B4);
+        const G5 = D5 + B4;
+        const F3 = G5 - C4;
+        const H6 = D5 - B4;
+        const X32 = modP(E5 * F3);
+        const Y32 = modP(G5 * H6);
+        const T32 = modP(E5 * H6);
+        const Z32 = modP(F3 * G5);
+        return new Point(X32, Y32, Z32, T32);
       }
       // Fast algo for adding 2 Extended Points.
       // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended.html#addition-add-2008-hwcd
@@ -15635,18 +15635,18 @@ if (cid) {
         const { X: X1, Y: Y1, Z: Z1, T: T12 } = this;
         const { X: X22, Y: Y22, Z: Z22, T: T22 } = other;
         const A4 = modP(X1 * X22);
-        const B3 = modP(Y1 * Y22);
+        const B4 = modP(Y1 * Y22);
         const C4 = modP(T12 * d3 * T22);
         const D5 = modP(Z1 * Z22);
-        const E4 = modP((X1 + Y1) * (X22 + Y22) - A4 - B3);
+        const E5 = modP((X1 + Y1) * (X22 + Y22) - A4 - B4);
         const F3 = D5 - C4;
-        const G4 = D5 + C4;
-        const H5 = modP(B3 - a3 * A4);
-        const X3 = modP(E4 * F3);
-        const Y32 = modP(G4 * H5);
-        const T32 = modP(E4 * H5);
-        const Z32 = modP(F3 * G4);
-        return new Point(X3, Y32, Z32, T32);
+        const G5 = D5 + C4;
+        const H6 = modP(B4 - a3 * A4);
+        const X32 = modP(E5 * F3);
+        const Y32 = modP(G5 * H6);
+        const T32 = modP(E5 * H6);
+        const Z32 = modP(F3 * G5);
+        return new Point(X32, Y32, Z32, T32);
       }
       subtract(other) {
         return this.add(other.negate());
@@ -15695,8 +15695,8 @@ if (cid) {
         return this.multiplyUnsafe(cofactor);
       }
       toBytes() {
-        const { x: x7, y: y6 } = this.toAffine();
-        const bytes = Fp2.toBytes(y6);
+        const { x: x7, y: y7 } = this.toAffine();
+        const bytes = Fp2.toBytes(y7);
         bytes[bytes.length - 1] |= x7 & _1n11 ? 128 : 0;
         return bytes;
       }
@@ -15791,12 +15791,12 @@ if (cid) {
         msg = prehash(msg);
       const { prefix, scalar, pointBytes } = getExtendedPublicKey(secretKey);
       const r3 = hashDomainToScalar(options.context, prefix, msg);
-      const R3 = BASE.multiply(r3).toBytes();
-      const k5 = hashDomainToScalar(options.context, R3, pointBytes, msg);
-      const s2 = Fn4.create(r3 + k5 * scalar);
+      const R4 = BASE.multiply(r3).toBytes();
+      const k6 = hashDomainToScalar(options.context, R4, pointBytes, msg);
+      const s2 = Fn4.create(r3 + k6 * scalar);
       if (!Fn4.isValid(s2))
         throw new Error("sign failed: invalid s");
-      const rs = concatBytes(R3, Fn4.toBytes(s2));
+      const rs = concatBytes(R4, Fn4.toBytes(s2));
       return _abytes2(rs, lengths.signature, "result");
     }
     const verifyOpts = { zip215: true };
@@ -15813,18 +15813,18 @@ if (cid) {
       const mid = len / 2;
       const r3 = sig.subarray(0, mid);
       const s2 = bytesToNumberLE2(sig.subarray(mid, len));
-      let A4, R3, SB;
+      let A4, R4, SB;
       try {
         A4 = Point.fromBytes(publicKey, zip215);
-        R3 = Point.fromBytes(r3, zip215);
+        R4 = Point.fromBytes(r3, zip215);
         SB = BASE.multiplyUnsafe(s2);
       } catch (error) {
         return false;
       }
       if (!zip215 && A4.isSmallOrder())
         return false;
-      const k5 = hashDomainToScalar(context2, R3.toBytes(), A4.toBytes(), msg);
-      const RkA = R3.add(A4.multiplyUnsafe(k5));
+      const k6 = hashDomainToScalar(context2, R4.toBytes(), A4.toBytes(), msg);
+      const RkA = R4.add(A4.multiplyUnsafe(k6));
       return RkA.subtract(SB).clearCofactor().is0();
     }
     const _size = Fp2.BYTES;
@@ -15866,13 +15866,13 @@ if (cid) {
        *   - `(x, y) = (sqrt(156324)*u/v, (1+u)/(1-u))`
        */
       toMontgomery(publicKey) {
-        const { y: y6 } = Point.fromBytes(publicKey);
+        const { y: y7 } = Point.fromBytes(publicKey);
         const size3 = lengths.publicKey;
         const is25519 = size3 === 32;
         if (!is25519 && size3 !== 57)
           throw new Error("only defined for 25519 and 448");
-        const u2 = is25519 ? Fp2.div(_1n11 + y6, _1n11 - y6) : Fp2.div(y6 - _1n11, y6 + _1n11);
-        return Fp2.toBytes(u2);
+        const u3 = is25519 ? Fp2.div(_1n11 + y7, _1n11 - y7) : Fp2.div(y7 - _1n11, y7 + _1n11);
+        return Fp2.toBytes(u3);
       },
       toMontgomerySecret(secretKey) {
         const size3 = lengths.secretKey;
@@ -16039,11 +16039,11 @@ if (cid) {
     const maxScalar = minScalar + maxAdded + _1n12;
     const modP = (n4) => mod2(n4, P5);
     const GuBytes = encodeU(Gu);
-    function encodeU(u2) {
-      return numberToBytesLE2(modP(u2), fieldLen);
+    function encodeU(u3) {
+      return numberToBytesLE2(modP(u3), fieldLen);
     }
-    function decodeU(u2) {
-      const _u = ensureBytes2("u coordinate", u2, fieldLen);
+    function decodeU(u3) {
+      const _u = ensureBytes2("u coordinate", u3, fieldLen);
       if (is25519)
         _u[31] &= 127;
       return modP(bytesToNumberLE2(_u));
@@ -16051,8 +16051,8 @@ if (cid) {
     function decodeScalar(scalar) {
       return bytesToNumberLE2(adjustScalarBytes2(ensureBytes2("scalar", scalar, fieldLen)));
     }
-    function scalarMult(scalar, u2) {
-      const pu = montgomeryLadder(decodeU(u2), decodeScalar(scalar));
+    function scalarMult(scalar, u3) {
+      const pu = montgomeryLadder(decodeU(u3), decodeScalar(scalar));
       if (pu === _0n12)
         throw new Error("invalid private or public key received");
       return encodeU(pu);
@@ -16066,37 +16066,37 @@ if (cid) {
       x_3 = modP(x_3 + dummy);
       return { x_2, x_3 };
     }
-    function montgomeryLadder(u2, scalar) {
-      aInRange2("u", u2, _0n12, P5);
+    function montgomeryLadder(u3, scalar) {
+      aInRange2("u", u3, _0n12, P5);
       aInRange2("scalar", scalar, minScalar, maxScalar);
-      const k5 = scalar;
-      const x_1 = u2;
+      const k6 = scalar;
+      const x_1 = u3;
       let x_2 = _1n12;
       let z_2 = _0n12;
-      let x_3 = u2;
+      let x_3 = u3;
       let z_3 = _1n12;
       let swap = _0n12;
       for (let t = BigInt(montgomeryBits - 1); t >= _0n12; t--) {
-        const k_t = k5 >> t & _1n12;
+        const k_t = k6 >> t & _1n12;
         swap ^= k_t;
         ({ x_2, x_3 } = cswap(swap, x_2, x_3));
         ({ x_2: z_2, x_3: z_3 } = cswap(swap, z_2, z_3));
         swap = k_t;
         const A4 = x_2 + z_2;
         const AA = modP(A4 * A4);
-        const B3 = x_2 - z_2;
-        const BB = modP(B3 * B3);
-        const E4 = AA - BB;
+        const B4 = x_2 - z_2;
+        const BB = modP(B4 * B4);
+        const E5 = AA - BB;
         const C4 = x_3 + z_3;
         const D5 = x_3 - z_3;
         const DA = modP(D5 * A4);
-        const CB = modP(C4 * B3);
+        const CB = modP(C4 * B4);
         const dacb = DA + CB;
         const da_cb = DA - CB;
         x_3 = modP(dacb * dacb);
         z_3 = modP(x_1 * modP(da_cb * da_cb));
         x_2 = modP(AA * BB);
-        z_2 = modP(E4 * (AA + modP(a24 * E4)));
+        z_2 = modP(E5 * (AA + modP(a24 * E5)));
       }
       ({ x_2, x_3 } = cswap(swap, x_2, x_3));
       ({ x_2: z_2, x_3: z_3 } = cswap(swap, z_2, z_3));
@@ -16166,18 +16166,18 @@ if (cid) {
     bytes[31] |= 64;
     return bytes;
   }
-  function uvRatio(u2, v7) {
+  function uvRatio(u3, v7) {
     const P5 = ed25519_CURVE_p;
     const v32 = mod2(v7 * v7 * v7, P5);
     const v72 = mod2(v32 * v32 * v7, P5);
-    const pow = ed25519_pow_2_252_3(u2 * v72).pow_p_5_8;
-    let x7 = mod2(u2 * v32 * pow, P5);
+    const pow = ed25519_pow_2_252_3(u3 * v72).pow_p_5_8;
+    let x7 = mod2(u3 * v32 * pow, P5);
     const vx2 = mod2(v7 * x7 * x7, P5);
     const root1 = x7;
     const root2 = mod2(x7 * ED25519_SQRT_M1, P5);
-    const useRoot1 = vx2 === u2;
-    const useRoot2 = vx2 === mod2(-u2, P5);
-    const noRoot = vx2 === mod2(-u2 * ED25519_SQRT_M1, P5);
+    const useRoot1 = vx2 === u3;
+    const useRoot2 = vx2 === mod2(-u3, P5);
+    const noRoot = vx2 === mod2(-u3 * ED25519_SQRT_M1, P5);
     if (useRoot1)
       x7 = root1;
     if (useRoot2 || noRoot)
@@ -16306,21 +16306,21 @@ if (cid) {
             throw new Error("invalid ristretto255 encoding 1");
           const s22 = mod3(s2 * s2);
           const u1 = mod3(_1n13 + a3 * s22);
-          const u2 = mod3(_1n13 - a3 * s22);
+          const u22 = mod3(_1n13 - a3 * s22);
           const u1_2 = mod3(u1 * u1);
-          const u2_2 = mod3(u2 * u2);
+          const u2_2 = mod3(u22 * u22);
           const v7 = mod3(a3 * d3 * u1_2 - u2_2);
           const { isValid, value: I2 } = invertSqrt(mod3(v7 * u2_2));
-          const Dx = mod3(I2 * u2);
+          const Dx = mod3(I2 * u22);
           const Dy = mod3(I2 * Dx * v7);
           let x7 = mod3((s2 + s2) * Dx);
           if (isNegativeLE(x7, P5))
             x7 = mod3(-x7);
-          const y6 = mod3(u1 * Dy);
-          const t = mod3(x7 * y6);
-          if (!isValid || isNegativeLE(t, P5) || y6 === _0n13)
+          const y7 = mod3(u1 * Dy);
+          const t = mod3(x7 * y7);
+          if (!isValid || isNegativeLE(t, P5) || y7 === _0n13)
             throw new Error("invalid ristretto255 encoding 2");
-          return new __RistrettoPoint(new ed25519.Point(x7, y6, _1n13, t));
+          return new __RistrettoPoint(new ed25519.Point(x7, y7, _1n13, t));
         }
         /**
          * Converts ristretto-encoded string to ristretto point.
@@ -16338,27 +16338,27 @@ if (cid) {
          * Described in [RFC9496](https://www.rfc-editor.org/rfc/rfc9496#name-encode).
          */
         toBytes() {
-          let { X: X3, Y: Y4, Z: Z4, T: T5 } = this.ep;
+          let { X: X4, Y: Y4, Z: Z4, T: T5 } = this.ep;
           const P5 = ed25519_CURVE_p;
           const mod3 = (n4) => Fp.create(n4);
           const u1 = mod3(mod3(Z4 + Y4) * mod3(Z4 - Y4));
-          const u2 = mod3(X3 * Y4);
-          const u2sq = mod3(u2 * u2);
+          const u22 = mod3(X4 * Y4);
+          const u2sq = mod3(u22 * u22);
           const { value: invsqrt } = invertSqrt(mod3(u1 * u2sq));
           const D1 = mod3(invsqrt * u1);
-          const D22 = mod3(invsqrt * u2);
+          const D22 = mod3(invsqrt * u22);
           const zInv = mod3(D1 * D22 * T5);
           let D5;
           if (isNegativeLE(T5 * zInv, P5)) {
             let _x = mod3(Y4 * SQRT_M1);
-            let _y = mod3(X3 * SQRT_M1);
-            X3 = _x;
+            let _y = mod3(X4 * SQRT_M1);
+            X4 = _x;
             Y4 = _y;
             D5 = mod3(D1 * INVSQRT_A_MINUS_D);
           } else {
             D5 = D22;
           }
-          if (isNegativeLE(X3 * zInv, P5))
+          if (isNegativeLE(X4 * zInv, P5))
             Y4 = mod3(-Y4);
           let s2 = mod3((Z4 - Y4) * D5);
           if (isNegativeLE(s2, P5))
@@ -16390,11 +16390,11 @@ if (cid) {
   });
 
   // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/weierstrass.js
-  function _splitEndoScalar(k5, basis, n4) {
+  function _splitEndoScalar(k6, basis, n4) {
     const [[a1, b1], [a22, b22]] = basis;
-    const c1 = divNearest2(b22 * k5, n4);
-    const c22 = divNearest2(-b1 * k5, n4);
-    let k1 = k5 - c1 * a1 - c22 * a22;
+    const c1 = divNearest2(b22 * k6, n4);
+    const c22 = divNearest2(-b1 * k6, n4);
+    let k1 = k6 - c1 * a1 - c22 * a22;
     let k22 = -c1 * b1 - c22 * b22;
     const k1neg = k1 < _0n14;
     const k2neg = k22 < _0n14;
@@ -16404,7 +16404,7 @@ if (cid) {
       k22 = -k22;
     const MAX_NUM = bitMask2(Math.ceil(bitLen2(n4) / 2)) + _1n14;
     if (k1 < _0n14 || k1 >= MAX_NUM || k22 < _0n14 || k22 >= MAX_NUM) {
-      throw new Error("splitScalar (endomorphism): failed, k=" + k5);
+      throw new Error("splitScalar (endomorphism): failed, k=" + k6);
     }
     return { k1neg, k1, k2neg, k2: k22 };
   }
@@ -16467,15 +16467,15 @@ if (cid) {
         throw new Error("compression is not supported: Field does not have .isOdd()");
     }
     function pointToBytes(_c, point, isCompressed) {
-      const { x: x7, y: y6 } = point.toAffine();
+      const { x: x7, y: y7 } = point.toAffine();
       const bx = Fp2.toBytes(x7);
       _abool2(isCompressed, "isCompressed");
       if (isCompressed) {
         assertCompressionIsSupported();
-        const hasEvenY = !Fp2.isOdd(y6);
+        const hasEvenY = !Fp2.isOdd(y7);
         return concatBytes(pprefix(hasEvenY), bx);
       } else {
-        return concatBytes(Uint8Array.of(4), bx, Fp2.toBytes(y6));
+        return concatBytes(Uint8Array.of(4), bx, Fp2.toBytes(y7));
       }
     }
     function pointFromBytes(bytes) {
@@ -16489,26 +16489,26 @@ if (cid) {
         if (!Fp2.isValid(x7))
           throw new Error("bad point: is not on curve, wrong x");
         const y22 = weierstrassEquation(x7);
-        let y6;
+        let y7;
         try {
-          y6 = Fp2.sqrt(y22);
+          y7 = Fp2.sqrt(y22);
         } catch (sqrtError) {
           const err = sqrtError instanceof Error ? ": " + sqrtError.message : "";
           throw new Error("bad point: is not on curve, sqrt error" + err);
         }
         assertCompressionIsSupported();
-        const isYOdd = Fp2.isOdd(y6);
+        const isYOdd = Fp2.isOdd(y7);
         const isHeadOdd = (head & 1) === 1;
         if (isHeadOdd !== isYOdd)
-          y6 = Fp2.neg(y6);
-        return { x: x7, y: y6 };
+          y7 = Fp2.neg(y7);
+        return { x: x7, y: y7 };
       } else if (length2 === uncomp && head === 4) {
-        const L = Fp2.BYTES;
-        const x7 = Fp2.fromBytes(tail.subarray(0, L));
-        const y6 = Fp2.fromBytes(tail.subarray(L, L * 2));
-        if (!isValidXY(x7, y6))
+        const L2 = Fp2.BYTES;
+        const x7 = Fp2.fromBytes(tail.subarray(0, L2));
+        const y7 = Fp2.fromBytes(tail.subarray(L2, L2 * 2));
+        if (!isValidXY(x7, y7))
           throw new Error("bad point: is not on curve");
-        return { x: x7, y: y6 };
+        return { x: x7, y: y7 };
       } else {
         throw new Error(`bad point: got length ${length2}, expected compressed=${comp} or uncompressed=${uncomp}`);
       }
@@ -16520,8 +16520,8 @@ if (cid) {
       const x32 = Fp2.mul(x22, x7);
       return Fp2.add(Fp2.add(x32, Fp2.mul(x7, CURVE.a)), CURVE.b);
     }
-    function isValidXY(x7, y6) {
-      const left = Fp2.sqr(y6);
+    function isValidXY(x7, y7) {
+      const left = Fp2.sqr(y7);
       const right = weierstrassEquation(x7);
       return Fp2.eql(left, right);
     }
@@ -16540,26 +16540,26 @@ if (cid) {
       if (!(other instanceof Point))
         throw new Error("ProjectivePoint expected");
     }
-    function splitEndoScalarN(k5) {
+    function splitEndoScalarN(k6) {
       if (!endo || !endo.basises)
         throw new Error("no endo");
-      return _splitEndoScalar(k5, endo.basises, Fn4.ORDER);
+      return _splitEndoScalar(k6, endo.basises, Fn4.ORDER);
     }
     const toAffineMemo = memoized2((p4, iz) => {
-      const { X: X3, Y: Y4, Z: Z4 } = p4;
+      const { X: X4, Y: Y4, Z: Z4 } = p4;
       if (Fp2.eql(Z4, Fp2.ONE))
-        return { x: X3, y: Y4 };
+        return { x: X4, y: Y4 };
       const is0 = p4.is0();
       if (iz == null)
         iz = is0 ? Fp2.ONE : Fp2.inv(Z4);
-      const x7 = Fp2.mul(X3, iz);
-      const y6 = Fp2.mul(Y4, iz);
+      const x7 = Fp2.mul(X4, iz);
+      const y7 = Fp2.mul(Y4, iz);
       const zz = Fp2.mul(Z4, iz);
       if (is0)
         return { x: Fp2.ZERO, y: Fp2.ZERO };
       if (!Fp2.eql(zz, Fp2.ONE))
         throw new Error("invZ was invalid");
-      return { x: x7, y: y6 };
+      return { x: x7, y: y7 };
     });
     const assertValidMemo = memoized2((p4) => {
       if (p4.is0()) {
@@ -16567,10 +16567,10 @@ if (cid) {
           return;
         throw new Error("bad point: ZERO");
       }
-      const { x: x7, y: y6 } = p4.toAffine();
-      if (!Fp2.isValid(x7) || !Fp2.isValid(y6))
+      const { x: x7, y: y7 } = p4.toAffine();
+      if (!Fp2.isValid(x7) || !Fp2.isValid(y7))
         throw new Error("bad point: x or y not field elements");
-      if (!isValidXY(x7, y6))
+      if (!isValidXY(x7, y7))
         throw new Error("bad point: equation left != right");
       if (!p4.isTorsionFree())
         throw new Error("bad point: not in prime-order subgroup");
@@ -16584,8 +16584,8 @@ if (cid) {
     }
     class Point {
       /** Does NOT validate if the point is valid. Use `.assertValidity()`. */
-      constructor(X3, Y4, Z4) {
-        this.X = acoord("x", X3);
+      constructor(X4, Y4, Z4) {
+        this.X = acoord("x", X4);
         this.Y = acoord("y", Y4, true);
         this.Z = acoord("z", Z4);
         Object.freeze(this);
@@ -16595,14 +16595,14 @@ if (cid) {
       }
       /** Does NOT validate if the point is valid. Use `.assertValidity()`. */
       static fromAffine(p4) {
-        const { x: x7, y: y6 } = p4 || {};
-        if (!p4 || !Fp2.isValid(x7) || !Fp2.isValid(y6))
+        const { x: x7, y: y7 } = p4 || {};
+        if (!p4 || !Fp2.isValid(x7) || !Fp2.isValid(y7))
           throw new Error("invalid affine point");
         if (p4 instanceof Point)
           throw new Error("projective point not allowed");
-        if (Fp2.is0(x7) && Fp2.is0(y6))
+        if (Fp2.is0(x7) && Fp2.is0(y7))
           return Point.ZERO;
-        return new Point(x7, y6, Fp2.ONE);
+        return new Point(x7, y7, Fp2.ONE);
       }
       static fromBytes(bytes) {
         const P5 = Point.fromAffine(decodePoint(_abytes2(bytes, void 0, "point")));
@@ -16636,10 +16636,10 @@ if (cid) {
         assertValidMemo(this);
       }
       hasEvenY() {
-        const { y: y6 } = this.toAffine();
+        const { y: y7 } = this.toAffine();
         if (!Fp2.isOdd)
           throw new Error("Field doesn't support isOdd");
-        return !Fp2.isOdd(y6);
+        return !Fp2.isOdd(y7);
       }
       /** Compare one point to another. */
       equals(other) {
@@ -16662,7 +16662,7 @@ if (cid) {
         const { a: a3, b: b4 } = CURVE;
         const b32 = Fp2.mul(b4, _3n5);
         const { X: X1, Y: Y1, Z: Z1 } = this;
-        let X3 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
+        let X32 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
         let t0 = Fp2.mul(X1, X1);
         let t1 = Fp2.mul(Y1, Y1);
         let t2 = Fp2.mul(Z1, Z1);
@@ -16670,13 +16670,13 @@ if (cid) {
         t3 = Fp2.add(t3, t3);
         Z32 = Fp2.mul(X1, Z1);
         Z32 = Fp2.add(Z32, Z32);
-        X3 = Fp2.mul(a3, Z32);
+        X32 = Fp2.mul(a3, Z32);
         Y32 = Fp2.mul(b32, t2);
-        Y32 = Fp2.add(X3, Y32);
-        X3 = Fp2.sub(t1, Y32);
+        Y32 = Fp2.add(X32, Y32);
+        X32 = Fp2.sub(t1, Y32);
         Y32 = Fp2.add(t1, Y32);
-        Y32 = Fp2.mul(X3, Y32);
-        X3 = Fp2.mul(t3, X3);
+        Y32 = Fp2.mul(X32, Y32);
+        X32 = Fp2.mul(t3, X32);
         Z32 = Fp2.mul(b32, Z32);
         t2 = Fp2.mul(a3, t2);
         t3 = Fp2.sub(t0, t2);
@@ -16690,11 +16690,11 @@ if (cid) {
         t2 = Fp2.mul(Y1, Z1);
         t2 = Fp2.add(t2, t2);
         t0 = Fp2.mul(t2, t3);
-        X3 = Fp2.sub(X3, t0);
+        X32 = Fp2.sub(X32, t0);
         Z32 = Fp2.mul(t2, t1);
         Z32 = Fp2.add(Z32, Z32);
         Z32 = Fp2.add(Z32, Z32);
-        return new Point(X3, Y32, Z32);
+        return new Point(X32, Y32, Z32);
       }
       // Renes-Costello-Batina exception-free addition formula.
       // There is 30% faster Jacobian formula, but it is not complete.
@@ -16704,7 +16704,7 @@ if (cid) {
         aprjpoint(other);
         const { X: X1, Y: Y1, Z: Z1 } = this;
         const { X: X22, Y: Y22, Z: Z22 } = other;
-        let X3 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
+        let X32 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
         const a3 = CURVE.a;
         const b32 = Fp2.mul(CURVE.b, _3n5);
         let t0 = Fp2.mul(X1, X22);
@@ -16721,16 +16721,16 @@ if (cid) {
         t5 = Fp2.add(t0, t2);
         t4 = Fp2.sub(t4, t5);
         t5 = Fp2.add(Y1, Z1);
-        X3 = Fp2.add(Y22, Z22);
-        t5 = Fp2.mul(t5, X3);
-        X3 = Fp2.add(t1, t2);
-        t5 = Fp2.sub(t5, X3);
+        X32 = Fp2.add(Y22, Z22);
+        t5 = Fp2.mul(t5, X32);
+        X32 = Fp2.add(t1, t2);
+        t5 = Fp2.sub(t5, X32);
         Z32 = Fp2.mul(a3, t4);
-        X3 = Fp2.mul(b32, t2);
-        Z32 = Fp2.add(X3, Z32);
-        X3 = Fp2.sub(t1, Z32);
+        X32 = Fp2.mul(b32, t2);
+        Z32 = Fp2.add(X32, Z32);
+        X32 = Fp2.sub(t1, Z32);
         Z32 = Fp2.add(t1, Z32);
-        Y32 = Fp2.mul(X3, Z32);
+        Y32 = Fp2.mul(X32, Z32);
         t1 = Fp2.add(t0, t0);
         t1 = Fp2.add(t1, t0);
         t2 = Fp2.mul(a3, t2);
@@ -16742,12 +16742,12 @@ if (cid) {
         t0 = Fp2.mul(t1, t4);
         Y32 = Fp2.add(Y32, t0);
         t0 = Fp2.mul(t5, t4);
-        X3 = Fp2.mul(t3, X3);
-        X3 = Fp2.sub(X3, t0);
+        X32 = Fp2.mul(t3, X32);
+        X32 = Fp2.sub(X32, t0);
         t0 = Fp2.mul(t3, t1);
         Z32 = Fp2.mul(t5, Z32);
         Z32 = Fp2.add(Z32, t0);
-        return new Point(X3, Y32, Z32);
+        return new Point(X32, Y32, Z32);
       }
       subtract(other) {
         return this.add(other.negate());
@@ -17024,9 +17024,9 @@ if (cid) {
           format = "compact";
           bytes = bytes.subarray(1);
         }
-        const L = Fn4.BYTES;
-        const r3 = bytes.subarray(0, L);
-        const s2 = bytes.subarray(L, L * 2);
+        const L2 = Fn4.BYTES;
+        const r3 = bytes.subarray(0, L2);
+        const s2 = bytes.subarray(L2, L2 * 2);
         return new Signature(Fn4.fromBytes(r3), Fn4.fromBytes(s2), recid);
       }
       static fromHex(hex, format) {
@@ -17047,12 +17047,12 @@ if (cid) {
         if (!Fp2.isValid(radj))
           throw new Error("recovery id 2 or 3 invalid");
         const x7 = Fp2.toBytes(radj);
-        const R3 = Point.fromBytes(concatBytes(pprefix((rec & 1) === 0), x7));
+        const R4 = Point.fromBytes(concatBytes(pprefix((rec & 1) === 0), x7));
         const ir3 = Fn4.inv(radj);
         const h4 = bits2int_modN(ensureBytes2("msgHash", messageHash));
         const u1 = Fn4.create(-h4 * ir3);
-        const u2 = Fn4.create(s2 * ir3);
-        const Q4 = Point.BASE.multiplyUnsafe(u1).add(R3.multiplyUnsafe(u2));
+        const u22 = Fn4.create(s2 * ir3);
+        const Q4 = Point.BASE.multiplyUnsafe(u1).add(R4.multiplyUnsafe(u22));
         if (Q4.is0())
           throw new Error("point at infinify");
         Q4.assertValidity();
@@ -17123,7 +17123,7 @@ if (cid) {
       return prehash ? _abytes2(hash(message), void 0, "prehashed message") : message;
     }
     function prepSig(message, privateKey, opts) {
-      if (["recovered", "canonical"].some((k5) => k5 in opts))
+      if (["recovered", "canonical"].some((k6) => k6 in opts))
         throw new Error("sign() legacy options not supported");
       const { lowS, prehash, extraEntropy: extraEntropy2 } = validateSigOpts(opts, defaultSigOpts);
       message = validateMsgAndHash(message, prehash);
@@ -17137,18 +17137,18 @@ if (cid) {
       const seed = concatBytes(...seedArgs);
       const m2 = h1int;
       function k2sig(kBytes) {
-        const k5 = bits2int(kBytes);
-        if (!Fn4.isValidNot0(k5))
+        const k6 = bits2int(kBytes);
+        if (!Fn4.isValidNot0(k6))
           return;
-        const ik = Fn4.inv(k5);
-        const q4 = Point.BASE.multiply(k5).toAffine();
-        const r3 = Fn4.create(q4.x);
+        const ik = Fn4.inv(k6);
+        const q5 = Point.BASE.multiply(k6).toAffine();
+        const r3 = Fn4.create(q5.x);
         if (r3 === _0n14)
           return;
         const s2 = Fn4.create(ik * Fn4.create(m2 + r3 * d3));
         if (s2 === _0n14)
           return;
-        let recovery = (q4.x === r3 ? 0 : 2) | Number(q4.y & _1n14);
+        let recovery = (q5.x === r3 ? 0 : 2) | Number(q5.y & _1n14);
         let normS = s2;
         if (lowS && isBiggerThanHalfOrder(s2)) {
           normS = Fn4.neg(s2);
@@ -17209,11 +17209,11 @@ if (cid) {
         const h4 = bits2int_modN(message);
         const is = Fn4.inv(s2);
         const u1 = Fn4.create(h4 * is);
-        const u2 = Fn4.create(r3 * is);
-        const R3 = Point.BASE.multiplyUnsafe(u1).add(P5.multiplyUnsafe(u2));
-        if (R3.is0())
+        const u22 = Fn4.create(r3 * is);
+        const R4 = Point.BASE.multiplyUnsafe(u1).add(P5.multiplyUnsafe(u22));
+        if (R4.is0())
           return false;
-        const v7 = Fn4.create(R3.x);
+        const v7 = Fn4.create(R4.x);
         return v7 === r3;
       } catch (e2) {
         return false;
@@ -17311,27 +17311,27 @@ if (cid) {
         // Basic building block is TLV (Tag-Length-Value)
         _tlv: {
           encode: (tag, data) => {
-            const { Err: E4 } = DER2;
+            const { Err: E5 } = DER2;
             if (tag < 0 || tag > 256)
-              throw new E4("tlv.encode: wrong tag");
+              throw new E5("tlv.encode: wrong tag");
             if (data.length & 1)
-              throw new E4("tlv.encode: unpadded data");
+              throw new E5("tlv.encode: unpadded data");
             const dataLen = data.length / 2;
             const len = numberToHexUnpadded2(dataLen);
             if (len.length / 2 & 128)
-              throw new E4("tlv.encode: long form length too big");
+              throw new E5("tlv.encode: long form length too big");
             const lenLen = dataLen > 127 ? numberToHexUnpadded2(len.length / 2 | 128) : "";
             const t = numberToHexUnpadded2(tag);
             return t + lenLen + len + data;
           },
           // v - value, l - left bytes (unparsed)
           decode(tag, data) {
-            const { Err: E4 } = DER2;
+            const { Err: E5 } = DER2;
             let pos = 0;
             if (tag < 0 || tag > 256)
-              throw new E4("tlv.encode: wrong tag");
+              throw new E5("tlv.encode: wrong tag");
             if (data.length < 2 || data[pos++] !== tag)
-              throw new E4("tlv.decode: wrong tlv");
+              throw new E5("tlv.decode: wrong tlv");
             const first = data[pos++];
             const isLong = !!(first & 128);
             let length2 = 0;
@@ -17340,23 +17340,23 @@ if (cid) {
             else {
               const lenLen = first & 127;
               if (!lenLen)
-                throw new E4("tlv.decode(long): indefinite length not supported");
+                throw new E5("tlv.decode(long): indefinite length not supported");
               if (lenLen > 4)
-                throw new E4("tlv.decode(long): byte length is too big");
+                throw new E5("tlv.decode(long): byte length is too big");
               const lengthBytes = data.subarray(pos, pos + lenLen);
               if (lengthBytes.length !== lenLen)
-                throw new E4("tlv.decode: length bytes not complete");
+                throw new E5("tlv.decode: length bytes not complete");
               if (lengthBytes[0] === 0)
-                throw new E4("tlv.decode(long): zero leftmost byte");
+                throw new E5("tlv.decode(long): zero leftmost byte");
               for (const b4 of lengthBytes)
                 length2 = length2 << 8 | b4;
               pos += lenLen;
               if (length2 < 128)
-                throw new E4("tlv.decode(long): not minimal encoding");
+                throw new E5("tlv.decode(long): not minimal encoding");
             }
             const v7 = data.subarray(pos, pos + length2);
             if (v7.length !== length2)
-              throw new E4("tlv.decode: wrong value length");
+              throw new E5("tlv.decode: wrong value length");
             return { v: v7, l: data.subarray(pos + length2) };
           }
         },
@@ -17366,35 +17366,35 @@ if (cid) {
         // - if next byte doesn't have a flag, leading zero is not allowed (minimal encoding)
         _int: {
           encode(num) {
-            const { Err: E4 } = DER2;
+            const { Err: E5 } = DER2;
             if (num < _0n14)
-              throw new E4("integer: negative integers are not allowed");
+              throw new E5("integer: negative integers are not allowed");
             let hex = numberToHexUnpadded2(num);
             if (Number.parseInt(hex[0], 16) & 8)
               hex = "00" + hex;
             if (hex.length & 1)
-              throw new E4("unexpected DER parsing assertion: unpadded hex");
+              throw new E5("unexpected DER parsing assertion: unpadded hex");
             return hex;
           },
           decode(data) {
-            const { Err: E4 } = DER2;
+            const { Err: E5 } = DER2;
             if (data[0] & 128)
-              throw new E4("invalid signature integer: negative");
+              throw new E5("invalid signature integer: negative");
             if (data[0] === 0 && !(data[1] & 128))
-              throw new E4("invalid signature integer: unnecessary leading zero");
+              throw new E5("invalid signature integer: unnecessary leading zero");
             return bytesToNumberBE2(data);
           }
         },
         toSig(hex) {
-          const { Err: E4, _int: int, _tlv: tlv } = DER2;
+          const { Err: E5, _int: int, _tlv: tlv } = DER2;
           const data = ensureBytes2("signature", hex);
           const { v: seqBytes, l: seqLeftBytes } = tlv.decode(48, data);
           if (seqLeftBytes.length)
-            throw new E4("invalid signature: left bytes after parsing");
+            throw new E5("invalid signature: left bytes after parsing");
           const { v: rBytes, l: rLeftBytes } = tlv.decode(2, seqBytes);
           const { v: sBytes, l: sLeftBytes } = tlv.decode(2, rLeftBytes);
           if (sLeftBytes.length)
-            throw new E4("invalid signature: left bytes after parsing");
+            throw new E5("invalid signature: left bytes after parsing");
           return { r: int.decode(rBytes), s: int.decode(sBytes) };
         },
         hexFromSig(sig) {
@@ -17527,7 +17527,7 @@ if (cid) {
         }
         console.log(msg);
       }
-      function testSpeed(hashFn, N11, M4) {
+      function testSpeed(hashFn, N11, M5) {
         let startMs = (/* @__PURE__ */ new Date()).getTime();
         const input = new Uint8Array(N11);
         for (let i3 = 0; i3 < N11; i3++) {
@@ -17536,7 +17536,7 @@ if (cid) {
         const genMs = (/* @__PURE__ */ new Date()).getTime();
         console.log("Generated random input in " + (genMs - startMs) + "ms");
         startMs = genMs;
-        for (let i3 = 0; i3 < M4; i3++) {
+        for (let i3 = 0; i3 < M5; i3++) {
           const hashHex = hashFn(input);
           const hashMs = (/* @__PURE__ */ new Date()).getTime();
           const ms2 = hashMs - startMs;
@@ -18037,18 +18037,18 @@ if (cid) {
       function B2S_GET32(v8, i3) {
         return v8[i3] ^ v8[i3 + 1] << 8 ^ v8[i3 + 2] << 16 ^ v8[i3 + 3] << 24;
       }
-      function B2S_G(a3, b4, c4, d3, x7, y6) {
+      function B2S_G(a3, b4, c4, d3, x7, y7) {
         v7[a3] = v7[a3] + v7[b4] + x7;
         v7[d3] = ROTR32(v7[d3] ^ v7[a3], 16);
         v7[c4] = v7[c4] + v7[d3];
         v7[b4] = ROTR32(v7[b4] ^ v7[c4], 12);
-        v7[a3] = v7[a3] + v7[b4] + y6;
+        v7[a3] = v7[a3] + v7[b4] + y7;
         v7[d3] = ROTR32(v7[d3] ^ v7[a3], 8);
         v7[c4] = v7[c4] + v7[d3];
         v7[b4] = ROTR32(v7[b4] ^ v7[c4], 7);
       }
-      function ROTR32(x7, y6) {
-        return x7 >>> y6 ^ x7 << 32 - y6;
+      function ROTR32(x7, y7) {
+        return x7 >>> y7 ^ x7 << 32 - y7;
       }
       var BLAKE2S_IV = new Uint32Array([
         1779033703,
@@ -18419,7 +18419,7 @@ if (cid) {
     return [[e2, t].join("-"), [Be3, n4].join("-"), r3, o4].join("/");
   }
   function jn2({ protocol: e2, version: t, relayUrl: n4, sdkVersion: r3, auth: o4, projectId: s2, useOnCloseEvent: i3, bundleId: a3, packageName: l4 }) {
-    const c4 = n4.split("?"), d3 = Ye2(e2, t, r3), u2 = { auth: o4, ua: d3, projectId: s2, useOnCloseEvent: i3 || void 0, packageName: l4 || void 0, bundleId: a3 || void 0 }, p4 = We2(c4[1] || "", u2);
+    const c4 = n4.split("?"), d3 = Ye2(e2, t, r3), u3 = { auth: o4, ua: d3, projectId: s2, useOnCloseEvent: i3 || void 0, packageName: l4 || void 0, bundleId: a3 || void 0 }, p4 = We2(c4[1] || "", u3);
     return c4[0] + "?" + p4;
   }
   function I(e2, t) {
@@ -18601,7 +18601,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     const i3 = ae2(r3);
     if (!i3.namespace || !i3.reference) throw new Error(`isValidEip1271Signature failed: chainId must be in CAIP-2 format, received: ${r3}`);
     try {
-      const a3 = "0x1626ba7e", l4 = "0000000000000000000000000000000000000000000000000000000000000040", c4 = n4.substring(2), d3 = (c4.length / 2).toString(16).padStart(64, "0"), u2 = (t.startsWith("0x") ? t : ge3(t)).substring(2), p4 = a3 + u2 + l4 + d3 + c4, b4 = await fetch(`${s2 || tr2}/?chainId=${r3}&projectId=${o4}`, { headers: { "Content-Type": "application/json" }, method: "POST", body: JSON.stringify({ id: nr2(), jsonrpc: "2.0", method: "eth_call", params: [{ to: e2, data: p4 }, "latest"] }) }), { result: f2 } = await b4.json();
+      const a3 = "0x1626ba7e", l4 = "0000000000000000000000000000000000000000000000000000000000000040", c4 = n4.substring(2), d3 = (c4.length / 2).toString(16).padStart(64, "0"), u3 = (t.startsWith("0x") ? t : ge3(t)).substring(2), p4 = a3 + u3 + l4 + d3 + c4, b4 = await fetch(`${s2 || tr2}/?chainId=${r3}&projectId=${o4}`, { headers: { "Content-Type": "application/json" }, method: "POST", body: JSON.stringify({ id: nr2(), jsonrpc: "2.0", method: "eth_call", params: [{ to: e2, data: p4 }, "latest"] }) }), { result: f2 } = await b4.json();
       return f2 ? f2.slice(0, a3.length).toLowerCase() === a3.toLowerCase() : false;
     } catch (a3) {
       return console.error("isValidEip1271Signature: ", a3), false;
@@ -18750,13 +18750,13 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     const r3 = [];
     let o4 = 0;
     Object.keys(t.att).forEach((a3) => {
-      const l4 = Object.keys(t.att[a3]).map((u2) => ({ ability: u2.split("/")[0], action: u2.split("/")[1] }));
-      l4.sort((u2, p4) => u2.action.localeCompare(p4.action));
+      const l4 = Object.keys(t.att[a3]).map((u3) => ({ ability: u3.split("/")[0], action: u3.split("/")[1] }));
+      l4.sort((u3, p4) => u3.action.localeCompare(p4.action));
       const c4 = {};
-      l4.forEach((u2) => {
-        c4[u2.ability] || (c4[u2.ability] = []), c4[u2.ability].push(u2.action);
+      l4.forEach((u3) => {
+        c4[u3.ability] || (c4[u3.ability] = []), c4[u3.ability].push(u3.action);
       });
-      const d3 = Object.keys(c4).map((u2) => (o4++, `(${o4}) '${u2}': '${c4[u2].join("', '")}' for '${a3}'.`));
+      const d3 = Object.keys(c4).map((u3) => (o4++, `(${o4}) '${u3}': '${c4[u3].join("', '")}' for '${a3}'.`));
       r3.push(d3.join(", ").replace(".,", "."));
     });
     const s2 = r3.join(" "), i3 = `${n4}${s2}`;
@@ -18846,8 +18846,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
   function ne2(e2) {
     const t = (e2.encoding || S2) === ee2 ? te3(e2.encoded) : e2.encoded, n4 = fromString2(t, S2), r3 = n4.slice(wr2, St2), o4 = St2;
     if (C3(r3) === D2) {
-      const l4 = o4 + Oe3, c4 = l4 + q2, d3 = n4.slice(o4, l4), u2 = n4.slice(l4, c4), p4 = n4.slice(c4);
-      return { type: r3, sealed: p4, iv: u2, senderPublicKey: d3 };
+      const l4 = o4 + Oe3, c4 = l4 + q2, d3 = n4.slice(o4, l4), u3 = n4.slice(l4, c4), p4 = n4.slice(c4);
+      return { type: r3, sealed: p4, iv: u3, senderPublicKey: d3 };
     }
     if (C3(r3) === F) {
       const l4 = n4.slice(o4), c4 = randomBytes(q2);
@@ -19019,8 +19019,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     const { requiredNamespaces: n4 } = t, r3 = Object.keys(e2.namespaces), o4 = Object.keys(n4);
     let s2 = true;
     return I(o4, r3) ? (r3.forEach((i3) => {
-      const { accounts: a3, methods: l4, events: c4 } = e2.namespaces[i3], d3 = P3(a3), u2 = n4[i3];
-      (!I(Y2(i3, u2), d3) || !I(u2.methods, l4) || !I(u2.events, c4)) && (s2 = false);
+      const { accounts: a3, methods: l4, events: c4 } = e2.namespaces[i3], d3 = P3(a3), u3 = n4[i3];
+      (!I(Y2(i3, u3), d3) || !I(u3.methods, l4) || !I(u3.events, c4)) && (s2 = false);
     }), s2) : false;
   }
   function W3(e2) {
@@ -19166,19 +19166,19 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
   }
   function Ht2(e2, t, n4) {
     let r3 = null;
-    const o4 = co2(e2), s2 = ao2(t), i3 = Object.keys(o4), a3 = Object.keys(s2), l4 = Bt2(Object.keys(e2)), c4 = Bt2(Object.keys(t)), d3 = l4.filter((u2) => !c4.includes(u2));
+    const o4 = co2(e2), s2 = ao2(t), i3 = Object.keys(o4), a3 = Object.keys(s2), l4 = Bt2(Object.keys(e2)), c4 = Bt2(Object.keys(t)), d3 = l4.filter((u3) => !c4.includes(u3));
     return d3.length && (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces keys don't satisfy requiredNamespaces.
       Required: ${d3.toString()}
       Received: ${Object.keys(t).toString()}`)), I(i3, a3) || (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces chains don't satisfy required namespaces.
       Required: ${i3.toString()}
-      Approved: ${a3.toString()}`)), Object.keys(t).forEach((u2) => {
-      if (!u2.includes(":") || r3) return;
-      const p4 = P3(t[u2].accounts);
-      p4.includes(u2) || (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces accounts don't satisfy namespace accounts for ${u2}
-        Required: ${u2}
+      Approved: ${a3.toString()}`)), Object.keys(t).forEach((u3) => {
+      if (!u3.includes(":") || r3) return;
+      const p4 = P3(t[u3].accounts);
+      p4.includes(u3) || (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces accounts don't satisfy namespace accounts for ${u3}
+        Required: ${u3}
         Approved: ${p4.toString()}`));
-    }), i3.forEach((u2) => {
-      r3 || (I(o4[u2].methods, s2[u2].methods) ? I(o4[u2].events, s2[u2].events) || (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces events don't satisfy namespace events for ${u2}`)) : r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces methods don't satisfy namespace methods for ${u2}`));
+    }), i3.forEach((u3) => {
+      r3 || (I(o4[u3].methods, s2[u3].methods) ? I(o4[u3].events, s2[u3].events) || (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces events don't satisfy namespace events for ${u3}`)) : r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces methods don't satisfy namespace methods for ${u3}`));
     }), r3;
   }
   function co2(e2) {
@@ -19259,8 +19259,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
   function Xt2({ publicKey: e2, signature: t, payload: n4 }) {
     const r3 = se2(n4.method), o4 = 128 | parseInt(n4.version?.toString() || "4"), s2 = go2(n4.address), i3 = n4.era === "00" ? new Uint8Array([0]) : se2(n4.era);
     if (i3.length !== 1 && i3.length !== 2) throw new Error("Invalid era length");
-    const a3 = parseInt(n4.nonce, 16), l4 = new Uint8Array([a3 & 255, a3 >> 8 & 255]), c4 = BigInt(`0x${ho2(n4.tip)}`), d3 = Eo2(c4), u2 = new Uint8Array([0, ...e2, s2, ...t, ...i3, ...l4, ...d3, ...r3]), p4 = yo2(u2.length + 1);
-    return new Uint8Array([...p4, o4, ...u2]);
+    const a3 = parseInt(n4.nonce, 16), l4 = new Uint8Array([a3 & 255, a3 >> 8 & 255]), c4 = BigInt(`0x${ho2(n4.tip)}`), d3 = Eo2(c4), u3 = new Uint8Array([0, ...e2, s2, ...t, ...i3, ...l4, ...d3, ...r3]), p4 = yo2(u3.length + 1);
+    return new Uint8Array([...p4, o4, ...u3]);
   }
   function Zt2(e2) {
     const t = se2(e2), n4 = (0, import_blakejs.blake2b)(t, void 0, 32);
@@ -19396,14 +19396,14 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         const r3 = `${e2.domain} wants you to sign in with your ${lr2(n4)} account:`, o4 = Ee3(t);
         if (!e2.aud && !e2.uri) throw new Error("Either `aud` or `uri` is required to construct the message");
         let s2 = e2.statement || void 0;
-        const i3 = `URI: ${e2.aud || e2.uri}`, a3 = `Version: ${e2.version}`, l4 = `Chain ID: ${lt2(t)}`, c4 = `Nonce: ${e2.nonce}`, d3 = `Issued At: ${e2.iat}`, u2 = e2.exp ? `Expiration Time: ${e2.exp}` : void 0, p4 = e2.nbf ? `Not Before: ${e2.nbf}` : void 0, b4 = e2.requestId ? `Request ID: ${e2.requestId}` : void 0, f2 = e2.resources ? `Resources:${e2.resources.map((V3) => `
-- ${V3}`).join("")}` : void 0, O4 = Z2(e2.resources);
-        if (O4) {
-          const V3 = T2(O4);
-          s2 = Ne3(s2, V3);
+        const i3 = `URI: ${e2.aud || e2.uri}`, a3 = `Version: ${e2.version}`, l4 = `Chain ID: ${lt2(t)}`, c4 = `Nonce: ${e2.nonce}`, d3 = `Issued At: ${e2.iat}`, u3 = e2.exp ? `Expiration Time: ${e2.exp}` : void 0, p4 = e2.nbf ? `Not Before: ${e2.nbf}` : void 0, b4 = e2.requestId ? `Request ID: ${e2.requestId}` : void 0, f2 = e2.resources ? `Resources:${e2.resources.map((V4) => `
+- ${V4}`).join("")}` : void 0, O5 = Z2(e2.resources);
+        if (O5) {
+          const V4 = T2(O5);
+          s2 = Ne3(s2, V4);
         }
         if (s2 && /\r|\n/.test(s2)) throw new Error("Statement must not contain line breaks (`\\r` or `\\n`)");
-        return [r3, o4, "", s2, "", i3, a3, l4, c4, d3, u2, p4, b4, f2].filter((V3) => V3 != null).join(`
+        return [r3, o4, "", s2, "", i3, a3, l4, c4, d3, u3, p4, b4, f2].filter((V4) => V4 != null).join(`
 `);
       };
       ve3 = "base10";
@@ -20144,8 +20144,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         return a3.toString() === b4.toString();
       case numberTag: {
         const x7 = a3.valueOf();
-        const y6 = b4.valueOf();
-        return isEqualsSameValueZero(x7, y6);
+        const y7 = b4.valueOf();
+        return isEqualsSameValueZero(x7, y7);
       }
       case booleanTag:
       case dateTag:
@@ -20614,18 +20614,18 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             const o4 = r3?.ttl || Bt3, n4 = r3?.prompt || false, a3 = r3?.tag || 0, h4 = r3?.id || getBigIntRpcId().toString(), d3 = _r2(xr2().protocol), l4 = { id: h4, method: r3?.publishMethod || d3.publish, params: { topic: i3, message: e2, ttl: o4, prompt: n4, tag: a3, attestation: r3?.attestation, ...r3?.tvf } }, g4 = `Failed to publish payload, please try again. id:${h4} tag:${a3}`;
             try {
               R2(l4.params?.prompt) && delete l4.params?.prompt, R2(l4.params?.tag) && delete l4.params?.tag;
-              const _3 = new Promise(async (E4) => {
-                const u2 = ({ id: m2 }) => {
-                  l4.id?.toString() === m2.toString() && (this.removeRequestFromQueue(m2), this.relayer.events.removeListener(p3.publish, u2), E4());
+              const _3 = new Promise(async (E5) => {
+                const u3 = ({ id: m2 }) => {
+                  l4.id?.toString() === m2.toString() && (this.removeRequestFromQueue(m2), this.relayer.events.removeListener(p3.publish, u3), E5());
                 };
-                this.relayer.events.on(p3.publish, u2);
+                this.relayer.events.on(p3.publish, u3);
                 const N11 = Kn2(new Promise((m2, C4) => {
-                  this.rpcPublish(l4, r3).then(m2).catch((k5) => {
-                    this.logger.warn(k5, k5?.message), C4(k5);
+                  this.rpcPublish(l4, r3).then(m2).catch((k6) => {
+                    this.logger.warn(k6, k6?.message), C4(k6);
                   });
                 }), this.initialPublishTimeout, `Failed initial publish, retrying.... id:${h4} tag:${a3}`);
                 try {
-                  await N11, this.events.removeListener(p3.publish, u2);
+                  await N11, this.events.removeListener(p3.publish, u3);
                 } catch (m2) {
                   this.queue.set(h4, { request: l4, opts: r3, attempt: 1 }), this.logger.warn(m2, m2?.message);
                 }
@@ -20638,23 +20638,23 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             }
           }, this.publishCustom = async (i3) => {
             this.logger.debug("Publishing custom payload"), this.logger.trace({ type: "method", method: "publishCustom", params: i3 });
-            const { payload: e2, opts: r3 = {} } = i3, { attestation: o4, tvf: n4, publishMethod: a3, prompt: h4, tag: d3, ttl: l4 = import_time4.FIVE_MINUTES } = r3, g4 = r3.id || getBigIntRpcId().toString(), _3 = _r2(xr2().protocol), E4 = a3 || _3.publish, u2 = { id: g4, method: E4, params: { ...e2, ttl: l4, prompt: h4, tag: d3, attestation: o4, ...n4 } }, N11 = `Failed to publish custom payload, please try again. id:${g4} tag:${d3}`;
+            const { payload: e2, opts: r3 = {} } = i3, { attestation: o4, tvf: n4, publishMethod: a3, prompt: h4, tag: d3, ttl: l4 = import_time4.FIVE_MINUTES } = r3, g4 = r3.id || getBigIntRpcId().toString(), _3 = _r2(xr2().protocol), E5 = a3 || _3.publish, u3 = { id: g4, method: E5, params: { ...e2, ttl: l4, prompt: h4, tag: d3, attestation: o4, ...n4 } }, N11 = `Failed to publish custom payload, please try again. id:${g4} tag:${d3}`;
             try {
-              R2(u2.params?.prompt) && delete u2.params?.prompt, R2(u2.params?.tag) && delete u2.params?.tag;
+              R2(u3.params?.prompt) && delete u3.params?.prompt, R2(u3.params?.tag) && delete u3.params?.tag;
               const m2 = new Promise(async (C4) => {
-                const k5 = ({ id: L }) => {
-                  u2.id?.toString() === L.toString() && (this.removeRequestFromQueue(L), this.relayer.events.removeListener(p3.publish, k5), C4());
+                const k6 = ({ id: L2 }) => {
+                  u3.id?.toString() === L2.toString() && (this.removeRequestFromQueue(L2), this.relayer.events.removeListener(p3.publish, k6), C4());
                 };
-                this.relayer.events.on(p3.publish, k5);
-                const Oe4 = Kn2(new Promise((L, Ae5) => {
-                  this.rpcPublish(u2, r3).then(L).catch((tt2) => {
+                this.relayer.events.on(p3.publish, k6);
+                const Oe4 = Kn2(new Promise((L2, Ae5) => {
+                  this.rpcPublish(u3, r3).then(L2).catch((tt2) => {
                     this.logger.warn(tt2, tt2?.message), Ae5(tt2);
                   });
-                }), this.initialPublishTimeout, `Failed initial custom payload publish, retrying.... method:${E4} id:${g4} tag:${d3}`);
+                }), this.initialPublishTimeout, `Failed initial custom payload publish, retrying.... method:${E5} id:${g4} tag:${d3}`);
                 try {
-                  await Oe4, this.events.removeListener(p3.publish, k5);
-                } catch (L) {
-                  this.queue.set(g4, { request: u2, opts: r3, attempt: 1 }), this.logger.warn(L, L?.message);
+                  await Oe4, this.events.removeListener(p3.publish, k6);
+                } catch (L2) {
+                  this.queue.set(g4, { request: u3, opts: r3, attempt: 1 }), this.logger.warn(L2, L2?.message);
                 }
               });
               this.logger.trace({ type: "method", method: "publish", params: { id: g4, payload: e2, opts: r3 } }), await Kn2(m2, this.publishTimeout, N11);
@@ -20849,8 +20849,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               this.events.on(b3.created, d3);
               try {
                 const l4 = await Kn2(new Promise((g4, _3) => {
-                  this.relayer.request(r3).catch((E4) => {
-                    this.logger.warn(E4, E4?.message), _3(E4);
+                  this.relayer.request(r3).catch((E5) => {
+                    this.logger.warn(E5, E5?.message), _3(E5);
                   }).then(g4);
                 }), this.initialSubscribeTimeout, `Subscribing to ${t} failed, please try again`);
                 this.events.removeListener(b3.created, d3), h4(l4);
@@ -21798,24 +21798,24 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             const r3 = window.location.origin, { id: o4, decryptedId: n4 } = e2, a3 = `${this.verifyUrlV3}/attestation?projectId=${this.core.projectId}&origin=${r3}&id=${o4}&decryptedId=${n4}`;
             try {
               const h4 = (0, import_window_getters2.getDocument)(), d3 = this.startAbortTimer(import_time4.ONE_SECOND * 5), l4 = await new Promise((g4, _3) => {
-                const E4 = () => {
-                  window.removeEventListener("message", N11), h4.body.removeChild(u2), _3("attestation aborted");
+                const E5 = () => {
+                  window.removeEventListener("message", N11), h4.body.removeChild(u3), _3("attestation aborted");
                 };
-                this.abortController.signal.addEventListener("abort", E4);
-                const u2 = h4.createElement("iframe");
-                u2.src = a3, u2.style.display = "none", u2.addEventListener("error", E4, { signal: this.abortController.signal });
+                this.abortController.signal.addEventListener("abort", E5);
+                const u3 = h4.createElement("iframe");
+                u3.src = a3, u3.style.display = "none", u3.addEventListener("error", E5, { signal: this.abortController.signal });
                 const N11 = (m2) => {
                   if (m2.data && typeof m2.data == "string") try {
                     const C4 = JSON.parse(m2.data);
                     if (C4.type === "verify_attestation") {
                       if (sn(C4.attestation).payload.id !== o4) return;
-                      clearInterval(d3), h4.body.removeChild(u2), this.abortController.signal.removeEventListener("abort", E4), window.removeEventListener("message", N11), g4(C4.attestation === null ? "" : C4.attestation);
+                      clearInterval(d3), h4.body.removeChild(u3), this.abortController.signal.removeEventListener("abort", E5), window.removeEventListener("message", N11), g4(C4.attestation === null ? "" : C4.attestation);
                     }
                   } catch (C4) {
                     this.logger.warn(C4);
                   }
                 };
-                h4.body.appendChild(u2), window.addEventListener("message", N11, { signal: this.abortController.signal });
+                h4.body.appendChild(u3), window.addEventListener("message", N11, { signal: this.abortController.signal });
               });
               return this.logger.debug(l4, "jwt attestation"), l4;
             } catch (h4) {
@@ -22138,42 +22138,42 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             await this.isValidConnect(e2), e2.optionalNamespaces = Hr2(e2.requiredNamespaces, e2.optionalNamespaces), e2.requiredNamespaces = {};
             const { pairingTopic: s2, requiredNamespaces: i3, optionalNamespaces: r3, sessionProperties: n4, scopedProperties: o4, relays: c4, authentication: l4, walletPay: d3 } = e2, p4 = l4?.[0]?.ttl || T4.wc_sessionPropose.req.ttl || import_time5.FIVE_MINUTES;
             this.validateRequestExpiry(p4);
-            let y6 = s2, g4, m2 = false;
+            let y7 = s2, g4, m2 = false;
             try {
-              if (y6) {
-                const E4 = this.client.core.pairing.pairings.get(y6);
-                this.client.logger.warn("connect() with existing pairing topic is deprecated and will be removed in the next major release."), m2 = E4.active;
+              if (y7) {
+                const E5 = this.client.core.pairing.pairings.get(y7);
+                this.client.logger.warn("connect() with existing pairing topic is deprecated and will be removed in the next major release."), m2 = E5.active;
               }
-            } catch (E4) {
-              throw this.client.logger.error(`connect() -> pairing.get(${y6}) failed`), E4;
+            } catch (E5) {
+              throw this.client.logger.error(`connect() -> pairing.get(${y7}) failed`), E5;
             }
-            if (!y6 || !m2) {
-              const { topic: E4, uri: x7 } = await this.client.core.pairing.create({ internal: { skipSubscribe: true } });
-              y6 = E4, g4 = x7;
+            if (!y7 || !m2) {
+              const { topic: E5, uri: x7 } = await this.client.core.pairing.create({ internal: { skipSubscribe: true } });
+              y7 = E5, g4 = x7;
             }
-            if (!y6) {
-              const { message: E4 } = N10("NO_MATCHING_KEY", `connect() pairing topic: ${y6}`);
-              throw new Error(E4);
+            if (!y7) {
+              const { message: E5 } = N10("NO_MATCHING_KEY", `connect() pairing topic: ${y7}`);
+              throw new Error(E5);
             }
-            const h4 = await this.client.core.crypto.generateKeyPair(), w4 = Bn2(p4), _3 = { requiredNamespaces: i3, optionalNamespaces: r3, relays: c4 ?? [{ protocol: Gt3 }], proposer: { publicKey: h4, metadata: this.client.metadata }, expiryTimestamp: w4, pairingTopic: y6, ...n4 && { sessionProperties: n4 }, ...o4 && { scopedProperties: o4 }, id: payloadId(), ...(l4 || d3) && { requests: { authentication: l4?.map((E4) => {
-              const { domain: x7, chains: K5, nonce: U3, uri: M4, exp: ee4, nbf: ae4, type: te5, statement: ce3, requestId: ge5, resources: R3, signatureTypes: q4 } = E4;
-              return { domain: x7, chains: K5, nonce: U3, type: te5 ?? "caip122", aud: M4, version: "1", iat: (/* @__PURE__ */ new Date()).toISOString(), exp: ee4, nbf: ae4, statement: ce3, requestId: ge5, resources: R3, signatureTypes: q4 };
-            }), walletPay: d3 } } }, S4 = Jn2("session_connect", _3.id), { reject: b4, resolve: O4, done: L } = Ln2(p4, Ce5), P5 = ({ id: E4 }) => {
-              if (E4 === _3.id) {
+            const h4 = await this.client.core.crypto.generateKeyPair(), w5 = Bn2(p4), _3 = { requiredNamespaces: i3, optionalNamespaces: r3, relays: c4 ?? [{ protocol: Gt3 }], proposer: { publicKey: h4, metadata: this.client.metadata }, expiryTimestamp: w5, pairingTopic: y7, ...n4 && { sessionProperties: n4 }, ...o4 && { scopedProperties: o4 }, id: payloadId(), ...(l4 || d3) && { requests: { authentication: l4?.map((E5) => {
+              const { domain: x7, chains: K6, nonce: U3, uri: M5, exp: ee4, nbf: ae5, type: te5, statement: ce3, requestId: ge5, resources: R4, signatureTypes: q5 } = E5;
+              return { domain: x7, chains: K6, nonce: U3, type: te5 ?? "caip122", aud: M5, version: "1", iat: (/* @__PURE__ */ new Date()).toISOString(), exp: ee4, nbf: ae5, statement: ce3, requestId: ge5, resources: R4, signatureTypes: q5 };
+            }), walletPay: d3 } } }, S5 = Jn2("session_connect", _3.id), { reject: b4, resolve: O5, done: L2 } = Ln2(p4, Ce5), P5 = ({ id: E5 }) => {
+              if (E5 === _3.id) {
                 this.client.events.off("proposal_expire", P5);
                 const x7 = this.pendingSessions.get(_3.id);
                 if (x7) {
-                  const { sessionTopic: K5, publicKey: U3 } = x7;
-                  Promise.all([this.client.core.relayer.unsubscribe(K5), this.client.core.crypto.keychain.has(K5) ? this.client.core.crypto.deleteSymKey(K5) : Promise.resolve(), this.client.core.crypto.keychain.has(U3) ? this.client.core.crypto.deleteKeyPair(U3) : Promise.resolve()]).catch((M4) => this.client.logger.warn(M4));
+                  const { sessionTopic: K6, publicKey: U3 } = x7;
+                  Promise.all([this.client.core.relayer.unsubscribe(K6), this.client.core.crypto.keychain.has(K6) ? this.client.core.crypto.deleteSymKey(K6) : Promise.resolve(), this.client.core.crypto.keychain.has(U3) ? this.client.core.crypto.deleteKeyPair(U3) : Promise.resolve()]).catch((M5) => this.client.logger.warn(M5));
                 }
-                this.pendingSessions.delete(_3.id), this.events.emit(S4, { error: { message: Ce5, code: 0 } });
+                this.pendingSessions.delete(_3.id), this.events.emit(S5, { error: { message: Ce5, code: 0 } });
               }
             };
-            return this.client.events.on("proposal_expire", P5), this.events.once(S4, ({ error: E4, session: x7 }) => {
-              this.client.events.off("proposal_expire", P5), E4 ? b4(E4) : x7 && O4(x7);
-            }), await this.setProposal(_3.id, _3), await this.sendProposeSession({ proposal: _3, publishOpts: { internal: { throwOnFailedPublish: true }, tvf: { correlationId: _3.id } } }).catch((E4) => {
-              throw this.deleteProposal(_3.id), E4;
-            }), { uri: g4, approval: L };
+            return this.client.events.on("proposal_expire", P5), this.events.once(S5, ({ error: E5, session: x7 }) => {
+              this.client.events.off("proposal_expire", P5), E5 ? b4(E5) : x7 && O5(x7);
+            }), await this.setProposal(_3.id, _3), await this.sendProposeSession({ proposal: _3, publishOpts: { internal: { throwOnFailedPublish: true }, tvf: { correlationId: _3.id } } }).catch((E5) => {
+              throw this.deleteProposal(_3.id), E5;
+            }), { uri: g4, approval: L2 };
           }, this.pair = async (t) => {
             this.isInitialized(), await this.confirmOnlineStateOrThrow();
             try {
@@ -22200,25 +22200,25 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             }
             const { id: s2, relayProtocol: i3, namespaces: r3, sessionProperties: n4, scopedProperties: o4, sessionConfig: c4, proposalRequestsResponses: l4 } = t, d3 = this.client.proposal.get(s2);
             this.client.core.eventClient.deleteEvent({ eventId: e2.eventId });
-            const { pairingTopic: p4, proposer: y6, requiredNamespaces: g4, optionalNamespaces: m2 } = d3;
+            const { pairingTopic: p4, proposer: y7, requiredNamespaces: g4, optionalNamespaces: m2 } = d3;
             let h4 = this.client.core.eventClient?.getEvent({ topic: p4 });
             h4 || (h4 = this.client.core.eventClient?.createEvent({ type: Gi.session_approve_started, properties: { topic: p4, trace: [Gi.session_approve_started, Gi.session_namespaces_validation_success] } }));
-            const w4 = await this.client.core.crypto.generateKeyPair(), _3 = y6.publicKey, S4 = await this.client.core.crypto.generateSharedKey(w4, _3), b4 = { relay: { protocol: i3 ?? "irn" }, namespaces: r3, controller: { publicKey: w4, metadata: this.client.metadata }, expiry: Bn2(Z3), ...n4 && { sessionProperties: n4 }, ...o4 && { scopedProperties: o4 }, ...c4 && { sessionConfig: c4 }, proposalRequestsResponses: l4 }, O4 = D3.relay;
+            const w5 = await this.client.core.crypto.generateKeyPair(), _3 = y7.publicKey, S5 = await this.client.core.crypto.generateSharedKey(w5, _3), b4 = { relay: { protocol: i3 ?? "irn" }, namespaces: r3, controller: { publicKey: w5, metadata: this.client.metadata }, expiry: Bn2(Z3), ...n4 && { sessionProperties: n4 }, ...o4 && { scopedProperties: o4 }, ...c4 && { sessionConfig: c4 }, proposalRequestsResponses: l4 }, O5 = D3.relay;
             h4.addTrace(Gi.subscribing_session_topic);
             try {
-              await this.client.core.relayer.subscribe(S4, { transportType: O4, internal: { skipSubscribe: true } });
+              await this.client.core.relayer.subscribe(S5, { transportType: O5, internal: { skipSubscribe: true } });
             } catch (P5) {
               throw h4.setError(Wi.subscribe_session_topic_failure), P5;
             }
             h4.addTrace(Gi.subscribe_session_topic_success);
-            const L = { ...b4, topic: S4, requiredNamespaces: g4, optionalNamespaces: m2, pairingTopic: p4, acknowledged: false, self: b4.controller, peer: { publicKey: y6.publicKey, metadata: y6.metadata }, controller: w4, transportType: D3.relay, authentication: l4?.authentication, walletPayResult: l4?.walletPay };
-            await this.client.session.set(S4, L), h4.addTrace(Gi.store_session);
+            const L2 = { ...b4, topic: S5, requiredNamespaces: g4, optionalNamespaces: m2, pairingTopic: p4, acknowledged: false, self: b4.controller, peer: { publicKey: y7.publicKey, metadata: y7.metadata }, controller: w5, transportType: D3.relay, authentication: l4?.authentication, walletPayResult: l4?.walletPay };
+            await this.client.session.set(S5, L2), h4.addTrace(Gi.store_session);
             try {
-              await this.sendApproveSession({ sessionTopic: S4, proposal: d3, pairingProposalResponse: { relay: { protocol: i3 ?? "irn" }, responderPublicKey: w4 }, sessionSettleRequest: b4, publishOpts: { internal: { throwOnFailedPublish: true }, tvf: { correlationId: s2, ...this.getTVFApproveParams(L) } } }), h4.addTrace(Gi.session_approve_publish_success);
+              await this.sendApproveSession({ sessionTopic: S5, proposal: d3, pairingProposalResponse: { relay: { protocol: i3 ?? "irn" }, responderPublicKey: w5 }, sessionSettleRequest: b4, publishOpts: { internal: { throwOnFailedPublish: true }, tvf: { correlationId: s2, ...this.getTVFApproveParams(L2) } } }), h4.addTrace(Gi.session_approve_publish_success);
             } catch (P5) {
-              throw this.client.logger.error(P5), this.client.session.delete(S4, $2("USER_DISCONNECTED")), await this.client.core.relayer.unsubscribe(S4), P5;
+              throw this.client.logger.error(P5), this.client.session.delete(S5, $2("USER_DISCONNECTED")), await this.client.core.relayer.unsubscribe(S5), P5;
             }
-            return this.client.core.eventClient.deleteEvent({ eventId: h4.eventId }), await this.client.core.pairing.updateMetadata({ topic: p4, metadata: y6.metadata }), await this.deleteProposal(s2), await this.client.core.pairing.activate({ topic: p4 }), await this.setExpiry(S4, Bn2(Z3)), { topic: S4, acknowledged: () => Promise.resolve(this.client.session.get(S4)) };
+            return this.client.core.eventClient.deleteEvent({ eventId: h4.eventId }), await this.client.core.pairing.updateMetadata({ topic: p4, metadata: y7.metadata }), await this.deleteProposal(s2), await this.client.core.pairing.activate({ topic: p4 }), await this.setExpiry(S5, Bn2(Z3)), { topic: S5, acknowledged: () => Promise.resolve(this.client.session.get(S5)) };
           }, this.reject = async (t) => {
             this.isInitialized(), await this.confirmOnlineStateOrThrow();
             try {
@@ -22275,18 +22275,18 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             const { chainId: e2, request: s2, topic: i3, expiry: r3 = T4.wc_sessionRequest.req.ttl } = t, n4 = this.client.session.get(i3);
             n4?.transportType === D3.relay && await this.confirmOnlineStateOrThrow();
             const o4 = payloadId(), c4 = getBigIntRpcId().toString(), { done: l4, resolve: d3, reject: p4 } = Ln2(r3, "Request expired. Please try again.");
-            this.events.once(Jn2("session_request", o4), ({ error: h4, result: w4 }) => {
-              h4 ? p4(h4) : d3(w4);
+            this.events.once(Jn2("session_request", o4), ({ error: h4, result: w5 }) => {
+              h4 ? p4(h4) : d3(w5);
             });
-            const y6 = "wc_sessionRequest", g4 = this.getAppLinkIfEnabled(n4.peer.metadata, n4.transportType);
-            if (g4) return await this.sendRequest({ clientRpcId: o4, relayRpcId: c4, topic: i3, method: y6, params: { request: { ...s2, expiryTimestamp: Bn2(r3) }, chainId: e2 }, expiry: r3, throwOnFailedPublish: true, appLink: g4 }).catch((h4) => p4(h4)), this.client.events.emit("session_request_sent", { topic: i3, request: s2, chainId: e2, id: o4 }), await l4();
+            const y7 = "wc_sessionRequest", g4 = this.getAppLinkIfEnabled(n4.peer.metadata, n4.transportType);
+            if (g4) return await this.sendRequest({ clientRpcId: o4, relayRpcId: c4, topic: i3, method: y7, params: { request: { ...s2, expiryTimestamp: Bn2(r3) }, chainId: e2 }, expiry: r3, throwOnFailedPublish: true, appLink: g4 }).catch((h4) => p4(h4)), this.client.events.emit("session_request_sent", { topic: i3, request: s2, chainId: e2, id: o4 }), await l4();
             const m2 = { request: { ...s2, expiryTimestamp: Bn2(r3) }, chainId: e2 };
             return await Promise.all([new Promise(async (h4) => {
-              await this.sendRequest({ clientRpcId: o4, relayRpcId: c4, topic: i3, method: y6, params: m2, expiry: r3, throwOnFailedPublish: true, tvf: this.getTVFParams(o4, m2) }).catch((w4) => p4(w4)), this.client.events.emit("session_request_sent", { topic: i3, request: s2, chainId: e2, id: o4 }), h4();
+              await this.sendRequest({ clientRpcId: o4, relayRpcId: c4, topic: i3, method: y7, params: m2, expiry: r3, throwOnFailedPublish: true, tvf: this.getTVFParams(o4, m2) }).catch((w5) => p4(w5)), this.client.events.emit("session_request_sent", { topic: i3, request: s2, chainId: e2, id: o4 }), h4();
             }), new Promise(async (h4) => {
               if (!n4.sessionConfig?.disableDeepLink) {
-                const w4 = await Gn2(this.client.core.storage, ke3);
-                await zn2({ id: o4, topic: i3, wcDeepLink: w4 });
+                const w5 = await Gn2(this.client.core.storage, ke3);
+                await zn2({ id: o4, topic: i3, wcDeepLink: w5 });
               }
               h4();
             }), l4()]).then((h4) => h4[2]);
@@ -22338,27 +22338,27 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             this.isInitialized(), this.isValidAuthenticate(t);
             const s2 = e2 && this.client.core.linkModeSupportedApps.includes(e2) && this.client.metadata.redirect?.linkMode, i3 = s2 ? D3.link_mode : D3.relay;
             i3 === D3.relay && await this.confirmOnlineStateOrThrow();
-            const { chains: r3, statement: n4 = "", uri: o4, domain: c4, nonce: l4, type: d3, exp: p4, nbf: y6, methods: g4 = [], expiry: m2 } = t, h4 = [...t.resources || []], { topic: w4, uri: _3 } = await this.client.core.pairing.create({ methods: ["wc_sessionAuthenticate"], transportType: i3 });
-            if (this.client.logger.info({ message: "Generated new pairing", pairing: { topic: w4, uri: _3 } }), this.client.auth.authKeys.keys.includes($4)) {
-              const { responseTopic: R3, publicKey: q4 } = this.client.auth.authKeys.get($4);
-              R3 && (await this.client.core.relayer.unsubscribe(R3).catch((k5) => this.client.logger.warn(k5)), await this.client.auth.pairingTopics.delete(R3, { message: "replaced", code: 0 }).catch((k5) => this.client.logger.warn(k5))), q4 && this.client.core.crypto.keychain.has(q4) && await this.client.core.crypto.deleteKeyPair(q4);
+            const { chains: r3, statement: n4 = "", uri: o4, domain: c4, nonce: l4, type: d3, exp: p4, nbf: y7, methods: g4 = [], expiry: m2 } = t, h4 = [...t.resources || []], { topic: w5, uri: _3 } = await this.client.core.pairing.create({ methods: ["wc_sessionAuthenticate"], transportType: i3 });
+            if (this.client.logger.info({ message: "Generated new pairing", pairing: { topic: w5, uri: _3 } }), this.client.auth.authKeys.keys.includes($4)) {
+              const { responseTopic: R4, publicKey: q5 } = this.client.auth.authKeys.get($4);
+              R4 && (await this.client.core.relayer.unsubscribe(R4).catch((k6) => this.client.logger.warn(k6)), await this.client.auth.pairingTopics.delete(R4, { message: "replaced", code: 0 }).catch((k6) => this.client.logger.warn(k6))), q5 && this.client.core.crypto.keychain.has(q5) && await this.client.core.crypto.deleteKeyPair(q5);
             }
-            const S4 = await this.client.core.crypto.generateKeyPair(), b4 = Or2(S4);
-            if (await Promise.all([this.client.auth.authKeys.set($4, { responseTopic: b4, publicKey: S4 }), this.client.auth.pairingTopics.set(b4, { topic: b4, pairingTopic: w4 })]), await this.client.core.relayer.subscribe(b4, { transportType: i3 }), this.client.logger.info(`sending request to new pairing topic: ${w4}`), g4.length > 0) {
-              const { namespace: R3 } = ae2(r3[0]);
-              let q4 = gr2(R3, "request", g4);
-              Z2(h4) && (q4 = yr2(q4, h4.pop())), h4.push(q4);
+            const S5 = await this.client.core.crypto.generateKeyPair(), b4 = Or2(S5);
+            if (await Promise.all([this.client.auth.authKeys.set($4, { responseTopic: b4, publicKey: S5 }), this.client.auth.pairingTopics.set(b4, { topic: b4, pairingTopic: w5 })]), await this.client.core.relayer.subscribe(b4, { transportType: i3 }), this.client.logger.info(`sending request to new pairing topic: ${w5}`), g4.length > 0) {
+              const { namespace: R4 } = ae2(r3[0]);
+              let q5 = gr2(R4, "request", g4);
+              Z2(h4) && (q5 = yr2(q5, h4.pop())), h4.push(q5);
             }
-            const O4 = m2 && m2 > T4.wc_sessionAuthenticate.req.ttl ? m2 : T4.wc_sessionAuthenticate.req.ttl, L = { authPayload: { type: d3 ?? "caip122", chains: r3, statement: n4, aud: o4, domain: c4, version: "1", nonce: l4, iat: (/* @__PURE__ */ new Date()).toISOString(), exp: p4, nbf: y6, resources: h4 }, requester: { publicKey: S4, metadata: this.client.metadata }, expiryTimestamp: Bn2(O4) }, P5 = { eip155: { chains: r3, methods: [.../* @__PURE__ */ new Set(["personal_sign", ...g4])], events: ["chainChanged", "accountsChanged"] } }, E4 = { requiredNamespaces: {}, optionalNamespaces: P5, relays: [{ protocol: "irn" }], pairingTopic: w4, proposer: { publicKey: S4, metadata: this.client.metadata }, expiryTimestamp: Bn2(T4.wc_sessionPropose.req.ttl), id: payloadId() }, { done: x7, resolve: K5, reject: U3 } = Ln2(O4, "Request expired"), M4 = payloadId(), ee4 = Jn2("session_connect", E4.id), ae4 = Jn2("session_request", M4), te5 = async ({ error: R3, session: q4 }) => {
-              this.events.off(ae4, ce3), R3 ? U3(R3) : q4 && K5({ session: q4 });
-            }, ce3 = async (R3) => {
-              if (await this.deletePendingAuthRequest(M4, { message: "fulfilled", code: 0 }), R3.error) {
+            const O5 = m2 && m2 > T4.wc_sessionAuthenticate.req.ttl ? m2 : T4.wc_sessionAuthenticate.req.ttl, L2 = { authPayload: { type: d3 ?? "caip122", chains: r3, statement: n4, aud: o4, domain: c4, version: "1", nonce: l4, iat: (/* @__PURE__ */ new Date()).toISOString(), exp: p4, nbf: y7, resources: h4 }, requester: { publicKey: S5, metadata: this.client.metadata }, expiryTimestamp: Bn2(O5) }, P5 = { eip155: { chains: r3, methods: [.../* @__PURE__ */ new Set(["personal_sign", ...g4])], events: ["chainChanged", "accountsChanged"] } }, E5 = { requiredNamespaces: {}, optionalNamespaces: P5, relays: [{ protocol: "irn" }], pairingTopic: w5, proposer: { publicKey: S5, metadata: this.client.metadata }, expiryTimestamp: Bn2(T4.wc_sessionPropose.req.ttl), id: payloadId() }, { done: x7, resolve: K6, reject: U3 } = Ln2(O5, "Request expired"), M5 = payloadId(), ee4 = Jn2("session_connect", E5.id), ae5 = Jn2("session_request", M5), te5 = async ({ error: R4, session: q5 }) => {
+              this.events.off(ae5, ce3), R4 ? U3(R4) : q5 && K6({ session: q5 });
+            }, ce3 = async (R4) => {
+              if (await this.deletePendingAuthRequest(M5, { message: "fulfilled", code: 0 }), R4.error) {
                 const pe5 = $2("WC_METHOD_UNSUPPORTED", "wc_sessionAuthenticate");
-                return R3.error.code === pe5.code ? void 0 : (this.events.off(ee4, te5), U3(R3.error.message));
+                return R4.error.code === pe5.code ? void 0 : (this.events.off(ee4, te5), U3(R4.error.message));
               }
-              await this.deleteProposal(E4.id), this.events.off(ee4, te5);
-              const { cacaos: q4, responder: k5 } = R3.result, Ee5 = [], Ve3 = [];
-              for (const pe5 of q4) {
+              await this.deleteProposal(E5.id), this.events.off(ee4, te5);
+              const { cacaos: q5, responder: k6 } = R4.result, Ee5 = [], Ve3 = [];
+              for (const pe5 of q5) {
                 await dr2({ cacao: pe5, projectId: this.client.core.projectId }) || (this.client.logger.error(pe5, "Signature verification failed"), U3($2("SESSION_SETTLEMENT_FAILED", "Signature verification failed")));
                 const { p: Re5 } = pe5, Ie5 = Z2(Re5.resources), De3 = [ft2(Re5.iss)], wt2 = Ee3(Re5.iss);
                 if (Ie5) {
@@ -22367,23 +22367,23 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
                 }
                 for (const Te5 of De3) Ve3.push(`${Te5}:${wt2}`);
               }
-              const le4 = await this.client.core.crypto.generateSharedKey(S4, k5.publicKey);
+              const le4 = await this.client.core.crypto.generateSharedKey(S5, k6.publicKey);
               let ye5;
-              Ee5.length > 0 && (ye5 = { topic: le4, acknowledged: true, self: { publicKey: S4, metadata: this.client.metadata }, peer: k5, controller: k5.publicKey, expiry: Bn2(Z3), requiredNamespaces: {}, optionalNamespaces: {}, relay: { protocol: "irn" }, pairingTopic: w4, namespaces: qr2([...new Set(Ee5)], [...new Set(Ve3)]), transportType: i3 }, await this.client.core.relayer.subscribe(le4, { transportType: i3 }), await this.client.session.set(le4, ye5), w4 && await this.client.core.pairing.updateMetadata({ topic: w4, metadata: k5.metadata }), ye5 = this.client.session.get(le4)), this.client.metadata.redirect?.linkMode && k5.metadata.redirect?.linkMode && k5.metadata.redirect?.universal && e2 && (this.client.core.addLinkModeSupportedApp(k5.metadata.redirect.universal), this.client.session.update(le4, { transportType: D3.link_mode })), K5({ auths: q4, session: ye5 });
+              Ee5.length > 0 && (ye5 = { topic: le4, acknowledged: true, self: { publicKey: S5, metadata: this.client.metadata }, peer: k6, controller: k6.publicKey, expiry: Bn2(Z3), requiredNamespaces: {}, optionalNamespaces: {}, relay: { protocol: "irn" }, pairingTopic: w5, namespaces: qr2([...new Set(Ee5)], [...new Set(Ve3)]), transportType: i3 }, await this.client.core.relayer.subscribe(le4, { transportType: i3 }), await this.client.session.set(le4, ye5), w5 && await this.client.core.pairing.updateMetadata({ topic: w5, metadata: k6.metadata }), ye5 = this.client.session.get(le4)), this.client.metadata.redirect?.linkMode && k6.metadata.redirect?.linkMode && k6.metadata.redirect?.universal && e2 && (this.client.core.addLinkModeSupportedApp(k6.metadata.redirect.universal), this.client.session.update(le4, { transportType: D3.link_mode })), K6({ auths: q5, session: ye5 });
             };
-            this.events.once(ee4, te5), this.events.once(ae4, ce3);
+            this.events.once(ee4, te5), this.events.once(ae5, ce3);
             let ge5;
             try {
               if (s2) {
-                const R3 = formatJsonRpcRequest("wc_sessionAuthenticate", L, M4);
-                this.client.core.history.set(w4, R3);
-                const q4 = await this.client.core.crypto.encode("", R3, { type: F, encoding: ee2 });
-                ge5 = Vr2(e2, w4, q4);
-              } else await Promise.all([this.sendRequest({ topic: w4, method: "wc_sessionAuthenticate", params: L, expiry: t.expiry, throwOnFailedPublish: true, clientRpcId: M4 }), this.sendRequest({ topic: w4, method: "wc_sessionPropose", params: E4, expiry: T4.wc_sessionPropose.req.ttl, throwOnFailedPublish: true, clientRpcId: E4.id })]);
-            } catch (R3) {
-              throw this.events.off(ee4, te5), this.events.off(ae4, ce3), R3;
+                const R4 = formatJsonRpcRequest("wc_sessionAuthenticate", L2, M5);
+                this.client.core.history.set(w5, R4);
+                const q5 = await this.client.core.crypto.encode("", R4, { type: F, encoding: ee2 });
+                ge5 = Vr2(e2, w5, q5);
+              } else await Promise.all([this.sendRequest({ topic: w5, method: "wc_sessionAuthenticate", params: L2, expiry: t.expiry, throwOnFailedPublish: true, clientRpcId: M5 }), this.sendRequest({ topic: w5, method: "wc_sessionPropose", params: E5, expiry: T4.wc_sessionPropose.req.ttl, throwOnFailedPublish: true, clientRpcId: E5.id })]);
+            } catch (R4) {
+              throw this.events.off(ee4, te5), this.events.off(ae5, ce3), R4;
             }
-            return await this.setProposal(E4.id, E4), await this.setAuthRequest(M4, { request: { ...L, verifyContext: {} }, pairingTopic: w4, transportType: i3 }), { uri: ge5 ?? _3, response: x7 };
+            return await this.setProposal(E5.id, E5), await this.setAuthRequest(M5, { request: { ...L2, verifyContext: {} }, pairingTopic: w5, transportType: i3 }), { uri: ge5 ?? _3, response: x7 };
           }, this.approveSessionAuthenticate = async (t) => {
             const { id: e2, auths: s2 } = t, i3 = this.client.core.eventClient.createEvent({ properties: { topic: e2.toString(), trace: [Yi.authenticated_session_approve_started] } });
             try {
@@ -22395,26 +22395,26 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             if (!r3) throw i3.setError(Hi.authenticated_session_pending_request_not_found), new Error(`Could not find pending auth request with id ${e2}`);
             const n4 = r3.transportType || D3.relay;
             n4 === D3.relay && await this.confirmOnlineStateOrThrow();
-            const o4 = r3.requester.publicKey, c4 = await this.client.core.crypto.generateKeyPair(), l4 = Or2(o4), d3 = { type: D2, receiverPublicKey: o4, senderPublicKey: c4 }, p4 = [], y6 = [];
+            const o4 = r3.requester.publicKey, c4 = await this.client.core.crypto.generateKeyPair(), l4 = Or2(o4), d3 = { type: D2, receiverPublicKey: o4, senderPublicKey: c4 }, p4 = [], y7 = [];
             for (const h4 of s2) {
               if (!await dr2({ cacao: h4, projectId: this.client.core.projectId })) {
                 i3.setError(Hi.invalid_cacao);
-                const O4 = $2("SESSION_SETTLEMENT_FAILED", "Signature verification failed");
-                throw await this.sendError({ id: e2, topic: l4, error: O4, encodeOpts: d3 }), new Error(O4.message);
+                const O5 = $2("SESSION_SETTLEMENT_FAILED", "Signature verification failed");
+                throw await this.sendError({ id: e2, topic: l4, error: O5, encodeOpts: d3 }), new Error(O5.message);
               }
               i3.addTrace(Yi.cacaos_verified);
-              const { p: w4 } = h4, _3 = Z2(w4.resources), S4 = [ft2(w4.iss)], b4 = Ee3(w4.iss);
+              const { p: w5 } = h4, _3 = Z2(w5.resources), S5 = [ft2(w5.iss)], b4 = Ee3(w5.iss);
               if (_3) {
-                const O4 = Er2(_3), L = br2(_3);
-                p4.push(...O4), S4.push(...L);
+                const O5 = Er2(_3), L2 = br2(_3);
+                p4.push(...O5), S5.push(...L2);
               }
-              for (const O4 of S4) y6.push(`${O4}:${b4}`);
+              for (const O5 of S5) y7.push(`${O5}:${b4}`);
             }
             const g4 = await this.client.core.crypto.generateSharedKey(c4, o4);
             i3.addTrace(Yi.create_authenticated_session_topic);
             let m2;
             if (p4?.length > 0) {
-              m2 = { topic: g4, acknowledged: true, self: { publicKey: c4, metadata: this.client.metadata }, peer: { publicKey: o4, metadata: r3.requester.metadata }, controller: o4, expiry: Bn2(Z3), authentication: s2, requiredNamespaces: {}, optionalNamespaces: {}, relay: { protocol: "irn" }, pairingTopic: r3.pairingTopic, namespaces: qr2([...new Set(p4)], [...new Set(y6)]), transportType: n4 }, i3.addTrace(Yi.subscribing_authenticated_session_topic);
+              m2 = { topic: g4, acknowledged: true, self: { publicKey: c4, metadata: this.client.metadata }, peer: { publicKey: o4, metadata: r3.requester.metadata }, controller: o4, expiry: Bn2(Z3), authentication: s2, requiredNamespaces: {}, optionalNamespaces: {}, relay: { protocol: "irn" }, pairingTopic: r3.pairingTopic, namespaces: qr2([...new Set(p4)], [...new Set(y7)]), transportType: n4 }, i3.addTrace(Yi.subscribing_authenticated_session_topic);
               try {
                 await this.client.core.relayer.subscribe(g4, { transportType: n4 });
               } catch (h4) {
@@ -22482,26 +22482,26 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             const { id: e2, topic: s2, params: i3, verifyContext: r3 } = t, n4 = i3.request.expiryTimestamp || Bn2(T4.wc_sessionRequest.req.ttl);
             this.client.core.expirer.set(e2, n4), await this.client.pendingRequest.set(e2, { id: e2, topic: s2, params: i3, verifyContext: r3 });
           }, this.sendRequest = async (t) => {
-            const { topic: e2, method: s2, params: i3, expiry: r3, relayRpcId: n4, clientRpcId: o4, throwOnFailedPublish: c4, appLink: l4, tvf: d3, publishOpts: p4 = {} } = t, y6 = formatJsonRpcRequest(s2, i3, o4);
+            const { topic: e2, method: s2, params: i3, expiry: r3, relayRpcId: n4, clientRpcId: o4, throwOnFailedPublish: c4, appLink: l4, tvf: d3, publishOpts: p4 = {} } = t, y7 = formatJsonRpcRequest(s2, i3, o4);
             let g4;
             const m2 = !!l4;
             try {
               const _3 = m2 ? ee2 : S2;
-              g4 = await this.client.core.crypto.encode(e2, y6, { encoding: _3 });
+              g4 = await this.client.core.crypto.encode(e2, y7, { encoding: _3 });
             } catch (_3) {
               throw await this.cleanup(), this.client.logger.error(`sendRequest() -> core.crypto.encode() for topic ${e2} failed`), _3;
             }
             let h4;
             if (at2.includes(s2)) {
-              const _3 = Ar2(JSON.stringify(y6)), S4 = Ar2(g4);
-              h4 = await this.client.core.verify.register({ id: S4, decryptedId: _3 });
+              const _3 = Ar2(JSON.stringify(y7)), S5 = Ar2(g4);
+              h4 = await this.client.core.verify.register({ id: S5, decryptedId: _3 });
             }
-            const w4 = { ...T4[s2].req, ...p4 };
-            if (w4.attestation = h4, r3 && (w4.ttl = r3), n4 && (w4.id = n4), this.client.core.history.set(e2, y6), m2) {
+            const w5 = { ...T4[s2].req, ...p4 };
+            if (w5.attestation = h4, r3 && (w5.ttl = r3), n4 && (w5.id = n4), this.client.core.history.set(e2, y7), m2) {
               const _3 = Vr2(l4, e2, g4);
               await global.Linking.openURL(_3, this.client.name);
-            } else w4.tvf = { ...d3, correlationId: y6.id }, c4 ? (w4.internal = { ...w4.internal, throwOnFailedPublish: true }, await this.client.core.relayer.publish(e2, g4, w4)) : this.client.core.relayer.publish(e2, g4, w4).catch((_3) => this.client.logger.error(_3));
-            return y6.id;
+            } else w5.tvf = { ...d3, correlationId: y7.id }, c4 ? (w5.internal = { ...w5.internal, throwOnFailedPublish: true }, await this.client.core.relayer.publish(e2, g4, w5)) : this.client.core.relayer.publish(e2, g4, w5).catch((_3) => this.client.logger.error(_3));
+            return y7.id;
           }, this.sendProposeSession = async (t) => {
             const { proposal: e2, publishOpts: s2 } = t, i3 = formatJsonRpcRequest("wc_sessionPropose", e2, e2.id);
             this.client.core.history.set(e2.pairingTopic, i3);
@@ -22520,12 +22520,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             } catch (g4) {
               throw await this.cleanup(), this.client.logger.error(`sendResult() -> core.crypto.encode() for topic ${s2} failed`), g4;
             }
-            let p4, y6;
+            let p4, y7;
             try {
               p4 = await this.client.core.history.get(s2, e2);
               const g4 = p4.request;
               try {
-                y6 = this.getTVFParams(e2, g4.params, i3);
+                y7 = this.getTVFParams(e2, g4.params, i3);
               } catch (m2) {
                 this.client.logger.warn(`sendResult() -> getTVFParams() failed: ${m2?.message}`);
               }
@@ -22537,7 +22537,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               await global.Linking.openURL(g4, this.client.name);
             } else {
               const g4 = p4.request.method, m2 = T4[g4].res;
-              m2.tvf = { ...y6, correlationId: e2 }, r3 ? (m2.internal = { ...m2.internal, throwOnFailedPublish: true }, await this.client.core.relayer.publish(s2, l4, m2)) : this.client.core.relayer.publish(s2, l4, m2).catch((h4) => this.client.logger.error(h4));
+              m2.tvf = { ...y7, correlationId: e2 }, r3 ? (m2.internal = { ...m2.internal, throwOnFailedPublish: true }, await this.client.core.relayer.publish(s2, l4, m2)) : this.client.core.relayer.publish(s2, l4, m2).catch((h4) => this.client.logger.error(h4));
             }
             await this.client.core.history.resolve(c4);
           }, this.sendError = async (t) => {
@@ -22545,22 +22545,22 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             let l4;
             const d3 = o4 && typeof global?.Linking < "u";
             try {
-              const y6 = d3 ? ee2 : S2;
-              l4 = await this.client.core.crypto.encode(s2, c4, { ...r3 || {}, encoding: y6 });
-            } catch (y6) {
-              throw await this.cleanup(), this.client.logger.error(`sendError() -> core.crypto.encode() for topic ${s2} failed`), y6;
+              const y7 = d3 ? ee2 : S2;
+              l4 = await this.client.core.crypto.encode(s2, c4, { ...r3 || {}, encoding: y7 });
+            } catch (y7) {
+              throw await this.cleanup(), this.client.logger.error(`sendError() -> core.crypto.encode() for topic ${s2} failed`), y7;
             }
             let p4;
             try {
               p4 = await this.client.core.history.get(s2, e2);
-            } catch (y6) {
-              throw this.client.logger.error(`sendError() -> history.get(${s2}, ${e2}) failed`), y6;
+            } catch (y7) {
+              throw this.client.logger.error(`sendError() -> history.get(${s2}, ${e2}) failed`), y7;
             }
             if (d3) {
-              const y6 = Vr2(o4, s2, l4);
-              await global.Linking.openURL(y6, this.client.name);
+              const y7 = Vr2(o4, s2, l4);
+              await global.Linking.openURL(y7, this.client.name);
             } else {
-              const y6 = p4.request.method, g4 = n4 || T4[y6].res;
+              const y7 = p4.request.method, g4 = n4 || T4[y7].res;
               this.client.core.relayer.publish(s2, l4, g4);
             }
             await this.client.core.history.resolve(c4);
@@ -22678,9 +22678,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             const { id: s2, params: i3 } = e2;
             try {
               this.isValidSessionSettleRequest(i3);
-              const { relay: r3, controller: n4, expiry: o4, namespaces: c4, sessionProperties: l4, scopedProperties: d3, sessionConfig: p4, proposalRequestsResponses: y6 } = e2.params, g4 = [...this.pendingSessions.values()].find((w4) => w4.sessionTopic === t);
+              const { relay: r3, controller: n4, expiry: o4, namespaces: c4, sessionProperties: l4, scopedProperties: d3, sessionConfig: p4, proposalRequestsResponses: y7 } = e2.params, g4 = [...this.pendingSessions.values()].find((w5) => w5.sessionTopic === t);
               if (!g4) return this.client.logger.error(`Pending session not found for topic ${t}`);
-              const m2 = this.client.proposal.get(g4.proposalId), h4 = { topic: t, relay: r3, expiry: o4, namespaces: c4, acknowledged: true, pairingTopic: g4.pairingTopic, requiredNamespaces: m2.requiredNamespaces, optionalNamespaces: m2.optionalNamespaces, controller: n4.publicKey, self: { publicKey: g4.publicKey, metadata: this.client.metadata }, peer: { publicKey: n4.publicKey, metadata: n4.metadata }, ...l4 && { sessionProperties: l4 }, ...d3 && { scopedProperties: d3 }, ...p4 && { sessionConfig: p4 }, transportType: D3.relay, authentication: y6?.authentication, walletPayResult: y6?.walletPay };
+              const m2 = this.client.proposal.get(g4.proposalId), h4 = { topic: t, relay: r3, expiry: o4, namespaces: c4, acknowledged: true, pairingTopic: g4.pairingTopic, requiredNamespaces: m2.requiredNamespaces, optionalNamespaces: m2.optionalNamespaces, controller: n4.publicKey, self: { publicKey: g4.publicKey, metadata: this.client.metadata }, peer: { publicKey: n4.publicKey, metadata: n4.metadata }, ...l4 && { sessionProperties: l4 }, ...d3 && { scopedProperties: d3 }, ...p4 && { sessionConfig: p4 }, transportType: D3.relay, authentication: y7?.authentication, walletPayResult: y7?.walletPay };
               await this.client.session.set(h4.topic, h4), await this.setExpiry(h4.topic, h4.expiry), await this.client.core.pairing.updateMetadata({ topic: g4.pairingTopic, metadata: h4.peer.metadata }), this.pendingSessions.delete(g4.proposalId), this.deleteProposal(g4.proposalId, false), this.cleanupDuplicatePairings(h4), await this.sendResult({ id: e2.id, topic: t, throwOnFailedPublish: true, result: true }), this.client.events.emit("session_connect", { session: h4 }), this.events.emit(Jn2("session_connect", g4.proposalId), { session: h4 });
             } catch (r3) {
               await this.sendError({ id: s2, topic: t, error: r3 }), this.client.logger.error(r3);
@@ -23629,13 +23629,13 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         const pos = exports.getRowColCoords(version3);
         const posLength = pos.length;
         for (let i3 = 0; i3 < posLength; i3++) {
-          for (let j4 = 0; j4 < posLength; j4++) {
-            if (i3 === 0 && j4 === 0 || // top-left
-            i3 === 0 && j4 === posLength - 1 || // bottom-left
-            i3 === posLength - 1 && j4 === 0) {
+          for (let j5 = 0; j5 < posLength; j5++) {
+            if (i3 === 0 && j5 === 0 || // top-left
+            i3 === 0 && j5 === posLength - 1 || // bottom-left
+            i3 === posLength - 1 && j5 === 0) {
               continue;
             }
-            coords.push([pos[i3], pos[j4]]);
+            coords.push([pos[i3], pos[j5]]);
           }
         }
         return coords;
@@ -23751,27 +23751,27 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         let darkCount = 0;
         const modulesCount = data.data.length;
         for (let i3 = 0; i3 < modulesCount; i3++) darkCount += data.data[i3];
-        const k5 = Math.abs(Math.ceil(darkCount * 100 / modulesCount / 5) - 10);
-        return k5 * PenaltyScores.N4;
+        const k6 = Math.abs(Math.ceil(darkCount * 100 / modulesCount / 5) - 10);
+        return k6 * PenaltyScores.N4;
       };
-      function getMaskAt(maskPattern, i3, j4) {
+      function getMaskAt(maskPattern, i3, j5) {
         switch (maskPattern) {
           case exports.Patterns.PATTERN000:
-            return (i3 + j4) % 2 === 0;
+            return (i3 + j5) % 2 === 0;
           case exports.Patterns.PATTERN001:
             return i3 % 2 === 0;
           case exports.Patterns.PATTERN010:
-            return j4 % 3 === 0;
+            return j5 % 3 === 0;
           case exports.Patterns.PATTERN011:
-            return (i3 + j4) % 3 === 0;
+            return (i3 + j5) % 3 === 0;
           case exports.Patterns.PATTERN100:
-            return (Math.floor(i3 / 2) + Math.floor(j4 / 3)) % 2 === 0;
+            return (Math.floor(i3 / 2) + Math.floor(j5 / 3)) % 2 === 0;
           case exports.Patterns.PATTERN101:
-            return i3 * j4 % 2 + i3 * j4 % 3 === 0;
+            return i3 * j5 % 2 + i3 * j5 % 3 === 0;
           case exports.Patterns.PATTERN110:
-            return (i3 * j4 % 2 + i3 * j4 % 3) % 2 === 0;
+            return (i3 * j5 % 2 + i3 * j5 % 3) % 2 === 0;
           case exports.Patterns.PATTERN111:
-            return (i3 * j4 % 3 + (i3 + j4) % 2) % 2 === 0;
+            return (i3 * j5 % 3 + (i3 + j5) % 2) % 2 === 0;
           default:
             throw new Error("bad maskPattern:" + maskPattern);
         }
@@ -24191,9 +24191,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       exports.exp = function exp(n4) {
         return EXP_TABLE[n4];
       };
-      exports.mul = function mul(x7, y6) {
-        if (x7 === 0 || y6 === 0) return 0;
-        return EXP_TABLE[LOG_TABLE[x7] + LOG_TABLE[y6]];
+      exports.mul = function mul(x7, y7) {
+        if (x7 === 0 || y7 === 0) return 0;
+        return EXP_TABLE[LOG_TABLE[x7] + LOG_TABLE[y7]];
       };
     }
   });
@@ -24205,8 +24205,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       exports.mul = function mul(p1, p22) {
         const coeff = new Uint8Array(p1.length + p22.length - 1);
         for (let i3 = 0; i3 < p1.length; i3++) {
-          for (let j4 = 0; j4 < p22.length; j4++) {
-            coeff[i3 + j4] ^= GF.mul(p1[i3], p22[j4]);
+          for (let j5 = 0; j5 < p22.length; j5++) {
+            coeff[i3 + j5] ^= GF.mul(p1[i3], p22[j5]);
           }
         }
         return coeff;
@@ -24691,12 +24691,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
           costs[s2] = 0;
           var open = dijkstra.PriorityQueue.make();
           open.push(s2, 0);
-          var closest, u2, v7, cost_of_s_to_u, adjacent_nodes, cost_of_e, cost_of_s_to_u_plus_cost_of_e, cost_of_s_to_v, first_visit;
+          var closest, u3, v7, cost_of_s_to_u, adjacent_nodes, cost_of_e, cost_of_s_to_u_plus_cost_of_e, cost_of_s_to_v, first_visit;
           while (!open.empty()) {
             closest = open.pop();
-            u2 = closest.value;
+            u3 = closest.value;
             cost_of_s_to_u = closest.cost;
-            adjacent_nodes = graph[u2] || {};
+            adjacent_nodes = graph[u3] || {};
             for (v7 in adjacent_nodes) {
               if (adjacent_nodes.hasOwnProperty(v7)) {
                 cost_of_e = adjacent_nodes[v7];
@@ -24706,7 +24706,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
                 if (first_visit || cost_of_s_to_v > cost_of_s_to_u_plus_cost_of_e) {
                   costs[v7] = cost_of_s_to_u_plus_cost_of_e;
                   open.push(v7, cost_of_s_to_u_plus_cost_of_e);
-                  predecessors[v7] = u2;
+                  predecessors[v7] = u3;
                 }
               }
             }
@@ -24719,12 +24719,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         },
         extract_shortest_path_from_predecessor_list: function(predecessors, d3) {
           var nodes = [];
-          var u2 = d3;
+          var u3 = d3;
           var predecessor;
-          while (u2) {
-            nodes.push(u2);
-            predecessor = predecessors[u2];
-            u2 = predecessors[u2];
+          while (u3) {
+            nodes.push(u3);
+            predecessor = predecessors[u3];
+            u3 = predecessors[u3];
           }
           nodes.reverse();
           return nodes;
@@ -24893,9 +24893,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         for (let i3 = 0; i3 < nodes.length; i3++) {
           const nodeGroup = nodes[i3];
           const currentNodeIds = [];
-          for (let j4 = 0; j4 < nodeGroup.length; j4++) {
-            const node = nodeGroup[j4];
-            const key = "" + i3 + j4;
+          for (let j5 = 0; j5 < nodeGroup.length; j5++) {
+            const node = nodeGroup[j5];
+            const key = "" + i3 + j5;
             currentNodeIds.push(key);
             table[key] = { node, lastCount: 0 };
             graph[key] = {};
@@ -25290,12 +25290,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         const scaledMargin = opts.margin * scale;
         const palette = [opts.color.light, opts.color.dark];
         for (let i3 = 0; i3 < symbolSize; i3++) {
-          for (let j4 = 0; j4 < symbolSize; j4++) {
-            let posDst = (i3 * symbolSize + j4) * 4;
+          for (let j5 = 0; j5 < symbolSize; j5++) {
+            let posDst = (i3 * symbolSize + j5) * 4;
             let pxColor = opts.color.light;
-            if (i3 >= scaledMargin && j4 >= scaledMargin && i3 < symbolSize - scaledMargin && j4 < symbolSize - scaledMargin) {
+            if (i3 >= scaledMargin && j5 >= scaledMargin && i3 < symbolSize - scaledMargin && j5 < symbolSize - scaledMargin) {
               const iSrc = Math.floor((i3 - scaledMargin) / scale);
-              const jSrc = Math.floor((j4 - scaledMargin) / scale);
+              const jSrc = Math.floor((j5 - scaledMargin) / scale);
               pxColor = palette[data[iSrc * size3 + jSrc] ? 1 : 0];
             }
             imgData[posDst++] = pxColor.r;
@@ -25370,9 +25370,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         const str = attrib + '="' + color.hex + '"';
         return alpha < 1 ? str + " " + attrib + '-opacity="' + alpha.toFixed(2).slice(1) + '"' : str;
       }
-      function svgCmd(cmd, x7, y6) {
+      function svgCmd(cmd, x7, y7) {
         let str = cmd + x7;
-        if (typeof y6 !== "undefined") str += " " + y6;
+        if (typeof y7 !== "undefined") str += " " + y7;
         return str;
       }
       function qrToPath(data, size3, margin) {
@@ -26831,6 +26831,175 @@ ${item.productId}`));
 
   // src/central-browser-session-browser.js
   var import_qrcode = __toESM(require_browser2(), 1);
+
+  // src/vendor/hosted-wallet-adapter-39c063da.js
+  var H5 = { schemaVersion: 2, chainId: "ynx_6423-1", wallet: { authorizeCallback: "ynxwallet://authorize", downloadUrl: "https://www.ynxweb4.com/dapp/download", metaMaskDownloadUrl: "https://metamask.io/download" }, products: [{ productId: "ai", clientId: "ynx-ai-v1", displayName: "YNX AI", applicationId: "com.ynxweb4.ai", webOrigin: "https://assistant.ynxweb4.com", nativeCallback: "ynxai://wallet-auth/callback", legacyCallbacks: ["ynxai://wallet-auth/callback"], scopes: ["ai:actions", "ai:attachments", "ai:conversations", "ai:data-control", "ai:generate", "ai:permissions"], evmCompatible: false, sessionDurationSeconds: 240 }, { productId: "calendar", clientId: "ynx-calendar-v1", displayName: "YNX Calendar", applicationId: "com.ynxweb4.calendar", webOrigin: "https://calendar.ynxweb4.com", nativeCallback: "ynxcalendar://wallet-auth/callback", legacyCallbacks: ["ynxcalendar", "ynxcalendar://wallet-auth/callback"], scopes: ["calendar:account", "calendar:recover"], evmCompatible: false, sessionDurationSeconds: 240 }, { productId: "card", clientId: "ynx-card-v1", displayName: "YNX Card", applicationId: "com.ynxweb4.card", webOrigin: "https://card.ynxweb4.com", nativeCallback: "ynxcard://wallet-auth/callback", legacyCallbacks: ["ynxcard", "ynxcard://wallet-auth/callback"], scopes: ["account:read", "card:application:write", "card:controls:write", "card:dispute:write", "card:simulation:write", "card:topup:write"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "cloud", clientId: "ynx-cloud-web-v1", displayName: "YNX Cloud", applicationId: "com.ynxweb4.cloud", webOrigin: "https://web4.ynxweb4.com", platforms: ["web"], nativeCallback: null, legacyCallbacks: [], scopes: ["files.read", "files.write"], evmCompatible: false, sessionDurationSeconds: 300 }, { productId: "creator-studio", clientId: "ynx-creator-studio-web-v1", displayName: "YNX Creator Studio", applicationId: "com.ynxweb4.creator-studio", webOrigin: "https://creator.ynxweb4.com", nativeCallback: "ynxcreator://wallet-auth/callback", legacyCallbacks: ["ynxcreator", "ynxcreator://wallet-auth/callback"], scopes: ["creator:account", "creator:publish", "creator:revenue"], evmCompatible: false, sessionDurationSeconds: 240 }, { productId: "developer", clientId: "ynx-developer-v1", displayName: "YNX Developer", applicationId: "com.ynxweb4.developer.testnetpreview", webOrigin: "https://developer.ynxweb4.com", nativeCallback: "ynxdeveloper://wallet-auth/callback", legacyCallbacks: ["ynxdeveloper", "ynxdeveloper://wallet-auth/callback"], scopes: ["account:read", "developer:deploy"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "dex", clientId: "ynx-dex-v1", displayName: "YNX DEX", applicationId: "com.ynxweb4.dex", webOrigin: "https://dex.ynxweb4.com", nativeCallback: "ynxdex://wallet-auth/callback", legacyCallbacks: ["ynxdex", "ynxdex://wallet-auth/callback"], scopes: ["dex:account", "dex:orders", "dex:trade"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "docs", clientId: "ynx-docs-mobile-v1", displayName: "YNX Docs", applicationId: "com.ynxweb4.docs", webOrigin: "https://docs.ynxweb4.com", nativeCallback: "ynxdocs://wallet-auth/callback", legacyCallbacks: ["ynxdocs://wallet-auth/callback"], scopes: ["docs.read", "docs.write", "files.read", "files.write"], evmCompatible: false, sessionDurationSeconds: 300 }, { productId: "exchange", clientId: "ynx-exchange-v1", displayName: "YNX Exchange", applicationId: "com.ynxweb4.exchange", webOrigin: "https://exchange.ynxweb4.com", nativeCallback: "ynxexchange://wallet-auth/callback", legacyCallbacks: ["ynxexchange", "ynxexchange://wallet-auth/callback"], scopes: ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "finance", clientId: "ynx-finance-v1", displayName: "YNX Finance", applicationId: "com.ynxweb4.finance", webOrigin: "https://finance.ynxweb4.com", nativeCallback: "ynxfinance://wallet-auth/callback", legacyCallbacks: ["ynxfinance", "ynxfinance://wallet-auth/callback"], scopes: ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"], evmCompatible: true, sessionDurationSeconds: 240 }, { productId: "pay", clientId: "ynx-pay-v1", displayName: "YNX Pay", applicationId: "com.ynxweb4.pay", webOrigin: "https://pay.ynxweb4.com", nativeCallback: "ynxpay://wallet-auth/callback", legacyCallbacks: ["ynxpay", "ynxpay://wallet-auth/callback"], scopes: ["account:read", "pay:case:create", "pay:settlement:submit"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "quant", clientId: "ynx-quant-v1", displayName: "YNX Quant", applicationId: "com.ynxweb4.quant", webOrigin: "https://quant.ynxweb4.com", nativeCallback: "ynxquant://wallet-auth/callback", legacyCallbacks: ["ynxquant", "ynxquant://wallet-auth/callback"], scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke", "quant:records:read"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "shop", clientId: "ynx-shop-v1", displayName: "YNX Shop", applicationId: "com.ynxweb4.shop", webOrigin: "https://shop.ynxweb4.com", nativeCallback: "ynxshop://wallet-auth/callback", legacyCallbacks: ["ynxshop", "ynxshop://wallet-auth/callback"], scopes: ["account:read", "shop:orders:write", "shop:profile:write"], evmCompatible: true, sessionDurationSeconds: 240 }, { productId: "social", clientId: "ynx-social-v1", displayName: "YNX Social", applicationId: "com.ynx.social", webOrigin: "https://social.ynxweb4.com", nativeCallback: "ynx-social://com.ynx.social", legacyCallbacks: ["ynx-social", "ynx-social://com.ynx.social"], scopes: ["account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"], evmCompatible: false, sessionDurationSeconds: 240 }, { productId: "video", clientId: "ynx-video-mobile-v1", displayName: "YNX Video", applicationId: "com.ynxweb4.video", webOrigin: "https://video.ynxweb4.com", nativeCallback: "ynxvideo://wallet-auth/callback", legacyCallbacks: ["ynxvideo", "ynxvideo://wallet-auth/callback"], scopes: ["video:account", "video:library", "video:playback"], evmCompatible: false, sessionDurationSeconds: 300 }] };
+  var ae4 = Object.freeze(["android", "ios", "linux", "macos", "web", "windows"]);
+  var E4 = "https://wallet-auth.ynxweb4.com";
+  var se4 = Object.freeze(["finance", "exchange", "quant"]);
+  var j4 = "ynx_requestCentralBrowserSignIn";
+  var k5 = "ynx-hosted-wallet/v1";
+  var u2 = "https://wallet.ynxweb4.com";
+  var M4 = "/hosted/";
+  var w4 = "0x1917";
+  var z4 = 12e4;
+  var $5 = 60 * 6e4;
+  var J4 = 4096;
+  function O4(e2) {
+    throw Object.assign(new Error(e2), { code: e2 });
+  }
+  function V3(e2) {
+    return typeof e2 != "string" || !/^https:\/\/[a-z0-9.-]+$/u.test(e2) ? null : e2 === E4 ? Object.freeze({ productId: "central-browser-identity", webOrigin: e2, evmCompatible: true }) : H5.products.find((r3) => r3.webOrigin === e2 && r3.evmCompatible === true) ?? null;
+  }
+  function G4(e2, r3) {
+    e2 === E4 && ![j4, "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(r3) && O4("HOSTED_IDENTITY_ONLY");
+  }
+  function R3(e2 = globalThis.crypto) {
+    e2?.getRandomValues || O4("HOSTED_CRYPTO_UNAVAILABLE");
+    let r3 = e2.getRandomValues(new Uint8Array(24));
+    return btoa(String.fromCharCode(...r3)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+  }
+  function q4(e2) {
+    let r3 = new TextEncoder().encode(JSON.stringify(e2));
+    return r3.length > J4 && O4("HOSTED_REQUEST_INVALID"), btoa(String.fromCharCode(...r3)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+  }
+  function S4(e2, r3, c4 = {}, n4 = Date.now()) {
+    return n4 >= e2.expiresAt && O4("HOSTED_REQUEST_EXPIRED"), { protocol: k5, requestId: e2.requestId, nonce: e2.nonce, messageId: R3(), expiresAt: Math.min(e2.expiresAt, n4 + 3e4), type: r3, ...c4 };
+  }
+  var B3 = (e2) => e2 !== null && typeof e2 == "object" && !Array.isArray(e2);
+  var L = (e2, r3) => B3(e2) && Object.keys(e2).every((c4) => r3.includes(c4));
+  var X3 = (e2, r3) => Array.isArray(e2) && e2.length > 0 && e2.length <= r3.length && new Set(e2).size === e2.length && e2.every((c4) => typeof c4 == "string" && r3.includes(c4));
+  function W5(e2, r3, c4) {
+    let n4 = Array.isArray(r3) && r3.length === 1 ? r3[0] : null, a3 = B3(n4) && n4.chainId === c4.chainId;
+    if (e2 === "wallet_switchEthereumChain") a3 = a3 && L(n4, ["chainId"]);
+    else if (e2 === "wallet_addEthereumChain") {
+      if (a3 = a3 && L(n4, ["chainId", "chainName", "nativeCurrency", "rpcUrls", "blockExplorerUrls"]) && X3(n4.rpcUrls, c4.rpcUrls) && (!Object.hasOwn(n4, "chainName") || n4.chainName === c4.chainName) && (!Object.hasOwn(n4, "blockExplorerUrls") || X3(n4.blockExplorerUrls, c4.blockExplorerUrls)), a3 && Object.hasOwn(n4, "nativeCurrency")) {
+        let i3 = n4.nativeCurrency;
+        a3 = L(i3, ["name", "symbol", "decimals"]) && [c4.nativeCurrency.name, "YNXT"].includes(i3.name) && i3.symbol === c4.nativeCurrency.symbol && i3.decimals === c4.nativeCurrency.decimals;
+      }
+    } else a3 = false;
+    if (!a3) throw Object.assign(new Error("Rejected non-canonical YNX Testnet chain parameters."), { code: "INVALID_CHAIN_PARAMS" });
+    return true;
+  }
+  function y6(e2) {
+    return Object.assign(new Error(e2), { code: e2 });
+  }
+  var K5 = Object.freeze({ chainId: w4, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
+  function Se6({ window: e2 = globalThis.window, walletOrigin: r3 = u2 } = {}) {
+    let c4 = e2.location.origin;
+    if (!V3(c4) || r3 !== u2) throw y6("HOSTED_ORIGIN_UNREGISTERED");
+    let n4 = null, a3 = null, i3 = null, p4 = false, g4 = null, C4 = 0, A4 = false, I2 = null, s2 = /* @__PURE__ */ new Map(), h4 = /* @__PURE__ */ new Map(), T5 = /* @__PURE__ */ new Set();
+    function b4() {
+      return p4 && !!(n4 && !n4.closed && a3 && Date.now() < a3.expiresAt);
+    }
+    function x7(o4, t) {
+      for (let l4 of [...h4.get(o4) ?? []]) try {
+        l4(t);
+      } catch {
+      }
+    }
+    function f2(o4 = "HOSTED_DISCONNECTED") {
+      if (!A4) {
+        A4 = true, g4 && e2.clearInterval(g4), g4 = null, p4 = false, i3 = null, a3 = null, I2 = null;
+        for (let t of s2.values()) t.reject(y6(o4));
+        s2.clear(), x7("accountsChanged", []), x7("disconnect", { code: o4 }), A4 = false;
+      }
+    }
+    function U3(o4) {
+      if (!a3 || !n4 || o4.source !== n4 || o4.origin !== u2) return;
+      let t = o4.data;
+      if (!t || t.protocol !== k5 || t.requestId !== a3.requestId || t.nonce !== a3.nonce || !/^[A-Za-z0-9_-]{22,64}$/u.test(t.messageId ?? "") || T5.has(t.messageId) || !Number.isSafeInteger(t.expiresAt) || t.expiresAt <= Date.now() || t.expiresAt > a3.expiresAt) return;
+      if (T5.add(t.messageId), t.type === "ready") {
+        if (I2) return;
+        let d3 = S4(a3, "hello");
+        I2 = d3.messageId, n4.postMessage(d3, u2);
+        return;
+      }
+      if (t.type === "pong") {
+        C4 = Date.now();
+        return;
+      }
+      if (t.type === "connected") {
+        if (!s2.has("connect") || !I2 || t.replyTo !== I2 || !/^0x[0-9a-f]{40}$/u.test(t.account ?? "") || t.chainId !== w4 || !Number.isSafeInteger(t.sessionExpiresAt) || t.sessionExpiresAt <= Date.now() || t.sessionExpiresAt > Date.now() + $5) return;
+        let d3 = a3, m2 = s2.get("connect");
+        if (a3 = { ...a3, expiresAt: t.sessionExpiresAt }, i3 = t.account, p4 = true, C4 = Date.now(), x7("accountsChanged", [i3]), !p4 || a3?.requestId !== d3.requestId || (x7("connect", { chainId: w4 }), !p4 || a3?.requestId !== d3.requestId)) return;
+        m2.resolve([i3]), s2.delete("connect");
+        return;
+      }
+      if (t.type === "rejected") {
+        if (!I2 || t.replyTo !== I2) return;
+        s2.get("connect")?.reject(y6("USER_REJECTED")), s2.delete("connect"), f2("USER_REJECTED");
+        return;
+      }
+      if (t.type === "disconnected") {
+        f2();
+        return;
+      }
+      if (t.type !== "response" || typeof t.replyTo != "string") return;
+      let l4 = s2.get(t.replyTo);
+      l4 && (s2.delete(t.replyTo), t.ok === true ? l4.resolve(t.result) : l4.reject(y6(typeof t.code == "string" || Number.isInteger(t.code) ? t.code : "HOSTED_REQUEST_FAILED")));
+    }
+    e2.addEventListener("message", U3);
+    async function v7() {
+      if (b4()) return [i3];
+      if (p4 && f2("HOSTED_REQUEST_EXPIRED_OR_RELOADED"), s2.has("connect")) return s2.get("connect").promise;
+      T5.clear(), I2 = null, a3 = { version: 1, origin: c4, requestId: R3(), nonce: R3(), expiresAt: Date.now() + z4, chainId: w4 };
+      let o4 = `${u2}${M4}#connect=${q4(a3)}`;
+      if (n4 = e2.open(o4, `ynx-hosted-${a3.requestId}`, "popup,width=460,height=720"), !n4) throw a3 = null, y6("HOSTED_POPUP_BLOCKED");
+      let t, l4, d3 = new Promise((m2, _3) => {
+        t = m2, l4 = _3;
+      });
+      return s2.set("connect", { resolve: t, reject: l4, promise: d3 }), g4 = e2.setInterval(() => {
+        if (n4?.closed || Date.now() >= a3?.expiresAt || p4 && Date.now() - C4 > 15e3) {
+          f2(n4?.closed ? "HOSTED_POPUP_CLOSED" : "HOSTED_REQUEST_EXPIRED_OR_RELOADED");
+          return;
+        }
+        p4 && n4.postMessage(S4(a3, "ping"), u2);
+      }, 1e3), d3;
+    }
+    async function F3({ method: o4, params: t = [] }) {
+      if (G4(c4, o4), o4 === "eth_requestAccounts") return v7();
+      if (o4 === "eth_accounts") return b4() ? [i3] : [];
+      if (o4 === "eth_chainId") return w4;
+      if (o4 === "wallet_addEthereumChain" || o4 === "wallet_switchEthereumChain") return W5(o4, t, K5), null;
+      if (!b4()) throw p4 && f2("HOSTED_REQUEST_EXPIRED_OR_RELOADED"), y6("HOSTED_DISCONNECTED");
+      if (typeof o4 != "string" || o4.length > 80 || !Array.isArray(t) || JSON.stringify(t).length > 65536) throw y6("HOSTED_METHOD_INVALID");
+      let l4 = S4(a3, "request", { method: o4, params: t });
+      return new Promise((d3, m2) => {
+        let _3 = e2.setTimeout(() => {
+          s2.delete(l4.messageId), m2(y6("HOSTED_REQUEST_TIMEOUT"));
+        }, Math.min(3e4, l4.expiresAt - Date.now()));
+        s2.set(l4.messageId, { resolve: (N11) => {
+          e2.clearTimeout(_3), d3(N11);
+        }, reject: (N11) => {
+          e2.clearTimeout(_3), m2(N11);
+        } }), n4.postMessage(l4, u2);
+      });
+    }
+    async function D5() {
+      try {
+        n4 && !n4.closed && a3 && n4.postMessage(S4(a3, "request", { method: "wallet_disconnect", params: [] }), u2);
+      } finally {
+        f2();
+      }
+    }
+    return Object.freeze({ connect: v7, request: F3, restore: async () => b4() ? [i3] : [], disconnect: D5, revoke: D5, detach: async () => {
+      try {
+        await D5();
+      } finally {
+        e2.removeEventListener("message", U3);
+      }
+    }, on: (o4, t) => {
+      if (typeof t != "function") throw new TypeError("callback");
+      h4.has(o4) || h4.set(o4, /* @__PURE__ */ new Set()), h4.get(o4).add(t);
+    }, removeListener: (o4, t) => h4.get(o4)?.delete(t), get connected() {
+      return b4();
+    }, get account() {
+      return b4() ? i3 : null;
+    } });
+  }
+
+  // src/central-browser-session-browser.js
   var context = JSON.parse(document.getElementById("context").textContent);
   if (context.mode === "session") {
     const status = document.getElementById("status"), button = document.getElementById("global-logout");
@@ -26873,6 +27042,13 @@ ${item.productId}`));
     });
     void refresh();
   } else {
+    let retireHosted = function() {
+      const previous = hosted;
+      hosted = null;
+      hostedProvider = null;
+      if (previous) void previous.detach().catch(() => {
+      });
+    };
     const challenge = parseCentralBrowserSignInChallenge(context.challenge, context.registry, { peerOrigin: location.origin });
     const picker = document.getElementById("wallet"), approve = document.getElementById("approve"), cancel = document.getElementById("cancel"), status = document.getElementById("status");
     const discovery = createWalletProviderDiscovery(window);
@@ -26897,13 +27073,14 @@ ${item.productId}`));
       approve.disabled = true;
       clearPairQR();
       if (pair) void pair.cancel();
+      retireHosted();
     });
-    let providers = [], selected = null, pending = null, revision = 0, cancelled = false;
+    let providers = [], selected = null, pending = null, revision = 0, cancelled = false, hosted = null, hostedPending = null, hostedProvider = null;
     const message = (value) => {
       status.textContent = value;
     };
     const failure = (error, phase) => {
-      const known = /* @__PURE__ */ new Set(["YNX_PAIR_TIMEOUT", "YNX_PAIR_CANCELLED", "YNX_PAIR_CONFIGURATION_INVALID", "YNX_PAIR_SESSION_EXPIRED", "YNX_PAIR_PEER_INVALID", "YNX_PAIR_NAMESPACE_INVALID", "YNX_PAIR_CHAIN_INVALID", "YNX_PAIR_SESSION_SELECTION_REQUIRED", "YNX_PAIR_METHOD_NOT_APPROVED", "YNX_PAIR_CONTEXT_CHANGED", "SSO_CONTEXT_CHANGED", "SSO_CHALLENGE_EXPIRED", "SSO_REQUEST_TIMEOUT", "SSO_CSRF_MISMATCH", "SSO_TRANSACTION_EXPIRED", "SSO_LOGIN_REQUIRED", "SSO_REQUEST_FAILED", "PROVIDER_WRONG_CHAIN"]);
+      const known = /* @__PURE__ */ new Set(["YNX_PAIR_TIMEOUT", "YNX_PAIR_CANCELLED", "YNX_PAIR_CONFIGURATION_INVALID", "YNX_PAIR_SESSION_EXPIRED", "YNX_PAIR_PEER_INVALID", "YNX_PAIR_NAMESPACE_INVALID", "YNX_PAIR_CHAIN_INVALID", "YNX_PAIR_SESSION_SELECTION_REQUIRED", "YNX_PAIR_METHOD_NOT_APPROVED", "YNX_PAIR_CONTEXT_CHANGED", "SSO_CONTEXT_CHANGED", "SSO_CHALLENGE_EXPIRED", "SSO_REQUEST_TIMEOUT", "SSO_CSRF_MISMATCH", "SSO_TRANSACTION_EXPIRED", "SSO_LOGIN_REQUIRED", "SSO_REQUEST_FAILED", "PROVIDER_WRONG_CHAIN", "HOSTED_POPUP_BLOCKED", "HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_TIMEOUT", "HOSTED_REQUEST_EXPIRED_OR_RELOADED", "HOSTED_DISCONNECTED", "HOSTED_ORIGIN_UNREGISTERED", "HOSTED_METHOD_INVALID", "HOSTED_REQUEST_FAILED"]);
       const raw = typeof error?.code === "string" ? error.code : typeof error?.message === "string" ? error.message : "";
       const code2 = Number(error?.code) === 4001 || error?.code === "USER_REJECTED" ? "USER_REJECTED" : known.has(raw) ? raw : error?.name === "AbortError" ? "SSO_SERVICE_TIMEOUT" : error?.name === "TypeError" ? "SSO_TRANSPORT_UNAVAILABLE" : "SSO_WALLET_OR_SERVICE_UNAVAILABLE";
       status.dataset.errorCode = code2;
@@ -26929,8 +27106,69 @@ ${item.productId}`));
       pairRegion.hidden = true;
       pairCanvas.width = pairCanvas.height = 0;
     };
+    const hostedButton = document.createElement("button");
+    hostedButton.id = "hosted";
+    hostedButton.type = "button";
+    hostedButton.textContent = "Connect YNX Wallet Web";
+    pairButton.after(hostedButton);
+    hostedButton.addEventListener("click", () => {
+      if (cancelled || pending || pairPending || hostedPending) {
+        message("Finish or cancel your current request before opening another connection.");
+        return;
+      }
+      if (Date.parse(challenge.expiresAt) <= Date.now()) {
+        failure(new Error("SSO_CHALLENGE_EXPIRED"), "hosted-connect");
+        message("This sign-in request has expired. Return to your product and start a new request.");
+        restart.hidden = false;
+        return;
+      }
+      const epoch = ++revision;
+      selected = null;
+      approve.disabled = true;
+      hostedButton.setAttribute("aria-busy", "true");
+      status.dataset.phase = "hosted-connect";
+      delete status.dataset.errorCode;
+      message("Opening YNX Wallet Web. Connection permission and browser sign-in are separate approvals.");
+      let selectedAdapter, timer;
+      const task = (async () => {
+        hosted ??= Se6({ window });
+        selectedAdapter = hosted;
+        await Promise.race([selectedAdapter.connect(), new Promise((_3, reject) => {
+          timer = setTimeout(() => reject(new Error("SSO_REQUEST_TIMEOUT")), Math.max(1, Math.min(3e4, Date.parse(challenge.expiresAt) - Date.now())));
+        })]);
+        if (epoch !== revision || cancelled) {
+          await selectedAdapter.detach();
+          if (hosted === selectedAdapter) hosted = null;
+          throw new Error("SSO_CONTEXT_CHANGED");
+        }
+        hostedProvider = { isYNXWallet: true, isMetaMask: false, isYNXHosted: true, providerInfo: { rdns: "com.ynx.wallet.web" }, request: (input) => selectedAdapter.request(input), on: (event, listener) => selectedAdapter.on(event, listener), removeListener: (event, listener) => selectedAdapter.removeListener(event, listener) };
+        selected = hostedProvider;
+        picker.value = "";
+        approve.disabled = false;
+        message("YNX Wallet Web connected. Continue to review browser sign-in.");
+      })().catch(async (error) => {
+        if (error?.message === "SSO_REQUEST_TIMEOUT") {
+          if (epoch === revision) revision++;
+          if (selectedAdapter) {
+            await selectedAdapter.detach();
+            if (hosted === selectedAdapter) hosted = null;
+          }
+          failure(error, "hosted-connect");
+          restart.hidden = false;
+          message("Wallet Web connection timed out. Return to your product and retry; no browser sign-in was granted.");
+        } else if (epoch === revision && !cancelled) {
+          const code2 = failure(error, "hosted-connect");
+          message(code2 === "USER_REJECTED" ? "Connection was declined. No browser sign-in was granted." : `Wallet Web connection did not finish (${code2}). Retry or cancel.`);
+        }
+      }).finally(() => {
+        clearTimeout(timer);
+        if (hostedPending === task) hostedPending = null;
+        hostedButton.removeAttribute("aria-busy");
+      });
+      hostedPending = task;
+    });
     pairButton.addEventListener("click", () => {
-      if (cancelled || pending || pairPending) {
+      if (cancelled || pending || pairPending || hostedPending) {
         message("Finish or cancel your current request before opening another connection.");
         return;
       }
@@ -27005,12 +27243,12 @@ ${item.productId}`));
       });
       if (previous && providers.includes(previous)) {
         picker.value = String(providers.indexOf(previous));
-      } else if (previous && previous !== pairProvider) {
+      } else if (previous && previous !== pairProvider && previous !== hostedProvider) {
         selected = null;
         revision++;
       }
       approve.disabled = !selected || cancelled;
-      if (!providers.length && !pairPending && !selected) message("Installed YNX Wallet is unavailable. Install/unlock it or explicitly connect your mobile Wallet.");
+      if (!providers.length && !pairPending && !hostedPending && !selected) message("Installed YNX Wallet is unavailable. Install/unlock it or explicitly choose Wallet Web or mobile Wallet.");
     });
     picker.addEventListener("change", () => {
       selected = picker.value === "" ? null : providers[Number(picker.value)];
@@ -27019,6 +27257,7 @@ ${item.productId}`));
         clearPairQR();
         void pair.cancel();
       }
+      if (hosted) retireHosted();
       approve.disabled = !selected || cancelled;
       message(pending ? "Finish or cancel the current request before switching wallets." : "Connection is separate from browser sign-in approval.");
     });
@@ -27130,6 +27369,7 @@ ${item.productId}`));
       message("Cancelling this sign-in request\u2026");
       clearPairQR();
       if (pair) void pair.cancel();
+      retireHosted();
       try {
         const result = await request("cancel", { challengeId: challenge.challengeId });
         const redirect = new URL(result.redirectUri);

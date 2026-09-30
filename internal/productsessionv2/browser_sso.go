@@ -43,6 +43,7 @@ type browserPending struct {
 	Verifier  string    `json:"verifier"`
 	Target    string    `json:"target"`
 	ExpiresAt time.Time `json:"expiresAt"`
+	Silent    bool      `json:"silent,omitempty"`
 }
 type BrowserSSO struct {
 	product, origin, clientID, audience, authority, identityCookie, pendingCookie string
@@ -207,8 +208,25 @@ func (s *BrowserSSO) valid(grant BrowserGrant) bool {
 func (s *BrowserSSO) Start(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
+	prompt := r.URL.Query().Get("prompt")
+	if prompt != "" && prompt != "none" {
+		browserResponse(w, 400, map[string]string{"code": "SSO_REQUEST_REJECTED"})
+		return
+	}
+	silent := prompt == "none"
+	if silent && !s.SilentAllowed(r) {
+		http.Redirect(w, r, "/#"+s.target(r.URL.Query().Get("target")), 303)
+		return
+	}
+	if !silent {
+		for _, cookie := range r.Cookies() {
+			if cookie.Name == s.identityCookie+"-signedout" || cookie.Name == s.identityCookie+"-attempt" {
+				clearBrowserCookie(w, cookie.Name)
+			}
+		}
+	}
 	var pending browserPending
-	if s.cookie(r, s.pendingCookie, &pending) != nil || !pending.ExpiresAt.After(s.now()) {
+	if s.cookie(r, s.pendingCookie, &pending) != nil || !pending.ExpiresAt.After(s.now()) || pending.Silent != silent {
 		state, err := browserRandom()
 		if err != nil {
 			browserResponse(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
@@ -219,7 +237,7 @@ func (s *BrowserSSO) Start(w http.ResponseWriter, r *http.Request) {
 			browserResponse(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
 			return
 		}
-		pending = browserPending{state, verifier, s.target(r.URL.Query().Get("target")), s.now().Add(2 * time.Minute)}
+		pending = browserPending{State: state, Verifier: verifier, Target: s.target(r.URL.Query().Get("target")), ExpiresAt: s.now().Add(2 * time.Minute), Silent: silent}
 		// Retain only the sealed original target/state briefly after the two
 		// minute authorization deadline, so an explicit denial can return safely.
 		// Expired pending transactions can never redeem an authorization code.
@@ -230,6 +248,13 @@ func (s *BrowserSSO) Start(w http.ResponseWriter, r *http.Request) {
 	}
 	hash := sha256.Sum256([]byte(pending.Verifier))
 	query := url.Values{"clientId": {s.clientID}, "origin": {s.origin}, "redirectUri": {s.origin + "/sso/callback"}, "state": {pending.State}, "codeChallenge": {base64.RawURLEncoding.EncodeToString(hash[:])}, "codeChallengeMethod": {"S256"}}
+	if silent {
+		if s.set(w, s.identityCookie+"-attempt", true, s.now().Add(time.Minute)) != nil {
+			browserResponse(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
+			return
+		}
+		query.Set("prompt", "none")
+	}
 	http.Redirect(w, r, browserIssuer+"/v2/browser-sessions/authorize?"+query.Encode(), 303)
 }
 func (s *BrowserSSO) Callback(w http.ResponseWriter, r *http.Request) {
@@ -241,7 +266,7 @@ func (s *BrowserSSO) Callback(w http.ResponseWriter, r *http.Request) {
 		browserResponse(w, 400, map[string]string{"code": "SSO_CALLBACK_REJECTED"})
 		return
 	}
-	if len(query["error"]) == 1 && query.Get("error") == "access_denied" {
+	if len(query["error"]) == 1 && (query.Get("error") == "access_denied" || pending.Silent && query.Get("error") == "login_required") {
 		clearBrowserCookie(w, s.pendingCookie)
 		http.Redirect(w, r, "/#"+s.target(pending.Target), 303)
 		return
@@ -324,5 +349,20 @@ func (s *BrowserSSO) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	clearBrowserCookie(w, s.identityCookie)
+	if s.set(w, s.identityCookie+"-signedout", true, s.now().Add(30*24*time.Hour)) != nil {
+		browserResponse(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
+		return
+	}
 	browserResponse(w, 200, map[string]bool{"revoked": true})
+}
+
+// These host-only HttpOnly markers carry no identity or permission. Presence
+// (including malformed/duplicate cookies) fails closed for automatic restore.
+func (s *BrowserSSO) SilentAllowed(r *http.Request) bool {
+	for _, cookie := range r.Cookies() {
+		if cookie.Name == s.identityCookie+"-signedout" || cookie.Name == s.identityCookie+"-attempt" {
+			return false
+		}
+	}
+	return true
 }

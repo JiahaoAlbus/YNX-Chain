@@ -88,6 +88,147 @@ func centralBrowserQAGateway(t *testing.T) string {
 	}
 	return ""
 }
+
+// Actual TLS product + durable NodeHost, isolated QA signing authority only.
+// No installed Wallet/public/platform success is inferred from this test.
+func TestCentralBrowserSilentRecoveryActualGatewayAndLogoutRace(t *testing.T) {
+	gateway := centralBrowserQAGateway(t)
+	store, err := OpenStore(filepath.Join(t.TempDir(), "finance.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	upstreams, _ := NewUpstreams("https://explorer.example", "", "", "https://support.example/disputes")
+	auth, _ := testAuthenticator(t, "unused-private-proof")
+	s, err := NewServer(&Service{Store: store, Upstreams: upstreams, AI: fakeAI{}, Support: SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"}}, auth, ServerConfig{AllowedOrigins: []string{BrowserFinanceOrigin}, CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey, CentralBrowserSSO: true, WalletGatewayURL: gateway})
+	if err != nil {
+		t.Fatal(err)
+	}
+	product := httptest.NewTLSServer(s.Handler())
+	defer product.Close()
+	newClient := func() *http.Client {
+		v := *product.Client()
+		v.Timeout = 5 * time.Second
+		v.Jar, _ = cookiejar.New(nil)
+		v.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		return &v
+	}
+	client := newClient()
+	get := func(c *http.Client, path string) *http.Response {
+		response, err := c.Get(product.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		return response
+	}
+	centralGet := func(query string, cookie *http.Cookie) *http.Response {
+		r, _ := http.NewRequest("GET", gateway+"/v2/browser-sessions/authorize?"+query, nil)
+		if cookie != nil {
+			r.AddCookie(cookie)
+		}
+		v := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+		response, err := v.Do(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		return response
+	}
+	start := get(client, "/sso/start?prompt=none&target=planning")
+	u, _ := url.Parse(start.Header.Get("Location"))
+	quietGuest := centralGet(u.RawQuery, nil)
+	guestCallback, _ := url.Parse(quietGuest.Header.Get("Location"))
+	if quietGuest.StatusCode != 303 || guestCallback.Query().Get("error") != "login_required" || quietGuest.Header.Get("Content-Type") == "text/html; charset=utf-8" {
+		t.Fatal("quiet guest became interactive")
+	}
+	guest := get(client, guestCallback.RequestURI())
+	if guest.StatusCode != 303 || guest.Header.Get("Location") != "/#planning" || get(client, "/api/sso/account").StatusCode != 401 {
+		t.Fatal("quiet guest fabricated identity or lost target")
+	}
+	if get(client, "/sso/start?prompt=none&target=planning").Header.Get("Location") != "/#planning" {
+		t.Fatal("quiet callback loops automatically")
+	}
+	start = get(client, "/sso/start?target=planning")
+	u, _ = url.Parse(start.Header.Get("Location"))
+	input := map[string]string{}
+	for k, v := range u.Query() {
+		input[k] = v[0]
+	}
+	boot, bootstrap := centralQARequest(t, gateway+"/v2/browser-sessions/bootstrap", nil, nil, "")
+	transaction := boot.Cookies()[0]
+	_, challenged := centralQARequest(t, gateway+"/v2/browser-sessions/challenge", input, transaction, bootstrap["csrfToken"].(string))
+	_, approval := centralQARequest(t, gateway+"/__qa/approve", map[string]any{"challenge": challenged["challenge"], "account": "A"}, nil, "")
+	completed, _ := centralQARequest(t, gateway+"/v2/browser-sessions/complete", approval, transaction, bootstrap["csrfToken"].(string))
+	if completed.StatusCode != 200 {
+		t.Fatal("isolated canonical consent failed")
+	}
+	central := completed.Cookies()[0]
+	first := centralGet(u.RawQuery, central)
+	callback, _ := url.Parse(first.Header.Get("Location"))
+	if get(client, callback.RequestURI()).StatusCode != 303 {
+		t.Fatal("explicit initial identity failed")
+	}
+	// A second product tab silently recovers from the existing root. Its
+	// callback is deliberately delayed until after product-only logout.
+	late := newClient()
+	lateStart := get(late, "/sso/start?prompt=none&target=statements")
+	lateURL, _ := url.Parse(lateStart.Header.Get("Location"))
+	lateCode := centralGet(lateURL.RawQuery, central)
+	lateCallback, _ := url.Parse(lateCode.Header.Get("Location"))
+	if lateCode.StatusCode != 303 || lateCallback.Query().Get("code") == "" {
+		t.Fatal("active root did not silently authorize identity")
+	}
+	accountResponse, err := client.Get(product.URL + "/api/sso/account")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var account map[string]any
+	_ = json.NewDecoder(accountResponse.Body).Decode(&account)
+	accountResponse.Body.Close()
+	r, _ := http.NewRequest("POST", product.URL+"/api/sso/logout", strings.NewReader("{}"))
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("Origin", BrowserFinanceOrigin)
+	r.Header.Set("X-YNX-SSO-CSRF", account["csrfToken"].(string))
+	logout, err := client.Do(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logout.Body.Close()
+	if logout.StatusCode != 200 {
+		t.Fatal("product logout failed")
+	}
+	if get(late, lateCallback.RequestURI()).StatusCode == 303 || get(late, "/api/sso/account").StatusCode != 401 {
+		t.Fatal("late silent code revived product identity")
+	}
+	if get(client, "/sso/start?prompt=none&target=planning").Header.Get("Location") != "/#planning" {
+		t.Fatal("product logout did not suppress automatic sign-in")
+	}
+	// Explicit action can reuse the still-valid central root, without another
+	// challenge/signature. The prior product-only logout is not global logout.
+	start = get(client, "/sso/start?target=planning")
+	u, _ = url.Parse(start.Header.Get("Location"))
+	fresh := centralGet(u.RawQuery, central)
+	callback, _ = url.Parse(fresh.Header.Get("Location"))
+	if get(client, callback.RequestURI()).StatusCode != 303 || get(client, "/api/sso/account").StatusCode != 200 {
+		t.Fatal("explicit restart did not reuse central identity")
+	}
+	_, rootBootstrap := centralQARequest(t, gateway+"/v2/browser-sessions/bootstrap", nil, central, "")
+	rootLogout, _ := centralQARequest(t, gateway+"/v2/browser-sessions/logout", map[string]any{}, central, rootBootstrap["sessionCsrfToken"].(string))
+	if rootLogout.StatusCode != 200 {
+		t.Fatal("global logout failed")
+	}
+	if get(client, "/api/sso/account").StatusCode != 401 {
+		t.Fatal("global logout preserved linked identity")
+	}
+	newTab := newClient()
+	last := get(newTab, "/sso/start?prompt=none&target=statements")
+	lastURL, _ := url.Parse(last.Header.Get("Location"))
+	denied := centralGet(lastURL.RawQuery, central)
+	deniedURL, _ := url.Parse(denied.Header.Get("Location"))
+	if deniedURL.Query().Get("error") != "login_required" || get(newTab, deniedURL.RequestURI()).Header.Get("Location") != "/#statements" {
+		t.Fatal("revoked root silent recovery was not quiet guest")
+	}
+}
 func centralQARequest(t *testing.T, endpoint string, body any, cookie *http.Cookie, csrf string) (*http.Response, map[string]any) {
 	t.Helper()
 	var reader io.Reader

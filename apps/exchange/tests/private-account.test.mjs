@@ -82,6 +82,6 @@ test('entry and UI separate standard connection from private read-only scopes an
   assert.match(entry,/scopes:\[PRIVATE_READ_SCOPE\]/);assert.doesNotMatch(entry,/exchange:trade|exchange:deposit|localStorage|sessionStorage/);
   const render=app.slice(app.indexOf('function renderPrivateAccount'),app.indexOf('function renderBook'));
   assert.doesNotMatch(render,/disconnectWallet\(|YNXExchangeWebWallet\./);
-  for(const forbidden of [/window\.open\(/,/<iframe/i,/location\.(assign|replace)\(/,/location\.href\s*=/])assert.doesNotMatch(app+html,forbidden);
+  for(const forbidden of [/window\.open\(/,/<iframe/i,/location\.(assign|replace)\(/,/location\.href\s*=/])assert.doesNotMatch(app.replace(/async function restoreBrowserIdentityQuietly\(\)\{[^\n]+\n/u,'')+html,forbidden);
   assert.match(html,/id="private-open" hidden rel="noreferrer"/);assert.match(app,/open.href=value.route/);assert.match(app,/handleReturn|privateAccount.start\(location.href\)/);
 });

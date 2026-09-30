@@ -105,7 +105,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /sso/start", s.ssoStart)
 	s.mux.HandleFunc("GET /sso/callback", s.ssoCallback)
 	s.mux.HandleFunc("GET /api/sso/account", s.ssoAccount)
-	s.mux.HandleFunc("GET /api/sso/config", func(w http.ResponseWriter,r *http.Request){w.Header().Set("Cache-Control","no-store");writeJSON(w,200,map[string]bool{"enabled":s.ssoAvailable()})})
+	s.mux.HandleFunc("GET /api/sso/config", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		writeJSON(w, 200, map[string]bool{"enabled": s.ssoAvailable(), "silentRestoreAllowed": s.ssoAvailable() && s.ssoSilentAllowed(r)})
+	})
 	s.mux.HandleFunc("POST /api/sso/logout", s.ssoLogout)
 	s.mux.HandleFunc("POST /api/wallet-login/challenges", s.walletLoginChallenge)
 	s.mux.HandleFunc("POST /api/wallet-login/verify", s.walletLoginVerify)

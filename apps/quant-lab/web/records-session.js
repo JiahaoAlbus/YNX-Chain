@@ -11,7 +11,7 @@ function fail(code){throw Object.assign(new Error(code),{code});}
 function render(){
   const copy=privateSessionCopy(localStorage.getItem('ynx.quant.locale')||'en');
   for(const [id,key] of [['records-authorize','recordsAuthorize'],['records-read','recordsRead'],['records-revoke','recordsRevoke']]){const el=document.getElementById(id);if(el)el.textContent=copy[key];}
-  const status=document.getElementById('records-status');if(status)status.textContent=(pending?copy.pending:state.status==='connected'?copy.connected:state.status==='guest'?copy.guest:copy.unavailable)+' '+(state.account||'')+' '+copy.recordsBoundary;
+  const status=document.getElementById('records-status');if(status){status.dataset.pending=String(!!pending);status.textContent=(pending?copy.pending:state.status==='connected'?copy.connected:state.status==='guest'?copy.guest:copy.unavailable)+' '+(state.account||'')+' '+copy.recordsBoundary;}
   const list=document.getElementById('records-owned');if(list){
     list.replaceChildren();
     if(lastRecords&&(lastRecords.mandates.length+lastRecords.executions.length===0)){const empty=document.createElement('li');empty.textContent=copy.recordsEmpty;list.append(empty);}
