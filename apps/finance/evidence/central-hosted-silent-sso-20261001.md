@@ -71,3 +71,36 @@ Reproduce the strict gate from apps/finance:
 `node --test tests/evm-read-verifier.test.mjs tests/wallet-bundle-verifier.test.mjs`
 and `node web/verify-wallet-connect.mjs`. The successor adds an explicit Hosted
 byte-tamper negative test; none of the prior graph/tamper tests are weakened.
+
+## Existing Finance service use follow-up
+
+The same local `central-selected-login` command now also exercises the actual
+budget form: create a category, create a monthly budget of 123 YNXT, and read
+the account-owned persisted profile. The statement form returns the same native
+account and `finance-statement-v2`, renders the result, and explicitly keeps
+`coverageComplete=false` for unavailable upstream history. A real page reload
+restores the same private session ID and both stored planning records without
+a second Wallet approval. The later 503 recovery and product-only logout
+reject-old-proof checks still pass. Final result: 1/1 PASS, no skips, 15.334s.
+This is local Gateway/Go/Chromium QA with isolated approval keys, not a public
+Wallet or a verified asset balance/history claim.
+
+Hosted central identity remains separate from product native authorization.
+The accepted Hosted artifact in this checkpoint does not provide the product
+`ynx_requestProductSessionV2` signing route. Finance presently requires a
+selected injected native provider for that operation. The Wallet provider owner
+must accept a successor artifact before the consumer can enable the Hosted
+private route. The consumer will pass the exact official SDK route URL and
+receive `{version:2,returnUrl}`, with account/chain/provider/revision fencing,
+then use the existing `handleReturn` and protected-API proofs. Central identity
+will never substitute for product scopes or convert an EVM address into a
+native approval.
+
+A read-only public check during this follow-up still reported Finance source
+567ee5164db630872102cd25ef78069e0fbc0dce, not this candidate. Its app.js was
+78926 bytes/SHA256 9f78360c39b9cbb9f5b9217c25e638cfb1d9430b7c7db051365098f12b28f2c2;
+wallet-auth.js was 209482 bytes/SHA256
+19a4f68e6be82621eba95b73fae4cf5748d2ab30723d19b7736a5dd2e5a87de7.
+Therefore this follow-up does not issue a new current-public-source-accepted
+receipt for the unobserved candidate. Release readback and real user service
+evidence remain the separate owner's next steps.
