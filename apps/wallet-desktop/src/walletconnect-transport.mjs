@@ -8,9 +8,10 @@ export const WALLETCONNECT_EVENTS = Object.freeze(["accountsChanged", "chainChan
 const TOMBSTONE_STORAGE_KEY = "ynx-wallet:walletconnect-disconnected-topics:v1";
 
 export class WalletConnectTransport {
-  constructor({ projectId, metadata, walletKitFactory = defaultFactory, clock = () => Date.now() }) {
+  constructor({ projectId, metadata, configurationError = null, walletKitFactory = defaultFactory, clock = () => Date.now() }) {
     this.projectId = projectId?.trim() || null;
     this.metadata = metadata;
+    this.configurationError = configurationError;
     this.walletKitFactory = walletKitFactory;
     this.clock = clock;
     this.walletKit = null;
@@ -28,10 +29,11 @@ export class WalletConnectTransport {
       started,
       relayConnected,
       activeSessionCount: started ? Object.values(this.walletKit.getActiveSessions?.() ?? {}).filter(session => !this.disconnectedTopics.has(session.topic)).length : 0,
-      code: !this.projectId ? "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" : relayConnected ? null : "WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED"
+      code: this.configurationError || (!this.projectId ? "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" : relayConnected ? null : "WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED")
     });
   }
   async start(handlers = {}) {
+    if (this.configurationError) throw transportError(this.configurationError, "WalletConnect public configuration is invalid");
     if (!this.projectId) throw transportError("WALLETCONNECT_PROJECT_ID_UNAVAILABLE", "WalletConnect project ID is not configured");
     this.walletKit = await this.walletKitFactory({ projectId: this.projectId, metadata: this.metadata });
     try { await this.#restoreDisconnectedTopics(); }
