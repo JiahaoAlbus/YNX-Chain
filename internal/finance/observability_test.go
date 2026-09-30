@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
@@ -44,8 +45,21 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ts := httptest.NewServer(server.Handler())
+	completed := make(chan struct{}, 4)
+	handler := server.Handler()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler.ServeHTTP(w, r)
+		completed <- struct{}{}
+	}))
 	defer ts.Close()
+	awaitCompleted := func() {
+		t.Helper()
+		select {
+		case <-completed:
+		case <-time.After(5 * time.Second):
+			t.Fatal("observability handler did not finish within the request deadline")
+		}
+	}
 
 	clientRequestID := "finance-client-request-0001"
 	req, err := http.NewRequest(http.MethodGet, ts.URL+"/api/portfolio?ignored=private", nil)
@@ -59,6 +73,7 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp.Body.Close()
+	awaitCompleted()
 	if resp.StatusCode != http.StatusOK || resp.Header.Get(requestIDHeader) != clientRequestID {
 		t.Fatalf("request ID was not propagated: status=%d requestId=%q", resp.StatusCode, resp.Header.Get(requestIDHeader))
 	}
@@ -77,6 +92,7 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 	if err := json.NewDecoder(unauthorizedResponse.Body).Decode(&errorPayload); err != nil {
 		t.Fatal(err)
 	}
+	awaitCompleted()
 	generatedRequestID := unauthorizedResponse.Header.Get(requestIDHeader)
 	if unauthorizedResponse.StatusCode != http.StatusUnauthorized || !strings.HasPrefix(generatedRequestID, "fin_") {
 		t.Fatalf("invalid request ID did not fail over safely: status=%d requestId=%q", unauthorizedResponse.StatusCode, generatedRequestID)
@@ -90,6 +106,7 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 		t.Fatal(err)
 	}
 	metricsWithoutKey.Body.Close()
+	awaitCompleted()
 	if metricsWithoutKey.StatusCode != http.StatusUnauthorized || metricsWithoutKey.Header.Get(errorIDHeader) != "YNX-FIN-OPERATIONS-AUTH-REJECTED" {
 		t.Fatalf("metrics endpoint did not fail closed: status=%d errorId=%q", metricsWithoutKey.StatusCode, metricsWithoutKey.Header.Get(errorIDHeader))
 	}
@@ -108,6 +125,7 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 	if err := json.NewDecoder(metricsResponse.Body).Decode(&snapshot); err != nil {
 		t.Fatal(err)
 	}
+	awaitCompleted()
 	if metricsResponse.StatusCode != http.StatusOK || snapshot.SchemaVersion != metricsPayloadVersion || snapshot.ObservabilityVersion != observabilityVersion {
 		t.Fatalf("metrics contract is invalid: status=%d snapshot=%+v", metricsResponse.StatusCode, snapshot)
 	}
