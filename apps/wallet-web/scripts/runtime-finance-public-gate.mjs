@@ -28,20 +28,17 @@ try{
   context=await bounded(chromium.launchPersistentContext(profile,{executablePath:browserPath,headless:true,ignoreHTTPSErrors:false,timeout:15000,ignoreDefaultArgs:["--disable-extensions"],args:[`--disable-extensions-except=${extensionPath}`,`--load-extension=${extensionPath}`,"--no-first-run","--no-default-browser-check"]}),20000,`${browserName} launch`);
   result.browser.version=context.browser()?.version()||"unknown";
   const worker=await waitForWorker(context),extensionOrigin=worker.url().replace(/\/service-worker\.js$/u,"");
-  if(threeFaults){
-    const companion=await context.newPage();await companion.goto(`${extensionOrigin}/index.html`);
-    await companion.locator("#ynx").click();await companion.waitForFunction(()=>document.querySelector("#status")?.dataset.kind==="error");
-    await companion.locator("#switch:not([disabled])").waitFor();await companion.locator("#switch").click();
-    await companion.waitForFunction(()=>document.querySelector("#status")?.dataset.kind==="info"&&!document.querySelector("#switch")?.disabled);
-    result.networkOnlyStatus=await companion.locator("#status").innerText();
-    result.networkOnlyDisconnected=/disconnected/iu.test(result.networkOnlyStatus)&&!await companion.locator("#actions").isVisible();
-    await companion.close();
-  }
   const vault=await context.newPage(),password="ynx-disposable-finance-qa-password";
   await bounded(vault.goto(`${extensionOrigin}/vault.html`,{waitUntil:"domcontentloaded"}),15000,"vault page");
   await vault.locator("#password").fill(password);await vault.locator("#secret").fill(randomBytes(32).toString("hex"));await vault.locator("#prepare").click();await vault.locator("#save:not([disabled])").waitFor();await vault.locator("#save").click();
   await bounded(vault.waitForFunction(()=>/^0x[0-9a-f]{40}$/u.test(document.querySelector("#evm-account")?.textContent||"")),15000,"vault account");result.account=await vault.locator("#evm-account").textContent();result.vaultCreatedThroughUi=true;await vault.close();step("vault-ready");
   if(threeFaults){
+    const companion=await context.newPage();await companion.goto("https://wallet.ynxweb4.com/",{waitUntil:"domcontentloaded"});await companion.locator("#wallet-connect-trigger").click();
+    await companion.locator("#ynx").click();const review=await waitForExtensionPage(context,"/approval.html");await review.locator("#reject:not([disabled])").click();
+    await companion.locator("#switch:not([disabled])").waitFor();await companion.locator("#switch").click();
+    await companion.waitForFunction(()=>document.querySelector("#status")?.dataset.kind==="info"&&!document.querySelector("#switch")?.disabled);
+    result.networkOnlyStatus=await companion.locator("#status").innerText();
+    result.networkOnlyDisconnected=/disconnected/iu.test(result.networkOnlyStatus)&&!await companion.locator("#actions").isVisible();await companion.close();
     // This worker belongs solely to the generated disposable QA profile.
     result.vaultHashBeforeMigration=await worker.evaluate(async()=>{const values=await chrome.storage.local.get("ynx.wallet.provider.vault.v1");const bytes=new TextEncoder().encode(JSON.stringify(values));const hash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)),b=>b.toString(16).padStart(2,"0")).join("");await chrome.storage.local.remove("ynx.wallet.provider.account.v1");return hash});
   }
