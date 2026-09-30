@@ -1,5 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {createECDH} from "node:crypto";
+import productRegistry from "../product-session-registry.json" with {type:"json"};
+import {createProductSessionRequest,encodeRequestDeepLink} from "../src/index.js";
+import {CENTRAL_BROWSER_ISSUER,CENTRAL_BROWSER_PURPOSE} from "../src/central-browser-session-contract.js";
+import {createCentralBrowserSessionRegistry} from "../src/central-browser-session-registry.js";
 import {
   WALLETCONNECT_CHAIN, WALLETCONNECT_SESSION_EVENTS, WALLETCONNECT_SESSION_METHODS,
   WalletConnectRequestReplayStore, createWalletConnectRequestReview,
@@ -45,6 +50,40 @@ function request(method, params, patch = {}) {
   if (patch.expiryTimestamp) { value.params = { ...value.params, request: { ...value.params.request, expiryTimestamp: patch.expiryTimestamp } }; delete value.expiryTimestamp; }
   return value;
 }
+
+function nativeSession(origin,methods){
+  const p=proposal();p.verifyContext.verified.origin=origin;p.params.proposer.metadata.url=`${origin}/`;
+  p.params.requiredNamespaces.eip155.methods=methods;p.params.optionalNamespaces={};
+  const review=reviewWalletConnectSessionProposal(p,{account:ACCOUNT,now:NOW});
+  return createWalletConnectSessionApproval(review,{approved:true,topic:TOPIC},new Date(NOW.getTime()+1000));
+}
+function nativeEvent(method,params,origin){return request(method,params,{verifyContext:{verified:{origin,validation:"VALID",verifyUrl:"https://verify.walletconnect.com/"}}});}
+test("central native method binds the real peer, exact identity clients, expiry and durable review consumption",()=>{
+  const registry=createCentralBrowserSessionRegistry(productRegistry),client=registry[0],origin=CENTRAL_BROWSER_ISSUER,method="ynx_requestCentralBrowserSignIn";
+  const challenge={version:1,issuer:origin,purpose:CENTRAL_BROWSER_PURPOSE,challengeId:"a".repeat(43),browserBinding:"b".repeat(64),nonce:"c".repeat(43),initiator:{clientId:client.clientId,origin:client.origin,redirectUri:client.redirectUri,state:"d".repeat(43),codeChallenge:"e".repeat(43),codeChallengeMethod:"S256"},clients:registry.map(c=>({clientId:c.clientId,origin:c.origin,audience:c.audience,scopes:[...c.scopes]})).sort((a,b)=>a.clientId.localeCompare(b.clientId)),issuedAt:NOW.toISOString(),expiresAt:new Date(NOW.getTime()+60000).toISOString()};
+  const replayStore=new WalletConnectRequestReplayStore(),approved=nativeSession(origin,[method]),event=nativeEvent(method,[challenge],origin);
+  const review=createWalletConnectRequestReview(event,{session:approved,replayStore,now:NOW});
+  assert.equal(review.account,ACCOUNT);assert.equal(review.requiresUserApproval,true);assert.equal(review.expiresAt,challenge.expiresAt);
+  const restored=new WalletConnectRequestReplayStore(replayStore.snapshot());
+  assert.throws(()=>createWalletConnectRequestReview(event,{session:approved,replayStore:restored,now:NOW}),{code:"WALLETCONNECT_REPLAY"});
+  assert.equal(finalizeWalletConnectRequestReview(review,{approved:true},restored,NOW).executionAuthorized,true);
+  assert.throws(()=>finalizeWalletConnectRequestReview(review,{approved:true},restored,NOW),{code:"WALLETCONNECT_REPLAY"});
+  assert.throws(()=>createWalletConnectRequestReview(nativeEvent(method,[challenge],client.origin),{session:nativeSession(client.origin,[method]),replayStore:new WalletConnectRequestReplayStore(),now:NOW}));
+  const invalid=structuredClone(challenge);invalid.clients[0].scopes.push("planning:write");
+  assert.throws(()=>createWalletConnectRequestReview(nativeEvent(method,[invalid],origin),{session:approved,replayStore:new WalletConnectRequestReplayStore(),now:NOW}));
+  assert.throws(()=>finalizeWalletConnectRequestReview(review,{approved:true},new WalletConnectRequestReplayStore(replayStore.snapshot()),new Date(challenge.expiresAt)));
+});
+test("native Product Session method validates the original route, peer and selected namespace account",()=>{
+  const device=createECDH("prime256v1");device.generateKeys();
+  const product=createProductSessionRequest(productRegistry,{productId:"creator-studio",platform:"web",deviceId:"wc-native-unit-device",deviceKey:device.getPublicKey(null,"compressed").toString("base64url"),scopes:["creator:account"],purpose:"Sign in to Creator Studio.",nonce:"a".repeat(43),state:"b".repeat(43)},NOW);
+  const method="ynx_requestProductSessionV2",url=encodeRequestDeepLink(product),approved=nativeSession(product.origin,[method]),store=new WalletConnectRequestReplayStore();
+  const review=createWalletConnectRequestReview(nativeEvent(method,[url],product.origin),{session:approved,replayStore:store,now:NOW});
+  assert.equal(review.account,ACCOUNT);assert.deepEqual(review.params,[url]);
+  assert.throws(()=>createWalletConnectRequestReview(nativeEvent(method,[url],"https://dapp.example"),{session:nativeSession("https://dapp.example",[method]),replayStore:new WalletConnectRequestReplayStore(),now:NOW}));
+  assert.throws(()=>createWalletConnectRequestReview(nativeEvent(method,[url,"extra"],product.origin),{session:approved,replayStore:new WalletConnectRequestReplayStore(),now:NOW}));
+  const changed={...review,account:"0x"+"bb".repeat(20)};
+  assert.throws(()=>finalizeWalletConnectRequestReview(changed,{approved:true},store,NOW));
+});
 
 test("runtime config and canonical v2 pairing URI are strict and credential-free", () => {
   assert.deepEqual(parseWalletConnectRuntimeConfig({ projectId: "01".repeat(16) }), { projectId: "01".repeat(16), relayUrl: "wss://relay.walletconnect.com" });

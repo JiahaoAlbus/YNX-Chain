@@ -83,6 +83,19 @@ export class WalletConnectRuntime {
     this.#set({request:null});
     await this.#require().respondSessionRequest({ topic: pending.topic, response: { jsonrpc: "2.0", id: pending.id, result } });
   }
+  bindReviewedRequest(review:{topic:string;requestId:number;account:string;method:string;params:unknown;peer:{metadata:{url:string}};expiresAt:string},reviewedEvent:WalletConnectRequest|null) {
+    const pending=this.#snapshot.request,client=this.#require();
+    if(!pending||pending!==reviewedEvent||pending.topic!==review.topic||pending.id!==review.requestId||pending.params.request.method!==review.method)throw new Error("The reviewed request is no longer current.");
+    const original=client.getActiveSessions()[review.topic];
+    if(!original)throw new Error("The reviewed session is no longer active.");
+    const namespace=JSON.stringify(original.namespaces),origin=new URL(original.peer.metadata.url).origin;
+    const assertCurrent=()=>{
+      const current=client.getActiveSessions()[review.topic],permissions=current?.namespaces.eip155;
+      if(this.#snapshot.request!==pending||!current||JSON.stringify(current.namespaces)!==namespace||new URL(current.peer.metadata.url).origin!==origin||origin!==new URL(review.peer.metadata.url).origin||!permissions?.accounts.includes(`eip155:6423:${review.account}`)||!permissions.methods.includes(review.method)||review.expiresAt<=new Date().toISOString())throw new Error("The reviewed request or session authorization changed. Return to the app for a fresh review.");
+    };
+    assertCurrent();
+    return Object.freeze({assertCurrent,respond:async(result:unknown)=>{assertCurrent();this.#set({request:null});await client.respondSessionRequest({topic:pending.topic,response:{jsonrpc:"2.0",id:pending.id,result}})},reject:async(code=5000,message="User rejected the request.")=>{if(this.#snapshot.request!==pending)return;this.#set({request:null});await client.respondSessionRequest({topic:pending.topic,response:{jsonrpc:"2.0",id:pending.id,error:{code,message}}})}});
+  }
   async rejectRequest(code = 5000, message = "User rejected the request."): Promise<void> {
     const pending = this.#snapshot.request; if (!pending) return;
     this.#set({request:null});

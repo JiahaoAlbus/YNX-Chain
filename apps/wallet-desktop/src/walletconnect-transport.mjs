@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { getSdkError } from "@walletconnect/utils";
 import { parseProductSessionWalletURL } from "@ynx-chain/wallet-auth";
 import { PRODUCT_SESSION_REGISTRY } from "./wallet-auth-contract.mjs";
+import { CENTRAL_BROWSER_METHOD, parseCentralSignIn } from "./central-browser-sign-in.mjs";
 import { createPrivateWalletConnectStorage } from "./walletconnect-private-storage.mjs";
 
 // This desktop main process is Node. The pinned SDK's Node/CJS exports avoid
@@ -12,7 +13,7 @@ const { WalletKit } = require("@reown/walletkit");
 export function createWalletConnectCore(options) { return new Core(options); }
 
 export const WALLETCONNECT_CHAIN = "eip155:6423";
-export const WALLETCONNECT_METHODS = Object.freeze(["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2"]);
+export const WALLETCONNECT_METHODS = Object.freeze(["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2", CENTRAL_BROWSER_METHOD]);
 export const WALLETCONNECT_EVENTS = Object.freeze(["accountsChanged", "chainChanged"]);
 const TOMBSTONE_STORAGE_KEY = "ynx-wallet:walletconnect-disconnected-topics:v1";
 
@@ -162,7 +163,10 @@ export class WalletConnectTransport {
     if (!request || typeof request.method !== "string" || !namespace.methods.includes(request.method)) throw transportError("UNAUTHORIZED_WALLETCONNECT_METHOD", "WalletConnect method was not approved for this session");
     if (!Array.isArray(request.params)) throw transportError("INVALID_WALLETCONNECT_REQUEST", "WalletConnect request parameters must be an array");
     let requestedAccount;
-    if(request.method === "ynx_requestProductSessionV2") {
+    if(request.method === CENTRAL_BROWSER_METHOD) {
+      parseCentralSignIn(request.params, this.sessionOrigin(topic), this.clock());
+      requestedAccount = normalizeAccount(selectedAccount);
+    } else if(request.method === "ynx_requestProductSessionV2") {
       if(request.params.length !== 1 || typeof request.params[0] !== "string" || request.params[0].length > 32768) throw transportError("INVALID_WALLETCONNECT_REQUEST","Sign-in requires the exact official Wallet route");
       const productRequest = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,request.params[0],new Date(this.clock()));
       if(productRequest.origin !== this.sessionOrigin(topic)) throw transportError("PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this session");

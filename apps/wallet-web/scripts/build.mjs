@@ -208,6 +208,7 @@ for (const [name, manifest] of variants) {
   await bundle({entryPoints:[join(root,"src","extension-vault.js")],outfile:join(target,"extension-vault.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await bundle({entryPoints:[join(root,"src","extension-broadcast-journal.js")],outfile:join(target,"extension-broadcast-journal.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await bundle({entryPoints:[join(root,"src","extension-signer.js")],outfile:join(target,"extension-signer.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
+  await bundle({entryPoints:[join(root,"src","extension-central-sign-in.js")],outfile:join(target,"extension-central-sign-in.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await bundle({entryPoints:[join(root,"src","extension-product-session-v2.js")],outfile:join(target,"extension-product-session-v2.js"),bundle:true,format:"esm",platform:"browser",target:name==="firefox"?"firefox128":"chrome120",legalComments:"none",minify:true});
   await cp(join(root, "src", "core-auth-consumer.js"), join(target, "core-auth-consumer.js"));
   await cp(join(root, "src", "extension-sensitive-policy.js"), join(target, "extension-sensitive-policy.js"));

@@ -20,6 +20,10 @@ function render(){
   for(const [id,key]of Object.entries({eyebrow:"eyebrow",title:"title",intro:"intro","site-label":"site","product-label":"product","account-label":"account","purpose-label":"purpose","permissions-label":"permissions","expires-label":"expires","technical-label":"technical","application-label":"application","context-label":"context","network-label":"network","protocol-label":"protocol","scope-ids-label":"scopeIds","original-purpose-label":"originalPurpose","password-label":"password"}))byId(id).textContent=t[key];
   approve.textContent=t.approve;reject.textContent=t.reject;
   if(request){
+    if(request.central){
+      byId("title").textContent=locale==="zh-CN"?"登录这些 YNX 官方应用？":"Sign in to these official YNX apps?";
+      byId("intro").textContent=locale==="zh-CN"?"本次仅建立此浏览器中的统一身份登录。不会自动签名、转账或授予敏感产品权限。":"This establishes identity sign-in in this browser only. It does not approve automatic signatures, transfers or sensitive product permissions.";
+    }
     byId("product").textContent=request.productName;
     byId("purpose").textContent=locale==="zh-CN"?purposeZh.get(request.purpose)||request.purpose:request.purpose;
     byId("expires").textContent=new Date(request.expiresAt).toLocaleString(locale,{dateStyle:"medium",timeStyle:"short"});

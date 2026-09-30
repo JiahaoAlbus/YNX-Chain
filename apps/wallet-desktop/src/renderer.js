@@ -351,6 +351,11 @@ window.ynxWallet.onWalletConnectSessionChanged(event => {
 window.ynxWallet.walletConnectStatus().then(payload => { renderWalletConnect(payload); return refreshWalletConnectSessions(); });
 pairButton.addEventListener("click", async () => {
   const uri = walletConnectURI.value.trim();
+  if (!uri) {
+    walletConnectDetail.textContent = t("Paste a WalletConnect link");
+    walletConnectURI.focus();
+    return;
+  }
   pairButton.disabled = true;
   const result = await window.ynxWallet.walletConnectPair(uri);
   if (!result.ok) walletConnectDetail.textContent = errorText(result);

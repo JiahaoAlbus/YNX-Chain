@@ -3,6 +3,7 @@ import { Wallet, TypedDataEncoder, formatEther, getBytes, isAddress, isHexString
 import { createProductSessionReturnURL, parseProductSessionWalletURL, signProductSessionApproval } from "@ynx-chain/wallet-auth";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PRODUCT_SESSION_REGISTRY, YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
+import { CENTRAL_BROWSER_METHOD, parseCentralSignIn, signCentralSignIn } from "./central-browser-sign-in.mjs";
 
 export const YNX_EIP155_CHAIN = "eip155:6423";
 export const YNX_EVM_CHAIN_ID = YNX_TESTNET_CHAIN_QUANTITY;
@@ -15,7 +16,8 @@ export const APPROVAL_METHODS = Object.freeze([
   "personal_sign",
   "eth_signTypedData_v4",
   "eth_sendTransaction",
-  "ynx_requestProductSessionV2"
+  "ynx_requestProductSessionV2",
+  CENTRAL_BROWSER_METHOD
 ]);
 
 export class DesktopWalletAuthority {
@@ -79,7 +81,10 @@ export class DesktopWalletAuthority {
       throw providerError(4100, "ACCOUNT_PERMISSION_REQUIRED", "The DApp has not been approved for this account");
     }
     let normalized;
-    if(method === "ynx_requestProductSessionV2") {
+    if(method === CENTRAL_BROWSER_METHOD) {
+      const challenge = parseCentralSignIn(params, origin, this.clock().getTime());
+      normalized = {params:[challenge],review:{title:"Sign in",account:status.account,origin,initiator:challenge.initiator,clients:challenge.clients,purpose:challenge.purpose,expiresAt:challenge.expiresAt,warning:"Approve identity sign-in to these exact official apps in this browser. No automatic signing, transfers or sensitive product permissions."}};
+    } else if(method === "ynx_requestProductSessionV2") {
       if(params.length !== 1 || typeof params[0] !== "string" || params[0].length > 32768) invalidParams("Product Session requires one exact official Wallet route");
       const request = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY, params[0], this.clock());
       if(request.origin !== origin) throw providerError(4100,"PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this connected app");
@@ -118,6 +123,11 @@ export class DesktopWalletAuthority {
       throw providerError(4100, "ACCOUNT_PERMISSION_REVOKED", "The DApp account permission was revoked before approval");
     }
     switch (pending.method) {
+      case CENTRAL_BROWSER_METHOD:
+        return this.vault.withSecret((secret, identity) => {
+          assertReviewedAccount(identity.account, pending.review.account);
+          return success(signCentralSignIn(pending.params[0], pending.origin, secret, this.clock().getTime()));
+        });
       case "ynx_requestProductSessionV2": {
         const request = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,pending.params[0],this.clock());
         if(request.origin !== pending.origin) throw providerError(4100,"PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this connected app");

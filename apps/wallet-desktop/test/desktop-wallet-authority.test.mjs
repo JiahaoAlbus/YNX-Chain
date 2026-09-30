@@ -18,6 +18,29 @@ const SECRET = "0000000000000000000000000000000000000000000000000000000000000001
 const SECOND_SECRET = "0000000000000000000000000000000000000000000000000000000000000002";
 const ORIGIN = "https://example-dapp.invalid";
 
+test("central identity consent requires explicit review, stays native, and expires without granting product permissions", async () => {
+  const {authority,status}=await fixture();
+  const base=import.meta.resolve("@ynx-chain/wallet-auth");
+  const {createCentralBrowserSessionRegistry}=await import(new URL("./central-browser-session-registry.js",base));
+  const {CENTRAL_BROWSER_ISSUER:origin,CENTRAL_BROWSER_PURPOSE:purpose}=await import(new URL("./central-browser-session-contract.js",base));
+  const clients=createCentralBrowserSessionRegistry(PRODUCT_SESSION_REGISTRY),client=clients[0],now=authority.clock().getTime();
+  const challenge={version:1,issuer:origin,purpose,challengeId:"a".repeat(43),browserBinding:"b".repeat(64),nonce:"c".repeat(43),initiator:{clientId:client.clientId,origin:client.origin,redirectUri:client.redirectUri,state:"d".repeat(43),codeChallenge:"e".repeat(43),codeChallengeMethod:"S256"},clients:clients.map(c=>({clientId:c.clientId,origin:c.origin,audience:c.audience,scopes:[...c.scopes]})).sort((a,b)=>a.clientId.localeCompare(b.clientId)),issuedAt:new Date(now).toISOString(),expiresAt:new Date(now+120000).toISOString()};
+  const input={origin,method:"ynx_requestCentralBrowserSignIn",params:[challenge]};
+  await assert.rejects(authority.request({...input,origin:client.origin}));
+  const pending=await authority.request(input);
+  assert.equal(pending.status,"approval-required");
+  assert.equal(pending.result,undefined);
+  assert.deepEqual(pending.request.review.clients,challenge.clients);
+  assert.equal(pending.request.review.purpose,purpose);
+  const approved=await authority.approve(pending.request.id);
+  assert.equal(approved.result.account,status.ynxAccount);
+  assert.equal(approved.result.challengeId,challenge.challengeId);
+  assert.deepEqual((await authority.request({origin,method:"eth_accounts"})).result,[]);
+  await assert.rejects(authority.approve(pending.request.id));
+  const expired=await authority.request(input);authority.clock=()=>new Date(now+120000);
+  await assert.rejects(authority.approve(expired.request.id));
+});
+
 test("Pair native Product Session returns the exact official approval only after review, with origin, expiry and permission enforced", async () => {
   const { authority, status } = await fixture();
   const now = new Date("2026-08-22T00:00:00Z"), device = createECDH("prime256v1");
@@ -267,7 +290,7 @@ test("WalletConnect remains fail closed without a real project ID", async () => 
   assert.deepEqual(transport.status(), { configured: false, started: false, relayConnected: false, activeSessionCount: 0, code: "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" });
   await assert.rejects(transport.start({}), error => error.code === "WALLETCONNECT_PROJECT_ID_UNAVAILABLE");
   assert.equal(WALLETCONNECT_CHAIN, "eip155:6423");
-  assert.deepEqual(WALLETCONNECT_METHODS, ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2"]);
+  assert.deepEqual(WALLETCONNECT_METHODS, ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2", "ynx_requestCentralBrowserSignIn"]);
 });
 
 test("desktop QR import is local-only, bounded and accepts only WalletConnect v2", async () => {

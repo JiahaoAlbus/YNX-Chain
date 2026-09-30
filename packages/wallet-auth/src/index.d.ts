@@ -266,7 +266,7 @@ export declare const WALLETCONNECT_PROTOCOL_VERSION:2;
 export declare const WALLETCONNECT_NAMESPACE:"eip155";
 export declare const WALLETCONNECT_CHAIN:"eip155:6423";
 export declare const WALLETCONNECT_CHAIN_QUANTITY:"0x1917";
-export declare const WALLETCONNECT_SESSION_METHODS:readonly ["eth_accounts","eth_requestAccounts","eth_chainId","personal_sign","eth_signTypedData_v4","eth_sendTransaction","wallet_switchEthereumChain","wallet_addEthereumChain"];
+export declare const WALLETCONNECT_SESSION_METHODS:readonly ["eth_accounts","eth_requestAccounts","eth_chainId","personal_sign","eth_signTypedData_v4","eth_sendTransaction","wallet_switchEthereumChain","wallet_addEthereumChain","ynx_requestProductSessionV2","ynx_requestCentralBrowserSignIn"];
 export declare const WALLETCONNECT_SESSION_EVENTS:readonly ["accountsChanged","chainChanged"];
 export type WalletConnectPeer=Readonly<{publicKey:string;metadata:Readonly<{name:string;description:string;url:string;icons:readonly string[]}>}>;
 export type WalletConnectNamespaces=Readonly<{eip155:Readonly<{chains:readonly ["eip155:6423"];methods:readonly string[];events:readonly string[];accounts:readonly string[]}>}>;
