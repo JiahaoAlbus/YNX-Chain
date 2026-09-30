@@ -204,9 +204,20 @@ try {
     if (before.account.initialized || !before.account.passwordConfigured || !before.locked || before.account.custody !== "password-encrypted-local") throw new Error("OLD_FAILED_CREATE_PROFILE_NOT_PROTECTED");
     const oldVault = await vaultDigest();
     await until(state => passwordActionReady(state, true), "Old protected profile unlock UI readiness");
+    const recoveryVersion = await evaluate(`(async () => (await window.ynxWallet.appInfo()).version)()`, "RECOVER_CREATE_INSTALLED_VERSION");
+    if (!["0.6.15", "0.6.16"].includes(recoveryVersion)) throw new Error("RECOVER_CREATE_VERSION_UNSUPPORTED");
+    await evaluate(`(() => {
+      const form=document.querySelector('#password-form'), submit=document.querySelector('#submit-password');
+      const attempt={submitObserved:false,busyObserved:false};window.__ynxQaWrongPassword=attempt;
+      form.addEventListener('submit',()=>{ attempt.submitObserved=true; },{capture:true,once:true});
+      const observer=new MutationObserver(()=>{ if(submit.disabled) attempt.busyObserved=true; });
+      observer.observe(submit,{attributes:true,attributeFilter:['disabled']});window.__ynxQaWrongPasswordObserver=observer;
+      return true;
+    })()`, "RECOVER_CREATE_WRONG_PASSWORD_OBSERVATION");
     await formSubmit("incorrect synthetic password");
-    await until(state => state.locked === true && state.account?.initialized === false && state.account?.passwordConfigured === true && installedMessageIs(state.ui.passwordResult, "The password is incorrect or this encrypted Wallet changed. It remains locked."), "Old protected profile rejects wrong password after upgrade");
+    await until(state => wrongPasswordRejected(state, null, recoveryVersion, false), "Old protected profile rejects wrong password after upgrade");
     if (await vaultDigest() !== oldVault) throw new Error("OLD_FAILED_CREATE_VAULT_CHANGED_ON_WRONG_PASSWORD");
+    await evaluate(`(() => { window.__ynxQaWrongPasswordObserver?.disconnect(); delete window.__ynxQaWrongPasswordObserver; delete window.__ynxQaWrongPassword; return true; })()`, "RECOVER_CREATE_WRONG_PASSWORD_OBSERVATION_END");
     await formSubmit(password);
     await until(state => state.locked === false && state.account?.passwordConfigured === true && state.account?.initialized === false, "Old password unlocks failed-create profile");
     if (await vaultDigest() !== oldVault) throw new Error("OLD_FAILED_CREATE_VAULT_CHANGED_ON_UNLOCK");
