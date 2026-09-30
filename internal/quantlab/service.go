@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
 var (
@@ -55,6 +57,9 @@ type Config struct {
 	TestnetBroker    TestnetBroker
 	SessionCompleter WalletSessionCompleter
 	PrivateSession   ProductSessionAuthorizer
+	BrowserSSO       *productsessionv2.BrowserSSO
+	browserBindings  *Service
+	ownedRecords     func(string) (financeQuantPayload, error)
 	FinanceReadKey   string
 	MarketData       MarketData
 }
@@ -317,20 +322,21 @@ type ExecutionLedgerRecord struct {
 	CompletedAt  time.Time            `json:"completedAt,omitempty"`
 }
 type state struct {
-	Revision         int64                            `json:"-"`
-	Schema           int                              `json:"schema"`
-	Sequence         int64                            `json:"sequence"`
-	Experiments      map[string]Experiment            `json:"experiments"`
-	Strategies       map[string]StrategySpec          `json:"strategies"`
-	Datasets         map[string]DatasetRecord         `json:"datasets"`
-	Paper            PaperState                       `json:"paper"`
-	Mandates         map[string]Mandate               `json:"mandates"`
-	TestnetOrders    map[string]TestnetOrder          `json:"testnetOrders"`
-	Idempotency      map[string]string                `json:"idempotency"`
-	ExecutionLedger  map[string]ExecutionLedgerRecord `json:"executionLedger"`
-	AdapterSequences map[string]int64                 `json:"adapterSequences"`
-	Audit            []AuditEvent                     `json:"audit"`
-	Integrity        string                           `json:"integrity"`
+	Revision           int64                            `json:"-"`
+	Schema             int                              `json:"schema"`
+	Sequence           int64                            `json:"sequence"`
+	Experiments        map[string]Experiment            `json:"experiments"`
+	Strategies         map[string]StrategySpec          `json:"strategies"`
+	Datasets           map[string]DatasetRecord         `json:"datasets"`
+	Paper              PaperState                       `json:"paper"`
+	Mandates           map[string]Mandate               `json:"mandates"`
+	TestnetOrders      map[string]TestnetOrder          `json:"testnetOrders"`
+	Idempotency        map[string]string                `json:"idempotency"`
+	ExecutionLedger    map[string]ExecutionLedgerRecord `json:"executionLedger"`
+	AdapterSequences   map[string]int64                 `json:"adapterSequences"`
+	Audit              []AuditEvent                     `json:"audit"`
+	BrowserSSOBindings map[string]browserSSOBinding     `json:"browserSSOBindings,omitempty"`
+	Integrity          string                           `json:"integrity"`
 }
 type Service struct {
 	mu    sync.Mutex
@@ -1501,6 +1507,8 @@ func (s *Service) Restore(source string) (BackupRecord, error) {
 	}
 	defer release()
 	previous := s.state
+	// Financial-data restoration must never roll authorization history back.
+	restored.BrowserSSOBindings = s.state.BrowserSSOBindings
 	s.state = restored
 	s.audit("state_restored", "state", hashBytes(b))
 	if err := s.save(); err != nil {
@@ -1531,16 +1539,17 @@ func (s *Service) DeleteAllLocalData(confirmation string) (DeletionRecord, error
 	}
 	now := s.cfg.Now()
 	s.state = state{
-		Schema:           StateSchema,
-		Experiments:      map[string]Experiment{},
-		Strategies:       map[string]StrategySpec{},
-		Datasets:         map[string]DatasetRecord{},
-		Paper:            PaperState{Cash: 100_000_000_000, UpdatedAt: now},
-		Mandates:         map[string]Mandate{},
-		TestnetOrders:    map[string]TestnetOrder{},
-		Idempotency:      map[string]string{},
-		ExecutionLedger:  map[string]ExecutionLedgerRecord{},
-		AdapterSequences: map[string]int64{},
+		Schema:             StateSchema,
+		BrowserSSOBindings: s.state.BrowserSSOBindings,
+		Experiments:        map[string]Experiment{},
+		Strategies:         map[string]StrategySpec{},
+		Datasets:           map[string]DatasetRecord{},
+		Paper:              PaperState{Cash: 100_000_000_000, UpdatedAt: now},
+		Mandates:           map[string]Mandate{},
+		TestnetOrders:      map[string]TestnetOrder{},
+		Idempotency:        map[string]string{},
+		ExecutionLedger:    map[string]ExecutionLedgerRecord{},
+		AdapterSequences:   map[string]int64{},
 	}
 	s.audit("all_local_user_data_deleted", "local-state", previousDigest)
 	if err := s.save(); err != nil {
