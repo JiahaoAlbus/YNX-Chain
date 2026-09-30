@@ -258,6 +258,11 @@
       "path": "../../../packages/wallet-auth/src/wallet-provider-discovery.js",
       "bytes": 11520,
       "sha256": "39b093a903f918069af25130a51577383b71922d3f2e0c06e1a54262d2f071c2"
+    },
+    {
+      "path": "../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js",
+      "bytes": 12659,
+      "sha256": "2567f4ec0958852ef27ee382067b6b104e33fe5dc3feba3aa94d710caa7f2c0a"
     }
   ]
 }
