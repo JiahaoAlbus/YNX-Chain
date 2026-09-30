@@ -5,11 +5,12 @@ import {privateSessionCopy} from './private-session-copy.js';
 export const QUANT_PRIVATE_AUTHORITY='https://wallet-auth.ynxweb4.com';
 const ORIGIN='https://quant.ynxweb4.com',STARTED_KEY='ynx.quant.private-session.9840ef87.started';
 const SCOPES=Object.freeze(['quant:account']);
-let adapterPromise=null,adapter=null,revision=0,adapterEpoch=0,busy=false;
+let adapterPromise=null,adapter=null,revision=0,adapterEpoch=0,busy=false,beginPending=null,pendingCancel=null,retiring=null,selectionBinding=null;
 let state=Object.freeze({status:'guest',code:'PRIVATE_SIGN_IN_REQUIRED',account:null});
 function emit(next){state=Object.freeze(next);window.dispatchEvent(new CustomEvent('ynx:quant-private-state',{detail:state}));return state;}
 function fail(code){throw Object.assign(new Error(`PRIVATE_SERVICE_DEGRADED: ${code}. Standard Wallet, Research and Paper remain available.`),{code});}
 function publish(result){return emit({status:result.status,code:result.route?.status||result.status,account:result.status==='connected'?result.session.account:null,expiresAt:result.status==='connected'?result.session.expiresAt:null,revocationConfirmed:result.revocationConfirmed===true,openURL:result.status==='connecting'&&result.automatic===false&&result.route?.installation==='unverified'?result.route.url:null,installation:'unverified'});}
+function retireClient(selected=adapter){if(retiring)return retiring;if(!selected)return Promise.resolve(null);const own=selected.client.disconnect().finally(()=>{if(retiring===own)retiring=null;});retiring=own;return own;}
 
 async function getAdapter(){
   if(adapterPromise)return adapterPromise;
@@ -19,8 +20,8 @@ async function getAdapter(){
     // Shared a7dad7ec owns authority namespacing; legacy records remain in place.
     // This marker only opts into silent restore, never grants authentication.
     const gateway=new ProductSessionGatewayFetchAdapter({endpoint:QUANT_PRIVATE_AUTHORITY,fetch:globalThis.fetch.bind(globalThis),walletInstalled:()=>false,schemeRegistered:()=>false,timeoutMs:10000});
-    // EIP-1193 discovery is not proof of an installed native handler. This Web
-    // build has no supported native bridge; no custom scheme is opened here.
+    // Discovery alone is not native installation proof. An explicitly selected
+    // supported provider may consume the exact SDK route; no scheme auto-opens.
     const created=await createBrowserProductSessionClient({registry,productId:'quant',scopes:SCOPES,purpose:'Sign in to read this Quant private account. No strategy, order or mandate permission.',gateway});
     if(epoch!==adapterEpoch){created.close();fail('PRIVATE_OPERATION_SUPERSEDED');}
     adapter=created;
@@ -35,7 +36,26 @@ async function operation(run){
   finally{if(intent===revision)busy=false;}
 }
 export function getPrivateSessionState(){return state;}
-export async function beginPrivateSession(){localStorage.setItem(STARTED_KEY,'true');return operation(a=>a.client.beginExplicit());}
+export function beginPrivateSession(){
+  if(beginPending)return beginPending;
+  if(state.status==='connected')return Promise.resolve(state);
+  localStorage.setItem(STARTED_KEY,'true');
+  const own=operation(async a=>{
+    const beginning=revision;if(retiring)await retiring;if(beginning!==revision)fail('PRIVATE_OPERATION_SUPERSEDED');
+    const snapshot=window.YNXQuantWallet?.getPrivateWalletContext?.();
+    if(snapshot?.status!=='connected'||snapshot.providerKind!=='ynx-wallet')return a.client.beginExplicit();
+    const intent=revision;
+    let retirement=null;const retire=()=>retirement??=(retireClient(a).catch(()=>null));pendingCancel=retire;
+    const current=()=>{const next=window.YNXQuantWallet.getPrivateWalletContext();if(intent!==revision||snapshot.provider!==next.provider||snapshot.account!==next.account||snapshot.chainId!==next.chainId||snapshot.revision!==next.revision||next.status!=='connected')fail('PRIVATE_OPERATION_SUPERSEDED');};
+    try{
+      current();const request=await a.client.beginExplicit();current();
+      if(request.status!=='connecting'||typeof request.route?.url!=='string')fail('PRIVATE_REQUEST_UNAVAILABLE');
+      const response=await window.YNXQuantWallet.requestProductSessionV2(request.route.url);current();
+      const result=await a.client.handleReturn(response.returnUrl);current();if(result.status==='connected')selectionBinding=snapshot;return result;
+    }catch(error){await retire();throw error;}finally{if(pendingCancel===retire)pendingCancel=null;}
+  });
+  beginPending=own;own.finally(()=>{if(beginPending===own)beginPending=null;}).catch(()=>null);return own;
+}
 export async function retryPrivateSession(){return operation(a=>a.client.retryDetected());}
 export async function revokePrivateSession(){return operation(a=>a.client.disconnect());}
 export async function handlePrivateReturn(url){
@@ -87,6 +107,18 @@ export function mountPrivateSession(){
     const link=document.querySelector('#private-open-wallet');if(link){link.hidden=!state.openURL;if(state.openURL)link.setAttribute('href',state.openURL);else link.removeAttribute('href');}
   };
   window.addEventListener('ynx:quant-private-state',()=>{verifiedAccount=null;accountError=null;render();});
+  window.addEventListener('ynx:quant-wallet-context',event=>{
+    if(event.detail.identityChanged!==true&&!beginPending)return;
+    revision++;selectionBinding=null;emit({status:'guest',code:'PRIVATE_OPERATION_SUPERSEDED',account:null});
+    (pendingCancel?pendingCancel():retireClient()).catch(()=>null);
+  });
+  window.addEventListener('ynx:quant-wallet-state',()=>{
+    const next=window.YNXQuantWallet?.getPrivateWalletContext?.();
+    if(!next)return;
+    if(!selectionBinding){if(state.status==='connected'&&next.status==='connected')selectionBinding=next;return;}
+    if(selectionBinding.provider===next.provider&&selectionBinding.account===next.account&&selectionBinding.chainId===next.chainId&&['connected','transport-unavailable'].includes(next.status))return;
+    revision++;selectionBinding=null;emit({status:'guest',code:'PRIVATE_OPERATION_SUPERSEDED',account:null});(pendingCancel?pendingCancel():retireClient()).catch(()=>null);
+  });
   document.querySelector('#locale')?.addEventListener('change',()=>queueMicrotask(render));
   window.addEventListener('storage',event=>{if(event.key==='ynx.quant.locale')render();});
   const run=fn=>fn().catch(()=>render());
