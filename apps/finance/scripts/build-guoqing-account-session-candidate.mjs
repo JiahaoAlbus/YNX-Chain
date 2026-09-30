@@ -10,8 +10,8 @@ import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
-const source='1cbb02f9d';
-const output='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-sso-1cbb02f9-20261001.json';
+const source='8f7772c3a';
+const output='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-sso-8f7772c3-20261001.json';
 const priorPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-workspace-2627b209-v5-20260925.json';
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 const read=path=>readFileSync(resolve(root,path));
@@ -22,7 +22,7 @@ const prior=JSON.parse(priorBytes);
 const {build,version}=createRequire(resolve(root,'apps/finance/web/package.json'))('esbuild');
 assert.equal(version,'0.25.9');
 const paths=[...prior.exactInputs.map(value=>value.path),'apps/finance/web/app.js','apps/finance/web/finance-locale.js',
-  'packages/wallet-auth/src/central-browser-session-contract.js','packages/wallet-auth/src/central-browser-session-registry.js',
+  'packages/wallet-auth/product-session-registry.json','packages/wallet-auth/src/central-browser-session-contract.js','packages/wallet-auth/src/central-browser-session-registry.js',
   'packages/wallet-auth/src/central-browser-session-store.js','packages/wallet-auth/src/central-browser-session.js',
   'packages/wallet-auth/src/central-browser-session-browser.js','packages/wallet-auth/src/central-browser-session-browser.bundle.js',
   'packages/wallet-auth/src/product-session-gateway-node-host.js','packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs',
