@@ -10,8 +10,8 @@ import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
-const source='82314ab08';
-const output='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-82314ab0-20260930.json';
+const source='1cbb02f9d';
+const output='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-sso-1cbb02f9-20261001.json';
 const priorPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-workspace-2627b209-v5-20260925.json';
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 const read=path=>readFileSync(resolve(root,path));
@@ -21,13 +21,23 @@ assert.equal(sha256(priorBytes),'e6740a5312449f9e3d933892e61796dfc509d306e0fb117
 const prior=JSON.parse(priorBytes);
 const {build,version}=createRequire(resolve(root,'apps/finance/web/package.json'))('esbuild');
 assert.equal(version,'0.25.9');
-const paths=[...prior.exactInputs.map(value=>value.path),'apps/finance/web/app.js','apps/finance/web/finance-locale.js'];
-const exactInputs=paths.map(path=>{
+const paths=[...prior.exactInputs.map(value=>value.path),'apps/finance/web/app.js','apps/finance/web/finance-locale.js',
+  'packages/wallet-auth/src/central-browser-session-contract.js','packages/wallet-auth/src/central-browser-session-registry.js',
+  'packages/wallet-auth/src/central-browser-session-store.js','packages/wallet-auth/src/central-browser-session.js',
+  'packages/wallet-auth/src/central-browser-session-browser.js','packages/wallet-auth/src/central-browser-session-browser.bundle.js',
+  'packages/wallet-auth/src/product-session-gateway-node-host.js','packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs',
+  'internal/finance/browser_sso.go','internal/finance/browser_sso_binding.go','internal/finance/server.go',
+  'internal/finance/store.go','internal/finance/types.go','apps/finance/cmd/server/main.go'];
+const exactInputs=[...new Set(paths)].map(path=>{
   const bytes=read(path),frozen=execFileSync('git',['show',`${source}:${path}`],{cwd:root});
   assert.deepEqual(bytes,frozen,`${path} differs from implementation checkpoint`);
   return {path,bytes:bytes.length,sha256:sha256(bytes)};
 });
 const sourceBundleRelations=[];
+const centralOptions={absWorkingDir:resolve(root,'packages/wallet-auth'),entryPoints:['src/central-browser-session-browser.js'],bundle:true,write:false,platform:'browser',format:'iife',legalComments:'none'};
+const centralFirst=await build(centralOptions),centralSecond=await build(centralOptions);
+assert.deepEqual(Buffer.from(centralFirst.outputFiles[0].contents),Buffer.from(centralSecond.outputFiles[0].contents));
+assert.deepEqual(Buffer.from(centralFirst.outputFiles[0].contents),read('packages/wallet-auth/src/central-browser-session-browser.bundle.js'));
 for(const relation of prior.sourceBundleRelations){
   const options={absWorkingDir:root,entryPoints:[resolve(root,relation.entry)],bundle:true,write:false,metafile:true,...(relation.kind==='browser'?{minify:true,platform:'browser',target:'es2022'}:{platform:'node',target:'node22',format:'esm'})};
   const first=await build(options),second=await build(options),frozen=read(relation.bundle);
