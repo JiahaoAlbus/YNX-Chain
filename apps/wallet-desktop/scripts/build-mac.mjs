@@ -15,6 +15,13 @@ if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 const metadata = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 const appDir = path.join(root, "dist", arch === "x64" ? "mac" : `mac-${arch}`, `${metadata.build.productName}.app`);
+// Packaging replaces Electron's plist and resources, invalidating its linker
+// signature. Seal unsigned Testnet previews locally before making an installer.
+// An ad-hoc seal provides bundle integrity, not a production signing identity.
+if (process.env.CSC_IDENTITY_AUTO_DISCOVERY === "false") {
+  execFileSync("/usr/bin/codesign", ["--force", "--deep", "--sign", "-", appDir], { stdio: "inherit" });
+}
+execFileSync("/usr/bin/codesign", ["--verify", "--deep", "--strict", appDir], { stdio: "inherit" });
 const output = path.join(root, "dist", `ynx-wallet-macos-${metadata.version}-${arch}.dmg`);
 const stage = await mkdtemp(path.join(os.tmpdir(), "ynx-wallet-dmg-"));
 try {
