@@ -60,3 +60,20 @@ and each platform's actual owned service remain separate NOT_VERIFIED items.
 The release owner alone activates runtime. Preserve existing ProductSession,
 revocation, authority clock/checkpoint and product state. Do not renew trust or
 reuse a historical public receipt based on this source-only handoff.
+
+## Frozen successor source and pin
+
+Implementation d334806c6a51b584d0b9d4ae88cbd378ab785080, tree
+4424cc9298b5e592601c72bacbe29700d1610838. Its immutable three-bundle candidate
+`evm-read-runtime-verifier-candidate-guoqing-hosted-native-d334806c-20261001.json`
+is 74031B, SHA256 0aa296f795b703377b1373841787e9ff531ff9e9d61353156ec642557b6e2fe6.
+Two independent builds bind each bundle and its full dependency graph. The
+active Wallet verifier manifest SHA256 is
+52b0ccc66e2338331a3f39f8cb9cc2b0e274cb6f591a14253e70902bff1f74e7.
+Wallet bundle is 211324B, SHA256
+fe50d473914ee5f56590865f270cd6d09b09e328a840ac40a362cfa81c638190.
+
+From apps/finance, strict gate:
+`node --test tests/evm-read-verifier.test.mjs tests/wallet-bundle-verifier.test.mjs`
+and `node web/verify-wallet-connect.mjs`. The added typed-vendor tamper negative
+retains all historical source/lock/graph/duplicate-read/rebuild protections.

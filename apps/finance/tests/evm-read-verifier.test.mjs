@@ -7,13 +7,13 @@ import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import { verifyEVMReadCandidate } from '../web/verify-evm-read-candidate.mjs';
 
-const candidate = new URL('../evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-012e1ff68-20261001.json', import.meta.url);
+const candidate = new URL('../evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-native-d334806c-20261001.json', import.meta.url);
 const pin = createHash('sha256').update(await readFile(candidate)).digest('hex');
-const currentCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-012e1ff68-20261001.json';
-const currentPin = '6eb01b4b7be4010546fcf13d9f1eff593477a5c4f5b4a338a70f7d913938db67';
+const currentCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-native-d334806c-20261001.json';
+const currentPin = '0aa296f795b703377b1373841787e9ff531ff9e9d61353156ec642557b6e2fe6';
 const repoRoot=resolve(fileURLToPath(new URL('../../../',import.meta.url)));
-const guoqingPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-012e1ff68-20261001.json';
-const guoqingPin='6eb01b4b7be4010546fcf13d9f1eff593477a5c4f5b4a338a70f7d913938db67';
+const guoqingPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-native-d334806c-20261001.json';
+const guoqingPin='0aa296f795b703377b1373841787e9ff531ff9e9d61353156ec642557b6e2fe6';
 
 test('Guoqing account-session checkpoint verifies both bundles and all three versioned app assets',async()=>{
   const result=await verifyEVMReadCandidate({candidatePath:guoqingPath,pinnedCandidateSha256:guoqingPin});
@@ -72,6 +72,13 @@ test('central Pair original locked SDK bytes cannot be replaced by a fixture tra
 test('accepted Hosted adapter bytes cannot change under the reviewed central bundle',async()=>{
   await assert.rejects(verifyEVMReadCandidate({candidatePath:currentCandidatePath,pinnedCandidateSha256:pin,read:async path=>{
     if(String(path).endsWith('/packages/wallet-auth/src/vendor/hosted-wallet-adapter-39c063da.js'))return Buffer.from('export const altered=true;');
+    return readFile(path);
+  }}),/INPUT_TAMPERED/u);
+});
+
+test('typed Hosted native adapter cannot change under the reviewed Wallet and central graph',async()=>{
+  await assert.rejects(verifyEVMReadCandidate({candidatePath:currentCandidatePath,pinnedCandidateSha256:pin,read:async path=>{
+    if(String(path).endsWith('/packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js'))return Buffer.from('export const altered=true;');
     return readFile(path);
   }}),/INPUT_TAMPERED/u);
 });
