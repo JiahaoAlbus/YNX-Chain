@@ -26683,8 +26683,9 @@ ${item.productId}`));
         this.#epoch++;
         const account = this.#accounts(this.#session)[0];
         if (event.name === "chainChanged") {
-          if (!["0x1917", 6423, "6423"].includes(event.data)) this.#session = null;
-          this.#emit("chainChanged", event.data);
+          const sameChain = ["0x1917", 6423, "6423"].includes(event.data);
+          if (!sameChain) this.#session = null;
+          this.#emit("chainChanged", sameChain ? "0x1917" : event.data);
         } else {
           if (!Array.isArray(event.data) || event.data.length !== 1 || String(event.data[0]).toLowerCase() !== account.toLowerCase()) this.#session = null;
           this.#emit("accountsChanged", event.data);
