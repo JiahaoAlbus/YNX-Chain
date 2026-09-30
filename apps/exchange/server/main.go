@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/exchangeproduct"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
 func main() {
@@ -46,6 +47,18 @@ func main() {
 	if err != nil {
 		log.Fatal("invalid registered Exchange Product Session v2 policy")
 	}
+	var browserSSO *productsessionv2.BrowserSSO
+	switch os.Getenv("YNX_EXCHANGE_CENTRAL_BROWSER_SSO") {
+	case "", "false":
+	case "true":
+		cookieKey := sha256.Sum256([]byte(apiKey))
+		browserSSO, err = productsessionv2.NewBrowserSSO("exchange", "https://wallet-auth.ynxweb4.com", cookieKey[:], []string{"market", "assets", "activity", "controls"}, nil)
+		if err != nil {
+			log.Fatal("invalid registered Exchange browser identity policy")
+		}
+	default:
+		log.Fatal("YNX_EXCHANGE_CENTRAL_BROWSER_SSO must be true or false")
+	}
 	// No product-owned Chain Core v1.35 custody/settlement evidence has been
 	// accepted for this public venue. HTTP writes and background execution must
 	// remain closed together; an environment flag cannot assert that evidence.
@@ -57,7 +70,7 @@ func main() {
 		GatewayBundleID:      env("YNX_EXCHANGE_GATEWAY_BUNDLE_ID", "com.ynxweb4.exchange"),
 		QuantGatewayClientID: env("YNX_EXCHANGE_QUANT_GATEWAY_CLIENT_ID", "ynx-quant-v1"),
 		QuantGatewayBundleID: env("YNX_EXCHANGE_QUANT_GATEWAY_BUNDLE_ID", "com.ynxweb4.quant"),
-		Gateway:              gateway, SessionV2: sessionV2,
+		Gateway:              gateway, SessionV2: sessionV2, BrowserSSO: browserSSO,
 		WalletSessionAttested:  strings.EqualFold(strings.TrimSpace(os.Getenv("YNX_EXCHANGE_WALLET_SESSION_ATTESTED")), "true"),
 		IndexerURL:             strings.TrimSpace(os.Getenv("YNX_EXCHANGE_INDEXER_URL")),
 		RequiredConfirmations:  int64(envInt("YNX_EXCHANGE_CONFIRMATIONS", 12)),
@@ -129,6 +142,10 @@ func main() {
 		log.Fatal("invalid Exchange Finance read key")
 	}
 	mux := http.NewServeMux()
+	if browserSSO != nil {
+		mux.HandleFunc("GET /sso/start", browserSSO.Start)
+		mux.HandleFunc("GET /sso/callback", browserSSO.Callback)
+	}
 	mux.Handle(exchangeproduct.FinanceReadRoute, api)
 	mux.Handle("/api/", http.StripPrefix("/api", api))
 	mux.Handle("/", spa(http.Dir("apps/exchange/web")))

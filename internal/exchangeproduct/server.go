@@ -54,6 +54,13 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /metrics", s.metrics)
 	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /v1/config", s.config)
+	s.mux.HandleFunc("GET /v1/sso/config", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, 200, map[string]bool{"enabled": s.service.cfg.BrowserSSO != nil})
+	})
+	if s.service.cfg.BrowserSSO != nil {
+		s.mux.HandleFunc("GET /v1/sso/account", s.service.cfg.BrowserSSO.Account)
+		s.mux.HandleFunc("POST /v1/sso/logout", s.service.cfg.BrowserSSO.Logout)
+	}
 	s.mux.HandleFunc("GET /v1/markets", s.markets)
 	s.mux.HandleFunc("GET /v1/market-data/snapshot", s.marketSnapshot)
 	s.mux.HandleFunc("GET /v1/market-data/stream", s.marketDataStream)
