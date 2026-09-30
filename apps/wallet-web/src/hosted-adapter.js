@@ -1,5 +1,5 @@
 /** Explicit first-party browser adapter. It does not install window.ethereum. */
-import { HOSTED_CHAIN_ID, HOSTED_PROTOCOL, HOSTED_SESSION_MS, HOSTED_TIMEOUT_MS, HOSTED_WALLET_ORIGIN, HOSTED_WALLET_PATH, encodeHostedConnect, hostedEnvelope, randomHostedId, registeredProduct } from "./hosted-protocol.js";
+import { HOSTED_CHAIN_ID, HOSTED_PROTOCOL, HOSTED_SESSION_MS, HOSTED_TIMEOUT_MS, HOSTED_WALLET_ORIGIN, HOSTED_WALLET_PATH, encodeHostedConnect, hostedEnvelope, randomHostedId, registeredProduct, assertHostedMethodAllowed } from "./hosted-protocol.js";
 import { validateYNXChainMutation } from "./extension-chain-params.js";
 
 function failure(code) { return Object.assign(new Error(code), { code }); }
@@ -73,6 +73,7 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
     return promise;
   }
   async function requestMethod({ method, params = [] }) {
+    assertHostedMethodAllowed(origin, method);
     if (method === "eth_requestAccounts") return connect();
     if (method === "eth_accounts") return live() ? [account] : [];
     if (method === "eth_chainId") return HOSTED_CHAIN_ID;

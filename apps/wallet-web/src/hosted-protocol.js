@@ -1,4 +1,6 @@
 import registry from "../vendor/product-session-registry-b754ffc42.json" with { type: "json" };
+import { CENTRAL_BROWSER_ISSUER, CENTRAL_BROWSER_RPC_METHOD } from "@ynx-chain/wallet-auth/central-browser-session-contract";
+export { CENTRAL_BROWSER_ISSUER, CENTRAL_BROWSER_RPC_METHOD };
 
 export const HOSTED_PROTOCOL = "ynx-hosted-wallet/v1";
 export const HOSTED_WALLET_ORIGIN = "https://wallet.ynxweb4.com";
@@ -12,7 +14,11 @@ const MAX_REQUEST_BYTES = 4096;
 function fail(code) { throw Object.assign(new Error(code), { code }); }
 export function registeredProduct(origin) {
   if (typeof origin !== "string" || !/^https:\/\/[a-z0-9.-]+$/u.test(origin)) return null;
+  if (origin === CENTRAL_BROWSER_ISSUER) return Object.freeze({ productId: "central-browser-identity", webOrigin: origin, evmCompatible: true });
   return registry.products.find(product => product.webOrigin === origin && product.evmCompatible === true) ?? null;
+}
+export function assertHostedMethodAllowed(origin, method) {
+  if (origin === CENTRAL_BROWSER_ISSUER && ![CENTRAL_BROWSER_RPC_METHOD,"eth_requestAccounts","eth_accounts","eth_chainId","wallet_disconnect","wallet_addEthereumChain","wallet_switchEthereumChain"].includes(method)) fail("HOSTED_IDENTITY_ONLY");
 }
 export function randomHostedId(cryptoProvider = globalThis.crypto) {
   if (!cryptoProvider?.getRandomValues) fail("HOSTED_CRYPTO_UNAVAILABLE");

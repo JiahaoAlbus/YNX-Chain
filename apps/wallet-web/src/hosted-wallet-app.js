@@ -8,6 +8,8 @@ import { extensionReviewText, prepareExtensionRequest, signExtensionRequest } fr
 import { parsePrivateRequest, privateProductName, privateReplayKey, rejectPrivateReturn, signPrivateReturn } from "./extension-product-session-v2.js";
 import { HOSTED_PROTOCOL, HOSTED_SESSION_MS, HOSTED_WALLET_ORIGIN, hostedEnvelope, parseHostedConnect, validateHostedMessage } from "./hosted-protocol.js";
 import { toYNXAddress } from "./wallet-address.js";
+import { CENTRAL_BROWSER_RPC_METHOD, assertHostedMethodAllowed } from "./hosted-protocol.js";
+import { approveHostedCentralSignIn } from "./hosted-central-sign-in.js";
 import { HOSTED_LOCALES, HOSTED_LOCALE_KEY, hostedCopy, hostedDynamicCopy, normalizeHostedLocale } from "./hosted-i18n.js";
 
 const $ = id => document.getElementById(id);
@@ -138,10 +140,20 @@ window.addEventListener("pagehide", () => { cancelActiveRequest(); reply("discon
 async function handleMethod(method, params, context) {
   assertRequestLive(context);
   await assertCurrentAccount();
+  assertHostedMethodAllowed(session.origin, method);
   if (method === "eth_accounts" || method === "eth_requestAccounts") return [vault.account];
   if (method === "eth_chainId") return YNX_CHAIN_ID;
   if (method === "wallet_disconnect") { cancelActiveRequest(); reply("disconnected"); session = null; messageKey("disconnected"); return null; }
   if (method === "wallet_addEthereumChain" || method === "wallet_switchEthereumChain") { validateYNXChainMutation(method, params, chain); return null; }
+  if (method === CENTRAL_BROWSER_RPC_METHOD) {
+    return approveHostedCentralSignIn({ params, origin: session.origin, vault, store,
+      assertLive: () => assertRequestLive(context), assertAccount: assertCurrentAccount, unlock: unlockEncryptedVault,
+      review: challenge => {
+        context.expiresAt = Math.min(context.expiresAt, Date.parse(challenge.expiresAt));
+        return askUser({ titleKey: "centralApprove", detailFactory: language => `${session.origin}\n${hostedDynamicCopy(language,"centralIdentityOnly")}\n${challenge.initiator.origin}\n${challenge.clients.map(client => client.origin).join("\n")}\n${hostedDynamicCopy(language,"expires",{expires:challenge.expiresAt})}`, secretRequired: true, context });
+      },
+    });
+  }
   if (method === "ynx_requestProductSessionV2") {
     const request = parsePrivateRequest(params, session.origin);
     const replay = privateReplayKey(request);
