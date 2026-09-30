@@ -18,7 +18,10 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
     if (monitor) browserWindow.clearInterval(monitor);
     monitor = null; connected = false; account = null; request = null; helloId = null;
     for (const waiter of pending.values()) waiter.reject(failure(code));
-    pending.clear(); emit("accountsChanged", []); emit("disconnect", { code });
+    pending.clear();
+    // A closed signing transport is not revocation of a separately approved product session.
+    if (!["HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_EXPIRED_OR_RELOADED"].includes(code)) emit("accountsChanged", []);
+    emit("disconnect", { code });
     closing = false;
   }
   function onMessage(event) {
@@ -45,7 +48,7 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
       waiter.resolve([account]); pending.delete("connect"); return;
     }
     if (data.type === "rejected") { if (!helloId || data.replyTo !== helloId) return; pending.get("connect")?.reject(failure("USER_REJECTED")); pending.delete("connect"); close("USER_REJECTED"); return; }
-    if (data.type === "disconnected") { close(); return; }
+    if (data.type === "disconnected") { close(data.reason === "HOSTED_POPUP_CLOSED" ? "HOSTED_POPUP_CLOSED" : "HOSTED_DISCONNECTED"); return; }
     if (data.type !== "response" || typeof data.replyTo !== "string") return;
     const waiter = pending.get(data.replyTo);
     if (!waiter) return;

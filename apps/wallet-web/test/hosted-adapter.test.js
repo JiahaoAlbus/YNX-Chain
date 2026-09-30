@@ -59,3 +59,17 @@ test("connected approval extends the channel beyond handshake but never beyond o
   assert.deepEqual(await connected, [account]);
   await adapter.detach();
 });
+
+for (const [reason, code, revokes] of [["HOSTED_POPUP_CLOSED", "HOSTED_POPUP_CLOSED", false], [undefined, "HOSTED_DISCONNECTED", true], ["unknown", "HOSTED_DISCONNECTED", true]]) {
+ test(`authenticated lifecycle reason ${reason} clears transport with revocation=${revokes}`, async t => {
+  const {adapter,popup,send}=fixture(), accounts=[],disconnects=[];t.after(()=>adapter.detach());
+  adapter.on("accountsChanged",value=>accounts.push(value));adapter.on("disconnect",value=>disconnects.push(value));
+  const connecting=adapter.connect();send("ready");send("connected",{replyTo:popup.sent.at(-1).messageId,account,chainId:"0x1917",sessionExpiresAt:Date.now()+60000});await connecting;
+  const pending=adapter.request({method:"personal_sign",params:["0x01",account]});
+  send("disconnected",{reason});await assert.rejects(pending,{code});
+  assert.equal(adapter.connected,false);assert.equal(adapter.account,null);assert.deepEqual(await adapter.restore(),[]);
+  assert.deepEqual(disconnects,[{code}]);assert.deepEqual(accounts,revokes?[[account],[]]:[[account]]);
+  await assert.rejects(adapter.request({method:"personal_sign",params:["0x01",account]}),{code:"HOSTED_DISCONNECTED"});
+  const previous=popup.sent.at(-1);send("response",{replyTo:previous.messageId,ok:true,result:"late"});assert.equal(adapter.connected,false);
+ });
+}
