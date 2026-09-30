@@ -15,6 +15,7 @@ import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
 import { FileTransactionIntentStore } from "./transaction-intent-store.mjs";
 import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-service.mjs";
 import { WalletConnectTransport } from "./walletconnect-transport.mjs";
+import { loadPublicWalletConnectConfig } from "./walletconnect-public-config.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
 import { createReceiveCode } from "./receive-code.mjs";
 import { parsePaymentRecipient, decodePaymentRecipientQR } from "./payment-recipient.mjs";
@@ -383,8 +384,12 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   });
   authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => keyAccess.current().deliver(() => shell.openExternal(url)) });
   nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork });
+  let pairConfig, pairConfigurationError = null;
+  try { pairConfig = await loadPublicWalletConnectConfig({ resourcesPath: process.resourcesPath }); }
+  catch { pairConfigurationError = "WALLETCONNECT_CONFIG_INVALID"; }
   walletConnect = new WalletConnectTransport({
-    projectId: process.env.YNX_WALLETCONNECT_PROJECT_ID,
+    projectId: pairConfig?.projectId,
+    configurationError: pairConfigurationError,
     metadata: { name: "YNX Wallet", description: "YNX Testnet self-custody Wallet", url: "https://wallet.ynxweb4.com", icons: ["https://www.ynxweb4.com/ynx-icon-512.png"], redirect: { native: "ynxwallet://wc" } }
   });
   const window = new BrowserWindow({

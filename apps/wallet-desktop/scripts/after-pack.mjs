@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { writeFile } from "node:fs/promises";
 import { desktopReleaseIdentity } from "./release-provenance.mjs";
+import { buildPublicWalletConnectConfig, WALLETCONNECT_PUBLIC_CONFIG_FILE } from "../src/walletconnect-public-config.mjs";
 
 export function hardenMacInfoPlist(appOutDir, productFilename, version) {
   const plist = path.join(appOutDir, `${productFilename}.app`, "Contents", "Info.plist");
@@ -34,6 +35,7 @@ export default async function afterPack(context) {
     ? path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`, "Contents", "Resources")
     : path.join(context.appOutDir, "resources");
   await writeFile(path.join(resources, "ynx-wallet-build-identity.json"), JSON.stringify(identity, null, 2) + "\n");
+  await writeFile(path.join(resources, WALLETCONNECT_PUBLIC_CONFIG_FILE), JSON.stringify(buildPublicWalletConnectConfig(), null, 2) + "\n");
   if (context.electronPlatformName !== "darwin") return;
   hardenMacInfoPlist(context.appOutDir, context.packager.appInfo.productFilename, context.packager.appInfo.version);
 }
