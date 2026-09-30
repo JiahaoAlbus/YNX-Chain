@@ -7,9 +7,9 @@
     "esbuildVersion": "0.25.9"
   },
   "evmRead": {
-    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-guoqing-sso-8f7772c3-20261001.json",
+    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-guoqing-sso-79b48ace-20261001.json",
     "candidateBytes": 8953,
-    "candidateSha256": "86d0cadebe6aa7b2b0724834f573630ac342ce71e0ca2360b49f1a998aa42442"
+    "candidateSha256": "e5379372db8b5429f90e60ad8e2ec548ddd67429af35c68239b8380b6e1cfbaf"
   },
   "sourceBundleRelation": {
     "byteReproducible": true,
@@ -192,12 +192,12 @@
     {
       "path": "verify-evm-read-candidate.mjs",
       "bytes": 9491,
-      "sha256": "cd947e67328bbd033412c30ab152c22a76c0061b149a35897e3a0ef0c20bbdf9"
+      "sha256": "9a1448782ac705690a741c410c51d3f440f5144e2cee22e4a1cad977324fe99b"
     },
     {
-      "path": "../evidence/evm-read-runtime-verifier-candidate-guoqing-sso-8f7772c3-20261001.json",
+      "path": "../evidence/evm-read-runtime-verifier-candidate-guoqing-sso-79b48ace-20261001.json",
       "bytes": 8953,
-      "sha256": "86d0cadebe6aa7b2b0724834f573630ac342ce71e0ca2360b49f1a998aa42442"
+      "sha256": "e5379372db8b5429f90e60ad8e2ec548ddd67429af35c68239b8380b6e1cfbaf"
     },
     {
       "path": "../../../packages/wallet-auth/node_modules/@noble/hashes/_md.js",
