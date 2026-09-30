@@ -84,6 +84,34 @@ selected strategy, idempotency and signature boundaries. No new permission is
 inferred from this records read. Platform-specific public use must be measured
 independently after the unique release owner activates the compatible source.
 
+### Subsequent existing Research/local-Paper actual-service regression
+
+The same opt-in local test additionally uses an explicitly synthetic local
+market adapter (fixture://synthetic-local-browser-only), not real public tape.
+With a real approved Wallet records session, canonical remote-origin Research
+calls the original stateless endpoint, receives 201, and renders actual backend
+metrics and the measured equity SVG. Paper remains disabled on that origin;
+the QA proxy supplies a remote Forwarded-For boundary instead of letting a
+loopback destination grant local-preview authority accidentally.
+
+A separate browser page on the actual loopback origin then exercises the
+existing local-preview capability: a backtest saves a strategy; explicit Paper
+submission returns 201, its real sequence-derived order ID appears in audit,
+and reload restores the simulated workspace. This is not a Wallet/native
+account-owned or public Paper grant. The combined test passed 1/1, zero skips,
+6.125 seconds. Production authorization, UI and engine were unchanged for
+this addition. The fixture initially attempted a hidden tab control and guessed
+an order sequence; both assertions were corrected to the real visible tab and
+backend audit receipt, not by loosening permissions or adding waits.
+
+Remaining internal public-Paper integration gap: no durable verified native
+account-to-workspace binding or product scope exists for remote Paper. A
+browser tenant locator and records consent cannot fill that gap. Any future
+explicit narrowly scoped Paper approval needs separately accepted registry,
+Wallet candidate, fresh native proofs, account-owned workspace isolation and
+durable logout/replay/restart policy. Do not silently expand quant:account,
+quant:records:read or identity:read. No new scope is implemented by this test.
+
 ## Deployment / rollback
 
 Deploy only this source's generated hash-bound wallet bundle and HTML together;
