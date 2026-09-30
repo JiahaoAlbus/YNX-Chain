@@ -65,6 +65,7 @@ type Config struct {
 	Gateway                GatewayAuthorizer
 	// Read-only browser v2 authority; never an order-signing key or legacy token.
 	SessionV2             *productsessionv2.Client
+	BrowserSSO            *productsessionv2.BrowserSSO
 	WalletSessionAttested bool
 	IndexerURL            string
 	MaxOrderNotionalMicro int64

@@ -73,6 +73,9 @@ func (s *Server) authorizeBrowserReadV2(w http.ResponseWriter, r *http.Request) 
 		}
 		return failure("PRIVATE_SERVICE_UNAVAILABLE", http.StatusServiceUnavailable)
 	}
+	if status := s.authorizeBrowserSSO(r, session); status != http.StatusOK {
+		return failure("SSO_PRIVATE_CONTEXT_REJECTED", status)
+	}
 	created, err1 := time.Parse(time.RFC3339Nano, session.IssuedAt)
 	expires, err2 := time.Parse(time.RFC3339Nano, session.ExpiresAt)
 	if err1 != nil || err2 != nil {

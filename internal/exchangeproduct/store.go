@@ -55,6 +55,7 @@ type persistentState struct {
 	AI                 map[string]AIRecord           `json:"ai"`
 	Idempotency        map[string]idempotencyRecord  `json:"idempotency"`
 	Audit              []AuditEvent                  `json:"audit"`
+	BrowserSSOBindings map[string]browserSSOBinding  `json:"browserSSOBindings,omitempty"`
 	IntegrityHash      string                        `json:"integrityHash"`
 	Revision           int64                         `json:"-"`
 }
