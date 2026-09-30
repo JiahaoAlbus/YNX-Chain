@@ -3537,7 +3537,7 @@ var product_session_registry_default = {
       webOrigin: "https://quant.ynxweb4.com",
       nativeCallback: "ynxquant://wallet-auth/callback",
       legacyCallbacks: ["ynxquant", "ynxquant://wallet-auth/callback"],
-      scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke", "quant:records:read"],
+      scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke", "quant:paper:workspace", "quant:records:read"],
       evmCompatible: true,
       sessionDurationSeconds: 180
     },
