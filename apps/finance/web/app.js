@@ -18,7 +18,7 @@ function captureLegacyBrokerCallback(){
 captureLegacyBrokerCallback();
 const financeText=(key)=>window.YNXFinanceLocale?.text(key)??key;
 let walletIdentityState='identityUnverified',walletIdentityBusy=false;
-let browserIdentity=null,browserSSOEnabled=false,browserSSORevision=0,browserIdentitySilentAttempted=false;
+let browserIdentity=null,browserSSOEnabled=false,browserSSORevision=0,browserIdentitySilentAttempted=false,browserIdentityExplicitIntent=false;
 let browserSSOChannel;try{browserSSOChannel=new BroadcastChannel('ynx.finance.browser-session.recheck.v1');browserSSOChannel.onmessage=()=>void recheckBrowserIdentity();}catch{}
 async function browserSSOFetch(path,options={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);try{const response=await fetch(path,{...options,credentials:'same-origin',signal:controller.signal});const data=await response.json();return {response,data};}finally{clearTimeout(timer)}}
 async function recheckBrowserIdentity(){
@@ -34,9 +34,9 @@ async function recheckBrowserIdentity(){
 }
 async function restoreBrowserIdentityQuietly(){
   const context=state.context,revision=browserSSORevision;
-  if(browserIdentitySilentAttempted||walletIdentityBusy||loginIntent||['checking','connecting'].includes(window.YNXFinanceWallet?.getPrivateState?.()?.status))return;
+  if(browserIdentityExplicitIntent||browserIdentitySilentAttempted||walletIdentityBusy||loginIntent||['checking','connecting'].includes(window.YNXFinanceWallet?.getPrivateState?.()?.status))return;
   const {response,data}=await browserSSOFetch('/api/sso/config');
-  if(!response.ok||data.enabled!==true||data.silentRestoreAllowed!==true||browserIdentity||context!==state.context||revision!==browserSSORevision||walletIdentityBusy||loginIntent||['checking','connecting'].includes(window.YNXFinanceWallet?.getPrivateState?.()?.status))return;
+  if(browserIdentityExplicitIntent||!response.ok||data.enabled!==true||data.silentRestoreAllowed!==true||browserIdentity||context!==state.context||revision!==browserSSORevision||walletIdentityBusy||loginIntent||['checking','connecting'].includes(window.YNXFinanceWallet?.getPrivateState?.()?.status))return;
   browserIdentitySilentAttempted=true;location.assign(`/sso/start?prompt=none&target=${encodeURIComponent(loginTarget())}`);
 }
 async function initializeBrowserIdentity(){try{const {response,data}=await browserSSOFetch('/api/sso/config');if(!response.ok||data.enabled!==true)return;browserSSOEnabled=true;$('#browser-signin').hidden=false;await recheckBrowserIdentity();}catch{}}
@@ -552,7 +552,7 @@ for(const element of $$('[href="#wallet-connect"]'))element.addEventListener('cl
 try{const saved=JSON.parse(sessionStorage.getItem(LOGIN_INTENT_KEY)||'null');if(location.pathname==='/wallet-auth/callback'&&LOGIN_ROUTES.has(saved?.target))loginIntent={target:saved.target,account:null,providerKind:null};else sessionStorage.removeItem(LOGIN_INTENT_KEY)}catch{}
 $('#wallet-login-verify').addEventListener('click',verifyWalletIdentity);
 window.addEventListener('ynx-finance-account-session',renderAccountSession);
-$('#browser-signin-start')?.addEventListener('click',event=>{if(!browserSSOEnabled){event.preventDefault();return;}event.currentTarget.href=`/sso/start?target=${encodeURIComponent(loginTarget())}`;});
+$('#browser-signin-start')?.addEventListener('click',event=>{if(!browserSSOEnabled){event.preventDefault();return;}browserIdentityExplicitIntent=true;browserSSORevision++;event.currentTarget.href=`/sso/start?target=${encodeURIComponent(loginTarget())}`;});
 $('#browser-signin-logout')?.addEventListener('click',async()=>{const current=browserIdentity;if(!current)return;clearLoginIntent();clearPrivateView();const button=$('#browser-signin-logout');button.disabled=true;try{const {response,data}=await browserSSOFetch('/api/sso/logout',{method:'POST',headers:{'content-type':'application/json','X-YNX-SSO-CSRF':current.csrfToken},body:'{}'});if(!response.ok||data.revoked!==true)throw new Error('unconfirmed');browserSSORevision++;browserIdentity=null;button.hidden=true;$('#browser-signin-state').textContent=financeText('browserSignInBoundary');browserSSOChannel?.postMessage({type:'recheck'});await window.YNXFinanceWallet.disconnect();}catch{notify(financeText('privateLogoutUnconfirmed'),true);}finally{button.disabled=false;}});
 window.addEventListener('focus',()=>void recheckBrowserIdentity());document.addEventListener('visibilitychange',()=>{if(!document.hidden)void recheckBrowserIdentity()});void initializeBrowserIdentity();
 document.addEventListener('finance:localechange',renderAccountSession);
