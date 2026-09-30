@@ -23,6 +23,19 @@ function environment(providers){
   return {scope,values};
 }
 const methods=value=>value.calls.map(call=>call.method);
+test('Hosted native route uses selected provider only; typed popup close is not signer availability',async()=>{
+  const {scope}=environment([]);scope.location.origin='https://exchange.ynxweb4.com';const adapter=new EventEmitter(),calls=[];
+  adapter.connect=async()=>{adapter.connected=true;adapter.account=account;return [account]};adapter.disconnect=()=>{adapter.connected=false};
+  adapter.request=async value=>{calls.push(value);return value.method==='eth_chainId'?'0x1917':{version:2,returnUrl:'https://exchange.ynxweb4.com/wallet-auth/callback?approval=opaque'}};
+  const wallet=createExchangeWallet({scope,createHostedAdapter:()=>adapter});await wallet.connectHosted();const route='ynxwallet://authorize?request=opaque';assert.equal((await wallet.requestProductSessionV2(route)).version,2);assert.deepEqual(calls[1],{method:'ynx_requestProductSessionV2',params:[route]});
+  adapter.emit('disconnect',{code:'HOSTED_POPUP_CLOSED'});assert.equal(wallet.getPrivateWalletContext().status,'transport-unavailable');assert.equal(wallet.getPrivateWalletContext().account,account);await assert.rejects(wallet.requestProductSessionV2(route),{code:'PRIVATE_TRANSPORT_UNAVAILABLE'});
+  adapter.emit('accountsChanged',[]);assert.equal(wallet.getPrivateWalletContext().account,null);wallet.disconnect();
+});
+test('MetaMask native bridge is unavailable; late Hosted account change rejects original reply',async()=>{
+  const meta=provider('metamask'),wallet=createExchangeWallet({scope:environment([meta]).scope});await wallet.connectMetaMask();await assert.rejects(wallet.requestProductSessionV2('opaque'),{code:'PRIVATE_TRANSPORT_UNAVAILABLE'});wallet.disconnect();
+  const {scope}=environment([]);scope.location.origin='https://exchange.ynxweb4.com';const adapter=new EventEmitter();let reply;adapter.connect=async()=>{adapter.connected=true;adapter.account=account;return [account]};adapter.disconnect=()=>{};adapter.request=async value=>value.method==='eth_chainId'?'0x1917':new Promise(resolve=>reply=resolve);
+  const hosted=createExchangeWallet({scope,createHostedAdapter:()=>adapter});await hosted.connectHosted();const action=hosted.requestProductSessionV2('opaque');adapter.emit('accountsChanged',['0x'+'b'.repeat(40)]);reply({version:2,returnUrl:'opaque'});await assert.rejects(action,{code:'PRIVATE_CONTEXT_CHANGED'});hosted.disconnect();
+});
 test('vendored SDK is byte-exact c97f85e9, no remote runtime imports',()=>{
   const value=readFileSync(new URL('../web/vendor/standard-wallet-browser-c97f85e9.mjs',import.meta.url));
   assert.equal(SDK_SOURCE,'c97f85e9ae4d4580b99860c51738e6040ca9ca18');assert.equal(value.length,22417);assert.equal(createHash('sha256').update(value).digest('hex'),'b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43');assert.doesNotMatch(value.toString(),/^import /m);

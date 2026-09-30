@@ -21,7 +21,7 @@ func NewProductSessionV2Client() (*productsessionv2.Client, error) {
 
 func newProductSessionV2Client(transport http.RoundTripper) (*productsessionv2.Client, error) {
 	return productsessionv2.NewClient(exchangeSessionAuthority, productsessionv2.Policy{
-		ProductID: "exchange", ClientID: "ynx-exchange-v1", ApplicationID: "com.ynxweb4.exchange",
+		ProductID: "exchange", ClientID: "ynx-exchange-v1", ApplicationID: "com.ynxweb4.exchange.web",
 		Platform: "web", Origin: exchangeWebOrigin, Callback: exchangeWebOrigin + "/wallet-auth/callback",
 		AllowedScopes: []string{"exchange:read"},
 	}, transport)
