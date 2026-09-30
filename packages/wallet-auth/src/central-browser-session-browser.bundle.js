@@ -26882,9 +26882,33 @@ ${item.productId}`));
     restart.textContent = "Return to product and retry";
     cancel.after(restart);
     restart.addEventListener("click", () => cancel.click());
+    const safeReturn = document.createElement("a");
+    safeReturn.id = "return-product";
+    safeReturn.hidden = true;
+    safeReturn.textContent = "Return to product without using this approval";
+    const deniedReturn = new URL(challenge.initiator.redirectUri);
+    deniedReturn.searchParams.set("state", challenge.initiator.state);
+    deniedReturn.searchParams.set("error", "access_denied");
+    safeReturn.href = deniedReturn.href;
+    restart.after(safeReturn);
+    safeReturn.addEventListener("click", () => {
+      cancelled = true;
+      revision++;
+      approve.disabled = true;
+      clearPairQR();
+      if (pair) void pair.cancel();
+    });
     let providers = [], selected = null, pending = null, revision = 0, cancelled = false;
     const message = (value) => {
       status.textContent = value;
+    };
+    const failure = (error, phase) => {
+      const known = /* @__PURE__ */ new Set(["YNX_PAIR_TIMEOUT", "YNX_PAIR_CANCELLED", "YNX_PAIR_CONFIGURATION_INVALID", "YNX_PAIR_SESSION_EXPIRED", "YNX_PAIR_PEER_INVALID", "YNX_PAIR_NAMESPACE_INVALID", "YNX_PAIR_CHAIN_INVALID", "YNX_PAIR_SESSION_SELECTION_REQUIRED", "YNX_PAIR_METHOD_NOT_APPROVED", "YNX_PAIR_CONTEXT_CHANGED", "SSO_CONTEXT_CHANGED", "SSO_CHALLENGE_EXPIRED", "SSO_REQUEST_TIMEOUT", "SSO_CSRF_MISMATCH", "SSO_TRANSACTION_EXPIRED", "SSO_LOGIN_REQUIRED", "SSO_REQUEST_FAILED", "PROVIDER_WRONG_CHAIN"]);
+      const raw = typeof error?.code === "string" ? error.code : typeof error?.message === "string" ? error.message : "";
+      const code2 = Number(error?.code) === 4001 ? "USER_REJECTED" : known.has(raw) ? raw : error?.name === "AbortError" ? "SSO_SERVICE_TIMEOUT" : error?.name === "TypeError" ? "SSO_TRANSPORT_UNAVAILABLE" : "SSO_WALLET_OR_SERVICE_UNAVAILABLE";
+      status.dataset.errorCode = code2;
+      status.dataset.phase = phase;
+      return code2;
     };
     const pairButton = document.createElement("button");
     pairButton.id = "pair";
@@ -26917,8 +26941,11 @@ ${item.productId}`));
       message("Opening a mobile Wallet connection. No sign-in signature has been requested.");
       pair ??= new WalletConnectDAppConnection({ origin: location.origin, methods: ["ynx_requestCentralBrowserSignIn"], deadlineMs: Math.max(1, Math.min(3e4, Date.parse(challenge.expiresAt) - Date.now())) });
       pairPending = (async () => {
+        status.dataset.phase = "pair-initialize";
+        delete status.dataset.errorCode;
         let provider = await pair.restore();
         if (epoch !== revision || cancelled) throw new Error("SSO_CONTEXT_CHANGED");
+        status.dataset.phase = "pair-connect";
         if (!provider) provider = await pair.connect({ onURI: (uri) => {
           if (epoch !== revision || cancelled) return;
           pairRegion.hidden = false;
@@ -26927,6 +26954,7 @@ ${item.productId}`));
             clearPairQR();
             message("QR rendering is unavailable. Cancel and retry the connection.");
           });
+          status.dataset.phase = "pair-approval";
           message("Scan this temporary QR in YNX Wallet and approve the connection.");
         } });
         if (epoch !== revision || cancelled) {
@@ -26939,9 +26967,12 @@ ${item.productId}`));
         picker.value = "";
         approve.disabled = false;
         message("Mobile Wallet connected. Continue to review browser sign-in on the same Wallet session.");
-      })().catch(() => {
+      })().catch((error) => {
         clearPairQR();
-        if (epoch === revision && !cancelled) message("Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.");
+        if (epoch === revision && !cancelled) {
+          const code2 = failure(error, status.dataset.phase);
+          message(`Mobile connection did not finish (${code2}). Retry or cancel; no browser sign-in was granted.`);
+        }
       }).finally(() => {
         pairPending = null;
         pairButton.removeAttribute("aria-busy");
@@ -27027,6 +27058,8 @@ ${item.productId}`));
       message("Opening YNX Wallet. Unlock and review browser sign-in.");
       approve.setAttribute("aria-busy", "true");
       pending = (async () => {
+        status.dataset.phase = "wallet-connect";
+        delete status.dataset.errorCode;
         assert6();
         await walletWait(connection.connect());
         assert6();
@@ -27050,11 +27083,14 @@ ${item.productId}`));
         unsubscribe = connection.subscribe((event) => {
           if (["accountsChanged", "chainChanged", "disconnect"].includes(event.event)) changed();
         });
+        status.dataset.phase = "wallet-approval";
         const approval = parseCentralBrowserSignInApproval(await walletWait(provider.request({ method: "ynx_requestCentralBrowserSignIn", params: [challenge] })));
         assert6();
+        status.dataset.phase = "wallet-recheck";
         const current = await walletWait(provider.request({ method: "eth_accounts" })), currentChain = await walletWait(provider.request({ method: "eth_chainId" }));
         assert6();
         if (!Array.isArray(current) || current[0]?.toLowerCase() !== account || currentChain !== chain2 || approval.challengeId !== challenge.challengeId || evmAddressFromYNX(approval.account).toLowerCase() !== account) throw new Error("SSO_CONTEXT_CHANGED");
+        status.dataset.phase = "server-complete";
         await request("complete", approval);
         assert6();
         message("Sign-in approved. Returning to your product.");
@@ -27075,7 +27111,8 @@ ${item.productId}`));
           } catch {
           }
         }
-        if (!cancelled) message(error?.code === 4001 || error?.code === "USER_REJECTED" ? "Sign-in was declined. Your existing product permissions are unchanged." : `Sign-in could not finish (${error?.message === "SSO_CONTEXT_CHANGED" ? "context changed" : error?.message === "SSO_CHALLENGE_EXPIRED" ? "request expired" : error?.message === "SSO_REQUEST_TIMEOUT" ? "request timed out" : "wallet or service unavailable"}). Retry or cancel.`);
+        const code2 = failure(error, status.dataset.phase);
+        if (!cancelled) message(code2 === "USER_REJECTED" ? "Sign-in was declined. Your existing product permissions are unchanged." : `Sign-in could not finish (${error?.message === "SSO_CONTEXT_CHANGED" ? "context changed" : error?.message === "SSO_CHALLENGE_EXPIRED" ? "request expired" : error?.message === "SSO_REQUEST_TIMEOUT" ? "request timed out" : "wallet or service unavailable"}). Retry or cancel.`);
       }).finally(() => {
         operationAbort.abort();
         unsubscribe();
@@ -27098,10 +27135,19 @@ ${item.productId}`));
         const redirect = new URL(result.redirectUri);
         if (redirect.origin !== challenge.initiator.origin || redirect.pathname !== new URL(challenge.initiator.redirectUri).pathname || redirect.searchParams.get("state") !== challenge.initiator.state || redirect.searchParams.get("error") !== "access_denied") throw new Error("SSO_REDIRECT_INVALID");
         location.assign(redirect.href);
-      } catch {
-        message("Cancellation is not confirmed. Retry cancellation; no late approval will be used on this page.");
-        cancelled = false;
-        cancel.disabled = false;
+      } catch (error) {
+        const code2 = failure(error, "server-cancel");
+        safeReturn.hidden = false;
+        const expired = Date.parse(challenge.expiresAt) <= Date.now() || code2 === "SSO_CSRF_MISMATCH";
+        message(expired ? "This sign-in transaction has expired. Remote cancellation is not confirmed. Return to your product and explicitly start a new request; this page will not use any late approval." : "Cancellation is not confirmed. Retry cancellation or return without using this approval; no late approval will be used on this page.");
+        if (expired) {
+          cancel.disabled = true;
+          approve.disabled = true;
+          pairButton.disabled = true;
+        } else {
+          cancelled = false;
+          cancel.disabled = false;
+        }
       }
     });
     window.addEventListener("pagehide", () => {

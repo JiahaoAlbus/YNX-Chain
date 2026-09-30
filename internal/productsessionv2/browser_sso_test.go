@@ -17,6 +17,62 @@ import (
 )
 
 // Backend response fixture only: these tests are not Wallet/public approval.
+func TestBrowserSSOExpiredTransactionReturnsTargetWithoutRedeeming(t *testing.T) {
+	for _, product := range []string{"finance", "exchange", "quant"} {
+		s, err := NewBrowserSSO(product, browserIssuer, []byte(strings.Repeat("q", 32)), []string{"overview", "risk"}, roundTrip(func(*http.Request) (*http.Response, error) {
+			t.Fatal("expired transaction reached token exchange")
+			return nil, nil
+		}))
+		if err != nil {
+			t.Fatal(err)
+		}
+		now := time.Now()
+		s.now = func() time.Time { return now }
+		start := httptest.NewRecorder()
+		s.Start(start, httptest.NewRequest("GET", s.origin+"/sso/start?target=risk", nil))
+		cookie := start.Result().Cookies()[0]
+		if cookie.MaxAge != 600 || !cookie.Secure || !cookie.HttpOnly {
+			t.Fatal("target recovery cookie is not bounded/private")
+		}
+		state := mustParseURL(t, start.Header().Get("Location")).Query().Get("state")
+		now = now.Add(3 * time.Minute)
+		for _, sample := range []struct {
+			query  string
+			status int
+			target string
+		}{
+			{"state=" + state + "&error=access_denied", 303, "/#risk"},
+			{"state=" + state + "&code=" + strings.Repeat("c", 43), 400, ""},
+			{"state=" + strings.Repeat("x", 43) + "&error=access_denied", 400, ""},
+		} {
+			r := httptest.NewRequest("GET", s.origin+"/sso/callback?"+sample.query, nil)
+			r.AddCookie(cookie)
+			w := httptest.NewRecorder()
+			s.Callback(w, r)
+			if w.Code != sample.status || w.Header().Get("Location") != sample.target {
+				t.Fatal("expired callback crossed authorization or target boundary")
+			}
+		}
+		now = now.Add(8 * time.Minute)
+		r := httptest.NewRequest("GET", s.origin+"/sso/callback?state="+state+"&error=access_denied", nil)
+		r.AddCookie(cookie)
+		w := httptest.NewRecorder()
+		s.Callback(w, r)
+		if w.Code != 400 {
+			t.Fatal("target recovery retention was unbounded")
+		}
+	}
+}
+
+func mustParseURL(t *testing.T, value string) *url.URL {
+	t.Helper()
+	u, err := url.Parse(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return u
+}
+
 func TestBrowserSSORegisteredConsumersKeepIdentityAndPrivatePermissionSeparate(t *testing.T) {
 	account := fixture(t).Session.Account
 	for _, product := range []string{"finance", "exchange", "quant"} {
