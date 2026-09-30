@@ -6,8 +6,8 @@ import {tmpdir} from "node:os";
 import {basename,join,resolve} from "node:path";
 import {chromium} from "playwright";
 import {p256} from "@noble/curves/nist.js";
-import registry from "../vendor/product-session-registry-b754ffc42.json" with {type:"json"};
-import {createProductSessionRequest,encodeProductSessionWalletURL,parseProductSessionReturnURL} from "@ynx-chain/wallet-auth-card-provider-v2";
+import registry from "../vendor/product-session-registry-123016847.json" with {type:"json"};
+import {createProductSessionRequest,encodeProductSessionWalletURL,parseProductSessionReturnURL} from "@ynx-chain/wallet-auth";
 
 const browserName=process.env.YNX_BROWSER||"chromium";
 const executablePath=browserName==="edge"?"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge":chromium.executablePath();
@@ -25,7 +25,7 @@ if(archivePath){
 const evidenceDir=resolve(process.env.YNX_WALLET_WEB_EVIDENCE_DIR||"evidence/private-v2");
 const password="ynx-disposable-private-test-password",secret=randomBytes(32).toString("hex"),origin="https://card.ynxweb4.com";
 const deviceKey=Buffer.from(p256.getPublicKey(Buffer.alloc(32,0x42),true)).toString("base64url");
-const scopes=["account:read","card:application:write","card:controls:write","card:finance:share"];
+const scopes=["account:read","card:application:write","card:controls:write"];
 const html='<!doctype html><html><head><meta charset="utf-8"></head><body><script>globalThis.providers=[];addEventListener("eip6963:announceProvider",e=>providers.push(e.detail.provider));dispatchEvent(new Event("eip6963:requestProvider"));</script></body></html>';
 let browser;
 const result={browser:browserName,fixtureOrigin:origin,fixtureOnly:true,gatewayVerified:false,artifact,passed:false};
@@ -41,7 +41,7 @@ try{
   const page=await browser.newPage();await page.goto(`${origin}/fixture`);await page.waitForFunction(()=>providers.some(item=>item?.isYNXWallet));
   const initialAccounts=await page.evaluate(()=>providers.find(item=>item?.isYNXWallet).request({method:"eth_accounts"}));assert.deepEqual(initialAccounts,[]);
   const first=request(),firstResult=ask(page,first.url).catch(error=>({ok:false,code:"EVALUATION_FAILED",message:error.message})),firstPopup=await popup();
-  assert.match(await firstPopup.locator("#scope-ids").textContent(),/card:finance:share/u);
+  assert.match(await firstPopup.locator("#scope-ids").textContent(),/card:controls:write/u);
   assert.match(await firstPopup.locator("#product").textContent(),/YNX Card/u);
   if((await firstPopup.locator("#title").textContent())!=="Allow this product?")await firstPopup.locator("#language").click();
   assert.match(await firstPopup.locator("#scopes").textContent(),/Share Card data with Finance/u);

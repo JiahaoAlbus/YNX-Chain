@@ -1,5 +1,5 @@
-import registry from "../vendor/product-session-registry-b754ffc42.json" with {type:"json"};
-import {walletIdentity} from "@ynx-chain/wallet-auth-card-provider-v2";
+import registry from "../vendor/product-session-registry-123016847.json" with {type:"json"};
+import {walletIdentity} from "@ynx-chain/wallet-auth";
 import {SigningKey,sha256,toUtf8Bytes} from "ethers";
 import {CENTRAL_BROWSER_RPC_METHOD,parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval,centralBrowserConsentSignBytes} from "@ynx-chain/wallet-auth/central-browser-session-contract";
 import {createCentralBrowserSessionRegistry} from "@ynx-chain/wallet-auth/central-browser-session-registry";
