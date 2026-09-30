@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-30T13:03:55.302Z",
+  "sourceCommit": "093a48eeb7bf7abaaa7df7570099d452a54cfa65",
+  "hostLoadAverageStart": [
+    6.61572265625,
+    5.76123046875,
+    4.9296875
+  ],
+  "browser": {
+    "name": "Chrome for Testing",
+    "version": "151.0.7922.34"
+  },
+  "runtimeClass": "real temporarily unpacked candidate ZIP in an isolated disposable browser profile",
+  "publicOrigin": "https://finance.ynxweb4.com",
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.5.zip",
+    "bytes": 585339,
+    "sha256": "fa4d2fdcd759acf0a0de457ec231fe91eae1fe1da2ccd6f0da2e362cc5c62487"
+  },
+  "passed": true,
+  "providerDiscovered": true,
+  "vaultCreatedThroughUi": true,
+  "rejectionReturnedToFinance": true,
+  "standardConnected": true,
+  "refreshConnected": true,
+  "financeLocalDisconnect": true,
+  "refreshDisconnected": true,
+  "permissionRevoked": true,
+  "privateFinanceAuthorized": false,
+  "brokerLoginAuthorized": false,
+  "transactionSubmitted": false,
+  "publicWalletReleased": false,
+  "steps": [
+    {
+      "name": "vault-ready",
+      "elapsedMs": 1262
+    },
+    {
+      "name": "finance-loaded",
+      "elapsedMs": 5485
+    },
+    {
+      "name": "finance-rejected",
+      "elapsedMs": 7129
+    },
+    {
+      "name": "finance-connected",
+      "elapsedMs": 7635
+    },
+    {
+      "name": "finance-connected-refreshed",
+      "elapsedMs": 7904
+    },
+    {
+      "name": "finance-local-disconnect",
+      "elapsedMs": 7938
+    },
+    {
+      "name": "finance-refreshed",
+      "elapsedMs": 8311
+    },
+    {
+      "name": "finance-revoked",
+      "elapsedMs": 9015
+    }
+  ],
+  "account": "0x4261c2644b1ae10a9405bc2b850fe4d40daf991d",
+  "companionTrace": [
+    {
+      "stage": "before-open",
+      "origin": "https://wallet.ynxweb4.com",
+      "path": "/",
+      "timeOrigin": 1790773436606,
+      "discovery": "ready",
+      "expanded": "true",
+      "chooserClass": "wallets ",
+      "providerRoute": "injected-provider",
+      "providerVisible": true
+    },
+    {
+      "stage": "after-open",
+      "origin": "https://wallet.ynxweb4.com",
+      "path": "/",
+      "timeOrigin": 1790773436606,
+      "discovery": "ready",
+      "expanded": "true",
+      "chooserClass": "wallets ",
+      "providerRoute": "injected-provider",
+      "providerVisible": true
+    }
+  ],
+  "networkOnlyStatus": "Status: YNX Testnet · 6423 · Not connected",
+  "networkOnlyDisconnected": true,
+  "vaultHashBeforeMigration": "ff4d0c1e7dc3f55c5aee6a6b4b2bd8f005780cca8dd17ee6033b63352be94b3a",
+  "pageErrors": [],
+  "publicStatus": 200,
+  "websiteParams": {
+    "chainId": "0x1917",
+    "chainName": "YNX Testnet",
+    "nativeCurrency": {
+      "name": "YNXT",
+      "symbol": "YNXT",
+      "decimals": 18
+    },
+    "rpcUrls": [
+      "https://rpc-testnet.ynxweb4.com"
+    ],
+    "blockExplorerUrls": [
+      "https://explorer.ynxweb4.com"
+    ]
+  },
+  "websiteAsset": "/assets/index-CAM9VIsC.js",
+  "websiteAssetSha256": "243bf7aae75951ee1d31916fb8135c35ad133e3e5f74f930835122c262a6ebea",
+  "networkRepetitions": [
+    {
+      "added": null,
+      "chainId": "0x1917",
+      "accounts": []
+    },
+    {
+      "added": null,
+      "chainId": "0x1917",
+      "accounts": []
+    },
+    {
+      "added": null,
+      "chainId": "0x1917",
+      "accounts": []
+    }
+  ],
+  "networkMutationPassed": true,
+  "rejectionState": {
+    "walletState": "Wallet request rejected. · Standard Wallet is not connected. Choose YNX Wallet or MetaMask; public pages remain available.",
+    "standard": {
+      "status": "disconnected",
+      "providerKind": "ynx-wallet",
+      "account": null,
+      "chainId": null
+    }
+  },
+  "connectedState": {
+    "status": "connected",
+    "providerKind": "ynx-wallet",
+    "account": "0x4261c2644b1ae10a9405bc2b850fe4d40daf991d",
+    "chainId": "0x1917"
+  },
+  "refreshedConnectedState": {
+    "status": "connected",
+    "providerKind": "ynx-wallet",
+    "account": "0x4261c2644b1ae10a9405bc2b850fe4d40daf991d",
+    "chainId": "0x1917"
+  },
+  "vaultPreservedAfterMigration": true,
+  "providerIndexRecovered": true,
+  "companionProbePerformed": true,
+  "hostLoadAverageEnd": [
+    5.83203125,
+    5.62060546875,
+    4.88916015625
+  ]
+}

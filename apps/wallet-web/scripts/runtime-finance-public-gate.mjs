@@ -35,7 +35,9 @@ try{
   await bounded(vault.waitForFunction(()=>/^0x[0-9a-f]{40}$/u.test(document.querySelector("#evm-account")?.textContent||"")),15000,"vault account");result.account=await vault.locator("#evm-account").textContent();result.vaultCreatedThroughUi=true;await vault.close();step("vault-ready");
   if(threeFaults){
     if(companionProbe){
-    const companion=await context.newPage();await companion.goto("https://wallet.ynxweb4.com/",{waitUntil:"domcontentloaded"});await companion.waitForFunction(()=>document.documentElement.dataset.walletDiscovery==="ready");await companion.locator("#wallet-connect-trigger").click();
+    const companion=await context.newPage();await companion.goto("https://wallet.ynxweb4.com/",{waitUntil:"domcontentloaded"});await companion.waitForFunction(()=>document.documentElement.dataset.walletDiscovery==="ready");
+    result.companionTrace=[];const trace=async stage=>result.companionTrace.push(await companion.evaluate(stage=>({stage,origin:location.origin,path:location.pathname,timeOrigin:performance.timeOrigin,discovery:document.documentElement.dataset.walletDiscovery,expanded:document.querySelector("#wallet-connect-trigger")?.getAttribute("aria-expanded"),chooserClass:document.querySelector("#wallet-chooser")?.className,providerRoute:document.querySelector("#ynx")?.dataset.route,providerVisible:Boolean(document.querySelector("#ynx")?.getClientRects().length)}),stage));
+    await trace("before-open");if(await companion.locator("#wallet-connect-trigger").getAttribute("aria-expanded")!=="true")await companion.locator("#wallet-connect-trigger").click();await trace("after-open");
     await companion.locator("#ynx").click();const review=await waitForExtensionPage(context,"/approval.html");await review.locator("#reject:not([disabled])").click();
     await companion.locator("#network-tools summary").click();
     await companion.locator("#switch:not([disabled])").waitFor();await companion.locator("#switch").click();
