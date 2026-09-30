@@ -26,6 +26,9 @@ const files=prior.files.map(item=>{
   return {path,bytes:bytes.length,sha256:sha(bytes)};
 });
 const path='../../../packages/wallet-auth/src/wallet-provider-discovery.js',bytes=readFileSync(resolve(web,path));files.push({path,bytes:bytes.length,sha256:sha(bytes)});
+const hostedPath='../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js',hostedBytes=readFileSync(resolve(web,hostedPath));
+assert.equal(hostedBytes.length,12659);assert.equal(sha(hostedBytes),'2567f4ec0958852ef27ee382067b6b104e33fe5dc3feba3aa94d710caa7f2c0a');
+files.push({path:hostedPath,bytes:hostedBytes.length,sha256:sha(hostedBytes)});
 const manifest={...prior,evmRead:{candidatePath,candidateBytes:candidate.length,candidateSha256:sha(candidate)},sourceBundleRelation:{byteReproducible:true,status:'VERIFIED_REPRODUCIBLE',cleanBuildCount:2,bytes:bundle.length,sha256:sha(bundle)},files};
 const body=Buffer.from(`${JSON.stringify(manifest,null,2)}\n`);
 writeFileSync(resolve(web,'wallet-verifier-manifest.json'),body);

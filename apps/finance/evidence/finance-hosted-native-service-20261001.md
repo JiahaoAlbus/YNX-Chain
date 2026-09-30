@@ -69,7 +69,7 @@ Implementation d334806c6a51b584d0b9d4ae88cbd378ab785080, tree
 is 74031B, SHA256 0aa296f795b703377b1373841787e9ff531ff9e9d61353156ec642557b6e2fe6.
 Two independent builds bind each bundle and its full dependency graph. The
 active Wallet verifier manifest SHA256 is
-52b0ccc66e2338331a3f39f8cb9cc2b0e274cb6f591a14253e70902bff1f74e7.
+be4103fb2d3000992da90fab77b00f752d524fa6e78ca2790684dd7ee896519f.
 Wallet bundle is 211324B, SHA256
 fe50d473914ee5f56590865f270cd6d09b09e328a840ac40a362cfa81c638190.
 
@@ -77,3 +77,9 @@ From apps/finance, strict gate:
 `node --test tests/evm-read-verifier.test.mjs tests/wallet-bundle-verifier.test.mjs`
 and `node web/verify-wallet-connect.mjs`. The added typed-vendor tamper negative
 retains all historical source/lock/graph/duplicate-read/rebuild protections.
+
+The final successor gate passed 23/23, zero skips (1.390s), and the direct
+verifier returned pass. The intermediate be0e pin omitted the Wallet snapshot
+vendor binding and retained old verifier/test identity constants; this successor
+adds the exact accepted adapter input and updates identities, without weakening
+any file-set, tamper, duplicate-read or independent-build checks.
