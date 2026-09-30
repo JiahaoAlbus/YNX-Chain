@@ -55,7 +55,13 @@ test('explicit canonical native consent creates one durable browser identity and
     assert.equal(centralBrowserCookieToken(centralBrowserCookie(signed.sessionToken)),signed.sessionToken);
     assert.match(centralBrowserCookie(signed.sessionToken),/^__Host-.*; Path=\/; Secure; HttpOnly; SameSite=Lax$/);
     assert.equal(centralBrowserCookieToken(`__Host-ynx-browser-session=${signed.sessionToken}; __Host-ynx-browser-session=${token()}`),null);
+    const pendingFinance=intent(),pendingQuant=intent('quant');
+    const financeCode=new URL(restarted.authorize(pendingFinance.input,signed.sessionToken).redirectUri).searchParams.get('code');
+    const quantCode=new URL(restarted.authorize(pendingQuant.input,signed.sessionToken).redirectUri).searchParams.get('code');
     restarted.logoutGrant(finance.result.grantToken,finance.input.clientId);
+    const redeemPending=(request,code)=>restarted.redeem({clientId:request.input.clientId,origin:request.input.origin,redirectUri:request.input.redirectUri,state:request.input.state,codeVerifier:request.codeVerifier,code});
+    assert.throws(()=>redeemPending(pendingFinance,financeCode),error=>error.code==='SSO_CODE_REPLAY','old product callback cannot resurrect a signed-out session');
+    assert.equal(redeemPending(pendingQuant,quantCode).identity.account,identity.account,'another product outstanding code stays valid');
     assert.throws(()=>restarted.introspect(finance.result.grantToken,finance.input.clientId),error=>error.code==='SSO_GRANT_INVALID');
     assert.equal(restarted.status(signed.sessionToken).account,identity.account,'product logout preserves central identity');
     assert.equal(restarted.introspect(quant.result.grantToken,quant.input.clientId).identity.account,identity.account,'product logout preserves another product grant');
