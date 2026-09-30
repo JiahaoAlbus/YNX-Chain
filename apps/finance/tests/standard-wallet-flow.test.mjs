@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
+import {createEvmProductSessionChallenge,createEvmProductSessionSigningRequest} from '@ynx-chain/wallet-auth';
 
 // Real local Chrome executes the exact Finance bundle. Providers/accounts below
 // are injected test fixtures, not installed-wallet or public authorization proof.
@@ -21,7 +22,7 @@ test.before(async()=>{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base=`http://127.0.0.1:${server.address().port}`;
   browser=await chromium.launch(await financeBrowserLaunchOptions());
 });
-test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
+test.after(async()=>{await browser?.close();server?.closeAllConnections();await new Promise(resolve=>server?.close(resolve));});
 async function fixture({saved=null,missing=false,revoke='success',deferSwitch=false,deferRevoke=false,rejectSign=false,deferSign=false,accountUnavailable=false}={}){
   const page=await browser.newPage();
   page.financeErrors=[];page.on('pageerror',error=>page.financeErrors.push(error.message));
@@ -41,6 +42,13 @@ async function fixture({saved=null,missing=false,revoke='success',deferSwitch=fa
 }
 async function connect(page,id='#connect-metamask'){await page.locator(id).click();try{await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected',{},{timeout:3000});}catch(error){throw new Error(JSON.stringify({errors:page.financeErrors,state:await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState()),calls:await calls(page)}),{cause:error});}}
 const calls=page=>page.evaluate(()=>window.__financeFixture.calls);
+async function readChallenge(page,account,requestId){
+  await page.route('**/api/evm-read/challenges',route=>{
+    const device=route.request().postDataJSON(),at=Date.now();
+    const challenge=createEvmProductSessionChallenge({chainId:6423,account,providerKind:'metamask',productId:'finance',origin:'https://finance.ynxweb4.com',callback:'https://finance.ynxweb4.com/wallet-auth/callback',scope:'finance.account.read',deviceId:device.deviceId,deviceAlgorithm:'p256-sha256',deviceKey:device.deviceKey,nonce:'local-browser-challenge-nonce-000001',state:'local-browser-challenge-state-000001',requestId,issuedAt:new Date(at).toISOString(),expiresAt:new Date(at+300000).toISOString()});
+    return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({schemaVersion:'finance-evm-read-challenge-v1',privateFinanceAuthorized:false,challenge,signingRequest:createEvmProductSessionSigningRequest(challenge)})});
+  });
+}
 
 test('guest navigation keeps eight product destinations visible and localizes Wallet status without account access',async()=>{
   const page=await fixture();try{
@@ -170,7 +178,7 @@ test('local Chrome requires an explicit identity click and preserves Standard Wa
     assert.equal(await page.locator('#wallet-login-verify').isVisible(),true);
     assert.equal((await calls(page)).some(call=>call.method==='personal_sign'),false);
     await page.locator('#wallet-login-verify').click();
-    await page.waitForFunction(()=>document.querySelector('#wallet-login-state').textContent.includes('not verified')&&sessionStorage.getItem('ynx.finance.evm-login.pending.v1')===null);
+    await page.waitForFunction(()=>document.querySelector('#wallet-login-state').textContent.includes('not verified')&&sessionStorage.getItem('ynx.finance.evm-read.pending.v1')===null);
     assert.equal((await calls(page)).some(call=>call.method==='personal_sign'),false);
     assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connected');
     assert.equal(page.context().pages().length,1);
@@ -189,18 +197,20 @@ test('local Chrome binds selected provider proof and never promotes mocked ident
   const page=await fixture();try{
     await connect(page);
     const account='0x'+'a'.repeat(40),requestId='finance-login-'+'c'.repeat(32);
-    await page.route('**/api/wallet-login/challenges',route=>route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({schemaVersion:'finance-evm-login-challenge-v1',privateFinanceAuthorized:false,challenge:{account,providerKind:'metamask',chainId:6423,productId:'finance',scopes:['finance.account.read'],requestId,expirationTime:'2030-01-01T00:00:00.000Z'},signingRequest:{method:'personal_sign',message:'LOCAL',params:['0x4c4f43414c',account]}})}));
+    await readChallenge(page,account,requestId);
     let postedProof=null;
-    await page.route('**/api/wallet-login/verify',async route=>{postedProof=route.request().postDataJSON()?.proof;await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({schemaVersion:'finance-evm-login-verification-v1',verified:true,account,providerKind:'metamask',chainId:6423,scopes:['finance.account.read'],requestId,privateFinanceAuthorized:false,standardWalletUnchanged:true})});});
+    await page.route('**/api/evm-read/sessions',async route=>{postedProof=route.request().postDataJSON()?.proof;await route.fulfill({status:401,contentType:'application/json',body:JSON.stringify({code:'invalid_signature'})});});
     await page.locator('#wallet-login-verify').click();
-    await page.waitForFunction(()=>document.querySelector('#wallet-login-state').textContent.includes('Wallet identity verified'));
+    await page.waitForFunction(()=>document.querySelector('#wallet-login-state').textContent.includes('not verified'));
     assert.equal(postedProof?.challenge?.requestId,requestId);
-    assert.equal(postedProof?.message,'LOCAL');
+    assert.equal(postedProof?.challenge?.account,account);
+    assert.equal(await page.evaluate(()=>window.YNXFinanceEVMRead.state().active),false);
+    assert.equal(await page.locator('#account-workspace').isVisible(),false);
     assert.equal((await calls(page)).filter(call=>call.method==='personal_sign').length,1);
     assert.equal((await calls(page)).some(call=>call.kind==='ynx-wallet'),false);
     assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connected');
     assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.connected()),false);
-    assert.equal(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.evm-login.pending.v1')),null);
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.evm-read.pending.v1')),null);
     assert.equal(page.context().pages().length,1);
   }finally{await page.close();}
 });
@@ -208,12 +218,12 @@ test('local Chrome reject of personal_sign leaves selected Standard Wallet conne
   const page=await fixture({rejectSign:true});try{
     await connect(page);
     const account='0x'+'a'.repeat(40);
-    await page.route('**/api/wallet-login/challenges',route=>route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({schemaVersion:'finance-evm-login-challenge-v1',privateFinanceAuthorized:false,challenge:{account,providerKind:'metamask',chainId:6423,productId:'finance',scopes:['finance.account.read'],requestId:'finance-login-'+'d'.repeat(32),expirationTime:'2030-01-01T00:00:00.000Z'},signingRequest:{method:'personal_sign',message:'LOCAL',params:['0x4c4f43414c',account]}})}));
+    await readChallenge(page,account,'finance-login-'+'d'.repeat(32));
     await page.locator('#wallet-login-verify').click();
     await page.waitForFunction(()=>document.querySelector('#wallet-login-state').textContent.includes('not verified'));
     assert.equal((await calls(page)).filter(call=>call.method==='personal_sign').length,1);
     assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connected');
-    assert.equal(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.evm-login.pending.v1')),null);
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.evm-read.pending.v1')),null);
     assert.equal(page.context().pages().length,1);
   }finally{await page.close();}
 });
@@ -221,17 +231,17 @@ test('local Chrome account change during a pending signature cannot submit stale
   const page=await fixture({deferSign:true});try{
     await connect(page);
     const account='0x'+'a'.repeat(40);
-    await page.route('**/api/wallet-login/challenges',route=>route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({schemaVersion:'finance-evm-login-challenge-v1',privateFinanceAuthorized:false,challenge:{account,providerKind:'metamask',chainId:6423,productId:'finance',scopes:['finance.account.read'],requestId:'finance-login-'+'e'.repeat(32),expirationTime:'2030-01-01T00:00:00.000Z'},signingRequest:{method:'personal_sign',message:'LOCAL',params:['0x4c4f43414c',account]}})}));
+    await readChallenge(page,account,'finance-login-'+'e'.repeat(32));
     let verifyCount=0;
-    await page.route('**/api/wallet-login/verify',route=>{verifyCount++;return route.abort();});
+    await page.route('**/api/evm-read/sessions',route=>{verifyCount++;return route.abort();});
     await page.locator('#wallet-login-verify').click();
     await page.waitForFunction(()=>typeof window.__financeFixture.pendingSign==='function');
     await page.evaluate(()=>{window.__financeFixture.metamask.emit('accountsChanged',['0x'+'c'.repeat(40)]);window.__financeFixture.pendingSign();});
-    await page.waitForFunction(()=>document.querySelector('#wallet-login-state').textContent.includes('not verified')&&sessionStorage.getItem('ynx.finance.evm-login.pending.v1')===null);
+    await page.waitForFunction(()=>document.querySelector('#wallet-login-state').textContent.includes('not verified')&&sessionStorage.getItem('ynx.finance.evm-read.pending.v1')===null);
     assert.equal(verifyCount,0);
     assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().account),'0x'+'c'.repeat(40));
     assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connected');
-    assert.equal(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.evm-login.pending.v1')),null);
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.evm-read.pending.v1')),null);
   }finally{await page.close();}
 });
 test('local disconnect sends no revocation; late events cannot repopulate account',async()=>{

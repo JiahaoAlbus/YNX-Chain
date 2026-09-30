@@ -7,9 +7,9 @@
     "esbuildVersion": "0.25.9"
   },
   "evmRead": {
-    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-workspace-2627b209-v5-20260925.json",
-    "candidateBytes": 6059,
-    "candidateSha256": "e6740a5312449f9e3d933892e61796dfc509d306e0fb1172bf0676e4f204673d"
+    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-guoqing-15a9aebc-20260930.json",
+    "candidateBytes": 6390,
+    "candidateSha256": "7b70316115d769a83ddff3de3ae2299444e31ac263c16faa808dff545d2d6b66"
   },
   "sourceBundleRelation": {
     "byteReproducible": true,
@@ -71,8 +71,8 @@
     },
     {
       "path": "evm-read-session.js",
-      "bytes": 66226,
-      "sha256": "1948d6cb586580505ff92abb0afbdbae596efffbc5904a99a1518aee3c210e34"
+      "bytes": 67677,
+      "sha256": "9a34575a1239a51420de1b3041be458bac3ee0498352b0cc208fb644c15a5528"
     },
     {
       "path": "evm-subject.js",
@@ -91,18 +91,18 @@
     },
     {
       "path": "index.html",
-      "bytes": 29552,
-      "sha256": "16323d4f9e6742336ab6c1e3e9554a933a027564d420be1e71aeff589a9d9976"
+      "bytes": 30522,
+      "sha256": "7bb67b46ea6e691e37862dbe019f0de5f788de546ae2c8343564272b274b717c"
     },
     {
       "path": "app.js",
-      "bytes": 67496,
-      "sha256": "b94d066bdc0f7b827872a597e471708928c40755cf53cc5d64885d52fe6f643e"
+      "bytes": 67915,
+      "sha256": "f1f7ad7ccd603244f63a76dd1b752a3686dca286cc3a853138ea4ec602dcf20d"
     },
     {
       "path": "finance-locale.js",
-      "bytes": 428899,
-      "sha256": "e9f860f4b71699a84f4fb57c80f5977360c32b361afe84037b9d5572511a8fc6"
+      "bytes": 431508,
+      "sha256": "eae6ab55bb514dc6d902bd67ce9bfc63c451d00027c5490e88d64eab6cdab715"
     },
     {
       "path": "read-sources.js",
@@ -191,13 +191,13 @@
     },
     {
       "path": "verify-evm-read-candidate.mjs",
-      "bytes": 7076,
-      "sha256": "139829bbabbb84988a06084880ad983fda19186abef2dc28b583ee96af3d1758"
+      "bytes": 7829,
+      "sha256": "914cf7dc0a01f8de222324e2c040ee6882b37ce551c5287b98e92c3b2452ca23"
     },
     {
-      "path": "../evidence/evm-read-runtime-verifier-candidate-workspace-2627b209-v5-20260925.json",
-      "bytes": 6059,
-      "sha256": "e6740a5312449f9e3d933892e61796dfc509d306e0fb1172bf0676e4f204673d"
+      "path": "../evidence/evm-read-runtime-verifier-candidate-guoqing-15a9aebc-20260930.json",
+      "bytes": 6390,
+      "sha256": "7b70316115d769a83ddff3de3ae2299444e31ac263c16faa808dff545d2d6b66"
     },
     {
       "path": "../../../packages/wallet-auth/node_modules/@noble/hashes/_md.js",
