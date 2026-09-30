@@ -23,7 +23,7 @@ export type WalletConnectSnapshot = Readonly<{
 type Listener = (snapshot: WalletConnectSnapshot) => void;
 type RuntimeConfig = Readonly<{ projectId: string; relayUrl?: string }>;
 type WalletKitClient = Pick<InstanceType<typeof WalletKit>, "pair" | "approveSession" | "rejectSession" | "respondSessionRequest" | "disconnectSession" | "getActiveSessions"> & {
-  core?: { pairing: { disconnect(args: { topic: string }): Promise<void> } };
+  core?: { pairing: { disconnect(args: { topic: string }): Promise<void>; getPairings?(): readonly { topic: string }[] } };
   on<E extends SignClientTypes.Event>(event:E,listener:(args:SignClientTypes.EventArguments[E])=>void):unknown;
 };
 type WalletKitFactory = (config: RuntimeConfig) => Promise<WalletKitClient>;
@@ -266,6 +266,14 @@ export class WalletConnectRuntime {
   async #initialize(): Promise<void> {
     for (const topic of await this.pairingJournal?.load() ?? []) this.#pairTopics.set(topic, true);
     const client = await this.factory(this.config!);
+    for (const session of Object.values(client.getActiveSessions())) if (session.pairingTopic) this.#approvedPairTopics.add(session.pairingTopic);
+    // Older installed versions had no journal. Quarantine recovered unapproved
+    // pairings before listeners; an existing approved session remains intact.
+    for (const pairing of client.core?.pairing.getPairings?.() ?? []) {
+      if (this.#approvedPairTopics.has(pairing.topic)) continue;
+      await this.pairingJournal?.record(pairing.topic);
+      this.#pairTopics.set(pairing.topic, true);
+    }
     client.on("session_proposal", proposal => {
       if (this.#pairTopics.get(proposal.params.pairingTopic) === true) {
         void client.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") }).catch(() => { const topic = proposal.params.pairingTopic; this.#pairCleanup.set(topic, { revision: (this.#pairCleanup.get(topic)?.revision ?? 0) + 1, status: "unconfirmed" }); this.#publishPairCleanup(); });
