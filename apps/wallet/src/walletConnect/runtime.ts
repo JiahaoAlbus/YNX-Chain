@@ -16,6 +16,11 @@ export type WalletConnectSnapshot = Readonly<{
   request: WalletConnectRequest | null;
   sessionEvent: WalletConnectSessionEvent | null;
   retryAvailable: boolean;
+  relayTransport: "unknown" | "connecting" | "connected" | "disconnected" | "failed";
+  relayErrorCode: string | null;
+  relayHTTPStatus: number | null;
+  relayRetryAvailable: boolean;
+  pairTransportStage: "idle" | "sdk-pair" | "subscribe-pending" | "subscribed" | "proposal-received" | "timed-out" | "canceled" | "failed";
   pairing: boolean;
   pairingCleanup: "none" | "pending" | "sdk-confirmed" | "unconfirmed";
 }>;
@@ -23,7 +28,7 @@ export type WalletConnectSnapshot = Readonly<{
 type Listener = (snapshot: WalletConnectSnapshot) => void;
 type RuntimeConfig = Readonly<{ projectId: string; relayUrl?: string }>;
 type WalletKitClient = Pick<InstanceType<typeof WalletKit>, "pair" | "approveSession" | "rejectSession" | "respondSessionRequest" | "disconnectSession" | "getActiveSessions"> & {
-  core?: { pairing: { disconnect(args: { topic: string }): Promise<void>; getPairings?(): readonly { topic: string; expiry?: number }[] } };
+  core?: { relayer?: { connected: boolean; connecting: boolean; on(event:string, listener:(value?:any)=>void):unknown; transportOpen():Promise<void>; subscriber?: { topics:readonly string[]; pending:Map<string,unknown>; on(event:string,listener:(value:any)=>void):unknown } }; pairing: { disconnect(args: { topic: string }): Promise<void>; getPairings?(): readonly { topic: string; expiry?: number }[] } };
   on<E extends SignClientTypes.Event>(event:E,listener:(args:SignClientTypes.EventArguments[E])=>void):unknown;
 };
 type WalletKitFactory = (config: RuntimeConfig) => Promise<WalletKitClient>;
@@ -50,6 +55,8 @@ export class WalletConnectRuntime {
   #requestDeadlines = new WeakMap<WalletConnectRequest,number>();
   #pairTopics = new Map<string, boolean>();
   #pairCleanup = new Map<string, { revision: number; status: "pending" | "sdk-confirmed" | "unconfirmed" }>();
+  #relayRetry: Promise<void> | null = null;
+  #relayAttempts = 0;
   #pairExpiry = new Map<string, number>();
   #sdkPairPending = new Set<string>();
   #approvedPairTopics = new Set<string>();
@@ -57,7 +64,7 @@ export class WalletConnectRuntime {
   #receivedAt = new WeakMap<WalletConnectRequest,Date>();
   constructor(readonly config: RuntimeConfig | null, private readonly factory: WalletKitFactory = createWalletKit, private readonly pairDeadlineMs = WALLETCONNECT_PAIR_DEADLINE_MS, private readonly pairingJournal?: { load(): Promise<readonly string[]>; record(topic: string, expiresAt?: number | null): Promise<void>; retire?(topic: string): Promise<void> }) {
     if (!Number.isFinite(pairDeadlineMs) || pairDeadlineMs <= 0 || pairDeadlineMs > WALLETCONNECT_PAIR_DEADLINE_MS) throw new Error("Invalid pairing deadline.");
-    this.#snapshot = Object.freeze({ phase: config ? "starting" : "disabled", error: config ? null : "WalletConnect is not configured for this build.", sessions: Object.freeze([]), proposal: null, request: null, sessionEvent: null, retryAvailable: false, pairing: false, pairingCleanup: "none" });
+    this.#snapshot = Object.freeze({ phase: config ? "starting" : "disabled", error: config ? null : "WalletConnect is not configured for this build.", sessions: Object.freeze([]), proposal: null, request: null, sessionEvent: null, retryAvailable: false, relayTransport: "unknown", relayErrorCode: null, relayHTTPStatus: null, relayRetryAvailable: false, pairTransportStage: "idle", pairing: false, pairingCleanup: "none" });
   }
   snapshot(): WalletConnectSnapshot { return this.#snapshot; }
   requestReviewTime(event: WalletConnectRequest): Date { const at=this.#receivedAt.get(event);if(!at)throw new Error("Wallet request arrival time is unavailable.");return new Date(at); }
@@ -94,7 +101,7 @@ export class WalletConnectRuntime {
     if (this.#sdkPairPending.size >= 100) throw new Error("Too many unresolved SDK operations. No further pairing will be attempted yet.");
     this.#pairTopics.set(topic, false);
     this.#pairExpiry.set(topic, expiryTimestamp ?? Math.floor(Date.now()/1000)+300);
-    this.#set({ pairing: true, error: null });
+    this.#set({ pairing: true, error: null, pairTransportStage: "sdk-pair" });
     let timer: ReturnType<typeof setTimeout>;
     let canceled = false;
     let proposalReceived!: () => void;
@@ -106,7 +113,8 @@ export class WalletConnectRuntime {
         this.#reviewGeneration++;
         this.#pairTopics.set(topic, true);
         this.#quarantinePairProposal(client, topic);
-        this.#set({ pairing: false, error: reason });
+        this.#syncRelay(client);
+        this.#set({ pairing: false, error: reason, pairTransportStage: reason.includes("timed out") ? "timed-out" : "canceled" });
         reject(new Error(reason));
         void this.#cleanupPairing(client, topic);
       };
@@ -125,7 +133,9 @@ export class WalletConnectRuntime {
     try { await Promise.race([operation, interrupted, received]); }
     catch (error) {
       if (!canceled) { this.#pairTopics.set(topic, true); this.#quarantinePairProposal(client, topic); void this.#cleanupPairing(client, topic); }
-      throw error;
+      this.#syncRelay(client);
+      if (!canceled) this.#set({ pairTransportStage: "failed" });
+      throw new Error(publicError(error));
     } finally {
       clearTimeout(timer!);
       this.#finishPair(topic);
@@ -300,7 +310,7 @@ export class WalletConnectRuntime {
       }
       if(this.#paused&&!this.#paused.proposal&&proposal.params.expiryTimestamp>Math.floor(Date.now()/1000)){this.#paused.proposal=proposal;return;}
       if(this.#paused||this.#snapshot.proposal){void client.rejectSession({id:proposal.id,reason:getSdkError("USER_REJECTED")}).catch(()=>{});return;}
-      this.#set({proposal});
+      this.#set({proposal, pairTransportStage:"proposal-received"});
       if (this.#pairOperation && proposal.params.pairingTopic === this.#pairOperation.topic) this.#pairOperation.proposalReceived();
     });
     client.on("session_request", request => {
@@ -319,7 +329,38 @@ export class WalletConnectRuntime {
     client.on("session_expire", event => { this.#clearRequestForTopic(event.topic);this.#removeSession(event.topic,client); this.#emitSessionEvent({ kind: "expired", topic: event.topic }); });
     client.on("session_delete", event => { this.#clearRequestForTopic(event.topic);this.#removeSession(event.topic,client); this.#emitSessionEvent({ kind: "deleted", topic: event.topic }); });
     this.#client = client;
+    const relayer=client.core?.relayer;
+    if(relayer){
+      for(const event of ["relayer_connect","relayer_disconnect","relayer_transport_closed","relayer_connection_stalled"]){relayer.on(event,()=>this.#syncRelay(client));}
+      relayer.on("relayer_error",error=>{const details=safeRelayError(error);this.#set({relayTransport:"failed",relayErrorCode:details.code,relayHTTPStatus:details.status,relayRetryAvailable:this.#relayAttempts<3});});
+      relayer.subscriber?.on("subscription_created",event=>{if(event?.topic===this.#pairOperation?.topic)this.#set({pairTransportStage:"subscribed"});});
+      this.#syncRelay(client);
+    }
     this.#refreshSessions(client); this.#set({ phase: "ready", error: null, retryAvailable: false });
+  }
+  #syncRelay(client:WalletKitClient):void {
+    const relayer=client.core?.relayer;if(!relayer)return;
+    const relayTransport=relayer.connected?"connected":relayer.connecting?"connecting":"disconnected";
+    if(relayer.connected)this.#relayAttempts=0;
+    const topic=this.#pairOperation?.topic,subscriber=relayer.subscriber;
+    this.#set({relayTransport,relayRetryAvailable:!relayer.connected&&this.#relayAttempts<3,...(relayer.connected?{relayErrorCode:null,relayHTTPStatus:null}:{}),...(topic&&subscriber?{pairTransportStage:subscriber.topics.includes(topic)?"subscribed" as const:subscriber.pending.has(topic)?"subscribe-pending" as const:"sdk-pair" as const}:{})});
+  }
+  async retryRelay():Promise<void> {
+    const client=this.#require(),relayer=client.core?.relayer;
+    if(!relayer)throw new Error("Relay transport status is unavailable.");
+    if(this.#relayRetry)return this.#relayRetry;
+    if(relayer.connected){this.#syncRelay(client);return;}
+    if(this.#relayAttempts>=3)throw new Error("Relay retry limit reached. Wait for transport recovery before retrying.");
+    this.#relayAttempts++;this.#set({relayTransport:"connecting",relayRetryAvailable:false,relayErrorCode:null,relayHTTPStatus:null});
+    let timer:ReturnType<typeof setTimeout>;
+    this.#relayRetry=(async()=>{
+      try{
+        await Promise.race([Promise.resolve().then(()=>relayer.transportOpen()),new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error("Relay connection timed out."),{code:"RELAY_TIMEOUT"})),this.pairDeadlineMs)})]);
+        if(!relayer.connected)throw Object.assign(new Error("Relay transport is still disconnected."),{code:"RELAY_DISCONNECTED"});
+        this.#syncRelay(client);
+      }catch(error){const details=safeRelayError(error);this.#set({relayTransport:"failed",relayErrorCode:details.code,relayHTTPStatus:details.status,relayRetryAvailable:this.#relayAttempts<3});throw new Error(publicError(error));}
+      finally{clearTimeout(timer!);this.#relayRetry=null;}
+    })();return this.#relayRetry;
   }
   #emitSessionEvent(event: Omit<WalletConnectSessionEvent, "revision">): void { this.#revision += 1; this.#set({ sessionEvent: Object.freeze({ ...event, revision: this.#revision }) }); }
   #clearRequestForTopic(topic:string):void{if(this.#paused?.request?.topic===topic)this.#paused.request=null;if(this.#snapshot.request?.topic===topic)this.#set({request:null})}
@@ -337,4 +378,9 @@ export function walletConnectRuntimeConfig(environment: Record<string, string | 
   return parseWalletConnectRuntimeConfig({ projectId: raw.toLowerCase() });
 }
 
-function publicError(value: unknown): string { return value instanceof Error && value.message ? value.message.slice(0, 240) : "WalletConnect could not start."; }
+function safeRelayError(value:any):{code:string|null;status:number|null}{
+ const raw=value?.code,code=(typeof raw==="string"&&/^[A-Za-z0-9_-]{1,40}$/.test(raw))||typeof raw==="number"&&Number.isSafeInteger(raw)?String(raw):null;
+ const rawStatus=value?.statusCode??value?.response?.status,status=Number.isInteger(rawStatus)&&rawStatus>=400&&rawStatus<=599?rawStatus:null;
+ return {code,status};
+}
+function publicError(value: unknown): string { return value instanceof Error && value.message ? value.message.replace(/(?:https?|wss?|wc):\S+/g,"[redacted URL]").replace(/[a-f0-9]{64,}/gi,"[redacted identifier]").slice(0, 240) : "WalletConnect could not start."; }

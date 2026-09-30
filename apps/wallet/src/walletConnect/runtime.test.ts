@@ -413,3 +413,26 @@ test("unpublished v1 journal migrates conservatively until actual SDK expiry is 
  assert.deepEqual(await journal.load(),[topic]);await journal.record(topic,2000);assert.equal(JSON.parse(values.get(key)!).version,2);
  const cold=new WalletConnectPairingJournal({getItem:async(key)=>values.get(key)??null,setItem:async()=>{},deleteItem:async()=>{}},()=>2001);assert.deepEqual(await cold.load(),[]);
 });
+
+function fakeRelayer(){const handlers=new Map<string,(value?:any)=>void>();return{handlers,connected:false,connecting:false,on(event:string,listener:(value?:any)=>void){handlers.set(event,listener)},transportOpen:async()=>{},subscriber:{topics:[] as string[],pending:new Map<string,unknown>(),on(){}}}}
+test("SDK readiness never claims disconnected Relay is connected and safe transport errors do not infer HTTP403",async()=>{
+ const client=fakeClient(),relayer=fakeRelayer();Object.assign(client,{core:{relayer,pairing:{getPairings:()=>[],disconnect:async()=>{}}}});
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any);await runtime.start();
+ assert.equal(runtime.snapshot().phase,"ready");assert.equal(runtime.snapshot().relayTransport,"disconnected");assert.equal(runtime.snapshot().relayRetryAvailable,true);
+ relayer.handlers.get("relayer_error")!({code:"ECONNRESET",message:"403 wc:do-not-expose-secret",url:"wss://secret"});
+ assert.equal(runtime.snapshot().relayErrorCode,"ECONNRESET");assert.equal(runtime.snapshot().relayHTTPStatus,null);assert.equal(JSON.stringify(runtime.snapshot()).includes("do-not-expose"),false);
+ relayer.connected=true;relayer.handlers.get("relayer_connect")!();assert.equal(runtime.snapshot().relayTransport,"connected");assert.equal(runtime.snapshot().relayErrorCode,null);
+ relayer.connected=false;relayer.handlers.get("relayer_disconnect")!();assert.equal(runtime.snapshot().relayTransport,"disconnected");
+});
+test("explicit same-client Relay retries are bounded, recover busy state and preserve active sessions",async()=>{
+ const client=fakeClient(),relayer=fakeRelayer();let calls=0;relayer.transportOpen=async()=>{calls++;throw Object.assign(new Error("transport reset wss://private-token"),{code:"ECONNRESET"})};
+ client.active["1".repeat(64)]={topic:"1".repeat(64),pairingTopic:"2".repeat(64),namespaces:{},peer:{metadata:{url:"https://example.com"}}};Object.assign(client,{core:{relayer,pairing:{getPairings:()=>[],disconnect:async()=>{}}}});
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,10);await runtime.start();
+ for(let i=0;i<3;i++)await assert.rejects(runtime.retryRelay(),/redacted URL/);await assert.rejects(runtime.retryRelay(),/retry limit/);assert.equal(calls,3);assert.equal(runtime.snapshot().relayRetryAvailable,false);assert.equal(runtime.snapshot().sessions.length,1);assert.deepEqual(client.disconnects,[]);
+ relayer.connected=true;relayer.handlers.get("relayer_connect")!();relayer.connected=false;relayer.transportOpen=async()=>{calls++;relayer.connected=true};await runtime.retryRelay();assert.equal(runtime.snapshot().relayTransport,"connected");assert.equal(calls,4);
+});
+test("Relay retry deadline settles independently of a hung SDK transport and deduplicates simultaneous retries",async()=>{
+ const client=fakeClient(),relayer=fakeRelayer();let calls=0;relayer.transportOpen=()=>{calls++;return new Promise<void>(()=>{})};Object.assign(client,{core:{relayer,pairing:{getPairings:()=>[],disconnect:async()=>{}}}});
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,10);await runtime.start();
+ const results=await Promise.allSettled([runtime.retryRelay(),runtime.retryRelay()]);assert.equal(results.every(item=>item.status==="rejected"),true);assert.equal(calls,1);assert.equal(runtime.snapshot().relayErrorCode,"RELAY_TIMEOUT");assert.equal(runtime.snapshot().relayRetryAvailable,true);
+});
