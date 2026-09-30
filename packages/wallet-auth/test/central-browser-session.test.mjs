@@ -67,6 +67,10 @@ test('explicit canonical native consent creates one durable browser identity and
     assert.equal(restarted.introspect(quant.result.grantToken,quant.input.clientId).identity.account,identity.account,'product logout preserves another product grant');
     const explicitAgain=grant(restarted,signed.sessionToken);
     assert.equal(explicitAgain.result.identity.account,identity.account,'explicit sign-in may reuse the still valid central identity');
+    const newPending=intent(),newCode=new URL(restarted.authorize(newPending.input,signed.sessionToken).redirectUri).searchParams.get('code');
+    restarted.logoutGrant(finance.result.grantToken,finance.input.clientId);
+    assert.equal(restarted.introspect(explicitAgain.result.grantToken,explicitAgain.input.clientId).identity.account,identity.account,'replayed old logout cannot revoke a new explicit sign-in');
+    assert.equal(redeemPending(newPending,newCode).identity.account,identity.account,'replayed old logout cannot cancel new explicit code');
     restarted.logout(signed.sessionToken);
     assert.throws(()=>restarted.introspect(quant.result.grantToken,quant.input.clientId),error=>error.code==='SSO_LOGIN_REQUIRED');
     assert.throws(()=>restarted.introspect(explicitAgain.result.grantToken,explicitAgain.input.clientId),error=>error.code==='SSO_LOGIN_REQUIRED');
