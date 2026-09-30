@@ -299,6 +299,9 @@ func (s *Server) ssoLogout(w http.ResponseWriter, r *http.Request) {
 	var result struct {
 		Revoked bool `json:"revoked"`
 	}
+	// A product logout cancels its pending callback too, including another tab.
+	// Backend atomic code invalidation fences already in-flight redemption.
+	clearSSOCookie(w, financeSSOPendingName)
 	status := s.ssoCall(r.Context(), "/v2/browser-sessions/logout-grant", map[string]string{"grantToken": local.GrantToken, "clientId": financeSSOClient}, &result)
 	// Keep the encrypted bounded revocation target on uncertain network results;
 	// UI may hide local data, but this endpoint never claims an unverified revoke.

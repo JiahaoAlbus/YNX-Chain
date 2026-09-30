@@ -135,6 +135,7 @@ export class CentralBrowserSessionAuthority {
       // Product-only logout cannot revoke the central browser identity or
       // another registered product. Revoke this product's linked grants.
       for(const linked of state.grants)if(linked.sessionId===grant.sessionId&&linked.generation===grant.generation&&linked.clientId===clientId)linked.revoked=true;
+      for(const code of state.codes)if(code.sessionId===grant.sessionId&&code.generation===grant.generation&&code.clientId===clientId)code.consumed=true;
       return {revoked:true};
     });
   }

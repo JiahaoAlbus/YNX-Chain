@@ -284,6 +284,12 @@ func TestCentralBrowserSSORealGatewayFinanceCookieOwnershipRecoveryAndLogout(t *
 	if verified.StatusCode != 200 {
 		t.Fatal("same product session did not recover")
 	}
+	beforeLogout, err := client.Get(product.URL + "/sso/start?target=planning")
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeLogout.Body.Close()
+	pendingLocation, _ := url.Parse(beforeLogout.Header.Get("Location"))
 	logoutRequest, _ := http.NewRequest("POST", product.URL+"/api/sso/logout", strings.NewReader("{}"))
 	logoutRequest.Header.Set("Origin", BrowserFinanceOrigin)
 	logoutRequest.Header.Set("X-YNX-SSO-CSRF", identityResult["csrfToken"].(string))
@@ -294,6 +300,25 @@ func TestCentralBrowserSSORealGatewayFinanceCookieOwnershipRecoveryAndLogout(t *
 	logout.Body.Close()
 	if logout.StatusCode != 200 {
 		t.Fatal("product grant logout was not verified")
+	}
+	clearedPending := false
+	for _, cookie := range logout.Cookies() {
+		if cookie.Name == financeSSOPendingName && cookie.MaxAge < 0 {
+			clearedPending = true
+		}
+	}
+	if !clearedPending {
+		t.Fatal("logout retained the pending callback cookie")
+	}
+	// Another tab shares the host-only cookie jar, not a JavaScript verifier.
+	otherTab := *client
+	late, err := otherTab.Get(product.URL + "/sso/callback?" + url.Values{"state": {pendingLocation.Query().Get("state")}, "code": {strings.Repeat("a", 43)}}.Encode())
+	if err != nil {
+		t.Fatal(err)
+	}
+	late.Body.Close()
+	if late.StatusCode != 400 {
+		t.Fatal("late callback after product logout was not rejected")
 	}
 	denied, err := client.Get(product.URL + "/api/sso/account")
 	if err != nil {
