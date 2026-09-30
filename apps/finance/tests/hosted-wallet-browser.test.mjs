@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
+import {createEvmProductSessionChallenge,createEvmProductSessionSigningRequest,issueEvmProductSession,verifyAndConsumeEvmProductSessionHttpProof} from '@ynx-chain/wallet-auth';
 
 // This runs the real Finance page and Wallet-owned hosted approval UI on their
 // exact HTTPS origins. The route is local, so no public/installed claim follows.
@@ -56,7 +57,7 @@ test('Finance production DOM consumes Hosted Wallet approval, login rejection, r
       assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'disconnected');
       assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.connected()),false);
       const popupPromise=context.waitForEvent('page');
-      await page.locator('#connect-ynx').click();
+      await page.locator('#connect-hosted-ynx').click();
       const wallet=await popupPromise;
       await wallet.locator('#setup').waitFor({state:'visible'});
       assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connecting');
@@ -94,9 +95,24 @@ test('Finance production DOM consumes Hosted Wallet approval, login rejection, r
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
       assert.equal(context.pages().length,2);
       const requestId='finance-login-'+'a'.repeat(32);
-      await page.route('**/api/wallet-login/challenges',route=>route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({schemaVersion:'finance-evm-login-challenge-v1',privateFinanceAuthorized:false,challenge:{account:selected.account,providerKind:'ynx-wallet',chainId:6423,productId:'finance',scopes:['finance.account.read'],requestId,expirationTime:'2030-01-01T00:00:00.000Z'},signingRequest:{method:'personal_sign',message:'LOCAL',params:['0x4c4f43414c',selected.account]}})}));
+      let challenge,session;
+      const usedNonces=new Set();
+      await page.route('**/api/evm-read/challenges',route=>{
+        const device=route.request().postDataJSON(),at=Date.now();
+        challenge=createEvmProductSessionChallenge({chainId:6423,account:selected.account,providerKind:'ynx-wallet',productId:'finance',origin:'https://finance.ynxweb4.com',callback:'https://finance.ynxweb4.com/wallet-auth/callback',scope:'finance.account.read',deviceId:device.deviceId,deviceAlgorithm:'p256-sha256',deviceKey:device.deviceKey,nonce:'hosted-browser-challenge-nonce-000001',state:'hosted-browser-challenge-state-000001',requestId,issuedAt:new Date(at).toISOString(),expiresAt:new Date(at+300000).toISOString()});
+        return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({schemaVersion:'finance-evm-read-challenge-v1',privateFinanceAuthorized:false,challenge,signingRequest:createEvmProductSessionSigningRequest(challenge)})});
+      });
       let verificationCount=0,postedProof=null;
-      await page.route('**/api/wallet-login/verify',route=>{verificationCount++;postedProof=route.request().postDataJSON()?.proof;return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({schemaVersion:'finance-evm-login-verification-v1',verified:true,account:selected.account,providerKind:'ynx-wallet',chainId:6423,scopes:['finance.account.read'],requestId,privateFinanceAuthorized:false,standardWalletUnchanged:true})});});
+      await page.route('**/api/evm-read/sessions',async route=>{
+        verificationCount++;postedProof=route.request().postDataJSON()?.proof;
+        session=await issueEvmProductSession(postedProof,challenge,{sessionId:'hosted-browser-session-00000000000001',expiresAt:new Date(Date.now()+300000).toISOString()},async()=>true,new Date());
+        return route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({schemaVersion:'finance-evm-read-session-v1',session,evmAccountReadAuthorized:true,privateFinanceAuthorized:false,extensionLiveStateAttested:false})});
+      });
+      await page.route('**/api/evm-read/portfolio',async route=>{
+        const proof=JSON.parse(Buffer.from(route.request().headers()['x-ynx-evm-read-proof'],'base64url').toString());
+        await verifyAndConsumeEvmProductSessionHttpProof(proof,async()=>session,{origin:'https://finance.ynxweb4.com',method:'GET',target:'/api/evm-read/portfolio',bodyDigest:'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',requiredScope:'finance.account.read',allowedTargets:['/api/evm-read/portfolio']},{currentAccount:selected.account,currentChainId:6423,connected:true,revoked:false},async({nonce})=>{if(usedNonces.has(nonce))return false;usedNonces.add(nonce);return true},new Date());
+        return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({schemaVersion:'finance-evm-account-read-v1',account:selected.account,portfolio:{account:selected.account,explorerStatus:{available:false},activity:[]},evmAccountReadAuthorized:true,privateFinanceAuthorized:false,extensionLiveStateAttested:false})});
+      });
       await page.locator('#wallet-more').evaluate(element=>{element.open=true});
       await page.locator('#wallet-login-verify').click();
       await wallet.locator('#review').waitFor({state:'visible'});
@@ -109,10 +125,10 @@ test('Finance production DOM consumes Hosted Wallet approval, login rejection, r
       await wallet.locator('#review').waitFor({state:'visible'});
       await wallet.locator('#approval-password').fill(password);
       await wallet.locator('#approve').click();
-      await page.waitForFunction(()=>document.querySelector('#wallet-login-state').textContent.includes('verified.'));
+      await page.waitForFunction(()=>document.querySelector('#account-workspace').dataset.authorized==='true');
       assert.equal(verificationCount,1);
       assert.equal(postedProof.challenge.account,selected.account);
-      assert.match(postedProof.signature,/^0x[0-9a-f]{130}$/u);
+      assert.match(postedProof.walletSignature,/^0x[0-9a-f]{130}$/u);
       assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.connected()),false);
       await page.reload();await page.evaluate(()=>window.YNXFinanceWallet.ready);
       assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'disconnected');

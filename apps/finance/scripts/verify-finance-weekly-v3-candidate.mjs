@@ -76,6 +76,14 @@ assert.equal(/^FINANCE_SANDBOX_WRITE_ACTIVATION_RECEIPT_SHA256=[^\s#]+$/m.test(e
 
 const image = 'ubuntu:24.04';
 const inspectImage = JSON.parse(execFileSync('docker', ['image', 'inspect', image], { encoding: 'utf8' }))[0];
+const nodeImage = 'node:22-bookworm-slim';
+const inspectNodeImage = JSON.parse(execFileSync('docker', ['image', 'inspect', nodeImage], { encoding: 'utf8' }))[0];
+const nodeAuthorityProbe = spawnSync('docker', ['run', '--rm', '-i', '--platform', 'linux/amd64',
+  '-v', `${candidateRoot}:/candidate:ro`, nodeImage, 'node',
+  '/candidate/authority-runtime/apps/finance/scripts/evm-read-session-authority.bundle.mjs'],
+  { input: '{"action":"invalid-release-probe"}\n', encoding: 'utf8', timeout: 15000 });
+assert.equal(nodeAuthorityProbe.status, 1, nodeAuthorityProbe.stderr);
+assert.deepEqual(JSON.parse(nodeAuthorityProbe.stdout), { kind: 'error', code: 'INVALID_INPUT' });
 const container = `ynx-finance-candidate-${randomUUID()}`;
 const legacyContainer = `ynx-finance-candidate-legacy-${randomUUID()}`;
 const env = [
@@ -108,7 +116,7 @@ try {
   const portOutput = execFileSync('docker', ['port', container, '6436/tcp'], { encoding: 'utf8' }).trim();
   const port = Number(portOutput.slice(portOutput.lastIndexOf(':') + 1));
   assert.ok(Number.isInteger(port) && port > 0);
-  const routes = ['/health', '/version', '/ready', '/api/broker/status', '/', '/app.js', '/wallet-auth.js'];
+  const routes = ['/health', '/version', '/ready', '/api/broker/status', '/', '/app.js', '/wallet-auth.js', '/evm-read-session.js', '/finance-locale.js'];
   for (let attempt = 0; attempt < 50; attempt += 1) {
     try {
       endpoints = [];
@@ -116,6 +124,9 @@ try {
         const response = await fetch(`http://127.0.0.1:${port}${route}`, { headers: { 'cache-control': 'no-cache' } });
         const body = Buffer.from(await response.arrayBuffer());
         assert.equal(response.status, 200, route);
+        const assetPath = route === '/' ? 'web/index.html' : `web${route}`;
+        const asset = manifest.files.find(file => file.path === assetPath);
+        if (asset) { assert.equal(body.length, asset.bytes, route); assert.equal(sha256(body), asset.sha256, route); }
         endpoints.push({ route, status: response.status, bytes: body.length, sha256: sha256(body), contentType: response.headers.get('content-type') });
         if (route === '/version') assert.equal(JSON.parse(body).commit, sourceCommit);
         if (route === '/api/broker/status') {
@@ -213,6 +224,11 @@ const evidence = {
     diagnostic,
   },
   legacyStateReadOnlyColdStart,
+  packagedNodeAuthority: {
+    performed: true, containerImage: nodeImage, containerImageId: inspectNodeImage.Id,
+    requestedPlatform: 'linux/amd64', rejectsInvalidAction: true,
+    walletApprovalVerified: false, publicRuntimeVerified: false,
+  },
   providerReadAttempted: false,
   providerWriteAttempted: false,
   officialSandboxVerified: false,
