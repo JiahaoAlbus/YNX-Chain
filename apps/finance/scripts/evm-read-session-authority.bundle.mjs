@@ -2677,7 +2677,159 @@ var PAYLOAD_FIELDS = Object.freeze({
 });
 
 // packages/wallet-auth/src/product-session-registry.js
+var PRODUCT_SESSION_REGISTRY_VERSION = 2;
 var PRODUCT_SESSION_PLATFORMS = Object.freeze(["android", "ios", "linux", "macos", "web", "windows"]);
+var DOCUMENT_FIELDS2 = ["schemaVersion", "chainId", "wallet", "products"];
+var WALLET_FIELDS = ["authorizeCallback", "downloadUrl", "metaMaskDownloadUrl"];
+var PRODUCT_FIELDS = [
+  "productId",
+  "clientId",
+  "displayName",
+  "applicationId",
+  "webOrigin",
+  "nativeCallback",
+  "legacyCallbacks",
+  "scopes",
+  "evmCompatible",
+  "sessionDurationSeconds"
+];
+var FORBIDDEN_CALLBACK_SCHEMES = /* @__PURE__ */ new Set(["data:", "file:", "http:", "javascript:"]);
+function parseProductSessionRegistry(input) {
+  exactFields(input, DOCUMENT_FIELDS2, "Product Session router registry");
+  if (input.schemaVersion !== PRODUCT_SESSION_REGISTRY_VERSION || input.chainId !== "ynx_6423-1") {
+    fail("INVALID_ROUTER_REGISTRY", "Product Session router registry version or chain is unsupported");
+  }
+  exactFields(input.wallet, WALLET_FIELDS, "Product Session Wallet registration");
+  const authorizeCallback = callback(input.wallet.authorizeCallback, "wallet authorize callback", { allowHttps: false });
+  const authorize = new URL(authorizeCallback);
+  if (authorize.protocol !== "ynxwallet:" || authorize.hostname !== "authorize" || authorize.pathname !== "") {
+    fail("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");
+  }
+  const downloadUrl = httpsURL(input.wallet.downloadUrl, "Wallet download URL", false);
+  const metaMaskDownloadUrl = httpsURL(input.wallet.metaMaskDownloadUrl, "MetaMask download URL", false);
+  if (downloadUrl !== "https://www.ynxweb4.com/dapp/download" || metaMaskDownloadUrl !== "https://metamask.io/download") {
+    fail("INVALID_ROUTER_REGISTRY", "Wallet download routes must match the approved official allowlist");
+  }
+  if (!Array.isArray(input.products) || input.products.length < 1 || input.products.length > 64) {
+    fail("INVALID_ROUTER_REGISTRY", "Product Session registry product count is invalid");
+  }
+  const products = input.products.map(parseProduct);
+  uniqueSorted(products.map((item) => item.productId), "productId");
+  unique(products.map((item) => item.clientId), "clientId");
+  unique(products.map((item) => item.applicationId), "applicationId");
+  unique(products.map((item) => item.webOrigin), "webOrigin");
+  unique(products.filter((item) => item.nativeCallback !== null).map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
+  const legacy = products.flatMap((item) => item.legacyCallbacks.map((value) => `${value}
+${item.productId}`));
+  const legacyNames = legacy.map((value) => value.split("\n", 1)[0]);
+  unique(legacyNames, "legacy callback");
+  return Object.freeze({
+    schemaVersion: PRODUCT_SESSION_REGISTRY_VERSION,
+    chainId: input.chainId,
+    wallet: Object.freeze({ authorizeCallback, downloadUrl, metaMaskDownloadUrl }),
+    products: Object.freeze(products)
+  });
+}
+function parseProduct(input) {
+  const hasPlatforms = input !== null && typeof input === "object" && Object.hasOwn(input, "platforms");
+  exactFields(input, hasPlatforms ? [...PRODUCT_FIELDS, "platforms"] : PRODUCT_FIELDS, "Product Session product registration");
+  if (hasPlatforms && (!Array.isArray(input.platforms) || input.platforms.length !== 1 || input.platforms[0] !== "web")) {
+    fail("INVALID_ROUTER_REGISTRY", "Explicit Product Session platforms must be exactly [web]");
+  }
+  const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
+  const clientId = pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/);
+  const displayName = text(input.displayName, "displayName", 2, 64);
+  const applicationId = pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
+  const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
+  let nativeCallback, legacyCallbacks;
+  if (hasPlatforms) {
+    if (input.nativeCallback !== null || !Array.isArray(input.legacyCallbacks) || input.legacyCallbacks.length !== 0) {
+      fail("INVALID_ROUTER_REGISTRY", "Web-only products cannot register native or legacy callbacks");
+    }
+    nativeCallback = null;
+    legacyCallbacks = [];
+  } else {
+    nativeCallback = callback(input.nativeCallback, "nativeCallback", { allowHttps: false });
+    const native = new URL(nativeCallback);
+    if (native.search || native.hash || native.username || native.password || !native.hostname) {
+      fail("INVALID_ROUTER_REGISTRY", "Native callback must contain an exact host/path without query or fragment");
+    }
+    legacyCallbacks = stringList(input.legacyCallbacks, "legacyCallbacks", 1, 8, (value) => text(value, "legacy callback", 3, 512));
+    if (!legacyCallbacks.includes(nativeCallback)) fail("INVALID_ROUTER_REGISTRY", "Legacy callback list must include the canonical native callback");
+  }
+  const scopes = stringList(input.scopes, "scopes", 1, 8, (value) => pattern(value, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
+  if (scopes.some((scope) => scope.includes("*"))) fail("INVALID_ROUTER_REGISTRY", "Wildcard Product Session scope is forbidden");
+  if (typeof input.evmCompatible !== "boolean") fail("INVALID_ROUTER_REGISTRY", "evmCompatible must be boolean");
+  if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) {
+    fail("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
+  }
+  return Object.freeze({
+    productId,
+    clientId,
+    displayName,
+    applicationId,
+    webOrigin,
+    nativeCallback,
+    ...hasPlatforms ? { platforms: Object.freeze(["web"]) } : {},
+    legacyCallbacks: Object.freeze(legacyCallbacks),
+    scopes: Object.freeze(scopes),
+    evmCompatible: input.evmCompatible,
+    sessionDurationSeconds: input.sessionDurationSeconds
+  });
+}
+function callback(value, label, options) {
+  const normalized = text(value, label, 3, 512);
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    fail("INVALID_ROUTER_REGISTRY", `${label} is not a URL with ://`);
+  }
+  if (parsed.toString() !== normalized || parsed.username || parsed.password || parsed.hash || FORBIDDEN_CALLBACK_SCHEMES.has(parsed.protocol)) {
+    fail("INVALID_ROUTER_REGISTRY", `${label} is not canonical or uses a forbidden scheme`);
+  }
+  if (parsed.protocol === "https:" && !options.allowHttps) fail("INVALID_ROUTER_REGISTRY", `${label} must use its registered application scheme`);
+  if (parsed.protocol !== "https:" && !/^[a-z][a-z0-9+.-]*:$/.test(parsed.protocol)) fail("INVALID_ROUTER_REGISTRY", `${label} scheme is invalid`);
+  return normalized;
+}
+function httpsURL(value, label, originOnly) {
+  const normalized = text(value, label, 8, 512);
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+  }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash || parsed.port || !parsed.hostname || originOnly && (parsed.pathname !== "/" || parsed.search)) {
+    fail("INVALID_ROUTER_REGISTRY", `${label} must be a canonical HTTPS ${originOnly ? "origin" : "URL"}`);
+  }
+  return originOnly ? parsed.origin : parsed.toString().replace(/\/$/, "");
+}
+function stringList(value, label, minimum, maximum, normalize) {
+  if (!Array.isArray(value) || value.length < minimum || value.length > maximum) fail("INVALID_ROUTER_REGISTRY", `${label} item count is invalid`);
+  const result = value.map(normalize);
+  uniqueSorted(result, label);
+  return result;
+}
+function uniqueSorted(values, label) {
+  unique(values, label);
+  if ([...values].sort().join("\n") !== values.join("\n")) fail("INVALID_ROUTER_REGISTRY", `${label} must be sorted`);
+}
+function unique(values, label) {
+  if (new Set(values).size !== values.length) fail("INVALID_ROUTER_REGISTRY", `${label} must be globally unique`);
+}
+function pattern(value, label, regex) {
+  const result = text(value, label, 1, 512);
+  if (!regex.test(result)) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+  return result;
+}
+function text(value, label, minimum, maximum) {
+  if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+  return value;
+}
+function fail(code, message) {
+  throw new WalletAuthError(code, message);
+}
 
 // packages/wallet-auth/src/application-action-request.js
 var REQUEST_LIMIT = 16 * 1024;
@@ -2879,7 +3031,7 @@ var WALLET_PROVIDER_KIND = Object.freeze({ YNX: "ynx-wallet", METAMASK: "metamas
 var EVM_PRODUCT_LOGIN_MAX_LIFETIME_MS = 10 * 60 * 1e3;
 var EVM_PRODUCT_LOGIN_DEFAULT_CLOCK_SKEW_MS = 2 * 60 * 1e3;
 function ethereumPersonalMessageDigest(message) {
-  if (typeof message !== "string") fail("INVALID_MESSAGE", "EVM product login message is invalid");
+  if (typeof message !== "string") fail2("INVALID_MESSAGE", "EVM product login message is invalid");
   const bytes = utf8ToBytes(message), prefix = utf8ToBytes(`Ethereum Signed Message:
 ${bytes.length}`);
   return keccak_256(concatBytes(prefix, bytes));
@@ -2887,18 +3039,18 @@ ${bytes.length}`);
 function recoverEthereumAddress(signature2, digest3) {
   try {
     const raw = hexToBytes(signature2.slice(2)), recovery = raw[64] >= 27 ? raw[64] - 27 : raw[64];
-    if (recovery !== 0 && recovery !== 1) fail("INVALID_SIGNATURE", "EVM product login recovery id is invalid");
-    if (secp256k1.Signature.fromBytes(raw.slice(0, 64), "compact").hasHighS()) fail("INVALID_SIGNATURE", "EVM product login signature is malleable");
+    if (recovery !== 0 && recovery !== 1) fail2("INVALID_SIGNATURE", "EVM product login recovery id is invalid");
+    if (secp256k1.Signature.fromBytes(raw.slice(0, 64), "compact").hasHighS()) fail2("INVALID_SIGNATURE", "EVM product login signature is malleable");
     const recovered = concatBytes(Uint8Array.of(recovery), raw.slice(0, 64));
     const publicKey = secp256k1.recoverPublicKey(recovered, digest3, { prehash: false });
     const uncompressed = secp256k1.Point.fromBytes(publicKey).toBytes(false);
     return `0x${bytesToHex(keccak_256(uncompressed.slice(1)).slice(-20))}`;
   } catch (error) {
     if (error instanceof WalletAuthError) throw error;
-    fail("INVALID_SIGNATURE", "EVM product login signature is invalid");
+    fail2("INVALID_SIGNATURE", "EVM product login signature is invalid");
   }
 }
-function fail(code, message) {
+function fail2(code, message) {
   throw new WalletAuthError(code, message);
 }
 
@@ -2926,20 +3078,20 @@ function parseEvmProductSessionChallenge(input) {
     account: account(input.account),
     productId: literal(input.productId, "finance"),
     origin: literal(origin(input.origin), EVM_PRODUCT_SESSION_ORIGIN),
-    callback: literal(callback(input.callback), EVM_PRODUCT_SESSION_CALLBACK),
+    callback: literal(callback2(input.callback), EVM_PRODUCT_SESSION_CALLBACK),
     scope: literal(input.scope, EVM_PRODUCT_SESSION_SCOPE),
-    deviceId: pattern(input.deviceId, "deviceId", /^[A-Za-z0-9._:-]{8,128}$/),
+    deviceId: pattern2(input.deviceId, "deviceId", /^[A-Za-z0-9._:-]{8,128}$/),
     deviceAlgorithm: literal(input.deviceAlgorithm, "p256-sha256"),
     deviceKey: deviceKey(input.deviceKey),
     nonce: token(input.nonce, "nonce"),
     state: token(input.state, "state"),
-    requestId: pattern(input.requestId, "requestId", /^[A-Za-z0-9._~-]{16,128}$/),
-    providerKind: pattern(input.providerKind, "providerKind", /^(metamask|ynx-wallet)$/),
+    requestId: pattern2(input.requestId, "requestId", /^[A-Za-z0-9._~-]{16,128}$/),
+    providerKind: pattern2(input.providerKind, "providerKind", /^(metamask|ynx-wallet)$/),
     issuedAt: time(input.issuedAt, "issuedAt"),
     expiresAt: time(input.expiresAt, "expiresAt")
   });
-  if (!value.callback.startsWith(`${value.origin}/`)) fail2("CALLBACK_ORIGIN_MISMATCH", "Callback must belong to the exact product origin");
-  if (Date.parse(value.expiresAt) <= Date.parse(value.issuedAt) || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > 5 * 6e4) fail2("INVALID_EXPIRY", "Challenge lifetime is invalid");
+  if (!value.callback.startsWith(`${value.origin}/`)) fail3("CALLBACK_ORIGIN_MISMATCH", "Callback must belong to the exact product origin");
+  if (Date.parse(value.expiresAt) <= Date.parse(value.issuedAt) || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > 5 * 6e4) fail3("INVALID_EXPIRY", "Challenge lifetime is invalid");
   return value;
 }
 function evmProductSessionMessage(input) {
@@ -2957,21 +3109,21 @@ ${evmProductSessionMessage(input)}`;
 function parseEvmProductSessionLoginProof(input) {
   exactFields(input, LOGIN_PROOF, "EVM Product Session login proof");
   const challenge = parseEvmProductSessionChallenge(input.challenge), message = evmProductSessionMessage(challenge);
-  if (input.message !== message) fail2("MESSAGE_MISMATCH", "Wallet message differs from the issued challenge");
+  if (input.message !== message) fail3("MESSAGE_MISMATCH", "Wallet message differs from the issued challenge");
   return Object.freeze({ challenge, message, walletSignature: signature(input.walletSignature), deviceSignature: deviceSignature(input.deviceSignature) });
 }
 function verifyEvmProductSessionLoginProof(input, expectedChallenge, at = /* @__PURE__ */ new Date()) {
   const proof = parseEvmProductSessionLoginProof(input), expected = parseEvmProductSessionChallenge(expectedChallenge);
-  if (proof.message !== evmProductSessionMessage(expected)) fail2("CHALLENGE_MISMATCH", "Login proof differs from the server-issued challenge");
+  if (proof.message !== evmProductSessionMessage(expected)) fail3("CHALLENGE_MISMATCH", "Login proof differs from the server-issued challenge");
   const now = validDate(at).getTime();
-  if (Date.parse(expected.issuedAt) > now || Date.parse(expected.expiresAt) <= now) fail2("CHALLENGE_EXPIRED", "Challenge is not active");
-  if (recoverEthereumAddress(proof.walletSignature, ethereumPersonalMessageDigest(proof.message)) !== expected.account) fail2("INVALID_SIGNATURE", "Wallet signature does not match account");
+  if (Date.parse(expected.issuedAt) > now || Date.parse(expected.expiresAt) <= now) fail3("CHALLENGE_EXPIRED", "Challenge is not active");
+  if (recoverEthereumAddress(proof.walletSignature, ethereumPersonalMessageDigest(proof.message)) !== expected.account) fail3("INVALID_SIGNATURE", "Wallet signature does not match account");
   verifyDevice(proof.deviceSignature, evmProductSessionDeviceSignBytes(expected), expected.deviceKey);
   return Object.freeze({ account: expected.account, challengeDigest: challengeDigest(expected), deviceKey: expected.deviceKey });
 }
 async function issueEvmProductSession(input, expectedChallenge, issue, commit2, at = /* @__PURE__ */ new Date()) {
   const verified = verifyEvmProductSessionLoginProof(input, expectedChallenge, at);
-  if (typeof commit2 !== "function") fail2("AUTHORITY_STORE_REQUIRED", "Atomic challenge consumption and session storage are required");
+  if (typeof commit2 !== "function") fail3("AUTHORITY_STORE_REQUIRED", "Atomic challenge consumption and session storage are required");
   exactFields(issue, ["sessionId", "expiresAt"], "EVM Product Session issue input");
   const challenge = parseEvmProductSessionChallenge(expectedChallenge), now = validDate(at);
   const session = parseEvmProductSession({
@@ -2993,7 +3145,7 @@ async function issueEvmProductSession(input, expectedChallenge, issue, commit2, 
     issuedAt: now.toISOString(),
     expiresAt: issue.expiresAt
   });
-  if (await commit2(Object.freeze({ challengeDigest: verified.challengeDigest, nonce: challenge.nonce, state: challenge.state, requestId: challenge.requestId, session })) !== true) fail2("REPLAY_OR_STORE_FAILURE", "Challenge was consumed or session storage failed");
+  if (await commit2(Object.freeze({ challengeDigest: verified.challengeDigest, nonce: challenge.nonce, state: challenge.state, requestId: challenge.requestId, session })) !== true) fail3("REPLAY_OR_STORE_FAILURE", "Challenge was consumed or session storage failed");
   return session;
 }
 function parseEvmProductSession(input) {
@@ -3006,19 +3158,19 @@ function parseEvmProductSession(input) {
     account: account(input.account),
     productId: literal(input.productId, "finance"),
     origin: literal(origin(input.origin), EVM_PRODUCT_SESSION_ORIGIN),
-    callback: literal(callback(input.callback), EVM_PRODUCT_SESSION_CALLBACK),
+    callback: literal(callback2(input.callback), EVM_PRODUCT_SESSION_CALLBACK),
     scope: literal(input.scope, EVM_PRODUCT_SESSION_SCOPE),
-    deviceId: pattern(input.deviceId, "deviceId", /^[A-Za-z0-9._:-]{8,128}$/),
+    deviceId: pattern2(input.deviceId, "deviceId", /^[A-Za-z0-9._:-]{8,128}$/),
     deviceAlgorithm: literal(input.deviceAlgorithm, "p256-sha256"),
     deviceKey: deviceKey(input.deviceKey),
     nonce: token(input.nonce, "nonce"),
     state: token(input.state, "state"),
-    requestId: pattern(input.requestId, "requestId", /^[A-Za-z0-9._~-]{16,128}$/),
+    requestId: pattern2(input.requestId, "requestId", /^[A-Za-z0-9._~-]{16,128}$/),
     issuedAt: time(input.issuedAt, "issuedAt"),
     expiresAt: time(input.expiresAt, "expiresAt")
   });
-  if (!value.callback.startsWith(`${value.origin}/`)) fail2("CALLBACK_ORIGIN_MISMATCH", "Callback origin changed");
-  if (Date.parse(value.expiresAt) <= Date.parse(value.issuedAt) || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > EVM_PRODUCT_SESSION_MAX_LIFETIME_MS) fail2("INVALID_EXPIRY", "Session lifetime is invalid");
+  if (!value.callback.startsWith(`${value.origin}/`)) fail3("CALLBACK_ORIGIN_MISMATCH", "Callback origin changed");
+  if (Date.parse(value.expiresAt) <= Date.parse(value.issuedAt) || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > EVM_PRODUCT_SESSION_MAX_LIFETIME_MS) fail3("INVALID_EXPIRY", "Session lifetime is invalid");
   return value;
 }
 function evmProductSessionProofSignBytes(input) {
@@ -3032,47 +3184,47 @@ function parseEvmProductSessionHttpProof(input) {
 }
 async function verifyAndConsumeEvmProductSessionHttpProof(proofInput, loadSession, request, authority, consumeProof, at = /* @__PURE__ */ new Date()) {
   const proof = parseEvmProductSessionHttpProof(proofInput);
-  if (typeof loadSession !== "function") fail2("AUTHORITY_STORE_REQUIRED", "Authoritative session lookup is required");
+  if (typeof loadSession !== "function") fail3("AUTHORITY_STORE_REQUIRED", "Authoritative session lookup is required");
   const stored = await loadSession(proof.sessionId);
-  if (stored === null || stored === void 0) fail2("SESSION_NOT_FOUND", "Session is absent from the authority store");
+  if (stored === null || stored === void 0) fail3("SESSION_NOT_FOUND", "Session is absent from the authority store");
   const session = parseEvmProductSession(stored);
   exactFields(request, ["origin", "method", "target", "bodyDigest", "requiredScope", "allowedTargets"], "EVM Product Session request context");
   exactFields(authority, ["currentAccount", "currentChainId", "connected", "revoked"], "EVM Product Session authority context");
-  if (typeof consumeProof !== "function") fail2("REPLAY_STORE_REQUIRED", "Atomic HTTP proof nonce consumption is required");
-  if (authority.revoked !== false) fail2("SESSION_REVOKED", "Session is revoked or revocation state is unknown");
-  if (authority.connected !== true || authority.currentAccount !== session.account) fail2("ACCOUNT_CHANGED", "Selected account disconnected or changed");
-  if (authority.currentChainId !== 6423) fail2("CHAIN_CHANGED", "Selected chain changed or is unknown");
-  if (request.requiredScope !== EVM_PRODUCT_SESSION_SCOPE || session.scope !== request.requiredScope) fail2("SCOPE_DENIED", "Requested scope is not granted");
-  if (request.method !== "GET") fail2("SCOPE_DENIED", "Read-only EVM scope permits only GET requests");
-  if (!Array.isArray(request.allowedTargets) || request.allowedTargets.length === 0 || request.allowedTargets.length > 32 || request.allowedTargets.some((item) => typeof item !== "string" || item.includes("?") || target(item) !== item) || !request.allowedTargets.includes(target(request.target).split("?")[0])) fail2("ROUTE_DENIED", "Request target is not in the server's read-only route allowlist");
-  if (origin(request.origin) !== session.origin || proof.origin !== session.origin) fail2("ORIGIN_MISMATCH", "Request origin changed");
+  if (typeof consumeProof !== "function") fail3("REPLAY_STORE_REQUIRED", "Atomic HTTP proof nonce consumption is required");
+  if (authority.revoked !== false) fail3("SESSION_REVOKED", "Session is revoked or revocation state is unknown");
+  if (authority.connected !== true || authority.currentAccount !== session.account) fail3("ACCOUNT_CHANGED", "Selected account disconnected or changed");
+  if (authority.currentChainId !== 6423) fail3("CHAIN_CHANGED", "Selected chain changed or is unknown");
+  if (request.requiredScope !== EVM_PRODUCT_SESSION_SCOPE || session.scope !== request.requiredScope) fail3("SCOPE_DENIED", "Requested scope is not granted");
+  if (request.method !== "GET") fail3("SCOPE_DENIED", "Read-only EVM scope permits only GET requests");
+  if (!Array.isArray(request.allowedTargets) || request.allowedTargets.length === 0 || request.allowedTargets.length > 32 || request.allowedTargets.some((item) => typeof item !== "string" || item.includes("?") || target(item) !== item) || !request.allowedTargets.includes(target(request.target).split("?")[0])) fail3("ROUTE_DENIED", "Request target is not in the server's read-only route allowlist");
+  if (origin(request.origin) !== session.origin || proof.origin !== session.origin) fail3("ORIGIN_MISMATCH", "Request origin changed");
   const expected = ["sessionId", "challengeDigest", "account", "scope"];
-  if (expected.some((key) => proof[key] !== session[key])) fail2("SESSION_BINDING_MISMATCH", "HTTP proof differs from stored session");
-  if (proof.method !== method(request.method) || proof.target !== target(request.target) || proof.bodyDigest !== digest(request.bodyDigest)) fail2("HTTP_BINDING_MISMATCH", "HTTP proof differs from request");
+  if (expected.some((key) => proof[key] !== session[key])) fail3("SESSION_BINDING_MISMATCH", "HTTP proof differs from stored session");
+  if (proof.method !== method(request.method) || proof.target !== target(request.target) || proof.bodyDigest !== digest(request.bodyDigest)) fail3("HTTP_BINDING_MISMATCH", "HTTP proof differs from request");
   const now = validDate(at).getTime();
-  if (Date.parse(session.expiresAt) <= now || Date.parse(proof.expiresAt) <= now) fail2("SESSION_EXPIRED", "Session or HTTP proof expired");
-  if (Date.parse(proof.issuedAt) < Date.parse(session.issuedAt) || Date.parse(proof.issuedAt) > now || proof.expiresAt > session.expiresAt) fail2("INVALID_PROOF_TIME", "HTTP proof time is outside session");
+  if (Date.parse(session.expiresAt) <= now || Date.parse(proof.expiresAt) <= now) fail3("SESSION_EXPIRED", "Session or HTTP proof expired");
+  if (Date.parse(proof.issuedAt) < Date.parse(session.issuedAt) || Date.parse(proof.issuedAt) > now || proof.expiresAt > session.expiresAt) fail3("INVALID_PROOF_TIME", "HTTP proof time is outside session");
   verifyDevice(proof.deviceSignature, evmProductSessionProofSignBytes(unsignedProof(proof)), session.deviceKey);
-  if (await consumeProof(Object.freeze({ sessionId: session.sessionId, nonce: proof.nonce, expiresAt: proof.expiresAt })) !== true) fail2("REPLAY", "HTTP proof was already used");
+  if (await consumeProof(Object.freeze({ sessionId: session.sessionId, nonce: proof.nonce, expiresAt: proof.expiresAt })) !== true) fail3("REPLAY", "HTTP proof was already used");
   return Object.freeze({ authorized: true, account: session.account, productId: session.productId, scope: session.scope, sessionId: session.sessionId });
 }
 async function verifyAndConsumeEvmProductSessionRevokeProof(proofInput, loadSession, request, revokeAndConsume, at = /* @__PURE__ */ new Date()) {
   const proof = parseEvmProductSessionHttpProof(proofInput);
-  if (typeof loadSession !== "function") fail2("AUTHORITY_STORE_REQUIRED", "Authoritative session lookup is required");
+  if (typeof loadSession !== "function") fail3("AUTHORITY_STORE_REQUIRED", "Authoritative session lookup is required");
   const stored = await loadSession(proof.sessionId);
-  if (stored === null || stored === void 0) fail2("SESSION_NOT_FOUND", "Session is absent from the authority store");
+  if (stored === null || stored === void 0) fail3("SESSION_NOT_FOUND", "Session is absent from the authority store");
   const session = parseEvmProductSession(stored);
   exactFields(request, ["origin", "method", "target", "bodyDigest"], "EVM Product Session revoke request context");
-  if (typeof revokeAndConsume !== "function") fail2("REPLAY_STORE_REQUIRED", "Atomic revocation and proof consumption are required");
-  if (request.method !== "POST" || request.target !== EVM_PRODUCT_SESSION_REVOKE_TARGET || proof.method !== "POST" || proof.target !== EVM_PRODUCT_SESSION_REVOKE_TARGET) fail2("REVOKE_ROUTE_MISMATCH", "Revoke proof is bound to the exact POST route");
-  if (origin(request.origin) !== session.origin || proof.origin !== session.origin) fail2("ORIGIN_MISMATCH", "Revoke origin changed");
-  if (proof.bodyDigest !== digest(request.bodyDigest)) fail2("HTTP_BINDING_MISMATCH", "Revoke proof differs from the request body");
-  if (["sessionId", "challengeDigest", "account", "scope"].some((key) => proof[key] !== session[key])) fail2("SESSION_BINDING_MISMATCH", "Revoke proof differs from stored session");
+  if (typeof revokeAndConsume !== "function") fail3("REPLAY_STORE_REQUIRED", "Atomic revocation and proof consumption are required");
+  if (request.method !== "POST" || request.target !== EVM_PRODUCT_SESSION_REVOKE_TARGET || proof.method !== "POST" || proof.target !== EVM_PRODUCT_SESSION_REVOKE_TARGET) fail3("REVOKE_ROUTE_MISMATCH", "Revoke proof is bound to the exact POST route");
+  if (origin(request.origin) !== session.origin || proof.origin !== session.origin) fail3("ORIGIN_MISMATCH", "Revoke origin changed");
+  if (proof.bodyDigest !== digest(request.bodyDigest)) fail3("HTTP_BINDING_MISMATCH", "Revoke proof differs from the request body");
+  if (["sessionId", "challengeDigest", "account", "scope"].some((key) => proof[key] !== session[key])) fail3("SESSION_BINDING_MISMATCH", "Revoke proof differs from stored session");
   const now = validDate(at).getTime();
-  if (Date.parse(session.expiresAt) <= now || Date.parse(proof.expiresAt) <= now) fail2("SESSION_EXPIRED", "Session or revoke proof expired");
-  if (Date.parse(proof.issuedAt) < Date.parse(session.issuedAt) || Date.parse(proof.issuedAt) > now || proof.expiresAt > session.expiresAt) fail2("INVALID_PROOF_TIME", "Revoke proof time is outside session");
+  if (Date.parse(session.expiresAt) <= now || Date.parse(proof.expiresAt) <= now) fail3("SESSION_EXPIRED", "Session or revoke proof expired");
+  if (Date.parse(proof.issuedAt) < Date.parse(session.issuedAt) || Date.parse(proof.issuedAt) > now || proof.expiresAt > session.expiresAt) fail3("INVALID_PROOF_TIME", "Revoke proof time is outside session");
   verifyDevice(proof.deviceSignature, evmProductSessionProofSignBytes(unsignedProof(proof)), session.deviceKey);
-  if (await revokeAndConsume(Object.freeze({ sessionId: session.sessionId, challengeDigest: session.challengeDigest, account: session.account, nonce: proof.nonce, expiresAt: proof.expiresAt })) !== true) fail2("REPLAY_OR_REVOKED", "Session is revoked or revoke proof was already used");
+  if (await revokeAndConsume(Object.freeze({ sessionId: session.sessionId, challengeDigest: session.challengeDigest, account: session.account, nonce: proof.nonce, expiresAt: proof.expiresAt })) !== true) fail3("REPLAY_OR_REVOKED", "Session is revoked or revoke proof was already used");
   return Object.freeze({ revoked: true, account: session.account, sessionId: session.sessionId });
 }
 function parseUnsignedHttpProof(input) {
@@ -3091,7 +3243,7 @@ function parseUnsignedHttpProof(input) {
     issuedAt: time(input.issuedAt, "issuedAt"),
     expiresAt: time(input.expiresAt, "expiresAt")
   });
-  if (Date.parse(value.expiresAt) <= Date.parse(value.issuedAt) || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > EVM_PRODUCT_SESSION_PROOF_MAX_LIFETIME_MS) fail2("INVALID_EXPIRY", "HTTP proof lifetime is invalid");
+  if (Date.parse(value.expiresAt) <= Date.parse(value.issuedAt) || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > EVM_PRODUCT_SESSION_PROOF_MAX_LIFETIME_MS) fail3("INVALID_EXPIRY", "HTTP proof lifetime is invalid");
   return value;
 }
 function unsignedProof(value) {
@@ -3108,84 +3260,84 @@ function verifyDevice(signed, message, key) {
   } catch {
     valid = false;
   }
-  if (!valid) fail2("INVALID_DEVICE_PROOF", "P-256 device signature does not match bound key");
+  if (!valid) fail3("INVALID_DEVICE_PROOF", "P-256 device signature does not match bound key");
 }
 function deviceSignature(value) {
   const bytes = decodeBase64url(value, "deviceSignature");
-  if (bytes.length < 68 || bytes.length > 72 || encodeBase64url(bytes) !== value) fail2("INVALID_DEVICE_PROOF", "Device signature is invalid");
+  if (bytes.length < 68 || bytes.length > 72 || encodeBase64url(bytes) !== value) fail3("INVALID_DEVICE_PROOF", "Device signature is invalid");
   return value;
 }
 function deviceKey(value) {
   const bytes = decodeBase64url(value, "deviceKey");
-  if (bytes.length !== 33 || ![2, 3].includes(bytes[0]) || encodeBase64url(bytes) !== value) fail2("INVALID_DEVICE", "P-256 device key is invalid");
+  if (bytes.length !== 33 || ![2, 3].includes(bytes[0]) || encodeBase64url(bytes) !== value) fail3("INVALID_DEVICE", "P-256 device key is invalid");
   try {
     p256.Point.fromBytes(bytes);
   } catch {
-    fail2("INVALID_DEVICE", "P-256 device key is invalid");
+    fail3("INVALID_DEVICE", "P-256 device key is invalid");
   }
   return value;
 }
 function account(value) {
-  return pattern(value, "account", /^0x[0-9a-f]{40}$/);
+  return pattern2(value, "account", /^0x[0-9a-f]{40}$/);
 }
 function origin(value) {
-  const text = pattern(value, "origin", /^https:\/\/[^\s/?#]+$/);
+  const text2 = pattern2(value, "origin", /^https:\/\/[^\s/?#]+$/);
   let parsed;
   try {
-    parsed = new URL(text);
+    parsed = new URL(text2);
   } catch {
-    fail2("INVALID_ORIGIN", "Origin is invalid");
+    fail3("INVALID_ORIGIN", "Origin is invalid");
   }
-  if (parsed.origin !== text || parsed.username || parsed.password) fail2("INVALID_ORIGIN", "Origin is non-canonical");
-  return text;
+  if (parsed.origin !== text2 || parsed.username || parsed.password) fail3("INVALID_ORIGIN", "Origin is non-canonical");
+  return text2;
 }
-function callback(value) {
-  const text = pattern(value, "callback", /^https:\/\/[^\s#]+$/);
+function callback2(value) {
+  const text2 = pattern2(value, "callback", /^https:\/\/[^\s#]+$/);
   let parsed;
   try {
-    parsed = new URL(text);
+    parsed = new URL(text2);
   } catch {
-    fail2("INVALID_CALLBACK", "Callback is invalid");
+    fail3("INVALID_CALLBACK", "Callback is invalid");
   }
-  if (parsed.toString() !== text || parsed.username || parsed.password || parsed.hash) fail2("INVALID_CALLBACK", "Callback is non-canonical");
-  return text;
+  if (parsed.toString() !== text2 || parsed.username || parsed.password || parsed.hash) fail3("INVALID_CALLBACK", "Callback is non-canonical");
+  return text2;
 }
 function method(value) {
-  return pattern(value, "method", /^(GET|POST|PUT|PATCH|DELETE)$/);
+  return pattern2(value, "method", /^(GET|POST|PUT|PATCH|DELETE)$/);
 }
 function target(value) {
-  const text = pattern(value, "target", /^\/[A-Za-z0-9._~!$&'()*+,;=:@\/%?-]{1,512}$/);
-  const [pathname, query, ...extra] = text.split("?");
-  if (extra.length || pathname.includes("//") || pathname.endsWith("/") || query === "" || /%(?![0-9A-F]{2})/.test(text)) fail2("INVALID_TARGET", "Request target is non-canonical");
-  return text;
+  const text2 = pattern2(value, "target", /^\/[A-Za-z0-9._~!$&'()*+,;=:@\/%?-]{1,512}$/);
+  const [pathname, query, ...extra] = text2.split("?");
+  if (extra.length || pathname.includes("//") || pathname.endsWith("/") || query === "" || /%(?![0-9A-F]{2})/.test(text2)) fail3("INVALID_TARGET", "Request target is non-canonical");
+  return text2;
 }
 function digest(value) {
-  return pattern(value, "digest", /^[0-9a-f]{64}$/);
+  return pattern2(value, "digest", /^[0-9a-f]{64}$/);
 }
 function token(value, label) {
-  return pattern(value, label, /^[A-Za-z0-9_-]{32,64}$/);
+  return pattern2(value, label, /^[A-Za-z0-9_-]{32,64}$/);
 }
 function time(value, label) {
-  const text = pattern(value, label, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-  if (!Number.isFinite(Date.parse(text)) || new Date(text).toISOString() !== text) fail2("INVALID_TIME", `${label} is invalid`);
-  return text;
+  const text2 = pattern2(value, label, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  if (!Number.isFinite(Date.parse(text2)) || new Date(text2).toISOString() !== text2) fail3("INVALID_TIME", `${label} is invalid`);
+  return text2;
 }
 function validDate(value) {
-  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail2("INVALID_TIME", "Verification time is invalid");
+  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail3("INVALID_TIME", "Verification time is invalid");
   return value;
 }
 function literal(value, expected) {
-  if (value !== expected) fail2("INVALID_FIELD", "Protocol literal is invalid");
+  if (value !== expected) fail3("INVALID_FIELD", "Protocol literal is invalid");
   return expected;
 }
 function signature(value) {
-  return pattern(value, "walletSignature", /^0x[0-9a-fA-F]{130}$/);
+  return pattern2(value, "walletSignature", /^0x[0-9a-fA-F]{130}$/);
 }
-function pattern(value, label, regex) {
-  if (typeof value !== "string" || value.trim() !== value || !regex.test(value)) fail2("INVALID_FIELD", `${label} is invalid`);
+function pattern2(value, label, regex) {
+  if (typeof value !== "string" || value.trim() !== value || !regex.test(value)) fail3("INVALID_FIELD", `${label} is invalid`);
   return value;
 }
-function fail2(code, message) {
+function fail3(code, message) {
   throw new WalletAuthError(code, message);
 }
 
@@ -3234,7 +3386,226 @@ var WALLET_CONNECTION_COORDINATOR_STATUS = Object.freeze({
   EVM_UNAVAILABLE: "evm-unavailable"
 });
 
+// packages/wallet-auth/product-session-registry.json
+var product_session_registry_default = {
+  schemaVersion: 2,
+  chainId: "ynx_6423-1",
+  wallet: {
+    authorizeCallback: "ynxwallet://authorize",
+    downloadUrl: "https://www.ynxweb4.com/dapp/download",
+    metaMaskDownloadUrl: "https://metamask.io/download"
+  },
+  products: [
+    {
+      productId: "ai",
+      clientId: "ynx-ai-v1",
+      displayName: "YNX AI",
+      applicationId: "com.ynxweb4.ai",
+      webOrigin: "https://assistant.ynxweb4.com",
+      nativeCallback: "ynxai://wallet-auth/callback",
+      legacyCallbacks: ["ynxai://wallet-auth/callback"],
+      scopes: ["ai:actions", "ai:attachments", "ai:conversations", "ai:data-control", "ai:generate", "ai:permissions"],
+      evmCompatible: false,
+      sessionDurationSeconds: 240
+    },
+    {
+      productId: "calendar",
+      clientId: "ynx-calendar-v1",
+      displayName: "YNX Calendar",
+      applicationId: "com.ynxweb4.calendar",
+      webOrigin: "https://calendar.ynxweb4.com",
+      nativeCallback: "ynxcalendar://wallet-auth/callback",
+      legacyCallbacks: ["ynxcalendar", "ynxcalendar://wallet-auth/callback"],
+      scopes: ["calendar:account", "calendar:recover"],
+      evmCompatible: false,
+      sessionDurationSeconds: 240
+    },
+    {
+      productId: "card",
+      clientId: "ynx-card-v1",
+      displayName: "YNX Card",
+      applicationId: "com.ynxweb4.card",
+      webOrigin: "https://card.ynxweb4.com",
+      nativeCallback: "ynxcard://wallet-auth/callback",
+      legacyCallbacks: ["ynxcard", "ynxcard://wallet-auth/callback"],
+      scopes: ["account:read", "card:application:write", "card:controls:write", "card:dispute:write", "card:simulation:write", "card:topup:write"],
+      evmCompatible: true,
+      sessionDurationSeconds: 180
+    },
+    {
+      productId: "cloud",
+      clientId: "ynx-cloud-web-v1",
+      displayName: "YNX Cloud",
+      applicationId: "com.ynxweb4.cloud",
+      webOrigin: "https://web4.ynxweb4.com",
+      platforms: ["web"],
+      nativeCallback: null,
+      legacyCallbacks: [],
+      scopes: ["files.read", "files.write"],
+      evmCompatible: false,
+      sessionDurationSeconds: 300
+    },
+    {
+      productId: "creator-studio",
+      clientId: "ynx-creator-studio-web-v1",
+      displayName: "YNX Creator Studio",
+      applicationId: "com.ynxweb4.creator-studio",
+      webOrigin: "https://creator.ynxweb4.com",
+      nativeCallback: "ynxcreator://wallet-auth/callback",
+      legacyCallbacks: ["ynxcreator", "ynxcreator://wallet-auth/callback"],
+      scopes: ["creator:account", "creator:publish", "creator:revenue"],
+      evmCompatible: false,
+      sessionDurationSeconds: 240
+    },
+    {
+      productId: "developer",
+      clientId: "ynx-developer-v1",
+      displayName: "YNX Developer",
+      applicationId: "com.ynxweb4.developer.testnetpreview",
+      webOrigin: "https://developer.ynxweb4.com",
+      nativeCallback: "ynxdeveloper://wallet-auth/callback",
+      legacyCallbacks: ["ynxdeveloper", "ynxdeveloper://wallet-auth/callback"],
+      scopes: ["account:read", "developer:deploy"],
+      evmCompatible: true,
+      sessionDurationSeconds: 180
+    },
+    {
+      productId: "dex",
+      clientId: "ynx-dex-v1",
+      displayName: "YNX DEX",
+      applicationId: "com.ynxweb4.dex",
+      webOrigin: "https://dex.ynxweb4.com",
+      nativeCallback: "ynxdex://wallet-auth/callback",
+      legacyCallbacks: ["ynxdex", "ynxdex://wallet-auth/callback"],
+      scopes: ["dex:account", "dex:orders", "dex:trade"],
+      evmCompatible: true,
+      sessionDurationSeconds: 180
+    },
+    {
+      productId: "docs",
+      clientId: "ynx-docs-mobile-v1",
+      displayName: "YNX Docs",
+      applicationId: "com.ynxweb4.docs",
+      webOrigin: "https://docs.ynxweb4.com",
+      nativeCallback: "ynxdocs://wallet-auth/callback",
+      legacyCallbacks: ["ynxdocs://wallet-auth/callback"],
+      scopes: ["docs.read", "docs.write", "files.read", "files.write"],
+      evmCompatible: false,
+      sessionDurationSeconds: 300
+    },
+    {
+      productId: "exchange",
+      clientId: "ynx-exchange-v1",
+      displayName: "YNX Exchange",
+      applicationId: "com.ynxweb4.exchange",
+      webOrigin: "https://exchange.ynxweb4.com",
+      nativeCallback: "ynxexchange://wallet-auth/callback",
+      legacyCallbacks: ["ynxexchange", "ynxexchange://wallet-auth/callback"],
+      scopes: ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"],
+      evmCompatible: true,
+      sessionDurationSeconds: 180
+    },
+    {
+      productId: "finance",
+      clientId: "ynx-finance-v1",
+      displayName: "YNX Finance",
+      applicationId: "com.ynxweb4.finance",
+      webOrigin: "https://finance.ynxweb4.com",
+      nativeCallback: "ynxfinance://wallet-auth/callback",
+      legacyCallbacks: ["ynxfinance", "ynxfinance://wallet-auth/callback"],
+      scopes: ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
+      evmCompatible: true,
+      sessionDurationSeconds: 240
+    },
+    {
+      productId: "pay",
+      clientId: "ynx-pay-v1",
+      displayName: "YNX Pay",
+      applicationId: "com.ynxweb4.pay",
+      webOrigin: "https://pay.ynxweb4.com",
+      nativeCallback: "ynxpay://wallet-auth/callback",
+      legacyCallbacks: ["ynxpay", "ynxpay://wallet-auth/callback"],
+      scopes: ["account:read", "pay:case:create", "pay:settlement:submit"],
+      evmCompatible: true,
+      sessionDurationSeconds: 180
+    },
+    {
+      productId: "quant",
+      clientId: "ynx-quant-v1",
+      displayName: "YNX Quant",
+      applicationId: "com.ynxweb4.quant",
+      webOrigin: "https://quant.ynxweb4.com",
+      nativeCallback: "ynxquant://wallet-auth/callback",
+      legacyCallbacks: ["ynxquant", "ynxquant://wallet-auth/callback"],
+      scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke"],
+      evmCompatible: true,
+      sessionDurationSeconds: 180
+    },
+    {
+      productId: "shop",
+      clientId: "ynx-shop-v1",
+      displayName: "YNX Shop",
+      applicationId: "com.ynxweb4.shop",
+      webOrigin: "https://shop.ynxweb4.com",
+      nativeCallback: "ynxshop://wallet-auth/callback",
+      legacyCallbacks: ["ynxshop", "ynxshop://wallet-auth/callback"],
+      scopes: ["account:read", "shop:orders:write", "shop:profile:write"],
+      evmCompatible: true,
+      sessionDurationSeconds: 240
+    },
+    {
+      productId: "social",
+      clientId: "ynx-social-v1",
+      displayName: "YNX Social",
+      applicationId: "com.ynx.social",
+      webOrigin: "https://social.ynxweb4.com",
+      nativeCallback: "ynx-social://com.ynx.social",
+      legacyCallbacks: ["ynx-social", "ynx-social://com.ynx.social"],
+      scopes: ["account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"],
+      evmCompatible: false,
+      sessionDurationSeconds: 240
+    },
+    {
+      productId: "video",
+      clientId: "ynx-video-mobile-v1",
+      displayName: "YNX Video",
+      applicationId: "com.ynxweb4.video",
+      webOrigin: "https://video.ynxweb4.com",
+      nativeCallback: "ynxvideo://wallet-auth/callback",
+      legacyCallbacks: ["ynxvideo", "ynxvideo://wallet-auth/callback"],
+      scopes: ["video:account", "video:library", "video:playback"],
+      evmCompatible: false,
+      sessionDurationSeconds: 300
+    }
+  ]
+};
+
+// packages/wallet-auth/src/central-browser-session-registry.js
+var ADOPTED = Object.freeze(["finance", "exchange", "quant"]);
+function createCentralBrowserSessionRegistry(productRegistry) {
+  const registry = parseProductSessionRegistry(productRegistry);
+  return Object.freeze(ADOPTED.map((productId) => {
+    const product = registry.products.find((value) => value.productId === productId);
+    if (!product) fail5("SSO_REGISTRY_INVALID");
+    return Object.freeze({
+      productId,
+      clientId: `${product.clientId}-sso-v1`,
+      origin: product.webOrigin,
+      redirectUri: `${product.webOrigin}/sso/callback`,
+      audience: `ynx:${productId}:identity`,
+      scopes: Object.freeze(["identity:read"])
+    });
+  }));
+}
+function fail5(code) {
+  throw new WalletAuthError(code, "Central browser client is not exactly registered");
+}
+
+// packages/wallet-auth/src/central-browser-session-contract.js
+var CENTRAL_BROWSER_RPC_METHOD = "ynx_requestCentralBrowserSignIn";
+
 // packages/wallet-auth/src/walletconnect-protocol.js
+var centralRegistry = createCentralBrowserSessionRegistry(product_session_registry_default);
 var WALLETCONNECT_SESSION_METHODS = Object.freeze([
   "eth_accounts",
   "eth_requestAccounts",
@@ -3243,7 +3614,9 @@ var WALLETCONNECT_SESSION_METHODS = Object.freeze([
   "eth_signTypedData_v4",
   "eth_sendTransaction",
   "wallet_switchEthereumChain",
-  "wallet_addEthereumChain"
+  "wallet_addEthereumChain",
+  "ynx_requestProductSessionV2",
+  CENTRAL_BROWSER_RPC_METHOD
 ]);
 var WALLETCONNECT_SESSION_EVENTS = Object.freeze(["accountsChanged", "chainChanged"]);
 var WALLETCONNECT_REJECTION = Object.freeze({
