@@ -269,10 +269,10 @@ $("setup-form").addEventListener("submit", async event => {
   if (localPassword !== confirm || localPassword.length < 12) { messageKey("passwordRule"); return; }
   const key = $("setup-key").value.trim();
   if (key && !$("import-confirm").checked) { messageKey("importBackupRequired"); return; }
-  submit.disabled = true;
+  submit.disabled = true;const managerGeneration=accountManager?.begin();
   try {
     const created = await store.create({ password: localPassword, ...(key ? { secretHex: key.replace(/^0x/u, "").toLowerCase() } : {}) });
-    vault = created.vault;if(accountManager&&document.visibilityState!=="hidden")await accountManager.unlock(vault,localPassword); setup.hidden = true; displayAccount(); await refreshAccountList(); if(!accountManager)await refreshTransactionStatus();
+    vault = created.vault;if(accountManager?.isCurrent(managerGeneration)&&document.visibilityState!=="hidden")await accountManager.unlock(vault,localPassword,managerGeneration); setup.hidden = true; displayAccount(); await refreshAccountList(); if(!accountManager)await refreshTransactionStatus();
     needsBackupAcknowledgement = !key;
     $("backup-confirmation").hidden = !needsBackupAcknowledgement;
     messageKey(session ? (needsBackupAcknowledgement ? "backupBefore" : "walletSaved") : "disconnected", { account: vault.account });
@@ -287,11 +287,11 @@ $("backup-import-form").addEventListener("submit", async event => {
   if (!session&&!accountManager) return;
   const file = $("backup-import-file").files?.[0], input = $("backup-import-password"), submit = event.currentTarget.querySelector("button[type=submit]");
   if (submit.disabled || !file || file.size < 100 || file.size > 20_000 || !$("backup-import-confirm").checked) { messageKey("chooseBackup"); return; }
-  submit.disabled = true;
+  submit.disabled = true;const managerGeneration=accountManager?.begin();
   try {
     const record = JSON.parse(await file.text());
     const imported = await store.importEncrypted({ record, password: input.value });
-    vault = imported.vault;if(accountManager&&document.visibilityState!=="hidden")await accountManager.unlock(vault,input.value); setup.hidden = true; displayAccount(); await refreshAccountList(); if(!accountManager)await refreshTransactionStatus(); $("export-backup").hidden = false;renderManagerLock();
+    vault = imported.vault;if(accountManager?.isCurrent(managerGeneration)&&document.visibilityState!=="hidden")await accountManager.unlock(vault,input.value,managerGeneration); setup.hidden = true; displayAccount(); await refreshAccountList(); if(!accountManager)await refreshTransactionStatus(); $("export-backup").hidden = false;renderManagerLock();
     messageKey(session ? "backupRestored" : "disconnected", { account: vault.account });
     if(accountManager)messageKey(accountManager.isUnlocked(vault)?"managerUnlocked":"managerLocked");
     if (session) reply("ready");
@@ -349,7 +349,7 @@ $("backup-continue").addEventListener("click", () => {
 $("account-unlock-form").addEventListener("submit",async event=>{
   event.preventDefault();if(!accountManager||!vault)return;
   const input=$("account-unlock-password"),button=event.currentTarget.querySelector("button");if(button.disabled)return;button.disabled=true;
-  try{await accountManager.unlock(vault,input.value);renderManagerLock();messageKey("managerUnlocked");}
+  try{await accountManager.unlock(vault,input.value);renderManagerLock();messageKey(accountManager.isUnlocked(vault)?"managerUnlocked":"managerLocked");}
   catch(error){accountManager.lock();renderManagerLock();messageKey("managerUnlockFailed",{},error?.code??"HOSTED_UNLOCK_FAILED");}
   finally{input.value="";button.disabled=false;}
 });
@@ -365,9 +365,10 @@ async function start() {
     try{vault=await store.read();}catch(error){messageKey("storageUnreadable",{},error?.code??"HOSTED_STORAGE_READ_FAILED");return;}
     setup.hidden=!!vault;displayAccount();await refreshAccountList();messageKey(vault?"managerLocked":"managerEmpty");return;
   }
+  const encoded=location.hash.slice(9);let connection;
+  try{connection=parseHostedConnect(encoded);}catch{messageKey("invalidConnect");return;}
   if(!window.opener){messageKey("registeredOnly");return;}
-  const encoded=location.hash.slice(9);
-  try{session={...parseHostedConnect(encoded),approved:false};}catch{messageKey("invalidConnect");return;}
+  session={...connection,approved:false};
   history.replaceState(null,"",location.pathname);
   $("product-origin").textContent=session.origin;
   window.addEventListener("message",event=>{void receive(event);});
