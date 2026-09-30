@@ -257,11 +257,15 @@ export async function verifyLiveMigration(config, {fetchImpl = fetch, transactio
     contractProof,
     faucetBuild: targetFaucet.build?.commit || null,
     networkId: targetIdentity.networkId,
-    readOnlyComparisonVerified: transactionProof !== null && contractProof !== null,
+    // A matching latest sample is diagnostic only: aliases may have sampled
+    // different tips, so it cannot satisfy the fixed-height migration gate.
+    sameHeightStateVerified: !historicalStateUnsupported,
+    readOnlyComparisonVerified: transactionProof !== null && contractProof !== null && !historicalStateUnsupported,
     explorerAliasReadVerified: explorer,
     publicVerified: false,
     transportProof,
     remainingGates: [
+      ...(historicalStateUnsupported ? ["SAME_HEIGHT_STATE_UNSUPPORTED"] : []),
       ...(transactionProof === null ? ["HISTORICAL_TRANSACTION_REQUIRED"] : []),
       ...(contractProof === null ? ["NONEMPTY_CONTRACT_CODE_REQUIRED"] : []),
       ...(!explorer ? ["EXPLORER_ALIAS_NOT_CHECKED"] : []),

@@ -19,6 +19,7 @@ test("complete read-only comparison never claims full public acceptance", async 
   assert.equal(proof.faucetBuild, "a".repeat(40));
   assert.deepEqual(proof.contractProof, {address: contractAddress, code: "0x6000"});
   assert.equal(proof.readOnlyComparisonVerified, true);
+  assert.equal(proof.sameHeightStateVerified, true);
   assert.equal(proof.explorerAliasReadVerified, true);
   assert.equal(proof.publicVerified, false);
   assert.ok(proof.remainingGates.includes("SHARED_FAUCET_STATE"));
@@ -60,6 +61,9 @@ test("matching latest-only state capability falls back explicitly without weaken
   };
   const proof = await verifyLiveMigration(config, {fetchImpl, transactionHash: txHash});
   assert.equal(proof.historicalStateUnsupported, true);
+  assert.equal(proof.sameHeightStateVerified, false);
+  assert.equal(proof.readOnlyComparisonVerified, false);
+  assert.ok(proof.remainingGates.includes("SAME_HEIGHT_STATE_UNSUPPORTED"));
   assert.deepEqual(proof.stateProofTags, {
     eth_getBalance: "latest",
     eth_getCode: "latest",
@@ -67,6 +71,28 @@ test("matching latest-only state capability falls back explicitly without weaken
   });
   assert.equal(proof.transactionProof, txHash);
   assert.ok(calls.some(call => call.method === "eth_getBalance" && call.params[1] === "latest"));
+});
+
+test("transaction and contract proofs cannot promote latest-only balance or nonce to same-height acceptance", async () => {
+  for (const unsupportedMethod of ["eth_getBalance", "eth_getTransactionCount"]) {
+    const baseFetch = fixtureFetch([]);
+    const proof = await verifyLiveMigration(config, {contractAddress, transactionHash: txHash,
+      fetchImpl: async (url, options = {}) => {
+        const request = options.body ? JSON.parse(options.body) : null;
+        if (request?.method === unsupportedMethod && request.params[1] !== "latest") {
+          return jsonResponse({id: request.id, jsonrpc: "2.0", error: {code: -32602, message: "only latest/pending state is supported"}});
+        }
+        return baseFetch(url, options);
+      },
+    });
+    assert.equal(proof.transactionProof, txHash);
+    assert.deepEqual(proof.contractProof, {address: contractAddress, code: "0x6000"});
+    assert.equal(proof.stateProofTags[unsupportedMethod], "latest");
+    assert.equal(proof.sameHeightStateVerified, false);
+    assert.equal(proof.readOnlyComparisonVerified, false);
+    assert.equal(proof.publicVerified, false);
+    assert.ok(proof.remainingGates.includes("SAME_HEIGHT_STATE_UNSUPPORTED"));
+  }
 });
 
 test("latest-only state fallback rejects capability or error drift between aliases", async () => {
