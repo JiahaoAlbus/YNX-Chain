@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"syscall"
@@ -348,4 +349,75 @@ func TestCentralBrowserSSORealGatewayFinanceCookieOwnershipRecoveryAndLogout(t *
 	if other.StatusCode != 200 {
 		t.Fatal("one browser logout invalidated another QA browser")
 	}
+	t.Run("current-state-compatible-rollback", func(t *testing.T) {
+		// Reproduce the pre-SSO persistedState reader without duplicating its
+		// financial schema: its sole missing field is browserSSOBindings, and
+		// it uses the same strict decoder. Version 2 does not imply old-reader
+		// compatibility with a populated authorization association.
+		restartedStore.mu.Lock()
+		raw, marshalErr := json.Marshal(restartedStore.state)
+		bindingsBefore, bindingErr := json.Marshal(restartedStore.state.BrowserSSOBindings)
+		bindingCount := len(restartedStore.state.BrowserSSOBindings)
+		version := restartedStore.state.Version
+		restartedStore.mu.Unlock()
+		if marshalErr != nil || bindingErr != nil || bindingCount == 0 || version != 2 {
+			t.Fatal("rollback fixture needs populated version-2 associations")
+		}
+		currentType := reflect.TypeOf(persistedState{})
+		fields := make([]reflect.StructField, 0, currentType.NumField()-1)
+		for i := 0; i < currentType.NumField(); i++ {
+			field := currentType.Field(i)
+			if field.Name != "BrowserSSOBindings" {
+				fields = append(fields, field)
+			}
+		}
+		legacy := reflect.New(reflect.StructOf(fields)).Interface()
+		if err := decodeStrictJSON(raw, legacy); err == nil || !strings.Contains(err.Error(), `unknown field "browserSSOBindings"`) {
+			t.Fatal("pre-SSO strict reader did not reject new authorization history")
+		}
+		var oldShape map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &oldShape); err != nil {
+			t.Fatal(err)
+		}
+		delete(oldShape, "browserSSOBindings")
+		oldRaw, err := json.Marshal(oldShape)
+		if err != nil || decodeStrictJSON(oldRaw, legacy) != nil {
+			t.Fatal("legacy reader baseline is not the pre-SSO shape")
+		}
+
+		// Supported rollback keeps the current reader and current state, but
+		// disables the entry point. It must not turn linked sessions native-only.
+		server.cfg.CentralBrowserSSO = false
+		if server.authorizeBrowserSSOContext(withoutCookie, privateA) != 401 {
+			t.Fatal("disabled SSO bypassed persisted linked revocation")
+		}
+		categoryA, err := server.service.AddCategory(accounts["A"], "Rollback A", "#002FA7", "rollback-category-a")
+		if err != nil {
+			t.Fatal(err)
+		}
+		categoryB, err := server.service.AddCategory(accounts["B"], "Rollback B", "#002FA7", "rollback-category-b")
+		if err != nil {
+			t.Fatal(err)
+		}
+		reopened, err := OpenStore(store.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		server.service.Store = reopened
+		if server.authorizeBrowserSSOContext(withoutCookie, privateA) != 401 {
+			t.Fatal("save/reopen with SSO disabled lost linked rejection")
+		}
+		reopened.mu.Lock()
+		defer reopened.mu.Unlock()
+		bindingsAfter, err := json.Marshal(reopened.state.BrowserSSOBindings)
+		if err != nil || !bytes.Equal(bindingsBefore, bindingsAfter) {
+			t.Fatal("business save changed authorization associations")
+		}
+		for account, category := range map[string]Category{accounts["A"]: categoryA, accounts["B"]: categoryB} {
+			state := reopened.state.Accounts[account]
+			if len(state.Categories) != 1 || state.Categories[0].ID != category.ID || state.Categories[0].Name != category.Name {
+				t.Fatal("current-state rollback lost or mixed owned categories")
+			}
+		}
+	})
 }
