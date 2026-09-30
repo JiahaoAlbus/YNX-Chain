@@ -32,7 +32,7 @@ export class WalletConnectDAppConnection{
     client.on('session_update',({topic,params})=>{if(this.#session?.topic!==topic)return;const next={...this.#session,namespaces:params.namespaces};try{this.#validate(next);this.#session=next;this.#epoch++;this.#emit('accountsChanged',this.#accounts(next));}catch{ended({topic});}});
     client.on('session_event',({topic,params})=>{if(this.#session?.topic!==topic)return;const event=params?.event;if(!event||!WALLETCONNECT_SESSION_EVENTS.includes(event.name))return;this.#epoch++;
       const account=this.#accounts(this.#session)[0];
-      if(event.name==='chainChanged'){if(!['0x1917',6423,'6423'].includes(event.data))this.#session=null;this.#emit('chainChanged',event.data);}
+      if(event.name==='chainChanged'){const sameChain=['0x1917',6423,'6423'].includes(event.data);if(!sameChain)this.#session=null;this.#emit('chainChanged',sameChain?'0x1917':event.data);}
       else{if(!Array.isArray(event.data)||event.data.length!==1||String(event.data[0]).toLowerCase()!==account.toLowerCase())this.#session=null;this.#emit('accountsChanged',event.data);}
     });
     return client;

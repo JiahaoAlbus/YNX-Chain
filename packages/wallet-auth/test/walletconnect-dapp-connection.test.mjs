@@ -1,12 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {WalletConnectDAppConnection,YNX_PAIR_PROJECT_ID} from '../src/walletconnect-dapp-connection.js';
+import {StandardWalletConnection} from '../src/standard-wallet-connection.js';
 const topic='a'.repeat(64),account='0x'+'1'.repeat(40),method='ynx_requestCentralBrowserSignIn';
 const session=(extra={})=>({topic,expiry:Math.floor(Date.now()/1000)+300,peer:{metadata:{url:'https://wallet.ynxweb4.com'}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],chains:['eip155:6423'],methods:[method],events:['accountsChanged','chainChanged']}},...extra});
 function fixture(existing=[]){let approve,reply;const events=new Map(),calls=[];const client={on:(name,fn)=>events.set(name,fn),session:{getAll:()=>existing},core:{pairing:{disconnect:async input=>calls.push(['cancel',input.topic])}},connect:async input=>{calls.push(['connect',input]);return {uri:`wc:${topic}@2?relay-protocol=irn&symKey=${'2'.repeat(64)}`,approval:()=>new Promise(resolve=>approve=resolve)};},request:input=>{calls.push(['request',input]);return new Promise(resolve=>reply=resolve);},disconnect:async input=>calls.push(['disconnect',input.topic])};
   const connection=new WalletConnectDAppConnection({origin:'https://wallet-auth.ynxweb4.com',methods:[method],clientFactory:async options=>{calls.push(['init',options]);return client;},deadlineMs:50});return {connection,client,calls,events,approve:value=>approve(value),reply:value=>reply(value)};
 }
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
+test('numeric WalletConnect chain events normalize only the approved chain for the real standard connection',async()=>{
+  const f=fixture([session()]),provider=await f.connection.restore(),standard=new StandardWalletConnection({provider,origin:'https://wallet-auth.ynxweb4.com',metadata:{name:'Isolated Pair regression',url:'https://wallet-auth.ynxweb4.com'}});
+  await standard.connect();
+  for(const chain of [6423,'6423','0x1917']){
+    f.events.get('session_event')({topic,params:{event:{name:'chainChanged',data:chain}}});
+    assert.equal(standard.current.selectedChain,'0x1917');assert.equal(standard.current.selectedAccount,account);
+  }
+  const signing=provider.request({method,params:[{}]});await tick();f.events.get('session_event')({topic,params:{event:{name:'chainChanged',data:6423}}});f.reply({});await assert.rejects(signing,/CONTEXT_CHANGED/);
+  f.events.get('session_event')({topic,params:{event:{name:'chainChanged',data:'0x1'}}});
+  assert.notEqual(standard.current?.selectedChain,'0x1917');await assert.rejects(provider.request({method:'eth_accounts'}),/SESSION_EXPIRED/);
+  standard.disconnect();
+});
 test('official DApp proposal is explicit, single-flight, scoped and approves only the exact Wallet peer/account',async()=>{
   const f=fixture();await f.connection.initialize();assert.equal(f.calls[0][1].projectId,YNX_PAIR_PROJECT_ID);assert.equal(f.calls[0][1].metadata.url,'https://wallet-auth.ynxweb4.com');assert.equal(f.calls.filter(c=>c[0]==='connect').length,0);
   let uri;const first=f.connection.connect({onURI:value=>uri=value});assert.equal(first,f.connection.connect());await tick();assert.match(uri,/^wc:/);assert.equal(f.calls.filter(c=>c[0]==='connect').length,1);
