@@ -1,4 +1,9 @@
 import { canonicalJSON, digestHex, isPlainObject, WalletAuthError } from "./canonical.js";
+import productRegistry from "../product-session-registry.json" with {type:"json"};
+import { parseProductSessionWalletURL } from "./product-session-router.js";
+import { parseCentralBrowserSignInChallenge, CENTRAL_BROWSER_RPC_METHOD } from "./central-browser-session-contract.js";
+import { createCentralBrowserSessionRegistry } from "./central-browser-session-registry.js";
+const centralRegistry=createCentralBrowserSessionRegistry(productRegistry);
 
 export const WALLETCONNECT_PROTOCOL_VERSION = 2;
 export const WALLETCONNECT_NAMESPACE = "eip155";
@@ -7,6 +12,7 @@ export const WALLETCONNECT_CHAIN_QUANTITY = "0x1917";
 export const WALLETCONNECT_SESSION_METHODS = Object.freeze([
   "eth_accounts", "eth_requestAccounts", "eth_chainId", "personal_sign", "eth_signTypedData_v4",
   "eth_sendTransaction", "wallet_switchEthereumChain", "wallet_addEthereumChain",
+  "ynx_requestProductSessionV2", CENTRAL_BROWSER_RPC_METHOD,
 ]);
 export const WALLETCONNECT_SESSION_EVENTS = Object.freeze(["accountsChanged", "chainChanged"]);
 export const WALLETCONNECT_REJECTION = Object.freeze({
@@ -129,11 +135,12 @@ export function createWalletConnectRequestReview(input, options) {
   if (paramsEnvelope.chainId !== WALLETCONNECT_CHAIN) fail("WALLETCONNECT_UNSUPPORTED_CHAINS", "WalletConnect request must target eip155:6423");
   const method = text(request.method, "method", /^[A-Za-z][A-Za-z0-9_]{1,63}$/);
   if (!session.namespaces.eip155.methods.includes(method) || !WALLETCONNECT_SESSION_METHODS.includes(method)) fail("WALLETCONNECT_UNSUPPORTED_METHODS", "WalletConnect request method was not approved for this session");
-  const params = methodParams(method, request.params, session.account);
+  const params = methodParams(method, request.params, session.account, session.peer, now);
+  const native = nativeSignIn(method, params, session.peer, now);
   const review = {
     kind: "walletconnect_request_review", protocolVersion: 2, topic, requestId: id,
     sessionBinding: session.sessionBinding, chainId: WALLETCONNECT_CHAIN, account: session.account,
-    peer: session.peer, verification, method, params, expirySource, expiresAt: new Date(expiryTimestamp * 1000).toISOString(), requiresUserApproval: true,
+    peer: session.peer, verification, method, params, expirySource, expiresAt: new Date(Math.min(expiryTimestamp * 1000,native?.expiresAt??Infinity)).toISOString(), requiresUserApproval: true,
   };
   bounded(review);
   const frozen = Object.freeze({ ...review, requestDigest: digestHex("YNX_WALLETCONNECT_REQUEST_REVIEW_V1", review) });
@@ -144,7 +151,7 @@ export function createWalletConnectRequestReview(input, options) {
 export function finalizeWalletConnectRequestReview(reviewInput, decision, replayStore, at = new Date()) {
   const now = authorityTime(at);
   if (!(replayStore instanceof WalletConnectRequestReplayStore)) fail("WALLETCONNECT_REPLAY_STORE_REQUIRED", "A durable WalletConnect request replay store is required");
-  const review = parseRequestReview(reviewInput);
+  const review = parseRequestReview(reviewInput, now);
   const choice = record(decision, ["approved"], [], "WalletConnect request decision");
   if (typeof choice.approved !== "boolean") fail("INVALID_WALLETCONNECT_DECISION", "WalletConnect request decision must be explicit");
   if (review.expiresAt <= now.toISOString()) fail("EXPIRED_WALLETCONNECT_REQUEST", "WalletConnect request has expired");
@@ -172,13 +179,13 @@ export class WalletConnectRequestReplayStore {
   }
   reserve(review, at = new Date()) {
     authorityTime(at); this.prune(at);
-    const value = parseRequestReview(review), key = requestKey(value);
+    const value = parseRequestReview(review, at), key = requestKey(value);
     if (this.records.has(key)) fail("WALLETCONNECT_REPLAY", "WalletConnect request was already reviewed");
     this.records.set(key, Object.freeze({ key, requestDigest: value.requestDigest, expiresAt: value.expiresAt, status: "reserved" }));
   }
   consume(review, at = new Date()) {
     authorityTime(at); this.prune(at);
-    const value = parseRequestReview(review), key = requestKey(value), existing = this.records.get(key);
+    const value = parseRequestReview(review, at), key = requestKey(value), existing = this.records.get(key);
     if (!existing || existing.status !== "reserved" || existing.requestDigest !== value.requestDigest) fail("WALLETCONNECT_REPLAY", "WalletConnect request is missing, changed or already consumed");
     this.records.set(key, Object.freeze({ ...existing, status: "consumed" }));
   }
@@ -222,8 +229,10 @@ function namespaces(input, required) {
   return { chains, methods, events };
 }
 
-function methodParams(method, input, account) {
+function methodParams(method, input, account, peer, at) {
   input = safeArray(input, "WalletConnect request parameters", 0, 8);
+  const native = nativeSignIn(method,input,peer,at);
+  if(native)return native.params;
   if (["eth_accounts", "eth_requestAccounts", "eth_chainId"].includes(method)) { if (input.length !== 0) fail("INVALID_WALLETCONNECT_PARAMS", `${method} does not accept parameters`); return Object.freeze([]); }
   if (method === "personal_sign") {
     if (input.length !== 2 || !hexData(input[0], 64 * 1024) || evmAccount(input[1]) !== account) fail("WALLETCONNECT_ACCOUNT_MISMATCH", "personal_sign must bind the reviewed message to the approved account");
@@ -287,19 +296,32 @@ function parseSessionApproval(input) {
   if (value.sessionBinding !== digestHex("YNX_WALLETCONNECT_SESSION_APPROVAL_V1", unsigned)) fail("INVALID_WALLETCONNECT_SESSION", "WalletConnect session binding does not match");
   return value;
 }
-function parseRequestReview(input) {
+function parseRequestReview(input, at) {
   const value = record(input, ["kind", "protocolVersion", "topic", "requestId", "sessionBinding", "chainId", "account", "peer", "verification", "method", "params", "expirySource", "expiresAt", "requiresUserApproval", "requestDigest"], [], "WalletConnect request review");
   if (value.kind !== "walletconnect_request_review" || value.protocolVersion !== 2 || value.chainId !== WALLETCONNECT_CHAIN || value.requiresUserApproval !== true) fail("INVALID_WALLETCONNECT_REVIEW", "WalletConnect request review is invalid");
   text(value.topic, "topic", HEX_32); positiveId(value.requestId, "request id"); text(value.sessionBinding, "sessionBinding", HEX_32);
   const account = evmAccount(value.account); normalizedPeer(value.peer); normalizedVerification(value.verification);
   const method = text(value.method, "method", /^[A-Za-z][A-Za-z0-9_]{1,63}$/);
   if (!WALLETCONNECT_SESSION_METHODS.includes(method)) fail("WALLETCONNECT_UNSUPPORTED_METHODS", "WalletConnect request method is unsupported");
-  methodParams(method, value.params, account);
+  methodParams(method, value.params, account, value.peer, at);
   if (!["request", "bounded-default"].includes(value.expirySource)) fail("INVALID_WALLETCONNECT_EXPIRY", "WalletConnect request expiry source is invalid");
   timestamp(value.expiresAt, "expiresAt"); text(value.requestDigest, "requestDigest", HEX_32);
   const unsigned = { ...value }; delete unsigned.requestDigest;
   if (value.requestDigest !== digestHex("YNX_WALLETCONNECT_REQUEST_REVIEW_V1", unsigned)) fail("INVALID_WALLETCONNECT_REVIEW", "WalletConnect request review digest does not match");
   return value;
+}
+function nativeSignIn(method,params,peer,at){
+  if(!["ynx_requestProductSessionV2",CENTRAL_BROWSER_RPC_METHOD].includes(method))return null;
+  if(!Array.isArray(params)||params.length!==1)fail("INVALID_WALLETCONNECT_PARAMS","Native sign-in requires one exact request");
+  const now=authorityTime(at),origin=new URL(peer.metadata.url).origin;
+  if(method===CENTRAL_BROWSER_RPC_METHOD){
+    const challenge=parseCentralBrowserSignInChallenge(params[0],centralRegistry,{peerOrigin:origin,now:now.getTime()});
+    return {params:Object.freeze([challenge]),expiresAt:Date.parse(challenge.expiresAt)};
+  }
+  if(typeof params[0]!=="string"||params[0].length>32768)fail("INVALID_WALLETCONNECT_PARAMS","Product sign-in requires its exact official Wallet URL");
+  const request=parseProductSessionWalletURL(productRegistry,params[0],now);
+  if(request.origin!==origin)fail("UNSAFE_WALLETCONNECT_ORIGIN","Product sign-in origin differs from the approved peer");
+  return {params:Object.freeze([params[0]]),expiresAt:Date.parse(request.expiresAt)};
 }
 function proposer(input) {
   const value = record(input, ["publicKey", "metadata"], [], "WalletConnect proposer");

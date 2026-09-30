@@ -1,8 +1,8 @@
 import registry from "../vendor/product-session-registry-b754ffc42.json" with {type:"json"};
 import {walletIdentity} from "@ynx-chain/wallet-auth-card-provider-v2";
 import {SigningKey,sha256,toUtf8Bytes} from "ethers";
-import {CENTRAL_BROWSER_RPC_METHOD,parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval,centralBrowserConsentSignBytes} from "../../../packages/wallet-auth/src/central-browser-session-contract.js";
-import {createCentralBrowserSessionRegistry} from "../../../packages/wallet-auth/src/central-browser-session-registry.js";
+import {CENTRAL_BROWSER_RPC_METHOD,parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval,centralBrowserConsentSignBytes} from "@ynx-chain/wallet-auth/central-browser-session-contract";
+import {createCentralBrowserSessionRegistry} from "@ynx-chain/wallet-auth/central-browser-session-registry";
 const clients=createCentralBrowserSessionRegistry(registry);
 export const CENTRAL_METHOD=CENTRAL_BROWSER_RPC_METHOD;
 export function parseCentralRequest(params,origin,now=Date.now()){

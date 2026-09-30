@@ -83,6 +83,35 @@ test("session update and expiry events refresh the visible session and expose a 
 const pendingRequest=(topic:string,id=7)=>({topic,id,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[]}}});
 const pendingProposal=()=>({id:9,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"",isScam:false}},params:{}});
 
+test("delayed custody cannot sign or deliver an old approval after disconnect, delete or same-id replacement",async()=>{
+  for(const action of ["disconnect","delete","replace","namespace"]){
+    const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"d".repeat(32)},(async()=>client) as any);await runtime.start();
+    const topic="e".repeat(64),account="0x"+"a".repeat(40),event=pendingRequest(topic,7);
+    client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};
+    client.handlers.get("session_request")!(event);
+    const review={topic,requestId:7,account,method:"eth_accounts",params:[],peer:{metadata:{url:"https://example.com"}},expiresAt:new Date(Date.now()+60000).toISOString()};
+    const lease=runtime.bindReviewedRequest(review,runtime.snapshot().request);
+    let release!:()=>void,signs=0;const authenticated=new Promise<void>(resolve=>{release=resolve});
+    const approval=(async()=>{await authenticated;lease.assertCurrent();signs++;await lease.respond("old signature")})();
+    if(action==="disconnect")await runtime.disconnect(topic);
+    if(action==="delete")client.handlers.get("session_delete")!({topic});
+    if(action==="replace"){runtime.clearSensitiveReview();client.handlers.get("session_request")!(pendingRequest(topic,7));}
+    if(action==="namespace")client.active[topic].namespaces.eip155.methods=[];
+    release();await assert.rejects(approval,/authorization changed/);assert.equal(signs,0);
+    assert.equal(client.responses.some(r=>Object.hasOwn(r.response,"result")),false);
+    if(action==="replace"){await lease.reject();assert.equal(runtime.snapshot().request?.id,7);}
+  }
+});
+test("temporary transport failure does not revoke a still-current review and delivery stays on its exact request",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"d".repeat(32)},(async()=>client) as any);await runtime.start();
+  const topic="e".repeat(64),account="0x"+"a".repeat(40),event=pendingRequest(topic,17);
+  client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};client.handlers.get("session_request")!(event);
+  const lease=runtime.bindReviewedRequest({topic,requestId:17,account,method:"eth_accounts",params:[],peer:{metadata:{url:"https://example.com"}},expiresAt:new Date(Date.now()+60000).toISOString()},runtime.snapshot().request);
+  client.failResponses=true;lease.assertCurrent();await assert.rejects(lease.respond("approved response"));
+  assert.equal(client.responses[0].topic,topic);assert.equal(client.responses[0].response.id,17);assert.equal(runtime.snapshot().request,null);
+  await assert.rejects(lease.respond("duplicate response"));assert.equal(client.responses.length,1);
+});
+
 test("expired and deleted sessions synchronously clear a same-topic pending request",async()=>{
   const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"d".repeat(32)},(async()=>client) as any);await runtime.start();const topic="e".repeat(64);
   client.handlers.get("session_request")!(pendingRequest(topic));assert.equal(runtime.snapshot().request?.topic,topic);
