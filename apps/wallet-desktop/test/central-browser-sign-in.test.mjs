@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createRequire } from "node:module";
@@ -6,9 +7,9 @@ import { PRODUCT_SESSION_REGISTRY } from "../src/wallet-auth-contract.mjs";
 import { CENTRAL_BROWSER_METHOD, parseCentralSignIn, signCentralSignIn } from "../src/central-browser-sign-in.mjs";
 const base=import.meta.resolve("@ynx-chain/wallet-auth");
 const requireAuth=createRequire(base);
-const {secp256k1}=await import(requireAuth.resolve("@noble/curves/secp256k1.js"));
-const {sha256}=await import(requireAuth.resolve("@noble/hashes/sha2.js"));
-const {hexToBytes,utf8ToBytes}=await import(requireAuth.resolve("@noble/hashes/utils.js"));
+const {secp256k1}=await import(pathToFileURL(requireAuth.resolve("@noble/curves/secp256k1.js")).href);
+const {sha256}=await import(pathToFileURL(requireAuth.resolve("@noble/hashes/sha2.js")).href);
+const {hexToBytes,utf8ToBytes}=await import(pathToFileURL(requireAuth.resolve("@noble/hashes/utils.js")).href);
 const { createCentralBrowserSessionRegistry }=await import(new URL("./central-browser-session-registry.js",base));
 const { CENTRAL_BROWSER_ISSUER, CENTRAL_BROWSER_PURPOSE, centralBrowserConsentSignBytes }=await import(new URL("./central-browser-session-contract.js",base));
 const now=Date.parse("2026-09-30T15:40:00.000Z"), registry=createCentralBrowserSessionRegistry(PRODUCT_SESSION_REGISTRY);
