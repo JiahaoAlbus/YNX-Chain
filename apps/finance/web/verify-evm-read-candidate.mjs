@@ -11,7 +11,7 @@ const transportCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-
 const journeyCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-2160807a-20260930.json';
 const intentCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-cdaedfad-20260930.json';
 const clockCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-82314ab0-20260930.json';
-const ssoCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-sso-8f7772c3-20261001.json';
+const ssoCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-sso-79b48ace-20261001.json';
 const expectedInputs = Object.freeze([
   'apps/finance/package.json', 'apps/finance/package-lock.json',
   'apps/finance/web/package.json', 'apps/finance/web/package-lock.json',
