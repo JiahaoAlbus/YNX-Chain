@@ -1,0 +1,23 @@
+# Central browser identity and Finance checkpoint
+
+This is local source/isolated QA evidence, not installed Wallet, public release, multi-platform completion, or all-ecosystem SSO acceptance.
+
+The central durable same-host multi-process store preserves challenge/code consumption and generation/revocation across restart. It fails closed on foreign locks, missing/tampered initialized state and markers. Backend-only code exchange uses exact registered product audiences and PKCE S256. First consent uses the sole native `ynx_requestCentralBrowserSignIn` contract; unsupported providers cannot substitute EVM signing. Finance identity is not private financial permission: existing native ProductSession scopes and fresh per-request DeviceProof verification remain required, with a durable same-subject central grant association.
+
+The central page is operable for an installed injected YNX provider and uses shared discovery/connection. Connect/add/switch/sign/final account reads have bounded challenge deadlines. Cancel or identity/chain changes also revoke a challenge-created central identity if completion raced cancellation. Late callbacks cannot navigate or complete. Central Pair, central multilingual UI and an operable global logout page remain unfinished; no fake QR or public/platform pass is claimed.
+
+`/api/sso/logout` is **product-only**: backend `/logout-grant` revokes grants for this product and leaves the central root and another product's grant valid. Finance refresh/focus never implicitly starts authorization; explicit sign-in may reuse the still-valid central identity. The independent central `/logout` endpoint revokes the root generation and all linked grants; HTTP/authority tests cover it, but no joint UI/global-logout completion is claimed. A failed remote logout remains unconfirmed rather than claiming successful revocation.
+
+Actual isolated browser/Go flow: Finance explicit sign-in -> central chooser -> canonical native fixture approval -> server code/PKCE callback to original planning route -> identity recheck -> separate existing native ProductSession approval -> first concurrent overview/profile/portfolio/activity requests with independently signed nonces -> temporary data failure/retry without re-sign -> existing category creation and owned profile readback -> product logout -> unused fresh native proof rejected by Finance while SDK revocation is deliberately held -> refresh stays guest without automatic SSO start. The provider signing fixture is not an installed Wallet or public receipt.
+
+Verification at this checkpoint:
+
+- `cd packages/wallet-auth && npm test`: 197/197 passed, zero skipped; TypeScript tests passed.
+- Central browser/brand Chromium tests: 2/2 passed (10 flow modes: first connection events, 4902 add/reswitch, account/chain changes, cancel during completion, never-returning provider phases and late approval). Parent independently passed 2/2 in 8.212s.
+- Central-selected-login actual local Go/Gateway/browser test: 1/1 passed in 10.002s after product-only logout correction; includes existing category write and old proof rejection.
+- Go focused CentralBrowserSSO/native/EVM regressions: Finance 4.280s and CLI 1.011s passed; corrected product logout Go test passed 0.938s.
+- Daemon startup/history: 4/4 passed; nonempty v2/v3 active/revoked session and replay history survive restart. Remote mode rejects missing/corrupt existing product history before initialization. Existing admission, registry, build identity and control state protections are retained. Separate browser state may initialize; product history may not.
+
+Reproduce central bundle with `cd packages/wallet-auth && npm run build:central-browser`. Bundle SHA256 at source checkpoint: `3970de9a2f84a21276cda5af9239153ac3db19143e5a6e1c8131a89bdbac8a9f`. Finance CLI uses strict `YNX_FINANCE_CENTRAL_BROWSER_SSO=true` opt-in; Gateway uses strict `YNX_CENTRAL_BROWSER_SSO=true`, independent `.browser` state, explicit existing product state/registry in deployed mode. N owns runtime activation/deployment; this source does not change service files, Caddy, live state or deployed authority.
+
+Historical 4341 candidate remains immutable and is not a current-source pin. A successor candidate/manifest must bind this checkpoint's package inputs, HTML/app/locale/style hashes and reproducible bundles before activation. Pair and other registered product consumers remain separate follow-up work; a registry row is not consumer or public acceptance evidence.

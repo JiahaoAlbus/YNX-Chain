@@ -8,7 +8,7 @@
   <meta name="description" content="Read-only YNXT activity, private planning, statements, and evidence-linked Pay receipts.">
   <link rel="manifest" href="/manifest.webmanifest?v=3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05">
   <link rel="icon" href="/ynx-logo.png?v=df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d" type="image/png">
-  <link rel="stylesheet" href="/styles.css?v=f8d1c66984ba867ae02b572450c68a1b2d7772bd4afdb991b3be78d239d41c00">
+  <link rel="stylesheet" href="/styles.css?v=a4b421d3189206f7f260c5f7a278261ad340728680bd8a7bfc5ff94e3815f21c">
   <title>YNX Finance</title>
 </head>
 <body>
@@ -33,6 +33,7 @@
         <button id="wallet-picker-close" type="button" data-finance-i18n="walletCancel">Cancel</button>
       </dialog>
       <section id="wallet-connect" class="panel" aria-label="Standard Wallet connection">
+        <div id="browser-signin" hidden><a id="browser-signin-start" class="button primary" href="/sso/start?target=planning" data-finance-i18n="browserSignIn">Sign in across YNX products</a><button id="browser-signin-logout" class="ghost" type="button" hidden data-finance-i18n="browserSignOut">Sign out of Finance</button><p id="browser-signin-state" role="status" aria-live="polite"></p><p data-finance-i18n="browserSignInBoundary">Browser identity is separate from Wallet connection and private Finance approval.</p></div>
         <div class="panel-head"><div><h2 data-finance-i18n="walletHeading">Connect to Finance</h2><p data-finance-i18n="walletIntro">Browse without a wallet. Connect one to see your own available testnet records.</p></div></div>
         <div id="wallet-choice" class="wallet-choice"><button id="connect-ynx" class="primary connect" type="button" data-finance-i18n="connectYNX">Connect YNX Wallet</button><button id="connect-metamask" class="ghost" type="button" data-finance-i18n="connectMetaMask">Connect MetaMask</button><a id="install-wallet" class="button ghost" href="https://www.ynxweb4.com/dapp/download" data-finance-i18n="downloadYNX">Download YNX Wallet</a><a id="install-metamask" class="button ghost" href="https://metamask.io/download/" data-finance-i18n="installMetaMask">Install MetaMask</a></div>
         <div class="wallet-choice"><button id="wallet-details" type="button" hidden data-finance-i18n="walletDetails">Wallet details</button><button id="wallet-disconnect" type="button" hidden>Disconnect wallet</button><button id="wallet-switch" type="button" hidden data-finance-i18n="walletSwitch">Switch wallet</button><button id="wallet-revoke" type="button" hidden data-finance-i18n="walletRevoke">Revoke wallet access</button><button id="wallet-login-verify" type="button" hidden data-finance-i18n="verifyIdentity">Verify Wallet identity</button></div>
@@ -124,13 +125,13 @@
       </div>
     </main>
   </div>
-  <script src="/finance-locale.js?v=5925b784a2a69d9bcbf06f25e7314430d46b6b30dac33d6dcd272f04e4b76d00" defer></script>
+  <script src="/finance-locale.js?v=5c2bf6b830319ef0ffc1c4013c963c0e02d153c3f551b3073cbb2b81247aab41" defer></script>
   <script src="/wallet-auth.js?v=19a4f68e6be82621eba95b73fae4cf5748d2ab30723d19b7736a5dd2e5a87de7" defer></script>
   <script src="/order-wallet.js?v=6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc" defer></script>
   <script src="/order-opaque.js?v=c390bfe8d036a9f492a0b393ea2145d086dd9065fa63d0a826701c7190427de0" defer></script>
   <script src="/evm-read-session.js?v=be89b770dd33af4f97babc3e50f119fcdf12dabaf7fd779ee05ee3401a24ee83" defer></script>
   <script src="/evm-subject.js?v=8fe55f719f8899a5b57f25287a18a16338a1bfb64da266f23580e07183b8f161" defer></script>
-  <script src="/app.js?v=f22449f70ce214258166e35ced2d5cd785763f764b83ab2e1700544c9b628f97" defer></script>
+  <script src="/app.js?v=9f78360c39b9cbb9f5b9217c25e638cfb1d9430b7c7db051365098f12b28f2c2" defer></script>
   <script src="/read-sources.js?v=a29b1b494f86a89c1aee12a0d27c200436b7ef33823fc8109323165b12eef63d" defer></script>
   <script src="/product-catalog.js?v=dc98fedb9734207a2688f0a5ce154a16b0be11240947a4910414bb212eed9088" defer></script>
 </body>

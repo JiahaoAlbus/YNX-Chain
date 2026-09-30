@@ -46,6 +46,7 @@ type ServerConfig struct {
 	EVMSubjectAuthority         *NodeEVMReadAuthority
 	BrokerOpaqueAuthority       *NodeEVMReadAuthority
 	BrokerOpaqueLegacyCutoverAt time.Time
+	CentralBrowserSSO           bool
 }
 
 type Server struct {
@@ -101,6 +102,11 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 func (s *Server) Handler() http.Handler { return s.observe(securityHeaders(s.drainAdmission(s.mux))) }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /sso/start", s.ssoStart)
+	s.mux.HandleFunc("GET /sso/callback", s.ssoCallback)
+	s.mux.HandleFunc("GET /api/sso/account", s.ssoAccount)
+	s.mux.HandleFunc("GET /api/sso/config", func(w http.ResponseWriter,r *http.Request){w.Header().Set("Cache-Control","no-store");writeJSON(w,200,map[string]bool{"enabled":s.ssoAvailable()})})
+	s.mux.HandleFunc("POST /api/sso/logout", s.ssoLogout)
 	s.mux.HandleFunc("POST /api/wallet-login/challenges", s.walletLoginChallenge)
 	s.mux.HandleFunc("POST /api/wallet-login/verify", s.walletLoginVerify)
 	s.mux.HandleFunc("POST /api/evm-read/challenges", s.evmReadChallenge)
@@ -316,6 +322,10 @@ func (s *Server) protected(scope string, next handler) http.HandlerFunc {
 				return
 			}
 			writeError(w, http.StatusUnauthorized, "session_rejected", err.Error())
+			return
+		}
+		if status := s.authorizeBrowserSSOContext(r, session); status != http.StatusOK {
+			writeError(w, status, "sso_private_context_rejected", "Browser identity and existing private permission must belong to the same active account")
 			return
 		}
 		if !s.allow(session.Token, r.Method) {

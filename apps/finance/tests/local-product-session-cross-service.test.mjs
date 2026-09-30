@@ -13,6 +13,10 @@ import {prepareAuthorityV2Draft} from '../../../scripts/ops/endpoint-authority-v
 import {ProductSessionGatewayNodeHost} from '../../../packages/wallet-auth/src/product-session-gateway-node-host.js';
 import {signProductSessionApproval,createProductSessionReturnURL,parseProductSessionWalletURL,walletIdentity,evmAddressFromYNX} from '../../../packages/wallet-auth/src/index.js';
 import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
+import {centralBrowserConsentSignBytes} from '../../../packages/wallet-auth/src/central-browser-session-contract.js';
+import {secp256k1} from '../../../packages/wallet-auth/node_modules/@noble/curves/secp256k1.js';
+import {sha256} from '../../../packages/wallet-auth/node_modules/@noble/hashes/sha2.js';
+import {bytesToHex,hexToBytes,utf8ToBytes} from '../../../packages/wallet-auth/node_modules/@noble/hashes/utils.js';
 
 // All HTTP responses below come from a real loopback NodeHost or the actual
 // Finance Web files. Only the transport socket is relayed: browser URLs retain
@@ -38,8 +42,8 @@ function runGoVerifier(environment){
     child.on('close',status=>{clearTimeout(timer);resolve({status,stdout,stderr})});
   });
 }
-async function startGoBrowserServer(gateway){
-  const child=spawn('go',['test','./internal/finance','-run','^TestLocalNodeHostProductSessionBridge$','-count=1','-v'],{cwd:root,env:{...process.env,YNX_FINANCE_QA_GATEWAY_LOOPBACK:gateway,YNX_FINANCE_QA_PROOF_HEADER:'qa-server-mode-no-proof',YNX_FINANCE_QA_ACCOUNT:walletIdentity('1'.padStart(64,'0')).account,YNX_FINANCE_QA_SERVE_BROWSER:'yes'},stdio:['ignore','pipe','pipe']});
+async function startGoBrowserServer(gateway,centralSSO=false){
+  const child=spawn('go',['test','./internal/finance','-run','^TestLocalNodeHostProductSessionBridge$','-count=1','-v'],{cwd:root,env:{...process.env,YNX_FINANCE_QA_GATEWAY_LOOPBACK:gateway,YNX_FINANCE_QA_PROOF_HEADER:'qa-server-mode-no-proof',YNX_FINANCE_QA_ACCOUNT:walletIdentity('1'.padStart(64,'0')).account,YNX_FINANCE_QA_SERVE_BROWSER:'yes',YNX_FINANCE_QA_CENTRAL_SSO:centralSSO?'yes':'no'},stdio:['ignore','pipe','pipe']});
   const done=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',status=>resolve(status))});
   let bytes='';
   const base=await new Promise((resolve,reject)=>{
@@ -69,19 +73,28 @@ async function relay(route,base){
   await route.fulfill({status:response.status,headers:returned,body:Buffer.from(await response.arrayBuffer())});
 }
 
-for(const transport of ['native-callback','selected-provider','selected-provider-context-change','selected-login','selected-login-rejected'])test(`local QA ${transport} reaches durable Gateway NodeHost and real Finance Go v2 verifier`,async t=>{
+for(const variant of ['native-callback','selected-provider','selected-provider-context-change','selected-login','selected-login-rejected','central-selected-login'])test(`local QA ${variant} reaches durable Gateway NodeHost and real Finance Go v2 verifier`,async t=>{
+  const centralSSO=variant==='central-selected-login',transport=centralSSO?'selected-login':variant;
   const directory=await mkdtemp(join(tmpdir(),'ynx-finance-local-v2-'));await chmod(directory,0o700);
   const statePath=join(directory,'gateway-state.json');
-  const host=new ProductSessionGatewayNodeHost(registry,{statePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url')});
-  const gateway=createServer(host.handler());
+  const host=new ProductSessionGatewayNodeHost(registry,{statePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url'),centralBrowser:centralSSO});
+  const gatewayTrace=[],gatewayHandler=host.handler();
+  const gateway=createServer((request,response)=>{response.once('finish',()=>gatewayTrace.push({method:request.method,path:new URL(request.url,'http://qa').pathname,status:response.statusCode}));return gatewayHandler(request,response)});
   const config=signedQAConfig();
-  let go,failOverview=false,approvalCount=0;
+  let go,failOverview=false,approvalCount=0,firstPrivateBatch=centralSSO,holdNativeRevoke=false,releaseNativeRevoke;
+  const nativeRevokeRelease=new Promise(resolve=>releaseNativeRevoke=resolve);
+  const firstPrivateReads=[];
   const finance=createServer(async(request,response)=>{
     const path=new URL(request.url,'http://qa').pathname;
-    if(go&&path.startsWith('/api/')&&!path.includes('endpoint-authority')){
+    if(go&&(path.startsWith('/api/')&&!path.includes('endpoint-authority')||path.startsWith('/sso/'))){
+      if(firstPrivateBatch&&request.headers['x-ynx-product-session-proof-v2']&&['/api/overview','/api/profile','/api/portfolio','/api/activity'].includes(path)){
+        const released=await new Promise(resolve=>{const timer=setTimeout(()=>resolve(false),3000);firstPrivateReads.push({path,resolve:()=>{clearTimeout(timer);resolve(true)}});if(firstPrivateReads.length===4){firstPrivateBatch=false;for(const read of firstPrivateReads)read.resolve();}});
+        if(!released){response.writeHead(503,{'content-type':'application/json'});response.end('{"code":"QA_FIRST_READ_BARRIER_TIMED_OUT"}');return;}
+      }
       if(failOverview&&path==='/api/overview'){response.writeHead(503,{'content-type':'application/json'});response.end('{"code":"qa-temporary-overview-unavailable"}');return}
-      const upstream=await fetch(`${go.base}${request.url}`,{method:request.method,headers:request.headers});
-      response.writeHead(upstream.status,Object.fromEntries(upstream.headers));response.end(Buffer.from(await upstream.arrayBuffer()));return;
+      const upstream=await fetch(`${go.base}${request.url}`,{method:request.method,headers:request.headers,redirect:'manual',body:['GET','HEAD'].includes(request.method)?undefined:await new Promise(resolve=>{const chunks=[];request.on('data',chunk=>chunks.push(chunk));request.on('end',()=>resolve(Buffer.concat(chunks)))}),signal:AbortSignal.timeout(5000)});
+      const returned=Object.fromEntries(upstream.headers),cookies=upstream.headers.getSetCookie();if(cookies.length)returned['set-cookie']=cookies;
+      response.writeHead(upstream.status,returned);response.end(Buffer.from(await upstream.arrayBuffer()));return;
     }
     if(path==='/api/endpoint-authority/v2/config'){response.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});response.end(JSON.stringify({...config,trustedTimeMs:Date.now()}));return}
     if(path==='/health'){response.writeHead(200,{'content-type':'application/json'});response.end(JSON.stringify({ok:true,chainId:'ynx_6423-1',portfolio:'read-only'}));return}
@@ -92,15 +105,33 @@ for(const transport of ['native-callback','selected-provider','selected-provider
   let browser;
   try{
     const gatewayBase=await listen(gateway),financeBase=await listen(finance);
-    if(transport==='selected-login')go=await startGoBrowserServer(gatewayBase);
+    if(transport==='selected-login')go=await startGoBrowserServer(gatewayBase,centralSSO);
     browser=await chromium.launch(await financeBrowserLaunchOptions());
     const context=await browser.newContext();
-    await context.route(`${financeOrigin}/**`,route=>relay(route,financeBase));
-    await context.route(`${gatewayOrigin}/**`,route=>relay(route,gatewayBase));
+    const routeTrace=[];
+    if(!centralSSO)await context.route('**/*',route=>{const url=new URL(route.request().url()),origin=url.origin;routeTrace.push({origin,path:url.pathname});return origin===financeOrigin?relay(route,financeBase):origin===gatewayOrigin?relay(route,gatewayBase):route.abort();});
     const page=await context.newPage();
+    if(centralSSO){
+      // Playwright route interception covers only the first URL in this
+      // cross-origin redirect chain. CDP Fetch pauses EVERY redirect hop so
+      // this local QA never contacts a public product or Wallet Gateway.
+      const cdp=await context.newCDPSession(page);await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});
+      cdp.on('Fetch.requestPaused',async({requestId,request})=>{
+        try{const url=new URL(request.url),base=url.origin===financeOrigin?financeBase:url.origin===gatewayOrigin?gatewayBase:null;
+          routeTrace.push({origin:url.origin,path:url.pathname});if(!base){await cdp.send('Fetch.failRequest',{requestId,errorReason:'BlockedByClient'});return;}
+          if(holdNativeRevoke&&url.origin===gatewayOrigin&&url.pathname==='/v2/product-sessions/revoke')await Promise.race([nativeRevokeRelease,new Promise(resolve=>setTimeout(resolve,5000))]);
+          const headers={...request.headers};for(const key of Object.keys(headers))if(['host','content-length','accept-encoding'].includes(key.toLowerCase()))delete headers[key];
+          const response=await fetch(`${base}${url.pathname}${url.search}`,{method:request.method,headers,body:['GET','HEAD'].includes(request.method)?undefined:request.postData,redirect:'manual',signal:AbortSignal.timeout(5000)});
+          const responseHeaders=[...response.headers].filter(([key])=>!['transfer-encoding','content-encoding','content-length','set-cookie'].includes(key)).map(([name,value])=>({name,value}));
+          for(const value of response.headers.getSetCookie())responseHeaders.push({name:'set-cookie',value});
+          await cdp.send('Fetch.fulfillRequest',{requestId,responseCode:response.status,responseHeaders,body:Buffer.from(await response.arrayBuffer()).toString('base64')});
+        }catch{await cdp.send('Fetch.failRequest',{requestId,errorReason:'Failed'}).catch(()=>{});}
+      });
+    }
     await page.addInitScript(()=>{window.qaStateEvents=[];window.addEventListener('ynx-finance-private-state',event=>window.qaStateEvents.push({status:event.detail.status,revision:event.detail.revision,code:document.querySelector('#private-state')?.title}));});
     let lateCallback;
     if(transport.startsWith('selected-')){
+      if(centralSSO)await page.exposeFunction('approveCentralLocalQA',challenge=>{const key='1'.padStart(64,'0'),identity=walletIdentity(key);return {challengeId:challenge.challengeId,...identity,walletSignature:bytesToHex(secp256k1.sign(sha256(utf8ToBytes(centralBrowserConsentSignBytes(challenge,identity.account,identity.accountPublicKey))),hexToBytes(key),{prehash:false,format:'compact',lowS:true}))};});
       await page.exposeFunction('approveFinanceLocalQA',url=>{
         approvalCount++;
         const pending=parseProductSessionWalletURL(registry,url),at=new Date();
@@ -110,7 +141,7 @@ for(const transport of ['native-callback','selected-provider','selected-provider
       });
       await page.addInitScript(({account,changed})=>{
         const listeners=new Map();
-        const provider={isYNXWallet:true,__ynxCompanion:true,on(name,fn){if(!listeners.has(name))listeners.set(name,new Set());listeners.get(name).add(fn)},removeListener(name,fn){listeners.get(name)?.delete(fn)},request:async({method})=>method==='eth_chainId'?'0x1917':['eth_accounts','eth_requestAccounts'].includes(method)?[account]:method==='wallet_switchEthereumChain'?null:Promise.reject(new Error('QA method forbidden')),async requestProductSessionV2(url){const response=await window.approveFinanceLocalQA(url);if(changed)for(const fn of listeners.get('accountsChanged')||[])fn(['0x'+'c'.repeat(40)]);return response}};
+        const provider={isYNXWallet:true,__ynxCompanion:true,on(name,fn){if(!listeners.has(name))listeners.set(name,new Set());listeners.get(name).add(fn)},removeListener(name,fn){listeners.get(name)?.delete(fn)},request:async({method,params})=>method==='ynx_requestCentralBrowserSignIn'?window.approveCentralLocalQA(params[0]):method==='eth_chainId'?'0x1917':['eth_accounts','eth_requestAccounts'].includes(method)?[account]:method==='wallet_switchEthereumChain'?null:Promise.reject(new Error('QA method forbidden')),async requestProductSessionV2(url){const response=await window.approveFinanceLocalQA(url);if(changed)for(const fn of listeners.get('accountsChanged')||[])fn(['0x'+'c'.repeat(40)]);return response}};
         const info={rdns:'com.ynx.wallet',name:'YNX Wallet',uuid:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'};
         window.addEventListener('eip6963:requestProvider',()=>window.dispatchEvent(new CustomEvent('eip6963:announceProvider',{detail:{info,provider}})));
       },{account:evmAddressFromYNX(walletIdentity('1'.padStart(64,'0')).account),changed:transport==='selected-provider-context-change'});
@@ -119,10 +150,16 @@ for(const transport of ['native-callback','selected-provider','selected-provider
     page.on('pageerror',error=>browserErrors.push(error.message.slice(0,160)));
     page.on('response',response=>{const url=new URL(response.url());if(url.pathname.startsWith('/api/')||url.pathname.includes('product-sessions'))requests.push(`${url.pathname}:${response.status()}`)});
     await page.goto(financeOrigin);
+    if(centralSSO){await page.waitForSelector('#browser-signin:not([hidden])');await page.goto(`${financeOrigin}/#planning`);await page.click('#browser-signin-start');await page.waitForURL(`${gatewayOrigin}/v2/browser-sessions/authorize?**`);
+      await page.waitForSelector('#wallet',{timeout:3000}).catch(async error=>{throw new Error(JSON.stringify({browserErrors,gatewayTrace,routeTrace,code:await page.evaluate(()=>{try{return JSON.parse(document.body.textContent).error?.code??'unknown'}catch{return 'non-json-response'}})}),{cause:error})});
+      await page.selectOption('#wallet','0');await page.click('#approve');await page.waitForURL(`${financeOrigin}/#planning`);await page.waitForFunction(()=>document.querySelector('#browser-signin-state')?.textContent.startsWith('ynx1'),null,{timeout:3000}).catch(async error=>{throw new Error(JSON.stringify({browserErrors,gatewayTrace,requests,state:await page.evaluate(()=>({sso:document.querySelector('#browser-signin-state')?.textContent,enabled:browserSSOEnabled,hasIdentity:!!browserIdentity}))}),{cause:error})});}
     if(transport.startsWith('selected-login')){
       await page.goto(`${financeOrigin}/#planning`);
       await page.locator('#guest-gate a[href="#wallet-connect"]').click();
       await page.locator('#picker-ynx').click();
+      if(centralSSO){await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='connected',null,{timeout:6000});
+        const reads=await page.evaluate(async()=>{const results=await Promise.all(['/api/profile','/api/portfolio','/api/activity'].map(path=>api(path)));return results.length;});assert.equal(reads,3);assert.equal(firstPrivateReads.length,4);
+      }
       if(transport==='selected-login-rejected'){
         await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='disconnected',null,{timeout:6000}).catch(async error=>{throw new Error(JSON.stringify({browserErrors,requests,state:await page.evaluate(()=>({standard:window.YNXFinanceWallet.getStandardWalletState().status,private:window.YNXFinanceWallet.getPrivateState().status,code:document.querySelector('#private-state').title,notice:document.querySelector('#notice').textContent}))}),{cause:error})});
         assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connected');
@@ -156,6 +193,12 @@ for(const transport of ['native-callback','selected-provider','selected-provider
         return {isolated,ownerBound};
       }),{isolated:true,ownerBound:true});
       const initialSession=await page.evaluate(()=>window.YNXFinanceWallet.session().sessionId);
+      if(centralSSO){
+        await page.locator('#category-form input[name="name"]').fill('Isolated SSO-owned category');
+        const created=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/categories'&&response.request().method()==='POST');
+        await page.locator('#category-form button').click();assert.equal((await created).status(),201);
+        assert.equal(await page.evaluate(async()=>{const owned=await api('/api/profile');return owned.categories.some(category=>category.name==='Isolated SSO-owned category');}),true);
+      }
       await page.locator('#budget-form input[name="name"]').fill('Preserved local draft');
       failOverview=true;
       await page.evaluate(()=>document.querySelector('#refresh').click());
@@ -215,6 +258,23 @@ for(const transport of ['native-callback','selected-provider','selected-provider
     assert.equal(child.status,0,`Finance Go v2 verifier failed: ${child.stderr||child.stdout}`);
     assert.equal(host.snapshot().authority.sessions.length,1);
     assert.ok(host.snapshot().consumedProofs.length>=1);
+    if(centralSSO){
+      // An unused independently signed nonce from the SAME approved private
+      // session remains valid at the Gateway until SDK revocation is released.
+      // Product-only identity logout must reject it at Finance itself without
+      // claiming a central/global logout or widening its scope.
+      const unused=await page.evaluate(()=>window.YNXFinanceWallet.requireProof('finance.portfolio.read'));
+      holdNativeRevoke=true;
+      const logoutAck=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/sso/logout'&&response.request().method()==='POST');
+      await page.click('#browser-signin-logout');assert.equal((await logoutAck).status(),200);
+      const denied=await page.evaluate(async header=>{const response=await fetch('/api/profile',{headers:{'X-YNX-Product-Session-Proof-V2':header}});const body=await response.json();return {status:response.status,code:body.code};},unused.proofHeader);
+      assert.deepEqual(denied,{status:401,code:'sso_private_context_rejected'});
+      releaseNativeRevoke();await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='disconnected');
+      const starts=routeTrace.filter(value=>value.origin===financeOrigin&&value.path==='/sso/start').length;
+      await page.reload();await page.waitForSelector('#browser-signin:not([hidden])');await page.waitForFunction(()=>!browserIdentity);
+      assert.equal(routeTrace.filter(value=>value.origin===financeOrigin&&value.path==='/sso/start').length,starts,'logout restore must never implicitly start SSO');
+      assert.equal(await page.locator('#workspace').isVisible(),false);
+    }
     await context.close();
   }finally{await browser?.close();await go?.close();if(gateway.listening)await close(gateway);if(finance.listening)await close(finance);await rm(directory,{recursive:true,force:true})}
 });

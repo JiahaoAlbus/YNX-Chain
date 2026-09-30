@@ -18,6 +18,21 @@ function captureLegacyBrokerCallback(){
 captureLegacyBrokerCallback();
 const financeText=(key)=>window.YNXFinanceLocale?.text(key)??key;
 let walletIdentityState='identityUnverified',walletIdentityBusy=false;
+let browserIdentity=null,browserSSOEnabled=false,browserSSORevision=0;
+let browserSSOChannel;try{browserSSOChannel=new BroadcastChannel('ynx.finance.browser-session.recheck.v1');browserSSOChannel.onmessage=()=>void recheckBrowserIdentity();}catch{}
+async function browserSSOFetch(path,options={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);try{const response=await fetch(path,{...options,credentials:'same-origin',signal:controller.signal});const data=await response.json();return {response,data};}finally{clearTimeout(timer)}}
+async function recheckBrowserIdentity(){
+  if(!browserSSOEnabled)return;const revision=++browserSSORevision;
+  try{const {response,data}=await browserSSOFetch('/api/sso/account');if(revision!==browserSSORevision)return;
+    if(response.ok){const previous=browserIdentity;browserIdentity=data;
+      const native=window.YNXFinanceWallet?.session()?.account;
+      if(previous&&previous.account!==data.account||native&&native!==data.account){clearLoginIntent();clearPrivateView();void window.YNXFinanceWallet.disconnect();}
+      $('#browser-signin-state').textContent=data.account;$('#browser-signin-logout').hidden=false;
+    }else if(response.status===401||response.status===403){if(browserIdentity){clearLoginIntent();clearPrivateView();void window.YNXFinanceWallet.disconnect();}browserIdentity=null;$('#browser-signin-state').textContent=financeText('browserSignInBoundary');$('#browser-signin-logout').hidden=true;
+    }else $('#browser-signin-state').textContent=financeText('connectionUnavailable');
+  }catch{if(revision===browserSSORevision)$('#browser-signin-state').textContent=financeText('connectionUnavailable');}
+}
+async function initializeBrowserIdentity(){try{const {response,data}=await browserSSOFetch('/api/sso/config');if(!response.ok||data.enabled!==true)return;browserSSOEnabled=true;$('#browser-signin').hidden=false;await recheckBrowserIdentity();}catch{}}
 function renderWalletIdentity(){const status=document.querySelector('#wallet-login-state'),button=document.querySelector('#wallet-login-verify');if(status)status.textContent=financeText(walletIdentityState);if(button){button.hidden=window.YNXFinanceWallet?.getStandardWalletState?.()?.status!=='connected';button.disabled=walletIdentityBusy;}}
 let brokerConfigurationState='brokerStatusMissing';
 function renderBrokerConfigurationStatus(){const target=document.querySelector('#broker-status');if(target)target.textContent=financeText(brokerConfigurationState)}
@@ -530,6 +545,9 @@ for(const element of $$('[href="#wallet-connect"]'))element.addEventListener('cl
 try{const saved=JSON.parse(sessionStorage.getItem(LOGIN_INTENT_KEY)||'null');if(location.pathname==='/wallet-auth/callback'&&LOGIN_ROUTES.has(saved?.target))loginIntent={target:saved.target,account:null,providerKind:null};else sessionStorage.removeItem(LOGIN_INTENT_KEY)}catch{}
 $('#wallet-login-verify').addEventListener('click',verifyWalletIdentity);
 window.addEventListener('ynx-finance-account-session',renderAccountSession);
+$('#browser-signin-start')?.addEventListener('click',event=>{if(!browserSSOEnabled){event.preventDefault();return;}event.currentTarget.href=`/sso/start?target=${encodeURIComponent(loginTarget())}`;});
+$('#browser-signin-logout')?.addEventListener('click',async()=>{const current=browserIdentity;if(!current)return;clearLoginIntent();clearPrivateView();const button=$('#browser-signin-logout');button.disabled=true;try{const {response,data}=await browserSSOFetch('/api/sso/logout',{method:'POST',headers:{'content-type':'application/json','X-YNX-SSO-CSRF':current.csrfToken},body:'{}'});if(!response.ok||data.revoked!==true)throw new Error('unconfirmed');browserSSORevision++;browserIdentity=null;button.hidden=true;$('#browser-signin-state').textContent=financeText('browserSignInBoundary');browserSSOChannel?.postMessage({type:'recheck'});await window.YNXFinanceWallet.disconnect();}catch{notify(financeText('privateLogoutUnconfirmed'),true);}finally{button.disabled=false;}});
+window.addEventListener('focus',()=>void recheckBrowserIdentity());document.addEventListener('visibilitychange',()=>{if(!document.hidden)void recheckBrowserIdentity()});void initializeBrowserIdentity();
 document.addEventListener('finance:localechange',renderAccountSession);
 $('#account-session-refresh')?.addEventListener('click',()=>window.YNXFinanceEVMRead.read());
 $('#account-session-logout')?.addEventListener('click',()=>window.YNXFinanceEVMRead.revoke());
