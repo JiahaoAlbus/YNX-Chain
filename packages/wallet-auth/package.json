@@ -6,6 +6,16 @@
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
   "type": "module",
   "exports": {
+    "./central-browser-session-contract": {
+      "types": "./src/central-browser-session-contract.d.ts",
+      "import": "./src/central-browser-session-contract.js",
+      "default": "./src/central-browser-session-contract.js"
+    },
+    "./central-browser-session-registry": {
+      "types": "./src/central-browser-session-registry.d.ts",
+      "import": "./src/central-browser-session-registry.js",
+      "default": "./src/central-browser-session-registry.js"
+    },
     "./application-action-launcher": {
       "types": "./src/application-action-launcher.d.ts",
       "import": "./src/application-action-launcher.js",
@@ -121,6 +131,7 @@
     "@noble/hashes": "2.2.0"
   },
   "devDependencies": {
+    "esbuild": "0.25.9",
     "typescript": "^5.9.3"
   },
   "engines": {
