@@ -186,6 +186,43 @@ func TestEVMReadHTTPRealWalletProofDurableOwnershipAndRevoke(t *testing.T) {
 	if owned["balanceYnxt"] != float64(123) || owned["account"] != identity.Account {
 		t.Fatalf("Explorer-backed account ownership was lost: %#v", owned)
 	}
+	// A second real QA key has an independent server-issued account session.
+	// Neither its Wallet signature nor its device key can read the first owner.
+	var otherIdentity struct {
+		Account   string `json:"account"`
+		DeviceID  string `json:"deviceId"`
+		DeviceKey string `json:"deviceKey"`
+	}
+	if err := json.Unmarshal(evmReadFixture(t, node, fixture, map[string]any{"action": "identity", "testUser": 1}), &otherIdentity); err != nil || otherIdentity.Account == identity.Account {
+		t.Fatal("QA identities must be distinct")
+	}
+	secondResponse, secondChallenge := postEVMLogin(t, challengeURL, map[string]any{"account": otherIdentity.Account, "providerKind": "metamask", "deviceId": otherIdentity.DeviceID, "deviceKey": otherIdentity.DeviceKey}, BrowserFinanceOrigin)
+	if secondResponse.StatusCode != http.StatusCreated {
+		t.Fatal("second owner challenge failed")
+	}
+	secondProof := evmReadFixture(t, node, fixture, map[string]any{"action": "login", "testUser": 1, "challenge": secondChallenge["challenge"]})
+	secondResponse, secondResult := postEVMLogin(t, ts.URL+"/api/evm-read/sessions", map[string]any{"proof": secondProof}, BrowserFinanceOrigin)
+	if secondResponse.StatusCode != http.StatusCreated {
+		t.Fatal("second owner session failed")
+	}
+	secondSession := secondResult["session"]
+	secondRequest := map[string]any{"method": "GET", "target": target, "bodyDigest": evmReadEmptyBodyDigest, "nonce": "second_owner_read_nonce_0123456789abcdef", "issuedAt": evmReadTime(clock), "expiresAt": evmReadTime(clock.Add(30 * time.Second))}
+	secondRead := evmReadFixture(t, node, fixture, map[string]any{"action": "read", "testUser": 1, "session": secondSession, "request": secondRequest})
+	secondResponse, secondPortfolio := evmReadGET(t, ts.URL+target, secondRead, BrowserFinanceOrigin)
+	if secondResponse.StatusCode != http.StatusOK || secondPortfolio["account"] != otherIdentity.Account || secondPortfolio["portfolio"].(map[string]any)["account"] != otherIdentity.Account {
+		t.Fatal("second owner read lost its account isolation")
+	}
+	var wrongOwner map[string]any
+	if err := json.Unmarshal(secondRead, &wrongOwner); err != nil {
+		t.Fatal(err)
+	}
+	wrongOwner["account"] = identity.Account
+	wrongOwner["sessionId"] = sessionFields["sessionId"]
+	wrongOwner["challengeDigest"] = sessionFields["challengeDigest"]
+	wrongDeviceProof, _ := json.Marshal(wrongOwner)
+	if response, _ := evmReadGET(t, ts.URL+target, wrongDeviceProof, BrowserFinanceOrigin); response.StatusCode != http.StatusUnauthorized {
+		t.Fatal("second owner's device was allowed to read the first owner")
+	}
 	browserGETInput := map[string]any{"method": "GET", "target": target, "bodyDigest": evmReadEmptyBodyDigest, "nonce": "finance_browser_get_nonce_0123456789abcdef", "issuedAt": evmReadTime(clock), "expiresAt": evmReadTime(clock.Add(30 * time.Second))}
 	browserGETProof := evmReadFixture(t, node, fixture, map[string]any{"action": "read", "session": session, "request": browserGETInput})
 	browserGET, err := http.NewRequest(http.MethodGet, ts.URL+target, nil)

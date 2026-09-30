@@ -119,7 +119,7 @@ export function createFinanceHostedWalletController({createHostedWalletAdapter, 
     adapter = null;
     try { await previous?.disconnect(); } catch { /* Local disconnect still wins. */ }
     finally { previous?.detach?.(); }
-    return publish('disconnected');
+    return publish('disconnected', null, null, 'HOSTED_LOCAL_DISCONNECT');
   }
   async function request(input) {
     const selected = adapter, token = generation;

@@ -317,34 +317,118 @@ function notifyKnownOrFailure(error,knownKeys,fallbackKey){
   else notifyFailure(error,fallbackKey);
 }
 
+const LOGIN_INTENT_KEY='ynx.finance.login-intent.v1';
+const LOGIN_ROUTES=new Set(['overview','assets','activity','planning','statements','assistant','settings','support','strategies']);
+let loginIntent=null,loginOperation=null,pickerTrigger=null;
+function loginTarget(){const requested=(location.hash||'#overview').slice(1);return LOGIN_ROUTES.has(requested)?requested:'planning'}
+function clearLoginIntent(){loginIntent=null;try{sessionStorage.removeItem(LOGIN_INTENT_KEY)}catch{}}
+function showWalletPicker(trigger,{login=false,target=loginTarget()}={}){
+  if(loginOperation||window.YNXFinanceWallet.getStandardWalletState().status==='connecting'){
+    if($('#wallet-picker').open)$('#wallet-picker-close').focus();
+    else{$('#wallet-more').open=true;$('#private-state').tabIndex=-1;$('#private-state').focus()}
+    return;
+  }
+  pickerTrigger=trigger;
+  if(login){loginIntent={target,account:null,providerKind:null};try{sessionStorage.setItem(LOGIN_INTENT_KEY,JSON.stringify({target}))}catch{}}
+  else clearLoginIntent();
+  const wallet=window.YNXFinanceWallet;
+  if(login&&wallet.getStandardWalletState().status==='connected'){void continueLoginIntent();return}
+  const picker=$('#wallet-picker');if(!picker.open)picker.showModal();$('#picker-ynx').focus();
+}
+function closeWalletPicker({cancel=false}={}){
+  if(cancel){clearLoginIntent();if(window.YNXFinanceWallet.getStandardWalletState().status==='connecting')window.YNXFinanceWallet.disconnectStandardWallet()}
+  $('#wallet-picker').close();pickerTrigger?.focus();
+}
+async function finishLoginIntent(){
+  const intent=loginIntent,context=state.context;if(!intent)return;
+  if(window.YNXFinanceWallet.connected()){
+    await load();completeLoginTarget(intent,context);
+  }
+}
+function completeLoginTarget(intent,context){
+  if(!intent||loginIntent!==intent||context!==state.context||!state.connected||$('#workspace').dataset.dataState!=='ready'||state.overview?.portfolio?.account!==window.YNXFinanceWallet.session()?.account)return;
+  location.hash=intent.target;clearLoginIntent();
+}
+function continueLoginIntent(){
+  if(!loginIntent)return Promise.resolve();
+  if(loginOperation)return loginOperation;
+  const intent=loginIntent,selected=window.YNXFinanceWallet.getStandardWalletState();
+  if(selected.status!=='connected')return Promise.resolve();
+  intent.account=selected.account;intent.providerKind=selected.providerKind;
+  const revision=window.YNXFinanceWallet.getStandardRevision();
+  loginOperation=(async()=>{
+    closeWalletPicker();
+    if(selected.providerKind==='ynx-wallet'){
+      if(window.YNXFinanceWallet.connected()){await finishLoginIntent();return}
+      const result=await window.YNXFinanceWallet.beginPrivate();
+      if(loginIntent!==intent||revision!==window.YNXFinanceWallet.getStandardRevision())return;
+      // The authoritative connected event owns the one initial protected read
+      // and target restore. Do not race it with a second proof/load here.
+      if(!['connected','connecting'].includes(result?.status)){clearLoginIntent();notify(financeText('identityRejected'),true)}
+    }else{
+      if(!['overview','assets','activity'].includes(intent.target)){clearLoginIntent();notify(financeText('privateApprovalInfo'),true);return}
+      await verifyWalletIdentity({target:intent.target});
+      clearLoginIntent();
+    }
+  })().finally(()=>{loginOperation=null});
+  return loginOperation;
+}
 async function signIn(){try{await window.YNXFinanceWallet.connect()}catch(error){notifyFailure(error,'connectionUnavailable')}}
-async function verifyWalletIdentity(){
+async function verifyWalletIdentity({target=(location.hash||'#assets').slice(1)}={}){
   if(walletIdentityBusy)return;
   const wallet=window.YNXFinanceWallet,selected=wallet.getStandardWalletState(),revision=wallet.getStandardRevision();
   if(selected.status!=='connected'||selected.chainId!=='0x1917'||!selected.account){walletIdentityState='identityRejected';renderWalletIdentity();return}
   walletIdentityBusy=true;walletIdentityState='identityChecking';renderWalletIdentity();
-  let requestId='';
   const unchanged=()=>{const current=wallet.getStandardWalletState();if(wallet.getStandardRevision()!==revision||current.status!=='connected'||current.account!==selected.account||current.providerKind!==selected.providerKind||current.chainId!=='0x1917')throw new Error('WALLET_CONTEXT_CHANGED')};
   try{
-    const issue=await fetch('/api/wallet-login/challenges',{method:'POST',cache:'no-store',credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({account:selected.account,providerKind:selected.providerKind}),signal:AbortSignal.timeout(10000)});
-    const issued=await issue.json();unchanged();
-    if(!issue.ok||issued?.schemaVersion!=='finance-evm-login-challenge-v1'||issued?.privateFinanceAuthorized!==false||issued.challenge?.account!==selected.account||issued.challenge?.providerKind!==selected.providerKind||issued.challenge?.chainId!==6423||issued.challenge?.productId!=='finance'||JSON.stringify(issued.challenge?.scopes)!=='["finance.account.read"]'||!/^finance-login-[0-9a-f]{32}$/.test(issued.challenge?.requestId||'')||issued.signingRequest?.method!=='personal_sign')throw new Error('WALLET_LOGIN_CHALLENGE_UNAVAILABLE');
-    requestId=issued.challenge.requestId;
-    try{sessionStorage.setItem('ynx.finance.evm-login.pending.v1',JSON.stringify({requestId,account:selected.account,providerKind:selected.providerKind,expiresAt:issued.challenge.expirationTime}))}catch{}
-    const signature=await wallet.signEVMLoginRequest(issued.signingRequest);unchanged();
-    const verify=await fetch('/api/wallet-login/verify',{method:'POST',cache:'no-store',credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json'},body:JSON.stringify({proof:{challenge:issued.challenge,message:issued.signingRequest.message,signature}}),signal:AbortSignal.timeout(10000)});
-    const result=await verify.json();unchanged();
-    if(!verify.ok||result?.schemaVersion!=='finance-evm-login-verification-v1'||result.verified!==true||result.account!==selected.account||result.providerKind!==selected.providerKind||result.chainId!==6423||JSON.stringify(result.scopes)!=='["finance.account.read"]'||result.requestId!==requestId||result.privateFinanceAuthorized!==false||result.standardWalletUnchanged!==true)throw new Error('WALLET_LOGIN_VERIFICATION_REJECTED');
+    // Reuse the existing durable, device-bound Finance account session instead
+    // of ending at the old one-shot verified:true response. This grants only
+    // finance.account.read; native Product Session remains a separate approval.
+    const result=await window.YNXFinanceEVMRead.begin();unchanged();
+    const session=window.YNXFinanceEVMRead.state();
+    if(result?result.account!==selected.account||result.evmAccountReadAuthorized!==true:!session.serverConfirmed||!session.active||session.account!==selected.account)throw new Error('WALLET_LOGIN_VERIFICATION_REJECTED');
     walletIdentityState='identityVerified';
+    location.hash=['overview','assets','activity'].includes(target)?target:'assets';
   }catch(error){walletIdentityState='identityRejected';notifyFailure(error,'identityRejected')}
-  finally{if(requestId){try{const pending=JSON.parse(sessionStorage.getItem('ynx.finance.evm-login.pending.v1')||'null');if(pending?.requestId===requestId)sessionStorage.removeItem('ynx.finance.evm-login.pending.v1')}catch{}}walletIdentityBusy=false;renderWalletIdentity()}
+  finally{walletIdentityBusy=false;renderWalletIdentity()}
+}
+function renderAccountSession(){
+  const session=window.YNXFinanceEVMRead?.state(),data=session?.status==='ready'?session.data:null;
+  const section=$('#account-workspace');if(!section)return;
+  const selected=window.YNXFinanceWallet?.getStandardWalletState?.();
+  const compatible=selected?.status!=='connecting'&&selected?.status!=='wrong-chain'&&!['explicit-local','permission-revoked','account-changed','chain-changed'].includes(selected?.disconnectReason)&&(!selected?.account||session?.account===selected.account&&session.providerKind===selected.providerKind&&selected.chainId==='0x1917');
+  const bound=session?.active&&Boolean(session.account)&&compatible&&Date.parse(session.expiresAt)>Date.now();
+  const authorized=bound&&session.serverConfirmed;
+  const valid=authorized&&Boolean(data?.account)&&data?.portfolio?.account===data.account&&data.account===session.account;
+  section.dataset.authorized=String(Boolean(authorized));
+  section.dataset.recovering=String(Boolean(bound&&!session.serverConfirmed));
+  section.dataset.dataState=valid?'ready':session?.status==='loading'?'loading':'unavailable';
+  if(!walletIdentityBusy){if(authorized)walletIdentityState='identityVerified';else if(walletIdentityState==='identityVerified')walletIdentityState='identityUnverified';renderWalletIdentity();}
+  $('#account-session-account').textContent=authorized?session.account:'—';
+  $('#account-session-balance').textContent=valid&&data.portfolio.explorerStatus?.available?`${fmt(data.portfolio.balanceYnxt)} YNXT`:financeText('unavailable');
+  const activities=valid?(Array.isArray(data.portfolio.activity)?data.portfolio.activity:[]):null;
+  $('#account-session-activity').innerHTML=activities?activities.length?activities.map(activityRow).join(''):`<div class="empty">${esc(financeText('noOwnedActivity'))}</div>`:`<div class="empty">${esc(financeText(bound?session.status==='loading'?'checkingSources':'connectionUnavailable':'privateReauthorize'))}</div>`;
+  $('#account-session-expiry').textContent=authorized?date(session.expiresAt):'—';
+  $('#account-session-refresh').disabled=!bound||session.status==='loading';
+  route();
 }
 async function consumeCallback(){await window.YNXFinanceWallet.ready}
 function clearPrivateView({clearOpaquePending=true}={}){state.context++;clearInterval(state.aiTimer);state.aiJob=null;state.statement=null;state.statementError=false;state.overview=null;state.connected=false;if(clearOpaquePending){sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);window.YNXFinanceOrderWallet?.clear()}hideBrokerApproval();for(const id of ['account','balance','staked','balance-source','statement','ai-status']){const element=$('#'+id);if(element)element.textContent='—'}brokerSnapshotState={kind:'guest'};brokerWorkspaceUnavailable=false;renderBrokerSnapshot();renderBrokerWorkspace(null);renderSignedOut()}
 async function logout(){const result=await window.YNXFinanceWallet.disconnect();if(result?.status==='disconnected'){clearPrivateView()}else notify(financeText('privateLogoutUnconfirmed'),true)}
 function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.add('hidden');$('#logout').classList.add('hidden');sourceStatus('notConnected');$('#page-title').textContent=financeText('pageTitle');route()}
 
-async function load(){await window.YNXFinanceWallet.ready;state.connected=window.YNXFinanceWallet.connected();if(!state.connected){renderSignedOut();return}try{sourceStatus('checkingSources');const data=await api('/api/overview');state.overview=data;reconcileOpaqueBrokerOwner();render(data)}catch(error){if(error.status===401||error.status===403){window.YNXFinanceWallet.reportPrivateFailure();clearPrivateView();notify(financeText('privateReauthorize'),true)}else notifyFailure(error,'connectionUnavailable')}}
+const dataDisabledControls=new Map();
+function workspaceDataState(status){
+  $('#workspace').dataset.dataState=status;
+  $('#workspace-data-warning').classList.toggle('hidden',status!=='unavailable');
+  for(const control of $$('#workspace form button,#ai-start,#ai-actions button')){
+    if(status==='unavailable'){if(!dataDisabledControls.has(control))dataDisabledControls.set(control,control.disabled);control.disabled=true}
+    else if(dataDisabledControls.has(control)){control.disabled=dataDisabledControls.get(control);dataDisabledControls.delete(control)}
+  }
+}
+let loadOperation=null;
+function load(){if(loadOperation?.context===state.context)return loadOperation.promise;const operation={context:state.context,promise:null};loadOperation=operation;operation.promise=loadOwnedWorkspace(operation.context).finally(()=>{if(loadOperation===operation)loadOperation=null});return operation.promise}
+async function loadOwnedWorkspace(context){await window.YNXFinanceWallet.ready;if(context!==state.context)return;state.connected=window.YNXFinanceWallet.connected();if(!state.connected){renderSignedOut();return}try{sourceStatus('checkingSources');const data=await api('/api/overview');if(context!==state.context)return;state.overview=data;workspaceDataState('ready');reconcileOpaqueBrokerOwner();render(data)}catch(error){if(context!==state.context||error?.nonRetryable&&String(error.message).startsWith('FINANCE_CONTEXT_CHANGED'))return;if(error.status===401||error.status===403){window.YNXFinanceWallet.reportPrivateFailure();clearPrivateView();notify(financeText('privateReauthorize'),true)}else{state.overview=null;workspaceDataState('unavailable');$('#workspace').classList.remove('hidden');$('#signed-out').classList.add('hidden');$('#account').textContent=window.YNXFinanceWallet.session()?.account??'—';for(const id of ['balance','staked','balance-source','recent-activity','recent-receipts'])$('#'+id).textContent=financeText('unavailable');route();notifyFailure(error,'connectionUnavailable')}}}
 async function reconnect(){try{await publicHealth();if(state.connected)await load()}catch(error){notifyFailure(error,'connectionUnavailable')}}
 function render(data){document.body.classList.remove('signed-out-state');$('#signed-out').classList.add('hidden');$('#workspace').classList.remove('hidden');$('#signin').classList.add('hidden');$('#logout').classList.remove('hidden');const p=data.portfolio,profile=data.profile;$('#account').textContent=p.account;$('#balance').textContent=p.explorerStatus.available?`${fmt(p.balanceYnxt)} YNXT`:financeText('unavailable');$('#staked').textContent=p.explorerStatus.available?`${fmt(p.stakedYnxt)} YNXT`:financeText('unavailable');$('#balance-source').textContent=p.explorerStatus.available?`${financeText('explorerEvidence')} · ${date(p.asOf)}`:financeText('sourcesUnavailable');const both=p.explorerStatus.available&&p.payStatus.available;sourceStatus(both?'sourcesLive':p.explorerStatus.available?'explorerLivePayUnavailable':'sourcesUnavailable',both?'live':'warning');renderAlerts(data.alerts);renderActivity(p.activity);renderReceipts(p.payReceipts,p.payStatus);renderPlanning(profile,data.budgetProgress);renderPrivacy(profile.privacy);renderAIRecords(p.activity);renderSupport(data.support);refreshBrokerSnapshot();refreshBrokerWorkspace().then(async workspace=>{if(workspace)try{await restoreBrokerApproval(workspace.serverTime)}catch(error){notifyFailure(error,'brokerApprovalUnavailable')}await completeBrokerCallback()});route()}
 function renderAlerts(alerts){const el=$('#alerts');if(!alerts.length){el.innerHTML=`<div class="alert info"><div><strong>${esc(financeText('noAlerts'))}</strong><small>${esc(financeText('alertsInformational'))}</small></div></div>`;return}el.innerHTML=alerts.map(a=>`<div class="alert ${a.severity==='info'?'info':''}"><div><strong>${esc(a.title)}</strong><small>${esc(a.detail)}</small></div></div>`).join('')}
@@ -415,6 +499,9 @@ function route(){
       $('#guest-gate-description').textContent=financeText(gate[1]);
     }
   }
+  // Account-read authorization is not native product authorization. Display
+  // its real owned result without exposing native planning/order/write views.
+  if(!state.connected&&['overview','assets','activity'].includes(section)&&($('#account-workspace')?.dataset.authorized==='true'||$('#account-workspace')?.dataset.recovering==='true'))visible='account-workspace';
   $$('.view').forEach(view=>view.classList.toggle('active-view',view.id===visible));
   if(section==='broker-sandbox'&&lastFinanceRoute!==section)requestAnimationFrame(()=>$('#broker-sandbox').scrollIntoView({block:'start'}));
   lastFinanceRoute=section;
@@ -422,12 +509,31 @@ function route(){
   $$('#nav a').forEach(link=>{const selected=link.hash===`#${active}`;link.classList.toggle('active',selected);if(selected)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current')});
   $('#page-title').textContent=financeText('appName');
 }
-window.addEventListener('ynx-finance-standard-state',()=>{
+window.addEventListener('ynx-finance-standard-state',event=>{
   state.context++;clearInterval(state.aiTimer);walletIdentityState='identityUnverified';renderWalletIdentity();
+  renderAccountSession();
   if(window.YNXFinanceWallet?.connected?.()&&!window.YNXFinanceWallet.privateAccountMatchesSelected?.())clearPrivateView({clearOpaquePending:false});
-});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected')load()});
-window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('offlineRetry','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
+  const selected=event.detail;
+  if(['explicit-local','permission-revoked','account-changed','chain-changed'].includes(selected?.disconnectReason)||loginIntent?.account&&loginIntent.account!==selected?.account)clearLoginIntent();
+  if(selected?.status==='connected'){if($('#wallet-picker').open)closeWalletPicker();void continueLoginIntent()}
+  $('#wallet-picker-state').textContent=$('#wallet-state').textContent;
+});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected'){const intent=loginIntent,context=state.context;load().then(()=>completeLoginTarget(intent,context))}});
+window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('offlineRetry','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',event=>showWalletPicker(event.currentTarget,{login:true}));$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
+$('#wallet-entry').addEventListener('click',event=>showWalletPicker(event.currentTarget));
+$('#picker-ynx').addEventListener('click',()=>window.YNXFinanceWallet.connect());
+$('#picker-metamask').addEventListener('click',()=>window.YNXFinanceWallet.connectMetaMask());
+$('#picker-hosted').addEventListener('click',()=>$('#connect-hosted-ynx').click());
+$('#wallet-picker-close').addEventListener('click',()=>closeWalletPicker({cancel:true}));
+$('#wallet-picker').addEventListener('cancel',event=>{event.preventDefault();closeWalletPicker({cancel:true})});
+$('#workspace-data-retry').addEventListener('click',()=>{const intent=loginIntent,context=state.context;load().then(()=>completeLoginTarget(intent,context))});
+for(const element of $$('[href="#wallet-connect"]'))element.addEventListener('click',event=>{event.preventDefault();showWalletPicker(event.currentTarget,{login:element.dataset.financeI18n==='signIn'||element.closest('#guest-gate')!==null,target:element.dataset.financeI18n==='signIn'?'planning':loginTarget()})});
+try{const saved=JSON.parse(sessionStorage.getItem(LOGIN_INTENT_KEY)||'null');if(location.pathname==='/wallet-auth/callback'&&LOGIN_ROUTES.has(saved?.target))loginIntent={target:saved.target,account:null,providerKind:null};else sessionStorage.removeItem(LOGIN_INTENT_KEY)}catch{}
 $('#wallet-login-verify').addEventListener('click',verifyWalletIdentity);
+window.addEventListener('ynx-finance-account-session',renderAccountSession);
+document.addEventListener('finance:localechange',renderAccountSession);
+$('#account-session-refresh')?.addEventListener('click',()=>window.YNXFinanceEVMRead.read());
+$('#account-session-logout')?.addEventListener('click',()=>window.YNXFinanceEVMRead.revoke());
+setInterval(()=>{const session=window.YNXFinanceEVMRead?.state();if($('#account-workspace')?.dataset.authorized==='true'&&Date.parse(session?.expiresAt)<=Date.now())renderAccountSession()},1000);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);
 renderBrokerSnapshot();$('#broker-order-preview').textContent=financeText(brokerApprovalMessageKey);
 route();consumeCallback().then(load).then(()=>{if(!state.connected)return publicHealth()}).catch(error=>notify(error.message,true));
