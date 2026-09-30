@@ -10,8 +10,8 @@ import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
-const source='48309f3a6';
-const output='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-sso-48309f3a-20261001.json';
+const source='9220dbcb1';
+const output='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-pair-9220dbcb-20261001.json';
 const priorPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-workspace-2627b209-v5-20260925.json';
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 const read=path=>readFileSync(resolve(root,path));
@@ -27,14 +27,15 @@ const paths=[...prior.exactInputs.map(value=>value.path),'apps/finance/web/app.j
   'packages/wallet-auth/src/central-browser-session-browser.js','packages/wallet-auth/src/central-browser-session-browser.bundle.js',
   'packages/wallet-auth/src/product-session-gateway-node-host.js','packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs',
   'internal/finance/browser_sso.go','internal/finance/browser_sso_binding.go','internal/finance/server.go',
-  'internal/finance/store.go','internal/finance/types.go','apps/finance/cmd/server/main.go'];
+  'internal/finance/store.go','internal/finance/types.go','apps/finance/cmd/server/main.go',
+  'packages/wallet-auth/src/walletconnect-dapp-connection.js'];
 const exactInputs=[...new Set(paths)].map(path=>{
-  const bytes=read(path),frozen=execFileSync('git',['show',`${source}:${path}`],{cwd:root});
+  const bytes=read(path),frozen=execFileSync('git',['show',`${source}:${path}`],{cwd:root,maxBuffer:16*1024*1024});
   assert.deepEqual(bytes,frozen,`${path} differs from implementation checkpoint`);
   return {path,bytes:bytes.length,sha256:sha256(bytes)};
 });
 const sourceBundleRelations=[];
-const centralOptions={absWorkingDir:resolve(root,'packages/wallet-auth'),entryPoints:['src/central-browser-session-browser.js'],bundle:true,write:false,platform:'browser',format:'iife',legalComments:'none'};
+const centralOptions={absWorkingDir:resolve(root,'packages/wallet-auth'),entryPoints:['src/central-browser-session-browser.js'],bundle:true,write:false,metafile:true,platform:'browser',format:'iife',legalComments:'none'};
 const centralFirst=await build(centralOptions),centralSecond=await build(centralOptions);
 assert.deepEqual(Buffer.from(centralFirst.outputFiles[0].contents),Buffer.from(centralSecond.outputFiles[0].contents));
 assert.deepEqual(Buffer.from(centralFirst.outputFiles[0].contents),read('packages/wallet-auth/src/central-browser-session-browser.bundle.js'));
@@ -46,7 +47,9 @@ for(const relation of prior.sourceBundleRelations){
   const inputs=Object.keys(first.metafile.inputs).sort();
   sourceBundleRelations.push({...relation,bundleBytes:frozen.length,bundleSha256:sha256(frozen),dependencyGraphInputs:inputs.length,repositoryGraphInputs:inputs.filter(path=>!path.includes('/node_modules/')).length,lockedDependencyGraphInputs:inputs.filter(path=>path.includes('/node_modules/')).length,dependencyGraphSha256:sha256(inputs.map(path=>`${path}\0${sha256(read(path))}\n`).join(''))});
 }
-const candidate={...prior,reviewedOwnerSource:{commit:git('rev-parse',source),tree:git('rev-parse',`${source}^{tree}`)},existingVerifierPin:{...prior.existingVerifierPin,pinChanged:false},exactInputs,sourceBundleRelations};
+const centralPaths=Object.keys(centralFirst.metafile.inputs).map(path=>`packages/wallet-auth/${path}`).sort();
+const centralPairBundle={entry:'packages/wallet-auth/src/central-browser-session-browser.js',bundle:'packages/wallet-auth/src/central-browser-session-browser.bundle.js',tool:'esbuild@0.25.9',independentRebuilds:2,bytes:centralFirst.outputFiles[0].contents.length,sha256:sha256(centralFirst.outputFiles[0].contents),dependencyGraphPaths:centralPaths,dependencyGraphSha256:sha256(centralPaths.map(path=>`${path}\0${sha256(read(path))}\n`).join(''))};
+const candidate={...prior,reviewedOwnerSource:{commit:git('rev-parse',source),tree:git('rev-parse',`${source}^{tree}`)},existingVerifierPin:{...prior.existingVerifierPin,pinChanged:false},exactInputs,sourceBundleRelations,centralPairBundle};
 const body=Buffer.from(`${JSON.stringify(candidate,null,2)}\n`),target=resolve(root,output);
 if(existsSync(target))assert.deepEqual(readFileSync(target),body);else writeFileSync(target,body,{flag:'wx',mode:0o644});
-console.log(JSON.stringify({status:'candidate-only-independent-review-required',path:output,bytes:body.length,sha256:sha256(body),bundleCount:2,cleanBuildsPerBundle:2,publicRuntimeVerified:false}));
+console.log(JSON.stringify({status:'candidate-only-independent-review-required',path:output,bytes:body.length,sha256:sha256(body),bundleCount:3,cleanBuildsPerBundle:2,publicRuntimeVerified:false}));

@@ -7,25 +7,25 @@ import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import { verifyEVMReadCandidate } from '../web/verify-evm-read-candidate.mjs';
 
-const candidate = new URL('../evidence/evm-read-runtime-verifier-candidate-guoqing-sso-48309f3a-20261001.json', import.meta.url);
+const candidate = new URL('../evidence/evm-read-runtime-verifier-candidate-guoqing-pair-9220dbcb-20261001.json', import.meta.url);
 const pin = createHash('sha256').update(await readFile(candidate)).digest('hex');
-const currentCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-sso-48309f3a-20261001.json';
-const currentPin = 'c3eb708e0f577f8e66a3d17acacc15b23a7632afe57c4f11b8621185fb66d642';
+const currentCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-pair-9220dbcb-20261001.json';
+const currentPin = '19fb129f1a8338a4949bae637f0370cec2e2a84cdfe02a904d55a7d071e171fa';
 const repoRoot=resolve(fileURLToPath(new URL('../../../',import.meta.url)));
-const guoqingPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-sso-48309f3a-20261001.json';
-const guoqingPin='c3eb708e0f577f8e66a3d17acacc15b23a7632afe57c4f11b8621185fb66d642';
+const guoqingPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-pair-9220dbcb-20261001.json';
+const guoqingPin='19fb129f1a8338a4949bae637f0370cec2e2a84cdfe02a904d55a7d071e171fa';
 
 test('Guoqing account-session checkpoint verifies both bundles and all three versioned app assets',async()=>{
   const result=await verifyEVMReadCandidate({candidatePath:guoqingPath,pinnedCandidateSha256:guoqingPin});
   assert.equal(result.status,'pass');
-  assert.equal(result.bundleCount,2);
+  assert.equal(result.bundleCount,3);
   assert.equal(result.publicRuntimeVerified,false);
   await assert.rejects(verifyEVMReadCandidate({candidatePath:guoqingPath,pinnedCandidateSha256:guoqingPin,read:path=>String(path).endsWith('/apps/finance/web/app.js')?Buffer.from('tampered'):readFile(path)}),/INPUT_TAMPERED/u);
 });
 test('two independent snapshot builds bind full Wallet/Auth graph and both Finance bundles', async () => {
   const result = await verifyEVMReadCandidate({ candidatePath:currentCandidatePath,pinnedCandidateSha256: pin });
   assert.equal(result.status, 'pass');
-  assert.equal(result.bundleCount, 2);
+  assert.equal(result.bundleCount, 3);
   assert.equal(result.publicRuntimeVerified, false);
 });
 
@@ -36,7 +36,7 @@ test('candidate pin drift fails before any transitive build', async () => {
 test('current source candidate rebuilds twice but cannot self-authorize a public runtime', async () => {
   const result = await verifyEVMReadCandidate({candidatePath:currentCandidatePath,pinnedCandidateSha256:currentPin});
   assert.equal(result.status,'pass');
-  assert.equal(result.bundleCount,2);
+  assert.equal(result.bundleCount,3);
   assert.equal(result.publicRuntimeVerified,false);
   await assert.rejects(verifyEVMReadCandidate({candidatePath:'apps/finance/evidence/unreviewed.json',pinnedCandidateSha256:currentPin}),/CANDIDATE_PATH_UNREVIEWED/u);
 });
@@ -53,6 +53,20 @@ test('locked noble dependency change fails graph binding', async () => {
     if (String(path).endsWith('/packages/wallet-auth/node_modules/@noble/curves/nist.js')) return Buffer.from('export const tampered = true;');
     return readFile(path);
   } }), /TRANSITIVE_GRAPH_DRIFT/u);
+});
+
+test('central Pair QR dependency bytes are pinned independently of the unchanged EVM graph',async()=>{
+  await assert.rejects(verifyEVMReadCandidate({candidatePath:currentCandidatePath,pinnedCandidateSha256:pin,read:async path=>{
+    if(String(path).endsWith('/packages/wallet-auth/node_modules/qrcode/lib/renderer/canvas.js'))return Buffer.from('export const altered=true;');
+    return readFile(path);
+  }}),/CENTRAL_PAIR_GRAPH_DRIFT/u);
+});
+
+test('central Pair original locked SDK bytes cannot be replaced by a fixture transport',async()=>{
+  await assert.rejects(verifyEVMReadCandidate({candidatePath:currentCandidatePath,pinnedCandidateSha256:pin,read:async path=>{
+    if(String(path).endsWith('/packages/wallet-auth/node_modules/@walletconnect/sign-client/dist/index.js'))return Buffer.from('export default {init(){}};');
+    return readFile(path);
+  }}),/CENTRAL_PAIR_GRAPH_DRIFT/u);
 });
 
 test('missing transitive source fails before a bundle can be accepted', async () => {
