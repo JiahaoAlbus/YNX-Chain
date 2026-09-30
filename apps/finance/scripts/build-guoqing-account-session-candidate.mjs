@@ -10,8 +10,11 @@ import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
-const source='d334806c6';
-const output='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-native-d334806c-20261001.json';
+const source=process.argv[2]??'d334806c6';
+const output=process.argv[3]??'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-native-d334806c-20261001.json';
+assert.ok(process.argv.length===2||process.argv.length===4,'supply both source commit and successor output');
+assert.match(source,/^[0-9a-f]{9,40}$/u);
+assert.match(output,/^apps\/finance\/evidence\/evm-read-runtime-verifier-candidate-[a-z0-9-]+\.json$/u);
 const priorPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-workspace-2627b209-v5-20260925.json';
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 const read=path=>readFileSync(resolve(root,path));
