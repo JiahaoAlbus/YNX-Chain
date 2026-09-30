@@ -141,6 +141,32 @@ test("lock or component disposal clears proposal and request even when remote re
   await runtime.rejectPendingForLock();assert.equal(runtime.snapshot().proposal,null);assert.equal(runtime.snapshot().request,null);
 });
 
+test("delayed lock rejection targets the captured request and preserves a fresh proposal and request",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
+  let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve}),rejected:number[]=[];
+  client.respondSessionRequest=async(value:any)=>{client.responses.push(value);await gate};
+  client.rejectSession=async(value?:any)=>{rejected.push(value.id)};
+  const oldRequest=pendingRequest("1".repeat(64),21),oldProposal=pendingProposal();
+  client.handlers.get("session_request")!(oldRequest);client.handlers.get("session_proposal")!(oldProposal);
+  const locking=runtime.rejectPendingForLock();
+  assert.equal(runtime.snapshot().request,null);assert.equal(runtime.snapshot().proposal,null);
+  const freshRequest=pendingRequest("2".repeat(64),22),freshProposal={...pendingProposal(),id:oldProposal.id+1};
+  client.handlers.get("session_request")!(freshRequest);client.handlers.get("session_proposal")!(freshProposal);
+  release();await locking;
+  assert.equal(runtime.snapshot().request,freshRequest);assert.equal(runtime.snapshot().proposal,freshProposal);
+  assert.deepEqual(rejected,[oldProposal.id]);assert.equal(client.responses[0].response.id,21);assert.equal(client.responses[0].topic,oldRequest.topic);
+});
+
+test("an obsolete review failure never rejects a newer SDK event even with the same topic and ID",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
+  const old=pendingRequest("3".repeat(64),23);client.handlers.get("session_request")!(old);
+  runtime.clearSensitiveReview();const fresh=pendingRequest(old.topic,old.id);client.handlers.get("session_request")!(fresh);
+  await runtime.rejectReviewedEvent(old as any,5103,"Old review failed.");
+  assert.equal(runtime.snapshot().request,fresh);assert.equal(client.responses.length,0);
+  await runtime.rejectReviewedEvent(fresh as any,5103,"Current review failed.");
+  assert.equal(runtime.snapshot().request,null);assert.equal(client.responses.length,1);assert.equal(client.responses[0]!.response.id,23);
+});
+
 test("completed local request decisions cannot be approved again after response transport failure",async()=>{
   const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();const topic="9".repeat(64);client.failResponses=true;
   client.handlers.get("session_request")!(pendingRequest(topic,14));
