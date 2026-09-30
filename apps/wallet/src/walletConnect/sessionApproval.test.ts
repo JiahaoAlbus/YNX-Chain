@@ -66,7 +66,9 @@ test("runtime keeps a newly approved SDK session hidden and closes it when persi
     disconnectSession:async({topic}:{topic:string})=>{disconnected.push(topic);delete active[topic]},
   };
   const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any);await runtime.start();
-  handlers.get("session_proposal")!({id:1,params:{},verifyContext:{verified:{}}});
+  const pairingTopic="a".repeat(64);
+  await runtime.pair(`wc:${pairingTopic}@2?relay-protocol=irn&symKey=${"b".repeat(64)}`);
+  handlers.get("session_proposal")!({id:1,params:{pairingTopic},verifyContext:{verified:{}}});
   await runtime.approveProposal({eip155:{accounts:[],chains:["eip155:6423"],methods:["eth_accounts"],events:[]}} as any);
   assert.deepEqual(runtime.snapshot().sessions,[]);
   let persisted=false;

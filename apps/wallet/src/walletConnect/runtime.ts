@@ -23,7 +23,7 @@ export type WalletConnectSnapshot = Readonly<{
 type Listener = (snapshot: WalletConnectSnapshot) => void;
 type RuntimeConfig = Readonly<{ projectId: string; relayUrl?: string }>;
 type WalletKitClient = Pick<InstanceType<typeof WalletKit>, "pair" | "approveSession" | "rejectSession" | "respondSessionRequest" | "disconnectSession" | "getActiveSessions"> & {
-  core?: { pairing: { disconnect(args: { topic: string }): Promise<void>; getPairings?(): readonly { topic: string }[] } };
+  core?: { pairing: { disconnect(args: { topic: string }): Promise<void>; getPairings?(): readonly { topic: string; expiry?: number }[] } };
   on<E extends SignClientTypes.Event>(event:E,listener:(args:SignClientTypes.EventArguments[E])=>void):unknown;
 };
 type WalletKitFactory = (config: RuntimeConfig) => Promise<WalletKitClient>;
@@ -50,10 +50,12 @@ export class WalletConnectRuntime {
   #requestDeadlines = new WeakMap<WalletConnectRequest,number>();
   #pairTopics = new Map<string, boolean>();
   #pairCleanup = new Map<string, { revision: number; status: "pending" | "sdk-confirmed" | "unconfirmed" }>();
+  #pairExpiry = new Map<string, number>();
+  #sdkPairPending = new Set<string>();
   #approvedPairTopics = new Set<string>();
   #pairOperation: { topic: string; proposalReceived: () => void; cancel: (reason: string) => void } | null = null;
   #receivedAt = new WeakMap<WalletConnectRequest,Date>();
-  constructor(readonly config: RuntimeConfig | null, private readonly factory: WalletKitFactory = createWalletKit, private readonly pairDeadlineMs = WALLETCONNECT_PAIR_DEADLINE_MS, private readonly pairingJournal?: { load(): Promise<readonly string[]>; record(topic: string): Promise<void> }) {
+  constructor(readonly config: RuntimeConfig | null, private readonly factory: WalletKitFactory = createWalletKit, private readonly pairDeadlineMs = WALLETCONNECT_PAIR_DEADLINE_MS, private readonly pairingJournal?: { load(): Promise<readonly string[]>; record(topic: string, expiresAt?: number | null): Promise<void>; retire?(topic: string): Promise<void> }) {
     if (!Number.isFinite(pairDeadlineMs) || pairDeadlineMs <= 0 || pairDeadlineMs > WALLETCONNECT_PAIR_DEADLINE_MS) throw new Error("Invalid pairing deadline.");
     this.#snapshot = Object.freeze({ phase: config ? "starting" : "disabled", error: config ? null : "WalletConnect is not configured for this build.", sessions: Object.freeze([]), proposal: null, request: null, sessionEvent: null, retryAvailable: false, pairing: false, pairingCleanup: "none" });
   }
@@ -84,12 +86,14 @@ export class WalletConnectRuntime {
     return this.#start;
   }
   async pair(uri: string): Promise<void> {
-    const client = this.#require(), { topic } = parseWalletConnectPairingUri(uri, new Date());
+    const client = this.#require(), { topic, expiryTimestamp } = parseWalletConnectPairingUri(uri, new Date());
+    for (const [old, expiry] of this.#pairExpiry) if (expiry <= Math.floor(Date.now()/1000) && !this.#sdkPairPending.has(old)) { this.#pairTopics.delete(old);this.#pairExpiry.delete(old);this.#pairCleanup.delete(old); }
     if (this.#pairOperation) throw new Error("A pairing attempt is already running. Cancel it before retrying.");
     if (this.#pairTopics.has(topic)) throw new Error("This pairing was already attempted. Request a fresh QR code from the dApp.");
     // Never evict canceled topics: their late proposals must remain quarantined.
-    if (this.#pairTopics.size >= 100) throw new Error("Pairing safety journal is full. No further pairing will be attempted.");
+    if (this.#sdkPairPending.size >= 100) throw new Error("Too many unresolved SDK operations. No further pairing will be attempted yet.");
     this.#pairTopics.set(topic, false);
+    this.#pairExpiry.set(topic, expiryTimestamp ?? Math.floor(Date.now()/1000)+300);
     this.#set({ pairing: true, error: null });
     let timer: ReturnType<typeof setTimeout>;
     let canceled = false;
@@ -111,9 +115,10 @@ export class WalletConnectRuntime {
     });
     const operation = Promise.resolve().then(async () => {
       // Persist before the SDK can create a pairing, including crash/late completion.
-      await this.pairingJournal?.record(topic);
+      await this.pairingJournal?.record(topic, this.#pairExpiry.get(topic)!);
       if (canceled) throw new Error("Pairing canceled before transport.");
-      return client.pair({ uri });
+      this.#sdkPairPending.add(topic);
+      try { return await client.pair({ uri }); } finally { this.#sdkPairPending.delete(topic); }
     });
     // The SDK cannot be aborted. Clean up again if it settles after cancellation.
     void operation.then(() => { if (this.#pairTopics.get(topic) === true) void this.#cleanupPairing(client, topic); }, () => { if (this.#pairTopics.get(topic) === true) void this.#cleanupPairing(client, topic); });
@@ -133,6 +138,7 @@ export class WalletConnectRuntime {
   }
   cancelPendingPair(): void { this.cancelPair(true); }
   cancelPair(preserveReviewedProposal = false): void {
+    if (this.#client) for (const session of Object.values(this.#client.getActiveSessions())) if (session.pairingTopic) this.#approvedPairTopics.add(session.pairingTopic);
     const retained = preserveReviewedProposal ? this.#snapshot.proposal ?? this.#paused?.proposal : null;
     if (!retained || retained.params.pairingTopic !== this.#pairOperation?.topic) this.#pairOperation?.cancel("Pairing canceled. Remote cleanup is not yet confirmed.");
     for (const [topic, canceled] of this.#pairTopics) {
@@ -151,6 +157,9 @@ export class WalletConnectRuntime {
     try {
       if (!client.core?.pairing) throw new Error("Pairing cleanup is unavailable.");
       await Promise.race([client.core.pairing.disconnect({ topic }), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("Pairing cleanup timed out.")), PAIR_CLEANUP_DEADLINE_MS); })]);
+      const pairings=client.core.pairing.getPairings?.();
+      if (!pairings || pairings.some(pairing=>pairing.topic===topic)) throw new Error("SDK pairing removal is unconfirmed.");
+      if (!this.#sdkPairPending.has(topic)) await this.pairingJournal?.retire?.(topic);
       if (this.#pairCleanup.get(topic)?.revision === revision) this.#pairCleanup.set(topic, { revision, status: "sdk-confirmed" });
     } catch { if (this.#pairCleanup.get(topic)?.revision === revision) this.#pairCleanup.set(topic, { revision, status: "unconfirmed" }); }
     finally { clearTimeout(timer!); this.#publishPairCleanup(); }
@@ -271,13 +280,23 @@ export class WalletConnectRuntime {
     // pairings before listeners; an existing approved session remains intact.
     for (const pairing of client.core?.pairing.getPairings?.() ?? []) {
       if (this.#approvedPairTopics.has(pairing.topic)) continue;
-      await this.pairingJournal?.record(pairing.topic);
+      await this.pairingJournal?.record(pairing.topic, pairing.expiry ?? null);
       this.#pairTopics.set(pairing.topic, true);
     }
-    client.on("session_proposal", proposal => {
-      if (this.#pairTopics.get(proposal.params.pairingTopic) === true) {
+    client.on("session_proposal", async proposal => {
+      const topic=proposal.params.pairingTopic;
+      const knownApproved=Object.values(client.getActiveSessions()).some(session=>session.pairingTopic===topic);
+      if (this.#pairTopics.get(topic) === true || this.#pairTopics.get(topic)!==false&&!knownApproved) {
         void client.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") }).catch(() => { const topic = proposal.params.pairingTopic; this.#pairCleanup.set(topic, { revision: (this.#pairCleanup.get(topic)?.revision ?? 0) + 1, status: "unconfirmed" }); this.#publishPairCleanup(); });
         return;
+      }
+      if (this.pairingJournal && this.#pairTopics.get(topic)===false) {
+        const sdkExpiry=client.core?.pairing.getPairings?.().find(pairing=>pairing.topic===topic)?.expiry;
+        const expiry=Math.max(this.#pairExpiry.get(topic)??0,proposal.params.expiryTimestamp??0,sdkExpiry??0);
+        this.#pairExpiry.set(topic,expiry);
+        try { await this.pairingJournal.record(topic,expiry||null); }
+        catch { this.#set({pairingCleanup:"unconfirmed",error:"Pairing safety state could not be verified."});void client.rejectSession({id:proposal.id,reason:getSdkError("USER_REJECTED")}).catch(()=>{});return; }
+        if(this.#pairTopics.get(topic)!==false){void client.rejectSession({id:proposal.id,reason:getSdkError("USER_REJECTED")}).catch(()=>{});return;}
       }
       if(this.#paused&&!this.#paused.proposal&&proposal.params.expiryTimestamp>Math.floor(Date.now()/1000)){this.#paused.proposal=proposal;return;}
       if(this.#paused||this.#snapshot.proposal){void client.rejectSession({id:proposal.id,reason:getSdkError("USER_REJECTED")}).catch(()=>{});return;}

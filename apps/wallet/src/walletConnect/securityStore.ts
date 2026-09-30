@@ -42,27 +42,28 @@ function sameNamespaces(left:SessionTypes.Namespaces,right:SessionTypes.Namespac
 const PAIRING_QUARANTINE_KEY="ynx.wallet.walletconnect.pairing-quarantine.v1";
 export class WalletConnectPairingJournal {
   #pending:Promise<void>=Promise.resolve();
-  constructor(private readonly storage:SecureStorageAdapter){}
-  async load():Promise<readonly string[]> {
-    await this.#pending;
-    return this.#readTopics();
-  }
-  async #readTopics():Promise<readonly string[]> {
-    const raw=await this.storage.getItem(PAIRING_QUARANTINE_KEY);
-    if(raw===null)return [];
-    if(raw.length>10_000)throw new Error("Pairing quarantine exceeds policy.");
+  constructor(private readonly storage:SecureStorageAdapter,private readonly now=()=>Math.floor(Date.now()/1000)){}
+  async load():Promise<readonly string[]> {await this.#pending;return(await this.#read()).filter(item=>item.expiresAt===null||item.expiresAt>this.now()).map(item=>item.topic)}
+  async #read():Promise<{topic:string;expiresAt:number|null}[]> {
+    const raw=await this.storage.getItem(PAIRING_QUARANTINE_KEY);if(raw===null)return [];
+    if(raw.length>20_000)throw new Error("Pairing quarantine exceeds policy.");
     let value:any;try{value=JSON.parse(raw)}catch{throw new Error("Pairing quarantine is unreadable.")}
-    if(!value||value.version!==1||Object.keys(value).sort().join(",")!=="topics,version"||!Array.isArray(value.topics)||value.topics.length>100||new Set(value.topics).size!==value.topics.length||value.topics.some((topic:unknown)=>typeof topic!=="string"||!/^[a-f0-9]{64}$/.test(topic)))throw new Error("Pairing quarantine is invalid.");
-    return Object.freeze([...value.topics]);
+    // Unpublished v1 QA may still be restored: retain unknown expiry conservatively.
+    if(value?.version===1&&Object.keys(value).sort().join(",")==="topics,version"&&Array.isArray(value.topics)&&value.topics.length<=100&&new Set(value.topics).size===value.topics.length&&value.topics.every((topic:unknown)=>typeof topic==="string"&&/^[a-f0-9]{64}$/.test(topic)))return value.topics.map((topic:string)=>({topic,expiresAt:null}));
+    if(!value||value.version!==2||Object.keys(value).sort().join(",")!=="records,version"||!Array.isArray(value.records)||value.records.length>100||new Set(value.records.map((item:any)=>item?.topic)).size!==value.records.length||value.records.some((item:any)=>!item||Object.keys(item).sort().join(",")!=="expiresAt,topic"||typeof item.topic!=="string"||!/^[a-f0-9]{64}$/.test(item.topic)||item.expiresAt!==null&&(!Number.isSafeInteger(item.expiresAt)||item.expiresAt<=0)))throw new Error("Pairing quarantine is invalid.");
+    return value.records;
   }
-  record(topic:string):Promise<void> {
+  #mutate(update:(records:{topic:string;expiresAt:number|null}[])=>{topic:string;expiresAt:number|null}[]):Promise<void> {
     const operation=this.#pending.then(async()=>{
-      const topics=[...new Set([...await this.#readTopics(),topic])];
-      if(!/^[a-f0-9]{64}$/.test(topic)||topics.length>100)throw new Error("Pairing quarantine limit reached.");
-      const encoded=JSON.stringify({version:1,topics});
-      await this.storage.setItem(PAIRING_QUARANTINE_KEY,encoded);
+      const records=update((await this.#read()).filter(item=>item.expiresAt===null||item.expiresAt>this.now()));
+      if(records.length>100)throw new Error("Too many live pairings. Wait for their actual expiry before retrying.");
+      const encoded=JSON.stringify({version:2,records});await this.storage.setItem(PAIRING_QUARANTINE_KEY,encoded);
       if(await this.storage.getItem(PAIRING_QUARANTINE_KEY)!==encoded)throw new Error("Pairing quarantine could not be verified.");
-    });
-    this.#pending=operation.then(()=>{},()=>{});return operation;
+    });this.#pending=operation.then(()=>{},()=>{});return operation;
   }
+  record(topic:string,expiresAt:number|null=this.now()+300):Promise<void> {
+    if(!/^[a-f0-9]{64}$/.test(topic)||expiresAt!==null&&(!Number.isSafeInteger(expiresAt)||expiresAt<=0))return Promise.reject(new Error("Invalid pairing quarantine record."));
+    return this.#mutate(records=>{const prior=records.find(item=>item.topic===topic);return[...records.filter(item=>item.topic!==topic),{topic,expiresAt:expiresAt===null?prior?.expiresAt??null:Math.max(prior?.expiresAt??0,expiresAt)}]});
+  }
+  retire(topic:string):Promise<void> {return this.#mutate(records=>records.filter(item=>item.topic!==topic))}
 }

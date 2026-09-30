@@ -55,7 +55,7 @@ test("initialization retries are bounded",async()=>{
 });
 
 test("SDK approval is not visible until the caller explicitly publishes the persisted session",async()=>{
-  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"b".repeat(32)},(async()=>client) as any);await runtime.start();
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"b".repeat(32)},(async()=>client) as any);await runtime.start();await runtime.pair(pairingUri("0".repeat(64)));
   client.handlers.get("session_proposal")!(pendingProposal());
   const session=await runtime.approveProposal({eip155:{accounts:[],chains:["eip155:6423"],methods:["eth_accounts"],events:[]}} as any);
   assert.equal(session.topic,"a".repeat(64));
@@ -82,13 +82,13 @@ test("session update and expiry events refresh the visible session and expose a 
 });
 
 const pendingRequest=(topic:string,id=7)=>({topic,id,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[]}}});
-const pendingProposal=()=>({id:9,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"",isScam:false}},params:{}});
+const pendingProposal=()=>({id:9,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"",isScam:false}},params:{pairingTopic:"0".repeat(64)}});
 
 test("delayed custody cannot sign or deliver an old approval after disconnect, delete or same-id replacement",async()=>{
   for(const action of ["disconnect","delete","replace","namespace"]){
     const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"d".repeat(32)},(async()=>client) as any);await runtime.start();
     const topic="e".repeat(64),account="0x"+"a".repeat(40),event=pendingRequest(topic,7);
-    client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};
+    client.active[topic]={topic,pairingTopic:"0".repeat(64),peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};
     client.handlers.get("session_request")!(event);
     const review={topic,requestId:7,account,method:"eth_accounts",params:[],peer:{metadata:{url:"https://example.com"}},expiresAt:new Date(Date.now()+60000).toISOString()};
     const lease=runtime.bindReviewedRequest(review,runtime.snapshot().request);
@@ -106,7 +106,7 @@ test("delayed custody cannot sign or deliver an old approval after disconnect, d
 test("temporary transport failure does not revoke a still-current review and delivery stays on its exact request",async()=>{
   const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"d".repeat(32)},(async()=>client) as any);await runtime.start();
   const topic="e".repeat(64),account="0x"+"a".repeat(40),event=pendingRequest(topic,17);
-  client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};client.handlers.get("session_request")!(event);
+  client.active[topic]={topic,pairingTopic:"0".repeat(64),peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};client.handlers.get("session_request")!(event);
   const lease=runtime.bindReviewedRequest({topic,requestId:17,account,method:"eth_accounts",params:[],peer:{metadata:{url:"https://example.com"}},expiresAt:new Date(Date.now()+60000).toISOString()},runtime.snapshot().request);
   client.failResponses=true;lease.assertCurrent();await assert.rejects(lease.respond("approved response"));
   assert.equal(client.responses[0].topic,topic);assert.equal(client.responses[0].response.id,17);assert.equal(runtime.snapshot().request,null);
@@ -137,13 +137,13 @@ test("session update synchronously clears and rejects a reviewed request even wh
 });
 
 test("lock or component disposal clears proposal and request even when remote rejection is unavailable",async()=>{
-  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();await runtime.pair(pairingUri("0".repeat(64)));
   client.handlers.get("session_proposal")!(pendingProposal());client.handlers.get("session_request")!(pendingRequest("1".repeat(64)));client.failResponses=true;client.failRejections=true;
   await runtime.rejectPendingForLock();assert.equal(runtime.snapshot().proposal,null);assert.equal(runtime.snapshot().request,null);
 });
 
 test("delayed lock rejection targets the captured request and preserves a fresh proposal and request",async()=>{
-  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();await runtime.pair(pairingUri("0".repeat(64)));
   let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve}),rejected:number[]=[];
   client.respondSessionRequest=async(value:any)=>{client.responses.push(value);await gate};
   client.rejectSession=async(value?:any)=>{rejected.push(value.id)};
@@ -151,7 +151,7 @@ test("delayed lock rejection targets the captured request and preserves a fresh 
   client.handlers.get("session_request")!(oldRequest);client.handlers.get("session_proposal")!(oldProposal);
   const locking=runtime.rejectPendingForLock();
   assert.equal(runtime.snapshot().request,null);assert.equal(runtime.snapshot().proposal,null);
-  const freshRequest=pendingRequest("2".repeat(64),22),freshProposal={...pendingProposal(),id:oldProposal.id+1};
+  const freshRequest=pendingRequest("2".repeat(64),22),freshProposal={...pendingProposal(),id:oldProposal.id+1,params:{pairingTopic:"1".repeat(64)}};await runtime.pair(pairingUri("1".repeat(64)));
   client.handlers.get("session_request")!(freshRequest);client.handlers.get("session_proposal")!(freshProposal);
   release();await locking;
   assert.equal(runtime.snapshot().request,freshRequest);assert.equal(runtime.snapshot().proposal,freshProposal);
@@ -171,7 +171,7 @@ test("an obsolete review failure never rejects a newer SDK event even with the s
 test("unlock restores only an undecided same-account event and invalidates its old approval lease",async()=>{
   const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
   const topic="4".repeat(64),account="0x"+"a".repeat(40),event=pendingRequest(topic,24);
-  client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};
+  client.active[topic]={topic,pairingTopic:"0".repeat(64),peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};
   client.handlers.get("session_request")!(event);
   const review={topic,requestId:24,account,method:"eth_accounts",params:[],peer:{metadata:{url:"https://example.com"}},expiresAt:new Date(Date.now()+60000).toISOString()};
   const old=runtime.bindReviewedRequest(review,runtime.snapshot().request);runtime.pauseForLock(account);
@@ -185,7 +185,7 @@ test("locked requests never resume after account switch, session drift, expiry o
   for(const action of ["account","namespace","expired","delete","decided"]){
     const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
     const topic="5".repeat(64),account="0x"+"a".repeat(40),event=pendingRequest(topic,25);
-    client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};client.handlers.get("session_request")!(event);
+    client.active[topic]={topic,pairingTopic:"0".repeat(64),peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};client.handlers.get("session_request")!(event);
     if(action==="decided")await runtime.respond([account]);runtime.pauseForLock(account);
     if(action==="namespace")client.handlers.get("session_update")!({topic,params:{namespaces:{}}});
     if(action==="expired")client.active[topic].expiry=1;
@@ -196,7 +196,7 @@ test("locked requests never resume after account switch, session drift, expiry o
 });
 
 test("locking while SDK connection approval is pending cannot restore or publish that decided proposal",async()=>{
-  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();await runtime.pair(pairingUri("0".repeat(64)));
   let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve}),approve=client.approveSession.bind(client);
   client.approveSession=async(value:any)=>{await gate;return approve(value)};
   client.handlers.get("session_proposal")!(pendingProposal());
@@ -209,8 +209,8 @@ test("locking while SDK connection approval is pending cannot restore or publish
 test("first arrival while locked retains one authorized request and proposal for fresh review only",async()=>{
   for(const action of ["same","account","namespace","expired","delete"]){
     const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
-    const account="0x"+"a".repeat(40),topic="6".repeat(64),event=pendingRequest(topic,26),proposal={...pendingProposal(),params:{expiryTimestamp:Math.floor(Date.now()/1000)+60}};
-    client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};
+    const account="0x"+"a".repeat(40),topic="6".repeat(64),event=pendingRequest(topic,26),proposal={...pendingProposal(),params:{pairingTopic:"0".repeat(64),expiryTimestamp:Math.floor(Date.now()/1000)+60}};
+    client.active[topic]={topic,pairingTopic:"0".repeat(64),peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};
     runtime.pauseForLock(account);client.handlers.get("session_request")!(event);client.handlers.get("session_proposal")!(proposal);
     runtime.pauseForLock(account);assert.equal(runtime.snapshot().request,null);assert.equal(runtime.snapshot().proposal,null);assert.equal(client.responses.length,0);
     client.handlers.get("session_request")!(pendingRequest(topic,27));assert.equal(client.responses[0].response.id,27);
@@ -233,7 +233,7 @@ test("completed local request decisions cannot be approved again after response 
 });
 
 test("proposal rejection clears local approval UI even when relay response fails",async()=>{
-  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();client.failRejections=true;
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();await runtime.pair(pairingUri("0".repeat(64)));client.failRejections=true;
   client.handlers.get("session_proposal")!(pendingProposal());
   await assert.rejects(runtime.rejectProposal(),/reject unavailable/);assert.equal(runtime.snapshot().proposal,null);
 });
@@ -275,7 +275,7 @@ const tick=()=>new Promise<void>(resolve=>setTimeout(resolve,0));
 test("pair deadline releases busy state, quarantines late proposals and permits a fresh retry",async()=>{
   const client=fakeClient(),cleanups:string[]=[],rejected:number[]=[];let finish!:()=>void;
   client.pair=()=>new Promise<void>(resolve=>{finish=resolve});
-  Object.assign(client,{core:{pairing:{disconnect:async({topic}:any)=>{cleanups.push(topic)}}}});
+  Object.assign(client,{core:{pairing:{getPairings:()=>[],disconnect:async({topic}:any)=>{cleanups.push(topic)}}}});
   client.rejectSession=async(value?:any)=>{rejected.push(value.id)};
   const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,10);await runtime.start();
   const old="1".repeat(64),fresh="2".repeat(64);
@@ -294,7 +294,7 @@ test("cancel and account lock settle pairing promptly even when cleanup fails, w
   for(const action of ["cancel","lock"]){
     const client=fakeClient();let finish!:()=>void;
     client.pair=()=>new Promise<void>(resolve=>{finish=resolve});
-    Object.assign(client,{core:{pairing:{disconnect:async()=>{throw new Error("relay unavailable")}}}});
+    Object.assign(client,{core:{pairing:{getPairings:()=>[],disconnect:async()=>{throw new Error("relay unavailable")}}}});
     const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100);await runtime.start();
     const topic="3".repeat(64),pairing=runtime.pair(pairingUri(topic));await tick();
     const rejected=assert.rejects(pairing,/canceled/);
@@ -316,7 +316,7 @@ test("SDK pair rejection recovers and rejects malformed URI before transport",as
 
 test("a canceled visible proposal is removed before transport cleanup and cannot approve later",async()=>{
  const client=fakeClient();client.pair=()=>new Promise<void>(()=>{});
- Object.assign(client,{core:{pairing:{disconnect:async()=>{}}}});
+ Object.assign(client,{core:{pairing:{getPairings:()=>[],disconnect:async()=>{}}}});
  const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100);await runtime.start();
  const topic="6".repeat(64),pairing=runtime.pair(pairingUri(topic));await tick();
  client.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:topic}});
@@ -326,7 +326,7 @@ test("a canceled visible proposal is removed before transport cleanup and cannot
 
 test("SDK cleanup timeout is explicitly unconfirmed and never keeps pair busy",async()=>{
  const client=fakeClient();client.pair=()=>new Promise<void>(()=>{});
- Object.assign(client,{core:{pairing:{disconnect:()=>new Promise<void>(()=>{})}}});
+ Object.assign(client,{core:{pairing:{getPairings:()=>[],disconnect:()=>new Promise<void>(()=>{})}}});
  const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,10);await runtime.start();
  await assert.rejects(runtime.pair(pairingUri("7".repeat(64))),/timed out/);
  assert.equal(runtime.snapshot().pairing,false);assert.equal(runtime.snapshot().pairingCleanup,"pending");
@@ -335,7 +335,7 @@ test("SDK cleanup timeout is explicitly unconfirmed and never keeps pair busy",a
 
 test("valid proposal received during deferred SDK pair survives automatic lock/unlock as the same event",async()=>{
  const client=fakeClient();client.pair=()=>new Promise<void>(()=>{});const cleanups:string[]=[];
- Object.assign(client,{core:{pairing:{disconnect:async({topic}:any)=>{cleanups.push(topic)}}}});
+ Object.assign(client,{core:{pairing:{getPairings:()=>[],disconnect:async({topic}:any)=>{cleanups.push(topic)}}}});
  const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100);await runtime.start();
  const topic="8".repeat(64),pairing=runtime.pair(pairingUri(topic));await tick();
  const proposal={...pendingProposal(),params:{...pendingProposal().params,pairingTopic:topic,expiryTimestamp:Math.floor(Date.now()/1000)+60}};
@@ -360,7 +360,7 @@ test("unverified secure journal write prevents SDK pairing",async()=>{
 });
 
 test("automatic Modal disposal preserves approved session and cold restoration does not revoke it",async()=>{
- const client=fakeClient(),cleanups:string[]=[];Object.assign(client,{core:{pairing:{disconnect:async({topic}:any)=>{cleanups.push(topic)}}}});
+ const client=fakeClient(),cleanups:string[]=[];Object.assign(client,{core:{pairing:{getPairings:()=>[],disconnect:async({topic}:any)=>{cleanups.push(topic)}}}});
  const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100);await runtime.start();const topic="d".repeat(64);await runtime.pair(pairingUri(topic));
  client.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:topic}});const session=await runtime.approveProposal({});runtime.refreshSessions();runtime.cancelPendingPair();
  assert.ok(client.active[session.topic]);assert.deepEqual(cleanups,[]);assert.deepEqual(client.disconnects,[]);
@@ -382,4 +382,34 @@ test("older installed unapproved pairing is quarantined on upgrade, but an activ
  const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100,{load:async()=>[],record:async(topic)=>{records.push(topic)}});await runtime.start();
  assert.deepEqual(records,[old]);client.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:old}});assert.equal(runtime.snapshot().proposal,null);
  runtime.cancelPendingPair();assert.equal(runtime.snapshot().sessions.length,1);assert.deepEqual(client.disconnects,[]);
+});
+
+test("journal admits more than100 expired attempts without evicting a live canceled topic",async()=>{
+ let now=1000;const values=new Map<string,string>(),storage={getItem:async(key:string)=>values.get(key)??null,setItem:async(key:string,value:string)=>{values.set(key,value)},deleteItem:async(key:string)=>{values.delete(key)}};
+ const journal=new WalletConnectPairingJournal(storage,()=>now),live="f".repeat(64);await journal.record(live,10000);
+ for(let i=0;i<150;i++){await journal.record(i.toString(16).padStart(64,"0"),now+1);now+=2;}
+ assert.deepEqual(await new WalletConnectPairingJournal(storage,()=>now).load(),[live]);
+ const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100,new WalletConnectPairingJournal(storage,()=>now));await runtime.start();
+ client.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:live}});assert.equal(runtime.snapshot().proposal,null);
+});
+
+test("unknown late proposals after journal expiry pruning fail closed while a fresh initiated Pair works",async()=>{
+ const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100,{load:async()=>[],record:async()=>{}});await runtime.start();
+ await client.handlers.get("session_proposal")!({...pendingProposal(),params:{pairingTopic:"1".repeat(64),expiryTimestamp:Math.floor(Date.now()/1000)+60}});assert.equal(runtime.snapshot().proposal,null);
+ await runtime.pair(pairingUri("2".repeat(64)));const proposal={...pendingProposal(),params:{pairingTopic:"2".repeat(64),expiryTimestamp:Math.floor(Date.now()/1000)+60}};await client.handlers.get("session_proposal")!(proposal);assert.equal(runtime.snapshot().proposal,proposal);
+});
+
+test("SDK removal retires quarantine only after the original deferred pair has settled",async()=>{
+ const client=fakeClient(),retired:string[]=[];let finish!:()=>void;client.pair=()=>new Promise<void>(resolve=>{finish=resolve});
+ Object.assign(client,{core:{pairing:{getPairings:()=>[],disconnect:async()=>{}}}});
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,10,{load:async()=>[],record:async()=>{},retire:async(topic)=>{retired.push(topic)}});await runtime.start();const topic="3".repeat(64);
+ await assert.rejects(runtime.pair(pairingUri(topic)),/timed out/);await tick();assert.deepEqual(retired,[]);
+ finish();await tick();assert.deepEqual(retired,[topic]);assert.equal(runtime.snapshot().pairingCleanup,"sdk-confirmed");
+});
+
+test("unpublished v1 journal migrates conservatively until actual SDK expiry is known",async()=>{
+ const key="ynx.wallet.walletconnect.pairing-quarantine.v1",topic="4".repeat(64),values=new Map([[key,JSON.stringify({version:1,topics:[topic]})]]);
+ const journal=new WalletConnectPairingJournal({getItem:async(key)=>values.get(key)??null,setItem:async(key,value)=>{values.set(key,value)},deleteItem:async()=>{}},()=>1000);
+ assert.deepEqual(await journal.load(),[topic]);await journal.record(topic,2000);assert.equal(JSON.parse(values.get(key)!).version,2);
+ const cold=new WalletConnectPairingJournal({getItem:async(key)=>values.get(key)??null,setItem:async()=>{},deleteItem:async()=>{}},()=>2001);assert.deepEqual(await cold.load(),[]);
 });
