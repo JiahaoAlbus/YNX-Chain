@@ -10,6 +10,7 @@ const guoqingCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-ca
 const transportCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-be66f758-20260930.json';
 const journeyCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-2160807a-20260930.json';
 const intentCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-cdaedfad-20260930.json';
+const clockCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-82314ab0-20260930.json';
 const expectedInputs = Object.freeze([
   'apps/finance/package.json', 'apps/finance/package-lock.json',
   'apps/finance/web/package.json', 'apps/finance/web/package-lock.json',
@@ -27,7 +28,7 @@ const fail = code => { throw new Error(`FINANCE_EVM_READ_${code}`); };
 
 export async function verifyEVMReadCandidate({ root = repoRoot, read = readFile, pinnedCandidateSha256, candidatePath: reviewedCandidatePath = candidatePath } = {}) {
   if (!/^[0-9a-f]{64}$/u.test(pinnedCandidateSha256 || '')) fail('CANDIDATE_PIN_REQUIRED');
-  if (![candidatePath,guoqingCandidatePath,transportCandidatePath,journeyCandidatePath,intentCandidatePath].includes(reviewedCandidatePath)) fail('CANDIDATE_PATH_UNREVIEWED');
+  if (![candidatePath,guoqingCandidatePath,transportCandidatePath,journeyCandidatePath,intentCandidatePath,clockCandidatePath].includes(reviewedCandidatePath)) fail('CANDIDATE_PATH_UNREVIEWED');
   const snapshot = new Map();
   const get = async path => {
     if (!snapshot.has(path)) snapshot.set(path, Buffer.from(await read(resolve(root, path))));
@@ -42,7 +43,7 @@ export async function verifyEVMReadCandidate({ root = repoRoot, read = readFile,
       candidate.truth?.deployedPublic !== false || candidate.truth?.privateFinanceAuthorized !== false ||
       candidate.truth?.realWalletApproval !== false || candidate.truth?.orderOrTransactionAuthorized !== false ||
       candidate.existingVerifierPin?.pinChanged !== false) fail('CANDIDATE_AUTHORITY_DRIFT');
-  const currentShape=[guoqingCandidatePath,transportCandidatePath,journeyCandidatePath,intentCandidatePath].includes(reviewedCandidatePath);
+  const currentShape=[guoqingCandidatePath,transportCandidatePath,journeyCandidatePath,intentCandidatePath,clockCandidatePath].includes(reviewedCandidatePath);
   const inputs=currentShape?[...expectedInputs,'apps/finance/web/app.js','apps/finance/web/finance-locale.js']:expectedInputs;
   if (JSON.stringify(candidate.exactInputs?.map(item => item.path)) !== JSON.stringify(inputs)) fail('INPUT_SET_DRIFT');
   for (const item of candidate.exactInputs) {
