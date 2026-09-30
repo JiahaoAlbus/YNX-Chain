@@ -129,6 +129,7 @@ export class CentralBrowserSessionAuthority {
     return this.#transaction((state,now)=>{
       const grant=state.grants.find(value=>equal(value.tokenHash,hash(grantToken)));
       if(!grant||grant.clientId!==clientId||grant.expiresAt<=now)fail('SSO_GRANT_INVALID');
+      if(grant.revoked)return {revoked:true};
       const session=state.sessions.find(value=>value.id===grant.sessionId);
       if(!session||session.generation!==grant.generation||session.revoked)return {revoked:true};
       this.#assertActive(session,now);
