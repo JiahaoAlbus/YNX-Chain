@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/quantlab"
 	"log"
 	"net/http"
@@ -26,6 +27,18 @@ func main() {
 	var testnetBroker quantlab.TestnetBroker
 	var sessionCompleter quantlab.WalletSessionCompleter
 	var privateSession quantlab.ProductSessionAuthorizer
+	var browserSSO *productsessionv2.BrowserSSO
+	centralEnabled, err := centralBrowserSSOEnabled(os.Getenv("YNX_QUANT_CENTRAL_BROWSER_SSO"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if centralEnabled {
+		var err error
+		browserSSO, err = productsessionv2.NewBrowserSSO("quant", quantlab.QuantPrivateAuthority, []byte(os.Getenv("YNX_QUANT_BROWSER_SSO_COOKIE_KEY")), []string{"research", "strategies", "experiments", "portfolio", "paper", "testnet", "risk", "audit"}, nil)
+		if err != nil {
+			log.Fatal("invalid Quant browser identity policy or durable cookie key")
+		}
+	}
 	if os.Getenv("YNX_QUANT_PRIVATE_SESSION_V2_ENABLED") == "1" {
 		client, err := quantlab.NewQuantPrivateSessionClient()
 		if err != nil {
@@ -40,13 +53,17 @@ func main() {
 		testnetBroker = adapter
 		sessionCompleter = adapter
 	}
-	s, e := quantlab.NewTenantServer(quantlab.Config{StatePath: state, FinanceReadKey: os.Getenv("YNX_QUANT_FINANCE_READ_KEY"), DatabaseURL: databaseURL, StateNamespace: stateNamespace, MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker, SessionCompleter: sessionCompleter, PrivateSession: privateSession}, "all")
+	s, e := quantlab.NewTenantServer(quantlab.Config{StatePath: state, FinanceReadKey: os.Getenv("YNX_QUANT_FINANCE_READ_KEY"), DatabaseURL: databaseURL, StateNamespace: stateNamespace, MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker, SessionCompleter: sessionCompleter, PrivateSession: privateSession, BrowserSSO: browserSSO}, "all")
 	if e != nil {
 		log.Fatal(e)
 	}
 	defer s.Close()
 	mux := http.NewServeMux()
 	registerFinanceOwnerRead(mux, s)
+	if browserSSO != nil {
+		mux.HandleFunc("GET /sso/start", browserSSO.Start)
+		mux.HandleFunc("GET /sso/callback", browserSSO.Callback)
+	}
 	mux.Handle("/api/", http.StripPrefix("/api", s))
 	mux.HandleFunc("/wallet-auth/callback", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "apps/quant-lab/web/index.html") })
 	mux.HandleFunc("/wallet-action/callback", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "apps/quant-lab/web/index.html") })
@@ -75,6 +92,17 @@ func env(k, v string) string {
 	}
 	return v
 }
+func centralBrowserSSOEnabled(value string) (bool, error) {
+	switch value {
+	case "", "false":
+		return false, nil
+	case "true":
+		return true, nil
+	default:
+		return false, errors.New("YNX_QUANT_CENTRAL_BROWSER_SSO must be true or false")
+	}
+}
+
 func headers(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" || r.URL.Path == "/index.html" || r.URL.Path == "/wallet-auth/callback" || r.URL.Path == "/wallet-action/callback" {

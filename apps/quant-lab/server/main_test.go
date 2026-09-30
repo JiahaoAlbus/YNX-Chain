@@ -41,6 +41,15 @@ func TestQuantHTMLNoStoreAndVersionedAssets(t *testing.T) {
 	}
 }
 
+func TestQuantCentralBrowserSSOExplicitBoolean(t *testing.T) {
+	for _, value := range []string{"", "false", "true", "TRUE", "1", " true", "false "} {
+		enabled, err := centralBrowserSSOEnabled(value)
+		if enabled != (value == "true") || (err == nil) != (value == "" || value == "false" || value == "true") {
+			t.Fatalf("unexpected explicit configuration result for %q", value)
+		}
+	}
+}
+
 func TestFinanceOwnerReadRoutePreservesCanonicalSignedPath(t *testing.T) {
 	mux := http.NewServeMux()
 	registerFinanceOwnerRead(mux, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

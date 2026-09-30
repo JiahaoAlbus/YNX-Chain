@@ -61,6 +61,14 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 	v.mux.HandleFunc("GET /metrics", v.metricsHandler)
 	v.mux.HandleFunc("POST /v1/wallet/sessions/complete", v.completeWalletSession)
 	v.mux.HandleFunc("POST /v1/wallet/private-account", v.privateAccount)
+	v.mux.HandleFunc("POST /v1/wallet/private-records", v.privateRecords)
+	v.mux.HandleFunc("GET /v1/sso/config", func(w http.ResponseWriter, r *http.Request) {
+		write(w, 200, map[string]bool{"enabled": s.cfg.BrowserSSO != nil})
+	})
+	if s.cfg.BrowserSSO != nil {
+		v.mux.HandleFunc("GET /v1/sso/account", s.cfg.BrowserSSO.Account)
+		v.mux.HandleFunc("POST /v1/sso/logout", s.cfg.BrowserSSO.Logout)
+	}
 	if role == "all" || role == "research" {
 		v.mux.HandleFunc("POST /v1/public/research/backtests/from-market", v.publicBacktestFromMarket)
 		v.mux.HandleFunc("POST /v1/datasets", v.dataset)

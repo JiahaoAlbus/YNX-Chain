@@ -3,18 +3,33 @@ import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDA
 import {ensureYNXTestnet} from './ynx-testnet.js';
 import {createHostedWalletAdapter} from '../vendor/hosted-wallet-adapter-19d8a9a2.js';
 import {mountPrivateSession,beginPrivateSession,retryPrivateSession,revokePrivateSession,handlePrivateReturn,getPrivateSessionState,privateAccount,requireNativeExecutionProof} from './private-session.js';
+import {mountRecordsSession,beginRecordsSession,readPrivateRecords,revokeRecordsSession} from './records-session.js';
+import {mountBrowserSSO} from './browser-sso.js';
 
 const INSTALL_URL='https://www.ynxweb4.com/dapp/download',METAMASK_URL='https://metamask.io/download/';
 const PROVIDER_KEY='ynx.quant.standard-wallet.v1.provider';
 const QUANT_ORIGIN='https://quant.ynxweb4.com';
 let standardWallet=null,standardWalletState=createStandardWalletConnectState(),standardProvider=null,standardConnection=null,hostedAdapter=null,standardTransport=null,detachProviderEvents=()=>{},walletRevision=0,walletIntent=0,walletBusy=false,revokingConnection=null;
-window.YNXQuantWallet=Object.freeze({connect:beginAuthorization,connectHosted,handleCallback:handlePrivateReturn,requireProof:requireNativeExecutionProof,retry:beginAuthorization,revoke:revokePrivateSession,beginPrivateSession,retryPrivateSession,getPrivateSessionState,privateAccount,revokeStandardWallet,connectMetaMask,restoreStandardWallet,disconnectStandardWallet,getStandardWalletState:()=>standardWalletState,readPortfolio,reportRpcProbe:reportQuantRpcProbe});
+window.YNXQuantWallet=Object.freeze({connect:beginAuthorization,connectHosted,handleCallback:handlePrivateReturn,requireProof:requireNativeExecutionProof,retry:beginAuthorization,revoke:revokePrivateSession,beginPrivateSession,retryPrivateSession,getPrivateSessionState,privateAccount,revokeStandardWallet,connectMetaMask,restoreStandardWallet,disconnectStandardWallet,getStandardWalletState:()=>standardWalletState,readPortfolio,reportRpcProbe:reportQuantRpcProbe,requestProductSessionV2,getPrivateWalletContext,beginRecordsSession,readPrivateRecords,revokeRecordsSession});
 window.addEventListener('DOMContentLoaded',boot,{once:true});
 window.addEventListener('DOMContentLoaded',mountPrivateSession,{once:true});
+window.addEventListener('DOMContentLoaded',mountRecordsSession,{once:true});
+window.addEventListener('DOMContentLoaded',mountBrowserSSO,{once:true});
 window.addEventListener('DOMContentLoaded',()=>document.querySelector('#wallet-revoke')?.addEventListener('click',()=>revokeStandardWallet().catch(showError)),{once:true});
 window.addEventListener('pagehide',()=>{walletIntent++;walletRevision++;walletBusy=false;detachProvider();});
 window.addEventListener('pageshow',event=>{if(event.persisted)restoreStandardWallet().catch(showError);});
 function randomNonce(){return Array.from(crypto.getRandomValues(new Uint8Array(32)),value=>value.toString(16).padStart(2,'0')).join('');}
+// Raw official route only. Never convert an EVM address to a native subject.
+function getPrivateWalletContext(){return Object.freeze({provider:standardProvider,account:standardWalletState.account,chainId:standardWalletState.chainId,providerKind:standardWalletState.providerKind,status:standardWalletState.status,revision:walletRevision});}
+async function requestProductSessionV2(routeURL){
+  const provider=standardProvider,account=standardWalletState.account,chain=standardWalletState.chainId,revision=walletRevision;
+  if(!provider?.request||standardWalletState.status!=='connected'||standardWalletState.providerKind!=='ynx-wallet'||chain!=='0x1917')throw Object.assign(new Error('YNX_NATIVE_PROVIDER_REQUIRED'),{code:'YNX_NATIVE_PROVIDER_REQUIRED'});
+  const assert=()=>{if(provider!==standardProvider||account!==standardWalletState.account||chain!==standardWalletState.chainId||revision!==walletRevision||standardWalletState.status!=='connected')throw Object.assign(new Error('PRIVATE_OPERATION_SUPERSEDED'),{code:'PRIVATE_OPERATION_SUPERSEDED'});};
+  assert();let timer;
+  const response=await Promise.race([provider.request({method:'ynx_requestProductSessionV2',params:[routeURL]}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error('PRIVATE_REQUEST_TIMEOUT'),{code:'PRIVATE_REQUEST_TIMEOUT'})),60000);})]).finally(()=>clearTimeout(timer));assert();
+  if(response?.version!==2||typeof response.returnUrl!=='string'||Object.keys(response).sort().join(',')!=='returnUrl,version')throw Object.assign(new Error('PRIVATE_RETURN_INVALID'),{code:'PRIVATE_RETURN_INVALID'});
+  return response;
+}
 async function boot(){document.querySelector('#connect-wallet')?.addEventListener('click',()=>standardWalletState.status==='connected'?showStatus(`Standard ${walletLabel()}: ${standardWalletState.account||'—'} on ${standardWalletState.chainId||'—'}. Product Session remains DEGRADED.`):beginAuthorization().catch(showError));document.querySelector('#connect-hosted')?.addEventListener('click',()=>connectHosted().catch(showError));document.querySelector('#connect-metamask')?.addEventListener('click',()=>connectMetaMask().catch(showError));document.querySelector('#wallet-details')?.addEventListener('click',()=>showStatus(`Standard ${walletLabel()}: ${standardWalletState.account||'—'} on ${standardWalletState.chainId||'—'}. Product Session remains DEGRADED.`));document.querySelector('#wallet-disconnect')?.addEventListener('click',disconnectStandardWallet);document.querySelector('#wallet-switch')?.addEventListener('click',()=>{disconnectStandardWallet();showStatus('Choose Installed YNX Wallet, YNX Wallet Web or MetaMask to switch providers. No account request was sent.');});document.querySelector('#install-wallet')?.setAttribute('href',INSTALL_URL);document.querySelector('#install-metamask')?.setAttribute('href',METAMASK_URL);await restoreStandardWallet().catch(()=>null);render();}
 function walletLabel(){return standardWalletState.providerKind==='metamask'?'MetaMask':standardTransport==='hosted-wallet-web'?'YNX Wallet Web':'YNX Wallet';}
 function savedProviderKind(){try{const value=localStorage.getItem(PROVIDER_KEY);return value==='ynx-wallet'||value==='metamask'?value:null;}catch{return null;}}
@@ -35,7 +50,20 @@ function transition(event){standardWalletState=reduceStandardWalletConnectState(
 function providerKind(label){return label==='MetaMask'?'metamask':'ynx-wallet';}
 function detachProvider(){detachProviderEvents();detachProviderEvents=()=>{};const previous=standardConnection,hosted=hostedAdapter;standardConnection=null;hostedAdapter=null;standardProvider=null;standardTransport=null;previous?.disconnect();try{Promise.resolve(hosted?.disconnect()).catch(()=>{});}catch{}}
 function createProviderConnection(provider){const connection=new StandardWalletConnection({provider,origin:QUANT_ORIGIN,metadata:{name:'YNX Quant',url:QUANT_ORIGIN}});standardConnection=connection;standardProvider=provider;return connection;}
-function bindProvider(provider,connection){standardProvider=provider;detachProviderEvents=connection.subscribe(({event,value})=>{if(connection!==standardConnection||!['accountsChanged','chainChanged','disconnect'].includes(event))return;const previous=[standardWalletState.status,standardWalletState.account,standardWalletState.chainId].join(':');try{if(event==='accountsChanged')transition({type:'ACCOUNTS_CHANGED',accounts:value});else if(event==='chainChanged')transition({type:'CHAIN_CHANGED',chainId:value});else if(event==='disconnect'){if(revokingConnection!==connection){disconnectStandardWallet();return;}transition({type:'DISCONNECT'});}if(previous!==[standardWalletState.status,standardWalletState.account,standardWalletState.chainId].join(':'))walletRevision++;syncStandardWallet();}catch(error){disconnectStandardWallet();showError(error);}});}
+function bindProvider(provider,connection){standardProvider=provider;detachProviderEvents=connection.subscribe(({event,value})=>{
+  if(connection!==standardConnection||!['accountsChanged','chainChanged','disconnect'].includes(event))return;
+  const previous=[standardWalletState.status,standardWalletState.account,standardWalletState.chainId].join(':');
+  try{
+    if(event==='accountsChanged')transition({type:'ACCOUNTS_CHANGED',accounts:value});
+    else if(event==='chainChanged')transition({type:'CHAIN_CHANGED',chainId:value});
+    else if(event==='disconnect'){if(revokingConnection!==connection){disconnectStandardWallet();window.dispatchEvent(new CustomEvent('ynx:quant-wallet-context',{detail:{identityChanged:false}}));return;}transition({type:'DISCONNECT'});}
+    if(previous!==[standardWalletState.status,standardWalletState.account,standardWalletState.chainId].join(':')){
+      walletRevision++;
+      window.dispatchEvent(new CustomEvent('ynx:quant-wallet-context',{detail:{identityChanged:event==='accountsChanged'||event==='chainChanged'&&standardWalletState.chainId!=='0x1917'}}));
+    }
+    syncStandardWallet();
+  }catch(error){disconnectStandardWallet();showError(error);}
+});}
 function syncStandardWallet(){if(standardWalletState.status==='connected')standardWallet=Object.freeze({provider:standardWalletState.providerKind,accounts:[standardWalletState.account],connectionState:standardWalletState});else standardWallet=null;render();}
 function disconnectStandardWallet(){walletIntent++;walletRevision++;walletBusy=false;rememberProvider(null);detachProvider();transition({type:'DISCONNECT'});standardWallet=null;render();showStatus('Standard Wallet disconnected locally; wallet permissions were not revoked. Research and Paper remain available.');}
 async function connectStandardWallet(provider,label,revision){

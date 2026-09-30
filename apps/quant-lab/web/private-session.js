@@ -65,7 +65,7 @@ export async function privateAccount(tenantId){
   const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
   let response,account;
   try{
-    response=await fetch('/api/v1/wallet/private-account',{method:'POST',credentials:'omit',cache:'no-store',redirect:'error',signal:controller.signal,headers:{'content-type':'application/json','X-YNX-Tenant-ID':tenantId,'X-YNX-Product-Session-Proof-V2':authorization.proofHeader},body:'{}'});
+    response=await fetch('/api/v1/wallet/private-account',{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal,headers:{'content-type':'application/json','X-YNX-Tenant-ID':tenantId,'X-YNX-Product-Session-Proof-V2':authorization.proofHeader},body:'{}'});
     if(!response.ok)fail(response.status===401||response.status===403?'PRIVATE_AUTHORIZATION_REJECTED':'PRIVATE_ACCOUNT_UNAVAILABLE');
     if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||''))fail('PRIVATE_ACCOUNT_BINDING_MISMATCH');
     const text=await response.text();if(text.length>16384)fail('PRIVATE_ACCOUNT_BINDING_MISMATCH');account=JSON.parse(text);
