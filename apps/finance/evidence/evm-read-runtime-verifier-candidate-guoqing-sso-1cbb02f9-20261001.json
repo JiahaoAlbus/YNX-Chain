@@ -1,0 +1,233 @@
+{
+  "schemaVersion": "ynx.finance.evm-read-runtime-verifier-candidate.v1",
+  "status": "INDEPENDENT_REVIEW_REQUIRED_NOT_PINNED_NOT_PUBLIC",
+  "reviewedOwnerSource": {
+    "commit": "1cbb02f9d82c2a83003fed678f5a9489282045c3",
+    "tree": "ee34e2c9add126ebc63fa4b7ad4e06c69e17023d"
+  },
+  "sharedWalletAuthSource": {
+    "commit": "3a49d5f1c7609b3f7fa3b561c121dc22fae44caf",
+    "tree": "4d46b06f77667715c1dbd96c89787fdd42d0dd8e",
+    "packageRoot": "packages/wallet-auth/src/index.js",
+    "packageLock": "packages/wallet-auth/package-lock.json"
+  },
+  "existingVerifierPin": {
+    "path": "apps/finance/web/verify-wallet-connect.mjs",
+    "reviewedManifestSha256": "9cbc39d8b9e80345965d6e0b7768bd4c6582bbeff4ef0e8ba2a5224e3d2c46eb",
+    "pinChanged": false
+  },
+  "sourceBundleRelations": [
+    {
+      "kind": "browser",
+      "entry": "apps/finance/scripts/evm-read-browser-entry.mjs",
+      "bundle": "apps/finance/web/evm-read-session.js",
+      "command": "esbuild apps/finance/scripts/evm-read-browser-entry.mjs --bundle --minify --platform=browser --target=es2022 --outfile=apps/finance/web/evm-read-session.js",
+      "tool": "esbuild@0.25.9",
+      "independentRebuilds": 2,
+      "cleanExtractionBuilds": 0,
+      "byteReproducibleInCurrentWorkspace": true,
+      "dependencyGraphInputs": 79,
+      "repositoryGraphInputs": 63,
+      "lockedDependencyGraphInputs": 16,
+      "dependencyGraphSha256": "2eb060528523095c330aa130e88cd5e86361a04253788a8827568ae7c74f88e3",
+      "bundleBytes": 68362,
+      "bundleSha256": "be89b770dd33af4f97babc3e50f119fcdf12dabaf7fd779ee05ee3401a24ee83"
+    },
+    {
+      "kind": "node",
+      "entry": "apps/finance/scripts/evm-read-session-authority.mjs",
+      "bundle": "apps/finance/scripts/evm-read-session-authority.bundle.mjs",
+      "command": "esbuild apps/finance/scripts/evm-read-session-authority.mjs --bundle --platform=node --target=node22 --format=esm --outfile=apps/finance/scripts/evm-read-session-authority.bundle.mjs",
+      "tool": "esbuild@0.25.9",
+      "independentRebuilds": 2,
+      "cleanExtractionBuilds": 0,
+      "byteReproducibleInCurrentWorkspace": true,
+      "dependencyGraphInputs": 79,
+      "repositoryGraphInputs": 63,
+      "lockedDependencyGraphInputs": 16,
+      "dependencyGraphSha256": "10b6fb32e7afdf6f76339c33e004b997e2b5e9fd60399aeec49036492e82c033",
+      "bundleBytes": 119293,
+      "bundleSha256": "a61fa1555398d9612092013dd3802240a37230a4bd5196cad9ddc4a0014e6cf6"
+    }
+  ],
+  "exactInputs": [
+    {
+      "path": "apps/finance/package.json",
+      "bytes": 795,
+      "sha256": "e838d2925b664b30f127abd14fa3860a54529714f4db192aab110aa5528cada6"
+    },
+    {
+      "path": "apps/finance/package-lock.json",
+      "bytes": 16882,
+      "sha256": "8d9a429d198577babbffc7a315591cc8cde6657f34eea3e4b6af950b99591f33"
+    },
+    {
+      "path": "apps/finance/web/package.json",
+      "bytes": 993,
+      "sha256": "2c13d6fe0063a6954803bc1eb573b0635853f55e74aba179d1a057265a0c43b8"
+    },
+    {
+      "path": "apps/finance/web/package-lock.json",
+      "bytes": 17389,
+      "sha256": "35743dedd9523cadf1d057a67bc0d4a7c5771c86a54e252e6fa7ff2015394c6f"
+    },
+    {
+      "path": "apps/finance/web/index.html",
+      "bytes": 32397,
+      "sha256": "c30701ce438fbed35594dbd485b7cae549b12211c1bc177ffa4f5fbf9fb7b851"
+    },
+    {
+      "path": "apps/finance/web/evm-read-session.js",
+      "bytes": 68362,
+      "sha256": "be89b770dd33af4f97babc3e50f119fcdf12dabaf7fd779ee05ee3401a24ee83"
+    },
+    {
+      "path": "apps/finance/scripts/evm-read-browser-entry.mjs",
+      "bytes": 19783,
+      "sha256": "db40de9a80351bd51bc5e1e79b3b97e0772a3c1a0a439b1850fc4ea5dc944489"
+    },
+    {
+      "path": "apps/finance/scripts/evm-read-session-authority.mjs",
+      "bytes": 2794,
+      "sha256": "d85f714a016314f110e4f26cf0efd66c06b1481b6c498ddebd78312ea433eb8a"
+    },
+    {
+      "path": "apps/finance/scripts/evm-read-session-authority.bundle.mjs",
+      "bytes": 119293,
+      "sha256": "a61fa1555398d9612092013dd3802240a37230a4bd5196cad9ddc4a0014e6cf6"
+    },
+    {
+      "path": "apps/finance/scripts/finance-nonregressive-runtime.mjs",
+      "bytes": 3181,
+      "sha256": "1cd69c32854af88b0b2aa8c0653f1a7868f369b2cecaffc0cdabbd608338322e"
+    },
+    {
+      "path": "internal/finance/server.go",
+      "bytes": 39704,
+      "sha256": "5c87358c57b94bf37970749f32ee3f69bcc1352431f087bb0971cafe658bfd55"
+    },
+    {
+      "path": "internal/finance/drain.go",
+      "bytes": 3234,
+      "sha256": "bb4f621e768163b3e209cf61fd9719d8b567cc1771fa8384b0ce9a3cbe4ea1f3"
+    },
+    {
+      "path": "packages/wallet-auth/package.json",
+      "bytes": 5171,
+      "sha256": "328613ddabd5b50d02ff869b9422949a92c5d117b162be043e39b1654c3a2e49"
+    },
+    {
+      "path": "packages/wallet-auth/package-lock.json",
+      "bytes": 16436,
+      "sha256": "5e6b6257b1eb488527618b184af6e6427940b1ca8b892f6fcaf9db226639d9b2"
+    },
+    {
+      "path": "packages/wallet-auth/src/index.js",
+      "bytes": 2949,
+      "sha256": "b013f0e6864319338e279c0bf30653e15add3b5ce8888a51cae33c7b8656f049"
+    },
+    {
+      "path": "packages/wallet-auth/src/evm-product-session.js",
+      "bytes": 23584,
+      "sha256": "cc80f0f11d104967e30f5f8ad4da91be830b9af5c86c81c478edcfdc16dddb52"
+    },
+    {
+      "path": "apps/finance/web/app.js",
+      "bytes": 78926,
+      "sha256": "9f78360c39b9cbb9f5b9217c25e638cfb1d9430b7c7db051365098f12b28f2c2"
+    },
+    {
+      "path": "apps/finance/web/finance-locale.js",
+      "bytes": 436347,
+      "sha256": "5c2bf6b830319ef0ffc1c4013c963c0e02d153c3f551b3073cbb2b81247aab41"
+    },
+    {
+      "path": "packages/wallet-auth/src/central-browser-session-contract.js",
+      "bytes": 3180,
+      "sha256": "f05d09d586f4a2aafb6b94b9687537b1791a7fa4f696b8ed6397d91227b70d05"
+    },
+    {
+      "path": "packages/wallet-auth/src/central-browser-session-registry.js",
+      "bytes": 1345,
+      "sha256": "ac8178c1025dca6b4c6f92851aec98a7301ef48db4c7561b25cef52d885014e7"
+    },
+    {
+      "path": "packages/wallet-auth/src/central-browser-session-store.js",
+      "bytes": 8111,
+      "sha256": "6e335a8b170c680b99d9a2d2a3ba18085467aa878ee114151e83f1fa7c5c4610"
+    },
+    {
+      "path": "packages/wallet-auth/src/central-browser-session.js",
+      "bytes": 20760,
+      "sha256": "4fd0c0785bde94809f4a41fef2d8a7e45f7e907de9cb61b90e5ed4cfa417b893"
+    },
+    {
+      "path": "packages/wallet-auth/src/central-browser-session-browser.js",
+      "bytes": 7579,
+      "sha256": "945592735717285473d324b414ef424ff2cf1dc8b924cb33b41a57b156847c41"
+    },
+    {
+      "path": "packages/wallet-auth/src/central-browser-session-browser.bundle.js",
+      "bytes": 41578,
+      "sha256": "3970de9a2f84a21276cda5af9239153ac3db19143e5a6e1c8131a89bdbac8a9f"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-gateway-node-host.js",
+      "bytes": 16785,
+      "sha256": "2897c9543ea093425af09bc37e2b957070f4100b8b2815e418a4b3668f03ddcc"
+    },
+    {
+      "path": "packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs",
+      "bytes": 8953,
+      "sha256": "da27d4d86d4f6f001822b3243e88c7f9cc410808406ea0fe2f1c167d119ed22e"
+    },
+    {
+      "path": "internal/finance/browser_sso.go",
+      "bytes": 12239,
+      "sha256": "ebaf18857d5b5df149824424ebc283d04a085ade17248d289e07768190499129"
+    },
+    {
+      "path": "internal/finance/browser_sso_binding.go",
+      "bytes": 4376,
+      "sha256": "20ed66bd1956f8a16774efaf6072a07e231ac1b2c32eca465aa94bedad103c3d"
+    },
+    {
+      "path": "internal/finance/store.go",
+      "bytes": 31867,
+      "sha256": "54a2942778903abeb3fcf34a29e6eb2e06d4eb19d2211257888df9f629235bec"
+    },
+    {
+      "path": "internal/finance/types.go",
+      "bytes": 8375,
+      "sha256": "b6f5d55ad9c3bb9340459ad66eda2deb0221cff230a99994d7d9f69b5c690b22"
+    },
+    {
+      "path": "apps/finance/cmd/server/main.go",
+      "bytes": 9802,
+      "sha256": "aa3a6316af7a3e1111cece7c279b125980c80c3fd13b050f267caabbd28fb037"
+    }
+  ],
+  "releaseClosure": {
+    "browserScript": "/evm-read-session.js",
+    "serverStaticAllowlisted": true,
+    "runtimeWebAssetIncluded": true,
+    "nodeAuthorityDestination": "authority-runtime/apps/finance/scripts/evm-read-session-authority.bundle.mjs",
+    "nodeAuthorityIncluded": true,
+    "serverEnvironmentRequired": [
+      "YNX_FINANCE_EVM_READ_NODE_BINARY",
+      "YNX_FINANCE_EVM_READ_SCRIPT"
+    ],
+    "serverEnvironmentConfiguredPublicly": false
+  },
+  "truth": {
+    "independentManifestReview": false,
+    "hardcodedVerifierPinUpdated": false,
+    "cleanExtractionVerified": false,
+    "deployedPublic": false,
+    "realWalletApproval": false,
+    "realWalletRejection": false,
+    "installedRuntime": false,
+    "privateFinanceAuthorized": false,
+    "orderOrTransactionAuthorized": false
+  }
+}
