@@ -14,6 +14,7 @@ const clockCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-cand
 const ssoCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-sso-48309f3a-20261001.json';
 const pairCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-pair-9220dbcb-20261001.json';
 const cliCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-cli-d4b37236-20261001.json';
+const recordsCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-records-b90b3348-20261001.json';
 const expectedInputs = Object.freeze([
   'apps/finance/package.json', 'apps/finance/package-lock.json',
   'apps/finance/web/package.json', 'apps/finance/web/package-lock.json',
@@ -31,7 +32,7 @@ const fail = code => { throw new Error(`FINANCE_EVM_READ_${code}`); };
 
 export async function verifyEVMReadCandidate({ root = repoRoot, read = readFile, pinnedCandidateSha256, candidatePath: reviewedCandidatePath = candidatePath } = {}) {
   if (!/^[0-9a-f]{64}$/u.test(pinnedCandidateSha256 || '')) fail('CANDIDATE_PIN_REQUIRED');
-  if (![candidatePath,guoqingCandidatePath,transportCandidatePath,journeyCandidatePath,intentCandidatePath,clockCandidatePath,ssoCandidatePath,pairCandidatePath,cliCandidatePath].includes(reviewedCandidatePath)) fail('CANDIDATE_PATH_UNREVIEWED');
+  if (![candidatePath,guoqingCandidatePath,transportCandidatePath,journeyCandidatePath,intentCandidatePath,clockCandidatePath,ssoCandidatePath,pairCandidatePath,cliCandidatePath,recordsCandidatePath].includes(reviewedCandidatePath)) fail('CANDIDATE_PATH_UNREVIEWED');
   const snapshot = new Map();
   const get = async path => {
     if (!snapshot.has(path)) snapshot.set(path, Buffer.from(await read(resolve(root, path))));
@@ -46,10 +47,10 @@ export async function verifyEVMReadCandidate({ root = repoRoot, read = readFile,
       candidate.truth?.deployedPublic !== false || candidate.truth?.privateFinanceAuthorized !== false ||
       candidate.truth?.realWalletApproval !== false || candidate.truth?.orderOrTransactionAuthorized !== false ||
       candidate.existingVerifierPin?.pinChanged !== false) fail('CANDIDATE_AUTHORITY_DRIFT');
-  const currentShape=[guoqingCandidatePath,transportCandidatePath,journeyCandidatePath,intentCandidatePath,clockCandidatePath,ssoCandidatePath,pairCandidatePath,cliCandidatePath].includes(reviewedCandidatePath);
+  const currentShape=[guoqingCandidatePath,transportCandidatePath,journeyCandidatePath,intentCandidatePath,clockCandidatePath,ssoCandidatePath,pairCandidatePath,cliCandidatePath,recordsCandidatePath].includes(reviewedCandidatePath);
   const inputs=currentShape?[...expectedInputs,'apps/finance/web/app.js','apps/finance/web/finance-locale.js']:expectedInputs;
-  if([ssoCandidatePath,pairCandidatePath,cliCandidatePath].includes(reviewedCandidatePath))inputs.push('packages/wallet-auth/product-session-registry.json','packages/wallet-auth/src/central-browser-session-contract.js','packages/wallet-auth/src/central-browser-session-registry.js','packages/wallet-auth/src/central-browser-session-store.js','packages/wallet-auth/src/central-browser-session.js','packages/wallet-auth/src/central-browser-session-browser.js','packages/wallet-auth/src/central-browser-session-browser.bundle.js','packages/wallet-auth/src/product-session-gateway-node-host.js','packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs','internal/finance/browser_sso.go','internal/finance/browser_sso_binding.go','internal/finance/store.go','internal/finance/types.go','apps/finance/cmd/server/main.go');
-  if([pairCandidatePath,cliCandidatePath].includes(reviewedCandidatePath))inputs.push('packages/wallet-auth/src/walletconnect-dapp-connection.js');
+  if([ssoCandidatePath,pairCandidatePath,cliCandidatePath,recordsCandidatePath].includes(reviewedCandidatePath))inputs.push('packages/wallet-auth/product-session-registry.json','packages/wallet-auth/src/central-browser-session-contract.js','packages/wallet-auth/src/central-browser-session-registry.js','packages/wallet-auth/src/central-browser-session-store.js','packages/wallet-auth/src/central-browser-session.js','packages/wallet-auth/src/central-browser-session-browser.js','packages/wallet-auth/src/central-browser-session-browser.bundle.js','packages/wallet-auth/src/product-session-gateway-node-host.js','packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs','internal/finance/browser_sso.go','internal/finance/browser_sso_binding.go','internal/finance/store.go','internal/finance/types.go','apps/finance/cmd/server/main.go');
+  if([pairCandidatePath,cliCandidatePath,recordsCandidatePath].includes(reviewedCandidatePath))inputs.push('packages/wallet-auth/src/walletconnect-dapp-connection.js');
   if (JSON.stringify(candidate.exactInputs?.map(item => item.path)) !== JSON.stringify(inputs)) fail('INPUT_SET_DRIFT');
   for (const item of candidate.exactInputs) {
     if (!Number.isSafeInteger(item.bytes) || item.bytes <= 0 || !/^[0-9a-f]{64}$/u.test(item.sha256)) fail('INPUT_IDENTITY_INVALID');
@@ -88,7 +89,7 @@ export async function verifyEVMReadCandidate({ root = repoRoot, read = readFile,
     const paths = Object.keys(discovered.metafile.inputs).sort();
     const graph = new Map();
     for (const path of paths) {
-      if (path !== entry && !([ssoCandidatePath,pairCandidatePath,cliCandidatePath].includes(reviewedCandidatePath)&&path==='packages/wallet-auth/product-session-registry.json') && !path.startsWith('packages/wallet-auth/src/') && !path.startsWith('packages/wallet-auth/node_modules/@noble/')) fail('TRANSITIVE_PATH_DRIFT');
+      if (path !== entry && !([ssoCandidatePath,pairCandidatePath,cliCandidatePath,recordsCandidatePath].includes(reviewedCandidatePath)&&path==='packages/wallet-auth/product-session-registry.json') && !path.startsWith('packages/wallet-auth/src/') && !path.startsWith('packages/wallet-auth/node_modules/@noble/')) fail('TRANSITIVE_PATH_DRIFT');
       graph.set(resolve(root, path), await get(path));
     }
     const graphDigest = sha256(paths.map(path => `${path}\0${sha256(graph.get(resolve(root, path)))}\n`).join(''));
@@ -113,7 +114,7 @@ export async function verifyEVMReadCandidate({ root = repoRoot, read = readFile,
         !Buffer.from(second.outputFiles[0].contents).equals(frozen) ||
         frozen.length !== relation.bundleBytes || sha256(frozen) !== relation.bundleSha256) fail('BUNDLE_REBUILD_MISMATCH');
   }
-  if([pairCandidatePath,cliCandidatePath].includes(reviewedCandidatePath)){
+  if([pairCandidatePath,cliCandidatePath,recordsCandidatePath].includes(reviewedCandidatePath)){
     const relation=candidate.centralPairBundle,entry='packages/wallet-auth/src/central-browser-session-browser.js',bundle='packages/wallet-auth/src/central-browser-session-browser.bundle.js';
     if(relation?.entry!==entry||relation.bundle!==bundle||relation.tool!=='esbuild@0.25.9'||relation.independentRebuilds!==2)fail('CENTRAL_PAIR_RELATION_DRIFT');
     for(const [name,version] of [['@walletconnect/sign-client','2.23.10'],['qrcode','1.5.4']]){
@@ -135,5 +136,5 @@ export async function verifyEVMReadCandidate({ root = repoRoot, read = readFile,
     const [first,second]=await Promise.all([build({...options,plugins:[plugin]}),build({...options,plugins:[plugin]})]),frozen=await get(bundle);
     if(!Buffer.from(first.outputFiles[0].contents).equals(frozen)||!Buffer.from(second.outputFiles[0].contents).equals(frozen)||frozen.length!==relation.bytes||sha256(frozen)!==relation.sha256)fail('CENTRAL_PAIR_BUNDLE_DRIFT');
   }
-  return Object.freeze({ status: 'pass', reviewedCandidateSha256: pinnedCandidateSha256, bundleCount: [pairCandidatePath,cliCandidatePath].includes(reviewedCandidatePath)?3:2, publicRuntimeVerified: false });
+  return Object.freeze({ status: 'pass', reviewedCandidateSha256: pinnedCandidateSha256, bundleCount: [pairCandidatePath,cliCandidatePath,recordsCandidatePath].includes(reviewedCandidatePath)?3:2, publicRuntimeVerified: false });
 }

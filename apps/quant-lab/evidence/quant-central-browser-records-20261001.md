@@ -43,3 +43,11 @@ The compatibility regression covers save/reopen, SSO-off linked rejection, Resto
 Central identity requires explicit `YNX_QUANT_CENTRAL_BROWSER_SSO=true` and a private cookie key of at least 32 bytes; keep that key out of logs/Git. Native records also require the existing `YNX_QUANT_PRIVATE_SESSION_V2_ENABLED=1` verifier configuration. Defaults remain off. The existing registered HTTPS authority is used; production cannot bind a loopback authority.
 
 Identity controls currently recheck status on refresh/focus without implicitly signing or authorizing. Bounded top-level silent identity recovery is a separate next slice. Public approval, installed Wallet scope support, actual owned user records, and every platform remain NOT_VERIFIED until their individual runtime evidence is supplied.
+
+## Frozen source and dependent runtime graph
+
+Implementation source is `b90b3348b` (resolve this commit to its full SHA/tree before integration). The shared sorted official registry now permits `quant:records:read`; only the explicit separate records client requests it. Wallet release owner must consume that exact registry successor. Three graph-dependent bundles were rebuilt twice, producing immutable candidate `apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-records-b90b3348-20261001.json`: 73554 bytes, SHA256 `6fbcda664647a6189e05c8f6e4a052e0a5e657a9d0cafc1c60155a2b0f33f9b4`. Finance verifier manifest SHA256 `0c2a8cda82ec4e6b586a54919869cc6cdf0cdf1b38c363eb3970bce10207994c`.
+
+Dependent EVM browser SHA256 `5608c2b82bba7813b37dff0b41660681754577024b3a383a504636caf3768702`; node authority `dd26710d346e7a51b5cb7f1645d01da50c8aef50a66864b9d77c1401920da41b`; central browser `2b241c0ccd7cef3f4feba4080865533f75d9b28c8c8e8d8b77e12c01287ade13`; Quant wallet `b71bbc62e0b758f8963627207f825053ca8eedcabbd574959af17d44faa36a99`. HTML cache identities match these bytes. Historical candidates remain untouched.
+
+From `apps/finance`, `node --test tests/evm-read-verifier.test.mjs tests/wallet-bundle-verifier.test.mjs`: 21/21 PASS, zero skips, 1.446s. `node web/verify-wallet-connect.mjs`: PASS. The new exact candidate path is additional; transitive graph and tampering/locked-dependency guards are not weakened. Reproduce with the two current `build-guoqing-*` scripts at the frozen implementation source and locked workspace dependencies.
