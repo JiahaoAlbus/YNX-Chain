@@ -5,10 +5,18 @@ import {fileURLToPath} from 'node:url';
 import {build} from 'esbuild';
 import {createCentralBrowserSessionRegistry} from '../src/central-browser-session-registry.js';
 import {CENTRAL_BROWSER_ISSUER,CENTRAL_BROWSER_PURPOSE,CENTRAL_BROWSER_RPC_METHOD,centralBrowserConsentSignBytes,parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval} from '../src/central-browser-session-contract.js';
+import * as publicContract from '@ynx-chain/wallet-auth/central-browser-session-contract';
+import * as publicRegistry from '@ynx-chain/wallet-auth/central-browser-session-registry';
 const registry=createCentralBrowserSessionRegistry(JSON.parse(await readFile(new URL('../product-session-registry.json',import.meta.url)))),now=Date.now();
 const client=registry.find(value=>value.productId==='finance');
 const challenge=()=>({version:1,issuer:CENTRAL_BROWSER_ISSUER,purpose:CENTRAL_BROWSER_PURPOSE,challengeId:'A'.repeat(43),browserBinding:'a'.repeat(64),nonce:'B'.repeat(43),initiator:{clientId:client.clientId,origin:client.origin,redirectUri:client.redirectUri,state:'C'.repeat(43),codeChallenge:'D'.repeat(43),codeChallengeMethod:'S256'},clients:registry.map(value=>({clientId:value.clientId,origin:value.origin,audience:value.audience,scopes:[...value.scopes]})).sort((a,b)=>a.clientId.localeCompare(b.clientId)),issuedAt:new Date(now).toISOString(),expiresAt:new Date(now+120000).toISOString()});
 const parse=value=>parseCentralBrowserSignInChallenge(value,registry,{peerOrigin:CENTRAL_BROWSER_ISSUER,now});
+
+test('stable self-package browser subpaths expose the same sole contract and registry',()=>{
+  assert.equal(publicContract.centralBrowserConsentSignBytes,centralBrowserConsentSignBytes);
+  assert.equal(publicRegistry.createCentralBrowserSessionRegistry,createCentralBrowserSessionRegistry);
+  assert.equal(publicContract.CENTRAL_BROWSER_RPC_METHOD,'ynx_requestCentralBrowserSignIn');
+});
 
 test('one canonical contract validates issuer/real peer/initiator/exact identity scopes and finite expiry',()=>{
   assert.equal(parse(challenge()).initiator.clientId,client.clientId);assert.equal(CENTRAL_BROWSER_RPC_METHOD,'ynx_requestCentralBrowserSignIn');
