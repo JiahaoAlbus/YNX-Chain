@@ -220,7 +220,10 @@ func (s *BrowserSSO) Start(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pending = browserPending{state, verifier, s.target(r.URL.Query().Get("target")), s.now().Add(2 * time.Minute)}
-		if s.set(w, s.pendingCookie, pending, pending.ExpiresAt) != nil {
+		// Retain only the sealed original target/state briefly after the two
+		// minute authorization deadline, so an explicit denial can return safely.
+		// Expired pending transactions can never redeem an authorization code.
+		if s.set(w, s.pendingCookie, pending, pending.ExpiresAt.Add(8*time.Minute)) != nil {
 			browserResponse(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
 			return
 		}
@@ -234,7 +237,7 @@ func (s *BrowserSSO) Callback(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	var pending browserPending
 	query := r.URL.Query()
-	if s.cookie(r, s.pendingCookie, &pending) != nil || !pending.ExpiresAt.After(s.now()) || len(query) != 2 || len(query["state"]) != 1 || subtle.ConstantTimeCompare([]byte(pending.State), []byte(query.Get("state"))) != 1 {
+	if s.cookie(r, s.pendingCookie, &pending) != nil || !pending.ExpiresAt.Add(8*time.Minute).After(s.now()) || len(query) != 2 || len(query["state"]) != 1 || subtle.ConstantTimeCompare([]byte(pending.State), []byte(query.Get("state"))) != 1 {
 		browserResponse(w, 400, map[string]string{"code": "SSO_CALLBACK_REJECTED"})
 		return
 	}
@@ -243,7 +246,7 @@ func (s *BrowserSSO) Callback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/#"+s.target(pending.Target), 303)
 		return
 	}
-	if len(query["code"]) != 1 {
+	if !pending.ExpiresAt.After(s.now()) || len(query["code"]) != 1 {
 		browserResponse(w, 400, map[string]string{"code": "SSO_CALLBACK_REJECTED"})
 		return
 	}

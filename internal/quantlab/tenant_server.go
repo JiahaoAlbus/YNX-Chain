@@ -56,6 +56,8 @@ func NewTenantServer(config Config, role string) (*TenantServer, error) {
 		}
 	}
 	server := &TenantServer{config: config, role: role, root: root, base: NewRoleServer(base, role), baseService: base, servers: map[string]*Server{}, maxOpen: 1024, financeConcurrency: make(chan struct{}, 16)}
+	base.cfg.browserBindings = base
+	base.cfg.ownedRecords = server.financePayload
 	if strings.TrimSpace(config.FinanceReadKey) != "" {
 		server.financeRead, err = readintegration.NewVerifier(strings.TrimSpace(config.FinanceReadKey), "finance", "quant", config.Now)
 		if err != nil {
@@ -82,6 +84,12 @@ func NewTenantServer(config Config, role string) (*TenantServer, error) {
 }
 
 func (s *TenantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Identity status/logout and separately scoped account-owned records never
+	// allocate/authorize a tenant. Records use the existing account filter only.
+	if r.URL.Path == "/v1/sso/config" || r.URL.Path == "/v1/sso/account" || r.URL.Path == "/v1/sso/logout" || r.URL.Path == "/v1/wallet/private-records" {
+		s.base.ServeHTTP(w, r)
+		return
+	}
 	// Public research is stateless and must not create a durable tenant, expose
 	// a legacy workspace, or mistake reverse-proxy loopback for local authority.
 	if publicResearchRequest(r) || r.Method == http.MethodGet && r.URL.Path == "/v1/public/status" {
@@ -154,6 +162,8 @@ func (s *TenantServer) tenant(id string) (http.Handler, error) {
 		return nil, ErrUnavailable
 	}
 	config := s.config
+	// A session cannot evade a revoked association by selecting another tenant.
+	config.browserBindings = s.baseService
 	if config.DatabaseURL == "" {
 		config.StatePath = filepath.Join(s.root, id+".json")
 	} else {

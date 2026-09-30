@@ -19,6 +19,40 @@ import (
 	"time"
 )
 
+func TestFinanceSSOExpiredTransactionReturnsTargetWithoutRedeeming(t *testing.T) {
+	now := time.Now()
+	s := &Server{cfg: ServerConfig{CentralBrowserSSO: true, WalletGatewayURL: BrowserWalletAuthority, CursorSigningKey: testCursorKey}, now: func() time.Time { return now }}
+	start := httptest.NewRecorder()
+	s.ssoStart(start, httptest.NewRequest("GET", BrowserFinanceOrigin+"/sso/start?target=planning", nil))
+	cookie := start.Result().Cookies()[0]
+	if cookie.MaxAge != 600 {
+		t.Fatal("unbounded or missing target recovery")
+	}
+	u, err := url.Parse(start.Header().Get("Location"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := u.Query().Get("state")
+	now = now.Add(3 * time.Minute)
+	for _, sample := range []struct {
+		query  string
+		status int
+		target string
+	}{
+		{"state=" + state + "&error=access_denied", 303, "/#planning"},
+		{"state=" + state + "&code=" + strings.Repeat("c", 43), 400, ""},
+		{"state=" + strings.Repeat("x", 43) + "&error=access_denied", 400, ""},
+	} {
+		r := httptest.NewRequest("GET", BrowserFinanceOrigin+"/sso/callback?"+sample.query, nil)
+		r.AddCookie(cookie)
+		w := httptest.NewRecorder()
+		s.ssoCallback(w, r)
+		if w.Code != sample.status || w.Header().Get("Location") != sample.target {
+			t.Fatal("expired callback authorization/target boundary failed")
+		}
+	}
+}
+
 func centralBrowserQAGateway(t *testing.T) string {
 	t.Helper()
 	script, err := filepath.Abs(filepath.Join("..", "..", "apps", "finance", "scripts", "central-browser-session-local-qa.mjs"))

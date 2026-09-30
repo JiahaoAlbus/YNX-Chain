@@ -18,6 +18,8 @@
       <div class="mode"><span></span><b data-i18n="mode">SIMULATED / TESTNET ONLY</b></div>
     </header>
       <div class="private-session-controls"><button id="private-sign-in" type="button">Sign in to private Quant account</button><a id="private-open-wallet" hidden rel="noopener noreferrer">Open YNX Wallet — installation unverified</a><button id="private-retry" type="button">Retry private session</button><button id="private-account" type="button">Verify private account</button><button id="private-sign-out" type="button">Sign out private session</button><small id="private-session-status" role="status" aria-live="polite">Private sign-in is optional. No native Wallet handler has been verified; Standard Wallet and Paper remain independent.</small></div>
+      <section class="private-session-controls" aria-label="Browser identity"><button id="browser-signin" type="button" disabled>Sign in with YNX identity</button><button id="browser-signout" type="button" hidden>Sign out of Quant</button><small id="browser-identity" role="status" aria-live="polite"></small></section>
+      <section class="private-session-controls" aria-label="My existing Quant records"><button id="records-authorize" type="button">Authorize reading my records</button><button id="records-read" type="button">Read my records</button><button id="records-revoke" type="button">Revoke record access</button><small id="records-status" role="status" aria-live="polite"></small><ul id="records-owned"></ul></section>
     <div class="shell">
       <aside>
         <nav aria-label="Quant Lab">
@@ -332,7 +334,7 @@
         <div id="toast" role="status" aria-live="polite"></div>
       </main>
     </div>
-    <script src="/wallet-auth.js?v=e00a4b1d12c7b44a2cdc8b6af81885eb3a85967ed527d7fc017c5186faf4704b"></script>
+    <script src="/wallet-auth.js?v=b71bbc62e0b758f8963627207f825053ca8eedcabbd574959af17d44faa36a99"></script>
     <script src="/i18n.js?v=f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca"></script>
     <script src="/app.js?v=21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc"></script>
   </body>

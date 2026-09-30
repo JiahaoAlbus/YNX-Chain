@@ -155,7 +155,8 @@ func (s *Server) ssoStart(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		pending = financeSSOPending{State: state, Verifier: verifier, Target: ssoTarget(r.URL.Query().Get("target")), ExpiresAt: s.now().Add(2 * time.Minute)}
-		if err := s.sealSSOCookie(w, financeSSOPendingName, pending, pending.ExpiresAt); err != nil {
+		// Target-only denial recovery outlives authorization, never code redemption.
+		if err := s.sealSSOCookie(w, financeSSOPendingName, pending, pending.ExpiresAt.Add(8*time.Minute)); err != nil {
 			writeJSON(w, 503, map[string]string{"code": "SSO_UNAVAILABLE"})
 			return
 		}
@@ -232,7 +233,7 @@ func (s *Server) ssoCallback(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	var pending financeSSOPending
-	if !s.ssoAvailable() || s.openSSOCookie(r, financeSSOPendingName, &pending) != nil || !pending.ExpiresAt.After(s.now()) || len(r.URL.Query()) != 2 || len(r.URL.Query()["state"]) != 1 || subtle.ConstantTimeCompare([]byte(pending.State), []byte(r.URL.Query().Get("state"))) != 1 {
+	if !s.ssoAvailable() || s.openSSOCookie(r, financeSSOPendingName, &pending) != nil || !pending.ExpiresAt.Add(8*time.Minute).After(s.now()) || len(r.URL.Query()) != 2 || len(r.URL.Query()["state"]) != 1 || subtle.ConstantTimeCompare([]byte(pending.State), []byte(r.URL.Query().Get("state"))) != 1 {
 		writeJSON(w, 400, map[string]string{"code": "SSO_CALLBACK_REJECTED"})
 		return
 	}
@@ -241,7 +242,7 @@ func (s *Server) ssoCallback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/#"+ssoTarget(pending.Target), http.StatusSeeOther)
 		return
 	}
-	if len(r.URL.Query()["code"]) != 1 {
+	if !pending.ExpiresAt.After(s.now()) || len(r.URL.Query()["code"]) != 1 {
 		writeJSON(w, 400, map[string]string{"code": "SSO_CALLBACK_REJECTED"})
 		return
 	}

@@ -189,7 +189,7 @@ function canonicalQuantRegistration() {
     requestingProduct: "quant",
     bundleId: "com.ynxweb4.quant",
     callbacks: ["ynxquant://wallet-auth/callback"],
-    scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke"],
+    scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke", "quant:records:read"],
     maxScopes: 4,
     productDeviceAlgorithms: ["p256-sha256"],
     sessionDurationSeconds: 180,
