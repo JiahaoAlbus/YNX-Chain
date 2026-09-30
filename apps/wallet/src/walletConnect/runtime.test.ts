@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { WalletConnectRuntime, walletConnectRuntimeConfig } from "./runtime";
 
-test("WalletConnect is explicitly disabled without a project ID", () => {
-  assert.equal(walletConnectRuntimeConfig({}), null);
+test("WalletConnect uses the authorized public project ID unless explicitly disabled", () => {
+  assert.deepEqual(walletConnectRuntimeConfig({}), {projectId:"41857128a14a593ca4e4a7cb7c838d71",relayUrl:"wss://relay.walletconnect.com"});
   assert.equal(walletConnectRuntimeConfig({ EXPO_PUBLIC_REOWN_PROJECT_ID: "" }), null);
   assert.equal(walletConnectRuntimeConfig({ EXPO_PUBLIC_REOWN_PROJECT_ID: " " }), null);
 });
@@ -83,6 +83,35 @@ test("session update and expiry events refresh the visible session and expose a 
 const pendingRequest=(topic:string,id=7)=>({topic,id,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"",isScam:false}},params:{chainId:"eip155:6423",request:{method:"eth_accounts",params:[]}}});
 const pendingProposal=()=>({id:9,verifyContext:{verified:{verifyUrl:"",validation:"UNKNOWN",origin:"",isScam:false}},params:{}});
 
+test("delayed custody cannot sign or deliver an old approval after disconnect, delete or same-id replacement",async()=>{
+  for(const action of ["disconnect","delete","replace","namespace"]){
+    const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"d".repeat(32)},(async()=>client) as any);await runtime.start();
+    const topic="e".repeat(64),account="0x"+"a".repeat(40),event=pendingRequest(topic,7);
+    client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};
+    client.handlers.get("session_request")!(event);
+    const review={topic,requestId:7,account,method:"eth_accounts",params:[],peer:{metadata:{url:"https://example.com"}},expiresAt:new Date(Date.now()+60000).toISOString()};
+    const lease=runtime.bindReviewedRequest(review,runtime.snapshot().request);
+    let release!:()=>void,signs=0;const authenticated=new Promise<void>(resolve=>{release=resolve});
+    const approval=(async()=>{await authenticated;lease.assertCurrent();signs++;await lease.respond("old signature")})();
+    if(action==="disconnect")await runtime.disconnect(topic);
+    if(action==="delete")client.handlers.get("session_delete")!({topic});
+    if(action==="replace"){runtime.clearSensitiveReview();client.handlers.get("session_request")!(pendingRequest(topic,7));}
+    if(action==="namespace")client.active[topic].namespaces.eip155.methods=[];
+    release();await assert.rejects(approval,/authorization changed/);assert.equal(signs,0);
+    assert.equal(client.responses.some(r=>Object.hasOwn(r.response,"result")),false);
+    if(action==="replace"){await lease.reject();assert.equal(runtime.snapshot().request?.id,7);}
+  }
+});
+test("temporary transport failure does not revoke a still-current review and delivery stays on its exact request",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"d".repeat(32)},(async()=>client) as any);await runtime.start();
+  const topic="e".repeat(64),account="0x"+"a".repeat(40),event=pendingRequest(topic,17);
+  client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};client.handlers.get("session_request")!(event);
+  const lease=runtime.bindReviewedRequest({topic,requestId:17,account,method:"eth_accounts",params:[],peer:{metadata:{url:"https://example.com"}},expiresAt:new Date(Date.now()+60000).toISOString()},runtime.snapshot().request);
+  client.failResponses=true;lease.assertCurrent();await assert.rejects(lease.respond("approved response"));
+  assert.equal(client.responses[0].topic,topic);assert.equal(client.responses[0].response.id,17);assert.equal(runtime.snapshot().request,null);
+  await assert.rejects(lease.respond("duplicate response"));assert.equal(client.responses.length,1);
+});
+
 test("expired and deleted sessions synchronously clear a same-topic pending request",async()=>{
   const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"d".repeat(32)},(async()=>client) as any);await runtime.start();const topic="e".repeat(64);
   client.handlers.get("session_request")!(pendingRequest(topic));assert.equal(runtime.snapshot().request?.topic,topic);
@@ -110,6 +139,88 @@ test("lock or component disposal clears proposal and request even when remote re
   const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
   client.handlers.get("session_proposal")!(pendingProposal());client.handlers.get("session_request")!(pendingRequest("1".repeat(64)));client.failResponses=true;client.failRejections=true;
   await runtime.rejectPendingForLock();assert.equal(runtime.snapshot().proposal,null);assert.equal(runtime.snapshot().request,null);
+});
+
+test("delayed lock rejection targets the captured request and preserves a fresh proposal and request",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
+  let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve}),rejected:number[]=[];
+  client.respondSessionRequest=async(value:any)=>{client.responses.push(value);await gate};
+  client.rejectSession=async(value?:any)=>{rejected.push(value.id)};
+  const oldRequest=pendingRequest("1".repeat(64),21),oldProposal=pendingProposal();
+  client.handlers.get("session_request")!(oldRequest);client.handlers.get("session_proposal")!(oldProposal);
+  const locking=runtime.rejectPendingForLock();
+  assert.equal(runtime.snapshot().request,null);assert.equal(runtime.snapshot().proposal,null);
+  const freshRequest=pendingRequest("2".repeat(64),22),freshProposal={...pendingProposal(),id:oldProposal.id+1};
+  client.handlers.get("session_request")!(freshRequest);client.handlers.get("session_proposal")!(freshProposal);
+  release();await locking;
+  assert.equal(runtime.snapshot().request,freshRequest);assert.equal(runtime.snapshot().proposal,freshProposal);
+  assert.deepEqual(rejected,[oldProposal.id]);assert.equal(client.responses[0].response.id,21);assert.equal(client.responses[0].topic,oldRequest.topic);
+});
+
+test("an obsolete review failure never rejects a newer SDK event even with the same topic and ID",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
+  const old=pendingRequest("3".repeat(64),23);client.handlers.get("session_request")!(old);
+  runtime.clearSensitiveReview();const fresh=pendingRequest(old.topic,old.id);client.handlers.get("session_request")!(fresh);
+  await runtime.rejectReviewedEvent(old as any,5103,"Old review failed.");
+  assert.equal(runtime.snapshot().request,fresh);assert.equal(client.responses.length,0);
+  await runtime.rejectReviewedEvent(fresh as any,5103,"Current review failed.");
+  assert.equal(runtime.snapshot().request,null);assert.equal(client.responses.length,1);assert.equal(client.responses[0]!.response.id,23);
+});
+
+test("unlock restores only an undecided same-account event and invalidates its old approval lease",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
+  const topic="4".repeat(64),account="0x"+"a".repeat(40),event=pendingRequest(topic,24);
+  client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};
+  client.handlers.get("session_request")!(event);
+  const review={topic,requestId:24,account,method:"eth_accounts",params:[],peer:{metadata:{url:"https://example.com"}},expiresAt:new Date(Date.now()+60000).toISOString()};
+  const old=runtime.bindReviewedRequest(review,runtime.snapshot().request);runtime.pauseForLock(account);
+  assert.equal(runtime.snapshot().request,null);assert.throws(old.assertCurrent);
+  assert.equal(await runtime.resumeAfterUnlock(account),true);assert.equal(runtime.snapshot().request,event);
+  assert.throws(old.assertCurrent);await old.reject();assert.equal(runtime.snapshot().request,event);assert.equal(client.responses.length,0);
+  const fresh=runtime.bindReviewedRequest(review,runtime.snapshot().request);await fresh.respond([account]);assert.equal(client.responses[0].response.id,24);
+});
+
+test("locked requests never resume after account switch, session drift, expiry or an already completed decision",async()=>{
+  for(const action of ["account","namespace","expired","delete","decided"]){
+    const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
+    const topic="5".repeat(64),account="0x"+"a".repeat(40),event=pendingRequest(topic,25);
+    client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};client.handlers.get("session_request")!(event);
+    if(action==="decided")await runtime.respond([account]);runtime.pauseForLock(account);
+    if(action==="namespace")client.handlers.get("session_update")!({topic,params:{namespaces:{}}});
+    if(action==="expired")client.active[topic].expiry=1;
+    if(action==="delete")client.handlers.get("session_delete")!({topic});
+    assert.equal(await runtime.resumeAfterUnlock(action==="account"?"0x"+"b".repeat(40):account),false);assert.equal(runtime.snapshot().request,null);
+    assert.equal(client.responses.filter(r=>Object.hasOwn(r.response,"result")).length,action==="decided"?1:0);
+  }
+});
+
+test("locking while SDK connection approval is pending cannot restore or publish that decided proposal",async()=>{
+  const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
+  let release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve}),approve=client.approveSession.bind(client);
+  client.approveSession=async(value:any)=>{await gate;return approve(value)};
+  client.handlers.get("session_proposal")!(pendingProposal());
+  const approving=runtime.approveProposal({eip155:{accounts:[],methods:[],events:[]}} as any);
+  assert.equal(runtime.snapshot().proposal,null);runtime.pauseForLock("0x"+"a".repeat(40));
+  assert.equal(await runtime.resumeAfterUnlock("0x"+"a".repeat(40)),false);
+  release();await assert.rejects(approving,/authorization changed/);assert.equal(client.disconnects.length,1);assert.equal(runtime.snapshot().sessions.length,0);
+});
+
+test("first arrival while locked retains one authorized request and proposal for fresh review only",async()=>{
+  for(const action of ["same","account","namespace","expired","delete"]){
+    const client=fakeClient(),runtime=new WalletConnectRuntime({projectId:"f".repeat(32)},(async()=>client) as any);await runtime.start();
+    const account="0x"+"a".repeat(40),topic="6".repeat(64),event=pendingRequest(topic,26),proposal={...pendingProposal(),params:{expiryTimestamp:Math.floor(Date.now()/1000)+60}};
+    client.active[topic]={topic,peer:{metadata:{url:"https://example.com"}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],methods:["eth_accounts"],events:[]}}};
+    runtime.pauseForLock(account);client.handlers.get("session_request")!(event);client.handlers.get("session_proposal")!(proposal);
+    runtime.pauseForLock(account);assert.equal(runtime.snapshot().request,null);assert.equal(runtime.snapshot().proposal,null);assert.equal(client.responses.length,0);
+    client.handlers.get("session_request")!(pendingRequest(topic,27));assert.equal(client.responses[0].response.id,27);
+    if(action==="namespace")client.handlers.get("session_update")!({topic,params:{namespaces:{}}});
+    if(action==="expired")client.active[topic].expiry=1;
+    if(action==="delete")client.handlers.get("session_delete")!({topic});
+    await runtime.resumeAfterUnlock(action==="account"?"0x"+"b".repeat(40):account);
+    assert.equal(runtime.snapshot().request,action==="same"?event:null);
+    assert.equal(runtime.snapshot().proposal,action==="account"?null:proposal);
+    assert.equal(client.responses.some(r=>Object.hasOwn(r.response,"result")),false);
+  }
 });
 
 test("completed local request decisions cannot be approved again after response transport failure",async()=>{

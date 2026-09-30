@@ -69,6 +69,7 @@ export class DesktopAuthorizationController {
     return this.pending;
   }
   cancel() { const hadPending = Boolean(this.pending); this.generation++; this.pending = null; this.prepared = null; return hadPending; }
+  suspend() { this.generation++; return Boolean(this.pending); }
   invalidate() {
     if (this.inFlight) throw authError("AUTHORIZATION_ACTION_IN_PROGRESS");
     const hadPending = Boolean(this.pending);

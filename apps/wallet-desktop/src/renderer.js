@@ -1,3 +1,4 @@
+import { walletReadiness } from "./wallet-readiness.mjs";
 import { ApprovalReviewQueue } from "./approval-review-queue.mjs";
 import { formatApprovalReview } from "./approval-review-display.mjs";
 import { createPasswordVaultUI } from "./password-vault-ui.mjs";
@@ -58,10 +59,10 @@ const indicator = document.querySelector("#indicator");
 
 function render(status) {
   indicator.className = `indicator ${status.available ? "ok" : "failed"}`;
-  write(network, status.available ? "Connected to YNX Testnet" : "YNX Testnet unavailable");
-  if (status.available) chain.textContent = status.chainId; else write(chain, "Unavailable");
+  write(network, status.available ? "YNX Testnet network available" : "YNX Testnet unavailable");
+  if (status.available) write(chain, status.chainId); else write(chain, "Unavailable");
   write(detail, status.available
-    ? "Your wallet is connected. You review every app connection and transaction."
+    ? "The network is reachable. Connecting an app still requires account approval."
     : "The network is unavailable. Your accounts and backups remain accessible. Try again to refresh balances or send.");
 }
 
@@ -191,6 +192,7 @@ const createAccount = document.querySelector("#create-account");
 const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
 const walletCopy = (english, chinese) => MESSAGES[english] ? t(english) : i18n.locale === "zh-CN" ? chinese : english;
+let initialWalletViewShown = false;
 function renderAccount(payload) {
   invalidatePaymentInput();
   if (payload?.ok === false) {
@@ -230,7 +232,7 @@ function renderAccount(payload) {
   void refreshTransactions();
   document.querySelector("#assets").hidden = !status?.initialized;
   document.querySelector("#backup-section").hidden = !status?.initialized;
-  if (!status?.initialized) setView("accounts");
+  if (!initialWalletViewShown) { initialWalletViewShown = true; if (!status?.initialized) setView("accounts"); }
   else if (!previousAccount) setView("overview");
   document.querySelector("#toolbar-account").textContent = activeAccount ? `${nativeAccountLabel(activeAccount).slice(0, 8)}…${nativeAccountLabel(activeAccount).slice(-6)}` : t("My accounts");
   document.querySelector("#receive-address").value = status?.ynxAccount ?? "";
@@ -305,10 +307,10 @@ function renderWalletConnect(payload) {
   lastWalletConnectStatus = payload;
   const status = payload?.ok === true ? payload.value : payload;
   const startupFailed = status?.configured && status?.code && status.code !== "WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED";
-  walletConnectTitle.textContent = startupFailed ? t("WalletConnect unavailable") : status?.relayConnected ? t("Ready to connect an app") : status?.started ? t("Connecting to WalletConnect…") : status?.configured ? t("WalletConnect unavailable") : t("Cross-device connections are coming");
+  walletConnectTitle.textContent = startupFailed ? t("WalletConnect unavailable") : status?.relayConnected ? t("Ready to connect an app") : status?.started ? t("Paste a WalletConnect link") : status?.configured ? t("WalletConnect unavailable") : t("Cross-device connections are coming");
   walletConnectDetail.textContent = status?.relayConnected && !startupFailed
     ? t("{count} connected apps. You review every signature and transaction.", { count: i18n.formatNumber(status.activeSessionCount) })
-    : status?.configured ? t("The connection service is unavailable. Your wallet and accounts remain accessible.") : t("WalletConnect is not enabled in this build. You can still connect directly from supported YNX apps.");
+    : status?.started && !startupFailed ? t("Pair an app to check the connection service. No connection has been confirmed yet.") : status?.configured ? t("The connection service is unavailable. Your wallet and accounts remain accessible.") : t("WalletConnect is not enabled in this build. You can still connect directly from supported YNX apps.");
   pairButton.disabled = !status?.started || startupFailed;
 }
 async function refreshWalletConnectSessions() {
@@ -349,6 +351,11 @@ window.ynxWallet.onWalletConnectSessionChanged(event => {
 window.ynxWallet.walletConnectStatus().then(payload => { renderWalletConnect(payload); return refreshWalletConnectSessions(); });
 pairButton.addEventListener("click", async () => {
   const uri = walletConnectURI.value.trim();
+  if (!uri) {
+    walletConnectDetail.textContent = t("Paste a WalletConnect link");
+    walletConnectURI.focus();
+    return;
+  }
   pairButton.disabled = true;
   const result = await window.ynxWallet.walletConnectPair(uri);
   if (!result.ok) walletConnectDetail.textContent = errorText(result);
@@ -595,6 +602,12 @@ function setView(name) {
   window.scrollTo({ top: 0 });
 }
 for (const button of document.querySelectorAll("[data-view]")) button.addEventListener("click", () => setView(button.dataset.view));
+document.querySelector("#prepare-wallet-connection")?.addEventListener("click", () => {
+  if (!walletReadiness(accountState,keyState,accountReadFailed).canPrepare) return;
+  setView("accounts");
+  if (keyState.locked) { const unlock = document.querySelector("#unlock-wallet"); if (!unlock.disabled) unlock.click(); }
+  else document.querySelector("#create-account").focus();
+});
 for (const button of document.querySelectorAll("[data-close]")) button.addEventListener("click", () => document.getElementById(button.dataset.close).close());
 for (const dialog of document.querySelectorAll("dialog")) dialog.addEventListener("close", () => queueMicrotask(presentApproval));
 document.querySelector("#open-send").addEventListener("click", () => {
@@ -638,6 +651,11 @@ document.addEventListener("keydown", event => {
 
 function renderKeyDetail() {
   const detail = document.querySelector("#key-security-detail"), state = keyState;
+  const readiness = walletReadiness(accountState, state, accountReadFailed);
+  document.querySelector("#key-security-title").textContent = t(readiness.title);
+  const connectionReadiness = document.querySelector("#connection-readiness"), prepare = document.querySelector("#prepare-wallet-connection");
+  if (connectionReadiness) { connectionReadiness.hidden = readiness.state === "ready"; connectionReadiness.textContent = readiness.canPrepare ? t("Create or import an account before connecting.") : t(readiness.title); }
+  if (prepare) { prepare.hidden = !readiness.canPrepare; prepare.textContent = t(accountState?.passwordConfigured ? "My accounts" : "Set up Wallet protection"); }
   const send = document.querySelector("#open-send");
   send.textContent = t(state.authenticating ? "Unlocking…" : state.locked ? "Unlock to send" : "Send YNXT");
   send.disabled = !accountState?.initialized || state.authenticating || state.locked && !state.unlockAvailable;
@@ -659,7 +677,7 @@ function renderKeyState(state) {
   if (state.locked) {
     if (invalidated) {
       document.querySelector("#unlock-result").textContent = "";
-      approvalQueue.clear(); authorizationChoices.clear(); transferReview = null; passwordUI?.cancel();
+      approvalQueue.suspend(); transferReview = null; passwordUI?.cancel();
       for (const field of document.querySelectorAll('input[type="password"],input[type="file"]')) field.value = "";
       for (const dialog of document.querySelectorAll("dialog[open]")) dialog.close();
     }
@@ -675,7 +693,7 @@ i18n.onChange(() => {
   languageSelect.querySelector('option[value="system"]').textContent = t("System language");
   document.querySelector("#page-title").textContent = t({ overview: "Overview", connections: "Connections", accounts: "Accounts & backup", settings: "Settings" }[document.querySelector("[data-panel]:not([hidden])")?.dataset.panel] ?? "Overview");
   document.querySelector("#toolbar-account").textContent = activeAccount ? `${nativeAccountLabel(activeAccount).slice(0, 8)}…${nativeAccountLabel(activeAccount).slice(-6)}` : t("My accounts");
-  document.querySelector("#key-security-title").textContent = t(keyState.locked ? "Wallet locked" : "Wallet unlocked");
+  document.querySelector("#key-security-title").textContent = t(walletReadiness(accountState,keyState,accountReadFailed).title);
   signingShort.textContent = t(keyState.locked ? "Locked" : "Approval required");
   passwordUI.render();
   renderKeyDetail();

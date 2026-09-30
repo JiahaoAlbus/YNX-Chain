@@ -5,6 +5,23 @@ import {EXTENSION_VAULT_KEY,createEncryptedVault,providerAccountFromVault,unlock
 
 const ACCOUNT={version:1,source:"ynx-wallet-vault",account:"0x1111111111111111111111111111111111111111"},ORIGIN="https://dapp.example",REQUEST=`ynx-scope-v2-${"1".repeat(64)}`;
 
+test("account failures report verified recovery stages without overwriting an existing vault",async()=>{
+  const vaultKey="vault",vault={account:ACCOUNT.account},fromVault=value=>{if(!value?.account)throw new Error("secret diagnostic must not escape");return ACCOUNT};
+  const cases=[
+    ["account_storage_unavailable",{get:async()=>{throw new Error("secret diagnostic must not escape")}}],
+    ["account_vault_missing",{get:async()=>({})}],
+    ["account_vault_invalid",{get:async()=>({[vaultKey]:{}})}],
+    ["account_index_invalid",{get:async()=>({[vaultKey]:vault,[PROVIDER_ACCOUNT_KEY]:{}})}],
+    ["account_index_mismatch",{get:async()=>({[vaultKey]:vault,[PROVIDER_ACCOUNT_KEY]:{...ACCOUNT,account:"0x2222222222222222222222222222222222222222"}})}],
+    ["account_recovery_write_failed",{get:async()=>({[vaultKey]:vault}),set:async()=>{throw new Error("secret diagnostic must not escape")}}],
+    ["account_recovery_write_failed",{get:async()=>({[vaultKey]:vault}),set:async()=>{}}]
+  ];
+  for(const[status,storage]of cases){
+    await assert.rejects(()=>recoverMissingProviderAccount(storage,PROVIDER_ACCOUNT_KEY,vaultKey,fromVault),error=>error.code==="PROVIDER_ACCOUNT_UNAVAILABLE"&&error.data.status===status&&!error.message.includes("secret diagnostic"));
+  }
+  assert.deepEqual(vault,{account:ACCOUNT.account});
+});
+
 test("missing provider index recovers from the existing vault and drops old DApp grants",async()=>{
   const vaultKey="ynx.wallet.provider.vault.v1",values={[vaultKey]:{account:ACCOUNT.account},[PROVIDER_PERMISSIONS_KEY]:grantPermission({},ORIGIN,ACCOUNT,1)};
   const storage={get:async()=>({...values}),set:async update=>Object.assign(values,update)};

@@ -40,10 +40,15 @@ export class WalletConnectRuntime {
   #start: Promise<void> | null = null;
   #attempts = 0;
   #revision = 0;
+  #reviewGeneration = 0;
+  #paused: { account: string; request: WalletConnectRequest | null; proposal: WalletConnectProposal | null; session: string | null; deadline: number } | null = null;
+  #requestDeadlines = new WeakMap<WalletConnectRequest,number>();
+  #receivedAt = new WeakMap<WalletConnectRequest,Date>();
   constructor(readonly config: RuntimeConfig | null, private readonly factory: WalletKitFactory = createWalletKit) {
     this.#snapshot = Object.freeze({ phase: config ? "starting" : "disabled", error: config ? null : "WalletConnect is not configured for this build.", sessions: Object.freeze([]), proposal: null, request: null, sessionEvent: null, retryAvailable: false });
   }
   snapshot(): WalletConnectSnapshot { return this.#snapshot; }
+  requestReviewTime(event: WalletConnectRequest): Date { const at=this.#receivedAt.get(event);if(!at)throw new Error("Wallet request arrival time is unavailable.");return new Date(at); }
   subscribe(listener: Listener): () => void { this.#listeners.add(listener); listener(this.#snapshot); return () => this.#listeners.delete(listener); }
   async start(): Promise<void> {
     if (!this.config) return;
@@ -71,7 +76,11 @@ export class WalletConnectRuntime {
   async pair(uri: string): Promise<void> { const client = this.#require(); await client.pair({ uri }); }
   async approveProposal(namespaces: SessionTypes.Namespaces): Promise<SessionTypes.Struct> {
     const proposal = this.#snapshot.proposal; if (!proposal) throw new Error("No WalletConnect proposal is awaiting review.");
-    const session = await this.#require().approveSession({ id: proposal.id, namespaces }); this.#set({ proposal: null }); return session;
+    const client=this.#require(),generation=this.#reviewGeneration;
+    this.#set({proposal:null});
+    const session = await client.approveSession({ id: proposal.id, namespaces });
+    if(generation!==this.#reviewGeneration){await client.disconnectSession({topic:session.topic,reason:getSdkError("USER_DISCONNECTED")}).catch(()=>{});throw new Error("Wallet locked or authorization changed before connection approval completed.");}
+    return session;
   }
   async rejectProposal(): Promise<void> {
     const proposal = this.#snapshot.proposal; if (!proposal) return;
@@ -83,14 +92,32 @@ export class WalletConnectRuntime {
     this.#set({request:null});
     await this.#require().respondSessionRequest({ topic: pending.topic, response: { jsonrpc: "2.0", id: pending.id, result } });
   }
+  bindReviewedRequest(review:{topic:string;requestId:number;account:string;method:string;params:unknown;peer:{metadata:{url:string}};expiresAt:string},reviewedEvent:WalletConnectRequest|null) {
+    const pending=this.#snapshot.request,client=this.#require(),generation=this.#reviewGeneration;
+    if(!pending||pending!==reviewedEvent||pending.topic!==review.topic||pending.id!==review.requestId||pending.params.request.method!==review.method)throw new Error("The reviewed request is no longer current.");
+    const original=client.getActiveSessions()[review.topic];
+    if(!original)throw new Error("The reviewed session is no longer active.");
+    const namespace=JSON.stringify(original.namespaces),origin=new URL(original.peer.metadata.url).origin;
+    const assertCurrent=()=>{
+      const current=client.getActiveSessions()[review.topic],permissions=current?.namespaces.eip155;
+      if(this.#reviewGeneration!==generation||this.#snapshot.request!==pending||(this.#requestDeadlines.get(pending)??0)<=Math.floor(Date.now()/1000)||!current||JSON.stringify(current.namespaces)!==namespace||new URL(current.peer.metadata.url).origin!==origin||origin!==new URL(review.peer.metadata.url).origin||!permissions?.accounts.includes(`eip155:6423:${review.account}`)||!permissions.methods.includes(review.method)||review.expiresAt<=new Date().toISOString())throw new Error("The reviewed request or session authorization changed. Return to the app for a fresh review.");
+    };
+    assertCurrent();
+    return Object.freeze({assertCurrent,respond:async(result:unknown)=>{assertCurrent();this.#set({request:null});await client.respondSessionRequest({topic:pending.topic,response:{jsonrpc:"2.0",id:pending.id,result}})},reject:async(code=5000,message="User rejected the request.")=>{if(this.#reviewGeneration!==generation||this.#snapshot.request!==pending)return;this.#set({request:null});await client.respondSessionRequest({topic:pending.topic,response:{jsonrpc:"2.0",id:pending.id,error:{code,message}}})}});
+  }
   async rejectRequest(code = 5000, message = "User rejected the request."): Promise<void> {
     const pending = this.#snapshot.request; if (!pending) return;
     this.#set({request:null});
     await this.#require().respondSessionRequest({ topic: pending.topic, response: { jsonrpc: "2.0", id: pending.id, error: { code, message } } });
   }
+  async rejectReviewedEvent(event: WalletConnectRequest, code: number, message: string): Promise<void> {
+    if (this.#snapshot.request !== event) return;
+    this.#set({ request: null });
+    await this.#require().respondSessionRequest({ topic: event.topic, response: { jsonrpc: "2.0", id: event.id, error: { code, message } } });
+  }
   async rejectRequestForSession(topic:string,code=5000,message="WalletConnect session is no longer authorized."):Promise<void>{
-    const pending=this.#snapshot.request;if(!pending||pending.topic!==topic)return;
-    this.#set({request:null});
+    const pending=this.#snapshot.request?.topic===topic?this.#snapshot.request:this.#paused?.request;if(!pending||pending.topic!==topic)return;
+    this.#clearRequestForTopic(topic);
     await this.#require().respondSessionRequest({topic:pending.topic,response:{jsonrpc:"2.0",id:pending.id,error:{code,message}}});
   }
   async disconnect(topic: string): Promise<void> { await this.disconnectSessions([topic]) }
@@ -108,18 +135,58 @@ export class WalletConnectRuntime {
     if(failures.length)throw new Error(`WalletConnect could not disconnect ${failures.length} session${failures.length===1?"":"s"}.`);
   }
   clearSensitiveReview(): void { if (this.#snapshot.request) this.#set({ request: null }); }
+  pauseForLock(account: string): void {
+    if (this.#paused) return;
+    const {request,proposal}=this.#snapshot;
+    this.#reviewGeneration++;
+    const session=request?this.#client?.getActiveSessions()[request.topic]:null;
+    this.#paused={account,request,proposal,session:session?JSON.stringify({namespaces:session.namespaces,peer:session.peer}):null,deadline:request?this.#requestDeadlines.get(request)??Math.floor(Date.now()/1000):0};
+    this.#set({request:null,proposal:null});
+  }
+  async resumeAfterUnlock(account: string): Promise<boolean> {
+    const paused=this.#paused;if(!paused)return false;
+    this.#paused=null;this.#reviewGeneration++;
+    const client=this.#client,now=Math.floor(Date.now()/1000),session=paused.request?client?.getActiveSessions()[paused.request.topic]:null;
+    const sameAccount=paused.account===account;
+    const request=paused.request&&sameAccount&&paused.deadline>now&&session&&paused.session===JSON.stringify({namespaces:session.namespaces,peer:session.peer})&&(!session.expiry||session.expiry>now)&&(!paused.request.params.request.expiryTimestamp||paused.request.params.request.expiryTimestamp>now)?paused.request:null;
+    const proposal=paused.proposal&&sameAccount&&paused.proposal.params.expiryTimestamp>now?paused.proposal:null;
+    this.#set({request,proposal});
+    if(paused.request&&!request&&client)await client.respondSessionRequest({topic:paused.request.topic,response:{jsonrpc:"2.0",id:paused.request.id,error:{code:5103,message:"Wallet request expired or authorization changed while locked. Return to the app for a new request."}}}).catch(()=>{});
+    if(paused.proposal&&!proposal&&client)await client.rejectSession({id:paused.proposal.id,reason:getSdkError("USER_REJECTED")}).catch(()=>{});
+    return Boolean(request||proposal);
+  }
   async rejectPendingForLock(): Promise<void> {
-    const request = this.#snapshot.request, proposal = this.#snapshot.proposal;
-    if (request) await this.rejectRequest(5000, "Wallet locked before approval.").catch(() => {});
-    if (proposal) await this.rejectProposal().catch(() => {});
+    const request = this.#snapshot.request??this.#paused?.request, proposal = this.#snapshot.proposal??this.#paused?.proposal;
+    this.#paused=null;this.#reviewGeneration++;
+    // Invalidate the old approval before awaiting transport. Later SDK events
+    // belong to a fresh review and must not be cleared by this operation.
     this.#set({ request: null, proposal: null });
+    if (!request && !proposal) return;
+    const client = this.#require();
+    if (request) await client.respondSessionRequest({ topic: request.topic, response: { jsonrpc: "2.0", id: request.id, error: { code: 5000, message: "Wallet locked before approval." } } }).catch(() => {});
+    if (proposal) await client.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") }).catch(() => {});
   }
   async restore(): Promise<void> { await this.start(); this.#refreshSessions(); }
   refreshSessions():void{this.#refreshSessions()}
   async #initialize(): Promise<void> {
     const client = await this.factory(this.config!);
-    client.on("session_proposal", proposal => { if (this.#snapshot.proposal) { void client.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") }); return; } this.#set({ proposal }); });
-    client.on("session_request", request => { if (this.#snapshot.request) { void client.respondSessionRequest({ topic: request.topic, response: { jsonrpc: "2.0", id: request.id, error: { code: 5000, message: "Another Wallet request is already under review." } } }); return; } this.#set({ request }); });
+    client.on("session_proposal", proposal => {
+      if(this.#paused&&!this.#paused.proposal&&proposal.params.expiryTimestamp>Math.floor(Date.now()/1000)){this.#paused.proposal=proposal;return;}
+      if(this.#paused||this.#snapshot.proposal){void client.rejectSession({id:proposal.id,reason:getSdkError("USER_REJECTED")}).catch(()=>{});return;}
+      this.#set({proposal});
+    });
+    client.on("session_request", request => {
+      this.#receivedAt.set(request,new Date());
+      const deadline=Math.min(request.params.request.expiryTimestamp??Infinity,Math.floor(Date.now()/1000)+300);
+      if(this.#paused&&!this.#paused.request){
+        const session=client.getActiveSessions()[request.topic],permissions=session?.namespaces.eip155;
+        if(deadline>Math.floor(Date.now()/1000)&&session&&(!session.expiry||session.expiry>Math.floor(Date.now()/1000))&&permissions?.accounts.includes(`eip155:6423:${this.#paused.account}`)&&permissions.methods.includes(request.params.request.method)){
+          this.#requestDeadlines.set(request,deadline);this.#paused.request=request;this.#paused.deadline=deadline;this.#paused.session=JSON.stringify({namespaces:session.namespaces,peer:session.peer});return;
+        }
+      }
+      if(this.#paused||this.#snapshot.request){void client.respondSessionRequest({topic:request.topic,response:{jsonrpc:"2.0",id:request.id,error:{code:5000,message:"Wallet request is not authorized or another request is awaiting review."}}}).catch(()=>{});return;}
+      this.#requestDeadlines.set(request,deadline);this.#set({request});
+    });
     client.on("session_update", event => { void this.rejectRequestForSession(event.topic,5103,"WalletConnect session updated; resend the request after reconciliation.").catch(()=>{});this.#updateSession(event.topic,event.params.namespaces,client); this.#emitSessionEvent({ kind: "updated", topic: event.topic, namespaces: event.params.namespaces }); });
     client.on("session_expire", event => { this.#clearRequestForTopic(event.topic);this.#removeSession(event.topic,client); this.#emitSessionEvent({ kind: "expired", topic: event.topic }); });
     client.on("session_delete", event => { this.#clearRequestForTopic(event.topic);this.#removeSession(event.topic,client); this.#emitSessionEvent({ kind: "deleted", topic: event.topic }); });
@@ -127,7 +194,7 @@ export class WalletConnectRuntime {
     this.#refreshSessions(client); this.#set({ phase: "ready", error: null, retryAvailable: false });
   }
   #emitSessionEvent(event: Omit<WalletConnectSessionEvent, "revision">): void { this.#revision += 1; this.#set({ sessionEvent: Object.freeze({ ...event, revision: this.#revision }) }); }
-  #clearRequestForTopic(topic:string):void{if(this.#snapshot.request?.topic===topic)this.#set({request:null})}
+  #clearRequestForTopic(topic:string):void{if(this.#paused?.request?.topic===topic)this.#paused.request=null;if(this.#snapshot.request?.topic===topic)this.#set({request:null})}
   #updateSession(topic:string,namespaces:SessionTypes.Namespaces,client:WalletKitClient):void{const sessions=Object.values(client.getActiveSessions()).map(session=>session.topic===topic?{...session,namespaces}:session);this.#set({sessions:Object.freeze(sessions)})}
   #removeSession(topic:string,client:WalletKitClient):void{const sessions=Object.values(client.getActiveSessions()).filter(session=>session.topic!==topic);this.#set({sessions:Object.freeze(sessions)})}
   #refreshSessions(client: WalletKitClient | null = this.#client): void { const sessions: SessionTypes.Struct[] = client ? Object.values(client.getActiveSessions()) : []; this.#set({ sessions: Object.freeze(sessions) }); }
@@ -136,7 +203,8 @@ export class WalletConnectRuntime {
 }
 
 export function walletConnectRuntimeConfig(environment: Record<string, string | undefined> = process.env): RuntimeConfig | null {
-  const raw = environment.EXPO_PUBLIC_REOWN_PROJECT_ID?.trim();
+  // Public application configuration, not a Relay secret or session credential.
+  const raw = (environment.EXPO_PUBLIC_REOWN_PROJECT_ID ?? "41857128a14a593ca4e4a7cb7c838d71").trim();
   if (!raw) return null;
   return parseWalletConnectRuntimeConfig({ projectId: raw.toLowerCase() });
 }

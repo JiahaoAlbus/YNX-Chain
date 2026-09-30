@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { WalletConnectTransport, WALLETCONNECT_CHAIN, WALLETCONNECT_METHODS, WALLETCONNECT_EVENTS } from "../src/walletconnect-transport.mjs";
+import { createECDH } from "node:crypto";
+import { createProductSessionRequest, encodeRequestDeepLink } from "@ynx-chain/wallet-auth";
+import { PRODUCT_SESSION_REGISTRY } from "../src/wallet-auth-contract.mjs";
 
 // Public synthetic addresses only; these tests never initialize a key or contact a relay.
 const ACCOUNT_A = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -25,13 +28,14 @@ function storage() {
   const records = new Map();
   return { records, async getItem(key) { return structuredClone(records.get(key)); }, async setItem(key, value) { records.set(key, structuredClone(value)); } };
 }
-async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCOUNT_B)], store = storage(), disconnect = async () => {}, handlers: callbacks = {} } = {}) {
+async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCOUNT_B)], pendingRequests = [], store = storage(), disconnect = async () => {}, handlers: callbacks = {} } = {}) {
   const active = Object.fromEntries(sessions.map(value => [value.topic, value]));
   const handlers = new Map(), responses = [], events = [], approvals = [];
   const kit = {
     core: { storage: store, relayer: { connected: false } },
     on(name, callback) { handlers.set(name, callback); },
     getActiveSessions() { return active; },
+    getPendingSessionRequests() { return pendingRequests; },
     disconnectSession: disconnect,
     async respondSessionRequest(response) { responses.push(response); },
     async emitSessionEvent(event) { events.push(event); },
@@ -43,9 +47,34 @@ async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCO
 }
 function code(expected) { return error => error?.code === expected; }
 
+test("native Product Session requires the approved method, exact peer origin and selected session account",async()=>{
+  const device=createECDH("prime256v1");device.setPrivateKey(Buffer.alloc(32,0x42));
+  const product=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:"creator-studio",platform:"web",deviceId:"pair-binding-test",deviceKey:device.getPublicKey(null,"compressed").toString("base64url"),nonce:"nonce_abcdefghijklmnopqrstuvwxyz12",state:"state_abcdefghijklmnopqrstuvwxyz12",scopes:["creator:account"],purpose:"Sign in to Creator Studio."},new Date(NOW));
+  const approved=session("native-topic");approved.peer.metadata.url=product.origin;
+  const {transport}=await fixture({sessions:[approved]});
+  const event={topic:"native-topic",id:1,params:{chainId:WALLETCONNECT_CHAIN,request:{method:"ynx_requestProductSessionV2",params:[encodeRequestDeepLink(product)]}}};
+  assert.equal(transport.authorizeRequest(event,ACCOUNT_A).origin,product.origin);
+  assert.throws(()=>transport.authorizeRequest(event,ACCOUNT_B),code("UNAUTHORIZED_WALLETCONNECT_ACCOUNT"));
+  approved.peer.metadata.url=ORIGIN;
+  const wrong=await fixture({sessions:[approved]});
+  assert.throws(()=>wrong.transport.authorizeRequest(event,ACCOUNT_A),code("PRODUCT_SESSION_ORIGIN_MISMATCH"));
+  approved.peer.metadata.url=product.origin;approved.namespaces.eip155.methods=["personal_sign"];
+  const notGranted=await fixture({sessions:[approved]});
+  assert.throws(()=>notGranted.transport.authorizeRequest(event,ACCOUNT_A),code("UNAUTHORIZED_WALLETCONNECT_METHOD"));
+});
+
+test("cold startup reoffers SDK pending requests for fresh review without executing or approving", async () => {
+  const pending = request("topic-a", "personal_sign", ACCOUNT_A);
+  pending.params.request.expiryTimestamp = NOW / 1000 + 60;
+  const received = [], { approvals, responses } = await fixture({ pendingRequests: [pending], handlers: { onSessionRequest: event => received.push(event) } });
+  assert.equal(received.length, 1); assert.equal(received[0].restored, true);
+  assert.deepEqual(received[0].params, pending.params);
+  assert.deepEqual(approvals, []); assert.deepEqual(responses, []);
+});
+
 test("all signing methods require the requested account in this topic and selected in the Wallet", async () => {
   const { transport } = await fixture();
-  for (const method of WALLETCONNECT_METHODS) {
+  for (const method of ["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"]) {
     assert.throws(() => transport.authorizeRequest(request("topic-a", method, ACCOUNT_B), ACCOUNT_B), code("UNAUTHORIZED_WALLETCONNECT_ACCOUNT"));
     assert.throws(() => transport.authorizeRequest(request("topic-a", method, ACCOUNT_A), ACCOUNT_B), code("UNAUTHORIZED_WALLETCONNECT_ACCOUNT"));
     assert.equal(transport.authorizeRequest(request("topic-b", method, ACCOUNT_B), ACCOUNT_B).topic, "topic-b");

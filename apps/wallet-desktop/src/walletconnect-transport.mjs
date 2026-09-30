@@ -1,16 +1,28 @@
-import { Core } from "@walletconnect/core";
-import { WalletKit } from "@reown/walletkit";
+import { createRequire } from "node:module";
 import { getSdkError } from "@walletconnect/utils";
+import { parseProductSessionWalletURL } from "@ynx-chain/wallet-auth";
+import { PRODUCT_SESSION_REGISTRY } from "./wallet-auth-contract.mjs";
+import { CENTRAL_BROWSER_METHOD, parseCentralSignIn } from "./central-browser-sign-in.mjs";
+import { createPrivateWalletConnectStorage } from "./walletconnect-private-storage.mjs";
+
+// This desktop main process is Node. The pinned SDK's Node/CJS exports avoid
+// its ESM default-import mismatch with keyvaluestorage; mobile uses Metro.
+const require = createRequire(import.meta.url);
+const { Core } = require("@walletconnect/core");
+const { WalletKit } = require("@reown/walletkit");
+export function createWalletConnectCore(options) { return new Core(options); }
 
 export const WALLETCONNECT_CHAIN = "eip155:6423";
-export const WALLETCONNECT_METHODS = Object.freeze(["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4"]);
+export const WALLETCONNECT_METHODS = Object.freeze(["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2", CENTRAL_BROWSER_METHOD]);
 export const WALLETCONNECT_EVENTS = Object.freeze(["accountsChanged", "chainChanged"]);
 const TOMBSTONE_STORAGE_KEY = "ynx-wallet:walletconnect-disconnected-topics:v1";
 
 export class WalletConnectTransport {
-  constructor({ projectId, metadata, walletKitFactory = defaultFactory, clock = () => Date.now() }) {
+  constructor({ projectId, metadata, storagePath, configurationError = null, walletKitFactory = defaultFactory, clock = () => Date.now() }) {
     this.projectId = projectId?.trim() || null;
     this.metadata = metadata;
+    this.storagePath = storagePath;
+    this.configurationError = configurationError;
     this.walletKitFactory = walletKitFactory;
     this.clock = clock;
     this.walletKit = null;
@@ -28,18 +40,20 @@ export class WalletConnectTransport {
       started,
       relayConnected,
       activeSessionCount: started ? Object.values(this.walletKit.getActiveSessions?.() ?? {}).filter(session => !this.disconnectedTopics.has(session.topic)).length : 0,
-      code: !this.projectId ? "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" : relayConnected ? null : "WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED"
+      code: this.configurationError || (!this.projectId ? "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" : relayConnected ? null : "WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED")
     });
   }
   async start(handlers = {}) {
+    if (this.configurationError) throw transportError(this.configurationError, "WalletConnect public configuration is invalid");
     if (!this.projectId) throw transportError("WALLETCONNECT_PROJECT_ID_UNAVAILABLE", "WalletConnect project ID is not configured");
-    this.walletKit = await this.walletKitFactory({ projectId: this.projectId, metadata: this.metadata });
+    this.walletKit = await this.walletKitFactory({ projectId: this.projectId, metadata: this.metadata, storagePath: this.storagePath });
     try { await this.#restoreDisconnectedTopics(); }
     catch (error) { this.walletKit = null; throw error; }
     this.walletKit.on("session_proposal", proposal => {
       try {
         validateProposal(proposal, this.#nowSeconds());
         proposalHttpsOrigin(proposal);
+        if (!this.proposals.has(String(proposal.id)) && this.proposals.size >= 64) throw transportError("WALLETCONNECT_PROPOSAL_LIMIT", "Too many pending connection reviews");
         this.proposals.set(String(proposal.id), proposal);
         handlers.onSessionProposal?.(proposal);
       } catch (error) {
@@ -57,6 +71,22 @@ export class WalletConnectTransport {
       if (this.disconnectedTopics.has(session.topic)) continue;
       const restored = this.#rememberSession(session);
       handlers.onSessionRestore?.(restored);
+    }
+    // Restore public proposals/requests for fresh review, never execute them.
+    const proposals = Object.values(this.walletKit.getPendingSessionProposals?.() ?? {});
+    for (const proposal of proposals) {
+      try {
+        validateProposal(proposal, this.#nowSeconds()); proposalHttpsOrigin(proposal);
+        if (!this.proposals.has(String(proposal.id)) && this.proposals.size >= 64) throw transportError("WALLETCONNECT_PROPOSAL_LIMIT", "Too many pending connection reviews");
+        this.proposals.set(String(proposal.id), proposal); handlers.onSessionProposal?.(proposal);
+      }
+      catch (error) { handlers.onProposalInvalid?.({ id: proposal?.id ?? null, code: error?.code ?? "INVALID_WALLETCONNECT_PROPOSAL" }); }
+    }
+    const requests = this.walletKit.getPendingSessionRequests?.() ?? [];
+    if (!Array.isArray(requests)) throw transportError("INVALID_WALLETCONNECT_PENDING_REQUESTS", "Stored WalletConnect requests cannot be restored safely");
+    for (const request of requests) {
+      if (this.disconnectedTopics.has(request.topic)) continue;
+      handlers.onSessionRequest?.({ ...request, restored: true });
     }
     return this.status();
   }
@@ -132,7 +162,16 @@ export class WalletConnectTransport {
     if (chainId !== WALLETCONNECT_CHAIN) throw transportError("UNSUPPORTED_WALLETCONNECT_CHAIN", "WalletConnect request targets a different chain");
     if (!request || typeof request.method !== "string" || !namespace.methods.includes(request.method)) throw transportError("UNAUTHORIZED_WALLETCONNECT_METHOD", "WalletConnect method was not approved for this session");
     if (!Array.isArray(request.params)) throw transportError("INVALID_WALLETCONNECT_REQUEST", "WalletConnect request parameters must be an array");
-    const requestedAccount = requestAccount(request);
+    let requestedAccount;
+    if(request.method === CENTRAL_BROWSER_METHOD) {
+      parseCentralSignIn(request.params, this.sessionOrigin(topic), this.clock());
+      requestedAccount = normalizeAccount(selectedAccount);
+    } else if(request.method === "ynx_requestProductSessionV2") {
+      if(request.params.length !== 1 || typeof request.params[0] !== "string" || request.params[0].length > 32768) throw transportError("INVALID_WALLETCONNECT_REQUEST","Sign-in requires the exact official Wallet route");
+      const productRequest = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,request.params[0],new Date(this.clock()));
+      if(productRequest.origin !== this.sessionOrigin(topic)) throw transportError("PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this session");
+      requestedAccount = normalizeAccount(selectedAccount);
+    } else requestedAccount = requestAccount(request);
     if (requestedAccount !== normalizeAccount(selectedAccount) || !namespace.accounts.some(account => account.toLowerCase() === `${WALLETCONNECT_CHAIN}:${requestedAccount}`)) {
       throw transportError("UNAUTHORIZED_WALLETCONNECT_ACCOUNT", "WalletConnect request account must match this session and the selected Wallet account");
     }
@@ -217,8 +256,11 @@ export class WalletConnectTransport {
   #nowSeconds() { return Math.floor(this.clock() / 1000); }
 }
 
-async function defaultFactory({ projectId, metadata }) {
-  const core = new Core({ projectId });
+async function defaultFactory({ projectId, metadata, storagePath }) {
+  let storage;
+  try { storage = await createPrivateWalletConnectStorage(storagePath); }
+  catch { throw transportError("WALLETCONNECT_STORAGE_UNAVAILABLE", "The existing Pair storage could not be verified. Keep this Wallet profile and retry."); }
+  const core = createWalletConnectCore({ projectId, storage });
   return WalletKit.init({ core, metadata });
 }
 function transportError(code, message) { return Object.assign(new Error(message), { code }); }
