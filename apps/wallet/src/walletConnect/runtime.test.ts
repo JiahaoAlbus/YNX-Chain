@@ -374,3 +374,12 @@ test("old late proposal cannot replace a newer attempt that has also timed out",
  for(const topic of ["e".repeat(64),"f".repeat(64)])client.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:topic}});
  assert.equal(runtime.snapshot().proposal,null);assert.equal(runtime.snapshot().pairing,false);
 });
+
+test("older installed unapproved pairing is quarantined on upgrade, but an active session remains intact",async()=>{
+ const old="a".repeat(64),approved="b".repeat(64),client=fakeClient(),records:string[]=[];
+ client.active["c".repeat(64)]={topic:"c".repeat(64),pairingTopic:approved,namespaces:{},peer:{metadata:{url:"https://example.com"}}};
+ Object.assign(client,{core:{pairing:{getPairings:()=>[{topic:old},{topic:approved}],disconnect:async()=>{throw new Error("must not disconnect active session")}}}});
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100,{load:async()=>[],record:async(topic)=>{records.push(topic)}});await runtime.start();
+ assert.deepEqual(records,[old]);client.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:old}});assert.equal(runtime.snapshot().proposal,null);
+ runtime.cancelPendingPair();assert.equal(runtime.snapshot().sessions.length,1);assert.deepEqual(client.disconnects,[]);
+});
