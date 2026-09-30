@@ -355,6 +355,7 @@ $("account-unlock-form").addEventListener("submit",async event=>{
 });
 $("account-lock").addEventListener("click",lockManager);
 window.addEventListener("pagehide",lockManager);
+window.addEventListener("hashchange",()=>{if(accountManager){lockManager();location.reload();}});
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")lockManager();});
 window.addEventListener("focus",()=>{if(accountManager&&vault)void store.read().then(current=>{if(JSON.stringify(current)!==JSON.stringify(vault)){accountManager.lock();vault=current;displayAccount();void refreshAccountList();messageKey(vault?"managerLocked":"managerEmpty");}}).catch(()=>{lockManager();messageKey("storageUnreadable");});});
 
