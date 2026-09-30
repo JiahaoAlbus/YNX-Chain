@@ -17,6 +17,15 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
+type quantBrowserQAMarket struct{}
+
+func (quantBrowserQAMarket) History(string, int) ([]Bar, string, error) {
+	return bars(), "fixture://synthetic-local-browser-only", nil
+}
+func (quantBrowserQAMarket) Latest(string) (MarketTick, error) {
+	return MarketTick{Price: 1_200_000, Volume: 20_000_000, Source: "fixture://synthetic-local-browser-only"}, nil
+}
+
 // Opt-in isolated real Gateway/device-proof browser QA. The original service
 // creates test records using existing APIs and explicit test mandate/broker
 // doubles; this never proves a real execution or public Wallet acceptance.
@@ -40,7 +49,7 @@ func TestLocalNodeHostQuantBrowserBridge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	config := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), PrivateSession: native, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}}
+	config := Config{StatePath: filepath.Join(t.TempDir(), "state.json"), PrivateSession: native, MandateVerifier: allowMandate{}, TestnetBroker: testBroker{}, MarketData: quantBrowserQAMarket{}}
 	service, err := NewTenantServer(config, "all")
 	if err != nil {
 		t.Fatal(err)

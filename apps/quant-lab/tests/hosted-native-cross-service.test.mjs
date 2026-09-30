@@ -18,6 +18,9 @@ const dist=process.env.YNX_QUANT_HOSTED_WALLET_DIST;
 const listen=server=>new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve(`http://127.0.0.1:${server.address().port}`)));
 async function relay(route,base,path,trace){
   const request=route.request(),url=new URL(request.url()),headers={...request.headers()};delete headers.host;delete headers['content-length'];delete headers['accept-encoding'];
+  // A canonical remote DApp must not gain local-preview authority just because
+  // its isolated QA socket is loopback. This header only denies that capability.
+  if(url.origin===origin)headers['x-forwarded-for']='203.0.113.10';
   const response=await fetch(base+(path??url.pathname)+url.search,{method:request.method(),headers,redirect:'manual',signal:AbortSignal.timeout(5000),body:['GET','HEAD'].includes(request.method())?undefined:request.postDataBuffer()});
   const returned=Object.fromEntries(response.headers);delete returned['content-encoding'];delete returned['transfer-encoding'];
   const body=Buffer.from(await response.arrayBuffer());
@@ -43,7 +46,7 @@ test('actual Hosted scoped Quant records read survives close/reload/restart and 
    if(url.origin===gatewayOrigin)return relay(route,base,undefined,trace);
    if(url.origin===origin){
     if(url.pathname==='/api/v1/wallet/private-records')return relay(route,go.url,'/v1/wallet/private-records',trace);
-    if(url.pathname.startsWith('/api/'))return route.fulfill({status:503,contentType:'application/json',body:'{"error":"QA_PUBLIC_UPSTREAM_UNAVAILABLE"}'});
+    if(/^\/api\/v1\/[a-z/-]+$/u.test(url.pathname))return relay(route,go.url,url.pathname.slice(4),trace);
     const name=url.pathname==='/'?'index.html':url.pathname.slice(1);if(!/^[a-zA-Z0-9.-]+$/u.test(name))return route.abort();
     try{return route.fulfill({status:200,contentType:name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'text/html',body:await readFile(resolve(root,'apps/quant-lab/web',name))})}catch{return route.fulfill({status:404,body:''})}
    }
@@ -62,6 +65,8 @@ test('actual Hosted scoped Quant records read survives close/reload/restart and 
   assert.equal((await fetch(go.url+'/__qa_seed',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account,index:0}),signal:AbortSignal.timeout(5000)})).status,204);
   await page.click('#records-read');await page.waitForFunction(()=>document.querySelector('#records-owned').children.length===2,null,{timeout:5000}).catch(()=>{throw new Error(JSON.stringify({phase:'owned-records',trace}))});
   assert.match(await page.locator('#records-owned').textContent(),/100/);assert.match(await page.locator('#records-owned').textContent(),/exchange-order-1/);
+  await page.locator('#backtest button[type=submit], #backtest button.primary').click();await page.waitForFunction(()=>!document.querySelector('#latest-result').hidden&&document.querySelector('#equity-chart').children.length>0);
+  assert.match(await page.locator('#result-return').textContent(),/bps/);assert.equal(await page.locator('#paper-submit').isDisabled(),true);assert.ok(trace.some(value=>value.path==='/v1/public/research/backtests/from-market'&&value.status===201));
   await wallet.close();await page.waitForFunction(()=>window.YNXQuantWallet.getPrivateWalletContext().status==='transport-unavailable');await page.click('#records-read');await page.waitForFunction(()=>document.querySelector('#records-owned').children.length===2);
   assert.equal(await page.evaluate(async()=>{try{await window.YNXQuantWallet.requestProductSessionV2('untrusted');return false}catch(e){return e.code==='PRIVATE_TRANSPORT_UNAVAILABLE'}}),true);
   assert.equal((await fetch(go.url+'/__qa_restart',{method:'POST',signal:AbortSignal.timeout(5000)})).status,204);
@@ -78,5 +83,10 @@ test('actual Hosted scoped Quant records read survives close/reload/restart and 
   assert.equal((await fetch(go.url+'/__qa_seed',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({account:nativeB,index:1}),signal:AbortSignal.timeout(5000)})).status,204);await page.click('#records-read');await page.waitForFunction(()=>document.querySelector('#records-owned').children.length===2);assert.match(await page.locator('#records-owned').textContent(),/101/);assert.doesNotMatch(await page.locator('#records-owned li').first().textContent(),/100/);await walletB.close();
   await page.click('#records-revoke');await page.waitForFunction(()=>!document.querySelector('#records-status').textContent.includes('ynx1'));assert.ok(host.snapshot().authority.sessions.every(s=>host.snapshot().authority.revokedSessions.includes(s.sessionBinding)));await page.reload();assert.equal(await page.locator('#records-owned li').count(),0);
   await context.close();
+  // Existing Paper is a separate explicitly local-preview browser capability,
+  // not a permission granted by records/identity or by forged remote headers.
+  const localContext=await browser.newContext(),localPage=await localContext.newPage();
+  await localContext.route('**/*',async route=>{const url=new URL(route.request().url());if(url.origin!==go.url)return route.abort();if(/^\/api\/v1\/[a-z0-9/-]+$/u.test(url.pathname))return relay(route,go.url,url.pathname.slice(4),trace);const name=url.pathname==='/'?'index.html':url.pathname.slice(1);if(!/^[a-zA-Z0-9.-]+$/u.test(name))return route.abort();try{return route.fulfill({contentType:name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':'text/html',body:await readFile(resolve(root,'apps/quant-lab/web',name))})}catch{return route.fulfill({status:404,body:''})}});
+await localPage.goto(go.url);await localPage.waitForFunction(()=>document.querySelector('#workspace-boundary').hidden);await localPage.locator('#backtest button.primary').click();await localPage.waitForFunction(()=>document.querySelector('#paper-strategy').options.length>1);await localPage.click('[data-view=paper]');await localPage.selectOption('#paper-strategy',{index:1});await localPage.click('#paper-submit');await localPage.waitForFunction(()=>/paper-[0-9]{6}/u.test(document.querySelector('#audit-rows').textContent),null,{timeout:5000}).catch(()=>{throw new Error(JSON.stringify({phase:'local-paper-result',trace}))});assert.ok(trace.some(value=>value.path==='/v1/paper/orders'&&value.status===201));await localPage.reload();await localPage.click('[data-view=paper]');await localPage.waitForFunction(()=>/paper-[0-9]{6}/u.test(document.querySelector('#audit-rows').textContent),null,{timeout:5000}).catch(()=>{throw new Error(JSON.stringify({phase:'local-paper-result',trace}))});await localContext.close();
  }finally{await browser?.close();if(go)await go.close();await new Promise(resolve=>gateway.close(resolve));await rm(directory,{recursive:true,force:true})}
 });
