@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { runInNewContext } from "node:vm";
 import test from "node:test";
+import { ApprovalReviewQueue } from "../src/approval-review-queue.mjs";
 import { StandardWalletConnection, YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
 import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "../src/rpc.mjs";
 import { WALLET_AUTH_PROTOCOL_SOURCE, YNX_EVM_CHAIN_ID, YNX_TESTNET_CHAIN_QUANTITY as packagedChainId } from "../src/wallet-auth-contract.mjs";
@@ -148,14 +149,16 @@ test("security invalidation clears old unlock success while an unchanged locked 
     const document = { querySelector(selector) { if (!elements.has(selector)) elements.set(selector, { textContent: "", hidden: false, disabled: false }); return elements.get(selector); }, querySelectorAll: () => [] };
     document.querySelector("#unlock-result").textContent = fixture.message;
     let invalidatedInputs = 0;
+    const approvalQueue = new ApprovalReviewQueue(); approvalQueue.enqueue("provider", { id: "existing-review" });
     runInNewContext(`${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
       document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
       walletCopy: english => english, t: english => english, accountState: { initialized: true },
-      approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null,
+      approvalQueue, authorizationChoices: new Map(), transferReview: null,
       passwordUI: { cancel() {}, render() {} }, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
     });
     assert.equal(document.querySelector("#key-security-title").textContent, "Wallet locked");
     assert.equal(document.querySelector("#unlock-result").textContent, fixture.expected);
+    assert.equal(approvalQueue.current.review.id, "existing-review");
     assert.equal(invalidatedInputs, fixture.before.revision !== fixture.after.revision || fixture.before.locked !== fixture.after.locked ? 1 : 0);
   }
 });
@@ -198,7 +201,7 @@ async function sendEntryHarness() {
   };
   const context = { document, window: { ynxWallet: api }, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
     accountReadFailed: false, walletCopy: english => english, t: english => english,
-    signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
+    signingShort: {}, activeAccount: account.account, approvalQueue: new ApprovalReviewQueue(), authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
     paymentDraftRevision: 0, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
     invalidatePaymentInput() { context.paymentDraftRevision++; },
   };

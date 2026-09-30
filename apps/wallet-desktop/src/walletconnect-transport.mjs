@@ -42,6 +42,7 @@ export class WalletConnectTransport {
       try {
         validateProposal(proposal, this.#nowSeconds());
         proposalHttpsOrigin(proposal);
+        if (!this.proposals.has(String(proposal.id)) && this.proposals.size >= 64) throw transportError("WALLETCONNECT_PROPOSAL_LIMIT", "Too many pending connection reviews");
         this.proposals.set(String(proposal.id), proposal);
         handlers.onSessionProposal?.(proposal);
       } catch (error) {
@@ -59,6 +60,22 @@ export class WalletConnectTransport {
       if (this.disconnectedTopics.has(session.topic)) continue;
       const restored = this.#rememberSession(session);
       handlers.onSessionRestore?.(restored);
+    }
+    // Restore public proposals/requests for fresh review, never execute them.
+    const proposals = Object.values(this.walletKit.getPendingSessionProposals?.() ?? {});
+    for (const proposal of proposals) {
+      try {
+        validateProposal(proposal, this.#nowSeconds()); proposalHttpsOrigin(proposal);
+        if (!this.proposals.has(String(proposal.id)) && this.proposals.size >= 64) throw transportError("WALLETCONNECT_PROPOSAL_LIMIT", "Too many pending connection reviews");
+        this.proposals.set(String(proposal.id), proposal); handlers.onSessionProposal?.(proposal);
+      }
+      catch (error) { handlers.onProposalInvalid?.({ id: proposal?.id ?? null, code: error?.code ?? "INVALID_WALLETCONNECT_PROPOSAL" }); }
+    }
+    const requests = this.walletKit.getPendingSessionRequests?.() ?? [];
+    if (!Array.isArray(requests)) throw transportError("INVALID_WALLETCONNECT_PENDING_REQUESTS", "Stored WalletConnect requests cannot be restored safely");
+    for (const request of requests) {
+      if (this.disconnectedTopics.has(request.topic)) continue;
+      handlers.onSessionRequest?.({ ...request, restored: true });
     }
     return this.status();
   }
