@@ -3,6 +3,7 @@ import { WalletKit } from "@reown/walletkit";
 import { getSdkError } from "@walletconnect/utils";
 import type { SignClientTypes, SessionTypes } from "@walletconnect/types";
 import { parseWalletConnectPairingUri, parseWalletConnectRuntimeConfig } from "@ynx-chain/wallet-auth";
+import { subscribeNativeRelayDiagnostics } from "./nativeRelayDiagnostics";
 
 export const YNX_WALLETCONNECT_CHAIN = "eip155:6423" as const;
 export type WalletConnectProposal = SignClientTypes.EventArguments["session_proposal"];
@@ -65,6 +66,9 @@ export class WalletConnectRuntime {
   constructor(readonly config: RuntimeConfig | null, private readonly factory: WalletKitFactory = createWalletKit, private readonly pairDeadlineMs = WALLETCONNECT_PAIR_DEADLINE_MS, private readonly pairingJournal?: { load(): Promise<readonly string[]>; record(topic: string, expiresAt?: number | null): Promise<void>; retire?(topic: string): Promise<void> }) {
     if (!Number.isFinite(pairDeadlineMs) || pairDeadlineMs <= 0 || pairDeadlineMs > WALLETCONNECT_PAIR_DEADLINE_MS) throw new Error("Invalid pairing deadline.");
     this.#snapshot = Object.freeze({ phase: config ? "starting" : "disabled", error: config ? null : "WalletConnect is not configured for this build.", sessions: Object.freeze([]), proposal: null, request: null, sessionEvent: null, retryAvailable: false, relayTransport: "unknown", relayErrorCode: null, relayHTTPStatus: null, relayRetryAvailable: false, pairTransportStage: "idle", pairing: false, pairingCleanup: "none" });
+    if (config && factory === createWalletKit) subscribeNativeRelayDiagnostics(value => {
+      if (value.failureClass && !this.#client?.core?.relayer?.connected) this.#set({ relayErrorCode: value.failureClass });
+    });
   }
   snapshot(): WalletConnectSnapshot { return this.#snapshot; }
   requestReviewTime(event: WalletConnectRequest): Date { const at=this.#receivedAt.get(event);if(!at)throw new Error("Wallet request arrival time is unavailable.");return new Date(at); }
@@ -332,7 +336,7 @@ export class WalletConnectRuntime {
     const relayer=client.core?.relayer;
     if(relayer){
       for(const event of ["relayer_connect","relayer_disconnect","relayer_transport_closed","relayer_connection_stalled"]){relayer.on(event,()=>this.#syncRelay(client));}
-      relayer.on("relayer_error",error=>{const details=safeRelayError(error);this.#set({relayTransport:"failed",relayErrorCode:details.code,relayHTTPStatus:details.status,relayRetryAvailable:this.#relayAttempts<3});});
+      relayer.on("relayer_error",error=>{const details=safeRelayError(error);this.#set({relayTransport:"failed",relayErrorCode:details.code??this.#snapshot.relayErrorCode,relayHTTPStatus:details.status,relayRetryAvailable:this.#relayAttempts<3});});
       relayer.subscriber?.on("subscription_created",event=>{if(event?.topic===this.#pairOperation?.topic)this.#set({pairTransportStage:"subscribed"});});
       this.#syncRelay(client);
     }
@@ -358,7 +362,7 @@ export class WalletConnectRuntime {
         await Promise.race([Promise.resolve().then(()=>relayer.transportOpen()),new Promise<never>((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error("Relay connection timed out."),{code:"RELAY_TIMEOUT"})),this.pairDeadlineMs)})]);
         if(!relayer.connected)throw Object.assign(new Error("Relay transport is still disconnected."),{code:"RELAY_DISCONNECTED"});
         this.#syncRelay(client);
-      }catch(error){const details=safeRelayError(error);this.#set({relayTransport:"failed",relayErrorCode:details.code,relayHTTPStatus:details.status,relayRetryAvailable:this.#relayAttempts<3});throw new Error(publicError(error));}
+      }catch(error){const details=safeRelayError(error);this.#set({relayTransport:"failed",relayErrorCode:details.code??this.#snapshot.relayErrorCode,relayHTTPStatus:details.status,relayRetryAvailable:this.#relayAttempts<3});throw new Error(publicError(error));}
       finally{clearTimeout(timer!);this.#relayRetry=null;}
     })();return this.#relayRetry;
   }
