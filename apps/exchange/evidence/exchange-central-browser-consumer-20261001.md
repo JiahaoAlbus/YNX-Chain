@@ -22,4 +22,10 @@ After restoring both existing lockfiles with `npm ci --ignore-scripts`, `node --
 
 ## Remaining acceptance
 
+### State-compatible rollback
+
+Schema version 10 is retained, but **backward binary compatibility is not claimed** once `browserSSOBindings` is populated. A pre-b8 typed reader discards this unknown field before computing integrity; its resulting hash differs and must fail closed. The regression explicitly reproduces this dropped-field integrity mismatch, not a real historical binary launch. Do not run a pre-b8 binary on the new state, rewrite the hash, or restore an old snapshot to remove linked history.
+
+The supported source rollback target is **b8ea9cc7a15fa96e8196f0f605be3536b8a61163 or a successor compatible reader**, retaining the exact current state and disabling `YNX_EXCHANGE_CENTRAL_BROWSER_SSO` and/or the new UI entry. Existing linked private sessions still reject when the bridge is disabled; disabling an entry is not an authorization bypass. Retain a binary built from that source alongside its source/tree receipt before runtime activation. This document does not claim an installed rollback binary. The regression also reopens and saves state using the compatible reader with SSO disabled, then reopens again and checks Alice's unchanged 17 balance, Bob's explicitly credited 32 balance and both durable associations.
+
 This checkpoint does not claim installed Wallet, public deployment, mobile/browser platform acceptance, native permission acquisition from the new identity UI, or full Exchange SSO E2E. The existing native request consumer still needs selected provider/full-route integration and transport/session restoration validation. Pair connection code and dependencies remain a separate draft. Quant is not modified. Subsequent runtime packaging must use the exact committed source and existing hash-bound packaging verifier; no dirty working-tree archive is a release receipt.
