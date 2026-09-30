@@ -12,8 +12,8 @@ import {PROVIDER_ACCOUNT_KEY,PROVIDER_PERMISSIONS_KEY,grantPermission} from "../
 import {EXTENSION_VAULT_KEY} from "../src/extension-vault.js";
 import {BRIDGE_VERSION,RUNTIME_REQUEST} from "../src/extension-bridge.js";
 import {p256} from "@noble/curves/nist.js";
-import {createProductSessionRequest,encodeProductSessionWalletURL} from "@ynx-chain/wallet-auth-card-provider-v2";
-import registry from "../vendor/product-session-registry-b754ffc42.json" with {type:"json"};
+import {createProductSessionRequest,encodeProductSessionWalletURL} from "@ynx-chain/wallet-auth";
+import registry from "../vendor/product-session-registry-123016847.json" with {type:"json"};
 
 // Executes the real worker handlers with simulated browser APIs and RPC only.
 const SECRET="1".padStart(64,"0"),PASSWORD="public-fixture-password-only",ACCOUNT=extensionIdentity(SECRET).account,ORIGIN="https://fixture-dapp.example",TO=`0x${"22".repeat(20)}`;
@@ -33,7 +33,7 @@ test("orphaned index and permission never expose an account without its encrypte
 
 function cardPrivateURL(nonce="b".repeat(43)){
   const now=new Date(),deviceKey=Buffer.from(p256.getPublicKey(Buffer.alloc(32,0x42),true)).toString("base64url");
-  const request=createProductSessionRequest(registry,{productId:"card",platform:"web",deviceId:`web_${"a".repeat(43)}`,deviceKey,scopes:["account:read","card:application:write","card:controls:write","card:finance:share"],purpose:"Card TEST access with separately selected Finance sharing.",nonce,state:"c".repeat(43)},now);
+  const request=createProductSessionRequest(registry,{productId:"card",platform:"web",deviceId:`web_${"a".repeat(43)}`,deviceKey,scopes:["account:read","card:application:write","card:controls:write"],purpose:"Card TEST access.",nonce,state:"c".repeat(43)},now);
   return encodeProductSessionWalletURL(registry,request,now);
 }
 

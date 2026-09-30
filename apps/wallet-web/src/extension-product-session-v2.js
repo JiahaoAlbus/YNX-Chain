@@ -1,5 +1,5 @@
-import registry from "../vendor/product-session-registry-b754ffc42.json" with {type:"json"};
-import {createProductSessionReturnURL,parseProductSessionWalletURL,parseProductSessionReturnURL,productSessionRequestDigest,signProductSessionApproval,walletIdentity} from "@ynx-chain/wallet-auth-card-provider-v2";
+import registry from "../vendor/product-session-registry-123016847.json" with {type:"json"};
+import {createProductSessionReturnURL,parseProductSessionWalletURL,parseProductSessionReturnURL,productSessionRequestDigest,signProductSessionApproval,walletIdentity} from "@ynx-chain/wallet-auth";
 
 export const PRIVATE_METHOD="ynx_requestProductSessionV2";
 export const PRIVATE_TIMEOUT_MS=120_000;

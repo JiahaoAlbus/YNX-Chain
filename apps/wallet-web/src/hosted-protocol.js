@@ -1,4 +1,4 @@
-import registry from "../vendor/product-session-registry-b754ffc42.json" with { type: "json" };
+import registry from "../vendor/product-session-registry-123016847.json" with { type: "json" };
 import { CENTRAL_BROWSER_ISSUER, CENTRAL_BROWSER_RPC_METHOD } from "@ynx-chain/wallet-auth/central-browser-session-contract";
 export { CENTRAL_BROWSER_ISSUER, CENTRAL_BROWSER_RPC_METHOD };
 

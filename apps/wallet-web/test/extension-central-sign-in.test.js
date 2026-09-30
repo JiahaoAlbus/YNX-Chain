@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {SigningKey,sha256,toUtf8Bytes} from "ethers";
-import registry from "../vendor/product-session-registry-b754ffc42.json" with {type:"json"};
+import registry from "../vendor/product-session-registry-123016847.json" with {type:"json"};
 import {createCentralBrowserSessionRegistry} from "@ynx-chain/wallet-auth/central-browser-session-registry";
 import {CENTRAL_BROWSER_ISSUER,CENTRAL_BROWSER_PURPOSE,centralBrowserConsentSignBytes} from "@ynx-chain/wallet-auth/central-browser-session-contract";
 import {parseCentralRequest,signCentralApproval} from "../src/extension-central-sign-in.js";

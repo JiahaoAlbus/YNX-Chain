@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {p256} from "@noble/curves/nist.js";
-import registry from "../vendor/product-session-registry-b754ffc42.json" with {type:"json"};
-import {createProductSessionRequest,encodeProductSessionWalletURL,parseProductSessionReturnURL} from "@ynx-chain/wallet-auth-card-provider-v2";
+import registry from "../vendor/product-session-registry-123016847.json" with {type:"json"};
+import {createProductSessionRequest,encodeProductSessionWalletURL,parseProductSessionReturnURL} from "@ynx-chain/wallet-auth";
 import {PRIVATE_REPLAY_KEY,consumePrivateReplay,parsePrivateRequest,privateReplayKey,rejectPrivateReturn,signPrivateReturn} from "../src/extension-product-session-v2.js";
 
 const at=new Date("2026-09-25T04:00:00.000Z"),origin="https://card.ynxweb4.com",secret="1".padStart(64,"0");
 const deviceKey=Buffer.from(p256.getPublicKey(Buffer.alloc(32,0x42),true)).toString("base64url");
-const input={productId:"card",platform:"web",deviceId:`web_${"a".repeat(43)}`,deviceKey,scopes:["account:read","card:application:write","card:controls:write","card:finance:share"],purpose:"Approve Card TEST access and separately selected Finance sharing.",nonce:"b".repeat(43),state:"c".repeat(43)};
+const input={productId:"card",platform:"web",deviceId:`web_${"a".repeat(43)}`,deviceKey,scopes:["account:read","card:application:write","card:controls:write"],purpose:"Approve Card TEST access.",nonce:"b".repeat(43),state:"c".repeat(43)};
 const request=createProductSessionRequest(registry,input,at),url=encodeProductSessionWalletURL(registry,request,at);
 
 test("official Card v2 request stays bound to exact browser origin and signed return",()=>{
@@ -29,4 +29,22 @@ test("private replay ledger rejects same pending request across worker instances
   const fresh=createProductSessionRequest(registry,{...input,nonce:"d".repeat(43),state:"e".repeat(43)},at);
   await consumePrivateReplay(storage,privateReplayKey(fresh,at),Date.parse(fresh.expiresAt),at.getTime()+1000);
   assert.equal(state[PRIVATE_REPLAY_KEY].length,2);
+});
+
+
+test("Quant record approval grants only freshly requested read scope",()=>{
+  const request=createProductSessionRequest(registry,{...input,productId:"quant",scopes:["quant:records:read"],purpose:"Read my Quant records"},at);
+  const origin="https://quant.ynxweb4.com",url=encodeProductSessionWalletURL(registry,request,at);
+  assert.deepEqual(parsePrivateRequest([url],origin,at).scopes,["quant:records:read"]);
+  const result=signPrivateReturn(request,secret,new Date(at.getTime()+1000));
+  const parsed=parseProductSessionReturnURL(registry,request,result.returnUrl,new Date(at.getTime()+1000));
+  assert.deepEqual(parsed.approval.scopes,["quant:records:read"]);
+  const old=createProductSessionRequest(registry,{...input,productId:"quant",scopes:["quant:account"]},at);
+  const oldResult=signPrivateReturn(old,secret,new Date(at.getTime()+1000));
+  assert.deepEqual(parseProductSessionReturnURL(registry,old,oldResult.returnUrl,new Date(at.getTime()+1000)).approval.scopes,["quant:account"]);
+});
+
+
+test("removed Card Finance sharing scope remains rejected by current registry",()=>{
+  assert.throws(()=>createProductSessionRequest(registry,{...input,scopes:["account:read","card:finance:share"]},at),{code:"SCOPE_WIDENING"});
 });
