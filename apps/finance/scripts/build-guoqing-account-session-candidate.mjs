@@ -10,8 +10,8 @@ import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
-const source='d64f5206b';
-const output='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-recovery-d64f5206-20261001.json';
+const source='012e1ff68';
+const output='apps/finance/evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-012e1ff68-20261001.json';
 const priorPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-workspace-2627b209-v5-20260925.json';
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 const read=path=>readFileSync(resolve(root,path));
@@ -28,7 +28,7 @@ const paths=[...prior.exactInputs.map(value=>value.path),'apps/finance/web/app.j
   'packages/wallet-auth/src/product-session-gateway-node-host.js','packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs',
   'internal/finance/browser_sso.go','internal/finance/browser_sso_binding.go','internal/finance/server.go',
   'internal/finance/store.go','internal/finance/types.go','apps/finance/cmd/server/main.go',
-  'packages/wallet-auth/src/walletconnect-dapp-connection.js'];
+  'packages/wallet-auth/src/walletconnect-dapp-connection.js','packages/wallet-auth/src/vendor/hosted-wallet-adapter-39c063da.js'];
 const exactInputs=[...new Set(paths)].map(path=>{
   const bytes=read(path),frozen=execFileSync('git',['show',`${source}:${path}`],{cwd:root,maxBuffer:16*1024*1024});
   assert.deepEqual(bytes,frozen,`${path} differs from implementation checkpoint`);

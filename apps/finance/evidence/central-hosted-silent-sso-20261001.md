@@ -55,3 +55,19 @@ renews, signs or activates endpoint authority. Use exact signed manifest dates,
 not conversational expiry estimates. Finance scope approval and public owned
 service must still be exercised with the real installed/Hosted Wallet and
 separately recorded for each platform and product.
+
+## Immutable implementation and successor pin
+
+Implementation commit 012e1ff68c52c3c1655032cd8bcff7781dc7926d, tree
+14b48a61baad4751e3e2b1bcaa285a9e7c61c8f0. The successor candidate is
+`evm-read-runtime-verifier-candidate-guoqing-hosted-012e1ff68-20261001.json`,
+73830 bytes, SHA256 6eb01b4b7be4010546fcf13d9f1eff593477a5c4f5b4a338a70f7d913938db67.
+It binds the full three-bundle dependency graph, including the accepted Hosted
+vendor, with two independent builds per bundle. Active verifier manifest SHA256
+50b313a71662b44d8ec9b998dddbd39b082a0b6a4704d66e055a427c08adecf3.
+All previous immutable candidates remain unchanged.
+
+Reproduce the strict gate from apps/finance:
+`node --test tests/evm-read-verifier.test.mjs tests/wallet-bundle-verifier.test.mjs`
+and `node web/verify-wallet-connect.mjs`. The successor adds an explicit Hosted
+byte-tamper negative test; none of the prior graph/tamper tests are weakened.
