@@ -55,7 +55,8 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /v1/config", s.config)
 	s.mux.HandleFunc("GET /v1/sso/config", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]bool{"enabled": s.service.cfg.BrowserSSO != nil})
+		w.Header().Set("Cache-Control", "no-store")
+		writeJSON(w, 200, map[string]bool{"enabled": s.service.cfg.BrowserSSO != nil, "silentRestoreAllowed": s.service.cfg.BrowserSSO != nil && s.service.cfg.BrowserSSO.SilentAllowed(r)})
 	})
 	if s.service.cfg.BrowserSSO != nil {
 		s.mux.HandleFunc("GET /v1/sso/account", s.service.cfg.BrowserSSO.Account)

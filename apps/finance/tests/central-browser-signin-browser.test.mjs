@@ -15,9 +15,26 @@ import {centralBrowserConsentSignBytes} from '../../../packages/wallet-auth/src/
 import {canonicalJSON} from '../../../packages/wallet-auth/src/canonical.js';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
+import {createHostedWalletAdapter} from '../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-39c063da.js';
 const {build}=createRequire(new URL('../web/package.json',import.meta.url))('esbuild');
 const registry=JSON.parse(await readFile(new URL('../../../packages/wallet-auth/product-session-registry.json',import.meta.url)));
 const issuer='https://wallet-auth.ynxweb4.com',key='1'.padStart(64,'0'),identity=walletIdentity(key),token=()=>randomBytes(32).toString('base64url');
+test('accepted Hosted central adapter bytes restrict the issuer to identity/lifecycle, never EVM or product permissions',async()=>{
+  const bytes=await readFile(new URL('../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-39c063da.js',import.meta.url));assert.equal(bytes.length,12509);assert.equal(createHash('sha256').update(bytes).digest('hex'),'fef4c040721b2759af7ca0928fe5363f3850bf59d66c425f724b3e79b00c11cc');
+  assert.throws(()=>createHostedWalletAdapter({window:{location:{origin:'https://unknown.ynxweb4.com'}}}),error=>error.code==='HOSTED_ORIGIN_UNREGISTERED');
+  const adapter=createHostedWalletAdapter({window:{location:{origin:issuer},addEventListener(){},removeEventListener(){}}});
+  for(const method of ['personal_sign','eth_signTypedData_v4','eth_sendTransaction','ynx_requestProductSessionV2'])await assert.rejects(adapter.request({method,params:[]}),error=>error.code==='HOSTED_IDENTITY_ONLY');
+  await adapter.detach();
+});
+// Isolated Wallet page fixture for the real accepted adapter's cross-window
+// channel. It is not the released vault, installed Wallet or public approval.
+function hostedPage(mode){return `<script>
+const mode=${JSON.stringify(mode)},request=JSON.parse(atob(location.hash.slice('#connect='.length).replace(/-/g,'+').replace(/_/g,'/')));
+const send=(type,extra={})=>opener.postMessage({protocol:'ynx-hosted-wallet/v1',requestId:request.requestId,nonce:request.nonce,messageId:crypto.randomUUID().replaceAll('-',''),expiresAt:Math.min(request.expiresAt,Date.now()+30000),type,...extra},'https://wallet-auth.ynxweb4.com');
+addEventListener('message',async event=>{if(event.source!==opener||event.origin!=='https://wallet-auth.ynxweb4.com')return;const input=event.data;if(input.requestId!==request.requestId||input.nonce!==request.nonce)return;
+if(input.type==='hello'){if(mode==='hosted-connect-reject')send('rejected',{replyTo:input.messageId});else send('connected',{replyTo:input.messageId,account:${JSON.stringify(evmAddressFromYNX(identity.account))},chainId:'0x1917',sessionExpiresAt:Math.min(request.expiresAt,Date.now()+60000)});}
+else if(input.type==='ping')send('pong');else if(input.type==='request'){if(input.method==='wallet_disconnect'){close();return;}if(input.method!=='ynx_requestCentralBrowserSignIn')throw new Error('wrong fixture method');if(mode==='hosted-reject')send('response',{replyTo:input.messageId,ok:false,code:'USER_REJECTED'});else send('response',{replyTo:input.messageId,ok:true,result:await window.qaApproval(input.params[0])});}});send('ready');
+</script>`;}
 test('Finance preserves Klein blue and white under both OS color-scheme preferences',async()=>{
   const styles=await readFile(new URL('../web/styles.css',import.meta.url),'utf8');
   const browser=await chromium.launch({headless:true});try{
@@ -33,8 +50,8 @@ test('central guest page uses explicit selected native RPC, actual backend conse
   // This fixture replaces only SignClient network transport at build time.
   // Production uses the official locked SDK; this is not a Relay/Wallet receipt.
   const pairFixture=await build({entryPoints:[fileURLToPath(new URL('../../../packages/wallet-auth/src/central-browser-session-browser.js',import.meta.url))],bundle:true,write:false,platform:'browser',format:'iife',plugins:[{name:'isolated-signclient-fixture',setup(build){build.onResolve({filter:/^@walletconnect\/sign-client$/},()=>({path:'fixture',namespace:'qa'}));build.onLoad({filter:/.*/,namespace:'qa'},()=>({contents:`export default {async init(){if(window.qaPairMode==='pair-error')throw Object.assign(new Error('wc:private-qa-marker?secret=never-render'),{code:'YNX_PAIR_TIMEOUT'});window.qaPairCalls=[];const topic='a'.repeat(64);return {on(){},session:{getAll:()=>[]},core:{pairing:{disconnect:async()=>window.qaPairCalls.push('cancel')}},async connect(){window.qaPairCalls.push('connect');return {uri:'wc:'+topic+'@2?relay-protocol=irn&symKey='+'2'.repeat(64),approval:()=>new Promise(resolve=>window.qaPairApprove=()=>resolve({topic,expiry:Math.floor(Date.now()/1000)+300,peer:{metadata:{url:'https://wallet.ynxweb4.com'}},namespaces:{eip155:{accounts:['eip155:6423:'+window.qaPairAccount],methods:['ynx_requestCentralBrowserSignIn'],chains:['eip155:6423']}}}))}},async request(input){window.qaPairCalls.push(input.request.method);return window.qaApproval(input.request.params[0]);},async disconnect(){window.qaPairCalls.push('disconnect');}}}};`,loader:'js'}));}}]});
-  try{for(const mode of ['approve','switch-4902','cancel','cancel-complete','account-rpc','account-complete','chain-complete','timeout-rpc','timeout-connect','timeout-accountread','pair-approve','pair-cancel','pair-error','expired-cancel','reject-string']){
-    const cancel=mode.startsWith('cancel')||mode==='pair-cancel'||mode==='reject-string',negative=mode.startsWith('account')||mode.startsWith('chain');let completedCookie=null,releaseComplete;
+  try{for(const mode of ['approve','switch-4902','cancel','cancel-complete','account-rpc','account-complete','chain-complete','timeout-rpc','timeout-connect','timeout-accountread','pair-approve','pair-cancel','pair-error','expired-cancel','reject-string','hosted-approve','hosted-reject','hosted-connect-reject','hosted-blocked']){
+    const cancel=mode.startsWith('cancel')||mode==='pair-cancel'||mode==='reject-string'||mode==='hosted-reject'||mode==='hosted-connect-reject'||mode==='hosted-blocked',negative=mode.startsWith('account')||mode.startsWith('chain');let completedCookie=null,releaseComplete;
     const completion=new Promise(resolve=>releaseComplete=resolve);let notifyComplete;
     const completeReached=new Promise(resolve=>notifyComplete=resolve);
     const context=await browser.newContext();const page=await context.newPage();
@@ -45,9 +62,10 @@ test('central guest page uses explicit selected native RPC, actual backend conse
       await route.fulfill({response}).catch(()=>{});
     });
     await context.route('https://finance.ynxweb4.com/**',route=>route.fulfill({body:'Returned to Finance'}));
-    await page.exposeFunction('qaApproval',challenge=>({challengeId:challenge.challengeId,...identity,walletSignature:bytesToHex(secp256k1.sign(sha256(utf8ToBytes(centralBrowserConsentSignBytes(challenge,identity.account,identity.accountPublicKey))),hexToBytes(key),{prehash:false,format:'compact',lowS:true}))}));
+    await context.route('https://wallet.ynxweb4.com/**',route=>route.fulfill({contentType:'text/html',body:hostedPage(mode)}));
+    await context.exposeFunction('qaApproval',challenge=>({challengeId:challenge.challengeId,...identity,walletSignature:bytesToHex(secp256k1.sign(sha256(utf8ToBytes(centralBrowserConsentSignBytes(challenge,identity.account,identity.accountPublicKey))),hexToBytes(key),{prehash:false,format:'compact',lowS:true}))}));
     await page.addInitScript(({account,mode})=>{
-      window.qaPairAccount=account;window.qaPairMode=mode;
+      window.qaPairAccount=account;window.qaPairMode=mode;if(mode==='hosted-blocked')window.open=()=>null;
       const listeners=new Map(),emit=(event,value)=>{for(const listener of listeners.get(event)??[])listener(value);};
       let chain=mode==='switch-4902'?'0x1':'0x1917',known=mode!=='switch-4902';window.qaEmit=emit;
       window.qaCalls=[];window.ethereum={isYNXWallet:true,providerInfo:{rdns:'com.ynx.wallet'},on(event,listener){if(!listeners.has(event))listeners.set(event,new Set());listeners.get(event).add(listener);},removeListener(event,listener){listeners.get(event)?.delete(listener);},async request({method,params}){window.qaCalls.push(method);
@@ -61,7 +79,10 @@ test('central guest page uses explicit selected native RPC, actual backend conse
     await page.goto(`${issuer}/v2/browser-sessions/authorize?${query}`);
     assert.deepEqual(await page.evaluate(()=>window.qaCalls),[]);
     if(mode==='expired-cancel'){await context.clearCookies();await page.click('#cancel');await page.waitForSelector('#return-product:not([hidden])');assert.equal(await page.locator('#status').getAttribute('data-error-code'),'SSO_CSRF_MISMATCH');assert.equal(await page.locator('#status').getAttribute('data-phase'),'server-cancel');assert.match(await page.locator('#status').innerText(),/not confirmed/);assert.equal(await page.locator('#cancel').isDisabled(),true);assert.equal(completeCalls,0);await page.click('#return-product');await page.waitForURL('https://finance.ynxweb4.com/sso/callback?**');const returned=new URL(page.url());assert.equal(returned.searchParams.get('state'),state);assert.equal(returned.searchParams.get('error'),'access_denied');assert.equal(returned.searchParams.has('code'),false);await context.close();continue;}
-    if(mode.startsWith('pair')){
+    if(mode.startsWith('hosted')){await page.click('#hosted');
+      if(mode==='hosted-blocked'||mode==='hosted-connect-reject'){await page.waitForFunction(()=>document.querySelector('#status').dataset.errorCode===('USER_REJECTED')||document.querySelector('#status').dataset.errorCode==='HOSTED_POPUP_BLOCKED');assert.equal(completeCalls,0);await page.click('#cancel');}
+      else{await page.waitForFunction(()=>!document.querySelector('#approve').disabled);assert.equal(completeCalls,0);await page.click('#approve');if(mode==='hosted-reject'){await page.waitForFunction(()=>document.querySelector('#status').dataset.errorCode==='USER_REJECTED');assert.equal(completeCalls,0);await page.click('#cancel');}}
+    }else if(mode.startsWith('pair')){
       if(mode==='pair-error'){await page.click('#pair');await page.waitForFunction(()=>document.querySelector('#status').dataset.errorCode==='YNX_PAIR_TIMEOUT');assert.equal(await page.locator('#status').getAttribute('data-phase'),'pair-initialize');assert.equal((await page.locator('body').innerText()).includes('private-qa-marker'),false);assert.equal(completeCalls,0);await context.close();continue;}
       await page.click('#pair');await page.waitForFunction(()=>document.querySelector('#pair-request canvas').width===240);
       assert.deepEqual(await page.evaluate(()=>window.qaPairCalls),['connect']);assert.equal(completeCalls,0);

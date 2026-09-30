@@ -80,6 +80,7 @@ export class CentralBrowserSessionAuthority {
       return {cancelled:true,redirectUri:redirect.href};});
   }
   loginPage(input,transactionToken){this.#initiator(input);return {registry:this.#registry,...this.challenge(input,transactionToken)};}
+  loginRequired(input){const client=this.#initiator(input);const redirect=new URL(client.redirectUri);redirect.searchParams.set('state',input.state);redirect.searchParams.set('error','login_required');return {redirectUri:redirect.href};}
   status(sessionToken){return this.#transaction((state,now)=>this.#identity(this.#active(state,sessionToken,now)));}
   authorize(initiator,sessionToken){
     const client=this.#initiator(initiator);
@@ -213,10 +214,12 @@ export class CentralBrowserSessionNodeRoutes {
       }
       if(path==='/v2/browser-sessions/authorize'){
         if(method!=='GET')fail('SSO_METHOD_NOT_ALLOWED');
-        const parsed=new URL(url,CENTRAL_BROWSER_ISSUER),input=Object.fromEntries(parsed.searchParams);
-        if([...parsed.searchParams].length!==Object.keys(input).length)fail('SSO_TRANSACTION_INVALID');
+        const parsed=new URL(url,CENTRAL_BROWSER_ISSUER),query=Object.fromEntries(parsed.searchParams);
+        if([...parsed.searchParams].length!==Object.keys(query).length)fail('SSO_TRANSACTION_INVALID');
+        const {prompt,...input}=query;if(prompt!==undefined&&prompt!=='none')fail('SSO_TRANSACTION_INVALID');
         try{const result=this.#authority.authorize(input,session);return this.#reply(303,{redirect:true},{location:result.redirectUri});}
         catch(error){if(error?.code!=='SSO_LOGIN_REQUIRED')throw error;
+          if(prompt==='none'){const result=this.#authority.loginRequired(input);return this.#reply(303,{redirect:true},{location:result.redirectUri});}
           const bound=transaction??random(),page=this.#authority.loginPage(input,bound);
           const data=canonicalJSON({...page,csrfToken:hash(bound)}).replaceAll('<','\\u003c');
           return {status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self' wss://relay.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com; frame-src https://verify.walletconnect.org; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",'set-cookie':centralBrowserCookie(bound,{transaction:true})},body:`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YNX · Sign in</title><style>body{margin:0;background:#fff;color:#122247;font:17px/1.6 system-ui}main{max-width:560px;margin:8vh auto;padding:24px}button,a{min-height:44px;padding:12px 18px;border-radius:12px}button{background:#002FA7;color:#fff;border:0;margin:8px 8px 8px 0;cursor:pointer}button:disabled{opacity:.65}select{width:100%;min-height:48px;font:inherit}a{color:#002FA7}#status{min-height:3em}</style><main><h1>Sign in with YNX Wallet</h1><p>Allow browser sign-in for registered YNX products. Private product permissions require separate approval.</p><label for="wallet">YNX Wallet</label><select id="wallet"></select><p id="status" role="status" aria-live="polite">Choose a wallet to continue.</p><button id="approve">Continue with YNX Wallet</button><button id="cancel">Cancel</button><p><a href="https://wallet.ynxweb4.com" target="_blank" rel="noopener noreferrer">Get YNX Wallet</a></p><p><small>Portions © 2025 Reown, Inc. All Rights Reserved. WalletConnect connection uses the official Reown network.</small></p><script id="context" type="application/json">${data}</script><script src="/sso/browser.js" defer></script></main></html>`};

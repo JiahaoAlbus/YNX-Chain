@@ -157,6 +157,10 @@ test('actual NodeHost SSO endpoints enforce central CSRF, backend-only code exch
   const send=(path,{body,origin,cookie,csrf}={})=>fetch(`${base}/v2/browser-sessions/${path}`,{method:body===undefined?'GET':'POST',redirect:'manual',headers:{...(body===undefined?{}:{'content-type':'application/json'}),...(origin?{origin}:{}),...(cookie?{cookie}:{}),...(csrf?{'x-ynx-browser-csrf':csrf}:{})},body:body===undefined?undefined:canonicalJSON(body)});
   try{
     const boot=await send('bootstrap'),bootstrap=await boot.json(),transactionCookie=boot.headers.getSetCookie()[0].split(';')[0],request=intent();
+    const quietGuest=await send(`authorize?${new URLSearchParams({...request.input,prompt:'none'})}`);assert.equal(quietGuest.status,303);
+    const denied=new URL(quietGuest.headers.get('location'));assert.equal(denied.origin,request.input.origin);assert.equal(denied.pathname,'/sso/callback');assert.equal(denied.searchParams.get('state'),request.input.state);assert.equal(denied.searchParams.get('error'),'login_required');assert.equal(denied.searchParams.has('code'),false);assert.equal(quietGuest.headers.has('set-cookie'),false);
+    assert.equal((await send(`authorize?${new URLSearchParams({...request.input,prompt:'unsupported'})}`)).status,400);
+    assert.equal((await send(`authorize?${new URLSearchParams({...request.input,origin:'https://unknown.ynxweb4.com',prompt:'none'})}`)).status,400);
     const guest=await send(`authorize?${new URLSearchParams(request.input)}`),policy=guest.headers.get('content-security-policy');assert.equal(guest.status,200);
     assert.ok(policy.includes("frame-src https://verify.walletconnect.org;"));assert.ok(policy.includes("frame-ancestors 'none'"));assert.ok(!policy.includes('*')&&!policy.includes('ynx:')&&!policy.includes('walletconnect:'));
     assert.ok(policy.includes("connect-src 'self' wss://relay.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com;"));
@@ -169,6 +173,10 @@ test('actual NodeHost SSO endpoints enforce central CSRF, backend-only code exch
     const completed=await send('complete',{body:approve(challenge),origin:issuer,cookie:transactionCookie,csrf:bootstrap.csrfToken});assert.equal(completed.status,200);
     const completedBody=await completed.json();assert.equal(completedBody.sessionToken,undefined);assert.equal(completedBody.identity.subject,identity.account);
     const centralCookie=completed.headers.getSetCookie()[0].split(';')[0];
+    const silentRequest=intent('quant');const quiet=await send(`authorize?${new URLSearchParams({...silentRequest.input,prompt:'none'})}`,{cookie:centralCookie});assert.equal(quiet.status,303);
+    const silentCode=new URL(quiet.headers.get('location')).searchParams.get('code');assert.ok(silentCode);assert.equal(new URL(quiet.headers.get('location')).searchParams.get('state'),silentRequest.input.state);
+    const silentInput={clientId:silentRequest.input.clientId,origin:silentRequest.input.origin,redirectUri:silentRequest.input.redirectUri,state:silentRequest.input.state,codeVerifier:silentRequest.codeVerifier,code:silentCode};
+    const quietGrantResponse=await send('token',{body:silentInput});assert.equal(quietGrantResponse.status,200);const quietGrant=await quietGrantResponse.json();assert.deepEqual(quietGrant.scopes,['identity:read']);assert.equal(quietGrant.identity.account,identity.account);assert.equal((await send('token',{body:silentInput})).status,400);
     const authorize=await send(`authorize?${new URLSearchParams(request.input)}`,{cookie:centralCookie});assert.equal(authorize.status,303);
     const input={clientId:request.input.clientId,origin:request.input.origin,redirectUri:request.input.redirectUri,state:request.input.state,codeVerifier:request.codeVerifier,code:new URL(authorize.headers.get('location')).searchParams.get('code')};
     const browserExchange=await send('token',{body:input,origin:issuer});assert.equal(browserExchange.status,403);assert.equal(browserExchange.headers.has('access-control-allow-origin'),false);
