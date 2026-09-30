@@ -101,6 +101,11 @@ export class WalletConnectRuntime {
     this.#set({request:null});
     await this.#require().respondSessionRequest({ topic: pending.topic, response: { jsonrpc: "2.0", id: pending.id, error: { code, message } } });
   }
+  async rejectReviewedEvent(event: WalletConnectRequest, code: number, message: string): Promise<void> {
+    if (this.#snapshot.request !== event) return;
+    this.#set({ request: null });
+    await this.#require().respondSessionRequest({ topic: event.topic, response: { jsonrpc: "2.0", id: event.id, error: { code, message } } });
+  }
   async rejectRequestForSession(topic:string,code=5000,message="WalletConnect session is no longer authorized."):Promise<void>{
     const pending=this.#snapshot.request;if(!pending||pending.topic!==topic)return;
     this.#set({request:null});
@@ -123,9 +128,13 @@ export class WalletConnectRuntime {
   clearSensitiveReview(): void { if (this.#snapshot.request) this.#set({ request: null }); }
   async rejectPendingForLock(): Promise<void> {
     const request = this.#snapshot.request, proposal = this.#snapshot.proposal;
-    if (request) await this.rejectRequest(5000, "Wallet locked before approval.").catch(() => {});
-    if (proposal) await this.rejectProposal().catch(() => {});
+    // Invalidate the old approval before awaiting transport. Later SDK events
+    // belong to a fresh review and must not be cleared by this operation.
     this.#set({ request: null, proposal: null });
+    if (!request && !proposal) return;
+    const client = this.#require();
+    if (request) await client.respondSessionRequest({ topic: request.topic, response: { jsonrpc: "2.0", id: request.id, error: { code: 5000, message: "Wallet locked before approval." } } }).catch(() => {});
+    if (proposal) await client.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") }).catch(() => {});
   }
   async restore(): Promise<void> { await this.start(); this.#refreshSessions(); }
   refreshSessions():void{this.#refreshSessions()}
