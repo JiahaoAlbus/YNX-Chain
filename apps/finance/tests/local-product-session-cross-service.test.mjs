@@ -135,6 +135,24 @@ for(const transport of ['native-callback','selected-provider','selected-provider
       assert.equal(view.account,walletIdentity('1'.padStart(64,'0')).account,JSON.stringify(view));
       assert.equal(await page.evaluate(()=>location.hash),'#planning');
       assert.equal(await page.locator('#planning').evaluate(node=>node.classList.contains('active-view')),true);
+      // A late completion owns its original intent and context, never a newer
+      // request created while its read was unresolved (including cancellation).
+      assert.deepEqual(await page.evaluate(async()=>{
+        const originalContext=state.context,originalOverview=state.overview;
+        const oldIntent={target:'assets'},newIntent={target:'planning'};
+        loginIntent=oldIntent;
+        let resolveOld;const oldRead=new Promise(resolve=>{resolveOld=resolve});
+        const completion=oldRead.then(()=>completeLoginTarget(oldIntent,originalContext));
+        clearLoginIntent();state.context++;loginIntent=newIntent;
+        resolveOld();await completion;
+        const isolated=loginIntent===newIntent&&location.hash==='#planning';
+        // Same object cannot authorize navigation against a different owner.
+        state.overview={portfolio:{account:'ynx1different-qa-subject'}};
+        completeLoginTarget(newIntent,state.context);
+        const ownerBound=loginIntent===newIntent&&location.hash==='#planning';
+        state.overview=originalOverview;state.context=originalContext;clearLoginIntent();
+        return {isolated,ownerBound};
+      }),{isolated:true,ownerBound:true});
       const initialSession=await page.evaluate(()=>window.YNXFinanceWallet.session().sessionId);
       await page.locator('#budget-form input[name="name"]').fill('Preserved local draft');
       failOverview=true;
