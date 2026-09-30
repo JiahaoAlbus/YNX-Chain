@@ -56,3 +56,39 @@ test("registry v4 binds exact HTTPS web origins and migrates to v5 without infer
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }
+
+// Product Session permissions are separate from the disabled legacy central registry.
+const productRegistry = JSON.parse(readFileSync(new URL('../product-session-registry.json', import.meta.url), 'utf8'));
+test('Paper workspace is a fresh Quant-only grant and cannot widen existing account or records approvals', async () => {
+  const {createProductSessionRequest,signProductSessionApproval,parseProductSessionApproval}=await import('../src/product-session-v2.js');
+  const {p256}=await import('@noble/curves/nist.js');
+  const at=new Date('2026-10-01T00:00:00.000Z');
+  const input={productId:'quant',platform:'web',deviceId:'a'.repeat(43),deviceKey:Buffer.from(p256.getPublicKey(Buffer.alloc(32,7),true)).toString('base64url'),scopes:['quant:paper:workspace'],purpose:'Simulated Paper workspace; no real money.',nonce:'b'.repeat(43),state:'c'.repeat(43)};
+  const request=createProductSessionRequest(productRegistry,input,at);
+  const approval=signProductSessionApproval(productRegistry,request,{accountSecret:'1'.padStart(64,'0'),scopes:request.scopes,expiresAt:request.expiresAt},at);
+  assert.deepEqual(parseProductSessionApproval(productRegistry,request,approval,at).scopes,['quant:paper:workspace']);
+  for(const oldScope of ['quant:account','quant:records:read']) {
+    const old=createProductSessionRequest(productRegistry,{...input,scopes:[oldScope]},at);
+    assert.throws(()=>signProductSessionApproval(productRegistry,old,{accountSecret:'1'.padStart(64,'0'),scopes:['quant:paper:workspace'],expiresAt:old.expiresAt},at));
+    const original=signProductSessionApproval(productRegistry,old,{accountSecret:'1'.padStart(64,'0'),scopes:old.scopes,expiresAt:old.expiresAt},at);
+    assert.deepEqual(original.scopes,[oldScope]);
+    assert.throws(()=>parseProductSessionApproval(productRegistry,request,original,at));
+  }
+  assert.throws(()=>createProductSessionRequest(productRegistry,{...input,productId:'finance'},at));
+});
+
+test('completed old Quant sessions cannot operate Paper workspace after registry adds its independent scope',async()=>{
+  const {ProductSessionAuthority,createProductSessionRequest,signProductSessionApproval,signProductSessionChallenge}=await import('../src/product-session-v2.js');
+  const {p256}=await import('@noble/curves/nist.js');
+  const at=new Date('2026-10-01T00:00:00.000Z'),device=Buffer.alloc(32,7),server=new ProductSessionAuthority(productRegistry);
+  for(const [i,scope] of ['quant:account','quant:records:read','quant:paper:workspace'].entries()){
+    const request=createProductSessionRequest(productRegistry,{productId:'quant',platform:'web',deviceId:'a'.repeat(43),deviceKey:Buffer.from(p256.getPublicKey(device,true)).toString('base64url'),scopes:[scope],purpose:'Explicit isolated Quant permission',nonce:String(i+1).repeat(43),state:String(i+4).repeat(43)},at);
+    const approval=signProductSessionApproval(productRegistry,request,{accountSecret:'1'.padStart(64,'0'),scopes:request.scopes,expiresAt:request.expiresAt},at);
+    const challenge=server.issueChallenge({request,approval,challenge:String(i+7).repeat(43)},at);
+    const active=server.complete({request,approval,completion:signProductSessionChallenge(challenge,device.toString('base64url'))},at);
+    const context=Object.fromEntries(['chainId','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','account','deviceId','deviceKey'].map(key=>[key,active[key]]));
+    context.requiredScopes=['quant:paper:workspace'];
+    if(scope==='quant:paper:workspace') assert.equal(server.introspect(active.sessionBinding,context,at).active,true);
+    else assert.throws(()=>server.introspect(active.sessionBinding,context,at),error=>error.code==='INVALID_SCOPES'||error.code==='SCOPE_WIDENING');
+  }
+});

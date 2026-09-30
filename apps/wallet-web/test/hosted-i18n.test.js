@@ -25,3 +25,9 @@ test("dynamic values are rendered as text while protocol identifiers stay unchan
   assert.match(hostedDynamicCopy("ar", "reviewFor", { account: "YNX123" }), /YNX123/u);
   assert.throws(() => hostedCopy("en", "unknown"), /HOSTED_I18N_KEY_UNKNOWN/u);
 });
+
+test('Paper approval explanation exists in all locales and explicitly excludes real money and live execution',()=>{
+  for(const [locale] of HOSTED_LOCALES) assert.ok(hostedDynamicCopy(locale,'paperWorkspaceOnly').length>30,locale);
+  assert.match(hostedDynamicCopy('en','paperWorkspaceOnly'),/Simulated Paper.*No real money, live trading, schedules or Testnet transactions/);
+  assert.match(hostedDynamicCopy('zh-CN','paperWorkspaceOnly'),/模拟.*不使用真钱/);
+});

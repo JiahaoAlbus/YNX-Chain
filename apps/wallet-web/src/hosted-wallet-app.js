@@ -169,7 +169,7 @@ async function handleMethod(method, params, context) {
     const replay = privateReplayKey(request);
     await store.consumeReplay(replay, Date.parse(request.expiresAt));
     const product = privateProductName(request), requestingOrigin = session.origin;
-    const choice = await askUser({ titleKey: "privateApprove", titleVariables: { product }, detailFactory: language => `${requestingOrigin}\n${request.purpose}\n${hostedDynamicCopy(language, "scopes", { scopes: request.scopes.join(", ") })}\n${hostedDynamicCopy(language, "expires", { expires: new Intl.DateTimeFormat(language, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(request.expiresAt)) + " UTC" })}`, secretRequired: true, context });
+    const choice = await askUser({ titleKey: "privateApprove", titleVariables: { product }, detailFactory: language => `${requestingOrigin}\n${request.purpose}${request.scopes.includes("quant:paper:workspace") ? "\n" + hostedDynamicCopy(language, "paperWorkspaceOnly") : ""}\n${hostedDynamicCopy(language, "scopes", { scopes: request.scopes.join(", ") })}\n${hostedDynamicCopy(language, "expires", { expires: new Intl.DateTimeFormat(language, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(request.expiresAt)) + " UTC" })}`, secretRequired: true, context });
     assertRequestLive(context);
     if (!choice.approved) return rejectPrivateReturn(request);
     await assertCurrentAccount();

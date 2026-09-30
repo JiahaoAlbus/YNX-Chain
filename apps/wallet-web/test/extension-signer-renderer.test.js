@@ -111,3 +111,27 @@ test("review toggling leaves the exact locator and password decision semantics u
   const dismissed=await render({summary:"legacy summary"});dismissed.nodes.get("password").value="public-synthetic-password";
   dismissed.events.pagehide();assert.equal(dismissed.nodes.get("password").value,"");assert.equal(dismissed.calls.length,1);assert.equal(dismissed.timers.size,0);
 });
+
+async function renderPrivate(scopes,locale='en'){
+  const html=await readFile(new URL('../extension/private-approval.html',import.meta.url),'utf8');
+  const source=(await readFile(new URL('../extension/private-approval.js',import.meta.url),'utf8')).replace(/^import .*;\n/gm,'');
+  const nodes=new Map([...html.matchAll(/\bid="([^"]+)"/gu)].map(([,id])=>[id,{textContent:'',value:'',disabled:true,children:[],handlers:{},replaceChildren(){this.children=[]},append(node){this.children.push(node)},addEventListener(event,fn){this.handlers[event]=fn},click(){if(!this.disabled)this.handlers.click?.()},set innerHTML(_){throw Error('HTML rendering forbidden')}}]));
+  const calls=[];let closed=false;
+  const request={deadlineAt:Date.now()+60_000,origin:'https://quant.ynxweb4.com',account:ACCOUNT,productName:'YNX Quant',applicationId:'com.ynxweb4.quant.web',browserContext:'chromium-default',scopes,purpose:'<img src=x onerror=alert(1)>',expiresAt:new Date(Date.now()+60_000).toISOString()};
+  const context=vm.createContext({isProviderInternalRequestId,providerContextLabel,toYNXAddress,URLSearchParams,Date,navigator:{language:locale},localStorage:{getItem:()=>locale,setItem(){}},location:{search:`?requestId=${ID}`},document:{documentElement:{},getElementById:id=>nodes.get(id),createElement:()=>({textContent:'',className:'',set innerHTML(_){throw Error('HTML forbidden')}})},window:{close(){closed=true}},setTimeout:()=>1,clearTimeout(){},addEventListener(){},chrome:{runtime:{sendMessage:async message=>{calls.push(message);return message.type==='YNX_PRIVATE_APPROVAL_GET_V2'?{ok:true,request}:{ok:true}}}}});
+  vm.runInContext(source,context);await tick();return{nodes,calls,closed:()=>closed};
+}
+test('actual private approval DOM explains simulated Paper without upgrading old read grants; explicit rejection never supplies a password',async()=>{
+  for(const locale of ['en','zh-CN']){
+    const f=await renderPrivate(['quant:paper:workspace'],locale),text=f.nodes.get('scopes').children[0].textContent;
+    assert.match(text,locale==='en'?/Simulated Paper.*No real money, live trading, schedules or Testnet transactions/:/模拟 Paper.*不使用真钱/);
+    assert.equal(f.nodes.get('scope-ids').textContent,'quant:paper:workspace');
+    assert.equal(f.nodes.get('original-purpose').textContent,'<img src=x onerror=alert(1)>');
+    assert.equal(f.calls.length,1);assert.equal(f.nodes.get('approve').disabled,false);
+    f.nodes.get('reject').click();await tick();
+    assert.equal(f.calls[1].decision,'reject');assert.equal(f.calls[1].password,undefined);assert.equal(f.closed(),true);
+  }
+  const old=await renderPrivate(['quant:records:read']);
+  assert.equal(old.nodes.get('scopes').children[0].textContent,'quant:records:read');
+  assert.doesNotMatch(old.nodes.get('scopes').children[0].textContent,/Paper/);
+});

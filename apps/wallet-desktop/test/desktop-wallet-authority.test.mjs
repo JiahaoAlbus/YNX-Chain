@@ -504,3 +504,14 @@ test("a key switch after provider permission checks cannot sign the previously r
     assert.equal(sent, false);
   }
 });
+
+test('Paper workspace desktop approval shows simulated-only limits and returns only the exact new grant',async()=>{
+  const {authority,status}=await fixture(),now=new Date('2026-08-22T00:00:00Z'),device=createECDH('prime256v1');device.setPrivateKey(Buffer.alloc(32,0x42));
+  const request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:'quant',platform:'web',deviceId:'paper-authority-test',deviceKey:device.getPublicKey(null,'compressed').toString('base64url'),nonce:'nonce_abcdefghijklmnopqrstuvwxyz12',state:'state_abcdefghijklmnopqrstuvwxyz12',scopes:['quant:paper:workspace'],purpose:'Paper simulation only'},now);
+  await authority.approveOrigin(request.origin,status.account);
+  const pending=await authority.request({origin:request.origin,method:'ynx_requestProductSessionV2',params:[encodeRequestDeepLink(request)]});
+  assert.match(pending.request.review.warning,/Simulated Paper.*No real money, live trading, schedules or Testnet transactions/);
+  assert.deepEqual(pending.request.review.request.scopes,['quant:paper:workspace']);
+  const returned=(await authority.approve(pending.request.id)).result;
+  assert.deepEqual(parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,returned.returnUrl,now).approval.scopes,['quant:paper:workspace']);
+});

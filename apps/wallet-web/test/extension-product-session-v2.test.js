@@ -48,3 +48,13 @@ test("Quant record approval grants only freshly requested read scope",()=>{
 test("removed Card Finance sharing scope remains rejected by current registry",()=>{
   assert.throws(()=>createProductSessionRequest(registry,{...input,scopes:["account:read","card:finance:share"]},at),{code:"SCOPE_WIDENING"});
 });
+
+test('Paper workspace requires its exact fresh Quant scope and supports explicit rejection',()=>{
+  const request=createProductSessionRequest(registry,{...input,productId:'quant',scopes:['quant:paper:workspace'],purpose:'Simulated Paper workspace, no real money.'},at);
+  const url=encodeProductSessionWalletURL(registry,request,at),now=new Date(at.getTime()+1000);
+  assert.deepEqual(parsePrivateRequest([url],'https://quant.ynxweb4.com',at).scopes,['quant:paper:workspace']);
+  assert.throws(()=>parsePrivateRequest([url],'https://finance.ynxweb4.com',at),{code:'PRIVATE_ORIGIN_MISMATCH'});
+  const signed=signPrivateReturn(request,secret,now);
+  assert.deepEqual(parseProductSessionReturnURL(registry,request,signed.returnUrl,now).approval.scopes,['quant:paper:workspace']);
+  assert.equal(parseProductSessionReturnURL(registry,request,rejectPrivateReturn(request,now).returnUrl,now).status,'user-rejected');
+});

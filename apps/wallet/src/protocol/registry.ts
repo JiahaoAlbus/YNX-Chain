@@ -5,6 +5,7 @@ import registry from "../../../../packages/wallet-auth/product-session-registry.
 export const PRODUCT_SESSION_REGISTRY = parseProductSessionRegistry(registry);
 
 export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freeze({
+  "quant:paper:workspace": "Simulated Paper workspace only: view your snapshot and history, save backtest strategies and submit simulated orders. No real money, live trading, schedules or Testnet transactions.",
   "account:read": "Share this account's public ynx1 address. No secret or recovery material leaves Wallet.",
   "card:application:write": "Create or update only this account's sandbox Card application.",
   "card:controls:write": "Manage only this account's Card controls after a separate review.",

@@ -88,7 +88,7 @@ export class DesktopWalletAuthority {
       if(params.length !== 1 || typeof params[0] !== "string" || params[0].length > 32768) invalidParams("Product Session requires one exact official Wallet route");
       const request = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY, params[0], this.clock());
       if(request.origin !== origin) throw providerError(4100,"PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this connected app");
-      normalized = {params:[params[0]],review:{title:"Sign in",account:status.account,chainId:YNX_EVM_CHAIN_ID,request,warning:"Review the exact product, origin, scopes and expiry. This approval does not grant automatic transfers or future signatures."}};
+      normalized = {params:[params[0]],review:{title:"Sign in",account:status.account,chainId:YNX_EVM_CHAIN_ID,request,warning:request.scopes.includes("quant:paper:workspace") ? "Simulated Paper workspace only: view your snapshot and history, save backtest strategies and submit simulated orders. No real money, live trading, schedules or Testnet transactions." : "Review the exact product, origin, scopes and expiry. This approval does not grant automatic transfers or future signatures."}};
     } else normalized = normalizeApproval(method, params, status.account);
     if (method === "eth_sendTransaction") {
       if (typeof this.transactionSender?.prepare !== "function") throw providerError(4200, "TRANSACTION_TRANSPORT_UNAVAILABLE", "Canonical transaction preparation is unavailable");

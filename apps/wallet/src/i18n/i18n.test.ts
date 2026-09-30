@@ -148,3 +148,11 @@ test("Faucet availability and receipt copy retain the unknown amount and limited
   assert.match(walletCopy("zh-Hans","This is a testnet request. Test YNXT has no monetary value."),/没有货币价值/);
   assert.match(walletCopy("ar","This is a testnet request. Test YNXT has no monetary value."),/لا توجد قيمة مالية/);
 });
+
+import {scopeExplanation} from './scopeCopy';
+test('every native locale explains the distinct simulated Paper permission',()=>{
+  for(const locale of SUPPORTED_LOCALES) assert.ok(scopeExplanation(locale,'quant:paper:workspace').length>50,locale);
+  assert.match(scopeExplanation('en','quant:paper:workspace'),/No real money, live trading, schedules or Testnet transactions/);
+  assert.match(scopeExplanation('zh-Hans','quant:paper:workspace'),/模拟.*不使用真钱/);
+  assert.notEqual(scopeExplanation('en','quant:account'),scopeExplanation('en','quant:paper:workspace'));
+});
