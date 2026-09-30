@@ -2,7 +2,7 @@ import { Core } from "@walletconnect/core";
 import { WalletKit } from "@reown/walletkit";
 import { getSdkError } from "@walletconnect/utils";
 import type { SignClientTypes, SessionTypes } from "@walletconnect/types";
-import { parseWalletConnectRuntimeConfig } from "@ynx-chain/wallet-auth";
+import { parseWalletConnectPairingUri, parseWalletConnectRuntimeConfig } from "@ynx-chain/wallet-auth";
 
 export const YNX_WALLETCONNECT_CHAIN = "eip155:6423" as const;
 export type WalletConnectProposal = SignClientTypes.EventArguments["session_proposal"];
@@ -16,15 +16,20 @@ export type WalletConnectSnapshot = Readonly<{
   request: WalletConnectRequest | null;
   sessionEvent: WalletConnectSessionEvent | null;
   retryAvailable: boolean;
+  pairing: boolean;
+  pairingCleanup: "none" | "pending" | "sdk-confirmed" | "unconfirmed";
 }>;
 
 type Listener = (snapshot: WalletConnectSnapshot) => void;
 type RuntimeConfig = Readonly<{ projectId: string; relayUrl?: string }>;
 type WalletKitClient = Pick<InstanceType<typeof WalletKit>, "pair" | "approveSession" | "rejectSession" | "respondSessionRequest" | "disconnectSession" | "getActiveSessions"> & {
+  core?: { pairing: { disconnect(args: { topic: string }): Promise<void> } };
   on<E extends SignClientTypes.Event>(event:E,listener:(args:SignClientTypes.EventArguments[E])=>void):unknown;
 };
 type WalletKitFactory = (config: RuntimeConfig) => Promise<WalletKitClient>;
 const MAX_START_ATTEMPTS = 3;
+export const WALLETCONNECT_PAIR_DEADLINE_MS = 30_000;
+const PAIR_CLEANUP_DEADLINE_MS = 3_000;
 
 async function createWalletKit(config: RuntimeConfig): Promise<WalletKitClient> {
   const core = new Core({ projectId: config.projectId, ...(config.relayUrl ? { relayUrl: config.relayUrl } : {}) });
@@ -43,9 +48,14 @@ export class WalletConnectRuntime {
   #reviewGeneration = 0;
   #paused: { account: string; request: WalletConnectRequest | null; proposal: WalletConnectProposal | null; session: string | null; deadline: number } | null = null;
   #requestDeadlines = new WeakMap<WalletConnectRequest,number>();
+  #pairTopics = new Map<string, boolean>();
+  #pairCleanup = new Map<string, { revision: number; status: "pending" | "sdk-confirmed" | "unconfirmed" }>();
+  #approvedPairTopics = new Set<string>();
+  #pairOperation: { topic: string; proposalReceived: () => void; cancel: (reason: string) => void } | null = null;
   #receivedAt = new WeakMap<WalletConnectRequest,Date>();
-  constructor(readonly config: RuntimeConfig | null, private readonly factory: WalletKitFactory = createWalletKit) {
-    this.#snapshot = Object.freeze({ phase: config ? "starting" : "disabled", error: config ? null : "WalletConnect is not configured for this build.", sessions: Object.freeze([]), proposal: null, request: null, sessionEvent: null, retryAvailable: false });
+  constructor(readonly config: RuntimeConfig | null, private readonly factory: WalletKitFactory = createWalletKit, private readonly pairDeadlineMs = WALLETCONNECT_PAIR_DEADLINE_MS, private readonly pairingJournal?: { load(): Promise<readonly string[]>; record(topic: string): Promise<void> }) {
+    if (!Number.isFinite(pairDeadlineMs) || pairDeadlineMs <= 0 || pairDeadlineMs > WALLETCONNECT_PAIR_DEADLINE_MS) throw new Error("Invalid pairing deadline.");
+    this.#snapshot = Object.freeze({ phase: config ? "starting" : "disabled", error: config ? null : "WalletConnect is not configured for this build.", sessions: Object.freeze([]), proposal: null, request: null, sessionEvent: null, retryAvailable: false, pairing: false, pairingCleanup: "none" });
   }
   snapshot(): WalletConnectSnapshot { return this.#snapshot; }
   requestReviewTime(event: WalletConnectRequest): Date { const at=this.#receivedAt.get(event);if(!at)throw new Error("Wallet request arrival time is unavailable.");return new Date(at); }
@@ -73,13 +83,96 @@ export class WalletConnectRuntime {
     });
     return this.#start;
   }
-  async pair(uri: string): Promise<void> { const client = this.#require(); await client.pair({ uri }); }
+  async pair(uri: string): Promise<void> {
+    const client = this.#require(), { topic } = parseWalletConnectPairingUri(uri, new Date());
+    if (this.#pairOperation) throw new Error("A pairing attempt is already running. Cancel it before retrying.");
+    if (this.#pairTopics.has(topic)) throw new Error("This pairing was already attempted. Request a fresh QR code from the dApp.");
+    // Never evict canceled topics: their late proposals must remain quarantined.
+    if (this.#pairTopics.size >= 100) throw new Error("Pairing safety journal is full. No further pairing will be attempted.");
+    this.#pairTopics.set(topic, false);
+    this.#set({ pairing: true, error: null });
+    let timer: ReturnType<typeof setTimeout>;
+    let canceled = false;
+    let proposalReceived!: () => void;
+    const received = new Promise<void>(resolve => { proposalReceived = resolve; });
+    const interrupted = new Promise<never>((_, reject) => {
+      const cancel = (reason: string) => {
+        if (canceled) return;
+        canceled = true;
+        this.#reviewGeneration++;
+        this.#pairTopics.set(topic, true);
+        this.#quarantinePairProposal(client, topic);
+        this.#set({ pairing: false, error: reason });
+        reject(new Error(reason));
+        void this.#cleanupPairing(client, topic);
+      };
+      this.#pairOperation = { topic, cancel, proposalReceived };
+      timer = setTimeout(() => cancel("Pairing timed out. Request a fresh QR code and retry. Remote cleanup is not yet confirmed."), this.pairDeadlineMs);
+    });
+    const operation = Promise.resolve().then(async () => {
+      // Persist before the SDK can create a pairing, including crash/late completion.
+      await this.pairingJournal?.record(topic);
+      if (canceled) throw new Error("Pairing canceled before transport.");
+      return client.pair({ uri });
+    });
+    // The SDK cannot be aborted. Clean up again if it settles after cancellation.
+    void operation.then(() => { if (this.#pairTopics.get(topic) === true) void this.#cleanupPairing(client, topic); }, () => { if (this.#pairTopics.get(topic) === true) void this.#cleanupPairing(client, topic); });
+    try { await Promise.race([operation, interrupted, received]); }
+    catch (error) {
+      if (!canceled) { this.#pairTopics.set(topic, true); this.#quarantinePairProposal(client, topic); void this.#cleanupPairing(client, topic); }
+      throw error;
+    } finally {
+      clearTimeout(timer!);
+      this.#finishPair(topic);
+    }
+  }
+  #finishPair(topic: string): void {
+    if (this.#pairOperation?.topic !== topic) return;
+    this.#pairOperation = null;
+    this.#set({ pairing: false });
+  }
+  cancelPendingPair(): void { this.cancelPair(true); }
+  cancelPair(preserveReviewedProposal = false): void {
+    const retained = preserveReviewedProposal ? this.#snapshot.proposal ?? this.#paused?.proposal : null;
+    if (!retained || retained.params.pairingTopic !== this.#pairOperation?.topic) this.#pairOperation?.cancel("Pairing canceled. Remote cleanup is not yet confirmed.");
+    for (const [topic, canceled] of this.#pairTopics) {
+      if (canceled || this.#approvedPairTopics.has(topic) || retained?.params.pairingTopic === topic) continue;
+      this.#pairTopics.set(topic, true);
+      this.#reviewGeneration++;
+      if (this.#client) this.#quarantinePairProposal(this.#client, topic);
+      if (this.#client) void this.#cleanupPairing(this.#client, topic);
+    }
+  }
+  async #cleanupPairing(client: WalletKitClient, topic: string): Promise<void> {
+    const revision = (this.#pairCleanup.get(topic)?.revision ?? 0) + 1;
+    this.#pairCleanup.set(topic, { revision, status: "pending" });
+    this.#publishPairCleanup();
+    let timer: ReturnType<typeof setTimeout>;
+    try {
+      if (!client.core?.pairing) throw new Error("Pairing cleanup is unavailable.");
+      await Promise.race([client.core.pairing.disconnect({ topic }), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("Pairing cleanup timed out.")), PAIR_CLEANUP_DEADLINE_MS); })]);
+      if (this.#pairCleanup.get(topic)?.revision === revision) this.#pairCleanup.set(topic, { revision, status: "sdk-confirmed" });
+    } catch { if (this.#pairCleanup.get(topic)?.revision === revision) this.#pairCleanup.set(topic, { revision, status: "unconfirmed" }); }
+    finally { clearTimeout(timer!); this.#publishPairCleanup(); }
+  }
+  #publishPairCleanup(): void {
+    const statuses = [...this.#pairCleanup.values()].map(value => value.status);
+    this.#set({ pairingCleanup: statuses.includes("unconfirmed") ? "unconfirmed" : statuses.includes("pending") ? "pending" : statuses.length ? "sdk-confirmed" : "none" });
+  }
+  #quarantinePairProposal(client: WalletKitClient, topic: string): void {
+    const proposal = this.#snapshot.proposal?.params.pairingTopic === topic ? this.#snapshot.proposal : this.#paused?.proposal?.params.pairingTopic === topic ? this.#paused.proposal : null;
+    if (!proposal) return;
+    if (this.#snapshot.proposal === proposal) this.#set({ proposal: null });
+    if (this.#paused?.proposal === proposal) this.#paused.proposal = null;
+    void client.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") }).catch(() => { this.#pairCleanup.set(topic, { revision: (this.#pairCleanup.get(topic)?.revision ?? 0) + 1, status: "unconfirmed" }); this.#publishPairCleanup(); });
+  }
   async approveProposal(namespaces: SessionTypes.Namespaces): Promise<SessionTypes.Struct> {
     const proposal = this.#snapshot.proposal; if (!proposal) throw new Error("No WalletConnect proposal is awaiting review.");
     const client=this.#require(),generation=this.#reviewGeneration;
     this.#set({proposal:null});
     const session = await client.approveSession({ id: proposal.id, namespaces });
     if(generation!==this.#reviewGeneration){await client.disconnectSession({topic:session.topic,reason:getSdkError("USER_DISCONNECTED")}).catch(()=>{});throw new Error("Wallet locked or authorization changed before connection approval completed.");}
+    this.#approvedPairTopics.add(proposal.params.pairingTopic);
     return session;
   }
   async rejectProposal(): Promise<void> {
@@ -136,6 +229,7 @@ export class WalletConnectRuntime {
   }
   clearSensitiveReview(): void { if (this.#snapshot.request) this.#set({ request: null }); }
   pauseForLock(account: string): void {
+    this.cancelPendingPair();
     if (this.#paused) return;
     const {request,proposal}=this.#snapshot;
     this.#reviewGeneration++;
@@ -156,6 +250,7 @@ export class WalletConnectRuntime {
     return Boolean(request||proposal);
   }
   async rejectPendingForLock(): Promise<void> {
+    this.cancelPair();
     const request = this.#snapshot.request??this.#paused?.request, proposal = this.#snapshot.proposal??this.#paused?.proposal;
     this.#paused=null;this.#reviewGeneration++;
     // Invalidate the old approval before awaiting transport. Later SDK events
@@ -169,11 +264,17 @@ export class WalletConnectRuntime {
   async restore(): Promise<void> { await this.start(); this.#refreshSessions(); }
   refreshSessions():void{this.#refreshSessions()}
   async #initialize(): Promise<void> {
+    for (const topic of await this.pairingJournal?.load() ?? []) this.#pairTopics.set(topic, true);
     const client = await this.factory(this.config!);
     client.on("session_proposal", proposal => {
+      if (this.#pairTopics.get(proposal.params.pairingTopic) === true) {
+        void client.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") }).catch(() => { const topic = proposal.params.pairingTopic; this.#pairCleanup.set(topic, { revision: (this.#pairCleanup.get(topic)?.revision ?? 0) + 1, status: "unconfirmed" }); this.#publishPairCleanup(); });
+        return;
+      }
       if(this.#paused&&!this.#paused.proposal&&proposal.params.expiryTimestamp>Math.floor(Date.now()/1000)){this.#paused.proposal=proposal;return;}
       if(this.#paused||this.#snapshot.proposal){void client.rejectSession({id:proposal.id,reason:getSdkError("USER_REJECTED")}).catch(()=>{});return;}
       this.#set({proposal});
+      if (this.#pairOperation && proposal.params.pairingTopic === this.#pairOperation.topic) this.#pairOperation.proposalReceived();
     });
     client.on("session_request", request => {
       this.#receivedAt.set(request,new Date());

@@ -37,3 +37,32 @@ export class WalletConnectSecurityStore{
 
 function normalizedNamespaces(value:SessionTypes.Namespaces):unknown{return Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([namespace,entry])=>[namespace,{accounts:[...(entry.accounts??[])].sort(),chains:[...(entry.chains??[])].sort(),events:[...(entry.events??[])].sort(),methods:[...(entry.methods??[])].sort()}]))}
 function sameNamespaces(left:SessionTypes.Namespaces,right:SessionTypes.Namespaces):boolean{return JSON.stringify(normalizedNamespaces(left))===JSON.stringify(normalizedNamespaces(right))}
+
+// Separate key preserves the existing session/replay schema and installed wallets.
+const PAIRING_QUARANTINE_KEY="ynx.wallet.walletconnect.pairing-quarantine.v1";
+export class WalletConnectPairingJournal {
+  #pending:Promise<void>=Promise.resolve();
+  constructor(private readonly storage:SecureStorageAdapter){}
+  async load():Promise<readonly string[]> {
+    await this.#pending;
+    return this.#readTopics();
+  }
+  async #readTopics():Promise<readonly string[]> {
+    const raw=await this.storage.getItem(PAIRING_QUARANTINE_KEY);
+    if(raw===null)return [];
+    if(raw.length>10_000)throw new Error("Pairing quarantine exceeds policy.");
+    let value:any;try{value=JSON.parse(raw)}catch{throw new Error("Pairing quarantine is unreadable.")}
+    if(!value||value.version!==1||Object.keys(value).sort().join(",")!=="topics,version"||!Array.isArray(value.topics)||value.topics.length>100||new Set(value.topics).size!==value.topics.length||value.topics.some((topic:unknown)=>typeof topic!=="string"||!/^[a-f0-9]{64}$/.test(topic)))throw new Error("Pairing quarantine is invalid.");
+    return Object.freeze([...value.topics]);
+  }
+  record(topic:string):Promise<void> {
+    const operation=this.#pending.then(async()=>{
+      const topics=[...new Set([...await this.#readTopics(),topic])];
+      if(!/^[a-f0-9]{64}$/.test(topic)||topics.length>100)throw new Error("Pairing quarantine limit reached.");
+      const encoded=JSON.stringify({version:1,topics});
+      await this.storage.setItem(PAIRING_QUARANTINE_KEY,encoded);
+      if(await this.storage.getItem(PAIRING_QUARANTINE_KEY)!==encoded)throw new Error("Pairing quarantine could not be verified.");
+    });
+    this.#pending=operation.then(()=>{},()=>{});return operation;
+  }
+}

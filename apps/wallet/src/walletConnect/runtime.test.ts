@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { WalletConnectPairingJournal } from "./securityStore";
 import { WalletConnectRuntime, walletConnectRuntimeConfig } from "./runtime";
 
 test("WalletConnect uses the authorized public project ID unless explicitly disabled", () => {
@@ -266,4 +267,110 @@ test("batch disconnect still closes every session once when pending-request resp
   assert.deepEqual(client.disconnects,[first,second]);
   assert.equal(client.sessionReads,1);
   assert.deepEqual(runtime.snapshot().sessions,[]);
+});
+
+const pairingUri=(topic:string)=>`wc:${topic}@2?relay-protocol=irn&symKey=${"b".repeat(64)}`;
+const tick=()=>new Promise<void>(resolve=>setTimeout(resolve,0));
+
+test("pair deadline releases busy state, quarantines late proposals and permits a fresh retry",async()=>{
+  const client=fakeClient(),cleanups:string[]=[],rejected:number[]=[];let finish!:()=>void;
+  client.pair=()=>new Promise<void>(resolve=>{finish=resolve});
+  Object.assign(client,{core:{pairing:{disconnect:async({topic}:any)=>{cleanups.push(topic)}}}});
+  client.rejectSession=async(value?:any)=>{rejected.push(value.id)};
+  const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,10);await runtime.start();
+  const old="1".repeat(64),fresh="2".repeat(64);
+  await assert.rejects(runtime.pair(pairingUri(old)),/timed out/);
+  assert.equal(runtime.snapshot().pairing,false);await tick();assert.equal(runtime.snapshot().pairingCleanup,"sdk-confirmed");
+  await assert.rejects(runtime.pair(pairingUri(old)),/fresh QR/);
+  client.pair=async()=>{};await runtime.pair(pairingUri(fresh));
+  const proposal={...pendingProposal(),id:91,params:{...pendingProposal().params,pairingTopic:old}};
+  client.handlers.get("session_proposal")!(proposal);assert.equal(runtime.snapshot().proposal,null);
+  finish();await tick();assert.equal(cleanups.filter(topic=>topic===old).length,2);assert.deepEqual(rejected,[91]);
+  const current={...proposal,id:92,params:{...proposal.params,pairingTopic:fresh}};
+  client.handlers.get("session_proposal")!(current);assert.equal(runtime.snapshot().proposal,current);
+});
+
+test("cancel and account lock settle pairing promptly even when cleanup fails, with no late review",async()=>{
+  for(const action of ["cancel","lock"]){
+    const client=fakeClient();let finish!:()=>void;
+    client.pair=()=>new Promise<void>(resolve=>{finish=resolve});
+    Object.assign(client,{core:{pairing:{disconnect:async()=>{throw new Error("relay unavailable")}}}});
+    const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100);await runtime.start();
+    const topic="3".repeat(64),pairing=runtime.pair(pairingUri(topic));await tick();
+    const rejected=assert.rejects(pairing,/canceled/);
+    if(action==="lock")runtime.pauseForLock("0x"+"a".repeat(40));else runtime.cancelPair();
+    await rejected;await tick();assert.equal(runtime.snapshot().pairing,false);assert.equal(runtime.snapshot().pairingCleanup,"unconfirmed");
+    finish();await tick();client.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:topic}});
+    await runtime.resumeAfterUnlock("0x"+"c".repeat(40));assert.equal(runtime.snapshot().proposal,null);
+  }
+});
+
+test("SDK pair rejection recovers and rejects malformed URI before transport",async()=>{
+ const client=fakeClient();let calls=0;client.pair=async()=>{calls++;throw new Error("transport failed")};
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100);await runtime.start();
+ await assert.rejects(runtime.pair("wc:invalid"));assert.equal(calls,0);
+ await assert.rejects(runtime.pair(pairingUri("4".repeat(64))),/transport failed/);assert.equal(runtime.snapshot().pairing,false);
+ await tick();assert.equal(runtime.snapshot().pairingCleanup,"unconfirmed");
+ client.pair=async()=>{};await runtime.pair(pairingUri("5".repeat(64)));assert.equal(runtime.snapshot().pairing,false);
+});
+
+test("a canceled visible proposal is removed before transport cleanup and cannot approve later",async()=>{
+ const client=fakeClient();client.pair=()=>new Promise<void>(()=>{});
+ Object.assign(client,{core:{pairing:{disconnect:async()=>{}}}});
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100);await runtime.start();
+ const topic="6".repeat(64),pairing=runtime.pair(pairingUri(topic));await tick();
+ client.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:topic}});
+ assert.ok(runtime.snapshot().proposal);await pairing;runtime.cancelPair();
+ assert.equal(runtime.snapshot().proposal,null);await assert.rejects(runtime.approveProposal({}),/No WalletConnect proposal/);
+});
+
+test("SDK cleanup timeout is explicitly unconfirmed and never keeps pair busy",async()=>{
+ const client=fakeClient();client.pair=()=>new Promise<void>(()=>{});
+ Object.assign(client,{core:{pairing:{disconnect:()=>new Promise<void>(()=>{})}}});
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,10);await runtime.start();
+ await assert.rejects(runtime.pair(pairingUri("7".repeat(64))),/timed out/);
+ assert.equal(runtime.snapshot().pairing,false);assert.equal(runtime.snapshot().pairingCleanup,"pending");
+ await new Promise(resolve=>setTimeout(resolve,3050));assert.equal(runtime.snapshot().pairingCleanup,"unconfirmed");
+});
+
+test("valid proposal received during deferred SDK pair survives automatic lock/unlock as the same event",async()=>{
+ const client=fakeClient();client.pair=()=>new Promise<void>(()=>{});const cleanups:string[]=[];
+ Object.assign(client,{core:{pairing:{disconnect:async({topic}:any)=>{cleanups.push(topic)}}}});
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100);await runtime.start();
+ const topic="8".repeat(64),pairing=runtime.pair(pairingUri(topic));await tick();
+ const proposal={...pendingProposal(),params:{...pendingProposal().params,pairingTopic:topic,expiryTimestamp:Math.floor(Date.now()/1000)+60}};
+ client.handlers.get("session_proposal")!(proposal);runtime.pauseForLock("0x"+"a".repeat(40));await pairing;
+ assert.equal(runtime.snapshot().proposal,null);await runtime.resumeAfterUnlock("0x"+"a".repeat(40));assert.equal(runtime.snapshot().proposal,proposal);assert.deepEqual(cleanups,[]);
+});
+
+test("persistent quarantine is written before transport and blocks old proposals after cold restart",async()=>{
+ const values=new Map<string,string>();const storage={getItem:async(key:string)=>values.get(key)??null,setItem:async(key:string,value:string)=>{values.set(key,value)},deleteItem:async(key:string)=>{values.delete(key)}};
+ const journal=new WalletConnectPairingJournal(storage),client=fakeClient();client.pair=async()=>{assert.deepEqual(await journal.load(),["9".repeat(64)]);throw new Error("relay failed")};
+ const first=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100,journal);await first.start();await assert.rejects(first.pair(pairingUri("9".repeat(64))));
+ const secondClient=fakeClient(),second=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>secondClient) as any,100,new WalletConnectPairingJournal(storage));await second.start();
+ secondClient.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:"9".repeat(64)}});assert.equal(second.snapshot().proposal,null);
+ await assert.rejects(second.pair(pairingUri("9".repeat(64))),/fresh QR/);await second.pair(pairingUri("a".repeat(64)));
+});
+
+test("unverified secure journal write prevents SDK pairing",async()=>{
+ let calls=0;const client=fakeClient();client.pair=async()=>{calls++};
+ const journal=new WalletConnectPairingJournal({getItem:async()=>null,setItem:async()=>{},deleteItem:async()=>{}});
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100,journal);await runtime.start();
+ await assert.rejects(runtime.pair(pairingUri("c".repeat(64))),/could not be verified/);assert.equal(calls,0);
+});
+
+test("automatic Modal disposal preserves approved session and cold restoration does not revoke it",async()=>{
+ const client=fakeClient(),cleanups:string[]=[];Object.assign(client,{core:{pairing:{disconnect:async({topic}:any)=>{cleanups.push(topic)}}}});
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,100);await runtime.start();const topic="d".repeat(64);await runtime.pair(pairingUri(topic));
+ client.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:topic}});const session=await runtime.approveProposal({});runtime.refreshSessions();runtime.cancelPendingPair();
+ assert.ok(client.active[session.topic]);assert.deepEqual(cleanups,[]);assert.deepEqual(client.disconnects,[]);
+ const cold=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any);await cold.start();assert.equal(cold.snapshot().sessions[0]?.topic,session.topic);assert.deepEqual(client.disconnects,[]);
+});
+
+test("old late proposal cannot replace a newer attempt that has also timed out",async()=>{
+ const client=fakeClient();client.pair=()=>new Promise<void>(()=>{});
+ const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,10);await runtime.start();
+ for(const topic of ["e".repeat(64),"f".repeat(64)])await assert.rejects(runtime.pair(pairingUri(topic)),/timed out/);
+ for(const topic of ["e".repeat(64),"f".repeat(64)])client.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:topic}});
+ assert.equal(runtime.snapshot().proposal,null);assert.equal(runtime.snapshot().pairing,false);
 });
