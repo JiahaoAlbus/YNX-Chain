@@ -1,7 +1,7 @@
 import {StandardWalletConnection,discoverWalletProviders,WALLET_PROVIDER_KIND} from './vendor/standard-wallet-browser-c97f85e9.mjs';
 import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_CHAIN_ID,STANDARD_WALLET_RPC_PROBE_TRANSPORT} from './node_modules/@ynx-chain/wallet-auth/src/standard-wallet-connect-state.js';
 import {METAMASK_EVM_CHAIN} from '../../../packages/wallet-auth/src/metamask-evm-adapter.js';
-import {createHostedWalletAdapter} from './vendor/hosted-wallet-adapter-19d8a9a2.js';
+import {createHostedWalletAdapter} from '../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js';
 
 export const SDK_SOURCE='c97f85e9ae4d4580b99860c51738e6040ca9ca18';
 export const PROVIDER_PREFERENCE_KEY='ynx.exchange.standard-provider.v1';
@@ -12,12 +12,12 @@ const errorCode=error=>({4001:'USER_REJECTED',4100:'WALLET_NOT_AUTHORIZED',4200:
 // Product presentation/origin/chain adapter. Discovery, account validation,
 // event fences, silent restore and revocation belong to the exact shared SDK.
 export function createExchangeWallet({scope=globalThis,onState=()=>{},createHostedAdapter=createHostedWalletAdapter}={}) {
-  let state=createStandardWalletConnectState(),connection=null,unsubscribe=null,selectedKind=null,transport=null,hosted=null,hostedListeners=[],generation=0,inFlight=null;
-  const transition=event=>{state=reduceStandardWalletConnectState(state,event);onState(Object.freeze({...state,transport}));return state};
+  let state=createStandardWalletConnectState(),connection=null,provider=null,unsubscribe=null,selectedKind=null,transport=null,hosted=null,hostedListeners=[],generation=0,revision=0,inFlight=null,transportUnavailable=false;
+  const transition=event=>{revision++;state=reduceStandardWalletConnectState(state,event);onState(Object.freeze({...state,transport,transportUnavailable}));return state};
   const result=(status=state.status,detail)=>Object.freeze({status,detail,account:state.account,chainId:state.chainId,providerKind:state.providerKind,transport,connectionState:state,downloads});
   const remember=kind=>{try{if(kind)scope.localStorage?.setItem(PROVIDER_PREFERENCE_KEY,kind);else scope.localStorage?.removeItem(PROVIDER_PREFERENCE_KEY)}catch{}};
   const remembered=()=>{try{const kind=scope.localStorage?.getItem(PROVIDER_PREFERENCE_KEY);return validKind(kind)?kind:null}catch{return null}};
-  const detach=()=>{unsubscribe?.();unsubscribe=null;connection?.disconnect();connection=null;selectedKind=null};
+  const detach=()=>{unsubscribe?.();unsubscribe=null;connection?.disconnect();connection=null;provider=null;selectedKind=null;transportUnavailable=false};
   const detachHosted=()=>{const previous=hosted;for(const [event,listener] of hostedListeners)previous?.removeListener(event,listener);hostedListeners=[];hosted=null;try{Promise.resolve(previous?.disconnect()).catch(()=>{})}catch{}};
   const assertCurrent=token=>{if(token!==generation)throw Object.assign(new Error('Wallet operation was superseded.'),{code:4100})};
   const publish=()=>{
@@ -31,7 +31,7 @@ export function createExchangeWallet({scope=globalThis,onState=()=>{},createHost
     const discovery=await discoverWalletProviders(scope,160);assertCurrent(token);
     const candidate=kind===WALLET_PROVIDER_KIND.METAMASK?discovery.metamask:discovery.ynx;
     if(!candidate)return result('unsupported',discovery.ambiguities.includes(kind)?'PROVIDER_DISCOVERY_AMBIGUOUS':kind===WALLET_PROVIDER_KIND.METAMASK?'METAMASK_NOT_INJECTED':'YNX_WALLET_NOT_INJECTED');
-    detachHosted();detach();transport='injected';selectedKind=kind;
+    detachHosted();detach();transport='injected';selectedKind=kind;provider=candidate.provider;
     const origin=scope.location?.origin;
     connection=new StandardWalletConnection({provider:candidate.provider,origin,metadata:{name:'YNX Exchange',url:origin}});
     unsubscribe=connection.subscribe(()=>publish());return null;
@@ -58,7 +58,11 @@ export function createExchangeWallet({scope=globalThis,onState=()=>{},createHost
         if(!Array.isArray(accounts)||accounts.length!==1||accounts[0]?.toLowerCase()!==state.account)disconnect();
       };
       const chainChanged=chain=>{if(token===generation&&selected===hosted&&chain!==STANDARD_WALLET_CHAIN_ID){if(state.status==='connected')disconnect();else abortPending()}};
-      const disconnected=()=>{if(token===generation&&selected===hosted){if(state.status==='connected')disconnect();else abortPending()}};
+      const disconnected=error=>{if(token===generation&&selected===hosted){
+        if(state.status==='connected'&&['HOSTED_POPUP_CLOSED','HOSTED_REQUEST_EXPIRED_OR_RELOADED'].includes(error?.code)){
+          transportUnavailable=true;revision++;onState(Object.freeze({...state,status:'transport-unavailable',transport,transportUnavailable,disconnectReason:error.code}));
+        }else if(state.status==='connected')disconnect();else abortPending();
+      }};
       hostedListeners=[['accountsChanged',accountsChanged],['chainChanged',chainChanged],['disconnect',disconnected]];
       for(const [event,listener] of hostedListeners)selected.on(event,listener);
       pending=selected.connect();
@@ -108,6 +112,15 @@ export function createExchangeWallet({scope=globalThis,onState=()=>{},createHost
     if(outcome.permissionRevoked)disconnect();return outcome;
   }
   function reportAcceptedRpcProbe(status,code){return transition({type:status==='ready'?'RPC_PROBE_READY':'RPC_PROBE_DEGRADED',probeTransport:STANDARD_WALLET_RPC_PROBE_TRANSPORT,...(status==='ready'?{}:{code:errorCode({code})})})}
-  return Object.freeze({connect,connectYNX:()=>connect(WALLET_PROVIDER_KIND.YNX),connectHosted,connectMetaMask:()=>connect(WALLET_PROVIDER_KIND.METAMASK),restore,disconnect,revoke,reportAcceptedRpcProbe,state:()=>state,downloads});
+  const getPrivateWalletContext=()=>Object.freeze({provider:transport==='hosted-wallet-web'?hosted:provider,account:state.account,chainId:state.chainId,providerKind:state.providerKind,status:transportUnavailable?'transport-unavailable':state.status,transport,revision,generation});
+  async function requestProductSessionV2(url){
+    const selected=getPrivateWalletContext();
+    if(selected.status!=='connected'||selected.providerKind!==WALLET_PROVIDER_KIND.YNX||selected.chainId!==STANDARD_WALLET_CHAIN_ID||!selected.account||typeof selected.provider?.request!=='function')throw Object.assign(new Error('PRIVATE_TRANSPORT_UNAVAILABLE'),{code:'PRIVATE_TRANSPORT_UNAVAILABLE'});
+    const assert=()=>{const now=getPrivateWalletContext();if(now.provider!==selected.provider||now.revision!==selected.revision||now.generation!==selected.generation||now.status!=='connected'||now.account!==selected.account||now.chainId!==selected.chainId)throw Object.assign(new Error('PRIVATE_CONTEXT_CHANGED'),{code:'PRIVATE_CONTEXT_CHANGED'})};
+    assert();let timer;const result=await Promise.race([selected.provider.request({method:'ynx_requestProductSessionV2',params:[url]}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error('PRIVATE_REQUEST_TIMEOUT'),{code:'PRIVATE_REQUEST_TIMEOUT'})),60000)})]).finally(()=>clearTimeout(timer));assert();
+    if(result?.version!==2||typeof result.returnUrl!=='string'||Object.keys(result).sort().join(',')!=='returnUrl,version')throw Object.assign(new Error('PRIVATE_RETURN_INVALID'),{code:'PRIVATE_RETURN_INVALID'});
+    return result;
+  }
+  return Object.freeze({connect,connectYNX:()=>connect(WALLET_PROVIDER_KIND.YNX),connectHosted,connectMetaMask:()=>connect(WALLET_PROVIDER_KIND.METAMASK),restore,disconnect,revoke,reportAcceptedRpcProbe,getPrivateWalletContext,requestProductSessionV2,state:()=>state,downloads});
 }
 if(typeof window!=='undefined')window.YNXExchangeWebWallet=createExchangeWallet({scope:window,onState:detail=>window.dispatchEvent(new CustomEvent('ynx-exchange-standard-wallet-state',{detail}))});

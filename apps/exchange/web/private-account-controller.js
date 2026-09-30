@@ -14,7 +14,7 @@ export function validateAccountSnapshot(value,account){
   }
   if(value.security?.account!==account)throw failure('ACCOUNT_BINDING_MISMATCH');
   const source=value.sourceMetadata;
-  if(source?.classification!=='testnet'||source.authority!=='YNX-owned deterministic order state'||source.version!=='exchange-public-state-v1'||source.coverage!=='account-ledger-orders-trades-fees-audit'||!['live','degraded_single_host'].includes(source.status)||!Number.isFinite(Date.parse(source.asOf))||Math.abs(Date.now()-Date.parse(source.asOf))>120000||source.status==='live'&&(source.stateBackend!=='postgresql'||source.multiInstance!==true)||source.status==='degraded_single_host'&&(source.stateBackend!=='file_snapshot'||source.multiInstance!==false))throw failure('INVALID_ACCOUNT_SOURCE');
+  if(source?.classification!=='testnet'||source.authority!=='YNX-owned deterministic order state'||source.version!=='exchange-public-state-v1'||source.coverage!=='account-ledger-orders-trades-fees-audit'||!['live','degraded_single_host'].includes(source.status)||!Number.isFinite(Date.parse(source.asOf))||Math.abs(Date.now()-Date.parse(source.asOf))>120000||source.status==='live'&&(source.stateBackend!=='postgres-cas-multi-instance'||source.multiInstance!==true)||source.status==='degraded_single_host'&&(source.stateBackend!=='file-cas-single-host'||source.multiInstance!==false))throw failure('INVALID_ACCOUNT_SOURCE');
   // Refuse unsafe JSON integers instead of silently rounding a venue balance.
   const check=(v)=>{if(v&&typeof v==='object')for(const [key,n]of Object.entries(v)){if(typeof n==='number'&&!Number.isSafeInteger(n))throw failure('UNSAFE_ACCOUNT_AMOUNT');if(/Micro$/.test(key)&&typeof n!=='number')throw failure('UNSAFE_ACCOUNT_AMOUNT');check(n)}};check(value);
   return value;
@@ -22,8 +22,9 @@ export function validateAccountSnapshot(value,account){
 
 // The narrow adapter seam permits offline orchestration fixtures. Production
 // passes the exact same-module SDK constructor and authority in the entry file.
-export function createPrivateAccountController({createAdapter,fetchImpl,origin=ORIGIN,onState=()=>{}}){
+export function createPrivateAccountController({createAdapter,fetchImpl,origin=ORIGIN,onState=()=>{},wallet}){
   let adapter,loading,epoch=0,closed=false,guestIntent=false,request,expiry,operation;
+  let pendingRetirement=null,selectionBinding=null;
   let current=Object.freeze({phase:'guest',account:null,snapshot:null,route:null,code:null});
   const publish=(value)=>{current=Object.freeze({phase:'guest',account:null,snapshot:null,route:null,code:null,...value});onState(current);return current};
   const cancel=()=>{request?.abort();request=null;clearTimeout(expiry)};
@@ -34,7 +35,7 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
     return loading;
   }
   function errorState(error){
-    const code=/^[A-Z][A-Z0-9_]{1,79}$/.test(error?.code||'')?error.code:'PRIVATE_SERVICE_UNAVAILABLE';
+    const code=error?.code===4001?'USER_REJECTED':/^[A-Z][A-Z0-9_]{1,79}$/.test(error?.code||'')?error.code:'PRIVATE_SERVICE_UNAVAILABLE';
     return {phase:['PROOF_REQUIRED','SESSION_INACTIVE','SESSION_EXPIRED','REPLAY','ACCOUNT_BINDING_MISMATCH','AUTHORIZATION_REQUIRED'].includes(code)?'authorization-required':'degraded',code};
   }
   async function readAccount(value,token){
@@ -57,6 +58,8 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
       const snapshot=validateAccountSnapshot(value,session.account);
       if(!active(token))return current;
       if(Date.parse(session.expiresAt)<=Date.now())throw failure('SESSION_EXPIRED');
+      const observed=wallet?.getPrivateWalletContext?.();
+      if(!selectionBinding&&observed?.status==='connected')selectionBinding=observed;
       expiry=setTimeout(()=>{if(active(token))publish({phase:'authorization-required',code:'SESSION_EXPIRED'})},Math.min(2147483647,Date.parse(session.expiresAt)-Date.now()));
       return publish({phase:'connected',account:session.account,snapshot,expiresAt:session.expiresAt});
     }finally{clearTimeout(timeout);if(request===controller)request=null}
@@ -80,20 +83,52 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
     if(operation?.kind===kind)return operation.promise;
     guestIntent=false;
     const token=++epoch;cancel();publish({phase:'loading'});
-    const promise=(async()=>{try{const a=await getAdapter();if(!active(token))return current;return await accept(await action(a.client),token)}catch(error){return active(token)?publish(errorState(error)):current}})();
+    const promise=(async()=>{try{if(pendingRetirement)await pendingRetirement;const a=await getAdapter();if(!active(token))return current;return await accept(await action(a.client,token),token)}catch(error){return active(token)?publish(errorState(error)):current}})();
     operation={kind,promise};promise.finally(()=>{if(operation?.promise===promise)operation=null});return promise;
+  }
+  function retirePending(client){
+    if(!pendingRetirement){const pending=Promise.resolve().then(()=>client.disconnect()).catch(()=>({status:'revocation-pending'}));pendingRetirement=pending;pending.finally(()=>{if(pendingRetirement===pending)pendingRetirement=null})}
+    return pendingRetirement;
+  }
+  async function beginSelected(client,token){
+    const selected=wallet?.getPrivateWalletContext?.();
+    const native=selected?.status==='connected'&&selected.providerKind==='ynx-wallet'&&selected.chainId==='0x1917'&&selected.provider;
+    if(!native)return client.beginExplicit();
+    selectionBinding=selected;
+    const assert=()=>{const now=wallet.getPrivateWalletContext();if(!active(token)||now.provider!==selected.provider||now.revision!==selected.revision||now.account!==selected.account||now.chainId!==selected.chainId||now.status!=='connected')throw failure('PRIVATE_CONTEXT_CHANGED')};
+    let retirement;
+    const retire=()=>retirement??=retirePending(client);
+    if(operation)operation.nativeCancel=retire;
+    try{
+      assert();const value=await client.beginExplicit();assert();
+      if(value.status!=='connecting'||value.route?.status!=='ready')return value;
+      const url=new URL(value.route.url);if(url.protocol!=='ynxwallet:'||url.hostname!=='authorize'||!url.searchParams.get('request'))throw failure('INVALID_WALLET_ROUTE');
+      const remaining=Date.parse(value.request?.expiresAt)-Date.now();if(!Number.isFinite(remaining)||remaining<=0)throw failure('SESSION_EXPIRED');
+      publish({phase:'approval-pending',route:null,installation:'selected-provider'});
+      let timer;const response=await Promise.race([wallet.requestProductSessionV2(value.route.url),new Promise((_,reject)=>{timer=setTimeout(()=>reject(failure('SESSION_EXPIRED')),Math.min(remaining,60000))})]).finally(()=>clearTimeout(timer));assert();
+      if(response?.version!==2||typeof response.returnUrl!=='string'||Object.keys(response).sort().join(',')!=='returnUrl,version')throw failure('PRIVATE_RETURN_INVALID');
+      const result=await client.handleReturn(response.returnUrl);assert();return result;
+    }catch(error){await retire();throw error}
   }
   const api={
     state:()=>current,
     start(url){return run('restore',client=>{const target=new URL(url);if(target.origin!==ORIGIN)throw failure('ORIGIN_NOT_ALLOWED');return target.pathname==='/wallet-auth/callback'?client.handleReturn(url):client.restore()})},
-    begin:()=>run('begin',client=>client.beginExplicit()),
+    begin:()=>current.phase==='connected'?api.refresh():run('begin',beginSelected),
     retry:()=>run('retry',client=>client.retryDetected()),
     refresh:()=>run('refresh',client=>client.restore()),
     disconnect:()=>run('disconnect',client=>client.disconnect()),
-    guest(){guestIntent=true;++epoch;operation=null;cancel();adapter?.client.enterGuest();return publish({phase:'guest',code:'LOCAL_GUEST_NOT_REVOKED'})},
-    offline(){++epoch;operation=null;cancel();adapter?.client.setNetworkAvailable(false);return guestIntent?current:publish({phase:'degraded',code:'NETWORK_UNAVAILABLE'})},
+    walletChanged(context){
+      // This binds transport continuity only, never EVM/native identity mapping.
+      // A cold restored native session remains server-verified independently.
+      if(!selectionBinding){if(current.phase==='connected'&&context?.status==='connected')selectionBinding=context;return current}
+      const same=context?.provider===selectionBinding.provider&&context.account===selectionBinding.account&&context.chainId===selectionBinding.chainId;
+      if(same&&(context.status==='connected'||context.status==='transport-unavailable'))return current;
+      api.guest();if(adapter)retirePending(adapter.client);return current;
+    },
+    guest(){guestIntent=true;++epoch;selectionBinding=null;operation?.nativeCancel?.();operation=null;cancel();adapter?.client.enterGuest();return publish({phase:'guest',code:'LOCAL_GUEST_NOT_REVOKED'})},
+    offline(){++epoch;operation?.nativeCancel?.();operation=null;cancel();adapter?.client.setNetworkAvailable(false);return guestIntent?current:publish({phase:'degraded',code:'NETWORK_UNAVAILABLE'})},
     online(){adapter?.client.setNetworkAvailable(true);return guestIntent?Promise.resolve(current):api.retry()},
-    close(){closed=true;++epoch;cancel();adapter?.close();publish({phase:'closed'})},
+    close(){closed=true;++epoch;const retirement=operation?.nativeCancel?.(),previous=adapter;cancel();if(retirement)retirement.finally(()=>previous?.close());else previous?.close();publish({phase:'closed'})},
   };
   return Object.freeze(api);
 }

@@ -33,14 +33,23 @@ assert(wallet.includes('encodeRequestDeepLink') && wallet.includes('parseAuthori
 assert(!/(?:Linking\.)?openURL\(\s*['\"`]ynxwallet:\/\/authorize/.test(wallet), 'Exchange must not launch a naked Wallet authorization route');
 assert(api.includes('API_UNAVAILABLE: Exchange product API is PENDING'), 'pending Exchange API does not fail closed');
 assert(mobile.includes('productSessionUnavailable().message'), 'installed UI does not render private-service degradation separately');
-assert(web.includes('No request was sent.') && !web.includes('fetch(') && !web.includes('/api/'), 'web shell retains a direct product API route');
+// Historical mobile PENDING evidence is not authority for the current Web
+// consumer. Permit only its exact bounded identity-only same-origin helper;
+// private reads remain behind the separate original ProductSession SDK module.
+const identityHelper="async function browserIdentityRequest(path,options={}){const response=await fetch(`/api/v1/sso/${path}`,{credentials:'same-origin',...options,signal:AbortSignal.timeout(5000)});return {response,data:await response.json()};}";
+assert(web.split(identityHelper).length===2, 'Web identity helper is not the exact bounded same-origin implementation');
+const webShell=web.replace(identityHelper,'');
+const identityCalls=[...webShell.matchAll(/\bbrowserIdentityRequest\(([^,)]+)/gu)];
+assert(identityCalls.length>=4&&identityCalls.length<=8, 'Web identity call set is missing or unbounded');
+for(const call of identityCalls)assert(["'config'","'account'","'logout'"].includes(call[1]), 'Web identity helper called a non-identity route');
+assert(webShell.includes('No request was sent.') && !webShell.includes('fetch(') && !webShell.includes('/api/'), 'web shell retains a direct product API route');
 
 const report = {
   schemaVersion: 1,
   classification: 'local-release-evidence-verification',
   sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(),
   endpointManifest: { sourceCommit: manifest.sourceCommit, payloadSha256: expectedManifestHash, exchangeProductStatus: manifest.endpointStates.products.exchange.status },
-  connectivityBoundary: { standardWalletRuntime: 'SOURCE_VERIFIED_EIP1193_ONLY', canonicalWalletAuthorization: 'SOURCE_VERIFIED_REQUEST_BOUND_ONLY', productSession: 'PENDING_AND_NOT_CALLED', installedWalletSuccess: 'NOT_ASSERTED_BY_THIS_VERIFIER' },
+  connectivityBoundary: { standardWalletRuntime: 'SOURCE_VERIFIED_EIP1193_ONLY', canonicalWalletAuthorization: 'SOURCE_VERIFIED_REQUEST_BOUND_ONLY', productSession: 'SOURCE_VERIFIED_WEB_READ_ONLY_MOBILE_PENDING', historicalMobileProductSession: 'PENDING_AND_NOT_CALLED', browserIdentity: 'EXACT_BOUNDED_SAME_ORIGIN_IDENTITY_ONLY', installedWalletSuccess: 'NOT_ASSERTED_BY_THIS_VERIFIER', publicBusinessSuccess: false },
   releaseStates: release.releaseStates,
 };
 if (apkPath) {

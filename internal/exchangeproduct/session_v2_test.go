@@ -49,7 +49,7 @@ func v2Fixture(t *testing.T, account, scope string) (string, productsessionv2.Se
 	digest := sha256.Sum256(v2Canonical(t, map[string]any{"requiredScopes": []string{scope}}))
 	session := productsessionv2.Session{
 		Version: "2", SessionBinding: strings.Repeat("a", 64), ChainID: ChainID,
-		ProductID: "exchange", ClientID: "ynx-exchange-v1", ApplicationID: "com.ynxweb4.exchange",
+		ProductID: "exchange", ClientID: "ynx-exchange-v1", ApplicationID: "com.ynxweb4.exchange.web",
 		Platform: "web", Origin: exchangeWebOrigin, Callback: exchangeWebOrigin + "/wallet-auth/callback",
 		Account: account, DeviceID: "offline-fixture-device", DeviceAlgorithm: "p256-sha256",
 		DeviceKey: "offline-fixture-device-public-key-not-a-native-key", DeviceBinding: strings.Repeat("b", 64),
@@ -241,6 +241,9 @@ func TestBrowserV2FailClosedWithoutLegacyOrWriteFallback(t *testing.T) {
 		t.Fatal("ambiguous proof accepted")
 	}
 	for _, mutate := range []func(*http.Request){
+		func(r *http.Request) {
+			r.Header.Set(productsessionv2.ProofHeader, v2Mutate(t, proof, func(p map[string]any) { p["applicationId"] = "com.ynxweb4.exchange" }))
+		},
 		func(r *http.Request) { r.Header.Set("Origin", "https://attacker.invalid") },
 		func(r *http.Request) { r.Header.Add(productsessionv2.ProofHeader, proof) },
 		func(r *http.Request) { r.Header.Set(productsessionv2.ProofHeader, "malformed") },

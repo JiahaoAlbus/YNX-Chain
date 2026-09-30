@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import {createPrivateAccountController,validateAccountSnapshot} from '../web/private-account-controller.js';
 import {createExchangePrivateAccount,PRIVATE_SDK_SOURCE} from '../web/private-session-entry.js';
 const origin='https://exchange.ynxweb4.com',account='ynx1'+'q'.repeat(38),other='ynx1'+'p'.repeat(38);
-const snapshot=(owner=account)=>({sourceMetadata:{authority:'YNX-owned deterministic order state',version:'exchange-public-state-v1',classification:'testnet',status:'degraded_single_host',stateBackend:'file_snapshot',multiInstance:false,coverage:'account-ledger-orders-trades-fees-audit',asOf:new Date().toISOString()},balances:[{account:owner,asset:'YUSD_TEST',availableMicro:1234567,reservedMicro:0}],ledger:[],depositIntents:[],orders:[],trades:[],fees:[],deposits:[],withdrawals:[],support:[],ai:[],audit:[],security:{account:owner,withdrawalLock:false,sessionTtlMinutes:15}});
+const snapshot=(owner=account)=>({sourceMetadata:{authority:'YNX-owned deterministic order state',version:'exchange-public-state-v1',classification:'testnet',status:'degraded_single_host',stateBackend:'file-cas-single-host',multiInstance:false,coverage:'account-ledger-orders-trades-fees-audit',asOf:new Date().toISOString()},balances:[{account:owner,asset:'YUSD_TEST',availableMicro:1234567,reservedMicro:0}],ledger:[],depositIntents:[],orders:[],trades:[],fees:[],deposits:[],withdrawals:[],support:[],ai:[],audit:[],security:{account:owner,withdrawalLock:false,sessionTtlMinutes:15}});
 const connected=(owner=account)=>({status:'connected',session:{productId:'exchange',origin,chainId:'ynx_6423-1',account:owner,scopes:['exchange:read'],expiresAt:new Date(Date.now()+60000).toISOString()}});
 const pending=()=>({status:'connecting',automatic:false,installation:'unverified',request:{expiresAt:new Date(Date.now()+60000).toISOString()},route:{status:'ready',url:'ynxwallet://authorize?request=exact-offline-fixture'}});
 function setup(overrides={}){
@@ -27,6 +27,42 @@ test('real SDK fails closed on nonregistered origin without network or storage f
 });
 test('begin persists via SDK, exposes exact explicit link and never reads private account before callback',async()=>{
   const {controller,calls}=setup();const value=await controller.begin();assert.equal(value.phase,'approval-pending');assert.equal(value.installation,'unverified');assert.equal(value.route,pending().route.url);assert.deepEqual(calls,['createAdapter','beginExplicit']);assert.equal(value.account,null);controller.close();
+});
+test('selected native Hosted request uses exact SDK route and callback before owned read; restore never signs',async()=>{
+  const context={provider:{},status:'connected',providerKind:'ynx-wallet',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};
+  const requests=[];const wallet={getPrivateWalletContext:()=>context,requestProductSessionV2:async url=>{requests.push(url);return {version:2,returnUrl:origin+'/wallet-auth/callback?approval=opaque'}}};
+  const {controller,calls}=setup({controller:{wallet}});const a=controller.begin(),b=controller.begin();assert.equal(a,b);assert.equal((await a).phase,'connected');assert.equal(requests.length,1);assert.equal(requests[0],pending().route.url);
+  assert.ok(calls.some(v=>Array.isArray(v)&&v[0]==='handleReturn'));await controller.refresh();assert.equal(requests.length,1);controller.close();
+});
+test('selected native reject retires SDK pending without disconnecting standard identity',async()=>{
+  const context={provider:{},status:'connected',providerKind:'ynx-wallet',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};
+  const wallet={getPrivateWalletContext:()=>context,requestProductSessionV2:async()=>{throw Object.assign(new Error('USER_REJECTED'),{code:'USER_REJECTED'})}};
+  const {controller,calls}=setup({controller:{wallet}});assert.equal((await controller.begin()).code,'USER_REJECTED');assert.equal(calls.filter(v=>v==='disconnect').length,1);assert.equal(context.status,'connected');assert.ok(!calls.some(v=>Array.isArray(v)&&v[0]==='fetch'));controller.close();
+});
+test('verified native read survives typed transport absence; subsequent empty account clears and retires',async()=>{
+  let context={provider:{},status:'connected',providerKind:'ynx-wallet',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};const wallet={getPrivateWalletContext:()=>context,requestProductSessionV2:async()=>({version:2,returnUrl:origin+'/wallet-auth/callback?approval=opaque'})};
+  const {controller,calls}=setup({controller:{wallet}});await controller.begin();context={...context,status:'transport-unavailable',revision:2};controller.walletChanged(context);assert.equal(controller.state().phase,'connected');await controller.refresh();assert.equal(controller.state().snapshot.balances[0].availableMicro,1234567);
+  context={...context,status:'disconnected',account:null,revision:3};controller.walletChanged(context);await new Promise(r=>setImmediate(r));assert.equal(controller.state().snapshot,null);assert.ok(calls.includes('disconnect'));controller.close();
+});
+test('late native reply after selected account change cannot handle callback or read old subject',async()=>{
+  let resolve;const reply=new Promise(r=>resolve=r);let context={provider:{},status:'connected',providerKind:'ynx-wallet',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};
+  const wallet={getPrivateWalletContext:()=>context,requestProductSessionV2:()=>reply};const {controller,calls}=setup({controller:{wallet}});const action=controller.begin();await new Promise(r=>setImmediate(r));context={...context,account:'0x'+'b'.repeat(40),revision:2};resolve({version:2,returnUrl:origin+'/wallet-auth/callback?approval=old'});await action;assert.equal(controller.state().code,'PRIVATE_CONTEXT_CHANGED');assert.ok(calls.includes('disconnect'));assert.ok(!calls.some(v=>Array.isArray(v)&&['fetch','handleReturn'].includes(v[0])));controller.close();
+});
+test('Guest retirement is once-only: late old approval cannot retire or overwrite the newer explicit session',async()=>{
+  let release,count=0;const late=new Promise(r=>release=r);const context={provider:{},status:'connected',providerKind:'ynx-wallet',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};
+  const wallet={getPrivateWalletContext:()=>context,requestProductSessionV2:()=>++count===1?late:Promise.resolve({version:2,returnUrl:origin+'/wallet-auth/callback?approval=new'})};
+  const {controller,calls}=setup({controller:{wallet}});const old=controller.begin();await new Promise(r=>setImmediate(r));controller.guest();assert.equal((await controller.begin()).phase,'connected');release({version:2,returnUrl:origin+'/wallet-auth/callback?approval=old'});await old;
+  assert.equal(controller.state().phase,'connected');assert.equal(calls.filter(v=>v==='disconnect').length,1);assert.equal(calls.filter(v=>Array.isArray(v)&&v[0]==='handleReturn').length,1);controller.close();
+});
+test('cold native restore binds later real transport continuity and clears old owned data on change',async()=>{
+  let context={provider:{},status:'connected',providerKind:'ynx-wallet',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};const wallet={getPrivateWalletContext:()=>context};
+  const {controller,calls}=setup({controller:{wallet}});await controller.start(origin+'/');context={...context,account:'0x'+'b'.repeat(40),revision:2};controller.walletChanged(context);await new Promise(r=>setImmediate(r));assert.equal(controller.state().snapshot,null);assert.ok(calls.includes('disconnect'));controller.close();
+});
+test('known popup absence during approval never consumes late return; offline retires pending too',async()=>{
+  for(const kind of ['transport','offline']){
+    let release;const late=new Promise(r=>release=r);let context={provider:{},status:'connected',providerKind:'ynx-wallet',chainId:'0x1917',account:'0x'+'a'.repeat(40),revision:1};const wallet={getPrivateWalletContext:()=>context,requestProductSessionV2:()=>late};
+    const {controller,calls}=setup({controller:{wallet}});const action=controller.begin();await new Promise(r=>setImmediate(r));if(kind==='offline')controller.offline();else{context={...context,status:'transport-unavailable',revision:2};controller.walletChanged(context)}release({version:2,returnUrl:origin+'/wallet-auth/callback?approval=late'});await action;assert.equal(controller.state().snapshot,null);assert.ok(calls.includes('disconnect'));assert.ok(!calls.some(v=>Array.isArray(v)&&v[0]==='handleReturn'));controller.close();
+  }
 });
 test('complete callback URL goes unchanged to SDK then fresh proof only GETs registered account API',async()=>{
   const {controller,calls}=setup();const url=origin+'/wallet-auth/callback?approval=opaque-exact&state=bound#retained';
@@ -72,6 +108,11 @@ test('HTTP auth/unavailable/HTML/oversize/unsafe numeric/cross-account responses
 test('source status, account ownership and safe integer amounts are validated',()=>{
   assert.equal(validateAccountSnapshot(snapshot(),account).balances[0].availableMicro,1234567);
   for(const change of [v=>v.sourceMetadata.status='live',v=>v.sourceMetadata.asOf='2000-01-01T00:00:00Z',v=>v.security.account=other,v=>v.balances[0].availableMicro='1',v=>v.orders.push({account:other}),v=>v.trades.push({buyer:other,seller:other})]){const value=snapshot();change(value);assert.throws(()=>validateAccountSnapshot(value,account))}
+});
+test('schema10 CAS provenance modes are exact; legacy aliases and inconsistent multi-instance claims fail closed',()=>{
+  assert.equal(validateAccountSnapshot(snapshot(),account).sourceMetadata.stateBackend,'file-cas-single-host');
+  const live=snapshot();Object.assign(live.sourceMetadata,{status:'live',stateBackend:'postgres-cas-multi-instance',multiInstance:true});assert.equal(validateAccountSnapshot(live,account),live);
+  for(const change of [value=>value.sourceMetadata.stateBackend='file_snapshot',value=>Object.assign(value.sourceMetadata,{status:'live',stateBackend:'postgresql',multiInstance:true}),value=>value.sourceMetadata.multiInstance=true,value=>Object.assign(value.sourceMetadata,{status:'live',stateBackend:'postgres-cas-multi-instance',multiInstance:false})]){const value=snapshot();change(value);assert.throws(()=>validateAccountSnapshot(value,account),{code:'INVALID_ACCOUNT_SOURCE'})}
 });
 test('session expiry clears visible account even without an API retry',async()=>{
   const value=connected();value.session.expiresAt=new Date(Date.now()+50).toISOString();const {controller}=setup({client:{restore:async()=>value}});assert.equal((await controller.start(origin+'/')).phase,'connected');await new Promise(resolve=>setTimeout(resolve,75));assert.equal(controller.state().code,'SESSION_EXPIRED');assert.equal(controller.state().snapshot,null);controller.close();

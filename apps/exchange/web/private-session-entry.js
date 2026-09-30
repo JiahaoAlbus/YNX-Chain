@@ -4,7 +4,7 @@ import {createPrivateAccountController,PRIVATE_READ_SCOPE} from './private-accou
 export const PRIVATE_SDK_SOURCE='9840ef871165eb523c4e7a3d48964dd25f8dee8e';
 export function createExchangePrivateAccount({scope=globalThis,onState}={}){
   const fetchImpl=(...args)=>scope.fetch(...args);
-  return createPrivateAccountController({origin:scope.location?.origin,fetchImpl,onState,createAdapter:()=>{
+  return createPrivateAccountController({origin:scope.location?.origin,fetchImpl,onState,wallet:scope.YNXExchangeWebWallet,createAdapter:()=>{
     // Unknown installation: only beginExplicit may expose a user-click attempt.
     // These conservative probes never claim a native handler is installed.
     const gateway=new ProductSessionGatewayFetchAdapter({endpoint:'https://wallet-auth.ynxweb4.com',fetch:fetchImpl,walletInstalled:()=>false,schemeRegistered:()=>false,timeoutMs:10000});
