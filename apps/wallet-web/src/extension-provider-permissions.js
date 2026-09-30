@@ -43,17 +43,32 @@ export function parseProviderAccount(value){
 
 // The encrypted vault is the account authority. Older installs may have a vault
 // but no separate provider index; recover that index without reusing site grants.
-export async function recoverMissingProviderAccount(storage,vaultAccountKey,vaultKey,accountFromVault){
-  const values=await storage.get([vaultAccountKey,vaultKey,PROVIDER_PERMISSIONS_KEY]);
+export async function recoverMissingProviderAccount(storage,vaultAccountKey,vaultKey,accountFromVault,{readOnly=false}={}){
+  const unavailable=(status,message)=>{throw Object.assign(new Error(message),{code:"PROVIDER_ACCOUNT_UNAVAILABLE",data:{status}})};
+  let values;
+  try{values=await storage.get([vaultAccountKey,vaultKey,PROVIDER_PERMISSIONS_KEY])}
+  catch{unavailable("account_storage_unavailable","Wallet storage could not be read. Retry in the existing browser profile; do not clear or replace Wallet data.")}
+  if(!record(values))unavailable("account_storage_unavailable","Wallet storage could not be verified. Retry without clearing Wallet data.");
   const indexed=values?.[vaultAccountKey];
-  if(values?.[vaultKey]===undefined)fail("PROVIDER_ACCOUNT_UNAVAILABLE","No encrypted YNX Wallet vault is available. Open the existing Wallet vault or import your recovery key without clearing browser data.");
-  const vaultAccount=accountFromVault(values?.[vaultKey]);
+  if(values?.[vaultKey]===undefined)unavailable("account_vault_missing","This extension profile has no encrypted Wallet vault. Open your existing Wallet; do not overwrite an account in another profile.");
+  let vaultAccount;
+  try{vaultAccount=parseProviderAccount(accountFromVault(values[vaultKey]))}
+  catch{unavailable("account_vault_invalid","The existing encrypted Wallet vault could not be verified. Preserve the profile and use the Wallet recovery controls.")}
   if(indexed!==undefined){
-    const account=parseProviderAccount(indexed);
-    if(account.account!==vaultAccount.account)fail("PROVIDER_ACCOUNT_UNAVAILABLE","Provider account does not match the encrypted Wallet vault.");
+    let account;
+    try{account=parseProviderAccount(indexed)}catch{unavailable("account_index_invalid","The provider account index is invalid. Preserve Wallet data and open the existing account manager.")}
+    if(account.account!==vaultAccount.account)unavailable("account_index_mismatch","The provider account index does not match the encrypted Wallet vault. Preserve both records and open the existing account manager.");
     return account;
   }
-  await storage.set({[vaultAccountKey]:vaultAccount,[PROVIDER_PERMISSIONS_KEY]:{}});
+  if(readOnly)return null;
+  try{await storage.set({[vaultAccountKey]:vaultAccount,[PROVIDER_PERMISSIONS_KEY]:{}})}
+  catch{unavailable("account_recovery_write_failed","The recovered account index could not be saved. Retry without clearing or replacing the encrypted vault.")}
+  let confirmed;
+  try{confirmed=await storage.get([vaultAccountKey,vaultKey,PROVIDER_PERMISSIONS_KEY])}
+  catch{unavailable("account_recovery_write_failed","The recovered account index could not be confirmed. Retry without clearing Wallet data.")}
+  try{
+    if(parseProviderAccount(confirmed?.[vaultAccountKey]).account!==vaultAccount.account||parseProviderAccount(accountFromVault(confirmed?.[vaultKey])).account!==vaultAccount.account||Object.keys(parsePermissionStore(confirmed?.[PROVIDER_PERMISSIONS_KEY])).length!==0)throw new Error("Recovery readback mismatch");
+  }catch{unavailable("account_recovery_write_failed","The recovered account index could not be confirmed. Keep the existing vault and retry.")}
   return vaultAccount;
 }
 
