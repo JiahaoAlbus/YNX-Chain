@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-import {build} from '../../../apps/finance/web/node_modules/esbuild/lib/main.js';
+import {build} from 'esbuild';
 import {createCentralBrowserSessionRegistry} from '../src/central-browser-session-registry.js';
 import {CENTRAL_BROWSER_ISSUER,CENTRAL_BROWSER_PURPOSE,CENTRAL_BROWSER_RPC_METHOD,centralBrowserConsentSignBytes,parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval} from '../src/central-browser-session-contract.js';
 const registry=createCentralBrowserSessionRegistry(JSON.parse(await readFile(new URL('../product-session-registry.json',import.meta.url)))),now=Date.now();
