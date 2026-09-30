@@ -1,9 +1,11 @@
 import { Core } from "@walletconnect/core";
 import { WalletKit } from "@reown/walletkit";
 import { getSdkError } from "@walletconnect/utils";
+import { parseProductSessionWalletURL } from "@ynx-chain/wallet-auth";
+import { PRODUCT_SESSION_REGISTRY } from "./wallet-auth-contract.mjs";
 
 export const WALLETCONNECT_CHAIN = "eip155:6423";
-export const WALLETCONNECT_METHODS = Object.freeze(["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4"]);
+export const WALLETCONNECT_METHODS = Object.freeze(["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2"]);
 export const WALLETCONNECT_EVENTS = Object.freeze(["accountsChanged", "chainChanged"]);
 const TOMBSTONE_STORAGE_KEY = "ynx-wallet:walletconnect-disconnected-topics:v1";
 
@@ -151,7 +153,13 @@ export class WalletConnectTransport {
     if (chainId !== WALLETCONNECT_CHAIN) throw transportError("UNSUPPORTED_WALLETCONNECT_CHAIN", "WalletConnect request targets a different chain");
     if (!request || typeof request.method !== "string" || !namespace.methods.includes(request.method)) throw transportError("UNAUTHORIZED_WALLETCONNECT_METHOD", "WalletConnect method was not approved for this session");
     if (!Array.isArray(request.params)) throw transportError("INVALID_WALLETCONNECT_REQUEST", "WalletConnect request parameters must be an array");
-    const requestedAccount = requestAccount(request);
+    let requestedAccount;
+    if(request.method === "ynx_requestProductSessionV2") {
+      if(request.params.length !== 1 || typeof request.params[0] !== "string" || request.params[0].length > 32768) throw transportError("INVALID_WALLETCONNECT_REQUEST","Sign-in requires the exact official Wallet route");
+      const productRequest = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,request.params[0],new Date(this.clock()));
+      if(productRequest.origin !== this.sessionOrigin(topic)) throw transportError("PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this session");
+      requestedAccount = normalizeAccount(selectedAccount);
+    } else requestedAccount = requestAccount(request);
     if (requestedAccount !== normalizeAccount(selectedAccount) || !namespace.accounts.some(account => account.toLowerCase() === `${WALLETCONNECT_CHAIN}:${requestedAccount}`)) {
       throw transportError("UNAUTHORIZED_WALLETCONNECT_ACCOUNT", "WalletConnect request account must match this session and the selected Wallet account");
     }

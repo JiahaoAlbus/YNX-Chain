@@ -39,7 +39,8 @@ test("actual packaging hook writes resources read back from disk with an empty u
   }
 });
 test("missing genuine Project ID remains unconfigured; malformed config never downgrades silently", async () => {
-  assert.equal(buildPublicWalletConnectConfig({}).projectId, null);
+  assert.equal(buildPublicWalletConnectConfig({}).projectId, "41857128a14a593ca4e4a7cb7c838d71");
+  assert.equal(buildPublicWalletConnectConfig({ YNX_WALLETCONNECT_PROJECT_ID: "" }).projectId, null);
   const missing = await loadPublicWalletConnectConfig({ resourcesPath: "/qa/resources", environment: {}, read: async () => { throw Object.assign(new Error(), { code: "ENOENT" }); } });
   assert.equal(missing.projectId, null);
   for (const change of [{ chainId: "eip155:1" }, { projectId: "wc:secret@2?secret=value" }, { secret: "hidden" }, { schemaVersion: 2 }]) assert.throws(() => parsePublicWalletConnectConfig({ ...buildPublicWalletConnectConfig({}), ...change }), error => error.code === "WALLETCONNECT_CONFIG_INVALID");

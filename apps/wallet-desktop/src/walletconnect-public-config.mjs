@@ -2,6 +2,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 export const WALLETCONNECT_PUBLIC_CONFIG_FILE = "ynx-wallet-walletconnect-config.json";
+// Existing YNX Reown public Project ID, explicitly authorized by the owner.
+export const YNX_REOWN_PUBLIC_PROJECT_ID = "41857128a14a593ca4e4a7cb7c838d71";
 const invalid = () => Object.assign(new Error("WalletConnect public configuration is invalid."), { code: "WALLETCONNECT_CONFIG_INVALID" });
 export function publicWalletConnectConfig(projectId = null) {
   if (projectId !== null && (typeof projectId !== "string" || !/^[0-9a-f]{32}$/u.test(projectId))) throw invalid();
@@ -15,7 +17,7 @@ export function parsePublicWalletConnectConfig(value) {
 // URI, session, API secret or signing material is accepted by this schema.
 export function buildPublicWalletConnectConfig(environment = process.env) {
   const value = environment.YNX_WALLETCONNECT_PROJECT_ID;
-  return publicWalletConnectConfig(value === undefined || value === "" ? null : value);
+  return publicWalletConnectConfig(value === undefined ? YNX_REOWN_PUBLIC_PROJECT_ID : value === "" ? null : value);
 }
 export async function loadPublicWalletConnectConfig({ resourcesPath, environment = process.env, read = readFile } = {}) {
   if (environment.YNX_WALLETCONNECT_PROJECT_ID !== undefined && environment.YNX_WALLETCONNECT_PROJECT_ID !== "") return buildPublicWalletConnectConfig(environment);
