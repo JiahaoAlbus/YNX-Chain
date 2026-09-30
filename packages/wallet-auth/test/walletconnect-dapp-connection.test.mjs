@@ -1,0 +1,66 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {WalletConnectDAppConnection,YNX_PAIR_PROJECT_ID} from '../src/walletconnect-dapp-connection.js';
+const topic='a'.repeat(64),account='0x'+'1'.repeat(40),method='ynx_requestCentralBrowserSignIn';
+const session=(extra={})=>({topic,expiry:Math.floor(Date.now()/1000)+300,peer:{metadata:{url:'https://wallet.ynxweb4.com'}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],chains:['eip155:6423'],methods:[method],events:['accountsChanged','chainChanged']}},...extra});
+function fixture(existing=[]){let approve,reply;const events=new Map(),calls=[];const client={on:(name,fn)=>events.set(name,fn),session:{getAll:()=>existing},core:{pairing:{disconnect:async input=>calls.push(['cancel',input.topic])}},connect:async input=>{calls.push(['connect',input]);return {uri:`wc:${topic}@2?relay-protocol=irn&symKey=${'2'.repeat(64)}`,approval:()=>new Promise(resolve=>approve=resolve)};},request:input=>{calls.push(['request',input]);return new Promise(resolve=>reply=resolve);},disconnect:async input=>calls.push(['disconnect',input.topic])};
+  const connection=new WalletConnectDAppConnection({origin:'https://wallet-auth.ynxweb4.com',methods:[method],clientFactory:async options=>{calls.push(['init',options]);return client;},deadlineMs:50});return {connection,client,calls,events,approve:value=>approve(value),reply:value=>reply(value)};
+}
+const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
+test('official DApp proposal is explicit, single-flight, scoped and approves only the exact Wallet peer/account',async()=>{
+  const f=fixture();await f.connection.initialize();assert.equal(f.calls[0][1].projectId,YNX_PAIR_PROJECT_ID);assert.equal(f.calls[0][1].metadata.url,'https://wallet-auth.ynxweb4.com');assert.equal(f.calls.filter(c=>c[0]==='connect').length,0);
+  let uri;const first=f.connection.connect({onURI:value=>uri=value});assert.equal(first,f.connection.connect());await tick();assert.match(uri,/^wc:/);assert.equal(f.calls.filter(c=>c[0]==='connect').length,1);
+  f.approve(session());const provider=await first;assert.equal(provider.isMetaMask,false);assert.deepEqual(await provider.request({method:'eth_accounts'}),[account]);
+  const request=provider.request({method,params:[{challengeId:'opaque bounded challenge'}]});await tick();f.reply({challengeId:'same challenge'});assert.deepEqual(await request,{challengeId:'same challenge'});
+  assert.equal(f.calls.find(c=>c[0]==='request')[1].topic,topic);await assert.rejects(provider.request({method:'personal_sign'}),/METHOD_NOT_APPROVED/);
+});
+
+test('late connect timeout/cancel retires the original pairing and eventual approval',async()=>{
+  for(const mode of ['cancel','timeout']){
+    const f=fixture();let release,approve;
+    f.client.connect=()=>new Promise(resolve=>release=resolve);
+    const pending=f.connection.connect();await tick();
+    if(mode==='cancel')await f.connection.cancel();
+    const rejected=assert.rejects(pending,mode==='cancel'?/CANCELLED/:/TIMEOUT/);
+    if(mode==='timeout')await rejected;
+    release({uri:`wc:${topic}@2?relay-protocol=irn&symKey=${'2'.repeat(64)}`,approval:()=>new Promise(resolve=>approve=resolve)});
+    await tick();approve(session());await rejected;await tick();
+    assert.ok(f.calls.some(call=>call[0]==='cancel'&&call[1]===topic));
+    assert.ok(f.calls.some(call=>call[0]==='disconnect'&&call[1]===topic));
+    await assert.rejects(f.connection.request({method:'eth_accounts'}),/SESSION_EXPIRED/);
+  }
+});
+
+test('invalid approved peer/namespace is retired; remote cleanup failure stays unconfirmed',async()=>{
+  for(const invalid of [session({peer:{metadata:{url:'https://attacker.example'}}}),session({namespaces:{eip155:{accounts:[`eip155:1:${account}`],methods:[method]}}})]){
+    const f=fixture();const pending=f.connection.connect();await tick();f.approve(invalid);
+    await assert.rejects(pending,/PEER_INVALID|NAMESPACE_INVALID/);
+    assert.ok(f.calls.some(call=>call[0]==='disconnect'&&call[1]===topic));
+  }
+  const f=fixture();let unconfirmed=0;f.connection.on('cancelUnconfirmed',()=>unconfirmed++);
+  f.client.disconnect=async()=>{throw new Error('offline');};
+  const pending=f.connection.connect();await tick();f.approve(session({peer:{metadata:{url:'https://attacker.example'}}}));
+  await assert.rejects(pending,/PEER_INVALID/);assert.equal(unconfirmed,1);
+});
+
+test('concurrent restore/connect initializes one SDK; cancellation fences the late factory result',async()=>{
+  const f=fixture();let release,initializations=0;
+  const connection=new WalletConnectDAppConnection({origin:'https://wallet-auth.ynxweb4.com',methods:[method],deadlineMs:50,clientFactory:()=>{initializations++;return new Promise(resolve=>release=resolve);}});
+  const restoring=connection.restore(),connecting=connection.connect();await tick();assert.equal(initializations,1);
+  await connection.cancel();release(f.client);
+  await assert.rejects(restoring,/CANCELLED/);await assert.rejects(connecting,/CANCELLED/);
+  assert.equal(f.calls.filter(call=>call[0]==='connect').length,0);
+  assert.equal(await connection.restore(),null);assert.equal(initializations,1);
+});
+test('cold restoration does not sign, rejects unapproved peer/chain/expiry and never silently selects multiple sessions',async()=>{
+  const f=fixture([session()]);const provider=await f.connection.restore();assert.deepEqual(await provider.request({method:'eth_accounts'}),[account]);assert.equal(f.calls.length,1);
+  assert.equal(await fixture([session({expiry:1})]).connection.restore(),null);
+  assert.equal(await fixture([session({peer:{metadata:{url:'https://attacker.example'}}})]).connection.restore(),null);
+  const wrong=session();wrong.namespaces.eip155.accounts=[`eip155:1:${account}`];assert.equal(await fixture([wrong]).connection.restore(),null);
+  await assert.rejects(fixture([session(),session({topic:'b'.repeat(64)})]).connection.restore(),/SELECTION_REQUIRED/);
+});
+test('cancel and timeout cannot adopt late approval; account/chain events fence an in-flight reply',async()=>{
+  const f=fixture();const pending=f.connection.connect();await tick();await f.connection.cancel();f.approve(session());await assert.rejects(pending,/CANCELLED/);assert.ok(f.calls.some(c=>c[0]==='disconnect'));
+  const timed=fixture();const timeout=timed.connection.connect();await tick();await assert.rejects(timeout,/TIMEOUT/);timed.approve(session());await tick();assert.ok(timed.calls.some(c=>c[0]==='disconnect'));
+  const bound=fixture([session()]),provider=await bound.connection.restore(),read=provider.request({method,params:[{}]});await tick();bound.events.get('session_event')({topic,params:{event:{name:'accountsChanged',data:[]}}});bound.reply({});await assert.rejects(read,/CONTEXT_CHANGED/);await assert.rejects(provider.request({method:'eth_accounts'}),/SESSION_EXPIRED/);
+});

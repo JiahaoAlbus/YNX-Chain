@@ -4,6 +4,8 @@ import {StandardWalletConnection} from './standard-wallet-connection.js';
 import {METAMASK_EVM_CHAIN} from './metamask-evm-adapter.js';
 import {createWalletProviderDiscovery,WALLET_PROVIDER_KIND} from './wallet-provider-discovery.js';
 import {parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval} from './central-browser-session-contract.js';
+import {WalletConnectDAppConnection} from './walletconnect-dapp-connection.js';
+import QRCode from 'qrcode';
 
 const context=JSON.parse(document.getElementById('context').textContent);
 if(context.mode==='session'){
@@ -20,6 +22,30 @@ const discovery=createWalletProviderDiscovery(window);
 const restart=document.createElement('button');restart.id='restart';restart.hidden=true;restart.textContent='Return to product and retry';cancel.after(restart);restart.addEventListener('click',()=>cancel.click());
 let providers=[],selected=null,pending=null,revision=0,cancelled=false;
 const message=value=>{status.textContent=value;};
+const pairButton=document.createElement('button');pairButton.id='pair';pairButton.type='button';pairButton.textContent='Connect mobile YNX Wallet';
+const pairRegion=document.createElement('div');pairRegion.id='pair-request';pairRegion.hidden=true;
+const pairLabel=document.createElement('p');pairLabel.textContent='Scan with YNX Wallet to approve this browser connection. Browser sign-in remains a separate approval.';
+const pairCanvas=document.createElement('canvas');pairCanvas.setAttribute('role','img');pairCanvas.setAttribute('aria-label','Temporary YNX Wallet connection QR code');pairRegion.append(pairLabel,pairCanvas);picker.after(pairButton,pairRegion);
+let pair=null,pairPending=null,pairProvider=null;
+const clearPairQR=()=>{pairRegion.hidden=true;pairCanvas.width=pairCanvas.height=0;};
+pairButton.addEventListener('click',()=>{
+  if(cancelled||pending||pairPending){message('Finish or cancel your current request before opening another connection.');return;}
+  const epoch=++revision;selected=null;approve.disabled=true;pairButton.setAttribute('aria-busy','true');message('Opening a mobile Wallet connection. No sign-in signature has been requested.');
+  pair??=new WalletConnectDAppConnection({origin:location.origin,methods:['ynx_requestCentralBrowserSignIn'],deadlineMs:Math.max(1,Math.min(30000,Date.parse(challenge.expiresAt)-Date.now()))});
+  pairPending=(async()=>{
+    let provider=await pair.restore();if(epoch!==revision||cancelled)throw new Error('SSO_CONTEXT_CHANGED');
+    if(!provider)provider=await pair.connect({onURI:uri=>{
+      if(epoch!==revision||cancelled)return;
+      // Pairing URI contains a temporary secret: only render it locally. It
+      // must never enter diagnostics, URLs, business storage or telemetry.
+      pairRegion.hidden=false;void QRCode.toCanvas(pairCanvas,uri,{width:240,margin:2,color:{dark:'#002FA7',light:'#FFFFFF'}}).catch(()=>{if(epoch!==revision||cancelled)return;clearPairQR();message('QR rendering is unavailable. Cancel and retry the connection.');});
+      message('Scan this temporary QR in YNX Wallet and approve the connection.');
+    }});
+    if(epoch!==revision||cancelled){await pair.cancel();throw new Error('SSO_CONTEXT_CHANGED');}
+    clearPairQR();pairProvider=provider;selected=provider;picker.value='';approve.disabled=false;message('Mobile Wallet connected. Continue to review browser sign-in on the same Wallet session.');
+  })().catch(()=>{clearPairQR();if(epoch===revision&&!cancelled)message('Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.');})
+    .finally(()=>{pairPending=null;pairButton.removeAttribute('aria-busy');});
+});
 const request=async(path,input)=>{
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
   try{const response=await fetch(`/v2/browser-sessions/${path}`,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json','x-ynx-browser-csrf':context.csrfToken},body:canonicalJSON(input),signal:controller.signal});
@@ -31,10 +57,10 @@ discovery.subscribe(snapshot=>{
   const previous=selected;picker.replaceChildren();
   const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Choose YNX Wallet';picker.append(placeholder);
   providers.forEach((provider,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=`YNX Wallet ${index+1}`;picker.append(option);});
-  if(previous&&providers.includes(previous)){picker.value=String(providers.indexOf(previous));}else if(previous){selected=null;revision++;}
-  approve.disabled=!selected||cancelled;if(!providers.length)message('YNX Wallet is not available. Install or unlock it, then try again.');
+  if(previous&&providers.includes(previous)){picker.value=String(providers.indexOf(previous));}else if(previous&&previous!==pairProvider){selected=null;revision++;}
+  approve.disabled=!selected||cancelled;if(!providers.length&&!pairPending&&!selected)message('Installed YNX Wallet is unavailable. Install/unlock it or explicitly connect your mobile Wallet.');
 });
-picker.addEventListener('change',()=>{selected=picker.value===''?null:providers[Number(picker.value)];revision++;approve.disabled=!selected||cancelled;message(pending?'Finish or cancel the current request before switching wallets.':'Connection is separate from browser sign-in approval.');});
+picker.addEventListener('change',()=>{selected=picker.value===''?null:providers[Number(picker.value)];revision++;if(pairPending){clearPairQR();void pair.cancel();}approve.disabled=!selected||cancelled;message(pending?'Finish or cancel the current request before switching wallets.':'Connection is separate from browser sign-in approval.');});
 approve.addEventListener('click',()=>{
   if(pending){message('Your request is already open in YNX Wallet.');return;}
   if(!selected||cancelled)return;
@@ -66,6 +92,7 @@ approve.addEventListener('click',()=>{
 });
 cancel.addEventListener('click',async()=>{
   if(cancelled)return;cancelled=true;revision++;approve.disabled=true;cancel.disabled=true;message('Cancelling this sign-in request…');
+  clearPairQR();if(pair)void pair.cancel();
   try{const result=await request('cancel',{challengeId:challenge.challengeId});const redirect=new URL(result.redirectUri);
     if(redirect.origin!==challenge.initiator.origin||redirect.pathname!==new URL(challenge.initiator.redirectUri).pathname||redirect.searchParams.get('state')!==challenge.initiator.state||redirect.searchParams.get('error')!=='access_denied')throw new Error('SSO_REDIRECT_INVALID');
     location.assign(redirect.href);
