@@ -31,7 +31,7 @@ const message=value=>{status.textContent=value;};
 const failure=(error,phase)=>{
   const known=new Set(['YNX_PAIR_TIMEOUT','YNX_PAIR_CANCELLED','YNX_PAIR_CONFIGURATION_INVALID','YNX_PAIR_SESSION_EXPIRED','YNX_PAIR_PEER_INVALID','YNX_PAIR_NAMESPACE_INVALID','YNX_PAIR_CHAIN_INVALID','YNX_PAIR_SESSION_SELECTION_REQUIRED','YNX_PAIR_METHOD_NOT_APPROVED','YNX_PAIR_CONTEXT_CHANGED','SSO_CONTEXT_CHANGED','SSO_CHALLENGE_EXPIRED','SSO_REQUEST_TIMEOUT','SSO_CSRF_MISMATCH','SSO_TRANSACTION_EXPIRED','SSO_LOGIN_REQUIRED','SSO_REQUEST_FAILED','PROVIDER_WRONG_CHAIN']);
   const raw=typeof error?.code==='string'?error.code:typeof error?.message==='string'?error.message:'';
-  const code=Number(error?.code)===4001?'USER_REJECTED':known.has(raw)?raw:error?.name==='AbortError'?'SSO_SERVICE_TIMEOUT':error?.name==='TypeError'?'SSO_TRANSPORT_UNAVAILABLE':'SSO_WALLET_OR_SERVICE_UNAVAILABLE';
+  const code=Number(error?.code)===4001||error?.code==='USER_REJECTED'?'USER_REJECTED':known.has(raw)?raw:error?.name==='AbortError'?'SSO_SERVICE_TIMEOUT':error?.name==='TypeError'?'SSO_TRANSPORT_UNAVAILABLE':'SSO_WALLET_OR_SERVICE_UNAVAILABLE';
   status.dataset.errorCode=code;status.dataset.phase=phase;return code;
 };
 const pairButton=document.createElement('button');pairButton.id='pair';pairButton.type='button';pairButton.textContent='Connect mobile YNX Wallet';
