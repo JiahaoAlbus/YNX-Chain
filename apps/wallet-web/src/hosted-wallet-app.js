@@ -145,7 +145,7 @@ approve.addEventListener("click", () => {
 });
 function secretRequiredResult(secret) { return secret === null ? { approved: true } : { approved: true, password: secret }; }
 reject.addEventListener("click", () => finishReview({ approved: false }));
-window.addEventListener("pagehide", () => { cancelActiveRequest(); reply("disconnected"); finishReview({ approved: false }); password.value = ""; });
+window.addEventListener("pagehide", () => { cancelActiveRequest(); reply("disconnected", { reason: "HOSTED_POPUP_CLOSED" }); session = null; finishReview({ approved: false }); password.value = ""; });
 
 async function handleMethod(method, params, context) {
   assertRequestLive(context);
