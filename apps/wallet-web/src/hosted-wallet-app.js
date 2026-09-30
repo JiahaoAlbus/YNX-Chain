@@ -1,3 +1,4 @@
+import {HostedAccountManager,hostedEntryMode} from "./hosted-account-manager.js";
 import { createHostedVaultStore } from "./hosted-vault-store.js";
 import { withHostedAccountLock } from "./hosted-account-lock.js";
 import { unlockEncryptedVault } from "./extension-vault.js";
@@ -16,13 +17,14 @@ const $ = id => document.getElementById(id);
 const status = $("status"), setup = $("setup"), review = $("review"), reviewText = $("review-text"), password = $("approval-password"), approve = $("approve"), reject = $("reject");
 const store = createHostedVaultStore();
 const broadcastJournal = new ExtensionBroadcastJournal(store.journalStorage);
+let accountManager=null;
 let vault = null, session = null, currentReview = null, activeRequest = null, busy = false, needsBackupAcknowledgement = false, backupDownloaded = false;
 let locale = (() => { try { return normalizeHostedLocale(localStorage.getItem(HOSTED_LOCALE_KEY) || navigator.language); } catch { return normalizeHostedLocale(navigator.language); } })();
 let lastStatus = { key: "opening", variables: {}, code: null }, transactionRecord = null, transactionError = null;
 const seen = new Set();
 const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 function fail(code) { throw Object.assign(new Error(code), { code }); }
-function copy(key, variables) { return hostedDynamicCopy(locale, key, variables); }
+function copy(key, variables) { return key.startsWith("manager") ? hostedCopy(locale,key) : hostedDynamicCopy(locale, key, variables); }
 function messageKey(key, variables = {}, code = null) { lastStatus = { key, variables, code }; status.textContent = `${copy(key, variables)}${code === null ? "" : ` (${code})`}`; }
 function reviewDetails() {
   if (!currentReview) return;
@@ -42,6 +44,7 @@ function applyLocale(next) {
   for (const element of document.querySelectorAll("[data-i18n]")) element.textContent = hostedCopy(locale, element.dataset.i18n);
   for (const element of document.querySelectorAll("[data-i18n-placeholder]")) element.placeholder = hostedCopy(locale, element.dataset.i18nPlaceholder);
   for (const element of document.querySelectorAll("[data-i18n-aria]")) element.setAttribute("aria-label", hostedCopy(locale, element.dataset.i18nAria));
+  if(accountManager){document.querySelector("h1").textContent=copy("managerTitle");document.querySelector(".lede").textContent=copy("managerInfo");}
   messageKey(lastStatus.key, lastStatus.variables, lastStatus.code);
   renderTransactionStatus(); reviewDetails();
 }
@@ -78,8 +81,15 @@ async function assertSelectedAccount() {
   const current = await store.read();
   if (!current || current.account !== vault?.account || JSON.stringify(current) !== JSON.stringify(vault)) fail("HOSTED_ACCOUNT_CHANGED");
 }
+function renderManagerLock(){
+  if(!accountManager)return;const unlocked=accountManager.isUnlocked(vault);
+  $("account-lock-section").hidden=!vault;$("account-unlock-form").hidden=unlocked;$("account-lock").hidden=!unlocked;
+  $("account-switch-section").hidden=!vault||!unlocked;$("export-backup").hidden=!vault||!unlocked;
+}
+function lockManager(){if(!accountManager)return;accountManager.lock();for(const id of ["account-unlock-password","setup-password","setup-confirm","setup-key","backup-import-password","add-account-password"])$(id).value="";renderManagerLock();messageKey(vault?"managerLocked":"managerEmpty");}
 function displayAccount() {
   $("account-card").hidden = !vault;
+  renderManagerLock();
   if (vault) { $("account-ynx").textContent = toYNXAddress(vault.account); $("account-evm").textContent = vault.account; }
 }
 async function refreshAccountList() {
@@ -87,7 +97,7 @@ async function refreshAccountList() {
   if (!vault) return;
   const accounts = await store.listAccounts(), select = $("account-select"); select.replaceChildren();
   for (const account of accounts) { const option = document.createElement("option"); option.value = account; option.textContent = toYNXAddress(account); select.append(option); }
-  select.value = vault.account;
+  select.value = vault.account;renderManagerLock();
 }
 async function refreshTransactionStatus(refresh = false) {
   if (!vault) return;
@@ -252,7 +262,7 @@ async function receive(event) {
 
 $("setup-form").addEventListener("submit", async event => {
   event.preventDefault();
-  if (!session) return;
+  if (!session&&!accountManager) return;
   const form = event.currentTarget, submit = form.querySelector("button[type=submit]");
   if (submit.disabled) return;
   const localPassword = $("setup-password").value, confirm = $("setup-confirm").value;
@@ -262,28 +272,30 @@ $("setup-form").addEventListener("submit", async event => {
   submit.disabled = true;
   try {
     const created = await store.create({ password: localPassword, ...(key ? { secretHex: key.replace(/^0x/u, "").toLowerCase() } : {}) });
-    vault = created.vault; setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus();
+    vault = created.vault;if(accountManager&&document.visibilityState!=="hidden")await accountManager.unlock(vault,localPassword); setup.hidden = true; displayAccount(); await refreshAccountList(); if(!accountManager)await refreshTransactionStatus();
     needsBackupAcknowledgement = !key;
     $("backup-confirmation").hidden = !needsBackupAcknowledgement;
     messageKey(session ? (needsBackupAcknowledgement ? "backupBefore" : "walletSaved") : "disconnected", { account: vault.account });
-    $("export-backup").hidden = false;
+    $("export-backup").hidden = false;renderManagerLock();
+    if(accountManager)messageKey(accountManager.isUnlocked(vault)?"managerUnlocked":"managerLocked");
     if (session && !needsBackupAcknowledgement) reply("ready");
-  } catch (error) { if (session) messageKey("createFailed", {}, error?.code ?? "HOSTED_STORAGE_UNAVAILABLE"); }
+  } catch (error) { if (session||accountManager) messageKey("createFailed", {}, error?.code ?? "HOSTED_STORAGE_UNAVAILABLE"); }
   finally { $("setup-password").value = ""; $("setup-confirm").value = ""; $("setup-key").value = ""; submit.disabled = false; }
 });
 $("backup-import-form").addEventListener("submit", async event => {
   event.preventDefault();
-  if (!session) return;
+  if (!session&&!accountManager) return;
   const file = $("backup-import-file").files?.[0], input = $("backup-import-password"), submit = event.currentTarget.querySelector("button[type=submit]");
   if (submit.disabled || !file || file.size < 100 || file.size > 20_000 || !$("backup-import-confirm").checked) { messageKey("chooseBackup"); return; }
   submit.disabled = true;
   try {
     const record = JSON.parse(await file.text());
     const imported = await store.importEncrypted({ record, password: input.value });
-    vault = imported.vault; setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); $("export-backup").hidden = false;
+    vault = imported.vault;if(accountManager&&document.visibilityState!=="hidden")await accountManager.unlock(vault,input.value); setup.hidden = true; displayAccount(); await refreshAccountList(); if(!accountManager)await refreshTransactionStatus(); $("export-backup").hidden = false;renderManagerLock();
     messageKey(session ? "backupRestored" : "disconnected", { account: vault.account });
+    if(accountManager)messageKey(accountManager.isUnlocked(vault)?"managerUnlocked":"managerLocked");
     if (session) reply("ready");
-  } catch (error) { if (session) messageKey("restoreFailed", {}, error?.code ?? "HOSTED_BACKUP_INVALID"); }
+  } catch (error) { if (session||accountManager) messageKey("restoreFailed", {}, error?.code ?? "HOSTED_BACKUP_INVALID"); }
   finally { input.value = ""; $("backup-import-file").value = ""; submit.disabled = false; }
 });
 $("add-account-form").addEventListener("submit", async event => {
@@ -292,6 +304,7 @@ $("add-account-form").addEventListener("submit", async event => {
   if (submit.disabled || !file || file.size < 100 || file.size > 20_000) return;
   submit.disabled = true;
   try {
+    if(accountManager)await accountManager.assertUnlocked(vault);
     const account = await store.addEncryptedAccount({ record: JSON.parse(await file.text()), password: input.value });
     await refreshAccountList(); messageKey("accountAdded", { account: toYNXAddress(account) });
   } catch (error) { messageKey("accountAddFailed", {}, error?.code ?? "HOSTED_BACKUP_INVALID"); }
@@ -301,10 +314,11 @@ $("switch-account").addEventListener("click", async () => {
   const account = $("account-select").value;
   if (!account || account === vault?.account) return;
   try {
-    const selected = await store.selectAccount(account);
+    if(accountManager)await accountManager.assertUnlocked(vault);
+    const selected = await store.selectAccount(account);if(accountManager)accountManager.lock();
     cancelActiveRequest(); reply("disconnected"); session = null; finishReview({ approved: false });
     vault = selected; displayAccount(); await refreshAccountList();
-    await refreshTransactionStatus();
+    if(!accountManager)await refreshTransactionStatus();
     messageKey("accountSwitched", { account: toYNXAddress(account) });
   } catch (error) { messageKey("accountSwitchFailed", {}, error?.code ?? "HOSTED_ACCOUNT_UNAVAILABLE"); }
 });
@@ -312,6 +326,7 @@ $("account-select").addEventListener("focus", () => { void refreshAccountList().
 $("refresh-transaction").addEventListener("click", () => { void refreshTransactionStatus(true); });
 $("export-backup").addEventListener("click", async () => {
   try {
+    if(accountManager)await accountManager.assertUnlocked(vault);
     const record = await store.read();
     if (!record || record.account !== vault?.account) fail("HOSTED_BACKUP_ACCOUNT_MISMATCH");
     const url = URL.createObjectURL(new Blob([`${JSON.stringify(record)}\n`], { type: "application/json" }));
@@ -331,19 +346,35 @@ $("backup-continue").addEventListener("click", () => {
   if (session) reply("ready");
 });
 
+$("account-unlock-form").addEventListener("submit",async event=>{
+  event.preventDefault();if(!accountManager||!vault)return;
+  const input=$("account-unlock-password"),button=event.currentTarget.querySelector("button");if(button.disabled)return;button.disabled=true;
+  try{await accountManager.unlock(vault,input.value);renderManagerLock();messageKey("managerUnlocked");}
+  catch(error){accountManager.lock();renderManagerLock();messageKey("managerUnlockFailed",{},error?.code??"HOSTED_UNLOCK_FAILED");}
+  finally{input.value="";button.disabled=false;}
+});
+$("account-lock").addEventListener("click",lockManager);
+window.addEventListener("pagehide",lockManager);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")lockManager();});
+window.addEventListener("focus",()=>{if(accountManager&&vault)void store.read().then(current=>{if(JSON.stringify(current)!==JSON.stringify(vault)){accountManager.lock();vault=current;displayAccount();void refreshAccountList();messageKey(vault?"managerLocked":"managerEmpty");}}).catch(()=>{lockManager();messageKey("storageUnreadable");});});
+
 async function start() {
-  if (location.origin !== HOSTED_WALLET_ORIGIN || window.top !== window || !window.opener) { messageKey("registeredOnly"); return; }
-  const encoded = location.hash.startsWith("#connect=") ? location.hash.slice(9) : "";
-  try { session = { ...parseHostedConnect(encoded), approved: false }; }
-  catch { messageKey("invalidConnect"); return; }
-  history.replaceState(null, "", location.pathname);
-  $("product-origin").textContent = session.origin;
-  window.addEventListener("message", event => { void receive(event); });
-  window.setInterval(() => { if (session && (Date.now() >= session.expiresAt || window.opener?.closed)) endSession("connectionExpired"); }, 250);
-  try { vault = await store.read(); }
-  catch (error) { if (session) messageKey("storageUnreadable", {}, error?.code ?? "HOSTED_STORAGE_READ_FAILED"); return; }
-  if (!session) return;
-  if (vault) { setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); if (!session) return; $("export-backup").hidden = false; messageKey("reviewFor", { account: toYNXAddress(vault.account) }); reply("ready"); }
-  else { setup.hidden = false; messageKey("createBefore"); }
+  let mode;try{mode=hostedEntryMode({origin:location.origin,topLevel:window.top===window,fragment:location.hash});}catch{messageKey("invalidConnect");return;}
+  if(mode==="account"){
+    accountManager=new HostedAccountManager(store);$("product-origin").parentElement.hidden=true;applyLocale(locale);
+    try{vault=await store.read();}catch(error){messageKey("storageUnreadable",{},error?.code??"HOSTED_STORAGE_READ_FAILED");return;}
+    setup.hidden=!!vault;displayAccount();await refreshAccountList();messageKey(vault?"managerLocked":"managerEmpty");return;
+  }
+  if(!window.opener){messageKey("registeredOnly");return;}
+  const encoded=location.hash.slice(9);
+  try{session={...parseHostedConnect(encoded),approved:false};}catch{messageKey("invalidConnect");return;}
+  history.replaceState(null,"",location.pathname);
+  $("product-origin").textContent=session.origin;
+  window.addEventListener("message",event=>{void receive(event);});
+  window.setInterval(()=>{if(session&&(Date.now()>=session.expiresAt||window.opener?.closed))endSession("connectionExpired");},250);
+  try{vault=await store.read();}catch(error){if(session)messageKey("storageUnreadable",{},error?.code??"HOSTED_STORAGE_READ_FAILED");return;}
+  if(!session)return;
+  if(vault){setup.hidden=true;displayAccount();await refreshAccountList();await refreshTransactionStatus();if(!session)return;$("export-backup").hidden=false;messageKey("reviewFor",{account:toYNXAddress(vault.account)});reply("ready");}
+  else{setup.hidden=false;messageKey("createBefore");}
 }
 void start();
