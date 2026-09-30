@@ -9,6 +9,7 @@ import {chromium} from "playwright";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const archivePath=process.env.YNX_WALLET_EXTENSION_ARCHIVE?resolve(process.env.YNX_WALLET_EXTENSION_ARCHIVE):resolve(root,"artifacts/ynx-wallet-chrome-edge-0.1.2.zip");
 const browserName=process.env.YNX_BROWSER||"chromium";
+const threeFaults=process.env.YNX_WALLET_THREE_FAULTS==="1";
 if(!["chromium","edge"].includes(browserName))throw new Error("YNX_BROWSER must be chromium or edge");
 const browserPath=browserName==="edge"?"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge":chromium.executablePath();
 const evidencePath=process.env.YNX_WALLET_WEB_EVIDENCE_PATH?resolve(process.env.YNX_WALLET_WEB_EVIDENCE_PATH):join(root,"evidence/runtime/finance-public-chromium-20260925.json");
@@ -27,15 +28,39 @@ try{
   context=await bounded(chromium.launchPersistentContext(profile,{executablePath:browserPath,headless:true,ignoreHTTPSErrors:false,timeout:15000,ignoreDefaultArgs:["--disable-extensions"],args:[`--disable-extensions-except=${extensionPath}`,`--load-extension=${extensionPath}`,"--no-first-run","--no-default-browser-check"]}),20000,`${browserName} launch`);
   result.browser.version=context.browser()?.version()||"unknown";
   const worker=await waitForWorker(context),extensionOrigin=worker.url().replace(/\/service-worker\.js$/u,"");
+  if(threeFaults){
+    const companion=await context.newPage();await companion.goto(`${extensionOrigin}/index.html`);
+    await companion.locator("#ynx").click();await companion.waitForFunction(()=>document.querySelector("#status")?.dataset.kind==="error");
+    await companion.locator("#switch:not([disabled])").waitFor();await companion.locator("#switch").click();
+    await companion.waitForFunction(()=>document.querySelector("#status")?.dataset.kind==="info"&&!document.querySelector("#switch")?.disabled);
+    result.networkOnlyStatus=await companion.locator("#status").innerText();
+    result.networkOnlyDisconnected=/disconnected/iu.test(result.networkOnlyStatus)&&!await companion.locator("#actions").isVisible();
+    await companion.close();
+  }
   const vault=await context.newPage(),password="ynx-disposable-finance-qa-password";
   await bounded(vault.goto(`${extensionOrigin}/vault.html`,{waitUntil:"domcontentloaded"}),15000,"vault page");
   await vault.locator("#password").fill(password);await vault.locator("#secret").fill(randomBytes(32).toString("hex"));await vault.locator("#prepare").click();await vault.locator("#save:not([disabled])").waitFor();await vault.locator("#save").click();
   await bounded(vault.waitForFunction(()=>/^0x[0-9a-f]{40}$/u.test(document.querySelector("#evm-account")?.textContent||"")),15000,"vault account");result.account=await vault.locator("#evm-account").textContent();result.vaultCreatedThroughUi=true;await vault.close();step("vault-ready");
+  if(threeFaults){
+    // This worker belongs solely to the generated disposable QA profile.
+    result.vaultHashBeforeMigration=await worker.evaluate(async()=>{const values=await chrome.storage.local.get("ynx.wallet.provider.vault.v1");const bytes=new TextEncoder().encode(JSON.stringify(values));const hash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes)),b=>b.toString(16).padStart(2,"0")).join("");await chrome.storage.local.remove("ynx.wallet.provider.account.v1");return hash});
+  }
   finance=await context.newPage();result.pageErrors=[];finance.on("pageerror",error=>result.pageErrors.push(error.message.slice(0,240)));
   const response=await bounded(finance.goto(result.publicOrigin,{waitUntil:"commit",timeout:30000}),35000,"Finance page");result.publicStatus=response?.status()||null;
   await bounded(finance.waitForFunction(()=>window.YNXFinanceWallet?.getStandardWalletState),20000,"Finance wallet client");
   await bounded(finance.waitForLoadState("domcontentloaded",{timeout:60000}),65000,"Finance DOM ready");
   result.providerDiscovered=await finance.evaluate(()=>new Promise(resolve=>{const found=[];const listener=event=>{if(event.detail?.info?.rdns==="com.ynx.wallet")found.push(event.detail)};addEventListener("eip6963:announceProvider",listener);dispatchEvent(new Event("eip6963:requestProvider"));setTimeout(()=>{removeEventListener("eip6963:announceProvider",listener);resolve(found.some(item=>item.provider?.isYNXWallet===true&&item.provider?.isMetaMask===false))},250)}));step("finance-loaded");
+  if(threeFaults){
+    const website=await context.request.get("https://www.ynxweb4.com/");const html=await website.text();const asset=html.match(/src="(\/assets\/index-[^"]+\.js)"/u)?.[1];if(!asset)throw new Error("Official website asset unavailable");
+    const source=await (await context.request.get(`https://www.ynxweb4.com${asset}`)).text();
+    // Decode the currently published networkParams inputs, not Wallet constants.
+    const name=source.match(/networkName:"([^"]+)"/u)?.[1],currency=source.match(/nativeCurrency:Object\.freeze\(\{name:"([^"]+)",symbol:"([^"]+)",decimals:(\d+)\}\)/u),id=source.match(/evmChainId:"([^"]+)"/u)?.[1],urls=source.match(/services:Object\.freeze\(\{rpc:"([^"]+)",evm:"([^"]+)",explorer:"([^"]+)"/u);
+    if(!source.includes('fv={}')||!source.includes('rpcUrls:[Ze.evmRpc],blockExplorerUrls:[Ze.explorerUrl]')||!currency||!urls||!id||!name)throw new Error("Published networkParams decoder requires review");
+    result.websiteParams={chainId:id,chainName:name,nativeCurrency:{name:currency[1],symbol:currency[2],decimals:Number(currency[3])},rpcUrls:[urls[2]],blockExplorerUrls:[urls[3]]};result.websiteAsset=asset;result.websiteAssetSha256=createHash("sha256").update(source).digest("hex");
+    result.networkRepetitions=[];
+    for(let n=0;n<3;n++)result.networkRepetitions.push(await finance.evaluate(params=>new Promise(resolve=>{const listener=async event=>{if(event.detail?.info?.rdns!=="com.ynx.wallet")return;removeEventListener("eip6963:announceProvider",listener);const provider=event.detail.provider;try{const added=await provider.request({method:"wallet_addEthereumChain",params:[params]});await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:params.chainId}]});resolve({added,chainId:await provider.request({method:"eth_chainId"}),accounts:await provider.request({method:"eth_accounts"})})}catch(error){resolve({errorCode:error.code,error:error.message})}};addEventListener("eip6963:announceProvider",listener);dispatchEvent(new Event("eip6963:requestProvider"))}),result.websiteParams));
+    result.networkMutationPassed=result.networkRepetitions.every(item=>item.added===null&&item.chainId==="0x1917"&&item.accounts?.length===0);
+  }
   await finance.locator("#connect-ynx").click();const rejectedPage=await waitForExtensionPage(context,"/approval.html");await rejectedPage.locator("#reject:not([disabled])").waitFor();await rejectedPage.locator("#reject").click();
   if(!rejectedPage.isClosed())await rejectedPage.waitForEvent("close",{timeout:15000});
   await finance.waitForTimeout(500);result.rejectionState=await finance.evaluate(()=>({walletState:document.querySelector("#wallet-state")?.textContent,standard:window.YNXFinanceWallet.getStandardWalletState()}));result.rejectionReturnedToFinance=result.rejectionState.standard.status==="disconnected"&&/REJECT|4001|denied/iu.test(result.rejectionState.walletState||"");step("finance-rejected");
@@ -48,7 +73,11 @@ try{
   await finance.locator("#connect-ynx").click();await bounded(finance.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==="connected"),90000,"Finance reconnect");
   await finance.locator("#wallet-revoke").click();await bounded(finance.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==="disconnected"),30000,"Finance revoke");
   result.permissionRevoked=await finance.evaluate(async()=>{const announced=await new Promise(resolve=>{let found;const listener=event=>{if(event.detail?.info?.rdns==="com.ynx.wallet")found=event.detail.provider};addEventListener("eip6963:announceProvider",listener);dispatchEvent(new Event("eip6963:requestProvider"));setTimeout(()=>{removeEventListener("eip6963:announceProvider",listener);resolve(found)},250)});return Array.isArray(await announced.request({method:"eth_accounts"}))&&(await announced.request({method:"eth_accounts"})).length===0});step("finance-revoked");
-  result.passed=result.publicStatus===200&&result.providerDiscovered&&result.vaultCreatedThroughUi&&result.rejectionReturnedToFinance&&result.standardConnected&&result.refreshConnected&&result.financeLocalDisconnect&&result.refreshDisconnected&&result.permissionRevoked;
+  if(threeFaults){
+    const stored=await worker.evaluate(async()=>{const values=await chrome.storage.local.get("ynx.wallet.provider.vault.v1"),indexed=await chrome.storage.local.get("ynx.wallet.provider.account.v1");const hash=Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(JSON.stringify(values)))),b=>b.toString(16).padStart(2,"0")).join("");return{hash,account:indexed["ynx.wallet.provider.account.v1"]?.account}});
+    result.vaultPreservedAfterMigration=stored.hash===result.vaultHashBeforeMigration;result.providerIndexRecovered=stored.account===result.account;
+  }
+  result.passed=result.publicStatus===200&&result.providerDiscovered&&result.vaultCreatedThroughUi&&result.rejectionReturnedToFinance&&result.standardConnected&&result.refreshConnected&&result.financeLocalDisconnect&&result.refreshDisconnected&&result.permissionRevoked&&(!threeFaults||result.networkOnlyDisconnected&&result.networkMutationPassed&&result.vaultPreservedAfterMigration&&result.providerIndexRecovered);
 }catch(error){result.error={name:error?.name||"Error",code:error?.code||null,message:error?.message||String(error)};if(finance&&!finance.isClosed())result.financeAtFailure=await finance.evaluate(()=>({walletState:document.querySelector("#wallet-state")?.textContent,standard:window.YNXFinanceWallet?.getStandardWalletState?.(),approvalVisible:document.querySelector("#wallet-choice")?.classList.contains("hidden")})).catch(()=>null);}
 finally{result.hostLoadAverageEnd=loadavg();if(context)await context.close().catch(()=>{});await rm(temp,{recursive:true,force:true}).catch(()=>{});}
 await mkdir(dirname(evidencePath),{recursive:true});await writeFile(evidencePath,`${JSON.stringify(result,null,2)}\n`);
