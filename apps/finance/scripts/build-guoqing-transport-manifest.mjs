@@ -11,9 +11,9 @@ const web=resolve(dirname(fileURLToPath(import.meta.url)),'../web'),root=resolve
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const frozen=execFileSync('git',['show','1d70d3712:apps/finance/web/wallet-verifier-manifest.json'],{cwd:root});
 assert.equal(sha(frozen),'73dec50123b34da6be72d33afc851a470a1e5b9a175daff1a5b78189ab2c4cd5');
-const prior=JSON.parse(frozen),candidatePath='../evidence/evm-read-runtime-verifier-candidate-guoqing-recovery-d64f5206-20261001.json';
+const prior=JSON.parse(frozen),candidatePath='../evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-012e1ff68-20261001.json';
 const candidate=readFileSync(resolve(web,candidatePath));
-assert.equal(sha(candidate),'7ea28a5144d24fb8ba3a991fdb0693aa80f7386b32f69acc7df2783406467357');
+assert.equal(sha(candidate),'6eb01b4b7be4010546fcf13d9f1eff593477a5c4f5b4a338a70f7d913938db67');
 const {build,version}=createRequire(resolve(web,'package.json'))('esbuild');assert.equal(version,'0.25.9');
 const options={absWorkingDir:web,entryPoints:[resolve(web,'wallet-auth-entry.js')],bundle:true,minify:true,platform:'browser',target:'es2022',write:false};
 const [first,second]=await Promise.all([build(options),build(options)]),bundle=readFileSync(resolve(web,'wallet-auth.js'));
