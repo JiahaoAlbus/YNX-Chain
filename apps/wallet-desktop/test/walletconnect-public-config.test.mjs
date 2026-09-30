@@ -6,6 +6,13 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import afterPack from "../scripts/after-pack.mjs";
 import { buildPublicWalletConnectConfig, loadPublicWalletConnectConfig, parsePublicWalletConnectConfig } from "../src/walletconnect-public-config.mjs";
+import { createWalletConnectCore } from "../src/walletconnect-transport.mjs";
+
+test("the pinned real Node SDK constructs its default storage before any Relay connection", () => {
+  const core = createWalletConnectCore({projectId:buildPublicWalletConnectConfig({}).projectId,logger:"silent"});
+  assert.equal(typeof core.storage.getItem,"function");
+  assert.equal(core.relayer.connected,false);
+});
 const projectId = "a".repeat(32);
 test("final package loads public Pair config with an empty user environment", async () => {
   const shipped = buildPublicWalletConnectConfig({ YNX_WALLETCONNECT_PROJECT_ID: projectId, API_SECRET: "must-never-be-packaged" });

@@ -1,8 +1,14 @@
-import { Core } from "@walletconnect/core";
-import { WalletKit } from "@reown/walletkit";
+import { createRequire } from "node:module";
 import { getSdkError } from "@walletconnect/utils";
 import { parseProductSessionWalletURL } from "@ynx-chain/wallet-auth";
 import { PRODUCT_SESSION_REGISTRY } from "./wallet-auth-contract.mjs";
+
+// This desktop main process is Node. The pinned SDK's Node/CJS exports avoid
+// its ESM default-import mismatch with keyvaluestorage; mobile uses Metro.
+const require = createRequire(import.meta.url);
+const { Core } = require("@walletconnect/core");
+const { WalletKit } = require("@reown/walletkit");
+export function createWalletConnectCore(options) { return new Core(options); }
 
 export const WALLETCONNECT_CHAIN = "eip155:6423";
 export const WALLETCONNECT_METHODS = Object.freeze(["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2"]);
@@ -245,7 +251,7 @@ export class WalletConnectTransport {
 }
 
 async function defaultFactory({ projectId, metadata }) {
-  const core = new Core({ projectId });
+  const core = createWalletConnectCore({ projectId });
   return WalletKit.init({ core, metadata });
 }
 function transportError(code, message) { return Object.assign(new Error(message), { code }); }
