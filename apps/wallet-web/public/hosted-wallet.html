@@ -18,6 +18,10 @@
       <p class="lede" data-i18n="intro">Review each product connection, signature and transaction. Your recovery key stays in this Wallet origin.</p>
       <div class="origin"><span data-i18n="product">Requesting product</span><strong id="product-origin">Checking…</strong></div>
       <div id="account-card" class="origin" hidden><span data-i18n="ynxAccount">Your YNX account</span><strong id="account-ynx"></strong><details><summary data-i18n="evmAddress">EVM-compatible address</summary><code id="account-evm"></code></details></div>
+      <section id="account-lock-section" hidden>
+        <form id="account-unlock-form"><label><span data-i18n="localPassword">Local Wallet password</span><input id="account-unlock-password" type="password" autocomplete="off" required></label><button type="submit" data-i18n="managerUnlock">Unlock account</button></form>
+        <button id="account-lock" type="button" hidden data-i18n="managerLock">Lock account</button>
+      </section>
       <section id="account-switch-section" hidden>
         <label><span data-i18n="walletAccount">Wallet account</span> <select id="account-select"></select></label>
         <button id="switch-account" type="button" data-i18n="switchAccount">Switch account</button>
