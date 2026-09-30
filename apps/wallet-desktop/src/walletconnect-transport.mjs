@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 import { getSdkError } from "@walletconnect/utils";
 import { parseProductSessionWalletURL } from "@ynx-chain/wallet-auth";
 import { PRODUCT_SESSION_REGISTRY } from "./wallet-auth-contract.mjs";
+import { createPrivateWalletConnectStorage } from "./walletconnect-private-storage.mjs";
 
 // This desktop main process is Node. The pinned SDK's Node/CJS exports avoid
 // its ESM default-import mismatch with keyvaluestorage; mobile uses Metro.
@@ -16,9 +17,10 @@ export const WALLETCONNECT_EVENTS = Object.freeze(["accountsChanged", "chainChan
 const TOMBSTONE_STORAGE_KEY = "ynx-wallet:walletconnect-disconnected-topics:v1";
 
 export class WalletConnectTransport {
-  constructor({ projectId, metadata, configurationError = null, walletKitFactory = defaultFactory, clock = () => Date.now() }) {
+  constructor({ projectId, metadata, storagePath, configurationError = null, walletKitFactory = defaultFactory, clock = () => Date.now() }) {
     this.projectId = projectId?.trim() || null;
     this.metadata = metadata;
+    this.storagePath = storagePath;
     this.configurationError = configurationError;
     this.walletKitFactory = walletKitFactory;
     this.clock = clock;
@@ -43,7 +45,7 @@ export class WalletConnectTransport {
   async start(handlers = {}) {
     if (this.configurationError) throw transportError(this.configurationError, "WalletConnect public configuration is invalid");
     if (!this.projectId) throw transportError("WALLETCONNECT_PROJECT_ID_UNAVAILABLE", "WalletConnect project ID is not configured");
-    this.walletKit = await this.walletKitFactory({ projectId: this.projectId, metadata: this.metadata });
+    this.walletKit = await this.walletKitFactory({ projectId: this.projectId, metadata: this.metadata, storagePath: this.storagePath });
     try { await this.#restoreDisconnectedTopics(); }
     catch (error) { this.walletKit = null; throw error; }
     this.walletKit.on("session_proposal", proposal => {
@@ -250,8 +252,11 @@ export class WalletConnectTransport {
   #nowSeconds() { return Math.floor(this.clock() / 1000); }
 }
 
-async function defaultFactory({ projectId, metadata }) {
-  const core = createWalletConnectCore({ projectId });
+async function defaultFactory({ projectId, metadata, storagePath }) {
+  let storage;
+  try { storage = await createPrivateWalletConnectStorage(storagePath); }
+  catch { throw transportError("WALLETCONNECT_STORAGE_UNAVAILABLE", "The existing Pair storage could not be verified. Keep this Wallet profile and retry."); }
+  const core = createWalletConnectCore({ projectId, storage });
   return WalletKit.init({ core, metadata });
 }
 function transportError(code, message) { return Object.assign(new Error(message), { code }); }
