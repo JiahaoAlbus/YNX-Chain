@@ -16,7 +16,7 @@ function json(res,status,value){res.writeHead(status,{"content-type":"applicatio
 async function body(req){let text="";for await(const chunk of req){text+=chunk;if(text.length>1_000_000)throw new Error("request body too large")}return text?JSON.parse(text):{}}
 function admin(req){const expected=process.env.YNX_SEARCH_ADMIN_TOKEN;if(!expected||req.headers.authorization!==`Bearer ${expected}`)throw Object.assign(new Error("admin authorization required"),{status:401})}
 function origin(req){const value=process.env.YNX_PUBLIC_ORIGIN??`http://${req.headers.host??"localhost"}`;if(req.headers.origin&&req.headers.origin!==value)throw Object.assign(new Error("cross-origin mutation rejected"),{status:403});return value}
-const rates=new Map();function rate(req,bucket,limit){const now=Date.now(),key=`${bucket}:${req.socket.remoteAddress??"unknown"}`,prior=rates.get(key)??{start:now,count:0};if(now-prior.start>=60_000){prior.start=now;prior.count=0}prior.count++;rates.set(key,prior);if(prior.count>limit)throw Object.assign(new Error("rate limit exceeded; retry after one minute"),{status:429})}
+const rates=new Map();function rate(req,bucket,limit){const now=Date.now();if(rates.size>10_000)for(const [entryKey,entry] of rates)if(now-entry.start>=120_000)rates.delete(entryKey);const key=`${bucket}:${req.socket.remoteAddress??"unknown"}`,prior=rates.get(key)??{start:now,count:0};if(now-prior.start>=60_000){prior.start=now;prior.count=0}prior.count++;rates.set(key,prior);if(prior.count>limit)throw Object.assign(new Error("rate limit exceeded; retry after one minute"),{status:429})}
 async function createCase(kind,input){const item=await store.createCase(kind,input),trustReferral=createTrustReferral({product:"search",kind:kind==="removal"?"abuse-removal":kind,objectId:item.id,sourceUrl:item.sourceUrl,reason:item.reason,evidenceUrls:item.evidenceUrls});return{case:item,trustReferral,trustStatus:process.env.YNX_TRUST_API_URL?"referral-ready":"central-trust-unavailable"}}
 
 const server=createServer(async(req,res)=>{try{
@@ -40,6 +40,11 @@ const server=createServer(async(req,res)=>{try{
   const asset=(url.pathname==="/"||url.pathname==="/auth/callback")?"index.html":url.pathname.slice(1);if(["index.html","app.js","i18n.js","shared-i18n.js","styles.css","sw.js"].includes(asset)){const content=await readFile(asset==="shared-i18n.js"?sharedI18n:join(publicDir,asset));res.writeHead(200,{"content-type":asset.endsWith(".html")?"text/html; charset=utf-8":asset.endsWith(".css")?"text/css; charset=utf-8":"text/javascript; charset=utf-8","cache-control":asset==="sw.js"?"no-cache":"no-store","content-security-policy":"default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",...securityHeaders});return res.end(content)}
   json(res,404,{error:"not found"});
 }catch(error){if(!res.headersSent)json(res,error.status??400,{error:error.message,retryable:(error.status??400)>=500});else res.end()}});
+
+server.headersTimeout=10_000;
+server.requestTimeout=20_000;
+server.keepAliveTimeout=5_000;
+server.maxRequestsPerSocket=1_000;
 
 if(process.argv[1]===fileURLToPath(import.meta.url))server.listen(port,"127.0.0.1",()=>console.log(`YNX Search listening on http://127.0.0.1:${port}`));
 export{server,store};
