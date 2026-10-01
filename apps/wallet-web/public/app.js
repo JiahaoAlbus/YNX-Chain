@@ -33,7 +33,7 @@ const state = {
   locale: LOCALES.some(([locale]) => locale === requestedLocale) ? requestedLocale : loadedPreferences.record.locale,
   preferences: loadedPreferences.record,
   provider: null, wallet: null, account: null, chainId: null, rpcVerified: false, unsubscribeProvider: null,
-  providers:Object.freeze({ynx:false}),providerRevision:0,discoveryRevision:0,connectState:initialConnectState,errorCode:null,
+  selfAccount:null,providers:Object.freeze({ynx:false}),providerRevision:0,discoveryRevision:0,connectState:initialConnectState,errorCode:null,
   form:{recipient:"",amount:"",value:"0x0",data:"0x",message:"",useHex:false},review:null,epoch:0,busy:false,discoveryReady:false,
 };
 
@@ -59,13 +59,14 @@ function render() {
     <header><div class="brand"><img src="./ynx-logo.png" alt="YNX"><span>Wallet <span class="brand-subtitle">Companion</span></span></div>
       <div class="controls"><label><span class="sr-only">${text("language")}</span><select id="locale" aria-label="${text("language")}">${options()}</select></label></div></header>
     <section class="intro-section" aria-labelledby="title"><p class="network-label">YNX Testnet <span>6423</span></p><h1 id="title">${state.account?text("readyTitle"):text("title")}</h1><p class="intro">${text("intro")}</p></section>
+    ${isExtension?`<section class="card wallet-owned-account" aria-label="${text("manageAccount")}"><div class="section-heading"><h2>YNX Wallet</h2><button id="open-account-vault" type="button">${text(state.selfAccount?"manageAccount":"setupAccount")}</button></div>${state.selfAccount?`<p class="address">${escape(toYNXAddress(state.selfAccount))}</p><details><summary>${text("evmCompatibility")}</summary><p class="mono address">${escape(state.selfAccount)}</p></details>`:""}</section>`:""}
     <div class="workspace ${state.account?"is-connected":""}">
     <section class="card connection-card" aria-label="${text("walletConnection")}">
       <div class="section-heading"><h2>${text("walletConnection")}</h2><button id="wallet-connect-trigger" type="button" aria-controls="wallet-chooser connection-controls" aria-expanded="${state.connectState.chooserOpen}">${state.account?text("connected"):text("chooseWallet")}</button></div>
       <p id="detected" class="availability">${text("unavailable")}</p>
       ${state.account?`<dl class="connection-facts"><div><dt>${text("wallet")}</dt><dd>YNX Wallet</dd></div><div><dt>${text("network")}</dt><dd>${state.chainId==="0x1917"?"YNX Testnet":""} <bdi class="mono">${escape(state.chainId||"")}</bdi></dd></div><div><dt>${text("connected")}</dt><dd class="address">${escape(toYNXAddress(state.account))}</dd></div></dl><button id="copy-address" type="button">${text("copyAddress")}</button><details><summary>${text("evmCompatibility")}</summary><p class="address mono">${escape(state.account)}</p></details>`:""}
       <div id="wallet-chooser" class="wallets ${providerChooserVisible?"":"hidden"}" data-mode="${state.connectState.chooserMode}" data-pending-intent="${state.connectState.pendingIntent?"true":"false"}"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="primary" rel="noreferrer" aria-describedby="download-meta">${text("download")}</a></div>
-      ${isExtension&&!state.account?`<div class="actions"><button id="open-account-vault" type="button">${text("setupAccount")}</button></div>`:""}
+
       <div id="connection-controls" class="actions ${connectionDetails?"":"hidden"}" data-mode="${state.connectState.chooserMode}">${isExtension?`<button id="switch-account" type="button">${text("manageAccount")}</button>`:""}<button id="disconnect" type="button">${text("disconnect")}</button></div>
       <p id="download-meta" class="download-meta">${text("previewNotice")}</p>
       ${!isExtension?`<section class="web-wallet-entry" aria-labelledby="web-wallet-title"><h3 id="web-wallet-title">${text("webWalletTitle")}</h3><p>${text("webWalletGuide")}</p><a id="web-wallet-account-entry" href="https://wallet.ynxweb4.com/hosted/#account" rel="noreferrer">${text("manageAccount")}</a> · <a id="web-wallet-product-entry" href="https://finance.ynxweb4.com/" rel="noreferrer">${text("openFinance")}</a></section>`:""}
@@ -297,9 +298,9 @@ async function detect({preserveConnection=false}={}) {
   try { availability = isExtension ? await extensionWalletAvailability() : await discoverWallets(); }
   catch (error) { if(revision!==state.discoveryRevision||epoch!==state.epoch)return;if(!state.account)forgetSession();throw error; }
   if(revision!==state.discoveryRevision||epoch!==state.epoch)return;
-  state.providers = availability; state.discoveryReady=true; document.documentElement.dataset.walletDiscovery="ready"; presentAvailability(availability);
+  state.providers = availability;if(isExtension&&Object.hasOwn(availability,"configured")){state.selfAccount=availability.account;render();} state.discoveryReady=true; document.documentElement.dataset.walletDiscovery="ready"; presentAvailability(availability);
   if(state.account&&preserveConnection){applyActionGates();return}
-  const wallet = resolveRememberedWallet(availability);
+  const wallet = isExtension?null:resolveRememberedWallet(availability);
   if (wallet) {
     const provider = selectProvider(wallet);
     const restoreEpoch=state.epoch;

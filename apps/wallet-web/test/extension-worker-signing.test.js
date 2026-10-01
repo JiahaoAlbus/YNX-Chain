@@ -23,6 +23,14 @@ const source=await readFile(new URL("../extension/service-worker.js",import.meta
 for(const match of source.matchAll(/^import \{([^}]+)\} from "\.\/([^"]+)";$/gm)){const module=await import(new URL(`../src/${match[2]}`,import.meta.url));for(const name of match[1].split(","))bindings[name]=module[name]}
 const executable=source.replace(/^import .*;\n/gm,"");
 
+test("Wallet-owned discovery reads its account without any active DApp or injection, and rejects foreign senders",async t=>{
+  const f=await fixture(t);const before=JSON.stringify(f.localState);f.state.beforeTabQuery=()=>{throw Error("no active DApp")};f.state.beforeInjection=()=>{throw Error("no activeTab")};
+  const message={type:"YNX_WALLET_DISCOVER"},sender={id:"fixture",url:"chrome-extension://fixture/index.html"};
+  const result=await f.rawSend(message,sender);assert.equal(result.configured,true);assert.equal(result.account,ACCOUNT);assert.equal(f.state.opened.length,0);assert.equal(f.state.signCalls,0);assert.equal(f.state.probes,0);assert.equal(JSON.stringify(f.localState),before);
+  for(const invalid of [{id:"other",url:sender.url},{id:"fixture",url:ORIGIN+"/index.html"},{id:"fixture",url:"chrome-extension://fixture/vault.html"},{...sender,tab:{incognito:true}}])assert.ok((await f.rawSend(message,invalid)).error);
+  const request=await f.popupRequest("eth_requestAccounts",[]);assert.equal(request.ok,false);
+});
+
 test("orphaned index and permission never expose an account without its encrypted vault",async t=>{
   const indexed={version:1,source:"ynx-wallet-vault",account:ACCOUNT};
   const f=await fixture(t,{existingLocal:{[PROVIDER_ACCOUNT_KEY]:indexed,[PROVIDER_PERMISSIONS_KEY]:grantPermission({},ORIGIN,indexed)}});

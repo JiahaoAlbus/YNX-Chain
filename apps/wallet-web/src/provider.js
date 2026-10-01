@@ -157,6 +157,10 @@ export async function extensionWalletAvailability(runtime = globalThis.browser?.
   const response = await runtime.sendMessage({type: "YNX_WALLET_DISCOVER"});
   if (response?.error) fail(response.error.code || "DISCOVERY_UNAVAILABLE", response.error.message || "Wallet discovery failed closed.");
   if (typeof response?.ynx !== "boolean") fail("INVALID_DISCOVERY_RESPONSE", "Wallet discovery returned an invalid response.");
+  if(Object.hasOwn(response,"configured")){
+    if(typeof response.configured!=="boolean"||response.configured&&!/^0x[0-9a-f]{40}$/.test(response.account)||!response.configured&&response.account!==null)fail("INVALID_DISCOVERY_RESPONSE","Wallet account discovery failed closed.");
+    return Object.freeze({ynx:response.ynx,configured:response.configured,account:response.account});
+  }
   return Object.freeze({ynx: response.ynx});
 }
 

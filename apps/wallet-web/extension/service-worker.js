@@ -361,7 +361,12 @@ extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
   if(message?.type==="YNX_PROVIDER_APPROVAL_DECIDE_V1"){
     Promise.resolve().then(()=>requireReviewPage(sender,"approval.html",message.requestId)).then(async()=>{const waiter=approvalWaiters.get(message.requestId);if(!waiter||waiter.decided)throw Object.assign(new Error("Approval request no longer has an active DApp caller."),{code:"APPROVAL_REQUEST_ORPHANED"});const decision=parseApprovalDecision({requestId:message.requestId,decision:message.decision},waiter.pending);waiter.decided=true;try{if(decision.approved)await authorizationGuard.assert(waiter.lease,{permissionRequired:false});waiter.resolve(decision.approved)}catch(error){waiter.reject(error);throw error}sendResponse({ok:true})}).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true
   }
-  if(message?.type==="YNX_WALLET_DISCOVER"){requireMigrationReady().then(()=>executeActive("ynx",{method:"ynx_walletDetected"})).then(()=>sendResponse({ynx:true,metamask:false})).catch((error)=>sendResponse({ynx:true,metamask:false,error:publicBridgeError(error)}));return true}
+  if(message?.type==="YNX_WALLET_DISCOVER"){
+    // Wallet-owned account discovery is not an active DApp authorization.
+    // Exact extension sender identity stays mandatory; no injection, signing
+    // or permission mutation is allowed merely by opening the Wallet popup.
+    Promise.resolve().then(()=>requireExtensionPage(sender,"index.html")).then(requireMigrationReady).then(vaultStatus).then(status=>sendResponse({ynx:true,metamask:false,configured:status.configured,account:status.configured?status.account:null})).catch(error=>sendResponse({ynx:true,metamask:false,error:publicBridgeError(error)}));return true;
+  }
   if(message?.type==="YNX_WALLET_REQUEST"){
     if(!REQUEST_METHODS.includes(message.input?.method)){sendResponse({ok:false,error:{code:4200,message:"Unsupported wallet method."}});return false}
     activeProviderRequest(message.preference,message.input).then((result)=>sendResponse({ok:true,result})).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
