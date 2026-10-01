@@ -11,15 +11,15 @@
     <main>
       <header><img src="ynx-logo.png" alt="YNX"><span>YNX WALLET</span></header>
       <p class="eyebrow">CONNECTION REQUEST</p>
-      <h1>Connect this site?</h1>
-      <p class="intro">Only the account shown below will be shared. The site will not receive your private key or recovery material.</p>
+      <h1 data-extension-i18n="connectionTitle">Review connection</h1>
+      <p class="intro" data-extension-i18n="connectionInfo">Only your public account is shared. Signatures and private access require separate approval.</p>
       <dl>
-        <div><dt>Site</dt><dd id="origin">Unavailable</dd></div>
-        <div><dt>Browser context</dt><dd id="browser-context">Unavailable</dd></div><div><dt>Account</dt><dd id="account">Unavailable</dd></div>
-        <div><dt>Network</dt><dd>YNX Testnet · 0x1917</dd></div>
+        <div><dt data-extension-i18n="site">Site</dt><dd id="origin">Unavailable</dd></div>
+        <div><details><summary data-extension-i18n="details">Connection details</summary><dd id="browser-context">Unavailable</dd></details></div><div><dt data-hosted-i18n="ynxAccount">Account</dt><dd id="account">Unavailable</dd></div>
+        <div><dt data-extension-i18n="network">Network</dt><dd>YNX Testnet · 6423</dd></div>
       </dl>
-      <p id="status" role="status" aria-live="polite">Loading request…</p>
-      <div class="actions"><button id="reject" type="button" disabled>Reject</button><button id="approve" class="primary" type="button" disabled>Connect</button></div>
+      <p id="status" role="status" aria-live="polite"></p><details id="error-details" hidden><summary data-extension-i18n="details">Details</summary><code id="error-code"></code></details>
+      <div class="actions"><button id="reject" type="button" disabled data-hosted-i18n="reject">Reject</button><button id="approve" class="primary" type="button" disabled data-hosted-i18n="approve">Approve</button></div>
     </main>
     <script src="approval.js" type="module"></script>
   </body>
