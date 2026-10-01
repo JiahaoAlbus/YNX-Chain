@@ -49,7 +49,7 @@ async function app(overrides = {}) {
     getElementById: id => element(`#${id}`), createElement: () => new Element(),
   };
   const dependencies = {
-    document, localStorage: { getItem: () => null }, location: { origin: "https://creator.ynxweb4.com", assign() {} },
+    AbortController, document, localStorage: { getItem: () => null }, location: { origin: "https://creator.ynxweb4.com", assign() {} },
     crypto: { randomUUID, subtle: webcrypto.subtle }, TextDecoder, Uint8Array, FormData,
     atRegisteredOrigin: () => true, prepareProductSignIn: async () => ({ url: "test:creator-signin" }),
     restoreProductSession: async () => ({ status: "disconnected", message: "Sign in" }),
@@ -297,4 +297,12 @@ test('Switch Creator account finishes original revocation before offering a new 
  const c=await app({disconnectProductSession:async()=>{revokes++;return {status:'retry-required',revocationPending:true,message:'Retry sign out'};},prepareProductSignIn:async()=>{prepares++;return {url:'new'};}});
  await turn();c.renderProductState(connected('old-owner'));
  await c.click('product-signin');assert.equal(revokes,1);assert.equal(prepares,0);assert.equal(c.element('#product-wallet-chooser').open,false);assert.equal(c.element('#product-signin').disabled,true);assert.equal(c.readState().creatorAccount,null);
+});
+
+test('ordinary Cancel during Creator callback verification revokes the late stored grant before reconnect',async()=>{
+ const completing=deferred(),entered=deferred();let stored=null,revokes=0;
+ const c=await app({discoverWalletProviders:async()=>({candidates:[{kind:'ynx-wallet',provider:{request:async()=>({version:2,returnUrl:'fixture'})}}]}),finishProductReturn:async()=>{entered.resolve();await completing.promise;stored='late-owner';return connected(stored);},disconnectProductSession:async()=>{revokes++;await completing.promise;await turn();stored=null;return {status:'disconnected'};}});
+ await turn();await c.click('product-signin');const selecting=c.element('#product-wallet-choices').children[0].onclick();await entered.promise;
+ await c.run('product-wallet-cancel');await turn();assert.equal(revokes,1);assert.equal(c.element('#product-signin').disabled,true);assert.equal(c.readState().creatorAccount,null);
+ completing.resolve();await selecting;assert.equal(stored,null);assert.equal(c.readState().creatorAccount,null);assert.equal(c.element('#product-signin').disabled,false);assert.equal(c.element('#product-wallet-chooser').open,false);
 });

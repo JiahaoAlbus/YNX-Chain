@@ -73,10 +73,20 @@ export const videoProductSession = createVideoProductSession();
 // Cancellation fences the result; a previous approval must settle before a new
 // intent can replace the SDK's protected pending request.
 let providerApprovalFlight = false;
-export async function dispatchPreparedProductRequest(provider, prepare, finish, isCurrent = () => true) {
+export async function dispatchPreparedProductRequest(provider, prepare, finish, isCurrent = () => true, {signal, revoke, onRevocation = () => {}} = {}) {
   if (!provider || typeof provider.request !== 'function') throw new Error('Select an installed YNX Wallet to continue.');
   if (providerApprovalFlight) throw Object.assign(new Error('The previous Wallet approval is still closing. Close it and retry.'), {code: 'PRODUCT_APPROVAL_DRAINING'});
   const assertCurrent = () => {if (!isCurrent()) throw Object.assign(new Error('Wallet selection was cancelled or changed.'), {code: 'PRODUCT_APPROVAL_CANCELLED'});};
+  let finishing = false, revocation;
+  const cancelCompletion = () => {
+    if (!finishing || revocation) return;
+    onRevocation({status: 'retry-required', revocationPending: true, message: 'Cancelling sign-in securely. Confirmation is pending.'});
+    revocation = Promise.resolve().then(() => {
+      if (typeof revoke !== 'function') throw new Error('Secure cancellation requires the original Product Session disconnect.');
+      return revoke();
+    }).then(state => ({...state, revocationPending: !['disconnected', 'expired'].includes(state.status)}), () => ({status: 'retry-required', revocationPending: true, message: 'Sign-out could not be confirmed. Retry sign out when connected.'}));
+  };
+  signal?.addEventListener('abort', cancelCompletion);
   providerApprovalFlight = true;
   try {
     assertCurrent();
@@ -86,8 +96,14 @@ export async function dispatchPreparedProductRequest(provider, prepare, finish, 
     assertCurrent();
     if (!result || result.version !== 2 || typeof result.returnUrl !== 'string' || result.returnUrl.length > 16384 || Object.keys(result).sort().join(',') !== 'returnUrl,version')
       throw Object.assign(new Error('Wallet returned an invalid sign-in response. Please retry.'), {code: 'PRODUCT_RETURN_INVALID'});
+    finishing = true;
     const state = await finish(result.returnUrl);
+    if (!isCurrent() || signal?.aborted) cancelCompletion();
+    if (revocation) {
+      const revoked = await revocation;
+      throw Object.assign(new Error('Wallet selection was cancelled; sign-out confirmation was requested.'), {code: 'PRODUCT_APPROVAL_CANCELLED', productSessionState: revoked});
+    }
     assertCurrent();
     return state;
-  } finally {providerApprovalFlight = false;}
+  } finally {signal?.removeEventListener('abort', cancelCompletion); if (revocation) onRevocation(await revocation); providerApprovalFlight = false;}
 }

@@ -261,12 +261,14 @@ async function signOutVideoAccount() {
 }
 
 let videoSignInIntent = 0;
+let videoSignInAbort;
 const productChooser = $("#product-wallet-chooser");
-function cancelVideoSignIn() {videoSignInIntent++; productChooser.close(); $("#product-connect").disabled = productSignOutPending;}
+function cancelVideoSignIn() {videoSignInIntent++; videoSignInAbort?.abort(); productChooser.close(); $("#product-connect").disabled = productSignOutPending;}
 $("#product-wallet-cancel").onclick = cancelVideoSignIn;
 productChooser.addEventListener("cancel", cancelVideoSignIn);
 $("#product-wallet-back").onclick = prepareVideoSignIn;
 async function prepareVideoSignIn() {
+ videoSignInAbort?.abort();
  if (productSignOutPending) return;
  if (productConnected()) {await signOutVideoAccount(); if (productSignOutPending) return;}
  productRevision++;
@@ -277,23 +279,24 @@ async function prepareVideoSignIn() {
  try {
   const candidates = (await discoverWalletCandidates(window)).filter(item => item.isYNXWallet);
   if (intent !== videoSignInIntent) return;
-  $("#product-wallet-status").textContent = candidates.length ? "Choose your installed Wallet." : "No installed YNX Wallet detected. You can open native Wallet below. Web Wallet and mobile pairing are awaiting this product's registration.";
+  $("#product-wallet-status").textContent = candidates.length ? "Choose your installed Wallet." : "No installed YNX Wallet detected. You can open native Wallet below. Install the YNX browser extension or use the native Wallet link.";
   const choose = (label, action) => {const button = document.createElement("button");button.type = "button";button.textContent = label;button.onclick = action;choices.append(button);};
   for (const candidate of candidates) choose(candidate.label || candidate.info?.name || candidate.name || "YNX Wallet", async () => {
    if (intent !== videoSignInIntent) return;
    choices.hidden = true; $("#product-wallet-back").hidden = false;
    $("#product-wallet-status").textContent = "Review the Video request in YNX Wallet. You may approve or reject it.";
    const provider = candidate.provider;
+   const abort = new AbortController(); videoSignInAbort = abort;
    const invalidate = () => {if (intent === videoSignInIntent) cancelVideoSignIn();};
    for (const event of ["accountsChanged", "chainChanged", "disconnect"]) provider.on?.(event, invalidate);
    try {
-    const state = await dispatchPreparedProductRequest(provider, () => videoProductSession.prepare(), url => videoProductSession.finishReturn(url), () => intent === videoSignInIntent && !productSignOutPending);
+    const state = await dispatchPreparedProductRequest(provider, () => videoProductSession.prepare(), url => videoProductSession.finishReturn(url), () => intent === videoSignInIntent && !productSignOutPending, {signal: abort.signal, revoke: () => videoProductSession.disconnect(), onRevocation: renderProductState});
     if (intent !== videoSignInIntent) return;
     renderProductState(state);
     if (state.status === "connected") {productChooser.close(); await refreshLibraryView();}
     else $("#product-wallet-status").textContent = state.message || "Approval was not completed. Choose another wallet or retry.";
    } catch (error) {if (intent === videoSignInIntent && error.productSessionState?.revocationPending) {cancelVideoSignIn();renderProductState(error.productSessionState);} else if (intent === videoSignInIntent) $("#product-wallet-status").textContent = error.code === 4001 ? "You rejected the request. Choose another wallet or retry." : error.message;}
-   finally {for (const event of ["accountsChanged", "chainChanged", "disconnect"]) provider.removeListener?.(event, invalidate);}
+   finally {if (videoSignInAbort === abort) videoSignInAbort = null; for (const event of ["accountsChanged", "chainChanged", "disconnect"]) provider.removeListener?.(event, invalidate);}
   });
   choose("Open native YNX Wallet", () => {if (intent !== videoSignInIntent) return; cancelVideoSignIn(); void prepareNativeVideoSignIn();});
  } catch (error) {if (intent === videoSignInIntent) $("#product-wallet-status").textContent = error.message;}

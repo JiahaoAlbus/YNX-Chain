@@ -60,3 +60,20 @@ test('Video choose-another and account-change discard a late approval without pr
  assert.equal(returns,0);assert.deepEqual(c.calls,[]);assert.equal(c.$('#product-wallet-chooser').open,false);
  await c.prepareVideoSignIn();assert.equal(c.$('#product-wallet-choices').hidden,false);assert.equal(listeners.size,0);
 });
+
+for(const [name,dispatch] of [['Video',video],['Creator',creator]]){
+ test(name+' cancellation during SDK completion revokes the persisted late session before flight release',async()=>{
+  const completing=deferred(),abort=new AbortController();let persisted=null,revokeStarted=false;const states=[];
+  const finish=async()=>{await completing.promise;persisted={account:'old-owner'};return {status:'connected',session:persisted};};
+  const revoke=async()=>{revokeStarted=true;await completing.promise;await new Promise(r=>setImmediate(r));persisted=null;return {status:'disconnected'};};
+  const operation=dispatch({request:async()=>({version:2,returnUrl:'fixture'})},async()=>({url:'fixture'}),finish,()=>!abort.signal.aborted,{signal:abort.signal,revoke,onRevocation:state=>states.push(state)});
+  await new Promise(r=>setImmediate(r));abort.abort();await new Promise(r=>setImmediate(r));assert.equal(revokeStarted,true);
+  await assert.rejects(dispatch({request:async()=>{}},async()=>({url:'new'}),async()=>{}),{code:'PRODUCT_APPROVAL_DRAINING'});
+  completing.resolve();await assert.rejects(operation,{code:'PRODUCT_APPROVAL_CANCELLED'});assert.equal(persisted,null);assert.equal(states.at(-1).status,'disconnected');
+ });
+ test(name+' failed cancellation keeps revocation pending, never reports a connected return',async()=>{
+  const completing=deferred(),abort=new AbortController();const states=[];
+  const operation=dispatch({request:async()=>({version:2,returnUrl:'fixture'})},async()=>({url:'fixture'}),async()=>{await completing.promise;return {status:'network-unavailable'};},()=>!abort.signal.aborted,{signal:abort.signal,revoke:async()=>({status:'retry-required',message:'Authority unavailable'}),onRevocation:state=>states.push(state)});
+  await new Promise(r=>setImmediate(r));abort.abort();completing.resolve();await assert.rejects(operation,error=>error.productSessionState.revocationPending===true);assert.equal(states.at(-1).revocationPending,true);assert.ok(states.every(state=>state.status!=='connected'));
+ });
+}

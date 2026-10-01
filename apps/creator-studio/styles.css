@@ -114,3 +114,20 @@ header .wallet-summary{display:none}
 @media(max-width:1000px){body{grid-template-columns:180px minmax(0,1fr)}aside{padding-inline:8px}header{padding:16px 22px}.locale-controls{flex-wrap:wrap}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metrics article:nth-child(2){border-inline-end:0}.row{grid-template-columns:minmax(0,1fr) auto}.row-actions{grid-column:1/-1}}
 @media(max-width:640px){html{min-width:320px}body{display:flex;flex-direction:column}aside{padding:14px 16px;border:0;border-bottom:1px solid var(--line)}.brand{padding:0}.boundary{display:none}nav{display:flex;overflow-x:auto;margin-top:14px;padding-bottom:4px;gap:4px}nav button{white-space:nowrap;flex:0 0 auto;font-size:.82rem;padding:8px}header{padding:18px 16px;gap:14px}header>div:first-child{flex-basis:100%}.locale-controls{flex:1}.locale-controls label{flex:1}.locale-controls select{min-width:80px}.wallet-status{flex-basis:100%}main{padding:24px 16px 48px}.product-actions{align-items:stretch}.product-actions button,.product-actions .primary-link{flex:1;text-align:center}.metrics article{padding:16px}.metrics b{font-size:1.25rem}.callout,form,.table{padding:16px}.bar{align-items:flex-start}.row{grid-template-columns:minmax(0,1fr);gap:9px}.row-actions{grid-column:auto}.wallet-details dl div{grid-template-columns:minmax(0,1fr)}.wallet-choice{width:100%}pre{font-size:.78rem}}
 #signin{background:transparent;color:var(--blue);border-color:var(--line)}
+
+/* Product approval stays separate from the EVM tools and the media player. */
+#product-wallet-chooser{width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:24px;border:1px solid #dbe3f3;border-radius:20px;background:#fff;color:#17213a;box-shadow:0 24px 80px #002fa729;overflow:auto;font:inherit}
+#product-wallet-chooser::backdrop{background:#0d174b99}
+#product-wallet-chooser h3{margin:0 0 12px;font-size:1.25rem;line-height:1.35}
+#product-wallet-chooser p{font-size:.95rem;line-height:1.6;overflow-wrap:anywhere}
+#product-wallet-choices{display:grid;gap:12px;margin:20px 0}
+#product-wallet-chooser button{min-height:44px;width:100%;padding:12px 16px;border:1px solid #002fa7;border-radius:12px;background:#002fa7;color:#fff;font:inherit;font-weight:600;line-height:1.4;cursor:pointer;white-space:normal;overflow-wrap:anywhere}
+#product-wallet-chooser button:hover:not(:disabled){background:#00268c}
+#product-wallet-chooser button:focus-visible{outline:3px solid #6d9aff;outline-offset:3px}
+#product-wallet-chooser button:disabled{opacity:.5;cursor:wait}
+#product-wallet-status{padding:12px 0;margin:0;color:#43516b;min-height:44px}
+#product-wallet-chooser .product-wallet-actions{display:flex;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid #e3e9f4}
+#product-wallet-chooser .product-wallet-actions button{background:#fff;color:#002fa7;border-color:#b7c8eb}
+#product-wallet-chooser .product-wallet-actions button:hover:not(:disabled){background:#eef3ff}
+#product-wallet-chooser [hidden]{display:none!important}
+@media(max-width:400px){#product-wallet-chooser{padding:20px;width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}#product-wallet-chooser .product-wallet-actions{flex-direction:column}}

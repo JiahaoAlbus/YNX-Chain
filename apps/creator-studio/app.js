@@ -293,12 +293,14 @@ function renderProductState(state){
   if(connected)productOpen.hidden=true;
 }
 let creatorSignInIntent = 0;
+let creatorSignInAbort;
 const productChooser = $("#product-wallet-chooser");
-function cancelCreatorSignIn() {creatorSignInIntent++; productChooser.close(); $("#product-signin").disabled = creatorSignOutPending;}
+function cancelCreatorSignIn() {creatorSignInIntent++; creatorSignInAbort?.abort(); productChooser.close(); $("#product-signin").disabled = creatorSignOutPending;}
 $("#product-wallet-cancel").onclick = cancelCreatorSignIn;
 productChooser.addEventListener("cancel", cancelCreatorSignIn);
 $("#product-wallet-back").onclick = openCreatorSignIn;
 async function openCreatorSignIn() {
+ creatorSignInAbort?.abort();
  if (creatorSignOutPending) return;
  if (creatorAccount) {await signOutCreatorAccount(); if (creatorSignOutPending) return;}
  creatorSessionRevision++;
@@ -309,23 +311,24 @@ async function openCreatorSignIn() {
  try {
   const candidates = (await discoverWalletProviders(globalThis,1500)).candidates.filter(item => item.kind === "ynx-wallet");
   if (intent !== creatorSignInIntent) return;
-  $("#product-wallet-status").textContent = candidates.length ? "Choose your installed Wallet." : "No installed YNX Wallet detected. You can open native Wallet below. Web Wallet and mobile pairing are awaiting this product's registration.";
+  $("#product-wallet-status").textContent = candidates.length ? "Choose your installed Wallet." : "No installed YNX Wallet detected. You can open native Wallet below. Install the YNX browser extension or use the native Wallet link.";
   const choose = (label, action) => {const button = document.createElement("button");button.type = "button";button.textContent = label;button.onclick = action;choices.append(button);};
   for (const candidate of candidates) choose(candidate.label || candidate.info?.name || candidate.name || "YNX Wallet", async () => {
    if (intent !== creatorSignInIntent) return;
    choices.hidden = true; $("#product-wallet-back").hidden = false;
    $("#product-wallet-status").textContent = "Review the Creator request in YNX Wallet. You may approve or reject it.";
    const provider = candidate.provider;
+   const abort = new AbortController(); creatorSignInAbort = abort;
    const invalidate = () => {if (intent === creatorSignInIntent) cancelCreatorSignIn();};
    for (const event of ["accountsChanged", "chainChanged", "disconnect"]) provider.on?.(event, invalidate);
    try {
-    const state = await dispatchPreparedProductRequest(provider, prepareProductSignIn, finishProductReturn, () => intent === creatorSignInIntent && !creatorSignOutPending);
+    const state = await dispatchPreparedProductRequest(provider, prepareProductSignIn, finishProductReturn, () => intent === creatorSignInIntent && !creatorSignOutPending, {signal: abort.signal, revoke: disconnectProductSession, onRevocation: renderProductState});
     if (intent !== creatorSignInIntent) return;
     renderProductState(state);
     if (state.status === "connected") {productChooser.close(); await refresh(); await providerStatus();}
     else $("#product-wallet-status").textContent = state.message || "Approval was not completed. Choose another wallet or retry.";
    } catch (error) {if (intent === creatorSignInIntent && error.productSessionState?.revocationPending) {cancelCreatorSignIn();renderProductState(error.productSessionState);} else if (intent === creatorSignInIntent) $("#product-wallet-status").textContent = error.code === 4001 ? "You rejected the request. Choose another wallet or retry." : error.message;}
-   finally {for (const event of ["accountsChanged", "chainChanged", "disconnect"]) provider.removeListener?.(event, invalidate);}
+   finally {if (creatorSignInAbort === abort) creatorSignInAbort = null; for (const event of ["accountsChanged", "chainChanged", "disconnect"]) provider.removeListener?.(event, invalidate);}
   });
   choose("Open native YNX Wallet", () => {if (intent !== creatorSignInIntent) return; cancelCreatorSignIn(); void prepareNativeCreatorSignIn();});
  } catch (error) {if (intent === creatorSignInIntent) $("#product-wallet-status").textContent = error.message;}
