@@ -1,3 +1,8 @@
+import {execFileSync} from 'node:child_process';
+import {mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {fillNativeChooser,nativeChooserScript} from './linux-password-installed-gate.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {accountCreated,continuePersistedAccount,sanitizedFailureSnapshot,finishNativeSave,backupOutcome,backupFileCandidates,observeNativeSave} from './linux-password-installed-gate.mjs';
@@ -68,4 +73,58 @@ test('native selection and focus observations cannot export paths or arbitrary I
  const phases=sanitizeBackupPhases([{phase:'dialog-returned',revision:3,locked:false,focused:false,ownedDialogPhase:'open',selectedPathPresent:true,selectedPathMatchesQA:false,selectedDirectoryMatchesQA:true,selectedNameMatchesQA:false,path:'/PRIVATE/PATH',password:'PRIVATE_PASSWORD'}, {phase:'unknown',revision:4}]);
  assert.equal(phases.length,1);assert.equal(phases[0].selectedDirectoryMatchesQA,true);assert.equal(phases[0].selectedNameMatchesQA,false);assert.equal(phases[0].focused,false);assert.equal(phases[0].revision,3);assert.equal(JSON.stringify(phases).includes('PRIVATE'),false);
  assert.equal(sanitizeBackupPhases(Array.from({length:20},()=>({phase:'started',revision:-1}))).length,12);assert.equal(sanitizeBackupPhases([{phase:'failed',revision:'SECRET'}])[0].revision,null);
+});
+
+for(const failed of [null,'LOCATION','NAME'])test('native chooser semantic input verifies each real field before Save '+failed,async()=>{
+ const calls=[];let observations=0;const diagnostics={};
+ const action=label=>async()=>calls.push(label);
+ const operation=fillNativeChooser({diagnostics,directory:'/qa',name:'backup.json',observe:async()=>{observations++;return{fields:observations===1?[]:[{field:observations===2?'LOCATION':'NAME',matchesExpected:failed!==(observations===2?'LOCATION':'NAME'),characters:10,difference:'MATCH'}]}},openLocation:action('open-location'),focusLocation:action('focus-location'),focusName:action('focus-name'),type:async value=>calls.push(value==='/qa'?'type-directory':'type-name'),navigate:action('navigate'),sleep:action('settle')});
+ if(failed)await assert.rejects(operation,new RegExp('NATIVE_'+failed+'_NOT_MATCHED'));else await operation;
+ assert.equal(calls.includes('navigate'),failed!=='LOCATION');assert.equal(calls.includes('type-name'),failed!=='LOCATION');assert.equal(diagnostics.initial.fields.length,0);
+ assert.equal(JSON.stringify(diagnostics).includes('/qa'),false);assert.equal(JSON.stringify(diagnostics).includes('backup.json'),false);
+});
+
+test('executed native accessibility adapter exports only matched semantic fields, not unrelated Wallet or chooser text',async t=>{
+ const directory=await mkdtemp(path.join(tmpdir(),'ynx-native-chooser-adapter-'));t.after(()=>rm(directory,{recursive:true,force:true}));
+ const stub=String.raw`
+STATE_SHOWING=1
+STATE_EDITABLE=2
+STATE_FOCUSED=3
+RELATION_LABELLED_BY=4
+def setTimeout(*args): pass
+class State:
+ def __init__(self,editable): self.editable=editable
+ def contains(self,flag): return flag==STATE_SHOWING or (flag==STATE_EDITABLE and self.editable)
+class Text:
+ characterCount=22
+ def getText(self,*args): return 'PRIVATE_CHOOSER_TEXT'
+class Control:
+ nActions=1
+ def getName(self,index): return 'click'
+ def doAction(self,index): return True
+ def grabFocus(self): return True
+class Node:
+ def __init__(self,name,role,children=[],editable=False): self.name=name;self.role=role;self.children=children;self.editable=editable;self.childCount=len(children)
+ def __getitem__(self,index): return self.children[index]
+ def getRoleName(self): return self.role
+ def getState(self): return State(self.editable)
+ def getRelationSet(self): return []
+ def queryText(self):
+  if self.name!='Name': raise Exception('MUST_NOT_READ_UNRELATED_TEXT')
+  return Text()
+ def queryAction(self): return Control()
+ def queryComponent(self): return Control()
+wallet=Node('YNX Wallet','frame',[Node('PRIVATE_PASSWORD','password text',editable=True)])
+dialog=Node('Save encrypted Wallet backup','dialog',[Node('Name','text',editable=True),Node('Save','push button'),Node('Other','text',editable=True)])
+root=Node('desktop','desktop',[Node('YNX Wallet','application',[wallet,dialog])])
+class Registry:
+ @staticmethod
+ def getDesktop(index): return root
+`;
+ await writeFile(path.join(directory,'pyatspi.py'),stub);
+ const value=JSON.parse(execFileSync('/usr/bin/python3',['-c',nativeChooserScript,'observe','/qa/expected.json'],{encoding:'utf8',env:{...process.env,PYTHONPATH:directory},timeout:5000}));
+ assert.equal(value.ok,true);assert.equal(value.fields.length,1);assert.equal(value.fields[0].field,'NAME');assert.equal(value.fields[0].matchesExpected,false);assert.equal(value.fields[0].difference,'DIFFERENT');assert.equal(value.saveAvailable,true);assert.equal(JSON.stringify(value).includes('PRIVATE'),false);
+ const focused=JSON.parse(execFileSync('/usr/bin/python3',['-c',nativeChooserScript,'focus-name','/qa/expected.json'],{encoding:'utf8',env:{...process.env,PYTHONPATH:directory},timeout:5000}));assert.equal(focused.ok,true);
+ await writeFile(path.join(directory,'pyatspi.py'),stub+'\nroot.children[0].children.append(dialog)\nroot.children[0].childCount=3\n');
+ try{execFileSync('/usr/bin/python3',['-c',nativeChooserScript,'save','/qa/expected.json'],{encoding:'utf8',env:{...process.env,PYTHONPATH:directory},timeout:5000});assert.fail('ambiguous dialog must reject')}catch(error){assert.equal(error.status,2);const result=JSON.parse(error.stdout);assert.equal(result.ok,false);assert.equal(result.code,'NATIVE_CHOOSER_DIALOG_NOT_UNIQUE');assert.equal(error.stdout.includes('PRIVATE'),false)}
 });

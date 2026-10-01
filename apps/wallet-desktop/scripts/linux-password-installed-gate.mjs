@@ -48,6 +48,76 @@ export async function observeNativeSave({snapshot,candidates,stat=fs.lstat,now=(
 export function sanitizedFailureSnapshot(snapshot,stage){
  const ui=snapshot?.ui??{};return{stage:String(stage).replace(/[^A-Z0-9_]/g,'').slice(0,80),accountAvailable:Boolean(snapshot?.account),initialized:snapshot?.account?.initialized===true,passwordConfigured:snapshot?.account?.passwordConfigured===true,accountPresent:typeof snapshot?.account?.account==='string'&&snapshot.account.account.length>0,passwordEncryptedCustody:snapshot?.account?.custody==='password-encrypted-local',locked:snapshot?.locked===true,errorCode:/^[A-Z][A-Z0-9_]{0,79}$/.test(snapshot?.error??'')?snapshot.error:null,passwordSheetOpen:ui.passwordSheetOpen===true,passwordModeUnlock:ui.passwordModeUnlock===true,passwordSubmitEnabled:ui.passwordSubmitEnabled===true,unlockEnabled:ui.unlockEnabled===true,importEnabled:ui.importEnabled===true};
 }
+// Only inspect the dedicated native chooser. Never print its text or the
+// Wallet accessibility tree; input still goes through ordinary keyboard events.
+export const nativeChooserScript=String.raw`
+import sys,json,os,time
+import pyatspi
+action,destination=sys.argv[1:3]
+directory,name=os.path.dirname(destination),os.path.basename(destination)
+def walk(root,limit=600):
+ queue=[root];count=0
+ while queue and count<limit:
+  item=queue.pop(0);count+=1
+  yield item
+  try: queue.extend(item[i] for i in range(min(item.childCount,100)))
+  except Exception: pass
+def normalize(text): return (text or '').replace('_','').strip().rstrip(':').lower()
+def semantic(item):
+ labels=[item.name]
+ for relation in item.getRelationSet():
+  if relation.getRelationType()==pyatspi.RELATION_LABELLED_BY:
+   labels.extend(relation.getTarget(i).name for i in range(relation.getNTargets()))
+ labels=[normalize(v) for v in labels]
+ return 'NAME' if 'name' in labels else 'LOCATION' if 'location' in labels else None
+try:
+ pyatspi.setTimeout(500,1000)
+ desktop=pyatspi.Registry.getDesktop(0)
+ windows=[application[i] for application in (desktop[j] for j in range(min(desktop.childCount,20))) for i in range(min(application.childCount,100))]
+ dialogs=[item for item in windows if item.name=='Save encrypted Wallet backup' and item.getRoleName() in ('dialog','file chooser','frame') and item.getState().contains(pyatspi.STATE_SHOWING)]
+ if len(dialogs)!=1: raise RuntimeError('DIALOG_NOT_UNIQUE')
+ fields={};save=[]
+ for item in walk(dialogs[0]):
+  state=item.getState()
+  if not state.contains(pyatspi.STATE_SHOWING): continue
+  if item.getRoleName()=='push button' and normalize(item.name)=='save': save.append(item)
+  if state.contains(pyatspi.STATE_EDITABLE):
+   kind=semantic(item)
+   if kind: fields.setdefault(kind,[]).append(item)
+ observations=[]
+ for kind,items in fields.items():
+  if len(items)!=1: raise RuntimeError('FIELD_NOT_UNIQUE')
+  item=items[0];text=item.queryText();value=text.getText(0,text.characterCount)
+  expected=name if kind=='NAME' else directory
+  difference='MATCH' if value==expected else 'EXTRA_JSON_EXTENSION' if value==expected+'.json' else 'EXPECTED_WITH_PREFIX_OR_SUFFIX' if expected in value else 'DIFFERENT'
+  observations.append({'field':kind,'characters':len(value),'expectedCharacters':len(expected),'matchesExpected':value==expected,'difference':difference,'focused':item.getState().contains(pyatspi.STATE_FOCUSED)})
+ if action in ('focus-name','focus-location'):
+  kind='NAME' if action=='focus-name' else 'LOCATION'
+  if len(fields.get(kind,[]))!=1: raise RuntimeError('FIELD_NOT_FOUND')
+  if not fields[kind][0].queryComponent().grabFocus(): raise RuntimeError('FIELD_FOCUS_FAILED')
+ elif action=='save':
+  if len(save)!=1: raise RuntimeError('SAVE_NOT_UNIQUE')
+  control=save[0].queryAction()
+  actions=[i for i in range(control.nActions) if normalize(control.getName(i)) in ('click','press','activate')]
+  if len(actions)!=1 or not control.doAction(actions[0]): raise RuntimeError('SAVE_ACTION_FAILED')
+ elif action!='observe': raise RuntimeError('ACTION_INVALID')
+ print(json.dumps({'ok':True,'fields':observations,'saveAvailable':len(save)==1}))
+except Exception as error:
+ reason=str(error)
+ allowed={'DIALOG_NOT_UNIQUE','FIELD_NOT_UNIQUE','FIELD_NOT_FOUND','FIELD_FOCUS_FAILED','SAVE_NOT_UNIQUE','SAVE_ACTION_FAILED','ACTION_INVALID'}
+ code='NATIVE_CHOOSER_'+reason if reason in allowed else 'NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE'
+ print(json.dumps({'ok':False,'code':code}))
+ sys.exit(2)
+`;
+export async function fillNativeChooser({observe,focusName,focusLocation,type,openLocation,navigate,sleep,diagnostics,directory,name}){
+ diagnostics.initial=await observe();
+ await openLocation();await focusLocation();await type(directory);
+ const location=await observe();diagnostics.locationEntered=location;
+ assert.equal(location.fields.some(f=>f.field==='LOCATION'&&f.matchesExpected),true,'NATIVE_LOCATION_NOT_MATCHED');
+ await navigate();await sleep(200);await focusName();await type(name);
+ const selected=await observe();diagnostics.nameEntered=selected;
+ assert.equal(selected.fields.some(f=>f.field==='NAME'&&f.matchesExpected),true,'NATIVE_NAME_NOT_MATCHED');
+}
 export async function runInstalledGate(){
 const [mode]=process.argv.slice(2),password=process.env.YNX_WALLET_QA_PASSWORD,backupPassword=process.env.YNX_WALLET_QA_BACKUP_PASSWORD;
 assert.equal(process.platform,'linux');assert.ok(['online','offline'].includes(mode));assert.ok(password?.length>=12);assert.ok(backupPassword?.length>=12);
@@ -64,7 +134,7 @@ async function close(){
 }
 async function launch(destination){
  assert.equal(child,undefined);activeProfile=destination;
- child=spawn(executable,['--remote-debugging-address=127.0.0.1','--remote-debugging-port=9334'],{env:{...process.env,YNX_WALLET_PROFILE_PATH:destination,YNX_WALLET_EVIDENCE_PATH:prefix+'-launch.json',YNX_WALLET_QA_BACKUP_DESTINATION:backup},stdio:['ignore','ignore','ignore']});
+ child=spawn(executable,['--remote-debugging-address=127.0.0.1','--remote-debugging-port=9334'],{env:{...process.env,YNX_WALLET_PROFILE_PATH:destination,YNX_WALLET_EVIDENCE_PATH:prefix+'-launch.json',YNX_WALLET_QA_BACKUP_DESTINATION:backup,NO_AT_BRIDGE:'0',GTK_MODULES:'atk-bridge'},stdio:['ignore','ignore','ignore']});
  for(let n=0;n<60;n++){
   if(child.exitCode!==null||child.signalCode!==null)throw Error('INSTALLED_APP_EXITED');
   try{const pages=await(await fetch('http://127.0.0.1:9334/json/list')).json(),page=pages.find(p=>p.type==='page'&&p.url?.startsWith('file:')&&decodeURIComponent(new URL(p.url).pathname).startsWith('/opt/YNX Wallet/resources/app.asar/')&&p.webSocketDebuggerUrl);
@@ -119,13 +189,19 @@ async function nativeSave(account){
  stage='NATIVE_SAVE_DIALOG';report.nativeSaveDiagnostics={explicitSaveActionSent:false};
  let window;for(let n=0;n<60;n++){try{window=execFileSync('xdotool',['search','--onlyvisible','--name','^Save encrypted Wallet backup$'],{encoding:'utf8'}).trim().split('\n')[0];if(window)break}catch{}await pauses(300)}
  if(!window)throw Error('NATIVE_SAVE_DIALOG_MISSING');
- // Linux GTK/KDE file chooser location control: type the dedicated destination,
- // then confirm the native Save action. Never replace the dialog IPC.
+ const chooser=action=>{
+  try{const result=JSON.parse(execFileSync('/usr/bin/python3',['-c',nativeChooserScript,action,backup],{encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']}));assert.equal(result.ok,true,'NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE');return result}
+  catch(error){let code='NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE';try{const result=JSON.parse(error.stdout);if(/^NATIVE_CHOOSER_(?:DIALOG_NOT_UNIQUE|FIELD_NOT_UNIQUE|FIELD_NOT_FOUND|FIELD_FOCUS_FAILED|SAVE_NOT_UNIQUE|SAVE_ACTION_FAILED|ACTION_INVALID)$/.test(result.code))code=result.code}catch{}report.nativeSaveDiagnostics.accessibilityFailure=code;throw Error(code)}
+ };
+ // Identify the real Name and Location controls before typing; never replace IPC.
  const fileExists=async()=>{try{return(await fs.stat(backup)).isFile()}catch(error){if(error.code==='ENOENT')return false;throw error}};
  const dialogVisible=async()=>{try{return execFileSync('xdotool',['search','--onlyvisible','--name','^Save encrypted Wallet backup$'],{encoding:'utf8',timeout:3000}).trim().split('\n').includes(window)}catch{return false}};
  try{ await finishNativeSave({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,fileExists,dialogVisible,
-  enterDestination:async()=>{execFileSync('xdotool',['windowfocus','--sync',window]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','2',backup]);execFileSync('xdotool',['key','--clearmodifiers','Return'])},
-  saveAction:async()=>{execFileSync('xdotool',['windowfocus','--sync',window]);execFileSync('xdotool',['key','--clearmodifiers','alt+s'])},
+  enterDestination:()=>fillNativeChooser({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,directory:path.dirname(backup),name:path.basename(backup),observe:async()=>chooser('observe'),focusLocation:async()=>chooser('focus-location'),focusName:async()=>chooser('focus-name'),
+   openLocation:async()=>{execFileSync('xdotool',['windowfocus','--sync',window]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);await pauses(150)},
+   type:async value=>{execFileSync('xdotool',['key','--clearmodifiers','ctrl+a']);execFileSync('xdotool',['type','--clearmodifiers','--delay','20',value]);await pauses(100)},
+   navigate:async()=>{execFileSync('xdotool',['key','--clearmodifiers','Return'])}}),
+  saveAction:async()=>{chooser('save')},
  });
  }finally{
   stage='NATIVE_SAVE_POST_ATTEMPT';

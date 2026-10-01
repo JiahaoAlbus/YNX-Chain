@@ -495,7 +495,7 @@ jobs:
           mapfile -t packages < <(find apps/wallet-desktop/dist -maxdepth 1 -name '*.deb')
           test "${#packages[@]}" = 1
           sudo apt-get update
-          sudo apt-get install -y xvfb xdotool squashfs-tools "$(realpath "${packages[0]}")"
+          sudo apt-get install -y xvfb xdotool squashfs-tools python3-pyatspi at-spi2-core dbus-x11 "$(realpath "${packages[0]}")"
           node apps/wallet-desktop/scripts/release-provenance.mjs "/opt/YNX Wallet/resources" apps/wallet-desktop/dist
           mapfile -t appimages < <(find apps/wallet-desktop/dist -maxdepth 1 -name '*.AppImage')
           test "${#appimages[@]}" = 1
@@ -546,7 +546,7 @@ jobs:
           export YNX_WALLET_EXPECTED_VERSION="$(node -p 'require("./apps/wallet-desktop/package.json").version')"
           # Run the installed DEB as the ordinary runner UID. Sandbox requirements,
           # app identity, protected vault and native Save dialog stay unchanged.
-          xvfb-run -a node apps/wallet-desktop/scripts/linux-password-installed-gate.mjs online
+          xvfb-run -a dbus-run-session -- node apps/wallet-desktop/scripts/linux-password-installed-gate.mjs online
           # Prove offline custody with OS networking blocked for this disposable
           # UID, keeping only localhost CDP available. No mocked provider/RPC.
           wallet_qa_uid="$(id -u)"
@@ -576,7 +576,7 @@ jobs:
           wallet_qa_v4=true
           sudo ip6tables -I OUTPUT 1 -m owner --uid-owner "$wallet_qa_uid" ! -d ::1/128 -m comment --comment "$wallet_qa_rule" -j REJECT
           wallet_qa_v6=true
-          xvfb-run -a node apps/wallet-desktop/scripts/linux-password-installed-gate.mjs offline
+          xvfb-run -a dbus-run-session -- node apps/wallet-desktop/scripts/linux-password-installed-gate.mjs offline
       - name: Upload exact artifacts and available evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
