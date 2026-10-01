@@ -103,6 +103,8 @@ export class MatrixSocialTransport {
       const fallback=result?.completedStage!==undefined,auth=fallback?result.auth:result;
       const supported=fallback?result.completedStage==='m.login.sso'&&flows.some(flow=>flow.stages.includes(result.completedStage))&&auth&&Object.keys(auth).length===1:flows.some(flow=>flow.stages.includes(auth?.type));
       if(!auth||auth.session!==data.session||!supported)fail('MATRIX_DEVICE_REAUTH_REQUIRED','Identity reauthentication did not match the upstream challenge');
+      const identity=await operation.client.whoami();this.guard(operation);
+      if(identity.user_id!==operation.binding.userId||identity.device_id!==operation.binding.deviceId)fail('MATRIX_ACCOUNT_MISMATCH','Homeserver identity differs from the original device-removal session');
       await operation.client.deleteDevice(deviceId,auth);
     }
     this.guard(operation);if(deviceId===operation.binding.deviceId)this.stop();

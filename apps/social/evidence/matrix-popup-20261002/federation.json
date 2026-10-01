@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "ynx-social-matrix-local-qa/v1",
+  "status": "LOCAL_BROWSER_FEDERATION_PARTIAL_PASS",
+  "sdk": "43.0.0",
+  "image": "ghcr.io/element-hq/synapse@sha256:38879c6039381b9b66a2adb11b92c63dd5f7ee6a443b98d1edf10ffe004e17e4",
+  "homeservers": [
+    "a.ynx-matrix.test:8448",
+    "b.ynx-matrix.test:8448"
+  ],
+  "checks": [
+    {
+      "name": "two-independent-homeservers-and-Rust-crypto",
+      "passed": true
+    },
+    {
+      "name": "unverified-device-send-rejected",
+      "passed": true
+    },
+    {
+      "name": "fresh-unverified-device-explicit-rejection",
+      "passed": true
+    },
+    {
+      "name": "standard-SAS-matched-and-both-confirmed",
+      "passed": true
+    },
+    {
+      "name": "bidirectional-federated-ciphertext-and-peer-decryption",
+      "passed": true
+    },
+    {
+      "name": "both-server-readbacks-encrypted-not-plaintext",
+      "passed": true
+    },
+    {
+      "name": "federated-encrypted-attachment-decrypted",
+      "passed": true
+    },
+    {
+      "name": "browser-process-cold-start-original-device-key-and-offline-history",
+      "passed": true
+    },
+    {
+      "name": "offline-encrypted-attachment-cold-recovery",
+      "passed": true
+    },
+    {
+      "name": "cold-restored-repeat-verification-explicit-rejection",
+      "passed": true
+    },
+    {
+      "name": "real-browser-persistence-failure-locks-and-retains-disk-checkpoint-ciphertext-and-device",
+      "passed": true
+    },
+    {
+      "name": "independent-browser-process-recovers-original-account-device-and-ciphertext-after-persistence-failure",
+      "passed": true
+    },
+    {
+      "name": "console-pageerror-zero",
+      "passed": true
+    }
+  ],
+  "durability": {
+    "locked": true,
+    "cacheRetained": true,
+    "checkpointRetained": true,
+    "ciphertextRetained": true,
+    "deviceRetained": true,
+    "lockEvent": true,
+    "checkpointSHA256": "193a7b38572b886024beb4d916413ac77e03e7d4bafcacfaf633300ffb0a750a"
+  },
+  "notVerified": [
+    "production-Wallet-SSO-binding",
+    "Native-Rust-SDK",
+    "device-add-change-remove",
+    "encrypted-backup",
+    "public-deployment",
+    "MONSTER"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "status": "FAILED",
+  "checks": [
+    "initial-trusted-encrypted-send",
+    "new-device-server-discovery-without-resetting-original-keys",
+    "changed-device-rotation-and-unverified-send-block",
+    "device-removal-requires-confirmation"
+  ],
+  "error": "Error: page.evaluate: MatrixPolicyError: Device removal requires supported identity reauthentication; nothing was revoked\n    at fail (http://127.0.0.1:50421/qa.js:71017:9)\n    at MatrixSocialTransport.revokeOwnDevice (http://127.0.0.1:50421/qa.js:71347:92)\n    at async <anonymous>:337:30",
+  "challenge": [
+    {
+      "type": "device-reauth-required",
+      "deviceId": "YNX-8e5fb50b-37fc-4c75-a89d-c0d4a3979aa9",
+      "status": 401,
+      "flows": []
+    }
+  ]
+}

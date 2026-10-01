@@ -1,0 +1,10 @@
+d22ce279e278bd4dbce655a6ea4e015bec0ed8e5495d78f4d05bc1b874c4c0e1  apps/social/web/matrix/session-ui.mjs
+4f2cac4dc1b16b5ca455b4d1da12f66b166f464e271f05594d89ebf46e896968  apps/social/web/matrix/transport.mjs
+a9d250471c0f40a02af89d5e2fdf03992face353feb1bae8451deabb84ab5c66  apps/social/web/matrix/sso-reauth.mjs
+af23a723eb050143d88769c1b4c0b510de8b2ce9ce603e2e2d5d211eba357caf  apps/social/web/matrix/sso-reauth.test.mjs
+9b02331e1629664ae792a2d929c25145fbcd02f29225e9ab6c32075f0665cc50  apps/social/web/matrix/device-reauth.test.mjs
+dcc553c1422a1c90066db03aaff7e56073d56ff17c5792958762e734845b4729  apps/social/scripts/matrix-qa/popup.mjs
+e843cde0b3e0c890c9f17c6bcee9d1483c741715e5d151d12913d2bbcbc4f1a7  apps/social/evidence/matrix-popup-20261002/device-reauth.json
+d476a113e4a37b252534e7cf20d9908fb01aae40f3d26e880a264a5a02582657  apps/social/evidence/matrix-popup-20261002/federation.json
+ab3e088dd712d1d625aee5d8364b564275caa08b931728d8f6349bdd5f4cb78c  apps/social/evidence/matrix-popup-20261002/popup-harness-failure.json
+aed1fb5aa0da9a6ec92ebd121f90b99026a471cc61c3eacad2fc942e81174a74  apps/social/evidence/matrix-popup-20261002/INTEGRATION.md

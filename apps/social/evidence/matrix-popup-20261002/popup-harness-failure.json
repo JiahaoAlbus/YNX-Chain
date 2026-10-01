@@ -1,0 +1,1 @@
+{"status":"FAILED_BEFORE_BROWSER","command":"node apps/social/scripts/matrix-qa/popup.mjs","error":"SyntaxError: Unexpected token ')' in validateIdentity callback (missing closing brace)","browserPopupAcceptance":"NOT_RUN","productionOIDC":"NOT_RUN","deviceDeletion":"NOT_RUN"}
