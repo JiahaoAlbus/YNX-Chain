@@ -27,11 +27,12 @@ const seen = new Set();
 const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 function fail(code) { throw Object.assign(new Error(code), { code }); }
 function copy(key, variables) { return key.startsWith("manager") ? hostedCopy(locale,key) : hostedDynamicCopy(locale, key, variables); }
-function messageKey(key, variables = {}, code = null) { if(code==='HOSTED_STORAGE_UPGRADE_BLOCKED')key='storageUpgradeBlocked'; lastStatus = { key, variables, code }; status.textContent = copy(key, variables);status.dataset.errorCode=typeof code==="string"?code:"";const diagnostic=$("wallet-diagnostic-code");if(diagnostic){diagnostic.textContent=status.dataset.errorCode;diagnostic.parentElement.hidden=!status.dataset.errorCode;} }
+function messageKey(key, variables = {}, code = null) { if(code==='HOSTED_STORAGE_UPGRADE_BLOCKED')key='storageUpgradeBlocked'; lastStatus = { key, variables, code }; status.textContent = copy(key, variables);status.dataset.state=key;status.dataset.errorCode=typeof code==="string"?code:"";const diagnostic=$("wallet-diagnostic-code");if(diagnostic){diagnostic.textContent=status.dataset.errorCode;diagnostic.parentElement.hidden=!status.dataset.errorCode;} }
 function reviewDetails() {
   if (!currentReview) return;
   $("review-title").textContent = currentReview.titleKey ? copy(currentReview.titleKey, currentReview.titleVariables) : currentReview.title;
   reviewText.textContent = currentReview.detailFactory ? currentReview.detailFactory(locale) : currentReview.detail;
+  const summary=$("web-wallet-review-summary");if(summary){summary.replaceChildren();const tx=currentReview.nativeReview;summary.hidden=!tx;reviewText.parentElement.open=!tx;if(tx){for(const [label,value] of [[webWalletCopy(locale,"recipient"),toYNXAddress(tx.to)],[webWalletCopy(locale,"amount"),`${tx.amount} YNXT`],[webWalletCopy(locale,"fees"),`${tx.networkFee} YNXT`]]){const row=document.createElement("div"),name=document.createElement("span"),data=document.createElement("strong");name.textContent=label;data.textContent=value;row.append(name,data);summary.append(row);}const network=document.createElement("p");network.textContent="YNX Testnet · 6423";summary.append(network);const warning=document.createElement("p");warning.textContent=hostedDynamicCopy(locale,"transactionWarning");summary.append(warning);}}
 }
 function renderTransactionStatus() {
   if (transactionError) { $("transaction-status").textContent = `${copy("txUnavailable")} (${transactionError})`; return; }
@@ -94,7 +95,7 @@ async function assertSelectedAccount() {
   if (!current || current.account !== vault?.account || JSON.stringify(current) !== JSON.stringify(vault)) fail("HOSTED_ACCOUNT_CHANGED");
 }
 function renderManagerLock(){
-  if(!accountManager)return;const unlocked=accountManager.isUnlocked(vault);
+  if(!accountManager)return;const unlocked=accountManager.isUnlocked(vault);if($("web-wallet-dashboard")){document.body.dataset.walletHasAccount=String(Boolean(vault));document.body.dataset.walletUnlocked=String(unlocked);}
   $("account-lock-section").hidden=!vault;$("account-unlock-form").hidden=unlocked;$("account-lock").hidden=!unlocked;
   $("account-switch-section").hidden=!vault||!unlocked;$("export-backup").hidden=!vault||!unlocked;
 }
@@ -149,20 +150,20 @@ function finishReview(accepted) {
   if (!currentReview) return;
   const pending = currentReview; currentReview = null;
   if (pending.timer) window.clearTimeout(pending.timer);
-  review.hidden = true; password.value = "";
+  review.hidden = true;delete document.body.dataset.walletReviewing; password.value = "";
   pending.resolve(accepted);
 }
-function askUser({ title, detail, titleKey = null, titleVariables = {}, detailFactory = null, secretRequired = false, context = null }) {
+function askUser({ title, detail, titleKey = null, titleVariables = {}, detailFactory = null, secretRequired = false, context = null, nativeReview = null }) {
   if (context) assertRequestLive(context);
   if (currentReview) fail("HOSTED_APPROVAL_BUSY");
   $("approval-password-label").hidden = !secretRequired;
   password.hidden = !secretRequired;
   password.value = "";
-  review.hidden = false;
+  review.hidden = false;if($("web-wallet-dashboard"))document.body.dataset.walletReviewing="true";
   approve.disabled = false; reject.disabled = false;
   window.focus();
   return new Promise(resolve => {
-    currentReview = { resolve, secretRequired, context, title, detail, titleKey, titleVariables, detailFactory, timer: context ? window.setTimeout(() => { context.cancelled = true; finishReview({ approved: false }); }, Math.max(0, context.expiresAt - Date.now())) : null };
+    currentReview = { resolve, secretRequired, nativeReview, context, title, detail, titleKey, titleVariables, detailFactory, timer: context ? window.setTimeout(() => { context.cancelled = true; finishReview({ approved: false }); }, Math.max(0, context.expiresAt - Date.now())) : null };
     reviewDetails();
   });
 }
@@ -183,7 +184,7 @@ async function executeReviewedRequest(method,params,context,requestingOrigin,ass
     const prepared = await prepareExtensionRequest({ expectedAccount: vault.account, method, params, rpc: forwardExtensionRpc });
     assertRequestLive(context);
     const transaction = method === "eth_sendTransaction";
-    const choice = await askUser({ titleKey: transaction ? "reviewTx" : "reviewSignature", detailFactory: language => `${requestingOrigin}\n${extensionReviewText({ ...prepared.review, warning: hostedDynamicCopy(language, transaction ? "transactionWarning" : "signatureWarning") })}`, secretRequired: true, context });
+    const choice = await askUser({ titleKey: transaction ? "reviewTx" : "reviewSignature", detailFactory: language => `${requestingOrigin}\n${extensionReviewText({ ...prepared.review, warning: hostedDynamicCopy(language, transaction ? "transactionWarning" : "signatureWarning") })}`, secretRequired: true, context, nativeReview:transaction?prepared.review:null });
     assertRequestLive(context);
     if (!choice.approved) fail("USER_REJECTED");
     await assertAccount();

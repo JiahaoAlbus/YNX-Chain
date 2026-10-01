@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+import {readFile,writeFile,mkdtemp,rm} from 'node:fs/promises';
+import {resolve,extname,join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {createHash} from 'node:crypto';
+import {build} from 'esbuild';
+import {chromium} from 'playwright';
+const root=resolve(new URL('..',import.meta.url).pathname),old=process.env.YNX_WALLET_PREVIOUS_PWA_DIR;
+assert.ok(old,'Provide the extracted, checksum-verified actual previous PWA artifact');
+const current=resolve(root,'dist/pwa'),oldIdentity=JSON.parse(await readFile(join(old,'build-identity.json'),'utf8')),newIdentity=JSON.parse(await readFile(join(current,'build-identity.json'),'utf8'));
+const oldPolicy=await import('file://'+join(old,'service-worker-policy.js')),newPolicy=await import('file://'+join(current,'service-worker-policy.js'));
+const helper=await build({stdin:{contents:`import {createHostedVaultStore} from './src/hosted-vault-store.js'; const store=createHostedVaultStore();export async function seed(){await store.create({password:'isolated cache QA '+crypto.randomUUID()});}export async function snapshot(){const db=await new Promise((ok,no)=>{const r=indexedDB.open('ynx-hosted-wallet-v1');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});const values={};for(const name of db.objectStoreNames){values[name]=await new Promise((ok,no)=>{const tx=db.transaction(name),s=tx.objectStore(name),k=s.getAllKeys(),v=s.getAll();tx.oncomplete=()=>ok([k.result,v.result]);tx.onerror=()=>no(tx.error);});}db.close();return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(values))))].map(x=>x.toString(16).padStart(2,'0')).join('');}`,resolveDir:root,sourcefile:'isolated-cache-qa.js'},write:false,bundle:true,format:'esm',platform:'browser'});
+let phase='old';const profile=await mkdtemp(join(tmpdir(),'ynx-actual-012-root-upgrade-'));
+const server=createServer(async(req,res)=>{try{const pathname=new URL(req.url,'http://fixture').pathname;if(pathname==='/qa-store.js'){res.writeHead(200,{'content-type':'text/javascript'}).end(helper.outputFiles[0].contents);return;}const dir=phase==='old'?old:current,file=resolve(dir,pathname==='/'?'index.html':pathname.slice(1));if(!file.startsWith(dir+'/')){res.writeHead(403).end();return;}const bytes=await readFile(file);res.writeHead(200,{'cache-control':'no-store','content-type':extname(file)==='.js'?'text/javascript':extname(file)==='.css'?'text/css':extname(file)==='.html'?'text/html':'application/octet-stream'}).end(bytes);}catch{res.writeHead(404).end();}});
+await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const url=`http://127.0.0.1:${server.address().port}/`,flags={};let ctx;
+try{
+ ctx=await chromium.launchPersistentContext(profile,{channel:'chromium',headless:true});const page=ctx.pages()[0];
+ await page.goto(url);await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
+ const oldCache=await page.evaluate(async()=>{const channel=new MessageChannel();return new Promise(ok=>{channel.port1.onmessage=e=>ok(e.data.cache);navigator.serviceWorker.controller.postMessage({type:'YNX_WALLET_PWA_VERSION'},[channel.port2]);});});assert.equal(oldCache,oldPolicy.PWA_CACHE);flags.actualPreviousWorkerControlled=true;
+ const before=await page.evaluate(async()=>{const q=await import('/qa-store.js');await q.seed();return q.snapshot();});
+ phase='new';await page.reload();await page.waitForFunction(async expected=>{const c=navigator.serviceWorker.controller;if(!c)return false;const pair=new MessageChannel();const value=await new Promise(ok=>{pair.port1.onmessage=e=>ok(e.data.cache);c.postMessage({type:'YNX_WALLET_PWA_VERSION'},[pair.port2]);});return value===expected;},newPolicy.PWA_CACHE,{timeout:20000});
+ await page.waitForSelector('#web-wallet-dashboard',{state:'attached'});flags.atomicNewRootActivated=true;
+ assert.equal(await page.evaluate(async()=>{const q=await import('/qa-store.js');return q.snapshot();}),before);flags.originalEncryptedIDBUnchanged=true;
+ await page.locator('a[href="./companion.html"]').click();await page.waitForSelector('#wallet-connect-trigger');assert.equal(await page.locator('#web-wallet-dashboard').count(),0);flags.controlledCompanionClickUsesCompanion=true;
+ await page.reload();await page.waitForSelector('#wallet-connect-trigger');assert.equal(await page.locator('#web-wallet-dashboard').count(),0);flags.controlledCompanionRefresh=true;
+ await ctx.setOffline(true);await page.reload();await page.waitForSelector('#wallet-connect-trigger');assert.equal(await page.locator('#web-wallet-dashboard').count(),0);flags.offlineCompanionUsesOwnVerifiedDocument=true;
+ await page.goto(url);await page.waitForSelector('#web-wallet-dashboard',{state:'attached'});flags.offlineOwnRootUsesOwnVerifiedDocument=true;
+ const manifest=await page.evaluate(async()=>{const channel=new MessageChannel();return new Promise(ok=>{channel.port1.onmessage=e=>ok(e.data);navigator.serviceWorker.controller.postMessage({type:'YNX_WALLET_PWA_VERIFY_CACHE'},[channel.port2]);});});assert.equal(manifest.complete,true);flags.completeCurrentIntegrityCache=true;
+ await ctx.setOffline(false);assert.equal(await page.evaluate(async()=>{const q=await import('/qa-store.js');return q.snapshot();}),before);flags.cipherPreservedAcrossOfflineRoutes=true;
+ const receipt={scope:'actual previous artifact worker to exact current built shell, loopback cache engineering QA; account origin deliberately fails closed',oldSource:oldIdentity.sourceCommit,newSource:newIdentity.sourceCommit,flags,oldCache,newCache:newPolicy.PWA_CACHE,encryptedIDBSnapshotSHA256:before,publicDeploymentVerified:false,installedPWA:false,publicWalletLogin:false};await writeFile(process.env.YNX_WEB_ROOT_UPGRADE_RECEIPT||'/tmp/ynx-web-root-upgrade.json',JSON.stringify(receipt,null,2)+'\n',{mode:0o600});console.log(JSON.stringify(receipt));
+}finally{if(ctx)await ctx.close();await new Promise(ok=>server.close(ok));await rm(profile,{recursive:true,force:true});}

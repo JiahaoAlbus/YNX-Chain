@@ -6,10 +6,10 @@ const reloadingClients = new Set();
 const unavailable = (message = "Offline asset unavailable") => new Response(message, {status: 503, headers: {"content-type": "text/plain; charset=utf-8", "cache-control": "no-store"}});
 async function purgeObsolete() { await Promise.all(obsoletePwaCaches(await caches.keys()).map((key) => caches.delete(key))); }
 async function verified(response, key) { return await responseMatchesIntegrity(response, ASSET_INTEGRITY[key]) ? response : null; }
-async function cachedNavigation() {
-  const cache = await caches.open(PWA_CACHE), cached = await cache.match("./index.html");
-  if (cached && await verified(cached, "./index.html")) return cached;
-  if (cached) await cache.delete("./index.html");
+async function cachedNavigation(key = "./index.html") {
+  const cache = await caches.open(PWA_CACHE), cached = await cache.match(key);
+  if (cached && await verified(cached, key)) return cached;
+  if (cached) await cache.delete(key);
   return unavailable();
 }
 async function currentCacheReady() {
@@ -47,7 +47,7 @@ self.addEventListener("activate", (event) => event.waitUntil((async()=>{
     throw new Error("PWA shell activation rejected an incomplete cache");
   }
   const replacingShell=allPwaCaches(await caches.keys()).some(key=>key!==PWA_CACHE);
-  const windows=replacingShell?(await self.clients.matchAll({type:"window",includeUncontrolled:true})).filter(client=>assetKeyForRequest({url:client.url,method:"GET"},self.registration.scope)):[];
+  const windows=replacingShell?(await self.clients.matchAll({type:"window",includeUncontrolled:true})).filter(client=>{const request={url:client.url,method:"GET"};return serviceWorkerRoute(request,self.registration.scope)!=="network-only"&&Boolean(ASSET_INTEGRITY[assetKeyForRequest(request,self.registration.scope)]);}):[];
   for(const client of windows)if(client.id)reloadingClients.add(client.id);
   const obsolete=obsoletePwaCaches(await caches.keys());
   await Promise.all(obsolete.map((key)=>caches.delete(key)));
@@ -84,16 +84,16 @@ self.addEventListener("fetch", (event) => {
   }
   if (route === "navigation-network-first") {
     event.respondWith(fetch(event.request,{cache:"no-store"}).then(async (response) => {
-      const valid = await verified(response, "./index.html");
+      const valid = await verified(response, key);
       if (!valid) {
         // A newer deployment is not evidence that its whole shell is ready.
         // Keep this verified shell usable while a separate installation updates.
         event.waitUntil(self.registration.update().catch(()=>null));
-        return cachedNavigation();
+        return cachedNavigation(key);
       }
-      await (await caches.open(PWA_CACHE)).put("./index.html", valid.clone());
+      await (await caches.open(PWA_CACHE)).put(key, valid.clone());
       return valid;
-    }).catch(cachedNavigation));
+    }).catch(()=>cachedNavigation(key)));
     return;
   }
   event.respondWith((async () => {
