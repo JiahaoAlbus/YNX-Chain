@@ -2,7 +2,7 @@ import { createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter } 
 
 export const SOCIAL_AUTHORITY = "https://wallet-auth.ynxweb4.com";
 export const SOCIAL_PRIVATE_SCOPES = Object.freeze(["account:read", "profile:link"]);
-export const SOCIAL_CHAT_SCOPES = Object.freeze(["account:read", "profile:link", "social.messaging", "social.profile"]);
+export const SOCIAL_CHAT_SCOPES = Object.freeze(["account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"]);
 
 // No provider detection can establish OS scheme registration. Until an actual
 // supported launcher supplies this capability, report unknown, not installed.
@@ -27,7 +27,7 @@ export function createSocialPrivateSession({ environment = globalThis, detectWal
           walletInstalled: async () => (await detectWalletEnvironment()).walletInstalled,
           schemeRegistered: async () => (await detectWalletEnvironment()).schemeRegistered,
         });
-        return factory({ registry, productId: "social", scopes: [...scopes], purpose: scopes.includes("social.messaging")?"Authorize your Social profile and encrypted chat on this browser device. No payments or recovery keys.":"Link your account to YNX Social. This does not authorize messages or payments.", gateway, environment });
+        return factory({ registry, productId: "social", scopes: [...scopes], purpose: scopes.includes("social.messaging")?"Authorize your Social profile, contact requests and encrypted chat on this browser device. No payments or recovery keys.":"Link your account to YNX Social. This does not authorize messages or payments.", gateway, environment });
       })().catch(error => { adapterPromise = undefined; throw error; });
     }
     return adapterPromise;

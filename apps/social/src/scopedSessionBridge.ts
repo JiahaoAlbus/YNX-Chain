@@ -4,7 +4,7 @@ import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import { encodeRawBase64 } from "./chatCrypto";
 import type { SocialAPI, Session } from "./api";
 
-export const SOCIAL_CHAT_SCOPES = Object.freeze(["account:read", "profile:link", "social.messaging", "social.profile"]);
+export const SOCIAL_CHAT_SCOPES = Object.freeze(["account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"]);
 export type SessionProof = Readonly<{proof:Readonly<Record<string,unknown>>;proofHeader:string}>;
 export type ScopedSessionClient = { proof(scopes:readonly string[]):Promise<SessionProof> };
 export type StoredChatDevice = {deviceId:string;signingSeed:string;encryptionSeed:string;account?:string;[key:string]:unknown};

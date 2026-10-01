@@ -31,3 +31,7 @@ test('live authority rejection invalidates Native/Web private access without del
   const original=globalThis.fetch;globalThis.fetch=async()=>Response.json({error:'SESSION_REVOKED'},{status:401});
   try{let invalidations=0;const api=new SocialAPI('https://social.ynxweb4.com');api.onPrivateInvalidated=()=>{invalidations++};api.useProductSession(async()=>proof,account);await assert.rejects(api.profile(),/SESSION_REVOKED/);assert.equal(invalidations,1);await assert.rejects(api.profile(),/locked/);assert.equal(device.signingSeed,'07'.repeat(32))}finally{globalThis.fetch=original}
 });
+test('empty server profile enters explicit setup without inventing a profile or turning auth failure into setup',async()=>{
+  const original=globalThis.fetch;const api=new SocialAPI('https://social.ynxweb4.com','legacy');
+  try{globalThis.fetch=async()=>Response.json({record:{id:account,handle:'',displayName:'',bio:''}});assert.equal(await api.profileOrSetup(),null);globalThis.fetch=async()=>Response.json({error:'missing'},{status:404});assert.equal(await api.profileOrSetup(),null);globalThis.fetch=async()=>Response.json({error:'unauthorized'},{status:401});await assert.rejects(api.profileOrSetup(),/unauthorized/)}finally{globalThis.fetch=original}
+});

@@ -4,7 +4,7 @@ import { p256 } from "@noble/curves/nist.js";
 import registry from "./vendor/product-session-registry.json";
 import { createNativeSessionController } from "./nativeSessionController";
 
-function fixture() {
+function fixture(scopes=["account:read", "profile:link"]) {
   const records = new Map<string, string>();
   let exists = false, created = 0, opened = 0, probes = 0, tokens = 0;
   const key = Buffer.from(p256.getPublicKey(new Uint8Array(32).fill(7), true)).toString("base64url");
@@ -16,7 +16,7 @@ function fixture() {
   };
   const unavailable = async () => { throw new Error("No live authorization in this synthetic test"); };
   const config = {
-    registry, platform: "android" as const, scopes: ["account:read", "profile:link"], storage,
+    registry, platform: "android" as const, scopes, storage,
     gateway: {
       currentTime: async () => new Date(),
       walletInstalled: async () => { probes++; throw new Error("Unverified installation"); },
@@ -73,4 +73,10 @@ test("pending identity never authorizes messaging and disconnect suspends proofs
   await disconnect;
   await assert.rejects(f.client.proof(["account:read"]));
   assert.equal(f.counts().opened, 0);
+});
+test("Native People and Alerts receive contacts only from explicit complete Social consent",async()=>{
+  const scopes=["account:read","profile:link","social.contacts","social.messaging","social.profile"],f=fixture(scopes);
+  await f.client.begin();const pending=[...f.records.entries()].find(([key])=>key.endsWith(":pending"))!;
+  const request=JSON.parse(pending[1]);assert.deepEqual(request.scopes,scopes);assert.match(request.purpose,/contact requests/);
+  const identity=fixture();await identity.client.begin();const identityRequest=JSON.parse([...identity.records.entries()].find(([key])=>key.endsWith(":pending"))![1]);assert.deepEqual(identityRequest.scopes,["account:read","profile:link"]);
 });

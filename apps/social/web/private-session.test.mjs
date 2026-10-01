@@ -77,7 +77,7 @@ test('chat scopes require their explicit entry and do not widen the identity ent
   let selected;
   const {controller}=fixture({scopes:SOCIAL_CHAT_SCOPES,factory:async config=>{selected=config;return {client:{beginExplicit:async()=>({status:'connecting'})}}}});
   await controller.begin();
-  assert.deepEqual(selected.scopes,['account:read','profile:link','social.messaging','social.profile']);
+  assert.deepEqual(selected.scopes,['account:read','profile:link','social.contacts','social.messaging','social.profile']);
   assert.match(selected.purpose,/encrypted chat/);
   assert.throws(()=>createSocialPrivateSession({scopes:['identity:read','social.messaging']}),/Unsupported/);
 });

@@ -60,7 +60,7 @@ export function createNativeSessionController(config: {
     client = new RecoverableProductSessionClient({
       registry: config.registry, productId: "social", platform: config.platform,
       storage: config.storage, gateway: config.gateway,
-      device: { ...device, scopes: [...config.scopes], purpose: config.scopes.includes("social.messaging")?"Authorize your Social profile and encrypted chat on this device. No payments or recovery keys.":"Link your Wallet identity to YNX Social. Messaging requires separate permission." },
+      device: { ...device, scopes: [...config.scopes], purpose: config.scopes.includes("social.messaging")?"Authorize your Social profile, contact requests and encrypted chat on this device. No payments or recovery keys.":"Link your Wallet identity to YNX Social. Messaging requires separate permission." },
       tokenFactory: config.tokenFactory, clock: () => new Date(),
     });
     return client;

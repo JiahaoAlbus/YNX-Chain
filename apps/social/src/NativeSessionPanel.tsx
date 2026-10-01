@@ -43,7 +43,7 @@ export function NativeSessionPanel({onChatReady}:{onChatReady?:(account:string)=
     {state.account ? <Text selectable style={{ color: "#101828", marginTop: 8 }}>{state.account}</Text> : null}
     {state.status === "connected" ? <Text style={{ color: "#475467", marginTop: 8 }}>Identity linked. Encrypted messaging requires a separate permission and verified Social device registration.</Text> : button("Sign in with YNX Wallet", () => nativeSocialSession().begin())}
     {state.canOpen ? button("Open Wallet request", () => (nativeSocialSession("chat").current.canOpen?nativeSocialSession("chat"):nativeSocialSession()).open()) : null}
-    {button("Authorize profile and encrypted chat", () => nativeSocialSession("chat").begin())}
+    {button("Authorize profile, contacts and encrypted chat", () => nativeSocialSession("chat").begin())}
     {button("Retry saved connection", async () => {const chat=await nativeSocialSession("chat").restore();if(chat.status==="connected"&&chat.account&&onChatReady)await onChatReady(chat.account);else await nativeSocialSession().restore()})}
     {state.status !== "guest" ? button("Disconnect Wallet identity and chat", async () => {await nativeSocialSession("chat").disconnect();await nativeSocialSession().disconnect()}) : null}
     {error ? <Text accessibilityRole="alert" style={{ color: "#B42318", marginTop: 10 }}>{error}</Text> : null}

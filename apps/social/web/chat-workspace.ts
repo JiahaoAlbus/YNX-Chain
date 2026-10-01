@@ -1,24 +1,16 @@
-import {SocialAPI,type Session,type SocialProfile,type Conversation} from "../src/api";
-import {bindScopedSocialSession,parseStoredChatDevice,type StoredChatDevice,type ScopedSessionClient} from "../src/scopedSessionBridge";
+import {SocialAPI,type Session,type SocialProfile,type Conversation,type Person,type ContactRequest} from "../src/api";
+import {bindScopedSocialSession,type StoredChatDevice,type ScopedSessionClient} from "../src/scopedSessionBridge";
 import {createEnvelopeSet,decryptDeviceMessage,verifyMessageSignature,type ChatMessage} from "../src/chatCrypto";
 import {DurableOutbox} from "../src/durableOutbox";
 import {queueMessage,acknowledgeQueued,pendingFor,assertPendingRecipients} from "../src/messageOutbox";
 import {bytesToHex,hexToBytes} from "@noble/hashes/utils.js";
+import {protectedChatDevices,indexedDBChatCarriers} from "./protected-chat-devices";
 
 type PrivateClient=ScopedSessionClient&{restore():Promise<any>;handleReturn(url:string):Promise<any>;begin():Promise<any>;disconnect():Promise<any>};
-type View={status:string;account?:string;profile?:SocialProfile;conversations?:Conversation[];conversationId?:string;messages?:{record:ChatMessage;plaintext:string}[]};
-type DeviceStore={get(account:string,create:boolean):Promise<StoredChatDevice>};
+type View={status:string;account?:string;profile?:SocialProfile;needsProfileSetup?:boolean;contacts?:Person[];requests?:ContactRequest[];conversations?:Conversation[];conversationId?:string;messages?:{record:ChatMessage;plaintext:string}[]};
+type DeviceStore={get(account:string,create:boolean):Promise<StoredChatDevice>;protectLegacy?(account:string,confirmed:boolean):Promise<StoredChatDevice>};
 export function browserChatDevices(environment:typeof globalThis=globalThis):DeviceStore{
-  const open=()=>new Promise<IDBDatabase>((resolve,reject)=>{const request=environment.indexedDB.open("ynx-social-chat-devices-v1",1);request.onupgradeneeded=()=>request.result.createObjectStore("devices");request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(new Error("Browser chat device storage is unavailable"))});
-  return {async get(account,create){
-    const db=await open();
-    try{return await new Promise<StoredChatDevice>((resolve,reject)=>{
-      const transaction=db.transaction("devices",create?"readwrite":"readonly"),store=transaction.objectStore("devices"),request=store.get(account);let device:StoredChatDevice;
-      request.onsuccess=()=>{try{if(request.result){device=parseStoredChatDevice(request.result);if(device.account!==account)throw new Error("Browser chat device account mismatch")}
-        else{if(!create)throw new Error("No retained browser chat device; approve explicitly before creating one");device={account,deviceId:`social-${bytesToHex(environment.crypto.getRandomValues(new Uint8Array(12)))}`,signingSeed:bytesToHex(environment.crypto.getRandomValues(new Uint8Array(32))),encryptionSeed:bytesToHex(environment.crypto.getRandomValues(new Uint8Array(32)))};store.put(JSON.stringify(device),account)}}catch(error){transaction.abort();reject(error)}};
-      transaction.oncomplete=()=>resolve(device);transaction.onerror=()=>reject(new Error("Browser chat device was not committed"));transaction.onabort=()=>reject(new Error("Browser chat device selection failed; existing keys retained"));
-    })}finally{db.close()}
-  }};
+  return protectedChatDevices(indexedDBChatCarriers(environment.indexedDB),environment);
 }
 
 export class SocialWorkspace{
@@ -32,7 +24,7 @@ export class SocialWorkspace{
   async authorize(){this.lock("Waiting for your explicit Social chat permission");return this.client.begin()}
   async connect(result:any,create=false){
     this.lock("Verifying identity, Social permission and chat device");const generation=this.generation;
-    if(result.status!=="connected"||!result.session?.scopes?.includes("social.messaging")||!result.session?.scopes?.includes("social.profile"))throw new Error("Profile and encrypted chat have not both been approved");
+    if(result.status!=="connected"||!["social.contacts","social.messaging","social.profile"].every(scope=>result.session?.scopes?.includes(scope)))throw new Error("Profile, contacts and encrypted chat require your explicit approval");
     const identity=await this.identity();if(identity.account!==result.session.account)throw new Error("Shared identity and Social permission differ; reconnect explicitly");
     const device=await this.devices.get(identity.account,create);if(generation!==this.generation)throw new Error("Social account changed");
     const session=await bindScopedSocialSession(this.api,this.client,device,identity.csrfToken);
@@ -42,10 +34,19 @@ export class SocialWorkspace{
   }
   async restore(){try{return await this.connect(await this.client.restore())}catch(error){this.lock("Saved workspace is unavailable. Keys and pending ciphertext were retained.");throw error}}
   async accept(url:string){try{return await this.connect(await this.client.handleReturn(url),true)}catch(error){this.lock("Social approval could not be verified; no private workspace unlocked");throw error}}
+  async protectExistingDevice(confirmed:boolean){
+    this.lock("Existing browser device protection requires confirmation");
+    const result=await this.client.restore();
+    if(result.status!=="connected"||!result.session?.scopes?.includes("social.messaging"))throw new Error("Restore your approved Social session before protecting its device");
+    const identity=await this.identity();if(identity.account!==result.session.account||!this.devices.protectLegacy)throw new Error("No matching device protection operation");
+    await this.devices.protectLegacy(identity.account,confirmed);return this.connect(result);
+  }
   async logout(){this.lock("Signed out locally; server revocation is pending");const result=await this.client.disconnect();if(result.status!=="disconnected")throw new Error("Social revocation is pending; private access remains locked");this.lock("Social permission revoked. Keys and pending ciphertext retained.")}
-  async refresh(){const {generation}=this.active();const [profile,conversations]=await Promise.all([this.api.profile(),this.api.conversations()]);this.render({profile:profile.record,conversations:conversations.conversations,status:"Workspace refreshed"},generation)}
-  async updateProfile(body:{handle:string;displayName:string;bio:string}){const {generation}=this.active();const result=await this.api.updateProfile({...body,idempotencyKey:`profile-${bytesToHex(this.random(new Uint8Array(12)))}`});this.render({profile:result.record,status:"Profile saved"},generation)}
-  async createConversation(handle:string){this.active();const result=await this.api.createConversation("handle",handle,`conversation-${bytesToHex(this.random(new Uint8Array(12)))}`);await this.refresh();await this.select(result.record.id)}
+  async refresh(){const {generation}=this.active();const [profile,conversations,people]=await Promise.all([this.api.profileOrSetup(),this.api.conversations(),this.api.contacts()]);this.render({profile:profile??undefined,needsProfileSetup:!profile,contacts:people.contacts,requests:people.requests,conversations:conversations.conversations,status:profile?"Workspace refreshed":"Create your profile and handle to start connecting with people"},generation);const selected=this.view.conversationId;if(selected){if(conversations.conversations.some(item=>item.id===selected))await this.select(selected);else this.render({conversationId:undefined,messages:[]},generation)}}
+  async updateProfile(body:{handle:string;displayName:string;bio:string}){const {generation}=this.active();const result=await this.api.updateProfile({...body,idempotencyKey:`profile-${bytesToHex(this.random(new Uint8Array(12)))}`});this.render({profile:result.record,needsProfileSetup:false,status:"Profile saved"},generation);await this.refresh()}
+  async requestContact(handle:string){this.active();if(!this.view.profile)throw new Error("Create your profile before sending a contact request");await this.api.requestContact("handle",handle.trim().replace(/^@/,""),`contact-${bytesToHex(this.random(new Uint8Array(12)))}`);await this.refresh()}
+  async transitionContact(id:string,action:"accept"|"reject"|"withdraw"){this.active();await this.api.transitionRequest(id,action);await this.refresh()}
+  async createConversation(handle:string){this.active();const normalized=handle.trim().replace(/^@/,"");if(!this.view.contacts?.some(person=>person.handle===normalized))throw new Error("Ask the person to accept your contact request before starting a conversation");const result=await this.api.createConversation("handle",normalized,`conversation-${bytesToHex(this.random(new Uint8Array(12)))}`);await this.refresh();await this.select(result.record.id)}
   async select(id:string){
     const {device,generation}=this.active();const [devices,page]=await Promise.all([this.api.conversationDevices(id),this.api.messages(id)]);
     const seed=hexToBytes(device.encryptionSeed);

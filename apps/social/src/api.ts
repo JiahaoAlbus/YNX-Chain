@@ -36,6 +36,7 @@ export class SocialAPI {
   walletChallenge(request:WalletAuthorizationRequest,approval:WalletApproval){return this.request<{challenge:ProductSessionChallenge}>("/social/v1/wallet/challenge",{method:"POST",body:{request,approval},auth:false})}
   login(input:WalletLogin){return this.request<Session>("/social/v1/wallet/login",{method:"POST",body:input,auth:false})}
   profile(){return this.request<{record:SocialProfile}>("/social/v1/profile")}
+  async profileOrSetup(){try{const record=(await this.profile()).record;if(!record)throw new Error("Invalid Social profile response");return !record.handle&&!record.displayName?null:record}catch(error){if(error instanceof SocialAPIError&&error.status===404)return null;throw error}}
   updateProfile(body:{idempotencyKey:string;handle:string;displayName:string;bio:string;avatarUrl?:string}){return this.request<{record:SocialProfile;replayed:boolean}>("/social/v1/profile",{method:"PUT",body})}
   settings(){return this.request<{record:PrivacySettings}>("/social/v1/settings")}
   updateSettings(body:{idempotencyKey:string;discoverableByHandle:boolean;contactsMatching:boolean;allowRecommendations:boolean;allowRequestsFrom:"everyone"|"contacts"|"nobody";avatarUrl?:string}){return this.request<{record:PrivacySettings;replayed:boolean}>("/social/v1/settings",{method:"PUT",body})}

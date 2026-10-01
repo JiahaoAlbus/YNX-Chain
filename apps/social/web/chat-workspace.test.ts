@@ -14,7 +14,7 @@ function fixture(){
   const slots=new Map<string,string>(),outbox=new DurableOutbox({read:key=>slots.get(key)??null,write:(key,value)=>{slots.set(key,value)},remove:key=>{slots.delete(key)}});
   let createCalls=0,proofs=0,sendFails=false,revoked=false,identityAccount=alice,disconnectStatus='disconnected';
   const sent:SendMessageRequest[]=[],messages:ChatMessage[]=[],views:any[]=[];
-  const result={status:'connected',session:{account:alice,scopes:['account:read','profile:link','social.messaging','social.profile']}};
+  const result={status:'connected',session:{account:alice,scopes:['account:read','profile:link','social.contacts','social.messaging','social.profile']}};
   const client={async proof(scopes:readonly string[]){if(revoked)throw new Error('SESSION_REVOKED');assert.ok(scopes.every(scope=>result.session.scopes.includes(scope)));proofs++;return {proof:{account:alice,sessionBinding:'a'.repeat(64),deviceId:'product-existing-device',deviceKey:'public-product-key'},proofHeader:`proof-${proofs}`}},async restore(){return result},async handleReturn(){return result},async begin(){return {status:'connecting'}},async disconnect(){revoked=true;return {status:disconnectStatus}}};
   const api=new SocialAPI('https://social.ynxweb4.com');
   const workspace=new SocialWorkspace(client,api,{async get(account,create){assert.equal(account,alice);if(create)createCalls++;return {...device}}},outbox,async()=>({account:identityAccount,csrfToken:'synthetic-csrf'}),view=>views.push(view),bytes=>{bytes.fill(11);return bytes});
@@ -22,6 +22,7 @@ function fixture(){
     const path=new URL(String(input)).pathname,headers=new Headers(init?.headers);assert.match(headers.get('X-YNX-Product-Session-Proof-V2')??'',/^proof-/);assert.equal(headers.get('Authorization'),null);
     if(path.endsWith('/session/bind'))return Response.json({session:{id:'psv2-test',account:alice,deviceId:device.deviceId,scopes:result.session.scopes,createdAt:'',expiresAt:''},authMode:'product-session-v2'});
     if(path.endsWith('/profile'))return Response.json({record:{id:alice,handle:'alice',displayName:'Alice',bio:'Hello',privacy:{}}});
+    if(path.endsWith('/contacts'))return Response.json({contacts:[],requests:[]});
     if(path.endsWith('/conversations'))return Response.json({conversations:[{id:'conversation-test',title:'Bob',unread:0,lastMessage:'',e2ee:'verified',updatedAt:''}]});
     if(path.endsWith('/devices'))return Response.json({devices});
     if(path.endsWith('/messages')){

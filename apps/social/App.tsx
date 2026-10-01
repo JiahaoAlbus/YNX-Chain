@@ -206,9 +206,9 @@ function SocialApp() {
     const device=await nativeChatDevice(account);
     const result=await bindScopedSocialSession(api,nativeSocialSession("chat"),device);
     if(result.session.account!==account)throw new Error("Social account changed before binding");
-    await api.profile();
+    const profile=await api.profileOrSetup();
     await SecureStore.setItemAsync(SESSION_KEY,JSON.stringify(result),{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY});
-    setSession(result);setError(null);
+    setSession(result);if(!profile)setTab("profile");setError(null);
   },[api]);
   useEffect(() => {
     void (async () => {
@@ -2330,7 +2330,8 @@ function Profile({
     [exportText, setExportText] = useState("");
   const load = async () => {
     try {
-      const value = (await api.profile()).record;
+      const value = await api.profileOrSetup();
+      if(!value){setPerson(null);setEdit(true);setError(null);return}
       setPerson(value);
       setHandle(value.handle);
       setDisplayName(value.displayName);

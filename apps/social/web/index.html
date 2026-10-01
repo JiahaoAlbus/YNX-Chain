@@ -40,14 +40,15 @@
 
       <section id="social-workspace" class="section" aria-labelledby="workspace-title">
         <h2 id="workspace-title">Your private workspace</h2>
-        <p>Sign in with your YNX identity, then explicitly approve your Social profile and encrypted chat on this device. Standard wallet connection alone never unlocks messages.</p>
+        <p>Sign in with your YNX identity, then explicitly approve your Social profile, contact requests and encrypted chat on this device. Identity-only or standard wallet connection never grants these permissions.</p>
         <a class="button button-primary" href="/sso/start?target=conversations">Sign in with YNX identity</a>
-        <div class="connected-actions"><button id="chat-authorize" type="button">Authorize profile and encrypted chat</button><button id="chat-restore" type="button">Restore approved workspace</button><button id="chat-logout" type="button">Sign out of private workspace</button></div>
+        <div class="connected-actions"><button id="chat-authorize" type="button">Authorize profile, contacts and encrypted chat</button><button id="chat-restore" type="button">Restore approved workspace</button><button id="chat-logout" type="button">Sign out of private workspace</button><button id="protect-chat-device" type="button" hidden>Protect existing browser chat device</button></div>
         <a id="chat-open-wallet" hidden>Open chat permission request in YNX Wallet</a>
         <p id="workspace-status" role="status" aria-live="polite">Private workspace is locked. Guest access makes no authorization request.</p>
         <div id="workspace-content" hidden>
           <p id="workspace-account"></p>
-          <form id="profile-form"><h3>Your profile</h3><label>Handle <input name="handle" required maxlength="32" autocomplete="username" /></label><label>Display name <input name="displayName" required maxlength="80" /></label><label>Bio <textarea name="bio" maxlength="500"></textarea></label><button type="submit">Save profile</button></form>
+          <form id="profile-form"><h3>Your profile</h3><label>Handle <input name="handle" required maxlength="32" autocomplete="username" /></label><label>Display name <input name="displayName" required maxlength="64" /></label><label>Bio <textarea name="bio" maxlength="280"></textarea></label><button type="submit">Save profile</button></form>
+          <section id="people-panel"><h3>People and requests</h3><p>Save your handle first. Send a request by the other person's handle, then wait for them to accept before starting a conversation.</p><form id="contact-request-form"><label>Person's handle <input name="handle" required maxlength="32" autocomplete="off" /></label><button type="submit">Send contact request</button></form><h4>Your contacts</h4><ul id="contact-list"></ul><h4>Contact requests</h4><ul id="contact-request-list" aria-live="polite"></ul></section>
           <div class="social-chat-layout"><section><h3>Conversations</h3><form id="conversation-form"><label>Existing contact's handle <input name="handle" required autocomplete="off" /></label><button type="submit">Open conversation</button></form><button id="workspace-refresh" type="button">Refresh conversations</button><ul id="conversation-list"></ul></section><section><h3 id="conversation-title">Choose a conversation</h3><ol id="message-list" aria-live="polite"></ol><form id="message-form"><label>Encrypted message <textarea name="message" required maxlength="16000"></textarea></label><button type="submit">Send encrypted message</button></form><button id="message-retry" type="button">Retry retained encrypted message</button></section></div>
         </div>
       </section>
