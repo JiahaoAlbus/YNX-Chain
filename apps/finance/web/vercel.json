@@ -4,7 +4,7 @@
     {
       "source": "/(.*)",
       "headers": [
-        {"key": "Content-Security-Policy", "value": "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"},
+        {"key": "Content-Security-Policy", "value": "default-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com wss://relay.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com; frame-src https://verify.walletconnect.org; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"},
         {"key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()"},
         {"key": "Referrer-Policy", "value": "no-referrer"},
         {"key": "X-Content-Type-Options", "value": "nosniff"}

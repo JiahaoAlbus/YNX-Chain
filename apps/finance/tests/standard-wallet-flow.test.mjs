@@ -42,7 +42,10 @@ async function fixture({saved=null,missing=false,missingYNX=false,revoke='succes
     window.addEventListener('eip6963:requestProvider',()=>{for(const p of [f.ynxEnabled?f.ynx:null,missing?null:f.metamask].filter(Boolean))window.dispatchEvent(new CustomEvent('eip6963:announceProvider',{detail:{info:p.providerInfo,provider:p}}));});window.__financeFixture=f;
     window.ethereum={providers:[missingYNX?null:f.ynx,missing?null:f.metamask].filter(Boolean)};
   },{saved,missing,missingYNX,revoke,deferSwitch,deferRevoke,rejectSign,deferSign,accountUnavailable,key});
-  await page.goto(base);await page.evaluate(()=>window.YNXFinanceWallet.ready);return page;
+  await page.goto(base);await page.evaluate(()=>window.YNXFinanceWallet.ready);
+  // These lower-level contract tests intentionally open secondary connection
+  // diagnostics. Normal entry/closed-by-default UI is covered separately.
+  await page.locator('#wallet-connection-details > summary').click();return page;
 }
 async function connect(page,id='#connect-metamask'){await page.locator(id).click();try{await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected',{},{timeout:3000});}catch(error){throw new Error(JSON.stringify({errors:page.financeErrors,state:await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState()),calls:await calls(page)}),{cause:error});}}
 const calls=page=>page.evaluate(()=>window.__financeFixture.calls);

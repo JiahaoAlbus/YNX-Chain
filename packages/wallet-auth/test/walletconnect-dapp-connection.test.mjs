@@ -56,6 +56,30 @@ test('late connect timeout/cancel retires the original pairing and eventual appr
     await assert.rejects(f.connection.request({method:'eth_accounts'}),/SESSION_EXPIRED/);
   }
 });
+test('late cancelled proposal cannot overwrite the new pairing cancellation target',async()=>{
+  const f=fixture(),other='b'.repeat(64),proposals=[],cancelled=[];
+  f.client.connect=()=>new Promise(resolve=>proposals.push(resolve));f.client.core.pairing.disconnect=async({topic})=>cancelled.push(topic);
+  const old=f.connection.connect();const oldRejected=assert.rejects(old,/CANCELLED/);await tick();await f.connection.cancel();
+  const next=f.connection.connect();const nextRejected=assert.rejects(next,/YNX_PAIR_TIMEOUT/);await tick();
+  proposals[1]({uri:`wc:${other}@2?relay-protocol=irn&symKey=${'3'.repeat(64)}`,approval:()=>new Promise(()=>{})});await tick();
+  proposals[0]({uri:`wc:${topic}@2?relay-protocol=irn&symKey=${'2'.repeat(64)}`,approval:()=>Promise.reject(new Error('cancelled fixture'))});await oldRejected;
+  await f.connection.cancel();await tick();assert.ok(cancelled.includes(other));
+  // Resolve the wait through its existing deadline, never a fabricated reply.
+  await nextRejected;
+});
+test('old retirement failure is tagged stale while current cancellation failure remains visible',async()=>{
+  const f=fixture(),notices=[];f.connection.on('cancelUnconfirmed',value=>notices.push(value));f.client.disconnect=async()=>{throw new Error('offline');};
+  const old=f.connection.connect();const oldRejected=assert.rejects(old,/CANCELLED/);await tick();
+  let resolveNew;await f.connection.cancel();
+  // The existing A approval is still pending; its forwarding resolver is
+  // captured before the second connect overwrites fixture state.
+  const originalApprove=f.approve;
+  f.client.connect=async()=>({uri:`wc:${'b'.repeat(64)}@2?relay-protocol=irn&symKey=${'3'.repeat(64)}`,approval:()=>new Promise(resolve=>resolveNew=resolve)});
+  const next=f.connection.connect();await tick();originalApprove(session());await oldRejected;await tick();
+  assert.equal(notices.at(-1)?.current,false);
+  f.client.core.pairing.disconnect=async()=>{throw new Error('offline');};await f.connection.cancel();assert.equal(notices.at(-1)?.current,true);
+  resolveNew(session({topic:'b'.repeat(64)}));await assert.rejects(next,/CANCELLED/);await tick();
+});
 
 test('invalid approved peer/namespace is retired; remote cleanup failure stays unconfirmed',async()=>{
   for(const invalid of [session({peer:{metadata:{url:'https://attacker.example'}}}),session({namespaces:{eip155:{accounts:[`eip155:1:${account}`],methods:[method]}}})]){

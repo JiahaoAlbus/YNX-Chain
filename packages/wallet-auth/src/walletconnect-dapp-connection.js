@@ -10,7 +10,7 @@ const reason={code:6000,message:'User disconnected'};
 // consumers receive a selected EIP-1193-shaped transport, never topics or keys
 // copied into another origin and never a product identity/session credential.
 export class WalletConnectDAppConnection{
-  #origin;#methods;#factory;#client=null;#initializing=null;#session=null;#pending=null;#epoch=0;#listeners=new Map();#deadline;#now;#pairing=null;
+  #origin;#methods;#factory;#client=null;#initializing=null;#session=null;#pending=null;#epoch=0;#attempt=0;#listeners=new Map();#deadline;#now;#pairing=null;
   constructor({origin,methods,clientFactory,deadlineMs=30000,now=()=>Date.now()}={}){
     if(!ORIGINS.has(origin)||!Array.isArray(methods)||!methods.length||new Set(methods).size!==methods.length||methods.some(method=>!METHODS.has(method)||!WALLETCONNECT_SESSION_METHODS.includes(method)))fail('YNX_PAIR_CONFIGURATION_INVALID');
     if(!Number.isSafeInteger(deadlineMs)||deadlineMs<1||deadlineMs>120000)fail('YNX_PAIR_CONFIGURATION_INVALID');
@@ -19,6 +19,7 @@ export class WalletConnectDAppConnection{
   on(event,listener){if(!this.#listeners.has(event))this.#listeners.set(event,new Set());this.#listeners.get(event).add(listener);}
   removeListener(event,listener){this.#listeners.get(event)?.delete(listener);}
   #emit(event,value){for(const listener of this.#listeners.get(event)??[])listener(value);}
+  #unconfirmed(reason,attempt){this.#emit('cancelUnconfirmed',{reason,attempt,current:attempt===this.#attempt});}
   async #wait(work){let timer;try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error('YNX_PAIR_TIMEOUT'),{code:'YNX_PAIR_TIMEOUT'})),this.#deadline);})]);}finally{clearTimeout(timer);}}
   async initialize(){
     if(this.#client)return this.#client;
@@ -58,27 +59,27 @@ export class WalletConnectDAppConnection{
   }
   connect({onURI}={}){
     if(this.#pending)return this.#pending;
-    const epoch=this.#epoch;
+    const epoch=this.#epoch,attempt=++this.#attempt;
     const task=(async()=>{const client=await this.initialize();if(epoch!==this.#epoch)fail('YNX_PAIR_CANCELLED');
       if(this.#session){this.#validate(this.#session);return this.provider();}
       const connecting=client.connect({requiredNamespaces:{eip155:{chains:[WALLETCONNECT_CHAIN],methods:this.#methods,events:[...WALLETCONNECT_SESSION_EVENTS]}}});
-      connecting.then(connected=>{if(epoch===this.#epoch)return;try{const pairing=parseWalletConnectPairingUri(connected.uri,new Date(this.#now()));void this.#wait(client.core.pairing.disconnect({topic:pairing.topic})).catch(()=>this.#emit('cancelUnconfirmed',{reason:'transport-unavailable'}));Promise.resolve(connected.approval()).then(session=>this.#retire(client,session),()=>{});}catch{this.#emit('cancelUnconfirmed',{reason:'transport-unavailable'});}},()=>{});
+      connecting.then(connected=>{if(epoch===this.#epoch)return;try{const pairing=parseWalletConnectPairingUri(connected.uri,new Date(this.#now()));void this.#wait(client.core.pairing.disconnect({topic:pairing.topic})).catch(()=>this.#unconfirmed('transport-unavailable',attempt));Promise.resolve(connected.approval()).then(session=>this.#retire(client,session,attempt),()=>{});}catch{this.#unconfirmed('transport-unavailable',attempt);}},()=>{});
       const {uri,approval}=await this.#wait(connecting);
       const pairing=parseWalletConnectPairingUri(uri,new Date(this.#now()));
-      this.#pairing={topic:pairing.topic,epoch};
-      if(epoch!==this.#epoch)fail('YNX_PAIR_CANCELLED');onURI?.(uri);
+      if(epoch!==this.#epoch)fail('YNX_PAIR_CANCELLED');
+      this.#pairing={topic:pairing.topic,epoch,attempt};onURI?.(uri);
       const approving=approval();
       // A timed-out/cancelled proposal can still settle remotely. Never adopt
       // that late session; explicitly close it through the original SDK.
-      approving.then(session=>{if(epoch!==this.#epoch)void this.#retire(client,session);},()=>{});
+      approving.then(session=>{if(epoch!==this.#epoch)void this.#retire(client,session,attempt);},()=>{});
       const session=await this.#wait(approving);
-      if(epoch!==this.#epoch)fail('YNX_PAIR_CANCELLED');try{this.#validate(session);}catch(error){await this.#retire(client,session);throw error;}this.#session=session;this.#pairing=null;
+      if(epoch!==this.#epoch)fail('YNX_PAIR_CANCELLED');try{this.#validate(session);}catch(error){await this.#retire(client,session,attempt);throw error;}this.#session=session;this.#pairing=null;
       this.#emit('connect',{chainId:'0x1917'});return this.provider();
     })().catch(async error=>{if(epoch===this.#epoch)this.#epoch++;await this.#cancelPairing(epoch);throw error;}).finally(()=>{if(this.#pending===task)this.#pending=null;});
     this.#pending=task;return task;
   }
-  async #cancelPairing(epoch){const pairing=this.#pairing;if(!pairing||epoch!==undefined&&pairing.epoch!==epoch)return;this.#pairing=null;if(this.#client)try{await this.#wait(this.#client.core.pairing.disconnect({topic:pairing.topic}));}catch{this.#emit('cancelUnconfirmed',{reason:'transport-unavailable'});}}
-  async #retire(client,session){if(!session||!/^[0-9a-f]{64}$/.test(session.topic)){this.#emit('cancelUnconfirmed',{reason:'invalid-session'});return;}try{await this.#wait(client.disconnect({topic:session.topic,reason}));}catch{this.#emit('cancelUnconfirmed',{reason:'transport-unavailable'});}}
+  async #cancelPairing(epoch){const pairing=this.#pairing;if(!pairing||epoch!==undefined&&pairing.epoch!==epoch)return;this.#pairing=null;if(this.#client)try{await this.#wait(this.#client.core.pairing.disconnect({topic:pairing.topic}));}catch{this.#unconfirmed('transport-unavailable',pairing.attempt);}}
+  async #retire(client,session,attempt){if(!session||!/^[0-9a-f]{64}$/.test(session.topic)){this.#unconfirmed('invalid-session',attempt);return;}try{await this.#wait(client.disconnect({topic:session.topic,reason}));}catch{this.#unconfirmed('transport-unavailable',attempt);}}
   async cancel(){const epoch=this.#epoch++;this.#pending=null;await this.#cancelPairing(epoch);}
   async disconnect(){this.#epoch++;const session=this.#session;this.#session=null;await this.#cancelPairing();if(session)await this.#wait(this.#client.disconnect({topic:session.topic,reason}));this.#emit('disconnect',{code:4900,message:'PAIR_EXPLICIT_DISCONNECT',reason:'permission-revoked'});}
   provider(){const owner=this;return {isYNXWallet:true,isMetaMask:false,isYNXPair:true,providerInfo:{rdns:'com.ynx.wallet.pair'},on:(event,listener)=>owner.on(event,listener),removeListener:(event,listener)=>owner.removeListener(event,listener),request:input=>owner.request(input)};}

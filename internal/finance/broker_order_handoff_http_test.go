@@ -30,6 +30,48 @@ func TestFinanceCallbackDocumentIsNeverCached(t *testing.T) {
 	}
 }
 
+func TestFinancePairCSPMatchesStaticDeploymentWithoutBroadeningScriptPolicy(t *testing.T) {
+	response := httptest.NewRecorder()
+	securityHeaders(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })).ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/", nil))
+	policy := response.Header().Get("Content-Security-Policy")
+	for _, directive := range []string{"connect-src 'self' https://wallet-auth.ynxweb4.com wss://relay.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com", "frame-src https://verify.walletconnect.org", "script-src 'self'", "frame-ancestors 'none'", "base-uri 'none'", "form-action 'self'"} {
+		if !strings.Contains(policy, directive) {
+			t.Fatalf("missing fixed Pair policy directive %q", directive)
+		}
+	}
+	for _, forbidden := range []string{"*", "unsafe-inline", "unsafe-eval", "ynxwallet:", "wss://relay.walletconnect.com"} {
+		if strings.Contains(policy, forbidden) {
+			t.Fatalf("unexpected policy relaxation %q", forbidden)
+		}
+	}
+	bytes, err := os.ReadFile("../../apps/finance/web/vercel.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var deployment struct {
+		Headers []struct {
+			Headers []struct {
+				Key   string `json:"key"`
+				Value string `json:"value"`
+			} `json:"headers"`
+		} `json:"headers"`
+	}
+	if err := json.Unmarshal(bytes, &deployment); err != nil {
+		t.Fatal(err)
+	}
+	for _, rule := range deployment.Headers {
+		for _, header := range rule.Headers {
+			if header.Key == "Content-Security-Policy" {
+				if header.Value != policy {
+					t.Fatal("static and Go Pair CSP differ")
+				}
+				return
+			}
+		}
+	}
+	t.Fatal("static deployment has no CSP")
+}
+
 func signOpaqueBrokerTestProof(t *testing.T, node, script, action, ticket, nonce string, challenge FinanceOrderApprovalUnsignedV1, at time.Time) json.RawMessage {
 	t.Helper()
 	input, _ := json.Marshal(map[string]any{"action": action, "ticket": ticket, "nonce": nonce, "challenge": challenge, "at": evmReadTime(at)})
