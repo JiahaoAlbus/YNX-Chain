@@ -1,3 +1,4 @@
+import { applyPackageMetadata, persistTerminalWorkspace, terminalCommonBase, mergeTerminalFiles, stopSelectedTerminals } from "../terminal/admission";
 import { installHostCommands } from "../desktop/host-commands";
 import { desktopEditorReady } from "../editor/native-edit";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -9,7 +10,7 @@ import { languageForPath } from "../editor/languages";
 import { ExtensionPanel } from "../extensions/ExtensionPanel";
 import { FileExplorer } from "../explorer/FileExplorer";
 import { PROJECT_BYTE_LIMIT, PROJECT_FILE_LIMIT, PROJECT_TRANSFER_SCHEMA, projectExportJSON, validateImportedProject, type ImportedProject } from "../explorer/projectTransfer";
-import { installContainerPackage, installContainerPythonPackage, loadChainStatus, loadWorkspace, loadExtensions, runActive, runContainerActive, runProjectTests, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
+import { loadTerminalSessions, stopTerminalSession, installContainerPackage, installContainerPythonPackage, loadChainStatus, loadWorkspace, loadExtensions, runActive, runContainerActive, runProjectTests, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
 import { loadProject, foldersFromFiles, saveProject, validPath, type ProjectState } from "../state/workspace";
 import { SourceControlPanel } from "../scm/SourceControlPanel";
 import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
@@ -125,11 +126,15 @@ export function Workbench() {
     [packageEcosystem, setPackageEcosystem] = useState<"npm" | "python">("npm"),
     [packageSpec, setPackageSpec] = useState(""),
     [packageBusy, setPackageBusy] = useState(false),
+    [packageMetadataResult, setPackageMetadataResult] = useState<{ expected: Record<string, string>; updates: Record<string, string> }>(),
     [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("ynx-code-theme") === "light" ? "light" : "dark")),
     [search, setSearch] = useState(""),
     [replacement, setReplacement] = useState(""),
     [matchCase, setMatchCase] = useState(false),
     [hydrated, setHydrated] = useState(false),
+    [workspaceAdmitted, setWorkspaceAdmitted] = useState(false),
+    [admissionAttempt, setAdmissionAttempt] = useState(0),
+    [terminalActive, setTerminalActive] = useState(false),
     [breakpoints, setBreakpoints] = useState<Record<string, number[]>>({}),
     [debugLine, setDebugLine] = useState<number>(),
     [editorLocation, setEditorLocation] = useState<{ path: string; line: number; column: number; nonce: number }>(),
@@ -145,7 +150,18 @@ export function Workbench() {
     });
   const [selectedRuntime, setSelectedRuntime] = useState<string | undefined>(() => localStorage.getItem(`ynx-code-runtime:${project.id}`) || undefined);
   const [collaborationMounted, setCollaborationMounted] = useState(() => Boolean(localStorage.getItem(`ynx-code-room:${project.id}`)));
+  useEffect(() => {
+    if (!packageMetadataResult) return;
+    const { expected, updates } = packageMetadataResult;
+    if (Object.keys(updates).some(path => project.files[path] !== updates[path]) && !applyPackageMetadata(project.files, expected, updates)) {
+      setOutput(current => current + "\n[local metadata conflict] Installation completed in the isolated package store, but newer local metadata was retained. Reconcile the saved package recovery metadata before running or saving this dependency.\n");
+      setRuntime("Package installed · local metadata conflict");
+    }
+    setPackageMetadataResult(undefined);
+  }, [packageMetadataResult, project.files]);
   const lastSynced = useRef("");
+  const packageSequence = useRef(false);
+  const baselineProject = useRef(project.id);
   const reconnect = useCallback(async () => {
     setConnectionBusy(true);
     setRuntime("connecting");
@@ -238,6 +254,8 @@ export function Workbench() {
   }, []);
   useEffect(() => {
     let cancelled = false;
+    setWorkspaceAdmitted(false);
+    if (baselineProject.current !== project.id) { lastSynced.current = ""; baselineProject.current = project.id; }
     (async () => {
       try {
         const health = await runtimeHealth();
@@ -251,7 +269,7 @@ export function Workbench() {
           // Compare the current model, including edits made while loading, and
           // retain differences. The existing revision check protects the server.
           if (remoteKey !== workspaceKeyRef.current) {
-            lastSynced.current = remoteKey;
+            lastSynced.current = terminalCommonBase(lastSynced.current, remoteKey, project.remoteRevision, remote.revision);
             setDirty((current) => new Set([...current, ...Object.keys(project.files)]));
             setRuntime(remote.revision === project.remoteRevision ? "Recovered local changes" : "save conflict");
             setConnectionBusy(false);
@@ -267,12 +285,14 @@ export function Workbench() {
           const saved = await saveWorkspace(project.id, 0, workspace);
           if (cancelled) return;
           lastSynced.current = workspaceKey;
+          setWorkspaceAdmitted(true);
           setProject((current) => ({
             ...current,
             remoteRevision: saved.revision,
           }));
         }
         setHydrated(true);
+        setWorkspaceAdmitted(true);
         void reconnect();
       } catch {
         if (!cancelled) {
@@ -285,19 +305,20 @@ export function Workbench() {
     return () => {
       cancelled = true;
     };
-  }, [reconnect]);
+  }, [reconnect, admissionAttempt, project.id]);
   useEffect(() => {
-    const handleOnline = () => void reconnect();
+    const handleOnline = () => { void reconnect(); setAdmissionAttempt(value => value + 1); };
     addEventListener("online", handleOnline);
     return () => removeEventListener("online", handleOnline);
   }, [reconnect]);
   useEffect(() => {
-    if (!hydrated || collaborationSession || !editorPreferences.autoSave || workspaceKey === lastSynced.current) return;
+    if (!hydrated || terminalActive || packageBusy || collaborationSession || !editorPreferences.autoSave || workspaceKey === lastSynced.current) return;
     const timer = setTimeout(() => {
       const expected = project.remoteRevision;
       saveWorkspace(project.id, expected, workspace)
         .then((saved) => {
           lastSynced.current = workspaceKey;
+          setWorkspaceAdmitted(true);
           setProject((current) => ({
             ...current,
             remoteRevision: saved.revision,
@@ -306,7 +327,7 @@ export function Workbench() {
         .catch((error) => setRuntime(error?.code === "revision_conflict" ? "save conflict" : "save unavailable"));
     }, editorPreferences.autoSaveDelay);
     return () => clearTimeout(timer);
-  }, [collaborationSession, editorPreferences.autoSave, editorPreferences.autoSaveDelay, hydrated, project.id, project.remoteRevision, workspace, workspaceKey]);
+  }, [terminalActive, packageBusy, collaborationSession, editorPreferences.autoSave, editorPreferences.autoSaveDelay, hydrated, project.id, project.remoteRevision, workspace, workspaceKey]);
   const collaborationReadOnly = Boolean(collaborationRole && !["owner", "editor"].includes(collaborationRole));
   const activeContent = project.files[project.active] ?? "";
   const second = project.open.find((path) => path !== project.active);
@@ -376,10 +397,11 @@ export function Workbench() {
         next.delete(project.active);
         return next;
       });
-    if (!editorPreferences.autoSave && hydrated && !collaborationSession && workspaceKey !== lastSynced.current) {
+    if (hydrated && !terminalActive && !packageBusy && !collaborationSession && workspaceKey !== lastSynced.current) {
       try {
         const saved = await saveWorkspace(project.id, project.remoteRevision, workspace);
         lastSynced.current = workspaceKey;
+        setWorkspaceAdmitted(true);
         setProject((current) => ({ ...current, remoteRevision: saved.revision }));
         const unchanged = workspaceKeyRef.current === workspaceKey;
         if (unchanged) clearActiveDirty();
@@ -635,19 +657,38 @@ export function Workbench() {
     if (!selectedRuntime || selectedRuntime.startsWith("ssh-") || !valid || collaborationReadOnly) return;
     setPackageReview(false);
     setPackageBusy(true);
+    packageSequence.current = true;
     setBottom("task");
     setOutput((current) => `${current}\n$ ynx package install --ecosystem ${packageEcosystem} ${packageSpec}\n`);
     try {
+      const localKey = workspaceKeyRef.current, base = JSON.parse(lastSynced.current || "null");
+      if (!base) throw new Error("Save the workspace before installing packages.");
+      await stopSelectedTerminals(selectedRuntime, () => loadTerminalSessions(project.id), stopTerminalSession);
+      setTerminalActive(false);
+      const remote = await loadWorkspace(project.id);
+      if (!remote) throw new Error("Workspace admission is unavailable; retry after saving.");
+      if (workspaceKeyRef.current !== localKey) throw new Error("The editor changed while stopping the terminal. Edits are retained; review the package request again.");
+      const local = JSON.parse(localKey), files = mergeTerminalFiles(base.files, local.files, remote.files);
+      const synchronized = { ...local, files, open: local.open.filter((path: string) => Object.hasOwn(files, path)), active: Object.hasOwn(files, local.active) ? local.active : Object.keys(files)[0] || "" };
+      const saved = await persistTerminalWorkspace(localKey, () => workspaceKeyRef.current, () => saveWorkspace(project.id, remote.revision, synchronized));
+      lastSynced.current = JSON.stringify(synchronized);
+      setProject(current => JSON.stringify({ name: current.name, folders: current.folders, files: current.files, open: current.open, active: current.active }) === localKey ? { ...current, ...synchronized, remoteRevision: saved.revision } : current);
+      setWorkspaceAdmitted(true);
+      const retainMetadata = (value: unknown) => { const recovery = JSON.stringify(value); try { localStorage.setItem(`ynx-code-package-recovery:${project.id}:${crypto.randomUUID()}`, recovery); } catch { setOutput(current => `${current}\n[package metadata recovery] ${recovery}\n`); } };
       if (packageEcosystem === "npm") {
-        const result = await installContainerPackage(selectedRuntime, project.id, packageSpec, project.files);
+        const result = await installContainerPackage(selectedRuntime, project.id, packageSpec, files);
         if (!result.ok || result.scripts !== false || result.network.restored !== true) throw new Error("Package service returned an invalid npm installation envelope.");
-        setProject((current) => ({ ...current, revision: current.revision + 1, files: { ...current.files, "package.json": result.packageJson, "package-lock.json": result.packageLock } }));
+        retainMetadata({ packageSpec, packageJson: result.packageJson, packageLock: result.packageLock });
+        setPackageMetadataResult({ expected: files, updates: { "package.json": result.packageJson, "package-lock.json": result.packageLock } });
+        setProject(current => { const next = applyPackageMetadata(current.files, files, { "package.json": result.packageJson, "package-lock.json": result.packageLock }); return next ? { ...current, revision: current.revision + 1, files: next } : current; });
         setDirty((current) => new Set([...current, "package.json", "package-lock.json"]));
         setOutput((current) => `${current}${result.output}\n[installed] ${result.packageSpec} · ${result.bytes} bytes · lifecycle scripts disabled · temporary network removed · ${result.durationMs} ms\n`);
       } else {
-        const result = await installContainerPythonPackage(selectedRuntime, project.id, packageSpec, project.files);
+        const result = await installContainerPythonPackage(selectedRuntime, project.id, packageSpec, files);
         if (!result.ok || result.buildScripts !== false || result.binaryOnly !== true || result.network.restored !== true) throw new Error("Package service returned an invalid Python installation envelope.");
-        setProject((current) => ({ ...current, revision: current.revision + 1, files: { ...current.files, "requirements.ynx.lock": result.requirementsLock } }));
+        retainMetadata({ packageSpec, requirementsLock: result.requirementsLock });
+        setPackageMetadataResult({ expected: files, updates: { "requirements.ynx.lock": result.requirementsLock } });
+        setProject(current => { const next = applyPackageMetadata(current.files, files, { "requirements.ynx.lock": result.requirementsLock }); return next ? { ...current, revision: current.revision + 1, files: next } : current; });
         setDirty((current) => new Set([...current, "requirements.ynx.lock"]));
         setOutput((current) => `${current}${result.output}\n[installed] ${result.packageSpec} · ${result.bytes} bytes · binary wheels only · temporary network removed · ${result.durationMs} ms\n`);
       }
@@ -655,13 +696,16 @@ export function Workbench() {
     } catch (error) {
       setOutput((current) => `${current}\x1b[31m${error instanceof Error ? error.message : String(error)}\x1b[0m\n`);
     } finally {
+      packageSequence.current = false;
       setPackageBusy(false);
     }
   };
   const refreshWorkspace = useCallback(
     async (revision: number) => {
+      if (packageSequence.current) return;
       const remote = await loadWorkspace(project.id);
       if (!remote || remote.revision !== revision) return;
+      if (workspaceKeyRef.current !== lastSynced.current) { setRuntime("Terminal changes saved · local edits retained"); return; }
       lastSynced.current = JSON.stringify({
         name: remote.name,
         folders: remote.folders,
@@ -888,7 +932,7 @@ export function Workbench() {
         <div className="runtime-state" role="status" aria-live="polite">
           <span className={`status-dot ${runtime.startsWith("connected") ? "ready" : ""}`} />
           <span className="runtime-label">{runtime}</span>
-          <button type="button" disabled={connectionBusy} onClick={() => void reconnect()}>
+          <button type="button" disabled={connectionBusy} onClick={() => { void reconnect(); if (!workspaceAdmitted) setAdmissionAttempt(value => value + 1); }}>
             {connectionBusy ? "Connecting" : "Reconnect"}
           </button>
         </div>
@@ -1023,7 +1067,7 @@ export function Workbench() {
               extensionTheme={extensionTheme}
               onChange={update}
               onCursorChange={(path, anchor, head) => setCollaborationCursor({ path, anchor, head })}
-              readOnly={collaborationReadOnly}
+              readOnly={collaborationReadOnly || packageBusy}
               breakpoints={breakpoints[project.active] || []}
               debugLine={debugLine}
               onToggleBreakpoint={toggleBreakpoint}
@@ -1060,7 +1104,7 @@ export function Workbench() {
             <span className="spacer" />
             {bottom === "task" && <button onClick={() => setOutput("YNX Code task output\n")}>Clear</button>}
           </div>
-          <div className="bottom-body">{bottom === "task" ? <TerminalPanel output={output} running={running} /> : bottom === "terminal" ? <InteractiveTerminal projectId={project.id} runtimeId={selectedRuntime} onWorkspaceSync={refreshWorkspace} /> : problems.length ? <div className="problems-list" role="list" aria-label="Language server problems">{problems.map((problem, index) => <button type="button" role="listitem" key={`${problem.path}:${problem.line}:${problem.column}:${problem.code}:${index}`} onClick={() => open(problem.path)}>{problem.severity === "error" ? <CircleAlert className="problem-error" size={13} /> : problem.severity === "warning" ? <TriangleAlert className="problem-warning" size={13} /> : <Info className="problem-info" size={13} />}<span><strong>{problem.message}</strong><small>{problem.path}:{problem.line}:{problem.column} · {problem.source}{problem.code ? ` · ${problem.code}` : ""}</small></span></button>)}</div> : <div className="empty-state">No current language-server problems for opened files. Diagnostics are requested after edits and may be unavailable when that language server is not installed.</div>}</div>
+          <div className="bottom-body">{bottom === "task" ? <TerminalPanel output={output} running={running} /> : bottom === "terminal" ? (workspaceAdmitted && !packageBusy ? <InteractiveTerminal projectId={project.id} runtimeId={selectedRuntime} onWorkspaceSync={refreshWorkspace} onActive={setTerminalActive} /> : <div className="empty-state">{packageBusy ? "Stopping and synchronizing the terminal before package installation…" : "Save or retry the workspace connection before opening a terminal."}</div>) : problems.length ? <div className="problems-list" role="list" aria-label="Language server problems">{problems.map((problem, index) => <button type="button" role="listitem" key={`${problem.path}:${problem.line}:${problem.column}:${problem.code}:${index}`} onClick={() => open(problem.path)}>{problem.severity === "error" ? <CircleAlert className="problem-error" size={13} /> : problem.severity === "warning" ? <TriangleAlert className="problem-warning" size={13} /> : <Info className="problem-info" size={13} />}<span><strong>{problem.message}</strong><small>{problem.path}:{problem.line}:{problem.column} · {problem.source}{problem.code ? ` · ${problem.code}` : ""}</small></span></button>)}</div> : <div className="empty-state">No current language-server problems for opened files. Diagnostics are requested after edits and may be unavailable when that language server is not installed.</div>}</div>
         </section>
         <footer className="statusbar">
           <span>

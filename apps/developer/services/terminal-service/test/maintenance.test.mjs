@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
-import { mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import test from "node:test";
@@ -104,4 +104,43 @@ test("a late remote writer after transport exit keeps its guard and cannot ackno
   const recoveryFile = (await readdir(join(root, ".recovery")))[0];
   const recovery = JSON.parse(await readFile(join(root, ".recovery", recoveryFile)));
   assert.equal(recovery.payload, null); assert.equal(recovery.reason, "remote_terminal_recovery_required");
+});
+
+test("normal DELETE retries a failed remote proof, retains the first recovery receipt and clears only its resolved failure", async t => {
+  const root = await mkdtemp(join(tmpdir(), "terminal-stop-retry-")), events = [];
+  let verified = false;
+  const terminal = createTerminalService({ root, ownerForRequest: request => request.headers["x-owner"], workspaceStore: {
+    get: () => ({ name: "Recovery", revision: 1, folders: [], files: { "main.js": "before" }, open: ["main.js"], active: "main.js" }),
+    put: (_owner,_project,input) => { events.push("persist"); assert.equal(input.expectedRevision,1); assert.equal(input.payload.files["main.js"],"after"); return {revision:2}; },
+  }, containerTerminalBroker: { openTerminal: async () => ({
+    launch: { command: process.execPath,args:["-e","process.stdin.resume();setInterval(()=>{},1000)"],cwd:root,env:process.env,sandbox:{kind:"synthetic-broker"} },
+    assertStopped: async () => { events.push("verify"); if(!verified) throw Object.assign(new Error("Remote child is still writing"),{code:"remote_terminal_recovery_required"}); },
+    collect: async () => { events.push("collect"); return {files:{"main.js":"after"},folders:[]}; },
+    acknowledgeSnapshot: () => events.push("ack"), release: () => events.push("release"),
+  }) } });
+  const server=createServer((req,res)=>terminal.handler(req,res));server.on("upgrade",terminal.handleUpgrade);await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));const address=`127.0.0.1:${server.address().port}`;
+  const socket=new WebSocket(`ws://${address}/runtime/terminals?projectId=project&runtimeId=0123456789abcdef01234567`,"ynx-code-terminal-v1",{headers:{origin:`http://${address}`,"x-owner":"owner-a"}}),messages=[];
+  socket.on("message",value=>messages.push(JSON.parse(value)));socket.on("error",()=>{});
+  t.after(async()=>{socket.terminate();await terminal.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await rm(root,{recursive:true,force:true});});
+  await until(()=>messages.some(value=>value.type==="ready"));const sessionId=messages.find(value=>value.type==="ready").sessionId;
+  const stop=owner=>fetch(`http://${address}/runtime/terminals/${sessionId}`,{method:"DELETE",headers:{"x-owner":owner}});
+  assert.equal((await stop("owner-b")).status,404);assert.equal((await stop("owner-a")).status,503);assert.deepEqual(events,["verify"]);
+  const files=await readdir(join(root,".recovery"));assert.equal(files.length,1);const first=await readFile(join(root,".recovery",files[0]),"utf8");
+  verified=true;assert.equal((await stop("owner-a")).status,200);assert.deepEqual(events,["verify","verify","collect","persist","ack","release"]);
+  assert.equal(await readFile(join(root,".recovery",files[0]),"utf8"),first);assert.equal(terminal.status().cleanupFailures,0);assert.equal(terminal.status().recoveryRequired,0);
+});
+
+test("cold recovery scratch failure acquires no remote lock and same-owner Stop retries after storage repair", async t => {
+  const directory=await mkdtemp(join(tmpdir(),"terminal-cold-scratch-")),root=join(directory,"scratch"),sessionId="00000000-0000-4000-8000-000000000002",events=[];
+  await writeFile(root,"invalid scratch root");let held=false;
+  const terminal=createTerminalService({root,ownerForRequest:req=>req.headers["x-owner"],workspaceStore:{put:()=>{events.push("persist");return{revision:2};}},containerTerminalBroker:{
+    recoverableTerminals:owner=>owner==="owner-a"?[{sessionId,projectId:"project",runtimeId:"a".repeat(24)}]:[],
+    resumeContainerTerminal:async({owner})=>{assert.equal(owner,"owner-a");assert.equal(held,false);held=true;events.push("resume");return{projectId:"project",runtimeId:"a".repeat(24),snapshot:{name:"Cold",revision:1,files:{"main.js":"before"},folders:[],open:["main.js"],active:"main.js"},remote:{assertStopped:async()=>events.push("verify"),collect:async()=>({files:{"main.js":"after"},folders:[]}),acknowledgeSnapshot:async()=>events.push("ack"),release:async()=>{held=false;events.push("release");}}};},
+  }});
+  const server=createServer((req,res)=>terminal.handler(req,res));await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));const base=`http://127.0.0.1:${server.address().port}`;
+  t.after(async()=>{await terminal.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await rm(directory,{recursive:true,force:true});});
+  const stop=owner=>fetch(`${base}/runtime/terminals/${sessionId}`,{method:"DELETE",headers:{"x-owner":owner}});
+  assert.equal((await stop("owner-b")).status,404);assert.equal((await stop("owner-a")).status,503);assert.equal(held,false);assert.deepEqual(events,[]);
+  await rm(root);await mkdir(root);
+  assert.equal((await stop("owner-a")).status,200);assert.equal(held,false);assert.deepEqual(events,["resume","verify","persist","ack","release"]);
 });

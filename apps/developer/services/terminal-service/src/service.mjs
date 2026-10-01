@@ -1,4 +1,5 @@
-import { createSessionLifecycle, closeWebSockets, waitForExit } from "../../workspace-agent/src/session-lifecycle.mjs";
+import { createTerminalLifecycle } from "./lifecycle.mjs";
+import { closeWebSockets, waitForExit } from "../../workspace-agent/src/session-lifecycle.mjs";
 import { randomUUID } from "node:crypto";
 import { chmod, mkdir, mkdtemp, realpath, rm, open } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -49,11 +50,28 @@ export function createTerminalService(options) {
           error: "Invalid project ID.",
           code: "invalid_project_id",
         });
-      const terminals = [...sessions.values()].filter((state) => state.owner === owner && (!projectId || state.projectId === projectId)).map(publicSession);
+      const recovered = (containerTerminalBroker?.recoverableTerminals?.(owner) || []).filter(value => !sessions.has(value.sessionId) && (!projectId || value.projectId === projectId));
+      const terminals = [...sessions.values()].filter((state) => state.owner === owner && (!projectId || state.projectId === projectId)).map(publicSession).concat(recovered);
       return json(response, 200, { protocolVersion: PROTOCOL, terminals });
     }
     if (stopMatch && request.method === "DELETE") {
-      const state = sessions.get(stopMatch[1]);
+      let state = sessions.get(stopMatch[1]);
+      if (!state && containerTerminalBroker?.resumeContainerTerminal && containerTerminalBroker.recoverableTerminals?.(owner).some(value => value.sessionId === stopMatch[1])) {
+        let workspace;
+        try {
+          // Admit local recovery storage before reserving the remote lease.
+          // A scratch failure must not strand a newly acquired runtime lock.
+          workspace = await mkdtemp(join(await ensureRoot(root), "terminal-recovery-"));
+          const resumed = await containerTerminalBroker.resumeContainerTerminal({ owner, sessionId: stopMatch[1] });
+          if (resumed) {
+            state = { owner, sessionId: stopMatch[1], ...resumed, workspace, terminal: { kill() {} }, exited: Promise.resolve(), closed: true, startedAt: clock.now(), lastInput: clock.now(), replayBytes: 0 };
+            sessions.set(state.sessionId, state);
+          } else { await rm(workspace, { recursive: true, force: true }); }
+        } catch (error) {
+          if (workspace && !state) await rm(workspace, { recursive: true, force: true });
+          return json(response, error.status || 503, { code: error.code || "terminal_recovery_required", stopped: false, error: error.message });
+        }
+      }
       if (!state || state.owner !== owner)
         return json(response, 404, {
           error: "Terminal session was not found.",
@@ -74,7 +92,7 @@ export function createTerminalService(options) {
       code: "method_not_allowed",
     });
   }
-  const lifecycle = createSessionLifecycle();
+  const lifecycle = createTerminalLifecycle();
   function handleUpgrade(request, socket, head) {
     const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
     if (url.pathname !== "/runtime/terminals") return false;
@@ -135,6 +153,7 @@ export function createTerminalService(options) {
           runtimeId,
           projectId,
           snapshot,
+          sessionId,
           environment: resolvedEnvironment.environment,
         });
       else {
@@ -277,13 +296,21 @@ export function createTerminalService(options) {
       });
   }
   function finish(state, result) {
-    return lifecycle.finish(state, () => performFinish(state, result));
+    // Retry only a settled failure. Keep the concurrent finish promise shared,
+    // and retain each immutable recovery receipt from preceding attempts.
+    if (state.finishResult?.ok === false && !state.released) {
+      state.finishPromise = undefined;
+      state.finishResult = undefined;
+    }
+    const promise = lifecycle.finish(state, () => performFinish(state, result));
+    promise.then(value => { state.finishResult = value; });
+    return promise;
   }
   async function performFinish(state, result) {
     clock.clearInterval(state.idle);
     clock.clearTimeout(state.hard);
     await waitForExit(state.exited, signal => { try { state.terminal.kill(signal); } catch {} });
-    let recoveryPayload, syncError;
+    let recoveryPayload, syncError, stage = "stop";
     try {
       // A reaped SSH/LXD client is not evidence that detached remote writers
       // have stopped. Do not acknowledge or overwrite a partial snapshot.
@@ -291,6 +318,7 @@ export function createTerminalService(options) {
         if (!state.remote.assertStopped) throw fault("Remote terminal writers need verified recovery.", "remote_terminal_recovery_required");
         await state.remote.assertStopped();
       }
+      stage = "collect";
       const { revision: _revision, updatedAt: _updatedAt, replayed: _replayed, ...baseSnapshot } = state.snapshot,
         remotePayload = state.remote ? await state.remote.collect() : null,
         files = remotePayload?.files,
@@ -304,6 +332,7 @@ export function createTerminalService(options) {
             }
           : await readTextSnapshot(state.workspace, baseSnapshot);
       recoveryPayload = payload;
+      stage = "persist";
       const saved = workspaceStore.put(state.owner, state.projectId, {
         expectedRevision: state.snapshot.revision,
         idempotencyKey: `terminal-${state.sessionId}`,
@@ -321,8 +350,8 @@ export function createTerminalService(options) {
       // or link created by the terminal must never choose our recovery target.
       const recoveryRoot = join(root, ".recovery");
       await mkdir(recoveryRoot, { recursive: true, mode: 0o700 });
-      const recovery = await open(join(recoveryRoot, `${state.sessionId}.json`), "wx", 0o600);
-      try { await recovery.writeFile(JSON.stringify({ owner: state.owner, projectId: state.projectId, runtimeId: state.runtimeId, expectedRevision: state.snapshot.revision, sessionId: state.sessionId, payload: recoveryPayload || null, reason: error.code || "workspace_sync_failed" })); await recovery.sync(); }
+      const recovery = await open(join(recoveryRoot, `${state.sessionId}-${randomUUID()}.json`), "wx", 0o600);
+      try { await recovery.writeFile(JSON.stringify({ owner: state.owner, projectId: state.projectId, runtimeId: state.runtimeId, expectedRevision: state.snapshot.revision, sessionId: state.sessionId, payload: recoveryPayload || null, reason: error.code || "workspace_sync_failed", stage })); await recovery.sync(); }
       finally { await recovery.close(); }
       const directory = await open(recoveryRoot, "r");
       try { await directory.sync(); } finally { await directory.close(); }
@@ -333,11 +362,13 @@ export function createTerminalService(options) {
       send(state.websocket, {
         type: "workspace-sync-conflict",
         code: error.code || "workspace_sync_failed",
+        stage, retryable: stage !== "persist",
         message: "Terminal changes could not be synchronized. Recovery data is retained; inspect it before restarting this runtime.",
       });
     }
     if (state.remote && !recoveryPayload) throw syncError;
     await state.remote?.release();
+    state.released = true;
     send(state.websocket, {
       type: "exit",
       code: result.exitCode,
@@ -394,7 +425,7 @@ function publicSession(state) {
     sessionId: state.sessionId,
     projectId: state.projectId,
     runtimeId: state.runtimeId,
-    status: state.websocket ? "attached" : "detached",
+    status: state.closed ? "recovery" : state.websocket ? "attached" : "detached",
     startedAt: new Date(state.startedAt).toISOString(),
     lastActivityAt: new Date(state.lastInput).toISOString(),
     replayBytes: state.replayBytes,

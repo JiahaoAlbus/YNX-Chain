@@ -15,9 +15,10 @@ export function createTerminalRecoveryJournal(db) {
   const identity = (owner, runtimeId) => JSON.stringify([owner, runtimeId]);
   db.exec("CREATE TABLE IF NOT EXISTS terminal_recovery(owner_id TEXT NOT NULL,runtime_id TEXT NOT NULL,project_id TEXT NOT NULL,token TEXT NOT NULL,opened_at TEXT NOT NULL,PRIMARY KEY(owner_id,runtime_id))");
   if (!db.prepare("PRAGMA table_info(terminal_recovery)").all().some(column => column.name === "workspace_id")) db.exec("ALTER TABLE terminal_recovery ADD COLUMN workspace_id TEXT");
-  const read = db.prepare("SELECT project_id,token,workspace_id,opened_at FROM terminal_recovery WHERE owner_id=? AND runtime_id=?");
-  const list = db.prepare("SELECT runtime_id,project_id,token,workspace_id,opened_at FROM terminal_recovery WHERE owner_id=? ORDER BY opened_at DESC");
-  const insert = db.prepare("INSERT INTO terminal_recovery(owner_id,runtime_id,project_id,token,opened_at,workspace_id) VALUES(?,?,?,?,?,?)");
+  if (!db.prepare("PRAGMA table_info(terminal_recovery)").all().some(column => column.name === "terminal_context")) db.exec("ALTER TABLE terminal_recovery ADD COLUMN terminal_context TEXT");
+  const read = db.prepare("SELECT project_id,token,workspace_id,opened_at,terminal_context FROM terminal_recovery WHERE owner_id=? AND runtime_id=?");
+  const list = db.prepare("SELECT runtime_id,project_id,token,workspace_id,opened_at,terminal_context FROM terminal_recovery WHERE owner_id=? ORDER BY opened_at DESC");
+  const insert = db.prepare("INSERT INTO terminal_recovery(owner_id,runtime_id,project_id,token,opened_at,workspace_id,terminal_context) VALUES(?,?,?,?,?,?,?)");
   const remove = db.prepare("DELETE FROM terminal_recovery WHERE owner_id=? AND runtime_id=? AND token=?");
   const count = db.prepare("SELECT COUNT(*) AS count FROM terminal_recovery");
   function assertAvailable(owner, runtimeId) {
@@ -32,10 +33,11 @@ export function createTerminalRecoveryJournal(db) {
     requireRecovery: (owner, runtimeId) => failed.add(identity(owner, runtimeId)),
     recovering: (owner, runtimeId) => failed.has(identity(owner, runtimeId)),
     assertAvailable, pending: (owner, runtimeId) => Boolean(read.get(owner, runtimeId)),
-    begin(owner, runtimeId, projectId, { workspaceId = null } = {}) {
+    acknowledge(owner, runtimeId, token) { const result = remove.run(owner, runtimeId, token); if (result.changes) failed.delete(identity(owner, runtimeId)); return result; },
+    begin(owner, runtimeId, projectId, { workspaceId = null, terminalContext = null } = {}) {
       if (workspaceId !== null && !/^[a-f0-9]{48}$/.test(workspaceId)) throw new Error("Invalid internal SSH workspace identity.");
       assertAvailable(owner, runtimeId);
-      const token = randomUUID(); insert.run(owner, runtimeId, projectId, token, new Date().toISOString(), workspaceId);
+      const token = randomUUID(); insert.run(owner, runtimeId, projectId, token, new Date().toISOString(), workspaceId, terminalContext ? JSON.stringify(terminalContext) : null);
       return () => { const result = remove.run(owner, runtimeId, token); if (result.changes) failed.delete(identity(owner, runtimeId)); return result; };
     },
   };

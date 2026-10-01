@@ -55,7 +55,7 @@ test("legacy recovery rows are retained when introducing physical workspace iden
   db.exec("CREATE TABLE terminal_recovery(owner_id TEXT,runtime_id TEXT,project_id TEXT,token TEXT,opened_at TEXT,PRIMARY KEY(owner_id,runtime_id)); INSERT INTO terminal_recovery VALUES('owner','ssh-old','project','old-token','old-date')");
   const journal = createTerminalRecoveryJournal(db);
   assert.throws(() => journal.assertAvailable("owner", "ssh-old"), { code: "terminal_recovery_required" });
-  assert.deepEqual({ ...db.prepare("SELECT * FROM terminal_recovery").get() }, { owner_id: "owner", runtime_id: "ssh-old", project_id: "project", token: "old-token", opened_at: "old-date", workspace_id: null });
+  assert.deepEqual({ ...db.prepare("SELECT * FROM terminal_recovery").get() }, { owner_id: "owner", runtime_id: "ssh-old", project_id: "project", token: "old-token", opened_at: "old-date", workspace_id: null, terminal_context: null });
   db.close();
 });
 

@@ -74,3 +74,29 @@ for (const kind of ["lxd", "ssh", "language", "debug"]) test(`${kind} restart re
   assert.equal(JSON.stringify(own).includes(secret), false); assert.equal(JSON.stringify(other).includes(runtimeId), false);
   assert.deepEqual(events, ["prepare"]);
 });
+
+test("new LXD session identity resumes after restart, denies another owner and preserves legacy protection", async t => {
+  const root = await mkdtemp(join(tmpdir(), "lxd-stop-restart-")), filename = join(root, "runtime.sqlite"), events = [];
+  const options = { filename, ownerForRequest: () => "owner-a", lxd: {
+    inventory: async () => ({ ready: true }), create: async () => ({}),
+    prepareTerminal: async value => { events.push(["prepared", value.terminalIdentity]); },
+    terminalLaunch: () => ({ command: "synthetic-shell" }),
+    assertTerminalStopped: async value => { assert.equal(value.terminalIdentity.ownerHash.length, 64); events.push("verified"); },
+    collectTerminal: async () => { events.push("collected"); return { files: { "main.js": "after" }, folders: [] }; },
+  } };
+  let service = createRuntimeProfileService(options);
+  const server = createServer((req,res) => service.handler(req,res)); await new Promise(resolve => server.listen(0,"127.0.0.1",resolve));
+  t.after(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); service.close(); await rm(root,{recursive:true,force:true}); });
+  const response = await fetch(`http://127.0.0.1:${server.address().port}/runtime/profiles/lxd/leases`, { method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",approval:"create-container-once",projectId:"project",image:"ubuntu-24.04"}) });
+  const {runtime} = await response.json(); assert.equal(response.status,201);
+  const sessionId="00000000-0000-4000-8000-000000000001",snapshot={name:"Project",revision:2,files:{"main.js":"before"},folders:[],open:["main.js"],active:"main.js"};
+  await service.openContainerTerminal({owner:"owner-a",runtimeId:runtime.runtimeId,projectId:"project",sessionId,snapshot});
+  service.close();service=createRuntimeProfileService(options);
+  assert.equal(service.recoverableTerminals("owner-a")[0].sessionId,sessionId);assert.deepEqual(service.recoverableTerminals("owner-b"),[]);
+  assert.equal(await service.resumeContainerTerminal({owner:"owner-b",sessionId}),null);
+  const resumed=await service.resumeContainerTerminal({owner:"owner-a",sessionId});assert.equal(resumed.snapshot.revision,2);
+  await resumed.remote.assertStopped();await resumed.remote.collect();assert.equal(service.recoverableTerminals("owner-a").length,1);
+  // Only the terminal's successful persistence or immutable full backup acknowledges.
+  await resumed.remote.acknowledgeSnapshot();await resumed.remote.release();assert.equal(service.recoverableTerminals("owner-a").length,0);
+  assert.deepEqual(events.slice(1),["verified","collected"]);
+});

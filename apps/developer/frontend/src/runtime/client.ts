@@ -257,7 +257,7 @@ export type TerminalSession = {
   sessionId: string;
   projectId: string;
   runtimeId?: string;
-  status: "attached" | "detached";
+  status: "attached" | "detached" | "recovery";
   startedAt: string;
   lastActivityAt: string;
   replayBytes: number;
