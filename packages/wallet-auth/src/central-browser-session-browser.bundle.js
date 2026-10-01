@@ -26608,6 +26608,7 @@ ${item.productId}`));
     #session = null;
     #pending = null;
     #epoch = 0;
+    #attempt = 0;
     #listeners = /* @__PURE__ */ new Map();
     #deadline;
     #now;
@@ -26633,6 +26634,9 @@ ${item.productId}`));
     }
     #emit(event, value) {
       for (const listener of this.#listeners.get(event) ?? []) listener(value);
+    }
+    #unconfirmed(reason2, attempt) {
+      this.#emit("cancelUnconfirmed", { reason: reason2, attempt, current: attempt === this.#attempt });
     }
     async #wait(work) {
       let timer;
@@ -26726,7 +26730,7 @@ ${item.productId}`));
     }
     connect({ onURI } = {}) {
       if (this.#pending) return this.#pending;
-      const epoch = this.#epoch;
+      const epoch = this.#epoch, attempt = ++this.#attempt;
       const task = (async () => {
         const client = await this.initialize();
         if (epoch !== this.#epoch) fail5("YNX_PAIR_CANCELLED");
@@ -26739,22 +26743,22 @@ ${item.productId}`));
           if (epoch === this.#epoch) return;
           try {
             const pairing2 = parseWalletConnectPairingUri(connected.uri, new Date(this.#now()));
-            void this.#wait(client.core.pairing.disconnect({ topic: pairing2.topic })).catch(() => this.#emit("cancelUnconfirmed", { reason: "transport-unavailable" }));
-            Promise.resolve(connected.approval()).then((session2) => this.#retire(client, session2), () => {
+            void this.#wait(client.core.pairing.disconnect({ topic: pairing2.topic })).catch(() => this.#unconfirmed("transport-unavailable", attempt));
+            Promise.resolve(connected.approval()).then((session2) => this.#retire(client, session2, attempt), () => {
             });
           } catch {
-            this.#emit("cancelUnconfirmed", { reason: "transport-unavailable" });
+            this.#unconfirmed("transport-unavailable", attempt);
           }
         }, () => {
         });
         const { uri, approval } = await this.#wait(connecting);
         const pairing = parseWalletConnectPairingUri(uri, new Date(this.#now()));
-        this.#pairing = { topic: pairing.topic, epoch };
         if (epoch !== this.#epoch) fail5("YNX_PAIR_CANCELLED");
+        this.#pairing = { topic: pairing.topic, epoch, attempt };
         onURI?.(uri);
         const approving = approval();
         approving.then((session2) => {
-          if (epoch !== this.#epoch) void this.#retire(client, session2);
+          if (epoch !== this.#epoch) void this.#retire(client, session2, attempt);
         }, () => {
         });
         const session = await this.#wait(approving);
@@ -26762,7 +26766,7 @@ ${item.productId}`));
         try {
           this.#validate(session);
         } catch (error) {
-          await this.#retire(client, session);
+          await this.#retire(client, session, attempt);
           throw error;
         }
         this.#session = session;
@@ -26786,18 +26790,18 @@ ${item.productId}`));
       if (this.#client) try {
         await this.#wait(this.#client.core.pairing.disconnect({ topic: pairing.topic }));
       } catch {
-        this.#emit("cancelUnconfirmed", { reason: "transport-unavailable" });
+        this.#unconfirmed("transport-unavailable", pairing.attempt);
       }
     }
-    async #retire(client, session) {
+    async #retire(client, session, attempt) {
       if (!session || !/^[0-9a-f]{64}$/.test(session.topic)) {
-        this.#emit("cancelUnconfirmed", { reason: "invalid-session" });
+        this.#unconfirmed("invalid-session", attempt);
         return;
       }
       try {
         await this.#wait(client.disconnect({ topic: session.topic, reason }));
       } catch {
-        this.#emit("cancelUnconfirmed", { reason: "transport-unavailable" });
+        this.#unconfirmed("transport-unavailable", attempt);
       }
     }
     async cancel() {
@@ -26822,7 +26826,7 @@ ${item.productId}`));
       if (method === "eth_accounts" || method === "eth_requestAccounts") return [account];
       if (method === "eth_chainId") return "0x1917";
       if (!this.#methods.includes(method) || !session.namespaces.eip155.methods.includes(method)) fail5("YNX_PAIR_METHOD_NOT_APPROVED");
-      const result = await this.#wait(this.#client.request({ topic: session.topic, chainId: WALLETCONNECT_CHAIN, request: { method, params }, expiry: Math.max(1, Math.min(30, session.expiry - Math.floor(this.#now() / 1e3))) }));
+      const result = await this.#wait(this.#client.request({ topic: session.topic, chainId: WALLETCONNECT_CHAIN, request: { method, params }, expiry: 300 }));
       if (this.#epoch !== epoch || this.#session !== session) fail5("YNX_PAIR_CONTEXT_CHANGED");
       this.#validate(session);
       return result;
@@ -27099,12 +27103,18 @@ ${item.productId}`));
     const pairCanvas = document.createElement("canvas");
     pairCanvas.setAttribute("role", "img");
     pairCanvas.setAttribute("aria-label", "Temporary YNX Wallet connection QR code");
-    pairRegion.append(pairLabel, pairCanvas);
+    const pairOpen = document.createElement("a");
+    pairOpen.id = "pair-open";
+    pairOpen.textContent = "Open YNX Wallet";
+    pairOpen.hidden = true;
+    pairRegion.append(pairLabel, pairCanvas, pairOpen);
     picker.after(pairButton, pairRegion);
     let pair = null, pairPending = null, pairProvider = null;
     const clearPairQR = () => {
       pairRegion.hidden = true;
       pairCanvas.width = pairCanvas.height = 0;
+      pairOpen.hidden = true;
+      pairOpen.removeAttribute("href");
     };
     const hostedButton = document.createElement("button");
     hostedButton.id = "hosted";
@@ -27187,6 +27197,8 @@ ${item.productId}`));
         if (!provider) provider = await pair.connect({ onURI: (uri) => {
           if (epoch !== revision || cancelled) return;
           pairRegion.hidden = false;
+          pairOpen.href = `ynxwallet://wc?uri=${encodeURIComponent(uri)}`;
+          pairOpen.hidden = false;
           void import_qrcode.default.toCanvas(pairCanvas, uri, { width: 240, margin: 2, color: { dark: "#002FA7", light: "#FFFFFF" } }).catch(() => {
             if (epoch !== revision || cancelled) return;
             clearPairQR();
