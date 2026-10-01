@@ -1,5 +1,4 @@
 import { randomBytes, randomUUID, createHash } from "node:crypto";
-import { DatabaseSync } from "node:sqlite";
 import { mkdir, readFile, readdir, lstat, writeFile, readlink, open } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import { join, resolve, relative, sep } from "node:path";
@@ -8,12 +7,32 @@ import { createCentralIdentityVerifier, fault } from "./central-identity.mjs";
 
 const ID = /^[A-Za-z0-9_-]{1,160}$/;
 const LIVE = "'preparing','running','stopping','recovery-required'";
+const liveBrokers = new Set();
 
 export function createCodeOSSService({ filename, root, workspaceStore, verifyIdentity = createCentralIdentityVerifier(),
   driver, launchURL, assertProjectQuiescent, limits = CORE_LIMITS, now = Date.now } = {}) {
   if (!workspaceStore || !root || !filename) throw new TypeError("CodeOSS durable store/root are required.");
   root = resolve(root);
-  const db = new DatabaseSync(filename);
+  if (!workspaceStore.nativeJournalDatabase || !workspaceStore.claimWriterInTransaction)
+    throw new TypeError("Native sessions and workspace writers require one shared SQLite journal.");
+  const db = workspaceStore.nativeJournalDatabase();
+  const brokerKey = db.prepare("PRAGMA database_list").all().find(row => row.name === "main")?.file || db;
+  if (liveBrokers.has(brokerKey)) throw new Error("A native IDE broker already owns this workspace journal in this process.");
+  db.exec("CREATE TABLE IF NOT EXISTS codeoss_broker_owner(singleton INTEGER PRIMARY KEY CHECK(singleton=1),pid INTEGER NOT NULL);");
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const prior = db.prepare("SELECT pid FROM codeoss_broker_owner WHERE singleton=1").get();
+    if (prior && prior.pid !== process.pid) {
+      let dead = false;
+      try { process.kill(prior.pid, 0); } catch (error) { if (error.code === "ESRCH") dead = true; }
+      // PID reuse or uncertain host visibility blocks takeover, never releases
+      // a writer or lets a second process race launch against Stop.
+      if (!dead) throw new Error("Another live native IDE broker owns this workspace journal.");
+    }
+    db.prepare("INSERT OR REPLACE INTO codeoss_broker_owner VALUES(1,?)").run(process.pid);
+    db.exec("COMMIT");
+  } catch (error) { db.exec("ROLLBACK"); throw error; }
+  liveBrokers.add(brokerKey);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;
     CREATE TABLE IF NOT EXISTS codeoss_sessions(id TEXT PRIMARY KEY, owner TEXT NOT NULL, workspace_owner TEXT NOT NULL,
     project TEXT NOT NULL, generation INTEGER NOT NULL, account TEXT NOT NULL, expires_at INTEGER NOT NULL,
@@ -64,20 +83,18 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     const url = await launchURL({ owner: id.owner, projectId: body.projectId, runtimeId, sessionId });
     validateLaunchURL(url);
     db.exec("BEGIN IMMEDIATE");
-    let claimed = false;
     try {
       if (active(id.workspaceOwner, body.projectId)) throw fault("This project already has a native IDE writer or protected recovery.", "core_writer_active");
       const total = Number(db.prepare(`SELECT COUNT(*) n FROM codeoss_sessions WHERE status IN (${LIVE})`).get().n);
       const owned = Number(db.prepare(`SELECT COUNT(*) n FROM codeoss_sessions WHERE owner=? AND status IN (${LIVE})`).get(id.owner).n);
       if (total >= limits.activeGlobal || owned >= limits.activePerOwner) throw fault("Native IDE capacity is full. Existing sessions are preserved.", "core_capacity_reached", 429);
       assertProjectQuiescent(id.workspaceOwner, body.projectId);
-      workspaceStore.claimWriter(id.workspaceOwner, body.projectId, { writerToken: token, sessionId, expectedRevision: snapshot.revision });
-      claimed = true;
+      workspaceStore.claimWriterInTransaction(id.workspaceOwner, body.projectId, { writerToken: token, sessionId, expectedRevision: snapshot.revision });
       db.prepare("INSERT INTO codeoss_sessions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(sessionId, id.owner, id.workspaceOwner,
         body.projectId, id.generation, id.account, Math.min(id.expiresAt, now() + limits.maxSessionMs), snapshot.revision,
         JSON.stringify(snapshot), token, "preparing", runtimeId, null, now());
       db.exec("COMMIT");
-    } catch (error) { db.exec("ROLLBACK"); if (claimed) workspaceStore.releaseWriter(id.workspaceOwner, body.projectId, token); throw error; }
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
     const context = runtimeContext(get(sessionId));
     const launch = (async () => { try {
       await mkdir(root, { recursive: true, mode: 0o700 });
@@ -152,9 +169,13 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
         try { await file.writeFile(JSON.stringify({ projectId: row.project, runtimeId: row.runtime, importedRevision: row.revision,
           storage: "native-volume", manifest })); await file.sync(); } finally { await file.close(); }
         await syncDirectory(join(root, row.id));
-        db.prepare("UPDATE codeoss_projects SET checkpoint=? WHERE workspace_owner=? AND project=?").run(checkpoint, row.workspace_owner, row.project);
-        workspaceStore.releaseWriter(row.workspace_owner, row.project, row.writer_token);
-        db.prepare("UPDATE codeoss_sessions SET status='stopped',failure=NULL WHERE id=?").run(row.id);
+        db.exec("BEGIN IMMEDIATE");
+        try {
+          db.prepare("UPDATE codeoss_projects SET checkpoint=? WHERE workspace_owner=? AND project=?").run(checkpoint, row.workspace_owner, row.project);
+          workspaceStore.releaseWriter(row.workspace_owner, row.project, row.writer_token);
+          db.prepare("UPDATE codeoss_sessions SET status='stopped',failure=NULL WHERE id=?").run(row.id);
+          db.exec("COMMIT");
+        } catch (error) { db.exec("ROLLBACK"); throw error; }
         return { ...publicSession(get(row.id)), storage: "native-volume", checkpointed: true };
       } catch (error) {
         db.prepare("UPDATE codeoss_sessions SET status='recovery-required',failure=? WHERE id=?").run(error.code || "core_stop_failed", row.id);
@@ -209,7 +230,12 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     const rows = db.prepare(`SELECT * FROM codeoss_sessions WHERE owner=? AND status IN (${LIVE})`).all(owner);
     return Promise.allSettled(rows.map(stop));
   }
-  return { handler, guardWorkspaceWrite, authorizeConnection, expireSessions, drain, drainOwner, close: () => db.close() };
+  // Workspace store owns this shared connection and closes it after draining.
+  return { handler, guardWorkspaceWrite, authorizeConnection, expireSessions, drain, drainOwner, close: () => {
+    if (tasks.size || launches.size) throw new Error("Drain the native IDE broker before closing its admission lease.");
+    db.prepare("DELETE FROM codeoss_broker_owner WHERE singleton=1 AND pid=?").run(process.pid);
+    liveBrokers.delete(brokerKey);
+  } };
 }
 
 function publicSession(row) { return { sessionId: row.id, projectId: row.project, runtimeId: row.runtime,

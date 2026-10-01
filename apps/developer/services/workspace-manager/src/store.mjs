@@ -17,15 +17,19 @@ export function createWorkspaceStore({ filename, guardWrite = () => {} }) {
       throw fault("This project's primary files live in the native IDE. Its original text import is retained and read only.", "core_native_project", 409);
     guardWrite(owner, project, writerToken);
   }
-  function claimWriter(owner, project, { writerToken, sessionId, expectedRevision }) {
+  function claimWriterInTransaction(owner, project, { writerToken, sessionId, expectedRevision }) {
+    if (!db.isTransaction) throw fault("Writer admission requires the shared native journal transaction.", "writer_transaction_required", 503);
     validateId(owner, "owner"); validateId(project, "project"); validateRevision(expectedRevision);
     if (!/^[a-f0-9]{64}$/.test(writerToken || "") || !/^[a-f0-9-]{36}$/.test(sessionId || "")) throw fault("Invalid writer admission.", "writer_identity_invalid", 400);
+    const currentWriter = db.prepare("SELECT 1 FROM workspace_writers WHERE owner_id=? AND project_id=?").get(owner, project);
+    if (currentWriter) throw fault("This project already has a protected writer.", "core_writer_active", 409);
+    if (Number(read.get(owner, project)?.revision || 0) !== expectedRevision) throw fault("Project changed before writer admission.", "revision_conflict", 409);
+    db.prepare("INSERT INTO workspace_writers VALUES(?,?,?,?)").run(owner, project, writerToken, sessionId);
+  }
+  function claimWriter(owner, project, options) {
     db.exec("BEGIN IMMEDIATE");
     try {
-      const currentWriter = db.prepare("SELECT 1 FROM workspace_writers WHERE owner_id=? AND project_id=?").get(owner, project);
-      if (currentWriter) throw fault("This project already has a protected writer.", "core_writer_active", 409);
-      if (Number(read.get(owner, project)?.revision || 0) !== expectedRevision) throw fault("Project changed before writer admission.", "revision_conflict", 409);
-      db.prepare("INSERT INTO workspace_writers VALUES(?,?,?,?)").run(owner, project, writerToken, sessionId);
+      claimWriterInTransaction(owner, project, options);
       db.exec("COMMIT");
     } catch (error) { rollback(); throw error; }
   }
@@ -372,6 +376,8 @@ export function createWorkspaceStore({ filename, guardWrite = () => {} }) {
     put,
     assertWritable,
     claimWriter,
+    claimWriterInTransaction,
+    nativeJournalDatabase: () => db,
     releaseWriter,
     markNativeProject,
     storageMode: (owner, project) => db.prepare("SELECT 1 FROM workspace_native_projects WHERE owner_id=? AND project_id=?").get(owner, project) ? "native-volume" : "text-snapshot",

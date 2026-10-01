@@ -22,6 +22,17 @@ Tests use actual local HTTP handlers and temporary persistent SQLite/filesystems
 with injected central authority and container transport. They do not prove the
 host container, Wallet callback, browser extensions, quota or public deployment.
 
+Native session journal and writer leases use the same existing workspace SQLite
+connection and transaction. External launch starts only after this commit.
+Real child-process SIGKILL tests cover the insert window (both roll back) and
+post-commit/pre-execution window (both survive and cold Stop recovers). Native
+checkpoint/release/stopped state also commit atomically. Only one live broker
+process may own a workspace database; a second process is rejected. A dead
+owner may be taken over for recovery; uncertain/PID-reused ownership stays
+blocked for review. The workspace store owns connection close after core drain.
+This source has never deployed a separate legacy `codeoss.sqlite`; that filename
+argument is retained for API compatibility, not a second admission journal.
+
 ## A's isolated host admission
 
 Existing host is x86_64, LXD 5.21.8, cgroup v2, with systemd/Python/useradd.
