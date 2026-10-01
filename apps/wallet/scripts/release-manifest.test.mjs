@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { createHash } from "node:crypto";
 
 const walletRoot = new URL("../", import.meta.url);
 const publishedManifest = JSON.parse(await readFile(new URL("artifact-manifest.json", walletRoot), "utf8"));
@@ -9,10 +10,22 @@ const manifest = JSON.parse(await readFile(new URL("artifact-candidate-1.0.20.js
 const publication = JSON.parse(await readFile(new URL("artifact-publication-1.0.17.json", walletRoot), "utf8"));
 const publication118 = JSON.parse(await readFile(new URL("artifact-publication-1.0.18.json", walletRoot), "utf8"));
 const publication119 = JSON.parse(await readFile(new URL("artifact-publication-1.0.19.json", walletRoot), "utf8"));
-const app = JSON.parse(await readFile(new URL("app.json", walletRoot), "utf8")).expo;
-const android = await readFile(new URL("android/app/build.gradle", walletRoot), "utf8");
-const plist = await readFile(new URL("ios/YNXWallet/Info.plist", walletRoot), "utf8");
-const xcode = await readFile(new URL("ios/YNXWallet.xcodeproj/project.pbxproj", walletRoot), "utf8");
+const historicalNativeSource = JSON.parse(await readFile(new URL("fixtures/release-1.0.20-native-source.json", import.meta.url), "utf8"));
+const historicalNativePins = Object.freeze({"app.json":"0920af3b3c8110f0a96da08d8da0b89a7680731ba7cf5b7637a780d7d95031d5","android/app/build.gradle":"bee4bd7d5cbc2c2a7623939c45ea67eae8bc220c79125723cfe81e1671d21026","ios/YNXWallet/Info.plist":"ff60bcda610fe03987e207a46c6f7bcd00c50c7a6159b2057bb96e0c2b326373","ios/YNXWallet.xcodeproj/project.pbxproj":"8942b20d3e4ad8c204648dc788a9a0f4e1e095a8fb875cd7237a43fc28757cbe"});
+function validateHistoricalNativeSource(value) {
+  assert.equal(value.schema, "ynx-wallet-historical-native-source/v1");
+  assert.equal(value.sourceCommit, "f3a12abadad793f250df42f1123e417ba6e8a5a6");
+  assert.deepEqual(Object.keys(value.files).sort(), Object.keys(historicalNativePins).sort());
+  for (const [file, expected] of Object.entries(historicalNativePins)) {
+    assert.equal(value.files[file].sha256, expected);
+    assert.equal(createHash("sha256").update(value.files[file].content).digest("hex"), expected);
+  }
+}
+validateHistoricalNativeSource(historicalNativeSource);
+const app = JSON.parse(historicalNativeSource.files["app.json"].content).expo;
+const android = historicalNativeSource.files["android/app/build.gradle"].content;
+const plist = historicalNativeSource.files["ios/YNXWallet/Info.plist"].content;
+const xcode = historicalNativeSource.files["ios/YNXWallet.xcodeproj/project.pbxproj"].content;
 const evidence = JSON.parse(await readFile(new URL(manifest.candidateEvidence, walletRoot), "utf8"));
 const installedEvidence = JSON.parse(await readFile(new URL(manifest.reconciliationBinding.publishedBaselineEvidence, walletRoot), "utf8"));
 const nativeOutboxSource = await readFile(new URL("src/chain/nativeTransferOutbox.ts", walletRoot), "utf8");
@@ -345,7 +358,8 @@ test("the active publication rejects changed assets or inflated release claims",
   }
 });
 
-test("1.0.20 source candidate binds native versions and reconciliation source without inventing a release", () => {
+test("historical 1.0.20 candidate binds exact published native source versions without inventing a release", () => {
+  assert.equal(historicalNativeSource.sourceCommit, activePublished.sourceCommit);
   validate(manifest);
   assert.equal(app.version, "1.0.20");
   assert.equal(app.android.versionCode, 26);
@@ -917,4 +931,14 @@ test("installed 1.0.19 evidence rejects secrets, mutations and unsupported verif
     mutate(copy);
     assert.throws(() => validate119InstalledEvidence(copy, publication119));
   }
+});
+
+test("historical native fixture rejects source, byte, hash and file-set drift", () => {
+  for (const mutate of [
+    value => { value.sourceCommit = "a".repeat(40); },
+    value => { value.files["app.json"].content = value.files["app.json"].content.replace("1.0.20", "1.0.27"); },
+    value => { value.files["app.json"].sha256 = "a".repeat(64); },
+    value => { delete value.files["ios/YNXWallet/Info.plist"]; },
+    value => { value.files["extra"] = value.files["app.json"]; },
+  ]) { const copy = structuredClone(historicalNativeSource); mutate(copy); assert.throws(() => validateHistoricalNativeSource(copy)); }
 });
