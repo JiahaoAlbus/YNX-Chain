@@ -1,0 +1,348 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "name": "two-independent-homeservers-and-Rust-crypto",
+      "passed": true
+    },
+    {
+      "name": "unverified-device-send-rejected",
+      "passed": true
+    },
+    {
+      "name": "fresh-unverified-device-explicit-rejection",
+      "passed": true
+    },
+    {
+      "name": "standard-SAS-matched-and-both-confirmed",
+      "passed": true
+    },
+    {
+      "name": "bidirectional-federated-ciphertext-and-peer-decryption",
+      "passed": true
+    },
+    {
+      "name": "both-server-readbacks-encrypted-not-plaintext",
+      "passed": true
+    },
+    {
+      "name": "federated-encrypted-attachment-decrypted",
+      "passed": true
+    },
+    {
+      "name": "browser-process-cold-start-original-device-key-and-offline-history",
+      "passed": true
+    },
+    {
+      "name": "offline-encrypted-attachment-cold-recovery",
+      "passed": true
+    },
+    {
+      "name": "cold-restored-repeat-verification-explicit-rejection",
+      "passed": true
+    }
+  ],
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   cacheRetained: false,\n-   cacheRetained: true,\n    deviceRetained: true,\n    lockEvent: true,\n    locked: true\n  }\n",
+  "pageErrors": [],
+  "diagnostics": [
+    {
+      "devices": [
+        {
+          "user": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+          "device": "YNX-0e60be56-8d97-4cba-b963-3d1c5f81e745",
+          "verified": true,
+          "keys": [
+            "curve25519:YNX-0e60be56-8d97-4cba-b963-3d1c5f81e745",
+            "ed25519:YNX-0e60be56-8d97-4cba-b963-3d1c5f81e745"
+          ]
+        },
+        {
+          "user": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "device": "YNX-534cc7ef-1e06-43a4-b22b-55cfdc8deba7",
+          "verified": true,
+          "keys": [
+            "curve25519:YNX-534cc7ef-1e06-43a4-b22b-55cfdc8deba7",
+            "ed25519:YNX-534cc7ef-1e06-43a4-b22b-55cfdc8deba7"
+          ]
+        }
+      ],
+      "connected": true,
+      "syncState": "SYNCING",
+      "requests": [
+        {
+          "id": "b63f903d311445e9b6166211e29b3bc2",
+          "phase": 5,
+          "pending": false,
+          "cancellationCode": "m.user"
+        },
+        {
+          "id": "c182bacc61364d3d92584a042dc4cc37",
+          "phase": 6,
+          "pending": false,
+          "cancellationCode": null
+        },
+        {
+          "id": "d38254bf79874192aae0c4323b0b9067",
+          "phase": 5,
+          "pending": false,
+          "cancellationCode": "m.user"
+        }
+      ],
+      "events": [
+        {
+          "at": 1790873607233,
+          "type": "sync",
+          "state": "PREPARED",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873607233,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873609396,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873609419,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873609474,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873609514,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873609531,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873609559,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873609709,
+          "type": "verification-state",
+          "id": "b63f903d311445e9b6166211e29b3bc2",
+          "phase": 2,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790873609848,
+          "type": "verification-state",
+          "id": "b63f903d311445e9b6166211e29b3bc2",
+          "phase": 5,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790873609851,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873609957,
+          "type": "verification-state",
+          "id": "c182bacc61364d3d92584a042dc4cc37",
+          "phase": 2,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790873610095,
+          "type": "verification-state",
+          "id": "c182bacc61364d3d92584a042dc4cc37",
+          "phase": 3,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-534cc7ef-1e06-43a4-b22b-55cfdc8deba7"
+        },
+        {
+          "at": 1790873610100,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873610196,
+          "type": "verification-state",
+          "id": "c182bacc61364d3d92584a042dc4cc37",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-534cc7ef-1e06-43a4-b22b-55cfdc8deba7"
+        },
+        {
+          "at": 1790873610258,
+          "type": "verification-state",
+          "id": "c182bacc61364d3d92584a042dc4cc37",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-534cc7ef-1e06-43a4-b22b-55cfdc8deba7"
+        },
+        {
+          "at": 1790873610260,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873610271,
+          "type": "verification-state",
+          "id": "c182bacc61364d3d92584a042dc4cc37",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-534cc7ef-1e06-43a4-b22b-55cfdc8deba7"
+        },
+        {
+          "at": 1790873610294,
+          "type": "verification-state",
+          "id": "c182bacc61364d3d92584a042dc4cc37",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-534cc7ef-1e06-43a4-b22b-55cfdc8deba7"
+        },
+        {
+          "at": 1790873610294,
+          "type": "verification-state",
+          "id": "c182bacc61364d3d92584a042dc4cc37"
+        },
+        {
+          "at": 1790873610296,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873610325,
+          "type": "verification-state",
+          "id": "c182bacc61364d3d92584a042dc4cc37",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-534cc7ef-1e06-43a4-b22b-55cfdc8deba7"
+        },
+        {
+          "at": 1790873610346,
+          "type": "verification-state",
+          "id": "c182bacc61364d3d92584a042dc4cc37",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-534cc7ef-1e06-43a4-b22b-55cfdc8deba7"
+        },
+        {
+          "at": 1790873610349,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873610368,
+          "type": "verification-state",
+          "id": "c182bacc61364d3d92584a042dc4cc37",
+          "phase": 6,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790873610368,
+          "type": "verification-state",
+          "id": "c182bacc61364d3d92584a042dc4cc37",
+          "phase": 6,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790873610368,
+          "type": "verification-done",
+          "id": "c182bacc61364d3d92584a042dc4cc37"
+        },
+        {
+          "at": 1790873610373,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873610386,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873610529,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873610660,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873610697,
+          "type": "encrypted-event",
+          "roomId": "!cZqeulbe3lBGPC4A79qoavUubCjKf5BaxG_a-2zX4dQ",
+          "eventId": "$Yd1jUOq_X-CqaSnAYHIwWDRme142EkVWO39sI_vpexM"
+        },
+        {
+          "at": 1790873610698,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873610846,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873611165,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873611196,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790873611878,
+          "type": "verification-state",
+          "id": "d38254bf79874192aae0c4323b0b9067",
+          "phase": 2,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790873612013,
+          "type": "verification-state",
+          "id": "d38254bf79874192aae0c4323b0b9067",
+          "phase": 5,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790873612016,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+c8ade7d39742b7fc9be1d6f8197a32df72a9a57b10c18338e5f8d8ad9255122e  apps/social/web/matrix/transport.mjs
+589c79db229c7902835cf41727d97146d8ad585e58298fd2a8b270639cff270e  apps/social/web/matrix/device-reauth.test.mjs
+55e35547595ef732e41ed6ab232a8315ffa304a173ecb6374dfc73d74ddf4b0c  apps/social/scripts/matrix-qa/browser.mjs
+4fa59acfaec66f0560ddd9ef6250429c6e40a8989e6e11da19ef5436948e0d27  apps/social/evidence/matrix-sso-fallback-20261002/federation-persistence-failure.json
+3f31010c539d448248e3d90715e3108ff3f5b75e304ee3e5b50d960fb06c9af1  apps/social/evidence/matrix-sso-fallback-20261002/device-reauth.json
+ab56ed5b729062283898cc434b093c8194d83776034a4cfba81996d3ce341710  apps/social/evidence/matrix-sso-fallback-20261002/INTEGRATION.md
