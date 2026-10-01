@@ -62,6 +62,9 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 	v.mux.HandleFunc("POST /v1/wallet/sessions/complete", v.completeWalletSession)
 	v.mux.HandleFunc("POST /v1/wallet/private-account", v.privateAccount)
 	v.mux.HandleFunc("POST /v1/wallet/private-records", v.privateRecords)
+	v.mux.HandleFunc("GET /v1/wallet/paper/snapshot", v.privatePaper)
+	v.mux.HandleFunc("POST /v1/wallet/paper/backtests/from-market", v.privatePaper)
+	v.mux.HandleFunc("POST /v1/wallet/paper/orders", v.privatePaper)
 	v.mux.HandleFunc("GET /v1/sso/config", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		write(w, 200, map[string]bool{"enabled": s.cfg.BrowserSSO != nil, "silentRestoreAllowed": s.cfg.BrowserSSO != nil && s.cfg.BrowserSSO.SilentAllowed(r)})
