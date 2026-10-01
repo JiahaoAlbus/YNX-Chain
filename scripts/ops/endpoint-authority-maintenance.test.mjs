@@ -6,7 +6,7 @@ import os from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {generateKeyPairSync,createHash,sign,randomUUID} from 'node:crypto';
 import {execFileSync,spawn} from 'node:child_process';
-import {prepareFixedSourceRenewal,nonRenewalProjection,readFreshHTTPS,preflightOnClone,journalSnapshot,activationRecoveryPlan,runWithActivationLock} from './endpoint-authority-maintenance.mjs';
+import {prepareFixedSourceRenewal,nonRenewalProjection,readFreshHTTPS,preflightOnClone,journalSnapshot,activationRecoveryPlan,runWithActivationLock,verifyPinnedHostBytes,HOST_BINARY_MAX_BYTES} from './endpoint-authority-maintenance.mjs';
 import {AUTHORITY_V2_URLS,AUTHORITY_V2_REPOSITORY,canonicalAuthorityV2,authorityV2SigningMessage,createEndpointAuthorityClient} from '../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft} from './endpoint-authority-v2.mjs';
 import {createNodeCheckpointStore} from '../../apps/finance/authority/checkpoint-node.mjs';
@@ -119,3 +119,26 @@ test('reader advances after failure observation: forward-only plan cannot instal
  const consumerClient=createEndpointAuthorityClient({trustRoot:root,consumer,storage:store,clock:()=>now});await consumerClient.accept(candidate,{source:'remote'});
  assert.equal((await store.read()).sequence,2);assert.equal(plan.action,'KEEP_ENVIRONMENT_OPERATOR_RETRY');assert.ok(plan.bytes.equals(current));assert.equal(plan.bytes.equals(old),false);
 }));
+
+test('124835376-byte Node-sized host binary verifies through bounded chunks, never readFile',async()=>{
+ const size=124835376,block=Buffer.alloc(65536,7),hash=createHash('sha256');for(let n=0;n<size;n+=block.length)hash.update(block.subarray(0,Math.min(block.length,size-n)));
+ let largest=0,reads=0;const stat={size,ino:1,dev:1,mtimeMs:1,ctimeMs:1};
+ const handle={stat:async()=>stat,readFile:()=>{throw Error('unbounded buffering')},read:async(buffer,offset,length,position)=>{largest=Math.max(largest,length);reads++;const bytesRead=Math.min(length,size-position);buffer.fill(7,offset,offset+bytesRead);return{bytesRead}}};
+ await verifyPinnedHostBytes(handle,{size,sha256:hash.digest('hex')});assert.equal(largest,65536);assert.ok(reads>1000);
+});
+test('host binary exact size pins reject missing, truncated, oversized and changed files',async()=>{
+ const bytes=Buffer.alloc(7),pin={size:7,sha256:sha(bytes)},stat={size:7,ino:1,dev:1,mtimeMs:1,ctimeMs:1};
+ const handle=(override={})=>({stat:async()=>stat,read:async(buffer,offset,length,position)=>{const bytesRead=Math.max(0,Math.min(length,bytes.length-position));bytes.copy(buffer,offset,position,position+bytesRead);return{bytesRead}},...override});
+ for(const size of [undefined,0,HOST_BINARY_MAX_BYTES+1])await assert.rejects(verifyPinnedHostBytes(handle(),{...pin,size}),/HOST_SIZE_PIN/);
+ await assert.rejects(verifyPinnedHostBytes(handle({stat:async()=>({...stat,size:6})}),pin),/HOST_SOURCE_CHANGED/);
+ await assert.rejects(verifyPinnedHostBytes(handle({read:async()=>({bytesRead:0})}),pin),/HOST_SOURCE_CHANGED/);
+ await assert.rejects(verifyPinnedHostBytes(handle({read:async()=>({bytesRead:8})}),pin),/HOST_SOURCE_CHANGED/);
+ await assert.rejects(verifyPinnedHostBytes(handle(),{...pin,sha256:sha('wrong')}),/HOST_SOURCE_CHANGED/);
+ let count=0;await assert.rejects(verifyPinnedHostBytes(handle({stat:async()=>({...stat,mtimeMs:++count})}),pin),/HOST_SOURCE_CHANGED/);
+});
+test('real sparse host-sized file is streamed and truncation fails without buffering',async()=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'ynx-host-pin-')),file=path.join(directory,'node-sized');
+ const size=124835376,block=Buffer.alloc(65536),hash=createHash('sha256');for(let n=0;n<size;n+=block.length)hash.update(block.subarray(0,Math.min(block.length,size-n)));
+ const pin={size,sha256:hash.digest('hex')};let handle;
+ try{handle=await fs.open(file,'w+');await handle.truncate(size);await verifyPinnedHostBytes(handle,pin);await handle.truncate(size-1);await assert.rejects(verifyPinnedHostBytes(handle,pin),/HOST_SOURCE_CHANGED/)}finally{await handle?.close();await fs.rm(directory,{recursive:true,force:true})}
+});

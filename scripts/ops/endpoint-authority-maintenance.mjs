@@ -58,9 +58,23 @@ export async function readFreshHTTPS(url,{pin,fetchImpl=fetch,now=Date.now}={}){
  }finally{if(!complete)await reader.cancel().catch(()=>{});reader.releaseLock()}
 }
 export async function protectedFile(file,uid=0){requireFact(path.isAbsolute(file)&&await fs.realpath(file)===file,'MAINTENANCE_FILE_PATH');const h=await fs.open(file,constants.O_RDONLY|constants.O_NOFOLLOW);try{const s=await h.stat();requireFact(s.isFile()&&s.nlink===1&&s.uid===uid&&(s.mode&0o777)===0o600&&s.size<=1048576,'MAINTENANCE_FILE_PERMISSIONS');const bytes=await h.readFile();requireFact(bytes.length===s.size,'MAINTENANCE_FILE_CHANGED');return bytes}finally{await h.close()}}
+// Only executable/import-closure pins use this ceiling; JSON and HTTP limits stay small.
+export const HOST_BINARY_MAX_BYTES=134217728;
+export async function verifyPinnedHostBytes(handle,pin){
+ requireFact(Number.isSafeInteger(pin.size)&&pin.size>0&&pin.size<=HOST_BINARY_MAX_BYTES&&/^[a-f0-9]{64}$/.test(pin.sha256),'MAINTENANCE_HOST_SIZE_PIN');
+ const before=await handle.stat();requireFact(before.size===pin.size,'MAINTENANCE_HOST_SOURCE_CHANGED');
+ const hash=createHash('sha256'),buffer=Buffer.alloc(65536),started=performance.now();let size=0;
+ while(true){
+  requireFact(performance.now()-started<12000,'MAINTENANCE_HOST_READ_TIMEOUT');
+  const {bytesRead}=await handle.read(buffer,0,buffer.length,size);if(!bytesRead)break;
+  size+=bytesRead;requireFact(size<=pin.size,'MAINTENANCE_HOST_SOURCE_CHANGED');hash.update(buffer.subarray(0,bytesRead));
+ }
+ const after=await handle.stat();
+ requireFact(size===pin.size&&hash.digest('hex')===pin.sha256&&after.size===before.size&&after.ino===before.ino&&after.dev===before.dev&&after.mtimeMs===before.mtimeMs&&after.ctimeMs===before.ctimeMs,'MAINTENANCE_HOST_SOURCE_CHANGED');
+}
 async function pinnedHostFile(pin){
  requireFact(path.isAbsolute(pin.path)&&await fs.realpath(pin.path)===pin.path,'MAINTENANCE_HOST_PATH');
- const h=await fs.open(pin.path,constants.O_RDONLY|constants.O_NOFOLLOW);try{const st=await h.stat();requireFact(st.isFile()&&st.uid===0&&st.nlink===1&&(st.mode&0o022)===0&&st.size>0&&st.size<=33554432,'MAINTENANCE_HOST_PERMISSIONS');const bytes=await h.readFile();requireFact(bytes.length===st.size&&sha(bytes)===pin.sha256,'MAINTENANCE_HOST_SOURCE_CHANGED')}finally{await h.close()}
+ const h=await fs.open(pin.path,constants.O_RDONLY|constants.O_NOFOLLOW);try{const st=await h.stat();requireFact(st.isFile()&&st.uid===0&&st.nlink===1&&(st.mode&0o022)===0,'MAINTENANCE_HOST_PERMISSIONS');await verifyPinnedHostBytes(h,pin)}finally{await h.close()}
 }
 async function exclusive(file,bytes,uid=0,gid=0){const h=await fs.open(file,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);try{await h.writeFile(bytes);await h.chown(uid,gid);await h.sync()}finally{await h.close()}await syncDirectory(path.dirname(file))}
 function command(program,args,options={}){return execFileSync(program,args,{encoding:'utf8',timeout:12000,maxBuffer:16384,...options,stdio:activationLease?['ignore','pipe','pipe',activationLease.fd]:['ignore','pipe','pipe']})}
