@@ -3,6 +3,7 @@ package aiproduct
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -52,11 +53,12 @@ type persistentState struct {
 }
 
 type Store struct {
-	mu    sync.Mutex
-	path  string
-	aead  cipher.AEAD
-	now   func() time.Time
-	state persistentState
+	mu               sync.Mutex
+	path             string
+	aead             cipher.AEAD
+	browserCookieKey []byte
+	now              func() time.Time
+	state            persistentState
 }
 
 func NewStore(path string, key []byte) (*Store, error) {
@@ -74,7 +76,9 @@ func NewStore(path string, key []byte) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Store{path: path, aead: aead, now: time.Now}
+	mac := hmac.New(sha256.New, key)
+	_, _ = mac.Write([]byte("YNX AI browser SSO cookie key v1"))
+	s := &Store{path: path, aead: aead, now: time.Now, browserCookieKey: mac.Sum(nil)}
 	if err := s.load(); err != nil {
 		return nil, err
 	}

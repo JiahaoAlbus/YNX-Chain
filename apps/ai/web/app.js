@@ -1,13 +1,15 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const state={token:sessionStorage.getItem('ynx-ai-token')||'',deviceId:sessionStorage.getItem('ynx-ai-device')||'',account:sessionStorage.getItem('ynx-ai-account')||'',challengeId:'',conversationId:'',conversationArchived:false,conversations:[],generationId:'',abort:null,lastPrompt:'',archived:false,provider:null,signingOut:false,sessionEpoch:0};
 let privateSession=null,privateLoginEpoch=0;
+let fixtureAuthEnabled=false;state.sessionSuspended=false;
+function renderFixtureAuth(){const form=$('#challenge-form');form.classList.toggle('hidden',!fixtureAuthEnabled);form.hidden=!fixtureAuthEnabled;form.inert=!fixtureAuthEnabled;const tools=$('#fixture-tools');if(tools)tools.dataset.enabled=String(fixtureAuthEnabled);$('#proof-step').classList.add('hidden');}
 let byokCatalog=[],byokCredentials=[];
 function hasAISession(){return Boolean(state.token||privateSession?.current.status==='connected')}
 const signoutNoticeKey='ynx-ai-signout-status';
 function clearAISession(){state.sessionEpoch+=1;resetBYOKUI();for(const key of ['ynx-ai-token','ynx-ai-account','ynx-ai-device'])sessionStorage.removeItem(key);state.token='';state.account='';state.deviceId='';state.challengeId='';state.conversationId='';state.conversations=[];state.lastPrompt='';state.provider=null;state.abort?.abort();state.abort=null;state.generationId=''}
-function showSignoutNotice(){const status=sessionStorage.getItem(signoutNoticeKey);if(status)$('#auth-error').textContent=status==='wallet-changed'?'Wallet identity changed. The local AI session was cleared; remote revocation is not confirmed.':status==='expired'?'Your AI session is no longer valid. Sign in again to continue.':status==='revoked'?'Signed out on this device. The server confirmed revocation of this AI session.':'Signed out on this device. Server revocation is not confirmed; this AI session may still be active on the server.'}
+function showSignoutNotice(){const status=sessionStorage.getItem(signoutNoticeKey);if(status)$('#auth-error').textContent=status==='wallet-changed'?'Wallet identity changed. The local AI session was cleared; remote revocation is not confirmed.':status==='permission-changed'?'Wallet account access ended. AI access is suspended here; remote AI revocation is not confirmed.':status==='expired'?'Your AI session is no longer valid. Sign in again to continue.':status==='revoked'?'Signed out on this device. The server confirmed revocation of this AI session.':'Signed out on this device. Server revocation is not confirmed; this AI session may still be active on the server.'}
 const scopes=['ai:conversations','ai:generate','ai:permissions','ai:data-control'];
-async function api(path,options={}){const epoch=state.sessionEpoch;if(state.signingOut)throw new Error('The AI session has ended.');const headers={...(options.body?{'Content-Type':'application/json'}:{}),...(state.token?{Authorization:`Bearer ${state.token}`,'X-YNX-Device-ID':state.deviceId}:{})};const response=await aiRequest(path,{...options,headers:{...headers,...options.headers}},async response=>{const data=response.status===204?null:await response.json().catch(()=>({error:`HTTP ${response.status}`}));return {status:response.status,ok:response.ok,json:async()=>data}});if(state.signingOut||epoch!==state.sessionEpoch)throw new Error('The AI session has ended.');if(response.status===204)return null;const data=await response.json().catch(()=>({error:`HTTP ${response.status}`}));if(state.signingOut||epoch!==state.sessionEpoch)throw new Error('The AI session has ended.');if(!response.ok){const error=new Error(data.error||`HTTP ${response.status}`);error.status=response.status;throw error}return data}
+async function api(path,options={}){const epoch=state.sessionEpoch;if(state.signingOut)throw new Error('The AI session has ended.');if(state.sessionSuspended&&path!=='/api/auth/session')throw new Error('AI access is suspended until session readback completes.');const headers={...(options.body?{'Content-Type':'application/json'}:{}),...(state.token?{Authorization:`Bearer ${state.token}`,'X-YNX-Device-ID':state.deviceId}:{})};const response=await aiRequest(path,{...options,headers:{...headers,...options.headers}},async response=>{const data=response.status===204?null:await response.json().catch(()=>({error:`HTTP ${response.status}`}));return {status:response.status,ok:response.ok,json:async()=>data}});if(state.signingOut||epoch!==state.sessionEpoch)throw new Error('The AI session has ended.');if(response.status===204)return null;const data=await response.json().catch(()=>({error:`HTTP ${response.status}`}));if(state.signingOut||epoch!==state.sessionEpoch)throw new Error('The AI session has ended.');if(!response.ok){const error=new Error(data.error||`HTTP ${response.status}`);error.status=response.status;throw error}return data}
 async function loadPublicStatus(){const badge=$('#public-status-badge');try{const response=await fetch('/api/public-status',{headers:{Accept:'application/json'}});const data=await response.json();if(!response.ok||!data.gatewayReady)throw new Error(data.status||'Gateway unavailable');badge.textContent='Gateway ready';badge.className='runtime-badge available';$('#public-gateway').textContent='Operational';$('#public-provider').textContent=`${data.provider} · ${data.model}`;$('#public-status-detail').textContent=`${data.status} ${data.providerGenerationEvidence}.`;badge.title=`Source: ${data.source} · ${data.asOf}`}catch(error){badge.textContent='Unavailable';badge.className='runtime-badge unavailable';$('#public-gateway').textContent='Unavailable';$('#public-provider').textContent='No substitute model';$('#public-status-detail').textContent=error.message}}
 function toast(message){const node=$('#toast');node.textContent=message;node.classList.add('show');setTimeout(()=>node.classList.remove('show'),2200)}
 function escapeHTML(value=''){return value.replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
@@ -26,14 +28,15 @@ async function restoreSession(){
   const session=await api('/api/auth/session');
   if(state.signingOut)return;
   if(session.account!==state.account||session.deviceId!==state.deviceId){const error=new Error('AI session identity changed.');error.status=401;throw error}
-  $('#session-recovery').classList.add('hidden');$('#signin').classList.add('hidden');$('#app').classList.remove('hidden');
+  state.sessionSuspended=false;$('#session-recovery').classList.add('hidden');$('#signin').classList.add('hidden');$('#app').classList.remove('hidden');
   $('#account-label').textContent=session.account;
   const results=await Promise.allSettled([loadConversations(),loadProvider(),loadPrivacy()]);
   void loadBYOKSettings().catch(()=>{});
+  try{const hint=JSON.parse(globalThis.localStorage?.getItem('ynx-ai-last-conversation')||'null');if(hint?.account===state.account&&state.conversations.some(item=>item.id===hint.id))await selectConversation(hint.id);}catch{} 
   if(!state.signingOut&&results.some(result=>result.status==='rejected'))toast('Your session is active. Some workspace data could not be loaded; retry without signing in again.');
  }catch(error){
   if(state.signingOut||epoch!==state.sessionEpoch)return;
-  if(error.status===401){clearAISession();sessionStorage.setItem(signoutNoticeKey,'expired');showSignoutNotice();$('#session-recovery').classList.add('hidden');$('#challenge-form').classList.remove('hidden')}
+  if(error.status===401){clearAISession();sessionStorage.setItem(signoutNoticeKey,'expired');showSignoutNotice();$('#session-recovery').classList.add('hidden');renderFixtureAuth()}
   else $('#session-recovery-status').textContent='Your session could not be checked. Retry when the service is available; your saved session has been kept. No new wallet authorization was requested.';
  }finally{if(!state.signingOut)$('#session-retry').disabled=false}
 }
@@ -68,7 +71,7 @@ $('#session-signout').addEventListener('click',signOut);
 async function loadConversations(){const query=$('#conversation-search')?.value?.trim()||'';const data=await api(`/api/conversations?archived=${state.archived}&q=${encodeURIComponent(query)}`);state.conversations=data.conversations;renderConversationList();if(!state.conversationId&&state.conversations.length)await selectConversation(state.conversations[0].id)}
 $('#conversation-search').addEventListener('input',()=>{void loadConversations().catch(error=>toast(error.message))});
 function renderConversationList(){const list=$('#conversation-list');if(!state.conversations.length){list.innerHTML=`<p class="cost-line">${state.archived?'No archived conversations.':'No conversations yet.'}</p>`;return}list.innerHTML=state.conversations.map(c=>`<button class="conversation-item ${c.id===state.conversationId?'active':''}" data-id="${c.id}"><strong>${escapeHTML(c.title)}</strong><small>${escapeHTML(c.lastPreview||`${c.messageCount} messages`)}</small></button>`).join('');$$('.conversation-item').forEach(b=>b.onclick=()=>selectConversation(b.dataset.id))}
-async function selectConversation(id){const data=await api(`/api/conversations/${encodeURIComponent(id)}`);state.conversationId=id;state.conversationArchived=data.conversation.archived;$('#conversation-title').textContent=data.conversation.title;$('#conversation-kicker').textContent=`${data.conversation.messageCount} messages · ${data.conversation.retentionDays} day retention`;$('#conversation-actions').classList.remove('hidden');$('#archive-conversation').textContent=data.conversation.archived?'Unarchive':'Archive';renderMessages(data.messages);renderConversationList();if(matchMedia('(max-width: 900px)').matches)document.querySelector('.sessions').classList.remove('open')}
+async function selectConversation(id){try{globalThis.localStorage?.setItem('ynx-ai-last-conversation',JSON.stringify({account:state.account,id}));}catch{} const data=await api(`/api/conversations/${encodeURIComponent(id)}`);state.conversationId=id;state.conversationArchived=data.conversation.archived;$('#conversation-title').textContent=data.conversation.title;$('#conversation-kicker').textContent=`${data.conversation.messageCount} messages · ${data.conversation.retentionDays} day retention`;$('#conversation-actions').classList.remove('hidden');$('#archive-conversation').textContent=data.conversation.archived?'Unarchive':'Archive';renderMessages(data.messages);renderConversationList();if(matchMedia('(max-width: 900px)').matches)document.querySelector('.sessions').classList.remove('open')}
 function renderMessages(messages){$('#empty-state').classList.toggle('hidden',messages.length>0);const node=$('#messages');node.innerHTML=messages.map(messageHTML).join('');node.scrollTop=node.scrollHeight}
 function messageHTML(m){const label=m.role==='assistant'?'YNX AI':'You';const money=m.cost?.moneyKnown?`$${m.cost.moneyUsdEstimate.toFixed(6)} est.`:'money unknown';const cost=m.role==='assistant'?`<span class="cost-line">~${m.cost.inputTokensEstimate+m.cost.outputTokensEstimate} tokens · ${m.cost.resourceUnitsEstimate} resource · ${money} · actual usage not reported</span>`:'';return `<article class="message" data-message="${m.id}"><div class="message-head"><strong>${label}</strong>${cost}</div><div class="message-body">${escapeHTML(m.content)}</div><div class="message-actions"><button class="text-button copy" type="button">Copy</button>${m.role==='assistant'?'<button class="text-button retry" type="button">Retry</button><button class="text-button continue" type="button">Continue</button>':''}</div></article>`}
 $('#messages').addEventListener('click',event=>{const article=event.target.closest('.message');if(!article)return;if(event.target.classList.contains('copy')){navigator.clipboard.writeText(article.querySelector('.message-body').textContent);toast('Copied')}if(event.target.classList.contains('retry'))sendPrompt(state.lastPrompt||article.previousElementSibling?.querySelector('.message-body')?.textContent||'',article.dataset.message);if(event.target.classList.contains('continue'))sendPrompt('','',article.dataset.message)});
@@ -181,17 +184,25 @@ function openModal(title,body,onSubmit){$('#modal-title').textContent=title;$('#
 showSignoutNotice();loadPublicStatus();
 void initializePrivateLogin();
 
-function invalidateWalletSession(){
+function invalidateWalletSession(event){
+ const reason=event?.detail?.reason;
+ if(!reason||reason==='account-unavailable'){
+  privateLoginEpoch++;state.sessionEpoch++;state.sessionSuspended=true;state.abort?.abort();state.abort=null;state.generationId='';privateSession?.close();privateSession=null;resetPrivateOpenLink();
+  $('#app').classList.add('hidden');$('#signin').classList.remove('hidden');renderFixtureAuth();
+  $('#session-recovery').classList.remove('hidden');$('#session-recovery-status').textContent='Wallet state needs verification. Restore your existing AI permission before continuing; remote revocation is not confirmed.';return;
+ }
+ if(!['account-changed','permissions-revoked','identity-revoked'].includes(reason))return;
+ const hadSession=hasAISession()||Boolean(state.generationId);
  privateLoginEpoch+=1;
- const hadPrivateClient=Boolean(privateSession);
- privateSession?.close();privateSession=null;
- if(!hasAISession()&&!state.generationId&&!hadPrivateClient)return;
- clearAISession();sessionStorage.setItem(signoutNoticeKey,'wallet-changed');
+ privateSession?.close();privateSession=null;resetPrivateOpenLink();
+ if(!hadSession){$('#app').classList.add('hidden');$('#signin').classList.remove('hidden');renderFixtureAuth();return;}
+ clearAISession();sessionStorage.setItem(signoutNoticeKey,reason==='account-changed'?'wallet-changed':'permission-changed');
  $('#app').classList.add('hidden');$('#signin').classList.remove('hidden');
- $('#session-recovery').classList.add('hidden');$('#challenge-form').classList.remove('hidden');
+ $('#session-recovery').classList.add('hidden');renderFixtureAuth();
  $('#proof-step').classList.add('hidden');showSignoutNotice();
 }
 globalThis.addEventListener?.('ynx-ai-wallet-invalidated',invalidateWalletSession);
+globalThis.addEventListener?.('ynx-ai-wallet-state',event=>{if(event.detail?.status==='connected'&&privateSession?.current.status==='connected'&&!globalThis.YNXAIWallet?.privateSubjectMatches(privateSession.current.session.account))invalidateWalletSession({detail:{reason:'account-changed'}});});
 $('#provider-retry')?.addEventListener('click',async()=>{
  const button=$('#provider-retry');button.disabled=true;
  try{await loadProvider()}catch(error){toast(error.message)}
@@ -208,7 +219,7 @@ function privateScope(path){
  return 'ai:conversations';
 }
 async function aiRequest(path,options,consume){
- if(privateSession)return privateSession.request(path,privateScope(path),options,consume);
+ if(privateSession){const wallet=globalThis.YNXAIWallet;if(wallet&&!wallet.privateSubjectMatches(privateSession.current.session?.account))throw new Error('Your selected wallet differs from this AI session. Choose the matching account.');return privateSession.request(path,privateScope(path),options,consume);}
  const epoch=state.sessionEpoch;
  const guard=()=>{if(state.signingOut||epoch!==state.sessionEpoch)throw new Error('The AI session has ended.')};
  guard();const response=await fetch(path,options);guard();const result=await consume(response,guard);guard();return result;
@@ -239,7 +250,7 @@ async function initializePrivateLogin(loadPrivateModule=()=>import('./private-se
    if(!response.ok)throw new Error('Wallet configuration is unavailable. Retry when the service returns.');
    const config=await response.json();
    guard();
-   $('#challenge-form').classList.toggle('hidden',!config.localFixtureAuthEnabled);
+   fixtureAuthEnabled=config.localFixtureAuthEnabled===true;renderFixtureAuth();
    if(config.localFixtureAuthEnabled){if(state.token)await enterApp();throw new Error('Local fixture mode only. Canonical private login is disabled.');}
    if(!config.canonicalConfigured)throw new Error('Canonical Wallet authority is not configured for this AI runtime.');
    // Legacy fixture credentials never migrate into the new authority.
@@ -265,7 +276,7 @@ async function initializePrivateLogin(loadPrivateModule=()=>import('./private-se
    guard();
    status.textContent=result.message||result.status;
    if(result.status==='connected'){
-    state.sessionEpoch+=1;state.account=result.session.account;state.deviceId=result.session.deviceId;
+    state.sessionSuspended=false;state.sessionEpoch+=1;state.account=result.session.account;state.deviceId=result.session.deviceId;
     sessionStorage.removeItem(signoutNoticeKey);
     if(location.pathname==='/wallet-auth/callback')history.replaceState(null,'','/');
     await enterApp();
@@ -282,11 +293,26 @@ async function initializePrivateLogin(loadPrivateModule=()=>import('./private-se
   }catch(error){if(epoch===privateLoginEpoch&&!state.signingOut)status.textContent=error.message}
   finally{begin.disabled=false;restore.disabled=false}
  }
- begin.onclick=()=>run(client=>client.begin());
+ begin.onclick=()=>{const reservation=globalThis.YNXAIWallet?.reservePrivateRequest?.();return run(async client=>{
+  await reservation;
+  let pending=await client.begin();
+  const wallet=globalThis.YNXAIWallet;
+  if(pending.revocationPending||pending.revocationConfirmed===true)return pending;
+  if(pending.status==='connecting'&&pending.route?.status==='ready'&&wallet?.privateProviderAvailable?.()){
+   const response=await wallet.requestProductSessionV2(pending.route.url);
+   const settled=await client.handleReturn(response.returnUrl);
+   if(settled.status==='connected'&&!wallet.privateSubjectMatches(settled.session.account)){await client.disconnect();throw new Error('The approved AI account differs from your selected wallet. Choose the matching account and retry.');}
+   return settled;
+  }
+  return pending;
+ });};
  restore.onclick=()=>run(client=>client.restore());
  $('#private-revoke').onclick=async()=>{try{await initialize();await privateSignOut()}catch(error){status.textContent=error.message}};
  if(location.pathname==='/wallet-auth/callback')await run(client=>client.handleReturn(location.href));
- else {const epoch=privateLoginEpoch;try{await initialize();if(epoch===privateLoginEpoch&&!state.signingOut)status.textContent='Private session storage is ready. Restore an existing session or explicitly begin Wallet login.'}catch(error){if(epoch===privateLoginEpoch&&!state.signingOut)status.textContent=error.message}}
+ else {await run(client=>client.restore());}
+ globalThis.addEventListener?.('pagehide',()=>{privateLoginEpoch++;privateSession?.close();privateSession=null;state.abort?.abort();});
+ globalThis.addEventListener?.('pageshow',event=>{if(event.persisted)void run(client=>client.restore());});
+ globalThis.addEventListener?.('online',()=>{if(!state.signingOut)void run(client=>client.restore());});
 }
 
 function resetBYOKUI(){

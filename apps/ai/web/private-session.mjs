@@ -97,6 +97,7 @@ export class AIPrivateSession {
   }
   // SDK retains durable revocation intent on failure. Never clear its storage.
   disconnect() { return this.#lifecycle(() => this.#adapter.client.disconnect()); }
+  retry() { return this.#lifecycle(() => this.#adapter.client.retryDetected()); }
 
   // consume runs inside the epoch guard, including JSON or streaming reads.
   // The server independently chooses its required scope for the business route.
@@ -134,7 +135,7 @@ export class AIPrivateSession {
       headers.set(PROOF_HEADER, authorization.proofHeader);
       const response = await this.#fetch(url.href, {
         ...init, headers, signal: controller.signal,
-        credentials: 'omit', cache: 'no-store', redirect: 'error',
+        credentials: 'same-origin', cache: 'no-store', redirect: 'error',
       });
       guard();
       // No automatic retry: every attempt needs a fresh proof; business writes

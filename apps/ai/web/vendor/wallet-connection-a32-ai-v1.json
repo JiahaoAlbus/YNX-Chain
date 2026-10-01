@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "inputCommit": "a32a48283bd13c4d15aeaeb4a093322556abe778",
+  "hostedInputCommit": "52cce2ef8b24050c8eed47dd57529bf5624e3d36",
+  "socialRegistryInput": "e351175fe967f30089dd0c516f7d70f46966bbe1",
+  "aiOverlays": {
+    "apps/ai/web/wallet-sdk-entry.mjs": "0f4e5e7d53e607e4d83271e89994e0206f786d8fb2fee38c2794401edc42b598",
+    "packages/wallet-auth/src/central-browser-session-registry.js": "a75e614f4140c4cfe14741d5f9c124317dbb85804a567471a88c9a36e597362b",
+    "packages/wallet-auth/src/walletconnect-dapp-connection.js": "5809b4e8f9402afb3678f987ae0113d9e9681a943a12eaea7b63f821b309fae0"
+  },
+  "dependencies": {
+    "esbuild": "0.25.9",
+    "@walletconnect/sign-client": "2.23.10",
+    "@walletconnect/core": "2.23.10",
+    "qrcode": "1.5.4"
+  },
+  "output": "apps/ai/web/vendor/wallet-connection-a32-ai-v1.mjs",
+  "sha256": "4570154a2e1c1664716e94f20686be1870b798ba88504cc68860a5870fef268c",
+  "bytes": 561989,
+  "command": "YNX_AI_DEPENDENCY_ROOT=<frozen installed checkout> node apps/ai/tests/build-wallet-consumer.mjs",
+  "publicAccepted": false
+}

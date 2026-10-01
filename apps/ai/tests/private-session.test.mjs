@@ -18,7 +18,7 @@ function fixture(fetcher=async()=>new Response('{}')){
  return {session,adapter,client,calls,proofs,get closed(){return closed}};
 }
 
-test('private requests use fresh proofs without legacy credentials, cookies or redirects',async()=>{
+test('private requests require fresh proofs and use only same-origin identity cookies without legacy credentials or redirects',async()=>{
  const f=fixture();
  const options={method:'POST',credentials:'include',redirect:'follow',headers:{
   Authorization:'Bearer old-token','X-YNX-Device-ID':'old-device',
@@ -34,7 +34,7 @@ test('private requests use fresh proofs without legacy credentials, cookies or r
   assert.equal(call.options.headers.get('X-YNX-Device-ID'),null);
   assert.equal(call.options.headers.get('X-YNX-Product-Session-Proof'),null);
   assert.equal(call.options.headers.get('X-YNX-Product-Session-Proof-V2'),'fresh-proof-'+(index+1));
-  assert.equal(call.options.credentials,'omit');assert.equal(call.options.redirect,'error');
+  assert.equal(call.options.credentials,'same-origin');assert.equal(call.options.redirect,'error');
   assert.equal(call.options.cache,'no-store');assert.equal(call.options.body,options.body);
  }
  assert.equal(options.headers.Authorization,'Bearer old-token');

@@ -1,89 +1,17 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#002FA7">
-  <title>YNX AI</title>
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/actions.css">
-  <link rel="stylesheet" href="/theme.css">
-  <link rel="stylesheet" href="/public-status.css">
-  <link rel="stylesheet" href="/wallet-controls.css">
-</head>
-<body>
-  <div id="signin" class="auth-shell">
-    <section class="auth-card" aria-labelledby="auth-title">
-      <div class="auth-layout">
-      <div class="auth-intro">
-      <img class="brand-logo" src="/ynx-logo.png" alt="YNX Chain">
-      <p class="eyebrow">YNX AI · permissioned intelligence</p>
-      <h1 id="auth-title">Bring your Wallet.<br>Keep your authority.</h1>
-      <p class="lede">Sign in proves account and device control. It never grants signing, transfer, publishing, sending, permission changes, or freezing authority.</p>
-      <section class="public-runtime" aria-labelledby="runtime-title">
-        <header><div><p class="eyebrow">Public Testnet status</p><h2 id="runtime-title">Provider truth before login</h2></div><span id="public-status-badge" class="runtime-badge checking">Checking</span></header>
-        <p id="public-status-detail">Checking the server-side Gateway and configured model endpoint without exposing credentials. Successful generation is a separate state.</p>
-        <dl>
-          <div><dt>Gateway</dt><dd id="public-gateway">Checking</dd></div>
-          <div><dt>Provider / model</dt><dd id="public-provider">Checking</dd></div>
-          <div><dt>Access boundary</dt><dd>YNX Wallet product session required</dd></div>
-        </dl>
-      </section>
-      </div>
-      <div class="auth-access">
-      <section class="notice" aria-labelledby="standard-wallet-title">
-        <h2 id="standard-wallet-title">Choose your wallet</h2>
-        <p>Connect YNX Wallet or MetaMask explicitly. Standard account access does not grant access to private AI conversations or generation.</p>
-        <button id="standard-wallet-ynx" class="primary small" type="button">YNX Wallet</button>
-        <button id="standard-wallet-metamask" class="primary small" type="button">MetaMask</button>
-        <button id="standard-wallet-refresh" class="text-button" type="button">Refresh wallets</button>
-        <button id="standard-wallet-disconnect" class="text-button" type="button">Disconnect here</button>
-        <button id="standard-wallet-revoke" class="text-button" type="button">Revoke wallet permissions</button>
-        <button id="standard-wallet-network" class="text-button" type="button" hidden>Switch to YNX Testnet</button>
-        <p id="standard-wallet-status" role="status">Checking available wallets without requesting accounts.</p>
-      </section>
-      <section class="notice" aria-labelledby="private-title">
-        <h2 id="private-title">Private YNX AI session</h2>
-        <p>Separate Wallet approval is required for private conversations. MetaMask account access does not create this session.</p>
-        <button id="private-begin" class="primary small" type="button">Begin private login</button>
-        <a id="private-open-wallet" class="wallet-link" hidden>Open YNX Wallet</a>
-        <button id="private-restore" class="text-button" type="button">Restore private session</button>
-        <button id="private-revoke" class="text-button" type="button">Revoke / retry sign-out</button>
-        <a class="text-button" href="https://www.ynxweb4.com/dapp/download" target="_blank" rel="noreferrer">Install or repair YNX Wallet</a>
-        <p id="private-status" role="status">Reading canonical Wallet configuration.</p>
-      </section>
-      <section id="session-recovery" class="notice hidden" aria-labelledby="session-recovery-title">
-        <h2 id="session-recovery-title">Restore your AI session</h2>
-        <p id="session-recovery-status" role="status">Checking your existing session.</p>
-        <button id="session-retry" class="primary small" type="button">Retry session check</button>
-        <button id="session-signout" class="text-button" type="button">Sign out on this device</button>
-      </section>
-      <p class="notice"><strong>Private session boundary:</strong> the session status above reports the current connection result. Gateway availability does not mean you are signed in. Private access requires Wallet approval and a verified session; standard wallet connection alone is not enough. Developer fixture fields remain hidden unless local fixture mode is explicitly enabled.</p>
-      <form id="challenge-form" class="auth-grid hidden">
-        <label>Native account <input id="account" required placeholder="ynx1…" autocomplete="off"></label>
-        <label>Device ID <input id="device-id" required value="ynx-ai-browser" autocomplete="off"></label>
-        <label>Device Ed25519 public key <input id="device-public" required placeholder="base64url public key" autocomplete="off"></label>
-        <button class="primary" type="submit">Continue with YNX Wallet</button>
-      </form>
-      <div id="proof-step" class="proof-step hidden">
-        <p class="notice"><strong>Review in YNX Wallet.</strong> The request expires in five minutes and is bound to this product, callback, device, chain, and exact scopes.</p>
-        <a id="wallet-link" class="wallet-link" href="#">Open YNX Wallet</a>
-        <details>
-          <summary>Complete with signed proof</summary>
-          <form id="verify-form" class="auth-grid compact">
-            <label>Account public key <input id="account-public" required placeholder="compressed secp256k1 hex"></label>
-            <label>Account signature <input id="account-signature" required placeholder="DER low-S hex"></label>
-            <label>Device signature <input id="device-signature" required placeholder="base64url signature"></label>
-            <button class="primary" type="submit">Verify and enter</button>
-          </form>
-        </details>
-      </div>
-      <p id="auth-error" class="error" role="alert"></p>
-      </div>
-      </div>
-    </section>
-  </div>
-
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#002FA7"><title>YNX AI</title>
+<link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/actions.css"><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/public-status.css"><link rel="stylesheet" href="/wallet-controls.css"><link rel="stylesheet" href="/signin.css"></head><body>
+<div id="signin" class="auth-shell"><section class="auth-card" aria-labelledby="auth-title"><div class="auth-layout">
+<div class="auth-intro"><img class="brand-logo" src="/ynx-logo.png" alt="YNX Chain"><p class="eyebrow">YNX AI</p><h1 id="auth-title" data-i18n="title">Your conversations.<br>Your control.</h1><p class="lede" data-i18n="intro">Return to your private workspace with YNX Wallet. Your history stays with your account.</p><label class="language-label"><span data-i18n="language">Language</span><select id="ai-language"><option value="en">English</option><option value="zh-CN">简体中文</option></select></label>
+<details class="connection-details"><summary data-i18n="diagnostics">Service details</summary><section class="public-runtime" aria-labelledby="runtime-title"><header><h2 id="runtime-title">Testnet service</h2><span id="public-status-badge" class="runtime-badge checking">Checking</span></header><p id="public-status-detail"></p><dl><div><dt>Gateway</dt><dd id="public-gateway">Checking</dd></div><div><dt>Provider / model</dt><dd id="public-provider">Checking</dd></div></dl></section><p class="boundary-copy" data-i18n="boundary">A connected wallet is not AI permission. Private access needs its own approval; signing and transactions require separate confirmation.</p></details></div>
+<div class="auth-access"><section class="account-entry"><h2 data-i18n="account">YNX account</h2><p id="identity-status" role="status" data-i18n="identityChecking">Checking account</p><a id="identity-begin" class="text-button" href="/sso/start?target=chat" data-i18n="identityBegin">Sign in across YNX</a><button id="identity-logout" class="text-button" type="button" hidden data-i18n="identityLogout">Sign out of this site</button></section>
+<section aria-labelledby="standard-wallet-title"><h2 id="standard-wallet-title" data-i18n="choose">Choose how to connect</h2><div class="wallet-choices"><button id="standard-wallet-ynx" class="primary" type="button" data-i18n="extension">YNX Wallet extension</button><button id="standard-wallet-hosted" class="choice-button" type="button" data-i18n="web">YNX Wallet on Web</button><button id="standard-wallet-pair" class="choice-button" type="button" data-i18n="phone">Connect a phone</button><button id="standard-wallet-metamask" class="choice-button" type="button">MetaMask</button></div><p id="standard-wallet-status" class="connection-status" role="status" aria-live="polite">Checking wallets</p>
+<div id="pair-panel" hidden><p id="pair-status" role="status"></p><img id="pair-qr" alt="Scan in YNX Wallet" hidden><a id="pair-open" class="wallet-link" hidden data-i18n="openPhone">Open on your phone</a><button id="pair-cancel" class="text-button" type="button" data-i18n="cancel">Cancel</button></div>
+<details class="connection-details"><summary data-i18n="options">Connection options</summary><div class="wallet-options"><button id="standard-wallet-refresh" class="text-button" type="button" data-i18n="refresh">Refresh wallets</button><button id="standard-wallet-disconnect" class="text-button" type="button" data-i18n="disconnect">Disconnect here</button><button id="standard-wallet-revoke" class="text-button" type="button" data-i18n="revoke">Revoke wallet access</button><button id="standard-wallet-network" class="text-button" type="button" hidden data-i18n="network">Switch to YNX Testnet</button><a class="text-button" href="https://www.ynxweb4.com/dapp/download" target="_blank" rel="noreferrer" data-i18n="install">Get YNX Wallet</a></div></details></section>
+<section class="private-entry" aria-labelledby="private-title"><h2 id="private-title" data-i18n="private">Open your private workspace</h2><p data-i18n="privateIntro">Approve AI access separately in YNX Wallet. MetaMask and unified sign-in do not grant private AI permissions.</p><button id="private-begin" class="primary" type="button" data-i18n="privateBegin">Review AI access</button><a id="private-open-wallet" class="wallet-link" hidden data-i18n="openWallet">Open YNX Wallet</a><p id="private-status" class="connection-status" role="status" aria-live="polite">Checking saved AI access</p><div class="wallet-options"><button id="private-restore" class="text-button" type="button" data-i18n="restore">Restore / retry</button><button id="private-revoke" class="text-button" type="button" data-i18n="privateLogout">Revoke AI access / retry sign-out</button></div></section>
+<section id="session-recovery" class="notice hidden" aria-labelledby="session-recovery-title"><h2 id="session-recovery-title" data-i18n="restoring">Checking your AI session</h2><p id="session-recovery-status" role="status"></p><button id="session-retry" class="primary small" type="button" data-i18n="retry">Retry</button><button id="session-signout" class="text-button" type="button" data-i18n="privateLogout">Sign out of AI</button></section>
+<details id="fixture-tools"><summary>Local development</summary><form id="challenge-form" class="auth-grid hidden" hidden inert><label>Native account<input id="account" required autocomplete="off"></label><label>Device ID<input id="device-id" required value="ynx-ai-browser" autocomplete="off"></label><label>Device Ed25519 public key<input id="device-public" required autocomplete="off"></label><button class="primary" type="submit">Continue with YNX Wallet</button></form><div id="proof-step" class="proof-step hidden"><a id="wallet-link" href="#">Open YNX Wallet</a><form id="verify-form" class="auth-grid"><label>Account public key<input id="account-public" required></label><label>Account signature<input id="account-signature" required></label><label>Device signature<input id="device-signature" required></label><button class="primary" type="submit">Verify</button></form></div></details><p id="auth-error" class="error" role="alert"></p></div></div></section></div>
+<script type="module" src="/locales.mjs"></script><script type="module" src="/account-panel.mjs"></script>
   <div id="app" class="app hidden">
     <aside class="rail" aria-label="YNX AI controls">
       <img class="rail-logo" src="/ynx-logo.png" alt="YNX">

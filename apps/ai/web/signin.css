@@ -1,0 +1,21 @@
+:root{--blue:#002fa7;--ink:#071433;--muted:#65708a;--line:#dce3f1;--soft:#f4f7fc}
+body{font-family:"Helvetica Neue","PingFang SC","Noto Sans",sans-serif;background:#fff;color:var(--ink)}
+.auth-shell{background:linear-gradient(125deg,#fff 0 56%,#f0f4ff 100%);padding:32px;min-height:100dvh}
+.auth-card{width:min(1060px,100%);box-shadow:0 14px 60px #002fa70b;background:#fff;color:var(--ink)}
+.auth-layout{grid-template-columns:minmax(0,1fr) minmax(350px,1fr)}
+.auth-intro,.auth-access{padding:36px}.auth-access{background:#fff;justify-content:flex-start;gap:22px}
+.auth-card h1{font-size:clamp(32px,4vw,48px);line-height:1.12;letter-spacing:-.035em;font-weight:650}
+.auth-card h2{font-size:17px;font-weight:650;letter-spacing:0;margin:0 0 10px}.auth-card p{font-size:14px;line-height:1.6}
+.brand-logo{width:80px;max-height:46px;margin-bottom:32px}.lede{margin-bottom:28px}
+.wallet-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}.wallet-choices button{min-height:48px;padding:10px;font-weight:600;font-size:13px}
+.choice-button{border:1px solid var(--line);background:#fff;color:var(--blue)}
+.connection-status{color:var(--muted);overflow-wrap:anywhere;margin:12px 0 0;min-height:22px}
+.connection-details{margin-top:14px;color:var(--muted);font-size:13px}.connection-details summary{cursor:pointer;padding:6px 0}
+.wallet-options{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;align-items:center}.private-entry,.account-entry{border-bottom:1px solid var(--line);padding-bottom:20px}
+.private-entry{border-bottom:0;padding-bottom:0}.private-entry>p{color:var(--muted);margin-bottom:12px}
+.language-label{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)}.language-label select{padding:7px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+#fixture-tools{display:none}#fixture-tools[data-enabled="true"]{display:block}#challenge-form[hidden],#pair-panel[hidden],#pair-qr[hidden],#pair-open[hidden],#identity-logout[hidden]{display:none!important}
+#pair-panel{padding:16px;border:1px solid var(--line);margin-top:14px}#pair-qr{display:block;width:min(224px,100%);height:auto}#pair-open{display:block;margin:12px 0}
+.public-runtime{margin:14px 0;padding:14px}.public-runtime dl{grid-template-columns:1fr 1fr}.boundary-copy{font-size:12px!important}
+@media(max-width:800px){.auth-layout{grid-template-columns:1fr}.auth-intro,.auth-access{padding:24px}.auth-access{border-left:0;border-top:1px solid var(--line)}.auth-shell{padding:16px}.brand-logo{margin-bottom:16px}.lede{margin-bottom:18px}.auth-intro .connection-details{margin-top:8px}}
+@media(max-width:380px){.wallet-choices{grid-template-columns:1fr}.auth-shell{padding:8px}}

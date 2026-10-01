@@ -36,6 +36,7 @@ func (s *Server) handleWalletConfig(w http.ResponseWriter, r *http.Request) {
 		"proofHeader":             productsessionv2.ProofHeader,
 		"sessionReadbackScopes":   []string{"ai:conversations"},
 		"integratedCentral":       false,
+		"browserSSOConfigured":    s.browserSSO != nil,
 		"boundary":                "Configuration is not deployment acceptance. Every private request needs a fresh Wallet scope proof; it is not approval of a business action.",
 	})
 }
@@ -52,6 +53,9 @@ func (s *Server) authenticateRequest(r *http.Request, scope string) (ProductSess
 		}
 		verified, err := s.wallet.Authorize(r.Context(), r, []string{scope})
 		if err != nil {
+			return ProductSession{}, err
+		}
+		if err := s.verifyBrowserIdentity(r, verified.Account); err != nil {
 			return ProductSession{}, err
 		}
 		issued, err1 := time.Parse(time.RFC3339Nano, verified.IssuedAt)

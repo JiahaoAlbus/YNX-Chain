@@ -41,6 +41,7 @@ type Config struct {
 
 type Server struct {
 	wallet      canonicalSessionAuthorizer
+	browserSSO  *productsessionv2.BrowserSSO
 	cfg         Config
 	store       *Store
 	client      *http.Client
@@ -96,6 +97,12 @@ func NewServer(cfg Config, store *Store, static fs.FS) (*Server, error) {
 			return nil, err
 		}
 	}
+	if cfg.CanonicalWalletGatewayOrigin == "https://wallet-auth.ynxweb4.com" {
+		s.browserSSO, err = productsessionv2.NewBrowserSSO("ai", cfg.CanonicalWalletGatewayOrigin, store.browserCookieKey, []string{"chat"}, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
 	s.routes()
 	return s, nil
 }
@@ -103,6 +110,7 @@ func NewServer(cfg Config, store *Store, static fs.FS) (*Server, error) {
 func (s *Server) Handler() http.Handler { return securityHeaders(s.observe(s.mux)) }
 
 func (s *Server) routes() {
+	s.registerBrowserSSO()
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
@@ -220,7 +228,7 @@ func (s *Server) allow(key string, limit int, now time.Time) bool {
 }
 
 func (s *Server) handleMeta(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"product": ProductID, "chainId": ChainID, "network": ChainNetwork, "nativeAsset": NativeAsset, "walletCallback": s.cfg.ExactWalletCallback, "scopes": FormalScopes, "build": s.cfg.Build, "productAIRegistryVersion": s.registry.RegistryVersion, "productAIRegistryProducts": len(s.registry.Products), "integratedCentral": false, "generationLive": false, "localFixtureAuthEnabled": s.cfg.AllowLocalFixtureAuth, "authAuthority": "production canonical integration pending; sign-in fails closed unless explicit local fixture mode is enabled", "truthBoundary": "provider output only appears after a successful provider-backed Gateway stream"})
+	writeJSON(w, http.StatusOK, map[string]any{"product": ProductID, "chainId": ChainID, "network": ChainNetwork, "nativeAsset": NativeAsset, "walletCallback": s.walletCallbackProjection(), "scopes": FormalScopes, "build": s.cfg.Build, "productAIRegistryVersion": s.registry.RegistryVersion, "productAIRegistryProducts": len(s.registry.Products), "integratedCentral": false, "generationLive": false, "localFixtureAuthEnabled": s.cfg.AllowLocalFixtureAuth, "authAuthority": s.authAuthorityProjection(), "truthBoundary": "provider output only appears after a successful provider-backed Gateway stream"})
 }
 
 func (s *Server) handlePublicStatus(w http.ResponseWriter, r *http.Request) {

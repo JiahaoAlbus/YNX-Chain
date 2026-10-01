@@ -86,3 +86,27 @@ test('disconnect while account request is pending discards late connection',asyn
  c.instance.disconnect();finish([account]);await pending;
  assert.equal(c.instance.state.status,'disconnected');assert.equal(c.instance.state.account,null);
 });
+
+test('missing provider, rejection and transport loss never report confirmed identity change',async()=>{
+ const empty=client([]);await empty.instance.connect('ynx-wallet');assert.equal(empty.invalidations,0);
+ const wallet=provider('ynx-wallet'),c=client([wallet]);await c.instance.connect('ynx-wallet');assert.equal(c.invalidations,0);
+ wallet.emit('disconnect',{code:4900});assert.equal(c.invalidations,0);assert.equal(c.instance.state.status,'transport-unavailable');assert.equal(c.instance.state.account,account);
+ c.instance.dispose();
+});
+test('only a confirmed different account generates account-changed; chain changes do not',async()=>{
+ const wallet=provider('ynx-wallet'),c=client([wallet]);await c.instance.connect('ynx-wallet');const reasons=[];c.instance.onInvalidated=value=>reasons.push(value.reason);
+ wallet.chain='0x1';wallet.emit('chainChanged','0x1');await tick();assert.deepEqual(reasons,[]);
+ wallet.accounts=['0x'+'2'.repeat(40)];wallet.emit('accountsChanged',wallet.accounts);await tick();assert.ok(reasons.every(reason=>reason==='account-changed'));assert.ok(reasons.length>0);c.instance.dispose();
+});
+test('phone cancellation discards a late approved provider without requesting AI permission',async()=>{
+ const wallet=provider('ynx-wallet');let resolveConnect;const phone={on(){},connect(){return new Promise(resolve=>{resolveConnect=resolve})},async cancel(){}};
+ const c=client([]);c.instance.loadSDK=async()=>({WalletConnectDAppConnection:class{constructor(){return phone}},toDataURL:async()=>''});
+ const pending=c.instance.connectPair();await tick();await c.instance.cancelPair();resolveConnect(wallet);await pending;
+ assert.equal(c.instance.state.status,'disconnected');assert.equal(c.invalidations,0);assert.equal(wallet.calls.length,0);
+});
+test('private transport uses the selected YNX provider, never MetaMask or a standard signing fallback',async()=>{
+ const wallet=provider('ynx-wallet'),metamask=provider('metamask'),c=client([wallet,metamask]);await c.instance.connect('metamask');
+ await assert.rejects(c.instance.requestProductSessionV2('ynxwallet://authorize?request=x'),/UNAVAILABLE/);
+ await c.instance.connect('ynx-wallet');const request=wallet.request;wallet.request=async input=>input.method==='ynx_requestProductSessionV2'?{version:2,returnUrl:'https://assistant.ynxweb4.com/wallet-auth/callback?result=approved'}:request.call(wallet,input);
+ const result=await c.instance.requestProductSessionV2('ynxwallet://authorize?request=official');assert.equal(result.version,2);assert.equal(metamask.calls.some(call=>call.method==='personal_sign'),false);c.instance.dispose();
+});

@@ -171,7 +171,7 @@ test('provider identity changes clear private AI credentials and discard pending
  let finish;
  const p=page({storage:credentials(),requests:{'/api/auth/session':()=>new Promise(resolve=>{finish=resolve})}});
  await tick();
- p.eval('invalidateWalletSession()');
+ p.eval("invalidateWalletSession({detail:{reason:'account-changed'}})");
  finish(response(200,{account:'test-account',deviceId:'test-device'}));await tick();
  locallySignedOut(p);
  assert.equal(p.storage.get('ynx-ai-signout-status'),'wallet-changed');
@@ -192,7 +192,7 @@ test('logout while configuration is pending cannot start session restoration',as
 test('provider change cancels pending configuration before fixture restoration',async()=>{
  let finish;
  const p=page({storage:credentials(),requests:{'/api/wallet/config':()=>new Promise(resolve=>{finish=resolve})}});
- p.eval('invalidateWalletSession()');
+ p.eval("invalidateWalletSession({detail:{reason:'account-changed'}})");
  finish(response(200,{localFixtureAuthEnabled:true}));await tick();
  locallySignedOut(p);
  assert.equal(p.calls.some(c=>c.path==='/api/auth/session'),false);
@@ -204,7 +204,7 @@ test('late canonical client construction is closed after Wallet identity changes
  p.context.fetch=async()=>response(200,{canonicalConfigured:true,localFixtureAuthEnabled:false});
  p.context.loadModule=async()=>({createAIPrivateSession:()=>new Promise(resolve=>{finish=resolve})});
  const pending=p.eval('initializePrivateLogin(loadModule)');await tick();
- p.eval('invalidateWalletSession()');
+ p.eval("invalidateWalletSession({detail:{reason:'account-changed'}})");
  finish({close(){closed++},current:{status:'disconnected'}});
  await pending;
  assert.equal(closed,1);
@@ -222,7 +222,7 @@ test('late successful callback cannot reopen private workspace after invalidatio
   current:{status:'disconnected'},close(){},handleReturn:()=>new Promise(resolve=>{finish=resolve}),
  })});
  const pending=p.eval('initializePrivateLogin(loadModule)');await tick();
- p.eval('invalidateWalletSession()');
+ p.eval("invalidateWalletSession({detail:{reason:'account-changed'}})");
  finish({status:'connected',session:{account:'late-account',deviceId:'late-device'}});
  await pending;
  assert.equal(p.eval('privateSession'),null);
@@ -313,8 +313,44 @@ test('explicit login renders an official Wallet link but never opens it automati
  assert.match(p.node('#private-status').textContent,/Installation is unverified/);
  assert.equal(p.context.location.href,undefined);
  assert.equal(p.node('#app').classList.contains('hidden'),true);
- p.eval('invalidateWalletSession()');
+ p.eval("invalidateWalletSession({detail:{reason:'account-changed'}})");
  assert.equal(p.node('#private-open-wallet').hidden,true);
  let prevented=false;p.node('#private-open-wallet').onclick({preventDefault(){prevented=true}});
  assert.equal(prevented,true);
+});
+
+test('a transport-only event keeps an existing AI session and does not invent an identity-change notice',async()=>{
+ const p=page({storage:credentials()});await tick();const before=p.eval('state.account');
+ p.eval("invalidateWalletSession({detail:{reason:'transport-unavailable'}})");
+ assert.equal(p.eval('state.account'),before);assert.notEqual(p.storage.get('ynx-ai-signout-status'),'wallet-changed');
+});
+test('an initialized guest client is not a signed-in AI session; no false cleared-session notice',async()=>{
+ const p=page();await tick();p.eval("privateSession={current:{status:'disconnected'},close(){}};fixtureAuthEnabled=false;renderFixtureAuth();invalidateWalletSession({detail:{reason:'account-changed'}})");
+ assert.equal(p.storage.has('ynx-ai-signout-status'),false);assert.equal(p.eval('privateSession'),null);assert.equal(p.node('#challenge-form').hidden,true);assert.equal(p.node('#challenge-form').classList.contains('hidden'),true);
+});
+test('fixture=false survives a confirmed account change and a 401 readback',async()=>{
+ const p=page({storage:credentials()});await tick();p.eval("fixtureAuthEnabled=false;renderFixtureAuth();invalidateWalletSession({detail:{reason:'account-changed'}})");
+ assert.equal(p.node('#challenge-form').hidden,true);assert.equal(p.node('#challenge-form').inert,true);
+ const expired=page({storage:credentials(),requests:{'/api/auth/session':async()=>response(401)}});await tick();expired.eval('fixtureAuthEnabled=false;renderFixtureAuth()');assert.equal(expired.node('#challenge-form').hidden,true);
+});
+test('page recovery reads an existing private session without explicit begin or opening Wallet',async()=>{
+ const p=page();await tick();let restores=0,begins=0;
+ p.context.fetch=async()=>response(200,{canonicalConfigured:true,localFixtureAuthEnabled:false});
+ p.context.loadModule=async()=>({createAIPrivateSession:async()=>({current:{status:'disconnected'},close(){},restore:async()=>{restores++;return {status:'disconnected',message:'No saved AI permission'}},begin:async()=>{begins++;return {status:'connecting'}}})});
+ await p.eval('initializePrivateLogin(loadModule)');assert.equal(restores,1);assert.equal(begins,0);assert.equal(p.node('#private-open-wallet').hidden,true);assert.equal(p.node('#challenge-form').hidden,true);
+});
+
+test('legacy untyped invalidation suspends all business requests and generation without inventing account change',async()=>{
+ const p=page({storage:credentials()});await tick();p.eval('state.abort=new AbortController();globalThis.pendingSignal=state.abort.signal;state.generationId="running";invalidateWalletSession()');
+ assert.equal(p.eval('pendingSignal.aborted'),true);assert.equal(p.eval('state.sessionSuspended'),true);assert.equal(p.eval('state.generationId'),'');assert.equal(p.eval('state.account'),'test-account');assert.equal(p.node('#app').classList.contains('hidden'),true);assert.notEqual(p.storage.get('ynx-ai-signout-status'),'wallet-changed');
+ const before=p.calls.length;await assert.rejects(p.eval("api('/api/conversations')"),/suspended/);assert.equal(p.calls.length,before);
+ await p.eval('enterApp()');assert.equal(p.eval('state.sessionSuspended'),false);assert.equal(p.node('#app').classList.contains('hidden'),false);
+});
+test('typed permissions revocation aborts generation and clears local AI access without claiming remote AI revoke',async()=>{
+ const p=page({storage:credentials()});await tick();p.eval('state.abort=new AbortController();globalThis.pendingSignal=state.abort.signal;state.generationId="running";invalidateWalletSession({detail:{reason:"permissions-revoked"}})');
+ locallySignedOut(p);assert.equal(p.eval('pendingSignal.aborted'),true);assert.equal(p.eval('state.generationId'),'');assert.equal(p.storage.get('ynx-ai-signout-status'),'permission-changed');assert.match(p.node('#auth-error').textContent,/remote AI revocation is not confirmed/);
+});
+test('transport-only event does not cancel an independently authorized AI generation',async()=>{
+ const p=page({storage:credentials()});await tick();p.eval('state.abort=new AbortController();globalThis.pendingSignal=state.abort.signal;state.generationId="running";invalidateWalletSession({detail:{reason:"transport-unavailable"}})');
+ assert.equal(p.eval('pendingSignal.aborted'),false);assert.equal(p.eval('state.generationId'),'running');assert.equal(p.eval('state.sessionSuspended'),false);
 });
