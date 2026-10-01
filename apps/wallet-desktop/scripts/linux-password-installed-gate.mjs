@@ -13,6 +13,15 @@ export async function continuePersistedAccount(snapshot,{unlock,wait},label){
  await wait(s=>!s.locked&&accountCreated(s)&&s.account.account===account,label);
  return snapshot.account;
 }
+export async function finishNativeSave({enterDestination,saveAction,fileExists,dialogVisible,sleep,diagnostics}){
+ await enterDestination();
+ // Enter may finish the GTK location-entry step without activating Save.
+ for(let n=0;n<5;n++){if(await fileExists())return;await sleep(100)}
+ diagnostics.dialogVisibleAfterDestination=await dialogVisible();
+ if(diagnostics.dialogVisibleAfterDestination){await saveAction();diagnostics.explicitSaveActionSent=true}
+ for(let n=0;n<100;n++){if(await fileExists())return;await sleep(300)}
+ diagnostics.dialogStillVisible=await dialogVisible();diagnostics.destinationExists=await fileExists();throw Error('NATIVE_BACKUP_NOT_SAVED');
+}
 export function sanitizedFailureSnapshot(snapshot,stage){
  const ui=snapshot?.ui??{};return{stage:String(stage).replace(/[^A-Z0-9_]/g,'').slice(0,80),accountAvailable:Boolean(snapshot?.account),initialized:snapshot?.account?.initialized===true,passwordConfigured:snapshot?.account?.passwordConfigured===true,accountPresent:typeof snapshot?.account?.account==='string'&&snapshot.account.account.length>0,passwordEncryptedCustody:snapshot?.account?.custody==='password-encrypted-local',locked:snapshot?.locked===true,errorCode:/^[A-Z][A-Z0-9_]{0,79}$/.test(snapshot?.error??'')?snapshot.error:null,passwordSheetOpen:ui.passwordSheetOpen===true,passwordModeUnlock:ui.passwordModeUnlock===true,passwordSubmitEnabled:ui.passwordSubmitEnabled===true,unlockEnabled:ui.unlockEnabled===true,importEnabled:ui.importEnabled===true};
 }
@@ -84,12 +93,17 @@ async function create(){
 }
 async function restart(account){const before=await digest(),destination=activeProfile;await close();await launch(destination);const cold=await snapshot();assert.equal(cold.locked,true);assert.equal(cold.account.account,account);await unlockSame(account);assert.equal(await digest(),before)}
 async function nativeSave(){
+ stage='NATIVE_SAVE_DIALOG';report.nativeSaveDiagnostics={explicitSaveActionSent:false};
  let window;for(let n=0;n<60;n++){try{window=execFileSync('xdotool',['search','--onlyvisible','--name','^Save encrypted Wallet backup$'],{encoding:'utf8'}).trim().split('\n')[0];if(window)break}catch{}await pauses(300)}
  if(!window)throw Error('NATIVE_SAVE_DIALOG_MISSING');
  // Linux GTK/KDE file chooser location control: type the dedicated destination,
  // then confirm the native Save action. Never replace the dialog IPC.
- execFileSync('xdotool',['windowfocus','--sync',window]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','2',backup]);execFileSync('xdotool',['key','--clearmodifiers','Return']);
- for(let n=0;n<100;n++){try{if((await fs.stat(backup)).isFile())return}catch{}await pauses(300)}throw Error('NATIVE_BACKUP_NOT_SAVED');
+ const fileExists=async()=>{try{return(await fs.stat(backup)).isFile()}catch(error){if(error.code==='ENOENT')return false;throw error}};
+ const dialogVisible=async()=>{try{return execFileSync('xdotool',['search','--onlyvisible','--name','^Save encrypted Wallet backup$'],{encoding:'utf8',timeout:3000}).trim().split('\n').includes(window)}catch{return false}};
+ await finishNativeSave({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,fileExists,dialogVisible,
+  enterDestination:async()=>{execFileSync('xdotool',['windowfocus','--sync',window]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','2',backup]);execFileSync('xdotool',['key','--clearmodifiers','Return'])},
+  saveAction:async()=>{execFileSync('xdotool',['windowfocus','--sync',window]);execFileSync('xdotool',['key','--clearmodifiers','alt+s'])},
+ });
 }
 async function saveBackup(account){
  await click('nav [data-view="accounts"]');

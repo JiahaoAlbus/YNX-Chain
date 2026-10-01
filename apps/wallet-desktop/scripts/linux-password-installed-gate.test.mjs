@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {accountCreated,continuePersistedAccount,sanitizedFailureSnapshot} from './linux-password-installed-gate.mjs';
+import {accountCreated,continuePersistedAccount,sanitizedFailureSnapshot,finishNativeSave} from './linux-password-installed-gate.mjs';
 const state=locked=>({locked,account:{initialized:true,passwordConfigured:true,custody:'password-encrypted-local',account:'dedicated-public-account'},ui:{}});
 test('module import does not launch installed app or require Linux fixture credentials',()=>{assert.equal(typeof continuePersistedAccount,'function')});
 test('persisted create is recognized while security is locked',()=>{
@@ -23,4 +23,21 @@ test('failure snapshot exposes only bounded stage, booleans and allowlisted-shap
  const input={...state(true),error:'WALLET_LOCKED',secret:'NEVER_EXPORT',password:'NEVER_EXPORT',account:{...state(true).account,account:'PRIVATE_FULL_ACCOUNT',seed:'NEVER_EXPORT'},ui:{detail:'NEVER_EXPORT',passwordResult:'NEVER_EXPORT',passwordSheetOpen:true,passwordSubmitEnabled:true}};
  const result=sanitizedFailureSnapshot(input,'NORMAL_CREATE_PERSISTED');assert.equal(result.initialized,true);assert.equal(result.locked,true);assert.equal(result.errorCode,'WALLET_LOCKED');assert.equal(result.stage,'NORMAL_CREATE_PERSISTED');assert.equal(result.passwordSheetOpen,true);
  const encoded=JSON.stringify(result);assert.equal(encoded.includes('NEVER_EXPORT'),false);assert.equal(encoded.includes('PRIVATE_FULL_ACCOUNT'),false);assert.equal(sanitizedFailureSnapshot({...input,error:'credential secret'},'x'.repeat(200)).errorCode,null);assert.ok(sanitizedFailureSnapshot(input,'A'.repeat(200)).stage.length<=80);
+});
+
+test('native location entry still open requires explicit native Save keyboard action',async()=>{
+ let entered=0,saved=0,clock=0,exists=false;const diagnostics={explicitSaveActionSent:false};
+ await finishNativeSave({enterDestination:async()=>{entered++},saveAction:async()=>{saved++;exists=true},fileExists:async()=>exists,dialogVisible:async()=>true,sleep:async ms=>{clock+=ms},diagnostics});
+ assert.equal(entered,1);assert.equal(saved,1);assert.equal(clock,500);assert.deepEqual(diagnostics,{explicitSaveActionSent:true,dialogVisibleAfterDestination:true});
+});
+test('already saved or dismissed native dialog never sends a duplicate Save action',async()=>{
+ for(const immediate of [true,false]){let calls=0,clock=0;const diagnostics={explicitSaveActionSent:false};
+  await finishNativeSave({enterDestination:async()=>{},saveAction:async()=>assert.fail('duplicate/unrelated key action'),fileExists:async()=>immediate||++calls>5,dialogVisible:async()=>false,sleep:async ms=>{clock+=ms},diagnostics});
+  assert.equal(diagnostics.explicitSaveActionSent,false);assert.ok(clock<=500);
+ }
+});
+test('native Save rejection remains bounded failure with safe boolean diagnostics',async()=>{
+ let saves=0,clock=0;const diagnostics={explicitSaveActionSent:false};
+ await assert.rejects(finishNativeSave({enterDestination:async()=>{},saveAction:async()=>{saves++},fileExists:async()=>false,dialogVisible:async()=>true,sleep:async ms=>{clock+=ms},diagnostics}),/NATIVE_BACKUP_NOT_SAVED/);
+ assert.equal(saves,1);assert.equal(clock,30500);assert.deepEqual(diagnostics,{explicitSaveActionSent:true,dialogVisibleAfterDestination:true,dialogStillVisible:true,destinationExists:false});
 });
