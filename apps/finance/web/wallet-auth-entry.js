@@ -73,6 +73,7 @@ window.YNXFinanceWallet=Object.freeze({
   reserveHostedRequest:()=>activeTransport==='hosted'?hosted.reserve():Promise.resolve(null),
   connected:privateFinance.connected,session:privateFinance.session,requireProof:privateFinance.proof,
   privateAccountMatchesSelected:privateFinance.accountMatchesSelected,
+  browserIdentityMatchesSelected:account=>{try{return !standard.account||toEVMAddress(account).toLowerCase()===standard.account.toLowerCase();}catch{return false;}},
   disconnect:privateFinance.disconnect,reportPrivateFailure:privateFinance.reportFailure,
   beginPrivate:privateFinance.begin,retryPrivate:privateFinance.retry,restorePrivate:privateFinance.restore,
   guestPrivate:privateFinance.guest,getPrivateState:privateFinance.state,
