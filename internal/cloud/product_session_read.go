@@ -50,7 +50,9 @@ func productRequestOrigin(r *http.Request) string {
 }
 
 func (s *Server) useProductSessionV2(r *http.Request) bool {
-	return len(r.Header.Values(productsessionv2.ProofHeader)) != 0 || s.v2[productRequestOrigin(r)] != nil
+	// A proof always takes precedence over legacy routing, including an empty
+	// header value. Only server-installed context selects the root v2 surface.
+	return len(r.Header.Values(productsessionv2.ProofHeader)) != 0 || r.Context().Value(apiSurfaceKey{}) == apiSurfaceRootV2
 }
 
 func productReadFailure(w http.ResponseWriter, status int, code string) {

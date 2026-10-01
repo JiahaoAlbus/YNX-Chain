@@ -203,7 +203,7 @@ func main() {
 			}
 		}
 	}()
-	mux.Handle("/api/", api)
+	cloud.MountAPISurfaces(mux, api)
 	mux.Handle("/health", api)
 	mux.Handle("/health/", api)
 	mux.Handle("/cloud/", http.StripPrefix("/cloud/", http.FileServer(http.Dir(*cloudUI))))
