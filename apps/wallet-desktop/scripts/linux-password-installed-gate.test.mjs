@@ -2,7 +2,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {fillNativeChooser,nativeChooserScript,sanitizeChooserIdentity} from './linux-password-installed-gate.mjs';
+import {fillNativeChooser,nativeChooserScript,sanitizeChooserIdentity,nativeAccessibilitySessionScript,prepareNativeAccessibilitySession} from './linux-password-installed-gate.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {accountCreated,continuePersistedAccount,sanitizedFailureSnapshot,finishNativeSave,backupOutcome,backupFileCandidates,observeNativeSave} from './linux-password-installed-gate.mjs';
@@ -141,4 +141,40 @@ class Registry:
 test('chooser identity serialization accepts bounded counts and role enums without names or paths',()=>{
  const result=sanitizeChooserIdentity({desktopApplications:2,inspectedApplications:2,directWindows:3,eligibleExactTitleMatches:0,directTitleMatches:1,directRoles:{FRAME:2,PRIVATE_WINDOW:1},nestedTitleMatches:[{role:'WINDOW',depth:2,showing:true,name:'PRIVATE_NAME',path:'/private'},{role:'PRIVATE_ROLE',depth:2,showing:true},{role:'DIALOG',depth:99,showing:true}],structuralNodesInspected:4,structuralLimitReached:false,password:'SECRET'});
  assert.equal(result.eligibleExactTitleMatches,0);assert.deepEqual(result.directRoles,{FRAME:2});assert.deepEqual(result.nestedTitleMatches,[{role:'WINDOW',depth:2,showing:true}]);assert.equal(JSON.stringify(result).includes('PRIVATE'),false);assert.equal(JSON.stringify(result).includes('SECRET'),false);assert.equal(sanitizeChooserIdentity({directWindows:-1,desktopApplications:'SECRET'}).directWindows,null);
+});
+
+test('accessibility preflight enables and reads the same session before any app launch, without leaking its address',async()=>{
+ const directory=await mkdtemp(path.join(tmpdir(),'ynx-a11y-session-'));
+ try{
+ await writeFile(path.join(directory,'dbus.py'),String.raw`
+import os
+class Boolean:
+ def __init__(self,value): self.value=value
+class SessionBus:
+ def get_object(self,name,path):
+  assert name=='org.a11y.Bus' and path=='/org/a11y/bus'
+  return object()
+enabled=False
+reads=0
+class Interface:
+ def __init__(self,proxy,interface): self.interface=interface
+ def Get(self,interface,property,timeout):
+  global reads
+  assert self.interface=='org.freedesktop.DBus.Properties' and interface=='org.a11y.Status' and property=='IsEnabled' and timeout==1.5
+  reads+=1
+  return enabled
+ def Set(self,interface,property,value,timeout):
+  global enabled
+  assert reads==1 and interface=='org.a11y.Status' and property=='IsEnabled' and value.value is True and timeout==1.5
+  enabled=os.environ.get('A11Y_TEST_MODE')!='disabled'
+ def GetAddress(self,timeout):
+  assert reads==2 and self.interface=='org.a11y.Bus' and timeout==1.5
+  return 'tcp:invalid' if os.environ.get('A11Y_TEST_MODE')=='invalid-address' else 'unix:path=/qa/private-bus'
+`);
+ const execute=mode=>execFileSync('/usr/bin/python3',['-c',nativeAccessibilitySessionScript],{encoding:'utf8',env:{...process.env,PYTHONPATH:directory,A11Y_TEST_MODE:mode},timeout:5000});
+ const ready=prepareNativeAccessibilitySession(()=>execute('ok'));
+ assert.deepEqual(ready.diagnostic,{beforeEnabled:false,enabled:true,busAddressAvailable:true});assert.equal(ready.address,'unix:path=/qa/private-bus');assert.equal(JSON.stringify(ready.diagnostic).includes('private-bus'),false);
+ for(const mode of ['disabled','invalid-address'])assert.throws(()=>prepareNativeAccessibilitySession(()=>execute(mode)),/NATIVE_ACCESSIBILITY_SESSION_UNAVAILABLE/);
+ assert.throws(()=>prepareNativeAccessibilitySession(()=>JSON.stringify({enabled:true,beforeEnabled:false,address:'tcp:invalid'})),/NATIVE_ACCESSIBILITY_SESSION_UNAVAILABLE/);
+ }finally{await rm(directory,{recursive:true,force:true})}
 });

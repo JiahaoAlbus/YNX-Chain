@@ -48,6 +48,33 @@ export async function observeNativeSave({snapshot,candidates,stat=fs.lstat,now=(
 export function sanitizedFailureSnapshot(snapshot,stage){
  const ui=snapshot?.ui??{};return{stage:String(stage).replace(/[^A-Z0-9_]/g,'').slice(0,80),accountAvailable:Boolean(snapshot?.account),initialized:snapshot?.account?.initialized===true,passwordConfigured:snapshot?.account?.passwordConfigured===true,accountPresent:typeof snapshot?.account?.account==='string'&&snapshot.account.account.length>0,passwordEncryptedCustody:snapshot?.account?.custody==='password-encrypted-local',locked:snapshot?.locked===true,errorCode:/^[A-Z][A-Z0-9_]{0,79}$/.test(snapshot?.error??'')?snapshot.error:null,passwordSheetOpen:ui.passwordSheetOpen===true,passwordModeUnlock:ui.passwordModeUnlock===true,passwordSubmitEnabled:ui.passwordSubmitEnabled===true,unlockEnabled:ui.unlockEnabled===true,importEnabled:ui.importEnabled===true};
 }
+// Enable the disposable dbus-run-session before Chromium/GTK initializes its
+// accessibility bridge. Starting the bus alone does not set IsEnabled.
+export const nativeAccessibilitySessionScript=String.raw`
+import json,sys
+import dbus
+try:
+ bus=dbus.SessionBus()
+ proxy=bus.get_object('org.a11y.Bus','/org/a11y/bus')
+ properties=dbus.Interface(proxy,'org.freedesktop.DBus.Properties')
+ before=bool(properties.Get('org.a11y.Status','IsEnabled',timeout=1.5))
+ properties.Set('org.a11y.Status','IsEnabled',dbus.Boolean(True),timeout=1.5)
+ enabled=bool(properties.Get('org.a11y.Status','IsEnabled',timeout=1.5))
+ address=str(dbus.Interface(proxy,'org.a11y.Bus').GetAddress(timeout=1.5))
+ if not enabled or not address.startswith('unix:') or len(address)>4096: raise RuntimeError()
+ print(json.dumps({'beforeEnabled':before,'enabled':enabled,'address':address}))
+except Exception:
+ print(json.dumps({'code':'NATIVE_ACCESSIBILITY_SESSION_UNAVAILABLE'}))
+ sys.exit(2)
+`;
+export function prepareNativeAccessibilitySession(run=execFileSync){
+ let result;
+ try{result=JSON.parse(run('/usr/bin/python3',['-c',nativeAccessibilitySessionScript],{encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']}))}catch{throw Error('NATIVE_ACCESSIBILITY_SESSION_UNAVAILABLE')}
+ assert.equal(result.enabled,true,'NATIVE_ACCESSIBILITY_SESSION_UNAVAILABLE');
+ assert.equal(typeof result.beforeEnabled,'boolean','NATIVE_ACCESSIBILITY_SESSION_UNAVAILABLE');
+ assert.equal(typeof result.address==='string'&&result.address.startsWith('unix:')&&result.address.length<=4096,true,'NATIVE_ACCESSIBILITY_SESSION_UNAVAILABLE');
+ return {address:result.address,diagnostic:{beforeEnabled:result.beforeEnabled,enabled:true,busAddressAvailable:true}};
+}
 // Only inspect the dedicated native chooser. Never print its text or the
 // Wallet accessibility tree; input still goes through ordinary keyboard events.
 export const nativeChooserScript=String.raw`
@@ -154,7 +181,7 @@ assert.equal(process.platform,'linux');assert.ok(['online','offline'].includes(m
 const executable='/opt/YNX Wallet/ynx-wallet-desktop',temporary=await fs.realpath(process.env.RUNNER_TEMP),output=path.resolve('apps/wallet-desktop/dist/linux-'+mode+'-lifecycle.json');
 const prefix=path.join(temporary,'ynx-linux-installed-'+mode),profile=prefix+'-profile',recoveryProfile=prefix+'-recovery-profile',backup=prefix+'-backup.json';
 for(const destination of [profile,recoveryProfile,backup])await assert.rejects(fs.stat(destination),{code:'ENOENT'});
-let child,socket,nextId=0,activeProfile,lastSnapshot,stage='START';const pauses=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+let child,socket,nextId=0,activeProfile,lastSnapshot,accessibilitySession,stage='START';const pauses=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const report={sourceCommit:process.env.GITHUB_SHA,platform:'linux',architecture:process.arch,installedExecutable:executable,mode,userMachineVerified:false,osRebootVerified:false,appImageRuntimeVerified:false,passed:false};
 async function close(){
  socket?.close();socket=null;if(!child)return;
@@ -164,7 +191,7 @@ async function close(){
 }
 async function launch(destination){
  assert.equal(child,undefined);activeProfile=destination;
- child=spawn(executable,['--remote-debugging-address=127.0.0.1','--remote-debugging-port=9334'],{env:{...process.env,YNX_WALLET_PROFILE_PATH:destination,YNX_WALLET_EVIDENCE_PATH:prefix+'-launch.json',YNX_WALLET_QA_BACKUP_DESTINATION:backup,NO_AT_BRIDGE:'0',GTK_MODULES:'atk-bridge'},stdio:['ignore','ignore','ignore']});
+ child=spawn(executable,['--remote-debugging-address=127.0.0.1','--remote-debugging-port=9334'],{env:{...process.env,YNX_WALLET_PROFILE_PATH:destination,YNX_WALLET_EVIDENCE_PATH:prefix+'-launch.json',YNX_WALLET_QA_BACKUP_DESTINATION:backup,NO_AT_BRIDGE:'0',GTK_MODULES:'atk-bridge',AT_SPI_BUS_ADDRESS:accessibilitySession.address},stdio:['ignore','ignore','ignore']});
  for(let n=0;n<60;n++){
   if(child.exitCode!==null||child.signalCode!==null)throw Error('INSTALLED_APP_EXITED');
   try{const pages=await(await fetch('http://127.0.0.1:9334/json/list')).json(),page=pages.find(p=>p.type==='page'&&p.url?.startsWith('file:')&&decodeURIComponent(new URL(p.url).pathname).startsWith('/opt/YNX Wallet/resources/app.asar/')&&p.webSocketDebuggerUrl);
@@ -220,7 +247,7 @@ async function nativeSave(account){
  let window;for(let n=0;n<60;n++){try{window=execFileSync('xdotool',['search','--onlyvisible','--name','^Save encrypted Wallet backup$'],{encoding:'utf8'}).trim().split('\n')[0];if(window)break}catch{}await pauses(300)}
  if(!window)throw Error('NATIVE_SAVE_DIALOG_MISSING');
  const chooser=action=>{
-  try{const result=JSON.parse(execFileSync('/usr/bin/python3',['-c',nativeChooserScript,action,backup],{encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']}));assert.equal(result.ok,true,'NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE');result.identity=sanitizeChooserIdentity(result.identity);return result}
+  try{const result=JSON.parse(execFileSync('/usr/bin/python3',['-c',nativeChooserScript,action,backup],{env:{...process.env,AT_SPI_BUS_ADDRESS:accessibilitySession.address},encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']}));assert.equal(result.ok,true,'NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE');result.identity=sanitizeChooserIdentity(result.identity);return result}
   catch(error){let code='NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE';try{const result=JSON.parse(error.stdout);report.nativeSaveDiagnostics.chooserIdentity=sanitizeChooserIdentity(result.identity);if(/^NATIVE_CHOOSER_(?:DIALOG_NOT_UNIQUE|FIELD_NOT_UNIQUE|FIELD_NOT_FOUND|FIELD_FOCUS_FAILED|SAVE_NOT_UNIQUE|SAVE_ACTION_FAILED|ACTION_INVALID)$/.test(result.code))code=result.code}catch{}report.nativeSaveDiagnostics.accessibilityFailure=code;throw Error(code)}
  };
  // Identify the real Name and Location controls before typing; never replace IPC.
@@ -256,6 +283,7 @@ async function recover(account){
  await restart(account);report.wrongBackupPasswordRejected=true;report.backupRestoredSameAddress=true;
 }
 try{
+ stage='NATIVE_ACCESSIBILITY_SESSION';accessibilitySession=prepareNativeAccessibilitySession();report.nativeAccessibilitySession=accessibilitySession.diagnostic;
  await launch(profile);const account=await create();report.publicAccount=account.account;report.publicYNXAccount=account.ynxAccount;report.normalCreate=true;report.explicitLock=true;report.wrongPasswordRejected=true;
  await restart(account.account);report.sameAccountAfterAppRestart=true;report.vaultUnchangedByWrongPasswordAndUnlock=true;
  if(mode==='online'){await saveBackup(account.account);await recover(account.account)}else report.rpcUnavailableDuringCreateAndRestart=true;
