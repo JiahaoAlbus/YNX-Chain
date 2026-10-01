@@ -22,7 +22,15 @@ function openDatabase(factory) {
       if (!request.result.objectStoreNames.contains(JOURNAL)) request.result.createObjectStore(JOURNAL);
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(problem("HOSTED_STORAGE_UNAVAILABLE"));
+    request.onerror = () => {
+      if(request.error?.name !== "VersionError") { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
+      // Keep the original vault format and operate on its existing schema;
+      // never delete/downgrade a wallet already upgraded by a newer release.
+      let compatible;
+      try { compatible=factory.open(DB_NAME); } catch { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
+      compatible.onsuccess=()=>resolve(compatible.result);
+      compatible.onerror=compatible.onblocked=()=>reject(problem("HOSTED_STORAGE_UNAVAILABLE"));
+    };
     request.onblocked = () => reject(problem("HOSTED_STORAGE_UNAVAILABLE"));
   });
 }
