@@ -247,7 +247,13 @@ int XSync(void *d,int discard){return 0;}
 `);
  execFileSync('cc',[...(process.platform==='darwin'?['-dynamiclib']:['-shared','-fPIC']),source,'-o',library],{timeout:10000});
  const script=targetedX11InputScript.replace("'libX11.so.6'",JSON.stringify(library));
- const run=env=>execFileSync('/usr/bin/python3',['-c',script,'12345','type','/qa/test.json'],{encoding:'utf8',env:{...process.env,...env},timeout:5000});
+ const run=(env,value='/qa/test.json')=>execFileSync('/usr/bin/python3',['-c',script,'12345','type',value,'/qa/test.json'],{encoding:'utf8',env:{...process.env,...env},timeout:5000});
+ for(const value of ['/qa','test.json'])assert.equal(run({},value).trim().split('\n').length,value.length*2);
+ for(const value of ['other.json','../test.json','/other/test.json']){try{run({},value);assert.fail('unbound text must reject')}catch(error){assert.equal(error.status,2);assert.equal(error.stdout,'')}}
+ let activeField=null;const values={},diagnostics={};
+ await fillNativeChooser({directory:'/qa',name:'test.json',diagnostics,sleep:async()=>{},openLocation:async()=>{},navigate:async()=>{},focusLocation:async()=>{activeField='LOCATION'},focusName:async()=>{activeField='NAME'},
+  type:async value=>{run({},value);values[activeField]=value},observe:async()=>({fields:Object.entries(values).map(([field,value])=>({field,matchesExpected:value===(field==='LOCATION'?'/qa':'test.json')}))})});
+ assert.equal(diagnostics.locationEntered.fields.some(f=>f.field==='LOCATION'&&f.matchesExpected),true);assert.equal(diagnostics.nameEntered.fields.some(f=>f.field==='NAME'&&f.matchesExpected),true);
  const lines=run({}).trim().split('\n');assert.equal(lines.length,'/qa/test.json'.length*2);assert.equal(lines.every(line=>line==='TARGET=12345'),true);
  for(const [env,count] of [[{LOSE_FOCUS:'1'},4],[{REJECT_INPUT:'1'},1]]){
   try{run(env);assert.fail('input must stop')}catch(error){assert.equal(error.status,2);const sent=error.stdout.trim().split('\n');assert.equal(sent.length,count);assert.equal(sent.every(line=>line==='TARGET=12345'),true)}

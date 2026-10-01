@@ -188,7 +188,7 @@ export async function fillNativeChooserByKeyboard({assertOwned,focus,assertFocus
 // xdotool may use XTEST even with --window when the target owns focus.
 // Send explicit X11 key events instead; never fall back to focus-routed input.
 export const targetedX11InputScript=String.raw`
-import ctypes as c,sys,time
+import ctypes as c,sys,time,os
 class Key(c.Structure):
  _fields_=[('type',c.c_int),('serial',c.c_ulong),('send_event',c.c_int),('display',c.c_void_p),('window',c.c_ulong),('root',c.c_ulong),('subwindow',c.c_ulong),('time',c.c_ulong),('x',c.c_int),('y',c.c_int),('x_root',c.c_int),('y_root',c.c_int),('state',c.c_uint),('keycode',c.c_uint),('same_screen',c.c_int)]
 class Event(c.Union):
@@ -207,7 +207,7 @@ send=bind('XSendEvent',c.c_int,[c.c_void_p,c.c_ulong,c.c_int,c.c_long,c.POINTER(
 sync=bind('XSync',c.c_int,[c.c_void_p,c.c_int])
 display=None
 try:
- target,command,value=sys.argv[1:4]
+ target,command,value,backup=sys.argv[1:5]
  if not target.isdecimal() or int(target)<=0: raise RuntimeError()
  target=int(target)
  commands={'ctrl+l':('l',4),'ctrl+a':('a',4),'Return':('Return',0),'alt+s':('s',8)}
@@ -215,7 +215,7 @@ try:
   if value not in commands: raise RuntimeError()
   symbols=[commands[value]]
  elif command=='type':
-  if not value.startswith('/') or any(ord(ch)<32 or ord(ch)>126 for ch in value): raise RuntimeError()
+  if not backup.startswith('/') or value not in (backup,os.path.dirname(backup),os.path.basename(backup)) or any(ord(ch)<32 or ord(ch)>126 for ch in backup): raise RuntimeError()
   symbols=[(ch,0) for ch in value]
  else: raise RuntimeError()
  display=open_display(None)
@@ -343,7 +343,7 @@ async function nativeSave(account){
   report.nativeSaveDiagnostics.ownedWindowVerified=true;
  };
  const assertFocused=async()=>{assert.equal(x11('getwindowfocus'),window,'NATIVE_DIALOG_FOCUS_CHANGED')};
- const targeted=ownedWindowKeyboard({window,run:(...args)=>{try{return execFileSync('/usr/bin/python3',['-c',targetedX11InputScript,...args],{encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']})}catch{throw Error('NATIVE_DIALOG_TARGETED_INPUT_REJECTED')}},assertOwned,assertFocused});
+ const targeted=ownedWindowKeyboard({window,run:(...args)=>{try{return execFileSync('/usr/bin/python3',['-c',targetedX11InputScript,...args,backup],{encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']})}catch{throw Error('NATIVE_DIALOG_TARGETED_INPUT_REJECTED')}},assertOwned,assertFocused});
  let keyboardFallback=false;
  // Identify the real Name and Location controls before typing; never replace IPC.
  const fileExists=async()=>{try{return(await fs.stat(backup)).isFile()}catch(error){if(error.code==='ENOENT')return false;throw error}};
