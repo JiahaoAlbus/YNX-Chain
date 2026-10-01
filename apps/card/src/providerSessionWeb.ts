@@ -2,6 +2,7 @@ import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter,type
 import registry from '../vendor/product-session-registry-b754ffc42.json';
 import {cardCallbackKind} from './providerCallback';
 import {discoverWalletProviders,isSharedWalletProvider} from './standardWalletSdk';
+import type {CardHostedWalletController} from './hostedWalletWeb';
 
 const ATTEMPT='ynx.card.provider-session.v2.attempted';
 const MODE='ynx.card.provider-session.v2.scope-mode';
@@ -42,7 +43,7 @@ export async function restoreCardWebSession(){
   if(callback&&['connected','disconnected'].includes(String(result.status)))w.history.replaceState(null,'','/');
   return result;
 }
-export async function beginCardWebSession(financeSharing=false){
+export async function beginCardWebSession(financeSharing=false,selectedHosted:Pick<CardHostedWalletController,'requestProductSessionV2'>|null=null){
   if(initializing)await initializing;
   if(financePermissionRequested!==financeSharing){await closeCardWebSession();financePermissionRequested=financeSharing;}
   const w=browser(),mode=financeSharing?'finance':'base';
@@ -54,9 +55,15 @@ export async function beginCardWebSession(financeSharing=false){
   if(result.status==='connecting'&&route?.status==='ready'&&typeof route.url==='string'){
     let url:URL;try{url=new URL(route.url)}catch{throw privateError('CARD_WALLET_ROUTE_INVALID')}
     if(url.protocol!=='ynxwallet:'||url.hostname!=='authorize'||url.username||url.password||url.hash||url.searchParams.size!==1||url.searchParams.getAll('request').length!==1||!url.searchParams.get('request'))throw privateError('CARD_WALLET_ROUTE_INVALID');
-    const discovery=await discoverWalletProviders(globalThis,1600);if(epoch!==generation)throw privateError('CARD_WEB_PRIVATE_CONTEXT_CHANGED');
-    const provider=discovery.ynx?.provider;
-    if(!isSharedWalletProvider(provider,'ynx-wallet'))throw privateError('CARD_WEB_PRIVATE_TRANSPORT_UNAVAILABLE');
+    let provider:{request:(input:{method:string;params:readonly unknown[]})=>Promise<unknown>};
+    if(selectedHosted){
+      provider={request:input=>selectedHosted.requestProductSessionV2(String(input.params[0]))};
+    }else{
+      const discovery=await discoverWalletProviders(globalThis,1600);if(epoch!==generation)throw privateError('CARD_WEB_PRIVATE_CONTEXT_CHANGED');
+      const injected=discovery.ynx?.provider;
+      if(!isSharedWalletProvider(injected,'ynx-wallet'))throw privateError('CARD_WEB_PRIVATE_TRANSPORT_UNAVAILABLE');
+      provider=injected as typeof provider;
+    }
     let response:unknown;try{response=await boundedPrivateRequest(provider as {request:(input:{method:string;params:readonly unknown[]})=>Promise<unknown>},route.url)}catch(error){if(epoch===generation)generation++;throw error}
     if(epoch!==generation)throw privateError('CARD_WEB_PRIVATE_CONTEXT_CHANGED');
     if(!response||typeof response!=='object'||Array.isArray(response))throw privateError('CARD_WEB_PRIVATE_RETURN_INVALID');
@@ -68,7 +75,9 @@ export async function beginCardWebSession(financeSharing=false){
   }
   return result;
 }
-export async function retryCardWebSession(){await cardWebSession();return beginCardWebSession(financePermissionRequested)}
+export async function retryCardWebSession(selectedHosted:Pick<CardHostedWalletController,'requestProductSessionV2'>|null=null){await cardWebSession();return beginCardWebSession(financePermissionRequested,selectedHosted)}
+// Invalidate a pending UI/transport completion without revoking an approved grant.
+export function cancelCardWebSessionAttempt(){generation++}
 export async function disconnectCardWebSession(){generation++;const selected=await cardWebSession();return selected.client.disconnect()}
 export async function cardWebProof(scopes:readonly string[]){const selected=await cardWebSession();return selected.createIntrospectionProof(scopes)}
 export async function closeCardWebSession(){

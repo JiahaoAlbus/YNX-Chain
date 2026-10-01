@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "ynx.card.source-compatibility.v1",
+  "frontendSourceBase": "7f9ea9af369c61fcb358c9e80500fdd30c66cbbb",
+  "backendSourceCommit": "e95fcf443228d0db97c139dfa5e8ad6fbb7aa675",
+  "backendService": "ynx-card-business-backend",
+  "backendVersionSchema": 1,
+  "apiResponseSchemas": [1, 2],
+  "environment": "YNX_TESTNET_CARD_PAYMENT_SIMULATION",
+  "productionRealPayments": false
+}

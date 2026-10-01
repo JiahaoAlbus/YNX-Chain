@@ -15,7 +15,7 @@ import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTN
 import{GuestExperience}from"./src/GuestExperience";
 import{CardProviderClient}from"./src/providerApplicationClient";
 import{createRuntimeProviderClient}from"./src/providerClientRuntime";
-import{beginCardWebSession,cardWebProof,disconnectCardWebSession,restoreCardWebSession,retryCardWebSession}from"./src/providerSessionWeb";
+import{beginCardWebSession,cancelCardWebSessionAttempt,cardWebProof,disconnectCardWebSession,restoreCardWebSession,retryCardWebSession}from"./src/providerSessionWeb";
 import{createCardHostedWalletController,type CardHostedWalletController}from"./src/hostedWalletWeb";
 import{hostedWalletNotice,hostedWalletText,type HostedWalletNotice}from"./src/hostedWalletCopy";
 let cardWebUiGeneration=0;
@@ -236,12 +236,9 @@ export default function App(){
 
   const openWalletChooser=async()=>{setWalletError("");setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"OPEN_CHOOSER"}));};
   const invalidatePrivateForWalletChange=()=>{
-    const hadPrivate=privateSessionRef.current?.state==="PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY";
-    privateSessionRef.current=null;const epoch=++cardWebUiGeneration;
+    privateSessionRef.current=null;++cardWebUiGeneration;
     setPrivateSession(null);setProviderClient(null);
-    if(Platform.OS==="web"&&hadPrivate)void disconnectCardWebSession().then(outcome=>{
-      if(mounted.current&&epoch===cardWebUiGeneration&&outcome.status!=="disconnected")setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classifyCardWalletError("CARD_WEB_PRIVATE_REVOCATION_PENDING")});
-    }).catch(error=>{if(mounted.current&&epoch===cardWebUiGeneration)setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classifyCardWalletError(error)})});
+    if(Platform.OS==="web")cancelCardWebSessionAttempt();
   };
   const closeWalletChooser=()=>{if(hostedWallet.current&&!hostedConnected.current){const old=hostedWallet.current;hostedWallet.current=null;hostedGeneration.current++;walletSelectionEpoch.current++;void old.disconnect();setWalletBusy(false);}nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletRecoverySequence.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;productWallet.current=null;productWalletPromise.current=null;nativeProductWalletLease.current=0;nativeProductWalletPromiseLease.current=0;setPending(false);setBusy(false);setWalletBusy(false);setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}));};
   const connectHostedWallet=():Promise<boolean>=>{
@@ -254,7 +251,7 @@ export default function App(){
     controller=createCardHostedWalletController({window:globalThis.window,onState:state=>{
       if(!mounted.current||selection!==walletSelectionEpoch.current||epoch!==hostedGeneration.current||hostedWallet.current!==controller||!hostedConnected.current)return;
       if(state.status==="disconnected"||state.status==="wrong-chain"){
-        hostedConnected.current=false;setWalletSession(null);invalidatePrivateForWalletChange();setTopupIntent(null);setTopupHash("");setTopupEvidence(null);
+        hostedConnected.current=false;setWalletSession(null);if(state.error==="HOSTED_ACCOUNT_CHANGED")invalidatePrivateForWalletChange();setTopupIntent(null);setTopupHash("");setTopupEvidence(null);
         setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"DISCONNECT"}));setHostedNotice(hostedWalletNotice(state.error));
       }
     }});
@@ -306,12 +303,12 @@ export default function App(){
   const connectMetaMask=async()=>{await connectSelectedWallet("metamask");};
 
   const disconnectWallet=async()=>{
-    if(hostedWallet.current){const current=hostedWallet.current;hostedWallet.current=null;hostedGeneration.current++;walletSelectionEpoch.current++;hostedConnected.current=false;restoreSuppressed.current=true;setWalletBusy(true);try{await current.disconnect();setStandardWalletState(currentState=>reduceStandardWalletConnectState(currentState,{type:"DISCONNECT"}));setWalletSession(null);walletProvider.current=null;walletProviderKind.current=null;invalidatePrivateForWalletChange();setHostedNotice("localOnly");}finally{if(mounted.current)setWalletBusy(false)}return;}
+    if(hostedWallet.current){const current=hostedWallet.current;hostedWallet.current=null;hostedGeneration.current++;walletSelectionEpoch.current++;hostedConnected.current=false;restoreSuppressed.current=true;setWalletBusy(true);try{await current.disconnect();setStandardWalletState(currentState=>reduceStandardWalletConnectState(currentState,{type:"DISCONNECT"}));setWalletSession(null);walletProvider.current=null;walletProviderKind.current=null;setHostedNotice("localOnly");}finally{if(mounted.current)setWalletBusy(false)}return;}
     walletSelectionEpoch.current++;
     const provider=walletProvider.current,kind=walletProviderKind.current;
     if(!provider||!kind){setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"DISCONNECT"}));setWalletSession(null);return;}
     setWalletBusy(true);setWalletError("");
-    try{const result=await disconnectEip1193Wallet(provider,kind);setWalletError(result==="local-only"?"Card cleared its local Wallet connection. The Wallet still reports this site's account permission; revoke Card in the Wallet if needed.":"");setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"DISCONNECT"}));setWalletSession(null);walletProvider.current=null;walletProviderKind.current=null;invalidatePrivateForWalletChange();}
+    try{const result=await disconnectEip1193Wallet(provider,kind);setWalletError(result==="local-only"?"Card cleared its local Wallet connection. The Wallet still reports this site's account permission; revoke Card in the Wallet if needed.":"");setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"DISCONNECT"}));setWalletSession(null);walletProvider.current=null;walletProviderKind.current=null;}
     catch(e){setWalletError(classifyCardWalletError(e).safeMessage);}
     finally{if(mounted.current)setWalletBusy(false);}
   };
@@ -532,7 +529,7 @@ export default function App(){
     try{return await operation}finally{if(nativeWalletOperation.current===operation)nativeWalletOperation.current=null;}
   };
   const retryNativeWalletAuthorization=async()=>{
-    if(Platform.OS==="web"){const epoch=++cardWebUiGeneration;setBusy(true);setError("");try{const outcome=await retryCardWebSession();if(mounted.current&&epoch===cardWebUiGeneration)setPrivateSession(productRuntime({sessionState:outcome}))}catch(e){if(mounted.current&&epoch===cardWebUiGeneration){const classified=classifyCardWalletError(e);setPrivateSession({state:'PRIVATE_SERVICE_DEGRADED',...classified});setError(classified.safeMessage)}}finally{if(mounted.current&&epoch===cardWebUiGeneration)setBusy(false)}return;}
+    if(Platform.OS==="web"){const epoch=++cardWebUiGeneration;setBusy(true);setError("");try{const outcome=await retryCardWebSession(hostedConnected.current?hostedWallet.current:null);if(mounted.current&&epoch===cardWebUiGeneration)setPrivateSession(productRuntime({sessionState:outcome}))}catch(e){if(mounted.current&&epoch===cardWebUiGeneration){const classified=classifyCardWalletError(e);setPrivateSession({state:'PRIVATE_SERVICE_DEGRADED',...classified});setError(classified.safeMessage)}}finally{if(mounted.current&&epoch===cardWebUiGeneration)setBusy(false)}return;}
     if(nativeWalletOperation.current){await nativeWalletOperation.current;return;}
     const generation=++nativeWalletGeneration.current;nativeWalletCallbackBlocked.current=false;setBusy(true);setWalletBusy(true);setWalletError("");
     nativeWalletLaunchLease.current+=1;const lease=nativeWalletLaunchLease.current;
@@ -562,7 +559,7 @@ export default function App(){
     setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"PRIVATE_SESSION_CONNECTING"}));
     try{
       if(Platform.OS==="web"){
-        const outcome=await beginCardWebSession(financeSharing);if(mounted.current&&webUiEpoch===cardWebUiGeneration)setPrivateSession(productRuntime({sessionState:outcome}));
+        const outcome=await beginCardWebSession(financeSharing,hostedConnected.current?hostedWallet.current:null);if(mounted.current&&webUiEpoch===cardWebUiGeneration)setPrivateSession(productRuntime({sessionState:outcome}));
         return;
       }
       await beginYNXWalletAuthorization();
