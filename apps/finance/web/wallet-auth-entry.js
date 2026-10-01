@@ -276,7 +276,7 @@ async function boot(){
   document.querySelector('#wallet-switch')?.addEventListener('click',()=>{disconnectStandardWallet();document.querySelector('#connect-ynx')?.focus();});
   document.querySelector('#wallet-details')?.addEventListener('click',()=>{lastMessage='WALLET_DETAILS_ONLY';render();});
   document.addEventListener('click',event=>{
-    const action=event.target?.closest?.('#signin,#wallet-login-verify,#evm-read-begin,#private-begin,#private-retry');
+    const action=event.target?.closest?.('#signin,#wallet-entry,#wallet-picker-action,#wallet-login-verify,#evm-read-begin,#private-begin,#private-retry');
     if(activeTransport!=='hosted'||!action)return;
     // Capture runs while the real click still grants popup activation. The
     // subsequent async challenge remains data-only until explicit approval.

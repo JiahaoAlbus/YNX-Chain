@@ -431,7 +431,11 @@ function continueLoginIntent(){
       if(loginIntent!==intent||revision!==window.YNXFinanceWallet.getStandardRevision())return;
       // The authoritative connected event owns the one initial protected read
       // and target restore. Do not race it with a second proof/load here.
-      if(!['connected','connecting'].includes(result?.status)){clearLoginIntent();notify(financeText('identityRejected'),true)}
+      if(!['connected','connecting'].includes(result?.status)){
+        const rejected=['denied','rejected'].includes(result?.status)||result?.code==='USER_REJECTED';
+        if(rejected)clearLoginIntent();
+        notify(financeText(rejected?'identityRejected':'connectionUnavailable'),true);
+      }
     }else{
       if(!['overview','assets','activity'].includes(intent.target)){clearLoginIntent();notify(financeText('privateApprovalInfo'),true);return}
       await verifyWalletIdentity({target:intent.target});

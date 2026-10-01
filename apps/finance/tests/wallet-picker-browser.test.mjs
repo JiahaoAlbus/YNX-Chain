@@ -168,3 +168,17 @@ test('pending extension back and cancel release only their operation; late appro
     }finally{await page.close();}
   }
 });
+
+test('private authority failure preserves the selected wallet and recoverable login intent, never reports a user rejection',async()=>{
+  const page=await pageFixture();try{
+    await page.locator('#wallet-entry').click();await page.locator('#picker-ynx').click();await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected');
+    await page.locator('#wallet-picker-action').click();await page.locator('#nav a[href="#planning"]').click();await page.locator('#guest-gate a[href="#wallet-connect"]').click();
+    await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='degraded');
+    assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connected');
+    assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getPrivateState().code),'PRIVATE_SERVICE_DEGRADED');
+    assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getPrivateState().stage),'authorityChecking');
+    assert.ok(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.login-intent.v1')));
+    assert.notEqual(await page.locator('#notice').innerText(),await page.evaluate(()=>window.YNXFinanceLocale.text('identityRejected')));
+    assert.equal(await page.evaluate(()=>window.__pickerQA.counts.sign),0);
+  }finally{await page.close();}
+});

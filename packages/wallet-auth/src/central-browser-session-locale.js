@@ -10,6 +10,9 @@ export function centralUILanguage(value){
   return 'en';
 }
 const rows=[
+ ['Connection details','连接详情','連接詳情'],
+ ['Wallet Web connection did not finish. Retry or cancel.','网页版钱包连接未完成。请重试或取消。','網頁版錢包連接未完成。請重試或取消。'],
+ ['Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.','手机钱包连接未完成，尚未登录。请重试或取消。','手機錢包連接未完成，尚未登入。請重試或取消。'],
  ['YNX · Sign in','YNX · 登录','YNX · 登入'],
  ['Sign in with YNX Wallet','使用 YNX Wallet 登录','使用 YNX Wallet 登入'],
  ['Allow browser sign-in for registered YNX products. Private product permissions require separate approval.','确认后可登录已关联的 YNX 产品。访问私人服务仍需另行批准。','確認後可登入已關聯的 YNX 產品。存取私人服務仍需另行批准。'],

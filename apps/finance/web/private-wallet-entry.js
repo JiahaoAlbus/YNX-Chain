@@ -5,13 +5,13 @@ import {privateSubjectMatchesSelectedWallet} from './private-subject-boundary.js
 const ATTEMPT_KEY='ynx.finance.browser-private.9840ef87.wallet-auth.attempted';
 const SCOPES=Object.freeze(['finance.ai.draft','finance.pay.read','finance.portfolio.read','finance.profile.write']);
 let adapter=null,initializing=null,generation=0,revision=0,busy=false;
-let current=Object.freeze({status:'disconnected',session:null}),lastCode='';
+let current=Object.freeze({status:'disconnected',session:null}),lastCode='',requestStage='idle';
 function label(key){return window.YNXFinanceLocale?.text(key)??key;}
 function publish(next,code=''){
-  current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,route:next.route,installation:next.installation});
-  revision++;lastCode=code;render();window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:current.status,account:current.session?.account??null,revision}}));
+  current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,route:next.route,installation:next.installation,code,stage:requestStage});
+  revision++;lastCode=code;render();window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:current.status,account:current.session?.account??null,revision,code,stage:requestStage}}));
 }
-function code(error){const value=error?.code||error?.message?.match(/^([A-Z][A-Z0-9_]{1,80})(?::|$)/)?.[1];return /^[A-Z][A-Z0-9_]{1,80}$/.test(value??'')?value:'PRIVATE_SERVICE_DEGRADED';}
+function code(error){if(Number(error?.code)===4001)return 'USER_REJECTED';const value=error?.code||error?.message?.match(/^([A-Z][A-Z0-9_]{1,80})(?::|$)/)?.[1];return /^[A-Z][A-Z0-9_]{1,80}$/.test(value??'')?value:'PRIVATE_SERVICE_DEGRADED';}
 async function initialize(){
   if(adapter)return adapter;
   if(!initializing)initializing=assertFinancePrivateAuthority().then(authority=>createBrowserProductSessionClient({registry,productId:'finance',scopes:SCOPES,
@@ -20,8 +20,8 @@ async function initialize(){
   return initializing;
 }
 async function operation(action){
-  const attempt=++generation;busy=true;publish({status:'checking',session:null});
-  try{await assertFinancePrivateAuthority();const selected=await initialize(),authorityRevision=financePrivateAuthorityRevision();if(attempt!==generation)return current;const result=await action(selected);if(authorityRevision!==financePrivateAuthorityRevision())throw new Error('AUTHORITY_V2_SUPERSEDED');if(attempt===generation){
+  const attempt=++generation;const markStage=stage=>{if(attempt===generation){requestStage=stage;window.dispatchEvent(new CustomEvent('ynx-finance-private-progress',{detail:{stage,revision,code:lastCode,status:current.status}}));}};requestStage='authorityChecking';busy=true;publish({status:'checking',session:null});
+  try{await assertFinancePrivateAuthority();markStage('authorityOK');const selected=await initialize(),authorityRevision=financePrivateAuthorityRevision();if(attempt!==generation)return current;const result=await action(selected,markStage);if(authorityRevision!==financePrivateAuthorityRevision())throw new Error('AUTHORITY_V2_SUPERSEDED');if(attempt===generation){
     // Only the exact SDK/server revocation acknowledgement retires automatic
     // restore opt-in. A pending/unconfirmed logout still restores its original
     // revocation intent, never a newly invented connection request.
@@ -51,7 +51,7 @@ async function explicitRequest(retry){
   const recovering=retry||['connecting','retry-required','expired','network-unavailable','degraded'].includes(current.status);
   const wallet=window.YNXFinanceWallet,standardRevision=wallet?.getStandardRevision?.();
   const assertSelected=()=>{if(standardRevision!==wallet?.getStandardRevision?.())throw Object.assign(new Error('FINANCE_CONTEXT_CHANGED'),{code:'FINANCE_CONTEXT_CHANGED'})};
-  return operation(async selected=>{
+  return operation(async (selected,markStage)=>{
     try{
     assertSelected();try{localStorage.setItem(ATTEMPT_KEY,'yes');}catch{}
     let pending=recovering?await selected.client.retryDetected():await selected.client.beginExplicit();assertSelected();
@@ -73,7 +73,8 @@ async function explicitRequest(retry){
     // YNX provider transport exists. Never infer installation or switch to
     // Hosted/MetaMask. The exact route is created and stored by the shared SDK.
     if(pending.status!=='connecting'||pending.route?.status!=='ready'||!wallet?.privateProviderAvailable?.())return pending;
-    const response=await wallet.requestProductSessionV2(pending.route.url);assertSelected();
+    markStage('requestPrepared');
+    markStage('transportDispatch');const response=await wallet.requestProductSessionV2(pending.route.url);assertSelected();markStage('returnReceived');
     const settled=await selected.client.handleReturn(response.returnUrl);
     assertSelected();
     if(settled.status==='connected'&&!privateSubjectMatchesSelectedWallet(settled.session,wallet.getStandardWalletState())){
