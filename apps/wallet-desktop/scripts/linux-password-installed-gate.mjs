@@ -33,11 +33,15 @@ export function backupOutcome(text){
 export function backupFileCandidates({account,backup,home,workspace}){
  assert.match(account,/^0x[0-9a-fA-F]{40}$/);for(const value of [backup,home,workspace])assert.equal(path.isAbsolute(value),true);
  const filename='ynx-wallet-'+account.slice(2,10)+'.json';
- return [{location:'EXPECTED_QA_DESTINATION',file:backup},{location:'RUNNER_HOME_DEFAULT',file:path.join(home,filename)},{location:'RUNNER_DOCUMENTS_DEFAULT',file:path.join(home,'Documents',filename)},{location:'RUNNER_DOWNLOADS_DEFAULT',file:path.join(home,'Downloads',filename)},{location:'QA_WORKSPACE_DEFAULT',file:path.join(workspace,filename)}];
+ return [{location:'EXPECTED_QA_DESTINATION',file:backup},{location:'QA_DESTINATION_DIRECTORY_DEFAULT',file:path.join(path.dirname(backup),filename)},{location:'RUNNER_HOME_DEFAULT',file:path.join(home,filename)},{location:'RUNNER_DOCUMENTS_DEFAULT',file:path.join(home,'Documents',filename)},{location:'RUNNER_DOWNLOADS_DEFAULT',file:path.join(home,'Downloads',filename)},{location:'QA_WORKSPACE_DEFAULT',file:path.join(workspace,filename)}];
+}
+export function sanitizeBackupPhases(phases){
+ const allowed=new Set(['started','encrypted','dialog-open','dialog-returned','focus-validated','write-started','write-completed','failed']);
+ return (Array.isArray(phases)?phases:[]).slice(-12).filter(p=>allowed.has(p?.phase)).map(p=>({phase:p.phase,revision:Number.isSafeInteger(p.revision)&&p.revision>=0?p.revision:null,locked:p.locked===true,focused:p.focused===true,ownedDialogPhase:['open','awaiting-focus'].includes(p.ownedDialogPhase)?p.ownedDialogPhase:null,...(p.phase==='dialog-returned'?Object.fromEntries(['canceled','selectedPathPresent','selectedPathMatchesQA','selectedDirectoryMatchesQA','selectedNameMatchesQA','selectedNameMatchesDefault'].map(k=>[k,p[k]===true])):{})}));
 }
 export async function observeNativeSave({snapshot,candidates,stat=fs.lstat,now=()=>new Date().toISOString()}){
  const observed=await snapshot(),ui=observed.ui??{};
- const result={sampledAt:now(),observation:'AFTER_NATIVE_SAVE_ATTEMPT',backupOutcome:backupOutcome(ui.backupResult),locked:observed.locked===true,documentFocused:observed.documentFocused===true,saveButtonEnabled:ui.saveButtonEnabled===true,unlockEnabled:ui.unlockEnabled===true,files:[]};
+ const result={sampledAt:now(),observation:'AFTER_NATIVE_SAVE_ATTEMPT',backupOutcome:backupOutcome(ui.backupResult),locked:observed.locked===true,documentFocused:observed.documentFocused===true,saveButtonEnabled:ui.saveButtonEnabled===true,unlockEnabled:ui.unlockEnabled===true,phases:sanitizeBackupPhases(observed.backupQA),files:[]};
  for(const {location,file} of candidates){try{const entry=await stat(file);result.files.push({location,exists:true,regularFile:entry.isFile(),symbolicLink:entry.isSymbolicLink(),bytes:entry.size,mode:entry.mode&0o777})}catch(error){result.files.push({location,exists:false,statError:error.code==='ENOENT'?'NOT_FOUND':'STAT_FAILED'})}}
  return {snapshot:observed,diagnostic:result};
 }
@@ -60,7 +64,7 @@ async function close(){
 }
 async function launch(destination){
  assert.equal(child,undefined);activeProfile=destination;
- child=spawn(executable,['--remote-debugging-address=127.0.0.1','--remote-debugging-port=9334'],{env:{...process.env,YNX_WALLET_PROFILE_PATH:destination,YNX_WALLET_EVIDENCE_PATH:prefix+'-launch.json'},stdio:['ignore','ignore','ignore']});
+ child=spawn(executable,['--remote-debugging-address=127.0.0.1','--remote-debugging-port=9334'],{env:{...process.env,YNX_WALLET_PROFILE_PATH:destination,YNX_WALLET_EVIDENCE_PATH:prefix+'-launch.json',YNX_WALLET_QA_BACKUP_DESTINATION:backup},stdio:['ignore','ignore','ignore']});
  for(let n=0;n<60;n++){
   if(child.exitCode!==null||child.signalCode!==null)throw Error('INSTALLED_APP_EXITED');
   try{const pages=await(await fetch('http://127.0.0.1:9334/json/list')).json(),page=pages.find(p=>p.type==='page'&&p.url?.startsWith('file:')&&decodeURIComponent(new URL(p.url).pathname).startsWith('/opt/YNX Wallet/resources/app.asar/')&&p.webSocketDebuggerUrl);
@@ -85,7 +89,7 @@ async function protocol(method,params){
 async function evaluate(expression){return(await protocol('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true})).result?.value}
 async function snapshot(){return evaluate(`(async()=>{
  const account=await window.ynxWallet.accountStatus(),security=await window.ynxWallet.securityStatus(),sheet=document.querySelector('#password-sheet'),submit=document.querySelector('#submit-password'),unlock=document.querySelector('#unlock-wallet');
- return {account:account.ok?account.value:null,error:account.ok?null:account.error?.code,locked:security.locked,documentFocused:document.hasFocus(),network:document.querySelector('#network')?.textContent,
+ return {account:account.ok?account.value:null,error:account.ok?null:account.error?.code,locked:security.locked,backupQA:security.backupQA,documentFocused:document.hasFocus(),network:document.querySelector('#network')?.textContent,
  ui:{saveButtonEnabled:Boolean(document.querySelector('#save-backup')&&!document.querySelector('#save-backup').disabled&&document.querySelector('#save-backup').getClientRects().length),passwordResult:document.querySelector('#password-result')?.textContent,unlockResult:document.querySelector('#unlock-result')?.textContent,detail:document.querySelector('#account-detail')?.textContent,backupResult:document.querySelector('#backup-result')?.textContent,importResult:document.querySelector('#import-result')?.textContent,importEnabled:!document.querySelector('#import-form button')?.disabled,passwordSheetOpen:sheet?.open,passwordModeUnlock:sheet?.open?document.querySelector('#local-confirm-group')?.hidden:null,passwordSubmitEnabled:Boolean(sheet?.open&&submit&&!submit.disabled&&submit.getClientRects().length),unlockEnabled:Boolean(unlock&&!unlock.disabled&&unlock.getClientRects().length)}};
 })()`)}
 async function until(predicate,label){stage=label;for(let n=0;n<100;n++){const s=lastSnapshot=await snapshot();if(s.error)throw Error(label+':'+s.error);if(predicate(s))return s;await pauses(300)}throw Error(label+':TIMEOUT')}

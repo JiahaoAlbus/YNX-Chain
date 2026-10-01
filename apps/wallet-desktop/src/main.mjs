@@ -135,7 +135,20 @@ async function recordEvidence(status, window, { launch = false } = {}) {
 
 handleWalletIPC("wallet:status", rpcStatus);
 handleWalletIPC("wallet:app-info", () => ({ version: app.getVersion() }));
-handleWalletIPC("wallet:security-status", () => keyAccess.status());
+// Dedicated installed-QA observations contain no path, address or backup bytes.
+const qaBackupDestination = process.env.GITHUB_ACTIONS === "true" && process.env.YNX_WALLET_PROFILE_PATH && process.env.YNX_WALLET_EVIDENCE_PATH && path.isAbsolute(process.env.YNX_WALLET_QA_BACKUP_DESTINATION ?? "") ? process.env.YNX_WALLET_QA_BACKUP_DESTINATION : null;
+let qaBackupPhases = [];
+function observeBackupPhase(phase, selected) {
+  if (!qaBackupDestination) return;
+  const status = keyAccess.status();
+  const observation = { phase, revision: status.revision, locked: status.locked, focused: status.focused, ownedDialogPhase: status.ownedDialogPhase };
+  if (selected) Object.assign(observation, { canceled: selected.canceled === true, selectedPathPresent: typeof selected.filePath === "string" && selected.filePath.length > 0,
+    selectedPathMatchesQA: selected.filePath === qaBackupDestination,
+    selectedDirectoryMatchesQA: typeof selected.filePath === "string" && path.dirname(selected.filePath) === path.dirname(qaBackupDestination),
+    selectedNameMatchesQA: typeof selected.filePath === "string" && path.basename(selected.filePath) === path.basename(qaBackupDestination) });
+  qaBackupPhases.push(observation); qaBackupPhases = qaBackupPhases.slice(-12);
+}
+handleWalletIPC("wallet:security-status", () => ({ ...keyAccess.status(), ...(qaBackupDestination ? { backupQA: qaBackupPhases } : {}) }));
 handleWalletIPC("wallet:unlock", (_event, input) => safeIPC(() => {
   if (accountChangeInProgress) throw Object.assign(new Error("Finish the current account action first"), { code: "ACCOUNT_CHANGE_IN_PROGRESS" });
   return keyAccess.unlock(input);
@@ -186,13 +199,26 @@ handleWalletIPC("wallet:retry-transaction", (_event, hash) => sensitiveIPC(async
 handleWalletIPC("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => nativeWallet.prepareTransfer(input)));
 handleWalletIPC("wallet:transfer-action", (_event, id, action) => sensitiveIPC(() => nativeWallet.transferAction(id, action)));
 handleWalletIPC("wallet:save-backup", (_event, password) => sensitiveIPC(async () => {
-  const status = await walletAuthority.accountStatus();
-  if (!status.initialized) throw new Error("Create or import an account first");
-  const encrypted = await walletAuthority.vault.encryptedBackup(password);
-  const selected = await keyAccess.withOwnedDialog(() => dialog.showSaveDialog(mainWindow, { title: "Save encrypted Wallet backup", defaultPath: `ynx-wallet-${status.account.slice(2, 10)}.json`, filters: [{ name: "Encrypted JSON wallet", extensions: ["json"] }] }));
-  if (selected.canceled || !selected.filePath) return { saved: false };
-  await keyAccess.current().step(() => writeFile(selected.filePath, encrypted, { mode: 0o600, flag: "wx" }));
-  return { saved: true, account: status.account };
+  if (qaBackupDestination) qaBackupPhases = [];
+  observeBackupPhase("started");
+  try {
+    const status = await walletAuthority.accountStatus();
+    if (!status.initialized) throw new Error("Create or import an account first");
+    const encrypted = await walletAuthority.vault.encryptedBackup(password);
+    observeBackupPhase("encrypted");
+    const selected = await keyAccess.withOwnedDialog(async () => {
+      observeBackupPhase("dialog-open");
+      const result = await dialog.showSaveDialog(mainWindow, { title: "Save encrypted Wallet backup", defaultPath: `ynx-wallet-${status.account.slice(2, 10)}.json`, filters: [{ name: "Encrypted JSON wallet", extensions: ["json"] }] });
+      observeBackupPhase("dialog-returned", result);
+      if (qaBackupDestination) qaBackupPhases.at(-1).selectedNameMatchesDefault = typeof result.filePath === "string" && path.basename(result.filePath) === `ynx-wallet-${status.account.slice(2, 10)}.json`;
+      return result;
+    });
+    observeBackupPhase("focus-validated");
+    if (selected.canceled || !selected.filePath) return { saved: false };
+    await keyAccess.current().step(() => { observeBackupPhase("write-started"); return writeFile(selected.filePath, encrypted, { mode: 0o600, flag: "wx" }); });
+    observeBackupPhase("write-completed");
+    return { saved: true, account: status.account };
+  } catch (error) { observeBackupPhase("failed"); throw error; }
 }));
 handleWalletIPC("wallet:create-account", () => safeIPC(async () => {
   if (authorizationController.inFlight) throw Object.assign(new Error("Finish the current authorization first"), { code: "AUTHORIZATION_ACTION_IN_PROGRESS" });

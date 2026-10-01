@@ -18,20 +18,21 @@ export class DesktopKeyLifecycle {
   #context = new AsyncLocalStorage();
   #generation = 0; #locked = true; #account = null; #focused = false;
   #authenticating = false; #ownedDialog = false; #active = null; #listeners = new Set(); #expiry = null; #unlockDeadline = 0;
+  #dialogPhase = null; #dialogWaiters = new Set(); #leaseContexts = new WeakMap();
   constructor({ authorizer = nativeDesktopAuthorizer(), now = Date.now, focused = () => this.#focused, ttlMs = 120_000, unlockTtlMs = 120_000, schedule = setTimeout, unschedule = clearTimeout } = {}) {
     this.authorizer = authorizer; this.now = now; this.focused = focused; this.ttlMs = ttlMs;
     this.unlockTtlMs = unlockTtlMs; this.schedule = schedule; this.unschedule = unschedule;
   }
   status() {
     let available = false; try { available = this.authorizer.available() === true; } catch {}
-    return Object.freeze({ locked: this.#locked, revision: this.#generation, authenticating: this.#authenticating, account: this.#account, unlockAvailable: available, unlockMethod: this.authorizer.method, hardwareBound: false });
+    return Object.freeze({ locked: this.#locked, revision: this.#generation, authenticating: this.#authenticating, account: this.#account, unlockAvailable: available, unlockMethod: this.authorizer.method, hardwareBound: false, focused: this.focused(), ownedDialogPhase: this.#dialogPhase });
   }
   subscribe(listener) { this.#listeners.add(listener); return () => this.#listeners.delete(listener); }
-  #notify() { for (const listener of this.#listeners) listener(this.status()); }
+  #notify() { for (const check of [...this.#dialogWaiters]) check(); for (const listener of this.#listeners) listener(this.status()); }
   lock() { this.#locked = true; this.#generation++; this.#unlockDeadline = 0; this.unschedule(this.#expiry); this.#expiry = null; this.authorizer.invalidate?.(); this.#notify(); }
   cancelOperations() { this.#generation++; this.#notify(); }
   setAccount(account) { if (this.#account !== account) { this.#account = account; this.lock(); } }
-  setFocused(value) { this.#focused = value === true; if (!value && !(this.#authenticating && this.authorizer.inProcess !== true) && !this.#ownedDialog) this.lock(); }
+  setFocused(value) { this.#focused = value === true; if (!value && !(this.#authenticating && this.authorizer.inProcess !== true) && !this.#ownedDialog) this.lock(); else this.#notify(); }
   async unlock(credentials) {
     if (this.#authenticating || this.#active) throw keyAccessError("WALLET_OPERATION_BUSY");
     if (!this.status().unlockAvailable) throw keyAccessError("SECURE_UNLOCK_UNAVAILABLE");
@@ -85,7 +86,8 @@ export class DesktopKeyLifecycle {
     if (this.#active) throw keyAccessError("WALLET_OPERATION_BUSY");
     const generation = this.#generation, account = this.#account, deadline = this.now() + this.ttlMs;
     let submitted = false, delivered = false;
-    const assertLive = () => { if (this.#active !== lease || this.#locked || !this.focused() || this.#generation !== generation || this.#account !== account || this.now() >= deadline) throw keyAccessError("WALLET_OPERATION_CANCELLED"); assertCurrent(); };
+    const assertContext = () => { if (this.#active !== lease || this.#locked || this.#generation !== generation || this.#account !== account || this.now() >= deadline) throw keyAccessError("WALLET_OPERATION_CANCELLED"); assertCurrent(); };
+    const assertLive = () => { assertContext(); if (!this.focused()) throw keyAccessError("WALLET_OPERATION_CANCELLED"); };
     const external = async (kind, action) => {
       assertLive();
       if (delivered || (kind === "submit" && submitted)) throw keyAccessError("WALLET_OPERATION_CANCELLED");
@@ -108,14 +110,30 @@ export class DesktopKeyLifecycle {
       deliver: action => external("deliver", action),
     });
     this.#active = lease;
+    this.#leaseContexts.set(lease, () => { assertContext(); if (submitted || delivered) throw keyAccessError("WALLET_OPERATION_CANCELLED"); });
     try { return await this.#context.run(lease, async () => { lease.assert(); const result = await operation(lease); if (!submitted && !delivered) lease.assert(); return result; }); }
-    finally { if (this.#active === lease) { this.#active = null; this.#notify(); } }
+    finally { this.#leaseContexts.delete(lease); if (this.#active === lease) { this.#active = null; this.#notify(); } }
   }
   // Only the app's own file dialog may transiently take focus. No secret work
   // occurs while it is unfocused, and a screen lock always invalidates the lease.
   async withOwnedDialog(operation) {
-    const lease = this.current(); this.#ownedDialog = true;
-    try { const result = await operation(); lease.assert(); return result; }
-    finally { this.#ownedDialog = false; if (!this.focused()) this.lock(); }
+    const lease = this.current(), assertContext = this.#leaseContexts.get(lease);
+    if (!assertContext || this.#ownedDialog) throw keyAccessError("WALLET_OPERATION_BUSY");
+    this.#ownedDialog = true; this.#dialogPhase = "open"; this.#notify();
+    try {
+      const result = await operation(); assertContext();
+      this.#dialogPhase = "awaiting-focus"; this.#notify();
+      // Native dialog completion can precede Electron's parent focus event.
+      // Only context checks run during this grace; no key/write step can run.
+      if (!this.focused()) await new Promise((resolve, reject) => {
+        let timer;
+        const finish = error => { clearTimeout(timer); this.#dialogWaiters.delete(check); error ? reject(error) : resolve(); };
+        const check = () => { try { assertContext(); if (this.focused()) finish(); } catch (error) { finish(error); } };
+        this.#dialogWaiters.add(check);
+        timer = setTimeout(() => finish(keyAccessError("WALLET_OPERATION_CANCELLED")), 500);
+        check();
+      });
+      lease.assert(); return result;
+    } finally { this.#ownedDialog = false; this.#dialogPhase = null; if (!this.focused()) this.lock(); else this.#notify(); }
   }
 }

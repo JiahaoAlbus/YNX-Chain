@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {accountCreated,continuePersistedAccount,sanitizedFailureSnapshot,finishNativeSave,backupOutcome,backupFileCandidates,observeNativeSave} from './linux-password-installed-gate.mjs';
+import {sanitizeBackupPhases} from './linux-password-installed-gate.mjs';
 const state=locked=>({locked,account:{initialized:true,passwordConfigured:true,custody:'password-encrypted-local',account:'dedicated-public-account'},ui:{}});
 test('module import does not launch installed app or require Linux fixture credentials',()=>{assert.equal(typeof continuePersistedAccount,'function')});
 test('persisted create is recognized while security is locked',()=>{
@@ -45,9 +46,9 @@ test('native Save rejection remains bounded failure with safe boolean diagnostic
 test('backup result classifier emits only allowlisted outcomes, never raw text',()=>{
  for(const [text,expected] of [['Encrypted backup saved. Keep its password separately.','SAVED'],['Backup was not saved.','CANCELED'],['Encrypting your backup…','PENDING'],['','PENDING'],['Safe explanation (WALLET_OPERATION_CANCELLED)','LOCKED_OR_OPERATION_CHANGED'],['Safe explanation (WALLET_LOCKED)','LOCKED_OR_OPERATION_CHANGED'],['RAW_PRIVATE_PROVIDER_DETAIL','OTHER_ERROR']])assert.equal(backupOutcome(text),expected);
 });
-test('backup file checks are exactly dedicated destination and four derived default paths',()=>{
+test('backup file checks are exactly dedicated destination and five derived default paths',()=>{
  const candidates=backupFileCandidates({account:'0x12345678'+'a'.repeat(32),backup:'/qa/expected.json',home:'/qa/home',workspace:'/qa/workspace'});
- assert.deepEqual(candidates.map(x=>x.file),['/qa/expected.json','/qa/home/ynx-wallet-12345678.json','/qa/home/Documents/ynx-wallet-12345678.json','/qa/home/Downloads/ynx-wallet-12345678.json','/qa/workspace/ynx-wallet-12345678.json']);
+ assert.deepEqual(candidates.map(x=>x.file),['/qa/expected.json','/qa/ynx-wallet-12345678.json','/qa/home/ynx-wallet-12345678.json','/qa/home/Documents/ynx-wallet-12345678.json','/qa/home/Downloads/ynx-wallet-12345678.json','/qa/workspace/ynx-wallet-12345678.json']);
  assert.throws(()=>backupFileCandidates({account:'../../not-an-account',backup:'/qa/expected',home:'/qa/home',workspace:'/qa/workspace'}));
  assert.throws(()=>backupFileCandidates({account:'0x'+'a'.repeat(40),backup:'relative',home:'/qa/home',workspace:'/qa/workspace'}));
 });
@@ -61,4 +62,10 @@ test('post-attempt observer samples new UI once and only stats exact QA candidat
 test('stat errors and symlinks are classified without reading or following file contents',async()=>{
  const result=await observeNativeSave({snapshot:async()=>({...state(false),documentFocused:true,ui:{backupResult:'Encrypted backup saved. Keep its password separately.',saveButtonEnabled:true}}),candidates:[{location:'EXPECTED_QA_DESTINATION',file:'/qa/a'},{location:'RUNNER_HOME_DEFAULT',file:'/qa/b'}],stat:async file=>{if(file==='/qa/a')return{isFile:()=>false,isSymbolicLink:()=>true,size:12,mode:0o120777};throw Object.assign(Error('PRIVATE_PATH_DETAILS'),{code:'EACCES'})}});
  assert.equal(result.diagnostic.backupOutcome,'SAVED');assert.equal(result.diagnostic.files[0].symbolicLink,true);assert.equal(result.diagnostic.files[0].regularFile,false);assert.equal(result.diagnostic.files[1].statError,'STAT_FAILED');assert.equal(JSON.stringify(result.diagnostic).includes('PRIVATE_PATH_DETAILS'),false);
+});
+
+test('native selection and focus observations cannot export paths or arbitrary IPC fields',()=>{
+ const phases=sanitizeBackupPhases([{phase:'dialog-returned',revision:3,locked:false,focused:false,ownedDialogPhase:'open',selectedPathPresent:true,selectedPathMatchesQA:false,selectedDirectoryMatchesQA:true,selectedNameMatchesQA:false,path:'/PRIVATE/PATH',password:'PRIVATE_PASSWORD'}, {phase:'unknown',revision:4}]);
+ assert.equal(phases.length,1);assert.equal(phases[0].selectedDirectoryMatchesQA,true);assert.equal(phases[0].selectedNameMatchesQA,false);assert.equal(phases[0].focused,false);assert.equal(phases[0].revision,3);assert.equal(JSON.stringify(phases).includes('PRIVATE'),false);
+ assert.equal(sanitizeBackupPhases(Array.from({length:20},()=>({phase:'started',revision:-1}))).length,12);assert.equal(sanitizeBackupPhases([{phase:'failed',revision:'SECRET'}])[0].revision,null);
 });
