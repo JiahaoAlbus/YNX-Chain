@@ -250,3 +250,35 @@ for(const kind of ['missing','reordered','tampered','digest','revoked','expired-
  const clock=()=>{calls++;if(kind==='clock-rollback'&&calls===2)return nowMs-1;if(kind==='late-expiry'&&calls===3)return Date.parse(latest.expiresAt);return nowMs;};
  await assert.rejects(recoverEndpointAuthorityHistory({trustRoot:r,consumer:ctx,storage:store,clock,history:docs,current:latest}));assert.deepEqual(await store.read(),next(one));assert.equal(attempts,kind==='cas-conflict'?1:0);
 });
+
+for(const count of [64,65,130])test('bounded history segments '+count+' persist continuity without activating current',async()=>{
+ const first=historical(root.anchor,1),store=storage(next(first));let previous=first;const docs=[];
+ for(let i=0;i<count;i++){previous=historical(next(previous),previous.sequence+1);docs.push(previous)}const current=following(previous);
+ for(let offset=0;offset<count;offset+=64){const segment=docs.slice(offset,offset+64),last=offset+64>=count;
+  const state=await recoverEndpointAuthorityHistory({trustRoot:root,consumer,storage:store,clock:()=>nowMs,history:segment,current,checkpointOnly:!last});assert.deepEqual(state,next(segment.at(-1)));
+  assert.throws(()=>financeProductSessionAuthority(segment.at(-1),{checkpoint:state,nowMs}),/NOT_VERIFIED/);
+ }
+ const client=createEndpointAuthorityClient({trustRoot:root,consumer,storage:store,clock:()=>nowMs});await assert.rejects(client.financeProductSession(),/NOT_ACTIVE/);await client.accept(current,{source:'remote'});assert.equal((await client.financeProductSession()).payloadSha256,current.integrity.payloadSha256);
+});
+for(const kind of ['bad-later','target-digest','expired','revoked','CAS'])test('partial history '+kind+' preserves verified prefix and no authority',async()=>{
+ const first=historical(root.anchor,1),store=storage(next(first));let previous=first;const docs=[];
+ for(let i=0;i<65;i++){previous=historical(next(previous),previous.sequence+1);docs.push(previous)}let current=following(previous),r=copy(root);
+ await recoverEndpointAuthorityHistory({trustRoot:r,consumer,storage:store,clock:()=>nowMs,history:docs.slice(0,64),current,checkpointOnly:true});const prefix=await store.read();
+ if(kind==='bad-later')docs[64].integrity.signature=Buffer.alloc(64).toString('base64url');
+ if(kind==='target-digest')current.integrity.payloadSha256='f'.repeat(64);
+ if(kind==='expired'){const d=copy(current);d.expiresAt=iso(nowMs);current=signed(d)}
+ if(kind==='revoked')r.keys[0].revoked=true;
+ if(kind==='CAS')store.compareAndSwap=async()=>false;
+ await assert.rejects(recoverEndpointAuthorityHistory({trustRoot:r,consumer,storage:store,clock:()=>nowMs,history:[docs[64]],current,checkpointOnly:true}));assert.deepEqual(await store.read(),prefix);
+ const client=createEndpointAuthorityClient({trustRoot:r,consumer,storage:store,clock:()=>nowMs});await assert.rejects(client.financeProductSession(),/NOT_ACTIVE/);
+});
+
+test('history fetched against an older checkpoint cannot follow another tab without a fresh read',async()=>{
+ const {one,two,three,current}=historyFixture(),store=storage(next(two));let attempts=0;store.compareAndSwap=async()=>{attempts++;return true};
+ await assert.rejects(recoverEndpointAuthorityHistory({trustRoot:root,consumer,storage:store,clock:()=>nowMs,history:[two,three],current,expectedCheckpoint:next(one)}),/CHECKPOINT_CONFLICT/);assert.equal(attempts,0);assert.deepEqual(await store.read(),next(two));
+});
+
+test('explicit malformed expected checkpoint never disables the history CAS fence',async()=>{
+ const {one,two,three,current}=historyFixture(),store=storage(next(one));let attempts=0;store.compareAndSwap=async()=>{attempts++;return true};
+ await assert.rejects(recoverEndpointAuthorityHistory({trustRoot:root,consumer,storage:store,clock:()=>nowMs,history:[two,three],current,expectedCheckpoint:null}));assert.equal(attempts,0);assert.deepEqual(await store.read(),next(one));
+});

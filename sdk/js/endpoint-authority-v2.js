@@ -190,13 +190,17 @@ export function isSignedEndpointAuthority(value){return brands.has(value);}
 
 // A history bridge proves continuity only. Historical documents are checked at
 // their signed issuance time, never branded or returned as active authority.
-// Validate the entire bridge AND the current document before the durable CAS.
-export async function recoverEndpointAuthorityHistory({trustRoot,consumer,storage,clock,history,current}={}){
+// Default recovery validates the complete bridge and current before CAS. Explicit
+// checkpoint-only segments prove signed history progress, never active authority.
+export async function recoverEndpointAuthorityHistory({trustRoot,consumer,storage,clock,history,current,checkpointOnly=false,expectedCheckpoint}={}){
   const r=assertAuthorityV2TrustRoot(trustRoot),ctx=freeze(clone(consumer));
   check(storage&&typeof storage.read==='function'&&typeof storage.compareAndSwap==='function'&&typeof clock==='function','AUTHORITY_V2_DURABLE_STORAGE_REQUIRED');
+  check(typeof checkpointOnly==='boolean','AUTHORITY_V2_HISTORY_MODE');
   check(Array.isArray(history)&&history.length>0&&history.length<=64,'AUTHORITY_V2_HISTORY_BOUND');
-  const documents=freeze(clone(history)),latest=freeze(clone(current));
-  const previous=freeze(clone(await storage.read()));let position=previous,lastClock=now(clock());
+  check(Object.keys(history).length===history.length&&Reflect.ownKeys(history).length===history.length+1,'AUTHORITY_V2_ARRAY');
+  const documents=freeze(Array.from({length:history.length},(_,i)=>{const d=Object.getOwnPropertyDescriptor(history,String(i));check(d?.enumerable&&Object.hasOwn(d,'value'),'AUTHORITY_V2_ACCESSOR');return clone(d.value);})),latest=freeze(clone(current));
+  const expected=expectedCheckpoint===undefined?null:freeze(clone(expectedCheckpoint));if(expectedCheckpoint!==undefined)checkpoint(expected);
+  const previous=freeze(clone(await storage.read()));if(expected)check(same(previous,expected),'AUTHORITY_V2_CHECKPOINT_CONFLICT');let position=previous,lastClock=now(clock());
   for(const document of documents){
     const issued=time(document.issuedAt);check(issued<=lastClock,'AUTHORITY_V2_HISTORY_FUTURE');
     check(document.sequence===position.sequence+1&&document.sequence<latest.sequence,'AUTHORITY_V2_PREDECESSOR');
@@ -204,7 +208,10 @@ export async function recoverEndpointAuthorityHistory({trustRoot,consumer,storag
     position=nextCheckpoint(verified,r);
   }
   const at=now(clock());check(at>=lastClock,'AUTHORITY_V2_CLOCK_ROLLBACK');lastClock=at;
-  await verifySignedEndpointAuthority(latest,{trustRoot:r,consumer:ctx,checkpoint:position,nowMs:at});
+  // A partial segment cannot yet prove the target predecessor. Validate its
+  // signed digest/key/consumer/current validity independently; return ONLY the
+  // historical checkpoint. Activation still requires normal contiguous accept.
+  await verifySignedEndpointAuthority(latest,{trustRoot:r,consumer:ctx,checkpoint:checkpointOnly?nextCheckpoint(latest,r):position,nowMs:at});
   const beforeCommit=now(clock());check(beforeCommit>=lastClock,'AUTHORITY_V2_CLOCK_ROLLBACK');lastClock=beforeCommit;
   assertAuthorityV2Manifest(latest,{nowMs:beforeCommit});
   check(await storage.compareAndSwap(previous,position),'AUTHORITY_V2_CHECKPOINT_CONFLICT');
