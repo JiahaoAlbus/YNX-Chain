@@ -31,8 +31,9 @@ class Element {
   addEventListener(name, callback) { this.listeners.set(name, callback); }
   setAttribute(name, value) { this[name] = value; }
   removeAttribute(name) { delete this[name]; }
-  replaceChildren() { this.children = []; this.innerHTML = ""; this.textContent = ""; }
+  replaceChildren(...children) { this.children = children; this.innerHTML = ""; this.textContent = ""; }
   append(child) { this.children.push(child); }
+  before() {}
   querySelector() { return new Element(); }
   reset() { for (const field of Object.values(this.elements)) field.value = ""; }
   focus() { this.focused = true; }
@@ -61,6 +62,7 @@ async function app(overrides = {}) {
     confirm: () => false, prompt: () => null, ...overrides,
   };
   // Execute the shipped controller and its actual registered handlers; only module dependencies and DOM/network are fixtures.
+  const originalFetch=dependencies.fetch;dependencies.fetch=async(url,input)=>{const response=await originalFetch(url,input);if(String(url).includes('/v1/channels/')&&(!input?.method||input.method==='GET')){const data=await response.json();if(response.ok&&Array.isArray(data.team)&&!data.channel&&!data.Channel){const id=decodeURIComponent(String(url).split('/').at(-1));return {ok:true,status:200,json:async()=>({channel:{ID:id,Name:'Fixture channel'}})};}return {ok:response.ok,status:response.status,json:async()=>data};}return response;};
   const controller = await new AsyncFunction(...Object.keys(dependencies), `${source}\nreturn {refresh,restoreCreator,resumeNativeSignIn,renderProductState,showAI,providerStatus,api,readState:()=>({snapshot,currentAI,creatorAccount})};`)(...Object.values(dependencies));
   return { ...controller, element, forms, click: id => element(`#${id}`).listeners.get("click")(), run: id => element(`#${id}`).onclick() };
 }
@@ -345,4 +347,41 @@ test('Creator actual focus hook waits for backend verification and does not revi
 
 test('Creator focus before completed native callback remains waiting without network failure',async()=>{
  const c=await app({setTimeout:()=>1,clearTimeout(){},prepareProductSignIn:async()=>({url:'ynxwallet://authorize?request=qa',state:'intent-a',expiresAt:new Date(Date.now()+60000).toISOString()}),restoreNativeProductReturn:async()=>null});await turn();await c.click('product-signin');await c.element('#product-wallet-choices').children.at(-1).onclick();c.element('#product-native-open').onclick({preventDefault(){}});await c.resumeNativeSignIn();assert.match(c.element('#product-wallet-status').textContent,/not been confirmed yet/);assert.doesNotMatch(c.element('#product-wallet-status').textContent,/could not be checked/);assert.equal(c.element('#product-wallet-chooser').open,true);
+});
+
+test("reload restores authorized team channels through the real nested ChannelView and preserves drafts", async()=>{
+ const paths=[];const controller=await app({fetch:async(url)=>{paths.push(String(url));return response(String(url).includes('/v1/channels/')?{channel:{ID:String(url).split('/').at(-1),Name:'Visible channel',Owner:'another-owner'}}:{team:[{channel_id:'chn_b',members:[{account:'member',role:'editor'}]},{channel_id:'chn_a'}]});}});
+ controller.renderProductState(connected('member'));
+ controller.element('#upload-form').elements.channel_id.value='unsaved-draft-id';
+ controller.element('#channel-form').elements.name={value:'Unsaved new channel'};
+ assert.equal(await controller.refresh(),true);
+ assert.equal(controller.element('#channel-result').textContent,'Visible channel · chn_a');
+ assert.equal(controller.element('#upload-form').elements.channel_id.value,'unsaved-draft-id');
+ assert.equal(controller.element('#team-invite-form').elements.channel_id.value,'chn_a');
+ assert.equal(controller.element('#channel-form').elements.name.value,'Unsaved new channel');
+ const choice=controller.element('#channel-select');assert.equal(choice.children.length,2);choice.value='chn_b';await choice.onchange();
+ assert.equal(controller.element('#channel-result').textContent,'Visible channel · chn_b');
+ assert.equal(controller.element('#team-invite-form').elements.channel_id.value,'chn_b');
+ assert.equal(paths.filter(p=>p.includes('/v1/channels/')).length,2);
+});
+
+test("empty team never invents a channel and invalidates an earlier channel read",async()=>{
+ const late=deferred();let studios=0,channels=0;const controller=await app({fetch:async(url)=>String(url).includes('/v1/channels/')?(channels++,late.promise):response({team:++studios===1?[{channel_id:'chn_a'}]:[]})});
+ controller.renderProductState(connected('owner-a'));const first=controller.refresh();await turn();assert.equal(channels,1);
+ assert.equal(await controller.refresh(),true);late.resolve(response({channel:{ID:'chn_a',Name:'Old channel'}}));assert.equal(await first,false);
+ assert.equal(controller.element('#channel-result').textContent,'No channel loaded.');assert.equal(controller.element('#channel-select').hidden,true);
+});
+
+test("late channel metadata after account switch cannot refill the old account",async()=>{
+ const late=deferred();const controller=await app({fetch:async(url)=>String(url).includes('/v1/channels/')?late.promise:response({team:[{channel_id:'chn_a'}]})});
+ controller.renderProductState(connected('owner-a'));const first=controller.refresh();await turn();await controller.click('product-disconnect');controller.renderProductState(connected('owner-b'));
+ late.resolve(response({channel:{ID:'chn_a',Name:'Old owner channel'}}));assert.equal(await first,false);
+ assert.equal(controller.element('#channel-result').textContent,'No channel loaded.');assert.equal(controller.element('#upload-form').elements.channel_id.value,'');
+});
+
+test("wrong channel identity and rejected channel reads fail closed",async()=>{
+ for(const result of [response({channel:{ID:'chn_other',Name:'Wrong'}}),response({error:'Channel access denied'},403)]){
+  const controller=await app({fetch:async(url)=>String(url).includes('/v1/channels/')?result:response({team:[{channel_id:'chn_a'}]})});controller.renderProductState(connected('owner-a'));
+  assert.equal(await controller.refresh(),false);assert.equal(controller.element('#channel-result').textContent,'No channel loaded.');assert.equal(controller.element('#upload-form').elements.channel_id.value,'');
+ }
 });

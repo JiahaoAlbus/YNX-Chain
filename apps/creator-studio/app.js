@@ -22,6 +22,8 @@ const CREATOR_RUNTIME_BINDING="ynx-creator-studio-web-v1",CREATOR_BUNDLE_ID="com
 const API=localStorage.getItem("ynx.video.api")||`${location.origin}/video/api`,$=s=>document.querySelector(s);
 let snapshot=null,currentAI=null,walletConnecting=false;
 let creatorSessionRevision=0,creatorAccount=null;
+let selectedChannelId=null,channelReadRevision=0,studioReadRevision=0;
+const channelAutofill=new Map();
 function currentCreatorSession(revision){return creatorAccount!==null&&revision===creatorSessionRevision}
 function assertCreatorSession(revision){if(!currentCreatorSession(revision))throw new Error("Creator account changed. Sign in and retry.")}
 const walletProof=$("#wallet-proof");
@@ -266,6 +268,8 @@ const productStatus=$("#product-status"),productConnect=$("#product-signin"),pro
 let creatorSignOutPending=false;
 function clearCreatorSession(){
   creatorSessionRevision++;
+  studioReadRevision++;channelReadRevision++;selectedChannelId=null;channelAutofill.clear();
+  const channelChoice=document.getElementById("channel-select");if(channelChoice){channelChoice.replaceChildren();channelChoice.hidden=true;}
   creatorAccount=null;
   snapshot=null;
   currentAI=null;
@@ -501,17 +505,46 @@ void restoreWalletConnection();
 document.querySelectorAll("nav button").forEach(button=>button.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x===button));document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id===button.dataset.panel));$("#heading").textContent=button.textContent});
 
 async function refresh(){
-  const revision=creatorSessionRevision;
+  const revision=creatorSessionRevision,read=++studioReadRevision;
   if(!currentCreatorSession(revision))return false;
   try{
     const nextSnapshot=await api("/v1/studio");
-    if(!currentCreatorSession(revision))return false;
+    if(!currentCreatorSession(revision)||read!==studioReadRevision)return false;
     snapshot=nextSnapshot;
+    await restoreChannelView(nextSnapshot,revision);
+    if(!currentCreatorSession(revision)||read!==studioReadRevision)return false;
     const a=snapshot?.analytics||{};
     $("#views").textContent=a.views??"—";$("#watch").textContent=a.watch_seconds==null?"—":`${a.watch_seconds}s`;$("#subs").textContent=a.subscribers??"—";$("#revenue").textContent=a.revenue_ynxt==null?"—":`${a.revenue_ynxt} YNXT`;
     renderContent();renderTeam();renderRights();renderAudit();status("Studio state loaded from persistent records.");return true;
-  }catch(error){if(currentCreatorSession(revision))status(error.message||t("unavailable"),true);return false}
+  }catch(error){if(currentCreatorSession(revision)&&read===studioReadRevision)status(error.message||t("unavailable"),true);return false}
 }
+const channelForms=["upload-form","team-invite-form","team-role-form","team-revoke-form"];
+async function loadChannelView(channelID,revision){
+ const read=++channelReadRevision;
+ const view=await api("/v1/channels/"+encodeURIComponent(channelID));
+ if(!currentCreatorSession(revision)||read!==channelReadRevision)return;
+ const channel=get(view,"channel","Channel");
+ if(!channel||get(channel,"id","ID")!==channelID)throw new Error("The channel could not be verified. Refresh Studio to try again.");
+ selectedChannelId=channelID;
+ $("#channel-result").textContent=String(get(channel,"name","Name")||"Channel")+" · "+channelID;
+ for(const id of channelForms){const field=document.getElementById(id)?.elements.channel_id;if(field&&(!field.value||field.value===channelAutofill.get(id))){field.value=channelID;channelAutofill.set(id,channelID);}}
+}
+async function restoreChannelView(studio,revision){
+ channelReadRevision++;
+ // The actual Studio contract supplies authorized team channel IDs, not channels.
+ // Membership is not ownership; all mutations still pass their original API guards.
+ const ids=[...new Set((studio?.team||[]).map(team=>get(team,"channel_id","ChannelID")).filter(id=>typeof id==="string"&&/^[A-Za-z0-9_-]{1,128}$/.test(id)))].sort();
+ let choice=document.getElementById("channel-select");
+ if(!ids.length){if(choice){choice.replaceChildren();choice.hidden=true;}$("#channel-result").textContent="No channel loaded.";return;}
+ if(!choice){choice=document.createElement("select");choice.id="channel-select";choice.setAttribute("aria-label","Choose an authorized channel");$("#channel-result").before(choice);}
+ choice.hidden=false;choice.replaceChildren();
+ for(const id of ids){const option=document.createElement("option");option.value=id;option.textContent=id;choice.append(option);}
+ const typed=channelForms.map(id=>document.getElementById(id)?.elements.channel_id?.value).find(id=>ids.includes(id));
+ const selected=ids.includes(selectedChannelId)?selectedChannelId:typed||ids[0];choice.value=selected;
+ choice.onchange=async()=>{if(!currentCreatorSession(revision)||!ids.includes(choice.value))return;try{await loadChannelView(choice.value,revision);}catch{if(currentCreatorSession(revision))status("The channel could not be loaded. Refresh Studio to try again.",true);}};
+ await loadChannelView(selected,revision);
+}
+
 function rightsFor(videoID){return(snapshot?.rights||[]).find(item=>get(item,"video_id","VideoID")===videoID)}
 function openRights(video){const form=$("#rights-form");form.video_id.value=video.id;form.source_sha256.value=video.sha256||"";document.querySelector('nav button[data-panel="rights"]').click();status("Rights form prefilled with the persisted media source hash.")}
 function renderContent(){const box=$("#videos"),videos=snapshot?.videos||[];box.replaceChildren();if(!videos.length){box.innerHTML='<p class="meta">No videos yet. Create a channel, then upload your first video.</p>';return}for(const video of videos){const row=document.createElement("div"),rights=rightsFor(video.id),rightsState=rights?get(rights,"state","State"):"missing",source=video.sha256?`${video.sha256.slice(0,16)}…`:"unavailable",workflow=get(video,"workflow_state","WorkflowState")||"draft",versions=get(video,"versions","Versions")||[];row.className="row lifecycle-row";const takedown=video.takedown?` · takedown ${video.takedown.state}`:"",scheduled=get(video,"scheduled_at","ScheduledAt"),history=versions.slice(-5).reverse().map(version=>`<li><b>v${esc(get(version,"sequence","Sequence"))}</b> ${esc(get(version,"kind","Kind"))} · ${esc(get(version,"recorded_at","RecordedAt"))}</li>`).join("");row.innerHTML=`<div><b>${esc(video.title)}</b><small>${esc(video.id)} · source ${esc(source)}</small><small>Workflow ${esc(workflow)} · version ${esc(get(video,"version","Version")||0)}${scheduled?` · scheduled ${esc(scheduled)}`:""}</small></div><span class="state">${esc(video.status)}${esc(takedown)}</span><span>${esc(video.visibility)} · rights ${esc(rightsState)}</span><div class="row-actions"><button data-action="edit">Edit</button><button data-action="rights">Rights</button>${["draft","rejected","unpublished"].includes(workflow)&&video.status==="ready"?'<button data-action="submit">Submit review</button>':""}${workflow==="in_review"?'<button data-action="review">Review</button>':""}${workflow==="approved"?'<button data-action="visibility">Publish now</button><button data-action="schedule">Schedule</button>':""}${workflow==="scheduled"?'<button data-action="due">Publish due</button>':""}${workflow==="published"?'<button data-action="unpublish" class="danger">Unpublish</button>':""}${video.status==="failed"?'<button data-action="retry">Retry</button>':""}</div><details><summary>Version history (${versions.length})</summary><ol>${history||"<li>No version evidence.</li>"}</ol></details>`;row.querySelector('[data-action="edit"]').onclick=()=>editVideo(video);row.querySelector('[data-action="rights"]').onclick=()=>openRights(video);row.querySelector('[data-action="submit"]')?.addEventListener("click",()=>submitReview(video));row.querySelector('[data-action="review"]')?.addEventListener("click",()=>reviewPublication(video));row.querySelector('[data-action="visibility"]')?.addEventListener("click",()=>publishVideo(video));row.querySelector('[data-action="schedule"]')?.addEventListener("click",()=>schedulePublication(video));row.querySelector('[data-action="due"]')?.addEventListener("click",()=>publishDue(video));row.querySelector('[data-action="unpublish"]')?.addEventListener("click",()=>unpublish(video));row.querySelector('[data-action="retry"]')?.addEventListener("click",()=>retryVideo(video));box.append(row)}}
@@ -527,7 +560,7 @@ function renderTeam(){const items=[];for(const team of snapshot?.team||[]){const
 function renderRights(){rows("#rights-list",snapshot?.rights||[],rights=>{const territories=get(rights,"territories","Territories")||[],evidence=String(get(rights,"evidence_sha256","EvidenceSHA256")||"");return`<div class="row"><div><b>${esc(get(rights,"video_id","VideoID"))}</b><small>evidence ${esc(evidence?`${evidence.slice(0,16)}…`:"unavailable")}</small></div><span>${esc(get(rights,"basis","Basis"))} · ${esc(territories.join(", "))}</span><span class="state">${esc(get(rights,"state","State"))}</span></div>`},"No rights declarations. Public or unlisted publication will fail closed.")}
 function renderAudit(){rows("#revenue-list",snapshot?.revenue||[],r=>`<div class="row"><b>${esc(get(r,"id","ID"))}</b><span>${get(r,"amount_ynxt","AmountYNXT")} YNXT</span><span>${esc(get(r,"pay_receipt_id","PayReceiptID"))}</span></div>`,"No verified revenue records.");rows("#payout-list",snapshot?.payout_intents||[],p=>`<div class="row"><b>${esc(get(p,"id","ID"))}</b><span>${get(p,"amount_ynxt","AmountYNXT")} YNXT</span><span class="state">${esc(get(p,"state","State"))}</span></div>`,"No payout intents.");rows("#report-list",snapshot?.reports||[],r=>`<div class="row"><b>${esc(get(r,"id","ID"))}</b><span>${esc(get(r,"reason","Reason"))}</span><span class="state">${esc(get(r,"state","State"))}</span></div>`,"No reports on owned videos.");rows("#appeal-list",snapshot?.appeals||[],a=>`<div class="row"><b>${esc(get(a,"id","ID"))}</b><span>${esc(get(a,"reason","Reason"))}</span><span class="state">${esc(get(a,"state","State"))}</span></div>`,"No appeals.");rows("#dispute-list",snapshot?.disputes||[],d=>`<div class="row"><b>${esc(get(d,"id","ID"))}</b><span>${esc(get(d,"reason","Reason"))}</span><span class="state">${esc(get(d,"state","State"))}</span></div>`,"No revenue disputes.")}
 
-$("#refresh").onclick=refresh;$("#channel-form").onsubmit=async event=>{event.preventDefault();try{const channel=await api("/v1/channels",json({handle:event.target.handle.value,name:event.target.name.value}));const channelID=get(channel,"id","ID");$("#channel-result").textContent=`${get(channel,"name","Name")} · ${channelID}`;for(const id of ["upload-form","team-invite-form","team-role-form","team-revoke-form"])document.getElementById(id).elements.channel_id.value=channelID;await refresh();status("Channel created. You can upload a video or invite a reviewer.")}catch(error){status(error.message,true)}};
+$("#refresh").onclick=refresh;$("#channel-form").onsubmit=async event=>{event.preventDefault();try{const channel=await api("/v1/channels",json({handle:event.target.handle.value,name:event.target.name.value}));const channelID=get(channel,"id","ID");selectedChannelId=channelID;channelReadRevision++;$("#channel-result").textContent=`${get(channel,"name","Name")} · ${channelID}`;for(const id of ["upload-form","team-invite-form","team-role-form","team-revoke-form"]){document.getElementById(id).elements.channel_id.value=channelID;channelAutofill.set(id,channelID);}await refresh();status("Channel created. You can upload a video or invite a reviewer.")}catch(error){status(error.message,true)}};
 $("#team-invite-form").onsubmit=async event=>{event.preventDefault();const form=event.target;try{const expires=form.expires_at.value?new Date(form.expires_at.value).toISOString():undefined;await api(`/v1/channels/${encodeURIComponent(form.channel_id.value)}/team/invites`,json({account:form.account.value,role:form.role.value,expires_at:expires}));status("Bounded team invite persisted. The named Wallet account must accept it before access exists.");form.reset();await refresh()}catch(error){status(error.message,true)}};
 $("#team-accept-form").onsubmit=async event=>{event.preventDefault();try{await api(`/v1/team/invites/${encodeURIComponent(event.target.invite_id.value)}/accept`,{method:"POST"});status("Invitation accepted. Your channel access is ready.");event.target.reset();await refresh()}catch(error){status(error.message,true)}};
 $("#team-role-form").onsubmit=async event=>{event.preventDefault();const form=event.target;try{await api(`/v1/channels/${encodeURIComponent(form.channel_id.value)}/team/${encodeURIComponent(form.account.value)}/role`,json({role:form.role.value}));status("Role changed and channel authorization version advanced.");await refresh()}catch(error){status(error.message,true)}};
