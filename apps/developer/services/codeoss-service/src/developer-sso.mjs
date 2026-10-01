@@ -1,0 +1,175 @@
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { DatabaseSync } from "node:sqlite";
+import { lstat, open } from "node:fs/promises";
+import { constants } from "node:fs";
+import { dirname } from "node:path";
+import { CENTRAL_IDENTITY, createCentralIdentityVerifier, fault } from "./central-identity.mjs";
+
+const PARENT = "https://developer.ynxweb4.com", COOKIE = "__Host-ynx_developer_identity", TRANSACTION = "__Host-ynx_developer_pkce";
+const random = () => randomBytes(32).toString("base64url"), hash = value => createHash("sha256").update(value).digest("hex");
+const canonical = value => JSON.stringify(Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b))));
+
+// Product-owned consumer: PKCE verifier and central grants never enter workspace
+// processes, public URLs, JavaScript storage, logs or extension-host environments.
+export async function createDeveloperSSO({ filename, keyPath, workspaceStore, guestOwnerForRequest,
+  fetchImpl = globalThis.fetch, coreSessionInfo, onSignOut, now = Date.now } = {}) {
+  let key;
+  try {
+    const file = await open(keyPath, constants.O_RDONLY | constants.O_NOFOLLOW);
+    try {
+      const stat = await file.stat();
+      if (!stat.isFile() || stat.uid !== process.getuid() || (stat.mode & 0o077)) throw new Error("Developer sealed identity key must be private to the backend owner.");
+      key = await file.readFile();
+    } finally { await file.close(); }
+  }
+  catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    const parent = await lstat(dirname(keyPath));
+    if (!parent.isDirectory() || parent.isSymbolicLink() || parent.uid !== process.getuid() || (parent.mode & 0o022)) throw new Error("Developer identity state directory is not protected.");
+    key = randomBytes(32); const file = await open(keyPath, "wx", 0o600);
+    try { await file.writeFile(key); await file.sync(); } finally { await file.close(); }
+    const directory = await open(dirname(keyPath), "r"); try { await directory.sync(); } finally { await directory.close(); }
+  }
+  if (key.length !== 32) throw new Error("Developer sealed identity key must contain exactly 32 bytes.");
+  const db = new DatabaseSync(filename);
+  db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS developer_identity_records(kind TEXT NOT NULL,id_hash TEXT NOT NULL,sealed TEXT NOT NULL,expires_at INTEGER NOT NULL,consumed INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(kind,id_hash)); CREATE TABLE IF NOT EXISTS developer_identity_bindings(owner TEXT PRIMARY KEY,workspace_owner TEXT NOT NULL);");
+  function seal(value, kind, id) {
+    const nonce = randomBytes(12), cipher = createCipheriv("aes-256-gcm", key, nonce);
+    cipher.setAAD(Buffer.from(`${kind}:${hash(id)}`));
+    const bytes = Buffer.concat([cipher.update(JSON.stringify(value)), cipher.final()]);
+    return Buffer.concat([nonce, cipher.getAuthTag(), bytes]).toString("base64");
+  }
+  function store(kind, id, value, expires) {
+    db.prepare("INSERT INTO developer_identity_records(kind,id_hash,sealed,expires_at) VALUES(?,?,?,?)").run(kind, hash(id), seal(value, kind, id), expires);
+  }
+  function retrieve(kind, id, consume = false) {
+    if (!/^[A-Za-z0-9_-]{43}$/.test(id || "")) return null;
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const row = db.prepare("SELECT * FROM developer_identity_records WHERE kind=? AND id_hash=?").get(kind, hash(id));
+      if (!row || row.consumed || row.expires_at <= now()) { db.exec("COMMIT"); return null; }
+      const raw = Buffer.from(row.sealed, "base64"), decipher = createDecipheriv("aes-256-gcm", key, raw.subarray(0, 12));
+      decipher.setAAD(Buffer.from(`${kind}:${hash(id)}`)); decipher.setAuthTag(raw.subarray(12, 28));
+      const value = JSON.parse(Buffer.concat([decipher.update(raw.subarray(28)), decipher.final()]).toString());
+      if (consume) db.prepare("UPDATE developer_identity_records SET consumed=1 WHERE kind=? AND id_hash=?").run(kind, hash(id));
+      db.exec("COMMIT"); return value;
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+  }
+  function cookie(request, name) { return String(request.headers.cookie || "").split(";").map(value => value.trim()).find(value => value.startsWith(`${name}=`))?.slice(name.length + 1); }
+  function host(request) { return String(request.headers.host || ""); }
+  const grantForRequest = async request => {
+    const grant = retrieve("session", cookie(request, COOKIE));
+    if (!grant || grant.allowedHost !== host(request)) return null;
+    return grant;
+  };
+  const workspaceBinding = async ({ owner }) => {
+    const row = db.prepare("SELECT * FROM developer_identity_bindings WHERE owner=?").get(owner);
+    return row ? { owner, workspaceOwner: row.workspace_owner } : null;
+  };
+  const verifyIdentity = createCentralIdentityVerifier({ grantForRequest, workspaceBinding, fetchImpl, now });
+
+  async function backend(path, value) {
+    const response = await fetchImpl(`https://wallet-auth.ynxweb4.com/v2/browser-sessions/${path}`, {
+      method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: canonical(value),
+      redirect: "error", signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok) throw fault("Wallet sign-in was rejected or expired. Try the normal sign-in flow again.", "developer_sso_rejected", 401);
+    return response.json();
+  }
+  function setCookie(name, id, maxAge) { return `${name}=${id}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`; }
+  function redirect(response, location, cookies = []) { response.writeHead(303, { location, "set-cookie": cookies, "cache-control": "no-store", "referrer-policy": "no-referrer" }); response.end(); }
+  function parentOnly(request) { if (host(request) !== new URL(PARENT).host) throw fault("Developer identity request host did not match.", "developer_sso_origin_invalid", 403); }
+  function sameOrigin(request) { parentOnly(request); if (request.headers.origin !== PARENT || (request.headers["sec-fetch-site"] && request.headers["sec-fetch-site"] !== "same-origin")) throw fault("Developer identity operation requires same-origin review.", "developer_sso_origin_invalid", 403); }
+
+  async function handler(request, response) {
+    const url = new URL(request.url, PARENT), path = url.pathname;
+    if (!["/sso/start", "/sso/callback", "/sso/core-open", "/sso/core-admit", "/runtime/identity", "/runtime/identity/import", "/runtime/identity/logout"].includes(path)) return false;
+    try {
+      if (path === "/sso/start" && request.method === "GET") {
+        parentOnly(request);
+        const state = random(), verifier = random(), transaction = random();
+        store("pkce", transaction, { state, verifier }, now() + 120000);
+        const destination = new URL("https://wallet-auth.ynxweb4.com/v2/browser-sessions/authorize");
+        for (const [name, value] of Object.entries({ clientId: CENTRAL_IDENTITY.clientId, origin: PARENT,
+          redirectUri: CENTRAL_IDENTITY.callback, state, codeChallenge: createHash("sha256").update(verifier).digest("base64url"), codeChallengeMethod: "S256" })) destination.searchParams.set(name, value);
+        redirect(response, destination.href, [setCookie(TRANSACTION, transaction, 120)]); return true;
+      }
+      if (path === "/sso/callback" && request.method === "GET") {
+        parentOnly(request);
+        if ([...url.searchParams].length !== new Set(url.searchParams.keys()).size || [...url.searchParams.keys()].some(name => !["state", "code", "error"].includes(name))) throw fault("Wallet callback fields are invalid.", "developer_sso_callback_invalid", 400);
+        const pkce = retrieve("pkce", cookie(request, TRANSACTION), true);
+        if (!pkce || pkce.state !== url.searchParams.get("state")) throw fault("Wallet callback state expired or did not match this browser.", "developer_sso_state_invalid", 401);
+        if (url.searchParams.has("error")) { redirect(response, "/", [setCookie(TRANSACTION, "", 0)]); return true; }
+        const result = await backend("token", { clientId: CENTRAL_IDENTITY.clientId, origin: PARENT,
+          redirectUri: CENTRAL_IDENTITY.callback, code: url.searchParams.get("code"), state: pkce.state, codeVerifier: pkce.verifier });
+        const expires = Math.min(Date.parse(result.expiresAt), Date.parse(result.identity?.expiresAt));
+        if (typeof result.grantToken !== "string" || result.grantToken.length < 32 || result.audience !== CENTRAL_IDENTITY.audience ||
+          JSON.stringify(result.scopes) !== '["identity:read"]' || !Number.isFinite(expires) || expires <= now() ||
+          typeof result.identity?.subject !== "string" || typeof result.identity.account !== "string" || !Number.isSafeInteger(result.identity.generation))
+          throw fault("Wallet grant did not match the Developer identity contract.", "developer_sso_grant_invalid", 401);
+        const owner = createHash("sha256").update(`YNX_DEVELOPER_IDENTITY_V1\n${CENTRAL_IDENTITY.audience}\n${result.identity.subject}`).digest("hex");
+        // New Wallet-owned space, never implicit adoption of the current guest.
+        db.prepare("INSERT OR IGNORE INTO developer_identity_bindings VALUES(?,?)").run(owner, owner);
+        const id = random(); store("session", id, { grantToken: result.grantToken, ...result.identity, allowedHost: new URL(PARENT).host }, expires);
+        redirect(response, "/", [setCookie(COOKIE, id, Math.floor((expires - now()) / 1000)), setCookie(TRANSACTION, "", 0)]); return true;
+      }
+      if (path === "/runtime/identity" && request.method === "GET") {
+        parentOnly(request); const id = await verifyIdentity(request);
+        json(response, 200, { connected: true, account: id.account, generation: id.generation, expiresAt: id.expiresAt, permissions: ["identity:read"] }); return true;
+      }
+      if (path === "/runtime/identity/import" && request.method === "POST") {
+        sameOrigin(request); const id = await verifyIdentity(request), input = await bodyJSON(request), guest = guestOwnerForRequest(request);
+        if (!guest || !/^[A-Za-z0-9_-]{1,160}$/.test(input.projectId || "") || input.approval !== "copy-guest-project-once" || !/^[a-f0-9-]{36}$/.test(input.approvalId || ""))
+          throw fault("Review copying this saved guest project into the current Wallet workspace first.", "developer_import_approval_required", 403);
+        const original = workspaceStore.get(guest, input.projectId);
+        if (!original || original.revision !== input.expectedGuestRevision) throw fault("Guest project changed. Save and review the copy again.", "revision_conflict", 409);
+        if (workspaceStore.get(id.workspaceOwner, input.projectId)) throw fault("This Wallet already has this project. Existing files are preserved.", "developer_import_exists", 409);
+        const { revision, updatedAt, ...payload } = original;
+        const saved = workspaceStore.put(id.workspaceOwner, input.projectId, { expectedRevision: 0, idempotencyKey: `identity-copy-${input.approvalId}`, payload });
+        json(response, 201, { copied: true, projectId: input.projectId, revision: saved.revision, originalPreserved: true }); return true;
+      }
+      if (path === "/runtime/identity/logout" && request.method === "POST") {
+        sameOrigin(request); const grant = await grantForRequest(request);
+        const id = cookie(request, COOKIE);
+        if (id) db.prepare("UPDATE developer_identity_records SET consumed=1 WHERE kind='session' AND id_hash=?").run(hash(id));
+        // Local exit must not depend on expired or unavailable central authority.
+        response.setHeader("set-cookie", setCookie(COOKIE, "", 0));
+        let centralRevoked = false, workspacesStopped = true;
+        if (grant) {
+          const owner = createHash("sha256").update(`YNX_DEVELOPER_IDENTITY_V1\n${CENTRAL_IDENTITY.audience}\n${grant.subject}`).digest("hex");
+          try { await onSignOut?.(owner); } catch { workspacesStopped = false; }
+          try { await backend("logout-grant", { clientId: CENTRAL_IDENTITY.clientId, grantToken: grant.grantToken }); centralRevoked = true; } catch {}
+        }
+        json(response, 200, { signedOut: true, centralRevoked, workspacesStopped }); return true;
+      }
+      if (path === "/sso/core-open" && request.method === "GET") {
+        parentOnly(request); const sessionId = url.searchParams.get("sessionId");
+        if (!/^[a-f0-9-]{36}$/.test(sessionId || "") || typeof coreSessionInfo !== "function") throw fault("Native IDE admission is unavailable.", "core_proxy_unavailable", 503);
+        const info = await coreSessionInfo(request, sessionId), origin = new URL(info.origin);
+        if (origin.protocol !== "https:" || origin.host === new URL(PARENT).host || origin.pathname !== "/" || origin.search || origin.hash) throw fault("Native IDE origin is invalid.", "core_proxy_origin_invalid", 403);
+        const grant = await grantForRequest(request), ticket = random(), nonce = random();
+        if (!grant) throw fault("Wallet sign-in is required.", "core_identity_required", 401);
+        store("core-ticket", ticket, { ...grant, allowedHost: origin.host, allowedCoreSession: sessionId, identityExpiresAt: info.expiresAt }, now() + 60000);
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "referrer-policy": "no-referrer",
+          "content-security-policy": `default-src 'none'; script-src 'nonce-${nonce}'; form-action ${origin.origin}; base-uri 'none'; frame-ancestors 'none'` });
+        response.end(`<title>YNX Developer · Opening project</title><form method="post" action="${origin.origin}/sso/core-admit"><input type="hidden" name="ticket" value="${ticket}"><button type="submit">Open YNX project</button></form><script nonce="${nonce}">document.forms[0].submit()</script>`); return true;
+      }
+      if (path === "/sso/core-admit" && request.method === "POST") {
+        if (request.headers.origin !== PARENT || request.headers["content-type"] !== "application/x-www-form-urlencoded") throw fault("Native IDE admission origin did not match.", "core_proxy_origin_invalid", 403);
+        const raw = await bodyBuffer(request), params = new URLSearchParams(raw), ticket = retrieve("core-ticket", params.get("ticket"), true);
+        if ([...params].length !== 1 || !ticket || ticket.allowedHost !== host(request)) throw fault("Native IDE admission ticket expired or belongs to another origin.", "core_ticket_invalid", 401);
+        const id = random(), expires = Math.min(ticket.identityExpiresAt, Date.parse(ticket.expiresAt));
+        if (!Number.isFinite(expires) || expires <= now()) throw fault("Native IDE identity expired.", "core_identity_invalid", 401);
+        store("session", id, ticket, expires);
+        // Every subsequent HTTP/WS request revalidates central identity + exact
+        // session. This short exchange ticket never becomes a launch URL token.
+        redirect(response, "/", [setCookie(COOKIE, id, Math.floor((expires - now()) / 1000))]); return true;
+      }
+      throw fault("Method not allowed.", "method_not_allowed", 405);
+    } catch (error) { json(response, error.status || 503, { error: error.message || "Developer sign-in is unavailable.", code: error.code || "developer_sso_unavailable" }); return true; }
+  }
+  return { handler, verifyIdentity, grantForRequest, workspaceBinding, close: () => db.close() };
+}
+async function bodyBuffer(request) { const chunks = []; let bytes = 0; for await (const chunk of request) { bytes += chunk.length; if (bytes > 8192) throw fault("Identity request too large.", "body_too_large", 413); chunks.push(chunk); } return Buffer.concat(chunks).toString("utf8"); }
+async function bodyJSON(request) { try { return JSON.parse(await bodyBuffer(request)); } catch (error) { if (error.code) throw error; throw fault("Identity request must be JSON.", "invalid_json", 400); } }
+function json(response, status, value) { response.writeHead(status, { "content-type": "application/json", "cache-control": "no-store", "referrer-policy": "no-referrer" }); response.end(JSON.stringify(value)); }

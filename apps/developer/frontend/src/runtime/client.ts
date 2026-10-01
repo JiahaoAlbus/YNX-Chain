@@ -22,6 +22,7 @@ export type TaskResult = {
   environmentRevision?: number;
 };
 export type WorkspaceSnapshot = {
+  storageMode?: "native-volume" | "text-snapshot";
   revision: number;
   updatedAt: string;
   name: string;

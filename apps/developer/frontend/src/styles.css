@@ -130,6 +130,14 @@ input {
   font-size: 9px;
   font-weight: 900;
 }
+.brand-logo { width: 28px; height: 28px; object-fit: contain; flex: 0 0 28px; }
+.native-brand-logo { width: 64px; height: 64px; object-fit: contain; }
+.native-ide-panel { display: flex; flex-direction: column; gap: 14px; padding: 20px; line-height: 1.55; }
+.native-ide-panel h2 { font-size: 20px; color: var(--blue); }
+.native-ide-panel p { margin: 0; }
+.native-review { display: flex; align-items: flex-start; gap: 10px; }
+.native-launch-link { color: var(--blue); text-decoration: underline; font-weight: 600; }
+.native-ide-panel small { color: var(--muted); }
 .edition {
   border: 1px solid #9db4e7;
   border-radius: 3px;

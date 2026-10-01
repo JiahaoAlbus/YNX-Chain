@@ -1,0 +1,12 @@
+{
+  "name": "ynx-developer-brand",
+  "displayName": "YNX Developer",
+  "publisher": "ynx",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.109.0" },
+  "license": "MIT",
+  "icon": "ynx-logo.png",
+  "contributes": {
+    "themes": [{ "label": "YNX Klein Light", "uiTheme": "vs", "path": "./klein-light.json" }]
+  }
+}

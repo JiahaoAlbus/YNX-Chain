@@ -21,6 +21,7 @@ import { buildLiteralReplacement } from "../search/literalReplace";
 import type { EditorProblem } from "../editor/CodeEditor";
 import { installDesktopEditBridge } from "../editor/native-edit";
 import { OutlinePanel } from "../outline/OutlinePanel";
+import { NativeIDEPanel } from "../codeoss/NativeIDEPanel";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
 const CollaborationPanel = lazy(() =>
@@ -38,7 +39,7 @@ const ChainPanel = lazy(() =>
     default: module.ChainPanel,
   })),
 );
-type View = "files" | "outline" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration" | "remote" | "history" | "chain";
+type View = "files" | "outline" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration" | "remote" | "history" | "chain" | "native";
 const activity: [View, React.ReactNode, string][] = [
   ["files", <Files />, "Explorer"],
   ["outline", <ListTree />, "Outline"],
@@ -51,6 +52,7 @@ const activity: [View, React.ReactNode, string][] = [
   ["remote", <Cloud />, "Remote Explorer"],
   ["history", <History />, "Workspace History"],
   ["chain", <Link2 />, "YNX Chain"],
+  ["native", <Braces />, "YNX Native IDE"],
 ];
 type EditorPreferences = {
   fontSize: number;
@@ -126,8 +128,9 @@ export function Workbench() {
     [packageEcosystem, setPackageEcosystem] = useState<"npm" | "python">("npm"),
     [packageSpec, setPackageSpec] = useState(""),
     [packageBusy, setPackageBusy] = useState(false),
+    [nativeReadOnly, setNativeReadOnly] = useState(false),
     [packageMetadataResult, setPackageMetadataResult] = useState<{ expected: Record<string, string>; updates: Record<string, string> }>(),
-    [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("ynx-code-theme") === "light" ? "light" : "dark")),
+    [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("ynx-code-theme") === "dark" ? "dark" : "light")),
     [search, setSearch] = useState(""),
     [replacement, setReplacement] = useState(""),
     [matchCase, setMatchCase] = useState(false),
@@ -255,6 +258,7 @@ export function Workbench() {
   useEffect(() => {
     let cancelled = false;
     setWorkspaceAdmitted(false);
+    setNativeReadOnly(false);
     if (baselineProject.current !== project.id) { lastSynced.current = ""; baselineProject.current = project.id; }
     (async () => {
       try {
@@ -264,6 +268,7 @@ export function Workbench() {
         const remote = await loadWorkspace(project.id);
         if (cancelled) return;
         if (remote) {
+          setNativeReadOnly(remote.storageMode === "native-volume");
           const remoteKey = JSON.stringify({ name: remote.name, folders: remote.folders, files: remote.files, open: remote.open, active: remote.active });
           // Any restored browser or native profile can contain offline edits.
           // Compare the current model, including edits made while loading, and
@@ -312,7 +317,7 @@ export function Workbench() {
     return () => removeEventListener("online", handleOnline);
   }, [reconnect]);
   useEffect(() => {
-    if (!hydrated || terminalActive || packageBusy || collaborationSession || !editorPreferences.autoSave || workspaceKey === lastSynced.current) return;
+    if (!hydrated || nativeReadOnly || terminalActive || packageBusy || collaborationSession || !editorPreferences.autoSave || workspaceKey === lastSynced.current) return;
     const timer = setTimeout(() => {
       const expected = project.remoteRevision;
       saveWorkspace(project.id, expected, workspace)
@@ -327,8 +332,8 @@ export function Workbench() {
         .catch((error) => setRuntime(error?.code === "revision_conflict" ? "save conflict" : "save unavailable"));
     }, editorPreferences.autoSaveDelay);
     return () => clearTimeout(timer);
-  }, [terminalActive, packageBusy, collaborationSession, editorPreferences.autoSave, editorPreferences.autoSaveDelay, hydrated, project.id, project.remoteRevision, workspace, workspaceKey]);
-  const collaborationReadOnly = Boolean(collaborationRole && !["owner", "editor"].includes(collaborationRole));
+  }, [nativeReadOnly, terminalActive, packageBusy, collaborationSession, editorPreferences.autoSave, editorPreferences.autoSaveDelay, hydrated, project.id, project.remoteRevision, workspace, workspaceKey]);
+  const collaborationReadOnly = nativeReadOnly || Boolean(collaborationRole && !["owner", "editor"].includes(collaborationRole));
   const activeContent = project.files[project.active] ?? "";
   const second = project.open.find((path) => path !== project.active);
   const testCandidates = useMemo(
@@ -921,8 +926,8 @@ export function Workbench() {
     <div className="workbench">
       <header className="titlebar">
         <div className="brand">
-          <span className="mark">YX</span>
-          <strong>YNX Code</strong>
+          <img className="brand-logo" src="/brand/ynx-logo.png" alt="YNX" />
+          <strong>YNX Developer</strong>
           <span className="edition">TESTNET</span>
         </div>
         <nav>
@@ -959,6 +964,7 @@ export function Workbench() {
       <aside className="sidebar">
         {view === "files" && <FileExplorer files={project.files} folders={project.folders} active={project.active} onOpen={open} onCreate={create} onRename={rename} onDelete={remove} onImportFolder={importFolder} onImportProject={importProject} onExportProject={exportProject} />}{" "}
         {view === "outline" && <OutlinePanel projectId={project.id} runtimeId={selectedRuntime?.startsWith("ssh-") ? undefined : selectedRuntime} files={project.files} activePath={project.active} language={languageOf(project.active)} onNavigate={navigateToLocation} />}
+        {view === "native" && <NativeIDEPanel projectId={project.id} projectName={project.name} revision={project.remoteRevision} admitted={workspaceAdmitted && !packageBusy} onOwnershipChange={setNativeReadOnly} />}
         {view === "search" && (
           <section className="side-section">
             <header>

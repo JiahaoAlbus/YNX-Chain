@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import { detectSandbox, resolveExecutable as resolveCommand, sandboxLaunch } from "./sandbox.mjs";
+import { createGuestAdmission } from "./guest-admission.mjs";
 
 const PROTOCOL = "ynx-code/v1",
   COOKIE = "ynx_code_session",
@@ -15,6 +16,11 @@ const SAFE_PATH = /^[A-Za-z0-9_./ +@-]+$/;
 
 export function createWorkspaceRuntime(options = {}) {
   const sessionKey = Buffer.from(options.sessionKey || process.env.YNX_CODE_WORKSPACE_SESSION_KEY || randomBytes(32));
+  const guestAdmission = options.guestAdmission || createGuestAdmission({ filename: options.guestAdmissionFilename, now: options.now });
+  function readSession(request, key) {
+    const id = readSignedSession(request, key);
+    return id && guestAdmission.admit(id) ? id : null;
+  }
   const root = options.root || join(tmpdir(), "ynx-code-runtime");
   const workspaceStore = options.workspaceStore || null;
   const release = publicRelease(options.release ?? process.env.YNX_CODE_RELEASE);
@@ -28,6 +34,12 @@ export function createWorkspaceRuntime(options = {}) {
   const sandbox = detectSandbox(options);
   async function handler(request, response) {
     const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
+    if (url.pathname === "/runtime/codeoss" || url.pathname.startsWith("/runtime/codeoss/")) return false;
+    const signed = readSignedSession(request, sessionKey);
+    if (url.pathname.startsWith("/runtime/") && signed && !guestAdmission.admit(signed)) {
+      json(response, 401, { error: "Guest workspace admission expired or was revoked. Saved files are retained.", code: "workspace_session_expired" });
+      return true;
+    }
     if (url.pathname === "/runtime/tasks/active" && request.method === "GET") {
       const session = readSession(request, sessionKey);
       if (!session) {
@@ -79,7 +91,13 @@ export function createWorkspaceRuntime(options = {}) {
       return true;
     }
     if (url.pathname === "/runtime/health" && request.method === "GET") {
+      const signed = readSignedSession(request, sessionKey);
+      if (signed && !guestAdmission.admit(signed)) {
+        json(response, 401, { error: "Guest workspace admission expired or was revoked. Saved files are retained; reconnect through the current identity flow.", code: "workspace_session_expired" });
+        return true;
+      }
       const session = readSession(request, sessionKey) || newSession();
+      guestAdmission.admit(session);
       json(
         response,
         200,
@@ -200,7 +218,7 @@ export function createWorkspaceRuntime(options = {}) {
           else
             json(response, 200, {
               protocolVersion: PROTOCOL,
-              workspace: value,
+              workspace: { ...value, storageMode: workspaceStore.storageMode?.(owner, projectId) || "text-snapshot" },
             });
           return true;
         }
@@ -416,6 +434,8 @@ export function createWorkspaceRuntime(options = {}) {
   }
   return {
     handler,
+    closeAdmission: () => guestAdmission.close(),
+    revokeGuestAdmission(request) { const id = readSignedSession(request, sessionKey); if (id) guestAdmission.revoke(id); },
     cancelAll,
     runTaskForOwner,
     ownerForRequest(request) {
@@ -467,7 +487,7 @@ function cookie(value, key, request) {
       .trim() === "https";
   return `${COOKIE}=${value}.${signature(value, key)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=14400${secure ? "; Secure" : ""}`;
 }
-function readSession(request, key) {
+function readSignedSession(request, key) {
   const header = String(request.headers.cookie || "");
   const value = header
     .split(";")

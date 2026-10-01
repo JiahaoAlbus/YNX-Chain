@@ -3,11 +3,41 @@ import { DatabaseSync } from "node:sqlite";
 
 const REVISION_RETENTION = 50;
 
-export function createWorkspaceStore({ filename }) {
+export function createWorkspaceStore({ filename, guardWrite = () => {} }) {
   const db = new DatabaseSync(filename);
   db.exec(
     "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS workspaces(owner_id TEXT NOT NULL,project_id TEXT NOT NULL,revision INTEGER NOT NULL,payload TEXT NOT NULL,updated_at TEXT NOT NULL,PRIMARY KEY(owner_id,project_id)); CREATE TABLE IF NOT EXISTS workspace_mutations(owner_id TEXT NOT NULL,project_id TEXT NOT NULL,idempotency_key TEXT NOT NULL,request_hash TEXT NOT NULL,revision INTEGER NOT NULL,PRIMARY KEY(owner_id,project_id,idempotency_key)); CREATE TABLE IF NOT EXISTS workspace_revisions(owner_id TEXT NOT NULL,project_id TEXT NOT NULL,revision INTEGER NOT NULL,payload TEXT NOT NULL,digest TEXT NOT NULL,source TEXT NOT NULL,restored_from INTEGER,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,project_id,revision)); CREATE INDEX IF NOT EXISTS workspace_revision_history ON workspace_revisions(owner_id,project_id,revision DESC); CREATE TABLE IF NOT EXISTS workspace_approvals(owner_id TEXT NOT NULL,approval_id TEXT NOT NULL,action TEXT NOT NULL,project_id TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,approval_id));",
   );
+  db.exec("CREATE TABLE IF NOT EXISTS workspace_writers(owner_id TEXT NOT NULL,project_id TEXT NOT NULL,writer_token TEXT NOT NULL,session_id TEXT NOT NULL,PRIMARY KEY(owner_id,project_id));");
+  db.exec("CREATE TABLE IF NOT EXISTS workspace_native_projects(owner_id TEXT NOT NULL,project_id TEXT NOT NULL,PRIMARY KEY(owner_id,project_id));");
+  function assertWritable(owner, project, writerToken) {
+    const lease = db.prepare("SELECT writer_token FROM workspace_writers WHERE owner_id=? AND project_id=?").get(owner, project);
+    if (lease && lease.writer_token !== writerToken) throw fault("The native IDE owns this project's files. Stop and synchronize it first.", "core_writer_active", 409);
+    if (!writerToken && db.prepare("SELECT 1 FROM workspace_native_projects WHERE owner_id=? AND project_id=?").get(owner, project))
+      throw fault("This project's primary files live in the native IDE. Its original text import is retained and read only.", "core_native_project", 409);
+    guardWrite(owner, project, writerToken);
+  }
+  function claimWriter(owner, project, { writerToken, sessionId, expectedRevision }) {
+    validateId(owner, "owner"); validateId(project, "project"); validateRevision(expectedRevision);
+    if (!/^[a-f0-9]{64}$/.test(writerToken || "") || !/^[a-f0-9-]{36}$/.test(sessionId || "")) throw fault("Invalid writer admission.", "writer_identity_invalid", 400);
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const currentWriter = db.prepare("SELECT 1 FROM workspace_writers WHERE owner_id=? AND project_id=?").get(owner, project);
+      if (currentWriter) throw fault("This project already has a protected writer.", "core_writer_active", 409);
+      if (Number(read.get(owner, project)?.revision || 0) !== expectedRevision) throw fault("Project changed before writer admission.", "revision_conflict", 409);
+      db.prepare("INSERT INTO workspace_writers VALUES(?,?,?,?)").run(owner, project, writerToken, sessionId);
+      db.exec("COMMIT");
+    } catch (error) { rollback(); throw error; }
+  }
+  function releaseWriter(owner, project, writerToken) {
+    const result = db.prepare("DELETE FROM workspace_writers WHERE owner_id=? AND project_id=? AND writer_token=?").run(owner, project, writerToken);
+    return Number(result.changes) === 1;
+  }
+  function markNativeProject(owner, project, writerToken) {
+    const lease = db.prepare("SELECT writer_token FROM workspace_writers WHERE owner_id=? AND project_id=?").get(owner, project);
+    if (!lease || lease.writer_token !== writerToken) throw fault("Native project import requires its exact writer.", "writer_identity_invalid", 409);
+    db.prepare("INSERT OR IGNORE INTO workspace_native_projects VALUES(?,?)").run(owner, project);
+  }
   const read = db.prepare(
       "SELECT revision,payload,updated_at FROM workspaces WHERE owner_id=? AND project_id=?",
     ),
@@ -73,7 +103,7 @@ export function createWorkspaceStore({ filename }) {
       : null;
   }
 
-  function put(ownerId, projectId, { expectedRevision, idempotencyKey, payload }) {
+  function put(ownerId, projectId, { expectedRevision, idempotencyKey, payload, writerToken }) {
     validateId(ownerId, "owner");
     validateId(projectId, "project");
     validateRevision(expectedRevision);
@@ -83,6 +113,7 @@ export function createWorkspaceStore({ filename }) {
       requestHash = sha(`${expectedRevision}:${serialized}`);
     db.exec("BEGIN IMMEDIATE");
     try {
+      assertWritable(ownerId, projectId, writerToken);
       const replay = replayedMutation(
         ownerId,
         projectId,
@@ -139,6 +170,7 @@ export function createWorkspaceStore({ filename }) {
     const requestHash = sha(`${expectedRevision}:restore:${sourceRevision}`);
     db.exec("BEGIN IMMEDIATE");
     try {
+      assertWritable(ownerId, projectId);
       const replay = replayedMutation(
         ownerId,
         projectId,
@@ -333,7 +365,16 @@ export function createWorkspaceStore({ filename }) {
 
   return {
     get,
+    listProjects: owner => {
+      validateId(owner, "owner");
+      return db.prepare("SELECT project_id,revision,payload FROM workspaces WHERE owner_id=? ORDER BY updated_at DESC").all(owner).map(row => ({ projectId: row.project_id, revision: row.revision, name: JSON.parse(row.payload).name }));
+    },
     put,
+    assertWritable,
+    claimWriter,
+    releaseWriter,
+    markNativeProject,
+    storageMode: (owner, project) => db.prepare("SELECT 1 FROM workspace_native_projects WHERE owner_id=? AND project_id=?").get(owner, project) ? "native-volume" : "text-snapshot",
     restore,
     history,
     snapshot,

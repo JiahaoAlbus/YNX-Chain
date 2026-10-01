@@ -139,6 +139,7 @@ export function createTerminalService(options) {
     }
     const snapshot = workspaceStore.get(owner, projectId);
     if (!snapshot) throw fault("Workspace was not found.", "workspace_not_found");
+    workspaceStore.assertWritable?.(owner, projectId);
     const sessionId = randomUUID(),
       sessionRoot = await mkdtemp(join(await ensureRoot(root), "terminal-")),
       workspace = await realpath(sessionRoot);
@@ -162,6 +163,7 @@ export function createTerminalService(options) {
       const shell = remote ? null : await resolveExecutable(process.platform === "darwin" ? ["zsh", "bash", "sh"] : ["bash", "sh"]);
       if (!remote && !shell) throw fault("No approved shell is installed.", "shell_unavailable");
       await ensurePtyHelper();
+      workspaceStore.assertWritable?.(owner, projectId);
       const launch =
           remote?.launch ||
           sandboxLaunch({
@@ -409,6 +411,11 @@ export function createTerminalService(options) {
     handler,
     handleUpgrade,
     close,
+    assertProjectQuiescent(owner, projectId) {
+      if ([...sessions.values()].some(state => state.owner === owner && state.projectId === projectId && !state.released))
+        throw Object.assign(new Error("Stop and synchronize this project's terminal before launching the native IDE."), { code: "core_project_busy", status: 409 });
+      containerTerminalBroker?.assertProjectQuiescent?.(owner, projectId);
+    },
     status: () => ({
       active: [...sessions.values()].filter(state => !state.closed).length,
       recoveryRequired: [...sessions.values()].filter(state => state.closed).length,
