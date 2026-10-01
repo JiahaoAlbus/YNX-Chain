@@ -24,6 +24,7 @@ let accountManager=null;
 let vault = null, session = null, currentReview = null, activeRequest = null, busy = false, needsBackupAcknowledgement = false, backupDownloaded = false;
 let locale = (() => { try { return normalizeHostedLocale(localStorage.getItem(HOSTED_LOCALE_KEY) || navigator.language); } catch { return normalizeHostedLocale(navigator.language); } })();
 let lastStatus = { key: "opening", variables: {}, code: null }, transactionRecord = null, transactionError = null, transactionBusy = false, transactionAccount = null;
+let transactionReadRevision = 0;
 const seen = new Set();
 const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 function fail(code) { throw Object.assign(new Error(code), { code }); }
@@ -104,6 +105,10 @@ function renderManagerLock(){
 }
 function lockManager(){if(!accountManager)return;if(activeRequest?.[OWN_REQUEST])cancelActiveRequest();accountManager.lock();for(const id of ["account-unlock-password","setup-password","setup-confirm","setup-key","backup-import-password","add-account-password"])$(id).value="";renderManagerLock();messageKey(vault?"managerLocked":"managerEmpty");}
 function displayAccount() {
+  if (transactionAccount !== (vault?.account ?? null)) {
+    transactionReadRevision++;transactionAccount=vault?.account??null;transactionRecord=null;transactionError=null;transactionBusy=false;
+    $("transaction-panel").hidden=true;$("transaction-status").textContent="";$("transaction-status").dataset.errorCode="";
+  }
   $("account-card").hidden = !vault;
   renderManagerLock();if($("web-wallet-dashboard")){void refreshOwnWallet();}
   if (vault) { $("account-ynx").textContent = toYNXAddress(vault.account); $("account-evm").textContent = vault.account; }
@@ -137,9 +142,9 @@ async function refreshOwnWallet(){
 }
 async function refreshTransactionStatus(refresh = false) {
   if (!vault) return;
-  const current = vault;
+  const current = vault, revision = ++transactionReadRevision;
   if (transactionAccount !== current.account) { transactionAccount = current.account; transactionRecord = null; transactionError = null; transactionBusy = false; }
-  const isCurrent = () => current === vault;
+  const isCurrent = () => current === vault && revision === transactionReadRevision;
   try {
     const readStatus = () => broadcastJournal.status(current.account, { rpc: forwardExtensionRpc, refresh });
     const record = refresh ? await withHostedAccountLock(current.account, async () => { await assertSelectedAccount(); if (!isCurrent()) fail("HOSTED_ACCOUNT_CHANGED"); return readStatus(); }) : await readStatus();
@@ -420,7 +425,7 @@ $("account-lock").addEventListener("click",lockManager);
 window.addEventListener("pagehide",lockManager);
 window.addEventListener("hashchange",()=>{if(accountManager){lockManager();location.reload();}});
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")lockManager();});
-window.addEventListener("focus",()=>{if(accountManager&&vault)void store.read().then(current=>{if(JSON.stringify(current)!==JSON.stringify(vault)){accountManager.lock();vault=current;displayAccount();void refreshAccountList();messageKey(vault?"managerLocked":"managerEmpty");}}).catch(()=>{lockManager();messageKey("storageUnreadable");});});
+window.addEventListener("focus",()=>{if(accountManager&&vault)void store.read().then(current=>{if(JSON.stringify(current)!==JSON.stringify(vault)){cancelActiveRequest();accountManager.lock();vault=current;displayAccount();void refreshAccountList();void refreshTransactionStatus();messageKey(vault?"managerLocked":"managerEmpty");}}).catch(()=>{lockManager();messageKey("storageUnreadable");});});
 
 if($("web-wallet-dashboard")){
   document.body.dataset.walletView="assets";
