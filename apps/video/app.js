@@ -263,13 +263,21 @@ async function signOutVideoAccount() {
 
 let videoSignInIntent = 0;
 let videoSignInAbort, videoTransportCancel, videoPairConnection;
+let nativePreparation = false, nativeExpiryTimer;
 const productChooser = $("#product-wallet-chooser");
 function clearProductPair() {
  $("#product-pair-panel").hidden = true;
  $("#product-pair-open").hidden = true;
  $("#product-pair-open").removeAttribute("href");
 }
+function clearNativeStep() {
+ clearTimeout(nativeExpiryTimer);
+ $("#product-native-open").hidden = true;
+ $("#product-native-open").removeAttribute('href');
+ $("#product-native-open").onclick = null;
+}
 function cancelVideoSignIn() {
+ clearNativeStep();
  videoSignInIntent++;
  videoSignInAbort?.abort();
  const release = videoTransportCancel; videoTransportCancel = null;
@@ -288,7 +296,7 @@ function productWalletFailure(error) {
  if (code.includes('TIMEOUT') || code.includes('EXPIRED')) return 'This request expired. Choose another wallet to start a fresh request.';
  if (code === 'HOSTED_POPUP_BLOCKED') return 'Allow the Wallet popup for this site, then choose Web Wallet again.';
  if (code === 'HOSTED_POPUP_CLOSED') return 'The Wallet window was closed. Choose Web Wallet again to continue.';
- return error.message || 'Sign-in could not complete. Choose another wallet or retry.';
+ return 'Sign-in could not complete. Choose another wallet or try again. No new account access has been confirmed.';
 }
 async function prepareVideoSignIn() {
  videoSignInAbort?.abort();
@@ -296,7 +304,7 @@ async function prepareVideoSignIn() {
  if (productConnected()) {await signOutVideoAccount(); if (productSignOutPending) return;}
  productRevision++;
  const intent = ++videoSignInIntent, choices = $("#product-wallet-choices");
- choices.replaceChildren(); choices.hidden = false; clearProductPair();
+ choices.replaceChildren(); choices.hidden = false; clearProductPair(); clearNativeStep();
  $("#product-wallet-back").hidden = true;
  $("#product-wallet-status").textContent = 'Finding YNX Wallet…';
  if (!productChooser.open) productChooser.showModal();
@@ -307,6 +315,7 @@ async function prepareVideoSignIn() {
  };
  const select = async (label, connect, release) => {
   if (!current()) return;
+  if (nativePreparation) {$("#product-wallet-status").textContent = 'The previous request is still closing. Please wait, then choose your Wallet again.'; return;}
   choices.hidden = true; $("#product-wallet-back").hidden = false; clearProductPair();
   $("#product-wallet-status").textContent = label + ': connect your Wallet, then review the Video request.';
   const abort = new AbortController(); videoSignInAbort = abort; videoTransportCancel = release;
@@ -362,36 +371,47 @@ async function prepareVideoSignIn() {
     });
    }});}, () => pair?.cancel());
   });
-  choose('Open native YNX Wallet', () => {if (!current()) return; cancelVideoSignIn(); void prepareNativeVideoSignIn();});
+  choose('YNX Wallet installed app', () => {if (!current()) return; return prepareNativeVideoSignIn(intent);});
  } catch (error) {if (intent === videoSignInIntent) $("#product-wallet-status").textContent = productWalletFailure(error);}
 }
 
-async function prepareNativeVideoSignIn() {
-  if (productSignOutPending) return;
-  const button = $("#product-connect");
-  button.disabled = true;
-  $("#product-launch").hidden = true;
-  if (productConnected()) {
-    await signOutVideoAccount();
-    if (productSignOutPending) return;
-  }
-  const revision = ++productRevision;
-  try {
-    const request = await videoProductSession.prepare();
-    if (revision !== productRevision || productSignOutPending) return;
-    renderProductState({status: "connecting", message: "Your request is ready. Select Open YNX Wallet, approve the Video request there, and return here. If Wallet does not open, use Get YNX Wallet or continue watching as a guest."});
-    const requestRevision = productRevision;
-    $("#product-launch").href = request.url;
-    $("#product-launch").hidden = false;
-    $("#product-launch").focus();
-    clearTimeout(productExpiryTimer);
-    productExpiryTimer = setTimeout(() => {
-      if (requestRevision !== productRevision) return;
-      $("#product-launch").hidden = true;
-      $("#product-status").textContent = "This sign-in request expired. Select Sign in with YNX Wallet to start again.";
-    }, Math.max(0, Date.parse(request.expiresAt) - Date.now()));
-  } catch (error) {if (revision === productRevision) {if (error.productSessionState?.revocationPending) renderProductState(error.productSessionState); else $("#product-status").textContent = error.message || "Sign-in could not start. Please retry.";}}
-  finally {button.disabled = productSignOutPending;}
+async function prepareNativeVideoSignIn(intent) {
+ if (productSignOutPending || intent !== videoSignInIntent) return;
+ if (nativePreparation) {$("#product-wallet-status").textContent = 'The previous request is still closing. Please wait and try again.'; return;}
+ nativePreparation = true;
+ $("#product-wallet-choices").hidden = true; $("#product-wallet-back").hidden = false;
+ clearNativeStep();
+ $("#product-wallet-status").textContent = 'Preparing a secure Video request. Next, select Open YNX Wallet to open the installed app.';
+ const current = () => intent === videoSignInIntent && !productSignOutPending;
+ const revokeNative = async () => {
+  renderProductState({status:'retry-required',revocationPending:true,message:'Cancelling sign-in securely. Confirmation is pending.'});
+  try {const state = await videoProductSession.disconnect();renderProductState({...state,revocationPending:!['disconnected','expired'].includes(state.status)});}
+  catch {renderProductState({status:'retry-required',revocationPending:true,message:'Sign-out could not be confirmed. Retry sign out when connected.'});}
+ };
+ try {
+  const request = await videoProductSession.prepare();
+  if (!current()) {await revokeNative(); return;}
+  videoTransportCancel = revokeNative;
+  if (!Number.isFinite(Date.parse(request.expiresAt)) || Date.parse(request.expiresAt) <= Date.now() || !request.url.startsWith('ynxwallet://')) throw Object.assign(new Error('Native request unavailable'),{code:'PRODUCT_REQUEST_EXPIRED'});
+  const launch = $("#product-native-open"); let launched = false;
+  launch.href = request.url; launch.hidden = false; launch.removeAttribute('aria-disabled');
+  $("#product-wallet-status").textContent = 'Your request is ready. Select Open YNX Wallet below, approve Video in the app, and return here. If it does not open, install YNX Wallet or choose another way.';
+  launch.onclick = event => {
+   if (!current() || launch.hidden || launch.href !== request.url || Date.parse(request.expiresAt) <= Date.now() || launched) {
+    event.preventDefault(); clearNativeStep();
+    if (current()) $("#product-wallet-status").textContent = 'This open attempt is no longer available. Choose another wallet to start a fresh request.';
+    return;
+   }
+   // The actual anchor click owns browser activation; preparation never navigates.
+   launched = true; launch.setAttribute('aria-disabled','true');
+   $("#product-wallet-status").textContent = 'Opening YNX Wallet was requested. Approve the request in the app and return here. If the browser blocked it or Wallet is not installed, choose another wallet or use the download link.';
+  };
+  launch.focus();
+  nativeExpiryTimer = setTimeout(() => {if (current()) {clearNativeStep();$("#product-wallet-status").textContent = 'This sign-in request expired. Choose another wallet to start again.';}},Math.max(0,Date.parse(request.expiresAt)-Date.now()));
+ } catch(error) {
+  if (current() && error.productSessionState?.revocationPending) renderProductState(error.productSessionState);
+  else if (current()) $("#product-wallet-status").textContent = productWalletFailure(error);
+ } finally {nativePreparation = false;}
 }
 
 async function refreshLibraryView() {

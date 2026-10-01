@@ -33,16 +33,16 @@ for(const [name,dispatch] of [['Video',video],['Creator',creator]]){
 
 import {readFile} from 'node:fs/promises';
 const videoSource=await readFile(new URL('./app.js',import.meta.url),'utf8');
-const controllerSource=videoSource.slice(videoSource.indexOf('let videoSignInIntent = 0;'),videoSource.indexOf('async function prepareNativeVideoSignIn()'));
+const controllerSource=videoSource.slice(videoSource.indexOf('let videoSignInIntent = 0;'),videoSource.indexOf('async function refreshLibraryView()'));
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 class Element {
  constructor(){this.children=[];this.listeners=new Map();this.hidden=false;this.disabled=false;this.open=false;}
- replaceChildren(){this.children=[];} append(item){this.children.push(item);} addEventListener(event,handler){this.listeners.set(event,handler);} close(){this.open=false;} showModal(){this.open=true;} removeAttribute(name){delete this[name];}
+ replaceChildren(){this.children=[];} append(item){this.children.push(item);} addEventListener(event,handler){this.listeners.set(event,handler);} close(){this.open=false;} showModal(){this.open=true;} removeAttribute(name){delete this[name];} setAttribute(name,value){this[name]=value;} focus(){this.focused=true;}
 }
 async function videoUI(provider,finish,overrides={}){
  const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
  const calls=[];
- const dependencies={$,document:{createElement:()=>new Element()},window:{},location:{origin:"https://video.ynxweb4.com"},discoverWalletCandidates:async()=>[{isYNXWallet:true,provider,label:'YNX Wallet'},{isMetaMask:true,provider:{request(){throw Error('MetaMask cannot approve private Video')}}}],dispatchPreparedProductRequest:video,videoProductSession:{prepare:async()=>({url:'video-fixture'}),finishReturn:finish},productConnected:()=>false, signOutVideoAccount:async()=>{},renderProductState:state=>calls.push(state),refreshLibraryView:async()=>calls.push('owned-library'),prepareNativeVideoSignIn:async()=>calls.push('native'),...overrides};
+ const dependencies={$,document:{createElement:()=>new Element()},window:{},location:{origin:"https://video.ynxweb4.com"},discoverWalletCandidates:async()=>[{isYNXWallet:true,provider,label:'YNX Wallet'},{isMetaMask:true,provider:{request(){throw Error('MetaMask cannot approve private Video')}}}],dispatchPreparedProductRequest:video,videoProductSession:{prepare:async()=>({url:'video-fixture'}),finishReturn:finish},productConnected:()=>false, signOutVideoAccount:async()=>{},renderProductState:state=>calls.push(state),refreshLibraryView:async()=>calls.push('owned-library'),...overrides};
  const controller=await new AsyncFunction(...Object.keys(dependencies),'let productSignOutPending=false,productRevision=0;'+controllerSource+'return {prepareVideoSignIn,cancelVideoSignIn};')(...Object.values(dependencies));
  return {...controller,$,calls};
 }
@@ -98,4 +98,25 @@ test('Video Mobile approved Pair still needs explicit V2 product approval; expir
 
 test('Video without an injected extension still offers Web, phone and native choices',async()=>{
  const c=await videoUI({},async()=>({status:'connected'}),{discoverWalletCandidates:async()=>{throw Object.assign(new Error('No provider'),{code:'WALLET_NOT_INSTALLED'});}});await c.prepareVideoSignIn();assert.equal(c.$('#product-wallet-choices').children.length,4);assert.equal(c.$('#product-wallet-choices').children[0].disabled,true);assert.equal(c.$('#product-wallet-choices').children[1].textContent,'YNX Web Wallet');assert.equal(c.$('#product-wallet-choices').children[2].textContent,'YNX Wallet on my phone');
+});
+
+test('Video native step keeps the real launch in the dialog, one click only, cancel and expiry block it',async()=>{
+ let timer;const url='ynxwallet://product-session/v2?request=qa';
+ const c=await videoUI({},async()=>{}, {setTimeout:fn=>{timer=fn;return 1;},clearTimeout(){},videoProductSession:{prepare:async()=>({url,expiresAt:new Date(Date.now()+60000).toISOString()}),disconnect:async()=>({status:'disconnected'})}});
+ await c.prepareVideoSignIn();await c.$('#product-wallet-choices').children.at(-1).onclick();
+ const link=c.$('#product-native-open');assert.equal(c.$('#product-wallet-chooser').open,true);assert.equal(c.$('#product-wallet-choices').hidden,true);assert.equal(link.href,url);assert.equal(link.focused,true);
+ const click=link.onclick;let prevented=0;click({preventDefault(){prevented++;}});assert.equal(prevented,0);click({preventDefault(){prevented++;}});assert.equal(prevented,1);
+ await c.cancelVideoSignIn();click({preventDefault(){prevented++;}});assert.equal(prevented,2);assert.equal(link.href,undefined);
+ await new Promise(resolve=>setImmediate(resolve));
+ await c.prepareVideoSignIn();await c.$('#product-wallet-choices').children.at(-1).onclick();const expiredClick=link.onclick;timer();assert.equal(link.hidden,true);assert.match(c.$('#product-wallet-status').textContent,/expired/);
+ // Expiry removes the actual navigable href. A retained handler cannot activate an absent link.
+ assert.equal(link.href,undefined);await c.cancelVideoSignIn();expiredClick({preventDefault(){prevented++;}});assert.equal(prevented,3);
+});
+test('Video cancelled native preparation revokes only its late pending request and never exposes a launch',async()=>{
+ let resolve,revoked=0;const pending=new Promise(yes=>{resolve=yes;});const c=await videoUI({},async()=>{}, {videoProductSession:{prepare:()=>pending,disconnect:async()=>{revoked++;return {status:'disconnected'};}}});
+ await c.prepareVideoSignIn();const prep=c.$('#product-wallet-choices').children.at(-1).onclick();await c.cancelVideoSignIn();resolve({url:'ynxwallet://product-session/v2?request=late',expiresAt:new Date(Date.now()+60000).toISOString()});await prep;
+ assert.equal(revoked,1);assert.equal(c.$('#product-native-open').href,undefined);assert.equal(c.$('#product-native-open').hidden,true);
+});
+test('Video unknown wallet failures do not expose internal exception text',async()=>{
+ const c=await videoUI({},async()=>{}, {discoverWalletCandidates:async()=>{throw Error('SECRET_INTERNAL_STAGE_99');}});await c.prepareVideoSignIn();assert.doesNotMatch(c.$('#product-wallet-status').textContent,/SECRET_INTERNAL_STAGE_99/);assert.match(c.$('#product-wallet-status').textContent,/try again/);
 });

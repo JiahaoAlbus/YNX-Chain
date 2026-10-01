@@ -88,12 +88,12 @@ test("sign out immediately clears every private view and form while revocation i
   controller.showAI({ id: "private-owner-a", context: "private context", state: "review_required" });
   controller.element("#channel-result").textContent = "private-owner-a";
   for (const form of controller.forms) form.elements.channel_id.value = "private-owner-a";
-  controller.element("#product-open").href = "test:old-pending-return";
+  controller.element("#product-native-open").href = "test:old-pending-return";
   const signingOut = controller.click("product-disconnect");
   assertCleared(controller, "private-owner-a");
   for (const form of controller.forms) assert.equal(form.elements.channel_id.value, "");
-  assert.equal(controller.element("#product-open").hidden, true);
-  assert.equal(controller.element("#product-open").href, undefined);
+  assert.equal(controller.element("#product-native-open").hidden, true);
+  assert.equal(controller.element("#product-native-open").href, undefined);
   revoke.resolve({ status: "disconnected" });
   await signingOut;
   assert.equal(controller.element("#status").textContent, "Creator account disconnected.");
@@ -232,18 +232,19 @@ test("failed revocation keeps private views empty and offers an explicit sign-ou
 
 test("prepared Wallet link becomes visible and focused after its exact URL is set", async () => {
   const prepared = deferred();
-  const controller = await app({ prepareProductSignIn: () => prepared.promise });
+  const controller = await app({ prepareProductSignIn: () => prepared.promise,setTimeout:()=>1,clearTimeout(){} });
   await turn();
   await controller.click("product-signin");
   const preparation = controller.element("#product-wallet-choices").children.at(-1).onclick();
-  assert.equal(controller.element("#product-open").hidden, true);
-  assert.equal(controller.element("#product-open").href, undefined);
-  prepared.resolve({ url: "ynxwallet://product-session/v2?request=test-fixture" });
+  assert.equal(controller.element("#product-native-open").hidden, true);
+  assert.equal(controller.element("#product-native-open").href, undefined);
+  prepared.resolve({ url: "ynxwallet://product-session/v2?request=test-fixture", expiresAt:new Date(Date.now()+60000).toISOString() });
   await preparation;
-  assert.equal(controller.element("#product-open").href, "ynxwallet://product-session/v2?request=test-fixture");
-  assert.equal(controller.element("#product-open").hidden, false);
-  assert.equal(controller.element("#product-open").focused, true);
-  assert.equal(controller.element("#product-signin").disabled, false);
+  assert.equal(controller.element("#product-native-open").href, "ynxwallet://product-session/v2?request=test-fixture");
+  assert.equal(controller.element("#product-native-open").hidden, false);
+  assert.equal(controller.element("#product-native-open").focused, true);
+  assert.equal(controller.element("#product-wallet-chooser").open, true);
+  await controller.run("product-wallet-cancel");
 });
 
 test('a stored pending logout stays explicit after page restore and blocks new Creator approval', async () => {
@@ -314,4 +315,18 @@ test('Creator Web Wallet opens from the user click and uses only the product V2 
 test('Creator Mobile shows a QR and returns through product verification, not standard account discovery',async()=>{
  let requested=0,qr=0;class Pair{constructor(input){assert.equal(input.origin,'https://creator.ynxweb4.com');assert.deepEqual(input.methods,['ynx_requestProductSessionV2']);}async connect(input){input.onURI('wc:qa-fixture');return {request:async()=>{requested++;return {version:2,returnUrl:'callback'};}};}cancel(){}}
  const c=await app({WalletConnectDAppConnection:Pair,QRCode:{toCanvas:async()=>{qr++;}},fetch:async()=>response(privateSnapshot('owned'))});await turn();await c.click('product-signin');await c.element('#product-wallet-choices').children[2].onclick();assert.equal(qr,1);assert.equal(requested,1);assert.equal(c.readState().creatorAccount,'fixture-account');assert.equal(c.element('#product-pair-panel').hidden,true);
+});
+
+test('Creator native launch stays in its own step and blocks duplicate, cancelled and expired clicks',async()=>{
+ let timer;const url='ynxwallet://product-session/v2?request=qa';const c=await app({setTimeout:fn=>{timer=fn;return 1;},clearTimeout(){},prepareProductSignIn:async()=>({url,expiresAt:new Date(Date.now()+60000).toISOString()})});await turn();
+ await c.click('product-signin');await c.element('#product-wallet-choices').children.at(-1).onclick();const link=c.element('#product-native-open');assert.equal(c.element('#product-wallet-chooser').open,true);assert.equal(c.element('#product-wallet-choices').hidden,true);assert.equal(link.href,url);
+ const click=link.onclick;let prevented=0;click({preventDefault(){prevented++;}});assert.equal(prevented,0);click({preventDefault(){prevented++;}});assert.equal(prevented,1);await c.run('product-wallet-cancel');await turn();click({preventDefault(){prevented++;}});assert.equal(prevented,2);assert.equal(link.href,undefined);
+ await c.click('product-signin');await c.element('#product-wallet-choices').children.at(-1).onclick();timer();assert.equal(link.href,undefined);assert.match(c.element('#product-wallet-status').textContent,/expired/);await c.run('product-wallet-cancel');
+});
+test('Creator cancelled preparation never opens a late native request and preserves revoke failure',async()=>{
+ const pending=deferred();let revoked=0;const c=await app({prepareProductSignIn:()=>pending.promise,disconnectProductSession:async()=>{revoked++;throw Error('offline');}});await turn();await c.click('product-signin');const prep=c.element('#product-wallet-choices').children.at(-1).onclick();await c.run('product-wallet-cancel');pending.resolve({url:'ynxwallet://product-session/v2?request=late',expiresAt:new Date(Date.now()+60000).toISOString()});await prep;
+ assert.equal(revoked,1);assert.equal(c.element('#product-native-open').href,undefined);assert.equal(c.element('#product-signin').disabled,true);assert.match(c.element('#product-status').textContent,/pending|confirmed/i);
+});
+test('Creator unknown wallet errors show a next step without raw diagnostics',async()=>{
+ let discoveries=0;const c=await app({discoverWalletProviders:async()=>{if(++discoveries===1)return {candidates:[]};throw Error('SECRET_INTERNAL_STAGE_99');}});await turn();await c.click('product-signin');assert.doesNotMatch(c.element('#product-wallet-status').textContent,/SECRET_INTERNAL_STAGE_99/);assert.match(c.element('#product-wallet-status').textContent,/try again/);
 });

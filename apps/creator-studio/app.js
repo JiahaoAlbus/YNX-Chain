@@ -295,13 +295,21 @@ function renderProductState(state){
 }
 let creatorSignInIntent = 0;
 let creatorSignInAbort, creatorTransportCancel, creatorPairConnection;
+let nativePreparation = false, nativeExpiryTimer;
 const productChooser = $("#product-wallet-chooser");
 function clearProductPair() {
  $("#product-pair-panel").hidden = true;
  $("#product-pair-open").hidden = true;
  $("#product-pair-open").removeAttribute("href");
 }
+function clearNativeStep() {
+ clearTimeout(nativeExpiryTimer);
+ $("#product-native-open").hidden = true;
+ $("#product-native-open").removeAttribute('href');
+ $("#product-native-open").onclick = null;
+}
 function cancelCreatorSignIn() {
+ clearNativeStep();
  creatorSignInIntent++;
  creatorSignInAbort?.abort();
  const release = creatorTransportCancel; creatorTransportCancel = null;
@@ -320,7 +328,7 @@ function productWalletFailure(error) {
  if (code.includes('TIMEOUT') || code.includes('EXPIRED')) return 'This request expired. Choose another wallet to start a fresh request.';
  if (code === 'HOSTED_POPUP_BLOCKED') return 'Allow the Wallet popup for this site, then choose Web Wallet again.';
  if (code === 'HOSTED_POPUP_CLOSED') return 'The Wallet window was closed. Choose Web Wallet again to continue.';
- return error.message || 'Sign-in could not complete. Choose another wallet or retry.';
+ return 'Sign-in could not complete. Choose another wallet or try again. No new account access has been confirmed.';
 }
 async function openCreatorSignIn() {
  creatorSignInAbort?.abort();
@@ -328,7 +336,7 @@ async function openCreatorSignIn() {
  if (creatorAccount) {await signOutCreatorAccount(); if (creatorSignOutPending) return;}
  creatorSessionRevision++;
  const intent = ++creatorSignInIntent, choices = $("#product-wallet-choices");
- choices.replaceChildren(); choices.hidden = false; clearProductPair();
+ choices.replaceChildren(); choices.hidden = false; clearProductPair(); clearNativeStep();
  $("#product-wallet-back").hidden = true;
  $("#product-wallet-status").textContent = 'Finding YNX Wallet…';
  if (!productChooser.open) productChooser.showModal();
@@ -339,6 +347,7 @@ async function openCreatorSignIn() {
  };
  const select = async (label, connect, release) => {
   if (!current()) return;
+  if (nativePreparation) {$("#product-wallet-status").textContent = 'The previous request is still closing. Please wait, then choose your Wallet again.'; return;}
   choices.hidden = true; $("#product-wallet-back").hidden = false; clearProductPair();
   $("#product-wallet-status").textContent = label + ': connect your Wallet, then review the Creator Studio request.';
   const abort = new AbortController(); creatorSignInAbort = abort; creatorTransportCancel = release;
@@ -394,24 +403,50 @@ async function openCreatorSignIn() {
     });
    }});}, () => pair?.cancel());
   });
-  choose('Open native YNX Wallet', () => {if (!current()) return; cancelCreatorSignIn(); void prepareNativeCreatorSignIn();});
+  choose('YNX Wallet installed app', () => {if (!current()) return; return prepareNativeCreatorSignIn(intent);});
  } catch (error) {if (intent === creatorSignInIntent) $("#product-wallet-status").textContent = productWalletFailure(error);}
 }
 
 productConnect.addEventListener('click',openCreatorSignIn);
-async function prepareNativeCreatorSignIn(){
-  if(creatorSignOutPending)return;
-  if(!atRegisteredOrigin()){location.assign("https://creator.ynxweb4.com/");return;}
-  productConnect.disabled=true;
-  clearCreatorSession();
-  productDisconnect.hidden=true;
-  productStatus.textContent="Preparing Creator sign-in…";
-  productConnect.textContent="Sign in with YNX Wallet";
-  const revision=creatorSessionRevision;
-  try{const prepared=await prepareProductSignIn();if(revision!==creatorSessionRevision)return;productOpen.href=prepared.url;productOpen.hidden=false;productStatus.textContent="Open YNX Wallet and review this Creator sign-in. If it is not installed, use the Wallet download link.";productOpen.focus();}
-  catch(error){if(revision===creatorSessionRevision){if(error.productSessionState?.revocationPending)renderProductState(error.productSessionState);else productStatus.textContent=error.message;}}
-  finally{productConnect.disabled=creatorSignOutPending;}
+async function prepareNativeCreatorSignIn(intent) {
+ if (creatorSignOutPending || intent !== creatorSignInIntent) return;
+ if (nativePreparation) {$("#product-wallet-status").textContent = 'The previous request is still closing. Please wait and try again.'; return;}
+ nativePreparation = true;
+ $("#product-wallet-choices").hidden = true; $("#product-wallet-back").hidden = false;
+ clearNativeStep();
+ $("#product-wallet-status").textContent = 'Preparing a secure Creator Studio request. Next, select Open YNX Wallet to open the installed app.';
+ const current = () => intent === creatorSignInIntent && !creatorSignOutPending;
+ const revokeNative = async () => {
+  renderProductState({status:'retry-required',revocationPending:true,message:'Cancelling sign-in securely. Confirmation is pending.'});
+  try {const state = await disconnectProductSession();renderProductState({...state,revocationPending:!['disconnected','expired'].includes(state.status)});}
+  catch {renderProductState({status:'retry-required',revocationPending:true,message:'Sign-out could not be confirmed. Retry sign out when connected.'});}
+ };
+ try {
+  const request = await prepareProductSignIn();
+  if (!current()) {await revokeNative(); return;}
+  creatorTransportCancel = revokeNative;
+  if (!Number.isFinite(Date.parse(request.expiresAt)) || Date.parse(request.expiresAt) <= Date.now() || !request.url.startsWith('ynxwallet://')) throw Object.assign(new Error('Native request unavailable'),{code:'PRODUCT_REQUEST_EXPIRED'});
+  const launch = $("#product-native-open"); let launched = false;
+  launch.href = request.url; launch.hidden = false; launch.removeAttribute('aria-disabled');
+  $("#product-wallet-status").textContent = 'Your request is ready. Select Open YNX Wallet below, approve Creator Studio in the app, and return here. If it does not open, install YNX Wallet or choose another way.';
+  launch.onclick = event => {
+   if (!current() || launch.hidden || launch.href !== request.url || Date.parse(request.expiresAt) <= Date.now() || launched) {
+    event.preventDefault(); clearNativeStep();
+    if (current()) $("#product-wallet-status").textContent = 'This open attempt is no longer available. Choose another wallet to start a fresh request.';
+    return;
+   }
+   // The actual anchor click owns browser activation; preparation never navigates.
+   launched = true; launch.setAttribute('aria-disabled','true');
+   $("#product-wallet-status").textContent = 'Opening YNX Wallet was requested. Approve the request in the app and return here. If the browser blocked it or Wallet is not installed, choose another wallet or use the download link.';
+  };
+  launch.focus();
+  nativeExpiryTimer = setTimeout(() => {if (current()) {clearNativeStep();$("#product-wallet-status").textContent = 'This sign-in request expired. Choose another wallet to start again.';}},Math.max(0,Date.parse(request.expiresAt)-Date.now()));
+ } catch(error) {
+  if (current() && error.productSessionState?.revocationPending) renderProductState(error.productSessionState);
+  else if (current()) $("#product-wallet-status").textContent = productWalletFailure(error);
+ } finally {nativePreparation = false;}
 }
+
 productDisconnect.addEventListener("click",signOutCreatorAccount);
 async function signOutCreatorAccount(){
   cancelCreatorSignIn();
