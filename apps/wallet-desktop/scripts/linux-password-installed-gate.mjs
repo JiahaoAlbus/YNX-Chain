@@ -185,13 +185,68 @@ export async function fillNativeChooserByKeyboard({assertOwned,focus,assertFocus
  await assertOwned();await assertFocused();await key('Return');
  diagnostics.inputRoute='X11_OWNED_DIALOG_KEYBOARD';diagnostics.fullQAPathReplacementSent=true;
 }
+// xdotool may use XTEST even with --window when the target owns focus.
+// Send explicit X11 key events instead; never fall back to focus-routed input.
+export const targetedX11InputScript=String.raw`
+import ctypes as c,sys,time
+class Key(c.Structure):
+ _fields_=[('type',c.c_int),('serial',c.c_ulong),('send_event',c.c_int),('display',c.c_void_p),('window',c.c_ulong),('root',c.c_ulong),('subwindow',c.c_ulong),('time',c.c_ulong),('x',c.c_int),('y',c.c_int),('x_root',c.c_int),('y_root',c.c_int),('state',c.c_uint),('keycode',c.c_uint),('same_screen',c.c_int)]
+class Event(c.Union):
+ _fields_=[('type',c.c_int),('xkey',Key),('pad',c.c_long*24)]
+lib=c.CDLL('libX11.so.6')
+def bind(name,result,args):
+ fn=getattr(lib,name);fn.restype=result;fn.argtypes=args;return fn
+open_display=bind('XOpenDisplay',c.c_void_p,[c.c_char_p])
+close_display=bind('XCloseDisplay',c.c_int,[c.c_void_p])
+root_window=bind('XDefaultRootWindow',c.c_ulong,[c.c_void_p])
+get_focus=bind('XGetInputFocus',c.c_int,[c.c_void_p,c.POINTER(c.c_ulong),c.POINTER(c.c_int)])
+keysym=bind('XStringToKeysym',c.c_ulong,[c.c_char_p])
+keycode=bind('XKeysymToKeycode',c.c_ubyte,[c.c_void_p,c.c_ulong])
+key_symbol=bind('XKeycodeToKeysym',c.c_ulong,[c.c_void_p,c.c_ubyte,c.c_int])
+send=bind('XSendEvent',c.c_int,[c.c_void_p,c.c_ulong,c.c_int,c.c_long,c.POINTER(Event)])
+sync=bind('XSync',c.c_int,[c.c_void_p,c.c_int])
+display=None
+try:
+ target,command,value=sys.argv[1:4]
+ if not target.isdecimal() or int(target)<=0: raise RuntimeError()
+ target=int(target)
+ commands={'ctrl+l':('l',4),'ctrl+a':('a',4),'Return':('Return',0),'alt+s':('s',8)}
+ if command=='key':
+  if value not in commands: raise RuntimeError()
+  symbols=[commands[value]]
+ elif command=='type':
+  if not value.startswith('/') or any(ord(ch)<32 or ord(ch)>126 for ch in value): raise RuntimeError()
+  symbols=[(ch,0) for ch in value]
+ else: raise RuntimeError()
+ display=open_display(None)
+ if not display: raise RuntimeError()
+ root=root_window(display)
+ for name,modifier in symbols:
+  focused=c.c_ulong();revert=c.c_int();get_focus(display,c.byref(focused),c.byref(revert))
+  if focused.value!=target: raise RuntimeError()
+  symbol=ord(name) if len(name)==1 else keysym(name.encode('ascii'))
+  code=keycode(display,symbol)
+  if not code: raise RuntimeError()
+  level=next((level for level in (0,1) if key_symbol(display,code,level)==symbol),None)
+  if level is None: raise RuntimeError()
+  state=modifier|(1 if level==1 else 0)
+  for kind,mask in ((2,1),(3,2)):
+   event=Event();event.xkey=Key(type=kind,send_event=1,display=display,window=target,root=root,state=state,keycode=code,same_screen=1)
+   if not send(display,target,True,mask,c.byref(event)): raise RuntimeError()
+  sync(display,False)
+  if command=='type': time.sleep(.02)
+except Exception:
+ sys.exit(2)
+finally:
+ if display: close_display(display)
+`;
 export function ownedWindowKeyboard({window,run,assertOwned,assertFocused}){
  assert.match(window,/^[1-9][0-9]*$/,'NATIVE_DIALOG_TARGET_INVALID');
  const send=async(command,value)=>{
   await assertOwned();await assertFocused();
-  // Explicit XID uses XSendEvent, never focus-routed XTEST. If GTK ignores it,
-  // the existing strict selected-path/file/result assertions fail; no global retry.
-  run(command,'--window',window,'--clearmodifiers',...(command==='type'?['--delay','20']:[]),value);
+  // The helper sends XSendEvent to this XID, without XTEST or global modifiers.
+  // Unsupported/ignored input fails the existing result checks; no global retry.
+  run(window,command,value);
   // Return/Save can normally close the dialog. The strict product result and
   // selected-path/file checks validate completion instead of refocusing it.
   if(command==='type'||!['Return','alt+s'].includes(value)){await assertOwned();await assertFocused()}
@@ -288,7 +343,7 @@ async function nativeSave(account){
   report.nativeSaveDiagnostics.ownedWindowVerified=true;
  };
  const assertFocused=async()=>{assert.equal(x11('getwindowfocus'),window,'NATIVE_DIALOG_FOCUS_CHANGED')};
- const targeted=ownedWindowKeyboard({window,run:x11,assertOwned,assertFocused});
+ const targeted=ownedWindowKeyboard({window,run:(...args)=>{try{return execFileSync('/usr/bin/python3',['-c',targetedX11InputScript,...args],{encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']})}catch{throw Error('NATIVE_DIALOG_TARGETED_INPUT_REJECTED')}},assertOwned,assertFocused});
  let keyboardFallback=false;
  // Identify the real Name and Location controls before typing; never replace IPC.
  const fileExists=async()=>{try{return(await fs.stat(backup)).isFile()}catch(error){if(error.code==='ENOENT')return false;throw error}};

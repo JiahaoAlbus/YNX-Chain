@@ -2,7 +2,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {fillNativeChooser,nativeChooserScript,sanitizeChooserIdentity,nativeAccessibilitySessionScript,prepareNativeAccessibilitySession,keyboardChooserFallbackAllowed,fillNativeChooserByKeyboard,ownedWindowKeyboard} from './linux-password-installed-gate.mjs';
+import {fillNativeChooser,nativeChooserScript,sanitizeChooserIdentity,nativeAccessibilitySessionScript,prepareNativeAccessibilitySession,keyboardChooserFallbackAllowed,fillNativeChooserByKeyboard,ownedWindowKeyboard,targetedX11InputScript} from './linux-password-installed-gate.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {accountCreated,continuePersistedAccount,sanitizedFailureSnapshot,finishNativeSave,backupOutcome,backupFileCandidates,observeNativeSave} from './linux-password-installed-gate.mjs';
@@ -203,22 +203,54 @@ test('changed ownership or focus prevents remaining native input without retry o
 test('native keys and delayed text are explicitly bound to the verified XID even when focus changes mid-type',async()=>{
  let focused=true;const commands=[],otherWindowInput=[];
  const input=ownedWindowKeyboard({window:'12345',assertOwned:async()=>{},assertFocused:async()=>assert.equal(focused,true,'FOCUS_CHANGED'),run:(...args)=>{
-  commands.push(args);assert.equal(args[1],'--window');assert.equal(args[2],'12345');
-  if(args[0]==='type'){focused=false;if(!args.includes('--window'))otherWindowInput.push(args.at(-1))}
+  commands.push(args);assert.equal(args[0],'12345');
+  if(args[1]==='type'){focused=false;if(args[0]!=='12345')otherWindowInput.push(args.at(-1))}
  }});
  await input.key('ctrl+l');await input.key('ctrl+a');
  await assert.rejects(input.type('/qa/dedicated-backup.json'),/FOCUS_CHANGED/);
  await assert.rejects(input.key('Return'),/FOCUS_CHANGED/);
- assert.equal(commands.length,3);assert.deepEqual(commands[2],['type','--window','12345','--clearmodifiers','--delay','20','/qa/dedicated-backup.json']);assert.deepEqual(otherWindowInput,[]);
+ assert.equal(commands.length,3);assert.deepEqual(commands[2],['12345','type','/qa/dedicated-backup.json']);assert.deepEqual(otherWindowInput,[]);
  for(const window of ['0','%1','','not-an-XID'])assert.throws(()=>ownedWindowKeyboard({window}),/NATIVE_DIALOG_TARGET_INVALID/);
 });
 test('targeted native input rejection stops without global-input retry',async()=>{
  const commands=[];const input=ownedWindowKeyboard({window:'12345',assertOwned:async()=>{},assertFocused:async()=>{},run:(...args)=>{commands.push(args);throw Error('TARGET_INPUT_REJECTED')}});
- await assert.rejects(input.key('ctrl+l'),/TARGET_INPUT_REJECTED/);assert.equal(commands.length,1);assert.equal(commands[0][1],'--window');
+ await assert.rejects(input.key('ctrl+l'),/TARGET_INPUT_REJECTED/);assert.equal(commands.length,1);assert.equal(commands[0][0],'12345');
 });
 
 test('targeted terminal Save may close its native dialog without a follow-up input or reactivation',async()=>{
  let open=true;const commands=[];const input=ownedWindowKeyboard({window:'12345',assertOwned:async()=>assert.equal(open,true),assertFocused:async()=>assert.equal(open,true),run:(...args)=>{commands.push(args);open=false}});
- await input.key('alt+s');assert.deepEqual(commands,[['key','--window','12345','--clearmodifiers','alt+s']]);
+ await input.key('alt+s');assert.deepEqual(commands,[['12345','key','alt+s']]);
  await assert.rejects(input.key('Return'));assert.equal(commands.length,1);
+});
+
+test('executed Python X11 sender binds every event to the same target and stops mid-path on lost focus',async()=>{
+ const directory=await mkdtemp(path.join(tmpdir(),'ynx-x11-bound-input-'));
+ try{
+ const source=path.join(directory,'fixture.c'),library=path.join(directory,'fixture.so');
+ await writeFile(source,String.raw`
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+static int sent=0;
+void *XOpenDisplay(const char *name){return (void*)1;}
+int XCloseDisplay(void *d){return 0;}
+unsigned long XDefaultRootWindow(void *d){return 1;}
+int XGetInputFocus(void *d,unsigned long *focus,int *revert){*focus=(getenv("LOSE_FOCUS")&&sent>=4)?999:12345;return 1;}
+unsigned long XStringToKeysym(const char *name){return !strcmp(name,"Return")?13:0;}
+unsigned char XKeysymToKeycode(void *d,unsigned long symbol){return (unsigned char)symbol;}
+unsigned long XKeycodeToKeysym(void *d,unsigned char code,int level){return level==0?code:0;}
+int XSendEvent(void *d,unsigned long target,int propagate,long mask,void *event){
+ if(target!=12345)return 0;
+ sent++;printf("TARGET=%lu\n",target);fflush(stdout);return getenv("REJECT_INPUT")?0:1;
+}
+int XSync(void *d,int discard){return 0;}
+`);
+ execFileSync('cc',[...(process.platform==='darwin'?['-dynamiclib']:['-shared','-fPIC']),source,'-o',library],{timeout:10000});
+ const script=targetedX11InputScript.replace("'libX11.so.6'",JSON.stringify(library));
+ const run=env=>execFileSync('/usr/bin/python3',['-c',script,'12345','type','/qa/test.json'],{encoding:'utf8',env:{...process.env,...env},timeout:5000});
+ const lines=run({}).trim().split('\n');assert.equal(lines.length,'/qa/test.json'.length*2);assert.equal(lines.every(line=>line==='TARGET=12345'),true);
+ for(const [env,count] of [[{LOSE_FOCUS:'1'},4],[{REJECT_INPUT:'1'},1]]){
+  try{run(env);assert.fail('input must stop')}catch(error){assert.equal(error.status,2);const sent=error.stdout.trim().split('\n');assert.equal(sent.length,count);assert.equal(sent.every(line=>line==='TARGET=12345'),true)}
+ }
+ }finally{await rm(directory,{recursive:true,force:true})}
 });
