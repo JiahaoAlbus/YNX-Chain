@@ -7,13 +7,13 @@
     <meta name="google" content="notranslate" />
     <meta name="description" content="YNX Social is a private, wallet-connected Social experience on YNX Testnet. Explore safely as a guest before connecting a wallet." />
     <title>YNX Social — Private by design</title>
-    <link rel="icon" href="./assets/ynx-wallet.svg" type="image/svg+xml" />
+    <link rel="icon" href="./assets/ynx-logo.png" type="image/png" />
     <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="./workspace.css" />
   </head>
   <body>
     <header class="topbar">
-      <a class="brand" href="/" aria-label="YNX Social home"><span class="mark">Y</span><span>YNX Social</span></a>
+      <a class="brand" href="/" aria-label="YNX Social home"><img class="brand-logo" src="./assets/ynx-logo.png" alt="YNX" /><span>YNX Social</span></a>
       <nav aria-label="Primary"><a href="#experience">Experience</a><a href="#privacy">Privacy</a><a href="#downloads">Apps</a></nav>
       <button id="connect-wallet" class="button button-primary" type="button">Connect wallet</button>
     </header>
@@ -69,12 +69,26 @@
     <dialog id="wallet-dialog" class="wallet-dialog">
       <div class="dialog-head"><div><span class="eyebrow">Standard wallet connection</span><h2>Choose a wallet</h2></div><button id="close-wallet-dialog" class="icon-button" type="button" aria-label="Close">×</button></div>
       <p>Select the wallet you intend to use. YNX Social will not silently substitute another provider.</p>
-      <div id="wallet-list" class="wallet-list"><button id="connect-mobile" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/ynx-wallet.svg" alt="YNX Wallet" /><span class="wallet-copy"><strong>YNX Mobile Wallet</strong><small>Scan a code or open the app on this phone</small></span><b>Connect</b></button><button id="connect-hosted" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/ynx-wallet.svg" alt="YNX Wallet" /><span class="wallet-copy"><strong>YNX Web Wallet</strong><small>Open Wallet securely in a new window</small></span><b>Connect</b></button><button id="connect-ynx" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/ynx-wallet.svg" alt="YNX Wallet logo" /><span class="wallet-copy"><strong>YNX Wallet</strong><small>Use your installed YNX Wallet extension</small></span><b>Connect</b></button><button id="connect-metamask" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/metamask.svg" alt="MetaMask logo" /><span class="wallet-copy"><strong>MetaMask</strong><small>Connect your MetaMask account</small></span><b>Connect</b></button></div>
+      <div id="wallet-list" class="wallet-list"><button id="connect-mobile" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/ynx-logo.png" alt="YNX Wallet" /><span class="wallet-copy"><strong>YNX Mobile Wallet</strong><small>Scan a code or open the app on this phone</small></span><b>Connect</b></button><button id="connect-hosted" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/ynx-logo.png" alt="YNX Wallet" /><span class="wallet-copy"><strong>YNX Web Wallet</strong><small>Open Wallet securely in a new window</small></span><b>Connect</b></button><button id="connect-ynx" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/ynx-logo.png" alt="YNX Wallet logo" /><span class="wallet-copy"><strong>YNX Wallet</strong><small>Use your installed YNX Wallet extension</small></span><b>Connect</b></button><button id="connect-metamask" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/metamask.svg" alt="MetaMask logo" /><span class="wallet-copy"><strong>MetaMask</strong><small>Connect your MetaMask account</small></span><b>Connect</b></button></div>
       <section id="wallet-selected-step" hidden><p id="selected-wallet-name"></p><button id="back-wallet-selection" type="button">Choose another wallet</button><button id="retry-wallet-connection" type="button" hidden>Retry connection</button><button id="cancel-wallet-pair" type="button">Cancel connection</button></section><section id="mobile-pair-panel" hidden><img id="wallet-pair-qr" width="240" height="240" alt="Scan this connection code with YNX Wallet" /><a id="wallet-pair-open">Open YNX Wallet</a></section><div id="wallet-status" class="wallet-status" data-tone="neutral" role="status">No account request is sent until you choose a wallet.</div>
       <a id="install-wallet" class="install-link" href="#" rel="noreferrer" hidden>Install wallet</a>
       <button id="retry-wallet-discovery" class="install-link" type="button" hidden>Retry wallet detection</button>
     </dialog>
     <script type="module" src="./app.js"></script>
     <script type="module" src="./private-session-ui.js"></script>
-  </body>
+<section id="matrix-social-workspace" class="section" aria-label="Private chat">
+  <h2>Your private conversations</h2>
+  <p>Compare devices before sharing messages. Your existing encrypted history stays unchanged.</p><details><summary>Connection details</summary><p>New conversations use standard Matrix encrypted transport. Production account binding is not yet connected in this candidate.</p></details>
+  <p data-status role="status">Private chat locked</p>
+  <button type="button" data-connect>Open private chat</button>
+  <button type="button" data-stop>Lock private chat</button>
+  <button type="button" data-rooms>Rooms and invitations</button>
+  <form data-peer-form><label>Peer YNX account <input name="matrixPeer" required autocomplete="off"></label><button>Create encrypted conversation</button></form>
+  <div data-devices></div><div data-verification></div>
+  <ul data-messages></ul>
+  <form data-send-form><label>Encrypted message <textarea name="matrixText" required maxlength="16000"></textarea></label><button>Send to verified devices</button></form>
+  <label>Encrypted attachment <input type="file" data-attachment></label>
+</section>
+<script type="module" src="/matrix-session-ui.js"></script>
+</body>
 </html>

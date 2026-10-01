@@ -1,0 +1,61 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "name": "two-independent-homeservers-and-Rust-crypto",
+      "passed": true
+    },
+    {
+      "name": "unverified-device-send-rejected",
+      "passed": true
+    },
+    {
+      "name": "standard-SAS-matched-and-both-confirmed",
+      "passed": true
+    }
+  ],
+  "error": "Error: QA condition timed out: async room=>(await window.t.messages(room)).some(e=>e.content.body==='Isolated federated Alice to Bob')",
+  "pageErrors": [],
+  "diagnostics": [
+    [
+      {
+        "user": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+        "device": "YNX-5b31adb5-46bd-4441-b7b6-f36e8c47a439",
+        "verified": true,
+        "keys": [
+          "curve25519:YNX-5b31adb5-46bd-4441-b7b6-f36e8c47a439",
+          "ed25519:YNX-5b31adb5-46bd-4441-b7b6-f36e8c47a439"
+        ]
+      },
+      {
+        "user": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+        "device": "YNX-57f801a4-bc55-45b2-9277-45f50bc87c63",
+        "verified": true,
+        "keys": [
+          "curve25519:YNX-57f801a4-bc55-45b2-9277-45f50bc87c63",
+          "ed25519:YNX-57f801a4-bc55-45b2-9277-45f50bc87c63"
+        ]
+      }
+    ],
+    [
+      {
+        "user": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+        "device": "YNX-57f801a4-bc55-45b2-9277-45f50bc87c63",
+        "verified": true,
+        "keys": [
+          "curve25519:YNX-57f801a4-bc55-45b2-9277-45f50bc87c63",
+          "ed25519:YNX-57f801a4-bc55-45b2-9277-45f50bc87c63"
+        ]
+      },
+      {
+        "user": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+        "device": "YNX-5b31adb5-46bd-4441-b7b6-f36e8c47a439",
+        "verified": true,
+        "keys": [
+          "curve25519:YNX-5b31adb5-46bd-4441-b7b6-f36e8c47a439",
+          "ed25519:YNX-5b31adb5-46bd-4441-b7b6-f36e8c47a439"
+        ]
+      }
+    ]
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "name": "two-independent-homeservers-and-Rust-crypto",
+      "passed": true
+    },
+    {
+      "name": "unverified-device-send-rejected",
+      "passed": true
+    },
+    {
+      "name": "standard-SAS-matched-and-both-confirmed",
+      "passed": true
+    },
+    {
+      "name": "bidirectional-federated-ciphertext-and-peer-decryption",
+      "passed": true
+    },
+    {
+      "name": "both-server-readbacks-encrypted-not-plaintext",
+      "passed": true
+    },
+    {
+      "name": "federated-encrypted-attachment-decrypted",
+      "passed": true
+    },
+    {
+      "name": "browser-process-cold-start-original-device-key-and-offline-history",
+      "passed": true
+    }
+  ],
+  "error": "Error: QA condition timed out: id=>window.t.requests.get(id)?.phase===5",
+  "pageErrors": [],
+  "diagnostics": [
+    [
+      {
+        "user": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+        "device": "YNX-8654405e-fcbe-46c1-a87a-4a4c563cf108",
+        "verified": true,
+        "keys": [
+          "curve25519:YNX-8654405e-fcbe-46c1-a87a-4a4c563cf108",
+          "ed25519:YNX-8654405e-fcbe-46c1-a87a-4a4c563cf108"
+        ]
+      },
+      {
+        "user": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+        "device": "YNX-f5714767-1f3b-4987-88ea-27dab0d4645b",
+        "verified": true,
+        "keys": [
+          "curve25519:YNX-f5714767-1f3b-4987-88ea-27dab0d4645b",
+          "ed25519:YNX-f5714767-1f3b-4987-88ea-27dab0d4645b"
+        ]
+      }
+    ],
+    [
+      {
+        "user": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+        "device": "YNX-f5714767-1f3b-4987-88ea-27dab0d4645b",
+        "verified": true,
+        "keys": [
+          "curve25519:YNX-f5714767-1f3b-4987-88ea-27dab0d4645b",
+          "ed25519:YNX-f5714767-1f3b-4987-88ea-27dab0d4645b"
+        ]
+      },
+      {
+        "user": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+        "device": "YNX-8654405e-fcbe-46c1-a87a-4a4c563cf108",
+        "verified": true,
+        "keys": [
+          "curve25519:YNX-8654405e-fcbe-46c1-a87a-4a4c563cf108",
+          "ed25519:YNX-8654405e-fcbe-46c1-a87a-4a4c563cf108"
+        ]
+      }
+    ]
+  ]
+}

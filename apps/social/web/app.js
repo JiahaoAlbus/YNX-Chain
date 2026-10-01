@@ -31,7 +31,7 @@ function setConnected(result) {
   byId("connect-wallet").textContent = `${walletLabel(result.wallet)} · ${shortAccount(result.account)}`;
   byId("connected-account").textContent = result.account;
   byId("connected-wallet-name").textContent = walletLabel(result.wallet);
-  byId("connected-logo").src = result.wallet !== "metamask" ? "./assets/ynx-wallet.svg" : "./assets/metamask.svg";
+  byId("connected-logo").src = result.wallet !== "metamask" ? "./assets/ynx-logo.png" : "./assets/metamask.svg";
   byId("connected-logo").alt = `${walletLabel(result.wallet)} logo`;
   byId("connected-chain").textContent = `${result.chainId === "0x1917" ? "YNX Testnet" : "Wrong network"} · ${result.chainId}`;
   byId("connected-panel").hidden = false;

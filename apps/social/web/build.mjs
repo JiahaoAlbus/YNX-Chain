@@ -13,3 +13,7 @@ for(const path of ['index.html','styles.css','workspace.css','app.js','wallet-pr
 // This keeps the build root self-contained; the legacy Web snapshot is untouched.
 await cp(new URL('../src/vendor/product-session-registry.json',import.meta.url),new URL('vendor/product-session-registry.json',out));
 await build({absWorkingDir:root,entryPoints:['private-session-ui.js'],outfile:fileURLToPath(new URL('private-session-ui.js',out)),bundle:true,platform:'browser',format:'esm',target:'es2022',minify:false});
+// Standard Rust crypto WASM is self-hosted with the exact locked dependency.
+await mkdir(new URL('pkg/',out),{recursive:true});
+await cp(new URL('../node_modules/@matrix-org/matrix-sdk-crypto-wasm/pkg/matrix_sdk_crypto_wasm_bg.wasm',import.meta.url),new URL('pkg/matrix_sdk_crypto_wasm_bg.wasm',out));
+await build({absWorkingDir:root,entryPoints:['matrix/session-ui.mjs'],outfile:fileURLToPath(new URL('matrix-session-ui.js',out)),bundle:true,platform:'browser',format:'esm',target:'es2022',minify:false,define:{'process.env.NODE_ENV':'"production"'}});
