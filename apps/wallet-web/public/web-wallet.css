@@ -7,5 +7,5 @@
 .web-wallet:not([data-wallet-view=account])[data-wallet-unlocked=true] #account-card,.web-wallet:not([data-wallet-view=account])[data-wallet-unlocked=true] #status[data-state=managerUnlocked]{display:none}
 .web-wallet:not([data-wallet-view=account]) #backup-confirmation{display:none}
 .web-wallet #backup-confirmation .check,.web-wallet #backup-continue{display:none}
-.web-wallet[data-wallet-reviewing=true] .content>*:not(#review):not(.foot):not(.companion-link){display:none!important}
+.web-wallet[data-wallet-reviewing=true] .content>*:not(#review):not(#status):not(.foot):not(.companion-link){display:none!important}
 #web-wallet-review-summary>div{display:grid;gap:8px;padding:16px 0;border-bottom:1px solid #dce5fa}#web-wallet-review-summary span{font-size:14px;color:#52607d}#web-wallet-review-summary strong{font-size:18px;overflow-wrap:anywhere}#web-wallet-review-summary p{color:#52607d} .web-wallet #review details{margin:20px 0}.web-wallet #review pre{max-height:260px;overflow:auto}
