@@ -2,7 +2,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {fillNativeChooser,nativeChooserScript,sanitizeChooserIdentity,nativeAccessibilitySessionScript,prepareNativeAccessibilitySession,keyboardChooserFallbackAllowed,fillNativeChooserByKeyboard} from './linux-password-installed-gate.mjs';
+import {fillNativeChooser,nativeChooserScript,sanitizeChooserIdentity,nativeAccessibilitySessionScript,prepareNativeAccessibilitySession,keyboardChooserFallbackAllowed,fillNativeChooserByKeyboard,ownedWindowKeyboard} from './linux-password-installed-gate.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {accountCreated,continuePersistedAccount,sanitizedFailureSnapshot,finishNativeSave,backupOutcome,backupFileCandidates,observeNativeSave} from './linux-password-installed-gate.mjs';
@@ -198,4 +198,27 @@ test('changed ownership or focus prevents remaining native input without retry o
   await assert.rejects(fillNativeChooserByKeyboard({assertOwned:guard('owned'),focus:async()=>{},assertFocused:guard('focused'),key:async value=>calls.push(value),type:async()=>calls.push('type'),destination:'/qa/dedicated-backup.json',diagnostics}),/OWNERSHIP_OR_FOCUS_CHANGED/);
   assert.equal(calls.includes('Return'),false);assert.equal(calls.includes('alt+s'),false);assert.equal(diagnostics.fullQAPathReplacementSent,undefined);
  }
+});
+
+test('native keys and delayed text are explicitly bound to the verified XID even when focus changes mid-type',async()=>{
+ let focused=true;const commands=[],otherWindowInput=[];
+ const input=ownedWindowKeyboard({window:'12345',assertOwned:async()=>{},assertFocused:async()=>assert.equal(focused,true,'FOCUS_CHANGED'),run:(...args)=>{
+  commands.push(args);assert.equal(args[1],'--window');assert.equal(args[2],'12345');
+  if(args[0]==='type'){focused=false;if(!args.includes('--window'))otherWindowInput.push(args.at(-1))}
+ }});
+ await input.key('ctrl+l');await input.key('ctrl+a');
+ await assert.rejects(input.type('/qa/dedicated-backup.json'),/FOCUS_CHANGED/);
+ await assert.rejects(input.key('Return'),/FOCUS_CHANGED/);
+ assert.equal(commands.length,3);assert.deepEqual(commands[2],['type','--window','12345','--clearmodifiers','--delay','20','/qa/dedicated-backup.json']);assert.deepEqual(otherWindowInput,[]);
+ for(const window of ['0','%1','','not-an-XID'])assert.throws(()=>ownedWindowKeyboard({window}),/NATIVE_DIALOG_TARGET_INVALID/);
+});
+test('targeted native input rejection stops without global-input retry',async()=>{
+ const commands=[];const input=ownedWindowKeyboard({window:'12345',assertOwned:async()=>{},assertFocused:async()=>{},run:(...args)=>{commands.push(args);throw Error('TARGET_INPUT_REJECTED')}});
+ await assert.rejects(input.key('ctrl+l'),/TARGET_INPUT_REJECTED/);assert.equal(commands.length,1);assert.equal(commands[0][1],'--window');
+});
+
+test('targeted terminal Save may close its native dialog without a follow-up input or reactivation',async()=>{
+ let open=true;const commands=[];const input=ownedWindowKeyboard({window:'12345',assertOwned:async()=>assert.equal(open,true),assertFocused:async()=>assert.equal(open,true),run:(...args)=>{commands.push(args);open=false}});
+ await input.key('alt+s');assert.deepEqual(commands,[['key','--window','12345','--clearmodifiers','alt+s']]);
+ await assert.rejects(input.key('Return'));assert.equal(commands.length,1);
 });

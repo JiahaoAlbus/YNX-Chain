@@ -185,6 +185,19 @@ export async function fillNativeChooserByKeyboard({assertOwned,focus,assertFocus
  await assertOwned();await assertFocused();await key('Return');
  diagnostics.inputRoute='X11_OWNED_DIALOG_KEYBOARD';diagnostics.fullQAPathReplacementSent=true;
 }
+export function ownedWindowKeyboard({window,run,assertOwned,assertFocused}){
+ assert.match(window,/^[1-9][0-9]*$/,'NATIVE_DIALOG_TARGET_INVALID');
+ const send=async(command,value)=>{
+  await assertOwned();await assertFocused();
+  // Explicit XID uses XSendEvent, never focus-routed XTEST. If GTK ignores it,
+  // the existing strict selected-path/file/result assertions fail; no global retry.
+  run(command,'--window',window,'--clearmodifiers',...(command==='type'?['--delay','20']:[]),value);
+  // Return/Save can normally close the dialog. The strict product result and
+  // selected-path/file checks validate completion instead of refocusing it.
+  if(command==='type'||!['Return','alt+s'].includes(value)){await assertOwned();await assertFocused()}
+ };
+ return {key:value=>send('key',value),type:value=>send('type',value)};
+}
 export async function runInstalledGate(){
 const [mode]=process.argv.slice(2),password=process.env.YNX_WALLET_QA_PASSWORD,backupPassword=process.env.YNX_WALLET_QA_BACKUP_PASSWORD;
 assert.equal(process.platform,'linux');assert.ok(['online','offline'].includes(mode));assert.ok(password?.length>=12);assert.ok(backupPassword?.length>=12);
@@ -275,6 +288,7 @@ async function nativeSave(account){
   report.nativeSaveDiagnostics.ownedWindowVerified=true;
  };
  const assertFocused=async()=>{assert.equal(x11('getwindowfocus'),window,'NATIVE_DIALOG_FOCUS_CHANGED')};
+ const targeted=ownedWindowKeyboard({window,run:x11,assertOwned,assertFocused});
  let keyboardFallback=false;
  // Identify the real Name and Location controls before typing; never replace IPC.
  const fileExists=async()=>{try{return(await fs.stat(backup)).isFile()}catch(error){if(error.code==='ENOENT')return false;throw error}};
@@ -282,11 +296,11 @@ async function nativeSave(account){
  try{
   try{chooser('observe')}catch(error){if(!keyboardChooserFallbackAllowed(error.message,report.nativeSaveDiagnostics.chooserIdentity))throw error;await assertOwned();keyboardFallback=true}
   await finishNativeSave({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,fileExists,dialogVisible,
-  enterDestination:()=>keyboardFallback?fillNativeChooserByKeyboard({assertOwned,assertFocused,focus:async()=>x11('windowfocus','--sync',window),key:async value=>{x11('key','--clearmodifiers',value);await pauses(150)},type:async value=>x11('type','--clearmodifiers','--delay','20',value),destination:backup,diagnostics:report.nativeSaveDiagnostics}):fillNativeChooser({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,directory:path.dirname(backup),name:path.basename(backup),observe:async()=>chooser('observe'),focusLocation:async()=>chooser('focus-location'),focusName:async()=>chooser('focus-name'),
-   openLocation:async()=>{execFileSync('xdotool',['windowfocus','--sync',window]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);await pauses(150)},
-   type:async value=>{execFileSync('xdotool',['key','--clearmodifiers','ctrl+a']);execFileSync('xdotool',['type','--clearmodifiers','--delay','20',value]);await pauses(100)},
-   navigate:async()=>{execFileSync('xdotool',['key','--clearmodifiers','Return'])}}),
-  saveAction:async()=>{if(keyboardFallback){await assertOwned();x11('windowfocus','--sync',window);await assertFocused();x11('key','--clearmodifiers','alt+s')}else chooser('save')},
+  enterDestination:()=>keyboardFallback?fillNativeChooserByKeyboard({assertOwned,assertFocused,focus:async()=>x11('windowfocus','--sync',window),key:async value=>{await targeted.key(value);await pauses(150)},type:targeted.type,destination:backup,diagnostics:report.nativeSaveDiagnostics}):fillNativeChooser({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,directory:path.dirname(backup),name:path.basename(backup),observe:async()=>chooser('observe'),focusLocation:async()=>chooser('focus-location'),focusName:async()=>chooser('focus-name'),
+   openLocation:async()=>{execFileSync('xdotool',['windowfocus','--sync',window]);await targeted.key('ctrl+l');await pauses(150)},
+   type:async value=>{await targeted.key('ctrl+a');await targeted.type(value);await pauses(100)},
+   navigate:async()=>{await targeted.key('Return')}}),
+  saveAction:async()=>{if(keyboardFallback){await assertOwned();x11('windowfocus','--sync',window);await assertFocused();await targeted.key('alt+s')}else chooser('save')},
  });
  }finally{
   stage='NATIVE_SAVE_POST_ATTEMPT';
