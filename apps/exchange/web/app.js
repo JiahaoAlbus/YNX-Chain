@@ -1,6 +1,6 @@
 import {createMarketFeed,formatMicro} from './market-data.js?v=53ccbb3def98b0bbdedfb99ae9e69ee1698ea777fd369baa96a484f01ad4af1d';
 import {buildOrderPreview,parseMicro,validateTradingRules} from './order-preview.js?v=5098a2dd729cc1f9b1321382febc46e361c3939ed371272a8ac63cf1bcac92b3';
-import {createExchangePrivateAccount} from './private-session.js?v=ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675';
+import {createExchangePrivateAccount} from './private-session.js?v=f37a8e6e1559d2aa06bb9c3f12738299a5828d489d78bce70821749b553b3a6e';
 const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
 const state={account:null,side:'buy',snapshot:null,book:null,publicTrades:[],config:null,activity:'trades',standardWallet:null,lastWalletKind:'ynx'};
 const display=(v)=>formatMicro(v,document.documentElement.lang||'en');

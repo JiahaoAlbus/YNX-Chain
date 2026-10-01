@@ -744,7 +744,6 @@
     "../../../packages/wallet-auth/src/product-session-router.js",
     "../../../packages/wallet-auth/src/product-session-v2.js",
     "../../../packages/wallet-auth/src/protocol.js",
-    "../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js",
     "../../../packages/wallet-auth/src/wallet-provider-discovery.js",
     "../../../packages/wallet-auth/src/walletconnect-dapp-connection.js",
     "../../../packages/wallet-auth/src/walletconnect-protocol.js",
@@ -755,6 +754,10 @@
     "../../../sdk/js/testnet-endpoints.js",
     "../../../sdk/js/wallet.js",
     "../../../sdk/js/ynx-testnet.js",
+    "../../wallet-web/src/extension-chain-params.js",
+    "../../wallet-web/src/hosted-adapter.js",
+    "../../wallet-web/src/hosted-protocol.js",
+    "../../wallet-web/vendor/product-session-registry-123016847.json",
     "endpoint-authority-entry.js",
     "endpoint-authority-store.js",
     "hosted-wallet-controller.js",
@@ -797,6 +800,14 @@
     {
       "path": "node_modules/@ynx-chain/sdk",
       "target": "../../../sdk/js"
+    },
+    {
+      "path": "../../wallet-web/node_modules/@ynx-chain/wallet-auth",
+      "target": "../../../packages/wallet-auth"
+    },
+    {
+      "path": "../../../node_modules/@ynx-chain/wallet-auth",
+      "target": "../../../packages/wallet-auth"
     }
   ]
 }

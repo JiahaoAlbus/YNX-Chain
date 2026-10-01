@@ -38,13 +38,13 @@
   var require_events = __commonJS({
     "node_modules/events/events.js"(exports, module) {
       "use strict";
-      var R4 = typeof Reflect === "object" ? Reflect : null;
-      var ReflectApply = R4 && typeof R4.apply === "function" ? R4.apply : function ReflectApply2(target, receiver, args) {
+      var R3 = typeof Reflect === "object" ? Reflect : null;
+      var ReflectApply = R3 && typeof R3.apply === "function" ? R3.apply : function ReflectApply2(target, receiver, args) {
         return Function.prototype.apply.call(target, receiver, args);
       };
       var ReflectOwnKeys;
-      if (R4 && typeof R4.ownKeys === "function") {
-        ReflectOwnKeys = R4.ownKeys;
+      if (R3 && typeof R3.ownKeys === "function") {
+        ReflectOwnKeys = R3.ownKeys;
       } else if (Object.getOwnPropertySymbols) {
         ReflectOwnKeys = function ReflectOwnKeys2(target) {
           return Object.getOwnPropertyNames(target).concat(Object.getOwnPropertySymbols(target));
@@ -176,12 +176,12 @@
           m2 = _getMaxListeners(target);
           if (m2 > 0 && existing.length > m2 && !existing.warned) {
             existing.warned = true;
-            var w5 = new Error("Possible EventEmitter memory leak detected. " + existing.length + " " + String(type) + " listeners added. Use emitter.setMaxListeners() to increase limit");
-            w5.name = "MaxListenersExceededWarning";
-            w5.emitter = target;
-            w5.type = type;
-            w5.count = existing.length;
-            ProcessEmitWarning(w5);
+            var w4 = new Error("Possible EventEmitter memory leak detected. " + existing.length + " " + String(type) + " listeners added. Use emitter.setMaxListeners() to increase limit");
+            w4.name = "MaxListenersExceededWarning";
+            w4.emitter = target;
+            w4.type = type;
+            w4.count = existing.length;
+            ProcessEmitWarning(w4);
           }
         }
         return target;
@@ -438,15 +438,15 @@
     d3.prototype = b4 === null ? Object.create(b4) : (__.prototype = b4.prototype, new __());
   }
   function __rest(s2, e2) {
-    var t = {};
+    var t2 = {};
     for (var p4 in s2) if (Object.prototype.hasOwnProperty.call(s2, p4) && e2.indexOf(p4) < 0)
-      t[p4] = s2[p4];
+      t2[p4] = s2[p4];
     if (s2 != null && typeof Object.getOwnPropertySymbols === "function")
       for (var i3 = 0, p4 = Object.getOwnPropertySymbols(s2); i3 < p4.length; i3++) {
         if (e2.indexOf(p4[i3]) < 0 && Object.prototype.propertyIsEnumerable.call(s2, p4[i3]))
-          t[p4[i3]] = s2[p4[i3]];
+          t2[p4[i3]] = s2[p4[i3]];
       }
-    return t;
+    return t2;
   }
   function __decorate(decorators, target, key, desc) {
     var c4 = arguments.length, r3 = c4 < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d3;
@@ -462,13 +462,13 @@
   function __metadata(metadataKey, metadataValue) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
   }
-  function __awaiter(thisArg, _arguments, P6, generator) {
+  function __awaiter(thisArg, _arguments, P5, generator) {
     function adopt(value) {
-      return value instanceof P6 ? value : new P6(function(resolve) {
+      return value instanceof P5 ? value : new P5(function(resolve) {
         resolve(value);
       });
     }
-    return new (P6 || (P6 = Promise))(function(resolve, reject) {
+    return new (P5 || (P5 = Promise))(function(resolve, reject) {
       function fulfilled(value) {
         try {
           step(generator.next(value));
@@ -491,9 +491,9 @@
   }
   function __generator(thisArg, body) {
     var _3 = { label: 0, sent: function() {
-      if (t[0] & 1) throw t[1];
-      return t[1];
-    }, trys: [], ops: [] }, f2, y7, t, g4;
+      if (t2[0] & 1) throw t2[1];
+      return t2[1];
+    }, trys: [], ops: [] }, f2, y6, t2, g4;
     return g4 = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g4[Symbol.iterator] = function() {
       return this;
     }), g4;
@@ -505,19 +505,19 @@
     function step(op) {
       if (f2) throw new TypeError("Generator is already executing.");
       while (_3) try {
-        if (f2 = 1, y7 && (t = op[0] & 2 ? y7["return"] : op[0] ? y7["throw"] || ((t = y7["return"]) && t.call(y7), 0) : y7.next) && !(t = t.call(y7, op[1])).done) return t;
-        if (y7 = 0, t) op = [op[0] & 2, t.value];
+        if (f2 = 1, y6 && (t2 = op[0] & 2 ? y6["return"] : op[0] ? y6["throw"] || ((t2 = y6["return"]) && t2.call(y6), 0) : y6.next) && !(t2 = t2.call(y6, op[1])).done) return t2;
+        if (y6 = 0, t2) op = [op[0] & 2, t2.value];
         switch (op[0]) {
           case 0:
           case 1:
-            t = op;
+            t2 = op;
             break;
           case 4:
             _3.label++;
             return { value: op[1], done: false };
           case 5:
             _3.label++;
-            y7 = op[1];
+            y6 = op[1];
             op = [0];
             continue;
           case 7:
@@ -525,42 +525,42 @@
             _3.trys.pop();
             continue;
           default:
-            if (!(t = _3.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) {
+            if (!(t2 = _3.trys, t2 = t2.length > 0 && t2[t2.length - 1]) && (op[0] === 6 || op[0] === 2)) {
               _3 = 0;
               continue;
             }
-            if (op[0] === 3 && (!t || op[1] > t[0] && op[1] < t[3])) {
+            if (op[0] === 3 && (!t2 || op[1] > t2[0] && op[1] < t2[3])) {
               _3.label = op[1];
               break;
             }
-            if (op[0] === 6 && _3.label < t[1]) {
-              _3.label = t[1];
-              t = op;
+            if (op[0] === 6 && _3.label < t2[1]) {
+              _3.label = t2[1];
+              t2 = op;
               break;
             }
-            if (t && _3.label < t[2]) {
-              _3.label = t[2];
+            if (t2 && _3.label < t2[2]) {
+              _3.label = t2[2];
               _3.ops.push(op);
               break;
             }
-            if (t[2]) _3.ops.pop();
+            if (t2[2]) _3.ops.pop();
             _3.trys.pop();
             continue;
         }
         op = body.call(thisArg, _3);
       } catch (e2) {
         op = [6, e2];
-        y7 = 0;
+        y6 = 0;
       } finally {
-        f2 = t = 0;
+        f2 = t2 = 0;
       }
       if (op[0] & 5) throw op[1];
       return { value: op[0] ? op[1] : void 0, done: true };
     }
   }
-  function __createBinding(o4, m2, k6, k22) {
-    if (k22 === void 0) k22 = k6;
-    o4[k22] = m2[k6];
+  function __createBinding(o4, m2, k5, k22) {
+    if (k22 === void 0) k22 = k5;
+    o4[k22] = m2[k5];
   }
   function __exportStar(m2, exports) {
     for (var p4 in m2) if (p4 !== "default" && !exports.hasOwnProperty(p4)) exports[p4] = m2[p4];
@@ -600,9 +600,9 @@
   }
   function __spreadArrays() {
     for (var s2 = 0, i3 = 0, il = arguments.length; i3 < il; i3++) s2 += arguments[i3].length;
-    for (var r3 = Array(s2), k6 = 0, i3 = 0; i3 < il; i3++)
-      for (var a3 = arguments[i3], j5 = 0, jl = a3.length; j5 < jl; j5++, k6++)
-        r3[k6] = a3[j5];
+    for (var r3 = Array(s2), k5 = 0, i3 = 0; i3 < il; i3++)
+      for (var a3 = arguments[i3], j4 = 0, jl = a3.length; j4 < jl; j4++, k5++)
+        r3[k5] = a3[j4];
     return r3;
   }
   function __await(v7) {
@@ -610,14 +610,14 @@
   }
   function __asyncGenerator(thisArg, _arguments, generator) {
     if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-    var g4 = generator.apply(thisArg, _arguments || []), i3, q5 = [];
+    var g4 = generator.apply(thisArg, _arguments || []), i3, q4 = [];
     return i3 = {}, verb("next"), verb("throw"), verb("return"), i3[Symbol.asyncIterator] = function() {
       return this;
     }, i3;
     function verb(n4) {
       if (g4[n4]) i3[n4] = function(v7) {
         return new Promise(function(a3, b4) {
-          q5.push([n4, v7, a3, b4]) > 1 || resume(n4, v7);
+          q4.push([n4, v7, a3, b4]) > 1 || resume(n4, v7);
         });
       };
     }
@@ -625,11 +625,11 @@
       try {
         step(g4[n4](v7));
       } catch (e2) {
-        settle(q5[0][3], e2);
+        settle(q4[0][3], e2);
       }
     }
     function step(r3) {
-      r3.value instanceof __await ? Promise.resolve(r3.value.v).then(fulfill, reject) : settle(q5[0][2], r3);
+      r3.value instanceof __await ? Promise.resolve(r3.value.v).then(fulfill, reject) : settle(q4[0][2], r3);
     }
     function fulfill(value) {
       resume("next", value);
@@ -638,7 +638,7 @@
       resume("throw", value);
     }
     function settle(f2, v7) {
-      if (f2(v7), q5.shift(), q5.length) resume(q5[0][0], q5[0][1]);
+      if (f2(v7), q4.shift(), q4.length) resume(q4[0][0], q4[0][1]);
     }
   }
   function __asyncDelegator(o4) {
@@ -685,7 +685,7 @@
     if (mod3 && mod3.__esModule) return mod3;
     var result = {};
     if (mod3 != null) {
-      for (var k6 in mod3) if (Object.hasOwnProperty.call(mod3, k6)) result[k6] = mod3[k6];
+      for (var k5 in mod3) if (Object.hasOwnProperty.call(mod3, k5)) result[k5] = mod3[k5];
     }
     result.default = mod3;
     return result;
@@ -718,12 +718,12 @@
         return extendStatics(d3, b4);
       };
       __assign = function() {
-        __assign = Object.assign || function __assign2(t) {
+        __assign = Object.assign || function __assign2(t2) {
           for (var s2, i3 = 1, n4 = arguments.length; i3 < n4; i3++) {
             s2 = arguments[i3];
-            for (var p4 in s2) if (Object.prototype.hasOwnProperty.call(s2, p4)) t[p4] = s2[p4];
+            for (var p4 in s2) if (Object.prototype.hasOwnProperty.call(s2, p4)) t2[p4] = s2[p4];
           }
-          return t;
+          return t2;
         };
         return __assign.apply(this, arguments);
       };
@@ -944,8 +944,8 @@
           super(e2), this.events = new import_events.EventEmitter(), this.interval = s, this.interval = e2?.interval || s;
         }
         static async init(e2) {
-          const t = new _i(e2);
-          return await t.init(), t;
+          const t2 = new _i(e2);
+          return await t2.init(), t2;
         }
         async init() {
           await this.initialize();
@@ -953,17 +953,17 @@
         stop() {
           clearInterval(this.intervalRef);
         }
-        on(e2, t) {
-          this.events.on(e2, t);
+        on(e2, t2) {
+          this.events.on(e2, t2);
         }
-        once(e2, t) {
-          this.events.once(e2, t);
+        once(e2, t2) {
+          this.events.once(e2, t2);
         }
-        off(e2, t) {
-          this.events.off(e2, t);
+        off(e2, t2) {
+          this.events.off(e2, t2);
         }
-        removeListener(e2, t) {
-          this.events.removeListener(e2, t);
+        removeListener(e2, t2) {
+          this.events.removeListener(e2, t2);
         }
         async initialize() {
           this.intervalRef = setInterval(() => this.pulse(), (0, import_time.toMiliseconds)(this.interval));
@@ -1706,8 +1706,8 @@
 
   // node_modules/@walletconnect/keyvaluestorage/dist/index.es.js
   function k(i3) {
-    var t;
-    return [i3[0], safeJsonParse((t = i3[1]) != null ? t : "")];
+    var t2;
+    return [i3[0], safeJsonParse((t2 = i3[1]) != null ? t2 : "")];
   }
   var x, z, D, E, _, l2, c, K, N, y, O, j, h;
   var init_index_es2 = __esm({
@@ -1717,7 +1717,7 @@
       init_esm2();
       x = "idb-keyval";
       z = (i3 = {}) => {
-        const t = i3.base && i3.base.length > 0 ? `${i3.base}:` : "", e2 = (s2) => t + s2;
+        const t2 = i3.base && i3.base.length > 0 ? `${i3.base}:` : "", e2 = (s2) => t2 + s2;
         let n4;
         return i3.dbName && i3.storeName && (n4 = createStore(i3.dbName, i3.storeName)), { name: x, options: i3, async hasItem(s2) {
           return !(typeof await get(e2(s2), n4) > "u");
@@ -1743,26 +1743,26 @@
           return this.indexedDb.getKeys();
         }
         async getEntries() {
-          return (await this.indexedDb.getItems(await this.indexedDb.getKeys())).map((t) => [t.key, t.value]);
+          return (await this.indexedDb.getItems(await this.indexedDb.getKeys())).map((t2) => [t2.key, t2.value]);
         }
-        async getItem(t) {
-          const e2 = await this.indexedDb.getItem(t);
+        async getItem(t2) {
+          const e2 = await this.indexedDb.getItem(t2);
           if (e2 !== null) return e2;
         }
-        async setItem(t, e2) {
-          await this.indexedDb.setItem(t, safeJsonStringify(e2));
+        async setItem(t2, e2) {
+          await this.indexedDb.setItem(t2, safeJsonStringify(e2));
         }
-        async removeItem(t) {
-          await this.indexedDb.removeItem(t);
+        async removeItem(t2) {
+          await this.indexedDb.removeItem(t2);
         }
       };
       l2 = typeof globalThis < "u" ? globalThis : typeof window < "u" ? window : typeof global < "u" ? global : typeof self < "u" ? self : {};
       c = { exports: {} };
       (function() {
         let i3;
-        function t() {
+        function t2() {
         }
-        i3 = t, i3.prototype.getItem = function(e2) {
+        i3 = t2, i3.prototype.getItem = function(e2) {
           return this.hasOwnProperty(e2) ? String(this[e2]) : null;
         }, i3.prototype.setItem = function(e2, n4) {
           this[e2] = String(n4);
@@ -1777,7 +1777,7 @@
           return e2 = e2 || 0, Object.keys(this)[e2];
         }, i3.prototype.__defineGetter__("length", function() {
           return Object.keys(this).length;
-        }), typeof l2 < "u" && l2.localStorage ? c.exports = l2.localStorage : typeof window < "u" && window.localStorage ? c.exports = window.localStorage : c.exports = new t();
+        }), typeof l2 < "u" && l2.localStorage ? c.exports = l2.localStorage : typeof window < "u" && window.localStorage ? c.exports = window.localStorage : c.exports = new t2();
       })();
       K = class {
         constructor() {
@@ -1789,28 +1789,28 @@
         async getEntries() {
           return Object.entries(this.localStorage).map(k);
         }
-        async getItem(t) {
-          const e2 = this.localStorage.getItem(t);
+        async getItem(t2) {
+          const e2 = this.localStorage.getItem(t2);
           if (e2 !== null) return safeJsonParse(e2);
         }
-        async setItem(t, e2) {
-          this.localStorage.setItem(t, safeJsonStringify(e2));
+        async setItem(t2, e2) {
+          this.localStorage.setItem(t2, safeJsonStringify(e2));
         }
-        async removeItem(t) {
-          this.localStorage.removeItem(t);
+        async removeItem(t2) {
+          this.localStorage.removeItem(t2);
         }
       };
       N = "wc_storage_version";
       y = 1;
-      O = async (i3, t, e2) => {
-        const n4 = N, s2 = await t.getItem(n4);
+      O = async (i3, t2, e2) => {
+        const n4 = N, s2 = await t2.getItem(n4);
         if (s2 && s2 >= y) {
-          e2(t);
+          e2(t2);
           return;
         }
         const a3 = await i3.getKeys();
         if (!a3.length) {
-          e2(t);
+          e2(t2);
           return;
         }
         const m2 = [];
@@ -1820,13 +1820,13 @@
           const o4 = r3.toLowerCase();
           if (o4.includes("wc@") || o4.includes("walletconnect") || o4.includes("wc_") || o4.includes("wallet_connect")) {
             const f2 = await i3.getItem(r3);
-            await t.setItem(r3, f2), m2.push(r3);
+            await t2.setItem(r3, f2), m2.push(r3);
           }
         }
-        await t.setItem(n4, y), e2(t), j(i3, m2);
+        await t2.setItem(n4, y), e2(t2), j(i3, m2);
       };
-      j = async (i3, t) => {
-        t.length && t.forEach(async (e2) => {
+      j = async (i3, t2) => {
+        t2.length && t2.forEach(async (e2) => {
           await i3.removeItem(e2);
         });
       };
@@ -1835,11 +1835,11 @@
           this.initialized = false, this.setInitialized = (e2) => {
             this.storage = e2, this.initialized = true;
           };
-          const t = new K();
-          this.storage = t;
+          const t2 = new K();
+          this.storage = t2;
           try {
             const e2 = new _();
-            O(t, e2, this.setInitialized);
+            O(t2, e2, this.setInitialized);
           } catch {
             this.initialized = true;
           }
@@ -1850,19 +1850,19 @@
         async getEntries() {
           return await this.initialize(), this.storage.getEntries();
         }
-        async getItem(t) {
-          return await this.initialize(), this.storage.getItem(t);
+        async getItem(t2) {
+          return await this.initialize(), this.storage.getItem(t2);
         }
-        async setItem(t, e2) {
-          return await this.initialize(), this.storage.setItem(t, e2);
+        async setItem(t2, e2) {
+          return await this.initialize(), this.storage.setItem(t2, e2);
         }
-        async removeItem(t) {
-          return await this.initialize(), this.storage.removeItem(t);
+        async removeItem(t2) {
+          return await this.initialize(), this.storage.removeItem(t2);
         }
         async initialize() {
-          this.initialized || await new Promise((t) => {
+          this.initialized || await new Promise((t2) => {
             const e2 = setInterval(() => {
-              this.initialized && (clearInterval(e2), t());
+              this.initialized && (clearInterval(e2), t2());
             }, 20);
           });
         }
@@ -1878,50 +1878,50 @@
       return '"[Circular]"';
     }
   }
-  function oe(e2, t, r3) {
+  function oe(e2, t2, r3) {
     var s2 = r3 && r3.stringify || se, i3 = 1;
     if (typeof e2 == "object" && e2 !== null) {
-      var f2 = t.length + i3;
+      var f2 = t2.length + i3;
       if (f2 === 1) return e2;
-      var h5 = new Array(f2);
-      h5[0] = s2(e2);
-      for (var u3 = 1; u3 < f2; u3++) h5[u3] = s2(t[u3]);
-      return h5.join(" ");
+      var h4 = new Array(f2);
+      h4[0] = s2(e2);
+      for (var u2 = 1; u2 < f2; u2++) h4[u2] = s2(t2[u2]);
+      return h4.join(" ");
     }
     if (typeof e2 != "string") return e2;
-    var c4 = t.length;
+    var c4 = t2.length;
     if (c4 === 0) return e2;
-    for (var n4 = "", o4 = 1 - i3, l4 = -1, L2 = e2 && e2.length || 0, a3 = 0; a3 < L2; ) {
-      if (e2.charCodeAt(a3) === 37 && a3 + 1 < L2) {
+    for (var n4 = "", o4 = 1 - i3, l4 = -1, L = e2 && e2.length || 0, a3 = 0; a3 < L; ) {
+      if (e2.charCodeAt(a3) === 37 && a3 + 1 < L) {
         switch (l4 = l4 > -1 ? l4 : 0, e2.charCodeAt(a3 + 1)) {
           case 100:
           case 102:
-            if (o4 >= c4 || t[o4] == null) break;
-            l4 < a3 && (n4 += e2.slice(l4, a3)), n4 += Number(t[o4]), l4 = a3 + 2, a3++;
+            if (o4 >= c4 || t2[o4] == null) break;
+            l4 < a3 && (n4 += e2.slice(l4, a3)), n4 += Number(t2[o4]), l4 = a3 + 2, a3++;
             break;
           case 105:
-            if (o4 >= c4 || t[o4] == null) break;
-            l4 < a3 && (n4 += e2.slice(l4, a3)), n4 += Math.floor(Number(t[o4])), l4 = a3 + 2, a3++;
+            if (o4 >= c4 || t2[o4] == null) break;
+            l4 < a3 && (n4 += e2.slice(l4, a3)), n4 += Math.floor(Number(t2[o4])), l4 = a3 + 2, a3++;
             break;
           case 79:
           case 111:
           case 106:
-            if (o4 >= c4 || t[o4] === void 0) break;
+            if (o4 >= c4 || t2[o4] === void 0) break;
             l4 < a3 && (n4 += e2.slice(l4, a3));
-            var _3 = typeof t[o4];
+            var _3 = typeof t2[o4];
             if (_3 === "string") {
-              n4 += "'" + t[o4] + "'", l4 = a3 + 2, a3++;
+              n4 += "'" + t2[o4] + "'", l4 = a3 + 2, a3++;
               break;
             }
             if (_3 === "function") {
-              n4 += t[o4].name || "<anonymous>", l4 = a3 + 2, a3++;
+              n4 += t2[o4].name || "<anonymous>", l4 = a3 + 2, a3++;
               break;
             }
-            n4 += s2(t[o4]), l4 = a3 + 2, a3++;
+            n4 += s2(t2[o4]), l4 = a3 + 2, a3++;
             break;
           case 115:
             if (o4 >= c4) break;
-            l4 < a3 && (n4 += e2.slice(l4, a3)), n4 += String(t[o4]), l4 = a3 + 2, a3++;
+            l4 < a3 && (n4 += e2.slice(l4, a3)), n4 += String(t2[o4]), l4 = a3 + 2, a3++;
             break;
           case 37:
             l4 < a3 && (n4 += e2.slice(l4, a3)), n4 += "%", l4 = a3 + 2, a3++, o4--;
@@ -1931,161 +1931,161 @@
       }
       ++a3;
     }
-    return l4 === -1 ? e2 : (l4 < L2 && (n4 += e2.slice(l4)), n4);
+    return l4 === -1 ? e2 : (l4 < L && (n4 += e2.slice(l4)), n4);
   }
-  function m(e2, t) {
-    return e2 === "silent" ? 1 / 0 : t.levels.values[e2];
+  function m(e2, t2) {
+    return e2 === "silent" ? 1 / 0 : t2.levels.values[e2];
   }
-  function R(e2, t) {
-    const r3 = { logger: t, parent: e2[P] };
-    t[P] = r3;
+  function R(e2, t2) {
+    const r3 = { logger: t2, parent: e2[P] };
+    t2[P] = r3;
   }
-  function ue(e2, t, r3) {
+  function ue(e2, t2, r3) {
     const s2 = {};
-    t.forEach((i3) => {
+    t2.forEach((i3) => {
       s2[i3] = r3[i3] ? r3[i3] : E2[i3] || E2[ae[i3] || "log"] || z2;
     }), e2[A] = s2;
   }
-  function ce(e2, t) {
+  function ce(e2, t2) {
     return Array.isArray(e2) ? e2.filter(function(s2) {
       return s2 !== "!stdSerializers.err";
-    }) : e2 === true ? Object.keys(t) : false;
+    }) : e2 === true ? Object.keys(t2) : false;
   }
   function v(e2) {
     e2 = e2 || {}, e2.browser = e2.browser || {};
-    const t = e2.browser.transmit;
-    if (t && typeof t.send != "function") throw Error("pino: transmit option must have a send function");
+    const t2 = e2.browser.transmit;
+    if (t2 && typeof t2.send != "function") throw Error("pino: transmit option must have a send function");
     const r3 = e2.browser.write || E2;
     e2.browser.write && (e2.browser.asObject = true);
     const s2 = e2.serializers || {}, i3 = ce(e2.browser.serialize, s2);
     let f2 = e2.browser.serialize;
     Array.isArray(e2.browser.serialize) && e2.browser.serialize.indexOf("!stdSerializers.err") > -1 && (f2 = false);
-    const h5 = Object.keys(e2.customLevels || {}), u3 = ["error", "fatal", "warn", "info", "debug", "trace"].concat(h5);
-    typeof r3 == "function" && u3.forEach(function(g4) {
+    const h4 = Object.keys(e2.customLevels || {}), u2 = ["error", "fatal", "warn", "info", "debug", "trace"].concat(h4);
+    typeof r3 == "function" && u2.forEach(function(g4) {
       r3[g4] = r3;
     }), (e2.enabled === false || e2.browser.disabled) && (e2.level = "silent");
     const c4 = e2.level || "info", n4 = Object.create(r3);
-    n4.log || (n4.log = z2), ue(n4, u3, r3), R({}, n4), Object.defineProperty(n4, "levelVal", { get: l4 }), Object.defineProperty(n4, "level", { get: L2, set: a3 });
-    const o4 = { transmit: t, serialize: i3, asObject: e2.browser.asObject, asObjectBindingsOnly: e2.browser.asObjectBindingsOnly, formatters: e2.browser.formatters, levels: u3, timestamp: ye(e2), messageKey: e2.messageKey || "msg", onChild: e2.onChild || z2 };
+    n4.log || (n4.log = z2), ue(n4, u2, r3), R({}, n4), Object.defineProperty(n4, "levelVal", { get: l4 }), Object.defineProperty(n4, "level", { get: L, set: a3 });
+    const o4 = { transmit: t2, serialize: i3, asObject: e2.browser.asObject, asObjectBindingsOnly: e2.browser.asObjectBindingsOnly, formatters: e2.browser.formatters, levels: u2, timestamp: ye(e2), messageKey: e2.messageKey || "msg", onChild: e2.onChild || z2 };
     n4.levels = fe(e2), n4.level = c4, n4.isLevelEnabled = function(g4) {
       return this.levels.values[g4] ? this.levels.values[g4] >= this.levels.values[this.level] : false;
     }, n4.setMaxListeners = n4.getMaxListeners = n4.emit = n4.addListener = n4.on = n4.prependListener = n4.once = n4.prependOnceListener = n4.removeListener = n4.removeAllListeners = n4.listeners = n4.listenerCount = n4.eventNames = n4.write = n4.flush = z2, n4.serializers = s2, n4._serialize = i3, n4._stdErrSerialize = f2, n4.child = function(...g4) {
       return _3.call(this, o4, ...g4);
-    }, t && (n4._logEvent = N2());
+    }, t2 && (n4._logEvent = N2());
     function l4() {
       return m(this.level, this);
     }
-    function L2() {
+    function L() {
       return this._level;
     }
     function a3(g4) {
       if (g4 !== "silent" && !this.levels.values[g4]) throw Error("unknown level " + g4);
-      this._level = g4, O2(this, o4, n4, "error"), O2(this, o4, n4, "fatal"), O2(this, o4, n4, "warn"), O2(this, o4, n4, "info"), O2(this, o4, n4, "debug"), O2(this, o4, n4, "trace"), h5.forEach((d3) => {
+      this._level = g4, O2(this, o4, n4, "error"), O2(this, o4, n4, "fatal"), O2(this, o4, n4, "warn"), O2(this, o4, n4, "info"), O2(this, o4, n4, "debug"), O2(this, o4, n4, "trace"), h4.forEach((d3) => {
         O2(this, o4, n4, d3);
       });
     }
-    function _3(g4, d3, j5) {
+    function _3(g4, d3, j4) {
       if (!d3) throw new Error("missing bindings for child Pino");
-      j5 = j5 || {}, i3 && d3.serializers && (j5.serializers = d3.serializers);
-      const F3 = j5.serializers;
+      j4 = j4 || {}, i3 && d3.serializers && (j4.serializers = d3.serializers);
+      const F3 = j4.serializers;
       if (i3 && F3) {
-        var C4 = Object.assign({}, s2, F3), M5 = e2.browser.serialize === true ? Object.keys(C4) : i3;
-        delete d3.serializers, V([d3], M5, C4, this._stdErrSerialize);
+        var C4 = Object.assign({}, s2, F3), M4 = e2.browser.serialize === true ? Object.keys(C4) : i3;
+        delete d3.serializers, V([d3], M4, C4, this._stdErrSerialize);
       }
       function D5(I2) {
-        this._childLevel = (I2._childLevel | 0) + 1, this.bindings = d3, C4 && (this.serializers = C4, this._serialize = M5), t && (this._logEvent = N2([].concat(I2._logEvent.bindings, d3)));
+        this._childLevel = (I2._childLevel | 0) + 1, this.bindings = d3, C4 && (this.serializers = C4, this._serialize = M4), t2 && (this._logEvent = N2([].concat(I2._logEvent.bindings, d3)));
       }
       D5.prototype = this;
-      const S5 = new D5(this);
-      return R(this, S5), S5.child = function(...I2) {
+      const S4 = new D5(this);
+      return R(this, S4), S4.child = function(...I2) {
         return _3.call(this, g4, ...I2);
-      }, S5.level = j5.level || this.level, g4.onChild(S5), S5;
+      }, S4.level = j4.level || this.level, g4.onChild(S4), S4;
     }
     return n4;
   }
   function fe(e2) {
-    const t = e2.customLevels || {}, r3 = Object.assign({}, v.levels.values, t), s2 = Object.assign({}, v.levels.labels, he(t));
+    const t2 = e2.customLevels || {}, r3 = Object.assign({}, v.levels.values, t2), s2 = Object.assign({}, v.levels.labels, he(t2));
     return { values: r3, labels: s2 };
   }
   function he(e2) {
-    const t = {};
+    const t2 = {};
     return Object.keys(e2).forEach(function(r3) {
-      t[e2[r3]] = r3;
-    }), t;
+      t2[e2[r3]] = r3;
+    }), t2;
   }
   function ge(e2) {
-    const t = [];
-    e2.bindings && t.push(e2.bindings);
+    const t2 = [];
+    e2.bindings && t2.push(e2.bindings);
     let r3 = e2[P];
-    for (; r3.parent; ) r3 = r3.parent, r3.logger.bindings && t.push(r3.logger.bindings);
-    return t.reverse();
+    for (; r3.parent; ) r3 = r3.parent, r3.logger.bindings && t2.push(r3.logger.bindings);
+    return t2.reverse();
   }
-  function O2(e2, t, r3, s2) {
+  function O2(e2, t2, r3, s2) {
     if (Object.defineProperty(e2, s2, { value: m(e2.level, r3) > m(s2, r3) ? z2 : r3[A][s2], writable: true, enumerable: true, configurable: true }), e2[s2] === z2) {
-      if (!t.transmit) return;
-      const f2 = t.transmit.level || e2.level, h5 = m(f2, r3);
-      if (m(s2, r3) < h5) return;
+      if (!t2.transmit) return;
+      const f2 = t2.transmit.level || e2.level, h4 = m(f2, r3);
+      if (m(s2, r3) < h4) return;
     }
-    e2[s2] = de(e2, t, r3, s2);
+    e2[s2] = de(e2, t2, r3, s2);
     const i3 = ge(e2);
     i3.length !== 0 && (e2[s2] = be(i3, e2[s2]));
   }
-  function be(e2, t) {
+  function be(e2, t2) {
     return function() {
-      return t.apply(this, [...e2, ...arguments]);
+      return t2.apply(this, [...e2, ...arguments]);
     };
   }
-  function de(e2, t, r3, s2) {
+  function de(e2, t2, r3, s2) {
     return /* @__PURE__ */ (function(i3) {
       return function() {
-        const h5 = t.timestamp(), u3 = new Array(arguments.length), c4 = Object.getPrototypeOf && Object.getPrototypeOf(this) === E2 ? E2 : this;
-        for (var n4 = 0; n4 < u3.length; n4++) u3[n4] = arguments[n4];
+        const h4 = t2.timestamp(), u2 = new Array(arguments.length), c4 = Object.getPrototypeOf && Object.getPrototypeOf(this) === E2 ? E2 : this;
+        for (var n4 = 0; n4 < u2.length; n4++) u2[n4] = arguments[n4];
         var o4 = false;
-        if (t.serialize && (V(u3, this._serialize, this.serializers, this._stdErrSerialize), o4 = true), t.asObject || t.formatters ? i3.call(c4, ...ve(this, s2, u3, h5, t)) : i3.apply(c4, u3), t.transmit) {
-          const l4 = t.transmit.level || e2._level, L2 = m(l4, r3), a3 = m(s2, r3);
-          if (a3 < L2) return;
-          me(this, { ts: h5, methodLevel: s2, methodValue: a3, transmitLevel: l4, transmitValue: r3.levels.values[t.transmit.level || e2._level], send: t.transmit.send, val: m(e2._level, r3) }, u3, o4);
+        if (t2.serialize && (V(u2, this._serialize, this.serializers, this._stdErrSerialize), o4 = true), t2.asObject || t2.formatters ? i3.call(c4, ...ve(this, s2, u2, h4, t2)) : i3.apply(c4, u2), t2.transmit) {
+          const l4 = t2.transmit.level || e2._level, L = m(l4, r3), a3 = m(s2, r3);
+          if (a3 < L) return;
+          me(this, { ts: h4, methodLevel: s2, methodValue: a3, transmitLevel: l4, transmitValue: r3.levels.values[t2.transmit.level || e2._level], send: t2.transmit.send, val: m(e2._level, r3) }, u2, o4);
         }
       };
     })(e2[A][s2]);
   }
-  function ve(e2, t, r3, s2, i3) {
-    const { level: f2, log: h5 = (l4) => l4 } = i3.formatters || {}, u3 = r3.slice();
-    let c4 = u3[0];
+  function ve(e2, t2, r3, s2, i3) {
+    const { level: f2, log: h4 = (l4) => l4 } = i3.formatters || {}, u2 = r3.slice();
+    let c4 = u2[0];
     const n4 = {};
     let o4 = (e2._childLevel | 0) + 1;
     if (o4 < 1 && (o4 = 1), s2 && (n4.time = s2), f2) {
-      const l4 = f2(t, e2.levels.values[t]);
+      const l4 = f2(t2, e2.levels.values[t2]);
       Object.assign(n4, l4);
-    } else n4.level = e2.levels.values[t];
+    } else n4.level = e2.levels.values[t2];
     if (i3.asObjectBindingsOnly) {
-      if (c4 !== null && typeof c4 == "object") for (; o4-- && typeof u3[0] == "object"; ) Object.assign(n4, u3.shift());
-      return [h5(n4), ...u3];
+      if (c4 !== null && typeof c4 == "object") for (; o4-- && typeof u2[0] == "object"; ) Object.assign(n4, u2.shift());
+      return [h4(n4), ...u2];
     } else {
       if (c4 !== null && typeof c4 == "object") {
-        for (; o4-- && typeof u3[0] == "object"; ) Object.assign(n4, u3.shift());
-        c4 = u3.length ? G(u3.shift(), u3) : void 0;
-      } else typeof c4 == "string" && (c4 = G(u3.shift(), u3));
-      return c4 !== void 0 && (n4[i3.messageKey] = c4), [h5(n4)];
+        for (; o4-- && typeof u2[0] == "object"; ) Object.assign(n4, u2.shift());
+        c4 = u2.length ? G(u2.shift(), u2) : void 0;
+      } else typeof c4 == "string" && (c4 = G(u2.shift(), u2));
+      return c4 !== void 0 && (n4[i3.messageKey] = c4), [h4(n4)];
     }
   }
-  function V(e2, t, r3, s2) {
+  function V(e2, t2, r3, s2) {
     for (const i3 in e2) if (s2 && e2[i3] instanceof Error) e2[i3] = v.stdSerializers.err(e2[i3]);
-    else if (typeof e2[i3] == "object" && !Array.isArray(e2[i3]) && t) for (const f2 in e2[i3]) t.indexOf(f2) > -1 && f2 in r3 && (e2[i3][f2] = r3[f2](e2[i3][f2]));
+    else if (typeof e2[i3] == "object" && !Array.isArray(e2[i3]) && t2) for (const f2 in e2[i3]) t2.indexOf(f2) > -1 && f2 in r3 && (e2[i3][f2] = r3[f2](e2[i3][f2]));
   }
-  function me(e2, t, r3, s2 = false) {
-    const i3 = t.send, f2 = t.ts, h5 = t.methodLevel, u3 = t.methodValue, c4 = t.val, n4 = e2._logEvent.bindings;
+  function me(e2, t2, r3, s2 = false) {
+    const i3 = t2.send, f2 = t2.ts, h4 = t2.methodLevel, u2 = t2.methodValue, c4 = t2.val, n4 = e2._logEvent.bindings;
     s2 || V(r3, e2._serialize || Object.keys(e2.serializers), e2.serializers, e2._stdErrSerialize === void 0 ? true : e2._stdErrSerialize), e2._logEvent.ts = f2, e2._logEvent.messages = r3.filter(function(o4) {
       return n4.indexOf(o4) === -1;
-    }), e2._logEvent.level.label = h5, e2._logEvent.level.value = u3, i3(h5, e2._logEvent, c4), e2._logEvent = N2(n4);
+    }), e2._logEvent.level.label = h4, e2._logEvent.level.value = u2, i3(h4, e2._logEvent, c4), e2._logEvent = N2(n4);
   }
   function N2(e2) {
     return { ts: 0, messages: [], bindings: e2 || [], level: { label: "", value: 0 } };
   }
   function U(e2) {
-    const t = { type: e2.constructor.name, msg: e2.message, stack: e2.stack };
-    for (const r3 in e2) t[r3] === void 0 && (t[r3] = e2[r3]);
-    return t;
+    const t2 = { type: e2.constructor.name, msg: e2.message, stack: e2.stack };
+    for (const r3 in e2) t2[r3] === void 0 && (t2[r3] = e2[r3]);
+    return t2;
   }
   function ye(e2) {
     return typeof e2.timestamp == "function" ? e2.timestamp : e2.timestamp === false ? X : Y;
@@ -2111,8 +2111,8 @@
     return new Date(Date.now()).toISOString();
   }
   function Le() {
-    function e2(t) {
-      return typeof t < "u" && t;
+    function e2(t2) {
+      return typeof t2 < "u" && t2;
     }
     try {
       return typeof globalThis < "u" || Object.defineProperty(Object.prototype, "globalThis", { get: function() {
@@ -2128,34 +2128,34 @@
   function Ge(e2) {
     return w(p({}, e2), { level: e2?.level || Z.level });
   }
-  function Q(e2, t, r3 = k2) {
-    return e2[r3] = t, e2;
+  function Q(e2, t2, r3 = k2) {
+    return e2[r3] = t2, e2;
   }
-  function ee(e2, t = k2) {
-    return e2[t] || "";
+  function ee(e2, t2 = k2) {
+    return e2[t2] || "";
   }
-  function te(e2, t, r3 = k2) {
+  function te(e2, t2, r3 = k2) {
     const s2 = ee(e2, r3);
-    return s2.trim() ? `${s2}/${t}` : t;
+    return s2.trim() ? `${s2}/${t2}` : t2;
   }
-  function Re(e2, t, r3 = k2) {
-    const s2 = te(e2, t, r3), i3 = e2.child({ context: s2 });
+  function Re(e2, t2, r3 = k2) {
+    const s2 = te(e2, t2, r3), i3 = e2.child({ context: s2 });
     return Q(i3, s2, r3);
   }
   function re(e2) {
-    var t, r3;
-    const s2 = new xe((t = e2.opts) == null ? void 0 : t.level, e2.maxSizeInBytes);
+    var t2, r3;
+    const s2 = new xe((t2 = e2.opts) == null ? void 0 : t2.level, e2.maxSizeInBytes);
     return { logger: b.exports(w(p({}, e2.opts), { level: "trace", browser: w(p({}, (r3 = e2.opts) == null ? void 0 : r3.browser), { write: (i3) => s2.write(i3) }) })), chunkLoggerController: s2 };
   }
   function ne(e2) {
-    var t, r3;
-    const s2 = new Ve((t = e2.opts) == null ? void 0 : t.level, e2.maxSizeInBytes);
+    var t2, r3;
+    const s2 = new Ve((t2 = e2.opts) == null ? void 0 : t2.level, e2.maxSizeInBytes);
     return { logger: b.exports(w(p({}, e2.opts), { level: "trace", browser: w(p({}, (r3 = e2.opts) == null ? void 0 : r3.browser), { write: (i3) => s2.write(i3) }) }), s2), chunkLoggerController: s2 };
   }
   function Ue(e2) {
-    var t;
+    var t2;
     if (typeof e2.loggerOverride < "u" && typeof e2.loggerOverride != "string") return { logger: e2.loggerOverride, chunkLoggerController: null };
-    const r3 = w(p({}, e2.opts), { level: typeof e2.loggerOverride == "string" ? e2.loggerOverride : (t = e2.opts) == null ? void 0 : t.level });
+    const r3 = w(p({}, e2.opts), { level: typeof e2.loggerOverride == "string" ? e2.loggerOverride : (t2 = e2.opts) == null ? void 0 : t2.level });
     return typeof window < "u" ? re(w(p({}, e2), { opts: r3 })) : ne(w(p({}, e2), { opts: r3 }));
   }
   var b, ie, G, E2, le, A, P, ae, Oe, Z, k2, x2, ze, _e, y2, je, q, Se, Ee, ke, B, J, Ce, Ie, Te, xe, Be, Ae, Pe, Ve, Ne, $e, Fe, H, Me, De, W, p, w;
@@ -2177,11 +2177,11 @@
       k2 = "custom_context";
       x2 = 1e3 * 1024;
       ze = Object.defineProperty;
-      _e = (e2, t, r3) => t in e2 ? ze(e2, t, { enumerable: true, configurable: true, writable: true, value: r3 }) : e2[t] = r3;
-      y2 = (e2, t, r3) => _e(e2, typeof t != "symbol" ? t + "" : t, r3);
+      _e = (e2, t2, r3) => t2 in e2 ? ze(e2, t2, { enumerable: true, configurable: true, writable: true, value: r3 }) : e2[t2] = r3;
+      y2 = (e2, t2, r3) => _e(e2, typeof t2 != "symbol" ? t2 + "" : t2, r3);
       je = class {
-        constructor(t) {
-          y2(this, "nodeValue"), y2(this, "sizeInBytes"), y2(this, "next"), this.nodeValue = t, this.sizeInBytes = new TextEncoder().encode(this.nodeValue).length, this.next = null;
+        constructor(t2) {
+          y2(this, "nodeValue"), y2(this, "sizeInBytes"), y2(this, "next"), this.nodeValue = t2, this.sizeInBytes = new TextEncoder().encode(this.nodeValue).length, this.next = null;
         }
         get value() {
           return this.nodeValue;
@@ -2191,25 +2191,25 @@
         }
       };
       q = class {
-        constructor(t) {
-          y2(this, "lengthInNodes"), y2(this, "sizeInBytes"), y2(this, "head"), y2(this, "tail"), y2(this, "maxSizeInBytes"), this.head = null, this.tail = null, this.lengthInNodes = 0, this.maxSizeInBytes = t, this.sizeInBytes = 0;
+        constructor(t2) {
+          y2(this, "lengthInNodes"), y2(this, "sizeInBytes"), y2(this, "head"), y2(this, "tail"), y2(this, "maxSizeInBytes"), this.head = null, this.tail = null, this.lengthInNodes = 0, this.maxSizeInBytes = t2, this.sizeInBytes = 0;
         }
-        append(t) {
-          const r3 = new je(t);
-          if (r3.size > this.maxSizeInBytes) throw new Error(`[LinkedList] Value too big to insert into list: ${t} with size ${r3.size}`);
+        append(t2) {
+          const r3 = new je(t2);
+          if (r3.size > this.maxSizeInBytes) throw new Error(`[LinkedList] Value too big to insert into list: ${t2} with size ${r3.size}`);
           for (; this.size + r3.size > this.maxSizeInBytes; ) this.shift();
           this.head ? (this.tail && (this.tail.next = r3), this.tail = r3) : (this.head = r3, this.tail = r3), this.lengthInNodes++, this.sizeInBytes += r3.size;
         }
         shift() {
           if (!this.head) return;
-          const t = this.head;
-          this.head = this.head.next, this.head || (this.tail = null), this.lengthInNodes--, this.sizeInBytes -= t.size;
+          const t2 = this.head;
+          this.head = this.head.next, this.head || (this.tail = null), this.lengthInNodes--, this.sizeInBytes -= t2.size;
         }
         toArray() {
-          const t = [];
+          const t2 = [];
           let r3 = this.head;
-          for (; r3 !== null; ) t.push(r3.value), r3 = r3.next;
-          return t;
+          for (; r3 !== null; ) t2.push(r3.value), r3 = r3.next;
+          return t2;
         }
         get length() {
           return this.lengthInNodes;
@@ -2221,29 +2221,29 @@
           return Array.from(this);
         }
         [Symbol.iterator]() {
-          let t = this.head;
+          let t2 = this.head;
           return { next: () => {
-            if (!t) return { done: true, value: null };
-            const r3 = t.value;
-            return t = t.next, { done: false, value: r3 };
+            if (!t2) return { done: true, value: null };
+            const r3 = t2.value;
+            return t2 = t2.next, { done: false, value: r3 };
           } };
         }
       };
-      Se = (e2) => JSON.stringify(e2, (t, r3) => typeof r3 == "bigint" ? r3.toString() + "n" : r3);
+      Se = (e2) => JSON.stringify(e2, (t2, r3) => typeof r3 == "bigint" ? r3.toString() + "n" : r3);
       Ee = Object.defineProperty;
-      ke = (e2, t, r3) => t in e2 ? Ee(e2, t, { enumerable: true, configurable: true, writable: true, value: r3 }) : e2[t] = r3;
-      B = (e2, t, r3) => ke(e2, typeof t != "symbol" ? t + "" : t, r3);
+      ke = (e2, t2, r3) => t2 in e2 ? Ee(e2, t2, { enumerable: true, configurable: true, writable: true, value: r3 }) : e2[t2] = r3;
+      B = (e2, t2, r3) => ke(e2, typeof t2 != "symbol" ? t2 + "" : t2, r3);
       J = class {
-        constructor(t, r3 = x2) {
-          B(this, "logs"), B(this, "level"), B(this, "levelValue"), B(this, "MAX_LOG_SIZE_IN_BYTES"), this.level = t ?? "error", this.levelValue = b.exports.levels.values[this.level], this.MAX_LOG_SIZE_IN_BYTES = r3, this.logs = new q(this.MAX_LOG_SIZE_IN_BYTES);
+        constructor(t2, r3 = x2) {
+          B(this, "logs"), B(this, "level"), B(this, "levelValue"), B(this, "MAX_LOG_SIZE_IN_BYTES"), this.level = t2 ?? "error", this.levelValue = b.exports.levels.values[this.level], this.MAX_LOG_SIZE_IN_BYTES = r3, this.logs = new q(this.MAX_LOG_SIZE_IN_BYTES);
         }
-        forwardToConsole(t, r3) {
-          r3 === b.exports.levels.values.error ? console.error(t) : r3 === b.exports.levels.values.warn ? console.warn(t) : r3 === b.exports.levels.values.debug ? console.debug(t) : r3 === b.exports.levels.values.trace ? console.trace(t) : console.log(t);
+        forwardToConsole(t2, r3) {
+          r3 === b.exports.levels.values.error ? console.error(t2) : r3 === b.exports.levels.values.warn ? console.warn(t2) : r3 === b.exports.levels.values.debug ? console.debug(t2) : r3 === b.exports.levels.values.trace ? console.trace(t2) : console.log(t2);
         }
-        appendToLogs(t) {
-          this.logs.append(K2({ timestamp: (/* @__PURE__ */ new Date()).toISOString(), log: t }));
-          const r3 = typeof t == "string" ? JSON.parse(t).level : t.level;
-          r3 >= this.levelValue && this.forwardToConsole(t, r3);
+        appendToLogs(t2) {
+          this.logs.append(K2({ timestamp: (/* @__PURE__ */ new Date()).toISOString(), log: t2 }));
+          const r3 = typeof t2 == "string" ? JSON.parse(t2).level : t2.level;
+          r3 >= this.levelValue && this.forwardToConsole(t2, r3);
         }
         getLogs() {
           return this.logs;
@@ -2254,20 +2254,20 @@
         getLogArray() {
           return Array.from(this.logs);
         }
-        logsToBlob(t) {
+        logsToBlob(t2) {
           const r3 = this.getLogArray();
-          return r3.push(K2({ extraMetadata: t })), new Blob(r3, { type: "application/json" });
+          return r3.push(K2({ extraMetadata: t2 })), new Blob(r3, { type: "application/json" });
         }
       };
       Ce = Object.defineProperty;
-      Ie = (e2, t, r3) => t in e2 ? Ce(e2, t, { enumerable: true, configurable: true, writable: true, value: r3 }) : e2[t] = r3;
-      Te = (e2, t, r3) => Ie(e2, typeof t != "symbol" ? t + "" : t, r3);
+      Ie = (e2, t2, r3) => t2 in e2 ? Ce(e2, t2, { enumerable: true, configurable: true, writable: true, value: r3 }) : e2[t2] = r3;
+      Te = (e2, t2, r3) => Ie(e2, typeof t2 != "symbol" ? t2 + "" : t2, r3);
       xe = class {
-        constructor(t, r3 = x2) {
-          Te(this, "baseChunkLogger"), this.baseChunkLogger = new J(t, r3);
+        constructor(t2, r3 = x2) {
+          Te(this, "baseChunkLogger"), this.baseChunkLogger = new J(t2, r3);
         }
-        write(t) {
-          this.baseChunkLogger.appendToLogs(t);
+        write(t2) {
+          this.baseChunkLogger.appendToLogs(t2);
         }
         getLogs() {
           return this.baseChunkLogger.getLogs();
@@ -2278,23 +2278,23 @@
         getLogArray() {
           return this.baseChunkLogger.getLogArray();
         }
-        logsToBlob(t) {
-          return this.baseChunkLogger.logsToBlob(t);
+        logsToBlob(t2) {
+          return this.baseChunkLogger.logsToBlob(t2);
         }
-        downloadLogsBlobInBrowser(t) {
-          const r3 = URL.createObjectURL(this.logsToBlob(t)), s2 = document.createElement("a");
+        downloadLogsBlobInBrowser(t2) {
+          const r3 = URL.createObjectURL(this.logsToBlob(t2)), s2 = document.createElement("a");
           s2.href = r3, s2.download = `walletconnect-logs-${(/* @__PURE__ */ new Date()).toISOString()}.txt`, document.body.appendChild(s2), s2.click(), document.body.removeChild(s2), URL.revokeObjectURL(r3);
         }
       };
       Be = Object.defineProperty;
-      Ae = (e2, t, r3) => t in e2 ? Be(e2, t, { enumerable: true, configurable: true, writable: true, value: r3 }) : e2[t] = r3;
-      Pe = (e2, t, r3) => Ae(e2, typeof t != "symbol" ? t + "" : t, r3);
+      Ae = (e2, t2, r3) => t2 in e2 ? Be(e2, t2, { enumerable: true, configurable: true, writable: true, value: r3 }) : e2[t2] = r3;
+      Pe = (e2, t2, r3) => Ae(e2, typeof t2 != "symbol" ? t2 + "" : t2, r3);
       Ve = class {
-        constructor(t, r3 = x2) {
-          Pe(this, "baseChunkLogger"), this.baseChunkLogger = new J(t, r3);
+        constructor(t2, r3 = x2) {
+          Pe(this, "baseChunkLogger"), this.baseChunkLogger = new J(t2, r3);
         }
-        write(t) {
-          this.baseChunkLogger.appendToLogs(t);
+        write(t2) {
+          this.baseChunkLogger.appendToLogs(t2);
         }
         getLogs() {
           return this.baseChunkLogger.getLogs();
@@ -2305,8 +2305,8 @@
         getLogArray() {
           return this.baseChunkLogger.getLogArray();
         }
-        logsToBlob(t) {
-          return this.baseChunkLogger.logsToBlob(t);
+        logsToBlob(t2) {
+          return this.baseChunkLogger.logsToBlob(t2);
         }
       };
       Ne = Object.defineProperty;
@@ -2315,13 +2315,13 @@
       H = Object.getOwnPropertySymbols;
       Me = Object.prototype.hasOwnProperty;
       De = Object.prototype.propertyIsEnumerable;
-      W = (e2, t, r3) => t in e2 ? Ne(e2, t, { enumerable: true, configurable: true, writable: true, value: r3 }) : e2[t] = r3;
-      p = (e2, t) => {
-        for (var r3 in t || (t = {})) Me.call(t, r3) && W(e2, r3, t[r3]);
-        if (H) for (var r3 of H(t)) De.call(t, r3) && W(e2, r3, t[r3]);
+      W = (e2, t2, r3) => t2 in e2 ? Ne(e2, t2, { enumerable: true, configurable: true, writable: true, value: r3 }) : e2[t2] = r3;
+      p = (e2, t2) => {
+        for (var r3 in t2 || (t2 = {})) Me.call(t2, r3) && W(e2, r3, t2[r3]);
+        if (H) for (var r3 of H(t2)) De.call(t2, r3) && W(e2, r3, t2[r3]);
         return e2;
       };
-      w = (e2, t) => $e(e2, Fe(t));
+      w = (e2, t2) => $e(e2, Fe(t2));
     }
   });
 
@@ -2337,18 +2337,18 @@
         }
       };
       h2 = class extends IEvents {
-        constructor(s2, t) {
-          super(), this.core = s2, this.logger = t, this.records = /* @__PURE__ */ new Map();
+        constructor(s2, t2) {
+          super(), this.core = s2, this.logger = t2, this.records = /* @__PURE__ */ new Map();
         }
       };
       a2 = class {
-        constructor(s2, t) {
-          this.logger = s2, this.core = t;
+        constructor(s2, t2) {
+          this.logger = s2, this.core = t2;
         }
       };
       g = class extends IEvents {
-        constructor(s2, t) {
-          super(), this.relayer = s2, this.logger = t;
+        constructor(s2, t2) {
+          super(), this.relayer = s2, this.logger = t2;
         }
       };
       u = class extends IEvents {
@@ -2357,33 +2357,33 @@
         }
       };
       p2 = class {
-        constructor(s2, t, e2, f2) {
-          this.core = s2, this.logger = t, this.name = e2;
+        constructor(s2, t2, e2, f2) {
+          this.core = s2, this.logger = t2, this.name = e2;
         }
       };
       d = class extends IEvents {
-        constructor(s2, t) {
-          super(), this.relayer = s2, this.logger = t;
+        constructor(s2, t2) {
+          super(), this.relayer = s2, this.logger = t2;
         }
       };
       x3 = class extends IEvents {
-        constructor(s2, t) {
-          super(), this.core = s2, this.logger = t;
+        constructor(s2, t2) {
+          super(), this.core = s2, this.logger = t2;
         }
       };
       y3 = class {
-        constructor(s2, t, e2) {
-          this.core = s2, this.logger = t, this.store = e2;
+        constructor(s2, t2, e2) {
+          this.core = s2, this.logger = t2, this.store = e2;
         }
       };
       v2 = class {
-        constructor(s2, t) {
-          this.projectId = s2, this.logger = t;
+        constructor(s2, t2) {
+          this.projectId = s2, this.logger = t2;
         }
       };
       C = class {
-        constructor(s2, t, e2) {
-          this.core = s2, this.logger = t, this.telemetryEnabled = e2;
+        constructor(s2, t2, e2) {
+          this.core = s2, this.logger = t2, this.telemetryEnabled = e2;
         }
       };
       S = class {
@@ -2400,201 +2400,201 @@
   });
 
   // node_modules/@walletconnect/relay-auth/dist/index.es.js
-  function En(t) {
-    return t instanceof Uint8Array || ArrayBuffer.isView(t) && t.constructor.name === "Uint8Array";
+  function En(t2) {
+    return t2 instanceof Uint8Array || ArrayBuffer.isView(t2) && t2.constructor.name === "Uint8Array";
   }
-  function fe2(t, ...e2) {
-    if (!En(t)) throw new Error("Uint8Array expected");
-    if (e2.length > 0 && !e2.includes(t.length)) throw new Error("Uint8Array expected of length " + e2 + ", got length=" + t.length);
+  function fe2(t2, ...e2) {
+    if (!En(t2)) throw new Error("Uint8Array expected");
+    if (e2.length > 0 && !e2.includes(t2.length)) throw new Error("Uint8Array expected of length " + e2 + ", got length=" + t2.length);
   }
-  function De2(t, e2 = true) {
-    if (t.destroyed) throw new Error("Hash instance has been destroyed");
-    if (e2 && t.finished) throw new Error("Hash#digest() has already been called");
+  function De2(t2, e2 = true) {
+    if (t2.destroyed) throw new Error("Hash instance has been destroyed");
+    if (e2 && t2.finished) throw new Error("Hash#digest() has already been called");
   }
-  function gn(t, e2) {
-    fe2(t);
+  function gn(t2, e2) {
+    fe2(t2);
     const n4 = e2.outputLen;
-    if (t.length < n4) throw new Error("digestInto() expects output buffer of length at least " + n4);
+    if (t2.length < n4) throw new Error("digestInto() expects output buffer of length at least " + n4);
   }
-  function yn(t) {
-    if (typeof t != "string") throw new Error("utf8ToBytes expected string, got " + typeof t);
-    return new Uint8Array(new TextEncoder().encode(t));
+  function yn(t2) {
+    if (typeof t2 != "string") throw new Error("utf8ToBytes expected string, got " + typeof t2);
+    return new Uint8Array(new TextEncoder().encode(t2));
   }
-  function de2(t) {
-    return typeof t == "string" && (t = yn(t)), fe2(t), t;
+  function de2(t2) {
+    return typeof t2 == "string" && (t2 = yn(t2)), fe2(t2), t2;
   }
-  function Bn(t) {
-    const e2 = (r3) => t().update(de2(r3)).digest(), n4 = t();
-    return e2.outputLen = n4.outputLen, e2.blockLen = n4.blockLen, e2.create = () => t(), e2;
+  function Bn(t2) {
+    const e2 = (r3) => t2().update(de2(r3)).digest(), n4 = t2();
+    return e2.outputLen = n4.outputLen, e2.blockLen = n4.blockLen, e2.create = () => t2(), e2;
   }
-  function he2(t = 32) {
-    if (it && typeof it.getRandomValues == "function") return it.getRandomValues(new Uint8Array(t));
-    if (it && typeof it.randomBytes == "function") return it.randomBytes(t);
+  function he2(t2 = 32) {
+    if (it && typeof it.getRandomValues == "function") return it.getRandomValues(new Uint8Array(t2));
+    if (it && typeof it.randomBytes == "function") return it.randomBytes(t2);
     throw new Error("crypto.getRandomValues must be defined");
   }
-  function Cn(t, e2, n4, r3) {
-    if (typeof t.setBigUint64 == "function") return t.setBigUint64(e2, n4, r3);
-    const o4 = BigInt(32), s2 = BigInt(4294967295), a3 = Number(n4 >> o4 & s2), u3 = Number(n4 & s2), i3 = r3 ? 4 : 0, D5 = r3 ? 0 : 4;
-    t.setUint32(e2 + i3, a3, r3), t.setUint32(e2 + D5, u3, r3);
+  function Cn(t2, e2, n4, r3) {
+    if (typeof t2.setBigUint64 == "function") return t2.setBigUint64(e2, n4, r3);
+    const o4 = BigInt(32), s2 = BigInt(4294967295), a3 = Number(n4 >> o4 & s2), u2 = Number(n4 & s2), i3 = r3 ? 4 : 0, D5 = r3 ? 0 : 4;
+    t2.setUint32(e2 + i3, a3, r3), t2.setUint32(e2 + D5, u2, r3);
   }
-  function le2(t, e2 = false) {
-    return e2 ? { h: Number(t & wt), l: Number(t >> St & wt) } : { h: Number(t >> St & wt) | 0, l: Number(t & wt) | 0 };
+  function le2(t2, e2 = false) {
+    return e2 ? { h: Number(t2 & wt), l: Number(t2 >> St & wt) } : { h: Number(t2 >> St & wt) | 0, l: Number(t2 & wt) | 0 };
   }
-  function mn(t, e2 = false) {
-    let n4 = new Uint32Array(t.length), r3 = new Uint32Array(t.length);
-    for (let o4 = 0; o4 < t.length; o4++) {
-      const { h: s2, l: a3 } = le2(t[o4], e2);
+  function mn(t2, e2 = false) {
+    let n4 = new Uint32Array(t2.length), r3 = new Uint32Array(t2.length);
+    for (let o4 = 0; o4 < t2.length; o4++) {
+      const { h: s2, l: a3 } = le2(t2[o4], e2);
       [n4[o4], r3[o4]] = [s2, a3];
     }
     return [n4, r3];
   }
-  function qn(t, e2, n4, r3) {
+  function qn(t2, e2, n4, r3) {
     const o4 = (e2 >>> 0) + (r3 >>> 0);
-    return { h: t + n4 + (o4 / 2 ** 32 | 0) | 0, l: o4 | 0 };
+    return { h: t2 + n4 + (o4 / 2 ** 32 | 0) | 0, l: o4 | 0 };
   }
-  function It(t) {
-    return t instanceof Uint8Array || ArrayBuffer.isView(t) && t.constructor.name === "Uint8Array";
+  function It(t2) {
+    return t2 instanceof Uint8Array || ArrayBuffer.isView(t2) && t2.constructor.name === "Uint8Array";
   }
-  function Ut(t) {
-    if (!It(t)) throw new Error("Uint8Array expected");
+  function Ut(t2) {
+    if (!It(t2)) throw new Error("Uint8Array expected");
   }
-  function Tt(t, e2) {
-    if (typeof e2 != "boolean") throw new Error(t + " boolean expected, got " + e2);
+  function Tt(t2, e2) {
+    if (typeof e2 != "boolean") throw new Error(t2 + " boolean expected, got " + e2);
   }
-  function Ft(t) {
-    Ut(t);
+  function Ft(t2) {
+    Ut(t2);
     let e2 = "";
-    for (let n4 = 0; n4 < t.length; n4++) e2 += Xn[t[n4]];
+    for (let n4 = 0; n4 < t2.length; n4++) e2 += Xn[t2[n4]];
     return e2;
   }
-  function pe2(t) {
-    if (typeof t != "string") throw new Error("hex string expected, got " + typeof t);
-    return t === "" ? vt : BigInt("0x" + t);
+  function pe2(t2) {
+    if (typeof t2 != "string") throw new Error("hex string expected, got " + typeof t2);
+    return t2 === "" ? vt : BigInt("0x" + t2);
   }
-  function we2(t) {
-    if (t >= K3._0 && t <= K3._9) return t - K3._0;
-    if (t >= K3.A && t <= K3.F) return t - (K3.A - 10);
-    if (t >= K3.a && t <= K3.f) return t - (K3.a - 10);
+  function we2(t2) {
+    if (t2 >= K3._0 && t2 <= K3._9) return t2 - K3._0;
+    if (t2 >= K3.A && t2 <= K3.F) return t2 - (K3.A - 10);
+    if (t2 >= K3.a && t2 <= K3.f) return t2 - (K3.a - 10);
   }
-  function Ee2(t) {
-    if (typeof t != "string") throw new Error("hex string expected, got " + typeof t);
-    const e2 = t.length, n4 = e2 / 2;
+  function Ee2(t2) {
+    if (typeof t2 != "string") throw new Error("hex string expected, got " + typeof t2);
+    const e2 = t2.length, n4 = e2 / 2;
     if (e2 % 2) throw new Error("hex string expected, got unpadded hex of length " + e2);
     const r3 = new Uint8Array(n4);
     for (let o4 = 0, s2 = 0; o4 < n4; o4++, s2 += 2) {
-      const a3 = we2(t.charCodeAt(s2)), u3 = we2(t.charCodeAt(s2 + 1));
-      if (a3 === void 0 || u3 === void 0) {
-        const i3 = t[s2] + t[s2 + 1];
+      const a3 = we2(t2.charCodeAt(s2)), u2 = we2(t2.charCodeAt(s2 + 1));
+      if (a3 === void 0 || u2 === void 0) {
+        const i3 = t2[s2] + t2[s2 + 1];
         throw new Error('hex string expected, got non-hex character "' + i3 + '" at index ' + s2);
       }
-      r3[o4] = a3 * 16 + u3;
+      r3[o4] = a3 * 16 + u2;
     }
     return r3;
   }
-  function Pn(t) {
-    return pe2(Ft(t));
+  function Pn(t2) {
+    return pe2(Ft(t2));
   }
-  function Et(t) {
-    return Ut(t), pe2(Ft(Uint8Array.from(t).reverse()));
+  function Et(t2) {
+    return Ut(t2), pe2(Ft(Uint8Array.from(t2).reverse()));
   }
-  function ge2(t, e2) {
-    return Ee2(t.toString(16).padStart(e2 * 2, "0"));
+  function ge2(t2, e2) {
+    return Ee2(t2.toString(16).padStart(e2 * 2, "0"));
   }
-  function Nt(t, e2) {
-    return ge2(t, e2).reverse();
+  function Nt(t2, e2) {
+    return ge2(t2, e2).reverse();
   }
-  function W2(t, e2, n4) {
+  function W2(t2, e2, n4) {
     let r3;
     if (typeof e2 == "string") try {
       r3 = Ee2(e2);
     } catch (s2) {
-      throw new Error(t + " must be hex string or Uint8Array, cause: " + s2);
+      throw new Error(t2 + " must be hex string or Uint8Array, cause: " + s2);
     }
     else if (It(e2)) r3 = Uint8Array.from(e2);
-    else throw new Error(t + " must be hex string or Uint8Array");
+    else throw new Error(t2 + " must be hex string or Uint8Array");
     const o4 = r3.length;
-    if (typeof n4 == "number" && o4 !== n4) throw new Error(t + " of length " + n4 + " expected, got " + o4);
+    if (typeof n4 == "number" && o4 !== n4) throw new Error(t2 + " of length " + n4 + " expected, got " + o4);
     return r3;
   }
-  function ye2(...t) {
+  function ye2(...t2) {
     let e2 = 0;
-    for (let r3 = 0; r3 < t.length; r3++) {
-      const o4 = t[r3];
+    for (let r3 = 0; r3 < t2.length; r3++) {
+      const o4 = t2[r3];
       Ut(o4), e2 += o4.length;
     }
     const n4 = new Uint8Array(e2);
-    for (let r3 = 0, o4 = 0; r3 < t.length; r3++) {
-      const s2 = t[r3];
+    for (let r3 = 0, o4 = 0; r3 < t2.length; r3++) {
+      const s2 = t2[r3];
       n4.set(s2, o4), o4 += s2.length;
     }
     return n4;
   }
-  function Qn(t, e2, n4) {
-    return Lt(t) && Lt(e2) && Lt(n4) && e2 <= t && t < n4;
+  function Qn(t2, e2, n4) {
+    return Lt(t2) && Lt(e2) && Lt(n4) && e2 <= t2 && t2 < n4;
   }
-  function ft(t, e2, n4, r3) {
-    if (!Qn(e2, n4, r3)) throw new Error("expected valid " + t + ": " + n4 + " <= n < " + r3 + ", got " + e2);
+  function ft(t2, e2, n4, r3) {
+    if (!Qn(e2, n4, r3)) throw new Error("expected valid " + t2 + ": " + n4 + " <= n < " + r3 + ", got " + e2);
   }
-  function tr(t) {
+  function tr(t2) {
     let e2;
-    for (e2 = 0; t > vt; t >>= be2, e2 += 1) ;
+    for (e2 = 0; t2 > vt; t2 >>= be2, e2 += 1) ;
     return e2;
   }
-  function Ot(t, e2, n4 = {}) {
+  function Ot(t2, e2, n4 = {}) {
     const r3 = (o4, s2, a3) => {
-      const u3 = nr[s2];
-      if (typeof u3 != "function") throw new Error("invalid validator function");
-      const i3 = t[o4];
-      if (!(a3 && i3 === void 0) && !u3(i3, t)) throw new Error("param " + String(o4) + " is invalid. Expected " + s2 + ", got " + i3);
+      const u2 = nr[s2];
+      if (typeof u2 != "function") throw new Error("invalid validator function");
+      const i3 = t2[o4];
+      if (!(a3 && i3 === void 0) && !u2(i3, t2)) throw new Error("param " + String(o4) + " is invalid. Expected " + s2 + ", got " + i3);
     };
     for (const [o4, s2] of Object.entries(e2)) r3(o4, s2, false);
     for (const [o4, s2] of Object.entries(n4)) r3(o4, s2, true);
-    return t;
+    return t2;
   }
-  function xe2(t) {
+  function xe2(t2) {
     const e2 = /* @__PURE__ */ new WeakMap();
     return (n4, ...r3) => {
       const o4 = e2.get(n4);
       if (o4 !== void 0) return o4;
-      const s2 = t(n4, ...r3);
+      const s2 = t2(n4, ...r3);
       return e2.set(n4, s2), s2;
     };
   }
-  function H2(t, e2) {
-    const n4 = t % e2;
+  function H2(t2, e2) {
+    const n4 = t2 % e2;
     return n4 >= M2 ? n4 : e2 + n4;
   }
-  function or(t, e2, n4) {
+  function or(t2, e2, n4) {
     if (e2 < M2) throw new Error("invalid exponent, negatives unsupported");
     if (n4 <= M2) throw new Error("invalid modulus");
     if (n4 === N3) return M2;
     let r3 = N3;
-    for (; e2 > M2; ) e2 & N3 && (r3 = r3 * t % n4), t = t * t % n4, e2 >>= N3;
+    for (; e2 > M2; ) e2 & N3 && (r3 = r3 * t2 % n4), t2 = t2 * t2 % n4, e2 >>= N3;
     return r3;
   }
-  function J2(t, e2, n4) {
-    let r3 = t;
+  function J2(t2, e2, n4) {
+    let r3 = t2;
     for (; e2-- > M2; ) r3 *= r3, r3 %= n4;
     return r3;
   }
-  function Ae2(t, e2) {
-    if (t === M2) throw new Error("invert: expected non-zero number");
+  function Ae2(t2, e2) {
+    if (t2 === M2) throw new Error("invert: expected non-zero number");
     if (e2 <= M2) throw new Error("invert: expected positive modulus, got " + e2);
-    let n4 = H2(t, e2), r3 = e2, o4 = M2, s2 = N3;
+    let n4 = H2(t2, e2), r3 = e2, o4 = M2, s2 = N3;
     for (; n4 !== M2; ) {
-      const u3 = r3 / n4, i3 = r3 % n4, D5 = o4 - s2 * u3;
+      const u2 = r3 / n4, i3 = r3 % n4, D5 = o4 - s2 * u2;
       r3 = n4, n4 = i3, o4 = s2, s2 = D5;
     }
     if (r3 !== N3) throw new Error("invert: does not exist");
     return H2(o4, e2);
   }
-  function sr(t) {
-    const e2 = (t - N3) / nt;
+  function sr(t2) {
+    const e2 = (t2 - N3) / nt;
     let n4, r3, o4;
-    for (n4 = t - N3, r3 = 0; n4 % nt === M2; n4 /= nt, r3++) ;
-    for (o4 = nt; o4 < t && or(o4, e2, t) !== t - N3; o4++) if (o4 > 1e3) throw new Error("Cannot find square root: likely non-prime P");
+    for (n4 = t2 - N3, r3 = 0; n4 % nt === M2; n4 /= nt, r3++) ;
+    for (o4 = nt; o4 < t2 && or(o4, e2, t2) !== t2 - N3; o4++) if (o4 > 1e3) throw new Error("Cannot find square root: likely non-prime P");
     if (r3 === 1) {
-      const a3 = (t + N3) / Ht;
+      const a3 = (t2 + N3) / Ht;
       return function(i3, D5) {
         const c4 = i3.pow(D5, a3);
         if (!i3.eql(i3.sqr(c4), D5)) throw new Error("Cannot find square root");
@@ -2602,136 +2602,136 @@
       };
     }
     const s2 = (n4 + N3) / nt;
-    return function(u3, i3) {
-      if (u3.pow(i3, e2) === u3.neg(u3.ONE)) throw new Error("Cannot find square root");
-      let D5 = r3, c4 = u3.pow(u3.mul(u3.ONE, o4), n4), l4 = u3.pow(i3, s2), p4 = u3.pow(i3, n4);
-      for (; !u3.eql(p4, u3.ONE); ) {
-        if (u3.eql(p4, u3.ZERO)) return u3.ZERO;
-        let w5 = 1;
-        for (let g4 = u3.sqr(p4); w5 < D5 && !u3.eql(g4, u3.ONE); w5++) g4 = u3.sqr(g4);
-        const h5 = u3.pow(c4, N3 << BigInt(D5 - w5 - 1));
-        c4 = u3.sqr(h5), l4 = u3.mul(l4, h5), p4 = u3.mul(p4, c4), D5 = w5;
+    return function(u2, i3) {
+      if (u2.pow(i3, e2) === u2.neg(u2.ONE)) throw new Error("Cannot find square root");
+      let D5 = r3, c4 = u2.pow(u2.mul(u2.ONE, o4), n4), l4 = u2.pow(i3, s2), p4 = u2.pow(i3, n4);
+      for (; !u2.eql(p4, u2.ONE); ) {
+        if (u2.eql(p4, u2.ZERO)) return u2.ZERO;
+        let w4 = 1;
+        for (let g4 = u2.sqr(p4); w4 < D5 && !u2.eql(g4, u2.ONE); w4++) g4 = u2.sqr(g4);
+        const h4 = u2.pow(c4, N3 << BigInt(D5 - w4 - 1));
+        c4 = u2.sqr(h4), l4 = u2.mul(l4, h4), p4 = u2.mul(p4, c4), D5 = w4;
       }
       return l4;
     };
   }
-  function ir(t) {
-    if (t % Ht === rr) {
-      const e2 = (t + N3) / Ht;
+  function ir(t2) {
+    if (t2 % Ht === rr) {
+      const e2 = (t2 + N3) / Ht;
       return function(r3, o4) {
         const s2 = r3.pow(o4, e2);
         if (!r3.eql(r3.sqr(s2), o4)) throw new Error("Cannot find square root");
         return s2;
       };
     }
-    if (t % Ce2 === Be2) {
-      const e2 = (t - Be2) / Ce2;
+    if (t2 % Ce2 === Be2) {
+      const e2 = (t2 - Be2) / Ce2;
       return function(r3, o4) {
-        const s2 = r3.mul(o4, nt), a3 = r3.pow(s2, e2), u3 = r3.mul(o4, a3), i3 = r3.mul(r3.mul(u3, nt), a3), D5 = r3.mul(u3, r3.sub(i3, r3.ONE));
+        const s2 = r3.mul(o4, nt), a3 = r3.pow(s2, e2), u2 = r3.mul(o4, a3), i3 = r3.mul(r3.mul(u2, nt), a3), D5 = r3.mul(u2, r3.sub(i3, r3.ONE));
         if (!r3.eql(r3.sqr(D5), o4)) throw new Error("Cannot find square root");
         return D5;
       };
     }
-    return sr(t);
+    return sr(t2);
   }
-  function ar(t) {
+  function ar(t2) {
     const e2 = { ORDER: "bigint", MASK: "bigint", BYTES: "isSafeInteger", BITS: "isSafeInteger" }, n4 = cr.reduce((r3, o4) => (r3[o4] = "function", r3), e2);
-    return Ot(t, n4);
+    return Ot(t2, n4);
   }
-  function fr(t, e2, n4) {
+  function fr(t2, e2, n4) {
     if (n4 < M2) throw new Error("invalid exponent, negatives unsupported");
-    if (n4 === M2) return t.ONE;
+    if (n4 === M2) return t2.ONE;
     if (n4 === N3) return e2;
-    let r3 = t.ONE, o4 = e2;
-    for (; n4 > M2; ) n4 & N3 && (r3 = t.mul(r3, o4)), o4 = t.sqr(o4), n4 >>= N3;
+    let r3 = t2.ONE, o4 = e2;
+    for (; n4 > M2; ) n4 & N3 && (r3 = t2.mul(r3, o4)), o4 = t2.sqr(o4), n4 >>= N3;
     return r3;
   }
-  function Dr(t, e2) {
-    const n4 = new Array(e2.length), r3 = e2.reduce((s2, a3, u3) => t.is0(a3) ? s2 : (n4[u3] = s2, t.mul(s2, a3)), t.ONE), o4 = t.inv(r3);
-    return e2.reduceRight((s2, a3, u3) => t.is0(a3) ? s2 : (n4[u3] = t.mul(s2, n4[u3]), t.mul(s2, a3)), o4), n4;
+  function Dr(t2, e2) {
+    const n4 = new Array(e2.length), r3 = e2.reduce((s2, a3, u2) => t2.is0(a3) ? s2 : (n4[u2] = s2, t2.mul(s2, a3)), t2.ONE), o4 = t2.inv(r3);
+    return e2.reduceRight((s2, a3, u2) => t2.is0(a3) ? s2 : (n4[u2] = t2.mul(s2, n4[u2]), t2.mul(s2, a3)), o4), n4;
   }
-  function me2(t, e2) {
-    const n4 = e2 !== void 0 ? e2 : t.toString(2).length, r3 = Math.ceil(n4 / 8);
+  function me2(t2, e2) {
+    const n4 = e2 !== void 0 ? e2 : t2.toString(2).length, r3 = Math.ceil(n4 / 8);
     return { nBitLength: n4, nByteLength: r3 };
   }
-  function _e2(t, e2, n4 = false, r3 = {}) {
-    if (t <= M2) throw new Error("invalid field: expected ORDER > 0, got " + t);
-    const { nBitLength: o4, nByteLength: s2 } = me2(t, e2);
+  function _e2(t2, e2, n4 = false, r3 = {}) {
+    if (t2 <= M2) throw new Error("invalid field: expected ORDER > 0, got " + t2);
+    const { nBitLength: o4, nByteLength: s2 } = me2(t2, e2);
     if (s2 > 2048) throw new Error("invalid field: expected ORDER of <= 2048 bytes");
     let a3;
-    const u3 = Object.freeze({ ORDER: t, isLE: n4, BITS: o4, BYTES: s2, MASK: er(o4), ZERO: M2, ONE: N3, create: (i3) => H2(i3, t), isValid: (i3) => {
+    const u2 = Object.freeze({ ORDER: t2, isLE: n4, BITS: o4, BYTES: s2, MASK: er(o4), ZERO: M2, ONE: N3, create: (i3) => H2(i3, t2), isValid: (i3) => {
       if (typeof i3 != "bigint") throw new Error("invalid field element: expected bigint, got " + typeof i3);
-      return M2 <= i3 && i3 < t;
-    }, is0: (i3) => i3 === M2, isOdd: (i3) => (i3 & N3) === N3, neg: (i3) => H2(-i3, t), eql: (i3, D5) => i3 === D5, sqr: (i3) => H2(i3 * i3, t), add: (i3, D5) => H2(i3 + D5, t), sub: (i3, D5) => H2(i3 - D5, t), mul: (i3, D5) => H2(i3 * D5, t), pow: (i3, D5) => fr(u3, i3, D5), div: (i3, D5) => H2(i3 * Ae2(D5, t), t), sqrN: (i3) => i3 * i3, addN: (i3, D5) => i3 + D5, subN: (i3, D5) => i3 - D5, mulN: (i3, D5) => i3 * D5, inv: (i3) => Ae2(i3, t), sqrt: r3.sqrt || ((i3) => (a3 || (a3 = ir(t)), a3(u3, i3))), invertBatch: (i3) => Dr(u3, i3), cmov: (i3, D5, c4) => c4 ? D5 : i3, toBytes: (i3) => n4 ? Nt(i3, s2) : ge2(i3, s2), fromBytes: (i3) => {
+      return M2 <= i3 && i3 < t2;
+    }, is0: (i3) => i3 === M2, isOdd: (i3) => (i3 & N3) === N3, neg: (i3) => H2(-i3, t2), eql: (i3, D5) => i3 === D5, sqr: (i3) => H2(i3 * i3, t2), add: (i3, D5) => H2(i3 + D5, t2), sub: (i3, D5) => H2(i3 - D5, t2), mul: (i3, D5) => H2(i3 * D5, t2), pow: (i3, D5) => fr(u2, i3, D5), div: (i3, D5) => H2(i3 * Ae2(D5, t2), t2), sqrN: (i3) => i3 * i3, addN: (i3, D5) => i3 + D5, subN: (i3, D5) => i3 - D5, mulN: (i3, D5) => i3 * D5, inv: (i3) => Ae2(i3, t2), sqrt: r3.sqrt || ((i3) => (a3 || (a3 = ir(t2)), a3(u2, i3))), invertBatch: (i3) => Dr(u2, i3), cmov: (i3, D5, c4) => c4 ? D5 : i3, toBytes: (i3) => n4 ? Nt(i3, s2) : ge2(i3, s2), fromBytes: (i3) => {
       if (i3.length !== s2) throw new Error("Field.fromBytes: expected " + s2 + " bytes, got " + i3.length);
       return n4 ? Et(i3) : Pn(i3);
     } });
-    return Object.freeze(u3);
+    return Object.freeze(u2);
   }
-  function zt(t, e2) {
+  function zt(t2, e2) {
     const n4 = e2.negate();
-    return t ? n4 : e2;
+    return t2 ? n4 : e2;
   }
-  function ve2(t, e2) {
-    if (!Number.isSafeInteger(t) || t <= 0 || t > e2) throw new Error("invalid window size, expected [1.." + e2 + "], got W=" + t);
+  function ve2(t2, e2) {
+    if (!Number.isSafeInteger(t2) || t2 <= 0 || t2 > e2) throw new Error("invalid window size, expected [1.." + e2 + "], got W=" + t2);
   }
-  function Mt(t, e2) {
-    ve2(t, e2);
-    const n4 = Math.ceil(e2 / t) + 1, r3 = 2 ** (t - 1);
+  function Mt(t2, e2) {
+    ve2(t2, e2);
+    const n4 = Math.ceil(e2 / t2) + 1, r3 = 2 ** (t2 - 1);
     return { windows: n4, windowSize: r3 };
   }
-  function dr(t, e2) {
-    if (!Array.isArray(t)) throw new Error("array expected");
-    t.forEach((n4, r3) => {
+  function dr(t2, e2) {
+    if (!Array.isArray(t2)) throw new Error("array expected");
+    t2.forEach((n4, r3) => {
       if (!(n4 instanceof e2)) throw new Error("invalid point at index " + r3);
     });
   }
-  function hr(t, e2) {
-    if (!Array.isArray(t)) throw new Error("array of scalars expected");
-    t.forEach((n4, r3) => {
+  function hr(t2, e2) {
+    if (!Array.isArray(t2)) throw new Error("array of scalars expected");
+    t2.forEach((n4, r3) => {
       if (!e2.isValid(n4)) throw new Error("invalid scalar at index " + r3);
     });
   }
-  function $t(t) {
-    return Ie2.get(t) || 1;
+  function $t(t2) {
+    return Ie2.get(t2) || 1;
   }
-  function lr(t, e2) {
+  function lr(t2, e2) {
     return { constTimeNegate: zt, hasPrecomputes(n4) {
       return $t(n4) !== 1;
-    }, unsafeLadder(n4, r3, o4 = t.ZERO) {
+    }, unsafeLadder(n4, r3, o4 = t2.ZERO) {
       let s2 = n4;
       for (; r3 > Se2; ) r3 & gt && (o4 = o4.add(s2)), s2 = s2.double(), r3 >>= gt;
       return o4;
     }, precomputeWindow(n4, r3) {
       const { windows: o4, windowSize: s2 } = Mt(r3, e2), a3 = [];
-      let u3 = n4, i3 = u3;
+      let u2 = n4, i3 = u2;
       for (let D5 = 0; D5 < o4; D5++) {
-        i3 = u3, a3.push(i3);
-        for (let c4 = 1; c4 < s2; c4++) i3 = i3.add(u3), a3.push(i3);
-        u3 = i3.double();
+        i3 = u2, a3.push(i3);
+        for (let c4 = 1; c4 < s2; c4++) i3 = i3.add(u2), a3.push(i3);
+        u2 = i3.double();
       }
       return a3;
     }, wNAF(n4, r3, o4) {
       const { windows: s2, windowSize: a3 } = Mt(n4, e2);
-      let u3 = t.ZERO, i3 = t.BASE;
+      let u2 = t2.ZERO, i3 = t2.BASE;
       const D5 = BigInt(2 ** n4 - 1), c4 = 2 ** n4, l4 = BigInt(n4);
       for (let p4 = 0; p4 < s2; p4++) {
-        const w5 = p4 * a3;
-        let h5 = Number(o4 & D5);
-        o4 >>= l4, h5 > a3 && (h5 -= c4, o4 += gt);
-        const g4 = w5, S5 = w5 + Math.abs(h5) - 1, v7 = p4 % 2 !== 0, L2 = h5 < 0;
-        h5 === 0 ? i3 = i3.add(zt(v7, r3[g4])) : u3 = u3.add(zt(L2, r3[S5]));
+        const w4 = p4 * a3;
+        let h4 = Number(o4 & D5);
+        o4 >>= l4, h4 > a3 && (h4 -= c4, o4 += gt);
+        const g4 = w4, S4 = w4 + Math.abs(h4) - 1, v7 = p4 % 2 !== 0, L = h4 < 0;
+        h4 === 0 ? i3 = i3.add(zt(v7, r3[g4])) : u2 = u2.add(zt(L, r3[S4]));
       }
-      return { p: u3, f: i3 };
-    }, wNAFUnsafe(n4, r3, o4, s2 = t.ZERO) {
-      const { windows: a3, windowSize: u3 } = Mt(n4, e2), i3 = BigInt(2 ** n4 - 1), D5 = 2 ** n4, c4 = BigInt(n4);
+      return { p: u2, f: i3 };
+    }, wNAFUnsafe(n4, r3, o4, s2 = t2.ZERO) {
+      const { windows: a3, windowSize: u2 } = Mt(n4, e2), i3 = BigInt(2 ** n4 - 1), D5 = 2 ** n4, c4 = BigInt(n4);
       for (let l4 = 0; l4 < a3; l4++) {
-        const p4 = l4 * u3;
+        const p4 = l4 * u2;
         if (o4 === Se2) break;
-        let w5 = Number(o4 & i3);
-        if (o4 >>= c4, w5 > u3 && (w5 -= D5, o4 += gt), w5 === 0) continue;
-        let h5 = r3[p4 + Math.abs(w5) - 1];
-        w5 < 0 && (h5 = h5.negate()), s2 = s2.add(h5);
+        let w4 = Number(o4 & i3);
+        if (o4 >>= c4, w4 > u2 && (w4 -= D5, o4 += gt), w4 === 0) continue;
+        let h4 = r3[p4 + Math.abs(w4) - 1];
+        w4 < 0 && (h4 = h4.negate()), s2 = s2.add(h4);
       }
       return s2;
     }, getPrecomputes(n4, r3, o4) {
@@ -2747,65 +2747,65 @@
       ve2(r3, e2), Ie2.set(n4, r3), qt.delete(n4);
     } };
   }
-  function br(t, e2, n4, r3) {
-    if (dr(n4, t), hr(r3, e2), n4.length !== r3.length) throw new Error("arrays of points and scalars must have equal length");
-    const o4 = t.ZERO, s2 = tr(BigInt(n4.length)), a3 = s2 > 12 ? s2 - 3 : s2 > 4 ? s2 - 2 : s2 ? 2 : 1, u3 = (1 << a3) - 1, i3 = new Array(u3 + 1).fill(o4), D5 = Math.floor((e2.BITS - 1) / a3) * a3;
+  function br(t2, e2, n4, r3) {
+    if (dr(n4, t2), hr(r3, e2), n4.length !== r3.length) throw new Error("arrays of points and scalars must have equal length");
+    const o4 = t2.ZERO, s2 = tr(BigInt(n4.length)), a3 = s2 > 12 ? s2 - 3 : s2 > 4 ? s2 - 2 : s2 ? 2 : 1, u2 = (1 << a3) - 1, i3 = new Array(u2 + 1).fill(o4), D5 = Math.floor((e2.BITS - 1) / a3) * a3;
     let c4 = o4;
     for (let l4 = D5; l4 >= 0; l4 -= a3) {
       i3.fill(o4);
-      for (let w5 = 0; w5 < r3.length; w5++) {
-        const h5 = r3[w5], g4 = Number(h5 >> BigInt(l4) & BigInt(u3));
-        i3[g4] = i3[g4].add(n4[w5]);
+      for (let w4 = 0; w4 < r3.length; w4++) {
+        const h4 = r3[w4], g4 = Number(h4 >> BigInt(l4) & BigInt(u2));
+        i3[g4] = i3[g4].add(n4[w4]);
       }
       let p4 = o4;
-      for (let w5 = i3.length - 1, h5 = o4; w5 > 0; w5--) h5 = h5.add(i3[w5]), p4 = p4.add(h5);
-      if (c4 = c4.add(p4), l4 !== 0) for (let w5 = 0; w5 < a3; w5++) c4 = c4.double();
+      for (let w4 = i3.length - 1, h4 = o4; w4 > 0; w4--) h4 = h4.add(i3[w4]), p4 = p4.add(h4);
+      if (c4 = c4.add(p4), l4 !== 0) for (let w4 = 0; w4 < a3; w4++) c4 = c4.double();
     }
     return c4;
   }
-  function pr(t) {
-    return ar(t.Fp), Ot(t, { n: "bigint", h: "bigint", Gx: "field", Gy: "field" }, { nBitLength: "isSafeInteger", nByteLength: "isSafeInteger" }), Object.freeze({ ...me2(t.n, t.nBitLength), ...t, p: t.Fp.ORDER });
+  function pr(t2) {
+    return ar(t2.Fp), Ot(t2, { n: "bigint", h: "bigint", Gx: "field", Gy: "field" }, { nBitLength: "isSafeInteger", nByteLength: "isSafeInteger" }), Object.freeze({ ...me2(t2.n, t2.nBitLength), ...t2, p: t2.Fp.ORDER });
   }
-  function gr(t) {
-    const e2 = pr(t);
-    return Ot(t, { hash: "function", a: "bigint", d: "bigint", randomBytes: "function" }, { adjustScalarBytes: "function", domain: "function", uvRatio: "function", mapToCurve: "function" }), Object.freeze({ ...e2 });
+  function gr(t2) {
+    const e2 = pr(t2);
+    return Ot(t2, { hash: "function", a: "bigint", d: "bigint", randomBytes: "function" }, { adjustScalarBytes: "function", domain: "function", uvRatio: "function", mapToCurve: "function" }), Object.freeze({ ...e2 });
   }
-  function yr(t) {
-    const e2 = gr(t), { Fp: n4, n: r3, prehash: o4, hash: s2, randomBytes: a3, nByteLength: u3, h: i3 } = e2, D5 = yt << BigInt(u3 * 8) - j2, c4 = n4.create, l4 = _e2(e2.n, e2.nBitLength), p4 = e2.uvRatio || ((y7, f2) => {
+  function yr(t2) {
+    const e2 = gr(t2), { Fp: n4, n: r3, prehash: o4, hash: s2, randomBytes: a3, nByteLength: u2, h: i3 } = e2, D5 = yt << BigInt(u2 * 8) - j2, c4 = n4.create, l4 = _e2(e2.n, e2.nBitLength), p4 = e2.uvRatio || ((y6, f2) => {
       try {
-        return { isValid: true, value: n4.sqrt(y7 * n4.inv(f2)) };
+        return { isValid: true, value: n4.sqrt(y6 * n4.inv(f2)) };
       } catch {
         return { isValid: false, value: G2 };
       }
-    }), w5 = e2.adjustScalarBytes || ((y7) => y7), h5 = e2.domain || ((y7, f2, b4) => {
+    }), w4 = e2.adjustScalarBytes || ((y6) => y6), h4 = e2.domain || ((y6, f2, b4) => {
       if (Tt("phflag", b4), f2.length || b4) throw new Error("Contexts/pre-hash are not supported");
-      return y7;
+      return y6;
     });
-    function g4(y7, f2) {
-      ft("coordinate " + y7, f2, G2, D5);
+    function g4(y6, f2) {
+      ft("coordinate " + y6, f2, G2, D5);
     }
-    function S5(y7) {
-      if (!(y7 instanceof d3)) throw new Error("ExtendedPoint expected");
+    function S4(y6) {
+      if (!(y6 instanceof d3)) throw new Error("ExtendedPoint expected");
     }
-    const v7 = xe2((y7, f2) => {
-      const { ex: b4, ey: E4, ez: B4 } = y7, C4 = y7.is0();
-      f2 == null && (f2 = C4 ? wr : n4.inv(B4));
-      const A4 = c4(b4 * f2), U3 = c4(E4 * f2), _3 = c4(B4 * f2);
+    const v7 = xe2((y6, f2) => {
+      const { ex: b4, ey: E4, ez: B3 } = y6, C4 = y6.is0();
+      f2 == null && (f2 = C4 ? wr : n4.inv(B3));
+      const A4 = c4(b4 * f2), U3 = c4(E4 * f2), _3 = c4(B3 * f2);
       if (C4) return { x: G2, y: j2 };
       if (_3 !== j2) throw new Error("invZ was invalid");
       return { x: A4, y: U3 };
-    }), L2 = xe2((y7) => {
+    }), L = xe2((y6) => {
       const { a: f2, d: b4 } = e2;
-      if (y7.is0()) throw new Error("bad point: ZERO");
-      const { ex: E4, ey: B4, ez: C4, et: A4 } = y7, U3 = c4(E4 * E4), _3 = c4(B4 * B4), T5 = c4(C4 * C4), $6 = c4(T5 * T5), R4 = c4(U3 * f2), V4 = c4(T5 * c4(R4 + _3)), Y4 = c4($6 + c4(b4 * c4(U3 * _3)));
-      if (V4 !== Y4) throw new Error("bad point: equation left != right (1)");
-      const Z4 = c4(E4 * B4), X4 = c4(C4 * A4);
-      if (Z4 !== X4) throw new Error("bad point: equation left != right (2)");
+      if (y6.is0()) throw new Error("bad point: ZERO");
+      const { ex: E4, ey: B3, ez: C4, et: A4 } = y6, U3 = c4(E4 * E4), _3 = c4(B3 * B3), T5 = c4(C4 * C4), $5 = c4(T5 * T5), R3 = c4(U3 * f2), V3 = c4(T5 * c4(R3 + _3)), Y4 = c4($5 + c4(b4 * c4(U3 * _3)));
+      if (V3 !== Y4) throw new Error("bad point: equation left != right (1)");
+      const Z4 = c4(E4 * B3), X3 = c4(C4 * A4);
+      if (Z4 !== X3) throw new Error("bad point: equation left != right (2)");
       return true;
     });
     class d3 {
-      constructor(f2, b4, E4, B4) {
-        this.ex = f2, this.ey = b4, this.ez = E4, this.et = B4, g4("x", f2), g4("y", b4), g4("z", E4), g4("t", B4), Object.freeze(this);
+      constructor(f2, b4, E4, B3) {
+        this.ex = f2, this.ey = b4, this.ez = E4, this.et = B3, g4("x", f2), g4("y", b4), g4("z", E4), g4("t", B3), Object.freeze(this);
       }
       get x() {
         return this.toAffine().x;
@@ -2820,21 +2820,21 @@
       }
       static normalizeZ(f2) {
         const b4 = n4.invertBatch(f2.map((E4) => E4.ez));
-        return f2.map((E4, B4) => E4.toAffine(b4[B4])).map(d3.fromAffine);
+        return f2.map((E4, B3) => E4.toAffine(b4[B3])).map(d3.fromAffine);
       }
       static msm(f2, b4) {
         return br(d3, l4, f2, b4);
       }
       _setWindowSize(f2) {
-        q5.setWindowSize(this, f2);
+        q4.setWindowSize(this, f2);
       }
       assertValidity() {
-        L2(this);
+        L(this);
       }
       equals(f2) {
-        S5(f2);
-        const { ex: b4, ey: E4, ez: B4 } = this, { ex: C4, ey: A4, ez: U3 } = f2, _3 = c4(b4 * U3), T5 = c4(C4 * B4), $6 = c4(E4 * U3), R4 = c4(A4 * B4);
-        return _3 === T5 && $6 === R4;
+        S4(f2);
+        const { ex: b4, ey: E4, ez: B3 } = this, { ex: C4, ey: A4, ez: U3 } = f2, _3 = c4(b4 * U3), T5 = c4(C4 * B3), $5 = c4(E4 * U3), R3 = c4(A4 * B3);
+        return _3 === T5 && $5 === R3;
       }
       is0() {
         return this.equals(d3.ZERO);
@@ -2843,42 +2843,42 @@
         return new d3(c4(-this.ex), this.ey, this.ez, c4(-this.et));
       }
       double() {
-        const { a: f2 } = e2, { ex: b4, ey: E4, ez: B4 } = this, C4 = c4(b4 * b4), A4 = c4(E4 * E4), U3 = c4(yt * c4(B4 * B4)), _3 = c4(f2 * C4), T5 = b4 + E4, $6 = c4(c4(T5 * T5) - C4 - A4), R4 = _3 + A4, V4 = R4 - U3, Y4 = _3 - A4, Z4 = c4($6 * V4), X4 = c4(R4 * Y4), et4 = c4($6 * Y4), pt4 = c4(V4 * R4);
-        return new d3(Z4, X4, pt4, et4);
+        const { a: f2 } = e2, { ex: b4, ey: E4, ez: B3 } = this, C4 = c4(b4 * b4), A4 = c4(E4 * E4), U3 = c4(yt * c4(B3 * B3)), _3 = c4(f2 * C4), T5 = b4 + E4, $5 = c4(c4(T5 * T5) - C4 - A4), R3 = _3 + A4, V3 = R3 - U3, Y4 = _3 - A4, Z4 = c4($5 * V3), X3 = c4(R3 * Y4), et4 = c4($5 * Y4), pt4 = c4(V3 * R3);
+        return new d3(Z4, X3, pt4, et4);
       }
       add(f2) {
-        S5(f2);
-        const { a: b4, d: E4 } = e2, { ex: B4, ey: C4, ez: A4, et: U3 } = this, { ex: _3, ey: T5, ez: $6, et: R4 } = f2;
+        S4(f2);
+        const { a: b4, d: E4 } = e2, { ex: B3, ey: C4, ez: A4, et: U3 } = this, { ex: _3, ey: T5, ez: $5, et: R3 } = f2;
         if (b4 === BigInt(-1)) {
-          const re4 = c4((C4 - B4) * (T5 + _3)), oe4 = c4((C4 + B4) * (T5 - _3)), mt = c4(oe4 - re4);
+          const re4 = c4((C4 - B3) * (T5 + _3)), oe4 = c4((C4 + B3) * (T5 - _3)), mt = c4(oe4 - re4);
           if (mt === G2) return this.double();
-          const se5 = c4(A4 * yt * R4), ie4 = c4(U3 * yt * $6), ue4 = ie4 + se5, ce3 = oe4 + re4, ae4 = ie4 - se5, Dn = c4(ue4 * mt), dn = c4(ce3 * ae4), hn = c4(ue4 * ae4), ln = c4(mt * ce3);
+          const se4 = c4(A4 * yt * R3), ie4 = c4(U3 * yt * $5), ue4 = ie4 + se4, ce3 = oe4 + re4, ae4 = ie4 - se4, Dn = c4(ue4 * mt), dn = c4(ce3 * ae4), hn = c4(ue4 * ae4), ln = c4(mt * ce3);
           return new d3(Dn, dn, ln, hn);
         }
-        const V4 = c4(B4 * _3), Y4 = c4(C4 * T5), Z4 = c4(U3 * E4 * R4), X4 = c4(A4 * $6), et4 = c4((B4 + C4) * (_3 + T5) - V4 - Y4), pt4 = X4 - Z4, ee4 = X4 + Z4, ne5 = c4(Y4 - b4 * V4), un = c4(et4 * pt4), cn = c4(ee4 * ne5), an = c4(et4 * ne5), fn = c4(pt4 * ee4);
+        const V3 = c4(B3 * _3), Y4 = c4(C4 * T5), Z4 = c4(U3 * E4 * R3), X3 = c4(A4 * $5), et4 = c4((B3 + C4) * (_3 + T5) - V3 - Y4), pt4 = X3 - Z4, ee4 = X3 + Z4, ne4 = c4(Y4 - b4 * V3), un = c4(et4 * pt4), cn = c4(ee4 * ne4), an = c4(et4 * ne4), fn = c4(pt4 * ee4);
         return new d3(un, cn, fn, an);
       }
       subtract(f2) {
         return this.add(f2.negate());
       }
       wNAF(f2) {
-        return q5.wNAFCached(this, f2, d3.normalizeZ);
+        return q4.wNAFCached(this, f2, d3.normalizeZ);
       }
       multiply(f2) {
         const b4 = f2;
         ft("scalar", b4, j2, r3);
-        const { p: E4, f: B4 } = this.wNAF(b4);
-        return d3.normalizeZ([E4, B4])[0];
+        const { p: E4, f: B3 } = this.wNAF(b4);
+        return d3.normalizeZ([E4, B3])[0];
       }
       multiplyUnsafe(f2, b4 = d3.ZERO) {
         const E4 = f2;
-        return ft("scalar", E4, G2, r3), E4 === G2 ? F3 : this.is0() || E4 === j2 ? this : q5.wNAFCachedUnsafe(this, E4, d3.normalizeZ, b4);
+        return ft("scalar", E4, G2, r3), E4 === G2 ? F3 : this.is0() || E4 === j2 ? this : q4.wNAFCachedUnsafe(this, E4, d3.normalizeZ, b4);
       }
       isSmallOrder() {
         return this.multiplyUnsafe(i3).is0();
       }
       isTorsionFree() {
-        return q5.unsafeLadder(this, r3).is0();
+        return q4.unsafeLadder(this, r3).is0();
       }
       toAffine(f2) {
         return v7(this, f2);
@@ -2888,21 +2888,21 @@
         return f2 === j2 ? this : this.multiplyUnsafe(f2);
       }
       static fromHex(f2, b4 = false) {
-        const { d: E4, a: B4 } = e2, C4 = n4.BYTES;
+        const { d: E4, a: B3 } = e2, C4 = n4.BYTES;
         f2 = W2("pointHex", f2, C4), Tt("zip215", b4);
         const A4 = f2.slice(), U3 = f2[C4 - 1];
         A4[C4 - 1] = U3 & -129;
         const _3 = Et(A4), T5 = b4 ? D5 : n4.ORDER;
         ft("pointHex.y", _3, G2, T5);
-        const $6 = c4(_3 * _3), R4 = c4($6 - j2), V4 = c4(E4 * $6 - B4);
-        let { isValid: Y4, value: Z4 } = p4(R4, V4);
+        const $5 = c4(_3 * _3), R3 = c4($5 - j2), V3 = c4(E4 * $5 - B3);
+        let { isValid: Y4, value: Z4 } = p4(R3, V3);
         if (!Y4) throw new Error("Point.fromHex: invalid y coordinate");
-        const X4 = (Z4 & j2) === j2, et4 = (U3 & 128) !== 0;
+        const X3 = (Z4 & j2) === j2, et4 = (U3 & 128) !== 0;
         if (!b4 && Z4 === G2 && et4) throw new Error("Point.fromHex: x=0 and x_0=1");
-        return et4 !== X4 && (Z4 = c4(-Z4)), d3.fromAffine({ x: Z4, y: _3 });
+        return et4 !== X3 && (Z4 = c4(-Z4)), d3.fromAffine({ x: Z4, y: _3 });
       }
       static fromPrivateKey(f2) {
-        return O5(f2).point;
+        return O4(f2).point;
       }
       toRawBytes() {
         const { x: f2, y: b4 } = this.toAffine(), E4 = Nt(b4, n4.BYTES);
@@ -2913,198 +2913,198 @@
       }
     }
     d3.BASE = new d3(e2.Gx, e2.Gy, j2, c4(e2.Gx * e2.Gy)), d3.ZERO = new d3(G2, j2, j2, G2);
-    const { BASE: m2, ZERO: F3 } = d3, q5 = lr(d3, u3 * 8);
-    function z5(y7) {
-      return H2(y7, r3);
+    const { BASE: m2, ZERO: F3 } = d3, q4 = lr(d3, u2 * 8);
+    function z4(y6) {
+      return H2(y6, r3);
     }
-    function I2(y7) {
-      return z5(Et(y7));
+    function I2(y6) {
+      return z4(Et(y6));
     }
-    function O5(y7) {
+    function O4(y6) {
       const f2 = n4.BYTES;
-      y7 = W2("private key", y7, f2);
-      const b4 = W2("hashed private key", s2(y7), 2 * f2), E4 = w5(b4.slice(0, f2)), B4 = b4.slice(f2, 2 * f2), C4 = I2(E4), A4 = m2.multiply(C4), U3 = A4.toRawBytes();
-      return { head: E4, prefix: B4, scalar: C4, point: A4, pointBytes: U3 };
+      y6 = W2("private key", y6, f2);
+      const b4 = W2("hashed private key", s2(y6), 2 * f2), E4 = w4(b4.slice(0, f2)), B3 = b4.slice(f2, 2 * f2), C4 = I2(E4), A4 = m2.multiply(C4), U3 = A4.toRawBytes();
+      return { head: E4, prefix: B3, scalar: C4, point: A4, pointBytes: U3 };
     }
-    function ot3(y7) {
-      return O5(y7).pointBytes;
+    function ot3(y6) {
+      return O4(y6).pointBytes;
     }
-    function tt2(y7 = new Uint8Array(), ...f2) {
+    function tt2(y6 = new Uint8Array(), ...f2) {
       const b4 = ye2(...f2);
-      return I2(s2(h5(b4, W2("context", y7), !!o4)));
+      return I2(s2(h4(b4, W2("context", y6), !!o4)));
     }
-    function st3(y7, f2, b4 = {}) {
-      y7 = W2("message", y7), o4 && (y7 = o4(y7));
-      const { prefix: E4, scalar: B4, pointBytes: C4 } = O5(f2), A4 = tt2(b4.context, E4, y7), U3 = m2.multiply(A4).toRawBytes(), _3 = tt2(b4.context, U3, C4, y7), T5 = z5(A4 + _3 * B4);
+    function st3(y6, f2, b4 = {}) {
+      y6 = W2("message", y6), o4 && (y6 = o4(y6));
+      const { prefix: E4, scalar: B3, pointBytes: C4 } = O4(f2), A4 = tt2(b4.context, E4, y6), U3 = m2.multiply(A4).toRawBytes(), _3 = tt2(b4.context, U3, C4, y6), T5 = z4(A4 + _3 * B3);
       ft("signature.s", T5, G2, r3);
-      const $6 = ye2(U3, Nt(T5, n4.BYTES));
-      return W2("result", $6, n4.BYTES * 2);
+      const $5 = ye2(U3, Nt(T5, n4.BYTES));
+      return W2("result", $5, n4.BYTES * 2);
     }
     const at3 = Er;
-    function Ct2(y7, f2, b4, E4 = at3) {
-      const { context: B4, zip215: C4 } = E4, A4 = n4.BYTES;
-      y7 = W2("signature", y7, 2 * A4), f2 = W2("message", f2), b4 = W2("publicKey", b4, A4), C4 !== void 0 && Tt("zip215", C4), o4 && (f2 = o4(f2));
-      const U3 = Et(y7.slice(A4, 2 * A4));
-      let _3, T5, $6;
+    function Ct2(y6, f2, b4, E4 = at3) {
+      const { context: B3, zip215: C4 } = E4, A4 = n4.BYTES;
+      y6 = W2("signature", y6, 2 * A4), f2 = W2("message", f2), b4 = W2("publicKey", b4, A4), C4 !== void 0 && Tt("zip215", C4), o4 && (f2 = o4(f2));
+      const U3 = Et(y6.slice(A4, 2 * A4));
+      let _3, T5, $5;
       try {
-        _3 = d3.fromHex(b4, C4), T5 = d3.fromHex(y7.slice(0, A4), C4), $6 = m2.multiplyUnsafe(U3);
+        _3 = d3.fromHex(b4, C4), T5 = d3.fromHex(y6.slice(0, A4), C4), $5 = m2.multiplyUnsafe(U3);
       } catch {
         return false;
       }
       if (!C4 && _3.isSmallOrder()) return false;
-      const R4 = tt2(B4, T5.toRawBytes(), _3.toRawBytes(), f2);
-      return T5.add(_3.multiplyUnsafe(R4)).subtract($6).clearCofactor().equals(d3.ZERO);
+      const R3 = tt2(B3, T5.toRawBytes(), _3.toRawBytes(), f2);
+      return T5.add(_3.multiplyUnsafe(R3)).subtract($5).clearCofactor().equals(d3.ZERO);
     }
-    return m2._setWindowSize(8), { CURVE: e2, getPublicKey: ot3, sign: st3, verify: Ct2, ExtendedPoint: d3, utils: { getExtendedPublicKey: O5, randomPrivateKey: () => a3(n4.BYTES), precompute(y7 = 8, f2 = d3.BASE) {
-      return f2._setWindowSize(y7), f2.multiply(BigInt(3)), f2;
+    return m2._setWindowSize(8), { CURVE: e2, getPublicKey: ot3, sign: st3, verify: Ct2, ExtendedPoint: d3, utils: { getExtendedPublicKey: O4, randomPrivateKey: () => a3(n4.BYTES), precompute(y6 = 8, f2 = d3.BASE) {
+      return f2._setWindowSize(y6), f2.multiply(BigInt(3)), f2;
     } } };
   }
-  function Ar(t) {
-    const e2 = BigInt(10), n4 = BigInt(20), r3 = BigInt(40), o4 = BigInt(80), s2 = kt, u3 = t * t % s2 * t % s2, i3 = J2(u3, Te2, s2) * u3 % s2, D5 = J2(i3, xr, s2) * t % s2, c4 = J2(D5, Br, s2) * D5 % s2, l4 = J2(c4, e2, s2) * c4 % s2, p4 = J2(l4, n4, s2) * l4 % s2, w5 = J2(p4, r3, s2) * p4 % s2, h5 = J2(w5, o4, s2) * w5 % s2, g4 = J2(h5, o4, s2) * w5 % s2, S5 = J2(g4, e2, s2) * c4 % s2;
-    return { pow_p_5_8: J2(S5, Te2, s2) * t % s2, b2: u3 };
+  function Ar(t2) {
+    const e2 = BigInt(10), n4 = BigInt(20), r3 = BigInt(40), o4 = BigInt(80), s2 = kt, u2 = t2 * t2 % s2 * t2 % s2, i3 = J2(u2, Te2, s2) * u2 % s2, D5 = J2(i3, xr, s2) * t2 % s2, c4 = J2(D5, Br, s2) * D5 % s2, l4 = J2(c4, e2, s2) * c4 % s2, p4 = J2(l4, n4, s2) * l4 % s2, w4 = J2(p4, r3, s2) * p4 % s2, h4 = J2(w4, o4, s2) * w4 % s2, g4 = J2(h4, o4, s2) * w4 % s2, S4 = J2(g4, e2, s2) * c4 % s2;
+    return { pow_p_5_8: J2(S4, Te2, s2) * t2 % s2, b2: u2 };
   }
-  function mr(t) {
-    return t[0] &= 248, t[31] &= 127, t[31] |= 64, t;
+  function mr(t2) {
+    return t2[0] &= 248, t2[31] &= 127, t2[31] |= 64, t2;
   }
-  function _r(t, e2) {
-    const n4 = kt, r3 = H2(e2 * e2 * e2, n4), o4 = H2(r3 * r3 * e2, n4), s2 = Ar(t * o4).pow_p_5_8;
-    let a3 = H2(t * r3 * s2, n4);
-    const u3 = H2(e2 * a3 * a3, n4), i3 = a3, D5 = H2(a3 * Ue2, n4), c4 = u3 === t, l4 = u3 === H2(-t, n4), p4 = u3 === H2(-t * Ue2, n4);
+  function _r(t2, e2) {
+    const n4 = kt, r3 = H2(e2 * e2 * e2, n4), o4 = H2(r3 * r3 * e2, n4), s2 = Ar(t2 * o4).pow_p_5_8;
+    let a3 = H2(t2 * r3 * s2, n4);
+    const u2 = H2(e2 * a3 * a3, n4), i3 = a3, D5 = H2(a3 * Ue2, n4), c4 = u2 === t2, l4 = u2 === H2(-t2, n4), p4 = u2 === H2(-t2 * Ue2, n4);
     return c4 && (a3 = i3), (l4 || p4) && (a3 = D5), ur(a3, n4) && (a3 = H2(-a3, n4)), { isValid: c4 || l4, value: a3 };
   }
-  function Xt(t) {
-    return globalThis.Buffer != null ? new Uint8Array(t.buffer, t.byteOffset, t.byteLength) : t;
+  function Xt(t2) {
+    return globalThis.Buffer != null ? new Uint8Array(t2.buffer, t2.byteOffset, t2.byteLength) : t2;
   }
-  function Le2(t = 0) {
-    return globalThis.Buffer != null && globalThis.Buffer.allocUnsafe != null ? Xt(globalThis.Buffer.allocUnsafe(t)) : new Uint8Array(t);
+  function Le2(t2 = 0) {
+    return globalThis.Buffer != null && globalThis.Buffer.allocUnsafe != null ? Xt(globalThis.Buffer.allocUnsafe(t2)) : new Uint8Array(t2);
   }
-  function Oe2(t, e2) {
-    e2 || (e2 = t.reduce((o4, s2) => o4 + s2.length, 0));
+  function Oe2(t2, e2) {
+    e2 || (e2 = t2.reduce((o4, s2) => o4 + s2.length, 0));
     const n4 = Le2(e2);
     let r3 = 0;
-    for (const o4 of t) n4.set(o4, r3), r3 += o4.length;
+    for (const o4 of t2) n4.set(o4, r3), r3 += o4.length;
     return Xt(n4);
   }
-  function Ir(t, e2) {
-    if (t.length >= 255) throw new TypeError("Alphabet too long");
+  function Ir(t2, e2) {
+    if (t2.length >= 255) throw new TypeError("Alphabet too long");
     for (var n4 = new Uint8Array(256), r3 = 0; r3 < n4.length; r3++) n4[r3] = 255;
-    for (var o4 = 0; o4 < t.length; o4++) {
-      var s2 = t.charAt(o4), a3 = s2.charCodeAt(0);
+    for (var o4 = 0; o4 < t2.length; o4++) {
+      var s2 = t2.charAt(o4), a3 = s2.charCodeAt(0);
       if (n4[a3] !== 255) throw new TypeError(s2 + " is ambiguous");
       n4[a3] = o4;
     }
-    var u3 = t.length, i3 = t.charAt(0), D5 = Math.log(u3) / Math.log(256), c4 = Math.log(256) / Math.log(u3);
-    function l4(h5) {
-      if (h5 instanceof Uint8Array || (ArrayBuffer.isView(h5) ? h5 = new Uint8Array(h5.buffer, h5.byteOffset, h5.byteLength) : Array.isArray(h5) && (h5 = Uint8Array.from(h5))), !(h5 instanceof Uint8Array)) throw new TypeError("Expected Uint8Array");
-      if (h5.length === 0) return "";
-      for (var g4 = 0, S5 = 0, v7 = 0, L2 = h5.length; v7 !== L2 && h5[v7] === 0; ) v7++, g4++;
-      for (var d3 = (L2 - v7) * c4 + 1 >>> 0, m2 = new Uint8Array(d3); v7 !== L2; ) {
-        for (var F3 = h5[v7], q5 = 0, z5 = d3 - 1; (F3 !== 0 || q5 < S5) && z5 !== -1; z5--, q5++) F3 += 256 * m2[z5] >>> 0, m2[z5] = F3 % u3 >>> 0, F3 = F3 / u3 >>> 0;
+    var u2 = t2.length, i3 = t2.charAt(0), D5 = Math.log(u2) / Math.log(256), c4 = Math.log(256) / Math.log(u2);
+    function l4(h4) {
+      if (h4 instanceof Uint8Array || (ArrayBuffer.isView(h4) ? h4 = new Uint8Array(h4.buffer, h4.byteOffset, h4.byteLength) : Array.isArray(h4) && (h4 = Uint8Array.from(h4))), !(h4 instanceof Uint8Array)) throw new TypeError("Expected Uint8Array");
+      if (h4.length === 0) return "";
+      for (var g4 = 0, S4 = 0, v7 = 0, L = h4.length; v7 !== L && h4[v7] === 0; ) v7++, g4++;
+      for (var d3 = (L - v7) * c4 + 1 >>> 0, m2 = new Uint8Array(d3); v7 !== L; ) {
+        for (var F3 = h4[v7], q4 = 0, z4 = d3 - 1; (F3 !== 0 || q4 < S4) && z4 !== -1; z4--, q4++) F3 += 256 * m2[z4] >>> 0, m2[z4] = F3 % u2 >>> 0, F3 = F3 / u2 >>> 0;
         if (F3 !== 0) throw new Error("Non-zero carry");
-        S5 = q5, v7++;
+        S4 = q4, v7++;
       }
-      for (var I2 = d3 - S5; I2 !== d3 && m2[I2] === 0; ) I2++;
-      for (var O5 = i3.repeat(g4); I2 < d3; ++I2) O5 += t.charAt(m2[I2]);
-      return O5;
+      for (var I2 = d3 - S4; I2 !== d3 && m2[I2] === 0; ) I2++;
+      for (var O4 = i3.repeat(g4); I2 < d3; ++I2) O4 += t2.charAt(m2[I2]);
+      return O4;
     }
-    function p4(h5) {
-      if (typeof h5 != "string") throw new TypeError("Expected String");
-      if (h5.length === 0) return new Uint8Array();
+    function p4(h4) {
+      if (typeof h4 != "string") throw new TypeError("Expected String");
+      if (h4.length === 0) return new Uint8Array();
       var g4 = 0;
-      if (h5[g4] !== " ") {
-        for (var S5 = 0, v7 = 0; h5[g4] === i3; ) S5++, g4++;
-        for (var L2 = (h5.length - g4) * D5 + 1 >>> 0, d3 = new Uint8Array(L2); h5[g4]; ) {
-          var m2 = n4[h5.charCodeAt(g4)];
+      if (h4[g4] !== " ") {
+        for (var S4 = 0, v7 = 0; h4[g4] === i3; ) S4++, g4++;
+        for (var L = (h4.length - g4) * D5 + 1 >>> 0, d3 = new Uint8Array(L); h4[g4]; ) {
+          var m2 = n4[h4.charCodeAt(g4)];
           if (m2 === 255) return;
-          for (var F3 = 0, q5 = L2 - 1; (m2 !== 0 || F3 < v7) && q5 !== -1; q5--, F3++) m2 += u3 * d3[q5] >>> 0, d3[q5] = m2 % 256 >>> 0, m2 = m2 / 256 >>> 0;
+          for (var F3 = 0, q4 = L - 1; (m2 !== 0 || F3 < v7) && q4 !== -1; q4--, F3++) m2 += u2 * d3[q4] >>> 0, d3[q4] = m2 % 256 >>> 0, m2 = m2 / 256 >>> 0;
           if (m2 !== 0) throw new Error("Non-zero carry");
           v7 = F3, g4++;
         }
-        if (h5[g4] !== " ") {
-          for (var z5 = L2 - v7; z5 !== L2 && d3[z5] === 0; ) z5++;
-          for (var I2 = new Uint8Array(S5 + (L2 - z5)), O5 = S5; z5 !== L2; ) I2[O5++] = d3[z5++];
+        if (h4[g4] !== " ") {
+          for (var z4 = L - v7; z4 !== L && d3[z4] === 0; ) z4++;
+          for (var I2 = new Uint8Array(S4 + (L - z4)), O4 = S4; z4 !== L; ) I2[O4++] = d3[z4++];
           return I2;
         }
       }
     }
-    function w5(h5) {
-      var g4 = p4(h5);
+    function w4(h4) {
+      var g4 = p4(h4);
       if (g4) return g4;
       throw new Error(`Non-${e2} character`);
     }
-    return { encode: l4, decodeUnsafe: p4, decode: w5 };
+    return { encode: l4, decodeUnsafe: p4, decode: w4 };
   }
-  function xo(t) {
-    return t.reduce((e2, n4) => (e2 += go[n4], e2), "");
+  function xo(t2) {
+    return t2.reduce((e2, n4) => (e2 += go[n4], e2), "");
   }
-  function Bo(t) {
+  function Bo(t2) {
     const e2 = [];
-    for (const n4 of t) {
+    for (const n4 of t2) {
       const r3 = yo[n4.codePointAt(0)];
       if (r3 === void 0) throw new Error(`Non-base256emoji character: ${n4}`);
       e2.push(r3);
     }
     return new Uint8Array(e2);
   }
-  function $e2(t, e2, n4) {
+  function $e2(t2, e2, n4) {
     e2 = e2 || [], n4 = n4 || 0;
-    for (var r3 = n4; t >= vo; ) e2[n4++] = t & 255 | qe, t /= 128;
-    for (; t & So; ) e2[n4++] = t & 255 | qe, t >>>= 7;
-    return e2[n4] = t | 0, $e2.bytes = n4 - r3 + 1, e2;
+    for (var r3 = n4; t2 >= vo; ) e2[n4++] = t2 & 255 | qe, t2 /= 128;
+    for (; t2 & So; ) e2[n4++] = t2 & 255 | qe, t2 >>>= 7;
+    return e2[n4] = t2 | 0, $e2.bytes = n4 - r3 + 1, e2;
   }
-  function Pt(t, r3) {
-    var n4 = 0, r3 = r3 || 0, o4 = 0, s2 = r3, a3, u3 = t.length;
+  function Pt(t2, r3) {
+    var n4 = 0, r3 = r3 || 0, o4 = 0, s2 = r3, a3, u2 = t2.length;
     do {
-      if (s2 >= u3) throw Pt.bytes = 0, new RangeError("Could not decode varint");
-      a3 = t[s2++], n4 += o4 < 28 ? (a3 & ke2) << o4 : (a3 & ke2) * Math.pow(2, o4), o4 += 7;
+      if (s2 >= u2) throw Pt.bytes = 0, new RangeError("Could not decode varint");
+      a3 = t2[s2++], n4 += o4 < 28 ? (a3 & ke2) << o4 : (a3 & ke2) * Math.pow(2, o4), o4 += 7;
     } while (a3 >= Uo);
     return Pt.bytes = s2 - r3, n4;
   }
-  function We(t, e2, n4, r3) {
-    return { name: t, prefix: e2, encoder: { name: t, prefix: e2, encode: n4 }, decoder: { decode: r3 } };
+  function We(t2, e2, n4, r3) {
+    return { name: t2, prefix: e2, encoder: { name: t2, prefix: e2, encode: n4 }, decoder: { decode: r3 } };
   }
-  function ct(t, e2 = "utf8") {
+  function ct(t2, e2 = "utf8") {
     const n4 = Pe2[e2];
     if (!n4) throw new Error(`Unsupported encoding "${e2}"`);
-    return (e2 === "utf8" || e2 === "utf-8") && globalThis.Buffer != null && globalThis.Buffer.from != null ? globalThis.Buffer.from(t.buffer, t.byteOffset, t.byteLength).toString("utf8") : n4.encoder.encode(t).substring(1);
+    return (e2 === "utf8" || e2 === "utf-8") && globalThis.Buffer != null && globalThis.Buffer.from != null ? globalThis.Buffer.from(t2.buffer, t2.byteOffset, t2.byteLength).toString("utf8") : n4.encoder.encode(t2).substring(1);
   }
-  function rt(t, e2 = "utf8") {
+  function rt(t2, e2 = "utf8") {
     const n4 = Pe2[e2];
     if (!n4) throw new Error(`Unsupported encoding "${e2}"`);
-    return (e2 === "utf8" || e2 === "utf-8") && globalThis.Buffer != null && globalThis.Buffer.from != null ? Xt(globalThis.Buffer.from(t, "utf-8")) : n4.decoder.decode(`${n4.prefix}${t}`);
+    return (e2 === "utf8" || e2 === "utf-8") && globalThis.Buffer != null && globalThis.Buffer.from != null ? Xt(globalThis.Buffer.from(t2, "utf-8")) : n4.decoder.decode(`${n4.prefix}${t2}`);
   }
-  function lt(t) {
-    return safeJsonParse(ct(rt(t, Dt), Gt));
+  function lt(t2) {
+    return safeJsonParse(ct(rt(t2, Dt), Gt));
   }
-  function bt(t) {
-    return ct(rt(safeJsonStringify(t), Gt), Dt);
+  function bt(t2) {
+    return ct(rt(safeJsonStringify(t2), Gt), Dt);
   }
-  function Qe(t) {
-    const e2 = rt(Wt, dt), n4 = Kt + ct(Oe2([e2, t]), dt);
+  function Qe(t2) {
+    const e2 = rt(Wt, dt), n4 = Kt + ct(Oe2([e2, t2]), dt);
     return [Yt, Jt, n4].join(Vt);
   }
-  function en(t) {
-    return ct(t, Dt);
+  function en(t2) {
+    return ct(t2, Dt);
   }
-  function nn(t) {
-    return rt(t, Dt);
+  function nn(t2) {
+    return rt(t2, Dt);
   }
-  function rn(t) {
-    return rt([bt(t.header), bt(t.payload)].join(ut), xt);
+  function rn(t2) {
+    return rt([bt(t2.header), bt(t2.payload)].join(ut), xt);
   }
-  function on(t) {
-    return [bt(t.header), bt(t.payload), en(t.signature)].join(ut);
+  function on(t2) {
+    return [bt(t2.header), bt(t2.payload), en(t2.signature)].join(ut);
   }
-  function sn(t) {
-    const e2 = t.split(ut), n4 = lt(e2[0]), r3 = lt(e2[1]), o4 = nn(e2[2]), s2 = rt(e2.slice(0, 2).join(ut), xt);
+  function sn(t2) {
+    const e2 = t2.split(ut), n4 = lt(e2[0]), r3 = lt(e2[1]), o4 = nn(e2[2]), s2 = rt(e2.slice(0, 2).join(ut), xt);
     return { header: n4, payload: r3, signature: o4, data: s2 };
   }
-  function Po(t = he2(Ne2)) {
-    const e2 = Rt.getPublicKey(t);
-    return { secretKey: Oe2([t, e2]), publicKey: e2 };
+  function Po(t2 = he2(Ne2)) {
+    const e2 = Rt.getPublicKey(t2);
+    return { secretKey: Oe2([t2, e2]), publicKey: e2 };
   }
-  async function Qo(t, e2, n4, r3, o4 = (0, import_time2.fromMiliseconds)(Date.now())) {
-    const s2 = { alg: jt, typ: Zt }, a3 = Qe(r3.publicKey), u3 = o4 + n4, i3 = { iss: a3, sub: t, aud: e2, iat: o4, exp: u3 }, D5 = rn({ header: s2, payload: i3 }), c4 = Rt.sign(D5, r3.secretKey.slice(0, 32));
+  async function Qo(t2, e2, n4, r3, o4 = (0, import_time2.fromMiliseconds)(Date.now())) {
+    const s2 = { alg: jt, typ: Zt }, a3 = Qe(r3.publicKey), u2 = o4 + n4, i3 = { iss: a3, sub: t2, aud: e2, iat: o4, exp: u2 }, D5 = rn({ header: s2, payload: i3 }), c4 = Rt.sign(D5, r3.secretKey.slice(0, 32));
     return on({ header: s2, payload: i3, signature: c4 });
   }
   var import_time2, it, _t, xn, An, wt, St, _n, Sn, vn, In, Un, Tn, Fn, Nn, Ln, On, Hn, zn, Mn, $n, kn, Rn, jn, Zn, Gn, x4, Vn, Yn, P2, Q2, Jn, Kn, vt, be2, Wn, Xn, K3, Lt, er, nr, M2, N3, nt, rr, Ht, Be2, Ce2, ur, cr, Se2, gt, qt, Ie2, G2, j2, yt, wr, Er, kt, Ue2, xr, Te2, Br, Cr, Sr, vr, Rt, jt, Zt, ut, Dt, Gt, xt, Vt, Yt, Jt, dt, Kt, Wt, Ne2, Ur, Tr, He, Fr, Nr, Lr, Or, Hr, ze2, zr, Bt, ht, Mr, qr, k3, $r, kr, Rr, jr, Zr, Gr, Vr, Yr, Jr, Kr, Wr, Xr, Pr, Qr, to, eo, no, ro, oo, so, io, uo, co, ao, fo, Do, ho, lo, bo, po, wo, Eo, Me2, go, yo, Co, Ao, mo, qe, _o, So, vo, Io, Uo, ke2, To, Fo, No, Lo, Oo, Ho, zo, Mo, qo, $o, ko, Re2, je2, Ze, Qt, Ro, Ge2, jo, Ve2, Zo, Go, Vo, Ye, Yo, Je, Jo, Ko, Wo, Ke, Xe, te2, Pe2;
@@ -3113,7 +3113,7 @@
       import_time2 = __toESM(require_cjs());
       init_esm2();
       it = typeof globalThis == "object" && "crypto" in globalThis ? globalThis.crypto : void 0;
-      _t = (t) => new DataView(t.buffer, t.byteOffset, t.byteLength);
+      _t = (t2) => new DataView(t2.buffer, t2.byteOffset, t2.byteLength);
       xn = class {
         clone() {
           return this._cloneInto();
@@ -3129,13 +3129,13 @@
           e2 = de2(e2);
           const s2 = e2.length;
           for (let a3 = 0; a3 < s2; ) {
-            const u3 = Math.min(o4 - this.pos, s2 - a3);
-            if (u3 === o4) {
+            const u2 = Math.min(o4 - this.pos, s2 - a3);
+            if (u2 === o4) {
               const i3 = _t(e2);
               for (; o4 <= s2 - a3; a3 += o4) this.process(i3, a3);
               continue;
             }
-            r3.set(e2.subarray(a3, a3 + u3), this.pos), this.pos += u3, a3 += u3, this.pos === o4 && (this.process(n4, 0), this.pos = 0);
+            r3.set(e2.subarray(a3, a3 + u2), this.pos), this.pos += u2, a3 += u2, this.pos === o4 && (this.process(n4, 0), this.pos = 0);
           }
           return this.length += e2.length, this.roundClean(), this;
         }
@@ -3146,11 +3146,11 @@
           n4[a3++] = 128, this.buffer.subarray(a3).fill(0), this.padOffset > o4 - a3 && (this.process(r3, 0), a3 = 0);
           for (let l4 = a3; l4 < o4; l4++) n4[l4] = 0;
           Cn(r3, o4 - 8, BigInt(this.length * 8), s2), this.process(r3, 0);
-          const u3 = _t(e2), i3 = this.outputLen;
+          const u2 = _t(e2), i3 = this.outputLen;
           if (i3 % 4) throw new Error("_sha2: outputLen should be aligned to 32bit");
           const D5 = i3 / 4, c4 = this.get();
           if (D5 > c4.length) throw new Error("_sha2: outputLen bigger than state");
-          for (let l4 = 0; l4 < D5; l4++) u3.setUint32(4 * l4, c4[l4], s2);
+          for (let l4 = 0; l4 < D5; l4++) u2.setUint32(4 * l4, c4[l4], s2);
         }
         digest() {
           const { buffer: e2, outputLen: n4 } = this;
@@ -3160,33 +3160,33 @@
         }
         _cloneInto(e2) {
           e2 || (e2 = new this.constructor()), e2.set(...this.get());
-          const { blockLen: n4, buffer: r3, length: o4, finished: s2, destroyed: a3, pos: u3 } = this;
-          return e2.length = o4, e2.pos = u3, e2.finished = s2, e2.destroyed = a3, o4 % n4 && e2.buffer.set(r3), e2;
+          const { blockLen: n4, buffer: r3, length: o4, finished: s2, destroyed: a3, pos: u2 } = this;
+          return e2.length = o4, e2.pos = u2, e2.finished = s2, e2.destroyed = a3, o4 % n4 && e2.buffer.set(r3), e2;
         }
       };
       wt = BigInt(2 ** 32 - 1);
       St = BigInt(32);
-      _n = (t, e2) => BigInt(t >>> 0) << St | BigInt(e2 >>> 0);
-      Sn = (t, e2, n4) => t >>> n4;
-      vn = (t, e2, n4) => t << 32 - n4 | e2 >>> n4;
-      In = (t, e2, n4) => t >>> n4 | e2 << 32 - n4;
-      Un = (t, e2, n4) => t << 32 - n4 | e2 >>> n4;
-      Tn = (t, e2, n4) => t << 64 - n4 | e2 >>> n4 - 32;
-      Fn = (t, e2, n4) => t >>> n4 - 32 | e2 << 64 - n4;
-      Nn = (t, e2) => e2;
-      Ln = (t, e2) => t;
-      On = (t, e2, n4) => t << n4 | e2 >>> 32 - n4;
-      Hn = (t, e2, n4) => e2 << n4 | t >>> 32 - n4;
-      zn = (t, e2, n4) => e2 << n4 - 32 | t >>> 64 - n4;
-      Mn = (t, e2, n4) => t << n4 - 32 | e2 >>> 64 - n4;
-      $n = (t, e2, n4) => (t >>> 0) + (e2 >>> 0) + (n4 >>> 0);
-      kn = (t, e2, n4, r3) => e2 + n4 + r3 + (t / 2 ** 32 | 0) | 0;
-      Rn = (t, e2, n4, r3) => (t >>> 0) + (e2 >>> 0) + (n4 >>> 0) + (r3 >>> 0);
-      jn = (t, e2, n4, r3, o4) => e2 + n4 + r3 + o4 + (t / 2 ** 32 | 0) | 0;
-      Zn = (t, e2, n4, r3, o4) => (t >>> 0) + (e2 >>> 0) + (n4 >>> 0) + (r3 >>> 0) + (o4 >>> 0);
-      Gn = (t, e2, n4, r3, o4, s2) => e2 + n4 + r3 + o4 + s2 + (t / 2 ** 32 | 0) | 0;
+      _n = (t2, e2) => BigInt(t2 >>> 0) << St | BigInt(e2 >>> 0);
+      Sn = (t2, e2, n4) => t2 >>> n4;
+      vn = (t2, e2, n4) => t2 << 32 - n4 | e2 >>> n4;
+      In = (t2, e2, n4) => t2 >>> n4 | e2 << 32 - n4;
+      Un = (t2, e2, n4) => t2 << 32 - n4 | e2 >>> n4;
+      Tn = (t2, e2, n4) => t2 << 64 - n4 | e2 >>> n4 - 32;
+      Fn = (t2, e2, n4) => t2 >>> n4 - 32 | e2 << 64 - n4;
+      Nn = (t2, e2) => e2;
+      Ln = (t2, e2) => t2;
+      On = (t2, e2, n4) => t2 << n4 | e2 >>> 32 - n4;
+      Hn = (t2, e2, n4) => e2 << n4 | t2 >>> 32 - n4;
+      zn = (t2, e2, n4) => e2 << n4 - 32 | t2 >>> 64 - n4;
+      Mn = (t2, e2, n4) => t2 << n4 - 32 | e2 >>> 64 - n4;
+      $n = (t2, e2, n4) => (t2 >>> 0) + (e2 >>> 0) + (n4 >>> 0);
+      kn = (t2, e2, n4, r3) => e2 + n4 + r3 + (t2 / 2 ** 32 | 0) | 0;
+      Rn = (t2, e2, n4, r3) => (t2 >>> 0) + (e2 >>> 0) + (n4 >>> 0) + (r3 >>> 0);
+      jn = (t2, e2, n4, r3, o4) => e2 + n4 + r3 + o4 + (t2 / 2 ** 32 | 0) | 0;
+      Zn = (t2, e2, n4, r3, o4) => (t2 >>> 0) + (e2 >>> 0) + (n4 >>> 0) + (r3 >>> 0) + (o4 >>> 0);
+      Gn = (t2, e2, n4, r3, o4, s2) => e2 + n4 + r3 + o4 + s2 + (t2 / 2 ** 32 | 0) | 0;
       x4 = { fromBig: le2, split: mn, toBig: _n, shrSH: Sn, shrSL: vn, rotrSH: In, rotrSL: Un, rotrBH: Tn, rotrBL: Fn, rotr32H: Nn, rotr32L: Ln, rotlSH: On, rotlSL: Hn, rotlBH: zn, rotlBL: Mn, add: qn, add3L: $n, add3H: kn, add4L: Rn, add4H: jn, add5H: Gn, add5L: Zn };
-      [Vn, Yn] = (() => x4.split(["0x428a2f98d728ae22", "0x7137449123ef65cd", "0xb5c0fbcfec4d3b2f", "0xe9b5dba58189dbbc", "0x3956c25bf348b538", "0x59f111f1b605d019", "0x923f82a4af194f9b", "0xab1c5ed5da6d8118", "0xd807aa98a3030242", "0x12835b0145706fbe", "0x243185be4ee4b28c", "0x550c7dc3d5ffb4e2", "0x72be5d74f27b896f", "0x80deb1fe3b1696b1", "0x9bdc06a725c71235", "0xc19bf174cf692694", "0xe49b69c19ef14ad2", "0xefbe4786384f25e3", "0x0fc19dc68b8cd5b5", "0x240ca1cc77ac9c65", "0x2de92c6f592b0275", "0x4a7484aa6ea6e483", "0x5cb0a9dcbd41fbd4", "0x76f988da831153b5", "0x983e5152ee66dfab", "0xa831c66d2db43210", "0xb00327c898fb213f", "0xbf597fc7beef0ee4", "0xc6e00bf33da88fc2", "0xd5a79147930aa725", "0x06ca6351e003826f", "0x142929670a0e6e70", "0x27b70a8546d22ffc", "0x2e1b21385c26c926", "0x4d2c6dfc5ac42aed", "0x53380d139d95b3df", "0x650a73548baf63de", "0x766a0abb3c77b2a8", "0x81c2c92e47edaee6", "0x92722c851482353b", "0xa2bfe8a14cf10364", "0xa81a664bbc423001", "0xc24b8b70d0f89791", "0xc76c51a30654be30", "0xd192e819d6ef5218", "0xd69906245565a910", "0xf40e35855771202a", "0x106aa07032bbd1b8", "0x19a4c116b8d2d0c8", "0x1e376c085141ab53", "0x2748774cdf8eeb99", "0x34b0bcb5e19b48a8", "0x391c0cb3c5c95a63", "0x4ed8aa4ae3418acb", "0x5b9cca4f7763e373", "0x682e6ff3d6b2b8a3", "0x748f82ee5defb2fc", "0x78a5636f43172f60", "0x84c87814a1f0ab72", "0x8cc702081a6439ec", "0x90befffa23631e28", "0xa4506cebde82bde9", "0xbef9a3f7b2c67915", "0xc67178f2e372532b", "0xca273eceea26619c", "0xd186b8c721c0c207", "0xeada7dd6cde0eb1e", "0xf57d4f7fee6ed178", "0x06f067aa72176fba", "0x0a637dc5a2c898a6", "0x113f9804bef90dae", "0x1b710b35131c471b", "0x28db77f523047d84", "0x32caab7b40c72493", "0x3c9ebe0a15c9bebc", "0x431d67c49c100d4c", "0x4cc5d4becb3e42b6", "0x597f299cfc657e2a", "0x5fcb6fab3ad6faec", "0x6c44198c4a475817"].map((t) => BigInt(t))))();
+      [Vn, Yn] = (() => x4.split(["0x428a2f98d728ae22", "0x7137449123ef65cd", "0xb5c0fbcfec4d3b2f", "0xe9b5dba58189dbbc", "0x3956c25bf348b538", "0x59f111f1b605d019", "0x923f82a4af194f9b", "0xab1c5ed5da6d8118", "0xd807aa98a3030242", "0x12835b0145706fbe", "0x243185be4ee4b28c", "0x550c7dc3d5ffb4e2", "0x72be5d74f27b896f", "0x80deb1fe3b1696b1", "0x9bdc06a725c71235", "0xc19bf174cf692694", "0xe49b69c19ef14ad2", "0xefbe4786384f25e3", "0x0fc19dc68b8cd5b5", "0x240ca1cc77ac9c65", "0x2de92c6f592b0275", "0x4a7484aa6ea6e483", "0x5cb0a9dcbd41fbd4", "0x76f988da831153b5", "0x983e5152ee66dfab", "0xa831c66d2db43210", "0xb00327c898fb213f", "0xbf597fc7beef0ee4", "0xc6e00bf33da88fc2", "0xd5a79147930aa725", "0x06ca6351e003826f", "0x142929670a0e6e70", "0x27b70a8546d22ffc", "0x2e1b21385c26c926", "0x4d2c6dfc5ac42aed", "0x53380d139d95b3df", "0x650a73548baf63de", "0x766a0abb3c77b2a8", "0x81c2c92e47edaee6", "0x92722c851482353b", "0xa2bfe8a14cf10364", "0xa81a664bbc423001", "0xc24b8b70d0f89791", "0xc76c51a30654be30", "0xd192e819d6ef5218", "0xd69906245565a910", "0xf40e35855771202a", "0x106aa07032bbd1b8", "0x19a4c116b8d2d0c8", "0x1e376c085141ab53", "0x2748774cdf8eeb99", "0x34b0bcb5e19b48a8", "0x391c0cb3c5c95a63", "0x4ed8aa4ae3418acb", "0x5b9cca4f7763e373", "0x682e6ff3d6b2b8a3", "0x748f82ee5defb2fc", "0x78a5636f43172f60", "0x84c87814a1f0ab72", "0x8cc702081a6439ec", "0x90befffa23631e28", "0xa4506cebde82bde9", "0xbef9a3f7b2c67915", "0xc67178f2e372532b", "0xca273eceea26619c", "0xd186b8c721c0c207", "0xeada7dd6cde0eb1e", "0xf57d4f7fee6ed178", "0x06f067aa72176fba", "0x0a637dc5a2c898a6", "0x113f9804bef90dae", "0x1b710b35131c471b", "0x28db77f523047d84", "0x32caab7b40c72493", "0x3c9ebe0a15c9bebc", "0x431d67c49c100d4c", "0x4cc5d4becb3e42b6", "0x597f299cfc657e2a", "0x5fcb6fab3ad6faec", "0x6c44198c4a475817"].map((t2) => BigInt(t2))))();
       P2 = new Uint32Array(80);
       Q2 = new Uint32Array(80);
       Jn = class extends An {
@@ -3194,26 +3194,26 @@
           super(128, 64, 16, false), this.Ah = 1779033703, this.Al = -205731576, this.Bh = -1150833019, this.Bl = -2067093701, this.Ch = 1013904242, this.Cl = -23791573, this.Dh = -1521486534, this.Dl = 1595750129, this.Eh = 1359893119, this.El = -1377402159, this.Fh = -1694144372, this.Fl = 725511199, this.Gh = 528734635, this.Gl = -79577749, this.Hh = 1541459225, this.Hl = 327033209;
         }
         get() {
-          const { Ah: e2, Al: n4, Bh: r3, Bl: o4, Ch: s2, Cl: a3, Dh: u3, Dl: i3, Eh: D5, El: c4, Fh: l4, Fl: p4, Gh: w5, Gl: h5, Hh: g4, Hl: S5 } = this;
-          return [e2, n4, r3, o4, s2, a3, u3, i3, D5, c4, l4, p4, w5, h5, g4, S5];
+          const { Ah: e2, Al: n4, Bh: r3, Bl: o4, Ch: s2, Cl: a3, Dh: u2, Dl: i3, Eh: D5, El: c4, Fh: l4, Fl: p4, Gh: w4, Gl: h4, Hh: g4, Hl: S4 } = this;
+          return [e2, n4, r3, o4, s2, a3, u2, i3, D5, c4, l4, p4, w4, h4, g4, S4];
         }
-        set(e2, n4, r3, o4, s2, a3, u3, i3, D5, c4, l4, p4, w5, h5, g4, S5) {
-          this.Ah = e2 | 0, this.Al = n4 | 0, this.Bh = r3 | 0, this.Bl = o4 | 0, this.Ch = s2 | 0, this.Cl = a3 | 0, this.Dh = u3 | 0, this.Dl = i3 | 0, this.Eh = D5 | 0, this.El = c4 | 0, this.Fh = l4 | 0, this.Fl = p4 | 0, this.Gh = w5 | 0, this.Gl = h5 | 0, this.Hh = g4 | 0, this.Hl = S5 | 0;
+        set(e2, n4, r3, o4, s2, a3, u2, i3, D5, c4, l4, p4, w4, h4, g4, S4) {
+          this.Ah = e2 | 0, this.Al = n4 | 0, this.Bh = r3 | 0, this.Bl = o4 | 0, this.Ch = s2 | 0, this.Cl = a3 | 0, this.Dh = u2 | 0, this.Dl = i3 | 0, this.Eh = D5 | 0, this.El = c4 | 0, this.Fh = l4 | 0, this.Fl = p4 | 0, this.Gh = w4 | 0, this.Gl = h4 | 0, this.Hh = g4 | 0, this.Hl = S4 | 0;
         }
         process(e2, n4) {
           for (let d3 = 0; d3 < 16; d3++, n4 += 4) P2[d3] = e2.getUint32(n4), Q2[d3] = e2.getUint32(n4 += 4);
           for (let d3 = 16; d3 < 80; d3++) {
-            const m2 = P2[d3 - 15] | 0, F3 = Q2[d3 - 15] | 0, q5 = x4.rotrSH(m2, F3, 1) ^ x4.rotrSH(m2, F3, 8) ^ x4.shrSH(m2, F3, 7), z5 = x4.rotrSL(m2, F3, 1) ^ x4.rotrSL(m2, F3, 8) ^ x4.shrSL(m2, F3, 7), I2 = P2[d3 - 2] | 0, O5 = Q2[d3 - 2] | 0, ot3 = x4.rotrSH(I2, O5, 19) ^ x4.rotrBH(I2, O5, 61) ^ x4.shrSH(I2, O5, 6), tt2 = x4.rotrSL(I2, O5, 19) ^ x4.rotrBL(I2, O5, 61) ^ x4.shrSL(I2, O5, 6), st3 = x4.add4L(z5, tt2, Q2[d3 - 7], Q2[d3 - 16]), at3 = x4.add4H(st3, q5, ot3, P2[d3 - 7], P2[d3 - 16]);
+            const m2 = P2[d3 - 15] | 0, F3 = Q2[d3 - 15] | 0, q4 = x4.rotrSH(m2, F3, 1) ^ x4.rotrSH(m2, F3, 8) ^ x4.shrSH(m2, F3, 7), z4 = x4.rotrSL(m2, F3, 1) ^ x4.rotrSL(m2, F3, 8) ^ x4.shrSL(m2, F3, 7), I2 = P2[d3 - 2] | 0, O4 = Q2[d3 - 2] | 0, ot3 = x4.rotrSH(I2, O4, 19) ^ x4.rotrBH(I2, O4, 61) ^ x4.shrSH(I2, O4, 6), tt2 = x4.rotrSL(I2, O4, 19) ^ x4.rotrBL(I2, O4, 61) ^ x4.shrSL(I2, O4, 6), st3 = x4.add4L(z4, tt2, Q2[d3 - 7], Q2[d3 - 16]), at3 = x4.add4H(st3, q4, ot3, P2[d3 - 7], P2[d3 - 16]);
             P2[d3] = at3 | 0, Q2[d3] = st3 | 0;
           }
-          let { Ah: r3, Al: o4, Bh: s2, Bl: a3, Ch: u3, Cl: i3, Dh: D5, Dl: c4, Eh: l4, El: p4, Fh: w5, Fl: h5, Gh: g4, Gl: S5, Hh: v7, Hl: L2 } = this;
+          let { Ah: r3, Al: o4, Bh: s2, Bl: a3, Ch: u2, Cl: i3, Dh: D5, Dl: c4, Eh: l4, El: p4, Fh: w4, Fl: h4, Gh: g4, Gl: S4, Hh: v7, Hl: L } = this;
           for (let d3 = 0; d3 < 80; d3++) {
-            const m2 = x4.rotrSH(l4, p4, 14) ^ x4.rotrSH(l4, p4, 18) ^ x4.rotrBH(l4, p4, 41), F3 = x4.rotrSL(l4, p4, 14) ^ x4.rotrSL(l4, p4, 18) ^ x4.rotrBL(l4, p4, 41), q5 = l4 & w5 ^ ~l4 & g4, z5 = p4 & h5 ^ ~p4 & S5, I2 = x4.add5L(L2, F3, z5, Yn[d3], Q2[d3]), O5 = x4.add5H(I2, v7, m2, q5, Vn[d3], P2[d3]), ot3 = I2 | 0, tt2 = x4.rotrSH(r3, o4, 28) ^ x4.rotrBH(r3, o4, 34) ^ x4.rotrBH(r3, o4, 39), st3 = x4.rotrSL(r3, o4, 28) ^ x4.rotrBL(r3, o4, 34) ^ x4.rotrBL(r3, o4, 39), at3 = r3 & s2 ^ r3 & u3 ^ s2 & u3, Ct2 = o4 & a3 ^ o4 & i3 ^ a3 & i3;
-            v7 = g4 | 0, L2 = S5 | 0, g4 = w5 | 0, S5 = h5 | 0, w5 = l4 | 0, h5 = p4 | 0, { h: l4, l: p4 } = x4.add(D5 | 0, c4 | 0, O5 | 0, ot3 | 0), D5 = u3 | 0, c4 = i3 | 0, u3 = s2 | 0, i3 = a3 | 0, s2 = r3 | 0, a3 = o4 | 0;
+            const m2 = x4.rotrSH(l4, p4, 14) ^ x4.rotrSH(l4, p4, 18) ^ x4.rotrBH(l4, p4, 41), F3 = x4.rotrSL(l4, p4, 14) ^ x4.rotrSL(l4, p4, 18) ^ x4.rotrBL(l4, p4, 41), q4 = l4 & w4 ^ ~l4 & g4, z4 = p4 & h4 ^ ~p4 & S4, I2 = x4.add5L(L, F3, z4, Yn[d3], Q2[d3]), O4 = x4.add5H(I2, v7, m2, q4, Vn[d3], P2[d3]), ot3 = I2 | 0, tt2 = x4.rotrSH(r3, o4, 28) ^ x4.rotrBH(r3, o4, 34) ^ x4.rotrBH(r3, o4, 39), st3 = x4.rotrSL(r3, o4, 28) ^ x4.rotrBL(r3, o4, 34) ^ x4.rotrBL(r3, o4, 39), at3 = r3 & s2 ^ r3 & u2 ^ s2 & u2, Ct2 = o4 & a3 ^ o4 & i3 ^ a3 & i3;
+            v7 = g4 | 0, L = S4 | 0, g4 = w4 | 0, S4 = h4 | 0, w4 = l4 | 0, h4 = p4 | 0, { h: l4, l: p4 } = x4.add(D5 | 0, c4 | 0, O4 | 0, ot3 | 0), D5 = u2 | 0, c4 = i3 | 0, u2 = s2 | 0, i3 = a3 | 0, s2 = r3 | 0, a3 = o4 | 0;
             const At2 = x4.add3L(ot3, st3, Ct2);
-            r3 = x4.add3H(At2, O5, tt2, at3), o4 = At2 | 0;
+            r3 = x4.add3H(At2, O4, tt2, at3), o4 = At2 | 0;
           }
-          ({ h: r3, l: o4 } = x4.add(this.Ah | 0, this.Al | 0, r3 | 0, o4 | 0)), { h: s2, l: a3 } = x4.add(this.Bh | 0, this.Bl | 0, s2 | 0, a3 | 0), { h: u3, l: i3 } = x4.add(this.Ch | 0, this.Cl | 0, u3 | 0, i3 | 0), { h: D5, l: c4 } = x4.add(this.Dh | 0, this.Dl | 0, D5 | 0, c4 | 0), { h: l4, l: p4 } = x4.add(this.Eh | 0, this.El | 0, l4 | 0, p4 | 0), { h: w5, l: h5 } = x4.add(this.Fh | 0, this.Fl | 0, w5 | 0, h5 | 0), { h: g4, l: S5 } = x4.add(this.Gh | 0, this.Gl | 0, g4 | 0, S5 | 0), { h: v7, l: L2 } = x4.add(this.Hh | 0, this.Hl | 0, v7 | 0, L2 | 0), this.set(r3, o4, s2, a3, u3, i3, D5, c4, l4, p4, w5, h5, g4, S5, v7, L2);
+          ({ h: r3, l: o4 } = x4.add(this.Ah | 0, this.Al | 0, r3 | 0, o4 | 0)), { h: s2, l: a3 } = x4.add(this.Bh | 0, this.Bl | 0, s2 | 0, a3 | 0), { h: u2, l: i3 } = x4.add(this.Ch | 0, this.Cl | 0, u2 | 0, i3 | 0), { h: D5, l: c4 } = x4.add(this.Dh | 0, this.Dl | 0, D5 | 0, c4 | 0), { h: l4, l: p4 } = x4.add(this.Eh | 0, this.El | 0, l4 | 0, p4 | 0), { h: w4, l: h4 } = x4.add(this.Fh | 0, this.Fl | 0, w4 | 0, h4 | 0), { h: g4, l: S4 } = x4.add(this.Gh | 0, this.Gl | 0, g4 | 0, S4 | 0), { h: v7, l: L } = x4.add(this.Hh | 0, this.Hl | 0, v7 | 0, L | 0), this.set(r3, o4, s2, a3, u2, i3, D5, c4, l4, p4, w4, h4, g4, S4, v7, L);
         }
         roundClean() {
           P2.fill(0), Q2.fill(0);
@@ -3226,11 +3226,11 @@
       vt = BigInt(0);
       be2 = BigInt(1);
       Wn = BigInt(2);
-      Xn = Array.from({ length: 256 }, (t, e2) => e2.toString(16).padStart(2, "0"));
+      Xn = Array.from({ length: 256 }, (t2, e2) => e2.toString(16).padStart(2, "0"));
       K3 = { _0: 48, _9: 57, A: 65, F: 70, a: 97, f: 102 };
-      Lt = (t) => typeof t == "bigint" && vt <= t;
-      er = (t) => (Wn << BigInt(t - 1)) - be2;
-      nr = { bigint: (t) => typeof t == "bigint", function: (t) => typeof t == "function", boolean: (t) => typeof t == "boolean", string: (t) => typeof t == "string", stringOrUint8Array: (t) => typeof t == "string" || It(t), isSafeInteger: (t) => Number.isSafeInteger(t), array: (t) => Array.isArray(t), field: (t, e2) => e2.Fp.isValid(t), hash: (t) => typeof t == "function" && Number.isSafeInteger(t.outputLen) };
+      Lt = (t2) => typeof t2 == "bigint" && vt <= t2;
+      er = (t2) => (Wn << BigInt(t2 - 1)) - be2;
+      nr = { bigint: (t2) => typeof t2 == "bigint", function: (t2) => typeof t2 == "function", boolean: (t2) => typeof t2 == "boolean", string: (t2) => typeof t2 == "string", stringOrUint8Array: (t2) => typeof t2 == "string" || It(t2), isSafeInteger: (t2) => Number.isSafeInteger(t2), array: (t2) => Array.isArray(t2), field: (t2, e2) => e2.Fp.isValid(t2), hash: (t2) => typeof t2 == "function" && Number.isSafeInteger(t2.outputLen) };
       M2 = BigInt(0);
       N3 = BigInt(1);
       nt = BigInt(2);
@@ -3238,7 +3238,7 @@
       Ht = BigInt(4);
       Be2 = BigInt(5);
       Ce2 = BigInt(8);
-      ur = (t, e2) => (H2(t, e2) & N3) === N3;
+      ur = (t2, e2) => (H2(t2, e2) & N3) === N3;
       cr = ["create", "isValid", "is0", "neg", "inv", "sqrt", "sqr", "eql", "add", "sub", "mul", "pow", "div", "addN", "subN", "mulN", "sqrN"];
       Se2 = BigInt(0);
       gt = BigInt(1);
@@ -3276,14 +3276,14 @@
       Ne2 = 32;
       Ur = Ir;
       Tr = Ur;
-      He = (t) => {
-        if (t instanceof Uint8Array && t.constructor.name === "Uint8Array") return t;
-        if (t instanceof ArrayBuffer) return new Uint8Array(t);
-        if (ArrayBuffer.isView(t)) return new Uint8Array(t.buffer, t.byteOffset, t.byteLength);
+      He = (t2) => {
+        if (t2 instanceof Uint8Array && t2.constructor.name === "Uint8Array") return t2;
+        if (t2 instanceof ArrayBuffer) return new Uint8Array(t2);
+        if (ArrayBuffer.isView(t2)) return new Uint8Array(t2.buffer, t2.byteOffset, t2.byteLength);
         throw new Error("Unknown type, must be binary type");
       };
-      Fr = (t) => new TextEncoder().encode(t);
-      Nr = (t) => new TextDecoder().decode(t);
+      Fr = (t2) => new TextEncoder().encode(t2);
+      Nr = (t2) => new TextDecoder().decode(t2);
       Lr = class {
         constructor(e2, n4, r3) {
           this.name = e2, this.prefix = n4, this.baseEncode = r3;
@@ -3321,7 +3321,7 @@
           throw RangeError(`Unable to decode multibase string ${JSON.stringify(e2)}, only inputs prefixed with ${Object.keys(this.decoders)} are supported`);
         }
       };
-      ze2 = (t, e2) => new Hr({ ...t.decoders || { [t.prefix]: t }, ...e2.decoders || { [e2.prefix]: e2 } });
+      ze2 = (t2, e2) => new Hr({ ...t2.decoders || { [t2.prefix]: t2 }, ...e2.decoders || { [e2.prefix]: e2 } });
       zr = class {
         constructor(e2, n4, r3, o4) {
           this.name = e2, this.prefix = n4, this.baseEncode = r3, this.baseDecode = o4, this.encoder = new Lr(e2, n4, r3), this.decoder = new Or(e2, n4, o4);
@@ -3333,39 +3333,39 @@
           return this.decoder.decode(e2);
         }
       };
-      Bt = ({ name: t, prefix: e2, encode: n4, decode: r3 }) => new zr(t, e2, n4, r3);
-      ht = ({ prefix: t, name: e2, alphabet: n4 }) => {
+      Bt = ({ name: t2, prefix: e2, encode: n4, decode: r3 }) => new zr(t2, e2, n4, r3);
+      ht = ({ prefix: t2, name: e2, alphabet: n4 }) => {
         const { encode: r3, decode: o4 } = Tr(n4, e2);
-        return Bt({ prefix: t, name: e2, encode: r3, decode: (s2) => He(o4(s2)) });
+        return Bt({ prefix: t2, name: e2, encode: r3, decode: (s2) => He(o4(s2)) });
       };
-      Mr = (t, e2, n4, r3) => {
+      Mr = (t2, e2, n4, r3) => {
         const o4 = {};
         for (let c4 = 0; c4 < e2.length; ++c4) o4[e2[c4]] = c4;
-        let s2 = t.length;
-        for (; t[s2 - 1] === "="; ) --s2;
+        let s2 = t2.length;
+        for (; t2[s2 - 1] === "="; ) --s2;
         const a3 = new Uint8Array(s2 * n4 / 8 | 0);
-        let u3 = 0, i3 = 0, D5 = 0;
+        let u2 = 0, i3 = 0, D5 = 0;
         for (let c4 = 0; c4 < s2; ++c4) {
-          const l4 = o4[t[c4]];
+          const l4 = o4[t2[c4]];
           if (l4 === void 0) throw new SyntaxError(`Non-${r3} character`);
-          i3 = i3 << n4 | l4, u3 += n4, u3 >= 8 && (u3 -= 8, a3[D5++] = 255 & i3 >> u3);
+          i3 = i3 << n4 | l4, u2 += n4, u2 >= 8 && (u2 -= 8, a3[D5++] = 255 & i3 >> u2);
         }
-        if (u3 >= n4 || 255 & i3 << 8 - u3) throw new SyntaxError("Unexpected end of data");
+        if (u2 >= n4 || 255 & i3 << 8 - u2) throw new SyntaxError("Unexpected end of data");
         return a3;
       };
-      qr = (t, e2, n4) => {
+      qr = (t2, e2, n4) => {
         const r3 = e2[e2.length - 1] === "=", o4 = (1 << n4) - 1;
-        let s2 = "", a3 = 0, u3 = 0;
-        for (let i3 = 0; i3 < t.length; ++i3) for (u3 = u3 << 8 | t[i3], a3 += 8; a3 > n4; ) a3 -= n4, s2 += e2[o4 & u3 >> a3];
-        if (a3 && (s2 += e2[o4 & u3 << n4 - a3]), r3) for (; s2.length * n4 & 7; ) s2 += "=";
+        let s2 = "", a3 = 0, u2 = 0;
+        for (let i3 = 0; i3 < t2.length; ++i3) for (u2 = u2 << 8 | t2[i3], a3 += 8; a3 > n4; ) a3 -= n4, s2 += e2[o4 & u2 >> a3];
+        if (a3 && (s2 += e2[o4 & u2 << n4 - a3]), r3) for (; s2.length * n4 & 7; ) s2 += "=";
         return s2;
       };
-      k3 = ({ name: t, prefix: e2, bitsPerChar: n4, alphabet: r3 }) => Bt({ prefix: e2, name: t, encode(o4) {
+      k3 = ({ name: t2, prefix: e2, bitsPerChar: n4, alphabet: r3 }) => Bt({ prefix: e2, name: t2, encode(o4) {
         return qr(o4, r3, n4);
       }, decode(o4) {
-        return Mr(o4, r3, n4, t);
+        return Mr(o4, r3, n4, t2);
       } });
-      $r = Bt({ prefix: "\0", name: "identity", encode: (t) => Nr(t), decode: (t) => Fr(t) });
+      $r = Bt({ prefix: "\0", name: "identity", encode: (t2) => Nr(t2), decode: (t2) => Fr(t2) });
       kr = Object.freeze({ __proto__: null, identity: $r });
       Rr = k3({ prefix: "0", name: "base2", alphabet: "01", bitsPerChar: 1 });
       jr = Object.freeze({ __proto__: null, base2: Rr });
@@ -3398,8 +3398,8 @@
       wo = k3({ prefix: "U", name: "base64urlpad", alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=", bitsPerChar: 6 });
       Eo = Object.freeze({ __proto__: null, base64: lo, base64pad: bo, base64url: po, base64urlpad: wo });
       Me2 = Array.from("\u{1F680}\u{1FA90}\u2604\u{1F6F0}\u{1F30C}\u{1F311}\u{1F312}\u{1F313}\u{1F314}\u{1F315}\u{1F316}\u{1F317}\u{1F318}\u{1F30D}\u{1F30F}\u{1F30E}\u{1F409}\u2600\u{1F4BB}\u{1F5A5}\u{1F4BE}\u{1F4BF}\u{1F602}\u2764\u{1F60D}\u{1F923}\u{1F60A}\u{1F64F}\u{1F495}\u{1F62D}\u{1F618}\u{1F44D}\u{1F605}\u{1F44F}\u{1F601}\u{1F525}\u{1F970}\u{1F494}\u{1F496}\u{1F499}\u{1F622}\u{1F914}\u{1F606}\u{1F644}\u{1F4AA}\u{1F609}\u263A\u{1F44C}\u{1F917}\u{1F49C}\u{1F614}\u{1F60E}\u{1F607}\u{1F339}\u{1F926}\u{1F389}\u{1F49E}\u270C\u2728\u{1F937}\u{1F631}\u{1F60C}\u{1F338}\u{1F64C}\u{1F60B}\u{1F497}\u{1F49A}\u{1F60F}\u{1F49B}\u{1F642}\u{1F493}\u{1F929}\u{1F604}\u{1F600}\u{1F5A4}\u{1F603}\u{1F4AF}\u{1F648}\u{1F447}\u{1F3B6}\u{1F612}\u{1F92D}\u2763\u{1F61C}\u{1F48B}\u{1F440}\u{1F62A}\u{1F611}\u{1F4A5}\u{1F64B}\u{1F61E}\u{1F629}\u{1F621}\u{1F92A}\u{1F44A}\u{1F973}\u{1F625}\u{1F924}\u{1F449}\u{1F483}\u{1F633}\u270B\u{1F61A}\u{1F61D}\u{1F634}\u{1F31F}\u{1F62C}\u{1F643}\u{1F340}\u{1F337}\u{1F63B}\u{1F613}\u2B50\u2705\u{1F97A}\u{1F308}\u{1F608}\u{1F918}\u{1F4A6}\u2714\u{1F623}\u{1F3C3}\u{1F490}\u2639\u{1F38A}\u{1F498}\u{1F620}\u261D\u{1F615}\u{1F33A}\u{1F382}\u{1F33B}\u{1F610}\u{1F595}\u{1F49D}\u{1F64A}\u{1F639}\u{1F5E3}\u{1F4AB}\u{1F480}\u{1F451}\u{1F3B5}\u{1F91E}\u{1F61B}\u{1F534}\u{1F624}\u{1F33C}\u{1F62B}\u26BD\u{1F919}\u2615\u{1F3C6}\u{1F92B}\u{1F448}\u{1F62E}\u{1F646}\u{1F37B}\u{1F343}\u{1F436}\u{1F481}\u{1F632}\u{1F33F}\u{1F9E1}\u{1F381}\u26A1\u{1F31E}\u{1F388}\u274C\u270A\u{1F44B}\u{1F630}\u{1F928}\u{1F636}\u{1F91D}\u{1F6B6}\u{1F4B0}\u{1F353}\u{1F4A2}\u{1F91F}\u{1F641}\u{1F6A8}\u{1F4A8}\u{1F92C}\u2708\u{1F380}\u{1F37A}\u{1F913}\u{1F619}\u{1F49F}\u{1F331}\u{1F616}\u{1F476}\u{1F974}\u25B6\u27A1\u2753\u{1F48E}\u{1F4B8}\u2B07\u{1F628}\u{1F31A}\u{1F98B}\u{1F637}\u{1F57A}\u26A0\u{1F645}\u{1F61F}\u{1F635}\u{1F44E}\u{1F932}\u{1F920}\u{1F927}\u{1F4CC}\u{1F535}\u{1F485}\u{1F9D0}\u{1F43E}\u{1F352}\u{1F617}\u{1F911}\u{1F30A}\u{1F92F}\u{1F437}\u260E\u{1F4A7}\u{1F62F}\u{1F486}\u{1F446}\u{1F3A4}\u{1F647}\u{1F351}\u2744\u{1F334}\u{1F4A3}\u{1F438}\u{1F48C}\u{1F4CD}\u{1F940}\u{1F922}\u{1F445}\u{1F4A1}\u{1F4A9}\u{1F450}\u{1F4F8}\u{1F47B}\u{1F910}\u{1F92E}\u{1F3BC}\u{1F975}\u{1F6A9}\u{1F34E}\u{1F34A}\u{1F47C}\u{1F48D}\u{1F4E3}\u{1F942}");
-      go = Me2.reduce((t, e2, n4) => (t[n4] = e2, t), []);
-      yo = Me2.reduce((t, e2, n4) => (t[e2.codePointAt(0)] = n4, t), []);
+      go = Me2.reduce((t2, e2, n4) => (t2[n4] = e2, t2), []);
+      yo = Me2.reduce((t2, e2, n4) => (t2[e2.codePointAt(0)] = n4, t2), []);
       Co = Bt({ prefix: "\u{1F680}", name: "base256emoji", encode: xo, decode: Bo });
       Ao = Object.freeze({ __proto__: null, base256emoji: Co });
       mo = $e2;
@@ -3419,23 +3419,23 @@
       zo = Math.pow(2, 49);
       Mo = Math.pow(2, 56);
       qo = Math.pow(2, 63);
-      $o = function(t) {
-        return t < To ? 1 : t < Fo ? 2 : t < No ? 3 : t < Lo ? 4 : t < Oo ? 5 : t < Ho ? 6 : t < zo ? 7 : t < Mo ? 8 : t < qo ? 9 : 10;
+      $o = function(t2) {
+        return t2 < To ? 1 : t2 < Fo ? 2 : t2 < No ? 3 : t2 < Lo ? 4 : t2 < Oo ? 5 : t2 < Ho ? 6 : t2 < zo ? 7 : t2 < Mo ? 8 : t2 < qo ? 9 : 10;
       };
       ko = { encode: mo, decode: Io, encodingLength: $o };
       Re2 = ko;
-      je2 = (t, e2, n4 = 0) => (Re2.encode(t, e2, n4), e2);
-      Ze = (t) => Re2.encodingLength(t);
-      Qt = (t, e2) => {
-        const n4 = e2.byteLength, r3 = Ze(t), o4 = r3 + Ze(n4), s2 = new Uint8Array(o4 + n4);
-        return je2(t, s2, 0), je2(n4, s2, r3), s2.set(e2, o4), new Ro(t, n4, e2, s2);
+      je2 = (t2, e2, n4 = 0) => (Re2.encode(t2, e2, n4), e2);
+      Ze = (t2) => Re2.encodingLength(t2);
+      Qt = (t2, e2) => {
+        const n4 = e2.byteLength, r3 = Ze(t2), o4 = r3 + Ze(n4), s2 = new Uint8Array(o4 + n4);
+        return je2(t2, s2, 0), je2(n4, s2, r3), s2.set(e2, o4), new Ro(t2, n4, e2, s2);
       };
       Ro = class {
         constructor(e2, n4, r3, o4) {
           this.code = e2, this.size = n4, this.digest = r3, this.bytes = o4;
         }
       };
-      Ge2 = ({ name: t, code: e2, encode: n4 }) => new jo(t, e2, n4);
+      Ge2 = ({ name: t2, code: e2, encode: n4 }) => new jo(t2, e2, n4);
       jo = class {
         constructor(e2, n4, r3) {
           this.name = e2, this.code = n4, this.encode = r3;
@@ -3447,28 +3447,28 @@
           } else throw Error("Unknown type, must be binary type");
         }
       };
-      Ve2 = (t) => async (e2) => new Uint8Array(await crypto.subtle.digest(t, e2));
+      Ve2 = (t2) => async (e2) => new Uint8Array(await crypto.subtle.digest(t2, e2));
       Zo = Ge2({ name: "sha2-256", code: 18, encode: Ve2("SHA-256") });
       Go = Ge2({ name: "sha2-512", code: 19, encode: Ve2("SHA-512") });
       Vo = Object.freeze({ __proto__: null, sha256: Zo, sha512: Go });
       Ye = 0;
       Yo = "identity";
       Je = He;
-      Jo = (t) => Qt(Ye, Je(t));
+      Jo = (t2) => Qt(Ye, Je(t2));
       Ko = { code: Ye, name: Yo, encode: Je, digest: Jo };
       Wo = Object.freeze({ __proto__: null, identity: Ko });
       new TextEncoder(), new TextDecoder();
       Ke = { ...kr, ...jr, ...Gr, ...Yr, ...Wr, ...io, ...ao, ...ho, ...Eo, ...Ao };
       ({ ...Vo, ...Wo });
-      Xe = We("utf8", "u", (t) => "u" + new TextDecoder("utf8").decode(t), (t) => new TextEncoder().encode(t.substring(1)));
-      te2 = We("ascii", "a", (t) => {
+      Xe = We("utf8", "u", (t2) => "u" + new TextDecoder("utf8").decode(t2), (t2) => new TextEncoder().encode(t2.substring(1)));
+      te2 = We("ascii", "a", (t2) => {
         let e2 = "a";
-        for (let n4 = 0; n4 < t.length; n4++) e2 += String.fromCharCode(t[n4]);
+        for (let n4 = 0; n4 < t2.length; n4++) e2 += String.fromCharCode(t2[n4]);
         return e2;
-      }, (t) => {
-        t = t.substring(1);
-        const e2 = Le2(t.length);
-        for (let n4 = 0; n4 < t.length; n4++) e2[n4] = t.charCodeAt(n4);
+      }, (t2) => {
+        t2 = t2.substring(1);
+        const e2 = Le2(t2.length);
+        for (let n4 = 0; n4 < t2.length; n4++) e2[n4] = t2.charCodeAt(n4);
         return e2;
       });
       Pe2 = { utf8: Xe, "utf-8": Xe, hex: Ke.base16, latin1: te2, ascii: te2, binary: te2, ...Ke };
@@ -3481,8 +3481,8 @@
       throw new TypeError("Alphabet too long");
     }
     var BASE_MAP = new Uint8Array(256);
-    for (var j5 = 0; j5 < BASE_MAP.length; j5++) {
-      BASE_MAP[j5] = 255;
+    for (var j4 = 0; j4 < BASE_MAP.length; j4++) {
+      BASE_MAP[j4] = 255;
     }
     for (var i3 = 0; i3 < ALPHABET.length; i3++) {
       var x7 = ALPHABET.charAt(i3);
@@ -3587,9 +3587,9 @@
         it42++;
       }
       var vch = new Uint8Array(zeroes + (size3 - it42));
-      var j6 = zeroes;
+      var j5 = zeroes;
       while (it42 !== size3) {
-        vch[j6++] = b256[it42++];
+        vch[j5++] = b256[it42++];
       }
       return vch;
     }
@@ -5162,8 +5162,8 @@ if (cid) {
     let Ah = new Uint32Array(len);
     let Al = new Uint32Array(len);
     for (let i3 = 0; i3 < len; i3++) {
-      const { h: h5, l: l4 } = fromBig(lst[i3], le4);
-      [Ah[i3], Al[i3]] = [h5, l4];
+      const { h: h4, l: l4 } = fromBig(lst[i3], le4);
+      [Ah[i3], Al[i3]] = [h4, l4];
     }
     return [Ah, Al];
   }
@@ -5176,18 +5176,18 @@ if (cid) {
     "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_u64.js"() {
       U32_MASK64 = /* @__PURE__ */ BigInt(2 ** 32 - 1);
       _32n = /* @__PURE__ */ BigInt(32);
-      shrSH = (h5, _l, s2) => h5 >>> s2;
-      shrSL = (h5, l4, s2) => h5 << 32 - s2 | l4 >>> s2;
-      rotrSH = (h5, l4, s2) => h5 >>> s2 | l4 << 32 - s2;
-      rotrSL = (h5, l4, s2) => h5 << 32 - s2 | l4 >>> s2;
-      rotrBH = (h5, l4, s2) => h5 << 64 - s2 | l4 >>> s2 - 32;
-      rotrBL = (h5, l4, s2) => h5 >>> s2 - 32 | l4 << 64 - s2;
+      shrSH = (h4, _l, s2) => h4 >>> s2;
+      shrSL = (h4, l4, s2) => h4 << 32 - s2 | l4 >>> s2;
+      rotrSH = (h4, l4, s2) => h4 >>> s2 | l4 << 32 - s2;
+      rotrSL = (h4, l4, s2) => h4 << 32 - s2 | l4 >>> s2;
+      rotrBH = (h4, l4, s2) => h4 << 64 - s2 | l4 >>> s2 - 32;
+      rotrBL = (h4, l4, s2) => h4 >>> s2 - 32 | l4 << 64 - s2;
       rotr32H = (_h, l4) => l4;
-      rotr32L = (h5, _l) => h5;
-      rotlSH = (h5, l4, s2) => h5 << s2 | l4 >>> 32 - s2;
-      rotlSL = (h5, l4, s2) => l4 << s2 | h5 >>> 32 - s2;
-      rotlBH = (h5, l4, s2) => l4 << s2 - 32 | h5 >>> 64 - s2;
-      rotlBL = (h5, l4, s2) => h5 << s2 - 32 | l4 >>> 64 - s2;
+      rotr32L = (h4, _l) => h4;
+      rotlSH = (h4, l4, s2) => h4 << s2 | l4 >>> 32 - s2;
+      rotlSL = (h4, l4, s2) => l4 << s2 | h4 >>> 32 - s2;
+      rotlBH = (h4, l4, s2) => l4 << s2 - 32 | h4 >>> 64 - s2;
+      rotlBL = (h4, l4, s2) => h4 << s2 - 32 | l4 >>> 64 - s2;
       add3L = (Al, Bl, Cl) => (Al >>> 0) + (Bl >>> 0) + (Cl >>> 0);
       add3H = (low, Ah, Bh, Ch) => Ah + Bh + Ch + (low / 2 ** 32 | 0) | 0;
       add4L = (Al, Bl, Cl, Dl) => (Al >>> 0) + (Bl >>> 0) + (Cl >>> 0) + (Dl >>> 0);
@@ -5219,11 +5219,11 @@ if (cid) {
     if (lengths.length > 0 && !lengths.includes(b4.length))
       throw new Error("Uint8Array expected of length " + lengths + ", got length=" + b4.length);
   }
-  function ahash(h5) {
-    if (typeof h5 !== "function" || typeof h5.create !== "function")
+  function ahash(h4) {
+    if (typeof h4 !== "function" || typeof h4.create !== "function")
       throw new Error("Hash should be wrapped by utils.createHasher");
-    anumber(h5.outputLen);
-    anumber(h5.blockLen);
+    anumber(h4.outputLen);
+    anumber(h4.blockLen);
   }
   function aexists(instance, checkFinished = true) {
     if (instance.destroyed)
@@ -5358,7 +5358,7 @@ if (cid) {
       init_crypto();
       isLE = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
       swap8IfBE = isLE ? (n4) => n4 : (n4) => byteSwap(n4);
-      swap32IfBE = isLE ? (u3) => u3 : byteSwap32;
+      swap32IfBE = isLE ? (u2) => u2 : byteSwap32;
       hasHexBuiltin2 = /* @__PURE__ */ (() => (
         // @ts-ignore
         typeof Uint8Array.from([]).toHex === "function" && typeof Uint8Array.fromHex === "function"
@@ -5372,44 +5372,44 @@ if (cid) {
 
   // node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha3.js
   function keccakP(s2, rounds = 24) {
-    const B4 = new Uint32Array(5 * 2);
+    const B3 = new Uint32Array(5 * 2);
     for (let round = 24 - rounds; round < 24; round++) {
       for (let x7 = 0; x7 < 10; x7++)
-        B4[x7] = s2[x7] ^ s2[x7 + 10] ^ s2[x7 + 20] ^ s2[x7 + 30] ^ s2[x7 + 40];
+        B3[x7] = s2[x7] ^ s2[x7 + 10] ^ s2[x7 + 20] ^ s2[x7 + 30] ^ s2[x7 + 40];
       for (let x7 = 0; x7 < 10; x7 += 2) {
         const idx1 = (x7 + 8) % 10;
         const idx0 = (x7 + 2) % 10;
-        const B0 = B4[idx0];
-        const B1 = B4[idx0 + 1];
-        const Th = rotlH(B0, B1, 1) ^ B4[idx1];
-        const Tl = rotlL(B0, B1, 1) ^ B4[idx1 + 1];
-        for (let y7 = 0; y7 < 50; y7 += 10) {
-          s2[x7 + y7] ^= Th;
-          s2[x7 + y7 + 1] ^= Tl;
+        const B0 = B3[idx0];
+        const B1 = B3[idx0 + 1];
+        const Th = rotlH(B0, B1, 1) ^ B3[idx1];
+        const Tl = rotlL(B0, B1, 1) ^ B3[idx1 + 1];
+        for (let y6 = 0; y6 < 50; y6 += 10) {
+          s2[x7 + y6] ^= Th;
+          s2[x7 + y6 + 1] ^= Tl;
         }
       }
       let curH = s2[2];
       let curL = s2[3];
-      for (let t = 0; t < 24; t++) {
-        const shift = SHA3_ROTL[t];
+      for (let t2 = 0; t2 < 24; t2++) {
+        const shift = SHA3_ROTL[t2];
         const Th = rotlH(curH, curL, shift);
         const Tl = rotlL(curH, curL, shift);
-        const PI = SHA3_PI[t];
+        const PI = SHA3_PI[t2];
         curH = s2[PI];
         curL = s2[PI + 1];
         s2[PI] = Th;
         s2[PI + 1] = Tl;
       }
-      for (let y7 = 0; y7 < 50; y7 += 10) {
+      for (let y6 = 0; y6 < 50; y6 += 10) {
         for (let x7 = 0; x7 < 10; x7++)
-          B4[x7] = s2[y7 + x7];
+          B3[x7] = s2[y6 + x7];
         for (let x7 = 0; x7 < 10; x7++)
-          s2[y7 + x7] ^= ~B4[(x7 + 2) % 10] & B4[(x7 + 4) % 10];
+          s2[y6 + x7] ^= ~B3[(x7 + 2) % 10] & B3[(x7 + 4) % 10];
       }
       s2[0] ^= SHA3_IOTA_H[round];
       s2[1] ^= SHA3_IOTA_L[round];
     }
-    clean(B4);
+    clean(B3);
   }
   var _0n, _1n, _2n, _7n, _256n, _0x71n, SHA3_PI, SHA3_ROTL, _SHA3_IOTA, IOTAS, SHA3_IOTA_H, SHA3_IOTA_L, rotlH, rotlL, Keccak, gen, keccak_256;
   var init_sha3 = __esm({
@@ -5425,23 +5425,23 @@ if (cid) {
       SHA3_PI = [];
       SHA3_ROTL = [];
       _SHA3_IOTA = [];
-      for (let round = 0, R4 = _1n, x7 = 1, y7 = 0; round < 24; round++) {
-        [x7, y7] = [y7, (2 * x7 + 3 * y7) % 5];
-        SHA3_PI.push(2 * (5 * y7 + x7));
+      for (let round = 0, R3 = _1n, x7 = 1, y6 = 0; round < 24; round++) {
+        [x7, y6] = [y6, (2 * x7 + 3 * y6) % 5];
+        SHA3_PI.push(2 * (5 * y6 + x7));
         SHA3_ROTL.push((round + 1) * (round + 2) / 2 % 64);
-        let t = _0n;
-        for (let j5 = 0; j5 < 7; j5++) {
-          R4 = (R4 << _1n ^ (R4 >> _7n) * _0x71n) % _256n;
-          if (R4 & _2n)
-            t ^= _1n << (_1n << /* @__PURE__ */ BigInt(j5)) - _1n;
+        let t2 = _0n;
+        for (let j4 = 0; j4 < 7; j4++) {
+          R3 = (R3 << _1n ^ (R3 >> _7n) * _0x71n) % _256n;
+          if (R3 & _2n)
+            t2 ^= _1n << (_1n << /* @__PURE__ */ BigInt(j4)) - _1n;
         }
-        _SHA3_IOTA.push(t);
+        _SHA3_IOTA.push(t2);
       }
       IOTAS = split(_SHA3_IOTA, true);
       SHA3_IOTA_H = IOTAS[0];
       SHA3_IOTA_L = IOTAS[1];
-      rotlH = (h5, l4, s2) => s2 > 32 ? rotlBH(h5, l4, s2) : rotlSH(h5, l4, s2);
-      rotlL = (h5, l4, s2) => s2 > 32 ? rotlBL(h5, l4, s2) : rotlSL(h5, l4, s2);
+      rotlH = (h4, l4, s2) => s2 > 32 ? rotlBH(h4, l4, s2) : rotlSH(h4, l4, s2);
+      rotlL = (h4, l4, s2) => s2 > 32 ? rotlBL(h4, l4, s2) : rotlSL(h4, l4, s2);
       Keccak = class _Keccak extends Hash {
         // NOTE: we accept arguments in bytes instead of bits here.
         constructor(blockLen, suffix, outputLen, enableXOF = false, rounds = 24) {
@@ -5703,11 +5703,11 @@ if (cid) {
     if (lengths.length > 0 && !lengths.includes(b4.length))
       throw new Error("Uint8Array expected of length " + lengths + ", got length=" + b4.length);
   }
-  function ahash2(h5) {
-    if (typeof h5 !== "function" || typeof h5.create !== "function")
+  function ahash2(h4) {
+    if (typeof h4 !== "function" || typeof h4.create !== "function")
       throw new Error("Hash should be wrapped by utils.createHasher");
-    anumber2(h5.outputLen);
-    anumber2(h5.blockLen);
+    anumber2(h4.outputLen);
+    anumber2(h4.blockLen);
   }
   function aexists2(instance, checkFinished = true) {
     if (instance.destroyed)
@@ -5793,7 +5793,7 @@ if (cid) {
     "node_modules/ox/node_modules/@noble/hashes/esm/utils.js"() {
       init_crypto2();
       isLE2 = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
-      swap32IfBE2 = isLE2 ? (u3) => u3 : byteSwap322;
+      swap32IfBE2 = isLE2 ? (u2) => u2 : byteSwap322;
       Hash2 = class {
       };
     }
@@ -5807,9 +5807,9 @@ if (cid) {
     const _u32_max = BigInt(4294967295);
     const wh = Number(value >> _32n3 & _u32_max);
     const wl = Number(value & _u32_max);
-    const h5 = isLE4 ? 4 : 0;
+    const h4 = isLE4 ? 4 : 0;
     const l4 = isLE4 ? 0 : 4;
-    view.setUint32(byteOffset + h5, wh, isLE4);
+    view.setUint32(byteOffset + h4, wh, isLE4);
     view.setUint32(byteOffset + l4, wl, isLE4);
   }
   function Chi(a3, b4, c4) {
@@ -5936,8 +5936,8 @@ if (cid) {
     let Ah = new Uint32Array(len);
     let Al = new Uint32Array(len);
     for (let i3 = 0; i3 < len; i3++) {
-      const { h: h5, l: l4 } = fromBig2(lst[i3], le4);
-      [Ah[i3], Al[i3]] = [h5, l4];
+      const { h: h4, l: l4 } = fromBig2(lst[i3], le4);
+      [Ah[i3], Al[i3]] = [h4, l4];
     }
     return [Ah, Al];
   }
@@ -5946,53 +5946,53 @@ if (cid) {
     "node_modules/ox/node_modules/@noble/hashes/esm/_u64.js"() {
       U32_MASK642 = /* @__PURE__ */ BigInt(2 ** 32 - 1);
       _32n2 = /* @__PURE__ */ BigInt(32);
-      rotlSH2 = (h5, l4, s2) => h5 << s2 | l4 >>> 32 - s2;
-      rotlSL2 = (h5, l4, s2) => l4 << s2 | h5 >>> 32 - s2;
-      rotlBH2 = (h5, l4, s2) => l4 << s2 - 32 | h5 >>> 64 - s2;
-      rotlBL2 = (h5, l4, s2) => h5 << s2 - 32 | l4 >>> 64 - s2;
+      rotlSH2 = (h4, l4, s2) => h4 << s2 | l4 >>> 32 - s2;
+      rotlSL2 = (h4, l4, s2) => l4 << s2 | h4 >>> 32 - s2;
+      rotlBH2 = (h4, l4, s2) => l4 << s2 - 32 | h4 >>> 64 - s2;
+      rotlBL2 = (h4, l4, s2) => h4 << s2 - 32 | l4 >>> 64 - s2;
     }
   });
 
   // node_modules/ox/node_modules/@noble/hashes/esm/sha3.js
   function keccakP2(s2, rounds = 24) {
-    const B4 = new Uint32Array(5 * 2);
+    const B3 = new Uint32Array(5 * 2);
     for (let round = 24 - rounds; round < 24; round++) {
       for (let x7 = 0; x7 < 10; x7++)
-        B4[x7] = s2[x7] ^ s2[x7 + 10] ^ s2[x7 + 20] ^ s2[x7 + 30] ^ s2[x7 + 40];
+        B3[x7] = s2[x7] ^ s2[x7 + 10] ^ s2[x7 + 20] ^ s2[x7 + 30] ^ s2[x7 + 40];
       for (let x7 = 0; x7 < 10; x7 += 2) {
         const idx1 = (x7 + 8) % 10;
         const idx0 = (x7 + 2) % 10;
-        const B0 = B4[idx0];
-        const B1 = B4[idx0 + 1];
-        const Th = rotlH2(B0, B1, 1) ^ B4[idx1];
-        const Tl = rotlL2(B0, B1, 1) ^ B4[idx1 + 1];
-        for (let y7 = 0; y7 < 50; y7 += 10) {
-          s2[x7 + y7] ^= Th;
-          s2[x7 + y7 + 1] ^= Tl;
+        const B0 = B3[idx0];
+        const B1 = B3[idx0 + 1];
+        const Th = rotlH2(B0, B1, 1) ^ B3[idx1];
+        const Tl = rotlL2(B0, B1, 1) ^ B3[idx1 + 1];
+        for (let y6 = 0; y6 < 50; y6 += 10) {
+          s2[x7 + y6] ^= Th;
+          s2[x7 + y6 + 1] ^= Tl;
         }
       }
       let curH = s2[2];
       let curL = s2[3];
-      for (let t = 0; t < 24; t++) {
-        const shift = SHA3_ROTL2[t];
+      for (let t2 = 0; t2 < 24; t2++) {
+        const shift = SHA3_ROTL2[t2];
         const Th = rotlH2(curH, curL, shift);
         const Tl = rotlL2(curH, curL, shift);
-        const PI = SHA3_PI2[t];
+        const PI = SHA3_PI2[t2];
         curH = s2[PI];
         curL = s2[PI + 1];
         s2[PI] = Th;
         s2[PI + 1] = Tl;
       }
-      for (let y7 = 0; y7 < 50; y7 += 10) {
+      for (let y6 = 0; y6 < 50; y6 += 10) {
         for (let x7 = 0; x7 < 10; x7++)
-          B4[x7] = s2[y7 + x7];
+          B3[x7] = s2[y6 + x7];
         for (let x7 = 0; x7 < 10; x7++)
-          s2[y7 + x7] ^= ~B4[(x7 + 2) % 10] & B4[(x7 + 4) % 10];
+          s2[y6 + x7] ^= ~B3[(x7 + 2) % 10] & B3[(x7 + 4) % 10];
       }
       s2[0] ^= SHA3_IOTA_H2[round];
       s2[1] ^= SHA3_IOTA_L2[round];
     }
-    clean2(B4);
+    clean2(B3);
   }
   var _0n2, _1n2, _2n2, _7n2, _256n2, _0x71n2, SHA3_PI2, SHA3_ROTL2, _SHA3_IOTA2, IOTAS2, SHA3_IOTA_H2, SHA3_IOTA_L2, rotlH2, rotlL2, Keccak2, gen2, keccak_2562;
   var init_sha32 = __esm({
@@ -6008,23 +6008,23 @@ if (cid) {
       SHA3_PI2 = [];
       SHA3_ROTL2 = [];
       _SHA3_IOTA2 = [];
-      for (let round = 0, R4 = _1n2, x7 = 1, y7 = 0; round < 24; round++) {
-        [x7, y7] = [y7, (2 * x7 + 3 * y7) % 5];
-        SHA3_PI2.push(2 * (5 * y7 + x7));
+      for (let round = 0, R3 = _1n2, x7 = 1, y6 = 0; round < 24; round++) {
+        [x7, y6] = [y6, (2 * x7 + 3 * y6) % 5];
+        SHA3_PI2.push(2 * (5 * y6 + x7));
         SHA3_ROTL2.push((round + 1) * (round + 2) / 2 % 64);
-        let t = _0n2;
-        for (let j5 = 0; j5 < 7; j5++) {
-          R4 = (R4 << _1n2 ^ (R4 >> _7n2) * _0x71n2) % _256n2;
-          if (R4 & _2n2)
-            t ^= _1n2 << (_1n2 << /* @__PURE__ */ BigInt(j5)) - _1n2;
+        let t2 = _0n2;
+        for (let j4 = 0; j4 < 7; j4++) {
+          R3 = (R3 << _1n2 ^ (R3 >> _7n2) * _0x71n2) % _256n2;
+          if (R3 & _2n2)
+            t2 ^= _1n2 << (_1n2 << /* @__PURE__ */ BigInt(j4)) - _1n2;
         }
-        _SHA3_IOTA2.push(t);
+        _SHA3_IOTA2.push(t2);
       }
       IOTAS2 = split2(_SHA3_IOTA2, true);
       SHA3_IOTA_H2 = IOTAS2[0];
       SHA3_IOTA_L2 = IOTAS2[1];
-      rotlH2 = (h5, l4, s2) => s2 > 32 ? rotlBH2(h5, l4, s2) : rotlSH2(h5, l4, s2);
-      rotlL2 = (h5, l4, s2) => s2 > 32 ? rotlBL2(h5, l4, s2) : rotlSL2(h5, l4, s2);
+      rotlH2 = (h4, l4, s2) => s2 > 32 ? rotlBH2(h4, l4, s2) : rotlSH2(h4, l4, s2);
+      rotlL2 = (h4, l4, s2) => s2 > 32 ? rotlBL2(h4, l4, s2) : rotlSL2(h4, l4, s2);
       Keccak2 = class _Keccak extends Hash2 {
         // NOTE: we accept arguments in bytes instead of bits here.
         constructor(blockLen, suffix, outputLen, enableXOF = false, rounds = 24) {
@@ -6227,18 +6227,18 @@ if (cid) {
           this.H = SHA256_IV[7] | 0;
         }
         get() {
-          const { A: A4, B: B4, C: C4, D: D5, E: E4, F: F3, G: G5, H: H5 } = this;
-          return [A4, B4, C4, D5, E4, F3, G5, H5];
+          const { A: A4, B: B3, C: C4, D: D5, E: E4, F: F3, G: G4, H: H5 } = this;
+          return [A4, B3, C4, D5, E4, F3, G4, H5];
         }
         // prettier-ignore
-        set(A4, B4, C4, D5, E4, F3, G5, H5) {
+        set(A4, B3, C4, D5, E4, F3, G4, H5) {
           this.A = A4 | 0;
-          this.B = B4 | 0;
+          this.B = B3 | 0;
           this.C = C4 | 0;
           this.D = D5 | 0;
           this.E = E4 | 0;
           this.F = F3 | 0;
-          this.G = G5 | 0;
+          this.G = G4 | 0;
           this.H = H5 | 0;
         }
         process(view, offset) {
@@ -6251,30 +6251,30 @@ if (cid) {
             const s1 = rotr2(W22, 17) ^ rotr2(W22, 19) ^ W22 >>> 10;
             SHA256_W[i3] = s1 + SHA256_W[i3 - 7] + s0 + SHA256_W[i3 - 16] | 0;
           }
-          let { A: A4, B: B4, C: C4, D: D5, E: E4, F: F3, G: G5, H: H5 } = this;
+          let { A: A4, B: B3, C: C4, D: D5, E: E4, F: F3, G: G4, H: H5 } = this;
           for (let i3 = 0; i3 < 64; i3++) {
             const sigma1 = rotr2(E4, 6) ^ rotr2(E4, 11) ^ rotr2(E4, 25);
-            const T12 = H5 + sigma1 + Chi(E4, F3, G5) + SHA256_K[i3] + SHA256_W[i3] | 0;
+            const T12 = H5 + sigma1 + Chi(E4, F3, G4) + SHA256_K[i3] + SHA256_W[i3] | 0;
             const sigma0 = rotr2(A4, 2) ^ rotr2(A4, 13) ^ rotr2(A4, 22);
-            const T22 = sigma0 + Maj(A4, B4, C4) | 0;
-            H5 = G5;
-            G5 = F3;
+            const T22 = sigma0 + Maj(A4, B3, C4) | 0;
+            H5 = G4;
+            G4 = F3;
             F3 = E4;
             E4 = D5 + T12 | 0;
             D5 = C4;
-            C4 = B4;
-            B4 = A4;
+            C4 = B3;
+            B3 = A4;
             A4 = T12 + T22 | 0;
           }
           A4 = A4 + this.A | 0;
-          B4 = B4 + this.B | 0;
+          B3 = B3 + this.B | 0;
           C4 = C4 + this.C | 0;
           D5 = D5 + this.D | 0;
           E4 = E4 + this.E | 0;
           F3 = F3 + this.F | 0;
-          G5 = G5 + this.G | 0;
+          G4 = G4 + this.G | 0;
           H5 = H5 + this.H | 0;
-          this.set(A4, B4, C4, D5, E4, F3, G5, H5);
+          this.set(A4, B3, C4, D5, E4, F3, G4, H5);
         }
         roundClean() {
           clean2(SHA256_W);
@@ -6416,21 +6416,21 @@ if (cid) {
     if (typeof hmacFn !== "function")
       throw new Error("hmacFn must be a function");
     let v7 = u8n(hashLen);
-    let k6 = u8n(hashLen);
+    let k5 = u8n(hashLen);
     let i3 = 0;
     const reset = () => {
       v7.fill(1);
-      k6.fill(0);
+      k5.fill(0);
       i3 = 0;
     };
-    const h5 = (...b4) => hmacFn(k6, v7, ...b4);
+    const h4 = (...b4) => hmacFn(k5, v7, ...b4);
     const reseed = (seed = u8n(0)) => {
-      k6 = h5(u8fr([0]), seed);
-      v7 = h5();
+      k5 = h4(u8fr([0]), seed);
+      v7 = h4();
       if (seed.length === 0)
         return;
-      k6 = h5(u8fr([1]), seed);
-      v7 = h5();
+      k5 = h4(u8fr([1]), seed);
+      v7 = h4();
     };
     const gen3 = () => {
       if (i3++ >= 1e3)
@@ -6438,7 +6438,7 @@ if (cid) {
       let len = 0;
       const out = [];
       while (len < qByteLen) {
-        v7 = h5();
+        v7 = h4();
         const sl = v7.slice();
         out.push(sl);
         len += v7.length;
@@ -6861,11 +6861,11 @@ if (cid) {
       hexString = `0${hexString}`;
     const length2 = hexString.length / 2;
     const bytes = new Uint8Array(length2);
-    for (let index = 0, j5 = 0; index < length2; index++) {
-      const nibbleLeft = charCodeToBase16(hexString.charCodeAt(j5++));
-      const nibbleRight = charCodeToBase16(hexString.charCodeAt(j5++));
+    for (let index = 0, j4 = 0; index < length2; index++) {
+      const nibbleLeft = charCodeToBase16(hexString.charCodeAt(j4++));
+      const nibbleRight = charCodeToBase16(hexString.charCodeAt(j4++));
       if (nibbleLeft === void 0 || nibbleRight === void 0) {
-        throw new BaseError(`Invalid byte sequence ("${hexString[j5 - 2]}${hexString[j5 - 1]}" in "${hexString}").`);
+        throw new BaseError(`Invalid byte sequence ("${hexString[j4 - 2]}${hexString[j4 - 1]}" in "${hexString}").`);
       }
       bytes[index] = nibbleLeft * 16 + nibbleRight;
     }
@@ -7008,8 +7008,8 @@ if (cid) {
   // node_modules/ox/_esm/core/PublicKey.js
   function assert3(publicKey, options = {}) {
     const { compressed } = options;
-    const { prefix, x: x7, y: y7 } = publicKey;
-    if (compressed === false || typeof x7 === "bigint" && typeof y7 === "bigint") {
+    const { prefix, x: x7, y: y6 } = publicKey;
+    if (compressed === false || typeof x7 === "bigint" && typeof y6 === "bigint") {
       if (prefix !== 4)
         throw new InvalidPrefixError({
           prefix,
@@ -7017,7 +7017,7 @@ if (cid) {
         });
       return;
     }
-    if (compressed === true || typeof x7 === "bigint" && typeof y7 === "undefined") {
+    if (compressed === true || typeof x7 === "bigint" && typeof y6 === "undefined") {
       if (prefix !== 3 && prefix !== 2)
         throw new InvalidPrefixError({
           prefix,
@@ -7033,9 +7033,9 @@ if (cid) {
         return fromHex2(value);
       if (validate2(value))
         return fromBytes2(value);
-      const { prefix, x: x7, y: y7 } = value;
-      if (typeof x7 === "bigint" && typeof y7 === "bigint")
-        return { prefix: prefix ?? 4, x: x7, y: y7 };
+      const { prefix, x: x7, y: y6 } = value;
+      if (typeof x7 === "bigint" && typeof y6 === "bigint")
+        return { prefix: prefix ?? 4, x: x7, y: y6 };
       return { prefix, x: x7 };
     })();
     assert3(publicKey);
@@ -7049,21 +7049,21 @@ if (cid) {
       throw new InvalidSerializedSizeError({ publicKey });
     if (publicKey.length === 130) {
       const x8 = BigInt(slice(publicKey, 0, 32));
-      const y7 = BigInt(slice(publicKey, 32, 64));
+      const y6 = BigInt(slice(publicKey, 32, 64));
       return {
         prefix: 4,
         x: x8,
-        y: y7
+        y: y6
       };
     }
     if (publicKey.length === 132) {
       const prefix2 = Number(slice(publicKey, 0, 1));
       const x8 = BigInt(slice(publicKey, 1, 33));
-      const y7 = BigInt(slice(publicKey, 33, 65));
+      const y6 = BigInt(slice(publicKey, 33, 65));
       return {
         prefix: prefix2,
         x: x8,
-        y: y7
+        y: y6
       };
     }
     const prefix = Number(slice(publicKey, 0, 1));
@@ -7078,13 +7078,13 @@ if (cid) {
   }
   function toHex(publicKey, options = {}) {
     assert3(publicKey);
-    const { prefix, x: x7, y: y7 } = publicKey;
+    const { prefix, x: x7, y: y6 } = publicKey;
     const { includePrefix = true } = options;
     const publicKey_ = concat(
       includePrefix ? fromNumber(prefix, { size: 1 }) : "0x",
       fromNumber(x7, { size: 32 }),
       // If the public key is not compressed, add the y coordinate.
-      typeof y7 === "bigint" ? fromNumber(y7, { size: 32 }) : "0x"
+      typeof y6 === "bigint" ? fromNumber(y6, { size: 32 }) : "0x"
     );
     return publicKey_;
   }
@@ -7629,13 +7629,13 @@ if (cid) {
       throw new Error("invert: expected positive modulus, got " + modulo);
     let a3 = mod(number, modulo);
     let b4 = modulo;
-    let x7 = _0n4, y7 = _1n4, u3 = _1n4, v7 = _0n4;
+    let x7 = _0n4, y6 = _1n4, u2 = _1n4, v7 = _0n4;
     while (a3 !== _0n4) {
-      const q5 = b4 / a3;
+      const q4 = b4 / a3;
       const r3 = b4 % a3;
-      const m2 = x7 - u3 * q5;
-      const n4 = y7 - v7 * q5;
-      b4 = a3, a3 = r3, x7 = u3, y7 = v7, u3 = m2, v7 = n4;
+      const m2 = x7 - u2 * q4;
+      const n4 = y6 - v7 * q4;
+      b4 = a3, a3 = r3, x7 = u2, y6 = v7, u2 = m2, v7 = n4;
     }
     const gcd2 = b4;
     if (gcd2 !== _1n4)
@@ -7660,22 +7660,22 @@ if (cid) {
       throw new Error("Cannot find square root");
     return root;
   }
-  function tonelliShanks(P6) {
-    if (P6 < BigInt(3))
+  function tonelliShanks(P5) {
+    if (P5 < BigInt(3))
       throw new Error("sqrt is not defined for small field");
-    let Q4 = P6 - _1n4;
-    let S5 = 0;
+    let Q4 = P5 - _1n4;
+    let S4 = 0;
     while (Q4 % _2n3 === _0n4) {
       Q4 /= _2n3;
-      S5++;
+      S4++;
     }
     let Z4 = _2n3;
-    const _Fp = Field(P6);
+    const _Fp = Field(P5);
     while (FpLegendre(_Fp, Z4) === 1) {
       if (Z4++ > 1e3)
         throw new Error("Cannot find square root: probably non-prime P");
     }
-    if (S5 === 1)
+    if (S4 === 1)
       return sqrt3mod4;
     let cc = _Fp.pow(Z4, Q4);
     const Q1div2 = (Q4 + _1n4) / _2n3;
@@ -7684,37 +7684,37 @@ if (cid) {
         return n4;
       if (FpLegendre(Fp2, n4) !== 1)
         throw new Error("Cannot find square root");
-      let M5 = S5;
+      let M4 = S4;
       let c4 = Fp2.mul(Fp2.ONE, cc);
-      let t = Fp2.pow(n4, Q4);
-      let R4 = Fp2.pow(n4, Q1div2);
-      while (!Fp2.eql(t, Fp2.ONE)) {
-        if (Fp2.is0(t))
+      let t2 = Fp2.pow(n4, Q4);
+      let R3 = Fp2.pow(n4, Q1div2);
+      while (!Fp2.eql(t2, Fp2.ONE)) {
+        if (Fp2.is0(t2))
           return Fp2.ZERO;
         let i3 = 1;
-        let t_tmp = Fp2.sqr(t);
+        let t_tmp = Fp2.sqr(t2);
         while (!Fp2.eql(t_tmp, Fp2.ONE)) {
           i3++;
           t_tmp = Fp2.sqr(t_tmp);
-          if (i3 === M5)
+          if (i3 === M4)
             throw new Error("Cannot find square root");
         }
-        const exponent = _1n4 << BigInt(M5 - i3 - 1);
+        const exponent = _1n4 << BigInt(M4 - i3 - 1);
         const b4 = Fp2.pow(c4, exponent);
-        M5 = i3;
+        M4 = i3;
         c4 = Fp2.sqr(b4);
-        t = Fp2.mul(t, c4);
-        R4 = Fp2.mul(R4, b4);
+        t2 = Fp2.mul(t2, c4);
+        R3 = Fp2.mul(R3, b4);
       }
-      return R4;
+      return R3;
     };
   }
-  function FpSqrt(P6) {
-    if (P6 % _4n === _3n)
+  function FpSqrt(P5) {
+    if (P5 % _4n === _3n)
       return sqrt3mod4;
-    if (P6 % _8n === _5n)
+    if (P5 % _8n === _5n)
       return sqrt5mod8;
-    return tonelliShanks(P6);
+    return tonelliShanks(P5);
   }
   function validateField(field) {
     const initial = {
@@ -7895,17 +7895,17 @@ if (cid) {
     const neg = item.negate();
     return condition ? neg : item;
   }
-  function validateW(W6, bits) {
-    if (!Number.isSafeInteger(W6) || W6 <= 0 || W6 > bits)
-      throw new Error("invalid window size, expected [1.." + bits + "], got W=" + W6);
+  function validateW(W5, bits) {
+    if (!Number.isSafeInteger(W5) || W5 <= 0 || W5 > bits)
+      throw new Error("invalid window size, expected [1.." + bits + "], got W=" + W5);
   }
-  function calcWOpts(W6, scalarBits) {
-    validateW(W6, scalarBits);
-    const windows = Math.ceil(scalarBits / W6) + 1;
-    const windowSize = 2 ** (W6 - 1);
-    const maxNumber = 2 ** W6;
-    const mask = bitMask(W6);
-    const shiftBy = BigInt(W6);
+  function calcWOpts(W5, scalarBits) {
+    validateW(W5, scalarBits);
+    const windows = Math.ceil(scalarBits / W5) + 1;
+    const windowSize = 2 ** (W5 - 1);
+    const maxNumber = 2 ** W5;
+    const mask = bitMask(W5);
+    const shiftBy = BigInt(W5);
     return { windows, windowSize, mask, maxNumber, shiftBy };
   }
   function calcOffsets(n4, window2, wOpts) {
@@ -7940,8 +7940,8 @@ if (cid) {
         throw new Error("invalid scalar at index " + i3);
     });
   }
-  function getW(P6) {
-    return pointWindowSizes.get(P6) || 1;
+  function getW(P5) {
+    return pointWindowSizes.get(P5) || 1;
   }
   function wNAF(c4, bits) {
     return {
@@ -7972,8 +7972,8 @@ if (cid) {
        * @param W window size
        * @returns precomputed point tables flattened to a single array
        */
-      precomputeWindow(elm, W6) {
-        const { windows, windowSize } = calcWOpts(W6, bits);
+      precomputeWindow(elm, W5) {
+        const { windows, windowSize } = calcWOpts(W5, bits);
         const points = [];
         let p4 = elm;
         let base3 = p4;
@@ -7995,10 +7995,10 @@ if (cid) {
        * @param n scalar (we don't check here, but should be less than curve order)
        * @returns real and fake (for const-time) points
        */
-      wNAF(W6, precomputes, n4) {
+      wNAF(W5, precomputes, n4) {
         let p4 = c4.ZERO;
         let f2 = c4.BASE;
-        const wo3 = calcWOpts(W6, bits);
+        const wo3 = calcWOpts(W5, bits);
         for (let window2 = 0; window2 < wo3.windows; window2++) {
           const { nextN, offset, isZero, isNeg, isNegF, offsetF } = calcOffsets(n4, window2, wo3);
           n4 = nextN;
@@ -8018,8 +8018,8 @@ if (cid) {
        * @param acc accumulator point to add result of multiplication
        * @returns point
        */
-      wNAFUnsafe(W6, precomputes, n4, acc = c4.ZERO) {
-        const wo3 = calcWOpts(W6, bits);
+      wNAFUnsafe(W5, precomputes, n4, acc = c4.ZERO) {
+        const wo3 = calcWOpts(W5, bits);
         for (let window2 = 0; window2 < wo3.windows; window2++) {
           if (n4 === _0n5)
             break;
@@ -8034,32 +8034,32 @@ if (cid) {
         }
         return acc;
       },
-      getPrecomputes(W6, P6, transform) {
-        let comp = pointPrecomputes.get(P6);
+      getPrecomputes(W5, P5, transform) {
+        let comp = pointPrecomputes.get(P5);
         if (!comp) {
-          comp = this.precomputeWindow(P6, W6);
-          if (W6 !== 1)
-            pointPrecomputes.set(P6, transform(comp));
+          comp = this.precomputeWindow(P5, W5);
+          if (W5 !== 1)
+            pointPrecomputes.set(P5, transform(comp));
         }
         return comp;
       },
-      wNAFCached(P6, n4, transform) {
-        const W6 = getW(P6);
-        return this.wNAF(W6, this.getPrecomputes(W6, P6, transform), n4);
+      wNAFCached(P5, n4, transform) {
+        const W5 = getW(P5);
+        return this.wNAF(W5, this.getPrecomputes(W5, P5, transform), n4);
       },
-      wNAFCachedUnsafe(P6, n4, transform, prev) {
-        const W6 = getW(P6);
-        if (W6 === 1)
-          return this.unsafeLadder(P6, n4, prev);
-        return this.wNAFUnsafe(W6, this.getPrecomputes(W6, P6, transform), n4, prev);
+      wNAFCachedUnsafe(P5, n4, transform, prev) {
+        const W5 = getW(P5);
+        if (W5 === 1)
+          return this.unsafeLadder(P5, n4, prev);
+        return this.wNAFUnsafe(W5, this.getPrecomputes(W5, P5, transform), n4, prev);
       },
       // We calculate precomputes for elliptic curve point multiplication
       // using windowed method. This specifies window size and
       // stores precomputed values. Usually only base point would be precomputed.
-      setWindowSize(P6, W6) {
-        validateW(W6, bits);
-        pointWindowSizes.set(P6, W6);
-        pointPrecomputes.delete(P6);
+      setWindowSize(P5, W5) {
+        validateW(W5, bits);
+        pointWindowSizes.set(P5, W5);
+        pointPrecomputes.delete(P5);
       }
     };
   }
@@ -8085,19 +8085,19 @@ if (cid) {
     let sum = zero;
     for (let i3 = lastBits; i3 >= 0; i3 -= windowSize) {
       buckets.fill(zero);
-      for (let j5 = 0; j5 < slength; j5++) {
-        const scalar = scalars[j5];
+      for (let j4 = 0; j4 < slength; j4++) {
+        const scalar = scalars[j4];
         const wbits2 = Number(scalar >> BigInt(i3) & MASK);
-        buckets[wbits2] = buckets[wbits2].add(points[j5]);
+        buckets[wbits2] = buckets[wbits2].add(points[j4]);
       }
       let resI = zero;
-      for (let j5 = buckets.length - 1, sumI = zero; j5 > 0; j5--) {
-        sumI = sumI.add(buckets[j5]);
+      for (let j4 = buckets.length - 1, sumI = zero; j4 > 0; j4--) {
+        sumI = sumI.add(buckets[j4]);
         resI = resI.add(sumI);
       }
       sum = sum.add(resI);
       if (i3 !== 0)
-        for (let j5 = 0; j5 < windowSize; j5++)
+        for (let j4 = 0; j4 < windowSize; j4++)
           sum = sum.double();
     }
     return sum;
@@ -8177,8 +8177,8 @@ if (cid) {
     const fromBytes4 = CURVE.fromBytes || ((bytes) => {
       const tail = bytes.subarray(1);
       const x7 = Fp2.fromBytes(tail.subarray(0, Fp2.BYTES));
-      const y7 = Fp2.fromBytes(tail.subarray(Fp2.BYTES, 2 * Fp2.BYTES));
-      return { x: x7, y: y7 };
+      const y6 = Fp2.fromBytes(tail.subarray(Fp2.BYTES, 2 * Fp2.BYTES));
+      return { x: x7, y: y6 };
     });
     function weierstrassEquation(x7) {
       const { a: a3, b: b4 } = CURVE;
@@ -8186,8 +8186,8 @@ if (cid) {
       const x32 = Fp2.mul(x22, x7);
       return Fp2.add(Fp2.add(x32, Fp2.mul(x7, a3)), b4);
     }
-    function isValidXY(x7, y7) {
-      const left = Fp2.sqr(y7);
+    function isValidXY(x7, y6) {
+      const left = Fp2.sqr(y6);
       const right = weierstrassEquation(x7);
       return Fp2.eql(left, right);
     }
@@ -8225,15 +8225,15 @@ if (cid) {
         throw new Error("ProjectivePoint expected");
     }
     const toAffineMemo = memoized((p4, iz) => {
-      const { px: x7, py: y7, pz: z5 } = p4;
-      if (Fp2.eql(z5, Fp2.ONE))
-        return { x: x7, y: y7 };
+      const { px: x7, py: y6, pz: z4 } = p4;
+      if (Fp2.eql(z4, Fp2.ONE))
+        return { x: x7, y: y6 };
       const is0 = p4.is0();
       if (iz == null)
-        iz = is0 ? Fp2.ONE : Fp2.inv(z5);
+        iz = is0 ? Fp2.ONE : Fp2.inv(z4);
       const ax = Fp2.mul(x7, iz);
-      const ay = Fp2.mul(y7, iz);
-      const zz = Fp2.mul(z5, iz);
+      const ay = Fp2.mul(y6, iz);
+      const zz = Fp2.mul(z4, iz);
       if (is0)
         return { x: Fp2.ZERO, y: Fp2.ZERO };
       if (!Fp2.eql(zz, Fp2.ONE))
@@ -8246,10 +8246,10 @@ if (cid) {
           return;
         throw new Error("bad point: ZERO");
       }
-      const { x: x7, y: y7 } = p4.toAffine();
-      if (!Fp2.isValid(x7) || !Fp2.isValid(y7))
+      const { x: x7, y: y6 } = p4.toAffine();
+      if (!Fp2.isValid(x7) || !Fp2.isValid(y6))
         throw new Error("bad point: x or y not FE");
-      if (!isValidXY(x7, y7))
+      if (!isValidXY(x7, y6))
         throw new Error("bad point: equation left != right");
       if (!p4.isTorsionFree())
         throw new Error("bad point: not in prime-order subgroup");
@@ -8271,15 +8271,15 @@ if (cid) {
       // Does not validate if the point is on-curve.
       // Use fromHex instead, or call assertValidity() later.
       static fromAffine(p4) {
-        const { x: x7, y: y7 } = p4 || {};
-        if (!p4 || !Fp2.isValid(x7) || !Fp2.isValid(y7))
+        const { x: x7, y: y6 } = p4 || {};
+        if (!p4 || !Fp2.isValid(x7) || !Fp2.isValid(y6))
           throw new Error("invalid affine point");
         if (p4 instanceof Point)
           throw new Error("projective point not allowed");
         const is0 = (i3) => Fp2.eql(i3, Fp2.ZERO);
-        if (is0(x7) && is0(y7))
+        if (is0(x7) && is0(y6))
           return Point.ZERO;
-        return new Point(x7, y7, Fp2.ONE);
+        return new Point(x7, y6, Fp2.ONE);
       }
       get x() {
         return this.toAffine().x;
@@ -8302,9 +8302,9 @@ if (cid) {
        * @param hex short/long ECDSA hex
        */
       static fromHex(hex) {
-        const P6 = Point.fromAffine(fromBytes4(ensureBytes("pointHex", hex)));
-        P6.assertValidity();
-        return P6;
+        const P5 = Point.fromAffine(fromBytes4(ensureBytes("pointHex", hex)));
+        P5.assertValidity();
+        return P5;
       }
       // Multiplies generator point by privateKey.
       static fromPrivateKey(privateKey) {
@@ -8323,9 +8323,9 @@ if (cid) {
         assertValidMemo(this);
       }
       hasEvenY() {
-        const { y: y7 } = this.toAffine();
+        const { y: y6 } = this.toAffine();
         if (Fp2.isOdd)
-          return !Fp2.isOdd(y7);
+          return !Fp2.isOdd(y6);
         throw new Error("Field doesn't support isOdd");
       }
       /**
@@ -8353,7 +8353,7 @@ if (cid) {
         const { a: a3, b: b4 } = CURVE;
         const b32 = Fp2.mul(b4, _3n2);
         const { px: X1, py: Y1, pz: Z1 } = this;
-        let X32 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
+        let X3 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
         let t0 = Fp2.mul(X1, X1);
         let t1 = Fp2.mul(Y1, Y1);
         let t2 = Fp2.mul(Z1, Z1);
@@ -8361,13 +8361,13 @@ if (cid) {
         t3 = Fp2.add(t3, t3);
         Z32 = Fp2.mul(X1, Z1);
         Z32 = Fp2.add(Z32, Z32);
-        X32 = Fp2.mul(a3, Z32);
+        X3 = Fp2.mul(a3, Z32);
         Y32 = Fp2.mul(b32, t2);
-        Y32 = Fp2.add(X32, Y32);
-        X32 = Fp2.sub(t1, Y32);
+        Y32 = Fp2.add(X3, Y32);
+        X3 = Fp2.sub(t1, Y32);
         Y32 = Fp2.add(t1, Y32);
-        Y32 = Fp2.mul(X32, Y32);
-        X32 = Fp2.mul(t3, X32);
+        Y32 = Fp2.mul(X3, Y32);
+        X3 = Fp2.mul(t3, X3);
         Z32 = Fp2.mul(b32, Z32);
         t2 = Fp2.mul(a3, t2);
         t3 = Fp2.sub(t0, t2);
@@ -8381,11 +8381,11 @@ if (cid) {
         t2 = Fp2.mul(Y1, Z1);
         t2 = Fp2.add(t2, t2);
         t0 = Fp2.mul(t2, t3);
-        X32 = Fp2.sub(X32, t0);
+        X3 = Fp2.sub(X3, t0);
         Z32 = Fp2.mul(t2, t1);
         Z32 = Fp2.add(Z32, Z32);
         Z32 = Fp2.add(Z32, Z32);
-        return new Point(X32, Y32, Z32);
+        return new Point(X3, Y32, Z32);
       }
       // Renes-Costello-Batina exception-free addition formula.
       // There is 30% faster Jacobian formula, but it is not complete.
@@ -8395,7 +8395,7 @@ if (cid) {
         aprjpoint(other);
         const { px: X1, py: Y1, pz: Z1 } = this;
         const { px: X22, py: Y22, pz: Z22 } = other;
-        let X32 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
+        let X3 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
         const a3 = CURVE.a;
         const b32 = Fp2.mul(CURVE.b, _3n2);
         let t0 = Fp2.mul(X1, X22);
@@ -8412,16 +8412,16 @@ if (cid) {
         t5 = Fp2.add(t0, t2);
         t4 = Fp2.sub(t4, t5);
         t5 = Fp2.add(Y1, Z1);
-        X32 = Fp2.add(Y22, Z22);
-        t5 = Fp2.mul(t5, X32);
-        X32 = Fp2.add(t1, t2);
-        t5 = Fp2.sub(t5, X32);
+        X3 = Fp2.add(Y22, Z22);
+        t5 = Fp2.mul(t5, X3);
+        X3 = Fp2.add(t1, t2);
+        t5 = Fp2.sub(t5, X3);
         Z32 = Fp2.mul(a3, t4);
-        X32 = Fp2.mul(b32, t2);
-        Z32 = Fp2.add(X32, Z32);
-        X32 = Fp2.sub(t1, Z32);
+        X3 = Fp2.mul(b32, t2);
+        Z32 = Fp2.add(X3, Z32);
+        X3 = Fp2.sub(t1, Z32);
         Z32 = Fp2.add(t1, Z32);
-        Y32 = Fp2.mul(X32, Z32);
+        Y32 = Fp2.mul(X3, Z32);
         t1 = Fp2.add(t0, t0);
         t1 = Fp2.add(t1, t0);
         t2 = Fp2.mul(a3, t2);
@@ -8433,12 +8433,12 @@ if (cid) {
         t0 = Fp2.mul(t1, t4);
         Y32 = Fp2.add(Y32, t0);
         t0 = Fp2.mul(t5, t4);
-        X32 = Fp2.mul(t3, X32);
-        X32 = Fp2.sub(X32, t0);
+        X3 = Fp2.mul(t3, X3);
+        X3 = Fp2.sub(X3, t0);
         t0 = Fp2.mul(t3, t1);
         Z32 = Fp2.mul(t5, Z32);
         Z32 = Fp2.add(Z32, t0);
-        return new Point(X32, Y32, Z32);
+        return new Point(X3, Y32, Z32);
       }
       subtract(other) {
         return this.add(other.negate());
@@ -8520,8 +8520,8 @@ if (cid) {
        * @returns non-zero affine point
        */
       multiplyAndAddUnsafe(Q4, a3, b4) {
-        const G5 = Point.BASE;
-        const mul = (P6, a4) => a4 === _0n6 || a4 === _1n6 || !P6.equals(G5) ? P6.multiplyUnsafe(a4) : P6.multiply(a4);
+        const G4 = Point.BASE;
+        const mul = (P5, a4) => a4 === _0n6 || a4 === _1n6 || !P5.equals(G4) ? P5.multiplyUnsafe(a4) : P5.multiply(a4);
         const sum = mul(this, a3).add(mul(Q4, b4));
         return sum.is0() ? void 0 : sum;
       }
@@ -8615,22 +8615,22 @@ if (cid) {
           if (!inRange(x7, _1n6, Fp2.ORDER))
             throw new Error("Point is not on curve");
           const y22 = weierstrassEquation(x7);
-          let y7;
+          let y6;
           try {
-            y7 = Fp2.sqrt(y22);
+            y6 = Fp2.sqrt(y22);
           } catch (sqrtError) {
             const suffix = sqrtError instanceof Error ? ": " + sqrtError.message : "";
             throw new Error("Point is not on curve" + suffix);
           }
-          const isYOdd = (y7 & _1n6) === _1n6;
+          const isYOdd = (y6 & _1n6) === _1n6;
           const isHeadOdd = (head & 1) === 1;
           if (isHeadOdd !== isYOdd)
-            y7 = Fp2.neg(y7);
-          return { x: x7, y: y7 };
+            y6 = Fp2.neg(y6);
+          return { x: x7, y: y6 };
         } else if (len === uncompressedLen && head === 4) {
           const x7 = Fp2.fromBytes(tail.subarray(0, Fp2.BYTES));
-          const y7 = Fp2.fromBytes(tail.subarray(Fp2.BYTES, 2 * Fp2.BYTES));
-          return { x: x7, y: y7 };
+          const y6 = Fp2.fromBytes(tail.subarray(Fp2.BYTES, 2 * Fp2.BYTES));
+          return { x: x7, y: y6 };
         } else {
           const cl = compressedLen;
           const ul = uncompressedLen;
@@ -8679,18 +8679,18 @@ if (cid) {
       }
       recoverPublicKey(msgHash) {
         const { r: r3, s: s2, recovery: rec } = this;
-        const h5 = bits2int_modN(ensureBytes("msgHash", msgHash));
+        const h4 = bits2int_modN(ensureBytes("msgHash", msgHash));
         if (rec == null || ![0, 1, 2, 3].includes(rec))
           throw new Error("recovery id invalid");
         const radj = rec === 2 || rec === 3 ? r3 + CURVE.n : r3;
         if (radj >= Fp2.ORDER)
           throw new Error("recovery id 2 or 3 invalid");
         const prefix = (rec & 1) === 0 ? "02" : "03";
-        const R4 = Point.fromHex(prefix + numToSizedHex(radj, Fp2.BYTES));
+        const R3 = Point.fromHex(prefix + numToSizedHex(radj, Fp2.BYTES));
         const ir3 = invN(radj);
-        const u1 = modN(-h5 * ir3);
-        const u22 = modN(s2 * ir3);
-        const Q4 = Point.BASE.multiplyAndAddUnsafe(R4, u1, u22);
+        const u1 = modN(-h4 * ir3);
+        const u2 = modN(s2 * ir3);
+        const Q4 = Point.BASE.multiplyAndAddUnsafe(R3, u1, u2);
         if (!Q4)
           throw new Error("point at infinify");
         Q4.assertValidity();
@@ -8794,7 +8794,7 @@ if (cid) {
       return numberToBytesBE(num, nByteLength);
     }
     function prepSig(msgHash, privateKey, opts = defaultSigOpts) {
-      if (["recovered", "canonical"].some((k6) => k6 in opts))
+      if (["recovered", "canonical"].some((k5) => k5 in opts))
         throw new Error("sign() legacy options not supported");
       const { hash, randomBytes: randomBytes3 } = CURVE;
       let { lowS, prehash, extraEntropy: ent } = opts;
@@ -8814,18 +8814,18 @@ if (cid) {
       const seed = concatBytes3(...seedArgs);
       const m2 = h1int;
       function k2sig(kBytes) {
-        const k6 = bits2int(kBytes);
-        if (!isWithinCurveOrder(k6))
+        const k5 = bits2int(kBytes);
+        if (!isWithinCurveOrder(k5))
           return;
-        const ik = invN(k6);
-        const q5 = Point.BASE.multiply(k6).toAffine();
-        const r3 = modN(q5.x);
+        const ik = invN(k5);
+        const q4 = Point.BASE.multiply(k5).toAffine();
+        const r3 = modN(q4.x);
         if (r3 === _0n6)
           return;
         const s2 = modN(ik * modN(m2 + r3 * d3));
         if (s2 === _0n6)
           return;
-        let recovery = (q5.x === r3 ? 0 : 2) | Number(q5.y & _1n6);
+        let recovery = (q4.x === r3 ? 0 : 2) | Number(q4.y & _1n6);
         let normS = s2;
         if (lowS && isBiggerThanHalfOrder(s2)) {
           normS = normalizeS(s2);
@@ -8859,7 +8859,7 @@ if (cid) {
       if (!isHex && !isObj)
         throw new Error("invalid signature, expected Uint8Array, hex string or Signature instance");
       let _sig = void 0;
-      let P6;
+      let P5;
       try {
         if (isObj)
           _sig = new Signature(sg.r, sg.s);
@@ -8874,7 +8874,7 @@ if (cid) {
           if (!_sig && format !== "der")
             _sig = Signature.fromCompact(sg);
         }
-        P6 = Point.fromHex(publicKey);
+        P5 = Point.fromHex(publicKey);
       } catch (error) {
         return false;
       }
@@ -8885,14 +8885,14 @@ if (cid) {
       if (prehash)
         msgHash = CURVE.hash(msgHash);
       const { r: r3, s: s2 } = _sig;
-      const h5 = bits2int_modN(msgHash);
+      const h4 = bits2int_modN(msgHash);
       const is = invN(s2);
-      const u1 = modN(h5 * is);
-      const u22 = modN(r3 * is);
-      const R4 = Point.BASE.multiplyAndAddUnsafe(P6, u1, u22)?.toAffine();
-      if (!R4)
+      const u1 = modN(h4 * is);
+      const u2 = modN(r3 * is);
+      const R3 = Point.BASE.multiplyAndAddUnsafe(P5, u1, u2)?.toAffine();
+      if (!R3)
         return false;
-      const v7 = modN(R4.x);
+      const v7 = modN(R3.x);
       return v7 === r3;
     }
     return {
@@ -8933,8 +8933,8 @@ if (cid) {
             if (len.length / 2 & 128)
               throw new E4("tlv.encode: long form length too big");
             const lenLen = dataLen > 127 ? numberToHexUnpadded(len.length / 2 | 128) : "";
-            const t = numberToHexUnpadded(tag);
-            return t + lenLen + len + data;
+            const t2 = numberToHexUnpadded(tag);
+            return t2 + lenLen + len + data;
           },
           // v - value, l - left bytes (unparsed)
           decode(tag, data) {
@@ -9046,25 +9046,25 @@ if (cid) {
   });
 
   // node_modules/ox/node_modules/@noble/curves/esm/secp256k1.js
-  function sqrtMod(y7) {
-    const P6 = secp256k1P;
+  function sqrtMod(y6) {
+    const P5 = secp256k1P;
     const _3n6 = BigInt(3), _6n = BigInt(6), _11n = BigInt(11), _22n = BigInt(22);
     const _23n = BigInt(23), _44n = BigInt(44), _88n = BigInt(88);
-    const b22 = y7 * y7 * y7 % P6;
-    const b32 = b22 * b22 * y7 % P6;
-    const b6 = pow2(b32, _3n6, P6) * b32 % P6;
-    const b9 = pow2(b6, _3n6, P6) * b32 % P6;
-    const b11 = pow2(b9, _2n5, P6) * b22 % P6;
-    const b222 = pow2(b11, _11n, P6) * b11 % P6;
-    const b44 = pow2(b222, _22n, P6) * b222 % P6;
-    const b88 = pow2(b44, _44n, P6) * b44 % P6;
-    const b176 = pow2(b88, _88n, P6) * b88 % P6;
-    const b220 = pow2(b176, _44n, P6) * b44 % P6;
-    const b223 = pow2(b220, _3n6, P6) * b32 % P6;
-    const t1 = pow2(b223, _23n, P6) * b222 % P6;
-    const t2 = pow2(t1, _6n, P6) * b22 % P6;
-    const root = pow2(t2, _2n5, P6);
-    if (!Fpk1.eql(Fpk1.sqr(root), y7))
+    const b22 = y6 * y6 * y6 % P5;
+    const b32 = b22 * b22 * y6 % P5;
+    const b6 = pow2(b32, _3n6, P5) * b32 % P5;
+    const b9 = pow2(b6, _3n6, P5) * b32 % P5;
+    const b11 = pow2(b9, _2n5, P5) * b22 % P5;
+    const b222 = pow2(b11, _11n, P5) * b11 % P5;
+    const b44 = pow2(b222, _22n, P5) * b222 % P5;
+    const b88 = pow2(b44, _44n, P5) * b44 % P5;
+    const b176 = pow2(b88, _88n, P5) * b88 % P5;
+    const b220 = pow2(b176, _44n, P5) * b44 % P5;
+    const b223 = pow2(b220, _3n6, P5) * b32 % P5;
+    const t1 = pow2(b223, _23n, P5) * b222 % P5;
+    const t2 = pow2(t1, _6n, P5) * b22 % P5;
+    const root = pow2(t2, _2n5, P5);
+    if (!Fpk1.eql(Fpk1.sqr(root), y6))
       throw new Error("Cannot find square root");
     return root;
   }
@@ -9094,16 +9094,16 @@ if (cid) {
         endo: {
           // Endomorphism, see above
           beta: BigInt("0x7ae96a2b657c07106e64479eac3434e99cf0497512f58995c1396c28719501ee"),
-          splitScalar: (k6) => {
+          splitScalar: (k5) => {
             const n4 = secp256k1N;
             const a1 = BigInt("0x3086d221a7d46bcde86c90e49284eb15");
             const b1 = -_1n7 * BigInt("0xe4437ed6010e88286f547fa90abfe4c3");
             const a22 = BigInt("0x114ca50f7a8e2f3f657c1108d9d44cfd8");
             const b22 = a1;
             const POW_2_128 = BigInt("0x100000000000000000000000000000000");
-            const c1 = divNearest(b22 * k6, n4);
-            const c22 = divNearest(-b1 * k6, n4);
-            let k1 = mod(k6 - c1 * a1 - c22 * a22, n4);
+            const c1 = divNearest(b22 * k5, n4);
+            const c22 = divNearest(-b1 * k5, n4);
+            let k1 = mod(k5 - c1 * a1 - c22 * a22, n4);
             let k22 = mod(-c1 * b1 - c22 * b22, n4);
             const k1neg = k1 > POW_2_128;
             const k2neg = k22 > POW_2_128;
@@ -9112,7 +9112,7 @@ if (cid) {
             if (k2neg)
               k22 = n4 - k22;
             if (k1 > POW_2_128 || k22 > POW_2_128) {
-              throw new Error("splitScalar: Endomorphism failed, k=" + k6);
+              throw new Error("splitScalar: Endomorphism failed, k=" + k5);
             }
             return { k1neg, k1, k2neg, k2: k22 };
           }
@@ -9991,9 +9991,9 @@ if (cid) {
     const _u32_max = BigInt(4294967295);
     const wh = Number(value >> _32n3 & _u32_max);
     const wl = Number(value & _u32_max);
-    const h5 = isLE4 ? 4 : 0;
+    const h4 = isLE4 ? 4 : 0;
     const l4 = isLE4 ? 0 : 4;
-    view.setUint32(byteOffset + h5, wh, isLE4);
+    view.setUint32(byteOffset + h4, wh, isLE4);
     view.setUint32(byteOffset + l4, wl, isLE4);
   }
   function u64Lengths(dataLength, aadLength, isLE4) {
@@ -10189,7 +10189,7 @@ if (cid) {
           }
           listeners.fn.apply(listeners.context, args);
         } else {
-          var length2 = listeners.length, j5;
+          var length2 = listeners.length, j4;
           for (i3 = 0; i3 < length2; i3++) {
             if (listeners[i3].once) this.removeListener(event, listeners[i3].fn, void 0, true);
             switch (len) {
@@ -10206,8 +10206,8 @@ if (cid) {
                 listeners[i3].fn.call(listeners[i3].context, a1, a22, a3);
                 break;
               default:
-                if (!args) for (j5 = 1, args = new Array(len - 1); j5 < len; j5++) {
-                  args[j5 - 1] = arguments[j5];
+                if (!args) for (j4 = 1, args = new Array(len - 1); j4 < len; j4++) {
+                  args[j4 - 1] = arguments[j4];
                 }
                 listeners[i3].fn.apply(listeners[i3].context, args);
             }
@@ -11192,9 +11192,9 @@ if (cid) {
     const _u32_max = BigInt(4294967295);
     const wh = Number(value >> _32n3 & _u32_max);
     const wl = Number(value & _u32_max);
-    const h5 = isLE4 ? 4 : 0;
+    const h4 = isLE4 ? 4 : 0;
     const l4 = isLE4 ? 0 : 4;
-    view.setUint32(byteOffset + h5, wh, isLE4);
+    view.setUint32(byteOffset + h4, wh, isLE4);
     view.setUint32(byteOffset + l4, wl, isLE4);
   }
   function Chi2(a3, b4, c4) {
@@ -11433,18 +11433,18 @@ if (cid) {
           this.H = SHA256_IV2[7] | 0;
         }
         get() {
-          const { A: A4, B: B4, C: C4, D: D5, E: E4, F: F3, G: G5, H: H5 } = this;
-          return [A4, B4, C4, D5, E4, F3, G5, H5];
+          const { A: A4, B: B3, C: C4, D: D5, E: E4, F: F3, G: G4, H: H5 } = this;
+          return [A4, B3, C4, D5, E4, F3, G4, H5];
         }
         // prettier-ignore
-        set(A4, B4, C4, D5, E4, F3, G5, H5) {
+        set(A4, B3, C4, D5, E4, F3, G4, H5) {
           this.A = A4 | 0;
-          this.B = B4 | 0;
+          this.B = B3 | 0;
           this.C = C4 | 0;
           this.D = D5 | 0;
           this.E = E4 | 0;
           this.F = F3 | 0;
-          this.G = G5 | 0;
+          this.G = G4 | 0;
           this.H = H5 | 0;
         }
         process(view, offset) {
@@ -11457,30 +11457,30 @@ if (cid) {
             const s1 = rotr(W22, 17) ^ rotr(W22, 19) ^ W22 >>> 10;
             SHA256_W2[i3] = s1 + SHA256_W2[i3 - 7] + s0 + SHA256_W2[i3 - 16] | 0;
           }
-          let { A: A4, B: B4, C: C4, D: D5, E: E4, F: F3, G: G5, H: H5 } = this;
+          let { A: A4, B: B3, C: C4, D: D5, E: E4, F: F3, G: G4, H: H5 } = this;
           for (let i3 = 0; i3 < 64; i3++) {
             const sigma1 = rotr(E4, 6) ^ rotr(E4, 11) ^ rotr(E4, 25);
-            const T12 = H5 + sigma1 + Chi2(E4, F3, G5) + SHA256_K2[i3] + SHA256_W2[i3] | 0;
+            const T12 = H5 + sigma1 + Chi2(E4, F3, G4) + SHA256_K2[i3] + SHA256_W2[i3] | 0;
             const sigma0 = rotr(A4, 2) ^ rotr(A4, 13) ^ rotr(A4, 22);
-            const T22 = sigma0 + Maj2(A4, B4, C4) | 0;
-            H5 = G5;
-            G5 = F3;
+            const T22 = sigma0 + Maj2(A4, B3, C4) | 0;
+            H5 = G4;
+            G4 = F3;
             F3 = E4;
             E4 = D5 + T12 | 0;
             D5 = C4;
-            C4 = B4;
-            B4 = A4;
+            C4 = B3;
+            B3 = A4;
             A4 = T12 + T22 | 0;
           }
           A4 = A4 + this.A | 0;
-          B4 = B4 + this.B | 0;
+          B3 = B3 + this.B | 0;
           C4 = C4 + this.C | 0;
           D5 = D5 + this.D | 0;
           E4 = E4 + this.E | 0;
           F3 = F3 + this.F | 0;
-          G5 = G5 + this.G | 0;
+          G4 = G4 + this.G | 0;
           H5 = H5 + this.H | 0;
-          this.set(A4, B4, C4, D5, E4, F3, G5, H5);
+          this.set(A4, B3, C4, D5, E4, F3, G4, H5);
         }
         roundClean() {
           clean(SHA256_W2);
@@ -12256,32 +12256,32 @@ if (cid) {
         compress(msg, offset, isLast) {
           this.get().forEach((v7, i3) => BBUF[i3] = v7);
           BBUF.set(B2B_IV, 16);
-          let { h: h5, l: l4 } = fromBig(BigInt(this.length));
+          let { h: h4, l: l4 } = fromBig(BigInt(this.length));
           BBUF[24] = B2B_IV[8] ^ l4;
-          BBUF[25] = B2B_IV[9] ^ h5;
+          BBUF[25] = B2B_IV[9] ^ h4;
           if (isLast) {
             BBUF[28] = ~BBUF[28];
             BBUF[29] = ~BBUF[29];
           }
-          let j5 = 0;
+          let j4 = 0;
           const s2 = BSIGMA;
           for (let i3 = 0; i3 < 12; i3++) {
-            G1b(0, 4, 8, 12, msg, offset + 2 * s2[j5++]);
-            G2b(0, 4, 8, 12, msg, offset + 2 * s2[j5++]);
-            G1b(1, 5, 9, 13, msg, offset + 2 * s2[j5++]);
-            G2b(1, 5, 9, 13, msg, offset + 2 * s2[j5++]);
-            G1b(2, 6, 10, 14, msg, offset + 2 * s2[j5++]);
-            G2b(2, 6, 10, 14, msg, offset + 2 * s2[j5++]);
-            G1b(3, 7, 11, 15, msg, offset + 2 * s2[j5++]);
-            G2b(3, 7, 11, 15, msg, offset + 2 * s2[j5++]);
-            G1b(0, 5, 10, 15, msg, offset + 2 * s2[j5++]);
-            G2b(0, 5, 10, 15, msg, offset + 2 * s2[j5++]);
-            G1b(1, 6, 11, 12, msg, offset + 2 * s2[j5++]);
-            G2b(1, 6, 11, 12, msg, offset + 2 * s2[j5++]);
-            G1b(2, 7, 8, 13, msg, offset + 2 * s2[j5++]);
-            G2b(2, 7, 8, 13, msg, offset + 2 * s2[j5++]);
-            G1b(3, 4, 9, 14, msg, offset + 2 * s2[j5++]);
-            G2b(3, 4, 9, 14, msg, offset + 2 * s2[j5++]);
+            G1b(0, 4, 8, 12, msg, offset + 2 * s2[j4++]);
+            G2b(0, 4, 8, 12, msg, offset + 2 * s2[j4++]);
+            G1b(1, 5, 9, 13, msg, offset + 2 * s2[j4++]);
+            G2b(1, 5, 9, 13, msg, offset + 2 * s2[j4++]);
+            G1b(2, 6, 10, 14, msg, offset + 2 * s2[j4++]);
+            G2b(2, 6, 10, 14, msg, offset + 2 * s2[j4++]);
+            G1b(3, 7, 11, 15, msg, offset + 2 * s2[j4++]);
+            G2b(3, 7, 11, 15, msg, offset + 2 * s2[j4++]);
+            G1b(0, 5, 10, 15, msg, offset + 2 * s2[j4++]);
+            G2b(0, 5, 10, 15, msg, offset + 2 * s2[j4++]);
+            G1b(1, 6, 11, 12, msg, offset + 2 * s2[j4++]);
+            G2b(1, 6, 11, 12, msg, offset + 2 * s2[j4++]);
+            G1b(2, 7, 8, 13, msg, offset + 2 * s2[j4++]);
+            G2b(2, 7, 8, 13, msg, offset + 2 * s2[j4++]);
+            G1b(3, 4, 9, 14, msg, offset + 2 * s2[j4++]);
+            G2b(3, 4, 9, 14, msg, offset + 2 * s2[j4++]);
           }
           this.v0l ^= BBUF[0] ^ BBUF[16];
           this.v0h ^= BBUF[1] ^ BBUF[17];
@@ -13145,24 +13145,24 @@ if (cid) {
         }
         find(bytes, inputOffset, byteLength) {
           const records = this.caches[byteLength - 1];
-          FIND_CHUNK: for (const record of records) {
-            const recordBytes = record.bytes;
-            for (let j5 = 0; j5 < byteLength; j5++) {
-              if (recordBytes[j5] !== bytes[inputOffset + j5]) {
+          FIND_CHUNK: for (const record2 of records) {
+            const recordBytes = record2.bytes;
+            for (let j4 = 0; j4 < byteLength; j4++) {
+              if (recordBytes[j4] !== bytes[inputOffset + j4]) {
                 continue FIND_CHUNK;
               }
             }
-            return record.str;
+            return record2.str;
           }
           return null;
         }
         store(bytes, value) {
           const records = this.caches[bytes.length - 1];
-          const record = { bytes, str: value };
+          const record2 = { bytes, str: value };
           if (records.length >= this.maxLengthPerKey) {
-            records[Math.random() * records.length | 0] = record;
+            records[Math.random() * records.length | 0] = record2;
           } else {
-            records.push(record);
+            records.push(record2);
           }
         }
         decode(bytes, inputOffset, byteLength) {
@@ -13932,16 +13932,16 @@ if (cid) {
         const pos32 = pos / 4;
         if (pos % 4 !== 0)
           throw new Error("arx: invalid block position");
-        for (let j5 = 0, posj; j5 < BLOCK_LEN32; j5++) {
-          posj = pos32 + j5;
-          o32[posj] = d32[posj] ^ b32[j5];
+        for (let j4 = 0, posj; j4 < BLOCK_LEN32; j4++) {
+          posj = pos32 + j4;
+          o32[posj] = d32[posj] ^ b32[j4];
         }
         pos += BLOCK_LEN;
         continue;
       }
-      for (let j5 = 0, posj; j5 < take; j5++) {
-        posj = pos + j5;
-        output[posj] = data[posj] ^ block[j5];
+      for (let j4 = 0, posj; j4 < take; j4++) {
+        posj = pos + j4;
+        output[posj] = data[posj] ^ block[j4];
       }
       pos += take;
     }
@@ -13969,23 +13969,23 @@ if (cid) {
         throw new Error(`arx: output (${output.length}) is shorter than data (${len})`);
       const toClean = [];
       let l4 = key.length;
-      let k6;
+      let k5;
       let sigma;
       if (l4 === 32) {
-        toClean.push(k6 = copyBytes(key));
+        toClean.push(k5 = copyBytes(key));
         sigma = sigma32_32;
       } else if (l4 === 16 && allowShortKeys) {
-        k6 = new Uint8Array(32);
-        k6.set(key);
-        k6.set(key, 16);
+        k5 = new Uint8Array(32);
+        k5.set(key);
+        k5.set(key, 16);
         sigma = sigma16_32;
-        toClean.push(k6);
+        toClean.push(k5);
       } else {
         throw new Error(`arx: invalid 32-byte key, got length=${l4}`);
       }
       if (!isAligned322(nonce))
         toClean.push(nonce = copyBytes(nonce));
-      const k32 = u323(k6);
+      const k32 = u323(k5);
       if (extendNonceFn) {
         if (nonce.length !== 24)
           throw new Error(`arx: extended nonce must be 24 bytes`);
@@ -14072,7 +14072,7 @@ if (cid) {
         }
         process(data, offset, isLast = false) {
           const hibit = isLast ? 0 : 1 << 11;
-          const { h: h5, r: r3 } = this;
+          const { h: h4, r: r3 } = this;
           const r0 = r3[0];
           const r1 = r3[1];
           const r22 = r3[2];
@@ -14091,75 +14091,75 @@ if (cid) {
           const t5 = u8to16(data, offset + 10);
           const t6 = u8to16(data, offset + 12);
           const t7 = u8to16(data, offset + 14);
-          let h0 = h5[0] + (t0 & 8191);
-          let h1 = h5[1] + ((t0 >>> 13 | t1 << 3) & 8191);
-          let h22 = h5[2] + ((t1 >>> 10 | t2 << 6) & 8191);
-          let h32 = h5[3] + ((t2 >>> 7 | t3 << 9) & 8191);
-          let h42 = h5[4] + ((t3 >>> 4 | t4 << 12) & 8191);
-          let h52 = h5[5] + (t4 >>> 1 & 8191);
-          let h6 = h5[6] + ((t4 >>> 14 | t5 << 2) & 8191);
-          let h7 = h5[7] + ((t5 >>> 11 | t6 << 5) & 8191);
-          let h8 = h5[8] + ((t6 >>> 8 | t7 << 8) & 8191);
-          let h9 = h5[9] + (t7 >>> 5 | hibit);
+          let h0 = h4[0] + (t0 & 8191);
+          let h1 = h4[1] + ((t0 >>> 13 | t1 << 3) & 8191);
+          let h22 = h4[2] + ((t1 >>> 10 | t2 << 6) & 8191);
+          let h32 = h4[3] + ((t2 >>> 7 | t3 << 9) & 8191);
+          let h42 = h4[4] + ((t3 >>> 4 | t4 << 12) & 8191);
+          let h5 = h4[5] + (t4 >>> 1 & 8191);
+          let h6 = h4[6] + ((t4 >>> 14 | t5 << 2) & 8191);
+          let h7 = h4[7] + ((t5 >>> 11 | t6 << 5) & 8191);
+          let h8 = h4[8] + ((t6 >>> 8 | t7 << 8) & 8191);
+          let h9 = h4[9] + (t7 >>> 5 | hibit);
           let c4 = 0;
           let d0 = c4 + h0 * r0 + h1 * (5 * r9) + h22 * (5 * r8) + h32 * (5 * r7) + h42 * (5 * r6);
           c4 = d0 >>> 13;
           d0 &= 8191;
-          d0 += h52 * (5 * r5) + h6 * (5 * r4) + h7 * (5 * r32) + h8 * (5 * r22) + h9 * (5 * r1);
+          d0 += h5 * (5 * r5) + h6 * (5 * r4) + h7 * (5 * r32) + h8 * (5 * r22) + h9 * (5 * r1);
           c4 += d0 >>> 13;
           d0 &= 8191;
           let d1 = c4 + h0 * r1 + h1 * r0 + h22 * (5 * r9) + h32 * (5 * r8) + h42 * (5 * r7);
           c4 = d1 >>> 13;
           d1 &= 8191;
-          d1 += h52 * (5 * r6) + h6 * (5 * r5) + h7 * (5 * r4) + h8 * (5 * r32) + h9 * (5 * r22);
+          d1 += h5 * (5 * r6) + h6 * (5 * r5) + h7 * (5 * r4) + h8 * (5 * r32) + h9 * (5 * r22);
           c4 += d1 >>> 13;
           d1 &= 8191;
           let d22 = c4 + h0 * r22 + h1 * r1 + h22 * r0 + h32 * (5 * r9) + h42 * (5 * r8);
           c4 = d22 >>> 13;
           d22 &= 8191;
-          d22 += h52 * (5 * r7) + h6 * (5 * r6) + h7 * (5 * r5) + h8 * (5 * r4) + h9 * (5 * r32);
+          d22 += h5 * (5 * r7) + h6 * (5 * r6) + h7 * (5 * r5) + h8 * (5 * r4) + h9 * (5 * r32);
           c4 += d22 >>> 13;
           d22 &= 8191;
           let d3 = c4 + h0 * r32 + h1 * r22 + h22 * r1 + h32 * r0 + h42 * (5 * r9);
           c4 = d3 >>> 13;
           d3 &= 8191;
-          d3 += h52 * (5 * r8) + h6 * (5 * r7) + h7 * (5 * r6) + h8 * (5 * r5) + h9 * (5 * r4);
+          d3 += h5 * (5 * r8) + h6 * (5 * r7) + h7 * (5 * r6) + h8 * (5 * r5) + h9 * (5 * r4);
           c4 += d3 >>> 13;
           d3 &= 8191;
           let d4 = c4 + h0 * r4 + h1 * r32 + h22 * r22 + h32 * r1 + h42 * r0;
           c4 = d4 >>> 13;
           d4 &= 8191;
-          d4 += h52 * (5 * r9) + h6 * (5 * r8) + h7 * (5 * r7) + h8 * (5 * r6) + h9 * (5 * r5);
+          d4 += h5 * (5 * r9) + h6 * (5 * r8) + h7 * (5 * r7) + h8 * (5 * r6) + h9 * (5 * r5);
           c4 += d4 >>> 13;
           d4 &= 8191;
           let d5 = c4 + h0 * r5 + h1 * r4 + h22 * r32 + h32 * r22 + h42 * r1;
           c4 = d5 >>> 13;
           d5 &= 8191;
-          d5 += h52 * r0 + h6 * (5 * r9) + h7 * (5 * r8) + h8 * (5 * r7) + h9 * (5 * r6);
+          d5 += h5 * r0 + h6 * (5 * r9) + h7 * (5 * r8) + h8 * (5 * r7) + h9 * (5 * r6);
           c4 += d5 >>> 13;
           d5 &= 8191;
           let d6 = c4 + h0 * r6 + h1 * r5 + h22 * r4 + h32 * r32 + h42 * r22;
           c4 = d6 >>> 13;
           d6 &= 8191;
-          d6 += h52 * r1 + h6 * r0 + h7 * (5 * r9) + h8 * (5 * r8) + h9 * (5 * r7);
+          d6 += h5 * r1 + h6 * r0 + h7 * (5 * r9) + h8 * (5 * r8) + h9 * (5 * r7);
           c4 += d6 >>> 13;
           d6 &= 8191;
           let d7 = c4 + h0 * r7 + h1 * r6 + h22 * r5 + h32 * r4 + h42 * r32;
           c4 = d7 >>> 13;
           d7 &= 8191;
-          d7 += h52 * r22 + h6 * r1 + h7 * r0 + h8 * (5 * r9) + h9 * (5 * r8);
+          d7 += h5 * r22 + h6 * r1 + h7 * r0 + h8 * (5 * r9) + h9 * (5 * r8);
           c4 += d7 >>> 13;
           d7 &= 8191;
           let d8 = c4 + h0 * r8 + h1 * r7 + h22 * r6 + h32 * r5 + h42 * r4;
           c4 = d8 >>> 13;
           d8 &= 8191;
-          d8 += h52 * r32 + h6 * r22 + h7 * r1 + h8 * r0 + h9 * (5 * r9);
+          d8 += h5 * r32 + h6 * r22 + h7 * r1 + h8 * r0 + h9 * (5 * r9);
           c4 += d8 >>> 13;
           d8 &= 8191;
           let d9 = c4 + h0 * r9 + h1 * r8 + h22 * r7 + h32 * r6 + h42 * r5;
           c4 = d9 >>> 13;
           d9 &= 8191;
-          d9 += h52 * r4 + h6 * r32 + h7 * r22 + h8 * r1 + h9 * r0;
+          d9 += h5 * r4 + h6 * r32 + h7 * r22 + h8 * r1 + h9 * r0;
           c4 += d9 >>> 13;
           d9 &= 8191;
           c4 = (c4 << 2) + c4 | 0;
@@ -14167,39 +14167,39 @@ if (cid) {
           d0 = c4 & 8191;
           c4 = c4 >>> 13;
           d1 += c4;
-          h5[0] = d0;
-          h5[1] = d1;
-          h5[2] = d22;
-          h5[3] = d3;
-          h5[4] = d4;
-          h5[5] = d5;
-          h5[6] = d6;
-          h5[7] = d7;
-          h5[8] = d8;
-          h5[9] = d9;
+          h4[0] = d0;
+          h4[1] = d1;
+          h4[2] = d22;
+          h4[3] = d3;
+          h4[4] = d4;
+          h4[5] = d5;
+          h4[6] = d6;
+          h4[7] = d7;
+          h4[8] = d8;
+          h4[9] = d9;
         }
         finalize() {
-          const { h: h5, pad: pad3 } = this;
+          const { h: h4, pad: pad3 } = this;
           const g4 = new Uint16Array(10);
-          let c4 = h5[1] >>> 13;
-          h5[1] &= 8191;
+          let c4 = h4[1] >>> 13;
+          h4[1] &= 8191;
           for (let i3 = 2; i3 < 10; i3++) {
-            h5[i3] += c4;
-            c4 = h5[i3] >>> 13;
-            h5[i3] &= 8191;
+            h4[i3] += c4;
+            c4 = h4[i3] >>> 13;
+            h4[i3] &= 8191;
           }
-          h5[0] += c4 * 5;
-          c4 = h5[0] >>> 13;
-          h5[0] &= 8191;
-          h5[1] += c4;
-          c4 = h5[1] >>> 13;
-          h5[1] &= 8191;
-          h5[2] += c4;
-          g4[0] = h5[0] + 5;
+          h4[0] += c4 * 5;
+          c4 = h4[0] >>> 13;
+          h4[0] &= 8191;
+          h4[1] += c4;
+          c4 = h4[1] >>> 13;
+          h4[1] &= 8191;
+          h4[2] += c4;
+          g4[0] = h4[0] + 5;
           c4 = g4[0] >>> 13;
           g4[0] &= 8191;
           for (let i3 = 1; i3 < 10; i3++) {
-            g4[i3] = h5[i3] + c4;
+            g4[i3] = h4[i3] + c4;
             c4 = g4[i3] >>> 13;
             g4[i3] &= 8191;
           }
@@ -14209,20 +14209,20 @@ if (cid) {
             g4[i3] &= mask;
           mask = ~mask;
           for (let i3 = 0; i3 < 10; i3++)
-            h5[i3] = h5[i3] & mask | g4[i3];
-          h5[0] = (h5[0] | h5[1] << 13) & 65535;
-          h5[1] = (h5[1] >>> 3 | h5[2] << 10) & 65535;
-          h5[2] = (h5[2] >>> 6 | h5[3] << 7) & 65535;
-          h5[3] = (h5[3] >>> 9 | h5[4] << 4) & 65535;
-          h5[4] = (h5[4] >>> 12 | h5[5] << 1 | h5[6] << 14) & 65535;
-          h5[5] = (h5[6] >>> 2 | h5[7] << 11) & 65535;
-          h5[6] = (h5[7] >>> 5 | h5[8] << 8) & 65535;
-          h5[7] = (h5[8] >>> 8 | h5[9] << 5) & 65535;
-          let f2 = h5[0] + pad3[0];
-          h5[0] = f2 & 65535;
+            h4[i3] = h4[i3] & mask | g4[i3];
+          h4[0] = (h4[0] | h4[1] << 13) & 65535;
+          h4[1] = (h4[1] >>> 3 | h4[2] << 10) & 65535;
+          h4[2] = (h4[2] >>> 6 | h4[3] << 7) & 65535;
+          h4[3] = (h4[3] >>> 9 | h4[4] << 4) & 65535;
+          h4[4] = (h4[4] >>> 12 | h4[5] << 1 | h4[6] << 14) & 65535;
+          h4[5] = (h4[6] >>> 2 | h4[7] << 11) & 65535;
+          h4[6] = (h4[7] >>> 5 | h4[8] << 8) & 65535;
+          h4[7] = (h4[8] >>> 8 | h4[9] << 5) & 65535;
+          let f2 = h4[0] + pad3[0];
+          h4[0] = f2 & 65535;
           for (let i3 = 1; i3 < 8; i3++) {
-            f2 = (h5[i3] + pad3[i3] | 0) + (f2 >>> 16) | 0;
-            h5[i3] = f2 & 65535;
+            f2 = (h4[i3] + pad3[i3] | 0) + (f2 >>> 16) | 0;
+            h4[i3] = f2 & 65535;
           }
           clean3(g4);
         }
@@ -14256,7 +14256,7 @@ if (cid) {
           aexists3(this);
           aoutput3(out, this);
           this.finished = true;
-          const { buffer, h: h5 } = this;
+          const { buffer, h: h4 } = this;
           let { pos } = this;
           if (pos) {
             buffer[pos++] = 1;
@@ -14267,8 +14267,8 @@ if (cid) {
           this.finalize();
           let opos = 0;
           for (let i3 = 0; i3 < 8; i3++) {
-            out[opos++] = h5[i3] >>> 0;
-            out[opos++] = h5[i3] >>> 8;
+            out[opos++] = h4[i3] >>> 0;
+            out[opos++] = h4[i3] >>> 8;
           }
           return out;
         }
@@ -14285,8 +14285,8 @@ if (cid) {
   });
 
   // node_modules/@noble/ciphers/esm/chacha.js
-  function chachaCore(s2, k6, n4, out, cnt, rounds = 20) {
-    let y00 = s2[0], y01 = s2[1], y02 = s2[2], y03 = s2[3], y04 = k6[0], y05 = k6[1], y06 = k6[2], y07 = k6[3], y08 = k6[4], y09 = k6[5], y10 = k6[6], y11 = k6[7], y12 = cnt, y13 = n4[0], y14 = n4[1], y15 = n4[2];
+  function chachaCore(s2, k5, n4, out, cnt, rounds = 20) {
+    let y00 = s2[0], y01 = s2[1], y02 = s2[2], y03 = s2[3], y04 = k5[0], y05 = k5[1], y06 = k5[2], y07 = k5[3], y08 = k5[4], y09 = k5[5], y10 = k5[6], y11 = k5[7], y12 = cnt, y13 = n4[0], y14 = n4[1], y15 = n4[2];
     let x00 = y00, x01 = y01, x02 = y02, x03 = y03, x04 = y04, x05 = y05, x06 = y06, x07 = y07, x08 = y08, x09 = y09, x10 = y10, x11 = y11, x12 = y12, x13 = y13, x14 = y14, x15 = y15;
     for (let r3 = 0; r3 < rounds; r3 += 2) {
       x00 = x00 + x04 | 0;
@@ -14372,8 +14372,8 @@ if (cid) {
     out[oi++] = y14 + x14 | 0;
     out[oi++] = y15 + x15 | 0;
   }
-  function hchacha(s2, k6, i3, o32) {
-    let x00 = s2[0], x01 = s2[1], x02 = s2[2], x03 = s2[3], x04 = k6[0], x05 = k6[1], x06 = k6[2], x07 = k6[3], x08 = k6[4], x09 = k6[5], x10 = k6[6], x11 = k6[7], x12 = i3[0], x13 = i3[1], x14 = i3[2], x15 = i3[3];
+  function hchacha(s2, k5, i3, o32) {
+    let x00 = s2[0], x01 = s2[1], x02 = s2[2], x03 = s2[3], x04 = k5[0], x05 = k5[1], x06 = k5[2], x07 = k5[3], x08 = k5[4], x09 = k5[5], x10 = k5[6], x11 = k5[7], x12 = i3[0], x13 = i3[1], x14 = i3[2], x15 = i3[3];
     for (let r3 = 0; r3 < 20; r3 += 2) {
       x00 = x00 + x04 | 0;
       x12 = rotl(x12 ^ x00, 16);
@@ -14452,13 +14452,13 @@ if (cid) {
   }
   function computeTag(fn, key, nonce, data, AAD) {
     const authKey = fn(key, nonce, ZEROS32);
-    const h5 = poly1305.create(authKey);
+    const h4 = poly1305.create(authKey);
     if (AAD)
-      updatePadded(h5, AAD);
-    updatePadded(h5, data);
+      updatePadded(h4, AAD);
+    updatePadded(h4, data);
     const num = u64Lengths(data.length, AAD ? AAD.length : 0, true);
-    h5.update(num);
-    const res = h5.digest();
+    h4.update(num);
+    const res = h4.digest();
     clean3(authKey, num);
     return res;
   }
@@ -14480,11 +14480,11 @@ if (cid) {
         allowShortKeys: false
       });
       ZEROS16 = /* @__PURE__ */ new Uint8Array(16);
-      updatePadded = (h5, msg) => {
-        h5.update(msg);
+      updatePadded = (h4, msg) => {
+        h4.update(msg);
         const left = msg.length % 16;
         if (left)
-          h5.update(ZEROS16.subarray(left));
+          h4.update(ZEROS16.subarray(left));
       };
       ZEROS32 = /* @__PURE__ */ new Uint8Array(32);
       _poly1305_aead = (xorStream) => (key, nonce, AAD) => {
@@ -14739,21 +14739,21 @@ if (cid) {
     const u8n2 = (len) => new Uint8Array(len);
     const u8of = (byte) => Uint8Array.of(byte);
     let v7 = u8n2(hashLen);
-    let k6 = u8n2(hashLen);
+    let k5 = u8n2(hashLen);
     let i3 = 0;
     const reset = () => {
       v7.fill(1);
-      k6.fill(0);
+      k5.fill(0);
       i3 = 0;
     };
-    const h5 = (...b4) => hmacFn(k6, v7, ...b4);
+    const h4 = (...b4) => hmacFn(k5, v7, ...b4);
     const reseed = (seed = u8n2(0)) => {
-      k6 = h5(u8of(0), seed);
-      v7 = h5();
+      k5 = h4(u8of(0), seed);
+      v7 = h4();
       if (seed.length === 0)
         return;
-      k6 = h5(u8of(1), seed);
-      v7 = h5();
+      k5 = h4(u8of(1), seed);
+      v7 = h4();
     };
     const gen3 = () => {
       if (i3++ >= 1e3)
@@ -14761,7 +14761,7 @@ if (cid) {
       let len = 0;
       const out = [];
       while (len < qByteLen) {
-        v7 = h5();
+        v7 = h4();
         const sl = v7.slice();
         out.push(sl);
         len += v7.length;
@@ -14790,8 +14790,8 @@ if (cid) {
       if (current !== expectedType || val === null)
         throw new Error(`param "${fieldName}" is invalid: expected ${expectedType}, got ${current}`);
     }
-    Object.entries(fields).forEach(([k6, v7]) => checkField(k6, v7, false));
-    Object.entries(optFields).forEach(([k6, v7]) => checkField(k6, v7, true));
+    Object.entries(fields).forEach(([k5, v7]) => checkField(k5, v7, false));
+    Object.entries(optFields).forEach(([k5, v7]) => checkField(k5, v7, true));
   }
   function memoized2(fn) {
     const map = /* @__PURE__ */ new WeakMap();
@@ -14839,13 +14839,13 @@ if (cid) {
       throw new Error("invert: expected positive modulus, got " + modulo);
     let a3 = mod2(number, modulo);
     let b4 = modulo;
-    let x7 = _0n9, y7 = _1n9, u3 = _1n9, v7 = _0n9;
+    let x7 = _0n9, y6 = _1n9, u2 = _1n9, v7 = _0n9;
     while (a3 !== _0n9) {
-      const q5 = b4 / a3;
+      const q4 = b4 / a3;
       const r3 = b4 % a3;
-      const m2 = x7 - u3 * q5;
-      const n4 = y7 - v7 * q5;
-      b4 = a3, a3 = r3, x7 = u3, y7 = v7, u3 = m2, v7 = n4;
+      const m2 = x7 - u2 * q4;
+      const n4 = y6 - v7 * q4;
+      b4 = a3, a3 = r3, x7 = u2, y6 = v7, u2 = m2, v7 = n4;
     }
     const gcd2 = b4;
     if (gcd2 !== _1n9)
@@ -14872,13 +14872,13 @@ if (cid) {
     assertIsSquare(Fp2, root, n4);
     return root;
   }
-  function sqrt9mod16(P6) {
-    const Fp_ = Field2(P6);
-    const tn = tonelliShanks2(P6);
+  function sqrt9mod16(P5) {
+    const Fp_ = Field2(P5);
+    const tn = tonelliShanks2(P5);
     const c1 = tn(Fp_, Fp_.neg(Fp_.ONE));
     const c22 = tn(Fp_, c1);
     const c32 = tn(Fp_, Fp_.neg(c1));
-    const c4 = (P6 + _7n3) / _16n;
+    const c4 = (P5 + _7n3) / _16n;
     return (Fp2, n4) => {
       let tv1 = Fp2.pow(n4, c4);
       let tv2 = Fp2.mul(tv1, c1);
@@ -14894,22 +14894,22 @@ if (cid) {
       return root;
     };
   }
-  function tonelliShanks2(P6) {
-    if (P6 < _3n3)
+  function tonelliShanks2(P5) {
+    if (P5 < _3n3)
       throw new Error("sqrt is not defined for small field");
-    let Q4 = P6 - _1n9;
-    let S5 = 0;
+    let Q4 = P5 - _1n9;
+    let S4 = 0;
     while (Q4 % _2n6 === _0n9) {
       Q4 /= _2n6;
-      S5++;
+      S4++;
     }
     let Z4 = _2n6;
-    const _Fp = Field2(P6);
+    const _Fp = Field2(P5);
     while (FpLegendre2(_Fp, Z4) === 1) {
       if (Z4++ > 1e3)
         throw new Error("Cannot find square root: probably non-prime P");
     }
-    if (S5 === 1)
+    if (S4 === 1)
       return sqrt3mod42;
     let cc = _Fp.pow(Z4, Q4);
     const Q1div2 = (Q4 + _1n9) / _2n6;
@@ -14918,39 +14918,39 @@ if (cid) {
         return n4;
       if (FpLegendre2(Fp2, n4) !== 1)
         throw new Error("Cannot find square root");
-      let M5 = S5;
+      let M4 = S4;
       let c4 = Fp2.mul(Fp2.ONE, cc);
-      let t = Fp2.pow(n4, Q4);
-      let R4 = Fp2.pow(n4, Q1div2);
-      while (!Fp2.eql(t, Fp2.ONE)) {
-        if (Fp2.is0(t))
+      let t2 = Fp2.pow(n4, Q4);
+      let R3 = Fp2.pow(n4, Q1div2);
+      while (!Fp2.eql(t2, Fp2.ONE)) {
+        if (Fp2.is0(t2))
           return Fp2.ZERO;
         let i3 = 1;
-        let t_tmp = Fp2.sqr(t);
+        let t_tmp = Fp2.sqr(t2);
         while (!Fp2.eql(t_tmp, Fp2.ONE)) {
           i3++;
           t_tmp = Fp2.sqr(t_tmp);
-          if (i3 === M5)
+          if (i3 === M4)
             throw new Error("Cannot find square root");
         }
-        const exponent = _1n9 << BigInt(M5 - i3 - 1);
+        const exponent = _1n9 << BigInt(M4 - i3 - 1);
         const b4 = Fp2.pow(c4, exponent);
-        M5 = i3;
+        M4 = i3;
         c4 = Fp2.sqr(b4);
-        t = Fp2.mul(t, c4);
-        R4 = Fp2.mul(R4, b4);
+        t2 = Fp2.mul(t2, c4);
+        R3 = Fp2.mul(R3, b4);
       }
-      return R4;
+      return R3;
     };
   }
-  function FpSqrt2(P6) {
-    if (P6 % _4n3 === _3n3)
+  function FpSqrt2(P5) {
+    if (P5 % _4n3 === _3n3)
       return sqrt3mod42;
-    if (P6 % _8n2 === _5n2)
+    if (P5 % _8n2 === _5n2)
       return sqrt5mod82;
-    if (P6 % _16n === _9n)
-      return sqrt9mod16(P6);
-    return tonelliShanks2(P6);
+    if (P5 % _16n === _9n)
+      return sqrt9mod16(P5);
+    return tonelliShanks2(P5);
   }
   function validateField2(field) {
     const initial = {
@@ -15180,17 +15180,17 @@ if (cid) {
     const invertedZs = FpInvertBatch2(c4.Fp, points.map((p4) => p4.Z));
     return points.map((p4, i3) => c4.fromAffine(p4.toAffine(invertedZs[i3])));
   }
-  function validateW2(W6, bits) {
-    if (!Number.isSafeInteger(W6) || W6 <= 0 || W6 > bits)
-      throw new Error("invalid window size, expected [1.." + bits + "], got W=" + W6);
+  function validateW2(W5, bits) {
+    if (!Number.isSafeInteger(W5) || W5 <= 0 || W5 > bits)
+      throw new Error("invalid window size, expected [1.." + bits + "], got W=" + W5);
   }
-  function calcWOpts2(W6, scalarBits) {
-    validateW2(W6, scalarBits);
-    const windows = Math.ceil(scalarBits / W6) + 1;
-    const windowSize = 2 ** (W6 - 1);
-    const maxNumber = 2 ** W6;
-    const mask = bitMask2(W6);
-    const shiftBy = BigInt(W6);
+  function calcWOpts2(W5, scalarBits) {
+    validateW2(W5, scalarBits);
+    const windows = Math.ceil(scalarBits / W5) + 1;
+    const windowSize = 2 ** (W5 - 1);
+    const maxNumber = 2 ** W5;
+    const mask = bitMask2(W5);
+    const shiftBy = BigInt(W5);
     return { windows, windowSize, mask, maxNumber, shiftBy };
   }
   function calcOffsets2(n4, window2, wOpts) {
@@ -15225,8 +15225,8 @@ if (cid) {
         throw new Error("invalid scalar at index " + i3);
     });
   }
-  function getW2(P6) {
-    return pointWindowSizes2.get(P6) || 1;
+  function getW2(P5) {
+    return pointWindowSizes2.get(P5) || 1;
   }
   function assert0(n4) {
     if (n4 !== _0n10)
@@ -15269,19 +15269,19 @@ if (cid) {
     let sum = zero;
     for (let i3 = lastBits; i3 >= 0; i3 -= windowSize) {
       buckets.fill(zero);
-      for (let j5 = 0; j5 < slength; j5++) {
-        const scalar = scalars[j5];
+      for (let j4 = 0; j4 < slength; j4++) {
+        const scalar = scalars[j4];
         const wbits2 = Number(scalar >> BigInt(i3) & MASK);
-        buckets[wbits2] = buckets[wbits2].add(points[j5]);
+        buckets[wbits2] = buckets[wbits2].add(points[j4]);
       }
       let resI = zero;
-      for (let j5 = buckets.length - 1, sumI = zero; j5 > 0; j5--) {
-        sumI = sumI.add(buckets[j5]);
+      for (let j4 = buckets.length - 1, sumI = zero; j4 > 0; j4--) {
+        sumI = sumI.add(buckets[j4]);
         resI = resI.add(sumI);
       }
       sum = sum.add(resI);
       if (i3 !== 0)
-        for (let j5 = 0; j5 < windowSize; j5++)
+        for (let j4 = 0; j4 < windowSize; j4++)
           sum = sum.double();
     }
     return sum;
@@ -15357,8 +15357,8 @@ if (cid) {
          * @param W window size
          * @returns precomputed point tables flattened to a single array
          */
-        precomputeWindow(point, W6) {
-          const { windows, windowSize } = calcWOpts2(W6, this.bits);
+        precomputeWindow(point, W5) {
+          const { windows, windowSize } = calcWOpts2(W5, this.bits);
           const points = [];
           let p4 = point;
           let base3 = p4;
@@ -15379,12 +15379,12 @@ if (cid) {
          * https://github.com/paulmillr/noble-secp256k1/blob/47cb1669b6e506ad66b35fe7d76132ae97465da2/index.ts#L502-L541
          * @returns real and fake (for const-time) points
          */
-        wNAF(W6, precomputes, n4) {
+        wNAF(W5, precomputes, n4) {
           if (!this.Fn.isValid(n4))
             throw new Error("invalid scalar");
           let p4 = this.ZERO;
           let f2 = this.BASE;
-          const wo3 = calcWOpts2(W6, this.bits);
+          const wo3 = calcWOpts2(W5, this.bits);
           for (let window2 = 0; window2 < wo3.windows; window2++) {
             const { nextN, offset, isZero, isNeg, isNegF, offsetF } = calcOffsets2(n4, window2, wo3);
             n4 = nextN;
@@ -15402,8 +15402,8 @@ if (cid) {
          * @param acc accumulator point to add result of multiplication
          * @returns point
          */
-        wNAFUnsafe(W6, precomputes, n4, acc = this.ZERO) {
-          const wo3 = calcWOpts2(W6, this.bits);
+        wNAFUnsafe(W5, precomputes, n4, acc = this.ZERO) {
+          const wo3 = calcWOpts2(W5, this.bits);
           for (let window2 = 0; window2 < wo3.windows; window2++) {
             if (n4 === _0n10)
               break;
@@ -15419,11 +15419,11 @@ if (cid) {
           assert0(n4);
           return acc;
         }
-        getPrecomputes(W6, point, transform) {
+        getPrecomputes(W5, point, transform) {
           let comp = pointPrecomputes2.get(point);
           if (!comp) {
-            comp = this.precomputeWindow(point, W6);
-            if (W6 !== 1) {
+            comp = this.precomputeWindow(point, W5);
+            if (W5 !== 1) {
               if (typeof transform === "function")
                 comp = transform(comp);
               pointPrecomputes2.set(point, comp);
@@ -15432,22 +15432,22 @@ if (cid) {
           return comp;
         }
         cached(point, scalar, transform) {
-          const W6 = getW2(point);
-          return this.wNAF(W6, this.getPrecomputes(W6, point, transform), scalar);
+          const W5 = getW2(point);
+          return this.wNAF(W5, this.getPrecomputes(W5, point, transform), scalar);
         }
         unsafe(point, scalar, transform, prev) {
-          const W6 = getW2(point);
-          if (W6 === 1)
+          const W5 = getW2(point);
+          if (W5 === 1)
             return this._unsafeLadder(point, scalar, prev);
-          return this.wNAFUnsafe(W6, this.getPrecomputes(W6, point, transform), scalar, prev);
+          return this.wNAFUnsafe(W5, this.getPrecomputes(W5, point, transform), scalar, prev);
         }
         // We calculate precomputes for elliptic curve point multiplication
         // using windowed method. This specifies window size and
         // stores precomputed values. Usually only base point would be precomputed.
-        createCache(P6, W6) {
-          validateW2(W6, this.bits);
-          pointWindowSizes2.set(P6, W6);
-          pointPrecomputes2.delete(P6);
+        createCache(P5, W5) {
+          validateW2(W5, this.bits);
+          pointWindowSizes2.set(P5, W5);
+          pointPrecomputes2.delete(P5);
         }
         hasCache(elm) {
           return getW2(elm) !== 1;
@@ -15457,9 +15457,9 @@ if (cid) {
   });
 
   // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/edwards.js
-  function isEdValidXY(Fp2, CURVE, x7, y7) {
+  function isEdValidXY(Fp2, CURVE, x7, y6) {
     const x22 = Fp2.sqr(x7);
-    const y22 = Fp2.sqr(y7);
+    const y22 = Fp2.sqr(y6);
     const left = Fp2.add(Fp2.mul(CURVE.a, x22), y22);
     const right = Fp2.add(Fp2.ONE, Fp2.mul(CURVE.d, Fp2.mul(x22, y22)));
     return Fp2.eql(left, right);
@@ -15472,9 +15472,9 @@ if (cid) {
     _validateObject(extraOpts, {}, { uvRatio: "function" });
     const MASK = _2n7 << BigInt(Fn4.BYTES * 8) - _1n11;
     const modP = (n4) => Fp2.create(n4);
-    const uvRatio2 = extraOpts.uvRatio || ((u3, v7) => {
+    const uvRatio2 = extraOpts.uvRatio || ((u2, v7) => {
       try {
-        return { isValid: true, value: Fp2.sqrt(Fp2.div(u3, v7)) };
+        return { isValid: true, value: Fp2.sqrt(Fp2.div(u2, v7)) };
       } catch (e2) {
         return { isValid: false, value: _0n11 };
       }
@@ -15491,25 +15491,25 @@ if (cid) {
         throw new Error("ExtendedPoint expected");
     }
     const toAffineMemo = memoized2((p4, iz) => {
-      const { X: X4, Y: Y4, Z: Z4 } = p4;
+      const { X: X3, Y: Y4, Z: Z4 } = p4;
       const is0 = p4.is0();
       if (iz == null)
         iz = is0 ? _8n3 : Fp2.inv(Z4);
-      const x7 = modP(X4 * iz);
-      const y7 = modP(Y4 * iz);
+      const x7 = modP(X3 * iz);
+      const y6 = modP(Y4 * iz);
       const zz = Fp2.mul(Z4, iz);
       if (is0)
         return { x: _0n11, y: _1n11 };
       if (zz !== _1n11)
         throw new Error("invZ was invalid");
-      return { x: x7, y: y7 };
+      return { x: x7, y: y6 };
     });
     const assertValidMemo = memoized2((p4) => {
       const { a: a3, d: d3 } = CURVE;
       if (p4.is0())
         throw new Error("bad point: ZERO");
-      const { X: X4, Y: Y4, Z: Z4, T: T5 } = p4;
-      const X22 = modP(X4 * X4);
+      const { X: X3, Y: Y4, Z: Z4, T: T5 } = p4;
+      const X22 = modP(X3 * X3);
       const Y22 = modP(Y4 * Y4);
       const Z22 = modP(Z4 * Z4);
       const Z42 = modP(Z22 * Z22);
@@ -15518,15 +15518,15 @@ if (cid) {
       const right = modP(Z42 + modP(d3 * modP(X22 * Y22)));
       if (left !== right)
         throw new Error("bad point: equation left != right (1)");
-      const XY = modP(X4 * Y4);
+      const XY = modP(X3 * Y4);
       const ZT = modP(Z4 * T5);
       if (XY !== ZT)
         throw new Error("bad point: equation left != right (2)");
       return true;
     });
     class Point {
-      constructor(X4, Y4, Z4, T5) {
-        this.X = acoord("x", X4);
+      constructor(X3, Y4, Z4, T5) {
+        this.X = acoord("x", X3);
         this.Y = acoord("y", Y4);
         this.Z = acoord("z", Z4, true);
         this.T = acoord("t", T5);
@@ -15538,10 +15538,10 @@ if (cid) {
       static fromAffine(p4) {
         if (p4 instanceof Point)
           throw new Error("extended point not allowed");
-        const { x: x7, y: y7 } = p4 || {};
+        const { x: x7, y: y6 } = p4 || {};
         acoord("x", x7);
-        acoord("y", y7);
-        return new Point(x7, y7, _1n11, modP(x7 * y7));
+        acoord("y", y6);
+        return new Point(x7, y6, _1n11, modP(x7 * y6));
       }
       // Uses algo from RFC8032 5.1.3.
       static fromBytes(bytes, zip215 = false) {
@@ -15552,13 +15552,13 @@ if (cid) {
         const normed = copyBytes2(bytes);
         const lastByte = bytes[len - 1];
         normed[len - 1] = lastByte & ~128;
-        const y7 = bytesToNumberLE2(normed);
+        const y6 = bytesToNumberLE2(normed);
         const max = zip215 ? MASK : Fp2.ORDER;
-        aInRange2("point.y", y7, _0n11, max);
-        const y22 = modP(y7 * y7);
-        const u3 = modP(y22 - _1n11);
+        aInRange2("point.y", y6, _0n11, max);
+        const y22 = modP(y6 * y6);
+        const u2 = modP(y22 - _1n11);
         const v7 = modP(d3 * y22 - a3);
-        let { isValid, value: x7 } = uvRatio2(u3, v7);
+        let { isValid, value: x7 } = uvRatio2(u2, v7);
         if (!isValid)
           throw new Error("bad point: invalid y coordinate");
         const isXOdd = (x7 & _1n11) === _1n11;
@@ -15567,7 +15567,7 @@ if (cid) {
           throw new Error("bad point: x=0 and x_0=1");
         if (isLastByteOdd !== isXOdd)
           x7 = modP(-x7);
-        return Point.fromAffine({ x: x7, y: y7 });
+        return Point.fromAffine({ x: x7, y: y6 });
       }
       static fromHex(bytes, zip215 = false) {
         return Point.fromBytes(ensureBytes2("point", bytes), zip215);
@@ -15612,19 +15612,19 @@ if (cid) {
         const { a: a3 } = CURVE;
         const { X: X1, Y: Y1, Z: Z1 } = this;
         const A4 = modP(X1 * X1);
-        const B4 = modP(Y1 * Y1);
+        const B3 = modP(Y1 * Y1);
         const C4 = modP(_2n7 * modP(Z1 * Z1));
         const D5 = modP(a3 * A4);
         const x1y1 = X1 + Y1;
-        const E4 = modP(modP(x1y1 * x1y1) - A4 - B4);
-        const G5 = D5 + B4;
-        const F3 = G5 - C4;
-        const H5 = D5 - B4;
-        const X32 = modP(E4 * F3);
-        const Y32 = modP(G5 * H5);
+        const E4 = modP(modP(x1y1 * x1y1) - A4 - B3);
+        const G4 = D5 + B3;
+        const F3 = G4 - C4;
+        const H5 = D5 - B3;
+        const X3 = modP(E4 * F3);
+        const Y32 = modP(G4 * H5);
         const T32 = modP(E4 * H5);
-        const Z32 = modP(F3 * G5);
-        return new Point(X32, Y32, Z32, T32);
+        const Z32 = modP(F3 * G4);
+        return new Point(X3, Y32, Z32, T32);
       }
       // Fast algo for adding 2 Extended Points.
       // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended.html#addition-add-2008-hwcd
@@ -15635,18 +15635,18 @@ if (cid) {
         const { X: X1, Y: Y1, Z: Z1, T: T12 } = this;
         const { X: X22, Y: Y22, Z: Z22, T: T22 } = other;
         const A4 = modP(X1 * X22);
-        const B4 = modP(Y1 * Y22);
+        const B3 = modP(Y1 * Y22);
         const C4 = modP(T12 * d3 * T22);
         const D5 = modP(Z1 * Z22);
-        const E4 = modP((X1 + Y1) * (X22 + Y22) - A4 - B4);
+        const E4 = modP((X1 + Y1) * (X22 + Y22) - A4 - B3);
         const F3 = D5 - C4;
-        const G5 = D5 + C4;
-        const H5 = modP(B4 - a3 * A4);
-        const X32 = modP(E4 * F3);
-        const Y32 = modP(G5 * H5);
+        const G4 = D5 + C4;
+        const H5 = modP(B3 - a3 * A4);
+        const X3 = modP(E4 * F3);
+        const Y32 = modP(G4 * H5);
         const T32 = modP(E4 * H5);
-        const Z32 = modP(F3 * G5);
-        return new Point(X32, Y32, Z32, T32);
+        const Z32 = modP(F3 * G4);
+        return new Point(X3, Y32, Z32, T32);
       }
       subtract(other) {
         return this.add(other.negate());
@@ -15695,8 +15695,8 @@ if (cid) {
         return this.multiplyUnsafe(cofactor);
       }
       toBytes() {
-        const { x: x7, y: y7 } = this.toAffine();
-        const bytes = Fp2.toBytes(y7);
+        const { x: x7, y: y6 } = this.toAffine();
+        const bytes = Fp2.toBytes(y6);
         bytes[bytes.length - 1] |= x7 & _1n11 ? 128 : 0;
         return bytes;
       }
@@ -15791,12 +15791,12 @@ if (cid) {
         msg = prehash(msg);
       const { prefix, scalar, pointBytes } = getExtendedPublicKey(secretKey);
       const r3 = hashDomainToScalar(options.context, prefix, msg);
-      const R4 = BASE.multiply(r3).toBytes();
-      const k6 = hashDomainToScalar(options.context, R4, pointBytes, msg);
-      const s2 = Fn4.create(r3 + k6 * scalar);
+      const R3 = BASE.multiply(r3).toBytes();
+      const k5 = hashDomainToScalar(options.context, R3, pointBytes, msg);
+      const s2 = Fn4.create(r3 + k5 * scalar);
       if (!Fn4.isValid(s2))
         throw new Error("sign failed: invalid s");
-      const rs = concatBytes(R4, Fn4.toBytes(s2));
+      const rs = concatBytes(R3, Fn4.toBytes(s2));
       return _abytes2(rs, lengths.signature, "result");
     }
     const verifyOpts = { zip215: true };
@@ -15813,18 +15813,18 @@ if (cid) {
       const mid = len / 2;
       const r3 = sig.subarray(0, mid);
       const s2 = bytesToNumberLE2(sig.subarray(mid, len));
-      let A4, R4, SB;
+      let A4, R3, SB;
       try {
         A4 = Point.fromBytes(publicKey, zip215);
-        R4 = Point.fromBytes(r3, zip215);
+        R3 = Point.fromBytes(r3, zip215);
         SB = BASE.multiplyUnsafe(s2);
       } catch (error) {
         return false;
       }
       if (!zip215 && A4.isSmallOrder())
         return false;
-      const k6 = hashDomainToScalar(context2, R4.toBytes(), A4.toBytes(), msg);
-      const RkA = R4.add(A4.multiplyUnsafe(k6));
+      const k5 = hashDomainToScalar(context2, R3.toBytes(), A4.toBytes(), msg);
+      const RkA = R3.add(A4.multiplyUnsafe(k5));
       return RkA.subtract(SB).clearCofactor().is0();
     }
     const _size = Fp2.BYTES;
@@ -15866,13 +15866,13 @@ if (cid) {
        *   - `(x, y) = (sqrt(156324)*u/v, (1+u)/(1-u))`
        */
       toMontgomery(publicKey) {
-        const { y: y7 } = Point.fromBytes(publicKey);
+        const { y: y6 } = Point.fromBytes(publicKey);
         const size3 = lengths.publicKey;
         const is25519 = size3 === 32;
         if (!is25519 && size3 !== 57)
           throw new Error("only defined for 25519 and 448");
-        const u3 = is25519 ? Fp2.div(_1n11 + y7, _1n11 - y7) : Fp2.div(y7 - _1n11, y7 + _1n11);
-        return Fp2.toBytes(u3);
+        const u2 = is25519 ? Fp2.div(_1n11 + y6, _1n11 - y6) : Fp2.div(y6 - _1n11, y6 + _1n11);
+        return Fp2.toBytes(u2);
       },
       toMontgomerySecret(secretKey) {
         const size3 = lengths.secretKey;
@@ -16025,7 +16025,7 @@ if (cid) {
   }
   function montgomery(curveDef) {
     const CURVE = validateOpts2(curveDef);
-    const { P: P6, type, adjustScalarBytes: adjustScalarBytes2, powPminus2, randomBytes: rand } = CURVE;
+    const { P: P5, type, adjustScalarBytes: adjustScalarBytes2, powPminus2, randomBytes: rand } = CURVE;
     const is25519 = type === "x25519";
     if (!is25519 && type !== "x448")
       throw new Error("invalid type");
@@ -16037,13 +16037,13 @@ if (cid) {
     const minScalar = is25519 ? _2n8 ** BigInt(254) : _2n8 ** BigInt(447);
     const maxAdded = is25519 ? BigInt(8) * _2n8 ** BigInt(251) - _1n12 : BigInt(4) * _2n8 ** BigInt(445) - _1n12;
     const maxScalar = minScalar + maxAdded + _1n12;
-    const modP = (n4) => mod2(n4, P6);
+    const modP = (n4) => mod2(n4, P5);
     const GuBytes = encodeU(Gu);
-    function encodeU(u3) {
-      return numberToBytesLE2(modP(u3), fieldLen);
+    function encodeU(u2) {
+      return numberToBytesLE2(modP(u2), fieldLen);
     }
-    function decodeU(u3) {
-      const _u = ensureBytes2("u coordinate", u3, fieldLen);
+    function decodeU(u2) {
+      const _u = ensureBytes2("u coordinate", u2, fieldLen);
       if (is25519)
         _u[31] &= 127;
       return modP(bytesToNumberLE2(_u));
@@ -16051,8 +16051,8 @@ if (cid) {
     function decodeScalar(scalar) {
       return bytesToNumberLE2(adjustScalarBytes2(ensureBytes2("scalar", scalar, fieldLen)));
     }
-    function scalarMult(scalar, u3) {
-      const pu = montgomeryLadder(decodeU(u3), decodeScalar(scalar));
+    function scalarMult(scalar, u2) {
+      const pu = montgomeryLadder(decodeU(u2), decodeScalar(scalar));
       if (pu === _0n12)
         throw new Error("invalid private or public key received");
       return encodeU(pu);
@@ -16066,31 +16066,31 @@ if (cid) {
       x_3 = modP(x_3 + dummy);
       return { x_2, x_3 };
     }
-    function montgomeryLadder(u3, scalar) {
-      aInRange2("u", u3, _0n12, P6);
+    function montgomeryLadder(u2, scalar) {
+      aInRange2("u", u2, _0n12, P5);
       aInRange2("scalar", scalar, minScalar, maxScalar);
-      const k6 = scalar;
-      const x_1 = u3;
+      const k5 = scalar;
+      const x_1 = u2;
       let x_2 = _1n12;
       let z_2 = _0n12;
-      let x_3 = u3;
+      let x_3 = u2;
       let z_3 = _1n12;
       let swap = _0n12;
-      for (let t = BigInt(montgomeryBits - 1); t >= _0n12; t--) {
-        const k_t = k6 >> t & _1n12;
+      for (let t2 = BigInt(montgomeryBits - 1); t2 >= _0n12; t2--) {
+        const k_t = k5 >> t2 & _1n12;
         swap ^= k_t;
         ({ x_2, x_3 } = cswap(swap, x_2, x_3));
         ({ x_2: z_2, x_3: z_3 } = cswap(swap, z_2, z_3));
         swap = k_t;
         const A4 = x_2 + z_2;
         const AA = modP(A4 * A4);
-        const B4 = x_2 - z_2;
-        const BB = modP(B4 * B4);
+        const B3 = x_2 - z_2;
+        const BB = modP(B3 * B3);
         const E4 = AA - BB;
         const C4 = x_3 + z_3;
         const D5 = x_3 - z_3;
         const DA = modP(D5 * A4);
-        const CB = modP(C4 * B4);
+        const CB = modP(C4 * B3);
         const dacb = DA + CB;
         const da_cb = DA - CB;
         x_3 = modP(dacb * dacb);
@@ -16145,19 +16145,19 @@ if (cid) {
   // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/ed25519.js
   function ed25519_pow_2_252_3(x7) {
     const _10n = BigInt(10), _20n = BigInt(20), _40n = BigInt(40), _80n = BigInt(80);
-    const P6 = ed25519_CURVE_p;
-    const x22 = x7 * x7 % P6;
-    const b22 = x22 * x7 % P6;
-    const b4 = pow22(b22, _2n9, P6) * b22 % P6;
-    const b5 = pow22(b4, _1n13, P6) * x7 % P6;
-    const b10 = pow22(b5, _5n3, P6) * b5 % P6;
-    const b20 = pow22(b10, _10n, P6) * b10 % P6;
-    const b40 = pow22(b20, _20n, P6) * b20 % P6;
-    const b80 = pow22(b40, _40n, P6) * b40 % P6;
-    const b160 = pow22(b80, _80n, P6) * b80 % P6;
-    const b240 = pow22(b160, _80n, P6) * b80 % P6;
-    const b250 = pow22(b240, _10n, P6) * b10 % P6;
-    const pow_p_5_8 = pow22(b250, _2n9, P6) * x7 % P6;
+    const P5 = ed25519_CURVE_p;
+    const x22 = x7 * x7 % P5;
+    const b22 = x22 * x7 % P5;
+    const b4 = pow22(b22, _2n9, P5) * b22 % P5;
+    const b5 = pow22(b4, _1n13, P5) * x7 % P5;
+    const b10 = pow22(b5, _5n3, P5) * b5 % P5;
+    const b20 = pow22(b10, _10n, P5) * b10 % P5;
+    const b40 = pow22(b20, _20n, P5) * b20 % P5;
+    const b80 = pow22(b40, _40n, P5) * b40 % P5;
+    const b160 = pow22(b80, _80n, P5) * b80 % P5;
+    const b240 = pow22(b160, _80n, P5) * b80 % P5;
+    const b250 = pow22(b240, _10n, P5) * b10 % P5;
+    const pow_p_5_8 = pow22(b250, _2n9, P5) * x7 % P5;
     return { pow_p_5_8, b2: b22 };
   }
   function adjustScalarBytes(bytes) {
@@ -16166,29 +16166,29 @@ if (cid) {
     bytes[31] |= 64;
     return bytes;
   }
-  function uvRatio(u3, v7) {
-    const P6 = ed25519_CURVE_p;
-    const v32 = mod2(v7 * v7 * v7, P6);
-    const v72 = mod2(v32 * v32 * v7, P6);
-    const pow = ed25519_pow_2_252_3(u3 * v72).pow_p_5_8;
-    let x7 = mod2(u3 * v32 * pow, P6);
-    const vx2 = mod2(v7 * x7 * x7, P6);
+  function uvRatio(u2, v7) {
+    const P5 = ed25519_CURVE_p;
+    const v32 = mod2(v7 * v7 * v7, P5);
+    const v72 = mod2(v32 * v32 * v7, P5);
+    const pow = ed25519_pow_2_252_3(u2 * v72).pow_p_5_8;
+    let x7 = mod2(u2 * v32 * pow, P5);
+    const vx2 = mod2(v7 * x7 * x7, P5);
     const root1 = x7;
-    const root2 = mod2(x7 * ED25519_SQRT_M1, P6);
-    const useRoot1 = vx2 === u3;
-    const useRoot2 = vx2 === mod2(-u3, P6);
-    const noRoot = vx2 === mod2(-u3 * ED25519_SQRT_M1, P6);
+    const root2 = mod2(x7 * ED25519_SQRT_M1, P5);
+    const useRoot1 = vx2 === u2;
+    const useRoot2 = vx2 === mod2(-u2, P5);
+    const noRoot = vx2 === mod2(-u2 * ED25519_SQRT_M1, P5);
     if (useRoot1)
       x7 = root1;
     if (useRoot2 || noRoot)
       x7 = root2;
-    if (isNegativeLE(x7, P6))
-      x7 = mod2(-x7, P6);
+    if (isNegativeLE(x7, P5))
+      x7 = mod2(-x7, P5);
     return { isValid: useRoot1 || useRoot2, value: x7 };
   }
   function calcElligatorRistrettoMap(r0) {
     const { d: d3 } = ed25519_CURVE;
-    const P6 = ed25519_CURVE_p;
+    const P5 = ed25519_CURVE_p;
     const mod3 = (n4) => Fp.create(n4);
     const r3 = mod3(SQRT_M1 * r0 * r0);
     const Ns2 = mod3((r3 + _1n13) * ONE_MINUS_D_SQ);
@@ -16196,7 +16196,7 @@ if (cid) {
     const D5 = mod3((c4 - d3 * r3) * mod3(r3 + d3));
     let { isValid: Ns_D_is_sq, value: s2 } = uvRatio(Ns2, D5);
     let s_ = mod3(s2 * r0);
-    if (!isNegativeLE(s_, P6))
+    if (!isNegativeLE(s_, P5))
       s_ = mod3(-s_);
     if (!Ns_D_is_sq)
       s2 = s_;
@@ -16259,13 +16259,13 @@ if (cid) {
       }))();
       ed25519 = /* @__PURE__ */ (() => twistedEdwards(ed25519Defaults))();
       x25519 = /* @__PURE__ */ (() => {
-        const P6 = Fp.ORDER;
+        const P5 = Fp.ORDER;
         return montgomery({
-          P: P6,
+          P: P5,
           type: "x25519",
           powPminus2: (x7) => {
             const { pow_p_5_8, b2: b22 } = ed25519_pow_2_252_3(x7);
-            return mod2(pow22(pow_p_5_8, _3n4, P6) * b22, P6);
+            return mod2(pow22(pow_p_5_8, _3n4, P5) * b22, P5);
           },
           adjustScalarBytes
         });
@@ -16299,28 +16299,28 @@ if (cid) {
         static fromBytes(bytes) {
           abytes2(bytes, 32);
           const { a: a3, d: d3 } = ed25519_CURVE;
-          const P6 = ed25519_CURVE_p;
+          const P5 = ed25519_CURVE_p;
           const mod3 = (n4) => Fp.create(n4);
           const s2 = bytes255ToNumberLE(bytes);
-          if (!equalBytes2(Fp.toBytes(s2), bytes) || isNegativeLE(s2, P6))
+          if (!equalBytes2(Fp.toBytes(s2), bytes) || isNegativeLE(s2, P5))
             throw new Error("invalid ristretto255 encoding 1");
           const s22 = mod3(s2 * s2);
           const u1 = mod3(_1n13 + a3 * s22);
-          const u22 = mod3(_1n13 - a3 * s22);
+          const u2 = mod3(_1n13 - a3 * s22);
           const u1_2 = mod3(u1 * u1);
-          const u2_2 = mod3(u22 * u22);
+          const u2_2 = mod3(u2 * u2);
           const v7 = mod3(a3 * d3 * u1_2 - u2_2);
           const { isValid, value: I2 } = invertSqrt(mod3(v7 * u2_2));
-          const Dx = mod3(I2 * u22);
+          const Dx = mod3(I2 * u2);
           const Dy = mod3(I2 * Dx * v7);
           let x7 = mod3((s2 + s2) * Dx);
-          if (isNegativeLE(x7, P6))
+          if (isNegativeLE(x7, P5))
             x7 = mod3(-x7);
-          const y7 = mod3(u1 * Dy);
-          const t = mod3(x7 * y7);
-          if (!isValid || isNegativeLE(t, P6) || y7 === _0n13)
+          const y6 = mod3(u1 * Dy);
+          const t2 = mod3(x7 * y6);
+          if (!isValid || isNegativeLE(t2, P5) || y6 === _0n13)
             throw new Error("invalid ristretto255 encoding 2");
-          return new __RistrettoPoint(new ed25519.Point(x7, y7, _1n13, t));
+          return new __RistrettoPoint(new ed25519.Point(x7, y6, _1n13, t2));
         }
         /**
          * Converts ristretto-encoded string to ristretto point.
@@ -16338,30 +16338,30 @@ if (cid) {
          * Described in [RFC9496](https://www.rfc-editor.org/rfc/rfc9496#name-encode).
          */
         toBytes() {
-          let { X: X4, Y: Y4, Z: Z4, T: T5 } = this.ep;
-          const P6 = ed25519_CURVE_p;
+          let { X: X3, Y: Y4, Z: Z4, T: T5 } = this.ep;
+          const P5 = ed25519_CURVE_p;
           const mod3 = (n4) => Fp.create(n4);
           const u1 = mod3(mod3(Z4 + Y4) * mod3(Z4 - Y4));
-          const u22 = mod3(X4 * Y4);
-          const u2sq = mod3(u22 * u22);
+          const u2 = mod3(X3 * Y4);
+          const u2sq = mod3(u2 * u2);
           const { value: invsqrt } = invertSqrt(mod3(u1 * u2sq));
           const D1 = mod3(invsqrt * u1);
-          const D22 = mod3(invsqrt * u22);
+          const D22 = mod3(invsqrt * u2);
           const zInv = mod3(D1 * D22 * T5);
           let D5;
-          if (isNegativeLE(T5 * zInv, P6)) {
+          if (isNegativeLE(T5 * zInv, P5)) {
             let _x = mod3(Y4 * SQRT_M1);
-            let _y = mod3(X4 * SQRT_M1);
-            X4 = _x;
+            let _y = mod3(X3 * SQRT_M1);
+            X3 = _x;
             Y4 = _y;
             D5 = mod3(D1 * INVSQRT_A_MINUS_D);
           } else {
             D5 = D22;
           }
-          if (isNegativeLE(X4 * zInv, P6))
+          if (isNegativeLE(X3 * zInv, P5))
             Y4 = mod3(-Y4);
           let s2 = mod3((Z4 - Y4) * D5);
-          if (isNegativeLE(s2, P6))
+          if (isNegativeLE(s2, P5))
             s2 = mod3(-s2);
           return Fp.toBytes(s2);
         }
@@ -16390,11 +16390,11 @@ if (cid) {
   });
 
   // node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/weierstrass.js
-  function _splitEndoScalar(k6, basis, n4) {
+  function _splitEndoScalar(k5, basis, n4) {
     const [[a1, b1], [a22, b22]] = basis;
-    const c1 = divNearest2(b22 * k6, n4);
-    const c22 = divNearest2(-b1 * k6, n4);
-    let k1 = k6 - c1 * a1 - c22 * a22;
+    const c1 = divNearest2(b22 * k5, n4);
+    const c22 = divNearest2(-b1 * k5, n4);
+    let k1 = k5 - c1 * a1 - c22 * a22;
     let k22 = -c1 * b1 - c22 * b22;
     const k1neg = k1 < _0n14;
     const k2neg = k22 < _0n14;
@@ -16404,7 +16404,7 @@ if (cid) {
       k22 = -k22;
     const MAX_NUM = bitMask2(Math.ceil(bitLen2(n4) / 2)) + _1n14;
     if (k1 < _0n14 || k1 >= MAX_NUM || k22 < _0n14 || k22 >= MAX_NUM) {
-      throw new Error("splitScalar (endomorphism): failed, k=" + k6);
+      throw new Error("splitScalar (endomorphism): failed, k=" + k5);
     }
     return { k1neg, k1, k2neg, k2: k22 };
   }
@@ -16467,15 +16467,15 @@ if (cid) {
         throw new Error("compression is not supported: Field does not have .isOdd()");
     }
     function pointToBytes(_c, point, isCompressed) {
-      const { x: x7, y: y7 } = point.toAffine();
+      const { x: x7, y: y6 } = point.toAffine();
       const bx = Fp2.toBytes(x7);
       _abool2(isCompressed, "isCompressed");
       if (isCompressed) {
         assertCompressionIsSupported();
-        const hasEvenY = !Fp2.isOdd(y7);
+        const hasEvenY = !Fp2.isOdd(y6);
         return concatBytes(pprefix(hasEvenY), bx);
       } else {
-        return concatBytes(Uint8Array.of(4), bx, Fp2.toBytes(y7));
+        return concatBytes(Uint8Array.of(4), bx, Fp2.toBytes(y6));
       }
     }
     function pointFromBytes(bytes) {
@@ -16489,26 +16489,26 @@ if (cid) {
         if (!Fp2.isValid(x7))
           throw new Error("bad point: is not on curve, wrong x");
         const y22 = weierstrassEquation(x7);
-        let y7;
+        let y6;
         try {
-          y7 = Fp2.sqrt(y22);
+          y6 = Fp2.sqrt(y22);
         } catch (sqrtError) {
           const err = sqrtError instanceof Error ? ": " + sqrtError.message : "";
           throw new Error("bad point: is not on curve, sqrt error" + err);
         }
         assertCompressionIsSupported();
-        const isYOdd = Fp2.isOdd(y7);
+        const isYOdd = Fp2.isOdd(y6);
         const isHeadOdd = (head & 1) === 1;
         if (isHeadOdd !== isYOdd)
-          y7 = Fp2.neg(y7);
-        return { x: x7, y: y7 };
+          y6 = Fp2.neg(y6);
+        return { x: x7, y: y6 };
       } else if (length2 === uncomp && head === 4) {
-        const L2 = Fp2.BYTES;
-        const x7 = Fp2.fromBytes(tail.subarray(0, L2));
-        const y7 = Fp2.fromBytes(tail.subarray(L2, L2 * 2));
-        if (!isValidXY(x7, y7))
+        const L = Fp2.BYTES;
+        const x7 = Fp2.fromBytes(tail.subarray(0, L));
+        const y6 = Fp2.fromBytes(tail.subarray(L, L * 2));
+        if (!isValidXY(x7, y6))
           throw new Error("bad point: is not on curve");
-        return { x: x7, y: y7 };
+        return { x: x7, y: y6 };
       } else {
         throw new Error(`bad point: got length ${length2}, expected compressed=${comp} or uncompressed=${uncomp}`);
       }
@@ -16520,8 +16520,8 @@ if (cid) {
       const x32 = Fp2.mul(x22, x7);
       return Fp2.add(Fp2.add(x32, Fp2.mul(x7, CURVE.a)), CURVE.b);
     }
-    function isValidXY(x7, y7) {
-      const left = Fp2.sqr(y7);
+    function isValidXY(x7, y6) {
+      const left = Fp2.sqr(y6);
       const right = weierstrassEquation(x7);
       return Fp2.eql(left, right);
     }
@@ -16540,26 +16540,26 @@ if (cid) {
       if (!(other instanceof Point))
         throw new Error("ProjectivePoint expected");
     }
-    function splitEndoScalarN(k6) {
+    function splitEndoScalarN(k5) {
       if (!endo || !endo.basises)
         throw new Error("no endo");
-      return _splitEndoScalar(k6, endo.basises, Fn4.ORDER);
+      return _splitEndoScalar(k5, endo.basises, Fn4.ORDER);
     }
     const toAffineMemo = memoized2((p4, iz) => {
-      const { X: X4, Y: Y4, Z: Z4 } = p4;
+      const { X: X3, Y: Y4, Z: Z4 } = p4;
       if (Fp2.eql(Z4, Fp2.ONE))
-        return { x: X4, y: Y4 };
+        return { x: X3, y: Y4 };
       const is0 = p4.is0();
       if (iz == null)
         iz = is0 ? Fp2.ONE : Fp2.inv(Z4);
-      const x7 = Fp2.mul(X4, iz);
-      const y7 = Fp2.mul(Y4, iz);
+      const x7 = Fp2.mul(X3, iz);
+      const y6 = Fp2.mul(Y4, iz);
       const zz = Fp2.mul(Z4, iz);
       if (is0)
         return { x: Fp2.ZERO, y: Fp2.ZERO };
       if (!Fp2.eql(zz, Fp2.ONE))
         throw new Error("invZ was invalid");
-      return { x: x7, y: y7 };
+      return { x: x7, y: y6 };
     });
     const assertValidMemo = memoized2((p4) => {
       if (p4.is0()) {
@@ -16567,10 +16567,10 @@ if (cid) {
           return;
         throw new Error("bad point: ZERO");
       }
-      const { x: x7, y: y7 } = p4.toAffine();
-      if (!Fp2.isValid(x7) || !Fp2.isValid(y7))
+      const { x: x7, y: y6 } = p4.toAffine();
+      if (!Fp2.isValid(x7) || !Fp2.isValid(y6))
         throw new Error("bad point: x or y not field elements");
-      if (!isValidXY(x7, y7))
+      if (!isValidXY(x7, y6))
         throw new Error("bad point: equation left != right");
       if (!p4.isTorsionFree())
         throw new Error("bad point: not in prime-order subgroup");
@@ -16584,8 +16584,8 @@ if (cid) {
     }
     class Point {
       /** Does NOT validate if the point is valid. Use `.assertValidity()`. */
-      constructor(X4, Y4, Z4) {
-        this.X = acoord("x", X4);
+      constructor(X3, Y4, Z4) {
+        this.X = acoord("x", X3);
         this.Y = acoord("y", Y4, true);
         this.Z = acoord("z", Z4);
         Object.freeze(this);
@@ -16595,19 +16595,19 @@ if (cid) {
       }
       /** Does NOT validate if the point is valid. Use `.assertValidity()`. */
       static fromAffine(p4) {
-        const { x: x7, y: y7 } = p4 || {};
-        if (!p4 || !Fp2.isValid(x7) || !Fp2.isValid(y7))
+        const { x: x7, y: y6 } = p4 || {};
+        if (!p4 || !Fp2.isValid(x7) || !Fp2.isValid(y6))
           throw new Error("invalid affine point");
         if (p4 instanceof Point)
           throw new Error("projective point not allowed");
-        if (Fp2.is0(x7) && Fp2.is0(y7))
+        if (Fp2.is0(x7) && Fp2.is0(y6))
           return Point.ZERO;
-        return new Point(x7, y7, Fp2.ONE);
+        return new Point(x7, y6, Fp2.ONE);
       }
       static fromBytes(bytes) {
-        const P6 = Point.fromAffine(decodePoint(_abytes2(bytes, void 0, "point")));
-        P6.assertValidity();
-        return P6;
+        const P5 = Point.fromAffine(decodePoint(_abytes2(bytes, void 0, "point")));
+        P5.assertValidity();
+        return P5;
       }
       static fromHex(hex) {
         return Point.fromBytes(ensureBytes2("pointHex", hex));
@@ -16636,10 +16636,10 @@ if (cid) {
         assertValidMemo(this);
       }
       hasEvenY() {
-        const { y: y7 } = this.toAffine();
+        const { y: y6 } = this.toAffine();
         if (!Fp2.isOdd)
           throw new Error("Field doesn't support isOdd");
-        return !Fp2.isOdd(y7);
+        return !Fp2.isOdd(y6);
       }
       /** Compare one point to another. */
       equals(other) {
@@ -16662,7 +16662,7 @@ if (cid) {
         const { a: a3, b: b4 } = CURVE;
         const b32 = Fp2.mul(b4, _3n5);
         const { X: X1, Y: Y1, Z: Z1 } = this;
-        let X32 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
+        let X3 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
         let t0 = Fp2.mul(X1, X1);
         let t1 = Fp2.mul(Y1, Y1);
         let t2 = Fp2.mul(Z1, Z1);
@@ -16670,13 +16670,13 @@ if (cid) {
         t3 = Fp2.add(t3, t3);
         Z32 = Fp2.mul(X1, Z1);
         Z32 = Fp2.add(Z32, Z32);
-        X32 = Fp2.mul(a3, Z32);
+        X3 = Fp2.mul(a3, Z32);
         Y32 = Fp2.mul(b32, t2);
-        Y32 = Fp2.add(X32, Y32);
-        X32 = Fp2.sub(t1, Y32);
+        Y32 = Fp2.add(X3, Y32);
+        X3 = Fp2.sub(t1, Y32);
         Y32 = Fp2.add(t1, Y32);
-        Y32 = Fp2.mul(X32, Y32);
-        X32 = Fp2.mul(t3, X32);
+        Y32 = Fp2.mul(X3, Y32);
+        X3 = Fp2.mul(t3, X3);
         Z32 = Fp2.mul(b32, Z32);
         t2 = Fp2.mul(a3, t2);
         t3 = Fp2.sub(t0, t2);
@@ -16690,11 +16690,11 @@ if (cid) {
         t2 = Fp2.mul(Y1, Z1);
         t2 = Fp2.add(t2, t2);
         t0 = Fp2.mul(t2, t3);
-        X32 = Fp2.sub(X32, t0);
+        X3 = Fp2.sub(X3, t0);
         Z32 = Fp2.mul(t2, t1);
         Z32 = Fp2.add(Z32, Z32);
         Z32 = Fp2.add(Z32, Z32);
-        return new Point(X32, Y32, Z32);
+        return new Point(X3, Y32, Z32);
       }
       // Renes-Costello-Batina exception-free addition formula.
       // There is 30% faster Jacobian formula, but it is not complete.
@@ -16704,7 +16704,7 @@ if (cid) {
         aprjpoint(other);
         const { X: X1, Y: Y1, Z: Z1 } = this;
         const { X: X22, Y: Y22, Z: Z22 } = other;
-        let X32 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
+        let X3 = Fp2.ZERO, Y32 = Fp2.ZERO, Z32 = Fp2.ZERO;
         const a3 = CURVE.a;
         const b32 = Fp2.mul(CURVE.b, _3n5);
         let t0 = Fp2.mul(X1, X22);
@@ -16721,16 +16721,16 @@ if (cid) {
         t5 = Fp2.add(t0, t2);
         t4 = Fp2.sub(t4, t5);
         t5 = Fp2.add(Y1, Z1);
-        X32 = Fp2.add(Y22, Z22);
-        t5 = Fp2.mul(t5, X32);
-        X32 = Fp2.add(t1, t2);
-        t5 = Fp2.sub(t5, X32);
+        X3 = Fp2.add(Y22, Z22);
+        t5 = Fp2.mul(t5, X3);
+        X3 = Fp2.add(t1, t2);
+        t5 = Fp2.sub(t5, X3);
         Z32 = Fp2.mul(a3, t4);
-        X32 = Fp2.mul(b32, t2);
-        Z32 = Fp2.add(X32, Z32);
-        X32 = Fp2.sub(t1, Z32);
+        X3 = Fp2.mul(b32, t2);
+        Z32 = Fp2.add(X3, Z32);
+        X3 = Fp2.sub(t1, Z32);
         Z32 = Fp2.add(t1, Z32);
-        Y32 = Fp2.mul(X32, Z32);
+        Y32 = Fp2.mul(X3, Z32);
         t1 = Fp2.add(t0, t0);
         t1 = Fp2.add(t1, t0);
         t2 = Fp2.mul(a3, t2);
@@ -16742,12 +16742,12 @@ if (cid) {
         t0 = Fp2.mul(t1, t4);
         Y32 = Fp2.add(Y32, t0);
         t0 = Fp2.mul(t5, t4);
-        X32 = Fp2.mul(t3, X32);
-        X32 = Fp2.sub(X32, t0);
+        X3 = Fp2.mul(t3, X3);
+        X3 = Fp2.sub(X3, t0);
         t0 = Fp2.mul(t3, t1);
         Z32 = Fp2.mul(t5, Z32);
         Z32 = Fp2.add(Z32, t0);
-        return new Point(X32, Y32, Z32);
+        return new Point(X3, Y32, Z32);
       }
       subtract(other) {
         return this.add(other.negate());
@@ -17024,9 +17024,9 @@ if (cid) {
           format = "compact";
           bytes = bytes.subarray(1);
         }
-        const L2 = Fn4.BYTES;
-        const r3 = bytes.subarray(0, L2);
-        const s2 = bytes.subarray(L2, L2 * 2);
+        const L = Fn4.BYTES;
+        const r3 = bytes.subarray(0, L);
+        const s2 = bytes.subarray(L, L * 2);
         return new Signature(Fn4.fromBytes(r3), Fn4.fromBytes(s2), recid);
       }
       static fromHex(hex, format) {
@@ -17047,12 +17047,12 @@ if (cid) {
         if (!Fp2.isValid(radj))
           throw new Error("recovery id 2 or 3 invalid");
         const x7 = Fp2.toBytes(radj);
-        const R4 = Point.fromBytes(concatBytes(pprefix((rec & 1) === 0), x7));
+        const R3 = Point.fromBytes(concatBytes(pprefix((rec & 1) === 0), x7));
         const ir3 = Fn4.inv(radj);
-        const h5 = bits2int_modN(ensureBytes2("msgHash", messageHash));
-        const u1 = Fn4.create(-h5 * ir3);
-        const u22 = Fn4.create(s2 * ir3);
-        const Q4 = Point.BASE.multiplyUnsafe(u1).add(R4.multiplyUnsafe(u22));
+        const h4 = bits2int_modN(ensureBytes2("msgHash", messageHash));
+        const u1 = Fn4.create(-h4 * ir3);
+        const u2 = Fn4.create(s2 * ir3);
+        const Q4 = Point.BASE.multiplyUnsafe(u1).add(R3.multiplyUnsafe(u2));
         if (Q4.is0())
           throw new Error("point at infinify");
         Q4.assertValidity();
@@ -17123,7 +17123,7 @@ if (cid) {
       return prehash ? _abytes2(hash(message), void 0, "prehashed message") : message;
     }
     function prepSig(message, privateKey, opts) {
-      if (["recovered", "canonical"].some((k6) => k6 in opts))
+      if (["recovered", "canonical"].some((k5) => k5 in opts))
         throw new Error("sign() legacy options not supported");
       const { lowS, prehash, extraEntropy: extraEntropy2 } = validateSigOpts(opts, defaultSigOpts);
       message = validateMsgAndHash(message, prehash);
@@ -17137,18 +17137,18 @@ if (cid) {
       const seed = concatBytes(...seedArgs);
       const m2 = h1int;
       function k2sig(kBytes) {
-        const k6 = bits2int(kBytes);
-        if (!Fn4.isValidNot0(k6))
+        const k5 = bits2int(kBytes);
+        if (!Fn4.isValidNot0(k5))
           return;
-        const ik = Fn4.inv(k6);
-        const q5 = Point.BASE.multiply(k6).toAffine();
-        const r3 = Fn4.create(q5.x);
+        const ik = Fn4.inv(k5);
+        const q4 = Point.BASE.multiply(k5).toAffine();
+        const r3 = Fn4.create(q4.x);
         if (r3 === _0n14)
           return;
         const s2 = Fn4.create(ik * Fn4.create(m2 + r3 * d3));
         if (s2 === _0n14)
           return;
-        let recovery = (q5.x === r3 ? 0 : 2) | Number(q5.y & _1n14);
+        let recovery = (q4.x === r3 ? 0 : 2) | Number(q4.y & _1n14);
         let normS = s2;
         if (lowS && isBiggerThanHalfOrder(s2)) {
           normS = Fn4.neg(s2);
@@ -17202,18 +17202,18 @@ if (cid) {
       if (sig === false)
         return false;
       try {
-        const P6 = Point.fromBytes(publicKey);
+        const P5 = Point.fromBytes(publicKey);
         if (lowS && sig.hasHighS())
           return false;
         const { r: r3, s: s2 } = sig;
-        const h5 = bits2int_modN(message);
+        const h4 = bits2int_modN(message);
         const is = Fn4.inv(s2);
-        const u1 = Fn4.create(h5 * is);
-        const u22 = Fn4.create(r3 * is);
-        const R4 = Point.BASE.multiplyUnsafe(u1).add(P6.multiplyUnsafe(u22));
-        if (R4.is0())
+        const u1 = Fn4.create(h4 * is);
+        const u2 = Fn4.create(r3 * is);
+        const R3 = Point.BASE.multiplyUnsafe(u1).add(P5.multiplyUnsafe(u2));
+        if (R3.is0())
           return false;
-        const v7 = Fn4.create(R4.x);
+        const v7 = Fn4.create(R3.x);
         return v7 === r3;
       } catch (e2) {
         return false;
@@ -17321,8 +17321,8 @@ if (cid) {
             if (len.length / 2 & 128)
               throw new E4("tlv.encode: long form length too big");
             const lenLen = dataLen > 127 ? numberToHexUnpadded2(len.length / 2 | 128) : "";
-            const t = numberToHexUnpadded2(tag);
-            return t + lenLen + len + data;
+            const t2 = numberToHexUnpadded2(tag);
+            return t2 + lenLen + len + data;
           },
           // v - value, l - left bytes (unparsed)
           decode(tag, data) {
@@ -17527,7 +17527,7 @@ if (cid) {
         }
         console.log(msg);
       }
-      function testSpeed(hashFn, N11, M5) {
+      function testSpeed(hashFn, N11, M4) {
         let startMs = (/* @__PURE__ */ new Date()).getTime();
         const input = new Uint8Array(N11);
         for (let i3 = 0; i3 < N11; i3++) {
@@ -17536,7 +17536,7 @@ if (cid) {
         const genMs = (/* @__PURE__ */ new Date()).getTime();
         console.log("Generated random input in " + (genMs - startMs) + "ms");
         startMs = genMs;
-        for (let i3 = 0; i3 < M5; i3++) {
+        for (let i3 = 0; i3 < M4; i3++) {
           const hashHex = hashFn(input);
           const hashMs = (/* @__PURE__ */ new Date()).getTime();
           const ms2 = hashMs - startMs;
@@ -18037,18 +18037,18 @@ if (cid) {
       function B2S_GET32(v8, i3) {
         return v8[i3] ^ v8[i3 + 1] << 8 ^ v8[i3 + 2] << 16 ^ v8[i3 + 3] << 24;
       }
-      function B2S_G(a3, b4, c4, d3, x7, y7) {
+      function B2S_G(a3, b4, c4, d3, x7, y6) {
         v7[a3] = v7[a3] + v7[b4] + x7;
         v7[d3] = ROTR32(v7[d3] ^ v7[a3], 16);
         v7[c4] = v7[c4] + v7[d3];
         v7[b4] = ROTR32(v7[b4] ^ v7[c4], 12);
-        v7[a3] = v7[a3] + v7[b4] + y7;
+        v7[a3] = v7[a3] + v7[b4] + y6;
         v7[d3] = ROTR32(v7[d3] ^ v7[a3], 8);
         v7[c4] = v7[c4] + v7[d3];
         v7[b4] = ROTR32(v7[b4] ^ v7[c4], 7);
       }
-      function ROTR32(x7, y7) {
-        return x7 >>> y7 ^ x7 << 32 - y7;
+      function ROTR32(x7, y6) {
+        return x7 >>> y6 ^ x7 << 32 - y6;
       }
       var BLAKE2S_IV = new Uint32Array([
         1779033703,
@@ -18344,19 +18344,19 @@ if (cid) {
 
   // node_modules/@walletconnect/utils/dist/index.js
   function ae2(e2) {
-    const [t, n4] = e2.split(G3);
-    return { namespace: t, reference: n4 };
+    const [t2, n4] = e2.split(G3);
+    return { namespace: t2, reference: n4 };
   }
-  function Y2(e2, t) {
-    return e2.includes(":") ? [e2] : t.chains || [];
+  function Y2(e2, t2) {
+    return e2.includes(":") ? [e2] : t2.chains || [];
   }
-  function N10(e2, t) {
+  function N10(e2, t2) {
     const { message: n4, code: r3 } = Fe2[e2];
-    return { message: t ? `${n4} ${t}` : n4, code: r3 };
+    return { message: t2 ? `${n4} ${t2}` : n4, code: r3 };
   }
-  function $2(e2, t) {
+  function $2(e2, t2) {
     const { message: n4, code: r3 } = Ke2[e2];
-    return { message: t ? `${n4} ${t}` : n4, code: r3 };
+    return { message: t2 ? `${n4} ${t2}` : n4, code: r3 };
   }
   function fe3() {
     return typeof process < "u" && typeof process.versions < "u" && typeof process.versions.node < "u";
@@ -18383,18 +18383,18 @@ if (cid) {
       return;
     }
   }
-  function We2(e2, t) {
+  function We2(e2, t2) {
     const n4 = new URLSearchParams(e2);
-    return Object.entries(t).sort(([r3], [o4]) => r3.localeCompare(o4)).forEach(([r3, o4]) => {
+    return Object.entries(t2).sort(([r3], [o4]) => r3.localeCompare(o4)).forEach(([r3, o4]) => {
       o4 != null && n4.set(r3, String(o4));
     }), n4.toString();
   }
   function Un2(e2) {
-    const t = Je2();
+    const t2 = Je2();
     try {
-      return e2?.url && t.url && new URL(e2.url).host !== new URL(t.url).host && (console.warn(`The configured WalletConnect 'metadata.url':${e2.url} differs from the actual page url:${t.url}. This is probably unintended and can lead to issues.`), e2.url = t.url), e2?.icons?.length && e2.icons.length > 0 && (e2.icons = e2.icons.filter((n4) => n4 !== "")), { ...t, ...e2, url: e2?.url || t.url, name: e2?.name || t.name, description: e2?.description || t.description, icons: e2?.icons?.length && e2.icons.length > 0 ? e2.icons : t.icons };
+      return e2?.url && t2.url && new URL(e2.url).host !== new URL(t2.url).host && (console.warn(`The configured WalletConnect 'metadata.url':${e2.url} differs from the actual page url:${t2.url}. This is probably unintended and can lead to issues.`), e2.url = t2.url), e2?.icons?.length && e2.icons.length > 0 && (e2.icons = e2.icons.filter((n4) => n4 !== "")), { ...t2, ...e2, url: e2?.url || t2.url, name: e2?.name || t2.name, description: e2?.description || t2.description, icons: e2?.icons?.length && e2.icons.length > 0 ? e2.icons : t2.icons };
     } catch (n4) {
-      return console.warn("Error populating app metadata", n4), e2 || t;
+      return console.warn("Error populating app metadata", n4), e2 || t2;
     }
   }
   function Je2() {
@@ -18407,23 +18407,23 @@ if (cid) {
     }
     const e2 = detect();
     if (e2 === null) return "unknown";
-    const t = e2.os ? e2.os.replace(" ", "").toLowerCase() : "unknown";
-    return e2.type === "browser" ? [t, e2.name, e2.version].join("-") : [t, e2.version].join("-");
+    const t2 = e2.os ? e2.os.replace(" ", "").toLowerCase() : "unknown";
+    return e2.type === "browser" ? [t2, e2.name, e2.version].join("-") : [t2, e2.version].join("-");
   }
   function Ge3() {
     const e2 = j3();
     return e2 === g2.browser ? [e2, (0, import_window_getters.getLocation)()?.host || "unknown"].join(":") : e2;
   }
-  function Ye2(e2, t, n4) {
+  function Ye2(e2, t2, n4) {
     const r3 = ze3(), o4 = Ge3();
-    return [[e2, t].join("-"), [Be3, n4].join("-"), r3, o4].join("/");
+    return [[e2, t2].join("-"), [Be3, n4].join("-"), r3, o4].join("/");
   }
-  function jn2({ protocol: e2, version: t, relayUrl: n4, sdkVersion: r3, auth: o4, projectId: s2, useOnCloseEvent: i3, bundleId: a3, packageName: l4 }) {
-    const c4 = n4.split("?"), d3 = Ye2(e2, t, r3), u3 = { auth: o4, ua: d3, projectId: s2, useOnCloseEvent: i3 || void 0, packageName: l4 || void 0, bundleId: a3 || void 0 }, p4 = We2(c4[1] || "", u3);
+  function jn2({ protocol: e2, version: t2, relayUrl: n4, sdkVersion: r3, auth: o4, projectId: s2, useOnCloseEvent: i3, bundleId: a3, packageName: l4 }) {
+    const c4 = n4.split("?"), d3 = Ye2(e2, t2, r3), u2 = { auth: o4, ua: d3, projectId: s2, useOnCloseEvent: i3 || void 0, packageName: l4 || void 0, bundleId: a3 || void 0 }, p4 = We2(c4[1] || "", u2);
     return c4[0] + "?" + p4;
   }
-  function I(e2, t) {
-    return e2.filter((n4) => t.includes(n4)).length === e2.length;
+  function I(e2, t2) {
+    return e2.filter((n4) => t2.includes(n4)).length === e2.length;
   }
   function _n2(e2) {
     return Object.fromEntries(e2.entries());
@@ -18431,7 +18431,7 @@ if (cid) {
   function kn2(e2) {
     return new Map(Object.entries(e2));
   }
-  function Ln2(e2 = import_time3.FIVE_MINUTES, t) {
+  function Ln2(e2 = import_time3.FIVE_MINUTES, t2) {
     const n4 = (0, import_time3.toMiliseconds)(e2 || import_time3.FIVE_MINUTES);
     let r3, o4, s2, i3;
     return { resolve: (a3) => {
@@ -18441,14 +18441,14 @@ if (cid) {
     }, done: () => new Promise((a3, l4) => {
       if (i3) return a3(i3);
       s2 = setTimeout(() => {
-        const c4 = N10("EXPIRED"), d3 = new Error(t || c4.message);
+        const c4 = N10("EXPIRED"), d3 = new Error(t2 || c4.message);
         d3.code = c4.code, l4(d3);
       }, n4), r3 = a3, o4 = l4;
     }) };
   }
-  function Kn2(e2, t, n4) {
+  function Kn2(e2, t2, n4) {
     return new Promise(async (r3, o4) => {
-      const s2 = setTimeout(() => o4(new Error(n4)), t);
+      const s2 = setTimeout(() => o4(new Error(n4)), t2);
       try {
         const i3 = await e2;
         r3(i3);
@@ -18458,14 +18458,14 @@ if (cid) {
       clearTimeout(s2);
     });
   }
-  function pe3(e2, t) {
-    if (typeof t == "string" && t.startsWith(`${e2}:`)) return t;
+  function pe3(e2, t2) {
+    if (typeof t2 == "string" && t2.startsWith(`${e2}:`)) return t2;
     if (e2.toLowerCase() === "topic") {
-      if (typeof t != "string") throw new Error('Value must be "string" for expirer target type: topic');
-      return `topic:${t}`;
+      if (typeof t2 != "string") throw new Error('Value must be "string" for expirer target type: topic');
+      return `topic:${t2}`;
     } else if (e2.toLowerCase() === "id") {
-      if (typeof t != "number") throw new Error('Value must be "number" for expirer target type: id');
-      return `id:${t}`;
+      if (typeof t2 != "number") throw new Error('Value must be "number" for expirer target type: id');
+      return `id:${t2}`;
     }
     throw new Error(`Unknown expirer target type: ${e2}`);
   }
@@ -18476,30 +18476,30 @@ if (cid) {
     return pe3("id", e2);
   }
   function Hn2(e2) {
-    const [t, n4] = e2.split(":"), r3 = { id: void 0, topic: void 0 };
-    if (t === "topic" && typeof n4 == "string") r3.topic = n4;
-    else if (t === "id" && Number.isInteger(Number(n4))) r3.id = Number(n4);
-    else throw new Error(`Invalid target, expected id:number or topic:string, got ${t}:${n4}`);
+    const [t2, n4] = e2.split(":"), r3 = { id: void 0, topic: void 0 };
+    if (t2 === "topic" && typeof n4 == "string") r3.topic = n4;
+    else if (t2 === "id" && Number.isInteger(Number(n4))) r3.id = Number(n4);
+    else throw new Error(`Invalid target, expected id:number or topic:string, got ${t2}:${n4}`);
     return r3;
   }
-  function Bn2(e2, t) {
-    return (0, import_time3.fromMiliseconds)((t || Date.now()) + (0, import_time3.toMiliseconds)(e2));
+  function Bn2(e2, t2) {
+    return (0, import_time3.fromMiliseconds)((t2 || Date.now()) + (0, import_time3.toMiliseconds)(e2));
   }
   function Wn2(e2) {
     return Date.now() >= (0, import_time3.toMiliseconds)(e2);
   }
-  function Jn2(e2, t) {
-    return `${e2}${t ? `:${t}` : ""}`;
+  function Jn2(e2, t2) {
+    return `${e2}${t2 ? `:${t2}` : ""}`;
   }
-  function w2(e2 = [], t = []) {
-    return [.../* @__PURE__ */ new Set([...e2, ...t])];
+  function w2(e2 = [], t2 = []) {
+    return [.../* @__PURE__ */ new Set([...e2, ...t2])];
   }
-  async function zn2({ id: e2, topic: t, wcDeepLink: n4 }) {
+  async function zn2({ id: e2, topic: t2, wcDeepLink: n4 }) {
     try {
       if (!n4) return;
       const r3 = (typeof n4 == "string" ? JSON.parse(n4) : n4)?.href;
       if (typeof r3 != "string") return;
-      const o4 = et(r3, e2, t), s2 = j3();
+      const o4 = et(r3, e2, t2), s2 = j3();
       if (s2 === g2.browser) {
         if (!(0, import_window_getters.getDocument)()?.hasFocus()) {
           console.warn("Document does not have focus, skipping deeplink.");
@@ -18511,8 +18511,8 @@ if (cid) {
       console.error(r3);
     }
   }
-  function et(e2, t, n4) {
-    const r3 = `requestId=${t}&sessionTopic=${n4}`;
+  function et(e2, t2, n4) {
+    const r3 = `requestId=${t2}&sessionTopic=${n4}`;
     e2.endsWith("/") && (e2 = e2.slice(0, -1));
     let o4 = `${e2}`;
     if (e2.startsWith("https://t.me")) {
@@ -18522,28 +18522,28 @@ if (cid) {
     return o4;
   }
   function tt(e2) {
-    let t = "_self";
-    rt2() ? t = "_top" : (nt2() || e2.startsWith("https://") || e2.startsWith("http://")) && (t = "_blank"), window.open(e2, t, "noreferrer noopener");
+    let t2 = "_self";
+    rt2() ? t2 = "_top" : (nt2() || e2.startsWith("https://") || e2.startsWith("http://")) && (t2 = "_blank"), window.open(e2, t2, "noreferrer noopener");
   }
-  async function Gn2(e2, t) {
+  async function Gn2(e2, t2) {
     let n4 = "";
     try {
-      if (x5() && (n4 = localStorage.getItem(t), n4)) return n4;
-      n4 = await e2.getItem(t);
+      if (x5() && (n4 = localStorage.getItem(t2), n4)) return n4;
+      n4 = await e2.getItem(t2);
     } catch (r3) {
       console.error(r3);
     }
     return n4;
   }
-  function Yn2(e2, t) {
-    if (!e2.includes(t)) return null;
-    const n4 = e2.split(/([&,?,=])/), r3 = n4.indexOf(t);
+  function Yn2(e2, t2) {
+    if (!e2.includes(t2)) return null;
+    const n4 = e2.split(/([&,?,=])/), r3 = n4.indexOf(t2);
     return n4[r3 + 2];
   }
   function Qn2() {
     return typeof crypto < "u" && crypto?.randomUUID ? crypto.randomUUID() : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/gu, (e2) => {
-      const t = Math.random() * 16 | 0;
-      return (e2 === "x" ? t : t & 3 | 8).toString(16);
+      const t2 = Math.random() * 16 | 0;
+      return (e2 === "x" ? t2 : t2 & 3 | 8).toString(16);
     });
   }
   function Xn2() {
@@ -18559,49 +18559,49 @@ if (cid) {
       return false;
     }
   }
-  function ot(e2, t = false) {
+  function ot(e2, t2 = false) {
     const n4 = new TextEncoder().encode(e2), r3 = new Array(n4.length);
     for (let s2 = 0; s2 < n4.length; s2++) r3[s2] = String.fromCharCode(n4[s2]);
     const o4 = btoa(r3.join(""));
-    return t ? o4.replace(/[=]/g, "") : o4;
+    return t2 ? o4.replace(/[=]/g, "") : o4;
   }
   function he3(e2) {
-    const t = e2 + "=".repeat((4 - e2.length % 4) % 4), n4 = atob(t), r3 = new Uint8Array(n4.length);
+    const t2 = e2 + "=".repeat((4 - e2.length % 4) % 4), n4 = atob(t2), r3 = new Uint8Array(n4.length);
     for (let o4 = 0; o4 < n4.length; o4++) r3[o4] = n4.charCodeAt(o4);
     return new TextDecoder().decode(r3);
   }
   function Zn2(e2) {
-    return new Promise((t) => setTimeout(t, e2));
+    return new Promise((t2) => setTimeout(t2, e2));
   }
   function _2(e2) {
-    const t = e2 + "=".repeat((4 - e2.length % 4) % 4), n4 = atob(t), r3 = new Uint8Array(n4.length);
+    const t2 = e2 + "=".repeat((4 - e2.length % 4) % 4), n4 = atob(t2), r3 = new Uint8Array(n4.length);
     for (let o4 = 0; o4 < n4.length; o4++) r3[o4] = n4.charCodeAt(o4);
     return r3;
   }
   function ge3(e2) {
-    const t = `Ethereum Signed Message:
-${e2.length}`, n4 = new TextEncoder().encode(t + e2);
+    const t2 = `Ethereum Signed Message:
+${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     return "0x" + toString2(keccak_256(n4), "base16");
   }
-  async function st(e2, t, n4, r3, o4, s2) {
+  async function st(e2, t2, n4, r3, o4, s2) {
     switch (n4.t) {
       case "eip191":
-        return await it2(e2, t, n4.s);
+        return await it2(e2, t2, n4.s);
       case "eip1271":
-        return await ct2(e2, t, n4.s, r3, o4, s2);
+        return await ct2(e2, t2, n4.s, r3, o4, s2);
       default:
         throw new Error(`verifySignature failed: Attempted to verify CacaoSignature with unknown type: ${n4.t}`);
     }
   }
-  function it2(e2, t, n4) {
+  function it2(e2, t2, n4) {
     const r3 = Signature_exports.fromHex(n4);
-    return Secp256k1_exports.recoverAddress({ payload: ge3(t), signature: r3 }).toLowerCase() === e2.toLowerCase();
+    return Secp256k1_exports.recoverAddress({ payload: ge3(t2), signature: r3 }).toLowerCase() === e2.toLowerCase();
   }
-  async function ct2(e2, t, n4, r3, o4, s2) {
+  async function ct2(e2, t2, n4, r3, o4, s2) {
     const i3 = ae2(r3);
     if (!i3.namespace || !i3.reference) throw new Error(`isValidEip1271Signature failed: chainId must be in CAIP-2 format, received: ${r3}`);
     try {
-      const a3 = "0x1626ba7e", l4 = "0000000000000000000000000000000000000000000000000000000000000040", c4 = n4.substring(2), d3 = (c4.length / 2).toString(16).padStart(64, "0"), u3 = (t.startsWith("0x") ? t : ge3(t)).substring(2), p4 = a3 + u3 + l4 + d3 + c4, b4 = await fetch(`${s2 || tr2}/?chainId=${r3}&projectId=${o4}`, { headers: { "Content-Type": "application/json" }, method: "POST", body: JSON.stringify({ id: nr2(), jsonrpc: "2.0", method: "eth_call", params: [{ to: e2, data: p4 }, "latest"] }) }), { result: f2 } = await b4.json();
+      const a3 = "0x1626ba7e", l4 = "0000000000000000000000000000000000000000000000000000000000000040", c4 = n4.substring(2), d3 = (c4.length / 2).toString(16).padStart(64, "0"), u2 = (t2.startsWith("0x") ? t2 : ge3(t2)).substring(2), p4 = a3 + u2 + l4 + d3 + c4, b4 = await fetch(`${s2 || tr2}/?chainId=${r3}&projectId=${o4}`, { headers: { "Content-Type": "application/json" }, method: "POST", body: JSON.stringify({ id: nr2(), jsonrpc: "2.0", method: "eth_call", params: [{ to: e2, data: p4 }, "latest"] }) }), { result: f2 } = await b4.json();
       return f2 ? f2.slice(0, a3.length).toLowerCase() === a3.toLowerCase() : false;
     } catch (a3) {
       return console.error("isValidEip1271Signature: ", a3), false;
@@ -18611,23 +18611,23 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     return Date.now() + Math.floor(Math.random() * 1e3);
   }
   function rr2(e2) {
-    const t = _2(e2), n4 = t[0];
+    const t2 = _2(e2), n4 = t2[0];
     if (n4 === 0) throw new Error("No signatures found");
     const r3 = 1 + n4 * 64;
-    if (t.length < r3) throw new Error("Transaction data too short for claimed signature count");
-    if (t.length < 100) throw new Error("Transaction too short");
-    const o4 = t.slice(1, 65);
+    if (t2.length < r3) throw new Error("Transaction data too short for claimed signature count");
+    if (t2.length < 100) throw new Error("Transaction too short");
+    const o4 = t2.slice(1, 65);
     return base58.encode(o4);
   }
   function or3(e2) {
-    const t = _2(e2), n4 = new TextEncoder().encode("TransactionData::"), r3 = new Uint8Array(n4.length + t.length);
-    r3.set(n4), r3.set(t, n4.length);
+    const t2 = _2(e2), n4 = new TextEncoder().encode("TransactionData::"), r3 = new Uint8Array(n4.length + t2.length);
+    r3.set(n4), r3.set(t2, n4.length);
     const o4 = blake2b(r3, { dkLen: 32 });
     return base58.encode(o4);
   }
   function sr2(e2) {
-    const t = new Uint8Array(sha2563(at(e2)));
-    return base58.encode(t);
+    const t2 = new Uint8Array(sha2563(at(e2)));
+    return base58.encode(t2);
   }
   function at(e2) {
     if (e2 instanceof Uint8Array) return e2;
@@ -18637,38 +18637,38 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     throw new Error("getNearUint8ArrayFromBytes: Unexpected result type from bytes array");
   }
   function ir2(e2) {
-    const t = _2(e2), n4 = decode6(t).txn;
+    const t2 = _2(e2), n4 = decode6(t2).txn;
     if (!n4) throw new Error("Invalid signed transaction: missing 'txn' field");
     const r3 = encode5(n4), o4 = new TextEncoder().encode("TX"), s2 = concat2([o4, new Uint8Array(r3)]), i3 = sha512_256(s2);
     return base322.encode(i3).replace(/=+$/, "");
   }
   function ye3(e2) {
-    const t = [];
+    const t2 = [];
     let n4 = BigInt(e2);
-    for (; n4 >= 0x80n; ) t.push(Number(n4 & 0x7fn | 0x80n)), n4 >>= 7n;
-    return t.push(Number(n4)), new Uint8Array(t);
+    for (; n4 >= 0x80n; ) t2.push(Number(n4 & 0x7fn | 0x80n)), n4 >>= 7n;
+    return t2.push(Number(n4)), new Uint8Array(t2);
   }
   function cr2(e2) {
-    const t = _2(e2.signed.bodyBytes), n4 = _2(e2.signed.authInfoBytes), r3 = _2(e2.signature.signature), o4 = [];
-    o4.push(new Uint8Array([10])), o4.push(ye3(t.length)), o4.push(t), o4.push(new Uint8Array([18])), o4.push(ye3(n4.length)), o4.push(n4), o4.push(new Uint8Array([26])), o4.push(ye3(r3.length)), o4.push(r3);
+    const t2 = _2(e2.signed.bodyBytes), n4 = _2(e2.signed.authInfoBytes), r3 = _2(e2.signature.signature), o4 = [];
+    o4.push(new Uint8Array([10])), o4.push(ye3(t2.length)), o4.push(t2), o4.push(new Uint8Array([18])), o4.push(ye3(n4.length)), o4.push(n4), o4.push(new Uint8Array([26])), o4.push(ye3(r3.length)), o4.push(r3);
     const s2 = concat2(o4), i3 = sha2563(s2);
     return toString2(i3, "base16").toUpperCase();
   }
   function ar2(e2) {
-    const t = [];
+    const t2 = [];
     try {
-      if (typeof e2 == "string") return t.push(e2), t;
-      if (typeof e2 != "object") return t;
-      e2?.id && t.push(e2.id);
+      if (typeof e2 == "string") return t2.push(e2), t2;
+      if (typeof e2 != "object") return t2;
+      e2?.id && t2.push(e2.id);
       const n4 = e2?.capabilities?.caip345?.transactionHashes;
-      n4 && t.push(...n4);
+      n4 && t2.push(...n4);
     } catch (n4) {
       console.warn("getWalletSendCallsHashes failed: ", n4);
     }
-    return t;
+    return t2;
   }
   async function dr2(e2) {
-    const { cacao: t, projectId: n4 } = e2, { s: r3, p: o4 } = t;
+    const { cacao: t2, projectId: n4 } = e2, { s: r3, p: o4 } = t2;
     let s2;
     try {
       s2 = pt(o4, o4.iss);
@@ -18679,21 +18679,21 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     return await st(i3, s2, r3, ft2(o4.iss), n4);
   }
   function yt2(e2) {
-    const t = JSON.stringify(e2), n4 = new TextEncoder().encode(t), r3 = new Array(n4.length);
+    const t2 = JSON.stringify(e2), n4 = new TextEncoder().encode(t2), r3 = new Array(n4.length);
     for (let o4 = 0; o4 < n4.length; o4++) r3[o4] = String.fromCharCode(n4[o4]);
     return btoa(r3.join(""));
   }
   function Et2(e2) {
-    const t = e2 + "=".repeat((4 - e2.length % 4) % 4), n4 = atob(t), r3 = new Uint8Array(n4.length);
+    const t2 = e2 + "=".repeat((4 - e2.length % 4) % 4), n4 = atob(t2), r3 = new Uint8Array(n4.length);
     for (let o4 = 0; o4 < n4.length; o4++) r3[o4] = n4.charCodeAt(o4);
     return JSON.parse(new TextDecoder().decode(r3));
   }
   function v3(e2) {
     if (!e2) throw new Error("No recap provided, value is undefined");
     if (!e2.att) throw new Error("No `att` property found");
-    const t = Object.keys(e2.att);
-    if (!t?.length) throw new Error("No resources found in `att` property");
-    t.forEach((n4) => {
+    const t2 = Object.keys(e2.att);
+    if (!t2?.length) throw new Error("No resources found in `att` property");
+    t2.forEach((n4) => {
       const r3 = e2.att[n4];
       if (Array.isArray(r3)) throw new Error(`Resource must be an object: ${n4}`);
       if (typeof r3 != "object") throw new Error(`Resource must be an object: ${n4}`);
@@ -18708,71 +18708,71 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       });
     });
   }
-  function bt2(e2, t, n4, r3 = {}) {
-    return n4?.sort((o4, s2) => o4.localeCompare(s2)), { att: { [e2]: be3(t, n4, r3) } };
+  function bt2(e2, t2, n4, r3 = {}) {
+    return n4?.sort((o4, s2) => o4.localeCompare(s2)), { att: { [e2]: be3(t2, n4, r3) } };
   }
-  function be3(e2, t, n4 = {}) {
-    t = t?.sort((o4, s2) => o4.localeCompare(s2));
-    const r3 = t.map((o4) => ({ [`${e2}/${o4}`]: [n4] }));
+  function be3(e2, t2, n4 = {}) {
+    t2 = t2?.sort((o4, s2) => o4.localeCompare(s2));
+    const r3 = t2.map((o4) => ({ [`${e2}/${o4}`]: [n4] }));
     return Object.assign({}, ...r3);
   }
   function X2(e2) {
     return v3(e2), `urn:recap:${yt2(e2).replace(/=/g, "")}`;
   }
   function T2(e2) {
-    const t = Et2(e2.replace("urn:recap:", ""));
-    return v3(t), t;
+    const t2 = Et2(e2.replace("urn:recap:", ""));
+    return v3(t2), t2;
   }
-  function gr2(e2, t, n4) {
-    const r3 = bt2(e2, t, n4);
+  function gr2(e2, t2, n4) {
+    const r3 = bt2(e2, t2, n4);
     return X2(r3);
   }
   function we3(e2) {
     return e2 && e2.includes("urn:recap:");
   }
-  function yr2(e2, t) {
-    const n4 = T2(e2), r3 = T2(t), o4 = Nt2(n4, r3);
+  function yr2(e2, t2) {
+    const n4 = T2(e2), r3 = T2(t2), o4 = Nt2(n4, r3);
     return X2(o4);
   }
-  function Nt2(e2, t) {
-    v3(e2), v3(t);
-    const n4 = Object.keys(e2.att).concat(Object.keys(t.att)).sort((o4, s2) => o4.localeCompare(s2)), r3 = { att: {} };
+  function Nt2(e2, t2) {
+    v3(e2), v3(t2);
+    const n4 = Object.keys(e2.att).concat(Object.keys(t2.att)).sort((o4, s2) => o4.localeCompare(s2)), r3 = { att: {} };
     return n4.forEach((o4) => {
-      Object.keys(e2.att?.[o4] || {}).concat(Object.keys(t.att?.[o4] || {})).sort((s2, i3) => s2.localeCompare(i3)).forEach((s2) => {
-        r3.att[o4] = { ...r3.att[o4], [s2]: e2.att[o4]?.[s2] || t.att[o4]?.[s2] };
+      Object.keys(e2.att?.[o4] || {}).concat(Object.keys(t2.att?.[o4] || {})).sort((s2, i3) => s2.localeCompare(i3)).forEach((s2) => {
+        r3.att[o4] = { ...r3.att[o4], [s2]: e2.att[o4]?.[s2] || t2.att[o4]?.[s2] };
       });
     }), r3;
   }
-  function Ne3(e2 = "", t) {
-    v3(t);
+  function Ne3(e2 = "", t2) {
+    v3(t2);
     const n4 = "I further authorize the stated URI to perform the following actions on my behalf: ";
     if (e2.includes(n4)) return e2;
     const r3 = [];
     let o4 = 0;
-    Object.keys(t.att).forEach((a3) => {
-      const l4 = Object.keys(t.att[a3]).map((u3) => ({ ability: u3.split("/")[0], action: u3.split("/")[1] }));
-      l4.sort((u3, p4) => u3.action.localeCompare(p4.action));
+    Object.keys(t2.att).forEach((a3) => {
+      const l4 = Object.keys(t2.att[a3]).map((u2) => ({ ability: u2.split("/")[0], action: u2.split("/")[1] }));
+      l4.sort((u2, p4) => u2.action.localeCompare(p4.action));
       const c4 = {};
-      l4.forEach((u3) => {
-        c4[u3.ability] || (c4[u3.ability] = []), c4[u3.ability].push(u3.action);
+      l4.forEach((u2) => {
+        c4[u2.ability] || (c4[u2.ability] = []), c4[u2.ability].push(u2.action);
       });
-      const d3 = Object.keys(c4).map((u3) => (o4++, `(${o4}) '${u3}': '${c4[u3].join("', '")}' for '${a3}'.`));
+      const d3 = Object.keys(c4).map((u2) => (o4++, `(${o4}) '${u2}': '${c4[u2].join("', '")}' for '${a3}'.`));
       r3.push(d3.join(", ").replace(".,", "."));
     });
     const s2 = r3.join(" "), i3 = `${n4}${s2}`;
     return `${e2 ? e2 + " " : ""}${i3}`;
   }
   function Er2(e2) {
-    const t = T2(e2);
-    v3(t);
-    const n4 = t.att?.eip155;
+    const t2 = T2(e2);
+    v3(t2);
+    const n4 = t2.att?.eip155;
     return n4 ? Object.keys(n4).map((r3) => r3.split("/")[1]) : [];
   }
   function br2(e2) {
-    const t = T2(e2);
-    v3(t);
+    const t2 = T2(e2);
+    v3(t2);
     const n4 = [];
-    return Object.values(t.att).forEach((r3) => {
+    return Object.values(t2.att).forEach((r3) => {
       Object.values(r3).forEach((o4) => {
         o4?.[0]?.chains && n4.push(o4[0].chains);
       });
@@ -18780,28 +18780,28 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
   }
   function Z2(e2) {
     if (!e2) return;
-    const t = e2?.[e2.length - 1];
-    return we3(t) ? t : void 0;
+    const t2 = e2?.[e2.length - 1];
+    return we3(t2) ? t2 : void 0;
   }
   function Nr2() {
-    const e2 = x25519.utils.randomPrivateKey(), t = x25519.getPublicKey(e2);
-    return { privateKey: toString2(e2, y4), publicKey: toString2(t, y4) };
+    const e2 = x25519.utils.randomPrivateKey(), t2 = x25519.getPublicKey(e2);
+    return { privateKey: toString2(e2, y4), publicKey: toString2(t2, y4) };
   }
   function vr2() {
     const e2 = randomBytes(Oe3);
     return toString2(e2, y4);
   }
-  function Sr2(e2, t) {
-    const n4 = x25519.getSharedSecret(fromString2(e2, y4), fromString2(t, y4)), r3 = hkdf(sha2564, n4, void 0, void 0, Oe3);
+  function Sr2(e2, t2) {
+    const n4 = x25519.getSharedSecret(fromString2(e2, y4), fromString2(t2, y4)), r3 = hkdf(sha2564, n4, void 0, void 0, Oe3);
     return toString2(r3, y4);
   }
   function Or2(e2) {
-    const t = sha2564(fromString2(e2, y4));
-    return toString2(t, y4);
+    const t2 = sha2564(fromString2(e2, y4));
+    return toString2(t2, y4);
   }
   function Ar2(e2) {
-    const t = sha2564(fromString2(e2, k4));
-    return toString2(t, y4);
+    const t2 = sha2564(fromString2(e2, k4));
+    return toString2(t2, y4);
   }
   function Ae3(e2) {
     return fromString2(`${e2}`, ve3);
@@ -18813,26 +18813,26 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     return e2.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
   }
   function te3(e2) {
-    const t = e2.replace(/-/g, "+").replace(/_/g, "/"), n4 = (4 - t.length % 4) % 4;
-    return t + "=".repeat(n4);
+    const t2 = e2.replace(/-/g, "+").replace(/_/g, "/"), n4 = (4 - t2.length % 4) % 4;
+    return t2 + "=".repeat(n4);
   }
   function Ir2(e2) {
-    const t = Ae3(typeof e2.type < "u" ? e2.type : Se3);
-    if (C3(t) === D2 && typeof e2.senderPublicKey > "u") throw new Error("Missing sender public key for type 1 envelope");
-    const n4 = typeof e2.senderPublicKey < "u" ? fromString2(e2.senderPublicKey, y4) : void 0, r3 = typeof e2.iv < "u" ? fromString2(e2.iv, y4) : randomBytes(q2), o4 = fromString2(e2.symKey, y4), s2 = chacha20poly1305(o4, r3).encrypt(fromString2(e2.message, k4)), i3 = Ie3({ type: t, sealed: s2, iv: r3, senderPublicKey: n4 });
+    const t2 = Ae3(typeof e2.type < "u" ? e2.type : Se3);
+    if (C3(t2) === D2 && typeof e2.senderPublicKey > "u") throw new Error("Missing sender public key for type 1 envelope");
+    const n4 = typeof e2.senderPublicKey < "u" ? fromString2(e2.senderPublicKey, y4) : void 0, r3 = typeof e2.iv < "u" ? fromString2(e2.iv, y4) : randomBytes(q2), o4 = fromString2(e2.symKey, y4), s2 = chacha20poly1305(o4, r3).encrypt(fromString2(e2.message, k4)), i3 = Ie3({ type: t2, sealed: s2, iv: r3, senderPublicKey: n4 });
     return e2.encoding === ee2 ? Ot2(i3) : i3;
   }
   function Tr2(e2) {
-    const t = fromString2(e2.symKey, y4), { sealed: n4, iv: r3 } = ne2({ encoded: e2.encoded, encoding: e2.encoding }), o4 = chacha20poly1305(t, r3).decrypt(n4);
+    const t2 = fromString2(e2.symKey, y4), { sealed: n4, iv: r3 } = ne2({ encoded: e2.encoded, encoding: e2.encoding }), o4 = chacha20poly1305(t2, r3).decrypt(n4);
     if (o4 === null) throw new Error("Failed to decrypt");
     return toString2(o4, k4);
   }
-  function Rr2(e2, t) {
+  function Rr2(e2, t2) {
     const n4 = Ae3(F), r3 = randomBytes(q2), o4 = fromString2(e2, k4), s2 = Ie3({ type: n4, sealed: o4, iv: r3 });
-    return t === ee2 ? Ot2(s2) : s2;
+    return t2 === ee2 ? Ot2(s2) : s2;
   }
-  function Ur2(e2, t) {
-    const { sealed: n4 } = ne2({ encoded: e2, encoding: t });
+  function Ur2(e2, t2) {
+    const { sealed: n4 } = ne2({ encoded: e2, encoding: t2 });
     return toString2(n4, k4);
   }
   function Ie3(e2) {
@@ -18844,10 +18844,10 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     return toString2(concat2([e2.type, e2.iv, e2.sealed]), S2);
   }
   function ne2(e2) {
-    const t = (e2.encoding || S2) === ee2 ? te3(e2.encoded) : e2.encoded, n4 = fromString2(t, S2), r3 = n4.slice(wr2, St2), o4 = St2;
+    const t2 = (e2.encoding || S2) === ee2 ? te3(e2.encoded) : e2.encoded, n4 = fromString2(t2, S2), r3 = n4.slice(wr2, St2), o4 = St2;
     if (C3(r3) === D2) {
-      const l4 = o4 + Oe3, c4 = l4 + q2, d3 = n4.slice(o4, l4), u3 = n4.slice(l4, c4), p4 = n4.slice(c4);
-      return { type: r3, sealed: p4, iv: u3, senderPublicKey: d3 };
+      const l4 = o4 + Oe3, c4 = l4 + q2, d3 = n4.slice(o4, l4), u2 = n4.slice(l4, c4), p4 = n4.slice(c4);
+      return { type: r3, sealed: p4, iv: u2, senderPublicKey: d3 };
     }
     if (C3(r3) === F) {
       const l4 = n4.slice(o4), c4 = randomBytes(q2);
@@ -18856,17 +18856,17 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     const s2 = o4 + q2, i3 = n4.slice(o4, s2), a3 = n4.slice(s2);
     return { type: r3, sealed: a3, iv: i3 };
   }
-  function $r2(e2, t) {
-    const n4 = ne2({ encoded: e2, encoding: t?.encoding });
-    return At({ type: C3(n4.type), senderPublicKey: typeof n4.senderPublicKey < "u" ? toString2(n4.senderPublicKey, y4) : void 0, receiverPublicKey: t?.receiverPublicKey });
+  function $r2(e2, t2) {
+    const n4 = ne2({ encoded: e2, encoding: t2?.encoding });
+    return At({ type: C3(n4.type), senderPublicKey: typeof n4.senderPublicKey < "u" ? toString2(n4.senderPublicKey, y4) : void 0, receiverPublicKey: t2?.receiverPublicKey });
   }
   function At(e2) {
-    const t = e2?.type || Se3;
-    if (t === D2) {
+    const t2 = e2?.type || Se3;
+    if (t2 === D2) {
       if (typeof e2?.senderPublicKey > "u") throw new Error("missing sender public key");
       if (typeof e2?.receiverPublicKey > "u") throw new Error("missing receiver public key");
     }
-    return { type: t, senderPublicKey: e2?.senderPublicKey, receiverPublicKey: e2?.receiverPublicKey };
+    return { type: t2, senderPublicKey: e2?.senderPublicKey, receiverPublicKey: e2?.receiverPublicKey };
   }
   function jr2(e2) {
     return e2.type === D2 && typeof e2.senderPublicKey == "string" && typeof e2.receiverPublicKey == "string";
@@ -18875,13 +18875,13 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     return e2.type === F;
   }
   function It2(e2) {
-    const t = fromString2(te3(e2.x), S2), n4 = fromString2(te3(e2.y), S2);
-    return concat2([new Uint8Array([4]), t, n4]);
+    const t2 = fromString2(te3(e2.x), S2), n4 = fromString2(te3(e2.y), S2);
+    return concat2([new Uint8Array([4]), t2, n4]);
   }
-  function Pr2(e2, t) {
+  function Pr2(e2, t2) {
     const [n4, r3, o4] = e2.split("."), s2 = fromString2(te3(o4), S2);
     if (s2.length !== 64) throw new Error("Invalid signature length");
-    const i3 = s2.slice(0, 32), a3 = s2.slice(32, 64), l4 = `${n4}.${r3}`, c4 = sha2564(l4), d3 = It2(t);
+    const i3 = s2.slice(0, 32), a3 = s2.slice(32, 64), l4 = `${n4}.${r3}`, c4 = sha2564(l4), d3 = It2(t2);
     if (!p2562.verify(concat2([i3, a3]), c4, d3)) throw new Error("Invalid signature");
     return sn(e2).payload;
   }
@@ -18889,12 +18889,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     return e2?.relay || { protocol: Tt2 };
   }
   function _r2(e2) {
-    const t = C2[e2];
-    if (typeof t > "u") throw new Error(`Relay Protocol not supported: ${e2}`);
-    return t;
+    const t2 = C2[e2];
+    if (typeof t2 > "u") throw new Error(`Relay Protocol not supported: ${e2}`);
+    return t2;
   }
-  function Rt2(e2, t = "-") {
-    const n4 = {}, r3 = "relay" + t;
+  function Rt2(e2, t2 = "-") {
+    const n4 = {}, r3 = "relay" + t2;
     return Object.keys(e2).forEach((o4) => {
       if (o4.startsWith(r3)) {
         const s2 = o4.replace(r3, ""), i3 = e2[o4];
@@ -18908,63 +18908,63 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       c4?.includes("wc:") && (e2 = c4);
     }
     e2 = e2.includes("wc://") ? e2.replace("wc://", "") : e2, e2 = e2.includes("wc:") ? e2.replace("wc:", "") : e2;
-    const t = e2.indexOf(":"), n4 = e2.indexOf("?") !== -1 ? e2.indexOf("?") : void 0, r3 = e2.substring(0, t), o4 = e2.substring(t + 1, n4).split("@"), s2 = typeof n4 < "u" ? e2.substring(n4) : "", i3 = new URLSearchParams(s2), a3 = Object.fromEntries(i3.entries()), l4 = typeof a3.methods == "string" ? a3.methods.split(",") : void 0;
+    const t2 = e2.indexOf(":"), n4 = e2.indexOf("?") !== -1 ? e2.indexOf("?") : void 0, r3 = e2.substring(0, t2), o4 = e2.substring(t2 + 1, n4).split("@"), s2 = typeof n4 < "u" ? e2.substring(n4) : "", i3 = new URLSearchParams(s2), a3 = Object.fromEntries(i3.entries()), l4 = typeof a3.methods == "string" ? a3.methods.split(",") : void 0;
     return { protocol: r3, topic: Ut2(o4[0]), version: parseInt(o4[1], 10), symKey: a3.symKey, relay: Rt2(a3), methods: l4, expiryTimestamp: a3.expiryTimestamp ? parseInt(a3.expiryTimestamp, 10) : void 0 };
   }
   function Ut2(e2) {
     return e2.startsWith("//") ? e2.substring(2) : e2;
   }
-  function $t2(e2, t = "-") {
+  function $t2(e2, t2 = "-") {
     const n4 = "relay", r3 = {};
     return Object.keys(e2).forEach((o4) => {
-      const s2 = o4, i3 = n4 + t + s2;
+      const s2 = o4, i3 = n4 + t2 + s2;
       e2[s2] && (r3[i3] = e2[s2]);
     }), r3;
   }
   function Dr2(e2) {
-    const t = new URLSearchParams(), n4 = { ...$t2(e2.relay), symKey: e2.symKey, ...e2.expiryTimestamp && { expiryTimestamp: e2.expiryTimestamp.toString() }, ...e2.methods && { methods: e2.methods.join(",") } };
+    const t2 = new URLSearchParams(), n4 = { ...$t2(e2.relay), symKey: e2.symKey, ...e2.expiryTimestamp && { expiryTimestamp: e2.expiryTimestamp.toString() }, ...e2.methods && { methods: e2.methods.join(",") } };
     return Object.entries(n4).sort(([r3], [o4]) => r3.localeCompare(o4)).forEach(([r3, o4]) => {
-      o4 !== void 0 && t.append(r3, String(o4));
-    }), `${e2.protocol}:${e2.topic}@${e2.version}?${t}`;
+      o4 !== void 0 && t2.append(r3, String(o4));
+    }), `${e2.protocol}:${e2.topic}@${e2.version}?${t2}`;
   }
-  function Vr2(e2, t, n4) {
-    return `${e2}?wc_ev=${n4}&topic=${t}`;
+  function Vr2(e2, t2, n4) {
+    return `${e2}?wc_ev=${n4}&topic=${t2}`;
   }
   function P3(e2) {
-    const t = [];
+    const t2 = [];
     return e2.forEach((n4) => {
       const [r3, o4] = n4.split(":");
-      t.push(`${r3}:${o4}`);
-    }), t;
+      t2.push(`${r3}:${o4}`);
+    }), t2;
   }
   function jt2(e2) {
-    const t = [];
+    const t2 = [];
     return Object.values(e2).forEach((n4) => {
-      t.push(...P3(n4.accounts));
-    }), [...new Set(t)];
+      t2.push(...P3(n4.accounts));
+    }), [...new Set(t2)];
   }
   function Mr2(e2) {
-    const t = [];
+    const t2 = [];
     return Object.values(e2).forEach((n4) => {
-      t.push(...n4.methods);
-    }), [...new Set(t)];
+      t2.push(...n4.methods);
+    }), [...new Set(t2)];
   }
   function Lr2(e2) {
-    const t = [];
+    const t2 = [];
     return Object.values(e2).forEach((n4) => {
-      t.push(...n4.events);
-    }), [...new Set(t)];
+      t2.push(...n4.events);
+    }), [...new Set(t2)];
   }
-  function Ct(e2, t) {
+  function Ct(e2, t2) {
     const n4 = [];
     return Object.values(e2).forEach((r3) => {
-      P3(r3.accounts).includes(t) && n4.push(...r3.methods);
+      P3(r3.accounts).includes(t2) && n4.push(...r3.methods);
     }), n4;
   }
-  function Pt2(e2, t) {
+  function Pt2(e2, t2) {
     const n4 = [];
     return Object.values(e2).forEach((r3) => {
-      P3(r3.accounts).includes(t) && n4.push(...r3.events);
+      P3(r3.accounts).includes(t2) && n4.push(...r3.events);
     }), n4;
   }
   function Te3(e2) {
@@ -18974,34 +18974,34 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     return Te3(e2) ? e2.split(":")[0] : e2;
   }
   function H3(e2) {
-    const t = {};
-    if (!re2(e2)) return t;
+    const t2 = {};
+    if (!re2(e2)) return t2;
     for (const [n4, r3] of Object.entries(e2)) {
       const o4 = Te3(n4) ? [n4] : r3.chains, s2 = r3.methods || [], i3 = r3.events || [], a3 = xt2(n4);
-      t[a3] = { ...t[a3], chains: w2(o4, t[a3]?.chains), methods: w2(s2, t[a3]?.methods), events: w2(i3, t[a3]?.events) };
+      t2[a3] = { ...t2[a3], chains: w2(o4, t2[a3]?.chains), methods: w2(s2, t2[a3]?.methods), events: w2(i3, t2[a3]?.events) };
     }
-    return t;
+    return t2;
   }
   function _t2(e2) {
-    const t = {};
+    const t2 = {};
     return e2?.forEach((n4) => {
       const [r3, o4] = n4.split(":");
-      t[r3] || (t[r3] = { accounts: [], chains: [], events: [], methods: [] }), t[r3].accounts.push(n4), t[r3].chains?.push(`${r3}:${o4}`);
-    }), t;
+      t2[r3] || (t2[r3] = { accounts: [], chains: [], events: [], methods: [] }), t2[r3].accounts.push(n4), t2[r3].chains?.push(`${r3}:${o4}`);
+    }), t2;
   }
-  function qr2(e2, t) {
-    t = t.map((r3) => r3.replace("did:pkh:", ""));
-    const n4 = _t2(t);
+  function qr2(e2, t2) {
+    t2 = t2.map((r3) => r3.replace("did:pkh:", ""));
+    const n4 = _t2(t2);
     for (const [r3, o4] of Object.entries(n4)) o4.methods ? o4.methods = w2(o4.methods, e2) : o4.methods = e2, o4.events = ["chainChanged", "accountsChanged"];
     return n4;
   }
-  function Hr2(e2, t) {
-    const n4 = H3(e2), r3 = H3(t), o4 = {}, s2 = Object.keys(n4).concat(Object.keys(r3));
+  function Hr2(e2, t2) {
+    const n4 = H3(e2), r3 = H3(t2), o4 = {}, s2 = Object.keys(n4).concat(Object.keys(r3));
     for (const i3 of s2) o4[i3] = { chains: w2(n4[i3]?.chains, r3[i3]?.chains), methods: w2(n4[i3]?.methods, r3[i3]?.methods), events: w2(n4[i3]?.events, r3[i3]?.events) };
     return o4;
   }
-  function B2(e2, t) {
-    return Array.isArray(e2) ? typeof t < "u" && e2.length ? e2.every(t) : true : false;
+  function B2(e2, t2) {
+    return Array.isArray(e2) ? typeof t2 < "u" && e2.length ? e2.every(t2) : true : false;
   }
   function re2(e2) {
     return Object.getPrototypeOf(e2) === Object.prototype && Object.keys(e2).length;
@@ -19009,18 +19009,18 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
   function R2(e2) {
     return typeof e2 > "u";
   }
-  function E3(e2, t) {
-    return t && R2(e2) ? true : typeof e2 == "string" && !!e2.trim().length;
+  function E3(e2, t2) {
+    return t2 && R2(e2) ? true : typeof e2 == "string" && !!e2.trim().length;
   }
-  function oe2(e2, t) {
-    return t && R2(e2) ? true : typeof e2 == "number" && !isNaN(e2);
+  function oe2(e2, t2) {
+    return t2 && R2(e2) ? true : typeof e2 == "number" && !isNaN(e2);
   }
-  function Br2(e2, t) {
-    const { requiredNamespaces: n4 } = t, r3 = Object.keys(e2.namespaces), o4 = Object.keys(n4);
+  function Br2(e2, t2) {
+    const { requiredNamespaces: n4 } = t2, r3 = Object.keys(e2.namespaces), o4 = Object.keys(n4);
     let s2 = true;
     return I(o4, r3) ? (r3.forEach((i3) => {
-      const { accounts: a3, methods: l4, events: c4 } = e2.namespaces[i3], d3 = P3(a3), u3 = n4[i3];
-      (!I(Y2(i3, u3), d3) || !I(u3.methods, l4) || !I(u3.events, c4)) && (s2 = false);
+      const { accounts: a3, methods: l4, events: c4 } = e2.namespaces[i3], d3 = P3(a3), u2 = n4[i3];
+      (!I(Y2(i3, u2), d3) || !I(u2.methods, l4) || !I(u2.events, c4)) && (s2 = false);
     }), s2) : false;
   }
   function W3(e2) {
@@ -19028,16 +19028,16 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
   }
   function kt2(e2) {
     if (E3(e2, false) && e2.includes(":")) {
-      const t = e2.split(":");
-      if (t.length === 3) {
-        const n4 = t[0] + ":" + t[1];
-        return !!t[2] && W3(n4);
+      const t2 = e2.split(":");
+      if (t2.length === 3) {
+        const n4 = t2[0] + ":" + t2[1];
+        return !!t2[2] && W3(n4);
       }
     }
     return false;
   }
   function Wr2(e2) {
-    function t(n4) {
+    function t2(n4) {
       try {
         return typeof new URL(n4) < "u";
       } catch {
@@ -19046,9 +19046,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     }
     try {
       if (E3(e2, false)) {
-        if (t(e2)) return true;
+        if (t2(e2)) return true;
         const n4 = he3(e2);
-        return t(n4);
+        return t2(n4);
       }
     } catch {
     }
@@ -19060,80 +19060,80 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
   function zr2(e2) {
     return e2?.topic;
   }
-  function Gr2(e2, t) {
+  function Gr2(e2, t2) {
     let n4 = null;
-    return E3(e2?.publicKey, false) || (n4 = N10("MISSING_OR_INVALID", `${t} controller public key should be a string`)), n4;
+    return E3(e2?.publicKey, false) || (n4 = N10("MISSING_OR_INVALID", `${t2} controller public key should be a string`)), n4;
   }
   function Re3(e2) {
-    let t = true;
-    return B2(e2) ? e2.length && (t = e2.every((n4) => E3(n4, false))) : t = false, t;
+    let t2 = true;
+    return B2(e2) ? e2.length && (t2 = e2.every((n4) => E3(n4, false))) : t2 = false, t2;
   }
-  function Dt2(e2, t, n4) {
+  function Dt2(e2, t2, n4) {
     let r3 = null;
-    return B2(t) && t.length ? t.forEach((o4) => {
+    return B2(t2) && t2.length ? t2.forEach((o4) => {
       r3 || W3(o4) || (r3 = $2("UNSUPPORTED_CHAINS", `${n4}, chain ${o4} should be a string and conform to "namespace:chainId" format`));
     }) : W3(e2) || (r3 = $2("UNSUPPORTED_CHAINS", `${n4}, chains must be defined as "namespace:chainId" e.g. "eip155:1": {...} in the namespace key OR as an array of CAIP-2 chainIds e.g. eip155: { chains: ["eip155:1", "eip155:5"] }`)), r3;
   }
-  function Vt2(e2, t, n4) {
+  function Vt2(e2, t2, n4) {
     let r3 = null;
     return Object.entries(e2).forEach(([o4, s2]) => {
       if (r3) return;
-      const i3 = Dt2(o4, Y2(o4, s2), `${t} ${n4}`);
+      const i3 = Dt2(o4, Y2(o4, s2), `${t2} ${n4}`);
       i3 && (r3 = i3);
     }), r3;
   }
-  function Mt2(e2, t) {
+  function Mt2(e2, t2) {
     let n4 = null;
     return B2(e2) ? e2.forEach((r3) => {
-      n4 || kt2(r3) || (n4 = $2("UNSUPPORTED_ACCOUNTS", `${t}, account ${r3} should be a string and conform to "namespace:chainId:address" format`));
-    }) : n4 = $2("UNSUPPORTED_ACCOUNTS", `${t}, accounts should be an array of strings conforming to "namespace:chainId:address" format`), n4;
+      n4 || kt2(r3) || (n4 = $2("UNSUPPORTED_ACCOUNTS", `${t2}, account ${r3} should be a string and conform to "namespace:chainId:address" format`));
+    }) : n4 = $2("UNSUPPORTED_ACCOUNTS", `${t2}, accounts should be an array of strings conforming to "namespace:chainId:address" format`), n4;
   }
-  function Lt2(e2, t) {
+  function Lt2(e2, t2) {
     let n4 = null;
     return Object.values(e2).forEach((r3) => {
       if (n4) return;
-      const o4 = Mt2(r3?.accounts, `${t} namespace`);
+      const o4 = Mt2(r3?.accounts, `${t2} namespace`);
       o4 && (n4 = o4);
     }), n4;
   }
-  function Kt2(e2, t) {
+  function Kt2(e2, t2) {
     let n4 = null;
-    return Re3(e2?.methods) ? Re3(e2?.events) || (n4 = $2("UNSUPPORTED_EVENTS", `${t}, events should be an array of strings or empty array for no events`)) : n4 = $2("UNSUPPORTED_METHODS", `${t}, methods should be an array of strings or empty array for no methods`), n4;
+    return Re3(e2?.methods) ? Re3(e2?.events) || (n4 = $2("UNSUPPORTED_EVENTS", `${t2}, events should be an array of strings or empty array for no events`)) : n4 = $2("UNSUPPORTED_METHODS", `${t2}, methods should be an array of strings or empty array for no methods`), n4;
   }
-  function Ue3(e2, t) {
+  function Ue3(e2, t2) {
     let n4 = null;
     return Object.values(e2).forEach((r3) => {
       if (n4) return;
-      const o4 = Kt2(r3, `${t}, namespace`);
+      const o4 = Kt2(r3, `${t2}, namespace`);
       o4 && (n4 = o4);
     }), n4;
   }
-  function Yr2(e2, t, n4) {
+  function Yr2(e2, t2, n4) {
     let r3 = null;
     if (e2 && re2(e2)) {
-      const o4 = Ue3(e2, t);
+      const o4 = Ue3(e2, t2);
       o4 && (r3 = o4);
-      const s2 = Vt2(e2, t, n4);
+      const s2 = Vt2(e2, t2, n4);
       s2 && (r3 = s2);
-    } else r3 = N10("MISSING_OR_INVALID", `${t}, ${n4} should be an object with data`);
+    } else r3 = N10("MISSING_OR_INVALID", `${t2}, ${n4} should be an object with data`);
     return r3;
   }
-  function Ft2(e2, t) {
+  function Ft2(e2, t2) {
     let n4 = null;
     if (e2 && re2(e2)) {
-      const r3 = Ue3(e2, t);
+      const r3 = Ue3(e2, t2);
       r3 && (n4 = r3);
-      const o4 = Lt2(e2, t);
+      const o4 = Lt2(e2, t2);
       o4 && (n4 = o4);
-    } else n4 = N10("MISSING_OR_INVALID", `${t}, namespaces should be an object with data`);
+    } else n4 = N10("MISSING_OR_INVALID", `${t2}, namespaces should be an object with data`);
     return n4;
   }
   function qt2(e2) {
     return E3(e2.protocol, true);
   }
-  function Qr2(e2, t) {
+  function Qr2(e2, t2) {
     let n4 = false;
-    return t && !e2 ? n4 = true : e2 && B2(e2) && e2.length && e2.forEach((r3) => {
+    return t2 && !e2 ? n4 = true : e2 && B2(e2) && e2.length && e2.forEach((r3) => {
       n4 = qt2(r3);
     }), n4;
   }
@@ -19155,69 +19155,69 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
   function ro2(e2) {
     return !(R2(e2) || !E3(e2.name, false));
   }
-  function oo2(e2, t) {
-    return !(!W3(t) || !jt2(e2).includes(t));
+  function oo2(e2, t2) {
+    return !(!W3(t2) || !jt2(e2).includes(t2));
   }
-  function so2(e2, t, n4) {
-    return E3(n4, false) ? Ct(e2, t).includes(n4) : false;
+  function so2(e2, t2, n4) {
+    return E3(n4, false) ? Ct(e2, t2).includes(n4) : false;
   }
-  function io2(e2, t, n4) {
-    return E3(n4, false) ? Pt2(e2, t).includes(n4) : false;
+  function io2(e2, t2, n4) {
+    return E3(n4, false) ? Pt2(e2, t2).includes(n4) : false;
   }
-  function Ht2(e2, t, n4) {
+  function Ht2(e2, t2, n4) {
     let r3 = null;
-    const o4 = co2(e2), s2 = ao2(t), i3 = Object.keys(o4), a3 = Object.keys(s2), l4 = Bt2(Object.keys(e2)), c4 = Bt2(Object.keys(t)), d3 = l4.filter((u3) => !c4.includes(u3));
+    const o4 = co2(e2), s2 = ao2(t2), i3 = Object.keys(o4), a3 = Object.keys(s2), l4 = Bt2(Object.keys(e2)), c4 = Bt2(Object.keys(t2)), d3 = l4.filter((u2) => !c4.includes(u2));
     return d3.length && (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces keys don't satisfy requiredNamespaces.
       Required: ${d3.toString()}
-      Received: ${Object.keys(t).toString()}`)), I(i3, a3) || (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces chains don't satisfy required namespaces.
+      Received: ${Object.keys(t2).toString()}`)), I(i3, a3) || (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces chains don't satisfy required namespaces.
       Required: ${i3.toString()}
-      Approved: ${a3.toString()}`)), Object.keys(t).forEach((u3) => {
-      if (!u3.includes(":") || r3) return;
-      const p4 = P3(t[u3].accounts);
-      p4.includes(u3) || (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces accounts don't satisfy namespace accounts for ${u3}
-        Required: ${u3}
+      Approved: ${a3.toString()}`)), Object.keys(t2).forEach((u2) => {
+      if (!u2.includes(":") || r3) return;
+      const p4 = P3(t2[u2].accounts);
+      p4.includes(u2) || (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces accounts don't satisfy namespace accounts for ${u2}
+        Required: ${u2}
         Approved: ${p4.toString()}`));
-    }), i3.forEach((u3) => {
-      r3 || (I(o4[u3].methods, s2[u3].methods) ? I(o4[u3].events, s2[u3].events) || (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces events don't satisfy namespace events for ${u3}`)) : r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces methods don't satisfy namespace methods for ${u3}`));
+    }), i3.forEach((u2) => {
+      r3 || (I(o4[u2].methods, s2[u2].methods) ? I(o4[u2].events, s2[u2].events) || (r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces events don't satisfy namespace events for ${u2}`)) : r3 = N10("NON_CONFORMING_NAMESPACES", `${n4} namespaces methods don't satisfy namespace methods for ${u2}`));
     }), r3;
   }
   function co2(e2) {
-    const t = {};
+    const t2 = {};
     return Object.keys(e2).forEach((n4) => {
-      n4.includes(":") ? t[n4] = e2[n4] : e2[n4].chains?.forEach((r3) => {
-        t[r3] = { methods: e2[n4].methods, events: e2[n4].events };
+      n4.includes(":") ? t2[n4] = e2[n4] : e2[n4].chains?.forEach((r3) => {
+        t2[r3] = { methods: e2[n4].methods, events: e2[n4].events };
       });
-    }), t;
+    }), t2;
   }
   function Bt2(e2) {
-    return [...new Set(e2.map((t) => t.includes(":") ? t.split(":")[0] : t))];
+    return [...new Set(e2.map((t2) => t2.includes(":") ? t2.split(":")[0] : t2))];
   }
   function ao2(e2) {
-    const t = {};
+    const t2 = {};
     return Object.keys(e2).forEach((n4) => {
-      n4.includes(":") ? t[n4] = e2[n4] : P3(e2[n4].accounts)?.forEach((r3) => {
-        t[r3] = { accounts: e2[n4].accounts.filter((o4) => o4.includes(`${r3}:`)), methods: e2[n4].methods, events: e2[n4].events };
+      n4.includes(":") ? t2[n4] = e2[n4] : P3(e2[n4].accounts)?.forEach((r3) => {
+        t2[r3] = { accounts: e2[n4].accounts.filter((o4) => o4.includes(`${r3}:`)), methods: e2[n4].methods, events: e2[n4].events };
       });
-    }), t;
+    }), t2;
   }
-  function uo2(e2, t) {
-    return oe2(e2, false) && e2 <= t.max && e2 >= t.min;
+  function uo2(e2, t2) {
+    return oe2(e2, false) && e2 <= t2.max && e2 >= t2.min;
   }
   function lo2() {
     const e2 = j3();
-    return new Promise((t) => {
+    return new Promise((t2) => {
       switch (e2) {
         case g2.browser:
-          t(Wt2());
+          t2(Wt2());
           break;
         case g2.reactNative:
-          t(Jt2());
+          t2(Jt2());
           break;
         case g2.node:
-          t(zt2());
+          t2(zt2());
           break;
         default:
-          t(true);
+          t2(true);
       }
     });
   }
@@ -19246,65 +19246,65 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     !A2() && x5() && (window.addEventListener("online", () => e2(true)), window.addEventListener("offline", () => e2(false)));
   }
   function Yt2(e2) {
-    A2() && typeof global < "u" && global?.NetInfo && global?.NetInfo.addEventListener((t) => e2(t?.isConnected));
+    A2() && typeof global < "u" && global?.NetInfo && global?.NetInfo.addEventListener((t2) => e2(t2?.isConnected));
   }
   function po2() {
     return x5() && (0, import_window_getters.getDocument)() ? (0, import_window_getters.getDocument)()?.visibilityState === "visible" : true;
   }
   function Qt2(e2) {
-    const t = base58.decode(e2);
-    if (t.length < 33) throw new Error("Too short to contain a public key");
-    return t.slice(1, 33);
+    const t2 = base58.decode(e2);
+    if (t2.length < 33) throw new Error("Too short to contain a public key");
+    return t2.slice(1, 33);
   }
-  function Xt2({ publicKey: e2, signature: t, payload: n4 }) {
+  function Xt2({ publicKey: e2, signature: t2, payload: n4 }) {
     const r3 = se2(n4.method), o4 = 128 | parseInt(n4.version?.toString() || "4"), s2 = go2(n4.address), i3 = n4.era === "00" ? new Uint8Array([0]) : se2(n4.era);
     if (i3.length !== 1 && i3.length !== 2) throw new Error("Invalid era length");
-    const a3 = parseInt(n4.nonce, 16), l4 = new Uint8Array([a3 & 255, a3 >> 8 & 255]), c4 = BigInt(`0x${ho2(n4.tip)}`), d3 = Eo2(c4), u3 = new Uint8Array([0, ...e2, s2, ...t, ...i3, ...l4, ...d3, ...r3]), p4 = yo2(u3.length + 1);
-    return new Uint8Array([...p4, o4, ...u3]);
+    const a3 = parseInt(n4.nonce, 16), l4 = new Uint8Array([a3 & 255, a3 >> 8 & 255]), c4 = BigInt(`0x${ho2(n4.tip)}`), d3 = Eo2(c4), u2 = new Uint8Array([0, ...e2, s2, ...t2, ...i3, ...l4, ...d3, ...r3]), p4 = yo2(u2.length + 1);
+    return new Uint8Array([...p4, o4, ...u2]);
   }
   function Zt2(e2) {
-    const t = se2(e2), n4 = (0, import_blakejs.blake2b)(t, void 0, 32);
+    const t2 = se2(e2), n4 = (0, import_blakejs.blake2b)(t2, void 0, 32);
     return "0x" + toString2(n4, "base16");
   }
   function se2(e2) {
-    return new Uint8Array(e2.replace(/^0x/, "").match(/.{1,2}/g).map((t) => parseInt(t, 16)));
+    return new Uint8Array(e2.replace(/^0x/, "").match(/.{1,2}/g).map((t2) => parseInt(t2, 16)));
   }
   function ho2(e2) {
     return e2.startsWith("0x") ? e2.slice(2) : e2;
   }
   function go2(e2) {
-    const t = base58.decode(e2)[0];
-    return t === 42 ? 0 : t === 60 ? 2 : 1;
+    const t2 = base58.decode(e2)[0];
+    return t2 === 42 ? 0 : t2 === 60 ? 2 : 1;
   }
   function yo2(e2) {
     if (e2 < 64) return new Uint8Array([e2 << 2]);
     if (e2 < 16384) {
-      const t = e2 << 2 | 1;
-      return new Uint8Array([t & 255, t >> 8 & 255]);
+      const t2 = e2 << 2 | 1;
+      return new Uint8Array([t2 & 255, t2 >> 8 & 255]);
     } else if (e2 < 1 << 30) {
-      const t = e2 << 2 | 2;
-      return new Uint8Array([t & 255, t >> 8 & 255, t >> 16 & 255, t >> 24 & 255]);
+      const t2 = e2 << 2 | 2;
+      return new Uint8Array([t2 & 255, t2 >> 8 & 255, t2 >> 16 & 255, t2 >> 24 & 255]);
     } else throw new Error("Compact encoding > 2^30 not supported");
   }
   function Eo2(e2) {
     if (e2 < 1n << 6n) return new Uint8Array([Number(e2 << 2n)]);
     if (e2 < 1n << 14n) {
-      const t = e2 << 2n | 0x01n;
-      return new Uint8Array([Number(t & 0xffn), Number(t >> 8n & 0xffn)]);
+      const t2 = e2 << 2n | 0x01n;
+      return new Uint8Array([Number(t2 & 0xffn), Number(t2 >> 8n & 0xffn)]);
     } else if (e2 < 1n << 30n) {
-      const t = e2 << 2n | 0x02n;
-      return new Uint8Array([Number(t & 0xffn), Number(t >> 8n & 0xffn), Number(t >> 16n & 0xffn), Number(t >> 24n & 0xffn)]);
+      const t2 = e2 << 2n | 0x02n;
+      return new Uint8Array([Number(t2 & 0xffn), Number(t2 >> 8n & 0xffn), Number(t2 >> 16n & 0xffn), Number(t2 >> 24n & 0xffn)]);
     } else throw new Error("BigInt compact encoding not supported > 2^30");
   }
   function bo2(e2) {
-    const t = se2(e2.signature), n4 = Qt2(e2.transaction.address), r3 = Xt2({ publicKey: n4, signature: t, payload: e2.transaction }), o4 = toString2(r3, "base16");
+    const t2 = se2(e2.signature), n4 = Qt2(e2.transaction.address), r3 = Xt2({ publicKey: n4, signature: t2, payload: e2.transaction }), o4 = toString2(r3, "base16");
     return Zt2(o4);
   }
   function en2(e2) {
-    const t = e2?.commands;
-    if (!Array.isArray(t)) return [];
+    const t2 = e2?.commands;
+    if (!Array.isArray(t2)) return [];
     const n4 = [];
-    for (const r3 of t) {
+    for (const r3 of t2) {
       const o4 = r3?.ExerciseCommand;
       if (!o4 || !wo2.has(o4.choice)) continue;
       const s2 = o4.choiceArgument?.transfer;
@@ -19312,14 +19312,14 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
     }
     return n4;
   }
-  function No2(e2, t) {
-    const n4 = t?.payload?.updateId;
+  function No2(e2, t2) {
+    const n4 = t2?.payload?.updateId;
     if (!n4) return [];
     const r3 = en2(e2);
     return r3.length === 0 ? [String(n4)] : r3.map((o4) => `${n4}:${o4.amount}:${o4.instrumentId}`);
   }
-  function vo2({ logger: e2, name: t }) {
-    const n4 = typeof e2 == "string" ? Ue({ opts: { level: e2, name: t } }).logger : e2;
+  function vo2({ logger: e2, name: t2 }) {
+    const n4 = typeof e2 == "string" ? Ue({ opts: { level: e2, name: t2 } }).logger : e2;
     return n4.level = typeof e2 == "string" ? e2 : e2.level, n4;
   }
   var import_time3, import_window_getters, import_window_metadata, import_blakejs, G3, Ke2, Fe2, qe2, g2, Be3, er2, tr2, ut2, ur2, lr2, K4, lt2, dt2, ft2, Ee3, pt, ve3, y4, S2, ee2, k4, Se3, D2, F, wr2, St2, q2, Oe3, Tt2, $e3, mo2, wo2;
@@ -19353,20 +19353,20 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       g2 = { reactNative: "react-native", node: "node", browser: "browser", unknown: "unknown" };
       Be3 = "js";
       er2 = class {
-        constructor({ limit: t }) {
-          this.limit = t, this.set = /* @__PURE__ */ new Set();
+        constructor({ limit: t2 }) {
+          this.limit = t2, this.set = /* @__PURE__ */ new Set();
         }
-        add(t) {
-          if (!this.set.has(t)) {
+        add(t2) {
+          if (!this.set.has(t2)) {
             if (this.set.size >= this.limit) {
               const n4 = this.set.values().next().value;
               n4 && this.set.delete(n4);
             }
-            this.set.add(t);
+            this.set.add(t2);
           }
         }
-        has(t) {
-          return this.set.has(t);
+        has(t2) {
+          return this.set.has(t2);
         }
       };
       tr2 = "https://rpc.walletconnect.org/v1";
@@ -19375,35 +19375,35 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       lr2 = (e2) => e2 ? ur2[e2] || e2 : "";
       K4 = (e2) => e2?.split(":");
       lt2 = (e2) => {
-        const t = e2 && K4(e2);
-        if (t) return e2.includes(ut2) ? t[3] : t[1];
+        const t2 = e2 && K4(e2);
+        if (t2) return e2.includes(ut2) ? t2[3] : t2[1];
       };
       dt2 = (e2) => {
-        const t = e2 && K4(e2);
-        if (t) return e2.includes(ut2) ? t[2] : t[0];
+        const t2 = e2 && K4(e2);
+        if (t2) return e2.includes(ut2) ? t2[2] : t2[0];
       };
       ft2 = (e2) => {
-        const t = e2 && K4(e2);
-        if (t) return t[2] + ":" + t[3];
+        const t2 = e2 && K4(e2);
+        if (t2) return t2[2] + ":" + t2[3];
       };
       Ee3 = (e2) => {
-        const t = e2 && K4(e2);
-        if (t) return t.pop();
+        const t2 = e2 && K4(e2);
+        if (t2) return t2.pop();
       };
-      pt = (e2, t) => {
-        const n4 = dt2(t);
-        if (!n4) throw new Error("Invalid issuer: " + t);
-        const r3 = `${e2.domain} wants you to sign in with your ${lr2(n4)} account:`, o4 = Ee3(t);
+      pt = (e2, t2) => {
+        const n4 = dt2(t2);
+        if (!n4) throw new Error("Invalid issuer: " + t2);
+        const r3 = `${e2.domain} wants you to sign in with your ${lr2(n4)} account:`, o4 = Ee3(t2);
         if (!e2.aud && !e2.uri) throw new Error("Either `aud` or `uri` is required to construct the message");
         let s2 = e2.statement || void 0;
-        const i3 = `URI: ${e2.aud || e2.uri}`, a3 = `Version: ${e2.version}`, l4 = `Chain ID: ${lt2(t)}`, c4 = `Nonce: ${e2.nonce}`, d3 = `Issued At: ${e2.iat}`, u3 = e2.exp ? `Expiration Time: ${e2.exp}` : void 0, p4 = e2.nbf ? `Not Before: ${e2.nbf}` : void 0, b4 = e2.requestId ? `Request ID: ${e2.requestId}` : void 0, f2 = e2.resources ? `Resources:${e2.resources.map((V4) => `
-- ${V4}`).join("")}` : void 0, O5 = Z2(e2.resources);
-        if (O5) {
-          const V4 = T2(O5);
-          s2 = Ne3(s2, V4);
+        const i3 = `URI: ${e2.aud || e2.uri}`, a3 = `Version: ${e2.version}`, l4 = `Chain ID: ${lt2(t2)}`, c4 = `Nonce: ${e2.nonce}`, d3 = `Issued At: ${e2.iat}`, u2 = e2.exp ? `Expiration Time: ${e2.exp}` : void 0, p4 = e2.nbf ? `Not Before: ${e2.nbf}` : void 0, b4 = e2.requestId ? `Request ID: ${e2.requestId}` : void 0, f2 = e2.resources ? `Resources:${e2.resources.map((V3) => `
+- ${V3}`).join("")}` : void 0, O4 = Z2(e2.resources);
+        if (O4) {
+          const V3 = T2(O4);
+          s2 = Ne3(s2, V3);
         }
         if (s2 && /\r|\n/.test(s2)) throw new Error("Statement must not contain line breaks (`\\r` or `\\n`)");
-        return [r3, o4, "", s2, "", i3, a3, l4, c4, d3, u3, p4, b4, f2].filter((V4) => V4 != null).join(`
+        return [r3, o4, "", s2, "", i3, a3, l4, c4, d3, u2, p4, b4, f2].filter((V3) => V3 != null).join(`
 `);
       };
       ve3 = "base10";
@@ -19421,14 +19421,14 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       Tt2 = "irn";
       $e3 = {};
       mo2 = class {
-        static get(t) {
-          return $e3[t];
+        static get(t2) {
+          return $e3[t2];
         }
-        static set(t, n4) {
-          $e3[t] = n4;
+        static set(t2, n4) {
+          $e3[t2] = n4;
         }
-        static delete(t) {
-          delete $e3[t];
+        static delete(t2) {
+          delete $e3[t2];
         }
       };
       wo2 = /* @__PURE__ */ new Set(["TransferFactory_Transfer", "DelegateProxy_TransferFactory_Transfer"]);
@@ -19827,64 +19827,64 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       import_events5 = __toESM(require_events());
       init_esm6();
       o3 = class extends r2 {
-        constructor(t) {
-          super(t), this.events = new import_events5.EventEmitter(), this.hasRegisteredEventListeners = false, this.connection = this.setConnection(t), this.connection.connected && this.registerEventListeners();
+        constructor(t2) {
+          super(t2), this.events = new import_events5.EventEmitter(), this.hasRegisteredEventListeners = false, this.connection = this.setConnection(t2), this.connection.connected && this.registerEventListeners();
         }
-        async connect(t = this.connection) {
-          await this.open(t);
+        async connect(t2 = this.connection) {
+          await this.open(t2);
         }
         async disconnect() {
           await this.close();
         }
-        on(t, e2) {
-          this.events.on(t, e2);
+        on(t2, e2) {
+          this.events.on(t2, e2);
         }
-        once(t, e2) {
-          this.events.once(t, e2);
+        once(t2, e2) {
+          this.events.once(t2, e2);
         }
-        off(t, e2) {
-          this.events.off(t, e2);
+        off(t2, e2) {
+          this.events.off(t2, e2);
         }
-        removeListener(t, e2) {
-          this.events.removeListener(t, e2);
+        removeListener(t2, e2) {
+          this.events.removeListener(t2, e2);
         }
-        async request(t, e2) {
-          return this.requestStrict(formatJsonRpcRequest(t.method, t.params || [], t.id || getBigIntRpcId().toString()), e2);
+        async request(t2, e2) {
+          return this.requestStrict(formatJsonRpcRequest(t2.method, t2.params || [], t2.id || getBigIntRpcId().toString()), e2);
         }
-        async requestStrict(t, e2) {
+        async requestStrict(t2, e2) {
           return new Promise(async (i3, s2) => {
             if (!this.connection.connected) try {
               await this.open();
             } catch (n4) {
               s2(n4);
             }
-            this.events.on(`${t.id}`, (n4) => {
+            this.events.on(`${t2.id}`, (n4) => {
               isJsonRpcError(n4) ? s2(n4.error) : i3(n4.result);
             });
             try {
-              await this.connection.send(t, e2);
+              await this.connection.send(t2, e2);
             } catch (n4) {
               s2(n4);
             }
           });
         }
-        setConnection(t = this.connection) {
-          return t;
+        setConnection(t2 = this.connection) {
+          return t2;
         }
-        onPayload(t) {
-          this.events.emit("payload", t), isJsonRpcResponse(t) ? this.events.emit(`${t.id}`, t) : this.events.emit("message", { type: t.method, data: t.params });
+        onPayload(t2) {
+          this.events.emit("payload", t2), isJsonRpcResponse(t2) ? this.events.emit(`${t2.id}`, t2) : this.events.emit("message", { type: t2.method, data: t2.params });
         }
-        onClose(t) {
-          t && t.code === 3e3 && this.events.emit("error", new Error(`WebSocket connection closed abnormally with code: ${t.code} ${t.reason ? `(${t.reason})` : ""}`)), this.events.emit("disconnect");
+        onClose(t2) {
+          t2 && t2.code === 3e3 && this.events.emit("error", new Error(`WebSocket connection closed abnormally with code: ${t2.code} ${t2.reason ? `(${t2.reason})` : ""}`)), this.events.emit("disconnect");
         }
-        async open(t = this.connection) {
-          this.connection === t && this.connection.connected || (this.connection.connected && this.close(), typeof t == "string" && (await this.connection.open(t), t = this.connection), this.connection = this.setConnection(t), await this.connection.open(), this.registerEventListeners(), this.events.emit("connect"));
+        async open(t2 = this.connection) {
+          this.connection === t2 && this.connection.connected || (this.connection.connected && this.close(), typeof t2 == "string" && (await this.connection.open(t2), t2 = this.connection), this.connection = this.setConnection(t2), await this.connection.open(), this.registerEventListeners(), this.events.emit("connect"));
         }
         async close() {
           await this.connection.close();
         }
         registerEventListeners() {
-          this.hasRegisteredEventListeners || (this.connection.on("payload", (t) => this.onPayload(t)), this.connection.on("close", (t) => this.onClose(t)), this.connection.on("error", (t) => this.events.emit("error", t)), this.connection.on("register_error", (t) => this.onClose()), this.hasRegisteredEventListeners = true);
+          this.hasRegisteredEventListeners || (this.connection.on("payload", (t2) => this.onPayload(t2)), this.connection.on("close", (t2) => this.onClose(t2)), this.connection.on("error", (t2) => this.events.emit("error", t2)), this.connection.on("register_error", (t2) => this.onClose()), this.hasRegisteredEventListeners = true);
         }
       };
     }
@@ -19925,25 +19925,25 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         get connecting() {
           return this.registering;
         }
-        on(e2, t) {
-          this.events.on(e2, t);
+        on(e2, t2) {
+          this.events.on(e2, t2);
         }
-        once(e2, t) {
-          this.events.once(e2, t);
+        once(e2, t2) {
+          this.events.once(e2, t2);
         }
-        off(e2, t) {
-          this.events.off(e2, t);
+        off(e2, t2) {
+          this.events.off(e2, t2);
         }
-        removeListener(e2, t) {
-          this.events.removeListener(e2, t);
+        removeListener(e2, t2) {
+          this.events.removeListener(e2, t2);
         }
         async open(e2 = this.url) {
           await this.register(e2);
         }
         async close() {
-          return new Promise((e2, t) => {
+          return new Promise((e2, t2) => {
             if (typeof this.socket > "u") {
-              t(new Error("Connection already closed"));
+              t2(new Error("Connection already closed"));
               return;
             }
             this.socket.onclose = (n4) => {
@@ -19955,15 +19955,15 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
           typeof this.socket > "u" && (this.socket = await this.register());
           try {
             this.socket.send(safeJsonStringify(e2));
-          } catch (t) {
-            this.onError(e2.id, t);
+          } catch (t2) {
+            this.onError(e2.id, t2);
           }
         }
         register(e2 = this.url) {
           if (!isWsUrl(e2)) throw new Error(`Provided URL is not compatible with WebSocket connection: ${e2}`);
           if (this.registering) {
-            const t = this.events.getMaxListeners();
-            return (this.events.listenerCount("register_error") >= t || this.events.listenerCount("open") >= t) && this.events.setMaxListeners(t + 1), new Promise((n4, s2) => {
+            const t2 = this.events.getMaxListeners();
+            return (this.events.listenerCount("register_error") >= t2 || this.events.listenerCount("open") >= t2) && this.events.setMaxListeners(t2 + 1), new Promise((n4, s2) => {
               this.events.once("register_error", (o4) => {
                 this.resetMaxListeners(), s2(o4);
               }), this.events.once("open", () => {
@@ -19972,7 +19972,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               });
             });
           }
-          return this.url = e2, this.registering = true, new Promise((t, n4) => {
+          return this.url = e2, this.registering = true, new Promise((t2, n4) => {
             const s2 = (0, esm_exports.isReactNative)() ? void 0 : { rejectUnauthorized: !isLocalhostUrl(e2) }, o4 = new b2(e2, [], s2);
             w3() ? o4.onerror = (i3) => {
               const a3 = i3;
@@ -19980,34 +19980,34 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             } : o4.on("error", (i3) => {
               n4(this.emitError(i3));
             }), o4.onopen = () => {
-              this.onOpen(o4), t(o4);
+              this.onOpen(o4), t2(o4);
             };
           });
         }
         onOpen(e2) {
-          e2.onmessage = (t) => this.onPayload(t), e2.onclose = (t) => this.onClose(t), this.socket = e2, this.registering = false, this.events.emit("open");
+          e2.onmessage = (t2) => this.onPayload(t2), e2.onclose = (t2) => this.onClose(t2), this.socket = e2, this.registering = false, this.events.emit("open");
         }
         onClose(e2) {
           this.socket = void 0, this.registering = false, this.events.emit("close", e2);
         }
         onPayload(e2) {
           if (typeof e2.data > "u") return;
-          const t = typeof e2.data == "string" ? safeJsonParse(e2.data) : e2.data;
-          this.events.emit("payload", t);
+          const t2 = typeof e2.data == "string" ? safeJsonParse(e2.data) : e2.data;
+          this.events.emit("payload", t2);
         }
-        onError(e2, t) {
-          const n4 = this.parseError(t), s2 = n4.message || n4.toString(), o4 = formatJsonRpcError(e2, s2);
+        onError(e2, t2) {
+          const n4 = this.parseError(t2), s2 = n4.message || n4.toString(), o4 = formatJsonRpcError(e2, s2);
           this.events.emit("payload", o4);
         }
-        parseError(e2, t = this.url) {
-          return parseConnectionError(e2, d2(t), "WS");
+        parseError(e2, t2 = this.url) {
+          return parseConnectionError(e2, d2(t2), "WS");
         }
         resetMaxListeners() {
           this.events.getMaxListeners() > h3 && this.events.setMaxListeners(h3);
         }
         emitError(e2) {
-          const t = this.parseError(new Error(e2?.message || `WebSocket connection failed for host: ${d2(this.url)}`));
-          return this.events.emit("register_error", t), t;
+          const t2 = this.parseError(new Error(e2?.message || `WebSocket connection failed for host: ${d2(this.url)}`));
+          return this.events.emit("register_error", t2), t2;
         }
       };
     }
@@ -20144,8 +20144,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         return a3.toString() === b4.toString();
       case numberTag: {
         const x7 = a3.valueOf();
-        const y7 = b4.valueOf();
-        return isEqualsSameValueZero(x7, y7);
+        const y6 = b4.valueOf();
+        return isEqualsSameValueZero(x7, y6);
       }
       case booleanTag:
       case dateTag:
@@ -20388,8 +20388,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       ue2 = 86400;
       ye4 = "https://pulse.walletconnect.org/batch";
       me3 = class {
-        constructor(t, s2) {
-          this.core = t, this.logger = s2, this.keychain = /* @__PURE__ */ new Map(), this.name = Mt3, this.version = Ut3, this.initialized = false, this.storagePrefix = S3, this.init = async () => {
+        constructor(t2, s2) {
+          this.core = t2, this.logger = s2, this.keychain = /* @__PURE__ */ new Map(), this.name = Mt3, this.version = Ut3, this.initialized = false, this.storagePrefix = S3, this.init = async () => {
             if (!this.initialized) {
               const i3 = await this.getKeyChain();
               typeof i3 < "u" && (this.keychain = i3), this.initialized = true;
@@ -20406,7 +20406,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             return e2;
           }, this.del = async (i3) => {
             this.isInitialized(), this.keychain.delete(i3), await this.persist();
-          }, this.core = t, this.logger = Re(s2, this.name);
+          }, this.core = t2, this.logger = Re(s2, this.name);
         }
         get context() {
           return ee(this.logger);
@@ -20414,26 +20414,26 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         get storageKey() {
           return this.storagePrefix + this.version + this.core.customStoragePrefix + "//" + this.name;
         }
-        async setKeyChain(t) {
-          await this.core.storage.setItem(this.storageKey, _n2(t));
+        async setKeyChain(t2) {
+          await this.core.storage.setItem(this.storageKey, _n2(t2));
         }
         async getKeyChain() {
-          const t = await this.core.storage.getItem(this.storageKey);
-          return typeof t < "u" ? kn2(t) : void 0;
+          const t2 = await this.core.storage.getItem(this.storageKey);
+          return typeof t2 < "u" ? kn2(t2) : void 0;
         }
         async persist() {
           await this.setKeyChain(this.keychain);
         }
         isInitialized() {
           if (!this.initialized) {
-            const { message: t } = N10("NOT_INITIALIZED", this.name);
-            throw new Error(t);
+            const { message: t2 } = N10("NOT_INITIALIZED", this.name);
+            throw new Error(t2);
           }
         }
       };
       _e3 = class {
-        constructor(t, s2, i3) {
-          this.core = t, this.logger = s2, this.name = Kt3, this.randomSessionIdentifier = vr2(), this.initialized = false, this.init = async () => {
+        constructor(t2, s2, i3) {
+          this.core = t2, this.logger = s2, this.name = Kt3, this.randomSessionIdentifier = vr2(), this.initialized = false, this.init = async () => {
             this.initialized || (await this.keychain.init(), this.initialized = true);
           }, this.hasKeys = (e2) => (this.isInitialized(), this.keychain.has(e2)), this.getClientId = async () => {
             if (this.isInitialized(), this.clientId) return this.clientId;
@@ -20467,8 +20467,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               const g4 = n4.senderPublicKey, _3 = n4.receiverPublicKey;
               e2 = await this.generateSharedKey(g4, _3);
             }
-            const h5 = this.getSymKey(e2), { type: d3, senderPublicKey: l4 } = n4;
-            return Ir2({ type: d3, symKey: h5, message: a3, senderPublicKey: l4, encoding: o4?.encoding });
+            const h4 = this.getSymKey(e2), { type: d3, senderPublicKey: l4 } = n4;
+            return Ir2({ type: d3, symKey: h4, message: a3, senderPublicKey: l4, encoding: o4?.encoding });
           }, this.decode = async (e2, r3, o4) => {
             this.isInitialized();
             const n4 = $r2(r3, o4);
@@ -20477,12 +20477,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               return safeJsonParse(a3);
             }
             if (jr2(n4)) {
-              const a3 = n4.receiverPublicKey, h5 = n4.senderPublicKey;
-              e2 = await this.generateSharedKey(a3, h5);
+              const a3 = n4.receiverPublicKey, h4 = n4.senderPublicKey;
+              e2 = await this.generateSharedKey(a3, h4);
             }
             try {
-              const a3 = this.getSymKey(e2), h5 = Tr2({ symKey: a3, encoded: r3, encoding: o4?.encoding });
-              return safeJsonParse(h5);
+              const a3 = this.getSymKey(e2), h4 = Tr2({ symKey: a3, encoded: r3, encoding: o4?.encoding });
+              return safeJsonParse(h4);
             } catch (a3) {
               this.logger.error(`Failed to decode message from topic: '${e2}', clientId: '${await this.getClientId()}'`), this.logger.error(a3);
             }
@@ -20492,39 +20492,39 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
           }, this.getPayloadSenderPublicKey = (e2, r3 = S2) => {
             const o4 = ne2({ encoded: e2, encoding: r3 });
             return o4.senderPublicKey ? toString2(o4.senderPublicKey, y4) : void 0;
-          }, this.core = t, this.logger = Re(s2, this.name), this.keychain = i3 || new me3(this.core, this.logger);
+          }, this.core = t2, this.logger = Re(s2, this.name), this.keychain = i3 || new me3(this.core, this.logger);
         }
         get context() {
           return ee(this.logger);
         }
-        async setPrivateKey(t, s2) {
-          return await this.keychain.set(t, s2), t;
+        async setPrivateKey(t2, s2) {
+          return await this.keychain.set(t2, s2), t2;
         }
-        getPrivateKey(t) {
-          return this.keychain.get(t);
+        getPrivateKey(t2) {
+          return this.keychain.get(t2);
         }
         async getClientSeed() {
-          let t = "";
+          let t2 = "";
           try {
-            t = this.keychain.get(gt2);
+            t2 = this.keychain.get(gt2);
           } catch {
-            t = vr2(), await this.keychain.set(gt2, t);
+            t2 = vr2(), await this.keychain.set(gt2, t2);
           }
-          return fromString2(t, "base16");
+          return fromString2(t2, "base16");
         }
-        getSymKey(t) {
-          return this.keychain.get(t);
+        getSymKey(t2) {
+          return this.keychain.get(t2);
         }
         isInitialized() {
           if (!this.initialized) {
-            const { message: t } = N10("NOT_INITIALIZED", this.name);
-            throw new Error(t);
+            const { message: t2 } = N10("NOT_INITIALIZED", this.name);
+            throw new Error(t2);
           }
         }
       };
       be4 = class extends a2 {
-        constructor(t, s2) {
-          super(t, s2), this.logger = t, this.core = s2, this.messages = /* @__PURE__ */ new Map(), this.messagesWithoutClientAck = /* @__PURE__ */ new Map(), this.name = qt3, this.version = Vt3, this.initialized = false, this.storagePrefix = S3, this.init = async () => {
+        constructor(t2, s2) {
+          super(t2, s2), this.logger = t2, this.core = s2, this.messages = /* @__PURE__ */ new Map(), this.messagesWithoutClientAck = /* @__PURE__ */ new Map(), this.name = qt3, this.version = Vt3, this.initialized = false, this.storagePrefix = S3, this.init = async () => {
             if (!this.initialized) {
               this.logger.trace("Initialized");
               try {
@@ -20572,7 +20572,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             delete r3[o4], Object.keys(r3).length === 0 ? this.messagesWithoutClientAck.delete(i3) : this.messagesWithoutClientAck.set(i3, r3), await this.persist();
           }, this.del = async (i3) => {
             this.isInitialized(), this.messages.delete(i3), this.messagesWithoutClientAck.delete(i3), await this.persist();
-          }, this.logger = Re(t, this.name), this.core = s2;
+          }, this.logger = Re(t2, this.name), this.core = s2;
         }
         get context() {
           return ee(this.logger);
@@ -20583,78 +20583,78 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         get storageKeyWithoutClientAck() {
           return this.storagePrefix + this.version + this.core.customStoragePrefix + "//" + this.name + "_withoutClientAck";
         }
-        async setRelayerMessages(t) {
-          await this.core.storage.setItem(this.storageKey, _n2(t));
+        async setRelayerMessages(t2) {
+          await this.core.storage.setItem(this.storageKey, _n2(t2));
         }
-        async setRelayerMessagesWithoutClientAck(t) {
-          await this.core.storage.setItem(this.storageKeyWithoutClientAck, _n2(t));
+        async setRelayerMessagesWithoutClientAck(t2) {
+          await this.core.storage.setItem(this.storageKeyWithoutClientAck, _n2(t2));
         }
         async getRelayerMessages() {
-          const t = await this.core.storage.getItem(this.storageKey);
-          return typeof t < "u" ? kn2(t) : void 0;
+          const t2 = await this.core.storage.getItem(this.storageKey);
+          return typeof t2 < "u" ? kn2(t2) : void 0;
         }
         async getRelayerMessagesWithoutClientAck() {
-          const t = await this.core.storage.getItem(this.storageKeyWithoutClientAck);
-          return typeof t < "u" ? kn2(t) : void 0;
+          const t2 = await this.core.storage.getItem(this.storageKeyWithoutClientAck);
+          return typeof t2 < "u" ? kn2(t2) : void 0;
         }
         async persist() {
           await this.setRelayerMessages(this.messages), await this.setRelayerMessagesWithoutClientAck(this.messagesWithoutClientAck);
         }
         isInitialized() {
           if (!this.initialized) {
-            const { message: t } = N10("NOT_INITIALIZED", this.name);
-            throw new Error(t);
+            const { message: t2 } = N10("NOT_INITIALIZED", this.name);
+            throw new Error(t2);
           }
         }
       };
       Ji = class extends g {
-        constructor(t, s2) {
-          super(t, s2), this.relayer = t, this.logger = s2, this.events = new import_events7.EventEmitter(), this.name = Ft3, this.queue = /* @__PURE__ */ new Map(), this.publishTimeout = (0, import_time4.toMiliseconds)(import_time4.ONE_MINUTE), this.initialPublishTimeout = (0, import_time4.toMiliseconds)(import_time4.ONE_SECOND * 15), this.needsTransportRestart = false, this.publish = async (i3, e2, r3) => {
+        constructor(t2, s2) {
+          super(t2, s2), this.relayer = t2, this.logger = s2, this.events = new import_events7.EventEmitter(), this.name = Ft3, this.queue = /* @__PURE__ */ new Map(), this.publishTimeout = (0, import_time4.toMiliseconds)(import_time4.ONE_MINUTE), this.initialPublishTimeout = (0, import_time4.toMiliseconds)(import_time4.ONE_SECOND * 15), this.needsTransportRestart = false, this.publish = async (i3, e2, r3) => {
             this.logger.debug("Publishing Payload"), this.logger.trace({ type: "method", method: "publish", params: { topic: i3, message: e2, opts: r3 } });
-            const o4 = r3?.ttl || Bt3, n4 = r3?.prompt || false, a3 = r3?.tag || 0, h5 = r3?.id || getBigIntRpcId().toString(), d3 = _r2(xr2().protocol), l4 = { id: h5, method: r3?.publishMethod || d3.publish, params: { topic: i3, message: e2, ttl: o4, prompt: n4, tag: a3, attestation: r3?.attestation, ...r3?.tvf } }, g4 = `Failed to publish payload, please try again. id:${h5} tag:${a3}`;
+            const o4 = r3?.ttl || Bt3, n4 = r3?.prompt || false, a3 = r3?.tag || 0, h4 = r3?.id || getBigIntRpcId().toString(), d3 = _r2(xr2().protocol), l4 = { id: h4, method: r3?.publishMethod || d3.publish, params: { topic: i3, message: e2, ttl: o4, prompt: n4, tag: a3, attestation: r3?.attestation, ...r3?.tvf } }, g4 = `Failed to publish payload, please try again. id:${h4} tag:${a3}`;
             try {
               R2(l4.params?.prompt) && delete l4.params?.prompt, R2(l4.params?.tag) && delete l4.params?.tag;
               const _3 = new Promise(async (E4) => {
-                const u3 = ({ id: m2 }) => {
-                  l4.id?.toString() === m2.toString() && (this.removeRequestFromQueue(m2), this.relayer.events.removeListener(p3.publish, u3), E4());
+                const u2 = ({ id: m2 }) => {
+                  l4.id?.toString() === m2.toString() && (this.removeRequestFromQueue(m2), this.relayer.events.removeListener(p3.publish, u2), E4());
                 };
-                this.relayer.events.on(p3.publish, u3);
+                this.relayer.events.on(p3.publish, u2);
                 const N11 = Kn2(new Promise((m2, C4) => {
-                  this.rpcPublish(l4, r3).then(m2).catch((k6) => {
-                    this.logger.warn(k6, k6?.message), C4(k6);
+                  this.rpcPublish(l4, r3).then(m2).catch((k5) => {
+                    this.logger.warn(k5, k5?.message), C4(k5);
                   });
-                }), this.initialPublishTimeout, `Failed initial publish, retrying.... id:${h5} tag:${a3}`);
+                }), this.initialPublishTimeout, `Failed initial publish, retrying.... id:${h4} tag:${a3}`);
                 try {
-                  await N11, this.events.removeListener(p3.publish, u3);
+                  await N11, this.events.removeListener(p3.publish, u2);
                 } catch (m2) {
-                  this.queue.set(h5, { request: l4, opts: r3, attempt: 1 }), this.logger.warn(m2, m2?.message);
+                  this.queue.set(h4, { request: l4, opts: r3, attempt: 1 }), this.logger.warn(m2, m2?.message);
                 }
               });
-              this.logger.trace({ type: "method", method: "publish", params: { id: h5, topic: i3, message: e2, opts: r3 } }), await Kn2(_3, this.publishTimeout, g4);
+              this.logger.trace({ type: "method", method: "publish", params: { id: h4, topic: i3, message: e2, opts: r3 } }), await Kn2(_3, this.publishTimeout, g4);
             } catch (_3) {
               if (this.logger.debug("Failed to Publish Payload"), this.logger.error(_3), r3?.internal?.throwOnFailedPublish) throw _3;
             } finally {
-              this.queue.delete(h5);
+              this.queue.delete(h4);
             }
           }, this.publishCustom = async (i3) => {
             this.logger.debug("Publishing custom payload"), this.logger.trace({ type: "method", method: "publishCustom", params: i3 });
-            const { payload: e2, opts: r3 = {} } = i3, { attestation: o4, tvf: n4, publishMethod: a3, prompt: h5, tag: d3, ttl: l4 = import_time4.FIVE_MINUTES } = r3, g4 = r3.id || getBigIntRpcId().toString(), _3 = _r2(xr2().protocol), E4 = a3 || _3.publish, u3 = { id: g4, method: E4, params: { ...e2, ttl: l4, prompt: h5, tag: d3, attestation: o4, ...n4 } }, N11 = `Failed to publish custom payload, please try again. id:${g4} tag:${d3}`;
+            const { payload: e2, opts: r3 = {} } = i3, { attestation: o4, tvf: n4, publishMethod: a3, prompt: h4, tag: d3, ttl: l4 = import_time4.FIVE_MINUTES } = r3, g4 = r3.id || getBigIntRpcId().toString(), _3 = _r2(xr2().protocol), E4 = a3 || _3.publish, u2 = { id: g4, method: E4, params: { ...e2, ttl: l4, prompt: h4, tag: d3, attestation: o4, ...n4 } }, N11 = `Failed to publish custom payload, please try again. id:${g4} tag:${d3}`;
             try {
-              R2(u3.params?.prompt) && delete u3.params?.prompt, R2(u3.params?.tag) && delete u3.params?.tag;
+              R2(u2.params?.prompt) && delete u2.params?.prompt, R2(u2.params?.tag) && delete u2.params?.tag;
               const m2 = new Promise(async (C4) => {
-                const k6 = ({ id: L2 }) => {
-                  u3.id?.toString() === L2.toString() && (this.removeRequestFromQueue(L2), this.relayer.events.removeListener(p3.publish, k6), C4());
+                const k5 = ({ id: L }) => {
+                  u2.id?.toString() === L.toString() && (this.removeRequestFromQueue(L), this.relayer.events.removeListener(p3.publish, k5), C4());
                 };
-                this.relayer.events.on(p3.publish, k6);
-                const Oe4 = Kn2(new Promise((L2, Ae5) => {
-                  this.rpcPublish(u3, r3).then(L2).catch((tt2) => {
+                this.relayer.events.on(p3.publish, k5);
+                const Oe4 = Kn2(new Promise((L, Ae5) => {
+                  this.rpcPublish(u2, r3).then(L).catch((tt2) => {
                     this.logger.warn(tt2, tt2?.message), Ae5(tt2);
                   });
                 }), this.initialPublishTimeout, `Failed initial custom payload publish, retrying.... method:${E4} id:${g4} tag:${d3}`);
                 try {
-                  await Oe4, this.events.removeListener(p3.publish, k6);
-                } catch (L2) {
-                  this.queue.set(g4, { request: u3, opts: r3, attempt: 1 }), this.logger.warn(L2, L2?.message);
+                  await Oe4, this.events.removeListener(p3.publish, k5);
+                } catch (L) {
+                  this.queue.set(g4, { request: u2, opts: r3, attempt: 1 }), this.logger.warn(L, L?.message);
                 }
               });
               this.logger.trace({ type: "method", method: "publish", params: { id: g4, payload: e2, opts: r3 } }), await Kn2(m2, this.publishTimeout, N11);
@@ -20671,23 +20671,23 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             this.events.off(i3, e2);
           }, this.removeListener = (i3, e2) => {
             this.events.removeListener(i3, e2);
-          }, this.relayer = t, this.logger = Re(s2, this.name), this.registerEventListeners();
+          }, this.relayer = t2, this.logger = Re(s2, this.name), this.registerEventListeners();
         }
         get context() {
           return ee(this.logger);
         }
-        async rpcPublish(t, s2) {
-          this.logger.debug("Outgoing Relay Payload"), this.logger.trace({ type: "message", direction: "outgoing", request: t });
-          const i3 = await this.relayer.request(t);
-          return this.relayer.events.emit(p3.publish, { ...t, ...s2 }), this.logger.debug("Successfully Published Payload"), i3;
+        async rpcPublish(t2, s2) {
+          this.logger.debug("Outgoing Relay Payload"), this.logger.trace({ type: "message", direction: "outgoing", request: t2 });
+          const i3 = await this.relayer.request(t2);
+          return this.relayer.events.emit(p3.publish, { ...t2, ...s2 }), this.logger.debug("Successfully Published Payload"), i3;
         }
-        removeRequestFromQueue(t) {
-          this.queue.delete(t);
+        removeRequestFromQueue(t2) {
+          this.queue.delete(t2);
         }
         checkQueue() {
-          this.queue.forEach(async (t, s2) => {
-            const i3 = t.attempt + 1;
-            this.queue.set(s2, { ...t, attempt: i3 }), this.logger.warn({}, `Publisher: queue->publishing: ${t.request.id}, tag: ${t.request.params?.tag}, attempt: ${i3}`), await this.rpcPublish(t.request, t.opts), this.logger.warn({}, `Publisher: queue->published: ${t.request.id}`);
+          this.queue.forEach(async (t2, s2) => {
+            const i3 = t2.attempt + 1;
+            this.queue.set(s2, { ...t2, attempt: i3 }), this.logger.warn({}, `Publisher: queue->publishing: ${t2.request.id}, tag: ${t2.request.params?.tag}, attempt: ${i3}`), await this.rpcPublish(t2.request, t2.opts), this.logger.warn({}, `Publisher: queue->published: ${t2.request.id}`);
           });
         }
         registerEventListeners() {
@@ -20697,30 +20697,30 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               return;
             }
             this.checkQueue();
-          }), this.relayer.on(p3.message_ack, (t) => {
-            this.removeRequestFromQueue(t.id.toString());
+          }), this.relayer.on(p3.message_ack, (t2) => {
+            this.removeRequestFromQueue(t2.id.toString());
           });
         }
       };
       ji = class {
         constructor() {
-          this.map = /* @__PURE__ */ new Map(), this.set = (t, s2) => {
-            const i3 = this.get(t);
-            this.exists(t, s2) || this.map.set(t, [...i3, s2]);
-          }, this.get = (t) => this.map.get(t) || [], this.exists = (t, s2) => this.get(t).includes(s2), this.delete = (t, s2) => {
+          this.map = /* @__PURE__ */ new Map(), this.set = (t2, s2) => {
+            const i3 = this.get(t2);
+            this.exists(t2, s2) || this.map.set(t2, [...i3, s2]);
+          }, this.get = (t2) => this.map.get(t2) || [], this.exists = (t2, s2) => this.get(t2).includes(s2), this.delete = (t2, s2) => {
             if (typeof s2 > "u") {
-              this.map.delete(t);
+              this.map.delete(t2);
               return;
             }
-            if (!this.map.has(t)) return;
-            const i3 = this.get(t);
-            if (!this.exists(t, s2)) return;
+            if (!this.map.has(t2)) return;
+            const i3 = this.get(t2);
+            if (!this.exists(t2, s2)) return;
             const e2 = i3.filter((r3) => r3 !== s2);
             if (!e2.length) {
-              this.map.delete(t);
+              this.map.delete(t2);
               return;
             }
-            this.map.set(t, e2);
+            this.map.set(t2, e2);
           }, this.clear = () => {
             this.map.clear();
           };
@@ -20730,8 +20730,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         }
       };
       we4 = class extends d {
-        constructor(t, s2) {
-          super(t, s2), this.relayer = t, this.logger = s2, this.subscriptions = /* @__PURE__ */ new Map(), this.topicMap = new ji(), this.events = new import_events7.EventEmitter(), this.name = Zt3, this.version = Qt3, this.pending = /* @__PURE__ */ new Map(), this.cached = [], this.initialized = false, this.storagePrefix = S3, this.subscribeTimeout = (0, import_time4.toMiliseconds)(import_time4.ONE_MINUTE), this.initialSubscribeTimeout = (0, import_time4.toMiliseconds)(import_time4.ONE_SECOND * 15), this.batchSubscribeTopicsLimit = 500, this.init = async () => {
+        constructor(t2, s2) {
+          super(t2, s2), this.relayer = t2, this.logger = s2, this.subscriptions = /* @__PURE__ */ new Map(), this.topicMap = new ji(), this.events = new import_events7.EventEmitter(), this.name = Zt3, this.version = Qt3, this.pending = /* @__PURE__ */ new Map(), this.cached = [], this.initialized = false, this.storagePrefix = S3, this.subscribeTimeout = (0, import_time4.toMiliseconds)(import_time4.ONE_MINUTE), this.initialSubscribeTimeout = (0, import_time4.toMiliseconds)(import_time4.ONE_SECOND * 15), this.batchSubscribeTopicsLimit = 500, this.init = async () => {
             this.initialized || (this.logger.trace("Initialized"), this.registerEventListeners(), await this.restore()), this.initialized = true;
           }, this.subscribe = async (i3, e2) => {
             this.isInitialized(), this.logger.debug("Subscribing Topic"), this.logger.trace({ type: "method", method: "subscribe", params: { topic: i3, opts: e2 } });
@@ -20779,7 +20779,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               const e2 = b3.deleted;
               this.logger.info(`Emitting ${e2}`), this.logger.debug({ type: "event", event: e2, data: i3 }), await this.persist();
             });
-          }, this.relayer = t, this.logger = Re(s2, this.name), this.clientId = "";
+          }, this.relayer = t2, this.logger = Re(s2, this.name), this.clientId = "";
         }
         get context() {
           return ee(this.logger);
@@ -20802,10 +20802,10 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         get hasAnyTopics() {
           return this.topicMap.topics.length > 0 || this.pending.size > 0 || this.cached.length > 0 || this.subscriptions.size > 0;
         }
-        hasSubscription(t, s2) {
+        hasSubscription(t2, s2) {
           let i3 = false;
           try {
-            i3 = this.getSubscription(t).topic === s2;
+            i3 = this.getSubscription(t2).topic === s2;
           } catch {
           }
           return i3;
@@ -20816,35 +20816,35 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         onDisable() {
           this.values.length > 0 && (this.cached = this.values), this.subscriptions.clear(), this.topicMap.clear();
         }
-        async unsubscribeByTopic(t, s2) {
-          const i3 = this.topicMap.get(t);
-          await Promise.all(i3.map(async (e2) => await this.unsubscribeById(t, e2, s2)));
+        async unsubscribeByTopic(t2, s2) {
+          const i3 = this.topicMap.get(t2);
+          await Promise.all(i3.map(async (e2) => await this.unsubscribeById(t2, e2, s2)));
         }
-        async unsubscribeById(t, s2, i3) {
-          this.logger.debug("Unsubscribing Topic"), this.logger.trace({ type: "method", method: "unsubscribe", params: { topic: t, id: s2, opts: i3 } });
+        async unsubscribeById(t2, s2, i3) {
+          this.logger.debug("Unsubscribing Topic"), this.logger.trace({ type: "method", method: "unsubscribe", params: { topic: t2, id: s2, opts: i3 } });
           try {
-            const e2 = $2("USER_DISCONNECTED", `${this.name}, ${t}`);
-            await this.onUnsubscribe(t, s2, e2);
+            const e2 = $2("USER_DISCONNECTED", `${this.name}, ${t2}`);
+            await this.onUnsubscribe(t2, s2, e2);
             const r3 = xr2(i3);
-            await this.restartToComplete({ topic: t, id: s2, relay: r3 }), await this.rpcUnsubscribe(t, s2, r3), this.logger.debug("Successfully Unsubscribed Topic"), this.logger.trace({ type: "method", method: "unsubscribe", params: { topic: t, id: s2, opts: i3 } });
+            await this.restartToComplete({ topic: t2, id: s2, relay: r3 }), await this.rpcUnsubscribe(t2, s2, r3), this.logger.debug("Successfully Unsubscribed Topic"), this.logger.trace({ type: "method", method: "unsubscribe", params: { topic: t2, id: s2, opts: i3 } });
           } catch (e2) {
             throw this.logger.debug("Failed to Unsubscribe Topic"), this.logger.error(e2), e2;
           }
         }
-        async rpcSubscribe(t, s2, i3) {
-          const e2 = await this.getSubscriptionId(t);
+        async rpcSubscribe(t2, s2, i3) {
+          const e2 = await this.getSubscriptionId(t2);
           if (i3?.internal?.skipSubscribe) return e2;
-          (!i3 || i3?.transportType === D3.relay) && await this.restartToComplete({ topic: t, id: t, relay: s2 });
-          const r3 = { method: _r2(s2.protocol).subscribe, params: { topic: t } };
+          (!i3 || i3?.transportType === D3.relay) && await this.restartToComplete({ topic: t2, id: t2, relay: s2 });
+          const r3 = { method: _r2(s2.protocol).subscribe, params: { topic: t2 } };
           this.logger.debug("Outgoing Relay Payload"), this.logger.trace({ type: "payload", direction: "outgoing", request: r3 });
           const o4 = i3?.internal?.throwOnFailedPublish;
           try {
             if (i3?.transportType === D3.link_mode) return setTimeout(() => {
-              (this.relayer.connected || this.relayer.connecting) && this.relayer.request(r3).catch((h5) => this.logger.warn(h5));
+              (this.relayer.connected || this.relayer.connecting) && this.relayer.request(r3).catch((h4) => this.logger.warn(h4));
             }, (0, import_time4.toMiliseconds)(import_time4.ONE_SECOND)), e2;
-            const n4 = new Promise(async (h5) => {
+            const n4 = new Promise(async (h4) => {
               const d3 = (l4) => {
-                l4.topic === t && (this.events.removeListener(b3.created, d3), h5(l4.id));
+                l4.topic === t2 && (this.events.removeListener(b3.created, d3), h4(l4.id));
               };
               this.events.on(b3.created, d3);
               try {
@@ -20852,21 +20852,21 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
                   this.relayer.request(r3).catch((E4) => {
                     this.logger.warn(E4, E4?.message), _3(E4);
                   }).then(g4);
-                }), this.initialSubscribeTimeout, `Subscribing to ${t} failed, please try again`);
-                this.events.removeListener(b3.created, d3), h5(l4);
+                }), this.initialSubscribeTimeout, `Subscribing to ${t2} failed, please try again`);
+                this.events.removeListener(b3.created, d3), h4(l4);
               } catch {
               }
-            }), a3 = await Kn2(n4, this.subscribeTimeout, `Subscribing to ${t} failed, please try again`);
-            if (!a3 && o4) throw new Error(`Subscribing to ${t} failed, please try again`);
+            }), a3 = await Kn2(n4, this.subscribeTimeout, `Subscribing to ${t2} failed, please try again`);
+            if (!a3 && o4) throw new Error(`Subscribing to ${t2} failed, please try again`);
             return a3 ? e2 : null;
           } catch (n4) {
             if (this.logger.debug("Outgoing Relay Subscribe Payload stalled"), this.relayer.events.emit(p3.connection_stalled), o4) throw n4;
           }
           return null;
         }
-        async rpcBatchSubscribe(t) {
-          if (!t.length) return true;
-          const s2 = t[0].relay, i3 = { method: _r2(s2.protocol).batchSubscribe, params: { topics: t.map((e2) => e2.topic) } };
+        async rpcBatchSubscribe(t2) {
+          if (!t2.length) return true;
+          const s2 = t2[0].relay, i3 = { method: _r2(s2.protocol).batchSubscribe, params: { topics: t2.map((e2) => e2.topic) } };
           this.logger.debug("Outgoing Relay Payload"), this.logger.trace({ type: "payload", direction: "outgoing", request: i3 });
           try {
             return await Kn2(new Promise((e2, r3) => {
@@ -20878,9 +20878,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             return this.relayer.events.emit(p3.connection_stalled), false;
           }
         }
-        async rpcBatchFetchMessages(t) {
-          if (!t.length) return;
-          const s2 = t[0].relay, i3 = { method: _r2(s2.protocol).batchFetchMessages, params: { topics: t.map((r3) => r3.topic) } };
+        async rpcBatchFetchMessages(t2) {
+          if (!t2.length) return;
+          const s2 = t2[0].relay, i3 = { method: _r2(s2.protocol).batchFetchMessages, params: { topics: t2.map((r3) => r3.topic) } };
           this.logger.debug("Outgoing Relay Payload"), this.logger.trace({ type: "payload", direction: "outgoing", request: i3 });
           let e2;
           try {
@@ -20894,55 +20894,55 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
           }
           return e2;
         }
-        rpcUnsubscribe(t, s2, i3) {
-          const e2 = { method: _r2(i3.protocol).unsubscribe, params: { topic: t, id: s2 } };
+        rpcUnsubscribe(t2, s2, i3) {
+          const e2 = { method: _r2(i3.protocol).unsubscribe, params: { topic: t2, id: s2 } };
           return this.logger.debug("Outgoing Relay Payload"), this.logger.trace({ type: "payload", direction: "outgoing", request: e2 }), this.relayer.request(e2);
         }
-        onSubscribe(t, s2) {
-          this.setSubscription(t, { ...s2, id: t }), this.pending.delete(s2.topic);
+        onSubscribe(t2, s2) {
+          this.setSubscription(t2, { ...s2, id: t2 }), this.pending.delete(s2.topic);
         }
-        onBatchSubscribe(t) {
-          t.length && t.forEach((s2) => {
+        onBatchSubscribe(t2) {
+          t2.length && t2.forEach((s2) => {
             this.setSubscription(s2.id, { ...s2 }), this.pending.delete(s2.topic);
           });
         }
-        async onUnsubscribe(t, s2, i3) {
-          this.events.removeAllListeners(s2), this.hasSubscription(s2, t) && this.deleteSubscription(s2, i3), await this.relayer.messages.del(t);
+        async onUnsubscribe(t2, s2, i3) {
+          this.events.removeAllListeners(s2), this.hasSubscription(s2, t2) && this.deleteSubscription(s2, i3), await this.relayer.messages.del(t2);
         }
-        async setRelayerSubscriptions(t) {
-          await this.relayer.core.storage.setItem(this.storageKey, t);
+        async setRelayerSubscriptions(t2) {
+          await this.relayer.core.storage.setItem(this.storageKey, t2);
         }
         async getRelayerSubscriptions() {
           return await this.relayer.core.storage.getItem(this.storageKey);
         }
-        setSubscription(t, s2) {
-          this.logger.debug("Setting subscription"), this.logger.trace({ type: "method", method: "setSubscription", id: t, subscription: s2 }), this.addSubscription(t, s2);
+        setSubscription(t2, s2) {
+          this.logger.debug("Setting subscription"), this.logger.trace({ type: "method", method: "setSubscription", id: t2, subscription: s2 }), this.addSubscription(t2, s2);
         }
-        addSubscription(t, s2) {
-          this.subscriptions.set(t, { ...s2 }), this.topicMap.set(s2.topic, t), this.events.emit(b3.created, s2);
+        addSubscription(t2, s2) {
+          this.subscriptions.set(t2, { ...s2 }), this.topicMap.set(s2.topic, t2), this.events.emit(b3.created, s2);
         }
-        getSubscription(t) {
-          this.logger.debug("Getting subscription"), this.logger.trace({ type: "method", method: "getSubscription", id: t });
-          const s2 = this.subscriptions.get(t);
+        getSubscription(t2) {
+          this.logger.debug("Getting subscription"), this.logger.trace({ type: "method", method: "getSubscription", id: t2 });
+          const s2 = this.subscriptions.get(t2);
           if (!s2) {
-            const { message: i3 } = N10("NO_MATCHING_KEY", `${this.name}: ${t}`);
+            const { message: i3 } = N10("NO_MATCHING_KEY", `${this.name}: ${t2}`);
             throw new Error(i3);
           }
           return s2;
         }
-        deleteSubscription(t, s2) {
-          this.logger.debug("Deleting subscription"), this.logger.trace({ type: "method", method: "deleteSubscription", id: t, reason: s2 });
-          const i3 = this.getSubscription(t);
-          this.subscriptions.delete(t), this.topicMap.delete(i3.topic, t), this.events.emit(b3.deleted, { ...i3, reason: s2 });
+        deleteSubscription(t2, s2) {
+          this.logger.debug("Deleting subscription"), this.logger.trace({ type: "method", method: "deleteSubscription", id: t2, reason: s2 });
+          const i3 = this.getSubscription(t2);
+          this.subscriptions.delete(t2), this.topicMap.delete(i3.topic, t2), this.events.emit(b3.deleted, { ...i3, reason: s2 });
         }
         async persist() {
           await this.setRelayerSubscriptions(this.values), this.events.emit(b3.sync);
         }
         async onRestart() {
           if (this.cached.length) {
-            const t = [...this.cached], s2 = Math.ceil(this.cached.length / this.batchSubscribeTopicsLimit);
+            const t2 = [...this.cached], s2 = Math.ceil(this.cached.length / this.batchSubscribeTopicsLimit);
             for (let i3 = 0; i3 < s2; i3++) {
-              const e2 = t.splice(0, this.batchSubscribeTopicsLimit);
+              const e2 = t2.splice(0, this.batchSubscribeTopicsLimit);
               await this.batchSubscribe(e2);
             }
           }
@@ -20950,32 +20950,32 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         }
         async restore() {
           try {
-            const t = await this.getRelayerSubscriptions();
-            if (typeof t > "u" || !t.length) return;
-            if (this.subscriptions.size && !t.every((s2) => s2.topic === this.subscriptions.get(s2.id)?.topic)) {
+            const t2 = await this.getRelayerSubscriptions();
+            if (typeof t2 > "u" || !t2.length) return;
+            if (this.subscriptions.size && !t2.every((s2) => s2.topic === this.subscriptions.get(s2.id)?.topic)) {
               const { message: s2 } = N10("RESTORE_WILL_OVERRIDE", this.name);
               throw this.logger.error(s2), this.logger.error(`${this.name}: ${JSON.stringify(this.values)}`), new Error(s2);
             }
-            this.cached = t, this.logger.debug(`Successfully Restored subscriptions for ${this.name}`), this.logger.trace({ type: "method", method: "restore", subscriptions: this.values });
-          } catch (t) {
-            this.logger.debug(`Failed to Restore subscriptions for ${this.name}`), this.logger.error(t);
+            this.cached = t2, this.logger.debug(`Successfully Restored subscriptions for ${this.name}`), this.logger.trace({ type: "method", method: "restore", subscriptions: this.values });
+          } catch (t2) {
+            this.logger.debug(`Failed to Restore subscriptions for ${this.name}`), this.logger.error(t2);
           }
         }
-        async batchSubscribe(t) {
-          if (t.length) {
-            if (!await this.rpcBatchSubscribe(t)) {
-              this.logger.warn(`Batch subscribe failed for ${t.length} topics, adding to pending for retry`), t.forEach((s2) => {
+        async batchSubscribe(t2) {
+          if (t2.length) {
+            if (!await this.rpcBatchSubscribe(t2)) {
+              this.logger.warn(`Batch subscribe failed for ${t2.length} topics, adding to pending for retry`), t2.forEach((s2) => {
                 this.pending.set(s2.topic, s2);
               });
               return;
             }
-            this.onBatchSubscribe(await Promise.all(t.map(async (s2) => ({ ...s2, id: await this.getSubscriptionId(s2.topic) }))));
+            this.onBatchSubscribe(await Promise.all(t2.map(async (s2) => ({ ...s2, id: await this.getSubscriptionId(s2.topic) }))));
           }
         }
-        async batchFetchMessages(t) {
-          if (!t.length) return;
-          this.logger.trace(`Fetching batch messages for ${t.length} subscriptions`);
-          const s2 = await this.rpcBatchFetchMessages(t);
+        async batchFetchMessages(t2) {
+          if (!t2.length) return;
+          this.logger.trace(`Fetching batch messages for ${t2.length} subscriptions`);
+          const s2 = await this.rpcBatchFetchMessages(t2);
           s2 && s2.messages && (await Zn2((0, import_time4.toMiliseconds)(import_time4.ONE_SECOND)), await this.relayer.handleBatchMessageEvents(s2.messages));
         }
         async onConnect() {
@@ -20986,23 +20986,23 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         }
         isInitialized() {
           if (!this.initialized) {
-            const { message: t } = N10("NOT_INITIALIZED", this.name);
-            throw new Error(t);
+            const { message: t2 } = N10("NOT_INITIALIZED", this.name);
+            throw new Error(t2);
           }
         }
-        async restartToComplete(t) {
-          !this.relayer.connected && !this.relayer.connecting && (this.cached.push(t), await this.relayer.transportOpen());
+        async restartToComplete(t2) {
+          !this.relayer.connected && !this.relayer.connecting && (this.cached.push(t2), await this.relayer.transportOpen());
         }
         async getClientId() {
           return this.clientId || (this.clientId = await this.relayer.core.crypto.getClientId()), this.clientId;
         }
-        async getSubscriptionId(t) {
-          return Ar2(t + await this.getClientId());
+        async getSubscriptionId(t2) {
+          return Ar2(t2 + await this.getClientId());
         }
       };
       fe4 = class extends u {
-        constructor(t) {
-          super(t), this.protocol = "wc", this.version = 2, this.events = new import_events7.EventEmitter(), this.name = Yt3, this.transportExplicitlyClosed = false, this.initialized = false, this.connectionAttemptInProgress = false, this.hasExperiencedNetworkDisruption = false, this.heartBeatTimeout = (0, import_time4.toMiliseconds)(import_time4.THIRTY_SECONDS + import_time4.FIVE_SECONDS), this.reconnectInProgress = false, this.requestsInFlight = [], this.connectTimeout = (0, import_time4.toMiliseconds)(import_time4.ONE_SECOND * 15), this.stalledRestartInProgress = false, this.stalledRestartBackoff = 0, this.stalledRestartBaseInterval = (0, import_time4.toMiliseconds)(import_time4.ONE_SECOND * 2), this.stalledRestartMaxInterval = (0, import_time4.toMiliseconds)(import_time4.THIRTY_SECONDS), this.request = async (s2) => {
+        constructor(t2) {
+          super(t2), this.protocol = "wc", this.version = 2, this.events = new import_events7.EventEmitter(), this.name = Yt3, this.transportExplicitlyClosed = false, this.initialized = false, this.connectionAttemptInProgress = false, this.hasExperiencedNetworkDisruption = false, this.heartBeatTimeout = (0, import_time4.toMiliseconds)(import_time4.THIRTY_SECONDS + import_time4.FIVE_SECONDS), this.reconnectInProgress = false, this.requestsInFlight = [], this.connectTimeout = (0, import_time4.toMiliseconds)(import_time4.ONE_SECOND * 15), this.stalledRestartInProgress = false, this.stalledRestartBackoff = 0, this.stalledRestartBaseInterval = (0, import_time4.toMiliseconds)(import_time4.ONE_SECOND * 2), this.stalledRestartMaxInterval = (0, import_time4.toMiliseconds)(import_time4.THIRTY_SECONDS), this.request = async (s2) => {
             this.logger.debug("Publishing Request Payload");
             const i3 = s2.id || getBigIntRpcId().toString();
             await this.toEstablishConnection();
@@ -21033,10 +21033,10 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             this.logger.fatal(`Fatal socket error: ${s2.message}`), this.events.emit(p3.error, s2), this.logger.fatal("Fatal socket error received, closing transport"), this.transportExplicitlyClosed = true, clearTimeout(this.reconnectTimeout), this.reconnectTimeout = void 0, this.reconnectInProgress = false, this.transportClose().catch((i3) => this.logger.warn(i3));
           }, this.registerProviderListeners = () => {
             this.provider.on(v5.payload, this.onPayloadHandler), this.provider.on(v5.connect, this.onConnectHandler), this.provider.on(v5.disconnect, this.onDisconnectHandler), this.provider.on(v5.error, this.onProviderErrorHandler);
-          }, this.core = t.core, this.logger = vo2({ logger: t.logger ?? Wt3, name: this.name }), this.messages = new be4(this.logger, t.core), this.subscriber = new we4(this, this.logger), this.publisher = new Ji(this, this.logger), this.projectId = t.projectId, this.relayUrl = t.relayUrl || pt2, In2() ? this.packageName = Rn2() : Tn2() && (this.bundleId = Rn2()), this.provider = {};
+          }, this.core = t2.core, this.logger = vo2({ logger: t2.logger ?? Wt3, name: this.name }), this.messages = new be4(this.logger, t2.core), this.subscriber = new we4(this, this.logger), this.publisher = new Ji(this, this.logger), this.projectId = t2.projectId, this.relayUrl = t2.relayUrl || pt2, In2() ? this.packageName = Rn2() : Tn2() && (this.bundleId = Rn2()), this.provider = {};
         }
         async init() {
-          this.logger.trace("Initialized"), this.registerEventListeners(), await Promise.all([this.messages.init(), this.subscriber.init()]), this.initialized = true, this.transportOpen().catch((t) => this.logger.warn(t, t?.message));
+          this.logger.trace("Initialized"), this.registerEventListeners(), await Promise.all([this.messages.init(), this.subscriber.init()]), this.initialized = true, this.transportOpen().catch((t2) => this.logger.warn(t2, t2?.message));
         }
         get context() {
           return ee(this.logger);
@@ -21047,43 +21047,43 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         get connecting() {
           return this.provider?.connection?.socket?.readyState === 0 || this.connectPromise !== void 0;
         }
-        async publish(t, s2, i3) {
-          this.isInitialized(), await this.publisher.publish(t, s2, i3), await this.recordMessageEvent({ topic: t, message: s2, publishedAt: Date.now(), transportType: D3.relay }, Y3.outbound);
+        async publish(t2, s2, i3) {
+          this.isInitialized(), await this.publisher.publish(t2, s2, i3), await this.recordMessageEvent({ topic: t2, message: s2, publishedAt: Date.now(), transportType: D3.relay }, Y3.outbound);
         }
-        async publishCustom(t) {
-          this.isInitialized(), await this.publisher.publishCustom(t);
+        async publishCustom(t2) {
+          this.isInitialized(), await this.publisher.publishCustom(t2);
         }
-        async subscribe(t, s2) {
+        async subscribe(t2, s2) {
           this.isInitialized(), (!s2?.transportType || s2?.transportType === "relay") && await this.toEstablishConnection();
           const i3 = s2?.internal?.throwOnFailedPublish ?? true;
-          let e2 = this.subscriber.topicMap.get(t)?.[0] || "", r3;
+          let e2 = this.subscriber.topicMap.get(t2)?.[0] || "", r3;
           const o4 = (n4) => {
-            n4.topic === t && (this.subscriber.off(b3.created, o4), r3());
+            n4.topic === t2 && (this.subscriber.off(b3.created, o4), r3());
           };
           return await Promise.all([new Promise((n4) => {
             r3 = n4, this.subscriber.on(b3.created, o4);
           }), new Promise((n4, a3) => {
-            this.subscriber.subscribe(t, { internal: { throwOnFailedPublish: i3 }, ...s2 }).then((h5) => {
-              e2 = h5 || e2, n4();
-            }).catch((h5) => {
-              i3 ? a3(h5) : n4();
+            this.subscriber.subscribe(t2, { internal: { throwOnFailedPublish: i3 }, ...s2 }).then((h4) => {
+              e2 = h4 || e2, n4();
+            }).catch((h4) => {
+              i3 ? a3(h4) : n4();
             });
           })]), e2;
         }
-        async unsubscribe(t, s2) {
-          this.isInitialized(), await this.subscriber.unsubscribe(t, s2);
+        async unsubscribe(t2, s2) {
+          this.isInitialized(), await this.subscriber.unsubscribe(t2, s2);
         }
-        on(t, s2) {
-          this.events.on(t, s2);
+        on(t2, s2) {
+          this.events.on(t2, s2);
         }
-        once(t, s2) {
-          this.events.once(t, s2);
+        once(t2, s2) {
+          this.events.once(t2, s2);
         }
-        off(t, s2) {
-          this.events.off(t, s2);
+        off(t2, s2) {
+          this.events.off(t2, s2);
         }
-        removeListener(t, s2) {
-          this.events.removeListener(t, s2);
+        removeListener(t2, s2) {
+          this.events.removeListener(t2, s2);
         }
         async transportDisconnect() {
           this.provider.disconnect && (this.hasExperiencedNetworkDisruption || this.connected) ? await Kn2(this.provider.disconnect(), 2e3, "provider.disconnect()").catch(() => this.onProviderDisconnect()) : this.onProviderDisconnect();
@@ -21091,17 +21091,17 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         async transportClose() {
           this.transportExplicitlyClosed = true, clearTimeout(this.stalledRestartTimeout), this.stalledRestartInProgress = false, this.stalledRestartBackoff = 0, await this.resetTransport();
         }
-        async transportOpen(t) {
+        async transportOpen(t2) {
           if (!this.subscriber.hasAnyTopics) {
             this.logger.info("Starting WS connection skipped because the client has no topics to work with.");
             return;
           }
-          if (this.connectPromise ? (this.logger.debug({}, "Waiting for existing connection attempt to resolve..."), await this.connectPromise, this.logger.debug({}, "Existing connection attempt resolved")) : (this.connectPromise = this.connect(t).finally(() => {
+          if (this.connectPromise ? (this.logger.debug({}, "Waiting for existing connection attempt to resolve..."), await this.connectPromise, this.logger.debug({}, "Existing connection attempt resolved")) : (this.connectPromise = this.connect(t2).finally(() => {
             this.connectPromise = void 0;
           }), await this.connectPromise), !this.connected) throw new Error(`Couldn't establish socket connection to the relay server: ${this.relayUrl}`);
         }
-        async restartTransport(t) {
-          this.logger.debug({}, "Restarting transport..."), !this.connectionAttemptInProgress && (this.relayUrl = t || this.relayUrl, await this.confirmOnlineStateOrThrow(), await this.resetTransport(), await this.transportOpen());
+        async restartTransport(t2) {
+          this.logger.debug({}, "Restarting transport..."), !this.connectionAttemptInProgress && (this.relayUrl = t2 || this.relayUrl, await this.confirmOnlineStateOrThrow(), await this.resetTransport(), await this.transportOpen());
         }
         async resetTransport() {
           this.reconnectInProgress = true, clearTimeout(this.reconnectTimeout), this.reconnectTimeout = void 0, await this.transportDisconnect(), await this.subscriber.stop(), this.reconnectInProgress = false;
@@ -21109,12 +21109,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         async confirmOnlineStateOrThrow() {
           if (!await lo2()) throw new Error("No internet connection detected. Please restart your network and try again.");
         }
-        async handleBatchMessageEvents(t) {
-          if (t?.length === 0) {
+        async handleBatchMessageEvents(t2) {
+          if (t2?.length === 0) {
             this.logger.trace("Batch message events is empty. Ignoring...");
             return;
           }
-          const s2 = t.sort((i3, e2) => i3.publishedAt - e2.publishedAt);
+          const s2 = t2.sort((i3, e2) => i3.publishedAt - e2.publishedAt);
           this.logger.debug(`Batch of ${s2.length} message events sorted`);
           for (const i3 of s2) try {
             await this.onMessageEvent(i3);
@@ -21123,16 +21123,16 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
           }
           this.logger.trace(`Batch of ${s2.length} message events processed`);
         }
-        async onLinkMessageEvent(t, s2) {
-          const { topic: i3 } = t;
+        async onLinkMessageEvent(t2, s2) {
+          const { topic: i3 } = t2;
           if (!s2.sessionExists) {
             const e2 = Bn2(import_time4.FIVE_MINUTES), r3 = { topic: i3, expiry: e2, relay: { protocol: "irn" }, active: false };
             await this.core.pairing.pairings.set(i3, r3);
           }
-          this.events.emit(p3.message, t), await this.recordMessageEvent(t, Y3.inbound);
+          this.events.emit(p3.message, t2), await this.recordMessageEvent(t2, Y3.inbound);
         }
-        async connect(t) {
-          await this.confirmOnlineStateOrThrow(), t && t !== this.relayUrl && (this.relayUrl = t, await this.transportDisconnect()), this.transportExplicitlyClosed = false;
+        async connect(t2) {
+          await this.confirmOnlineStateOrThrow(), t2 && t2 !== this.relayUrl && (this.relayUrl = t2, await this.transportDisconnect()), this.transportExplicitlyClosed = false;
           let s2 = 1;
           try {
             for (; s2 < 6; ) {
@@ -21174,8 +21174,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             this.provider?.connection?.socket?.on("ping", () => {
               this.resetPingTimeout();
             }), this.resetPingTimeout();
-          } catch (t) {
-            this.logger.warn(t, t?.message);
+          } catch (t2) {
+            this.logger.warn(t2, t2?.message);
           }
         }
         async createProvider() {
@@ -21183,41 +21183,41 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             await Kn2(this.provider.disconnect(), 1e3, "Closing previous provider");
           } catch {
           }
-          const t = await this.core.crypto.signJWT(this.relayUrl);
-          this.provider = new o3(new f(jn2({ sdkVersion: Q3, protocol: this.protocol, version: this.version, relayUrl: this.relayUrl, projectId: this.projectId, auth: t, useOnCloseEvent: true, bundleId: this.bundleId, packageName: this.packageName }))), this.registerProviderListeners();
+          const t2 = await this.core.crypto.signJWT(this.relayUrl);
+          this.provider = new o3(new f(jn2({ sdkVersion: Q3, protocol: this.protocol, version: this.version, relayUrl: this.relayUrl, projectId: this.projectId, auth: t2, useOnCloseEvent: true, bundleId: this.bundleId, packageName: this.packageName }))), this.registerProviderListeners();
         }
-        async recordMessageEvent(t, s2) {
-          const { topic: i3, message: e2 } = t;
+        async recordMessageEvent(t2, s2) {
+          const { topic: i3, message: e2 } = t2;
           await this.messages.set(i3, e2, s2);
         }
-        async shouldIgnoreMessageEvent(t) {
-          const { topic: s2, message: i3 } = t;
+        async shouldIgnoreMessageEvent(t2) {
+          const { topic: s2, message: i3 } = t2;
           if (!i3 || i3.length === 0) return this.logger.warn(`Ignoring invalid/empty message: ${i3}`), true;
           if (!await this.subscriber.isKnownTopic(s2)) return this.logger.warn(`Ignoring message for unknown topic ${s2}`), true;
           const e2 = this.messages.has(s2, i3);
           return e2 && this.logger.warn(`Ignoring duplicate message: ${i3}`), e2;
         }
-        async onProviderPayload(t) {
-          if (this.logger.debug("Incoming Relay Payload"), this.logger.trace({ type: "payload", direction: "incoming", payload: t }), isJsonRpcRequest(t)) {
-            if (!t.method.endsWith(Ht3)) return;
-            const s2 = t.params, { topic: i3, message: e2, publishedAt: r3, attestation: o4 } = s2.data, n4 = { topic: i3, message: e2, publishedAt: r3, transportType: D3.relay, attestation: o4 };
-            this.logger.debug("Emitting Relayer Payload"), this.logger.trace({ type: "event", event: s2.id, ...n4 }), this.events.emit(s2.id, n4), await this.acknowledgePayload(t), await this.onMessageEvent(n4);
-          } else isJsonRpcResponse(t) && this.events.emit(p3.message_ack, t);
+        async onProviderPayload(t2) {
+          if (this.logger.debug("Incoming Relay Payload"), this.logger.trace({ type: "payload", direction: "incoming", payload: t2 }), isJsonRpcRequest(t2)) {
+            if (!t2.method.endsWith(Ht3)) return;
+            const s2 = t2.params, { topic: i3, message: e2, publishedAt: r3, attestation: o4 } = s2.data, n4 = { topic: i3, message: e2, publishedAt: r3, transportType: D3.relay, attestation: o4 };
+            this.logger.debug("Emitting Relayer Payload"), this.logger.trace({ type: "event", event: s2.id, ...n4 }), this.events.emit(s2.id, n4), await this.acknowledgePayload(t2), await this.onMessageEvent(n4);
+          } else isJsonRpcResponse(t2) && this.events.emit(p3.message_ack, t2);
         }
-        async onMessageEvent(t) {
-          await this.shouldIgnoreMessageEvent(t) || (await this.recordMessageEvent(t, Y3.inbound), this.events.emit(p3.message, t));
+        async onMessageEvent(t2) {
+          await this.shouldIgnoreMessageEvent(t2) || (await this.recordMessageEvent(t2, Y3.inbound), this.events.emit(p3.message, t2));
         }
-        async acknowledgePayload(t) {
-          const s2 = formatJsonRpcResult(t.id, true);
+        async acknowledgePayload(t2) {
+          const s2 = formatJsonRpcResult(t2.id, true);
           await this.provider.connection.send(s2);
         }
         unregisterProviderListeners() {
           this.provider.off(v5.payload, this.onPayloadHandler), this.provider.off(v5.connect, this.onConnectHandler), this.provider.off(v5.disconnect, this.onDisconnectHandler), this.provider.off(v5.error, this.onProviderErrorHandler), clearTimeout(this.pingTimeout);
         }
         async registerEventListeners() {
-          let t = await lo2();
+          let t2 = await lo2();
           fo2(async (s2) => {
-            t !== s2 && (t = s2, s2 ? await this.transportOpen().catch((i3) => this.logger.error(i3, i3?.message)) : (this.hasExperiencedNetworkDisruption = true, await this.transportDisconnect(), this.transportExplicitlyClosed = false));
+            t2 !== s2 && (t2 = s2, s2 ? await this.transportOpen().catch((i3) => this.logger.error(i3, i3?.message)) : (this.hasExperiencedNetworkDisruption = true, await this.transportDisconnect(), this.transportExplicitlyClosed = false));
           }), this.core.heartbeat.on(r.pulse, async () => {
             if (!this.transportExplicitlyClosed && !this.connected && po2()) try {
               await this.confirmOnlineStateOrThrow(), await this.transportOpen();
@@ -21245,22 +21245,22 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             this.reconnectInProgress = true;
             try {
               await this.subscriber.stop();
-            } catch (t) {
-              this.logger.warn(t, "subscriber.stop() failed during disconnect");
+            } catch (t2) {
+              this.logger.warn(t2, "subscriber.stop() failed during disconnect");
             }
             if (!this.subscriber.hasAnyTopics || this.transportExplicitlyClosed) {
               this.reconnectInProgress = false;
               return;
             }
             this.reconnectTimeout = setTimeout(async () => {
-              await this.transportOpen().catch((t) => this.logger.error(t, t?.message)), this.reconnectTimeout = void 0, this.reconnectInProgress = false;
+              await this.transportOpen().catch((t2) => this.logger.error(t2, t2?.message)), this.reconnectTimeout = void 0, this.reconnectInProgress = false;
             }, (0, import_time4.toMiliseconds)(Jt3));
           }
         }
         isInitialized() {
           if (!this.initialized) {
-            const { message: t } = N10("NOT_INITIALIZED", this.name);
-            throw new Error(t);
+            const { message: t2 } = N10("NOT_INITIALIZED", this.name);
+            throw new Error(t2);
           }
         }
         async toEstablishConnection() {
@@ -21276,8 +21276,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         }
       };
       ve4 = class extends p2 {
-        constructor(t, s2, i3, e2 = S3, r3 = void 0) {
-          super(t, s2, i3, e2), this.core = t, this.logger = s2, this.name = i3, this.map = /* @__PURE__ */ new Map(), this.version = jt3, this.cached = [], this.initialized = false, this.storagePrefix = S3, this.recentlyDeleted = [], this.recentlyDeletedLimit = 200, this.init = async () => {
+        constructor(t2, s2, i3, e2 = S3, r3 = void 0) {
+          super(t2, s2, i3, e2), this.core = t2, this.logger = s2, this.name = i3, this.map = /* @__PURE__ */ new Map(), this.version = jt3, this.cached = [], this.initialized = false, this.storagePrefix = S3, this.recentlyDeleted = [], this.recentlyDeletedLimit = 200, this.init = async () => {
             this.initialized || (this.logger.trace("Initialized"), await this.restore(), this.cached.forEach((o4) => {
               this.getKey && o4 !== null && !R2(o4) ? this.map.set(this.getKey(o4), o4) : Jr2(o4) ? this.map.set(o4.id, o4) : zr2(o4) && this.map.set(o4.topic, o4);
             }), this.cached = [], this.initialized = true);
@@ -21306,23 +21306,23 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         get values() {
           return Array.from(this.map.values());
         }
-        addToRecentlyDeleted(t) {
-          this.recentlyDeleted.push(t), this.recentlyDeleted.length >= this.recentlyDeletedLimit && this.recentlyDeleted.splice(0, this.recentlyDeletedLimit / 2);
+        addToRecentlyDeleted(t2) {
+          this.recentlyDeleted.push(t2), this.recentlyDeleted.length >= this.recentlyDeletedLimit && this.recentlyDeleted.splice(0, this.recentlyDeletedLimit / 2);
         }
-        async setDataStore(t) {
-          await this.core.storage.setItem(this.storageKey, t);
+        async setDataStore(t2) {
+          await this.core.storage.setItem(this.storageKey, t2);
         }
         async getDataStore() {
           return await this.core.storage.getItem(this.storageKey);
         }
-        getData(t) {
-          const s2 = this.map.get(t);
+        getData(t2) {
+          const s2 = this.map.get(t2);
           if (!s2) {
-            if (this.recentlyDeleted.includes(t)) {
-              const { message: e2 } = N10("MISSING_OR_INVALID", `Record was recently deleted - ${this.name}: ${t}`);
+            if (this.recentlyDeleted.includes(t2)) {
+              const { message: e2 } = N10("MISSING_OR_INVALID", `Record was recently deleted - ${this.name}: ${t2}`);
               throw this.logger.error(e2), new Error(e2);
             }
-            const { message: i3 } = N10("NO_MATCHING_KEY", `${this.name}: ${t}`);
+            const { message: i3 } = N10("NO_MATCHING_KEY", `${this.name}: ${t2}`);
             throw this.logger.error(i3), new Error(i3);
           }
           return s2;
@@ -21332,46 +21332,46 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         }
         async restore() {
           try {
-            const t = await this.getDataStore();
-            if (typeof t > "u" || !t.length) return;
+            const t2 = await this.getDataStore();
+            if (typeof t2 > "u" || !t2.length) return;
             if (this.map.size) {
               const { message: s2 } = N10("RESTORE_WILL_OVERRIDE", this.name);
               throw this.logger.error(s2), new Error(s2);
             }
-            this.cached = t, this.logger.debug(`Successfully Restored value for ${this.name}`), this.logger.trace({ type: "method", method: "restore", value: this.values });
-          } catch (t) {
-            this.logger.debug(`Failed to Restore value for ${this.name}`), this.logger.error(t);
+            this.cached = t2, this.logger.debug(`Successfully Restored value for ${this.name}`), this.logger.trace({ type: "method", method: "restore", value: this.values });
+          } catch (t2) {
+            this.logger.debug(`Failed to Restore value for ${this.name}`), this.logger.error(t2);
           }
         }
         isInitialized() {
           if (!this.initialized) {
-            const { message: t } = N10("NOT_INITIALIZED", this.name);
-            throw new Error(t);
+            const { message: t2 } = N10("NOT_INITIALIZED", this.name);
+            throw new Error(t2);
           }
         }
       };
       Ee4 = class {
-        constructor(t, s2) {
-          this.core = t, this.logger = s2, this.name = te4, this.version = ee3, this.events = new import_events7.default(), this.initialized = false, this.storagePrefix = S3, this.ignoredPayloadTypes = [D2], this.registeredMethods = [], this.init = async () => {
+        constructor(t2, s2) {
+          this.core = t2, this.logger = s2, this.name = te4, this.version = ee3, this.events = new import_events7.default(), this.initialized = false, this.storagePrefix = S3, this.ignoredPayloadTypes = [D2], this.registeredMethods = [], this.init = async () => {
             this.initialized || (await this.pairings.init(), await this.cleanup(), this.registerRelayerEvents(), this.registerExpirerEvents(), this.initialized = true, this.logger.trace("Initialized"));
           }, this.register = ({ methods: i3 }) => {
             this.isInitialized(), this.registeredMethods = [.../* @__PURE__ */ new Set([...this.registeredMethods, ...i3])];
           }, this.create = async (i3) => {
             this.isInitialized();
-            const e2 = vr2(), r3 = await this.core.crypto.setSymKey(e2), o4 = Bn2(import_time4.FIVE_MINUTES), n4 = { protocol: Gt3 }, a3 = { topic: r3, expiry: o4, relay: n4, active: false, methods: i3?.methods }, h5 = Dr2({ protocol: this.core.protocol, version: this.core.version, topic: r3, symKey: e2, relay: n4, expiryTimestamp: o4, methods: i3?.methods });
-            return this.events.emit(q3.create, a3), this.core.expirer.set(r3, o4), await this.pairings.set(r3, a3), await this.core.relayer.subscribe(r3, { transportType: i3?.transportType, internal: i3?.internal }), { topic: r3, uri: h5 };
+            const e2 = vr2(), r3 = await this.core.crypto.setSymKey(e2), o4 = Bn2(import_time4.FIVE_MINUTES), n4 = { protocol: Gt3 }, a3 = { topic: r3, expiry: o4, relay: n4, active: false, methods: i3?.methods }, h4 = Dr2({ protocol: this.core.protocol, version: this.core.version, topic: r3, symKey: e2, relay: n4, expiryTimestamp: o4, methods: i3?.methods });
+            return this.events.emit(q3.create, a3), this.core.expirer.set(r3, o4), await this.pairings.set(r3, a3), await this.core.relayer.subscribe(r3, { transportType: i3?.transportType, internal: i3?.internal }), { topic: r3, uri: h4 };
           }, this.pair = async (i3) => {
             this.isInitialized();
             const e2 = this.core.eventClient.createEvent({ properties: { topic: i3?.uri, trace: [x6.pairing_started] } });
             this.isValidPair(i3, e2);
-            const { topic: r3, symKey: o4, relay: n4, expiryTimestamp: a3, methods: h5 } = kr2(i3.uri);
+            const { topic: r3, symKey: o4, relay: n4, expiryTimestamp: a3, methods: h4 } = kr2(i3.uri);
             e2.props.properties.topic = r3, e2.addTrace(x6.pairing_uri_validation_success), e2.addTrace(x6.pairing_uri_not_expired);
             let d3;
             if (this.pairings.keys.includes(r3)) {
               if (d3 = this.pairings.get(r3), e2.addTrace(x6.existing_pairing), d3.active) throw e2.setError(O3.active_pairing_already_exists), new Error(`Pairing already exists: ${r3}. Please try again with a new connection URI.`);
               e2.addTrace(x6.pairing_not_expired);
             }
-            const l4 = a3 || Bn2(import_time4.FIVE_MINUTES), g4 = { topic: r3, relay: n4, expiry: l4, active: false, methods: h5 };
+            const l4 = a3 || Bn2(import_time4.FIVE_MINUTES), g4 = { topic: r3, relay: n4, expiry: l4, active: false, methods: h4 };
             this.core.expirer.set(r3, l4), await this.pairings.set(r3, g4), e2.addTrace(x6.store_new_pairing), i3.activatePairing && await this.activate({ topic: r3 }), this.events.emit(q3.create, g4), e2.addTrace(x6.emit_inactive_pairing), this.core.crypto.keychain.has(r3) || await this.core.crypto.setSymKey(o4, r3), e2.addTrace(x6.subscribing_pairing_topic);
             try {
               await this.core.relayer.confirmOnlineStateOrThrow();
@@ -21393,8 +21393,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             const { topic: e2 } = i3;
             if (this.pairings.keys.includes(e2)) {
               const r3 = await this.sendRequest(e2, "wc_pairingPing", {}), { done: o4, resolve: n4, reject: a3 } = Ln2();
-              this.events.once(Jn2("pairing_ping", r3), ({ error: h5 }) => {
-                h5 ? a3(h5) : n4();
+              this.events.once(Jn2("pairing_ping", r3), ({ error: h4 }) => {
+                h4 ? a3(h4) : n4();
               }), await o4();
             }
           }, this.updateExpiry = async ({ topic: i3, expiry: e2 }) => {
@@ -21413,11 +21413,11 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             const o4 = formatJsonRpcRequest(e2, r3), n4 = await this.core.crypto.encode(i3, o4), a3 = U2[e2].req;
             return this.core.history.set(i3, o4), this.core.relayer.publish(i3, n4, a3), o4.id;
           }, this.sendResult = async (i3, e2, r3) => {
-            const o4 = formatJsonRpcResult(i3, r3), n4 = await this.core.crypto.encode(e2, o4), a3 = (await this.core.history.get(e2, i3)).request.method, h5 = U2[a3].res;
-            await this.core.relayer.publish(e2, n4, h5), await this.core.history.resolve(o4);
+            const o4 = formatJsonRpcResult(i3, r3), n4 = await this.core.crypto.encode(e2, o4), a3 = (await this.core.history.get(e2, i3)).request.method, h4 = U2[a3].res;
+            await this.core.relayer.publish(e2, n4, h4), await this.core.history.resolve(o4);
           }, this.sendError = async (i3, e2, r3) => {
-            const o4 = formatJsonRpcError(i3, r3), n4 = await this.core.crypto.encode(e2, o4), a3 = (await this.core.history.get(e2, i3)).request.method, h5 = U2[a3] ? U2[a3].res : U2.unregistered_method.res;
-            await this.core.relayer.publish(e2, n4, h5), await this.core.history.resolve(o4);
+            const o4 = formatJsonRpcError(i3, r3), n4 = await this.core.crypto.encode(e2, o4), a3 = (await this.core.history.get(e2, i3)).request.method, h4 = U2[a3] ? U2[a3].res : U2.unregistered_method.res;
+            await this.core.relayer.publish(e2, n4, h4), await this.core.history.resolve(o4);
           }, this.deletePairing = async (i3, e2) => {
             await this.core.relayer.unsubscribe(i3), await Promise.all([this.pairings.delete(i3, $2("USER_DISCONNECTED")), this.core.crypto.deleteSymKey(i3), e2 ? Promise.resolve() : this.core.expirer.del(i3)]);
           }, this.cleanup = async () => {
@@ -21522,20 +21522,20 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               const { message: e2 } = N10("EXPIRED", `pairing topic: ${i3}`);
               throw new Error(e2);
             }
-          }, this.core = t, this.logger = Re(s2, this.name), this.pairings = new ve4(this.core, this.logger, this.name, this.storagePrefix);
+          }, this.core = t2, this.logger = Re(s2, this.name), this.pairings = new ve4(this.core, this.logger, this.name, this.storagePrefix);
         }
         get context() {
           return ee(this.logger);
         }
         isInitialized() {
           if (!this.initialized) {
-            const { message: t } = N10("NOT_INITIALIZED", this.name);
-            throw new Error(t);
+            const { message: t2 } = N10("NOT_INITIALIZED", this.name);
+            throw new Error(t2);
           }
         }
         registerRelayerEvents() {
-          this.core.relayer.on(p3.message, async (t) => {
-            const { topic: s2, message: i3, transportType: e2 } = t;
+          this.core.relayer.on(p3.message, async (t2) => {
+            const { topic: s2, message: i3, transportType: e2 } = t2;
             if (this.pairings.keys.includes(s2) && e2 !== D3.link_mode) {
               try {
                 if (this.core.crypto.getPayloadType(i3, ee2) === F) {
@@ -21554,15 +21554,15 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
           });
         }
         registerExpirerEvents() {
-          this.core.expirer.on(P4.expired, async (t) => {
-            const { topic: s2 } = Hn2(t.target);
+          this.core.expirer.on(P4.expired, async (t2) => {
+            const { topic: s2 } = Hn2(t2.target);
             s2 && this.pairings.keys.includes(s2) && (await this.deletePairing(s2, true), this.events.emit(q3.expire, { topic: s2 }));
           });
         }
       };
       Ie4 = class extends h2 {
-        constructor(t, s2) {
-          super(t, s2), this.core = t, this.logger = s2, this.records = /* @__PURE__ */ new Map(), this.events = new import_events7.EventEmitter(), this.name = ie3, this.version = se3, this.cached = [], this.initialized = false, this.storagePrefix = S3, this.init = async () => {
+        constructor(t2, s2) {
+          super(t2, s2), this.core = t2, this.logger = s2, this.records = /* @__PURE__ */ new Map(), this.events = new import_events7.EventEmitter(), this.name = ie3, this.version = se3, this.cached = [], this.initialized = false, this.storagePrefix = S3, this.init = async () => {
             this.initialized || (this.logger.trace("Initialized"), await this.restore(), this.cached.forEach((i3) => this.records.set(i3.id, i3)), this.cached = [], this.registerEventListeners(), this.initialized = true);
           }, this.set = (i3, e2, r3) => {
             if (this.isInitialized(), this.logger.debug("Setting JSON-RPC request history record"), this.logger.trace({ type: "method", method: "set", topic: i3, request: e2, chainId: r3 }), this.records.has(e2.id)) return;
@@ -21605,24 +21605,24 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
           return Array.from(this.records.values());
         }
         get pending() {
-          const t = [];
+          const t2 = [];
           return this.values.forEach((s2) => {
             if (typeof s2.response < "u") return;
             const i3 = { topic: s2.topic, request: formatJsonRpcRequest(s2.request.method, s2.request.params, s2.id), chainId: s2.chainId };
-            return t.push(i3);
-          }), t;
+            return t2.push(i3);
+          }), t2;
         }
-        async setJsonRpcRecords(t) {
-          await this.core.storage.setItem(this.storageKey, t);
+        async setJsonRpcRecords(t2) {
+          await this.core.storage.setItem(this.storageKey, t2);
         }
         async getJsonRpcRecords() {
           return await this.core.storage.getItem(this.storageKey);
         }
-        getRecord(t) {
+        getRecord(t2) {
           this.isInitialized();
-          const s2 = this.records.get(t);
+          const s2 = this.records.get(t2);
           if (!s2) {
-            const { message: i3 } = N10("NO_MATCHING_KEY", `${this.name}: ${t}`);
+            const { message: i3 } = N10("NO_MATCHING_KEY", `${this.name}: ${t2}`);
             throw new Error(i3);
           }
           return s2;
@@ -21632,27 +21632,27 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         }
         async restore() {
           try {
-            const t = await this.getJsonRpcRecords();
-            if (typeof t > "u" || !t.length) return;
+            const t2 = await this.getJsonRpcRecords();
+            if (typeof t2 > "u" || !t2.length) return;
             if (this.records.size) {
               const { message: s2 } = N10("RESTORE_WILL_OVERRIDE", this.name);
               throw this.logger.error(s2), new Error(s2);
             }
-            this.cached = t, this.logger.debug(`Successfully Restored records for ${this.name}`), this.logger.trace({ type: "method", method: "restore", records: this.values });
-          } catch (t) {
-            this.logger.debug(`Failed to Restore records for ${this.name}`), this.logger.error(t);
+            this.cached = t2, this.logger.debug(`Successfully Restored records for ${this.name}`), this.logger.trace({ type: "method", method: "restore", records: this.values });
+          } catch (t2) {
+            this.logger.debug(`Failed to Restore records for ${this.name}`), this.logger.error(t2);
           }
         }
         registerEventListeners() {
-          this.events.on(T3.created, (t) => {
+          this.events.on(T3.created, (t2) => {
             const s2 = T3.created;
-            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, record: t });
-          }), this.events.on(T3.updated, (t) => {
+            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, record: t2 });
+          }), this.events.on(T3.updated, (t2) => {
             const s2 = T3.updated;
-            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, record: t });
-          }), this.events.on(T3.deleted, (t) => {
+            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, record: t2 });
+          }), this.events.on(T3.deleted, (t2) => {
             const s2 = T3.deleted;
-            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, record: t });
+            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, record: t2 });
           }), this.core.heartbeat.on(r.pulse, () => {
             this.cleanup();
           });
@@ -21660,24 +21660,24 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         cleanup() {
           try {
             this.isInitialized();
-            let t = false;
+            let t2 = false;
             this.records.forEach((s2) => {
-              (0, import_time4.toMiliseconds)(s2.expiry || 0) - Date.now() <= 0 && (this.logger.info(`Deleting expired history log: ${s2.id}`), this.records.delete(s2.id), this.events.emit(T3.deleted, s2, false), t = true);
-            }), t && this.persist();
-          } catch (t) {
-            this.logger.warn(t);
+              (0, import_time4.toMiliseconds)(s2.expiry || 0) - Date.now() <= 0 && (this.logger.info(`Deleting expired history log: ${s2.id}`), this.records.delete(s2.id), this.events.emit(T3.deleted, s2, false), t2 = true);
+            }), t2 && this.persist();
+          } catch (t2) {
+            this.logger.warn(t2);
           }
         }
         isInitialized() {
           if (!this.initialized) {
-            const { message: t } = N10("NOT_INITIALIZED", this.name);
-            throw new Error(t);
+            const { message: t2 } = N10("NOT_INITIALIZED", this.name);
+            throw new Error(t2);
           }
         }
       };
       Te4 = class extends x3 {
-        constructor(t, s2) {
-          super(t, s2), this.core = t, this.logger = s2, this.expirations = /* @__PURE__ */ new Map(), this.events = new import_events7.EventEmitter(), this.name = re3, this.version = oe3, this.cached = [], this.initialized = false, this.storagePrefix = S3, this.init = async () => {
+        constructor(t2, s2) {
+          super(t2, s2), this.core = t2, this.logger = s2, this.expirations = /* @__PURE__ */ new Map(), this.events = new import_events7.EventEmitter(), this.name = re3, this.version = oe3, this.cached = [], this.initialized = false, this.storagePrefix = S3, this.init = async () => {
             this.initialized || (this.logger.trace("Initialized"), await this.restore(), this.cached.forEach((i3) => this.expirations.set(i3.target, i3)), this.cached = [], this.registerEventListeners(), this.initialized = true);
           }, this.has = (i3) => {
             try {
@@ -21724,14 +21724,14 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         get values() {
           return Array.from(this.expirations.values());
         }
-        formatTarget(t) {
-          if (typeof t == "string") return Fn3(t);
-          if (typeof t == "number") return qn2(t);
-          const { message: s2 } = N10("UNKNOWN_TYPE", `Target type: ${typeof t}`);
+        formatTarget(t2) {
+          if (typeof t2 == "string") return Fn3(t2);
+          if (typeof t2 == "number") return qn2(t2);
+          const { message: s2 } = N10("UNKNOWN_TYPE", `Target type: ${typeof t2}`);
           throw new Error(s2);
         }
-        async setExpirations(t) {
-          await this.core.storage.setItem(this.storageKey, t);
+        async setExpirations(t2) {
+          await this.core.storage.setItem(this.storageKey, t2);
         }
         async getExpirations() {
           return await this.core.storage.getItem(this.storageKey);
@@ -21741,85 +21741,85 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         }
         async restore() {
           try {
-            const t = await this.getExpirations();
-            if (typeof t > "u" || !t.length) return;
+            const t2 = await this.getExpirations();
+            if (typeof t2 > "u" || !t2.length) return;
             if (this.expirations.size) {
               const { message: s2 } = N10("RESTORE_WILL_OVERRIDE", this.name);
               throw this.logger.error(s2), new Error(s2);
             }
-            this.cached = t, this.logger.debug(`Successfully Restored expirations for ${this.name}`), this.logger.trace({ type: "method", method: "restore", expirations: this.values });
-          } catch (t) {
-            this.logger.debug(`Failed to Restore expirations for ${this.name}`), this.logger.error(t);
+            this.cached = t2, this.logger.debug(`Successfully Restored expirations for ${this.name}`), this.logger.trace({ type: "method", method: "restore", expirations: this.values });
+          } catch (t2) {
+            this.logger.debug(`Failed to Restore expirations for ${this.name}`), this.logger.error(t2);
           }
         }
-        getExpiration(t) {
-          const s2 = this.expirations.get(t);
+        getExpiration(t2) {
+          const s2 = this.expirations.get(t2);
           if (!s2) {
-            const { message: i3 } = N10("NO_MATCHING_KEY", `${this.name}: ${t}`);
+            const { message: i3 } = N10("NO_MATCHING_KEY", `${this.name}: ${t2}`);
             throw this.logger.warn(i3), new Error(i3);
           }
           return s2;
         }
-        checkExpiry(t, s2) {
+        checkExpiry(t2, s2) {
           const { expiry: i3 } = s2;
-          (0, import_time4.toMiliseconds)(i3) - Date.now() <= 0 && this.expire(t, s2);
+          (0, import_time4.toMiliseconds)(i3) - Date.now() <= 0 && this.expire(t2, s2);
         }
-        expire(t, s2) {
-          this.expirations.delete(t), this.events.emit(P4.expired, { target: t, expiration: s2 });
+        expire(t2, s2) {
+          this.expirations.delete(t2), this.events.emit(P4.expired, { target: t2, expiration: s2 });
         }
         checkExpirations() {
-          this.core.relayer.connected && this.expirations.forEach((t, s2) => this.checkExpiry(s2, t));
+          this.core.relayer.connected && this.expirations.forEach((t2, s2) => this.checkExpiry(s2, t2));
         }
         registerEventListeners() {
-          this.core.heartbeat.on(r.pulse, () => this.checkExpirations()), this.events.on(P4.created, (t) => {
+          this.core.heartbeat.on(r.pulse, () => this.checkExpirations()), this.events.on(P4.created, (t2) => {
             const s2 = P4.created;
-            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, data: t }), this.persist();
-          }), this.events.on(P4.expired, (t) => {
+            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, data: t2 }), this.persist();
+          }), this.events.on(P4.expired, (t2) => {
             const s2 = P4.expired;
-            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, data: t }), this.persist();
-          }), this.events.on(P4.deleted, (t) => {
+            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, data: t2 }), this.persist();
+          }), this.events.on(P4.deleted, (t2) => {
             const s2 = P4.deleted;
-            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, data: t }), this.persist();
+            this.logger.info(`Emitting ${s2}`), this.logger.debug({ type: "event", event: s2, data: t2 }), this.persist();
           });
         }
         isInitialized() {
           if (!this.initialized) {
-            const { message: t } = N10("NOT_INITIALIZED", this.name);
-            throw new Error(t);
+            const { message: t2 } = N10("NOT_INITIALIZED", this.name);
+            throw new Error(t2);
           }
         }
       };
       Pe4 = class extends y3 {
-        constructor(t, s2, i3) {
-          super(t, s2, i3), this.core = t, this.logger = s2, this.store = i3, this.name = ne3, this.verifyUrlV3 = he4, this.storagePrefix = S3, this.version = lt3, this.init = async () => {
+        constructor(t2, s2, i3) {
+          super(t2, s2, i3), this.core = t2, this.logger = s2, this.store = i3, this.name = ne3, this.verifyUrlV3 = he4, this.storagePrefix = S3, this.version = lt3, this.init = async () => {
             this.isDevEnv || (this.publicKey = await this.store.getItem(this.storeKey), this.publicKey && (0, import_time4.toMiliseconds)(this.publicKey?.expiresAt) < Date.now() && (this.logger.debug("verify v2 public key expired"), await this.removePublicKey()));
           }, this.register = async (e2) => {
             if (!x5() || this.isDevEnv) return;
             const r3 = window.location.origin, { id: o4, decryptedId: n4 } = e2, a3 = `${this.verifyUrlV3}/attestation?projectId=${this.core.projectId}&origin=${r3}&id=${o4}&decryptedId=${n4}`;
             try {
-              const h5 = (0, import_window_getters2.getDocument)(), d3 = this.startAbortTimer(import_time4.ONE_SECOND * 5), l4 = await new Promise((g4, _3) => {
+              const h4 = (0, import_window_getters2.getDocument)(), d3 = this.startAbortTimer(import_time4.ONE_SECOND * 5), l4 = await new Promise((g4, _3) => {
                 const E4 = () => {
-                  window.removeEventListener("message", N11), h5.body.removeChild(u3), _3("attestation aborted");
+                  window.removeEventListener("message", N11), h4.body.removeChild(u2), _3("attestation aborted");
                 };
                 this.abortController.signal.addEventListener("abort", E4);
-                const u3 = h5.createElement("iframe");
-                u3.src = a3, u3.style.display = "none", u3.addEventListener("error", E4, { signal: this.abortController.signal });
+                const u2 = h4.createElement("iframe");
+                u2.src = a3, u2.style.display = "none", u2.addEventListener("error", E4, { signal: this.abortController.signal });
                 const N11 = (m2) => {
                   if (m2.data && typeof m2.data == "string") try {
                     const C4 = JSON.parse(m2.data);
                     if (C4.type === "verify_attestation") {
                       if (sn(C4.attestation).payload.id !== o4) return;
-                      clearInterval(d3), h5.body.removeChild(u3), this.abortController.signal.removeEventListener("abort", E4), window.removeEventListener("message", N11), g4(C4.attestation === null ? "" : C4.attestation);
+                      clearInterval(d3), h4.body.removeChild(u2), this.abortController.signal.removeEventListener("abort", E4), window.removeEventListener("message", N11), g4(C4.attestation === null ? "" : C4.attestation);
                     }
                   } catch (C4) {
                     this.logger.warn(C4);
                   }
                 };
-                h5.body.appendChild(u3), window.addEventListener("message", N11, { signal: this.abortController.signal });
+                h4.body.appendChild(u2), window.addEventListener("message", N11, { signal: this.abortController.signal });
               });
               return this.logger.debug(l4, "jwt attestation"), l4;
-            } catch (h5) {
-              this.logger.warn(h5);
+            } catch (h4) {
+              this.logger.warn(h4);
             }
             return "";
           }, this.resolve = async (e2) => {
@@ -21831,13 +21831,13 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             }
             if (r3) {
               if (sn(r3).payload.id !== n4) return;
-              const h5 = await this.isValidJwtAttestation(r3);
-              if (h5) {
-                if (!h5.isVerified) {
+              const h4 = await this.isValidJwtAttestation(r3);
+              if (h4) {
+                if (!h4.isVerified) {
                   this.logger.warn("resolve: jwt attestation: origin url not verified");
                   return;
                 }
-                return h5;
+                return h4;
               }
             }
             if (!o4) return;
@@ -21895,21 +21895,21 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         get context() {
           return ee(this.logger);
         }
-        startAbortTimer(t) {
-          return this.abortController = new AbortController(), setTimeout(() => this.abortController.abort(), (0, import_time4.toMiliseconds)(t));
+        startAbortTimer(t2) {
+          return this.abortController = new AbortController(), setTimeout(() => this.abortController.abort(), (0, import_time4.toMiliseconds)(t2));
         }
       };
       Re4 = class extends v2 {
-        constructor(t, s2) {
-          super(t, s2), this.projectId = t, this.logger = s2, this.context = le3, this.registerDeviceToken = async (i3) => {
+        constructor(t2, s2) {
+          super(t2, s2), this.projectId = t2, this.logger = s2, this.context = le3, this.registerDeviceToken = async (i3) => {
             const { clientId: e2, token: r3, notificationType: o4, enableEncrypted: n4 = false } = i3, a3 = `${ge4}/${this.projectId}/clients`;
             await fetch(a3, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_id: e2, type: o4, token: r3, always_raw: n4 }) });
           }, this.logger = Re(s2, this.context);
         }
       };
       Se4 = class extends C {
-        constructor(t, s2, i3 = true) {
-          super(t, s2, i3), this.core = t, this.logger = s2, this.context = de3, this.storagePrefix = S3, this.storageVersion = pe4, this.events = /* @__PURE__ */ new Map(), this.shouldPersist = false, this.init = async () => {
+        constructor(t2, s2, i3 = true) {
+          super(t2, s2, i3), this.core = t2, this.logger = s2, this.context = de3, this.storagePrefix = S3, this.storageVersion = pe4, this.events = /* @__PURE__ */ new Map(), this.shouldPersist = false, this.init = async () => {
             if (!Xn2()) try {
               const e2 = { eventId: Qn2(), timestamp: Date.now(), domain: this.getAppDomain(), props: { event: "INIT", type: "", properties: { client_id: await this.core.crypto.getClientId(), user_agent: Ye2(this.core.relayer.protocol, this.core.relayer.version, Q3) } } };
               await this.sendEvent([e2]);
@@ -21917,8 +21917,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               this.logger.warn(e2);
             }
           }, this.createEvent = (e2) => {
-            const { event: r3 = "ERROR", type: o4 = "", properties: { topic: n4, trace: a3 } } = e2, h5 = Qn2(), d3 = this.core.projectId || "", l4 = Date.now(), g4 = { eventId: h5, timestamp: l4, props: { event: r3, type: o4, properties: { topic: n4, trace: a3 } }, bundleId: d3, domain: this.getAppDomain(), ...this.setMethods(h5) };
-            return this.telemetryEnabled && (this.events.set(h5, g4), this.shouldPersist = true), g4;
+            const { event: r3 = "ERROR", type: o4 = "", properties: { topic: n4, trace: a3 } } = e2, h4 = Qn2(), d3 = this.core.projectId || "", l4 = Date.now(), g4 = { eventId: h4, timestamp: l4, props: { event: r3, type: o4, properties: { topic: n4, trace: a3 } }, bundleId: d3, domain: this.getAppDomain(), ...this.setMethods(h4) };
+            return this.telemetryEnabled && (this.events.set(h4, g4), this.shouldPersist = true), g4;
           }, this.getEvent = (e2) => {
             const { eventId: r3, topic: o4 } = e2;
             if (r3) return this.events.get(r3);
@@ -21972,26 +21972,26 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         }
       };
       Ce4 = class xe3 extends n2 {
-        constructor(t) {
-          super(t), this.protocol = ct3, this.version = lt3, this.name = W4, this.events = new import_events7.EventEmitter(), this.initialized = false, this.on = (o4, n4) => this.events.on(o4, n4), this.once = (o4, n4) => this.events.once(o4, n4), this.off = (o4, n4) => this.events.off(o4, n4), this.removeListener = (o4, n4) => this.events.removeListener(o4, n4), this.dispatchEnvelope = ({ topic: o4, message: n4, sessionExists: a3 }) => {
+        constructor(t2) {
+          super(t2), this.protocol = ct3, this.version = lt3, this.name = W4, this.events = new import_events7.EventEmitter(), this.initialized = false, this.on = (o4, n4) => this.events.on(o4, n4), this.once = (o4, n4) => this.events.once(o4, n4), this.off = (o4, n4) => this.events.off(o4, n4), this.removeListener = (o4, n4) => this.events.removeListener(o4, n4), this.dispatchEnvelope = ({ topic: o4, message: n4, sessionExists: a3 }) => {
             if (!o4 || !n4) return;
-            const h5 = { topic: o4, message: n4, publishedAt: Date.now(), transportType: D3.link_mode };
-            this.relayer.onLinkMessageEvent(h5, { sessionExists: a3 });
+            const h4 = { topic: o4, message: n4, publishedAt: Date.now(), transportType: D3.link_mode };
+            this.relayer.onLinkMessageEvent(h4, { sessionExists: a3 });
           };
-          const s2 = this.getGlobalCore(t?.customStoragePrefix);
+          const s2 = this.getGlobalCore(t2?.customStoragePrefix);
           if (s2) try {
             return this.customStoragePrefix = s2.customStoragePrefix, this.logger = s2.logger, this.heartbeat = s2.heartbeat, this.crypto = s2.crypto, this.history = s2.history, this.expirer = s2.expirer, this.storage = s2.storage, this.relayer = s2.relayer, this.pairing = s2.pairing, this.verify = s2.verify, this.echoClient = s2.echoClient, this.linkModeSupportedApps = s2.linkModeSupportedApps, this.eventClient = s2.eventClient, this.initialized = s2.initialized, this.logChunkController = s2.logChunkController, s2;
           } catch (o4) {
             console.warn("Failed to copy global core", o4);
           }
-          this.projectId = t?.projectId, this.relayUrl = t?.relayUrl || pt2, this.customStoragePrefix = t?.customStoragePrefix ? `:${t.customStoragePrefix}` : "";
-          const i3 = Ge({ level: typeof t?.logger == "string" && t.logger ? t.logger : Dt3.logger, name: W4 }), { logger: e2, chunkLoggerController: r3 } = Ue({ opts: i3, maxSizeInBytes: t?.maxLogBlobSizeInBytes, loggerOverride: t?.logger });
+          this.projectId = t2?.projectId, this.relayUrl = t2?.relayUrl || pt2, this.customStoragePrefix = t2?.customStoragePrefix ? `:${t2.customStoragePrefix}` : "";
+          const i3 = Ge({ level: typeof t2?.logger == "string" && t2.logger ? t2.logger : Dt3.logger, name: W4 }), { logger: e2, chunkLoggerController: r3 } = Ue({ opts: i3, maxSizeInBytes: t2?.maxLogBlobSizeInBytes, loggerOverride: t2?.logger });
           this.logChunkController = r3, this.logChunkController?.downloadLogsBlobInBrowser && (window.downloadLogsBlobInBrowser = async () => {
             this.logChunkController?.downloadLogsBlobInBrowser && this.logChunkController?.downloadLogsBlobInBrowser({ clientId: await this.crypto.getClientId() });
-          }), this.logger = Re(e2, this.name), this.heartbeat = new i(), this.crypto = new _e3(this, this.logger, t?.keychain), this.history = new Ie4(this, this.logger), this.expirer = new Te4(this, this.logger), this.storage = t?.storage ? t.storage : new h({ ...zt3, ...t?.storageOptions }), this.relayer = new fe4({ core: this, logger: this.logger, relayUrl: this.relayUrl, projectId: this.projectId }), this.pairing = new Ee4(this, this.logger), this.verify = new Pe4(this, this.logger, this.storage), this.echoClient = new Re4(this.projectId || "", this.logger), this.linkModeSupportedApps = [], this.eventClient = new Se4(this, this.logger, t?.telemetryEnabled), this.setGlobalCore(this);
+          }), this.logger = Re(e2, this.name), this.heartbeat = new i(), this.crypto = new _e3(this, this.logger, t2?.keychain), this.history = new Ie4(this, this.logger), this.expirer = new Te4(this, this.logger), this.storage = t2?.storage ? t2.storage : new h({ ...zt3, ...t2?.storageOptions }), this.relayer = new fe4({ core: this, logger: this.logger, relayUrl: this.relayUrl, projectId: this.projectId }), this.pairing = new Ee4(this, this.logger), this.verify = new Pe4(this, this.logger, this.storage), this.echoClient = new Re4(this.projectId || "", this.logger), this.linkModeSupportedApps = [], this.eventClient = new Se4(this, this.logger, t2?.telemetryEnabled), this.setGlobalCore(this);
         }
-        static async init(t) {
-          const s2 = new xe3(t);
+        static async init(t2) {
+          const s2 = new xe3(t2);
           await s2.initialize();
           const i3 = await s2.crypto.getClientId();
           return await s2.storage.setItem(Xt3, i3), s2;
@@ -22005,32 +22005,32 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         async getLogsBlob() {
           return this.logChunkController?.logsToBlob({ clientId: await this.crypto.getClientId() });
         }
-        async addLinkModeSupportedApp(t) {
-          this.linkModeSupportedApps.includes(t) || (this.linkModeSupportedApps.push(t), await this.storage.setItem(dt3, this.linkModeSupportedApps));
+        async addLinkModeSupportedApp(t2) {
+          this.linkModeSupportedApps.includes(t2) || (this.linkModeSupportedApps.push(t2), await this.storage.setItem(dt3, this.linkModeSupportedApps));
         }
         async initialize() {
           this.logger.trace("Initialized");
           try {
             await this.crypto.init(), await this.history.init(), await this.expirer.init(), await this.relayer.init(), await this.heartbeat.init(), await this.pairing.init(), this.linkModeSupportedApps = await this.storage.getItem(dt3) || [], this.initialized = true, this.logger.info("Core Initialization Success");
-          } catch (t) {
-            throw this.logger.warn(t, `Core Initialization Failure at epoch ${Date.now()}`), this.logger.error(t.message), t;
+          } catch (t2) {
+            throw this.logger.warn(t2, `Core Initialization Failure at epoch ${Date.now()}`), this.logger.error(t2.message), t2;
           }
         }
-        getGlobalCore(t = "") {
+        getGlobalCore(t2 = "") {
           try {
             if (this.isGlobalCoreDisabled()) return;
-            const s2 = `_walletConnectCore_${t}`, i3 = `${s2}_count`;
+            const s2 = `_walletConnectCore_${t2}`, i3 = `${s2}_count`;
             return globalThis[i3] = (globalThis[i3] || 0) + 1, globalThis[i3] > 1 && console.warn(`WalletConnect Core is already initialized. This is probably a mistake and can lead to unexpected behavior. Init() was called ${globalThis[i3]} times.`), globalThis[s2];
           } catch (s2) {
             console.warn("Failed to get global WalletConnect core", s2);
             return;
           }
         }
-        setGlobalCore(t) {
+        setGlobalCore(t2) {
           try {
             if (this.isGlobalCoreDisabled()) return;
-            const s2 = `_walletConnectCore_${t.opts?.customStoragePrefix || ""}`;
-            globalThis[s2] = t;
+            const s2 = `_walletConnectCore_${t2.opts?.customStoragePrefix || ""}`;
+            globalThis[s2] = t2;
           } catch (s2) {
             console.warn("Failed to set global WalletConnect core", s2);
           }
@@ -22132,101 +22132,101 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             this.initialized || (await this.cleanup(), this.registerRelayerEvents(), this.registerExpirerEvents(), this.registerPairingEvents(), this.registerSubscriptionCleanup(), await this.registerLinkModeListeners(), this.client.core.pairing.register({ methods: Object.keys(T4) }), this.initialized = true, setTimeout(async () => {
               await this.processPendingMessageEvents(), this.sessionRequestQueue.queue = this.getPendingSessionRequests(), this.processSessionRequestQueue();
             }, (0, import_time5.toMiliseconds)(this.requestQueueDelay)));
-          }, this.connect = async (t) => {
+          }, this.connect = async (t2) => {
             this.isInitialized(), await this.confirmOnlineStateOrThrow();
-            const e2 = { ...t, requiredNamespaces: t.requiredNamespaces || {}, optionalNamespaces: t.optionalNamespaces || {} };
+            const e2 = { ...t2, requiredNamespaces: t2.requiredNamespaces || {}, optionalNamespaces: t2.optionalNamespaces || {} };
             await this.isValidConnect(e2), e2.optionalNamespaces = Hr2(e2.requiredNamespaces, e2.optionalNamespaces), e2.requiredNamespaces = {};
             const { pairingTopic: s2, requiredNamespaces: i3, optionalNamespaces: r3, sessionProperties: n4, scopedProperties: o4, relays: c4, authentication: l4, walletPay: d3 } = e2, p4 = l4?.[0]?.ttl || T4.wc_sessionPropose.req.ttl || import_time5.FIVE_MINUTES;
             this.validateRequestExpiry(p4);
-            let y7 = s2, g4, m2 = false;
+            let y6 = s2, g4, m2 = false;
             try {
-              if (y7) {
-                const E4 = this.client.core.pairing.pairings.get(y7);
+              if (y6) {
+                const E4 = this.client.core.pairing.pairings.get(y6);
                 this.client.logger.warn("connect() with existing pairing topic is deprecated and will be removed in the next major release."), m2 = E4.active;
               }
             } catch (E4) {
-              throw this.client.logger.error(`connect() -> pairing.get(${y7}) failed`), E4;
+              throw this.client.logger.error(`connect() -> pairing.get(${y6}) failed`), E4;
             }
-            if (!y7 || !m2) {
+            if (!y6 || !m2) {
               const { topic: E4, uri: x7 } = await this.client.core.pairing.create({ internal: { skipSubscribe: true } });
-              y7 = E4, g4 = x7;
+              y6 = E4, g4 = x7;
             }
-            if (!y7) {
-              const { message: E4 } = N10("NO_MATCHING_KEY", `connect() pairing topic: ${y7}`);
+            if (!y6) {
+              const { message: E4 } = N10("NO_MATCHING_KEY", `connect() pairing topic: ${y6}`);
               throw new Error(E4);
             }
-            const h5 = await this.client.core.crypto.generateKeyPair(), w5 = Bn2(p4), _3 = { requiredNamespaces: i3, optionalNamespaces: r3, relays: c4 ?? [{ protocol: Gt3 }], proposer: { publicKey: h5, metadata: this.client.metadata }, expiryTimestamp: w5, pairingTopic: y7, ...n4 && { sessionProperties: n4 }, ...o4 && { scopedProperties: o4 }, id: payloadId(), ...(l4 || d3) && { requests: { authentication: l4?.map((E4) => {
-              const { domain: x7, chains: K6, nonce: U3, uri: M5, exp: ee4, nbf: ae4, type: te5, statement: ce3, requestId: ge5, resources: R4, signatureTypes: q5 } = E4;
-              return { domain: x7, chains: K6, nonce: U3, type: te5 ?? "caip122", aud: M5, version: "1", iat: (/* @__PURE__ */ new Date()).toISOString(), exp: ee4, nbf: ae4, statement: ce3, requestId: ge5, resources: R4, signatureTypes: q5 };
-            }), walletPay: d3 } } }, S5 = Jn2("session_connect", _3.id), { reject: b4, resolve: O5, done: L2 } = Ln2(p4, Ce5), P6 = ({ id: E4 }) => {
+            const h4 = await this.client.core.crypto.generateKeyPair(), w4 = Bn2(p4), _3 = { requiredNamespaces: i3, optionalNamespaces: r3, relays: c4 ?? [{ protocol: Gt3 }], proposer: { publicKey: h4, metadata: this.client.metadata }, expiryTimestamp: w4, pairingTopic: y6, ...n4 && { sessionProperties: n4 }, ...o4 && { scopedProperties: o4 }, id: payloadId(), ...(l4 || d3) && { requests: { authentication: l4?.map((E4) => {
+              const { domain: x7, chains: K5, nonce: U3, uri: M4, exp: ee4, nbf: ae4, type: te5, statement: ce3, requestId: ge5, resources: R3, signatureTypes: q4 } = E4;
+              return { domain: x7, chains: K5, nonce: U3, type: te5 ?? "caip122", aud: M4, version: "1", iat: (/* @__PURE__ */ new Date()).toISOString(), exp: ee4, nbf: ae4, statement: ce3, requestId: ge5, resources: R3, signatureTypes: q4 };
+            }), walletPay: d3 } } }, S4 = Jn2("session_connect", _3.id), { reject: b4, resolve: O4, done: L } = Ln2(p4, Ce5), P5 = ({ id: E4 }) => {
               if (E4 === _3.id) {
-                this.client.events.off("proposal_expire", P6);
+                this.client.events.off("proposal_expire", P5);
                 const x7 = this.pendingSessions.get(_3.id);
                 if (x7) {
-                  const { sessionTopic: K6, publicKey: U3 } = x7;
-                  Promise.all([this.client.core.relayer.unsubscribe(K6), this.client.core.crypto.keychain.has(K6) ? this.client.core.crypto.deleteSymKey(K6) : Promise.resolve(), this.client.core.crypto.keychain.has(U3) ? this.client.core.crypto.deleteKeyPair(U3) : Promise.resolve()]).catch((M5) => this.client.logger.warn(M5));
+                  const { sessionTopic: K5, publicKey: U3 } = x7;
+                  Promise.all([this.client.core.relayer.unsubscribe(K5), this.client.core.crypto.keychain.has(K5) ? this.client.core.crypto.deleteSymKey(K5) : Promise.resolve(), this.client.core.crypto.keychain.has(U3) ? this.client.core.crypto.deleteKeyPair(U3) : Promise.resolve()]).catch((M4) => this.client.logger.warn(M4));
                 }
-                this.pendingSessions.delete(_3.id), this.events.emit(S5, { error: { message: Ce5, code: 0 } });
+                this.pendingSessions.delete(_3.id), this.events.emit(S4, { error: { message: Ce5, code: 0 } });
               }
             };
-            return this.client.events.on("proposal_expire", P6), this.events.once(S5, ({ error: E4, session: x7 }) => {
-              this.client.events.off("proposal_expire", P6), E4 ? b4(E4) : x7 && O5(x7);
+            return this.client.events.on("proposal_expire", P5), this.events.once(S4, ({ error: E4, session: x7 }) => {
+              this.client.events.off("proposal_expire", P5), E4 ? b4(E4) : x7 && O4(x7);
             }), await this.setProposal(_3.id, _3), await this.sendProposeSession({ proposal: _3, publishOpts: { internal: { throwOnFailedPublish: true }, tvf: { correlationId: _3.id } } }).catch((E4) => {
               throw this.deleteProposal(_3.id), E4;
-            }), { uri: g4, approval: L2 };
-          }, this.pair = async (t) => {
+            }), { uri: g4, approval: L };
+          }, this.pair = async (t2) => {
             this.isInitialized(), await this.confirmOnlineStateOrThrow();
             try {
-              return await this.client.core.pairing.pair(t);
+              return await this.client.core.pairing.pair(t2);
             } catch (e2) {
               throw this.client.logger.error("pair() failed"), e2;
             }
-          }, this.approve = async (t) => {
-            const e2 = this.client.core.eventClient.createEvent({ properties: { topic: t?.id?.toString(), trace: [Gi.session_approve_started] } });
+          }, this.approve = async (t2) => {
+            const e2 = this.client.core.eventClient.createEvent({ properties: { topic: t2?.id?.toString(), trace: [Gi.session_approve_started] } });
             try {
               this.isInitialized(), await this.confirmOnlineStateOrThrow();
-            } catch (P6) {
-              throw e2.setError(Wi.no_internet_connection), P6;
+            } catch (P5) {
+              throw e2.setError(Wi.no_internet_connection), P5;
             }
             try {
-              await this.isValidProposalId(t?.id);
-            } catch (P6) {
-              throw this.client.logger.error(`approve() -> proposal.get(${t?.id}) failed`), e2.setError(Wi.proposal_not_found), P6;
+              await this.isValidProposalId(t2?.id);
+            } catch (P5) {
+              throw this.client.logger.error(`approve() -> proposal.get(${t2?.id}) failed`), e2.setError(Wi.proposal_not_found), P5;
             }
             try {
-              await this.isValidApprove(t);
-            } catch (P6) {
-              throw this.client.logger.error("approve() -> isValidApprove() failed"), e2.setError(Wi.session_approve_namespace_validation_failure), P6;
+              await this.isValidApprove(t2);
+            } catch (P5) {
+              throw this.client.logger.error("approve() -> isValidApprove() failed"), e2.setError(Wi.session_approve_namespace_validation_failure), P5;
             }
-            const { id: s2, relayProtocol: i3, namespaces: r3, sessionProperties: n4, scopedProperties: o4, sessionConfig: c4, proposalRequestsResponses: l4 } = t, d3 = this.client.proposal.get(s2);
+            const { id: s2, relayProtocol: i3, namespaces: r3, sessionProperties: n4, scopedProperties: o4, sessionConfig: c4, proposalRequestsResponses: l4 } = t2, d3 = this.client.proposal.get(s2);
             this.client.core.eventClient.deleteEvent({ eventId: e2.eventId });
-            const { pairingTopic: p4, proposer: y7, requiredNamespaces: g4, optionalNamespaces: m2 } = d3;
-            let h5 = this.client.core.eventClient?.getEvent({ topic: p4 });
-            h5 || (h5 = this.client.core.eventClient?.createEvent({ type: Gi.session_approve_started, properties: { topic: p4, trace: [Gi.session_approve_started, Gi.session_namespaces_validation_success] } }));
-            const w5 = await this.client.core.crypto.generateKeyPair(), _3 = y7.publicKey, S5 = await this.client.core.crypto.generateSharedKey(w5, _3), b4 = { relay: { protocol: i3 ?? "irn" }, namespaces: r3, controller: { publicKey: w5, metadata: this.client.metadata }, expiry: Bn2(Z3), ...n4 && { sessionProperties: n4 }, ...o4 && { scopedProperties: o4 }, ...c4 && { sessionConfig: c4 }, proposalRequestsResponses: l4 }, O5 = D3.relay;
-            h5.addTrace(Gi.subscribing_session_topic);
+            const { pairingTopic: p4, proposer: y6, requiredNamespaces: g4, optionalNamespaces: m2 } = d3;
+            let h4 = this.client.core.eventClient?.getEvent({ topic: p4 });
+            h4 || (h4 = this.client.core.eventClient?.createEvent({ type: Gi.session_approve_started, properties: { topic: p4, trace: [Gi.session_approve_started, Gi.session_namespaces_validation_success] } }));
+            const w4 = await this.client.core.crypto.generateKeyPair(), _3 = y6.publicKey, S4 = await this.client.core.crypto.generateSharedKey(w4, _3), b4 = { relay: { protocol: i3 ?? "irn" }, namespaces: r3, controller: { publicKey: w4, metadata: this.client.metadata }, expiry: Bn2(Z3), ...n4 && { sessionProperties: n4 }, ...o4 && { scopedProperties: o4 }, ...c4 && { sessionConfig: c4 }, proposalRequestsResponses: l4 }, O4 = D3.relay;
+            h4.addTrace(Gi.subscribing_session_topic);
             try {
-              await this.client.core.relayer.subscribe(S5, { transportType: O5, internal: { skipSubscribe: true } });
-            } catch (P6) {
-              throw h5.setError(Wi.subscribe_session_topic_failure), P6;
+              await this.client.core.relayer.subscribe(S4, { transportType: O4, internal: { skipSubscribe: true } });
+            } catch (P5) {
+              throw h4.setError(Wi.subscribe_session_topic_failure), P5;
             }
-            h5.addTrace(Gi.subscribe_session_topic_success);
-            const L2 = { ...b4, topic: S5, requiredNamespaces: g4, optionalNamespaces: m2, pairingTopic: p4, acknowledged: false, self: b4.controller, peer: { publicKey: y7.publicKey, metadata: y7.metadata }, controller: w5, transportType: D3.relay, authentication: l4?.authentication, walletPayResult: l4?.walletPay };
-            await this.client.session.set(S5, L2), h5.addTrace(Gi.store_session);
+            h4.addTrace(Gi.subscribe_session_topic_success);
+            const L = { ...b4, topic: S4, requiredNamespaces: g4, optionalNamespaces: m2, pairingTopic: p4, acknowledged: false, self: b4.controller, peer: { publicKey: y6.publicKey, metadata: y6.metadata }, controller: w4, transportType: D3.relay, authentication: l4?.authentication, walletPayResult: l4?.walletPay };
+            await this.client.session.set(S4, L), h4.addTrace(Gi.store_session);
             try {
-              await this.sendApproveSession({ sessionTopic: S5, proposal: d3, pairingProposalResponse: { relay: { protocol: i3 ?? "irn" }, responderPublicKey: w5 }, sessionSettleRequest: b4, publishOpts: { internal: { throwOnFailedPublish: true }, tvf: { correlationId: s2, ...this.getTVFApproveParams(L2) } } }), h5.addTrace(Gi.session_approve_publish_success);
-            } catch (P6) {
-              throw this.client.logger.error(P6), this.client.session.delete(S5, $2("USER_DISCONNECTED")), await this.client.core.relayer.unsubscribe(S5), P6;
+              await this.sendApproveSession({ sessionTopic: S4, proposal: d3, pairingProposalResponse: { relay: { protocol: i3 ?? "irn" }, responderPublicKey: w4 }, sessionSettleRequest: b4, publishOpts: { internal: { throwOnFailedPublish: true }, tvf: { correlationId: s2, ...this.getTVFApproveParams(L) } } }), h4.addTrace(Gi.session_approve_publish_success);
+            } catch (P5) {
+              throw this.client.logger.error(P5), this.client.session.delete(S4, $2("USER_DISCONNECTED")), await this.client.core.relayer.unsubscribe(S4), P5;
             }
-            return this.client.core.eventClient.deleteEvent({ eventId: h5.eventId }), await this.client.core.pairing.updateMetadata({ topic: p4, metadata: y7.metadata }), await this.deleteProposal(s2), await this.client.core.pairing.activate({ topic: p4 }), await this.setExpiry(S5, Bn2(Z3)), { topic: S5, acknowledged: () => Promise.resolve(this.client.session.get(S5)) };
-          }, this.reject = async (t) => {
+            return this.client.core.eventClient.deleteEvent({ eventId: h4.eventId }), await this.client.core.pairing.updateMetadata({ topic: p4, metadata: y6.metadata }), await this.deleteProposal(s2), await this.client.core.pairing.activate({ topic: p4 }), await this.setExpiry(S4, Bn2(Z3)), { topic: S4, acknowledged: () => Promise.resolve(this.client.session.get(S4)) };
+          }, this.reject = async (t2) => {
             this.isInitialized(), await this.confirmOnlineStateOrThrow();
             try {
-              await this.isValidReject(t);
+              await this.isValidReject(t2);
             } catch (r3) {
               throw this.client.logger.error("reject() -> isValidReject() failed"), r3;
             }
-            const { id: e2, reason: s2 } = t;
+            const { id: e2, reason: s2 } = t2;
             let i3;
             try {
               i3 = this.client.proposal.get(e2).pairingTopic;
@@ -22234,14 +22234,14 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               throw this.client.logger.error(`reject() -> proposal.get(${e2}) failed`), r3;
             }
             i3 && await this.sendError({ id: e2, topic: i3, error: s2, rpcOpts: T4.wc_sessionPropose.reject }), await this.deleteProposal(e2);
-          }, this.update = async (t) => {
+          }, this.update = async (t2) => {
             this.isInitialized(), await this.confirmOnlineStateOrThrow();
             try {
-              await this.isValidUpdate(t);
+              await this.isValidUpdate(t2);
             } catch (p4) {
               throw this.client.logger.error("update() -> isValidUpdate() failed"), p4;
             }
-            const { topic: e2, namespaces: s2 } = t, i3 = this.client.session.get(e2);
+            const { topic: e2, namespaces: s2 } = t2, i3 = this.client.session.get(e2);
             if (i3.self.publicKey !== i3.controller) {
               const { message: p4 } = $2("UNAUTHORIZED_UPDATE_REQUEST");
               throw new Error(p4);
@@ -22252,113 +22252,113 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             }), await this.client.session.update(e2, { namespaces: s2 }), await this.sendRequest({ topic: e2, method: "wc_sessionUpdate", params: { namespaces: s2 }, throwOnFailedPublish: true, clientRpcId: c4, relayRpcId: l4 }).catch((p4) => {
               this.client.logger.error(p4), this.client.session.update(e2, { namespaces: d3 }), o4(p4);
             }), { acknowledged: r3 };
-          }, this.extend = async (t) => {
+          }, this.extend = async (t2) => {
             this.isInitialized(), await this.confirmOnlineStateOrThrow();
             try {
-              await this.isValidExtend(t);
+              await this.isValidExtend(t2);
             } catch (o4) {
               throw this.client.logger.error("extend() -> isValidExtend() failed"), o4;
             }
-            const { topic: e2 } = t, s2 = payloadId(), { done: i3, resolve: r3, reject: n4 } = Ln2(import_time5.FIVE_MINUTES, "Session extend request expired without receiving any acknowledgement");
+            const { topic: e2 } = t2, s2 = payloadId(), { done: i3, resolve: r3, reject: n4 } = Ln2(import_time5.FIVE_MINUTES, "Session extend request expired without receiving any acknowledgement");
             return this.events.once(Jn2("session_extend", s2), ({ error: o4 }) => {
               o4 ? n4(o4) : r3();
             }), await this.setExpiry(e2, Bn2(Z3)), this.sendRequest({ topic: e2, method: "wc_sessionExtend", params: {}, clientRpcId: s2, throwOnFailedPublish: true }).catch((o4) => {
               n4(o4);
             }), { acknowledged: i3 };
-          }, this.request = async (t) => {
+          }, this.request = async (t2) => {
             this.isInitialized();
             try {
-              await this.isValidRequest(t);
-            } catch (h5) {
-              throw this.client.logger.error("request() -> isValidRequest() failed"), h5;
+              await this.isValidRequest(t2);
+            } catch (h4) {
+              throw this.client.logger.error("request() -> isValidRequest() failed"), h4;
             }
-            const { chainId: e2, request: s2, topic: i3, expiry: r3 = T4.wc_sessionRequest.req.ttl } = t, n4 = this.client.session.get(i3);
+            const { chainId: e2, request: s2, topic: i3, expiry: r3 = T4.wc_sessionRequest.req.ttl } = t2, n4 = this.client.session.get(i3);
             n4?.transportType === D3.relay && await this.confirmOnlineStateOrThrow();
             const o4 = payloadId(), c4 = getBigIntRpcId().toString(), { done: l4, resolve: d3, reject: p4 } = Ln2(r3, "Request expired. Please try again.");
-            this.events.once(Jn2("session_request", o4), ({ error: h5, result: w5 }) => {
-              h5 ? p4(h5) : d3(w5);
+            this.events.once(Jn2("session_request", o4), ({ error: h4, result: w4 }) => {
+              h4 ? p4(h4) : d3(w4);
             });
-            const y7 = "wc_sessionRequest", g4 = this.getAppLinkIfEnabled(n4.peer.metadata, n4.transportType);
-            if (g4) return await this.sendRequest({ clientRpcId: o4, relayRpcId: c4, topic: i3, method: y7, params: { request: { ...s2, expiryTimestamp: Bn2(r3) }, chainId: e2 }, expiry: r3, throwOnFailedPublish: true, appLink: g4 }).catch((h5) => p4(h5)), this.client.events.emit("session_request_sent", { topic: i3, request: s2, chainId: e2, id: o4 }), await l4();
+            const y6 = "wc_sessionRequest", g4 = this.getAppLinkIfEnabled(n4.peer.metadata, n4.transportType);
+            if (g4) return await this.sendRequest({ clientRpcId: o4, relayRpcId: c4, topic: i3, method: y6, params: { request: { ...s2, expiryTimestamp: Bn2(r3) }, chainId: e2 }, expiry: r3, throwOnFailedPublish: true, appLink: g4 }).catch((h4) => p4(h4)), this.client.events.emit("session_request_sent", { topic: i3, request: s2, chainId: e2, id: o4 }), await l4();
             const m2 = { request: { ...s2, expiryTimestamp: Bn2(r3) }, chainId: e2 };
-            return await Promise.all([new Promise(async (h5) => {
-              await this.sendRequest({ clientRpcId: o4, relayRpcId: c4, topic: i3, method: y7, params: m2, expiry: r3, throwOnFailedPublish: true, tvf: this.getTVFParams(o4, m2) }).catch((w5) => p4(w5)), this.client.events.emit("session_request_sent", { topic: i3, request: s2, chainId: e2, id: o4 }), h5();
-            }), new Promise(async (h5) => {
+            return await Promise.all([new Promise(async (h4) => {
+              await this.sendRequest({ clientRpcId: o4, relayRpcId: c4, topic: i3, method: y6, params: m2, expiry: r3, throwOnFailedPublish: true, tvf: this.getTVFParams(o4, m2) }).catch((w4) => p4(w4)), this.client.events.emit("session_request_sent", { topic: i3, request: s2, chainId: e2, id: o4 }), h4();
+            }), new Promise(async (h4) => {
               if (!n4.sessionConfig?.disableDeepLink) {
-                const w5 = await Gn2(this.client.core.storage, ke3);
-                await zn2({ id: o4, topic: i3, wcDeepLink: w5 });
+                const w4 = await Gn2(this.client.core.storage, ke3);
+                await zn2({ id: o4, topic: i3, wcDeepLink: w4 });
               }
-              h5();
-            }), l4()]).then((h5) => h5[2]);
-          }, this.respond = async (t) => {
+              h4();
+            }), l4()]).then((h4) => h4[2]);
+          }, this.respond = async (t2) => {
             this.isInitialized();
-            const e2 = this.client.core.eventClient.createEvent({ properties: { topic: t?.topic || t?.response?.id?.toString(), trace: [Gi.session_request_response_started] } });
+            const e2 = this.client.core.eventClient.createEvent({ properties: { topic: t2?.topic || t2?.response?.id?.toString(), trace: [Gi.session_request_response_started] } });
             try {
-              await this.isValidRespond(t);
+              await this.isValidRespond(t2);
             } catch (c4) {
               throw e2.addTrace(c4?.message), e2.setError(Wi.session_request_response_validation_failure), c4;
             }
             e2.addTrace(Gi.session_request_response_validation_success);
-            const { topic: s2, response: i3 } = t, { id: r3 } = i3, n4 = this.client.session.get(s2);
+            const { topic: s2, response: i3 } = t2, { id: r3 } = i3, n4 = this.client.session.get(s2);
             n4.transportType === D3.relay && await this.confirmOnlineStateOrThrow();
             const o4 = this.getAppLinkIfEnabled(n4.peer.metadata, n4.transportType);
             try {
-              e2.addTrace(Gi.session_request_response_publish_started), isJsonRpcResult(i3) ? await this.sendResult({ id: r3, topic: s2, result: i3.result, throwOnFailedPublish: true, appLink: o4 }) : isJsonRpcError(i3) && await this.sendError({ id: r3, topic: s2, error: i3.error, appLink: o4 }), this.cleanupAfterResponse(t);
+              e2.addTrace(Gi.session_request_response_publish_started), isJsonRpcResult(i3) ? await this.sendResult({ id: r3, topic: s2, result: i3.result, throwOnFailedPublish: true, appLink: o4 }) : isJsonRpcError(i3) && await this.sendError({ id: r3, topic: s2, error: i3.error, appLink: o4 }), this.cleanupAfterResponse(t2);
             } catch (c4) {
               throw e2.addTrace(c4?.message), e2.setError(Wi.session_request_response_publish_failure), c4;
             }
-          }, this.ping = async (t) => {
+          }, this.ping = async (t2) => {
             this.isInitialized(), await this.confirmOnlineStateOrThrow();
             try {
-              await this.isValidPing(t);
+              await this.isValidPing(t2);
             } catch (s2) {
               throw this.client.logger.error("ping() -> isValidPing() failed"), s2;
             }
-            const { topic: e2 } = t;
+            const { topic: e2 } = t2;
             if (this.client.session.keys.includes(e2)) {
               const s2 = payloadId(), i3 = getBigIntRpcId().toString(), { done: r3, resolve: n4, reject: o4 } = Ln2(import_time5.FIVE_MINUTES, "Ping request expired without receiving any acknowledgement");
               this.events.once(Jn2("session_ping", s2), ({ error: c4 }) => {
                 c4 ? o4(c4) : n4();
               }), await Promise.all([this.sendRequest({ topic: e2, method: "wc_sessionPing", params: {}, throwOnFailedPublish: true, clientRpcId: s2, relayRpcId: i3 }), r3()]);
             } else this.client.core.pairing.pairings.keys.includes(e2) && (this.client.logger.warn("ping() on pairing topic is deprecated and will be removed in the next major release."), await this.client.core.pairing.ping({ topic: e2 }));
-          }, this.emit = async (t) => {
-            this.isInitialized(), await this.confirmOnlineStateOrThrow(), await this.isValidEmit(t);
-            const { topic: e2, event: s2, chainId: i3 } = t, r3 = getBigIntRpcId().toString(), n4 = payloadId();
+          }, this.emit = async (t2) => {
+            this.isInitialized(), await this.confirmOnlineStateOrThrow(), await this.isValidEmit(t2);
+            const { topic: e2, event: s2, chainId: i3 } = t2, r3 = getBigIntRpcId().toString(), n4 = payloadId();
             await this.sendRequest({ topic: e2, method: "wc_sessionEvent", params: { event: s2, chainId: i3 }, throwOnFailedPublish: true, relayRpcId: r3, clientRpcId: n4 });
-          }, this.disconnect = async (t) => {
-            this.isInitialized(), await this.confirmOnlineStateOrThrow(), await this.isValidDisconnect(t);
-            const { topic: e2 } = t;
+          }, this.disconnect = async (t2) => {
+            this.isInitialized(), await this.confirmOnlineStateOrThrow(), await this.isValidDisconnect(t2);
+            const { topic: e2 } = t2;
             if (this.client.session.keys.includes(e2)) await this.sendRequest({ topic: e2, method: "wc_sessionDelete", params: $2("USER_DISCONNECTED"), throwOnFailedPublish: true }), await this.deleteSession({ topic: e2, emitEvent: false });
             else if (this.client.core.pairing.pairings.keys.includes(e2)) await this.client.core.pairing.disconnect({ topic: e2 });
             else {
               const { message: s2 } = N10("MISMATCHED_TOPIC", `Session or pairing topic not found: ${e2}`);
               throw new Error(s2);
             }
-          }, this.find = (t) => (this.isInitialized(), this.client.session.getAll().filter((e2) => Br2(e2, t))), this.getPendingSessionRequests = () => this.client.pendingRequest.getAll(), this.authenticate = async (t, e2) => {
-            this.isInitialized(), this.isValidAuthenticate(t);
+          }, this.find = (t2) => (this.isInitialized(), this.client.session.getAll().filter((e2) => Br2(e2, t2))), this.getPendingSessionRequests = () => this.client.pendingRequest.getAll(), this.authenticate = async (t2, e2) => {
+            this.isInitialized(), this.isValidAuthenticate(t2);
             const s2 = e2 && this.client.core.linkModeSupportedApps.includes(e2) && this.client.metadata.redirect?.linkMode, i3 = s2 ? D3.link_mode : D3.relay;
             i3 === D3.relay && await this.confirmOnlineStateOrThrow();
-            const { chains: r3, statement: n4 = "", uri: o4, domain: c4, nonce: l4, type: d3, exp: p4, nbf: y7, methods: g4 = [], expiry: m2 } = t, h5 = [...t.resources || []], { topic: w5, uri: _3 } = await this.client.core.pairing.create({ methods: ["wc_sessionAuthenticate"], transportType: i3 });
-            if (this.client.logger.info({ message: "Generated new pairing", pairing: { topic: w5, uri: _3 } }), this.client.auth.authKeys.keys.includes($4)) {
-              const { responseTopic: R4, publicKey: q5 } = this.client.auth.authKeys.get($4);
-              R4 && (await this.client.core.relayer.unsubscribe(R4).catch((k6) => this.client.logger.warn(k6)), await this.client.auth.pairingTopics.delete(R4, { message: "replaced", code: 0 }).catch((k6) => this.client.logger.warn(k6))), q5 && this.client.core.crypto.keychain.has(q5) && await this.client.core.crypto.deleteKeyPair(q5);
+            const { chains: r3, statement: n4 = "", uri: o4, domain: c4, nonce: l4, type: d3, exp: p4, nbf: y6, methods: g4 = [], expiry: m2 } = t2, h4 = [...t2.resources || []], { topic: w4, uri: _3 } = await this.client.core.pairing.create({ methods: ["wc_sessionAuthenticate"], transportType: i3 });
+            if (this.client.logger.info({ message: "Generated new pairing", pairing: { topic: w4, uri: _3 } }), this.client.auth.authKeys.keys.includes($4)) {
+              const { responseTopic: R3, publicKey: q4 } = this.client.auth.authKeys.get($4);
+              R3 && (await this.client.core.relayer.unsubscribe(R3).catch((k5) => this.client.logger.warn(k5)), await this.client.auth.pairingTopics.delete(R3, { message: "replaced", code: 0 }).catch((k5) => this.client.logger.warn(k5))), q4 && this.client.core.crypto.keychain.has(q4) && await this.client.core.crypto.deleteKeyPair(q4);
             }
-            const S5 = await this.client.core.crypto.generateKeyPair(), b4 = Or2(S5);
-            if (await Promise.all([this.client.auth.authKeys.set($4, { responseTopic: b4, publicKey: S5 }), this.client.auth.pairingTopics.set(b4, { topic: b4, pairingTopic: w5 })]), await this.client.core.relayer.subscribe(b4, { transportType: i3 }), this.client.logger.info(`sending request to new pairing topic: ${w5}`), g4.length > 0) {
-              const { namespace: R4 } = ae2(r3[0]);
-              let q5 = gr2(R4, "request", g4);
-              Z2(h5) && (q5 = yr2(q5, h5.pop())), h5.push(q5);
+            const S4 = await this.client.core.crypto.generateKeyPair(), b4 = Or2(S4);
+            if (await Promise.all([this.client.auth.authKeys.set($4, { responseTopic: b4, publicKey: S4 }), this.client.auth.pairingTopics.set(b4, { topic: b4, pairingTopic: w4 })]), await this.client.core.relayer.subscribe(b4, { transportType: i3 }), this.client.logger.info(`sending request to new pairing topic: ${w4}`), g4.length > 0) {
+              const { namespace: R3 } = ae2(r3[0]);
+              let q4 = gr2(R3, "request", g4);
+              Z2(h4) && (q4 = yr2(q4, h4.pop())), h4.push(q4);
             }
-            const O5 = m2 && m2 > T4.wc_sessionAuthenticate.req.ttl ? m2 : T4.wc_sessionAuthenticate.req.ttl, L2 = { authPayload: { type: d3 ?? "caip122", chains: r3, statement: n4, aud: o4, domain: c4, version: "1", nonce: l4, iat: (/* @__PURE__ */ new Date()).toISOString(), exp: p4, nbf: y7, resources: h5 }, requester: { publicKey: S5, metadata: this.client.metadata }, expiryTimestamp: Bn2(O5) }, P6 = { eip155: { chains: r3, methods: [.../* @__PURE__ */ new Set(["personal_sign", ...g4])], events: ["chainChanged", "accountsChanged"] } }, E4 = { requiredNamespaces: {}, optionalNamespaces: P6, relays: [{ protocol: "irn" }], pairingTopic: w5, proposer: { publicKey: S5, metadata: this.client.metadata }, expiryTimestamp: Bn2(T4.wc_sessionPropose.req.ttl), id: payloadId() }, { done: x7, resolve: K6, reject: U3 } = Ln2(O5, "Request expired"), M5 = payloadId(), ee4 = Jn2("session_connect", E4.id), ae4 = Jn2("session_request", M5), te5 = async ({ error: R4, session: q5 }) => {
-              this.events.off(ae4, ce3), R4 ? U3(R4) : q5 && K6({ session: q5 });
-            }, ce3 = async (R4) => {
-              if (await this.deletePendingAuthRequest(M5, { message: "fulfilled", code: 0 }), R4.error) {
+            const O4 = m2 && m2 > T4.wc_sessionAuthenticate.req.ttl ? m2 : T4.wc_sessionAuthenticate.req.ttl, L = { authPayload: { type: d3 ?? "caip122", chains: r3, statement: n4, aud: o4, domain: c4, version: "1", nonce: l4, iat: (/* @__PURE__ */ new Date()).toISOString(), exp: p4, nbf: y6, resources: h4 }, requester: { publicKey: S4, metadata: this.client.metadata }, expiryTimestamp: Bn2(O4) }, P5 = { eip155: { chains: r3, methods: [.../* @__PURE__ */ new Set(["personal_sign", ...g4])], events: ["chainChanged", "accountsChanged"] } }, E4 = { requiredNamespaces: {}, optionalNamespaces: P5, relays: [{ protocol: "irn" }], pairingTopic: w4, proposer: { publicKey: S4, metadata: this.client.metadata }, expiryTimestamp: Bn2(T4.wc_sessionPropose.req.ttl), id: payloadId() }, { done: x7, resolve: K5, reject: U3 } = Ln2(O4, "Request expired"), M4 = payloadId(), ee4 = Jn2("session_connect", E4.id), ae4 = Jn2("session_request", M4), te5 = async ({ error: R3, session: q4 }) => {
+              this.events.off(ae4, ce3), R3 ? U3(R3) : q4 && K5({ session: q4 });
+            }, ce3 = async (R3) => {
+              if (await this.deletePendingAuthRequest(M4, { message: "fulfilled", code: 0 }), R3.error) {
                 const pe5 = $2("WC_METHOD_UNSUPPORTED", "wc_sessionAuthenticate");
-                return R4.error.code === pe5.code ? void 0 : (this.events.off(ee4, te5), U3(R4.error.message));
+                return R3.error.code === pe5.code ? void 0 : (this.events.off(ee4, te5), U3(R3.error.message));
               }
               await this.deleteProposal(E4.id), this.events.off(ee4, te5);
-              const { cacaos: q5, responder: k6 } = R4.result, Ee5 = [], Ve3 = [];
-              for (const pe5 of q5) {
+              const { cacaos: q4, responder: k5 } = R3.result, Ee5 = [], Ve3 = [];
+              for (const pe5 of q4) {
                 await dr2({ cacao: pe5, projectId: this.client.core.projectId }) || (this.client.logger.error(pe5, "Signature verification failed"), U3($2("SESSION_SETTLEMENT_FAILED", "Signature verification failed")));
                 const { p: Re5 } = pe5, Ie5 = Z2(Re5.resources), De3 = [ft2(Re5.iss)], wt2 = Ee3(Re5.iss);
                 if (Ie5) {
@@ -22367,151 +22367,151 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
                 }
                 for (const Te5 of De3) Ve3.push(`${Te5}:${wt2}`);
               }
-              const le4 = await this.client.core.crypto.generateSharedKey(S5, k6.publicKey);
+              const le4 = await this.client.core.crypto.generateSharedKey(S4, k5.publicKey);
               let ye5;
-              Ee5.length > 0 && (ye5 = { topic: le4, acknowledged: true, self: { publicKey: S5, metadata: this.client.metadata }, peer: k6, controller: k6.publicKey, expiry: Bn2(Z3), requiredNamespaces: {}, optionalNamespaces: {}, relay: { protocol: "irn" }, pairingTopic: w5, namespaces: qr2([...new Set(Ee5)], [...new Set(Ve3)]), transportType: i3 }, await this.client.core.relayer.subscribe(le4, { transportType: i3 }), await this.client.session.set(le4, ye5), w5 && await this.client.core.pairing.updateMetadata({ topic: w5, metadata: k6.metadata }), ye5 = this.client.session.get(le4)), this.client.metadata.redirect?.linkMode && k6.metadata.redirect?.linkMode && k6.metadata.redirect?.universal && e2 && (this.client.core.addLinkModeSupportedApp(k6.metadata.redirect.universal), this.client.session.update(le4, { transportType: D3.link_mode })), K6({ auths: q5, session: ye5 });
+              Ee5.length > 0 && (ye5 = { topic: le4, acknowledged: true, self: { publicKey: S4, metadata: this.client.metadata }, peer: k5, controller: k5.publicKey, expiry: Bn2(Z3), requiredNamespaces: {}, optionalNamespaces: {}, relay: { protocol: "irn" }, pairingTopic: w4, namespaces: qr2([...new Set(Ee5)], [...new Set(Ve3)]), transportType: i3 }, await this.client.core.relayer.subscribe(le4, { transportType: i3 }), await this.client.session.set(le4, ye5), w4 && await this.client.core.pairing.updateMetadata({ topic: w4, metadata: k5.metadata }), ye5 = this.client.session.get(le4)), this.client.metadata.redirect?.linkMode && k5.metadata.redirect?.linkMode && k5.metadata.redirect?.universal && e2 && (this.client.core.addLinkModeSupportedApp(k5.metadata.redirect.universal), this.client.session.update(le4, { transportType: D3.link_mode })), K5({ auths: q4, session: ye5 });
             };
             this.events.once(ee4, te5), this.events.once(ae4, ce3);
             let ge5;
             try {
               if (s2) {
-                const R4 = formatJsonRpcRequest("wc_sessionAuthenticate", L2, M5);
-                this.client.core.history.set(w5, R4);
-                const q5 = await this.client.core.crypto.encode("", R4, { type: F, encoding: ee2 });
-                ge5 = Vr2(e2, w5, q5);
-              } else await Promise.all([this.sendRequest({ topic: w5, method: "wc_sessionAuthenticate", params: L2, expiry: t.expiry, throwOnFailedPublish: true, clientRpcId: M5 }), this.sendRequest({ topic: w5, method: "wc_sessionPropose", params: E4, expiry: T4.wc_sessionPropose.req.ttl, throwOnFailedPublish: true, clientRpcId: E4.id })]);
-            } catch (R4) {
-              throw this.events.off(ee4, te5), this.events.off(ae4, ce3), R4;
+                const R3 = formatJsonRpcRequest("wc_sessionAuthenticate", L, M4);
+                this.client.core.history.set(w4, R3);
+                const q4 = await this.client.core.crypto.encode("", R3, { type: F, encoding: ee2 });
+                ge5 = Vr2(e2, w4, q4);
+              } else await Promise.all([this.sendRequest({ topic: w4, method: "wc_sessionAuthenticate", params: L, expiry: t2.expiry, throwOnFailedPublish: true, clientRpcId: M4 }), this.sendRequest({ topic: w4, method: "wc_sessionPropose", params: E4, expiry: T4.wc_sessionPropose.req.ttl, throwOnFailedPublish: true, clientRpcId: E4.id })]);
+            } catch (R3) {
+              throw this.events.off(ee4, te5), this.events.off(ae4, ce3), R3;
             }
-            return await this.setProposal(E4.id, E4), await this.setAuthRequest(M5, { request: { ...L2, verifyContext: {} }, pairingTopic: w5, transportType: i3 }), { uri: ge5 ?? _3, response: x7 };
-          }, this.approveSessionAuthenticate = async (t) => {
-            const { id: e2, auths: s2 } = t, i3 = this.client.core.eventClient.createEvent({ properties: { topic: e2.toString(), trace: [Yi.authenticated_session_approve_started] } });
+            return await this.setProposal(E4.id, E4), await this.setAuthRequest(M4, { request: { ...L, verifyContext: {} }, pairingTopic: w4, transportType: i3 }), { uri: ge5 ?? _3, response: x7 };
+          }, this.approveSessionAuthenticate = async (t2) => {
+            const { id: e2, auths: s2 } = t2, i3 = this.client.core.eventClient.createEvent({ properties: { topic: e2.toString(), trace: [Yi.authenticated_session_approve_started] } });
             try {
               this.isInitialized();
-            } catch (h5) {
-              throw i3.setError(Hi.no_internet_connection), h5;
+            } catch (h4) {
+              throw i3.setError(Hi.no_internet_connection), h4;
             }
             const r3 = this.getPendingAuthRequest(e2);
             if (!r3) throw i3.setError(Hi.authenticated_session_pending_request_not_found), new Error(`Could not find pending auth request with id ${e2}`);
             const n4 = r3.transportType || D3.relay;
             n4 === D3.relay && await this.confirmOnlineStateOrThrow();
-            const o4 = r3.requester.publicKey, c4 = await this.client.core.crypto.generateKeyPair(), l4 = Or2(o4), d3 = { type: D2, receiverPublicKey: o4, senderPublicKey: c4 }, p4 = [], y7 = [];
-            for (const h5 of s2) {
-              if (!await dr2({ cacao: h5, projectId: this.client.core.projectId })) {
+            const o4 = r3.requester.publicKey, c4 = await this.client.core.crypto.generateKeyPair(), l4 = Or2(o4), d3 = { type: D2, receiverPublicKey: o4, senderPublicKey: c4 }, p4 = [], y6 = [];
+            for (const h4 of s2) {
+              if (!await dr2({ cacao: h4, projectId: this.client.core.projectId })) {
                 i3.setError(Hi.invalid_cacao);
-                const O5 = $2("SESSION_SETTLEMENT_FAILED", "Signature verification failed");
-                throw await this.sendError({ id: e2, topic: l4, error: O5, encodeOpts: d3 }), new Error(O5.message);
+                const O4 = $2("SESSION_SETTLEMENT_FAILED", "Signature verification failed");
+                throw await this.sendError({ id: e2, topic: l4, error: O4, encodeOpts: d3 }), new Error(O4.message);
               }
               i3.addTrace(Yi.cacaos_verified);
-              const { p: w5 } = h5, _3 = Z2(w5.resources), S5 = [ft2(w5.iss)], b4 = Ee3(w5.iss);
+              const { p: w4 } = h4, _3 = Z2(w4.resources), S4 = [ft2(w4.iss)], b4 = Ee3(w4.iss);
               if (_3) {
-                const O5 = Er2(_3), L2 = br2(_3);
-                p4.push(...O5), S5.push(...L2);
+                const O4 = Er2(_3), L = br2(_3);
+                p4.push(...O4), S4.push(...L);
               }
-              for (const O5 of S5) y7.push(`${O5}:${b4}`);
+              for (const O4 of S4) y6.push(`${O4}:${b4}`);
             }
             const g4 = await this.client.core.crypto.generateSharedKey(c4, o4);
             i3.addTrace(Yi.create_authenticated_session_topic);
             let m2;
             if (p4?.length > 0) {
-              m2 = { topic: g4, acknowledged: true, self: { publicKey: c4, metadata: this.client.metadata }, peer: { publicKey: o4, metadata: r3.requester.metadata }, controller: o4, expiry: Bn2(Z3), authentication: s2, requiredNamespaces: {}, optionalNamespaces: {}, relay: { protocol: "irn" }, pairingTopic: r3.pairingTopic, namespaces: qr2([...new Set(p4)], [...new Set(y7)]), transportType: n4 }, i3.addTrace(Yi.subscribing_authenticated_session_topic);
+              m2 = { topic: g4, acknowledged: true, self: { publicKey: c4, metadata: this.client.metadata }, peer: { publicKey: o4, metadata: r3.requester.metadata }, controller: o4, expiry: Bn2(Z3), authentication: s2, requiredNamespaces: {}, optionalNamespaces: {}, relay: { protocol: "irn" }, pairingTopic: r3.pairingTopic, namespaces: qr2([...new Set(p4)], [...new Set(y6)]), transportType: n4 }, i3.addTrace(Yi.subscribing_authenticated_session_topic);
               try {
                 await this.client.core.relayer.subscribe(g4, { transportType: n4 });
-              } catch (h5) {
-                throw i3.setError(Hi.subscribe_authenticated_session_topic_failure), h5;
+              } catch (h4) {
+                throw i3.setError(Hi.subscribe_authenticated_session_topic_failure), h4;
               }
               i3.addTrace(Yi.subscribe_authenticated_session_topic_success), await this.client.session.set(g4, m2), i3.addTrace(Yi.store_authenticated_session), await this.client.core.pairing.updateMetadata({ topic: r3.pairingTopic, metadata: r3.requester.metadata });
             }
             i3.addTrace(Yi.publishing_authenticated_session_approve);
             try {
               await this.sendResult({ topic: l4, id: e2, result: { cacaos: s2, responder: { publicKey: c4, metadata: this.client.metadata } }, encodeOpts: d3, throwOnFailedPublish: true, appLink: this.getAppLinkIfEnabled(r3.requester.metadata, n4) });
-            } catch (h5) {
-              throw i3.setError(Hi.authenticated_session_approve_publish_failure), h5;
+            } catch (h4) {
+              throw i3.setError(Hi.authenticated_session_approve_publish_failure), h4;
             }
             return await this.client.auth.requests.delete(e2, { message: "fulfilled", code: 0 }), await this.client.core.pairing.activate({ topic: r3.pairingTopic }), this.client.core.eventClient.deleteEvent({ eventId: i3.eventId }), { session: m2 };
-          }, this.rejectSessionAuthenticate = async (t) => {
+          }, this.rejectSessionAuthenticate = async (t2) => {
             this.isInitialized();
-            const { id: e2, reason: s2 } = t, i3 = this.getPendingAuthRequest(e2);
+            const { id: e2, reason: s2 } = t2, i3 = this.getPendingAuthRequest(e2);
             if (!i3) throw new Error(`Could not find pending auth request with id ${e2}`);
             i3.transportType === D3.relay && await this.confirmOnlineStateOrThrow();
             const r3 = i3.requester.publicKey, n4 = await this.client.core.crypto.generateKeyPair(), o4 = Or2(r3), c4 = { type: D2, receiverPublicKey: r3, senderPublicKey: n4 };
             await this.sendError({ id: e2, topic: o4, error: s2, encodeOpts: c4, rpcOpts: T4.wc_sessionAuthenticate.reject, appLink: this.getAppLinkIfEnabled(i3.requester.metadata, i3.transportType) }), await this.client.auth.requests.delete(e2, { message: "rejected", code: 0 }), await this.deleteProposal(e2);
-          }, this.formatAuthMessage = (t) => {
+          }, this.formatAuthMessage = (t2) => {
             this.isInitialized();
-            const { request: e2, iss: s2 } = t;
+            const { request: e2, iss: s2 } = t2;
             return pt(e2, s2);
           }, this.processRelayMessageCache = () => {
             setTimeout(async () => {
               if (this.relayMessageCache.length !== 0) for (; this.relayMessageCache.length > 0; ) try {
-                const t = this.relayMessageCache.shift();
-                t && await this.onRelayMessage(t);
-              } catch (t) {
-                this.client.logger.error(t);
+                const t2 = this.relayMessageCache.shift();
+                t2 && await this.onRelayMessage(t2);
+              } catch (t2) {
+                this.client.logger.error(t2);
               }
             }, 50);
-          }, this.cleanupDuplicatePairings = async (t) => {
-            if (t.pairingTopic) try {
-              const e2 = this.client.core.pairing.pairings.get(t.pairingTopic), s2 = this.client.core.pairing.pairings.getAll().filter((i3) => i3.peerMetadata?.url && i3.peerMetadata?.url === t.peer.metadata.url && i3.topic && i3.topic !== e2.topic);
+          }, this.cleanupDuplicatePairings = async (t2) => {
+            if (t2.pairingTopic) try {
+              const e2 = this.client.core.pairing.pairings.get(t2.pairingTopic), s2 = this.client.core.pairing.pairings.getAll().filter((i3) => i3.peerMetadata?.url && i3.peerMetadata?.url === t2.peer.metadata.url && i3.topic && i3.topic !== e2.topic);
               if (s2.length === 0) return;
               this.client.logger.info(`Cleaning up ${s2.length} duplicate pairing(s)`), await Promise.all(s2.map((i3) => this.client.core.pairing.disconnect({ topic: i3.topic }))), this.client.logger.info("Duplicate pairings clean up finished");
             } catch (e2) {
               this.client.logger.error(e2);
             }
-          }, this.deleteSession = async (t) => {
-            const { topic: e2, expirerHasDeleted: s2 = false, emitEvent: i3 = true, id: r3 = 0 } = t, { self: n4 } = this.client.session.get(e2);
+          }, this.deleteSession = async (t2) => {
+            const { topic: e2, expirerHasDeleted: s2 = false, emitEvent: i3 = true, id: r3 = 0 } = t2, { self: n4 } = this.client.session.get(e2);
             await this.client.core.relayer.unsubscribe(e2), await this.client.session.delete(e2, $2("USER_DISCONNECTED")), this.addToRecentlyDeleted(e2, "session"), this.client.core.crypto.keychain.has(n4.publicKey) && await this.client.core.crypto.deleteKeyPair(n4.publicKey), this.client.core.crypto.keychain.has(e2) && await this.client.core.crypto.deleteSymKey(e2), s2 || this.client.core.expirer.del(e2), this.client.core.storage.removeItem(ke3).catch((o4) => this.client.logger.warn(o4)), e2 === this.sessionRequestQueue.queue[0]?.topic && (this.sessionRequestQueue.state = D4.idle), await Promise.all(this.getPendingSessionRequests().filter((o4) => o4.topic === e2).map((o4) => this.deletePendingSessionRequest(o4.id, $2("USER_DISCONNECTED")))), i3 && this.client.events.emit("session_delete", { id: r3, topic: e2 });
-          }, this.deleteProposal = async (t, e2) => {
+          }, this.deleteProposal = async (t2, e2) => {
             if (e2) try {
-              const s2 = this.client.proposal.get(t);
+              const s2 = this.client.proposal.get(t2);
               this.client.core.eventClient.getEvent({ topic: s2.pairingTopic })?.setError(Wi.proposal_expired);
             } catch {
             }
-            await Promise.all([this.client.proposal.delete(t, $2("USER_DISCONNECTED")), e2 ? Promise.resolve() : this.client.core.expirer.del(t)]), this.addToRecentlyDeleted(t, "proposal");
-          }, this.deletePendingSessionRequest = async (t, e2, s2 = false) => {
-            await Promise.all([this.client.pendingRequest.delete(t, e2), s2 ? Promise.resolve() : this.client.core.expirer.del(t)]), this.addToRecentlyDeleted(t, "request"), this.sessionRequestQueue.queue = this.sessionRequestQueue.queue.filter((i3) => i3.id !== t), s2 && (this.sessionRequestQueue.state = D4.idle, this.client.events.emit("session_request_expire", { id: t }));
-          }, this.deletePendingAuthRequest = async (t, e2, s2 = false) => {
-            await Promise.all([this.client.auth.requests.delete(t, e2), s2 ? Promise.resolve() : this.client.core.expirer.del(t)]);
-          }, this.setExpiry = async (t, e2) => {
-            this.client.session.keys.includes(t) && (this.client.core.expirer.set(t, e2), await this.client.session.update(t, { expiry: e2 }));
-          }, this.setProposal = async (t, e2) => {
-            this.client.core.expirer.set(t, Bn2(T4.wc_sessionPropose.req.ttl)), await this.client.proposal.set(t, e2);
-          }, this.setAuthRequest = async (t, e2) => {
+            await Promise.all([this.client.proposal.delete(t2, $2("USER_DISCONNECTED")), e2 ? Promise.resolve() : this.client.core.expirer.del(t2)]), this.addToRecentlyDeleted(t2, "proposal");
+          }, this.deletePendingSessionRequest = async (t2, e2, s2 = false) => {
+            await Promise.all([this.client.pendingRequest.delete(t2, e2), s2 ? Promise.resolve() : this.client.core.expirer.del(t2)]), this.addToRecentlyDeleted(t2, "request"), this.sessionRequestQueue.queue = this.sessionRequestQueue.queue.filter((i3) => i3.id !== t2), s2 && (this.sessionRequestQueue.state = D4.idle, this.client.events.emit("session_request_expire", { id: t2 }));
+          }, this.deletePendingAuthRequest = async (t2, e2, s2 = false) => {
+            await Promise.all([this.client.auth.requests.delete(t2, e2), s2 ? Promise.resolve() : this.client.core.expirer.del(t2)]);
+          }, this.setExpiry = async (t2, e2) => {
+            this.client.session.keys.includes(t2) && (this.client.core.expirer.set(t2, e2), await this.client.session.update(t2, { expiry: e2 }));
+          }, this.setProposal = async (t2, e2) => {
+            this.client.core.expirer.set(t2, Bn2(T4.wc_sessionPropose.req.ttl)), await this.client.proposal.set(t2, e2);
+          }, this.setAuthRequest = async (t2, e2) => {
             const { request: s2, pairingTopic: i3, transportType: r3 = D3.relay } = e2;
-            this.client.core.expirer.set(t, s2.expiryTimestamp), await this.client.auth.requests.set(t, { authPayload: s2.authPayload, requester: s2.requester, expiryTimestamp: s2.expiryTimestamp, id: t, pairingTopic: i3, verifyContext: s2.verifyContext, transportType: r3 });
-          }, this.setPendingSessionRequest = async (t) => {
-            const { id: e2, topic: s2, params: i3, verifyContext: r3 } = t, n4 = i3.request.expiryTimestamp || Bn2(T4.wc_sessionRequest.req.ttl);
+            this.client.core.expirer.set(t2, s2.expiryTimestamp), await this.client.auth.requests.set(t2, { authPayload: s2.authPayload, requester: s2.requester, expiryTimestamp: s2.expiryTimestamp, id: t2, pairingTopic: i3, verifyContext: s2.verifyContext, transportType: r3 });
+          }, this.setPendingSessionRequest = async (t2) => {
+            const { id: e2, topic: s2, params: i3, verifyContext: r3 } = t2, n4 = i3.request.expiryTimestamp || Bn2(T4.wc_sessionRequest.req.ttl);
             this.client.core.expirer.set(e2, n4), await this.client.pendingRequest.set(e2, { id: e2, topic: s2, params: i3, verifyContext: r3 });
-          }, this.sendRequest = async (t) => {
-            const { topic: e2, method: s2, params: i3, expiry: r3, relayRpcId: n4, clientRpcId: o4, throwOnFailedPublish: c4, appLink: l4, tvf: d3, publishOpts: p4 = {} } = t, y7 = formatJsonRpcRequest(s2, i3, o4);
+          }, this.sendRequest = async (t2) => {
+            const { topic: e2, method: s2, params: i3, expiry: r3, relayRpcId: n4, clientRpcId: o4, throwOnFailedPublish: c4, appLink: l4, tvf: d3, publishOpts: p4 = {} } = t2, y6 = formatJsonRpcRequest(s2, i3, o4);
             let g4;
             const m2 = !!l4;
             try {
               const _3 = m2 ? ee2 : S2;
-              g4 = await this.client.core.crypto.encode(e2, y7, { encoding: _3 });
+              g4 = await this.client.core.crypto.encode(e2, y6, { encoding: _3 });
             } catch (_3) {
               throw await this.cleanup(), this.client.logger.error(`sendRequest() -> core.crypto.encode() for topic ${e2} failed`), _3;
             }
-            let h5;
+            let h4;
             if (at2.includes(s2)) {
-              const _3 = Ar2(JSON.stringify(y7)), S5 = Ar2(g4);
-              h5 = await this.client.core.verify.register({ id: S5, decryptedId: _3 });
+              const _3 = Ar2(JSON.stringify(y6)), S4 = Ar2(g4);
+              h4 = await this.client.core.verify.register({ id: S4, decryptedId: _3 });
             }
-            const w5 = { ...T4[s2].req, ...p4 };
-            if (w5.attestation = h5, r3 && (w5.ttl = r3), n4 && (w5.id = n4), this.client.core.history.set(e2, y7), m2) {
+            const w4 = { ...T4[s2].req, ...p4 };
+            if (w4.attestation = h4, r3 && (w4.ttl = r3), n4 && (w4.id = n4), this.client.core.history.set(e2, y6), m2) {
               const _3 = Vr2(l4, e2, g4);
               await global.Linking.openURL(_3, this.client.name);
-            } else w5.tvf = { ...d3, correlationId: y7.id }, c4 ? (w5.internal = { ...w5.internal, throwOnFailedPublish: true }, await this.client.core.relayer.publish(e2, g4, w5)) : this.client.core.relayer.publish(e2, g4, w5).catch((_3) => this.client.logger.error(_3));
-            return y7.id;
-          }, this.sendProposeSession = async (t) => {
-            const { proposal: e2, publishOpts: s2 } = t, i3 = formatJsonRpcRequest("wc_sessionPropose", e2, e2.id);
+            } else w4.tvf = { ...d3, correlationId: y6.id }, c4 ? (w4.internal = { ...w4.internal, throwOnFailedPublish: true }, await this.client.core.relayer.publish(e2, g4, w4)) : this.client.core.relayer.publish(e2, g4, w4).catch((_3) => this.client.logger.error(_3));
+            return y6.id;
+          }, this.sendProposeSession = async (t2) => {
+            const { proposal: e2, publishOpts: s2 } = t2, i3 = formatJsonRpcRequest("wc_sessionPropose", e2, e2.id);
             this.client.core.history.set(e2.pairingTopic, i3);
             const r3 = await this.client.core.crypto.encode(e2.pairingTopic, i3, { encoding: S2 }), n4 = Ar2(JSON.stringify(i3)), o4 = Ar2(r3), c4 = await this.client.core.verify.register({ id: o4, decryptedId: n4 });
             await this.client.core.relayer.publishCustom({ payload: { pairingTopic: e2.pairingTopic, sessionProposal: r3 }, opts: { ...s2, publishMethod: "wc_proposeSession", attestation: c4 } });
-          }, this.sendApproveSession = async (t) => {
-            const { sessionTopic: e2, pairingProposalResponse: s2, proposal: i3, sessionSettleRequest: r3, publishOpts: n4 } = t, o4 = formatJsonRpcResult(i3.id, s2), c4 = await this.client.core.crypto.encode(i3.pairingTopic, o4, { encoding: S2 }), l4 = formatJsonRpcRequest("wc_sessionSettle", r3, n4?.id), d3 = await this.client.core.crypto.encode(e2, l4, { encoding: S2 });
+          }, this.sendApproveSession = async (t2) => {
+            const { sessionTopic: e2, pairingProposalResponse: s2, proposal: i3, sessionSettleRequest: r3, publishOpts: n4 } = t2, o4 = formatJsonRpcResult(i3.id, s2), c4 = await this.client.core.crypto.encode(i3.pairingTopic, o4, { encoding: S2 }), l4 = formatJsonRpcRequest("wc_sessionSettle", r3, n4?.id), d3 = await this.client.core.crypto.encode(e2, l4, { encoding: S2 });
             this.client.core.history.set(e2, l4), await this.client.core.relayer.publishCustom({ payload: { sessionTopic: e2, pairingTopic: i3.pairingTopic, sessionProposalResponse: c4, sessionSettlementRequest: d3 }, opts: { ...n4, publishMethod: "wc_approveSession" } });
-          }, this.sendResult = async (t) => {
-            const { id: e2, topic: s2, result: i3, throwOnFailedPublish: r3, encodeOpts: n4, appLink: o4 } = t, c4 = formatJsonRpcResult(e2, i3);
+          }, this.sendResult = async (t2) => {
+            const { id: e2, topic: s2, result: i3, throwOnFailedPublish: r3, encodeOpts: n4, appLink: o4 } = t2, c4 = formatJsonRpcResult(e2, i3);
             let l4;
             const d3 = o4 && typeof global?.Linking < "u";
             try {
@@ -22520,12 +22520,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             } catch (g4) {
               throw await this.cleanup(), this.client.logger.error(`sendResult() -> core.crypto.encode() for topic ${s2} failed`), g4;
             }
-            let p4, y7;
+            let p4, y6;
             try {
               p4 = await this.client.core.history.get(s2, e2);
               const g4 = p4.request;
               try {
-                y7 = this.getTVFParams(e2, g4.params, i3);
+                y6 = this.getTVFParams(e2, g4.params, i3);
               } catch (m2) {
                 this.client.logger.warn(`sendResult() -> getTVFParams() failed: ${m2?.message}`);
               }
@@ -22537,45 +22537,45 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               await global.Linking.openURL(g4, this.client.name);
             } else {
               const g4 = p4.request.method, m2 = T4[g4].res;
-              m2.tvf = { ...y7, correlationId: e2 }, r3 ? (m2.internal = { ...m2.internal, throwOnFailedPublish: true }, await this.client.core.relayer.publish(s2, l4, m2)) : this.client.core.relayer.publish(s2, l4, m2).catch((h5) => this.client.logger.error(h5));
+              m2.tvf = { ...y6, correlationId: e2 }, r3 ? (m2.internal = { ...m2.internal, throwOnFailedPublish: true }, await this.client.core.relayer.publish(s2, l4, m2)) : this.client.core.relayer.publish(s2, l4, m2).catch((h4) => this.client.logger.error(h4));
             }
             await this.client.core.history.resolve(c4);
-          }, this.sendError = async (t) => {
-            const { id: e2, topic: s2, error: i3, encodeOpts: r3, rpcOpts: n4, appLink: o4 } = t, c4 = formatJsonRpcError(e2, i3);
+          }, this.sendError = async (t2) => {
+            const { id: e2, topic: s2, error: i3, encodeOpts: r3, rpcOpts: n4, appLink: o4 } = t2, c4 = formatJsonRpcError(e2, i3);
             let l4;
             const d3 = o4 && typeof global?.Linking < "u";
             try {
-              const y7 = d3 ? ee2 : S2;
-              l4 = await this.client.core.crypto.encode(s2, c4, { ...r3 || {}, encoding: y7 });
-            } catch (y7) {
-              throw await this.cleanup(), this.client.logger.error(`sendError() -> core.crypto.encode() for topic ${s2} failed`), y7;
+              const y6 = d3 ? ee2 : S2;
+              l4 = await this.client.core.crypto.encode(s2, c4, { ...r3 || {}, encoding: y6 });
+            } catch (y6) {
+              throw await this.cleanup(), this.client.logger.error(`sendError() -> core.crypto.encode() for topic ${s2} failed`), y6;
             }
             let p4;
             try {
               p4 = await this.client.core.history.get(s2, e2);
-            } catch (y7) {
-              throw this.client.logger.error(`sendError() -> history.get(${s2}, ${e2}) failed`), y7;
+            } catch (y6) {
+              throw this.client.logger.error(`sendError() -> history.get(${s2}, ${e2}) failed`), y6;
             }
             if (d3) {
-              const y7 = Vr2(o4, s2, l4);
-              await global.Linking.openURL(y7, this.client.name);
+              const y6 = Vr2(o4, s2, l4);
+              await global.Linking.openURL(y6, this.client.name);
             } else {
-              const y7 = p4.request.method, g4 = n4 || T4[y7].res;
+              const y6 = p4.request.method, g4 = n4 || T4[y6].res;
               this.client.core.relayer.publish(s2, l4, g4);
             }
             await this.client.core.history.resolve(c4);
           }, this.cleanup = async () => {
-            const t = [], e2 = [];
+            const t2 = [], e2 = [];
             this.client.session.getAll().forEach((s2) => {
               let i3 = false;
-              Wn2(s2.expiry) && (i3 = true), this.client.core.crypto.keychain.has(s2.topic) || (i3 = true), i3 && t.push(s2.topic);
+              Wn2(s2.expiry) && (i3 = true), this.client.core.crypto.keychain.has(s2.topic) || (i3 = true), i3 && t2.push(s2.topic);
             }), this.client.proposal.getAll().forEach((s2) => {
               Wn2(s2.expiryTimestamp) && e2.push(s2.id);
-            }), await Promise.all([...t.map((s2) => this.deleteSession({ topic: s2 })), ...e2.map((s2) => this.deleteProposal(s2))]);
-          }, this.onProviderMessageEvent = async (t) => {
-            !this.initialized || this.relayMessageCache.length > 0 ? this.relayMessageCache.push(t) : await this.onRelayMessage(t);
-          }, this.onRelayEventRequest = async (t) => {
-            this.requestQueue.queue.push(t), await this.processRequestsQueue();
+            }), await Promise.all([...t2.map((s2) => this.deleteSession({ topic: s2 })), ...e2.map((s2) => this.deleteProposal(s2))]);
+          }, this.onProviderMessageEvent = async (t2) => {
+            !this.initialized || this.relayMessageCache.length > 0 ? this.relayMessageCache.push(t2) : await this.onRelayMessage(t2);
+          }, this.onRelayEventRequest = async (t2) => {
+            this.requestQueue.queue.push(t2), await this.processRequestsQueue();
           }, this.processRequestsQueue = async () => {
             if (this.requestQueue.state === D4.active) {
               this.client.logger.info("Request queue already active, skipping...");
@@ -22583,16 +22583,16 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             }
             for (this.client.logger.info(`Request queue starting with ${this.requestQueue.queue.length} requests`); this.requestQueue.queue.length > 0; ) {
               this.requestQueue.state = D4.active;
-              const t = this.requestQueue.queue.shift();
-              if (t) try {
-                await this.processRequest(t);
+              const t2 = this.requestQueue.queue.shift();
+              if (t2) try {
+                await this.processRequest(t2);
               } catch (e2) {
                 this.client.logger.warn(e2);
               }
             }
             this.requestQueue.state = D4.idle;
-          }, this.processRequest = async (t) => {
-            const { topic: e2, payload: s2, attestation: i3, transportType: r3, encryptedId: n4 } = t, o4 = s2.method;
+          }, this.processRequest = async (t2) => {
+            const { topic: e2, payload: s2, attestation: i3, transportType: r3, encryptedId: n4 } = t2, o4 = s2.method;
             if (!this.shouldIgnorePairingRequest({ topic: e2, requestMethod: o4 })) switch (o4) {
               case "wc_sessionPropose":
                 return await this.onSessionProposeRequest({ topic: e2, payload: s2, attestation: i3, encryptedId: n4 });
@@ -22615,8 +22615,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               default:
                 return this.client.logger.info(`Unsupported request method ${o4}`);
             }
-          }, this.onRelayEventResponse = async (t) => {
-            const { topic: e2, payload: s2, transportType: i3 } = t, r3 = (await this.client.core.history.get(e2, s2.id)).request.method;
+          }, this.onRelayEventResponse = async (t2) => {
+            const { topic: e2, payload: s2, transportType: i3 } = t2, r3 = (await this.client.core.history.get(e2, s2.id)).request.method;
             switch (r3) {
               case "wc_sessionPropose":
                 return this.onSessionProposeResponse(e2, s2, i3);
@@ -22635,14 +22635,14 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               default:
                 return this.client.logger.info(`Unsupported response method ${r3}`);
             }
-          }, this.onRelayEventUnknownPayload = (t) => {
-            const { topic: e2 } = t, { message: s2 } = N10("MISSING_OR_INVALID", `Decoded payload on topic ${e2} is not identifiable as a JSON-RPC request or a response.`);
+          }, this.onRelayEventUnknownPayload = (t2) => {
+            const { topic: e2 } = t2, { message: s2 } = N10("MISSING_OR_INVALID", `Decoded payload on topic ${e2} is not identifiable as a JSON-RPC request or a response.`);
             throw new Error(s2);
-          }, this.shouldIgnorePairingRequest = (t) => {
-            const { topic: e2, requestMethod: s2 } = t, i3 = this.expectedPairingMethodMap.get(e2);
+          }, this.shouldIgnorePairingRequest = (t2) => {
+            const { topic: e2, requestMethod: s2 } = t2, i3 = this.expectedPairingMethodMap.get(e2);
             return !i3 || i3.includes(s2) ? false : !!(i3.includes("wc_sessionAuthenticate") && this.client.events.listenerCount("session_authenticate") > 0);
-          }, this.onSessionProposeRequest = async (t) => {
-            const { topic: e2, payload: s2, attestation: i3, encryptedId: r3 } = t, { params: n4, id: o4 } = s2;
+          }, this.onSessionProposeRequest = async (t2) => {
+            const { topic: e2, payload: s2, attestation: i3, encryptedId: r3 } = t2, { params: n4, id: o4 } = s2;
             try {
               const c4 = this.client.core.eventClient.getEvent({ topic: e2 });
               this.client.events.listenerCount("session_proposal") === 0 && (console.warn("No listener for session_proposal event"), c4?.setError(O3.proposal_listener_not_found)), this.isValidConnect({ ...s2.params });
@@ -22653,7 +22653,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             } catch (c4) {
               await this.sendError({ id: o4, topic: e2, error: c4, rpcOpts: T4.wc_sessionPropose.autoReject }), this.client.logger.error(c4);
             }
-          }, this.onSessionProposeResponse = async (t, e2, s2) => {
+          }, this.onSessionProposeResponse = async (t2, e2, s2) => {
             const { id: i3 } = e2;
             if (isJsonRpcResult(e2)) {
               const { result: r3 } = e2;
@@ -22665,86 +22665,86 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               const c4 = r3.responderPublicKey;
               this.client.logger.trace({ type: "method", method: "onSessionProposeResponse", peerPublicKey: c4 });
               const l4 = await this.client.core.crypto.generateSharedKey(o4, c4);
-              this.pendingSessions.set(i3, { sessionTopic: l4, pairingTopic: t, proposalId: i3, publicKey: o4 });
+              this.pendingSessions.set(i3, { sessionTopic: l4, pairingTopic: t2, proposalId: i3, publicKey: o4 });
               const d3 = await this.client.core.relayer.subscribe(l4, { transportType: s2 });
-              this.client.logger.trace({ type: "method", method: "onSessionProposeResponse", subscriptionId: d3 }), await this.client.core.pairing.activate({ topic: t });
+              this.client.logger.trace({ type: "method", method: "onSessionProposeResponse", subscriptionId: d3 }), await this.client.core.pairing.activate({ topic: t2 });
             } else if (isJsonRpcError(e2)) {
               await this.deleteProposal(i3);
               const r3 = Jn2("session_connect", i3);
               if (this.events.listenerCount(r3) === 0) throw new Error(`emitting ${r3} without any listeners, 954`);
               this.events.emit(r3, { error: e2.error });
             }
-          }, this.onSessionSettleRequest = async (t, e2) => {
+          }, this.onSessionSettleRequest = async (t2, e2) => {
             const { id: s2, params: i3 } = e2;
             try {
               this.isValidSessionSettleRequest(i3);
-              const { relay: r3, controller: n4, expiry: o4, namespaces: c4, sessionProperties: l4, scopedProperties: d3, sessionConfig: p4, proposalRequestsResponses: y7 } = e2.params, g4 = [...this.pendingSessions.values()].find((w5) => w5.sessionTopic === t);
-              if (!g4) return this.client.logger.error(`Pending session not found for topic ${t}`);
-              const m2 = this.client.proposal.get(g4.proposalId), h5 = { topic: t, relay: r3, expiry: o4, namespaces: c4, acknowledged: true, pairingTopic: g4.pairingTopic, requiredNamespaces: m2.requiredNamespaces, optionalNamespaces: m2.optionalNamespaces, controller: n4.publicKey, self: { publicKey: g4.publicKey, metadata: this.client.metadata }, peer: { publicKey: n4.publicKey, metadata: n4.metadata }, ...l4 && { sessionProperties: l4 }, ...d3 && { scopedProperties: d3 }, ...p4 && { sessionConfig: p4 }, transportType: D3.relay, authentication: y7?.authentication, walletPayResult: y7?.walletPay };
-              await this.client.session.set(h5.topic, h5), await this.setExpiry(h5.topic, h5.expiry), await this.client.core.pairing.updateMetadata({ topic: g4.pairingTopic, metadata: h5.peer.metadata }), this.pendingSessions.delete(g4.proposalId), this.deleteProposal(g4.proposalId, false), this.cleanupDuplicatePairings(h5), await this.sendResult({ id: e2.id, topic: t, throwOnFailedPublish: true, result: true }), this.client.events.emit("session_connect", { session: h5 }), this.events.emit(Jn2("session_connect", g4.proposalId), { session: h5 });
+              const { relay: r3, controller: n4, expiry: o4, namespaces: c4, sessionProperties: l4, scopedProperties: d3, sessionConfig: p4, proposalRequestsResponses: y6 } = e2.params, g4 = [...this.pendingSessions.values()].find((w4) => w4.sessionTopic === t2);
+              if (!g4) return this.client.logger.error(`Pending session not found for topic ${t2}`);
+              const m2 = this.client.proposal.get(g4.proposalId), h4 = { topic: t2, relay: r3, expiry: o4, namespaces: c4, acknowledged: true, pairingTopic: g4.pairingTopic, requiredNamespaces: m2.requiredNamespaces, optionalNamespaces: m2.optionalNamespaces, controller: n4.publicKey, self: { publicKey: g4.publicKey, metadata: this.client.metadata }, peer: { publicKey: n4.publicKey, metadata: n4.metadata }, ...l4 && { sessionProperties: l4 }, ...d3 && { scopedProperties: d3 }, ...p4 && { sessionConfig: p4 }, transportType: D3.relay, authentication: y6?.authentication, walletPayResult: y6?.walletPay };
+              await this.client.session.set(h4.topic, h4), await this.setExpiry(h4.topic, h4.expiry), await this.client.core.pairing.updateMetadata({ topic: g4.pairingTopic, metadata: h4.peer.metadata }), this.pendingSessions.delete(g4.proposalId), this.deleteProposal(g4.proposalId, false), this.cleanupDuplicatePairings(h4), await this.sendResult({ id: e2.id, topic: t2, throwOnFailedPublish: true, result: true }), this.client.events.emit("session_connect", { session: h4 }), this.events.emit(Jn2("session_connect", g4.proposalId), { session: h4 });
             } catch (r3) {
-              await this.sendError({ id: s2, topic: t, error: r3 }), this.client.logger.error(r3);
+              await this.sendError({ id: s2, topic: t2, error: r3 }), this.client.logger.error(r3);
             }
-          }, this.onSessionSettleResponse = async (t, e2) => {
+          }, this.onSessionSettleResponse = async (t2, e2) => {
             const { id: s2 } = e2;
-            isJsonRpcResult(e2) ? (await this.client.session.update(t, { acknowledged: true }), this.events.emit(Jn2("session_approve", s2), {})) : isJsonRpcError(e2) && (await this.deleteSession({ topic: t, emitEvent: false }), this.events.emit(Jn2("session_approve", s2), { error: e2.error }));
-          }, this.onSessionUpdateRequest = async (t, e2) => {
+            isJsonRpcResult(e2) ? (await this.client.session.update(t2, { acknowledged: true }), this.events.emit(Jn2("session_approve", s2), {})) : isJsonRpcError(e2) && (await this.deleteSession({ topic: t2, emitEvent: false }), this.events.emit(Jn2("session_approve", s2), { error: e2.error }));
+          }, this.onSessionUpdateRequest = async (t2, e2) => {
             const { params: s2, id: i3 } = e2;
             try {
-              const r3 = `${t}_session_update`, n4 = mo2.get(r3);
+              const r3 = `${t2}_session_update`, n4 = mo2.get(r3);
               if (n4 && this.isRequestOutOfSync(n4, i3)) {
-                this.client.logger.warn(`Discarding out of sync request - ${i3}`), this.sendError({ id: i3, topic: t, error: $2("INVALID_UPDATE_REQUEST") });
+                this.client.logger.warn(`Discarding out of sync request - ${i3}`), this.sendError({ id: i3, topic: t2, error: $2("INVALID_UPDATE_REQUEST") });
                 return;
               }
-              await this.isValidUpdate({ topic: t, ...s2 });
-              const o4 = this.client.session.get(t);
+              await this.isValidUpdate({ topic: t2, ...s2 });
+              const o4 = this.client.session.get(t2);
               if (o4.peer.publicKey !== o4.controller) throw $2("UNAUTHORIZED_UPDATE_REQUEST");
               try {
-                mo2.set(r3, i3), await this.client.session.update(t, { namespaces: s2.namespaces }), await this.sendResult({ id: i3, topic: t, result: true });
+                mo2.set(r3, i3), await this.client.session.update(t2, { namespaces: s2.namespaces }), await this.sendResult({ id: i3, topic: t2, result: true });
               } catch (c4) {
                 throw mo2.delete(r3), c4;
               }
-              this.client.events.emit("session_update", { id: i3, topic: t, params: s2 });
+              this.client.events.emit("session_update", { id: i3, topic: t2, params: s2 });
             } catch (r3) {
-              await this.sendError({ id: i3, topic: t, error: r3 }), this.client.logger.error(r3);
+              await this.sendError({ id: i3, topic: t2, error: r3 }), this.client.logger.error(r3);
             }
-          }, this.isRequestOutOfSync = (t, e2) => e2.toString().slice(0, -3) < t.toString().slice(0, -3), this.onSessionUpdateResponse = (t, e2) => {
+          }, this.isRequestOutOfSync = (t2, e2) => e2.toString().slice(0, -3) < t2.toString().slice(0, -3), this.onSessionUpdateResponse = (t2, e2) => {
             const { id: s2 } = e2, i3 = Jn2("session_update", s2);
             if (this.events.listenerCount(i3) === 0) throw new Error(`emitting ${i3} without any listeners`);
             isJsonRpcResult(e2) ? this.events.emit(Jn2("session_update", s2), {}) : isJsonRpcError(e2) && this.events.emit(Jn2("session_update", s2), { error: e2.error });
-          }, this.onSessionExtendRequest = async (t, e2) => {
+          }, this.onSessionExtendRequest = async (t2, e2) => {
             const { id: s2 } = e2;
             try {
-              await this.isValidExtend({ topic: t }), await this.setExpiry(t, Bn2(Z3)), await this.sendResult({ id: s2, topic: t, result: true }), this.client.events.emit("session_extend", { id: s2, topic: t });
+              await this.isValidExtend({ topic: t2 }), await this.setExpiry(t2, Bn2(Z3)), await this.sendResult({ id: s2, topic: t2, result: true }), this.client.events.emit("session_extend", { id: s2, topic: t2 });
             } catch (i3) {
-              await this.sendError({ id: s2, topic: t, error: i3 }), this.client.logger.error(i3);
+              await this.sendError({ id: s2, topic: t2, error: i3 }), this.client.logger.error(i3);
             }
-          }, this.onSessionExtendResponse = (t, e2) => {
+          }, this.onSessionExtendResponse = (t2, e2) => {
             const { id: s2 } = e2, i3 = Jn2("session_extend", s2);
             if (this.events.listenerCount(i3) === 0) throw new Error(`emitting ${i3} without any listeners`);
             isJsonRpcResult(e2) ? this.events.emit(Jn2("session_extend", s2), {}) : isJsonRpcError(e2) && this.events.emit(Jn2("session_extend", s2), { error: e2.error });
-          }, this.onSessionPingRequest = async (t, e2) => {
+          }, this.onSessionPingRequest = async (t2, e2) => {
             const { id: s2 } = e2;
             try {
-              this.isValidPing({ topic: t }), await this.sendResult({ id: s2, topic: t, result: true, throwOnFailedPublish: true }), this.client.events.emit("session_ping", { id: s2, topic: t });
+              this.isValidPing({ topic: t2 }), await this.sendResult({ id: s2, topic: t2, result: true, throwOnFailedPublish: true }), this.client.events.emit("session_ping", { id: s2, topic: t2 });
             } catch (i3) {
-              await this.sendError({ id: s2, topic: t, error: i3 }), this.client.logger.error(i3);
+              await this.sendError({ id: s2, topic: t2, error: i3 }), this.client.logger.error(i3);
             }
-          }, this.onSessionPingResponse = (t, e2) => {
+          }, this.onSessionPingResponse = (t2, e2) => {
             const { id: s2 } = e2, i3 = Jn2("session_ping", s2);
             setTimeout(() => {
               if (this.events.listenerCount(i3) === 0) throw new Error(`emitting ${i3} without any listeners 2176`);
               isJsonRpcResult(e2) ? this.events.emit(Jn2("session_ping", s2), {}) : isJsonRpcError(e2) && this.events.emit(Jn2("session_ping", s2), { error: e2.error });
             }, 500);
-          }, this.onSessionDeleteRequest = async (t, e2) => {
+          }, this.onSessionDeleteRequest = async (t2, e2) => {
             const { id: s2 } = e2;
             try {
-              await this.isValidDisconnect({ topic: t, reason: e2.params }), this.cleanupPendingSentRequestsForTopic({ topic: t, error: $2("USER_DISCONNECTED") }), await this.deleteSession({ topic: t, id: s2 });
+              await this.isValidDisconnect({ topic: t2, reason: e2.params }), this.cleanupPendingSentRequestsForTopic({ topic: t2, error: $2("USER_DISCONNECTED") }), await this.deleteSession({ topic: t2, id: s2 });
             } catch (i3) {
               this.client.logger.error(i3);
             }
-          }, this.onSessionRequest = async (t) => {
-            const { topic: e2, payload: s2, attestation: i3, encryptedId: r3, transportType: n4 } = t, { id: o4, params: c4 } = s2;
+          }, this.onSessionRequest = async (t2) => {
+            const { topic: e2, payload: s2, attestation: i3, encryptedId: r3, transportType: n4 } = t2, { id: o4, params: c4 } = s2;
             try {
               await this.isValidRequest({ topic: e2, ...c4 });
               const l4 = this.client.session.get(e2), d3 = await this.getVerifyContext({ attestationId: i3, hash: Ar2(JSON.stringify(formatJsonRpcRequest("wc_sessionRequest", c4, o4))), encryptedId: r3, metadata: l4.peer.metadata, transportType: n4 }), p4 = { id: o4, topic: e2, params: c4, verifyContext: d3 };
@@ -22752,27 +22752,27 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             } catch (l4) {
               await this.sendError({ id: o4, topic: e2, error: l4 }), this.client.logger.error(l4);
             }
-          }, this.onSessionRequestResponse = (t, e2) => {
+          }, this.onSessionRequestResponse = (t2, e2) => {
             const { id: s2 } = e2, i3 = Jn2("session_request", s2);
             if (this.events.listenerCount(i3) === 0) throw new Error(`emitting ${i3} without any listeners`);
             isJsonRpcResult(e2) ? this.events.emit(Jn2("session_request", s2), { result: e2.result }) : isJsonRpcError(e2) && this.events.emit(Jn2("session_request", s2), { error: e2.error });
-          }, this.onSessionEventRequest = async (t, e2) => {
+          }, this.onSessionEventRequest = async (t2, e2) => {
             const { id: s2, params: i3 } = e2;
             try {
-              const r3 = `${t}_session_event_${i3.event.name}`, n4 = mo2.get(r3);
+              const r3 = `${t2}_session_event_${i3.event.name}`, n4 = mo2.get(r3);
               if (n4 && this.isRequestOutOfSync(n4, s2)) {
                 this.client.logger.info(`Discarding out of sync request - ${s2}`);
                 return;
               }
-              this.isValidEmit({ topic: t, ...i3 }), this.client.events.emit("session_event", { id: s2, topic: t, params: i3 }), mo2.set(r3, s2);
+              this.isValidEmit({ topic: t2, ...i3 }), this.client.events.emit("session_event", { id: s2, topic: t2, params: i3 }), mo2.set(r3, s2);
             } catch (r3) {
-              await this.sendError({ id: s2, topic: t, error: r3 }), this.client.logger.error(r3);
+              await this.sendError({ id: s2, topic: t2, error: r3 }), this.client.logger.error(r3);
             }
-          }, this.onSessionAuthenticateResponse = (t, e2) => {
+          }, this.onSessionAuthenticateResponse = (t2, e2) => {
             const { id: s2 } = e2;
-            this.client.logger.trace({ type: "method", method: "onSessionAuthenticateResponse", topic: t, payload: e2 }), isJsonRpcResult(e2) ? this.events.emit(Jn2("session_request", s2), { result: e2.result }) : isJsonRpcError(e2) && this.events.emit(Jn2("session_request", s2), { error: e2.error });
-          }, this.onSessionAuthenticateRequest = async (t) => {
-            const { topic: e2, payload: s2, attestation: i3, encryptedId: r3, transportType: n4 } = t;
+            this.client.logger.trace({ type: "method", method: "onSessionAuthenticateResponse", topic: t2, payload: e2 }), isJsonRpcResult(e2) ? this.events.emit(Jn2("session_request", s2), { result: e2.result }) : isJsonRpcError(e2) && this.events.emit(Jn2("session_request", s2), { error: e2.error });
+          }, this.onSessionAuthenticateRequest = async (t2) => {
+            const { topic: e2, payload: s2, attestation: i3, encryptedId: r3, transportType: n4 } = t2;
             try {
               const { requester: o4, authPayload: c4, expiryTimestamp: l4 } = s2.params, d3 = await this.getVerifyContext({ attestationId: i3, hash: Ar2(JSON.stringify(s2)), encryptedId: r3, metadata: o4.metadata, transportType: n4 }), p4 = { requester: o4, pairingTopic: e2, id: s2.id, authPayload: c4, verifyContext: d3, expiryTimestamp: l4 };
               await this.setAuthRequest(s2.id, { request: p4, pairingTopic: e2, transportType: n4 }), n4 === D3.link_mode && o4.metadata.redirect?.universal && this.client.core.addLinkModeSupportedApp(o4.metadata.redirect.universal), this.client.events.emit("session_authenticate", { topic: e2, params: s2.params, id: s2.id, verifyContext: d3 });
@@ -22781,15 +22781,15 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               const c4 = s2.params.requester.publicKey, l4 = await this.client.core.crypto.generateKeyPair(), d3 = this.getAppLinkIfEnabled(s2.params.requester.metadata, n4), p4 = { type: D2, receiverPublicKey: c4, senderPublicKey: l4 };
               await this.sendError({ id: s2.id, topic: e2, error: o4, encodeOpts: p4, rpcOpts: T4.wc_sessionAuthenticate.autoReject, appLink: d3 });
             }
-          }, this.addSessionRequestToSessionRequestQueue = (t) => {
-            this.sessionRequestQueue.queue.push(t);
-          }, this.cleanupAfterResponse = (t) => {
-            this.deletePendingSessionRequest(t.response.id, { message: "fulfilled", code: 0 }), setTimeout(() => {
+          }, this.addSessionRequestToSessionRequestQueue = (t2) => {
+            this.sessionRequestQueue.queue.push(t2);
+          }, this.cleanupAfterResponse = (t2) => {
+            this.deletePendingSessionRequest(t2.response.id, { message: "fulfilled", code: 0 }), setTimeout(() => {
               this.sessionRequestQueue.state = D4.idle, this.processSessionRequestQueue();
             }, (0, import_time5.toMiliseconds)(this.requestQueueDelay));
-          }, this.cleanupPendingSentRequestsForTopic = ({ topic: t, error: e2 }) => {
+          }, this.cleanupPendingSentRequestsForTopic = ({ topic: t2, error: e2 }) => {
             const s2 = this.client.core.history.pending;
-            s2.length > 0 && s2.filter((i3) => i3.topic === t && i3.request.method === "wc_sessionRequest").forEach((i3) => {
+            s2.length > 0 && s2.filter((i3) => i3.topic === t2 && i3.request.method === "wc_sessionRequest").forEach((i3) => {
               this.events.emit(Jn2("session_request", i3.request.id), { error: e2 });
             });
           }, this.processSessionRequestQueue = () => {
@@ -22797,32 +22797,32 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               this.client.logger.info("session request queue is already active.");
               return;
             }
-            const t = this.sessionRequestQueue.queue[0];
-            if (!t) {
+            const t2 = this.sessionRequestQueue.queue[0];
+            if (!t2) {
               this.client.logger.info("session request queue is empty.");
               return;
             }
             try {
-              this.emitSessionRequest(t);
+              this.emitSessionRequest(t2);
             } catch (e2) {
               this.client.logger.error(e2);
             }
-          }, this.emitSessionRequest = (t) => {
-            if (this.emittedSessionRequests.has(t.id)) {
-              this.client.logger.warn({ id: t.id }, `Skipping emitting \`session_request\` event for duplicate request. id: ${t.id}`);
+          }, this.emitSessionRequest = (t2) => {
+            if (this.emittedSessionRequests.has(t2.id)) {
+              this.client.logger.warn({ id: t2.id }, `Skipping emitting \`session_request\` event for duplicate request. id: ${t2.id}`);
               return;
             }
-            this.sessionRequestQueue.state = D4.active, this.emittedSessionRequests.add(t.id), this.client.events.emit("session_request", t);
+            this.sessionRequestQueue.state = D4.active, this.emittedSessionRequests.add(t2.id), this.client.events.emit("session_request", t2);
           }, this.cleanupInProgress = false, this.cleanupOrphanedSubscriptions = async () => {
-            const t = this.client.core.relayer.subscriber.topics;
-            if (t.length === 0) return;
+            const t2 = this.client.core.relayer.subscriber.topics;
+            if (t2.length === 0) return;
             const e2 = new Set(this.client.session.keys), s2 = new Set(this.client.core.pairing.pairings.keys), i3 = new Set([...this.pendingSessions.values()].map((n4) => n4.sessionTopic));
             let r3;
             if (this.client.auth.authKeys.keys.includes($4)) {
               const { responseTopic: n4 } = this.client.auth.authKeys.get($4);
               r3 = n4;
             }
-            for (const n4 of t) if (!e2.has(n4) && !s2.has(n4) && !i3.has(n4) && n4 !== r3) {
+            for (const n4 of t2) if (!e2.has(n4) && !s2.has(n4) && !i3.has(n4) && n4 !== r3) {
               this.client.logger.info(`Cleaning up orphaned subscriber topic: ${n4}`);
               try {
                 await this.client.core.relayer.subscriber.unsubscribe(n4);
@@ -22830,16 +22830,16 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
                 this.client.logger.warn(o4, `Failed to clean up orphaned subscription: ${n4}`);
               }
             }
-          }, this.onPairingCreated = (t) => {
-            if (t.methods && this.expectedPairingMethodMap.set(t.topic, t.methods), t.active) return;
-            const e2 = this.client.proposal.getAll().find((s2) => s2.pairingTopic === t.topic);
-            e2 && this.onSessionProposeRequest({ topic: t.topic, payload: formatJsonRpcRequest("wc_sessionPropose", { ...e2, requiredNamespaces: e2.requiredNamespaces, optionalNamespaces: e2.optionalNamespaces, relays: e2.relays, proposer: e2.proposer, sessionProperties: e2.sessionProperties, scopedProperties: e2.scopedProperties }, e2.id), attestation: e2.attestation, encryptedId: e2.encryptedId });
-          }, this.isValidConnect = async (t) => {
-            if (!Zr2(t)) {
-              const { message: c4 } = N10("MISSING_OR_INVALID", `connect() params: ${JSON.stringify(t)}`);
+          }, this.onPairingCreated = (t2) => {
+            if (t2.methods && this.expectedPairingMethodMap.set(t2.topic, t2.methods), t2.active) return;
+            const e2 = this.client.proposal.getAll().find((s2) => s2.pairingTopic === t2.topic);
+            e2 && this.onSessionProposeRequest({ topic: t2.topic, payload: formatJsonRpcRequest("wc_sessionPropose", { ...e2, requiredNamespaces: e2.requiredNamespaces, optionalNamespaces: e2.optionalNamespaces, relays: e2.relays, proposer: e2.proposer, sessionProperties: e2.sessionProperties, scopedProperties: e2.scopedProperties }, e2.id), attestation: e2.attestation, encryptedId: e2.encryptedId });
+          }, this.isValidConnect = async (t2) => {
+            if (!Zr2(t2)) {
+              const { message: c4 } = N10("MISSING_OR_INVALID", `connect() params: ${JSON.stringify(t2)}`);
               throw new Error(c4);
             }
-            const { pairingTopic: e2, requiredNamespaces: s2, optionalNamespaces: i3, sessionProperties: r3, scopedProperties: n4, relays: o4 } = t;
+            const { pairingTopic: e2, requiredNamespaces: s2, optionalNamespaces: i3, sessionProperties: r3, scopedProperties: n4, relays: o4 } = t2;
             if (R2(e2) || await this.isValidPairingTopic(e2), !Qr2(o4, true)) {
               const { message: c4 } = N10("MISSING_OR_INVALID", `connect() relays: ${o4}`);
               throw new Error(c4);
@@ -22853,12 +22853,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               const c4 = Object.keys(s2 || {}).concat(Object.keys(i3 || {}));
               if (!Object.keys(n4).every((l4) => c4.includes(l4.split(":")[0]))) throw new Error(`Scoped properties must be a subset of required/optional namespaces, received: ${JSON.stringify(n4)}, required/optional namespaces: ${JSON.stringify(c4)}`);
             }
-          }, this.validateNamespaces = (t, e2) => {
-            const s2 = Yr2(t, "connect()", e2);
+          }, this.validateNamespaces = (t2, e2) => {
+            const s2 = Yr2(t2, "connect()", e2);
             if (s2) throw new Error(s2.message);
-          }, this.isValidApprove = async (t) => {
-            if (!Zr2(t)) throw new Error(N10("MISSING_OR_INVALID", `approve() params: ${t}`).message);
-            const { id: e2, namespaces: s2, relayProtocol: i3, sessionProperties: r3, scopedProperties: n4 } = t;
+          }, this.isValidApprove = async (t2) => {
+            if (!Zr2(t2)) throw new Error(N10("MISSING_OR_INVALID", `approve() params: ${t2}`).message);
+            const { id: e2, namespaces: s2, relayProtocol: i3, sessionProperties: r3, scopedProperties: n4 } = t2;
             this.checkRecentlyDeleted(e2), await this.isValidProposalId(e2);
             const o4 = this.client.proposal.get(e2), c4 = Ft2(s2, "approve()");
             if (c4) throw new Error(c4.message);
@@ -22873,22 +22873,22 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               const d3 = new Set(Object.keys(s2));
               if (!Object.keys(n4).every((p4) => d3.has(p4.split(":")[0]))) throw new Error(`Scoped properties must be a subset of approved namespaces, received: ${JSON.stringify(n4)}, approved namespaces: ${Array.from(d3).join(", ")}`);
             }
-          }, this.isValidReject = async (t) => {
-            if (!Zr2(t)) {
-              const { message: i3 } = N10("MISSING_OR_INVALID", `reject() params: ${t}`);
+          }, this.isValidReject = async (t2) => {
+            if (!Zr2(t2)) {
+              const { message: i3 } = N10("MISSING_OR_INVALID", `reject() params: ${t2}`);
               throw new Error(i3);
             }
-            const { id: e2, reason: s2 } = t;
+            const { id: e2, reason: s2 } = t2;
             if (this.checkRecentlyDeleted(e2), await this.isValidProposalId(e2), !eo2(s2)) {
               const { message: i3 } = N10("MISSING_OR_INVALID", `reject() reason: ${JSON.stringify(s2)}`);
               throw new Error(i3);
             }
-          }, this.isValidSessionSettleRequest = (t) => {
-            if (!Zr2(t)) {
-              const { message: c4 } = N10("MISSING_OR_INVALID", `onSessionSettleRequest() params: ${t}`);
+          }, this.isValidSessionSettleRequest = (t2) => {
+            if (!Zr2(t2)) {
+              const { message: c4 } = N10("MISSING_OR_INVALID", `onSessionSettleRequest() params: ${t2}`);
               throw new Error(c4);
             }
-            const { relay: e2, controller: s2, namespaces: i3, expiry: r3 } = t;
+            const { relay: e2, controller: s2, namespaces: i3, expiry: r3 } = t2;
             if (!qt2(e2)) {
               const { message: c4 } = N10("MISSING_OR_INVALID", "onSessionSettleRequest() relay protocol should be a string");
               throw new Error(c4);
@@ -22901,30 +22901,30 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               const { message: c4 } = N10("EXPIRED", "onSessionSettleRequest()");
               throw new Error(c4);
             }
-          }, this.isValidUpdate = async (t) => {
-            if (!Zr2(t)) {
-              const { message: o4 } = N10("MISSING_OR_INVALID", `update() params: ${t}`);
+          }, this.isValidUpdate = async (t2) => {
+            if (!Zr2(t2)) {
+              const { message: o4 } = N10("MISSING_OR_INVALID", `update() params: ${t2}`);
               throw new Error(o4);
             }
-            const { topic: e2, namespaces: s2 } = t;
+            const { topic: e2, namespaces: s2 } = t2;
             this.checkRecentlyDeleted(e2), await this.isValidSessionTopic(e2);
             const i3 = this.client.session.get(e2), r3 = Ft2(s2, "update()");
             if (r3) throw new Error(r3.message);
             const n4 = Ht2(i3.requiredNamespaces, s2, "update()");
             if (n4) throw new Error(n4.message);
-          }, this.isValidExtend = async (t) => {
-            if (!Zr2(t)) {
-              const { message: s2 } = N10("MISSING_OR_INVALID", `extend() params: ${t}`);
+          }, this.isValidExtend = async (t2) => {
+            if (!Zr2(t2)) {
+              const { message: s2 } = N10("MISSING_OR_INVALID", `extend() params: ${t2}`);
               throw new Error(s2);
             }
-            const { topic: e2 } = t;
+            const { topic: e2 } = t2;
             this.checkRecentlyDeleted(e2), await this.isValidSessionTopic(e2);
-          }, this.isValidRequest = async (t) => {
-            if (!Zr2(t)) {
-              const { message: o4 } = N10("MISSING_OR_INVALID", `request() params: ${t}`);
+          }, this.isValidRequest = async (t2) => {
+            if (!Zr2(t2)) {
+              const { message: o4 } = N10("MISSING_OR_INVALID", `request() params: ${t2}`);
               throw new Error(o4);
             }
-            const { topic: e2, request: s2, chainId: i3, expiry: r3 } = t;
+            const { topic: e2, request: s2, chainId: i3, expiry: r3 } = t2;
             this.checkRecentlyDeleted(e2), await this.isValidSessionTopic(e2);
             const { namespaces: n4 } = this.client.session.get(e2);
             if (!oo2(n4, i3)) {
@@ -22940,16 +22940,16 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               throw new Error(o4);
             }
             this.validateRequestExpiry(r3);
-          }, this.isValidRespond = async (t) => {
-            if (!Zr2(t)) {
-              const { message: r3 } = N10("MISSING_OR_INVALID", `respond() params: ${t}`);
+          }, this.isValidRespond = async (t2) => {
+            if (!Zr2(t2)) {
+              const { message: r3 } = N10("MISSING_OR_INVALID", `respond() params: ${t2}`);
               throw new Error(r3);
             }
-            const { topic: e2, response: s2 } = t;
+            const { topic: e2, response: s2 } = t2;
             try {
               await this.isValidSessionTopic(e2);
             } catch (r3) {
-              throw t?.response?.id && this.cleanupAfterResponse(t), r3;
+              throw t2?.response?.id && this.cleanupAfterResponse(t2), r3;
             }
             if (!no2(s2)) {
               const { message: r3 } = N10("MISSING_OR_INVALID", `respond() response: ${JSON.stringify(s2)}`);
@@ -22960,19 +22960,19 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               const { message: r3 } = N10("MISMATCHED_TOPIC", `Request response topic mismatch. reqId: ${s2.id}, expected topic: ${i3.topic}, received topic: ${e2}`);
               throw new Error(r3);
             }
-          }, this.isValidPing = async (t) => {
-            if (!Zr2(t)) {
-              const { message: s2 } = N10("MISSING_OR_INVALID", `ping() params: ${t}`);
+          }, this.isValidPing = async (t2) => {
+            if (!Zr2(t2)) {
+              const { message: s2 } = N10("MISSING_OR_INVALID", `ping() params: ${t2}`);
               throw new Error(s2);
             }
-            const { topic: e2 } = t;
+            const { topic: e2 } = t2;
             await this.isValidSessionOrPairingTopic(e2);
-          }, this.isValidEmit = async (t) => {
-            if (!Zr2(t)) {
-              const { message: n4 } = N10("MISSING_OR_INVALID", `emit() params: ${t}`);
+          }, this.isValidEmit = async (t2) => {
+            if (!Zr2(t2)) {
+              const { message: n4 } = N10("MISSING_OR_INVALID", `emit() params: ${t2}`);
               throw new Error(n4);
             }
-            const { topic: e2, event: s2, chainId: i3 } = t;
+            const { topic: e2, event: s2, chainId: i3 } = t2;
             await this.isValidSessionTopic(e2);
             const { namespaces: r3 } = this.client.session.get(e2);
             if (!oo2(r3, i3)) {
@@ -22987,15 +22987,15 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               const { message: n4 } = N10("MISSING_OR_INVALID", `emit() event: ${JSON.stringify(s2)}`);
               throw new Error(n4);
             }
-          }, this.isValidDisconnect = async (t) => {
-            if (!Zr2(t)) {
-              const { message: s2 } = N10("MISSING_OR_INVALID", `disconnect() params: ${t}`);
+          }, this.isValidDisconnect = async (t2) => {
+            if (!Zr2(t2)) {
+              const { message: s2 } = N10("MISSING_OR_INVALID", `disconnect() params: ${t2}`);
               throw new Error(s2);
             }
-            const { topic: e2 } = t;
+            const { topic: e2 } = t2;
             await this.isValidSessionOrPairingTopic(e2);
-          }, this.isValidAuthenticate = (t) => {
-            const { chains: e2, uri: s2, domain: i3, nonce: r3 } = t;
+          }, this.isValidAuthenticate = (t2) => {
+            const { chains: e2, uri: s2, domain: i3, nonce: r3 } = t2;
             if (!Array.isArray(e2) || e2.length === 0) throw new Error("chains is required and must be a non-empty array");
             if (!E3(s2, false)) throw new Error("uri is required parameter");
             if (!E3(i3, false)) throw new Error("domain is required parameter");
@@ -23003,8 +23003,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
             if ([...new Set(e2.map((o4) => ae2(o4).namespace))].length > 1) throw new Error("Multi-namespace requests are not supported. Please request single namespace only.");
             const { namespace: n4 } = ae2(e2[0]);
             if (n4 !== "eip155") throw new Error("Only eip155 namespace is supported for authenticated sessions. Please use .connect() for non-eip155 chains.");
-          }, this.getVerifyContext = async (t) => {
-            const { attestationId: e2, hash: s2, encryptedId: i3, metadata: r3, transportType: n4 } = t, o4 = { verified: { verifyUrl: r3.verifyUrl || H4, validation: "UNKNOWN", origin: r3.url || "" } };
+          }, this.getVerifyContext = async (t2) => {
+            const { attestationId: e2, hash: s2, encryptedId: i3, metadata: r3, transportType: n4 } = t2, o4 = { verified: { verifyUrl: r3.verifyUrl || H4, validation: "UNKNOWN", origin: r3.url || "" } };
             try {
               if (n4 === D3.link_mode) {
                 const l4 = this.getAppLinkIfEnabled(r3, n4);
@@ -23016,18 +23016,18 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               this.client.logger.warn(c4);
             }
             return this.client.logger.debug(`Verify context: ${JSON.stringify(o4)}`), o4;
-          }, this.validateSessionProps = (t, e2) => {
-            Object.values(t).forEach((s2, i3) => {
+          }, this.validateSessionProps = (t2, e2) => {
+            Object.values(t2).forEach((s2, i3) => {
               if (s2 == null) {
-                const { message: r3 } = N10("MISSING_OR_INVALID", `${e2} must contain an existing value for each key. Received: ${s2} for key ${Object.keys(t)[i3]}`);
+                const { message: r3 } = N10("MISSING_OR_INVALID", `${e2} must contain an existing value for each key. Received: ${s2} for key ${Object.keys(t2)[i3]}`);
                 throw new Error(r3);
               }
             });
-          }, this.getPendingAuthRequest = (t) => {
-            const e2 = this.client.auth.requests.get(t);
+          }, this.getPendingAuthRequest = (t2) => {
+            const e2 = this.client.auth.requests.get(t2);
             return typeof e2 == "object" ? e2 : void 0;
-          }, this.addToRecentlyDeleted = (t, e2) => {
-            if (this.recentlyDeletedMap.set(t, e2), this.recentlyDeletedMap.size >= this.recentlyDeletedLimit) {
+          }, this.addToRecentlyDeleted = (t2, e2) => {
+            if (this.recentlyDeletedMap.set(t2, e2), this.recentlyDeletedMap.size >= this.recentlyDeletedLimit) {
               let s2 = 0;
               const i3 = this.recentlyDeletedLimit / 2;
               for (const r3 of this.recentlyDeletedMap.keys()) {
@@ -23035,37 +23035,37 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
                 this.recentlyDeletedMap.delete(r3);
               }
             }
-          }, this.checkRecentlyDeleted = (t) => {
-            const e2 = this.recentlyDeletedMap.get(t);
+          }, this.checkRecentlyDeleted = (t2) => {
+            const e2 = this.recentlyDeletedMap.get(t2);
             if (e2) {
-              const { message: s2 } = N10("MISSING_OR_INVALID", `Record was recently deleted - ${e2}: ${t}`);
+              const { message: s2 } = N10("MISSING_OR_INVALID", `Record was recently deleted - ${e2}: ${t2}`);
               throw new Error(s2);
             }
-          }, this.isLinkModeEnabled = (t, e2) => !t || e2 !== D3.link_mode ? false : this.client.metadata?.redirect?.linkMode === true && this.client.metadata?.redirect?.universal !== void 0 && this.client.metadata?.redirect?.universal !== "" && t?.redirect?.universal !== void 0 && t?.redirect?.universal !== "" && t?.redirect?.linkMode === true && this.client.core.linkModeSupportedApps.includes(t.redirect.universal) && typeof global?.Linking < "u", this.getAppLinkIfEnabled = (t, e2) => this.isLinkModeEnabled(t, e2) ? t?.redirect?.universal : void 0, this.handleLinkModeMessage = ({ url: t }) => {
-            if (!t || !t.includes("wc_ev") || !t.includes("topic")) return;
-            const e2 = Yn2(t, "topic") || "", s2 = decodeURIComponent(Yn2(t, "wc_ev") || ""), i3 = this.client.session.keys.includes(e2);
+          }, this.isLinkModeEnabled = (t2, e2) => !t2 || e2 !== D3.link_mode ? false : this.client.metadata?.redirect?.linkMode === true && this.client.metadata?.redirect?.universal !== void 0 && this.client.metadata?.redirect?.universal !== "" && t2?.redirect?.universal !== void 0 && t2?.redirect?.universal !== "" && t2?.redirect?.linkMode === true && this.client.core.linkModeSupportedApps.includes(t2.redirect.universal) && typeof global?.Linking < "u", this.getAppLinkIfEnabled = (t2, e2) => this.isLinkModeEnabled(t2, e2) ? t2?.redirect?.universal : void 0, this.handleLinkModeMessage = ({ url: t2 }) => {
+            if (!t2 || !t2.includes("wc_ev") || !t2.includes("topic")) return;
+            const e2 = Yn2(t2, "topic") || "", s2 = decodeURIComponent(Yn2(t2, "wc_ev") || ""), i3 = this.client.session.keys.includes(e2);
             i3 && this.client.session.update(e2, { transportType: D3.link_mode }), this.client.core.dispatchEnvelope({ topic: e2, message: s2, sessionExists: i3 });
           }, this.registerLinkModeListeners = async () => {
             if (Xn2() || A2() && this.client.metadata.redirect?.linkMode) {
-              const t = global?.Linking;
-              if (typeof t < "u") {
-                t.addEventListener("url", this.handleLinkModeMessage, this.client.name);
-                const e2 = await t.getInitialURL();
+              const t2 = global?.Linking;
+              if (typeof t2 < "u") {
+                t2.addEventListener("url", this.handleLinkModeMessage, this.client.name);
+                const e2 = await t2.getInitialURL();
                 e2 && setTimeout(() => {
                   this.handleLinkModeMessage({ url: e2 });
                 }, 50);
               }
             }
-          }, this.getTVFApproveParams = (t) => {
+          }, this.getTVFApproveParams = (t2) => {
             try {
-              const e2 = jt2(t.namespaces), s2 = Mr2(t.namespaces), i3 = Lr2(t.namespaces), r3 = t.sessionProperties, n4 = t.scopedProperties;
+              const e2 = jt2(t2.namespaces), s2 = Mr2(t2.namespaces), i3 = Lr2(t2.namespaces), r3 = t2.sessionProperties, n4 = t2.scopedProperties;
               return { approvedChains: e2, approvedMethods: s2, approvedEvents: i3, sessionProperties: r3, scopedProperties: n4 };
             } catch (e2) {
               return this.client.logger.warn(e2, "Error getting TVF approve params"), {};
             }
-          }, this.getTVFParams = (t, e2, s2) => {
+          }, this.getTVFParams = (t2, e2, s2) => {
             if (!e2.request?.method) return {};
-            const i3 = { correlationId: t, rpcMethods: [e2.request.method], chainId: e2.chainId };
+            const i3 = { correlationId: t2, rpcMethods: [e2.request.method], chainId: e2.chainId };
             try {
               const r3 = this.extractTxHashesFromResult(e2.request, s2);
               i3.txHashes = r3, i3.contractAddresses = this.isValidContractData(e2.request.params) ? [e2.request.params?.[0]?.to] : [];
@@ -23073,29 +23073,29 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               this.client.logger.warn(r3, "Error getting TVF params");
             }
             return i3;
-          }, this.isValidContractData = (t) => {
-            if (!t) return false;
+          }, this.isValidContractData = (t2) => {
+            if (!t2) return false;
             try {
-              const e2 = t?.data || t?.[0]?.data;
+              const e2 = t2?.data || t2?.[0]?.data;
               if (!e2.startsWith("0x")) return false;
               const s2 = e2.slice(2);
               return /^[0-9a-fA-F]*$/.test(s2) ? s2.length % 2 === 0 : false;
             } catch {
             }
             return false;
-          }, this.extractTxHashesFromResult = (t, e2) => {
+          }, this.extractTxHashesFromResult = (t2, e2) => {
             try {
               if (!e2) return [];
-              const s2 = t.method, i3 = nt3[s2];
+              const s2 = t2.method, i3 = nt3[s2];
               if (s2 === "sui_signTransaction") return [or3(e2.transactionBytes)];
               if (s2 === "near_signTransaction") return [sr2(e2)];
               if (s2 === "near_signTransactions") return e2.map((n4) => sr2(n4));
               if (s2 === "xrpl_signTransactionFor" || s2 === "xrpl_signTransaction") return [e2.tx_json?.hash];
-              if (s2 === "polkadot_signTransaction") return [bo2({ transaction: t.params.transactionPayload, signature: e2.signature })];
+              if (s2 === "polkadot_signTransaction") return [bo2({ transaction: t2.params.transactionPayload, signature: e2.signature })];
               if (s2 === "algo_signTxn") return B2(e2) ? e2.map((n4) => ir2(n4)) : [ir2(e2)];
               if (s2 === "cosmos_signDirect") return [cr2(e2)];
               if (s2 === "wallet_sendCalls") return ar2(e2);
-              if (s2 === "canton_prepareSignExecute") return No2(t.params, e2);
+              if (s2 === "canton_prepareSignExecute") return No2(t2.params, e2);
               if (typeof e2 == "string") return [e2];
               const r3 = e2[i3.key];
               if (B2(r3)) return s2 === "solana_signAllTransactions" ? r3.map((n4) => rr2(n4)) : r3;
@@ -23108,8 +23108,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         }
         async processPendingMessageEvents() {
           try {
-            const a3 = this.client.session.keys, t = this.client.core.relayer.messages.getWithoutAck(a3);
-            for (const [e2, s2] of Object.entries(t)) for (const i3 of s2) try {
+            const a3 = this.client.session.keys, t2 = this.client.core.relayer.messages.getWithoutAck(a3);
+            for (const [e2, s2] of Object.entries(t2)) for (const i3 of s2) try {
               await this.onProviderMessageEvent({ topic: e2, message: i3, publishedAt: Date.now() });
             } catch {
               this.client.logger.warn(`Error processing pending message event for topic: ${e2}, message: ${i3}`);
@@ -23133,7 +23133,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
           });
         }
         async onRelayMessage(a3) {
-          const { topic: t, message: e2, attestation: s2, transportType: i3 } = a3, { publicKey: r3 } = this.client.auth.authKeys.keys.includes($4) ? this.client.auth.authKeys.get($4) : { publicKey: void 0 };
+          const { topic: t2, message: e2, attestation: s2, transportType: i3 } = a3, { publicKey: r3 } = this.client.auth.authKeys.keys.includes($4) ? this.client.auth.authKeys.get($4) : { publicKey: void 0 };
           try {
             try {
               if (i3 !== D3.link_mode && this.client.core.crypto.getPayloadType(e2, ee2) === F) {
@@ -23142,18 +23142,18 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               }
             } catch {
             }
-            const n4 = await this.client.core.crypto.decode(t, e2, { receiverPublicKey: r3, encoding: i3 === D3.link_mode ? ee2 : S2 });
-            isJsonRpcRequest(n4) ? (this.client.core.history.set(t, n4), await this.onRelayEventRequest({ topic: t, payload: n4, attestation: s2, transportType: i3, encryptedId: Ar2(e2) })) : isJsonRpcResponse(n4) ? (await this.client.core.history.resolve(n4), await this.onRelayEventResponse({ topic: t, payload: n4, transportType: i3 }), this.client.core.history.delete(t, n4.id)) : (this.client.logger.error(`onRelayMessage() -> unknown payload: ${JSON.stringify(n4)}`), await this.onRelayEventUnknownPayload({ topic: t, payload: n4, transportType: i3 })), await this.client.core.relayer.messages.ack(t, e2);
+            const n4 = await this.client.core.crypto.decode(t2, e2, { receiverPublicKey: r3, encoding: i3 === D3.link_mode ? ee2 : S2 });
+            isJsonRpcRequest(n4) ? (this.client.core.history.set(t2, n4), await this.onRelayEventRequest({ topic: t2, payload: n4, attestation: s2, transportType: i3, encryptedId: Ar2(e2) })) : isJsonRpcResponse(n4) ? (await this.client.core.history.resolve(n4), await this.onRelayEventResponse({ topic: t2, payload: n4, transportType: i3 }), this.client.core.history.delete(t2, n4.id)) : (this.client.logger.error(`onRelayMessage() -> unknown payload: ${JSON.stringify(n4)}`), await this.onRelayEventUnknownPayload({ topic: t2, payload: n4, transportType: i3 })), await this.client.core.relayer.messages.ack(t2, e2);
           } catch (n4) {
             this.client.logger.error(`onRelayMessage() -> failed to process an inbound message: ${e2}`), this.client.logger.error(n4?.message);
           }
         }
         registerExpirerEvents() {
           this.client.core.expirer.on(P4.expired, async (a3) => {
-            const { topic: t, id: e2 } = Hn2(a3.target);
+            const { topic: t2, id: e2 } = Hn2(a3.target);
             if (e2 && this.client.pendingRequest.keys.includes(e2)) return await this.deletePendingSessionRequest(e2, N10("EXPIRED"), true);
             if (e2 && this.client.auth.requests.keys.includes(e2)) return await this.deletePendingAuthRequest(e2, N10("EXPIRED"), true);
-            t ? this.client.session.keys.includes(t) && (await this.deleteSession({ topic: t, expirerHasDeleted: true }), this.client.events.emit("session_expire", { topic: t })) : e2 && (await this.deleteProposal(e2, true), this.client.events.emit("proposal_expire", { id: e2 }));
+            t2 ? this.client.session.keys.includes(t2) && (await this.deleteSession({ topic: t2, expirerHasDeleted: true }), this.client.events.emit("session_expire", { topic: t2 })) : e2 && (await this.deleteProposal(e2, true), this.client.events.emit("proposal_expire", { id: e2 }));
           });
         }
         registerSubscriptionCleanup() {
@@ -23177,103 +23177,103 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         }
         isValidPairingTopic(a3) {
           if (!E3(a3, false)) {
-            const { message: t } = N10("MISSING_OR_INVALID", `pairing topic should be a string: ${a3}`);
-            throw new Error(t);
+            const { message: t2 } = N10("MISSING_OR_INVALID", `pairing topic should be a string: ${a3}`);
+            throw new Error(t2);
           }
           if (!this.client.core.pairing.pairings.keys.includes(a3)) {
-            const { message: t } = N10("NO_MATCHING_KEY", `pairing topic doesn't exist: ${a3}`);
-            throw new Error(t);
+            const { message: t2 } = N10("NO_MATCHING_KEY", `pairing topic doesn't exist: ${a3}`);
+            throw new Error(t2);
           }
           if (Wn2(this.client.core.pairing.pairings.get(a3).expiry)) {
-            const { message: t } = N10("EXPIRED", `pairing topic: ${a3}`);
-            throw new Error(t);
+            const { message: t2 } = N10("EXPIRED", `pairing topic: ${a3}`);
+            throw new Error(t2);
           }
         }
         async isValidSessionTopic(a3) {
           if (!E3(a3, false)) {
-            const { message: t } = N10("MISSING_OR_INVALID", `session topic should be a string: ${a3}`);
-            throw new Error(t);
+            const { message: t2 } = N10("MISSING_OR_INVALID", `session topic should be a string: ${a3}`);
+            throw new Error(t2);
           }
           if (this.checkRecentlyDeleted(a3), !this.client.session.keys.includes(a3)) {
-            const { message: t } = N10("NO_MATCHING_KEY", `session topic doesn't exist: ${a3}`);
-            throw new Error(t);
+            const { message: t2 } = N10("NO_MATCHING_KEY", `session topic doesn't exist: ${a3}`);
+            throw new Error(t2);
           }
           if (Wn2(this.client.session.get(a3).expiry)) {
             await this.deleteSession({ topic: a3 });
-            const { message: t } = N10("EXPIRED", `session topic: ${a3}`);
-            throw new Error(t);
+            const { message: t2 } = N10("EXPIRED", `session topic: ${a3}`);
+            throw new Error(t2);
           }
           if (!this.client.core.crypto.keychain.has(a3)) {
-            const { message: t } = N10("MISSING_OR_INVALID", `session topic does not exist in keychain: ${a3}`);
-            throw await this.deleteSession({ topic: a3 }), new Error(t);
+            const { message: t2 } = N10("MISSING_OR_INVALID", `session topic does not exist in keychain: ${a3}`);
+            throw await this.deleteSession({ topic: a3 }), new Error(t2);
           }
         }
         async isValidSessionOrPairingTopic(a3) {
           if (this.checkRecentlyDeleted(a3), this.client.session.keys.includes(a3)) await this.isValidSessionTopic(a3);
           else if (this.client.core.pairing.pairings.keys.includes(a3)) this.isValidPairingTopic(a3);
           else if (E3(a3, false)) {
-            const { message: t } = N10("NO_MATCHING_KEY", `session or pairing topic doesn't exist: ${a3}`);
-            throw new Error(t);
+            const { message: t2 } = N10("NO_MATCHING_KEY", `session or pairing topic doesn't exist: ${a3}`);
+            throw new Error(t2);
           } else {
-            const { message: t } = N10("MISSING_OR_INVALID", `session or pairing topic should be a string: ${a3}`);
-            throw new Error(t);
+            const { message: t2 } = N10("MISSING_OR_INVALID", `session or pairing topic should be a string: ${a3}`);
+            throw new Error(t2);
           }
         }
         async isValidProposalId(a3) {
           if (!Xr2(a3)) {
-            const { message: t } = N10("MISSING_OR_INVALID", `proposal id should be a number: ${a3}`);
-            throw new Error(t);
+            const { message: t2 } = N10("MISSING_OR_INVALID", `proposal id should be a number: ${a3}`);
+            throw new Error(t2);
           }
           if (!this.client.proposal.keys.includes(a3)) {
-            const { message: t } = N10("NO_MATCHING_KEY", `proposal id doesn't exist: ${a3}`);
-            throw new Error(t);
+            const { message: t2 } = N10("NO_MATCHING_KEY", `proposal id doesn't exist: ${a3}`);
+            throw new Error(t2);
           }
           if (Wn2(this.client.proposal.get(a3).expiryTimestamp)) {
             await this.deleteProposal(a3);
-            const { message: t } = N10("EXPIRED", `proposal id: ${a3}`);
-            throw new Error(t);
+            const { message: t2 } = N10("EXPIRED", `proposal id: ${a3}`);
+            throw new Error(t2);
           }
         }
         validateRequestExpiry(a3) {
           if (a3 && !uo2(a3, Se5)) {
-            const { message: t } = N10("MISSING_OR_INVALID", `request() expiry: ${a3}. Expiry must be a number (in seconds) between ${Se5.min} and ${Se5.max}`);
-            throw new Error(t);
+            const { message: t2 } = N10("MISSING_OR_INVALID", `request() expiry: ${a3}. Expiry must be a number (in seconds) between ${Se5.min} and ${Se5.max}`);
+            throw new Error(t2);
           }
         }
       };
       Is = class extends ve4 {
-        constructor(a3, t) {
-          super(a3, t, st2, _e4), this.core = a3, this.logger = t;
+        constructor(a3, t2) {
+          super(a3, t2, st2, _e4), this.core = a3, this.logger = t2;
         }
       };
       ut4 = class extends ve4 {
-        constructor(a3, t) {
-          super(a3, t, it4, _e4), this.core = a3, this.logger = t;
+        constructor(a3, t2) {
+          super(a3, t2, it4, _e4), this.core = a3, this.logger = t2;
         }
       };
       Ts = class extends ve4 {
-        constructor(a3, t) {
-          super(a3, t, ot2, _e4, (e2) => e2.id), this.core = a3, this.logger = t;
+        constructor(a3, t2) {
+          super(a3, t2, ot2, _e4, (e2) => e2.id), this.core = a3, this.logger = t2;
         }
       };
       qs = class extends ve4 {
-        constructor(a3, t) {
-          super(a3, t, pt3, ue3, () => $4), this.core = a3, this.logger = t;
+        constructor(a3, t2) {
+          super(a3, t2, pt3, ue3, () => $4), this.core = a3, this.logger = t2;
         }
       };
       vs = class extends ve4 {
-        constructor(a3, t) {
-          super(a3, t, ht2, ue3), this.core = a3, this.logger = t;
+        constructor(a3, t2) {
+          super(a3, t2, ht2, ue3), this.core = a3, this.logger = t2;
         }
       };
       Ps = class extends ve4 {
-        constructor(a3, t) {
-          super(a3, t, dt4, ue3, (e2) => e2.id), this.core = a3, this.logger = t;
+        constructor(a3, t2) {
+          super(a3, t2, dt4, ue3, (e2) => e2.id), this.core = a3, this.logger = t2;
         }
       };
       Ns = class {
-        constructor(a3, t) {
-          this.core = a3, this.logger = t, this.authKeys = new qs(this.core, this.logger), this.pairingTopics = new vs(this.core, this.logger), this.requests = new Ps(this.core, this.logger);
+        constructor(a3, t2) {
+          this.core = a3, this.logger = t2, this.authKeys = new qs(this.core, this.logger), this.pairingTopics = new vs(this.core, this.logger), this.requests = new Ps(this.core, this.logger);
         }
         async init() {
           await this.authKeys.init(), await this.pairingTopics.init(), await this.requests.init();
@@ -23384,12 +23384,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
               throw this.logger.error(s2.message), s2;
             }
           }, this.name = a3?.name || fe5.name, this.metadata = Un2(a3?.metadata), this.signConfig = a3?.signConfig;
-          const t = vo2({ logger: a3?.logger || fe5.logger, name: this.name });
-          this.logger = t, this.core = a3?.core || new Xi(a3), this.session = new ut4(this.core, this.logger), this.proposal = new Is(this.core, this.logger), this.pendingRequest = new Ts(this.core, this.logger), this.engine = new Rs(this), this.auth = new Ns(this.core, this.logger);
+          const t2 = vo2({ logger: a3?.logger || fe5.logger, name: this.name });
+          this.logger = t2, this.core = a3?.core || new Xi(a3), this.session = new ut4(this.core, this.logger), this.proposal = new Is(this.core, this.logger), this.pendingRequest = new Ts(this.core, this.logger), this.engine = new Rs(this), this.auth = new Ns(this.core, this.logger);
         }
         static async init(a3) {
-          const t = new yt4(a3);
-          return await t.initialize(), t;
+          const t2 = new yt4(a3);
+          return await t2.initialize(), t2;
         }
         get context() {
           return ee(this.logger);
@@ -23629,13 +23629,13 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         const pos = exports.getRowColCoords(version3);
         const posLength = pos.length;
         for (let i3 = 0; i3 < posLength; i3++) {
-          for (let j5 = 0; j5 < posLength; j5++) {
-            if (i3 === 0 && j5 === 0 || // top-left
-            i3 === 0 && j5 === posLength - 1 || // bottom-left
-            i3 === posLength - 1 && j5 === 0) {
+          for (let j4 = 0; j4 < posLength; j4++) {
+            if (i3 === 0 && j4 === 0 || // top-left
+            i3 === 0 && j4 === posLength - 1 || // bottom-left
+            i3 === posLength - 1 && j4 === 0) {
               continue;
             }
-            coords.push([pos[i3], pos[j5]]);
+            coords.push([pos[i3], pos[j4]]);
           }
         }
         return coords;
@@ -23751,27 +23751,27 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         let darkCount = 0;
         const modulesCount = data.data.length;
         for (let i3 = 0; i3 < modulesCount; i3++) darkCount += data.data[i3];
-        const k6 = Math.abs(Math.ceil(darkCount * 100 / modulesCount / 5) - 10);
-        return k6 * PenaltyScores.N4;
+        const k5 = Math.abs(Math.ceil(darkCount * 100 / modulesCount / 5) - 10);
+        return k5 * PenaltyScores.N4;
       };
-      function getMaskAt(maskPattern, i3, j5) {
+      function getMaskAt(maskPattern, i3, j4) {
         switch (maskPattern) {
           case exports.Patterns.PATTERN000:
-            return (i3 + j5) % 2 === 0;
+            return (i3 + j4) % 2 === 0;
           case exports.Patterns.PATTERN001:
             return i3 % 2 === 0;
           case exports.Patterns.PATTERN010:
-            return j5 % 3 === 0;
+            return j4 % 3 === 0;
           case exports.Patterns.PATTERN011:
-            return (i3 + j5) % 3 === 0;
+            return (i3 + j4) % 3 === 0;
           case exports.Patterns.PATTERN100:
-            return (Math.floor(i3 / 2) + Math.floor(j5 / 3)) % 2 === 0;
+            return (Math.floor(i3 / 2) + Math.floor(j4 / 3)) % 2 === 0;
           case exports.Patterns.PATTERN101:
-            return i3 * j5 % 2 + i3 * j5 % 3 === 0;
+            return i3 * j4 % 2 + i3 * j4 % 3 === 0;
           case exports.Patterns.PATTERN110:
-            return (i3 * j5 % 2 + i3 * j5 % 3) % 2 === 0;
+            return (i3 * j4 % 2 + i3 * j4 % 3) % 2 === 0;
           case exports.Patterns.PATTERN111:
-            return (i3 * j5 % 3 + (i3 + j5) % 2) % 2 === 0;
+            return (i3 * j4 % 3 + (i3 + j4) % 2) % 2 === 0;
           default:
             throw new Error("bad maskPattern:" + maskPattern);
         }
@@ -24191,9 +24191,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       exports.exp = function exp(n4) {
         return EXP_TABLE[n4];
       };
-      exports.mul = function mul(x7, y7) {
-        if (x7 === 0 || y7 === 0) return 0;
-        return EXP_TABLE[LOG_TABLE[x7] + LOG_TABLE[y7]];
+      exports.mul = function mul(x7, y6) {
+        if (x7 === 0 || y6 === 0) return 0;
+        return EXP_TABLE[LOG_TABLE[x7] + LOG_TABLE[y6]];
       };
     }
   });
@@ -24205,8 +24205,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       exports.mul = function mul(p1, p22) {
         const coeff = new Uint8Array(p1.length + p22.length - 1);
         for (let i3 = 0; i3 < p1.length; i3++) {
-          for (let j5 = 0; j5 < p22.length; j5++) {
-            coeff[i3 + j5] ^= GF.mul(p1[i3], p22[j5]);
+          for (let j4 = 0; j4 < p22.length; j4++) {
+            coeff[i3 + j4] ^= GF.mul(p1[i3], p22[j4]);
           }
         }
         return coeff;
@@ -24691,12 +24691,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
           costs[s2] = 0;
           var open = dijkstra.PriorityQueue.make();
           open.push(s2, 0);
-          var closest, u3, v7, cost_of_s_to_u, adjacent_nodes, cost_of_e, cost_of_s_to_u_plus_cost_of_e, cost_of_s_to_v, first_visit;
+          var closest, u2, v7, cost_of_s_to_u, adjacent_nodes, cost_of_e, cost_of_s_to_u_plus_cost_of_e, cost_of_s_to_v, first_visit;
           while (!open.empty()) {
             closest = open.pop();
-            u3 = closest.value;
+            u2 = closest.value;
             cost_of_s_to_u = closest.cost;
-            adjacent_nodes = graph[u3] || {};
+            adjacent_nodes = graph[u2] || {};
             for (v7 in adjacent_nodes) {
               if (adjacent_nodes.hasOwnProperty(v7)) {
                 cost_of_e = adjacent_nodes[v7];
@@ -24706,7 +24706,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
                 if (first_visit || cost_of_s_to_v > cost_of_s_to_u_plus_cost_of_e) {
                   costs[v7] = cost_of_s_to_u_plus_cost_of_e;
                   open.push(v7, cost_of_s_to_u_plus_cost_of_e);
-                  predecessors[v7] = u3;
+                  predecessors[v7] = u2;
                 }
               }
             }
@@ -24719,12 +24719,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         },
         extract_shortest_path_from_predecessor_list: function(predecessors, d3) {
           var nodes = [];
-          var u3 = d3;
+          var u2 = d3;
           var predecessor;
-          while (u3) {
-            nodes.push(u3);
-            predecessor = predecessors[u3];
-            u3 = predecessors[u3];
+          while (u2) {
+            nodes.push(u2);
+            predecessor = predecessors[u2];
+            u2 = predecessors[u2];
           }
           nodes.reverse();
           return nodes;
@@ -24741,16 +24741,16 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
          */
         PriorityQueue: {
           make: function(opts) {
-            var T5 = dijkstra.PriorityQueue, t = {}, key;
+            var T5 = dijkstra.PriorityQueue, t2 = {}, key;
             opts = opts || {};
             for (key in T5) {
               if (T5.hasOwnProperty(key)) {
-                t[key] = T5[key];
+                t2[key] = T5[key];
               }
             }
-            t.queue = [];
-            t.sorter = opts.sorter || T5.default_sorter;
-            return t;
+            t2.queue = [];
+            t2.sorter = opts.sorter || T5.default_sorter;
+            return t2;
           },
           default_sorter: function(a3, b4) {
             return a3.cost - b4.cost;
@@ -24893,9 +24893,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         for (let i3 = 0; i3 < nodes.length; i3++) {
           const nodeGroup = nodes[i3];
           const currentNodeIds = [];
-          for (let j5 = 0; j5 < nodeGroup.length; j5++) {
-            const node = nodeGroup[j5];
-            const key = "" + i3 + j5;
+          for (let j4 = 0; j4 < nodeGroup.length; j4++) {
+            const node = nodeGroup[j4];
+            const key = "" + i3 + j4;
             currentNodeIds.push(key);
             table[key] = { node, lastCount: 0 };
             graph[key] = {};
@@ -25290,12 +25290,12 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         const scaledMargin = opts.margin * scale;
         const palette = [opts.color.light, opts.color.dark];
         for (let i3 = 0; i3 < symbolSize; i3++) {
-          for (let j5 = 0; j5 < symbolSize; j5++) {
-            let posDst = (i3 * symbolSize + j5) * 4;
+          for (let j4 = 0; j4 < symbolSize; j4++) {
+            let posDst = (i3 * symbolSize + j4) * 4;
             let pxColor = opts.color.light;
-            if (i3 >= scaledMargin && j5 >= scaledMargin && i3 < symbolSize - scaledMargin && j5 < symbolSize - scaledMargin) {
+            if (i3 >= scaledMargin && j4 >= scaledMargin && i3 < symbolSize - scaledMargin && j4 < symbolSize - scaledMargin) {
               const iSrc = Math.floor((i3 - scaledMargin) / scale);
-              const jSrc = Math.floor((j5 - scaledMargin) / scale);
+              const jSrc = Math.floor((j4 - scaledMargin) / scale);
               pxColor = palette[data[iSrc * size3 + jSrc] ? 1 : 0];
             }
             imgData[posDst++] = pxColor.r;
@@ -25370,9 +25370,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
         const str = attrib + '="' + color.hex + '"';
         return alpha < 1 ? str + " " + attrib + '-opacity="' + alpha.toFixed(2).slice(1) + '"' : str;
       }
-      function svgCmd(cmd, x7, y7) {
+      function svgCmd(cmd, x7, y6) {
         let str = cmd + x7;
-        if (typeof y7 !== "undefined") str += " " + y7;
+        if (typeof y6 !== "undefined") str += " " + y6;
         return str;
       }
       function qrToPath(data, size3, margin) {
@@ -25488,6 +25488,73 @@ ${e2.length}`, n4 = new TextEncoder().encode(t + e2);
       });
     }
   });
+
+  // src/central-browser-session-locale.js
+  var CENTRAL_UI_LANGUAGES = Object.freeze({ en: "English", "zh-CN": "\u7B80\u4F53\u4E2D\u6587", "zh-Hant": "\u7E41\u9AD4\u4E2D\u6587" });
+  function centralUILanguage(value) {
+    for (const part of String(value ?? "").split(",")) {
+      const tag = part.split(";")[0].trim().toLowerCase();
+      if (/^zh(?:-(?:hant|tw|hk|mo))$/u.test(tag)) return "zh-Hant";
+      if (/^zh(?:-(?:hans|cn|sg))?$/u.test(tag)) return "zh-CN";
+      if (/^en(?:-[a-z]+)?$/u.test(tag)) return "en";
+    }
+    return "en";
+  }
+  var rows = [
+    ["YNX \xB7 Sign in", "YNX \xB7 \u767B\u5F55", "YNX \xB7 \u767B\u5165"],
+    ["Sign in with YNX Wallet", "\u4F7F\u7528 YNX Wallet \u767B\u5F55", "\u4F7F\u7528 YNX Wallet \u767B\u5165"],
+    ["Allow browser sign-in for registered YNX products. Private product permissions require separate approval.", "\u786E\u8BA4\u540E\u53EF\u767B\u5F55\u5DF2\u5173\u8054\u7684 YNX \u4EA7\u54C1\u3002\u8BBF\u95EE\u79C1\u4EBA\u670D\u52A1\u4ECD\u9700\u53E6\u884C\u6279\u51C6\u3002", "\u78BA\u8A8D\u5F8C\u53EF\u767B\u5165\u5DF2\u95DC\u806F\u7684 YNX \u7522\u54C1\u3002\u5B58\u53D6\u79C1\u4EBA\u670D\u52D9\u4ECD\u9700\u53E6\u884C\u6279\u51C6\u3002"],
+    ["Choose a wallet to continue.", "\u9009\u62E9\u94B1\u5305\u4EE5\u7EE7\u7EED\u3002", "\u9078\u64C7\u9322\u5305\u4EE5\u7E7C\u7E8C\u3002"],
+    ["Continue with YNX Wallet", "\u7EE7\u7EED\u5E76\u5728\u94B1\u5305\u4E2D\u6279\u51C6\u767B\u5F55", "\u7E7C\u7E8C\u4E26\u5728\u9322\u5305\u4E2D\u6279\u51C6\u767B\u5165"],
+    ["Cancel", "\u53D6\u6D88", "\u53D6\u6D88"],
+    ["Get YNX Wallet", "\u83B7\u53D6 YNX Wallet", "\u53D6\u5F97 YNX Wallet"],
+    ["Return to product and retry", "\u8FD4\u56DE\u4EA7\u54C1\u5E76\u91CD\u8BD5", "\u8FD4\u56DE\u7522\u54C1\u4E26\u91CD\u8A66"],
+    ["Return to product without using this approval", "\u8FD4\u56DE\u4EA7\u54C1\uFF0C\u4E0D\u4F7F\u7528\u672C\u6B21\u6279\u51C6", "\u8FD4\u56DE\u7522\u54C1\uFF0C\u4E0D\u4F7F\u7528\u672C\u6B21\u6279\u51C6"],
+    ["Connect mobile YNX Wallet", "\u8FDE\u63A5\u624B\u673A YNX Wallet", "\u9023\u63A5\u624B\u6A5F YNX Wallet"],
+    ["Scan with YNX Wallet to approve this browser connection. Browser sign-in remains a separate approval.", "\u4F7F\u7528 YNX Wallet \u626B\u7801\u6279\u51C6\u8FDE\u63A5\uFF0C\u968F\u540E\u53E6\u884C\u786E\u8BA4\u767B\u5F55\u3002", "\u4F7F\u7528 YNX Wallet \u6383\u78BC\u6279\u51C6\u9023\u63A5\uFF0C\u96A8\u5F8C\u53E6\u884C\u78BA\u8A8D\u767B\u5165\u3002"],
+    ["Temporary YNX Wallet connection QR code", "\u4E34\u65F6\u94B1\u5305\u8FDE\u63A5\u4E8C\u7EF4\u7801", "\u81E8\u6642\u9322\u5305\u9023\u63A5\u4E8C\u7DAD\u78BC"],
+    ["Open YNX Wallet", "\u6253\u5F00 YNX Wallet", "\u958B\u555F YNX Wallet"],
+    ["Connect YNX Wallet Web", "\u6253\u5F00 YNX Wallet \u7F51\u9875\u7248", "\u958B\u555F YNX Wallet \u7DB2\u9801\u7248"],
+    ["Finish or cancel your current request before opening another connection.", "\u8BF7\u5148\u5B8C\u6210\u6216\u53D6\u6D88\u5F53\u524D\u8BF7\u6C42\uFF0C\u518D\u9009\u62E9\u5176\u4ED6\u94B1\u5305\u3002", "\u8ACB\u5148\u5B8C\u6210\u6216\u53D6\u6D88\u76EE\u524D\u8ACB\u6C42\uFF0C\u518D\u9078\u64C7\u5176\u4ED6\u9322\u5305\u3002"],
+    ["This sign-in request has expired. Return to your product and start a new request.", "\u672C\u6B21\u767B\u5F55\u8BF7\u6C42\u5DF2\u8FC7\u671F\u3002\u8BF7\u8FD4\u56DE\u4EA7\u54C1\u91CD\u65B0\u767B\u5F55\u3002", "\u672C\u6B21\u767B\u5165\u8ACB\u6C42\u5DF2\u904E\u671F\u3002\u8ACB\u8FD4\u56DE\u7522\u54C1\u91CD\u65B0\u767B\u5165\u3002"],
+    ["Opening YNX Wallet Web. Connection permission and browser sign-in are separate approvals.", "\u6B63\u5728\u6253\u5F00\u94B1\u5305\u7F51\u9875\u7248\u3002\u8BF7\u5148\u8FDE\u63A5\uFF0C\u518D\u5355\u72EC\u786E\u8BA4\u767B\u5F55\u3002", "\u6B63\u5728\u958B\u555F\u9322\u5305\u7DB2\u9801\u7248\u3002\u8ACB\u5148\u9023\u63A5\uFF0C\u518D\u55AE\u7368\u78BA\u8A8D\u767B\u5165\u3002"],
+    ["YNX Wallet Web connected. Continue to review browser sign-in.", "\u94B1\u5305\u7F51\u9875\u7248\u5DF2\u8FDE\u63A5\u3002\u8BF7\u7EE7\u7EED\uFF0C\u5728\u94B1\u5305\u4E2D\u786E\u8BA4\u767B\u5F55\u3002", "\u9322\u5305\u7DB2\u9801\u7248\u5DF2\u9023\u63A5\u3002\u8ACB\u7E7C\u7E8C\uFF0C\u5728\u9322\u5305\u4E2D\u78BA\u8A8D\u767B\u5165\u3002"],
+    ["Wallet Web connection timed out. Return to your product and retry; no browser sign-in was granted.", "\u8FDE\u63A5\u94B1\u5305\u8D85\u65F6\uFF0C\u5C1A\u672A\u767B\u5F55\u3002\u8BF7\u8FD4\u56DE\u4EA7\u54C1\u91CD\u8BD5\u3002", "\u9023\u63A5\u9322\u5305\u903E\u6642\uFF0C\u5C1A\u672A\u767B\u5165\u3002\u8ACB\u8FD4\u56DE\u7522\u54C1\u91CD\u8A66\u3002"],
+    ["Connection was declined. No browser sign-in was granted.", "\u4F60\u5DF2\u62D2\u7EDD\u8FDE\u63A5\uFF0C\u5C1A\u672A\u767B\u5F55\u3002", "\u4F60\u5DF2\u62D2\u7D55\u9023\u63A5\uFF0C\u5C1A\u672A\u767B\u5165\u3002"],
+    ["Opening a mobile Wallet connection. No sign-in signature has been requested.", "\u6B63\u5728\u8FDE\u63A5\u624B\u673A\u94B1\u5305\uFF0C\u5C1A\u672A\u8BF7\u6C42\u767B\u5F55\u6279\u51C6\u3002", "\u6B63\u5728\u9023\u63A5\u624B\u6A5F\u9322\u5305\uFF0C\u5C1A\u672A\u8ACB\u6C42\u767B\u5165\u6279\u51C6\u3002"],
+    ["QR rendering is unavailable. Cancel and retry the connection.", "\u65E0\u6CD5\u663E\u793A\u4E8C\u7EF4\u7801\u3002\u8BF7\u53D6\u6D88\u5E76\u91CD\u65B0\u8FDE\u63A5\u3002", "\u7121\u6CD5\u986F\u793A\u4E8C\u7DAD\u78BC\u3002\u8ACB\u53D6\u6D88\u4E26\u91CD\u65B0\u9023\u63A5\u3002"],
+    ["Scan this temporary QR in YNX Wallet and approve the connection.", "\u8BF7\u5728 YNX Wallet \u626B\u63CF\u6B64\u4E34\u65F6\u4E8C\u7EF4\u7801\u5E76\u6279\u51C6\u8FDE\u63A5\u3002", "\u8ACB\u5728 YNX Wallet \u6383\u63CF\u6B64\u81E8\u6642\u4E8C\u7DAD\u78BC\u4E26\u6279\u51C6\u9023\u63A5\u3002"],
+    ["Mobile Wallet connected. Continue to review browser sign-in on the same Wallet session.", "\u624B\u673A\u94B1\u5305\u5DF2\u8FDE\u63A5\u3002\u8BF7\u7EE7\u7EED\uFF0C\u5728\u540C\u4E00\u94B1\u5305\u4E2D\u786E\u8BA4\u767B\u5F55\u3002", "\u624B\u6A5F\u9322\u5305\u5DF2\u9023\u63A5\u3002\u8ACB\u7E7C\u7E8C\uFF0C\u5728\u540C\u4E00\u9322\u5305\u4E2D\u78BA\u8A8D\u767B\u5165\u3002"],
+    ["Choose YNX Wallet", "\u9009\u62E9 YNX Wallet", "\u9078\u64C7 YNX Wallet"],
+    ["Installed YNX Wallet is unavailable. Install/unlock it or explicitly choose Wallet Web or mobile Wallet.", "\u5C1A\u672A\u627E\u5230\u53EF\u7528\u7684\u94B1\u5305\u6269\u5C55\u3002\u53EF\u5B89\u88C5\u5E76\u89E3\u9501\u6269\u5C55\uFF0C\u6216\u9009\u62E9\u4E0B\u65B9\u624B\u673A\u94B1\u5305\u3001\u94B1\u5305\u7F51\u9875\u7248\u3002", "\u5C1A\u672A\u627E\u5230\u53EF\u7528\u7684\u9322\u5305\u64F4\u5145\u529F\u80FD\u3002\u53EF\u5B89\u88DD\u4E26\u89E3\u9396\uFF0C\u6216\u9078\u64C7\u4E0B\u65B9\u624B\u6A5F\u9322\u5305\u3001\u9322\u5305\u7DB2\u9801\u7248\u3002"],
+    ["Finish or cancel the current request before switching wallets.", "\u8BF7\u5148\u5B8C\u6210\u6216\u53D6\u6D88\u5F53\u524D\u8BF7\u6C42\uFF0C\u518D\u5207\u6362\u94B1\u5305\u3002", "\u8ACB\u5148\u5B8C\u6210\u6216\u53D6\u6D88\u76EE\u524D\u8ACB\u6C42\uFF0C\u518D\u5207\u63DB\u9322\u5305\u3002"],
+    ["Connection is separate from browser sign-in approval.", "\u8FDE\u63A5\u94B1\u5305\u540E\uFF0C\u4ECD\u9700\u5355\u72EC\u6279\u51C6\u767B\u5F55\u3002", "\u9023\u63A5\u9322\u5305\u5F8C\uFF0C\u4ECD\u9700\u55AE\u7368\u6279\u51C6\u767B\u5165\u3002"],
+    ["Your request is already open in YNX Wallet.", "\u8BF7\u5728\u5DF2\u6253\u5F00\u7684 YNX Wallet \u4E2D\u5904\u7406\u5F53\u524D\u8BF7\u6C42\u3002", "\u8ACB\u5728\u5DF2\u958B\u555F\u7684 YNX Wallet \u4E2D\u8655\u7406\u76EE\u524D\u8ACB\u6C42\u3002"],
+    ["Opening YNX Wallet. Unlock and review browser sign-in.", "\u8BF7\u6253\u5F00\u5E76\u89E3\u9501 YNX Wallet\uFF0C\u67E5\u770B\u5E76\u786E\u8BA4\u767B\u5F55\u8BF7\u6C42\u3002", "\u8ACB\u958B\u555F\u4E26\u89E3\u9396 YNX Wallet\uFF0C\u67E5\u770B\u4E26\u78BA\u8A8D\u767B\u5165\u8ACB\u6C42\u3002"],
+    ["Sign-in approved. Returning to your product.", "\u767B\u5F55\u5DF2\u6279\u51C6\uFF0C\u6B63\u5728\u8FD4\u56DE\u4EA7\u54C1\u3002", "\u767B\u5165\u5DF2\u6279\u51C6\uFF0C\u6B63\u5728\u8FD4\u56DE\u7522\u54C1\u3002"],
+    ["Sign-in was declined. Your existing product permissions are unchanged.", "\u4F60\u5DF2\u62D2\u7EDD\u767B\u5F55\uFF0C\u5DF2\u6709\u4EA7\u54C1\u6743\u9650\u4FDD\u6301\u4E0D\u53D8\u3002", "\u4F60\u5DF2\u62D2\u7D55\u767B\u5165\uFF0C\u5DF2\u6709\u7522\u54C1\u6B0A\u9650\u4FDD\u6301\u4E0D\u8B8A\u3002"],
+    ["Cancelling this sign-in request\u2026", "\u6B63\u5728\u53D6\u6D88\u672C\u6B21\u767B\u5F55\u8BF7\u6C42\u2026", "\u6B63\u5728\u53D6\u6D88\u672C\u6B21\u767B\u5165\u8ACB\u6C42\u2026"],
+    ["This sign-in transaction has expired. Remote cancellation is not confirmed. Return to your product and explicitly start a new request; this page will not use any late approval.", "\u8BF7\u6C42\u5DF2\u8FC7\u671F\uFF0C\u5C1A\u672A\u786E\u8BA4\u670D\u52A1\u5668\u53D6\u6D88\u3002\u8BF7\u8FD4\u56DE\u4EA7\u54C1\u91CD\u65B0\u767B\u5F55\uFF1B\u6B64\u9875\u9762\u4E0D\u4F1A\u4F7F\u7528\u8FDF\u5230\u7684\u6279\u51C6\u3002", "\u8ACB\u6C42\u5DF2\u904E\u671F\uFF0C\u5C1A\u672A\u78BA\u8A8D\u4F3A\u670D\u5668\u53D6\u6D88\u3002\u8ACB\u8FD4\u56DE\u7522\u54C1\u91CD\u65B0\u767B\u5165\uFF1B\u6B64\u9801\u9762\u4E0D\u6703\u4F7F\u7528\u9072\u5230\u7684\u6279\u51C6\u3002"],
+    ["Cancellation is not confirmed. Retry cancellation or return without using this approval; no late approval will be used on this page.", "\u5C1A\u672A\u786E\u8BA4\u53D6\u6D88\u3002\u53EF\u91CD\u8BD5\u53D6\u6D88\u6216\u76F4\u63A5\u8FD4\u56DE\u4EA7\u54C1\uFF1B\u6B64\u9875\u9762\u4E0D\u4F1A\u4F7F\u7528\u8FDF\u5230\u7684\u6279\u51C6\u3002", "\u5C1A\u672A\u78BA\u8A8D\u53D6\u6D88\u3002\u53EF\u91CD\u8A66\u53D6\u6D88\u6216\u76F4\u63A5\u8FD4\u56DE\u7522\u54C1\uFF1B\u6B64\u9801\u9762\u4E0D\u6703\u4F7F\u7528\u9072\u5230\u7684\u6279\u51C6\u3002"],
+    ["YNX \xB7 Browser session", "YNX \xB7 \u767B\u5F55\u72B6\u6001", "YNX \xB7 \u767B\u5165\u72C0\u614B"],
+    ["YNX browser session", "YNX \u767B\u5F55\u72B6\u6001", "YNX \u767B\u5165\u72C0\u614B"],
+    ["Checking your server session\u2026", "\u6B63\u5728\u68C0\u67E5\u767B\u5F55\u72B6\u6001\u2026", "\u6B63\u5728\u6AA2\u67E5\u767B\u5165\u72C0\u614B\u2026"],
+    ["Signing out here ends browser identity access across all linked YNX products. It does not revoke unrelated Wallet connection permissions.", "\u5728\u6B64\u9000\u51FA\u4F1A\u7ED3\u675F\u6240\u6709\u5173\u8054 YNX \u4EA7\u54C1\u7684\u767B\u5F55\u72B6\u6001\u3002\u94B1\u5305\u8FDE\u63A5\u6743\u9650\u9700\u5728\u94B1\u5305\u4E2D\u53E6\u884C\u64A4\u9500\u3002", "\u5728\u6B64\u767B\u51FA\u6703\u7D50\u675F\u6240\u6709\u95DC\u806F YNX \u7522\u54C1\u7684\u767B\u5165\u72C0\u614B\u3002\u9322\u5305\u9023\u63A5\u6B0A\u9650\u9700\u5728\u9322\u5305\u4E2D\u53E6\u884C\u64A4\u92B7\u3002"],
+    ["Sign out of all YNX products", "\u9000\u51FA\u6240\u6709 YNX \u4EA7\u54C1", "\u767B\u51FA\u6240\u6709 YNX \u7522\u54C1"],
+    ["You are signed out.", "\u4F60\u5DF2\u9000\u51FA\u767B\u5F55\u3002", "\u4F60\u5DF2\u767B\u51FA\u3002"],
+    ["Session status is unavailable. Retry checking before signing out.", "\u6682\u65F6\u65E0\u6CD5\u786E\u8BA4\u767B\u5F55\u72B6\u6001\u3002\u8BF7\u91CD\u8BD5\u68C0\u67E5\u540E\u518D\u9000\u51FA\u3002", "\u66AB\u6642\u7121\u6CD5\u78BA\u8A8D\u767B\u5165\u72C0\u614B\u3002\u8ACB\u91CD\u8A66\u6AA2\u67E5\u5F8C\u518D\u767B\u51FA\u3002"],
+    ["Signed out of all YNX products.", "\u5DF2\u9000\u51FA\u6240\u6709 YNX \u4EA7\u54C1\u3002", "\u5DF2\u767B\u51FA\u6240\u6709 YNX \u7522\u54C1\u3002"],
+    ["Global sign-out is not confirmed. Retry; no successful revocation is assumed.", "\u5C1A\u672A\u786E\u8BA4\u5168\u90E8\u9000\u51FA\u3002\u8BF7\u91CD\u8BD5\uFF1B\u4E0D\u80FD\u89C6\u4E3A\u5DF2\u64A4\u9500\u767B\u5F55\u3002", "\u5C1A\u672A\u78BA\u8A8D\u5168\u90E8\u767B\u51FA\u3002\u8ACB\u91CD\u8A66\uFF1B\u4E0D\u80FD\u8996\u70BA\u5DF2\u64A4\u92B7\u767B\u5165\u3002"],
+    ["Requesting site", "\u8BF7\u6C42\u7AD9\u70B9", "\u8ACB\u6C42\u7DB2\u7AD9"],
+    ["Language", "\u8BED\u8A00", "\u8A9E\u8A00"],
+    ["Wallet or service is unavailable. Retry or cancel; no sign-in was granted.", "\u94B1\u5305\u6216\u670D\u52A1\u6682\u4E0D\u53EF\u7528\uFF0C\u5C1A\u672A\u767B\u5F55\u3002\u8BF7\u91CD\u8BD5\u6216\u53D6\u6D88\u3002", "\u9322\u5305\u6216\u670D\u52D9\u66AB\u4E0D\u53EF\u7528\uFF0C\u5C1A\u672A\u767B\u5165\u3002\u8ACB\u91CD\u8A66\u6216\u53D6\u6D88\u3002"]
+  ];
+  function centralUIText(value, language2) {
+    const row = rows.find((row2) => row2.includes(value));
+    if (row) return row[language2 === "zh-CN" ? 1 : language2 === "zh-Hant" ? 2 : 0];
+    if (language2 !== "en" && /^(?:Wallet Web connection did not finish|Mobile connection did not finish|Sign-in could not finish) /u.test(value)) return centralUIText("Wallet or service is unavailable. Retry or cancel; no sign-in was granted.", language2);
+    return value;
+  }
 
   // node_modules/@noble/hashes/utils.js
   function isBytes(a3) {
@@ -26836,175 +26903,528 @@ ${item.productId}`));
   // src/central-browser-session-browser.js
   var import_qrcode = __toESM(require_browser2(), 1);
 
-  // src/vendor/hosted-wallet-adapter-4bccefef.js
-  var P5 = { schemaVersion: 2, chainId: "ynx_6423-1", wallet: { authorizeCallback: "ynxwallet://authorize", downloadUrl: "https://www.ynxweb4.com/dapp/download", metaMaskDownloadUrl: "https://metamask.io/download" }, products: [{ productId: "ai", clientId: "ynx-ai-v1", displayName: "YNX AI", applicationId: "com.ynxweb4.ai", webOrigin: "https://assistant.ynxweb4.com", nativeCallback: "ynxai://wallet-auth/callback", legacyCallbacks: ["ynxai://wallet-auth/callback"], scopes: ["ai:actions", "ai:attachments", "ai:conversations", "ai:data-control", "ai:generate", "ai:permissions"], evmCompatible: false, sessionDurationSeconds: 240 }, { productId: "calendar", clientId: "ynx-calendar-v1", displayName: "YNX Calendar", applicationId: "com.ynxweb4.calendar", webOrigin: "https://calendar.ynxweb4.com", nativeCallback: "ynxcalendar://wallet-auth/callback", legacyCallbacks: ["ynxcalendar", "ynxcalendar://wallet-auth/callback"], scopes: ["calendar:account", "calendar:recover"], evmCompatible: false, sessionDurationSeconds: 240 }, { productId: "card", clientId: "ynx-card-v1", displayName: "YNX Card", applicationId: "com.ynxweb4.card", webOrigin: "https://card.ynxweb4.com", nativeCallback: "ynxcard://wallet-auth/callback", legacyCallbacks: ["ynxcard", "ynxcard://wallet-auth/callback"], scopes: ["account:read", "card:application:write", "card:controls:write", "card:dispute:write", "card:simulation:write", "card:topup:write"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "cloud", clientId: "ynx-cloud-web-v1", displayName: "YNX Cloud", applicationId: "com.ynxweb4.cloud", webOrigin: "https://web4.ynxweb4.com", platforms: ["web"], nativeCallback: null, legacyCallbacks: [], scopes: ["files.read", "files.write"], evmCompatible: false, sessionDurationSeconds: 300 }, { productId: "creator-studio", clientId: "ynx-creator-studio-web-v1", displayName: "YNX Creator Studio", applicationId: "com.ynxweb4.creator-studio", webOrigin: "https://creator.ynxweb4.com", nativeCallback: "ynxcreator://wallet-auth/callback", legacyCallbacks: ["ynxcreator", "ynxcreator://wallet-auth/callback"], scopes: ["creator:account", "creator:publish", "creator:revenue"], evmCompatible: false, sessionDurationSeconds: 240 }, { productId: "developer", clientId: "ynx-developer-v1", displayName: "YNX Developer", applicationId: "com.ynxweb4.developer.testnetpreview", webOrigin: "https://developer.ynxweb4.com", nativeCallback: "ynxdeveloper://wallet-auth/callback", legacyCallbacks: ["ynxdeveloper", "ynxdeveloper://wallet-auth/callback"], scopes: ["account:read", "developer:deploy"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "dex", clientId: "ynx-dex-v1", displayName: "YNX DEX", applicationId: "com.ynxweb4.dex", webOrigin: "https://dex.ynxweb4.com", nativeCallback: "ynxdex://wallet-auth/callback", legacyCallbacks: ["ynxdex", "ynxdex://wallet-auth/callback"], scopes: ["dex:account", "dex:orders", "dex:trade"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "docs", clientId: "ynx-docs-mobile-v1", displayName: "YNX Docs", applicationId: "com.ynxweb4.docs", webOrigin: "https://docs.ynxweb4.com", nativeCallback: "ynxdocs://wallet-auth/callback", legacyCallbacks: ["ynxdocs://wallet-auth/callback"], scopes: ["docs.read", "docs.write", "files.read", "files.write"], evmCompatible: false, sessionDurationSeconds: 300 }, { productId: "exchange", clientId: "ynx-exchange-v1", displayName: "YNX Exchange", applicationId: "com.ynxweb4.exchange", webOrigin: "https://exchange.ynxweb4.com", nativeCallback: "ynxexchange://wallet-auth/callback", legacyCallbacks: ["ynxexchange", "ynxexchange://wallet-auth/callback"], scopes: ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "finance", clientId: "ynx-finance-v1", displayName: "YNX Finance", applicationId: "com.ynxweb4.finance", webOrigin: "https://finance.ynxweb4.com", nativeCallback: "ynxfinance://wallet-auth/callback", legacyCallbacks: ["ynxfinance", "ynxfinance://wallet-auth/callback"], scopes: ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"], evmCompatible: true, sessionDurationSeconds: 240 }, { productId: "pay", clientId: "ynx-pay-v1", displayName: "YNX Pay", applicationId: "com.ynxweb4.pay", webOrigin: "https://pay.ynxweb4.com", nativeCallback: "ynxpay://wallet-auth/callback", legacyCallbacks: ["ynxpay", "ynxpay://wallet-auth/callback"], scopes: ["account:read", "pay:case:create", "pay:settlement:submit"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "quant", clientId: "ynx-quant-v1", displayName: "YNX Quant", applicationId: "com.ynxweb4.quant", webOrigin: "https://quant.ynxweb4.com", nativeCallback: "ynxquant://wallet-auth/callback", legacyCallbacks: ["ynxquant", "ynxquant://wallet-auth/callback"], scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke", "quant:records:read"], evmCompatible: true, sessionDurationSeconds: 180 }, { productId: "shop", clientId: "ynx-shop-v1", displayName: "YNX Shop", applicationId: "com.ynxweb4.shop", webOrigin: "https://shop.ynxweb4.com", nativeCallback: "ynxshop://wallet-auth/callback", legacyCallbacks: ["ynxshop", "ynxshop://wallet-auth/callback"], scopes: ["account:read", "shop:orders:write", "shop:profile:write"], evmCompatible: true, sessionDurationSeconds: 240 }, { productId: "social", clientId: "ynx-social-v1", displayName: "YNX Social", applicationId: "com.ynx.social", webOrigin: "https://social.ynxweb4.com", nativeCallback: "ynx-social://com.ynx.social", legacyCallbacks: ["ynx-social", "ynx-social://com.ynx.social"], scopes: ["account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"], evmCompatible: false, sessionDurationSeconds: 240 }, { productId: "video", clientId: "ynx-video-mobile-v1", displayName: "YNX Video", applicationId: "com.ynxweb4.video", webOrigin: "https://video.ynxweb4.com", nativeCallback: "ynxvideo://wallet-auth/callback", legacyCallbacks: ["ynxvideo", "ynxvideo://wallet-auth/callback"], scopes: ["video:account", "video:library", "video:playback"], evmCompatible: false, sessionDurationSeconds: 300 }] };
-  var ne4 = Object.freeze(["android", "ios", "linux", "macos", "web", "windows"]);
-  var h4 = "https://wallet-auth.ynxweb4.com";
-  var se4 = Object.freeze(["finance", "exchange", "quant"]);
-  var j4 = "ynx_requestCentralBrowserSignIn";
-  var k5 = "ynx-hosted-wallet/v1";
-  var u2 = "https://wallet.ynxweb4.com";
-  var M4 = "/hosted/";
-  var w4 = "0x1917";
-  var z4 = 12e4;
-  var $5 = 60 * 6e4;
-  var J4 = 4096;
-  function O4(t) {
-    throw Object.assign(new Error(t), { code: t });
-  }
-  function V3(t) {
-    return typeof t != "string" || !/^https:\/\/[a-z0-9.-]+$/u.test(t) ? null : t === h4 ? Object.freeze({ productId: "central-browser-identity", webOrigin: t, evmCompatible: true }) : P5.products.find((r3) => r3.webOrigin === t && r3.evmCompatible === true) ?? null;
-  }
-  function G4(t, r3) {
-    t === h4 && ![j4, "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(r3) && O4("HOSTED_IDENTITY_ONLY");
-  }
-  function R3(t = globalThis.crypto) {
-    t?.getRandomValues || O4("HOSTED_CRYPTO_UNAVAILABLE");
-    let r3 = t.getRandomValues(new Uint8Array(24));
-    return btoa(String.fromCharCode(...r3)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
-  }
-  function q4(t) {
-    let r3 = new TextEncoder().encode(JSON.stringify(t));
-    return r3.length > J4 && O4("HOSTED_REQUEST_INVALID"), btoa(String.fromCharCode(...r3)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
-  }
-  function S4(t, r3, c4 = {}, a3 = Date.now()) {
-    return a3 >= t.expiresAt && O4("HOSTED_REQUEST_EXPIRED"), { protocol: k5, requestId: t.requestId, nonce: t.nonce, messageId: R3(), expiresAt: Math.min(t.expiresAt, a3 + 3e4), type: r3, ...c4 };
-  }
-  var B3 = (t) => t !== null && typeof t == "object" && !Array.isArray(t);
-  var L = (t, r3) => B3(t) && Object.keys(t).every((c4) => r3.includes(c4));
-  var X3 = (t, r3) => Array.isArray(t) && t.length > 0 && t.length <= r3.length && new Set(t).size === t.length && t.every((c4) => typeof c4 == "string" && r3.includes(c4));
-  function W5(t, r3, c4) {
-    let a3 = Array.isArray(r3) && r3.length === 1 ? r3[0] : null, n4 = B3(a3) && a3.chainId === c4.chainId;
-    if (t === "wallet_switchEthereumChain") n4 = n4 && L(a3, ["chainId"]);
-    else if (t === "wallet_addEthereumChain") {
-      if (n4 = n4 && L(a3, ["chainId", "chainName", "nativeCurrency", "rpcUrls", "blockExplorerUrls"]) && X3(a3.rpcUrls, c4.rpcUrls) && (!Object.hasOwn(a3, "chainName") || a3.chainName === c4.chainName) && (!Object.hasOwn(a3, "blockExplorerUrls") || X3(a3.blockExplorerUrls, c4.blockExplorerUrls)), n4 && Object.hasOwn(a3, "nativeCurrency")) {
-        let i3 = a3.nativeCurrency;
-        n4 = L(i3, ["name", "symbol", "decimals"]) && [c4.nativeCurrency.name, "YNXT"].includes(i3.name) && i3.symbol === c4.nativeCurrency.symbol && i3.decimals === c4.nativeCurrency.decimals;
+  // ../../apps/wallet-web/vendor/product-session-registry-123016847.json
+  var product_session_registry_123016847_default = {
+    schemaVersion: 2,
+    chainId: "ynx_6423-1",
+    wallet: {
+      authorizeCallback: "ynxwallet://authorize",
+      downloadUrl: "https://www.ynxweb4.com/dapp/download",
+      metaMaskDownloadUrl: "https://metamask.io/download"
+    },
+    products: [
+      {
+        productId: "ai",
+        clientId: "ynx-ai-v1",
+        displayName: "YNX AI",
+        applicationId: "com.ynxweb4.ai",
+        webOrigin: "https://assistant.ynxweb4.com",
+        nativeCallback: "ynxai://wallet-auth/callback",
+        legacyCallbacks: ["ynxai://wallet-auth/callback"],
+        scopes: ["ai:actions", "ai:attachments", "ai:conversations", "ai:data-control", "ai:generate", "ai:permissions"],
+        evmCompatible: false,
+        sessionDurationSeconds: 240
+      },
+      {
+        productId: "calendar",
+        clientId: "ynx-calendar-v1",
+        displayName: "YNX Calendar",
+        applicationId: "com.ynxweb4.calendar",
+        webOrigin: "https://calendar.ynxweb4.com",
+        nativeCallback: "ynxcalendar://wallet-auth/callback",
+        legacyCallbacks: ["ynxcalendar", "ynxcalendar://wallet-auth/callback"],
+        scopes: ["calendar:account", "calendar:recover"],
+        evmCompatible: false,
+        sessionDurationSeconds: 240
+      },
+      {
+        productId: "card",
+        clientId: "ynx-card-v1",
+        displayName: "YNX Card",
+        applicationId: "com.ynxweb4.card",
+        webOrigin: "https://card.ynxweb4.com",
+        nativeCallback: "ynxcard://wallet-auth/callback",
+        legacyCallbacks: ["ynxcard", "ynxcard://wallet-auth/callback"],
+        scopes: ["account:read", "card:application:write", "card:controls:write", "card:dispute:write", "card:simulation:write", "card:topup:write"],
+        evmCompatible: true,
+        sessionDurationSeconds: 180
+      },
+      {
+        productId: "cloud",
+        clientId: "ynx-cloud-web-v1",
+        displayName: "YNX Cloud",
+        applicationId: "com.ynxweb4.cloud",
+        webOrigin: "https://web4.ynxweb4.com",
+        platforms: ["web"],
+        nativeCallback: null,
+        legacyCallbacks: [],
+        scopes: ["files.read", "files.write"],
+        evmCompatible: false,
+        sessionDurationSeconds: 300
+      },
+      {
+        productId: "creator-studio",
+        clientId: "ynx-creator-studio-web-v1",
+        displayName: "YNX Creator Studio",
+        applicationId: "com.ynxweb4.creator-studio",
+        webOrigin: "https://creator.ynxweb4.com",
+        nativeCallback: "ynxcreator://wallet-auth/callback",
+        legacyCallbacks: ["ynxcreator", "ynxcreator://wallet-auth/callback"],
+        scopes: ["creator:account", "creator:publish", "creator:revenue"],
+        evmCompatible: false,
+        sessionDurationSeconds: 240
+      },
+      {
+        productId: "developer",
+        clientId: "ynx-developer-v1",
+        displayName: "YNX Developer",
+        applicationId: "com.ynxweb4.developer.testnetpreview",
+        webOrigin: "https://developer.ynxweb4.com",
+        nativeCallback: "ynxdeveloper://wallet-auth/callback",
+        legacyCallbacks: ["ynxdeveloper", "ynxdeveloper://wallet-auth/callback"],
+        scopes: ["account:read", "developer:deploy"],
+        evmCompatible: true,
+        sessionDurationSeconds: 180
+      },
+      {
+        productId: "dex",
+        clientId: "ynx-dex-v1",
+        displayName: "YNX DEX",
+        applicationId: "com.ynxweb4.dex",
+        webOrigin: "https://dex.ynxweb4.com",
+        nativeCallback: "ynxdex://wallet-auth/callback",
+        legacyCallbacks: ["ynxdex", "ynxdex://wallet-auth/callback"],
+        scopes: ["dex:account", "dex:orders", "dex:trade"],
+        evmCompatible: true,
+        sessionDurationSeconds: 180
+      },
+      {
+        productId: "docs",
+        clientId: "ynx-docs-mobile-v1",
+        displayName: "YNX Docs",
+        applicationId: "com.ynxweb4.docs",
+        webOrigin: "https://docs.ynxweb4.com",
+        nativeCallback: "ynxdocs://wallet-auth/callback",
+        legacyCallbacks: ["ynxdocs://wallet-auth/callback"],
+        scopes: ["docs.read", "docs.write", "files.read", "files.write"],
+        evmCompatible: false,
+        sessionDurationSeconds: 300
+      },
+      {
+        productId: "exchange",
+        clientId: "ynx-exchange-v1",
+        displayName: "YNX Exchange",
+        applicationId: "com.ynxweb4.exchange",
+        webOrigin: "https://exchange.ynxweb4.com",
+        nativeCallback: "ynxexchange://wallet-auth/callback",
+        legacyCallbacks: ["ynxexchange", "ynxexchange://wallet-auth/callback"],
+        scopes: ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"],
+        evmCompatible: true,
+        sessionDurationSeconds: 180
+      },
+      {
+        productId: "finance",
+        clientId: "ynx-finance-v1",
+        displayName: "YNX Finance",
+        applicationId: "com.ynxweb4.finance",
+        webOrigin: "https://finance.ynxweb4.com",
+        nativeCallback: "ynxfinance://wallet-auth/callback",
+        legacyCallbacks: ["ynxfinance", "ynxfinance://wallet-auth/callback"],
+        scopes: ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
+        evmCompatible: true,
+        sessionDurationSeconds: 240
+      },
+      {
+        productId: "pay",
+        clientId: "ynx-pay-v1",
+        displayName: "YNX Pay",
+        applicationId: "com.ynxweb4.pay",
+        webOrigin: "https://pay.ynxweb4.com",
+        nativeCallback: "ynxpay://wallet-auth/callback",
+        legacyCallbacks: ["ynxpay", "ynxpay://wallet-auth/callback"],
+        scopes: ["account:read", "pay:case:create", "pay:settlement:submit"],
+        evmCompatible: true,
+        sessionDurationSeconds: 180
+      },
+      {
+        productId: "quant",
+        clientId: "ynx-quant-v1",
+        displayName: "YNX Quant",
+        applicationId: "com.ynxweb4.quant",
+        webOrigin: "https://quant.ynxweb4.com",
+        nativeCallback: "ynxquant://wallet-auth/callback",
+        legacyCallbacks: ["ynxquant", "ynxquant://wallet-auth/callback"],
+        scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke", "quant:paper:workspace", "quant:records:read"],
+        evmCompatible: true,
+        sessionDurationSeconds: 180
+      },
+      {
+        productId: "shop",
+        clientId: "ynx-shop-v1",
+        displayName: "YNX Shop",
+        applicationId: "com.ynxweb4.shop",
+        webOrigin: "https://shop.ynxweb4.com",
+        nativeCallback: "ynxshop://wallet-auth/callback",
+        legacyCallbacks: ["ynxshop", "ynxshop://wallet-auth/callback"],
+        scopes: ["account:read", "shop:orders:write", "shop:profile:write"],
+        evmCompatible: true,
+        sessionDurationSeconds: 240
+      },
+      {
+        productId: "social",
+        clientId: "ynx-social-v1",
+        displayName: "YNX Social",
+        applicationId: "com.ynx.social",
+        webOrigin: "https://social.ynxweb4.com",
+        nativeCallback: "ynx-social://com.ynx.social",
+        legacyCallbacks: ["ynx-social", "ynx-social://com.ynx.social"],
+        scopes: ["account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"],
+        evmCompatible: false,
+        sessionDurationSeconds: 240
+      },
+      {
+        productId: "video",
+        clientId: "ynx-video-mobile-v1",
+        displayName: "YNX Video",
+        applicationId: "com.ynxweb4.video",
+        webOrigin: "https://video.ynxweb4.com",
+        nativeCallback: "ynxvideo://wallet-auth/callback",
+        legacyCallbacks: ["ynxvideo", "ynxvideo://wallet-auth/callback"],
+        scopes: ["video:account", "video:library", "video:playback"],
+        evmCompatible: false,
+        sessionDurationSeconds: 300
       }
-    } else n4 = false;
-    if (!n4) throw Object.assign(new Error("Rejected non-canonical YNX Testnet chain parameters."), { code: "INVALID_CHAIN_PARAMS" });
+    ]
+  };
+
+  // ../../apps/wallet-web/src/hosted-protocol.js
+  var HOSTED_PROTOCOL = "ynx-hosted-wallet/v1";
+  var HOSTED_WALLET_ORIGIN = "https://wallet.ynxweb4.com";
+  var HOSTED_WALLET_PATH = "/hosted/";
+  var HOSTED_CHAIN_ID = "0x1917";
+  var HOSTED_TIMEOUT_MS = 12e4;
+  var HOSTED_SESSION_MS = 60 * 6e4;
+  var MAX_REQUEST_BYTES2 = 4096;
+  function fail6(code2) {
+    throw Object.assign(new Error(code2), { code: code2 });
+  }
+  function registeredProduct(origin) {
+    if (typeof origin !== "string" || !/^https:\/\/[a-z0-9.-]+$/u.test(origin)) return null;
+    if (origin === CENTRAL_BROWSER_ISSUER) return Object.freeze({ productId: "central-browser-identity", webOrigin: origin, evmCompatible: true });
+    return product_session_registry_123016847_default.products.find((product) => product.webOrigin === origin && product.evmCompatible === true) ?? null;
+  }
+  function assertHostedMethodAllowed(origin, method) {
+    if (origin === CENTRAL_BROWSER_ISSUER && ![CENTRAL_BROWSER_RPC_METHOD, "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail6("HOSTED_IDENTITY_ONLY");
+  }
+  function randomHostedId(cryptoProvider = globalThis.crypto) {
+    if (!cryptoProvider?.getRandomValues) fail6("HOSTED_CRYPTO_UNAVAILABLE");
+    const bytes = cryptoProvider.getRandomValues(new Uint8Array(24));
+    return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+  }
+  function encodeHostedConnect(request) {
+    const bytes = new TextEncoder().encode(JSON.stringify(request));
+    if (bytes.length > MAX_REQUEST_BYTES2) fail6("HOSTED_REQUEST_INVALID");
+    return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+  }
+  function hostedEnvelope(request, type, extra = {}, now = Date.now()) {
+    if (now >= request.expiresAt) fail6("HOSTED_REQUEST_EXPIRED");
+    return { protocol: HOSTED_PROTOCOL, requestId: request.requestId, nonce: request.nonce, messageId: randomHostedId(), expiresAt: Math.min(request.expiresAt, now + 3e4), type, ...extra };
+  }
+
+  // ../../apps/wallet-web/src/extension-chain-params.js
+  var record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+  var ownKeys = (value, allowed) => record(value) && Object.keys(value).every((key) => allowed.includes(key));
+  var trustedSubset = (value, allowed) => Array.isArray(value) && value.length > 0 && value.length <= allowed.length && new Set(value).size === value.length && value.every((url) => typeof url === "string" && allowed.includes(url));
+  function validateYNXChainMutation(method, params, chain2) {
+    const input = Array.isArray(params) && params.length === 1 ? params[0] : null;
+    let valid = record(input) && input.chainId === chain2.chainId;
+    if (method === "wallet_switchEthereumChain") valid = valid && ownKeys(input, ["chainId"]);
+    else if (method === "wallet_addEthereumChain") {
+      valid = valid && ownKeys(input, ["chainId", "chainName", "nativeCurrency", "rpcUrls", "blockExplorerUrls"]) && trustedSubset(input.rpcUrls, chain2.rpcUrls) && (!Object.hasOwn(input, "chainName") || input.chainName === chain2.chainName) && (!Object.hasOwn(input, "blockExplorerUrls") || trustedSubset(input.blockExplorerUrls, chain2.blockExplorerUrls));
+      if (valid && Object.hasOwn(input, "nativeCurrency")) {
+        const currency = input.nativeCurrency;
+        valid = ownKeys(currency, ["name", "symbol", "decimals"]) && [chain2.nativeCurrency.name, "YNXT"].includes(currency.name) && currency.symbol === chain2.nativeCurrency.symbol && currency.decimals === chain2.nativeCurrency.decimals;
+      }
+    } else valid = false;
+    if (!valid) throw Object.assign(new Error("Rejected non-canonical YNX Testnet chain parameters."), { code: "INVALID_CHAIN_PARAMS" });
     return true;
   }
-  function y6(t) {
-    return Object.assign(new Error(t), { code: t });
+
+  // ../../apps/wallet-web/src/hosted-adapter.js
+  function failure(code2) {
+    return Object.assign(new Error(code2), { code: code2 });
   }
-  var K5 = Object.freeze({ chainId: w4, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
-  function Se6({ window: t = globalThis.window, walletOrigin: r3 = u2 } = {}) {
-    let c4 = t.location.origin;
-    if (!V3(c4) || r3 !== u2) throw y6("HOSTED_ORIGIN_UNREGISTERED");
-    let a3 = null, n4 = null, i3 = null, p4 = false, g4 = null, C4 = 0, D5 = false, I2 = null, s2 = /* @__PURE__ */ new Map(), E4 = /* @__PURE__ */ new Map(), T5 = /* @__PURE__ */ new Set();
-    function f2() {
-      return p4 && !!(a3 && !a3.closed && n4 && Date.now() < n4.expiresAt);
-    }
-    function _3(o4, e2) {
-      for (let l4 of [...E4.get(o4) ?? []]) try {
-        l4(e2);
+  var CHAIN = Object.freeze({ chainId: HOSTED_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
+  function createHostedWalletAdapter({ window: browserWindow = globalThis.window, walletOrigin = HOSTED_WALLET_ORIGIN } = {}) {
+    const origin = browserWindow.location.origin;
+    if (!registeredProduct(origin) || walletOrigin !== HOSTED_WALLET_ORIGIN) throw failure("HOSTED_ORIGIN_UNREGISTERED");
+    let popup = null, request = null, account = null, connected = false, monitor = null, lastPong = 0, closing = false, helloId = null, grant = null, reservation = null;
+    const hintKey = "ynx-hosted-selection-v1";
+    const hintStorage = browserWindow.localStorage ?? browserWindow.sessionStorage;
+    function remember() {
+      try {
+        if (grant) hintStorage?.setItem(hintKey, JSON.stringify({ origin, grant }));
+        else hintStorage?.removeItem(hintKey);
       } catch {
       }
     }
-    function b4(o4 = "HOSTED_DISCONNECTED") {
-      if (!D5) {
-        D5 = true, g4 && t.clearInterval(g4), g4 = null, p4 = false, i3 = null, n4 = null, I2 = null;
-        for (let e2 of s2.values()) e2.reject(y6(o4));
-        s2.clear(), ["HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_EXPIRED_OR_RELOADED"].includes(o4) || _3("accountsChanged", []), _3("disconnect", { code: o4 }), D5 = false;
+    try {
+      const hint = JSON.parse(hintStorage?.getItem(hintKey) ?? "null"), value = hint?.grant;
+      if (hint?.origin === origin && /^[A-Za-z0-9_-]{22,64}$/u.test(value?.id ?? "") && /^0x[0-9a-f]{40}$/u.test(value?.account ?? "") && Number.isSafeInteger(value.epoch) && value.epoch > 0 && Number.isSafeInteger(value.expiresAt) && value.expiresAt > Date.now() && value.expiresAt <= Date.now() + HOSTED_SESSION_MS) {
+        grant = { id: value.id, account: value.account, epoch: value.epoch, expiresAt: value.expiresAt };
+        account = grant.account;
+      }
+    } catch {
+    }
+    const pending = /* @__PURE__ */ new Map(), listeners = /* @__PURE__ */ new Map(), seen = /* @__PURE__ */ new Set();
+    function live() {
+      return connected && Boolean(popup && !popup.closed && request && Date.now() < request.expiresAt);
+    }
+    function emit(name2, value) {
+      for (const callback2 of [...listeners.get(name2) ?? []]) {
+        try {
+          callback2(value);
+        } catch {
+        }
       }
     }
-    function U3(o4) {
-      if (!n4 || !a3 || o4.source !== a3 || o4.origin !== u2) return;
-      let e2 = o4.data;
-      if (!e2 || e2.protocol !== k5 || e2.requestId !== n4.requestId || e2.nonce !== n4.nonce || !/^[A-Za-z0-9_-]{22,64}$/u.test(e2.messageId ?? "") || T5.has(e2.messageId) || !Number.isSafeInteger(e2.expiresAt) || e2.expiresAt <= Date.now() || e2.expiresAt > n4.expiresAt) return;
-      if (T5.add(e2.messageId), e2.type === "ready") {
-        if (I2) return;
-        let d3 = S4(n4, "hello");
-        I2 = d3.messageId, a3.postMessage(d3, u2);
-        return;
+    function close(code2 = "HOSTED_DISCONNECTED") {
+      if (closing) return;
+      closing = true;
+      if (monitor) browserWindow.clearInterval(monitor);
+      const transportOnly = ["HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_EXPIRED_OR_RELOADED"].includes(code2);
+      monitor = null;
+      connected = false;
+      request = null;
+      helloId = null;
+      reservation = null;
+      if (!transportOnly || !grant || grant.expiresAt <= Date.now()) {
+        account = null;
+        grant = null;
       }
-      if (e2.type === "pong") {
-        C4 = Date.now();
-        return;
-      }
-      if (e2.type === "connected") {
-        if (!s2.has("connect") || !I2 || e2.replyTo !== I2 || !/^0x[0-9a-f]{40}$/u.test(e2.account ?? "") || e2.chainId !== w4 || !Number.isSafeInteger(e2.sessionExpiresAt) || e2.sessionExpiresAt <= Date.now() || e2.sessionExpiresAt > Date.now() + $5) return;
-        let d3 = n4, m2 = s2.get("connect");
-        if (n4 = { ...n4, expiresAt: e2.sessionExpiresAt }, i3 = e2.account, p4 = true, C4 = Date.now(), _3("accountsChanged", [i3]), !p4 || n4?.requestId !== d3.requestId || (_3("connect", { chainId: w4 }), !p4 || n4?.requestId !== d3.requestId)) return;
-        m2.resolve([i3]), s2.delete("connect");
-        return;
-      }
-      if (e2.type === "rejected") {
-        if (!I2 || e2.replyTo !== I2) return;
-        s2.get("connect")?.reject(y6("USER_REJECTED")), s2.delete("connect"), b4("USER_REJECTED");
-        return;
-      }
-      if (e2.type === "disconnected") {
-        b4(e2.reason === "HOSTED_POPUP_CLOSED" ? "HOSTED_POPUP_CLOSED" : "HOSTED_DISCONNECTED");
-        return;
-      }
-      if (e2.type !== "response" || typeof e2.replyTo != "string") return;
-      let l4 = s2.get(e2.replyTo);
-      l4 && (s2.delete(e2.replyTo), e2.ok === true ? l4.resolve(e2.result) : l4.reject(y6(typeof e2.code == "string" || Number.isInteger(e2.code) ? e2.code : "HOSTED_REQUEST_FAILED")));
+      remember();
+      for (const waiter of pending.values()) waiter.reject(failure(code2));
+      pending.clear();
+      if (!["HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_EXPIRED_OR_RELOADED"].includes(code2)) emit("accountsChanged", []);
+      emit("disconnect", { code: code2 });
+      closing = false;
     }
-    t.addEventListener("message", U3);
-    async function v7() {
-      if (f2()) return [i3];
-      if (p4 && b4("HOSTED_REQUEST_EXPIRED_OR_RELOADED"), s2.has("connect")) return s2.get("connect").promise;
-      T5.clear(), I2 = null, n4 = { version: 1, origin: c4, requestId: R3(), nonce: R3(), expiresAt: Date.now() + z4, chainId: w4 };
-      let o4 = `${u2}${M4}#connect=${q4(n4)}`;
-      if (a3 = t.open(o4, `ynx-hosted-${n4.requestId}`, "popup,width=460,height=720"), !a3) throw n4 = null, y6("HOSTED_POPUP_BLOCKED");
-      let e2, l4, d3 = new Promise((m2, x7) => {
-        e2 = m2, l4 = x7;
-      });
-      return s2.set("connect", { resolve: e2, reject: l4, promise: d3 }), g4 = t.setInterval(() => {
-        if (a3?.closed || Date.now() >= n4?.expiresAt || p4 && Date.now() - C4 > 15e3) {
-          b4(a3?.closed ? "HOSTED_POPUP_CLOSED" : "HOSTED_REQUEST_EXPIRED_OR_RELOADED");
+    function onMessage(event) {
+      if (!request || !popup || event.source !== popup || event.origin !== HOSTED_WALLET_ORIGIN) return;
+      const data = event.data;
+      if (!data || data.protocol !== HOSTED_PROTOCOL || data.requestId !== request.requestId || data.nonce !== request.nonce || !/^[A-Za-z0-9_-]{22,64}$/u.test(data.messageId ?? "") || seen.has(data.messageId) || !Number.isSafeInteger(data.expiresAt) || data.expiresAt <= Date.now() || data.expiresAt > request.expiresAt) return;
+      seen.add(data.messageId);
+      if (data.type === "ready") {
+        if (helloId) return;
+        const hello = hostedEnvelope(request, "hello", grant ? { resume: { id: grant.id, epoch: grant.epoch, account: grant.account } } : {});
+        helloId = hello.messageId;
+        popup.postMessage(hello, HOSTED_WALLET_ORIGIN);
+        return;
+      }
+      if (data.type === "pong") {
+        lastPong = Date.now();
+        return;
+      }
+      if (data.type === "connected") {
+        if (!pending.has("connect") || !helloId || data.replyTo !== helloId || !/^0x[0-9a-f]{40}$/u.test(data.account ?? "") || data.chainId !== HOSTED_CHAIN_ID || !Number.isSafeInteger(data.sessionExpiresAt) || data.sessionExpiresAt <= Date.now() || data.sessionExpiresAt > Date.now() + HOSTED_SESSION_MS) return;
+        if (grant && (data.account !== grant.account || data.grant?.id !== grant.id || data.grant?.epoch !== grant.epoch)) {
+          close("HOSTED_ACCOUNT_CHANGED");
           return;
         }
-        p4 && a3.postMessage(S4(n4, "ping"), u2);
-      }, 1e3), d3;
+        if (data.grant && (!/^[A-Za-z0-9_-]{22,64}$/u.test(data.grant.id ?? "") || !Number.isSafeInteger(data.grant.epoch) || data.grant.epoch < 1 || data.grant.account !== data.account || data.grant.expiresAt !== data.sessionExpiresAt)) return;
+        const connectedRequest = request, waiter2 = pending.get("connect");
+        request = { ...request, expiresAt: data.sessionExpiresAt };
+        const previousAccount = account;
+        grant = data.grant ? { ...data.grant } : null;
+        remember();
+        account = data.account;
+        connected = true;
+        lastPong = Date.now();
+        if (previousAccount !== account) emit("accountsChanged", [account]);
+        if (!connected || request?.requestId !== connectedRequest.requestId) return;
+        emit("connect", { chainId: HOSTED_CHAIN_ID });
+        if (!connected || request?.requestId !== connectedRequest.requestId) return;
+        waiter2.resolve([account]);
+        pending.delete("connect");
+        return;
+      }
+      if (data.type === "rejected") {
+        if (!helloId || data.replyTo !== helloId) return;
+        const code2 = ["HOSTED_GRANT_REVOKED_OR_EXPIRED", "HOSTED_ACCOUNT_CHANGED"].includes(data.code) ? data.code : "USER_REJECTED";
+        pending.get("connect")?.reject(failure(code2));
+        pending.delete("connect");
+        close(code2);
+        return;
+      }
+      if (data.type === "disconnected") {
+        close(data.reason === "HOSTED_POPUP_CLOSED" ? "HOSTED_POPUP_CLOSED" : "HOSTED_DISCONNECTED");
+        return;
+      }
+      if (data.type !== "response" || typeof data.replyTo !== "string") return;
+      const waiter = pending.get(data.replyTo);
+      if (!waiter) return;
+      pending.delete(data.replyTo);
+      if (data.ok === true) waiter.resolve(data.result);
+      else waiter.reject(failure(typeof data.code === "string" || Number.isInteger(data.code) ? data.code : "HOSTED_REQUEST_FAILED"));
     }
-    async function F3({ method: o4, params: e2 = [] }) {
-      if (G4(c4, o4), o4 === "eth_requestAccounts") return v7();
-      if (o4 === "eth_accounts") return f2() ? [i3] : [];
-      if (o4 === "eth_chainId") return w4;
-      if (o4 === "wallet_addEthereumChain" || o4 === "wallet_switchEthereumChain") return W5(o4, e2, K5), null;
-      if (!f2()) throw p4 && b4("HOSTED_REQUEST_EXPIRED_OR_RELOADED"), y6("HOSTED_DISCONNECTED");
-      if (typeof o4 != "string" || o4.length > 80 || !Array.isArray(e2) || JSON.stringify(e2).length > 65536) throw y6("HOSTED_METHOD_INVALID");
-      let l4 = S4(n4, "request", { method: o4, params: e2 });
-      return new Promise((d3, m2) => {
-        let x7 = t.setTimeout(() => {
-          s2.delete(l4.messageId), m2(y6("HOSTED_REQUEST_TIMEOUT"));
-        }, Math.min(3e4, l4.expiresAt - Date.now()));
-        s2.set(l4.messageId, { resolve: (N11) => {
-          t.clearTimeout(x7), d3(N11);
-        }, reject: (N11) => {
-          t.clearTimeout(x7), m2(N11);
-        } }), a3.postMessage(l4, u2);
+    browserWindow.addEventListener("message", onMessage);
+    async function connect() {
+      if (live()) return [account];
+      if (connected) close("HOSTED_REQUEST_EXPIRED_OR_RELOADED");
+      if (grant && grant.expiresAt <= Date.now()) {
+        close("HOSTED_GRANT_REVOKED_OR_EXPIRED");
+        throw failure("HOSTED_GRANT_REVOKED_OR_EXPIRED");
+      }
+      if (pending.has("connect")) return pending.get("connect").promise;
+      seen.clear();
+      helloId = null;
+      request = { version: 1, origin, requestId: randomHostedId(), nonce: randomHostedId(), expiresAt: Date.now() + HOSTED_TIMEOUT_MS, chainId: HOSTED_CHAIN_ID };
+      const url = `${HOSTED_WALLET_ORIGIN}${HOSTED_WALLET_PATH}#connect=${encodeHostedConnect(request)}`;
+      popup = browserWindow.open(url, `ynx-hosted-${request.requestId}`, "popup,width=460,height=720");
+      if (!popup) {
+        request = null;
+        throw failure("HOSTED_POPUP_BLOCKED");
+      }
+      let resolve, reject;
+      const promise = new Promise((yes, no3) => {
+        resolve = yes;
+        reject = no3;
+      });
+      pending.set("connect", { resolve, reject, promise });
+      monitor = browserWindow.setInterval(() => {
+        if (popup?.closed || Date.now() >= request?.expiresAt || connected && Date.now() - lastPong > 15e3) {
+          close(popup?.closed ? "HOSTED_POPUP_CLOSED" : "HOSTED_REQUEST_EXPIRED_OR_RELOADED");
+          return;
+        }
+        if (connected) popup.postMessage(hostedEnvelope(request, "ping"), HOSTED_WALLET_ORIGIN);
+      }, 1e3);
+      return promise;
+    }
+    async function requestMethod({ method, params = [] }) {
+      assertHostedMethodAllowed(origin, method);
+      if (method === "eth_requestAccounts") return connect();
+      if (method === "eth_accounts") return live() ? [account] : [];
+      if (method === "eth_chainId") return HOSTED_CHAIN_ID;
+      if (method === "wallet_addEthereumChain" || method === "wallet_switchEthereumChain") {
+        validateYNXChainMutation(method, params, CHAIN);
+        return null;
+      }
+      if (typeof method !== "string" || method.length > 80 || !Array.isArray(params) || JSON.stringify(params).length > 65536) throw failure("HOSTED_METHOD_INVALID");
+      if (!live()) {
+        if (connected) close(popup?.closed ? "HOSTED_POPUP_CLOSED" : "HOSTED_REQUEST_EXPIRED_OR_RELOADED");
+        if (!grant && !pending.has("connect")) throw failure("HOSTED_DISCONNECTED");
+        await (reservation ?? connect());
+      }
+      if (!live()) throw failure("HOSTED_DISCONNECTED");
+      if ([...pending.keys()].some((key) => key !== "connect")) throw failure("HOSTED_REQUEST_PENDING");
+      const envelope = hostedEnvelope(request, "request", { method, params });
+      return new Promise((resolve, reject) => {
+        const timer = browserWindow.setTimeout(() => {
+          pending.delete(envelope.messageId);
+          reject(failure("HOSTED_REQUEST_TIMEOUT"));
+        }, Math.min(3e4, envelope.expiresAt - Date.now()));
+        pending.set(envelope.messageId, { resolve: (value) => {
+          browserWindow.clearTimeout(timer);
+          resolve(value);
+        }, reject: (error) => {
+          browserWindow.clearTimeout(timer);
+          reject(error);
+        } });
+        popup.postMessage(envelope, HOSTED_WALLET_ORIGIN);
       });
     }
-    async function A4() {
+    async function disconnect() {
       try {
-        a3 && !a3.closed && n4 && a3.postMessage(S4(n4, "request", { method: "wallet_disconnect", params: [] }), u2);
+        if (popup && !popup.closed && request) popup.postMessage(hostedEnvelope(request, "request", { method: "wallet_disconnect", params: [] }), HOSTED_WALLET_ORIGIN);
       } finally {
-        b4();
+        close();
       }
     }
-    return Object.freeze({ connect: v7, request: F3, restore: async () => f2() ? [i3] : [], disconnect: A4, revoke: A4, detach: async () => {
-      try {
-        await A4();
-      } finally {
-        t.removeEventListener("message", U3);
+    return Object.freeze({
+      connect,
+      // This must be invoked by the actual user action, before fetching a
+      // challenge. No request data, secrets or approval are sent by reservation.
+      reserve: () => {
+        reservation = grant || live() ? connect() : Promise.reject(failure("HOSTED_DISCONNECTED"));
+        reservation.catch(() => {
+        });
+        return reservation;
+      },
+      request: requestMethod,
+      restore: async () => live() ? [account] : [],
+      disconnect,
+      suspend: () => {
+        close("HOSTED_POPUP_CLOSED");
+        browserWindow.removeEventListener("message", onMessage);
+      },
+      revoke: async () => {
+        const result = await requestMethod({ method: "wallet_revokePermissions", params: [] });
+        if (result?.revoked !== true) throw failure("HOSTED_REVOCATION_UNCONFIRMED");
+        close();
+        return result;
+      },
+      detach: async () => {
+        try {
+          await disconnect();
+        } finally {
+          browserWindow.removeEventListener("message", onMessage);
+        }
+      },
+      on: (name2, callback2) => {
+        if (typeof callback2 !== "function") throw new TypeError("callback");
+        if (!listeners.has(name2)) listeners.set(name2, /* @__PURE__ */ new Set());
+        listeners.get(name2).add(callback2);
+      },
+      removeListener: (name2, callback2) => listeners.get(name2)?.delete(callback2),
+      get connected() {
+        return live();
+      },
+      get account() {
+        return live() ? account : null;
+      },
+      get selection() {
+        return grant && grant.expiresAt > Date.now() ? { account: grant.account, chainId: HOSTED_CHAIN_ID, expiresAt: grant.expiresAt } : null;
       }
-    }, on: (o4, e2) => {
-      if (typeof e2 != "function") throw new TypeError("callback");
-      E4.has(o4) || E4.set(o4, /* @__PURE__ */ new Set()), E4.get(o4).add(e2);
-    }, removeListener: (o4, e2) => E4.get(o4)?.delete(e2), get connected() {
-      return f2();
-    }, get account() {
-      return f2() ? i3 : null;
-    } });
+    });
   }
 
   // src/central-browser-session-browser.js
   var context = JSON.parse(document.getElementById("context").textContent);
+  var savedLanguage;
+  try {
+    savedLanguage = localStorage.getItem("ynx-central-ui-language");
+  } catch {
+  }
+  var language = centralUILanguage(new URLSearchParams(location.hash.slice(1)).get("lang") ?? savedLanguage ?? navigator.languages?.join(",") ?? navigator.language);
+  var t = (value) => centralUIText(value, language);
+  var languageLabel = document.createElement("label");
+  var languagePicker = document.createElement("select");
+  languagePicker.id = "language";
+  languageLabel.htmlFor = "language";
+  for (const [value, name2] of Object.entries(CENTRAL_UI_LANGUAGES)) {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = name2;
+    languagePicker.append(option);
+  }
+  var applyLanguage = () => {
+    document.documentElement.lang = language;
+    document.title = t(document.title);
+    languageLabel.textContent = t("Language");
+    languagePicker.value = language;
+    for (const element of document.querySelectorAll("main *")) if (!element.children.length && !["SCRIPT", "OPTION", "SELECT"].includes(element.tagName) && element !== languageLabel) element.textContent = t(element.textContent);
+    for (const element of document.querySelectorAll("[aria-label]")) element.setAttribute("aria-label", t(element.getAttribute("aria-label")));
+  };
+  languagePicker.addEventListener("change", () => {
+    language = centralUILanguage(languagePicker.value);
+    try {
+      localStorage.setItem("ynx-central-ui-language", language);
+    } catch {
+    }
+    applyLanguage();
+  });
+  document.querySelector("main").prepend(languageLabel, languagePicker);
+  applyLanguage();
   if (context.mode === "session") {
     const status = document.getElementById("status"), button = document.getElementById("global-logout");
     let pending = false;
@@ -27020,7 +27440,7 @@ ${item.productId}`));
         status.textContent = identity3.account;
         button.disabled = false;
       } catch (error) {
-        status.textContent = error.message === "SSO_LOGIN_REQUIRED" ? "You are signed out." : "Session status is unavailable. Retry checking before signing out.";
+        status.textContent = t(error.message === "SSO_LOGIN_REQUIRED" ? "You are signed out." : "Session status is unavailable. Retry checking before signing out.");
         button.disabled = error.message === "SSO_LOGIN_REQUIRED";
       }
     };
@@ -27032,9 +27452,9 @@ ${item.productId}`));
       try {
         const boot = await read2("bootstrap");
         await read2("logout", { method: "POST", headers: { "content-type": "application/json", "x-ynx-browser-csrf": boot.sessionCsrfToken }, body: canonicalJSON({}) });
-        status.textContent = "Signed out of all YNX products.";
+        status.textContent = t("Signed out of all YNX products.");
       } catch {
-        status.textContent = "Global sign-out is not confirmed. Retry; no successful revocation is assumed.";
+        status.textContent = t("Global sign-out is not confirmed. Retry; no successful revocation is assumed.");
         button.disabled = false;
       } finally {
         pending = false;
@@ -27054,18 +27474,23 @@ ${item.productId}`));
       });
     };
     const challenge = parseCentralBrowserSignInChallenge(context.challenge, context.registry, { peerOrigin: location.origin });
+    const requestingSite = document.createElement("p"), siteLabel = document.createElement("span");
+    requestingSite.id = "requesting-site";
+    siteLabel.textContent = t("Requesting site");
+    requestingSite.append(siteLabel, ": " + challenge.initiator.origin);
+    document.querySelector("h1").after(requestingSite);
     const picker = document.getElementById("wallet"), approve = document.getElementById("approve"), cancel = document.getElementById("cancel"), status = document.getElementById("status");
     const discovery = createWalletProviderDiscovery(window);
     const restart = document.createElement("button");
     restart.id = "restart";
     restart.hidden = true;
-    restart.textContent = "Return to product and retry";
+    restart.textContent = t("Return to product and retry");
     cancel.after(restart);
     restart.addEventListener("click", () => cancel.click());
     const safeReturn = document.createElement("a");
     safeReturn.id = "return-product";
     safeReturn.hidden = true;
-    safeReturn.textContent = "Return to product without using this approval";
+    safeReturn.textContent = t("Return to product without using this approval");
     const deniedReturn = new URL(challenge.initiator.redirectUri);
     deniedReturn.searchParams.set("state", challenge.initiator.state);
     deniedReturn.searchParams.set("error", "access_denied");
@@ -27081,9 +27506,9 @@ ${item.productId}`));
     });
     let providers = [], selected = null, pending = null, revision = 0, cancelled = false, hosted = null, hostedPending = null, hostedProvider = null;
     const message = (value) => {
-      status.textContent = value;
+      status.textContent = t(value);
     };
-    const failure = (error, phase) => {
+    const failure2 = (error, phase) => {
       const known = /* @__PURE__ */ new Set(["YNX_PAIR_TIMEOUT", "YNX_PAIR_CANCELLED", "YNX_PAIR_CONFIGURATION_INVALID", "YNX_PAIR_SESSION_EXPIRED", "YNX_PAIR_PEER_INVALID", "YNX_PAIR_NAMESPACE_INVALID", "YNX_PAIR_CHAIN_INVALID", "YNX_PAIR_SESSION_SELECTION_REQUIRED", "YNX_PAIR_METHOD_NOT_APPROVED", "YNX_PAIR_CONTEXT_CHANGED", "SSO_CONTEXT_CHANGED", "SSO_CHALLENGE_EXPIRED", "SSO_REQUEST_TIMEOUT", "SSO_CSRF_MISMATCH", "SSO_TRANSACTION_EXPIRED", "SSO_LOGIN_REQUIRED", "SSO_REQUEST_FAILED", "PROVIDER_WRONG_CHAIN", "HOSTED_POPUP_BLOCKED", "HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_TIMEOUT", "HOSTED_REQUEST_EXPIRED_OR_RELOADED", "HOSTED_DISCONNECTED", "HOSTED_ORIGIN_UNREGISTERED", "HOSTED_METHOD_INVALID", "HOSTED_REQUEST_FAILED"]);
       const raw = typeof error?.code === "string" ? error.code : typeof error?.message === "string" ? error.message : "";
       const code2 = Number(error?.code) === 4001 || error?.code === "USER_REJECTED" ? "USER_REJECTED" : known.has(raw) ? raw : error?.name === "AbortError" ? "SSO_SERVICE_TIMEOUT" : error?.name === "TypeError" ? "SSO_TRANSPORT_UNAVAILABLE" : "SSO_WALLET_OR_SERVICE_UNAVAILABLE";
@@ -27094,18 +27519,18 @@ ${item.productId}`));
     const pairButton = document.createElement("button");
     pairButton.id = "pair";
     pairButton.type = "button";
-    pairButton.textContent = "Connect mobile YNX Wallet";
+    pairButton.textContent = t("Connect mobile YNX Wallet");
     const pairRegion = document.createElement("div");
     pairRegion.id = "pair-request";
     pairRegion.hidden = true;
     const pairLabel = document.createElement("p");
-    pairLabel.textContent = "Scan with YNX Wallet to approve this browser connection. Browser sign-in remains a separate approval.";
+    pairLabel.textContent = t("Scan with YNX Wallet to approve this browser connection. Browser sign-in remains a separate approval.");
     const pairCanvas = document.createElement("canvas");
     pairCanvas.setAttribute("role", "img");
     pairCanvas.setAttribute("aria-label", "Temporary YNX Wallet connection QR code");
     const pairOpen = document.createElement("a");
     pairOpen.id = "pair-open";
-    pairOpen.textContent = "Open YNX Wallet";
+    pairOpen.textContent = t("Open YNX Wallet");
     pairOpen.hidden = true;
     pairRegion.append(pairLabel, pairCanvas, pairOpen);
     picker.after(pairButton, pairRegion);
@@ -27119,7 +27544,7 @@ ${item.productId}`));
     const hostedButton = document.createElement("button");
     hostedButton.id = "hosted";
     hostedButton.type = "button";
-    hostedButton.textContent = "Connect YNX Wallet Web";
+    hostedButton.textContent = t("Connect YNX Wallet Web");
     pairButton.after(hostedButton);
     hostedButton.addEventListener("click", () => {
       if (cancelled || pending || pairPending || hostedPending) {
@@ -27127,7 +27552,7 @@ ${item.productId}`));
         return;
       }
       if (Date.parse(challenge.expiresAt) <= Date.now()) {
-        failure(new Error("SSO_CHALLENGE_EXPIRED"), "hosted-connect");
+        failure2(new Error("SSO_CHALLENGE_EXPIRED"), "hosted-connect");
         message("This sign-in request has expired. Return to your product and start a new request.");
         restart.hidden = false;
         return;
@@ -27141,7 +27566,7 @@ ${item.productId}`));
       message("Opening YNX Wallet Web. Connection permission and browser sign-in are separate approvals.");
       let selectedAdapter, timer;
       const task = (async () => {
-        hosted ??= Se6({ window });
+        hosted ??= createHostedWalletAdapter({ window });
         selectedAdapter = hosted;
         await Promise.race([selectedAdapter.connect(), new Promise((_3, reject) => {
           timer = setTimeout(() => reject(new Error("SSO_REQUEST_TIMEOUT")), Math.max(1, Math.min(3e4, Date.parse(challenge.expiresAt) - Date.now())));
@@ -27163,11 +27588,11 @@ ${item.productId}`));
             await selectedAdapter.detach();
             if (hosted === selectedAdapter) hosted = null;
           }
-          failure(error, "hosted-connect");
+          failure2(error, "hosted-connect");
           restart.hidden = false;
           message("Wallet Web connection timed out. Return to your product and retry; no browser sign-in was granted.");
         } else if (epoch === revision && !cancelled) {
-          const code2 = failure(error, "hosted-connect");
+          const code2 = failure2(error, "hosted-connect");
           message(code2 === "USER_REJECTED" ? "Connection was declined. No browser sign-in was granted." : `Wallet Web connection did not finish (${code2}). Retry or cancel.`);
         }
       }).finally(() => {
@@ -27220,7 +27645,7 @@ ${item.productId}`));
       })().catch((error) => {
         clearPairQR();
         if (epoch === revision && !cancelled) {
-          const code2 = failure(error, status.dataset.phase);
+          const code2 = failure2(error, status.dataset.phase);
           message(`Mobile connection did not finish (${code2}). Retry or cancel; no browser sign-in was granted.`);
         }
       }).finally(() => {
@@ -27245,7 +27670,7 @@ ${item.productId}`));
       picker.replaceChildren();
       const placeholder = document.createElement("option");
       placeholder.value = "";
-      placeholder.textContent = "Choose YNX Wallet";
+      placeholder.textContent = t("Choose YNX Wallet");
       picker.append(placeholder);
       providers.forEach((provider, index) => {
         const option = document.createElement("option");
@@ -27279,6 +27704,8 @@ ${item.productId}`));
         return;
       }
       if (!selected || cancelled) return;
+      if (selected === hostedProvider && hosted) void hosted.reserve().catch(() => {
+      });
       const provider = selected, epoch = revision;
       let account = null, chain2 = null, invalid = false, unsubscribe = () => {
       };
@@ -27362,7 +27789,7 @@ ${item.productId}`));
           } catch {
           }
         }
-        const code2 = failure(error, status.dataset.phase);
+        const code2 = failure2(error, status.dataset.phase);
         if (!cancelled) message(code2 === "USER_REJECTED" ? "Sign-in was declined. Your existing product permissions are unchanged." : `Sign-in could not finish (${error?.message === "SSO_CONTEXT_CHANGED" ? "context changed" : error?.message === "SSO_CHALLENGE_EXPIRED" ? "request expired" : error?.message === "SSO_REQUEST_TIMEOUT" ? "request timed out" : "wallet or service unavailable"}). Retry or cancel.`);
       }).finally(() => {
         operationAbort.abort();
@@ -27388,7 +27815,7 @@ ${item.productId}`));
         if (redirect.origin !== challenge.initiator.origin || redirect.pathname !== new URL(challenge.initiator.redirectUri).pathname || redirect.searchParams.get("state") !== challenge.initiator.state || redirect.searchParams.get("error") !== "access_denied") throw new Error("SSO_REDIRECT_INVALID");
         location.assign(redirect.href);
       } catch (error) {
-        const code2 = failure(error, "server-cancel");
+        const code2 = failure2(error, "server-cancel");
         safeReturn.hidden = false;
         const expired = Date.parse(challenge.expiresAt) <= Date.now() || code2 === "SSO_CSRF_MISMATCH";
         message(expired ? "This sign-in transaction has expired. Remote cancellation is not confirmed. Return to your product and explicitly start a new request; this page will not use any late approval." : "Cancellation is not confirmed. Retry cancellation or return without using this approval; no late approval will be used on this page.");

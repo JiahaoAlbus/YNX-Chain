@@ -7,13 +7,13 @@ import test from 'node:test';
 import {fileURLToPath} from 'node:url';
 import { verifyEVMReadCandidate } from '../web/verify-evm-read-candidate.mjs';
 
-const candidate = new URL('../evidence/evm-read-runtime-verifier-candidate-mobile-cbaf6efa-20261001.json', import.meta.url);
+const candidate = new URL('../evidence/evm-read-runtime-verifier-candidate-hosted-resume-52cce2ef-final-20261001.json', import.meta.url);
 const pin = createHash('sha256').update(await readFile(candidate)).digest('hex');
-const currentCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-mobile-cbaf6efa-20261001.json';
-const currentPin = 'b770739279eaa2a74bcada79982f7d34ddee11a1eb87744b8775f568c9c877c8';
+const currentCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-hosted-resume-52cce2ef-final-20261001.json';
+const currentPin = '27af3c924c3f953d76b52d4a122bc5d34bb7429d2dc728a6434133b25b6f7984';
 const repoRoot=resolve(fileURLToPath(new URL('../../../',import.meta.url)));
-const guoqingPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-mobile-cbaf6efa-20261001.json';
-const guoqingPin='b770739279eaa2a74bcada79982f7d34ddee11a1eb87744b8775f568c9c877c8';
+const guoqingPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-hosted-resume-52cce2ef-final-20261001.json';
+const guoqingPin='27af3c924c3f953d76b52d4a122bc5d34bb7429d2dc728a6434133b25b6f7984';
 
 test('Guoqing account-session checkpoint verifies both bundles and all three versioned app assets',async()=>{
   const result=await verifyEVMReadCandidate({candidatePath:guoqingPath,pinnedCandidateSha256:guoqingPin});
@@ -99,5 +99,14 @@ test('previous final-UI candidate remains immutable historical evidence',async()
     const entry=manifest.exactInputs.find(value=>value.path===path);
     assert.equal(frozen.length,entry.bytes);
     assert.equal(createHash('sha256').update(frozen).digest('hex'),entry.sha256);
+  }
+});
+
+test('Hosted resume source inputs cannot change under the reviewed central browser bundle',async()=>{
+  for(const path of ['apps/wallet-web/src/extension-chain-params.js','apps/wallet-web/src/hosted-adapter.js','apps/wallet-web/src/hosted-protocol.js','apps/wallet-web/vendor/product-session-registry-123016847.json']){
+    await assert.rejects(verifyEVMReadCandidate({candidatePath:currentCandidatePath,pinnedCandidateSha256:pin,read:async requested=>{
+      if(String(requested).endsWith('/'+path))return Buffer.from('unreviewed hosted input');
+      return readFile(requested);
+    }}),/CENTRAL_PAIR_GRAPH_DRIFT/u,path);
   }
 });
