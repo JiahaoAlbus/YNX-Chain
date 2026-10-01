@@ -21,7 +21,7 @@ func NewQuantPrivateSessionClient() (*productsessionv2.Client, error) {
 }
 
 func QuantPrivateSessionPolicy() productsessionv2.Policy {
-	return productsessionv2.Policy{ProductID: "quant", ClientID: "ynx-quant-v1", ApplicationID: "com.ynxweb4.quant.web", Platform: "web", Origin: "https://quant.ynxweb4.com", Callback: "https://quant.ynxweb4.com/wallet-auth/callback", AllowedScopes: []string{"quant:account", "quant:records:read"}}
+	return productsessionv2.Policy{ProductID: "quant", ClientID: "ynx-quant-v1", ApplicationID: "com.ynxweb4.quant.web", Platform: "web", Origin: "https://quant.ynxweb4.com", Callback: "https://quant.ynxweb4.com/wallet-auth/callback", AllowedScopes: []string{"quant:account", "quant:paper:workspace", "quant:records:read"}}
 }
 
 func (s *Server) privateAccount(w http.ResponseWriter, r *http.Request) {

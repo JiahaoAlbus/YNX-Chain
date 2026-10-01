@@ -134,7 +134,7 @@ func (s *Server) observe(w http.ResponseWriter, r *http.Request) {
 	// proof/Origin/scope check. It never mutates Paper or grants native execution.
 	privateAccountRead := r.Method == http.MethodPost && (r.URL.Path == "/v1/wallet/private-account" || r.URL.Path == "/v1/wallet/private-records")
 	identityLogout := r.Method == http.MethodPost && r.URL.Path == "/v1/sso/logout" && s.service.cfg.BrowserSSO != nil
-	if r.Method != http.MethodGet && !privateAccountRead && !identityLogout && !publicResearchRequest(r) && !localPreviewRequest(r) {
+	if r.Method != http.MethodGet && !privateAccountRead && !privatePaperRequest(r) && !identityLogout && !publicResearchRequest(r) && !localPreviewRequest(r) {
 		writeProblem(observed, r, http.StatusForbidden, "local_write_boundary_rejected")
 	} else {
 		s.mux.ServeHTTP(observed, r)
