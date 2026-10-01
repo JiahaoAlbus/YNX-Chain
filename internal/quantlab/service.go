@@ -62,6 +62,7 @@ type Config struct {
 	BrowserSSO       *productsessionv2.BrowserSSO
 	browserBindings  *Service
 	ownedRecords     func(string) (financeQuantPayload, error)
+	paperWorkspace   func(string) (*Service, error)
 	FinanceReadKey   string
 	MarketData       MarketData
 }
@@ -350,21 +351,22 @@ type ExecutionLedgerRecord struct {
 	CompletedAt  time.Time            `json:"completedAt,omitempty"`
 }
 type state struct {
-	Revision           int64                            `json:"-"`
-	Schema             int                              `json:"schema"`
-	Sequence           int64                            `json:"sequence"`
-	Experiments        map[string]Experiment            `json:"experiments"`
-	Strategies         map[string]StrategySpec          `json:"strategies"`
-	Datasets           map[string]DatasetRecord         `json:"datasets"`
-	Paper              PaperState                       `json:"paper"`
-	Mandates           map[string]Mandate               `json:"mandates"`
-	TestnetOrders      map[string]TestnetOrder          `json:"testnetOrders"`
-	Idempotency        map[string]string                `json:"idempotency"`
-	ExecutionLedger    map[string]ExecutionLedgerRecord `json:"executionLedger"`
-	AdapterSequences   map[string]int64                 `json:"adapterSequences"`
-	Audit              []AuditEvent                     `json:"audit"`
-	BrowserSSOBindings map[string]browserSSOBinding     `json:"browserSSOBindings,omitempty"`
-	Integrity          string                           `json:"integrity"`
+	Revision               int64                            `json:"-"`
+	Schema                 int                              `json:"schema"`
+	Sequence               int64                            `json:"sequence"`
+	Experiments            map[string]Experiment            `json:"experiments"`
+	Strategies             map[string]StrategySpec          `json:"strategies"`
+	Datasets               map[string]DatasetRecord         `json:"datasets"`
+	Paper                  PaperState                       `json:"paper"`
+	Mandates               map[string]Mandate               `json:"mandates"`
+	TestnetOrders          map[string]TestnetOrder          `json:"testnetOrders"`
+	Idempotency            map[string]string                `json:"idempotency"`
+	ExecutionLedger        map[string]ExecutionLedgerRecord `json:"executionLedger"`
+	AdapterSequences       map[string]int64                 `json:"adapterSequences"`
+	Audit                  []AuditEvent                     `json:"audit"`
+	BrowserSSOBindings     map[string]browserSSOBinding     `json:"browserSSOBindings,omitempty"`
+	PaperWorkspaceBindings map[string]paperWorkspaceBinding `json:"paperWorkspaceBindings,omitempty"`
+	Integrity              string                           `json:"integrity"`
 }
 type Service struct {
 	mu                   sync.Mutex
@@ -2029,7 +2031,7 @@ func verifyIntegrity(s state) bool {
 	// State schema 1 predates the durable execution ledger. Accept its exact
 	// historical hash once, then the next atomic save upgrades the integrity
 	// envelope with the new fields.
-	return got != "" && s.ExecutionLedger == nil && s.AdapterSequences == nil && got == legacyIntegrityHash(s)
+	return got != "" && s.ExecutionLedger == nil && s.AdapterSequences == nil && s.BrowserSSOBindings == nil && s.PaperWorkspaceBindings == nil && got == legacyIntegrityHash(s)
 }
 
 // verifyStateBytes preserves checksum compatibility when a nested schema gains
