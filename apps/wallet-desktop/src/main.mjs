@@ -44,6 +44,9 @@ const isolatedProfile = process.env.YNX_WALLET_PROFILE_PATH;
 if (isolatedProfile) {
   if (!path.isAbsolute(isolatedProfile)) throw new Error("YNX_WALLET_PROFILE_PATH must be an absolute path");
   app.setPath("userData", isolatedProfile);
+  // Electron Session paths are independent: isolate cookies, localStorage and
+  // caches before ready as well as the explicitly profile-bound Wallet files.
+  app.setPath("sessionData", isolatedProfile);
 }
 // Canonical public RPC from Central endpoint matrix d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59.
 const rpcUrl = process.env.YNX_WALLET_RPC_URL || CANONICAL_RPC_URL;

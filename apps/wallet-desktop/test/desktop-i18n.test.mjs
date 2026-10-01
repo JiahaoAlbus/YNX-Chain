@@ -77,3 +77,17 @@ test("dynamic custody text is refreshed on locale changes without replacing form
   assert.match(node.textContent, /ynx1qqqqqqqq/);
   assert.doesNotMatch(node.textContent, /^Restore /);
 });
+
+test('actual Accounts, Settings and About headings use existing translations on language change',async()=>{
+  const html=await readFile(new URL('../src/index.html',import.meta.url),'utf8');
+  const labels=['Accounts & backup','Settings','About'];
+  const headings=labels.map(label=>{
+    const matches=[...html.matchAll(/<h[12]([^>]*)>([^<]*)<\/h[12]>/g)].filter(match=>match[2]===label);
+    assert.equal(matches.length,1,label);const marked=matches[0][1].match(/data-i18n="([^"]+)"/);assert.equal(marked?.[1],label,label);
+    return {dataset:{i18n:marked[1]},textContent:label};
+  });
+  const doc={documentElement:{lang:'en',dir:'ltr'},querySelectorAll:selector=>selector==='[data-i18n]'?headings:[]};
+  const i18n=createDesktopI18n({systemLocale:'en-US',document:doc});i18n.apply();assert.deepEqual(headings.map(node=>node.textContent),labels);
+  i18n.setLocale('zh-CN');assert.deepEqual(headings.map(node=>node.textContent),['账户与备份','设置','关于']);
+  i18n.setLocale('en');assert.deepEqual(headings.map(node=>node.textContent),labels);
+});
