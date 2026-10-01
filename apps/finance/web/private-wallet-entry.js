@@ -28,7 +28,7 @@ async function operation(action){
     if(result.status==='disconnected'&&result.revocationConfirmed===true){try{localStorage.removeItem(ATTEMPT_KEY);}catch{}}
     publish(result);
   }return attempt===generation?result:current;}
-  catch(error){if(attempt===generation)publish({status:'degraded',session:null},code(error));return current;}
+  catch(error){if(attempt===generation)reportFailure(error);return current;}
   finally{if(attempt===generation){busy=false;render();}}
 }
 async function restore(){
@@ -96,7 +96,7 @@ async function explicitRequest(retry){
 }
 async function disconnect(){return operation(selected=>selected.client.disconnect());}
 function guest(){generation++;busy=false;const state=adapter?.client.enterGuest()??{status:'guest',session:null};publish(state);return state;}
-function reportFailure(error){publish({status:'degraded',session:null},error?code(error):'PRIVATE_SERVICE_DEGRADED');}
+function reportFailure(error){const failure=error?code(error):'PRIVATE_SERVICE_DEGRADED';publish({status:failure==='SESSION_EXPIRED'?'expired':'degraded',session:null},failure);}
 async function proof(scope){
   if(!SCOPES.includes(scope)||current.status!=='connected'||!current.session||!adapter)throw new Error('PRIVATE_SERVICE_DEGRADED: Private Finance requires separate Wallet approval.');
   const standardRevision=window.YNXFinanceWallet?.getStandardRevision?.();
@@ -114,7 +114,7 @@ async function proof(scope){
 function render(){
   const status=document.querySelector('#private-state'),account=current.session?.account;
   if(status){
-    const key=current.status==='network-unavailable'||current.status==='retry-required'?'privateNetwork':current.status==='degraded'?'privateDegraded':'privateGuestState';
+    const key=current.status==='expired'?'privateReauthorize':current.status==='network-unavailable'||current.status==='retry-required'?'privateNetwork':current.status==='degraded'?'privateDegraded':'privateGuestState';
     const mismatch=current.status==='connected'&&!privateSubjectMatchesSelectedWallet(current.session,window.YNXFinanceWallet?.getStandardWalletState?.());
     status.textContent=current.status==='connected'?`${label('privateConnected')} ${account}. ${label('privateConnectedSuffix')}${mismatch?` ${label('privateAccountMismatch')}`:''}`:current.status==='connecting'?label('privateConnecting'):busy?label('privateChecking'):label(key);
     status.title=lastCode||'';
