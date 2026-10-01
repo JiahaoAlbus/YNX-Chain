@@ -69,3 +69,25 @@ export function createVideoProductSession({environment = globalThis,
 }
 
 export const videoProductSession = createVideoProductSession();
+
+// Cancellation fences the result; a previous approval must settle before a new
+// intent can replace the SDK's protected pending request.
+let providerApprovalFlight = false;
+export async function dispatchPreparedProductRequest(provider, prepare, finish, isCurrent = () => true) {
+  if (!provider || typeof provider.request !== 'function') throw new Error('Select an installed YNX Wallet to continue.');
+  if (providerApprovalFlight) throw Object.assign(new Error('The previous Wallet approval is still closing. Close it and retry.'), {code: 'PRODUCT_APPROVAL_DRAINING'});
+  const assertCurrent = () => {if (!isCurrent()) throw Object.assign(new Error('Wallet selection was cancelled or changed.'), {code: 'PRODUCT_APPROVAL_CANCELLED'});};
+  providerApprovalFlight = true;
+  try {
+    assertCurrent();
+    const prepared = await prepare();
+    assertCurrent();
+    const result = await provider.request({method: 'ynx_requestProductSessionV2', params: [prepared.url]});
+    assertCurrent();
+    if (!result || result.version !== 2 || typeof result.returnUrl !== 'string' || result.returnUrl.length > 16384 || Object.keys(result).sort().join(',') !== 'returnUrl,version')
+      throw Object.assign(new Error('Wallet returned an invalid sign-in response. Please retry.'), {code: 'PRODUCT_RETURN_INVALID'});
+    const state = await finish(result.returnUrl);
+    assertCurrent();
+    return state;
+  } finally {providerApprovalFlight = false;}
+}

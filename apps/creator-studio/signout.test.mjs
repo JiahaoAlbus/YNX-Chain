@@ -1,3 +1,4 @@
+import {dispatchPreparedProductRequest} from "./product-session.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -35,6 +36,8 @@ class Element {
   querySelector() { return new Element(); }
   reset() { for (const field of Object.values(this.elements)) field.value = ""; }
   focus() { this.focused = true; }
+  showModal() { this.open = true; }
+  close() { this.open = false; }
 }
 
 async function app(overrides = {}) {
@@ -53,7 +56,8 @@ async function app(overrides = {}) {
     disconnectProductSession: async () => ({ status: "disconnected" }), productAuthorization: async () => ({}),
     fetch: async () => { throw new Error("Unexpected fetch"); },
     createStandardWalletConnectState: () => ({}), reduceStandardWalletConnectState: state => state,
-    discoverWalletProviders: async () => ({}), i18nReady: Promise.resolve(), t: key => key,
+    dispatchPreparedProductRequest, finishProductReturn: async () => connected("fixture-account"),
+    discoverWalletProviders: async () => ({candidates: []}), i18nReady: Promise.resolve(), t: key => key,
     confirm: () => false, prompt: () => null, ...overrides,
   };
   // Execute the shipped controller and its actual registered handlers; only module dependencies and DOM/network are fixtures.
@@ -230,7 +234,8 @@ test("prepared Wallet link becomes visible and focused after its exact URL is se
   const prepared = deferred();
   const controller = await app({ prepareProductSignIn: () => prepared.promise });
   await turn();
-  const preparation = controller.click("product-signin");
+  await controller.click("product-signin");
+  const preparation = controller.element("#product-wallet-choices").children.at(-1).onclick();
   assert.equal(controller.element("#product-open").hidden, true);
   assert.equal(controller.element("#product-open").href, undefined);
   prepared.resolve({ url: "ynxwallet://product-session/v2?request=test-fixture" });
@@ -258,10 +263,31 @@ test('a stored pending logout stays explicit after page restore and blocks new C
 test('a Creator sign-in racing initial restore retains explicit SDK pending logout controls',async()=>{
  const initial=deferred(),state={status:'retry-required',revocationPending:true,message:'Pending sign-out'};
  const c=await app({restoreProductSession:()=>initial.promise,prepareProductSignIn:async()=>{throw Object.assign(new Error(state.message),{productSessionState:state});}});
- await c.click('product-signin');initial.resolve(connected('old'));await turn();
+ await c.click('product-signin');await c.element('#product-wallet-choices').children.at(-1).onclick();initial.resolve(connected('old'));await turn();
  assert.equal(c.element('#product-signin').disabled,true);
  assert.equal(c.element('#product-disconnect').hidden,false);
  assert.equal(c.element('#product-disconnect').textContent,'Retry sign out');
  assert.equal(c.element('#product-open').hidden,true);
  assert.equal(c.readState().creatorAccount,null);
+});
+
+test('normal Creator chooser dispatches selected YNX V2 and refreshes the original owned workspace',async()=>{
+ const requests=[];const provider={request:async input=>{requests.push(input);return {version:2,returnUrl:'callback-fixture'};}};
+ let returns=0,reads=0;
+ const c=await app({discoverWalletProviders:async()=>({candidates:[{kind:'ynx-wallet',name:'YNX Wallet',provider},{kind:'metamask',provider:{request(){throw Error('wrong provider')}}}]}),
+ finishProductReturn:async url=>{assert.equal(url,'callback-fixture');returns++;return connected('native-owner');},fetch:async()=>{reads++;return response(privateSnapshot('owned'));}});
+ await turn();await c.click('product-signin');assert.equal(c.element('#product-wallet-choices').children.length,2);
+ await c.element('#product-wallet-choices').children[0].onclick();
+ assert.deepEqual(requests,[{method:'ynx_requestProductSessionV2',params:['test:creator-signin']}]);assert.equal(returns,1);assert.equal(c.readState().creatorAccount,'native-owner');assert.ok(reads>0);assert.equal(c.element('#product-wallet-chooser').open,false);
+});
+test('Creator cancel and choose-another fence a late Wallet response, with explicit retry after rejection',async()=>{
+ const responseWait=deferred();let returns=0,attempts=0;
+ const provider={request:()=>{attempts++;return attempts===1?responseWait.promise:Promise.reject(Object.assign(new Error('Rejected'),{code:4001}));}};
+ const c=await app({discoverWalletProviders:async()=>({candidates:[{kind:'ynx-wallet',provider}]}),finishProductReturn:async()=>{returns++;return connected('late-owner');}});
+ await turn();await c.click('product-signin');const pending=c.element('#product-wallet-choices').children[0].onclick();await turn();
+ await c.run('product-wallet-back');assert.equal(c.element('#product-wallet-choices').hidden,false);
+ responseWait.resolve({version:2,returnUrl:'late'});await pending;assert.equal(returns,0);assert.equal(c.readState().creatorAccount,null);
+ await c.element('#product-wallet-choices').children[0].onclick();assert.match(c.element('#product-wallet-status').textContent,/rejected/);
+ await c.run('product-wallet-back');assert.equal(c.element('#product-wallet-choices').children[0].disabled,false);
+ await c.run('product-wallet-cancel');assert.equal(c.element('#product-wallet-chooser').open,false);
 });
