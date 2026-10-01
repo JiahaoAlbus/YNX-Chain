@@ -2,6 +2,7 @@ import {LOCALES, catalog, isRTL} from "./i18n.js";
 import {toYNXAddress} from "./wallet-address.js";
 import {readFeeModel,validateNativeTransferInput} from "./extension-fee-model.js";
 import {decimalYNXTToWei, prepareTransaction, reviewMatchesSession} from "./transaction-input.js";
+import {validateCompanionTransferForm} from "./companion-transfer-form.js";
 import {PREFERENCES_KEY,acceptPreferenceUpdate,loadPreferences,savePreferences} from "./preferences.js";
 import {
   isMobileWalletBrowser, mobileWalletPresentation,
@@ -75,7 +76,7 @@ function render() {
     <section class="card transfer-card ${state.account?"":"hidden"}" id="actions" aria-label="${text("walletActions")}">
       <h2>${text("transfer")}</h2>
       <label class="label" for="recipient">${text("recipient")}</label><input id="recipient" class="address" inputmode="text" autocomplete="off" spellcheck="false" placeholder="ynx1…" value="${escape(state.form.recipient)}" aria-describedby="form-error">
-      <label class="label" for="amount">${text("amount")}</label><div class="amount-input"><input id="amount" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${escape(state.form.amount)}" ${state.form.useHex?"disabled":""} aria-describedby="amount-hint form-error"><span>YNXT</span></div><p id="amount-hint" class="hint">${text("amountHint")}</p>
+      <label class="label" for="amount">${text("amount")}</label><div class="amount-input"><input id="amount" inputmode="numeric" autocomplete="off" placeholder="50" value="${escape(state.form.amount)}" ${state.form.useHex?"disabled":""} aria-describedby="amount-hint form-error"><span>YNXT</span></div><p id="amount-hint" class="hint">${text("amountHint")}</p>
       <details id="advanced" class="tools" ${state.form.useHex?"open":""}><summary>${text("advanced")}</summary><label class="check-label"><input id="use-hex" type="checkbox" ${state.form.useHex?"checked":""}>${text("useHex")}</label><label class="label" for="value">${text("value")}</label><input id="value" class="mono" value="${escape(state.form.value)}" inputmode="text" autocomplete="off" ${state.form.useHex?"":"disabled"} aria-describedby="form-error"><label class="label" for="data">${text("data")}</label><textarea id="data" class="mono" spellcheck="false" autocomplete="off" aria-describedby="form-error">${escape(state.form.data)}</textarea></details>
       <p id="form-error" class="form-error hidden" role="alert"></p><p class="fee-note">${text("fees")}: ${text("feesWallet")}</p>
       <button id="send" class="primary send-action" type="button">${text("review")}</button>
@@ -109,6 +110,7 @@ async function openReview() {
   state.preparing=true;
   const session={provider:state.provider,wallet:state.wallet,account:state.account,chainId:state.chainId,epoch:state.epoch};
   try {
+    validateCompanionTransferForm(state.form);
     const transaction = prepareTransaction({from:state.account,to:state.form.recipient,...state.form});
     const model=await readFeeModel((method,params)=>session.provider.request({method,params}));
     validateNativeTransferInput(transaction,model);
