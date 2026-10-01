@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {build} from 'esbuild';
-import {createCentralBrowserSessionRegistry} from '../src/central-browser-session-registry.js';
+import {createCentralBrowserSessionRegistry,centralBrowserClient} from '../src/central-browser-session-registry.js';
 import {CENTRAL_BROWSER_ISSUER,CENTRAL_BROWSER_PURPOSE,CENTRAL_BROWSER_RPC_METHOD,centralBrowserConsentSignBytes,parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval} from '../src/central-browser-session-contract.js';
 import * as publicContract from '@ynx-chain/wallet-auth/central-browser-session-contract';
 import * as publicRegistry from '@ynx-chain/wallet-auth/central-browser-session-registry';
@@ -37,4 +37,13 @@ test('the sole contract builds for browser without any Node builtin or server-se
   assert.ok(result.outputFiles[0].contents.length>0);
   assert.equal(Object.keys(result.metafile.inputs).some(path=>path.endsWith('/central-browser-session.js')||path.endsWith('/central-browser-session-store.js')),false);
   assert.equal(Buffer.from(result.outputFiles[0].contents).toString().includes('node:crypto'),false);
+});
+
+test('AI and Social register only exact identity clients',()=>{
+ for(const [productId,origin] of [['ai','https://assistant.ynxweb4.com'],['social','https://social.ynxweb4.com']]){
+ const item=registry.find(value=>value.productId===productId);
+ assert.deepEqual(item,{productId,clientId:'ynx-'+productId+'-v1-sso-v1',origin,redirectUri:origin+'/sso/callback',audience:'ynx:'+productId+':identity',scopes:['identity:read']});
+ const input={clientId:item.clientId,origin,redirectUri:item.redirectUri};assert.equal(centralBrowserClient(registry,input),item);
+ for(const bad of [{...input,origin:'https://unknown.ynxweb4.com'},{...input,redirectUri:item.redirectUri+'?next=evil'},{...input,origin:origin.replace('https:','http:')}])assert.throws(()=>centralBrowserClient(registry,bad),error=>error.code==='SSO_CLIENT_NOT_REGISTERED');
+ }
 });

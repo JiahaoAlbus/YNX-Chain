@@ -3,7 +3,7 @@ import {parseProductSessionRegistry} from './product-session-registry.js';
 
 export const CENTRAL_BROWSER_ISSUER='https://wallet-auth.ynxweb4.com';
 // Explicit first-party adoption, not suffix matching or permission expansion.
-const ADOPTED=Object.freeze(['finance','exchange','quant']);
+const ADOPTED=Object.freeze(['finance','exchange','quant','social','ai']);
 export function createCentralBrowserSessionRegistry(productRegistry){
   const registry=parseProductSessionRegistry(productRegistry);
   return Object.freeze(ADOPTED.map(productId=>{
