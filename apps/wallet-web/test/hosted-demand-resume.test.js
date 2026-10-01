@@ -81,3 +81,55 @@ test('closed Wallet reopens from a user click for the same reviewed request; rev
     await context.close();
   }finally{await browser.close();}
 });
+
+test('actual Finance refresh, new tab and closed-page reopen restore only a hint until the next user signing action validates Wallet grant',async()=>{
+  const {createEvmProductSessionChallenge,evmProductSessionMessage,issueEvmProductSession}=await import('../../../packages/wallet-auth/src/evm-product-session.js');
+  const app=await bundle('wallet-web/src/hosted-wallet-app.js'),finance=await bundle('finance/web/wallet-auth-entry.js'),evm=await bundle('finance/scripts/evm-read-browser-entry.mjs');
+  const seed=(await build({absWorkingDir:root,stdin:{resolveDir:root,contents:`import {createHostedVaultStore} from './wallet-web/src/hosted-vault-store.js';window.store=createHostedVaultStore();`},bundle:true,write:false,platform:'browser'})).outputFiles[0].text;
+  const walletHTML=await readFile(new URL('../public/hosted-wallet.html',import.meta.url),'utf8'),financeHTML=await readFile(new URL('../../finance/web/index.html',import.meta.url),'utf8');
+  const browser=await chromium.launch({headless:true});
+  try{
+    const context=await browser.newContext({serviceWorkers:'block'});let account,challenge,challengeCount=0,completionCount=0;
+    await context.route('**/*',route=>route.abort());
+    await context.route(/^https:\/\/(?:finance|wallet)\.ynxweb4\.com\//,async route=>{
+      const url=new URL(route.request().url());let body,contentType='text/html';
+      if(url.origin===wallet){
+        if(url.pathname==='/seed')body='<script src="/seed.js"></script>';
+        else if(url.pathname==='/seed.js'){body=seed;contentType='text/javascript';}
+        else if(url.pathname==='/hosted/')body=walletHTML;
+        else if(url.pathname==='/hosted/app.js'){body=app;contentType='text/javascript';}
+        else return route.fulfill({status:404,body:''});
+      }else if(url.pathname==='/')body=financeHTML;
+      else if(url.pathname==='/wallet-auth.js'){body=finance;contentType='text/javascript';}
+      else if(url.pathname==='/evm-read-session.js'){body=evm;contentType='text/javascript';}
+      else if(['/app.js','/finance-locale.js'].includes(url.pathname)){body=await readFile(new URL('../../finance/web'+url.pathname,import.meta.url),'utf8');contentType='text/javascript';}
+      else if(url.pathname.endsWith('.js')){body='';contentType='text/javascript';}
+      else if(url.pathname==='/api/evm-read/challenges'){
+        const submitted=route.request().postDataJSON(),at=Date.now();challengeCount++;
+        challenge=createEvmProductSessionChallenge({chainId:6423,account,productId:'finance',origin:product,callback:product+'/wallet-auth/callback',scope:'finance.account.read',deviceId:submitted.deviceId,deviceAlgorithm:'p256-sha256',deviceKey:submitted.deviceKey,nonce:'hosted_browser_nonce_0123456789abcdef_'+challengeCount,state:'hosted_browser_state_0123456789abcdef_'+challengeCount,requestId:'hosted-finance-request-0000'+challengeCount,providerKind:'ynx-wallet',issuedAt:new Date(at).toISOString(),expiresAt:new Date(at+300000).toISOString()});
+        const message=evmProductSessionMessage(challenge);body=JSON.stringify({schemaVersion:'finance-evm-read-challenge-v1',challenge,signingRequest:{method:'personal_sign',params:['0x'+Buffer.from(message).toString('hex'),account],message},privateFinanceAuthorized:false});contentType='application/json';
+      }else if(url.pathname==='/api/evm-read/sessions'){
+        const proof=route.request().postDataJSON().proof,at=new Date();
+        const session=await issueEvmProductSession(proof,challenge,{sessionId:'hosted_finance_session_0123456789abcdef',expiresAt:new Date(at.getTime()+300000).toISOString()},async()=>true,at);completionCount++;
+        body=JSON.stringify({schemaVersion:'finance-evm-read-session-v1',session,evmAccountReadAuthorized:true,privateFinanceAuthorized:false,extensionLiveStateAttested:false});contentType='application/json';
+      }else return route.fulfill({status:503,contentType:'application/json',body:'{"code":"ISOLATED_SERVICE_UNAVAILABLE"}'});
+      return route.fulfill({body,contentType});
+    });
+    const fixture=await context.newPage();await fixture.goto(wallet+'/seed');await fixture.waitForFunction(()=>window.store);account=(await fixture.evaluate(password=>store.create({password,secretHex:'33'.repeat(32)}),password)).account;
+    let page=await context.newPage();await page.goto(product+'/');await page.evaluate(()=>window.YNXFinanceWallet.ready);
+    await page.locator('#wallet-entry').click();let popupReady=context.waitForEvent('page');await page.locator('#picker-hosted').click();let popup=await popupReady;
+    await popup.locator('#review').waitFor({state:'visible'});await popup.locator('#approve').click();await page.waitForFunction(()=>YNXFinanceWallet.getStandardWalletState().status==='connected');await page.keyboard.press('Escape');await popup.close();
+    for(const recovery of ['refresh','new-tab','close-and-reopen']){
+      if(recovery==='refresh')await page.reload();
+      else if(recovery==='new-tab'){page=await context.newPage();await page.goto(product+'/');}
+      else{await page.close();page=await context.newPage();await page.goto(product+'/');}
+      await page.evaluate(()=>YNXFinanceWallet.ready);assert.equal(await page.evaluate(()=>YNXFinanceWallet.getStandardWalletState().status),'selection-pending');
+      assert.equal(await page.evaluate(()=>YNXFinanceWallet.privateProviderAvailable()),false);assert.equal(await page.evaluate(()=>YNXFinanceWallet.connected()),false);
+      await page.locator('#wallet-connection-details > summary').click(); assert.equal(await page.locator('#wallet-login-verify').isVisible(),true,recovery+' '+JSON.stringify(await page.locator('#wallet-login-verify').evaluate(el=>({hidden:el.hidden,parents:[el.parentElement,el.parentElement.parentElement,el.parentElement.parentElement.parentElement].map(x=>({id:x.id,hidden:x.hidden,open:x.open,className:x.className})),app:typeof window.YNXFinanceEVMRead})))); const before=challengeCount;popupReady=context.waitForEvent('page');await page.locator('#wallet-login-verify').click();popup=await popupReady;
+      await popup.locator('#review').waitFor({state:'visible'});assert.equal(await popup.locator('#approval-password').isVisible(),true,'Wallet verifies durable grant without repeating connection consent; this is the separate signing review');
+      assert.equal(challengeCount,before+1);assert.equal(completionCount,0);await popup.locator('#reject').click();await page.waitForFunction(()=>!document.querySelector('#wallet-login-verify').disabled);await popup.close();
+    }
+    popupReady=context.waitForEvent('page');await page.locator('#wallet-login-verify').click();popup=await popupReady;await popup.locator('#review').waitFor({state:'visible'});await popup.locator('#approval-password').fill(password);await popup.locator('#approve').click();await page.waitForFunction(()=>YNXFinanceEVMRead.state().active===true);assert.equal(completionCount,1);assert.equal(await page.evaluate(()=>YNXFinanceEVMRead.state().account),account);
+    await context.close();
+  }finally{await browser.close();}
+});

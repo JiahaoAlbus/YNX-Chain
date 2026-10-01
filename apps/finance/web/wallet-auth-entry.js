@@ -76,11 +76,12 @@ window.YNXFinanceWallet=Object.freeze({
   beginPrivate:privateFinance.begin,retryPrivate:privateFinance.retry,restorePrivate:privateFinance.restore,
   guestPrivate:privateFinance.guest,getPrivateState:privateFinance.state,
 });
-function preference(value){try{if(value===undefined){const saved=localStorage.getItem(PROVIDER_KEY);return ['ynx-wallet','metamask','ynx-pair'].includes(saved)?saved:null;}if(value)localStorage.setItem(PROVIDER_KEY,value);else localStorage.removeItem(PROVIDER_KEY);}catch{}return null;}
+function preference(value){try{if(value===undefined){const saved=localStorage.getItem(PROVIDER_KEY);return ['ynx-wallet','metamask','ynx-pair','ynx-hosted'].includes(saved)?saved:null;}if(value)localStorage.setItem(PROVIDER_KEY,value);else localStorage.removeItem(PROVIDER_KEY);}catch{}return null;}
 function isCurrent(value,selected=connection){if(value!==intent||selected!==connection)throw new Error('WALLET_REQUEST_SUPERSEDED');}
 function detach(){unsubscribe();unsubscribe=()=>{};const old=connection;connection=null;selectedProvider=null;old?.disconnect();}
 function hostedStateChanged(next){
   if(activeTransport!=='hosted')return;
+  if(next.status==='selection-pending'){publish({status:'selection-pending',providerKind:'ynx-wallet',account:next.account,chainId:next.chainId,transport:'hosted-wallet-web'});return;}
   busy=next.status==='connecting';
   // Account changes invalidate the old local private subject; this is not a
   // claim that Wallet/Gateway permission was revoked remotely.
@@ -96,6 +97,7 @@ function hostedStateChanged(next){
   }
   const connected=next.status==='connected'&&next.chainId==='0x1917'&&/^0x[0-9a-f]{40}$/.test(next.account??'');
   if(connected){
+    preference('ynx-hosted');
     try{if(toEVMAddress(toYNXAddress(next.account))!==next.account)throw new Error('HOSTED_ADDRESS_ROUNDTRIP_FAILED');}
     catch{void hosted?.disconnect();publish({status:'unavailable',providerKind:'ynx-wallet',account:null,chainId:null,transport:'hosted-wallet-web'},'HOSTED_ADDRESS_INVALID');return;}
   }
@@ -212,6 +214,7 @@ async function restoreStandardWallet(){
   const kind=preference(),value=++intent;activeTransport=kind?'injected':null;detach();busy=false;publish({status:'disconnected',providerKind:kind,account:null,chainId:null});
   if(!kind)return null;
   try{
+    if(kind==='ynx-hosted'){activeTransport='hosted';hosted.restoreSelection();if(hosted.getState().status==='disconnected')preference(null);return standard;}
     if(kind==='ynx-pair'){
       activeTransport='pair';const provider=await pairClient().restore();isCurrent(value);
       if(!provider){preference(null);return null;}
@@ -272,9 +275,18 @@ async function boot(){
   document.querySelector('#wallet-switch')?.addEventListener('click',()=>{disconnectStandardWallet();document.querySelector('#connect-ynx')?.focus();});
   document.querySelector('#wallet-details')?.addEventListener('click',()=>{lastMessage='WALLET_DETAILS_ONLY';render();});
   document.addEventListener('click',event=>{
-    if(activeTransport!=='hosted'||!event.target?.closest?.('#signin,#wallet-login-verify,#evm-read-begin,#private-begin'))return;
+    const action=event.target?.closest?.('#signin,#wallet-login-verify,#evm-read-begin,#private-begin,#private-retry');
+    if(activeTransport!=='hosted'||!action)return;
     // Capture runs while the real click still grants popup activation. The
     // subsequent async challenge remains data-only until explicit approval.
+    if(standard.status==='selection-pending'){
+      // Pause only this explicit operation until the Wallet has verified its
+      // own grant. Never admit cached selection as connected/private access.
+      event.preventDefault();event.stopImmediatePropagation();
+      const selectedIntent=intent;
+      void hosted.reserve().then(()=>{if(selectedIntent===intent&&activeTransport==='hosted'&&standard.status==='connected'&&action.isConnected)action.click();}).catch(error=>{lastMessage=error.code;render();});
+      return;
+    }
     void hosted.reserve().catch(()=>{});
   },true);
   document.addEventListener('finance:localechange',render);
@@ -283,5 +295,5 @@ async function boot(){
   await restoreStandardWallet();
   bindPrivateFinanceUI();
 }
-window.addEventListener('pagehide',()=>{if(pairOperation)void cancelPair();publishPair({status:'idle'});intent++;activeTransport=null;detach();void hosted?.disconnect();});
+window.addEventListener('pagehide',()=>{if(pairOperation)void cancelPair();publishPair({status:'idle'});intent++;activeTransport=null;detach();hosted?.suspend();});
 window.addEventListener('pageshow',event=>{if(event.persisted)restoreStandardWallet();});

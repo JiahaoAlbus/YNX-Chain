@@ -10,9 +10,10 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
   if (!registeredProduct(origin) || walletOrigin !== HOSTED_WALLET_ORIGIN) throw failure("HOSTED_ORIGIN_UNREGISTERED");
   let popup = null, request = null, account = null, connected = false, monitor = null, lastPong = 0, closing = false, helloId = null, grant = null, reservation = null;
   const hintKey = "ynx-hosted-selection-v1";
-  function remember() { try { if (grant) browserWindow.sessionStorage?.setItem(hintKey,JSON.stringify({origin,grant})); else browserWindow.sessionStorage?.removeItem(hintKey); } catch { /* A hint is optional, never authority. */ } }
+  const hintStorage=browserWindow.localStorage??browserWindow.sessionStorage;
+  function remember() { try { if (grant) hintStorage?.setItem(hintKey,JSON.stringify({origin,grant})); else hintStorage?.removeItem(hintKey); } catch { /* A hint is optional, never authority. */ } }
   try {
-    const hint = JSON.parse(browserWindow.sessionStorage?.getItem(hintKey) ?? "null"), value = hint?.grant;
+    const hint = JSON.parse(hintStorage?.getItem(hintKey) ?? "null"), value = hint?.grant;
     if (hint?.origin === origin && /^[A-Za-z0-9_-]{22,64}$/u.test(value?.id ?? "") && /^0x[0-9a-f]{40}$/u.test(value?.account ?? "") && Number.isSafeInteger(value.epoch) && value.epoch > 0 && Number.isSafeInteger(value.expiresAt) && value.expiresAt > Date.now() && value.expiresAt <= Date.now()+HOSTED_SESSION_MS) { grant={id:value.id,account:value.account,epoch:value.epoch,expiresAt:value.expiresAt};account=grant.account; }
   } catch { /* A malformed DApp hint cannot create a connection. */ }
   const pending = new Map(), listeners = new Map(), seen = new Set();
@@ -128,6 +129,7 @@ export function createHostedWalletAdapter({ window: browserWindow = globalThis.w
     request: requestMethod,
     restore: async () => live() ? [account] : [],
     disconnect,
+    suspend: () => { close("HOSTED_POPUP_CLOSED"); browserWindow.removeEventListener("message",onMessage); },
     revoke: async () => { const result = await requestMethod({method:"wallet_revokePermissions",params:[]}); if (result?.revoked !== true) throw failure("HOSTED_REVOCATION_UNCONFIRMED"); close(); return result; },
     detach: async () => { try { await disconnect(); } finally { browserWindow.removeEventListener("message", onMessage); } },
     on: (name, callback) => { if (typeof callback !== "function") throw new TypeError("callback"); if (!listeners.has(name)) listeners.set(name, new Set()); listeners.get(name).add(callback); },

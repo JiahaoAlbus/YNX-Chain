@@ -31,7 +31,16 @@ function openDatabase(factory) {
       if (!request.result.objectStoreNames.contains(CONNECTIONS)) request.result.createObjectStore(CONNECTIONS);
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(problem("HOSTED_STORAGE_UNAVAILABLE"));
+    request.onerror = () => {
+      if(request.error?.name !== "VersionError") { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
+      // Compatibility releases may retain an older schema number. Open the
+      // existing higher-version DB without downgrade/deletion; never migrate
+      // encrypted vault data backwards or silently create an empty wallet.
+      let compatible;
+      try { compatible=factory.open(DB_NAME); } catch { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
+      compatible.onsuccess=()=>resolve(compatible.result);
+      compatible.onerror=compatible.onblocked=()=>reject(problem("HOSTED_STORAGE_UNAVAILABLE"));
+    };
     request.onblocked = () => reject(problem("HOSTED_STORAGE_UNAVAILABLE"));
   });
 }

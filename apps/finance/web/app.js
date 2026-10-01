@@ -44,7 +44,8 @@ async function restoreBrowserIdentityQuietly(){
 }
 function resumeDeferredBrowserIdentity(){if(!browserIdentityRestoreDeferred||!browserSSOEnabled||browserIdentity||browserIdentityExplicitIntent||browserIdentitySilentAttempted||walletIdentityBusy||loginIntent||['checking','connecting'].includes(window.YNXFinanceWallet?.getPrivateState?.()?.status))return;browserIdentityRestoreDeferred=false;queueMicrotask(()=>void recheckBrowserIdentity());}
 async function initializeBrowserIdentity(){try{const {response,data}=await browserSSOFetch('/api/sso/config');if(!response.ok||data.enabled!==true)return;browserSSOEnabled=true;$('#browser-signin').hidden=false;await recheckBrowserIdentity();}catch{}}
-function renderWalletIdentity(){const status=document.querySelector('#wallet-login-state'),button=document.querySelector('#wallet-login-verify');if(status)status.textContent=financeText(walletIdentityState);if(button){button.hidden=window.YNXFinanceWallet?.getStandardWalletState?.()?.status!=='connected';button.disabled=walletIdentityBusy;}}
+function renderWalletIdentity(){const status=document.querySelector('#wallet-login-state'),button=document.querySelector('#wallet-login-verify');if(status)status.textContent=financeText(walletIdentityState);if(button){button.hidden=!['connected','selection-pending'].includes(window.YNXFinanceWallet?.getStandardWalletState?.()?.status);button.disabled=walletIdentityBusy;}}
+void window.YNXFinanceWallet.ready.then(()=>renderWalletIdentity());
 let brokerConfigurationState='brokerStatusMissing';
 function renderBrokerConfigurationStatus(){const target=document.querySelector('#broker-status');if(target)target.textContent=financeText(brokerConfigurationState)}
 let brokerDiagnosticsState={approval:false,journal:false};

@@ -82,7 +82,7 @@ export function createFinanceHostedWalletController({createHostedWalletAdapter, 
       if(transportClose&&previous.status==='connected')publish('transport-unavailable',previous.account,previous.chainId,signal.code);
       else publish('disconnected', null, null, 'HOSTED_DISCONNECTED');
     };
-    const reconnected = () => { if (token === generation && selected === adapter && state.status === 'transport-unavailable') publish('connected',state.account,state.chainId); };
+    const reconnected = () => { if (token === generation && selected === adapter && ['transport-unavailable','selection-pending'].includes(state.status)) publish('connected',state.account,state.chainId); };
     listeners = [['accountsChanged', accountChanged], ['chainChanged', chainChanged], ['disconnect', disconnected], ['connect',reconnected]];
     for (const [name, listener] of listeners) selected.on(name, listener);
   }
@@ -127,6 +127,15 @@ export function createFinanceHostedWalletController({createHostedWalletAdapter, 
     pending = work;
     return work;
   }
+  function restoreSelection() {
+    if(adapter)return state;
+    const token=++generation,selected=createHostedWalletAdapter({window:browserWindow}),hint=selected.selection;
+    if(!hint||!ACCOUNT.test(hint.account??'')||hint.chainId!==CHAIN_ID){selected.suspend?.();return state;}
+    adapter=selected;subscribe(selected,token,()=>{},()=>{});
+    // This is a public selection hint, not a connected Wallet or permission.
+    return publish('selection-pending',hint.account,hint.chainId);
+  }
+  function suspend(){generation++;for(const [name,listener]of listeners)adapter?.removeListener(name,listener);listeners=[];adapter?.suspend?.();adapter=null;pending=null;}
   async function disconnect() {
     generation++;
     pending = null;
@@ -140,14 +149,14 @@ export function createFinanceHostedWalletController({createHostedWalletAdapter, 
   }
   async function request(input) {
     const selected = adapter, token = generation;
-    if (!['connected','transport-unavailable'].includes(state.status) || !selected) throw failure('HOSTED_NOT_CONNECTED');
+    if (!['connected','transport-unavailable','selection-pending'].includes(state.status) || !selected) throw failure('HOSTED_NOT_CONNECTED');
     const result = await selected.request(input);
     if (token !== generation || selected !== adapter || !['connected','transport-unavailable'].includes(state.status)) throw failure('HOSTED_CONTEXT_CHANGED');
     return result;
   }
   function reserve() {
     const selected = adapter, token = generation;
-    if (!selected || !['connected','transport-unavailable'].includes(state.status) || typeof selected.reserve !== 'function') return Promise.reject(failure('HOSTED_NOT_CONNECTED'));
+    if (!selected || !['connected','transport-unavailable','selection-pending'].includes(state.status) || typeof selected.reserve !== 'function') return Promise.reject(failure('HOSTED_NOT_CONNECTED'));
     // Called in the click stack, before any server/device proof await.
     return selected.reserve().then(accounts => {
       if (token !== generation || selected !== adapter || accounts?.[0] !== state.account) throw failure('HOSTED_CONTEXT_CHANGED');
@@ -164,7 +173,7 @@ export function createFinanceHostedWalletController({createHostedWalletAdapter, 
     // permission acknowledgement is reported as a remote revocation.
     return {status: receipt?.revoked === true ? 'revoked' : 'local-only', permissionRevoked: receipt?.revoked === true, locallyDisconnected: true};
   }
-  return Object.freeze({connect, disconnect, revoke, reserve, request, dispose: disconnect, getState: () => state});
+  return Object.freeze({connect, disconnect, revoke, reserve, request, restoreSelection, suspend, dispose: disconnect, getState: () => state});
 }
 
 export function mountFinanceHostedWalletUI({document, window: browserWindow, createHostedWalletAdapter, text, onAttempt = () => {}, onChange = () => {}}) {
@@ -202,7 +211,7 @@ export function mountFinanceHostedWalletUI({document, window: browserWindow, cre
     connectButton.disabled = state.status === 'connecting';
     disconnectButton.textContent = text('hostedDisconnect');
     disconnectButton.hidden = state.status !== 'connected' && state.status !== 'connecting';
-    const statusKey = state.status === 'transport-unavailable' ? 'hostedResume'
+    const statusKey = ['transport-unavailable','selection-pending'].includes(state.status) ? 'hostedResume'
       : state.error === 'HOSTED_POPUP_BLOCKED' ? 'hostedPopupBlocked'
       : state.error === 'HOSTED_POPUP_CLOSED' ? 'hostedPopupClosed'
       : state.error === 'HOSTED_REQUEST_EXPIRED_OR_RELOADED' ? 'hostedExpired'
