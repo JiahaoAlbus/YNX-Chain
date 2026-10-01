@@ -115,3 +115,9 @@ test('cancel and timeout cannot adopt late approval; account/chain events fence 
   const timed=fixture();const timeout=timed.connection.connect();await tick();await assert.rejects(timeout,/TIMEOUT/);timed.approve(session());await tick();assert.ok(timed.calls.some(c=>c[0]==='disconnect'));
   const bound=fixture([session()]),provider=await bound.connection.restore(),read=provider.request({method,params:[{}]});await tick();bound.events.get('session_event')({topic,params:{event:{name:'accountsChanged',data:[]}}});bound.reply({});await assert.rejects(read,/CONTEXT_CHANGED/);await assert.rejects(provider.request({method:'eth_accounts'}),/SESSION_EXPIRED/);
 });
+
+test('Social exact origin uses the existing official private method transport without widening guards',async()=>{
+ let options;const client={on(){},session:{getAll:()=>[]}};const c=new WalletConnectDAppConnection({origin:'https://social.ynxweb4.com',methods:['ynx_requestProductSessionV2'],clientFactory:async input=>{options=input;return client;}});await c.initialize();assert.equal(options.projectId,YNX_PAIR_PROJECT_ID);assert.equal(options.metadata.url,'https://social.ynxweb4.com');
+ for(const origin of ['https://social.ynxweb4.com.evil.example','http://social.ynxweb4.com','https://www.social.ynxweb4.com'])assert.throws(()=>new WalletConnectDAppConnection({origin,methods:['ynx_requestProductSessionV2']}));
+ assert.throws(()=>new WalletConnectDAppConnection({origin:'https://social.ynxweb4.com',methods:['eth_sendTransaction']}));
+});

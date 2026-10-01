@@ -1,7 +1,7 @@
 import {WALLETCONNECT_CHAIN,WALLETCONNECT_SESSION_METHODS,WALLETCONNECT_SESSION_EVENTS,parseWalletConnectPairingUri} from './walletconnect-protocol.js';
 
 export const YNX_PAIR_PROJECT_ID='41857128a14a593ca4e4a7cb7c838d71';
-const ORIGINS=new Set(['https://finance.ynxweb4.com','https://exchange.ynxweb4.com','https://quant.ynxweb4.com','https://wallet-auth.ynxweb4.com']);
+const ORIGINS=new Set(['https://finance.ynxweb4.com','https://exchange.ynxweb4.com','https://quant.ynxweb4.com','https://wallet-auth.ynxweb4.com','https://social.ynxweb4.com']);
 const METHODS=new Set(['personal_sign','ynx_requestProductSessionV2','ynx_requestCentralBrowserSignIn']);
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const reason={code:6000,message:'User disconnected'};
