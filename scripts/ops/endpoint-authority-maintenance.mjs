@@ -1,10 +1,10 @@
 // Controlled upkeep for one independently reviewed, fixed deployed source map.
 // No user grants, root/key rollover, relaxed expiry, or stored receipt replay.
 import fs from 'node:fs/promises';
-import {constants} from 'node:fs';
+import {constants,fstatSync,lstatSync} from 'node:fs';
 import path from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
+import {execFileSync,spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {canonicalAuthorityV2,assertAuthorityV2TrustRoot,assertAuthorityV2IssuancePolicy,verifySignedEndpointAuthority} from '../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft,issueAuthorityV2,authorityV2Doctor} from './endpoint-authority-v2.mjs';
@@ -63,7 +63,7 @@ async function pinnedHostFile(pin){
  const h=await fs.open(pin.path,constants.O_RDONLY|constants.O_NOFOLLOW);try{const st=await h.stat();requireFact(st.isFile()&&st.uid===0&&st.nlink===1&&(st.mode&0o022)===0&&st.size>0&&st.size<=33554432,'MAINTENANCE_HOST_PERMISSIONS');const bytes=await h.readFile();requireFact(bytes.length===st.size&&sha(bytes)===pin.sha256,'MAINTENANCE_HOST_SOURCE_CHANGED')}finally{await h.close()}
 }
 async function exclusive(file,bytes,uid=0,gid=0){const h=await fs.open(file,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);try{await h.writeFile(bytes);await h.chown(uid,gid);await h.sync()}finally{await h.close()}await syncDirectory(path.dirname(file))}
-function command(program,args,options={}){return execFileSync(program,args,{encoding:'utf8',timeout:12000,maxBuffer:16384,stdio:['ignore','pipe','pipe'],...options})}
+function command(program,args,options={}){return execFileSync(program,args,{encoding:'utf8',timeout:12000,maxBuffer:16384,...options,stdio:activationLease?['ignore','pipe','pipe',activationLease.fd]:['ignore','pipe','pipe']})}
 function effective(){const pid=command('/usr/bin/systemctl',['show','ynx-finance.service','-p','MainPID','--value']).trim();requireFact(/^[1-9][0-9]*$/.test(pid),'MAINTENANCE_FINANCE_NOT_ACTIVE');return{pid};}
 async function currentRuntime(policy){const{pid}=effective(),env=Object.fromEntries((await fs.readFile(`/proc/${pid}/environ`,'utf8')).split('\0').filter(x=>x.includes('=')).map(x=>{const i=x.indexOf('=');return[x.slice(0,i),x.slice(i+1)]}));requireFact(await fs.realpath(`/proc/${pid}/exe`)===policy.financeExecutable&&env.YNX_FINANCE_WEB_DIR===policy.financeWebDirectory,'MAINTENANCE_DEPLOYMENT_CHANGED');return{pid,env}}
 async function checkpoint(policy){
@@ -103,18 +103,19 @@ export async function preflightOnClone({policy:p,authorityKeys,candidateFile,exp
   return{readers:p.preflightReaders.length,modes:2,liveCheckpointAdvanced:false};
  }finally{await fs.rm(clone,{recursive:true,force:true})}
 }
-/** Never restore or delete checkpoint/time. Previous environment is safe only before CAS. */
+/** No old environment is ever restored; in-flight readers may still accept target. */
 export function activationRecoveryPlan({previous,accepted,target,currentEnvironment,candidateEnvironment,originalEnvironment}){
  requireFact(Buffer.from(currentEnvironment).equals(Buffer.from(candidateEnvironment)),'MAINTENANCE_ENVIRONMENT_CAS_CONFLICT');
- if(same(accepted,previous))return{action:'RESTORE_PREVIOUS_ENVIRONMENT',bytes:originalEnvironment,stateRewound:false};
+ if(same(accepted,previous))return{action:'KEEP_ENVIRONMENT_OPERATOR_RETRY',bytes:candidateEnvironment,stateRewound:false};
  if(same(accepted,target))return{action:'KEEP_CURRENT_AUTHORITY_OPERATOR_RETRY',bytes:candidateEnvironment,stateRewound:false};
  throw new Error('MAINTENANCE_CHECKPOINT_CAS_CONFLICT');
 }
 async function syncDirectory(directory){const h=await fs.open(directory,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW);try{await h.sync()}finally{await h.close()}}
 async function replaceEnvironment(file,expected,bytes,tag){
+ assertCommitLease();
  requireFact((await protectedFile(file)).equals(expected),'MAINTENANCE_ENVIRONMENT_CAS_CONFLICT');
  const ready=path.join(path.dirname(file),`.authority-maintenance-${tag}-${randomUUID()}.env`);await exclusive(ready,bytes);
- try{requireFact((await protectedFile(file)).equals(expected),'MAINTENANCE_ENVIRONMENT_CAS_CONFLICT');await fs.rename(ready,file);await syncDirectory(path.dirname(file))}finally{await fs.unlink(ready).catch(e=>{if(e.code!=='ENOENT')throw e})}
+ try{assertCommitLease();requireFact((await protectedFile(file)).equals(expected),'MAINTENANCE_ENVIRONMENT_CAS_CONFLICT');await fs.rename(ready,file);await syncDirectory(path.dirname(file))}finally{await fs.unlink(ready).catch(e=>{if(e.code!=='ENOENT')throw e})}
 }
 function fixedAuthorityKeys(p,env){
  const keys=Object.fromEntries(Object.entries(env).filter(([k])=>k.startsWith('YNX_FINANCE_ENDPOINT_AUTHORITY_V2_')));
@@ -134,13 +135,43 @@ async function verifyActivation(p,before,consumerFile,target){
  requireFact(same(body.trustRoot,root),'MAINTENANCE_PUBLIC_ROOT_CHANGED');return{after,config};
 }
 
+// Shared by maintenance AND every Finance ENV activation/rollback writer. Keep the
+// protected lock inode permanently; the OS lock, not file existence, owns the lease.
+const LOCK_FD_ENV='YNX_AUTHORITY_ACTIVATION_LOCK_FD';
+let activationLease;
+export function runWithActivationLock({lockFile,helper,program,args,uid=0,env=process.env}){
+ requireFact(path.isAbsolute(lockFile)&&path.isAbsolute(helper),'MAINTENANCE_ACTIVATION_LOCK_PATH');
+ const python="import os,sys,fcntl,json,stat; p=sys.argv[1]; uid=int(sys.argv[2]); d=os.path.dirname(p); ds=os.stat(d); assert os.path.realpath(d)==d and ds.st_uid==uid and (not(ds.st_mode&0o022) or (uid==0 and ds.st_mode&stat.S_ISVTX)); fd=os.open(p,os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,0o600); s=os.fstat(fd); assert stat.S_ISREG(s.st_mode) and s.st_uid==uid and s.st_nlink==1 and stat.S_IMODE(s.st_mode)==0o600;\ntry: fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)\nexcept BlockingIOError: print(json.dumps({'status':'STOPPED_OPERATOR_REQUIRED','code':'MAINTENANCE_ACTIVATION_LOCK_BUSY'}),file=sys.stderr);sys.exit(75)\nos.set_inheritable(fd,True);os.environ['YNX_AUTHORITY_ACTIVATION_LOCK_FD']=str(fd);os.execv(sys.argv[3],sys.argv[3:])";
+ const out=spawnSync(helper,['-c',python,lockFile,String(uid),program,...args],{env,stdio:'inherit'});
+ requireFact(!out.error,'MAINTENANCE_ACTIVATION_LOCK_HELPER_FAILED');return out.status??(out.signal==='SIGKILL'?137:128);
+}
+function assertActivationLease(p){
+ const fd=Number(process.env[LOCK_FD_ENV]);requireFact(Number.isSafeInteger(fd)&&fd>=3,'MAINTENANCE_SHARED_ACTIVATION_LOCK_REQUIRED');
+ const held=fstatSync(fd),onDisk=lstatSync(p.commitLockFile);
+ requireFact(held.isFile()&&held.uid===0&&(held.mode&0o777)===0o600&&held.nlink===1&&onDisk.dev===held.dev&&onDisk.ino===held.ino&&!onDisk.isSymbolicLink(),'MAINTENANCE_ACTIVATION_LOCK_IDENTITY');
+ // Same open-file description: this proves/reacquires LOCK_EX on the inherited
+ // descriptor, rather than trusting a PID string or a lock-file existence test.
+ execFileSync(p.lockHelper,['-c','import fcntl;fcntl.flock(3,fcntl.LOCK_EX|fcntl.LOCK_NB)'],{stdio:['ignore','pipe','pipe',fd],timeout:3000});
+ activationLease={fd,file:p.commitLockFile,dev:held.dev,ino:held.ino};
+}
+function assertCommitLease(){
+ requireFact(activationLease,'MAINTENANCE_SHARED_ACTIVATION_LOCK_REQUIRED');const held=fstatSync(activationLease.fd),onDisk=lstatSync(activationLease.file);
+ requireFact(held.dev===activationLease.dev&&held.ino===activationLease.ino&&onDisk.dev===held.dev&&onDisk.ino===held.ino,'MAINTENANCE_ACTIVATION_LOCK_IDENTITY');
+}
+
 export async function runMaintenance(policyFile,expectedPolicySHA256,{recover=false}={}){
  requireFact(process.getuid()===0,'MAINTENANCE_ROOT_OPERATOR_REQUIRED');
  const policyBytes=await protectedFile(policyFile);requireFact(sha(policyBytes)===expectedPolicySHA256,'MAINTENANCE_REVIEWED_POLICY_REQUIRED');const p=JSON.parse(policyBytes);p.policySHA256=expectedPolicySHA256;
  requireFact(p.financeUser==='ynx'&&Number.isSafeInteger(p.financeUID)&&p.financeUID>0&&Number.isSafeInteger(p.financeGID)&&p.consumer.consumerId==='ynx-finance-v1'&&p.consumer.origin==='https://finance.ynxweb4.com','MAINTENANCE_CONSUMER');
  const state=await fs.lstat(p.outputDirectory);requireFact(state.isDirectory()&&!state.isSymbolicLink()&&state.uid===0&&(state.mode&0o777)===0o700&&await fs.realpath(p.outputDirectory)===p.outputDirectory,'MAINTENANCE_DIRECTORY');
  requireFact(p.consumerDirectory===path.dirname(p.checkpointFile)&&/^[a-f0-9]{64}$/.test(p.nonRenewalPayloadSHA256),'MAINTENANCE_POLICY_INCOMPLETE');
- const lock=path.join(p.outputDirectory,'single-instance.lock');await fs.mkdir(lock,{mode:0o700}).catch(()=>{throw new Error('MAINTENANCE_SINGLE_INSTANCE_BUSY')});
+ requireFact(p.commitLockFile==='/run/lock/ynx-finance-authority-activation.lock'&&p.sharedActivationProtocol==='ynx-finance-authority-forward-only/v1'&&p.hostFiles.some(pin=>pin.path===p.lockHelper),'MAINTENANCE_SHARED_LOCK_POLICY_REQUIRED');
+ await pinnedHostFile(p.hostFiles.find(pin=>pin.path===p.lockHelper));
+ if(process.env[LOCK_FD_ENV]===undefined){
+  const status=runWithActivationLock({lockFile:p.commitLockFile,helper:p.lockHelper,program:process.execPath,args:[fileURLToPath(import.meta.url),policyFile,expectedPolicySHA256,...(recover?['--recover']:[])]});
+  requireFact(status!==75,'MAINTENANCE_ACTIVATION_LOCK_BUSY');requireFact(status===0,'MAINTENANCE_LOCKED_OPERATION_FAILED');return;
+ }
+ assertActivationLease(p);
  try{
   const pending=path.join(p.outputDirectory,'pending-activation.json');
   for(const pin of p.hostFiles)await pinnedHostFile(pin);
@@ -164,7 +195,7 @@ export async function runMaintenance(policyFile,expectedPolicySHA256,{recover=fa
   const currentEnv=await protectedFile(p.lastEnvironmentFile),candidateEnv=Buffer.concat([currentEnv,Buffer.from(`\n# Controlled fixed-source maintenance; original root and scopes\n${K}=${consumerFile}\n`)]);
   await exclusive(path.join(run,'environment-before'),currentEnv);await exclusive(path.join(run,'environment-candidate'),candidateEnv);
   // Durable intent before replacing the environment or restarting. Never put env values in logs.
-  await exclusive(pending,jsonBytes({schemaVersion:1,policySHA256:expectedPolicySHA256,previous:accepted,target,consumerFile,run,originalEnvironmentSHA256:sha(currentEnv),candidateEnvironmentSHA256:sha(candidateEnv)}));
+  await exclusive(pending,jsonBytes({schemaVersion:1,policySHA256:expectedPolicySHA256,previous:accepted,target,consumerFile,originalManifestFile:before.env[K],run,originalEnvironmentSHA256:sha(currentEnv),candidateEnvironmentSHA256:sha(candidateEnv)}));
   try{
    requireFact(same(await checkpoint(p),accepted),'MAINTENANCE_CHECKPOINT_CAS_CONFLICT');
    const live=await currentRuntime(p);requireFact(live.pid===before.pid&&same(fixedAuthorityKeys(p,live.env),authorityKeys),'MAINTENANCE_RUNTIME_CAS_CONFLICT');
@@ -173,18 +204,18 @@ export async function runMaintenance(policyFile,expectedPolicySHA256,{recover=fa
    await exclusive(path.join(run,'activated.json'),jsonBytes({status:'ACTIVATED',...target,expiresAt:signed.expiresAt,policySHA256:expectedPolicySHA256,publicObservation:config.observation,financePID:Number(after.pid),rootChanged:false,userScopeExpanded:false,providerVerified:false,productionApproved:false,stateRewound:false}));
    await fs.unlink(pending);await syncDirectory(p.outputDirectory);console.log(JSON.stringify({status:'ACTIVATED',sequence:signed.sequence,expiresAt:signed.expiresAt}));
   }catch(caught){
-   // Recovery never deletes history or time. A CAS/unknown state preserves the pending journal.
+   // Forward-only recovery never replaces ENV on failure and never deletes history/time.
    let action='STOPPED_OPERATOR_REQUIRED';
    try{
     const current=await checkpoint(p),env=await protectedFile(p.lastEnvironmentFile);
     if(env.equals(candidateEnv)){
      const plan=activationRecoveryPlan({previous:accepted,accepted:current,target,currentEnvironment:env,candidateEnvironment:candidateEnv,originalEnvironment:currentEnv});action=plan.action;
-     if(plan.action==='RESTORE_PREVIOUS_ENVIRONMENT'){await replaceEnvironment(p.lastEnvironmentFile,candidateEnv,currentEnv,'recover');command('/usr/bin/systemctl',['restart','ynx-finance.service'])}
+     // Forward-only: readers may finish accepting target after this observation. No old ENV is restored.
     }else requireFact(env.equals(currentEnv)&&same(current,accepted),'MAINTENANCE_RECOVERY_CAS_CONFLICT');
    }catch{action='STOPPED_OPERATOR_REQUIRED'}
    await exclusive(path.join(run,'failed-'+randomUUID()+'.json'),jsonBytes({status:action,code:/^[A-Z0-9_]+$/.test(caught.message)?caught.message:'MAINTENANCE_OPERATION_FAILED',stateRewound:false}));throw caught;
   }
- }finally{await fs.rmdir(lock)}
+ }finally{activationLease=undefined}
 }
 /** Explicit operator retry of an already signed candidate; no signing or history reset. */
 async function recoverPendingActivation(p,pending,root){
@@ -194,15 +225,29 @@ async function recoverPendingActivation(p,pending,root){
  const accepted=await checkpoint(p);requireFact(same(accepted,intent.previous)||same(accepted,intent.target),'MAINTENANCE_CHECKPOINT_CAS_CONFLICT');
  const signed=JSON.parse(await protectedFile(intent.consumerFile,p.financeUID));await verifySignedEndpointAuthority(signed,{trustRoot:root,checkpoint:accepted,consumer:p.consumer,nowMs:Date.now()});
  requireFact(signed.sequence===intent.target.sequence&&signed.integrity.payloadSha256===intent.target.payloadSha256&&root.rootVersion===intent.target.rootVersion&&sha(canonicalAuthorityV2(nonRenewalProjection(signed)))===p.nonRenewalPayloadSHA256,'MAINTENANCE_PENDING_IDENTITY');
- const before=await currentRuntime(p),keys=fixedAuthorityKeys(p,before.env);await preflightOnClone({policy:p,authorityKeys:keys,candidateFile:intent.consumerFile,expectedCheckpoint:intent.target});
+ const before=await currentRuntime(p),keys=fixedAuthorityKeys(p,before.env);requireFact([intent.originalManifestFile,intent.consumerFile].includes(keys.YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE),'MAINTENANCE_IMMUTABLE_READER_BOUND_CHANGED');await preflightOnClone({policy:p,authorityKeys:keys,candidateFile:intent.consumerFile,expectedCheckpoint:intent.target});
  requireFact(same(await checkpoint(p),accepted),'MAINTENANCE_CHECKPOINT_CAS_CONFLICT');
+ assertCommitLease();const latestRuntime=await currentRuntime(p);requireFact([intent.originalManifestFile,intent.consumerFile].includes(fixedAuthorityKeys(p,latestRuntime.env).YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE),'MAINTENANCE_IMMUTABLE_READER_BOUND_CHANGED');
  const current=await protectedFile(p.lastEnvironmentFile);requireFact(current.equals(original)||current.equals(candidate),'MAINTENANCE_ENVIRONMENT_CAS_CONFLICT');
  if(!current.equals(candidate))await replaceEnvironment(p.lastEnvironmentFile,original,candidate,'operator-retry');
  command('/usr/bin/systemctl',['restart','ynx-finance.service']);await verifyActivation(p,before,intent.consumerFile,intent.target);
  await exclusive(path.join(intent.run,'recovered-'+randomUUID()+'.json'),jsonBytes({status:'RECOVERED_CURRENT_HISTORY',...intent.target,stateRewound:false,signed:false}));await fs.unlink(pending);await syncDirectory(p.outputDirectory);
  return{status:'RECOVERED_CURRENT_HISTORY',sequence:intent.target.sequence,stateRewound:false,signed:false};
 }
+export async function runDeploymentUnderSharedLock(policyFile,policySHA256,program,args){
+ requireFact(process.getuid()===0,'MAINTENANCE_ROOT_OPERATOR_REQUIRED');
+ const bytes=await protectedFile(policyFile);requireFact(sha(bytes)===policySHA256,'MAINTENANCE_REVIEWED_POLICY_REQUIRED');const p=JSON.parse(bytes);
+ requireFact(p.commitLockFile==='/run/lock/ynx-finance-authority-activation.lock'&&p.sharedActivationProtocol==='ynx-finance-authority-forward-only/v1'&&p.hostFiles.some(pin=>pin.path===p.lockHelper),'MAINTENANCE_SHARED_LOCK_POLICY_REQUIRED');
+ await pinnedHostFile(p.hostFiles.find(pin=>pin.path===p.lockHelper));return runWithActivationLock({lockFile:p.commitLockFile,helper:p.lockHelper,program,args});
+}
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
- const valid=process.argv.length===4||process.argv.length===5&&process.argv[4]==='--recover';
- if(!valid){console.error(JSON.stringify({status:'STOPPED_OPERATOR_REQUIRED',code:'MAINTENANCE_ARGUMENTS'}));process.exitCode=1;}else runMaintenance(process.argv[2],process.argv[3],{recover:process.argv[4]==='--recover'}).then(result=>{if(result)console.log(JSON.stringify(result))}).catch(e=>{console.error(JSON.stringify({status:'STOPPED_OPERATOR_REQUIRED',code:/^[A-Z0-9_]+$/.test(e.message)?e.message:'MAINTENANCE_OPERATION_FAILED'}));process.exitCode=1});
+ const execute=async()=>{
+  if(process.argv[2]==='--with-activation-lock'){
+   requireFact(process.argv[5]==='--'&&process.argv.length>=7,'MAINTENANCE_ARGUMENTS');
+   process.exitCode=await runDeploymentUnderSharedLock(process.argv[3],process.argv[4],process.argv[6],process.argv.slice(7));return;
+  }
+  requireFact(process.argv.length===4||process.argv.length===5&&process.argv[4]==='--recover','MAINTENANCE_ARGUMENTS');
+  const result=await runMaintenance(process.argv[2],process.argv[3],{recover:process.argv[4]==='--recover'});if(result)console.log(JSON.stringify(result));
+ };
+ execute().catch(e=>{console.error(JSON.stringify({status:'STOPPED_OPERATOR_REQUIRED',code:/^[A-Z0-9_]+$/.test(e.message)?e.message:'MAINTENANCE_OPERATION_FAILED'}));process.exitCode=1});
 }

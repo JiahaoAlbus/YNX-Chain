@@ -5,8 +5,8 @@ import path from 'node:path';
 import os from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {generateKeyPairSync,createHash,sign,randomUUID} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
-import {prepareFixedSourceRenewal,nonRenewalProjection,readFreshHTTPS,preflightOnClone,journalSnapshot,activationRecoveryPlan} from './endpoint-authority-maintenance.mjs';
+import {execFileSync,spawn} from 'node:child_process';
+import {prepareFixedSourceRenewal,nonRenewalProjection,readFreshHTTPS,preflightOnClone,journalSnapshot,activationRecoveryPlan,runWithActivationLock} from './endpoint-authority-maintenance.mjs';
 import {AUTHORITY_V2_URLS,AUTHORITY_V2_REPOSITORY,canonicalAuthorityV2,authorityV2SigningMessage,createEndpointAuthorityClient} from '../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft} from './endpoint-authority-v2.mjs';
 import {createNodeCheckpointStore} from '../../apps/finance/authority/checkpoint-node.mjs';
@@ -55,7 +55,7 @@ test('oversized/deceptive/short/tampered streams fail boundedly and cancel overf
 const before={rootVersion:1,sequence:1,payloadSha256:'1'.repeat(64)},target={rootVersion:1,sequence:2,payloadSha256:'2'.repeat(64)};
 test('failed activation before/after CAS preserves current history and rejects unknown state',()=>{
  const context={previous:before,target,currentEnvironment:Buffer.from('candidate'),candidateEnvironment:Buffer.from('candidate'),originalEnvironment:Buffer.from('original')};
- assert.equal(activationRecoveryPlan({...context,accepted:before}).action,'RESTORE_PREVIOUS_ENVIRONMENT');
+ assert.equal(activationRecoveryPlan({...context,accepted:before}).action,'KEEP_ENVIRONMENT_OPERATOR_RETRY');
  const after=activationRecoveryPlan({...context,accepted:target});assert.equal(after.action,'KEEP_CURRENT_AUTHORITY_OPERATOR_RETRY');assert.equal(after.stateRewound,false);
  assert.throws(()=>activationRecoveryPlan({...context,accepted:{...target,sequence:3}}),/CHECKPOINT_CAS_CONFLICT/);
  assert.throws(()=>activationRecoveryPlan({...context,accepted:before,currentEnvironment:Buffer.from('third-party')}),/ENVIRONMENT_CAS_CONFLICT/);
@@ -92,4 +92,30 @@ test('post-CAS restart accepts current signed authority with original SDK and ne
  assert.equal(accepted.sequence,2);assert.equal(activationRecoveryPlan({previous,accepted,target:args.expectedCheckpoint,currentEnvironment:Buffer.from('candidate'),candidateEnvironment:Buffer.from('candidate'),originalEnvironment:Buffer.from('previous')}).action,'KEEP_CURRENT_AUTHORITY_OPERATOR_RETRY');
  const restarted=createEndpointAuthorityClient({trustRoot:root,consumer,storage:store,clock:()=>now});await restarted.accept(candidate,{source:'remote'});await restarted.financeProductSession();assert.deepEqual(await journalSnapshot(live,process.getuid()),history);
  await assert.rejects(restarted.accept(fixture().baseline,{source:'remote'}),/ROLLBACK/);assert.deepEqual(await store.read(),accepted);
+}));
+test('actual OS lifecycle lock blocks concurrent writer and SIGKILL releases it for explicit recovery',async()=>{
+ const dir=await fs.mkdtemp(path.join(os.homedir(),'.ynx-maintenance-lock-test-'));await fs.chmod(dir,0o700);
+ const helper=process.env.YNX_QA_PYTHON??'/usr/bin/python3',lock=path.join(dir,'activation.lock'),pidFile=path.join(dir,'holder.pid'),pending=path.join(dir,'pending.json'),environment=path.join(dir,'environment');
+ const module=pathToFileURL(path.resolve('scripts/ops/endpoint-authority-maintenance.mjs')).href;
+ const fixture=path.join(dir,'fixture.mjs');await fs.writeFile(fixture,`import fs from 'node:fs';const [mode,pid,pending,env]=process.argv.slice(2);if(mode==='hold'){fs.writeFileSync(pending,'signed-candidate-intent');fs.writeFileSync(env,'candidate');fs.writeFileSync(pid,String(process.pid));setInterval(()=>{},1000)}else{if(fs.readFileSync(pending,'utf8')!=='signed-candidate-intent')throw Error('lost-pending');if(fs.readFileSync(env,'utf8')!=='candidate')throw Error('obsolete-environment');fs.writeFileSync(pid,'recovered');}`,{mode:0o600});
+ const wrapper=mode=>`import{runWithActivationLock}from ${JSON.stringify(module)};process.exitCode=runWithActivationLock({lockFile:${JSON.stringify(lock)},helper:${JSON.stringify(helper)},program:${JSON.stringify(process.execPath)},args:[${JSON.stringify(fixture)},${JSON.stringify(mode)},${JSON.stringify(pidFile)},${JSON.stringify(pending)},${JSON.stringify(environment)}],uid:${process.getuid()}});`;
+ const holder=spawn(process.execPath,['--input-type=module','-e',wrapper('hold')],{stdio:['ignore','pipe','pipe']});let childPID,holderError='';holder.stderr.on('data',bytes=>{holderError+=String(bytes)});
+ const done=new Promise(resolve=>holder.on('exit',(code,signal)=>resolve({code,signal})));
+ try{
+  for(let i=0;i<100;i++){try{childPID=Number(await fs.readFile(pidFile,'utf8'));break}catch{}await new Promise(r=>setTimeout(r,20))}
+  assert.ok(Number.isSafeInteger(childPID)&&childPID>0,holderError);
+  let blocked;try{execFileSync(process.execPath,['--input-type=module','-e',wrapper('--recover')],{encoding:'utf8'})}catch(e){blocked=e}
+  assert.equal(blocked?.status,75);assert.match(String(blocked.stderr),/ACTIVATION_LOCK_BUSY/);
+  process.kill(childPID,'SIGKILL');await done;
+  // The inode still exists, but unlike mkdir it does not strand the recovery path.
+  assert.equal((await fs.stat(lock)).isFile(),true);
+  execFileSync(process.execPath,['--input-type=module','-e',wrapper('--recover')],{encoding:'utf8'});
+  assert.equal(await fs.readFile(pidFile,'utf8'),'recovered');assert.equal(await fs.readFile(environment,'utf8'),'candidate');
+ }finally{if(childPID)try{process.kill(childPID,'SIGKILL')}catch{}holder.kill('SIGKILL');await fs.rm(dir,{recursive:true,force:true})}
+});
+test('reader advances after failure observation: forward-only plan cannot install obsolete original env',async()=>cloneFixture(async(args,store)=>{
+ const previous=await store.read(),candidate=JSON.parse(await fs.readFile(args.candidateFile)),old=Buffer.from('old manifest N'),current=Buffer.from('candidate N+1');
+ const plan=activationRecoveryPlan({previous,accepted:previous,target:args.expectedCheckpoint,currentEnvironment:current,candidateEnvironment:current,originalEnvironment:old});
+ const consumerClient=createEndpointAuthorityClient({trustRoot:root,consumer,storage:store,clock:()=>now});await consumerClient.accept(candidate,{source:'remote'});
+ assert.equal((await store.read()).sequence,2);assert.equal(plan.action,'KEEP_ENVIRONMENT_OPERATOR_RETRY');assert.ok(plan.bytes.equals(current));assert.equal(plan.bytes.equals(old),false);
 }));
