@@ -535,6 +535,38 @@ jobs:
           done
           # AppImage launcher bytes are inspected without execution. Installed
           # native refusal and two ordinary cold starts are DEB evidence only.
+      - name: Verify installed Linux password, restart and native backup recovery through GUI
+        if: matrix.platform == 'linux'
+        shell: bash
+        env:
+          YNX_WALLET_QA_PASSWORD: 'Synthetic Linux installed QA password 2026!'
+          YNX_WALLET_QA_BACKUP_PASSWORD: 'Synthetic Linux portable backup password 2026!'
+        run: |
+          set -euo pipefail
+          export YNX_WALLET_EXPECTED_VERSION="$(node -p 'require("./apps/wallet-desktop/package.json").version')"
+          # Run the installed DEB as the ordinary runner UID. Sandbox requirements,
+          # app identity, protected vault and native Save dialog stay unchanged.
+          xvfb-run -a node apps/wallet-desktop/scripts/linux-password-installed-gate.mjs online
+          # Prove offline custody with OS networking blocked for this disposable
+          # UID, keeping only localhost CDP available. No mocked provider/RPC.
+          wallet_qa_uid="$(id -u)"
+          wallet_qa_rule="ynx-wallet-offline-$GITHUB_RUN_ID"
+          wallet_qa_v4=false
+          wallet_qa_v6=false
+          cleanup_wallet_qa_network() {
+            if "$wallet_qa_v4"; then sudo iptables -D OUTPUT -m owner --uid-owner "$wallet_qa_uid" ! -d 127.0.0.0/8 -m comment --comment "$wallet_qa_rule" -j REJECT; fi
+            if "$wallet_qa_v6"; then sudo ip6tables -D OUTPUT -m owner --uid-owner "$wallet_qa_uid" ! -d ::1/128 -m comment --comment "$wallet_qa_rule" -j REJECT; fi
+          }
+          trap cleanup_wallet_qa_network EXIT
+          sudo iptables -I OUTPUT 1 -m owner --uid-owner "$wallet_qa_uid" ! -d 127.0.0.0/8 -m comment --comment "$wallet_qa_rule" -j REJECT
+          wallet_qa_v4=true
+          sudo ip6tables -I OUTPUT 1 -m owner --uid-owner "$wallet_qa_uid" ! -d ::1/128 -m comment --comment "$wallet_qa_rule" -j REJECT
+          wallet_qa_v6=true
+          xvfb-run -a node apps/wallet-desktop/scripts/linux-password-installed-gate.mjs offline
+          cleanup_wallet_qa_network
+          wallet_qa_v4=false
+          wallet_qa_v6=false
+          trap - EXIT
       - name: Upload exact artifacts and available evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -549,6 +581,8 @@ jobs:
             apps/wallet-desktop/dist/installed-smoke.json
             apps/wallet-desktop/dist/password-installed-smoke.json
             apps/wallet-desktop/dist/windows-password-lifecycle.json
+            apps/wallet-desktop/dist/linux-online-lifecycle.json
+            apps/wallet-desktop/dist/linux-offline-lifecycle.json
             apps/wallet-desktop/dist/windows-locale-lifecycle.json
             apps/wallet-desktop/dist/windows-old-installer.json
             apps/wallet-desktop/dist/windows-old-profile.json
