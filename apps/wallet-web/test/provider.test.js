@@ -195,9 +195,9 @@ test("canonical YNX mobile authorization stays closed until Core freezes the exa
 test("default download opens platform selection and Android uses the exact observed release", () => {
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.hosted,true);
   assert.equal(YNX_DOWNLOAD_URL,"https://www.ynxweb4.com/dapp/wallet/open-download");
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.20-f3a12abad/ynx-wallet-1.0.20-testnet-preview-f3a12abad-universal-local-test-signed.apk");
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.bytes,116741810);
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,"143835c4931b190f0249818f04de6f82b1f2aaa0eb155684e929f365f3b1bfc0");
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-android-testnet-preview-1.0.28-a9fff0d84/ynx-wallet-1.0.28-a9fff0d84-local-test-signed.apk");
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.bytes,117057650);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,"78c7221821add4cba78ece2069fea05a98b7c15cc3ba3e93a25fc0b0214f8509");
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.contentType,"application/vnd.android.package-archive");
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.productionSigned,false);
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
@@ -208,10 +208,10 @@ test("default download opens platform selection and Android uses the exact obser
     const item=WALLET_DOWNLOAD_MATRIX[key];assert.equal(new URL(item.url).hostname,key==="android"?"github.com":"downloads.ynxweb4.com");
     if(key==="android")assert.equal(item.url,item.fallbackUrl);else assert.ok(item.url.includes(`/sha256-${item.sha256}/`));
   }
-  assert.match(WALLET_DOWNLOAD_MATRIX.windowsX64.url,/ynx-wallet-desktop-0\.6\.8-x64\.exe$/);
+  assert.match(WALLET_DOWNLOAD_MATRIX.windowsX64.url,/ynx-wallet-desktop-0\.6\.18-x64\.exe$/);
   assert.match(WALLET_DOWNLOAD_MATRIX.macosUniversal.url,/ynx-wallet-macos-0\.6\.8-universal\.dmg$/);
-  assert.match(WALLET_DOWNLOAD_MATRIX.chromeEdgeExtension.url,/ynx-wallet-chrome-edge-0\.1\.3\.zip$/);
-  assert.match(WALLET_DOWNLOAD_MATRIX.firefoxExtension.url,/ynx-wallet-firefox-0\.1\.1\.zip$/);
+  assert.match(WALLET_DOWNLOAD_MATRIX.chromeEdgeExtension.url,/ynx-wallet-chrome-edge-0\.1\.14\.zip$/);
+  assert.match(WALLET_DOWNLOAD_MATRIX.firefoxExtension.url,/ynx-wallet-firefox-0\.1\.14\.zip$/);
   assert.equal(WALLET_DOWNLOAD_MATRIX.pwaPackage.publicStatusUrl,"https://www.ynxweb4.com/dapp/wallet");
 });
 
