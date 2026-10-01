@@ -8,8 +8,8 @@ let adapter=null,initializing=null,generation=0,revision=0,busy=false;
 let current=Object.freeze({status:'disconnected',session:null}),lastCode='',requestStage='idle';
 function label(key){return window.YNXFinanceLocale?.text(key)??key;}
 function publish(next,code=''){
-  current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,route:next.route,installation:next.installation,code,stage:requestStage});
-  revision++;lastCode=code;render();window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:current.status,account:current.session?.account??null,revision,code,stage:requestStage}}));
+  current=Object.freeze({status:next.status,session:next.status==='connected'?next.session:null,route:next.route,installation:next.installation,code,stage:requestStage,approvalRejected:next.approvalRejected===true,revocationConfirmed:next.revocationConfirmed===true});
+  revision++;lastCode=code;render();window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:current.status,account:current.session?.account??null,revision,code,stage:requestStage,approvalRejected:current.approvalRejected,revocationConfirmed:current.revocationConfirmed}}));
 }
 function code(error){if(Number(error?.code)===4001)return 'USER_REJECTED';const value=error?.code||error?.message?.match(/^([A-Z][A-Z0-9_]{1,80})(?::|$)/)?.[1];return /^[A-Z][A-Z0-9_]{1,80}$/.test(value??'')?value:'PRIVATE_SERVICE_DEGRADED';}
 async function initialize(){
@@ -80,7 +80,11 @@ async function explicitRequest(retry){
     if(settled.status==='connected'&&!privateSubjectMatchesSelectedWallet(settled.session,wallet.getStandardWalletState())){
       await selected.client.disconnect();throw new Error('FINANCE_ACCOUNT_MISMATCH');
     }
-    return settled;
+    // Locked SDK handleReturn returns disconnected only for its strictly
+    // validated user-rejected callback; missing/expired/mismatched callbacks
+    // and network failures return retry-required/network-unavailable instead.
+    // Preserve the explicit revocation acknowledgement as a different terminal.
+    return settled.status==='disconnected'&&!settled.revocationConfirmed?Object.freeze({...settled,approvalRejected:true}):settled;
     }catch(error){
       // enterGuest only changes presentation. Canonical disconnect serializes
       // with SDK begin/return, clears its pending callback and retains any

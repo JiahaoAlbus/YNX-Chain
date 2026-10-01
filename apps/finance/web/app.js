@@ -432,8 +432,8 @@ function continueLoginIntent(){
       // The authoritative connected event owns the one initial protected read
       // and target restore. Do not race it with a second proof/load here.
       if(!['connected','connecting'].includes(result?.status)){
-        const rejected=['denied','rejected'].includes(result?.status)||result?.code==='USER_REJECTED';
-        if(rejected)clearLoginIntent();
+        const rejected=['denied','rejected'].includes(result?.status)||result?.code==='USER_REJECTED'||result?.approvalRejected===true;
+        if(rejected||result?.revocationConfirmed===true)clearLoginIntent();
         notify(financeText(rejected?'identityRejected':'connectionUnavailable'),true);
       }
     }else{
@@ -589,7 +589,7 @@ window.addEventListener('ynx-finance-standard-state',event=>{
   if($('#wallet-picker').open&&pickerMethod){if(selected?.status==='connected'){clearPickerPair();pickerPhase=loginIntent?'pickerSigning':'pickerConnected';pickerCode='';renderWalletPicker();}else if(selected?.errorCode)pickerFailure(selected.errorCode);else if(selected?.status==='wrong-chain')pickerFailure('WRONG_NETWORK');else if(['permission-revoked','account-changed','chain-changed'].includes(selected?.disconnectReason))pickerFailure('WALLET_CONTEXT_CHANGED');}
   if(selected?.status==='connected')void continueLoginIntent();
   resumeDeferredBrowserIdentity();
-});window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected'){const intent=loginIntent,context=state.context;load().then(()=>completeLoginTarget(intent,context))}resumeDeferredBrowserIdentity();});
+});window.addEventListener('ynx-finance-private-state',event=>{if(event.detail?.approvalRejected===true||event.detail?.revocationConfirmed===true)clearLoginIntent();clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected'){const intent=loginIntent,context=state.context;load().then(()=>completeLoginTarget(intent,context))}resumeDeferredBrowserIdentity();});
 window.addEventListener('ynx-finance-private-state',event=>{if(!$('#wallet-picker').open||!pickerMethod)return;const next=event.detail;if(pickerMethod==='mobile'&&['opening','pairing'].includes(window.YNXFinanceWallet.getPairState?.()?.status))return;if(next?.status==='connected'){pickerPhase='pickerApproved';renderWalletPicker();if(loginIntent)closeWalletPicker({completed:true});}else if(['checking','connecting'].includes(next?.status)){pickerPhase='pickerSigning';renderWalletPicker();}else if(next?.code||next?.lastCode)pickerFailure(next.code??next.lastCode);});
 window.addEventListener('ynx-finance-pair-state',event=>{
   if(!$('#wallet-picker').open||pickerMethod!=='mobile')return;

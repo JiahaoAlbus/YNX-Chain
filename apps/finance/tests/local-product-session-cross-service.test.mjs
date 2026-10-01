@@ -347,6 +347,7 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
       if(transport==='selected-login-rejected'){
         await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='disconnected',null,{timeout:6000}).catch(async error=>{throw new Error(JSON.stringify({browserErrors,requests,state:await page.evaluate(()=>({standard:window.YNXFinanceWallet.getStandardWalletState().status,private:window.YNXFinanceWallet.getPrivateState().status,code:document.querySelector('#private-state').title,notice:document.querySelector('#notice').textContent}))}),{cause:error})});
         assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connected');
+        const terminal=await page.evaluate(()=>window.YNXFinanceWallet.getPrivateState());assert.equal(terminal.approvalRejected,true);assert.equal(terminal.revocationConfirmed,false);assert.equal(await page.evaluate(()=>sessionStorage.getItem('ynx.finance.login-intent.v1')),null);
         assert.equal(host.snapshot().authority.sessions.length,0);
         assert.equal(await page.evaluate(()=>location.hash),'#planning');
         await context.close();return;
@@ -471,7 +472,7 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
       const attemptKey='ynx.finance.browser-private.9840ef87.wallet-auth.attempted';
       await page.evaluate(()=>api('/api/categories',{method:'POST',body:JSON.stringify({name:'Owned category across explicit reauthorization',color:'#002fa7',idempotencyKey:'revoke-rebegin-owned-category-qa-000001'})}));
       const revoked=await page.evaluate(()=>window.YNXFinanceWallet.disconnect());
-      assert.equal(revoked.revocationConfirmed,true);
+      assert.equal(revoked.revocationConfirmed,true);assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getPrivateState().revocationConfirmed),true);
       assert.equal(await page.evaluate(key=>localStorage.getItem(key),attemptKey),null,'confirmed revoke must stop missing-session automatic reconnect');
       await page.reload();await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='guest'&&window.YNXFinanceWallet.getStandardWalletState().status==='connected');
       assert.equal(await page.locator('#private-begin').isDisabled(),false);assert.equal(approvalCount,1);
