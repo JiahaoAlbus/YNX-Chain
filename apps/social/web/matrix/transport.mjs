@@ -18,12 +18,13 @@ export async function fetchMatrixBinding({account,deviceId,client,csrfToken,fetc
   return validateBinding(await response.json(),account);
 }
 export class MatrixSocialTransport {
-  constructor({publish=()=>{},onVerification=()=>{},localQA=false}={}){this.publish=publish;this.onVerification=onVerification;this.localQA=localQA;this.client=null;this.generation=0;this.requests=new Map();this.verifiers=new Map();this.sas=new Map();this.connected=false;this.deviceSets=new Map()}
+  constructor({publish=()=>{},onVerification=()=>{},localQA=false,clientFactory=createClient}={}){this.publish=publish;this.onVerification=onVerification;this.localQA=localQA;this.clientFactory=clientFactory;this.client=null;this.generation=0;this.requests=new Map();this.verifiers=new Map();this.sas=new Map();this.connected=false;this.deviceSets=new Map()}
   async connect(binding,account,storageKey){
     this.stop();validateBinding(binding,account,{localQA:this.localQA});if(!(storageKey instanceof Uint8Array)||storageKey.length!==32)fail('MATRIX_STORAGE_REQUIRED','Protected durable crypto storage key is required');
     const generation=this.generation;this.binding=binding;
-    const client=createClient({baseUrl:binding.homeserver,userId:binding.userId,deviceId:binding.deviceId,accessToken:binding.accessToken,store:new MemoryStore(),verificationMethods:['m.sas.v1'],logger:{trace(){},debug(){},info(){},warn(){},error(){},log(){},getChild(){return this}}});
+    const client=this.clientFactory({baseUrl:binding.homeserver,userId:binding.userId,deviceId:binding.deviceId,accessToken:binding.accessToken,store:new MemoryStore(),verificationMethods:['m.sas.v1'],logger:{trace(){},debug(){},info(){},warn(){},error(){},log(){},getChild(){return this}}});
     this.client=client;
+    const operation=this.capture();
     try{
       await client.initRustCrypto({useIndexedDB:true,cryptoDatabasePrefix:`ynx-social-matrix-v1:${account}:${binding.deviceId}`,storageKey});
       if(generation!==this.generation){client.stopClient();fail('MATRIX_STALE_SESSION','Identity changed during crypto startup')}
@@ -38,7 +39,9 @@ export class MatrixSocialTransport {
       client.on(CryptoEvent.VerificationRequestReceived,request=>{if(generation===this.generation)this.registerVerification(request)});
       client.on(RoomEvent.Timeline,(event,room)=>{if(generation!==this.generation)return;if(event.getType()==='m.room.encrypted')this.publish({type:'encrypted-event',roomId:room?.roomId,eventId:event.getId()});});
       await client.startClient({initialSyncLimit:100});
-      await this.wait(()=>this.connected,30000);
+      this.guard(operation);
+      await this.wait(()=>{this.guard(operation);return this.connected},30000);
+      this.guard(operation);
       return {account,userId:binding.userId,deviceId:binding.deviceId,protocol:MATRIX_PROTOCOL,cryptoVersion:crypto.getVersion()};
     }catch(error){client.stopClient();if(this.client===client)this.client=null;throw error}
   }
@@ -53,7 +56,7 @@ export class MatrixSocialTransport {
   async startVerification(id){const operation=this.capture(),request=this.requests.get(id);if(!request)fail('MATRIX_VERIFICATION_MISSING','Verification request expired');const verifier=await request.startVerification('m.sas.v1');this.guard(operation);this.attachVerifier(id,verifier);return id}
   attachVerifier(id,verifier){const operation=this.capture(),current=()=>operation.generation===this.generation&&operation.client===this.client;if(this.verifiers.has(id))return;this.verifiers.set(id,verifier);verifier.on('show_sas',callbacks=>{if(!current())return;this.sas.set(id,callbacks);this.onVerification({id,sas:callbacks.sas,needsConfirmation:true})});verifier.verify().then(()=>{if(!current())return;this.sas.delete(id);this.publish({type:'verification-done',id})},()=>{if(!current())return;this.sas.delete(id);this.publish({type:'verification-cancelled',id})})}
   async confirmVerification(id,confirmed){const operation=this.capture(),callbacks=this.sas.get(id);if(!callbacks)fail('MATRIX_SAS_MISSING','No active SAS comparison');if(confirmed!==true){callbacks.mismatch();return}await callbacks.confirm();this.guard(operation)}
-  async rejectVerification(id){const operation=this.capture(),request=this.requests.get(id);if(request)await request.cancel({code:'m.user',reason:'User declined verification'});this.guard(operation);this.sas.delete(id)}
+  async rejectVerification(id){const operation=this.capture(),request=this.requests.get(id);if(!request)fail('MATRIX_VERIFICATION_MISSING','Verification request expired');await request.cancel({code:'m.user',reason:'User declined verification'});this.guard(operation);this.sas.delete(id)}
   async devices(userId,operation=this.capture()){this.guard(operation);const devices=(await operation.client.getCrypto().getUserDeviceInfo([userId],true)).get(userId);this.guard(operation);return devices?[...devices.values()]:[]}
   async assertTrusted(roomId,operation=this.capture()){
     this.guard(operation);const client=operation.client,crypto=client.getCrypto();if(!this.connected||!client)fail('MATRIX_OFFLINE','Reconnect before sending; no plaintext fallback');

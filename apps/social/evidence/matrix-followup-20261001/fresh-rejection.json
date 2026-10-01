@@ -1,0 +1,247 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "name": "two-independent-homeservers-and-Rust-crypto",
+      "passed": true
+    },
+    {
+      "name": "unverified-device-send-rejected",
+      "passed": true
+    },
+    {
+      "name": "fresh-unverified-device-explicit-rejection",
+      "passed": true
+    }
+  ],
+  "error": "Error: page.evaluate: Error: Cannot accept a verification request in phase 5\n    at RustVerificationRequest.accept (http://127.0.0.1:50334/qa.js:47550:17)\n    at MatrixSocialTransport.acceptVerification (http://127.0.0.1:50334/qa.js:71153:19)\n    at eval (eval at evaluate (:311:30), <anonymous>:1:14)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+  "pageErrors": [],
+  "diagnostics": [
+    {
+      "devices": [
+        {
+          "user": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+          "device": "YNX-714185bb-e23f-482c-9b27-fc1c6c822d7b",
+          "verified": true,
+          "keys": [
+            "curve25519:YNX-714185bb-e23f-482c-9b27-fc1c6c822d7b",
+            "ed25519:YNX-714185bb-e23f-482c-9b27-fc1c6c822d7b"
+          ]
+        },
+        {
+          "user": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "device": "YNX-f0c4c7fb-f141-4e49-8a3a-648349bc121e",
+          "verified": false,
+          "keys": [
+            "curve25519:YNX-f0c4c7fb-f141-4e49-8a3a-648349bc121e",
+            "ed25519:YNX-f0c4c7fb-f141-4e49-8a3a-648349bc121e"
+          ]
+        }
+      ],
+      "connected": true,
+      "syncState": "SYNCING",
+      "requests": [
+        {
+          "id": "e4a944b692fa40aa90a1fe64d481c5ee",
+          "phase": 5,
+          "pending": false,
+          "cancellationCode": "m.user"
+        },
+        {
+          "id": "3e9a45ccbbbd4c68ac9514612d1b0b77",
+          "phase": 2,
+          "pending": true,
+          "cancellationCode": null
+        }
+      ],
+      "events": [
+        {
+          "at": 1790865407297,
+          "type": "sync",
+          "state": "PREPARED",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865407297,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409509,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409524,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409578,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409619,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409637,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409669,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409825,
+          "type": "verification-state",
+          "id": "e4a944b692fa40aa90a1fe64d481c5ee",
+          "phase": 2,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865409961,
+          "type": "verification-state",
+          "id": "e4a944b692fa40aa90a1fe64d481c5ee",
+          "phase": 5,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865409964,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865410070,
+          "type": "verification-state",
+          "id": "3e9a45ccbbbd4c68ac9514612d1b0b77",
+          "phase": 2,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        }
+      ]
+    },
+    {
+      "devices": [
+        {
+          "user": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "device": "YNX-f0c4c7fb-f141-4e49-8a3a-648349bc121e",
+          "verified": true,
+          "keys": [
+            "curve25519:YNX-f0c4c7fb-f141-4e49-8a3a-648349bc121e",
+            "ed25519:YNX-f0c4c7fb-f141-4e49-8a3a-648349bc121e"
+          ]
+        },
+        {
+          "user": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+          "device": "YNX-714185bb-e23f-482c-9b27-fc1c6c822d7b",
+          "verified": false,
+          "keys": [
+            "curve25519:YNX-714185bb-e23f-482c-9b27-fc1c6c822d7b",
+            "ed25519:YNX-714185bb-e23f-482c-9b27-fc1c6c822d7b"
+          ]
+        }
+      ],
+      "connected": true,
+      "syncState": "SYNCING",
+      "requests": [
+        {
+          "id": "e4a944b692fa40aa90a1fe64d481c5ee",
+          "phase": 5,
+          "pending": false,
+          "cancellationCode": "m.user"
+        },
+        {
+          "id": "3e9a45ccbbbd4c68ac9514612d1b0b77",
+          "phase": 2,
+          "pending": true,
+          "cancellationCode": null
+        }
+      ],
+      "events": [
+        {
+          "at": 1790865409349,
+          "type": "sync",
+          "state": "PREPARED",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409349,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409566,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409667,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409706,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409836,
+          "type": "verification-state",
+          "id": "e4a944b692fa40aa90a1fe64d481c5ee",
+          "phase": 2,
+          "userId": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+          "deviceId": "YNX-714185bb-e23f-482c-9b27-fc1c6c822d7b"
+        },
+        {
+          "at": 1790865409836,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865409933,
+          "type": "verification-state",
+          "id": "e4a944b692fa40aa90a1fe64d481c5ee",
+          "phase": 5,
+          "userId": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865409984,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865410081,
+          "type": "verification-state",
+          "id": "3e9a45ccbbbd4c68ac9514612d1b0b77",
+          "phase": 2,
+          "userId": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+          "deviceId": "YNX-714185bb-e23f-482c-9b27-fc1c6c822d7b"
+        },
+        {
+          "at": 1790865410081,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        }
+      ]
+    }
+  ]
+}
