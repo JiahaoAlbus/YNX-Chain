@@ -205,7 +205,7 @@ try {
     const oldVault = await vaultDigest();
     await until(state => passwordActionReady(state, true), "Old protected profile unlock UI readiness");
     const recoveryVersion = await evaluate(`(async () => (await window.ynxWallet.appInfo()).version)()`, "RECOVER_CREATE_INSTALLED_VERSION");
-    if (!["0.6.15", "0.6.16"].includes(recoveryVersion)) throw new Error("RECOVER_CREATE_VERSION_UNSUPPORTED");
+    if (!["0.6.15", "0.6.16", "0.6.17"].includes(recoveryVersion)) throw new Error("RECOVER_CREATE_VERSION_UNSUPPORTED");
     await evaluate(`(() => {
       const form=document.querySelector('#password-form'), submit=document.querySelector('#submit-password');
       const attempt={submitObserved:false,busyObserved:false};window.__ynxQaWrongPassword=attempt;
@@ -264,7 +264,7 @@ try {
     // Public 0.6.8 and 0.6.9 predate the renderer appInfo bridge. Their
     // versions are independently bound to the immutable EXE and launch evidence.
     const installedVersion = installedAppInfoVersion ?? (["0.6.8", "0.6.9"].includes(process.env.YNX_OLD_VERSION) ? process.env.YNX_OLD_VERSION : null);
-    if (!["0.6.8", "0.6.9", "0.6.10", "0.6.15", "0.6.16"].includes(installedVersion)) throw new Error("WRONG_PASSWORD_VERSION_UNSUPPORTED");
+    if (!["0.6.8", "0.6.9", "0.6.10", "0.6.15", "0.6.16", "0.6.17"].includes(installedVersion)) throw new Error("WRONG_PASSWORD_VERSION_UNSUPPORTED");
     await evaluate(`(() => {
       const form=document.querySelector('#password-form'), submit=document.querySelector('#submit-password');
       const attempt={submitObserved:false,busyObserved:false};

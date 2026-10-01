@@ -23,7 +23,7 @@ test('Broker cold-state pin changes only the reviewed app bytes',async()=>{
   assert.deepEqual(JSON.parse(versioned),expected);
   assert.deepEqual(JSON.parse(versioned),expected);
   assert.notDeepEqual(active,versioned,'the historical v6 manifest must not be mistaken for the current source');
-  assert.equal(createHash('sha256').update(active).digest('hex'),'5b8cfbd5fc822448cd71206c1e95601ccd330c094f4f7d41a5a4616e341fa7f2');
+  assert.equal(createHash('sha256').update(active).digest('hex'),'e3c4a2675e71c1f177b7a86b46f2096ac9f622bdfea50061e3b72116fa6c3737');
 });
 
 async function fixture(){
@@ -43,8 +43,8 @@ test('current Finance Wallet files match the exact reviewed verifier manifest',a
   assert.equal(result.sourceBundleReproducible,true);
   assert.equal(result.sourceBundleReproducibilityStatus,'VERIFIED_REPRODUCIBLE');
   assert.equal(result.cleanBuildCount,2);
-  assert.equal(result.bytes,211423);
-  assert.equal(result.sha256,'17803bda66618d155d931060c06b32d43e02f49f88f89d83bbe43de2aa53e142');
+  assert.equal(result.bytes,740152);
+  assert.equal(result.sha256,'794b9d67578fd8474be79bb5bcdec230ad5db0e1e1439884481f4a1d424baf01');
 });
 
 test('missing current bundle fails closed',async()=>{
@@ -105,4 +105,11 @@ test('reviewed source and bundle are read once before both rebuilds',async()=>{
   const result=await verifyFinanceWalletBundle({root:webRoot,readFile:singleRead});
   assert.equal(result.status,'pass');
   for(const relative of reviewedManifest.files.map(file=>file.path))assert.equal(reads.get(resolve(webRoot,relative)),1,relative);
+});
+
+test('official mobile SignClient source cannot change under the reviewed Finance snapshot',async()=>{
+  let observed=false;await assert.rejects(verifyFinanceWalletBundle({readFile:async p=>{if(String(p).endsWith('/packages/wallet-auth/node_modules/@walletconnect/sign-client/dist/index.js')){observed=true;return Buffer.from('export default {init(){}};')}return readFile(p)}}),e=>e.code==='FINANCE_WALLET_FILE_INTEGRITY_MISMATCH');assert.equal(observed,true);
+});
+test('locked mobile package resolution metadata cannot silently redirect the Finance snapshot',async()=>{
+  let observed=false;await assert.rejects(verifyFinanceWalletBundle({readFile:async p=>{if(String(p).endsWith('/packages/wallet-auth/node_modules/@walletconnect/sign-client/package.json')){observed=true;return Buffer.from('{"main":"replacement.js"}');}return readFile(p)}}),e=>e.code==='FINANCE_WALLET_FILE_INTEGRITY_MISMATCH');assert.equal(observed,true);
 });
