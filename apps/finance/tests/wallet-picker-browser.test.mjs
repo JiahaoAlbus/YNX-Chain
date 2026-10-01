@@ -12,7 +12,7 @@ import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 let server,browser,base;
 test.before(async()=>{
   const web=new URL('../web/',import.meta.url);
-  const compiled=await build({entryPoints:[new URL('wallet-auth-entry.js',web).pathname],bundle:true,write:false,platform:'browser',format:'iife',target:'es2022',plugins:[{name:'isolated-pair-transport',setup(build){build.onLoad({filter:/walletconnect-dapp-connection\.js$/},async({path})=>({contents:(await readFile(path,'utf8')).replace('clientFactory??(async options=>','clientFactory??window.__pickerQA.factory??(async options=>'),loader:'js'}));}}]});
+  const compiled=await build({entryPoints:[new URL('wallet-auth-entry.js',web).pathname],bundle:true,write:false,platform:'browser',format:'iife',target:'es2022',plugins:[{name:'isolated-pair-transport',setup(build){build.onLoad({filter:/walletconnect-dapp-connection\.js$/},async({path})=>({contents:(await readFile(path,'utf8')).replace('clientFactory??(options=>officialClient','clientFactory??window.__pickerQA.factory??(options=>officialClient'),loader:'js'}));}}]});
   server=createServer(async(req,res)=>{
     const path=new URL(req.url,'http://fixture').pathname;
     if(path==='/wallet-auth.js'){res.writeHead(200,{'content-type':'text/javascript'});return res.end(compiled.outputFiles[0].contents);}
@@ -28,7 +28,7 @@ async function pageFixture({reject=false,deferYNX=false}={}){
   await page.addInitScript(({reject,deferYNX})=>{
     const q={counts:{connect:0,sign:0,init:0,pair:0,disconnect:0,cancel:0},events:new Map()};window.__pickerQA=q;
     const account='0x'+'1'.repeat(40),topic='a'.repeat(64);let current=null;
-    q.factory=async()=>{q.counts.init++;return {on:(name,fn)=>q.events.set(name,fn),session:{getAll:()=>current?[current]:[]},core:{pairing:{disconnect:async()=>{q.counts.cancel++;if(q.failCancel)throw new Error('offline');}}},connect:async input=>{q.counts.pair++;q.proposalMethods=input.requiredNamespaces.eip155.methods;return {uri:`wc:${topic}@2?relay-protocol=irn&symKey=${'2'.repeat(64)}`,approval:()=>new Promise((resolve,reject)=>{q.approve=()=>{current={topic,expiry:Math.floor(Date.now()/1000)+600,peer:{metadata:{url:'https://wallet.ynxweb4.com'}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],chains:['eip155:6423'],methods:q.proposalMethods,events:['accountsChanged','chainChanged']}}};resolve(current);};q.reject=()=>reject(Object.assign(new Error('untrusted Pair detail'),{code:q.rejectionCode??4001}));})};},disconnect:async()=>{q.counts.disconnect++;if(q.failDisconnect)throw new Error('offline');current=null;},request:async({request,expiry})=>{q.counts.sign++;q.requestMethod=request.method;q.transportExpiry=expiry;return {version:2,returnUrl:'isolated-return'};}};};
+    q.factory=async()=>{q.counts.init++;return {on:(name,fn)=>q.events.set(name,fn),session:{getAll:()=>current?[current]:[]},core:{pairing:{disconnect:async()=>{q.counts.cancel++;if(q.failCancel)throw new Error('offline');}}},connect:async input=>{q.counts.pair++;q.proposalMethods=input.requiredNamespaces.eip155.methods;if(q.relayFailure)throw new Error('wc:secret-untrusted-network-detail');if(q.deferRelay)return new Promise((_,reject)=>q.finishRelay=()=>reject(new Error('wc:late-network-detail')));return {uri:`wc:${topic}@2?relay-protocol=irn&symKey=${'2'.repeat(64)}`,approval:()=>new Promise((resolve,reject)=>{q.approve=()=>{current={topic,expiry:Math.floor(Date.now()/1000)+600,peer:{metadata:{url:'https://wallet.ynxweb4.com'}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],chains:['eip155:6423'],methods:q.proposalMethods,events:['accountsChanged','chainChanged']}}};resolve(current);};q.reject=()=>reject(Object.assign(new Error('untrusted Pair detail'),{code:q.rejectionCode??4001}));})};},disconnect:async()=>{q.counts.disconnect++;if(q.failDisconnect)throw new Error('offline');current=null;},request:async({request,expiry})=>{q.counts.sign++;q.requestMethod=request.method;q.transportExpiry=expiry;return {version:2,returnUrl:'isolated-return'};}};};
     function provider(kind){return {isYNXWallet:kind==='ynx',isMetaMask:kind==='meta',on(){},removeListener(){},request:async({method})=>{if(method==='eth_requestAccounts'){q.counts.connect++;if(kind==='ynx'&&deferYNX)return new Promise(resolve=>q.finishYNX=()=>resolve([account]));if(reject)throw Object.assign(new Error('untrusted secret-like detail'),{code:4001});}if(method==='personal_sign')q.counts.sign++;if(['eth_accounts','eth_requestAccounts'].includes(method))return [account];if(method==='eth_chainId')return '0x1917';if(method==='wallet_switchEthereumChain')return null;throw new Error('fixture unavailable');}};}
     const ynx=provider('ynx'),meta=provider('meta');ynx.providerInfo={rdns:'com.ynx.wallet',name:'YNX Wallet',uuid:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'};ynx.__ynxCompanion=true;meta.providerInfo={rdns:'io.metamask',name:'MetaMask',uuid:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'};
     window.ethereum={providers:[ynx,meta]};window.addEventListener('eip6963:requestProvider',()=>{for(const provider of [ynx,meta])window.dispatchEvent(new CustomEvent('eip6963:announceProvider',{detail:{provider,info:provider.providerInfo}}));});
@@ -95,6 +95,25 @@ test('real Pair adapter facade renders temporary QR, coalesces pending and requi
     await page.evaluate(()=>window.__pickerQA.events.get('session_delete')({topic:'a'.repeat(64)}));
     assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'disconnected');assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.privateProviderAvailable()),false);
   }finally{await page.close();}
+});
+test('URI-less relay failure is recoverable network UI; cancelled handshake cannot override another wallet',async()=>{
+  for(const mode of ['failure','cancel']){
+    const page=await pageFixture();try{
+      await page.evaluate(mode=>{window.__pickerQA.relayFailure=mode==='failure';window.__pickerQA.deferRelay=mode==='cancel';},mode);
+      await page.locator('#wallet-entry').click();await page.locator('#picker-mobile').click();
+      if(mode==='failure'){
+        await page.waitForFunction(()=>YNXFinanceWallet.getPairState().errorCode==='YNX_PAIR_RELAY_UNAVAILABLE');
+        assert.equal(await page.locator('#wallet-picker-state').innerText(),await page.evaluate(()=>YNXFinanceLocale.text('pairTransportUnavailable')));
+        assert.equal((await page.locator('#wallet-picker-step').innerText()).includes('secret-untrusted'),false);
+      }else await page.waitForFunction(()=>typeof __pickerQA.finishRelay==='function');
+      assert.equal(await page.locator('#wallet-picker-qr').isVisible(),false);assert.equal(await page.evaluate(()=>__pickerQA.counts.sign),0);
+      await page.locator('#wallet-picker-back').click();await page.locator('#picker-metamask').click();
+      await page.waitForFunction(()=>YNXFinanceWallet.getStandardWalletState().providerKind==='metamask'&&YNXFinanceWallet.getStandardWalletState().status==='connected');
+      if(mode==='cancel')await page.evaluate(()=>__pickerQA.finishRelay());
+      assert.equal(await page.evaluate(()=>__pickerQA.counts.init),1);assert.equal(await page.evaluate(()=>__pickerQA.counts.pair),1);
+      assert.equal(await page.evaluate(()=>YNXFinanceWallet.getStandardWalletState().providerKind),'metamask');assert.equal(await page.locator('#wallet-picker-qr').isVisible(),false);
+    }finally{await page.close();}
+  }
 });
 test('official Pair rejection codes recover without exposing transport details or signing',async()=>{
   for(const code of [5000,5001,5002,5003,'USER_REJECTED']){

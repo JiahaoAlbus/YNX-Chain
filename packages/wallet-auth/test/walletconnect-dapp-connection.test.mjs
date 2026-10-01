@@ -60,11 +60,12 @@ test('late cancelled proposal cannot overwrite the new pairing cancellation targ
   const f=fixture(),other='b'.repeat(64),proposals=[],cancelled=[];
   f.client.connect=()=>new Promise(resolve=>proposals.push(resolve));f.client.core.pairing.disconnect=async({topic})=>cancelled.push(topic);
   const old=f.connection.connect();const oldRejected=assert.rejects(old,/CANCELLED/);await tick();await f.connection.cancel();
-  const next=f.connection.connect();const nextRejected=assert.rejects(next,/YNX_PAIR_TIMEOUT/);await tick();
-  proposals[1]({uri:`wc:${other}@2?relay-protocol=irn&symKey=${'3'.repeat(64)}`,approval:()=>new Promise(()=>{})});await tick();
+  await assert.rejects(f.connection.connect(),/TRANSPORT_DRAINING/);assert.equal(proposals.length,1);
   proposals[0]({uri:`wc:${topic}@2?relay-protocol=irn&symKey=${'2'.repeat(64)}`,approval:()=>Promise.reject(new Error('cancelled fixture'))});await oldRejected;
+  await tick();const next=f.connection.connect();const nextRejected=assert.rejects(next,/CANCELLED/);await tick();
+  proposals[1]({uri:`wc:${other}@2?relay-protocol=irn&symKey=${'3'.repeat(64)}`,approval:()=>new Promise(()=>{})});await tick();
   await f.connection.cancel();await tick();assert.ok(cancelled.includes(other));
-  // Resolve the wait through its existing deadline, never a fabricated reply.
+  // Cancellation now ends the local wait immediately, without another socket.
   await nextRejected;
 });
 test('old retirement failure is tagged stale while current cancellation failure remains visible',async()=>{

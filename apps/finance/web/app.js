@@ -354,7 +354,8 @@ function renderWalletPicker(){
   const selected=!!pickerMethod;$('#wallet-picker-choices').hidden=selected;$('#wallet-picker-step').hidden=!selected;$('#wallet-picker-intro').hidden=selected;
   if(!selected)return;
   $('#wallet-picker-selected').textContent=$(pickerButtons[pickerMethod]).querySelector('strong').textContent;
-  $('#wallet-picker-state').textContent=financeText(pickerPhase);
+  const pairMessage=pickerCode==='YNX_PAIR_TRANSPORT_DRAINING'?'pairTransportDraining':/^YNX_PAIR_(RELAY|INITIALIZATION)_/.test(pickerCode)?'pairTransportUnavailable':pickerMethod==='mobile'&&pickerPhase==='pickerOpening'?'pairTransportWaiting':pickerPhase;
+  $('#wallet-picker-state').textContent=financeText(pairMessage);
   $('#wallet-picker-hint').textContent=financeText(pickerPhase==='pickerConnected'?'pickerConnectedHint':pickerPhase==='pickerScan'?'pickerScan':'pickerIntro');
   const current=window.YNXFinanceWallet.getStandardWalletState();$('#wallet-picker-account').hidden=pickerPhase!=='pickerConnected';$('#wallet-picker-account').textContent=pickerPhase==='pickerConnected'?current.account??'':'';
   const terminal=['pickerConnected','pickerApproved','pickerRejected','pickerUnavailable','pickerExpired','pickerNetwork','pickerLocked','pickerCancelUnknown'].includes(pickerPhase);
@@ -363,7 +364,7 @@ function renderWalletPicker(){
 }
 function pickerFailure(code){
   pickerCode=/^[A-Z][A-Z_0-9]{0,80}$/.test(String(code))?String(code):'WALLET_UNAVAILABLE';
-  pickerPhase=code==='USER_REJECTED'||Number(code)===4001?'pickerRejected':/EXPIRED|TIMEOUT|DEADLINE/.test(pickerCode)?'pickerExpired':/LOCKED/.test(pickerCode)?'pickerLocked':/NOT_FOUND|UNAVAILABLE|NOT_INSTALLED/.test(pickerCode)?'pickerUnavailable':'pickerNetwork';clearPickerPair();renderWalletPicker();
+  pickerPhase=/YNX_PAIR_(?:RELAY|INITIALIZATION|TRANSPORT)/.test(pickerCode)?'pickerNetwork':code==='USER_REJECTED'||Number(code)===4001?'pickerRejected':/EXPIRED|TIMEOUT|DEADLINE/.test(pickerCode)?'pickerExpired':/LOCKED/.test(pickerCode)?'pickerLocked':/NOT_FOUND|UNAVAILABLE|NOT_INSTALLED/.test(pickerCode)?'pickerUnavailable':'pickerNetwork';clearPickerPair();renderWalletPicker();
 }
 function choosePickerMethod(method){
   if(pickerPending){$('#wallet-picker-state').focus();return pickerPending;}

@@ -47,8 +47,9 @@ const message=value=>{status.textContent=t(value);};
 const failure=(error,phase)=>{
   const known=new Set(['YNX_PAIR_TIMEOUT','YNX_PAIR_CANCELLED','YNX_PAIR_CONFIGURATION_INVALID','YNX_PAIR_SESSION_EXPIRED','YNX_PAIR_PEER_INVALID','YNX_PAIR_NAMESPACE_INVALID','YNX_PAIR_CHAIN_INVALID','YNX_PAIR_SESSION_SELECTION_REQUIRED','YNX_PAIR_METHOD_NOT_APPROVED','YNX_PAIR_CONTEXT_CHANGED','SSO_CONTEXT_CHANGED','SSO_CHALLENGE_EXPIRED','SSO_REQUEST_TIMEOUT','SSO_CSRF_MISMATCH','SSO_TRANSACTION_EXPIRED','SSO_LOGIN_REQUIRED','SSO_REQUEST_FAILED','PROVIDER_WRONG_CHAIN','HOSTED_POPUP_BLOCKED','HOSTED_POPUP_CLOSED','HOSTED_REQUEST_TIMEOUT','HOSTED_REQUEST_EXPIRED_OR_RELOADED','HOSTED_DISCONNECTED','HOSTED_ORIGIN_UNREGISTERED','HOSTED_METHOD_INVALID','HOSTED_REQUEST_FAILED']);
   const raw=typeof error?.code==='string'?error.code:typeof error?.message==='string'?error.message:'';
+  for(const stage of ['INITIALIZATION','RELAY','APPROVAL','REQUEST','CLEANUP'])for(const suffix of ['TIMEOUT','UNAVAILABLE'])known.add(`YNX_PAIR_${stage}_${suffix}`);known.add('YNX_PAIR_TRANSPORT_DRAINING');
   const code=Number(error?.code)===4001||error?.code==='USER_REJECTED'?'USER_REJECTED':known.has(raw)?raw:error?.name==='AbortError'?'SSO_SERVICE_TIMEOUT':error?.name==='TypeError'?'SSO_TRANSPORT_UNAVAILABLE':'SSO_WALLET_OR_SERVICE_UNAVAILABLE';
-  status.dataset.errorCode=code;status.dataset.phase=phase;return code;
+  status.dataset.errorCode=code;status.dataset.phase=['initialization','relay','approval','request','cleanup'].includes(error?.stage)?`pair-${error.stage}`:phase;return code;
 };
 const pairButton=document.createElement('button');pairButton.id='pair';pairButton.type='button';pairButton.textContent=t('Connect mobile YNX Wallet');
 const pairRegion=document.createElement('div');pairRegion.id='pair-request';pairRegion.hidden=true;
@@ -92,7 +93,7 @@ pairButton.addEventListener('click',()=>{
     }});
     if(epoch!==revision||cancelled){await pair.cancel();throw new Error('SSO_CONTEXT_CHANGED');}
     clearPairQR();pairProvider=provider;selected=provider;picker.value='';approve.disabled=false;message('Mobile Wallet connected. Continue to review browser sign-in on the same Wallet session.');
-  })().catch(error=>{clearPairQR();if(epoch===revision&&!cancelled){const code=failure(error,status.dataset.phase);message(`Mobile connection did not finish (${code}). Retry or cancel; no browser sign-in was granted.`);}})
+  })().catch(error=>{clearPairQR();if(epoch===revision&&!cancelled){const code=failure(error,status.dataset.phase);message(code==='YNX_PAIR_TRANSPORT_DRAINING'?'The previous network attempt is still finishing. Choose another wallet, or retry after it ends.':/^YNX_PAIR_(RELAY|INITIALIZATION)_/.test(code)?'The connection service could not be reached. Check your network, then retry or choose another wallet. No browser sign-in was granted.':`Mobile connection did not finish (${code}). Retry or cancel; no browser sign-in was granted.`);}})
     .finally(()=>{pairPending=null;pairButton.removeAttribute('aria-busy');});
 });
 const request=async(path,input)=>{
