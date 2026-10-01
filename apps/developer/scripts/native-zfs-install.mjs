@@ -3,6 +3,18 @@ import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';import { promisify } from 'node:util';import { dirname, join } from 'node:path';import { fileURLToPath } from 'node:url';
 import { protectedPath, protectedAncestors } from './native-zfs-quota-helper.mjs';
 const execute=promisify(execFile),GIB=1024**3,ROOT='/etc/ynx-developer',HELPER=ROOT+'/helpers/native-zfs-quota.mjs',ZCONFIG=ROOT+'/native-zfs.json';
+export async function runNativeInstallCommand(exe,params,options,{runner=execute,now=Date.now}={}){
+  const started=now();
+  try{return await runner(exe,params,options);}catch(error){
+    const phase=exe==='/snap/bin/lxc'?(params[1]==='create'?'lxd-storage-create':'lxd-storage-read'):exe.endsWith('/zpool')?'zpool-'+params[0]:exe.endsWith('/zfs')?'zfs-'+params[0]:exe==='/usr/bin/fallocate'?'project-backing-create':exe==='/usr/bin/id'?'gateway-id-read':exe==='/usr/sbin/visudo'?'sudo-rule-validate':'unknown-command';
+    const stderr=String(error.stderr??'').slice(0,262144),markers=[];
+    for(const [code,pattern]of [['permission-denied',/permission denied/i],['already-exists',/already exists/i],['no-space',/no space left/i],['unknown-driver',/unknown (storage )?driver/i],['shared-library-unavailable',/error while loading shared libraries/i],['invalid-argument',/invalid argument/i],['not-found',/not found|no such file/i],['operation-timeout',/timed? out|timeout/i]])if(pattern.test(stderr))markers.push(code);
+    error.nativeInstallDiagnostic={phase,exitCode:Number.isInteger(error.code)?error.code:null,errorCode:['ENOENT','EACCES','EPERM','ETIMEDOUT','ERR_CHILD_PROCESS_STDIO_MAXBUFFER'].includes(error.code)?error.code:null,signal:['SIGTERM','SIGKILL','SIGINT','SIGABRT','SIGSEGV'].includes(error.signal)?error.signal:null,killed:error.killed===true,elapsedMs:Math.max(0,now()-started),timeoutMs:options.timeout,stderrBytes:Buffer.byteLength(stderr),stderrTruncated:String(error.stderr??'').length>stderr.length,stderrMarkers:markers};
+    // Only fixed diagnostic enums are retained; arbitrary stderr, argv and
+    // environment are never written to the protected journal or console.
+    throw error;
+  }
+}
 export function nativeInstallPlan(config){
   if(Object.keys(config).sort().join()!==['projectsRoot','serviceUid','serviceGid','zfsExecutable','zpoolExecutable','libraryDirectory','sourceHelperPath','expectedHelperSha256'].sort().join())throw Error('Unexpected install fields.');
   if(config.projectsRoot!=='/var/lib/ynx-native/projects'||!Number.isInteger(config.serviceUid)||config.serviceUid<=0||!Number.isInteger(config.serviceGid)||config.serviceGid<=0||!/^[a-f0-9]{64}$/.test(config.expectedHelperSha256))throw Error('Canonical new project path and actual Gateway UID/GID/helper digest are required.');
@@ -29,7 +41,7 @@ async function main(){
   const fs=await statfs('/var/lib',{bigint:true});if(fs.bavail*fs.bsize<BigInt(32*GIB+64*GIB+48*GIB))throw Error('96GiB new storage plus48GiB host reserve cannot fit.');
   const mem=String(await readFile('/proc/meminfo','utf8'));if(Number(/^MemAvailable:\s+(\d+)\s+kB$/m.exec(mem)?.[1]||0)*1024<6*GIB)throw Error('One2GiB QA runtime plus4GiB host reserve cannot fit.');
   const env={PATH:'/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin',LANG:'C',LC_ALL:'C',LD_LIBRARY_PATH:config.libraryDirectory};
-  const run=(exe,params)=>execute(exe,params,{shell:false,env,timeout:30000,maxBuffer:262144});
+  const run=(exe,params)=>runNativeInstallCommand(exe,params,{shell:false,env,timeout:30000,maxBuffer:262144});
   if(Number((await run('/usr/bin/id',['-u','ubuntu'])).stdout.trim())!==config.serviceUid||Number((await run('/usr/bin/id',['-g','ubuntu'])).stdout.trim())!==config.serviceGid)throw Error('Actual ubuntu Gateway UID/GID differs.');
   const zp=(await run(config.zpoolExecutable,['list','-H','-o','name'])).stdout.trim().split('\n');if(zp.includes('ynx-core-projects'))throw Error('Project pool already exists.');
   const pools=JSON.parse((await run('/snap/bin/lxc',['storage','list','--format','json'])).stdout);if(pools.some(row=>row.name==='ynx-core-quota'))throw Error('LXD core pool already exists.');
@@ -45,6 +57,6 @@ async function main(){
     const command='/usr/bin/node '+HELPER;const rule='Cmnd_Alias YNX_NATIVE_QUOTA = '+command+' *\nDefaults!YNX_NATIVE_QUOTA env_reset, !setenv, env_delete += "NODE_OPTIONS NODE_PATH LD_PRELOAD LD_LIBRARY_PATH"\nubuntu ALL=(root) NOPASSWD: YNX_NATIVE_QUOTA\n';
     const staged=ROOT+'/native-quota-sudoers.review';await writeFile(staged,rule,{flag:'wx',mode:0o440});await run('/usr/sbin/visudo',['-cf',staged]);await writeFile('/etc/sudoers.d/ynx-native-quota',rule,{flag:'wx',mode:0o440});
     journal.completed.push('helper-config-sudo-rule');journal.status='installed-not-admitted';await save();console.log(JSON.stringify({...plan,dryRun:false,mutated:true,status:journal.status}));
-  }catch(error){journal.status='failed-preserve-all-resources';try{await save();}catch{}throw Error('Installation failed; preserve journal/backing/pools/config for A review. No rollback or cleanup was executed.');}
+  }catch(error){journal.status='failed-preserve-all-resources';journal.failure=error.nativeInstallDiagnostic??{phase:'post-command-validation'};try{await save();}catch{}console.error(JSON.stringify({status:journal.status,failure:journal.failure}));throw Error('Installation failed; preserve journal/backing/pools/config for A review. No rollback or cleanup was executed.');}
 }
 if(process.argv[1]===fileURLToPath(import.meta.url))main().catch(error=>{console.error(error.message);process.exitCode=1;});
