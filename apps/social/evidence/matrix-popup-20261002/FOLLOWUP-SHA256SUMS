@@ -1,0 +1,8 @@
+d22ce279e278bd4dbce655a6ea4e015bec0ed8e5495d78f4d05bc1b874c4c0e1  apps/social/web/matrix/session-ui.mjs
+4f2cac4dc1b16b5ca455b4d1da12f66b166f464e271f05594d89ebf46e896968  apps/social/web/matrix/transport.mjs
+a9d250471c0f40a02af89d5e2fdf03992face353feb1bae8451deabb84ab5c66  apps/social/web/matrix/sso-reauth.mjs
+af23a723eb050143d88769c1b4c0b510de8b2ce9ce603e2e2d5d211eba357caf  apps/social/web/matrix/sso-reauth.test.mjs
+9b02331e1629664ae792a2d929c25145fbcd02f29225e9ab6c32075f0665cc50  apps/social/web/matrix/device-reauth.test.mjs
+e14fbeefc35428c1b2980616a509ce29eb310ce5f99feb22f1a611af221f9185  apps/social/scripts/matrix-qa/popup.mjs
+99350b5b7658be41b4947e827e4224d1657db4ef526447994b404be49c9d5c5c  apps/social/evidence/matrix-popup-20261002/popup-engineering-pass.json
+af4424bcd01da55879587d5d829310967027a71b544153f3272d876f4e922a0c  apps/social/evidence/matrix-popup-20261002/FOLLOWUP.md

@@ -1,0 +1,27 @@
+{
+  "status": "LOCAL_ENGINEERING_POPUP_PASS",
+  "checks": [
+    {
+      "name": "success-real-browser-popup",
+      "passed": true
+    },
+    {
+      "name": "cancel-real-browser-popup",
+      "passed": true
+    },
+    {
+      "name": "expiry-real-browser-popup",
+      "passed": true
+    },
+    {
+      "name": "switch-real-browser-popup",
+      "passed": true
+    }
+  ],
+  "notRun": [
+    "real-Synapse-UIA",
+    "production-OIDC",
+    "device-deletion",
+    "normal-public-product"
+  ]
+}
