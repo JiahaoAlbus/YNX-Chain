@@ -145,3 +145,67 @@ func TestNodeEndpointAuthorityHistoryUsesOnlyValidatedCheckpointArgument(t *test
 		t.Fatal("extra fields/unbounded response accepted")
 	}
 }
+
+type browserRootAnchorFixture struct {
+	browserConfigFixture
+	after EndpointAuthorityHistoryCheckpoint
+}
+
+func (f *browserRootAnchorFixture) BrowserRootAnchor(_ context.Context, after EndpointAuthorityHistoryCheckpoint) ([]byte, error) {
+	f.after = after
+	return []byte(`{"schemaVersion":"ynx-finance-endpoint-authority-root-anchor/v1","after":{},"manifest":{}}`), nil
+}
+func TestEndpointAuthorityRootAnchorStrictQueryAndNoStore(t *testing.T) {
+	fixture := &browserRootAnchorFixture{}
+	server := &Server{cfg: ServerConfig{EndpointAuthority: fixture}}
+	good := "/api/endpoint-authority/v2/root-anchor?rootVersion=1&sequence=7&payloadSha256=" + strings.Repeat("a", 64)
+	response := httptest.NewRecorder()
+	server.endpointAuthorityBrowserRootAnchor(response, httptest.NewRequest(http.MethodGet, good, nil))
+	if response.Code != 200 || response.Header().Get("Cache-Control") != "no-store" || fixture.after.Sequence != 7 {
+		t.Fatal("bounded history unavailable", response.Code)
+	}
+	for _, query := range []string{"", "?rootVersion=1&sequence=7", "?rootVersion=1&sequence=7&payloadSha256=" + strings.Repeat("a", 64) + "&extra=x", "?rootVersion=1&rootVersion=2&sequence=7&payloadSha256=" + strings.Repeat("a", 64), "?rootVersion=1&sequence=-1&payloadSha256=" + strings.Repeat("a", 64), "?rootVersion=1&sequence=7&payloadSha256=" + strings.Repeat("z", 64)} {
+		response = httptest.NewRecorder()
+		server.endpointAuthorityBrowserRootAnchor(response, httptest.NewRequest(http.MethodGet, "/api/endpoint-authority/v2/root-anchor"+query, nil))
+		if response.Code != 400 {
+			t.Fatal("invalid query accepted", response.Code)
+		}
+	}
+	server.cfg.EndpointAuthority = browserConfigFixture{}
+	response = httptest.NewRecorder()
+	server.endpointAuthorityBrowserRootAnchor(response, httptest.NewRequest(http.MethodGet, good, nil))
+	if response.Code != 503 {
+		t.Fatal("missing history provider accepted")
+	}
+}
+
+func TestNodeEndpointAuthorityRootAnchorUsesOnlyValidatedCheckpointArgument(t *testing.T) {
+	dir := t.TempDir()
+	script := filepath.Join(dir, "history.sh")
+	body := "#!/bin/sh\n[ \"$#\" -eq 1 ] || exit 91\n[ \"$YNX_FINANCE_ENDPOINT_AUTHORITY_V2_OUTPUT_MODE\" = browser-root-anchor ] || exit 92\n[ -z \"$YNX_HISTORY_SECRET_TEST\" ] || exit 93\nprintf '{\"schemaVersion\":\"ynx-finance-endpoint-authority-root-anchor/v1\",\"after\":%s,\"manifest\":{}}' \"$1\"\n"
+	if err := os.WriteFile(script, []byte(body), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("YNX_HISTORY_SECRET_TEST", "must-not-inherit")
+	gate, err := NewNodeEndpointAuthority(NodeEndpointAuthorityConfig{NodeBinary: "/bin/sh", Script: script, TrustRootFile: filepath.Join(dir, "root"), ManifestFile: filepath.Join(dir, "manifest"), CheckpointFile: filepath.Join(dir, "checkpoint"), TrustedTimeFile: filepath.Join(dir, "time"), Timeout: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	history := gate.(EndpointAuthorityBrowserRootAnchorProvider)
+	after := EndpointAuthorityHistoryCheckpoint{RootVersion: 1, Sequence: 7, PayloadSHA256: strings.Repeat("a", 64)}
+	if _, err = history.BrowserRootAnchor(context.Background(), after); err != nil {
+		t.Fatal(err)
+	}
+	after.PayloadSHA256 = "invalid"
+	if _, err = history.BrowserRootAnchor(context.Background(), after); err == nil {
+		t.Fatal("invalid checkpoint passed")
+	}
+	body = "#!/bin/sh\nprintf '%s' '{\"schemaVersion\":\"ynx-finance-endpoint-authority-root-anchor/v1\",\"after\":{},\"manifests\":[{},{},{}],\"privateKey\":\"not-allowed\"}'\n"
+	if err = os.WriteFile(script, []byte(body), 0700); err != nil {
+		t.Fatal(err)
+	}
+	after.PayloadSHA256 = strings.Repeat("a", 64)
+	if _, err = history.BrowserRootAnchor(context.Background(), after); err == nil {
+		t.Fatal("extra fields/unbounded response accepted")
+	}
+}

@@ -188,6 +188,33 @@ export function createEndpointAuthorityClient({trustRoot,consumer,storage,clock}
 }
 export function isSignedEndpointAuthority(value){return brands.has(value);}
 
+// A separately reviewed, versioned trust root may establish its exact signed
+// anchor. This advances only the durable checkpoint, never active authority.
+// Contiguous history and normal current-time accept remain mandatory afterward.
+export async function recoverEndpointAuthorityRootAnchor({trustRoot,consumer,storage,clock,anchorManifest,current,expectedCheckpoint,expectedTrustRootSHA256}={}){
+  const r=assertAuthorityV2TrustRoot(trustRoot),ctx=freeze(clone(consumer));
+  check(typeof expectedTrustRootSHA256==='string'&&/^[a-f0-9]{64}$/.test(expectedTrustRootSHA256),'AUTHORITY_V2_TRUST_ROOT_PIN_REQUIRED');
+  const rootDigest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(canonicalAuthorityV2(r)))),b=>b.toString(16).padStart(2,'0')).join('');
+  check(rootDigest===expectedTrustRootSHA256,'AUTHORITY_V2_TRUST_ROOT_PIN_MISMATCH');
+  check(storage&&typeof storage.read==='function'&&typeof storage.compareAndSwap==='function'&&typeof clock==='function','AUTHORITY_V2_DURABLE_STORAGE_REQUIRED');
+  const expected=freeze(clone(expectedCheckpoint));checkpoint(expected);
+  const previous=freeze(clone(await storage.read()));check(same(previous,expected),'AUTHORITY_V2_CHECKPOINT_CONFLICT');
+  check(previous.rootVersion<r.rootVersion&&previous.sequence<=r.anchor.sequence,'AUTHORITY_V2_ROOT_TRANSITION');
+  if(previous.sequence===r.anchor.sequence)check(previous.payloadSha256===r.anchor.payloadSha256,'AUTHORITY_V2_ANCHOR_CONFLICT');
+  const document=freeze(clone(anchorManifest)),latest=freeze(clone(current));
+  check(document.sequence===r.anchor.sequence&&document.integrity?.payloadSha256===r.anchor.payloadSha256,'AUTHORITY_V2_ANCHOR_CONFLICT');
+  const issued=time(document.issuedAt),at=now(clock());check(issued<=at,'AUTHORITY_V2_HISTORY_FUTURE');
+  await verifySignedEndpointAuthority(document,{trustRoot:r,consumer:ctx,checkpoint:r.anchor,nowMs:issued});
+  check(latest.sequence>r.anchor.sequence,'AUTHORITY_V2_ROOT_TRANSITION');
+  // Independent current validity is required before any history-only CAS; this
+  // self-checkpoint does not grant authority or bypass final contiguous accept.
+  await verifySignedEndpointAuthority(latest,{trustRoot:r,consumer:ctx,checkpoint:nextCheckpoint(latest,r),nowMs:at});
+  const beforeCommit=now(clock());check(beforeCommit>=at,'AUTHORITY_V2_CLOCK_ROLLBACK');assertAuthorityV2Manifest(latest,{nowMs:beforeCommit});
+  check(await storage.compareAndSwap(previous,r.anchor),'AUTHORITY_V2_CHECKPOINT_CONFLICT');
+  const afterCommit=now(clock());check(afterCommit>=beforeCommit,'AUTHORITY_V2_CLOCK_ROLLBACK');assertAuthorityV2Manifest(latest,{nowMs:afterCommit});
+  return freeze(clone(r.anchor));
+}
+
 // A history bridge proves continuity only. Historical documents are checked at
 // their signed issuance time, never branded or returned as active authority.
 // Default recovery validates the complete bridge and current before CAS. Explicit

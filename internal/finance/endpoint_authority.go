@@ -33,6 +33,10 @@ type EndpointAuthorityBrowserHistoryProvider interface {
 	BrowserHistory(context.Context, EndpointAuthorityHistoryCheckpoint) ([]byte, error)
 }
 
+type EndpointAuthorityBrowserRootAnchorProvider interface {
+	BrowserRootAnchor(context.Context, EndpointAuthorityHistoryCheckpoint) ([]byte, error)
+}
+
 type NodeEndpointAuthorityConfig struct {
 	NodeBinary, Script, TrustRootFile, ManifestFile, CheckpointFile, TrustedTimeFile string
 	Timeout                                                                          time.Duration
@@ -154,6 +158,30 @@ func (g *nodeEndpointAuthority) BrowserHistory(ctx context.Context, after Endpoi
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(&response) != nil || decoder.Decode(&struct{}{}) != io.EOF || response.SchemaVersion != "ynx-finance-endpoint-authority-history/v1" || response.After != after || len(response.Manifests) < 1 || len(response.Manifests) > 2 {
 		return nil, errors.New("FINANCE_AUTHORITY_V2_HISTORY_RESPONSE_INVALID")
+	}
+	return append([]byte(nil), stdout...), nil
+}
+
+func (g *nodeEndpointAuthority) BrowserRootAnchor(ctx context.Context, after EndpointAuthorityHistoryCheckpoint) ([]byte, error) {
+	if after.RootVersion < 1 || after.Sequence < 0 || !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(after.PayloadSHA256) {
+		return nil, errors.New("FINANCE_AUTHORITY_V2_HISTORY_QUERY_INVALID")
+	}
+	g.browserMu.Lock()
+	defer g.browserMu.Unlock()
+	query, _ := json.Marshal(after)
+	stdout, err := g.run(ctx, "browser-root-anchor", string(query))
+	if err != nil {
+		return nil, err
+	}
+	var response struct {
+		SchemaVersion string                             `json:"schemaVersion"`
+		After         EndpointAuthorityHistoryCheckpoint `json:"after"`
+		Manifest      json.RawMessage                    `json:"manifest"`
+	}
+	decoder := json.NewDecoder(bytes.NewReader(stdout))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&response) != nil || decoder.Decode(&struct{}{}) != io.EOF || response.SchemaVersion != "ynx-finance-endpoint-authority-root-anchor/v1" || response.After != after || len(response.Manifest) == 0 {
+		return nil, errors.New("FINANCE_AUTHORITY_V2_ANCHOR_RESPONSE_INVALID")
 	}
 	return append([]byte(nil), stdout...), nil
 }

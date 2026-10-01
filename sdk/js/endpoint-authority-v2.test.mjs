@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {generateKeyPairSync,createHash,sign} from 'node:crypto';
 import {execFileSync,spawnSync} from 'node:child_process';
-import {AUTHORITY_V2_URLS,AUTHORITY_V2_REPOSITORY,canonicalAuthorityV2Payload,authorityV2SigningMessage,assertAuthorityV2Manifest,assertAuthorityV2TrustRoot,verifySignedEndpointAuthority,selectSignedAuthorityEndpoint,financeProductSessionAuthority,createEndpointAuthorityClient,recoverEndpointAuthorityHistory} from './endpoint-authority-v2.js';
+import {AUTHORITY_V2_URLS,AUTHORITY_V2_REPOSITORY,canonicalAuthorityV2Payload,authorityV2SigningMessage,canonicalAuthorityV2,assertAuthorityV2Manifest,assertAuthorityV2TrustRoot,verifySignedEndpointAuthority,selectSignedAuthorityEndpoint,financeProductSessionAuthority,createEndpointAuthorityClient,recoverEndpointAuthorityHistory,recoverEndpointAuthorityRootAnchor} from './endpoint-authority-v2.js';
 import {validateEndpointAuthority,selectAuthorityEndpoint} from './endpoint-authority.js';
 import {bundledEndpointAuthority,endpointAuthorityPin} from './endpoint-authority-bundle.js';
 import {prepareAuthorityV2Draft,issueAuthorityV2,authorityV2Doctor,validateAuthorityV2ReceiptFiles} from '../../scripts/ops/endpoint-authority-v2.mjs';
@@ -282,3 +282,42 @@ test('explicit malformed expected checkpoint never disables the history CAS fenc
  const {one,two,three,current}=historyFixture(),store=storage(next(one));let attempts=0;store.compareAndSwap=async()=>{attempts++;return true};
  await assert.rejects(recoverEndpointAuthorityHistory({trustRoot:root,consumer,storage:store,clock:()=>nowMs,history:[two,three],current,expectedCheckpoint:null}));assert.equal(attempts,0);assert.deepEqual(await store.read(),next(one));
 });
+
+function rootTransitionFixture(){
+ const one=signed(),anchor=following(one),newKey=generateKeyPairSync('ed25519'),rotated=copy(root);rotated.rootVersion=2;rotated.anchor={...next(anchor),rootVersion:2};
+ rotated.keys.push({...rotated.keys[0],keyId:'new-finite-key',publicKeyBase64url:newKey.publicKey.export({format:'jwk'}).x,notBefore:iso(nowMs-100),notAfter:iso(nowMs+7200000)});
+ const d=draft();d.sequence=3;d.manifestVersion='2.0.0.3';d.previousPayloadSha256=anchor.integrity.payloadSha256;delete d.consumers[0].clientVersion;
+ const current=prepareAuthorityV2Draft(d,'new-finite-key');current.integrity.signature=sign(null,Buffer.from(authorityV2SigningMessage(current,current.integrity.keyId)),newKey.privateKey).toString('base64url');
+ const store=storage(next(one));return {one,anchor,current,rotated,store,options:{trustRoot:rotated,consumer,storage:store,clock:()=>nowMs,anchorManifest:anchor,current,expectedCheckpoint:next(one),expectedTrustRootSHA256:sha(canonicalAuthorityV2(rotated))}};
+}
+test('reviewed new finite root signed anchor moves lagging checkpoint only; current still requires normal accept',async()=>{
+ const f=rootTransitionFixture();const client=createEndpointAuthorityClient({trustRoot:f.rotated,consumer,storage:f.store,clock:()=>nowMs});
+ const checkpoint=await recoverEndpointAuthorityRootAnchor(f.options);assert.deepEqual(checkpoint,f.rotated.anchor);assert.equal(isSignedEndpointAuthorityForTest(checkpoint),false);await assert.rejects(client.financeProductSession(),/NOT_ACTIVE/);
+ await client.accept(f.current,{source:'remote'});assert.equal((await client.financeProductSession()).walletGateway,AUTHORITY_V2_URLS.walletGateway);
+ await assert.rejects(verifySignedEndpointAuthority(f.current,options({checkpoint:await f.store.read()})),/ROOT_ROLLBACK|UNKNOWN_OR_REVOKED_KEY/);
+});
+function isSignedEndpointAuthorityForTest(value){try{financeProductSessionAuthority(value,{checkpoint:value,nowMs});return true}catch{return false}}
+for(const [label,mutate,code] of [
+ ['wrong anchor digest',f=>f.options.anchorManifest={...f.anchor,integrity:{...f.anchor.integrity,payloadSha256:'f'.repeat(64)}},'ANCHOR_CONFLICT'],
+ ['anchor bad signature',f=>f.options.anchorManifest={...f.anchor,integrity:{...f.anchor.integrity,signature:Buffer.alloc(64).toString('base64url')}},'SIGNATURE_INVALID'],
+ ['revoked old key',f=>f.rotated.keys[0].revoked=true,'UNKNOWN_OR_REVOKED_KEY'],
+ ['revoked new key',f=>f.rotated.keys[1].revoked=true,'UNKNOWN_OR_REVOKED_KEY'],
+ ['wrong consumer',f=>f.options.consumer={...consumer,origin:'https://wrong.invalid'},'WRONG_CONSUMER'],
+ ['expired current',f=>f.options.clock=()=>Date.parse(f.current.expiresAt),'EXPIRED_OR_FUTURE'],
+ ['future anchor',f=>f.options.clock=()=>nowMs-200,'HISTORY_FUTURE'],
+ ['same root',f=>f.options.storage=storage({...next(f.one),rootVersion:2}),'CHECKPOINT_CONFLICT'],
+ ['anchor equivocation',f=>{f.options.storage=storage({...next(f.anchor),payloadSha256:'f'.repeat(64)});f.options.expectedCheckpoint={...next(f.anchor),payloadSha256:'f'.repeat(64)}},'ANCHOR_CONFLICT'],
+ ])test('signed root anchor rejects '+label+' without committing',async()=>{
+ const f=rootTransitionFixture();mutate(f);f.options.expectedTrustRootSHA256=sha(canonicalAuthorityV2(f.rotated));let count=0;const original=f.options.storage.compareAndSwap;f.options.storage.compareAndSwap=async(...args)=>{count++;return original(...args)};
+ await assert.rejects(recoverEndpointAuthorityRootAnchor(f.options),new RegExp(code));assert.equal(count,0);
+});
+test('expired historical anchor can establish reviewed floor; failed CAS and clock rollback preserve old record',async()=>{
+ const f=rootTransitionFixture();f.options.clock=()=>nowMs+3600000;f.current.expiresAt=iso(nowMs+7200000); // re-sign current, not historical anchor
+ f.current.integrity={};const k=generateKeyPairSync('ed25519');f.rotated.keys[1].publicKeyBase64url=k.publicKey.export({format:'jwk'}).x;
+ const m=prepareAuthorityV2Draft(f.current,'new-finite-key');m.integrity.signature=sign(null,Buffer.from(authorityV2SigningMessage(m,m.integrity.keyId)),k.privateKey).toString('base64url');f.options.current=m;f.options.expectedTrustRootSHA256=sha(canonicalAuthorityV2(f.rotated));
+ assert.deepEqual(await recoverEndpointAuthorityRootAnchor(f.options),f.rotated.anchor);
+ const conflict=rootTransitionFixture();conflict.store.compareAndSwap=async()=>false;await assert.rejects(recoverEndpointAuthorityRootAnchor(conflict.options),/CHECKPOINT_CONFLICT/);assert.deepEqual(await conflict.store.read(),next(conflict.one));
+ const rollback=rootTransitionFixture();let n=0;rollback.options.clock=()=>++n===1?nowMs:nowMs-1;await assert.rejects(recoverEndpointAuthorityRootAnchor(rollback.options),/CLOCK_ROLLBACK/);assert.deepEqual(await rollback.store.read(),next(rollback.one));
+});
+
+test('root anchor requires an independently supplied exact reviewed root digest',async()=>{const f=rootTransitionFixture();delete f.options.expectedTrustRootSHA256;await assert.rejects(recoverEndpointAuthorityRootAnchor(f.options),/PIN_REQUIRED/);f.options.expectedTrustRootSHA256='f'.repeat(64);await assert.rejects(recoverEndpointAuthorityRootAnchor(f.options),/PIN_MISMATCH/);assert.deepEqual(await f.store.read(),next(f.one));});

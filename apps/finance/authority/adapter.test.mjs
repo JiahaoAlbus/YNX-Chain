@@ -7,7 +7,7 @@ import {spawn} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {AUTHORITY_V2_REPOSITORY,AUTHORITY_V2_URLS,authorityV2SigningMessage,canonicalAuthorityV2} from '../../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft} from '../../../scripts/ops/endpoint-authority-v2.mjs';
-import {resolveFinanceBrowserAuthorityConfig,resolveFinanceBrowserAuthorityHistory,resolveFinancePrivateAuthority} from './adapter.mjs';
+import {resolveFinanceBrowserRootAnchor,resolveFinanceBrowserAuthorityConfig,resolveFinanceBrowserAuthorityHistory,resolveFinancePrivateAuthority} from './adapter.mjs';
 import {createNodeCheckpointStore} from './checkpoint-node.mjs';
 import {loadFinanceAuthorityConfig} from './config.mjs';
 
@@ -229,4 +229,26 @@ test('bounded browser history returns only two contiguous signed public document
  await assert.rejects(resolveFinanceBrowserAuthorityHistory({env:value.env,after:{...after,payloadSha256:'f'.repeat(64)}}),/PREDECESSOR/);
  await fs.rm(path.join(value.dir,'signed-manifest-seq2.json'));await assert.rejects(resolveFinanceBrowserAuthorityHistory({env:value.env,after}),/HISTORY_MISSING/);
  await fs.writeFile(path.join(value.dir,'signed-manifest-seq2.json'),JSON.stringify(two));await fs.writeFile(path.join(value.dir,'signed-manifest-seq2-fork.json'),JSON.stringify(signed({sequence:2,previousPayloadSha256:one.integrity.payloadSha256,tree:'e'.repeat(40)})));await assert.rejects(resolveFinanceBrowserAuthorityHistory({env:value.env,after}),/HISTORY_CONFLICT/);
+});
+
+test('reviewed root anchor endpoint returns only exact signed public anchor from original archive',async t=>{
+ const one=signed(),two=signed({sequence:2,previousPayloadSha256:one.integrity.payloadSha256}),three=signed({sequence:3,previousPayloadSha256:two.integrity.payloadSha256});const value=await fixture(t,{manifest:one});
+ await resolveFinanceBrowserAuthorityConfig({env:value.env});await fs.writeFile(value.files.manifestFile,JSON.stringify(two));await resolveFinanceBrowserAuthorityConfig({env:value.env});
+ const root2={...copy(root),rootVersion:2,anchor:{...browserCheckpoint(two),rootVersion:2}};await fs.writeFile(value.files.trustRootFile,JSON.stringify(root2));await fs.writeFile(value.files.manifestFile,JSON.stringify(three));
+ const file=path.join(value.dir,'signed-maintenance-seq-2-'+two.integrity.payloadSha256+'.json');await fs.writeFile(file,JSON.stringify(two));
+ await Promise.all(Array.from({length:600},(_,i)=>fs.writeFile(path.join(value.dir,'signed-manifest-seq'+(100+i)+'.json'),'unrelated-no-open')));
+ const after=browserCheckpoint(one),result=await resolveFinanceBrowserRootAnchor({env:value.env,after});assert.deepEqual(result,{schemaVersion:'ynx-finance-endpoint-authority-root-anchor/v1',after,manifest:two});assert.equal(Buffer.byteLength(JSON.stringify(result))<16384,true);
+ await assert.rejects(resolveFinanceBrowserRootAnchor({env:value.env,after:{...after,extra:1}}),/QUERY_INVALID/);
+ await assert.rejects(resolveFinanceBrowserRootAnchor({env:value.env,after:{...after,rootVersion:2}}),/TRANSITION_INVALID/);
+ await assert.rejects(resolveFinanceBrowserRootAnchor({env:value.env,after:{...browserCheckpoint(two),payloadSha256:'f'.repeat(64)}}),/TRANSITION_INVALID/);
+ await fs.writeFile(file,JSON.stringify({...two,integrity:{...two.integrity,signature:Buffer.alloc(64).toString('base64url')}}));await assert.rejects(resolveFinanceBrowserRootAnchor({env:value.env,after}),/SIGNATURE_INVALID/);
+ await fs.rm(file);await assert.rejects(resolveFinanceBrowserRootAnchor({env:value.env,after}),/HISTORY_MISSING/);
+});
+
+test('existing complete Node journal reads new finite key at reviewed root2 anchor without clearing old history',async t=>{
+ const one=signed(),two=signed({sequence:2,previousPayloadSha256:one.integrity.payloadSha256}),value=await fixture(t,{manifest:one});await resolveFinancePrivateAuthority({env:value.env});await fs.writeFile(value.files.manifestFile,JSON.stringify(two));await resolveFinancePrivateAuthority({env:value.env});
+ const newKey=generateKeyPairSync('ed25519'),root2={...copy(root),rootVersion:2,anchor:{...browserCheckpoint(two),rootVersion:2},keys:[...copy(root.keys),{...copy(root.keys[0]),keyId:'new-finite',publicKeyBase64url:newKey.publicKey.export({format:'jwk'}).x,notBefore:iso(nowMs-1000),notAfter:iso(nowMs+7200000)}]};
+ const d=copy(signed({sequence:3,previousPayloadSha256:two.integrity.payloadSha256}));d.integrity={};const three=prepareAuthorityV2Draft(d,'new-finite');three.integrity.signature=sign(null,Buffer.from(authorityV2SigningMessage(three,three.integrity.keyId)),newKey.privateKey).toString('base64url');
+ await fs.writeFile(value.files.trustRootFile,JSON.stringify(root2));await fs.writeFile(value.files.manifestFile,JSON.stringify(three));assert.equal((await resolveFinancePrivateAuthority({env:value.env})).manifestVersion,'2.0.0.3');assert.deepEqual(await createNodeCheckpointStore({file:value.files.checkpointFile,anchor:root2.anchor,trustedClockMs:nowMs}).read(),{rootVersion:2,sequence:3,payloadSha256:three.integrity.payloadSha256});
+ await fs.writeFile(value.files.trustRootFile,JSON.stringify(root));await assert.rejects(resolveFinancePrivateAuthority({env:value.env}),/ROOT_ROLLBACK/);
 });

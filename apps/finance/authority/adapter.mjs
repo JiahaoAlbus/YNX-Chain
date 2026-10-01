@@ -50,6 +50,27 @@ export async function resolveFinanceBrowserAuthorityHistory({after,env=process.e
   return result;
 }
 
+export async function resolveFinanceBrowserRootAnchor({after,env=process.env,clockSource=sampleFinanceTrustedClock}={}){
+  if(!after||Object.keys(after).sort().join(',')!=='payloadSha256,rootVersion,sequence'||!Number.isSafeInteger(after.rootVersion)||after.rootVersion<1||!Number.isSafeInteger(after.sequence)||after.sequence<0||!/^[a-f0-9]{64}$/.test(after.payloadSha256))throw new Error('FINANCE_AUTHORITY_V2_HISTORY_QUERY_INVALID');
+  const config=loadFinanceAuthorityConfig(env),current=await resolveFinanceBrowserAuthorityConfig({env,clockSource}),anchor=current.trustRoot.anchor;
+  if(after.rootVersion>=current.trustRoot.rootVersion||after.sequence>anchor.sequence||(after.sequence===anchor.sequence&&after.payloadSha256!==anchor.payloadSha256)||current.manifest.sequence<=anchor.sequence)throw new Error('FINANCE_AUTHORITY_V2_ROOT_TRANSITION_INVALID');
+  const directory=path.dirname(config.manifestFile);if(directory!==path.dirname(config.checkpointFile))throw new Error('FINANCE_AUTHORITY_V2_HISTORY_DIRECTORY_INVALID');
+  let selected=null,entries=0,candidates=0;const started=performance.now();
+  for await(const entry of await fs.opendir(directory)){
+    if(++entries>16384||performance.now()-started>500)throw new Error('FINANCE_AUTHORITY_V2_HISTORY_SCAN_BOUND');
+    const name=entry.name,manual=/^signed-manifest-seq([1-9][0-9]*)[a-zA-Z0-9.-]*\.json$/.exec(name),maintenance=/^signed-maintenance-seq-([1-9][0-9]*)-[a-f0-9]{64}\.json$/.exec(name);
+    const sequence=name==='signed-manifest.json'?1:Number((manual??maintenance)?.[1]);if(sequence!==anchor.sequence)continue;
+    if(++candidates>8)throw new Error('FINANCE_AUTHORITY_V2_HISTORY_BOUND');
+    const document=await readAuthorityJSON(path.join(directory,name));
+    if(document.sequence!==sequence||document.integrity?.payloadSha256!==anchor.payloadSha256)throw new Error('FINANCE_AUTHORITY_V2_ANCHOR_CONFLICT');
+    if(selected&&canonicalAuthorityV2(selected)!==canonicalAuthorityV2(document))throw new Error('FINANCE_AUTHORITY_V2_HISTORY_CONFLICT');selected=document;
+  }
+  if(!selected)throw new Error('FINANCE_AUTHORITY_V2_HISTORY_MISSING');
+  const issued=Date.parse(selected.issuedAt);if(!Number.isSafeInteger(issued)||issued>current.trustedTimeMs)throw new Error('FINANCE_AUTHORITY_V2_HISTORY_FUTURE');
+  await verifySignedEndpointAuthority(selected,{trustRoot:current.trustRoot,consumer:endpointAuthorityConsumer('web'),checkpoint:anchor,nowMs:issued});
+  const result={schemaVersion:'ynx-finance-endpoint-authority-root-anchor/v1',after,manifest:selected};if(Buffer.byteLength(JSON.stringify(result))>16384)throw new Error('FINANCE_AUTHORITY_V2_HISTORY_BOUND');return result;
+}
+
 export async function resolveFinancePrivateAuthority({env=process.env,clockSource=sampleFinanceTrustedClock}={}){
   const config=loadFinanceAuthorityConfig(env);
   if(!config.enabled)throw Object.assign(new Error('PRIVATE_SERVICE_DEGRADED: Finance Endpoint Authority v2 is not configured. Standard Wallet and public Finance remain available.'),{code:config.reason});

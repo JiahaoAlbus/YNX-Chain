@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-import {resolveFinanceBrowserAuthorityConfig,resolveFinanceBrowserAuthorityHistory,resolveFinancePrivateAuthority} from '../authority/adapter.mjs';
+import {resolveFinanceBrowserRootAnchor,resolveFinanceBrowserAuthorityConfig,resolveFinanceBrowserAuthorityHistory,resolveFinancePrivateAuthority} from '../authority/adapter.mjs';
 
 try{
-  if(process.env.YNX_FINANCE_ENDPOINT_AUTHORITY_V2_OUTPUT_MODE==='browser-history'){
+  if(process.env.YNX_FINANCE_ENDPOINT_AUTHORITY_V2_OUTPUT_MODE==='browser-root-anchor'){
+    process.stdout.write(JSON.stringify(await resolveFinanceBrowserRootAnchor({after:JSON.parse(process.argv[2])}))+'\n');
+  }else if(process.env.YNX_FINANCE_ENDPOINT_AUTHORITY_V2_OUTPUT_MODE==='browser-history'){
     process.stdout.write(JSON.stringify(await resolveFinanceBrowserAuthorityHistory({after:JSON.parse(process.argv[2])}))+'\n');
   }else if(process.env.YNX_FINANCE_ENDPOINT_AUTHORITY_V2_OUTPUT_MODE==='browser-config'){
     process.stdout.write(JSON.stringify(await resolveFinanceBrowserAuthorityConfig())+'\n');
