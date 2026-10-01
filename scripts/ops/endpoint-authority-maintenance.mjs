@@ -258,7 +258,7 @@ export async function verifyPendingConfirmation({pendingManifest,currentManifest
  await verifySignedEndpointAuthority(currentManifest,{trustRoot:root,checkpoint:accepted,consumer,nowMs});
  return{status:superseded?'CONFIRMED_SUPERSEDED_PENDING':'CONFIRMED_CURRENT_PENDING',...accepted,signed:false,stateRewound:false};
 }
-export async function durableSame(file,bytes,{helper=activationLease?.helper??'/usr/bin/python3',beforePublish=async()=>{}}={}){
+export async function durableSame(file,bytes,{helper=activationLease?.helper??'/usr/bin/python3',beforePublish=async()=>{},afterPublish=async()=>{}}={}){
  try{requireFact((await protectedFile(file,process.getuid())).equals(bytes),'MAINTENANCE_CONFIRMATION_AUDIT_CHANGED');await syncDirectory(path.dirname(file));return}catch(error){if(error.code!=='ENOENT')throw error}
  const temporary=path.join(path.dirname(file),'.confirmation-audit-'+randomUUID()+'.tmp');
  try{
@@ -268,6 +268,7 @@ export async function durableSame(file,bytes,{helper=activationLease?.helper??'/
   const result=spawnSync(helper,['-c',python,temporary,file],{stdio:'pipe',timeout:3000});
   requireFact(!result.error&&[0,17].includes(result.status),'MAINTENANCE_AUDIT_PUBLICATION_FAILED');
   if(result.status===17)requireFact((await protectedFile(file,process.getuid())).equals(bytes),'MAINTENANCE_CONFIRMATION_AUDIT_CHANGED');
+  await afterPublish();
   await syncDirectory(path.dirname(file));
  }finally{await fs.unlink(temporary).catch(error=>{if(error.code!=='ENOENT')throw error})}
 }

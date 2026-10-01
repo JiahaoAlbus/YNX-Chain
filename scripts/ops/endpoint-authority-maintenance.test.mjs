@@ -220,3 +220,10 @@ test('actual SIGKILL during partial unpublished audit allows a fresh atomic retr
   for(let i=0;i<100;i++){if(await fs.stat(ready).catch(()=>null))break;await new Promise(r=>setTimeout(r,20));}assert.ok(await fs.stat(ready).catch(()=>null));const closed=new Promise(r=>child.once('exit',r));child.kill('SIGKILL');await closed;await assert.rejects(fs.stat(final),{code:'ENOENT'});assert.ok((await fs.readdir(dir)).some(n=>n.startsWith('.confirmation-audit-')));await durableSame(final,bytes);assert.deepEqual(await fs.readFile(final),bytes);
  }finally{if(child&&!child.killed)child.kill('SIGKILL');await fs.rm(dir,{recursive:true,force:true})}
 });
+test('actual SIGKILL after no-replace publication retries the equal path before pending removal',async()=>{
+ const dir=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'pending-published-kill-'))),final=path.join(dir,'audit.json'),ready=path.join(dir,'ready');await fs.chmod(dir,0o700);const bytes=Buffer.from('complete audit');let child;
+ try{const module=pathToFileURL(path.resolve('scripts/ops/endpoint-authority-maintenance.mjs')).href;
+ child=spawn(process.execPath,['--input-type=module','-e',`import fs from'node:fs/promises';import{durableSame}from ${JSON.stringify(module)};await durableSame(${JSON.stringify(final)},Buffer.from('complete audit'),{afterPublish:async()=>{await fs.writeFile(${JSON.stringify(ready)},'ready');await new Promise(()=>{setInterval(()=>{},1000)});}});`],{stdio:'ignore'});
+ for(let i=0;i<100;i++){if(await fs.stat(ready).catch(()=>null))break;await new Promise(r=>setTimeout(r,20));}assert.ok(await fs.stat(ready).catch(()=>null));const closed=new Promise(r=>child.once('exit',r));child.kill('SIGKILL');await closed;assert.deepEqual(await fs.readFile(final),bytes);await durableSame(final,bytes);assert.deepEqual(await fs.readFile(final),bytes);
+ }finally{if(child&&!child.killed)child.kill('SIGKILL');await fs.rm(dir,{recursive:true,force:true})}
+});
