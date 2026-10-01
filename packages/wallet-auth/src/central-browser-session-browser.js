@@ -83,9 +83,8 @@ pairButton.addEventListener('click',()=>{
   pair??=new WalletConnectDAppConnection({origin:location.origin,methods:['ynx_requestCentralBrowserSignIn'],deadlineMs:Math.max(1,Math.min(30000,Date.parse(challenge.expiresAt)-Date.now()))});
   pairPending=(async()=>{
     status.dataset.phase='pair-initialize';delete status.dataset.errorCode;
-    let provider=await pair.restore();if(epoch!==revision||cancelled)throw new Error('SSO_CONTEXT_CHANGED');
     status.dataset.phase='pair-connect';
-    if(!provider)provider=await pair.connect({onURI:uri=>{
+    const provider=await pair.connect({restore:true,onURI:uri=>{
       if(epoch!==revision||cancelled)return;
       // Pairing URI contains a temporary secret: only render it locally. It
       // must never enter diagnostics, URLs, business storage or telemetry.

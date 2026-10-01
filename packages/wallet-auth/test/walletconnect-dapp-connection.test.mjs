@@ -128,3 +128,9 @@ test('AI exact origin uses the existing official private method transport withou
  for(const origin of ['https://assistant.ynxweb4.com.evil.example','http://assistant.ynxweb4.com','https://www.assistant.ynxweb4.com'])assert.throws(()=>new WalletConnectDAppConnection({origin,methods:['ynx_requestProductSessionV2']}));
  for(const method of ['eth_sendTransaction','personal_sign','ynx_requestCentralBrowserSignIn'])assert.throws(()=>new WalletConnectDAppConnection({origin:'https://assistant.ynxweb4.com',methods:[method]}));
 });
+test('explicit restore stays within cancellable connect initialization lease',async()=>{
+ let resolve,initializations=0;const f=fixture([session()]);const connection=new WalletConnectDAppConnection({origin:'https://wallet-auth.ynxweb4.com',methods:[method],deadlineMs:1000,clientFactory:()=>{initializations++;return new Promise(r=>resolve=r);}});
+ const opening=connection.connect({restore:true});await tick();await connection.cancel();await assert.rejects(opening,error=>error.code==='YNX_PAIR_CANCELLED');
+ resolve(f.client);await tick();assert.equal(f.calls.filter(c=>c[0]==='connect').length,0);await assert.rejects(connection.provider().request({method:'eth_accounts'}),/SESSION_EXPIRED/);
+ const provider=await connection.connect({restore:true});assert.equal(initializations,1);assert.deepEqual(await provider.request({method:'eth_accounts'}),[account]);assert.equal(f.calls.filter(c=>c[0]==='connect').length,0);
+});

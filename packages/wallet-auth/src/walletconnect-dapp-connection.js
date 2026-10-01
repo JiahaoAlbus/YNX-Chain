@@ -97,13 +97,14 @@ export class WalletConnectDAppConnection{
     this.#session=valid[0]??null;return this.#session?this.provider():null;
     }finally{this.#restoring--;}
   }
-  connect({onURI}={}){
+  connect({onURI,restore=false}={}){
     if(this.#pending)return this.#pending;
     if(this.#draining)return Promise.reject(Object.assign(new Error('YNX_PAIR_TRANSPORT_DRAINING'),{code:'YNX_PAIR_TRANSPORT_DRAINING',stage:'relay'}));
     const epoch=this.#epoch,attempt=++this.#attempt;
     const flight={attempt,origin:this.#origin,stage:'initialization',cancelled:null,cancel:null,terminated:false,idle:()=>this.#restoring===0&&(!this.#flight||this.#flight===flight)};flight.cancelled=new Promise((_,reject)=>{flight.cancel=()=>reject(Object.assign(new Error('YNX_PAIR_CANCELLED'),{code:'YNX_PAIR_CANCELLED',stage:flight.stage}));});flight.cancelled.catch(()=>{});this.#flight=flight;
     const stage=value=>{flight.stage=value;if(epoch===this.#epoch)this.#emit('stage',{stage:value,attempt});};
     const task=(async()=>{stage('initialization');const client=await this.initialize(flight);if(epoch!==this.#epoch)fail('YNX_PAIR_CANCELLED');
+      if(restore&&!this.#session){const valid=[];for(const session of client.session.getAll())try{valid.push(this.#validate(session));}catch{}if(valid.length>1)fail('YNX_PAIR_SESSION_SELECTION_REQUIRED');this.#session=valid[0]??null;}
       if(this.#session){this.#validate(this.#session);return this.provider();}
       const record=records.get(client);if(record){if(record.pauseFlight)record.leases.delete(record.pauseFlight);record.paused=false;record.pauseFlight=null;record.leases.add(flight);flight.record=record;try{flight.historical=client.session.getAll().length>0||client.proposal.getAll().length>0||corePairings(client).length>0;}catch{flight.historical=true;}}
       stage('relay');const connecting=client.connect({requiredNamespaces:{eip155:{chains:[WALLETCONNECT_CHAIN],methods:this.#methods,events:[...WALLETCONNECT_SESSION_EVENTS]}}});
