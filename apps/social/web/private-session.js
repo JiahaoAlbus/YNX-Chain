@@ -40,7 +40,26 @@ export function createSocialPrivateSession({ environment = globalThis, detectWal
   }
   return Object.freeze({
     get current(){return current;},
-    begin: () => {suspended=false;return run(({ client }) => client.beginExplicit());},
+    begin: () => {
+      suspended=false;
+      // Reserve synchronously at the real click, before registry/challenge IO.
+      // This opens only the chosen Wallet transport, never approves a request.
+      const wallet=environment.YNXSocialWallet;
+      const reservation=wallet?.hasSelection?.()?wallet.reserve():Promise.resolve();
+      reservation.catch(()=>{});
+      return run(async ({client})=>{
+        await reservation;const revision=wallet?.getRevision?.();
+        const assertSelected=()=>{if(suspended||revision!==wallet?.getRevision?.())throw new Error('SOCIAL_CONTEXT_CHANGED')};
+        assertSelected();let result=await client.beginExplicit();assertSelected();
+        if(result.status==='retry-required'&&wallet?.available?.()&&typeof client.retryDetected==='function'){result=await client.retryDetected();assertSelected();}
+        if(result.status!=='connecting'||result.route?.status!=='ready'||!wallet?.available?.())return result;
+        const response=await wallet.requestProductSessionV2(result.route.url);assertSelected();
+        const url=new URL(response.returnUrl);if(url.origin!=='https://social.ynxweb4.com'||url.pathname!=='/wallet-auth/callback')throw new Error('Unexpected Social Wallet callback origin or path.');
+        const settled=await client.handleReturn(url.href);assertSelected();
+        if(settled.status==='connected'&&!wallet.accountMatches(settled.session.account)){await client.disconnect();throw new Error('SOCIAL_ACCOUNT_MISMATCH');}
+        return settled;
+      });
+    },
     restore: () => run(async ({ client, storage }) => {
       const pending = await storage.get(`${client.storageKey}:pending`);
       if (pending !== null) return {status:"connecting",automatic:false,message:"A Wallet approval request is pending. Return from Wallet to finish it, or explicitly start a new identity link. Retry has not replaced the request."};

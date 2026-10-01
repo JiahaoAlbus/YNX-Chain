@@ -1,3 +1,4 @@
+import {createSocialWalletTransports} from "./wallet-transports.js";
 import { StandardWalletConnection, discoverWalletProviders } from "./vendor/standard-wallet-browser.mjs";
 
 export const YNX_CHAIN = Object.freeze({
@@ -8,6 +9,8 @@ export const YNX_CHAIN = Object.freeze({
 });
 export const WALLET_LINKS = Object.freeze({ ynx: "https://www.ynxweb4.com/dapp/download", metamask: "https://metamask.io/download/" });
 const connections = new WeakMap();
+const transports = new WeakMap(), providerTransports = new WeakMap();
+export function socialTransports(target=window){let manager=transports.get(target);if(!manager){manager=createSocialWalletTransports({window:target});transports.set(target,manager);}return manager;}
 function connectionFor(provider, target) {
   let connection = connections.get(provider);
   if (!connection) {
@@ -39,10 +42,12 @@ async function establish(wallet, target, mode, isCurrent) {
   if (!isCurrent()) return Object.freeze({ ok: false, code: "SUPERSEDED" });
   return snapshot(wallet, provider, session);
 }
-export function connectWallet(wallet, target = window, isCurrent = () => true) {
+export function connectWallet(wallet, target = window, isCurrent = () => true, onState = () => {}) {
+  if (["hosted","mobile"].includes(wallet)) return socialTransports(target).connect(wallet,onState).then(async provider=>{providerTransports.set(provider,socialTransports(target));const session=await connectionFor(provider,target).restore();if(!isCurrent())throw new Error("SUPERSEDED");return snapshot(wallet,provider,session);});
   return establish(wallet, target, "connect", isCurrent);
 }
 export function restoreWallet(wallet, target = window, isCurrent = () => true) {
+  if (["hosted","mobile"].includes(wallet)) return Promise.resolve(socialTransports(target).restore(wallet)).then(async restored=>{if(restored?.selectionPending)return {ok:false,code:"HOSTED_RECONNECT_REQUIRED",selectionPending:true};if(!restored)return {ok:false,code:"NO_APPROVED_ACCOUNT"};providerTransports.set(restored,socialTransports(target));return snapshot(wallet,restored,await connectionFor(restored,target).restore());});
   return establish(wallet, target, "restore", isCurrent);
 }
 export function attachWalletLifecycle(provider, handlers = {}) {
@@ -55,11 +60,12 @@ export function attachWalletLifecycle(provider, handlers = {}) {
       if (current) handlers.onChainChanged?.(current.selectedChain);
       else handlers.onDisconnect?.(value);
     }
-    if (event === "disconnect") handlers.onDisconnect?.(value);
+    if (event === "disconnect" && !["HOSTED_POPUP_CLOSED","HOSTED_REQUEST_EXPIRED_OR_RELOADED"].includes(value?.code)) handlers.onDisconnect?.(value);
   });
 }
 export function disconnectWallet(provider) {
   connections.get(provider)?.disconnect();
+  const transport=providerTransports.get(provider);if(transport?.provider===provider)void transport.disconnect().catch(()=>{});
 }
 export async function ensureYNXChain(provider) {
   const current = await provider.request({ method: "eth_chainId" });

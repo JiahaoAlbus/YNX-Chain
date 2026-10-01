@@ -89,3 +89,14 @@ test('disconnect intent blocks an already pending proof before SDK revocation co
   await ready;const disconnect=controller.disconnect();finish({proofHeader:'must-not-be-used'});
   await assert.rejects(pending,/suspended/);await disconnect;
 });
+
+test('selected Wallet reserves at click then reviews exact SDK route and validated callback',async()=>{
+ const calls=[],account='ynx1synthetic';let revision=1;
+ const environment={navigator:{onLine:true},fetch:async()=>({ok:true,json:async()=>({})}),YNXSocialWallet:{hasSelection:()=>true,reserve:()=>{calls.push('reserve');return Promise.resolve()},getRevision:()=>revision,available:()=>true,accountMatches:value=>value===account,requestProductSessionV2:async route=>{calls.push(['review',route]);return {returnUrl:'https://social.ynxweb4.com/wallet-auth/callback?state=fixture'}}}};
+ const controller=createSocialPrivateSession({environment,factory:async()=>({client:{beginExplicit:async()=>{calls.push('begin');return {status:'connecting',route:{status:'ready',url:'ynxwallet://authorize?request=fixture'}}},handleReturn:async url=>{calls.push(['return',url]);return {status:'connected',session:{account}}},disconnect:async()=>{calls.push('revoke')}}})});
+ const task=controller.begin();assert.deepEqual(calls,['reserve']);assert.equal((await task).status,'connected');assert.equal(calls[1],'begin');assert.equal(calls[2][0],'review');assert.equal(calls[3][0],'return');
+});
+test('selected Wallet changed during approval cannot accept private identity',async()=>{
+ let revision=1,returns=0;const environment={navigator:{onLine:true},fetch:async()=>({ok:true,json:async()=>({})}),YNXSocialWallet:{hasSelection:()=>true,reserve:()=>Promise.resolve(),getRevision:()=>revision,available:()=>true,accountMatches:()=>true,requestProductSessionV2:async()=>{revision++;return {returnUrl:'https://social.ynxweb4.com/wallet-auth/callback?state=fixture'}}}};
+ const controller=createSocialPrivateSession({environment,factory:async()=>({client:{beginExplicit:async()=>({status:'connecting',route:{status:'ready',url:'ynxwallet://authorize?request=fixture'}}),handleReturn:async()=>{returns++;return {status:'connected'}}}})});await assert.rejects(controller.begin(),/SOCIAL_CONTEXT_CHANGED/);assert.equal(returns,0);
+});
