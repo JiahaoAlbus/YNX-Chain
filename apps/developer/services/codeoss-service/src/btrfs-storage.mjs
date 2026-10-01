@@ -27,7 +27,9 @@ export function createBtrfsProjectStorage({ projectsRoot, maxBytes = 1073741824,
     if (/inconsistent|rescan|disabled/i.test(quota.stderr || "")) throw fault("Native filesystem quota accounting is not consistent.", "core_disk_quota_unavailable", 503);
     const row = quota.stdout.split("\n").map(x => x.trim().split(/\s+/)).find(x => x[0] === `0/${id}`);
     if (!row || row.length < 5 || row[3] !== String(maxBytes)) throw fault("Native filesystem quota was not enforced at the approved bound.", "core_disk_quota_unavailable", 503);
-    return { enforced: true, directory: path, maxBytes, qgroup: `0/${id}`, driver: "btrfs" };
+    // A valid qgroup row is not hostile-project containment: nested subvolumes
+    // do not inherit this bound. Preserve recovery inspection, fail new launch.
+    return { enforced: false, hardIsolation: false, directory: path, maxBytes, qgroup: `0/${id}`, driver: "btrfs", reason: "nested_subvolume_escape_not_closed" };
   }
   async function prepare(context) {
     const path = context.projectDirectory;

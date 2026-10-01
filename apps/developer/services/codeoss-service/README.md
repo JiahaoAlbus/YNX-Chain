@@ -39,12 +39,16 @@ Existing host is x86_64, LXD 5.21.8, cgroup v2, with systemd/Python/useradd.
 Its existing `default` dir storage has no verified hard quota. Do not alter it,
 existing projects, legacy runtimes or their recovery locks.
 
-Provision new storage only: LXD Btrfs pool `ynx-core-quota` (64 GiB initial
+Historical provisional storage recipe (NOT admitted as hard project quota): LXD Btrfs pool `ynx-core-quota` (64 GiB initial
 bounded backing device/file), isolated profile `ynx-core-isolated`, and a
 separate Btrfs mount at `<gateway-state>/native-ide/projects` (32 GiB initial
 bounded backing device/file). Enable Btrfs quota on that new project mount.
-The source creates one subvolume per owner/project, sets and rechecks a 1 GiB
-referenced-byte qgroup limit, and rejects inconsistent quota accounting.
+The existing source creates one subvolume per owner/project, sets and rechecks a 1 GiB
+referenced-byte qgroup limit, and rejects inconsistent quota accounting. This is
+insufficient for hostile executable projects: new nested subvolumes do not
+inherit qgroups. Do not enable production admission with this provider until
+an actual enforcement boundary closes that escape. Preserve existing recovery
+compatibility; do not convert or delete any old directory/pool.
 The backend service owner must own protected volume ancestry and have the
 necessary Btrfs/LXD privileges. No such authority is passed into user containers.
 Use an immutable approved x64 base-image fingerprint with systemd PID1,
@@ -154,3 +158,103 @@ Validation: `node --test services/codeoss-service/test/*.test.mjs` (31 tests, in
 Installation/host acceptance remains A-owned: use the unchanged officialx64/derived-core pin and fresh LXD/quota/UID-shift/private-proxy runbook above, deploy this exact Developer candidate and frontend build, then use a normal Wallet sign-in/project/core session. Test the four commands in the actual core, no-overwrite creation, changing a document during preview, selected synthetic public context preview/cancel/approval, real qwen text and chain responses, and explicit Wallet readiness/account review. No private context or keys are needed. Test a hostile kernel-origin fetch/message and a second Wallet account. The product-host approval page must stay unframeable; the kernel must remain on its independent approved origin with no parent credentials. No new runtime/profile/service/port is created by these tools.
 
 Current source status does not claim public Tools installation, normal kernel UI, long-edit renewal, different-site domain ownership, actual shifted UID checkpoint, enforced host quota/egress or multi-user capacity. Mac was locked during the UI attempt, so normal core UI was NOT_RUN. Central grants still strictly expire in5minutes: await the formal A-owned refresh-handle contract rather than extending local TTL. Existing chain/backend AI evidence is distinct from this new Tools consumer's public acceptance. Rollback is the prior230359 candidate; preserve native volumes and recovery journal. Tools do not change Stop, leases, migration or binary checkpoint semantics.
+
+### Read-only host doctor
+
+A may execute `node scripts/native-core-doctor.mjs` from this reviewed candidate.
+It only reads Linux/x64, CPU/memory/free-root-space, filesystem/kernel presence,
+fixed tool availability, LXD server metadata/storage pool overview and existing
+ZFS pool size/health overview. It never installs packages, loads kernel modules,
+creates pools, reads project contents, changes services or prints environment/
+credentials. On non-Linux/x64 it performs no host queries. Its result is always
+`ready:false`: tool/driver support is not quota/UID/egress/runtime admission.
+
+The [official LXD5.21.8 Btrfs quota documentation](https://canonical.com/lxd/docs/default/reference/storage_btrfs/)
+warns that nested subvolumes do not inherit qgroups. The previous Btrfs recipe
+is provisional, not a proven hard project quota. Select one replacement or
+verified containment boundary only after A's actual kernel/tools/pool receipt;
+no automatic ZFS/LVM/kernel installation or legacy pool modification is allowed.
+The doctor leaves `projectStorageAdmission`, `shiftedUidCheckpoint`,
+`egressAdmission` NOT_VERIFIED and capacity unverified even on a capable host.
+
+### New ZFS project quota helper (host preparation successor)
+
+A's read-only receipt confirmed loaded ZFS/Btrfs modules and no existing ZFS
+pools. PATH lacks ZFS tools; the existing LXD snap's fixed2.2 binaries with its
+matching2.2 `lib` directory run successfully (userspace2.2.11, kernel2.2.2).
+Ordinary invocation's missing-libzfs failure is preserved. This proves usable
+installed tools, not pool creation, enforcement, shifted UID or runtime success.
+
+Only the new project provider is ZFS: `createZfsProjectStorage`. Use one NEW
+32GiB bounded project pool `ynx-core-projects`; dataset parent
+`ynx-core-projects/projects` has mountpoint none. Each owner/project gets its
+own `<ownerSHA>_<projectSHA>` dataset and exact native volume mountpoint, local
+`quota=refquota=1073741824`, devices/setuid/sharing off. No `/dev/zfs`, host
+namespace, quota helper or credentials enter the container. Refquota alone is
+not an admission fact: the root helper rereads both local bounds and exact ZFS
+findmnt SOURCE/TARGET, UID/protected ancestry and mount properties.
+
+The Gateway remains ubuntu. Install this candidate's standalone
+`scripts/native-zfs-quota-helper.mjs` as root-owned0644
+`/etc/ynx-developer/helpers/native-zfs-quota.mjs` under root-owned0755 parents.
+The helper uses only builtins; it is not imported from mutable workspace code.
+Install root-owned0644 `/etc/ynx-developer/native-zfs.json` with EXACT keys:
+`pool`, `projectsRoot`, `serviceUid`, `serviceGid`, `maxBytes`,
+`zfsExecutable`, `libraryDirectory`. Resolve the actual snap revision FIRST;
+never configure `current` symlinks. The tool must be
+`/snap/lxd/<actual-numeric-revision>/zfs-2.2/bin/zfs` and matching `lib` directory.
+Use actual numeric `id -u ubuntu`/`id -g ubuntu`, not an assumed guest UID.
+`projectsRoot` is the canonical protected `<state>/native-ide/projects` and
+`maxBytes` is1073741824. The new pool/helper/config must not reuse or relimit
+old guest paths, the default dir pool, Btrfs recovery or any old runtime.
+
+A may install a narrowly reviewed sudo rule for ubuntu allowing only
+`/usr/bin/node /etc/ynx-developer/helpers/native-zfs-quota.mjs *`, with env_reset,
+no SETENV, and deletion of NODE_OPTIONS/NODE_PATH/LD_PRELOAD/LD_LIBRARY_PATH.
+The helper additionally requires root EUID, exact SUDO_UID, exact schema,
+protected root-owned code/config/snap paths, only prepare/verify actions and
+exact64hex/64hex native project paths. It never accepts ZFS CLI passthrough,
+-p creation, destroy/rollback, quota alteration of an existing path, or arbitrary
+pool/dataset names. Prepare failure leaves the exact new resource for review;
+retry must verify/recover it, never delete or overwrite. This is no grant of
+host privileges to workspace processes. Backend subprocesses have a fixed
+clean environment; matching LD_LIBRARY_PATH is scoped only to the root tool.
+
+A's new-only installation order (review each concrete path first):
+
+1. Run the read-only doctor; confirm fixed tool/library version, root available
+   space and actual ubuntu UID/GID. Reserve32GiB project backing plus64GiB new
+   LXD root pool and an explicit host disk/RAM reserve; a sparse file or max=8
+   is not proof. Do not proceed if these reserves cannot fit. Initial QA admits
+   one active runtime; any later4-global/2-owner bound remains a configuration,
+   not tested multi-user capacity.
+2. On an unused root-owned `/var/lib/ynx-native` path create a NEW32GiB backing
+   file with fallocate (refuse any existing file). Use the fixed snap zpool tool
+   and matching library ONLY to create `ynx-core-projects`, with cachefile none,
+   mountpoint none, devices/setuid off; then create its `projects` parent with
+   mountpoint none. Never -f overwrite a pool or wipe a device. Record exact
+   pool GUID/backing inode/file size/source candidate and successful commands.
+   Partial failure keeps file/pool/journal unchanged for operator inspection.
+3. Create the NEW LXD root pool `ynx-core-quota` using its supported ZFS driver
+   with explicit64GiB bound. Existing default dir pool remains unchanged. Mount
+   each project dataset at its exact Gateway path through the helper. Wire the
+   existing protected operator adapter's `projectStorage` to this provider.
+   Artifact verification remains the existing officialx64 and separate derived
+   branding hash runbook; do not substitute an ARM archive or modify its SHA.
+4. In a NEW synthetic QA project, verify helper prepare+quota/findmnt, repeat
+   prepare refusal and readonly verify; actual quota-full write fails without
+   data deletion; then A's exact isolated LXD UID1000 write0600 must be readable
+   and fsyncable by Gateway ubuntu without777/unisolatedroot; Stop/checkpoint
+   and reopen must preserve bytes. Keep receipts for all four boundaries and
+   every partial failure. These are NOT_RUN on host by this source author.
+
+Strict package/extension egress remains NOT_ADMITTED. The raw CONNECT prototype
+was removed from product source and preserved only under
+`/tmp/ynx-native-package-proxy-not-admitted-20261002`; public-DNS IP pinning does
+not constrain TLS SNI/encrypted HTTP authority. Do not set network.allowlisted
+true from it. Official OpenVSX YAML download302 targets exact
+`openvsx.eclipsecontent.org`; a future reviewed mature proxy must prove normal
+OpenVSX/npm/pip installation/redirect success plus negative paths. No CA/MITM,
+new user account, gateway restart or host proxy service was introduced here.
+Independent execution domain and formal5minute grant renewal remain separate
+Root/A gates. Quota source/fixtures are not a claim of public native readiness.
