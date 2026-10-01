@@ -28,11 +28,12 @@ function storage() {
   const records = new Map();
   return { records, async getItem(key) { return structuredClone(records.get(key)); }, async setItem(key, value) { records.set(key, structuredClone(value)); } };
 }
-async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCOUNT_B)], pendingRequests = [], store = storage(), disconnect = async () => {}, handlers: callbacks = {} } = {}) {
+async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCOUNT_B)], pendingRequests = [],pendingProposals=[],pair=async()=>{},pairDeadlineMs=30000,store = storage(), disconnect = async () => {}, handlers: callbacks = {} } = {}) {
   const active = Object.fromEntries(sessions.map(value => [value.topic, value]));
   const handlers = new Map(), responses = [], events = [], approvals = [];
   const kit = {
-    core: { storage: store, relayer: { connected: false } },
+    core: { storage: store, relayer: { connected: false },pairing:{getPairings:()=>[{topic:"c".repeat(64),expiry:NOW/1000+600}],disconnect:async()=>{}} },
+    pair,rejectSession:async()=>{},getPendingSessionProposals:()=>pendingProposals,
     on(name, callback) { handlers.set(name, callback); },
     getActiveSessions() { return active; },
     getPendingSessionRequests() { return pendingRequests; },
@@ -41,7 +42,7 @@ async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCO
     async emitSessionEvent(event) { events.push(event); },
     async approveSession(input) { approvals.push(input); const approved = { ...session("approved-topic"), namespaces: input.namespaces }; active[approved.topic] = approved; return approved; }
   };
-  const transport = new WalletConnectTransport({ projectId: "synthetic-project-id", metadata: { name: "Synthetic Wallet", url: "https://wallet.example" }, walletKitFactory: async () => kit, clock: () => NOW });
+  const transport = new WalletConnectTransport({ projectId: "synthetic-project-id", metadata: { name: "Synthetic Wallet", url: "https://wallet.example" }, walletKitFactory: async () => kit, clock: () => NOW,pairDeadlineMs });
   await transport.start(callbacks);
   return { transport, kit, active, handlers, responses, events, approvals, store };
 }
@@ -159,23 +160,25 @@ test("failed persistence still revokes locally and malformed saved revocations f
 });
 
 function proposal(id, requiredNamespaces, optionalNamespaces = {}) {
-  return { id, expiryTimestamp: NOW / 1000 + 600, params: { proposer: { metadata: { name: "Synthetic DApp", url: ORIGIN } }, requiredNamespaces, optionalNamespaces } };
+  return { id, verifyContext:{verified:{validation:"UNKNOWN",origin:"",verifyUrl:"",isScam:false}},params: {id,pairingTopic:"c".repeat(64),expiryTimestamp: NOW / 1000 + 600, proposer: { metadata: { name: "Synthetic DApp", url: ORIGIN } }, requiredNamespaces, optionalNamespaces } };
 }
 
 test("optional-only EIP155 proposals show and grant only supported Testnet permissions", async () => {
   const visible = [];
   const { transport, handlers, approvals } = await fixture({ sessions: [], handlers: { onSessionProposal: value => visible.push(value.id) } });
-  handlers.get("session_proposal")(proposal(101, {}, { eip155: { chains: ["eip155:1", WALLETCONNECT_CHAIN], methods: ["personal_sign", "eth_sign", "eth_sendTransaction"], events: ["accountsChanged", "unsupported-event"] }, solana: { chains: ["solana:mainnet"], methods: ["solana_signMessage"], events: [] } }));
+  await transport.pair(`wc:${"c".repeat(64)}@2?relay-protocol=irn&symKey=${"d".repeat(64)}`);
+  await handlers.get("session_proposal")(proposal(101, {}, { eip155: { chains: ["eip155:1", WALLETCONNECT_CHAIN], methods: ["personal_sign", "eth_sign", "eth_sendTransaction"], events: ["accountsChanged", "unsupported-event"] }, solana: { chains: ["solana:mainnet"], methods: ["solana_signMessage"], events: [] } }));
   assert.deepEqual(visible, [101]);
   const review = transport.proposalPermissions(101);
   assert.deepEqual(review, { chains: [WALLETCONNECT_CHAIN], methods: ["personal_sign", "eth_sendTransaction"], events: ["accountsChanged"] });
-  await transport.approveSession(101, ACCOUNT_A);
+  await transport.bindProposalAccount(101,ACCOUNT_A);await transport.approveSession(101, ACCOUNT_A);
   assert.deepEqual(approvals[0].namespaces.eip155, { ...review, accounts: [`${WALLETCONNECT_CHAIN}:${ACCOUNT_A}`] });
 });
 
 test("chain-qualified optional namespace is supported without widening required permissions", async () => {
   const { transport, handlers } = await fixture({ sessions: [] });
-  handlers.get("session_proposal")(proposal(102, {}, { [WALLETCONNECT_CHAIN]: { methods: ["personal_sign"], events: [] } }));
+  await transport.pair(`wc:${"c".repeat(64)}@2?relay-protocol=irn&symKey=${"d".repeat(64)}`);
+  await handlers.get("session_proposal")(proposal(102, {}, { [WALLETCONNECT_CHAIN]: { methods: ["personal_sign"], events: [] } }));
   assert.deepEqual(transport.proposalPermissions(102), { chains: [WALLETCONNECT_CHAIN], methods: ["personal_sign"], events: [] });
 });
 
@@ -187,7 +190,29 @@ test("unsupported required namespaces and proposals without Testnet never reach 
     proposal(202, { solana: { chains: ["solana:mainnet"], methods: [], events: [] } }, { eip155: { chains: [WALLETCONNECT_CHAIN], methods: ["personal_sign"], events: [] } }),
     proposal(203, {}, { eip155: { chains: ["eip155:1"], methods: ["personal_sign"], events: [] } }),
     proposal(204, { eip155: { chains: [], methods: [], events: [] } }),
-  ]) handlers.get("session_proposal")(value);
+  ]) await handlers.get("session_proposal")(value);
   assert.deepEqual(visible, []);
   assert.deepEqual(invalid, Array(4).fill("UNSUPPORTED_WALLETCONNECT_NAMESPACE"));
+});
+const pairUri=topic=>`wc:${topic}@2?relay-protocol=irn&symKey=${"d".repeat(64)}`;
+test("Desktop hung SDK Pair is bounded and cancel/late relay response cannot revive an old approval",async()=>{
+ const deferred=Promise.withResolvers(),visible=[],f=await fixture({pair:()=>deferred.promise,pairDeadlineMs:8,handlers:{onSessionProposal:value=>visible.push(value)}});
+ await assert.rejects(f.transport.pair(pairUri("c".repeat(64))),code("WALLETCONNECT_PAIR_TIMEOUT"));assert.equal(f.transport.status().pairing,false);assert.equal(f.transport.status().pair.phase,"timed-out");assert.equal(f.transport.sessions().length,2);
+ await f.handlers.get("session_proposal")(proposal(501,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:["personal_sign"],events:[]}}));assert.deepEqual(visible,[]);
+ deferred.resolve();await new Promise(resolve=>setTimeout(resolve,0));assert.equal(f.transport.status().pair.phase,"timed-out");
+ const next=Promise.withResolvers();f.kit.pair=()=>next.promise;const attempting=f.transport.pair(pairUri("e".repeat(64)));await new Promise(resolve=>setTimeout(resolve,0));f.transport.cancelPair();await assert.rejects(attempting,code("WALLETCONNECT_PAIR_CANCELED"));next.resolve();await new Promise(resolve=>setTimeout(resolve,0));assert.equal(f.transport.status().pair.phase,"canceled");
+});
+test("Desktop original proposal survives lock/reopen for the same account, rejection stays terminal and a new QR can retry",async()=>{
+ const store=storage(),f=await fixture({store,sessions:[]}),value=proposal(601,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:["personal_sign"],events:[]}});await f.transport.pair(pairUri("c".repeat(64)));await f.handlers.get("session_proposal")(value);await f.transport.bindProposalAccount(601,ACCOUNT_A);f.transport.cancelPair(true);
+ const visible=[],cold=await fixture({store,sessions:[],pendingProposals:[value.params],handlers:{onSessionProposal:item=>visible.push(item)}});assert.equal(visible.length,1);await cold.transport.bindProposalAccount(601,ACCOUNT_A);assert.equal(cold.approvals.length,0);await cold.transport.rejectSession(601);
+ const after=[],again=await fixture({store,sessions:[],pendingProposals:[value.params],handlers:{onSessionProposal:item=>after.push(item)}});assert.deepEqual(after,[]);assert.equal(again.approvals.length,0);
+ await again.transport.pair(pairUri("e".repeat(64)));const retry=proposal(602,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:["personal_sign"],events:[]}});retry.params.pairingTopic="e".repeat(64);await again.handlers.get("session_proposal")(retry);assert.equal(after.length,1);await again.transport.bindProposalAccount(602,ACCOUNT_A);await again.transport.approveSession(602,ACCOUNT_A);assert.equal(again.approvals.length,1);
+});
+test("Desktop cold unknown/quarantined, missing/conflicting expiry and unsafe verification never approve",async()=>{
+ const valid=proposal(701,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:["personal_sign"],events:[]}}),seen=[];await fixture({sessions:[],pendingProposals:[valid.params],handlers:{onSessionProposal:value=>seen.push(value)}});assert.deepEqual(seen,[]);
+ const f=await fixture({sessions:[],handlers:{onSessionProposal:value=>seen.push(value)}});await f.transport.pair(pairUri("c".repeat(64)));for(const change of ["missing","conflict","invalid","scam"]){const value=structuredClone(valid);if(change==="missing")delete value.params.expiryTimestamp;if(change==="conflict")value.expiryTimestamp=value.params.expiryTimestamp+1;if(change==="invalid")value.verifyContext.verified.validation="INVALID";if(change==="scam")value.verifyContext.verified.isScam=true;await f.handlers.get("session_proposal")(value);}assert.deepEqual(seen,[]);assert.equal(f.approvals.length,0);
+});
+test("Desktop approval arriving after lock retires that exact session and cannot become current",async()=>{
+ const f=await fixture({sessions:[]}),value=proposal(801,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:["personal_sign"],events:[]}});await f.transport.pair(pairUri("c".repeat(64)));await f.handlers.get("session_proposal")(value);await f.transport.bindProposalAccount(801,ACCOUNT_A);await f.transport.decideProposal(801,ACCOUNT_A);
+ const deferred=Promise.withResolvers();f.kit.approveSession=()=>deferred.promise;let locked=false;const approving=f.transport.approveSession(801,ACCOUNT_A,()=>{if(locked)throw new Error("locked");});locked=true;deferred.resolve({...session("late-approved"),namespaces:{eip155:{accounts:[`${WALLETCONNECT_CHAIN}:${ACCOUNT_A}`],methods:["personal_sign"],events:[]}}});await assert.rejects(approving,/locked/);assert.throws(()=>f.transport.sessionOrigin("late-approved"));
 });

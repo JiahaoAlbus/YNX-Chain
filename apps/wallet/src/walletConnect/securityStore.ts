@@ -43,27 +43,29 @@ const PAIRING_QUARANTINE_KEY="ynx.wallet.walletconnect.pairing-quarantine.v1";
 export class WalletConnectPairingJournal {
   #pending:Promise<void>=Promise.resolve();
   constructor(private readonly storage:SecureStorageAdapter,private readonly now=()=>Math.floor(Date.now()/1000)){}
-  async load():Promise<readonly string[]> {await this.#pending;return(await this.#read()).filter(item=>item.expiresAt===null||item.expiresAt>this.now()).map(item=>item.topic)}
-  async #read():Promise<{topic:string;expiresAt:number|null}[]> {
+  async load():Promise<readonly string[]> {await this.#pending;return(await this.#read()).filter(item=>item.state!=="review"&&(item.expiresAt===null||item.expiresAt>this.now())).map(item=>item.topic)}
+  async canResumeReview(topic:string):Promise<boolean>{await this.#pending;return(await this.#read()).some(item=>item.topic===topic&&item.state==="review"&&item.expiresAt!==null&&item.expiresAt>this.now());}
+  async #read():Promise<{topic:string;expiresAt:number|null;state?:"review"|"quarantined"}[]> {
     const raw=await this.storage.getItem(PAIRING_QUARANTINE_KEY);if(raw===null)return [];
     if(raw.length>20_000)throw new Error("Pairing quarantine exceeds policy.");
     let value:any;try{value=JSON.parse(raw)}catch{throw new Error("Pairing quarantine is unreadable.")}
     // Unpublished v1 QA may still be restored: retain unknown expiry conservatively.
     if(value?.version===1&&Object.keys(value).sort().join(",")==="topics,version"&&Array.isArray(value.topics)&&value.topics.length<=100&&new Set(value.topics).size===value.topics.length&&value.topics.every((topic:unknown)=>typeof topic==="string"&&/^[a-f0-9]{64}$/.test(topic)))return value.topics.map((topic:string)=>({topic,expiresAt:null}));
-    if(!value||value.version!==2||Object.keys(value).sort().join(",")!=="records,version"||!Array.isArray(value.records)||value.records.length>100||new Set(value.records.map((item:any)=>item?.topic)).size!==value.records.length||value.records.some((item:any)=>!item||Object.keys(item).sort().join(",")!=="expiresAt,topic"||typeof item.topic!=="string"||!/^[a-f0-9]{64}$/.test(item.topic)||item.expiresAt!==null&&(!Number.isSafeInteger(item.expiresAt)||item.expiresAt<=0)))throw new Error("Pairing quarantine is invalid.");
+    if(!value||![2,3].includes(value.version)||Object.keys(value).sort().join(",")!=="records,version"||!Array.isArray(value.records)||value.records.length>100||new Set(value.records.map((item:any)=>item?.topic)).size!==value.records.length||value.records.some((item:any)=>!item||Object.keys(item).sort().join(",")!==(value.version===3?"expiresAt,state,topic":"expiresAt,topic")||value.version===3&&!["review","quarantined"].includes(item.state)||typeof item.topic!=="string"||!/^[a-f0-9]{64}$/.test(item.topic)||item.expiresAt!==null&&(!Number.isSafeInteger(item.expiresAt)||item.expiresAt<=0)))throw new Error("Pairing quarantine is invalid.");
     return value.records;
   }
-  #mutate(update:(records:{topic:string;expiresAt:number|null}[])=>{topic:string;expiresAt:number|null}[]):Promise<void> {
+  #mutate(update:(records:{topic:string;expiresAt:number|null;state?:"review"|"quarantined"}[])=>{topic:string;expiresAt:number|null;state?:"review"|"quarantined"}[]):Promise<void> {
     const operation=this.#pending.then(async()=>{
       const records=update((await this.#read()).filter(item=>item.expiresAt===null||item.expiresAt>this.now()));
       if(records.length>100)throw new Error("Too many live pairings. Wait for their actual expiry before retrying.");
-      const encoded=JSON.stringify({version:2,records});await this.storage.setItem(PAIRING_QUARANTINE_KEY,encoded);
+      const encoded=JSON.stringify({version:3,records:records.map(item=>({...item,state:item.state??"quarantined"}))});await this.storage.setItem(PAIRING_QUARANTINE_KEY,encoded);
       if(await this.storage.getItem(PAIRING_QUARANTINE_KEY)!==encoded)throw new Error("Pairing quarantine could not be verified.");
     });this.#pending=operation.then(()=>{},()=>{});return operation;
   }
   record(topic:string,expiresAt:number|null=this.now()+300):Promise<void> {
     if(!/^[a-f0-9]{64}$/.test(topic)||expiresAt!==null&&(!Number.isSafeInteger(expiresAt)||expiresAt<=0))return Promise.reject(new Error("Invalid pairing quarantine record."));
-    return this.#mutate(records=>{const prior=records.find(item=>item.topic===topic);return[...records.filter(item=>item.topic!==topic),{topic,expiresAt:expiresAt===null?prior?.expiresAt??null:Math.max(prior?.expiresAt??0,expiresAt)}]});
+    return this.#mutate(records=>{const prior=records.find(item=>item.topic===topic);return[...records.filter(item=>item.topic!==topic),{topic,state:"quarantined",expiresAt:expiresAt===null?prior?.expiresAt??null:Math.max(prior?.expiresAt??0,expiresAt)}]});
   }
+  review(topic:string,expiresAt:number):Promise<void>{if(!/^[a-f0-9]{64}$/.test(topic)||!Number.isSafeInteger(expiresAt)||expiresAt<=this.now())return Promise.reject(new Error("Invalid original connection review deadline."));return this.#mutate(records=>[...records.filter(item=>item.topic!==topic),{topic,expiresAt,state:"review"}]);}
   retire(topic:string):Promise<void> {return this.#mutate(records=>records.filter(item=>item.topic!==topic))}
 }

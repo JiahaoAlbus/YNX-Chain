@@ -149,7 +149,7 @@ function presentApproval() {
     write(document.querySelector("#reject-auth"), approvalQueue.busy || creatingAuthorizationAccount ? "Cancel and lock Wallet" : "Reject request");
   } else if (type === "proposal") {
     write(document.querySelector("#proposal-name"), "Connect to {name}", { name: review.name });
-    document.querySelector("#proposal-origin").textContent = review.url ?? t("No verified app address was provided.");
+    document.querySelector("#proposal-origin").textContent = (review.url ?? t("No verified app address was provided."))+(review.verification!=="VALID"?"\n"+walletCopy("This app address is unverified. Check it carefully before approving.","此应用网址尚未通过验证，批准前请仔细核对。"):"");
     document.querySelector("#proposal-account").textContent = nativeAccountLabel(review.account ?? activeAccount) ?? t("Create an account first");
     document.querySelector("#proposal-permissions").textContent = (review.methods ?? review.permissions?.methods ?? []).map(methodLabel).join(" · ") || t("Share your account on YNX Testnet");
     for (const button of panel.querySelectorAll("button")) button.disabled = approvalQueue.busy && button.id !== "reject-proposal";
@@ -298,6 +298,9 @@ window.ynxWallet.accountStatus().then(renderAccount);
 const walletConnectTitle = document.querySelector("#walletconnect-title");
 const walletConnectDetail = document.querySelector("#walletconnect-detail");
 const pairButton = document.querySelector("#walletconnect-pair");
+let pairGeneration=0,pairPending=false;
+const pairCancel=document.createElement("button");pairCancel.id="walletconnect-cancel-pair";pairCancel.type="button";pairCancel.hidden=true;pairCancel.textContent=t("Cancel");pairButton.after(pairCancel);
+pairCancel.addEventListener("click",async()=>{const generation=++pairGeneration;pairPending=false;pairCancel.hidden=true;try{await window.ynxWallet.walletConnectCancelPair();}catch{}finally{const status=await window.ynxWallet.walletConnectStatus().catch(()=>null);if(generation===pairGeneration)renderWalletConnect(status);}});
 const walletConnectURI = document.querySelector("#walletconnect-uri");
 const walletConnectQR = document.querySelector("#walletconnect-qr");
 const walletConnectQRStatus = document.querySelector("#walletconnect-qr-status");
@@ -311,7 +314,9 @@ function renderWalletConnect(payload) {
   walletConnectDetail.textContent = status?.relayConnected && !startupFailed
     ? t("{count} connected apps. You review every signature and transaction.", { count: i18n.formatNumber(status.activeSessionCount) })
     : status?.started && !startupFailed ? t("Pair an app to check the connection service. No connection has been confirmed yet.") : status?.configured ? t("The connection service is unavailable. Your wallet and accounts remain accessible.") : t("WalletConnect is not enabled in this build. You can still connect directly from supported YNX apps.");
-  pairButton.disabled = !status?.started || startupFailed;
+  if(["timed-out","canceled"].includes(status?.pair?.phase))walletConnectDetail.textContent=walletCopy(status.pair.phase==="canceled"?"Pairing canceled. Request a fresh QR code before retrying.":"The pairing attempt timed out. Check your network and request a fresh QR code.",status.pair.phase==="canceled"?"配对已取消。请向应用获取新二维码后重试。":"配对连接超时。请检查网络，并向应用获取新二维码。");
+  if(status?.pair?.cleanup==="unconfirmed")walletConnectDetail.textContent+=" "+walletCopy("Remote cleanup is unconfirmed. Keep existing sessions and request a fresh QR code.","远端清理尚未确认。现有会话仍保留，请向应用获取新二维码。");
+  pairButton.disabled = pairPending || !status?.started || startupFailed;
 }
 async function refreshWalletConnectSessions() {
   const response = await window.ynxWallet.walletConnectSessions();
@@ -356,12 +361,12 @@ pairButton.addEventListener("click", async () => {
     walletConnectURI.focus();
     return;
   }
-  pairButton.disabled = true;
-  const result = await window.ynxWallet.walletConnectPair(uri);
-  if (!result.ok) walletConnectDetail.textContent = errorText(result);
-  else walletConnectDetail.textContent = t("Pairing request submitted. Waiting for a DApp proposal.");
-  const status = await window.ynxWallet.walletConnectStatus();
-  pairButton.disabled = !(status?.ok ? status.value.started : status?.started);
+  const generation=++pairGeneration;pairPending=true;pairButton.disabled=true;pairCancel.hidden=false;
+  try{
+    const result=await window.ynxWallet.walletConnectPair(uri);if(generation!==pairGeneration)return;
+    walletConnectDetail.textContent=result.ok?(result.value?.proposalReceived?walletCopy("Review the app connection request.","请审阅应用的连接请求。"):t("Pairing request submitted. Waiting for a DApp proposal.")):errorText(result);
+  }catch{if(generation===pairGeneration)walletConnectDetail.textContent=t("The connection service is unavailable. Your wallet and accounts remain accessible.");}
+  finally{if(generation===pairGeneration){pairPending=false;pairCancel.hidden=true;try{const status=await window.ynxWallet.walletConnectStatus();if(generation===pairGeneration){lastWalletConnectStatus=status;const value=status?.ok?status.value:status;pairButton.disabled=!value?.started;}}catch{if(generation===pairGeneration)pairButton.disabled=false;}}}
 });
 walletConnectQR.addEventListener("change", async () => {
   const file = walletConnectQR.files?.[0];
@@ -393,7 +398,7 @@ async function proposalAction(action) {
   try {
     const result = await window.ynxWallet.walletConnectProposalAction(item.review.id, action, item.review.account);
     walletConnectDetail.textContent = result.ok ? (action === "approve" ? t("App connected to the selected account.") : t("Connection declined.")) : errorText(result);
-    remove = result.ok || ["PROPOSAL_NOT_FOUND", "PROPOSAL_EXPIRED", "ACCOUNT_CHANGED"].includes(result.error?.code);
+    remove = result.ok || ["PROPOSAL_NOT_FOUND", "PROPOSAL_EXPIRED", "ACCOUNT_CHANGED","EXPIRED_WALLETCONNECT_PROPOSAL","UNKNOWN_WALLETCONNECT_PROPOSAL","WALLETCONNECT_PROPOSAL_ALREADY_DECIDED","WALLETCONNECT_ORIGINAL_PROPOSAL_UNAVAILABLE"].includes(result.error?.code);
     if (result.ok) await refreshWalletConnectSessions();
   } catch { walletConnectDetail.textContent = t("The app did not receive your response. Check the connection and try again."); }
   finally { approvalQueue.finish(item.key, { remove }); }
@@ -413,11 +418,13 @@ async function providerAction(action) {
   if (approvalQueue.current?.type !== "provider") return;
   const item = approvalQueue.begin(approvalQueue.current.key);
   if (!item) { if (action === "reject") await window.ynxWallet.lock(); return; }
+  let remove=false;
   try {
     const result = await window.ynxWallet.providerAction(item.review.id, action);
+    remove=result.ok||["ACCOUNT_CHANGED","WALLETCONNECT_REQUEST_EXPIRED","WALLETCONNECT_ORIGINAL_REVIEW_UNAVAILABLE","WALLET_OPERATION_CANCELLED"].includes(result.error?.code);
     walletConnectDetail.textContent = result.ok ? (result.value?.responseDelivered === false ? t("Wallet locked before the response could be delivered. Check the app and any submitted transaction before trying again.") : result.value?.status === "success" ? t("Your response was delivered to the app.") : MESSAGES[result.value?.message] ? t(result.value.message) : t("Request declined.")) : errorText(result);
   } catch { walletConnectDetail.textContent = t("The response was interrupted. Check the app before requesting another signature."); }
-  finally { approvalQueue.finish(item.key); void refreshTransactions(); }
+  finally { approvalQueue.finish(item.key,{remove}); void refreshTransactions(); }
 }
 document.querySelector("#reject-provider").addEventListener("click", () => providerAction("reject"));
 document.querySelector("#approve-provider").addEventListener("click", () => providerAction("approve"));
@@ -665,6 +672,7 @@ function renderKeyState(state) {
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   keyState = state;
+  if(invalidated&&pairPending){++pairGeneration;pairPending=false;pairCancel.hidden=true;pairButton.disabled=false;}
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");
   title.textContent = state.locked ? walletCopy("Wallet locked", "钱包已锁定") : walletCopy("Wallet unlocked", "钱包已解锁");
   renderKeyDetail();

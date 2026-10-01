@@ -287,7 +287,7 @@ test("pending approvals expire, are bounded, and cannot survive permission revoc
 
 test("WalletConnect remains fail closed without a real project ID", async () => {
   const transport = new WalletConnectTransport({ projectId: "", metadata: { name: "YNX Wallet", description: "YNX Testnet Wallet", url: "https://wallet.ynxweb4.com", icons: [] } });
-  assert.deepEqual(transport.status(), { configured: false, started: false, relayConnected: false, activeSessionCount: 0, code: "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" });
+  assert.deepEqual(transport.status(), { configured: false, started: false, relayConnected: false,pairing:false,pair:{phase:"idle",cleanup:"none"}, activeSessionCount: 0, code: "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" });
   await assert.rejects(transport.start({}), error => error.code === "WALLETCONNECT_PROJECT_ID_UNAVAILABLE");
   assert.equal(WALLETCONNECT_CHAIN, "eip155:6423");
   assert.deepEqual(WALLETCONNECT_METHODS, ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2", "ynx_requestCentralBrowserSignIn"]);
@@ -318,6 +318,7 @@ test("WalletConnect session approval exposes only eip155:6423 and the approved a
   const handlers = new Map();
   let approved = null, paired = null;
   const fake = {
+    rejectSession:async()=>{},
     on(name, handler) { handlers.set(name, handler); },
     async pair(input) { paired = input; return undefined; },
     async approveSession(input) { approved = input; return { topic: "session-topic", expiry: 2000000000, peer: { metadata: { name: "Example DApp", url: ORIGIN } }, namespaces: input.namespaces }; },
@@ -330,14 +331,14 @@ test("WalletConnect session approval exposes only eip155:6423 and the approved a
     walletKitFactory: async () => fake
   });
   await transport.start({ onSessionProposal: value => observed.push(value), onSessionRequest() {}, onSessionDelete() {}, onRequestExpire() {} });
-  handlers.get("session_proposal")({ id: 7, expiryTimestamp: 2000000000, params: { proposer: { metadata: { url: ORIGIN } }, requiredNamespaces: { eip155: { chains: ["eip155:6423"], methods: ["personal_sign"], events: ["accountsChanged"] } } } });
+  await handlers.get("session_proposal")({ id: 7, expiryTimestamp: 2000000000, params: { proposer: { metadata: { url: ORIGIN } }, requiredNamespaces: { eip155: { chains: ["eip155:6423"], methods: ["personal_sign"], events: ["accountsChanged"] } } } });
   assert.equal(transport.proposalOrigin("7"), ORIGIN);
   await transport.approveSession("7", "0x1234567890abcdef1234567890abcdef12345678");
   assert.deepEqual(approved.namespaces.eip155.chains, ["eip155:6423"]);
   assert.deepEqual(approved.namespaces.eip155.accounts, ["eip155:6423:0x1234567890abcdef1234567890abcdef12345678"]);
   assert.deepEqual(approved.namespaces.eip155.methods, ["personal_sign"]);
   assert.deepEqual(approved.namespaces.eip155.events, ["accountsChanged"]);
-  await transport.pair("wc:0123456789abcdef@2?relay-protocol=irn&symKey=0123456789abcdef");
+  await transport.pair(`wc:${"c".repeat(64)}@2?relay-protocol=irn&symKey=${"d".repeat(64)}`);
   assert.match(paired.uri, /^wc:/);
   assert.equal(observed.length, 1);
 });
@@ -347,6 +348,7 @@ test("WalletConnect drops expired or non-HTTPS proposals before approval UI and 
   const invalid = [];
   let releaseApproval;
   const fake = {
+    rejectSession:async()=>{},
     on(name, handler) { handlers.set(name, handler); },
     getActiveSessions() { return {}; },
     async approveSession(input) {
@@ -363,11 +365,11 @@ test("WalletConnect drops expired or non-HTTPS proposals before approval UI and 
   const visible = [];
   await transport.start({ onSessionProposal: proposal => visible.push(proposal.id), onProposalInvalid: value => invalid.push(value) });
   const namespace = { requiredNamespaces: { eip155: { chains: ["eip155:6423"], methods: ["personal_sign"], events: ["accountsChanged"] } } };
-  handlers.get("session_proposal")({ id: 8, expiryTimestamp: 1999999999, params: { proposer: { metadata: { url: ORIGIN } }, ...namespace } });
-  handlers.get("session_proposal")({ id: 9, expiryTimestamp: 2000000100, params: { proposer: { metadata: { url: "http://insecure.example" } }, ...namespace } });
+  await handlers.get("session_proposal")({ id: 8, expiryTimestamp: 1999999999, params: { proposer: { metadata: { url: ORIGIN } }, ...namespace } });
+  await handlers.get("session_proposal")({ id: 9, expiryTimestamp: 2000000100, params: { proposer: { metadata: { url: "http://insecure.example" } }, ...namespace } });
   assert.deepEqual(visible, []);
   assert.deepEqual(invalid.map(value => value.code), ["EXPIRED_WALLETCONNECT_PROPOSAL", "INVALID_WALLETCONNECT_PEER"]);
-  handlers.get("session_proposal")({ id: 10, expiryTimestamp: 2000000100, params: { proposer: { metadata: { url: ORIGIN } }, ...namespace } });
+  await handlers.get("session_proposal")({ id: 10, expiryTimestamp: 2000000100, params: { proposer: { metadata: { url: ORIGIN } }, ...namespace } });
   assert.deepEqual(visible, [10]);
   const approving = transport.approveSession(10, "0x1234567890abcdef1234567890abcdef12345678");
   await assert.rejects(transport.approveSession(10, "0x1234567890abcdef1234567890abcdef12345678"), error => error.code === "WALLETCONNECT_PROPOSAL_ACTION_IN_PROGRESS");
@@ -399,11 +401,11 @@ test("WalletConnect restores exact sessions, emits standard events and disconnec
     walletKitFactory: async () => fake
   });
   await transport.start({ onSessionRestore: session => restored.push(session), onSessionDelete: event => deleted.push(event) });
-  assert.deepEqual(transport.status(), { configured: true, started: true, relayConnected: true, activeSessionCount: 1, code: null });
+  assert.deepEqual(transport.status(), { configured: true, started: true, relayConnected: true,pairing:false,pair:{phase:"idle",cleanup:"none"}, activeSessionCount: 1, code: null });
   assert.deepEqual(restored, [{ topic: "restored-session", origin: "https://card.ynxweb4.com", name: "First-party DApp", url: "https://card.ynxweb4.com/path", expiry: 2000000000 }]);
   assert.deepEqual(transport.sessions(), restored);
   const authorized = transport.authorizeRequest({ topic: restoredSession.topic, id: 41, params: { chainId: "eip155:6423", request: { method: "personal_sign", params: ["0x01", "0x1234567890abcdef1234567890abcdef12345678"] } } }, "0x1234567890abcdef1234567890abcdef12345678");
-  assert.deepEqual(authorized, { topic: restoredSession.topic, jsonRpcId: 41, origin: "https://card.ynxweb4.com", method: "personal_sign", params: ["0x01", "0x1234567890abcdef1234567890abcdef12345678"] });
+  assert.deepEqual(authorized, { topic: restoredSession.topic, jsonRpcId: 41, origin: "https://card.ynxweb4.com", method: "personal_sign", params: ["0x01", "0x1234567890abcdef1234567890abcdef12345678"],sessionBinding:JSON.stringify({namespaces:restoredSession.namespaces,peer:restoredSession.peer,expiry:restoredSession.expiry}) });
   assert.throws(() => transport.authorizeRequest({ topic: restoredSession.topic, id: 42, params: { chainId: "eip155:1", request: { method: "personal_sign", params: [] } } }), error => error.code === "UNSUPPORTED_WALLETCONNECT_CHAIN");
   assert.throws(() => transport.authorizeRequest({ topic: restoredSession.topic, id: 43, params: { chainId: "eip155:6423", request: { method: "eth_signTypedData_v4", params: [] } } }), error => error.code === "UNAUTHORIZED_WALLETCONNECT_METHOD");
   const account = "0x1234567890abcdef1234567890abcdef12345678";

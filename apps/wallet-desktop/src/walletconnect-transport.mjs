@@ -1,6 +1,7 @@
+import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { getSdkError } from "@walletconnect/utils";
-import { parseProductSessionWalletURL } from "@ynx-chain/wallet-auth";
+import { parseProductSessionWalletURL, parseWalletConnectPairingUri } from "@ynx-chain/wallet-auth";
 import { PRODUCT_SESSION_REGISTRY } from "./wallet-auth-contract.mjs";
 import { CENTRAL_BROWSER_METHOD, parseCentralSignIn } from "./central-browser-sign-in.mjs";
 import { createPrivateWalletConnectStorage } from "./walletconnect-private-storage.mjs";
@@ -16,9 +17,15 @@ export const WALLETCONNECT_CHAIN = "eip155:6423";
 export const WALLETCONNECT_METHODS = Object.freeze(["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2", CENTRAL_BROWSER_METHOD]);
 export const WALLETCONNECT_EVENTS = Object.freeze(["accountsChanged", "chainChanged"]);
 const TOMBSTONE_STORAGE_KEY = "ynx-wallet:walletconnect-disconnected-topics:v1";
+const PAIRING_STORAGE_KEY = "ynx-wallet:walletconnect-pairing-quarantine:v1";
+const PAIR_DEADLINE_MS=30_000;
+const PROPOSAL_STORE="ynx-wallet:walletconnect-proposal-reviews:v1";
+const canonical=value=>JSON.stringify(value&&typeof value==="object"?Array.isArray(value)?value.map(item=>JSON.parse(canonical(item))):Object.fromEntries(Object.keys(value).sort().filter(key=>value[key]!==undefined).map(key=>[key,JSON.parse(canonical(value[key]))])):value);
+const proposalDigest=proposal=>createHash("sha256").update(canonical({id:proposal.id,params:proposal.params})).digest("hex");
 
 export class WalletConnectTransport {
-  constructor({ projectId, metadata, storagePath, configurationError = null, walletKitFactory = defaultFactory, clock = () => Date.now() }) {
+  constructor({ projectId, metadata, storagePath, configurationError = null, walletKitFactory = defaultFactory, clock = () => Date.now(), pairDeadlineMs=PAIR_DEADLINE_MS }) {
+    if(!Number.isSafeInteger(pairDeadlineMs)||pairDeadlineMs<1||pairDeadlineMs>PAIR_DEADLINE_MS)throw transportError("INVALID_PAIR_DEADLINE","Pair deadline is invalid");
     this.projectId = projectId?.trim() || null;
     this.metadata = metadata;
     this.storagePath = storagePath;
@@ -27,10 +34,11 @@ export class WalletConnectTransport {
     this.clock = clock;
     this.walletKit = null;
     this.proposals = new Map();
-    this.proposalActions = new Set();
+    this.proposalActions = new Set();this.proposalDecisionLeases=new Set();this.proposalRecords=new Map();this.proposalWrites=Promise.resolve();
     this.sessionOrigins = new Map();
     this.disconnectedTopics = new Set();
     this.tombstoneWrites = Promise.resolve();
+    this.starting=null;this.clientPromise=null;this.pairDeadlineMs=pairDeadlineMs;this.pairOperation=null;this.pairRevision=0;this.pairings=new Map();this.sdkPairPending=new Set();this.pairWrites=Promise.resolve();this.pairState={phase:"idle",cleanup:"none"};
   }
   status() {
     const started = this.walletKit !== null;
@@ -39,24 +47,40 @@ export class WalletConnectTransport {
       configured: this.projectId !== null,
       started,
       relayConnected,
+      pairing: this.pairOperation!==null,
+      pair: Object.freeze({...this.pairState}),
       activeSessionCount: started ? Object.values(this.walletKit.getActiveSessions?.() ?? {}).filter(session => !this.disconnectedTopics.has(session.topic)).length : 0,
       code: this.configurationError || (!this.projectId ? "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" : relayConnected ? null : "WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED")
     });
   }
   async start(handlers = {}) {
+    if(this.starting)return this.starting;
+    if(this.walletKit)return this.status();
+    this.starting=this.#start(handlers);try{return await this.starting;}catch(error){this.starting=null;throw error;}
+  }
+  async #start(handlers) {
+    this.handlers=handlers;
     if (this.configurationError) throw transportError(this.configurationError, "WalletConnect public configuration is invalid");
     if (!this.projectId) throw transportError("WALLETCONNECT_PROJECT_ID_UNAVAILABLE", "WalletConnect project ID is not configured");
-    this.walletKit = await this.walletKitFactory({ projectId: this.projectId, metadata: this.metadata, storagePath: this.storagePath });
-    try { await this.#restoreDisconnectedTopics(); }
+    if(!this.clientPromise){this.clientPromise=Promise.resolve().then(()=>this.walletKitFactory({projectId:this.projectId,metadata:this.metadata,storagePath:this.storagePath}));this.clientPromise.catch(()=>{this.clientPromise=null;});}
+    this.walletKit=await this.clientPromise;
+    try { await this.#restoreDisconnectedTopics();await this.#restorePairings();await this.#restoreProposalRecords(); }
     catch (error) { this.walletKit = null; throw error; }
-    this.walletKit.on("session_proposal", proposal => {
+    this.walletKit.on("session_proposal", async raw => {
+      let proposal=raw;
       try {
+        proposal=normalizeProposal(raw);
+        const topic=proposal?.params?.pairingTopic;if(this.pairings.get(topic)?.canceled)throw transportError("WALLETCONNECT_PAIR_CANCELED","This pairing was canceled; request a fresh QR code");
         validateProposal(proposal, this.#nowSeconds());
         proposalHttpsOrigin(proposal);
         if (!this.proposals.has(String(proposal.id)) && this.proposals.size >= 64) throw transportError("WALLETCONNECT_PROPOSAL_LIMIT", "Too many pending connection reviews");
+        await this.#captureProposal(proposal);
+        if(this.pairings.get(topic)?.canceled)throw transportError("WALLETCONNECT_PAIR_CANCELED","The original pairing ended");
         this.proposals.set(String(proposal.id), proposal);
+        if(this.pairOperation&&this.pairOperation.topic===proposal.params.pairingTopic){this.pairOperation.proposal=true;this.pairOperation.resolveProposal({proposalReceived:true});}
         handlers.onSessionProposal?.(proposal);
       } catch (error) {
+        void this.walletKit.rejectSession({id:proposal?.id,reason:getSdkError("USER_REJECTED")}).catch(()=>{});
         handlers.onProposalInvalid?.({ id: proposal?.id ?? null, code: error?.code ?? "INVALID_WALLETCONNECT_PROPOSAL" });
       }
     });
@@ -74,11 +98,13 @@ export class WalletConnectTransport {
     }
     // Restore public proposals/requests for fresh review, never execute them.
     const proposals = Object.values(this.walletKit.getPendingSessionProposals?.() ?? {});
-    for (const proposal of proposals) {
+    for (const raw of proposals) {
+      let proposal=raw;
       try {
+        proposal=normalizeProposal(raw);const original=this.proposalRecords.get(String(proposal.id));if(this.reviewStorage()&&(!original||original.state!=="undecided"||!original.eligible||original.deadline<=this.clock()||original.digest!==proposalDigest(proposal)))throw transportError("WALLETCONNECT_ORIGINAL_PROPOSAL_UNAVAILABLE","Return to the app for a fresh connection request");if(this.pairings.get(proposal.params.pairingTopic)?.canceled)throw transportError("WALLETCONNECT_FRESH_PAIR_REQUIRED","Request a fresh QR code to review this connection");
         validateProposal(proposal, this.#nowSeconds()); proposalHttpsOrigin(proposal);
         if (!this.proposals.has(String(proposal.id)) && this.proposals.size >= 64) throw transportError("WALLETCONNECT_PROPOSAL_LIMIT", "Too many pending connection reviews");
-        this.proposals.set(String(proposal.id), proposal); handlers.onSessionProposal?.(proposal);
+        proposal={...proposal,verifyContext:original?.verification??proposal.verifyContext};this.proposals.set(String(proposal.id), proposal); handlers.onSessionProposal?.(proposal);
       }
       catch (error) { handlers.onProposalInvalid?.({ id: proposal?.id ?? null, code: error?.code ?? "INVALID_WALLETCONNECT_PROPOSAL" }); }
     }
@@ -92,18 +118,52 @@ export class WalletConnectTransport {
   }
   async pair(uri) {
     if (!this.walletKit) throw transportError("WALLETCONNECT_NOT_STARTED", "WalletConnect transport is not started");
-    if (typeof uri !== "string" || !/^wc:[0-9a-f-]+@2\?/.test(uri) || uri.length > 8192) throw transportError("INVALID_WALLETCONNECT_URI", "WalletConnect pairing URI is invalid");
-    return this.walletKit.pair({ uri });
+    const parsed=parseWalletConnectPairingUri(uri,new Date(this.clock())),topic=parsed.topic;
+    if(this.pairOperation)throw transportError("WALLETCONNECT_PAIR_BUSY","Cancel the current pairing before retrying");
+    if(this.sdkPairPending.size>=100)throw transportError("WALLETCONNECT_PAIR_LIMIT","Existing SDK pair attempts have not finished yet");
+    if(this.pairings.has(topic))throw transportError("WALLETCONNECT_FRESH_PAIR_REQUIRED","Request a fresh QR code from the app");
+    const operation={topic,revision:++this.pairRevision,canceled:false,cancel:null,proposal:false,resolveProposal:null};const received=new Promise(resolve=>operation.resolveProposal=resolve);this.pairOperation=operation;this.pairState={phase:"pairing",cleanup:"none"};this.#notifyPair();
+    this.pairings.set(topic,{topic,expiresAt:(parsed.expiryTimestamp??this.#nowSeconds()+300)*1000,canceled:false});
+    let timer;const interrupted=new Promise((_,reject)=>{operation.cancel=code=>{if(operation.canceled)return;operation.canceled=true;this.pairings.get(topic).canceled=true;this.pairState={phase:code==="WALLETCONNECT_PAIR_TIMEOUT"?"timed-out":code==="WALLETCONNECT_PAIR_FAILED"?"failed":"canceled",cleanup:"pending"};reject(transportError(code,"Pairing ended. Request a fresh QR code; remote cleanup is not confirmed."));void this.#cleanPair(operation);};timer=setTimeout(()=>operation.cancel("WALLETCONNECT_PAIR_TIMEOUT"),this.pairDeadlineMs);});interrupted.catch(()=>{});
+    const sdk=Promise.resolve().then(async()=>{await this.#persistPairings();if(operation.canceled)throw transportError("WALLETCONNECT_PAIR_CANCELED","Pairing canceled before transport");this.sdkPairPending.add(topic);try{return await this.walletKit.pair({uri});}finally{this.sdkPairPending.delete(topic);}});
+    sdk.then(()=>{if(operation.canceled)void this.#cleanPair(operation);},()=>{if(operation.canceled)void this.#cleanPair(operation);});
+    try{const result=await Promise.race([sdk,interrupted,received]);if(this.pairOperation===operation)this.pairState={phase:operation.proposal?"proposal-received":"submitted",cleanup:"none"};return result??{submitted:true};}
+    catch(error){if(!operation.canceled)operation.cancel("WALLETCONNECT_PAIR_FAILED");throw error;}
+    finally{clearTimeout(timer);if(this.pairOperation===operation)this.pairOperation=null;this.#notifyPair();}
   }
-  async approveSession(id, account) {
+  cancelPair(preserveReviewedProposal=false){if(this.pairOperation&&!(preserveReviewedProposal&&this.pairOperation.proposal))this.pairOperation.cancel("WALLETCONNECT_PAIR_CANCELED");this.#notifyPair();return this.status();}
+  #notifyPair(){this.handlers?.onPairState?.(this.status());}
+  pendingRequestKeys(){return (this.walletKit?.getPendingSessionRequests?.()??[]).map(event=>JSON.stringify([event.topic,event.id]));}
+  reviewStorage(){return this.walletKit?.core?.storage??null;}
+  async #restorePairings(){const storage=this.reviewStorage();if(!storage?.getItem)return;const state=await storage.getItem(PAIRING_STORAGE_KEY);if(state!=null){if(state.version!==1||!Array.isArray(state.records)||state.records.length>100||state.records.some(item=>!item||!/^[a-f0-9]{64}$/.test(item.topic)||!Number.isSafeInteger(item.expiresAt)))throw transportError("WALLETCONNECT_PAIR_STORAGE_UNAVAILABLE","Pairing safety records cannot be verified");for(const item of state.records)if(item.expiresAt>this.clock())this.pairings.set(item.topic,{...item,canceled:item.canceled!==false||item.review!==true});}}
+  async #persistPairings(){const work=this.pairWrites.catch(()=>{}).then(async()=>{for(const [topic,item]of this.pairings)if(item.expiresAt<=this.clock()&&this.pairOperation?.topic!==topic&&!this.sdkPairPending.has(topic))this.pairings.delete(topic);if(this.pairings.size>100)throw transportError("WALLETCONNECT_PAIR_LIMIT","Wait for existing pairing requests to expire before retrying");const storage=this.reviewStorage();if(!storage?.setItem){if(this.walletKitFactory===defaultFactory)throw transportError("WALLETCONNECT_PAIR_STORAGE_UNAVAILABLE","Pairing safety storage is unavailable");return;}const state={version:1,records:[...this.pairings.values()]};await storage.setItem(PAIRING_STORAGE_KEY,state);if(JSON.stringify(await storage.getItem(PAIRING_STORAGE_KEY))!==JSON.stringify(state))throw transportError("WALLETCONNECT_PAIR_STORAGE_UNAVAILABLE","Pairing safety write could not be verified");});this.pairWrites=work;return work;}
+  async #cleanPair(operation){let timer;try{await this.#persistPairings();if(!this.walletKit.core?.pairing?.disconnect)throw new Error();await Promise.race([this.walletKit.core.pairing.disconnect({topic:operation.topic}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error()),1500);})]);const pairings=this.walletKit.core.pairing.getPairings?.();if(!pairings||pairings.some(item=>item.topic===operation.topic))throw new Error();if(operation.revision===this.pairRevision)this.pairState={...this.pairState,cleanup:"sdk-confirmed"};}catch{if(operation.revision===this.pairRevision)this.pairState={...this.pairState,cleanup:"unconfirmed"};}finally{clearTimeout(timer);this.#notifyPair();}}
+  async #restoreProposalRecords(){const storage=this.reviewStorage();if(!storage?.getItem)return;const state=await storage.getItem(PROPOSAL_STORE);if(state==null)return;
+    if(state.version!==1||!Array.isArray(state.records)||state.records.length>256||JSON.stringify(state).length>262144||state.records.some(record=>!record||!Number.isSafeInteger(record.id)||!/^[a-f0-9]{64}$/.test(record.digest)||!Number.isSafeInteger(record.deadline)||typeof record.eligible!=="boolean"||record.account!==null&&typeof record.account!=="string"||!["undecided","decided"].includes(record.state))||new Set(state.records.map(record=>record.id)).size!==state.records.length)throw transportError("WALLETCONNECT_REVIEW_STORAGE_INVALID","Connection review safety records cannot be verified");
+    const pending=new Set(Object.values(this.walletKit.getPendingSessionProposals?.()??{}).map(proposal=>proposal.id));for(const record of state.records)if(record.deadline>this.clock()||pending.has(record.id))this.proposalRecords.set(String(record.id),JSON.parse(JSON.stringify(record)));
+  }
+  #persistProposalRecords(){const work=this.proposalWrites.catch(()=>{}).then(async()=>{const storage=this.reviewStorage();if(!storage?.setItem){if(this.walletKitFactory===defaultFactory)throw transportError("WALLETCONNECT_REVIEW_STORAGE_UNAVAILABLE","Keep Wallet data and retry");return;}const state={version:1,records:[...this.proposalRecords.values()]};await storage.setItem(PROPOSAL_STORE,state);if(JSON.stringify(await storage.getItem(PROPOSAL_STORE))!==JSON.stringify(state))throw transportError("WALLETCONNECT_REVIEW_WRITE_UNCONFIRMED","Connection decision could not be verified");});this.proposalWrites=work;return work;}
+  async #captureProposal(proposal){if(!this.reviewStorage())return;const key=String(proposal.id),previous=this.proposalRecords.get(key),digest=proposalDigest(proposal);if(previous){if(previous.state!=="undecided"||previous.digest!==digest||previous.deadline<=this.clock())throw transportError("WALLETCONNECT_PROPOSAL_ALREADY_DECIDED","Request a fresh connection");return;}
+    const topic=proposal.params.pairingTopic,pairing=this.pairings.get(topic),knownSession=Object.values(this.walletKit.getActiveSessions?.()??{}).some(session=>session.pairingTopic===topic);if(pairing?.canceled||!pairing&&!knownSession)throw transportError("WALLETCONNECT_FRESH_PAIR_REQUIRED","Request a fresh QR code from the app");
+    const pending=new Set(Object.values(this.walletKit.getPendingSessionProposals?.()??{}).map(value=>value.id));for(const [id,record]of this.proposalRecords)if(record.deadline<=this.clock()&&!pending.has(record.id))this.proposalRecords.delete(id);if(this.proposalRecords.size>=256)throw transportError("WALLETCONNECT_PROPOSAL_LIMIT","Wait for existing reviews to expire");
+    this.proposalRecords.set(key,{id:proposal.id,digest,deadline:Math.min(proposal.expiryTimestamp*1000,this.clock()+300000),eligible:true,account:null,state:"undecided",decision:null,verification:proposal.verifyContext??null});if(pairing){pairing.review=true;await this.#persistPairings();}await this.#persistProposalRecords();
+  }
+  async bindProposalAccount(id,account){const record=this.proposalRecords.get(String(id));if(!record){if(this.reviewStorage())throw transportError("WALLETCONNECT_ORIGINAL_PROPOSAL_UNAVAILABLE","Request a fresh connection");return;}if(record.account!==null&&record.account!==account||record.state!=="undecided"||record.deadline<=this.clock())throw transportError("ACCOUNT_CHANGED","The original account or connection review changed");record.account=account;await this.#persistProposalRecords();}
+  async decideProposal(id,account,assertCurrent=()=>{}){const proposal=this.proposals.get(String(id)),record=this.proposalRecords.get(String(id));assertCurrent();if(!proposal||this.pairings.get(proposal.params.pairingTopic)?.canceled)throw transportError("WALLETCONNECT_ORIGINAL_PROPOSAL_UNAVAILABLE","Request a fresh connection");if(!record){if(this.reviewStorage())throw transportError("WALLETCONNECT_ORIGINAL_PROPOSAL_UNAVAILABLE","Request a fresh connection");return;}if(record.state!=="undecided"||record.deadline<=this.clock()||record.account!==account||record.digest!==proposalDigest(proposal))throw transportError("WALLETCONNECT_PROPOSAL_ALREADY_DECIDED","The original review ended or changed");if(this.reviewStorage()){const saved=(await this.reviewStorage().getItem(PROPOSAL_STORE))?.records?.find(item=>item.id===proposal.id);if(!saved||saved.state!=="undecided"||saved.digest!==record.digest||saved.account!==account||saved.deadline!==record.deadline)throw transportError("WALLETCONNECT_ORIGINAL_PROPOSAL_UNAVAILABLE","The original connection review is missing");}assertCurrent();record.state="decided";record.decision="approve";await this.#persistProposalRecords();assertCurrent();this.proposalDecisionLeases.add(String(id));}
+  proposalReviewDeadline(id){const proposal=this.proposals.get(String(id));return this.proposalRecords.get(String(id))?.deadline??proposal?.expiryTimestamp*1000;}
+  async approveSession(id, account,assertCurrent=()=>{}) {
     const proposal = this.proposals.get(String(id));
     if (!proposal) throw transportError("UNKNOWN_WALLETCONNECT_PROPOSAL", "WalletConnect proposal is unknown or expired");
     const key = String(id);
     if (this.proposalActions.has(key)) throw transportError("WALLETCONNECT_PROPOSAL_ACTION_IN_PROGRESS", "WalletConnect proposal already has an approval or rejection in progress");
     this.proposalActions.add(key);
     try {
+      assertCurrent();const record=this.proposalRecords.get(key);if(record&&record.deadline<=this.clock())throw transportError("EXPIRED_WALLETCONNECT_PROPOSAL","The original connection review expired");
       const approved = validateProposal(proposal, this.#nowSeconds());
       const approvedAccount = normalizeAccount(account);
+      if(this.proposalRecords.get(key)?.state==="undecided")await this.decideProposal(id,account);
+      if(this.reviewStorage()&&(!this.proposalDecisionLeases.has(key)||this.proposalRecords.get(key)?.decision!=="approve"))throw transportError("WALLETCONNECT_PROPOSAL_ALREADY_DECIDED","The connection decision was already used. Request a fresh QR code.");
+      this.proposalDecisionLeases.delete(key);
       const session = await this.walletKit.approveSession({ id: proposal.id, namespaces: {
         eip155: {
           chains: [WALLETCONNECT_CHAIN],
@@ -112,6 +172,7 @@ export class WalletConnectTransport {
           events: approved.events
         }
       } });
+      try{assertCurrent();}catch(error){await this.#tombstoneTopic(session.topic);await this.walletKit.disconnectSession({topic:session.topic,reason:getSdkError("USER_DISCONNECTED")}).catch(()=>{});throw error;}
       this.proposals.delete(key);
       this.#rememberSession(session);
       return session;
@@ -138,7 +199,7 @@ export class WalletConnectTransport {
     if (this.proposalActions.has(key)) throw transportError("WALLETCONNECT_PROPOSAL_ACTION_IN_PROGRESS", "WalletConnect proposal already has an approval or rejection in progress");
     this.proposalActions.add(key);
     try {
-      validateProposal(proposal, this.#nowSeconds());
+      const record=this.proposalRecords.get(key);if(record){record.state="decided";record.decision="reject";this.proposalDecisionLeases.delete(key);await this.#persistProposalRecords();}else if(this.reviewStorage())throw transportError("WALLETCONNECT_ORIGINAL_PROPOSAL_UNAVAILABLE","The original review is missing");
       await this.walletKit.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") });
       this.proposals.delete(key);
     } finally {
@@ -154,6 +215,7 @@ export class WalletConnectTransport {
     });
   }
   authorizeRequest(event, selectedAccount) {
+    verifyPeer(event?.verifyContext,this.sessionOrigin(event?.topic));
     if (!this.walletKit) throw transportError("WALLETCONNECT_NOT_STARTED", "WalletConnect transport is not started");
     const topic = event?.topic;
     const namespace = this.#sessionNamespace(topic);
@@ -175,7 +237,7 @@ export class WalletConnectTransport {
     if (requestedAccount !== normalizeAccount(selectedAccount) || !namespace.accounts.some(account => account.toLowerCase() === `${WALLETCONNECT_CHAIN}:${requestedAccount}`)) {
       throw transportError("UNAUTHORIZED_WALLETCONNECT_ACCOUNT", "WalletConnect request account must match this session and the selected Wallet account");
     }
-    return Object.freeze({ topic, jsonRpcId: event.id, origin: this.sessionOrigin(topic), method: request.method, params: request.params });
+    return Object.freeze({ topic, jsonRpcId: event.id, origin: this.sessionOrigin(topic), method: request.method, params: request.params,sessionBinding:JSON.stringify({namespaces:this.walletKit.getActiveSessions()[topic].namespaces,peer:this.walletKit.getActiveSessions()[topic].peer,expiry:this.walletKit.getActiveSessions()[topic].expiry}) });
   }
   sessions() {
     if (!this.walletKit) return Object.freeze([]);
@@ -287,6 +349,7 @@ function validateProposal(proposal, nowSeconds) {
   if (!supportedChainRequested) unsupportedNamespace();
   return Object.freeze({ methods: Object.freeze([...methods]), events: Object.freeze([...events]) });
 }
+function normalizeProposal(value){if(!value||typeof value!=="object")return value;const params=value.params??value;if(params.expiryTimestamp!==undefined&&value.expiryTimestamp!==undefined&&params.expiryTimestamp!==value.expiryTimestamp||params.id!==undefined&&value.id!==params.id)throw transportError("INVALID_WALLETCONNECT_PROPOSAL","WalletConnect proposal fields conflict");const expiry=params.expiryTimestamp??value.expiryTimestamp;return {...value,params,expiryTimestamp:expiry};}
 function unsupportedNamespace() { throw transportError("UNSUPPORTED_WALLETCONNECT_NAMESPACE", "WalletConnect proposal requests an unsupported chain, method, or event"); }
 function normalizeAccount(account) {
   if (typeof account !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(account)) throw transportError("INVALID_WALLETCONNECT_ACCOUNT", "WalletConnect requires a valid selected and requested EVM account");
@@ -298,9 +361,10 @@ function requestAccount(request) {
   if (request.method === "eth_sendTransaction" && request.params.length === 1 && typeof request.params[0] === "object" && request.params[0] !== null && !Array.isArray(request.params[0])) return normalizeAccount(request.params[0].from);
   throw transportError("INVALID_WALLETCONNECT_REQUEST", "WalletConnect request does not identify its signing account");
 }
+function verifyPeer(context,origin){const verified=context?.verified;if(!verified)return;if(verified.isScam===true||verified.validation==="INVALID"||verified.validation==="VALID"&&verified.origin!==origin)throw transportError("UNSAFE_WALLETCONNECT_ORIGIN","The app verification failed. Reject this request and check the app address.");}
 function proposalHttpsOrigin(proposal) {
   const value = proposal?.params?.proposer?.metadata?.url;
-  try { const url = new URL(value); if (url.protocol !== "https:") throw new Error(); return url.origin; } catch { throw transportError("INVALID_WALLETCONNECT_PEER", "WalletConnect proposal has no valid HTTPS origin"); }
+  try { const url = new URL(value); if (url.protocol !== "https:") throw new Error();verifyPeer(proposal.verifyContext,url.origin);return url.origin; } catch { throw transportError("INVALID_WALLETCONNECT_PEER", "WalletConnect proposal has no valid HTTPS origin"); }
 }
 function sanitizeSession(session, nowSeconds) {
   const topic = session?.topic;

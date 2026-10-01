@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   walletConnectStatus: () => ipcRenderer.invoke("wallet:walletconnect-status"),
   walletConnectSessions: () => ipcRenderer.invoke("wallet:walletconnect-sessions"),
   walletConnectPair: uri => ipcRenderer.invoke("wallet:walletconnect-pair", uri),
+  walletConnectCancelPair: () => ipcRenderer.invoke("wallet:walletconnect-cancel-pair"),
   walletConnectDecodeQR: input => ipcRenderer.invoke("wallet:walletconnect-decode-qr", input),
   walletConnectDisconnect: topic => ipcRenderer.invoke("wallet:walletconnect-disconnect", topic),
   walletConnectProposalAction: (id, action, account) => ipcRenderer.invoke("wallet:walletconnect-proposal-action", id, action, account),
