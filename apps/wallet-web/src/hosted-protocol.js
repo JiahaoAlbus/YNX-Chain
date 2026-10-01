@@ -18,7 +18,7 @@ export function registeredProduct(origin) {
   return registry.products.find(product => product.webOrigin === origin && product.evmCompatible === true) ?? null;
 }
 export function assertHostedMethodAllowed(origin, method) {
-  if (origin === CENTRAL_BROWSER_ISSUER && ![CENTRAL_BROWSER_RPC_METHOD,"eth_requestAccounts","eth_accounts","eth_chainId","wallet_disconnect","wallet_addEthereumChain","wallet_switchEthereumChain"].includes(method)) fail("HOSTED_IDENTITY_ONLY");
+  if (origin === CENTRAL_BROWSER_ISSUER && ![CENTRAL_BROWSER_RPC_METHOD,"eth_requestAccounts","eth_accounts","eth_chainId","wallet_disconnect","wallet_revokePermissions","wallet_addEthereumChain","wallet_switchEthereumChain"].includes(method)) fail("HOSTED_IDENTITY_ONLY");
 }
 export function randomHostedId(cryptoProvider = globalThis.crypto) {
   if (!cryptoProvider?.getRandomValues) fail("HOSTED_CRYPTO_UNAVAILABLE");

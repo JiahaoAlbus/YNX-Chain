@@ -34,6 +34,7 @@ export function createFinanceHostedWalletController({createHostedWalletAdapter, 
     }
   }
   function subscribe(selected, token, onConnectingAccount, onConnectingSignal) {
+    let closeBatch = 0;
     const accountChanged = accounts => {
       if (token !== generation || selected !== adapter) return;
       // The Wallet emits accountsChanged before connect() resolves. The
@@ -44,8 +45,10 @@ export function createFinanceHostedWalletController({createHostedWalletAdapter, 
         // The accepted adapter emits [] immediately before its typed close
         // event. Only that same synchronous batch may classify a transport
         // close; an independent empty-account event still fails closed.
+        const batch = closeBatch;
         queueMicrotask(() => {
           if (token !== generation || selected !== adapter) return;
+          if (batch !== closeBatch && state.status === 'transport-unavailable') return;
           generation++;
           detach();
           publish('disconnected', null, null, 'HOSTED_ACCOUNT_CHANGED');
@@ -69,12 +72,18 @@ export function createFinanceHostedWalletController({createHostedWalletAdapter, 
       if (token !== generation || selected !== adapter) return;
       if (state.status === 'connecting') { onConnectingSignal('disconnected'); return; }
       const previous=state,transportClose=['HOSTED_POPUP_CLOSED','HOSTED_REQUEST_EXPIRED_OR_RELOADED'].includes(signal?.code);
+      if (transportClose && previous.account && typeof selected.reserve === 'function') {
+        closeBatch++;
+        publish('transport-unavailable',previous.account,previous.chainId,signal.code);
+        return;
+      }
       generation++;
       detach();
       if(transportClose&&previous.status==='connected')publish('transport-unavailable',previous.account,previous.chainId,signal.code);
       else publish('disconnected', null, null, 'HOSTED_DISCONNECTED');
     };
-    listeners = [['accountsChanged', accountChanged], ['chainChanged', chainChanged], ['disconnect', disconnected]];
+    const reconnected = () => { if (token === generation && selected === adapter && state.status === 'transport-unavailable') publish('connected',state.account,state.chainId); };
+    listeners = [['accountsChanged', accountChanged], ['chainChanged', chainChanged], ['disconnect', disconnected], ['connect',reconnected]];
     for (const [name, listener] of listeners) selected.on(name, listener);
   }
   function connect() {
@@ -131,21 +140,31 @@ export function createFinanceHostedWalletController({createHostedWalletAdapter, 
   }
   async function request(input) {
     const selected = adapter, token = generation;
-    if (state.status !== 'connected' || !selected) throw failure('HOSTED_NOT_CONNECTED');
+    if (!['connected','transport-unavailable'].includes(state.status) || !selected) throw failure('HOSTED_NOT_CONNECTED');
     const result = await selected.request(input);
-    if (token !== generation || selected !== adapter || state.status !== 'connected') throw failure('HOSTED_CONTEXT_CHANGED');
+    if (token !== generation || selected !== adapter || !['connected','transport-unavailable'].includes(state.status)) throw failure('HOSTED_CONTEXT_CHANGED');
     return result;
   }
-  async function revoke() {
-    const selected = adapter;
-    if (state.status !== 'connected' || typeof selected?.revoke !== 'function') return {status: 'unsupported', permissionRevoked: false, locallyDisconnected: false};
-    await selected.revoke();
-    await disconnect();
-    // Hosted adapter revoke currently closes the channel only. It does not
-    // return a Wallet/backend permission-revocation receipt.
-    return {status: 'local-only', permissionRevoked: false, locallyDisconnected: true};
+  function reserve() {
+    const selected = adapter, token = generation;
+    if (!selected || !['connected','transport-unavailable'].includes(state.status) || typeof selected.reserve !== 'function') return Promise.reject(failure('HOSTED_NOT_CONNECTED'));
+    // Called in the click stack, before any server/device proof await.
+    return selected.reserve().then(accounts => {
+      if (token !== generation || selected !== adapter || accounts?.[0] !== state.account) throw failure('HOSTED_CONTEXT_CHANGED');
+      return accounts;
+    });
   }
-  return Object.freeze({connect, disconnect, revoke, request, dispose: disconnect, getState: () => state});
+  async function revoke() {
+    const selected = adapter, token = generation;
+    if (!['connected','transport-unavailable'].includes(state.status) || typeof selected?.revoke !== 'function') return {status: 'unsupported', permissionRevoked: false, locallyDisconnected: false};
+    const receipt = await selected.revoke();
+    if (token !== generation || selected !== adapter) return {status:receipt?.revoked===true&&!adapter&&state.status==='disconnected'?'revoked':'superseded',permissionRevoked:receipt?.revoked===true,locallyDisconnected:!adapter&&state.status==='disconnected'};
+    await disconnect();
+    // Legacy adapters remain local-only. Only the new Wallet-origin durable
+    // permission acknowledgement is reported as a remote revocation.
+    return {status: receipt?.revoked === true ? 'revoked' : 'local-only', permissionRevoked: receipt?.revoked === true, locallyDisconnected: true};
+  }
+  return Object.freeze({connect, disconnect, revoke, reserve, request, dispose: disconnect, getState: () => state});
 }
 
 export function mountFinanceHostedWalletUI({document, window: browserWindow, createHostedWalletAdapter, text, onAttempt = () => {}, onChange = () => {}}) {
@@ -183,7 +202,8 @@ export function mountFinanceHostedWalletUI({document, window: browserWindow, cre
     connectButton.disabled = state.status === 'connecting';
     disconnectButton.textContent = text('hostedDisconnect');
     disconnectButton.hidden = state.status !== 'connected' && state.status !== 'connecting';
-    const statusKey = state.error === 'HOSTED_POPUP_BLOCKED' ? 'hostedPopupBlocked'
+    const statusKey = state.status === 'transport-unavailable' ? 'hostedResume'
+      : state.error === 'HOSTED_POPUP_BLOCKED' ? 'hostedPopupBlocked'
       : state.error === 'HOSTED_POPUP_CLOSED' ? 'hostedPopupClosed'
       : state.error === 'HOSTED_REQUEST_EXPIRED_OR_RELOADED' ? 'hostedExpired'
       : labels[state.status];

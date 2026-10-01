@@ -59,6 +59,22 @@ for (const [language, row] of Object.entries(centralIdentityRows)) dynamicRows[l
 dynamicKeys.push("paperWorkspaceOnly");
 const paperWorkspaceRows = {"en": "Simulated Paper workspace only: view your snapshot and history, save backtest strategies and submit simulated orders. No real money, live trading, schedules or Testnet transactions.", "zh-CN": "仅模拟 Paper 工作区：查看本人快照和历史、保存回测策略及提交模拟订单。不使用真钱，不授权实盘交易、定时任务或测试网交易。", "zh-TW": "僅模擬 Paper 工作區：查看本人快照與歷史、儲存回測策略及提交模擬訂單。不使用真錢，不授權實盤交易、排程或測試網交易。", "ja": "模擬 Paper ワークスペースのみ：自分のスナップショットと履歴の閲覧、バックテスト戦略の保存、模擬注文。実際の資金、ライブ取引、スケジュール、Testnet 取引は許可しません。", "ko": "모의 Paper 작업 공간만 허용: 내 스냅샷과 기록 조회, 백테스트 전략 저장, 모의 주문 제출. 실제 자금, 실거래, 예약 작업 또는 Testnet 거래는 허용하지 않습니다.", "es": "Solo espacio Paper simulado: ver tus datos e historial, guardar estrategias de pruebas y enviar órdenes simuladas. Sin dinero real, operaciones reales, tareas programadas ni transacciones Testnet.", "fr": "Espace Paper simulé uniquement : consulter vos données et historique, enregistrer des stratégies de backtest et soumettre des ordres simulés. Aucun argent réel, trading réel, tâche planifiée ou transaction Testnet.", "de": "Nur simulierte Paper-Arbeitsumgebung: eigene Daten und Verlauf ansehen, Backtest-Strategien speichern und simulierte Aufträge senden. Kein echtes Geld, Live-Handel, Zeitpläne oder Testnet-Transaktionen.", "pt": "Apenas espaço Paper simulado: consultar seus dados e histórico, salvar estratégias de backtest e enviar ordens simuladas. Sem dinheiro real, negociação real, agendamentos ou transações Testnet.", "ru": "Только симуляция Paper: просмотр своего состояния и истории, сохранение стратегий бэктеста и отправкасимулированных заявок. Без реальных денег, реальной торговли, расписаний и транзакций Testnet.", "ar": "مساحة Paper للمحاكاة فقط: عرض بياناتك وسجلك وحفظ استراتيجيات الاختبار وإرسال أوامر محاكاة. لا أموال حقيقية أو تداول فعلي أو مهام مجدولة أو معاملات Testnet.", "id": "Hanya ruang kerja Paper simulasi: lihat data dan riwayat sendiri, simpan strategi backtest dan kirim order simulasi. Tanpa uang nyata, perdagangan langsung, jadwal atau transaksi Testnet."};
 for (const [language, text] of Object.entries(paperWorkspaceRows)) dynamicRows[language].push(text);
+// Connection permission survives closing the temporary signing transport.
+const connectionCopy = {
+  en:"Connected to {origin}. You can close Wallet. Your next request opens it for a separate approval.",
+  "zh-CN":"已连接 {origin}。可以关闭钱包；下次操作会重新打开并请求单独批准。",
+  "zh-TW":"已連線 {origin}。可以關閉錢包；下次操作會重新開啟並要求個別核准。",
+  ja:"{origin} に接続しました。Wallet は閉じられます。次の操作で再度開き、個別に承認します。",
+  ko:"{origin}에 연결되었습니다. Wallet을 닫아도 됩니다. 다음 요청에서 다시 열고 별도로 승인합니다.",
+  es:"Conectado a {origin}. Puedes cerrar Wallet. La próxima solicitud lo abrirá para una aprobación independiente.",
+  fr:"Connecté à {origin}. Vous pouvez fermer Wallet. La prochaine demande l’ouvrira pour une approbation distincte.",
+  de:"Mit {origin} verbunden. Wallet kann geschlossen werden. Die nächste Anfrage öffnet es für eine eigene Freigabe.",
+  pt:"Ligado a {origin}. Pode fechar a Wallet. O próximo pedido abre-a para uma aprovação separada.",
+  ru:"Подключено к {origin}. Wallet можно закрыть. Следующий запрос откроет его для отдельного подтверждения.",
+  ar:"تم الاتصال بـ {origin}. يمكنك إغلاق Wallet. سيفتحه الطلب التالي لموافقة منفصلة.",
+  id:"Terhubung ke {origin}. Wallet boleh ditutup. Permintaan berikutnya membukanya untuk persetujuan terpisah."
+};
+for (const [language, text] of Object.entries(connectionCopy)) dynamicRows[language][dynamicKeys.indexOf("connected")] = text;
 export const HOSTED_DYNAMIC_KEYS = Object.freeze(dynamicKeys);
 export function hostedDynamicCopy(locale, key, variables = {}) {
   const index = dynamicKeys.indexOf(key);

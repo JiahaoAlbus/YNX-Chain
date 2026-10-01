@@ -93,3 +93,25 @@ test('Hosted refresh requires new approval; disconnect cannot be promoted by an 
   const pending=slow.controller.connect();await slow.controller.disconnect();resolve([ACCOUNT]);
   assert.equal(await pending,null);assert.equal(slow.controller.getState().status,'disconnected');
 });
+
+test('new Hosted transport keeps selection on close and reserves synchronously before a delayed challenge',async()=>{
+  const f=fixture();await f.controller.connect();let reserved=0;
+  f.adapter.reserve=()=>{reserved++;return Promise.resolve([ACCOUNT]);};
+  f.adapter.request=async({method})=>method==='eth_chainId'?'0x1917':'signed';
+  f.adapter.emit('disconnect',{code:'HOSTED_POPUP_CLOSED'});
+  assert.equal(f.controller.getState().status,'transport-unavailable');assert.equal(f.adapter.detached,0);
+  const reservation=f.controller.reserve();assert.equal(reserved,1);await reservation;
+  f.adapter.emit('connect',{chainId:'0x1917'});
+  assert.equal(await f.controller.request({method:'personal_sign',params:[]}), 'signed');
+  assert.equal(f.controller.getState().account,ACCOUNT);
+});
+test('late reservation after account invalidation cannot revive the selected context',async()=>{
+  const f=fixture();await f.controller.connect();let release;
+  f.adapter.reserve=()=>new Promise(resolve=>release=resolve);
+  const waiting=f.controller.reserve();f.adapter.emit('accountsChanged',['0x'+'b'.repeat(40)]);release([ACCOUNT]);
+  await assert.rejects(waiting,{code:'HOSTED_CONTEXT_CHANGED'});assert.equal(f.controller.getState().account,null);
+});
+test('only a Wallet durable revoke receipt upgrades permissionRevoked',async()=>{
+  const f=fixture();await f.controller.connect();f.adapter.revoke=async()=>({revoked:true});
+  assert.deepEqual(await f.controller.revoke(),{status:'revoked',permissionRevoked:true,locallyDisconnected:true});
+});

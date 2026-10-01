@@ -3503,6 +3503,21 @@
     id:['Buka YNX Wallet di web untuk menyetujui akun secara terpisah. Finance privat memerlukan otorisasi lain.','Hubungkan YNX Wallet di Web','Putuskan dompet Web','Dompet Web belum terhubung. Halaman publik tetap tersedia.','Menunggu persetujuan nyata di dompet Web…','Akun dompet Web disetujui; Finance privat tetap terpisah.','Browser memblokir jendela dompet. Izinkan pop-up lalu coba lagi.','Jendela dompet ditutup. Tidak ada akun yang disetujui.','Permintaan dompet kedaluwarsa atau dimuat ulang. Hubungkan lagi.'],
   };
   for(const [locale,values] of Object.entries(hostedCopy))Object.assign(messages[locale],Object.fromEntries(hostedKeys.map((key,index)=>[key,values[index]])));
+  const hostedResumeCopy={
+    en:'Wallet is closed. Your next signing action opens it for a separate approval.',
+    'zh-CN':'钱包已关闭；下次签名操作会打开钱包并请求单独批准。',
+    'zh-Hant':'錢包已關閉；下次簽章操作會開啟錢包並要求個別核准。',
+    ja:'Wallet は閉じています。次の署名操作で開き、個別に承認します。',
+    ko:'Wallet이 닫혀 있습니다. 다음 서명 작업에서 열고 별도로 승인합니다.',
+    es:'Wallet está cerrado. La próxima firma lo abrirá para una aprobación independiente.',
+    fr:'Wallet est fermé. La prochaine signature l’ouvrira pour une approbation distincte.',
+    de:'Wallet ist geschlossen. Die nächste Signatur öffnet es für eine eigene Freigabe.',
+    pt:'A Wallet está fechada. A próxima assinatura abre-a para uma aprovação separada.',
+    ru:'Wallet закрыт. Следующая подпись откроет его для отдельного подтверждения.',
+    ar:'Wallet مغلق. سيفتحه طلب التوقيع التالي لموافقة منفصلة.',
+    id:'Wallet ditutup. Tindakan penandatanganan berikutnya membukanya untuk persetujuan terpisah.'
+  };
+  for(const [locale,text] of Object.entries(hostedResumeCopy))messages[locale].hostedResume=text;
   const privateAccountMismatchCopy={
     en:'The selected Standard Wallet is a different account. Private Finance requests are paused until the accounts match.',
     'zh-CN':'当前标准钱包是另一个账户；账户匹配前已暂停私人 Finance 请求。',

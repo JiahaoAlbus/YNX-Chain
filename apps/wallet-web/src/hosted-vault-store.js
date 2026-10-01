@@ -1,4 +1,5 @@
 import { createEncryptedVault, parseEncryptedVault, unlockEncryptedVault } from "./extension-vault.js";
+import {HOSTED_CHAIN_ID, HOSTED_SESSION_MS, randomHostedId, registeredProduct} from "./hosted-protocol.js";
 
 const DB_NAME = "ynx-hosted-wallet-v1";
 const STORE = "vault";
@@ -6,20 +7,28 @@ const REPLAY = "replay";
 const ACCOUNTS = "accounts";
 const META = "meta";
 const JOURNAL = "journal";
+const CONNECTIONS = "connections";
 const KEY = "primary";
 function problem(code) { return Object.assign(new Error(code), { code }); }
 function fail(code) { throw problem(code); }
+function validConnectionRecord(grant) {
+  return grant && Object.keys(grant).sort().join(",") === "account,chainId,epoch,expiresAt,id,origin,revoked,scopes,version" && grant.version === 1 &&
+    registeredProduct(grant.origin) && /^0x[0-9a-f]{40}$/u.test(grant.account) && /^[A-Za-z0-9_-]{22,64}$/u.test(grant.id) &&
+    grant.chainId === HOSTED_CHAIN_ID && Number.isSafeInteger(grant.epoch) && grant.epoch > 0 && grant.epoch < Number.MAX_SAFE_INTEGER &&
+    Number.isSafeInteger(grant.expiresAt) && typeof grant.revoked === "boolean" && Array.isArray(grant.scopes) && grant.scopes.join(",") === "account:read,request:review";
+}
 
 function openDatabase(factory) {
   return new Promise((resolve, reject) => {
     let request;
-    try { request = factory.open(DB_NAME, 4); } catch { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
+    try { request = factory.open(DB_NAME, 5); } catch { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
     request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains(STORE)) request.result.createObjectStore(STORE);
       if (!request.result.objectStoreNames.contains(REPLAY)) request.result.createObjectStore(REPLAY);
       if (!request.result.objectStoreNames.contains(ACCOUNTS)) request.result.createObjectStore(ACCOUNTS);
       if (!request.result.objectStoreNames.contains(META)) request.result.createObjectStore(META);
       if (!request.result.objectStoreNames.contains(JOURNAL)) request.result.createObjectStore(JOURNAL);
+      if (!request.result.objectStoreNames.contains(CONNECTIONS)) request.result.createObjectStore(CONNECTIONS);
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(problem("HOSTED_STORAGE_UNAVAILABLE"));
@@ -101,8 +110,23 @@ export function createHostedVaultStore(factory = globalThis.indexedDB, cryptoPro
   async function selectAccount(account) {
     if (!(await listAccounts()).includes(account)) fail("HOSTED_ACCOUNT_UNAVAILABLE");
     const primary = await transaction(await db(), "readonly", store => store.get(KEY));
-    if (parseEncryptedVault(primary).account === account) await transaction(await db(), "readwrite", store => store.delete("selected"), META);
-    else await transaction(await db(), "readwrite", store => store.put(account, "selected"), META);
+    // Account selection and revocation share one transaction: switching back
+    // must never resurrect approvals from the previous account generation.
+    const database = await db();
+    await new Promise((resolve, reject) => {
+        const change = database.transaction([META, CONNECTIONS], "readwrite");
+        change.oncomplete = resolve;
+        change.onabort = change.onerror = () => reject(problem("HOSTED_STORAGE_WRITE_FAILED"));
+        const grants = change.objectStore(CONNECTIONS), all = grants.getAll();
+        all.onsuccess = () => {
+          for (const grant of all.result) {
+            if (!validConnectionRecord(grant)) { change.abort(); return; }
+            grants.put({...grant, revoked:true, epoch:grant.epoch+1}, `${grant.origin}|${grant.account}`);
+          }
+          if (parseEncryptedVault(primary).account === account) change.objectStore(META).delete("selected");
+          else change.objectStore(META).put(account, "selected");
+        };
+    });
     const selected = await read();
     if (selected?.account !== account) fail("HOSTED_STORAGE_READBACK_FAILED");
     return selected;
@@ -111,6 +135,52 @@ export function createHostedVaultStore(factory = globalThis.indexedDB, cryptoPro
     if (typeof key !== "string" || key.length > 300 || !Number.isSafeInteger(deadlineAt) || deadlineAt <= Date.now()) fail("HOSTED_REPLAY_INVALID");
     try { await transaction(await db(), "readwrite", store => store.add(deadlineAt, key), REPLAY); }
     catch { fail("HOSTED_REQUEST_REPLAYED_OR_STORAGE_UNAVAILABLE"); }
+  }
+  // These records authorize account disclosure and opening a fresh review,
+  // never signing. The Wallet origin alone reads/writes them. Hints held by a
+  // DApp are not credentials and are always checked against this store.
+  async function connectionRecord(origin, account, change) {
+    if (!registeredProduct(origin) || !/^0x[0-9a-f]{40}$/u.test(account ?? "")) fail("HOSTED_GRANT_INVALID");
+    const database = await db();
+    return new Promise((resolve, reject) => {
+      const tx = database.transaction([CONNECTIONS, META, STORE, ACCOUNTS], change ? "readwrite" : "readonly");
+      let result, error;
+      tx.oncomplete = () => error ? reject(error) : resolve(result);
+      tx.onabort = tx.onerror = () => reject(error ?? problem("HOSTED_STORAGE_WRITE_FAILED"));
+      const selected = tx.objectStore(META).get("selected");
+      selected.onsuccess = () => {
+        const record = selected.result === undefined ? tx.objectStore(STORE).get(KEY) : tx.objectStore(ACCOUNTS).get(selected.result);
+        record.onsuccess = () => {
+          try { if (parseEncryptedVault(record.result).account !== account) fail("HOSTED_ACCOUNT_CHANGED"); }
+          catch (failure) { error = failure; tx.abort(); return; }
+          const store = tx.objectStore(CONNECTIONS), key = `${origin}|${account}`, request = store.get(key);
+          request.onsuccess = () => {
+            try { result = change ? change(request.result) : request.result; if (change) store.put(result, key); }
+            catch (failure) { error = failure; tx.abort(); }
+          };
+        };
+      };
+    });
+  }
+  async function approveConnection(origin, account) {
+    return connectionRecord(origin, account, previous => {
+      if (previous && !validConnectionRecord(previous)) fail("HOSTED_GRANT_INVALID");
+      return {version:1, id:randomHostedId(cryptoProvider), origin, account, chainId:HOSTED_CHAIN_ID,
+        scopes:["account:read","request:review"], epoch:(previous?.epoch ?? 0)+1, expiresAt:Date.now()+HOSTED_SESSION_MS, revoked:false};
+    });
+  }
+  async function verifyConnection(origin, account, hint) {
+    const grant = await connectionRecord(origin, account);
+    if (!validConnectionRecord(grant) || grant.revoked || grant.expiresAt <= Date.now() || grant.expiresAt > Date.now()+HOSTED_SESSION_MS ||
+      grant.id !== hint?.id || grant.epoch !== hint?.epoch || grant.account !== account || grant.origin !== origin ||
+      grant.scopes?.join(",") !== "account:read,request:review") fail("HOSTED_GRANT_REVOKED_OR_EXPIRED");
+    return grant;
+  }
+  async function revokeConnection(origin, account, hint) {
+    return connectionRecord(origin, account, previous => {
+      if (!validConnectionRecord(previous) || previous.id !== hint?.id || previous.epoch !== hint?.epoch) fail("HOSTED_GRANT_REVOKED_OR_EXPIRED");
+      return {...previous, revoked:true, epoch:previous.epoch+1};
+    });
   }
   const journalStorage = Object.freeze({
     async get(keys) {
@@ -135,5 +205,5 @@ export function createHostedVaultStore(factory = globalThis.indexedDB, cryptoPro
       });
     },
   });
-  return Object.freeze({ read, create, importEncrypted, listAccounts, addEncryptedAccount, selectAccount, consumeReplay, journalStorage });
+  return Object.freeze({ read, create, importEncrypted, listAccounts, addEncryptedAccount, selectAccount, consumeReplay, approveConnection, verifyConnection, revokeConnection, journalStorage });
 }

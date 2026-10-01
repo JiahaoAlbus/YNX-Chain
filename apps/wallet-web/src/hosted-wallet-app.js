@@ -76,6 +76,12 @@ async function assertCurrentAccount() {
   if (!session || window.opener?.closed || Date.now() >= session.expiresAt || !current || current.account !== vault?.account || JSON.stringify(current) !== JSON.stringify(vault)) {
     reply("disconnected"); session = null; fail("HOSTED_ACCOUNT_CHANGED_OR_EXPIRED");
   }
+  if (session.grant) {
+    const connection = session;
+    try { await store.verifyConnection(connection.origin, vault.account, connection.grant); }
+    catch (error) { if (session === connection) { cancelActiveRequest(); reply("disconnected"); session = null; } throw error; }
+    if (session !== connection) fail("HOSTED_REQUEST_EXPIRED");
+  }
 }
 async function assertSelectedAccount() {
   const current = await store.read();
@@ -154,6 +160,11 @@ async function handleMethod(method, params, context) {
   if (method === "eth_accounts" || method === "eth_requestAccounts") return [vault.account];
   if (method === "eth_chainId") return YNX_CHAIN_ID;
   if (method === "wallet_disconnect") { cancelActiveRequest(); reply("disconnected"); session = null; messageKey("disconnected"); return null; }
+  if (method === "wallet_revokePermissions") {
+    if (params.length !== 0 || !session.grant) fail("HOSTED_GRANT_INVALID");
+    await store.revokeConnection(session.origin, vault.account, session.grant);
+    return {revoked:true};
+  }
   if (method === "wallet_addEthereumChain" || method === "wallet_switchEthereumChain") { validateYNXChainMutation(method, params, chain); return null; }
   if (method === CENTRAL_BROWSER_RPC_METHOD) {
     return approveHostedCentralSignIn({ params, origin: session.origin, vault, store,
@@ -227,17 +238,28 @@ async function receive(event) {
       await store.consumeReplay(`connect:${session.origin}:${session.requestId}`, session.expiresAt);
       if (!currentConnection(connection)) return;
       const requestingOrigin = session.origin, requestedAccount = vault.account;
+      let grant;
+      if (data.resume !== undefined) {
+        if (!data.resume || Object.keys(data.resume).sort().join(",") !== "account,epoch,id" || data.resume.account !== requestedAccount) fail("HOSTED_ACCOUNT_CHANGED");
+        grant = await store.verifyConnection(requestingOrigin, requestedAccount, data.resume);
+      } else {
       const choice = await askUser({ titleKey: "connectPrompt", detailFactory: language => `${requestingOrigin}\n${hostedCopy(language, "ynxAccount")}: ${toYNXAddress(requestedAccount)}\n${hostedCopy(language, "evmAddress")}: ${requestedAccount}\n${hostedDynamicCopy(language, "network")}\n${hostedDynamicCopy(language, "noBalance")}` });
       if (!currentConnection(connection)) return;
       if (!choice.approved) { reply("rejected", { replyTo: data.messageId }); return; }
       await assertCurrentAccount();
+      grant = await store.approveConnection(requestingOrigin, requestedAccount);
+      }
       if (!currentConnection(connection)) return;
-      const sessionExpiresAt = Date.now() + HOSTED_SESSION_MS;
-      reply("connected", { replyTo: data.messageId, account: vault.account, chainId: YNX_CHAIN_ID, sessionExpiresAt });
+      await store.verifyConnection(requestingOrigin, requestedAccount, grant);
+      if (!currentConnection(connection)) return;
+      const sessionExpiresAt = grant.expiresAt;
+      reply("connected", { replyTo: data.messageId, account: vault.account, chainId: YNX_CHAIN_ID, sessionExpiresAt,
+        grant:{id:grant.id,epoch:grant.epoch,account:grant.account,expiresAt:grant.expiresAt} });
       session.expiresAt = sessionExpiresAt;
+      session.grant = grant;
       messageKey("connected", { origin: session.origin });
       session.approved = true;
-    } catch { if (currentConnection(connection)) { reply("rejected", { replyTo: data.messageId }); messageKey("connectFailed"); } }
+    } catch (error) { if (currentConnection(connection)) { reply("rejected", { replyTo: data.messageId, code:error?.code }); messageKey("connectFailed"); } }
     finally { busy = false; }
     return;
   }
@@ -249,6 +271,8 @@ async function receive(event) {
   try {
     if (!Array.isArray(data.params) || JSON.stringify(data.params).length > 65536 || typeof data.method !== "string" || data.method.length > 80) fail("HOSTED_METHOD_INVALID");
     const result = await handleMethod(data.method, data.params, context);
+    assertRequestLive(context);
+    if (data.method !== "wallet_revokePermissions") await assertCurrentAccount();
     assertRequestLive(context);
     reply("response", { replyTo: data.messageId, ok: true, result });
   } catch (error) {
