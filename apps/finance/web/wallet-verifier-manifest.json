@@ -7,16 +7,16 @@
     "esbuildVersion": "0.25.9"
   },
   "evmRead": {
-    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-history-menu-015-fcee937c9-20261001.json",
+    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-wallet-016-2c69d3420-20261001.json",
     "candidateBytes": 74248,
-    "candidateSha256": "794c8f788db8a9cd48ac3b6751ff0d1f1cdca0e674747d930c93d2530d2a6afb"
+    "candidateSha256": "e411c17165daa7e3d2d297cde2e097ac907e756f4f2048096f7d094f9a9cbbcd"
   },
   "sourceBundleRelation": {
     "byteReproducible": true,
     "status": "VERIFIED_REPRODUCIBLE",
     "cleanBuildCount": 2,
-    "bytes": 757423,
-    "sha256": "fb3e10db84a8218d6d0e66f407d01911b9f9aff66261e3c0a855837a47734840"
+    "bytes": 758557,
+    "sha256": "4d905661e6416d5dd7801fc52911d1cd4d7a7dbf27ba02e414b42439205e4960"
   },
   "files": [
     {
@@ -31,8 +31,8 @@
     },
     {
       "path": "wallet-auth-entry.js",
-      "bytes": 26129,
-      "sha256": "63b73b89a877496a6c50e90a1231246775308b7b3f5ef51adf80092aba99f934"
+      "bytes": 26295,
+      "sha256": "2533759bb1593e30d0aa809ec5f3021db3f77f65b6f7c73e058e50b18281e2b8"
     },
     {
       "path": "private-wallet-entry.js",
@@ -56,8 +56,8 @@
     },
     {
       "path": "wallet-auth.js",
-      "bytes": 757423,
-      "sha256": "fb3e10db84a8218d6d0e66f407d01911b9f9aff66261e3c0a855837a47734840"
+      "bytes": 758557,
+      "sha256": "4d905661e6416d5dd7801fc52911d1cd4d7a7dbf27ba02e414b42439205e4960"
     },
     {
       "path": "order-wallet.js",
@@ -71,8 +71,8 @@
     },
     {
       "path": "evm-read-session.js",
-      "bytes": 80122,
-      "sha256": "e5473d622a2e0ceb7e478b4f4d43ae53660f58349f6c87e755622abe9d6fbe24"
+      "bytes": 80136,
+      "sha256": "5be87924afc5e8b37121f72b69e19930fe189cfc37ea161a6bd11d7779ede32a"
     },
     {
       "path": "evm-subject.js",
@@ -91,18 +91,18 @@
     },
     {
       "path": "index.html",
-      "bytes": 36322,
-      "sha256": "ac9d5490c128d00342e685a1fa9fa1e077e09c86b0cbbba830ec9ef0bdee7b90"
+      "bytes": 36341,
+      "sha256": "45ec182e2d8f24df537812d12acea2f4e103b6b4233a4a0046a791d7fd2f819f"
     },
     {
       "path": "app.js",
-      "bytes": 89940,
-      "sha256": "5822f52055ab34a3f2939c18cfcd4369a72b69b03bf446f52c075b99e5eb6928"
+      "bytes": 91555,
+      "sha256": "82e6259c91b44aeb1b15d5f3d7e649fc06350c22f3cf539e02f7f610a896837f"
     },
     {
       "path": "finance-locale.js",
-      "bytes": 454752,
-      "sha256": "c408daaaee94110c65881b89e5c34b6ec278a7b1fa55877ad98ff08861ec967a"
+      "bytes": 457352,
+      "sha256": "bfbf26d35f04786229928b72ae485f1537b3f734d2f1de874c4478599f1499ab"
     },
     {
       "path": "read-sources.js",
@@ -191,13 +191,13 @@
     },
     {
       "path": "verify-evm-read-candidate.mjs",
-      "bytes": 18306,
-      "sha256": "137d6b54a7c09b3282a182cfcbb250f84a0369543c4a0c7513f25a8a319ce28e"
+      "bytes": 18686,
+      "sha256": "b40f3d373b246ce4648418bf5c0382d2c6f477612bd8ffd97bd8aa178ad29ad6"
     },
     {
-      "path": "../evidence/evm-read-runtime-verifier-candidate-history-menu-015-fcee937c9-20261001.json",
+      "path": "../evidence/evm-read-runtime-verifier-candidate-wallet-016-2c69d3420-20261001.json",
       "bytes": 74248,
-      "sha256": "794c8f788db8a9cd48ac3b6751ff0d1f1cdca0e674747d930c93d2530d2a6afb"
+      "sha256": "e411c17165daa7e3d2d297cde2e097ac907e756f4f2048096f7d094f9a9cbbcd"
     },
     {
       "path": "../../../packages/wallet-auth/node_modules/@noble/hashes/_md.js",
@@ -251,8 +251,8 @@
     },
     {
       "path": "verify-versioned-assets.mjs",
-      "bytes": 1290,
-      "sha256": "4e8fe0eea835dca5f7160b4e9d24982498ff56a6af16658750f59e442ed67ce7"
+      "bytes": 1308,
+      "sha256": "f4288955ad13530ac10f5696135877aaf6345049e47c1f81a4f5678f4612da86"
     },
     {
       "path": "../../../packages/wallet-auth/src/wallet-provider-discovery.js",
@@ -4241,8 +4241,8 @@
     },
     {
       "path": "../../../packages/wallet-auth/src/central-browser-session-registry.js",
-      "bytes": 1345,
-      "sha256": "ac8178c1025dca6b4c6f92851aec98a7301ef48db4c7561b25cef52d885014e7"
+      "bytes": 1359,
+      "sha256": "a75e614f4140c4cfe14741d5f9c124317dbb85804a567471a88c9a36e597362b"
     },
     {
       "path": "../../../packages/wallet-auth/src/crypto.js",
@@ -4266,8 +4266,8 @@
     },
     {
       "path": "../../../packages/wallet-auth/src/walletconnect-dapp-connection.js",
-      "bytes": 16699,
-      "sha256": "e43842597f7e05598041d04b2d05a6023dfe1f3922e6ae0c7ae8c3601ad7b313"
+      "bytes": 17132,
+      "sha256": "fd8f476439e5bf075fbeff140fe7e4c6bfff9358c0005334ea2bb573bf9ce5d2"
     },
     {
       "path": "../../../packages/wallet-auth/src/walletconnect-protocol.js",
@@ -4441,8 +4441,8 @@
     },
     {
       "path": "../../wallet-web/package.json",
-      "bytes": 3571,
-      "sha256": "ab483914cc9dae1b2364fb483d002332c044be3a22f059bfb16868e0ea6e0d6b"
+      "bytes": 3594,
+      "sha256": "a587f46975038dcc10072dcae2512792c814e723ccb26950d079eb369d7d5d16"
     },
     {
       "path": "../../wallet-web/src/extension-chain-params.js",
@@ -4456,13 +4456,18 @@
     },
     {
       "path": "../../wallet-web/src/hosted-protocol.js",
-      "bytes": 4137,
-      "sha256": "12c09dfb522f3ff4cb205081ba87d1f3bde9c1d3090be42b32369206b401e090"
+      "bytes": 4932,
+      "sha256": "a3e671e1fab8529186fa3c82aef774d243ee47df39c76e95cbfcfd0b96f73a68"
     },
     {
       "path": "../../wallet-web/vendor/product-session-registry-123016847.json",
       "bytes": 7637,
       "sha256": "401522b3d1d8be0b58dca2172babb574f6c64f9c8f23b8881d1331cff7e15856"
+    },
+    {
+      "path": "ynx-favicon.png",
+      "bytes": 45914,
+      "sha256": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7"
     }
   ]
 }

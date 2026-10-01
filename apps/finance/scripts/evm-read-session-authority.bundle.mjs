@@ -3581,7 +3581,7 @@ var product_session_registry_default = {
 };
 
 // packages/wallet-auth/src/central-browser-session-registry.js
-var ADOPTED = Object.freeze(["finance", "exchange", "quant"]);
+var ADOPTED = Object.freeze(["finance", "exchange", "quant", "social", "ai"]);
 function createCentralBrowserSessionRegistry(productRegistry) {
   const registry = parseProductSessionRegistry(productRegistry);
   return Object.freeze(ADOPTED.map((productId) => {

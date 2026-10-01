@@ -18,7 +18,8 @@ const oldCommit='94e6997f4d817233d93f9b4a96fc51b5f31e98bf';
 const oldAsset=name=>execFileSync('git',['show',`${oldCommit}:apps/finance/web/${name}`],{cwd:join(web,'../../..'),stdio:['ignore','pipe','ignore']});
 
 test('every Finance browser dependency is pinned to its exact content URL',()=>{
-  assert.deepEqual(verifyFinanceVersionedAssets(html,read),{status:'pass',assets:12,versionedReferences:13});
+  assert.deepEqual(verifyFinanceVersionedAssets(html,read),{status:'pass',assets:13,versionedReferences:16});
+  assert.throws(()=>verifyFinanceVersionedAssets(html.replace(/ynx-favicon\.png\?v=[0-9a-f]{64}/u,'ynx-favicon.png'),read),/FINANCE_ASSET_HASH_MISMATCH:ynx-favicon.png/u);
   assert.throws(()=>verifyFinanceVersionedAssets(html.replace(/wallet-auth\.js\?v=[0-9a-f]{64}/u,'wallet-auth.js'),read),/FINANCE_ASSET_HASH_MISMATCH:wallet-auth.js/u);
   assert.throws(()=>verifyFinanceVersionedAssets(html.replace(/wallet-auth\.js\?v=[0-9a-f]{64}/u,'wallet-auth.js?v='+'0'.repeat(64)),read),/FINANCE_ASSET_HASH_MISMATCH:wallet-auth.js/u);
   assert.throws(()=>verifyFinanceVersionedAssets(html.replace('</body>',`<script src="/wallet-auth.js?v=${walletHash}"></script></body>`),read),/FINANCE_ASSET_BINDING_MISSING_OR_DUPLICATE:wallet-auth.js/u);

@@ -26414,7 +26414,7 @@ ${item.productId}`));
 
   // src/central-browser-session-registry.js
   var CENTRAL_BROWSER_ISSUER = "https://wallet-auth.ynxweb4.com";
-  var ADOPTED = Object.freeze(["finance", "exchange", "quant"]);
+  var ADOPTED = Object.freeze(["finance", "exchange", "quant", "social", "ai"]);
   function createCentralBrowserSessionRegistry(productRegistry) {
     const registry = parseProductSessionRegistry(productRegistry);
     return Object.freeze(ADOPTED.map((productId) => {
@@ -26753,7 +26753,7 @@ ${item.productId}`));
 
   // src/walletconnect-dapp-connection.js
   var YNX_PAIR_PROJECT_ID = "41857128a14a593ca4e4a7cb7c838d71";
-  var ORIGINS = /* @__PURE__ */ new Set(["https://finance.ynxweb4.com", "https://exchange.ynxweb4.com", "https://quant.ynxweb4.com", "https://wallet-auth.ynxweb4.com"]);
+  var ORIGINS = /* @__PURE__ */ new Set(["https://finance.ynxweb4.com", "https://exchange.ynxweb4.com", "https://quant.ynxweb4.com", "https://wallet-auth.ynxweb4.com", "https://social.ynxweb4.com", "https://assistant.ynxweb4.com"]);
   var METHODS = /* @__PURE__ */ new Set(["personal_sign", "ynx_requestProductSessionV2", "ynx_requestCentralBrowserSignIn"]);
   var fail5 = (code2) => {
     throw Object.assign(new Error(code2), { code: code2 });
@@ -26826,7 +26826,7 @@ ${item.productId}`));
     #draining = null;
     #restoring = 0;
     constructor({ origin, methods, clientFactory, deadlineMs = 3e4, now = () => Date.now() } = {}) {
-      if (!ORIGINS.has(origin) || !Array.isArray(methods) || !methods.length || new Set(methods).size !== methods.length || methods.some((method) => !METHODS.has(method) || !WALLETCONNECT_SESSION_METHODS.includes(method))) fail5("YNX_PAIR_CONFIGURATION_INVALID");
+      if (!ORIGINS.has(origin) || !Array.isArray(methods) || !methods.length || new Set(methods).size !== methods.length || methods.some((method) => !METHODS.has(method) || !WALLETCONNECT_SESSION_METHODS.includes(method) || ["https://social.ynxweb4.com", "https://assistant.ynxweb4.com"].includes(origin) && method !== "ynx_requestProductSessionV2")) fail5("YNX_PAIR_CONFIGURATION_INVALID");
       if (!Number.isSafeInteger(deadlineMs) || deadlineMs < 1 || deadlineMs > 12e4) fail5("YNX_PAIR_CONFIGURATION_INVALID");
       this.#origin = origin;
       this.#methods = [...methods];
@@ -26957,7 +26957,7 @@ ${item.productId}`));
         this.#restoring--;
       }
     }
-    connect({ onURI } = {}) {
+    connect({ onURI, restore = false } = {}) {
       if (this.#pending) return this.#pending;
       if (this.#draining) return Promise.reject(Object.assign(new Error("YNX_PAIR_TRANSPORT_DRAINING"), { code: "YNX_PAIR_TRANSPORT_DRAINING", stage: "relay" }));
       const epoch = this.#epoch, attempt = ++this.#attempt;
@@ -26976,6 +26976,15 @@ ${item.productId}`));
         stage("initialization");
         const client = await this.initialize(flight);
         if (epoch !== this.#epoch) fail5("YNX_PAIR_CANCELLED");
+        if (restore && !this.#session) {
+          const valid = [];
+          for (const session2 of client.session.getAll()) try {
+            valid.push(this.#validate(session2));
+          } catch {
+          }
+          if (valid.length > 1) fail5("YNX_PAIR_SESSION_SELECTION_REQUIRED");
+          this.#session = valid[0] ?? null;
+        }
         if (this.#session) {
           this.#validate(this.#session);
           return this.provider();
@@ -27340,9 +27349,10 @@ ${item.productId}`));
   function registeredProduct(origin) {
     if (typeof origin !== "string" || !/^https:\/\/[a-z0-9.-]+$/u.test(origin)) return null;
     if (origin === CENTRAL_BROWSER_ISSUER) return Object.freeze({ productId: "central-browser-identity", webOrigin: origin, evmCompatible: true });
-    return product_session_registry_123016847_default.products.find((product) => product.webOrigin === origin && product.evmCompatible === true) ?? null;
+    return product_session_registry_123016847_default.products.find((product) => product.webOrigin === origin && (product.evmCompatible === true || product.productId === "social" && product.clientId === "ynx-social-v1" && product.applicationId === "com.ynx.social" && origin === "https://social.ynxweb4.com" && product.evmCompatible === false || product.productId === "ai" && product.clientId === "ynx-ai-v1" && product.applicationId === "com.ynxweb4.ai" && origin === "https://assistant.ynxweb4.com" && product.evmCompatible === false)) ?? null;
   }
   function assertHostedMethodAllowed(origin, method) {
+    if (["https://social.ynxweb4.com", "https://assistant.ynxweb4.com"].includes(origin) && !["ynx_requestProductSessionV2", "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail6(origin === "https://social.ynxweb4.com" ? "HOSTED_SOCIAL_PRIVATE_ONLY" : "HOSTED_AI_PRIVATE_ONLY");
     if (origin === CENTRAL_BROWSER_ISSUER && ![CENTRAL_BROWSER_RPC_METHOD, "eth_requestAccounts", "eth_accounts", "eth_chainId", "wallet_disconnect", "wallet_revokePermissions", "wallet_addEthereumChain", "wallet_switchEthereumChain"].includes(method)) fail6("HOSTED_IDENTITY_ONLY");
   }
   function randomHostedId(cryptoProvider = globalThis.crypto) {
@@ -27701,6 +27711,40 @@ ${item.productId}`));
       hostedProvider = null;
       if (previous) void previous.detach().catch(() => {
       });
+    }, connectInstalledWallet = function(provider) {
+      if (cancelled || pending || pairPending || hostedPending) return;
+      const epoch = revision;
+      const connection = new StandardWalletConnection({ provider, origin: location.origin, metadata: { name: "YNX browser sign-in", url: location.origin } });
+      status.dataset.phase = "wallet-connect";
+      delete status.dataset.errorCode;
+      approve.disabled = true;
+      picker.disabled = true;
+      for (const choice of choices.children) choice.disabled = true;
+      message("Opening YNX Wallet. Unlock and approve the connection. Browser sign-in is a separate approval.");
+      let timer;
+      const task = Promise.race([connection.connect(), new Promise((_3, reject) => {
+        timer = setTimeout(() => reject(new Error("SSO_REQUEST_TIMEOUT")), Math.max(1, Math.min(3e4, Date.parse(challenge.expiresAt) - Date.now())));
+      })]).then(() => {
+        if (cancelled || epoch !== revision || selected !== provider) return;
+        approve.disabled = false;
+        message("YNX Wallet connected. Continue to review browser sign-in.");
+      }).catch((error) => {
+        if (cancelled || epoch !== revision || selected !== provider) return;
+        selected = null;
+        picker.value = "";
+        approve.disabled = true;
+        const code2 = failure2(error, "wallet-connect");
+        message(code2 === "USER_REJECTED" ? "Connection was declined. No browser sign-in was granted." : "Wallet connection did not finish. Retry or cancel; no browser sign-in was granted.");
+      }).finally(() => {
+        clearTimeout(timer);
+        connection.disconnect();
+        if (pending === task) {
+          pending = null;
+          picker.disabled = cancelled;
+          for (const choice of choices.children) choice.disabled = cancelled;
+        }
+      });
+      pending = task;
     };
     const challenge = parseCentralBrowserSignInChallenge(context.challenge, context.registry, { peerOrigin: location.origin });
     const requestingSite = document.createElement("p"), siteLabel = document.createElement("span");
@@ -27864,13 +27908,14 @@ ${item.productId}`));
       clearPairQR();
       message("Opening a mobile Wallet connection. No sign-in signature has been requested.");
       pair ??= new WalletConnectDAppConnection({ origin: location.origin, methods: ["ynx_requestCentralBrowserSignIn"], deadlineMs: Math.max(1, Math.min(3e4, Date.parse(challenge.expiresAt) - Date.now())) });
+      const pairStage = (event) => {
+        if (epoch === revision && !cancelled) status.dataset.phase = event.stage === "initialization" ? "pair-initialize" : event.stage === "approval" ? "pair-approval" : "pair-connect";
+      };
+      pair.on("stage", pairStage);
       pairPending = (async () => {
         status.dataset.phase = "pair-initialize";
         delete status.dataset.errorCode;
-        let provider = await pair.restore();
-        if (epoch !== revision || cancelled) throw new Error("SSO_CONTEXT_CHANGED");
-        status.dataset.phase = "pair-connect";
-        if (!provider) provider = await pair.connect({ onURI: (uri) => {
+        const provider = await pair.connect({ restore: true, onURI: (uri) => {
           if (epoch !== revision || cancelled) return;
           pairRegion.hidden = false;
           pairOpen.href = `ynxwallet://wc?uri=${encodeURIComponent(uri)}`;
@@ -27900,6 +27945,7 @@ ${item.productId}`));
           message(code2 === "YNX_PAIR_TRANSPORT_DRAINING" ? "The previous network attempt is still finishing. Choose another wallet, or retry after it ends." : /^YNX_PAIR_(RELAY|INITIALIZATION)_/.test(code2) ? "The connection service could not be reached. Check your network, then retry or choose another wallet. No browser sign-in was granted." : "Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.");
         }
       }).finally(() => {
+        pair.removeListener?.("stage", pairStage);
         if (epoch === revision) {
           pairPending = null;
           pairButton.disabled = cancelled;
@@ -27941,6 +27987,7 @@ ${item.productId}`));
         choice.setAttribute("aria-pressed", String(provider === selected));
         choice.disabled = cancelled || !!pending;
         choice.addEventListener("click", () => {
+          if (pending || cancelled) return;
           picker.value = String(index);
           picker.dispatchEvent(new Event("change"));
           for (const button of choices.children) button.setAttribute("aria-pressed", String(button === choice));
@@ -27953,10 +28000,14 @@ ${item.productId}`));
         selected = null;
         revision++;
       }
-      approve.disabled = !selected || cancelled;
+      approve.disabled = !selected || cancelled || !!pending;
       if (!providers.length && !pairPending && !hostedPending && !selected) message("Installed YNX Wallet is unavailable. Install/unlock it or explicitly choose Wallet Web or mobile Wallet.");
     });
     picker.addEventListener("change", () => {
+      if (pending || cancelled) {
+        picker.value = providers.includes(selected) ? String(providers.indexOf(selected)) : "";
+        return;
+      }
       selected = picker.value === "" ? null : providers[Number(picker.value)];
       revision++;
       if (pairPending) {
@@ -27969,6 +28020,7 @@ ${item.productId}`));
       if (hosted) retireHosted();
       approve.disabled = !selected || cancelled;
       message(pending ? "Finish or cancel the current request before switching wallets." : "Connection is separate from browser sign-in approval.");
+      if (selected && !pending) connectInstalledWallet(selected);
     });
     approve.addEventListener("click", () => {
       if (pending) {
