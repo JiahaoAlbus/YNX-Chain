@@ -21,9 +21,10 @@ function normalize(config){
   const normalized=Object.freeze({...config,trustedClock:()=>Math.floor(anchor+Math.max(0,performance.now()-monotonicStart))});
   normalizedConfigurations.set(config,{wire,normalized});return normalized;
 }
-async function configured(){
+function remaining(budget){const ms=Math.ceil(budget.deadline-performance.now());if(ms<=0)throw new Error('NETWORK_UNAVAILABLE');return ms;}
+async function configured(budget){
   if(globalThis[CONFIG_KEY])return normalize(globalThis[CONFIG_KEY]);
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),Math.min(5000,remaining(budget)));
   try{
     const response=await fetch(CONFIG_URL,{method:'GET',credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'},signal:controller.signal});
     if([502,503,504].includes(response.status))throw new Error('NETWORK_UNAVAILABLE');
@@ -32,17 +33,17 @@ async function configured(){
   }catch(error){if(controller.signal.aborted||error?.name==='TypeError')throw new Error('NETWORK_UNAVAILABLE');throw error;}
   finally{clearTimeout(timer);}
 }
-async function recoverHistory(config,storage,isLive){
-  const previous=await storage.read();
-  if(previous.sequence+1>=config.manifest.sequence)return;
-  if(previous.rootVersion!==config.trustRoot.rootVersion)throw new Error('AUTHORITY_V2_HISTORY_ROOT_MISMATCH');
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
-  const history=[];let position=previous;
+async function recoverHistory(config,storage,isLive,budget){
+  let position=await storage.read();
+  if(position.sequence>config.manifest.sequence)throw new Error('AUTHORITY_V2_CONFIGURATION_ROTATED');
+  if(position.sequence+1>=config.manifest.sequence)return;
+  if(position.rootVersion!==config.trustRoot.rootVersion)throw new Error('AUTHORITY_V2_HISTORY_ROOT_MISMATCH');
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),Math.min(8000,remaining(budget)));
+  const clock=()=>{if(!isLive())throw new Error('AUTHORITY_V2_SUPERSEDED');remaining(budget);return config.trustedClock()};
   try{
     while(position.sequence+1<config.manifest.sequence){
-      if(!isLive())throw new Error('AUTHORITY_V2_SUPERSEDED');
-      if(history.length>=64)throw new Error('AUTHORITY_V2_HISTORY_BOUND');
-      const query=new URLSearchParams(Object.entries(position).map(([key,value])=>[key,String(value)]));
+      clock();if(budget.pages>=128)throw new Error('NETWORK_UNAVAILABLE');budget.pages++;
+      const expected=position,query=new URLSearchParams(Object.entries(position).map(([key,value])=>[key,String(value)]));
       const response=await fetch('/api/endpoint-authority/v2/history?'+query,{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'},signal:controller.signal});
       if(!response.ok||response.headers.get('content-type')?.split(';',1)[0].trim()!=='application/json')throw new Error('AUTHORITY_V2_HISTORY_UNAVAILABLE');
       const reader=response.body?.getReader();if(!reader)throw new Error('AUTHORITY_V2_HISTORY_RESPONSE_INVALID');
@@ -51,14 +52,21 @@ async function recoverHistory(config,storage,isLive){
       const joined=new Uint8Array(bytes);let offset=0;for(const chunk of chunks){joined.set(chunk,offset);offset+=chunk.length;}
       const page=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(joined));
       if(!page||Object.keys(page).sort().join(',')!=='after,manifests,schemaVersion'||page.schemaVersion!=='ynx-finance-endpoint-authority-history/v1'||!checkpoint(page.after)||checkpointIdentity(page.after)!==checkpointIdentity(position)||!Array.isArray(page.manifests)||page.manifests.length<1||page.manifests.length>2)throw new Error('AUTHORITY_V2_HISTORY_RESPONSE_INVALID');
+      const history=[];let candidate=position;
       for(const manifest of page.manifests){
-        if(manifest.sequence!==position.sequence+1||manifest.sequence>=config.manifest.sequence||manifest.previousPayloadSha256!==position.payloadSha256||!manifest.integrity||!/^[a-f0-9]{64}$/.test(manifest.integrity.payloadSha256))throw new Error('AUTHORITY_V2_PREDECESSOR');
-        history.push(manifest);position={rootVersion:previous.rootVersion,sequence:manifest.sequence,payloadSha256:manifest.integrity.payloadSha256};
+        // Stop at the fixed target's predecessor; a rotated page's remainder
+        // cannot become either historical progress or active authority.
+        if(candidate.sequence+1>=config.manifest.sequence)break;
+        if(manifest.sequence!==candidate.sequence+1||manifest.sequence>=config.manifest.sequence||manifest.previousPayloadSha256!==candidate.payloadSha256||!manifest.integrity||!/^[a-f0-9]{64}$/.test(manifest.integrity.payloadSha256))throw new Error('AUTHORITY_V2_PREDECESSOR');
+        history.push(manifest);candidate={rootVersion:expected.rootVersion,sequence:manifest.sequence,payloadSha256:manifest.integrity.payloadSha256};
       }
+      // Each complete page is signed and CAS committed before fetching another.
+      // Interrupted networks retain this prefix, never a partial page or permission.
+      position=await recoverEndpointAuthorityHistory({trustRoot:config.trustRoot,consumer:CONSUMER,storage,clock,history,current:config.manifest,checkpointOnly:candidate.sequence+1<config.manifest.sequence,expectedCheckpoint:expected});
+      if(checkpointIdentity(await storage.read())!==checkpointIdentity(position))throw new Error('AUTHORITY_V2_CHECKPOINT_CONFLICT');
     }
-    if(!isLive())throw new Error('AUTHORITY_V2_SUPERSEDED');
-    await recoverEndpointAuthorityHistory({trustRoot:config.trustRoot,consumer:CONSUMER,storage,clock:()=>{if(!isLive())throw new Error('AUTHORITY_V2_SUPERSEDED');return config.trustedClock();},history,current:config.manifest});
-  }finally{clearTimeout(timer);}
+  }catch(error){if(controller.signal.aborted){if(!isLive())throw new Error('AUTHORITY_V2_SUPERSEDED');throw new Error('NETWORK_UNAVAILABLE')}throw error;}
+  finally{clearTimeout(timer);}
 }
 function makeChannel(onMessage){if(typeof BroadcastChannel!=='function')return {postMessage(){},close(){}};const channel=new BroadcastChannel(CHANNEL);channel.addEventListener('message',onMessage);return channel;}
 const invalidationChannel=makeChannel(event=>observeCheckpoint(event.data));
@@ -77,15 +85,41 @@ export function assertFinancePrivateAuthority(){
   return operation;
 }
 async function validateFinancePrivateAuthority(){
+  // Only a durable CAS conflict or a checkpoint ahead of a frozen config may
+  // request one fresh capture. Signature/time/digest/scope failures never retry.
+  const hardToken=hardGeneration,budget={deadline:performance.now()+15000,pages:0};
+  for(let attempt=0;attempt<2;attempt++){
+    if(hardToken!==hardGeneration)throw new Error('AUTHORITY_V2_SUPERSEDED');
+    try{return await validateCapturedFinanceAuthority(budget)}catch(error){
+      if(attempt||!['AUTHORITY_V2_CHECKPOINT_CONFLICT','AUTHORITY_V2_CONFIGURATION_ROTATED'].includes(error.message))throw error;
+    }
+  }
+}
+function snapshotJson(value,depth=0){
+  if(depth>=32)throw new Error('AUTHORITY_V2_TOO_DEEP');
+  if(value===null||['string','number','boolean'].includes(typeof value))return value;
+  if(!value||typeof value!=='object'||(!Array.isArray(value)&&Object.getPrototypeOf(value)!==Object.prototype))throw new Error('AUTHORITY_V2_JSON_REQUIRED');
+  const keys=Reflect.ownKeys(value);
+  if(Array.isArray(value)){
+    if(keys.length!==value.length+1||Object.keys(value).length!==value.length)throw new Error('AUTHORITY_V2_ARRAY');
+    return Array.from({length:value.length},(_,i)=>{const d=Object.getOwnPropertyDescriptor(value,String(i));if(!d?.enumerable||!Object.hasOwn(d,'value'))throw new Error('AUTHORITY_V2_ACCESSOR');return snapshotJson(d.value,depth+1)});
+  }
+  return Object.fromEntries(keys.map(key=>{const d=Object.getOwnPropertyDescriptor(value,key);if(typeof key!=='string'||!d.enumerable||!Object.hasOwn(d,'value'))throw new Error('AUTHORITY_V2_ACCESSOR');return [key,snapshotJson(d.value,depth+1)]}));
+}
+function snapshotConfiguration(config){
+  return {...config,manifest:snapshotJson(config.manifest),trustRoot:snapshotJson(config.trustRoot),serverCheckpoint:snapshotJson(config.serverCheckpoint)};
+}
+async function validateCapturedFinanceAuthority(budget){
   // Concurrent reads of the same signed authority must not invalidate each
   // other. Only a real cross-tab checkpoint change or explicit invalidation
   // advances this epoch.
-  const token=generation,hardToken=hardGeneration,config=await configured();let client;
+  const token=generation,hardToken=hardGeneration,config=snapshotConfiguration(await configured(budget));let client;
   const acceptedIdentity=checkpointIdentity({rootVersion:config.trustRoot.rootVersion,sequence:config.manifest.sequence,payloadSha256:config.manifest.integrity.payloadSha256});
   const stillCurrent=()=>hardToken===hardGeneration&&(token===generation||currentCheckpointIdentity===acceptedIdentity);
-  const storage=createBrowserAuthorityCheckpointStore({anchor:config.serverCheckpoint,clock:config.trustedClock,onCommit:value=>{observeCheckpoint(value);invalidationChannel.postMessage(value);}});
-  client=createEndpointAuthorityClient({trustRoot:config.trustRoot,consumer:CONSUMER,storage,clock:config.trustedClock});
-  try{await recoverHistory(config,storage,()=>hardToken===hardGeneration);await client.accept(config.manifest,{source:'remote'});if(!stillCurrent())throw new Error('AUTHORITY_V2_SUPERSEDED');const authority=await client.financeProductSession();if(!stillCurrent())throw new Error('AUTHORITY_V2_SUPERSEDED');if(authority.walletGateway!=='https://wallet-auth.ynxweb4.com'||authority.financeOrigin!==CONSUMER.origin||authority.officialSandboxVerified!==false||authority.providerVerified!==false||authority.productionApproved!==false)throw new Error('FINANCE_AUTHORITY_V2_SCOPE_INVALID');return authority;}
+  const clock=()=>{if(hardToken!==hardGeneration)throw new Error('AUTHORITY_V2_SUPERSEDED');remaining(budget);return config.trustedClock()};
+  const storage=createBrowserAuthorityCheckpointStore({anchor:config.serverCheckpoint,clock,onCommit:value=>{observeCheckpoint(value);invalidationChannel.postMessage(value);}});
+  client=createEndpointAuthorityClient({trustRoot:config.trustRoot,consumer:CONSUMER,storage,clock});
+  try{await recoverHistory(config,storage,()=>hardToken===hardGeneration,budget);await client.accept(config.manifest,{source:'remote'});if(!stillCurrent())throw new Error('AUTHORITY_V2_SUPERSEDED');const authority=await client.financeProductSession();if(!stillCurrent())throw new Error('AUTHORITY_V2_SUPERSEDED');if(authority.walletGateway!=='https://wallet-auth.ynxweb4.com'||authority.financeOrigin!==CONSUMER.origin||authority.officialSandboxVerified!==false||authority.providerVerified!==false||authority.productionApproved!==false)throw new Error('FINANCE_AUTHORITY_V2_SCOPE_INVALID');return authority;}
   finally{client.invalidate();storage.close();}
 }
 export function invalidateFinancePrivateAuthority(){hardGeneration++;generation++;currentCheckpointIdentity=null;}

@@ -210,3 +210,87 @@ for(const bad of [false,true])test('original durable browser checkpoint bridges 
   if(!bad){await fixture.page.reload();await configure(fixture.page,current,root,nowMs+100);assert.equal((await invoke(fixture.page)).ok,true);}
  }finally{await fixture.browser.close();}
 });
+
+async function durableCheckpoint(page){return page.evaluate(()=>new Promise((resolve,reject)=>{const r=indexedDB.open('ynx-finance-endpoint-authority-v2');r.onsuccess=()=>{const db=r.result,q=db.transaction('checkpoint').objectStore('checkpoint').get('state');q.onsuccess=()=>{resolve(q.result.checkpoint);db.close()};q.onerror=()=>reject(q.error)};r.onerror=()=>reject(r.error)}));}
+function longHistory(count){const old=nowMs-7200000;const documents=[bridgeDocument(null,1,old)];for(let i=0;i<count;i++)documents.push(bridgeDocument(documents.at(-1),documents.length+1,old+documents.length*1000));return {old,documents,current:bridgeDocument(documents.at(-1),documents.length+1,nowMs-100)};}
+async function serveHistory(fixture,documents){await fixture.context.route('**/api/endpoint-authority/v2/history?*',route=>{const q=new URL(route.request().url()).searchParams,after={rootVersion:Number(q.get('rootVersion')),sequence:Number(q.get('sequence')),payloadSha256:q.get('payloadSha256')};return route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-history/v1',after,manifests:documents.slice(after.sequence,after.sequence+2)})})});}
+for(const count of [64,65,130])test('Finance original IDB advances '+count+' signed historical revisions in one bounded user intent',async()=>{
+ const fixture=await setup(),{old,documents,current}=longHistory(count);
+ try{
+  await configure(fixture.page,documents[0],root,old+100);assert.equal((await invoke(fixture.page)).ok,true);await serveHistory(fixture,documents);await configure(fixture.page,current,root,nowMs);
+  const result=await invoke(fixture.page);assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.value.payloadSha256,current.integrity.payloadSha256);assert.deepEqual(await durableCheckpoint(fixture.page),manifestCheckpoint(current));
+  await fixture.page.reload();await configure(fixture.page,current,root,nowMs+100);assert.equal((await invoke(fixture.page)).ok,true);
+ }finally{await fixture.browser.close()}
+});
+test('Finance bad later history preserves each verified page without current authority',async()=>{
+ const fixture=await setup(),{old,documents,current}=longHistory(65);
+ try{await configure(fixture.page,documents[0],root,old+100);assert.equal((await invoke(fixture.page)).ok,true);documents[65].integrity.signature=Buffer.alloc(64).toString('base64url');await serveHistory(fixture,documents);await configure(fixture.page,current,root,nowMs);
+  const rejected=await invoke(fixture.page);assert.equal(rejected.ok,false);assert.match(rejected.error,/SIGNATURE/);assert.deepEqual(await durableCheckpoint(fixture.page),manifestCheckpoint(documents[64]));
+ }finally{await fixture.browser.close()}
+});
+test('Finance network deadline before 64 documents preserves signed page progress for original IDB reload',async()=>{
+ const fixture=await setup(),{old,documents,current}=longHistory(65);let requests=0;
+ try{await configure(fixture.page,documents[0],root,old+100);assert.equal((await invoke(fixture.page)).ok,true);await configure(fixture.page,current,root,nowMs);
+  await fixture.context.route('**/api/endpoint-authority/v2/history?*',route=>{requests++;if(requests>1)return;const q=new URL(route.request().url()).searchParams,after={rootVersion:Number(q.get('rootVersion')),sequence:Number(q.get('sequence')),payloadSha256:q.get('payloadSha256')};return route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-history/v1',after,manifests:documents.slice(1,3)})})});
+  const started=performance.now(),rejected=await invoke(fixture.page);assert.equal(rejected.ok,false);assert.equal(rejected.error,'NETWORK_UNAVAILABLE');assert.ok(performance.now()-started<12000);assert.equal(requests,2);assert.deepEqual(await durableCheckpoint(fixture.page),manifestCheckpoint(documents[2]));
+  await fixture.page.reload();await serveHistory(fixture,documents);await configure(fixture.page,current,root,nowMs+100);const recovered=await invoke(fixture.page);assert.equal(recovered.ok,true,JSON.stringify(recovered));assert.deepEqual(await durableCheckpoint(fixture.page),manifestCheckpoint(current));
+ }finally{await fixture.browser.close()}
+});
+test('Finance config N ignores unused history N after reaching its authenticated predecessor',async()=>{
+ const fixture=await setup(),{old,documents,current}=longHistory(1);const unused=structuredClone(current);unused.integrity.signature='untrusted-unused';
+ try{await configure(fixture.page,documents[0],root,old+100);assert.equal((await invoke(fixture.page)).ok,true);await serveHistory(fixture,[...documents,unused]);await configure(fixture.page,current,root,nowMs);const result=await invoke(fixture.page);assert.equal(result.ok,true,JSON.stringify(result));assert.deepEqual(await durableCheckpoint(fixture.page),manifestCheckpoint(current));}
+ finally{await fixture.browser.close()}
+});
+
+test('Finance rereads config once when another accepted checkpoint is ahead of the captured target',async()=>{
+ const fixture=await setup(),{old,documents,current}=longHistory(1);let count=0;
+ try{await configure(fixture.page,documents[0],root,old+100);assert.equal((await invoke(fixture.page)).ok,true);await configure(fixture.page,documents[1],root,old+1100);assert.equal((await invoke(fixture.page)).ok,true);
+  await fixture.page.evaluate(()=>delete globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__);
+  await fixture.context.route('**/api/endpoint-authority/v2/config',route=>{count++;const manifest=count===1?documents[0]:current;return route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-browser-config/v1',manifest,trustRoot:root,serverCheckpoint:manifestCheckpoint(manifest),trustedTimeMs:nowMs+count})})});
+  const result=await invoke(fixture.page);assert.equal(result.ok,true,JSON.stringify(result));assert.equal(count,2);assert.deepEqual(await durableCheckpoint(fixture.page),manifestCheckpoint(current));
+ }finally{await fixture.browser.close()}
+});
+for(const bad of ['digest','expired'])test('Finance partial history rejects '+bad+' target without checkpoint or broad retry',async()=>{
+ const fixture=await setup(),{old,documents,current}=longHistory(65);let count=0;
+ try{await configure(fixture.page,documents[0],root,old+100);assert.equal((await invoke(fixture.page)).ok,true);await serveHistory(fixture,documents);let target=current;
+  if(bad==='digest')target.integrity.payloadSha256='f'.repeat(64);else target=bridgeDocument(documents.at(-1),current.sequence,nowMs-3600000);
+  await fixture.page.evaluate(()=>delete globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__);
+  await fixture.context.route('**/api/endpoint-authority/v2/config',route=>{count++;return route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-browser-config/v1',manifest:target,trustRoot:root,serverCheckpoint:manifestCheckpoint(target),trustedTimeMs:nowMs})})});
+  const result=await invoke(fixture.page);assert.equal(result.ok,false);assert.match(result.error,bad==='digest'?/DIGEST_MISMATCH/:/EXPIRED_OR_FUTURE/);assert.equal(count,1);assert.deepEqual(await durableCheckpoint(fixture.page),manifestCheckpoint(documents[0]));
+ }finally{await fixture.browser.close()}
+});
+test('Finance fallback cross-tab CAS conflict rereads the shared checkpoint without resetting its prefix',async()=>{
+ const fixture=await setup(),{old,documents,current}=longHistory(65);
+ try{await configure(fixture.page,documents[0],root,old+100);assert.equal((await invoke(fixture.page)).ok,true);await serveHistory(fixture,documents);
+  const second=await fixture.context.newPage();await second.goto(origin);await second.waitForFunction(()=>!!globalThis.FinanceAuthorityTest);
+  for(const page of [fixture.page,second]){await page.evaluate(()=>Object.defineProperty(navigator,'locks',{value:undefined}));await configure(page,current,root,nowMs)}
+  const results=await Promise.all([invoke(fixture.page),invoke(second)]);assert.ok(results.some(r=>r.ok),JSON.stringify(results));assert.ok(results.every(r=>r.ok||['AUTHORITY_V2_CHECKPOINT_CONFLICT','AUTHORITY_V2_SUPERSEDED'].includes(r.error)),JSON.stringify(results));assert.deepEqual(await durableCheckpoint(fixture.page),manifestCheckpoint(current));await second.close();
+ }finally{await fixture.browser.close()}
+});
+
+test('Finance pins the captured signed target through asynchronous history rotation',async()=>{
+ const fixture=await setup(),{old,documents,current}=longHistory(1);let changed=false;
+ try{await configure(fixture.page,documents[0],root,old+100);assert.equal((await invoke(fixture.page)).ok,true);await configure(fixture.page,current,root,nowMs);
+  await fixture.context.route('**/api/endpoint-authority/v2/history?*',async route=>{if(!changed){changed=true;await fixture.page.evaluate(()=>{const m=globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__.manifest;m.integrity.payloadSha256='f'.repeat(64)})}const q=new URL(route.request().url()).searchParams,after={rootVersion:Number(q.get('rootVersion')),sequence:Number(q.get('sequence')),payloadSha256:q.get('payloadSha256')};await route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-history/v1',after,manifests:documents.slice(after.sequence,after.sequence+2)})})});
+  const result=await invoke(fixture.page);assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.value.payloadSha256,current.integrity.payloadSha256);assert.deepEqual(await durableCheckpoint(fixture.page),manifestCheckpoint(current));
+  const failed=await invoke(fixture.page);assert.equal(failed.ok,false);assert.match(failed.error,/DIGEST_MISMATCH|EQUIVOCATION/);
+ }finally{await fixture.browser.close()}
+});
+
+test('Finance target snapshot rejects accessors without invoking them',async()=>{
+ const fixture=await setup();try{await configure(fixture.page,signed());await fixture.page.evaluate(()=>{globalThis.getterCalls=0;Object.defineProperty(globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__.manifest,'sequence',{enumerable:true,get(){globalThis.getterCalls++;return 1}})});const rejected=await invoke(fixture.page);assert.equal(rejected.ok,false);assert.equal(rejected.error,'AUTHORITY_V2_ACCESSOR');assert.equal(await fixture.page.evaluate(()=>globalThis.getterCalls),0);}finally{await fixture.browser.close()}
+});
+test('Finance hard invalidation cannot be bypassed by bounded config rotation retry',async()=>{
+ const fixture=await setup(),{old,documents}=longHistory(1);let count=0;
+ try{await configure(fixture.page,documents[0],root,old+100);assert.equal((await invoke(fixture.page)).ok,true);await configure(fixture.page,documents[1],root,old+1100);assert.equal((await invoke(fixture.page)).ok,true);await fixture.page.evaluate(()=>delete globalThis.__YNX_FINANCE_ENDPOINT_AUTHORITY_V2__);
+  await fixture.context.route('**/api/endpoint-authority/v2/config',async route=>{count++;await fixture.page.evaluate(()=>FinanceAuthorityTest.invalidateFinancePrivateAuthority());await route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-browser-config/v1',manifest:documents[0],trustRoot:root,serverCheckpoint:manifestCheckpoint(documents[0]),trustedTimeMs:nowMs})})});const rejected=await invoke(fixture.page);assert.equal(rejected.ok,false);assert.equal(rejected.error,'AUTHORITY_V2_SUPERSEDED');assert.equal(count,1);assert.deepEqual(await durableCheckpoint(fixture.page),manifestCheckpoint(documents[1]));
+ }finally{await fixture.browser.close()}
+});
+
+test('Finance hard invalidation during historical fetch never commits or activates the returned page',async()=>{
+ const fixture=await setup(),{old,documents,current}=longHistory(65);
+ try{await configure(fixture.page,documents[0],root,old+100);assert.equal((await invoke(fixture.page)).ok,true);await configure(fixture.page,current,root,nowMs);
+  await fixture.context.route('**/api/endpoint-authority/v2/history?*',async route=>{await fixture.page.evaluate(()=>FinanceAuthorityTest.invalidateFinancePrivateAuthority());const q=new URL(route.request().url()).searchParams,after={rootVersion:Number(q.get('rootVersion')),sequence:Number(q.get('sequence')),payloadSha256:q.get('payloadSha256')};await route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-history/v1',after,manifests:documents.slice(1,3)})})});
+  const rejected=await invoke(fixture.page);assert.equal(rejected.ok,false);assert.equal(rejected.error,'AUTHORITY_V2_SUPERSEDED');assert.deepEqual(await durableCheckpoint(fixture.page),manifestCheckpoint(documents[0]));
+ }finally{await fixture.browser.close()}
+});
