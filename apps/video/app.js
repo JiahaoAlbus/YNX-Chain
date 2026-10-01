@@ -1,3 +1,4 @@
+import {createHostedWalletAdapter, WalletConnectDAppConnection, QRCode} from './ynx-wallet-transports-2ece0cb329.mjs';
 import {connectVideoWallet, restoreVideoWallet, WALLET_INSTALLATION_OPTIONS, discoverWalletCandidates, walletChoiceNeedsResolution, walletCandidatesFromError} from "./wallet-connection.js";
 import {ready as i18nReady, t} from "./i18n.js";
 import {YNX_TESTNET} from "./ynx-dapp-connect-sdk/constants.js";
@@ -261,45 +262,108 @@ async function signOutVideoAccount() {
 }
 
 let videoSignInIntent = 0;
-let videoSignInAbort;
+let videoSignInAbort, videoTransportCancel, videoPairConnection;
 const productChooser = $("#product-wallet-chooser");
-function cancelVideoSignIn() {videoSignInIntent++; videoSignInAbort?.abort(); productChooser.close(); $("#product-connect").disabled = productSignOutPending;}
+function clearProductPair() {
+ $("#product-pair-panel").hidden = true;
+ $("#product-pair-open").hidden = true;
+ $("#product-pair-open").removeAttribute("href");
+}
+function cancelVideoSignIn() {
+ videoSignInIntent++;
+ videoSignInAbort?.abort();
+ const release = videoTransportCancel; videoTransportCancel = null;
+ if (release) void Promise.resolve().then(release).catch(() => {});
+ clearProductPair(); productChooser.close();
+ $("#product-connect").disabled = productSignOutPending;
+}
 $("#product-wallet-cancel").onclick = cancelVideoSignIn;
 productChooser.addEventListener("cancel", cancelVideoSignIn);
-$("#product-wallet-back").onclick = prepareVideoSignIn;
+$("#product-wallet-back").onclick = () => {cancelVideoSignIn(); return prepareVideoSignIn();};
+function productWalletFailure(error) {
+ const code = String(error?.code ?? '');
+ if (code === '4001' || code === 'USER_REJECTED') return 'You rejected the request. Choose another wallet or retry.';
+ if (code.includes('RELAY') || code.includes('INITIALIZATION')) return 'The Wallet connection network is unavailable. Choose another wallet or try again later.';
+ if (code.includes('DRAINING')) return 'The previous connection is still closing. Choose another wallet or try again shortly.';
+ if (code.includes('TIMEOUT') || code.includes('EXPIRED')) return 'This request expired. Choose another wallet to start a fresh request.';
+ if (code === 'HOSTED_POPUP_BLOCKED') return 'Allow the Wallet popup for this site, then choose Web Wallet again.';
+ if (code === 'HOSTED_POPUP_CLOSED') return 'The Wallet window was closed. Choose Web Wallet again to continue.';
+ return error.message || 'Sign-in could not complete. Choose another wallet or retry.';
+}
 async function prepareVideoSignIn() {
  videoSignInAbort?.abort();
  if (productSignOutPending) return;
  if (productConnected()) {await signOutVideoAccount(); if (productSignOutPending) return;}
  productRevision++;
  const intent = ++videoSignInIntent, choices = $("#product-wallet-choices");
- choices.replaceChildren(); choices.hidden = false; $("#product-wallet-back").hidden = true;
- $("#product-wallet-status").textContent = "Finding YNX Wallet…";
+ choices.replaceChildren(); choices.hidden = false; clearProductPair();
+ $("#product-wallet-back").hidden = true;
+ $("#product-wallet-status").textContent = 'Finding YNX Wallet…';
  if (!productChooser.open) productChooser.showModal();
- try {
-  const candidates = (await discoverWalletCandidates(window)).filter(item => item.isYNXWallet);
-  if (intent !== videoSignInIntent) return;
-  $("#product-wallet-status").textContent = candidates.length ? "Choose your installed Wallet." : "No installed YNX Wallet detected. You can open native Wallet below. Install the YNX browser extension or use the native Wallet link.";
-  const choose = (label, action) => {const button = document.createElement("button");button.type = "button";button.textContent = label;button.onclick = action;choices.append(button);};
-  for (const candidate of candidates) choose(candidate.label || candidate.info?.name || candidate.name || "YNX Wallet", async () => {
+ const current = () => intent === videoSignInIntent && !productSignOutPending;
+ const choose = (label, action) => {
+  const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+  button.onclick = action; choices.append(button); return button;
+ };
+ const select = async (label, connect, release) => {
+  if (!current()) return;
+  choices.hidden = true; $("#product-wallet-back").hidden = false; clearProductPair();
+  $("#product-wallet-status").textContent = label + ': connect your Wallet, then review the Video request.';
+  const abort = new AbortController(); videoSignInAbort = abort; videoTransportCancel = release;
+  let provider, invalidate;
+  try {
+   // Called synchronously by the actual click: Hosted opens before any fetch.
+   provider = await connect();
+   if (!current()) {release?.(); return;}
+   clearProductPair();
+   $("#product-wallet-status").textContent = 'Review the Video request in ' + label + '. You may approve or reject it.';
+   invalidate = () => {if (intent === videoSignInIntent) cancelVideoSignIn();};
+   for (const event of ['accountsChanged', 'chainChanged', 'disconnect']) provider.on?.(event, invalidate);
+   const state = await dispatchPreparedProductRequest(provider, () => videoProductSession.prepare(), url => videoProductSession.finishReturn(url), current,
+    {signal: abort.signal, revoke: () => videoProductSession.disconnect(), onRevocation: renderProductState});
    if (intent !== videoSignInIntent) return;
-   choices.hidden = true; $("#product-wallet-back").hidden = false;
-   $("#product-wallet-status").textContent = "Review the Video request in YNX Wallet. You may approve or reject it.";
-   const provider = candidate.provider;
-   const abort = new AbortController(); videoSignInAbort = abort;
-   const invalidate = () => {if (intent === videoSignInIntent) cancelVideoSignIn();};
-   for (const event of ["accountsChanged", "chainChanged", "disconnect"]) provider.on?.(event, invalidate);
-   try {
-    const state = await dispatchPreparedProductRequest(provider, () => videoProductSession.prepare(), url => videoProductSession.finishReturn(url), () => intent === videoSignInIntent && !productSignOutPending, {signal: abort.signal, revoke: () => videoProductSession.disconnect(), onRevocation: renderProductState});
-    if (intent !== videoSignInIntent) return;
-    renderProductState(state);
-    if (state.status === "connected") {productChooser.close(); await refreshLibraryView();}
-    else $("#product-wallet-status").textContent = state.message || "Approval was not completed. Choose another wallet or retry.";
-   } catch (error) {if (intent === videoSignInIntent && error.productSessionState?.revocationPending) {cancelVideoSignIn();renderProductState(error.productSessionState);} else if (intent === videoSignInIntent) $("#product-wallet-status").textContent = error.code === 4001 ? "You rejected the request. Choose another wallet or retry." : error.message;}
-   finally {if (videoSignInAbort === abort) videoSignInAbort = null; for (const event of ["accountsChanged", "chainChanged", "disconnect"]) provider.removeListener?.(event, invalidate);}
+   renderProductState(state);
+   if (state.status === 'connected') {productChooser.close(); await refreshLibraryView();}
+   else $("#product-wallet-status").textContent = state.message || 'Approval was not completed. Choose another wallet or retry.';
+  } catch (error) {
+   if (intent === videoSignInIntent && error.productSessionState?.revocationPending) {cancelVideoSignIn(); renderProductState(error.productSessionState);}
+   else if (intent === videoSignInIntent) {clearProductPair(); $("#product-wallet-status").textContent = productWalletFailure(error);}
+  } finally {
+   if (videoSignInAbort === abort) videoSignInAbort = null;
+   if (provider && invalidate) for (const event of ['accountsChanged', 'chainChanged', 'disconnect']) provider.removeListener?.(event, invalidate);
+  }
+ };
+ try {
+  const candidates = (await discoverWalletCandidates(window).catch(error => {if (error.code === 'WALLET_NOT_INSTALLED') return []; throw error;})).filter(item => item.isYNXWallet);
+  if (!current()) return;
+  $("#product-wallet-status").textContent = 'Choose how to open YNX Wallet. Each sign-in still requires your approval.';
+  for (const candidate of candidates) choose(candidate.label || candidate.info?.name || candidate.name || 'YNX Wallet extension',
+   () => select('YNX Wallet extension', () => candidate.provider));
+  if (!candidates.length) {const missing = choose('YNX Wallet extension — not detected', () => {}); missing.disabled = true;}
+  choose('YNX Web Wallet', () => {
+   if (!current()) return;
+   let adapter;
+   return select('YNX Web Wallet', () => {adapter = createHostedWalletAdapter({window}); return adapter.connect().then(() => adapter);}, () => adapter?.suspend());
   });
-  choose("Open native YNX Wallet", () => {if (intent !== videoSignInIntent) return; cancelVideoSignIn(); void prepareNativeVideoSignIn();});
- } catch (error) {if (intent === videoSignInIntent) $("#product-wallet-status").textContent = error.message;}
+  choose('YNX Wallet on my phone', () => {
+   if (!current()) return;
+   let pair;
+   return select('YNX mobile Wallet', () => {
+    videoPairConnection ??= new WalletConnectDAppConnection({origin: location.origin, methods: ['ynx_requestProductSessionV2']});
+    pair = videoPairConnection;
+    return pair.connect({restore: true, onURI: uri => {
+    if (!current()) return;
+    $("#product-pair-panel").hidden = false;
+    $("#product-pair-open").href = 'ynxwallet://wc?uri=' + encodeURIComponent(uri);
+    $("#product-pair-open").hidden = false;
+    $("#product-wallet-status").textContent = 'Scan this code in YNX Wallet, or open the app on this phone. Review the connection there; the Video sign-in approval follows.';
+    void QRCode.toCanvas($("#product-pair-qr"), uri, {width: 240, margin: 2, errorCorrectionLevel: 'M'}).catch(() => {
+     if (current()) $("#product-wallet-status").textContent = 'The code could not be displayed. Use Open YNX Wallet or choose another wallet.';
+    });
+   }});}, () => pair?.cancel());
+  });
+  choose('Open native YNX Wallet', () => {if (!current()) return; cancelVideoSignIn(); void prepareNativeVideoSignIn();});
+ } catch (error) {if (intent === videoSignInIntent) $("#product-wallet-status").textContent = productWalletFailure(error);}
 }
 
 async function prepareNativeVideoSignIn() {

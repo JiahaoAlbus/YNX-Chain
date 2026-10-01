@@ -37,18 +37,18 @@ const controllerSource=videoSource.slice(videoSource.indexOf('let videoSignInInt
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 class Element {
  constructor(){this.children=[];this.listeners=new Map();this.hidden=false;this.disabled=false;this.open=false;}
- replaceChildren(){this.children=[];} append(item){this.children.push(item);} addEventListener(event,handler){this.listeners.set(event,handler);} close(){this.open=false;} showModal(){this.open=true;}
+ replaceChildren(){this.children=[];} append(item){this.children.push(item);} addEventListener(event,handler){this.listeners.set(event,handler);} close(){this.open=false;} showModal(){this.open=true;} removeAttribute(name){delete this[name];}
 }
-async function videoUI(provider,finish){
+async function videoUI(provider,finish,overrides={}){
  const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
  const calls=[];
- const dependencies={$,document:{createElement:()=>new Element()},window:{},discoverWalletCandidates:async()=>[{isYNXWallet:true,provider,label:'YNX Wallet'},{isMetaMask:true,provider:{request(){throw Error('MetaMask cannot approve private Video')}}}],dispatchPreparedProductRequest:video,videoProductSession:{prepare:async()=>({url:'video-fixture'}),finishReturn:finish},productConnected:()=>false, signOutVideoAccount:async()=>{},renderProductState:state=>calls.push(state),refreshLibraryView:async()=>calls.push('owned-library'),prepareNativeVideoSignIn:async()=>calls.push('native')};
+ const dependencies={$,document:{createElement:()=>new Element()},window:{},location:{origin:"https://video.ynxweb4.com"},discoverWalletCandidates:async()=>[{isYNXWallet:true,provider,label:'YNX Wallet'},{isMetaMask:true,provider:{request(){throw Error('MetaMask cannot approve private Video')}}}],dispatchPreparedProductRequest:video,videoProductSession:{prepare:async()=>({url:'video-fixture'}),finishReturn:finish},productConnected:()=>false, signOutVideoAccount:async()=>{},renderProductState:state=>calls.push(state),refreshLibraryView:async()=>calls.push('owned-library'),prepareNativeVideoSignIn:async()=>calls.push('native'),...overrides};
  const controller=await new AsyncFunction(...Object.keys(dependencies),'let productSignOutPending=false,productRevision=0;'+controllerSource+'return {prepareVideoSignIn,cancelVideoSignIn};')(...Object.values(dependencies));
  return {...controller,$,calls};
 }
 test('Video shipped chooser routes the chosen YNX button to approval and the original library',async()=>{
  const requests=[];const c=await videoUI({request:async input=>{requests.push(input);return {version:2,returnUrl:'video-callback'};}},async url=>{assert.equal(url,'video-callback');return {status:'connected',session:{account:'native-fixture'}};});
- await c.prepareVideoSignIn();assert.equal(c.$('#product-wallet-choices').children.length,2);
+ await c.prepareVideoSignIn();assert.equal(c.$('#product-wallet-choices').children.length,4);
  await c.$('#product-wallet-choices').children[0].onclick();assert.deepEqual(requests,[{method:'ynx_requestProductSessionV2',params:['video-fixture']}]);assert.equal(c.calls.at(-1),'owned-library');assert.equal(c.$('#product-wallet-chooser').open,false);
 });
 test('Video choose-another and account-change discard a late approval without private activation',async()=>{
@@ -77,3 +77,25 @@ for(const [name,dispatch] of [['Video',video],['Creator',creator]]){
   await new Promise(r=>setImmediate(r));abort.abort();completing.resolve();await assert.rejects(operation,error=>error.productSessionState.revocationPending===true);assert.equal(states.at(-1).revocationPending,true);assert.ok(states.every(state=>state.status!=='connected'));
  });
 }
+
+test('Video Web Wallet click opens transport synchronously before preparing private approval',async()=>{
+ const calls=[];const provider={connect:()=>{calls.push('popup-open');return Promise.resolve(['0xfixture']);},request:async input=>{calls.push(input.method);return {version:2,returnUrl:'callback'};},suspend:()=>calls.push('transport-close')};
+ const c=await videoUI(provider,async()=>({status:'connected'}),{createHostedWalletAdapter:()=>provider,videoProductSession:{prepare:async()=>{calls.push('prepare');return {url:'fixture'};},finishReturn:async()=>({status:'connected'}),disconnect:async()=>({status:'disconnected'})}});
+ await c.prepareVideoSignIn();const choosing=c.$('#product-wallet-choices').children[1].onclick();assert.deepEqual(calls,['popup-open']);await choosing;assert.deepEqual(calls,['popup-open','prepare','ynx_requestProductSessionV2']);assert.equal(c.calls.at(-1),'owned-library');
+});
+test('Video Mobile renders URI QR/deeplink, cancellation blocks late approval and clears code',async()=>{
+ const connection=deferred();let cancellations=0,requests=0,qr=0;
+ const provider={request:async()=>{requests++;}};
+ class Pair {constructor(input){assert.equal(input.origin,'https://video.ynxweb4.com');assert.deepEqual(input.methods,['ynx_requestProductSessionV2']);}connect(input){input.onURI('wc:qa-fixture');return connection.promise;}cancel(){cancellations++;}}
+ const c=await videoUI(provider,async()=>({status:'connected'}),{WalletConnectDAppConnection:Pair,QRCode:{toCanvas:async()=>{qr++;}}});
+ await c.prepareVideoSignIn();const choosing=c.$('#product-wallet-choices').children[2].onclick();assert.equal(qr,1);assert.equal(c.$('#product-pair-panel').hidden,false);assert.ok(c.$('#product-pair-open').href.startsWith('ynxwallet://wc?uri='));
+ c.cancelVideoSignIn();connection.resolve(provider);await choosing;assert.equal(requests,0);assert.ok(cancellations>0);assert.equal(c.$('#product-pair-panel').hidden,true);assert.equal(c.$('#product-pair-open').href,undefined);
+});
+test('Video Mobile approved Pair still needs explicit V2 product approval; expiry remains retryable',async()=>{
+ let connects=0,requests=0;class Pair {connect(){connects++;return connects===1?Promise.reject(Object.assign(new Error('timeout'),{code:'YNX_PAIR_APPROVAL_TIMEOUT'})):Promise.resolve({request:async input=>{requests++;assert.equal(input.method,'ynx_requestProductSessionV2');return {version:2,returnUrl:'callback'};}});}cancel(){}}
+ const c=await videoUI({},async()=>({status:'connected'}),{WalletConnectDAppConnection:Pair});await c.prepareVideoSignIn();await c.$('#product-wallet-choices').children[2].onclick();assert.match(c.$('#product-wallet-status').textContent,/expired/);assert.equal(requests,0);await c.$('#product-wallet-back').onclick();await c.$('#product-wallet-choices').children[2].onclick();assert.equal(requests,1);assert.equal(c.calls.at(-1),'owned-library');
+});
+
+test('Video without an injected extension still offers Web, phone and native choices',async()=>{
+ const c=await videoUI({},async()=>({status:'connected'}),{discoverWalletCandidates:async()=>{throw Object.assign(new Error('No provider'),{code:'WALLET_NOT_INSTALLED'});}});await c.prepareVideoSignIn();assert.equal(c.$('#product-wallet-choices').children.length,4);assert.equal(c.$('#product-wallet-choices').children[0].disabled,true);assert.equal(c.$('#product-wallet-choices').children[1].textContent,'YNX Web Wallet');assert.equal(c.$('#product-wallet-choices').children[2].textContent,'YNX Wallet on my phone');
+});

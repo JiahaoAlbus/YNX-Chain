@@ -99,3 +99,7 @@ input,select{font:inherit}input:not([type=search]),#playlist-choice{border:1px s
 #product-wallet-chooser .product-wallet-actions button:hover:not(:disabled){background:#eef3ff}
 #product-wallet-chooser [hidden]{display:none!important}
 @media(max-width:400px){#product-wallet-chooser{padding:20px;width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}#product-wallet-chooser .product-wallet-actions{flex-direction:column}}
+
+#product-pair-panel{display:grid;justify-items:center;gap:12px;margin:16px 0}#product-pair-qr{max-width:100%;height:auto;background:#fff;border-radius:12px}#product-pair-open{display:flex;align-items:center;justify-content:center;min-height:44px;padding:12px 16px;border:1px solid #002fa7;border-radius:12px;background:#002fa7;color:#fff;text-decoration:none;font-weight:600}#product-pair-open:focus-visible{outline:3px solid #6d9aff;outline-offset:3px}
+
+#product-wallet-title{display:flex;align-items:center;gap:12px}#product-wallet-chooser .product-wallet-logo{width:64px;height:40px;object-fit:contain;flex:none}

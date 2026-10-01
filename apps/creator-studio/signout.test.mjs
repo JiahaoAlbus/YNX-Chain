@@ -49,7 +49,7 @@ async function app(overrides = {}) {
     getElementById: id => element(`#${id}`), createElement: () => new Element(),
   };
   const dependencies = {
-    AbortController, document, localStorage: { getItem: () => null }, location: { origin: "https://creator.ynxweb4.com", assign() {} },
+    window: {location:{origin:"https://creator.ynxweb4.com"}}, AbortController, document, localStorage: { getItem: () => null }, location: { origin: "https://creator.ynxweb4.com", assign() {} },
     crypto: { randomUUID, subtle: webcrypto.subtle }, TextDecoder, Uint8Array, FormData,
     atRegisteredOrigin: () => true, prepareProductSignIn: async () => ({ url: "test:creator-signin" }),
     restoreProductSession: async () => ({ status: "disconnected", message: "Sign in" }),
@@ -276,7 +276,7 @@ test('normal Creator chooser dispatches selected YNX V2 and refreshes the origin
  let returns=0,reads=0;
  const c=await app({discoverWalletProviders:async()=>({candidates:[{kind:'ynx-wallet',name:'YNX Wallet',provider},{kind:'metamask',provider:{request(){throw Error('wrong provider')}}}]}),
  finishProductReturn:async url=>{assert.equal(url,'callback-fixture');returns++;return connected('native-owner');},fetch:async()=>{reads++;return response(privateSnapshot('owned'));}});
- await turn();await c.click('product-signin');assert.equal(c.element('#product-wallet-choices').children.length,2);
+ await turn();await c.click('product-signin');assert.equal(c.element('#product-wallet-choices').children.length,4);
  await c.element('#product-wallet-choices').children[0].onclick();
  assert.deepEqual(requests,[{method:'ynx_requestProductSessionV2',params:['test:creator-signin']}]);assert.equal(returns,1);assert.equal(c.readState().creatorAccount,'native-owner');assert.ok(reads>0);assert.equal(c.element('#product-wallet-chooser').open,false);
 });
@@ -305,4 +305,13 @@ test('ordinary Cancel during Creator callback verification revokes the late stor
  await turn();await c.click('product-signin');const selecting=c.element('#product-wallet-choices').children[0].onclick();await entered.promise;
  await c.run('product-wallet-cancel');await turn();assert.equal(revokes,1);assert.equal(c.element('#product-signin').disabled,true);assert.equal(c.readState().creatorAccount,null);
  completing.resolve();await selecting;assert.equal(stored,null);assert.equal(c.readState().creatorAccount,null);assert.equal(c.element('#product-signin').disabled,false);assert.equal(c.element('#product-wallet-chooser').open,false);
+});
+
+test('Creator Web Wallet opens from the user click and uses only the product V2 method',async()=>{
+ const calls=[];const adapter={connect:()=>{calls.push('popup-open');return Promise.resolve([]);},request:async input=>{calls.push(input.method);return {version:2,returnUrl:'callback'};},suspend(){}};
+ const c=await app({createHostedWalletAdapter:()=>adapter,prepareProductSignIn:async()=>{calls.push('prepare');return {url:'fixture'};},fetch:async()=>response(privateSnapshot('owned'))});await turn();await c.click('product-signin');const choosing=c.element('#product-wallet-choices').children[1].onclick();assert.deepEqual(calls,['popup-open']);await choosing;assert.deepEqual(calls,['popup-open','prepare','ynx_requestProductSessionV2']);assert.equal(c.readState().creatorAccount,'fixture-account');
+});
+test('Creator Mobile shows a QR and returns through product verification, not standard account discovery',async()=>{
+ let requested=0,qr=0;class Pair{constructor(input){assert.equal(input.origin,'https://creator.ynxweb4.com');assert.deepEqual(input.methods,['ynx_requestProductSessionV2']);}async connect(input){input.onURI('wc:qa-fixture');return {request:async()=>{requested++;return {version:2,returnUrl:'callback'};}};}cancel(){}}
+ const c=await app({WalletConnectDAppConnection:Pair,QRCode:{toCanvas:async()=>{qr++;}},fetch:async()=>response(privateSnapshot('owned'))});await turn();await c.click('product-signin');await c.element('#product-wallet-choices').children[2].onclick();assert.equal(qr,1);assert.equal(requested,1);assert.equal(c.readState().creatorAccount,'fixture-account');assert.equal(c.element('#product-pair-panel').hidden,true);
 });
