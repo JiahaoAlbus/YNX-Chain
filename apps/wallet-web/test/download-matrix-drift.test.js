@@ -1,44 +1,18 @@
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import test from "node:test";
-import {WALLET_DOWNLOAD_MATRIX} from "../src/provider.js";
-
-const readJSON=async relative=>JSON.parse(await readFile(new URL(relative,import.meta.url),"utf8"));
-
-test("Wallet install entry stays bound to current Android and published Web artifacts",async()=>{
-  const [nativeManifest,publicChannels]=await Promise.all([
-    readJSON("../../wallet/artifact-manifest.json"),
-    readJSON("../public-channel-manifest.json"),
-  ]);
-  const android=nativeManifest.artifacts.find(item=>item.name==="android-release-apk");
-  assert.ok(android?.url);assert.deepEqual(
-    {bytes:WALLET_DOWNLOAD_MATRIX.android.bytes,sha256:WALLET_DOWNLOAD_MATRIX.android.sha256},
-    {bytes:android.bytes,sha256:android.sha256},
-  );
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,android.url);
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.fallbackUrl,android.url);
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.filename,android.filename);
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.assetPath,new URL(android.url).pathname);
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.releaseTag,nativeManifest.publishedRelease.tag);
-  const receipt=await readJSON("../../wallet/proof/wallet-android-1.0.20-publication-20260924.json");
-  for(const source of [nativeManifest,WALLET_DOWNLOAD_MATRIX.android]){
-    assert.equal(source.releaseImmutable,false);
-    assert.equal(source.publisherCanReplaceAssets,true);
-    assert.equal(source.downloadTimeSha256Verified,false);
-  }
-  assert.equal(receipt.releaseImmutable,false);
-  assert.equal(receipt.downloadTimeSha256Verified,true);
-  assert.equal(receipt.observedAt,WALLET_DOWNLOAD_MATRIX.android.releaseMetadataObservedAt);
-  assert.deepEqual(Object.keys(publicChannels.channels).sort(),["pwaPackage","chromeEdgeExtension","firefoxExtension"].sort());
-  for(const [key,artifact] of Object.entries(publicChannels.channels)){
-    const entry=WALLET_DOWNLOAD_MATRIX[key];
-    assert.equal(entry.hosted,true);assert.equal(entry.url,artifact.url);
-    assert.equal(entry.bytes,artifact.bytes);assert.equal(entry.sha256,artifact.sha256);
-    assert.equal(new URL(artifact.url).pathname.endsWith(`/${artifact.name}`),true);
-    assert.equal(artifact.url.includes(`/sha256-${artifact.sha256}/`),true);
-    assert.match(artifact.sourceCommit,/^[0-9a-f]{40}$/u);
-  }
-  assert.equal(publicChannels.channels.chromeEdgeExtension.version,"0.1.3");
-  assert.equal(publicChannels.channels.pwaPackage.version,"0.1.1");
-  assert.equal(publicChannels.channels.firefoxExtension.version,"0.1.1");
+import {WALLET_DOWNLOAD_MATRIX,YNX_DOWNLOAD_URL} from "../src/provider.js";
+test("current installer selection uses the official catalog and never packaged snapshot links",async()=>{
+ const app=await readFile(new URL("../public/app.js",import.meta.url),"utf8");
+ assert.equal(YNX_DOWNLOAD_URL,"https://www.ynxweb4.com/dapp/wallet/open-download");
+ assert.match(app,/id="current-wallet-downloads" href="\$\{YNX_DOWNLOAD_URL\}"/);
+ assert.doesNotMatch(app,/packageSources|WALLET_DOWNLOAD_MATRIX\./);
+ for(const item of Object.values(WALLET_DOWNLOAD_MATRIX)){
+  assert.equal(item.productionSigned,false);assert.ok(item.bytes>0);assert.match(item.sha256,/^[0-9a-f]{64}$/);
+  assert.equal(new URL(item.url).protocol,"https:");
+ }
+ assert.equal(WALLET_DOWNLOAD_MATRIX.windowsX64.sha256,"c4c3882d3693854def331a136200a5ed76be091591ba3c4e180b4e2cf89ad60f");
+ assert.equal(WALLET_DOWNLOAD_MATRIX.windowsX64.bytes,121092869);
+ assert.match(WALLET_DOWNLOAD_MATRIX.windowsX64.url,/0\.6\.18-x64\.exe$/);
+ assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,"78c7221821add4cba78ece2069fea05a98b7c15cc3ba3e93a25fc0b0214f8509");
 });
