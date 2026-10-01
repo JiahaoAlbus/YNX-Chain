@@ -14,6 +14,7 @@ import { approveHostedCentralSignIn } from "./hosted-central-sign-in.js";
 import { HOSTED_LOCALES, HOSTED_LOCALE_KEY, hostedCopy, hostedDynamicCopy, normalizeHostedLocale } from "./hosted-i18n.js";
 
 import {webWalletCopy} from "./web-wallet-copy.js";
+import {renderHostedReceiveQR} from "./hosted-receive-qr.js";
 const OWN_REQUEST=Symbol("wallet-own-user-request");
 const $ = id => document.getElementById(id);
 const status = $("status"), setup = $("setup"), review = $("review"), reviewText = $("review-text"), password = $("approval-password"), approve = $("approve"), reject = $("reject");
@@ -22,7 +23,7 @@ const broadcastJournal = new ExtensionBroadcastJournal(store.journalStorage);
 let accountManager=null;
 let vault = null, session = null, currentReview = null, activeRequest = null, busy = false, needsBackupAcknowledgement = false, backupDownloaded = false;
 let locale = (() => { try { return normalizeHostedLocale(localStorage.getItem(HOSTED_LOCALE_KEY) || navigator.language); } catch { return normalizeHostedLocale(navigator.language); } })();
-let lastStatus = { key: "opening", variables: {}, code: null }, transactionRecord = null, transactionError = null;
+let lastStatus = { key: "opening", variables: {}, code: null }, transactionRecord = null, transactionError = null, transactionBusy = false, transactionAccount = null;
 const seen = new Set();
 const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 function fail(code) { throw Object.assign(new Error(code), { code }); }
@@ -35,7 +36,9 @@ function reviewDetails() {
   const summary=$("web-wallet-review-summary");if(summary){summary.replaceChildren();const tx=currentReview.nativeReview;summary.hidden=!tx;reviewText.parentElement.open=!tx;if(tx){for(const [label,value] of [[webWalletCopy(locale,"recipient"),toYNXAddress(tx.to)],[webWalletCopy(locale,"amount"),`${tx.amount} YNXT`],[webWalletCopy(locale,"fees"),`${tx.networkFee} YNXT`]]){const row=document.createElement("div"),name=document.createElement("span"),data=document.createElement("strong");name.textContent=label;data.textContent=value;row.append(name,data);summary.append(row);}const network=document.createElement("p");network.textContent="YNX Testnet · 6423";summary.append(network);const warning=document.createElement("p");warning.textContent=hostedDynamicCopy(locale,"transactionWarning");summary.append(warning);}}
 }
 function renderTransactionStatus() {
-  if (transactionError) { $("transaction-status").textContent = `${copy("txUnavailable")} (${transactionError})`; return; }
+  $("transaction-status").dataset.errorCode = transactionBusy ? "HOSTED_ACCOUNT_BUSY" : transactionError ?? "";
+  if (transactionBusy) { $("transaction-status").textContent = copy("txBusy"); return; }
+  if (transactionError) { $("transaction-status").textContent = copy("txUnavailable"); return; }
   if (!transactionRecord) return;
   $("transaction-status").textContent = `${transactionRecord.transactionHash} · ${transactionRecord.status}${transactionRecord.blocksNewSend ? ` · ${copy("txPaused")}` : ""}`;
 }
@@ -118,10 +121,12 @@ async function refreshOwnWallet(){
   dashboard.hidden=false;const current=vault,revision=++ownReadRevision;
   const balance=$("web-wallet-balance"),state=$("web-wallet-balance-state"),connections=$("web-wallet-connection-list"),activity=$("web-wallet-activity-state");
   const isCurrent=()=>revision===ownReadRevision&&current===vault;
+  const receiveQR=$("web-wallet-receive-qr");receiveQR?.replaceChildren();$("web-wallet-receive-address").textContent="";
   balance.textContent="—";state.textContent=current?webWalletCopy(locale,"loading"):copy("managerEmpty");
   for(const id of ["web-wallet-receive","web-wallet-send","web-wallet-refresh"])$(id).disabled=!current;
   if(!current){connections.replaceChildren();activity.textContent=webWalletCopy(locale,"emptyActivity");return;}
   $("web-wallet-receive-address").textContent=toYNXAddress(current.account);
+  if(receiveQR)void renderHostedReceiveQR(receiveQR,current.account,isCurrent);
   void forwardExtensionRpc("ynx_getBalanceDetails",[current.account,"latest"]).then(details=>{if(isCurrent()){balance.textContent=details.amountYNXT+" "+details.symbol;state.textContent=chain.chainName;}}).catch(error=>{if(isCurrent()){state.textContent=webWalletCopy(locale,"unavailable");state.dataset.errorCode=typeof error?.code==="string"?error.code:"RPC_UNAVAILABLE";}});
   try{
     const grants=await store.listConnections(current.account);if(!isCurrent())return;connections.replaceChildren();
@@ -132,14 +137,21 @@ async function refreshOwnWallet(){
 }
 async function refreshTransactionStatus(refresh = false) {
   if (!vault) return;
+  const current = vault;
+  if (transactionAccount !== current.account) { transactionAccount = current.account; transactionRecord = null; transactionError = null; transactionBusy = false; }
+  const isCurrent = () => current === vault;
   try {
-    const readStatus = () => broadcastJournal.status(vault.account, { rpc: forwardExtensionRpc, refresh });
-    const record = refresh ? await withHostedAccountLock(vault.account, async () => { await assertSelectedAccount(); return readStatus(); }) : await readStatus();
+    const readStatus = () => broadcastJournal.status(current.account, { rpc: forwardExtensionRpc, refresh });
+    const record = refresh ? await withHostedAccountLock(current.account, async () => { await assertSelectedAccount(); if (!isCurrent()) fail("HOSTED_ACCOUNT_CHANGED"); return readStatus(); }) : await readStatus();
+    if (!isCurrent()) return;
     $("transaction-panel").hidden = !record;
-    transactionRecord = record; transactionError = null; renderTransactionStatus();
+    transactionRecord = record; transactionError = null; transactionBusy = false; renderTransactionStatus();
   } catch (error) {
+    if (!isCurrent()) return;
     $("transaction-panel").hidden = false;
-    transactionRecord = null; transactionError = error?.code ?? "HOSTED_JOURNAL_UNAVAILABLE"; renderTransactionStatus();
+    if (error?.code === "HOSTED_ACCOUNT_BUSY") { transactionBusy = true; }
+    else { transactionBusy = false; transactionRecord = null; transactionError = error?.code ?? "HOSTED_JOURNAL_UNAVAILABLE"; }
+    renderTransactionStatus();
   }
 }
 function reply(type, extra = {}) {
@@ -425,7 +437,7 @@ if($("web-wallet-dashboard")){
       const assertAccount=async()=>{assertRequestLive(context);await accountManager.assertUnlocked(record);await assertSelectedAccount();assertRequestLive(context);};
       await executeReviewedRequest("eth_sendTransaction",[{from:record.account,to:recipient,value:"0x"+(BigInt(amount)*10n**18n).toString(16)}],context,HOSTED_WALLET_ORIGIN,assertAccount);await refreshOwnWallet();
     }catch(error){messageKey("requestFailed",{},error?.code??"HOSTED_REQUEST_FAILED");}
-    finally{if(activeRequest===context)activeRequest=null;busy=false;button.disabled=false;}
+    finally{if(activeRequest===context)activeRequest=null;busy=false;button.disabled=false;if(vault===record)void refreshTransactionStatus(true);}
   });
 }
 async function start() {

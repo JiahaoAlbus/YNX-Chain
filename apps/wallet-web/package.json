@@ -54,7 +54,8 @@
     "@noble/hashes": "2.2.0",
     "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth",
     "@ynx-chain/wallet-auth-card-provider-v2": "file:vendor/ynx-chain-wallet-auth-1.2.0-09e36b150.tgz",
-    "ethers": "6.17.0"
+    "ethers": "6.17.0",
+    "qrcode": "1.5.4"
   },
   "overrides": {
     "addons-linter": "10.13.0",
