@@ -91,13 +91,21 @@ export function target(nodes, label) {
   check(targets.length === 1, 'UI_TARGET_NOT_UNIQUE_OR_VISIBLE');
   return targets[0];
 }
+export function chromeFirstRunState(nodes) {
+  const firstPackage=nodes.find(n=>visible(n)&&n.package)?.package;
+  if(firstPackage!==BROWSER)return {foregroundChrome:false, explicitAcceptTerms:false, accountSetup:false, skipAccount:false};
+  const chrome=nodes.filter(n=>n.package===BROWSER);
+  return {foregroundChrome:true, explicitAcceptTerms:has(chrome,'Accept & continue'),
+    accountSetup:['Make Chrome your own','Make Chrome your own.','Use without an account','Sign in to Chrome'].some(t=>has(chrome,t)),
+    skipAccount:has(chrome,'Use without an account')};
+}
 export function safeUiEvidence(nodes) {
   // NEVER return unknown text, accessibility labels, request parameters or URI.
   const codes = nodes.flatMap(n => [...String(n.text || '').matchAll(/\b(?:YNX_PAIR_[A-Z_]{1,50}|ERR_[A-Z_]{1,50})\b/g)].map(m => m[0]));
   if (has(nodes, 'This request expired. Start again when you are ready.')) codes.push('PAIR_EXPIRED_UI');
   return {codes: [...new Set(codes)], qrOnly: has(nodes, 'Scan QR code'), openApp: has(nodes, 'Open YNX Wallet app'),
     locked: has(nodes, 'WALLET LOCKED'), connectReview: has(nodes, 'Connect this app?'), messageReview: has(nodes, 'Sign a message'),
-    chromeConsent: ['Make Chrome your own', 'Make Chrome your own.', 'Use without an account', 'Accept & continue', 'Sign in to Chrome'].some(t => has(nodes, t))};
+    chromeFirstRun: chromeFirstRunState(nodes)};
 }
 export function safeSignInReview(nodes) {
   const prefix = 'YNX EVM Product Session authorization v1\n';
@@ -169,12 +177,17 @@ export class Driver {
     const b = box(target(nodes, label));
     await this.adb(['shell', 'input', 'tap', String(Math.floor((b[0] + b[2]) / 2)), String(Math.floor((b[1] + b[3]) / 2))]);
   }
-  async wait(predicate, code, ms = 45000) {
+  async wait(predicate, code, ms = 45000, {skipChromeAccountSetup=false}={}) {
+    let accountSkipClicks=0;
     const until = Date.now() + ms;
     while (Date.now() < until) {
       const nodes = await this.ui();
       const evidence = safeUiEvidence(nodes);
-      if (evidence.chromeConsent) fail('CHROME_FIRST_RUN_CONSENT_REQUIRED_NO_CONTRACT_ACCEPTED');
+      if (evidence.chromeFirstRun.explicitAcceptTerms) fail('CHROME_EXPLICIT_TERMS_ACCEPTANCE_REQUIRED');
+      if(evidence.chromeFirstRun.accountSetup){
+        if(skipChromeAccountSetup && evidence.chromeFirstRun.skipAccount && accountSkipClicks++===0){await this.tap('Use without an account',nodes);await delay(300);continue;}
+        fail('CHROME_ACCOUNT_SETUP_NORMAL_SKIP_NOT_AVAILABLE');
+      }
       if (evidence.codes.length) fail(safeCode(evidence.codes[0]));
       if (predicate(nodes)) return nodes;
       await delay(300);
@@ -275,9 +288,9 @@ async function createQa(d, privateDir, onBackupCreated = () => {}) {
 function mask(value) { if (process.env.GITHUB_ACTIONS === 'true') process.stdout.write(`::add-mask::${value}\n`); }
 async function launchFinance(d) {
   await d.adb(['shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', FINANCE, '-p', BROWSER]);
-  // Never accept Chrome terms, sign in, grant a permission, change provider or
+  // Ordinary account setup may skip sign-in; never accept Chrome terms, grant a permission, change provider or
   // disable first-run checks. A ready ordinary browser is an execution gate.
-  await d.wait(n => has(n, 'Connect a wallet'), 'NORMAL_PUBLIC_FINANCE_NOT_READY');
+  await d.wait(n => has(n, 'Connect a wallet'), 'NORMAL_PUBLIC_FINANCE_NOT_READY',45000,{skipChromeAccountSetup:true});
 }
 async function mobileProposal(d, mark = () => {}) {
   await d.tap('Connect a wallet', await d.find('Connect a wallet'));
@@ -456,8 +469,19 @@ async function selfTest() {
     assert.equal(safeCode('error wc:'+secret), 'UNCLASSIFIED_GATE_FAILURE');
   });
   test('Chrome consent is an explicit fail condition, never silently accepted', () => {
-    assert.equal(safeUiEvidence([{text:'Use without an account',bounds:'[0,0][1,1]'}]).chromeConsent, true);
+    const node=text=>({text,package:BROWSER,bounds:'[0,0][1,1]'});
+    assert.deepEqual(chromeFirstRunState([node('Use without an account')]),{foregroundChrome:true,explicitAcceptTerms:false,accountSetup:true,skipAccount:true});
+    assert.equal(chromeFirstRunState([node('Accept & continue')]).explicitAcceptTerms,true);
+    assert.equal(chromeFirstRunState([{...node('Accept & continue'),package:APK.package}]).explicitAcceptTerms,false);
     assert.deepEqual(safeUiEvidence([{text:'This request expired. Start again when you are ready.',bounds:'[0,0][1,1]'}]).codes, ['PAIR_EXPIRED_UI']);
+  });
+  test('Chrome account skip uses its ordinary button only; terms remain blocked',async()=>{
+    const d=new Driver('emulator-5554');let count=0;const calls=[];
+    const chrome={text:'Use without an account',package:BROWSER,clickable:'true',bounds:'[0,0][1,1]'};
+    d.ui=async()=>++count===1?[chrome]:[{text:'Connect a wallet',package:BROWSER,bounds:'[0,0][1,1]'}];d.tap=async label=>calls.push(label);
+    await d.wait(n=>has(n,'Connect a wallet'),'NOT_READY',2000,{skipChromeAccountSetup:true});assert.deepEqual(calls,['Use without an account']);
+    d.ui=async()=>[{...chrome,text:'Accept & continue'}];
+    await assert.rejects(d.wait(()=>false,'NOT_READY',2000,{skipChromeAccountSetup:true}),/CHROME_EXPLICIT_TERMS_ACCEPTANCE_REQUIRED/);assert.equal(calls.length,1);
   });
   test('only exact Finance read-only identity message may be signed', () => {
     const challenge = {version:'1',chainId:6423,account:'0x'+'a'.repeat(40),productId:'finance',origin:FINANCE,callback:FINANCE+'/wallet-auth/callback',scope:'finance.account.read',deviceId:'qa-device',deviceAlgorithm:'p256-sha256',deviceKey:'a'.repeat(44),nonce:'a'.repeat(32),state:'b'.repeat(32),requestId:'synthetic-request',providerKind:'ynx-wallet',issuedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+240000).toISOString()};
