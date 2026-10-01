@@ -9,10 +9,10 @@
   </head>
   <body><main>
     <header><img src="ynx-logo.png" alt="YNX"><span>YNX WALLET</span></header>
-    <p class="eyebrow">TESTNET ACCOUNT VAULT</p><h1>Own your YNX account</h1>
-    <p class="intro">The encrypted recovery key stays in this browser profile. Sites receive only the approved 0x account. Product Session is separate.</p>
-    <section id="connection-setup" class="card hidden"><h2>Continue a connection</h2><p id="connection-origin"></p><p>Create or import your account in this profile, then continue to a separate site permission review. Saving an account does not authorize this site.</p><button id="connection-continue" type="button" disabled>Continue to connection review</button></section>
-    <section id="current" class="card" aria-label="Current account"><strong>YNX account</strong><p id="account" class="mono">Loading…</p><button id="copy-address" type="button" disabled>Copy YNX address</button><details><summary>Ethereum compatibility address (0x)</summary><p id="evm-account" class="mono">Unavailable</p></details></section>
+    <p class="eyebrow">YNX WALLET</p><h1 data-extension-i18n="accountTitle">Your Wallet</h1>
+    <p class="intro" data-extension-i18n="accountIntro">Manage your account in this browser. Requests from sites always need your review.</p>
+    <section id="connection-setup" class="card hidden"><h2 data-extension-i18n="continue">Continue to connection</h2><p id="connection-origin"></p><p data-hosted-i18n="explicitApproval">Explicit approval</p><button id="connection-continue" type="button" disabled data-extension-i18n="continue">Continue to connection</button></section>
+    <section id="current" class="card" aria-label="Current account"><strong data-hosted-i18n="ynxAccount">Your YNX account</strong><p id="account" class="mono">Loading…</p><button id="copy-address" type="button" disabled data-extension-i18n="copyAddress">Copy address</button><details><summary data-hosted-i18n="evmAddress">EVM-compatible address</summary><p id="evm-account" class="mono">Unavailable</p></details></section>
     <section id="transaction" class="card hidden" aria-label="Transaction recovery">
       <h2>Original transaction</h2><p id="transaction-status"></p><p id="transaction-hash" class="mono"></p>
       <p id="transaction-legacy" class="hidden">This older record has no verifiable completion evidence. Its original signed transaction is preserved. Its original RPC source is unverified.</p>
@@ -28,12 +28,12 @@
         <p>Retry keeps the same transaction and nonce. A submission already sent may still finish after cancellation. Success here acknowledges receipt; use Check status for local durability evidence.</p>
       </div>
     </section>
-    <section class="card" aria-labelledby="setup-title"><h2 id="setup-title">Create or import</h2>
-      <label for="password">Vault password · 12 characters minimum</label><input id="password" type="password" minlength="12" maxlength="256" autocomplete="new-password">
-      <label for="secret">Recovery key · leave empty to create</label><textarea id="secret" maxlength="64" spellcheck="false" autocomplete="off"></textarea>
-      <button id="prepare" type="button" class="primary">Prepare account</button>
-      <div id="backup" class="hidden"><p>Write this recovery key offline. It is shown once and is never sent to a site.</p><output id="recovery" class="mono"></output><label class="confirm"><input id="confirmed" type="checkbox"> I stored this recovery key offline.</label><button id="save" type="button" class="primary" disabled>Encrypt and save</button></div>
+    <section class="card" aria-labelledby="setup-title"><h2 id="setup-title" data-extension-i18n="create">Protect your Wallet</h2>
+      <label for="password"><span data-hosted-i18n="localPassword">Wallet password</span></label><input id="password" type="password" minlength="12" maxlength="256" autocomplete="new-password">
+      <details id="restore-account"><summary data-extension-i18n="restoreKey">Restore with your recovery key</summary><label for="secret" data-hosted-i18n="privateKey">Recovery key</label><textarea id="secret" maxlength="64" spellcheck="false" autocomplete="off"></textarea></details>
+      <button id="prepare" type="button" class="primary" data-extension-i18n="create">Prepare account</button>
+      <div id="backup" class="hidden"><p data-extension-i18n="backupHelp">Keep your recovery key safely offline.</p><output id="recovery" class="mono"></output><label class="confirm"><input id="confirmed" type="checkbox"> <span data-extension-i18n="backupAck">I saved my recovery key safely.</span></label><button id="save" type="button" class="primary" disabled data-hosted-i18n="saveWallet">Save encrypted Wallet</button></div>
     </section>
-    <p id="status" role="status" aria-live="polite">No account action started.</p><button id="remove" type="button" class="danger hidden">Remove account and site permissions</button>
+    <p id="status" role="status" aria-live="polite"></p><details id="error-details" class="hidden"><summary data-extension-i18n="details">Details</summary><code id="error-code"></code></details><button id="remove" type="button" class="danger hidden">Remove account and site permissions</button>
   </main><script type="module" src="vault.js"></script></body>
 </html>
