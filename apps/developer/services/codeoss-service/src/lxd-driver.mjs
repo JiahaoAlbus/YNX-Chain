@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { Duplex } from "node:stream";
-import { createHash } from "node:crypto";
-import { readFile, lstat, realpath } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { readFile, readdir, lstat, realpath } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { OPENVSCODE_X64 } from "./upstream.mjs";
 import { fault } from "./central-identity.mjs";
@@ -18,10 +18,78 @@ export function createLxdCoreDriver({ artifactRoot, archivePath, licensePath, no
     throw new Error("An immutable approved LXD base image, bounded pool and core profile are required.");
   artifactRoot = resolve(artifactRoot);
   const name = context => `ynx-core-${context.identityDigest.slice(0, 32)}`;
-  const args = (context, command) => ["exec", name(context), "--", ...command];
+  const args = (context, command) => ["exec", name(context), "--project", "default", "--", ...command];
   const receipt = context => join(context.directory, "lxd-receipt.json");
+  const instancePath = context => `/1.0/instances/${name(context)}`;
+  async function api(method, path, payload) {
+    const result = await run(["query", "--raw", "--request", method, path, ...(payload ? ["--data", JSON.stringify(payload)] : [])]);
+    let response; try { response = JSON.parse(result.stdout); } catch { throw fault("LXD operation response is invalid.", "core_operation_unconfirmed", 503); }
+    if (!(response.type === "sync" && response.status_code === 200 || response.type === "async" && response.status_code === 100)) throw fault("LXD operation query failed.", "core_operation_unconfirmed", 503);
+    return response;
+  }
+  function related(operation, context) {
+    return ["instances", "containers"].some(kind => (operation.resources?.[kind] || []).some(resource => {
+      const url = new URL(resource, "https://lxd.invalid");
+      return url.origin === "https://lxd.invalid" && [instancePath(context), instancePath(context).replace("/instances/", "/containers/")].includes(url.pathname) &&
+        (!url.searchParams.has("project") || url.searchParams.get("project") === "default");
+    }));
+  }
+  function validateOperation(operation, context, expectedId) {
+    if (!/^[a-f0-9-]{36}$/.test(operation?.id || "") || expectedId && operation.id !== expectedId || !Number.isSafeInteger(operation.status_code) ||
+      operation.status_code < 100 || operation.status_code > 999 || !related(operation, context))
+      throw fault("LXD operation is not the exact admitted instance.", "core_operation_unconfirmed", 503);
+    for (const kind of ["instances", "containers"]) for (const resource of operation.resources?.[kind] || [])
+      if (!related({ resources: { [kind]: [resource] } }, context)) throw fault("LXD operation also targets another instance.", "core_operation_unconfirmed", 503);
+  }
+  async function settledOperation(context, stem, operation) {
+    validateOperation(operation, context);
+    if (operation.status_code < 200) {
+      const expectedId = operation.id;
+      const response = await api("GET", `/1.0/operations/${operation.id}/wait?timeout=5&project=default`);
+      operation = response.metadata; validateOperation(operation, context, expectedId);
+    }
+    if (operation.status_code < 200) throw fault("LXD instance operation is still pending. Retry safe Stop after it settles.", "core_operation_pending", 503);
+    try { await writePrivateReceipt(`${stem}-terminal.json`, operation); } catch (error) { if (error.code !== "EEXIST") throw error; }
+    return operation;
+  }
+  async function asyncMutation(context, phase, method, path, payload) {
+    const stem = join(context.directory, `lxd-operation-${phase}`);
+    await writePrivateReceipt(`${stem}-issued.json`, { identityDigest: context.identityDigest, runtimeId: context.runtimeId, resource: instancePath(context) });
+    // A lost response is an unresolved issued mutation, not proof of absence.
+    const response = await api(method, path, payload), operation = response.metadata;
+    validateOperation(operation, context);
+    if (response.type !== "async" || response.operation?.split("?")[0] !== `/1.0/operations/${operation.id}`)
+      throw fault("LXD mutation did not expose its exact background operation.", "core_operation_unconfirmed", 503);
+    await writePrivateReceipt(`${stem}-operation.json`, operation);
+    const final = await settledOperation(context, stem, operation);
+    if (final.status_code !== 200) throw fault("LXD instance operation failed. Preserve the recovery journal.", "core_driver_failed", 503);
+  }
+  async function assertOperationsSettled(context) {
+    let files; try { files = await readdir(context.directory); } catch (error) { if (error.code !== "ENOENT") throw error; files = []; }
+    for (const file of files.filter(name => /^lxd-operation-[a-z0-9-]+-issued\.json$/.test(name))) {
+      const stem = join(context.directory, file.slice(0, -"-issued.json".length)), issued = JSON.parse(await readFile(join(context.directory, file), "utf8"));
+      if (issued.identityDigest !== context.identityDigest || issued.runtimeId !== context.runtimeId || issued.resource !== instancePath(context))
+        throw fault("LXD issued operation identity changed.", "core_operation_unconfirmed", 503);
+      let known;
+      try { known = JSON.parse(await readFile(`${stem}-operation.json`, "utf8")); validateOperation(known, context); }
+      catch { throw fault("LXD issued mutation has no confirmed operation ID. Retain recovery for review.", "core_operation_unconfirmed", 503); }
+      let operation;
+      try { operation = JSON.parse(await readFile(`${stem}-terminal.json`, "utf8")); validateOperation(operation, context, known.id); if (operation.status_code < 200) throw fault("LXD terminal proof is not final.", "core_operation_pending", 503); }
+      catch (error) {
+        if (error.code !== "ENOENT") throw error;
+        await settledOperation(context, stem, known);
+      }
+    }
+    const listing = (await api("GET", "/1.0/operations?recursion=1&project=default")).metadata;
+    if (!listing || typeof listing !== "object" || Array.isArray(listing) || Object.values(listing).some(value => !Array.isArray(value)))
+      throw fault("LXD operation collection is invalid.", "core_operation_unconfirmed", 503);
+    for (const operation of Object.values(listing).flat()) if (related(operation, context)) {
+      validateOperation(operation, context);
+      if (operation.status_code < 200) await settledOperation(context, join(context.directory, `lxd-observed-operation-${operation.id}`), operation);
+    }
+  }
   async function inspect(context, { preparedOnly = false } = {}) {
-    const result = await run(["list", name(context), "--format", "json"]);
+    const result = await run(["list", name(context), "--project", "default", "--format", "json"]);
     let rows; try { rows = JSON.parse(result.stdout); } catch { throw fault("LXD identity response is invalid.", "core_identity_unconfirmed", 503); }
     const value = rows.find(row => row.name === name(context)); if (!value) return null;
     if (rows.length !== 1) throw fault("LXD identity selection was not exact.", "core_identity_mismatch", 503);
@@ -67,22 +135,22 @@ export function createLxdCoreDriver({ artifactRoot, archivePath, licensePath, no
     await writePrivateReceipt(receipt(context), { identityDigest: context.identityDigest, runtimeId: context.runtimeId,
       imageFingerprint, networkName: network.networkName, policyDigest: network.policyDigest, acl: network.acl,
       tokenMode: "private-loopback-without-connection-token" });
-    await run(["init", imageFingerprint, name(context), "--profile", profileName, "--storage", storagePool,
-      "--config", "security.privileged=false", "--config", "security.nesting=false", "--config", "security.devlxd=false",
-      "--config", "security.idmap.isolated=true", "--config", `limits.cpu=${context.limits.cpus}`,
-      "--config", `limits.memory=${context.limits.memoryBytes}`, "--config", `limits.processes=${context.limits.pids}`,
-      "--config", `user.ynx.core.identity=${context.identityDigest}`, "--config", `user.ynx.core.runtime=${context.runtimeId}`]);
-    await run(["config", "device", "override", name(context), "root", "size=4GiB"]);
-    await run(["config", "device", "add", name(context), "core", "disk", `source=${artifactRoot}`, "path=/opt/openvscode", "readonly=true"]);
-    await run(["config", "device", "add", name(context), "project", "disk", `source=${context.projectDirectory}`, "path=/project", "shift=true"]);
-    await run(["config", "device", "override", name(context), "eth0", `network=${network.networkName}`, `security.acls=${network.acl}`]);
+    await asyncMutation(context, "init", "POST", "/1.0/instances?project=default", { name: name(context), type: "container", start: false,
+      source: { type: "image", fingerprint: imageFingerprint }, profiles: [profileName],
+      config: { "security.privileged": "false", "security.nesting": "false", "security.devlxd": "false", "security.idmap.isolated": "true",
+        "limits.cpu": String(context.limits.cpus), "limits.memory": String(context.limits.memoryBytes), "limits.processes": String(context.limits.pids),
+        "user.ynx.core.identity": context.identityDigest, "user.ynx.core.runtime": context.runtimeId },
+      devices: { root: { type: "disk", pool: storagePool, path: "/", size: "4GiB" },
+        core: { type: "disk", source: artifactRoot, path: "/opt/openvscode", readonly: "true" },
+        project: { type: "disk", source: context.projectDirectory, path: "/project", shift: "true" },
+        eth0: { type: "nic", network: network.networkName, "security.acls": network.acl } } });
     const created = await inspect(context);
     if (!created?.config?.["volatile.uuid"]) throw fault("LXD container identity was not confirmed.", "core_identity_unconfirmed", 503);
     await writePrivateReceipt(join(context.directory, "lxd-instance-id"), created.config["volatile.uuid"]);
     // Durable before issuing start: a failed transport response must never prove
     // that execution did not happen. Stop conservatively retains the import.
     await writePrivateReceipt(join(context.directory, "lxd-start-issued"), created.config["volatile.uuid"]);
-    await run(["start", name(context)]);
+    await asyncMutation(context, "start", "PUT", `${instancePath(context)}/state?project=default`, { action: "start", timeout: 10, force: false, stateful: false });
     await run(args(context, ["python3", "-c", "import os; assert open('/proc/1/comm').read().strip()=='systemd'; assert os.path.exists('/sys/fs/cgroup/cgroup.controllers')"]));
     await run(args(context, ["useradd", "--uid", "1000", "--user-group", "--no-create-home", "--shell", "/bin/bash", "ynx-core"]));
     await run(args(context, ["chmod", "0711", "/project"]));
@@ -97,19 +165,21 @@ export function createLxdCoreDriver({ artifactRoot, archivePath, licensePath, no
     return { running: true, runtimeId: context.runtimeId };
   }
   async function stop(context) {
+    await assertOperationsSettled(context);
     let prepared;
     try { prepared = JSON.parse(await readFile(receipt(context), "utf8")); }
     catch (error) {
       if (error.code !== "ENOENT") throw fault("LXD launch receipt is unreadable.", "core_identity_unconfirmed", 503);
-      const rows = JSON.parse((await run(["list", name(context), "--format", "json"])).stdout);
+      const rows = JSON.parse((await run(["list", name(context), "--project", "default", "--format", "json"])).stdout);
       if (rows.some(row => row.name === name(context))) throw fault("An unconfirmed LXD runtime exists.", "core_identity_unconfirmed", 503);
+      await assertOperationsSettled(context);
       return proof(context, true);
     }
     if (prepared.identityDigest !== context.identityDigest || prepared.runtimeId !== context.runtimeId) throw fault("LXD receipt identity changed.", "core_identity_mismatch", 409);
     const current = await inspect(context, { preparedOnly: true });
     let instanceId;
     try { instanceId = await readFile(join(context.directory, "lxd-instance-id"), "utf8"); } catch (error) { if (error.code !== "ENOENT") throw error; }
-    if (!current && !instanceId) return proof(context, true);
+    if (!current && !instanceId) { await assertOperationsSettled(context); return proof(context, true); }
     if (!current || (instanceId && instanceId !== current.config["volatile.uuid"])) throw fault("LXD runtime identity changed or disappeared.", "core_identity_mismatch", 409);
     if (!instanceId && current.status !== "Stopped") throw fault("LXD runtime has no confirmed stopped identity.", "core_identity_unconfirmed", 503);
     let startIssued;
@@ -117,11 +187,13 @@ export function createLxdCoreDriver({ artifactRoot, archivePath, licensePath, no
     if (startIssued && startIssued !== current.config["volatile.uuid"]) throw fault("LXD start proof changed.", "core_identity_mismatch", 409);
     const neverStarted = !startIssued && current.status === "Stopped";
     if (!startIssued && !neverStarted) throw fault("Unexpected execution without a durable launch proof.", "core_identity_unconfirmed", 503);
-    if (current.status === "Running") await run(["stop", name(context), "--timeout", "10"]);
+    if (current.status === "Running") await asyncMutation(context, `stop-${randomUUID()}`, "PUT", `${instancePath(context)}/state?project=default`, { action: "stop", timeout: 10, force: false, stateful: false });
+    await assertOperationsSettled(context);
     const stopped = await inspect(context, { preparedOnly: true });
     if (!stopped || stopped.status !== "Stopped") throw fault("LXD core still has running processes.", "core_processes_running", 503);
-    const state = JSON.parse((await run(["query", `/1.0/instances/${name(context)}/state`])).stdout);
+    const state = JSON.parse((await run(["query", `/1.0/instances/${name(context)}/state?project=default`])).stdout);
     if (state.pid !== 0 || state.processes !== 0 || state.status !== "Stopped") throw fault("LXD core child-empty proof failed.", "core_processes_running", 503);
+    await assertOperationsSettled(context);
     return proof(context, neverStarted);
   }
   async function connect(context) {

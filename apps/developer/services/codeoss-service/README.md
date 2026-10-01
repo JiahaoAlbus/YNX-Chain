@@ -97,6 +97,21 @@ relay. Root-controlled start-issued journal distinguishes never-started cancel
 from execution whose transport response was lost. Stop confirms PID/processes
 zero before checkpoint/releasing the writer. Failed Stop stays recoverable.
 
+LXD init/start/stop use the official asynchronous API via `lxc query --raw`.
+Before sending a mutation the backend fsyncs an issued record; its response ID,
+exact instance resources/default project and terminal result are saved outside
+the user volume. Stop first settles those operations, reads the current exact
+instance's operations, and rechecks before every absence/Stopped success path.
+Wait is bounded to five seconds per operation; pending/transport errors keep
+the writer for retry. Completed failed operations still require actual instance
+absence or stopped/child-empty proof. Foreign operations are never waited on,
+cancelled or deleted. A lost response with no confirmed ID is an explicit
+recovery requiring operator review, even when the current operation list is
+empty; never clear that issued record or manufacture a no-start proof.
+Terminal receipts allow cold recovery after LXD expires completed operations.
+This follows the pinned [LXD 5.21.8 operation resource schema](https://github.com/canonical/lxd/blob/lxd-5.21.8/shared/api/operation.go)
+and [numeric final-status contract](https://github.com/canonical/lxd/blob/lxd-5.21.8/shared/api/status_code.go).
+
 ## Identity and rollout
 
 Consumer is implemented here: PKCE start/callback, backend-only token exchange,
