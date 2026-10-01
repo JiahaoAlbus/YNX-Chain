@@ -7,16 +7,16 @@
     "esbuildVersion": "0.25.9"
   },
   "evmRead": {
-    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-cold-workspace-1be166a87-20261001.json",
+    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-history-menu-015-fcee937c9-20261001.json",
     "candidateBytes": 74248,
-    "candidateSha256": "5dd4ebde0fcefd64641a7ac0fe11fcdd0f7b9e18545db93bcc8d64c7d31c30f5"
+    "candidateSha256": "794c8f788db8a9cd48ac3b6751ff0d1f1cdca0e674747d930c93d2530d2a6afb"
   },
   "sourceBundleRelation": {
     "byteReproducible": true,
     "status": "VERIFIED_REPRODUCIBLE",
     "cleanBuildCount": 2,
-    "bytes": 755163,
-    "sha256": "e51598f984db591a9f187c6a2d3469b0ad60ca2260d11cc82b64a71618cff231"
+    "bytes": 757423,
+    "sha256": "fb3e10db84a8218d6d0e66f407d01911b9f9aff66261e3c0a855837a47734840"
   },
   "files": [
     {
@@ -41,8 +41,8 @@
     },
     {
       "path": "endpoint-authority-entry.js",
-      "bytes": 9149,
-      "sha256": "66c875ff6c754a53cfed6e6b5db6b18f3cf1184e35fc9cb598419d1b1397eca3"
+      "bytes": 12166,
+      "sha256": "6ac49ba221e24bdf81e3a35ad7b41344bd9c27608b050634d8d404a83b6d7bba"
     },
     {
       "path": "endpoint-authority-store.js",
@@ -56,8 +56,8 @@
     },
     {
       "path": "wallet-auth.js",
-      "bytes": 755163,
-      "sha256": "e51598f984db591a9f187c6a2d3469b0ad60ca2260d11cc82b64a71618cff231"
+      "bytes": 757423,
+      "sha256": "fb3e10db84a8218d6d0e66f407d01911b9f9aff66261e3c0a855837a47734840"
     },
     {
       "path": "order-wallet.js",
@@ -91,8 +91,8 @@
     },
     {
       "path": "index.html",
-      "bytes": 36112,
-      "sha256": "a1a0f727ed9b53f7a83cc74d2ce9c2764dc83a363f282f3732ce885df2603046"
+      "bytes": 36322,
+      "sha256": "ac9d5490c128d00342e685a1fa9fa1e077e09c86b0cbbba830ec9ef0bdee7b90"
     },
     {
       "path": "app.js",
@@ -101,8 +101,8 @@
     },
     {
       "path": "finance-locale.js",
-      "bytes": 453843,
-      "sha256": "a6f669622835f364946a788b8489a5f87da59341cf5f98ccaf31f5901ed91c53"
+      "bytes": 454752,
+      "sha256": "c408daaaee94110c65881b89e5c34b6ec278a7b1fa55877ad98ff08861ec967a"
     },
     {
       "path": "read-sources.js",
@@ -151,8 +151,8 @@
     },
     {
       "path": "../../../sdk/js/endpoint-authority-v2.js",
-      "bytes": 19837,
-      "sha256": "23ec8697981bfef16c49deaa291119de32740d4728609fe7b4ca82c508d77980"
+      "bytes": 20845,
+      "sha256": "f07734de3d0435321aa40d2e5fcb532cdf6e5a56e60d59ea1c0c5afcd73591b6"
     },
     {
       "path": "../../../sdk/js/endpoint-authority-bundle.js",
@@ -191,13 +191,13 @@
     },
     {
       "path": "verify-evm-read-candidate.mjs",
-      "bytes": 17860,
-      "sha256": "ef459635ba0e72c2cd4c1ffa95d251fd9571cbc2c4f4437f1fd5407afaad8ad2"
+      "bytes": 18306,
+      "sha256": "137d6b54a7c09b3282a182cfcbb250f84a0369543c4a0c7513f25a8a319ce28e"
     },
     {
-      "path": "../evidence/evm-read-runtime-verifier-candidate-cold-workspace-1be166a87-20261001.json",
+      "path": "../evidence/evm-read-runtime-verifier-candidate-history-menu-015-fcee937c9-20261001.json",
       "bytes": 74248,
-      "sha256": "5dd4ebde0fcefd64641a7ac0fe11fcdd0f7b9e18545db93bcc8d64c7d31c30f5"
+      "sha256": "794c8f788db8a9cd48ac3b6751ff0d1f1cdca0e674747d930c93d2530d2a6afb"
     },
     {
       "path": "../../../packages/wallet-auth/node_modules/@noble/hashes/_md.js",
@@ -4442,7 +4442,7 @@
     {
       "path": "../../wallet-web/package.json",
       "bytes": 3571,
-      "sha256": "887f6bd51c3b46509ce269ec61ffd0ac017f0c3b7d2547cf7a6777ddf687369d"
+      "sha256": "ab483914cc9dae1b2364fb483d002332c044be3a22f059bfb16868e0ea6e0d6b"
     },
     {
       "path": "../../wallet-web/src/extension-chain-params.js",
