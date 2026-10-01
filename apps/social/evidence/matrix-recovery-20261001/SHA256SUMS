@@ -1,0 +1,7 @@
+e6344cfc70018d4ef087587b02542551184e7f10bbbf137c92e8146f51ba6914  apps/social/web/matrix/transport.mjs
+b5c8cd50186717b5128f81f6b7b93ff48d77754591e0472e8acc3c97a6a2964f  apps/social/web/matrix/transport.test.mjs
+fbca0b0542bc8d2a503d3d542bddabb911e9b8ae971a08cfc824c4cd37fb0c8b  apps/social/web/matrix/device-reauth.test.mjs
+b4982a194099e316beb5d1d2540a3a24203ca9ad55bdef2ee8c35f6177e45d61  apps/social/scripts/matrix-qa/devices.mjs
+669154d19df2bd9643210d62eab1689fb018324b85a0a0a0932f5e4860eb342c  apps/social/evidence/matrix-recovery-20261001/federation.json
+3d2905657c6bd00f727142d1bd8e0213de93b8ded95122d6aa2f98bd358f51a7  apps/social/evidence/matrix-recovery-20261001/device-reauth.json
+265a398740ccc3fcf4f121f8a0bc244d183c2f323aac768f54d9e5ad55e56427  apps/social/evidence/matrix-recovery-20261001/INTEGRATION.md

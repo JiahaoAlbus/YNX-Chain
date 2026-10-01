@@ -1,4 +1,4 @@
-import {createClient, ClientEvent, RoomEvent, MemoryStore} from 'matrix-js-sdk';
+import {createClient, ClientEvent, RoomEvent, IndexedDBStore} from 'matrix-js-sdk';
 import {CryptoEvent} from 'matrix-js-sdk/lib/crypto-api/CryptoEvent.js';
 import {encryptAttachment, decryptAttachment} from 'matrix-encrypt-attachment';
 export const MATRIX_PROTOCOL = 'ynx-social-matrix/v1';
@@ -18,14 +18,22 @@ export async function fetchMatrixBinding({account,deviceId,client,csrfToken,fetc
   return validateBinding(await response.json(),account);
 }
 export class MatrixSocialTransport {
-  constructor({publish=()=>{},onVerification=()=>{},localQA=false,clientFactory=createClient}={}){this.publish=publish;this.onVerification=onVerification;this.localQA=localQA;this.clientFactory=clientFactory;this.client=null;this.generation=0;this.requests=new Map();this.verifiers=new Map();this.sas=new Map();this.connected=false;this.deviceSets=new Map()}
+  constructor({publish=()=>{},onVerification=()=>{},localQA=false,clientFactory=createClient,storeFactory=options=>new IndexedDBStore(options),reauthenticateDevice=null}={}){this.publish=publish;this.onVerification=onVerification;this.localQA=localQA;this.clientFactory=clientFactory;this.storeFactory=storeFactory;this.reauthenticateDevice=reauthenticateDevice;this.client=null;this.generation=0;this.requests=new Map();this.verifiers=new Map();this.sas=new Map();this.connected=false;this.deviceSets=new Map()}
   async connect(binding,account,storageKey){
     this.stop();validateBinding(binding,account,{localQA:this.localQA});if(!(storageKey instanceof Uint8Array)||storageKey.length!==32)fail('MATRIX_STORAGE_REQUIRED','Protected durable crypto storage key is required');
     const generation=this.generation;this.binding=binding;
-    const client=this.clientFactory({baseUrl:binding.homeserver,userId:binding.userId,deviceId:binding.deviceId,accessToken:binding.accessToken,store:new MemoryStore(),verificationMethods:['m.sas.v1'],logger:{trace(){},debug(){},info(){},warn(){},error(){},log(){},getChild(){return this}}});
+    const store=this.storeFactory({indexedDB:globalThis.indexedDB,dbName:`ynx-social-matrix-sync-v1:${account}:${binding.deviceId}`});
+    // SDK's default cache degradation clears its database. Retain it instead,
+    // lock this session, and let the user recover without replacing any keys.
+    store.backend.clearDatabase=async()=>{throw new MatrixPolicyError('MATRIX_CACHE_RETAINED','Original sync data was retained')};
+    store.on('degraded',()=>{if(generation===this.generation){this.stop();this.publish({type:'storage-locked',code:'MATRIX_STORAGE_RECOVERY_REQUIRED'})}});
+    store.on('closed',()=>{if(generation===this.generation){this.stop();this.publish({type:'storage-locked',code:'MATRIX_STORAGE_RECOVERY_REQUIRED'})}});
+    store.wantsSave=()=>true;
+    const client=this.clientFactory({baseUrl:binding.homeserver,userId:binding.userId,deviceId:binding.deviceId,accessToken:binding.accessToken,store,verificationMethods:['m.sas.v1'],logger:{trace(){},debug(){},info(){},warn(){},error(){},log(){},getChild(){return this}}});
     this.client=client;
     const operation=this.capture();
     try{
+      await store.startup();this.guard(operation);
       await client.initRustCrypto({useIndexedDB:true,cryptoDatabasePrefix:`ynx-social-matrix-v1:${account}:${binding.deviceId}`,storageKey});
       if(generation!==this.generation){client.stopClient();fail('MATRIX_STALE_SESSION','Identity changed during crypto startup')}
       const crypto=client.getCrypto();if(!crypto)fail('MATRIX_CRYPTO_UNAVAILABLE','Rust crypto is unavailable');
@@ -82,5 +90,5 @@ export class MatrixSocialTransport {
     for(const event of events){if(!event.isEncrypted())continue;await operation.client.decryptEventIfNeeded(event);this.guard(operation);if(event.isDecryptionFailure())continue;if(event.getType()!=='m.room.message')continue;const verification=await operation.client.getCrypto().getEncryptionInfoForEvent(event);this.guard(operation);if(!verification||verification.shieldColour!==0){result.push({id:event.getId(),sender:event.getSender(),content:{body:'Encrypted message blocked: sender authentication warning'},encrypted:true,verification});continue}result.push({id:event.getId(),sender:event.getSender(),content:event.getContent(),encrypted:true,verification})}this.guard(operation);return result;
   }
   async downloadAttachment(content){const operation=this.capture();if(!content?.file?.url||content.url)fail('MATRIX_ATTACHMENT_DOWNGRADE','Encrypted attachment descriptor required');const url=operation.client.mxcUrlToHttp(content.file.url,undefined,undefined,undefined,false,true,true);if(!url)fail('MATRIX_ATTACHMENT_INVALID','Invalid Matrix media URL');const response=await fetch(url,{headers:{Authorization:`Bearer ${operation.binding.accessToken}`}});this.guard(operation);if(!response.ok)fail('MATRIX_MEDIA_UNAVAILABLE','Encrypted media unavailable');const bytes=await response.arrayBuffer();this.guard(operation);if(bytes.byteLength>25*1024*1024)fail('MATRIX_ATTACHMENT_INVALID','Encrypted attachment exceeds its limit');const plain=await decryptAttachment(bytes,content.file);this.guard(operation);return plain}
-  async revokeOwnDevice(deviceId,confirmed){const operation=this.capture();if(confirmed!==true)fail('MATRIX_CONFIRMATION_REQUIRED','Explicit device removal confirmation required');await operation.client.deleteDevice(deviceId);this.guard(operation);if(deviceId===operation.binding.deviceId)this.stop()}
+  async revokeOwnDevice(deviceId,confirmed){const operation=this.capture();if(confirmed!==true)fail('MATRIX_CONFIRMATION_REQUIRED','Explicit device removal confirmation required');try{await operation.client.deleteDevice(deviceId)}catch(error){this.guard(operation);if(error?.httpStatus!==401)throw error;const data=error.data||{},flows=Array.isArray(data.flows)?data.flows.map(flow=>({stages:Array.isArray(flow.stages)?flow.stages.filter(stage=>typeof stage==='string'):[]})):[];this.publish({type:'device-reauth-required',deviceId,status:401,flows});if(!this.reauthenticateDevice||typeof data.session!=='string'||!flows.length)fail('MATRIX_DEVICE_REAUTH_REQUIRED','Device removal requires supported identity reauthentication; nothing was revoked');const auth=await this.reauthenticateDevice({deviceId,account:operation.binding.account,challenge:{session:data.session,flows}});this.guard(operation);if(!auth||auth.session!==data.session||!flows.some(flow=>flow.stages.includes(auth.type)))fail('MATRIX_DEVICE_REAUTH_REQUIRED','Identity reauthentication did not match the upstream challenge');await operation.client.deleteDevice(deviceId,auth)}this.guard(operation);if(deviceId===operation.binding.deviceId)this.stop()}
 }
