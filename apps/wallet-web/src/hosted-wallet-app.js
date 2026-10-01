@@ -8,11 +8,13 @@ import { ExtensionBroadcastJournal } from "./extension-broadcast-journal.js";
 import { extensionReviewText, prepareExtensionRequest, signExtensionRequest } from "./extension-signer.js";
 import { parsePrivateRequest, privateProductName, privateReplayKey, rejectPrivateReturn, signPrivateReturn } from "./extension-product-session-v2.js";
 import { HOSTED_PROTOCOL, HOSTED_SESSION_MS, HOSTED_WALLET_ORIGIN, hostedEnvelope, parseHostedConnect, validateHostedMessage } from "./hosted-protocol.js";
-import { toYNXAddress } from "./wallet-address.js";
+import { toYNXAddress, toEVMAddress } from "./wallet-address.js";
 import { CENTRAL_BROWSER_RPC_METHOD, assertHostedMethodAllowed } from "./hosted-protocol.js";
 import { approveHostedCentralSignIn } from "./hosted-central-sign-in.js";
 import { HOSTED_LOCALES, HOSTED_LOCALE_KEY, hostedCopy, hostedDynamicCopy, normalizeHostedLocale } from "./hosted-i18n.js";
 
+import {webWalletCopy} from "./web-wallet-copy.js";
+const OWN_REQUEST=Symbol("wallet-own-user-request");
 const $ = id => document.getElementById(id);
 const status = $("status"), setup = $("setup"), review = $("review"), reviewText = $("review-text"), password = $("approval-password"), approve = $("approve"), reject = $("reject");
 const store = createHostedVaultStore();
@@ -25,7 +27,7 @@ const seen = new Set();
 const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 function fail(code) { throw Object.assign(new Error(code), { code }); }
 function copy(key, variables) { return key.startsWith("manager") ? hostedCopy(locale,key) : hostedDynamicCopy(locale, key, variables); }
-function messageKey(key, variables = {}, code = null) { if(code==='HOSTED_STORAGE_UPGRADE_BLOCKED')key='storageUpgradeBlocked'; lastStatus = { key, variables, code }; status.textContent = `${copy(key, variables)}${code === null ? "" : ` (${code})`}`; }
+function messageKey(key, variables = {}, code = null) { if(code==='HOSTED_STORAGE_UPGRADE_BLOCKED')key='storageUpgradeBlocked'; lastStatus = { key, variables, code }; status.textContent = copy(key, variables);status.dataset.errorCode=typeof code==="string"?code:"";const diagnostic=$("wallet-diagnostic-code");if(diagnostic){diagnostic.textContent=status.dataset.errorCode;diagnostic.parentElement.hidden=!status.dataset.errorCode;} }
 function reviewDetails() {
   if (!currentReview) return;
   $("review-title").textContent = currentReview.titleKey ? copy(currentReview.titleKey, currentReview.titleVariables) : currentReview.title;
@@ -46,12 +48,16 @@ function applyLocale(next) {
   for (const element of document.querySelectorAll("[data-i18n-aria]")) element.setAttribute("aria-label", hostedCopy(locale, element.dataset.i18nAria));
   if(accountManager){document.querySelector("h1").textContent=copy("managerTitle");document.querySelector(".lede").textContent=copy("managerInfo");}
   messageKey(lastStatus.key, lastStatus.variables, lastStatus.code);
-  renderTransactionStatus(); reviewDetails();
+  renderTransactionStatus(); reviewDetails();for(const node of document.querySelectorAll("[data-web-copy]"))node.textContent=webWalletCopy(locale,node.dataset.webCopy);
 }
 for (const [code, label] of HOSTED_LOCALES) { const option = document.createElement("option"); option.value = code; option.textContent = label; $("locale-select").append(option); }
 $("locale-select").addEventListener("change", event => { applyLocale(event.target.value); try { localStorage.setItem(HOSTED_LOCALE_KEY, locale); } catch { /* Display choice remains active for this window. */ } });
 applyLocale(locale);
 function assertRequestLive(context) {
+  if(context?.[OWN_REQUEST]===true){
+    if(!accountManager||!$("web-wallet-dashboard")||context!==activeRequest||context.cancelled||Date.now()>=context.expiresAt||document.visibilityState!=="visible"||!vault||context.accountRecord!==JSON.stringify(vault)||!accountManager.isUnlocked(vault))fail("HOSTED_APPROVAL_CANCELLED");
+    return;
+  }
   if (!context || context !== activeRequest || context.cancelled || Date.now() >= context.expiresAt || !session || window.opener?.closed || Date.now() >= session.expiresAt) fail("HOSTED_REQUEST_EXPIRED");
 }
 function cancelActiveRequest() {
@@ -92,10 +98,10 @@ function renderManagerLock(){
   $("account-lock-section").hidden=!vault;$("account-unlock-form").hidden=unlocked;$("account-lock").hidden=!unlocked;
   $("account-switch-section").hidden=!vault||!unlocked;$("export-backup").hidden=!vault||!unlocked;
 }
-function lockManager(){if(!accountManager)return;accountManager.lock();for(const id of ["account-unlock-password","setup-password","setup-confirm","setup-key","backup-import-password","add-account-password"])$(id).value="";renderManagerLock();messageKey(vault?"managerLocked":"managerEmpty");}
+function lockManager(){if(!accountManager)return;if(activeRequest?.[OWN_REQUEST])cancelActiveRequest();accountManager.lock();for(const id of ["account-unlock-password","setup-password","setup-confirm","setup-key","backup-import-password","add-account-password"])$(id).value="";renderManagerLock();messageKey(vault?"managerLocked":"managerEmpty");}
 function displayAccount() {
   $("account-card").hidden = !vault;
-  renderManagerLock();
+  renderManagerLock();if($("web-wallet-dashboard")){void refreshOwnWallet();}
   if (vault) { $("account-ynx").textContent = toYNXAddress(vault.account); $("account-evm").textContent = vault.account; }
 }
 async function refreshAccountList() {
@@ -104,6 +110,24 @@ async function refreshAccountList() {
   const accounts = await store.listAccounts(), select = $("account-select"); select.replaceChildren();
   for (const account of accounts) { const option = document.createElement("option"); option.value = account; option.textContent = toYNXAddress(account); select.append(option); }
   select.value = vault.account;renderManagerLock();
+}
+let ownReadRevision=0;
+async function refreshOwnWallet(){
+  const dashboard=$("web-wallet-dashboard");if(!dashboard||!accountManager)return;
+  dashboard.hidden=false;const current=vault,revision=++ownReadRevision;
+  const balance=$("web-wallet-balance"),state=$("web-wallet-balance-state"),connections=$("web-wallet-connection-list"),activity=$("web-wallet-activity-state");
+  const isCurrent=()=>revision===ownReadRevision&&current===vault;
+  balance.textContent="—";state.textContent=current?webWalletCopy(locale,"loading"):copy("managerEmpty");
+  for(const id of ["web-wallet-receive","web-wallet-send","web-wallet-refresh"])$(id).disabled=!current;
+  if(!current){connections.replaceChildren();activity.textContent=webWalletCopy(locale,"emptyActivity");return;}
+  $("web-wallet-receive-address").textContent=toYNXAddress(current.account);
+  void forwardExtensionRpc("ynx_getBalanceDetails",[current.account,"latest"]).then(details=>{if(isCurrent()){balance.textContent=details.amountYNXT+" "+details.symbol;state.textContent=chain.chainName;}}).catch(error=>{if(isCurrent()){state.textContent=webWalletCopy(locale,"unavailable");state.dataset.errorCode=typeof error?.code==="string"?error.code:"RPC_UNAVAILABLE";}});
+  try{
+    const grants=await store.listConnections(current.account);if(!isCurrent())return;connections.replaceChildren();
+    if(!grants.length){const empty=document.createElement("li");empty.textContent=webWalletCopy(locale,"emptyConnections");connections.append(empty);}
+    for(const grant of grants){const item=document.createElement("li"),site=document.createElement("span"),button=document.createElement("button");site.textContent=grant.origin;button.type="button";button.textContent=webWalletCopy(locale,"revoke");button.addEventListener("click",async()=>{button.disabled=true;try{await accountManager.assertUnlocked(current);if(!isCurrent())fail("HOSTED_ACCOUNT_CHANGED");await store.revokeConnection(grant.origin,current.account,grant);await refreshOwnWallet();}catch(error){messageKey("requestFailed",{},error?.code??"HOSTED_GRANT_INVALID");if(isCurrent())button.disabled=false;}});item.append(site,button);connections.append(item);}
+  }catch(error){if(isCurrent()){connections.replaceChildren();const unavailable=document.createElement("li");unavailable.textContent=webWalletCopy(locale,"unavailable");connections.append(unavailable);connections.dataset.errorCode=error?.code??"HOSTED_GRANT_INVALID";}}
+  try{const record=await broadcastJournal.status(current.account,{rpc:forwardExtensionRpc,refresh:false});if(isCurrent())activity.textContent=record?record.transactionHash+" · "+record.status:webWalletCopy(locale,"emptyActivity");}catch(error){if(isCurrent()){activity.textContent=webWalletCopy(locale,"unavailable");activity.dataset.errorCode=error?.code??"HOSTED_JOURNAL_UNAVAILABLE";}}
 }
 async function refreshTransactionStatus(refresh = false) {
   if (!vault) return;
@@ -153,6 +177,32 @@ function secretRequiredResult(secret) { return secret === null ? { approved: tru
 reject.addEventListener("click", () => finishReview({ approved: false }));
 window.addEventListener("pagehide", () => { cancelActiveRequest(); reply("disconnected", { reason: "HOSTED_POPUP_CLOSED" }); session = null; finishReview({ approved: false }); password.value = ""; });
 
+async function executeReviewedRequest(method,params,context,requestingOrigin,assertAccount) {
+    const perform = async () => {
+    assertRequestLive(context);
+    const prepared = await prepareExtensionRequest({ expectedAccount: vault.account, method, params, rpc: forwardExtensionRpc });
+    assertRequestLive(context);
+    const transaction = method === "eth_sendTransaction";
+    const choice = await askUser({ titleKey: transaction ? "reviewTx" : "reviewSignature", detailFactory: language => `${requestingOrigin}\n${extensionReviewText({ ...prepared.review, warning: hostedDynamicCopy(language, transaction ? "transactionWarning" : "signatureWarning") })}`, secretRequired: true, context });
+    assertRequestLive(context);
+    if (!choice.approved) fail("USER_REJECTED");
+    await assertAccount();
+    const unlocked = await unlockEncryptedVault(vault, choice.password);
+    assertRequestLive(context);
+    await assertAccount();
+    if (unlocked.account !== vault.account) fail("HOSTED_ACCOUNT_CHANGED");
+    const assertAuthorized = async () => { assertRequestLive(context); await assertAccount(); assertRequestLive(context); if (document.visibilityState !== "visible") fail("HOSTED_APPROVAL_CANCELLED"); };
+    const signed = await signExtensionRequest({ secretHex: unlocked.secretHex, expectedAccount: vault.account, prepared, rpc: forwardExtensionRpc, assertAuthorized });
+    if (method !== "eth_sendTransaction") return signed;
+    assertRequestLive(context);
+    await assertAccount();
+    const result = await broadcastJournal.broadcast({ account: vault.account, origin: requestingOrigin, signed, broadcast: broadcastExtensionTransaction, assertAuthorized, rpc: forwardExtensionRpc });
+    await refreshTransactionStatus();
+    return result;
+    };
+    return method === "eth_sendTransaction" ? withHostedAccountLock(vault.account, async () => { assertRequestLive(context); await assertAccount(); return broadcastJournal.run(vault.account, perform); }) : perform();
+}
+
 async function handleMethod(method, params, context) {
   assertRequestLive(context);
   await assertCurrentAccount();
@@ -191,31 +241,7 @@ async function handleMethod(method, params, context) {
     if (unlocked.account !== vault.account) fail("HOSTED_ACCOUNT_CHANGED");
     return signPrivateReturn(request, unlocked.secretHex);
   }
-  if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"].includes(method)) {
-    const perform = async () => {
-    assertRequestLive(context);
-    const prepared = await prepareExtensionRequest({ expectedAccount: vault.account, method, params, rpc: forwardExtensionRpc });
-    assertRequestLive(context);
-    const requestingOrigin = session.origin, transaction = method === "eth_sendTransaction";
-    const choice = await askUser({ titleKey: transaction ? "reviewTx" : "reviewSignature", detailFactory: language => `${requestingOrigin}\n${extensionReviewText({ ...prepared.review, warning: hostedDynamicCopy(language, transaction ? "transactionWarning" : "signatureWarning") })}`, secretRequired: true, context });
-    assertRequestLive(context);
-    if (!choice.approved) fail("USER_REJECTED");
-    await assertCurrentAccount();
-    const unlocked = await unlockEncryptedVault(vault, choice.password);
-    assertRequestLive(context);
-    await assertCurrentAccount();
-    if (unlocked.account !== vault.account) fail("HOSTED_ACCOUNT_CHANGED");
-    const assertAuthorized = async () => { assertRequestLive(context); await assertCurrentAccount(); assertRequestLive(context); if (document.visibilityState !== "visible") fail("HOSTED_APPROVAL_CANCELLED"); };
-    const signed = await signExtensionRequest({ secretHex: unlocked.secretHex, expectedAccount: vault.account, prepared, rpc: forwardExtensionRpc, assertAuthorized });
-    if (method !== "eth_sendTransaction") return signed;
-    assertRequestLive(context);
-    await assertCurrentAccount();
-    const result = await broadcastJournal.broadcast({ account: vault.account, origin: session.origin, signed, broadcast: broadcastExtensionTransaction, assertAuthorized, rpc: forwardExtensionRpc });
-    await refreshTransactionStatus();
-    return result;
-    };
-    return method === "eth_sendTransaction" ? withHostedAccountLock(vault.account, async () => { assertRequestLive(context); await assertCurrentAccount(); return broadcastJournal.run(vault.account, perform); }) : perform();
-  }
+  if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"].includes(method)) return executeReviewedRequest(method,params,context,session.origin,assertCurrentAccount);
   if (method.startsWith("eth_") || method.startsWith("net_") || method.startsWith("web3_")) return forwardExtensionRpc(method, params);
   fail("HOSTED_METHOD_UNSUPPORTED");
 }
@@ -296,7 +322,7 @@ $("setup-form").addEventListener("submit", async event => {
   submit.disabled = true;const managerGeneration=accountManager?.begin();
   try {
     const created = await store.create({ password: localPassword, ...(key ? { secretHex: key.replace(/^0x/u, "").toLowerCase() } : {}) });
-    vault = created.vault;if(accountManager?.isCurrent(managerGeneration)&&document.visibilityState!=="hidden")await accountManager.unlock(vault,localPassword,managerGeneration); setup.hidden = true; displayAccount(); await refreshAccountList(); if(!accountManager)await refreshTransactionStatus();
+    vault = created.vault;if(accountManager?.isCurrent(managerGeneration)&&document.visibilityState!=="hidden")await accountManager.unlock(vault,localPassword,managerGeneration); setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus();
     needsBackupAcknowledgement = !key;
     $("backup-confirmation").hidden = !needsBackupAcknowledgement;
     messageKey(session ? (needsBackupAcknowledgement ? "backupBefore" : "walletSaved") : "disconnected", { account: vault.account });
@@ -315,7 +341,7 @@ $("backup-import-form").addEventListener("submit", async event => {
   try {
     const record = JSON.parse(await file.text());
     const imported = await store.importEncrypted({ record, password: input.value });
-    vault = imported.vault;if(accountManager?.isCurrent(managerGeneration)&&document.visibilityState!=="hidden")await accountManager.unlock(vault,input.value,managerGeneration); setup.hidden = true; displayAccount(); await refreshAccountList(); if(!accountManager)await refreshTransactionStatus(); $("export-backup").hidden = false;renderManagerLock();
+    vault = imported.vault;if(accountManager?.isCurrent(managerGeneration)&&document.visibilityState!=="hidden")await accountManager.unlock(vault,input.value,managerGeneration); setup.hidden = true; displayAccount(); await refreshAccountList(); await refreshTransactionStatus(); $("export-backup").hidden = false;renderManagerLock();
     messageKey(session ? "backupRestored" : "disconnected", { account: vault.account });
     if(accountManager)messageKey(accountManager.isUnlocked(vault)?"managerUnlocked":"managerLocked");
     if (session) reply("ready");
@@ -342,7 +368,7 @@ $("switch-account").addEventListener("click", async () => {
     const selected = await store.selectAccount(account);if(accountManager)accountManager.lock();
     cancelActiveRequest(); reply("disconnected"); session = null; finishReview({ approved: false });
     vault = selected; displayAccount(); await refreshAccountList();
-    if(!accountManager)await refreshTransactionStatus();
+    await refreshTransactionStatus();
     messageKey("accountSwitched", { account: toYNXAddress(account) });
   } catch (error) { messageKey("accountSwitchFailed", {}, error?.code ?? "HOSTED_ACCOUNT_UNAVAILABLE"); }
 });
@@ -383,12 +409,31 @@ window.addEventListener("hashchange",()=>{if(accountManager){lockManager();locat
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")lockManager();});
 window.addEventListener("focus",()=>{if(accountManager&&vault)void store.read().then(current=>{if(JSON.stringify(current)!==JSON.stringify(vault)){accountManager.lock();vault=current;displayAccount();void refreshAccountList();messageKey(vault?"managerLocked":"managerEmpty");}}).catch(()=>{lockManager();messageKey("storageUnreadable");});});
 
+if($("web-wallet-dashboard")){
+  document.body.dataset.walletView="assets";
+  for(const button of document.querySelectorAll("button[data-wallet-view]"))button.addEventListener("click",()=>{const view=button.dataset.walletView;if(!["assets","activity","connections","account"].includes(view))return;document.body.dataset.walletView=view;for(const choice of document.querySelectorAll("button[data-wallet-view]"))choice.setAttribute("aria-pressed",String(choice===button));for(const panel of document.querySelectorAll(".wallet-view"))panel.hidden=panel.id!=="web-wallet-"+view;if(accountManager)void refreshOwnWallet();});
+  $("web-wallet-refresh").addEventListener("click",()=>{void refreshOwnWallet();void refreshTransactionStatus(true);});
+  $("web-wallet-receive").addEventListener("click",()=>{$("web-wallet-receive-panel").hidden=!$("web-wallet-receive-panel").hidden;});
+  $("web-wallet-copy-address").addEventListener("click",async()=>{if(!vault)return;try{await navigator.clipboard.writeText(toYNXAddress(vault.account));}catch{messageKey("requestFailed");}});
+  $("web-wallet-send").addEventListener("click",()=>{if(!vault)return;$("web-wallet-send-form").hidden=false;$("web-wallet-recipient").focus();});
+  $("web-wallet-send-form").addEventListener("submit",async event=>{
+    event.preventDefault();if(!accountManager||!vault||busy||activeRequest)return;
+    const button=event.currentTarget.querySelector("button[type=submit]"),record=vault;button.disabled=true;busy=true;
+    const context={ [OWN_REQUEST]:true,accountRecord:JSON.stringify(record),expiresAt:Date.now()+120000,cancelled:false };activeRequest=context;
+    try{await accountManager.assertUnlocked(record);assertRequestLive(context);const amount=$("web-wallet-amount").value;if(!/^[1-9][0-9]{0,18}$/u.test(amount))fail("UNSUPPORTED_NATIVE_TRANSFER");const recipient=toEVMAddress($("web-wallet-recipient").value.trim());
+      const assertAccount=async()=>{assertRequestLive(context);await accountManager.assertUnlocked(record);await assertSelectedAccount();assertRequestLive(context);};
+      await executeReviewedRequest("eth_sendTransaction",[{from:record.account,to:recipient,value:"0x"+(BigInt(amount)*10n**18n).toString(16)}],context,HOSTED_WALLET_ORIGIN,assertAccount);await refreshOwnWallet();
+    }catch(error){messageKey("requestFailed",{},error?.code??"HOSTED_REQUEST_FAILED");}
+    finally{if(activeRequest===context)activeRequest=null;busy=false;button.disabled=false;}
+  });
+}
 async function start() {
   let mode;try{mode=hostedEntryMode({origin:location.origin,topLevel:window.top===window,fragment:location.hash});}catch{messageKey("invalidConnect");return;}
   if(mode==="account"){
     accountManager=new HostedAccountManager(store);$("product-origin").parentElement.hidden=true;applyLocale(locale);
+    if($("web-wallet-dashboard")&&"serviceWorker" in navigator)void navigator.serviceWorker.register("./sw.js",{type:"module"}).catch(()=>{});
     try{vault=await store.read();}catch(error){messageKey("storageUnreadable",{},error?.code??"HOSTED_STORAGE_READ_FAILED");return;}
-    setup.hidden=!!vault;displayAccount();await refreshAccountList();messageKey(vault?"managerLocked":"managerEmpty");return;
+    setup.hidden=!!vault;displayAccount();await refreshAccountList();await refreshTransactionStatus();void refreshOwnWallet();messageKey(vault?"managerLocked":"managerEmpty");return;
   }
   const encoded=location.hash.slice(9);let connection;
   try{connection=parseHostedConnect(encoded);}catch{messageKey("invalidConnect");return;}

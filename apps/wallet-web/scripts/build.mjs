@@ -162,13 +162,8 @@ await writeFile(join(dist,"pwa","wallet-address.js"),walletAddressAuthorityBytes
 await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "service-worker-policy.js"));
 for(const icon of ["ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png"])await cp(join(root,"public",icon),join(dist,"pwa",icon));
 const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","wallet-address.js","extension-fee-model.js", "extension-durability.js","transaction-input.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","standard-wallet-connect-state.js","core-auth-binding.js","service-worker-policy.js","build-identity.json","download-manifest.json","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"];
-const pwaInputs=Object.fromEntries(await Promise.all(pwaIntegrityFiles.map(async file=>[file,await readFile(join(dist,"pwa",file))])));
-const compiled=compilePwaShell(pwaInputs,await readFile(join(root,"public","sw.js"),"utf8"));
-for(const [file,bytes] of Object.entries(compiled.files))await writeFile(join(dist,"pwa",file),bytes);
-if(pwaOnly){console.log(`Built PWA shell ${compiled.buildId}`);return;}
 
-// A separate hosted signer surface on wallet.ynxweb4.com. The Companion PWA
-// remains an extension discovery page and never inherits this vault authority.
+// Hosted DApp requests keep their original route and security binding.
 const hosted = join(dist,"hosted");
 await mkdir(hosted,{recursive:true});
 await cp(join(root,"public","hosted-wallet.html"),join(hosted,"index.html"));
@@ -185,6 +180,19 @@ for (const file of ["index.html","hosted-wallet.css","ynx-logo.png","app.js","ad
   await writeFile(join(publishedHosted,file),bytes);
   if (!(await readFile(join(publishedHosted,file))).equals(bytes)) throw new Error(`Hosted publish asset mismatch: ${file}`);
 }
+
+// The default Web wallet uses the same vault, review and journal engine as
+// Hosted requests. Keep the installed-provider companion at an explicit route.
+await cp(join(root,"public","index.html"),join(dist,"pwa","companion.html"));
+await cp(join(root,"public","web-wallet.html"),join(dist,"pwa","index.html"));
+await cp(join(root,"public","web-wallet.css"),join(dist,"pwa","web-wallet.css"));
+await cp(join(hosted,"app.js"),join(dist,"pwa","wallet-core.js"));
+await cp(join(hosted,"hosted-wallet.css"),join(dist,"pwa","wallet-core.css"));
+pwaIntegrityFiles.push("companion.html","web-wallet.css","wallet-core.js","wallet-core.css");
+const pwaInputs=Object.fromEntries(await Promise.all(pwaIntegrityFiles.map(async file=>[file,await readFile(join(dist,"pwa",file))])));
+const compiled=compilePwaShell(pwaInputs,await readFile(join(root,"public","sw.js"),"utf8"));
+for(const [file,bytes] of Object.entries(compiled.files))await writeFile(join(dist,"pwa",file),bytes);
+if(pwaOnly){console.log(`Built PWA shell ${compiled.buildId}`);return;}
 
 const variants = [
   ["chromium", chromiumManifest],

@@ -181,6 +181,13 @@ export function createHostedVaultStore(factory = globalThis.indexedDB, cryptoPro
       };
     });
   }
+  async function listConnections(account) {
+    if(!/^0x[0-9a-f]{40}$/u.test(account)|| (await read())?.account!==account)fail("HOSTED_ACCOUNT_CHANGED");
+    const records=await transaction(await db(),"readonly",store=>store.getAll(undefined,1001),CONNECTIONS);
+    if(!Array.isArray(records)||records.length>1000||records.some(record=>!validConnectionRecord(record)))fail("HOSTED_GRANT_INVALID");
+    if((await read())?.account!==account)fail("HOSTED_ACCOUNT_CHANGED");
+    return records.filter(record=>record.account===account&&!record.revoked&&record.expiresAt>Date.now()&&record.expiresAt<=Date.now()+HOSTED_SESSION_MS).map(record=>Object.freeze({...record,scopes:[...record.scopes]}));
+  }
   async function approveConnection(origin, account) {
     return connectionRecord(origin, account, previous => {
       if (previous && !validConnectionRecord(previous)) fail("HOSTED_GRANT_INVALID");
@@ -224,5 +231,5 @@ export function createHostedVaultStore(factory = globalThis.indexedDB, cryptoPro
       });
     },
   });
-  return Object.freeze({ read, create, importEncrypted, listAccounts, addEncryptedAccount, selectAccount, consumeReplay, approveConnection, verifyConnection, revokeConnection, journalStorage });
+  return Object.freeze({ read, create, importEncrypted, listAccounts, addEncryptedAccount, selectAccount, consumeReplay, listConnections, approveConnection, verifyConnection, revokeConnection, journalStorage });
 }

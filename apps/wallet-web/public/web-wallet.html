@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; worker-src 'self'; manifest-src 'self'">
+  <title>YNX Wallet</title>
+  <link rel="stylesheet" href="./web-wallet.css">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <script type="module" src="./wallet-core.js"></script>
+</head>
+<body class="web-wallet">
+  <main class="shell">
+    <header><img src="./ynx-logo.png" alt="YNX"><span>YNX Wallet</span><span class="network">TESTNET · 6423</span><label class="locale-choice"><span data-i18n="language">Language</span><select id="locale-select" aria-label="Language"></select></label></header>
+    <div class="content">
+      <section id="web-wallet-dashboard" hidden>
+        <nav class="wallet-view-nav" aria-label="Wallet"><button type="button" data-wallet-view="assets" aria-pressed="true" data-web-copy="assets">Assets</button><button type="button" data-wallet-view="activity" aria-pressed="false" data-web-copy="activity">Activity</button><button type="button" data-wallet-view="connections" aria-pressed="false" data-web-copy="connections">Connections</button><button type="button" data-wallet-view="account" aria-pressed="false" data-web-copy="account">Account</button></nav>
+        <section id="web-wallet-assets" class="wallet-view">
+          <div class="wallet-balance"><span data-web-copy="balance">YNX Testnet balance</span><strong id="web-wallet-balance">—</strong><small id="web-wallet-balance-state" role="status"></small></div>
+          <div class="wallet-primary-actions"><button type="button" id="web-wallet-refresh" data-web-copy="refresh">Refresh</button><button type="button" id="web-wallet-receive" data-web-copy="receive">Receive</button><button type="button" id="web-wallet-send" data-web-copy="send">Send</button></div>
+          <div id="web-wallet-receive-panel" class="origin" hidden><span data-web-copy="receive">Receive</span><code id="web-wallet-receive-address"></code><button type="button" id="web-wallet-copy-address" data-web-copy="copy">Copy address</button></div>
+          <form id="web-wallet-send-form" hidden><label><span data-web-copy="recipient">Recipient</span><input id="web-wallet-recipient" autocomplete="off" required></label><label><span data-web-copy="amount">Amount (whole YNXT)</span><input id="web-wallet-amount" inputmode="numeric" pattern="[1-9][0-9]*" required></label><p data-web-copy="transactionWarning"></p><button type="submit" class="primary" data-web-copy="reviewTx">Review transaction</button></form>
+        </section>
+        <section id="web-wallet-activity" class="wallet-view" hidden><h2 data-web-copy="activity">Activity</h2><p id="web-wallet-activity-state"></p></section>
+        <section id="web-wallet-connections" class="wallet-view" hidden><h2 data-web-copy="connections">Connections</h2><p data-web-copy="connectionBoundary">Each signature requires your approval. Closing Wallet does not end your approved product session.</p><ul id="web-wallet-connection-list"></ul></section>
+      </section>
+      <p class="eyebrow" data-i18n="secure">SECURE CONNECTION</p>
+      <h1 data-i18n="title">Your Wallet, your decision.</h1>
+      <p class="lede" data-i18n="intro">Review each product connection, signature and transaction. Your recovery key stays in this Wallet origin.</p>
+      <div class="origin"><span data-i18n="product">Requesting product</span><strong id="product-origin">Checking…</strong></div>
+      <div id="account-card" class="origin" hidden><span data-i18n="ynxAccount">Your YNX account</span><strong id="account-ynx"></strong><details><summary data-i18n="evmAddress">EVM-compatible address</summary><code id="account-evm"></code></details></div>
+      <section id="account-lock-section" hidden>
+        <form id="account-unlock-form"><label><span data-i18n="localPassword">Local Wallet password</span><input id="account-unlock-password" type="password" autocomplete="off" required></label><button type="submit" data-i18n="managerUnlock">Unlock account</button></form>
+        <button id="account-lock" type="button" hidden data-i18n="managerLock">Lock account</button>
+      </section>
+      <section id="account-switch-section" hidden>
+        <label><span data-i18n="walletAccount">Wallet account</span> <select id="account-select"></select></label>
+        <button id="switch-account" type="button" data-i18n="switchAccount">Switch account</button>
+        <details><summary data-i18n="addAccount">Add another encrypted account</summary>
+          <form id="add-account-form">
+            <p data-i18n="addAccountHelp">Add an encrypted backup belonging to another account. Existing accounts remain stored.</p>
+            <label><span data-i18n="backupFile">Encrypted backup file</span> <input id="add-account-file" type="file" accept="application/json,.json" required></label>
+            <label><span data-i18n="backupPassword">Backup password</span> <input id="add-account-password" type="password" autocomplete="off" required></label>
+            <button type="submit" data-i18n="addAccount">Add encrypted account</button>
+          </form>
+        </details>
+      </section>
+      <div id="transaction-panel" class="origin" hidden><span data-i18n="txRecovery">Transaction recovery</span><strong id="transaction-status"></strong><button id="refresh-transaction" type="button" data-i18n="checkTx">Check original transaction</button></div>
+      <p id="status" role="status" aria-live="polite">Opening Wallet…</p><details hidden><summary data-i18n="reviewRequest">Details</summary><code id="wallet-diagnostic-code"></code></details>
+      <section id="setup" hidden>
+        <h2 data-i18n="protect">Protect your Wallet</h2>
+        <p data-i18n="createHelp">Create a new account or enter an existing private key you already control. Import never reads an extension or another site.</p>
+        <form id="setup-form" autocomplete="off">
+          <label><span data-i18n="localPassword">Local password</span> <input id="setup-password" type="password" minlength="12" maxlength="256" required autocomplete="new-password"></label>
+          <label><span data-i18n="confirmPassword">Confirm password</span> <input id="setup-confirm" type="password" minlength="12" maxlength="256" required autocomplete="new-password"></label>
+          <label><span data-i18n="privateKey">Existing private key (optional)</span> <input id="setup-key" type="password" autocomplete="off" spellcheck="false" data-i18n-placeholder="privateKeyPlaceholder" placeholder="Leave blank to create a new account"></label>
+          <label class="check"><input id="import-confirm" type="checkbox"><span data-i18n="importConfirm">If importing, I have a separate recovery backup.</span></label>
+          <button type="submit" class="primary" data-i18n="saveWallet">Save encrypted Wallet</button>
+        </form>
+        <form id="backup-import-form">
+          <h2 data-i18n="restore">Restore an encrypted backup</h2>
+          <p data-i18n="restoreHelp">Restore the exact public account from an existing YNX Wallet encrypted backup. An existing Wallet here is never overwritten.</p>
+          <label><span data-i18n="backupFile">Encrypted backup file</span> <input id="backup-import-file" type="file" accept="application/json,.json" required></label>
+          <label><span data-i18n="backupPassword">Backup password</span> <input id="backup-import-password" type="password" required autocomplete="off"></label>
+          <label class="check"><input id="backup-import-confirm" type="checkbox" required><span data-i18n="restoreConfirm">I have checked that this is my backup and understand the account it restores.</span></label>
+          <button type="submit" data-i18n="restore">Restore encrypted backup</button>
+        </form>
+      </section>
+      <button id="export-backup" type="button" hidden data-i18n="downloadBackup">Download encrypted backup</button>
+      <div id="backup-confirmation" class="backup-confirmation" hidden>
+        <p data-i18n="backupWarning">Browser storage can be lost. An exported file is useful only if you keep it and its password separately. Wallet cannot verify where you saved it.</p>
+        <label class="check"><input id="backup-ack" type="checkbox"><span data-i18n="backupAck">I saved my encrypted backup and password separately.</span></label>
+        <button id="backup-continue" type="button" class="primary" disabled data-i18n="continueConnect">Continue to connection</button>
+      </div>
+      <section id="review" hidden aria-label="Request review" data-i18n-aria="reviewRequest">
+        <p class="eyebrow" data-i18n="explicitApproval">EXPLICIT APPROVAL</p>
+        <h2 id="review-title" data-i18n="reviewRequest">Review request</h2>
+        <pre id="review-text"></pre>
+        <label id="approval-password-label"><span data-i18n="localPassword">Local Wallet password</span> <input id="approval-password" type="password" autocomplete="off" hidden></label>
+        <div class="actions"><button id="reject" type="button" data-i18n="reject">Reject</button><button id="approve" class="primary" type="button" data-i18n="approve">Approve</button></div>
+      </section>
+      <a class="companion-link" href="./companion.html" data-web-copy="companion">Connect an installed wallet</a><p class="foot" data-i18n="foot">Connection does not grant Finance payments or private product access. Those requests require separate approval.</p>
+    </div>
+  </main>
+</body>
+</html>
