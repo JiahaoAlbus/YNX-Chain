@@ -110,3 +110,17 @@ test('accepted Wallet expiry and rejection codes survive private proof failures'
     assert.equal(f.requests.length,0);
   }
 });
+
+test('read-only statement and reconciliation use existing routes and new read proofs',async()=>{
+  const balance={availableWei:'0',pendingWei:'0',postedWei:'0',feeWei:'0',fundedWei:'0'};
+  const testCard={id:'card_fixture',applicationId:'application_fixture',owner,alias:'YNX TESTNET fixture',status:'ACTIVE',balance,controls:{},createdAt:now};
+  const statement={card:testCard,ledger:[],events:[],environment:empty.environment,productionRealPayments:false};
+  const reconciliation={cardId:testCard.id,asOf:now,status:'CONSISTENT',findings:[],balance,ledgerEntries:0,creditedIntents:0,chainReverified:false,dataFabricReconciled:false,environment:empty.environment,productionRealPayments:false};
+  const f=fixture(async url=>response(url.endsWith('/statement')?statement:reconciliation));
+  assert.deepEqual(await f.client.statement(testCard.id),statement);assert.deepEqual(await f.client.reconciliation(testCard.id),reconciliation);
+  assert.deepEqual(f.scopes,[['account:read'],['account:read']]);assert.equal(f.proofs,2);
+  assert.ok(f.requests.every(request=>request.init.method==='GET'&&!new Headers(request.init.headers).has('Idempotency-Key')));
+  await assert.rejects(fixture(async()=>response({...statement,card:{...testCard,owner:other}})).client.statement(testCard.id),/INVALID_CARD_API_RESPONSE/);
+  await assert.rejects(fixture(async()=>response({...reconciliation,chainReverified:true})).client.reconciliation(testCard.id),/INVALID_CARD_API_RESPONSE/);
+  await assert.rejects(fixture(async()=>response({...statement,events:[{id:'event_fixture',cardId:'card_foreign'}]})).client.statement(testCard.id),/INVALID_CARD_API_RESPONSE/);
+});
