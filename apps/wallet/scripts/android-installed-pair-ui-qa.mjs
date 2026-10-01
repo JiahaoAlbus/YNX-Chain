@@ -93,11 +93,15 @@ export function target(nodes, label) {
 }
 export function chromeFirstRunState(nodes) {
   const firstPackage=nodes.find(n=>visible(n)&&n.package)?.package;
-  if(firstPackage!==BROWSER)return {foregroundChrome:false, explicitAcceptTerms:false, accountSetup:false, skipAccount:false};
+  if(firstPackage!==BROWSER)return {foregroundChrome:false, explicitAcceptTerms:false, accountSetup:false, skipAccount:false,isFreDismissResource:false,isFreFooterResource:false,legalTermsMarker:false,metricsMarker:false};
   const chrome=nodes.filter(n=>n.package===BROWSER);
   return {foregroundChrome:true, explicitAcceptTerms:has(chrome,'Accept & continue'),
     accountSetup:['Make Chrome your own','Make Chrome your own.','Use without an account','Sign in to Chrome'].some(t=>has(chrome,t)),
-    skipAccount:has(chrome,'Use without an account')};
+    skipAccount:has(chrome,'Use without an account'),
+    isFreDismissResource:chrome.some(n=>visible(n)&&n['resource-id']===BROWSER+':id/signin_fre_dismiss_button'),
+    isFreFooterResource:chrome.some(n=>visible(n)&&n['resource-id']===BROWSER+':id/signin_fre_footer'),
+    legalTermsMarker:chrome.some(n=>visible(n)&&n.text?.startsWith('By continuing, you agree to the')&&n.text.includes('Terms of Service')),
+    metricsMarker:chrome.some(n=>visible(n)&&n.text?.includes('Chrome sends usage and crash data to Google'))};
 }
 export function safeUiEvidence(nodes) {
   // NEVER return unknown text, accessibility labels, request parameters or URI.
@@ -183,7 +187,7 @@ export class Driver {
       const nodes = await this.ui();
       const evidence = safeUiEvidence(nodes);
       if (evidence.chromeFirstRun.explicitAcceptTerms) fail('CHROME_EXPLICIT_TERMS_ACCEPTANCE_REQUIRED');
-      if(evidence.chromeFirstRun.accountSetup){
+      if(evidence.chromeFirstRun.accountSetup || evidence.chromeFirstRun.isFreDismissResource || evidence.chromeFirstRun.isFreFooterResource || evidence.chromeFirstRun.legalTermsMarker){
         fail('CHROME_FIRST_RUN_ACCOUNT_OR_TERMS_STATUS_UNCONFIRMED');
       }
       if (evidence.codes.length) fail(safeCode(evidence.codes[0]));
@@ -468,7 +472,7 @@ async function selfTest() {
   });
   test('Chrome consent is an explicit fail condition, never silently accepted', () => {
     const node=text=>({text,package:BROWSER,bounds:'[0,0][1,1]'});
-    assert.deepEqual(chromeFirstRunState([node('Use without an account')]),{foregroundChrome:true,explicitAcceptTerms:false,accountSetup:true,skipAccount:true});
+    assert.deepEqual(chromeFirstRunState([node('Use without an account')]),{foregroundChrome:true,explicitAcceptTerms:false,accountSetup:true,skipAccount:true,isFreDismissResource:false,isFreFooterResource:false,legalTermsMarker:false,metricsMarker:false});
     assert.equal(chromeFirstRunState([node('Accept & continue')]).explicitAcceptTerms,true);
     assert.equal(chromeFirstRunState([{...node('Accept & continue'),package:APK.package}]).explicitAcceptTerms,false);
     assert.deepEqual(safeUiEvidence([{text:'This request expired. Start again when you are ready.',bounds:'[0,0][1,1]'}]).codes, ['PAIR_EXPIRED_UI']);
@@ -476,7 +480,8 @@ async function selfTest() {
   test('Chrome first-run account setup never clicks a button that may accept terms',async()=>{
     const d=new Driver('emulator-5554');const calls=[];
     const chrome={text:'Use without an account',package:BROWSER,clickable:'true',bounds:'[0,0][1,1]'};
-    d.ui=async()=>[chrome];d.tap=async label=>calls.push(label);
+    d.ui=async()=>[chrome,{...chrome,text:'By continuing, you agree to the Terms of Service. Chrome sends usage and crash data to Google', 'resource-id':BROWSER+':id/signin_fre_footer'}];d.tap=async label=>calls.push(label);
+    const enums=chromeFirstRunState(await d.ui());assert.equal(enums.isFreFooterResource,true);assert.equal(enums.legalTermsMarker,true);assert.equal(enums.metricsMarker,true);
     await assert.rejects(d.wait(()=>false,'NOT_READY',2000),/CHROME_FIRST_RUN_ACCOUNT_OR_TERMS_STATUS_UNCONFIRMED/);
     d.ui=async()=>[{...chrome,text:'Accept & continue'}];
     await assert.rejects(d.wait(()=>false,'NOT_READY',2000),/CHROME_EXPLICIT_TERMS_ACCEPTANCE_REQUIRED/);assert.deepEqual(calls,[]);
