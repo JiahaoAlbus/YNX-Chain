@@ -554,19 +554,29 @@ jobs:
           wallet_qa_v4=false
           wallet_qa_v6=false
           cleanup_wallet_qa_network() {
-            if "$wallet_qa_v4"; then sudo iptables -D OUTPUT -m owner --uid-owner "$wallet_qa_uid" ! -d 127.0.0.0/8 -m comment --comment "$wallet_qa_rule" -j REJECT; fi
-            if "$wallet_qa_v6"; then sudo ip6tables -D OUTPUT -m owner --uid-owner "$wallet_qa_uid" ! -d ::1/128 -m comment --comment "$wallet_qa_rule" -j REJECT; fi
+            local errors=0
+            if "$wallet_qa_v4"; then
+              if sudo iptables -D OUTPUT -m owner --uid-owner "$wallet_qa_uid" ! -d 127.0.0.0/8 -m comment --comment "$wallet_qa_rule" -j REJECT; then wallet_qa_v4=false; else errors=$((errors + 1)); fi
+            fi
+            if "$wallet_qa_v6"; then
+              if sudo ip6tables -D OUTPUT -m owner --uid-owner "$wallet_qa_uid" ! -d ::1/128 -m comment --comment "$wallet_qa_rule" -j REJECT; then wallet_qa_v6=false; else errors=$((errors + 1)); fi
+            fi
+            if [ "$errors" -ne 0 ]; then echo "Wallet QA network cleanup failed for $errors rule(s)" >&2; return 1; fi
           }
-          trap cleanup_wallet_qa_network EXIT
+          finish_wallet_qa_network() {
+            local main_status=$?
+            trap - EXIT
+            local cleanup_status=0
+            cleanup_wallet_qa_network || cleanup_status=$?
+            if [ "$main_status" -ne 0 ]; then exit "$main_status"; fi
+            exit "$cleanup_status"
+          }
+          trap finish_wallet_qa_network EXIT
           sudo iptables -I OUTPUT 1 -m owner --uid-owner "$wallet_qa_uid" ! -d 127.0.0.0/8 -m comment --comment "$wallet_qa_rule" -j REJECT
           wallet_qa_v4=true
           sudo ip6tables -I OUTPUT 1 -m owner --uid-owner "$wallet_qa_uid" ! -d ::1/128 -m comment --comment "$wallet_qa_rule" -j REJECT
           wallet_qa_v6=true
           xvfb-run -a node apps/wallet-desktop/scripts/linux-password-installed-gate.mjs offline
-          cleanup_wallet_qa_network
-          wallet_qa_v4=false
-          wallet_qa_v6=false
-          trap - EXIT
       - name: Upload exact artifacts and available evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
