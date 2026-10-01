@@ -20,7 +20,7 @@ export function verifyFinanceVersionedAssets(html,readAsset){
   }
   for(const name of ASSETS){
     const count=actual.get(name)??0;
-    if(count!==(name==='ynx-logo.png'?2:1))throw new Error(`FINANCE_ASSET_BINDING_MISSING_OR_DUPLICATE:${name}`);
+    if(count!==(name==='ynx-logo.png'?5:1))throw new Error(`FINANCE_ASSET_BINDING_MISSING_OR_DUPLICATE:${name}`);
   }
   return Object.freeze({status:'pass',assets:ASSETS.length,versionedReferences:[...actual.values()].reduce((sum,count)=>sum+count,0)});
 }
