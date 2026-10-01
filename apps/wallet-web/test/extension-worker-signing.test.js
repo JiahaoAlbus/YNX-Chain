@@ -88,7 +88,7 @@ async function fixture(t,{permitted=true,existingLocal=null,existingSession=null
   let count=0,windowCursor=0;
   const request=(method,params,deadlineAt=Date.now()+5000,extra={})=>{const requestId=`ynx-${(++count).toString(16).padStart(8,"0")}-1111-4111-8111-111111111111`,message={type:RUNTIME_REQUEST,version:BRIDGE_VERSION,requestId,origin,deadlineAt,method,params,documentNonce:state.documentNonce,...extra};const reviewId=actualDerive({browserContext:firefox?state.cookieStoreId:"chromium-default",origin,requestId:message.requestId});void reviewId.catch(()=>{});return{requestId:message.requestId,reviewId,result:send(message,{...(firefox?{}:{documentId:state.documentId,documentLifecycle:"active"}),tab:{id:state.tabId,url:state.url,incognito:state.incognito,cookieStoreId:state.cookieStoreId},frameId:0,url:state.url})}};
   const page=(page,requestId)=>({id:"fixture",url:api.runtime.getURL(`${page}?requestId=${requestId}`)});
-  return{state,localState,sessionState,request,rawSend:send,closeWindow:id=>windowRemoved?.(id),privateGet:async requestId=>send({type:"YNX_PRIVATE_APPROVAL_GET_V2",requestId:await requestId},page("private-approval.html",await requestId)),privateDecide:async(requestId,decision="approve")=>send({type:"YNX_PRIVATE_APPROVAL_DECIDE_V2",requestId:await requestId,decision,password:PASSWORD},page("private-approval.html",await requestId)),reviewFrom:(pageId,bodyId)=>send({type:"YNX_PROVIDER_APPROVAL_DECIDE_V1",requestId:bodyId,decision:"approve"},page("approval.html",pageId)),pageRequest:(preference,input,providers)=>{context.ethereum={providers};return context.__YNX_INTERNAL_PAGE_WALLET_REQUEST__(preference,input)},popupRequest:(method,params,preference="ynx")=>send({type:"YNX_WALLET_REQUEST",preference,input:{method,params}},page("popup.html","unused")),nextWindow:()=>windowCursor<state.opened.length?Promise.resolve(state.opened[windowCursor++]):new Promise(resolve=>waiting.push(value=>{windowCursor++;resolve(value)})),
+  return{state,localState,sessionState,request,setup:async (requestId,type,data={})=>send({type,requestId:await requestId,...data},{...page("vault.html",await requestId),tab:{id:2,windowId:state.opened.find(x=>x.url.includes("vault.html"))?.id}}),vault,rawSend:send,closeWindow:id=>windowRemoved?.(id),privateGet:async requestId=>send({type:"YNX_PRIVATE_APPROVAL_GET_V2",requestId:await requestId},page("private-approval.html",await requestId)),privateDecide:async(requestId,decision="approve")=>send({type:"YNX_PRIVATE_APPROVAL_DECIDE_V2",requestId:await requestId,decision,password:PASSWORD},page("private-approval.html",await requestId)),reviewFrom:(pageId,bodyId)=>send({type:"YNX_PROVIDER_APPROVAL_DECIDE_V1",requestId:bodyId,decision:"approve"},page("approval.html",pageId)),pageRequest:(preference,input,providers)=>{context.ethereum={providers};return context.__YNX_INTERNAL_PAGE_WALLET_REQUEST__(preference,input)},popupRequest:(method,params,preference="ynx")=>send({type:"YNX_WALLET_REQUEST",preference,input:{method,params}},page("popup.html","unused")),nextWindow:()=>windowCursor<state.opened.length?Promise.resolve(state.opened[windowCursor++]):new Promise(resolve=>waiting.push(value=>{windowCursor++;resolve(value)})),
     review:async requestId=>{requestId=await requestId;return send({type:"YNX_SIGNER_GET_V1",requestId},page("signer.html",requestId))},
     decide:async(requestId,decision="approve")=>{requestId=await requestId;return send({type:"YNX_SIGNER_DECIDE_V1",requestId,decision,password:PASSWORD},page("signer.html",requestId))},
     connectDecision:async requestId=>{requestId=await requestId;return send({type:"YNX_PROVIDER_APPROVAL_DECIDE_V1",requestId,decision:"approve"},page("approval.html",requestId))},
@@ -520,4 +520,58 @@ test("navigation after POST keeps exact raw and ACK while the actual departing c
   const f=await fixture(t),content=await attachContentDocument(f,t),packet=content.request("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}]);const window=await f.nextWindow(),id=new URL(window.url).searchParams.get("requestId");
   f.state.broadcastHook=()=>{content.event("pagehide");f.state.tabUpdated(1,{status:"loading"})};await f.decide(id);assert.equal((await packet.result).error.code,"DOCUMENT_CHANGED");await new Promise(resolve=>setImmediate(resolve));
   const record=f.localState[BROADCAST_JOURNAL_PREFIX+ACCOUNT];assert.equal(f.state.broadcasts,1);assert.equal(record.status,"acknowledged");assert.equal(record.rawTransaction,f.state.transaction.serialized);assert.equal(content.replies.length,0);
+});
+
+
+test("first connection creates an account through setup then requires independent site approval",async t=>{
+ const f=await fixture(t,{existingLocal:{}}),q=f.request("eth_requestAccounts",[]),id=await q.reviewId;
+ const setup=await f.nextWindow();assert.match(setup.url,/vault.html/);
+ assert.equal((await f.setup(id,"YNX_CONNECTION_SETUP_GET_V1")).origin,ORIGIN);
+ assert.equal((await f.setup(id,"YNX_CONNECTION_SETUP_CONTINUE_V1")).ok,false);
+ assert.equal((await f.setup(id,"YNX_VAULT_STORE_V1",{vault:f.vault})).ok,true);
+ assert.deepEqual(Object.keys(f.localState[PROVIDER_PERMISSIONS_KEY]),[]);assert.equal(f.state.opened.length,1);
+ assert.equal((await f.setup(id,"YNX_CONNECTION_SETUP_CONTINUE_V1")).ok,true);
+ const review=await f.nextWindow();assert.match(review.url,/approval.html/);
+ assert.equal((await f.connectDecision(id)).ok,true);assert.deepEqual(Array.from((await q.result).result),[ACCOUNT]);
+ assert.equal((await f.setup(id,"YNX_CONNECTION_SETUP_CONTINUE_V1")).ok,false);assert.equal(f.state.signCalls,0);
+});
+
+test("setup closure rejects the original request without account or site permission",async t=>{
+ const f=await fixture(t,{existingLocal:{}}),q=f.request("eth_requestAccounts",[]),setup=await f.nextWindow();
+ f.closeWindow(setup.id);assert.equal((await q.result).error.code,"ACCOUNT_SETUP_CLOSED");assert.equal(f.localState[EXTENSION_VAULT_KEY],undefined);
+ assert.equal((await f.setup(q.reviewId,"YNX_VAULT_STORE_V1",{vault:f.vault})).ok,false);
+});
+
+test("setup navigation invalidates continuation and late account save",async t=>{
+ const f=await fixture(t,{existingLocal:{}}),q=f.request("eth_requestAccounts",[]);await f.nextWindow();
+ f.state.tabUpdated(1,{status:"loading"});assert.equal((await q.result).error.code,"DOCUMENT_CHANGED");
+ assert.equal((await f.setup(q.reviewId,"YNX_VAULT_STORE_V1",{vault:f.vault})).ok,false);assert.equal(f.localState[EXTENSION_VAULT_KEY],undefined);
+});
+
+test("setup timeout rejects late continuation without granting permissions",async t=>{
+ const f=await fixture(t,{existingLocal:{}}),q=f.request("eth_requestAccounts",[],Date.now()+250);await f.nextWindow();
+ assert.equal((await q.result).error.code,"ACCOUNT_SETUP_EXPIRED");assert.equal((await f.setup(q.reviewId,"YNX_CONNECTION_SETUP_CONTINUE_V1")).ok,false);
+});
+
+test("setup cannot replace an encrypted account which appeared during review",async t=>{
+ const f=await fixture(t,{existingLocal:{}}),q=f.request("eth_requestAccounts",[]);const setup=await f.nextWindow();
+ f.localState[EXTENSION_VAULT_KEY]=f.vault;const before=JSON.stringify(f.localState);
+ assert.equal((await f.setup(q.reviewId,"YNX_VAULT_STORE_V1",{vault:f.vault})).error.code,"ACCOUNT_SETUP_ALREADY_CONFIGURED");assert.equal(JSON.stringify(f.localState),before);
+ f.closeWindow(setup.id);await q.result;
+});
+
+
+test("first EIP2255 permission request preserves setup continuation locally and externally",async t=>{
+ const f=await fixture(t,{existingLocal:{}}),q=f.request("wallet_requestPermissions",[{eth_accounts:{}}]);await f.nextWindow();
+ assert.equal((await f.setup(q.reviewId,"YNX_VAULT_STORE_V1",{vault:f.vault})).ok,true);
+ assert.equal((await f.setup(q.reviewId,"YNX_CONNECTION_SETUP_CONTINUE_V1")).ok,true);await f.nextWindow();await f.connectDecision(q.reviewId);
+ const result=await q.result;assert.equal(result.ok,true);assert.equal(result.result[0].parentCapability,"eth_accounts");assert.equal(result.result[0].caveats[0].value[0],ACCOUNT);
+});
+
+test("another extension window cannot continue the original connection setup",async t=>{
+ const f=await fixture(t,{existingLocal:{}}),q=f.request("eth_requestAccounts",[]),setup=await f.nextWindow(),id=await q.reviewId;
+ const impostor={id:"fixture",url:setup.url,tab:{id:3,windowId:setup.id+100}};
+ assert.equal((await f.rawSend({type:"YNX_CONNECTION_SETUP_GET_V1",requestId:id},impostor)).error.code,"EXTENSION_CALLER_REJECTED");
+ assert.equal((await f.rawSend({type:"YNX_CONNECTION_SETUP_CONTINUE_V1",requestId:id},impostor)).error.code,"EXTENSION_CALLER_REJECTED");
+ f.closeWindow(setup.id);await q.result;
 });
