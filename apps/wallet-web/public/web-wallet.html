@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src https://rpc-testnet.ynxweb4.com https://evm.ynxweb4.com; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; worker-src 'self'; manifest-src 'self'">
+  <link rel="icon" href="./ynx-logo.png" type="image/png" sizes="1254x1254">
   <title>YNX Wallet</title>
   <link rel="stylesheet" href="./web-wallet.css">
   <link rel="manifest" href="./manifest.webmanifest">
@@ -23,7 +24,7 @@
           <form id="web-wallet-send-form" hidden><label><span data-web-copy="recipient">Recipient</span><input id="web-wallet-recipient" autocomplete="off" required></label><label><span data-web-copy="amount">Amount (whole YNXT)</span><input id="web-wallet-amount" inputmode="numeric" pattern="[1-9][0-9]*" required></label><p data-web-copy="transactionWarning"></p><button type="submit" class="primary" data-web-copy="reviewTx">Review transaction</button></form>
         </section>
         <section id="web-wallet-activity" class="wallet-view" hidden><h2 data-web-copy="activity">Activity</h2><p id="web-wallet-activity-state"></p></section>
-        <section id="web-wallet-connections" class="wallet-view" hidden><h2 data-web-copy="connections">Connections</h2><p data-web-copy="connectionBoundary">Each signature requires your approval. Closing Wallet does not end your approved product session.</p><ul id="web-wallet-connection-list"></ul></section>
+        <section id="web-wallet-connections" class="wallet-view" hidden><div class="extension-connection-entry"><a class="companion-link" href="./companion.html" data-web-copy="companion">Connect a browser extension</a><p data-web-copy="companionPurpose">Use an installed browser extension through the Companion. This does not unlock your Web Wallet account.</p></div><h2 data-web-copy="connections">Connections</h2><p data-web-copy="connectionBoundary">Each signature requires your approval. Closing Wallet does not end your approved product session.</p><ul id="web-wallet-connection-list"></ul></section>
       </section>
       <p class="eyebrow" data-i18n="secure">SECURE CONNECTION</p>
       <h1 data-i18n="title">Your Wallet, your decision.</h1>
@@ -80,7 +81,7 @@
         <label id="approval-password-label"><span data-i18n="localPassword">Local Wallet password</span> <input id="approval-password" type="password" autocomplete="off" hidden></label>
         <div class="actions"><button id="reject" type="button" data-i18n="reject">Reject</button><button id="approve" class="primary" type="button" data-i18n="approve">Approve</button></div>
       </section>
-      <a class="companion-link" href="./companion.html" data-web-copy="companion">Connect an installed wallet</a><p class="foot" data-i18n="foot">Connection does not grant Finance payments or private product access. Those requests require separate approval.</p>
+      <p class="foot" data-i18n="foot">Connection does not grant Finance payments or private product access. Those requests require separate approval.</p>
     </div>
   </main>
 </body>
