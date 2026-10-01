@@ -57,7 +57,7 @@ type BrowserSSO struct {
 // NewBrowserSSO has a fixed first-batch registry. Callers cannot supply a new
 // origin, audience, scope or issuer, and must opt in at their existing server.
 func NewBrowserSSO(product, authority string, cookieKey []byte, targets []string, transport http.RoundTripper) (*BrowserSSO, error) {
-	origin := map[string]string{"finance": "https://finance.ynxweb4.com", "exchange": "https://exchange.ynxweb4.com", "quant": "https://quant.ynxweb4.com", "social": "https://social.ynxweb4.com", "ai": "https://assistant.ynxweb4.com"}[product]
+	origin := map[string]string{"finance": "https://finance.ynxweb4.com", "exchange": "https://exchange.ynxweb4.com", "quant": "https://quant.ynxweb4.com", "social": "https://social.ynxweb4.com", "ai": "https://assistant.ynxweb4.com", "developer": "https://developer.ynxweb4.com"}[product]
 	if origin == "" || len(cookieKey) < 32 || len(targets) == 0 {
 		return nil, errors.New("browser SSO policy invalid")
 	}
