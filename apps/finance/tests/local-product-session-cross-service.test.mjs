@@ -121,13 +121,13 @@ for(const mode of ['delayed-config','completed-quiet'])test(`explicit Finance br
   }finally{releaseConfig?.();releaseStart?.();await browser?.close();await go?.close();await close(gateway);await rm(directory,{recursive:true,force:true});}
 });
 
-for(const variant of ['native-callback','selected-provider','selected-provider-context-change','selected-login','selected-login-rejected','central-selected-login','hosted-provider'])test(`local QA ${variant} reaches durable Gateway NodeHost and real Finance Go v2 verifier`,{skip:variant==='hosted-provider'&&!hostedWalletDist&&'YNX_FINANCE_HOSTED_WALLET_DIST not supplied'},async t=>{
+for(const variant of ['native-callback','selected-provider','selected-provider-context-change','selected-login','selected-login-rejected','selected-login-revoke-rebegin','central-selected-login','hosted-provider'])test(`local QA ${variant} reaches durable Gateway NodeHost and real Finance Go v2 verifier`,{skip:variant==='hosted-provider'&&!hostedWalletDist&&'YNX_FINANCE_HOSTED_WALLET_DIST not supplied'},async t=>{
   const centralSSO=variant==='central-selected-login',transport=centralSSO?'selected-login':variant;
   const directory=await mkdtemp(join(tmpdir(),'ynx-finance-local-v2-'));await chmod(directory,0o700);
   const statePath=join(directory,'gateway-state.json');
   const host=new ProductSessionGatewayNodeHost(registry,{statePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url'),centralBrowser:centralSSO});
-  const gatewayTrace=[],gatewayHandler=host.handler();
-  const gateway=createServer((request,response)=>{response.once('finish',()=>gatewayTrace.push({method:request.method,path:new URL(request.url,'http://qa').pathname,status:response.statusCode}));return gatewayHandler(request,response)});
+  const gatewayTrace=[],gatewayHandler=host.handler();let failNativeRevoke=false;
+  const gateway=createServer((request,response)=>{response.once('finish',()=>gatewayTrace.push({method:request.method,path:new URL(request.url,'http://qa').pathname,status:response.statusCode}));if(failNativeRevoke&&new URL(request.url,'http://qa').pathname==='/v2/product-sessions/revoke'){response.writeHead(503,{'content-type':'application/json'});response.end('{"code":"QA_REVOKE_UNAVAILABLE"}');return;}return gatewayHandler(request,response)});
   const config=signedQAConfig();
   let go,failOverview=false,approvalCount=0,firstPrivateBatch=centralSSO,holdNativeRevoke=false,releaseNativeRevoke;
   const nativeRevokeRelease=new Promise(resolve=>releaseNativeRevoke=resolve);
@@ -153,7 +153,7 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
   let browser;
   try{
     const gatewayBase=await listen(gateway),financeBase=await listen(finance);
-    if(transport==='selected-login'||transport==='hosted-provider')go=await startGoBrowserServer(gatewayBase,centralSSO);
+    if(transport.startsWith('selected-login')||transport==='hosted-provider')go=await startGoBrowserServer(gatewayBase,centralSSO);
     browser=await chromium.launch(await financeBrowserLaunchOptions());
     const context=await browser.newContext();
     const routeTrace=[];
@@ -372,6 +372,27 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
     assert.equal(child.status,0,`Finance Go v2 verifier failed: ${child.stderr||child.stdout}`);
     assert.equal(host.snapshot().authority.sessions.length,1);
     assert.ok(host.snapshot().consumedProofs.length>=1);
+    if(variant==='selected-login-revoke-rebegin'){
+      const attemptKey='ynx.finance.browser-private.9840ef87.wallet-auth.attempted';
+      await page.evaluate(()=>api('/api/categories',{method:'POST',body:JSON.stringify({name:'Owned category across explicit reauthorization',color:'#002fa7',idempotencyKey:'revoke-rebegin-owned-category-qa-000001'})}));
+      const revoked=await page.evaluate(()=>window.YNXFinanceWallet.disconnect());
+      assert.equal(revoked.revocationConfirmed,true);
+      assert.equal(await page.evaluate(key=>localStorage.getItem(key),attemptKey),null,'confirmed revoke must stop missing-session automatic reconnect');
+      await page.reload();await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='guest'&&window.YNXFinanceWallet.getStandardWalletState().status==='connected');
+      assert.equal(await page.locator('#private-begin').isDisabled(),false);assert.equal(approvalCount,1);
+      await page.locator('#wallet-more > summary').click();
+      await page.locator('#private-begin').click();
+      await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='connected'&&document.querySelector('#workspace').dataset.dataState==='ready');
+      assert.equal(approvalCount,2);assert.equal(host.snapshot().authority.sessions.length,2);
+      assert.equal(await page.evaluate(async()=>{const view=await api('/api/profile');return view.categories.some(item=>item.name==='Owned category across explicit reauthorization');}),true);
+      failNativeRevoke=true;const unconfirmed=await page.evaluate(()=>window.YNXFinanceWallet.disconnect());
+      assert.notEqual(unconfirmed.revocationConfirmed,true);assert.equal(await page.evaluate(key=>localStorage.getItem(key),attemptKey),'yes');
+      await page.reload();await page.waitForFunction(()=>['retry-required','network-unavailable'].includes(window.YNXFinanceWallet.getPrivateState().status));
+      assert.equal(approvalCount,2);assert.equal(await page.evaluate(key=>localStorage.getItem(key),attemptKey),'yes');
+      failNativeRevoke=false;const retry=await page.evaluate(()=>window.YNXFinanceWallet.retryPrivate());
+      assert.equal(retry.revocationConfirmed,true);assert.equal(await page.evaluate(key=>localStorage.getItem(key),attemptKey),null);
+      await page.reload();await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='guest');assert.equal(approvalCount,2);
+    }
     if(centralSSO){
       // An unused independently signed nonce from the SAME approved private
       // session remains valid at the Gateway until SDK revocation is released.

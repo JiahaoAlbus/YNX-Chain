@@ -21,7 +21,13 @@ async function initialize(){
 }
 async function operation(action){
   const attempt=++generation;busy=true;publish({status:'checking',session:null});
-  try{await assertFinancePrivateAuthority();const selected=await initialize(),authorityRevision=financePrivateAuthorityRevision();if(attempt!==generation)return current;const result=await action(selected);if(authorityRevision!==financePrivateAuthorityRevision())throw new Error('AUTHORITY_V2_SUPERSEDED');if(attempt===generation)publish(result);return attempt===generation?result:current;}
+  try{await assertFinancePrivateAuthority();const selected=await initialize(),authorityRevision=financePrivateAuthorityRevision();if(attempt!==generation)return current;const result=await action(selected);if(authorityRevision!==financePrivateAuthorityRevision())throw new Error('AUTHORITY_V2_SUPERSEDED');if(attempt===generation){
+    // Only the exact SDK/server revocation acknowledgement retires automatic
+    // restore opt-in. A pending/unconfirmed logout still restores its original
+    // revocation intent, never a newly invented connection request.
+    if(result.status==='disconnected'&&result.revocationConfirmed===true){try{localStorage.removeItem(ATTEMPT_KEY);}catch{}}
+    publish(result);
+  }return attempt===generation?result:current;}
   catch(error){if(attempt===generation)publish({status:'degraded',session:null},code(error));return current;}
   finally{if(attempt===generation){busy=false;render();}}
 }
