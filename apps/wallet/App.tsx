@@ -16,6 +16,8 @@ import { NativeChainClient, loadNativeChainState, isNativeReadCancelled, nativeC
 import { networkRecoveryCopy } from "./src/i18n/networkRecoveryCopy";
 import { NativeTransferOutbox, type NativeTransferOutboxEntry } from "./src/chain/nativeTransferOutbox";
 import { createPaymentURI, PaymentRequestError } from "./src/chain/paymentRequest";
+import { WalletScanner } from "./src/state/WalletScanner";
+import { type WalletScanResult } from "./src/state/walletScan";
 import { PaymentRecipientInput, type PaymentRecipientInputAttempt } from "./src/state/paymentRecipientInput";
 import { FaucetFlow, faucetStatusCopy, productionFaucetConfiguration, type FaucetAction } from "./src/state/faucetFlow";
 import { faucetRecoveryCopy } from "./src/i18n/faucetRecoveryCopy";
@@ -244,6 +246,12 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
   const operations=useWalletOperations();
   const walletConnectKeyAccess=useMemo(()=>createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),[operations]);
   const [faucet,setFaucet]=useState(false);
+  const [scanning,setScanning]=useState(false),[scanRecipient,setScanRecipient]=useState("");
+  const scanGeneration=useRef<ReturnType<WalletOperationLifecycle["capture"]>|null>(null);
+  const closeScan=()=>{scanGeneration.current=null;setScanning(false)};
+  const openScan=()=>{scanGeneration.current=operations.capture();setScanning(true)};
+  useEffect(()=>operations.subscribe(()=>{scanGeneration.current=null;setScanning(false);setScanRecipient("")}),[operations]);
+  const acceptScan=(result:WalletScanResult)=>{if(scanGeneration.current===null||scanGeneration.current!==operations.capture()||AppState.currentState!=="active")return;closeScan();if(result.kind==="payment"){setScanRecipient(result.payment.recipient);setSend(true)}else offerWalletConnectDeepLink(`ynxwallet://wc?uri=${encodeURIComponent(result.uri)}`)};
   const [accountsOpen,setAccountsOpen]=useState(false),[copied,setCopied]=useState(false),[qr,setQR]=useState(false),[send,setSend]=useState(false),[evm,setEvm]=useState(false),[center,setCenter]=useState(false),[controls,setControls]=useState(false),[remove,setRemove]=useState(false),[rename,setRename]=useState(false),[recovery,setRecovery]=useState(false),[auditOpen,setAuditOpen]=useState(false),[records,setRecords]=useState<readonly AuthorizationAuditRecord[]>([]),[auditError,setAuditError]=useState<string|null>(null);
   const cancelClipboardClear=useRef<null|(()=>void)>(null);
   const [chainState,setChainState]=useState<NativeChainState>({phase:"loading",activityPhase:"loading",activity:[]});
@@ -272,6 +280,8 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     {accountsOpen?<View style={styles.accountMenu}>{manifest.accounts.map((item)=><Pressable accessibilityRole="radio" accessibilityState={{checked:item.account===selected.account}} accessibilityLabel={`${translate(locale,"account")} ${item.label}`} key={item.account} onPress={()=>{select(item.account);setAccountsOpen(false)}} style={styles.accountRow}><View><Text style={styles.accountLabel}>{item.label}</Text><Text style={styles.smallAddress}>{short(item.account)}</Text></View>{item.account===selected.account?<Check color={ACTIVE_COLORS.blue}/>:null}</Pressable>)}<Pressable accessibilityLabel={translate(locale,"createAnother")} onPress={create} style={styles.accountRow}><Plus color={ACTIVE_COLORS.blue}/><Text style={styles.link}>{translate(locale,"createAnother")}</Text></Pressable><Pressable accessibilityLabel={translate(locale,"importAnother")} onPress={add} style={styles.accountRow}><KeyRound color={ACTIVE_COLORS.blue}/><Text style={styles.link}>{translate(locale,"importAnother")}</Text></Pressable></View>:null}
     <View style={styles.balanceCard}><Text style={styles.balanceLabel}>{walletCopy(locale,"Native asset · authoritative testnet")}</Text><Text style={styles.balance}>{chainState.account?formatYNXT(locale,chainState.account.balance):"— YNXT"}</Text><Text style={styles.balanceMeta}>{chainState.phase==="loading"?walletCopy(locale,"Loading balance and nonce…"):chainState.phase==="unrecorded"?`${walletCopy(locale,"This address has no on-chain account record yet. Receive testnet YNXT to get started. Balance and nonce are not available yet.")} ${walletCopy(locale,"Sending becomes available after balance and nonce are confirmed.")}`:chainState.phase==="failed"?`${walletCopy(locale,"Balance unavailable")}: ${networkRecoveryCopy(locale,chainState.error??"")}`:`${walletCopy(locale,"Nonce {nonce}",{nonce:chainState.account?chainState.account.nonce:"—"})} · ${chainState.activityPhase==="ready"?walletCopy(locale,"{count} matching transactions in the latest 25 chain transactions",{count:chainState.activity.length}):walletCopy(locale,"Activity · unavailable")}`}</Text></View>
     <View style={styles.quickRow}><Quick icon={<ArrowUpRight color={ACTIVE_COLORS.blue}/>} label={translate(locale,"send")} onPress={()=>setSend(true)}/><Quick icon={<QrCode color={ACTIVE_COLORS.blue}/>} label={translate(locale,"receive")} onPress={()=>setQR(true)}/><Quick icon={<History color={ACTIVE_COLORS.blue}/>} label={translate(locale,"activity")} onPress={()=>setCenter(true)}/></View>
+    <SecondaryButton label={locale.startsWith("zh")?"扫一扫":"Scan QR code"} onPress={openScan}/>
+    {scanning?<WalletScanner locale={locale} close={closeScan} accept={acceptScan}/>:null}
     <SecondaryButton label={walletCopy(locale,"Test YNXT")} onPress={()=>setFaucet(true)}/>
     <InfoCard title={translate(locale,"accountSafety")} body={walletCopy(locale,selected.backupConfirmed?"Offline backup confirmed. System biometrics protect unlock, authorization, recovery viewing and deletion.":"Backup is not confirmed. Do not receive assets until the recovery key is stored offline.")}/>
     <FaucetButton secondary label={walletCopy(locale,copied?"Native ynx1 address copied":"Copy native ynx1 address")} onPress={()=>void copy()}/>
@@ -286,7 +296,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <SecondaryButton label={translate(locale,"audit")} onPress={()=>void openAudit()}/>
     <DangerButton label={translate(locale,"removeAccountFromDevice")} onPress={()=>setRemove(true)}/>
     <Modal visible={qr} transparent animationType={MODAL_ANIMATION} onRequestClose={()=>setQR(false)}><Sheet title="Receive YNXT" close={()=>setQR(false)}><View style={styles.qr}><QRCodeView value={createPaymentURI(selected.account)} size={210} color={ACTIVE_COLORS.ink} backgroundColor={ACTIVE_COLORS.white}/></View><Text selectable style={styles.fullAddress}>{selected.account}</Text><Text style={styles.footnote}>Native network ynx_6423-1 · EVM chain ID 6423. An 0x address is shown only inside an explicit EVM compatibility view.</Text></Sheet></Modal>
-    <SendModal visible={send} account={selected} close={()=>setSend(false)} onSent={()=>void refreshChain()}/>
+    <SendModal visible={send} account={selected} scannedRecipient={scanRecipient} close={()=>{setSend(false);setScanRecipient("")}} onSent={()=>void refreshChain()}/>
     {faucet?<FaucetModal account={selected} close={()=>setFaucet(false)}/>:null}
     <EvmCompatibilityModal visible={evm} account={selected} close={()=>setEvm(false)}/>
     <WalletCenter visible={center} account={selected} chainState={chainState} close={()=>setCenter(false)} openAudit={()=>void openAudit()} retry={()=>void refreshChain()}/>
@@ -401,7 +411,7 @@ function FaucetDetail({label,value}:{label:Parameters<typeof walletCopy>[1];valu
   </View>;
 }
 
-function SendModal({visible,account,close,onSent}:{visible:boolean;account:WalletAccount;close:()=>void;onSent:()=>void}){
+function SendModal({visible,account,close,onSent,scannedRecipient=""}:{visible:boolean;account:WalletAccount;close:()=>void;onSent:()=>void;scannedRecipient?:string}){
   const locale=useContext(WalletLocaleContext);
   const scope=useOperationScope(visible,account.account),[to,setTo]=useState(""),[amount,setAmount]=useState(""),[review,setReview]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const [stored,setStored]=useState<NativeTransferOutboxEntry|null>(null),[loaded,setLoaded]=useState(false),[reload,setReload]=useState(0);
@@ -414,7 +424,7 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
   if(inputContext.current!==contextKey){recipientInput.cancel();inputContext.current=contextKey}
   const cancelInput=()=>{recipientInput.cancel();setPasting(false);setRecipientAdded(false)};
   const dismiss=()=>{cancelInput();scope.cancel();setBusy(false);close()};
-  useEffect(()=>{recipientInput.cancel();scope.cancel();setTo("");setAmount("");setReview(false);setBusy(false);setPasting(false);setRecipientAdded(false);setError(null);setStored(null);setLoaded(false);if(!visible)return;let current=true,lease:WalletOperationLease|undefined;
+  useEffect(()=>{recipientInput.cancel();scope.cancel();setTo(scannedRecipient);setAmount("");setReview(false);setBusy(false);setPasting(false);setRecipientAdded(false);setError(null);setStored(null);setLoaded(false);if(!visible)return;let current=true,lease:WalletOperationLease|undefined;
     void (async()=>{try{
       const value=await nativeOutbox.read(account.account);if(!current)return;
       setStored(value?.phase==="done"?null:value);setLoaded(true);
@@ -425,7 +435,7 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
       }
     }catch(caught){if(current&&(!lease||lease.isCurrent()))setError(message(caught))}finally{if(current&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}})();
     return()=>{current=false;recipientInput.cancel();lease?.finish()}
-  },[visible,account.account,scope,reload,recipientInput]);
+  },[visible,account.account,scope,reload,recipientInput,scannedRecipient]);
   const pasteRecipient=async()=>{
     if(!visible||!loaded||stored||review||busy)return;
     let attempt:PaymentRecipientInputAttempt|undefined;
