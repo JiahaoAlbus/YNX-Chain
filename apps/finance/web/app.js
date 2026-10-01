@@ -373,7 +373,7 @@ function choosePickerMethod(method){
   const epoch=++pickerEpoch,wallet=window.YNXFinanceWallet;
   const request=method==='ynx'?()=>wallet.connect():method==='metamask'?()=>wallet.connectMetaMask():method==='mobile'?()=>wallet.connectPair?.():()=>$('#connect-hosted-ynx').click();
   if(method==='mobile'&&!wallet.connectPair){pickerFailure('PAIR_UNAVAILABLE');return Promise.resolve(null);}
-  pickerPhase='pickerWaiting';renderWalletPicker();
+  pickerPhase=method==='mobile'?'pickerOpening':'pickerWaiting';renderWalletPicker();
   // Invoking the selected transport is a separate explicit action. Opening the
   // chooser itself never invokes accounts, signatures or the Hosted popup.
   const operation=Promise.resolve().then(request).catch(error=>{if(epoch===pickerEpoch)pickerFailure(error?.code??error?.message);}).finally(()=>{if(pickerPending===operation)pickerPending=null;});pickerPending=operation;return operation;
@@ -586,10 +586,14 @@ window.addEventListener('ynx-finance-standard-state',event=>{
   if(selected?.status==='connected')void continueLoginIntent();
   resumeDeferredBrowserIdentity();
 });window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected'){const intent=loginIntent,context=state.context;load().then(()=>completeLoginTarget(intent,context))}resumeDeferredBrowserIdentity();});
-window.addEventListener('ynx-finance-private-state',event=>{if(!$('#wallet-picker').open||!pickerMethod)return;const next=event.detail;if(next?.status==='connected'){pickerPhase='pickerApproved';renderWalletPicker();if(loginIntent)closeWalletPicker({completed:true});}else if(['checking','connecting'].includes(next?.status)){pickerPhase='pickerSigning';renderWalletPicker();}else if(next?.code||next?.lastCode)pickerFailure(next.code??next.lastCode);});
+window.addEventListener('ynx-finance-private-state',event=>{if(!$('#wallet-picker').open||!pickerMethod)return;const next=event.detail;if(pickerMethod==='mobile'&&['opening','pairing'].includes(window.YNXFinanceWallet.getPairState?.()?.status))return;if(next?.status==='connected'){pickerPhase='pickerApproved';renderWalletPicker();if(loginIntent)closeWalletPicker({completed:true});}else if(['checking','connecting'].includes(next?.status)){pickerPhase='pickerSigning';renderWalletPicker();}else if(next?.code||next?.lastCode)pickerFailure(next.code??next.lastCode);});
 window.addEventListener('ynx-finance-pair-state',event=>{
   if(!$('#wallet-picker').open||pickerMethod!=='mobile')return;
-  const next=event.detail;if(next.status==='pairing'){
+  const next=event.detail;if(next.status==='opening'){
+    // No URI means no Wallet proposal is available for user approval yet.
+    // Transport telemetry must never remove an already rendered pairing.
+    if(!$('#wallet-picker-qr').getAttribute('src')&&!$('#wallet-picker-deeplink').getAttribute('href')){pickerPhase='pickerOpening';renderWalletPicker();}
+  }else if(next.status==='pairing'){
     pickerPhase='pickerScan';renderWalletPicker();clearPickerPair();
     if(typeof next.qrDataURL==='string'&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(next.qrDataURL)){$('#wallet-picker-qr').src=next.qrDataURL;$('#wallet-picker-qr').hidden=false;}
     if(typeof next.deeplink==='string'){try{const url=new URL(next.deeplink);if(url.protocol==='ynxwallet:'&&url.hostname==='wc'&&!url.username&&!url.password&&!url.port&&!url.hash&&[...url.searchParams.keys()].join(',')==='uri'){$('#wallet-picker-deeplink').href=next.deeplink;$('#wallet-picker-deeplink').hidden=false;}}catch{}}

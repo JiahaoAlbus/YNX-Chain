@@ -21,7 +21,7 @@ function publishPair(next){pairState=Object.freeze({...next});window.dispatchEve
 function pairClient(){
   if(pair)return pair;
   pair=new WalletConnectDAppConnection({origin:ORIGIN,methods:['personal_sign','ynx_requestProductSessionV2']});
-  pair.on('stage',event=>{if(pairOperation&&pairOperation.revision===intent&&event.stage!=='approval')publishPair({status:'opening',stage:event.stage});});
+  pair.on('stage',event=>{if(pairOperation&&pairOperation.revision===intent&&!pairOperation.uriReady&&event.stage!=='approval')publishPair({status:'opening',stage:event.stage});});
   pair.on('cancelUnconfirmed',event=>{if(event.current!==false)publishPair({status:'cancel-unconfirmed',errorCode:'PAIR_CANCEL_UNCONFIRMED'});});
   pair.on('disconnect',()=>{if(activeTransport!=='pair')return;privateFinance.guest();preference(null);publishPair({status:'disconnected'});publish({status:'disconnected',providerKind:'ynx-wallet',account:null,chainId:null,transport:'walletconnect',disconnectReason:'permission-revoked'});});
   return pair;
@@ -29,14 +29,14 @@ function pairClient(){
 function connectPair(){
   if(pairOperation)return pairOperation.promise;
   if(pendingConnection||busy)return Promise.resolve(null);
-  const operation={revision:++intent,promise:null};pairOperation=operation;
+  const operation={revision:++intent,promise:null,uriReady:false};pairOperation=operation;
   activeTransport='pair';detach();void hosted?.disconnect();preference(null);busy=true;
   publishPair({status:'opening'});publish({status:'connecting',providerKind:'ynx-wallet',account:null,chainId:null,transport:'walletconnect'});
   operation.promise=(async()=>{
     try{
       const provider=await pairClient().connect({onURI:uri=>{
         if(pairOperation!==operation||operation.revision!==intent)return;
-        const expiresAt=Date.now()+30000,deeplink=`ynxwallet://wc?uri=${encodeURIComponent(uri)}`;publishPair({status:'pairing',expiresAt,deeplink});
+        operation.uriReady=true;const expiresAt=Date.now()+30000,deeplink=`ynxwallet://wc?uri=${encodeURIComponent(uri)}`;publishPair({status:'pairing',expiresAt,deeplink});
         void QRCode.toDataURL(uri,{width:240,margin:2,color:{dark:'#002FA7',light:'#FFFFFF'}}).then(qrDataURL=>{
           if(pairOperation===operation&&operation.revision===intent&&pairState.status==='pairing')publishPair({status:'pairing',qrDataURL,expiresAt,deeplink});
         }).catch(()=>{if(pairOperation===operation&&operation.revision===intent)publishPair({status:'failed',errorCode:'PAIR_QR_UNAVAILABLE'});});

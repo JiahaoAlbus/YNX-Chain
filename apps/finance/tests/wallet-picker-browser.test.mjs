@@ -86,6 +86,7 @@ test('real Pair adapter facade renders temporary QR, coalesces pending and requi
     assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState().status),'connecting');
     assert.equal(await page.evaluate(()=>{const a=window.YNXFinanceWallet.connectPair(),b=window.YNXFinanceWallet.connectPair();return a===b;}),true);
     assert.equal(await page.evaluate(()=>window.__pickerQA.counts.pair),1);
+    await page.evaluate(()=>{window.dispatchEvent(new CustomEvent('ynx-finance-pair-state',{detail:{status:'opening',stage:'relay'}}));window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:'checking'}}));});assert.equal(await page.locator('#wallet-picker-qr').isVisible(),true);assert.equal(await page.locator('#wallet-picker-deeplink').isVisible(),true);assert.equal(await page.locator('#wallet-picker-state').innerText(),await page.evaluate(()=>YNXFinanceLocale.text('pickerScan')));
     assert.equal(await page.evaluate(()=>Object.keys(localStorage).some(key=>/wc:|symKey/.test(localStorage.getItem(key)))),false);
     await page.evaluate(()=>window.__pickerQA.approve());await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected');
     assert.equal(await page.locator('#wallet-picker-qr').isVisible(),false);assert.equal(await page.evaluate(()=>window.__pickerQA.counts.sign),0);
@@ -105,7 +106,7 @@ test('URI-less relay failure is recoverable network UI; cancelled handshake cann
         await page.waitForFunction(()=>YNXFinanceWallet.getPairState().errorCode==='YNX_PAIR_RELAY_UNAVAILABLE');
         assert.equal(await page.locator('#wallet-picker-state').innerText(),await page.evaluate(()=>YNXFinanceLocale.text('pairTransportUnavailable')));
         assert.equal((await page.locator('#wallet-picker-step').innerText()).includes('secret-untrusted'),false);
-      }else await page.waitForFunction(()=>typeof __pickerQA.finishRelay==='function');
+      }else {await page.waitForFunction(()=>typeof __pickerQA.finishRelay==='function');assert.equal(await page.locator('#wallet-picker-state').innerText(),await page.evaluate(()=>YNXFinanceLocale.text('pairTransportWaiting')));await page.evaluate(()=>window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:'checking'}})));assert.equal(await page.locator('#wallet-picker-state').innerText(),await page.evaluate(()=>YNXFinanceLocale.text('pairTransportWaiting')));}
       assert.equal(await page.locator('#wallet-picker-qr').isVisible(),false);assert.equal(await page.evaluate(()=>__pickerQA.counts.sign),0);
       await page.locator('#wallet-picker-back').click();await page.locator('#picker-metamask').click();
       await page.waitForFunction(()=>YNXFinanceWallet.getStandardWalletState().providerKind==='metamask'&&YNXFinanceWallet.getStandardWalletState().status==='connected');
