@@ -107,22 +107,22 @@ const request=async(path,input)=>{
 function connectInstalledWallet(provider){
  if(cancelled||pending||pairPending||hostedPending)return;const epoch=revision;
  const connection=new StandardWalletConnection({provider,origin:location.origin,metadata:{name:'YNX browser sign-in',url:location.origin}});
- status.dataset.phase='wallet-connect';delete status.dataset.errorCode;approve.disabled=true;message('Opening YNX Wallet. Unlock and approve the connection. Browser sign-in is a separate approval.');
+ status.dataset.phase='wallet-connect';delete status.dataset.errorCode;approve.disabled=true;picker.disabled=true;for(const choice of choices.children)choice.disabled=true;message('Opening YNX Wallet. Unlock and approve the connection. Browser sign-in is a separate approval.');
  let timer;const task=Promise.race([connection.connect(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('SSO_REQUEST_TIMEOUT')),Math.max(1,Math.min(30000,Date.parse(challenge.expiresAt)-Date.now())));})])
  .then(()=>{if(cancelled||epoch!==revision||selected!==provider)return;approve.disabled=false;message('YNX Wallet connected. Continue to review browser sign-in.');})
  .catch(error=>{if(cancelled||epoch!==revision||selected!==provider)return;selected=null;picker.value='';approve.disabled=true;const code=failure(error,'wallet-connect');message(code==='USER_REJECTED'?'Connection was declined. No browser sign-in was granted.':'Wallet connection did not finish. Retry or cancel; no browser sign-in was granted.');})
- .finally(()=>{clearTimeout(timer);connection.disconnect();if(pending===task)pending=null;});pending=task;
+ .finally(()=>{clearTimeout(timer);connection.disconnect();if(pending===task){pending=null;picker.disabled=cancelled;for(const choice of choices.children)choice.disabled=cancelled;}});pending=task;
 }
 discovery.subscribe(snapshot=>{
   providers=snapshot.candidates.filter(value=>value.kind===WALLET_PROVIDER_KIND.YNX).map(value=>value.provider);
   const previous=selected;picker.replaceChildren();
   const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent=t('Choose YNX Wallet');picker.append(placeholder);
   providers.forEach((provider,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=`YNX Wallet ${index+1}`;picker.append(option);});
-  choices.replaceChildren();providers.forEach((provider,index)=>{const choice=document.createElement('button');choice.type='button';choice.dataset.walletIndex=String(index);choice.textContent=t('YNX Wallet')+(providers.length>1?` ${index+1}`:'');choice.setAttribute('aria-pressed',String(provider===selected));choice.disabled=cancelled||!!pending;choice.addEventListener('click',()=>{picker.value=String(index);picker.dispatchEvent(new Event('change'));for(const button of choices.children)button.setAttribute('aria-pressed',String(button===choice));});choices.append(choice);});
+  choices.replaceChildren();providers.forEach((provider,index)=>{const choice=document.createElement('button');choice.type='button';choice.dataset.walletIndex=String(index);choice.textContent=t('YNX Wallet')+(providers.length>1?` ${index+1}`:'');choice.setAttribute('aria-pressed',String(provider===selected));choice.disabled=cancelled||!!pending;choice.addEventListener('click',()=>{if(pending||cancelled)return;picker.value=String(index);picker.dispatchEvent(new Event('change'));for(const button of choices.children)button.setAttribute('aria-pressed',String(button===choice));});choices.append(choice);});
   if(previous&&providers.includes(previous)){picker.value=String(providers.indexOf(previous));}else if(previous&&previous!==pairProvider&&previous!==hostedProvider){selected=null;revision++;}
   approve.disabled=!selected||cancelled||!!pending;if(!providers.length&&!pairPending&&!hostedPending&&!selected)message('Installed YNX Wallet is unavailable. Install/unlock it or explicitly choose Wallet Web or mobile Wallet.');
 });
-picker.addEventListener('change',()=>{selected=picker.value===''?null:providers[Number(picker.value)];revision++;if(pairPending){pairPending=null;pairButton.disabled=cancelled;pairButton.removeAttribute('aria-busy');clearPairQR();void pair.cancel();}if(hosted)retireHosted();approve.disabled=!selected||cancelled;message(pending?'Finish or cancel the current request before switching wallets.':'Connection is separate from browser sign-in approval.');if(selected&&!pending)connectInstalledWallet(selected);});
+picker.addEventListener('change',()=>{if(pending||cancelled){picker.value=providers.includes(selected)?String(providers.indexOf(selected)):'';return;}selected=picker.value===''?null:providers[Number(picker.value)];revision++;if(pairPending){pairPending=null;pairButton.disabled=cancelled;pairButton.removeAttribute('aria-busy');clearPairQR();void pair.cancel();}if(hosted)retireHosted();approve.disabled=!selected||cancelled;message(pending?'Finish or cancel the current request before switching wallets.':'Connection is separate from browser sign-in approval.');if(selected&&!pending)connectInstalledWallet(selected);});
 approve.addEventListener('click',()=>{
   if(pending){message('Your request is already open in YNX Wallet.');return;}
   if(!selected||cancelled)return;
