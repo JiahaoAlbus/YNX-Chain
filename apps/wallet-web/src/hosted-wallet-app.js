@@ -363,7 +363,7 @@ $("add-account-form").addEventListener("submit", async event => {
 });
 $("switch-account").addEventListener("click", async () => {
   const account = $("account-select").value;
-  if (!account || account === vault?.account) return;
+  if (!account || account === vault?.account) { messageKey("accountAlreadySelected"); return; }
   try {
     if(accountManager)await accountManager.assertUnlocked(vault);
     const selected = await store.selectAccount(account);if(accountManager)accountManager.lock();
