@@ -1,0 +1,55 @@
+{
+  "name": "ynx-tools",
+  "displayName": "YNX Tools",
+  "publisher": "ynx",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "license": "MIT",
+  "icon": "ynx-logo.png",
+  "main": "./src/extension.cjs",
+  "activationEvents": [
+    "onView:ynx.tools"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ynx",
+          "title": "YNX",
+          "icon": "activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "ynx": [
+        {
+          "id": "ynx.tools",
+          "name": "YNX Tools"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ynx.openTools",
+        "title": "YNX: Open Chain, Wallet and AI Tools"
+      },
+      {
+        "command": "ynx.copyContext",
+        "title": "YNX: Copy Selected Context for Review"
+      },
+      {
+        "command": "ynx.createTemplate",
+        "title": "YNX: Create Read-only Testnet SDK Starter"
+      },
+      {
+        "command": "ynx.applyReviewedDiff",
+        "title": "YNX: Apply Reviewed Text Changes"
+      }
+    ]
+  },
+  "extensionKind": [
+    "workspace"
+  ]
+}

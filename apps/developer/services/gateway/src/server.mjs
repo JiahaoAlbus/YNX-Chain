@@ -28,6 +28,7 @@ import { createEnvironmentService } from "../../environment-service/src/service.
 import { createCodeOSSService } from "../../codeoss-service/src/service.mjs";
 import { createCodeOSSProxy } from "../../codeoss-service/src/proxy.mjs";
 import { loadCoreAdmissionAdapter } from "../../codeoss-service/src/configuration.mjs";
+import { createNativeToolsService } from "../../codeoss-service/src/tools-service.mjs";
 import { createDeveloperSSO } from "../../codeoss-service/src/developer-sso.mjs";
 
 if (process.env.NODE_ENV === "production" && !process.env.YNX_CODE_WORKSPACE_SESSION_KEY) throw new Error("YNX_CODE_WORKSPACE_SESSION_KEY is required in production.");
@@ -108,11 +109,12 @@ runtimeProfileService = createRuntimeProfileService({
   ownerForRequest: (request) => runtime.ownerForRequest(request),
   environmentResolver: (owner, projectId) => environmentService.resolve(owner, projectId),
 });
+const nativeToolOwners = new WeakMap();
 const chainService = createChainService({
-  ownerForRequest: (request) => runtime.ownerForRequest(request),
+  ownerForRequest: (request) => nativeToolOwners.get(request) || runtime.ownerForRequest(request),
 });
 const walletReadinessService = createWalletReadinessService({
-  ownerForRequest: (request) => runtime.ownerForRequest(request),
+  ownerForRequest: (request) => nativeToolOwners.get(request) || runtime.ownerForRequest(request),
 });
 const terminalService = createTerminalService({
   root: join(stateDir, "terminal-workspaces"),
@@ -136,6 +138,7 @@ codeossService = createCodeOSSService({
   assertProjectQuiescent: (owner, projectId) => terminalService.assertProjectQuiescent(owner, projectId),
 });
 const coreProxy = coreAdmission.driver ? createCodeOSSProxy({ service: codeossService, ...coreAdmission }) : null;
+const nativeTools = createNativeToolsService({ coreService: codeossService, modelRouter, chainHandler: chainService.handler, walletHandler: walletReadinessService.handler, admittedOwners: nativeToolOwners });
 const expireCores = setInterval(() => { void codeossService.expireSessions(); }, 5000); expireCores.unref();
 const gatewayHandler = createGateway({
     activity,
@@ -146,6 +149,7 @@ const gatewayHandler = createGateway({
 const server = createServer(guardRequests(activity, async (request, response) => {
   if (await developerSSO.handler(request, response)) return;
   if (coreProxy && await coreProxy.handler(request, response)) return;
+  if (await nativeTools.handler(request, response)) return;
   return gatewayHandler(request, response);
 }));
 const debugService = createDebugService({

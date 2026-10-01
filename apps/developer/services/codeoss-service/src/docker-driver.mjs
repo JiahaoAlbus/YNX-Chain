@@ -93,7 +93,7 @@ export function createDockerCoreDriver({ artifactRoot, archivePath, licensePath,
       "--mount", `type=bind,src=${join(context.projectDirectory, "workspace")},dst=/workspace`,
       "--mount", `type=bind,src=${join(context.projectDirectory, "user-data")},dst=/user-data`,
       "--mount", `type=bind,src=${join(context.projectDirectory, "extensions")},dst=/extensions`,
-      "--env", "HOME=/user-data", OPENVSCODE.baseImage, "/opt/openvscode/bin/openvscode-server",
+      "--env", "HOME=/user-data", "--env", `YNX_CORE_SESSION_ID=${context.sessionId}`, "--env", "YNX_CORE_WORKSPACE=/workspace", OPENVSCODE.baseImage, "/opt/openvscode/bin/openvscode-server",
       "--host", "127.0.0.1", "--port", "3000", "--without-connection-token",
       "--default-folder", "/workspace",
       "--user-data-dir", "/user-data", "--extensions-dir", "/extensions", "--disable-telemetry"]);

@@ -157,7 +157,7 @@ export function createLxdCoreDriver({ artifactRoot, archivePath, licensePath, no
     await run(args(context, ["chown", "--no-dereference", "-R", "1000:1000", "/project/workspace", "/project/user-data", "/project/extensions"]));
     await run(args(context, ["systemd-run", "--quiet", "--unit", `ynx-core-${context.sessionId}`, "--service-type=exec", "--uid=1000", "--gid=1000",
       "--property=KillMode=control-group", "--property=NoNewPrivileges=yes", "--property=ProtectControlGroups=yes", "--property=RestrictSUIDSGID=yes",
-      "--setenv=HOME=/project/user-data", `--setenv=HTTP_PROXY=${proxy.origin}`, `--setenv=HTTPS_PROXY=${proxy.origin}`,
+      "--setenv=HOME=/project/user-data", `--setenv=YNX_CORE_SESSION_ID=${context.sessionId}`, "--setenv=YNX_CORE_WORKSPACE=/project/workspace", `--setenv=HTTP_PROXY=${proxy.origin}`, `--setenv=HTTPS_PROXY=${proxy.origin}`,
       `--setenv=http_proxy=${proxy.origin}`, `--setenv=https_proxy=${proxy.origin}`, "--working-directory=/project/workspace", "/opt/openvscode/bin/openvscode-server",
       "--host", "127.0.0.1", "--port", "3000", "--without-connection-token", "--default-folder", "/project/workspace",
       "--user-data-dir", "/project/user-data", "--extensions-dir", "/project/extensions", "--disable-telemetry"]));
