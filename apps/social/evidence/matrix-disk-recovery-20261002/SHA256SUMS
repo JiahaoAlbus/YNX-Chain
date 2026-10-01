@@ -1,0 +1,6 @@
+c8ade7d39742b7fc9be1d6f8197a32df72a9a57b10c18338e5f8d8ad9255122e  apps/social/web/matrix/transport.mjs
+589c79db229c7902835cf41727d97146d8ad585e58298fd2a8b270639cff270e  apps/social/web/matrix/device-reauth.test.mjs
+ffad8b28de02b403d9ec3e2d0ea216f06a132c6818c6ea518e619869b57b7110  apps/social/scripts/matrix-qa/browser.mjs
+37a28ab50bac2e5a71ec58f1a9ca2f334fba745345d90995a33cc6d7513bb2b8  apps/social/evidence/matrix-sso-fallback-20261002/INTEGRATION.md
+482c451b8287970550df7be8be641d9d10eb40be3ca5a64544a6b239d9445ec0  apps/social/evidence/matrix-disk-recovery-20261002/federation-disk-recovery.json
+40bf5d54f47b1ff7158136395aa7604f25771a78cbc6f61d79c88ff6e4705d34  apps/social/evidence/matrix-disk-recovery-20261002/INTEGRATION.md
