@@ -3,7 +3,14 @@ import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';import { promisify } from 'node:util';import { dirname, join } from 'node:path';import { fileURLToPath } from 'node:url';
 import { protectedPath, protectedAncestors } from './native-zfs-quota-helper.mjs';
 const execute=promisify(execFile),GIB=1024**3,ROOT='/etc/ynx-developer',HELPER=ROOT+'/helpers/native-zfs-quota.mjs',ZCONFIG=ROOT+'/native-zfs.json';
-export async function runNativeInstallCommand(exe,params,options,{runner=execute,now=Date.now}={}){
+function executeWithEmptyInput(exe,params,options){
+  const result=execute(exe,params,options);
+  // These fixed noninteractive commands have no input. LXD reads stdin before
+  // creating storage, so explicitly deliver EOF without changing its budget.
+  result.child.stdin?.end();
+  return result;
+}
+export async function runNativeInstallCommand(exe,params,options,{runner=executeWithEmptyInput,now=Date.now}={}){
   const started=now();
   try{return await runner(exe,params,options);}catch(error){
     const phase=exe==='/snap/bin/lxc'?(params[1]==='create'?'lxd-storage-create':'lxd-storage-read'):exe.endsWith('/zpool')?'zpool-'+params[0]:exe.endsWith('/zfs')?'zfs-'+params[0]:exe==='/usr/bin/fallocate'?'project-backing-create':exe==='/usr/bin/id'?'gateway-id-read':exe==='/usr/sbin/visudo'?'sudo-rule-validate':'unknown-command';
