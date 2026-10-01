@@ -27,8 +27,6 @@ jobs:
     env:
       YNX_ANDROID_QA_EPHEMERAL: '1'
       YNX_ANDROID_QA_SERIAL: emulator-5554
-      YNX_ANDROID_QA_APK: ${{ runner.temp }}/ynx-wallet-immutable-1.0.28.apk
-      YNX_ANDROID_QA_RECEIPT: ${{ runner.temp }}/ynx-android-installed-pair-receipt.json
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,6 +38,8 @@ jobs:
       - name: Offline harness regressions (no device or secrets)
         run: node apps/wallet/scripts/android-installed-pair-ui-qa.mjs --self-test
       - name: Download exact public immutable APK (no product rebuild)
+        env:
+          YNX_ANDROID_QA_APK: ${{ runner.temp }}/ynx-wallet-immutable-1.0.28.apk
         run: node apps/wallet/scripts/android-installed-pair-ui-qa.mjs --fetch-apk
       - name: Enable KVM on the disposable hosted runner only
         run: |
@@ -47,6 +47,9 @@ jobs:
           test -c /dev/kvm
           sudo chmod 666 /dev/kvm
       - name: Normal installed browser to WalletKit UI gate
+        env:
+          YNX_ANDROID_QA_APK: ${{ runner.temp }}/ynx-wallet-immutable-1.0.28.apk
+          YNX_ANDROID_QA_RECEIPT: ${{ runner.temp }}/ynx-android-installed-pair-receipt.json
         uses: ReactiveCircus/android-emulator-runner@4c44018e59b437e86cdfc41da381398f93ed8808 # v2
         with:
           api-level: 36
