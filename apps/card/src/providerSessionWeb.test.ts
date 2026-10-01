@@ -26,6 +26,26 @@ function load(values:Map<string,string>,options:Options={}){
   return {api:exports,calls,providerCalls,get navigations(){return navigations},window:w};
 }
 const tick=()=>new Promise(done=>setTimeout(done,0));
+test('selected Hosted approval and Retry reuse that transport without injected fallback',async()=>{
+  const isolated=load(new Map(),{ready:true,provider:'none'}),routes:string[]=[];
+  const hosted={requestProductSessionV2:async(url:string)=>{routes.push(url);return {version:2,returnUrl:'https://card.ynxweb4.com/wallet-auth/callback?result=approved'};}};
+  assert.equal((await isolated.api.beginCardWebSession(false,hosted)).status,'connected');
+  assert.equal((await isolated.api.retryCardWebSession(hosted)).status,'connected');
+  assert.equal(routes.length,2);assert.notEqual(routes[0],routes[1]);assert.equal(isolated.providerCalls.length,0);assert.equal(isolated.navigations,0);
+});
+test('selected Hosted unsupported method cannot silently select injected YNX or revoke a grant',async()=>{
+  const isolated=load(new Map(),{ready:true,provider:'ynx'});
+  const hosted={requestProductSessionV2:async()=>{throw Object.assign(Error('unsupported'),{code:4200});}};
+  await assert.rejects(isolated.api.beginCardWebSession(false,hosted),{code:4200});
+  assert.equal(isolated.providerCalls.length,0);assert.equal(isolated.calls[0]!.returned.length,0);assert.equal(isolated.calls[0]!.disconnected,0);
+});
+test('local context cancellation drops late Hosted approval without SDK revocation',async()=>{
+  const isolated=load(new Map(),{ready:true}),late=deferred<unknown>();let requested=false;
+  const opening=isolated.api.beginCardWebSession(false,{requestProductSessionV2:()=>{requested=true;return late.promise;}});
+  while(!requested)await tick();isolated.api.cancelCardWebSessionAttempt();
+  late.resolve({version:2,returnUrl:'https://card.ynxweb4.com/wallet-auth/callback?result=approved'});
+  await assert.rejects(opening,{code:'CARD_WEB_PRIVATE_CONTEXT_CHANGED'});assert.equal(isolated.calls[0]!.disconnected,0);assert.equal(isolated.calls[0]!.returned.length,0);
+});
 
 test('Finance scope mode restores its own namespace without a new request',async()=>{
   const storage=new Map<string,string>();const first=load(storage);await first.api.beginCardWebSession(true);

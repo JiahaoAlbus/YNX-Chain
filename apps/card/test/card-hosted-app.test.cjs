@@ -52,14 +52,25 @@ test('late Hosted approval after explicit MetaMask choice cannot resurrect the o
   assert.equal(app.props.walletSession,null);assert.notEqual(app.props.standardWalletState.status,'connected');assert.equal(app.props.privateSession,null);
 });
 
-test('standard identity switch invalidates private Card proof use before revocation readback',async t=>{
+test('standard identity switch stops old private proof use without claiming remote revocation',async t=>{
   const revocation=deferred();let disconnects=0;
   const app=await makeMounted(async()=>{throw Error('native factory prohibited')},{platform:'web',webSession:{beginCardWebSession:async()=>({status:'connected',session:{account:'ynx1'+'a'.repeat(38),sessionBinding:'synthetic private binding',expiresAt:'2099-01-01T00:00:00Z'}}),disconnectCardWebSession:()=>{disconnects++;return revocation.promise}},hostedFactory:()=>({connect:()=>Promise.resolve(approved),disconnect:async()=>{},getState:()=>({status:'disconnected'})})});t.after(()=>app.unmount());
   await app.mutate(()=>app.props.enablePrivateServices());
   assert.equal(app.props.privateSession?.state,'PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY');
   await app.mutate(()=>app.props.connectYNXWallet());
-  assert.equal(disconnects,1);assert.equal(app.props.privateSession,null);assert.equal(app.props.providerClient,null);assert.equal(app.props.walletSession.address,account);
+  assert.equal(disconnects,0);assert.equal(app.props.privateSession,null);assert.equal(app.props.providerClient,null);assert.equal(app.props.walletSession.address,account);
   await app.mutate(()=>revocation.resolve({status:'revocation-pending'}));
   assert.equal(app.props.walletSession.address,account);assert.equal(app.props.standardWalletState.status,'connected');
-  assert.equal(app.props.privateSession?.state,'PRIVATE_SERVICE_DEGRADED');
+  assert.equal(app.props.privateSession,null);
+});
+
+test('Hosted popup loss and Standard disconnect preserve approved Card grant; explicit revoke removes it',async t=>{
+  let notify,selected,privateTransport,revoke=0;
+  const privateState={status:'connected',session:{account:'ynx1'+'a'.repeat(38),sessionBinding:'synthetic approved private binding',expiresAt:'2099-01-01T00:00:00Z'}};
+  const app=await makeMounted(async()=>{throw Error('native factory prohibited')},{platform:'web',webSession:{beginCardWebSession:async(_finance,transport)=>{privateTransport=transport;return privateState},disconnectCardWebSession:async()=>{revoke++;return {status:'disconnected'}}},hostedFactory:({onState})=>{notify=onState;selected={connect:async()=>approved,disconnect:async()=>{},getState:()=>approved,requestProductSessionV2:async()=>{throw Error('unused')}};return selected;}});t.after(()=>app.unmount());
+  await app.mutate(()=>app.props.connectYNXWallet());await app.mutate(()=>app.props.enablePrivateServices());assert.equal(privateTransport,selected);
+  await app.mutate(()=>notify({status:'disconnected',account:null,chainId:null,error:'HOSTED_POPUP_CLOSED'}));
+  assert.equal(app.props.walletSession,null);assert.equal(app.props.privateSession.state,'PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY');assert.equal(revoke,0);
+  await app.mutate(()=>app.props.disconnectWallet());assert.equal(app.props.privateSession.state,'PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY');assert.equal(revoke,0);
+  await app.mutate(()=>app.props.disconnectNativeWallet());assert.equal(revoke,1);assert.equal(app.props.privateSession,null);
 });

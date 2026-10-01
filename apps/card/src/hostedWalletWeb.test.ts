@@ -9,12 +9,12 @@ import type {HostedWalletAdapter} from "../vendor/hosted-wallet-adapter-19d8a9a2
 const account="0x"+"a".repeat(40);
 const tick=()=>new Promise<void>(resolve=>setImmediate(resolve));
 function deferred<T>(){let resolve!:(value:T)=>void,reject!:(error:unknown)=>void;const promise=new Promise<T>((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};}
-function harness(options:{chain?:string;onConnect?:()=>Promise<readonly string[]>}={}){
+function harness(options:{chain?:string;onConnect?:()=>Promise<readonly string[]>;request?:(input:{method:string;params?:readonly unknown[]})=>Promise<unknown>}={}){
   const listeners=new Map<string,Set<(...args:readonly unknown[])=>void>>();
   const approval=deferred<readonly string[]>();let opens=0,disconnects=0,restores=0;
   const adapter:HostedWalletAdapter={
     connect:()=>{opens++;return options.onConnect?.()??approval.promise;},
-    request:async input=>input.method==="eth_chainId"?(options.chain??"0x1917"):null,
+    request:async input=>input.method==="eth_chainId"?(options.chain??"0x1917"):options.request?.(input)??null,
     restore:async()=>{restores++;return [];},
     disconnect:async()=>{disconnects++;},revoke:async()=>{},detach:async()=>{},
     on:(name,listener)=>{const list=listeners.get(name)??new Set();list.add(listener);listeners.set(name,list);},
@@ -26,6 +26,24 @@ function harness(options:{chain?:string;onConnect?:()=>Promise<readonly string[]
   return {adapter,controller,approval,emit,states,get opens(){return opens},get disconnects(){return disconnects},get restores(){return restores}};
 }
 
+test("selected Hosted private transport requires approval and forwards only the existing private method",async()=>{
+  const calls:Array<{method:string;params?:readonly unknown[]}>=[];
+  const h=harness({onConnect:async()=>[account],request:async input=>{calls.push(input);return {version:2,returnUrl:"synthetic"};}});
+  const route="ynxwallet://authorize?request=synthetic-payload";
+  await assert.rejects(h.controller.requestProductSessionV2(route),{code:"CARD_WEB_PRIVATE_TRANSPORT_UNAVAILABLE"});
+  await h.controller.connect();
+  await assert.rejects(h.controller.requestProductSessionV2("ynxwallet://authorize"),{code:"CARD_WALLET_ROUTE_INVALID"});
+  assert.deepEqual(await h.controller.requestProductSessionV2(route),{version:2,returnUrl:"synthetic"});
+  assert.deepEqual(calls,[{method:"ynx_requestProductSessionV2",params:[route]}]);await h.controller.disconnect();
+});
+test("selected Hosted request discards old-account completion and preserves unsupported method errors",async()=>{
+  const late=deferred<unknown>();const h=harness({onConnect:async()=>[account],request:async()=>late.promise});
+  await h.controller.connect();const pending=h.controller.requestProductSessionV2("ynxwallet://authorize?request=synthetic");
+  h.emit("accountsChanged",["0x"+"b".repeat(40)]);late.resolve({version:2});
+  await assert.rejects(pending,{code:"CARD_WEB_PRIVATE_CONTEXT_CHANGED"});
+  const unsupported=harness({onConnect:async()=>[account],request:async()=>{throw Object.assign(Error("unsupported"),{code:4200});}});
+  await unsupported.controller.connect();await assert.rejects(unsupported.controller.requestProductSessionV2("ynxwallet://authorize?request=synthetic"),{code:4200});await unsupported.controller.disconnect();
+});
 test("Card vendors the byte-identical accepted Wallet-owned adapter, not a Card signer",()=>{
   const bytes=readFileSync(new URL("../vendor/hosted-wallet-adapter-19d8a9a2.js",import.meta.url));
   assert.equal(bytes.length,11468);

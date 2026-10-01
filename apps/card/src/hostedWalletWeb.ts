@@ -3,7 +3,7 @@ import {createHostedWalletAdapter, type HostedWalletAdapter} from "../vendor/hos
 const CHAIN_ID="0x1917";
 const ACCOUNT=/^0x[0-9a-f]{40}$/i;
 export type CardHostedState=Readonly<{status:"disconnected"|"connecting"|"connected"|"rejected"|"unavailable"|"wrong-chain";account:string|null;chainId:string|null;error:string|null}>;
-export type CardHostedWalletController=Readonly<{connect:()=>Promise<CardHostedState>;switchAccount:()=>Promise<CardHostedState>;disconnect:()=>Promise<CardHostedState>;getState:()=>CardHostedState}>;
+export type CardHostedWalletController=Readonly<{connect:()=>Promise<CardHostedState>;switchAccount:()=>Promise<CardHostedState>;disconnect:()=>Promise<CardHostedState>;getState:()=>CardHostedState;requestProductSessionV2:(authorizeURL:string)=>Promise<unknown>}>;
 type AdapterFactory=(input:{window:Window})=>HostedWalletAdapter;
 
 function codeOf(error:unknown):string {
@@ -80,5 +80,15 @@ export function createCardHostedWalletController(input:{window:Window;onState?:(
     generation++;detach();cancel(publish("disconnected"));
     return connect(); // Opens the new official popup in the same click stack.
   };
-  return Object.freeze({connect,switchAccount,disconnect,getState:()=>state});
+  const requestProductSessionV2=async(authorizeURL:string):Promise<unknown>=>{
+    const selected=adapter,token=generation,account=state.account;
+    if(!selected||state.status!=="connected"||!account||state.chainId!==CHAIN_ID)throw Object.assign(Error("CARD_WEB_PRIVATE_TRANSPORT_UNAVAILABLE"),{code:"CARD_WEB_PRIVATE_TRANSPORT_UNAVAILABLE"});
+    let route:URL;try{route=new URL(authorizeURL)}catch{throw Object.assign(Error("CARD_WALLET_ROUTE_INVALID"),{code:"CARD_WALLET_ROUTE_INVALID"})}
+    if(authorizeURL.length>16384||route.protocol!=="ynxwallet:"||route.hostname!=="authorize"||route.username||route.password||route.hash||route.searchParams.size!==1||route.searchParams.getAll("request").length!==1||!route.searchParams.get("request"))throw Object.assign(Error("CARD_WALLET_ROUTE_INVALID"),{code:"CARD_WALLET_ROUTE_INVALID"});
+    // This is the existing Wallet-owned private method, never a browser navigation.
+    const result=await selected.request({method:"ynx_requestProductSessionV2",params:[authorizeURL]});
+    if(token!==generation||adapter!==selected||state.status!=="connected"||state.account!==account||state.chainId!==CHAIN_ID)throw Object.assign(Error("CARD_WEB_PRIVATE_CONTEXT_CHANGED"),{code:"CARD_WEB_PRIVATE_CONTEXT_CHANGED"});
+    return result;
+  };
+  return Object.freeze({connect,switchAccount,disconnect,getState:()=>state,requestProductSessionV2});
 }
