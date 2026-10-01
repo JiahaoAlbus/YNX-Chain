@@ -6,7 +6,7 @@ import {sha256} from '@noble/hashes/sha2.js';
 import {hexToBytes,utf8ToBytes} from '@noble/hashes/utils.js';
 import {canonicalJSON,exactFields,WalletAuthError} from './canonical.js';
 import {walletIdentityFromPublicKey} from './crypto.js';
-import {CENTRAL_BROWSER_ISSUER,centralBrowserClient} from './central-browser-session-registry.js';
+import {CENTRAL_BROWSER_ISSUER,centralBrowserClient,centralBrowserProfiles,centralBrowserApprovedProfile} from './central-browser-session-registry.js';
 import {CENTRAL_BROWSER_PURPOSE,centralBrowserConsentSignBytes,parseCentralBrowserSignInApproval} from './central-browser-session-contract.js';
 export {centralBrowserConsentSignBytes,CENTRAL_BROWSER_PURPOSE} from './central-browser-session-contract.js';
 
@@ -68,18 +68,33 @@ export class CentralBrowserSessionAuthority {
       const previous=token(previousSessionToken)?state.sessions.find(value=>equal(value.tokenHash,hash(previousSessionToken))):null;
       if(previous){previous.revoked=true;previous.generation++;}
       const sessionToken=this.#token(),session={id:this.#token(),tokenHash:hash(sessionToken),account:approval.account,
-        accountPublicKey:approval.accountPublicKey,generation:1,createdAt:now,lastSeenAt:now,expiresAt:now+SESSION_ABSOLUTE,revoked:false};
+        accountPublicKey:approval.accountPublicKey,approvedClients:structuredClone(challenge.clients),approvedProfile:centralBrowserApprovedProfile(this.#registry,challenge.clients,challenge.initiator.clientId).id,generation:1,createdAt:now,lastSeenAt:now,expiresAt:now+SESSION_ABSOLUTE,revoked:false};
       state.sessions.push(session);record.consumed=true;record.createdSessionId=session.id;
       return {sessionToken,identity:this.#identity(session),initiator:challenge.initiator};
+    });
+  }
+  replaceProfile(challengeId,profileId,transactionToken){
+    if(!token(challengeId)||!token(transactionToken)||![3,5,6].includes(profileId))fail('SSO_TRANSACTION_INVALID');
+    return this.#transaction((state,now)=>{
+      const record=state.challenges.find(r=>r.challenge.challengeId===challengeId),old=record?.challenge;
+      if(!old||record.consumed||Date.parse(old.expiresAt)<=now)fail('SSO_CHALLENGE_EXPIRED');
+      if(!equal(old.browserBinding,hash(transactionToken)))fail('SSO_BROWSER_MISMATCH');
+      const profile=centralBrowserProfiles(this.#registry).find(p=>p.id===profileId);
+      if(!profile||!profile.clients.some(c=>c.clientId===old.initiator.clientId))fail('SSO_CLIENTS_MISMATCH');
+      const attempted=record.attemptedProfiles??[centralBrowserApprovedProfile(this.#registry,old.clients,old.initiator.clientId).id];
+      if(attempted.includes(profileId)||profileId>=Math.min(...attempted))fail('SSO_PROFILE_REPLAY');
+      record.consumed=true;
+      const challenge={...old,challengeId:this.#token(),nonce:this.#token(),clients:profile.clients};
+      state.challenges.push({challenge,consumed:false,lineageId:record.lineageId??old.challengeId,attemptedProfiles:[...attempted,profileId]});
+      return {challenge};
     });
   }
   cancel(challengeId,transactionToken){
     if(!token(transactionToken)||!token(challengeId))fail('SSO_BROWSER_BINDING_REQUIRED');
     return this.#transaction(state=>{const record=state.challenges.find(value=>value.challenge.challengeId===challengeId);
       if(!record||!equal(record.challenge.browserBinding,hash(transactionToken)))fail('SSO_BROWSER_MISMATCH');
-      const created=record.createdSessionId?state.sessions.find(value=>value.id===record.createdSessionId):null;
-      if(created&&!created.revoked){created.revoked=true;created.generation++;}
-      record.consumed=true;
+      const lineageId=record.lineageId??record.challenge.challengeId;
+      for(const linked of state.challenges){if((linked.lineageId??linked.challenge.challengeId)!==lineageId||linked.challenge.browserBinding!==record.challenge.browserBinding||canonicalJSON(linked.challenge.initiator)!==canonicalJSON(record.challenge.initiator))continue;const created=linked.createdSessionId?state.sessions.find(value=>value.id===linked.createdSessionId):null;if(created&&!created.revoked){created.revoked=true;created.generation++;}linked.consumed=true;}
       const redirect=new URL(record.challenge.initiator.redirectUri);redirect.searchParams.set('error','access_denied');redirect.searchParams.set('state',record.challenge.initiator.state);
       return {cancelled:true,redirectUri:redirect.href};});
   }
@@ -89,7 +104,7 @@ export class CentralBrowserSessionAuthority {
   authorize(initiator,sessionToken){
     const client=this.#initiator(initiator);
     return this.#transaction((state,now)=>{
-      const session=this.#active(state,sessionToken,now);
+      const session=this.#active(state,sessionToken,now);this.#approved(state,session,client.clientId);
       if(state.codes.some(value=>value.sessionId===session.id&&value.clientId===client.clientId&&value.state===initiator.state))fail('SSO_TRANSACTION_REPLAY');
       const code=this.#token();
       state.codes.push({codeHash:hash(code),sessionId:session.id,generation:session.generation,clientId:client.clientId,
@@ -110,7 +125,7 @@ export class CentralBrowserSessionAuthority {
       if(code.clientId!==client.clientId||code.origin!==client.origin||code.redirectUri!==client.redirectUri||code.state!==input.state)fail('SSO_CODE_BINDING_MISMATCH');
       if(!equal(code.codeChallenge,createHash('sha256').update(input.codeVerifier).digest('base64url')))fail('SSO_PKCE_MISMATCH');
       const session=state.sessions.find(value=>value.id===code.sessionId);this.#assertActive(session,now);
-      if(session.generation!==code.generation)fail('SSO_GENERATION_REVOKED');
+      if(session.generation!==code.generation)fail('SSO_GENERATION_REVOKED');this.#approved(state,session,client.clientId);if(code.audience!==client.audience||canonicalJSON(code.scopes)!==canonicalJSON(client.scopes))fail('SSO_CODE_BINDING_MISMATCH');
       const grantToken=this.#token(),grant={tokenHash:hash(grantToken),sessionId:session.id,generation:session.generation,
         clientId:client.clientId,origin:client.origin,audience:client.audience,scopes:[...client.scopes],expiresAt:Math.min(now+GRANT_LIFETIME,session.expiresAt),revoked:false};
       state.grants.push(grant);code.consumed=true;
@@ -123,7 +138,7 @@ export class CentralBrowserSessionAuthority {
       const grant=state.grants.find(value=>equal(value.tokenHash,hash(grantToken)));
       if(!grant||grant.revoked||grant.expiresAt<=now||grant.clientId!==clientId)fail('SSO_GRANT_INVALID');
       const session=state.sessions.find(value=>value.id===grant.sessionId);this.#assertActive(session,now);
-      if(session.generation!==grant.generation)fail('SSO_GENERATION_REVOKED');
+      if(session.generation!==grant.generation)fail('SSO_GENERATION_REVOKED');const approved=this.#approved(state,session,clientId);if(grant.origin!==approved.origin||grant.audience!==approved.audience||canonicalJSON(grant.scopes)!==canonicalJSON(approved.scopes))fail('SSO_GRANT_INVALID');
       session.lastSeenAt=now;
       return {identity:this.#identity(session),audience:grant.audience,scopes:[...grant.scopes],expiresAt:iso(grant.expiresAt)};
     });
@@ -145,6 +160,19 @@ export class CentralBrowserSessionAuthority {
       return {revoked:true};
     });
   }
+  #approved(state,session,clientId){
+    const proof=state.challenges.find(r=>r.consumed&&r.createdSessionId===session.id);
+    if(!session.approvedClients){
+      if(!proof)fail('SSO_LOGIN_REQUIRED');
+      const profile=centralBrowserApprovedProfile(this.#registry,proof.challenge.clients,proof.challenge.initiator.clientId);
+      session.approvedClients=structuredClone(profile.clients);session.approvedProfile=profile.id;
+    }
+    const profile=centralBrowserProfiles(this.#registry).find(p=>p.id===session.approvedProfile&&canonicalJSON(p.clients)===canonicalJSON(session.approvedClients));
+    if(!profile)fail('SSO_LOGIN_REQUIRED');
+    const client=profile.clients.find(c=>c.clientId===clientId);
+    if(!client)fail('SSO_LOGIN_REQUIRED');
+    return client;
+  }
   #initiator(input){
     exactFields(input,['clientId','origin','redirectUri','state','codeChallenge','codeChallengeMethod'],'Central browser initiator');
     const client=centralBrowserClient(this.#registry,{clientId:input.clientId,origin:input.origin,redirectUri:input.redirectUri});
@@ -155,7 +183,7 @@ export class CentralBrowserSessionAuthority {
     const now=this.#now();if(!Number.isSafeInteger(now)||now<state.clockHighWaterMs)fail('SSO_CLOCK_ROLLBACK');state.clockHighWaterMs=now;
     // Bounded tombstone retention: removing already expired identifiers still
     // rejects their replay; never remove a live session or linked live grant.
-    state.challenges=state.challenges.filter(value=>Date.parse(value.challenge.expiresAt)+300000>now);
+    state.challenges=state.challenges.filter(value=>Date.parse(value.challenge.expiresAt)+300000>now||value.createdSessionId&&state.sessions.some(s=>s.id===value.createdSessionId&&!s.revoked&&s.expiresAt+GRANT_LIFETIME+300000>now));
     state.codes=state.codes.filter(value=>value.expiresAt+300000>now);
     state.grants=state.grants.filter(value=>value.expiresAt+300000>now);
     state.sessions=state.sessions.filter(value=>value.expiresAt+GRANT_LIFETIME+300000>now);
@@ -170,7 +198,7 @@ function fail(code){throw new WalletAuthError(code,'Central browser authorizatio
 export const CENTRAL_BROWSER_ROUTES=Object.freeze([
   '/sso/browser.js','/sso/session',
   '/v2/browser-sessions/bootstrap','/v2/browser-sessions/challenge','/v2/browser-sessions/complete',
-  '/v2/browser-sessions/cancel','/v2/browser-sessions/status','/v2/browser-sessions/authorize',
+  '/v2/browser-sessions/cancel','/v2/browser-sessions/profile','/v2/browser-sessions/status','/v2/browser-sessions/authorize',
   '/v2/browser-sessions/token','/v2/browser-sessions/introspect','/v2/browser-sessions/logout','/v2/browser-sessions/logout-grant',
 ]);
 export class CentralBrowserSessionNodeRoutes {
@@ -231,6 +259,7 @@ export class CentralBrowserSessionNodeRoutes {
       }
       const input=json();if(!backend)csrf();
       if(path==='/v2/browser-sessions/challenge')return this.#reply(200,this.#authority.challenge(input,transaction));
+      if(path==='/v2/browser-sessions/profile'){exactFields(input,['challengeId','profile'],'Central profile replacement');return this.#reply(200,this.#authority.replaceProfile(input.challengeId,input.profile,transaction));}
       if(path==='/v2/browser-sessions/complete'){
         const result=this.#authority.complete(input,transaction,session);
         // Central long-lived cookie is never returned in a JSON token field.

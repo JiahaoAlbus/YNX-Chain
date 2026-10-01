@@ -1,10 +1,11 @@
 import {CENTRAL_UI_LANGUAGES,centralUILanguage,centralUIText} from './central-browser-session-locale.js';
 import {canonicalJSON} from './canonical.js';
+import {centralBrowserProfiles} from './central-browser-session-registry.js';
 import {evmAddressFromYNX} from './crypto.js';
 import {StandardWalletConnection} from './standard-wallet-connection.js';
 import {METAMASK_EVM_CHAIN} from './metamask-evm-adapter.js';
 import {createWalletProviderDiscovery,WALLET_PROVIDER_KIND} from './wallet-provider-discovery.js';
-import {parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval} from './central-browser-session-contract.js';
+import {parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval,approveCentralBrowserProfile} from './central-browser-session-contract.js';
 import {WalletConnectDAppConnection} from './walletconnect-dapp-connection.js';
 import QRCode from 'qrcode';
 import {createHostedWalletAdapter} from '../../../apps/wallet-web/src/hosted-adapter.js';
@@ -30,9 +31,10 @@ if(context.mode==='session'){
   button.addEventListener('click',async()=>{if(pending)return;pending=true;button.disabled=true;button.setAttribute('aria-busy','true');try{const boot=await read('bootstrap');await read('logout',{method:'POST',headers:{'content-type':'application/json','x-ynx-browser-csrf':boot.sessionCsrfToken},body:canonicalJSON({})});status.textContent=t('Signed out of all YNX products.');}catch{status.textContent=t('Global sign-out is not confirmed. Retry; no successful revocation is assumed.');button.disabled=false;}finally{pending=false;button.removeAttribute('aria-busy');}});
   window.addEventListener('focus',()=>{if(!pending)void refresh();});void refresh();
 }else{
-const challenge=parseCentralBrowserSignInChallenge(context.challenge,context.registry,{peerOrigin:location.origin});
+let challenge=parseCentralBrowserSignInChallenge(context.challenge,context.registry,{peerOrigin:location.origin});
 const requestingSite=document.createElement('p'),siteLabel=document.createElement('span');requestingSite.id='requesting-site';siteLabel.textContent=t('Requesting site');requestingSite.append(siteLabel,': '+challenge.initiator.origin);document.querySelector('h1').after(requestingSite);
 const picker=document.getElementById('wallet'),approve=document.getElementById('approve'),cancel=document.getElementById('cancel'),status=document.getElementById('status');
+const profileInfo=document.createElement('p');profileInfo.id='approved-client-list';status.before(profileInfo);const renderApprovedProfile=()=>{profileInfo.textContent=t('Apps in this approval:')+' '+challenge.clients.map(c=>new URL(c.origin).hostname).join(', ');};renderApprovedProfile();
 const choices=document.createElement('div');choices.id='wallet-choices';choices.setAttribute('role','group');choices.setAttribute('aria-label',t('Choose YNX Wallet'));picker.before(choices);picker.hidden=true;document.querySelector('label[for="wallet"]').hidden=true;
 const connectionStyle=document.createElement('style');connectionStyle.textContent='body{background:#f4f7ff}main{background:white;border:1px solid #e0e7f6;border-radius:24px;box-shadow:0 16px 60px #002fa70a}h1{font-size:28px;line-height:1.3;color:#002FA7}#wallet-choices{display:grid;gap:10px;margin:24px 0 10px}#wallet-choices button,#pair,#hosted{width:100%;margin:0 0 10px;text-align:left;background:#fff;color:#122247;border:1px solid #dce5f7;font:inherit;font-weight:600}#wallet-choices button[aria-pressed="true"]{border-color:#002FA7;background:#edf3ff;color:#002FA7}#pair-request{padding:18px;background:#f3f7ff;border-radius:16px;text-align:center}#pair-request canvas{max-width:100%;height:auto}#pair-open{display:inline-flex;align-items:center;justify-content:center;background:#002FA7;color:#fff;text-decoration:none;margin:12px 0}#pair-open[hidden],#pair-request[hidden]{display:none}#status{padding:12px 0;color:#344b72}#cancel{background:#edf2fc;color:#002FA7}#language{max-width:200px;border:1px solid #dce5f7;border-radius:10px;padding:8px}';document.head.append(connectionStyle);
 const discovery=createWalletProviderDiscovery(window);
@@ -48,7 +50,7 @@ const message=value=>{status.textContent=t(value);};
 // pairing URI, request bodies or credentials. Public QA can inspect these
 // stable fields without logging the SDK's potentially sensitive error object.
 const failure=(error,phase)=>{
-  const known=new Set(['YNX_PAIR_TIMEOUT','YNX_PAIR_CANCELLED','YNX_PAIR_CONFIGURATION_INVALID','YNX_PAIR_SESSION_EXPIRED','YNX_PAIR_PEER_INVALID','YNX_PAIR_NAMESPACE_INVALID','YNX_PAIR_CHAIN_INVALID','YNX_PAIR_SESSION_SELECTION_REQUIRED','YNX_PAIR_METHOD_NOT_APPROVED','YNX_PAIR_CONTEXT_CHANGED','SSO_CONTEXT_CHANGED','SSO_CHALLENGE_EXPIRED','SSO_REQUEST_TIMEOUT','SSO_CSRF_MISMATCH','SSO_TRANSACTION_EXPIRED','SSO_LOGIN_REQUIRED','SSO_REQUEST_FAILED','PROVIDER_WRONG_CHAIN','HOSTED_POPUP_BLOCKED','HOSTED_POPUP_CLOSED','HOSTED_REQUEST_TIMEOUT','HOSTED_REQUEST_EXPIRED_OR_RELOADED','HOSTED_DISCONNECTED','HOSTED_ORIGIN_UNREGISTERED','HOSTED_METHOD_INVALID','HOSTED_REQUEST_FAILED']);
+  const known=new Set(['YNX_PAIR_TIMEOUT','YNX_PAIR_CANCELLED','YNX_PAIR_CONFIGURATION_INVALID','YNX_PAIR_SESSION_EXPIRED','YNX_PAIR_PEER_INVALID','YNX_PAIR_NAMESPACE_INVALID','YNX_PAIR_CHAIN_INVALID','YNX_PAIR_SESSION_SELECTION_REQUIRED','YNX_PAIR_METHOD_NOT_APPROVED','YNX_PAIR_CONTEXT_CHANGED','SSO_CLIENTS_MISMATCH','SSO_PROFILE_REPLAY','SSO_CONTEXT_CHANGED','SSO_CHALLENGE_EXPIRED','SSO_REQUEST_TIMEOUT','SSO_CSRF_MISMATCH','SSO_TRANSACTION_EXPIRED','SSO_LOGIN_REQUIRED','SSO_REQUEST_FAILED','PROVIDER_WRONG_CHAIN','HOSTED_POPUP_BLOCKED','HOSTED_POPUP_CLOSED','HOSTED_REQUEST_TIMEOUT','HOSTED_REQUEST_EXPIRED_OR_RELOADED','HOSTED_DISCONNECTED','HOSTED_ORIGIN_UNREGISTERED','HOSTED_METHOD_INVALID','HOSTED_REQUEST_FAILED']);
   const raw=typeof error?.code==='string'?error.code:typeof error?.message==='string'?error.message:'';
   for(const stage of ['INITIALIZATION','RELAY','APPROVAL','REQUEST','CLEANUP'])for(const suffix of ['TIMEOUT','UNAVAILABLE'])known.add(`YNX_PAIR_${stage}_${suffix}`);known.add('YNX_PAIR_TRANSPORT_DRAINING');
   const code=Number(error?.code)===4001||error?.code==='USER_REJECTED'?'USER_REJECTED':known.has(raw)?raw:error?.name==='AbortError'?'SSO_SERVICE_TIMEOUT':error?.name==='TypeError'?'SSO_TRANSPORT_UNAVAILABLE':'SSO_WALLET_OR_SERVICE_UNAVAILABLE';
@@ -104,6 +106,15 @@ const request=async(path,input)=>{
     const value=await response.json();if(!response.ok)throw new Error(value.error?.code??'SSO_REQUEST_FAILED');return value;
   }finally{clearTimeout(timer);}
 };
+const compatibility=document.createElement('details'),compatibilitySummary=document.createElement('summary'),compatibilityOptions=document.createElement('div');
+compatibility.id='wallet-compatibility';compatibilitySummary.textContent=t('Connection trouble?');compatibility.append(compatibilitySummary,compatibilityOptions);profileInfo.after(compatibility);
+const productNames=clients=>clients.map(c=>context.registry.find(x=>x.clientId===c.clientId)?.productId).map(id=>({finance:'YNX Finance',exchange:'YNX Exchange',quant:'YNX Quant',social:'YNX Social',ai:'YNX AI',developer:'YNX Developer'})[id]).join(', ');
+const renderCompatibility=()=>{compatibilityOptions.replaceChildren();for(const profile of centralBrowserProfiles(context.registry).filter(p=>p.id<challenge.clients.length&&p.clients.some(c=>c.clientId===challenge.initiator.clientId))){
+ const option=document.createElement('button'),included=document.createElement('p'),omitted=document.createElement('p');option.type='button';option.dataset.compatibleApps=String(profile.id);option.textContent=t('Use older YNX Wallet compatibility');included.textContent=t('This approval includes:')+' '+productNames(profile.clients);omitted.textContent=t('Update YNX Wallet to include:')+' '+productNames(context.registry.filter(c=>!profile.clients.some(x=>x.clientId===c.clientId)));compatibilityOptions.append(included,omitted,option);
+ option.addEventListener('click',()=>{if(cancelled||pending||pairPending||hostedPending)return;const old=challenge,provider=selected,epoch=++revision;for(const button of compatibilityOptions.querySelectorAll('button'))button.disabled=true;approve.disabled=true;
+  const task=(async()=>{const response=await request('profile',{challengeId:old.challengeId,profile:profile.id});if(cancelled||epoch!==revision||selected!==provider)throw new Error('SSO_CONTEXT_CHANGED');const next=parseCentralBrowserSignInChallenge(response.challenge,context.registry,{peerOrigin:location.origin});if(next.expiresAt!==old.expiresAt||next.issuedAt!==old.issuedAt||next.browserBinding!==old.browserBinding||canonicalJSON(next.initiator)!==canonicalJSON(old.initiator)||next.clients.length!==profile.id)throw new Error('SSO_CONTEXT_CHANGED');challenge=next;renderApprovedProfile();renderCompatibility();message('Compatibility selected. Review the listed apps in YNX Wallet.');})().catch(async error=>{if(cancelled||epoch!==revision||selected!==provider){try{await request('cancel',{challengeId:old.challengeId});}catch{}return;}failure(error,'compatibility');message('Compatibility could not be selected. Return to your product and start a new sign-in.');}).finally(()=>{if(pending===task)pending=null;if(!cancelled&&epoch===revision){approve.disabled=!selected;for(const button of compatibilityOptions.querySelectorAll('button'))button.disabled=false;}});pending=task;
+ });
+}compatibility.hidden=compatibilityOptions.children.length===0;};renderCompatibility();
 function connectInstalledWallet(provider){
  if(cancelled||pending||pairPending||hostedPending)return;const epoch=revision;
  const connection=new StandardWalletConnection({provider,origin:location.origin,metadata:{name:'YNX browser sign-in',url:location.origin}});
@@ -146,7 +157,11 @@ approve.addEventListener('click',()=>{
     if(!account||chain!==METAMASK_EVM_CHAIN.chainId)throw new Error('PROVIDER_WRONG_CHAIN');
     unsubscribe=connection.subscribe(event=>{if(['accountsChanged','chainChanged','disconnect'].includes(event.event))changed();});
     status.dataset.phase='wallet-approval';
-    const approval=parseCentralBrowserSignInApproval(await walletWait(provider.request({method:'ynx_requestCentralBrowserSignIn',params:[challenge]})));assert();
+    const negotiated=await approveCentralBrowserProfile({challenge,registry:context.registry,
+      requestApproval:value=>walletWait(provider.request({method:'ynx_requestCentralBrowserSignIn',params:[value]})),
+      replaceProfile:(challengeId,profile)=>request('profile',{challengeId,profile}),assertCurrent:assert,
+      onProfile:value=>{challenge=value;renderApprovedProfile();renderCompatibility();}});
+    const approval=negotiated.approval;assert();
     status.dataset.phase='wallet-recheck';
     const current=await walletWait(provider.request({method:'eth_accounts'})),currentChain=await walletWait(provider.request({method:'eth_chainId'}));assert();
     if(!Array.isArray(current)||current[0]?.toLowerCase()!==account||currentChain!==chain||approval.challengeId!==challenge.challengeId||evmAddressFromYNX(approval.account).toLowerCase()!==account)throw new Error('SSO_CONTEXT_CHANGED');

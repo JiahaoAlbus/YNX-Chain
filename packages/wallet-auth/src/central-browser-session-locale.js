@@ -10,6 +10,13 @@ export function centralUILanguage(value){
   return 'en';
 }
 const rows=[
+ ['Connection trouble?','连接有问题？','連接有問題？'],
+ ['Use older YNX Wallet compatibility','使用旧版 YNX Wallet 兼容连接','使用舊版 YNX Wallet 相容連接'],
+ ['This approval includes:','本次批准包含：','本次批准包含：'],
+ ['Update YNX Wallet to include:','更新 YNX Wallet 后可接入：','更新 YNX Wallet 後可接入：'],
+ ['Compatibility selected. Review the listed apps in YNX Wallet.','兼容连接已选定。请在 YNX Wallet 核对列出的应用。','相容連接已選定。請在 YNX Wallet 核對列出的應用。'],
+ ['Compatibility could not be selected. Return to your product and start a new sign-in.','兼容连接未完成。请返回应用并重新登录。','相容連接未完成。請返回應用並重新登入。'],
+ ['Apps in this approval:','本次批准的应用：','本次批准的應用：'],
  ['Connection details','连接详情','連接詳情'],
  ['Wallet Web connection did not finish. Retry or cancel.','网页版钱包连接未完成。请重试或取消。','網頁版錢包連接未完成。請重試或取消。'],
  ['Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.','手机钱包连接未完成，尚未登录。请重试或取消。','手機錢包連接未完成，尚未登入。請重試或取消。'],
