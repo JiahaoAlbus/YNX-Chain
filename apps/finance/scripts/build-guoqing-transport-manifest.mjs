@@ -1,38 +1,58 @@
 #!/usr/bin/env node
-// Finance source candidate only; not public endpoint or installed Wallet proof.
+// Reproducible source closure only. This cannot authorize deployment or a Wallet.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {readFileSync,writeFileSync} from 'node:fs';
-import {dirname,resolve} from 'node:path';
+import {dirname,resolve,relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const web=resolve(dirname(fileURLToPath(import.meta.url)),'../web'),root=resolve(web,'../../..');
-const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
-const frozen=execFileSync('git',['show','1d70d3712:apps/finance/web/wallet-verifier-manifest.json'],{cwd:root});
-assert.equal(sha(frozen),'73dec50123b34da6be72d33afc851a470a1e5b9a175daff1a5b78189ab2c4cd5');
-const prior=JSON.parse(frozen),candidatePath=process.argv[2]??'../evidence/evm-read-runtime-verifier-candidate-guoqing-hosted-native-d334806c-20261001.json';
-const candidatePin=process.argv[3]??'0aa296f795b703377b1373841787e9ff531ff9e9d61353156ec642557b6e2fe6';
-assert.ok(process.argv.length===2||process.argv.length===4,'supply both successor candidate path and reviewed SHA256');
-assert.match(candidatePath,/^\.\.\/evidence\/evm-read-runtime-verifier-candidate-[a-z0-9-]+\.json$/u);assert.match(candidatePin,/^[0-9a-f]{64}$/u);
-const candidate=readFileSync(resolve(web,candidatePath));
-assert.equal(sha(candidate),candidatePin);
+const source='012a2158d4bde9c95b93daaf5db413400c64b868',predecessorPin='ef9d7231f509dd1a28e61d98ba0675052cff6fd162ce35614c58f6f083e26b56';
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex'),read=p=>readFileSync(resolve(root,p));
+const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
+const frozen=execFileSync('git',['show',`${source}:apps/finance/web/wallet-verifier-manifest.json`],{cwd:root});assert.equal(sha(frozen),predecessorPin);
+const prior=JSON.parse(frozen),candidatePath=prior.evmRead.candidatePath,candidateFull=relative(root,resolve(web,candidatePath));
+const candidate=JSON.parse(execFileSync('git',['show',`${source}:${candidateFull}`],{cwd:root}));
 const {build,version}=createRequire(resolve(web,'package.json'))('esbuild');assert.equal(version,'0.25.9');
-const options={absWorkingDir:web,entryPoints:[resolve(web,'wallet-auth-entry.js')],bundle:true,minify:true,platform:'browser',target:'es2022',write:false};
-const [first,second]=await Promise.all([build(options),build(options)]),bundle=readFileSync(resolve(web,'wallet-auth.js'));
-assert.deepEqual(Buffer.from(first.outputFiles[0].contents),Buffer.from(second.outputFiles[0].contents));
-assert.deepEqual(Buffer.from(first.outputFiles[0].contents),bundle);
-const changed=new Set(['wallet-auth-entry.js','private-wallet-entry.js','endpoint-authority-entry.js','wallet-auth.js','evm-read-session.js','index.html','app.js','finance-locale.js','styles.css','verify-evm-read-candidate.mjs','hosted-wallet-controller.js','private-subject-boundary.js']);
-const files=prior.files.map(item=>{
-  const path=item.path===prior.evmRead.candidatePath?candidatePath:item.path,bytes=readFileSync(resolve(web,path));
-  if(path===item.path&&!changed.has(path)){assert.equal(bytes.length,item.bytes,path);assert.equal(sha(bytes),item.sha256,path)}
-  return {path,bytes:bytes.length,sha256:sha(bytes)};
-});
-const path='../../../packages/wallet-auth/src/wallet-provider-discovery.js',bytes=readFileSync(resolve(web,path));files.push({path,bytes:bytes.length,sha256:sha(bytes)});
-const hostedPath='../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js',hostedBytes=readFileSync(resolve(web,hostedPath));
-assert.equal(hostedBytes.length,12659);assert.equal(sha(hostedBytes),'2567f4ec0958852ef27ee382067b6b104e33fe5dc3feba3aa94d710caa7f2c0a');
-files.push({path:hostedPath,bytes:hostedBytes.length,sha256:sha(hostedBytes)});
-const manifest={...prior,evmRead:{candidatePath,candidateBytes:candidate.length,candidateSha256:sha(candidate)},sourceBundleRelation:{byteReproducible:true,status:'VERIFIED_REPRODUCIBLE',cleanBuildCount:2,bytes:bundle.length,sha256:sha(bundle)},files};
-const body=Buffer.from(`${JSON.stringify(manifest,null,2)}\n`);
-writeFileSync(resolve(web,'wallet-verifier-manifest.json'),body);
-console.log(JSON.stringify({status:'source-candidate-only',manifestSha256:sha(body),walletBytes:bundle.length,walletSha256:sha(bundle),publicRuntimeVerified:false}));
+const write=(p,bytes)=>writeFileSync(resolve(root,p),bytes),json=x=>Buffer.from(JSON.stringify(x,null,2)+'\n');
+async function twice(options){const [a,b]=await Promise.all([build({...options,write:false,metafile:true}),build({...options,write:false,metafile:true})]);assert.equal(a.outputFiles.length,1);assert.deepEqual(Buffer.from(a.outputFiles[0].contents),Buffer.from(b.outputFiles[0].contents));assert.deepEqual(Object.keys(a.metafile.inputs).sort(),Object.keys(b.metafile.inputs).sort());return a}
+const graphHash=paths=>sha(paths.map(p=>`${p}\0${sha(read(p))}\n`).join(''));
+// These two EVM authorities MUST remain entry + Wallet/Auth + Noble only.
+for(const [i,options] of [{bundle:true,minify:true,platform:'browser',target:'es2022'},{bundle:true,platform:'node',target:'node22',format:'esm'}].entries()){
+ const old=candidate.sourceBundleRelations[i],built=await twice({absWorkingDir:root,entryPoints:[old.entry],...options}),paths=Object.keys(built.metafile.inputs).sort();
+ for(const p of paths)assert.ok(p===old.entry||p==='packages/wallet-auth/product-session-registry.json'||p.startsWith('packages/wallet-auth/src/')||p.startsWith('packages/wallet-auth/node_modules/@noble/'),`EVM Noble-only graph rejected ${p}`);
+ const bytes=Buffer.from(built.outputFiles[0].contents);write(old.bundle,bytes);
+ candidate.sourceBundleRelations[i]={...old,dependencyGraphInputs:paths.length,repositoryGraphInputs:paths.filter(p=>!p.includes('/node_modules/')).length,lockedDependencyGraphInputs:paths.filter(p=>p.includes('/node_modules/')).length,dependencyGraphSha256:graphHash(paths),bundleBytes:bytes.length,bundleSha256:sha(bytes)};
+}
+const central=candidate.centralPairBundle,base=resolve(root,'packages/wallet-auth');
+const centralBuild=await twice({absWorkingDir:base,entryPoints:['src/central-browser-session-browser.js'],bundle:true,platform:'browser',format:'iife',legalComments:'none'});
+const centralPaths=Object.keys(centralBuild.metafile.inputs).map(p=>relative(root,resolve(base,p)).replaceAll('\\','/')).sort();
+// Preserve the complete predecessor graph; a new dependency requires review.
+assert.deepEqual(centralPaths,central.dependencyGraphPaths,'central dependency path set changed');
+const centralBytes=Buffer.from(centralBuild.outputFiles[0].contents);write(central.bundle,centralBytes);
+candidate.centralPairBundle={...central,bytes:centralBytes.length,sha256:sha(centralBytes),dependencyGraphSha256:graphHash(centralPaths)};
+const wallet=await twice({absWorkingDir:web,entryPoints:['wallet-auth-entry.js'],bundle:true,minify:true,platform:'browser',target:'es2022'}),walletBytes=Buffer.from(wallet.outputFiles[0].contents);
+write('apps/finance/web/wallet-auth.js',walletBytes);
+const closurePath='apps/finance/web/wallet-build-closure.json',closure=JSON.parse(execFileSync('git',['show',`${source}:${closurePath}`],{cwd:root})),walletPaths=Object.keys(wallet.metafile.inputs).sort();
+assert.deepEqual(walletPaths,closure.inputs,'Finance complete dependency path set changed');write(closurePath,json({...closure,inputs:walletPaths}));
+let html=read('apps/finance/web/index.html').toString();
+for(const name of ['manifest.webmanifest','ynx-logo.png','styles.css','finance-locale.js','wallet-auth.js','order-wallet.js','order-opaque.js','evm-read-session.js','evm-subject.js','app.js','read-sources.js','product-catalog.js']){
+ const pattern=new RegExp(`(/${name.replaceAll('.','\\.')}\\?v=)[0-9a-f]{64}`,'g');html=html.replace(pattern,(_match,prefix)=>prefix+sha(read('apps/finance/web/'+name)));
+}
+write('apps/finance/web/index.html',html);
+candidate.reviewedOwnerSource={commit:source,tree:git('rev-parse',`${source}^{tree}`)};
+candidate.sharedWalletAuthSource={...candidate.sharedWalletAuthSource,commit:source,tree:git('rev-parse',`${source}:packages/wallet-auth`)};
+const generatedInputs=new Set(['apps/finance/web/index.html','apps/finance/web/evm-read-session.js','apps/finance/scripts/evm-read-session-authority.bundle.mjs','packages/wallet-auth/src/central-browser-session-browser.bundle.js']);
+candidate.exactInputs=candidate.exactInputs.map(item=>{const bytes=read(item.path);if(!generatedInputs.has(item.path)){const baseline=execFileSync('git',['show',`${source}:${item.path}`],{cwd:root});assert.deepEqual(bytes,baseline,`source changed beyond frozen generation baseline: ${item.path}`)}return{path:item.path,bytes:bytes.length,sha256:sha(bytes)}});
+const candidateBytes=json(candidate);write(candidateFull,candidateBytes);
+const allowed=new Set(['wallet-auth-entry.js','private-wallet-entry.js','wallet-auth.js','app.js','finance-locale.js','index.html','evm-read-session.js','wallet-build-closure.json',candidatePath,'../../../packages/wallet-auth/src/walletconnect-dapp-connection.js','../../../packages/wallet-auth/src/central-browser-session-browser.bundle.js','../../wallet-web/package.json']);
+const changed=[];
+const files=prior.files.map(item=>{const bytes=readFileSync(resolve(web,item.path));if(bytes.length!==item.bytes||sha(bytes)!==item.sha256){assert.ok(allowed.has(item.path),`unreviewed predecessor file change: ${item.path}`);changed.push(item.path)}return{path:item.path,bytes:bytes.length,sha256:sha(bytes)}});
+assert.equal(files.length,889);assert.deepEqual(files.map(x=>x.path),prior.files.map(x=>x.path));
+const manifest={...prior,evmRead:{candidatePath,candidateBytes:candidateBytes.length,candidateSha256:sha(candidateBytes)},sourceBundleRelation:{...prior.sourceBundleRelation,bytes:walletBytes.length,sha256:sha(walletBytes)},files},manifestBytes=json(manifest);
+write('apps/finance/web/wallet-verifier-manifest.json',manifestBytes);
+const verifierPath='apps/finance/web/verify-wallet-connect.mjs';let verifier=read(verifierPath).toString();assert.ok(verifier.includes(`const REVIEWED_VERIFIER_MANIFEST_SHA256='${predecessorPin}'`)||verifier.includes(`const REVIEWED_VERIFIER_MANIFEST_SHA256='${sha(manifestBytes)}'`));
+verifier=verifier.replace(/const REVIEWED_VERIFIER_MANIFEST_SHA256='[0-9a-f]{64}'/,`const REVIEWED_VERIFIER_MANIFEST_SHA256='${sha(manifestBytes)}'`);
+verifier=verifier.replace(`binding.sourceBundleRelation?.bytes!==${prior.sourceBundleRelation.bytes}`,`binding.sourceBundleRelation?.bytes!==${walletBytes.length}`).replace(`binding.sourceBundleRelation?.sha256!=='${prior.sourceBundleRelation.sha256}'`,`binding.sourceBundleRelation?.sha256!=='${sha(walletBytes)}'`);write(verifierPath,verifier);
+console.log(JSON.stringify({source,predecessorPin,manifestSha256:sha(manifestBytes),candidateSha256:sha(candidateBytes),files:files.length,walletInputs:walletPaths.length,centralInputs:centralPaths.length,walletBytes:walletBytes.length,walletSha256:sha(walletBytes),changed,publicRuntimeVerified:false}));

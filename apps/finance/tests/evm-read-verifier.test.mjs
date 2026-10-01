@@ -10,10 +10,10 @@ import { verifyEVMReadCandidate } from '../web/verify-evm-read-candidate.mjs';
 const candidate = new URL('../evidence/evm-read-runtime-verifier-candidate-hosted-resume-52cce2ef-final-20261001.json', import.meta.url);
 const pin = createHash('sha256').update(await readFile(candidate)).digest('hex');
 const currentCandidatePath = 'apps/finance/evidence/evm-read-runtime-verifier-candidate-hosted-resume-52cce2ef-final-20261001.json';
-const currentPin = '27af3c924c3f953d76b52d4a122bc5d34bb7429d2dc728a6434133b25b6f7984';
+const currentPin = 'c9892cb2a26a4972b75c3e293a705d1be4e2180745c7a195af3b2edc6ecbd10a';
 const repoRoot=resolve(fileURLToPath(new URL('../../../',import.meta.url)));
 const guoqingPath='apps/finance/evidence/evm-read-runtime-verifier-candidate-hosted-resume-52cce2ef-final-20261001.json';
-const guoqingPin='27af3c924c3f953d76b52d4a122bc5d34bb7429d2dc728a6434133b25b6f7984';
+const guoqingPin='c9892cb2a26a4972b75c3e293a705d1be4e2180745c7a195af3b2edc6ecbd10a';
 
 test('Guoqing account-session checkpoint verifies both bundles and all three versioned app assets',async()=>{
   const result=await verifyEVMReadCandidate({candidatePath:guoqingPath,pinnedCandidateSha256:guoqingPin});

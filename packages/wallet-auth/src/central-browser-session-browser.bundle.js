@@ -13144,8 +13144,8 @@ if (cid) {
           return byteLength > 0 && byteLength <= this.maxKeyLength;
         }
         find(bytes, inputOffset, byteLength) {
-          const records = this.caches[byteLength - 1];
-          FIND_CHUNK: for (const record2 of records) {
+          const records2 = this.caches[byteLength - 1];
+          FIND_CHUNK: for (const record2 of records2) {
             const recordBytes = record2.bytes;
             for (let j4 = 0; j4 < byteLength; j4++) {
               if (recordBytes[j4] !== bytes[inputOffset + j4]) {
@@ -13157,12 +13157,12 @@ if (cid) {
           return null;
         }
         store(bytes, value) {
-          const records = this.caches[bytes.length - 1];
+          const records2 = this.caches[bytes.length - 1];
           const record2 = { bytes, str: value };
-          if (records.length >= this.maxLengthPerKey) {
-            records[Math.random() * records.length | 0] = record2;
+          if (records2.length >= this.maxLengthPerKey) {
+            records2[Math.random() * records2.length | 0] = record2;
           } else {
-            records.push(record2);
+            records2.push(record2);
           }
         }
         decode(bytes, inputOffset, byteLength) {
@@ -20306,7 +20306,89 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
   });
 
   // node_modules/@walletconnect/core/dist/index.js
-  var import_events7, import_time4, import_window_getters2, ct3, lt3, W4, S3, Dt3, zt3, Kt3, gt2, $t3, Mt3, Ut3, qt3, Vt3, Bt3, Ft3, Gt3, Wt3, pt2, Yt3, p3, Ht3, v5, Jt3, Q3, D3, Y3, jt3, Xt3, dt3, b3, Zt3, Qt3, Ui, te4, ee3, U2, q3, T3, ie3, se3, re3, P4, oe3, ne3, Bi, ae3, H4, he4, ce2, le3, ge4, x6, O3, Gi, Wi, Yi, Hi, pe4, de3, ue2, ye4, me3, _e3, be4, Ji, ji, we4, fe4, ve4, Ee4, Ie4, Te4, Pe4, Re4, Se4, Ce4, Xi;
+  var dist_exports = {};
+  __export(dist_exports, {
+    CORE_CONTEXT: () => W4,
+    CORE_DEFAULT: () => Dt3,
+    CORE_PROTOCOL: () => ct3,
+    CORE_STORAGE_OPTIONS: () => zt3,
+    CORE_STORAGE_PREFIX: () => S3,
+    CORE_VERSION: () => lt3,
+    CRYPTO_CLIENT_SEED: () => gt2,
+    CRYPTO_CONTEXT: () => Kt3,
+    CRYPTO_JWT_TTL: () => $t3,
+    Core: () => Xi,
+    Crypto: () => _e3,
+    ECHO_CONTEXT: () => le3,
+    ECHO_URL: () => ge4,
+    EVENTS_CLIENT_API_URL: () => ye4,
+    EVENTS_STORAGE_CLEANUP_INTERVAL: () => ue2,
+    EVENTS_STORAGE_CONTEXT: () => de3,
+    EVENTS_STORAGE_VERSION: () => pe4,
+    EVENT_CLIENT_AUTHENTICATE_ERRORS: () => Hi,
+    EVENT_CLIENT_AUTHENTICATE_TRACES: () => Yi,
+    EVENT_CLIENT_CONTEXT: () => Fi,
+    EVENT_CLIENT_PAIRING_ERRORS: () => O3,
+    EVENT_CLIENT_PAIRING_TRACES: () => x6,
+    EVENT_CLIENT_SESSION_ERRORS: () => Wi,
+    EVENT_CLIENT_SESSION_TRACES: () => Gi,
+    EXPIRER_CONTEXT: () => re3,
+    EXPIRER_DEFAULT_TTL: () => Vi,
+    EXPIRER_EVENTS: () => P4,
+    EXPIRER_STORAGE_VERSION: () => oe3,
+    EchoClient: () => Re4,
+    EventClient: () => Se4,
+    Expirer: () => Te4,
+    HISTORY_CONTEXT: () => ie3,
+    HISTORY_EVENTS: () => T3,
+    HISTORY_STORAGE_VERSION: () => se3,
+    JsonRpcHistory: () => Ie4,
+    KEYCHAIN_CONTEXT: () => Mt3,
+    KEYCHAIN_STORAGE_VERSION: () => Ut3,
+    KeyChain: () => me3,
+    MESSAGES_CONTEXT: () => qt3,
+    MESSAGES_STORAGE_VERSION: () => Vt3,
+    MESSAGE_DIRECTION: () => Y3,
+    MessageTracker: () => be4,
+    PAIRING_CONTEXT: () => te4,
+    PAIRING_DEFAULT_TTL: () => qi,
+    PAIRING_EVENTS: () => q3,
+    PAIRING_RPC_OPTS: () => U2,
+    PAIRING_STORAGE_VERSION: () => ee3,
+    PENDING_SUB_RESOLUTION_TIMEOUT: () => Ui,
+    PUBLISHER_CONTEXT: () => Ft3,
+    PUBLISHER_DEFAULT_TTL: () => Bt3,
+    Pairing: () => Ee4,
+    RELAYER_CONTEXT: () => Yt3,
+    RELAYER_DEFAULT_LOGGER: () => Wt3,
+    RELAYER_DEFAULT_PROTOCOL: () => Gt3,
+    RELAYER_DEFAULT_RELAY_URL: () => pt2,
+    RELAYER_EVENTS: () => p3,
+    RELAYER_PROVIDER_EVENTS: () => v5,
+    RELAYER_RECONNECT_TIMEOUT: () => Jt3,
+    RELAYER_SDK_VERSION: () => Q3,
+    RELAYER_STORAGE_OPTIONS: () => Ki,
+    RELAYER_SUBSCRIBER_SUFFIX: () => Ht3,
+    RELAYER_TRANSPORT_CUTOFF: () => $i,
+    Relayer: () => fe4,
+    STORE_STORAGE_VERSION: () => jt3,
+    SUBSCRIBER_CONTEXT: () => Zt3,
+    SUBSCRIBER_DEFAULT_TTL: () => Mi,
+    SUBSCRIBER_EVENTS: () => b3,
+    SUBSCRIBER_STORAGE_VERSION: () => Qt3,
+    Store: () => ve4,
+    Subscriber: () => we4,
+    TRANSPORT_TYPES: () => D3,
+    TRUSTED_VERIFY_URLS: () => ce2,
+    VERIFY_CONTEXT: () => ne3,
+    VERIFY_SERVER: () => H4,
+    VERIFY_SERVER_V3: () => he4,
+    Verify: () => Pe4,
+    WALLETCONNECT_CLIENT_ID: () => Xt3,
+    WALLETCONNECT_LINK_MODE_APPS: () => dt3,
+    default: () => Ce4
+  });
+  var import_events7, import_time4, import_window_getters2, ct3, lt3, W4, S3, Dt3, zt3, Kt3, gt2, $t3, Mt3, Ut3, qt3, Vt3, Bt3, Ft3, Gt3, Wt3, pt2, Yt3, p3, Ht3, v5, Jt3, Ki, Q3, $i, D3, Y3, jt3, Xt3, dt3, b3, Mi, Zt3, Qt3, Ui, te4, ee3, qi, U2, q3, T3, ie3, se3, re3, P4, oe3, Vi, ne3, Bi, ae3, H4, he4, ce2, le3, ge4, Fi, x6, O3, Gi, Wi, Yi, Hi, pe4, de3, ue2, ye4, me3, _e3, be4, Ji, ji, we4, fe4, ve4, Ee4, Ie4, Te4, Pe4, Re4, Se4, Ce4, Xi;
   var init_dist8 = __esm({
     "node_modules/@walletconnect/core/dist/index.js"() {
       import_events7 = __toESM(require_events(), 1);
@@ -20349,18 +20431,22 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
       Ht3 = "_subscription";
       v5 = { payload: "payload", connect: "connect", disconnect: "disconnect", error: "error" };
       Jt3 = 0.1;
+      Ki = { database: ":memory:" };
       Q3 = "2.23.10";
+      $i = 1e4;
       D3 = { link_mode: "link_mode", relay: "relay" };
       Y3 = { inbound: "inbound", outbound: "outbound" };
       jt3 = "0.3";
       Xt3 = "WALLETCONNECT_CLIENT_ID";
       dt3 = "WALLETCONNECT_LINK_MODE_APPS";
       b3 = { created: "subscription_created", deleted: "subscription_deleted", expired: "subscription_expired", disabled: "subscription_disabled", sync: "subscription_sync", resubscribed: "subscription_resubscribed" };
+      Mi = import_time4.THIRTY_DAYS;
       Zt3 = "subscription";
       Qt3 = "0.3";
       Ui = import_time4.FIVE_SECONDS * 1e3;
       te4 = "pairing";
       ee3 = "0.3";
+      qi = import_time4.THIRTY_DAYS;
       U2 = { wc_pairingDelete: { req: { ttl: import_time4.ONE_DAY, prompt: false, tag: 1e3 }, res: { ttl: import_time4.ONE_DAY, prompt: false, tag: 1001 } }, wc_pairingPing: { req: { ttl: import_time4.THIRTY_SECONDS, prompt: false, tag: 1002 }, res: { ttl: import_time4.THIRTY_SECONDS, prompt: false, tag: 1003 } }, unregistered_method: { req: { ttl: import_time4.ONE_DAY, prompt: false, tag: 0 }, res: { ttl: import_time4.ONE_DAY, prompt: false, tag: 0 } } };
       q3 = { create: "pairing_create", expire: "pairing_expire", delete: "pairing_delete", ping: "pairing_ping" };
       T3 = { created: "history_created", updated: "history_updated", deleted: "history_deleted", sync: "history_sync" };
@@ -20369,6 +20455,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
       re3 = "expirer";
       P4 = { created: "expirer_created", deleted: "expirer_deleted", expired: "expirer_expired", sync: "expirer_sync" };
       oe3 = "0.3";
+      Vi = import_time4.ONE_DAY;
       ne3 = "verify-api";
       Bi = "https://verify.walletconnect.com";
       ae3 = "https://verify.walletconnect.org";
@@ -20377,6 +20464,7 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
       ce2 = [Bi, ae3];
       le3 = "echo";
       ge4 = "https://echo.walletconnect.com";
+      Fi = "event-client";
       x6 = { pairing_started: "pairing_started", pairing_uri_validation_success: "pairing_uri_validation_success", pairing_uri_not_expired: "pairing_uri_not_expired", store_new_pairing: "store_new_pairing", subscribing_pairing_topic: "subscribing_pairing_topic", subscribe_pairing_topic_success: "subscribe_pairing_topic_success", existing_pairing: "existing_pairing", pairing_not_expired: "pairing_not_expired", emit_inactive_pairing: "emit_inactive_pairing", emit_session_proposal: "emit_session_proposal", subscribing_to_pairing_topic: "subscribing_to_pairing_topic" };
       O3 = { no_wss_connection: "no_wss_connection", no_internet_connection: "no_internet_connection", malformed_pairing_uri: "malformed_pairing_uri", active_pairing_already_exists: "active_pairing_already_exists", subscribe_pairing_topic_failure: "subscribe_pairing_topic_failure", pairing_expired: "pairing_expired", proposal_expired: "proposal_expired", proposal_listener_not_found: "proposal_listener_not_found" };
       Gi = { session_approve_started: "session_approve_started", proposal_not_expired: "proposal_not_expired", session_namespaces_validation_success: "session_namespaces_validation_success", create_session_topic: "create_session_topic", subscribing_session_topic: "subscribing_session_topic", subscribe_session_topic_success: "subscribe_session_topic_success", publishing_session_approve: "publishing_session_approve", session_approve_publish_success: "session_approve_publish_success", store_session: "store_session", publishing_session_settle: "publishing_session_settle", session_settle_publish_success: "session_settle_publish_success", session_request_response_started: "session_request_response_started", session_request_response_validation_success: "session_request_response_validation_success", session_request_response_publish_started: "session_request_response_publish_started" };
@@ -22048,8 +22136,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
   });
 
   // node_modules/@walletconnect/sign-client/dist/index.js
-  var dist_exports = {};
-  __export(dist_exports, {
+  var dist_exports2 = {};
+  __export(dist_exports2, {
     AUTH_CONTEXT: () => lt4,
     AUTH_KEYS_CONTEXT: () => pt3,
     AUTH_PAIRING_TOPIC_CONTEXT: () => ht2,
@@ -25501,6 +25589,9 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     return "en";
   }
   var rows = [
+    ["Connection details", "\u8FDE\u63A5\u8BE6\u60C5", "\u9023\u63A5\u8A73\u60C5"],
+    ["Wallet Web connection did not finish. Retry or cancel.", "\u7F51\u9875\u7248\u94B1\u5305\u8FDE\u63A5\u672A\u5B8C\u6210\u3002\u8BF7\u91CD\u8BD5\u6216\u53D6\u6D88\u3002", "\u7DB2\u9801\u7248\u9322\u5305\u9023\u63A5\u672A\u5B8C\u6210\u3002\u8ACB\u91CD\u8A66\u6216\u53D6\u6D88\u3002"],
+    ["Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.", "\u624B\u673A\u94B1\u5305\u8FDE\u63A5\u672A\u5B8C\u6210\uFF0C\u5C1A\u672A\u767B\u5F55\u3002\u8BF7\u91CD\u8BD5\u6216\u53D6\u6D88\u3002", "\u624B\u6A5F\u9322\u5305\u9023\u63A5\u672A\u5B8C\u6210\uFF0C\u5C1A\u672A\u767B\u5165\u3002\u8ACB\u91CD\u8A66\u6216\u53D6\u6D88\u3002"],
     ["YNX \xB7 Sign in", "YNX \xB7 \u767B\u5F55", "YNX \xB7 \u767B\u5165"],
     ["Sign in with YNX Wallet", "\u4F7F\u7528 YNX Wallet \u767B\u5F55", "\u4F7F\u7528 YNX Wallet \u767B\u5165"],
     ["Allow browser sign-in for registered YNX products. Private product permissions require separate approval.", "\u786E\u8BA4\u540E\u53EF\u767B\u5F55\u5DF2\u5173\u8054\u7684 YNX \u4EA7\u54C1\u3002\u8BBF\u95EE\u79C1\u4EBA\u670D\u52A1\u4ECD\u9700\u53E6\u884C\u6279\u51C6\u3002", "\u78BA\u8A8D\u5F8C\u53EF\u767B\u5165\u5DF2\u95DC\u806F\u7684 YNX \u7522\u54C1\u3002\u5B58\u53D6\u79C1\u4EBA\u670D\u52D9\u4ECD\u9700\u53E6\u884C\u6279\u51C6\u3002"],
@@ -25522,6 +25613,8 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     ["Wallet Web connection timed out. Return to your product and retry; no browser sign-in was granted.", "\u8FDE\u63A5\u94B1\u5305\u8D85\u65F6\uFF0C\u5C1A\u672A\u767B\u5F55\u3002\u8BF7\u8FD4\u56DE\u4EA7\u54C1\u91CD\u8BD5\u3002", "\u9023\u63A5\u9322\u5305\u903E\u6642\uFF0C\u5C1A\u672A\u767B\u5165\u3002\u8ACB\u8FD4\u56DE\u7522\u54C1\u91CD\u8A66\u3002"],
     ["Connection was declined. No browser sign-in was granted.", "\u4F60\u5DF2\u62D2\u7EDD\u8FDE\u63A5\uFF0C\u5C1A\u672A\u767B\u5F55\u3002", "\u4F60\u5DF2\u62D2\u7D55\u9023\u63A5\uFF0C\u5C1A\u672A\u767B\u5165\u3002"],
     ["Opening a mobile Wallet connection. No sign-in signature has been requested.", "\u6B63\u5728\u8FDE\u63A5\u624B\u673A\u94B1\u5305\uFF0C\u5C1A\u672A\u8BF7\u6C42\u767B\u5F55\u6279\u51C6\u3002", "\u6B63\u5728\u9023\u63A5\u624B\u6A5F\u9322\u5305\uFF0C\u5C1A\u672A\u8ACB\u6C42\u767B\u5165\u6279\u51C6\u3002"],
+    ["The connection service could not be reached. Check your network, then retry or choose another wallet. No browser sign-in was granted.", "\u6682\u65F6\u65E0\u6CD5\u8FDE\u63A5\u670D\u52A1\u3002\u8BF7\u68C0\u67E5\u7F51\u7EDC\u540E\u91CD\u8BD5\uFF0C\u6216\u9009\u62E9\u5176\u4ED6\u94B1\u5305\u3002\u5C1A\u672A\u767B\u5F55\u3002", "\u66AB\u6642\u7121\u6CD5\u9023\u63A5\u670D\u52D9\u3002\u8ACB\u6AA2\u67E5\u7DB2\u8DEF\u5F8C\u91CD\u8A66\uFF0C\u6216\u9078\u64C7\u5176\u4ED6\u9322\u5305\u3002\u5C1A\u672A\u767B\u5165\u3002"],
+    ["The previous network attempt is still finishing. Choose another wallet, or retry after it ends.", "\u4E0A\u4E00\u6B21\u7F51\u7EDC\u8FDE\u63A5\u4ECD\u5728\u7ED3\u675F\u4E2D\u3002\u53EF\u9009\u62E9\u5176\u4ED6\u94B1\u5305\uFF0C\u6216\u7A0D\u540E\u91CD\u8BD5\u3002", "\u4E0A\u4E00\u6B21\u7DB2\u8DEF\u9023\u7DDA\u4ECD\u5728\u7D50\u675F\u4E2D\u3002\u53EF\u9078\u64C7\u5176\u4ED6\u9322\u5305\uFF0C\u6216\u7A0D\u5F8C\u91CD\u8A66\u3002"],
     ["QR rendering is unavailable. Cancel and retry the connection.", "\u65E0\u6CD5\u663E\u793A\u4E8C\u7EF4\u7801\u3002\u8BF7\u53D6\u6D88\u5E76\u91CD\u65B0\u8FDE\u63A5\u3002", "\u7121\u6CD5\u986F\u793A\u4E8C\u7DAD\u78BC\u3002\u8ACB\u53D6\u6D88\u4E26\u91CD\u65B0\u9023\u63A5\u3002"],
     ["Scan this temporary QR in YNX Wallet and approve the connection.", "\u8BF7\u5728 YNX Wallet \u626B\u63CF\u6B64\u4E34\u65F6\u4E8C\u7EF4\u7801\u5E76\u6279\u51C6\u8FDE\u63A5\u3002", "\u8ACB\u5728 YNX Wallet \u6383\u63CF\u6B64\u81E8\u6642\u4E8C\u7DAD\u78BC\u4E26\u6279\u51C6\u9023\u63A5\u3002"],
     ["Mobile Wallet connected. Continue to review browser sign-in on the same Wallet session.", "\u624B\u673A\u94B1\u5305\u5DF2\u8FDE\u63A5\u3002\u8BF7\u7EE7\u7EED\uFF0C\u5728\u540C\u4E00\u94B1\u5305\u4E2D\u786E\u8BA4\u767B\u5F55\u3002", "\u624B\u6A5F\u9322\u5305\u5DF2\u9023\u63A5\u3002\u8ACB\u7E7C\u7E8C\uFF0C\u5728\u540C\u4E00\u9322\u5305\u4E2D\u78BA\u8A8D\u767B\u5165\u3002"],
@@ -26358,8 +26451,8 @@ ${item.productId}`));
     exactFields(initiator, ["clientId", "origin", "redirectUri", "state", "codeChallenge", "codeChallengeMethod"], "Central browser initiator");
     centralBrowserClient(registry, { clientId: initiator.clientId, origin: initiator.origin, redirectUri: initiator.redirectUri });
     if (!token(initiator.state) || !token(initiator.codeChallenge) || initiator.codeChallengeMethod !== "S256") fail3("SSO_TRANSACTION_INVALID");
-    const clients = registry.map((value) => ({ clientId: value.clientId, origin: value.origin, audience: value.audience, scopes: [...value.scopes] })).sort((a3, b4) => a3.clientId.localeCompare(b4.clientId));
-    if (canonicalJSON(challenge.clients) !== canonicalJSON(clients)) fail3("SSO_CLIENTS_MISMATCH");
+    const clients2 = registry.map((value) => ({ clientId: value.clientId, origin: value.origin, audience: value.audience, scopes: [...value.scopes] })).sort((a3, b4) => a3.clientId.localeCompare(b4.clientId));
+    if (canonicalJSON(challenge.clients) !== canonicalJSON(clients2)) fail3("SSO_CLIENTS_MISMATCH");
     const issued = Date.parse(challenge.issuedAt), expires = Date.parse(challenge.expiresAt);
     if (!Number.isSafeInteger(now) || !Number.isFinite(issued) || !Number.isFinite(expires) || new Date(issued).toISOString() !== challenge.issuedAt || new Date(expires).toISOString() !== challenge.expiresAt || issued > now + 3e4 || expires <= now || expires <= issued || expires - issued > 12e4) fail3("SSO_CHALLENGE_EXPIRED");
     return Object.freeze(structuredClone(challenge));
@@ -26666,6 +26759,55 @@ ${item.productId}`));
     throw Object.assign(new Error(code2), { code: code2 });
   };
   var reason = { code: 6e3, message: "User disconnected" };
+  var clients = /* @__PURE__ */ new Map();
+  var records = /* @__PURE__ */ new WeakMap();
+  async function officialClient(options, owner) {
+    let record2 = clients.get(options.storageOptions.database);
+    if (!record2) {
+      record2 = { owners: /* @__PURE__ */ new Set(), leases: /* @__PURE__ */ new Set(), client: null, core: null, count: null, candidate: false, paused: false, promise: null };
+      record2.promise = (async () => {
+        const [{ default: SignClient }, { Core, RELAYER_EVENTS }] = await Promise.all([Promise.resolve().then(() => (init_dist9(), dist_exports2)), Promise.resolve().then(() => (init_dist8(), dist_exports))]);
+        const before = globalThis._walletConnectCore_, count = globalThis._walletConnectCore__count;
+        const core = new Core(options);
+        record2.core = core;
+        record2.count = globalThis._walletConnectCore__count;
+        record2.candidate = before === void 0 && (count === void 0 || count === 0) && globalThis._walletConnectCore_ === core && record2.count === 1 && core.customStoragePrefix === "";
+        const client = await SignClient.init({ ...options, core });
+        record2.client = client;
+        records.set(client, record2);
+        core.relayer.on(RELAYER_EVENTS.connect, () => {
+          const flight = record2.pauseFlight;
+          if (record2.paused && flight && exclusive(record2, flight)) void core.relayer.transportClose().catch(() => {
+          });
+        });
+        return client;
+      })();
+      clients.set(options.storageOptions.database, record2);
+      record2.promise.catch(() => {
+        if (clients.get(options.storageOptions.database) === record2) clients.delete(options.storageOptions.database);
+      });
+    }
+    record2.owners.add(owner);
+    return record2.promise;
+  }
+  function exclusive(record2, flight) {
+    try {
+      if (!record2?.candidate || record2.externallyExposed || record2.owners.size !== 1 || record2.leases.size !== 1 || !record2.leases.has(flight) || !flight.idle() || globalThis._walletConnectCore_ !== record2.core || globalThis._walletConnectCore__count !== record2.count) return false;
+      const client = record2.client;
+      if (client.core !== record2.core || client.session.getAll().length) return false;
+      const proposals = client.proposal.getAll(), pairings = corePairings(client);
+      if (flight.historical || proposals.length > 1 || pairings.length > 1) return false;
+      if (proposals.length) {
+        const proposal = proposals[0];
+        if (proposal.proposer?.metadata?.url !== flight.origin || pairings.some((pairing) => pairing.topic !== proposal.pairingTopic || pairing.active)) return false;
+        flight.topic = proposal.pairingTopic;
+      } else if (pairings.some((pairing) => pairing.active || pairing.topic !== flight.topic)) return false;
+      return typeof record2.core.relayer.transportClose === "function";
+    } catch {
+      return false;
+    }
+  }
+  var corePairings = (client) => client.core.pairing.pairings.getAll();
   var WalletConnectDAppConnection = class {
     #origin;
     #methods;
@@ -26680,15 +26822,15 @@ ${item.productId}`));
     #deadline;
     #now;
     #pairing = null;
+    #flight = null;
+    #draining = null;
+    #restoring = 0;
     constructor({ origin, methods, clientFactory, deadlineMs = 3e4, now = () => Date.now() } = {}) {
       if (!ORIGINS.has(origin) || !Array.isArray(methods) || !methods.length || new Set(methods).size !== methods.length || methods.some((method) => !METHODS.has(method) || !WALLETCONNECT_SESSION_METHODS.includes(method))) fail5("YNX_PAIR_CONFIGURATION_INVALID");
       if (!Number.isSafeInteger(deadlineMs) || deadlineMs < 1 || deadlineMs > 12e4) fail5("YNX_PAIR_CONFIGURATION_INVALID");
       this.#origin = origin;
       this.#methods = [...methods];
-      this.#factory = clientFactory ?? (async (options) => {
-        const { default: SignClient } = await Promise.resolve().then(() => (init_dist9(), dist_exports));
-        return SignClient.init(options);
-      });
+      this.#factory = clientFactory ?? ((options) => officialClient(options, this));
       this.#deadline = deadlineMs;
       this.#now = now;
     }
@@ -26705,18 +26847,25 @@ ${item.productId}`));
     #unconfirmed(reason2, attempt) {
       this.#emit("cancelUnconfirmed", { reason: reason2, attempt, current: attempt === this.#attempt });
     }
-    async #wait(work) {
+    async #wait(work, { stage = "request", flight, deadline = this.#deadline } = {}) {
       let timer;
+      const code2 = `YNX_PAIR_${stage.toUpperCase()}_TIMEOUT`;
       try {
         return await Promise.race([work, new Promise((_3, reject) => {
-          timer = setTimeout(() => reject(Object.assign(new Error("YNX_PAIR_TIMEOUT"), { code: "YNX_PAIR_TIMEOUT" })), this.#deadline);
-        })]);
+          timer = setTimeout(() => reject(Object.assign(new Error(code2), { code: code2, stage })), deadline);
+        }), ...flight ? [flight.cancelled] : []]);
       } finally {
         clearTimeout(timer);
       }
     }
-    async initialize() {
-      if (this.#client) return this.#client;
+    async initialize(flight) {
+      if (this.#client) {
+        if (!flight && !this.#restoring) {
+          const record2 = records.get(this.#client);
+          if (record2) record2.externallyExposed = true;
+        }
+        return this.#client;
+      }
       if (!this.#initializing) {
         const task = Promise.resolve().then(() => this.#factory({ projectId: YNX_PAIR_PROJECT_ID, metadata: { name: "YNX browser connection", description: "Explicit YNX Wallet connection and separate request approval", url: this.#origin, icons: [] }, logger: "silent", storageOptions: { database: `ynx-pair-${new URL(this.#origin).hostname}` } }));
         this.#initializing = task;
@@ -26724,7 +26873,15 @@ ${item.productId}`));
           if (this.#initializing === task) this.#initializing = null;
         });
       }
-      const client = await this.#wait(this.#initializing);
+      if (flight) this.#initializing.then((client2) => {
+        if (flight.terminated && !this.#flight) void this.#pause(client2, flight);
+      }, () => {
+      });
+      const client = await this.#wait(this.#initializing, { stage: "initialization", flight });
+      if (!flight && !this.#restoring) {
+        const record2 = records.get(client);
+        if (record2) record2.externallyExposed = true;
+      }
       if (this.#client) return this.#client;
       this.#client = client;
       const ended = ({ topic }) => {
@@ -26785,32 +26942,73 @@ ${item.productId}`));
       return session;
     }
     async restore() {
-      const epoch = this.#epoch, client = await this.initialize(), valid = [];
-      if (epoch !== this.#epoch) fail5("YNX_PAIR_CANCELLED");
-      for (const session of client.session.getAll()) try {
-        valid.push(this.#validate(session));
-      } catch {
+      this.#restoring++;
+      try {
+        const epoch = this.#epoch, client = await this.initialize(), valid = [];
+        if (epoch !== this.#epoch) fail5("YNX_PAIR_CANCELLED");
+        for (const session of client.session.getAll()) try {
+          valid.push(this.#validate(session));
+        } catch {
+        }
+        if (valid.length > 1) fail5("YNX_PAIR_SESSION_SELECTION_REQUIRED");
+        this.#session = valid[0] ?? null;
+        return this.#session ? this.provider() : null;
+      } finally {
+        this.#restoring--;
       }
-      if (valid.length > 1) fail5("YNX_PAIR_SESSION_SELECTION_REQUIRED");
-      this.#session = valid[0] ?? null;
-      return this.#session ? this.provider() : null;
     }
     connect({ onURI } = {}) {
       if (this.#pending) return this.#pending;
+      if (this.#draining) return Promise.reject(Object.assign(new Error("YNX_PAIR_TRANSPORT_DRAINING"), { code: "YNX_PAIR_TRANSPORT_DRAINING", stage: "relay" }));
       const epoch = this.#epoch, attempt = ++this.#attempt;
+      const flight = { attempt, origin: this.#origin, stage: "initialization", cancelled: null, cancel: null, terminated: false, idle: () => this.#restoring === 0 && (!this.#flight || this.#flight === flight) };
+      flight.cancelled = new Promise((_3, reject) => {
+        flight.cancel = () => reject(Object.assign(new Error("YNX_PAIR_CANCELLED"), { code: "YNX_PAIR_CANCELLED", stage: flight.stage }));
+      });
+      flight.cancelled.catch(() => {
+      });
+      this.#flight = flight;
+      const stage = (value) => {
+        flight.stage = value;
+        if (epoch === this.#epoch) this.#emit("stage", { stage: value, attempt });
+      };
       const task = (async () => {
-        const client = await this.initialize();
+        stage("initialization");
+        const client = await this.initialize(flight);
         if (epoch !== this.#epoch) fail5("YNX_PAIR_CANCELLED");
         if (this.#session) {
           this.#validate(this.#session);
           return this.provider();
         }
+        const record2 = records.get(client);
+        if (record2) {
+          if (record2.pauseFlight) record2.leases.delete(record2.pauseFlight);
+          record2.paused = false;
+          record2.pauseFlight = null;
+          record2.leases.add(flight);
+          flight.record = record2;
+          try {
+            flight.historical = client.session.getAll().length > 0 || client.proposal.getAll().length > 0 || corePairings(client).length > 0;
+          } catch {
+            flight.historical = true;
+          }
+        }
+        stage("relay");
         const connecting = client.connect({ requiredNamespaces: { eip155: { chains: [WALLETCONNECT_CHAIN], methods: this.#methods, events: [...WALLETCONNECT_SESSION_EVENTS] } } });
+        const draining = { work: connecting, flight };
+        this.#draining = draining;
+        connecting.then(() => {
+          if (this.#draining === draining) this.#draining = null;
+          if (flight.terminated && !record2?.paused) record2?.leases.delete(flight);
+        }, () => {
+          if (this.#draining === draining) this.#draining = null;
+          if (flight.terminated && !record2?.paused) record2?.leases.delete(flight);
+        });
         connecting.then((connected) => {
           if (epoch === this.#epoch) return;
           try {
             const pairing2 = parseWalletConnectPairingUri(connected.uri, new Date(this.#now()));
-            void this.#wait(client.core.pairing.disconnect({ topic: pairing2.topic })).catch(() => this.#unconfirmed("transport-unavailable", attempt));
+            void this.#wait(client.core.pairing.disconnect({ topic: pairing2.topic }), { stage: "cleanup", deadline: Math.min(this.#deadline, 1500) }).catch(() => this.#unconfirmed("transport-unavailable", attempt));
             Promise.resolve(connected.approval()).then((session2) => this.#retire(client, session2, attempt), () => {
             });
           } catch {
@@ -26818,17 +27016,19 @@ ${item.productId}`));
           }
         }, () => {
         });
-        const { uri, approval } = await this.#wait(connecting);
+        const { uri, approval } = await this.#wait(connecting, { stage: "relay", flight });
         const pairing = parseWalletConnectPairingUri(uri, new Date(this.#now()));
         if (epoch !== this.#epoch) fail5("YNX_PAIR_CANCELLED");
+        flight.topic = pairing.topic;
         this.#pairing = { topic: pairing.topic, epoch, attempt };
+        stage("approval");
         onURI?.(uri);
         const approving = approval();
         approving.then((session2) => {
           if (epoch !== this.#epoch) void this.#retire(client, session2, attempt);
         }, () => {
         });
-        const session = await this.#wait(approving);
+        const session = await this.#wait(approving, { stage: "approval", flight });
         if (epoch !== this.#epoch) fail5("YNX_PAIR_CANCELLED");
         try {
           this.#validate(session);
@@ -26841,21 +27041,49 @@ ${item.productId}`));
         this.#emit("connect", { chainId: "0x1917" });
         return this.provider();
       })().catch(async (error) => {
+        flight.terminated = true;
         if (epoch === this.#epoch) this.#epoch++;
         await this.#cancelPairing(epoch);
+        if (this.#client) await this.#pause(this.#client, flight);
+        if (!String(error?.code ?? "").startsWith("YNX_PAIR_")) {
+          const code2 = [4001, 5e3, 5001, 5002, 5003].includes(Number(error?.code)) || error?.code === "USER_REJECTED" ? "USER_REJECTED" : `YNX_PAIR_${flight.stage.toUpperCase()}_UNAVAILABLE`;
+          throw Object.assign(new Error(code2), { code: code2, stage: flight.stage });
+        }
         throw error;
       }).finally(() => {
         if (this.#pending === task) this.#pending = null;
+        if (this.#flight === flight) this.#flight = null;
+        if (this.#draining?.flight !== flight && !flight.record?.paused) flight.record?.leases.delete(flight);
       });
       this.#pending = task;
       return task;
+    }
+    async #pause(client, flight) {
+      const record2 = records.get(client);
+      if (record2) {
+        flight.record ??= record2;
+        if (!record2.leases.size) record2.leases.add(flight);
+      }
+      if (!exclusive(record2, flight)) {
+        if (this.#draining?.flight !== flight) record2?.leases.delete(flight);
+        this.#emit("transportCleanup", { attempt: flight.attempt, current: flight.attempt === this.#attempt, status: "shared-preserved", inFlight: this.#draining?.flight === flight });
+        return;
+      }
+      record2.paused = true;
+      record2.pauseFlight = flight;
+      try {
+        await this.#wait(record2.core.relayer.transportClose(), { stage: "cleanup", deadline: Math.min(this.#deadline, 1500) });
+        this.#emit("transportCleanup", { attempt: flight.attempt, current: flight.attempt === this.#attempt, status: "transport-paused", inFlight: this.#draining?.flight === flight });
+      } catch {
+        this.#unconfirmed("transport-unavailable", flight.attempt);
+      }
     }
     async #cancelPairing(epoch) {
       const pairing = this.#pairing;
       if (!pairing || epoch !== void 0 && pairing.epoch !== epoch) return;
       this.#pairing = null;
       if (this.#client) try {
-        await this.#wait(this.#client.core.pairing.disconnect({ topic: pairing.topic }));
+        await this.#wait(this.#client.core.pairing.disconnect({ topic: pairing.topic }), { stage: "cleanup", deadline: Math.min(this.#deadline, 1500) });
       } catch {
         this.#unconfirmed("transport-unavailable", pairing.attempt);
       }
@@ -26866,13 +27094,14 @@ ${item.productId}`));
         return;
       }
       try {
-        await this.#wait(client.disconnect({ topic: session.topic, reason }));
+        await this.#wait(client.disconnect({ topic: session.topic, reason }), { stage: "cleanup", deadline: Math.min(this.#deadline, 1500) });
       } catch {
         this.#unconfirmed("transport-unavailable", attempt);
       }
     }
     async cancel() {
       const epoch = this.#epoch++;
+      this.#flight?.cancel();
       this.#pending = null;
       await this.#cancelPairing(epoch);
     }
@@ -27480,6 +27709,16 @@ ${item.productId}`));
     requestingSite.append(siteLabel, ": " + challenge.initiator.origin);
     document.querySelector("h1").after(requestingSite);
     const picker = document.getElementById("wallet"), approve = document.getElementById("approve"), cancel = document.getElementById("cancel"), status = document.getElementById("status");
+    const choices = document.createElement("div");
+    choices.id = "wallet-choices";
+    choices.setAttribute("role", "group");
+    choices.setAttribute("aria-label", t("Choose YNX Wallet"));
+    picker.before(choices);
+    picker.hidden = true;
+    document.querySelector('label[for="wallet"]').hidden = true;
+    const connectionStyle = document.createElement("style");
+    connectionStyle.textContent = 'body{background:#f4f7ff}main{background:white;border:1px solid #e0e7f6;border-radius:24px;box-shadow:0 16px 60px #002fa70a}h1{font-size:28px;line-height:1.3;color:#002FA7}#wallet-choices{display:grid;gap:10px;margin:24px 0 10px}#wallet-choices button,#pair,#hosted{width:100%;margin:0 0 10px;text-align:left;background:#fff;color:#122247;border:1px solid #dce5f7;font:inherit;font-weight:600}#wallet-choices button[aria-pressed="true"]{border-color:#002FA7;background:#edf3ff;color:#002FA7}#pair-request{padding:18px;background:#f3f7ff;border-radius:16px;text-align:center}#pair-request canvas{max-width:100%;height:auto}#pair-open{display:inline-flex;align-items:center;justify-content:center;background:#002FA7;color:#fff;text-decoration:none;margin:12px 0}#pair-open[hidden],#pair-request[hidden]{display:none}#status{padding:12px 0;color:#344b72}#cancel{background:#edf2fc;color:#002FA7}#language{max-width:200px;border:1px solid #dce5f7;border-radius:10px;padding:8px}';
+    document.head.append(connectionStyle);
     const discovery = createWalletProviderDiscovery(window);
     const restart = document.createElement("button");
     restart.id = "restart";
@@ -27505,15 +27744,25 @@ ${item.productId}`));
       retireHosted();
     });
     let providers = [], selected = null, pending = null, revision = 0, cancelled = false, hosted = null, hostedPending = null, hostedProvider = null;
+    const diagnostics = document.createElement("details"), diagnosticSummary = document.createElement("summary"), diagnosticCode = document.createElement("code");
+    diagnostics.id = "connection-diagnostics";
+    diagnostics.hidden = true;
+    diagnosticSummary.textContent = t("Connection details");
+    diagnostics.append(diagnosticSummary, diagnosticCode);
+    status.after(diagnostics);
     const message = (value) => {
       status.textContent = t(value);
     };
     const failure2 = (error, phase) => {
       const known = /* @__PURE__ */ new Set(["YNX_PAIR_TIMEOUT", "YNX_PAIR_CANCELLED", "YNX_PAIR_CONFIGURATION_INVALID", "YNX_PAIR_SESSION_EXPIRED", "YNX_PAIR_PEER_INVALID", "YNX_PAIR_NAMESPACE_INVALID", "YNX_PAIR_CHAIN_INVALID", "YNX_PAIR_SESSION_SELECTION_REQUIRED", "YNX_PAIR_METHOD_NOT_APPROVED", "YNX_PAIR_CONTEXT_CHANGED", "SSO_CONTEXT_CHANGED", "SSO_CHALLENGE_EXPIRED", "SSO_REQUEST_TIMEOUT", "SSO_CSRF_MISMATCH", "SSO_TRANSACTION_EXPIRED", "SSO_LOGIN_REQUIRED", "SSO_REQUEST_FAILED", "PROVIDER_WRONG_CHAIN", "HOSTED_POPUP_BLOCKED", "HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_TIMEOUT", "HOSTED_REQUEST_EXPIRED_OR_RELOADED", "HOSTED_DISCONNECTED", "HOSTED_ORIGIN_UNREGISTERED", "HOSTED_METHOD_INVALID", "HOSTED_REQUEST_FAILED"]);
       const raw = typeof error?.code === "string" ? error.code : typeof error?.message === "string" ? error.message : "";
+      for (const stage of ["INITIALIZATION", "RELAY", "APPROVAL", "REQUEST", "CLEANUP"]) for (const suffix of ["TIMEOUT", "UNAVAILABLE"]) known.add(`YNX_PAIR_${stage}_${suffix}`);
+      known.add("YNX_PAIR_TRANSPORT_DRAINING");
       const code2 = Number(error?.code) === 4001 || error?.code === "USER_REJECTED" ? "USER_REJECTED" : known.has(raw) ? raw : error?.name === "AbortError" ? "SSO_SERVICE_TIMEOUT" : error?.name === "TypeError" ? "SSO_TRANSPORT_UNAVAILABLE" : "SSO_WALLET_OR_SERVICE_UNAVAILABLE";
+      diagnostics.hidden = false;
+      diagnosticCode.textContent = code2;
       status.dataset.errorCode = code2;
-      status.dataset.phase = phase;
+      status.dataset.phase = ["initialization", "relay", "approval", "request", "cleanup"].includes(error?.stage) ? `pair-${error.stage}` : phase;
       return code2;
     };
     const pairButton = document.createElement("button");
@@ -27593,7 +27842,7 @@ ${item.productId}`));
           message("Wallet Web connection timed out. Return to your product and retry; no browser sign-in was granted.");
         } else if (epoch === revision && !cancelled) {
           const code2 = failure2(error, "hosted-connect");
-          message(code2 === "USER_REJECTED" ? "Connection was declined. No browser sign-in was granted." : `Wallet Web connection did not finish (${code2}). Retry or cancel.`);
+          message(code2 === "USER_REJECTED" ? "Connection was declined. No browser sign-in was granted." : "Wallet Web connection did not finish. Retry or cancel.");
         }
       }).finally(() => {
         clearTimeout(timer);
@@ -27610,7 +27859,9 @@ ${item.productId}`));
       const epoch = ++revision;
       selected = null;
       approve.disabled = true;
+      pairButton.disabled = true;
       pairButton.setAttribute("aria-busy", "true");
+      clearPairQR();
       message("Opening a mobile Wallet connection. No sign-in signature has been requested.");
       pair ??= new WalletConnectDAppConnection({ origin: location.origin, methods: ["ynx_requestCentralBrowserSignIn"], deadlineMs: Math.max(1, Math.min(3e4, Date.parse(challenge.expiresAt) - Date.now())) });
       pairPending = (async () => {
@@ -27643,14 +27894,17 @@ ${item.productId}`));
         approve.disabled = false;
         message("Mobile Wallet connected. Continue to review browser sign-in on the same Wallet session.");
       })().catch((error) => {
-        clearPairQR();
         if (epoch === revision && !cancelled) {
+          clearPairQR();
           const code2 = failure2(error, status.dataset.phase);
-          message(`Mobile connection did not finish (${code2}). Retry or cancel; no browser sign-in was granted.`);
+          message(code2 === "YNX_PAIR_TRANSPORT_DRAINING" ? "The previous network attempt is still finishing. Choose another wallet, or retry after it ends." : /^YNX_PAIR_(RELAY|INITIALIZATION)_/.test(code2) ? "The connection service could not be reached. Check your network, then retry or choose another wallet. No browser sign-in was granted." : "Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.");
         }
       }).finally(() => {
-        pairPending = null;
-        pairButton.removeAttribute("aria-busy");
+        if (epoch === revision) {
+          pairPending = null;
+          pairButton.disabled = cancelled;
+          pairButton.removeAttribute("aria-busy");
+        }
       });
     });
     const request = async (path, input) => {
@@ -27678,6 +27932,21 @@ ${item.productId}`));
         option.textContent = `YNX Wallet ${index + 1}`;
         picker.append(option);
       });
+      choices.replaceChildren();
+      providers.forEach((provider, index) => {
+        const choice = document.createElement("button");
+        choice.type = "button";
+        choice.dataset.walletIndex = String(index);
+        choice.textContent = t("YNX Wallet") + (providers.length > 1 ? ` ${index + 1}` : "");
+        choice.setAttribute("aria-pressed", String(provider === selected));
+        choice.disabled = cancelled || !!pending;
+        choice.addEventListener("click", () => {
+          picker.value = String(index);
+          picker.dispatchEvent(new Event("change"));
+          for (const button of choices.children) button.setAttribute("aria-pressed", String(button === choice));
+        });
+        choices.append(choice);
+      });
       if (previous && providers.includes(previous)) {
         picker.value = String(providers.indexOf(previous));
       } else if (previous && previous !== pairProvider && previous !== hostedProvider) {
@@ -27691,6 +27960,9 @@ ${item.productId}`));
       selected = picker.value === "" ? null : providers[Number(picker.value)];
       revision++;
       if (pairPending) {
+        pairPending = null;
+        pairButton.disabled = cancelled;
+        pairButton.removeAttribute("aria-busy");
         clearPairQR();
         void pair.cancel();
       }
