@@ -4,3 +4,26 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 .market-feed{margin:0 0 16px;padding:12px 0;border-block:1px solid var(--line)}.market-feed button{margin-left:10px}.market-feed p{margin:6px 0 0;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.market-feed #market-stale{color:var(--red)}.table-panel{min-width:0}#public-trades td:last-child{font-family:monospace;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 :root .private-account{margin:0 0 20px;padding:20px}.private-account header{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between}.private-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.private-account code{overflow-wrap:anywhere}.private-account [hidden]{display:none}
+
+/* First-party account and Wallet controls, including dynamically added SSO. */
+.brand .mark{display:block;width:40px;height:40px;object-fit:contain;background:transparent;border-radius:0;flex:none}
+.private-account :is(button,a.button),#private-open,#wallet-dialog button{min-height:44px;min-width:44px;padding:11px 16px;border:1px solid var(--blue);border-radius:9px;background:#fff;color:var(--blue);font-family:inherit;font-size:14px;font-weight:600;line-height:1.4;text-align:center;text-decoration:none;cursor:pointer;overflow-wrap:anywhere;white-space:normal}
+.private-account :is(a.button,#private-open){display:inline-flex;align-items:center;justify-content:center}
+#private-begin,#browser-identity-start{background:var(--blue);color:#fff}
+.private-account :is(button,a.button):hover,#private-open:hover,#wallet-dialog button:hover{background:#edf2ff}
+#private-begin:hover,#browser-identity-start:hover{background:var(--blue-2)}
+.private-account :is(button,a.button):focus-visible,#private-open:focus-visible,#wallet-dialog button:focus-visible,.access-details summary:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.private-account button:disabled,#wallet-dialog button:disabled{opacity:.5;cursor:not-allowed}
+.private-account button[aria-busy=true],#wallet-dialog button[aria-busy=true]{cursor:progress;opacity:.65}
+.private-actions>*{flex:1 1 180px;max-width:100%}
+#browser-identity{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+#browser-identity>:is(a,button){flex:1 1 180px}#browser-identity-status{flex-basis:100%;margin:4px 0;overflow-wrap:anywhere}
+.private-account .state-box,#wallet-dialog .state-box{font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.access-details{margin:16px 0;color:var(--muted);line-height:1.6}.access-details summary{min-height:44px;display:flex;align-items:center;color:var(--blue);cursor:pointer;font-weight:600}.access-details p{margin:8px 0}
+#wallet-dialog{max-height:calc(100dvh - 32px);overflow:auto}#wallet-dialog h2{margin:8px 0 16px;font-size:24px}#wallet-dialog .close{float:right;background:transparent;border-color:transparent;font-size:24px;padding:2px}
+#wallet-choices{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin:20px 0}#wallet-choices button{width:100%;text-align:left;padding:14px 16px}
+#wallet-details{overflow-wrap:anywhere}#wallet-details button{width:100%;margin-top:10px}#wallet-details p{line-height:1.6}#wallet-details code{overflow-wrap:anywhere}
+.private-account [hidden],#wallet-dialog [hidden]{display:none!important}
+@media(max-width:700px){:root .private-account{margin:12px;padding:16px}.private-account header{gap:8px}.private-account header h2{font-size:20px}.private-account :is(button,a.button),#private-open,#wallet-dialog button{font-size:14px}.private-actions>* ,#browser-identity>:is(a,button){flex-basis:100%}#wallet-dialog{padding:20px}#wallet-dialog h2{font-size:22px}}
+.topbar>.primary{min-height:44px;font-family:inherit;font-size:14px;font-weight:600;line-height:1.4;padding:10px 14px}.topbar>.primary:focus-visible{outline:3px solid var(--blue);outline-offset:3px}.topbar>.primary:disabled{opacity:.5;cursor:not-allowed}
+.text-button{min-height:44px;padding:10px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--blue);font-family:inherit;font-size:14px;font-weight:600;line-height:1.4;cursor:pointer}.text-button:hover{background:#edf2ff}.text-button:focus-visible{outline:3px solid var(--blue);outline-offset:3px}.text-button:disabled{opacity:.5;cursor:not-allowed}#wallet-fallback a{display:inline-flex;min-height:44px;align-items:center;color:var(--blue)}
