@@ -57,18 +57,22 @@ export function protectedChatDevices(storage:ChatCarrierStorage,environment:{cry
   };
 }
 
-export function indexedDBChatCarriers(indexedDB:IDBFactory):ChatCarrierStorage{
-  const open=()=>new Promise<IDBDatabase>((resolve,reject)=>{const request=indexedDB.open("ynx-social-chat-secrets-v2",1);request.onupgradeneeded=()=>request.result.createObjectStore("devices");request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(recovery())});
+export function indexedDBChatCarriers(indexedDB:IDBFactory|undefined):ChatCarrierStorage{
+  // Constructing/importing the adapter is harmless on unsupported browsers.
+  // Check inside each async operation, before key generation or migration.
+  const factory=()=>{if(!indexedDB||typeof indexedDB.open!=="function")throw new ChatStorageError("CHAT_SECURE_STORAGE_UNAVAILABLE","Chat requires persistent IndexedDB storage. Existing device data was retained.");return indexedDB};
+  const open=()=>new Promise<IDBDatabase>((resolve,reject)=>{const request=factory().open("ynx-social-chat-secrets-v2",1);request.onupgradeneeded=()=>request.result.createObjectStore("devices");request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(recovery())});
   const openLegacy=async()=>{
-    if(typeof indexedDB.databases==="function"&&!(await indexedDB.databases()).some(item=>item.name==="ynx-social-chat-devices-v1"))return null;
-    return new Promise<IDBDatabase|null>((resolve,reject)=>{const request=indexedDB.open("ynx-social-chat-devices-v1");let missing=false;request.onupgradeneeded=()=>{missing=true;request.transaction?.abort()};request.onsuccess=()=>{if(!request.result.objectStoreNames.contains("devices")){request.result.close();reject(recovery())}else resolve(request.result)};request.onerror=()=>missing?resolve(null):reject(recovery())});
+    const idb=factory();
+    if(typeof idb.databases==="function"&&!(await idb.databases()).some(item=>item.name==="ynx-social-chat-devices-v1"))return null;
+    return new Promise<IDBDatabase|null>((resolve,reject)=>{const request=idb.open("ynx-social-chat-devices-v1");let missing=false;request.onupgradeneeded=()=>{missing=true;request.transaction?.abort()};request.onsuccess=()=>{if(!request.result.objectStoreNames.contains("devices")){request.result.close();reject(recovery())}else resolve(request.result)};request.onerror=()=>missing?resolve(null):reject(recovery())});
   };
-  async function operate<T>(db:IDBDatabase,mode:IDBTransactionMode,action:(store:IDBObjectStore,set:(value:T)=>void)=>void):Promise<T>{
-    try{return await new Promise<T>((resolve,reject)=>{const transaction=db.transaction("devices",mode);let result:T;transaction.oncomplete=()=>resolve(result);transaction.onerror=()=>reject(recovery());transaction.onabort=()=>reject(recovery());try{action(transaction.objectStore("devices"),value=>{result=value})}catch{transaction.abort();reject(recovery())}})}finally{db.close()}
+  async function operate<T>(db:IDBDatabase,mode:IDBTransactionMode,action:(store:IDBObjectStore,set:(value:T)=>void,guard:(callback:()=>void)=>void)=>void):Promise<T>{
+    try{return await new Promise<T>((resolve,reject)=>{const transaction=db.transaction("devices",mode);let result:T;transaction.oncomplete=()=>resolve(result);transaction.onerror=()=>reject(recovery());transaction.onabort=()=>reject(recovery());const guard=(callback:()=>void)=>{try{callback()}catch{reject(recovery());try{transaction.abort()}catch{/* Already inactive: the typed failure remains authoritative. */}}};guard(()=>action(transaction.objectStore("devices"),value=>{result=value},guard))})}finally{db.close()}
   }
   return {
     async load(account){return operate(await open(),"readonly",(store,set)=>{const request=store.get(account);request.onsuccess=()=>set(request.result??null)})},
-    async insert(account,carrier){return operate<void>(await open(),"readwrite",(store,set)=>{const request=store.get(account);request.onsuccess=()=>{if(request.result===undefined)store.add(carrier,account);set(undefined)}})},
+    async insert(account,carrier){return operate<void>(await open(),"readwrite",(store,set,guard)=>{const request=store.get(account);request.onsuccess=()=>guard(()=>{if(request.result===undefined)store.add(carrier,account);set(undefined)})})},
     async legacy(account){const db=await openLegacy();if(!db)return null;return operate(db,"readonly",(store,set)=>{const request=store.get(account);request.onsuccess=()=>{if(request.result!==undefined&&typeof request.result!=="string"){request.transaction?.abort();return}set(request.result??null)}})},
     async removeLegacy(account,expected){const db=await openLegacy();if(!db)throw recovery();return operate<void>(db,"readwrite",(store,set)=>{const request=store.get(account);request.onsuccess=()=>{if(request.result!==expected){request.transaction?.abort();return}store.delete(account);set(undefined)}})},
   };

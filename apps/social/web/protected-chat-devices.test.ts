@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {protectedChatDevices,openChatDevice,type ProtectedChatCarrier,type ChatCarrierStorage} from './protected-chat-devices';
+import {protectedChatDevices,openChatDevice,indexedDBChatCarriers,ChatStorageError,type ProtectedChatCarrier,type ChatCarrierStorage} from './protected-chat-devices';
 
 const account=`ynx1${'a'.repeat(38)}`,other=`ynx1${'b'.repeat(38)}`;
 const original=JSON.stringify({account,deviceId:'social-original-device',signingSeed:'07'.repeat(32),encryptionSeed:'08'.repeat(32),legacyExtra:'retained'});
@@ -39,4 +39,18 @@ test('interrupted protection cleanup preserves old carrier and resumes without m
 test('lost readback and changed legacy carrier fail closed and never delete the original',async()=>{
   const f=fixture();f.legacy.set(account,original);f.failRead(true);await assert.rejects(f.devices.protectLegacy(account,true));assert.equal(f.legacy.get(account),original);assert.equal(f.counts(),0);
   f.failRead(false);await f.storage.insert(account,await (await import('./protected-chat-devices')).sealChatDevice(crypto,account,original));f.legacy.set(account,original.replace('retained','changed'));await assert.rejects(f.devices.protectLegacy(account,true),/retained/);assert.equal(f.legacy.get(account),original.replace('retained','changed'));
+});
+
+test('missing IndexedDB constructs without throwing and every operation rejects with typed unavailable',async()=>{
+ let storage!:ChatCarrierStorage;assert.doesNotThrow(()=>{storage=indexedDBChatCarriers(undefined)});
+ const unavailable=(error:unknown)=>error instanceof ChatStorageError&&error.code==='CHAT_SECURE_STORAGE_UNAVAILABLE';
+ for(const operation of [()=>storage.load(account),()=>storage.insert(account,{} as ProtectedChatCarrier),()=>storage.legacy(account),()=>storage.removeLegacy(account,original)])await assert.rejects(operation(),unavailable);
+ const f=fixture();await assert.rejects(protectedChatDevices(storage,f.environment).get(account,true),unavailable);assert.equal(f.counts(),0);
+});
+test('synchronous DataCloneError inside asynchronous get success is contained, aborted and typed',async()=>{
+ let aborted=0,closed=0;const get={onsuccess:null as null|(()=>void),result:undefined};
+ const transaction={oncomplete:null,onerror:null,onabort:null,objectStore:()=>({get:()=>{queueMicrotask(()=>get.onsuccess?.());return get},add:()=>{throw new DOMException('fixture cannot clone','DataCloneError')}}),abort:()=>{aborted++}};
+ const db={transaction:()=>transaction,close:()=>{closed++}};
+ const idb={open:()=>{const request={result:db,onsuccess:null as null|(()=>void)};queueMicrotask(()=>request.onsuccess?.());return request}} as unknown as IDBFactory;
+ await assert.rejects(indexedDBChatCarriers(idb).insert(account,{} as ProtectedChatCarrier),(error:unknown)=>error instanceof ChatStorageError&&error.code==='CHAT_DEVICE_RECOVERY_REQUIRED');assert.equal(aborted,1);assert.equal(closed,1);
 });
