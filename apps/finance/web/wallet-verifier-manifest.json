@@ -7,16 +7,16 @@
     "esbuildVersion": "0.25.9"
   },
   "evmRead": {
-    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-private-expiry-9a0dc719b-20261002.json",
-    "candidateBytes": 74248,
-    "candidateSha256": "fb22dd09b736d9b202d5ecdcb0fb9c0b5e84f5530995166a9bdccf3da752e32e"
+    "candidatePath": "../evidence/evm-read-runtime-verifier-candidate-root-anchor-c0160f80f-20261002.json",
+    "candidateBytes": 74432,
+    "candidateSha256": "4d0e5c51c59fd7b8c81128bade51a929ad521c92cfd8d088867ab6e86777f252"
   },
   "sourceBundleRelation": {
     "byteReproducible": true,
     "status": "VERIFIED_REPRODUCIBLE",
     "cleanBuildCount": 2,
-    "bytes": 758772,
-    "sha256": "e6ff2efc7f796ede5eee72b4707cef171fdcca822d2c5daed3d495df5e28ed67"
+    "bytes": 761617,
+    "sha256": "d3b8cb86dcc4353262448a5e93a3193aff50e5e7afdc7b3d0754db89d8c62ee0"
   },
   "files": [
     {
@@ -41,8 +41,8 @@
     },
     {
       "path": "endpoint-authority-entry.js",
-      "bytes": 12166,
-      "sha256": "6ac49ba221e24bdf81e3a35ad7b41344bd9c27608b050634d8d404a83b6d7bba"
+      "bytes": 14048,
+      "sha256": "d37e513fb1771153cc5837d12388bdaa363f7639b356a45d37ad3be0bb6165b5"
     },
     {
       "path": "endpoint-authority-store.js",
@@ -56,8 +56,8 @@
     },
     {
       "path": "wallet-auth.js",
-      "bytes": 758772,
-      "sha256": "e6ff2efc7f796ede5eee72b4707cef171fdcca822d2c5daed3d495df5e28ed67"
+      "bytes": 761617,
+      "sha256": "d3b8cb86dcc4353262448a5e93a3193aff50e5e7afdc7b3d0754db89d8c62ee0"
     },
     {
       "path": "order-wallet.js",
@@ -92,7 +92,7 @@
     {
       "path": "index.html",
       "bytes": 36341,
-      "sha256": "4960b028ea9e192d98f5adc1393192595714c7f1804db5cd761769f536529c8b"
+      "sha256": "837945498aba9628ed7dba1577eaed6556665fbf56d8788047799adf0a5b3491"
     },
     {
       "path": "app.js",
@@ -141,8 +141,8 @@
     },
     {
       "path": "../../../sdk/js/index.js",
-      "bytes": 10191,
-      "sha256": "bbe5bf66d233e1d241b818d32b8c726fe3275e046a3307544a6aeb6f278252ac"
+      "bytes": 10247,
+      "sha256": "853266e2bcbf0755be9a1a378734367b59d26e651ab8cc86bad700105c1f3b2b"
     },
     {
       "path": "../../../sdk/js/endpoint-authority.js",
@@ -151,8 +151,8 @@
     },
     {
       "path": "../../../sdk/js/endpoint-authority-v2.js",
-      "bytes": 20845,
-      "sha256": "f07734de3d0435321aa40d2e5fcb532cdf6e5a56e60d59ea1c0c5afcd73591b6"
+      "bytes": 23536,
+      "sha256": "a8ff8cbe81703324e7a922164a4e6ce7dbc45027370fc791e4788735b5efb0ae"
     },
     {
       "path": "../../../sdk/js/endpoint-authority-bundle.js",
@@ -191,13 +191,13 @@
     },
     {
       "path": "verify-evm-read-candidate.mjs",
-      "bytes": 19496,
-      "sha256": "74079818791516e93c46332d22e6461ad646df2c2889104a251417ab08a9c9c8"
+      "bytes": 20007,
+      "sha256": "59eb11e83650cc0b8dccc5ee03f7327a6c222a466ce7a74adf16c934a408f206"
     },
     {
-      "path": "../evidence/evm-read-runtime-verifier-candidate-private-expiry-9a0dc719b-20261002.json",
-      "bytes": 74248,
-      "sha256": "fb22dd09b736d9b202d5ecdcb0fb9c0b5e84f5530995166a9bdccf3da752e32e"
+      "path": "../evidence/evm-read-runtime-verifier-candidate-root-anchor-c0160f80f-20261002.json",
+      "bytes": 74432,
+      "sha256": "4d0e5c51c59fd7b8c81128bade51a929ad521c92cfd8d088867ab6e86777f252"
     },
     {
       "path": "../../../packages/wallet-auth/node_modules/@noble/hashes/_md.js",
@@ -4436,8 +4436,8 @@
     },
     {
       "path": "wallet-build-closure.json",
-      "bytes": 69707,
-      "sha256": "d8bde31c9008f7cff8d832724e3a49623ccbe1468b39a1f026240730cef88c47"
+      "bytes": 69748,
+      "sha256": "634aa4c97a50cb431f6e3de0875342d901596754b6de015553da3ba46a2b4d90"
     },
     {
       "path": "../../wallet-web/package.json",
@@ -4468,6 +4468,11 @@
       "path": "ynx-favicon.png",
       "bytes": 45914,
       "sha256": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7"
+    },
+    {
+      "path": "endpoint-authority-trust-roots.js",
+      "bytes": 351,
+      "sha256": "cc5c88ea44a04db6afd708836958b69195b7f4726b05ebcac944add902a02b96"
     }
   ]
 }

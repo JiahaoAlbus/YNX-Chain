@@ -760,6 +760,7 @@
     "../../wallet-web/vendor/product-session-registry-123016847.json",
     "endpoint-authority-entry.js",
     "endpoint-authority-store.js",
+    "endpoint-authority-trust-roots.js",
     "hosted-wallet-controller.js",
     "node_modules/dijkstrajs/dijkstra.js",
     "node_modules/qrcode/lib/browser.js",
