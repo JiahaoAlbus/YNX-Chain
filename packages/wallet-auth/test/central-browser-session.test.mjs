@@ -1,6 +1,7 @@
+import {backendBodyDigest} from '../src/central-browser-backend-auth.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createHash,randomBytes} from 'node:crypto';
+import {createHash,randomBytes,generateKeyPairSync,sign} from 'node:crypto';
 import {chmod,mkdtemp,readFile,rm,symlink,unlink,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -195,7 +196,8 @@ for(const terminal of ['idle','absolute','revoke'])test(`actual browser new-tab 
   // isolated SDK installs do not import another product's development tooling.
   const {chromium}=createRequire(new URL('../../../apps/quant-lab/package.json',import.meta.url))('playwright');
   const f=await fixture(),issuer='https://wallet-auth.ynxweb4.com';let now=Date.now(),context;
-  const host=new ProductSessionGatewayNodeHost(products,{statePath:join(f.directory,'cold-gateway.json'),now:()=>new Date(now),tokenFactory:token,centralBrowser:true});
+  const backendKey=generateKeyPairSync('ed25519'),backendClient=registry.find(c=>c.productId==='finance');
+  const host=new ProductSessionGatewayNodeHost(products,{statePath:join(f.directory,'cold-gateway.json'),now:()=>new Date(now),tokenFactory:token,centralBrowser:true,centralBackend:{backendClients:[{clientId:backendClient.clientId,keyId:'isolated-browser-qa',publicKey:backendKey.publicKey.export({type:'spki',format:'pem'})}],familySealKey:randomBytes(32)}});
   const server=createServer(host.handler());await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;
   let consentCount=0;const cookieIssueObservations=[];
   const open=async()=>{
@@ -233,7 +235,12 @@ for(const terminal of ['idle','absolute','revoke'])test(`actual browser new-tab 
     const afterRestart=(await context.cookies(issuer)).find(value=>value.name==='__Host-ynx-browser-session');assert.ok(afterRestart);assert.ok(Math.abs(afterRestart.expires-central.expires)<1,'status read must not renew browser lifetime');
     if(terminal==='idle')now+=30*60*1000;
     if(terminal==='absolute'){
-      for(let index=0;index<4;index++){now+=29*60*1000;await assertIdentity(page);}
+      // Status/polling no longer counts as user activity. This isolated HTTP
+      // fixture attests a real-user event through the reviewed confidential
+      // boundary; public UI/host activity admission is a separate acceptance.
+      const backendPost=async(path,input)=>{const signed={version:1,issuer,audience:issuer+'/v2/browser-sessions',clientId:backendClient.clientId,keyId:'isolated-browser-qa',method:'POST',path,bodySha256:backendBodyDigest(input),issuedAt:new Date(now).toISOString(),nonce:token()},proof={...signed,signature:sign(null,Buffer.from(canonicalJSON(signed)),backendKey.privateKey).toString('base64url')};const response=await fetch(base+path,{method:'POST',headers:{'content-type':'application/json','x-ynx-backend-proof':Buffer.from(JSON.stringify(proof)).toString('base64url')},body:canonicalJSON(input)});assert.equal(response.status,200);return response.json()};
+      const familyRequest=intent(),authorization=await fetch(base+'/v2/browser-sessions/authorize?'+new URLSearchParams(familyRequest.input),{headers:{cookie:'__Host-ynx-browser-session='+central.value},redirect:'manual'});assert.equal(authorization.status,303);const family=await backendPost('/v2/browser-sessions/token-family',{clientId:familyRequest.input.clientId,origin:familyRequest.input.origin,redirectUri:familyRequest.input.redirectUri,code:new URL(authorization.headers.get('location')).searchParams.get('code'),state:familyRequest.input.state,codeVerifier:familyRequest.codeVerifier,requestId:token()});
+      for(let index=0;index<4;index++){now+=29*60*1000;await backendPost('/v2/browser-sessions/activity',{clientId:backendClient.clientId,familyId:family.familyId,eventId:token(),observedAt:new Date(now).toISOString()});await assertIdentity(page);}
       now+=4*60*1000;
     }
     if(terminal==='revoke'){

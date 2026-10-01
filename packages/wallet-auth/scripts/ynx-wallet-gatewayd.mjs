@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {loadCentralBackendConfiguration} from '../src/central-browser-backend-auth.js';
 import { readFileSync, lstatSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { createServer } from "node:http";
@@ -49,7 +50,7 @@ const ProductHost=productSessionStateVersion==='3'?ProductSessionControlNodeHost
 const productHost=new ProductHost(productRegistry,{statePath:productSessionStatePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url'),...(productSessionStateVersion==='3'?{capacityPolicy}:{})});
 // Separate identity-only history; never migrate/reset either existing product
 // state format or its clock/nonce/control high-water marks to enable SSO.
-const central=centralBrowser?new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(productRegistry),new CentralBrowserSessionStore(`${productSessionStatePath}.browser`))):null;
+const central=centralBrowser?new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(productRegistry),new CentralBrowserSessionStore(`${productSessionStatePath}.browser`),loadCentralBackendConfiguration(process.env.YNX_CENTRAL_BROWSER_BACKEND_CONFIG_FILE))):null;
 const admission=new GatewayAdmissionController({maxConcurrent:integer(process.env.YNX_WALLET_GATEWAY_MAX_CONCURRENT??"64","YNX_WALLET_GATEWAY_MAX_CONCURRENT",1,1024),maxPerWindow:integer(process.env.YNX_WALLET_GATEWAY_RATE_LIMIT??"300","YNX_WALLET_GATEWAY_RATE_LIMIT",1,100000)});
 const legacyHandler=host.handler(),productHandler=productHost.handler();
 const gatewayHandler=async(request,response)=>{

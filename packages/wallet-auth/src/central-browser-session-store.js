@@ -12,9 +12,9 @@ const noFollow=constants.O_NOFOLLOW??0;
 const host=hostname();
 function safe(stat,kind){if(!owner(stat)||(stat.mode&0o077)!==0||stat.isSymbolicLink()||(kind==='file'?(!stat.isFile()||stat.nlink!==1):!stat.isDirectory()))fail('SSO_STATE_PERMISSIONS');}
 function validate(state){
-  exactFields(state,['schemaVersion','revision','clockHighWaterMs','challenges','sessions','codes','grants'],'Central durable state');
-  if(state.schemaVersion!==1||!Number.isSafeInteger(state.revision)||state.revision<0||!Number.isSafeInteger(state.clockHighWaterMs)||state.clockHighWaterMs<0)fail('SSO_STATE_INVALID');
-  for(const key of ['challenges','sessions','codes','grants'])if(!Array.isArray(state[key])||state[key].length>MAX_RECORDS)fail('SSO_STATE_CAPACITY');
+  exactFields(state,['schemaVersion','revision','clockHighWaterMs','challenges','sessions','codes','grants',...(state.schemaVersion===2?['families','backendNonces']:[])],'Central durable state');
+  if(![1,2].includes(state.schemaVersion)||!Number.isSafeInteger(state.revision)||state.revision<0||!Number.isSafeInteger(state.clockHighWaterMs)||state.clockHighWaterMs<0)fail('SSO_STATE_INVALID');
+  for(const key of ['challenges','sessions','codes','grants',...(state.schemaVersion===2?['families','backendNonces']:[])])if(!Array.isArray(state[key])||state[key].length>MAX_RECORDS)fail('SSO_STATE_CAPACITY');
   if(Buffer.byteLength(canonicalJSON(state))>MAX_BYTES)fail('SSO_STATE_CAPACITY');
 }
 

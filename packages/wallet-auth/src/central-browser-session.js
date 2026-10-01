@@ -1,3 +1,4 @@
+import {createCentralBackendVerifier,createCentralFamilySeal,backendBodyDigest} from './central-browser-backend-auth.js';
 import {centralUIPage} from './central-browser-session-locale.js';
 import {createHash,randomBytes,timingSafeEqual} from 'node:crypto';
 import {readFileSync} from 'node:fs';
@@ -34,10 +35,10 @@ export function centralBrowserCookieToken(header,name=CENTRAL_BROWSER_COOKIE){
 // Identity-only grants are separate from existing Wallet ProductSession proofs.
 // No caller may use this grant to bypass a native/sensitive product scope.
 export class CentralBrowserSessionAuthority {
-  #store;#registry;#now;#random;
-  constructor(registry,store,{now=()=>Date.now(),tokenFactory=random}={}){
+  #store;#registry;#now;#random;#backendVerify;#familySeal;
+  constructor(registry,store,{now=()=>Date.now(),tokenFactory=random,backendClients=[],familySealKey=null}={}){
     if(!Array.isArray(registry)||!store?.transaction||typeof now!=='function'||typeof tokenFactory!=='function')fail('SSO_AUTHORITY_INVALID');
-    this.#registry=registry;this.#store=store;this.#now=now;this.#random=tokenFactory;
+    this.#registry=registry;this.#store=store;this.#now=now;this.#random=tokenFactory;this.#backendVerify=createCentralBackendVerifier(backendClients);this.#familySeal=createCentralFamilySeal(familySealKey);
   }
   challenge(initiator,transactionToken){
     const client=this.#initiator(initiator);if(!token(transactionToken))fail('SSO_BROWSER_BINDING_REQUIRED');
@@ -114,11 +115,11 @@ export class CentralBrowserSessionAuthority {
       return {redirectUri:redirect.href};
     });
   }
-  redeem(input){
+  redeem(input){return this.#transaction((state,now)=>this.#redeem(state,now,input));}
+  #redeem(state,now,input){
     exactFields(input,['clientId','origin','redirectUri','code','state','codeVerifier'],'Central browser code redemption');
     const client=centralBrowserClient(this.#registry,{clientId:input.clientId,origin:input.origin,redirectUri:input.redirectUri});
     if(!token(input.code)||!token(input.state)||typeof input.codeVerifier!=='string'||!/^[A-Za-z0-9._~-]{43,128}$/.test(input.codeVerifier))fail('SSO_CODE_INVALID');
-    return this.#transaction((state,now)=>{
       const code=state.codes.find(value=>equal(value.codeHash,hash(input.code)));
       if(!code||code.consumed)fail('SSO_CODE_REPLAY');
       if(code.expiresAt<=now)fail('SSO_CODE_EXPIRED');
@@ -127,10 +128,48 @@ export class CentralBrowserSessionAuthority {
       const session=state.sessions.find(value=>value.id===code.sessionId);this.#assertActive(session,now);
       if(session.generation!==code.generation)fail('SSO_GENERATION_REVOKED');this.#approved(state,session,client.clientId);if(code.audience!==client.audience||canonicalJSON(code.scopes)!==canonicalJSON(client.scopes))fail('SSO_CODE_BINDING_MISMATCH');
       const grantToken=this.#token(),grant={tokenHash:hash(grantToken),sessionId:session.id,generation:session.generation,
-        clientId:client.clientId,origin:client.origin,audience:client.audience,scopes:[...client.scopes],expiresAt:Math.min(now+GRANT_LIFETIME,session.expiresAt),revoked:false};
+        clientId:client.clientId,origin:client.origin,audience:client.audience,scopes:[...client.scopes],expiresAt:Math.min(now+GRANT_LIFETIME,session.expiresAt,session.lastSeenAt+SESSION_IDLE),revoked:false};
       state.grants.push(grant);code.consumed=true;
       return {grantToken,expiresAt:iso(grant.expiresAt),identity:this.#identity(session),audience:grant.audience,scopes:[...grant.scopes]};
+  }
+  redeemWithFamily(input,proof){
+    exactFields(input,['clientId','origin','redirectUri','code','state','codeVerifier','requestId'],'Confidential redemption');
+    if(!token(input.requestId))fail('SSO_FAMILY_REQUEST_INVALID');
+    return this.#transaction((state,now)=>{
+      const auth=this.#authenticateBackend(state,now,'/v2/browser-sessions/token-family',input,proof),digest=backendBodyDigest(input),existing=state.families.find(f=>f.initialCodeHash===hash(input.code));
+      if(existing){if(existing.clientId!==input.clientId||existing.initialDigest!==digest||existing.initialRequestId!==input.requestId)fail('SSO_CODE_REPLAY');this.#activeFamily(state,existing,now);if(existing.epoch!==0)fail('SSO_CODE_REPLAY');return this.#familySeal.open(existing.initialResult,existing.id+':initial');}
+      const {requestId,...redemption}=input,result=this.#redeem(state,now,redemption),grant=state.grants.find(g=>g.tokenHash===hash(result.grantToken)),session=state.sessions.find(v=>v.id===grant.sessionId),handle=this.#token();
+      const family={id:this.#token(),sessionId:session.id,generation:session.generation,clientId:grant.clientId,origin:grant.origin,audience:grant.audience,scopes:[...grant.scopes],absoluteExpiresAt:session.expiresAt,epoch:0,activityIds:[],handleHash:hash(handle),revoked:false,initialCodeHash:hash(input.code),initialRequestId:requestId,initialDigest:digest,grantExpiresAt:grant.expiresAt,spentHandles:[],retry:null};
+      const out={...result,familyId:family.id,familyEpoch:0,refreshHandle:handle,absoluteExpiresAt:iso(session.expiresAt),idleExpiresAt:iso(Math.min(session.expiresAt,session.lastSeenAt+SESSION_IDLE))};family.initialResult=this.#familySeal.seal(out,family.id+':initial');state.families.push(family);return out;
     });
+  }
+  renewFamily(input,proof){
+    exactFields(input,['clientId','familyId','refreshHandle','expectedFamilyEpoch','requestId'],'Confidential renewal');
+    if(!token(input.familyId)||!token(input.refreshHandle)||!token(input.requestId)||!Number.isSafeInteger(input.expectedFamilyEpoch)||input.expectedFamilyEpoch<0)fail('SSO_FAMILY_REQUEST_INVALID');
+    return this.#transaction((state,now)=>{
+      this.#authenticateBackend(state,now,'/v2/browser-sessions/renew',input,proof);const family=state.families.find(f=>f.id===input.familyId&&f.clientId===input.clientId);const session=this.#activeFamily(state,family,now),digest=backendBodyDigest(input),handleHash=hash(input.refreshHandle);
+      if(family.retry&&family.retry.oldHandleHash===handleHash&&family.retry.epoch===input.expectedFamilyEpoch){if(family.retry.requestId!==input.requestId||family.retry.digest!==digest)fail('SSO_FAMILY_CONFLICT');if(family.retry.resultEpoch!==family.epoch)fail('SSO_FAMILY_REPLAY');return this.#familySeal.open(family.retry.result,family.id+':'+family.epoch);}
+      if(family.spentHandles.some(h=>h.hash===handleHash))fail('SSO_FAMILY_REPLAY');
+      if(input.expectedFamilyEpoch!==family.epoch||!equal(handleHash,family.handleHash))fail('SSO_FAMILY_CONFLICT');
+      if(family.epoch>=64)fail('SSO_FAMILY_CAPACITY');if(family.grantExpiresAt>now+60000)fail('SSO_RENEW_NOT_DUE');
+      const handle=this.#token(),grantToken=this.#token(),expiresAt=Math.min(now+GRANT_LIFETIME,session.expiresAt,session.lastSeenAt+SESSION_IDLE);const grant={tokenHash:hash(grantToken),sessionId:session.id,generation:session.generation,clientId:family.clientId,origin:family.origin,audience:family.audience,scopes:[...family.scopes],expiresAt,revoked:false};state.grants.push(grant);family.spentHandles.push({hash:family.handleHash,epoch:family.epoch});family.epoch++;family.grantExpiresAt=expiresAt;
+      const out={grantToken,expiresAt:iso(expiresAt),identity:this.#identity(session),audience:family.audience,scopes:[...family.scopes],familyId:family.id,familyEpoch:family.epoch,refreshHandle:handle,absoluteExpiresAt:iso(family.absoluteExpiresAt),idleExpiresAt:iso(Math.min(session.expiresAt,session.lastSeenAt+SESSION_IDLE))};
+      family.retry={oldHandleHash:family.handleHash,epoch:input.expectedFamilyEpoch,resultEpoch:family.epoch,requestId:input.requestId,digest,result:this.#familySeal.seal(out,family.id+':'+family.epoch)};family.handleHash=hash(handle);return out;
+    });
+  }
+  recordFamilyActivity(input,proof){
+    exactFields(input,['clientId','familyId','eventId','observedAt'],'Trusted host user activity');const observed=Date.parse(input.observedAt);if(!token(input.familyId)||!token(input.eventId)||!Number.isFinite(observed)||new Date(observed).toISOString()!==input.observedAt)fail('SSO_ACTIVITY_INVALID');
+    return this.#transaction((state,now)=>{this.#authenticateBackend(state,now,'/v2/browser-sessions/activity',input,proof);if(observed>now||now-observed>30000)fail('SSO_ACTIVITY_INVALID');const family=state.families.find(f=>f.id===input.familyId&&f.clientId===input.clientId),session=this.#activeFamily(state,family,now);family.activityIds=family.activityIds.filter(e=>e.observedAt+30000>=now);const prior=family.activityIds.find(e=>e.id===input.eventId);if(prior&&prior.observedAt!==observed)fail('SSO_ACTIVITY_REPLAY');if(!prior){if(family.activityIds.length>=128)fail('SSO_ACTIVITY_CAPACITY');family.activityIds.push({id:input.eventId,observedAt:observed});session.lastSeenAt=Math.max(session.lastSeenAt,observed);}return{absoluteExpiresAt:iso(session.expiresAt),idleExpiresAt:iso(Math.min(session.expiresAt,session.lastSeenAt+SESSION_IDLE)),identity:this.#identity(session)};});
+  }
+  revokeFamily(input,proof){
+    exactFields(input,['clientId','familyId','requestId'],'Confidential family revocation');if(!token(input.familyId)||!token(input.requestId))fail('SSO_FAMILY_REQUEST_INVALID');
+    return this.#transaction((state,now)=>{this.#authenticateBackend(state,now,'/v2/browser-sessions/revoke-family',input,proof);const family=state.families.find(f=>f.id===input.familyId&&f.clientId===input.clientId);if(!family)fail('SSO_FAMILY_INVALID');for(const linked of state.families)if(linked.sessionId===family.sessionId&&linked.generation===family.generation&&linked.clientId===family.clientId)linked.revoked=true;for(const grant of state.grants)if(grant.sessionId===family.sessionId&&grant.generation===family.generation&&grant.clientId===family.clientId)grant.revoked=true;for(const code of state.codes)if(code.sessionId===family.sessionId&&code.generation===family.generation&&code.clientId===family.clientId)code.consumed=true;return{revoked:true};});
+  }
+  #authenticateBackend(state,now,path,input,proof){
+    if(!this.#familySeal)fail('SSO_BACKEND_NOT_CONFIGURED');const auth=this.#backendVerify(path,input,proof,now);state.families??=[];state.backendNonces??=[];state.schemaVersion=2;const prior=state.backendNonces.find(n=>n.hash===auth.nonceHash&&n.clientId===auth.clientId);if(prior&&prior.digest!==auth.digest)fail('SSO_BACKEND_AUTH_REPLAY');if(!prior)state.backendNonces.push({hash:auth.nonceHash,clientId:auth.clientId,digest:auth.digest,expiresAt:auth.expiresAt});return auth;
+  }
+  #activeFamily(state,family,now){
+    if(!family||family.revoked)fail('SSO_FAMILY_INVALID');const session=state.sessions.find(v=>v.id===family.sessionId);this.#assertActive(session,now);if(session.generation!==family.generation||family.absoluteExpiresAt!==session.expiresAt)fail('SSO_GENERATION_REVOKED');const approved=this.#approved(state,session,family.clientId);if(approved.origin!==family.origin||approved.audience!==family.audience||canonicalJSON(approved.scopes)!==canonicalJSON(family.scopes))fail('SSO_FAMILY_INVALID');return session;
   }
   introspect(grantToken,clientId){
     if(!token(grantToken))fail('SSO_GRANT_INVALID');
@@ -139,7 +178,7 @@ export class CentralBrowserSessionAuthority {
       if(!grant||grant.revoked||grant.expiresAt<=now||grant.clientId!==clientId)fail('SSO_GRANT_INVALID');
       const session=state.sessions.find(value=>value.id===grant.sessionId);this.#assertActive(session,now);
       if(session.generation!==grant.generation)fail('SSO_GENERATION_REVOKED');const approved=this.#approved(state,session,clientId);if(grant.origin!==approved.origin||grant.audience!==approved.audience||canonicalJSON(grant.scopes)!==canonicalJSON(approved.scopes))fail('SSO_GRANT_INVALID');
-      session.lastSeenAt=now;
+      // Passive verification never extends the user idle deadline.
       return {identity:this.#identity(session),audience:grant.audience,scopes:[...grant.scopes],expiresAt:iso(grant.expiresAt)};
     });
   }
@@ -157,6 +196,7 @@ export class CentralBrowserSessionAuthority {
       // another registered product. Revoke this product's linked grants.
       for(const linked of state.grants)if(linked.sessionId===grant.sessionId&&linked.generation===grant.generation&&linked.clientId===clientId)linked.revoked=true;
       for(const code of state.codes)if(code.sessionId===grant.sessionId&&code.generation===grant.generation&&code.clientId===clientId)code.consumed=true;
+      for(const family of state.families??[])if(family.sessionId===grant.sessionId&&family.generation===grant.generation&&family.clientId===clientId)family.revoked=true;
       return {revoked:true};
     });
   }
@@ -187,9 +227,10 @@ export class CentralBrowserSessionAuthority {
     state.codes=state.codes.filter(value=>value.expiresAt+300000>now);
     state.grants=state.grants.filter(value=>value.expiresAt+300000>now);
     state.sessions=state.sessions.filter(value=>value.expiresAt+GRANT_LIFETIME+300000>now);
+    if(state.schemaVersion===2){state.families=state.families.filter(f=>f.absoluteExpiresAt+300000>now);state.backendNonces=state.backendNonces.filter(n=>n.expiresAt+30000>now);}
     return action(state,now);
   });}
-  #active(state,value,now){if(!token(value))fail('SSO_LOGIN_REQUIRED');const session=state.sessions.find(record=>equal(record.tokenHash,hash(value)));this.#assertActive(session,now);session.lastSeenAt=now;return session;}
+  #active(state,value,now){if(!token(value))fail('SSO_LOGIN_REQUIRED');const session=state.sessions.find(record=>equal(record.tokenHash,hash(value)));this.#assertActive(session,now);return session;}
   #assertActive(session,now){if(!session||session.revoked||session.expiresAt<=now||session.lastSeenAt+SESSION_IDLE<=now)fail('SSO_LOGIN_REQUIRED');}
   #identity(session){return {subject:session.account,account:session.account,generation:session.generation,expiresAt:iso(session.expiresAt)};}
 }
@@ -199,7 +240,7 @@ export const CENTRAL_BROWSER_ROUTES=Object.freeze([
   '/sso/browser.js','/sso/session',
   '/v2/browser-sessions/bootstrap','/v2/browser-sessions/challenge','/v2/browser-sessions/complete',
   '/v2/browser-sessions/cancel','/v2/browser-sessions/profile','/v2/browser-sessions/status','/v2/browser-sessions/authorize',
-  '/v2/browser-sessions/token','/v2/browser-sessions/introspect','/v2/browser-sessions/logout','/v2/browser-sessions/logout-grant',
+  '/v2/browser-sessions/token','/v2/browser-sessions/token-family','/v2/browser-sessions/renew','/v2/browser-sessions/revoke-family','/v2/browser-sessions/activity','/v2/browser-sessions/introspect','/v2/browser-sessions/logout','/v2/browser-sessions/logout-grant',
 ]);
 export class CentralBrowserSessionNodeRoutes {
   #authority;
@@ -218,7 +259,7 @@ export class CentralBrowserSessionNodeRoutes {
         return {status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"},body:centralUIPage('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YNX · Browser session</title><style>body{background:#fff;color:#122247;font:17px/1.6 system-ui;margin:0}main{max-width:560px;margin:8vh auto;padding:24px}button{min-height:44px;padding:12px 18px;border:0;border-radius:12px;background:#002FA7;color:#fff;font:inherit}button:disabled{opacity:.65}</style><main><h1>YNX browser session</h1><p id="status" role="status" aria-live="polite">Checking your server session…</p><p>Signing out here ends browser identity access across all linked YNX products. It does not revoke unrelated Wallet connection permissions.</p><button id="global-logout" type="button" disabled>Sign out of all YNX products</button><script id="context" type="application/json">{"mode":"session"}</script><script src="/sso/browser.js" defer></script></main></html>',headers['accept-language'])};
       }
       if(parsedUrl.hash||parsedUrl.search&&path!=='/v2/browser-sessions/authorize')fail('SSO_TRANSACTION_INVALID');
-      const backend=['/v2/browser-sessions/token','/v2/browser-sessions/introspect','/v2/browser-sessions/logout-grant'].includes(path);
+      const backend=['/v2/browser-sessions/token','/v2/browser-sessions/token-family','/v2/browser-sessions/renew','/v2/browser-sessions/revoke-family','/v2/browser-sessions/activity','/v2/browser-sessions/introspect','/v2/browser-sessions/logout-grant'].includes(path);
       if(backend){
         // Credential responses are server-to-server ONLY. No product CORS, no
         // browser same-origin fetch, and no cookie auth to these two endpoints.
@@ -266,6 +307,10 @@ export class CentralBrowserSessionNodeRoutes {
         return this.#reply(200,{identity:result.identity,initiator:result.initiator},{'set-cookie':centralBrowserCookie(result.sessionToken)});
       }
       if(path==='/v2/browser-sessions/cancel'){exactFields(input,['challengeId'],'Central browser cancellation');return this.#reply(200,this.#authority.cancel(input.challengeId,transaction));}
+      if(['/v2/browser-sessions/token-family','/v2/browser-sessions/renew','/v2/browser-sessions/revoke-family','/v2/browser-sessions/activity'].includes(path)){
+        const raw=headers['x-ynx-backend-proof'];if(typeof raw!=='string'||raw.length>4096||!/^[A-Za-z0-9_-]+$/.test(raw))fail('SSO_BACKEND_AUTH_REQUIRED');let proof;try{proof=JSON.parse(Buffer.from(raw,'base64url').toString('utf8'))}catch{fail('SSO_BACKEND_AUTH_INVALID')}
+        const method=path.endsWith('/token-family')?'redeemWithFamily':path.endsWith('/renew')?'renewFamily':path.endsWith('/activity')?'recordFamilyActivity':'revokeFamily';return this.#reply(200,this.#authority[method](input,proof));
+      }
       if(path==='/v2/browser-sessions/token')return this.#reply(200,this.#authority.redeem(input));
       if(path==='/v2/browser-sessions/introspect'){exactFields(input,['grantToken','clientId'],'Central grant introspection');return this.#reply(200,this.#authority.introspect(input.grantToken,input.clientId));}
       if(path==='/v2/browser-sessions/logout-grant'){exactFields(input,['grantToken','clientId'],'Central grant logout');return this.#reply(200,this.#authority.logoutGrant(input.grantToken,input.clientId));}
