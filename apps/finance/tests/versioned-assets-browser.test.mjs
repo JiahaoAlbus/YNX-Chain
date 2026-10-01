@@ -103,7 +103,8 @@ test('real 94e Finance assets on the exact origin gain Hosted popup after normal
     await page.waitForFunction(()=>Boolean(window.YNXFinanceWallet?.ready));
     assert.equal(await page.locator('#connect-hosted-ynx').count(),1);
     const popupPromise=context.waitForEvent('page');
-    await page.locator('#connect-hosted-ynx').click();
+    await page.locator('#wallet-entry').click();
+    await page.locator('#picker-hosted').click();
     const popup=await popupPromise;
     await popup.waitForURL(/^https:\/\/wallet\.ynxweb4\.com\/hosted\/#connect=/u);
     assert.match(popup.url(),/^https:\/\/wallet\.ynxweb4\.com\/hosted\/#connect=/u);
