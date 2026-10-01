@@ -88,6 +88,9 @@ func TestBrowserSSOV10OwnedReadsAndDurableProductRevocation(t *testing.T) {
 		if proof["account"] == bob {
 			selected = nativeB
 		}
+		if proof["sessionBinding"] == strings.Repeat("c", 64) {
+			selected.SessionBinding = strings.Repeat("c", 64)
+		}
 		return v2Response(t, r, selected, ""), nil
 	})
 	defer service.Close()
@@ -99,6 +102,8 @@ func TestBrowserSSOV10OwnedReadsAndDurableProductRevocation(t *testing.T) {
 	}
 	var mu sync.Mutex
 	revoked := map[string]bool{}
+	controllerQA := os.Getenv("YNX_EXCHANGE_CONTROLLER_HTTP_QA") == "1"
+	globalRevoked := false
 	identity := productsessionv2.BrowserIdentity{Subject: alice, Account: alice, Generation: 1, ExpiresAt: time.Now().Add(time.Hour)}
 	bridge, err := productsessionv2.NewBrowserSSO("exchange", exchangeSessionAuthority, []byte(strings.Repeat("k", 32)), []string{"assets", "market"}, exchangeV2RoundTrip(func(r *http.Request) (*http.Response, error) {
 		mu.Lock()
@@ -117,7 +122,7 @@ func TestBrowserSSOV10OwnedReadsAndDurableProductRevocation(t *testing.T) {
 		if r.URL.Path == "/v2/browser-sessions/logout-grant" {
 			revoked[targetToken] = true
 			body = map[string]bool{"revoked": true}
-		} else if revoked[targetToken] {
+		} else if revoked[targetToken] || globalRevoked {
 			status = 401
 			body = map[string]string{"code": "revoked"}
 		} else {
@@ -144,8 +149,88 @@ func TestBrowserSSOV10OwnedReadsAndDurableProductRevocation(t *testing.T) {
 	mux.HandleFunc("GET /sso/start", bridge.Start)
 	mux.HandleFunc("GET /sso/callback", bridge.Callback)
 	mux.Handle("/", api)
-	product := httptest.NewTLSServer(mux)
+	if controllerQA {
+		// Explicit isolated browser/controller QA only. Central/native authority
+		// responses remain simulated; owned API, cookies and durable binding are real.
+		mux.HandleFunc("GET /__qa/signin", func(w http.ResponseWriter, r *http.Request) {
+			start := httptest.NewRecorder()
+			bridge.Start(start, httptest.NewRequest("GET", "/sso/start?target=assets", nil))
+			location, _ := url.Parse(start.Header().Get("Location"))
+			code := strings.Repeat("c", 43)
+			if r.URL.Query().Get("who") == "bob" {
+				code = strings.Repeat("b", 43)
+			}
+			callback := httptest.NewRequest("GET", "/sso/callback?"+url.Values{"code": {code}, "state": {location.Query().Get("state")}}.Encode(), nil)
+			for _, cookie := range start.Result().Cookies() {
+				callback.AddCookie(cookie)
+			}
+			completed := httptest.NewRecorder()
+			bridge.Callback(completed, callback)
+			if completed.Code != 303 {
+				w.WriteHeader(completed.Code)
+				return
+			}
+			for _, cookie := range completed.Header().Values("Set-Cookie") {
+				w.Header().Add("Set-Cookie", cookie)
+			}
+			w.WriteHeader(204)
+		})
+		mux.HandleFunc("GET /__qa/proof", func(w http.ResponseWriter, r *http.Request) {
+			owner := alice
+			if r.URL.Query().Get("who") == "bob" {
+				owner = bob
+			}
+			proof, session := v2Fixture(t, owner, "exchange:read")
+			if owner == bob {
+				session = nativeB
+			}
+			if r.URL.Query().Get("who") == "independent" {
+				session.SessionBinding = strings.Repeat("c", 64)
+			}
+			proof = v2Mutate(t, proof, func(p map[string]any) {
+				p["sessionBinding"] = session.SessionBinding
+				p["nonce"] = "controller-qa-" + r.URL.Query().Get("nonce")
+			})
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"proofHeader": proof, "session": session})
+		})
+		mux.HandleFunc("POST /__qa/global-logout", func(w http.ResponseWriter, r *http.Request) {
+			mu.Lock()
+			globalRevoked = true
+			mu.Unlock()
+			w.WriteHeader(204)
+		})
+		mux.HandleFunc("GET /__qa/bindings", func(w http.ResponseWriter, r *http.Request) {
+			service.mu.Lock()
+			defer service.mu.Unlock()
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]int{"count": len(service.state.BrowserSSOBindings)})
+		})
+	}
+	var product *httptest.Server
+	if controllerQA {
+		product = httptest.NewServer(mux)
+	} else {
+		product = httptest.NewTLSServer(mux)
+	}
 	defer product.Close()
+	if controllerQA {
+		stop := make(chan struct{}, 1)
+		mux.HandleFunc("POST /__qa/stop", func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case stop <- struct{}{}:
+			default:
+			}
+			w.WriteHeader(204)
+		})
+		fmt.Printf("EXCHANGE_CONTROLLER_QA_LISTEN=%s\n", product.URL)
+		select {
+		case <-stop:
+		case <-time.After(60 * time.Second):
+			t.Fatal("controller QA stop deadline")
+		}
+		return
+	}
 	client := product.Client()
 	client.Timeout = 5 * time.Second
 	client.Jar, _ = cookiejar.New(nil)

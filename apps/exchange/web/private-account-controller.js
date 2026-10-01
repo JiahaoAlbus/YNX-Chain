@@ -49,7 +49,10 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
     const timeout=setTimeout(()=>controller.abort(),10000);
     try{
       if(origin!==ORIGIN)throw failure('ORIGIN_NOT_ALLOWED');
-      const response=await fetchImpl(new URL('/api/v1/account',origin).href,{method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json','X-YNX-Product-Session-Proof-V2':authorization.proofHeader}});
+      // Bind this Web read to its actual host-only browser identity when one
+      // exists. Omitting that cookie incorrectly selects the independent native
+      // channel and prevents central logout/account isolation from applying.
+      const response=await fetchImpl(new URL('/api/v1/account',origin).href,{method:'GET',credentials:'same-origin',redirect:'error',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json','X-YNX-Product-Session-Proof-V2':authorization.proofHeader}});
       if(!active(token))return current;
       if(!response.ok)throw failure([401,403].includes(response.status)?'AUTHORIZATION_REQUIRED':'PRIVATE_API_UNAVAILABLE');
       if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||'')||Number(response.headers.get('content-length'))>MAX_BODY)throw failure('INVALID_ACCOUNT_RESPONSE');
