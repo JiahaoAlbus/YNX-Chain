@@ -430,6 +430,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     minWidth: 760,
     minHeight: 560,
     title: "YNX Wallet",
+    icon: path.join(directory, "icon.png"),
     backgroundColor: "#ffffff",
     ...(process.platform === "darwin" ? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 20, y: 18 } } : {}),
     webPreferences: {

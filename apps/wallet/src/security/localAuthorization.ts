@@ -1,4 +1,5 @@
 import * as LocalAuthentication from "expo-local-authentication";
+import { checkBiometricProtection } from "./biometricProtection";
 
 export type AuthorizationPurpose = "unlock" | "wallet-authorization" | "transaction-sign" | "transaction-retry" | "recovery-view" | "account-import" | "account-delete" | "wallet-reset" | "wallet-sessions-view" | "wallet-session-revoke";
 
@@ -16,14 +17,7 @@ const prompts: Record<AuthorizationPurpose, string> = {
 };
 
 export async function assertStrongBiometrics(assertCurrent: () => void = () => {}): Promise<void> {
-  assertCurrent();
-  const hardware = await LocalAuthentication.hasHardwareAsync(); assertCurrent();
-  if (!hardware) throw new Error("System biometric hardware is unavailable");
-  const enrolled = await LocalAuthentication.isEnrolledAsync(); assertCurrent();
-  if (!enrolled) throw new Error("Enroll Face ID or a strong fingerprint before using Wallet keys");
-  const level = await LocalAuthentication.getEnrolledLevelAsync();
-  assertCurrent();
-  if (level !== LocalAuthentication.SecurityLevel.BIOMETRIC_STRONG) throw new Error("Strong system biometrics are required");
+  await checkBiometricProtection(LocalAuthentication, assertCurrent);
 }
 
 export async function authorizeLocalKeyUse(purpose: AuthorizationPurpose): Promise<void> {

@@ -6,9 +6,11 @@
     "orientation": "portrait",
     "scheme": "ynxwallet",
     "userInterfaceStyle": "light",
+    "icon": "./assets/app-icon.png",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "icon": "./assets/app-icon.png",
       "buildNumber": "33",
       "bundleIdentifier": "com.ynxweb4.wallet",
       "infoPlist": {
@@ -19,6 +21,12 @@
     "android": {
       "package": "com.ynxweb4.wallet",
       "versionCode": 33,
+      "icon": "./assets/app-icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png",
+        "backgroundColor": "#FFFFFF"
+      },
       "permissions": ["USE_BIOMETRIC", "CAMERA"],
       "blockedPermissions": [
         "android.permission.READ_EXTERNAL_STORAGE",

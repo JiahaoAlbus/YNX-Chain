@@ -8,6 +8,7 @@ const SECRET_ONE = `${"00".repeat(31)}01`;
 const SECRET_TWO = `${"00".repeat(31)}02`;
 
 class MemorySecureStorage implements SecureStorageAdapter {
+  assertSecretProtectionAvailable?: () => Promise<void>;
   readonly values = new Map<string,string>();
   readonly reads: string[] = [];
   readonly writes: string[] = [];
@@ -21,6 +22,32 @@ class MemorySecureStorage implements SecureStorageAdapter {
   async setItem(key:string,value:string){this.beforeSet?.(key);this.writes.push(key);this.values.set(key,value);this.afterSet?.(key);}
   async deleteItem(key:string){this.beforeDelete?.(key);this.deletions.push(key);this.values.delete(key);}
 }
+test("first-create protection preflight leaves all storage untouched and retries the original key explicitly",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);
+  storage.assertSecretProtectionAvailable=async()=>{throw new Error("enrollment required")};
+  const input={secretHex:SECRET_ONE,label:"Original",createdAt:"2026-10-01T00:00:00.000Z",backupConfirmed:true};
+  await assert.rejects(repository.addAccount(input),/enrollment required/);
+  assert.equal(storage.writes.length,0);assert.equal(storage.values.size,0);
+  storage.assertSecretProtectionAvailable=async()=>{};
+  const manifest=await repository.addAccount(input);assert.equal(manifest.accounts[0]?.account,walletIdentity(SECRET_ONE).account);
+});
+test("old failed pending protection restores only the explicitly supplied original offline key",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage),identity=walletIdentity(SECRET_ONE);
+  const protection=`ynx.wallet.protection.v1.${identity.account}`;
+  storage.values.set(protection,JSON.stringify({schemaVersion:1,account:identity.account,accountPublicKey:identity.accountPublicKey,source:"created",state:"pending"}));
+  const before=new Map(storage.values);assert.equal((await repository.load()).manifest.accounts.length,0);assert.deepEqual(storage.values,before);
+  const manifest=await repository.addAccount({secretHex:SECRET_ONE,label:"Recovered",createdAt:"2026-10-01T00:00:00.000Z",backupConfirmed:true});
+  assert.equal(manifest.accounts[0]?.account,identity.account);assert.equal(await repository.accountSecret(identity.account),SECRET_ONE);
+});
+test("unavailable protection cannot alter an existing account while adding another",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);
+  await repository.addAccount({secretHex:SECRET_ONE,label:"Existing",createdAt:"2026-10-01T00:00:00.000Z",backupConfirmed:true});
+  const before=new Map(storage.values);storage.writes.length=0;
+  storage.assertSecretProtectionAvailable=async()=>{throw Error("enrollment changed")};
+  await assert.rejects(repository.addAccount({secretHex:SECRET_TWO,label:"Other",createdAt:"2026-10-01T00:01:00.000Z",backupConfirmed:true}),/enrollment changed/);
+  assert.equal(storage.writes.length,0);assert.deepEqual(storage.values,before);
+  assert.equal((await repository.load()).manifest.accounts[0]?.label,"Existing");
+});
 const accountOne = walletIdentity(SECRET_ONE).account;
 const accountTwo = walletIdentity(SECRET_TWO).account;
 const secretKey = (account: string) => `ynx.wallet.account.auth.v3.${account}`;
