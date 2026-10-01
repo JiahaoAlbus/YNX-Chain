@@ -53,7 +53,7 @@ async function app(overrides = {}) {
     crypto: { randomUUID, subtle: webcrypto.subtle }, TextDecoder, Uint8Array, FormData,
     atRegisteredOrigin: () => true, prepareProductSignIn: async () => ({ url: "test:creator-signin" }),
     restoreProductSession: async () => ({ status: "disconnected", message: "Sign in" }),
-    disconnectProductSession: async () => ({ status: "disconnected" }), productAuthorization: async () => ({}),
+    restoreNativeProductReturn:async()=>null, disconnectProductSession: async () => ({ status: "disconnected" }), productAuthorization: async () => ({}),
     fetch: async () => { throw new Error("Unexpected fetch"); },
     createStandardWalletConnectState: () => ({}), reduceStandardWalletConnectState: state => state,
     dispatchPreparedProductRequest, finishProductReturn: async () => connected("fixture-account"),
@@ -61,7 +61,7 @@ async function app(overrides = {}) {
     confirm: () => false, prompt: () => null, ...overrides,
   };
   // Execute the shipped controller and its actual registered handlers; only module dependencies and DOM/network are fixtures.
-  const controller = await new AsyncFunction(...Object.keys(dependencies), `${source}\nreturn {refresh,restoreCreator,renderProductState,showAI,providerStatus,api,readState:()=>({snapshot,currentAI,creatorAccount})};`)(...Object.values(dependencies));
+  const controller = await new AsyncFunction(...Object.keys(dependencies), `${source}\nreturn {refresh,restoreCreator,resumeNativeSignIn,renderProductState,showAI,providerStatus,api,readState:()=>({snapshot,currentAI,creatorAccount})};`)(...Object.values(dependencies));
   return { ...controller, element, forms, click: id => element(`#${id}`).listeners.get("click")(), run: id => element(`#${id}`).onclick() };
 }
 
@@ -329,4 +329,20 @@ test('Creator cancelled preparation never opens a late native request and preser
 });
 test('Creator unknown wallet errors show a next step without raw diagnostics',async()=>{
  let discoveries=0;const c=await app({discoverWalletProviders:async()=>{if(++discoveries===1)return {candidates:[]};throw Error('SECRET_INTERNAL_STAGE_99');}});await turn();await c.click('product-signin');assert.doesNotMatch(c.element('#product-wallet-status').textContent,/SECRET_INTERNAL_STAGE_99/);assert.match(c.element('#product-wallet-status').textContent,/try again/);
+});
+
+test('Creator native return restores the launched request then reads studio and closes without revoke',async()=>{
+ let restores=0,revokes=0,reads=0;const c=await app({setTimeout:()=>1,clearTimeout(){},prepareProductSignIn:async()=>({url:'ynxwallet://authorize?request=qa',state:'intent-a',expiresAt:new Date(Date.now()+60000).toISOString()}),restoreNativeProductReturn:async state=>{assert.equal(state,'intent-a');restores++;return {status:'connected',session:{account:'owner-a',state:'intent-a'}};},disconnectProductSession:async()=>{revokes++;return {status:'disconnected'};},fetch:async()=>{reads++;return response(privateSnapshot('owner-a'));}});await turn();await c.click('product-signin');await c.element('#product-wallet-choices').children.at(-1).onclick();await c.resumeNativeSignIn();assert.equal(restores,0);c.element('#product-native-open').onclick({preventDefault(){throw Error('valid click blocked');}});await c.resumeNativeSignIn();assert.equal(restores,1);assert.equal(c.readState().creatorAccount,'owner-a');assert.ok(reads>0);assert.equal(c.element('#product-wallet-chooser').open,false);assert.equal(c.element('#product-native-open').href,undefined);await c.run('product-wallet-cancel');await turn();assert.equal(revokes,0);
+});
+test('Creator cancelled native return and another signed request never reconnect the old chooser',async()=>{
+ const returning=deferred();let revokes=0;const c=await app({setTimeout:()=>1,clearTimeout(){},prepareProductSignIn:async()=>({url:'ynxwallet://authorize?request=qa',state:'intent-a',expiresAt:new Date(Date.now()+60000).toISOString()}),restoreNativeProductReturn:()=>returning.promise,disconnectProductSession:async()=>{revokes++;return {status:'disconnected'};}});await turn();await c.click('product-signin');await c.element('#product-wallet-choices').children.at(-1).onclick();c.element('#product-native-open').onclick({preventDefault(){}});const reading=c.resumeNativeSignIn();await c.run('product-wallet-cancel');returning.resolve({status:'connected',session:{account:'owner-a',state:'intent-a'}});await reading;await turn();assert.equal(c.readState().creatorAccount,null);assert.equal(revokes,1);
+ const other=await app({setTimeout:()=>1,clearTimeout(){},prepareProductSignIn:async()=>({url:'ynxwallet://authorize?request=qa',state:'intent-a',expiresAt:new Date(Date.now()+60000).toISOString()}),restoreNativeProductReturn:async()=>({status:'connected',session:{account:'owner-b',state:'different'}})});await turn();await other.click('product-signin');await other.element('#product-wallet-choices').children.at(-1).onclick();other.element('#product-native-open').onclick({preventDefault(){}});await other.resumeNativeSignIn();assert.equal(other.readState().creatorAccount,null);assert.equal(other.element('#product-wallet-chooser').open,true);
+});
+
+test('Creator actual focus hook waits for backend verification and does not revive an expired request',async()=>{
+ const handlers=new Map(),returning=deferred();let timer,reads=0;const c=await app({window:{location:{origin:'https://creator.ynxweb4.com'},addEventListener:(type,fn)=>handlers.set(type,fn)},setTimeout:fn=>{timer=fn;return 1;},clearTimeout(){},prepareProductSignIn:async()=>({url:'ynxwallet://authorize?request=qa',state:'intent-a',expiresAt:new Date(Date.now()+60000).toISOString()}),restoreNativeProductReturn:()=>{reads++;return returning.promise;}});await turn();await c.click('product-signin');await c.element('#product-wallet-choices').children.at(-1).onclick();c.element('#product-native-open').onclick({preventDefault(){}});handlers.get('focus')();const reading=c.resumeNativeSignIn();assert.equal(reads,1);timer();returning.resolve({status:'connected',session:{account:'owner-a',state:'intent-a'}});await reading;assert.equal(c.readState().creatorAccount,null);assert.equal(c.element('#product-native-open').href,undefined);assert.match(c.element('#product-wallet-status').textContent,/expired/);
+});
+
+test('Creator focus before completed native callback remains waiting without network failure',async()=>{
+ const c=await app({setTimeout:()=>1,clearTimeout(){},prepareProductSignIn:async()=>({url:'ynxwallet://authorize?request=qa',state:'intent-a',expiresAt:new Date(Date.now()+60000).toISOString()}),restoreNativeProductReturn:async()=>null});await turn();await c.click('product-signin');await c.element('#product-wallet-choices').children.at(-1).onclick();c.element('#product-native-open').onclick({preventDefault(){}});await c.resumeNativeSignIn();assert.match(c.element('#product-wallet-status').textContent,/not been confirmed yet/);assert.doesNotMatch(c.element('#product-wallet-status').textContent,/could not be checked/);assert.equal(c.element('#product-wallet-chooser').open,true);
 });

@@ -31,7 +31,14 @@ export async function prepareProductSignIn() {
   // This is an explicit user-selected launch attempt, never installation detection.
   // begin minted this fresh request using Auth time. Do not revalidate it against
   // a skewed local clock while serializing; Wallet validates expiry at approval.
-  return {url:encodeProductSessionWalletURL(browser.registry, state.request, new Date(state.request.issuedAt)),expiresAt:state.request.expiresAt};
+  return {url:encodeProductSessionWalletURL(browser.registry, state.request, new Date(state.request.issuedAt)),expiresAt:state.request.expiresAt,state:state.request.state};
+}
+export async function restoreNativeProductReturn(expectedState) {
+  const browser = await productSession();
+  const raw = await browser.storage.get(browser.client.storageKey);
+  // Correlation is a waiting hint; only the SDK's backend introspection authorizes.
+  if (raw === null || JSON.parse(raw).state !== expectedState) return null;
+  return browser.client.restore(navigator.onLine);
 }
 export async function restoreProductSession() {
   const browser = await productSession();

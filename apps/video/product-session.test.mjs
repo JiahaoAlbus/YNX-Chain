@@ -31,7 +31,7 @@ test('Video uses the frozen browser SDK with exact Video registration and honest
 
 test('product preparation protects pending request before explicit link and never asserts installation', async () => {
   const calls = [];
-  const pending = {nonce: 'pending', issuedAt: '2026-09-06T23:54:00.000Z', expiresAt: '2026-09-06T23:59:00.000Z'};
+  const pending = {state:'original-request-state',nonce: 'pending', issuedAt: '2026-09-06T23:54:00.000Z', expiresAt: '2026-09-06T23:59:00.000Z'};
   let config;
   const product = createVideoProductSession({environment: {location: {origin: VIDEO_ORIGIN}, navigator: {onLine: true}, fetch: async () => ok(registry)},
     GatewayAdapter: class {constructor(input) {config = input;}},
@@ -47,6 +47,7 @@ test('product preparation protects pending request before explicit link and neve
   assert.equal(config.endpoint, 'https://wallet-auth.ynxweb4.com');
   assert.deepEqual(calls, [['persist-pending', {walletInstalled: false, schemeRegistered: false}], ['encode-link', pending]]);
   assert.equal(prepared.url, 'ynxwallet://authorize?request=fixture');
+  assert.equal(prepared.state,pending.state);
 });
 
 test('wrong web origin stops before registry, SDK initialization and Gateway requests', async () => {
@@ -140,4 +141,9 @@ test('preparation retains the SDK pending logout state so the UI can expose expl
  const state={status:'retry-required',revocationPending:true,message:'Sign-out pending'};
  const product=createVideoProductSession({environment:{location:{origin:VIDEO_ORIGIN},fetch:async()=>ok(registry)},GatewayAdapter:class{},createBrowserClient:async()=>({client:{begin:async()=>state}})});
  await assert.rejects(product.prepare(),error=>error.productSessionState===state);
+});
+
+test('native resume never re-prepares before callback storage exists; matched state still requires SDK restore',async()=>{
+ let raw=null,restores=0;const product=createVideoProductSession({environment:{location:{origin:VIDEO_ORIGIN},navigator:{onLine:true},fetch:async()=>ok(registry)},GatewayAdapter:class{},createBrowserClient:async()=>({storage:{get:async()=>raw},client:{storageKey:'exact-sdk-key',restore:async()=>{restores++;return {status:'connected',session:{state:'intent-a'}};}}})});
+ assert.equal(await product.restoreNativeReturn('intent-a'),null);raw=JSON.stringify({state:'different'});assert.equal(await product.restoreNativeReturn('intent-a'),null);assert.equal(restores,0);raw=JSON.stringify({state:'intent-a'});assert.equal((await product.restoreNativeReturn('intent-a')).status,'connected');assert.equal(restores,1);
 });

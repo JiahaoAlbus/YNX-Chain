@@ -1,5 +1,5 @@
 import {createHostedWalletAdapter, WalletConnectDAppConnection, QRCode} from './ynx-wallet-transports-2ece0cb329.mjs';
-import {atRegisteredOrigin, dispatchPreparedProductRequest, finishProductReturn, prepareProductSignIn, restoreProductSession, productAuthorization, disconnectProductSession} from "./product-session.js";
+import {atRegisteredOrigin, dispatchPreparedProductRequest, finishProductReturn, prepareProductSignIn, restoreProductSession,restoreNativeProductReturn, productAuthorization, disconnectProductSession} from "./product-session.js";
 import {
   attachWalletLifecycle,
   connectStandardWallet,
@@ -295,7 +295,7 @@ function renderProductState(state){
 }
 let creatorSignInIntent = 0;
 let creatorSignInAbort, creatorTransportCancel, creatorPairConnection;
-let nativePreparation = false, nativeExpiryTimer;
+let nativePreparation = false, nativeExpiryTimer, nativeReturn, nativeRestoreFlight;
 const productChooser = $("#product-wallet-chooser");
 function clearProductPair() {
  $("#product-pair-panel").hidden = true;
@@ -303,6 +303,7 @@ function clearProductPair() {
  $("#product-pair-open").removeAttribute("href");
 }
 function clearNativeStep() {
+ nativeReturn = null;
  clearTimeout(nativeExpiryTimer);
  $("#product-native-open").hidden = true;
  $("#product-native-open").removeAttribute('href');
@@ -427,16 +428,19 @@ async function prepareNativeCreatorSignIn(intent) {
   creatorTransportCancel = revokeNative;
   if (!Number.isFinite(Date.parse(request.expiresAt)) || Date.parse(request.expiresAt) <= Date.now() || !request.url.startsWith('ynxwallet://')) throw Object.assign(new Error('Native request unavailable'),{code:'PRODUCT_REQUEST_EXPIRED'});
   const launch = $("#product-native-open"); let launched = false;
+  const returning = {intent, state: request.state, expiresAt: request.expiresAt, launched:false, revision:creatorSessionRevision};
+  nativeReturn = returning;
   launch.href = request.url; launch.hidden = false; launch.removeAttribute('aria-disabled');
   $("#product-wallet-status").textContent = 'Your request is ready. Select Open YNX Wallet below, approve Creator Studio in the app, and return here. If it does not open, install YNX Wallet or choose another way.';
   launch.onclick = event => {
-   if (!current() || launch.hidden || launch.href !== request.url || Date.parse(request.expiresAt) <= Date.now() || launched) {
+   if (launched) {event.preventDefault(); return;}
+   if (!current() || launch.hidden || launch.href !== request.url || Date.parse(request.expiresAt) <= Date.now()) {
     event.preventDefault(); clearNativeStep();
     if (current()) $("#product-wallet-status").textContent = 'This open attempt is no longer available. Choose another wallet to start a fresh request.';
     return;
    }
    // The actual anchor click owns browser activation; preparation never navigates.
-   launched = true; launch.setAttribute('aria-disabled','true');
+   launched = true; returning.launched = true; launch.setAttribute('aria-disabled','true');
    $("#product-wallet-status").textContent = 'Opening YNX Wallet was requested. Approve the request in the app and return here. If the browser blocked it or Wallet is not installed, choose another wallet or use the download link.';
   };
   launch.focus();
@@ -446,6 +450,30 @@ async function prepareNativeCreatorSignIn(intent) {
   else if (current()) $("#product-wallet-status").textContent = productWalletFailure(error);
  } finally {nativePreparation = false;}
 }
+
+async function resumeNativeSignIn() {
+ const returning = nativeReturn;
+ const current = () => returning && nativeReturn === returning && returning.launched && returning.intent === creatorSignInIntent && returning.revision === creatorSessionRevision && !creatorSignOutPending && Date.parse(returning.expiresAt) > Date.now();
+ if (!current()) return;
+ if (nativeRestoreFlight) return nativeRestoreFlight;
+ const operation = (async () => {
+  try {
+   const state = await restoreNativeProductReturn(returning.state);
+   if (!current()) return;
+   if (state?.status === 'connected') {
+    if (!returning.state || state.session?.state !== returning.state) {$("#product-wallet-status").textContent = 'This return belongs to a different sign-in. Choose another wallet to start again.'; return;}
+    clearNativeStep(); creatorTransportCancel = null;
+    productChooser.close(); renderProductState(state);
+    if (await refresh()) await providerStatus();
+   } else if (state?.revocationPending) {clearNativeStep(); renderProductState(state);}
+   else $("#product-wallet-status").textContent = 'Approval has not been confirmed yet. Finish in YNX Wallet and return here, or choose another wallet.';
+  } catch {if (current()) $("#product-wallet-status").textContent = 'Your sign-in could not be checked. Return here when connected, or choose another wallet.';}
+ })();
+ nativeRestoreFlight = operation;
+ try {return await operation;} finally {if (nativeRestoreFlight === operation) nativeRestoreFlight = null;}
+}
+window.addEventListener?.('focus', () => void resumeNativeSignIn());
+document.addEventListener?.('visibilitychange', () => {if (document.visibilityState === 'visible') void resumeNativeSignIn();});
 
 productDisconnect.addEventListener("click",signOutCreatorAccount);
 async function signOutCreatorAccount(){

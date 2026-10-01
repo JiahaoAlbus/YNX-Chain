@@ -54,7 +54,15 @@ export function createVideoProductSession({environment = globalThis,
       if (!state.request) throw Object.assign(new Error(state.message), {productSessionState: state});
       // Serialize at the authority time just used by begin; Wallet checks expiry
       // on arrival. A skewed product device clock must not block the launch link.
-      return {url: encodeWalletURL(browser.registry, state.request, new Date(state.request.issuedAt)), expiresAt: state.request.expiresAt};
+      return {url: encodeWalletURL(browser.registry, state.request, new Date(state.request.issuedAt)), expiresAt: state.request.expiresAt, state: state.request.state};
+    },
+    async restoreNativeReturn(expectedState) {
+      const browser = await productSession();
+      const raw = await browser.storage.get(browser.client.storageKey);
+      // Stored correlation only avoids re-preparing an unfinished request.
+      // It never authorizes: restore still performs SDK authority introspection.
+      if (raw === null || JSON.parse(raw).state !== expectedState) return null;
+      return browser.client.restore(environment.navigator?.onLine !== false);
     },
     async restore() {return (await productSession()).client.restore(environment.navigator?.onLine !== false);},
     async authorization(path, method = 'GET') {
