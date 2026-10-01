@@ -113,8 +113,7 @@ export function createLxdCoreDriver({ artifactRoot, archivePath, licensePath, no
     if (product.commit !== OPENVSCODE_X64.commit || product.extensionsGallery?.serviceUrl !== OPENVSCODE_X64.marketplace)
       throw fault("Core commit/gallery did not match the pinned x64 release.", "core_upstream_mismatch", 503);
     const quota = await (projectStorage?.verify || quotaForDirectory)?.(context.projectDirectory), network = await networkAdmission?.(context);
-    if (!quota?.enforced || quota.directory !== await realpath(context.projectDirectory) || quota.maxBytes < 1 || quota.maxBytes > context.limits.diskBytes)
-      throw fault("An enforced native project filesystem quota is required.", "core_disk_quota_unavailable", 503);
+    await assertProjectQuota(quota, context);
     if (!network?.enforced || !network.denyHost || !network.allowlisted || !/^ynx-core-egress-[a-z0-9-]{1,48}$/.test(network.networkName || "") ||
       !/^[a-f0-9]{64}$/.test(network.policyDigest || "") || !/^ynx-core-[a-z0-9-]{1,48}$/.test(network.acl || ""))
       throw fault("Reviewed LXD egress ACL must deny host/private services and allow package/extension endpoints.", "core_egress_unavailable", 503);
@@ -207,7 +206,7 @@ export function createLxdCoreDriver({ artifactRoot, archivePath, licensePath, no
     child.on("error", error => socket.destroy(error)); socket.on("close", () => child.kill("SIGTERM"));
     return { socket, tokenMode: "private-loopback-without-connection-token" };
   }
-  return { upstream: OPENVSCODE_X64, start, stop, connect, inspect, prepareProjectDirectory: projectStorage?.prepare };
+  return { upstream: OPENVSCODE_X64, start, stop, connect, inspect, prepareProjectDirectory: projectStorage?.prepare, projectsRoot: projectStorage?.projectsRoot };
 }
 export function assertLxdIsolation(value, context, { artifactRoot, imageFingerprint, storagePool, profileName, networkName, acl }) {
   assertLxdIdentity(value, context, { imageFingerprint, profileName });
@@ -240,4 +239,11 @@ async function runLxc(args) {
     child.on("error", () => { clearTimeout(timer); reject(fault("LXD core driver is unavailable.", "core_driver_unavailable", 503)); });
     child.on("close", code => { clearTimeout(timer); if (code) reject(fault("LXD core command failed.", "core_driver_failed", 503)); else resolve({ stdout }); });
   });
+}
+
+export async function assertProjectQuota(quota, context) {
+  if (quota?.enforced !== true || quota.hardIsolation !== true || quota.driver !== "zfs-refquota" ||
+      quota.directory !== context.projectDirectory || quota.directory !== await realpath(context.projectDirectory) ||
+      !Number.isSafeInteger(quota.maxBytes) || quota.maxBytes < 1 || quota.maxBytes > context.limits.diskBytes)
+    throw fault("An enforced native project filesystem quota is required.", "core_disk_quota_unavailable", 503);
 }

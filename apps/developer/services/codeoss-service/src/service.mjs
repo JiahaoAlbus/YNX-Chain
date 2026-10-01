@@ -102,9 +102,11 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
       await mkdir(context.directory, { mode: 0o700 }); // EEXIST never replaces an old recovery.
       const existing = db.prepare("SELECT * FROM codeoss_projects WHERE workspace_owner=? AND project=?").get(id.workspaceOwner, body.projectId);
       if (!existing) {
-        await mkdir(join(root, "projects", id.workspaceOwner), { recursive: true, mode: 0o700 });
         if (driver.prepareProjectDirectory) await driver.prepareProjectDirectory(context);
-        else await mkdir(context.projectDirectory, { mode: 0o700 });
+        else {
+          await mkdir(join(root, "projects", id.workspaceOwner), { recursive: true, mode: 0o700 });
+          await mkdir(context.projectDirectory, { mode: 0o700 });
+        }
         const source = join(context.projectDirectory, "workspace");
         await mkdir(source, { mode: 0o700 });
         for (const [path, content] of Object.entries(snapshot.files)) {
@@ -139,8 +141,9 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
   }
 
   function runtimeContext(row) {
+    const saved = db.prepare("SELECT directory FROM codeoss_projects WHERE workspace_owner=? AND project=?").get(row.workspace_owner, row.project);
     return Object.freeze({ sessionId: row.id, owner: row.owner, projectId: row.project, runtimeId: row.runtime,
-      directory: join(root, row.id), projectDirectory: join(root, "projects", row.workspace_owner, createHash("sha256").update(row.project).digest("hex")), image: driver?.upstream || OPENVSCODE, limits, identityDigest: createHash("sha256")
+      directory: join(root, row.id), projectDirectory: saved?.directory || join(driver?.projectsRoot || join(root, "projects"), row.workspace_owner, createHash("sha256").update(row.project).digest("hex")), image: driver?.upstream || OPENVSCODE, limits, identityDigest: createHash("sha256")
         .update(`${row.owner}\n${row.project}\n${row.runtime}\n${row.id}`).digest("hex") });
   }
 

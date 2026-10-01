@@ -204,7 +204,7 @@ Install root-owned0644 `/etc/ynx-developer/native-zfs.json` with EXACT keys:
 never configure `current` symlinks. The tool must be
 `/snap/lxd/<actual-numeric-revision>/zfs-2.2/bin/zfs` and matching `lib` directory.
 Use actual numeric `id -u ubuntu`/`id -g ubuntu`, not an assumed guest UID.
-`projectsRoot` is the canonical protected `<state>/native-ide/projects` and
+`projectsRoot` is fixed `/var/lib/ynx-native/projects`, outside caller-owned state, and
 `maxBytes` is1073741824. The new pool/helper/config must not reuse or relimit
 old guest paths, the default dir pool, Btrfs recovery or any old runtime.
 
@@ -258,3 +258,7 @@ OpenVSX/npm/pip installation/redirect success plus negative paths. No CA/MITM,
 new user account, gateway restart or host proxy service was introduced here.
 Independent execution domain and formal5minute grant renewal remain separate
 Root/A gates. Quota source/fixtures are not a claim of public native readiness.
+
+### Protected ZFS namespace (required successor to5eae)
+New ZFS projects use fixed /var/lib/ynx-native/projects, with every ancestor root-owned and no group/other write. Owner slots are root-owned0711; only mounted project roots become Gateway-owned0700. The service consumes projectStorage.projectsRoot through the LXD driver; previously journaled project paths remain unchanged for Stop/recovery. No caller-owned ancestor may be admitted to the privileged helper.
+Operator installation: stage reviewed installer/helper in a root-owned directory, record actual ubuntu UID/GID and fixed numeric snap revision in /etc/ynx-developer/native-install.json. Run node scripts/native-zfs-install.mjs for a non-mutating plan; only A may run --apply after reviewing the plan. Fixed new resources: ynx-core-projects32GiB, ynx-core-quota64GiB, /var/lib/ynx-native/projects-vdev.bin,48GiB root reserve. Existing names, paths or install journal refuse reinstallation; failure preserves every resource and journal. sudo is not approved until independent TOCTOU review passes. Actual quota-full, shifted UID0600 Gateway checkpoint, strict package egress, unrelated execution origin and grant renewal remain NOT_VERIFIED. Raw CONNECT prototype is NOT_ADMITTED.

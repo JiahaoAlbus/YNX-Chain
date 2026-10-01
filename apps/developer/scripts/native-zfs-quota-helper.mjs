@@ -1,4 +1,4 @@
-import { lstat, realpath, readFile, chmod, chown } from 'node:fs/promises';
+import { lstat, realpath, readFile, chmod, chown, mkdir } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { resolve, relative, dirname, join } from 'node:path';
@@ -6,13 +6,21 @@ import { fileURLToPath } from 'node:url';
 const exec=promisify(execFile),CONFIG='/etc/ynx-developer/native-zfs.json',MAX=1073741824;
 export async function protectedPath(path,{uid=0,directory=false}={}){const stat=await lstat(path);if(stat.isSymbolicLink()||stat.uid!==uid||(stat.mode&0o022)||await realpath(path)!==path||directory&&!stat.isDirectory())throw Error('Quota path ownership or protection changed.');return stat;}
 export function projectDataset(config,path){if(config.pool!=='ynx-core-projects'||config.maxBytes!==MAX||!Number.isInteger(config.serviceUid)||config.serviceUid<=0||!Number.isInteger(config.serviceGid)||config.serviceGid<=0)throw Error('Quota configuration is not the reviewed new pool policy.');const suffix=relative(config.projectsRoot,path);if(path!==resolve(path)||!/^[a-f0-9]{64}\/[a-f0-9]{64}$/.test(suffix))throw Error('Only exact native owner/project paths are allowed.');return `${config.pool}/projects/${suffix.replace('/','_')}`;}
+export async function protectedAncestors(path,protect=protectedPath){
+  let current=resolve(path);for(;;){await protect(current,{uid:0,directory:true});if(current===dirname(current))break;current=dirname(current);}
+}
 export async function quotaOperation(config,action,path,{run,protect=protectedPath,setOwner=chown,setMode=chmod}={}){
   if(!['prepare','verify'].includes(action))throw Error('Quota operation is not allowed.');const dataset=projectDataset(config,path);
-  await protect(config.projectsRoot,{uid:config.serviceUid,directory:true});await protect(dirname(path),{uid:config.serviceUid,directory:true});
+  // Every ancestor is immutable to the Gateway caller, including the mount slot parent.
+  await protectedAncestors(config.projectsRoot,protect);
+  if(action==='prepare'){try{await mkdir(dirname(path),{mode:0o711});}catch(error){if(error.code!=='EEXIST')throw error;}}
+  await protect(dirname(path),{uid:0,directory:true});
   if(action==='prepare'){
     try{await lstat(path);throw Error('Existing volume is a recovery; do not overwrite.');}catch(error){if(error.code!=='ENOENT')throw error;}
     // Never -p, rollback, destroy, relimit, or overwrite a previous dataset.
     await run(['create','-o',`mountpoint=${path}`,'-o',`quota=${MAX}`,'-o',`refquota=${MAX}`,'-o','devices=off','-o','setuid=off','-o','sharenfs=off','-o','sharesmb=off',dataset]);
+    // Caller cannot replace this pathname: the slot and all ancestors are root protected.
+    await protect(path,{uid:0,directory:true});
     await setOwner(path,config.serviceUid,config.serviceGid);await setMode(path,0o700);
   }
   await protect(path,{uid:config.serviceUid,directory:true});
