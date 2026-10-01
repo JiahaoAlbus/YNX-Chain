@@ -179,7 +179,7 @@ function assertActivationLease(p){
  // Same open-file description: this proves/reacquires LOCK_EX on the inherited
  // descriptor, rather than trusting a PID string or a lock-file existence test.
  execFileSync(p.lockHelper,['-c','import fcntl;fcntl.flock(3,fcntl.LOCK_EX|fcntl.LOCK_NB)'],{stdio:['ignore','pipe','pipe',fd],timeout:3000});
- activationLease={fd,file:p.commitLockFile,dev:held.dev,ino:held.ino};
+ activationLease={fd,file:p.commitLockFile,dev:held.dev,ino:held.ino,helper:p.lockHelper};
 }
 function assertCommitLease(){
  requireFact(activationLease,'MAINTENANCE_SHARED_ACTIVATION_LOCK_REQUIRED');const held=fstatSync(activationLease.fd),onDisk=lstatSync(activationLease.file);
@@ -258,8 +258,18 @@ export async function verifyPendingConfirmation({pendingManifest,currentManifest
  await verifySignedEndpointAuthority(currentManifest,{trustRoot:root,checkpoint:accepted,consumer,nowMs});
  return{status:superseded?'CONFIRMED_SUPERSEDED_PENDING':'CONFIRMED_CURRENT_PENDING',...accepted,signed:false,stateRewound:false};
 }
-async function durableSame(file,bytes){
- try{await exclusive(file,bytes,process.getuid(),process.getgid())}catch(error){if(error.code!=='EEXIST')throw error;requireFact((await protectedFile(file,process.getuid())).equals(bytes),'MAINTENANCE_CONFIRMATION_AUDIT_CHANGED')}
+export async function durableSame(file,bytes,{helper=activationLease?.helper??'/usr/bin/python3',beforePublish=async()=>{}}={}){
+ try{requireFact((await protectedFile(file,process.getuid())).equals(bytes),'MAINTENANCE_CONFIRMATION_AUDIT_CHANGED');return}catch(error){if(error.code!=='ENOENT')throw error}
+ const temporary=path.join(path.dirname(file),'.confirmation-audit-'+randomUUID()+'.tmp');
+ try{
+  await exclusive(temporary,bytes,process.getuid(),process.getgid());await beforePublish(temporary);
+  // Kernel no-replace publication: a killed partial temporary never occupies the final name.
+  const python="import ctypes,os,sys; l=ctypes.CDLL(None,use_errno=True); a=os.fsencode(sys.argv[1]);b=os.fsencode(sys.argv[2]); r=l.renameat2(-100,a,-100,b,1) if sys.platform=='linux' else l.renamex_np(a,b,4); e=ctypes.get_errno();sys.exit(0 if r==0 else 17 if e==17 else 1)";
+  const result=spawnSync(helper,['-c',python,temporary,file],{stdio:'pipe',timeout:3000});
+  requireFact(!result.error&&[0,17].includes(result.status),'MAINTENANCE_AUDIT_PUBLICATION_FAILED');
+  if(result.status===17)requireFact((await protectedFile(file,process.getuid())).equals(bytes),'MAINTENANCE_CONFIRMATION_AUDIT_CHANGED');
+  await syncDirectory(path.dirname(file));
+ }finally{await fs.unlink(temporary).catch(error=>{if(error.code!=='ENOENT')throw error})}
 }
 export async function archivePendingConfirmation({pending,run,pendingBytes,record,recheck,assertLease=assertCommitLease}){
  assertLease();requireFact((await protectedFile(pending,process.getuid())).equals(pendingBytes),'MAINTENANCE_PENDING_CAS_CONFLICT');
