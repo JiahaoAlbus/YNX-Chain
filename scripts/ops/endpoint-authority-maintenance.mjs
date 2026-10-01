@@ -259,7 +259,7 @@ export async function verifyPendingConfirmation({pendingManifest,currentManifest
  return{status:superseded?'CONFIRMED_SUPERSEDED_PENDING':'CONFIRMED_CURRENT_PENDING',...accepted,signed:false,stateRewound:false};
 }
 export async function durableSame(file,bytes,{helper=activationLease?.helper??'/usr/bin/python3',beforePublish=async()=>{}}={}){
- try{requireFact((await protectedFile(file,process.getuid())).equals(bytes),'MAINTENANCE_CONFIRMATION_AUDIT_CHANGED');return}catch(error){if(error.code!=='ENOENT')throw error}
+ try{requireFact((await protectedFile(file,process.getuid())).equals(bytes),'MAINTENANCE_CONFIRMATION_AUDIT_CHANGED');await syncDirectory(path.dirname(file));return}catch(error){if(error.code!=='ENOENT')throw error}
  const temporary=path.join(path.dirname(file),'.confirmation-audit-'+randomUUID()+'.tmp');
  try{
   await exclusive(temporary,bytes,process.getuid(),process.getgid());await beforePublish(temporary);
