@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
+import {spawn,execFileSync} from 'node:child_process';
 import {createHash,generateKeyPairSync,randomBytes,sign} from 'node:crypto';
 import {createServer} from 'node:http';
 import {chmod,mkdtemp,readFile,rm} from 'node:fs/promises';
@@ -14,6 +14,7 @@ import {ProductSessionGatewayNodeHost} from '../../../packages/wallet-auth/src/p
 import {signProductSessionApproval,createProductSessionReturnURL,parseProductSessionWalletURL,walletIdentity,evmAddressFromYNX} from '../../../packages/wallet-auth/src/index.js';
 import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 import {centralBrowserConsentSignBytes} from '../../../packages/wallet-auth/src/central-browser-session-contract.js';
+import {canonicalJSON} from '../../../packages/wallet-auth/src/canonical.js';
 import {secp256k1} from '../../../packages/wallet-auth/node_modules/@noble/curves/secp256k1.js';
 import {sha256} from '../../../packages/wallet-auth/node_modules/@noble/hashes/sha2.js';
 import {bytesToHex,hexToBytes,utf8ToBytes} from '../../../packages/wallet-auth/node_modules/@noble/hashes/utils.js';
@@ -74,7 +75,72 @@ async function relay(route,base){
   await route.fulfill({status:response.status,headers:returned,body:Buffer.from(await response.arrayBuffer())});
 }
 
-for(const mode of ['delayed-config','completed-quiet'])test(`explicit Finance browser sign-in owns navigation (${mode}, real guest services)`,{timeout:20000},async()=>{
+for(const product of ['finance','exchange'])test(`quiet identity recovery resumes after private bootstrap settles (${product}, actual Gateway and Go)`,{timeout:25000},async()=>{
+  const directory=await mkdtemp(join(tmpdir(),'ynx-sso-private-settle-'));await chmod(directory,0o700);
+  const host=new ProductSessionGatewayNodeHost(registry,{statePath:join(directory,'gateway.json'),now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url'),centralBrowser:true});
+  const gateway=createServer(host.handler()),origin=product==='finance'?financeOrigin:'https://exchange.ynxweb4.com';
+  let go,browser,releasePrivate,privateHeldResolve,releaseConfig,configHeldResolve;
+  const privateGate=new Promise(resolve=>releasePrivate=resolve),privateHeld=new Promise(resolve=>privateHeldResolve=resolve);
+  const configGate=new Promise(resolve=>releaseConfig=resolve),configHeld=new Promise(resolve=>configHeldResolve=resolve);let heldPrivate=false,configCount=0,identityCompletions=0;
+  const trace=[];
+  try{
+    const base=await listen(gateway);
+    if(product==='finance')go=await startGoBrowserServer(base,true);
+    else{
+      const child=spawn('go',['test','./internal/exchangeproduct','-run','^TestLocalNodeHostExchangeSSOBridge$','-count=1','-v'],{cwd:root,env:{...process.env,YNX_EXCHANGE_QA_CENTRAL_LOOPBACK:base},stdio:['ignore','pipe','pipe']});
+      const done=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',resolve)});
+      const url=await new Promise((resolve,reject)=>{let output='';const timer=setTimeout(()=>{child.kill();reject(new Error('Exchange SSO QA startup deadline'))},15000);child.stdout.on('data',chunk=>{output=(output+chunk).slice(-8192);const match=output.match(/EXCHANGE_SSO_QA_LISTEN=(http:\/\/127\.0\.0\.1:[0-9]+)/u);if(match){clearTimeout(timer);resolve(match[1])}});child.on('close',()=>{clearTimeout(timer);reject(new Error('Exchange SSO QA ended before readiness'))});});
+      go={base:url,async close(){await fetch(url+'/__qa_stop',{method:'POST',signal:AbortSignal.timeout(5000)});assert.equal(await done,0)}};
+    }
+    browser=await chromium.launch(await financeBrowserLaunchOptions());const context=await browser.newContext(),page=await context.newPage();
+    await context.addInitScript(({origin,product})=>{if(location.origin===origin&&product==='finance')localStorage.setItem('ynx.finance.browser-private.9840ef87.wallet-auth.attempted','yes');},{origin,product});
+    const cdp=await context.newCDPSession(page);await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});
+    cdp.on('Fetch.requestPaused',async({requestId,request})=>{
+      try{
+        const url=new URL(request.url),row={origin:url.origin,path:url.pathname,prompt:url.searchParams.get('prompt'),status:null};trace.push(row);
+        let response;
+        if(url.origin===gatewayOrigin&&url.pathname==='/isolated-sso-qa')response=new Response('<!doctype html><title>Isolated Gateway browser</title>',{headers:{'content-type':'text/html'}});
+        else{
+          const selected=url.origin===origin?go.base:url.origin===gatewayOrigin?base:null;if(!selected)throw new Error('unregistered QA network');
+          if(!heldPrivate&&(product==='finance'&&url.origin===origin&&url.pathname==='/api/endpoint-authority/v2/config'||product==='exchange'&&url.origin===gatewayOrigin&&url.pathname==='/v2/product-sessions/time')){heldPrivate=true;privateHeldResolve();await privateGate;}
+          if(product==='exchange'&&url.origin===origin&&url.pathname==='/api/v1/sso/config'&&++configCount===2){configHeldResolve();await configGate;}
+          const headers={...request.headers};for(const key of Object.keys(headers))if(['host','content-length','accept-encoding'].includes(key.toLowerCase()))delete headers[key];
+          if(url.origin===origin&&!url.pathname.startsWith('/api/')&&!url.pathname.startsWith('/sso/')){
+            const name=url.pathname==='/'?'index.html':url.pathname.slice(1),directory=resolve(root,product==='finance'?'apps/finance/web':'apps/exchange/web'),file=resolve(directory,name);if(!file.startsWith(directory+sep)||!/^[-\w./]+$/u.test(name))throw new Error('blocked QA file');
+            // Optional immutable pre-fix counterfactual: only the consumer source
+            // changes; real Gateway, cookies, PKCE and product APIs stay identical.
+            const bytes=process.env.YNX_SSO_QA_BASELINE==='1'&&name==='app.js'?execFileSync('git',['show',`7e3232c7c33911b0ce27d032669bed66a690e1ec:apps/${product}/web/app.js`],{cwd:root}):await readFile(file);
+            response=new Response(bytes,{headers:{'content-type':name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.svg')?'image/svg+xml':'text/html'}});
+          }else{
+            const path=product==='exchange'&&url.origin===origin&&url.pathname.startsWith('/api/')?url.pathname.slice(4):url.pathname;
+            response=await fetch(selected+path+url.search,{method:request.method,headers,body:['GET','HEAD'].includes(request.method)?undefined:request.postData,redirect:'manual',signal:AbortSignal.timeout(5000)});
+          }
+        }
+        row.status=response.status;if(url.pathname==='/v2/browser-sessions/complete')identityCompletions++;
+        const responseHeaders=[...response.headers].filter(([key])=>!['transfer-encoding','content-encoding','content-length','set-cookie'].includes(key)).map(([name,value])=>({name,value}));for(const value of response.headers.getSetCookie())responseHeaders.push({name:'set-cookie',value});
+        await cdp.send('Fetch.fulfillRequest',{requestId,responseCode:response.status,responseHeaders,body:Buffer.from(await response.arrayBuffer()).toString('base64')});
+      }catch{await cdp.send('Fetch.failRequest',{requestId,errorReason:'Failed'}).catch(()=>{});}
+    });
+    await page.goto(gatewayOrigin+'/isolated-sso-qa');
+    const client=registry.products.find(value=>value.productId==='finance');
+    const verifier=randomBytes(32).toString('base64url'),input={clientId:client.clientId+'-sso-v1',origin:financeOrigin,redirectUri:financeOrigin+'/sso/callback',state:randomBytes(32).toString('base64url'),codeChallenge:createHash('sha256').update(verifier).digest('base64url'),codeChallengeMethod:'S256'};
+    const boot=await page.evaluate(async()=>await(await fetch('/v2/browser-sessions/bootstrap')).json());
+    const challenged=await page.evaluate(async({body,csrf})=>{const r=await fetch('/v2/browser-sessions/challenge',{method:'POST',headers:{'content-type':'application/json','x-ynx-browser-csrf':csrf},body});return {status:r.status,body:await r.json()};},{body:canonicalJSON(input),csrf:boot.csrfToken});assert.equal(challenged.status,200,challenged.body.error?.code);
+    const identity=walletIdentity('1'.padStart(64,'0')),challenge=challenged.body.challenge;
+    const walletSignature=bytesToHex(secp256k1.sign(sha256(utf8ToBytes(centralBrowserConsentSignBytes(challenge,identity.account,identity.accountPublicKey))),hexToBytes('1'.padStart(64,'0')),{prehash:false,format:'compact',lowS:true}));
+    const approved=await page.evaluate(async({body,csrf})=>{const r=await fetch('/v2/browser-sessions/complete',{method:'POST',headers:{'content-type':'application/json','x-ynx-browser-csrf':csrf},body});return r.status;},{body:canonicalJSON({challengeId:challenge.challengeId,...identity,walletSignature}),csrf:boot.csrfToken});assert.equal(approved,200);
+    const firstAccount=page.waitForResponse(response=>new URL(response.url()).origin===origin&&new URL(response.url()).pathname===(product==='finance'?'/api/sso/account':'/api/v1/sso/account'));
+    await page.goto(origin+'/#'+(product==='finance'?'planning':'assets'));await privateHeld;assert.equal((await firstAccount).status(),401);await (await firstAccount).finished();
+    if(product==='exchange'&&process.env.YNX_SSO_QA_BASELINE==='1')await configHeld;
+    releasePrivate();if(product==='exchange'){await configHeld;await page.waitForFunction(()=>!document.querySelector('#private-status')?.textContent?.startsWith('Verifying'),null,{timeout:5000});releaseConfig();}
+    try{await page.waitForFunction(({product})=>{const id=product==='finance'?'#browser-signin-state':'#browser-identity-status';return document.querySelector(id)?.textContent?.startsWith('ynx1');},{product},{timeout:5000});}catch(error){console.error(JSON.stringify({product,trace,ui:await page.evaluate(()=>({identity:document.querySelector('#browser-identity-status')?.textContent,private:document.querySelector('#private-state')?.textContent,path:location.pathname}))}));throw error;}
+    const actual=await page.evaluate(async path=>{const r=await fetch(path,{cache:'no-store'}),body=await r.json();return {status:r.status,account:body.account,scopes:body.scopes,privateWorkspaceAuthorized:body.privateWorkspaceAuthorized};},product==='finance'?'/api/sso/account':'/api/v1/sso/account');
+    assert.equal(actual.status,200);assert.equal(actual.account,identity.account);assert.deepEqual(actual.scopes,['identity:read']);assert.equal(actual.privateWorkspaceAuthorized,false);
+    assert.equal(identityCompletions,1);assert.equal(host.snapshot().authority.sessions.length,0);assert.equal(trace.filter(row=>row.origin===origin&&row.path==='/sso/start'&&row.prompt==='none').length,1);assert.equal(new URL(page.url()).hash,product==='finance'?'#planning':'#assets');
+  }finally{releasePrivate?.();releaseConfig?.();await browser?.close();await go?.close();await close(gateway);await rm(directory,{recursive:true,force:true});}
+});
+
+for(const mode of ['delayed-config','completed-quiet','wallet-chooser'])test(`explicit Finance browser sign-in owns navigation (${mode}, real guest services)`,{timeout:20000},async()=>{
   const directory=await mkdtemp(join(tmpdir(),'ynx-finance-sso-navigation-'));await chmod(directory,0o700);
   const host=new ProductSessionGatewayNodeHost(registry,{statePath:join(directory,'gateway.json'),now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url'),centralBrowser:true});
   const gateway=createServer(host.handler());let go,browser,releaseConfig,releaseStart;
@@ -90,7 +156,7 @@ for(const mode of ['delayed-config','completed-quiet'])test(`explicit Finance br
         const url=new URL(request.url),base=url.origin===financeOrigin?go.base:url.origin===gatewayOrigin?gatewayBase:null;
         if(!base){await cdp.send('Fetch.failRequest',{requestId,errorReason:'BlockedByClient'});return;}
         const record={path:url.pathname,prompt:url.searchParams.get('prompt'),status:null};trace.push(record);
-        if(url.origin===financeOrigin&&url.pathname==='/api/sso/config'&&++configCount===2&&mode==='delayed-config'){quietHeldResolve();await configGate;}
+        if(url.origin===financeOrigin&&url.pathname==='/api/sso/config'&&++configCount===2&&mode!=='completed-quiet'){quietHeldResolve();await configGate;}
         if(url.origin===financeOrigin&&url.pathname==='/sso/start'&&!url.searchParams.has('prompt')){explicitHeldResolve();await startGate;}
         const headers={...request.headers};for(const key of Object.keys(headers))if(['host','content-length','accept-encoding'].includes(key.toLowerCase()))delete headers[key];
         let response;
@@ -107,8 +173,13 @@ for(const mode of ['delayed-config','completed-quiet'])test(`explicit Finance br
     });
     const quietCallback=mode==='completed-quiet'?page.waitForResponse(response=>new URL(response.url()).pathname==='/sso/callback'):null;
     await page.goto(`${financeOrigin}/#planning`);
-    if(mode==='delayed-config')await quietHeld;
+    if(mode!=='completed-quiet')await quietHeld;
     else{await (await quietCallback).finished();await page.waitForURL(`${financeOrigin}/#planning`);await page.waitForFunction(()=>browserSSOEnabled);}
+    if(mode==='wallet-chooser'){
+      await page.locator('#wallet-entry').click();const response=page.waitForResponse(value=>new URL(value.url()).pathname==='/api/sso/config');releaseConfig();await (await response).finished();
+      await page.evaluate(()=>Promise.resolve().then(()=>Promise.resolve()));assert.equal(new URL(page.url()).hash,'#planning');assert.equal(await page.locator('#wallet-picker').evaluate(dialog=>dialog.open),true);
+      assert.equal(trace.some(value=>value.path==='/sso/start'),false);assert.equal(host.snapshot().authority.sessions.length,0);return;
+    }
     await page.evaluate(()=>document.querySelector('#browser-signin-start').click());await explicitHeld;
     // The config body is delayed, not fabricated. Wait for that real fetch's
     // promise continuation while keeping the explicit document request pending.

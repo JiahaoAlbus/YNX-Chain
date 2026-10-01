@@ -19,7 +19,10 @@ const iso=value=>new Date(value).toISOString();
 const SESSION_ABSOLUTE=2*60*60*1000,SESSION_IDLE=30*60*1000,GRANT_LIFETIME=5*60*1000;
 export function centralBrowserCookie(value,{transaction=false,clear=false}={}){
   if(!clear&&!token(value))fail('SSO_COOKIE_INVALID');
-  return `${transaction?CENTRAL_BROWSER_TRANSACTION_COOKIE:CENTRAL_BROWSER_COOKIE}=${clear?'':value}; Path=/; Secure; HttpOnly; SameSite=Lax${clear?'; Max-Age=0':transaction?'; Max-Age=120':''}`;
+  // A browser-process restart must not discard an otherwise valid server
+  // identity. Persist only the original absolute lease; reads never renew it.
+  // The server still independently enforces idle expiry, generation and revoke.
+  return `${transaction?CENTRAL_BROWSER_TRANSACTION_COOKIE:CENTRAL_BROWSER_COOKIE}=${clear?'':value}; Path=/; Secure; HttpOnly; SameSite=Lax${clear?'; Max-Age=0':transaction?'; Max-Age=120':`; Max-Age=${SESSION_ABSOLUTE/1000}`}`;
 }
 export function centralBrowserCookieToken(header,name=CENTRAL_BROWSER_COOKIE){
   if(typeof header!=='string'||header.length>8192)return null;

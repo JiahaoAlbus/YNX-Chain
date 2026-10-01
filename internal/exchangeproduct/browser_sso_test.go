@@ -3,6 +3,7 @@ package exchangeproduct
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -16,6 +17,62 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
+
+// Opt-in actual NodeHost browser QA. The central signature/code/grant verifier
+// is real; only its canonical HTTPS socket is relayed to a loopback test host.
+func TestLocalNodeHostExchangeSSOBridge(t *testing.T) {
+	endpoint := os.Getenv("YNX_EXCHANGE_QA_CENTRAL_LOOPBACK")
+	if endpoint == "" {
+		t.Skip("isolated central Gateway not supplied")
+	}
+	parsed, err := url.Parse(endpoint)
+	if err != nil || parsed.Scheme != "http" || parsed.Hostname() != "127.0.0.1" || parsed.Port() == "" || parsed.User != nil || parsed.Path != "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+		t.Fatal("invalid isolated central socket")
+	}
+	transport := exchangeV2RoundTrip(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Scheme != "https" || r.URL.Host != "wallet-auth.ynxweb4.com" || !strings.HasPrefix(r.URL.Path, "/v2/") {
+			return nil, fmt.Errorf("noncanonical QA authority")
+		}
+		forward := r.Clone(r.Context())
+		forward.URL.Scheme, forward.URL.Host, forward.Host = "http", parsed.Host, parsed.Host
+		return http.DefaultTransport.RoundTrip(forward)
+	})
+	service, _, _ := v2Server(t, transport.RoundTrip)
+	defer service.Close()
+	bridge, err := productsessionv2.NewBrowserSSO("exchange", exchangeSessionAuthority, []byte(strings.Repeat("q", 32)), []string{"assets", "market", "activity", "controls"}, transport)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.cfg.BrowserSSO = bridge
+	api := NewServer(service)
+	stop := make(chan struct{}, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/sso/start" {
+			bridge.Start(w, r)
+			return
+		}
+		if r.Method == http.MethodGet && r.URL.Path == "/sso/callback" {
+			bridge.Callback(w, r)
+			return
+		}
+		if r.Method == http.MethodPost && r.URL.Path == "/__qa_stop" {
+			select {
+			case stop <- struct{}{}:
+			default:
+			}
+			w.WriteHeader(204)
+			return
+		}
+		api.ServeHTTP(w, r)
+	}))
+	defer server.Close()
+	fmt.Printf("EXCHANGE_SSO_QA_LISTEN=%s\n", server.URL)
+	select {
+	case <-stop:
+	case <-time.After(60 * time.Second):
+		t.Fatal("isolated central QA did not stop")
+	}
+}
 
 // Product boundary regression with simulated central/native authorities; not
 // an installed Wallet or public E2E receipt. Existing schema-10 data is real.

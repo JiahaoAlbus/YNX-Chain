@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:http';
+import {createRequire} from 'node:module';
 import {secp256k1} from '@noble/curves/secp256k1.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {bytesToHex,hexToBytes,utf8ToBytes} from '@noble/hashes/utils.js';
@@ -53,7 +54,7 @@ test('explicit canonical native consent creates one durable browser identity and
     assert.equal(restarted.status(signed.sessionToken).account,identity.account);
     assert.equal(restarted.introspect(finance.result.grantToken,finance.input.clientId).identity.account,identity.account);
     assert.equal(centralBrowserCookieToken(centralBrowserCookie(signed.sessionToken)),signed.sessionToken);
-    assert.match(centralBrowserCookie(signed.sessionToken),/^__Host-.*; Path=\/; Secure; HttpOnly; SameSite=Lax$/);
+    assert.match(centralBrowserCookie(signed.sessionToken),/^__Host-.*; Path=\/; Secure; HttpOnly; SameSite=Lax; Max-Age=7200$/);
     assert.equal(centralBrowserCookieToken(`__Host-ynx-browser-session=${signed.sessionToken}; __Host-ynx-browser-session=${token()}`),null);
     const pendingFinance=intent(),pendingQuant=intent('quant');
     const financeCode=new URL(restarted.authorize(pendingFinance.input,signed.sessionToken).redirectUri).searchParams.get('code');
@@ -187,4 +188,56 @@ test('actual NodeHost SSO endpoints enforce central CSRF, backend-only code exch
     assert.equal((await send('introspect',{body:check})).status,401);
     assert.equal((await send('status',{cookie:centralCookie})).status,401);
   }finally{await new Promise(resolve=>server.close(resolve));await f.close()}
+});
+
+for(const terminal of ['idle','absolute','revoke'])test(`actual browser new-tab and new-process recovery preserve bounded central identity without new consent: ${terminal}`,{skip:process.env.YNX_CENTRAL_BROWSER_COLD_QA!=='1'&&'Opt-in ecosystem Chromium QA runtime is not requested'},async()=>{
+  // Explicit ecosystem QA, not a published SDK runtime dependency. Normal
+  // isolated SDK installs do not import another product's development tooling.
+  const {chromium}=createRequire(new URL('../../../apps/quant-lab/package.json',import.meta.url))('playwright');
+  const f=await fixture(),issuer='https://wallet-auth.ynxweb4.com';let now=Date.now(),context;
+  const host=new ProductSessionGatewayNodeHost(products,{statePath:join(f.directory,'cold-gateway.json'),now:()=>new Date(now),tokenFactory:token,centralBrowser:true});
+  const server=createServer(host.handler());await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;
+  let consentCount=0;
+  const open=async()=>{
+    const selected=await chromium.launchPersistentContext(join(f.directory,'browser-profile'),{headless:true});
+    await selected.route('**/*',async route=>{
+      const request=route.request(),url=new URL(request.url());
+      if(url.origin!==issuer)return route.abort();
+      if(url.pathname==='/isolated-browser-qa')return route.fulfill({contentType:'text/html',body:'<!doctype html><title>Isolated real Gateway QA</title>'});
+      if(!url.pathname.startsWith('/v2/browser-sessions/'))return route.abort();
+      if(url.pathname==='/v2/browser-sessions/complete')consentCount++;
+      const response=await fetch(base+url.pathname+url.search,{method:request.method(),headers:request.headers(),body:request.postData()??undefined,redirect:'manual',signal:AbortSignal.timeout(5000)});
+      assert.ok(response.headers.getSetCookie().length<=1,'this exact QA response has one cookie; do not fold duplicate Set-Cookie');
+      await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:await response.text()});
+    });return selected;
+  };
+  const send=(page,path,body)=>page.evaluate(async({path,body})=>{const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});return {status:response.status,body:await response.json()};},{path:'/v2/browser-sessions/'+path,body});
+  const assertIdentity=async page=>{const result=await send(page,'status');assert.equal(result.status,200);assert.equal(result.body.account,identity.account);};
+  try{
+    context=await open();let page=await context.newPage();await page.goto(issuer+'/isolated-browser-qa');
+    const bootstrap=await send(page,'bootstrap'),request=intent();
+    const challenged=await page.evaluate(async({body,csrf})=>{const r=await fetch('/v2/browser-sessions/challenge',{method:'POST',headers:{'content-type':'application/json','x-ynx-browser-csrf':csrf},body});return {status:r.status,body:await r.json()};},{body:canonicalJSON(request.input),csrf:bootstrap.body.csrfToken});
+    assert.equal(challenged.status,200,challenged.body.error?.code);const challenge=challenged.body.challenge;
+    const completed=await page.evaluate(async({body,csrf})=>{const r=await fetch('/v2/browser-sessions/complete',{method:'POST',headers:{'content-type':'application/json','x-ynx-browser-csrf':csrf},body});return {status:r.status,body:await r.json()};},{body:canonicalJSON(approve(challenge)),csrf:bootstrap.body.csrfToken});
+    assert.equal(completed.status,200);assert.equal(completed.body.sessionToken,undefined);await assertIdentity(page);
+    const cookies=await context.cookies(issuer),central=cookies.find(value=>value.name==='__Host-ynx-browser-session'),transaction=cookies.find(value=>value.name==='__Host-ynx-browser-transaction');
+    assert.equal(central.domain,'wallet-auth.ynxweb4.com');assert.equal(central.httpOnly,true);assert.equal(central.secure,true);assert.equal(central.sameSite,'Lax');assert.equal(central.path,'/');
+    assert.ok(transaction.expires<=now/1000+121,'transaction cookie remains bounded to two minutes');
+    const next=await context.newPage();await next.goto(issuer+'/isolated-browser-qa');await page.close();await assertIdentity(next);assert.equal(consentCount,1);
+    await context.close();context=await open();page=await context.newPage();await page.goto(issuer+'/isolated-browser-qa');await assertIdentity(page);assert.equal(consentCount,1,'new browser process reuses server identity, not a new Wallet approval');
+    assert.ok(central.expires>now/1000&&central.expires<=now/1000+7201,'central cookie must persist only within the original absolute bound');
+    const afterRestart=(await context.cookies(issuer)).find(value=>value.name==='__Host-ynx-browser-session');assert.ok(afterRestart);assert.ok(Math.abs(afterRestart.expires-central.expires)<1,'status read must not renew browser lifetime');
+    if(terminal==='idle')now+=30*60*1000;
+    if(terminal==='absolute'){
+      for(let index=0;index<4;index++){now+=29*60*1000;await assertIdentity(page);}
+      now+=4*60*1000;
+    }
+    if(terminal==='revoke'){
+      const csrf=(await send(page,'bootstrap')).body.sessionCsrfToken;
+      const revoked=await page.evaluate(async csrf=>{const r=await fetch('/v2/browser-sessions/logout',{method:'POST',headers:{'content-type':'application/json','x-ynx-browser-csrf':csrf},body:'{}'});return {status:r.status,body:await r.json()};},csrf);
+      assert.equal(revoked.status,200);assert.equal(revoked.body.revoked,true);assert.equal((await context.cookies(issuer)).some(value=>value.name==='__Host-ynx-browser-session'),false);
+      await context.close();context=await open();page=await context.newPage();await page.goto(issuer+'/isolated-browser-qa');
+    }
+    const denied=await send(page,'status');assert.equal(denied.status,401);assert.equal(denied.body.error.code,'SSO_LOGIN_REQUIRED');assert.equal(consentCount,1);
+  }finally{await context?.close();await new Promise(resolve=>server.close(resolve));await f.close();}
 });
