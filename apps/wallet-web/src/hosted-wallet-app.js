@@ -25,6 +25,7 @@ let vault = null, session = null, currentReview = null, activeRequest = null, bu
 let locale = (() => { try { return normalizeHostedLocale(localStorage.getItem(HOSTED_LOCALE_KEY) || navigator.language); } catch { return normalizeHostedLocale(navigator.language); } })();
 let lastStatus = { key: "opening", variables: {}, code: null }, transactionRecord = null, transactionError = null, transactionBusy = false, transactionAccount = null;
 let transactionReadRevision = 0;
+let transactionRefreshFlight = null;
 const seen = new Set();
 const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 function fail(code) { throw Object.assign(new Error(code), { code }); }
@@ -141,6 +142,13 @@ async function refreshOwnWallet(){
   try{const record=await broadcastJournal.status(current.account,{rpc:forwardExtensionRpc,refresh:false});if(isCurrent())activity.textContent=record?record.transactionHash+" · "+record.status:webWalletCopy(locale,"emptyActivity");}catch(error){if(isCurrent()){activity.textContent=webWalletCopy(locale,"unavailable");activity.dataset.errorCode=error?.code??"HOSTED_JOURNAL_UNAVAILABLE";}}
 }
 async function refreshTransactionStatus(refresh = false) {
+  if (transactionRefreshFlight?.account === vault) return transactionRefreshFlight.promise;
+  const account = vault, pending = readTransactionStatus(refresh);
+  if (!refresh) return pending;
+  const flight = { account, promise:pending };transactionRefreshFlight=flight;
+  try { return await pending; } finally { if (transactionRefreshFlight === flight) transactionRefreshFlight=null; }
+}
+async function readTransactionStatus(refresh) {
   if (!vault) return;
   const current = vault, revision = ++transactionReadRevision;
   if (transactionAccount !== current.account) { transactionAccount = current.account; transactionRecord = null; transactionError = null; transactionBusy = false; }
