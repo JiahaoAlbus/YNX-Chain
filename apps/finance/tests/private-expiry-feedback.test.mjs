@@ -15,8 +15,8 @@ test('typed private expiry clears usable authority and presents reauthorization,
     assert.equal(rows.at(-1).state.status,code==='SESSION_EXPIRED'?'expired':'degraded');
   }
 });
-test('actual owned workspace 401 preserves expiry enum rather than replacing it with service failure',async()=>{
-  const calls=[];const error=Object.assign(new Error('expired'),{status:401,code:'SESSION_EXPIRED'});
+for(const status of [401,undefined])test(`actual owned workspace expiry (${status??'local proof'}) preserves enum rather than replacing it with service failure`,async()=>{
+  const calls=[];const error=Object.assign(new Error('expired'),{status,code:'SESSION_EXPIRED'});
   const context=vm.createContext({state:{context:7},window:{YNXFinanceWallet:{ready:Promise.resolve(),connected:()=>true,reportPrivateFailure:value=>calls.push(value)}},renderBrowserWalletIdentity:()=>true,sourceStatus:()=>{},api:async()=>{throw error;},clearPrivateView:()=>{},notify:()=>{},financeText:x=>x});
   vm.runInContext('async '+extract(app,'loadOwnedWorkspace'),context);
   await vm.runInContext('loadOwnedWorkspace(7)',context);
