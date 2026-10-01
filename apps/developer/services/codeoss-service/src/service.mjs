@@ -143,7 +143,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
   function runtimeContext(row) {
     const saved = db.prepare("SELECT directory FROM codeoss_projects WHERE workspace_owner=? AND project=?").get(row.workspace_owner, row.project);
     return Object.freeze({ sessionId: row.id, owner: row.owner, projectId: row.project, runtimeId: row.runtime,
-      directory: join(root, row.id), projectDirectory: saved?.directory || join(driver?.projectsRoot || join(root, "projects"), row.workspace_owner, createHash("sha256").update(row.project).digest("hex")), image: driver?.upstream || OPENVSCODE, limits, identityDigest: createHash("sha256")
+      directory: join(root, row.id), projectDirectory: nativeProjectDirectory(root, driver?.projectsRoot, row.workspace_owner, row.project, saved?.directory), image: driver?.upstream || OPENVSCODE, limits, identityDigest: createHash("sha256")
         .update(`${row.owner}\n${row.project}\n${row.runtime}\n${row.id}`).digest("hex") });
   }
 
@@ -288,3 +288,12 @@ async function bodyJSON(request) {
   try { return JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { throw fault("Launch request must be JSON.", "invalid_json", 400); }
 }
 function json(response, status, value) { response.writeHead(status, { "content-type": "application/json", "cache-control": "no-store", "x-content-type-options": "nosniff" }); response.end(JSON.stringify(value)); }
+
+export function nativeProjectDirectory(root, projectsRoot, owner, project, savedDirectory) {
+  const projectHash = createHash("sha256").update(project).digest("hex");
+  const legacy = join(root, "projects", owner, projectHash);
+  const current = join(projectsRoot || join(root, "projects"), owner, projectHash);
+  if (savedDirectory && savedDirectory !== legacy && savedDirectory !== current)
+    throw fault("Native project volume identity changed; preserve recovery for review.", "core_project_volume_mismatch", 409);
+  return savedDirectory || current;
+}

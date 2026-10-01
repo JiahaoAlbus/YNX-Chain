@@ -25,7 +25,7 @@ async function main(){
   await protectedAncestors(ROOT);
   if(createHash('sha256').update(await readFile(config.sourceHelperPath)).digest('hex')!==config.expectedHelperSha256)throw Error('Quota helper source differs from reviewed candidate.');
   await protectedAncestors('/var/lib');
-  for(const path of [plan.resources.projectBacking,config.projectsRoot,HELPER,ZCONFIG,ROOT+'/native-install-journal.json','/etc/sudoers.d/ynx-native-quota'])await absent(path);
+  for(const path of [plan.resources.projectBacking,dirname(config.projectsRoot),config.projectsRoot,HELPER,ZCONFIG,ROOT+'/native-install-journal.json','/etc/sudoers.d/ynx-native-quota'])await absent(path);
   const fs=await statfs('/var/lib',{bigint:true});if(fs.bavail*fs.bsize<BigInt(32*GIB+64*GIB+48*GIB))throw Error('96GiB new storage plus48GiB host reserve cannot fit.');
   const mem=String(await readFile('/proc/meminfo','utf8'));if(Number(/^MemAvailable:\s+(\d+)\s+kB$/m.exec(mem)?.[1]||0)*1024<6*GIB)throw Error('One2GiB QA runtime plus4GiB host reserve cannot fit.');
   const env={PATH:'/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin',LANG:'C',LC_ALL:'C',LD_LIBRARY_PATH:config.libraryDirectory};
@@ -37,8 +37,7 @@ async function main(){
   async function save(){const temporary=ROOT+'/native-install-journal.next';const handle=await open(temporary,'wx',0o600);try{await handle.writeFile(JSON.stringify(journal,null,2));await handle.sync();}finally{await handle.close();}await rename(temporary,ROOT+'/native-install-journal.json');const directory=await open(ROOT,'r');try{await directory.sync();}finally{await directory.close();}}
   await save(); // Never retry an uncertain installation or delete failed resources.
   try{
-    try{await mkdir('/var/lib/ynx-native',{mode:0o700});}catch(error){if(error.code!=='EEXIST')throw error;await protectedPath('/var/lib/ynx-native',{directory:true});}
-    await chmod('/var/lib/ynx-native',0o755);await mkdir(config.projectsRoot,{mode:0o755});await protectedAncestors(config.projectsRoot);
+    await mkdir('/var/lib/ynx-native',{mode:0o755});await mkdir(config.projectsRoot,{mode:0o755});await protectedAncestors(config.projectsRoot);
     for(const [exe,params]of plan.commands){await run(exe,params);if(exe==='/usr/bin/fallocate'){await chmod(plan.resources.projectBacking,0o600);const st=await lstat(plan.resources.projectBacking);journal.backing={inode:st.ino,bytes:st.size};}if(exe===config.zpoolExecutable){const guid=(await run(config.zpoolExecutable,['get','-H','-o','value','guid','ynx-core-projects'])).stdout.trim();if(!/^\d+$/.test(guid))throw Error('Created pool GUID unavailable; preserve resources.');journal.projectPoolGuid=guid;}journal.completed.push(params[0]);await save();}
     try{await mkdir(ROOT+'/helpers',{mode:0o755});}catch(error){if(error.code!=='EEXIST')throw error;await protectedPath(ROOT+'/helpers',{directory:true});}
     await writeFile(HELPER,await readFile(config.sourceHelperPath),{flag:'wx',mode:0o644});
