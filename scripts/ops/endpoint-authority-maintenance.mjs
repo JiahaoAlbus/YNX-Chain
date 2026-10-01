@@ -142,12 +142,12 @@ function fixedAuthorityKeys(p,env){
 // Only completed HTTP 503 responses are retried; authority/network errors fail closed.
 export async function readActivationConfig(url,{read=readFreshHTTPS,validate,now=()=>performance.now(),sleep=ms=>new Promise(r=>setTimeout(r,ms))}={}){
  requireFact(typeof validate==='function','MAINTENANCE_ACTIVATION_VALIDATOR_REQUIRED');
- const deadline=now()+6000;let attempts=0;
+ const started=now(),deadline=started+6000;let attempts=0;
  while(true){
   const remaining=Math.floor(deadline-now());requireFact(remaining>0&&attempts<25,'MAINTENANCE_ACTIVATION_NOT_READY');attempts++;
   const config=await read(url,{timeoutMs:Math.min(3000,remaining)});requireFact(now()<=deadline,'MAINTENANCE_ACTIVATION_NOT_READY');
   if(config.observation.httpStatus===503){const wait=Math.min(250,Math.floor(deadline-now()));requireFact(wait>0,'MAINTENANCE_ACTIVATION_NOT_READY');await sleep(wait);continue}
-  requireFact(config.observation.httpStatus===200,'MAINTENANCE_PUBLIC_CONFIG_FAILED');await validate(config);return config;
+  if(config.observation.httpStatus!==200){const error=new Error('MAINTENANCE_PUBLIC_CONFIG_FAILED');error.safeDiagnostic={phase:'public-config',httpStatus:config.observation.httpStatus,attempt:attempts,elapsedMs:Math.max(0,Math.floor(now()-started))};throw error}await validate(config);return config;
  }
 }
 async function verifyActivation(p,before,consumerFile,target){
@@ -186,7 +186,7 @@ function assertCommitLease(){
  requireFact(held.dev===activationLease.dev&&held.ino===activationLease.ino&&onDisk.dev===held.dev&&onDisk.ino===held.ino,'MAINTENANCE_ACTIVATION_LOCK_IDENTITY');
 }
 
-export async function runMaintenance(policyFile,expectedPolicySHA256,{recover=false}={}){
+export async function runMaintenance(policyFile,expectedPolicySHA256,{recover=false,reconcileSuperseded=false}={}){
  requireFact(process.getuid()===0,'MAINTENANCE_ROOT_OPERATOR_REQUIRED');
  const policyBytes=await protectedFile(policyFile);requireFact(sha(policyBytes)===expectedPolicySHA256,'MAINTENANCE_REVIEWED_POLICY_REQUIRED');const p=JSON.parse(policyBytes);p.policySHA256=expectedPolicySHA256;
  requireFact(p.financeUser==='ynx'&&Number.isSafeInteger(p.financeUID)&&p.financeUID>0&&Number.isSafeInteger(p.financeGID)&&p.consumer.consumerId==='ynx-finance-v1'&&p.consumer.origin==='https://finance.ynxweb4.com','MAINTENANCE_CONSUMER');
@@ -195,7 +195,7 @@ export async function runMaintenance(policyFile,expectedPolicySHA256,{recover=fa
  requireFact(p.commitLockFile==='/run/lock/ynx-finance-authority-activation.lock'&&p.sharedActivationProtocol==='ynx-finance-authority-forward-only/v1'&&p.hostFiles.some(pin=>pin.path===p.lockHelper),'MAINTENANCE_SHARED_LOCK_POLICY_REQUIRED');
  await pinnedHostFile(p.hostFiles.find(pin=>pin.path===p.lockHelper));
  if(process.env[LOCK_FD_ENV]===undefined){
-  const status=runWithActivationLock({lockFile:p.commitLockFile,helper:p.lockHelper,program:process.execPath,args:[fileURLToPath(import.meta.url),policyFile,expectedPolicySHA256,...(recover?['--recover']:[])]});
+  const status=runWithActivationLock({lockFile:p.commitLockFile,helper:p.lockHelper,program:process.execPath,args:[fileURLToPath(import.meta.url),policyFile,expectedPolicySHA256,...(recover?['--recover']:reconcileSuperseded?['--reconcile-superseded']:[])]});
   requireFact(status!==75,'MAINTENANCE_ACTIVATION_LOCK_BUSY');requireFact(status===0,'MAINTENANCE_LOCKED_OPERATION_FAILED');return;
  }
  assertActivationLease(p);
@@ -204,7 +204,8 @@ export async function runMaintenance(policyFile,expectedPolicySHA256,{recover=fa
   for(const pin of p.hostFiles)await pinnedHostFile(pin);
   const rootBytes=await protectedFile(p.rootFile),root=JSON.parse(rootBytes);requireFact(sha(rootBytes)===p.rootSHA256&&sha(await protectedFile(p.consumerRootFile,p.financeUID))===p.rootSHA256,'MAINTENANCE_ROOT_CHANGED');
   if(recover)return await recoverPendingActivation(p,pending,root);
-  requireFact(!(await fs.lstat(pending).catch(e=>{if(e.code!=='ENOENT')throw e;return null})),'MAINTENANCE_PENDING_ACTIVATION_REVIEW_REQUIRED');
+  if(reconcileSuperseded)return await confirmPendingActivation(p,pending,root,true);
+  if(await fs.lstat(pending).catch(e=>{if(e.code!=='ENOENT')throw e;return null}))return await confirmPendingActivation(p,pending,root,false);
   const before=await currentRuntime(p),authorityKeys=fixedAuthorityKeys(p,before.env),K='YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE',baseline=JSON.parse(await protectedFile(before.env[K],p.financeUID)),accepted=await checkpoint(p);
   // Baseline bytes from the consumer are not root policy. Verify with the original SDK first.
   await verifySignedEndpointAuthority(baseline,{trustRoot:root,checkpoint:accepted,consumer:p.consumer,nowMs:Date.parse(baseline.issuedAt)});
@@ -240,9 +241,58 @@ export async function runMaintenance(policyFile,expectedPolicySHA256,{recover=fa
      // Forward-only: readers may finish accepting target after this observation. No old ENV is restored.
     }else requireFact(env.equals(currentEnv)&&same(current,accepted),'MAINTENANCE_RECOVERY_CAS_CONFLICT');
    }catch{action='STOPPED_OPERATOR_REQUIRED'}
-   await exclusive(path.join(run,'failed-'+randomUUID()+'.json'),jsonBytes({status:action,code:/^[A-Z0-9_]+$/.test(caught.message)?caught.message:'MAINTENANCE_OPERATION_FAILED',stateRewound:false}));throw caught;
+   await exclusive(path.join(run,'failed-'+randomUUID()+'.json'),jsonBytes({status:action,code:/^[A-Z0-9_]+$/.test(caught.message)?caught.message:'MAINTENANCE_OPERATION_FAILED',...(caught.safeDiagnostic?{diagnostic:caught.safeDiagnostic}:{}),stateRewound:false}));throw caught;
   }
  }finally{activationLease=undefined}
+}
+/** Authenticate a pending history fact separately from the current, live authority. */
+export async function verifyPendingConfirmation({pendingManifest,currentManifest,target,accepted,root,consumer,nonRenewalPayloadSHA256,superseded=false,nowMs=Date.now()}){
+ requireFact(target.rootVersion===root.rootVersion&&pendingManifest.sequence===target.sequence&&pendingManifest.integrity.payloadSha256===target.payloadSha256,'MAINTENANCE_PENDING_IDENTITY');
+ if(superseded){
+  requireFact(accepted.rootVersion===target.rootVersion&&accepted.sequence===target.sequence+1&&currentManifest.previousPayloadSha256===target.payloadSha256,'MAINTENANCE_SUPERSEDED_CHAIN');
+  requireFact(Date.parse(pendingManifest.issuedAt)<=nowMs,'MAINTENANCE_CLOCK');
+  // The old document is only a signed history fact, never a current grant.
+  await verifySignedEndpointAuthority(pendingManifest,{trustRoot:root,checkpoint:target,consumer,nowMs:Date.parse(pendingManifest.issuedAt)});
+ }else requireFact(same(accepted,target)&&same(currentManifest,pendingManifest),'MAINTENANCE_PENDING_ACTIVATION_REVIEW_REQUIRED');
+ requireFact(currentManifest.integrity.keyId===pendingManifest.integrity.keyId&&sha(canonicalAuthorityV2(nonRenewalProjection(pendingManifest)))===nonRenewalPayloadSHA256&&sha(canonicalAuthorityV2(nonRenewalProjection(currentManifest)))===nonRenewalPayloadSHA256,'MAINTENANCE_NON_RENEWAL_POLICY_CHANGED');
+ await verifySignedEndpointAuthority(currentManifest,{trustRoot:root,checkpoint:accepted,consumer,nowMs});
+ return{status:superseded?'CONFIRMED_SUPERSEDED_PENDING':'CONFIRMED_CURRENT_PENDING',...accepted,signed:false,stateRewound:false};
+}
+async function durableSame(file,bytes){
+ try{await exclusive(file,bytes,process.getuid(),process.getgid())}catch(error){if(error.code!=='EEXIST')throw error;requireFact((await protectedFile(file,process.getuid())).equals(bytes),'MAINTENANCE_CONFIRMATION_AUDIT_CHANGED')}
+}
+export async function archivePendingConfirmation({pending,run,pendingBytes,record,recheck,assertLease=assertCommitLease}){
+ assertLease();requireFact((await protectedFile(pending,process.getuid())).equals(pendingBytes),'MAINTENANCE_PENDING_CAS_CONFLICT');
+ await durableSame(path.join(run,'retained-pending-'+sha(pendingBytes)+'.json'),pendingBytes);
+ await durableSame(path.join(run,'confirmed-'+sha(record)+'.json'),record);
+ // An interruption before this point leaves pending intact and both audit files durable.
+ await recheck();assertLease();requireFact((await protectedFile(pending,process.getuid())).equals(pendingBytes),'MAINTENANCE_PENDING_CAS_CONFLICT');
+ await fs.unlink(pending);await syncDirectory(path.dirname(pending));
+}
+/** Confirmation only: no issuer, restart, ENV mutation, or journal mutation. */
+async function confirmPendingActivation(p,pending,root,superseded){
+ const pendingBytes=await protectedFile(pending),intent=JSON.parse(pendingBytes),review=superseded?p.supersededPendingReview:null;
+ requireFact(intent.schemaVersion===1&&path.dirname(intent.run)===p.outputDirectory&&path.dirname(intent.consumerFile)===p.consumerDirectory,'MAINTENANCE_PENDING_IDENTITY');
+ if(superseded)requireFact(review&&review.pendingSHA256===sha(pendingBytes)&&review.originalPolicySHA256===intent.policySHA256,'MAINTENANCE_SUPERSEDED_REVIEW_REQUIRED');
+ else requireFact(intent.policySHA256===p.policySHA256,'MAINTENANCE_PENDING_IDENTITY');
+ const original=await protectedFile(path.join(intent.run,'environment-before')),candidate=await protectedFile(path.join(intent.run,'environment-candidate'));
+ requireFact(sha(original)===intent.originalEnvironmentSHA256&&sha(candidate)===intent.candidateEnvironmentSHA256,'MAINTENANCE_RECOVERY_ENVIRONMENT_CHANGED');
+ const before=await currentRuntime(p),keys=fixedAuthorityKeys(p,before.env),currentFile=keys.YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE,currentEnv=await protectedFile(p.lastEnvironmentFile),accepted=await checkpoint(p);
+ if(superseded){
+  requireFact(same(accepted,review.current)&&currentFile===review.currentManifestFile&&path.dirname(currentFile)===p.consumerDirectory&&sha(currentEnv)===review.currentEnvironmentSHA256,'MAINTENANCE_SUPERSEDED_RUNTIME_CHANGED');
+  // Exact approved append; every previous byte remains intact, only MANIFEST changes.
+  const expected=Buffer.concat([candidate,Buffer.from('\n# Exact reviewed fixed-source recovery seq'+accepted.sequence+'; previous pending retained\nYNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE='+currentFile+'\n')]);
+  requireFact(currentEnv.equals(expected),'MAINTENANCE_SUPERSEDED_ENV_CHANGED');
+ }else requireFact(currentFile===intent.consumerFile&&currentEnv.equals(candidate),'MAINTENANCE_PENDING_ACTIVATION_REVIEW_REQUIRED');
+ const pendingManifest=JSON.parse(await protectedFile(intent.consumerFile,p.financeUID)),currentManifest=JSON.parse(await protectedFile(currentFile,p.financeUID));
+ const result=await verifyPendingConfirmation({pendingManifest,currentManifest,target:intent.target,accepted,root,consumer:p.consumer,nonRenewalPayloadSHA256:p.nonRenewalPayloadSHA256,superseded});
+ await preflightOnClone({policy:p,authorityKeys:keys,candidateFile:currentFile,expectedCheckpoint:accepted});await verifyActivation(p,before,currentFile,accepted);
+ requireFact(same(await checkpoint(p),accepted)&&(await protectedFile(p.lastEnvironmentFile)).equals(currentEnv),'MAINTENANCE_CONFIRMATION_CAS_CONFLICT');
+ const latest=await currentRuntime(p);requireFact(latest.pid===before.pid&&same(fixedAuthorityKeys(p,latest.env),keys),'MAINTENANCE_RUNTIME_CAS_CONFLICT');
+ assertCommitLease();requireFact((await protectedFile(pending,process.getuid())).equals(pendingBytes),'MAINTENANCE_PENDING_CAS_CONFLICT');
+ const record=jsonBytes({...result,previousPendingSHA256:sha(pendingBytes),previousTarget:intent.target,currentManifestFile:currentFile,policySHA256:p.policySHA256,environmentSHA256:sha(currentEnv),restart:false,environmentWritten:false,historyWritten:false});
+ await archivePendingConfirmation({pending,run:intent.run,pendingBytes,record,recheck:async()=>{requireFact(same(await checkpoint(p),accepted)&&(await protectedFile(p.lastEnvironmentFile)).equals(currentEnv),'MAINTENANCE_CONFIRMATION_CAS_CONFLICT');const final=await currentRuntime(p);requireFact(final.pid===before.pid&&same(fixedAuthorityKeys(p,final.env),keys),'MAINTENANCE_RUNTIME_CAS_CONFLICT')}});
+ return{...result,pendingArchived:true,restart:false};
 }
 /** Explicit operator retry of an already signed candidate; no signing or history reset. */
 async function recoverPendingActivation(p,pending,root){
@@ -273,8 +323,8 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
    requireFact(process.argv[5]==='--'&&process.argv.length>=7,'MAINTENANCE_ARGUMENTS');
    process.exitCode=await runDeploymentUnderSharedLock(process.argv[3],process.argv[4],process.argv[6],process.argv.slice(7));return;
   }
-  requireFact(process.argv.length===4||process.argv.length===5&&process.argv[4]==='--recover','MAINTENANCE_ARGUMENTS');
-  const result=await runMaintenance(process.argv[2],process.argv[3],{recover:process.argv[4]==='--recover'});if(result)console.log(JSON.stringify(result));
+  requireFact(process.argv.length===4||process.argv.length===5&&['--recover','--reconcile-superseded'].includes(process.argv[4]),'MAINTENANCE_ARGUMENTS');
+  const result=await runMaintenance(process.argv[2],process.argv[3],{recover:process.argv[4]==='--recover',reconcileSuperseded:process.argv[4]==='--reconcile-superseded'});if(result)console.log(JSON.stringify(result));
  };
  execute().catch(e=>{console.error(JSON.stringify({status:'STOPPED_OPERATOR_REQUIRED',code:/^[A-Z0-9_]+$/.test(e.message)?e.message:'MAINTENANCE_OPERATION_FAILED'}));process.exitCode=1});
 }

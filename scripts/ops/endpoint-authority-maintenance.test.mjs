@@ -6,7 +6,7 @@ import os from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {generateKeyPairSync,createHash,sign,randomUUID} from 'node:crypto';
 import {execFileSync,spawn} from 'node:child_process';
-import {prepareFixedSourceRenewal,nonRenewalProjection,readFreshHTTPS,preflightOnClone,journalSnapshot,activationRecoveryPlan,runWithActivationLock,verifyPinnedHostBytes,HOST_BINARY_MAX_BYTES,readActivationConfig} from './endpoint-authority-maintenance.mjs';
+import {prepareFixedSourceRenewal,nonRenewalProjection,readFreshHTTPS,preflightOnClone,journalSnapshot,activationRecoveryPlan,runWithActivationLock,verifyPinnedHostBytes,HOST_BINARY_MAX_BYTES,readActivationConfig,verifyPendingConfirmation,archivePendingConfirmation} from './endpoint-authority-maintenance.mjs';
 import {AUTHORITY_V2_URLS,AUTHORITY_V2_REPOSITORY,canonicalAuthorityV2,authorityV2SigningMessage,createEndpointAuthorityClient,verifySignedEndpointAuthority} from '../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft} from './endpoint-authority-v2.mjs';
 import {createNodeCheckpointStore} from '../../apps/finance/authority/checkpoint-node.mjs';
@@ -182,3 +182,31 @@ test('actual SDK rejects tampered signature after 503 without any third fetch',a
  await assert.rejects(readActivationConfig('https://finance.ynxweb4.com/api/config',{now:()=>clock,sleep:async ms=>{clock+=ms},read:(url,options)=>readFreshHTTPS(url,{...options,fetchImpl:async()=>{calls++;return streamed(Buffer.from(calls===1?'Not ready':JSON.stringify(f.baseline)),{status:calls===1?503:200})}}),validate:async config=>verifySignedEndpointAuthority(JSON.parse(config.body),{trustRoot:f.root,checkpoint:f.checkpoint,consumer:f.policy.consumer,nowMs:now})}),/SIGNATURE_INVALID/);
  assert.equal(calls,2);assert.equal(clock,250);
 });
+
+function confirmationFixture(){
+ const f=fixture(),old=copy(f.baseline);old.issuedAt=iso(now-7200000);old.expiresAt=iso(now-3600000);old.endpoints.walletGateway.evidence.health.observedAt=iso(now-7200000);old.endpoints.walletGateway.evidence.version.observedAt=iso(now-7200000);old.products.finance.evidence.observedAt=iso(now-7200000);const pending=signed(old),target={rootVersion:1,sequence:pending.sequence,payloadSha256:pending.integrity.payloadSha256};
+ const fresh=copy(pending);fresh.sequence=2;fresh.manifestVersion='2.0.0.2';fresh.previousPayloadSha256=target.payloadSha256;fresh.issuedAt=iso(now-1000);fresh.expiresAt=iso(now+3599000);fresh.endpoints.walletGateway.evidence.health.observedAt=iso(now-1000);fresh.endpoints.walletGateway.evidence.version.observedAt=iso(now-1000);fresh.products.finance.evidence.observedAt=iso(now-1000);const current=signed(fresh),accepted={rootVersion:1,sequence:2,payloadSha256:current.integrity.payloadSha256};
+ return{pendingManifest:pending,currentManifest:current,target,accepted,root:f.root,consumer:f.policy.consumer,nonRenewalPayloadSHA256:f.policy.nonRenewalPayloadSHA256,superseded:true,nowMs:now};
+}
+test('explicit confirmation proves expired pending as history only and current next revision at now',async()=>{
+ const f=confirmationFixture();await assert.rejects(verifySignedEndpointAuthority(f.pendingManifest,{trustRoot:f.root,checkpoint:f.target,consumer:f.consumer,nowMs:now}),/EXPIRED_OR_FUTURE/);
+ const result=await verifyPendingConfirmation(f);assert.equal(result.status,'CONFIRMED_SUPERSEDED_PENDING');assert.equal(result.sequence,2);assert.equal(result.signed,false);assert.equal(result.stateRewound,false);assert.equal(result.walletGateway,undefined);
+});
+for(const [name,mutate]of[
+ ['old signature',f=>{f.pendingManifest.integrity.signature=Buffer.alloc(64).toString('base64url')}],
+ ['old digest',f=>{f.pendingManifest.integrity.payloadSha256='f'.repeat(64)}],
+ ['wrong predecessor',f=>{f.currentManifest=signed({...f.currentManifest,previousPayloadSha256:'f'.repeat(64)})}],
+ ['skipped revision',f=>{f.accepted.sequence=3}],
+ ['wrong current digest',f=>{f.accepted.payloadSha256='f'.repeat(64)}],
+ ['current expired',f=>{f.currentManifest=signed({...f.currentManifest,issuedAt:iso(now-7200000),expiresAt:iso(now-3600000)});f.accepted.payloadSha256=f.currentManifest.integrity.payloadSha256}],
+ ['key revoked',f=>{f.root=copy(f.root);f.root.keys[0].revoked=true}],
+ ['consumer rejected',f=>{f.consumer={...f.consumer,origin:'https://wrong.ynxweb4.com'}}],
+ ['non-renewal source changed',f=>{f.currentManifest=signed({...f.currentManifest,issuerSource:{...source,commit:'3'.repeat(40)}});f.accepted.payloadSha256=f.currentManifest.integrity.payloadSha256}],
+ ['ordinary timer may not supersede',f=>{f.superseded=false}],
+ ['future old issue',f=>{f.pendingManifest=signed({...f.pendingManifest,issuedAt:iso(now+1000),expiresAt:iso(now+3601000)});f.target.payloadSha256=f.pendingManifest.integrity.payloadSha256}]
+])test('pending confirmation rejects '+name,async()=>{const f=confirmationFixture();mutate(f);await assert.rejects(verifyPendingConfirmation(f));});
+test('valid already accepted target confirms without requiring another issue or restart',async()=>{const f=fixture();const out=await verifyPendingConfirmation({pendingManifest:f.baseline,currentManifest:f.baseline,target:f.checkpoint,accepted:f.checkpoint,root:f.root,consumer:f.policy.consumer,nonRenewalPayloadSHA256:f.policy.nonRenewalPayloadSHA256,nowMs:now});assert.equal(out.status,'CONFIRMED_CURRENT_PENDING');assert.equal(out.signed,false)});
+test('completed non200 error contains only bounded safe HTTP phase diagnostics',async()=>{let clock=0;await assert.rejects(readActivationConfig('https://finance.ynxweb4.com/api/config',{now:()=>clock,read:async()=>({observation:{httpStatus:502}}),validate:async()=>assert.fail('must not validate failed response')}),error=>{assert.equal(error.message,'MAINTENANCE_PUBLIC_CONFIG_FAILED');assert.deepEqual(error.safeDiagnostic,{phase:'public-config',httpStatus:502,attempt:1,elapsedMs:0});return true;});});
+
+test('durable confirmation retains original pending across interruption and idempotent retry',async()=>{const dir=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'pending-durable-')));try{await fs.chmod(dir,0o700);const pending=path.join(dir,'pending.json'),bytes=Buffer.from('signed-intent\n'),record=Buffer.from('safe-confirmation\n');await fs.writeFile(pending,bytes,{mode:0o600});const args={pending,run:dir,pendingBytes:bytes,record,assertLease:()=>{}};await assert.rejects(archivePendingConfirmation({...args,recheck:async()=>{throw Error('interrupted before unlink')}}),/interrupted/);assert.deepEqual(await fs.readFile(pending),bytes);assert.deepEqual(await fs.readFile(path.join(dir,'retained-pending-'+sha(bytes)+'.json')),bytes);await archivePendingConfirmation({...args,recheck:async()=>{}});await assert.rejects(fs.stat(pending),{code:'ENOENT'});assert.deepEqual(await fs.readFile(path.join(dir,'retained-pending-'+sha(bytes)+'.json')),bytes);}finally{await fs.rm(dir,{recursive:true,force:true})}});
+test('pending replacement after durable audit is retained and never unlinked',async()=>{const dir=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'pending-cas-')));try{await fs.chmod(dir,0o700);const pending=path.join(dir,'pending.json'),bytes=Buffer.from('first'),replacement=Buffer.from('second');await fs.writeFile(pending,bytes,{mode:0o600});await assert.rejects(archivePendingConfirmation({pending,run:dir,pendingBytes:bytes,record:Buffer.from('safe'),assertLease:()=>{},recheck:async()=>fs.writeFile(pending,replacement,{mode:0o600})}),/PENDING_CAS_CONFLICT/);assert.deepEqual(await fs.readFile(pending),replacement);}finally{await fs.rm(dir,{recursive:true,force:true})}});
