@@ -122,7 +122,10 @@ async function refreshWalletGuidance() {
   }
 }
 
+let selectedWallet=null;
+function resetChooser(){for(const button of byId("wallet-dialog").querySelectorAll(".wallet-option")){button.disabled=false;button.removeAttribute("aria-busy");}selectedWallet=null;byId("wallet-list").hidden=false;byId("wallet-list").style.display="";byId("wallet-selected-step").hidden=true;byId("mobile-pair-panel").hidden=true;byId("retry-wallet-connection").hidden=true;}
 async function connect(wallet, button) {
+  selectedWallet=wallet;byId("wallet-list").hidden=true;byId("wallet-list").style.display="none";byId("wallet-selected-step").hidden=false;byId("retry-wallet-connection").hidden=true;byId("selected-wallet-name").textContent=({mobile:"YNX Mobile Wallet",hosted:"YNX Web Wallet",ynx:"YNX Wallet extension",metamask:"MetaMask"})[wallet];
   if(socialTransports(window).busy)void socialTransports(window).cancel().catch(()=>{});
   const attempt = ++connectionAttempt;
   sessionStorage.removeItem(disconnectedKey);
@@ -131,14 +134,16 @@ async function connect(wallet, button) {
   byId("install-wallet").hidden = true;
   byId("retry-wallet-discovery").hidden = true;
   try {
-    const result = await connectWallet(wallet, window, () => attempt === connectionAttempt, renderTransport);
+    const result = await connectWallet(wallet, window, () => attempt === connectionAttempt, next=>{if(attempt===connectionAttempt)renderTransport(next)});
     if (attempt !== connectionAttempt) return;
     if (result.ok) setConnected(result);
-    else if (result.code === "YNX_WALLET_NOT_FOUND" || result.code === "METAMASK_NOT_FOUND") notFound(wallet);
+    else {byId("retry-wallet-connection").hidden=false;
+    if (result.code === "YNX_WALLET_NOT_FOUND" || result.code === "METAMASK_NOT_FOUND") notFound(wallet);
     else if (result.code === "AMBIGUOUS_WALLET_PROVIDER") ambiguous(wallet);
-    else showStatus(`${result.code}: Select one wallet provider and try again.`, "warning");
+    else showStatus(`${result.code}: Select one wallet provider and try again.`, "warning");}
   } catch (error) {
     if (attempt !== connectionAttempt) return;
+    byId("retry-wallet-connection").hidden=false;
     const rejected = Number(error?.code) === 4001;
     showStatus(rejected ? "Connection request was rejected. No Social session was created." : "Wallet connection failed. No account or Social session was saved.", "error");
   } finally {
@@ -153,17 +158,19 @@ byId("connect-wallet").addEventListener("click", () => {
     byId("wallet-switch-account").focus();
     return;
   }
-  byId("wallet-dialog").showModal();
+  resetChooser();byId("wallet-dialog").showModal();
   sessionStorage.removeItem(disconnectedKey);
 });
 byId("hero-connect-wallet").addEventListener("click", () => {
   sessionStorage.removeItem(disconnectedKey);
-  byId("wallet-dialog").showModal();
+  resetChooser();byId("wallet-dialog").showModal();
 });
-function cancelSelection(){connectionAttempt++;for(const button of byId("wallet-dialog").querySelectorAll(".wallet-option")){button.disabled=false;button.removeAttribute("aria-busy");}void socialTransports(window).cancel().catch(()=>showStatus("The connection was cancelled. Network cleanup is not yet confirmed.","warning"));byId("wallet-dialog").close();}
-byId("close-wallet-dialog").addEventListener("click",cancelSelection);
-byId("wallet-dialog").addEventListener("cancel",cancelSelection);
-byId("cancel-wallet-pair").addEventListener("click",cancelSelection);
+function cancelSelection(close=true){const token=++connectionAttempt;for(const button of byId("wallet-dialog").querySelectorAll(".wallet-option")){button.disabled=false;button.removeAttribute("aria-busy");}void socialTransports(window).cancel().catch(()=>{if(token===connectionAttempt)showStatus("The connection was cancelled. Network cleanup is not yet confirmed.","warning")});resetChooser();if(close)byId("wallet-dialog").close();}
+byId("close-wallet-dialog").addEventListener("click",()=>cancelSelection());
+byId("wallet-dialog").addEventListener("cancel",()=>cancelSelection());
+byId("cancel-wallet-pair").addEventListener("click",()=>cancelSelection());
+byId("back-wallet-selection").addEventListener("click",()=>{cancelSelection(false);showStatus("Choose a wallet to continue.")});
+byId("retry-wallet-connection").addEventListener("click",()=>{if(selectedWallet)void connect(selectedWallet,byId("connect-"+selectedWallet));});
 byId("connect-hosted").addEventListener("click",event=>void connect("hosted",event.currentTarget));
 byId("connect-mobile").addEventListener("click",event=>void connect("mobile",event.currentTarget));
 byId("connect-ynx").addEventListener("click", (event) => void connect("ynx", event.currentTarget));
@@ -249,7 +256,7 @@ async function restoreConnection() {
 }
 
 function renderPrivateServiceDegraded(){byId("service-status").textContent="Browse as a guest, or sign in to use your private Social workspace.";byId("service-status").dataset.serviceState="NOT_CHECKED";byId("private-session-state").textContent="Connecting a wallet does not grant access to contacts or messages. Approve Social separately below.";}
-function renderTransport(next){const panel=byId("mobile-pair-panel");panel.hidden=next.status!=="pairing";byId("wallet-pair-qr").removeAttribute("src");byId("wallet-pair-open").removeAttribute("href");if(next.status==="pairing"){if(next.qrDataURL)byId("wallet-pair-qr").src=next.qrDataURL;if(next.deeplink)byId("wallet-pair-open").href=next.deeplink;showStatus("Scan with YNX Wallet, or open it on this phone. Review the connection in Wallet.");}else if(next.status==="transport-unavailable")showStatus("Wallet window closed. Your Social identity stays signed in; the next request opens Wallet for review.");else if(next.status==="opening")showStatus("Opening the secure wallet connection…");else if(next.status==="cancel-unconfirmed")showStatus("Connection cancelled. Network cleanup is not yet confirmed.","warning");else if(next.status==="failed")showStatus(({YNX_PAIR_RELAY_TIMEOUT:"The wallet network could not be reached. Try another wallet or retry when your network is available.",YNX_PAIR_CONFIGURATION_INVALID:"Mobile connection is not enabled for Social in this Wallet release.",HOSTED_ORIGIN_UNREGISTERED:"Web Wallet is not enabled for Social in this Wallet release."})[next.code]??"Connection could not be completed. Retry or choose another wallet.","warning");}
+function renderTransport(next){const panel=byId("mobile-pair-panel");panel.hidden=next.status!=="pairing";byId("wallet-pair-qr").removeAttribute("src");byId("wallet-pair-open").removeAttribute("href");if(next.status==="pairing"){if(next.qrDataURL)byId("wallet-pair-qr").src=next.qrDataURL;if(next.deeplink)byId("wallet-pair-open").href=next.deeplink;showStatus("Scan with YNX Wallet, or open it on this phone. Review the connection in Wallet.");}else if(next.status==="transport-unavailable")showStatus("Wallet window closed. Your Social identity stays signed in; the next request opens Wallet for review.");else if(next.status==="opening")showStatus("Opening the secure wallet connection…");else if(next.status==="cancel-unconfirmed")showStatus("Connection cancelled. Network cleanup is not yet confirmed.","warning");else if(next.status==="failed"){byId("retry-wallet-connection").hidden=false;showStatus(({YNX_PAIR_RELAY_TIMEOUT:"The wallet network could not be reached. Try another wallet or retry when your network is available.",YNX_PAIR_CONFIGURATION_INVALID:"Mobile connection is not enabled for Social in this Wallet release.",HOSTED_ORIGIN_UNREGISTERED:"Web Wallet is not enabled for Social in this Wallet release."})[next.code]??"Connection could not be completed. Retry or choose another wallet.","warning");}}
 window.YNXSocialWallet=Object.freeze({reserve:()=>{if(state.wallet==='hosted'&&!state.provider)return connectWallet('hosted',window,()=>true,renderTransport).then(result=>{if(!result.ok)throw new Error(result.code);setConnected(result)});return socialTransports(window).reserve();},requestProductSessionV2:route=>{if(!state.provider||state.wallet==='metamask')throw new Error('WALLET_NOT_CONNECTED');return state.provider.request({method:'ynx_requestProductSessionV2',params:[route]});},getRevision:()=>connectionAttempt+socialTransports(window).revision,available:()=>!!state.provider&&state.wallet!=="metamask",hasSelection:()=>!!state.wallet&&state.wallet!=='metamask',getAccount:()=>state.account,accountMatches:account=>socialTransports(window).accountMatches(account,state.account)});
 addEventListener('pagehide',()=>socialTransports(window).suspend());
 
