@@ -2,7 +2,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {fillNativeChooser,nativeChooserScript} from './linux-password-installed-gate.mjs';
+import {fillNativeChooser,nativeChooserScript,sanitizeChooserIdentity} from './linux-password-installed-gate.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {accountCreated,continuePersistedAccount,sanitizedFailureSnapshot,finishNativeSave,backupOutcome,backupFileCandidates,observeNativeSave} from './linux-password-installed-gate.mjs';
@@ -125,6 +125,20 @@ class Registry:
  const value=JSON.parse(execFileSync('/usr/bin/python3',['-c',nativeChooserScript,'observe','/qa/expected.json'],{encoding:'utf8',env:{...process.env,PYTHONPATH:directory},timeout:5000}));
  assert.equal(value.ok,true);assert.equal(value.fields.length,1);assert.equal(value.fields[0].field,'NAME');assert.equal(value.fields[0].matchesExpected,false);assert.equal(value.fields[0].difference,'DIFFERENT');assert.equal(value.saveAvailable,true);assert.equal(JSON.stringify(value).includes('PRIVATE'),false);
  const focused=JSON.parse(execFileSync('/usr/bin/python3',['-c',nativeChooserScript,'focus-name','/qa/expected.json'],{encoding:'utf8',env:{...process.env,PYTHONPATH:directory},timeout:5000}));assert.equal(focused.ok,true);
+ for(const change of ['dialog.name="PRIVATE_UNRELATED_WINDOW"','root.children[0]=Node("application","application",[Node("PRIVATE_WINDOW","frame",[dialog])])','dialog.role="window"']){
+  await writeFile(path.join(directory,'pyatspi.py'),stub+'\n'+change+'\n');
+  try{execFileSync('/usr/bin/python3',['-c',nativeChooserScript,'observe','/qa/expected.json'],{encoding:'utf8',env:{...process.env,PYTHONPATH:directory},timeout:5000});assert.fail('same strict selector must reject unmatched window')}catch(error){
+   assert.equal(error.status,2);const result=JSON.parse(error.stdout);assert.equal(result.identity.eligibleExactTitleMatches,0);assert.equal(error.stdout.includes('PRIVATE'),false);
+   if(change.includes('dialog.name'))assert.equal(result.identity.directTitleMatches,0);
+   if(change.includes('root.children'))assert.deepEqual(result.identity.nestedTitleMatches,[{role:'DIALOG',depth:2,showing:true}]);
+   if(change.includes('dialog.role')){assert.equal(result.identity.directTitleMatches,1);assert.equal(result.identity.nestedTitleMatches[0].role,'WINDOW');}
+  }
+ }
  await writeFile(path.join(directory,'pyatspi.py'),stub+'\nroot.children[0].children.append(dialog)\nroot.children[0].childCount=3\n');
- try{execFileSync('/usr/bin/python3',['-c',nativeChooserScript,'save','/qa/expected.json'],{encoding:'utf8',env:{...process.env,PYTHONPATH:directory},timeout:5000});assert.fail('ambiguous dialog must reject')}catch(error){assert.equal(error.status,2);const result=JSON.parse(error.stdout);assert.equal(result.ok,false);assert.equal(result.code,'NATIVE_CHOOSER_DIALOG_NOT_UNIQUE');assert.equal(error.stdout.includes('PRIVATE'),false)}
+ try{execFileSync('/usr/bin/python3',['-c',nativeChooserScript,'save','/qa/expected.json'],{encoding:'utf8',env:{...process.env,PYTHONPATH:directory},timeout:5000});assert.fail('ambiguous dialog must reject')}catch(error){assert.equal(error.status,2);const result=JSON.parse(error.stdout);assert.equal(result.ok,false);assert.equal(result.code,'NATIVE_CHOOSER_DIALOG_NOT_UNIQUE');assert.equal(result.identity.eligibleExactTitleMatches,2);assert.equal(result.identity.directTitleMatches,2);assert.equal(error.stdout.includes('PRIVATE'),false)}
+});
+
+test('chooser identity serialization accepts bounded counts and role enums without names or paths',()=>{
+ const result=sanitizeChooserIdentity({desktopApplications:2,inspectedApplications:2,directWindows:3,eligibleExactTitleMatches:0,directTitleMatches:1,directRoles:{FRAME:2,PRIVATE_WINDOW:1},nestedTitleMatches:[{role:'WINDOW',depth:2,showing:true,name:'PRIVATE_NAME',path:'/private'},{role:'PRIVATE_ROLE',depth:2,showing:true},{role:'DIALOG',depth:99,showing:true}],structuralNodesInspected:4,structuralLimitReached:false,password:'SECRET'});
+ assert.equal(result.eligibleExactTitleMatches,0);assert.deepEqual(result.directRoles,{FRAME:2});assert.deepEqual(result.nestedTitleMatches,[{role:'WINDOW',depth:2,showing:true}]);assert.equal(JSON.stringify(result).includes('PRIVATE'),false);assert.equal(JSON.stringify(result).includes('SECRET'),false);assert.equal(sanitizeChooserIdentity({directWindows:-1,desktopApplications:'SECRET'}).directWindows,null);
 });

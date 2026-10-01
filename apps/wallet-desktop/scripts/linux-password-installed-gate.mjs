@@ -55,6 +55,7 @@ import sys,json,os,time
 import pyatspi
 action,destination=sys.argv[1:3]
 directory,name=os.path.dirname(destination),os.path.basename(destination)
+identity={}
 def walk(root,limit=600):
  queue=[root];count=0
  while queue and count<limit:
@@ -75,6 +76,30 @@ try:
  desktop=pyatspi.Registry.getDesktop(0)
  windows=[application[i] for application in (desktop[j] for j in range(min(desktop.childCount,20))) for i in range(min(application.childCount,100))]
  dialogs=[item for item in windows if item.name=='Save encrypted Wallet backup' and item.getRoleName() in ('dialog','file chooser','frame') and item.getState().contains(pyatspi.STATE_SHOWING)]
+ # Counts and fixed role enums only: never serialize arbitrary window names,
+ # accessible identifiers, Wallet descendants or editable text at this stage.
+ roles={'frame':'FRAME','dialog':'DIALOG','file chooser':'FILE_CHOOSER','window':'WINDOW','alert':'ALERT','panel':'PANEL','root pane':'ROOT_PANE','filler':'FILLER'}
+ identity={'desktopApplications':desktop.childCount,'inspectedApplications':min(desktop.childCount,20),'directWindows':len(windows),'eligibleExactTitleMatches':len(dialogs),'directTitleMatches':0,'directRoles':{},'nestedTitleMatches':[],'structuralNodesInspected':0,'structuralLimitReached':False}
+ queue=[]
+ for item in windows:
+  role=item.getRoleName();kind=roles.get(role,'OTHER')
+  identity['directRoles'][kind]=identity['directRoles'].get(kind,0)+1
+  if item.name=='Save encrypted Wallet backup': identity['directTitleMatches']+=1
+  if role in roles: queue.append((item,1))
+ seen=set()
+ while queue and identity['structuralNodesInspected']<160:
+  item,depth=queue.pop(0)
+  if item in seen: continue
+  seen.add(item);identity['structuralNodesInspected']+=1
+  role=item.getRoleName()
+  if role in ('frame','dialog','file chooser','window','alert') and item.name=='Save encrypted Wallet backup':
+   identity['nestedTitleMatches'].append({'role':roles[role],'depth':depth,'showing':item.getState().contains(pyatspi.STATE_SHOWING)})
+  # Only structural containers to depth four; no text/entry/button traversal.
+  if depth<4:
+   for index in range(min(item.childCount,40)):
+    child=item[index]
+    if child.getRoleName() in roles: queue.append((child,depth+1))
+ identity['structuralLimitReached']=bool(queue)
  if len(dialogs)!=1: raise RuntimeError('DIALOG_NOT_UNIQUE')
  fields={};save=[]
  for item in walk(dialogs[0]):
@@ -101,14 +126,19 @@ try:
   actions=[i for i in range(control.nActions) if normalize(control.getName(i)) in ('click','press','activate')]
   if len(actions)!=1 or not control.doAction(actions[0]): raise RuntimeError('SAVE_ACTION_FAILED')
  elif action!='observe': raise RuntimeError('ACTION_INVALID')
- print(json.dumps({'ok':True,'fields':observations,'saveAvailable':len(save)==1}))
+ print(json.dumps({'ok':True,'fields':observations,'saveAvailable':len(save)==1,'identity':identity}))
 except Exception as error:
  reason=str(error)
  allowed={'DIALOG_NOT_UNIQUE','FIELD_NOT_UNIQUE','FIELD_NOT_FOUND','FIELD_FOCUS_FAILED','SAVE_NOT_UNIQUE','SAVE_ACTION_FAILED','ACTION_INVALID'}
  code='NATIVE_CHOOSER_'+reason if reason in allowed else 'NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE'
- print(json.dumps({'ok':False,'code':code}))
+ print(json.dumps({'ok':False,'code':code,'identity':identity}))
  sys.exit(2)
 `;
+export function sanitizeChooserIdentity(identity){
+ const count=value=>Number.isSafeInteger(value)&&value>=0&&value<=2000?value:null;
+ const roles=new Set(['FRAME','DIALOG','FILE_CHOOSER','WINDOW','ALERT','PANEL','ROOT_PANE','FILLER','OTHER']);
+ return {desktopApplications:count(identity?.desktopApplications),inspectedApplications:count(identity?.inspectedApplications),directWindows:count(identity?.directWindows),eligibleExactTitleMatches:count(identity?.eligibleExactTitleMatches),directTitleMatches:count(identity?.directTitleMatches),directRoles:Object.fromEntries(Object.entries(identity?.directRoles??{}).filter(([role])=>roles.has(role)).map(([role,value])=>[role,count(value)])),nestedTitleMatches:(Array.isArray(identity?.nestedTitleMatches)?identity.nestedTitleMatches:[]).slice(0,8).filter(v=>roles.has(v?.role)&&Number.isInteger(v.depth)&&v.depth>=1&&v.depth<=4).map(v=>({role:v.role,depth:v.depth,showing:v.showing===true})),structuralNodesInspected:count(identity?.structuralNodesInspected),structuralLimitReached:identity?.structuralLimitReached===true};
+}
 export async function fillNativeChooser({observe,focusName,focusLocation,type,openLocation,navigate,sleep,diagnostics,directory,name}){
  diagnostics.initial=await observe();
  await openLocation();await focusLocation();await type(directory);
@@ -190,8 +220,8 @@ async function nativeSave(account){
  let window;for(let n=0;n<60;n++){try{window=execFileSync('xdotool',['search','--onlyvisible','--name','^Save encrypted Wallet backup$'],{encoding:'utf8'}).trim().split('\n')[0];if(window)break}catch{}await pauses(300)}
  if(!window)throw Error('NATIVE_SAVE_DIALOG_MISSING');
  const chooser=action=>{
-  try{const result=JSON.parse(execFileSync('/usr/bin/python3',['-c',nativeChooserScript,action,backup],{encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']}));assert.equal(result.ok,true,'NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE');return result}
-  catch(error){let code='NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE';try{const result=JSON.parse(error.stdout);if(/^NATIVE_CHOOSER_(?:DIALOG_NOT_UNIQUE|FIELD_NOT_UNIQUE|FIELD_NOT_FOUND|FIELD_FOCUS_FAILED|SAVE_NOT_UNIQUE|SAVE_ACTION_FAILED|ACTION_INVALID)$/.test(result.code))code=result.code}catch{}report.nativeSaveDiagnostics.accessibilityFailure=code;throw Error(code)}
+  try{const result=JSON.parse(execFileSync('/usr/bin/python3',['-c',nativeChooserScript,action,backup],{encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']}));assert.equal(result.ok,true,'NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE');result.identity=sanitizeChooserIdentity(result.identity);return result}
+  catch(error){let code='NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE';try{const result=JSON.parse(error.stdout);report.nativeSaveDiagnostics.chooserIdentity=sanitizeChooserIdentity(result.identity);if(/^NATIVE_CHOOSER_(?:DIALOG_NOT_UNIQUE|FIELD_NOT_UNIQUE|FIELD_NOT_FOUND|FIELD_FOCUS_FAILED|SAVE_NOT_UNIQUE|SAVE_ACTION_FAILED|ACTION_INVALID)$/.test(result.code))code=result.code}catch{}report.nativeSaveDiagnostics.accessibilityFailure=code;throw Error(code)}
  };
  // Identify the real Name and Location controls before typing; never replace IPC.
  const fileExists=async()=>{try{return(await fs.stat(backup)).isFile()}catch(error){if(error.code==='ENOENT')return false;throw error}};
