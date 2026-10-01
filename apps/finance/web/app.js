@@ -346,12 +346,42 @@ function notifyKnownOrFailure(error,knownKeys,fallbackKey){
 const LOGIN_INTENT_KEY='ynx.finance.login-intent.v1';
 const LOGIN_ROUTES=new Set(['overview','assets','activity','planning','statements','assistant','settings','support','strategies']);
 let loginIntent=null,loginOperation=null,pickerTrigger=null;
+let pickerMethod=null,pickerPhase='pickerOpening',pickerCode='',pickerPending=null,pickerEpoch=0,pickerExpiry=null;
+const pickerButtons={ynx:'#picker-ynx',mobile:'#picker-mobile',metamask:'#picker-metamask',hosted:'#picker-hosted'};
+function clearPickerPair(){clearTimeout(pickerExpiry);pickerExpiry=null;$('#wallet-picker-qr').hidden=true;$('#wallet-picker-qr').removeAttribute('src');$('#wallet-picker-deeplink').hidden=true;$('#wallet-picker-deeplink').removeAttribute('href');}
+function renderWalletPicker(){
+  const selected=!!pickerMethod;$('#wallet-picker-choices').hidden=selected;$('#wallet-picker-step').hidden=!selected;$('#wallet-picker-intro').hidden=selected;
+  if(!selected)return;
+  $('#wallet-picker-selected').textContent=$(pickerButtons[pickerMethod]).querySelector('strong').textContent;
+  $('#wallet-picker-state').textContent=financeText(pickerPhase);
+  $('#wallet-picker-hint').textContent=financeText(pickerPhase==='pickerConnected'?'pickerConnectedHint':pickerPhase==='pickerScan'?'pickerScan':'pickerIntro');
+  const current=window.YNXFinanceWallet.getStandardWalletState();$('#wallet-picker-account').hidden=pickerPhase!=='pickerConnected';$('#wallet-picker-account').textContent=pickerPhase==='pickerConnected'?current.account??'':'';
+  const terminal=['pickerConnected','pickerApproved','pickerRejected','pickerUnavailable','pickerExpired','pickerNetwork','pickerLocked','pickerCancelUnknown'].includes(pickerPhase);
+  $('#wallet-picker-action').hidden=!terminal;$('#wallet-picker-action').textContent=financeText(['pickerConnected','pickerApproved'].includes(pickerPhase)?'pickerDone':'pickerRetry');
+  $('#wallet-picker-back').disabled=pickerPhase==='pickerCancelling';$('#wallet-picker-details').hidden=!pickerCode;$('#wallet-picker-diagnostic').textContent=pickerCode;
+}
+function pickerFailure(code){
+  pickerCode=/^[A-Z][A-Z_0-9]{0,80}$/.test(String(code))?String(code):'WALLET_UNAVAILABLE';
+  pickerPhase=code==='USER_REJECTED'||Number(code)===4001?'pickerRejected':/EXPIRED|TIMEOUT|DEADLINE/.test(pickerCode)?'pickerExpired':/LOCKED/.test(pickerCode)?'pickerLocked':/NOT_FOUND|UNAVAILABLE|NOT_INSTALLED/.test(pickerCode)?'pickerUnavailable':'pickerNetwork';clearPickerPair();renderWalletPicker();
+}
+function choosePickerMethod(method){
+  if(pickerPending){$('#wallet-picker-state').focus();return pickerPending;}
+  pickerMethod=method;pickerPhase='pickerOpening';pickerCode='';clearPickerPair();
+  const icon=$(pickerButtons[method]).querySelector('img,svg');$('#wallet-picker-icon').replaceChildren(icon.cloneNode(true));renderWalletPicker();
+  const epoch=++pickerEpoch,wallet=window.YNXFinanceWallet;
+  const request=method==='ynx'?()=>wallet.connect():method==='metamask'?()=>wallet.connectMetaMask():method==='mobile'?()=>wallet.connectPair?.():()=>$('#connect-hosted-ynx').click();
+  if(method==='mobile'&&!wallet.connectPair){pickerFailure('PAIR_UNAVAILABLE');return Promise.resolve(null);}
+  pickerPhase='pickerWaiting';renderWalletPicker();
+  // Invoking the selected transport is a separate explicit action. Opening the
+  // chooser itself never invokes accounts, signatures or the Hosted popup.
+  const operation=Promise.resolve().then(request).catch(error=>{if(epoch===pickerEpoch)pickerFailure(error?.code??error?.message);}).finally(()=>{if(pickerPending===operation)pickerPending=null;});pickerPending=operation;return operation;
+}
 function loginTarget(){const requested=(location.hash||'#overview').slice(1);return LOGIN_ROUTES.has(requested)?requested:'planning'}
 function clearLoginIntent(){loginIntent=null;try{sessionStorage.removeItem(LOGIN_INTENT_KEY)}catch{}}
 function showWalletPicker(trigger,{login=false,target=loginTarget()}={}){
   browserIdentityExplicitIntent=true;browserIdentityRestoreDeferred=false;browserSSORevision++;
   if(loginOperation||window.YNXFinanceWallet.getStandardWalletState().status==='connecting'){
-    if($('#wallet-picker').open)$('#wallet-picker-close').focus();
+    if($('#wallet-picker').open)$('#wallet-picker-state').focus();
     else{$('#wallet-more').open=true;$('#private-state').tabIndex=-1;$('#private-state').focus()}
     return;
   }
@@ -360,10 +390,13 @@ function showWalletPicker(trigger,{login=false,target=loginTarget()}={}){
   else clearLoginIntent();
   const wallet=window.YNXFinanceWallet;
   if(login&&wallet.getStandardWalletState().status==='connected'){void continueLoginIntent();return}
+  pickerMethod=null;pickerCode='';clearPickerPair();renderWalletPicker();
   const picker=$('#wallet-picker');if(!picker.open)picker.showModal();$('#picker-ynx').focus();
 }
-function closeWalletPicker({cancel=false}={}){
-  if(cancel){clearLoginIntent();if(window.YNXFinanceWallet.getStandardWalletState().status==='connecting')window.YNXFinanceWallet.disconnectStandardWallet()}
+function closeWalletPicker({cancel=false,completed=false}={}){
+  if(!cancel&&!completed&&loginIntent&&$('#wallet-picker').open){pickerPhase='pickerSigning';renderWalletPicker();return;}
+  if(cancel){const cancelLogin=!!loginOperation&&!window.YNXFinanceWallet.connected();clearLoginIntent();++pickerEpoch;pickerPending=null;if(pickerMethod==='mobile'&&window.YNXFinanceWallet.getStandardWalletState().status==='connecting')void window.YNXFinanceWallet.cancelPair?.();else if(window.YNXFinanceWallet.getStandardWalletState().status==='connecting')window.YNXFinanceWallet.disconnectStandardWallet();if(cancelLogin)void window.YNXFinanceWallet.disconnect();}
+  clearPickerPair();
   $('#wallet-picker').close();pickerTrigger?.focus();
 }
 async function finishLoginIntent(){
@@ -542,15 +575,26 @@ window.addEventListener('ynx-finance-standard-state',event=>{
   if(window.YNXFinanceWallet?.connected?.()&&!window.YNXFinanceWallet.privateAccountMatchesSelected?.())clearPrivateView({clearOpaquePending:false});
   const selected=event.detail;
   if(['explicit-local','permission-revoked','account-changed','chain-changed'].includes(selected?.disconnectReason)||loginIntent?.account&&loginIntent.account!==selected?.account)clearLoginIntent();
-  if(selected?.status==='connected'){if($('#wallet-picker').open)closeWalletPicker();void continueLoginIntent()}
-  $('#wallet-picker-state').textContent=$('#wallet-state').textContent;
+  if($('#wallet-picker').open&&pickerMethod){if(selected?.status==='connected'){clearPickerPair();pickerPhase=loginIntent?'pickerSigning':'pickerConnected';pickerCode='';renderWalletPicker();}else if(selected?.errorCode)pickerFailure(selected.errorCode);}
+  if(selected?.status==='connected')void continueLoginIntent();
   resumeDeferredBrowserIdentity();
 });window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected'){const intent=loginIntent,context=state.context;load().then(()=>completeLoginTarget(intent,context))}resumeDeferredBrowserIdentity();});
+window.addEventListener('ynx-finance-private-state',event=>{if(!$('#wallet-picker').open||!pickerMethod)return;const next=event.detail;if(next?.status==='connected'){pickerPhase='pickerApproved';renderWalletPicker();if(loginIntent)closeWalletPicker({completed:true});}else if(['checking','connecting'].includes(next?.status)){pickerPhase='pickerSigning';renderWalletPicker();}else if(next?.code||next?.lastCode)pickerFailure(next.code??next.lastCode);});
+window.addEventListener('ynx-finance-pair-state',event=>{
+  if(!$('#wallet-picker').open||pickerMethod!=='mobile')return;
+  const next=event.detail;if(next.status==='pairing'){
+    pickerPhase='pickerScan';renderWalletPicker();clearPickerPair();
+    if(typeof next.qrDataURL==='string'&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(next.qrDataURL)){$('#wallet-picker-qr').src=next.qrDataURL;$('#wallet-picker-qr').hidden=false;}
+    if(typeof next.deeplink==='string'){try{const url=new URL(next.deeplink);if(url.protocol==='ynxwallet:'&&url.hostname==='wc'&&!url.username&&!url.password&&!url.port&&!url.hash&&[...url.searchParams.keys()].join(',')==='uri'){$('#wallet-picker-deeplink').href=next.deeplink;$('#wallet-picker-deeplink').hidden=false;}}catch{}}
+    pickerExpiry=setTimeout(()=>{clearPickerPair();pickerFailure('PAIR_EXPIRED');void window.YNXFinanceWallet.cancelPair?.();},Math.max(0,Math.min(120000,next.expiresAt-Date.now())));
+  }else if(next.status==='failed')pickerFailure(next.errorCode);else if(next.status==='cancel-unconfirmed'){pickerPhase='pickerCancelUnknown';pickerCode='PAIR_CANCEL_UNCONFIRMED';clearPickerPair();renderWalletPicker();}
+});
+document.addEventListener('finance:localechange',renderWalletPicker);
 window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('offlineRetry','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',event=>showWalletPicker(event.currentTarget,{login:true}));$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
 $('#wallet-entry').addEventListener('click',event=>showWalletPicker(event.currentTarget));
-$('#picker-ynx').addEventListener('click',()=>window.YNXFinanceWallet.connect());
-$('#picker-metamask').addEventListener('click',()=>window.YNXFinanceWallet.connectMetaMask());
-$('#picker-hosted').addEventListener('click',()=>$('#connect-hosted-ynx').click());
+for(const [method,id]of Object.entries(pickerButtons))$(id).addEventListener('click',()=>choosePickerMethod(method));
+$('#wallet-picker-back').addEventListener('click',()=>{++pickerEpoch;pickerPending=null;clearPickerPair();if(loginOperation&&!window.YNXFinanceWallet.connected()){clearLoginIntent();void window.YNXFinanceWallet.disconnect();}if(window.YNXFinanceWallet.getStandardWalletState().status==='connecting'){if(pickerMethod==='mobile')void window.YNXFinanceWallet.cancelPair?.();else window.YNXFinanceWallet.disconnectStandardWallet();}pickerMethod=null;renderWalletPicker();$('#picker-ynx').focus();});
+$('#wallet-picker-action').addEventListener('click',()=>{if(['pickerConnected','pickerApproved'].includes(pickerPhase))closeWalletPicker({completed:true});else if(pickerPhase!=='pickerCancelUnknown')void choosePickerMethod(pickerMethod);else $('#wallet-picker-back').click();});
 $('#wallet-picker-close').addEventListener('click',()=>closeWalletPicker({cancel:true}));
 $('#wallet-picker').addEventListener('cancel',event=>{event.preventDefault();closeWalletPicker({cancel:true})});
 $('#workspace-data-retry').addEventListener('click',()=>{const intent=loginIntent,context=state.context;load().then(()=>completeLoginTarget(intent,context))});

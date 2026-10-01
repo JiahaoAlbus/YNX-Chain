@@ -5,6 +5,8 @@ import {toYNXAddress,toEVMAddress} from '../../../sdk/js/index.js';
 import {createHostedWalletAdapter} from '../../../packages/wallet-auth/src/vendor/hosted-wallet-adapter-4bccefef.js';
 import {mountFinanceHostedWalletUI} from './hosted-wallet-controller.js';
 import {privateFinance,bindPrivateFinanceUI} from './private-wallet-entry.js';
+import {WalletConnectDAppConnection} from '../../../packages/wallet-auth/src/walletconnect-dapp-connection.js';
+import QRCode from 'qrcode';
 
 const ORIGIN='https://finance.ynxweb4.com';
 const PROVIDER_KEY='ynx.finance.standard-wallet.provider.v2';
@@ -14,6 +16,46 @@ let connection=null,selectedProvider=null,providerRegistry=null,hosted=null,acti
 let standard=Object.freeze({status:'disconnected',providerKind:null,account:null,chainId:null});
 let lastMessage='';
 let pendingConnection=null;
+let pair=null,pairOperation=null,pairState=Object.freeze({status:'idle'});
+function publishPair(next){pairState=Object.freeze({...next});window.dispatchEvent(new CustomEvent('ynx-finance-pair-state',{detail:pairState}));}
+function pairClient(){
+  if(pair)return pair;
+  pair=new WalletConnectDAppConnection({origin:ORIGIN,methods:['personal_sign','ynx_requestProductSessionV2']});
+  pair.on('cancelUnconfirmed',()=>publishPair({status:'cancel-unconfirmed',errorCode:'PAIR_CANCEL_UNCONFIRMED'}));
+  pair.on('disconnect',()=>{if(activeTransport!=='pair')return;privateFinance.guest();preference(null);publishPair({status:'disconnected'});publish({status:'disconnected',providerKind:'ynx-wallet',account:null,chainId:null,transport:'walletconnect',disconnectReason:'permission-revoked'});});
+  return pair;
+}
+function connectPair(){
+  if(pairOperation)return pairOperation.promise;
+  if(pendingConnection||busy)return Promise.resolve(null);
+  const operation={revision:++intent,promise:null};pairOperation=operation;
+  activeTransport='pair';detach();void hosted?.disconnect();preference(null);busy=true;
+  publishPair({status:'opening'});publish({status:'connecting',providerKind:'ynx-wallet',account:null,chainId:null,transport:'walletconnect'});
+  operation.promise=(async()=>{
+    try{
+      const provider=await pairClient().connect({onURI:uri=>{
+        if(pairOperation!==operation||operation.revision!==intent)return;
+        const expiresAt=Date.now()+30000,deeplink=`ynxwallet://wc?uri=${encodeURIComponent(uri)}`;publishPair({status:'pairing',expiresAt,deeplink});
+        void QRCode.toDataURL(uri,{width:240,margin:2,color:{dark:'#002FA7',light:'#FFFFFF'}}).then(qrDataURL=>{
+          if(pairOperation===operation&&operation.revision===intent&&pairState.status==='pairing')publishPair({status:'pairing',qrDataURL,expiresAt,deeplink});
+        }).catch(()=>{if(pairOperation===operation&&operation.revision===intent)publishPair({status:'failed',errorCode:'PAIR_QR_UNAVAILABLE'});});
+      }});
+      if(pairOperation!==operation||operation.revision!==intent){if(!pairOperation)await pair.disconnect();return null;}
+      const selected=attach(provider,'ynx-wallet');await selected.restore();isCurrent(operation.revision,selected);
+      const next={...snapshot(selected,'ynx-wallet'),transport:'walletconnect'};
+      if(next.status!=='connected'||next.chainId!=='0x1917')throw new Error('WRONG_NETWORK');
+      preference('ynx-pair');publishPair({status:'connected'});publish(next);return standard;
+    }catch(error){if(pairOperation===operation&&operation.revision===intent){detach();const code=Number(error?.code)===4001?'USER_REJECTED':/^[A-Z][A-Z_0-9]{0,80}$/.test(error?.message??'')?error.message:'PAIR_UNAVAILABLE';publishPair({status:'failed',errorCode:code});publish({status:'disconnected',providerKind:'ynx-wallet',account:null,chainId:null,transport:'walletconnect'},code);}return null;}
+    finally{if(pairOperation===operation){pairOperation=null;busy=false;render();}}
+  })();return operation.promise;
+}
+async function cancelPair(){
+  if(!pairOperation)return;
+  const operation=pairOperation;pairOperation=null;++intent;busy=false;activeTransport=null;detach();publishPair({status:'cancelling'});
+  try{await pair?.cancel();if(!pairOperation&&intent===operation.revision+1&&pairState.status!=='cancel-unconfirmed')publishPair({status:'idle'});}
+  catch{if(!pairOperation)publishPair({status:'cancel-unconfirmed',errorCode:'PAIR_CANCEL_UNCONFIRMED'});}
+  if(!pairOperation&&activeTransport===null)publish({status:'disconnected',providerKind:null,account:null,chainId:null,disconnectReason:'explicit-local'});
+}
 function label(key){return window.YNXFinanceLocale?.text(key)??key;}
 function message(code){
   const key=({REQUEST_PENDING:'standardBusy',WALLET_NOT_FOUND:'walletNotFound',USER_REJECTED:'walletRejected',WRONG_NETWORK:'walletWrongChain',LOCAL_DISCONNECT_ONLY:'standardDisconnected',PERMISSION_REVOKED:'walletRevoked',WALLET_DETAILS_ONLY:'walletDetailsOnly',PROVIDER_ACCOUNT_UNAVAILABLE:'walletAccountUnavailable'})[code];
@@ -22,17 +64,18 @@ function message(code){
 const ready=new Promise(resolve=>document.readyState==='loading'?document.addEventListener('DOMContentLoaded',resolve,{once:true}):resolve()).then(boot);
 window.YNXFinanceWallet=Object.freeze({
   ready,connect:connectYNXWallet,connectMetaMask:()=>connect('metamask'),
+  connectPair,cancelPair,getPairState:()=>pairState,
   restoreStandardWallet,disconnectStandardWallet,revokeStandardWallet,
   getStandardWalletState:()=>standard,getStandardRevision:()=>revision,getRevision:()=>revision+privateFinance.revision(),
   signEVMLoginRequest,requestProductSessionV2,
-  privateProviderAvailable:()=>standard.status==='connected'&&standard.providerKind==='ynx-wallet'&&standard.chainId==='0x1917'&&(activeTransport==='injected'&&!!selectedProvider||activeTransport==='hosted'&&hosted?.getState().status==='connected'),
+  privateProviderAvailable:()=>standard.status==='connected'&&standard.providerKind==='ynx-wallet'&&standard.chainId==='0x1917'&&(['injected','pair'].includes(activeTransport)&&!!selectedProvider||activeTransport==='hosted'&&hosted?.getState().status==='connected'),
   connected:privateFinance.connected,session:privateFinance.session,requireProof:privateFinance.proof,
   privateAccountMatchesSelected:privateFinance.accountMatchesSelected,
   disconnect:privateFinance.disconnect,reportPrivateFailure:privateFinance.reportFailure,
   beginPrivate:privateFinance.begin,retryPrivate:privateFinance.retry,restorePrivate:privateFinance.restore,
   guestPrivate:privateFinance.guest,getPrivateState:privateFinance.state,
 });
-function preference(value){try{if(value===undefined){const saved=localStorage.getItem(PROVIDER_KEY);return ['ynx-wallet','metamask'].includes(saved)?saved:null;}if(value)localStorage.setItem(PROVIDER_KEY,value);else localStorage.removeItem(PROVIDER_KEY);}catch{}return null;}
+function preference(value){try{if(value===undefined){const saved=localStorage.getItem(PROVIDER_KEY);return ['ynx-wallet','metamask','ynx-pair'].includes(saved)?saved:null;}if(value)localStorage.setItem(PROVIDER_KEY,value);else localStorage.removeItem(PROVIDER_KEY);}catch{}return null;}
 function isCurrent(value,selected=connection){if(value!==intent||selected!==connection)throw new Error('WALLET_REQUEST_SUPERSEDED');}
 function detach(){unsubscribe();unsubscribe=()=>{};const old=connection;connection=null;selectedProvider=null;old?.disconnect();}
 function hostedStateChanged(next){
@@ -57,6 +100,7 @@ function hostedStateChanged(next){
   if(connected){document.querySelector('#wallet-choice')?.classList.add('hidden');document.querySelector('#wallet-details')?.focus();}
 }
 function hostedAttempt(){
+  if(pairOperation)void cancelPair();
   ++intent;detach();preference(null);activeTransport='hosted';busy=true;
   publish({status:'connecting',providerKind:'ynx-wallet',account:null,chainId:null,transport:'hosted-wallet-web'});
 }
@@ -71,7 +115,7 @@ async function providers(){
   await new Promise(resolve=>setTimeout(resolve,160));
   return providerRegistry.snapshot();
 }
-function publish(next,message=''){standard=Object.freeze({...next});revision++;lastMessage=message;render();window.dispatchEvent(new CustomEvent('ynx-finance-standard-state',{detail:{...standard,revision}}));}
+function publish(next,message=''){standard=Object.freeze({...next});revision++;lastMessage=message;render();window.dispatchEvent(new CustomEvent('ynx-finance-standard-state',{detail:{...standard,revision,errorCode:/^[A-Z][A-Z_0-9]{0,80}$/.test(message)?message:null}}));}
 function snapshot(selected,kind){const session=selected.current;return session?{status:session.selectedChain==='0x1917'?'connected':'wrong-chain',providerKind:kind,account:session.selectedAccount,chainId:session.selectedChain}:{status:'disconnected',providerKind:kind,account:null,chainId:null};}
 function attach(provider,kind){
   const selected=new StandardWalletConnection({provider,origin:ORIGIN,metadata:{name:'YNX Finance',url:ORIGIN}});
@@ -80,7 +124,7 @@ function attach(provider,kind){
   unsubscribe=selected.subscribe(({event})=>{
     if(selected!==connection||!['accountsChanged','chainChanged','disconnect'].includes(event))return;
     const next=snapshot(selected,kind);
-    if(event==='disconnect'&&standard.account&&standard.chainId==='0x1917'){
+    if(event==='disconnect'&&!provider.isYNXPair&&standard.account&&standard.chainId==='0x1917'){
       publish({...standard,status:'transport-unavailable',disconnectReason:'transport-unavailable'});return;
     }
     if(event==='accountsChanged'&&standard.account&&next.account!==standard.account){
@@ -121,7 +165,7 @@ async function signEVMLoginRequest(request){
 }
 async function requestProductSessionV2(url){
   const transport=activeTransport,useHosted=transport==='hosted',provider=useHosted?hosted:selectedProvider,selected=useHosted?hosted:connection,value=intent,account=standard.account,chain=standard.chainId,atRevision=revision;
-  if(!provider||!selected||!['injected','hosted'].includes(transport)||standard.providerKind!=='ynx-wallet'||standard.status!=='connected'||chain!=='0x1917'||useHosted&&hosted.getState().status!=='connected')throw new Error('PRIVATE_TRANSPORT_UNAVAILABLE');
+  if(!provider||!selected||!['injected','hosted','pair'].includes(transport)||standard.providerKind!=='ynx-wallet'||standard.status!=='connected'||chain!=='0x1917'||useHosted&&hosted.getState().status!=='connected')throw new Error('PRIVATE_TRANSPORT_UNAVAILABLE');
   if(typeof url!=='string'||url.length>16384)throw new Error('PRIVATE_REQUEST_INVALID');
   const assertSelected=()=>{const hostedState=useHosted?hosted?.getState():null;if(value!==intent||transport!==activeTransport||(useHosted?selected!==hosted||hostedState?.status!=='connected'||hostedState.account!==account||hostedState.chainId!==chain:selected!==connection||provider!==selectedProvider)||atRevision!==revision||standard.account!==account||standard.chainId!==chain||standard.status!=='connected')throw new Error('FINANCE_CONTEXT_CHANGED')};
   assertSelected();
@@ -133,6 +177,7 @@ async function requestProductSessionV2(url){
   return result;
 }
 function connect(kind){
+  if(pairOperation)return Promise.resolve(null);
   if(pendingConnection){
     lastMessage='REQUEST_PENDING';render();document.querySelector('#wallet-state')?.focus();
     return pendingConnection.kind===kind&&!pendingConnection.cancelled?pendingConnection.promise:Promise.resolve(null);
@@ -163,6 +208,12 @@ async function restoreStandardWallet(){
   const kind=preference(),value=++intent;activeTransport=kind?'injected':null;detach();busy=false;publish({status:'disconnected',providerKind:kind,account:null,chainId:null});
   if(!kind)return null;
   try{
+    if(kind==='ynx-pair'){
+      activeTransport='pair';const provider=await pairClient().restore();isCurrent(value);
+      if(!provider){preference(null);return null;}
+      const selected=attach(provider,'ynx-wallet');await selected.restore();isCurrent(value,selected);
+      publish({...snapshot(selected,'ynx-wallet'),transport:'walletconnect'});publishPair({status:standard.status});return standard;
+    }
     const discovery=await providers();isCurrent(value);
     const provider=(kind==='ynx-wallet'?discovery.ynx:discovery.metamask)?.provider;
     if(!provider){lastMessage='WALLET_NOT_FOUND';render();return null;}
@@ -170,8 +221,12 @@ async function restoreStandardWallet(){
     publish(snapshot(selected,kind));if(standard.status!=='connected')preference(null);return standard;
   }catch(error){if(value===intent){detach();publish({status:'disconnected',providerKind:kind,account:null,chainId:null},error.message||'WALLET_UNAVAILABLE');}return null;}
 }
-function disconnectStandardWallet(){if(pendingConnection)pendingConnection.cancelled=true;intent++;activeTransport=null;busy=false;preference(null);detach();void hosted?.disconnect();publish({status:'disconnected',providerKind:null,account:null,chainId:null,disconnectReason:'explicit-local'},'LOCAL_DISCONNECT_ONLY');}
+function disconnectStandardWallet(){if(pairOperation)void cancelPair();else if(activeTransport==='pair')void pair?.disconnect().catch(()=>publishPair({status:'cancel-unconfirmed',errorCode:'PAIR_CANCEL_UNCONFIRMED'}));if(pendingConnection){pendingConnection.cancelled=true;pendingConnection=null;}intent++;activeTransport=null;busy=false;preference(null);detach();void hosted?.disconnect();publish({status:'disconnected',providerKind:null,account:null,chainId:null,disconnectReason:'explicit-local'},'LOCAL_DISCONNECT_ONLY');}
 async function revokeStandardWallet(){
+  if(activeTransport==='pair'){
+    try{await pair.disconnect();disconnectStandardWallet();return {status:'revoked',permissionRevoked:true,locallyDisconnected:true};}
+    catch{publishPair({status:'cancel-unconfirmed',errorCode:'PAIR_CANCEL_UNCONFIRMED'});return {status:'unconfirmed',permissionRevoked:false,locallyDisconnected:false};}
+  }
   if(activeTransport==='hosted'){
     busy=true;render();
     try{const result=await hosted.revoke();disconnectStandardWallet();return result;}
@@ -217,5 +272,5 @@ async function boot(){
   await restoreStandardWallet();
   bindPrivateFinanceUI();
 }
-window.addEventListener('pagehide',()=>{intent++;activeTransport=null;detach();void hosted?.disconnect();});
+window.addEventListener('pagehide',()=>{if(pairOperation)void cancelPair();publishPair({status:'idle'});intent++;activeTransport=null;detach();void hosted?.disconnect();});
 window.addEventListener('pageshow',event=>{if(event.persisted)restoreStandardWallet();});

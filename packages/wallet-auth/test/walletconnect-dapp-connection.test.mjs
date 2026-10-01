@@ -2,12 +2,25 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {WalletConnectDAppConnection,YNX_PAIR_PROJECT_ID} from '../src/walletconnect-dapp-connection.js';
 import {StandardWalletConnection} from '../src/standard-wallet-connection.js';
+import {SignClient,SESSION_REQUEST_EXPIRY_BOUNDARIES} from '@walletconnect/sign-client';
 const topic='a'.repeat(64),account='0x'+'1'.repeat(40),method='ynx_requestCentralBrowserSignIn';
 const session=(extra={})=>({topic,expiry:Math.floor(Date.now()/1000)+300,peer:{metadata:{url:'https://wallet.ynxweb4.com'}},namespaces:{eip155:{accounts:[`eip155:6423:${account}`],chains:['eip155:6423'],methods:[method],events:['accountsChanged','chainChanged']}},...extra});
 function fixture(existing=[]){let approve,reply;const events=new Map(),calls=[];const client={on:(name,fn)=>events.set(name,fn),session:{getAll:()=>existing},core:{pairing:{disconnect:async input=>calls.push(['cancel',input.topic])}},connect:async input=>{calls.push(['connect',input]);return {uri:`wc:${topic}@2?relay-protocol=irn&symKey=${'2'.repeat(64)}`,approval:()=>new Promise(resolve=>approve=resolve)};},request:input=>{calls.push(['request',input]);return new Promise(resolve=>reply=resolve);},disconnect:async input=>calls.push(['disconnect',input.topic])};
   const connection=new WalletConnectDAppConnection({origin:'https://wallet-auth.ynxweb4.com',methods:[method],clientFactory:async options=>{calls.push(['init',options]);return client;},deadlineMs:50});return {connection,client,calls,events,approve:value=>approve(value),reply:value=>reply(value)};
 }
 const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
+test('locked real SignClient validates the transport envelope without extending YNX local deadline',async()=>{
+  const real=new SignClient({logger:'silent',projectId:YNX_PAIR_PROJECT_ID});
+  assert.equal(SESSION_REQUEST_EXPIRY_BOUNDARIES.min,300);
+  for(const expiry of [1,30,299])assert.throws(()=>real.engine.validateRequestExpiry(expiry),/between 300/);
+  assert.doesNotThrow(()=>real.engine.validateRequestExpiry(300));
+  const f=fixture([session()]);await f.connection.restore();
+  const pending=f.connection.request({method,params:[{}]});
+  await tick();const input=f.calls.find(call=>call[0]==='request')[1];
+  assert.equal(input.expiry,300);real.engine.validateRequestExpiry(input.expiry);
+  await assert.rejects(pending,/TIMEOUT|DEADLINE/);
+  f.reply({});await tick();
+});
 test('numeric WalletConnect chain events normalize only the approved chain for the real standard connection',async()=>{
   const f=fixture([session()]),provider=await f.connection.restore(),standard=new StandardWalletConnection({provider,origin:'https://wallet-auth.ynxweb4.com',metadata:{name:'Isolated Pair regression',url:'https://wallet-auth.ynxweb4.com'}});
   await standard.connect();
