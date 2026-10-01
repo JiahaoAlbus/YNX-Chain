@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {generateKeyPairSync,createHash,sign} from 'node:crypto';
 import {execFileSync,spawnSync} from 'node:child_process';
-import {AUTHORITY_V2_URLS,AUTHORITY_V2_REPOSITORY,canonicalAuthorityV2Payload,authorityV2SigningMessage,assertAuthorityV2Manifest,assertAuthorityV2TrustRoot,verifySignedEndpointAuthority,selectSignedAuthorityEndpoint,financeProductSessionAuthority,createEndpointAuthorityClient} from './endpoint-authority-v2.js';
+import {AUTHORITY_V2_URLS,AUTHORITY_V2_REPOSITORY,canonicalAuthorityV2Payload,authorityV2SigningMessage,assertAuthorityV2Manifest,assertAuthorityV2TrustRoot,verifySignedEndpointAuthority,selectSignedAuthorityEndpoint,financeProductSessionAuthority,createEndpointAuthorityClient,recoverEndpointAuthorityHistory} from './endpoint-authority-v2.js';
 import {validateEndpointAuthority,selectAuthorityEndpoint} from './endpoint-authority.js';
 import {bundledEndpointAuthority,endpointAuthorityPin} from './endpoint-authority-bundle.js';
 import {prepareAuthorityV2Draft,issueAuthorityV2,authorityV2Doctor,validateAuthorityV2ReceiptFiles} from '../../scripts/ops/endpoint-authority-v2.mjs';
@@ -224,4 +224,29 @@ test('clock-provider lifecycle invalidation cannot reactivate a candidate',async
  const store=storage(),m=signed();let reads=0,client;
  client=createEndpointAuthorityClient({trustRoot:root,consumer,storage:store,clock:()=>{if(++reads===3)client.invalidate();return nowMs;}});
  await assert.rejects(client.accept(m,{source:'remote'}),/SUPERSEDED/);await assert.rejects(client.endpoint('rpc'),/NOT_ACTIVE/);
+});
+
+function historical(previous,sequence){
+ const d=draft();d.sequence=sequence;d.manifestVersion='2.0.0.'+sequence;d.previousPayloadSha256=previous.payloadSha256;
+ const issued=nowMs-7200000+sequence*1000;d.issuedAt=iso(issued);d.expiresAt=iso(issued+1000);
+ for(const e of Object.values(d.endpoints))if(e.evidence){e.evidence.health.observedAt=iso(issued-100);e.evidence.version.observedAt=iso(issued-100);}
+ d.products.finance.evidence.observedAt=iso(issued-100);return signed(d);
+}
+function historyFixture(){const one=historical(root.anchor,1),two=historical(next(one),2),three=historical(next(two),3),current=following(three);return {one,two,three,current};}
+test('expired signed bridge advances only history; current still needs fresh accept',async()=>{
+ const {one,two,three,current}=historyFixture(),store=storage(next(one));
+ const recovered=await recoverEndpointAuthorityHistory({trustRoot:root,consumer,storage:store,clock:()=>nowMs,history:[two,three],current});
+ assert.deepEqual(recovered,next(three));assert.deepEqual(await store.read(),next(three));
+ assert.throws(()=>financeProductSessionAuthority(two,{checkpoint:next(two),nowMs}),/NOT_VERIFIED/);
+ const client=createEndpointAuthorityClient({trustRoot:root,consumer,storage:store,clock:()=>nowMs});
+ await assert.rejects(client.financeProductSession(),/NOT_ACTIVE/);await client.accept(current,{source:'remote'});assert.equal((await client.financeProductSession()).payloadSha256,current.integrity.payloadSha256);
+});
+for(const kind of ['missing','reordered','tampered','digest','revoked','expired-current','future','wrong-consumer','clock-rollback','late-expiry','cas-conflict'])test('history '+kind+' preserves checkpoint and cannot authorize',async()=>{
+ const {one,two,three,current}=historyFixture(),store=storage(next(one)),r=copy(root);let docs=[two,three],latest=current,ctx=consumer,calls=0,attempts=0;
+ if(kind==='missing')docs=[three];if(kind==='reordered')docs=[three,two];if(kind==='tampered')two.integrity.signature=Buffer.alloc(64).toString('base64url');if(kind==='digest')two.previousPayloadSha256='f'.repeat(64);if(kind==='revoked')r.keys[0].revoked=true;
+ if(kind==='expired-current'){const d=copy(current);d.expiresAt=iso(nowMs);latest=signed(d);}
+ if(kind==='future')two.issuedAt=iso(nowMs+1000);if(kind==='wrong-consumer')ctx={...consumer,origin:'https://wrong.invalid'};
+ const cas=store.compareAndSwap;store.compareAndSwap=async(a,b)=>{attempts++;return kind==='cas-conflict'?false:cas(a,b);};
+ const clock=()=>{calls++;if(kind==='clock-rollback'&&calls===2)return nowMs-1;if(kind==='late-expiry'&&calls===3)return Date.parse(latest.expiresAt);return nowMs;};
+ await assert.rejects(recoverEndpointAuthorityHistory({trustRoot:r,consumer:ctx,storage:store,clock,history:docs,current:latest}));assert.deepEqual(await store.read(),next(one));assert.equal(attempts,kind==='cas-conflict'?1:0);
 });

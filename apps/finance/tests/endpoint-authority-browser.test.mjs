@@ -192,3 +192,21 @@ test('marker write failure cannot commit a checkpoint and failed durable write f
     assert.equal(result.readError,'FINANCE_AUTHORITY_V2_CHECKPOINT_LOST');
   }finally{await fixture.browser.close()}
 });
+
+function bridgeDocument(previous,sequence,issued){
+ const d=structuredClone(signed());d.sequence=sequence;d.manifestVersion='2.0.0.'+sequence;d.previousPayloadSha256=previous?.integrity.payloadSha256??'0'.repeat(64);d.issuedAt=iso(issued);d.expiresAt=iso(issued+3600000);
+ d.endpoints.walletGateway.evidence.health.observedAt=iso(issued-100);d.endpoints.walletGateway.evidence.version.observedAt=iso(issued-100);d.products.finance.evidence.observedAt=iso(issued-100);d.integrity={};
+ const m=prepareAuthorityV2Draft(d,'finance-browser-test');m.integrity.signature=sign(null,Buffer.from(authorityV2SigningMessage(m,m.integrity.keyId)),key.privateKey).toString('base64url');return m;
+}
+for(const bad of [false,true])test('original durable browser checkpoint bridges expired signed history '+(bad?'missing chain rejects without reset':'and survives reload'),async()=>{
+ const fixture=await setup();const old=nowMs-7200000,one=bridgeDocument(null,1,old),two=bridgeDocument(one,2,old+1000),three=bridgeDocument(two,3,old+2000),current=bridgeDocument(three,4,nowMs-100);
+ try{
+  await configure(fixture.page,one,root,old+100);assert.equal((await invoke(fixture.page)).ok,true);
+  await fixture.context.route('**/api/endpoint-authority/v2/history?*',route=>{const q=new URL(route.request().url()).searchParams;const after={rootVersion:Number(q.get('rootVersion')),sequence:Number(q.get('sequence')),payloadSha256:q.get('payloadSha256')};return route.fulfill({contentType:'application/json',body:JSON.stringify({schemaVersion:'ynx-finance-endpoint-authority-history/v1',after,manifests:bad?[three]:[two,three]})});});
+  await configure(fixture.page,current,root,nowMs);const result=await invoke(fixture.page);
+  if(bad){assert.equal(result.ok,false);assert.match(result.error,/PREDECESSOR/);}else{assert.equal(result.ok,true);assert.equal(result.value.payloadSha256,current.integrity.payloadSha256);}
+  const checkpoint=await fixture.page.evaluate(()=>new Promise((resolve,reject)=>{const r=indexedDB.open('ynx-finance-endpoint-authority-v2');r.onsuccess=()=>{const db=r.result,q=db.transaction('checkpoint').objectStore('checkpoint').get('state');q.onsuccess=()=>{resolve(q.result.checkpoint);db.close();};q.onerror=()=>reject(q.error);};r.onerror=()=>reject(r.error);}));
+  assert.deepEqual(checkpoint,manifestCheckpoint(bad?one:current));
+  if(!bad){await fixture.page.reload();await configure(fixture.page,current,root,nowMs+100);assert.equal((await invoke(fixture.page)).ok,true);}
+ }finally{await fixture.browser.close();}
+});

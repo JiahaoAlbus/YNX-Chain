@@ -1,0 +1,71 @@
+name: Wallet Android immutable installed Pair UI QA
+# Candidate harness, not installed/public acceptance evidence. A normal Chrome
+# first-run consent page fails before synthetic credential/account creation.
+# Product Pair's existing 30-second deadline is never expanded by this gate.
+
+on:
+  workflow_dispatch:
+    inputs:
+      authorize_ephemeral_synthetic_qa:
+        description: Authorize one disposable hosted emulator, synthetic PIN/fingerprint and QA wallet; no real credentials or funds
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wallet-android-installed-pair-ui-qa
+  cancel-in-progress: false
+
+jobs:
+  installed-public-ui:
+    if: ${{ inputs.authorize_ephemeral_synthetic_qa == true }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      YNX_ANDROID_QA_EPHEMERAL: '1'
+      YNX_ANDROID_QA_SERIAL: emulator-5554
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - name: Offline harness regressions (no device or secrets)
+        run: node apps/wallet/scripts/android-installed-pair-ui-qa.mjs --self-test
+      - name: Download exact public immutable APK (no product rebuild)
+        env:
+          YNX_ANDROID_QA_APK: ${{ runner.temp }}/ynx-wallet-immutable-1.0.28.apk
+        run: node apps/wallet/scripts/android-installed-pair-ui-qa.mjs --fetch-apk
+      - name: Enable KVM on the disposable hosted runner only
+        run: |
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test -c /dev/kvm
+          sudo chmod 666 /dev/kvm
+      - name: Normal installed browser to WalletKit UI gate
+        env:
+          YNX_ANDROID_QA_APK: ${{ runner.temp }}/ynx-wallet-immutable-1.0.28.apk
+          YNX_ANDROID_QA_RECEIPT: ${{ runner.temp }}/ynx-android-installed-pair-receipt.json
+        uses: ReactiveCircus/android-emulator-runner@4c44018e59b437e86cdfc41da381398f93ed8808 # v2
+        with:
+          api-level: 36
+          target: google_apis_playstore
+          arch: x86_64
+          profile: pixel_7
+          avd-name: ynx-wallet-installed-pair-qa
+          force-avd-creation: true
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
+          script: node apps/wallet/scripts/android-installed-pair-ui-qa.mjs --run
+      - name: Preserve only the whitelisted receipt (never raw UI, screenshots, backup, logs)
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ynx-android-installed-pair-ui-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/ynx-android-installed-pair-receipt.json
+          if-no-files-found: warn
+          retention-days: 7

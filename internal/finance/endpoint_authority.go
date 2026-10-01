@@ -24,15 +24,24 @@ type EndpointAuthorityBrowserConfigProvider interface {
 	BrowserConfig(context.Context) ([]byte, error)
 }
 
+type EndpointAuthorityHistoryCheckpoint struct {
+	RootVersion   int64  `json:"rootVersion"`
+	Sequence      int64  `json:"sequence"`
+	PayloadSHA256 string `json:"payloadSha256"`
+}
+type EndpointAuthorityBrowserHistoryProvider interface {
+	BrowserHistory(context.Context, EndpointAuthorityHistoryCheckpoint) ([]byte, error)
+}
+
 type NodeEndpointAuthorityConfig struct {
 	NodeBinary, Script, TrustRootFile, ManifestFile, CheckpointFile, TrustedTimeFile string
 	Timeout                                                                          time.Duration
 }
 
 type nodeEndpointAuthority struct {
-	config             NodeEndpointAuthorityConfig
-	slots              chan struct{}
-	browserMu          sync.Mutex
+	config    NodeEndpointAuthorityConfig
+	slots     chan struct{}
+	browserMu sync.Mutex
 }
 type unavailableEndpointAuthority struct{ code string }
 
@@ -125,7 +134,31 @@ func (g *nodeEndpointAuthority) BrowserConfig(ctx context.Context) ([]byte, erro
 	return append([]byte(nil), stdout...), nil
 }
 
-func (g *nodeEndpointAuthority) run(ctx context.Context, outputMode string) ([]byte, error) {
+func (g *nodeEndpointAuthority) BrowserHistory(ctx context.Context, after EndpointAuthorityHistoryCheckpoint) ([]byte, error) {
+	if after.RootVersion < 1 || after.Sequence < 0 || !regexp.MustCompile(`^[a-f0-9]{64}$`).MatchString(after.PayloadSHA256) {
+		return nil, errors.New("FINANCE_AUTHORITY_V2_HISTORY_QUERY_INVALID")
+	}
+	g.browserMu.Lock()
+	defer g.browserMu.Unlock()
+	query, _ := json.Marshal(after)
+	stdout, err := g.run(ctx, "browser-history", string(query))
+	if err != nil {
+		return nil, err
+	}
+	var response struct {
+		SchemaVersion string                             `json:"schemaVersion"`
+		After         EndpointAuthorityHistoryCheckpoint `json:"after"`
+		Manifests     []json.RawMessage                  `json:"manifests"`
+	}
+	decoder := json.NewDecoder(bytes.NewReader(stdout))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&response) != nil || decoder.Decode(&struct{}{}) != io.EOF || response.SchemaVersion != "ynx-finance-endpoint-authority-history/v1" || response.After != after || len(response.Manifests) < 1 || len(response.Manifests) > 2 {
+		return nil, errors.New("FINANCE_AUTHORITY_V2_HISTORY_RESPONSE_INVALID")
+	}
+	return append([]byte(nil), stdout...), nil
+}
+
+func (g *nodeEndpointAuthority) run(ctx context.Context, outputMode string, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, g.config.Timeout)
 	defer cancel()
 	select {
@@ -134,7 +167,7 @@ func (g *nodeEndpointAuthority) run(ctx context.Context, outputMode string) ([]b
 	case <-ctx.Done():
 		return nil, &productsessionv2.Error{Code: "FINANCE_AUTHORITY_V2_BUSY", Status: 503}
 	}
-	command := exec.CommandContext(ctx, g.config.NodeBinary, g.config.Script)
+	command := exec.CommandContext(ctx, g.config.NodeBinary, append([]string{g.config.Script}, args...)...)
 	command.Env = []string{
 		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_TRUST_ROOT_FILE=" + g.config.TrustRootFile,
 		"YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE=" + g.config.ManifestFile,

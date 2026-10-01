@@ -25,10 +25,13 @@ jobs:
       - run: make no-placeholder-check
       - run: make secret-scan
       - run: make contract-tooling-check
-      - name: Install Finance Wallet proof test dependencies
+      - name: Install locked Finance proof and actual locale browser test dependencies
         run: |
-          npm ci --prefix packages/wallet-auth --omit=dev
-          npm ci --prefix apps/finance --omit=dev
+          npm ci --prefix packages/wallet-auth
+          npm ci --prefix apps/finance
+          npm ci --ignore-scripts --omit=dev --prefix apps/wallet-web
+          npm ci --ignore-scripts --omit=dev --prefix apps/finance/web
+          (cd apps/finance && npx --no-install playwright install --with-deps chromium)
       - run: make test
       - run: make monitoring-check
       - run: make indexer-check

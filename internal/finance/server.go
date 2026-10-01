@@ -123,6 +123,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/product-catalog", s.productCatalog)
 	s.mux.HandleFunc("GET /api/broker/status", s.brokerStatus)
 	s.mux.HandleFunc("GET /api/endpoint-authority/v2/config", s.endpointAuthorityBrowserConfig)
+	s.mux.HandleFunc("GET /api/endpoint-authority/v2/history", s.endpointAuthorityBrowserHistory)
 	s.mux.HandleFunc("GET /api/broker/assets", s.brokerAssets)
 	s.mux.HandleFunc("GET /api/broker/quote", s.brokerQuote)
 	s.mux.HandleFunc("GET /api/broker/snapshot", s.protected("finance.portfolio.read", s.brokerSnapshot))
@@ -189,6 +190,37 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /build-identity.json", s.web)
 	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/complete", s.walletSessionComplete)
 	s.mux.HandleFunc("POST /wallet-gateway/v1/wallet/sessions/revoke", s.walletSessionRevoke)
+}
+
+func (s *Server) endpointAuthorityBrowserHistory(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	query, parseErr := url.ParseQuery(r.URL.RawQuery)
+	root, rootErr := strconv.ParseInt(query.Get("rootVersion"), 10, 64)
+	sequence, seqErr := strconv.ParseInt(query.Get("sequence"), 10, 64)
+	digest := query.Get("payloadSha256")
+	if parseErr != nil || rootErr != nil || seqErr != nil || root < 1 || sequence < 0 || len(query) != 3 || len(query["rootVersion"]) != 1 || len(query["sequence"]) != 1 || len(query["payloadSha256"]) != 1 || len(digest) != 64 {
+		writeError(w, http.StatusBadRequest, "invalid_authority_history_query", "Invalid authority history checkpoint")
+		return
+	}
+	for _, c := range digest {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+			writeError(w, http.StatusBadRequest, "invalid_authority_history_query", "Invalid authority history checkpoint")
+			return
+		}
+	}
+	provider, ok := s.cfg.EndpointAuthority.(EndpointAuthorityBrowserHistoryProvider)
+	if !ok {
+		writeError(w, http.StatusServiceUnavailable, "private_service_degraded", "Authority history unavailable")
+		return
+	}
+	payload, err := provider.BrowserHistory(r.Context(), EndpointAuthorityHistoryCheckpoint{RootVersion: root, Sequence: sequence, PayloadSHA256: digest})
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "private_service_degraded", "Authority history unavailable")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(append(payload, '\n'))
 }
 
 func (s *Server) endpointAuthorityBrowserConfig(w http.ResponseWriter, r *http.Request) {

@@ -7,7 +7,7 @@ import {spawn} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {AUTHORITY_V2_REPOSITORY,AUTHORITY_V2_URLS,authorityV2SigningMessage,canonicalAuthorityV2} from '../../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft} from '../../../scripts/ops/endpoint-authority-v2.mjs';
-import {resolveFinanceBrowserAuthorityConfig,resolveFinancePrivateAuthority} from './adapter.mjs';
+import {resolveFinanceBrowserAuthorityConfig,resolveFinanceBrowserAuthorityHistory,resolveFinancePrivateAuthority} from './adapter.mjs';
 import {createNodeCheckpointStore} from './checkpoint-node.mjs';
 import {loadFinanceAuthorityConfig} from './config.mjs';
 
@@ -213,4 +213,20 @@ test('checkpoint CAS is idempotent for the current value and invalid next values
   const selfTarget=transitionPath(file,one);assert.equal(await fs.stat(selfTarget).then(()=>true,()=>false),false);
   await assert.rejects(store.compareAndSwap(one,{rootVersion:1,sequence:0,payloadSha256:'0'.repeat(64)}),/CHECKPOINT_ROLLBACK/);
   assert.equal(await fs.stat(selfTarget).then(()=>true,()=>false),false);assert.deepEqual(await store.read(),one);
+});
+
+const browserCheckpoint=manifest=>({rootVersion:1,sequence:manifest.sequence,payloadSha256:manifest.integrity.payloadSha256});
+test('bounded browser history returns only two contiguous signed public documents and rejects missing/fork/query',async t=>{
+ const one=signed(),two=signed({sequence:2,previousPayloadSha256:one.integrity.payloadSha256}),three=signed({sequence:3,previousPayloadSha256:two.integrity.payloadSha256}),four=signed({sequence:4,previousPayloadSha256:three.integrity.payloadSha256});
+ const value=await fixture(t,{manifest:one});
+ for(const document of [one,two,three,four]){await fs.writeFile(value.files.manifestFile,JSON.stringify(document));await resolveFinanceBrowserAuthorityConfig({env:value.env});await fs.writeFile(path.join(value.dir,'signed-manifest-seq'+document.sequence+'.json'),JSON.stringify(document));}
+ const after=browserCheckpoint(one),result=await resolveFinanceBrowserAuthorityHistory({env:value.env,after});assert.deepEqual(result.after,after);assert.deepEqual(result.manifests,[two,three]);assert.equal(Buffer.byteLength(JSON.stringify(result))<16384,true);assert.deepEqual(Object.keys(result).sort(),['after','manifests','schemaVersion']);
+ await fs.rename(path.join(value.dir,'signed-manifest-seq3.json'),path.join(value.dir,'signed-maintenance-seq-3-'+three.integrity.payloadSha256+'.json'));
+ assert.deepEqual((await resolveFinanceBrowserAuthorityHistory({env:value.env,after})).manifests,[two,three]);
+ await Promise.all(Array.from({length:600},(_,i)=>fs.writeFile(path.join(value.dir,'signed-manifest-seq'+(100+i)+'.json'),'unrelated-old-archive-not-read')));
+ assert.deepEqual((await resolveFinanceBrowserAuthorityHistory({env:value.env,after})).manifests,[two,three]);
+ await assert.rejects(resolveFinanceBrowserAuthorityHistory({env:value.env,after:{...after,extra:'secret'}}),/QUERY_INVALID/);
+ await assert.rejects(resolveFinanceBrowserAuthorityHistory({env:value.env,after:{...after,payloadSha256:'f'.repeat(64)}}),/PREDECESSOR/);
+ await fs.rm(path.join(value.dir,'signed-manifest-seq2.json'));await assert.rejects(resolveFinanceBrowserAuthorityHistory({env:value.env,after}),/HISTORY_MISSING/);
+ await fs.writeFile(path.join(value.dir,'signed-manifest-seq2.json'),JSON.stringify(two));await fs.writeFile(path.join(value.dir,'signed-manifest-seq2-fork.json'),JSON.stringify(signed({sequence:2,previousPayloadSha256:one.integrity.payloadSha256,tree:'e'.repeat(40)})));await assert.rejects(resolveFinanceBrowserAuthorityHistory({env:value.env,after}),/HISTORY_CONFLICT/);
 });

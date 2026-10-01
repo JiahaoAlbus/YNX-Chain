@@ -587,7 +587,16 @@ window.addEventListener('ynx-finance-standard-state',event=>{
   const selected=event.detail;
   if(['explicit-local','permission-revoked','account-changed','chain-changed'].includes(selected?.disconnectReason)||loginIntent?.account&&loginIntent.account!==selected?.account)clearLoginIntent();
   if($('#wallet-picker').open&&pickerMethod){if(selected?.status==='connected'){clearPickerPair();pickerPhase=loginIntent?'pickerSigning':'pickerConnected';pickerCode='';renderWalletPicker();}else if(selected?.errorCode)pickerFailure(selected.errorCode);else if(selected?.status==='wrong-chain')pickerFailure('WRONG_NETWORK');else if(['permission-revoked','account-changed','chain-changed'].includes(selected?.disconnectReason))pickerFailure('WALLET_CONTEXT_CHANGED');}
-  if(selected?.status==='connected')void continueLoginIntent();
+  if(selected?.status==='connected'){
+    // Restored private authorization may arrive before provider discovery.
+    // Its earlier read belongs to the previous context; resume only after the
+    // restored selected account still matches that independently verified grant.
+    if(window.YNXFinanceWallet.connected()&&window.YNXFinanceWallet.privateAccountMatchesSelected()){
+      const intent=loginIntent,context=state.context;
+      void load().then(()=>completeLoginTarget(intent,context));
+    }
+    void continueLoginIntent();
+  }
   resumeDeferredBrowserIdentity();
 });window.addEventListener('ynx-finance-private-state',event=>{if(event.detail?.approvalRejected===true||event.detail?.revocationConfirmed===true)clearLoginIntent();clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected'){const intent=loginIntent,context=state.context;load().then(()=>completeLoginTarget(intent,context))}resumeDeferredBrowserIdentity();});
 window.addEventListener('ynx-finance-private-state',event=>{if(!$('#wallet-picker').open||!pickerMethod)return;const next=event.detail;if(pickerMethod==='mobile'&&['opening','pairing'].includes(window.YNXFinanceWallet.getPairState?.()?.status))return;if(next?.status==='connected'){pickerPhase='pickerApproved';renderWalletPicker();if(loginIntent)closeWalletPicker({completed:true});}else if(['checking','connecting'].includes(next?.status)){pickerPhase='pickerSigning';renderWalletPicker();}else if(next?.code||next?.lastCode)pickerFailure(next.code??next.lastCode);});

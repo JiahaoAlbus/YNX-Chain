@@ -194,7 +194,7 @@ for(const mode of ['delayed-config','completed-quiet','wallet-chooser'])test(`ex
   }finally{releaseConfig?.();releaseStart?.();await browser?.close();await go?.close();await close(gateway);await rm(directory,{recursive:true,force:true});}
 });
 
-for(const variant of ['native-callback','selected-provider','selected-provider-context-change','selected-login','selected-login-rejected','selected-login-revoke-rebegin','selected-login-expired-pending','selected-login-valid-pending','central-selected-login','hosted-provider'])test(`local QA ${variant} reaches durable Gateway NodeHost and real Finance Go v2 verifier`,{skip:variant==='hosted-provider'&&!hostedWalletDist&&'YNX_FINANCE_HOSTED_WALLET_DIST not supplied'},async t=>{
+for(const variant of ['native-callback','selected-provider','selected-provider-context-change','selected-login','selected-login-restore-race','selected-login-rejected','selected-login-revoke-rebegin','selected-login-expired-pending','selected-login-valid-pending','central-selected-login','hosted-provider'])test(`local QA ${variant} reaches durable Gateway NodeHost and real Finance Go v2 verifier`,{skip:variant==='hosted-provider'&&!hostedWalletDist&&'YNX_FINANCE_HOSTED_WALLET_DIST not supplied'},async t=>{
   const centralSSO=variant==='central-selected-login',transport=centralSSO?'selected-login':variant;
   const directory=await mkdtemp(join(tmpdir(),'ynx-finance-local-v2-'));await chmod(directory,0o700);
   const statePath=join(directory,'gateway-state.json');let gatewayClockOffset=variant==='selected-login-expired-pending'?-6*60_000:0,consentAction=variant.endsWith('-pending')?'transport-reject':'approve',approvalRequestNonces=[];
@@ -357,6 +357,27 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
       assert.equal(view.account,walletIdentity('1'.padStart(64,'0')).account,JSON.stringify(view));
       assert.equal(await page.evaluate(()=>location.hash),'#planning');
       assert.equal(await page.locator('#planning').evaluate(node=>node.classList.contains('active-view')),true);
+      if(variant==='selected-login-restore-race'){
+        // Exact app listeners/load execute in a real browser with the already
+        // verified Go/Gateway session. Only response scheduling is controlled.
+        const result=await page.evaluate(async()=>{
+          const originalApi=api,owned=state.overview,originalWallet=window.YNXFinanceWallet;
+          const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
+          async function suspended(){let release;const pending=new Promise(resolve=>release=resolve);let reads=0;api=async(path,...args)=>path==='/api/overview'?(reads++,await pending):originalApi(path,...args);return {release:()=>release(owned),reads:()=>reads}}
+          const selected=window.YNXFinanceWallet.getStandardWalletState();clearLoginIntent();
+          // Private-first: the old protected read is invalidated by discovery.
+          clearPrivateView({clearOpaquePending:false});const first=await suspended();void load();await tick();window.dispatchEvent(new CustomEvent('ynx-finance-standard-state',{detail:selected}));first.release();await tick();await tick();const privateFirst=state.overview===owned&&document.querySelector('#workspace').dataset.dataState==='ready'&&first.reads()===2;
+          // Standard-first: the connected private event owns the fresh read.
+          clearPrivateView({clearOpaquePending:false});const second=await suspended();window.YNXFinanceWallet={...originalWallet,privateAccountMatchesSelected:()=>false};window.dispatchEvent(new CustomEvent('ynx-finance-standard-state',{detail:selected}));window.YNXFinanceWallet=originalWallet;window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:'connected'}}));second.release();await tick();await tick();const standardFirst=state.overview===owned&&second.reads()===1;
+          // A different account cannot revive a pending old-account response.
+          const third=await suspended();void load();await tick();window.YNXFinanceWallet={...originalWallet,privateAccountMatchesSelected:()=>false};window.dispatchEvent(new CustomEvent('ynx-finance-standard-state',{detail:{...selected,account:'0x'+'c'.repeat(40),disconnectReason:'account-changed'}}));third.release();await tick();await tick();const accountChanged=state.overview===null&&!state.connected;window.YNXFinanceWallet=originalWallet;
+          // Revoke/guest completion similarly invalidates every old read.
+          const fourth=await suspended();void load();await tick();window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:'disconnected',revocationConfirmed:true}}));fourth.release();await tick();await tick();const revoked=state.overview===null&&!state.connected&&!loginIntent;
+          api=originalApi;return {privateFirst,standardFirst,accountChanged,revoked};
+        });assert.deepEqual(result,{privateFirst:true,standardFirst:true,accountChanged:true,revoked:true});
+        await page.evaluate(()=>logout());assert.equal(await page.evaluate(()=>state.overview===null&&!state.connected),true);
+        assert.deepEqual(browserErrors,[]);await context.close();return;
+      }
       // A late completion owns its original intent and context, never a newer
       // request created while its read was unresolved (including cancellation).
       assert.deepEqual(await page.evaluate(async()=>{

@@ -1,4 +1,4 @@
-import {createEndpointAuthorityClient} from '@ynx-chain/sdk';
+import {createEndpointAuthorityClient,recoverEndpointAuthorityHistory} from '@ynx-chain/sdk';
 import {createBrowserAuthorityCheckpointStore} from './endpoint-authority-store.js';
 
 const CONSUMER=Object.freeze({consumerId:'ynx-finance-v1',origin:'https://finance.ynxweb4.com',clientVersion:'1.0.0'});
@@ -32,6 +32,34 @@ async function configured(){
   }catch(error){if(controller.signal.aborted||error?.name==='TypeError')throw new Error('NETWORK_UNAVAILABLE');throw error;}
   finally{clearTimeout(timer);}
 }
+async function recoverHistory(config,storage,isLive){
+  const previous=await storage.read();
+  if(previous.sequence+1>=config.manifest.sequence)return;
+  if(previous.rootVersion!==config.trustRoot.rootVersion)throw new Error('AUTHORITY_V2_HISTORY_ROOT_MISMATCH');
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+  const history=[];let position=previous;
+  try{
+    while(position.sequence+1<config.manifest.sequence){
+      if(!isLive())throw new Error('AUTHORITY_V2_SUPERSEDED');
+      if(history.length>=64)throw new Error('AUTHORITY_V2_HISTORY_BOUND');
+      const query=new URLSearchParams(Object.entries(position).map(([key,value])=>[key,String(value)]));
+      const response=await fetch('/api/endpoint-authority/v2/history?'+query,{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'},signal:controller.signal});
+      if(!response.ok||response.headers.get('content-type')?.split(';',1)[0].trim()!=='application/json')throw new Error('AUTHORITY_V2_HISTORY_UNAVAILABLE');
+      const reader=response.body?.getReader();if(!reader)throw new Error('AUTHORITY_V2_HISTORY_RESPONSE_INVALID');
+      let bytes=0;const chunks=[];
+      try{while(true){const {done,value}=await reader.read();if(done)break;bytes+=value.byteLength;if(bytes>16384)throw new Error('AUTHORITY_V2_HISTORY_BOUND');chunks.push(value);}}finally{await reader.cancel();}
+      const joined=new Uint8Array(bytes);let offset=0;for(const chunk of chunks){joined.set(chunk,offset);offset+=chunk.length;}
+      const page=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(joined));
+      if(!page||Object.keys(page).sort().join(',')!=='after,manifests,schemaVersion'||page.schemaVersion!=='ynx-finance-endpoint-authority-history/v1'||!checkpoint(page.after)||checkpointIdentity(page.after)!==checkpointIdentity(position)||!Array.isArray(page.manifests)||page.manifests.length<1||page.manifests.length>2)throw new Error('AUTHORITY_V2_HISTORY_RESPONSE_INVALID');
+      for(const manifest of page.manifests){
+        if(manifest.sequence!==position.sequence+1||manifest.sequence>=config.manifest.sequence||manifest.previousPayloadSha256!==position.payloadSha256||!manifest.integrity||!/^[a-f0-9]{64}$/.test(manifest.integrity.payloadSha256))throw new Error('AUTHORITY_V2_PREDECESSOR');
+        history.push(manifest);position={rootVersion:previous.rootVersion,sequence:manifest.sequence,payloadSha256:manifest.integrity.payloadSha256};
+      }
+    }
+    if(!isLive())throw new Error('AUTHORITY_V2_SUPERSEDED');
+    await recoverEndpointAuthorityHistory({trustRoot:config.trustRoot,consumer:CONSUMER,storage,clock:()=>{if(!isLive())throw new Error('AUTHORITY_V2_SUPERSEDED');return config.trustedClock();},history,current:config.manifest});
+  }finally{clearTimeout(timer);}
+}
 function makeChannel(onMessage){if(typeof BroadcastChannel!=='function')return {postMessage(){},close(){}};const channel=new BroadcastChannel(CHANNEL);channel.addEventListener('message',onMessage);return channel;}
 const invalidationChannel=makeChannel(event=>observeCheckpoint(event.data));
 export function assertFinancePrivateAuthority(){
@@ -57,7 +85,7 @@ async function validateFinancePrivateAuthority(){
   const stillCurrent=()=>hardToken===hardGeneration&&(token===generation||currentCheckpointIdentity===acceptedIdentity);
   const storage=createBrowserAuthorityCheckpointStore({anchor:config.serverCheckpoint,clock:config.trustedClock,onCommit:value=>{observeCheckpoint(value);invalidationChannel.postMessage(value);}});
   client=createEndpointAuthorityClient({trustRoot:config.trustRoot,consumer:CONSUMER,storage,clock:config.trustedClock});
-  try{await client.accept(config.manifest,{source:'remote'});if(!stillCurrent())throw new Error('AUTHORITY_V2_SUPERSEDED');const authority=await client.financeProductSession();if(!stillCurrent())throw new Error('AUTHORITY_V2_SUPERSEDED');if(authority.walletGateway!=='https://wallet-auth.ynxweb4.com'||authority.financeOrigin!==CONSUMER.origin||authority.officialSandboxVerified!==false||authority.providerVerified!==false||authority.productionApproved!==false)throw new Error('FINANCE_AUTHORITY_V2_SCOPE_INVALID');return authority;}
+  try{await recoverHistory(config,storage,()=>hardToken===hardGeneration);await client.accept(config.manifest,{source:'remote'});if(!stillCurrent())throw new Error('AUTHORITY_V2_SUPERSEDED');const authority=await client.financeProductSession();if(!stillCurrent())throw new Error('AUTHORITY_V2_SUPERSEDED');if(authority.walletGateway!=='https://wallet-auth.ynxweb4.com'||authority.financeOrigin!==CONSUMER.origin||authority.officialSandboxVerified!==false||authority.providerVerified!==false||authority.productionApproved!==false)throw new Error('FINANCE_AUTHORITY_V2_SCOPE_INVALID');return authority;}
   finally{client.invalidate();storage.close();}
 }
 export function invalidateFinancePrivateAuthority(){hardGeneration++;generation++;currentCheckpointIdentity=null;}
