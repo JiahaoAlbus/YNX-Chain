@@ -43,11 +43,12 @@ export function nonRenewalProjection(baseline){
  delete m.products.finance.evidence.observedAt;delete m.products.finance.evidence.receiptSha256;
  return m;
 }
-export async function readFreshHTTPS(url,{pin,fetchImpl=fetch,now=Date.now}={}){
+export async function readFreshHTTPS(url,{pin,fetchImpl=fetch,now=Date.now,timeoutMs=12000}={}){
  requireFact(new URL(url).protocol==='https:','MAINTENANCE_HTTPS_REQUIRED');
  const limit=pin?.size??131072;requireFact(Number.isSafeInteger(limit)&&limit>0&&limit<=33554432,'MAINTENANCE_ASSET_SIZE_PIN');
  if(pin)requireFact(pin.url===url&&/^[a-f0-9]{64}$/.test(pin.sha256),'MAINTENANCE_ASSET_PIN');
- const r=await fetchImpl(url,{redirect:'error',signal:AbortSignal.timeout(12000),cache:'no-store'});
+ requireFact(Number.isInteger(timeoutMs)&&timeoutMs>0&&timeoutMs<=12000,'MAINTENANCE_HTTP_TIMEOUT_BOUND');
+ const r=await fetchImpl(url,{redirect:'error',signal:AbortSignal.timeout(timeoutMs),cache:'no-store'});
  requireFact(r.body&&typeof r.body.getReader==='function','MAINTENANCE_STREAM_REQUIRED');
  const reader=r.body.getReader(),hash=createHash('sha256'),chunks=[];let size=0,complete=false;
  try{
@@ -138,15 +139,27 @@ function fixedAuthorityKeys(p,env){
  requireFact(p.hostFiles.some(pin=>pin.path===p.checkpointReader),'MAINTENANCE_CHECKPOINT_READER_UNPINNED');
  return keys;
 }
+// Only completed HTTP 503 responses are retried; authority/network errors fail closed.
+export async function readActivationConfig(url,{read=readFreshHTTPS,validate,now=()=>performance.now(),sleep=ms=>new Promise(r=>setTimeout(r,ms))}={}){
+ requireFact(typeof validate==='function','MAINTENANCE_ACTIVATION_VALIDATOR_REQUIRED');
+ const deadline=now()+6000;let attempts=0;
+ while(true){
+  const remaining=Math.floor(deadline-now());requireFact(remaining>0&&attempts<25,'MAINTENANCE_ACTIVATION_NOT_READY');attempts++;
+  const config=await read(url,{timeoutMs:Math.min(3000,remaining)});requireFact(now()<=deadline,'MAINTENANCE_ACTIVATION_NOT_READY');
+  if(config.observation.httpStatus===503){const wait=Math.min(250,Math.floor(deadline-now()));requireFact(wait>0,'MAINTENANCE_ACTIVATION_NOT_READY');await sleep(wait);continue}
+  requireFact(config.observation.httpStatus===200,'MAINTENANCE_PUBLIC_CONFIG_FAILED');await validate(config);return config;
+ }
+}
 async function verifyActivation(p,before,consumerFile,target){
  const K='YNX_FINANCE_ENDPOINT_AUTHORITY_V2_MANIFEST_FILE';let after;
  for(let i=0;i<60;i++){try{after=await currentRuntime(p);if(after.env[K]===consumerFile)break}catch{}await new Promise(r=>setTimeout(r,100))}
  requireFact(after?.env[K]===consumerFile,'MAINTENANCE_ACTIVATION_NOT_READY');
  requireFact(Object.entries(before.env).filter(([k])=>k.startsWith('YNX_')&&k!==K).every(([k,v])=>after.env[k]===v),'MAINTENANCE_PROTECTED_CONFIG_CHANGED');
- const config=await readFreshHTTPS(p.publicConfigURL);requireFact(config.observation.httpStatus===200,'MAINTENANCE_PUBLIC_CONFIG_FAILED');const body=JSON.parse(config.body);
+ const config=await readActivationConfig(p.publicConfigURL,{validate:async config=>{const body=JSON.parse(config.body);
  requireFact(same(body.serverCheckpoint,target),'MAINTENANCE_PUBLIC_CHECKPOINT_MISMATCH');requireFact(same(await checkpoint(p),target),'MAINTENANCE_LOCAL_CHECKPOINT_MISMATCH');
  const root=JSON.parse(await protectedFile(p.rootFile));await verifySignedEndpointAuthority(body.manifest,{trustRoot:root,checkpoint:target,consumer:p.consumer,nowMs:Date.now()});
- requireFact(same(body.trustRoot,root),'MAINTENANCE_PUBLIC_ROOT_CHANGED');return{after,config};
+ requireFact(same(body.trustRoot,root),'MAINTENANCE_PUBLIC_ROOT_CHANGED');
+ }});return{after,config};
 }
 
 // Shared by maintenance AND every Finance ENV activation/rollback writer. Keep the

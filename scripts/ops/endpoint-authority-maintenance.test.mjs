@@ -6,8 +6,8 @@ import os from 'node:os';
 import {pathToFileURL} from 'node:url';
 import {generateKeyPairSync,createHash,sign,randomUUID} from 'node:crypto';
 import {execFileSync,spawn} from 'node:child_process';
-import {prepareFixedSourceRenewal,nonRenewalProjection,readFreshHTTPS,preflightOnClone,journalSnapshot,activationRecoveryPlan,runWithActivationLock,verifyPinnedHostBytes,HOST_BINARY_MAX_BYTES} from './endpoint-authority-maintenance.mjs';
-import {AUTHORITY_V2_URLS,AUTHORITY_V2_REPOSITORY,canonicalAuthorityV2,authorityV2SigningMessage,createEndpointAuthorityClient} from '../../sdk/js/endpoint-authority-v2.js';
+import {prepareFixedSourceRenewal,nonRenewalProjection,readFreshHTTPS,preflightOnClone,journalSnapshot,activationRecoveryPlan,runWithActivationLock,verifyPinnedHostBytes,HOST_BINARY_MAX_BYTES,readActivationConfig} from './endpoint-authority-maintenance.mjs';
+import {AUTHORITY_V2_URLS,AUTHORITY_V2_REPOSITORY,canonicalAuthorityV2,authorityV2SigningMessage,createEndpointAuthorityClient,verifySignedEndpointAuthority} from '../../sdk/js/endpoint-authority-v2.js';
 import {prepareAuthorityV2Draft} from './endpoint-authority-v2.mjs';
 import {createNodeCheckpointStore} from '../../apps/finance/authority/checkpoint-node.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex'),copy=structuredClone,iso=t=>new Date(t).toISOString();
@@ -141,4 +141,44 @@ test('real sparse host-sized file is streamed and truncation fails without buffe
  const size=124835376,block=Buffer.alloc(65536),hash=createHash('sha256');for(let n=0;n<size;n+=block.length)hash.update(block.subarray(0,Math.min(block.length,size-n)));
  const pin={size,sha256:hash.digest('hex')};let handle;
  try{handle=await fs.open(file,'w+');await handle.truncate(size);await verifyPinnedHostBytes(handle,pin);await handle.truncate(size-1);await assert.rejects(verifyPinnedHostBytes(handle,pin),/HOST_SOURCE_CHANGED/)}finally{await handle?.close();await fs.rm(directory,{recursive:true,force:true})}
+});
+
+function readinessFixture(statuses){
+ let clock=0,calls=0,checks=0;const waits=[],timeouts=[];
+ return{options:{now:()=>clock,sleep:async ms=>{waits.push(ms);clock+=ms},read:async(_url,{timeoutMs})=>{timeouts.push(timeoutMs);const status=statuses[Math.min(calls++,statuses.length-1)];if(status instanceof Error)throw status;return{body:'{}',observation:{httpStatus:status}}},validate:async()=>{checks++}},state:()=>({clock,calls,checks,waits,timeouts})};
+}
+test('post-restart 503 waits then validates exactly one ready response',async()=>{
+ const f=readinessFixture([503,503,200]);assert.equal((await readActivationConfig('https://finance.ynxweb4.com/api/config',f.options)).observation.httpStatus,200);
+ assert.deepEqual(f.state(),{clock:500,calls:3,checks:1,waits:[250,250],timeouts:[3000,3000,3000]});
+});
+test('permanent startup 503 expires within six seconds without accepting authority',async()=>{
+ const f=readinessFixture([503]);await assert.rejects(readActivationConfig('https://finance.ynxweb4.com/api/config',f.options),/ACTIVATION_NOT_READY/);
+ assert.equal(f.state().clock,6000);assert.equal(f.state().calls,24);assert.equal(f.state().checks,0);assert.ok(f.state().timeouts.every(ms=>ms>0&&ms<=3000));
+});
+test('non-503 statuses and network errors fail immediately without retry',async()=>{
+ for(const status of [400,401,403,404,429,500,502,504,new Error('TLS_FAILED')]){
+  const f=readinessFixture([status,200]);await assert.rejects(readActivationConfig('https://finance.ynxweb4.com/api/config',f.options),/PUBLIC_CONFIG_FAILED|TLS_FAILED/);assert.equal(f.state().calls,1);assert.equal(f.state().checks,0);assert.deepEqual(f.state().waits,[]);
+ }
+});
+test('returned signature/checkpoint/source/semantic errors after startup are not retried',async()=>{
+ for(const code of ['SIGNATURE_INVALID','PUBLIC_CHECKPOINT_MISMATCH','LOCAL_CHECKPOINT_MISMATCH','PUBLIC_ROOT_CHANGED','SOURCE_CHANGED','SEMANTIC_INVALID']){
+  const f=readinessFixture([503,200,200]);f.options.validate=async()=>{throw new Error(code)};
+  await assert.rejects(readActivationConfig('https://finance.ynxweb4.com/api/config',f.options),new RegExp(code));assert.equal(f.state().calls,2);assert.deepEqual(f.state().waits,[250]);
+ }
+});
+test('slow responses respect total readiness deadline and remaining fetch budget',async()=>{
+ let clock=0,calls=0;const timeouts=[];
+ await assert.rejects(readActivationConfig('https://finance.ynxweb4.com/api/config',{now:()=>clock,sleep:async ms=>{clock+=ms},read:async(_,{timeoutMs})=>{timeouts.push(timeoutMs);calls++;clock+=2900;return{observation:{httpStatus:calls===3?200:503}}},validate:async()=>assert.fail('late result accepted')}),/ACTIVATION_NOT_READY/);
+ assert.deepEqual(timeouts,[3000,2850]);assert.equal(calls,2);
+});
+
+test('503 streaming response then real SDK signature validation accepts only the original signed config',async()=>{
+ const f=fixture();let clock=0,calls=0;const body=JSON.stringify({serverCheckpoint:f.checkpoint,manifest:f.baseline,trustRoot:f.root});
+ const config=await readActivationConfig('https://finance.ynxweb4.com/api/config',{now:()=>clock,sleep:async ms=>{clock+=ms},read:(url,options)=>readFreshHTTPS(url,{...options,fetchImpl:async(_url,request)=>{assert.equal(request.redirect,'error');assert.ok(request.signal instanceof AbortSignal);calls++;return streamed(Buffer.from(calls===1?'Service unavailable':body),{status:calls===1?503:200})}}),validate:async config=>{const returned=JSON.parse(config.body);assert.deepEqual(returned.serverCheckpoint,f.checkpoint);assert.deepEqual(returned.trustRoot,f.root);await verifySignedEndpointAuthority(returned.manifest,{trustRoot:f.root,checkpoint:f.checkpoint,consumer:f.policy.consumer,nowMs:now})}});
+ assert.equal(config.body,body);assert.equal(calls,2);assert.equal(clock,250);
+});
+test('actual SDK rejects tampered signature after 503 without any third fetch',async()=>{
+ const f=fixture();f.baseline.integrity.signature=Buffer.alloc(64).toString('base64url');let calls=0,clock=0;
+ await assert.rejects(readActivationConfig('https://finance.ynxweb4.com/api/config',{now:()=>clock,sleep:async ms=>{clock+=ms},read:(url,options)=>readFreshHTTPS(url,{...options,fetchImpl:async()=>{calls++;return streamed(Buffer.from(calls===1?'Not ready':JSON.stringify(f.baseline)),{status:calls===1?503:200})}}),validate:async config=>verifySignedEndpointAuthority(JSON.parse(config.body),{trustRoot:f.root,checkpoint:f.checkpoint,consumer:f.policy.consumer,nowMs:now})}),/SIGNATURE_INVALID/);
+ assert.equal(calls,2);assert.equal(clock,250);
 });
