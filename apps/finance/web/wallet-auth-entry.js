@@ -21,7 +21,7 @@ function publishPair(next){pairState=Object.freeze({...next});window.dispatchEve
 function pairClient(){
   if(pair)return pair;
   pair=new WalletConnectDAppConnection({origin:ORIGIN,methods:['personal_sign','ynx_requestProductSessionV2']});
-  pair.on('cancelUnconfirmed',()=>publishPair({status:'cancel-unconfirmed',errorCode:'PAIR_CANCEL_UNCONFIRMED'}));
+  pair.on('cancelUnconfirmed',event=>{if(event.current!==false)publishPair({status:'cancel-unconfirmed',errorCode:'PAIR_CANCEL_UNCONFIRMED'});});
   pair.on('disconnect',()=>{if(activeTransport!=='pair')return;privateFinance.guest();preference(null);publishPair({status:'disconnected'});publish({status:'disconnected',providerKind:'ynx-wallet',account:null,chainId:null,transport:'walletconnect',disconnectReason:'permission-revoked'});});
   return pair;
 }
@@ -45,7 +45,7 @@ function connectPair(){
       const next={...snapshot(selected,'ynx-wallet'),transport:'walletconnect'};
       if(next.status!=='connected'||next.chainId!=='0x1917')throw new Error('WRONG_NETWORK');
       preference('ynx-pair');publishPair({status:'connected'});publish(next);return standard;
-    }catch(error){if(pairOperation===operation&&operation.revision===intent){detach();const code=Number(error?.code)===4001?'USER_REJECTED':/^[A-Z][A-Z_0-9]{0,80}$/.test(error?.message??'')?error.message:'PAIR_UNAVAILABLE';publishPair({status:'failed',errorCode:code});publish({status:'disconnected',providerKind:'ynx-wallet',account:null,chainId:null,transport:'walletconnect'},code);}return null;}
+    }catch(error){if(pairOperation===operation&&operation.revision===intent){detach();const code=[4001,5000,5001,5002,5003].includes(Number(error?.code))||error?.code==='USER_REJECTED'?'USER_REJECTED':/^[A-Z][A-Z_0-9]{0,80}$/.test(error?.message??'')?error.message:'PAIR_UNAVAILABLE';publishPair({status:'failed',errorCode:code});publish({status:'disconnected',providerKind:'ynx-wallet',account:null,chainId:null,transport:'walletconnect'},code);}return null;}
     finally{if(pairOperation===operation){pairOperation=null;busy=false;render();}}
   })();return operation.promise;
 }
@@ -258,6 +258,7 @@ function render(){
 }
 async function boot(){
   hosted=mountFinanceHostedWalletUI({document,window,createHostedWalletAdapter,text:label,onAttempt:hostedAttempt,onChange:hostedStateChanged});
+  document.querySelector('#wallet-connection-details')?.append(document.querySelector('#hosted-wallet'));
   window.YNXFinanceHostedWallet=hosted;
   providerRegistry=createWalletProviderDiscovery(window);
   providerRegistry.subscribe(()=>render());

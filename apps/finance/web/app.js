@@ -389,7 +389,12 @@ function showWalletPicker(trigger,{login=false,target=loginTarget()}={}){
   if(login){loginIntent={target,account:null,providerKind:null};try{sessionStorage.setItem(LOGIN_INTENT_KEY,JSON.stringify({target}))}catch{}}
   else clearLoginIntent();
   const wallet=window.YNXFinanceWallet;
-  if(login&&wallet.getStandardWalletState().status==='connected'){void continueLoginIntent();return}
+  const connected=wallet.getStandardWalletState();
+  if(login&&connected.status==='connected'&&(connected.providerKind!=='metamask'||['overview','assets','activity'].includes(target))){
+    pickerMethod=connected.providerKind==='metamask'?'metamask':connected.transport==='walletconnect'?'mobile':connected.transport==='hosted-wallet-web'?'hosted':'ynx';pickerPhase='pickerSigning';pickerCode='';clearPickerPair();
+    $('#wallet-picker-icon').replaceChildren($(pickerButtons[pickerMethod]).querySelector('img,svg').cloneNode(true));renderWalletPicker();
+    if(!$('#wallet-picker').open)$('#wallet-picker').showModal();$('#wallet-picker-state').focus();void continueLoginIntent();return;
+  }
   pickerMethod=null;pickerCode='';clearPickerPair();renderWalletPicker();
   const picker=$('#wallet-picker');if(!picker.open)picker.showModal();$('#picker-ynx').focus();
 }
@@ -575,7 +580,7 @@ window.addEventListener('ynx-finance-standard-state',event=>{
   if(window.YNXFinanceWallet?.connected?.()&&!window.YNXFinanceWallet.privateAccountMatchesSelected?.())clearPrivateView({clearOpaquePending:false});
   const selected=event.detail;
   if(['explicit-local','permission-revoked','account-changed','chain-changed'].includes(selected?.disconnectReason)||loginIntent?.account&&loginIntent.account!==selected?.account)clearLoginIntent();
-  if($('#wallet-picker').open&&pickerMethod){if(selected?.status==='connected'){clearPickerPair();pickerPhase=loginIntent?'pickerSigning':'pickerConnected';pickerCode='';renderWalletPicker();}else if(selected?.errorCode)pickerFailure(selected.errorCode);}
+  if($('#wallet-picker').open&&pickerMethod){if(selected?.status==='connected'){clearPickerPair();pickerPhase=loginIntent?'pickerSigning':'pickerConnected';pickerCode='';renderWalletPicker();}else if(selected?.errorCode)pickerFailure(selected.errorCode);else if(selected?.status==='wrong-chain')pickerFailure('WRONG_NETWORK');else if(['permission-revoked','account-changed','chain-changed'].includes(selected?.disconnectReason))pickerFailure('WALLET_CONTEXT_CHANGED');}
   if(selected?.status==='connected')void continueLoginIntent();
   resumeDeferredBrowserIdentity();
 });window.addEventListener('ynx-finance-private-state',event=>{clearPrivateView({clearOpaquePending:['disconnected','guest'].includes(event.detail?.status)});if(event.detail?.status==='connected'){const intent=loginIntent,context=state.context;load().then(()=>completeLoginTarget(intent,context))}resumeDeferredBrowserIdentity();});
@@ -589,7 +594,7 @@ window.addEventListener('ynx-finance-pair-state',event=>{
     pickerExpiry=setTimeout(()=>{clearPickerPair();pickerFailure('PAIR_EXPIRED');void window.YNXFinanceWallet.cancelPair?.();},Math.max(0,Math.min(120000,next.expiresAt-Date.now())));
   }else if(next.status==='failed')pickerFailure(next.errorCode);else if(next.status==='cancel-unconfirmed'){pickerPhase='pickerCancelUnknown';pickerCode='PAIR_CANCEL_UNCONFIRMED';clearPickerPair();renderWalletPicker();}
 });
-document.addEventListener('finance:localechange',renderWalletPicker);
+document.addEventListener('finance:localechange',()=>{renderWalletPicker();if(!browserIdentity&&$('#browser-signin-state').textContent)$('#browser-signin-state').textContent=financeText('browserSignInBoundary');});
 window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('offlineRetry','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',event=>showWalletPicker(event.currentTarget,{login:true}));$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
 $('#wallet-entry').addEventListener('click',event=>showWalletPicker(event.currentTarget));
 for(const [method,id]of Object.entries(pickerButtons))$(id).addEventListener('click',()=>choosePickerMethod(method));

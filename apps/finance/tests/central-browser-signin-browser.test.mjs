@@ -85,9 +85,11 @@ test('central guest page uses explicit selected native RPC, actual backend conse
     }else if(mode.startsWith('pair')){
       if(mode==='pair-error'){await page.click('#pair');await page.waitForFunction(()=>document.querySelector('#status').dataset.errorCode==='YNX_PAIR_TIMEOUT');assert.equal(await page.locator('#status').getAttribute('data-phase'),'pair-initialize');assert.equal((await page.locator('body').innerText()).includes('private-qa-marker'),false);assert.equal(completeCalls,0);await context.close();continue;}
       await page.click('#pair');await page.waitForFunction(()=>document.querySelector('#pair-request canvas').width===240);
+      assert.equal(await page.locator('#pair-open').isVisible(),true);
+      assert.equal(await page.evaluate(()=>{const url=new URL(document.querySelector('#pair-open').href);return url.protocol==='ynxwallet:'&&url.hostname==='wc'&&[...url.searchParams.keys()].join(',')==='uri'&&url.searchParams.get('uri').startsWith('wc:');}),true);
       assert.deepEqual(await page.evaluate(()=>window.qaPairCalls),['connect']);assert.equal(completeCalls,0);
       if(mode==='pair-cancel'){await page.click('#cancel');await page.evaluate(()=>window.qaPairApprove());}
-      else{await page.evaluate(()=>window.qaPairApprove());await page.waitForFunction(()=>!document.querySelector('#approve').disabled);assert.equal(await page.locator('#pair-request').isHidden(),true);await page.click('#approve');}
+      else{await page.evaluate(()=>window.qaPairApprove());await page.waitForFunction(()=>!document.querySelector('#approve').disabled);assert.equal(await page.locator('#pair-request').isHidden(),true);assert.equal(await page.evaluate(()=>document.querySelector('#pair-open').getAttribute('href')===null),true);await page.click('#approve');}
     }else if(mode==='cancel')await page.click('#cancel');else{await page.selectOption('#wallet','0');await page.click('#approve');
       if(mode==='reject-string'){await page.waitForFunction(()=>document.querySelector('#status').dataset.errorCode==='USER_REJECTED');assert.match(await page.locator('#status').innerText(),/declined/);assert.equal((await page.locator('body').innerText()).includes('private-qa-marker'),false);assert.equal(completeCalls,0);await page.click('#cancel');}
       if(mode.endsWith('-complete')){await completeReached;if(mode==='cancel-complete')await page.click('#cancel');else{await page.evaluate(mode=>window.qaEmit(mode==='account-complete'?'accountsChanged':'chainChanged',mode==='account-complete'?['0x'+'2'.repeat(40)]:'0x1'),mode);releaseComplete();}}}

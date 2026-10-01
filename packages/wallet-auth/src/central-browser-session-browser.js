@@ -39,9 +39,11 @@ const failure=(error,phase)=>{
 const pairButton=document.createElement('button');pairButton.id='pair';pairButton.type='button';pairButton.textContent='Connect mobile YNX Wallet';
 const pairRegion=document.createElement('div');pairRegion.id='pair-request';pairRegion.hidden=true;
 const pairLabel=document.createElement('p');pairLabel.textContent='Scan with YNX Wallet to approve this browser connection. Browser sign-in remains a separate approval.';
-const pairCanvas=document.createElement('canvas');pairCanvas.setAttribute('role','img');pairCanvas.setAttribute('aria-label','Temporary YNX Wallet connection QR code');pairRegion.append(pairLabel,pairCanvas);picker.after(pairButton,pairRegion);
+const pairCanvas=document.createElement('canvas');pairCanvas.setAttribute('role','img');pairCanvas.setAttribute('aria-label','Temporary YNX Wallet connection QR code');
+const pairOpen=document.createElement('a');pairOpen.id='pair-open';pairOpen.textContent='Open YNX Wallet';pairOpen.hidden=true;
+pairRegion.append(pairLabel,pairCanvas,pairOpen);picker.after(pairButton,pairRegion);
 let pair=null,pairPending=null,pairProvider=null;
-const clearPairQR=()=>{pairRegion.hidden=true;pairCanvas.width=pairCanvas.height=0;};
+const clearPairQR=()=>{pairRegion.hidden=true;pairCanvas.width=pairCanvas.height=0;pairOpen.hidden=true;pairOpen.removeAttribute('href');};
 const hostedButton=document.createElement('button');hostedButton.id='hosted';hostedButton.type='button';hostedButton.textContent='Connect YNX Wallet Web';pairButton.after(hostedButton);
 hostedButton.addEventListener('click',()=>{
   if(cancelled||pending||pairPending||hostedPending){message('Finish or cancel your current request before opening another connection.');return;}
@@ -69,7 +71,8 @@ pairButton.addEventListener('click',()=>{
       if(epoch!==revision||cancelled)return;
       // Pairing URI contains a temporary secret: only render it locally. It
       // must never enter diagnostics, URLs, business storage or telemetry.
-      pairRegion.hidden=false;void QRCode.toCanvas(pairCanvas,uri,{width:240,margin:2,color:{dark:'#002FA7',light:'#FFFFFF'}}).catch(()=>{if(epoch!==revision||cancelled)return;clearPairQR();message('QR rendering is unavailable. Cancel and retry the connection.');});
+      pairRegion.hidden=false;pairOpen.href=`ynxwallet://wc?uri=${encodeURIComponent(uri)}`;pairOpen.hidden=false;
+      void QRCode.toCanvas(pairCanvas,uri,{width:240,margin:2,color:{dark:'#002FA7',light:'#FFFFFF'}}).catch(()=>{if(epoch!==revision||cancelled)return;clearPairQR();message('QR rendering is unavailable. Cancel and retry the connection.');});
       status.dataset.phase='pair-approval';
       message('Scan this temporary QR in YNX Wallet and approve the connection.');
     }});

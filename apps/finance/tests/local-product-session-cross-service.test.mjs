@@ -278,11 +278,12 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
       // Real Wallet-owned encrypted vault/review/signing UI, isolated local
       // origin transport. No installed/public claim or stub approval function.
       const password='isolated Finance Hosted QA password 2026';
-      const opened=context.waitForEvent('page');await page.click('#connect-hosted-ynx');const wallet=await opened;
+      const opened=context.waitForEvent('page');await page.click('#wallet-entry');await page.click('#picker-hosted');const wallet=await opened;
       await wallet.locator('#setup-password').fill(password);await wallet.locator('#setup-confirm').fill(password);await wallet.locator('#setup-form button[type=submit]').click();
       await wallet.locator('#backup-confirmation').waitFor({state:'visible'});const backup=wallet.waitForEvent('download');await wallet.click('#export-backup');await backup;
       await wallet.locator('#backup-ack').check();await wallet.click('#backup-continue');await wallet.locator('#review').waitFor({state:'visible'});await wallet.click('#approve');
       await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected');
+      await page.click('#wallet-picker-action');
       assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.privateProviderAvailable()),true);
       assert.equal(host.snapshot().authority.sessions.length,0,'connection alone must not create a native session');
       await page.evaluate(()=>{void window.YNXFinanceWallet.beginPrivate()});await wallet.locator('#review').waitFor({state:'visible'});await wallet.click('#reject');
@@ -400,8 +401,9 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
       assert.equal(restoredView.account,walletIdentity('1'.padStart(64,'0')).account,JSON.stringify({restoredView,requests}));
       assert.equal(approvalCount,1);
     }else if(transport.startsWith('selected-provider')){
-      await page.locator('#connect-ynx').click();
+      await page.locator('#wallet-entry').click();await page.locator('#picker-ynx').click();
       await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected');
+      await page.locator('#wallet-picker-action').click();
     }
     if(!transport.startsWith('selected-login'))await page.locator('#wallet-more > summary').click();
     if(transport==='selected-provider-context-change'){

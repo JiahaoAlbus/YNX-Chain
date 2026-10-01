@@ -878,7 +878,7 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 }
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com wss://relay.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com; frame-src https://verify.walletconnect.org; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
