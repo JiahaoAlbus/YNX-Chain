@@ -7,7 +7,7 @@ on:
         description: Native target to verify
         type: choice
         default: all
-        options: [all, windows-x64]
+        options: [all, windows-x64, linux]
   push:
     branches: [codex/wallet-dedicated-auth-v2-20260906, codex/wallet-desktop-storage-recovery-20260925]
     paths:
@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(inputs.target == 'windows-x64' && '[{"runner":"windows-2025","platform":"windows","arch":"x64","unpacked":"win-unpacked"}]' || '[{"runner":"windows-2025","platform":"windows","arch":"x64","unpacked":"win-unpacked"},{"runner":"windows-11-arm","platform":"windows","arch":"arm64","unpacked":"win-arm64-unpacked"},{"runner":"ubuntu-24.04","platform":"linux","arch":"x64","unpacked":"linux-unpacked"},{"runner":"ubuntu-24.04-arm","platform":"linux","arch":"arm64","unpacked":"linux-arm64-unpacked"}]') }}
+        include: ${{ fromJSON(inputs.target == 'linux' && '[{"runner":"ubuntu-24.04","platform":"linux","arch":"x64","unpacked":"linux-unpacked"},{"runner":"ubuntu-24.04-arm","platform":"linux","arch":"arm64","unpacked":"linux-arm64-unpacked"}]' || inputs.target == 'windows-x64' && '[{"runner":"windows-2025","platform":"windows","arch":"x64","unpacked":"win-unpacked"}]' || '[{"runner":"windows-2025","platform":"windows","arch":"x64","unpacked":"win-unpacked"},{"runner":"windows-11-arm","platform":"windows","arch":"arm64","unpacked":"win-arm64-unpacked"},{"runner":"ubuntu-24.04","platform":"linux","arch":"x64","unpacked":"linux-unpacked"},{"runner":"ubuntu-24.04-arm","platform":"linux","arch":"arm64","unpacked":"linux-arm64-unpacked"}]') }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 40
     steps:
