@@ -13,7 +13,13 @@ const websiteCSP = "default-src 'none'; script-src 'self'; style-src 'self'; con
 
 func (s *Server) websiteRoutes() {
 	assets, _ := fs.Sub(website, "web")
-	s.mux.Handle("GET /faucet-assets/", http.StripPrefix("/faucet-assets/", http.FileServer(http.FS(assets))))
+	s.mux.Handle("GET /faucet-assets/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Asset names are intentionally stable for both public aliases. Never
+		// let a browser cache an old client beside a new pending-response API.
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		http.StripPrefix("/faucet-assets/", http.FileServer(http.FS(assets))).ServeHTTP(w, r)
+	}))
 	s.mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Content-Security-Policy", websiteCSP)

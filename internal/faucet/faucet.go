@@ -157,6 +157,10 @@ type Service struct {
 	capabilityFlight     *capabilityFlight
 	capabilityValidUntil time.Time
 	flightStats          flightStats
+	workCtx              context.Context
+	workCancel           context.CancelFunc
+	workWG               sync.WaitGroup
+	closing              bool
 }
 
 func New(cfg Config) (*Service, error) {
@@ -171,6 +175,7 @@ func New(cfg Config) (*Service, error) {
 		seen:         map[string][]time.Time{}, requestOutcomes: map[string]uint64{}, admissionErrors: map[string]uint64{},
 		fundingFlights: map[string]*fundingFlight{}, statusFlights: map[string]*statusFlight{},
 	}
+	service.workCtx, service.workCancel = context.WithCancel(context.Background())
 	if normalized.UpstreamMode == UpstreamBFT {
 		signer, address, err := loadBFTSigner(normalized)
 		if err != nil {
@@ -190,6 +195,27 @@ func New(cfg Config) (*Service, error) {
 			return nil, fmt.Errorf("open durable faucet admission: %w", err)
 		}
 		service.admissions = store
+		pending, err := store.pendingAsync()
+		if err != nil {
+			_ = store.db.Close()
+			return nil, fmt.Errorf("scan pending faucet admissions: %w", err)
+		}
+		if len(pending) > 0 {
+			service.workWG.Add(1)
+			go func() {
+				defer service.workWG.Done()
+				for _, record := range pending {
+					if service.workCtx.Err() != nil {
+						return
+					}
+					hash, err := chain.FaucetRequestHash(service.cfg.ChainID, record.RequestID)
+					if err != nil {
+						continue
+					}
+					service.fundAdmitted(service.workCtx, record, hash, LogEntry{RequestID: record.RequestID, At: record.At, Address: record.Address, Amount: record.Amount})
+				}
+			}()
+		}
 	}
 	return service, nil
 }
