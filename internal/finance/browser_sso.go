@@ -189,7 +189,14 @@ func (s *Server) ssoStart(w http.ResponseWriter, r *http.Request) {
 		parameters.Set("prompt", "none")
 	}
 	// Browser navigates the sole registered public issuer, not a test/proxy URL.
-	http.Redirect(w, r, BrowserWalletAuthority+"/v2/browser-sessions/authorize?"+parameters.Encode(), http.StatusSeeOther)
+	destination := BrowserWalletAuthority + "/v2/browser-sessions/authorize?" + parameters.Encode()
+	// Display preference only: never add locale to the exact signed initiator,
+	// PKCE/state, callback destination or browser identity permissions.
+	switch r.URL.Query().Get("lang") {
+	case "en", "zh-CN", "zh-Hant":
+		destination += "#lang=" + r.URL.Query().Get("lang")
+	}
+	http.Redirect(w, r, destination, http.StatusSeeOther)
 }
 func (s *Server) ssoCall(ctx context.Context, path string, input any, out any) int {
 	if !s.ssoAvailable() {

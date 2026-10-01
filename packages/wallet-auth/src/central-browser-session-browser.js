@@ -1,3 +1,4 @@
+import {CENTRAL_UI_LANGUAGES,centralUILanguage,centralUIText} from './central-browser-session-locale.js';
 import {canonicalJSON} from './canonical.js';
 import {evmAddressFromYNX} from './crypto.js';
 import {StandardWalletConnection} from './standard-wallet-connection.js';
@@ -6,27 +7,40 @@ import {createWalletProviderDiscovery,WALLET_PROVIDER_KIND} from './wallet-provi
 import {parseCentralBrowserSignInChallenge,parseCentralBrowserSignInApproval} from './central-browser-session-contract.js';
 import {WalletConnectDAppConnection} from './walletconnect-dapp-connection.js';
 import QRCode from 'qrcode';
-import {createHostedWalletAdapter} from './vendor/hosted-wallet-adapter-4bccefef.js';
+import {createHostedWalletAdapter} from '../../../apps/wallet-web/src/hosted-adapter.js';
 
 const context=JSON.parse(document.getElementById('context').textContent);
+let savedLanguage;try{savedLanguage=localStorage.getItem('ynx-central-ui-language');}catch{}
+let language=centralUILanguage(new URLSearchParams(location.hash.slice(1)).get('lang')??savedLanguage??navigator.languages?.join(',')??navigator.language);
+const t=value=>centralUIText(value,language);
+const languageLabel=document.createElement('label'),languagePicker=document.createElement('select');
+languagePicker.id='language';languageLabel.htmlFor='language';
+for(const [value,name]of Object.entries(CENTRAL_UI_LANGUAGES)){const option=document.createElement('option');option.value=value;option.textContent=name;languagePicker.append(option);}
+const applyLanguage=()=>{document.documentElement.lang=language;document.title=t(document.title);languageLabel.textContent=t('Language');languagePicker.value=language;
+  for(const element of document.querySelectorAll('main *'))if(!element.children.length&&!['SCRIPT','OPTION','SELECT'].includes(element.tagName)&&element!==languageLabel)element.textContent=t(element.textContent);
+  for(const element of document.querySelectorAll('[aria-label]'))element.setAttribute('aria-label',t(element.getAttribute('aria-label')));
+};
+languagePicker.addEventListener('change',()=>{language=centralUILanguage(languagePicker.value);try{localStorage.setItem('ynx-central-ui-language',language);}catch{}applyLanguage();});
+document.querySelector('main').prepend(languageLabel,languagePicker);applyLanguage();
 if(context.mode==='session'){
   const status=document.getElementById('status'),button=document.getElementById('global-logout');
   let pending=false;
   const read=async(path,options={})=>{const response=await fetch(`/v2/browser-sessions/${path}`,{credentials:'same-origin',...options,signal:AbortSignal.timeout(10000)});const value=await response.json();if(!response.ok)throw new Error(value.error?.code??'SSO_REQUEST_FAILED');return value;};
-  const refresh=async()=>{try{const identity=await read('status');status.textContent=identity.account;button.disabled=false;}catch(error){status.textContent=error.message==='SSO_LOGIN_REQUIRED'?'You are signed out.':'Session status is unavailable. Retry checking before signing out.';button.disabled=error.message==='SSO_LOGIN_REQUIRED';}};
-  button.addEventListener('click',async()=>{if(pending)return;pending=true;button.disabled=true;button.setAttribute('aria-busy','true');try{const boot=await read('bootstrap');await read('logout',{method:'POST',headers:{'content-type':'application/json','x-ynx-browser-csrf':boot.sessionCsrfToken},body:canonicalJSON({})});status.textContent='Signed out of all YNX products.';}catch{status.textContent='Global sign-out is not confirmed. Retry; no successful revocation is assumed.';button.disabled=false;}finally{pending=false;button.removeAttribute('aria-busy');}});
+  const refresh=async()=>{try{const identity=await read('status');status.textContent=identity.account;button.disabled=false;}catch(error){status.textContent=t(error.message==='SSO_LOGIN_REQUIRED'?'You are signed out.':'Session status is unavailable. Retry checking before signing out.');button.disabled=error.message==='SSO_LOGIN_REQUIRED';}};
+  button.addEventListener('click',async()=>{if(pending)return;pending=true;button.disabled=true;button.setAttribute('aria-busy','true');try{const boot=await read('bootstrap');await read('logout',{method:'POST',headers:{'content-type':'application/json','x-ynx-browser-csrf':boot.sessionCsrfToken},body:canonicalJSON({})});status.textContent=t('Signed out of all YNX products.');}catch{status.textContent=t('Global sign-out is not confirmed. Retry; no successful revocation is assumed.');button.disabled=false;}finally{pending=false;button.removeAttribute('aria-busy');}});
   window.addEventListener('focus',()=>{if(!pending)void refresh();});void refresh();
 }else{
 const challenge=parseCentralBrowserSignInChallenge(context.challenge,context.registry,{peerOrigin:location.origin});
+const requestingSite=document.createElement('p'),siteLabel=document.createElement('span');requestingSite.id='requesting-site';siteLabel.textContent=t('Requesting site');requestingSite.append(siteLabel,': '+challenge.initiator.origin);document.querySelector('h1').after(requestingSite);
 const picker=document.getElementById('wallet'),approve=document.getElementById('approve'),cancel=document.getElementById('cancel'),status=document.getElementById('status');
 const discovery=createWalletProviderDiscovery(window);
-const restart=document.createElement('button');restart.id='restart';restart.hidden=true;restart.textContent='Return to product and retry';cancel.after(restart);restart.addEventListener('click',()=>cancel.click());
-const safeReturn=document.createElement('a');safeReturn.id='return-product';safeReturn.hidden=true;safeReturn.textContent='Return to product without using this approval';
+const restart=document.createElement('button');restart.id='restart';restart.hidden=true;restart.textContent=t('Return to product and retry');cancel.after(restart);restart.addEventListener('click',()=>cancel.click());
+const safeReturn=document.createElement('a');safeReturn.id='return-product';safeReturn.hidden=true;safeReturn.textContent=t('Return to product without using this approval');
 const deniedReturn=new URL(challenge.initiator.redirectUri);deniedReturn.searchParams.set('state',challenge.initiator.state);deniedReturn.searchParams.set('error','access_denied');safeReturn.href=deniedReturn.href;restart.after(safeReturn);
 safeReturn.addEventListener('click',()=>{cancelled=true;revision++;approve.disabled=true;clearPairQR();if(pair)void pair.cancel();retireHosted();});
 let providers=[],selected=null,pending=null,revision=0,cancelled=false,hosted=null,hostedPending=null,hostedProvider=null;
 function retireHosted(){const previous=hosted;hosted=null;hostedProvider=null;if(previous)void previous.detach().catch(()=>{});}
-const message=value=>{status.textContent=value;};
+const message=value=>{status.textContent=t(value);};
 // Expose only a bounded classification, never provider error text, URLs,
 // pairing URI, request bodies or credentials. Public QA can inspect these
 // stable fields without logging the SDK's potentially sensitive error object.
@@ -36,15 +50,15 @@ const failure=(error,phase)=>{
   const code=Number(error?.code)===4001||error?.code==='USER_REJECTED'?'USER_REJECTED':known.has(raw)?raw:error?.name==='AbortError'?'SSO_SERVICE_TIMEOUT':error?.name==='TypeError'?'SSO_TRANSPORT_UNAVAILABLE':'SSO_WALLET_OR_SERVICE_UNAVAILABLE';
   status.dataset.errorCode=code;status.dataset.phase=phase;return code;
 };
-const pairButton=document.createElement('button');pairButton.id='pair';pairButton.type='button';pairButton.textContent='Connect mobile YNX Wallet';
+const pairButton=document.createElement('button');pairButton.id='pair';pairButton.type='button';pairButton.textContent=t('Connect mobile YNX Wallet');
 const pairRegion=document.createElement('div');pairRegion.id='pair-request';pairRegion.hidden=true;
-const pairLabel=document.createElement('p');pairLabel.textContent='Scan with YNX Wallet to approve this browser connection. Browser sign-in remains a separate approval.';
+const pairLabel=document.createElement('p');pairLabel.textContent=t('Scan with YNX Wallet to approve this browser connection. Browser sign-in remains a separate approval.');
 const pairCanvas=document.createElement('canvas');pairCanvas.setAttribute('role','img');pairCanvas.setAttribute('aria-label','Temporary YNX Wallet connection QR code');
-const pairOpen=document.createElement('a');pairOpen.id='pair-open';pairOpen.textContent='Open YNX Wallet';pairOpen.hidden=true;
+const pairOpen=document.createElement('a');pairOpen.id='pair-open';pairOpen.textContent=t('Open YNX Wallet');pairOpen.hidden=true;
 pairRegion.append(pairLabel,pairCanvas,pairOpen);picker.after(pairButton,pairRegion);
 let pair=null,pairPending=null,pairProvider=null;
 const clearPairQR=()=>{pairRegion.hidden=true;pairCanvas.width=pairCanvas.height=0;pairOpen.hidden=true;pairOpen.removeAttribute('href');};
-const hostedButton=document.createElement('button');hostedButton.id='hosted';hostedButton.type='button';hostedButton.textContent='Connect YNX Wallet Web';pairButton.after(hostedButton);
+const hostedButton=document.createElement('button');hostedButton.id='hosted';hostedButton.type='button';hostedButton.textContent=t('Connect YNX Wallet Web');pairButton.after(hostedButton);
 hostedButton.addEventListener('click',()=>{
   if(cancelled||pending||pairPending||hostedPending){message('Finish or cancel your current request before opening another connection.');return;}
   if(Date.parse(challenge.expiresAt)<=Date.now()){failure(new Error('SSO_CHALLENGE_EXPIRED'),'hosted-connect');message('This sign-in request has expired. Return to your product and start a new request.');restart.hidden=false;return;}
@@ -90,7 +104,7 @@ const request=async(path,input)=>{
 discovery.subscribe(snapshot=>{
   providers=snapshot.candidates.filter(value=>value.kind===WALLET_PROVIDER_KIND.YNX).map(value=>value.provider);
   const previous=selected;picker.replaceChildren();
-  const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Choose YNX Wallet';picker.append(placeholder);
+  const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent=t('Choose YNX Wallet');picker.append(placeholder);
   providers.forEach((provider,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=`YNX Wallet ${index+1}`;picker.append(option);});
   if(previous&&providers.includes(previous)){picker.value=String(providers.indexOf(previous));}else if(previous&&previous!==pairProvider&&previous!==hostedProvider){selected=null;revision++;}
   approve.disabled=!selected||cancelled;if(!providers.length&&!pairPending&&!hostedPending&&!selected)message('Installed YNX Wallet is unavailable. Install/unlock it or explicitly choose Wallet Web or mobile Wallet.');
@@ -99,6 +113,7 @@ picker.addEventListener('change',()=>{selected=picker.value===''?null:providers[
 approve.addEventListener('click',()=>{
   if(pending){message('Your request is already open in YNX Wallet.');return;}
   if(!selected||cancelled)return;
+  if(selected===hostedProvider&&hosted)void hosted.reserve().catch(()=>{});
   const provider=selected,epoch=revision;let account=null,chain=null,invalid=false,unsubscribe=()=>{};
   const operationAbort=new AbortController();
   const walletWait=async(work)=>{let timer,onAbort;try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('SSO_REQUEST_TIMEOUT')),Math.max(1,Math.min(30000,Date.parse(challenge.expiresAt)-Date.now())));onAbort=()=>reject(new Error('SSO_CONTEXT_CHANGED'));operationAbort.signal.addEventListener('abort',onAbort,{once:true});})]);}finally{clearTimeout(timer);operationAbort.signal.removeEventListener('abort',onAbort);}};

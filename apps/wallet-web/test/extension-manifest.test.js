@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import assert from "node:assert/strict";
 import test from "node:test";
 import {chromiumManifest, extensionHomepage, extensionVersion, firefoxManifest} from "../src/extension-manifest.js";
@@ -58,3 +59,5 @@ test("Firefox package has a stable declared add-on id but remains unsigned", () 
   assert.equal("gecko_android" in firefoxManifest.browser_specific_settings, false);
   assert.equal("key" in firefoxManifest, false);
 });
+
+test('package, locked package and installer manifest agree on the exact release version',()=>{const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url))),lock=JSON.parse(readFileSync(new URL('../package-lock.json',import.meta.url)));assert.equal(pkg.version,extensionVersion+'-testnet-preview.1');assert.equal(lock.version,pkg.version);assert.equal(lock.packages[''].version,pkg.version);});

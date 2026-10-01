@@ -53,6 +53,35 @@ func TestFinanceSSOExpiredTransactionReturnsTargetWithoutRedeeming(t *testing.T)
 	}
 }
 
+func TestFinanceSSOLocaleActualBrowserFlow(t *testing.T) {
+	s := &Server{cfg: ServerConfig{CentralBrowserSSO: true, WalletGatewayURL: BrowserWalletAuthority, CursorSigningKey: testCursorKey}, now: time.Now}
+	server := httptest.NewServer(http.HandlerFunc(s.ssoStart))
+	defer server.Close()
+	command := exec.Command("node", "../../apps/finance/tests/central-locale-flow.mjs", server.URL+"/sso/start")
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("isolated Finance → real Go start → central source page locale flow failed: %v\n%s", err, output)
+	}
+}
+
+func TestFinanceSSOLocaleCannotAlterRegisteredAuthorization(t *testing.T) {
+	s := &Server{cfg: ServerConfig{CentralBrowserSSO: true, WalletGatewayURL: BrowserWalletAuthority, CursorSigningKey: testCursorKey}, now: time.Now}
+	for _, language := range []string{"en", "zh-CN", "zh-Hant", "javascript:alert(1)", "https://attacker.invalid", "<script>"} {
+		recorder := httptest.NewRecorder()
+		s.ssoStart(recorder, httptest.NewRequest("GET", BrowserFinanceOrigin+"/sso/start?lang="+url.QueryEscape(language), nil))
+		destination, err := url.Parse(recorder.Header().Get("Location"))
+		if err != nil || destination.Scheme+"://"+destination.Host != BrowserWalletAuthority || destination.Query().Get("redirectUri") != BrowserFinanceOrigin+"/sso/callback" || len(destination.Query()) != 6 {
+			t.Fatal("UI language modified registered authorization")
+		}
+		want := ""
+		if language == "en" || language == "zh-CN" || language == "zh-Hant" {
+			want = "lang=" + language
+		}
+		if destination.Fragment != want {
+			t.Fatal("language fragment was not whitelisted")
+		}
+	}
+}
+
 func centralBrowserQAGateway(t *testing.T) string {
 	t.Helper()
 	script, err := filepath.Abs(filepath.Join("..", "..", "apps", "finance", "scripts", "central-browser-session-local-qa.mjs"))

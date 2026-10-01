@@ -18,30 +18,33 @@ function validConnectionRecord(grant) {
     Number.isSafeInteger(grant.expiresAt) && typeof grant.revoked === "boolean" && Array.isArray(grant.scopes) && grant.scopes.join(",") === "account:read,request:review";
 }
 
-function openDatabase(factory) {
-  return new Promise((resolve, reject) => {
-    let request;
-    try { request = factory.open(DB_NAME, 5); } catch { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(STORE)) request.result.createObjectStore(STORE);
-      if (!request.result.objectStoreNames.contains(REPLAY)) request.result.createObjectStore(REPLAY);
-      if (!request.result.objectStoreNames.contains(ACCOUNTS)) request.result.createObjectStore(ACCOUNTS);
-      if (!request.result.objectStoreNames.contains(META)) request.result.createObjectStore(META);
-      if (!request.result.objectStoreNames.contains(JOURNAL)) request.result.createObjectStore(JOURNAL);
-      if (!request.result.objectStoreNames.contains(CONNECTIONS)) request.result.createObjectStore(CONNECTIONS);
+function openDatabase(factory,onClosed=()=>{}) {
+  return new Promise((resolve,reject)=>{
+    let request,settled=false;
+    const denied=code=>{if(!settled){settled=true;reject(problem(code));}};
+    const accepted=handle=>{
+      if(settled){handle.close?.();return;}
+      settled=true;
+      handle.onversionchange=()=>{handle.close();onClosed(handle);};
+      resolve(handle);
     };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => {
-      if(request.error?.name !== "VersionError") { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
-      // Compatibility releases may retain an older schema number. Open the
-      // existing higher-version DB without downgrade/deletion; never migrate
-      // encrypted vault data backwards or silently create an empty wallet.
+    try{request=factory.open(DB_NAME,5);}catch{denied('HOSTED_STORAGE_UNAVAILABLE');return;}
+    request.onupgradeneeded=()=>{
+      if(settled){request.transaction?.abort();return;}
+      for(const name of [STORE,REPLAY,ACCOUNTS,META,JOURNAL,CONNECTIONS])if(!request.result.objectStoreNames.contains(name))request.result.createObjectStore(name);
+    };
+    request.onsuccess=()=>accepted(request.result);
+    request.onblocked=()=>denied('HOSTED_STORAGE_UPGRADE_BLOCKED');
+    request.onerror=()=>{
+      if(settled)return;
+      if(request.error?.name!=='VersionError'){denied('HOSTED_STORAGE_UNAVAILABLE');return;}
+      // Existing higher-version DB only; no deletion, downgrade or key rewrite.
       let compatible;
-      try { compatible=factory.open(DB_NAME); } catch { reject(problem("HOSTED_STORAGE_UNAVAILABLE")); return; }
-      compatible.onsuccess=()=>resolve(compatible.result);
-      compatible.onerror=compatible.onblocked=()=>reject(problem("HOSTED_STORAGE_UNAVAILABLE"));
+      try{compatible=factory.open(DB_NAME);}catch{denied('HOSTED_STORAGE_UNAVAILABLE');return;}
+      compatible.onsuccess=()=>accepted(compatible.result);
+      compatible.onerror=()=>denied('HOSTED_STORAGE_UNAVAILABLE');
+      compatible.onblocked=()=>denied('HOSTED_STORAGE_UPGRADE_BLOCKED');
     };
-    request.onblocked = () => reject(problem("HOSTED_STORAGE_UNAVAILABLE"));
   });
 }
 function transaction(db, mode, action, name = STORE) {
@@ -59,8 +62,15 @@ function transaction(db, mode, action, name = STORE) {
 
 export function createHostedVaultStore(factory = globalThis.indexedDB, cryptoProvider = globalThis.crypto) {
   if (!factory) fail("HOSTED_STORAGE_UNAVAILABLE");
-  let dbPromise;
-  async function db() { return dbPromise ??= openDatabase(factory); }
+  let dbPromise,activeDatabase;
+  async function db() {
+    if(!dbPromise){
+      const opening=openDatabase(factory,handle=>{if(activeDatabase===handle){activeDatabase=null;dbPromise=null;}});
+      const tracked=opening.then(handle=>{activeDatabase=handle;return handle;}).catch(error=>{if(dbPromise===tracked)dbPromise=null;throw error;});
+      dbPromise=tracked;
+    }
+    return dbPromise;
+  }
   async function read() {
     const active = await transaction(await db(), "readonly", store => store.get("selected"), META);
     if (active !== undefined && (typeof active !== "string" || !/^0x[0-9a-f]{40}$/u.test(active))) fail("HOSTED_STORAGE_READ_FAILED");

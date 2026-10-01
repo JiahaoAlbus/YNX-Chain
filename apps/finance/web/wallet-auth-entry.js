@@ -290,6 +290,13 @@ async function boot(){
     void hosted.reserve().catch(()=>{});
   },true);
   document.addEventListener('finance:localechange',render);
+  document.addEventListener('click',event=>{
+    const link=event.target?.closest?.('#browser-signin-start');if(!link)return;
+    // The product handler sets its target first. Add only a display preference
+    // to the same-origin start URL; the backend owns every return destination.
+    const url=new URL(link.href,location.origin),language=document.documentElement.lang;
+    if(url.origin===location.origin&&url.pathname==='/sso/start'&&['en','zh-CN','zh-Hant'].includes(language)){url.searchParams.set('lang',language);link.href=url.href;}
+  });
   document.querySelector('#install-wallet')?.setAttribute('href',DOWNLOAD);
   document.querySelector('#install-metamask')?.setAttribute('href',METAMASK);
   await restoreStandardWallet();

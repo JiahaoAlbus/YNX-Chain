@@ -57,7 +57,7 @@ test('central guest page uses explicit selected native RPC, actual backend conse
     const context=await browser.newContext();const page=await context.newPage();
     if(mode.startsWith('timeout'))await page.clock.install();
     let completeCalls=0;
-    await context.route(`${issuer}/**`,async route=>{const url=new URL(route.request().url());if(mode.startsWith('pair')&&url.pathname==='/sso/browser.js')return route.fulfill({body:pairFixture.outputFiles[0].text,contentType:'text/javascript'});if(url.pathname.endsWith('/complete'))completeCalls++;const response=await route.fetch({url:`http://127.0.0.1:${server.address().port}${url.pathname}${url.search}`,maxRedirects:0,timeout:5000});
+    await context.route(`${issuer}/**`,async route=>{const url=new URL(route.request().url());if(url.pathname==='/sso/browser.js')return route.fulfill({body:pairFixture.outputFiles[0].text,contentType:'text/javascript'});if(url.pathname.endsWith('/complete'))completeCalls++;const response=await route.fetch({url:`http://127.0.0.1:${server.address().port}${url.pathname}${url.search}`,maxRedirects:0,timeout:5000});
       if(mode.endsWith('-complete')&&url.pathname.endsWith('/complete')){completedCookie=response.headers()['set-cookie'].split(';')[0];notifyComplete();await Promise.race([completion,new Promise(resolve=>setTimeout(resolve,5000))]);}
       await route.fulfill({response}).catch(()=>{});
     });
