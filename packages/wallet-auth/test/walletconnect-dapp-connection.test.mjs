@@ -121,3 +121,10 @@ test('Social exact origin uses the existing official private method transport wi
  for(const origin of ['https://social.ynxweb4.com.evil.example','http://social.ynxweb4.com','https://www.social.ynxweb4.com'])assert.throws(()=>new WalletConnectDAppConnection({origin,methods:['ynx_requestProductSessionV2']}));
  for(const method of ['eth_sendTransaction','personal_sign','ynx_requestCentralBrowserSignIn'])assert.throws(()=>new WalletConnectDAppConnection({origin:'https://social.ynxweb4.com',methods:[method]}));
 });
+
+
+test('AI exact origin uses the existing official private method transport without widening guards',async()=>{
+ let options;const client={on(){},session:{getAll:()=>[]}};const c=new WalletConnectDAppConnection({origin:'https://assistant.ynxweb4.com',methods:['ynx_requestProductSessionV2'],clientFactory:async input=>{options=input;return client;}});await c.initialize();assert.equal(options.projectId,YNX_PAIR_PROJECT_ID);assert.equal(options.metadata.url,'https://assistant.ynxweb4.com');
+ for(const origin of ['https://assistant.ynxweb4.com.evil.example','http://assistant.ynxweb4.com','https://www.assistant.ynxweb4.com'])assert.throws(()=>new WalletConnectDAppConnection({origin,methods:['ynx_requestProductSessionV2']}));
+ for(const method of ['eth_sendTransaction','personal_sign','ynx_requestCentralBrowserSignIn'])assert.throws(()=>new WalletConnectDAppConnection({origin:'https://assistant.ynxweb4.com',methods:[method]}));
+});

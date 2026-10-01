@@ -1,3 +1,4 @@
+import { createHostedWalletAdapter } from "../src/hosted-adapter.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { HOSTED_CHAIN_ID, HOSTED_PROTOCOL, assertHostedMethodAllowed, encodeHostedConnect, hostedEnvelope, parseHostedConnect, randomHostedId, registeredProduct, validateHostedMessage } from "../src/hosted-protocol.js";
@@ -36,3 +37,16 @@ test("opener source, origin, nonce, expiry and one-use message ID all bind the s
  const opener={},message=hostedEnvelope(value,"hello",{},now);assert.throws(()=>validateHostedMessage({source:opener,origin:"https://finance.ynxweb4.com",data:message},opener,value,new Set(),now));
  assert.throws(()=>validateHostedMessage({source:opener,origin,data:message},opener,{...value,nonce:randomHostedId()},new Set(),now));
  });
+
+ test("first-party AI transport preserves its native-only registry and private-request boundary", () => {
+ const origin="https://assistant.ynxweb4.com",value=request(origin),product=registeredProduct(origin);
+ assert.equal(product.productId,"ai");assert.equal(product.clientId,"ynx-ai-v1");assert.equal(product.evmCompatible,false);
+ assert.deepEqual(parseHostedConnect(encodeHostedConnect(value),now),value);
+ for(const method of ["eth_requestAccounts","eth_accounts","eth_chainId","ynx_requestProductSessionV2","wallet_disconnect","wallet_revokePermissions"])assert.doesNotThrow(()=>assertHostedMethodAllowed(origin,method));
+ for(const method of ["personal_sign","eth_sendTransaction","ynx_requestCentralBrowserSignIn"])assert.throws(()=>assertHostedMethodAllowed(origin,method),/HOSTED_AI_PRIVATE_ONLY/);
+ for(const bad of ["https://assistant.ynxweb4.com.evil.example","https://www.assistant.ynxweb4.com","http://assistant.ynxweb4.com"])assert.throws(()=>parseHostedConnect(encodeHostedConnect(request(bad)),now));
+ const opener={},message=hostedEnvelope(value,"hello",{},now);assert.throws(()=>validateHostedMessage({source:opener,origin:"https://finance.ynxweb4.com",data:message},opener,value,new Set(),now));
+ assert.throws(()=>validateHostedMessage({source:opener,origin,data:message},opener,{...value,nonce:randomHostedId()},new Set(),now));
+ });
+
+test("actual AI Hosted adapter accepts only the registered HTTPS origin",()=>{assert.doesNotThrow(()=>createHostedWalletAdapter({window:{location:{origin:"https://assistant.ynxweb4.com"}}}));for(const origin of ["https://assistant.ynxweb4.com.evil.example","http://assistant.ynxweb4.com","https://www.assistant.ynxweb4.com"])assert.throws(()=>createHostedWalletAdapter({window:{location:{origin}}}),/HOSTED_ORIGIN_UNREGISTERED/);});

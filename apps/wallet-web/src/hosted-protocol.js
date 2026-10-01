@@ -15,10 +15,10 @@ function fail(code) { throw Object.assign(new Error(code), { code }); }
 export function registeredProduct(origin) {
   if (typeof origin !== "string" || !/^https:\/\/[a-z0-9.-]+$/u.test(origin)) return null;
   if (origin === CENTRAL_BROWSER_ISSUER) return Object.freeze({ productId: "central-browser-identity", webOrigin: origin, evmCompatible: true });
-  return registry.products.find(product => product.webOrigin === origin && (product.evmCompatible === true || (product.productId === "social" && product.clientId === "ynx-social-v1" && product.applicationId === "com.ynx.social" && origin === "https://social.ynxweb4.com" && product.evmCompatible === false))) ?? null;
+  return registry.products.find(product => product.webOrigin === origin && (product.evmCompatible === true || (product.productId === "social" && product.clientId === "ynx-social-v1" && product.applicationId === "com.ynx.social" && origin === "https://social.ynxweb4.com" && product.evmCompatible === false) || (product.productId === "ai" && product.clientId === "ynx-ai-v1" && product.applicationId === "com.ynxweb4.ai" && origin === "https://assistant.ynxweb4.com" && product.evmCompatible === false))) ?? null;
 }
 export function assertHostedMethodAllowed(origin, method) {
-  if (origin === "https://social.ynxweb4.com" && !["ynx_requestProductSessionV2","eth_requestAccounts","eth_accounts","eth_chainId","wallet_disconnect","wallet_revokePermissions","wallet_addEthereumChain","wallet_switchEthereumChain"].includes(method)) fail("HOSTED_SOCIAL_PRIVATE_ONLY");
+  if (["https://social.ynxweb4.com","https://assistant.ynxweb4.com"].includes(origin) && !["ynx_requestProductSessionV2","eth_requestAccounts","eth_accounts","eth_chainId","wallet_disconnect","wallet_revokePermissions","wallet_addEthereumChain","wallet_switchEthereumChain"].includes(method)) fail(origin === "https://social.ynxweb4.com" ? "HOSTED_SOCIAL_PRIVATE_ONLY" : "HOSTED_AI_PRIVATE_ONLY");
   if (origin === CENTRAL_BROWSER_ISSUER && ![CENTRAL_BROWSER_RPC_METHOD,"eth_requestAccounts","eth_accounts","eth_chainId","wallet_disconnect","wallet_revokePermissions","wallet_addEthereumChain","wallet_switchEthereumChain"].includes(method)) fail("HOSTED_IDENTITY_ONLY");
 }
 export function randomHostedId(cryptoProvider = globalThis.crypto) {
