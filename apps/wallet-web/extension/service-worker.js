@@ -16,6 +16,7 @@ const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
 const firefoxContext=new URL(extensionApi.runtime.getURL("")).protocol==="moz-extension:";
 const browserContextForTab=tab=>providerContextForTab(tab,{firefox:firefoxContext});
 const approvalWaiters=new Map();
+const setupWaiters=new Map();
 const signerWaiters=new Map();
 const privateWaiters=new Map();
 const broadcastJournal=new ExtensionBroadcastJournal(extensionApi.storage.local);
@@ -23,12 +24,12 @@ const authorizationGuard=new SensitiveAuthorizationGuard({getTab:id=>extensionAp
 let authorityMutation=Promise.resolve(),vaultRevision=0;
 const vaultRecoveries=new Map();
 function cancelVaultTab(tabId){for(const lease of vaultRecoveries.values())if(lease.tabId===tabId)lease.cancelled=true}
-function invalidateDocument(tabId){authorizationGuard.invalidateTab(tabId);cancelVaultTab(tabId);invalidateWaiters("DOCUMENT_CHANGED","The requesting DApp document changed. Start a new request.",null,tabId)}
+function invalidateDocument(tabId){authorizationGuard.invalidateTab(tabId);cancelVaultTab(tabId);for(const waiter of setupWaiters.values())if(waiter.documentLease.tabId===tabId)waiter.reject(Object.assign(new Error("The requesting DApp document changed."),{code:"DOCUMENT_CHANGED"}));invalidateWaiters("DOCUMENT_CHANGED","The requesting DApp document changed. Start a new request.",null,tabId)}
 // Same-URL reloads must revoke an in-flight password authorization even if the
 // departing page's best-effort Cancel message is lost.
 extensionApi.tabs.onUpdated?.addListener((tabId,change)=>{if(change.status==="loading"||typeof change.url==="string")invalidateDocument(tabId)});
 extensionApi.tabs.onRemoved?.addListener(tabId=>invalidateDocument(tabId));
-extensionApi.windows.onRemoved?.addListener(windowId=>{for(const waiter of privateWaiters.values())if(waiter.windowId===windowId&&!waiter.decided){waiter.cancelled=true;waiter.reject(Object.assign(new Error("Private approval window was closed."),{code:"PRIVATE_APPROVAL_CLOSED"}))}});
+extensionApi.windows.onRemoved?.addListener(windowId=>{for(const waiter of setupWaiters.values())if(waiter.windowId===null){waiter.closedBeforeCreate.add(windowId)}else if(waiter.windowId===windowId)waiter.reject(Object.assign(new Error("Account setup window was closed."),{code:"ACCOUNT_SETUP_CLOSED"}));for(const waiter of privateWaiters.values())if(waiter.windowId===windowId&&!waiter.decided){waiter.cancelled=true;waiter.reject(Object.assign(new Error("Private approval window was closed."),{code:"PRIVATE_APPROVAL_CLOSED"}))}});
 extensionApi.tabs.onActivated?.addListener(({tabId,windowId})=>{void Promise.all([extensionApi.tabs.get(tabId),extensionApi.windows.get(windowId)]).then(([tab,window])=>{
   // Opening the Wallet review popup changes focus to an extension-owned window.
   if(window?.type==="popup"||tab?.url?.startsWith(extensionApi.runtime.getURL(""))||tab?.pendingUrl?.startsWith(extensionApi.runtime.getURL("")))return;
@@ -82,7 +83,7 @@ function requireExtensionPage(sender,page){if(sender?.tab?.incognito===true)thro
 function requireVaultPage(sender){requireExtensionPage(sender,"vault.html")}
 function requireReviewPage(sender,page,requestId){requireExtensionPage(sender,page);if(new URL(sender.url).searchParams.get("requestId")!==requestId)throw Object.assign(new Error("Review window does not match this request."),{code:"EXTENSION_CALLER_REJECTED"})}
 async function vaultStatus(){const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY);if(stored?.[EXTENSION_VAULT_KEY]===undefined)return{configured:false};const vault=parseEncryptedVault(stored[EXTENSION_VAULT_KEY]);return{configured:true,account:vault.account,createdAt:vault.createdAt,transaction:await broadcastJournal.status(vault.account)}}
-async function storeVault(vaultValue){const vault=parseEncryptedVault(vaultValue),account=providerAccountFromVault(vault);vaultRevision++;authorizationGuard.invalidateAll();invalidateWaiters("PROVIDER_ACCOUNT_CHANGED","Wallet account changed during approval.");await mutateAuthority(()=>extensionApi.storage.local.set({[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:{}}));return account}
+async function storeVault(vaultValue,{onlyIfMissing=false}={}){const vault=parseEncryptedVault(vaultValue),account=providerAccountFromVault(vault);await mutateAuthority(async()=>{if(onlyIfMissing&&(await extensionApi.storage.local.get(EXTENSION_VAULT_KEY))[EXTENSION_VAULT_KEY]!==undefined)throw Object.assign(new Error("An existing account must not be replaced by connection setup."),{code:"ACCOUNT_SETUP_ALREADY_CONFIGURED"});vaultRevision++;authorizationGuard.invalidateAll();invalidateWaiters("PROVIDER_ACCOUNT_CHANGED","Wallet account changed during approval.");await extensionApi.storage.local.set({[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:{}})});return account}
 async function removeVault(){vaultRevision++;authorizationGuard.invalidateAll();invalidateWaiters("PROVIDER_ACCOUNT_CHANGED","Wallet was removed during approval.");await mutateAuthority(()=>extensionApi.storage.local.remove([EXTENSION_VAULT_KEY,PROVIDER_ACCOUNT_KEY,PROVIDER_PERMISSIONS_KEY]));return true}
 function recoveryFailure(){return Object.assign(new Error("Recovery authorization ended. A submission already in progress may still complete; check the original transaction."),{code:"RECOVERY_CANCELLED"})}
 function validateRecoveryTarget(message){
@@ -167,8 +168,22 @@ async function removePermission(origin,browserContext,requestingDocument){
 }
 function approvalKey(requestId){return `${PROVIDER_PENDING_PREFIX}${requestId}`}
 async function cleanupApproval(requestId,windowId){approvalWaiters.delete(requestId);await extensionApi.storage.session.remove(approvalKey(requestId)).catch(()=>{});if(Number.isInteger(windowId))await extensionApi.windows.remove(windowId).catch(()=>{})}
-async function requestAccountApproval(tabId,origin,requestId,deadlineAt,documentLease){
+async function setupForConnection(requestId,documentLease){
+  await authorizationGuard.assertDocument(documentLease);
+  let windowId=null,timer;
+  const completion=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error("Account setup expired. Start a new connection."),{code:"ACCOUNT_SETUP_EXPIRED"})),Math.max(1,documentLease.deadlineAt-Date.now()));setupWaiters.set(requestId,{documentLease,resolve,reject,continued:false,closedBeforeCreate:new Set(),get windowId(){return windowId}})});void completion.catch(()=>{});
+  try{
+    const created=await extensionApi.windows.create({url:extensionApi.runtime.getURL(`vault.html?requestId=${encodeURIComponent(requestId)}`),type:"popup",width:460,height:740,focused:true});windowId=created?.id;if(setupWaiters.get(requestId)?.closedBeforeCreate.has(windowId))throw Object.assign(new Error("Account setup window was closed."),{code:"ACCOUNT_SETUP_CLOSED"});
+    await completion;await authorizationGuard.assertDocument(documentLease);
+    // Creating the previously absent encrypted account invalidates account
+    // leases. Preserve the original document fence, then capture its new account
+    // revision for the separate connection review; setup itself grants nothing.
+    return authorizationGuard.capture(documentLease);
+  }finally{clearTimeout(timer);setupWaiters.delete(requestId);if(Number.isInteger(windowId))await extensionApi.windows.remove(windowId).catch(()=>{})}
+}
+async function requestAccountApproval(tabId,origin,requestId,deadlineAt,documentLease,onSetupLease=()=>{}){
   const existing=await approvedState(origin,documentLease.browserContext);authorizationGuard.assertCurrent(documentLease);if(existing?.permission)return[existing.permission.account];
+  try{await configuredAccount()}catch(error){if(error?.code!=="PROVIDER_ACCOUNT_UNAVAILABLE"||error?.data?.status!=="account_vault_missing")throw error;const saved=await extensionApi.storage.local.get([PROVIDER_ACCOUNT_KEY,PROVIDER_PERMISSIONS_KEY]);if(saved[PROVIDER_ACCOUNT_KEY]!==undefined||Object.keys(parsePermissionStore(saved[PROVIDER_PERMISSIONS_KEY])).length)throw error;documentLease=await setupForConnection(requestId,documentLease);onSetupLease(documentLease)}
   const account=await configuredAccount(),lease=authorizationGuard.bind(documentLease,{account:account.account}),pending=createPendingApproval({requestId,origin,tabId,account,deadlineAt,browserContext:lease.browserContext});await authorizationGuard.assert(lease,{permissionRequired:false});
   await extensionApi.storage.session.set({[approvalKey(requestId)]:pending});
   let windowId=null,timer;
@@ -212,15 +227,16 @@ function exactPermissionParams(method,params){
   const request=Array.isArray(params)&&params.length===1?params[0]:null;
   if(!request||typeof request!=="object"||Array.isArray(request)||Object.keys(request).join(",")!=="eth_accounts"||typeof request.eth_accounts!=="object"||request.eth_accounts===null||Array.isArray(request.eth_accounts)||Object.keys(request.eth_accounts).length!==0)throw Object.assign(new Error(`${method} accepts only eth_accounts.`),{code:-32602});
 }
-async function handleProviderMethod({tabId,origin,requestId,deadlineAt,method,params,documentLease}){
+async function handleProviderMethod({tabId,origin,requestId,deadlineAt,method,params,documentLease,onSetupLease}){
+  const updateSetupLease=lease=>{documentLease=lease;onSetupLease?.(lease)};
   await authorizationGuard.assertDocument(documentLease);
   if(method==="eth_chainId")return CHAIN_ID;
   if(method==="net_version")return String(Number.parseInt(CHAIN_ID,16));
   if(READ_ONLY_RPC_METHODS.includes(method))return forwardExtensionRpc(method,params);
   if(method==="eth_accounts"){const state=await approvedState(origin,documentLease.browserContext);return state?.permission?[state.permission.account]:[]}
-  if(method==="eth_requestAccounts")return requestAccountApproval(tabId,origin,requestId,deadlineAt,documentLease);
+  if(method==="eth_requestAccounts")return requestAccountApproval(tabId,origin,requestId,deadlineAt,documentLease,updateSetupLease);
   if(method==="wallet_getPermissions"){const state=await approvedState(origin,documentLease.browserContext);return eip2255Permissions(state?.permission||null)}
-  if(method==="wallet_requestPermissions"){exactPermissionParams(method,params);const accounts=await requestAccountApproval(tabId,origin,requestId,deadlineAt,documentLease);const state=await approvedState(origin,documentLease.browserContext);authorizationGuard.assertCurrent(documentLease);if(state?.permission?.account!==accounts[0])throw Object.assign(new Error("Wallet permission did not persist."),{code:"PERMISSION_NOT_PERSISTED"});return eip2255Permissions(state.permission)}
+  if(method==="wallet_requestPermissions"){exactPermissionParams(method,params);const accounts=await requestAccountApproval(tabId,origin,requestId,deadlineAt,documentLease,updateSetupLease);const state=await approvedState(origin,documentLease.browserContext);authorizationGuard.assertCurrent(documentLease);if(state?.permission?.account!==accounts[0])throw Object.assign(new Error("Wallet permission did not persist."),{code:"PERMISSION_NOT_PERSISTED"});return eip2255Permissions(state.permission)}
   if(method==="wallet_revokePermissions"||method==="ynx_disconnect"){
     if(method==="wallet_revokePermissions")exactPermissionParams(method,params);await removePermission(origin,documentLease.browserContext,documentLease);return null
   }
@@ -250,12 +266,12 @@ async function handleDappRequest(message,sender){
   if(!validDocumentNonce(message?.documentNonce))throw Object.assign(new Error("Reload the DApp to activate the current Wallet bridge, then start a new request."),{code:"DOCUMENT_BRIDGE_RELOAD_REQUIRED"});
   if(!Number.isInteger(sender?.tab?.id)||sender?.frameId!==0||!validateRuntimeRequest(message,senderUrl))throw Object.assign(new Error("Rejected invalid DApp bridge request."),{code:"INVALID_BRIDGE_REQUEST"});
   if(sender.documentLifecycle!==undefined&&sender.documentLifecycle!=="active"||sender.documentId!==undefined&&!validBrowserDocumentId(sender.documentId,{firefox:firefoxContext})||!firefoxContext&&!validBrowserDocumentId(sender.documentId))throw Object.assign(new Error("The requesting DApp document is not active. Start a new request."),{code:"DOCUMENT_CHANGED"});
-  const tabId=sender.tab.id,origin=message.origin,documentLease=authorizationGuard.capture({tabId,origin,deadlineAt:message.deadlineAt,documentId:sender.documentId,documentNonce:message.documentNonce,browserContext:browserContextForTab(sender.tab)});
+  const tabId=sender.tab.id,origin=message.origin;let documentLease=authorizationGuard.capture({tabId,origin,deadlineAt:message.deadlineAt,documentId:sender.documentId,documentNonce:message.documentNonce,browserContext:browserContextForTab(sender.tab)});
   const sensitive=parseSensitiveRequest(message);
   await requireMigrationReady();await authorizationGuard.assertDocument(documentLease);
   let internalRequestId=message.requestId;
   if(sensitive||(message.method===PRIVATE_METHOD||message.method===CENTRAL_METHOD)){internalRequestId=await deriveScopedSensitiveRequestId({...documentLease,requestId:message.requestId});await authorizationGuard.assertDocument(documentLease);if(sensitive)await consumeSensitiveRequest(extensionApi.storage?.session,{...message,requestId:internalRequestId},Date.now(),{scopeBound:true})}
-  const result=(message.method===PRIVATE_METHOD||message.method===CENTRAL_METHOD)?await handlePrivateRequest({...message,requestId:internalRequestId},documentLease):await handleProviderMethod({tabId,origin,requestId:internalRequestId,deadlineAt:message.deadlineAt,method:message.method,params:message.params,documentLease});
+  const result=(message.method===PRIVATE_METHOD||message.method===CENTRAL_METHOD)?await handlePrivateRequest({...message,requestId:internalRequestId},documentLease):await handleProviderMethod({tabId,origin,requestId:internalRequestId,deadlineAt:message.deadlineAt,method:message.method,params:message.params,documentLease,onSetupLease:lease=>{documentLease=lease}});
   await authorizationGuard.assertDocument(documentLease);if(sensitive)authorizationGuard.assertCurrent(documentLease);
   return sensitive?validateSensitiveResult(message.method,result):result;
 }
@@ -265,7 +281,7 @@ async function activeProviderRequest(preference,input){
   const capture=authorizationGuard.capturePending(),deadlineAt=Date.now()+120000;
   await requireMigrationReady();const context=await ensureActiveTabBridge(capture,deadlineAt);
   const requestId=`ynx-${crypto.randomUUID()}`,message={requestId,deadlineAt,method:input.method,params:input.params},sensitive=parseSensitiveRequest(message);
-  if(sensitive){message.requestId=await deriveScopedSensitiveRequestId({...context,requestId:message.requestId});await authorizationGuard.assertDocument(context.documentLease);await consumeSensitiveRequest(extensionApi.storage?.session,message,Date.now(),{scopeBound:true})}const result=await handleProviderMethod({...context,...message});await authorizationGuard.assertDocument(context.documentLease);if(sensitive)authorizationGuard.assertCurrent(context.documentLease);return result;
+  if(sensitive){message.requestId=await deriveScopedSensitiveRequestId({...context,requestId:message.requestId});await authorizationGuard.assertDocument(context.documentLease);await consumeSensitiveRequest(extensionApi.storage?.session,message,Date.now(),{scopeBound:true})}const result=await handleProviderMethod({...context,...message,onSetupLease:lease=>{context.documentLease=lease}});await authorizationGuard.assertDocument(context.documentLease);if(sensitive)authorizationGuard.assertCurrent(context.documentLease);return result;
 }
 
 extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
@@ -295,6 +311,17 @@ extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
       }finally{waiter.busy=false}
     }).then(result=>sendResponse({ok:true,...result})).catch(error=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
   }
+  if(message?.type==="YNX_CONNECTION_SETUP_GET_V1"||message?.type==="YNX_CONNECTION_SETUP_CONTINUE_V1"){
+    Promise.resolve().then(async()=>{
+      requireReviewPage(sender,"vault.html",message.requestId);
+      const waiter=setupWaiters.get(message.requestId);
+      if(!waiter||waiter.continued)throw Object.assign(new Error("Connection setup is no longer active."),{code:"ACCOUNT_SETUP_UNAVAILABLE"});
+      await authorizationGuard.assertDocument(waiter.documentLease);
+      if(!Number.isInteger(waiter.windowId)||sender?.tab?.windowId!==waiter.windowId||setupWaiters.get(message.requestId)!==waiter)throw Object.assign(new Error("Connection setup window does not match this request."),{code:"EXTENSION_CALLER_REJECTED"});
+      if(message.type==="YNX_CONNECTION_SETUP_CONTINUE_V1"){await configuredAccount();await authorizationGuard.assertDocument(waiter.documentLease);waiter.continued=true;waiter.resolve();return{}}
+      return{origin:waiter.documentLease.origin,deadlineAt:waiter.documentLease.deadlineAt};
+    }).then(result=>sendResponse({ok:true,...result})).catch(error=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
+  }
   if(message?.type==="YNX_VAULT_STATUS_V1"||message?.type==="YNX_VAULT_STORE_V1"||message?.type==="YNX_VAULT_REMOVE_V1"||message?.type==="YNX_VAULT_TRANSACTION_CHECK_V1"||message?.type==="YNX_VAULT_TRANSACTION_CHECK_V2"||message?.type==="YNX_VAULT_TRANSACTION_RETRY_V2"||message?.type==="YNX_VAULT_TRANSACTION_CANCEL_V2"){
     Promise.resolve().then(()=>requireVaultPage(sender)).then(async()=>{
       if(message.type==="YNX_VAULT_STATUS_V1")return vaultStatus();
@@ -310,7 +337,11 @@ extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
         if(revision!==vaultRevision||(await configuredAccount()).account!==message.account)throw recoveryFailure();return{transaction};
       }
       if(message.type==="YNX_VAULT_TRANSACTION_CHECK_V1"){const account=await configuredAccount();return{transaction:await broadcastJournal.status(account.account,{rpc:forwardExtensionRpc,refresh:true})}}
-      if(message.type==="YNX_VAULT_STORE_V1")return{account:(await storeVault(message.vault)).account};
+      if(message.type==="YNX_VAULT_STORE_V1"){
+        const requestId=new URL(sender.url).searchParams.get("requestId");
+        if(requestId){requireReviewPage(sender,"vault.html",requestId);const waiter=setupWaiters.get(requestId);if(!waiter||waiter.continued)throw Object.assign(new Error("Connection setup ended; reopen the account manager."),{code:"ACCOUNT_SETUP_UNAVAILABLE"});await authorizationGuard.assertDocument(waiter.documentLease);if(!Number.isInteger(waiter.windowId)||sender?.tab?.windowId!==waiter.windowId)throw Object.assign(new Error("Connection setup window does not match this request."),{code:"EXTENSION_CALLER_REJECTED"})}
+        return{account:(await storeVault(message.vault,{onlyIfMissing:Boolean(requestId)})).account};
+      }
       await removeVault();return{removed:true};
     }).then(result=>sendResponse({ok:true,...result})).catch(error=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
   }
