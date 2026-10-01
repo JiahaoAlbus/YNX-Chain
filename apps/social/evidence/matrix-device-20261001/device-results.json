@@ -1,0 +1,10 @@
+{
+  "status": "FAILED",
+  "checks": [
+    "initial-trusted-encrypted-send",
+    "new-device-server-discovery-without-resetting-original-keys",
+    "changed-device-rotation-and-unverified-send-block",
+    "device-removal-requires-confirmation"
+  ],
+  "error": "Error: page.evaluate: Unknown error code: MatrixError: [401] Unknown message (http://127.0.0.1:50665/_matrix/client/v3/devices/YNX-967d314b-cced-41a5-9205-a8038975f92a)\n    at parseErrorResponse (http://127.0.0.1:51134/qa.js:15078:12)\n    at MatrixHttpApi.requestOtherUrl (http://127.0.0.1:51134/qa.js:16164:17)\n    at async MatrixHttpApi.doAuthedRequest (http://127.0.0.1:51134/qa.js:16044:28)\n    at async MatrixSocialTransport.revokeOwnDevice (http://127.0.0.1:51134/qa.js:71319:5)\n    at async <anonymous>:337:30"
+}

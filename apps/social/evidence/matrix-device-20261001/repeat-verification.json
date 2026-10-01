@@ -1,0 +1,579 @@
+{
+  "status": "FAILED",
+  "checks": [
+    {
+      "name": "two-independent-homeservers-and-Rust-crypto",
+      "passed": true
+    },
+    {
+      "name": "unverified-device-send-rejected",
+      "passed": true
+    },
+    {
+      "name": "fresh-unverified-device-explicit-rejection",
+      "passed": true
+    },
+    {
+      "name": "standard-SAS-matched-and-both-confirmed",
+      "passed": true
+    },
+    {
+      "name": "bidirectional-federated-ciphertext-and-peer-decryption",
+      "passed": true
+    },
+    {
+      "name": "both-server-readbacks-encrypted-not-plaintext",
+      "passed": true
+    },
+    {
+      "name": "federated-encrypted-attachment-decrypted",
+      "passed": true
+    },
+    {
+      "name": "browser-process-cold-start-original-device-key-and-offline-history",
+      "passed": true
+    }
+  ],
+  "error": "Error: QA condition timed out: id=>window.t.requests.get(id)?.phase===2",
+  "pageErrors": [],
+  "diagnostics": [
+    {
+      "devices": [
+        {
+          "user": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+          "device": "YNX-86501cc4-94ff-4a61-88f9-e522d9094f1b",
+          "verified": true,
+          "keys": [
+            "curve25519:YNX-86501cc4-94ff-4a61-88f9-e522d9094f1b",
+            "ed25519:YNX-86501cc4-94ff-4a61-88f9-e522d9094f1b"
+          ]
+        },
+        {
+          "user": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "device": "YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d",
+          "verified": true,
+          "keys": [
+            "curve25519:YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d",
+            "ed25519:YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d"
+          ]
+        }
+      ],
+      "connected": true,
+      "syncState": "SYNCING",
+      "requests": [
+        {
+          "id": "58042af485414dd2acdf63ca6c2bc727",
+          "phase": 5,
+          "pending": false,
+          "cancellationCode": "m.user"
+        },
+        {
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 6,
+          "pending": false,
+          "cancellationCode": null
+        },
+        {
+          "id": "5b4ee9c37074438ab917194748d783e1",
+          "phase": 5,
+          "pending": false,
+          "cancellationCode": "m.user"
+        }
+      ],
+      "events": [
+        {
+          "at": 1790865567283,
+          "type": "sync",
+          "state": "PREPARED",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865567283,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865569434,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865569456,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865569510,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865569550,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865569567,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865569597,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865569748,
+          "type": "verification-state",
+          "id": "58042af485414dd2acdf63ca6c2bc727",
+          "phase": 2,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865569878,
+          "type": "verification-state",
+          "id": "58042af485414dd2acdf63ca6c2bc727",
+          "phase": 5,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865569880,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865569982,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 2,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865570108,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 3,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d"
+        },
+        {
+          "at": 1790865570110,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865570208,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d"
+        },
+        {
+          "at": 1790865570253,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d"
+        },
+        {
+          "at": 1790865570255,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865570263,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d"
+        },
+        {
+          "at": 1790865570285,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d"
+        },
+        {
+          "at": 1790865570285,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346"
+        },
+        {
+          "at": 1790865570287,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865570328,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d"
+        },
+        {
+          "at": 1790865570347,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 4,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "deviceId": "YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d"
+        },
+        {
+          "at": 1790865570349,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865570375,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 6,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865570375,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 6,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865570376,
+          "type": "verification-done",
+          "id": "4ed20a974cb4480586416a6caef32346"
+        },
+        {
+          "at": 1790865570379,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865570395,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865570506,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865570636,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865570676,
+          "type": "encrypted-event",
+          "roomId": "!3ZodB_1vLe8uY7Hk8Q4DpXXwiprLiCdUvjkEnzH3EAM",
+          "eventId": "$-t2ieTnO9H63aWb-2coceBwXy8US5xjllYSrpayYFvQ"
+        },
+        {
+          "at": 1790865570676,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865570813,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571128,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571959,
+          "type": "verification-state",
+          "id": "5b4ee9c37074438ab917194748d783e1",
+          "phase": 2,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865571983,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571990,
+          "type": "verification-state",
+          "id": "5b4ee9c37074438ab917194748d783e1",
+          "phase": 5,
+          "userId": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865571992,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865602007,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        }
+      ]
+    },
+    {
+      "devices": [
+        {
+          "user": "@ynx1bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:b.ynx-matrix.test:8448",
+          "device": "YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d",
+          "verified": true,
+          "keys": [
+            "curve25519:YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d",
+            "ed25519:YNX-494654c7-73e1-4644-b1b9-e1e1aebcb48d"
+          ]
+        },
+        {
+          "user": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+          "device": "YNX-86501cc4-94ff-4a61-88f9-e522d9094f1b",
+          "verified": true,
+          "keys": [
+            "curve25519:YNX-86501cc4-94ff-4a61-88f9-e522d9094f1b",
+            "ed25519:YNX-86501cc4-94ff-4a61-88f9-e522d9094f1b"
+          ]
+        }
+      ],
+      "connected": true,
+      "syncState": "SYNCING",
+      "requests": [
+        {
+          "id": "58042af485414dd2acdf63ca6c2bc727",
+          "phase": 5,
+          "pending": false,
+          "cancellationCode": "m.user"
+        },
+        {
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 5,
+          "pending": false,
+          "cancellationCode": "m.user"
+        },
+        {
+          "id": "5b4ee9c37074438ab917194748d783e1",
+          "phase": 5,
+          "pending": false,
+          "cancellationCode": "m.user"
+        }
+      ],
+      "events": [
+        {
+          "at": 1790865571761,
+          "type": "sync",
+          "state": "PREPARED",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571761,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571775,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571782,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571792,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571803,
+          "type": "verification-state",
+          "id": "58042af485414dd2acdf63ca6c2bc727",
+          "phase": 2,
+          "userId": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+          "deviceId": "YNX-86501cc4-94ff-4a61-88f9-e522d9094f1b"
+        },
+        {
+          "at": 1790865571803,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571808,
+          "type": "verification-state",
+          "id": "58042af485414dd2acdf63ca6c2bc727",
+          "phase": 5,
+          "userId": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865571810,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571816,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 2,
+          "userId": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448",
+          "deviceId": "YNX-86501cc4-94ff-4a61-88f9-e522d9094f1b"
+        },
+        {
+          "at": 1790865571816,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571823,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571829,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571837,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571843,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571850,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571861,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571866,
+          "type": "encrypted-event",
+          "roomId": "!3ZodB_1vLe8uY7Hk8Q4DpXXwiprLiCdUvjkEnzH3EAM",
+          "eventId": "$b6Z-MUyrUZBp4542_7XrmLnAMSN7H_oM8_oD7EO0VuY"
+        },
+        {
+          "at": 1790865571868,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571874,
+          "type": "encrypted-event",
+          "roomId": "!3ZodB_1vLe8uY7Hk8Q4DpXXwiprLiCdUvjkEnzH3EAM",
+          "eventId": "$-t2ieTnO9H63aWb-2coceBwXy8US5xjllYSrpayYFvQ"
+        },
+        {
+          "at": 1790865571875,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571879,
+          "type": "encrypted-event",
+          "roomId": "!3ZodB_1vLe8uY7Hk8Q4DpXXwiprLiCdUvjkEnzH3EAM",
+          "eventId": "$tEsN3YrDZlTUTLP-97LaFK_7oLrTgijK6UVsoTj7KE8"
+        },
+        {
+          "at": 1790865571879,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571884,
+          "type": "encrypted-event",
+          "roomId": "!3ZodB_1vLe8uY7Hk8Q4DpXXwiprLiCdUvjkEnzH3EAM",
+          "eventId": "$s_bPIeiEZ98FGvoyXKgRBJnVpMK_KirkUT3pvHdEHUM"
+        },
+        {
+          "at": 1790865571884,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865571966,
+          "type": "verification-state",
+          "id": "4ed20a974cb4480586416a6caef32346",
+          "phase": 5,
+          "userId": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865571968,
+          "type": "verification-state",
+          "id": "5b4ee9c37074438ab917194748d783e1",
+          "phase": 5,
+          "userId": "@ynx1aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:a.ynx-matrix.test:8448"
+        },
+        {
+          "at": 1790865571968,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865572005,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        },
+        {
+          "at": 1790865602016,
+          "type": "sync",
+          "state": "SYNCING",
+          "protocol": "ynx-social-matrix/v1"
+        }
+      ]
+    }
+  ]
+}
