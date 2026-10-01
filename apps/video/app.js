@@ -209,6 +209,7 @@ function focusSignIn() {
   if ($("#playlist-picker").open) $("#playlist-picker").close();
   $("#video-account").scrollIntoView({behavior: "smooth", block: "center"});
   $("#product-connect").focus();
+  if (!productConnected()) return prepareVideoSignIn();
 }
 
 function requireAccount() {
@@ -300,6 +301,7 @@ function productWalletFailure(error) {
  return 'Sign-in could not complete. Choose another wallet or try again. No new account access has been confirmed.';
 }
 async function prepareVideoSignIn() {
+ if (productChooser.open) {$("#product-wallet-status").focus(); return;}
  videoSignInAbort?.abort();
  if (productSignOutPending) return;
  if (productConnected()) {await signOutVideoAccount(); if (productSignOutPending) return;}

@@ -33,17 +33,19 @@ for(const [name,dispatch] of [['Video',video],['Creator',creator]]){
 
 import {readFile} from 'node:fs/promises';
 const videoSource=await readFile(new URL('./app.js',import.meta.url),'utf8');
+const entrySource=videoSource.slice(videoSource.indexOf('function focusSignIn()'),videoSource.indexOf('async function restoreVideoAccount()'));
+const entryBindings=videoSource.match(/\$\("#product-signin"\)\.onclick = focusSignIn;\n\$\("#product-connect"\)\.onclick = prepareVideoSignIn;/)[0];
 const controllerSource=videoSource.slice(videoSource.indexOf('let videoSignInIntent = 0;'),videoSource.indexOf('async function refreshLibraryView()'));
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 class Element {
  constructor(){this.children=[];this.listeners=new Map();this.hidden=false;this.disabled=false;this.open=false;}
- replaceChildren(){this.children=[];} append(item){this.children.push(item);} addEventListener(event,handler){this.listeners.set(event,handler);} close(){this.open=false;} showModal(){this.open=true;} removeAttribute(name){delete this[name];} setAttribute(name,value){this[name]=value;} focus(){this.focused=true;}
+ replaceChildren(){this.children=[];} append(item){this.children.push(item);} addEventListener(event,handler){this.listeners.set(event,handler);} close(){this.open=false;} showModal(){this.open=true;} removeAttribute(name){delete this[name];} setAttribute(name,value){this[name]=value;} focus(){this.focused=true;} scrollIntoView(){this.scrolled=true;} pause(){this.paused=true;}
 }
 async function videoUI(provider,finish,overrides={}){
  const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
  const calls=[];
  const dependencies={$,document:{createElement:()=>new Element()},window:{},location:{origin:"https://video.ynxweb4.com"},discoverWalletCandidates:async()=>[{isYNXWallet:true,provider,label:'YNX Wallet'},{isMetaMask:true,provider:{request(){throw Error('MetaMask cannot approve private Video')}}}],dispatchPreparedProductRequest:video,videoProductSession:{prepare:async()=>({url:'video-fixture'}),finishReturn:finish},productConnected:()=>false, signOutVideoAccount:async()=>{},renderProductState:state=>calls.push(state),refreshLibraryView:async()=>calls.push('owned-library'),...overrides};
- const controller=await new AsyncFunction(...Object.keys(dependencies),'let productSignOutPending=false,productRevision=0;'+controllerSource+'return {prepareVideoSignIn,cancelVideoSignIn,resumeNativeSignIn};')(...Object.values(dependencies));
+ const controller=await new AsyncFunction(...Object.keys(dependencies),'let productSignOutPending=false,productRevision=0;'+entrySource+controllerSource+entryBindings+'return {prepareVideoSignIn,cancelVideoSignIn,resumeNativeSignIn,renderAccountRequired};')(...Object.values(dependencies));
  return {...controller,$,calls};
 }
 test('Video shipped chooser routes the chosen YNX button to approval and the original library',async()=>{
@@ -137,4 +139,17 @@ test('Video concurrent native focus recovery is singleflight; expiry during veri
 
 test('Video focus before native callback completion stays waiting, not a network error',async()=>{
  const c=await videoUI({},async()=>{}, {setTimeout:()=>1,clearTimeout(){},videoProductSession:{prepare:async()=>({url:'ynxwallet://authorize?request=qa',state:'intent-a',expiresAt:new Date(Date.now()+60000).toISOString()}),restoreNativeReturn:async()=>null}});await c.prepareVideoSignIn();await c.$('#product-wallet-choices').children.at(-1).onclick();c.$('#product-native-open').onclick({preventDefault(){}});await c.resumeNativeSignIn();assert.match(c.$('#product-wallet-status').textContent,/not been confirmed yet/);assert.doesNotMatch(c.$('#product-wallet-status').textContent,/could not be checked/);assert.equal(c.$('#product-wallet-chooser').open,true);
+});
+
+test('Video top Sign in click opens the shared chooser directly; repeated clicks retain the pending intent',async()=>{
+ let resolve,discoveries=0,preparations=0;const discovery=new Promise(yes=>resolve=yes);const c=await videoUI({},async()=>{}, {discoverWalletCandidates:()=>{discoveries++;return discovery;},videoProductSession:{prepare:async()=>{preparations++;return {url:'qa'};}}});
+ const first=c.$('#product-signin').onclick();assert.equal(c.$('#product-wallet-chooser').open,true);await c.$('#product-signin').onclick();await c.$('#product-connect').onclick();assert.equal(discoveries,1);assert.equal(preparations,0);
+ resolve([]);await first;assert.equal(c.$('#product-wallet-choices').children.length,4);await c.$('#product-wallet-cancel').onclick();assert.equal(c.$('#product-wallet-chooser').open,false);
+ await c.$('#product-signin').onclick();assert.equal(c.$('#product-wallet-chooser').open,true);assert.equal(discoveries,2);assert.equal(preparations,0);
+});
+test('Video empty library Go to sign in opens chooser in one click and closes player overlays',async()=>{
+ const c=await videoUI({},async()=>{});c.$('#player').open=true;c.$('#playlist-picker').open=true;c.renderAccountRequired();await c.$('#library-signin').onclick();assert.equal(c.$('#product-wallet-chooser').open,true);assert.equal(c.$('#player').open,false);assert.equal(c.$('#video').paused,true);assert.equal(c.$('#playlist-picker').open,false);assert.equal(c.$('#product-wallet-choices').children.length,4);await c.$('#product-wallet-cancel').onclick();assert.equal(c.$('#product-wallet-chooser').open,false);
+});
+test('Video top connected account entry retains account focus without opening a new sign-in',async()=>{
+ let discoveries=0;const c=await videoUI({},async()=>{}, {productConnected:()=>true,discoverWalletCandidates:async()=>{discoveries++;return [];}});await c.$('#product-signin').onclick();assert.equal(c.$('#video-account').scrolled,true);assert.equal(c.$('#product-connect').focused,true);assert.equal(c.$('#product-wallet-chooser').open,false);assert.equal(discoveries,0);
 });
