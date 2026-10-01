@@ -197,7 +197,7 @@ for(const terminal of ['idle','absolute','revoke'])test(`actual browser new-tab 
   const f=await fixture(),issuer='https://wallet-auth.ynxweb4.com';let now=Date.now(),context;
   const host=new ProductSessionGatewayNodeHost(products,{statePath:join(f.directory,'cold-gateway.json'),now:()=>new Date(now),tokenFactory:token,centralBrowser:true});
   const server=createServer(host.handler());await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;
-  let consentCount=0;
+  let consentCount=0;const cookieIssueObservations=[];
   const open=async()=>{
     const selected=await chromium.launchPersistentContext(join(f.directory,'browser-profile'),{headless:true});
     await selected.route('**/*',async route=>{
@@ -208,7 +208,8 @@ for(const terminal of ['idle','absolute','revoke'])test(`actual browser new-tab 
       if(url.pathname==='/v2/browser-sessions/complete')consentCount++;
       const response=await fetch(base+url.pathname+url.search,{method:request.method(),headers:request.headers(),body:request.postData()??undefined,redirect:'manual',signal:AbortSignal.timeout(5000)});
       assert.ok(response.headers.getSetCookie().length<=1,'this exact QA response has one cookie; do not fold duplicate Set-Cookie');
-      await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:await response.text()});
+      const attributes=response.headers.getSetCookie().map(header=>{const cookieName=/^(__Host-ynx-browser-(?:session|transaction))=/.exec(header)?.[1];if(!cookieName)return null;const maxAge=/;\s*Max-Age=(\d+)(?:;|$)/i.exec(header)?.[1];assert.ok(maxAge!==undefined,'issued browser cookies have explicit bounded Max-Age');const seconds=Number(maxAge);assert.equal(seconds,seconds===0?0:cookieName.endsWith('session')?7200:120,'exact issuance/clear bound');return {cookieName,maxAge:seconds};}).filter(Boolean);
+      const beforeFulfillMs=Date.now();await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:await response.text()});const afterFulfillMs=Date.now();for(const attribute of attributes)cookieIssueObservations.push({...attribute,beforeFulfillMs,afterFulfillMs});
     });return selected;
   };
   const send=(page,path,body)=>page.evaluate(async({path,body})=>{const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});return {status:response.status,body:await response.json()};},{path:'/v2/browser-sessions/'+path,body});
@@ -222,10 +223,13 @@ for(const terminal of ['idle','absolute','revoke'])test(`actual browser new-tab 
     assert.equal(completed.status,200);assert.equal(completed.body.sessionToken,undefined);await assertIdentity(page);
     const cookies=await context.cookies(issuer),central=cookies.find(value=>value.name==='__Host-ynx-browser-session'),transaction=cookies.find(value=>value.name==='__Host-ynx-browser-transaction');
     assert.equal(central.domain,'wallet-auth.ynxweb4.com');assert.equal(central.httpOnly,true);assert.equal(central.secure,true);assert.equal(central.sameSite,'Lax');assert.equal(central.path,'/');
-    assert.ok(transaction.expires<=now/1000+121,'transaction cookie remains bounded to two minutes');
+    const issued=name=>cookieIssueObservations.findLast(value=>value.cookieName===name&&value.maxAge>0);
+    const withinIssueRange=(cookie,observation)=>{assert.ok(observation,'expected bounded issuance observed');assert.ok(cookie.expires>=observation.beforeFulfillMs/1000+observation.maxAge-1&&cookie.expires<=observation.afterFulfillMs/1000+observation.maxAge+1,'cookie expiry matches actual response issuance wall-time range');};
+    assert.equal(issued('__Host-ynx-browser-transaction').maxAge,120);withinIssueRange(transaction,issued('__Host-ynx-browser-transaction'));
+    const centralIssue=issued('__Host-ynx-browser-session');assert.equal(centralIssue.maxAge,7200);withinIssueRange(central,centralIssue);
     const next=await context.newPage();await next.goto(issuer+'/isolated-browser-qa');await page.close();await assertIdentity(next);assert.equal(consentCount,1);
     await context.close();context=await open();page=await context.newPage();await page.goto(issuer+'/isolated-browser-qa');await assertIdentity(page);assert.equal(consentCount,1,'new browser process reuses server identity, not a new Wallet approval');
-    assert.ok(central.expires>now/1000&&central.expires<=now/1000+7201,'central cookie must persist only within the original absolute bound');
+    withinIssueRange(central,centralIssue);
     const afterRestart=(await context.cookies(issuer)).find(value=>value.name==='__Host-ynx-browser-session');assert.ok(afterRestart);assert.ok(Math.abs(afterRestart.expires-central.expires)<1,'status read must not renew browser lifetime');
     if(terminal==='idle')now+=30*60*1000;
     if(terminal==='absolute'){
@@ -235,7 +239,7 @@ for(const terminal of ['idle','absolute','revoke'])test(`actual browser new-tab 
     if(terminal==='revoke'){
       const csrf=(await send(page,'bootstrap')).body.sessionCsrfToken;
       const revoked=await page.evaluate(async csrf=>{const r=await fetch('/v2/browser-sessions/logout',{method:'POST',headers:{'content-type':'application/json','x-ynx-browser-csrf':csrf},body:'{}'});return {status:r.status,body:await r.json()};},csrf);
-      assert.equal(revoked.status,200);assert.equal(revoked.body.revoked,true);assert.equal((await context.cookies(issuer)).some(value=>value.name==='__Host-ynx-browser-session'),false);
+      assert.equal(revoked.status,200);assert.equal(revoked.body.revoked,true);assert.ok(cookieIssueObservations.some(value=>value.cookieName==='__Host-ynx-browser-session'&&value.maxAge===0),'logout clears the cookie with exact Max-Age zero');assert.equal((await context.cookies(issuer)).some(value=>value.name==='__Host-ynx-browser-session'),false);
       await context.close();context=await open();page=await context.newPage();await page.goto(issuer+'/isolated-browser-qa');
     }
     const denied=await send(page,'status');assert.equal(denied.status,401);assert.equal(denied.body.error.code,'SSO_LOGIN_REQUIRED');assert.equal(consentCount,1);
