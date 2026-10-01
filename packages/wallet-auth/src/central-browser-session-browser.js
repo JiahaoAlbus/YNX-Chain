@@ -95,7 +95,7 @@ pairButton.addEventListener('click',()=>{
     }});
     if(epoch!==revision||cancelled){await pair.cancel();throw new Error('SSO_CONTEXT_CHANGED');}
     clearPairQR();pairProvider=provider;selected=provider;picker.value='';approve.disabled=false;message('Mobile Wallet connected. Continue to review browser sign-in on the same Wallet session.');
-  })().catch(error=>{clearPairQR();if(epoch===revision&&!cancelled){const code=failure(error,status.dataset.phase);message(code==='YNX_PAIR_TRANSPORT_DRAINING'?'The previous network attempt is still finishing. Choose another wallet, or retry after it ends.':/^YNX_PAIR_(RELAY|INITIALIZATION)_/.test(code)?'The connection service could not be reached. Check your network, then retry or choose another wallet. No browser sign-in was granted.':`Mobile connection did not finish (${code}). Retry or cancel; no browser sign-in was granted.`);}})
+  })().catch(error=>{if(epoch===revision&&!cancelled){clearPairQR();const code=failure(error,status.dataset.phase);message(code==='YNX_PAIR_TRANSPORT_DRAINING'?'The previous network attempt is still finishing. Choose another wallet, or retry after it ends.':/^YNX_PAIR_(RELAY|INITIALIZATION)_/.test(code)?'The connection service could not be reached. Check your network, then retry or choose another wallet. No browser sign-in was granted.':`Mobile connection did not finish (${code}). Retry or cancel; no browser sign-in was granted.`);}})
     .finally(()=>{if(epoch===revision){pairPending=null;pairButton.disabled=cancelled;pairButton.removeAttribute('aria-busy');}});
 });
 const request=async(path,input)=>{
