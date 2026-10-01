@@ -2,7 +2,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {fillNativeChooser,nativeChooserScript,sanitizeChooserIdentity,nativeAccessibilitySessionScript,prepareNativeAccessibilitySession} from './linux-password-installed-gate.mjs';
+import {fillNativeChooser,nativeChooserScript,sanitizeChooserIdentity,nativeAccessibilitySessionScript,prepareNativeAccessibilitySession,keyboardChooserFallbackAllowed,fillNativeChooserByKeyboard} from './linux-password-installed-gate.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {accountCreated,continuePersistedAccount,sanitizedFailureSnapshot,finishNativeSave,backupOutcome,backupFileCandidates,observeNativeSave} from './linux-password-installed-gate.mjs';
@@ -177,4 +177,25 @@ class Interface:
  for(const mode of ['disabled','invalid-address'])assert.throws(()=>prepareNativeAccessibilitySession(()=>execute(mode)),/NATIVE_ACCESSIBILITY_SESSION_UNAVAILABLE/);
  assert.throws(()=>prepareNativeAccessibilitySession(()=>JSON.stringify({enabled:true,beforeEnabled:false,address:'tcp:invalid'})),/NATIVE_ACCESSIBILITY_SESSION_UNAVAILABLE/);
  }finally{await rm(directory,{recursive:true,force:true})}
+});
+
+test('keyboard fallback only admits an unexposed native chooser and preserves ambiguous or semantic failures',()=>{
+ const missing={eligibleExactTitleMatches:0,directTitleMatches:0,nestedTitleMatches:[]};
+ assert.equal(keyboardChooserFallbackAllowed('NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE',missing),true);
+ assert.equal(keyboardChooserFallbackAllowed('NATIVE_CHOOSER_DIALOG_NOT_UNIQUE',missing),true);
+ for(const identity of [undefined,{...missing,eligibleExactTitleMatches:2},{...missing,directTitleMatches:1},{...missing,nestedTitleMatches:[{role:'WINDOW'}]}])assert.equal(keyboardChooserFallbackAllowed('NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE',identity),false);
+ for(const code of ['NATIVE_CHOOSER_FIELD_NOT_FOUND','NATIVE_CHOOSER_FIELD_FOCUS_FAILED','NATIVE_CHOOSER_SAVE_ACTION_FAILED'])assert.equal(keyboardChooserFallbackAllowed(code,missing),false);
+});
+test('native keyboard route replaces the complete dedicated path only after ownership and focus checks',async()=>{
+ const calls=[],diagnostics={};const add=label=>async value=>calls.push(value?label+':'+value:label);
+ await fillNativeChooserByKeyboard({assertOwned:add('owned'),focus:add('focus'),assertFocused:add('focused'),key:add('key'),type:add('type'),destination:'/qa/dedicated-backup.json',diagnostics});
+ assert.deepEqual(calls,['owned','focus','focused','key:ctrl+l','owned','focused','key:ctrl+a','focused','type:/qa/dedicated-backup.json','owned','focused','key:Return']);
+ assert.deepEqual(diagnostics,{inputRoute:'X11_OWNED_DIALOG_KEYBOARD',fullQAPathReplacementSent:true});
+});
+test('changed ownership or focus prevents remaining native input without retry or Save',async()=>{
+ for(const failAt of ['owned:1','owned:2','owned:3','focused:1','focused:2','focused:3','focused:4']){
+  const calls=[],counts={owned:0,focused:0},diagnostics={};const guard=name=>async()=>{counts[name]++;if(name+':'+counts[name]===failAt)throw Error('OWNERSHIP_OR_FOCUS_CHANGED')};
+  await assert.rejects(fillNativeChooserByKeyboard({assertOwned:guard('owned'),focus:async()=>{},assertFocused:guard('focused'),key:async value=>calls.push(value),type:async()=>calls.push('type'),destination:'/qa/dedicated-backup.json',diagnostics}),/OWNERSHIP_OR_FOCUS_CHANGED/);
+  assert.equal(calls.includes('Return'),false);assert.equal(calls.includes('alt+s'),false);assert.equal(diagnostics.fullQAPathReplacementSent,undefined);
+ }
 });

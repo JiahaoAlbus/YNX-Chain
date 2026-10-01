@@ -175,6 +175,16 @@ export async function fillNativeChooser({observe,focusName,focusLocation,type,op
  const selected=await observe();diagnostics.nameEntered=selected;
  assert.equal(selected.fields.some(f=>f.field==='NAME'&&f.matchesExpected),true,'NATIVE_NAME_NOT_MATCHED');
 }
+export function keyboardChooserFallbackAllowed(code,identity){
+ return ['NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE','NATIVE_CHOOSER_DIALOG_NOT_UNIQUE'].includes(code)&&identity?.eligibleExactTitleMatches===0&&identity?.directTitleMatches===0&&identity?.nestedTitleMatches?.length===0;
+}
+export async function fillNativeChooserByKeyboard({assertOwned,focus,assertFocused,key,type,destination,diagnostics}){
+ await assertOwned();await focus();await assertFocused();
+ await key('ctrl+l');await assertOwned();await assertFocused();
+ await key('ctrl+a');await assertFocused();await type(destination);
+ await assertOwned();await assertFocused();await key('Return');
+ diagnostics.inputRoute='X11_OWNED_DIALOG_KEYBOARD';diagnostics.fullQAPathReplacementSent=true;
+}
 export async function runInstalledGate(){
 const [mode]=process.argv.slice(2),password=process.env.YNX_WALLET_QA_PASSWORD,backupPassword=process.env.YNX_WALLET_QA_BACKUP_PASSWORD;
 assert.equal(process.platform,'linux');assert.ok(['online','offline'].includes(mode));assert.ok(password?.length>=12);assert.ok(backupPassword?.length>=12);
@@ -216,7 +226,7 @@ async function protocol(method,params){
 async function evaluate(expression){return(await protocol('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true})).result?.value}
 async function snapshot(){return evaluate(`(async()=>{
  const account=await window.ynxWallet.accountStatus(),security=await window.ynxWallet.securityStatus(),sheet=document.querySelector('#password-sheet'),submit=document.querySelector('#submit-password'),unlock=document.querySelector('#unlock-wallet');
- return {account:account.ok?account.value:null,error:account.ok?null:account.error?.code,locked:security.locked,backupQA:security.backupQA,documentFocused:document.hasFocus(),network:document.querySelector('#network')?.textContent,
+ return {account:account.ok?account.value:null,error:account.ok?null:account.error?.code,locked:security.locked,revision:security.revision,ownedDialogPhase:security.ownedDialogPhase,backupQA:security.backupQA,documentFocused:document.hasFocus(),network:document.querySelector('#network')?.textContent,
  ui:{saveButtonEnabled:Boolean(document.querySelector('#save-backup')&&!document.querySelector('#save-backup').disabled&&document.querySelector('#save-backup').getClientRects().length),passwordResult:document.querySelector('#password-result')?.textContent,unlockResult:document.querySelector('#unlock-result')?.textContent,detail:document.querySelector('#account-detail')?.textContent,backupResult:document.querySelector('#backup-result')?.textContent,importResult:document.querySelector('#import-result')?.textContent,importEnabled:!document.querySelector('#import-form button')?.disabled,passwordSheetOpen:sheet?.open,passwordModeUnlock:sheet?.open?document.querySelector('#local-confirm-group')?.hidden:null,passwordSubmitEnabled:Boolean(sheet?.open&&submit&&!submit.disabled&&submit.getClientRects().length),unlockEnabled:Boolean(unlock&&!unlock.disabled&&unlock.getClientRects().length)}};
 })()`)}
 async function until(predicate,label){stage=label;for(let n=0;n<100;n++){const s=lastSnapshot=await snapshot();if(s.error)throw Error(label+':'+s.error);if(predicate(s))return s;await pauses(300)}throw Error(label+':TIMEOUT')}
@@ -244,21 +254,39 @@ async function create(){
 async function restart(account){const before=await digest(),destination=activeProfile;await close();await launch(destination);const cold=await snapshot();assert.equal(cold.locked,true);assert.equal(cold.account.account,account);await unlockSame(account);assert.equal(await digest(),before)}
 async function nativeSave(account){
  stage='NATIVE_SAVE_DIALOG';report.nativeSaveDiagnostics={explicitSaveActionSent:false};
- let window;for(let n=0;n<60;n++){try{window=execFileSync('xdotool',['search','--onlyvisible','--name','^Save encrypted Wallet backup$'],{encoding:'utf8'}).trim().split('\n')[0];if(window)break}catch{}await pauses(300)}
+ let window;for(let n=0;n<60;n++){let windows=[];try{windows=execFileSync('xdotool',['search','--onlyvisible','--name','^Save encrypted Wallet backup$'],{encoding:'utf8',timeout:3000}).trim().split('\n').filter(Boolean)}catch{}if(windows.length>1)throw Error('NATIVE_SAVE_DIALOG_NOT_UNIQUE');if(windows.length===1){window=windows[0];break}await pauses(300)}
  if(!window)throw Error('NATIVE_SAVE_DIALOG_MISSING');
  const chooser=action=>{
   try{const result=JSON.parse(execFileSync('/usr/bin/python3',['-c',nativeChooserScript,action,backup],{env:{...process.env,AT_SPI_BUS_ADDRESS:accessibilitySession.address},encoding:'utf8',timeout:5000,stdio:['ignore','pipe','ignore']}));assert.equal(result.ok,true,'NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE');result.identity=sanitizeChooserIdentity(result.identity);return result}
   catch(error){let code='NATIVE_CHOOSER_ACCESSIBILITY_UNAVAILABLE';try{const result=JSON.parse(error.stdout);report.nativeSaveDiagnostics.chooserIdentity=sanitizeChooserIdentity(result.identity);if(/^NATIVE_CHOOSER_(?:DIALOG_NOT_UNIQUE|FIELD_NOT_UNIQUE|FIELD_NOT_FOUND|FIELD_FOCUS_FAILED|SAVE_NOT_UNIQUE|SAVE_ACTION_FAILED|ACTION_INVALID)$/.test(result.code))code=result.code}catch{}report.nativeSaveDiagnostics.accessibilityFailure=code;throw Error(code)}
  };
+ const x11=(...args)=>execFileSync('xdotool',args,{encoding:'utf8',timeout:3000}).trim();
+ const assertOwned=async()=>{
+  assert.equal(child?.exitCode===null&&child?.signalCode===null,true,'NATIVE_DIALOG_PROCESS_NOT_RUNNING');
+  const matches=x11('search','--onlyvisible','--name','^Save encrypted Wallet backup$').split('\n').filter(Boolean);
+  assert.deepEqual(matches,[window],'NATIVE_SAVE_DIALOG_NOT_UNIQUE');
+  assert.equal(x11('getwindowname',window),'Save encrypted Wallet backup','NATIVE_DIALOG_TITLE_CHANGED');
+  const pid=Number(x11('getwindowpid',window));assert.equal(pid,child.pid,'NATIVE_DIALOG_PROCESS_MISMATCH');
+  assert.equal(await fs.realpath('/proc/'+pid+'/exe'),await fs.realpath(executable),'NATIVE_DIALOG_EXECUTABLE_MISMATCH');
+  const current=await snapshot(),phase=current.backupQA?.at(-1);
+  assert.equal(current.locked,false,'NATIVE_DIALOG_WALLET_LOCKED');assert.equal(current.account?.account,account,'NATIVE_DIALOG_ACCOUNT_CHANGED');
+  assert.equal(phase?.phase,'dialog-open','NATIVE_DIALOG_SELECTION_NOT_OPEN');assert.equal(phase.ownedDialogPhase,'open','NATIVE_DIALOG_NOT_OWNED');
+  assert.equal(current.ownedDialogPhase,'open','NATIVE_DIALOG_OWNERSHIP_ENDED');assert.equal(current.revision,phase.revision,'NATIVE_DIALOG_REVISION_CHANGED');
+  report.nativeSaveDiagnostics.ownedWindowVerified=true;
+ };
+ const assertFocused=async()=>{assert.equal(x11('getwindowfocus'),window,'NATIVE_DIALOG_FOCUS_CHANGED')};
+ let keyboardFallback=false;
  // Identify the real Name and Location controls before typing; never replace IPC.
  const fileExists=async()=>{try{return(await fs.stat(backup)).isFile()}catch(error){if(error.code==='ENOENT')return false;throw error}};
  const dialogVisible=async()=>{try{return execFileSync('xdotool',['search','--onlyvisible','--name','^Save encrypted Wallet backup$'],{encoding:'utf8',timeout:3000}).trim().split('\n').includes(window)}catch{return false}};
- try{ await finishNativeSave({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,fileExists,dialogVisible,
-  enterDestination:()=>fillNativeChooser({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,directory:path.dirname(backup),name:path.basename(backup),observe:async()=>chooser('observe'),focusLocation:async()=>chooser('focus-location'),focusName:async()=>chooser('focus-name'),
+ try{
+  try{chooser('observe')}catch(error){if(!keyboardChooserFallbackAllowed(error.message,report.nativeSaveDiagnostics.chooserIdentity))throw error;await assertOwned();keyboardFallback=true}
+  await finishNativeSave({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,fileExists,dialogVisible,
+  enterDestination:()=>keyboardFallback?fillNativeChooserByKeyboard({assertOwned,assertFocused,focus:async()=>x11('windowfocus','--sync',window),key:async value=>{x11('key','--clearmodifiers',value);await pauses(150)},type:async value=>x11('type','--clearmodifiers','--delay','20',value),destination:backup,diagnostics:report.nativeSaveDiagnostics}):fillNativeChooser({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,directory:path.dirname(backup),name:path.basename(backup),observe:async()=>chooser('observe'),focusLocation:async()=>chooser('focus-location'),focusName:async()=>chooser('focus-name'),
    openLocation:async()=>{execFileSync('xdotool',['windowfocus','--sync',window]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);await pauses(150)},
    type:async value=>{execFileSync('xdotool',['key','--clearmodifiers','ctrl+a']);execFileSync('xdotool',['type','--clearmodifiers','--delay','20',value]);await pauses(100)},
    navigate:async()=>{execFileSync('xdotool',['key','--clearmodifiers','Return'])}}),
-  saveAction:async()=>{chooser('save')},
+  saveAction:async()=>{if(keyboardFallback){await assertOwned();x11('windowfocus','--sync',window);await assertFocused();x11('key','--clearmodifiers','alt+s')}else chooser('save')},
  });
  }finally{
   stage='NATIVE_SAVE_POST_ATTEMPT';
@@ -271,7 +299,10 @@ async function saveBackup(account){
  await click('#backup-section > summary');
  await fill('#backup-password',backupPassword);await fill('#backup-confirm',backupPassword);await click('#save-backup');await nativeSave(account);
  await until(s=>installedMessageIs(s.ui.backupResult,'Encrypted backup saved. Keep its password separately.'),'BACKUP_RESULT');
- assert.equal((await snapshot()).account.account,account);const bytes=await fs.readFile(backup);assert.ok(bytes.length>0);JSON.parse(bytes.toString());report.nativeSaveDialogUsed=true;report.backupFileSHA256=createHash('sha256').update(bytes).digest('hex');
+ assert.equal((await snapshot()).account.account,account);
+ const selected=report.nativeSaveDiagnostics.postAttempt?.phases?.find(p=>p.phase==='dialog-returned');
+ assert.equal(selected?.canceled,false,'NATIVE_SAVE_CANCELED');for(const field of ['selectedPathPresent','selectedPathMatchesQA','selectedDirectoryMatchesQA','selectedNameMatchesQA'])assert.equal(selected?.[field],true,'NATIVE_SAVE_'+field.toUpperCase());
+ const bytes=await fs.readFile(backup);assert.ok(bytes.length>0);JSON.parse(bytes.toString());report.nativeSaveDialogUsed=true;report.backupFileSHA256=createHash('sha256').update(bytes).digest('hex');
 }
 async function recover(account){
  await close();await launch(recoveryProfile);await form(password,password);await until(s=>s.account.passwordConfigured&&!s.account.initialized,'RECOVERY_PASSWORD_SETUP');await form(password);await until(s=>!s.locked,'RECOVERY_UNLOCK');await click('nav [data-view="accounts"]');await click('#account-authority details:not(#backup-section) > summary');await fill('#import-kind','encrypted-json');
