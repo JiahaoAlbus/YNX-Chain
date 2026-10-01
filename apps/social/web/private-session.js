@@ -45,10 +45,12 @@ export function createSocialPrivateSession({ environment = globalThis, detectWal
       // Reserve synchronously at the real click, before registry/challenge IO.
       // This opens only the chosen Wallet transport, never approves a request.
       const wallet=environment.YNXSocialWallet;
+      const intentRevision=wallet?.getIntentRevision?.()??wallet?.getRevision?.();
+      const assertIntent=()=>{if(suspended||intentRevision!==(wallet?.getIntentRevision?.()??wallet?.getRevision?.()))throw new Error("SOCIAL_CONTEXT_CHANGED")};
       const reservation=wallet?.hasSelection?.()?wallet.reserve():Promise.resolve();
       reservation.catch(()=>{});
       return run(async ({client})=>{
-        await reservation;const revision=wallet?.getRevision?.();
+        await reservation;assertIntent();const revision=wallet?.getRevision?.();
         const assertSelected=()=>{if(suspended||revision!==wallet?.getRevision?.())throw new Error('SOCIAL_CONTEXT_CHANGED')};
         assertSelected();let result=await client.beginExplicit();assertSelected();
         if(result.status==='retry-required'&&wallet?.available?.()&&typeof client.retryDetected==='function'){result=await client.retryDetected();assertSelected();}
