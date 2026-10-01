@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import {homedir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {spawn,execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -21,6 +22,24 @@ export async function finishNativeSave({enterDestination,saveAction,fileExists,d
  if(diagnostics.dialogVisibleAfterDestination){await saveAction();diagnostics.explicitSaveActionSent=true}
  for(let n=0;n<100;n++){if(await fileExists())return;await sleep(300)}
  diagnostics.dialogStillVisible=await dialogVisible();diagnostics.destinationExists=await fileExists();throw Error('NATIVE_BACKUP_NOT_SAVED');
+}
+export function backupOutcome(text){
+ if(installedMessageIs(text,'Encrypted backup saved. Keep its password separately.'))return 'SAVED';
+ if(installedMessageIs(text,'Backup was not saved.'))return 'CANCELED';
+ if(!String(text??'').trim()||installedMessageIs(text,'Encrypting your backup…'))return 'PENDING';
+ if(/\((?:WALLET_LOCKED|WALLET_OPERATION_CANCELLED)\)/.test(String(text)))return 'LOCKED_OR_OPERATION_CHANGED';
+ return 'OTHER_ERROR';
+}
+export function backupFileCandidates({account,backup,home,workspace}){
+ assert.match(account,/^0x[0-9a-fA-F]{40}$/);for(const value of [backup,home,workspace])assert.equal(path.isAbsolute(value),true);
+ const filename='ynx-wallet-'+account.slice(2,10)+'.json';
+ return [{location:'EXPECTED_QA_DESTINATION',file:backup},{location:'RUNNER_HOME_DEFAULT',file:path.join(home,filename)},{location:'RUNNER_DOCUMENTS_DEFAULT',file:path.join(home,'Documents',filename)},{location:'RUNNER_DOWNLOADS_DEFAULT',file:path.join(home,'Downloads',filename)},{location:'QA_WORKSPACE_DEFAULT',file:path.join(workspace,filename)}];
+}
+export async function observeNativeSave({snapshot,candidates,stat=fs.lstat,now=()=>new Date().toISOString()}){
+ const observed=await snapshot(),ui=observed.ui??{};
+ const result={sampledAt:now(),observation:'AFTER_NATIVE_SAVE_ATTEMPT',backupOutcome:backupOutcome(ui.backupResult),locked:observed.locked===true,documentFocused:observed.documentFocused===true,saveButtonEnabled:ui.saveButtonEnabled===true,unlockEnabled:ui.unlockEnabled===true,files:[]};
+ for(const {location,file} of candidates){try{const entry=await stat(file);result.files.push({location,exists:true,regularFile:entry.isFile(),symbolicLink:entry.isSymbolicLink(),bytes:entry.size,mode:entry.mode&0o777})}catch(error){result.files.push({location,exists:false,statError:error.code==='ENOENT'?'NOT_FOUND':'STAT_FAILED'})}}
+ return {snapshot:observed,diagnostic:result};
 }
 export function sanitizedFailureSnapshot(snapshot,stage){
  const ui=snapshot?.ui??{};return{stage:String(stage).replace(/[^A-Z0-9_]/g,'').slice(0,80),accountAvailable:Boolean(snapshot?.account),initialized:snapshot?.account?.initialized===true,passwordConfigured:snapshot?.account?.passwordConfigured===true,accountPresent:typeof snapshot?.account?.account==='string'&&snapshot.account.account.length>0,passwordEncryptedCustody:snapshot?.account?.custody==='password-encrypted-local',locked:snapshot?.locked===true,errorCode:/^[A-Z][A-Z0-9_]{0,79}$/.test(snapshot?.error??'')?snapshot.error:null,passwordSheetOpen:ui.passwordSheetOpen===true,passwordModeUnlock:ui.passwordModeUnlock===true,passwordSubmitEnabled:ui.passwordSubmitEnabled===true,unlockEnabled:ui.unlockEnabled===true,importEnabled:ui.importEnabled===true};
@@ -66,8 +85,8 @@ async function protocol(method,params){
 async function evaluate(expression){return(await protocol('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true})).result?.value}
 async function snapshot(){return evaluate(`(async()=>{
  const account=await window.ynxWallet.accountStatus(),security=await window.ynxWallet.securityStatus(),sheet=document.querySelector('#password-sheet'),submit=document.querySelector('#submit-password'),unlock=document.querySelector('#unlock-wallet');
- return {account:account.ok?account.value:null,error:account.ok?null:account.error?.code,locked:security.locked,network:document.querySelector('#network')?.textContent,
- ui:{passwordResult:document.querySelector('#password-result')?.textContent,unlockResult:document.querySelector('#unlock-result')?.textContent,detail:document.querySelector('#account-detail')?.textContent,backupResult:document.querySelector('#backup-result')?.textContent,importResult:document.querySelector('#import-result')?.textContent,importEnabled:!document.querySelector('#import-form button')?.disabled,passwordSheetOpen:sheet?.open,passwordModeUnlock:sheet?.open?document.querySelector('#local-confirm-group')?.hidden:null,passwordSubmitEnabled:Boolean(sheet?.open&&submit&&!submit.disabled&&submit.getClientRects().length),unlockEnabled:Boolean(unlock&&!unlock.disabled&&unlock.getClientRects().length)}};
+ return {account:account.ok?account.value:null,error:account.ok?null:account.error?.code,locked:security.locked,documentFocused:document.hasFocus(),network:document.querySelector('#network')?.textContent,
+ ui:{saveButtonEnabled:Boolean(document.querySelector('#save-backup')&&!document.querySelector('#save-backup').disabled&&document.querySelector('#save-backup').getClientRects().length),passwordResult:document.querySelector('#password-result')?.textContent,unlockResult:document.querySelector('#unlock-result')?.textContent,detail:document.querySelector('#account-detail')?.textContent,backupResult:document.querySelector('#backup-result')?.textContent,importResult:document.querySelector('#import-result')?.textContent,importEnabled:!document.querySelector('#import-form button')?.disabled,passwordSheetOpen:sheet?.open,passwordModeUnlock:sheet?.open?document.querySelector('#local-confirm-group')?.hidden:null,passwordSubmitEnabled:Boolean(sheet?.open&&submit&&!submit.disabled&&submit.getClientRects().length),unlockEnabled:Boolean(unlock&&!unlock.disabled&&unlock.getClientRects().length)}};
 })()`)}
 async function until(predicate,label){stage=label;for(let n=0;n<100;n++){const s=lastSnapshot=await snapshot();if(s.error)throw Error(label+':'+s.error);if(predicate(s))return s;await pauses(300)}throw Error(label+':TIMEOUT')}
 async function click(selector){assert.equal(await evaluate(`(()=>{const b=document.querySelector(${JSON.stringify(selector)});if(!b||b.disabled||!b.getClientRects().length)return false;b.click();return true})()`),true,'UI_BUTTON_NOT_AVAILABLE')}
@@ -92,7 +111,7 @@ async function create(){
  await click('#lock-wallet');await until(s=>s.locked,'EXPLICIT_LOCK');await unlockSame(created.account.account);return created.account;
 }
 async function restart(account){const before=await digest(),destination=activeProfile;await close();await launch(destination);const cold=await snapshot();assert.equal(cold.locked,true);assert.equal(cold.account.account,account);await unlockSame(account);assert.equal(await digest(),before)}
-async function nativeSave(){
+async function nativeSave(account){
  stage='NATIVE_SAVE_DIALOG';report.nativeSaveDiagnostics={explicitSaveActionSent:false};
  let window;for(let n=0;n<60;n++){try{window=execFileSync('xdotool',['search','--onlyvisible','--name','^Save encrypted Wallet backup$'],{encoding:'utf8'}).trim().split('\n')[0];if(window)break}catch{}await pauses(300)}
  if(!window)throw Error('NATIVE_SAVE_DIALOG_MISSING');
@@ -100,15 +119,20 @@ async function nativeSave(){
  // then confirm the native Save action. Never replace the dialog IPC.
  const fileExists=async()=>{try{return(await fs.stat(backup)).isFile()}catch(error){if(error.code==='ENOENT')return false;throw error}};
  const dialogVisible=async()=>{try{return execFileSync('xdotool',['search','--onlyvisible','--name','^Save encrypted Wallet backup$'],{encoding:'utf8',timeout:3000}).trim().split('\n').includes(window)}catch{return false}};
- await finishNativeSave({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,fileExists,dialogVisible,
+ try{ await finishNativeSave({diagnostics:report.nativeSaveDiagnostics,sleep:pauses,fileExists,dialogVisible,
   enterDestination:async()=>{execFileSync('xdotool',['windowfocus','--sync',window]);execFileSync('xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('xdotool',['type','--clearmodifiers','--delay','2',backup]);execFileSync('xdotool',['key','--clearmodifiers','Return'])},
   saveAction:async()=>{execFileSync('xdotool',['windowfocus','--sync',window]);execFileSync('xdotool',['key','--clearmodifiers','alt+s'])},
  });
+ }finally{
+  stage='NATIVE_SAVE_POST_ATTEMPT';
+  try{const observed=await observeNativeSave({snapshot,candidates:backupFileCandidates({account,backup,home:homedir(),workspace:process.cwd()})});lastSnapshot=observed.snapshot;report.nativeSaveDiagnostics.postAttempt=observed.diagnostic}
+  catch{report.nativeSaveDiagnostics.postAttempt={sampledAt:new Date().toISOString(),observation:'POST_ATTEMPT_SNAPSHOT_FAILED'}}
+ }
 }
 async function saveBackup(account){
  await click('nav [data-view="accounts"]');
  await click('#backup-section > summary');
- await fill('#backup-password',backupPassword);await fill('#backup-confirm',backupPassword);await click('#save-backup');await nativeSave();
+ await fill('#backup-password',backupPassword);await fill('#backup-confirm',backupPassword);await click('#save-backup');await nativeSave(account);
  await until(s=>installedMessageIs(s.ui.backupResult,'Encrypted backup saved. Keep its password separately.'),'BACKUP_RESULT');
  assert.equal((await snapshot()).account.account,account);const bytes=await fs.readFile(backup);assert.ok(bytes.length>0);JSON.parse(bytes.toString());report.nativeSaveDialogUsed=true;report.backupFileSHA256=createHash('sha256').update(bytes).digest('hex');
 }

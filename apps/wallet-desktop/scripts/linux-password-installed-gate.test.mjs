@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {accountCreated,continuePersistedAccount,sanitizedFailureSnapshot,finishNativeSave} from './linux-password-installed-gate.mjs';
+import {accountCreated,continuePersistedAccount,sanitizedFailureSnapshot,finishNativeSave,backupOutcome,backupFileCandidates,observeNativeSave} from './linux-password-installed-gate.mjs';
 const state=locked=>({locked,account:{initialized:true,passwordConfigured:true,custody:'password-encrypted-local',account:'dedicated-public-account'},ui:{}});
 test('module import does not launch installed app or require Linux fixture credentials',()=>{assert.equal(typeof continuePersistedAccount,'function')});
 test('persisted create is recognized while security is locked',()=>{
@@ -40,4 +40,25 @@ test('native Save rejection remains bounded failure with safe boolean diagnostic
  let saves=0,clock=0;const diagnostics={explicitSaveActionSent:false};
  await assert.rejects(finishNativeSave({enterDestination:async()=>{},saveAction:async()=>{saves++},fileExists:async()=>false,dialogVisible:async()=>true,sleep:async ms=>{clock+=ms},diagnostics}),/NATIVE_BACKUP_NOT_SAVED/);
  assert.equal(saves,1);assert.equal(clock,30500);assert.deepEqual(diagnostics,{explicitSaveActionSent:true,dialogVisibleAfterDestination:true,dialogStillVisible:true,destinationExists:false});
+});
+
+test('backup result classifier emits only allowlisted outcomes, never raw text',()=>{
+ for(const [text,expected] of [['Encrypted backup saved. Keep its password separately.','SAVED'],['Backup was not saved.','CANCELED'],['Encrypting your backup…','PENDING'],['','PENDING'],['Safe explanation (WALLET_OPERATION_CANCELLED)','LOCKED_OR_OPERATION_CHANGED'],['Safe explanation (WALLET_LOCKED)','LOCKED_OR_OPERATION_CHANGED'],['RAW_PRIVATE_PROVIDER_DETAIL','OTHER_ERROR']])assert.equal(backupOutcome(text),expected);
+});
+test('backup file checks are exactly dedicated destination and four derived default paths',()=>{
+ const candidates=backupFileCandidates({account:'0x12345678'+'a'.repeat(32),backup:'/qa/expected.json',home:'/qa/home',workspace:'/qa/workspace'});
+ assert.deepEqual(candidates.map(x=>x.file),['/qa/expected.json','/qa/home/ynx-wallet-12345678.json','/qa/home/Documents/ynx-wallet-12345678.json','/qa/home/Downloads/ynx-wallet-12345678.json','/qa/workspace/ynx-wallet-12345678.json']);
+ assert.throws(()=>backupFileCandidates({account:'../../not-an-account',backup:'/qa/expected',home:'/qa/home',workspace:'/qa/workspace'}));
+ assert.throws(()=>backupFileCandidates({account:'0x'+'a'.repeat(40),backup:'relative',home:'/qa/home',workspace:'/qa/workspace'}));
+});
+test('post-attempt observer samples new UI once and only stats exact QA candidates',async()=>{
+ const candidates=backupFileCandidates({account:'0x'+'a'.repeat(40),backup:'/qa/expected',home:'/qa/home',workspace:'/qa/workspace'});const checked=[];let snapshots=0;
+ const current={...state(true),documentFocused:false,secret:'NEVER_EXPORT',ui:{backupResult:'private text (WALLET_OPERATION_CANCELLED)',saveButtonEnabled:false,unlockEnabled:true}};
+ const observed=await observeNativeSave({snapshot:async()=>{snapshots++;return current},candidates,now:()=> '2026-10-01T08:00:00Z',stat:async file=>{checked.push(file);if(file===candidates[1].file)return{isFile:()=>true,isSymbolicLink:()=>false,size:100,mode:0o100600};throw Object.assign(Error('path must not leak'),{code:'ENOENT'})}});
+ assert.equal(observed.snapshot,current);assert.equal(snapshots,1);assert.deepEqual(checked,candidates.map(x=>x.file));assert.equal(observed.diagnostic.locked,true);assert.equal(observed.diagnostic.documentFocused,false);assert.equal(observed.diagnostic.backupOutcome,'LOCKED_OR_OPERATION_CHANGED');assert.equal(observed.diagnostic.files[1].exists,true);assert.equal(observed.diagnostic.files[1].mode,0o600);
+ const text=JSON.stringify(observed.diagnostic);for(const secret of ['NEVER_EXPORT','private text','/qa/','ynx-wallet-','aaaaaaaa'])assert.equal(text.includes(secret),false);
+});
+test('stat errors and symlinks are classified without reading or following file contents',async()=>{
+ const result=await observeNativeSave({snapshot:async()=>({...state(false),documentFocused:true,ui:{backupResult:'Encrypted backup saved. Keep its password separately.',saveButtonEnabled:true}}),candidates:[{location:'EXPECTED_QA_DESTINATION',file:'/qa/a'},{location:'RUNNER_HOME_DEFAULT',file:'/qa/b'}],stat:async file=>{if(file==='/qa/a')return{isFile:()=>false,isSymbolicLink:()=>true,size:12,mode:0o120777};throw Object.assign(Error('PRIVATE_PATH_DETAILS'),{code:'EACCES'})}});
+ assert.equal(result.diagnostic.backupOutcome,'SAVED');assert.equal(result.diagnostic.files[0].symbolicLink,true);assert.equal(result.diagnostic.files[0].regularFile,false);assert.equal(result.diagnostic.files[1].statError,'STAT_FAILED');assert.equal(JSON.stringify(result.diagnostic).includes('PRIVATE_PATH_DETAILS'),false);
 });
