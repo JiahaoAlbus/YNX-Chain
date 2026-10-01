@@ -139,14 +139,14 @@ function fixedAuthorityKeys(p,env){
  requireFact(p.hostFiles.some(pin=>pin.path===p.checkpointReader),'MAINTENANCE_CHECKPOINT_READER_UNPINNED');
  return keys;
 }
-// Only completed HTTP 503 responses are retried; authority/network errors fail closed.
+// Only completed HTTP 502/503 readiness responses are retried; authority/network errors fail closed.
 export async function readActivationConfig(url,{read=readFreshHTTPS,validate,now=()=>performance.now(),sleep=ms=>new Promise(r=>setTimeout(r,ms))}={}){
  requireFact(typeof validate==='function','MAINTENANCE_ACTIVATION_VALIDATOR_REQUIRED');
  const started=now(),deadline=started+6000;let attempts=0;
  while(true){
   const remaining=Math.floor(deadline-now());requireFact(remaining>0&&attempts<25,'MAINTENANCE_ACTIVATION_NOT_READY');attempts++;
   const config=await read(url,{timeoutMs:Math.min(3000,remaining)});requireFact(now()<=deadline,'MAINTENANCE_ACTIVATION_NOT_READY');
-  if(config.observation.httpStatus===503){const wait=Math.min(250,Math.floor(deadline-now()));requireFact(wait>0,'MAINTENANCE_ACTIVATION_NOT_READY');await sleep(wait);continue}
+  if([502,503].includes(config.observation.httpStatus)){const wait=Math.min(250,Math.floor(deadline-now()));requireFact(wait>0,'MAINTENANCE_ACTIVATION_NOT_READY');await sleep(wait);continue}
   if(config.observation.httpStatus!==200){const error=new Error('MAINTENANCE_PUBLIC_CONFIG_FAILED');error.safeDiagnostic={phase:'public-config',httpStatus:config.observation.httpStatus,attempt:attempts,elapsedMs:Math.max(0,Math.floor(now()-started))};throw error}await validate(config);return config;
  }
 }
