@@ -3585,6 +3585,8 @@
   for(const [locale,[title,boundary]]of Object.entries(browserSignInCopy))Object.assign(messages[locale],{browserSignIn:title,browserSignInBoundary:boundary});
   const browserSignOutCopy={en:'Sign out of Finance','zh-CN':'退出 Finance','zh-Hant':'登出 Finance',ja:'Finance からサインアウト',ko:'Finance에서 로그아웃',es:'Cerrar sesión en Finance',fr:'Se déconnecter de Finance',de:'Bei Finance abmelden',pt:'Sair do Finance',ru:'Выйти из Finance',ar:'تسجيل الخروج من Finance',id:'Keluar dari Finance'};
   for(const [locale,title]of Object.entries(browserSignOutCopy))messages[locale].browserSignOut=title;
+  const browserSessionManageCopy={"en":"Manage YNX sign-in / sign out of all apps","zh-CN":"管理 YNX 登录 / 退出全部应用","zh-Hant":"管理 YNX 登入 / 登出所有應用","ja":"YNX ログイン管理 / すべてのアプリからログアウト","ko":"YNX 로그인 관리 / 모든 앱에서 로그아웃","es":"Gestionar acceso YNX / cerrar sesión en todas las apps","fr":"Gérer la connexion YNX / déconnexion de toutes les apps","de":"YNX-Anmeldung verwalten / alle Apps abmelden","pt":"Gerenciar login YNX / sair de todos os aplicativos","ru":"Управление входом YNX / выход из всех приложений","ar":"إدارة تسجيل دخول YNX / الخروج من جميع التطبيقات","id":"Kelola login YNX / keluar dari semua aplikasi"};
+  for(const [locale,title]of Object.entries(browserSessionManageCopy))messages[locale].browserSessionManage=title;
   const supported=Object.freeze(['en','zh-CN','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']);
   const canonical=value=>value==='zh-Hans'?'zh-CN':value;
   let current='en';
