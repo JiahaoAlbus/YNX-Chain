@@ -2,12 +2,54 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {spawn} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {createPrivateAccountController,validateAccountSnapshot} from '../web/private-account-controller.js';
 import {createExchangePrivateAccount,PRIVATE_SDK_SOURCE} from '../web/private-session-entry.js';
 const origin='https://exchange.ynxweb4.com',account='ynx1'+'q'.repeat(38),other='ynx1'+'p'.repeat(38);
 const snapshot=(owner=account)=>({sourceMetadata:{authority:'YNX-owned deterministic order state',version:'exchange-public-state-v1',classification:'testnet',status:'degraded_single_host',stateBackend:'file-cas-single-host',multiInstance:false,coverage:'account-ledger-orders-trades-fees-audit',asOf:new Date().toISOString()},balances:[{account:owner,asset:'YUSD_TEST',availableMicro:1234567,reservedMicro:0}],ledger:[],depositIntents:[],orders:[],trades:[],fees:[],deposits:[],withdrawals:[],support:[],ai:[],audit:[],security:{account:owner,withdrawalLock:false,sessionTtlMinutes:15}});
 const connected=(owner=account)=>({status:'connected',session:{productId:'exchange',origin,chainId:'ynx_6423-1',account:owner,scopes:['exchange:read'],expiresAt:new Date(Date.now()+60000).toISOString()}});
 const pending=()=>({status:'connecting',automatic:false,installation:'unverified',request:{expiresAt:new Date(Date.now()+60000).toISOString()},route:{status:'ready',url:'ynxwallet://authorize?request=exact-offline-fixture'}});
+test('actual Chromium controller forwards host-only SSO cookie to owned Go API and linked logout fails closed',{skip:process.env.YNX_EXCHANGE_CONTROLLER_HTTP_QA!=='1'&&'Opt-in isolated Go/Chromium boundary QA not requested',timeout:25000},async()=>{
+  const {chromium}=await import('playwright'),root=fileURLToPath(new URL('../../../',import.meta.url));
+  const child=spawn('go',['test','./internal/exchangeproduct','-run','^TestBrowserSSOV10OwnedReadsAndDurableProductRevocation$','-count=1','-v'],{cwd:root,env:{...process.env,YNX_EXCHANGE_CONTROLLER_HTTP_QA:'1'},stdio:['ignore','pipe','pipe']});
+  const done=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',resolve)});let browser,base;
+  try{
+    base=await new Promise((resolve,reject)=>{let output='';const timer=setTimeout(()=>{child.kill();reject(new Error('controller QA startup deadline'))},15000);child.stdout.on('data',chunk=>{output=(output+chunk).slice(-8192);const match=output.match(/EXCHANGE_CONTROLLER_QA_LISTEN=(http:\/\/127\.0\.0\.1:[0-9]+)/u);if(match){clearTimeout(timer);resolve(match[1])}});child.on('close',()=>{clearTimeout(timer);reject(new Error('controller QA ended before readiness'))})});
+    browser=await chromium.launch({headless:true});const context=await browser.newContext(),page=await context.newPage();
+    const cdp=await context.newCDPSession(page);await cdp.send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]});
+    cdp.on('Fetch.requestPaused',async({requestId,request})=>{try{
+      const url=new URL(request.url);if(url.origin!==origin)throw new Error('unregistered QA network');let response;
+      if(url.pathname==='/fixture')response=new Response('<!doctype html><title>Isolated controller boundary QA</title>',{headers:{'content-type':'text/html'}});
+      else if(url.pathname==='/controller.js')response=new Response(readFileSync(new URL('../web/private-account-controller.js',import.meta.url),'utf8'),{headers:{'content-type':'text/javascript'}});
+      else{const path=url.pathname==='/api/v1/account'?'/v1/account':url.pathname,headers={...request.headers};for(const key of Object.keys(headers))if(['host','content-length','accept-encoding'].includes(key.toLowerCase()))delete headers[key];response=await fetch(base+path+url.search,{method:request.method,headers,body:request.postData||undefined,redirect:'manual',signal:AbortSignal.timeout(5000)});}
+      const responseHeaders=[...response.headers].filter(([key])=>!['transfer-encoding','content-encoding','content-length','set-cookie'].includes(key)).map(([name,value])=>({name,value}));for(const value of response.headers.getSetCookie())responseHeaders.push({name:'set-cookie',value});
+      await cdp.send('Fetch.fulfillRequest',{requestId,responseCode:response.status,responseHeaders,body:Buffer.from(await response.arrayBuffer()).toString('base64')});
+    }catch{await cdp.send('Fetch.failRequest',{requestId,errorReason:'Failed'}).catch(()=>{});}});
+    await page.goto(origin+'/fixture');
+    await page.evaluate(async()=>{
+      const {createPrivateAccountController}=await import('/controller.js');let nonce=0,who='alice';
+      const fixture=async()=>await(await fetch('/__qa/proof?who='+who+'&nonce='+String(++nonce).padStart(24,'0'))).json();
+      const adapter={client:{restore:async()=>({status:'connected',session:(await fixture()).session})},createIntrospectionProof:fixture,close(){}};
+      window.boundary={setWho:value=>who=value,controller:createPrivateAccountController({origin:location.origin,createAdapter:async()=>adapter,fetchImpl:fetch.bind(window)})};
+      await fetch('/__qa/signin?who=alice');
+    });
+    const read=()=>page.evaluate(async()=>{const value=await window.boundary.controller.start(location.origin+'/');return {phase:value.phase,account:value.account,amount:value.snapshot?.balances?.find(row=>row.asset==='YUSD_TEST')?.availableMicro}});
+    const owned=await read();assert.equal(owned.phase,'connected');assert.match(owned.account,/^ynx1/u);assert.equal(owned.amount,17000000);
+    const count=await page.evaluate(async()=>await(await fetch('/__qa/bindings')).json());
+    if(count.count===0){await page.evaluate(async()=>{await fetch('/__qa/global-logout',{method:'POST'})});assert.equal((await read()).phase,'authorization-required','global logout must deny a Web read previously bound to this identity');}
+    assert.equal(count.count,1,'Web cookie must create the durable identity association');
+    await page.evaluate(()=>window.boundary.setWho('bob'));assert.equal((await read()).phase,'authorization-required','an unlinked native Bob session cannot use Alice browser identity');
+    await page.evaluate(()=>window.boundary.setWho('alice'));assert.equal((await read()).account,owned.account);
+    await page.evaluate(async()=>{await fetch('/__qa/signin?who=bob')});assert.equal((await read()).phase,'authorization-required');
+    await page.evaluate(()=>window.boundary.setWho('bob'));const ownedB=await read();assert.equal(ownedB.amount,31000000);assert.notEqual(ownedB.account,owned.account);
+    await page.evaluate(async()=>{await fetch('/__qa/global-logout',{method:'POST'})});assert.equal((await read()).phase,'authorization-required');
+    // Independent native sessions use no browser identity and retain their old
+    // approved read channel. This is an authority fixture, not Wallet E2E.
+    const independent=await fetch(base+'/__qa/proof?who=independent&nonce='+('x'.repeat(24)),{signal:AbortSignal.timeout(5000)}).then(r=>r.json());
+    const response=await fetch(base+'/v1/account',{headers:{Origin:origin,'X-YNX-Product-Session-Proof-V2':independent.proofHeader},signal:AbortSignal.timeout(5000)});assert.equal(response.status,200);assert.equal((await response.json()).balances.find(row=>row.asset==='YUSD_TEST').availableMicro,17000000);
+  }finally{await browser?.close();if(base)await fetch(base+'/__qa/stop',{method:'POST',signal:AbortSignal.timeout(5000)});else child.kill();assert.equal(await done,0)}
+});
 function setup(overrides={}){
   const calls=[],states=[];let proofCount=0;
   const client={restore:async()=>{calls.push('restore');return connected()},beginExplicit:async()=>{calls.push('beginExplicit');return pending()},handleReturn:async url=>{calls.push(['handleReturn',url]);return connected()},retryDetected:async()=>{calls.push('retryDetected');return connected()},disconnect:async()=>{calls.push('disconnect');return {status:'disconnected',revocationConfirmed:true}},enterGuest:()=>calls.push('enterGuest'),setNetworkAvailable:v=>calls.push(['network',v]),...overrides.client};
@@ -67,7 +109,7 @@ test('known popup absence during approval never consumes late return; offline re
 test('complete callback URL goes unchanged to SDK then fresh proof only GETs registered account API',async()=>{
   const {controller,calls}=setup();const url=origin+'/wallet-auth/callback?approval=opaque-exact&state=bound#retained';
   const value=await controller.start(url);assert.equal(value.phase,'connected');assert.equal(value.account,account);assert.deepEqual(calls[1],['handleReturn',url]);
-  const [_,target,options]=calls.find(x=>Array.isArray(x)&&x[0]==='fetch');assert.equal(target,origin+'/api/v1/account');assert.equal(options.method,'GET');assert.equal(options.credentials,'omit');assert.equal(options.redirect,'error');assert.equal(options.cache,'no-store');assert.equal(options.headers['X-YNX-Product-Session-Proof-V2'],'fresh-offline-proof-1');assert.equal(options.body,undefined);assert.equal(options.headers['X-YNX-Product-Session-Proof'],undefined);controller.close();
+  const [_,target,options]=calls.find(x=>Array.isArray(x)&&x[0]==='fetch');assert.equal(target,origin+'/api/v1/account');assert.equal(options.method,'GET');assert.equal(options.credentials,'same-origin');assert.equal(options.redirect,'error');assert.equal(options.cache,'no-store');assert.equal(options.headers['X-YNX-Product-Session-Proof-V2'],'fresh-offline-proof-1');assert.equal(options.body,undefined);assert.equal(options.headers['X-YNX-Product-Session-Proof'],undefined);controller.close();
 });
 test('reject and callback retry do not fabricate account or API traffic',async()=>{
   for(const result of [{status:'disconnected'},{status:'retry-required'}]){const {controller,calls}=setup({client:{handleReturn:async()=>result}});const value=await controller.start(origin+'/wallet-auth/callback?reject=opaque');assert.equal(value.account,null);assert.ok(!calls.some(v=>Array.isArray(v)&&v[0]==='fetch'));controller.close()}
@@ -123,6 +165,9 @@ test('entry and UI separate standard connection from private read-only scopes an
   assert.match(entry,/scopes:\[PRIVATE_READ_SCOPE\]/);assert.doesNotMatch(entry,/exchange:trade|exchange:deposit|localStorage|sessionStorage/);
   const render=app.slice(app.indexOf('function renderPrivateAccount'),app.indexOf('function renderBook'));
   assert.doesNotMatch(render,/disconnectWallet\(|YNXExchangeWebWallet\./);
-  for(const forbidden of [/window\.open\(/,/<iframe/i,/location\.(assign|replace)\(/,/location\.href\s*=/])assert.doesNotMatch(app.replace(/async function restoreBrowserIdentityQuietly\(\)\{[^\n]+\n/u,'')+html,forbidden);
+  const quietStart=app.indexOf('async function restoreBrowserIdentityQuietly()'),quietEnd=app.indexOf('function resumeDeferredBrowserIdentity()',quietStart);
+  assert.ok(quietStart>=0&&quietEnd>quietStart);const quiet=app.slice(quietStart,quietEnd);
+  assert.match(quiet,/browserIdentityExplicitIntent/);assert.match(quiet,/silentRestoreAllowed!==true/);assert.match(quiet,/prompt=none&target=/);assert.equal((quiet.match(/location\.assign\(/g)||[]).length,1);
+  for(const forbidden of [/window\.open\(/,/<iframe/i,/location\.(assign|replace)\(/,/location\.href\s*=/])assert.doesNotMatch(app.slice(0,quietStart)+app.slice(quietEnd)+html,forbidden);
   assert.match(html,/id="private-open" hidden rel="noreferrer"/);assert.match(app,/open.href=value.route/);assert.match(app,/handleReturn|privateAccount.start\(location.href\)/);
 });
