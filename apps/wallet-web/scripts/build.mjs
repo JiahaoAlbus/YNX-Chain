@@ -184,6 +184,7 @@ for (const file of ["index.html","hosted-wallet.css","ynx-logo.png","app.js","ad
 // The default Web wallet uses the same vault, review and journal engine as
 // Hosted requests. Keep the installed-provider companion at an explicit route.
 await cp(join(root,"public","index.html"),join(dist,"pwa","companion.html"));
+await writeFile(join(dist,"pwa","companion.html"),(await readFile(join(dist,"pwa","companion.html"),"utf8")).replace('<link rel="icon" href="./ynx-logo.png">','<link rel="icon" href="./ynx-icon-512.png" type="image/png" sizes="512x512">'));
 await cp(join(root,"public","web-wallet.html"),join(dist,"pwa","index.html"));
 await cp(join(root,"public","web-wallet.css"),join(dist,"pwa","web-wallet.css"));
 await cp(join(hosted,"app.js"),join(dist,"pwa","wallet-core.js"));
@@ -229,7 +230,7 @@ for (const [name, manifest] of variants) {
   const providerSource=await readFile(join(target,"page-provider.js"),"utf8"),providerIcon=`data:image/png;base64,${(await readFile(join(root,"public","ynx-logo.png"))).toString("base64")}`;
   if(!providerSource.includes("__YNX_PROVIDER_ICON_DATA_URI__"))throw new Error("YNX Provider icon placeholder missing");
   await writeFile(join(target,"page-provider.js"),providerSource.replace("__YNX_PROVIDER_ICON_DATA_URI__",providerIcon));
-  const html = (await readFile(join(target, "index.html"), "utf8")).replace('<link rel="manifest" href="./manifest.webmanifest">', "");
+  const html = (await readFile(join(target, "index.html"), "utf8")).replace('<link rel="manifest" href="./manifest.webmanifest">', "").replace('<link rel="icon" href="./ynx-logo.png">','<link rel="icon" href="./ynx-icon-128.png" type="image/png" sizes="128x128">');
   await writeFile(join(target, "index.html"), html);
   await writeFile(join(target, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   await validateExtensionModuleGraph(target);
