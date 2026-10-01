@@ -23,7 +23,7 @@ test('Broker cold-state pin changes only the reviewed app bytes',async()=>{
   assert.deepEqual(JSON.parse(versioned),expected);
   assert.deepEqual(JSON.parse(versioned),expected);
   assert.notDeepEqual(active,versioned,'the historical v6 manifest must not be mistaken for the current source');
-  assert.equal(createHash('sha256').update(active).digest('hex'),'f44e22799ec37da14eabf6a3755bc74136e643810a8d60f8abe6a1cd3125ebc2');
+  assert.equal(createHash('sha256').update(active).digest('hex'),'67dda033c8822b67a716e39ccf5798ca183387d3564dc3d9d1224d9fd7236795');
 });
 
 async function fixture(){
@@ -43,8 +43,8 @@ test('current Finance Wallet files match the exact reviewed verifier manifest',a
   assert.equal(result.sourceBundleReproducible,true);
   assert.equal(result.sourceBundleReproducibilityStatus,'VERIFIED_REPRODUCIBLE');
   assert.equal(result.cleanBuildCount,2);
-  assert.equal(result.bytes,752153);
-  assert.equal(result.sha256,'e971b80b81fd0f1046abfd6ef57cf2d4e03f123f775893ca8a71dd10ade26a0c');
+  assert.equal(result.bytes,755163);
+  assert.equal(result.sha256,'e51598f984db591a9f187c6a2d3469b0ad60ca2260d11cc82b64a71618cff231');
 });
 
 test('missing current bundle fails closed',async()=>{
