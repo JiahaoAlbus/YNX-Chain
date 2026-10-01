@@ -34,7 +34,7 @@ test("vault metadata, ciphertext, identity and weak passwords fail closed",async
   for(const changed of [
     {...vault,account:`0x${"1".repeat(40)}`},
     {...vault,kdf:{...vault.kdf,iterations:1}},
-    {...vault,cipher:{...vault.cipher,ciphertext:`A${vault.cipher.ciphertext.slice(1)}`}},
+    {...vault,cipher:{...vault.cipher,ciphertext:`${vault.cipher.ciphertext[0]==="A"?"B":"A"}${vault.cipher.ciphertext.slice(1)}`}},
     {...vault,unknown:true},
   ])await assert.rejects(()=>unlockEncryptedVault(changed,PASSWORD,webcrypto));
   assert.throws(()=>parseEncryptedVault({...vault,source:"metamask"}),error=>error.code==="VAULT_TAMPERED");
