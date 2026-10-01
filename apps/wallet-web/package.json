@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-web",
-  "version": "0.1.17-testnet-preview.1",
+  "version": "0.1.18-testnet-preview.1",
   "private": true,
   "type": "module",
   "engines": {
