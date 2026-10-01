@@ -30,6 +30,8 @@ const rows=[
  ['Wallet Web connection timed out. Return to your product and retry; no browser sign-in was granted.','连接钱包超时，尚未登录。请返回产品重试。','連接錢包逾時，尚未登入。請返回產品重試。'],
  ['Connection was declined. No browser sign-in was granted.','你已拒绝连接，尚未登录。','你已拒絕連接，尚未登入。'],
  ['Opening a mobile Wallet connection. No sign-in signature has been requested.','正在连接手机钱包，尚未请求登录批准。','正在連接手機錢包，尚未請求登入批准。'],
+ ['The connection service could not be reached. Check your network, then retry or choose another wallet. No browser sign-in was granted.','暂时无法连接服务。请检查网络后重试，或选择其他钱包。尚未登录。','暫時無法連接服務。請檢查網路後重試，或選擇其他錢包。尚未登入。'],
+ ['The previous network attempt is still finishing. Choose another wallet, or retry after it ends.','上一次网络连接仍在结束中。可选择其他钱包，或稍后重试。','上一次網路連線仍在結束中。可選擇其他錢包，或稍後重試。'],
  ['QR rendering is unavailable. Cancel and retry the connection.','无法显示二维码。请取消并重新连接。','無法顯示二維碼。請取消並重新連接。'],
  ['Scan this temporary QR in YNX Wallet and approve the connection.','请在 YNX Wallet 扫描此临时二维码并批准连接。','請在 YNX Wallet 掃描此臨時二維碼並批准連接。'],
  ['Mobile Wallet connected. Continue to review browser sign-in on the same Wallet session.','手机钱包已连接。请继续，在同一钱包中确认登录。','手機錢包已連接。請繼續，在同一錢包中確認登入。'],
