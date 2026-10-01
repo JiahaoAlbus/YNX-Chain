@@ -44,14 +44,31 @@ async function restore(){
   if(callback&&['connected','disconnected'].includes(result.status))history.replaceState(null,'',location.pathname);
   return result;
 });}
-async function begin(){
+async function begin(){return explicitRequest(false);}
+async function retry(){return explicitRequest(true);}
+async function explicitRequest(retry){
   if(busy)return current;
+  const recovering=retry||['connecting','retry-required','expired','network-unavailable','degraded'].includes(current.status);
   const wallet=window.YNXFinanceWallet,standardRevision=wallet?.getStandardRevision?.();
   const assertSelected=()=>{if(standardRevision!==wallet?.getStandardRevision?.())throw Object.assign(new Error('FINANCE_CONTEXT_CHANGED'),{code:'FINANCE_CONTEXT_CHANGED'})};
   return operation(async selected=>{
     try{
     assertSelected();try{localStorage.setItem(ATTEMPT_KEY,'yes');}catch{}
-    const pending=await selected.client.beginExplicit();assertSelected();
+    let pending=recovering?await selected.client.retryDetected():await selected.client.beginExplicit();assertSelected();
+    // A Retry that completes revocation ends that intent. It must never also
+    // start a replacement authorization in the same click.
+    if(pending.revocationPending||pending.revocationConfirmed===true)return pending;
+    if(pending.status==='retry-required'&&wallet?.privateProviderAvailable?.()){
+      // Native availability remains false. The SDK can recover the exact
+      // saved pending request as an explicit route without pretending that a
+      // browser extension is an installed native application.
+      if(pending.request&&pending.route)pending=await selected.client.retryDetected();
+      assertSelected();
+      // Expired/invalid pending replacement is the official explicit SDK
+      // action, guarded by its own revocation/time/device binding checks.
+      if(pending.status==='retry-required'&&!pending.revocationPending)pending=await selected.client.beginExplicit();
+      assertSelected();
+    }
     // An explicitly selected native link remains available when no selected
     // YNX provider transport exists. Never infer installation or switch to
     // Hosted/MetaMask. The exact route is created and stored by the shared SDK.
@@ -72,7 +89,6 @@ async function begin(){
     }
   });
 }
-async function retry(){return operation(selected=>selected.client.retryDetected());}
 async function disconnect(){return operation(selected=>selected.client.disconnect());}
 function guest(){generation++;busy=false;const state=adapter?.client.enterGuest()??{status:'guest',session:null};publish(state);return state;}
 function reportFailure(error){publish({status:'degraded',session:null},error?code(error):'PRIVATE_SERVICE_DEGRADED');}
