@@ -10,6 +10,8 @@ export type CardBalanceView=Readonly<{availableWei:string;pendingWei:string;post
 export type TestnetCardView=Readonly<{id:string;applicationId:string;owner:string;alias:string;status:'ACTIVE'|'FROZEN'|'CLOSED';balance:CardBalanceView;fundingSender?:string;controls:ObjectValue;createdAt:string}>;
 export type CardFundingView=Readonly<FundingIntent&{receipt?:ChainReceipt}>;
 export type CardBusinessSnapshot=Readonly<{environment:typeof ENVIRONMENT;productionRealPayments:false;asset:'YNXT_TESTNET';applications:readonly CardApplicationView[];cards:readonly TestnetCardView[];intents:readonly CardFundingView[]}>;
+export type CardStatementView=Readonly<{card:TestnetCardView;ledger:readonly ObjectValue[];events:readonly ObjectValue[];environment:typeof ENVIRONMENT;productionRealPayments:false}>;
+export type CardReconciliationView=Readonly<{cardId:string;asOf:string;status:'CONSISTENT'|'INCONSISTENT';findings:readonly string[];balance:CardBalanceView;ledgerEntries:number;creditedIntents:number;chainReverified:false;dataFabricReconciled:false;environment:typeof ENVIRONMENT;productionRealPayments:false}>;
 export class CardBusinessError extends Error {
   constructor(readonly code:string,readonly layer:'configuration'|'product-session'|'card-api'|'context',readonly retryable=false){super(code);this.name='CardBusinessError';}
 }
@@ -126,6 +128,22 @@ export class CardBusinessClient {
     const applications=value.applications.map(item=>application(item,account)),cards=value.cards.map(item=>card(item,account)),intents=value.intents.map(item=>funding(item,account));
     for(const item of cards){const app=applications.find(app=>app.id===item.applicationId);if(!app||app.status!=='ACTIVE'||app.cardId!==item.id)throw invalid();const total=intents.filter(intent=>intent.cardId===item.id&&intent.status==='credited').reduce((sum,intent)=>sum+BigInt(intent.amountWei),0n);if(total!==BigInt(item.balance.fundedWei))throw invalid();}
     return {environment:ENVIRONMENT,productionRealPayments:false,asset:'YNXT_TESTNET',applications,cards,intents};
+  });}
+  statement(cardId:string):Promise<CardStatementView>{const selected=this.resource(cardId);return this.request('account:read','GET',`/api/card/v1/cards/${selected}/statement`,(value,account)=>{
+    if(!record(value)||value.environment!==ENVIRONMENT||value.productionRealPayments!==false||!Array.isArray(value.ledger)||!Array.isArray(value.events))throw invalid();
+    const result=card(value.card,account);if(result.id!==selected)throw invalid();
+    for(const entry of value.ledger){
+      if(!record(entry)||!id(entry.id)||entry.cardId!==selected||typeof entry.operation!=='string'||typeof entry.reference!=='string'||!date(entry.occurredAt)||!record(entry.balance))throw invalid();
+      if(!['availableDeltaWei','pendingDeltaWei','postedDeltaWei','feeDeltaWei'].every(key=>typeof entry[key]==='string'&&/^-?(0|[1-9][0-9]{0,77})$/.test(String(entry[key]))&&BigInt(String(entry[key]))>-(2n**256n)&&BigInt(String(entry[key]))<2n**256n))throw invalid();
+      if(!['availableWei','pendingWei','postedWei','feeWei','fundedWei'].every(key=>wei((entry.balance as ObjectValue)[key])))throw invalid();
+    }
+    for(const event of value.events){if(!record(event)||!id(event.id)||event.cardId!==selected||typeof event.name!=='string'||!date(event.occurredAt)||event.simulation!==true||event.environment!==ENVIRONMENT||event.productionRealPayments!==false||!record(event.details)||typeof event.delivered!=='boolean'||!Number.isSafeInteger(event.attempts)||Number(event.attempts)<0)throw invalid();}
+    return {card:result,ledger:value.ledger,events:value.events,environment:ENVIRONMENT,productionRealPayments:false};
+  });}
+  reconciliation(cardId:string):Promise<CardReconciliationView>{const selected=this.resource(cardId);return this.request('account:read','GET',`/api/card/v1/cards/${selected}/reconciliation`,value=>{
+    if(!record(value)||value.cardId!==selected||!date(value.asOf)||!['CONSISTENT','INCONSISTENT'].includes(String(value.status))||!Array.isArray(value.findings)||!value.findings.every(item=>typeof item==='string')||!record(value.balance)||!['availableWei','pendingWei','postedWei','feeWei','fundedWei'].every(key=>wei((value.balance as ObjectValue)[key]))||!Number.isSafeInteger(value.ledgerEntries)||Number(value.ledgerEntries)<0||!Number.isSafeInteger(value.creditedIntents)||Number(value.creditedIntents)<0||value.chainReverified!==false||value.dataFabricReconciled!==false||value.environment!==ENVIRONMENT||value.productionRealPayments!==false)throw invalid();
+    const balance=value.balance;if(BigInt(String(balance.availableWei))+BigInt(String(balance.pendingWei))+BigInt(String(balance.postedWei))+BigInt(String(balance.feeWei))!==BigInt(String(balance.fundedWei)))throw invalid();
+    return value as unknown as CardReconciliationView;
   });}
   createApplication(details:ApplicationDetails,key:string):Promise<CardApplicationView>{return this.request('card:application:write','POST','/api/card/v1/applications',application,details,key);}
   updateApplication(applicationId:string,details:ApplicationDetails,key:string):Promise<CardApplicationView>{return this.request('card:application:write','PATCH',`/api/card/v1/applications/${this.resource(applicationId)}`,application,details,key);}

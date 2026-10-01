@@ -14,7 +14,8 @@ import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectM
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 import{GuestExperience}from"./src/GuestExperience";
 import{CardProviderClient}from"./src/providerApplicationClient";
-import{createRuntimeProviderClient}from"./src/providerClientRuntime";
+import{createRuntimeProviderClient,createRuntimeCardBusinessClient}from"./src/providerClientRuntime";
+import{CardBusinessClient}from"./src/cardBusinessClient";
 import{beginCardWebSession,cancelCardWebSessionAttempt,cardWebProof,disconnectCardWebSession,restoreCardWebSession,retryCardWebSession}from"./src/providerSessionWeb";
 import{createCardHostedWalletController,type CardHostedWalletController}from"./src/hostedWalletWeb";
 import{hostedWalletNotice,hostedWalletText,type HostedWalletNotice}from"./src/hostedWalletCopy";
@@ -51,6 +52,9 @@ export default function App(){
   const[privateSession,setPrivateSession]=useState<ProductSessionRuntime|null>(null);
   const[providerClient,setProviderClient]=useState<CardProviderClient|null>(null);
   const[providerClientError,setProviderClientError]=useState('');
+  const[businessClient,setBusinessClient]=useState<CardBusinessClient|null>(null);
+  const[businessClientError,setBusinessClientError]=useState('');
+  const businessClientRef=useRef<CardBusinessClient|null>(null);
   const privateSessionRef=useRef<ProductSessionRuntime|null>(null);
   privateSessionRef.current=privateSession;
   const[standardWalletState,setStandardWalletState]=useState(()=>createStandardWalletConnectState());
@@ -227,6 +231,14 @@ export default function App(){
     return()=>{active=false;setProviderClient(null)};
   },[privateSession?.state,privateSession?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'?privateSession.sessionBinding:null]);
 
+  useEffect(()=>{
+    if(privateSession?.state!=='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'){businessClientRef.current?.invalidate();businessClientRef.current=null;setBusinessClient(null);setBusinessClientError('');return;}
+    let active=true,owned:CardBusinessClient|null=null;
+    setBusinessClient(null);setBusinessClientError('');
+    void createRuntimeCardBusinessClient({identity:()=>{const state=privateSessionRef.current;return state?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'?{owner:state.account,sessionBinding:state.sessionBinding,expiresAt:state.expiresAt}:null},createIntrospectionProof:async scopes=>Platform.OS==='web'?cardWebProof(scopes):productWallet.current?.createIntrospectionProof(scopes)??Promise.reject(Error('PRIVATE_SESSION_PROOF_UNAVAILABLE'))}).then(client=>{if(!active){client.invalidate();return;}owned=client;businessClientRef.current=client;setBusinessClient(client);}).catch(()=>{if(active)setBusinessClientError('CARD_API_SOURCE_UNAVAILABLE');});
+    return()=>{active=false;owned?.invalidate();if(businessClientRef.current===owned)businessClientRef.current=null;};
+  },[privateSession?.state,privateSession?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'?privateSession.account:null,privateSession?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'?privateSession.sessionBinding:null,privateSession?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'?privateSession.expiresAt:null]);
+
   const parseAmount=(value:string)=>{
     const parsed=Number(value);
     if(!Number.isFinite(parsed)||parsed<=0)throw new Error("Amount must be greater than 0");
@@ -237,6 +249,7 @@ export default function App(){
   const openWalletChooser=async()=>{setWalletError("");setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"OPEN_CHOOSER"}));};
   const invalidatePrivateForWalletChange=()=>{
     privateSessionRef.current=null;++cardWebUiGeneration;
+    businessClientRef.current?.invalidate();businessClientRef.current=null;setBusinessClient(null);
     setPrivateSession(null);setProviderClient(null);
     if(Platform.OS==="web")cancelCardWebSessionAttempt();
   };
@@ -595,7 +608,7 @@ export default function App(){
     </View>
 
     {!session?
-      <GuestExperience locale={locale} connectWallet={openWalletChooser} connectMetaMaskWallet={connectMetaMask} connectYNXWallet={beginYNXWalletAuthorization} enablePrivateServices={signIn} requestFinancePermission={()=>signIn(true)} retryNativeWallet={retryNativeWalletAuthorization} disconnectNativeWallet={disconnectNativeWalletIdentity} nativeAuthorizationPending={pending} walletSession={walletSession} walletBusy={walletBusy} walletError={hostedNotice?hostedWalletText(locale,hostedNotice):walletError} privateSession={privateSession} providerClient={providerClient} providerClientError={providerClientError} standardWalletState={standardWalletState} selectedWalletKind={walletProviderKind.current} hostedWalletConnected={hostedConnected.current} closeWalletChooser={closeWalletChooser} disconnectWallet={disconnectWallet} switchWalletAccount={switchWalletAccount}/>
+      <GuestExperience locale={locale} connectWallet={openWalletChooser} connectMetaMaskWallet={connectMetaMask} connectYNXWallet={beginYNXWalletAuthorization} enablePrivateServices={signIn} requestFinancePermission={()=>signIn(true)} retryNativeWallet={retryNativeWalletAuthorization} disconnectNativeWallet={disconnectNativeWalletIdentity} nativeAuthorizationPending={pending} walletSession={walletSession} walletBusy={walletBusy} walletError={hostedNotice?hostedWalletText(locale,hostedNotice):walletError} privateSession={privateSession} providerClient={providerClient} providerClientError={providerClientError} businessClient={businessClient} businessClientError={businessClientError} standardWalletState={standardWalletState} selectedWalletKind={walletProviderKind.current} hostedWalletConnected={hostedConnected.current} closeWalletChooser={closeWalletChooser} disconnectWallet={disconnectWallet} switchWalletAccount={switchWalletAccount}/>
     :
       <>
         <View style={s.stage}>
