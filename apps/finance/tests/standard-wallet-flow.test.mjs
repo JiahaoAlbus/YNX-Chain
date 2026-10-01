@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {build} from 'esbuild';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 import {createEvmProductSessionChallenge,createEvmProductSessionSigningRequest} from '@ynx-chain/wallet-auth';
@@ -12,10 +13,12 @@ import {createEvmProductSessionChallenge,createEvmProductSessionSigningRequest} 
 const web=new URL('../web/',import.meta.url),key='ynx.finance.standard-wallet.provider.v2';
 let server,browser,base;
 test.before(async()=>{
+  const compiled=await build({entryPoints:[new URL('../web/wallet-auth-entry.js',import.meta.url).pathname],bundle:true,write:false,platform:'browser',format:'iife',target:'es2022'});
   server=createServer(async(req,res)=>{
     const path=new URL(req.url,'http://fixture').pathname;
     if(path==='/health'){res.writeHead(200,{'content-type':'application/json'});return res.end(JSON.stringify({ok:true,chainId:'ynx_6423-1',portfolio:'read-only'}));}
     const file=path==='/'?'index.html':path.slice(1);
+    if(file==='wallet-auth.js'){res.writeHead(200,{'content-type':'text/javascript'});return res.end(compiled.outputFiles[0].contents);}
     if(!/^[a-z0-9.-]+$/.test(file)){res.writeHead(404);return res.end();}
     try{const bytes=await readFile(new URL(file,web));res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html'});res.end(bytes);}catch{res.writeHead(404);res.end();}
   });
@@ -77,6 +80,9 @@ test('main wallet chooser is named, keyboard cancellable, and never asks for acc
     await page.locator('#wallet-entry').click();await page.locator('#picker-metamask').click();
     await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected');
     assert.equal((await calls(page)).some(call=>call.method==='personal_sign'),false);
+    assert.equal(await page.locator('#wallet-picker').isVisible(),true);
+    assert.equal(await page.locator('#wallet-picker-choices').isVisible(),false);
+    await page.locator('#wallet-picker-action').click();
     assert.equal(await page.locator('#wallet-picker').isVisible(),false);
   }finally{await page.close()}
 });

@@ -86,7 +86,11 @@ export class WalletConnectDAppConnection{
     const session=this.#validate(this.#session),epoch=this.#epoch,account=this.#accounts(session)[0];
     if(method==='eth_accounts'||method==='eth_requestAccounts')return [account];if(method==='eth_chainId')return '0x1917';
     if(!this.#methods.includes(method)||!session.namespaces.eip155.methods.includes(method))fail('YNX_PAIR_METHOD_NOT_APPROVED');
-    const result=await this.#wait(this.#client.request({topic:session.topic,chainId:WALLETCONNECT_CHAIN,request:{method,params},expiry:Math.max(1,Math.min(30,session.expiry-Math.floor(this.#now()/1000)))}));
+    // SignClient 2.23.10 validates transport expiry in [300,604800] seconds.
+    // This transport envelope does not extend the YNX signed challenge or
+    // session lifetime: local bounded wait and the post-return epoch/session
+    // validation below remain authoritative, as does Wallet/server expiry.
+    const result=await this.#wait(this.#client.request({topic:session.topic,chainId:WALLETCONNECT_CHAIN,request:{method,params},expiry:300}));
     if(this.#epoch!==epoch||this.#session!==session)fail('YNX_PAIR_CONTEXT_CHANGED');this.#validate(session);return result;
   }
 }

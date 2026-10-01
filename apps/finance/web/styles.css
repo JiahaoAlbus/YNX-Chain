@@ -127,7 +127,30 @@ body.finance-route-broker #wallet-connect,body.finance-route-broker #broker-nav{
 #broker-order-preview:empty,#broker-quote-status:empty{display:none}
 @media(max-width:720px){#broker-sandbox{padding:20px 16px}#broker-sandbox>dl{grid-template-columns:1fr 1fr}#broker-sandbox>dl dt,#broker-sandbox>dl dd{padding-inline:12px}#broker-sandbox>dl dt:nth-of-type(3),#broker-sandbox>dl dd:nth-of-type(3){grid-column:1/-1;grid-row:2}#broker-sandbox>dl dd{font-size:15px}#broker-sandbox>article,#broker-sandbox>.grid{padding-top:20px;margin-top:20px}#broker-asset-search{display:grid;grid-template-columns:1fr}#broker-asset-search button{width:100%}#broker-order-form{grid-template-columns:repeat(2,minmax(0,1fr))}#broker-order-form label:first-of-type{grid-column:1/-1}#broker-order-form button{grid-column:1/-1}}
 @media(max-width:390px){#broker-sandbox>dl{grid-template-columns:1fr 1fr}#broker-order-form{grid-template-columns:1fr}#broker-order-form label:first-of-type{grid-column:auto}}
-#wallet-picker{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);border-radius:16px;padding:24px;color:var(--text);background:#fff}
+#wallet-picker{width:min(440px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--line);border-radius:20px;padding:24px;color:var(--text);background:#fff;text-align:start}
 #wallet-picker::backdrop{background:rgb(15 35 65 / .35)}
-#wallet-picker button{min-height:44px;white-space:normal}
-#wallet-picker .wallet-choice{display:grid;grid-template-columns:1fr;gap:12px}
+#wallet-picker [hidden]{display:none!important}
+#wallet-picker h2{margin:0;font-size:24px;line-height:1.3}
+#wallet-picker p{font-size:15px;line-height:1.55;overflow-wrap:anywhere}
+#wallet-picker button{min-height:48px;white-space:normal;font-size:15px;line-height:1.4}
+#wallet-picker button:focus-visible,#wallet-picker a:focus-visible,#wallet-picker summary:focus-visible{outline:3px solid #002FA7;outline-offset:3px}
+#wallet-picker .wallet-choice{display:grid;grid-template-columns:1fr;gap:10px;margin-block:20px}
+#wallet-picker .wallet-choice button{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #dbe3f2;border-radius:12px;padding:14px;text-align:start;color:#172946}
+#wallet-picker .wallet-choice button:hover{border-color:#002FA7;background:#f3f6ff}
+#wallet-picker .wallet-choice img,#wallet-picker .wallet-choice svg{width:36px;height:36px;flex:none;object-fit:contain;color:#002FA7}
+#wallet-picker .wallet-choice button>span{flex:1;min-width:0}
+#wallet-picker .wallet-choice strong,#wallet-picker .wallet-choice small{display:block}
+#wallet-picker .wallet-choice small{font-size:13px;color:#53617a;line-height:1.5}
+#wallet-picker .picker-choice-status{flex:none;color:#002FA7!important;font-weight:600}
+#wallet-picker #wallet-picker-step{text-align:center;padding-block:18px 8px}
+#wallet-picker #wallet-picker-icon img,#wallet-picker #wallet-picker-icon svg{width:52px;height:52px;color:#002FA7;object-fit:contain}
+#wallet-picker #wallet-picker-selected{font-size:20px;line-height:1.4;margin:12px 0}
+#wallet-picker #wallet-picker-state{font-weight:600;color:#002FA7;margin-block:12px 6px}
+#wallet-picker #wallet-picker-hint{color:#53617a;margin-block:6px 18px}
+#wallet-picker #wallet-picker-qr{display:block;max-width:100%;height:auto;margin:16px auto;border:1px solid #dbe3f2;border-radius:12px}
+#wallet-picker #wallet-picker-account{font-size:13px;color:#53617a;word-break:break-all}
+#wallet-picker #wallet-picker-action,#wallet-picker #wallet-picker-deeplink{display:block;width:100%;margin-block:12px;background:#002FA7;color:#fff;border-color:#002FA7}
+#wallet-picker #wallet-picker-back,#wallet-picker #wallet-picker-close{width:100%;margin-block:8px;background:#fff;border:1px solid #dbe3f2;color:#002FA7}
+#wallet-picker #wallet-picker-details{text-align:start;font-size:13px;color:#53617a;margin-block:16px 4px}
+#wallet-picker #wallet-picker-diagnostic{font-size:12px}
+@media(max-width:390px){#wallet-picker{padding:20px 16px}#wallet-picker .wallet-choice button{padding:12px;gap:10px}#wallet-picker .picker-choice-status{max-width:72px;text-align:end}}
