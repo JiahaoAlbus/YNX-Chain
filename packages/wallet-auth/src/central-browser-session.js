@@ -139,8 +139,8 @@ export class CentralBrowserSessionAuthority {
       const auth=this.#authenticateBackend(state,now,'/v2/browser-sessions/token-family',input,proof),digest=backendBodyDigest(input),existing=state.families.find(f=>f.initialCodeHash===hash(input.code));
       if(existing){if(existing.clientId!==input.clientId||existing.initialDigest!==digest||existing.initialRequestId!==input.requestId)fail('SSO_CODE_REPLAY');this.#activeFamily(state,existing,now);if(existing.epoch!==0)fail('SSO_CODE_REPLAY');return this.#familySeal.open(existing.initialResult,existing.id+':initial');}
       const {requestId,...redemption}=input,result=this.#redeem(state,now,redemption),grant=state.grants.find(g=>g.tokenHash===hash(result.grantToken)),session=state.sessions.find(v=>v.id===grant.sessionId),handle=this.#token();
-      const family={id:this.#token(),sessionId:session.id,generation:session.generation,clientId:grant.clientId,origin:grant.origin,audience:grant.audience,scopes:[...grant.scopes],absoluteExpiresAt:session.expiresAt,epoch:0,activityIds:[],handleHash:hash(handle),revoked:false,initialCodeHash:hash(input.code),initialRequestId:requestId,initialDigest:digest,grantExpiresAt:grant.expiresAt,spentHandles:[],retry:null};
-      const out={...result,familyId:family.id,familyEpoch:0,refreshHandle:handle,absoluteExpiresAt:iso(session.expiresAt),idleExpiresAt:iso(Math.min(session.expiresAt,session.lastSeenAt+SESSION_IDLE))};family.initialResult=this.#familySeal.seal(out,family.id+':initial');state.families.push(family);return out;
+      const family={id:this.#token(),sessionId:session.id,generation:session.generation,lastUserActivityAt:session.lastSeenAt,clientId:grant.clientId,origin:grant.origin,audience:grant.audience,scopes:[...grant.scopes],absoluteExpiresAt:session.expiresAt,epoch:0,activityIds:[],handleHash:hash(handle),revoked:false,initialCodeHash:hash(input.code),initialRequestId:requestId,initialDigest:digest,grantExpiresAt:grant.expiresAt,spentHandles:[],retry:null};
+      grant.familyId=family.id;const out={...result,familyId:family.id,familyEpoch:0,refreshHandle:handle,absoluteExpiresAt:iso(session.expiresAt),idleExpiresAt:iso(Math.min(session.expiresAt,family.lastUserActivityAt+SESSION_IDLE))};family.initialResult=this.#familySeal.seal(out,family.id+':initial');state.families.push(family);return out;
     });
   }
   renewFamily(input,proof){
@@ -152,14 +152,14 @@ export class CentralBrowserSessionAuthority {
       if(family.spentHandles.some(h=>h.hash===handleHash))fail('SSO_FAMILY_REPLAY');
       if(input.expectedFamilyEpoch!==family.epoch||!equal(handleHash,family.handleHash))fail('SSO_FAMILY_CONFLICT');
       if(family.epoch>=64)fail('SSO_FAMILY_CAPACITY');if(family.grantExpiresAt>now+60000)fail('SSO_RENEW_NOT_DUE');
-      const handle=this.#token(),grantToken=this.#token(),expiresAt=Math.min(now+GRANT_LIFETIME,session.expiresAt,session.lastSeenAt+SESSION_IDLE);const grant={tokenHash:hash(grantToken),sessionId:session.id,generation:session.generation,clientId:family.clientId,origin:family.origin,audience:family.audience,scopes:[...family.scopes],expiresAt,revoked:false};state.grants.push(grant);family.spentHandles.push({hash:family.handleHash,epoch:family.epoch});family.epoch++;family.grantExpiresAt=expiresAt;
-      const out={grantToken,expiresAt:iso(expiresAt),identity:this.#identity(session),audience:family.audience,scopes:[...family.scopes],familyId:family.id,familyEpoch:family.epoch,refreshHandle:handle,absoluteExpiresAt:iso(family.absoluteExpiresAt),idleExpiresAt:iso(Math.min(session.expiresAt,session.lastSeenAt+SESSION_IDLE))};
+      const handle=this.#token(),grantToken=this.#token(),expiresAt=Math.min(now+GRANT_LIFETIME,session.expiresAt,family.lastUserActivityAt+SESSION_IDLE);const grant={familyId:family.id,tokenHash:hash(grantToken),sessionId:session.id,generation:session.generation,clientId:family.clientId,origin:family.origin,audience:family.audience,scopes:[...family.scopes],expiresAt,revoked:false};state.grants.push(grant);family.spentHandles.push({hash:family.handleHash,epoch:family.epoch});family.epoch++;family.grantExpiresAt=expiresAt;
+      const out={grantToken,expiresAt:iso(expiresAt),identity:this.#identity(session),audience:family.audience,scopes:[...family.scopes],familyId:family.id,familyEpoch:family.epoch,refreshHandle:handle,absoluteExpiresAt:iso(family.absoluteExpiresAt),idleExpiresAt:iso(Math.min(session.expiresAt,family.lastUserActivityAt+SESSION_IDLE))};
       family.retry={oldHandleHash:family.handleHash,epoch:input.expectedFamilyEpoch,resultEpoch:family.epoch,requestId:input.requestId,digest,result:this.#familySeal.seal(out,family.id+':'+family.epoch)};family.handleHash=hash(handle);return out;
     });
   }
   recordFamilyActivity(input,proof){
     exactFields(input,['clientId','familyId','eventId','observedAt'],'Trusted host user activity');const observed=Date.parse(input.observedAt);if(!token(input.familyId)||!token(input.eventId)||!Number.isFinite(observed)||new Date(observed).toISOString()!==input.observedAt)fail('SSO_ACTIVITY_INVALID');
-    return this.#transaction((state,now)=>{this.#authenticateBackend(state,now,'/v2/browser-sessions/activity',input,proof);if(observed>now||now-observed>30000)fail('SSO_ACTIVITY_INVALID');const family=state.families.find(f=>f.id===input.familyId&&f.clientId===input.clientId),session=this.#activeFamily(state,family,now);family.activityIds=family.activityIds.filter(e=>e.observedAt+30000>=now);const prior=family.activityIds.find(e=>e.id===input.eventId);if(prior&&prior.observedAt!==observed)fail('SSO_ACTIVITY_REPLAY');if(!prior){if(family.activityIds.length>=128)fail('SSO_ACTIVITY_CAPACITY');family.activityIds.push({id:input.eventId,observedAt:observed});session.lastSeenAt=Math.max(session.lastSeenAt,observed);}return{absoluteExpiresAt:iso(session.expiresAt),idleExpiresAt:iso(Math.min(session.expiresAt,session.lastSeenAt+SESSION_IDLE)),identity:this.#identity(session)};});
+    return this.#transaction((state,now)=>{this.#authenticateBackend(state,now,'/v2/browser-sessions/activity',input,proof);if(observed>now||now-observed>30000)fail('SSO_ACTIVITY_INVALID');const family=state.families.find(f=>f.id===input.familyId&&f.clientId===input.clientId),session=this.#activeFamily(state,family,now);family.activityIds=family.activityIds.filter(e=>e.observedAt+30000>=now);const prior=family.activityIds.find(e=>e.id===input.eventId);if(prior&&prior.observedAt!==observed)fail('SSO_ACTIVITY_REPLAY');if(!prior){if(family.activityIds.length>=128)fail('SSO_ACTIVITY_CAPACITY');family.activityIds.push({id:input.eventId,observedAt:observed});family.lastUserActivityAt=Math.max(family.lastUserActivityAt,observed);session.lastSeenAt=Math.max(session.lastSeenAt,observed);}return{absoluteExpiresAt:iso(session.expiresAt),idleExpiresAt:iso(Math.min(session.expiresAt,family.lastUserActivityAt+SESSION_IDLE)),identity:this.#identity(session)};});
   }
   revokeFamily(input,proof){
     exactFields(input,['clientId','familyId','requestId'],'Confidential family revocation');if(!token(input.familyId)||!token(input.requestId))fail('SSO_FAMILY_REQUEST_INVALID');
@@ -169,7 +169,7 @@ export class CentralBrowserSessionAuthority {
     if(!this.#familySeal)fail('SSO_BACKEND_NOT_CONFIGURED');const auth=this.#backendVerify(path,input,proof,now);state.families??=[];state.backendNonces??=[];state.schemaVersion=2;const prior=state.backendNonces.find(n=>n.hash===auth.nonceHash&&n.clientId===auth.clientId);if(prior&&prior.digest!==auth.digest)fail('SSO_BACKEND_AUTH_REPLAY');if(!prior)state.backendNonces.push({hash:auth.nonceHash,clientId:auth.clientId,digest:auth.digest,expiresAt:auth.expiresAt});return auth;
   }
   #activeFamily(state,family,now){
-    if(!family||family.revoked)fail('SSO_FAMILY_INVALID');const session=state.sessions.find(v=>v.id===family.sessionId);this.#assertActive(session,now);if(session.generation!==family.generation||family.absoluteExpiresAt!==session.expiresAt)fail('SSO_GENERATION_REVOKED');const approved=this.#approved(state,session,family.clientId);if(approved.origin!==family.origin||approved.audience!==family.audience||canonicalJSON(approved.scopes)!==canonicalJSON(family.scopes))fail('SSO_FAMILY_INVALID');return session;
+    if(!family||family.revoked)fail('SSO_FAMILY_INVALID');if(!Number.isSafeInteger(family.lastUserActivityAt)||family.lastUserActivityAt+SESSION_IDLE<=now)fail('SSO_LOGIN_REQUIRED');const session=state.sessions.find(v=>v.id===family.sessionId);this.#assertActive(session,now);if(session.generation!==family.generation||family.absoluteExpiresAt!==session.expiresAt)fail('SSO_GENERATION_REVOKED');const approved=this.#approved(state,session,family.clientId);if(approved.origin!==family.origin||approved.audience!==family.audience||canonicalJSON(approved.scopes)!==canonicalJSON(family.scopes))fail('SSO_FAMILY_INVALID');return session;
   }
   introspect(grantToken,clientId){
     if(!token(grantToken))fail('SSO_GRANT_INVALID');
@@ -178,7 +178,7 @@ export class CentralBrowserSessionAuthority {
       if(!grant||grant.revoked||grant.expiresAt<=now||grant.clientId!==clientId)fail('SSO_GRANT_INVALID');
       const session=state.sessions.find(value=>value.id===grant.sessionId);this.#assertActive(session,now);
       if(session.generation!==grant.generation)fail('SSO_GENERATION_REVOKED');const approved=this.#approved(state,session,clientId);if(grant.origin!==approved.origin||grant.audience!==approved.audience||canonicalJSON(grant.scopes)!==canonicalJSON(approved.scopes))fail('SSO_GRANT_INVALID');
-      // Passive verification never extends the user idle deadline.
+      if(grant.familyId){const family=state.families?.find(f=>f.id===grant.familyId);this.#activeFamily(state,family,now);}else session.lastSeenAt=now; // Legacy behavior retained until this client adopts finite families.
       return {identity:this.#identity(session),audience:grant.audience,scopes:[...grant.scopes],expiresAt:iso(grant.expiresAt)};
     });
   }
@@ -230,7 +230,7 @@ export class CentralBrowserSessionAuthority {
     if(state.schemaVersion===2){state.families=state.families.filter(f=>f.absoluteExpiresAt+300000>now);state.backendNonces=state.backendNonces.filter(n=>n.expiresAt+30000>now);}
     return action(state,now);
   });}
-  #active(state,value,now){if(!token(value))fail('SSO_LOGIN_REQUIRED');const session=state.sessions.find(record=>equal(record.tokenHash,hash(value)));this.#assertActive(session,now);return session;}
+  #active(state,value,now){if(!token(value))fail('SSO_LOGIN_REQUIRED');const session=state.sessions.find(record=>equal(record.tokenHash,hash(value)));this.#assertActive(session,now);session.lastSeenAt=now;return session;}
   #assertActive(session,now){if(!session||session.revoked||session.expiresAt<=now||session.lastSeenAt+SESSION_IDLE<=now)fail('SSO_LOGIN_REQUIRED');}
   #identity(session){return {subject:session.account,account:session.account,generation:session.generation,expiresAt:iso(session.expiresAt)};}
 }
