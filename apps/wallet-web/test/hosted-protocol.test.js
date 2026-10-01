@@ -49,4 +49,4 @@ test("opener source, origin, nonce, expiry and one-use message ID all bind the s
  assert.throws(()=>validateHostedMessage({source:opener,origin,data:message},opener,{...value,nonce:randomHostedId()},new Set(),now));
  });
 
-test("actual AI Hosted adapter accepts only the registered HTTPS origin",()=>{assert.doesNotThrow(()=>createHostedWalletAdapter({window:{location:{origin:"https://assistant.ynxweb4.com"}}}));for(const origin of ["https://assistant.ynxweb4.com.evil.example","http://assistant.ynxweb4.com","https://www.assistant.ynxweb4.com"])assert.throws(()=>createHostedWalletAdapter({window:{location:{origin}}}),/HOSTED_ORIGIN_UNREGISTERED/);});
+test("actual AI Hosted adapter accepts only the registered HTTPS origin",()=>{assert.doesNotThrow(()=>createHostedWalletAdapter({window:{location:{origin:"https://assistant.ynxweb4.com"},addEventListener(){}}}));for(const origin of ["https://assistant.ynxweb4.com.evil.example","http://assistant.ynxweb4.com","https://www.assistant.ynxweb4.com"])assert.throws(()=>createHostedWalletAdapter({window:{location:{origin}}}),/HOSTED_ORIGIN_UNREGISTERED/);});
