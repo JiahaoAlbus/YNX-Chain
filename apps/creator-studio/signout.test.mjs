@@ -291,3 +291,10 @@ test('Creator cancel and choose-another fence a late Wallet response, with expli
  await c.run('product-wallet-back');assert.equal(c.element('#product-wallet-choices').children[0].disabled,false);
  await c.run('product-wallet-cancel');assert.equal(c.element('#product-wallet-chooser').open,false);
 });
+
+test('Switch Creator account finishes original revocation before offering a new approval',async()=>{
+ let revokes=0,prepares=0;
+ const c=await app({disconnectProductSession:async()=>{revokes++;return {status:'retry-required',revocationPending:true,message:'Retry sign out'};},prepareProductSignIn:async()=>{prepares++;return {url:'new'};}});
+ await turn();c.renderProductState(connected('old-owner'));
+ await c.click('product-signin');assert.equal(revokes,1);assert.equal(prepares,0);assert.equal(c.element('#product-wallet-chooser').open,false);assert.equal(c.element('#product-signin').disabled,true);assert.equal(c.readState().creatorAccount,null);
+});

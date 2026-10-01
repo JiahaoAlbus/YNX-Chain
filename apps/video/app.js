@@ -268,6 +268,7 @@ productChooser.addEventListener("cancel", cancelVideoSignIn);
 $("#product-wallet-back").onclick = prepareVideoSignIn;
 async function prepareVideoSignIn() {
  if (productSignOutPending) return;
+ if (productConnected()) {await signOutVideoAccount(); if (productSignOutPending) return;}
  productRevision++;
  const intent = ++videoSignInIntent, choices = $("#product-wallet-choices");
  choices.replaceChildren(); choices.hidden = false; $("#product-wallet-back").hidden = true;

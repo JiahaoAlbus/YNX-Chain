@@ -300,6 +300,7 @@ productChooser.addEventListener("cancel", cancelCreatorSignIn);
 $("#product-wallet-back").onclick = openCreatorSignIn;
 async function openCreatorSignIn() {
  if (creatorSignOutPending) return;
+ if (creatorAccount) {await signOutCreatorAccount(); if (creatorSignOutPending) return;}
  creatorSessionRevision++;
  const intent = ++creatorSignInIntent, choices = $("#product-wallet-choices");
  choices.replaceChildren(); choices.hidden = false; $("#product-wallet-back").hidden = true;
@@ -344,7 +345,8 @@ async function prepareNativeCreatorSignIn(){
   catch(error){if(revision===creatorSessionRevision){if(error.productSessionState?.revocationPending)renderProductState(error.productSessionState);else productStatus.textContent=error.message;}}
   finally{productConnect.disabled=creatorSignOutPending;}
 }
-productDisconnect.addEventListener("click",async()=>{
+productDisconnect.addEventListener("click",signOutCreatorAccount);
+async function signOutCreatorAccount(){
   cancelCreatorSignIn();
   creatorSignOutPending=true;
   productDisconnect.disabled=true;
@@ -355,7 +357,7 @@ productDisconnect.addEventListener("click",async()=>{
   try{const state=await disconnectProductSession();if(revision!==creatorSessionRevision)return;creatorSignOutPending=state.status!=="disconnected";renderProductState(state);if(state.status==="disconnected")status("Creator account disconnected.");}
   catch(error){if(revision===creatorSessionRevision){productStatus.textContent=error.message;productDisconnect.hidden=false;productDisconnect.textContent="Retry sign out";}}
   finally{productDisconnect.disabled=false;productConnect.disabled=creatorSignOutPending;}
-});
+}
 async function restoreCreator(){
   if(creatorSignOutPending)return;
   if(!atRegisteredOrigin()){productStatus.textContent="Open creator.ynxweb4.com to sign in and manage your channel.";return;}
