@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
-import {createCentralBrowserSessionRegistry,centralBrowserClient,WalletConnectDAppConnection} from '../web/vendor/wallet-connection-a32-ai-v1.mjs';
+import {createCentralBrowserSessionRegistry,centralBrowserClient,WalletConnectDAppConnection} from '../web/vendor/wallet-connection-ai039-shared1a8.mjs';
 const registry=JSON.parse(readFileSync(new URL('../web/vendor/product-session-registry.json',import.meta.url)));
 test('AI SSO has one exact identity-only official registration and preserves adopted products',()=>{
  const clients=createCentralBrowserSessionRegistry(registry),ai=clients.find(value=>value.productId==='ai');

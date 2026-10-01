@@ -3,7 +3,7 @@ const choiceKey='ynx-ai-wallet-choice',disconnectKey='ynx-ai-wallet-disconnected
 const names={'ynx-wallet':'YNX Wallet',metamask:'MetaMask'};
 const rejected=error=>[4001,5000,5001,5002,5003].includes(Number(error?.code))||error?.code==='USER_REJECTED';
 export class AIWalletClient {
- constructor({scope=globalThis,storage=scope.sessionStorage,onChange=()=>{},onInvalidated=()=>{},onPair=()=>{},waitMs=160,loadSDK=()=>import('./vendor/wallet-connection-a32-ai-v1.mjs')}={}){
+ constructor({scope=globalThis,storage=scope.sessionStorage,onChange=()=>{},onInvalidated=()=>{},onPair=()=>{},waitMs=160,loadSDK=()=>import('./vendor/wallet-connection-ai039-shared1a8.mjs')}={}){
   Object.assign(this,{scope,storage,onChange,onInvalidated,onPair,waitMs,loadSDK,version:0,readVersion:0,connection:null,provider:null,unsubscribe:null,discovery:null,sdk:null,pair:null,hosted:null});
   this.state={status:'disconnected',kind:null,account:null,chainId:null,privateSession:false};
  }
