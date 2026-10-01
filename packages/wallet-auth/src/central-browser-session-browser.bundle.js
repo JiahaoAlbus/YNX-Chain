@@ -25589,6 +25589,13 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     return "en";
   }
   var rows = [
+    ["Connection trouble?", "\u8FDE\u63A5\u6709\u95EE\u9898\uFF1F", "\u9023\u63A5\u6709\u554F\u984C\uFF1F"],
+    ["Use older YNX Wallet compatibility", "\u4F7F\u7528\u65E7\u7248 YNX Wallet \u517C\u5BB9\u8FDE\u63A5", "\u4F7F\u7528\u820A\u7248 YNX Wallet \u76F8\u5BB9\u9023\u63A5"],
+    ["This approval includes:", "\u672C\u6B21\u6279\u51C6\u5305\u542B\uFF1A", "\u672C\u6B21\u6279\u51C6\u5305\u542B\uFF1A"],
+    ["Update YNX Wallet to include:", "\u66F4\u65B0 YNX Wallet \u540E\u53EF\u63A5\u5165\uFF1A", "\u66F4\u65B0 YNX Wallet \u5F8C\u53EF\u63A5\u5165\uFF1A"],
+    ["Compatibility selected. Review the listed apps in YNX Wallet.", "\u517C\u5BB9\u8FDE\u63A5\u5DF2\u9009\u5B9A\u3002\u8BF7\u5728 YNX Wallet \u6838\u5BF9\u5217\u51FA\u7684\u5E94\u7528\u3002", "\u76F8\u5BB9\u9023\u63A5\u5DF2\u9078\u5B9A\u3002\u8ACB\u5728 YNX Wallet \u6838\u5C0D\u5217\u51FA\u7684\u61C9\u7528\u3002"],
+    ["Compatibility could not be selected. Return to your product and start a new sign-in.", "\u517C\u5BB9\u8FDE\u63A5\u672A\u5B8C\u6210\u3002\u8BF7\u8FD4\u56DE\u5E94\u7528\u5E76\u91CD\u65B0\u767B\u5F55\u3002", "\u76F8\u5BB9\u9023\u63A5\u672A\u5B8C\u6210\u3002\u8ACB\u8FD4\u56DE\u61C9\u7528\u4E26\u91CD\u65B0\u767B\u5165\u3002"],
+    ["Apps in this approval:", "\u672C\u6B21\u6279\u51C6\u7684\u5E94\u7528\uFF1A", "\u672C\u6B21\u6279\u51C6\u7684\u61C9\u7528\uFF1A"],
     ["Connection details", "\u8FDE\u63A5\u8BE6\u60C5", "\u9023\u63A5\u8A73\u60C5"],
     ["Wallet Web connection did not finish. Retry or cancel.", "\u7F51\u9875\u7248\u94B1\u5305\u8FDE\u63A5\u672A\u5B8C\u6210\u3002\u8BF7\u91CD\u8BD5\u6216\u53D6\u6D88\u3002", "\u7DB2\u9801\u7248\u9322\u5305\u9023\u63A5\u672A\u5B8C\u6210\u3002\u8ACB\u91CD\u8A66\u6216\u53D6\u6D88\u3002"],
     ["Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.", "\u624B\u673A\u94B1\u5305\u8FDE\u63A5\u672A\u5B8C\u6210\uFF0C\u5C1A\u672A\u767B\u5F55\u3002\u8BF7\u91CD\u8BD5\u6216\u53D6\u6D88\u3002", "\u624B\u6A5F\u9322\u5305\u9023\u63A5\u672A\u5B8C\u6210\uFF0C\u5C1A\u672A\u767B\u5165\u3002\u8ACB\u91CD\u8A66\u6216\u53D6\u6D88\u3002"],
@@ -25711,6 +25718,201 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
       this.code = code2;
     }
   };
+
+  // src/product-session-registry.js
+  var PRODUCT_SESSION_REGISTRY_VERSION = 2;
+  var PRODUCT_SESSION_PLATFORMS = Object.freeze(["android", "ios", "linux", "macos", "web", "windows"]);
+  var DOCUMENT_FIELDS = ["schemaVersion", "chainId", "wallet", "products"];
+  var WALLET_FIELDS = ["authorizeCallback", "downloadUrl", "metaMaskDownloadUrl"];
+  var PRODUCT_FIELDS = [
+    "productId",
+    "clientId",
+    "displayName",
+    "applicationId",
+    "webOrigin",
+    "nativeCallback",
+    "legacyCallbacks",
+    "scopes",
+    "evmCompatible",
+    "sessionDurationSeconds"
+  ];
+  var FORBIDDEN_CALLBACK_SCHEMES = /* @__PURE__ */ new Set(["data:", "file:", "http:", "javascript:"]);
+  function parseProductSessionRegistry(input) {
+    exactFields(input, DOCUMENT_FIELDS, "Product Session router registry");
+    if (input.schemaVersion !== PRODUCT_SESSION_REGISTRY_VERSION || input.chainId !== "ynx_6423-1") {
+      fail("INVALID_ROUTER_REGISTRY", "Product Session router registry version or chain is unsupported");
+    }
+    exactFields(input.wallet, WALLET_FIELDS, "Product Session Wallet registration");
+    const authorizeCallback = callback(input.wallet.authorizeCallback, "wallet authorize callback", { allowHttps: false });
+    const authorize = new URL(authorizeCallback);
+    if (authorize.protocol !== "ynxwallet:" || authorize.hostname !== "authorize" || authorize.pathname !== "") {
+      fail("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");
+    }
+    const downloadUrl = httpsURL(input.wallet.downloadUrl, "Wallet download URL", false);
+    const metaMaskDownloadUrl = httpsURL(input.wallet.metaMaskDownloadUrl, "MetaMask download URL", false);
+    if (downloadUrl !== "https://www.ynxweb4.com/dapp/download" || metaMaskDownloadUrl !== "https://metamask.io/download") {
+      fail("INVALID_ROUTER_REGISTRY", "Wallet download routes must match the approved official allowlist");
+    }
+    if (!Array.isArray(input.products) || input.products.length < 1 || input.products.length > 64) {
+      fail("INVALID_ROUTER_REGISTRY", "Product Session registry product count is invalid");
+    }
+    const products = input.products.map(parseProduct);
+    uniqueSorted(products.map((item) => item.productId), "productId");
+    unique(products.map((item) => item.clientId), "clientId");
+    unique(products.map((item) => item.applicationId), "applicationId");
+    unique(products.map((item) => item.webOrigin), "webOrigin");
+    unique(products.filter((item) => item.nativeCallback !== null).map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
+    const legacy = products.flatMap((item) => item.legacyCallbacks.map((value) => `${value}
+${item.productId}`));
+    const legacyNames = legacy.map((value) => value.split("\n", 1)[0]);
+    unique(legacyNames, "legacy callback");
+    return Object.freeze({
+      schemaVersion: PRODUCT_SESSION_REGISTRY_VERSION,
+      chainId: input.chainId,
+      wallet: Object.freeze({ authorizeCallback, downloadUrl, metaMaskDownloadUrl }),
+      products: Object.freeze(products)
+    });
+  }
+  function parseProduct(input) {
+    const hasPlatforms = input !== null && typeof input === "object" && Object.hasOwn(input, "platforms");
+    exactFields(input, hasPlatforms ? [...PRODUCT_FIELDS, "platforms"] : PRODUCT_FIELDS, "Product Session product registration");
+    if (hasPlatforms && (!Array.isArray(input.platforms) || input.platforms.length !== 1 || input.platforms[0] !== "web")) {
+      fail("INVALID_ROUTER_REGISTRY", "Explicit Product Session platforms must be exactly [web]");
+    }
+    const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
+    const clientId = pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/);
+    const displayName = text(input.displayName, "displayName", 2, 64);
+    const applicationId = pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
+    const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
+    let nativeCallback, legacyCallbacks;
+    if (hasPlatforms) {
+      if (input.nativeCallback !== null || !Array.isArray(input.legacyCallbacks) || input.legacyCallbacks.length !== 0) {
+        fail("INVALID_ROUTER_REGISTRY", "Web-only products cannot register native or legacy callbacks");
+      }
+      nativeCallback = null;
+      legacyCallbacks = [];
+    } else {
+      nativeCallback = callback(input.nativeCallback, "nativeCallback", { allowHttps: false });
+      const native = new URL(nativeCallback);
+      if (native.search || native.hash || native.username || native.password || !native.hostname) {
+        fail("INVALID_ROUTER_REGISTRY", "Native callback must contain an exact host/path without query or fragment");
+      }
+      legacyCallbacks = stringList(input.legacyCallbacks, "legacyCallbacks", 1, 8, (value) => text(value, "legacy callback", 3, 512));
+      if (!legacyCallbacks.includes(nativeCallback)) fail("INVALID_ROUTER_REGISTRY", "Legacy callback list must include the canonical native callback");
+    }
+    const scopes = stringList(input.scopes, "scopes", 1, 8, (value) => pattern(value, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
+    if (scopes.some((scope) => scope.includes("*"))) fail("INVALID_ROUTER_REGISTRY", "Wildcard Product Session scope is forbidden");
+    if (typeof input.evmCompatible !== "boolean") fail("INVALID_ROUTER_REGISTRY", "evmCompatible must be boolean");
+    if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) {
+      fail("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
+    }
+    return Object.freeze({
+      productId,
+      clientId,
+      displayName,
+      applicationId,
+      webOrigin,
+      nativeCallback,
+      ...hasPlatforms ? { platforms: Object.freeze(["web"]) } : {},
+      legacyCallbacks: Object.freeze(legacyCallbacks),
+      scopes: Object.freeze(scopes),
+      evmCompatible: input.evmCompatible,
+      sessionDurationSeconds: input.sessionDurationSeconds
+    });
+  }
+  function callback(value, label, options) {
+    const normalized = text(value, label, 3, 512);
+    let parsed;
+    try {
+      parsed = new URL(normalized);
+    } catch {
+      fail("INVALID_ROUTER_REGISTRY", `${label} is not a URL with ://`);
+    }
+    if (parsed.toString() !== normalized || parsed.username || parsed.password || parsed.hash || FORBIDDEN_CALLBACK_SCHEMES.has(parsed.protocol)) {
+      fail("INVALID_ROUTER_REGISTRY", `${label} is not canonical or uses a forbidden scheme`);
+    }
+    if (parsed.protocol === "https:" && !options.allowHttps) fail("INVALID_ROUTER_REGISTRY", `${label} must use its registered application scheme`);
+    if (parsed.protocol !== "https:" && !/^[a-z][a-z0-9+.-]*:$/.test(parsed.protocol)) fail("INVALID_ROUTER_REGISTRY", `${label} scheme is invalid`);
+    return normalized;
+  }
+  function httpsURL(value, label, originOnly) {
+    const normalized = text(value, label, 8, 512);
+    let parsed;
+    try {
+      parsed = new URL(normalized);
+    } catch {
+      fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+    }
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash || parsed.port || !parsed.hostname || originOnly && (parsed.pathname !== "/" || parsed.search)) {
+      fail("INVALID_ROUTER_REGISTRY", `${label} must be a canonical HTTPS ${originOnly ? "origin" : "URL"}`);
+    }
+    return originOnly ? parsed.origin : parsed.toString().replace(/\/$/, "");
+  }
+  function stringList(value, label, minimum, maximum, normalize) {
+    if (!Array.isArray(value) || value.length < minimum || value.length > maximum) fail("INVALID_ROUTER_REGISTRY", `${label} item count is invalid`);
+    const result = value.map(normalize);
+    uniqueSorted(result, label);
+    return result;
+  }
+  function uniqueSorted(values, label) {
+    unique(values, label);
+    if ([...values].sort().join("\n") !== values.join("\n")) fail("INVALID_ROUTER_REGISTRY", `${label} must be sorted`);
+  }
+  function unique(values, label) {
+    if (new Set(values).size !== values.length) fail("INVALID_ROUTER_REGISTRY", `${label} must be globally unique`);
+  }
+  function pattern(value, label, regex) {
+    const result = text(value, label, 1, 512);
+    if (!regex.test(result)) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+    return result;
+  }
+  function text(value, label, minimum, maximum) {
+    if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+    return value;
+  }
+  function fail(code2, message) {
+    throw new WalletAuthError(code2, message);
+  }
+
+  // src/central-browser-session-registry.js
+  var CENTRAL_BROWSER_ISSUER = "https://wallet-auth.ynxweb4.com";
+  var ADOPTED = Object.freeze(["finance", "exchange", "quant", "social", "ai", "developer"]);
+  function createCentralBrowserSessionRegistry(productRegistry) {
+    const registry = parseProductSessionRegistry(productRegistry);
+    return Object.freeze(ADOPTED.map((productId) => {
+      const product = registry.products.find((value) => value.productId === productId);
+      if (!product) fail2("SSO_REGISTRY_INVALID");
+      return Object.freeze({
+        productId,
+        clientId: `${product.clientId}-sso-v1`,
+        origin: product.webOrigin,
+        redirectUri: `${product.webOrigin}/sso/callback`,
+        audience: `ynx:${productId}:identity`,
+        scopes: Object.freeze(["identity:read"])
+      });
+    }));
+  }
+  function centralBrowserClient(registry, input) {
+    exactFields(input, ["clientId", "origin", "redirectUri"], "Central browser client");
+    const client = registry.find((value) => value.clientId === input.clientId);
+    if (!client || client.origin !== input.origin || client.redirectUri !== input.redirectUri) fail2("SSO_CLIENT_NOT_REGISTERED");
+    return client;
+  }
+  function fail2(code2) {
+    throw new WalletAuthError(code2, "Central browser client is not exactly registered");
+  }
+  var PROFILE_PRODUCTS = Object.freeze([["finance", "exchange", "quant"], ["finance", "exchange", "quant", "social", "ai"], ["finance", "exchange", "quant", "social", "ai", "developer"]]);
+  function centralBrowserProfiles(registry) {
+    return PROFILE_PRODUCTS.filter((ids) => ids.every((id) => registry.some((c4) => c4.productId === id))).map((ids) => ({ id: ids.length, clients: ids.map((id) => {
+      const c4 = registry.find((c5) => c5.productId === id);
+      return { clientId: c4.clientId, origin: c4.origin, audience: c4.audience, scopes: [...c4.scopes] };
+    }).sort((a3, b4) => a3.clientId.localeCompare(b4.clientId)) }));
+  }
+  function centralBrowserApprovedProfile(registry, clients2, initiatorClientId) {
+    const profile = centralBrowserProfiles(registry).find((p4) => canonicalJSON(p4.clients) === canonicalJSON(clients2));
+    if (!profile || !profile.clients.some((c4) => c4.clientId === initiatorClientId)) throw new WalletAuthError("SSO_CLIENTS_MISMATCH", "Central browser roster is not an approved complete profile");
+    return profile;
+  }
 
   // src/protocol.js
   var MAX_REQUEST_LIFETIME_MS = 5 * 60 * 1e3;
@@ -26088,161 +26290,6 @@ ${e2.length}`, n4 = new TextEncoder().encode(t2 + e2);
     return typeof value === "string" && value.length >= 1 && value.length <= 256 ? value : "EIP-1193 provider request failed";
   }
 
-  // src/product-session-registry.js
-  var PRODUCT_SESSION_REGISTRY_VERSION = 2;
-  var PRODUCT_SESSION_PLATFORMS = Object.freeze(["android", "ios", "linux", "macos", "web", "windows"]);
-  var DOCUMENT_FIELDS = ["schemaVersion", "chainId", "wallet", "products"];
-  var WALLET_FIELDS = ["authorizeCallback", "downloadUrl", "metaMaskDownloadUrl"];
-  var PRODUCT_FIELDS = [
-    "productId",
-    "clientId",
-    "displayName",
-    "applicationId",
-    "webOrigin",
-    "nativeCallback",
-    "legacyCallbacks",
-    "scopes",
-    "evmCompatible",
-    "sessionDurationSeconds"
-  ];
-  var FORBIDDEN_CALLBACK_SCHEMES = /* @__PURE__ */ new Set(["data:", "file:", "http:", "javascript:"]);
-  function parseProductSessionRegistry(input) {
-    exactFields(input, DOCUMENT_FIELDS, "Product Session router registry");
-    if (input.schemaVersion !== PRODUCT_SESSION_REGISTRY_VERSION || input.chainId !== "ynx_6423-1") {
-      fail("INVALID_ROUTER_REGISTRY", "Product Session router registry version or chain is unsupported");
-    }
-    exactFields(input.wallet, WALLET_FIELDS, "Product Session Wallet registration");
-    const authorizeCallback = callback(input.wallet.authorizeCallback, "wallet authorize callback", { allowHttps: false });
-    const authorize = new URL(authorizeCallback);
-    if (authorize.protocol !== "ynxwallet:" || authorize.hostname !== "authorize" || authorize.pathname !== "") {
-      fail("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");
-    }
-    const downloadUrl = httpsURL(input.wallet.downloadUrl, "Wallet download URL", false);
-    const metaMaskDownloadUrl = httpsURL(input.wallet.metaMaskDownloadUrl, "MetaMask download URL", false);
-    if (downloadUrl !== "https://www.ynxweb4.com/dapp/download" || metaMaskDownloadUrl !== "https://metamask.io/download") {
-      fail("INVALID_ROUTER_REGISTRY", "Wallet download routes must match the approved official allowlist");
-    }
-    if (!Array.isArray(input.products) || input.products.length < 1 || input.products.length > 64) {
-      fail("INVALID_ROUTER_REGISTRY", "Product Session registry product count is invalid");
-    }
-    const products = input.products.map(parseProduct);
-    uniqueSorted(products.map((item) => item.productId), "productId");
-    unique(products.map((item) => item.clientId), "clientId");
-    unique(products.map((item) => item.applicationId), "applicationId");
-    unique(products.map((item) => item.webOrigin), "webOrigin");
-    unique(products.filter((item) => item.nativeCallback !== null).map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
-    const legacy = products.flatMap((item) => item.legacyCallbacks.map((value) => `${value}
-${item.productId}`));
-    const legacyNames = legacy.map((value) => value.split("\n", 1)[0]);
-    unique(legacyNames, "legacy callback");
-    return Object.freeze({
-      schemaVersion: PRODUCT_SESSION_REGISTRY_VERSION,
-      chainId: input.chainId,
-      wallet: Object.freeze({ authorizeCallback, downloadUrl, metaMaskDownloadUrl }),
-      products: Object.freeze(products)
-    });
-  }
-  function parseProduct(input) {
-    const hasPlatforms = input !== null && typeof input === "object" && Object.hasOwn(input, "platforms");
-    exactFields(input, hasPlatforms ? [...PRODUCT_FIELDS, "platforms"] : PRODUCT_FIELDS, "Product Session product registration");
-    if (hasPlatforms && (!Array.isArray(input.platforms) || input.platforms.length !== 1 || input.platforms[0] !== "web")) {
-      fail("INVALID_ROUTER_REGISTRY", "Explicit Product Session platforms must be exactly [web]");
-    }
-    const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
-    const clientId = pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/);
-    const displayName = text(input.displayName, "displayName", 2, 64);
-    const applicationId = pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
-    const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
-    let nativeCallback, legacyCallbacks;
-    if (hasPlatforms) {
-      if (input.nativeCallback !== null || !Array.isArray(input.legacyCallbacks) || input.legacyCallbacks.length !== 0) {
-        fail("INVALID_ROUTER_REGISTRY", "Web-only products cannot register native or legacy callbacks");
-      }
-      nativeCallback = null;
-      legacyCallbacks = [];
-    } else {
-      nativeCallback = callback(input.nativeCallback, "nativeCallback", { allowHttps: false });
-      const native = new URL(nativeCallback);
-      if (native.search || native.hash || native.username || native.password || !native.hostname) {
-        fail("INVALID_ROUTER_REGISTRY", "Native callback must contain an exact host/path without query or fragment");
-      }
-      legacyCallbacks = stringList(input.legacyCallbacks, "legacyCallbacks", 1, 8, (value) => text(value, "legacy callback", 3, 512));
-      if (!legacyCallbacks.includes(nativeCallback)) fail("INVALID_ROUTER_REGISTRY", "Legacy callback list must include the canonical native callback");
-    }
-    const scopes = stringList(input.scopes, "scopes", 1, 8, (value) => pattern(value, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
-    if (scopes.some((scope) => scope.includes("*"))) fail("INVALID_ROUTER_REGISTRY", "Wildcard Product Session scope is forbidden");
-    if (typeof input.evmCompatible !== "boolean") fail("INVALID_ROUTER_REGISTRY", "evmCompatible must be boolean");
-    if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) {
-      fail("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
-    }
-    return Object.freeze({
-      productId,
-      clientId,
-      displayName,
-      applicationId,
-      webOrigin,
-      nativeCallback,
-      ...hasPlatforms ? { platforms: Object.freeze(["web"]) } : {},
-      legacyCallbacks: Object.freeze(legacyCallbacks),
-      scopes: Object.freeze(scopes),
-      evmCompatible: input.evmCompatible,
-      sessionDurationSeconds: input.sessionDurationSeconds
-    });
-  }
-  function callback(value, label, options) {
-    const normalized = text(value, label, 3, 512);
-    let parsed;
-    try {
-      parsed = new URL(normalized);
-    } catch {
-      fail("INVALID_ROUTER_REGISTRY", `${label} is not a URL with ://`);
-    }
-    if (parsed.toString() !== normalized || parsed.username || parsed.password || parsed.hash || FORBIDDEN_CALLBACK_SCHEMES.has(parsed.protocol)) {
-      fail("INVALID_ROUTER_REGISTRY", `${label} is not canonical or uses a forbidden scheme`);
-    }
-    if (parsed.protocol === "https:" && !options.allowHttps) fail("INVALID_ROUTER_REGISTRY", `${label} must use its registered application scheme`);
-    if (parsed.protocol !== "https:" && !/^[a-z][a-z0-9+.-]*:$/.test(parsed.protocol)) fail("INVALID_ROUTER_REGISTRY", `${label} scheme is invalid`);
-    return normalized;
-  }
-  function httpsURL(value, label, originOnly) {
-    const normalized = text(value, label, 8, 512);
-    let parsed;
-    try {
-      parsed = new URL(normalized);
-    } catch {
-      fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
-    }
-    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash || parsed.port || !parsed.hostname || originOnly && (parsed.pathname !== "/" || parsed.search)) {
-      fail("INVALID_ROUTER_REGISTRY", `${label} must be a canonical HTTPS ${originOnly ? "origin" : "URL"}`);
-    }
-    return originOnly ? parsed.origin : parsed.toString().replace(/\/$/, "");
-  }
-  function stringList(value, label, minimum, maximum, normalize) {
-    if (!Array.isArray(value) || value.length < minimum || value.length > maximum) fail("INVALID_ROUTER_REGISTRY", `${label} item count is invalid`);
-    const result = value.map(normalize);
-    uniqueSorted(result, label);
-    return result;
-  }
-  function uniqueSorted(values, label) {
-    unique(values, label);
-    if ([...values].sort().join("\n") !== values.join("\n")) fail("INVALID_ROUTER_REGISTRY", `${label} must be sorted`);
-  }
-  function unique(values, label) {
-    if (new Set(values).size !== values.length) fail("INVALID_ROUTER_REGISTRY", `${label} must be globally unique`);
-  }
-  function pattern(value, label, regex) {
-    const result = text(value, label, 1, 512);
-    if (!regex.test(result)) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
-    return result;
-  }
-  function text(value, label, minimum, maximum) {
-    if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
-    return value;
-  }
-  function fail(code2, message) {
-    throw new WalletAuthError(code2, message);
-  }
-
   // src/metamask-evm-adapter.js
   var METAMASK_EVM_CONNECTION_STATUS = Object.freeze({
     CONNECTED: "connected-evm"
@@ -26412,34 +26459,6 @@ ${item.productId}`));
     }
   }
 
-  // src/central-browser-session-registry.js
-  var CENTRAL_BROWSER_ISSUER = "https://wallet-auth.ynxweb4.com";
-  var ADOPTED = Object.freeze(["finance", "exchange", "quant", "social", "ai"]);
-  function createCentralBrowserSessionRegistry(productRegistry) {
-    const registry = parseProductSessionRegistry(productRegistry);
-    return Object.freeze(ADOPTED.map((productId) => {
-      const product = registry.products.find((value) => value.productId === productId);
-      if (!product) fail2("SSO_REGISTRY_INVALID");
-      return Object.freeze({
-        productId,
-        clientId: `${product.clientId}-sso-v1`,
-        origin: product.webOrigin,
-        redirectUri: `${product.webOrigin}/sso/callback`,
-        audience: `ynx:${productId}:identity`,
-        scopes: Object.freeze(["identity:read"])
-      });
-    }));
-  }
-  function centralBrowserClient(registry, input) {
-    exactFields(input, ["clientId", "origin", "redirectUri"], "Central browser client");
-    const client = registry.find((value) => value.clientId === input.clientId);
-    if (!client || client.origin !== input.origin || client.redirectUri !== input.redirectUri) fail2("SSO_CLIENT_NOT_REGISTERED");
-    return client;
-  }
-  function fail2(code2) {
-    throw new WalletAuthError(code2, "Central browser client is not exactly registered");
-  }
-
   // src/central-browser-session-contract.js
   var CENTRAL_BROWSER_PURPOSE = "Sign in to registered YNX official apps in this browser. Identity only; no automatic signing, transfers or sensitive product scopes.";
   var CENTRAL_BROWSER_RPC_METHOD = "ynx_requestCentralBrowserSignIn";
@@ -26451,8 +26470,7 @@ ${item.productId}`));
     exactFields(initiator, ["clientId", "origin", "redirectUri", "state", "codeChallenge", "codeChallengeMethod"], "Central browser initiator");
     centralBrowserClient(registry, { clientId: initiator.clientId, origin: initiator.origin, redirectUri: initiator.redirectUri });
     if (!token(initiator.state) || !token(initiator.codeChallenge) || initiator.codeChallengeMethod !== "S256") fail3("SSO_TRANSACTION_INVALID");
-    const clients2 = registry.map((value) => ({ clientId: value.clientId, origin: value.origin, audience: value.audience, scopes: [...value.scopes] })).sort((a3, b4) => a3.clientId.localeCompare(b4.clientId));
-    if (canonicalJSON(challenge.clients) !== canonicalJSON(clients2)) fail3("SSO_CLIENTS_MISMATCH");
+    centralBrowserApprovedProfile(registry, challenge.clients, initiator.clientId);
     const issued = Date.parse(challenge.issuedAt), expires = Date.parse(challenge.expiresAt);
     if (!Number.isSafeInteger(now) || !Number.isFinite(issued) || !Number.isFinite(expires) || new Date(issued).toISOString() !== challenge.issuedAt || new Date(expires).toISOString() !== challenge.expiresAt || issued > now + 3e4 || expires <= now || expires <= issued || expires - issued > 12e4) fail3("SSO_CHALLENGE_EXPIRED");
     return Object.freeze(structuredClone(challenge));
@@ -26464,6 +26482,35 @@ ${item.productId}`));
   }
   function fail3(code2) {
     throw new WalletAuthError(code2, "Central browser sign-in contract was rejected");
+  }
+  async function approveCentralBrowserProfile({ challenge, registry, requestApproval, replaceProfile, assertCurrent = () => {
+  }, onProfile = () => {
+  } }) {
+    const tried = /* @__PURE__ */ new Set();
+    let current = challenge;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      assertCurrent();
+      tried.add(current.clients.length);
+      let raw;
+      try {
+        raw = await requestApproval(current);
+      } catch (error) {
+        assertCurrent();
+        if (error?.code !== "SSO_CLIENTS_MISMATCH") throw error;
+        const next = centralBrowserProfiles(registry).filter((p4) => p4.id < current.clients.length && !tried.has(p4.id) && p4.clients.some((c4) => c4.clientId === current.initiator.clientId)).at(-1);
+        if (!next) throw error;
+        const result = await replaceProfile(current.challengeId, next.id);
+        assertCurrent();
+        const checked = parseCentralBrowserSignInChallenge(result.challenge, registry, { peerOrigin: CENTRAL_BROWSER_ISSUER });
+        if (checked.expiresAt !== current.expiresAt || checked.issuedAt !== current.issuedAt || checked.browserBinding !== current.browserBinding || canonicalJSON(checked.initiator) !== canonicalJSON(current.initiator) || checked.clients.length !== next.id) fail3("SSO_CONTEXT_CHANGED");
+        current = checked;
+        onProfile(current);
+        continue;
+      }
+      assertCurrent();
+      return { approval: parseCentralBrowserSignInApproval(raw), challenge: current };
+    }
+    fail3("SSO_CLIENTS_MISMATCH");
   }
 
   // product-session-registry.json
@@ -27746,13 +27793,20 @@ ${item.productId}`));
       });
       pending = task;
     };
-    const challenge = parseCentralBrowserSignInChallenge(context.challenge, context.registry, { peerOrigin: location.origin });
+    let challenge = parseCentralBrowserSignInChallenge(context.challenge, context.registry, { peerOrigin: location.origin });
     const requestingSite = document.createElement("p"), siteLabel = document.createElement("span");
     requestingSite.id = "requesting-site";
     siteLabel.textContent = t("Requesting site");
     requestingSite.append(siteLabel, ": " + challenge.initiator.origin);
     document.querySelector("h1").after(requestingSite);
     const picker = document.getElementById("wallet"), approve = document.getElementById("approve"), cancel = document.getElementById("cancel"), status = document.getElementById("status");
+    const profileInfo = document.createElement("p");
+    profileInfo.id = "approved-client-list";
+    status.before(profileInfo);
+    const renderApprovedProfile = () => {
+      profileInfo.textContent = t("Apps in this approval:") + " " + challenge.clients.map((c4) => new URL(c4.origin).hostname).join(", ");
+    };
+    renderApprovedProfile();
     const choices = document.createElement("div");
     choices.id = "wallet-choices";
     choices.setAttribute("role", "group");
@@ -27798,7 +27852,7 @@ ${item.productId}`));
       status.textContent = t(value);
     };
     const failure2 = (error, phase) => {
-      const known = /* @__PURE__ */ new Set(["YNX_PAIR_TIMEOUT", "YNX_PAIR_CANCELLED", "YNX_PAIR_CONFIGURATION_INVALID", "YNX_PAIR_SESSION_EXPIRED", "YNX_PAIR_PEER_INVALID", "YNX_PAIR_NAMESPACE_INVALID", "YNX_PAIR_CHAIN_INVALID", "YNX_PAIR_SESSION_SELECTION_REQUIRED", "YNX_PAIR_METHOD_NOT_APPROVED", "YNX_PAIR_CONTEXT_CHANGED", "SSO_CONTEXT_CHANGED", "SSO_CHALLENGE_EXPIRED", "SSO_REQUEST_TIMEOUT", "SSO_CSRF_MISMATCH", "SSO_TRANSACTION_EXPIRED", "SSO_LOGIN_REQUIRED", "SSO_REQUEST_FAILED", "PROVIDER_WRONG_CHAIN", "HOSTED_POPUP_BLOCKED", "HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_TIMEOUT", "HOSTED_REQUEST_EXPIRED_OR_RELOADED", "HOSTED_DISCONNECTED", "HOSTED_ORIGIN_UNREGISTERED", "HOSTED_METHOD_INVALID", "HOSTED_REQUEST_FAILED"]);
+      const known = /* @__PURE__ */ new Set(["YNX_PAIR_TIMEOUT", "YNX_PAIR_CANCELLED", "YNX_PAIR_CONFIGURATION_INVALID", "YNX_PAIR_SESSION_EXPIRED", "YNX_PAIR_PEER_INVALID", "YNX_PAIR_NAMESPACE_INVALID", "YNX_PAIR_CHAIN_INVALID", "YNX_PAIR_SESSION_SELECTION_REQUIRED", "YNX_PAIR_METHOD_NOT_APPROVED", "YNX_PAIR_CONTEXT_CHANGED", "SSO_CLIENTS_MISMATCH", "SSO_PROFILE_REPLAY", "SSO_CONTEXT_CHANGED", "SSO_CHALLENGE_EXPIRED", "SSO_REQUEST_TIMEOUT", "SSO_CSRF_MISMATCH", "SSO_TRANSACTION_EXPIRED", "SSO_LOGIN_REQUIRED", "SSO_REQUEST_FAILED", "PROVIDER_WRONG_CHAIN", "HOSTED_POPUP_BLOCKED", "HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_TIMEOUT", "HOSTED_REQUEST_EXPIRED_OR_RELOADED", "HOSTED_DISCONNECTED", "HOSTED_ORIGIN_UNREGISTERED", "HOSTED_METHOD_INVALID", "HOSTED_REQUEST_FAILED"]);
       const raw = typeof error?.code === "string" ? error.code : typeof error?.message === "string" ? error.message : "";
       for (const stage of ["INITIALIZATION", "RELAY", "APPROVAL", "REQUEST", "CLEANUP"]) for (const suffix of ["TIMEOUT", "UNAVAILABLE"]) known.add(`YNX_PAIR_${stage}_${suffix}`);
       known.add("YNX_PAIR_TRANSPORT_DRAINING");
@@ -27964,6 +28018,59 @@ ${item.productId}`));
         clearTimeout(timer);
       }
     };
+    const compatibility = document.createElement("details"), compatibilitySummary = document.createElement("summary"), compatibilityOptions = document.createElement("div");
+    compatibility.id = "wallet-compatibility";
+    compatibilitySummary.textContent = t("Connection trouble?");
+    compatibility.append(compatibilitySummary, compatibilityOptions);
+    profileInfo.after(compatibility);
+    const productNames = (clients2) => clients2.map((c4) => context.registry.find((x7) => x7.clientId === c4.clientId)?.productId).map((id) => ({ finance: "YNX Finance", exchange: "YNX Exchange", quant: "YNX Quant", social: "YNX Social", ai: "YNX AI", developer: "YNX Developer" })[id]).join(", ");
+    const renderCompatibility = () => {
+      compatibilityOptions.replaceChildren();
+      for (const profile of centralBrowserProfiles(context.registry).filter((p4) => p4.id < challenge.clients.length && p4.clients.some((c4) => c4.clientId === challenge.initiator.clientId))) {
+        const option = document.createElement("button"), included = document.createElement("p"), omitted = document.createElement("p");
+        option.type = "button";
+        option.dataset.compatibleApps = String(profile.id);
+        option.textContent = t("Use older YNX Wallet compatibility");
+        included.textContent = t("This approval includes:") + " " + productNames(profile.clients);
+        omitted.textContent = t("Update YNX Wallet to include:") + " " + productNames(context.registry.filter((c4) => !profile.clients.some((x7) => x7.clientId === c4.clientId)));
+        compatibilityOptions.append(included, omitted, option);
+        option.addEventListener("click", () => {
+          if (cancelled || pending || pairPending || hostedPending) return;
+          const old = challenge, provider = selected, epoch = ++revision;
+          for (const button of compatibilityOptions.querySelectorAll("button")) button.disabled = true;
+          approve.disabled = true;
+          const task = (async () => {
+            const response = await request("profile", { challengeId: old.challengeId, profile: profile.id });
+            if (cancelled || epoch !== revision || selected !== provider) throw new Error("SSO_CONTEXT_CHANGED");
+            const next = parseCentralBrowserSignInChallenge(response.challenge, context.registry, { peerOrigin: location.origin });
+            if (next.expiresAt !== old.expiresAt || next.issuedAt !== old.issuedAt || next.browserBinding !== old.browserBinding || canonicalJSON(next.initiator) !== canonicalJSON(old.initiator) || next.clients.length !== profile.id) throw new Error("SSO_CONTEXT_CHANGED");
+            challenge = next;
+            renderApprovedProfile();
+            renderCompatibility();
+            message("Compatibility selected. Review the listed apps in YNX Wallet.");
+          })().catch(async (error) => {
+            if (cancelled || epoch !== revision || selected !== provider) {
+              try {
+                await request("cancel", { challengeId: old.challengeId });
+              } catch {
+              }
+              return;
+            }
+            failure2(error, "compatibility");
+            message("Compatibility could not be selected. Return to your product and start a new sign-in.");
+          }).finally(() => {
+            if (pending === task) pending = null;
+            if (!cancelled && epoch === revision) {
+              approve.disabled = !selected;
+              for (const button of compatibilityOptions.querySelectorAll("button")) button.disabled = false;
+            }
+          });
+          pending = task;
+        });
+      }
+      compatibility.hidden = compatibilityOptions.children.length === 0;
+    };
+    renderCompatibility();
     discovery.subscribe((snapshot) => {
       providers = snapshot.candidates.filter((value) => value.kind === WALLET_PROVIDER_KIND.YNX).map((value) => value.provider);
       const previous = selected;
@@ -28086,7 +28193,19 @@ ${item.productId}`));
           if (["accountsChanged", "chainChanged", "disconnect"].includes(event.event)) changed();
         });
         status.dataset.phase = "wallet-approval";
-        const approval = parseCentralBrowserSignInApproval(await walletWait(provider.request({ method: "ynx_requestCentralBrowserSignIn", params: [challenge] })));
+        const negotiated = await approveCentralBrowserProfile({
+          challenge,
+          registry: context.registry,
+          requestApproval: (value) => walletWait(provider.request({ method: "ynx_requestCentralBrowserSignIn", params: [value] })),
+          replaceProfile: (challengeId, profile) => request("profile", { challengeId, profile }),
+          assertCurrent: assert6,
+          onProfile: (value) => {
+            challenge = value;
+            renderApprovedProfile();
+            renderCompatibility();
+          }
+        });
+        const approval = negotiated.approval;
         assert6();
         status.dataset.phase = "wallet-recheck";
         const current = await walletWait(provider.request({ method: "eth_accounts" })), currentChain = await walletWait(provider.request({ method: "eth_chainId" }));

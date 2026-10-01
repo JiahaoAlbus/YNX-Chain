@@ -3581,7 +3581,7 @@ var product_session_registry_default = {
 };
 
 // packages/wallet-auth/src/central-browser-session-registry.js
-var ADOPTED = Object.freeze(["finance", "exchange", "quant", "social", "ai"]);
+var ADOPTED = Object.freeze(["finance", "exchange", "quant", "social", "ai", "developer"]);
 function createCentralBrowserSessionRegistry(productRegistry) {
   const registry = parseProductSessionRegistry(productRegistry);
   return Object.freeze(ADOPTED.map((productId) => {
@@ -3600,6 +3600,7 @@ function createCentralBrowserSessionRegistry(productRegistry) {
 function fail5(code) {
   throw new WalletAuthError(code, "Central browser client is not exactly registered");
 }
+var PROFILE_PRODUCTS = Object.freeze([["finance", "exchange", "quant"], ["finance", "exchange", "quant", "social", "ai"], ["finance", "exchange", "quant", "social", "ai", "developer"]]);
 
 // packages/wallet-auth/src/central-browser-session-contract.js
 var CENTRAL_BROWSER_RPC_METHOD = "ynx_requestCentralBrowserSignIn";
