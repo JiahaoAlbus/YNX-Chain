@@ -177,16 +177,14 @@ export class Driver {
     const b = box(target(nodes, label));
     await this.adb(['shell', 'input', 'tap', String(Math.floor((b[0] + b[2]) / 2)), String(Math.floor((b[1] + b[3]) / 2))]);
   }
-  async wait(predicate, code, ms = 45000, {skipChromeAccountSetup=false}={}) {
-    let accountSkipClicks=0;
+  async wait(predicate, code, ms = 45000) {
     const until = Date.now() + ms;
     while (Date.now() < until) {
       const nodes = await this.ui();
       const evidence = safeUiEvidence(nodes);
       if (evidence.chromeFirstRun.explicitAcceptTerms) fail('CHROME_EXPLICIT_TERMS_ACCEPTANCE_REQUIRED');
       if(evidence.chromeFirstRun.accountSetup){
-        if(skipChromeAccountSetup && evidence.chromeFirstRun.skipAccount && accountSkipClicks++===0){await this.tap('Use without an account',nodes);await delay(300);continue;}
-        fail('CHROME_ACCOUNT_SETUP_NORMAL_SKIP_NOT_AVAILABLE');
+        fail('CHROME_FIRST_RUN_ACCOUNT_OR_TERMS_STATUS_UNCONFIRMED');
       }
       if (evidence.codes.length) fail(safeCode(evidence.codes[0]));
       if (predicate(nodes)) return nodes;
@@ -288,9 +286,9 @@ async function createQa(d, privateDir, onBackupCreated = () => {}) {
 function mask(value) { if (process.env.GITHUB_ACTIONS === 'true') process.stdout.write(`::add-mask::${value}\n`); }
 async function launchFinance(d) {
   await d.adb(['shell', 'am', 'start', '-a', 'android.intent.action.VIEW', '-d', FINANCE, '-p', BROWSER]);
-  // Ordinary account setup may skip sign-in; never accept Chrome terms, grant a permission, change provider or
+  // First-run account skip can also accept terms; never click it, accept terms, grant a permission, change provider or
   // disable first-run checks. A ready ordinary browser is an execution gate.
-  await d.wait(n => has(n, 'Connect a wallet'), 'NORMAL_PUBLIC_FINANCE_NOT_READY',45000,{skipChromeAccountSetup:true});
+  await d.wait(n => has(n, 'Connect a wallet'), 'NORMAL_PUBLIC_FINANCE_NOT_READY',45000);
 }
 async function mobileProposal(d, mark = () => {}) {
   await d.tap('Connect a wallet', await d.find('Connect a wallet'));
@@ -475,13 +473,13 @@ async function selfTest() {
     assert.equal(chromeFirstRunState([{...node('Accept & continue'),package:APK.package}]).explicitAcceptTerms,false);
     assert.deepEqual(safeUiEvidence([{text:'This request expired. Start again when you are ready.',bounds:'[0,0][1,1]'}]).codes, ['PAIR_EXPIRED_UI']);
   });
-  test('Chrome account skip uses its ordinary button only; terms remain blocked',async()=>{
-    const d=new Driver('emulator-5554');let count=0;const calls=[];
+  test('Chrome first-run account setup never clicks a button that may accept terms',async()=>{
+    const d=new Driver('emulator-5554');const calls=[];
     const chrome={text:'Use without an account',package:BROWSER,clickable:'true',bounds:'[0,0][1,1]'};
-    d.ui=async()=>++count===1?[chrome]:[{text:'Connect a wallet',package:BROWSER,bounds:'[0,0][1,1]'}];d.tap=async label=>calls.push(label);
-    await d.wait(n=>has(n,'Connect a wallet'),'NOT_READY',2000,{skipChromeAccountSetup:true});assert.deepEqual(calls,['Use without an account']);
+    d.ui=async()=>[chrome];d.tap=async label=>calls.push(label);
+    await assert.rejects(d.wait(()=>false,'NOT_READY',2000),/CHROME_FIRST_RUN_ACCOUNT_OR_TERMS_STATUS_UNCONFIRMED/);
     d.ui=async()=>[{...chrome,text:'Accept & continue'}];
-    await assert.rejects(d.wait(()=>false,'NOT_READY',2000,{skipChromeAccountSetup:true}),/CHROME_EXPLICIT_TERMS_ACCEPTANCE_REQUIRED/);assert.equal(calls.length,1);
+    await assert.rejects(d.wait(()=>false,'NOT_READY',2000),/CHROME_EXPLICIT_TERMS_ACCEPTANCE_REQUIRED/);assert.deepEqual(calls,[]);
   });
   test('only exact Finance read-only identity message may be signed', () => {
     const challenge = {version:'1',chainId:6423,account:'0x'+'a'.repeat(40),productId:'finance',origin:FINANCE,callback:FINANCE+'/wallet-auth/callback',scope:'finance.account.read',deviceId:'qa-device',deviceAlgorithm:'p256-sha256',deviceKey:'a'.repeat(44),nonce:'a'.repeat(32),state:'b'.repeat(32),requestId:'synthetic-request',providerKind:'ynx-wallet',issuedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+240000).toISOString()};
