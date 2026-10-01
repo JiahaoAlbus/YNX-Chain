@@ -25,7 +25,7 @@ const seen = new Set();
 const chain = Object.freeze({ chainId: YNX_CHAIN_ID, chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] });
 function fail(code) { throw Object.assign(new Error(code), { code }); }
 function copy(key, variables) { return key.startsWith("manager") ? hostedCopy(locale,key) : hostedDynamicCopy(locale, key, variables); }
-function messageKey(key, variables = {}, code = null) { lastStatus = { key, variables, code }; status.textContent = `${copy(key, variables)}${code === null ? "" : ` (${code})`}`; }
+function messageKey(key, variables = {}, code = null) { if(code==='HOSTED_STORAGE_UPGRADE_BLOCKED')key='storageUpgradeBlocked'; lastStatus = { key, variables, code }; status.textContent = `${copy(key, variables)}${code === null ? "" : ` (${code})`}`; }
 function reviewDetails() {
   if (!currentReview) return;
   $("review-title").textContent = currentReview.titleKey ? copy(currentReview.titleKey, currentReview.titleVariables) : currentReview.title;
