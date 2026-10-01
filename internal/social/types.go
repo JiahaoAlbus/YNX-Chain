@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chat"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/square"
 )
 
@@ -21,6 +22,7 @@ const (
 	RequestingProduct      = "social"
 	ProductClientID        = "ynx-social-v1"
 	BundleID               = "com.ynx.social"
+	Origin                 = "https://social.ynxweb4.com"
 	Callback               = "ynx-social://com.ynx.social"
 	ProductDeviceAlgorithm = "p256-sha256"
 )
@@ -35,6 +37,8 @@ type Config struct {
 	Chat            *chat.Service
 	Square          *square.Service
 	AI              AIStreamer
+	BrowserSSO      *productsessionv2.BrowserSSO
+	ProductSessions map[string]ProductSessionAuthorizer
 }
 
 type AIProvider struct {
@@ -52,6 +56,7 @@ type WalletAuthorizationRequest struct {
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
 	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Origin                 string   `json:"origin,omitempty"`
 	Callback               string   `json:"callback"`
 	Scopes                 []string `json:"scopes"`
 	Purpose                string   `json:"purpose"`
@@ -69,6 +74,7 @@ type WalletApproval struct {
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
 	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Origin                 string   `json:"origin,omitempty"`
 	Callback               string   `json:"callback"`
 	Account                string   `json:"account"`
 	AccountPublicKey       string   `json:"accountPublicKey"`
@@ -92,6 +98,7 @@ type ProductSessionChallenge struct {
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
 	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Origin                 string   `json:"origin,omitempty"`
 	Account                string   `json:"account"`
 	Scopes                 []string `json:"scopes"`
 	IssuedAt               string   `json:"issuedAt"`
@@ -377,6 +384,7 @@ type persistentState struct {
 	Idempotency      map[string]idempotencyRecord      `json:"idempotency"`
 	Audit            []AuditEvent                      `json:"audit"`
 	IntegrityHash    string                            `json:"integrityHash"`
+	ProductBindings  map[string]productSessionBinding  `json:"productBindings,omitempty"`
 }
 
 type Export struct {

@@ -11,7 +11,7 @@ export type ChatDevice=Readonly<{id:string;account:string;signingPublicKey:strin
 export type ChatEnvelope=Readonly<{recipientAccount:string;recipientDeviceId:string;algorithm:typeof CHAT_ALGORITHM;ephemeralPublicKey:string;nonce:string;ciphertext:string;ciphertextHash:string}>;
 export type ChatMessage=Readonly<{id:string;conversationId:string;sender:string;senderDeviceId:string;protocolVersion:number;envelopes:readonly ChatEnvelope[];senderSignature:string;envelopeSetHash:string;createdAt:string;deliveredAt?:Readonly<Record<string,string>>;readAt?:Readonly<Record<string,string>>}>;
 export type SendMessageRequest=Readonly<{messageId:string;envelopes:readonly ChatEnvelope[];senderSignature:string}>;
-export type AttachmentPayload=Readonly<{type:"attachment";name:string;mimeType:string;sizeBytes:number;mediaId:string;key:string;nonce:string}>;
+export type AttachmentPayload=Readonly<{type:"attachment";name:string;mimeType:string;sizeBytes:number;mediaId:string;key:string;nonce:string;storage?:"cloud-v1";ciphertextHash?:string;ciphertextBytes?:number}>;
 export type DeviceRotationRequest=Readonly<{idempotencyKey:string;newDeviceId:string;signingPublicKey:string;encryptionPublicKey:string;authorizationSignature:string;newDeviceProofSignature:string}>;
 
 export function createDeviceRotation(input:{account:string;authorizingDeviceId:string;replacedDeviceId:string;authorizingSigningSeed:Uint8Array;newSigningSeed:Uint8Array;newEncryptionSeed:Uint8Array;idempotencyKey:string;newDeviceId:string}):DeviceRotationRequest{

@@ -104,6 +104,12 @@ import {
   translate,
 } from "./src/i18n";
 import { I18nProvider, useI18n } from "./src/i18nProvider";
+import { queueMessage, acknowledgeQueued, pendingFor, assertPendingRecipients } from "./src/messageOutbox";
+import { DurableOutbox } from "./src/durableOutbox";
+import { SocialCloudAttachments, type CloudObjectRecord } from "./src/cloudAttachments";
+import { NativeSessionPanel } from "./src/NativeSessionPanel";
+import { nativeSocialSession, nativeChatDevice } from "./src/nativeSessionRuntime";
+import { bindScopedSocialSession } from "./src/scopedSessionBridge";
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -162,6 +168,12 @@ const SESSION_KEY = "ynx.social.session.v1",
 const OUTBOX_KEY = "ynx.social.outbox.v1",
   ROTATION_KEY = "ynx.social.rotation.v1";
 const outboxFile = () => new File(Paths.document, `${OUTBOX_KEY}.json`);
+const outboxSlot = (slot: string) => slot === "legacy" ? outboxFile() : new File(Paths.document, `${OUTBOX_KEY}.${slot}.json`);
+const messageOutbox = new DurableOutbox({
+  read(slot) { const file = outboxSlot(slot); return file.exists ? file.textSync() : null; },
+  write(slot, value) { outboxSlot(slot).write(value); },
+  remove(slot) { const file = outboxSlot(slot); if (file.exists) file.delete(); },
+});
 type Tab = "contacts" | "messages" | "moments" | "alerts" | "profile";
 
 export default function App() {
@@ -181,12 +193,23 @@ function SocialApp() {
     [error, setError] = useState<string | null>(null);
   const api = useMemo(() => {
     try {
-      return new SocialAPI();
+      const client=new SocialAPI();
+      client.onPrivateInvalidated=()=>setSession(null);
+      return client;
     } catch (caught) {
       setError(message(caught));
       return null;
     }
   }, []);
+  const connectScoped = useCallback(async(account:string)=>{
+    if(!api)throw new Error("Social API is unavailable");
+    const device=await nativeChatDevice(account);
+    const result=await bindScopedSocialSession(api,nativeSocialSession("chat"),device);
+    if(result.session.account!==account)throw new Error("Social account changed before binding");
+    await api.profile();
+    await SecureStore.setItemAsync(SESSION_KEY,JSON.stringify(result),{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY});
+    setSession(result);setError(null);
+  },[api]);
   useEffect(() => {
     void (async () => {
       try {
@@ -196,6 +219,11 @@ function SocialApp() {
         ]);
         if (!value) return;
         const parsed = JSON.parse(value) as Session;
+        if(parsed.authMode==="product-session-v2"){
+          const restored=await nativeSocialSession("chat").restore();
+          if(restored.status!=="connected"||restored.account!==parsed.session.account)throw new Error("Saved Social permission needs an explicit reconnect");
+          await connectScoped(restored.account);return;
+        }
         if (deviceRaw) {
           const device = JSON.parse(deviceRaw) as Record<string, string>;
           if (
@@ -223,6 +251,8 @@ function SocialApp() {
           }
         }
         api?.setToken(parsed.token);
+        if (!api) throw new Error("Social API is unavailable");
+        await api.profile();
         setSession(parsed);
       } catch (caught) {
         setError(message(caught));
@@ -230,7 +260,12 @@ function SocialApp() {
         setLoading(false);
       }
     })();
-  }, [api]);
+  }, [api,connectScoped]);
+  useEffect(()=>nativeSocialSession("chat").subscribe(value=>{
+    if(session?.authMode==="product-session-v2"&&(value.status!=="connected"||value.account!==session.session.account)){
+      api?.setToken(null);setSession(null);
+    }
+  }),[api,session]);
   const handleURL = useCallback(
     async (value: string) => {
       if (!api) return;
@@ -317,16 +352,8 @@ function SocialApp() {
     },
     [api],
   );
-  useEffect(() => {
-    const subscription = Linking.addEventListener(
-      "url",
-      ({ url }) => void handleURL(url),
-    );
-    void Linking.getInitialURL().then((url) => {
-      if (url) void handleURL(url);
-    });
-    return () => subscription.remove();
-  }, [handleURL]);
+  // Official v2 callback ownership lives in NativeSessionPanel. Legacy protected
+  // records are retained, but the retired v1 parser cannot consume v2 returns.
   const signIn = async () => {
     try {
       const hex = (value: Uint8Array) =>
@@ -408,6 +435,10 @@ function SocialApp() {
           style: "destructive",
           onPress: () =>
             void (async () => {
+              api?.setToken(null);
+              const retained=await SecureStore.getItemAsync(DEVICE_KEY);
+              if(retained&&session)await SecureStore.setItemAsync(DEVICE_KEY,JSON.stringify({...JSON.parse(retained),account:session.session.account}),{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY});
+              if(session?.authMode==="product-session-v2")await nativeSocialSession("chat").disconnect().catch(()=>setError("Revocation is pending; private API access is suspended"));
               await SecureStore.deleteItemAsync(SESSION_KEY);
               api?.setToken(null);
               setSession(null);
@@ -445,15 +476,7 @@ function SocialApp() {
             {t(error)}
           </Text>
         ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("Sign in with YNX Wallet")}
-          onPress={() => void signIn()}
-          style={styles.primary}
-        >
-          <KeyRound color="#FFFFFF" size={19} />
-          <Text style={styles.primaryText}>{t("Sign in with YNX Wallet")}</Text>
-        </Pressable>
+        <NativeSessionPanel onChatReady={connectScoped} />
         <Text style={styles.securityNote}>
           {t("Social never creates, imports, or receives your recovery key.")}
         </Text>
@@ -495,13 +518,13 @@ function SocialApp() {
         )}
       </View>
       <View style={styles.tabBar}>
-        <TabButton
+        {(session.authMode!=="product-session-v2"||session.session.scopes.includes("social.contacts"))?<TabButton
           tab="contacts"
           active={tab === "contacts"}
           label={t("People")}
           icon={ContactRound}
           onPress={setTab}
-        />
+        />:null}
         <TabButton
           tab="messages"
           active={tab === "messages"}
@@ -509,20 +532,20 @@ function SocialApp() {
           icon={MessageCircle}
           onPress={setTab}
         />
-        <TabButton
+        {(session.authMode!=="product-session-v2"||session.session.scopes.includes("social.feed"))?<TabButton
           tab="moments"
           active={tab === "moments"}
           label={t("Moments")}
           icon={Sparkles}
           onPress={setTab}
-        />
-        <TabButton
+        />:null}
+        {(session.authMode!=="product-session-v2"||session.session.scopes.includes("social.contacts"))?<TabButton
           tab="alerts"
           active={tab === "alerts"}
           label={t("Alerts")}
           icon={Bell}
           onPress={setTab}
-        />
+        />:null}
         <TabButton
           tab="profile"
           active={tab === "profile"}
@@ -1252,17 +1275,31 @@ function MessageThread({
     [sending, setSending] = useState(false),
     [pending, setPending] = useState<SendMessageRequest | null>(null),
     [error, setError] = useState<string | null>(null);
+  const [attachmentPending, setAttachmentPending] = useState(false);
+  const [attachmentProgress, setAttachmentProgress] = useState("");
+  const [attachmentPreview, setAttachmentPreview] = useState<{name:string;uri:string}|null>(null);
   const account = session.session.account,
     deviceId = session.session.deviceId;
+  const uploadKey = `ynx.social.upload.${account}.${deviceId}.${conversation.id}`;
+  type UploadJob = { id: string; payload: AttachmentPayload; record?: CloudObjectRecord };
+  const uploadFile = (id: string, request = false) => {
+    if (!/^attachment_[a-f0-9]{24}$/.test(id)) throw new Error("Pending attachment identity is invalid");
+    return new File(Paths.document, `${id}${request ? ".request.json" : ".bin"}`);
+  };
+  const cloud = () => {
+    const base = process.env.EXPO_PUBLIC_YNX_SOCIAL_CLOUD_BASE ?? "https://web4.ynxweb4.com";
+    if (!base) throw new Error("Cloud attachment service is not configured for this build");
+    return new SocialCloudAttachments(api, base);
+  };
+  useEffect(() => { setAttachmentPreview(null); void SecureStore.getItemAsync(uploadKey).then(raw => setAttachmentPending(Boolean(raw))); }, [uploadKey]);
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const file = outboxFile(),
-        [keyRaw, deviceResult, messageResult, outboxRaw] = await Promise.all([
+      setPending(pendingFor(messageOutbox.read(), account, deviceId, conversation.id));
+      const [keyRaw, deviceResult, messageResult] = await Promise.all([
           SecureStore.getItemAsync(DEVICE_KEY),
           api.conversationDevices(conversation.id),
           api.messages(conversation.id),
-          file.exists ? file.text() : Promise.resolve(null),
         ]);
       if (!keyRaw)
         throw new Error("This device no longer has its Social encryption key");
@@ -1290,19 +1327,6 @@ function MessageThread({
           await api.acknowledge(conversation.id, record.id, "read");
       }
       setItems(visible);
-      setPending(null);
-      if (outboxRaw) {
-        const stored = JSON.parse(outboxRaw) as {
-          account: string;
-          conversationId: string;
-          request: SendMessageRequest;
-        };
-        if (
-          stored.account === account &&
-          stored.conversationId === conversation.id
-        )
-          setPending(stored.request);
-      }
       setError(null);
     } catch (caught) {
       setError(message(caught));
@@ -1321,10 +1345,11 @@ function MessageThread({
   const transmit = async (request: SendMessageRequest) => {
     setSending(true);
     try {
+      const currentDevices = await api.conversationDevices(conversation.id);
+      assertPendingRecipients({ account, deviceId, conversationId: conversation.id, request }, currentDevices.devices);
       await api.sendMessage(conversation.id, request);
-      const file = outboxFile();
-      if (file.exists) file.delete();
-      setPending(null);
+      const remaining = messageOutbox.update((entries) => acknowledgeQueued(entries, { account, deviceId, conversationId: conversation.id, request }));
+      setPending(pendingFor(remaining, account, deviceId, conversation.id));
       setDraft("");
       await load();
     } catch (caught) {
@@ -1334,8 +1359,7 @@ function MessageThread({
       setSending(false);
     }
   };
-  const sendPlaintext = async (plaintext: string) => {
-    try {
+  const prepareMessage = async (plaintext: string) => {
       const [keyRaw, devices, entropy] = await Promise.all([
         SecureStore.getItemAsync(DEVICE_KEY),
         api.conversationDevices(conversation.id),
@@ -1359,17 +1383,58 @@ function MessageThread({
           devices: devices.devices,
           entropy,
         });
-      outboxFile().write(
-        JSON.stringify({ account, conversationId: conversation.id, request }),
-      );
+      return request;
+  };
+  const sendPlaintext = async (plaintext: string) => {
+    try {
+      const request = await prepareMessage(plaintext);
+      messageOutbox.update((entries) => queueMessage(entries, { account, deviceId, conversationId: conversation.id, request }));
       setPending(request);
       await transmit(request);
     } catch (caught) {
       setError(message(caught));
     }
   };
+  const resumeAttachment = async () => {
+    setSending(true);
+    try {
+      const raw = await SecureStore.getItemAsync(uploadKey);
+      if (!raw) { setAttachmentPending(false); return; }
+      const job = JSON.parse(raw) as UploadJob;
+      const requestFile = uploadFile(job.id, true);
+      let request: SendMessageRequest;
+      if (requestFile.exists) {
+        request = JSON.parse(requestFile.textSync()) as SendMessageRequest;
+      } else {
+        const ciphertext = await uploadFile(job.id).bytes();
+        const transport = cloud();
+        if (!job.record) {
+          job.record = await transport.register(conversation.id, job.id, ciphertext);
+          await SecureStore.setItemAsync(uploadKey, JSON.stringify(job));
+        }
+        await transport.upload(job.record, ciphertext, (sent,total) => setAttachmentProgress(`Uploading encrypted attachment: ${Math.round(sent/total*100)}%`));
+        job.payload = {...job.payload, mediaId:job.record.objectId, storage:"cloud-v1",ciphertextHash:job.record.sha256,ciphertextBytes:job.record.totalCiphertextBytes};
+        request = await prepareMessage(`${ATTACHMENT_PREFIX}${JSON.stringify(job.payload)}`);
+        // Persist the exact signed ciphertext before enqueuing. Retrying cleanup
+        // cannot generate another message ID or a different envelope set.
+        requestFile.write(JSON.stringify(request));
+      }
+      messageOutbox.update(entries => queueMessage(entries, {account,deviceId,conversationId:conversation.id,request}));
+      setPending(request);
+      await SecureStore.deleteItemAsync(uploadKey);
+      setAttachmentPending(false);
+      const ciphertextFile = uploadFile(job.id);
+      if (ciphertextFile.exists) ciphertextFile.delete();
+      if (requestFile.exists) requestFile.delete();
+      setAttachmentProgress("");
+      await transmit(request);
+    } catch (caught) { setError(message(caught)); }
+    finally { setSending(false); }
+  };
   const pickAttachment = async () => {
     try {
+      cloud();
+      if (await SecureStore.getItemAsync(uploadKey)) throw new Error("Resume the pending encrypted attachment before choosing another");
       const permission =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted)
@@ -1405,33 +1470,29 @@ function MessageThread({
           name,
           mimeType,
         });
-      const uploaded = await api.uploadMedia({
-          idempotencyKey: `attachment-${Date.now()}`,
-          purpose: "message",
-          conversationId: conversation.id,
-          mimeType,
-          sha256: encrypted.sha256,
-          data: encodeRawBase64(encrypted.ciphertext),
-        }),
-        payload: AttachmentPayload = {
+      const payload: AttachmentPayload = {
           type: "attachment",
           name,
           mimeType,
           sizeBytes: bytes.length,
-          mediaId: uploaded.record.id,
+          mediaId: "",
           key: encodeRawBase64(key),
           nonce: encodeRawBase64(nonce),
         };
+      const id = `attachment_${Array.from(nonce.slice(0,12),byte=>byte.toString(16).padStart(2,"0")).join("")}`;
+      uploadFile(id).write(encrypted.ciphertext);
+      await SecureStore.setItemAsync(uploadKey, JSON.stringify({id,payload} satisfies UploadJob));
+      setAttachmentPending(true);
       bytes.fill(0);
       key.fill(0);
-      await sendPlaintext(`${ATTACHMENT_PREFIX}${JSON.stringify(payload)}`);
+      await resumeAttachment();
     } catch (caught) {
       setError(message(caught));
     }
   };
   const openAttachment = async (value: AttachmentPayload) => {
     try {
-      const ciphertext = await api.downloadMedia(value.mediaId),
+      const ciphertext = value.storage === "cloud-v1" ? await cloud().download(value.mediaId, value.ciphertextHash ?? "", value.ciphertextBytes ?? 0) : await api.downloadMedia(value.mediaId),
         bytes = decryptAttachment({
           ciphertext,
           key: decodeRawBase64(value.key, "attachment key"),
@@ -1442,10 +1503,9 @@ function MessageThread({
         });
       if (bytes.length !== value.sizeBytes)
         throw new Error("Attachment size does not match signed metadata");
-      Alert.alert(
-        "Attachment verified",
-        `${value.name} · ${formatNumber(Math.ceil(value.sizeBytes / 1024))} KB\nAuthenticated end-to-end on this device.`,
-      );
+      if (!["image/jpeg","image/png","image/webp"].includes(value.mimeType)) throw new Error("This verified attachment format is not supported by the image viewer");
+      const encoded = encodeRawBase64(bytes);
+      setAttachmentPreview({name:value.name,uri:`data:${value.mimeType};base64,${encoded.padEnd(Math.ceil(encoded.length/4)*4,"=")}`});
       bytes.fill(0);
     } catch (caught) {
       setError(message(caught));
@@ -1464,6 +1524,15 @@ function MessageThread({
   );
   return (
     <View style={styles.screen}>
+      <Modal visible={attachmentPreview !== null} onRequestClose={() => setAttachmentPreview(null)} animationType="fade">
+        <View style={{flex:1,backgroundColor:"#101828",padding:24,paddingTop:60}}>
+          <Pressable accessibilityLabel="Close decrypted attachment" onPress={() => setAttachmentPreview(null)}><Text style={{color:"#FFFFFF",padding:16}}>Close attachment</Text></Pressable>
+          <Text style={{color:"#FFFFFF"}}>{attachmentPreview?.name}</Text>
+          {attachmentPreview ? <Image accessibilityLabel={attachmentPreview.name} source={{uri:attachmentPreview.uri}} resizeMode="contain" style={{flex:1,width:"100%"}} /> : null}
+        </View>
+      </Modal>
+      {attachmentPending ? <Pressable disabled={sending} onPress={() => void resumeAttachment()}><Text style={styles.inlineError}>Resume encrypted attachment upload</Text></Pressable> : null}
+      {attachmentProgress ? <Text>{attachmentProgress}</Text> : null}
       <View style={styles.threadHeader}>
         <Pressable
           accessibilityLabel="Back to messages"
@@ -2398,8 +2467,7 @@ function Profile({
           SecureStore.deleteItemAsync(key),
         ),
       );
-      const file = outboxFile();
-      if (file.exists) file.delete();
+      messageOutbox.clear();
       api.setToken(null);
       onSessionChange(null);
     } catch (caught) {

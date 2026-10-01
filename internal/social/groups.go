@@ -243,12 +243,26 @@ func (s *Service) GroupDevices(actor Session, id string) ([]ProductDevice, error
 }
 
 func (s *Service) GroupMessages(actor Session, id string) ([]chat.Message, error) {
-	if _, err := s.GroupConversation(actor, id); err != nil {
-		return nil, err
-	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return append([]chat.Message(nil), s.state.GroupMessages[id]...), nil
+	group, ok := s.state.Groups[id]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	device, ok := s.state.Devices[actor.DeviceID]
+	if !ok || device.Status != "active" || device.Account != actor.Account || !contains(group.Members, actor.Account) {
+		return nil, ErrUnauthorized
+	}
+	records := make([]chat.Message, 0)
+	for _, message := range s.state.GroupMessages[id] {
+		for _, envelope := range message.Envelopes {
+			if envelope.RecipientDeviceID == actor.DeviceID && envelope.RecipientAccount == actor.Account {
+				records = append(records, message)
+				break
+			}
+		}
+	}
+	return records, nil
 }
 
 func (s *Service) SendGroupMessage(actor Session, id string, in chat.SendMessageRequest) (chat.Result[chat.Message], error) {

@@ -1,5 +1,6 @@
 import type { ProductSessionChallenge, WalletApproval, WalletAuthorizationRequest, WalletLogin } from "./walletAuth";
 import type { ChatDevice, ChatMessage, DeviceRotationRequest, SendMessageRequest } from "./chatCrypto";
+import type { SessionProof } from "./scopedSessionBridge";
 export type Person = Readonly<{ id:string; handle:string; displayName:string; avatarUrl?:string }>;
 export type ContactRequest = Readonly<{ id:string; person:Person; direction:"incoming"|"outgoing"; status:string; source:string }>;
 export type ContactMatch = Readonly<{token:string;person:Person}>;
@@ -11,19 +12,27 @@ export type MomentComment = Readonly<{id:string;author:Person;text:string;create
 export type SocialReport = Readonly<{id:string;status:string;outcome:string;explanation:string;evidenceHashes:readonly string[];appeal?:string;updatedAt:string}>;
 export type AlertItem = Readonly<{ id:string; kind:string; actor:Person; summary:string; readAt?:string; createdAt:string }>;
 export type AIJob = Readonly<{id:string;status:"awaiting_permission"|"streaming"|"cancelled"|"provider_failed"|"review"|"applied"|"rejected"|"appealed";output?:string;provider:string;model:string;outputLanguage:string;estimatedCostUsd:number;actualCostUsd?:number;actualTokens?:number}>;
-export type Session = Readonly<{ token:string; session:Readonly<{id:string;account:string;deviceId:string;scopes:readonly string[];createdAt:string;expiresAt:string}>; profile?:Person }>;
+export type Session = Readonly<{ token:string; authMode?:"product-session-v2"; session:Readonly<{id:string;account:string;deviceId:string;scopes:readonly string[];createdAt:string;expiresAt:string}>; profile?:Person }>;
 export type SocialProfile = Person & Readonly<{bio:string;followerCount:number;followingCount:number;postCount:number;privacy:Readonly<{discoverableByHandle:boolean;contactsMatching:boolean;allowRecommendations:boolean;allowRequestsFrom:string;avatarUrl?:string;profileQrPayload?:string}>}>;
 export type PrivacySettings = SocialProfile["privacy"] & Readonly<{account?:string;updatedAt?:string}>;
 export type GroupDiscoveryInput = Readonly<{ idempotencyKey: string; source: "handle" | "contacts" | "qr" | "invite" | "recommendation"; value: string }>;
 export type GroupMembershipUpdateInput = Readonly<{ idempotencyKey: string; add: readonly GroupDiscoveryInput[]; remove: readonly string[] }>;
 export type DeviceRotationResponse = Readonly<{record:{id:string};replayed:boolean;session:Session["session"];token:string}>;
 export function adoptRotatedSession(previous:Session,result:DeviceRotationResponse):Session{return {...previous,token:result.token,session:result.session}}
+export class SocialAPIError extends Error{constructor(message:string,readonly status:number){super(message)}}
 
 export class SocialAPI {
   readonly base:string; private token:string|null;
+  private productProof:((scopes:readonly string[])=>Promise<SessionProof>)|null=null;
+  private productAccount:string|null=null;
+  private csrf:string|undefined;
+  private epoch=0;
+  onPrivateInvalidated?:()=>void;
   constructor(base=process.env.EXPO_PUBLIC_YNX_SOCIAL_API_BASE ?? "https://api.ynxweb4.com",token:string|null=null){if(!/^https:\/\//.test(base)&&!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base))throw new Error("Set a secure YNX Social API endpoint");this.base=base.replace(/\/$/,"");this.token=token}
-  setToken(value:string|null){this.token=value}
-  useSession(value:Session){this.token=value.token}
+  setToken(value:string|null){const hadPrivateProof=this.productProof!==null;this.epoch++;this.productProof=null;this.productAccount=null;this.token=value;if(hadPrivateProof)this.onPrivateInvalidated?.()}
+  useSession(value:Session){if(value.authMode!=="product-session-v2")this.setToken(value.token)}
+  useProductSession(proof:(scopes:readonly string[])=>Promise<SessionProof>,account:string,csrf?:string){this.epoch++;this.token=null;this.productProof=proof;this.productAccount=account;this.csrf=csrf}
+  bindDevice(body:unknown,proof:SessionProof){return this.request<{session:Session["session"];authMode:"product-session-v2"}>("/social/v2/session/bind",{method:"POST",body,proof})}
   walletChallenge(request:WalletAuthorizationRequest,approval:WalletApproval){return this.request<{challenge:ProductSessionChallenge}>("/social/v1/wallet/challenge",{method:"POST",body:{request,approval},auth:false})}
   login(input:WalletLogin){return this.request<Session>("/social/v1/wallet/login",{method:"POST",body:input,auth:false})}
   profile(){return this.request<{record:SocialProfile}>("/social/v1/profile")}
@@ -44,7 +53,19 @@ export class SocialAPI {
   updateGroupMembers(id:string,body:GroupMembershipUpdateInput){return this.request<{record:ConversationDetail;replayed:boolean}>(`/social/v1/conversations/${encodeURIComponent(id)}/members`,{method:"POST",body})}
   conversation(id:string){return this.request<{record:ConversationDetail}>(`/social/v1/conversations/${encodeURIComponent(id)}`)}
   conversationDevices(id:string){return this.request<{devices:ChatDevice[]}>(`/social/v1/conversations/${encodeURIComponent(id)}/devices`)}
-  messages(id:string){return this.request<{messages:ChatMessage[]}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages`)}
+  messagePage(id:string,after="",limit=100){return this.request<{messages:ChatMessage[];nextCursor?:string;hasMore?:boolean}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages?limit=${limit}&after=${encodeURIComponent(after)}`)}
+  async messages(id:string){
+    const messages:ChatMessage[]=[];let cursor="";
+    const seen=new Set<string>();
+    for(let page=0;page<100;page++){
+      const result=await this.messagePage(id,cursor);
+      for(const item of result.messages){if(!seen.has(item.id)){seen.add(item.id);messages.push(item)}}
+      if(!result.hasMore)return {messages};
+      if(!result.nextCursor||result.nextCursor===cursor)throw new Error("Message synchronization cursor did not advance");
+      cursor=result.nextCursor;
+    }
+    throw new Error("Message history exceeds this synchronization window");
+  }
   sendMessage(id:string,body:SendMessageRequest){return this.request<{record:ChatMessage;replayed:boolean}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages`,{method:"POST",body})}
   acknowledge(id:string,messageId:string,state:"delivered"|"read"){return this.request<{record:ChatMessage}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages/${encodeURIComponent(messageId)}/${state}`,{method:"POST",body:{}})}
   rotateDevice(replacedDeviceId:string,body:DeviceRotationRequest){return this.request<DeviceRotationResponse>(`/social/v1/devices/${encodeURIComponent(replacedDeviceId)}/rotate`,{method:"POST",body})}
@@ -68,5 +89,24 @@ export class SocialAPI {
   aiBegin(body:Record<string,unknown>){return this.request<{record:AIJob;replayed:boolean}>("/social/v1/ai/jobs",{method:"POST",body})}
   aiTransition(id:string,action:string,output=""){return this.request<AIJob>(`/social/v1/ai/jobs/${encodeURIComponent(id)}`,{method:"POST",body:{action,output}})}
   async streamAI(id:string,contextText:string,onToken:(value:string)=>void,signal?:AbortSignal):Promise<AIJob>{if(!this.token)throw new Error("Social session is locked");const response=await fetch(`${this.base}/social/v1/ai/jobs/${encodeURIComponent(id)}/stream`,{method:"POST",headers:{Accept:"text/event-stream","Content-Type":"application/json",Authorization:`Bearer ${this.token}`},body:JSON.stringify({contextText}),signal});if(!response.ok)throw new Error(`Social AI stream failed (${response.status})`);if(!response.body)throw new Error("Streaming is unavailable on this device");const reader=response.body.getReader(),decoder=new TextDecoder(),lines:{event:string;data:string}[]=[];let buffer="",event="",doneJob:AIJob|undefined;while(true){const chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});const parts=buffer.split("\n");buffer=parts.pop()??"";for(const raw of parts){const line=raw.trimEnd();if(line.startsWith("event:")){event=line.slice(6).trim()}else if(line.startsWith("data:")){const data=line.slice(5).trim();lines.push({event,data});if(event==="token"){const value=JSON.parse(data) as {text?:string};if(value.text)onToken(value.text)}else if(event==="error"){const value=JSON.parse(data) as {error?:string};throw new Error(value.error??"AI provider unavailable")}else if(event==="done"){const value=JSON.parse(data) as {record?:AIJob};doneJob=value.record}}}}if(!doneJob)throw new Error("AI stream ended before review state");return doneJob}
-  async request<T=unknown>(path:string,options:{method?:string;body?:unknown;auth?:boolean;headers?:Record<string,string>}={}):Promise<T>{const headers:Record<string,string>={Accept:"application/json",...options.headers};if(options.body!==undefined)headers["Content-Type"]="application/json";if(options.auth!==false){if(!this.token)throw new Error("Social session is locked");headers.Authorization=`Bearer ${this.token}`};const response=await fetch(`${this.base}${path}`,{method:options.method??"GET",headers,body:options.body===undefined?undefined:JSON.stringify(options.body)});const data=await response.json().catch(()=>({error:"Invalid server response"}));if(!response.ok)throw new Error(typeof data?.error==="string"?data.error:`Social request failed (${response.status})`);return data as T}
+  async request<T=unknown>(path:string,options:{method?:string;body?:unknown;auth?:boolean;headers?:Record<string,string>;proof?:SessionProof}={}):Promise<T>{
+    const epoch=this.epoch,headers:Record<string,string>={Accept:"application/json",...options.headers};
+    if(options.body!==undefined)headers["Content-Type"]="application/json";
+    if(options.auth!==false){
+      if(this.productProof){
+        const relative=path.split("?")[0]!.replace("/social/v1/","");
+        const scope=relative.startsWith("conversations")||relative.startsWith("devices/")?"social.messaging":/^(contacts?|privacy\/|invites?|notifications?)/.test(relative)?"social.contacts":"social.profile";
+        if(/^(feed|media|reports?|follows?|ai\/)/.test(relative))throw new Error("This action requires a separately supported permission");
+        const proof=options.proof??await this.productProof([scope]).catch(()=>{this.setToken(null);throw new SocialAPIError("Wallet permission could not be verified; restore explicitly",401)});
+        if(epoch!==this.epoch||proof.proof.account!==this.productAccount){this.setToken(null);throw new SocialAPIError("Social account changed; reconnect explicitly",401)}
+        headers["X-YNX-Product-Session-Proof-V2"]=proof.proofHeader;
+        if(this.csrf)headers["X-YNX-SSO-CSRF"]=this.csrf;
+      }else{if(!this.token)throw new Error("Social session is locked");headers.Authorization=`Bearer ${this.token}`}
+    }
+    const response=await fetch(`${this.base}${path}`,{method:options.method??"GET",headers,credentials:this.csrf?"same-origin":"omit",redirect:"error",cache:"no-store",body:options.body===undefined?undefined:JSON.stringify(options.body)});
+    const data=await response.json().catch(()=>({error:"Invalid server response"}));
+    if(epoch!==this.epoch)throw new Error("Social authorization changed; response discarded");
+    if(!response.ok){if(this.productProof&&(response.status===401||response.status===403))this.setToken(null);throw new SocialAPIError(typeof data?.error==="string"?data.error:`Social request failed (${response.status})`,response.status)}
+    return data as T;
+  }
 }

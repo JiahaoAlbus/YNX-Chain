@@ -1,0 +1,11 @@
+{
+  "framework": null,
+  "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
+  "buildCommand": "npm run web:build",
+  "outputDirectory": "web/dist",
+  "rewrites": [
+    {"source": "/sso/:path*", "destination": "https://api.ynxweb4.com/social/sso/:path*"},
+    {"source": "/social/:path*", "destination": "https://api.ynxweb4.com/social/:path*"},
+    {"source": "/wallet-auth/callback", "destination": "/index.html"}
+  ]
+}

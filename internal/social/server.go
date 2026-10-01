@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chat"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/square"
 )
 
@@ -18,12 +19,22 @@ type DiscoveryResolver interface {
 	ResolveDiscovery(source, value string) (string, error)
 }
 type Server struct {
-	service  *Service
-	resolver DiscoveryResolver
+	service      *Service
+	resolver     DiscoveryResolver
+	cloudObjects *CloudObjectAuthority
 }
 
 func NewServer(service *Service, resolver DiscoveryResolver) *Server {
 	return &Server{service: service, resolver: resolver}
+}
+
+// NewServerWithCloudObjects explicitly enables the machine-only authority route.
+// Normal server construction leaves it unavailable; no client mint route exists.
+func NewServerWithCloudObjects(service *Service, resolver DiscoveryResolver, authority *CloudObjectAuthority) (*Server, error) {
+	if authority == nil || authority.service != service {
+		return nil, ErrInvalid
+	}
+	return &Server{service: service, resolver: resolver, cloudObjects: authority}, nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -32,7 +43,25 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/social/health", s.health)
 	mux.HandleFunc("/social/v1/wallet/challenge", s.walletChallenge)
 	mux.HandleFunc("/social/v1/wallet/login", s.login)
+	mux.HandleFunc("/social/v2/session/bind", s.bindProductSession)
+	if s.service.cfg.BrowserSSO != nil {
+		bridge := s.service.cfg.BrowserSSO
+		mux.HandleFunc("GET /sso/start", bridge.Start)
+		mux.HandleFunc("GET /sso/callback", bridge.Callback)
+		mux.HandleFunc("GET /sso/account", bridge.Account)
+		mux.HandleFunc("POST /sso/logout", bridge.Logout)
+		// Same-origin Web proxy aliases stay inside the existing /social route.
+		mux.HandleFunc("GET /social/sso/start", bridge.Start)
+		mux.HandleFunc("GET /social/sso/callback", bridge.Callback)
+		mux.HandleFunc("GET /social/sso/account", bridge.Account)
+		mux.HandleFunc("POST /social/sso/logout", bridge.Logout)
+	}
 	mux.HandleFunc("/social/v1/", s.social)
+	if s.cloudObjects != nil {
+		mux.HandleFunc("/internal/cloud-objects/authorize", s.cloudObjects.authorize)
+		mux.HandleFunc("/social/v1/cloud-objects", s.cloudObjects.registerObject)
+		mux.HandleFunc("/social/v1/cloud-objects/", s.cloudObjects.objectCapability)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
@@ -46,7 +75,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 405, "method not allowed")
 		return
 	}
-	writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-social", "persistence": "integrity-checked-atomic-mode-0600", "walletAuth": "canonical-signed-envelope-v1", "walletGateway": "persistent-p256-challenge-v1", "recoveryKeysAccepted": false, "chatContract": "internal/chat-v2", "feedContract": "internal/square-v2", "attachmentPolicy": s.service.AttachmentPolicy()})
+	writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-social", "persistence": "integrity-checked-atomic-mode-0600", "walletAuth": "canonical-signed-envelope-v2-origin-bound", "walletGateway": "persistent-p256-challenge-v2-origin-bound", "recoveryKeysAccepted": false, "chatContract": "internal/chat-v2", "feedContract": "internal/square-v2", "attachmentPolicy": s.service.AttachmentPolicy()})
 }
 func (s *Server) walletChallenge(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -185,13 +214,23 @@ type profileInput struct {
 func (s *Server) social(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/social/v1/")
 	if strings.HasPrefix(path, "devices/") && strings.HasSuffix(path, "/rotate") && r.Method == http.MethodPost {
+		if len(r.Header.Values(productsessionv2.ProofHeader)) != 0 {
+			writeError(w, 409, "Explicit device recovery required; existing keys preserved")
+			return
+		}
 		s.rotateConversationDevice(w, r, path)
 		return
 	}
 	scope := scopeForPath(path)
-	actor, err := s.service.Authenticate(r.Header.Get("Authorization"), scope)
+	var actor Session
+	var err error
+	if len(r.Header.Values(productsessionv2.ProofHeader)) != 0 {
+		actor, err = s.authorizeProductActor(r, scope)
+	} else {
+		actor, err = s.service.Authenticate(r.Header.Get("Authorization"), scope)
+	}
 	if err != nil {
-		writeServiceError(w, err)
+		writeBridgeError(w, err)
 		return
 	}
 	if !s.service.Allow(r.RemoteAddr, actor.Account, pathAction(path)) {
@@ -633,6 +672,23 @@ func (s *Server) handleConversation(w http.ResponseWriter, r *http.Request, acto
 		records, err := s.service.ConversationMessages(actor, conversationID)
 		*returned = err
 		if err == nil {
+			if r.URL.Query().Has("limit") || r.URL.Query().Has("after") {
+				limit := 100
+				if value := r.URL.Query().Get("limit"); value != "" {
+					parsed, parseErr := strconv.Atoi(value)
+					if parseErr != nil {
+						*returned = ErrInvalid
+						return
+					}
+					limit = parsed
+				}
+				page, pageErr := paginateMessages(records, r.URL.Query().Get("after"), limit)
+				*returned = pageErr
+				if pageErr == nil {
+					writeJSON(w, 200, page)
+				}
+				return
+			}
 			writeJSON(w, 200, map[string]any{"messages": records})
 		}
 	case len(parts) == 3 && parts[2] == "messages" && r.Method == http.MethodPost:

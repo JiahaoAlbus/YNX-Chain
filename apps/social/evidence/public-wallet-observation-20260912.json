@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "observedDate": "2026-09-12",
+  "product": "YNX Social",
+  "url": "https://social.ynxweb4.com/",
+  "browser": "Codex In-app Browser",
+  "sourceBinding": {
+    "method": "Fresh HTTPS resource bodies compared byte-for-byte with git show",
+    "matchingCommit": "75bd5e7dac24fd5cc29aaf403234d8778b0bfdce",
+    "matchingRepositoryTree": "d76ef1a4696a5734fd08a3391cd3677e15174a7a",
+    "deploymentId": null,
+    "atomicDeploymentSnapshotProven": false,
+    "scope": "Six sequentially fetched static resources; not server-side deployment provenance"
+  },
+  "resources": [
+    {"path":"index.html","bytes":6098,"sha256":"783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b","status":200},
+    {"path":"app.js","bytes":6928,"sha256":"966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d","status":200},
+    {"path":"wallet-provider.js","bytes":7749,"sha256":"d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75","status":200},
+    {"path":"styles.css","bytes":6327,"sha256":"1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42","status":200},
+    {"path":"assets/ynx-wallet.svg","bytes":280,"sha256":"e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb","status":200},
+    {"path":"assets/metamask.svg","bytes":755,"sha256":"f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21","status":200}
+  ],
+  "observed": {
+    "documentLanguage": "en",
+    "englishGuestPreviewRendered": true,
+    "chooserOpensAndCloses": true,
+    "distinctWalletNames": ["YNX Wallet", "MetaMask"],
+    "distinctSvgImagesRendered": true,
+    "officialLogoProvenanceVerified": false,
+    "guestRefreshRendered": true,
+    "urlUnchangedDuringChooserAndRefresh": true,
+    "tabCountAtEndInSelectedBrowser": 1,
+    "blankPageObserved": false,
+    "capturedConsoleWarningsAndErrors": [],
+    "consoleScope": "Captured logs during guest load, chooser open/close and guest refresh only",
+    "privateServiceDegradedBanner": true,
+    "actualBackendHealthVerified": false
+  },
+  "notProven": [
+    "installed provider identities and rdns",
+    "late and no-provider behavior",
+    "approve and reject",
+    "0x1917 add, switch and readback",
+    "connected refresh, accountsChanged, chainChanged, disconnect and revoke",
+    "Standard Wallet survival during actual backend or TLS failure",
+    "Uniswap, OpenSea and Safe lifecycle",
+    "personal_sign, EIP712 and testnet send",
+    "real WalletConnect relay lifecycle"
+  ],
+  "actions": {
+    "walletChoiceClicked": false,
+    "accountAccessRequestedByAgent": false,
+    "signatureOrTransactionRequestedByAgent": false,
+    "deployed": false
+  },
+  "nextAction": {
+    "sourceGap": "Public index.html and app.js match 75bd5e7d, not the later provider guidance snapshot",
+    "existingWebHandoff": "17d54060a3ec58b029f74c15092e6891d762f26e",
+    "guidanceSource": "bed5df462947f53a69fb8aadcdca61af6b3cbaae",
+    "required": "Bind the Web owner source and deployment provenance with Central; preserve separate deployment lease and immediate sensitive-action confirmation requirements"
+  },
+  "fullWalletE2EComplete": false
+}

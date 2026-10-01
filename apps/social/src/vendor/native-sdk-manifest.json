@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "6f332753baae5deaf6b05c8276b20a02cc4887c5",
+  "sourceTree": "b961071c6d335f30eb9a97a6ce166af2415681f0",
+  "authority": "https://wallet-auth.ynxweb4.com",
+  "native": { "bytes": 596823, "sha256": "ee24dda312f2a69f59b9ab027ac84244ee8ba426b11cb0395ecbe5a98b6cff78", "externalImports": 0 },
+  "registry": { "bytes": 7590, "sha256": "e74e1668e631dd623a4364cc9580951a9fe96fcef0c66c5910d84c774f4fdc08" },
+  "applicationId": "com.ynx.social",
+  "defaultScopes": ["account:read", "profile:link"],
+  "installedWalletLoginVerified": false,
+  "messagingPermissionGranted": false
+}

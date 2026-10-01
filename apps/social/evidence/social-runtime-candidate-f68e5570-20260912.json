@@ -1,0 +1,48 @@
+{
+  "schema": "ynx.social.runtime-candidate.v1",
+  "sourceCommit": "f68e5570ce71837d08cad62e353f2428dc050637",
+  "sourceTree": "939b8b2f4be8cbace5019630b7441ca8e73bc2c1",
+  "sourceWorktreeCleanBeforeBuild": true,
+  "linuxBuild": "CGO_ENABLED=0 GOOS=linux GOARCH=<arch> go build -trimpath -buildvcs=false -ldflags=-buildid= -o <artifact> ./cmd/ynx-sociald",
+  "linuxCarrierDirectory": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/continuation-01a075bd/social-runtime-f68e5570",
+  "linuxArtifacts": [
+    {
+      "name": "ynx-sociald-linux-amd64",
+      "bytes": 27663868,
+      "sha256": "c712f84449c51eec6241a998b2ac9e4e0bfa4c133e145e13bc16b95e32edede8"
+    },
+    {
+      "name": "ynx-sociald-linux-arm64",
+      "bytes": 26071964,
+      "sha256": "8354d09b82d2f35b901f5593ce6f0c87afaf1e77f34a01886a1225b430eff91c"
+    }
+  ],
+  "android": {
+    "path": "apps/social/android/app/build/outputs/apk/release/app-release.apk",
+    "architecture": "arm64-v8a",
+    "bytes": 40334845,
+    "sha256": "ffd872b239c62bbc97fec0003922c19b429cc20c156089b9489ec90874b0f3e8",
+    "embeddedJavascriptBytes": 3585632,
+    "signingClass": "android-debug-certificate",
+    "certificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "dedicatedEmulator": "emulator-5586",
+    "installed": true,
+    "adbReverseRemovedBeforeColdStart": true,
+    "coldStartStatus": "ok",
+    "coldStartMilliseconds": 637,
+    "observedUiText": ["English", "YNX Social", "Sign in with YNX Wallet"],
+    "walletAuthorizationRequested": false,
+    "signingOrTransactionRequested": false,
+    "fullProductE2E": false,
+    "productionSignedRelease": false
+  },
+  "deployment": {
+    "candidateDeployed": false,
+    "existingStateColdLoadVerified": false,
+    "plannedMachineAuthorityUrl": "https://api.ynxweb4.com/internal/cloud-objects/authorize",
+    "publicMachineRouteVerified": false,
+    "preserveExistingTokenKey": true,
+    "preserveExistingInternalApiKey": true,
+    "machineSecretServerOnly": true
+  }
+}

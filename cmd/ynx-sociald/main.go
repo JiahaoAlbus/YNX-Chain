@@ -17,6 +17,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chat"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/mutationfreeze"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/social"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/square"
 )
@@ -40,6 +41,10 @@ func main() {
 		log.Fatal("YNX_SOCIAL_RATE_LIMIT_WINDOW must be a positive Go duration")
 	}
 	serviceKey := strings.TrimSpace(os.Getenv("YNX_SOCIAL_INTERNAL_API_KEY"))
+	cloudAuthorityToken := os.Getenv("YNX_SOCIAL_CLOUD_AUTHORITY_TOKEN")
+	if cloudAuthorityToken != "" && (len(cloudAuthorityToken) < 32 || strings.TrimSpace(cloudAuthorityToken) != cloudAuthorityToken) {
+		log.Fatal("YNX_SOCIAL_CLOUD_AUTHORITY_TOKEN must contain at least 32 characters without surrounding whitespace")
+	}
 	if len(serviceKey) < 16 || strings.TrimSpace(*stateDir) == "" || rateMax <= 0 || rateMax > 10000 {
 		log.Fatal("Social state directory, internal API key (at least 16 characters), and bounded rate limit are required")
 	}
@@ -58,14 +63,49 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	socialService, err := social.New(social.Config{StatePath: filepath.Join(*stateDir, "social.json"), TokenKey: tokenKey, RateLimitMax: rateMax, RateLimitWindow: rateWindow, Chat: chatService, Square: squareService})
+	browserSSO, err := productsessionv2.NewBrowserSSO("social", "https://wallet-auth.ynxweb4.com", tokenKey, []string{"profile", "conversations"}, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	productSessions := map[string]social.ProductSessionAuthorizer{}
+	for _, platform := range []string{"web", "android", "ios"} {
+		policy := productsessionv2.Policy{ProductID: social.RequestingProduct, ClientID: social.ProductClientID, ApplicationID: social.BundleID, Platform: platform, Origin: "app://" + platform + "/" + social.BundleID, Callback: social.Callback, AllowedScopes: []string{"account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"}}
+		identifier := social.BundleID
+		switch platform {
+		case "web":
+			policy.ApplicationID += ".web"
+			policy.Origin = social.Origin
+			policy.Callback = social.Origin + "/wallet-auth/callback"
+		case "android":
+			policy.PackageID = &identifier
+		case "ios":
+			policy.BundleID = &identifier
+		}
+		client, err := productsessionv2.NewClient("https://wallet-auth.ynxweb4.com", policy, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+		productSessions[platform] = client
+	}
+	socialService, err := social.New(social.Config{StatePath: filepath.Join(*stateDir, "social.json"), TokenKey: tokenKey, RateLimitMax: rateMax, RateLimitWindow: rateWindow, Chat: chatService, Square: squareService, BrowserSSO: browserSSO, ProductSessions: productSessions})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	server := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(social.NewServer(socialService, socialService).Handler()), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 45 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 32 * 1024}
+	socialServer := social.NewServer(socialService, socialService)
+	if cloudAuthorityToken != "" {
+		authority, err := social.NewCloudObjectAuthority(socialService, cloudAuthorityToken)
+		if err != nil {
+			log.Fatal(err)
+		}
+		socialServer, err = social.NewServerWithCloudObjects(socialService, socialService, authority)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	server := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(socialServer.Handler()), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 45 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 32 * 1024}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 8*time.Second)

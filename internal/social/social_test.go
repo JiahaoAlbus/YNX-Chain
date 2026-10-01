@@ -663,12 +663,18 @@ func newFixture(t *testing.T, seed byte) fixture {
 	x, y := elliptic.P256().ScalarBaseMult(bytes.Repeat([]byte{seed + 40}, 32))
 	return fixture{key: key, productKey: &stdECDSA.PrivateKey{PublicKey: stdECDSA.PublicKey{Curve: elliptic.P256(), X: x, Y: y}, D: new(big.Int).SetBytes(bytes.Repeat([]byte{seed + 40}, 32))}, account: account, device: "device-test-" + hex.EncodeToString([]byte{seed}), deviceKeys: deviceKeys}
 }
-func signedWalletApproval(t *testing.T, f fixture, now time.Time) WalletChallengeRequest {
+func signedWalletApproval(t *testing.T, f fixture, now time.Time, explicitScopes ...string) WalletChallengeRequest {
 	t.Helper()
 	productPublicKey := base64.RawURLEncoding.EncodeToString(elliptic.MarshalCompressed(elliptic.P256(), f.productKey.X, f.productKey.Y))
-	request := WalletAuthorizationRequest{Version: "1", Nonce: base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{f.device[len(f.device)-1]}, 32)), ChainID: "ynx_6423-1", RequestingProduct: RequestingProduct, ProductClientID: ProductClientID, BundleID: BundleID, ProductDeviceAlgorithm: ProductDeviceAlgorithm, ProductDeviceKey: productPublicKey, Callback: Callback, Scopes: append([]string(nil), walletScopes...), Purpose: "Sign in to YNX Social. No recovery key is shared.", IssuedAt: now.Add(-time.Second).Format(protocolTimeLayout), ExpiresAt: now.Add(4 * time.Minute).Format(protocolTimeLayout)}
+	request := WalletAuthorizationRequest{Version: "2", Nonce: base64.RawURLEncoding.EncodeToString(bytes.Repeat([]byte{f.device[len(f.device)-1]}, 32)), ChainID: "ynx_6423-1", RequestingProduct: RequestingProduct, ProductClientID: ProductClientID, BundleID: BundleID, ProductDeviceAlgorithm: ProductDeviceAlgorithm, ProductDeviceKey: productPublicKey, Origin: Origin, Callback: Callback, Scopes: append([]string(nil), walletScopes...), Purpose: "Sign in to YNX Social. No recovery key is shared.", IssuedAt: now.Add(-time.Second).Format(protocolTimeLayout), ExpiresAt: now.Add(4 * time.Minute).Format(protocolTimeLayout)}
+	if len(explicitScopes) > 0 {
+		request.Scopes = append([]string(nil), explicitScopes...)
+	} else {
+		// Private-flow fixtures explicitly approve the real registered scopes.
+		request.Scopes = []string{"account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"}
+	}
 	digest, _ := WalletRequestDigest(request)
-	approval := WalletApproval{Version: "1", RequestDigest: digest, Nonce: request.Nonce, ChainID: request.ChainID, RequestingProduct: request.RequestingProduct, ProductClientID: request.ProductClientID, BundleID: request.BundleID, ProductDeviceAlgorithm: request.ProductDeviceAlgorithm, ProductDeviceKey: request.ProductDeviceKey, Callback: request.Callback, Account: f.account, AccountPublicKey: hex.EncodeToString(f.key.PubKey().SerializeCompressed()), GrantedScopes: append([]string(nil), request.Scopes...), Purpose: request.Purpose, IssuedAt: now.Format(protocolTimeLayout), ExpiresAt: now.Add(3 * time.Minute).Format(protocolTimeLayout)}
+	approval := WalletApproval{Version: "2", RequestDigest: digest, Nonce: request.Nonce, ChainID: request.ChainID, RequestingProduct: request.RequestingProduct, ProductClientID: request.ProductClientID, BundleID: request.BundleID, ProductDeviceAlgorithm: request.ProductDeviceAlgorithm, ProductDeviceKey: request.ProductDeviceKey, Origin: request.Origin, Callback: request.Callback, Account: f.account, AccountPublicKey: hex.EncodeToString(f.key.PubKey().SerializeCompressed()), GrantedScopes: append([]string(nil), request.Scopes...), Purpose: request.Purpose, IssuedAt: now.Format(protocolTimeLayout), ExpiresAt: now.Add(3 * time.Minute).Format(protocolTimeLayout)}
 	in := WalletChallengeRequest{Request: request, Approval: approval}
 	resignApproval(t, f, &in)
 	return in
@@ -681,9 +687,9 @@ func resignApproval(t *testing.T, f fixture, in *WalletChallengeRequest) {
 	signDigest := sha256.Sum256(payload)
 	in.Approval.WalletSignature = hex.EncodeToString(ecdsa.SignCompact(f.key, signDigest[:], false)[1:])
 }
-func signedLogin(t *testing.T, s *Service, f fixture, now time.Time) WalletLogin {
+func signedLogin(t *testing.T, s *Service, f fixture, now time.Time, explicitScopes ...string) WalletLogin {
 	t.Helper()
-	approval := signedWalletApproval(t, f, now)
+	approval := signedWalletApproval(t, f, now, explicitScopes...)
 	challenge, err := s.CreateWalletChallenge(approval)
 	if err != nil {
 		t.Fatal(err)

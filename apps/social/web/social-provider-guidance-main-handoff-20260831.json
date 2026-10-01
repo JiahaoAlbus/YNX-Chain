@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Social Web",
+  "scope": "apps/social/web/**",
+  "targetBase": {
+    "ref": "origin/main",
+    "commit": "babfc57cebf60eadaec51398202de11cda742901",
+    "socialWebPresentBeforeHandoff": false
+  },
+  "restoredSnapshot": {
+    "sourceCommit": "bed5df462947f53a69fb8aadcdca61af6b3cbaae",
+    "sourceTree": "58bf90bcc9e1545fa5eb5226c1a600935b04e267",
+    "sourceParent": "75bd5e7dac24fd5cc29aaf403234d8778b0bfdce",
+    "appsSocialWebTree": "4f577f95480949af0d46c6e2fc6a9cd66f64d937",
+    "recoveryMode": "complete-directory-snapshot",
+    "reason": "origin/main does not contain apps/social/web, so restoring only the 44-line provider-guidance patch would omit the product runtime and its tests"
+  },
+  "constraints": {
+    "chainIdDecimal": 6423,
+    "chainIdHex": "0x1917",
+    "nativeSymbol": "YNXT",
+    "ynxWalletRdns": "com.ynx.wallet",
+    "ynxWalletIsMetaMask": false,
+    "sharedWalletOrRouterModified": false,
+    "publicDeploymentClaimed": false,
+    "integratedToMainClaimed": false
+  },
+  "validation": {
+    "command": "node --test apps/social/web/wallet-provider.test.mjs",
+    "testsPassed": 12,
+    "testsFailed": 0,
+    "javascriptSyntaxCheck": "passed",
+    "staticEntrySmoke": "passed",
+    "build": "not-applicable-static-product",
+    "status": "passed"
+  }
+}

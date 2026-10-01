@@ -1,0 +1,56 @@
+{
+  "schema": "ynx.social.installed-runtime.v1",
+  "sourceCommit": "320873bd214bde644b221fd1b4f3190e38dac9af",
+  "sourceTree": "e07078ac48585966c4d9eebbee10461069d01f3b",
+  "branch": "codex/final-social",
+  "artifact": {
+    "architecture": "linux-amd64",
+    "bytes": 27664180,
+    "sha256": "a4721a66c22c665e270f6420f495b3da3e2f3d85c6fcfdef6412c0d1114c930d"
+  },
+  "stateCompatibility": {
+    "existingSchemaVersion": 5,
+    "existingTokenKeyMatchesRunningProcess": true,
+    "originalEncodingHmacVerified": true,
+    "legacyAbsentOriginPreserved": true,
+    "originBoundV2ValidationRetained": true,
+    "strictDecoderAndHmacRetained": true,
+    "privateStateColdLoadPassed": true,
+    "privateTrial": "/var/tmp/ynx-social-320873bd-20260912-candidate-01/coldload.0oTCDvtF",
+    "stateContentsIncludedInEvidence": false
+  },
+  "installedRuntime": {
+    "host": "43.153.202.237",
+    "service": "ynx-sociald.service",
+    "binary": "/usr/local/bin/ynx-sociald",
+    "observedPid": 1682160,
+    "runningExecutableShaMatchesArtifact": true,
+    "serviceActive": true,
+    "machineProbe": {
+      "method": "POST",
+      "url": "http://127.0.0.1:6491/internal/cloud-objects/authorize",
+      "credentialsSent": false,
+      "status": 401
+    },
+    "existingEnvironmentFilePreserved": "/etc/ynx/ynx-sociald.env",
+    "existingStatePreserved": "/var/lib/ynx-chain/social",
+    "addedDropIn": "/etc/systemd/system/ynx-sociald.service.d/90-social-cloud-authority-20260912.conf",
+    "optionalFinalEnvironmentFile": "/etc/ynx/social-cloud-authority-20260912.env",
+    "dedicatedSecretOwnedByCentralReleaseExecutor": true,
+    "sharedFreezeMarkerNotModified": true
+  },
+  "rollback": {
+    "privateDirectory": "/var/tmp/ynx-social-320873bd-20260912-candidate-01/rollback-before-release-02",
+    "previousBinarySha256": "15ca411618ae17195c00c764364191e22ff3366ef1959423c4a38499ed6a7af8",
+    "previousSourceCommit": null,
+    "consistentStoppedServiceStateSnapshotRetained": true,
+    "procedure": "Stop only ynx-sociald.service; atomically restore the retained previous binary; remove only the matching Social-owned drop-in; daemon-reload and start the same service. Preserve current state. Any need to restore the private state snapshot requires a separate explicit decision to avoid discarding newer writes."
+  },
+  "limits": {
+    "publicTlsMachineRouteVerified": false,
+    "authorizedCloudLifecycleVerified": false,
+    "installedNativeWalletLoginVerified": false,
+    "completeWalletE2E": false,
+    "accountAuthorizationSignOrTransactionTriggered": false
+  }
+}
