@@ -25,10 +25,10 @@ function mount(overrides={}){
   const js=ts.transpileModule(fs.readFileSync(sourcePath,'utf8'),{fileName:sourcePath,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,esModuleInterop:true}}).outputText;
   const exports={};
   vm.runInNewContext(js,{exports,module:{exports},require(name){if(Object.hasOwn(modules,name))return modules[name];throw Error('Unexpected dependency '+name)},window:{location:{href:'https://card.ynxweb4.com/'},localStorage:{getItem:()=>null},history:{replaceState(){}}},URL,Uint8Array,Date,Promise,console,setTimeout,clearTimeout,globalThis},{filename:sourcePath});
-  const client={currentOwner:()=> 'owner-test',programs:async()=>[],listApplications:async()=>applications,financeConsent:async()=>null,...Object.fromEntries(['status','funding','history','control'].map(name=>[name,(id,...args)=>{calls[name].push({id,args});return overrides[name]?.(id,...args)??Promise.resolve(name==='status'?card(id):name==='funding'?funding(id):name==='history'?{items:[],nextCursor:null}:{status:'CONFIRMED'})}]))};
+  const client={currentOwner:overrides.currentOwner??(()=> 'owner-test'),currentContextKey:()=>{const owner=client.currentOwner();return owner?(overrides.currentContextKey?.()??owner+'-session'):null},programs:overrides.programs??(async()=>[]),listApplications:overrides.listApplications??(async()=>applications),financeConsent:overrides.financeConsent??(async()=>null),...Object.fromEntries(['status','funding','history','control'].map(name=>[name,(id,...args)=>{calls[name].push({id,args});return overrides[name]?.(id,...args)??Promise.resolve(name==='status'?card(id):name==='funding'?funding(id):name==='history'?{items:[],nextCursor:null}:{status:'CONFIRMED'})}]))};
   const texts=()=>renderer.root.findAllByType('Text').map(node=>node.children.filter(value=>typeof value==='string').join(''));
   const press=async label=>{const node=renderer.root.findAllByType('Pressable').find(item=>item.props.accessibilityLabel===label||item.findAllByType('Text').some(text=>text.children.join('').includes(label)));assert(node,`Missing action ${label}`);assert.notEqual(node.props.disabled,true,`Disabled action ${label}`);await act(async()=>{node.props.onPress();await tick()})};
-  return {calls,client,texts,press,get spinning(){return renderer.root.findAllByType('ActivityIndicator').length>0},get lateWrites(){return lateWrites},async start(){await act(async()=>{renderer=Renderer.create(React.createElement(exports.ProviderExperience,{client,locale:'en',platform:'web'}));await tick()});return this},async settle(fn){await act(async()=>{fn();await tick()})},async unmount(){await act(async()=>{unmounted=true;renderer.unmount();await tick()})}};
+  return {calls,client,texts,press,get spinning(){return renderer.root.findAllByType('ActivityIndicator').length>0},get lateWrites(){return lateWrites},async start(){await act(async()=>{renderer=Renderer.create(React.createElement(exports.ProviderExperience,{client,locale:'en',platform:'web'}));await tick()});return this},async rerender(){await act(async()=>{renderer.update(React.createElement(exports.ProviderExperience,{client,locale:'en',platform:'web'}));await tick()})},async settle(fn){await act(async()=>{fn();await tick()})},async unmount(){await act(async()=>{unmounted=true;renderer.unmount();await tick()})}};
 }
 
 test('A late status and funding cannot replace B under the B heading',async()=>{
@@ -123,4 +123,23 @@ test('unmount prevents pending status and funding from writing state',async()=>{
   await app.unmount();
   await app.settle(()=>{pendingStatus.resolve(card('A'));pendingFunding.resolve(funding('A'))});
   assert.equal(app.lateWrites,0);
+});
+
+test('owner switch hides prior applications and consent until exact new-owner records arrive',async()=>{
+  let owner='owner-first',reads=0;const next=deferred();
+  const app=await mount({currentOwner:()=>owner,listApplications:async()=>++reads===1?applications:next.promise,financeConsent:async()=>({expiresAt:'PRIVATE_OLD_CONSENT'})}).start();
+  assert.match(app.texts().join(' '),/Card A|Card B/);
+  owner='owner-second';await app.rerender();assert.doesNotMatch(app.texts().join(' '),/Card A|Card B|PRIVATE_OLD_CONSENT|A222|A-funds/);
+  await app.settle(()=>next.resolve([{...applications[0],id:'C',nickname:'Second owner record'}]));assert.match(app.texts().join(' '),/Second owner record/);assert.doesNotMatch(app.texts().join(' '),/Card A|Card B/);await app.unmount();
+});
+test('same-owner session rotation clears old private view and logout performs no new reads',async()=>{
+  let owner='owner-test',binding='first',reads=0;const next=deferred();
+  const app=await mount({currentOwner:()=>owner,currentContextKey:()=>binding,listApplications:async()=>++reads===1?applications:next.promise}).start();
+  binding='second';await app.rerender();assert.doesNotMatch(app.texts().join(' '),/Card A|Card B|A222|A-funds/);
+  owner=null;await app.rerender();await app.settle(()=>next.resolve(applications));assert.doesNotMatch(app.texts().join(' '),/Card A|Card B|A222|A-funds/);assert.equal(reads,2);await app.unmount();
+});
+test('Web application review never opens a custom scheme or prepares a new approval mutation',async()=>{
+  const app=await mount({listApplications:async()=>[{...applications[0],status:'APPROVAL_REQUIRED'}]}).start();let prepared=0;
+  app.client.prepareApproval=async()=>{prepared++;throw Error('prohibited')};
+  await app.press('Request Wallet review');assert.equal(prepared,0);assert.match(app.texts().join(' '),/not connected on Web yet/);assert.match(app.texts().join(' '),/draft is unchanged/);await app.unmount();
 });

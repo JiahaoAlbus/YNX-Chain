@@ -74,3 +74,12 @@ test('Hosted popup loss and Standard disconnect preserve approved Card grant; ex
   await app.mutate(()=>app.props.disconnectWallet());assert.equal(app.props.privateSession.state,'PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY');assert.equal(revoke,0);
   await app.mutate(()=>app.props.disconnectNativeWallet());assert.equal(revoke,1);assert.equal(app.props.privateSession,null);
 });
+
+test('App replaces provider client on approved private account change and cancels old reads',async t=>{
+  const account='ynx1'+'a'.repeat(38),other='ynx1'+'b'.repeat(38);
+  let subject=account;const clients=[];
+  const app=await makeMounted(async()=>{throw Error('native prohibited')},{platform:'web',runtimeClients:{createRuntimeProviderClient:async capabilities=>{const client={capabilities,invalidations:0,invalidate(){this.invalidations++}};clients.push(client);return client;}},webSession:{beginCardWebSession:async()=>({status:'connected',session:{account:subject,sessionBinding:'same-binding',expiresAt:'2099-01-01T00:00:00Z'}})}});t.after(()=>app.unmount());
+  await app.mutate(()=>app.props.enablePrivateServices());assert.equal(clients.length,1);assert.equal(app.props.providerClient,clients[0]);
+  subject=other;await app.mutate(()=>app.props.enablePrivateServices());assert.equal(clients.length,2);assert.ok(clients[0].invalidations>0);assert.equal(app.props.providerClient,clients[1]);assert.equal(clients[1].capabilities.identity().owner,other);
+  await app.mutate(()=>app.props.connectMetaMaskWallet());assert.equal(app.props.providerClient,null);assert.ok(clients[1].invalidations>0);
+});

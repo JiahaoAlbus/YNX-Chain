@@ -35,3 +35,9 @@ test('Card builder binds source commit/tree into both Metro environment and runt
   assert.match(source,/EXPO_PUBLIC_CARD_SOURCE_COMMIT:sourceCommit/);assert.match(source,/EXPO_PUBLIC_CARD_SOURCE_TREE:sourceTree/);
   assert.match(source,/frontendSourceCommit:sourceCommit/);assert.match(source,/frontendSourceTree:sourceTree/);assert.match(source,/merge-base","--is-ancestor"/);
 });
+
+test('observed public 7f9 frontend/e95 API pair is accepted only by its pinned historical consumer, never by a mismatched new JS identity',()=>{
+ const observed={schemaVersion:'ynx.card.runtime-identity.v1',productId:'ynx-card',sourceCommit:'7f9ea9af369c61fcb358c9e80500fdd30c66cbbb',sourceTree:'c3dde69331a8b0e87fd91ee80415ec4b83ecb3bb',environment:'testnet',evmChainId:6423,evmChainHex:'0x1917',paymentNetwork:'simulation',productionRealPayments:false};
+ assert.equal(load().api.validateCardSourcePair(version,observed),'e95fcf443228d0db97c139dfa5e8ad6fbb7aa675');
+ assert.throws(()=>load(candidate).api.validateCardSourcePair(version,observed),/CARD_API_SOURCE_MISMATCH/);
+});

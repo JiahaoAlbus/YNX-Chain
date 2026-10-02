@@ -31,3 +31,9 @@ test('identity switch hides old records synchronously and late responses cannot 
  const ui=await mountGuest({props:{businessClient:client(async()=>delayed),privateSession:session}});
  try{await ui.update({privateSession:{...session,account:other,sessionBinding:'binding-two'},businessClient:null});finish(response({...empty,applications:[draft]}));await ui.flush();assert.doesNotMatch(ui.text(),/Owner record alpha|application_own/);assert.ok(ui.commits.filter((entry:any)=>entry.text.includes(other)).every((entry:any)=>!entry.text.includes('Owner record alpha')));}finally{await ui.unmount();}
 });
+
+test('private degraded message follows explicit locale changes without replaying remote English text',async()=>{
+ const privateSession={state:'PRIVATE_SERVICE_DEGRADED',code:'PRODUCT_SESSION_GATEWAY_UNREACHABLE',safeMessage:'REMOTE_PRIVATE_YNX_ENGLISH',userAction:'retry'};
+ const ui=await mountGuest({props:{privateSession}});
+ try{assert.match(ui.text(),/The private request could not finish/);assert.doesNotMatch(ui.text(),/REMOTE_PRIVATE_YNX_ENGLISH/);await ui.update({locale:'zh-CN'});assert.match(ui.text(),/私有请求未能完成/);assert.doesNotMatch(ui.text(),/The private request could not finish|REMOTE_PRIVATE_YNX_ENGLISH/);await ui.update({locale:'en'});assert.match(ui.text(),/The private request could not finish/);}finally{await ui.unmount();}
+});

@@ -52,6 +52,7 @@ export default function App(){
   const[privateSession,setPrivateSession]=useState<ProductSessionRuntime|null>(null);
   const[providerClient,setProviderClient]=useState<CardProviderClient|null>(null);
   const[providerClientError,setProviderClientError]=useState('');
+  const providerClientRef=useRef<CardProviderClient|null>(null);
   const[businessClient,setBusinessClient]=useState<CardBusinessClient|null>(null);
   const[businessClientError,setBusinessClientError]=useState('');
   const businessClientRef=useRef<CardBusinessClient|null>(null);
@@ -225,11 +226,11 @@ export default function App(){
     return()=>{nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletRecoverySequence.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;productWallet.current=null;productWalletPromise.current=null;nativeProductWalletLease.current=0;nativeProductWalletPromiseLease.current=0;mounted.current=false;sub.remove();};
   },[]);
   useEffect(()=>{
-    if(privateSession?.state!=='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'){setProviderClient(null);setProviderClientError('');return}
-    let active=true;
-    void createRuntimeProviderClient({identity:()=>{const state=privateSessionRef.current;return state?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'?{owner:state.account,sessionBinding:state.sessionBinding,expiresAt:state.expiresAt}:null},createIntrospectionProof:async scopes=>Platform.OS==='web'?cardWebProof(scopes):productWallet.current?.createIntrospectionProof(scopes)??Promise.reject(Error('PRIVATE_SESSION_PROOF_UNAVAILABLE'))}).then(client=>{if(active){setProviderClient(client);setProviderClientError('')}}).catch(e=>{if(active){setProviderClient(null);setProviderClientError(e instanceof Error?e.message:'CARD_API_SOURCE_UNAVAILABLE')}});
-    return()=>{active=false;setProviderClient(null)};
-  },[privateSession?.state,privateSession?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'?privateSession.sessionBinding:null]);
+    if(privateSession?.state!=='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'){providerClientRef.current?.invalidate();providerClientRef.current=null;setProviderClient(null);setProviderClientError('');return;}
+    let active=true,owned:CardProviderClient|null=null;setProviderClient(null);setProviderClientError('');
+    void createRuntimeProviderClient({identity:()=>{const state=privateSessionRef.current;return state?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'?{owner:state.account,sessionBinding:state.sessionBinding,expiresAt:state.expiresAt}:null},createIntrospectionProof:async scopes=>Platform.OS==='web'?cardWebProof(scopes):productWallet.current?.createIntrospectionProof(scopes)??Promise.reject(Error('PRIVATE_SESSION_PROOF_UNAVAILABLE'))}).then(client=>{if(!active){client.invalidate();return;}owned=client;providerClientRef.current=client;setProviderClient(client);}).catch(e=>{if(active){setProviderClient(null);setProviderClientError(e instanceof Error?e.message:'CARD_API_SOURCE_UNAVAILABLE');}});
+    return()=>{active=false;owned?.invalidate();if(providerClientRef.current===owned)providerClientRef.current=null;};
+  },[privateSession?.state,privateSession?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'?privateSession.account:null,privateSession?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'?privateSession.sessionBinding:null,privateSession?.state==='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'?privateSession.expiresAt:null]);
 
   useEffect(()=>{
     if(privateSession?.state!=='PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY'){businessClientRef.current?.invalidate();businessClientRef.current=null;setBusinessClient(null);setBusinessClientError('');return;}
@@ -249,9 +250,10 @@ export default function App(){
   const openWalletChooser=async()=>{setWalletError("");setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"OPEN_CHOOSER"}));};
   const invalidatePrivateForWalletChange=()=>{
     privateSessionRef.current=null;++cardWebUiGeneration;
+    providerClientRef.current?.invalidate();providerClientRef.current=null;
     businessClientRef.current?.invalidate();businessClientRef.current=null;setBusinessClient(null);
     setPrivateSession(null);setProviderClient(null);
-    if(Platform.OS==="web")cancelCardWebSessionAttempt();
+    if(Platform.OS==="web")try{cancelCardWebSessionAttempt();}catch(e){setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classifyCardWalletError(e)});}
   };
   const closeWalletChooser=()=>{if(hostedWallet.current&&!hostedConnected.current){const old=hostedWallet.current;hostedWallet.current=null;hostedGeneration.current++;walletSelectionEpoch.current++;void old.disconnect();setWalletBusy(false);}nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletRecoverySequence.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;productWallet.current=null;productWalletPromise.current=null;nativeProductWalletLease.current=0;nativeProductWalletPromiseLease.current=0;setPending(false);setBusy(false);setWalletBusy(false);setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}));};
   const connectHostedWallet=():Promise<boolean>=>{

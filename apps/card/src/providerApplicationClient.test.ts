@@ -49,3 +49,30 @@ test('provider lifecycle and Finance consent use exact v2 routes and separate fr
   assert.deepEqual(calls.map(call=>new Headers(call.init.headers).get('X-YNX-Product-Session-Proof-V2')),scopes.map((_,i)=>'fresh-'+(i+1)));
   assert.throws(()=>client.history('application-a','bad&cursor=another'),/INVALID_PROVIDER_HISTORY_CURSOR/);
 });
+
+test('invalid expiry and binding are unauthorized before SDK proof or API',async()=>{
+  for(const changed of [{expiresAt:'not-a-time'},{expiresAt:'2000-01-01T00:00:00Z'},{sessionBinding:''}]){
+    let calls=0;const client=new CardProviderClient({expectedSourceCommit:source,identity:()=>({...identity(),...changed}),createIntrospectionProof:async()=>{calls++;return {proofHeader:'x'}},fetch:async()=>{calls++;return envelope({})}});
+    assert.equal(client.currentOwner(),null);assert.equal(client.currentContextKey(),null);await assert.rejects(client.listApplications(),/PRIVATE_SESSION_REQUIRED/);assert.equal(calls,0);
+  }
+});
+test('proof and response-body wait are bounded without extending permission or replaying writes',async()=>{
+  let requests=0;const proof=new CardProviderClient({expectedSourceCommit:source,identity,timeoutMs:5,createIntrospectionProof:()=>new Promise(()=>{}),fetch:async()=>{requests++;return envelope({})}});
+  await assert.rejects(proof.createDraft({},'preserved-key'),/PRIVATE_SESSION_PROOF_TIMEOUT/);assert.equal(requests,0);
+  const response=envelope({});response.json=()=>new Promise(()=>{});
+  const body=new CardProviderClient({expectedSourceCommit:source,identity,timeoutMs:5,createIntrospectionProof:async()=>({proofHeader:'x'}),fetch:async()=>{requests++;return response}});
+  await assert.rejects(body.listApplications(),/CARD_API_TIMEOUT/);assert.equal(requests,1);
+});
+test('in-place session mutation after proof begins cannot relabel the original request',async()=>{
+  const state=identity();let release!:(value:{proofHeader:string})=>void;let requests=0;
+  const proof=new Promise<{proofHeader:string}>(resolve=>release=resolve);
+  const client=new CardProviderClient({expectedSourceCommit:source,identity:()=>state,createIntrospectionProof:()=>proof,fetch:async()=>{requests++;return envelope({})}});
+  const before=client.currentContextKey(),pending=client.listApplications();state.sessionBinding='new-binding';assert.notEqual(client.currentContextKey(),before);release({proofHeader:'x'});
+  await assert.rejects(pending,/CARD_CONTEXT_CHANGED/);assert.equal(requests,0);
+});
+test('local invalidation settles a stalled read without remote revoke or deleting records',async()=>{
+  let started!:()=>void;const readStarted=new Promise<void>(resolve=>started=resolve);
+  const client=new CardProviderClient({expectedSourceCommit:source,identity,createIntrospectionProof:async()=>({proofHeader:'x'}),fetch:async()=>{started();return new Promise(()=>{})}});
+  const pending=client.listApplications();await readStarted;client.invalidate();await assert.rejects(pending,/CARD_CONTEXT_CHANGED/);
+  assert.equal(client.currentOwner(),owner,'local cancellation is not permission revocation');
+});

@@ -1,7 +1,7 @@
 import {CARD_BUSINESS_ORIGIN,type CardPrivateIdentity} from './cardBusinessClient';
 
 export class CardProviderClientError extends Error{constructor(readonly code:string,readonly layer:'product-session'|'card-api'|'card-data'){super(code)}}
-type Capabilities={expectedSourceCommit:string;identity:()=>CardPrivateIdentity|null;createIntrospectionProof:(scopes:readonly string[])=>Promise<{proofHeader:string}>;fetch?:typeof fetch;platform?:'web'|'ios'|'android';allowedHostedOrigins?:readonly string[]};
+type Capabilities={expectedSourceCommit:string;identity:()=>CardPrivateIdentity|null;createIntrospectionProof:(scopes:readonly string[])=>Promise<{proofHeader:string}>;fetch?:typeof fetch;platform?:'web'|'ios'|'android';allowedHostedOrigins?:readonly string[];timeoutMs?:number};
 type RequestOptions={method:'GET'|'POST';scope:'account:read'|'card:application:write'|'card:controls:write'|'card:finance:share';body?:unknown;idempotencyKey?:string};
 const pathPrefix='/api/card/v2';
 function object(value:unknown):Record<string,unknown>{if(!value||typeof value!=='object'||Array.isArray(value))throw new CardProviderClientError('INVALID_CARD_API_RESPONSE','card-data');return value as Record<string,unknown>}
@@ -9,23 +9,35 @@ function rejectSensitive(value:unknown):void{if(Array.isArray(value)){value.forE
 function resource(value:string):string{if(!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value))throw new CardProviderClientError('INVALID_CARD_RESOURCE','card-data');return encodeURIComponent(value)}
 export class CardProviderClient{
   private readonly fetcher:typeof fetch;
-  constructor(private readonly capabilities:Capabilities){if(!/^[a-f0-9]{40}$/.test(capabilities.expectedSourceCommit))throw new CardProviderClientError('SOURCE_NOT_CONFIGURED','card-data');this.fetcher=capabilities.fetch??globalThis.fetch}
-  currentOwner(){return this.capabilities.identity()?.owner??null}
+  private epoch=0;
+  private flights=new Set<AbortController>();
+  private readonly timeout:number;
+  constructor(private readonly capabilities:Capabilities){if(!/^[a-f0-9]{40}$/.test(capabilities.expectedSourceCommit))throw new CardProviderClientError('SOURCE_NOT_CONFIGURED','card-data');this.fetcher=capabilities.fetch??globalThis.fetch;this.timeout=capabilities.timeoutMs??10000;if(typeof this.fetcher!=='function'||!Number.isSafeInteger(this.timeout)||this.timeout<1||this.timeout>10000)throw new CardProviderClientError('CARD_API_TRANSPORT_UNAVAILABLE','card-api')}
+  private context():CardPrivateIdentity|null{const value=this.capabilities.identity();if(!value||typeof value.owner!=='string'||!value.owner||typeof value.sessionBinding!=='string'||!value.sessionBinding||typeof value.expiresAt!=='string'||!Number.isFinite(Date.parse(value.expiresAt))||Date.parse(value.expiresAt)<=Date.now())return null;return {...value}}
+  currentOwner(){return this.context()?.owner??null}
+  currentContextKey(){const value=this.context();return value?JSON.stringify([value.owner,value.sessionBinding,value.expiresAt]):null}
+  invalidate(){this.epoch++;for(const controller of this.flights)controller.abort();this.flights.clear()}
   private async request(path:string,options:RequestOptions):Promise<unknown>{
-    const start=this.capabilities.identity();if(!start||!start.owner||!start.sessionBinding||Date.parse(start.expiresAt)<=Date.now())throw new CardProviderClientError('PRIVATE_SESSION_REQUIRED','product-session');
+    const start=this.context();if(!start)throw new CardProviderClientError('PRIVATE_SESSION_REQUIRED','product-session');
     if(options.method==='POST'&&(!options.idempotencyKey||! /^(?=.{1,128}$)[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(options.idempotencyKey)))throw new CardProviderClientError('IDEMPOTENCY_KEY_REQUIRED','card-data');
-    let proof:{proofHeader:string};try{proof=await this.capabilities.createIntrospectionProof([options.scope])}catch{throw new CardProviderClientError('PRIVATE_SESSION_PROOF_UNAVAILABLE','product-session')}
-    const current=this.capabilities.identity();if(!current||current.owner!==start.owner||current.sessionBinding!==start.sessionBinding)throw new CardProviderClientError('CARD_CONTEXT_CHANGED','product-session');
+    rejectSensitive(options.body);
+    const epoch=this.epoch,controller=new AbortController();this.flights.add(controller);
+    let timedOut=false,phase:'product-session'|'card-api'='product-session';
+    const active=()=>{const current=this.context();if(epoch!==this.epoch||controller.signal.aborted||!current||current.owner!==start.owner||current.sessionBinding!==start.sessionBinding||current.expiresAt!==start.expiresAt)throw new CardProviderClientError('CARD_CONTEXT_CHANGED','product-session')};
+    const timer=setTimeout(()=>{timedOut=true;controller.abort()},this.timeout);
+    const bounded=<T,>(operation:Promise<T>):Promise<T>=>new Promise((resolve,reject)=>{const abort=()=>reject(new CardProviderClientError(timedOut?(phase==='product-session'?'PRIVATE_SESSION_PROOF_TIMEOUT':'CARD_API_TIMEOUT'):'CARD_CONTEXT_CHANGED',timedOut?phase:'product-session'));if(controller.signal.aborted){void operation.catch(()=>{});abort();return}controller.signal.addEventListener('abort',abort,{once:true});operation.then(resolve,reject).finally(()=>controller.signal.removeEventListener('abort',abort))});
+    try{
+    let proof:{proofHeader:string};try{proof=await bounded(this.capabilities.createIntrospectionProof([options.scope]))}catch(error){if(error instanceof CardProviderClientError)throw error;throw new CardProviderClientError('PRIVATE_SESSION_PROOF_UNAVAILABLE','product-session')}active();
+    if(!proof||typeof proof.proofHeader!=='string'||!/^[A-Za-z0-9_-]{1,16384}$/.test(proof.proofHeader))throw new CardProviderClientError('INVALID_PRIVATE_SESSION_PROOF','product-session');
     const headers=new Headers({'Accept':'application/json','X-YNX-Product-Session-Proof-V2':proof.proofHeader,'X-YNX-Card-Platform':this.capabilities.platform??'web'});
     if(options.body!==undefined)headers.set('Content-Type','application/json');if(options.idempotencyKey)headers.set('Idempotency-Key',options.idempotencyKey);
-    let response:Response;try{response=await this.fetcher(CARD_BUSINESS_ORIGIN+path,{method:options.method,headers,body:options.body===undefined?undefined:JSON.stringify(options.body),credentials:'omit',redirect:'error',signal:AbortSignal.timeout(10000)})}catch{throw new CardProviderClientError('CARD_API_UNAVAILABLE','card-api')}
-    const after=this.capabilities.identity();if(!after||after.owner!==start.owner||after.sessionBinding!==start.sessionBinding)throw new CardProviderClientError('CARD_CONTEXT_CHANGED','product-session');
+    phase='card-api';let response:Response;try{response=await bounded(this.fetcher(CARD_BUSINESS_ORIGIN+path,{method:options.method,headers,body:options.body===undefined?undefined:JSON.stringify(options.body),credentials:'omit',redirect:'error',signal:controller.signal}))}catch(error){if(error instanceof CardProviderClientError)throw error;throw new CardProviderClientError('CARD_API_UNAVAILABLE','card-api')}active();
     if(!response.headers.get('content-type')?.startsWith('application/json'))throw new CardProviderClientError('INVALID_CARD_API_RESPONSE','card-data');
-    let parsed:Record<string,unknown>;try{parsed=object(await response.json())}catch{throw new CardProviderClientError('INVALID_CARD_API_RESPONSE','card-data')}
-    const completed=this.capabilities.identity();if(!completed||completed.owner!==start.owner||completed.sessionBinding!==start.sessionBinding||Date.parse(completed.expiresAt)<=Date.now())throw new CardProviderClientError('CARD_CONTEXT_CHANGED','product-session');
+    let parsed:Record<string,unknown>;try{parsed=object(await bounded(response.json()))}catch(error){if(error instanceof CardProviderClientError)throw error;throw new CardProviderClientError('INVALID_CARD_API_RESPONSE','card-data')}active();
     if(!response.ok){const error=object(parsed.error);const code=typeof error.code==='string'&&/^[A-Z0-9_]{3,80}$/.test(error.code)?error.code:'CARD_API_UNAVAILABLE';throw new CardProviderClientError(code,response.status===401||response.status===403?'product-session':'card-api')}
     if(parsed.schemaVersion!==2||parsed.sourceCommit!==this.capabilities.expectedSourceCommit||parsed.sessionOwner!==start.owner||parsed.environment!=='YNX_TESTNET_CARD_PAYMENT_SIMULATION'||parsed.productionRealPayments!==false)throw new CardProviderClientError('INVALID_CARD_API_RESPONSE','card-data');
     rejectSensitive(parsed.data);return parsed.data;
+    }finally{clearTimeout(timer);this.flights.delete(controller)}
   }
   listApplications(){return this.request(pathPrefix+'/provider-applications',{method:'GET',scope:'account:read'})}
   getApplication(id:string){return this.request(pathPrefix+'/provider-applications/'+resource(id),{method:'GET',scope:'account:read'})}
