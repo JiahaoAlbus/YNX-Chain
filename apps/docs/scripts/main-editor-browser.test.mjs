@@ -65,6 +65,28 @@ test('ordinary main editor approve, create, save, reopen after reload and cancel
   assert.notEqual(await page.evaluate(()=>localStorage.getItem('ynx.docs.v2.draft.fixture-A.qa-doc')),null);
   await page.evaluate(()=>window.qaAccount='fixture-B');await page.click('#wallet');await page.click('#auth-start');await page.waitForFunction(()=>!document.querySelector('#auth-dialog').open);
   assert.equal(await page.locator('#editor-shell').isVisible(),false);assert.equal(await page.locator('#doc-list button').count(),0);
+  // Only this account's draft writes fail; session storage and protocol fixture remain usable.
+  await page.evaluate(()=>{window.qaChangeAccount();window.qaAccount='fixture-A';const set=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key.startsWith('ynx.docs.v2.draft.'))throw new DOMException('QA quota','QuotaExceededError');return set.call(this,key,value);};});
+  await page.click('#wallet');await page.click('#auth-start');await page.waitForFunction(()=>!document.querySelector('#auth-dialog').open);
+  page.once('dialog',dialog=>dialog.accept());await page.locator('#doc-list button').first().click();await page.waitForFunction(()=>!document.querySelector('#editor').disabled);
+  await page.fill('#editor','quota protected account A draft');await page.evaluate(()=>window.qaChangeAccount());
+  await page.waitForFunction(()=>document.querySelector('#editor-shell').hidden && document.querySelector('#editor').value==='');
+  assert.equal(await page.locator('#local-conflict').inputValue(),'');assert.equal(await page.locator('#server-conflict').inputValue(),'');
+  await page.evaluate(()=>window.qaAccount='fixture-B');await page.click('#wallet');await page.click('#auth-start');await page.waitForFunction(()=>!document.querySelector('#auth-dialog').open);
+  assert.equal(await page.locator('#editor').inputValue(),'');assert.equal(await page.locator('#doc-list button').count(),0);
+  await page.evaluate(()=>{window.qaChangeAccount();window.qaAccount='fixture-A';});await page.click('#wallet');await page.click('#auth-start');await page.waitForFunction(()=>!document.querySelector('#auth-dialog').open);
+  page.once('dialog',dialog=>dialog.accept());await page.locator('#doc-list button').first().click();await page.waitForFunction(()=>document.querySelector('#editor').value==='quota protected account A draft');
+  await page.fill('#editor','quota protected logout draft');await page.click('#wallet');page.once('dialog',dialog=>dialog.accept());await page.click('#auth-end');
+  await page.waitForFunction(()=>document.querySelector('#editor-shell').hidden && document.querySelector('#editor').value==='');
+  await page.click('#auth-start');await page.waitForFunction(()=>!document.querySelector('#auth-dialog').open);
+  page.once('dialog',dialog=>dialog.accept());await page.locator('#doc-list button').first().click();await page.waitForFunction(()=>document.querySelector('#editor').value==='quota protected logout draft');
+  await page.click('#wallet');
+  const controls=await page.evaluate(()=>['standard-connect','standard-restore','standard-disconnect','standard-revoke'].map(id=>{const s=getComputedStyle(document.getElementById(id));return {id,border:s.borderStyle,bg:s.backgroundColor,height:document.getElementById(id).getBoundingClientRect().height};}));
+  assert.ok(controls.every(c=>c.border==='solid'&&c.height>=44&&c.bg!=='rgb(239, 239, 239)'),JSON.stringify(controls));
+  await page.selectOption('#standard-wallet-kind','ynx-wallet');await page.focus('#standard-wallet-kind');await page.keyboard.press('Tab');
+  assert.equal(await page.locator('#standard-connect').evaluate(n=>n===document.activeElement&&n.matches(':focus-visible')&&getComputedStyle(n).outlineStyle==='solid'),true);
+  await page.locator('#auth-dialog button').filter({hasText:'Cancel'}).click();
+  assert.equal(requests.some(item=>item.proof==='engineering-fixture:fixture-B'&&item.method==='PUT'),false);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   assert.deepEqual(errors,[]);
  } catch(error) {

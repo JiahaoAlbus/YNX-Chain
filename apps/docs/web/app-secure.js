@@ -5,6 +5,9 @@ const editorV2Mode = window.location?.origin === 'https://docs.ynxweb4.com';
 let editorV2 = null;
 let docsListView = 'active';
 let commentsContext = null;
+// Quota failures must not leave another account's draft in the visible editor.
+// These drafts live only in this page and are recoverable by their exact owner.
+const memoryDrafts = new Map();
 function docsIdentity() { return editorV2Mode ? editorV2?.identity || '' : state.credential; }
 const storageKey = ['ynx', 'docs', 'session'].join('.');
 const headerName = ['Author', 'ization'].join('');
@@ -72,10 +75,12 @@ function renderAuth() {
 
 function clearDocsSession() {
   if (editorV2Mode) {
-    const retained = !state.dirty || !state.current || persistDraft();
-    if (retained) clearDocument();
+    if (state.dirty && state.current) persistDraft();
+    clearDocument();
     state.parentId = ''; state.listCursor = ''; state.listHistory = [];
     state.objects = []; state.folders = []; renderObjects(); $('#panel').hidden = true; commentsContext = null;
+    $('#panel-content').replaceChildren();
+    $('#local-conflict').value = ''; $('#server-conflict').value = '';
     $('#conflict-dialog').close();
   }
   documentAttempt += 1;
@@ -248,7 +253,7 @@ function cancelAuthorization() {
 
 async function endDocsSession() {
   if (editorV2Mode) {
-    if (!editorV2 || !confirm('Revoke this Docs Product Session? Unsaved text stays on this screen.')) return;
+    if (!editorV2 || !confirm('Revoke this Docs Product Session? Unsaved drafts are retained on this page for the same account. Keep this page open if device storage is unavailable.')) return;
     const result = await editorV2.disconnect();
     clearDocsSession();
     $('#auth-state').textContent = result.status === 'disconnected' ? 'Docs session revoked. Standard wallet connection is unchanged.' : 'Revocation is not confirmed. Retry on the Product Session page.';
@@ -658,14 +663,14 @@ function draftKey(id) {
 }
 
 function persistDraft() {
+  const key = draftKey(state.current.id);
+  const draft = {baseVersion: state.baseVersion, content: $('#editor').value, at: new Date().toISOString()};
   try {
-    window.localStorage.setItem(draftKey(state.current.id), JSON.stringify({
-    baseVersion: state.baseVersion,
-    content: $('#editor').value,
-    at: new Date().toISOString(),
-    }));
+    window.localStorage.setItem(key, JSON.stringify(draft));
+    memoryDrafts.delete(key);
     return true;
   } catch {
+    if (editorV2Mode && state.documentAccount) memoryDrafts.set(key, draft);
     setStatus('Local draft storage is unavailable. Keep this page open and copy unsaved text before leaving.', true);
     return false;
   }
@@ -784,8 +789,9 @@ async function useServerVersion() {
 
 function recoverOfflineDraft() {
   const key = draftKey(state.current.id);
+  const retained = editorV2Mode && state.documentAccount === editorV2?.account ? memoryDrafts.get(key) : null;
   let raw;
-  try { raw = window.localStorage.getItem(key); } catch {
+  try { raw = retained ? JSON.stringify(retained) : window.localStorage.getItem(key); } catch {
     setStatus('Local draft storage is unavailable. Keep this page open while editing.', true);
     return;
   }
