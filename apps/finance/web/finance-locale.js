@@ -3589,6 +3589,21 @@
   for(const [locale,title]of Object.entries(browserSessionManageCopy))messages[locale].browserSessionManage=title;
   const browserWalletCopy={"en":["Manage wallet connection","Choose matching wallet","Your YNX sign-in and selected wallet use different accounts. Choose the matching wallet, or change your YNX sign-in."],"zh-CN":["管理钱包连接","选择对应钱包","YNX 登录与所选钱包使用不同账户。请选择对应的钱包，或更换 YNX 登录。"],"zh-Hant":["管理錢包連線","選擇對應錢包","YNX 登入與所選錢包使用不同帳戶。請選擇對應錢包，或更換 YNX 登入。"],"ja":["ウォレット接続を管理","一致するウォレットを選択","YNX ログインとウォレットのアカウントが異なります。一致するウォレットを選択するか、ログインを変更してください。"],"ko":["지갑 연결 관리","일치하는 지갑 선택","YNX 로그인과 지갑 계정이 다릅니다. 일치하는 지갑을 선택하거나 로그인을 변경하세요."],"es":["Gestionar conexión","Elegir cartera coincidente","El acceso YNX y la cartera usan cuentas distintas. Elige la cartera correspondiente o cambia el acceso YNX."],"fr":["Gérer la connexion","Choisir le portefeuille correspondant","La connexion YNX et le portefeuille utilisent des comptes différents. Choisissez le portefeuille correspondant ou changez de connexion YNX."],"de":["Wallet-Verbindung verwalten","Passende Wallet wählen","YNX-Anmeldung und Wallet verwenden verschiedene Konten. Wählen Sie die passende Wallet oder ändern Sie die Anmeldung."],"pt":["Gerenciar conexão","Escolher carteira correspondente","O login YNX e a carteira usam contas diferentes. Escolha a carteira correspondente ou altere o login."],"ru":["Управлять подключением","Выбрать соответствующий кошелёк","Вход YNX и кошелёк используют разные аккаунты. Выберите соответствующий кошелёк или измените вход."],"ar":["إدارة اتصال المحفظة","اختيار المحفظة المطابقة","تسجيل دخول YNX والمحفظة يستخدمان حسابين مختلفين. اختر المحفظة المطابقة أو غيّر تسجيل الدخول."],"id":["Kelola koneksi dompet","Pilih dompet yang sesuai","Login YNX dan dompet memakai akun berbeda. Pilih dompet yang sesuai atau ubah login YNX."]};
   for(const [locale,[walletManageConnection,walletChooseMatching,walletIdentityMismatch]]of Object.entries(browserWalletCopy))Object.assign(messages[locale],{walletManageConnection,walletChooseMatching,walletIdentityMismatch});
+  const ownedSaveCopy={
+    en:['Saving your changes…','Save is not confirmed. Your draft is kept. Try saving again when the connection is available.'],
+    'zh-CN':['正在保存更改…','保存尚未确认，草稿已保留。连接恢复后可再次保存。'],
+    'zh-Hant':['正在儲存變更…','儲存尚未確認，草稿已保留。連線恢復後可再次儲存。'],
+    ja:['変更を保存しています…','保存を確認できません。下書きは保持されています。接続が復旧したら再度保存してください。'],
+    ko:['변경 사항 저장 중…','저장이 확인되지 않았습니다. 초안은 보존됩니다. 연결이 복구되면 다시 저장하세요.'],
+    es:['Guardando los cambios…','El guardado no está confirmado. Tu borrador se conserva. Guarda de nuevo cuando vuelva la conexión.'],
+    fr:['Enregistrement des modifications…','Enregistrement non confirmé. Votre brouillon est conservé. Réessayez lorsque la connexion revient.'],
+    de:['Änderungen werden gespeichert…','Speichern ist nicht bestätigt. Ihr Entwurf bleibt erhalten. Speichern Sie erneut, wenn die Verbindung verfügbar ist.'],
+    pt:['Salvando alterações…','O salvamento não foi confirmado. Seu rascunho foi mantido. Salve novamente quando a conexão voltar.'],
+    ru:['Сохранение изменений…','Сохранение не подтверждено. Черновик сохранён. Повторите сохранение после восстановления связи.'],
+    ar:['جارٍ حفظ التغييرات…','لم يتأكد الحفظ. مسودتك محفوظة. حاول الحفظ مجدداً عند عودة الاتصال.'],
+    id:['Menyimpan perubahan…','Penyimpanan belum dikonfirmasi. Draf tetap disimpan. Simpan lagi saat koneksi tersedia.']
+  };
+  for(const [locale,[ownedSavePending,ownedSaveUnconfirmed]] of Object.entries(ownedSaveCopy))Object.assign(messages[locale],{ownedSavePending,ownedSaveUnconfirmed});
   const supported=Object.freeze(['en','zh-CN','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id']);
   const canonical=value=>value==='zh-Hans'?'zh-CN':value;
   let current='en';

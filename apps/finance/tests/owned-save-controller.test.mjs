@@ -11,9 +11,9 @@ const dataState=source.slice(source.indexOf('const dataDisabledControls='),sourc
 function fixture(){
   const calls=[],notices=[],state={context:1,connected:true},workspace={dataset:{dataState:'ready'}};
   const button={disabled:false,closest:()=>form},attributes=new Map();
-  const form={values:[['name','My budget'],['limitYnxt','17']],resetCount:0,querySelectorAll:()=>[button],setAttribute:(k,v)=>attributes.set(k,v),removeAttribute:k=>attributes.delete(k),reset(){this.resetCount++;}};
-  const scope={state,browserSSOIntentGeneration:1,crypto:{randomUUID},WeakMap,FormData:class{constructor(value){return value.values;}},$:id=>id==='#workspace'?workspace:{classList:{toggle(){}}},$$:()=>[button],financeText:k=>k,notify:x=>notices.push(x),notifyFailure:()=>notices.push('failed'),attestBrowserIdentityActivity:async()=>{},load:async()=>{},api:(path,options)=>new Promise((resolve,reject)=>calls.push({path,method:options.method,body:JSON.parse(options.body),resolve,reject}))};
-  runInNewContext(controller+dataState+'\nglobalThis.save=submitForm;globalThis.dataState=workspaceDataState;',scope);
+  const form={values:[['name','My budget'],['limitYnxt','17']],resetCount:0,querySelector:()=>null,querySelectorAll:()=>[button],setAttribute:(k,v)=>attributes.set(k,v),removeAttribute:k=>attributes.delete(k),reset(){this.resetCount++;}};
+  const scope={state,browserSSOIntentGeneration:1,document:{addEventListener(){}},crypto:{randomUUID},WeakMap,FormData:class{constructor(value){return value.values;}},$:id=>id==='#workspace'?workspace:{classList:{toggle(){}}},$$:()=>[button],financeText:k=>k,notify:x=>notices.push(x),notifyFailure:()=>notices.push('failed'),attestBrowserIdentityActivity:async()=>{},load:async()=>{},api:(path,options)=>new Promise((resolve,reject)=>calls.push({path,method:options.method,body:JSON.parse(options.body),resolve,reject}))};
+  runInNewContext(controller+dataState+'\nglobalThis.save=submitForm;globalThis.dataState=workspaceDataState;globalThis.retireSaveView=retireOwnedFormSaveView;',scope);
   return {scope,form,button,attributes,calls,notices,state,save:(body={name:'My budget',startsAt:'first-time'})=>scope.save(form,'/api/budgets',body)};
 }
 test('same pending form uses one promise/request and restores submit controls',async()=>{
@@ -32,6 +32,17 @@ test('late old identity outcomes neither reset a new draft nor notify or release
     if(rejected)f.calls[0].reject(new Error('old failure'));else f.calls[0].resolve({});await first;
     assert.equal(f.form.resetCount,0);assert.equal(f.button.disabled,true);assert.deepEqual(f.notices,[]);
     f.calls[1].resolve({});await next;assert.equal(f.form.resetCount,1);assert.equal(f.button.disabled,false);assert.equal(f.attributes.has('aria-busy'),false);
+  }
+});
+test('clearing an account retires only UI ownership so fresh account can submit before old response',async()=>{
+  for(const rejected of [false,true]){
+    const f=fixture(),old=f.save();f.scope.retireSaveView(f.form);
+    assert.equal(f.button.disabled,false);assert.equal(f.attributes.has('aria-busy'),false);assert.equal(f.calls.length,1);
+    f.state.context++;f.scope.browserSSOIntentGeneration++;f.form.values=[['name','Other account']];
+    const next=f.save({name:'Other account'});assert.equal(f.button.disabled,true);
+    if(rejected)f.calls[0].reject(new Error('old response lost'));else f.calls[0].resolve({});await old;
+    assert.equal(f.button.disabled,true);assert.deepEqual(f.notices,[]);assert.equal(f.form.resetCount,0);
+    f.calls[1].resolve({});await next;assert.equal(f.button.disabled,false);assert.deepEqual(f.notices,['profileSaved']);
   }
 });
 test('edits made during a successful save remain as draft; unavailable data stays non-writable',async()=>{

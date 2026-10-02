@@ -497,7 +497,23 @@ function renderAccountSession(){
   route();
 }
 async function consumeCallback(){await window.YNXFinanceWallet.ready}
-function clearPrivateView({clearOpaquePending=true}={}){state.context++;clearInterval(state.aiTimer);state.aiJob=null;state.statement=null;state.statementError=false;state.overview=null;state.connected=false;if(clearOpaquePending){sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);window.YNXFinanceOrderWallet?.clear()}hideBrokerApproval();for(const id of ['account','balance','staked','balance-source','statement','ai-status']){const element=$('#'+id);if(element)element.textContent='—'}brokerSnapshotState={kind:'guest'};brokerWorkspaceUnavailable=false;renderBrokerSnapshot();renderBrokerWorkspace(null);renderSignedOut()}
+const ownedFormDrafts=new Map();let ownedFormAccount=null;
+function rememberOwnedFormDrafts(){
+  retireOwnedStatementView();
+  if(!ownedFormAccount)return;
+  const drafts=[];for(const id of ['category-form','budget-form','reminder-form','privacy-form']){
+    const form=$('#'+id);if(!form)continue;
+    if(id!=='privacy-form'||formUncommittedDrafts.get(form)?.context===state.context)drafts.push({id,fields:Array.from(form.elements).filter(field=>field.name&&['INPUT','SELECT','TEXTAREA'].includes(field.tagName)).map(field=>({name:field.name,value:field.value,checked:field.checked,type:field.type}))});
+    retireOwnedFormSaveView(form);form.reset();formUncommittedDrafts.delete(form);const status=form.querySelector('[data-save-state]');if(status){status.textContent='';delete status.dataset.saveKey}
+  }
+  ownedFormDrafts.set(ownedFormAccount,drafts);ownedFormAccount=null;
+}
+function restoreOwnedFormDrafts(account){
+  if(ownedFormAccount&&ownedFormAccount!==account)rememberOwnedFormDrafts();ownedFormAccount=account;
+  const drafts=ownedFormDrafts.get(account);if(!drafts)return;ownedFormDrafts.delete(account);
+  for(const {id,fields} of drafts){const form=$('#'+id);if(!form)continue;for(const saved of fields){const field=form.elements.namedItem(saved.name);if(!field)continue;if(saved.type==='checkbox'||saved.type==='radio')field.checked=saved.checked;else field.value=saved.value}if(id==='privacy-form')formUncommittedDrafts.set(form,{context:state.context})}
+}
+function clearPrivateView({clearOpaquePending=true}={}){rememberOwnedFormDrafts();state.context++;clearInterval(state.aiTimer);state.aiJob=null;state.statement=null;state.statementError=false;state.overview=null;state.connected=false;if(clearOpaquePending){sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);window.YNXFinanceOrderWallet?.clear()}hideBrokerApproval();for(const id of ['account','balance','staked','balance-source','statement','ai-status']){const element=$('#'+id);if(element)element.textContent='—'}brokerSnapshotState={kind:'guest'};brokerWorkspaceUnavailable=false;renderBrokerSnapshot();renderBrokerWorkspace(null);renderSignedOut()}
 async function logout(){const result=await window.YNXFinanceWallet.disconnect();if(result?.status==='disconnected'){clearPrivateView()}else notify(financeText('privateLogoutUnconfirmed'),true)}
 function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.add('hidden');$('#logout').classList.add('hidden');sourceStatus('notConnected');$('#page-title').textContent=financeText('pageTitle');route()}
 
@@ -514,7 +530,7 @@ let loadOperation=null;
 function load(){if(loadOperation?.context===state.context)return loadOperation.promise;const operation={context:state.context,promise:null};loadOperation=operation;operation.promise=loadOwnedWorkspace(operation.context).finally(()=>{if(loadOperation===operation)loadOperation=null});return operation.promise}
 async function loadOwnedWorkspace(context){await window.YNXFinanceWallet.ready;if(context!==state.context||!renderBrowserWalletIdentity())return;state.connected=window.YNXFinanceWallet.connected();if(!state.connected){renderSignedOut();return}try{sourceStatus('checkingSources');const data=await api('/api/overview');if(context!==state.context)return;state.overview=data;workspaceDataState('ready');reconcileOpaqueBrokerOwner();render(data)}catch(error){if(context!==state.context||error?.nonRetryable&&String(error.message).startsWith('FINANCE_CONTEXT_CHANGED'))return;if(error.status===401||error.status===403||error.code==='SESSION_EXPIRED'){window.YNXFinanceWallet.reportPrivateFailure(error);clearPrivateView();notify(financeText('privateReauthorize'),true)}else{state.overview=null;workspaceDataState('unavailable');$('#workspace').classList.remove('hidden');$('#signed-out').classList.add('hidden');$('#account').textContent=window.YNXFinanceWallet.session()?.account??'—';for(const id of ['balance','staked','balance-source','recent-activity','recent-receipts'])$('#'+id).textContent=financeText('unavailable');route();notifyFailure(error,'connectionUnavailable')}}}
 async function reconnect(){try{await publicHealth();if(state.connected)await load()}catch(error){notifyFailure(error,'connectionUnavailable')}}
-function render(data){document.body.classList.remove('signed-out-state');$('#signed-out').classList.add('hidden');$('#workspace').classList.remove('hidden');$('#signin').classList.add('hidden');$('#logout').classList.remove('hidden');const p=data.portfolio,profile=data.profile;$('#account').textContent=p.account;$('#balance').textContent=p.explorerStatus.available?`${fmt(p.balanceYnxt)} YNXT`:financeText('unavailable');$('#staked').textContent=p.explorerStatus.available?`${fmt(p.stakedYnxt)} YNXT`:financeText('unavailable');$('#balance-source').textContent=p.explorerStatus.available?`${financeText('explorerEvidence')} · ${date(p.asOf)}`:financeText('sourcesUnavailable');const both=p.explorerStatus.available&&p.payStatus.available;sourceStatus(both?'sourcesLive':p.explorerStatus.available?'explorerLivePayUnavailable':'sourcesUnavailable',both?'live':'warning');renderAlerts(data.alerts);renderActivity(p.activity);renderReceipts(p.payReceipts,p.payStatus);renderPlanning(profile,data.budgetProgress);renderPrivacy(profile.privacy);renderAIRecords(p.activity);renderSupport(data.support);refreshBrokerSnapshot();refreshBrokerWorkspace().then(async workspace=>{if(workspace)try{await restoreBrokerApproval(workspace.serverTime)}catch(error){notifyFailure(error,'brokerApprovalUnavailable')}await completeBrokerCallback()});route()}
+function render(data){document.body.classList.remove('signed-out-state');$('#signed-out').classList.add('hidden');$('#workspace').classList.remove('hidden');$('#signin').classList.add('hidden');$('#logout').classList.remove('hidden');const p=data.portfolio,profile=data.profile;if(ownedFormAccount&&ownedFormAccount!==p.account)rememberOwnedFormDrafts();$('#account').textContent=p.account;$('#balance').textContent=p.explorerStatus.available?`${fmt(p.balanceYnxt)} YNXT`:financeText('unavailable');$('#staked').textContent=p.explorerStatus.available?`${fmt(p.stakedYnxt)} YNXT`:financeText('unavailable');$('#balance-source').textContent=p.explorerStatus.available?`${financeText('explorerEvidence')} · ${date(p.asOf)}`:financeText('sourcesUnavailable');const both=p.explorerStatus.available&&p.payStatus.available;sourceStatus(both?'sourcesLive':p.explorerStatus.available?'explorerLivePayUnavailable':'sourcesUnavailable',both?'live':'warning');renderAlerts(data.alerts);renderActivity(p.activity);renderReceipts(p.payReceipts,p.payStatus);renderPlanning(profile,data.budgetProgress);renderPrivacy(profile.privacy);restoreOwnedFormDrafts(p.account);renderAIRecords(p.activity);renderSupport(data.support);refreshBrokerSnapshot();refreshBrokerWorkspace().then(async workspace=>{if(workspace)try{await restoreBrokerApproval(workspace.serverTime)}catch(error){notifyFailure(error,'brokerApprovalUnavailable')}await completeBrokerCallback()});route()}
 function renderAlerts(alerts){const el=$('#alerts');if(!alerts.length){el.innerHTML=`<div class="alert info"><div><strong>${esc(financeText('noAlerts'))}</strong><small>${esc(financeText('alertsInformational'))}</small></div></div>`;return}el.innerHTML=alerts.map(a=>`<div class="alert ${a.severity==='info'?'info':''}"><div><strong>${esc(a.title)}</strong><small>${esc(a.detail)}</small></div></div>`).join('')}
 function activityRow(a){const sign=a.direction==='outgoing'?'-':'+';return `<div class="row"><div class="row-main"><strong>${esc(a.type||financeText('ynxtActivity'))}</strong><small>${esc(date(a.timestamp))} · ${esc(short(a.id))}</small></div><div class="row-value">${sign}${fmt(a.amountYnxt)} YNXT<small>${esc(financeText('feeLabel'))} ${fmt(a.feeYnxt)}</small></div></div>`}
 function renderActivity(items){$('#recent-activity').innerHTML=items.length?items.slice(0,5).map(activityRow).join(''):`<div class="empty compact">${esc(financeText('noOwnedActivity'))}</div>`;$('#activity-body').innerHTML=items.map(a=>`<tr><td>${esc(date(a.timestamp))}</td><td>${esc(a.type)}</td><td>${esc(a.direction)}</td><td class="num">${fmt(a.amountYnxt)} YNXT</td><td class="num">${fmt(a.feeYnxt)}</td><td><span class="evidence">${esc(short(a.id))}</span></td></tr>`).join('');$('#activity-empty').classList.toggle('hidden',items.length>0);$('#activity-empty').textContent=financeText('noExplorerActivity')}
@@ -536,6 +552,15 @@ function renderAIRecords(items){const selected=new Set($$('#ai-records input:che
 function renderSupport(s){$('#support-links').innerHTML=[['supportHelp',s.helpUrl],['supportPrivacy',s.privacyUrl],['supportDispute',s.disputeUrl]].map(([key,url])=>`<a class="panel support-card" href="${esc(url)}" rel="noreferrer"><span>${esc(financeText('verifiedPath'))}</span><strong>${esc(financeText(key))} →</strong></a>`).join('')}
 
 const formSaves=new WeakMap(),formSaveIntents=new WeakMap(),formUncommittedDrafts=new WeakMap();
+function retireOwnedFormSaveView(form){
+  const operation=formSaves.get(form);if(!operation)return;
+  // Retire only this page's UI ownership. The sent write may still have committed;
+  // retain its intent and never resend or claim cancellation here.
+  formSaves.delete(form);form.removeAttribute('aria-busy');
+  for(const {button,disabled} of operation.buttons){button.disabled=disabled;if(dataDisabledControls.has(button))dataDisabledControls.set(button,disabled)}
+}
+function ownedSaveStatus(form,key){const status=form.querySelector('[data-save-state]');if(status){status.dataset.saveKey=key;status.textContent=financeText(key)}}
+document.addEventListener('finance:localechange',()=>{for(const status of $$('[data-save-state][data-save-key]'))status.textContent=financeText(status.dataset.saveKey)});
 function formDraft(form){return JSON.stringify(Array.from(new FormData(form),([key,value])=>[key,String(value)]));}
 function submitForm(form,path,body,event,{method='POST',reset=true,successKey='profileSaved'}={}){
   const context=state.context,identityRevision=browserSSOIntentGeneration;
@@ -546,15 +571,15 @@ function submitForm(form,path,body,event,{method='POST',reset=true,successKey='p
   const buttons=Array.from(form.querySelectorAll('button[type="submit"],button:not([type])'),button=>({button,disabled:pending?.buttons.find(previous=>previous.button===button)?.disabled??button.disabled}));
   const operation={context,identityRevision,draft,buttons,promise:null};
   const current=()=>formSaves.get(form)===operation&&state.context===context&&browserSSOIntentGeneration===identityRevision;
-  formSaves.set(form,operation);form.setAttribute('aria-busy','true');for(const {button} of buttons)button.disabled=true;
+  formSaves.set(form,operation);form.setAttribute('aria-busy','true');ownedSaveStatus(form,'ownedSavePending');for(const {button} of buttons)button.disabled=true;
   operation.promise=(async()=>{try{
     await api(path,{method,body:JSON.stringify({...JSON.parse(intent.payload),...(intent.key?{idempotencyKey:intent.key}:{})})});if(!current())return;
     formSaveIntents.delete(form);void attestBrowserIdentityActivity('save',event,identityRevision);
     const unchanged=formDraft(form)===operation.draft;
     if(reset&&unchanged)form.reset();
     if(!reset){if(unchanged)formUncommittedDrafts.delete(form);else formUncommittedDrafts.set(form,{context});}
-    notify(financeText(successKey));await load();
-  }catch(error){if(current())notifyFailure(error,'unavailable');
+    ownedSaveStatus(form,successKey);notify(financeText(successKey));await load();
+  }catch(error){if(current()){ownedSaveStatus(form,'ownedSaveUnconfirmed');notifyFailure(error,'unavailable');}
   }finally{if(formSaves.get(form)===operation){formSaves.delete(form);form.removeAttribute('aria-busy');for(const {button,disabled} of buttons)button.disabled=disabled||!state.connected||$('#workspace').dataset.dataState==='unavailable';}}})();
   return operation.promise;
 }
@@ -570,9 +595,25 @@ function renderStatement(s){
   const amount=value=>Number.isSafeInteger(value)&&value>=0?`${fmt(value)} YNXT`:financeText('unknown');
   $('#statement').innerHTML=`<p><strong>${esc(s.network)} · ${esc(s.symbol)}</strong><br>${esc(date(s.from))} ${esc(financeText('statementThrough'))} ${esc(date(new Date(new Date(s.toExclusive).getTime()-1)))}</p><p><strong>${esc(financeText('fullPeriodTotals'))}: ${esc(financeText('unknown'))}</strong><br>${esc(s.coverage||financeText('completeHistoryMissing'))}</p><div class="statement-grid"><div class="stat"><small>${esc(financeText('observedIncoming'))}</small><strong>${amount(observed?.incomingYnxt)}</strong></div><div class="stat"><small>${esc(financeText('observedOutgoing'))}</small><strong>${amount(observed?.outgoingYnxt)}</strong></div><div class="stat"><small>${esc(financeText('observedFees'))}</small><strong>${amount(observed?.feesYnxt)}</strong></div><div class="stat"><small>${esc(financeText('returnedRecords'))}</small><strong>${s.activity.length}</strong></div></div><p><small>${esc(s.openingBalance)}. ${esc(financeText('notBankStatement'))}</small></p>`;
 }
-$('#statement-form').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{const from=new Date(`${f.get('from')}T00:00:00Z`).toISOString(),toDate=new Date(`${f.get('to')}T00:00:00Z`);toDate.setUTCDate(toDate.getUTCDate()+1);const candidate=await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toDate.toISOString())}`);renderStatement(candidate);state.statement=candidate;state.statementError=false}catch(error){state.statement=null;state.statementError=true;$('#statement').classList.remove('statement-placeholder');$('#statement').textContent=financeText('unavailable');notifyFailure(error,'unavailable')}});
+let statementOperation=null;
+function retireOwnedStatementView(){statementOperation=null;$('#statement').removeAttribute('aria-busy');$('#statement-form').removeAttribute('aria-busy')}
+function loadStatement(form){
+  const context=state.context,identityRevision=browserSSOIntentGeneration,draft=formDraft(form),previous=statementOperation;
+  if(previous?.context===context&&previous.identityRevision===identityRevision&&previous.draft===draft)return previous.promise;
+  const operation={context,identityRevision,draft,promise:null};statementOperation=operation;
+  const current=()=>statementOperation===operation&&state.context===context&&browserSSOIntentGeneration===identityRevision;
+  $('#statement').setAttribute('aria-busy','true');form.setAttribute('aria-busy','true');
+  operation.promise=(async()=>{try{
+    const f=new FormData(form),from=new Date(`${f.get('from')}T00:00:00Z`).toISOString(),toDate=new Date(`${f.get('to')}T00:00:00Z`);toDate.setUTCDate(toDate.getUTCDate()+1);
+    const candidate=await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toDate.toISOString())}`);if(!current()||formDraft(form)!==draft)return;
+    renderStatement(candidate);state.statement=candidate;state.statementError=false;
+  }catch(error){if(!current()||formDraft(form)!==draft)return;state.statement=null;state.statementError=true;$('#statement').classList.remove('statement-placeholder');$('#statement').textContent=financeText('unavailable');notifyFailure(error,'unavailable');
+  }finally{if(statementOperation===operation){statementOperation=null;$('#statement').removeAttribute('aria-busy');form.removeAttribute('aria-busy');}}})();
+  return operation.promise;
+}
+$('#statement-form').addEventListener('submit',e=>{e.preventDefault();void loadStatement(e.currentTarget)});
 
-async function download(path,name){try{const blob=await api(path,{responseType:'blob'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}catch(error){notifyFailure(error,'unavailable')}}
+async function download(path,name){const context=state.context,identityRevision=browserSSOIntentGeneration,current=()=>state.context===context&&browserSSOIntentGeneration===identityRevision;try{const blob=await api(path,{responseType:'blob'});if(!current())return;const url=URL.createObjectURL(blob),a=document.createElement('a');try{a.href=url;a.download=name;a.click()}finally{URL.revokeObjectURL(url)}}catch(error){if(current())notifyFailure(error,'unavailable')}}
 $('#export-json').addEventListener('click',()=>download('/api/export?format=json','ynx-finance-observed-export.json'));$$('[data-auth-download]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();download(a.getAttribute('href'),'ynx-finance-observed-activity.csv')}));
 
 async function startAI(){const button=$('#ai-start');if(button.disabled)return;button.disabled=true;button.textContent=financeText('aiRequesting');try{const recordIds=$$('#ai-records input:checked').map(x=>x.value),kind=$('#ai-kind').value,consent=$('#ai-consent').checked;if(kind!=='draft_broker_order'&&recordIds.length<1)throw new Error(financeText('aiSelectOwned'));if(!consent)throw new Error(financeText('aiConsentRequired'));const payload={kind,recordIds,contextClasses:recordIds.length?['owned_activity']:[],consent};if(kind==='draft_broker_order'){const form=$('#ai-order-intent');if(!(form instanceof HTMLFormElement))throw new Error(financeText('aiIntentUnavailable'));const fields=new FormData(form),intent={symbol:String(fields.get('symbol')||'').trim().toUpperCase(),side:String(fields.get('side')||''),qty:String(fields.get('qty')||'').trim(),limitPrice:String(fields.get('limitPrice')||'').trim()};if(!/^[A-Z][A-Z0-9.]{0,11}$/.test(intent.symbol))throw new Error(financeText('aiSymbolInvalid'));if(!['buy','sell'].includes(intent.side))throw new Error(financeText('aiSideInvalid'));if(!/^(?:[1-9][0-9]{0,5}|1000000)$/.test(intent.qty))throw new Error(financeText('aiQtyInvalid'));if(!/^(?:0\.[0-9]{0,3}[1-9]|[1-9][0-9]{0,8}(?:\.[0-9]{0,3}[1-9])?)$/.test(intent.limitPrice))throw new Error(financeText('aiLimitInvalid'));payload.securitiesOrderIntent=intent}state.aiJob=await api('/api/ai/jobs',{method:'POST',body:JSON.stringify(payload)});renderAIJob();pollAI()}catch(error){notifyKnownOrFailure(error,['aiSelectOwned','aiConsentRequired','aiIntentUnavailable','aiSymbolInvalid','aiSideInvalid','aiQtyInvalid','aiLimitInvalid'],'aiDraftFailed')}finally{button.disabled=false;button.textContent=financeText('aiRequestDraft')}}
