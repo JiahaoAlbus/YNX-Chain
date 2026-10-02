@@ -3,9 +3,10 @@ import path from 'node:path';
 import {createEndpointAuthorityClient,verifySignedEndpointAuthority,canonicalAuthorityV2} from '../../../sdk/js/endpoint-authority-v2.js';
 import {endpointAuthorityConsumer,loadFinanceAuthorityConfig} from './config.mjs';
 import {createNodeCheckpointStore,readAuthorityJSON,readTrustedTimeFile} from './checkpoint-node.mjs';
-import {sampleFinanceTrustedClock} from './trusted-time.mjs';
+import {sampleFinanceTrustedClock,recordFinanceAuthorityPhase} from './trusted-time.mjs';
 
 async function prepareClock(config,trustRoot,clockSource){
+  recordFinanceAuthorityPhase('checkpoint-inspect');
   let previous=0;
   try{previous=await readTrustedTimeFile(config.trustedTimeFile)}catch(error){if(error?.code!=='ENOENT')throw error}
   // Inspect the existing append-only checkpoint before a fresh sample can
@@ -22,6 +23,7 @@ export async function resolveFinanceBrowserAuthorityHistory({after,env=process.e
   // inspect() above has validated every ancestor, owner, mode and journal.
   const directory=path.dirname(config.manifestFile);
   if(directory!==path.dirname(config.checkpointFile))throw new Error('FINANCE_AUTHORITY_V2_HISTORY_DIRECTORY_INVALID');
+  recordFinanceAuthorityPhase('history-scan');
   const selected=new Map();let candidates=0,entries=0;const started=performance.now();
   // Bound directory work separately from the two-document response. Unrelated
   // old archives are never opened or charged to the response byte limit.
@@ -42,6 +44,7 @@ export async function resolveFinanceBrowserAuthorityHistory({after,env=process.e
   for(let sequence=after.sequence+1;sequence<=end;sequence++){
     const document=selected.get(sequence);if(!document)throw new Error('FINANCE_AUTHORITY_V2_HISTORY_MISSING');
     const issued=Date.parse(document.issuedAt);if(!Number.isSafeInteger(issued)||issued>current.trustedTimeMs)throw new Error('FINANCE_AUTHORITY_V2_HISTORY_FUTURE');
+    recordFinanceAuthorityPhase('history-verify');
     await verifySignedEndpointAuthority(document,{trustRoot:current.trustRoot,consumer:endpointAuthorityConsumer('web'),checkpoint:position,nowMs:issued});
     manifests.push(document);position={rootVersion:current.trustRoot.rootVersion,sequence,payloadSha256:document.integrity.payloadSha256};
   }
@@ -55,6 +58,7 @@ export async function resolveFinanceBrowserRootAnchor({after,env=process.env,clo
   const config=loadFinanceAuthorityConfig(env),current=await resolveFinanceBrowserAuthorityConfig({env,clockSource}),anchor=current.trustRoot.anchor;
   if(after.rootVersion>=current.trustRoot.rootVersion||after.sequence>anchor.sequence||(after.sequence===anchor.sequence&&after.payloadSha256!==anchor.payloadSha256)||current.manifest.sequence<=anchor.sequence)throw new Error('FINANCE_AUTHORITY_V2_ROOT_TRANSITION_INVALID');
   const directory=path.dirname(config.manifestFile);if(directory!==path.dirname(config.checkpointFile))throw new Error('FINANCE_AUTHORITY_V2_HISTORY_DIRECTORY_INVALID');
+  recordFinanceAuthorityPhase('root-anchor-scan');
   let selected=null,entries=0,candidates=0;const started=performance.now();
   for await(const entry of await fs.opendir(directory)){
     if(++entries>16384||performance.now()-started>500)throw new Error('FINANCE_AUTHORITY_V2_HISTORY_SCAN_BOUND');
@@ -67,6 +71,7 @@ export async function resolveFinanceBrowserRootAnchor({after,env=process.env,clo
   }
   if(!selected)throw new Error('FINANCE_AUTHORITY_V2_HISTORY_MISSING');
   const issued=Date.parse(selected.issuedAt);if(!Number.isSafeInteger(issued)||issued>current.trustedTimeMs)throw new Error('FINANCE_AUTHORITY_V2_HISTORY_FUTURE');
+  recordFinanceAuthorityPhase('root-anchor-verify');
   await verifySignedEndpointAuthority(selected,{trustRoot:current.trustRoot,consumer:endpointAuthorityConsumer('web'),checkpoint:anchor,nowMs:issued});
   const result={schemaVersion:'ynx-finance-endpoint-authority-root-anchor/v1',after,manifest:selected};if(Buffer.byteLength(JSON.stringify(result))>16384)throw new Error('FINANCE_AUTHORITY_V2_HISTORY_BOUND');return result;
 }
@@ -77,10 +82,12 @@ export async function resolveFinancePrivateAuthority({env=process.env,clockSourc
   const [trustRoot,manifest]=await Promise.all([
     readAuthorityJSON(config.trustRootFile),readAuthorityJSON(config.manifestFile),
   ]);
+  recordFinanceAuthorityPhase('files-read');
   const trusted=await prepareClock(config,trustRoot,clockSource);
   const storage=createNodeCheckpointStore({file:config.checkpointFile,anchor:trustRoot.anchor,trustedClockMs:trusted.lowerAtReceive});
   const consumer=endpointAuthorityConsumer('server');
   const client=createEndpointAuthorityClient({trustRoot,consumer,storage,clock:trusted.clock});
+  recordFinanceAuthorityPhase('authority-verify');
   await client.accept(manifest,{source:'remote'});
   const authority=await client.financeProductSession();
   if(authority.walletGateway!=='https://wallet-auth.ynxweb4.com'||authority.financeOrigin!==consumer.origin||authority.officialSandboxVerified!==false||authority.providerVerified!==false||authority.productionApproved!==false)throw new Error('FINANCE_AUTHORITY_V2_SCOPE_INVALID');
@@ -93,14 +100,17 @@ export async function resolveFinanceBrowserAuthorityConfig({env=process.env,cloc
   const [trustRoot,manifest]=await Promise.all([
     readAuthorityJSON(config.trustRootFile),readAuthorityJSON(config.manifestFile),
   ]);
+  recordFinanceAuthorityPhase('files-read');
   const trusted=await prepareClock(config,trustRoot,clockSource);
   const storage=createNodeCheckpointStore({file:config.checkpointFile,anchor:trustRoot.anchor,trustedClockMs:trusted.lowerAtReceive});
   const consumer=endpointAuthorityConsumer('web');
   const client=createEndpointAuthorityClient({trustRoot,consumer,storage,clock:trusted.clock});
   try{
+    recordFinanceAuthorityPhase('authority-verify');
     await client.accept(manifest,{source:'remote'});
     const authority=await client.financeProductSession();
     if(authority.walletGateway!=='https://wallet-auth.ynxweb4.com'||authority.financeOrigin!==consumer.origin||authority.officialSandboxVerified!==false||authority.providerVerified!==false||authority.productionApproved!==false)throw new Error('FINANCE_AUTHORITY_V2_SCOPE_INVALID');
+    recordFinanceAuthorityPhase('authority-checkpoint');
     const persisted=await storage.inspect();
     return Object.freeze({schemaVersion:'ynx-finance-endpoint-authority-browser-config/v1',trustRoot,manifest,serverCheckpoint:persisted.checkpoint,trustedTimeMs:trusted.clock()});
   }finally{client.invalidate();}

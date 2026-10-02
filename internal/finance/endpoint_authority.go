@@ -198,7 +198,7 @@ func (g *nodeEndpointAuthority) BrowserRootAnchor(ctx context.Context, after End
 
 func (g *nodeEndpointAuthority) execute(ctx context.Context, outputMode string, args ...string) (output []byte, diagnostic EndpointAuthorityDiagnostic, failure error) {
 	started := time.Now()
-	diagnostic = EndpointAuthorityDiagnostic{Operation: authorityOperation(outputMode), Phase: "queue", Cause: "UNCLASSIFIED", Exit: "not_started"}
+	diagnostic = EndpointAuthorityDiagnostic{Operation: authorityOperation(outputMode), Phase: "queue", Cause: "UNCLASSIFIED", Exit: "not_started", ChildPhase: "unknown", ChildTelemetry: "not_started"}
 	defer func() {
 		diagnostic.TotalMilliseconds = time.Since(started).Milliseconds()
 		if failure != nil {
@@ -231,7 +231,9 @@ func (g *nodeEndpointAuthority) execute(ctx context.Context, outputMode string, 
 	var stdout, stderr bytes.Buffer
 	command.Stdout = &stdout
 	command.Stderr = &stderr
+	collectPhases := attachAuthorityPhases(command)
 	err := command.Run()
+	diagnostic.ChildPhase, diagnostic.ChildElapsedMilliseconds, diagnostic.ChildTelemetry = collectPhases()
 	diagnostic.ExecutionMilliseconds = time.Since(executionStarted).Milliseconds()
 	diagnostic.Exit = "start_failed"
 	if command.ProcessState != nil {
@@ -271,6 +273,8 @@ func (g *nodeEndpointAuthority) execute(ctx context.Context, outputMode string, 
 type EndpointAuthorityDiagnostic struct {
 	Operation, Phase, Cause, Exit                               string
 	QueueMilliseconds, ExecutionMilliseconds, TotalMilliseconds int64
+	ChildPhase, ChildTelemetry                                  string
+	ChildElapsedMilliseconds                                    int64
 }
 
 func authorityOperation(mode string) string {
@@ -291,6 +295,7 @@ func (g *nodeEndpointAuthority) recordDiagnostic(value EndpointAuthorityDiagnost
 		return
 	}
 	log.Printf("finance_authority_runtime operation=%s phase=%s cause=%s exit=%s queue_ms=%d execution_ms=%d total_ms=%d", value.Operation, value.Phase, value.Cause, value.Exit, value.QueueMilliseconds, value.ExecutionMilliseconds, value.TotalMilliseconds)
+	log.Printf("finance_authority_phase operation=%s child_phase=%s child_ms=%d telemetry=%s", value.Operation, value.ChildPhase, value.ChildElapsedMilliseconds, value.ChildTelemetry)
 }
 func authorityRejectedCause(raw []byte) string {
 	if !authorityFailureFieldsUnique(raw) {

@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import {constants} from 'node:fs';
+import {constants,fstatSync,writeSync} from 'node:fs';
 import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 import {performance} from 'node:perf_hooks';
@@ -7,6 +7,22 @@ import {performance} from 'node:perf_hooks';
 export const FINANCE_TRUSTED_TIME_URL='https://wallet-auth.ynxweb4.com/v2/product-sessions/time';
 const MAX_RTT_MS=2000,MAX_CLOCK_AGE_MS=3000;
 const fail=code=>{throw new Error(code)};
+const phaseNames=new Set(['cli-ready','files-read','checkpoint-inspect','clock-fetch','clock-body','clock-persist','clock-ready','authority-verify','authority-checkpoint','history-scan','history-verify','root-anchor-scan','root-anchor-verify','done']);
+let phaseBytes=0,phaseCount=0,phaseDisabled=false;
+// Optional server-owned FD3 only. No stdout/stderr, strings from errors or inputs.
+// Total writes <=2048 bytes fit the supported Linux/Darwin anonymous pipe even
+// without a reader; every write error disables diagnostics, never authority.
+export function recordFinanceAuthorityPhase(phase){
+ if(phaseDisabled||process.env.YNX_FINANCE_AUTHORITY_PHASE_FD!=='3'||!phaseNames.has(phase))return;
+ try{
+  if(!fstatSync(3).isFIFO()){phaseDisabled=true;return}
+  const elapsedMilliseconds=Math.floor(performance.now());
+  if(!Number.isSafeInteger(elapsedMilliseconds)||elapsedMilliseconds<0||elapsedMilliseconds>60000){phaseDisabled=true;return}
+  const line=JSON.stringify({schemaVersion:'ynx-finance-authority-phase/v1',phase,elapsedMilliseconds})+'\n';
+  const bytes=Buffer.byteLength(line);if(phaseCount>=24||phaseBytes+bytes>2048){phaseDisabled=true;return}
+  phaseCount++;phaseBytes+=bytes;if(writeSync(3,line)!==bytes)phaseDisabled=true;
+ }catch{phaseDisabled=true}
+}
 
 async function protectedDirectory(directory){
   if(!path.isAbsolute(directory)||path.resolve(directory)!==directory||await fs.realpath(directory)!==directory)fail('FINANCE_AUTHORITY_V2_CLOCK_DIRECTORY_INVALID');
@@ -82,8 +98,10 @@ export async function sampleFinanceTrustedClock(file,{fetchImpl=globalThis.fetch
   const deadline=new Promise((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(new Error('FINANCE_AUTHORITY_V2_CLOCK_STALE'))},MAX_RTT_MS)});
   let response,raw='',received,rtt;
   try{
+    recordFinanceAuthorityPhase('clock-fetch');
     response=await Promise.race([fetchImpl(FINANCE_TRUSTED_TIME_URL,{method:'GET',headers:{accept:'application/json','x-request-id':requestId},cache:'no-store',credentials:'omit',redirect:'error',signal:controller.signal}),deadline]);
     if(response?.status!==200||response.redirected||response.headers?.get('x-request-id')!==requestId||!/^application\/json(?:;\s*charset=utf-8)?$/i.test(response.headers?.get('content-type')??'')||!/(^|,)\s*no-store\s*(,|$)/i.test(response.headers?.get('cache-control')??''))fail('FINANCE_AUTHORITY_V2_CLOCK_RESPONSE_INVALID');
+    recordFinanceAuthorityPhase('clock-body');
     reader=response.body?.getReader();if(!reader)fail('FINANCE_AUTHORITY_V2_CLOCK_RESPONSE_INVALID');
     const decoder=new TextDecoder('utf-8',{fatal:true});let bytes=0;
     while(true){const chunk=await Promise.race([reader.read(),deadline]);if(chunk.done)break;if(!(chunk.value instanceof Uint8Array))fail('FINANCE_AUTHORITY_V2_CLOCK_RESPONSE_INVALID');bytes+=chunk.value.byteLength;if(bytes>2048)fail('FINANCE_AUTHORITY_V2_CLOCK_RESPONSE_INVALID');raw+=decoder.decode(chunk.value,{stream:true})}
@@ -94,7 +112,9 @@ export async function sampleFinanceTrustedClock(file,{fetchImpl=globalThis.fetch
   let body;try{body=JSON.parse(raw)}catch{fail('FINANCE_AUTHORITY_V2_CLOCK_RESPONSE_INVALID')}
   const stamp=body?.result?.serverTime,parsed=typeof stamp==='string'?Date.parse(stamp):NaN;
   if(!body||Object.keys(body).sort().join(',')!=='ok,requestId,result,schemaVersion'||body.ok!==true||body.requestId!==requestId||body.schemaVersion!==2||!body.result||Object.keys(body.result).join(',')!=='serverTime'||!Number.isSafeInteger(parsed)||new Date(parsed).toISOString()!==stamp)fail('FINANCE_AUTHORITY_V2_CLOCK_RESPONSE_INVALID');
+  recordFinanceAuthorityPhase('clock-persist');
   await advanceHighWater(file,parsed);
+  recordFinanceAuthorityPhase('clock-ready');
   let last=parsed;
   const clock=()=>{
     const elapsed=monotonic()-received;

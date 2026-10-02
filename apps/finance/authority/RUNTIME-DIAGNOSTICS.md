@@ -46,3 +46,41 @@ failure envelope. Go tests execute real children for those envelopes, malformed,
 unknown, duplicate, extra/trailing, oversize and stderr cases; queue/child timeout
 and strict-result rejection are separately tested. They never read or change
 production state, keys, clock/checkpoint or user sessions.
+
+## Optional child phase pipe
+
+A separately reviewed successor attaches an anonymous FD3 only on Linux/Darwin
+and enables it through the serving process's fixed environment. The Node CLI
+never writes diagnostics to stdout or stderr. It emits only the closed schema
+`ynx-finance-authority-phase/v1`, a source allowlisted phase and an integer
+monotonic elapsed time from Node process startup. The optional emitter writes
+at most 24 records and 2048 total bytes; regular files, missing/closed FDs and
+write failures disable it without changing the authority result. The anonymous
+pipe's minimum capacity on the supported targets exceeds this finite write
+budget, and Go reads it concurrently.
+
+Go retains at most 4096 bytes, accepts only at most 24 newline-terminated records
+of 256 bytes each, rejects duplicate/unknown fields, invalid UTF-8, non-integer,
+negative, decreasing or over-60000ms times, and unknown phases. Invalid streams
+are discarded, never copied into logs. A child/descendant cannot hold FD3 open
+and delay collection indefinitely: after the original process finishes, the
+collector waits at most 5ms then closes its read descriptor. Missing/truncated
+metadata does not authorize anything or change public errors. The child context
+remains exactly the existing three-second production budget.
+
+A failed serving call adds a separate `finance_authority_phase` log with fixed
+operation, last phase, monotonic child milliseconds and telemetry status
+`not_started`, `unavailable`, `none`, `available` or `invalid`. Original runtime
+failure logging remains unchanged. These are best-effort progress markers,
+not a proof that the succeeding stage or business authorization completed.
+`cli-ready` is emitted after static module imports. Clock fetch/body/persist,
+checkpoint inspection, authority verification, history/anchor scan/verification
+and final CLI completion are independently marked. A last `done` can distinguish
+post-validation process-exit delay from earlier waits. No argument, file path,
+root, signature, proof, token, key, account, error text or body is present.
+
+One actual pre-successor serving event at 12:39:52 UTC was `browser-config`,
+execution `TIMEOUT`, signal exit, zero queue wait and 3004ms execution/total.
+This establishes that event's child deadline, not which Node stage consumed it.
+The controlled rollback mechanism remains separate; lower-phase causality stays
+undetermined until a genuine serving failure includes the new markers.
