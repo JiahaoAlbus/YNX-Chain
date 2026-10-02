@@ -23,6 +23,7 @@ for(const index of [1,2]){
 let dropNextRenewResult=false;
 const server=http.createServer(async(req,res)=>{
  try{
+  if(req.method==='GET'&&req.url.startsWith('/qa/authorize?')){const query=new URL(req.url,'http://127.0.0.1').searchParams,index=Number(query.get('qaSession')||0);query.delete('qaSession');const result=authority.authorize(Object.fromEntries(query),sessions[index].sessionToken);res.setHeader('content-type','application/json');res.end(JSON.stringify(result));return;}
   if(req.method==='POST'&&req.url==='/qa/logout-first'){authority.logout(sessions[0].sessionToken);res.end('{}');return;}
   if(req.method==='POST'&&req.url==='/qa/drop-next-renew-result'){dropNextRenewResult=true;res.end('{}');return;}
   if(req.method==='GET'&&req.url==='/qa/facts'){const snapshot=store.snapshot();res.end(JSON.stringify({schemaVersion:snapshot.schemaVersion,epochs:snapshot.families.map(f=>f.epoch)}));return;}
