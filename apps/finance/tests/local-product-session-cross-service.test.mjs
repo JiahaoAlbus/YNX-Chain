@@ -271,7 +271,7 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
       },{account:evmAddressFromYNX(walletIdentity('1'.padStart(64,'0')).account),changed:transport==='selected-provider-context-change'});
     }
     const browserErrors=[],requests=[];
-    page.on('pageerror',error=>browserErrors.push(error.message.slice(0,160)));
+    page.on('pageerror',error=>browserErrors.push({name:error.name,code:error.message.includes('browserIdentityMatchesSelected')?'BROWSER_IDENTITY_MATCH_INTERFACE_MISSING':error.message.includes('privateAccountMatchesSelected')?'PRIVATE_ACCOUNT_MATCH_INTERFACE_MISSING':'BROWSER_RUNTIME_ERROR'}));
     page.on('response',response=>{const url=new URL(response.url());if(url.pathname.startsWith('/api/')||url.pathname.includes('product-sessions'))requests.push(`${url.pathname}:${response.status()}`)});
     await page.goto(financeOrigin);
     if(transport==='hosted-provider'){
@@ -319,7 +319,7 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
       await page.goto(`${financeOrigin}/#planning`);
       await page.locator('#guest-gate a[href="#wallet-connect"]').click();
       await page.locator('#picker-ynx').click();
-      if(centralSSO){await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='connected',null,{timeout:6000});
+      if(centralSSO){await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='connected',null,{timeout:6000}).catch(async error=>{throw new Error(JSON.stringify({phase:'central-identity-to-private-session',browserErrors,requests,state:await page.evaluate(()=>({standard:window.YNXFinanceWallet.getStandardWalletState().status,private:window.YNXFinanceWallet.getPrivateState().status,privateCode:document.querySelector('#private-state').title,browserIdentityMatchInterface:typeof window.YNXFinanceWallet.browserIdentityMatchesSelected,privateMatchInterface:typeof window.YNXFinanceWallet.privateAccountMatchesSelected}))}),{cause:error})});
         const reads=await page.evaluate(async()=>{const results=await Promise.all(['/api/profile','/api/portfolio','/api/activity'].map(path=>api(path)));return results.length;});assert.equal(reads,3);assert.equal(firstPrivateReads.length,4);
       }
       if(transport==='selected-login-rejected'){
@@ -355,7 +355,7 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
         return {isolated,ownerBound};
       }),{isolated:true,ownerBound:true});
       const initialSession=await page.evaluate(()=>window.YNXFinanceWallet.session().sessionId);
-      if(centralSSO){
+      if(centralSSO||transport==='selected-login'){
         await page.locator('#category-form input[name="name"]').fill('Isolated SSO-owned category');
         const created=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/categories'&&response.request().method()==='POST');
         await page.locator('#category-form button').click();assert.equal((await created).status(),201);
@@ -378,12 +378,18 @@ for(const variant of ['native-callback','selected-provider','selected-provider-c
         assert.equal(report.coverageComplete,false,'unavailable upstream must never become a complete financial history');
         await page.waitForFunction(()=>state.statement?.schemaVersion==='finance-statement-v2');
         assert.equal(await page.locator('#statement').evaluate(node=>node.classList.contains('statement-placeholder')),false);
+        await page.evaluate(()=>{location.hash='#settings'});
+        for(const name of ['includePayInStatements','allowAiActivityContext','alertsEnabled'])await page.locator(`#privacy-form input[name="${name}"]`).uncheck();
+        const privacySaved=page.waitForResponse(response=>new URL(response.url()).pathname==='/api/privacy'&&response.request().method()==='PUT');
+        await page.locator('#privacy-form button').click();assert.equal((await privacySaved).status(),200);
+        assert.deepEqual(await page.evaluate(async()=>{const {includePayInStatements,allowAiActivityContext,alertsEnabled}=(await api('/api/profile')).privacy;return {includePayInStatements,allowAiActivityContext,alertsEnabled};}),{includePayInStatements:false,allowAiActivityContext:false,alertsEnabled:false});
         await page.evaluate(()=>{location.hash='#planning'});
         await page.reload();
         await page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='connected'&&document.querySelector('#workspace').dataset.dataState==='ready');
         assert.equal(await page.evaluate(()=>window.YNXFinanceWallet.session().sessionId),initialSession);
         assert.equal(approvalCount,1,'owned-service refresh must restore the approved session, not request another signature');
         assert.equal(await page.evaluate(async()=>{const owned=await api('/api/profile');return owned.categories.some(item=>item.name==='Isolated SSO-owned category')&&owned.budgets.some(item=>item.name==='Isolated SSO-owned budget'&&item.limitYnxt===123);}),true);
+        for(const name of ['includePayInStatements','allowAiActivityContext','alertsEnabled'])assert.equal(await page.locator(`#privacy-form input[name="${name}"]`).isChecked(),false,'saved owned privacy must restore from the real service after refresh');
       }
       await page.locator('#budget-form input[name="name"]').fill('Preserved local draft');
       failOverview=true;
