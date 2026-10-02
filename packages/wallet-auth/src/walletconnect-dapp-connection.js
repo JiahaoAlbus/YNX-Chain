@@ -1,7 +1,7 @@
 import {WALLETCONNECT_CHAIN,WALLETCONNECT_SESSION_METHODS,WALLETCONNECT_SESSION_EVENTS,parseWalletConnectPairingUri} from './walletconnect-protocol.js';
 
 export const YNX_PAIR_PROJECT_ID='41857128a14a593ca4e4a7cb7c838d71';
-const ORIGINS=new Set(['https://finance.ynxweb4.com','https://exchange.ynxweb4.com','https://quant.ynxweb4.com','https://wallet-auth.ynxweb4.com','https://social.ynxweb4.com','https://assistant.ynxweb4.com']);
+const ORIGINS=new Set(['https://finance.ynxweb4.com','https://exchange.ynxweb4.com','https://quant.ynxweb4.com','https://wallet-auth.ynxweb4.com','https://social.ynxweb4.com','https://assistant.ynxweb4.com','https://video.ynxweb4.com','https://creator.ynxweb4.com']);
 const METHODS=new Set(['personal_sign','ynx_requestProductSessionV2','ynx_requestCentralBrowserSignIn']);
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const reason={code:6000,message:'User disconnected'};
@@ -49,7 +49,7 @@ const corePairings=client=>client.core.pairing.pairings.getAll();
 export class WalletConnectDAppConnection{
   #origin;#methods;#factory;#client=null;#initializing=null;#session=null;#pending=null;#epoch=0;#attempt=0;#listeners=new Map();#deadline;#now;#pairing=null;#flight=null;#draining=null;#restoring=0;
   constructor({origin,methods,clientFactory,deadlineMs=30000,now=()=>Date.now()}={}){
-    if(!ORIGINS.has(origin)||!Array.isArray(methods)||!methods.length||new Set(methods).size!==methods.length||methods.some(method=>!METHODS.has(method)||!WALLETCONNECT_SESSION_METHODS.includes(method)||(['https://social.ynxweb4.com','https://assistant.ynxweb4.com'].includes(origin)&&method!=='ynx_requestProductSessionV2')))fail('YNX_PAIR_CONFIGURATION_INVALID');
+    if(!ORIGINS.has(origin)||!Array.isArray(methods)||!methods.length||new Set(methods).size!==methods.length||methods.some(method=>!METHODS.has(method)||!WALLETCONNECT_SESSION_METHODS.includes(method)||(['https://social.ynxweb4.com','https://assistant.ynxweb4.com','https://video.ynxweb4.com','https://creator.ynxweb4.com'].includes(origin)&&method!=='ynx_requestProductSessionV2')))fail('YNX_PAIR_CONFIGURATION_INVALID');
     if(!Number.isSafeInteger(deadlineMs)||deadlineMs<1||deadlineMs>120000)fail('YNX_PAIR_CONFIGURATION_INVALID');
     this.#origin=origin;this.#methods=[...methods];this.#factory=clientFactory??(options=>officialClient(options,this));this.#deadline=deadlineMs;this.#now=now;
   }
