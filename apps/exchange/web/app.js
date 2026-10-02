@@ -140,7 +140,40 @@ function renderRows(selector,rows){const root=$(selector);root.replaceChildren()
 function renderAccount(){renderOrders();renderBalances();renderActivity();const s=state.snapshot.security;$('#withdraw-lock').checked=!!s.withdrawalLock;$('#session-ttl').value=String(s.sessionTtlMinutes||480);const volume=(state.snapshot.trades||[]).reduce((n,t)=>n+BigInt(t.amountMicro),0n);$('#owned-volume').textContent=`${display(volume)} YNXT`}
 function renderOrders(){const root=$('#orders');root.replaceChildren();const rows=(state.snapshot.orders||[]).filter(o=>['open','partially_filled'].includes(o.status));if(!rows.length){root.innerHTML='<tr><td colspan="6" class="empty-cell">No open orders. The venue does not seed fake depth.</td></tr>';return}rows.sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).forEach(o=>{const tr=document.createElement('tr');const values=[new Date(o.createdAt).toLocaleTimeString(),o.side,display(o.priceMicro),`${display(o.amountMicro)} / ${display(o.filledMicro)}`,o.status];values.forEach((v,i)=>{const td=document.createElement('td');td.textContent=v;if(i===4)td.className=`status-${o.status}`;tr.append(td)});const td=document.createElement('td');const btn=document.createElement('button');btn.className='text-button';btn.textContent='Cancel';btn.addEventListener('click',()=>cancelOrder(o));td.append(btn);tr.append(td);root.append(tr)})}
 function renderBalances(){const root=$('#balances');root.replaceChildren();(state.snapshot.balances||[]).forEach(b=>{const div=document.createElement('div');div.className='balance-card';const title=document.createElement('strong');title.textContent=b.asset;const dl=document.createElement('dl');dl.innerHTML=`<div><dt>Available</dt><dd>${display(b.availableMicro)}</dd></div><div><dt>Reserved</dt><dd>${display(b.reservedMicro)}</dd></div>`;div.append(title,dl);root.append(div)})}
-function renderActivity(){if(!state.snapshot)return;const head=$('#activity-head'),body=$('#activity-body');head.replaceChildren();body.replaceChildren();let rows=[],columns=[];if(state.activity==='trades'){columns=['Time','Side','Price','Amount','Fee'];rows=(state.snapshot.trades||[]).map(t=>[new Date(t.createdAt).toLocaleString(),t.buyer===state.account?'buy':'sell',display(t.priceMicro),display(t.amountMicro),display(t.buyer===state.account?t.buyerFeeMicro:t.sellerFeeMicro)])}else if(state.activity==='fees'){columns=['Time','Kind','Asset','Exact fee','Reference'];rows=(state.snapshot.fees||[]).map(f=>[new Date(f.createdAt).toLocaleString(),f.kind,f.asset,display(f.amountMicro),f.reference])}else{columns=['Time','Action','Object','Proof digest'];rows=(state.snapshot.audit||[]).map(a=>[new Date(a.createdAt).toLocaleString(),a.action,`${a.objectType}:${a.objectId}`,a.digest.slice(0,18)+'…'])}const tr=document.createElement('tr');columns.forEach(c=>{const th=document.createElement('th');th.textContent=c;tr.append(th)});head.append(tr);if(!rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=columns.length;td.className='empty-cell';td.textContent='No owned records yet.';tr.append(td);body.append(tr)}else rows.reverse().forEach(row=>{const tr=document.createElement('tr');row.forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.append(td)});body.append(tr)})}
+function renderActivity(){
+  const head=$('#activity-head'),body=$('#activity-body');head.replaceChildren();body.replaceChildren();
+  if(!state.snapshot)return;
+  const owned=key=>(state.snapshot[key]||[]).filter(row=>key==='trades'?row.buyer===state.account||row.seller===state.account:row.account===state.account)
+    .slice().sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))||String(a.id).localeCompare(String(b.id)));
+  const time=value=>new Date(value).toLocaleString();
+  let rows=[],columns=[];
+  if(state.activity==='orders'){
+    columns=['Time','Order ID','Market','Side / type','Price','Amount / Filled','Status','Reason'];
+    rows=owned('orders').map(o=>[time(o.createdAt),o.id,o.market,`${o.side} / ${o.type}`,display(o.priceMicro),`${display(o.amountMicro)} / ${display(o.filledMicro)}`,o.status,o.rejectReason||'—']);
+  }else if(state.activity==='ledger'){
+    columns=['Time','Entry ID','Asset','Available change','Reserved change','Source','Reference','Source digest'];
+    rows=owned('ledger').map(l=>[time(l.createdAt),l.id,l.asset,display(l.availableDelta),display(l.reservedDelta),l.sourceType,l.sourceId,l.sourceDigest]);
+  }else if(state.activity==='deposits'){
+    columns=['Time','Deposit ID','Asset / network','Amount','Confirmations / required','Venue status','Transaction hash','Source digest'];
+    rows=owned('deposits').map(d=>[time(d.createdAt),d.id,`${d.asset} / ${d.network}`,display(d.amountMicro),`${d.confirmations} / ${d.required}`,d.status,d.txHash,d.sourceDigest]);
+  }else if(state.activity==='withdrawals'){
+    columns=['Time','Withdrawal ID','Asset / network','Amount','Fee','Receive','Venue status','Destination','Source digest'];
+    rows=owned('withdrawals').map(w=>[time(w.createdAt),w.id,`${w.asset} / ${w.network}`,display(w.amountMicro),display(w.feeMicro),display(w.receiveMicro),w.status,w.destination,w.sourceDigest]);
+  }else if(state.activity==='trades'){
+    columns=['Time','Side','Price','Amount','Fee'];
+    rows=owned('trades').map(t=>[time(t.createdAt),t.buyer===state.account?'buy':'sell',display(t.priceMicro),display(t.amountMicro),display(t.buyer===state.account?t.buyerFeeMicro:t.sellerFeeMicro)]);
+  }else if(state.activity==='fees'){
+    columns=['Time','Kind','Asset','Exact fee','Reference'];
+    rows=owned('fees').map(f=>[time(f.createdAt),f.kind,f.asset,display(f.amountMicro),f.reference]);
+  }else{
+    columns=['Time','Action','Object','Proof digest'];
+    rows=owned('audit').map(a=>[time(a.createdAt),a.action,`${a.objectType}:${a.objectId}`,a.digest]);
+  }
+  const heading=document.createElement('tr');
+  for(const label of columns){const th=document.createElement('th');th.scope='col';th.textContent=label;heading.append(th)}head.append(heading);
+  if(!rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=columns.length;td.className='empty-cell';td.textContent='No owned records yet.';tr.append(td);body.append(tr);return}
+  for(const row of rows){const tr=document.createElement('tr');for(const value of row){const td=document.createElement('td');td.textContent=value;tr.append(td)}body.append(tr)}
+}
 function renderPublicMarket(){const trades=[...state.publicTrades].sort((a,b)=>a.createdAt.localeCompare(b.createdAt)||a.id.localeCompare(b.id));const body=$('#public-trades'),svg=$('#chart-svg');body.replaceChildren();svg.replaceChildren();svg.hidden=!trades.length;$('#chart-empty').hidden=!!trades.length;$('#last-price').textContent='—';$('#chart-empty').querySelector('strong').textContent='No matched price yet';if(!trades.length){body.innerHTML='<tr><td colspan="5" class="empty-cell">No actual venue matches yet.</td></tr>';return}for(const trade of [...trades].reverse().slice(0,20)){const tr=document.createElement('tr');[new Date(trade.createdAt).toLocaleString(),display(trade.priceMicro),display(trade.amountMicro),trade.sourceType,trade.sourceDigest].forEach(value=>{const td=document.createElement('td');td.textContent=value;tr.append(td)});body.append(tr)}const prices=trades.slice(-60).map(t=>t.priceMicro),lo=Math.min(...prices),hi=Math.max(...prices);const points=prices.map((p,i)=>`${30+i*(740/Math.max(1,prices.length-1))},${250-(p-lo)/Math.max(1,hi-lo)*210}`).join(' ');const polyline=document.createElementNS('http://www.w3.org/2000/svg','polyline');polyline.setAttribute('fill','none');polyline.setAttribute('stroke','#002FA7');polyline.setAttribute('stroke-width','4');polyline.setAttribute('points',points);const label=document.createElementNS('http://www.w3.org/2000/svg','text');label.setAttribute('x','30');label.setAttribute('y','25');label.setAttribute('fill','#667085');label.setAttribute('font-size','14');label.textContent='Actual YNX-owned matching-engine trades · latest 60';svg.append(polyline,label);$('#last-price').textContent=`${display(prices.at(-1))} YUSD_TEST`}
 
 async function reviewOrder(event){

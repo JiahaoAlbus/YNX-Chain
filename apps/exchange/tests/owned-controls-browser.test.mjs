@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
+import {formatMicro} from '../web/market-data.js';
 
 // Actual product HTML/render functions, controlled account read input only.
 // No Wallet approval, authenticated API or public acceptance is claimed here.
@@ -12,6 +13,45 @@ const css=await readFile(new URL('../web/styles.css',import.meta.url),'utf8');
 const controls=app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderBook('));
 const identity=app.slice(app.indexOf('let browserIdentity='),app.indexOf('\nconst marketFeed='));
 const chooser=app.slice(app.indexOf('function openWalletChooser()'),app.indexOf('async function restoreStandardWallet()'));
+const activity=app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
+const activityBinding=app.split('\n').find(line=>line.includes("$$('.tabs button').forEach(b=>b.addEventListener"));
+
+test('actual activity renderer exposes existing owned order history and signed ledger changes without write actions',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}});await page.route('**/*',route=>route.abort());
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.evaluate(()=>{document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));document.querySelector('#activity').classList.add('active')});
+    assert.ok(activityBinding,'test must execute the actual product tab binding');
+    await page.addScriptTag({content:`const $=selector=>document.querySelector(selector),$$=selector=>[...document.querySelectorAll(selector)];const state={account:'A',snapshot:null,activity:'orders'};const display=${formatMicro.toString()};${activity};${activityBinding};window.activityQA={set(account,snapshot){state.account=account;state.snapshot=snapshot;renderActivity()}};`});
+    const order=(account,id,status,createdAt)=>({account,id,status,createdAt,market:'YNXT-YUSD_TEST',side:'buy',type:'limit',priceMicro:2000000,amountMicro:3000000,filledMicro:status==='filled'?3000000:0,rejectReason:status==='rejected'?'<img src=x onerror=alert(1)> rejected by venue':''});
+    const data={orders:[order('A','older-cancelled','cancelled','2026-10-01T00:00:00Z'),order('A','newer-filled','filled','2026-10-02T00:00:00Z'),order('B','foreign-B','open','2026-10-03T00:00:00Z'),order('A','rejected','rejected','2026-10-02T01:00:00Z')],ledger:[{account:'A',id:'ledger-A',asset:'YUSD_TEST',availableDelta:-1234567,reservedDelta:0,sourceType:'order_cancel',sourceId:'older-cancelled',sourceDigest:'a'.repeat(64),createdAt:'2026-10-02T02:00:00Z'},{account:'B',id:'ledger-B',asset:'YNXT',availableDelta:9000000,reservedDelta:0,createdAt:'2026-10-02T03:00:00Z'}]};
+    await page.evaluate(data=>window.activityQA.set('A',data),data);
+    assert.equal(await page.locator('[data-activity="orders"]').count(),1);
+    assert.equal(await page.locator('#activity-body tr').count(),3);
+    let text=await page.locator('#activity-body').innerText();assert.match(text,/cancelled/u);assert.match(text,/filled/u);assert.match(text,/rejected/u);assert.doesNotMatch(text,/foreign-B/u);
+    assert.equal(await page.locator('#activity-body img').count(),0);assert.equal(await page.locator('#activity-body button').count(),0);
+    assert.match(await page.locator('#activity-body tr').first().innerText(),/rejected/u);
+    await page.locator('[data-activity="ledger"]').click();text=await page.locator('#activity-body').innerText();
+    assert.match(text,/-1\.234567/u);assert.match(text,/0\.00/u);assert.ok(text.includes('a'.repeat(64)));assert.doesNotMatch(text,/ledger-B/u);
+    assert.equal(await page.locator('[data-activity="ledger"]').getAttribute('aria-selected'),'true');
+    assert.ok((await page.locator('[data-activity="ledger"]').boundingBox()).height>=44);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+    data.deposits=[{account:'A',id:'deposit-A',asset:'YNXT',network:'YNX Testnet',amountMicro:1000001,confirmations:2,required:12,status:'pending',txHash:'actual-returned-hash-fixture',sourceDigest:'b'.repeat(64),createdAt:'2026-10-02T03:00:00Z'}];
+    data.withdrawals=[{account:'A',id:'withdrawal-A',asset:'YNXT',network:'YNX Testnet',amountMicro:2000000,feeMicro:0,receiveMicro:2000000,status:'pending_wallet',destination:'<script>not markup</script>',sourceDigest:'c'.repeat(64),createdAt:'2026-10-02T04:00:00Z'}];
+    await page.evaluate(data=>window.activityQA.set('A',data),data);
+    await page.locator('[data-activity="deposits"]').click();text=await page.locator('#activity-body').innerText();
+    assert.match(text,/deposit-A/u);assert.match(text,/2 \/ 12/u);assert.match(text,/pending/u);assert.match(text,/actual-returned-hash-fixture/u);assert.doesNotMatch(text,/confirmed|completed/u);
+    await page.locator('[data-activity="withdrawals"]').click();text=await page.locator('#activity-body').innerText();
+    assert.match(text,/pending_wallet/u);assert.match(text,/0\.00/u);assert.equal(await page.locator('#activity-body script').count(),0);assert.equal(await page.locator('#activity-body button').count(),0);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth),true);
+    await page.locator('[data-activity="ledger"]').click();
+    const original=JSON.stringify(data);await page.evaluate(data=>window.activityQA.set('B',data),data);
+    assert.match(await page.locator('#activity-body').innerText(),/ledger-B/u);assert.doesNotMatch(await page.locator('#activity-body').innerText(),/ledger-A/u);
+    await page.evaluate(()=>window.activityQA.set(null,null));assert.equal(await page.locator('#activity-body').innerText(),'');assert.equal(await page.locator('#activity-head').innerText(),'');
+    assert.equal(JSON.stringify(data),original,'renderer must not mutate source records');
+  }finally{await browser.close();}
+});
 
 test('actual identity controls fence late logout outcomes and preserve current logout failure/retry',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
