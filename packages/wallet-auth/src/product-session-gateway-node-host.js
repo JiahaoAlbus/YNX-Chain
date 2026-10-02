@@ -35,8 +35,9 @@ export class ProductSessionGatewayNodeHost {
   #handler; #now; #origins; #registry; #stateIdentity; #statePath; #tokens; #central;
 
   constructor(registryInput, options) {
-    exactFields(options,["now","statePath","tokenFactory",...(Object.hasOwn(options,'centralBrowser')?["centralBrowser"]:[]),...(Object.hasOwn(options,'centralBackend')?["centralBackend"]:[])],"Product Session Gateway Node host options");
+    exactFields(options,["now","statePath","tokenFactory",...(Object.hasOwn(options,'centralBrowser')?["centralBrowser"]:[]),...(Object.hasOwn(options,'centralBackend')?["centralBackend"]:[]),...(Object.hasOwn(options,'centralOIDC')?["centralOIDC"]:[])],"Product Session Gateway Node host options");
     if(Object.hasOwn(options,'centralBackend')){if(options.centralBrowser!==true)fail("INVALID_HOST","Confidential clients require explicit central adoption");exactFields(options.centralBackend,["backendClients","familySealKey"],"Confidential client host dependencies");}
+    if(Object.hasOwn(options,'centralOIDC')&&options.centralBrowser!==true)fail('INVALID_HOST','OIDC requires explicit Central adoption');
     if(Object.hasOwn(options,'centralBrowser')&&typeof options.centralBrowser!=='boolean')fail('INVALID_HOST','Central browser adoption must be explicit');
     if (typeof options.now !== "function" || typeof options.tokenFactory !== "function") fail("INVALID_HOST", "Product Session Gateway Node host dependencies are invalid");
     if (typeof options.statePath !== "string" || !isAbsolute(options.statePath) || options.statePath === "/") fail("INVALID_STATE_PATH", "Product Session Gateway state path must be an absolute file path");
@@ -47,7 +48,7 @@ export class ProductSessionGatewayNodeHost {
     this.#handler = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokens, stored?.snapshot);
     if (stored === null) this.#persist(this.#handler.snapshot());
     else this.#stateIdentity = stored.identity;
-    if(options.centralBrowser)this.#central=new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(this.#registry),new CentralBrowserSessionStore(`${this.#statePath}.browser`),{now:()=>this.#now().getTime(),tokenFactory:this.#tokens,...(options.centralBackend??{})}));
+    if(options.centralBrowser)this.#central=new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(this.#registry),new CentralBrowserSessionStore(`${this.#statePath}.browser`),{now:()=>this.#now().getTime(),tokenFactory:this.#tokens,...(options.centralBackend??{}),oidc:options.centralOIDC??null}));
   }
 
   handler() {

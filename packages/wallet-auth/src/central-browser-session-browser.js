@@ -176,7 +176,11 @@ cancel.addEventListener('click',async()=>{
   clearPairQR();if(pair)void pair.cancel();retireHosted();
   try{const result=await request('cancel',{challengeId:challenge.challengeId});const redirect=new URL(result.redirectUri);
     if(redirect.origin!==challenge.initiator.origin||redirect.pathname!==new URL(challenge.initiator.redirectUri).pathname||redirect.searchParams.get('state')!==challenge.initiator.state||redirect.searchParams.get('error')!=='access_denied')throw new Error('SSO_REDIRECT_INVALID');
-    location.assign(redirect.href);
+    if(context.mode==='oidc'){
+      const target=new URL(context.oidcCancelRedirect);
+      if(target.protocol!=='https:'||target.username||target.password||target.hash||!target.pathname.endsWith('/_synapse/client/oidc/callback')||target.searchParams.get('error')!=='access_denied')throw new Error('SSO_REDIRECT_INVALID');
+      location.assign(target.href);
+    }else location.assign(redirect.href);
   }catch(error){const code=failure(error,'server-cancel');safeReturn.hidden=false;
     const expired=Date.parse(challenge.expiresAt)<=Date.now()||code==='SSO_CSRF_MISMATCH';
     message(expired?'This sign-in transaction has expired. Remote cancellation is not confirmed. Return to your product and explicitly start a new request; this page will not use any late approval.':'Cancellation is not confirmed. Retry cancellation or return without using this approval; no late approval will be used on this page.');

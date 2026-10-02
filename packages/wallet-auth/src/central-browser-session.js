@@ -1,3 +1,4 @@
+import {createCentralOIDCProvider,CENTRAL_OIDC_PROTOCOL,CENTRAL_OIDC_ROUTES} from './central-oidc-provider.js';
 import {createCentralBackendVerifier,createCentralFamilySeal,backendBodyDigest} from './central-browser-backend-auth.js';
 import {centralUIPage} from './central-browser-session-locale.js';
 import {createHash,randomBytes,timingSafeEqual} from 'node:crypto';
@@ -35,10 +36,11 @@ export function centralBrowserCookieToken(header,name=CENTRAL_BROWSER_COOKIE){
 // Identity-only grants are separate from existing Wallet ProductSession proofs.
 // No caller may use this grant to bypass a native/sensitive product scope.
 export class CentralBrowserSessionAuthority {
-  #store;#registry;#now;#random;#backendVerify;#familySeal;
-  constructor(registry,store,{now=()=>Date.now(),tokenFactory=random,backendClients=[],familySealKey=null}={}){
+  #store;#registry;#now;#random;#backendVerify;#familySeal;#oidc;#socialConsentClient;
+  constructor(registry,store,{now=()=>Date.now(),tokenFactory=random,backendClients=[],familySealKey=null,oidc=null}={}){
     if(!Array.isArray(registry)||!store?.transaction||typeof now!=='function'||typeof tokenFactory!=='function')fail('SSO_AUTHORITY_INVALID');
-    this.#registry=registry;this.#store=store;this.#now=now;this.#random=tokenFactory;this.#backendVerify=createCentralBackendVerifier(backendClients);this.#familySeal=createCentralFamilySeal(familySealKey);
+    this.#registry=registry;this.#store=store;this.#now=now;this.#random=tokenFactory;this.#backendVerify=createCentralBackendVerifier(backendClients);this.#familySeal=createCentralFamilySeal(familySealKey);this.#oidc=createCentralOIDCProvider(oidc);this.#socialConsentClient=registry.find(c=>c.productId==='social')?.clientId;
+    if(this.#oidc&&(!this.#socialConsentClient||registry.some(c=>c.clientId===this.#oidc.clientId)))fail('OIDC_CONFIG_INVALID');
   }
   challenge(initiator,transactionToken){
     const client=this.#initiator(initiator);if(!token(transactionToken))fail('SSO_BROWSER_BINDING_REQUIRED');
@@ -121,7 +123,7 @@ export class CentralBrowserSessionAuthority {
     const client=centralBrowserClient(this.#registry,{clientId:input.clientId,origin:input.origin,redirectUri:input.redirectUri});
     if(!token(input.code)||!token(input.state)||typeof input.codeVerifier!=='string'||!/^[A-Za-z0-9._~-]{43,128}$/.test(input.codeVerifier))fail('SSO_CODE_INVALID');
       const code=state.codes.find(value=>equal(value.codeHash,hash(input.code)));
-      if(!code||code.consumed)fail('SSO_CODE_REPLAY');
+      if(!code||code.protocol!==undefined||code.consumed)fail('SSO_CODE_REPLAY');
       if(code.expiresAt<=now)fail('SSO_CODE_EXPIRED');
       if(code.clientId!==client.clientId||code.origin!==client.origin||code.redirectUri!==client.redirectUri||code.state!==input.state)fail('SSO_CODE_BINDING_MISMATCH');
       if(!equal(code.codeChallenge,createHash('sha256').update(input.codeVerifier).digest('base64url')))fail('SSO_PKCE_MISMATCH');
@@ -175,7 +177,7 @@ export class CentralBrowserSessionAuthority {
     if(!token(grantToken))fail('SSO_GRANT_INVALID');
     return this.#transaction((state,now)=>{
       const grant=state.grants.find(value=>equal(value.tokenHash,hash(grantToken)));
-      if(!grant||grant.revoked||grant.expiresAt<=now||grant.clientId!==clientId)fail('SSO_GRANT_INVALID');
+      if(!grant||grant.protocol!==undefined||grant.revoked||grant.expiresAt<=now||grant.clientId!==clientId)fail('SSO_GRANT_INVALID');
       const session=state.sessions.find(value=>value.id===grant.sessionId);this.#assertActive(session,now);
       if(session.generation!==grant.generation)fail('SSO_GENERATION_REVOKED');const approved=this.#approved(state,session,clientId);if(grant.origin!==approved.origin||grant.audience!==approved.audience||canonicalJSON(grant.scopes)!==canonicalJSON(approved.scopes))fail('SSO_GRANT_INVALID');
       if(grant.familyId){const family=state.families?.find(f=>f.id===grant.familyId);this.#activeFamily(state,family,now);}else session.lastSeenAt=now; // Legacy behavior retained until this client adopts finite families.
@@ -187,7 +189,7 @@ export class CentralBrowserSessionAuthority {
     if(!token(grantToken))fail('SSO_GRANT_INVALID');
     return this.#transaction((state,now)=>{
       const grant=state.grants.find(value=>equal(value.tokenHash,hash(grantToken)));
-      if(!grant||grant.clientId!==clientId||grant.expiresAt<=now)fail('SSO_GRANT_INVALID');
+      if(!grant||grant.protocol!==undefined||grant.clientId!==clientId||grant.expiresAt<=now)fail('SSO_GRANT_INVALID');
       if(grant.revoked)return {revoked:true};
       const session=state.sessions.find(value=>value.id===grant.sessionId);
       if(!session||session.generation!==grant.generation||session.revoked)return {revoked:true};
@@ -200,6 +202,42 @@ export class CentralBrowserSessionAuthority {
       return {revoked:true};
     });
   }
+  get oidcEnabled(){return this.#oidc!==null;}
+  oidcMetadata(){this.#requireOIDC();return this.#oidc.metadata();}
+  oidcJwks(){this.#requireOIDC();return this.#oidc.jwks();}
+  oidcRequest(input){this.#requireOIDC();return this.#oidc.request(input);}
+  oidcErrorRedirect(input,error){const request=this.oidcRequest(input),redirect=new URL(request.redirect_uri);if(!['login_required','access_denied'].includes(error))fail('OIDC_REQUEST_INVALID');redirect.searchParams.set('state',request.state);redirect.searchParams.set('error',error);return redirect.href;}
+  oidcLoginPage(input,browserToken){const request=this.oidcRequest(input),client=this.#registry.find(c=>c.clientId===this.#socialConsentClient);return this.loginPage({clientId:client.clientId,origin:client.origin,redirectUri:client.redirectUri,state:this.#oidc.loginState(request),codeChallenge:request.code_challenge,codeChallengeMethod:'S256'},browserToken);}
+  oidcAuthorize(input,sessionToken){
+    const request=this.oidcRequest(input);
+    return this.#transaction((state,now)=>{
+      const session=this.#active(state,sessionToken,now);this.#approved(state,session,this.#socialConsentClient);
+      const recent=state.challenges.some(r=>r.consumed&&r.createdSessionId===session.id&&r.challenge.initiator.clientId===this.#socialConsentClient&&r.challenge.initiator.state===this.#oidc.loginState(request)&&Date.parse(r.challenge.expiresAt)>now);
+      const force=request.prompt==='login'||request.max_age!==undefined&&Math.floor(now/1000)-Math.floor(session.createdAt/1000)>Number(request.max_age);
+      if(force&&!recent)fail('SSO_LOGIN_REQUIRED');
+      if(state.codes.some(c=>c.protocol===CENTRAL_OIDC_PROTOCOL&&c.sessionId===session.id&&c.clientId===request.client_id&&c.state===request.state))fail('OIDC_TRANSACTION_REPLAY');
+      const code=this.#token();state.codes.push({protocol:CENTRAL_OIDC_PROTOCOL,codeHash:hash(code),sessionId:session.id,generation:session.generation,clientId:request.client_id,redirectUri:request.redirect_uri,scopes:request.scope.split(' '),state:request.state,nonce:request.nonce,codeChallenge:request.code_challenge,expiresAt:Math.min(now+60000,session.expiresAt,session.lastSeenAt+SESSION_IDLE),consumed:false});
+      const redirect=new URL(request.redirect_uri);redirect.searchParams.set('code',code);redirect.searchParams.set('state',request.state);return {redirectUri:redirect.href};
+    });
+  }
+  oidcRedeem(input,headers){
+    this.#requireOIDC();this.#oidc.authenticate(headers);input=this.#oidc.codeInput(input);
+    return this.#transaction((state,now)=>{
+      const code=state.codes.find(c=>equal(c.codeHash,hash(input.code)));
+      if(!code||code.protocol!==CENTRAL_OIDC_PROTOCOL||code.consumed||code.expiresAt<=now||code.clientId!==this.#oidc.clientId||code.redirectUri!==input.redirect_uri)fail('OIDC_CODE_INVALID');
+      if(!equal(code.codeChallenge,createHash('sha256').update(input.code_verifier).digest('base64url')))fail('OIDC_PKCE_MISMATCH');
+      const session=state.sessions.find(s=>s.id===code.sessionId);this.#assertActive(session,now);if(session.generation!==code.generation)fail('SSO_GENERATION_REVOKED');this.#approved(state,session,this.#socialConsentClient);
+      const expiresAt=Math.min(now+GRANT_LIFETIME,session.expiresAt,session.lastSeenAt+SESSION_IDLE),iat=Math.floor(now/1000),exp=Math.floor(expiresAt/1000);if(exp<=iat)fail('OIDC_CODE_INVALID');
+      const identityToken=this.#oidc.signIdentity({iss:CENTRAL_BROWSER_ISSUER,sub:session.account,aud:this.#oidc.clientId,iat,exp,auth_time:Math.floor(session.createdAt/1000),nonce:code.nonce,sid:session.id,ynx_account:session.account,ynx_generation:session.generation});
+      const accessToken=this.#token();state.grants.push({protocol:CENTRAL_OIDC_PROTOCOL,tokenHash:hash(accessToken),sessionId:session.id,generation:session.generation,clientId:this.#oidc.clientId,scopes:[...code.scopes],expiresAt:exp*1000,revoked:false});code.consumed=true;
+      return {access_token:accessToken,token_type:'Bearer',expires_in:exp-iat,id_token:identityToken,scope:code.scopes.join(' ')};
+    });
+  }
+  oidcUserInfo(accessToken){
+    this.#requireOIDC();if(!token(accessToken))fail('OIDC_TOKEN_INVALID');
+    return this.#transaction((state,now)=>{const grant=state.grants.find(g=>equal(g.tokenHash,hash(accessToken)));if(!grant||grant.protocol!==CENTRAL_OIDC_PROTOCOL||grant.clientId!==this.#oidc.clientId||grant.revoked||grant.expiresAt<=now)fail('OIDC_TOKEN_INVALID');const session=state.sessions.find(s=>s.id===grant.sessionId);this.#assertActive(session,now);if(session.generation!==grant.generation)fail('SSO_GENERATION_REVOKED');this.#approved(state,session,this.#socialConsentClient);return {sub:session.account,ynx_account:session.account,ynx_generation:session.generation};});
+  }
+  #requireOIDC(){if(!this.#oidc)fail('OIDC_NOT_CONFIGURED');}
   #approved(state,session,clientId){
     const proof=state.challenges.find(r=>r.consumed&&r.createdSessionId===session.id);
     if(!session.approvedClients){
@@ -245,11 +283,12 @@ export const CENTRAL_BROWSER_ROUTES=Object.freeze([
 export class CentralBrowserSessionNodeRoutes {
   #authority;
   constructor(authority){this.#authority=authority;}
-  handles(path){return CENTRAL_BROWSER_ROUTES.includes(path);}
+  handles(path){return CENTRAL_BROWSER_ROUTES.includes(path)||this.#authority.oidcEnabled&&CENTRAL_OIDC_ROUTES.includes(path);}
   handle({method,url,headers,body=''}){
     const parsedUrl=new URL(url,CENTRAL_BROWSER_ISSUER),path=parsedUrl.pathname;
     try{
       if(!this.handles(path))fail('SSO_ROUTE_NOT_FOUND');
+      if(CENTRAL_OIDC_ROUTES.includes(path))return this.#handleOIDC({method,parsedUrl,headers,body});
       if(path==='/sso/browser.js'){
         if(method!=='GET'||parsedUrl.search||parsedUrl.hash)fail('SSO_METHOD_NOT_ALLOWED');
         return {status:200,headers:{'content-type':'text/javascript; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'},body:readFileSync(new URL('./central-browser-session-browser.bundle.js',import.meta.url),'utf8')};
@@ -294,8 +333,7 @@ export class CentralBrowserSessionNodeRoutes {
         catch(error){if(error?.code!=='SSO_LOGIN_REQUIRED')throw error;
           if(prompt==='none'){const result=this.#authority.loginRequired(input);return this.#reply(303,{redirect:true},{location:result.redirectUri});}
           const bound=transaction??random(),page=this.#authority.loginPage(input,bound);
-          const data=canonicalJSON({...page,csrfToken:hash(bound)}).replaceAll('<','\\u003c');
-          return {status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self' wss://relay.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com; frame-src https://verify.walletconnect.org; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",'set-cookie':centralBrowserCookie(bound,{transaction:true})},body:centralUIPage(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YNX · Sign in</title><style>body{margin:0;background:#fff;color:#122247;font:17px/1.6 system-ui}main{max-width:560px;margin:8vh auto;padding:24px}button,a{min-height:44px;padding:12px 18px;border-radius:12px}button{background:#002FA7;color:#fff;border:0;margin:8px 8px 8px 0;cursor:pointer}button:disabled{opacity:.65}select{width:100%;min-height:48px;font:inherit}a{color:#002FA7}#status{min-height:3em}</style><main><h1>Sign in with YNX Wallet</h1><p>Allow browser sign-in for registered YNX products. Private product permissions require separate approval.</p><label for="wallet">YNX Wallet</label><select id="wallet"></select><p id="status" role="status" aria-live="polite">Choose a wallet to continue.</p><button id="approve">Continue with YNX Wallet</button><button id="cancel">Cancel</button><p><a href="https://wallet.ynxweb4.com" target="_blank" rel="noopener noreferrer">Get YNX Wallet</a></p><p><small>Portions © 2025 Reown, Inc. All Rights Reserved. WalletConnect connection uses the official Reown network.</small></p><script id="context" type="application/json">${data}</script><script src="/sso/browser.js" defer></script></main></html>`,headers['accept-language'])};
+          return this.#loginResponse(page,bound,headers);
         }
       }
       const input=json();if(!backend)csrf();
@@ -320,6 +358,41 @@ export class CentralBrowserSessionNodeRoutes {
       const code=error instanceof WalletAuthError?error.code:'SSO_INTERNAL';
       const status=['SSO_LOGIN_REQUIRED','SSO_GRANT_INVALID','SSO_GENERATION_REVOKED'].includes(code)?401:code==='SSO_STATE_BUSY'?503:['SSO_CSRF_MISMATCH','SSO_ORIGIN_MISMATCH','SSO_BACKEND_ONLY'].includes(code)?403:code==='SSO_METHOD_NOT_ALLOWED'?405:code.startsWith('SSO_STATE')||code==='SSO_INTERNAL'?500:400;
       return this.#reply(status,{error:{code},ok:false});
+    }
+  }
+  #loginResponse(page,bound,headers,extra={}){
+    const data=canonicalJSON({...page,...extra,csrfToken:hash(bound)}).replaceAll('<','\\u003c');
+          return {status:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','referrer-policy':'no-referrer','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self' wss://relay.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com; frame-src https://verify.walletconnect.org; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",'set-cookie':centralBrowserCookie(bound,{transaction:true})},body:centralUIPage(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YNX · Sign in</title><style>body{margin:0;background:#fff;color:#122247;font:17px/1.6 system-ui}main{max-width:560px;margin:8vh auto;padding:24px}button,a{min-height:44px;padding:12px 18px;border-radius:12px}button{background:#002FA7;color:#fff;border:0;margin:8px 8px 8px 0;cursor:pointer}button:disabled{opacity:.65}select{width:100%;min-height:48px;font:inherit}a{color:#002FA7}#status{min-height:3em}</style><main><h1>Sign in with YNX Wallet</h1><p>Allow browser sign-in for registered YNX products. Private product permissions require separate approval.</p><label for="wallet">YNX Wallet</label><select id="wallet"></select><p id="status" role="status" aria-live="polite">Choose a wallet to continue.</p><button id="approve">Continue with YNX Wallet</button><button id="cancel">Cancel</button><p><a href="https://wallet.ynxweb4.com" target="_blank" rel="noopener noreferrer">Get YNX Wallet</a></p><p><small>Portions © 2025 Reown, Inc. All Rights Reserved. WalletConnect connection uses the official Reown network.</small></p><script id="context" type="application/json">${data}</script><script src="/sso/browser.js" defer></script></main></html>`,headers['accept-language'])};
+  }
+  #handleOIDC({method,parsedUrl,headers,body}){
+    const path=parsedUrl.pathname;
+    try{
+      if(parsedUrl.hash||path!=='/oidc/authorize'&&parsedUrl.search)fail('OIDC_REQUEST_INVALID');
+      if(['/.well-known/openid-configuration','/oidc/jwks'].includes(path)){
+        if(method!=='GET')fail('OIDC_METHOD_INVALID');return this.#reply(200,path.endsWith('/jwks')?this.#authority.oidcJwks():this.#authority.oidcMetadata());
+      }
+      if(path==='/oidc/authorize'){
+        if(method!=='GET'||headers.origin!==undefined&&headers.origin!==CENTRAL_BROWSER_ISSUER||headers['sec-fetch-dest']!==undefined&&headers['sec-fetch-dest']!=='document')fail('OIDC_REQUEST_INVALID');
+        const input=Object.fromEntries(parsedUrl.searchParams);if([...parsedUrl.searchParams].length!==Object.keys(input).length)fail('OIDC_REQUEST_INVALID');const request=this.#authority.oidcRequest(input);
+        try{const result=this.#authority.oidcAuthorize(request,centralBrowserCookieToken(headers.cookie));return this.#reply(303,{redirect:true},{location:result.redirectUri});}
+        catch(error){if(error?.code!=='SSO_LOGIN_REQUIRED')throw error;
+          if(request.prompt==='none')return this.#reply(303,{redirect:true},{location:this.#authority.oidcErrorRedirect(request,'login_required')});
+          const bound=centralBrowserCookieToken(headers.cookie,CENTRAL_BROWSER_TRANSACTION_COOKIE)??random(),page=this.#authority.oidcLoginPage(request,bound);
+          return this.#loginResponse(page,bound,headers,{mode:'oidc',oidcCancelRedirect:this.#authority.oidcErrorRedirect(request,'access_denied')});
+        }
+      }
+      if(path==='/oidc/token'){
+        if(method!=='POST')fail('OIDC_METHOD_INVALID');if(typeof body!=='string'||Buffer.byteLength(body)>16384||typeof headers['content-type']!=='string'||!/^application\/x-www-form-urlencoded(?:;\s*charset=utf-8)?$/i.test(headers['content-type']))fail('OIDC_REQUEST_INVALID');
+        const params=new URLSearchParams(body),input=Object.fromEntries(params);if([...params].length!==Object.keys(input).length)fail('OIDC_REQUEST_INVALID');return this.#reply(200,this.#authority.oidcRedeem(input,headers));
+      }
+      if(path==='/oidc/userinfo'){
+        if(method!=='GET')fail('OIDC_METHOD_INVALID');if(headers.origin!==undefined||headers.cookie!==undefined||headers['sec-fetch-site']!==undefined)fail('OIDC_BACKEND_ONLY');
+        if(typeof headers.authorization!=='string'||!/^Bearer [A-Za-z0-9_-]{43}$/.test(headers.authorization))fail('OIDC_TOKEN_INVALID');return this.#reply(200,this.#authority.oidcUserInfo(headers.authorization.slice(7)));
+      }
+      fail('OIDC_REQUEST_INVALID');
+    }catch(error){
+      const code=error instanceof WalletAuthError?error.code:'OIDC_INTERNAL',client=code==='OIDC_CLIENT_AUTH_INVALID',token=path==='/oidc/userinfo',busy=code==='SSO_STATE_BUSY',status=client||token?401:busy?503:code==='OIDC_METHOD_INVALID'?405:code==='OIDC_INTERNAL'||code.startsWith('SSO_STATE')?500:400;
+      return this.#reply(status,{error:client?'invalid_client':token?'invalid_token':busy?'temporarily_unavailable':path==='/oidc/token'?'invalid_grant':'invalid_request'},client?{'www-authenticate':'Basic realm="YNX Central OpenID"'}:token?{'www-authenticate':'Bearer error="invalid_token"'}:{});
     }
   }
   #reply(status,payload,headers={}){return {status,headers:{'cache-control':'no-store','content-type':'application/json; charset=utf-8','referrer-policy':'no-referrer','x-content-type-options':'nosniff',...headers},body:canonicalJSON(payload)};}
