@@ -29,6 +29,8 @@ export class SocialAPI {
   private epoch=0;
   onPrivateInvalidated?:()=>void;
   constructor(base=process.env.EXPO_PUBLIC_YNX_SOCIAL_API_BASE ?? "https://api.ynxweb4.com",token:string|null=null){if(!/^https:\/\//.test(base)&&!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base))throw new Error("Set a secure YNX Social API endpoint");this.base=base.replace(/\/$/,"");this.token=token}
+  get authorizationGeneration(){return this.epoch}
+  authorizationGuard(){const epoch=this.epoch;return()=>epoch===this.epoch}
   setToken(value:string|null){const hadPrivateProof=this.productProof!==null;this.epoch++;this.productProof=null;this.productAccount=null;this.token=value;if(hadPrivateProof)this.onPrivateInvalidated?.()}
   useSession(value:Session){if(value.authMode!=="product-session-v2")this.setToken(value.token)}
   useProductSession(proof:(scopes:readonly string[])=>Promise<SessionProof>,account:string,csrf?:string){this.epoch++;this.token=null;this.productProof=proof;this.productAccount=account;this.csrf=csrf}

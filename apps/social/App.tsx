@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert as NativeAlert,
@@ -110,6 +110,7 @@ import { SocialCloudAttachments, type CloudObjectRecord } from "./src/cloudAttac
 import { NativeSessionPanel } from "./src/NativeSessionPanel";
 import { nativeSocialSession, nativeChatDevice } from "./src/nativeSessionRuntime";
 import { bindScopedSocialSession } from "./src/scopedSessionBridge";
+import {ContactRequestFlow,socialProfileQR,requireSocialProfileQR,type ContactReview} from "./src/contactRequestFlow";
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -501,7 +502,7 @@ function SocialApp() {
       </View>
       <View style={styles.body}>
         {tab === "contacts" ? (
-          <Contacts api={api} />
+          <Contacts key={api.authorizationGeneration} api={api} />
         ) : tab === "messages" ? (
           <Messages api={api} session={session} />
         ) : tab === "moments" ? (
@@ -615,6 +616,9 @@ function LanguagePicker({ compact = false }: { compact?: boolean }) {
 
 function Contacts({ api }: { api: SocialAPI }) {
   type Source = "handle" | "contacts" | "qr" | "invite" | "recommendation";
+  const flow=useMemo(()=>new ContactRequestFlow(api,async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,"0")).join("")),[api]);
+  const mounted=useRef(true),scanGuard=useRef<()=>boolean>(()=>false);
+  const [review,setReview]=useState<ContactReview|null>(null),[requesting,setRequesting]=useState(false),[requestMessage,setRequestMessage]=useState("");
   const [data, setData] = useState<{
       contacts: Person[];
       requests: ContactRequest[];
@@ -626,34 +630,40 @@ function Contacts({ api }: { api: SocialAPI }) {
     [source, setSource] = useState<Source>("handle"),
     [value, setValue] = useState("");
   const load = async () => {
+    const current=api.authorizationGuard();
     setLoading(true);
     try {
-      setData(await api.contacts());
+      const result=await api.contacts();if(!mounted.current||!current())return;setData(result);
       setError(null);
     } catch (caught) {
-      setError(message(caught));
+      if(mounted.current&&current())setError(message(caught));
     } finally {
-      setLoading(false);
+      if(mounted.current&&current())setLoading(false);
     }
   };
   useEffect(() => {
+    mounted.current=true;
     void load();
+    const subscription=AppState.addEventListener("change",state=>{if(state!=="active"){flow.cancel();scanGuard.current=()=>false;setReview(null);setRequestMessage("");setScan(false);setAdd(false)}});
+    return()=>{mounted.current=false;flow.cancel();scanGuard.current=()=>false;subscription.remove()};
   }, []);
   const normalized = () =>
     source === "handle" || source === "recommendation"
       ? value.trim().replace(/^@/, "")
       : value.trim();
   const request = async () => {
+    const current=api.authorizationGuard();if(requesting)return;setRequesting(true);
     try {
-      const candidate = normalized();
-      if (/^ynx1/i.test(candidate))
-        throw new Error("Wallet addresses cannot be used to add friends");
-      await api.requestContact(source, candidate, `request-${Date.now()}`);
+      if(!review){const next=await flow.preview(source,value);if(mounted.current&&current()){setReview(next);setError(null)}return}
+      await flow.confirm(review,requestMessage);if(!mounted.current||!current())return;
+      setReview(null);setRequestMessage("");
       setAdd(false);
       setValue("");
       await load();
     } catch (caught) {
-      setError(message(caught));
+      if(mounted.current&&current())setError(message(caught));
+    } finally {
+      if(mounted.current&&current())setRequesting(false);
     }
   };
   const transition = async (
@@ -710,6 +720,7 @@ function Contacts({ api }: { api: SocialAPI }) {
                   ? "wants to connect"
                   : "request pending"}
               </Text>
+              {item.message?<Text style={styles.emptyBody}>{item.message}</Text>:null}
             </View>
             {item.direction === "incoming" ? (
               <>
@@ -745,7 +756,7 @@ function Contacts({ api }: { api: SocialAPI }) {
     source === "handle" || source === "recommendation"
       ? "@handle"
       : source === "qr"
-        ? "ynxsocial://profile/handle"
+        ? "https://social.ynxweb4.com/people/sp_..."
         : source === "invite"
           ? "https://social.ynxweb4.com/invite/…"
           : "Authorized contact match token";
@@ -803,11 +814,12 @@ function Contacts({ api }: { api: SocialAPI }) {
         visible={add}
         transparent
         animationType="slide"
-        onRequestClose={() => setAdd(false)}
+        onRequestClose={() => {flow.cancel();setReview(null);setRequestMessage("");setAdd(false)}}
       >
         <View style={styles.backdrop}>
           <View style={styles.sheet}>
-            <SheetTitle title="Add someone" close={() => setAdd(false)} />
+            <SheetTitle title={review?"Review this person":"Add someone"} close={() => {flow.cancel();setReview(null);setRequestMessage("");setAdd(false)}} />
+            {review?<View><Text style={styles.name}>{review.person.displayName}</Text><Text style={styles.handle}>@{review.person.handle}</Text><Text style={styles.securityNote}>They must accept before you become contacts. This profile does not verify encryption keys.</Text><TextInput accessibilityLabel="Optional request message" value={requestMessage} onChangeText={(next:string)=>setRequestMessage(Array.from(next).slice(0,200).join(""))} maxLength={400} multiline placeholder="Optional request message (200 characters)" style={styles.input} editable={!requesting}/></View>:null}
             <View style={styles.aiKinds}>
               {(
                 [
@@ -821,6 +833,7 @@ function Contacts({ api }: { api: SocialAPI }) {
                 <Pressable
                   key={item}
                   onPress={() => {
+                    flow.cancel();setReview(null);setRequestMessage("");
                     setSource(item);
                     setValue("");
                   }}
@@ -846,7 +859,7 @@ function Contacts({ api }: { api: SocialAPI }) {
                   accessibilityLabel={`Discovery by ${source}`}
                   autoCapitalize="none"
                   value={value}
-                  onChangeText={setValue}
+                  onChangeText={(next:string)=>{flow.cancel();setReview(null);setRequestMessage("");setValue(next)}}
                   placeholder={placeholder}
                   placeholderTextColor="#98A2B3"
                   style={styles.input}
@@ -854,7 +867,7 @@ function Contacts({ api }: { api: SocialAPI }) {
                 {source === "qr" ? (
                   <Pressable
                     accessibilityLabel="Scan profile QR with camera"
-                    onPress={() => setScan(true)}
+                    onPress={() => {flow.cancel();setReview(null);scanGuard.current=api.authorizationGuard();setScan(true)}}
                     style={styles.secondary}
                   >
                     <Text style={styles.secondaryText}>Scan profile QR</Text>
@@ -871,7 +884,7 @@ function Contacts({ api }: { api: SocialAPI }) {
               </Text>
             </View>
             <Pressable
-              disabled={!normalized() || /^ynx1/i.test(normalized())}
+              disabled={requesting || !normalized() || /^ynx1/i.test(normalized())}
               onPress={() => void request()}
               style={[
                 styles.primary,
@@ -879,7 +892,7 @@ function Contacts({ api }: { api: SocialAPI }) {
                   styles.disabled,
               ]}
             >
-              <Text style={styles.primaryText}>Send request</Text>
+              <Text style={styles.primaryText}>{requesting?"Please wait":review?"Send request":"Preview person"}</Text>
             </Pressable>
             <Text style={styles.securityNote}>
               Wallet addresses are never accepted for friend discovery. Requests
@@ -890,8 +903,10 @@ function Contacts({ api }: { api: SocialAPI }) {
       </Modal>
       <QRScanner
         visible={scan}
-        close={() => setScan(false)}
+        close={() => {scanGuard.current=()=>false;setScan(false)}}
         onValue={(payload) => {
+          if(!mounted.current||!scanGuard.current())return;
+          flow.cancel();setReview(null);setRequestMessage("");scanGuard.current=()=>false;
           setValue(payload);
           setScan(false);
         }}
@@ -919,20 +934,11 @@ function QRScanner({
     }
   }, [visible]);
   const scanned = ({ data }: { data: string }) => {
-    if (locked) return;
+    if (!visible || locked) return;
     setLocked(true);
     try {
       if (data.length > 512) throw new Error("Profile QR payload is too large");
-      const parsed = new URL(data);
-      if (
-        parsed.protocol !== "ynxsocial:" ||
-        parsed.hostname !== "profile" ||
-        !/^\/[a-z][a-z0-9_]{2,23}$/.test(parsed.pathname) ||
-        parsed.search ||
-        parsed.hash
-      )
-        throw new Error("This is not a canonical YNX Social profile QR");
-      onValue(data);
+      onValue(requireSocialProfileQR(data));
     } catch (caught) {
       setError(message(caught));
       setLocked(false);
@@ -947,7 +953,7 @@ function QRScanner({
           </Pressable>
           <Text style={styles.name}>Scan profile QR</Text>
         </View>
-        {!permission?.granted ? (
+        {!visible ? null : !permission?.granted ? (
           <View style={styles.center}>
             <QrCode color={BLUE} size={44} />
             <Text style={styles.authBody}>
@@ -2514,9 +2520,9 @@ function Profile({
             <Text style={styles.emptyBody}>{person.bio}</Text>
           ) : null}
           <View style={styles.qr}>
-            {person?.handle ? (
+            {socialProfileQR(person?.privacy.profileQrPayload) ? (
               <QRCode
-                value={`ynxsocial://profile/${person.handle}`}
+                value={socialProfileQR(person?.privacy.profileQrPayload)!}
                 size={148}
                 color={INK}
                 backgroundColor="#FFFFFF"
@@ -2526,7 +2532,7 @@ function Profile({
             )}
           </View>
           <Text style={styles.securityNote}>
-            Your profile QR contains a Social handle, never a wallet address.
+            Your profile QR uses a stable public Social identifier, never a wallet address. Refresh your profile if its stable QR is unavailable. Legacy username QRs are not identity proof.
           </Text>
         </View>
         <PrivacyPanel api={api} />
