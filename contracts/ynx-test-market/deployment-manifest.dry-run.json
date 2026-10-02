@@ -1,0 +1,42 @@
+{
+  "manifestVersion": "ynx-test-market-dry-run-v1",
+  "network": "ynx_6423-1",
+  "chainId": 6423,
+  "testOnly": true,
+  "environment": "ephemeral-hardhat-qa6423",
+  "actualTestnetDeployment": "NOT_VERIFIED",
+  "publicAddresses": null,
+  "constructorInputs": {
+    "stock": {
+      "name": "YNX Test AAPL",
+      "symbol": "TEST-AAPL",
+      "cap": "1000000000000",
+      "admin": "CONFIGURE_QA_ADMIN",
+      "issuer": "CONFIGURE_QA_ISSUER"
+    },
+    "cash": {
+      "name": "YNX Test USD",
+      "symbol": "tUSD",
+      "cap": "10000000000000",
+      "admin": "CONFIGURE_QA_ADMIN",
+      "issuer": "CONFIGURE_QA_ISSUER"
+    },
+    "settlement": {
+      "stock": "DEPLOYED_TEST_AAPL",
+      "cash": "DEPLOYED_TUSD",
+      "stockCodeHash": "0x742178bad18ff4e69defaad91feb1507b0415d82c15fa340ace165006da97572",
+      "cashCodeHash": "0x40833c187b7ace2c925bfb347a19da092e120dac99ca577b8c19c6ff9cbffb75",
+      "feeRecipient": "CONFIGURE_QA_FEE_RECIPIENT",
+      "feeBps": 25
+    }
+  },
+  "creationBytecodeKeccak256": {
+    "TestAsset": "0x9725cf7a44a67f51a1d564d61766c163030a6839131e6370b8f18d05b8601a39",
+    "TestDvP": "0xb75cc2d85719842f4018a74eebbf67aba2016732dd4e1582de11a2f56b6e0386"
+  },
+  "approvedAssetRuntimeCodeHash": {
+    "TestAAPL": "0x742178bad18ff4e69defaad91feb1507b0415d82c15fa340ace165006da97572",
+    "tUSD": "0x40833c187b7ace2c925bfb347a19da092e120dac99ca577b8c19c6ff9cbffb75"
+  },
+  "localDeploymentChecks": "PASS"
+}
