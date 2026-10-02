@@ -48,3 +48,21 @@ test("expiration during an asynchronous signing lease prevents the outward effec
   await assert.rejects(() => key.run(async lease => { await Promise.resolve(); tick(entry.expiresAt); await lease.deliver(async () => { sent = true; }); }, { assertCurrent: () => inbox.assertLive(entry) }), error => error.data.code === "WALLETCONNECT_REQUEST_EXPIRED");
   assert.equal(sent, false);
 });
+function durableStorage(){const values=new Map();return{values,getItem:async key=>structuredClone(values.get(key)),setItem:async(key,value)=>{values.set(key,structuredClone(value));}};}
+test("cold inbox restores the original unlocked review deadline without re-signing and binds account/session/wire",async()=>{
+ const store=durableStorage(),first=fixture(),e=event();delete e.params.request.expiryTimestamp;const authorized={origin,sessionBinding:"original-session"};await first.inbox.start(store);const original=first.inbox.accept(e,authorized,account).entry;await first.inbox.persist();
+ const cold=fixture();cold.tick(1_030_000);await cold.inbox.start(store,[original.key]);const resumed=cold.inbox.accept({...e,restored:true},authorized,account).entry;assert.equal(resumed.expiresAt,original.expiresAt);assert.equal(resumed.stage,"received");
+ const key=new DesktopKeyLifecycle({authorizer:{available:()=>true,authenticate:async()=>{},method:"isolated-qa"}});key.setFocused(true);key.setAccount(account);let signs=0;await assert.rejects(key.run(()=>signs++));await key.unlock();assert.equal(signs,0);await key.run(async lease=>{await cold.inbox.markDecided(resumed,lease.assert);signs++;});assert.equal(signs,1);cold.inbox.finish(resumed.key);await cold.inbox.persist();
+ const afterDecision=fixture();await afterDecision.inbox.start(store,[original.key]);assert.equal(afterDecision.inbox.accept({...e,restored:true},authorized,account).entry,null);
+ for(const changed of [{...authorized,sessionBinding:"changed"},{...authorized,origin:"https://changed.example"}]){const isolated=fixture();await isolated.inbox.start(durableStorage());assert.throws(()=>isolated.inbox.accept({...e,restored:true},changed,account));}
+});
+test("cold inbox never creates a new application TTL from SDK wire expiry or a missing durable record",async()=>{
+ const store=durableStorage(),first=fixture(),authorized={origin,sessionBinding:"session"},e=event();e.params.request.expiryTimestamp=5000;await first.inbox.start(store);const original=first.inbox.accept(e,authorized,account).entry;await first.inbox.persist();
+ const cold=fixture();cold.tick(original.expiresAt+1);await cold.inbox.start(store,[original.key]);assert.throws(()=>cold.inbox.accept({...e,restored:true},authorized,account));
+ const missing=fixture();await missing.inbox.start(durableStorage());assert.throws(()=>missing.inbox.accept({...e,restored:true},authorized,account));
+});
+test("missing or unconfirmed decision storage prevents the key side effect and reject remains terminal across restart",async()=>{
+ const store=durableStorage(),{inbox}=fixture();await inbox.start(store);const entry=inbox.accept(event(),{origin},account).entry;await inbox.persist();store.values.clear();let signs=0;await assert.rejects(async()=>{await inbox.markDecided(entry);signs++;});assert.equal(signs,0);
+ const good=durableStorage(),next=fixture();await next.inbox.start(good);const fresh=next.inbox.accept(event("topic-next",2),{origin},account).entry;await next.inbox.persist();await next.inbox.markDecided(fresh);next.inbox.finish(fresh.key);await next.inbox.persist();const restarted=fixture();await restarted.inbox.start(good,[fresh.key]);assert.equal(restarted.inbox.accept({...event("topic-next",2),restored:true},{origin},account).entry,null);
+ const retry=restarted.inbox.accept(event("topic-next",3),{origin},account).entry;assert.equal(retry.event.id,3);
+});

@@ -152,7 +152,7 @@ test("security invalidation clears old unlock success while an unchanged locked 
     let invalidatedInputs = 0;
     const approvalQueue = new ApprovalReviewQueue(); approvalQueue.enqueue("provider", { id: "existing-review" });
     runInNewContext(`${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
-      document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
+      pairPending:false,pairGeneration:0,pairCancel:{},pairButton:{},document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
       walletCopy: english => english, t: english => english, accountState: { initialized: true },
       approvalQueue, authorizationChoices: new Map(), transferReview: null,
       passwordUI: { cancel() {}, render() {} }, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
@@ -162,6 +162,13 @@ test("security invalidation clears old unlock success while an unchanged locked 
     assert.equal(approvalQueue.current.review.id, "existing-review");
     assert.equal(invalidatedInputs, fixture.before.revision !== fixture.after.revision || fixture.before.locked !== fixture.after.locked ? 1 : 0);
   }
+});
+test("actual Desktop Pair button recovers after rejection and late prior completion cannot re-enable a newer attempt",async()=>{
+ const source=await readFile(new URL("../src/renderer.js",import.meta.url),"utf8"),start=source.indexOf('pairButton.addEventListener("click"'),end=source.indexOf('walletConnectQR.addEventListener',start);assert.ok(start>=0&&end>start);
+ for(const late of [false,true]){let click;const deferred=Promise.withResolvers(),context={pairGeneration:0,pairPending:false,pairButton:{disabled:false,addEventListener:(_event,handler)=>{click=handler;}},pairCancel:{hidden:true},walletConnectURI:{value:`wc:${"a".repeat(64)}@2?relay-protocol=irn&symKey=${"b".repeat(64)}`,focus(){}},walletConnectDetail:{textContent:""},lastWalletConnectStatus:null,t:value=>value,walletCopy:value=>value,errorText:result=>result.error?.message,window:{ynxWallet:{walletConnectPair:()=>deferred.promise,walletConnectStatus:async()=>({ok:true,value:{started:true}})}}};runInNewContext(source.slice(start,end),context);const operation=click();assert.equal(context.pairButton.disabled,true);assert.equal(context.pairCancel.hidden,false);
+ if(late){context.pairGeneration++;context.pairPending=true;context.pairButton.disabled=true;deferred.resolve({ok:true,value:{proposalReceived:true}});}else deferred.reject(new Error("Synthetic SDK transport failure"));await operation;
+ if(late){assert.equal(context.pairButton.disabled,true);assert.equal(context.pairPending,true);}else{assert.equal(context.pairButton.disabled,false);assert.equal(context.pairPending,false);assert.equal(context.pairCancel.hidden,true);assert.match(context.walletConnectDetail.textContent,/unavailable/);}
+ }
 });
 
 async function sendEntryHarness() {
@@ -200,7 +207,7 @@ async function sendEntryHarness() {
     async prepareTransfer() { calls.push(["prepare"]); return { ok: false, error: { message: "Fixture refuses transfer" } }; },
     async transferAction() { calls.push(["send"]); throw new Error("Unexpected transaction submission"); },
   };
-  const context = { document, window: { ynxWallet: api }, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
+  const context = { pairPending:false,pairGeneration:0,pairCancel:{},pairButton:{},document, window: { ynxWallet: api }, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
     accountReadFailed: false, walletReadiness, walletCopy: english => english, t: english => english,
     signingShort: {}, activeAccount: account.account, approvalQueue: new ApprovalReviewQueue(), authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
     paymentDraftRevision: 0, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,

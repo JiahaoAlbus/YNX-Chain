@@ -1,4 +1,5 @@
 <resources>
   <color name="splashscreen_background">#FFFFFF</color>
   <color name="colorPrimary">#002FA7</color>
+  <color name="ynx_launcher_background">#FFFFFF</color>
 </resources>

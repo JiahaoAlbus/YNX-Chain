@@ -37,10 +37,10 @@ test("failed initialization is explicitly retryable without caching a rejected p
   await runtime.retryStart();
   assert.equal(attempts,2);
   assert.equal(runtime.snapshot().phase,"ready");
-  assert.deepEqual([...client.handlers.keys()].sort(),["session_delete","session_expire","session_proposal","session_request","session_update"]);
+  assert.deepEqual([...client.handlers.keys()].sort(),["proposal_expire","session_delete","session_expire","session_proposal","session_request","session_request_expire","session_update"]);
   await runtime.start();
   assert.equal(attempts,2);
-  assert.equal(client.handlers.size,5);
+  assert.equal(client.handlers.size,7);
 });
 
 test("initialization retries are bounded",async()=>{
@@ -272,6 +272,26 @@ test("batch disconnect still closes every session once when pending-request resp
 const pairingUri=(topic:string)=>`wc:${topic}@2?relay-protocol=irn&symKey=${"b".repeat(64)}`;
 const tick=()=>new Promise<void>(resolve=>setTimeout(resolve,0));
 
+test("pair terminal and proposal stages are monotonic despite real-shaped relay/subscriber events",async()=>{
+  for(const outcome of ["timed-out","canceled","proposal-received"] as const){
+    const client=fakeClient(),relayEvents=new Map<string,()=>void>(),subscriptionEvents=new Map<string,(event:any)=>void>(),old="d".repeat(64),fresh="e".repeat(64);let finish!:()=>void;
+    client.pair=()=>new Promise<void>(resolve=>{finish=resolve});
+    const subscriber={topics:[] as string[],pending:new Map<string,unknown>(),on:(event:string,fn:(event:any)=>void)=>subscriptionEvents.set(event,fn)};
+    const relayer={connected:false,connecting:true,subscriber,on:(event:string,fn:()=>void)=>relayEvents.set(event,fn),transportOpen:async()=>{}};
+    Object.assign(client,{core:{relayer,pairing:{getPairings:()=>[],disconnect:async()=>{}}}});
+    const runtime=new WalletConnectRuntime({projectId:"a".repeat(32)},(async()=>client) as any,10);await runtime.start();
+    const pending=runtime.pair(pairingUri(old));const rejected=outcome==="proposal-received"?null:assert.rejects(pending,/timed out|canceled/);await tick();
+    if(outcome==="canceled")runtime.cancelPair();
+    if(outcome==="proposal-received"){client.handlers.get("session_proposal")!({...pendingProposal(),params:{...pendingProposal().params,pairingTopic:old}});await pending;}else await rejected;
+    subscriber.topics.push(old);subscriptionEvents.get("subscription_created")!({topic:old});relayEvents.get("relayer_connect")!();
+    assert.equal(runtime.snapshot().pairTransportStage,outcome);assert.equal(runtime.snapshot().pairing,false);
+    if(outcome!=="proposal-received"){
+      client.pair=async()=>{};await runtime.pair(pairingUri(fresh));const current=runtime.snapshot().pairTransportStage;
+      subscriptionEvents.get("subscription_created")!({topic:old});finish();await tick();relayEvents.get("relayer_disconnect")!();assert.equal(runtime.snapshot().pairTransportStage,current);
+    }else{assert.notEqual(runtime.snapshot().proposal,null);finish();}
+  }
+});
+
 test("pair deadline releases busy state, quarantines late proposals and permits a fresh retry",async()=>{
   const client=fakeClient(),cleanups:string[]=[],rejected:number[]=[];let finish!:()=>void;
   client.pair=()=>new Promise<void>(resolve=>{finish=resolve});
@@ -410,7 +430,7 @@ test("SDK removal retires quarantine only after the original deferred pair has s
 test("unpublished v1 journal migrates conservatively until actual SDK expiry is known",async()=>{
  const key="ynx.wallet.walletconnect.pairing-quarantine.v1",topic="4".repeat(64),values=new Map([[key,JSON.stringify({version:1,topics:[topic]})]]);
  const journal=new WalletConnectPairingJournal({getItem:async(key)=>values.get(key)??null,setItem:async(key,value)=>{values.set(key,value)},deleteItem:async()=>{}},()=>1000);
- assert.deepEqual(await journal.load(),[topic]);await journal.record(topic,2000);assert.equal(JSON.parse(values.get(key)!).version,2);
+ assert.deepEqual(await journal.load(),[topic]);await journal.record(topic,2000);assert.equal(JSON.parse(values.get(key)!).version,3);
  const cold=new WalletConnectPairingJournal({getItem:async(key)=>values.get(key)??null,setItem:async()=>{},deleteItem:async()=>{}},()=>2001);assert.deepEqual(await cold.load(),[]);
 });
 
