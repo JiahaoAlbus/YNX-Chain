@@ -748,8 +748,40 @@ func (s *Server) upload(w http.ResponseWriter, r *http.Request, actor string) {
 	}
 	territories := strings.Split(r.FormValue("rights_territories"), ",")
 	out, err := s.service.Upload(r.Context(), actor, r.FormValue("channel_id"), UploadInput{Title: r.FormValue("title"), Description: r.FormValue("description"), Filename: h.Filename, ContentType: h.Header.Get("Content-Type"), ExpectedSHA256: r.FormValue("sha256"), RightsBasis: r.FormValue("rights_basis"), RightsSource: r.FormValue("rights_source"), RightsLicense: r.FormValue("rights_license"), RightsTerritories: territories, RightsExpiresAt: rightsExpiresAt, RightsEvidenceSHA256: r.FormValue("rights_evidence_sha256"), Size: size, OwnedDeclaration: owned, Reader: file})
-	respond(w, out, err)
+	s.respondUpload(w, actor, r.FormValue("channel_id"), out, err)
 }
+
+func (s *Server) respondUpload(w http.ResponseWriter, actor, channelID string, out *Video, err error) {
+	if err == nil || out == nil {
+		respond(w, out, err)
+		return
+	}
+	// A scan or transcode can fail after the source has been persisted. Read
+	// the stored state again: the returned service value can predate failure,
+	// and a team member's access may have changed while processing ran.
+	var saved *Video
+	_ = s.service.store.read(func(st State) error {
+		video := st.Videos[out.ID]
+		channel := st.Channels[channelID]
+		if video != nil && channel != nil && video.ChannelID == channelID && video.Owner == channel.Owner &&
+			channelAuthorized(st, channelID, actor, CreatorRoleEditor, CreatorRoleUploader) {
+			saved = cloneVideo(video)
+		}
+		return nil
+	})
+	if saved == nil {
+		respond(w, nil, err)
+		return
+	}
+	recovery := "refresh"
+	if saved.Status == "failed" {
+		recovery = "retry-processing"
+	}
+	write(w, errorStatus(err), map[string]string{
+		"error": err.Error(), "video_id": saved.ID, "status": saved.Status, "recovery": recovery,
+	})
+}
+
 func (s *Server) allow(key string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -778,20 +810,22 @@ func decode(r *http.Request, v any, w http.ResponseWriter) bool {
 }
 func respond(w http.ResponseWriter, v any, err error) {
 	if err != nil {
-		status := 400
-		if errors.Is(err, ErrUnauthorized) {
-			status = 401
-		} else if errors.Is(err, ErrForbidden) {
-			status = 403
-		} else if errors.Is(err, ErrNotFound) {
-			status = 404
-		} else if errors.Is(err, ErrQuota) {
-			status = 413
-		}
-		problem(w, status, err)
+		problem(w, errorStatus(err), err)
 		return
 	}
 	write(w, 200, v)
+}
+func errorStatus(err error) int {
+	if errors.Is(err, ErrUnauthorized) {
+		return http.StatusUnauthorized
+	} else if errors.Is(err, ErrForbidden) {
+		return http.StatusForbidden
+	} else if errors.Is(err, ErrNotFound) {
+		return http.StatusNotFound
+	} else if errors.Is(err, ErrQuota) {
+		return http.StatusRequestEntityTooLarge
+	}
+	return http.StatusBadRequest
 }
 func problem(w http.ResponseWriter, status int, err error) {
 	write(w, status, map[string]string{"error": err.Error()})

@@ -39,6 +39,7 @@ class Element {
   focus() { this.focused = true; }
   showModal() { this.open = true; }
   close() { this.open = false; }
+  click() { this.clicked = true; this.onclick?.(); }
 }
 
 async function app(overrides = {}) {
@@ -81,6 +82,75 @@ function assertCleared(controller, marker) {
   assert.equal(controller.element("#ai-result").textContent, "No AI request prepared.");
   for (const id of ["ai-run", "ai-cancel", "ai-accept", "ai-reject", "ai-delete"]) assert.equal(controller.element(`#${id}`).disabled, true);
 }
+
+test('sign out releases a private request whose proof provider never settles', async () => {
+  let calls=0;
+  const controller=await app({productAuthorization:()=>new Promise(()=>{}),fetch:async()=>{calls++;return response({});}});
+  controller.renderProductState(connected('owner-a'));
+  const pending=controller.api('/v1/studio');
+  const rejected=assert.rejects(pending,/Creator account changed/);
+  await controller.click('product-disconnect');
+  await rejected;
+  assert.equal(calls,0);
+});
+
+test('multipart upload is sent once when its network result is unknown', async () => {
+  let calls=0;
+  const controller=await app({fetch:async()=>{calls++;throw new TypeError('Network disconnected');}});
+  controller.renderProductState(connected('owner-a'));
+  const body=new FormData();body.set('title','Owned video');
+  await assert.rejects(controller.api('/v1/uploads',{method:'POST',body}),/Network disconnected/);
+  assert.equal(calls,1,'a fresh multipart boundary must not replay the same idempotency key');
+});
+
+test('caller cancellation aborts the request and cannot trigger automatic retry', async () => {
+  let calls=0,observedSignal;
+  const controller=await app({fetch:async(_url,input)=>{calls++;observedSignal=input.signal;return new Promise(()=>{});}});
+  controller.renderProductState(connected('owner-a'));
+  const cancel=new AbortController(),pending=controller.api('/v1/studio',{signal:cancel.signal});
+  const rejected=assert.rejects(pending,/cancelled/);
+  await turn();cancel.abort(new Error('cancelled'));
+  await rejected;
+  assert.equal(observedSignal.aborted,true);
+  assert.equal(calls,1);
+});
+
+test('upload hashes a stable form snapshot and cancel while hashing sends no request', async () => {
+  const digest=deferred();let uploads=0,body;
+  const controller=await app({crypto:{randomUUID,subtle:{digest:()=>digest.promise}},fetch:async(url,input)=>{
+    if(url.endsWith('/v1/uploads')){uploads++;body=input.body;return response({id:'owned-source',status:'processing'});}
+    return response({team:[],videos:[]});
+  }});
+  controller.renderProductState(connected('owner-a'));
+  const form=controller.element('#upload-form');
+  for(const name of ['channel_id','title','description','rights_basis','rights_source','rights_license','rights_territories','rights_expires_at','rights_evidence_sha256'])form[name]={value:''};
+  form.title.value='Original title';form.channel_id.value='channel-a';form.owned={checked:true};form.media={files:[new File(['owned media'],'owned.mp4',{type:'video/mp4'})]};
+  const first=form.onsubmit({preventDefault(){},target:form});
+  form.title.value='Edited while hashing';form.channel_id.value='channel-b';
+  digest.resolve(new Uint8Array(32).buffer);await first;
+  assert.equal(uploads,1);assert.equal(body.get('title'),'Original title');assert.equal(body.get('channel_id'),'channel-a');
+  const second=form.onsubmit({preventDefault(){},target:form});
+  controller.element('#upload-cancel').onclick();await second;
+  assert.equal(uploads,1);assert.equal(controller.element('#upload-cancel').hidden,true);
+  assert.match(controller.element('#status').textContent,/Check Content before trying again/);
+});
+
+test('a saved failed upload recovers its original content record without resending the file', async () => {
+  let uploads=0;
+  const controller=await app({crypto:{randomUUID,subtle:{digest:async()=>new Uint8Array(32).buffer}},fetch:async(url)=>{
+    if(url.endsWith('/v1/uploads')){uploads++;return response({error:'Transcoding failed',video_id:'saved-owned',status:'failed',recovery:'retry-processing'},422);}
+    return response({team:[],videos:[{id:'saved-owned',channel_id:'channel-a',title:'Owned video',sha256:'0'.repeat(64),status:'failed'}]});
+  }});
+  controller.renderProductState(connected('owner-a'));
+  const form=controller.element('#upload-form');
+  for(const name of ['channel_id','title','description','rights_basis','rights_source','rights_license','rights_territories','rights_expires_at','rights_evidence_sha256'])form[name]={value:''};
+  form.channel_id.value='channel-a';form.owned={checked:true};form.media={files:[new File(['owned media'],'owned.mp4',{type:'video/mp4'})]};
+  await form.onsubmit({preventDefault(){},target:form});
+  assert.equal(uploads,1);
+  assert.equal(controller.readState().snapshot.videos[0].id,'saved-owned');
+  assert.equal(controller.element('nav button[data-panel="content"]').clicked,true);
+  assert.match(controller.element('#status').textContent,/uploaded file is saved.*Retry processing/);
+});
 
 test("sign out immediately clears every private view and form while revocation is pending", async () => {
   const revoke = deferred();
@@ -184,8 +254,9 @@ test("AI stream chunks after sign out are discarded and their reader is cancelle
   await turn();
   assert.equal(reads, 1);
   await controller.click("product-disconnect");
+  await stream; // Cancellation releases a pending reader without waiting for a new chunk.
   chunk.resolve({ done: false, value: new TextEncoder().encode('{"delta":"private-owner-a","job":{"id":"private-owner-a","state":"review_required"}}\n') });
-  await stream;
+  await turn();
   assertCleared(controller, "private-owner-a");
   assert.equal(cancelled, 1);
   assert.equal(released, 1);

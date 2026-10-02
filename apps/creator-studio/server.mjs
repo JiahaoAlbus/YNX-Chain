@@ -45,7 +45,7 @@ function proxyAPI(req, res, url) {
     incoming.on('error', () => res.destroy());
     incoming.pipe(res);
   });
-  outgoing.setTimeout(target.pathname === '/v1/uploads' ? 300000 : 15000, () => outgoing.destroy(new Error('API timeout')));
+  outgoing.setTimeout((target.pathname === '/v1/uploads' || /^\/v1\/videos\/[^/]+\/retry-processing$/.test(target.pathname)) ? 300000 : 15000, () => outgoing.destroy(new Error('API timeout')));
   outgoing.on('error', () => {
     if (res.headersSent) return res.destroy();
     res.writeHead(503, {'Content-Type': 'application/json', 'Cache-Control': 'no-store'});

@@ -83,6 +83,8 @@ textarea{min-height:90px;resize:vertical}
 .row-actions button{padding:6px 8px;font-size:.75rem}
 .actions{margin:14px 0}
 button:disabled{opacity:.48;cursor:not-allowed}
+#upload-form button{min-height:44px}
+#upload-cancel{background:transparent;color:var(--blue);border-color:var(--line)}
 .wallet-choice button{padding:10px}
 .meta{color:var(--muted)}
 #ai-provider{margin-bottom:18px}

@@ -23,6 +23,8 @@ const API=`${location.origin}/video/api`,$=s=>document.querySelector(s);
 let snapshot=null,currentAI=null,walletConnecting=false;
 let creatorSessionRevision=0,creatorAccount=null;
 let creatorExpiryTimer;
+const creatorRequestFlights=new Set();
+let currentUpload=null,activeAIRequest=null;
 function announceSession(){if(typeof announceProductSession==='function')announceProductSession();}
 function rememberReturn(request){if(typeof rememberProductReturn==='function')rememberProductReturn(request,document.querySelector('nav button.active')?.dataset.panel||'overview');}
 let selectedChannelId=null,channelReadRevision=0,studioReadRevision=0;
@@ -49,23 +51,40 @@ const walletPersonalSign=$("#wallet-personal-sign");
 const walletTypedData=$("#wallet-eip712-sign");
 const walletSendTx=$("#wallet-send-tx");
 let walletState=createStandardWalletConnectState(),walletSession={provider:null,account:null,chainId:null,kind:null,discovery:null},walletLifecycleDetach=()=>{},walletProviders=null,walletLastTrigger=null;
+function beginCreatorRequest(timeout,externalSignal){
+  const controller=new AbortController();
+  const abort=()=>controller.abort(externalSignal?.reason||new DOMException('Request cancelled','AbortError'));
+  if(externalSignal?.aborted)abort();else externalSignal?.addEventListener('abort',abort,{once:true});
+  const timer=setTimeout(()=>controller.abort(new DOMException('Request timed out','TimeoutError')),timeout);
+  creatorRequestFlights.add(controller);
+  return {signal:controller.signal,abort:()=>controller.abort(new DOMException('Request cancelled','AbortError')),
+    wait(promise){return new Promise((resolve,reject)=>{const cancelled=()=>reject(controller.signal.reason);if(controller.signal.aborted){Promise.resolve(promise).catch(()=>{});cancelled();return;}controller.signal.addEventListener('abort',cancelled,{once:true});Promise.resolve(promise).then(resolve,reject).finally(()=>controller.signal.removeEventListener('abort',cancelled));});},
+    finish(){clearTimeout(timer);externalSignal?.removeEventListener('abort',abort);creatorRequestFlights.delete(controller);},
+  };
+}
 async function api(path,opt={}){
   const revision=creatorSessionRevision;
   assertCreatorSession(revision);
-  const method=(opt.method||"GET").toUpperCase(), baseHeaders={...(opt.headers||{})};
-  if(!["GET","HEAD"].includes(method))baseHeaders["Idempotency-Key"]||=crypto.randomUUID();
-  let response;
-  for(let attempt=0;attempt<2;attempt++){
-    const headers={...baseHeaders,...await productAuthorization(path,method)};
+  if(!path.startsWith('/v1/')||path.includes('..'))throw new Error('Invalid Creator service route.');
+  const method=(opt.method||'GET').toUpperCase(),baseHeaders={...(opt.headers||{})};
+  if(!['GET','HEAD'].includes(method))baseHeaders['Idempotency-Key']||=crypto.randomUUID();
+  const processing=path==='/v1/uploads'||/^\/v1\/videos\/[^/]+\/retry-processing$/.test(path);
+  const operation=beginCreatorRequest(processing?300000:15000,opt.signal);
+  try{
+    let response;
+    for(let attempt=0;attempt<2;attempt++){
+      const headers={...baseHeaders,...await operation.wait(productAuthorization(path,method))};
+      assertCreatorSession(revision);operation.signal.throwIfAborted();
+      try{response=await operation.wait(fetch(API+path,{...opt,headers,credentials:'omit',redirect:'error',signal:operation.signal}));break}
+      catch(error){assertCreatorSession(revision);if(operation.signal.aborted||opt.body instanceof FormData||attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}}
+    }
+    const data=await operation.wait(response.json().catch(()=>({error:'Invalid service response'})));
     assertCreatorSession(revision);
-    try{response=await fetch(API+path,{...opt,headers,credentials:'omit',redirect:'error',signal:opt.signal||AbortSignal.timeout(15000)});break}
-    catch(error){assertCreatorSession(revision);if(attempt===1){reduceWallet({type:"PRIVATE_SESSION_DEGRADED"});throw error}}
-  }
-  const data=await response.json().catch(()=>({error:"Invalid service response"}));
-  assertCreatorSession(revision);
-  if(!response.ok){if(response.status===401){renderProductState({status:'retry-required',message:'Your Creator sign-in needs to be checked. Sign in again.'});status(data.error||'Your sign-in expired.',true);}if(response.status>=500)reduceWallet({type:"PRIVATE_SESSION_DEGRADED"});throw new Error(data.error||`HTTP ${response.status}`)}
-  reduceWallet({type:"PRIVATE_SESSION_READY"});return data;
+    if(!response.ok){if(response.status===401){renderProductState({status:'retry-required',message:'Your Creator sign-in needs to be checked. Sign in again.'});status(data.error||'Your sign-in expired.',true);}if(response.status>=500)reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw Object.assign(new Error(data.error||('HTTP '+response.status)),{status:response.status,details:data})}
+    reduceWallet({type:'PRIVATE_SESSION_READY'});return data;
+  }finally{operation.finish()}
 }
+
 const json=body=>({method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),get=(x,lower,upper)=>x?.[lower]??x?.[upper],esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 async function sha256Hex(file){if(!crypto.subtle)throw new Error("SHA-256 verification requires HTTPS or localhost.");const digest=await crypto.subtle.digest("SHA-256",await file.arrayBuffer());return[...new Uint8Array(digest)].map(byte=>byte.toString(16).padStart(2,"0")).join("")}
 function status(message,bad=false){$("#status").textContent=message;$("#status").style.color=bad?"#9b2335":"#344054"}
@@ -271,6 +290,7 @@ const productStatus=$("#product-status"),productConnect=$("#product-signin"),pro
 let creatorSignOutPending=false;
 function clearCreatorSession(){
   creatorSessionRevision++;
+  for(const request of creatorRequestFlights)request.abort(new Error("Creator account changed. Sign in and retry."));
   studioReadRevision++;channelReadRevision++;selectedChannelId=null;channelAutofill.clear();
   const channelChoice=document.getElementById("channel-select");if(channelChoice){channelChoice.replaceChildren();channelChoice.hidden=true;}
   creatorAccount=null;
@@ -578,7 +598,40 @@ $("#team-accept-form").onsubmit=async event=>{event.preventDefault();try{await a
 $("#team-role-form").onsubmit=async event=>{event.preventDefault();const form=event.target;try{await api(`/v1/channels/${encodeURIComponent(form.channel_id.value)}/team/${encodeURIComponent(form.account.value)}/role`,json({role:form.role.value}));status("Role changed and channel authorization version advanced.");await refresh()}catch(error){status(error.message,true)}};
 $("#team-revoke-form").onsubmit=async event=>{event.preventDefault();const form=event.target,account=form.account.value,channelID=form.channel_id.value;if(!confirm(`Revoke ${account} from ${channelID}? Their next request will fail closed.`))return;try{await api(`/v1/channels/${encodeURIComponent(channelID)}/team/${encodeURIComponent(account)}`,{method:"DELETE"});status("Team access revoked and session authority invalidated.");form.reset();await refresh()}catch(error){status(error.message,true)}};
 $("#rights-form").onsubmit=async event=>{event.preventDefault();const form=event.target;try{let splits=[];if(form.splits.value.trim()){splits=JSON.parse(form.splits.value);if(!Array.isArray(splits))throw new Error("Contributor splits must be a JSON array.")}const body={basis:form.basis.value,license_reference:form.license_reference.value,territories:form.territories.value.split(",").map(value=>value.trim()).filter(Boolean),starts_at:form.starts_at.value?new Date(form.starts_at.value).toISOString():undefined,ends_at:form.ends_at.value?new Date(form.ends_at.value).toISOString():undefined,exclusive:form.exclusive.checked,contributor_splits:splits,evidence_sha256:form.evidence_sha256.value.toLowerCase(),source_sha256:form.source_sha256.value.toLowerCase()};const declaration=await api(`/v1/videos/${encodeURIComponent(form.video_id.value)}/rights`,json(body));status(`Rights declaration ${get(declaration,"id","ID")} persisted as ${get(declaration,"state","State")}. Commercial use still requires independent review.`);await refresh()}catch(error){status(error.message,true)}};
-$("#upload-form").onsubmit=async event=>{event.preventDefault();const file=event.target.media.files[0];if(!["video/mp4","video/webm"].includes(file?.type)){status("Select an MP4 or WebM file.",true);return}try{const revision=creatorSessionRevision;assertCreatorSession(revision);status("Computing SHA-256 and validating rights metadata…");const checksum=await sha256Hex(file);assertCreatorSession(revision);const expiry=event.target.rights_expires_at.value?new Date(event.target.rights_expires_at.value).toISOString():"",data=new FormData();for(const [key,value] of [["channel_id",event.target.channel_id.value],["media",file],["size",String(file.size)],["sha256",checksum],["title",event.target.title.value],["description",event.target.description.value],["rights_basis",event.target.rights_basis.value],["rights_source",event.target.rights_source.value],["rights_license",event.target.rights_license.value],["rights_territories",event.target.rights_territories.value],["rights_expires_at",expiry],["rights_evidence_sha256",event.target.rights_evidence_sha256.value],["owned_content_declaration",String(event.target.owned.checked)]])data.set(key,value);status("Uploading for malware scan and adaptive processing…");const video=await api("/v1/uploads",{method:"POST",body:data});await refresh();if(!currentCreatorSession(revision))return;if(video.status==="ready"){openRights(video);status("Upload processed. Complete the rights declaration, then submit the video for review from Content.")}else status(`Processing state: ${video.status}. Your upload is not ready to publish.`)}catch(error){status(error.message,true)}};
+$('#upload-cancel').onclick=()=>currentUpload?.abort();
+$('#upload-form').onsubmit=async event=>{
+  event.preventDefault();if(currentUpload)return;
+  const form=event.target,file=form.media.files[0],revision=creatorSessionRevision;
+  if(!['video/mp4','video/webm'].includes(file?.type)){status('Select an MP4 or WebM file.',true);return}
+  const operation=beginCreatorRequest(300000);currentUpload=operation;
+  let submitted=false,submittedHash='',submittedChannel='';
+  const submit=form.querySelector('button[type="submit"]');if(submit)submit.disabled=true;
+  $('#upload-cancel').hidden=false;
+  try{
+    assertCreatorSession(revision);
+    const expiry=form.rights_expires_at.value?new Date(form.rights_expires_at.value).toISOString():'',data=new FormData();
+    for(const [key,value] of [['channel_id',form.channel_id.value],['media',file],['size',String(file.size)],['title',form.title.value],['description',form.description.value],['rights_basis',form.rights_basis.value],['rights_source',form.rights_source.value],['rights_license',form.rights_license.value],['rights_territories',form.rights_territories.value],['rights_expires_at',expiry],['rights_evidence_sha256',form.rights_evidence_sha256.value],['owned_content_declaration',String(form.owned.checked)]])data.set(key,value);
+    status('Checking your video and rights details…');
+    submittedHash=await operation.wait(sha256Hex(file));submittedChannel=data.get('channel_id');data.set('sha256',submittedHash);
+    assertCreatorSession(revision);operation.signal.throwIfAborted();
+    status('Uploading and processing your video. This can take a few minutes…');
+    submitted=true;
+    const video=await api('/v1/uploads',{method:'POST',body:data,signal:operation.signal});
+    await refresh();if(!currentCreatorSession(revision))return;
+    if(video.status==='ready'){openRights(video);status('Your video is ready. Complete the rights declaration, then submit it for review from Content.')}else status('Processing state: '+video.status+'. Open Content to check or retry processing.');
+  }catch(error){
+    if(!currentCreatorSession(revision))return;
+    let recovered=null;
+    if(submitted&&await refresh()){
+      if(!currentCreatorSession(revision))return;
+      recovered=(snapshot?.videos||[]).find(video=>video.sha256===submittedHash&&video.channel_id===submittedChannel&&(!error.details?.video_id||video.id===error.details.video_id));
+    }
+    if(!currentCreatorSession(revision))return;
+    if(recovered){document.querySelector('nav button[data-panel="content"]').click();status(recovered.status==='failed'?'Your uploaded file is saved. Retry processing from Content; you do not need to upload it again.':'A matching upload is in Content. Check its processing state before uploading again.',recovered.status==='failed');}
+    else status(operation.signal.aborted?'Upload stopped. Check Content before trying again; the service may already have received your video.':error.message,true);
+  }
+  finally{operation.finish();if(currentUpload===operation){currentUpload=null;$('#upload-cancel').hidden=true;if(submit)submit.disabled=false;}}
+};
 $("#thumbnail-form").onsubmit=async event=>{event.preventDefault();const file=event.target.thumbnail.files[0],data=new FormData();data.set("thumbnail",file);data.set("size",String(file.size));try{await api(`/v1/videos/${event.target.video_id.value}/thumbnail`,{method:"POST",body:data});status("Thumbnail stored.");await refresh()}catch(error){status(error.message,true)}};
 $("#caption-form").onsubmit=async event=>{event.preventDefault();const file=event.target.captions.files[0],data=new FormData();data.set("captions",file);data.set("size",String(file.size));data.set("language",event.target.language.value);data.set("label",event.target.label.value);data.set("ai_proposed","false");try{await api(`/v1/videos/${event.target.video_id.value}/captions`,{method:"POST",body:data});status("Human-approved caption track stored.");await refresh()}catch(error){status(error.message,true)}};
 $("#monetization").onsubmit=async event=>{event.preventDefault();try{const result=await api(`/v1/videos/${event.target.video_id.value}/monetization`,{method:"POST"});status(`${get(result,"state","State")}: ${get(result,"reason","Reason")}`);await refresh()}catch(error){status(error.message,true)}};
@@ -587,21 +640,22 @@ $("#appeal").onsubmit=async event=>{event.preventDefault();try{await api(`/v1/re
 $("#dispute").onsubmit=async event=>{event.preventDefault();try{await api(`/v1/revenue/${event.target.record_id.value}/disputes`,json({reason:event.target.reason.value}));status("Revenue dispute persisted.");await refresh()}catch(error){status(error.message,true)}};
 
 async function providerStatus(){const revision=creatorSessionRevision;try{const p=await api("/v1/ai/status");if(!currentCreatorSession(revision))return;$("#ai-provider").textContent=p.configured?"AI Gateway configured. Provider/model are recorded with each result.":"AI Gateway unavailable. Requests will fail honestly until configured."}catch(error){if(currentCreatorSession(revision))$("#ai-provider").textContent="AI Gateway status unavailable."}}
-function showAI(job){if(creatorAccount===null||!job)return;currentAI=job;$("#ai-result").textContent=JSON.stringify(job,null,2);const state=get(job,"state","State");$("#ai-run").disabled=!['awaiting_permission','failed'].includes(state);$("#ai-cancel").disabled=!['awaiting_permission','running'].includes(state);$("#ai-accept").disabled=state!=="review_required";$("#ai-reject").disabled=state!=="review_required";$("#ai-delete").disabled=state==="running"}
+function showAI(job){if(creatorAccount===null||!job)return;if(activeAIRequest&&get(currentAI,"id","ID")!==get(job,"id","ID"))activeAIRequest.abort();currentAI=job;$("#ai-result").textContent=JSON.stringify(job,null,2);const state=get(job,"state","State");$("#ai-run").disabled=!['awaiting_permission','failed'].includes(state);$("#ai-cancel").disabled=!['awaiting_permission','running'].includes(state);$("#ai-accept").disabled=state!=="review_required";$("#ai-reject").disabled=state!=="review_required";$("#ai-delete").disabled=state==="running"}
 $("#ai-form").onsubmit=async event=>{event.preventDefault();try{const job=await api("/v1/ai/jobs",json({video_id:event.target.video_id.value,kind:event.target.kind.value,context_classes:event.target.metadata.checked?["metadata"]:[],output_language:localStorage.getItem("ynx.creator.ai-locale")||localStorage.getItem("ynx.creator.locale")||"en"}));showAI(job);status("Review context preview, output language and estimated units, then explicitly approve or reject.")}catch(error){status(error.message,true)}};
 $("#ai-run").onclick=async()=>{
-  if(!currentAI||creatorAccount===null)return;
-  const id=get(currentAI,"id","ID"),revision=creatorSessionRevision;
+  if(!currentAI||creatorAccount===null||activeAIRequest)return;
+  const id=get(currentAI,"id","ID"),revision=creatorSessionRevision,operation=beginCreatorRequest(300000);activeAIRequest=operation;
   showAI({...currentAI,State:"running",state:"running"});status("Provider stream running. Cancel remains available.");let streamed="",buffer="",reader;
   try{
-    const headers={...await productAuthorization(`/v1/ai/jobs/${id}/stream`,"POST"),"Idempotency-Key":crypto.randomUUID(),Accept:"application/x-ndjson"};
+    const headers={...await operation.wait(productAuthorization(`/v1/ai/jobs/${id}/stream`,"POST")),"Idempotency-Key":crypto.randomUUID(),Accept:"application/x-ndjson"};
     assertCreatorSession(revision);
-    const response=await fetch(`${API}/v1/ai/jobs/${id}/stream`,{method:"POST",headers});
+    operation.signal.throwIfAborted();
+    const response=await operation.wait(fetch(`${API}/v1/ai/jobs/${id}/stream`,{method:"POST",headers,credentials:"omit",redirect:"error",signal:operation.signal}));
     if(!currentCreatorSession(revision)){await response.body?.cancel();return}
     if(!response.ok)throw new Error(`HTTP ${response.status}`);
     reader=response.body.getReader();const decoder=new TextDecoder();
     for(;;){
-      const {value,done}=await reader.read();
+      const {value,done}=await operation.wait(reader.read());
       if(!currentCreatorSession(revision)){await reader.cancel();return}
       buffer+=decoder.decode(value||new Uint8Array(),{stream:!done});const lines=buffer.split("\n");buffer=lines.pop()||"";
       for(const line of lines){if(!line)continue;const event=JSON.parse(line);if(event.error)throw new Error(event.error);if(event.delta){streamed+=event.delta;$("#ai-result").textContent=`Streaming provider output — review required\n\n${streamed}`};if(event.job)showAI(event.job)}
@@ -610,10 +664,10 @@ $("#ai-run").onclick=async()=>{
     if(!['review_required','cancelled'].includes(get(currentAI,"state","State")))showAI(await api(`/v1/ai/jobs/${id}`));
     if(!currentCreatorSession(revision))return;
     status(get(currentAI,"state","State")==="review_required"?"AI stream finished; human review is required.":"AI stream ended without applying an action.");
-  }catch(error){if(!currentCreatorSession(revision))return;status(error.message,true);try{showAI(await api(`/v1/ai/jobs/${id}`))}catch{}}
-  finally{reader?.releaseLock()}
+  }catch(error){if(!currentCreatorSession(revision)||get(currentAI,"id","ID")!==id)return;if(operation.signal.aborted){if(operation.signal.reason?.name==="TimeoutError")status("The AI request timed out. Check its status before retrying.",true);return;}status(error.message,true);try{showAI(await api(`/v1/ai/jobs/${id}`))}catch{}}
+  finally{if(operation.signal.aborted)void reader?.cancel().catch(()=>{});reader?.releaseLock();operation.finish();if(activeAIRequest===operation)activeAIRequest=null;}
 };
-$("#ai-cancel").onclick=async()=>{if(!currentAI)return;try{showAI(await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}/cancel`,{method:"POST"}));status("AI request cancelled and audited.")}catch(error){status(error.message,true)}};
+$("#ai-cancel").onclick=async()=>{if(!currentAI)return;activeAIRequest?.abort();try{showAI(await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}/cancel`,{method:"POST"}));status("AI request cancelled and audited.")}catch(error){status(error.message,true)}};
 async function reviewAI(apply){if(!currentAI)return;try{showAI(await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}/review`,json({apply})));status(apply?"Suggestion accepted; publication still requires a separate human action.":"Suggestion rejected and audited.")}catch(error){status(error.message,true)}}$("#ai-accept").onclick=()=>reviewAI(true);$("#ai-reject").onclick=()=>reviewAI(false);
 $("#ai-delete").onclick=async()=>{if(!currentAI||!confirm("Delete this AI context and result? The minimal deletion audit remains."))return;try{await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}`,{method:"DELETE"});currentAI=null;$("#ai-result").textContent="AI context and result deleted.";for(const id of ["#ai-run","#ai-cancel","#ai-accept","#ai-reject","#ai-delete"])$(id).disabled=true;status("AI data deleted within the service retention boundary.");await refresh()}catch(error){status(error.message,true)}};
 const returnedPanel=new URLSearchParams(location.search).get('mediaView');

@@ -448,8 +448,14 @@ func (s *Service) UpdateMetadata(actor, videoID, title, description string) erro
 func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*Video, error) {
 	s.quotaMu.Lock()
 	defer s.quotaMu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	var original, quotaOwner string
 	err := s.store.update(func(st *State) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		v := st.Videos[videoID]
 		if v == nil {
 			return ErrNotFound
@@ -1021,6 +1027,9 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 	}
 	s.quotaMu.Lock()
 	defer s.quotaMu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if !in.OwnedDeclaration {
 		return nil, errors.New("owned-content declaration is required")
 	}
@@ -1088,6 +1097,10 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		_ = s.cfg.Objects.RemovePrefix(vid)
 		return nil, closeErr
 	}
+	if err := ctx.Err(); err != nil {
+		_ = s.cfg.Objects.RemovePrefix(vid)
+		return nil, err
+	}
 	if n != in.Size {
 		_ = s.cfg.Objects.RemovePrefix(vid)
 		return nil, errors.New("declared size does not match upload")
@@ -1111,6 +1124,11 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 	v := &Video{ID: vid, Owner: channelOwner, ChannelID: channelID, Title: title, Description: strings.TrimSpace(in.Description), OwnedDeclaration: true, Visibility: VisibilityPrivate, Status: "scanning", WorkflowState: WorkflowDraft, OriginalName: filepath.Base(in.Filename), ContentType: in.ContentType, Bytes: n, SHA256: contentSHA256, Rights: &rights, ObjectKey: vid + "/original", CreatedAt: now, UpdatedAt: now}
 	recordVideoVersion(v, actor, "workflow.create", "", WorkflowDraft, now)
 	if err = s.store.update(func(st *State) error {
+		// Cancellation before the first persisted record discards only this
+		// request's staged object. Once saved, the source remains recoverable.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		st.Videos[vid] = v
 		s.audit(st, actor, "video.upload", "video", vid, v.SHA256)
 		return nil
