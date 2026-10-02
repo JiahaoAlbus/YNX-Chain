@@ -27,6 +27,7 @@ function render(){
     byId("product").textContent=request.productName;
     byId("purpose").textContent=locale==="zh-CN"?purposeZh.get(request.purpose)||request.purpose:request.purpose;
     byId("expires").textContent=new Date(request.expiresAt).toLocaleString(locale,{dateStyle:"medium",timeStyle:"short"});
+    const finite=!!request.serviceConsent;byId("service-window").hidden=!finite;byId("service-terms").hidden=!finite;if(finite){byId("service-until-label").textContent=locale==="zh-CN"?"服务授权截止":"Service access until";byId("service-until").textContent=new Date(request.serviceConsent.expiresAt).toLocaleString(locale,{dateStyle:"medium",timeStyle:"short"})+" · "+request.serviceConsent.expiresAt;byId("service-terms").textContent=locale==="zh-CN"?"仅批准以上权限至此截止时间。退出、撤销或切换账户会限制访问；不会自动签名或转账，也不会自动延长。":"Only the listed permissions remain approved until this deadline. Logout, revocation or account changes restrict access. No automatic Wallet signatures, transfers or extension of this deadline.";}
     const scopes=byId("scopes");scopes.replaceChildren();for(const id of request.scopes){const item=document.createElement("span");item.className="scope-item";item.textContent=t.scope[id]||id;scopes.append(item)}
   }
   const message=state==="error"?t[errorKind(errorCode)]||t.rejected:t[state];status.textContent=errorCode?`${message} (${errorCode})`:message;
@@ -37,7 +38,7 @@ async function decide(decision){
   const secret=decision==="approve"?password.value:undefined;
   if(decision==="approve"&&secret.length<12){state="shortPassword";render();approve.disabled=false;reject.disabled=false;return}
   state=decision==="approve"?"working":"rejecting";render();
-  const response=await api.runtime.sendMessage({type:"YNX_PRIVATE_APPROVAL_DECIDE_V2",requestId,decision,password:secret}).catch(()=>null);password.value="";
+  const response=await api.runtime.sendMessage({type:"YNX_PRIVATE_APPROVAL_DECIDE_V2",requestId,decision,password:secret,...(decision==="approve"&&request.serviceConsent?{approvedServiceConsent:request.serviceConsent}:{})}).catch(()=>null);password.value="";
   if(response?.ok===true){window.close();return}
   if(["VAULT_PASSWORD_INVALID","VAULT_UNLOCK_FAILED"].includes(response?.error?.code)){state="badPassword";render();approve.disabled=false;reject.disabled=false;return}
   fail(response?.error?.code||"PRIVATE_APPROVAL_RUNTIME_UNAVAILABLE");

@@ -203,7 +203,7 @@ async function requestPrivateReview(tabId,origin,requestId,deadlineAt,request,do
   const account=await configuredAccount(),lease=authorizationGuard.bind(documentLease,{account:account.account});
   await authorizationGuard.assert(lease,{permissionRequired:false});
   const central=request.issuer!==undefined;
-  const pending=Object.freeze({version:2,requestId,origin,tabId,browserContext:lease.browserContext,account:account.account,productId:central?"central-identity":request.productId,productName:central?request.clients.map(c=>`${c.clientId} (${c.origin})`).join("\n"):privateProductName(request),applicationId:central?request.initiator.clientId:request.applicationId,scopes:central?["identity:read"]:request.scopes,purpose:request.purpose,issuedAt:request.issuedAt,expiresAt:request.expiresAt,deadlineAt,central});
+  const pending=Object.freeze({version:2,requestId,origin,tabId,browserContext:lease.browserContext,account:account.account,productId:central?"central-identity":request.productId,productName:central?request.clients.map(c=>`${c.clientId} (${c.origin})`).join("\n"):privateProductName(request),applicationId:central?request.initiator.clientId:request.applicationId,scopes:central?["identity:read"]:request.scopes,purpose:request.purpose,issuedAt:request.issuedAt,expiresAt:request.expiresAt,deadlineAt,central,...(request.serviceConsent?{serviceConsent:request.serviceConsent}:{})});
   let windowId=null,timer;
   const decision=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error("Private Product Session approval expired."),{code:"PRIVATE_APPROVAL_EXPIRED"})),Math.max(1,deadlineAt-Date.now()));privateWaiters.set(requestId,{resolve,reject,pending,request,lease,decided:false,busy:false,cancelled:false,get windowId(){return windowId}})});void decision.catch(()=>{});
   try{
@@ -304,7 +304,7 @@ extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
           const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY);live();await authorizationGuard.assert(waiter.lease,{permissionRequired:false});live();
           const unlocked=await unlockEncryptedVault(stored?.[EXTENSION_VAULT_KEY],message.password);live();await authorizationGuard.assert(waiter.lease,{permissionRequired:false});live();
           if(unlocked.account!==waiter.lease.account)throw Object.assign(new Error("Wallet account changed during private approval."),{code:"PROVIDER_ACCOUNT_CHANGED"});
-          result=waiter.pending.central?signCentralApproval(waiter.request,waiter.pending.origin,unlocked.secretHex):signPrivateReturn(waiter.request,unlocked.secretHex);live();await authorizationGuard.assert(waiter.lease,{permissionRequired:false});live();
+          result=waiter.pending.central?signCentralApproval(waiter.request,waiter.pending.origin,unlocked.secretHex):signPrivateReturn(waiter.request,unlocked.secretHex,new Date(),message.approvedServiceConsent);live();await authorizationGuard.assert(waiter.lease,{permissionRequired:false});live();
         }
         live();
         waiter.decided=true;waiter.resolve(result);return{decided:true};

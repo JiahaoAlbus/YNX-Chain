@@ -31,3 +31,9 @@ test('Paper approval explanation exists in all locales and explicitly excludes r
   assert.match(hostedDynamicCopy('en','paperWorkspaceOnly'),/Simulated Paper.*No real money, live trading, schedules or Testnet transactions/);
   assert.match(hostedDynamicCopy('zh-CN','paperWorkspaceOnly'),/模拟.*不使用真钱/);
 });
+test('every Hosted locale separately shows approval-before and exact service end',()=>{
+  for(const [locale] of HOSTED_LOCALES){
+    const text=hostedDynamicCopy(locale,'finiteServiceWindow',{approveBefore:'2026-10-02T00:05:00.000Z',serviceUntil:'2026-10-02T02:00:00.000Z'});
+    assert.ok(text.includes('2026-10-02T00:05:00.000Z')&&text.includes('2026-10-02T02:00:00.000Z'),locale);
+  }
+});

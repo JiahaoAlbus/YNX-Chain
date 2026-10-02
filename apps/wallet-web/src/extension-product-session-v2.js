@@ -18,8 +18,8 @@ export function parsePrivateRequest(params,origin,now=new Date()){
 export function privateReplayKey(request,now=new Date()){return `${request.origin}:${productSessionRequestDigest(registry,request,now)}`}
 export function privateProductName(request){return registry.products.find(product=>product.productId===request.productId)?.displayName||request.productId}
 
-export function signPrivateReturn(request,secretHex,now=new Date()){
-  const approval=signProductSessionApproval(registry,request,{accountSecret:secretHex,scopes:request.scopes,expiresAt:request.expiresAt},now);
+export function signPrivateReturn(request,secretHex,now=new Date(),approvedServiceConsent){
+  const approval=signProductSessionApproval(registry,request,{accountSecret:secretHex,scopes:request.scopes,expiresAt:request.expiresAt,...(request.serviceConsent?{approvedServiceConsent}:{})},now);
   const returnUrl=createProductSessionReturnURL(registry,request,{result:"approved",approval},now);
   const parsed=parseProductSessionReturnURL(registry,request,returnUrl,now);
   if(parsed.status!=="ready"||parsed.approval.account!==walletIdentity(secretHex).account)fail("PRIVATE_RETURN_INVALID","Signed Product Session return failed verification.");

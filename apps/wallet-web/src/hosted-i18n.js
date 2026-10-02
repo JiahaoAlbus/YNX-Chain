@@ -82,6 +82,69 @@ const currentAccountCopy={"en":"This account is already selected. To use another
 dynamicKeys.push('accountAlreadySelected');for(const [locale,text]of Object.entries(currentAccountCopy))dynamicRows[locale].push(text);
 const transactionBusyCopy={en:"Another transaction review is using this account. Finish or cancel it, then check the original transaction.","zh-CN":"这个账户正用于另一笔交易审阅。请完成或取消该操作，再检查原交易。","zh-TW":"這個帳戶正用於另一筆交易審閱。請完成或取消該操作，再檢查原交易。",ja:"このアカウントで別の取引を確認中です。完了またはキャンセルしてから元の取引を確認してください。",ko:"이 계정에서 다른 거래를 검토 중입니다. 완료하거나 취소한 뒤 원래 거래를 확인하세요.",es:"Otra revisión de transacción está usando esta cuenta. Termínala o cancélala y comprueba la transacción original.",fr:"Une autre transaction utilise ce compte. Terminez ou annulez sa vérification, puis vérifiez la transaction originale.",de:"Eine andere Transaktionsprüfung verwendet dieses Konto. Beenden oder stornieren Sie sie und prüfen Sie die ursprüngliche Transaktion.",pt:"Outra revisão de transação está usando esta conta. Conclua ou cancele e verifique a transação original.",ru:"Этот аккаунт занят проверкой другой транзакции. Завершите или отмените её, затем проверьте исходную транзакцию.",ar:"تستخدم مراجعة معاملة أخرى هذا الحساب. أكملها أو ألغها ثم تحقق من المعاملة الأصلية.",id:"Akun ini sedang digunakan untuk peninjauan transaksi lain. Selesaikan atau batalkan, lalu periksa transaksi awal."};
 dynamicKeys.push("txBusy");for(const [locale,text]of Object.entries(transactionBusyCopy))dynamicRows[locale].push(text);
+const finiteConsentReviewCopy = {
+  "en": [
+    "Approve before",
+    "Service access until",
+    "Only the listed permissions, until this fixed deadline. Logout, revocation or account changes restrict access. No automatic Wallet signatures, transfers or deadline extension."
+  ],
+  "zh-CN": [
+    "请在此时间前批准",
+    "服务授权截止",
+    "仅批准所列权限至此固定截止时间。退出、撤销或切换账户会限制访问；不会自动签名、转账或延长。"
+  ],
+  "zh-TW": [
+    "請在此時間前核准",
+    "服務授權截止",
+    "僅核准所列權限至此固定截止時間。登出、撤銷或切換帳戶會限制存取；不會自動簽名、轉帳或延長。"
+  ],
+  "ja": [
+    "承認期限",
+    "サービス利用期限",
+    "記載した権限のみ、この期限まで有効です。ログアウト、取消、アカウント変更で利用を制限します。自動署名、送金、期限延長はありません。"
+  ],
+  "ko": [
+    "승인 기한",
+    "서비스 이용 기한",
+    "표시된 권한만 이 기한까지 승인합니다. 로그아웃, 취소, 계정 변경 시 접근이 제한됩니다. 자동 서명, 송금, 기한 연장은 없습니다."
+  ],
+  "es": [
+    "Aprobar antes de",
+    "Acceso al servicio hasta",
+    "Solo los permisos indicados, hasta este límite fijo. Cerrar sesión, revocar o cambiar la cuenta limita el acceso. Sin firmas, transferencias ni prórrogas automáticas."
+  ],
+  "fr": [
+    "Approuver avant",
+    "Accès au service jusqu’au",
+    "Uniquement les permissions indiquées jusqu’à cette échéance fixe. Déconnexion, révocation ou changement de compte limitent l’accès. Aucune signature, transaction ni prolongation automatique."
+  ],
+  "de": [
+    "Genehmigen vor",
+    "Dienstzugriff bis",
+    "Nur die aufgeführten Rechte bis zu diesem festen Zeitpunkt. Abmelden, Widerruf oder Kontowechsel beschränken den Zugriff. Keine automatischen Signaturen, Überweisungen oder Verlängerungen."
+  ],
+  "pt": [
+    "Aprovar antes de",
+    "Acesso ao serviço até",
+    "Apenas as permissões indicadas, até este prazo fixo. Sair, revogar ou mudar de conta limita o acesso. Sem assinaturas, transferências ou prorrogações automáticas."
+  ],
+  "ru": [
+    "Подтвердить до",
+    "Доступ к сервису до",
+    "Только указанные разрешения до фиксированного срока. Выход, отзыв или смена аккаунта ограничивают доступ. Без автоматических подписей, переводов и продления."
+  ],
+  "ar": [
+    "الموافقة قبل",
+    "الوصول إلى الخدمة حتى",
+    "الأذونات المذكورة فقط حتى هذا الموعد الثابت. تسجيل الخروج أو الإلغاء أو تغيير الحساب يقيّد الوصول. لا توقيعات أو تحويلات أو تمديد تلقائي."
+  ],
+  "id": [
+    "Setujui sebelum",
+    "Akses layanan hingga",
+    "Hanya izin yang tercantum sampai batas tetap ini. Keluar, pencabutan, atau perubahan akun membatasi akses. Tanpa tanda tangan, transfer, atau perpanjangan otomatis."
+  ]
+};
+dynamicKeys.push("finiteServiceWindow");for(const [language,parts]of Object.entries(finiteConsentReviewCopy))dynamicRows[language].push(`${parts[0]}: {approveBefore}\n${parts[1]}: {serviceUntil}\n${parts[2]}`);
 export const HOSTED_DYNAMIC_KEYS = Object.freeze(dynamicKeys);
 export function hostedDynamicCopy(locale, key, variables = {}) {
   const index = dynamicKeys.indexOf(key);

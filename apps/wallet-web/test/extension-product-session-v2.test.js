@@ -58,3 +58,10 @@ test('Paper workspace requires its exact fresh Quant scope and supports explicit
   assert.deepEqual(parseProductSessionReturnURL(registry,request,signed.returnUrl,now).approval.scopes,['quant:paper:workspace']);
   assert.equal(parseProductSessionReturnURL(registry,request,rejectPrivateReturn(request,now).returnUrl,now).status,'user-rejected');
 });
+test('finite private signing requires exact displayed consent and preserves signed service deadline',()=>{
+  const r=createProductSessionRequest(registry,{...input,productId:'finance',scopes:['finance.profile.write'],finiteServiceSeconds:7200},at),now=new Date(at.getTime()+1000);
+  assert.throws(()=>signPrivateReturn(r,secret,now));
+  assert.throws(()=>signPrivateReturn(r,secret,now,{...r.serviceConsent,durationSeconds:3600}));
+  const result=signPrivateReturn(r,secret,now,r.serviceConsent);
+  assert.deepEqual(parseProductSessionReturnURL(registry,r,result.returnUrl,now).approval.serviceConsent,r.serviceConsent);
+});

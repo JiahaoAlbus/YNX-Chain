@@ -112,12 +112,12 @@ test("review toggling leaves the exact locator and password decision semantics u
   dismissed.events.pagehide();assert.equal(dismissed.nodes.get("password").value,"");assert.equal(dismissed.calls.length,1);assert.equal(dismissed.timers.size,0);
 });
 
-async function renderPrivate(scopes,locale='en'){
+async function renderPrivate(scopes,locale='en',extra={}){
   const html=await readFile(new URL('../extension/private-approval.html',import.meta.url),'utf8');
   const source=(await readFile(new URL('../extension/private-approval.js',import.meta.url),'utf8')).replace(/^import .*;\n/gm,'');
   const nodes=new Map([...html.matchAll(/\bid="([^"]+)"/gu)].map(([,id])=>[id,{textContent:'',value:'',disabled:true,children:[],handlers:{},replaceChildren(){this.children=[]},append(node){this.children.push(node)},addEventListener(event,fn){this.handlers[event]=fn},click(){if(!this.disabled)this.handlers.click?.()},set innerHTML(_){throw Error('HTML rendering forbidden')}}]));
   const calls=[];let closed=false;
-  const request={deadlineAt:Date.now()+60_000,origin:'https://quant.ynxweb4.com',account:ACCOUNT,productName:'YNX Quant',applicationId:'com.ynxweb4.quant.web',browserContext:'chromium-default',scopes,purpose:'<img src=x onerror=alert(1)>',expiresAt:new Date(Date.now()+60_000).toISOString()};
+  const request={deadlineAt:Date.now()+60_000,origin:'https://quant.ynxweb4.com',account:ACCOUNT,productName:'YNX Quant',applicationId:'com.ynxweb4.quant.web',browserContext:'chromium-default',scopes,purpose:'<img src=x onerror=alert(1)>',expiresAt:new Date(Date.now()+60_000).toISOString(),...extra};
   const context=vm.createContext({isProviderInternalRequestId,providerContextLabel,toYNXAddress,URLSearchParams,Date,navigator:{language:locale},localStorage:{getItem:()=>locale,setItem(){}},location:{search:`?requestId=${ID}`},document:{documentElement:{},getElementById:id=>nodes.get(id),createElement:()=>({textContent:'',className:'',set innerHTML(_){throw Error('HTML forbidden')}})},window:{close(){closed=true}},setTimeout:()=>1,clearTimeout(){},addEventListener(){},chrome:{runtime:{sendMessage:async message=>{calls.push(message);return message.type==='YNX_PRIVATE_APPROVAL_GET_V2'?{ok:true,request}:{ok:true}}}}});
   vm.runInContext(source,context);await tick();return{nodes,calls,closed:()=>closed};
 }
@@ -134,4 +134,19 @@ test('actual private approval DOM explains simulated Paper without upgrading old
   const old=await renderPrivate(['quant:records:read']);
   assert.equal(old.nodes.get('scopes').children[0].textContent,'quant:records:read');
   assert.doesNotMatch(old.nodes.get('scopes').children[0].textContent,/Paper/);
+});
+test('actual finite approval DOM displays exact service end and sends only explicit displayed consent',async()=>{
+  const serviceConsent={profile:'finance-private-finite-v1',issuedAt:'2026-10-02T00:00:00.000Z',expiresAt:'2026-10-02T02:00:00.000Z',durationSeconds:7200};
+  for(const locale of ['en','zh-CN']){
+    const f=await renderPrivate(['finance.profile.write'],locale,{serviceConsent});
+    assert.equal(f.nodes.get('service-window').hidden,false);
+    assert.ok(f.nodes.get('service-until').textContent.includes(serviceConsent.expiresAt));
+    assert.match(f.nodes.get('service-terms').textContent,locale==='en'?/No automatic Wallet signatures, transfers or extension/:/不会自动签名或转账/);
+    f.nodes.get('password').value='fixture-password-only';f.nodes.get('approve').click();await tick();
+    assert.deepEqual(f.calls[1].approvedServiceConsent,serviceConsent);
+    const rejected=await renderPrivate(['finance.profile.write'],locale,{serviceConsent});
+    rejected.nodes.get('reject').click();await tick();
+    assert.equal(rejected.calls[1].approvedServiceConsent,undefined);
+  }
+  assert.equal((await renderPrivate(['finance.profile.write'])).nodes.get('service-window').hidden,true);
 });

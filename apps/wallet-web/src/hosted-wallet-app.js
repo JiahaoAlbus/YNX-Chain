@@ -256,7 +256,8 @@ async function handleMethod(method, params, context) {
     const replay = privateReplayKey(request);
     await store.consumeReplay(replay, Date.parse(request.expiresAt));
     const product = privateProductName(request), requestingOrigin = session.origin;
-    const choice = await askUser({ titleKey: "privateApprove", titleVariables: { product }, detailFactory: language => `${requestingOrigin}\n${request.purpose}${request.scopes.includes("quant:paper:workspace") ? "\n" + hostedDynamicCopy(language, "paperWorkspaceOnly") : ""}\n${hostedDynamicCopy(language, "scopes", { scopes: request.scopes.join(", ") })}\n${hostedDynamicCopy(language, "expires", { expires: new Intl.DateTimeFormat(language, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(request.expiresAt)) + " UTC" })}`, secretRequired: true, context });
+    const serviceWindow = language => request.serviceConsent ? "\n" + hostedDynamicCopy(language,"finiteServiceWindow",{approveBefore:request.expiresAt,serviceUntil:request.serviceConsent.expiresAt}) : "";
+    const choice = await askUser({ titleKey: "privateApprove", titleVariables: { product }, detailFactory: language => `${requestingOrigin}\n${request.purpose}${request.scopes.includes("quant:paper:workspace") ? "\n" + hostedDynamicCopy(language, "paperWorkspaceOnly") : ""}\n${hostedDynamicCopy(language, "scopes", { scopes: request.scopes.join(", ") })}\n${hostedDynamicCopy(language, "expires", { expires: new Intl.DateTimeFormat(language, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(new Date(request.expiresAt)) + " UTC" })}${serviceWindow(language)}`, secretRequired: true, context });
     assertRequestLive(context);
     if (!choice.approved) return rejectPrivateReturn(request);
     await assertCurrentAccount();
@@ -265,7 +266,7 @@ async function handleMethod(method, params, context) {
     await assertCurrentAccount();
     assertRequestLive(context);
     if (unlocked.account !== vault.account) fail("HOSTED_ACCOUNT_CHANGED");
-    return signPrivateReturn(request, unlocked.secretHex);
+    return signPrivateReturn(request, unlocked.secretHex, new Date(), request.serviceConsent);
   }
   if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"].includes(method)) return executeReviewedRequest(method,params,context,session.origin,assertCurrentAccount);
   if (method.startsWith("eth_") || method.startsWith("net_") || method.startsWith("web3_")) return forwardExtensionRpc(method, params);
