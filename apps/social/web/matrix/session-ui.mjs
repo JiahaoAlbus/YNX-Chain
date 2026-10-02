@@ -7,29 +7,44 @@ const root=document.getElementById('matrix-social-workspace');
 const loginCallback=handleMatrixLoginCallback();
 if(root&&!loginCallback){
  const status=root.querySelector('[data-status]'),requests=root.querySelector('[data-verification]'),devices=root.querySelector('[data-devices]'),messages=root.querySelector('[data-messages]');
- const label=text=>{status.textContent=text},client=createSocialPrivateSession({scopes:SOCIAL_CHAT_SCOPES});let account=null,roomId=null,busy=false,reauth,login,pageEpoch=0,renderRunning=false,renderQueued=false,checkingIdentity=false;
+ const label=text=>{status.textContent=text},client=createSocialPrivateSession({scopes:SOCIAL_CHAT_SCOPES});let account=null,roomId=null,activeWork=null,reauth,login,pageEpoch=0,renderRunning=false,renderQueued=false,checkingIdentity=false;
  const transport=new MatrixSocialTransport({reauthenticateDevice:input=>reauth.request(input),publish:event=>{if(event.type==='sync')label(["PREPARED","SYNCING"].includes(event.state)?"Private chat connected":"Connection interrupted. Encrypted keys and history are retained.");if(event.type==='devices-changed')label('Device list changed. Verify new devices before sending.');if(event.type==='encrypted-event'&&roomId)void renderMessages()},onVerification:event=>{if(!event.id)return;const view=captureView();guardView(view);let section=[...requests.children].find(node=>node.dataset.id===event.id);if(!section){section=document.createElement('div');section.dataset.id=event.id;requests.append(section)}section.replaceChildren();const text=document.createElement('p');text.textContent=event.sas?.decimal?`Compare on both devices: ${event.sas.decimal.join(' / ')}`:`Verification ${event.userId??''} ${event.deviceId??''}; phase ${event.phase??''}`;section.append(text);const button=(title,action)=>{const node=document.createElement('button');node.type='button';node.textContent=title;node.onclick=()=>void work(async()=>{guardView(view);await identity(view);guardView(view);await action();guardView(view)});section.append(node)};if(event.needsConfirmation){button('Both displays match',()=>transport.confirmVerification(event.id,true));button('Do not match',()=>transport.confirmVerification(event.id,false))}else{button('Accept request',()=>transport.acceptVerification(event.id));button('Start SAS comparison',()=>transport.startVerification(event.id))}button('Reject',()=>transport.rejectVerification(event.id))}});
  const uiError=(code,message)=>Object.assign(new Error(message),{code});
+ function guardWork(intent){if(!intent)return;if(activeWork!==intent)throw uiError('UI_STALE_VIEW','Previous operation was discarded');if(intent.controller.signal.aborted)throw intent.controller.signal.reason??uiError('UI_STALE_VIEW','Previous operation was discarded')}
+ function waitIntent(promise,intent,timeoutMs=15000){
+  return new Promise((resolve,reject)=>{
+   let done=false,timer;const signal=intent?.controller.signal;
+   const finish=(error,value)=>{if(done)return;done=true;if(timer!==undefined)clearTimeout(timer);signal?.removeEventListener('abort',abort);error?reject(error):resolve(value)};
+   const abort=()=>finish(signal.reason??uiError('UI_STALE_VIEW','Previous operation was discarded'));
+   Promise.resolve(promise).then(value=>finish(null,value),error=>finish(error));
+   if(signal?.aborted){abort();return}signal?.addEventListener('abort',abort,{once:true});
+   if(timeoutMs>0)timer=setTimeout(()=>{const error=uiError('UI_IDENTITY_UNAVAILABLE','Identity or Matrix metadata temporarily unavailable. Retry explicitly; encrypted storage is retained.');intent?.controller.abort(error);finish(error)},timeoutMs);
+  });
+ }
  const stale=error=>['UI_STALE_VIEW','MATRIX_STALE_SESSION'].includes(error?.code);
  function captureView(){return {epoch:pageEpoch,account,roomId,operation:transport.capture()}}
  function currentView(view){return view.epoch===pageEpoch&&view.account===account&&view.roomId===roomId&&view.operation.client===transport.client&&view.operation.binding===transport.binding&&view.operation.generation===transport.generation}
  function guardView(view){if(!currentView(view))throw uiError('UI_STALE_VIEW','Previous encrypted view was discarded');transport.guard(view.operation)}
  function selectRoom(id){if(roomId!==id){pageEpoch++;roomId=id;messages.replaceChildren()}}
- async function identity(view=null){
+ async function identity(view=null,intent=activeWork){
   const base={epoch:pageEpoch,account,generation:transport.generation,client:transport.client};
-  const guard=()=>{if(view){guardView(view);return}if(base.epoch!==pageEpoch||base.account!==account||base.generation!==transport.generation||base.client!==transport.client)throw uiError('UI_STALE_VIEW','Identity check belongs to a previous workspace')};
+  const guard=()=>{guardWork(intent);if(view){guardView(view);return}if(base.epoch!==pageEpoch||base.account!==account||base.generation!==transport.generation||base.client!==transport.client)throw uiError('UI_STALE_VIEW','Identity check belongs to a previous workspace')};
   try{
-   const response=await fetch('/sso/account',{credentials:'same-origin',cache:'no-store'});guard();
+   const response=await waitIntent(fetch('/sso/account',{credentials:'same-origin',cache:'no-store',signal:intent?.controller.signal}),intent);guard();
    if(!response.ok)throw uiError([401,403].includes(response.status)?'UI_PRIVATE_PERMISSION_REQUIRED':'UI_IDENTITY_UNAVAILABLE','YNX identity unavailable; encrypted storage is retained');
-   const verified=await response.json();guard();const permission=await client.restore();guard();
+   const verified=await waitIntent(response.json(),intent);guard();const permission=await waitIntent(client.restore(),intent);guard();
    if(permission.status==='network-unavailable'&&!permission.revocationPending)throw uiError('UI_IDENTITY_UNAVAILABLE','Private permission authority temporarily unavailable; encrypted storage is retained');
    if(permission.status!=='connected'||permission.session?.account!==verified.account||!['social.profile','social.contacts','social.messaging'].every(s=>permission.session?.scopes?.includes(s)))throw uiError('UI_PRIVATE_PERMISSION_REQUIRED','Use the existing explicit Social profile, contacts and chat approval first');
    if(account&&account!==verified.account)throw uiError('UI_PRIVATE_PERMISSION_REQUIRED','YNX account changed; previous encrypted workspace was locked');
    return verified;
   }catch(error){guard();if(['UI_PRIVATE_PERMISSION_REQUIRED','SESSION_EXPIRED','PERMISSION_REVOKED','GRANT_REVOKED','SSO_GRANT_EXPIRED'].includes(error?.code))lock();throw error}
  }
- function lock(){pageEpoch++;renderQueued=false;reauth?.cancel();login?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();label('Federated encrypted chat locked. Legacy v2 data is unchanged.')}
- async function work(action){if(busy)return;busy=true;const epoch=pageEpoch,buttons=[...root.querySelectorAll('button')].filter(button=>button!==root.querySelector('[data-stop]'));buttons.forEach(b=>b.disabled=true);try{await action()}catch(error){if(epoch===pageEpoch&&!stale(error))label(error.message||'Federated chat unavailable')}finally{busy=false;buttons.forEach(b=>b.disabled=false)}}
+ function lock(){pageEpoch++;renderQueued=false;const intent=activeWork;if(intent){activeWork=null;intent.controller.abort(uiError('UI_STALE_VIEW','Previous operation was stopped'));intent.buttons.forEach(button=>button.disabled=false)}reauth?.cancel();login?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();label('Federated encrypted chat locked. Legacy v2 data is unchanged.')}
+ async function work(action){
+  if(activeWork)return;const intent={epoch:pageEpoch,controller:new AbortController(),buttons:[...root.querySelectorAll('button')].filter(button=>button!==root.querySelector('[data-stop]'))};activeWork=intent;intent.buttons.forEach(button=>button.disabled=true);
+  try{await waitIntent(action(intent),intent,0)}catch(error){if(activeWork===intent&&intent.epoch===pageEpoch&&!stale(error))label(error.message||'Federated chat unavailable')}
+  finally{if(activeWork===intent){activeWork=null;intent.buttons.forEach(button=>button.disabled=false)}}
+ }
  async function renderMessages(){
   if(!roomId||!account)return;renderQueued=true;if(renderRunning)return;renderRunning=true;
   try{while(renderQueued){renderQueued=false;if(!roomId||!account)break;let view;
@@ -70,14 +85,14 @@ if(root&&!loginCallback){
  }
  reauth=createSsoReauthController({container:root,capture:()=>transport.capture(),guard:operation=>transport.guard(operation),validateIdentity:async operation=>{const verified=await identity();transport.guard(operation);if(verified.account!==operation.binding.account)throw new Error('YNX reauthentication account changed')}});
  login=createMatrixLoginController({container:root});
- root.querySelector('[data-connect]').onclick=()=>void work(async()=>{
+ root.querySelector('[data-connect]').onclick=()=>void work(async intent=>{
   const epoch=pageEpoch,verified=await identity(),selected=verified.account,generation=transport.generation;
-  const guard=()=>{if(epoch!==pageEpoch||account!==selected)throw uiError('UI_STALE_VIEW','Previous connection was discarded')};
+  const guard=()=>{guardWork(intent);if(epoch!==pageEpoch||account!==selected)throw uiError('UI_STALE_VIEW','Previous connection was discarded')};
   const guardPending=()=>{guard();if(generation!==transport.generation)throw uiError('UI_STALE_VIEW','Previous connection was discarded')};
   account=selected;const stored=await matrixCryptoStore(selected);
   try{
    guard();await identity();guard();if(generation!==transport.generation)throw uiError('UI_STALE_VIEW','Previous connection was discarded');
-   const metadata=await fetchMatrixLoginMetadata({account:selected,deviceId:stored.deviceId,client,csrfToken:verified.csrfToken,guard:guardPending});
+   const metadata=await waitIntent(fetchMatrixLoginMetadata({account:selected,deviceId:stored.deviceId,client,csrfToken:verified.csrfToken,guard:guardPending,signal:intent.controller.signal}),intent);
    guardPending();await identity();guardPending();
    const binding=await login.request({metadata,deviceId:stored.deviceId,guard:guardPending,validateIdentity:()=>identity()});
    guardPending();await identity();guardPending();

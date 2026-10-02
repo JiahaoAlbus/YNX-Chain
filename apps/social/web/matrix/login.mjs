@@ -16,12 +16,12 @@ export function validateMatrixLoginMetadata(input,account,{localQA=false}={}){
  const homeserver=secureRoot(input.homeserver,localQA).href;
  return Object.freeze({...input,homeserver});
 }
-export async function fetchMatrixLoginMetadata({account,deviceId,client,csrfToken,guard,fetcher=globalThis.fetch}){
+export async function fetchMatrixLoginMetadata({account,deviceId,client,csrfToken,guard,signal,fetcher=globalThis.fetch}){
  guard();if(!devicePattern.test(deviceId)||typeof csrfToken!=='string'||!csrfToken)throw fail('MATRIX_LOGIN_METADATA_INVALID','Existing device and Social identity are required');
  const permission=await client.restore();guard();
  if(permission.status!=='connected'||permission.session?.account!==account||!['social.profile','social.contacts','social.messaging'].every(scope=>permission.session?.scopes?.includes(scope)))throw fail('MATRIX_PERMISSION_REQUIRED','Existing explicit Social approval is required');
  const proof=await client.proof(['social.contacts','social.messaging']);guard();
- let response;try{response=await fetcher('/social/v3/matrix/login-metadata',{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'error',headers:{'Content-Type':'application/json','X-YNX-Product-Session-Proof-V2':proof.proofHeader,'X-YNX-SSO-CSRF':csrfToken},body:JSON.stringify({deviceId})})}catch{guard();throw fail('MATRIX_LOGIN_METADATA_UNAVAILABLE','Matrix login metadata temporarily unavailable')}
+ let response;try{response=await fetcher('/social/v3/matrix/login-metadata',{method:'POST',credentials:'same-origin',cache:'no-store',redirect:'error',signal,headers:{'Content-Type':'application/json','X-YNX-Product-Session-Proof-V2':proof.proofHeader,'X-YNX-SSO-CSRF':csrfToken},body:JSON.stringify({deviceId})})}catch{guard();throw fail('MATRIX_LOGIN_METADATA_UNAVAILABLE','Matrix login metadata temporarily unavailable')}
  guard();if(!response.ok)throw fail('MATRIX_LOGIN_METADATA_UNAVAILABLE','Matrix login metadata is not mounted or is unavailable');
  const metadata=await response.json();guard();return validateMatrixLoginMetadata(metadata,account);
 }
