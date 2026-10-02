@@ -21,10 +21,11 @@ async function fixture(t, overrides = {}) {
   } };
   const make = () => createCodeOSSService({ filename: join(root, "core.sqlite"), root: join(root, "native"), workspaceStore: store, driver,
     launchURL: ({ sessionId }) => `https://${sessionId}.native.ynxweb4.com/`, assertProjectQuiescent() {}, limits: { ...CORE_LIMITS, ...overrides.limits },
-    verifyIdentity: async request => {
+    now: overrides.now || Date.now,
+    verifyIdentity: overrides.verifyIdentity || (async request => {
       const owner = request.headers["x-test-owner"] === "b" ? ownerB : ownerA;
       return { owner, workspaceOwner: owner, account: `ynx-${owner[0]}`, generation: Number(request.headers["x-test-generation"] || 1), expiresAt: Date.now() + 3600000 };
-    } });
+    }) });
   let service = make();
   const server = createServer((req, res) => service.handler(req, res));
   await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
@@ -98,4 +99,110 @@ test("preflight failure never permanently adopts guest import; precise never-sta
   assert.equal((await f.call(`/${id}`, "DELETE")).status, 200);
   assert.equal(f.store.storageMode(ownerA, project), "text-snapshot");
   assert.equal(f.store.put(ownerA, project, { expectedRevision: 1, idempotencyKey: "continue-original", payload: snapshot }).revision, 2);
+});
+
+test("a renewed same-identity lease does not stop the native runtime at the old short grant deadline", async t => {
+  let clock = 1_000_000, expiry = clock + 300_000;
+  const verifyIdentity = async () => ({ owner: ownerA, workspaceOwner: ownerA, account: "ynx-a", generation: 1,
+    identityReference: "local-server-identity-record", expiresAt: expiry });
+  verifyIdentity.resolveReference = async () => verifyIdentity();
+  const f = await fixture(t, { now: () => clock, verifyIdentity }), launched = await f.launch();
+  assert.equal(launched.status, 201);
+  clock += 299_000; expiry = clock + 300_000;
+  assert.equal((await f.service().authorizeConnection({ headers: {} }, launched.value.session.sessionId)).identity.expiresAt, expiry);
+  clock += 2_000; await f.service().expireSessions();
+  assert.equal((await f.call()).value.sessions[0].status, "running");
+  await f.call(`/${launched.value.session.sessionId}`, "DELETE");
+});
+
+function renewableIdentity(clock, resolve) {
+  const current = () => ({ owner: ownerA, workspaceOwner: ownerA, account: "ynx-a", generation: 1,
+    identityReference: "server-only-reference", expiresAt: clock() + 300_000 });
+  const check = async () => current();
+  check.resolveReference = async () => resolve ? resolve(current()) : current();
+  return check;
+}
+
+test("timer renewal survives restart but never moves the original runtime hard deadline", async t => {
+  let clock = 1_000_000, reads = 0;
+  const check = renewableIdentity(() => clock, id => { reads++; return id; });
+  const f = await fixture(t, { now: () => clock, verifyIdentity: check, limits: { maxSessionMs: 600_000 } });
+  const started = await f.launch(), id = started.value.session.sessionId;
+  const hard = (await f.service().authorizeConnection({ headers: {} }, id)).expiresAt;
+  f.restart(); clock += 300_001; await f.service().expireSessions();
+  assert.equal(reads, 1); assert.equal((await f.call()).value.sessions[0].status, "running");
+  assert.equal((await f.service().authorizeConnection({ headers: {} }, id)).expiresAt, hard);
+  clock = hard; await f.service().expireSessions();
+  assert.equal((await f.call()).value.sessions[0].status, "stopped");
+});
+
+test("transient central outage denies access without releasing the writer; fresh verification recovers", async t => {
+  let clock = 1_000_000, unavailable = false;
+  const check = renewableIdentity(() => clock, id => { if (unavailable) throw Object.assign(new Error("central unavailable"), { status: 503 }); return id; });
+  const f = await fixture(t, { now: () => clock, verifyIdentity: check }), started = await f.launch();
+  clock += 300_001; unavailable = true;
+  const results = await f.service().expireSessions(); assert.equal(results[0].status, "rejected");
+  assert.equal((await f.call()).value.sessions[0].status, "running");
+  assert.throws(() => f.store.put(ownerA, project, { expectedRevision: 1, idempotencyKey: "outage-write", payload: snapshot }), { code: "core_writer_active" });
+  unavailable = false; await f.service().expireSessions();
+  assert.equal((await f.call()).value.sessions[0].status, "running");
+  await f.call(`/${started.value.session.sessionId}`, "DELETE");
+});
+
+test("changed owner/account/generation cannot renew another runtime", async t => {
+  for (const mutation of [id => ({ ...id, owner: ownerB, workspaceOwner: ownerB }), id => ({ ...id, account: "ynx-b" }), id => ({ ...id, generation: 2 })]) {
+    let clock = 1_000_000;
+    const f = await fixture(t, { now: () => clock, verifyIdentity: renewableIdentity(() => clock, mutation) });
+    await f.launch(); clock += 300_001; await f.service().expireSessions();
+    assert.equal((await f.call()).value.sessions[0].status, "stopped");
+    assert.equal(f.store.get(ownerB, project).revision, 1);
+  }
+});
+
+test("concurrent timer checks are single-flight and a late result cannot revive an explicitly stopped runtime", async t => {
+  let clock = 1_000_000, release, entered, reads = 0;
+  const held = new Promise(resolve => { release = resolve; }), started = new Promise(resolve => { entered = resolve; });
+  const check = renewableIdentity(() => clock, async id => { reads++; entered(); await held; return id; });
+  const f = await fixture(t, { now: () => clock, verifyIdentity: check }), launched = await f.launch();
+  clock += 300_001; const first = f.service().expireSessions(); await started;
+  const second = f.service().expireSessions();
+  assert.equal((await f.call(`/${launched.value.session.sessionId}`, "DELETE")).status, 200);
+  release(); await Promise.all([first, second]);
+  assert.equal(reads, 1); assert.equal((await f.call()).value.sessions[0].status, "stopped");
+});
+
+test("legacy identity adapters keep their original short cutoff", async t => {
+  let clock = 1_000_000;
+  const verifyIdentity = async () => ({ owner: ownerA, workspaceOwner: ownerA, account: "ynx-a", generation: 1, expiresAt: clock + 300_000 });
+  const f = await fixture(t, { now: () => clock, verifyIdentity }), launched = await f.launch();
+  assert.equal((await f.service().authorizeConnection({ headers: {} }, launched.value.session.sessionId)).expiresAt, clock + 300_000);
+  clock += 300_001; await f.service().expireSessions();
+  assert.equal((await f.call()).value.sessions[0].status, "stopped");
+});
+
+test("legacy schema migration preserves the original deadline, writer and native files", async t => {
+  let clock = 1_000_000;
+  const f = await fixture(t, { now: () => clock, verifyIdentity: renewableIdentity(() => clock) }), launched = await f.launch();
+  const file = join(f.context().projectDirectory, "workspace", "main.js"), original = await readFile(file);
+  const db = f.store.nativeJournalDatabase();
+  f.service().close();
+  db.exec("ALTER TABLE codeoss_sessions DROP COLUMN hard_deadline; ALTER TABLE codeoss_sessions DROP COLUMN identity_reference");
+  f.restart();
+  assert.equal((await f.service().authorizeConnection({ headers: {} }, launched.value.session.sessionId)).expiresAt, clock + 300_000);
+  assert.deepEqual(await readFile(file), original);
+  clock += 300_001; await f.service().expireSessions();
+  assert.equal((await f.call()).value.sessions[0].status, "stopped");
+});
+
+test("logout during actual driver start cannot publish a late running session", async t => {
+  let live = true, entered, release;
+  const held = new Promise(resolve => { release = resolve; }), started = new Promise(resolve => { entered = resolve; });
+  const current = () => { if (!live) throw Object.assign(new Error("local logout"), { status: 401, code: "core_identity_changed" }); };
+  const verifyIdentity = async () => ({ owner: ownerA, workspaceOwner: ownerA, account: "ynx-a", generation: 1, expiresAt: Date.now() + 300_000, isCurrent: current });
+  const f = await fixture(t, { verifyIdentity, start: async () => { entered(); await held; } });
+  const launch = f.launch(); await started; live = false; release();
+  assert.equal((await launch).status, 503);
+  assert.equal((await f.call()).value.sessions[0].status, "recovery-required");
+  assert.throws(() => f.store.put(ownerA, project, { expectedRevision: 1, idempotencyKey: "after-logout-launch", payload: snapshot }), { code: "core_writer_active" });
+  live = true; assert.equal((await f.call(`/${(await f.call()).value.sessions[0].sessionId}`, "DELETE")).status, 200);
 });

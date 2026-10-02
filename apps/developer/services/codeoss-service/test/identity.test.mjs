@@ -32,3 +32,14 @@ test("missing backend adapter or explicit workspace link never adopts guest cook
     fetchImpl: async () => ({ ok: true, json: async () => response() }) });
   await assert.rejects(check({ headers: { cookie: "ynx_code_session=guest" } }), { code: "core_workspace_binding_required" });
 });
+
+test("logout while central introspection is pending cannot publish the old identity", async () => {
+  let live = true, release, entered;
+  const pending = new Promise(resolve => { release = resolve; }), started = new Promise(resolve => { entered = resolve; });
+  const check = createCentralIdentityVerifier({ now: () => now,
+    grantForRequest: async () => ({ ...sealed, identityReference: "backend-reference", isCurrent: () => live }),
+    workspaceBinding: async ({ owner }) => ({ owner, workspaceOwner: "a".repeat(64) }),
+    fetchImpl: async () => { entered(); await pending; return { ok: true, json: async () => response() }; } });
+  const old = check({}); await started; live = false; release();
+  await assert.rejects(old, { status: 401, code: "core_identity_changed" });
+});

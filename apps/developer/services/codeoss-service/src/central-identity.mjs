@@ -10,15 +10,16 @@ export const CENTRAL_IDENTITY = Object.freeze({
 // stores an exchanged PKCE grant sealed on the backend; this consumer accepts no
 // grant/subject/account from request bodies or caller-supplied identity headers.
 export function createCentralIdentityVerifier({ grantForRequest, workspaceBinding,
-  fetchImpl = globalThis.fetch, now = Date.now } = {}) {
-  return async function verify(request) {
+  grantForReference, fetchImpl = globalThis.fetch, now = Date.now } = {}) {
+  async function verifySealed(sealed) {
     if (typeof grantForRequest !== "function" || typeof workspaceBinding !== "function")
       throw fault("Wallet identity admission is not configured. Existing guest projects are preserved.", "core_identity_unavailable", 503);
-    const sealed = await grantForRequest(request);
     if (!sealed || typeof sealed.grantToken !== "string" || sealed.grantToken.length < 32 || sealed.grantToken.length > 8192)
       throw fault("Connect the current Wallet identity before launching this project.", "core_identity_required", 401);
     const sealedOwner = createHash("sha256").update(`YNX_DEVELOPER_IDENTITY_V1\n${CENTRAL_IDENTITY.audience}\n${sealed.subject}`).digest("hex");
     const revoked = (message, code) => Object.assign(fault(message, code, 401), { verifiedOwner: sealedOwner });
+    const assertCurrent = () => { if (typeof sealed.isCurrent === "function" && !sealed.isCurrent()) throw revoked("Wallet identity changed or was signed out.", "core_identity_changed"); };
+    assertCurrent();
     // Exact canonical sorted keys. No browser Origin, Sec-Fetch-Site or Cookie.
     const response = await fetchImpl(CENTRAL_IDENTITY.endpoint, {
       method: "POST", headers: { "content-type": "application/json", accept: "application/json" },
@@ -41,13 +42,20 @@ export function createCentralIdentityVerifier({ grantForRequest, workspaceBindin
       throw revoked("Wallet account changed. Reconnect before reopening this project.", "core_identity_changed");
     const owner = createHash("sha256").update(`YNX_DEVELOPER_IDENTITY_V1\n${CENTRAL_IDENTITY.audience}\n${id.subject}`).digest("hex");
     const binding = await workspaceBinding({ owner, subject: id.subject, account: id.account, generation: id.generation });
+    assertCurrent();
     // An explicit backend-owned mapping is necessary; never adopt an arbitrary
     // guest cookie or move a guest project's files to whichever Wallet signs in.
     if (!binding || binding.owner !== owner || !/^[a-f0-9]{64}$/.test(binding.workspaceOwner || ""))
       throw fault("This Wallet has no approved workspace binding. Guest files remain available for recovery.", "core_workspace_binding_required", 403);
     return Object.freeze({ owner, workspaceOwner: binding.workspaceOwner, subject: id.subject,
-      account: id.account, generation: id.generation, expiresAt: expiry, allowedCoreSession: sealed.allowedCoreSession || null });
-  };
+      account: id.account, generation: id.generation, expiresAt: expiry, allowedCoreSession: sealed.allowedCoreSession || null,
+      identityReference: sealed.identityReference || null, isCurrent: assertCurrent });
+  }
+  const verify = async request => verifySealed(await grantForRequest?.(request));
+  // This identifier comes only from the protected backend record, never a
+  // browser/body identity. Passive checks do not attest activity or reset idle.
+  if (typeof grantForReference === "function") verify.resolveReference = async reference => verifySealed(await grantForReference(reference));
+  return verify;
 }
 
 function timestamp(value) { return typeof value === "number" ? value * 1000 : typeof value === "string" ? Date.parse(value) : NaN; }

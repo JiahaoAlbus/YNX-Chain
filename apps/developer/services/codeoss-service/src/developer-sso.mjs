@@ -57,8 +57,22 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
   }
   function cookie(request, name) { return String(request.headers.cookie || "").split(";").map(value => value.trim()).find(value => value.startsWith(`${name}=`))?.slice(name.length + 1); }
   function host(request) { return String(request.headers.host || ""); }
+  const grantForReference = async id => {
+    const grant = retrieve("session", id);
+    if (!grant) return null;
+    const reference = grant.identityReference || id;
+    const parent = retrieve("session", reference);
+    if (!parent || parent.subject !== grant.subject || parent.account !== grant.account || parent.generation !== grant.generation) return null;
+    return { ...grant, identityReference: reference, isCurrent: () => {
+      const current = retrieve("session", id);
+      const original = retrieve("session", reference);
+      return Boolean(current && original && original.subject === grant.subject && original.account === grant.account && original.generation === grant.generation &&
+        current.subject === grant.subject && current.account === grant.account && current.generation === grant.generation &&
+        current.allowedHost === grant.allowedHost && current.allowedCoreSession === grant.allowedCoreSession);
+    } };
+  };
   const grantForRequest = async request => {
-    const grant = retrieve("session", cookie(request, COOKIE));
+    const grant = await grantForReference(cookie(request, COOKIE));
     if (!grant || grant.allowedHost !== host(request)) return null;
     return grant;
   };
@@ -66,7 +80,7 @@ export async function createDeveloperSSO({ filename, keyPath, workspaceStore, gu
     const row = db.prepare("SELECT * FROM developer_identity_bindings WHERE owner=?").get(owner);
     return row ? { owner, workspaceOwner: row.workspace_owner } : null;
   };
-  const verifyIdentity = createCentralIdentityVerifier({ grantForRequest, workspaceBinding, fetchImpl, now });
+  const verifyIdentity = createCentralIdentityVerifier({ grantForRequest, grantForReference, workspaceBinding, fetchImpl, now });
 
   async function backend(path, value) {
     const response = await fetchImpl(`https://wallet-auth.ynxweb4.com/v2/browser-sessions/${path}`, {

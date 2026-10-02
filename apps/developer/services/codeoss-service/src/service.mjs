@@ -40,7 +40,17 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     runtime TEXT NOT NULL, failure TEXT, created_at INTEGER NOT NULL);
     CREATE UNIQUE INDEX IF NOT EXISTS codeoss_project_writer ON codeoss_sessions(workspace_owner,project) WHERE status IN (${LIVE});`);
   db.exec("CREATE TABLE IF NOT EXISTS codeoss_projects(workspace_owner TEXT NOT NULL,project TEXT NOT NULL,directory TEXT NOT NULL,imported_revision INTEGER NOT NULL,checkpoint TEXT,adopted INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(workspace_owner,project));");
-  const tasks = new Map(), launches = new Map();
+  // Existing runtimes retain their original approved deadline. Only new rows
+  // distinguish the fixed runtime budget from a short verified identity lease.
+  const columns = new Set(db.prepare("PRAGMA table_info(codeoss_sessions)").all().map(row => row.name));
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    if (!columns.has("hard_deadline")) db.exec("ALTER TABLE codeoss_sessions ADD COLUMN hard_deadline INTEGER");
+    if (!columns.has("identity_reference")) db.exec("ALTER TABLE codeoss_sessions ADD COLUMN identity_reference TEXT");
+    db.exec("UPDATE codeoss_sessions SET hard_deadline=expires_at WHERE hard_deadline IS NULL");
+    db.exec("COMMIT");
+  } catch (error) { db.exec("ROLLBACK"); throw error; }
+  const tasks = new Map(), launches = new Map(), identityChecks = new Map();
   const get = id => db.prepare("SELECT * FROM codeoss_sessions WHERE id=?").get(id);
   const active = (owner, project) => db.prepare(`SELECT * FROM codeoss_sessions WHERE workspace_owner=? AND project=? AND status IN (${LIVE})`).get(owner, project);
 
@@ -62,11 +72,19 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
   }
 
   function authorize(row, id) {
+    id.isCurrent?.();
     if (!row || row.owner !== id.owner || row.workspace_owner !== id.workspaceOwner)
       throw fault("Native IDE session was not found.", "core_not_found", 404);
     if (id.allowedCoreSession && id.allowedCoreSession !== row.id) throw fault("This browser admission is bound to another native IDE session.", "core_not_found", 404);
-    if (row.generation !== id.generation || row.account !== id.account || row.expires_at <= now())
+    if (row.generation !== id.generation || row.account !== id.account || row.hard_deadline <= now() ||
+      (row.identity_reference && row.identity_reference !== id.identityReference))
       throw fault("This native IDE session's identity expired or changed. Its recovery files are retained.", "core_identity_changed", 401);
+    // The identity is freshly verified by the backend, never by an address or
+    // browser activity. Its renewed lease cannot reset the runtime hard limit.
+    const expiry = Math.min(id.expiresAt, row.hard_deadline);
+    if (!Number.isFinite(expiry) || expiry <= now()) throw fault("Wallet identity expired.", "core_identity_invalid", 401);
+    db.prepare("UPDATE codeoss_sessions SET expires_at=? WHERE id=? AND owner=? AND workspace_owner=? AND account=? AND generation=? AND status=?")
+      .run(expiry, row.id, row.owner, row.workspace_owner, row.account, row.generation, row.status);
   }
 
   async function start(id, body) {
@@ -82,6 +100,8 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     // route, never a raw OpenVSCode token URL or the parent's authentication origin.
     const url = await launchURL({ owner: id.owner, projectId: body.projectId, runtimeId, sessionId });
     validateLaunchURL(url);
+    id.isCurrent?.();
+    if (id.expiresAt <= now()) throw fault("Wallet identity expired before launch.", "core_identity_invalid", 401);
     db.exec("BEGIN IMMEDIATE");
     try {
       if (active(id.workspaceOwner, body.projectId)) throw fault("This project already has a native IDE writer or protected recovery.", "core_writer_active");
@@ -90,9 +110,11 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
       if (total >= limits.activeGlobal || owned >= limits.activePerOwner) throw fault("Native IDE capacity is full. Existing sessions are preserved.", "core_capacity_reached", 429);
       assertProjectQuiescent(id.workspaceOwner, body.projectId);
       workspaceStore.claimWriterInTransaction(id.workspaceOwner, body.projectId, { writerToken: token, sessionId, expectedRevision: snapshot.revision });
-      db.prepare("INSERT INTO codeoss_sessions VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(sessionId, id.owner, id.workspaceOwner,
-        body.projectId, id.generation, id.account, Math.min(id.expiresAt, now() + limits.maxSessionMs), snapshot.revision,
-        JSON.stringify(snapshot), token, "preparing", runtimeId, null, now());
+      const startedAt = now(), runtimeDeadline = startedAt + limits.maxSessionMs;
+      const hardDeadline = id.identityReference && typeof verifyIdentity.resolveReference === "function" ? runtimeDeadline : Math.min(id.expiresAt, runtimeDeadline);
+      db.prepare("INSERT INTO codeoss_sessions(id,owner,workspace_owner,project,generation,account,expires_at,revision,snapshot,writer_token,status,runtime,failure,created_at,hard_deadline,identity_reference) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(sessionId, id.owner, id.workspaceOwner,
+        body.projectId, id.generation, id.account, Math.min(id.expiresAt, hardDeadline), snapshot.revision,
+        JSON.stringify(snapshot), token, "preparing", runtimeId, null, startedAt, hardDeadline, id.identityReference || null);
       db.exec("COMMIT");
     } catch (error) { db.exec("ROLLBACK"); throw error; }
     const context = runtimeContext(get(sessionId));
@@ -125,7 +147,9 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
       // Native volume is now the primary project file source. Preserve the old
       // JSON snapshot as an explicit compatibility/import record, never overwrite
       // binary/native files from a stale Monaco projection on future launches.
+      id.isCurrent?.();
       await driver.start(context);
+      id.isCurrent?.();
       workspaceStore.markNativeProject(id.workspaceOwner, body.projectId, token);
       db.prepare("UPDATE codeoss_projects SET adopted=1 WHERE workspace_owner=? AND project=?").run(id.workspaceOwner, body.projectId);
       db.prepare("UPDATE codeoss_sessions SET status='running' WHERE id=?").run(sessionId);
@@ -218,11 +242,34 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
   async function authorizeConnection(request, sessionId) {
     const id = await identity(request), row = get(sessionId); authorize(row, id);
     if (row.status !== "running") throw fault("Native IDE is not running.", "core_not_running");
-    return { context: runtimeContext(row), expiresAt: row.expires_at, identity: id };
+    // The proxy's fixed socket timer is the runtime ceiling. Its existing
+    // repeated backend checks enforce each current identity lease independently.
+    return { context: runtimeContext(row), expiresAt: row.hard_deadline, identity: id };
   }
   async function expireSessions() {
     const rows = db.prepare(`SELECT * FROM codeoss_sessions WHERE expires_at<=? AND status IN (${LIVE})`).all(now());
-    return Promise.allSettled(rows.map(stop));
+    return Promise.allSettled(rows.map(row => {
+      if (row.hard_deadline <= now() || !row.identity_reference || typeof verifyIdentity.resolveReference !== "function") return stop(row);
+      if (identityChecks.has(row.id)) return identityChecks.get(row.id);
+      const check = (async () => {
+        try {
+          const id = await verifyIdentity.resolveReference(row.identity_reference), current = get(row.id);
+          if (!current || !["preparing", "running", "recovery-required"].includes(current.status) || tasks.has(row.id)) return;
+          if (!id || !Number.isFinite(id.expiresAt) || id.expiresAt <= now()) throw fault("Wallet identity expired.", "core_identity_invalid", 401);
+          if (id.owner !== current.owner || id.workspaceOwner !== current.workspace_owner || id.account !== current.account || id.generation !== current.generation)
+            throw fault("Wallet identity changed.", "core_identity_changed", 401);
+          id.isCurrent?.();
+          authorize(current, id);
+        } catch (error) {
+          // Transient authority failure denies access through the proxy but
+          // preserves the runtime for a bounded recovery up to its hard limit.
+          if (error.status === 401 || error.status === 403 || get(row.id)?.hard_deadline <= now()) await stop(get(row.id));
+          else throw error;
+        }
+      })();
+      identityChecks.set(row.id, check);
+      return check.finally(() => { if (identityChecks.get(row.id) === check) identityChecks.delete(row.id); });
+    }));
   }
   async function drain() {
     const rows = db.prepare(`SELECT * FROM codeoss_sessions WHERE status IN (${LIVE})`).all();

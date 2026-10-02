@@ -54,9 +54,12 @@ test("actual consumer HTTP PKCE callback seals grants, binds stable owner, expli
   assert.equal((await call("/sso/core-admit", { method: "POST", host: "core.native.ynxweb4.com", origin: "https://developer.ynxweb4.com", contentType: "application/x-www-form-urlencoded", body: `ticket=${ticket}` })).status, 401);
   const nativeCookie = admitted.headers["set-cookie"][0].split(";")[0];
   const nativeIdentity = await service.verifyIdentity({ headers: { host: "core.native.ynxweb4.com", cookie: nativeCookie } }); assert.equal(nativeIdentity.allowedCoreSession, "12345678-1234-1234-1234-123456789012");
+  assert.equal(nativeIdentity.identityReference, verified.identityReference);
+  assert.equal((await service.verifyIdentity.resolveReference(verified.identityReference)).owner, verified.owner);
   await assert.rejects(service.verifyIdentity({ headers: { host: "other.native.ynxweb4.com", cookie: nativeCookie } }), { code: "core_identity_required" });
   assert.equal((await call("/runtime/identity/logout", { cookie: sessionCookie, method: "POST", origin: "https://developer.ynxweb4.com" })).status, 200);
-  await assert.rejects(service.verifyIdentity({ headers: { host: "core.native.ynxweb4.com", cookie: nativeCookie } }), { code: "core_identity_invalid" });
+  await assert.rejects(service.verifyIdentity({ headers: { host: "core.native.ynxweb4.com", cookie: nativeCookie } }), { code: "core_identity_required" });
+  await assert.rejects(service.verifyIdentity.resolveReference(verified.identityReference), { code: "core_identity_required" });
   for (const status of [401, 503]) {
     revoked = false; authorityFailure = 0;
     const begin = await call("/sso/start"), auth = new URL(begin.headers.location);
