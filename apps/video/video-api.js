@@ -4,7 +4,7 @@ export function createVideoAPI({baseURL, fetch: request = globalThis.fetch.bind(
   authorize, onUnauthorized = () => {}, requestId = () => crypto.randomUUID()}) {
   const base = new URL(baseURL);
   return async function api(path, options = {}) {
-    const {private: needsAccount = false, ...init} = options;
+    const {private: needsAccount = false, assertCurrent = () => {}, ...init} = options;
     if (!path.startsWith('/v1/') || path.includes('..')) throw new Error('Invalid Video API route.');
     const method = (init.method || 'GET').toUpperCase();
     const mutation = !['GET', 'HEAD'].includes(method);
@@ -20,14 +20,16 @@ export function createVideoAPI({baseURL, fetch: request = globalThis.fetch.bind(
     for (let attempt = 0; attempt < 2; attempt++) {
       let proof = {};
       try {if (needsAccount) proof = await authorize(path.split('?')[0], method);}
-      catch (error) {onUnauthorized(error); throw error;}
+      catch (error) {assertCurrent(); onUnauthorized(error); throw error;}
+      assertCurrent();
       try {
         response = await request(base.href + path, {...init, method, headers: {...headers, ...proof},
           credentials: 'omit', redirect: 'error', signal: init.signal || AbortSignal.timeout(15000)});
         break;
-      } catch (error) {if (attempt === 1 || init.signal?.aborted) throw error;}
+      } catch (error) {assertCurrent(); if (attempt === 1 || init.signal?.aborted) throw error;}
     }
     const data = await response.json().catch(() => ({error: 'Invalid Video service response.'}));
+    assertCurrent();
     if (!response.ok) {
       const error = Object.assign(new Error(data.error || `Video service returned HTTP ${response.status}.`), {status: response.status});
       if (needsAccount && response.status === 401) onUnauthorized(error);

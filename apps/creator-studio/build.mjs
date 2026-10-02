@@ -15,6 +15,7 @@ const upstreamCatalog = Object.freeze({
 const runtimeFiles = Object.freeze([
   "ynx-wallet-transports-2ece0cb329.mjs", "ynx-wallet-transports-2ece0cb329.manifest.json", "assets/ynx-logo.png",
   "app.js",
+  "session-events.js",
   "product-session.js",
   "product-session-sdk.js",
   "product-session-registry.json",

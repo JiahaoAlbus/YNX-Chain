@@ -105,3 +105,5 @@ input,select{font:inherit}input:not([type=search]),#playlist-choice{border:1px s
 #product-wallet-title{display:flex;align-items:center;gap:12px}#product-wallet-chooser .product-wallet-logo{width:64px;height:40px;object-fit:contain;flex:none}
 
 #product-native-open{display:flex;align-items:center;justify-content:center;min-height:44px;margin:16px 0;padding:12px 16px;border:1px solid #002fa7;border-radius:12px;background:#002fa7;color:#fff;text-decoration:none;font-weight:600}#product-native-open:focus-visible{outline:3px solid #6d9aff;outline-offset:3px}#product-native-open[aria-disabled="true"]{opacity:.6;cursor:default}
+
+.media-link{display:block;padding:12px 16px;color:#002fa7;text-decoration:none;border-radius:12px;font-weight:600;min-height:44px;box-sizing:border-box}.media-link:hover{background:#eef3ff}

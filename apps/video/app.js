@@ -140,7 +140,8 @@ export const api = createVideoAPI({baseURL: API,
 const privateAPI = async (path, options = {}) => {
   const revision = productRevision;
   if (!productConnected() || productSignOutPending) throw new Error("Sign in to use your Video library.");
-  const result = await api(path, {...options, private: true});
+  const assertCurrent = () => {if (revision !== productRevision || !productConnected() || productSignOutPending) throw new Error("Video account changed. This operation was discarded.");};
+  const result = await api(path, {...options, private: true, assertCurrent});
   if (revision !== productRevision || !productConnected() || productSignOutPending) throw new Error("Video account changed. This response was discarded.");
   return result;
 };
@@ -250,12 +251,14 @@ async function signOutVideoAccount() {
   if ($("#product-disconnect").disabled) return;
   productSignOutPending = true;
   renderProductState({status: "retry-required", revocationPending: true, message: "Signing out…"});
+  videoProductSession.announce?.();
   const revision = productRevision;
   $("#product-disconnect").disabled = true;
   try {
     const state = await videoProductSession.disconnect();
     if (revision !== productRevision) return;
     renderProductState(state);
+    videoProductSession.announce?.();
     if (!productSignOutPending) notice("Your Video account is signed out.");
   } catch {
     if (revision === productRevision) renderProductState({status: "retry-required", revocationPending: true, message: "Sign-out could not be confirmed. Select Retry sign out when connected."});
@@ -331,10 +334,11 @@ async function prepareVideoSignIn() {
    $("#product-wallet-status").textContent = 'Review the Video request in ' + label + '. You may approve or reject it.';
    invalidate = () => {if (intent === videoSignInIntent) cancelVideoSignIn();};
    for (const event of ['accountsChanged', 'chainChanged', 'disconnect']) provider.on?.(event, invalidate);
-   const state = await dispatchPreparedProductRequest(provider, () => videoProductSession.prepare(), url => videoProductSession.finishReturn(url), current,
+   const state = await dispatchPreparedProductRequest(provider, async () => {const request = await videoProductSession.prepare(); videoProductSession.rememberReturn?.(request, currentView); return request;}, url => videoProductSession.finishReturn(url), current,
     {signal: abort.signal, revoke: () => videoProductSession.disconnect(), onRevocation: renderProductState});
    if (intent !== videoSignInIntent) return;
    renderProductState(state);
+   videoProductSession.announce?.();
    if (state.status === 'connected') {productChooser.close(); await refreshLibraryView();}
    else $("#product-wallet-status").textContent = state.message || 'Approval was not completed. Choose another wallet or retry.';
   } catch (error) {
@@ -393,6 +397,7 @@ async function prepareNativeVideoSignIn(intent) {
  };
  try {
   const request = await videoProductSession.prepare();
+  videoProductSession.rememberReturn?.(request, currentView); videoProductSession.announce?.();
   if (!current()) {await revokeNative(); return;}
   videoTransportCancel = revokeNative;
   if (!Number.isFinite(Date.parse(request.expiresAt)) || Date.parse(request.expiresAt) <= Date.now() || !request.url.startsWith('ynxwallet://')) throw Object.assign(new Error('Native request unavailable'),{code:'PRODUCT_REQUEST_EXPIRED'});
@@ -433,6 +438,7 @@ async function resumeNativeSignIn() {
     if (!returning.state || state.session?.state !== returning.state) {$("#product-wallet-status").textContent = 'This return belongs to a different sign-in. Choose another wallet to start again.'; return;}
     clearNativeStep(); videoTransportCancel = null;
     productChooser.close(); renderProductState(state);
+    videoProductSession.announce?.();
     await refreshLibraryView();
    } else if (state?.revocationPending) {clearNativeStep(); renderProductState(state);}
    else $("#product-wallet-status").textContent = 'Approval has not been confirmed yet. Finish in YNX Wallet and return here, or choose another wallet.';
@@ -959,7 +965,16 @@ const linkedVideo = new URLSearchParams(location.search).get("video");
 if (linkedVideo) {
   api('/v1/videos/'+encodeURIComponent(linkedVideo)).then(openVideo).catch(async error=>{await catalogReady;notice(error.message,true);});
 }
+const returnedView = new URLSearchParams(location.search).get('mediaView');
+if (['subscriptions','playlists','history'].includes(returnedView)) {currentView=returnedView;activate(document.querySelector('nav button[data-view="'+returnedView+'"]'));}
 void restoreVideoAccount();
+videoProductSession.subscribe?.(() => {
+  if (nativeReturn?.launched) {void resumeNativeSignIn(); return;}
+  cancelVideoSignIn();
+  renderProductState({status: "retry-required", message: "Your Video account changed in another tab. Checking your sign-in…"});
+  void restoreVideoAccount();
+});
+window.addEventListener?.("focus", () => {if (!nativeReturn && !productChooser.open) void restoreVideoAccount();});
 void restoreWalletFromSession().catch(()=>resetWallet("EVM wallet not connected."));
 window.addEventListener("online",()=>{if(nativeReturn?.launched)void resumeNativeSignIn();else void restoreVideoAccount();});
 window.addEventListener("offline",()=>{

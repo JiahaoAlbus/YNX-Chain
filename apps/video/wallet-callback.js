@@ -11,7 +11,7 @@ async function finish() {
   try {
     const state = new URL(returnedURL).searchParams.has('result')
       ? await videoProductSession.finishReturn(returnedURL) : await videoProductSession.restore();
-    if (state.status === 'connected') {status.textContent = 'Signed in. Opening Video…'; location.replace('/'); return;}
+    if (state.status === 'connected') {status.textContent = 'Signed in. Opening Video…'; videoProductSession.announce(); location.replace(videoProductSession.consumeReturn(state.session)); return;}
     status.textContent = state.status === 'disconnected' ? 'Approval was declined. You can continue watching as a guest.' : state.message;
     retry.hidden = !['network-unavailable', 'retry-required'].includes(state.status);
   } catch {status.textContent = 'This return could not be verified. Return to Video and start a new sign-in.';}

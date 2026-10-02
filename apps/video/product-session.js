@@ -1,3 +1,4 @@
+import {createMediaSessionEvents, createMediaReturnLocation} from './session-events.js';
 import {createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter, encodeProductSessionWalletURL} from './product-session-sdk.js';
 
 export const VIDEO_ORIGIN = 'https://video.ynxweb4.com';
@@ -29,6 +30,8 @@ export function createVideoProductSession({environment = globalThis,
   GatewayAdapter = ProductSessionGatewayFetchAdapter,
   encodeWalletURL = encodeProductSessionWalletURL} = {}) {
   let pendingClient;
+  const events = createMediaSessionEvents('video', environment);
+  const returnLocation = createMediaReturnLocation('video', ['discover','subscriptions','playlists','history','settings','channel'], environment);
   const atRegisteredOrigin = () => environment.location?.origin === VIDEO_ORIGIN;
   async function productSession() {
     if (!atRegisteredOrigin()) throw new Error('Open video.ynxweb4.com to sign in securely.');
@@ -46,6 +49,7 @@ export function createVideoProductSession({environment = globalThis,
   }
   return {
     atRegisteredOrigin,
+    subscribe: events.subscribe, announce: events.announce, rememberReturn: returnLocation.remember, consumeReturn: returnLocation.consume,
     async prepare() {
       const browser = await productSession();
       // A pending request is protected before offering an explicit launch link.

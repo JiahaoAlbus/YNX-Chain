@@ -1,6 +1,10 @@
+import {createMediaSessionEvents, createMediaReturnLocation} from './session-events.js';
 import { createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter, encodeProductSessionWalletURL } from './product-session-sdk.js';
 const ORIGIN = 'https://creator.ynxweb4.com';
 let pendingClient;
+const events = createMediaSessionEvents('creator-studio');
+const returnLocation = createMediaReturnLocation('creator-studio', ['overview','channel','team','rights','content','upload','assets','earn','moderation','disputes','ai']);
+export const subscribeProductSession = events.subscribe, announceProductSession = events.announce, rememberProductReturn = returnLocation.remember, consumeProductReturn = returnLocation.consume;
 export function atRegisteredOrigin() { return location.origin === ORIGIN; }
 export function creatorScope(path, method = 'GET') {
   if (/\/(payout-intents|revenue|disputes)/.test(path)) return 'creator:revenue';

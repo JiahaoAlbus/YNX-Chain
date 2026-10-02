@@ -15,7 +15,7 @@
   "deployedStaging": false,
   "deployedPublic": true,
   "historicalPublicRouteObserved": true,
-  "currentSourceBoundPublic": true,
+  "currentSourceBoundPublic": false,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
@@ -98,33 +98,16 @@
       "evidence": "audit/creator-489-sdk529-android-w4-acceptance.json",
       "evidenceSHA256": "99066ae834251445fe5e03d81f75df48dc1be6f1e4ea3f486786a4c80b73bb95",
       "authority": "Wallet owner direct Android UI/network capture; coordinator read the source-bound acceptance record, did not repeat the browser actions."
-    }
+    },
+    "currentForRuntime": false
   },
   "candidate": {
-    "sourceCommit": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
-    "sourceTree": "bc4295590683727d2538b54255ff2ac71ce5c9c9",
-    "sdkSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
-    "sdkSHA256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f",
-    "artifactSHA256": "fb73102c29e50a7542d5a09197603c15594b0969aa26f91019c2c9208e269a44",
-    "artifactBytes": 77138,
-    "compatibleRecoveryArtifact": {
-      "archive": "ynx-creator-489bf23ac-recovery.tar.gz",
-      "sha256": "22bebcfa2470c03e54e093b6c692e4522926e242abaaab0379f2b33a1b436f50",
-      "bytes": 41644,
-      "directory": "/opt/ynx-creator-studio-wallet/releases/sdk529-489bf23ac56fb11c5b2ed869fb2a93c2465d2b24-recovery",
-      "manifest": "runtime-manifest.json",
-      "manifestSHA256": "97a24ccd1624527ae74bdeef88b96de461add2da9c06f7e0213b7e380149306e",
-      "stripRuntime": true
-    },
-    "stageAndFileVerified": true,
-    "deployedPublic": true,
-    "installedWalletApprovalVerified": true,
-    "browserUIVerified": true,
-    "privateBusinessVerified": true,
-    "handoff": "apps/video/audit/sdk529-handoff.md",
-    "publicReadback": "audit/creator-sdk529-489bf23ac-public-readback.json",
-    "verificationScope": "Android emulator-5580 b0 Wallet/Chrome; successful approval/return/refresh and actual network-failure signout retry only",
-    "acceptance": "audit/creator-489-sdk529-android-w4-acceptance.json"
+    "baseCommit": "1394fc5cc128c9dc8d7694bc54e71b57af6ff343",
+    "status": "source-in-progress",
+    "changes": "Media account isolation, cross-tab invalidation and original-page callback return",
+    "installedWalletApprovalVerified": false,
+    "publicRuntimeVerified": false,
+    "productionReleased": false
   },
   "historicalSourceBoundReleases": [
     {
@@ -199,6 +182,43 @@
     "privateBusinessVerified": true,
     "scope": "Source tests and exact public release identity; current-version installed Wallet flow evidence is collected separately.",
     "verificationScope": "Android emulator-5580 b0 Wallet/Chrome; successful approval/return/refresh and actual network-failure signout retry only",
-    "acceptance": "audit/creator-489-sdk529-android-w4-acceptance.json"
-  }
+    "acceptance": "audit/creator-489-sdk529-android-w4-acceptance.json",
+    "currentForRuntime": false
+  },
+  "developmentCheckpoint": {
+    "baseCommit": "1394fc5cc128c9dc8d7694bc54e71b57af6ff343",
+    "status": "source-in-progress",
+    "changes": "Media account isolation, cross-tab invalidation and original-page callback return",
+    "installedWalletApprovalVerified": false,
+    "publicRuntimeVerified": false,
+    "productionReleased": false
+  },
+  "retainedCandidates": [
+    {
+      "sourceCommit": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
+      "sourceTree": "bc4295590683727d2538b54255ff2ac71ce5c9c9",
+      "sdkSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+      "sdkSHA256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f",
+      "artifactSHA256": "fb73102c29e50a7542d5a09197603c15594b0969aa26f91019c2c9208e269a44",
+      "artifactBytes": 77138,
+      "compatibleRecoveryArtifact": {
+        "archive": "ynx-creator-489bf23ac-recovery.tar.gz",
+        "sha256": "22bebcfa2470c03e54e093b6c692e4522926e242abaaab0379f2b33a1b436f50",
+        "bytes": 41644,
+        "directory": "/opt/ynx-creator-studio-wallet/releases/sdk529-489bf23ac56fb11c5b2ed869fb2a93c2465d2b24-recovery",
+        "manifest": "runtime-manifest.json",
+        "manifestSHA256": "97a24ccd1624527ae74bdeef88b96de461add2da9c06f7e0213b7e380149306e",
+        "stripRuntime": true
+      },
+      "stageAndFileVerified": true,
+      "deployedPublic": true,
+      "installedWalletApprovalVerified": true,
+      "browserUIVerified": true,
+      "privateBusinessVerified": true,
+      "handoff": "apps/video/audit/sdk529-handoff.md",
+      "publicReadback": "audit/creator-sdk529-489bf23ac-public-readback.json",
+      "verificationScope": "Android emulator-5580 b0 Wallet/Chrome; successful approval/return/refresh and actual network-failure signout retry only",
+      "acceptance": "audit/creator-489-sdk529-android-w4-acceptance.json"
+    }
+  ]
 }

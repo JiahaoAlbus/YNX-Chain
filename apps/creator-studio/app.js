@@ -1,5 +1,5 @@
 import {createHostedWalletAdapter, WalletConnectDAppConnection, QRCode} from './ynx-wallet-transports-2ece0cb329.mjs';
-import {atRegisteredOrigin, dispatchPreparedProductRequest, finishProductReturn, prepareProductSignIn, restoreProductSession,restoreNativeProductReturn, productAuthorization, disconnectProductSession} from "./product-session.js";
+import {atRegisteredOrigin, dispatchPreparedProductRequest, finishProductReturn, prepareProductSignIn, restoreProductSession,restoreNativeProductReturn, productAuthorization, disconnectProductSession, subscribeProductSession, announceProductSession, rememberProductReturn} from "./product-session.js";
 import {
   attachWalletLifecycle,
   connectStandardWallet,
@@ -19,9 +19,12 @@ import {
 } from "./standard-wallet-connect-state.js";
 import{ready as i18nReady,t}from"./i18n.js";
 const CREATOR_RUNTIME_BINDING="ynx-creator-studio-web-v1",CREATOR_BUNDLE_ID="com.ynxweb4.creator-studio.web";
-const API=localStorage.getItem("ynx.video.api")||`${location.origin}/video/api`,$=s=>document.querySelector(s);
+const API=`${location.origin}/video/api`,$=s=>document.querySelector(s);
 let snapshot=null,currentAI=null,walletConnecting=false;
 let creatorSessionRevision=0,creatorAccount=null;
+let creatorExpiryTimer;
+function announceSession(){if(typeof announceProductSession==='function')announceProductSession();}
+function rememberReturn(request){if(typeof rememberProductReturn==='function')rememberProductReturn(request,document.querySelector('nav button.active')?.dataset.panel||'overview');}
 let selectedChannelId=null,channelReadRevision=0,studioReadRevision=0;
 const channelAutofill=new Map();
 function currentCreatorSession(revision){return creatorAccount!==null&&revision===creatorSessionRevision}
@@ -55,12 +58,12 @@ async function api(path,opt={}){
   for(let attempt=0;attempt<2;attempt++){
     const headers={...baseHeaders,...await productAuthorization(path,method)};
     assertCreatorSession(revision);
-    try{response=await fetch(API+path,{...opt,headers});break}
+    try{response=await fetch(API+path,{...opt,headers,credentials:'omit',redirect:'error',signal:opt.signal||AbortSignal.timeout(15000)});break}
     catch(error){assertCreatorSession(revision);if(attempt===1){reduceWallet({type:"PRIVATE_SESSION_DEGRADED"});throw error}}
   }
   const data=await response.json().catch(()=>({error:"Invalid service response"}));
   assertCreatorSession(revision);
-  if(!response.ok){if(response.status>=500)reduceWallet({type:"PRIVATE_SESSION_DEGRADED"});throw new Error(data.error||`HTTP ${response.status}`)}
+  if(!response.ok){if(response.status===401){renderProductState({status:'retry-required',message:'Your Creator sign-in needs to be checked. Sign in again.'});status(data.error||'Your sign-in expired.',true);}if(response.status>=500)reduceWallet({type:"PRIVATE_SESSION_DEGRADED"});throw new Error(data.error||`HTTP ${response.status}`)}
   reduceWallet({type:"PRIVATE_SESSION_READY"});return data;
 }
 const json=body=>({method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}),get=(x,lower,upper)=>x?.[lower]??x?.[upper],esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
@@ -284,6 +287,7 @@ function clearCreatorSession(){
   productOpen.removeAttribute("href");
 }
 function renderProductState(state){
+  clearTimeout(creatorExpiryTimer);
   if(state.revocationPending)creatorSignOutPending=true;
   if(["disconnected","expired"].includes(state.status))creatorSignOutPending=false;
   productConnect.disabled=creatorSignOutPending;
@@ -292,10 +296,11 @@ function renderProductState(state){
   if(!connected||account!==creatorAccount)clearCreatorSession();
   creatorAccount=account;
   productStatus.textContent=connected?`Signed in · ${state.session.account}`:state.status==="disconnected"?"Sign in to manage your channel.":state.message;
-  productDisconnect.hidden=!connected&&!creatorSignOutPending;
+  productDisconnect.hidden=!connected&&!creatorSignOutPending&&!['retry-required','network-unavailable'].includes(state.status);
   productDisconnect.textContent=creatorSignOutPending?"Retry sign out":"Sign out";
   productConnect.textContent=connected?"Switch Creator account":"Sign in with YNX Wallet";
   if(connected)productOpen.hidden=true;
+  if(connected&&Number.isFinite(Date.parse(state.session.expiresAt)))creatorExpiryTimer=setTimeout(()=>renderProductState({status:'expired',message:'Your Creator sign-in expired. Sign in again to continue.'}),Math.max(0,Date.parse(state.session.expiresAt)-Date.now()));
 }
 let creatorSignInIntent = 0;
 let creatorSignInAbort, creatorTransportCancel, creatorPairConnection;
@@ -336,6 +341,7 @@ function productWalletFailure(error) {
  return 'Sign-in could not complete. Choose another wallet or try again. No new account access has been confirmed.';
 }
 async function openCreatorSignIn() {
+ if(productChooser.open)return;
  creatorSignInAbort?.abort();
  if (creatorSignOutPending) return;
  if (creatorAccount) {await signOutCreatorAccount(); if (creatorSignOutPending) return;}
@@ -365,10 +371,11 @@ async function openCreatorSignIn() {
    $("#product-wallet-status").textContent = 'Review the Creator Studio request in ' + label + '. You may approve or reject it.';
    invalidate = () => {if (intent === creatorSignInIntent) cancelCreatorSignIn();};
    for (const event of ['accountsChanged', 'chainChanged', 'disconnect']) provider.on?.(event, invalidate);
-   const state = await dispatchPreparedProductRequest(provider, prepareProductSignIn, finishProductReturn, current,
+   const state = await dispatchPreparedProductRequest(provider, async()=>{const request=await prepareProductSignIn();rememberReturn(request);return request;}, finishProductReturn, current,
     {signal: abort.signal, revoke: disconnectProductSession, onRevocation: renderProductState});
    if (intent !== creatorSignInIntent) return;
    renderProductState(state);
+   announceSession();
    if (state.status === 'connected') {productChooser.close(); await refresh(); await providerStatus();}
    else $("#product-wallet-status").textContent = state.message || 'Approval was not completed. Choose another wallet or retry.';
   } catch (error) {
@@ -428,6 +435,7 @@ async function prepareNativeCreatorSignIn(intent) {
  };
  try {
   const request = await prepareProductSignIn();
+  rememberReturn(request);announceSession();
   if (!current()) {await revokeNative(); return;}
   creatorTransportCancel = revokeNative;
   if (!Number.isFinite(Date.parse(request.expiresAt)) || Date.parse(request.expiresAt) <= Date.now() || !request.url.startsWith('ynxwallet://')) throw Object.assign(new Error('Native request unavailable'),{code:'PRODUCT_REQUEST_EXPIRED'});
@@ -468,6 +476,7 @@ async function resumeNativeSignIn() {
     if (!returning.state || state.session?.state !== returning.state) {$("#product-wallet-status").textContent = 'This return belongs to a different sign-in. Choose another wallet to start again.'; return;}
     clearNativeStep(); creatorTransportCancel = null;
     productChooser.close(); renderProductState(state);
+    announceSession();
     if (await refresh()) await providerStatus();
    } else if (state?.revocationPending) {clearNativeStep(); renderProductState(state);}
    else $("#product-wallet-status").textContent = 'Approval has not been confirmed yet. Finish in YNX Wallet and return here, or choose another wallet.';
@@ -486,9 +495,10 @@ async function signOutCreatorAccount(){
   productDisconnect.disabled=true;
   productConnect.disabled=true;
   clearCreatorSession();
+  announceSession();
   productStatus.textContent="Signing out…";
   const revision=creatorSessionRevision;
-  try{const state=await disconnectProductSession();if(revision!==creatorSessionRevision)return;creatorSignOutPending=state.status!=="disconnected";renderProductState(state);if(state.status==="disconnected")status("Creator account disconnected.");}
+  try{const state=await disconnectProductSession();if(revision!==creatorSessionRevision)return;creatorSignOutPending=!["disconnected","expired"].includes(state.status);renderProductState(state);announceSession();if(state.status==="disconnected")status("Creator account disconnected.");}
   catch(error){if(revision===creatorSessionRevision){productStatus.textContent=error.message;productDisconnect.hidden=false;productDisconnect.textContent="Retry sign out";}}
   finally{productDisconnect.disabled=false;productConnect.disabled=creatorSignOutPending;}
 }
@@ -500,6 +510,8 @@ async function restoreCreator(){
   catch(error){if(revision===creatorSessionRevision)productStatus.textContent=error.message;}
 }
 void restoreCreator();
+if(typeof subscribeProductSession==='function')subscribeProductSession(()=>{if(nativeReturn?.launched){void resumeNativeSignIn();return;}cancelCreatorSignIn();renderProductState({status:'retry-required',message:'Your Creator account changed in another tab. Checking your sign-in…'});void restoreCreator();});
+window.addEventListener?.('focus',()=>{if(!nativeReturn&&!productChooser.open)void restoreCreator();});
 resetWalletFlow();
 void restoreWalletConnection();
 document.querySelectorAll("nav button").forEach(button=>button.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x===button));document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id===button.dataset.panel));$("#heading").textContent=button.textContent});
@@ -604,4 +616,6 @@ $("#ai-run").onclick=async()=>{
 $("#ai-cancel").onclick=async()=>{if(!currentAI)return;try{showAI(await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}/cancel`,{method:"POST"}));status("AI request cancelled and audited.")}catch(error){status(error.message,true)}};
 async function reviewAI(apply){if(!currentAI)return;try{showAI(await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}/review`,json({apply})));status(apply?"Suggestion accepted; publication still requires a separate human action.":"Suggestion rejected and audited.")}catch(error){status(error.message,true)}}$("#ai-accept").onclick=()=>reviewAI(true);$("#ai-reject").onclick=()=>reviewAI(false);
 $("#ai-delete").onclick=async()=>{if(!currentAI||!confirm("Delete this AI context and result? The minimal deletion audit remains."))return;try{await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}`,{method:"DELETE"});currentAI=null;$("#ai-result").textContent="AI context and result deleted.";for(const id of ["#ai-run","#ai-cancel","#ai-accept","#ai-reject","#ai-delete"])$(id).disabled=true;status("AI data deleted within the service retention boundary.");await refresh()}catch(error){status(error.message,true)}};
+const returnedPanel=new URLSearchParams(location.search).get('mediaView');
+if(['overview','channel','team','rights','content','upload','assets','earn','moderation','disputes','ai'].includes(returnedPanel))document.querySelector('nav button[data-panel="'+returnedPanel+'"]')?.click();
 await i18nReady.catch(()=>null);

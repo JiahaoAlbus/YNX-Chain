@@ -52,11 +52,19 @@ files=(
   ynx-dapp-connect-sdk/provider.js
 )
 
+if git cat-file -e "${source_commit}:apps/video/ynx-wallet-transports-2ece0cb329.mjs" 2>/dev/null; then
+  files+=(ynx-wallet-transports-2ece0cb329.mjs ynx-wallet-transports-2ece0cb329.manifest.json assets/ynx-logo.png)
+fi
+
 # Preserve historical source builds; every v2 source must contain the complete
 # callback/client bundle. No file is silently sourced from the working tree.
 if git cat-file -e "${source_commit}:apps/video/product-session.js" 2>/dev/null; then
   files+=(product-session.js product-session-sdk.js product-session-registry.json product-session-sdk-source.json
     video-api.js watch-progress.js wallet-callback.js wallet-callback.html callback.css)
+fi
+
+if git cat-file -e "${source_commit}:apps/video/session-events.js" 2>/dev/null; then
+  files+=(session-events.js)
 fi
 
 for file in "${files[@]}"; do

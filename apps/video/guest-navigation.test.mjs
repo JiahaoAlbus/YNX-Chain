@@ -35,6 +35,7 @@ async function controller({search='',product={atRegisteredOrigin:()=>false},requ
   videoProductSession:product,restoreVideoWallet:async()=>null,
   createVideoAPI:()=>async path=>{calls.push(path);return request(path);},
   createWatchProgress:()=>({flush:async()=>{},discard(){},resetSample(){}}),
+  discoverWalletCandidates:async()=>[],
  };
  const app=await new AsyncFunction(...Object.keys(dependencies),code+'\nreturn {openVideo,showChannel,loadVideos,restoreVideoAccount,signOutVideoAccount,renderProductState,showPlaylists};')(...Object.values(dependencies));
  await turn();await turn();
@@ -135,7 +136,7 @@ test('restored pending logout has only explicit retry and never starts new appro
 test('a sign-in racing initial restore still exposes SDK pending logout retry',async()=>{
  const initial=deferred(),state={status:'retry-required',revocationPending:true,message:'Pending sign-out'};
  const c=await controller({product:{atRegisteredOrigin:()=>true,restore:()=>initial.promise,prepare:async()=>{throw Object.assign(new Error(state.message),{productSessionState:state});}}});
- await c.node('#product-connect').onclick();initial.resolve(connected);await turn();
+ await c.node('#product-connect').onclick();await c.node('#product-wallet-choices').children.at(-1).onclick();initial.resolve(connected);await turn();
  assert.equal(c.node('#product-disconnect').hidden,false);
  assert.equal(c.node('#product-disconnect').textContent,'Retry sign out');
  assert.equal(c.node('#product-connect').disabled,true);
@@ -190,15 +191,16 @@ test('actual network failures and revocation intents retain explicit retry even 
  assert.equal(c.node('#product-disconnect').textContent,'Retry sign out');
 });
 
-test('preparing a fresh explicit Wallet request removes controls from a previous recoverable error',async()=>{
+test('a recoverable sign-in error opens the chooser and the selected native request has its own launch link',async()=>{
  const c=await controller({product:{atRegisteredOrigin:()=>true,
   restore:async()=>({status:'network-unavailable',message:'Authority time unavailable'}),
-  prepare:async()=>({url:'ynxwallet://authorize?request=fixture',expiresAt:new Date(Date.now()+60000).toISOString()})}});
+  prepare:async()=>({url:'ynxwallet://authorize?request=fixture',state:'fixture',expiresAt:new Date(Date.now()+60000).toISOString()})}});
  assert.equal(c.node('#product-retry').hidden,false);
  await c.node('#product-connect').onclick();
- assert.equal(c.node('#product-retry').hidden,true);
- assert.equal(c.node('#product-disconnect').hidden,true);
- assert.equal(c.node('#product-launch').hidden,false);
- assert.equal(c.node('#product-launch').href,'ynxwallet://authorize?request=fixture');
+ assert.equal(c.node('#product-wallet-chooser').open,true);
+ await c.node('#product-wallet-choices').children.at(-1).onclick();
+ assert.equal(c.node('#product-launch').hidden,true);
+ assert.equal(c.node('#product-native-open').hidden,false);
+ assert.equal(c.node('#product-native-open').href,'ynxwallet://authorize?request=fixture');
  assert.equal(c.node('#comment textarea').disabled,true);
 });

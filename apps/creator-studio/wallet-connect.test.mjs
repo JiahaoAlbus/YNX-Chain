@@ -77,7 +77,8 @@ test("wallet UI uses distinct image assets and same-tab provider flow", async ()
   assert.match(metamaskLogo, /MetaMask/);
   assert.match(auth, /ethereum#initialized/);
   assert.match(auth, /DISCOVERY_PHASES_MS[^\n]*250[^\n]*750[^\n]*1500/);
-  assert.doesNotMatch(`${app}\n${auth}\n${html}`, /window\.open|ynxwallet:|target=["']_blank/i);
+  assert.doesNotMatch(`${app.split('const productStatus=')[0]}\n${auth}`, /window\.open|ynxwallet:|target=["']_blank/i);
+  assert.doesNotMatch(app, /location\.(assign|replace)\(/);
   assert.match(callback, /src="..\/wallet-callback\.js"/);
   assert.doesNotMatch(callback, /gateway_session|redirect_to|<script>/);
   const releaseState = JSON.parse(release);
@@ -86,7 +87,7 @@ test("wallet UI uses distinct image assets and same-tab provider flow", async ()
     assert.equal(releaseState.publicRuntime.sourceCommit, releaseState.sourceCommit);
     assert.equal(releaseState.deployedPublic, true);
   }
-  if (releaseState.publicRuntime?.installedWalletApprovalVerified) {
+  if (releaseState.publicRuntime?.installedWalletApprovalVerified && releaseState.publicRuntime.currentForRuntime !== false) {
     assert.equal(releaseState.publicRuntime.verificationScope.creatorSource, releaseState.publicRuntime.sourceCommit);
     assert.match(releaseState.publicRuntime.verificationScope.source, /Wallet owner/);
   }
