@@ -507,18 +507,27 @@ func (c *Client) Logout(ctx context.Context, input LogoutInput) error {
 			}
 			ids = append(ids, input.FamilyID)
 		}
-		for _, id := range ids {
+		visited := map[string]bool{}
+		for index := 0; index < len(ids); index++ {
+			id := ids[index]
+			if visited[id] {
+				continue
+			}
+			visited[id] = true
 			f := s.Families[id]
 			if f == nil {
 				continue
 			}
-			f.Fenced = true
-			if f.PendingRevoke == "" {
+			if !f.Fenced {
 				f.PendingRevoke = randomToken()
 			}
+			f.Fenced = true
 			for _, in := range s.Intents {
 				if in.PreviousFamilyID == id || in.ResultID == id {
 					in.Fenced = true
+					if in.ResultID != "" && !visited[in.ResultID] {
+						ids = append(ids, in.ResultID)
+					}
 				}
 			}
 		}

@@ -625,3 +625,25 @@ func TestExplicitNewIntentAfterExpiredOrConfirmedLogout(t *testing.T) {
 		t.Fatal("expired family revived")
 	}
 }
+
+func TestLogoutTraversesOnlyItsCommittedReplacementLineage(t *testing.T) {
+	f := newFixture(t)
+	old, _ := f.login("")
+	replacement, _ := f.login(old.FamilyID)
+	independent, _ := f.login("")
+	if err := f.client.Logout(context.Background(), LogoutInput{FamilyID: old.FamilyID}); err != nil {
+		t.Fatal(err)
+	}
+	_, err := f.client.Resolve(context.Background(), replacement.FamilyID)
+	requireCode(t, err, CodeFenced)
+	if _, err = f.client.Resolve(context.Background(), independent.FamilyID); err != nil {
+		t.Fatal("unrelated browser fenced", err)
+	}
+	fresh, _ := f.login("")
+	if err = f.client.Logout(context.Background(), LogoutInput{FamilyID: old.FamilyID}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.client.Resolve(context.Background(), fresh.FamilyID); err != nil {
+		t.Fatal("confirmed old logout affected explicit new intent", err)
+	}
+}
