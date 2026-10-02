@@ -195,6 +195,7 @@ type ContactRequest struct {
 	CreatedAt time.Time  `json:"createdAt"`
 	UpdatedAt time.Time  `json:"updatedAt"`
 	ClosedAt  *time.Time `json:"closedAt,omitempty"`
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
 }
 
 type Contact struct {

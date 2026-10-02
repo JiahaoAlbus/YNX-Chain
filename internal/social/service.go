@@ -359,11 +359,27 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 	if err != nil || target == actor.Account || !identifierPattern.MatchString(in.IdempotencyKey) || !allowedSources[in.Source] {
 		return ContactRequest{}, false, ErrInvalid
 	}
-	digest := objectDigest(in)
+	// TargetAccount is intentionally absent from public JSON. Bind its actual
+	// normalized stable actor explicitly, rather than hashing JSON that omits it.
+	digest := objectDigest(struct {
+		Input  ContactRequestInput
+		Target string
+	}{in, target})
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.blockedLocked(actor.Account, target) {
 		return ContactRequest{}, false, ErrUnauthorized
+	}
+	now := s.cfg.Now().UTC()
+	stateKey := idempotencyStateKey(actor.Account, in.IdempotencyKey)
+	if previous, ok := s.state.Idempotency[stateKey]; ok {
+		record, exists := s.state.Requests[previous.ObjectID]
+		pairMatches := exists && pairKey(record.From, record.To) == pairKey(actor.Account, target)
+		legacyMatches := record.From == actor.Account && record.To == target && previous.Digest == objectDigest(in)
+		if previous.Action != "contact_request" || !pairMatches || previous.Digest != digest && !legacyMatches {
+			return ContactRequest{}, false, ErrConflict
+		}
+		return contactRequestAt(record, now), true, nil
 	}
 	settings := s.state.Settings[target]
 	if settings.AllowRequestsFrom == "nobody" || settings.AllowRequestsFrom == "contacts" && !s.contactLocked(actor.Account, target) {
@@ -372,21 +388,24 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 	if s.contactLocked(actor.Account, target) {
 		return ContactRequest{}, false, ErrConflict
 	}
-	stateKey := idempotencyStateKey(actor.Account, in.IdempotencyKey)
-	if previous, ok := s.state.Idempotency[stateKey]; ok {
-		if previous.Action != "contact_request" || previous.Digest != digest {
-			return ContactRequest{}, false, ErrConflict
-		}
-		return s.state.Requests[previous.ObjectID], true, nil
-	}
+	var existing ContactRequest
 	for _, request := range s.state.Requests {
-		if request.From == actor.Account && request.To == target && request.Status == "pending" {
-			return ContactRequest{}, false, ErrConflict
+		if pairKey(request.From, request.To) == pairKey(actor.Account, target) && contactRequestAt(request, now).Status == "pending" {
+			if existing.ID == "" || request.CreatedAt.Before(existing.CreatedAt) || request.CreatedAt.Equal(existing.CreatedAt) && request.ID < existing.ID {
+				existing = request
+			}
 		}
 	}
-	now := s.cfg.Now().UTC()
+	if existing.ID != "" {
+		// Opposite requests and new-key retries refer to the same request. The
+		// original recipient must still explicitly accept; never auto-consent.
+		before := cloneState(s.state)
+		s.state.Idempotency[stateKey] = idempotencyRecord{"contact_request", digest, existing.ID}
+		return existing, true, s.saveOrRollbackLocked(before)
+	}
 	id := "request_" + objectDigest(struct{ A, B, K string }{actor.Account, target, in.IdempotencyKey})[:24]
-	record := ContactRequest{ID: id, From: actor.Account, To: target, Source: in.Source, Status: "pending", CreatedAt: now, UpdatedAt: now}
+	expires := now.Add(7 * 24 * time.Hour)
+	record := ContactRequest{ID: id, From: actor.Account, To: target, Source: in.Source, Status: "pending", CreatedAt: now, UpdatedAt: now, ExpiresAt: &expires}
 	before := cloneState(s.state)
 	s.state.Requests[id] = record
 	s.state.Idempotency[stateKey] = idempotencyRecord{"contact_request", digest, id}
@@ -408,15 +427,30 @@ func (s *Service) TransitionRequest(actor Session, id, action string) (ContactRe
 	if action == "withdraw" && record.From != actor.Account || action != "withdraw" && record.To != actor.Account {
 		return ContactRequest{}, ErrUnauthorized
 	}
-	if record.Status != "pending" {
-		return ContactRequest{}, ErrConflict
-	}
 	if s.blockedLocked(record.From, record.To) {
 		return ContactRequest{}, ErrUnauthorized
 	}
 	now := s.cfg.Now().UTC()
+	if expired := contactRequestAt(record, now); expired.Status != record.Status {
+		before := cloneState(s.state)
+		s.state.Requests[id] = expired
+		s.appendAuditLocked("contact_request_expired", "contact_request", id, actor.Account, objectDigest(expired), now)
+		if err := s.saveOrRollbackLocked(before); err != nil {
+			return ContactRequest{}, err
+		}
+		return ContactRequest{}, ErrConflict
+	}
+	finalStatus := map[string]string{"accept": "accepted", "reject": "rejected", "withdraw": "withdrawn"}[action]
+	if record.Status == finalStatus {
+		// A historical receipt is not a new grant: never restore a relationship
+		// that was subsequently removed, and do not duplicate notifications.
+		return record, nil
+	}
+	if record.Status != "pending" {
+		return ContactRequest{}, ErrConflict
+	}
 	before := cloneState(s.state)
-	record.Status = map[string]string{"accept": "accepted", "reject": "rejected", "withdraw": "withdrawn"}[action]
+	record.Status = finalStatus
 	record.UpdatedAt = now
 	record.ClosedAt = &now
 	s.state.Requests[id] = record
@@ -498,7 +532,7 @@ func (s *Service) Requests(actor Session) []ContactRequest {
 	out := []ContactRequest{}
 	for _, r := range s.state.Requests {
 		if r.From == actor.Account || r.To == actor.Account {
-			out = append(out, r)
+			out = append(out, contactRequestAt(r, s.cfg.Now().UTC()))
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
