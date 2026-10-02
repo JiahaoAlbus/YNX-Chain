@@ -43,7 +43,7 @@ export function createSocialAudienceHTTPClient({session,capture,guard,csrfToken,
         metadata.members.some(member=>typeof member!=='string'||!member.startsWith('@'))||
         new Set(metadata.members).size!==metadata.members.length||!metadata.members.includes(metadata.owner))
       fail('Verified audience metadata is invalid');
-    return metadata;
+    return {protocol:metadata.protocol,kind:metadata.kind,revision:metadata.revision,owner:metadata.owner,roomId:metadata.roomId,members:[...metadata.members].sort()};
   }
   return Object.freeze({
     resolve:selection=>post('resolve',selection),

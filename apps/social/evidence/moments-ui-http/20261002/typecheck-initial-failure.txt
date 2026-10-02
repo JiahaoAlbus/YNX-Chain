@@ -1,0 +1,7 @@
+
+> @ynx-chain/social@1.0.0 typecheck
+> tsc --noEmit
+
+src/restrictedMomentsIntegration.test.ts(33,176): error TS2322: Type '(selection: any) => Promise<{ protocol: any; kind: any; revision: any; owner: any; roomId: any; members: any[]; }>' is not assignable to type 'null | undefined'.
+src/restrictedMomentsIntegration.test.ts(33,205): error TS2322: Type '(expected: any, operation: any) => Promise<{ protocol: any; kind: any; revision: any; owner: any; roomId: any; members: any[]; }>' is not assignable to type 'null | undefined'.
+src/restrictedMomentsIntegration.test.ts(34,5): error TS2322: Type '() => Promise<{ groups: { id: string; title: string; }[]; contacts: { id: string; title: string; }[]; }>' is not assignable to type 'null | undefined'.
