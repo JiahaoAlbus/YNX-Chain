@@ -22,7 +22,11 @@
     "androidJava17Compiled": true,
     "hostStoreFixture": true,
     "realLocalBrowserCrossTabCases": 2,
-    "localBrowserResponsiveCases": 4
+    "localBrowserResponsiveCases": 4,
+    "hostApiFixture": true,
+    "videoFullSuiteTests": 95,
+    "videoLocaleAudit": 12,
+    "musicClearScopeLocales": 12
   },
   "notVerified": {
     "installedAndroid": true,
@@ -38,5 +42,16 @@
     "A mature generic business proof binding method/path/bodyDigest/nonce/session to each Media operation",
     "A unique compatible formal package/deployment, followed by final public/installed retest"
   ],
-  "scope": "Source and isolated engineering evidence only; no user data, Wallet credentials or public services changed"
+  "scope": "Source and isolated engineering evidence only; no user data, Wallet credentials or public services changed",
+  "sourceRepairs": [
+    "Original account generation is retained by playlist, rights, AI-review, upload and clear-cache confirmations",
+    "File picker result is accepted only by the account that launched it",
+    "Each upload uses its own temporary file and removes it on completion",
+    "Upload chunks and final response reject an account switch"
+  ],
+  "evidenceLogs": [
+    "/tmp/ynx-media-video-check-context-final-20261002.log",
+    "/tmp/ynx-media-music-native-store-api-upload-20261002.log",
+    "/tmp/ynx-media-music-native-compile-20261002/javac-dialog-guards.log"
+  ]
 }
