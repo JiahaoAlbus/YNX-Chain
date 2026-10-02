@@ -46,7 +46,7 @@ function fixture(platform: "android" | "ios" = "android", storage = memoryStorag
 }
 
 test("direct product authorization displays and signs the exact finite service deadline without extending the approval window", async () => {
-  const f=fixture(),req=request("web",{productId:"finance",scopes:["account:read","session:read","session:revoke"],finiteServiceSeconds:3600});
+  const f=fixture(),req=request("web",{productId:"finance",scopes:["finance.profile.write"],finiteServiceSeconds:3600});
   const review=await f.controller.receive(encodeProductSessionWalletURL(registry,req,NOW));
   assert.ok(review.request.serviceConsent);assert.equal(f.state.reads,0);
   const display=finiteServiceReview("en",review.request)!;
