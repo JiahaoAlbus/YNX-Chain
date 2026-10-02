@@ -9,7 +9,7 @@ function fixture(){
     getRoom:()=>({getMembers:()=>audience.members.map(userId=>({userId,membership:'join'}))}),
     sendMessage:async(...args:unknown[])=>{sent.push(args);return {event_id:'$event'}},
   }};
-  const transport={capture:()=>operation,guard:()=>{if(stopped)throw Error('stale session')},assertTrusted:async()=>{},messages:async():Promise<unknown[]>=>[]};
+  const transport={capture:()=>operation,guard:()=>{if(stopped)throw Error('stale session')},assertTrusted:async()=>{},messages:async():Promise<unknown[]>=>sent.map(args=>({id:'$event',sender:operation.binding.userId,encrypted:true,verification:{shieldColour:0},content:args[1]}))};
   return {audience,operation,transport,sent,setLive:(value:typeof audience)=>{live=value},stop:()=>{stopped=true},consumer:new RestrictedMoments({transport,authorize:async()=>live})};
 }
 const transactionId='original_transaction_001';
@@ -55,7 +55,30 @@ test('caller supplied parent receipt alone never authorizes a comment',async()=>
 test('current approved member can comment only on authenticated matching encrypted parent',async()=>{
   const f=fixture();f.operation.binding.userId='@bob:node';
   const parent={protocol:RESTRICTED_MOMENT_PROTOCOL,roomId:f.audience.roomId,revision:f.audience.revision,owner:f.audience.owner,eventId:'$parent'};
-  f.transport.messages=async()=>[{id:'$parent',sender:f.audience.owner,encrypted:true,verification:{shieldColour:0},content:{'com.ynx.social.moment':{protocol:RESTRICTED_MOMENT_PROTOCOL,kind:'moment',owner:f.audience.owner,revision:f.audience.revision,audience:'contacts'}}}];
+  f.transport.messages=async()=>[{id:'$parent',sender:f.audience.owner,encrypted:true,verification:{shieldColour:0},content:{'com.ynx.social.moment':{protocol:RESTRICTED_MOMENT_PROTOCOL,kind:'moment',owner:f.audience.owner,revision:f.audience.revision,audience:'contacts'}}},...f.sent.map(args=>({id:'$event',sender:'@bob:node',encrypted:true,verification:{shieldColour:0},content:args[1]}))];
   await f.consumer.publish({audience:f.audience,text:'comment',transactionId,parent});
   assert.deepEqual((f.sent[0]![1] as Record<string,unknown>)['m.relates_to'],{rel_type:'m.reference',event_id:'$parent'});
+});
+
+test('malformed success receipts preserve exact unknown draft and transaction',async()=>{
+  for(const result of [null,{},[],{event_id:''},{event_id:'not-an-event'},{event_id:'$bad event'}]){
+    const f=fixture();Object.assign(f.operation.client,{sendMessage:async()=>result});
+    await assert.rejects(f.consumer.publish({audience:f.audience,text:'original',transactionId}),/receipt is invalid/);
+    const retained=f.consumer.pending.get(transactionId);
+    assert.equal(retained.status,'unknown');assert.equal(retained.content.body,'original');
+    assert.equal(retained.eventId,null);
+  }
+});
+
+test('unconfirmed event ownership never clears original pending transaction',async()=>{
+  for(const variant of ['missing','sender','shield','content']){
+    const f=fixture();f.transport.messages=async()=>variant==='missing'?[]:[{
+      id:'$event',sender:variant==='sender'?'@outsider:node':f.audience.owner,encrypted:true,
+      verification:{shieldColour:variant==='shield'?1:0},content:variant==='content'?{body:'substituted'}:f.sent[0]?.[1],
+    }];
+    await assert.rejects(f.consumer.publish({audience:f.audience,text:'original',transactionId}),/ownership is not confirmed/);
+    assert.equal(f.consumer.pending.get(transactionId).status,'unknown');
+    assert.equal(f.consumer.pending.get(transactionId).eventId,'$event');
+    assert.equal(f.consumer.pending.get(transactionId).content.body,'original');
+  }
 });

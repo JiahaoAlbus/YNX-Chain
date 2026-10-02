@@ -25,6 +25,11 @@ and checked again after it. A post-send policy failure cannot retract delivery;
 original transaction, content and any returned event ID remain unknown.
 Comments require an authenticated decrypted parent with matching owner,
 protocol, audience and revision, not a caller-supplied receipt alone.
+Publication now also requires a bounded nonempty Matrix event ID and a
+transport-decrypted authenticated readback matching sender, body, semantic
+payload and relation before pending is cleared. Invalid/missing/foreign
+receipts retain original transaction/content as unknown. These receipt
+negative tests are synthetic policy tests, not a measured real HS send.
 
 Remaining product work: actual approved bounded audience authority and scopes,
 UI wiring, room/audience lifecycle, durable protected draft and exact-retry

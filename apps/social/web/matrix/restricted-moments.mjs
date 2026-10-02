@@ -73,7 +73,18 @@ export class RestrictedMoments {
       await this.check(expected,operation);
       intent.status='sending';started=true;
       const result=await operation.client.sendMessage(expected.roomId,content,transactionId);
-      intent.eventId=result?.event_id??null;
+      if (!result || typeof result!=='object' || Array.isArray(result) ||
+          typeof result.event_id!=='string' || !/^\$[^\s\x00-\x1f]{1,254}$/.test(result.event_id))
+        deny('Publication receipt is invalid; delivery remains unknown');
+      intent.eventId=result.event_id;
+      const records=await this.transport.messages(expected.roomId);
+      this.transport.guard(operation);
+      const sent=records.find(record=>record.id===intent.eventId);
+      if (!sent?.encrypted || sent.verification?.shieldColour!==0 || sent.sender!==operation.binding.userId ||
+          sent.content?.msgtype!==content.msgtype || sent.content.body!==content.body ||
+          JSON.stringify(sent.content['com.ynx.social.moment'])!==JSON.stringify(content['com.ynx.social.moment']) ||
+          JSON.stringify(sent.content['m.relates_to'])!==JSON.stringify(content['m.relates_to']))
+        deny('Publication event ownership is not confirmed; delivery remains unknown');
       await this.check(expected,operation);
       this.pending.delete(transactionId);
       return {protocol:RESTRICTED_MOMENT_PROTOCOL,roomId:expected.roomId,eventId:result.event_id,
