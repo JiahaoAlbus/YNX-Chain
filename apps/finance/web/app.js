@@ -39,14 +39,13 @@ async function recheckBrowserIdentity(){
       const native=window.YNXFinanceWallet?.session()?.account;
       if(previous&&previous.account!==data.account||native&&native!==data.account){++browserSSOIntentGeneration;clearLoginIntent();clearPrivateView();void window.YNXFinanceWallet.disconnect();}
       $('#browser-signin-state').textContent=data.account;$('#browser-signin-logout').hidden=false;renderBrowserWalletIdentity();
-    }else if(response.status===401||response.status===403){const wasSignedIn=!!browserIdentity;if(browserIdentity){++browserSSOIntentGeneration;clearLoginIntent();clearPrivateView();void window.YNXFinanceWallet.disconnect();}browserIdentity=null;renderBrowserWalletIdentity();$('#browser-signin-state').textContent=financeText('browserSignInBoundary');$('#browser-signin-logout').hidden=true;if(!wasSignedIn&&!browserSSOFinite)await restoreBrowserIdentityQuietly();
+    }else if(response.status===401||response.status===403){const wasSignedIn=!!browserIdentity;if(browserIdentity){++browserSSOIntentGeneration;clearLoginIntent();clearPrivateView();void window.YNXFinanceWallet.disconnect();}browserIdentity=null;renderBrowserWalletIdentity();$('#browser-signin-state').textContent=financeText('browserSignInBoundary');$('#browser-signin-logout').hidden=true;if(!wasSignedIn&&data.silentRestoreAllowed!==false)await restoreBrowserIdentityQuietly();
      }else if(data.revocationPending===true&&typeof data.csrfToken==='string') {
  ++browserSSOIntentGeneration;browserIdentity=null;browserIdentityLogoutPending={csrfToken:data.csrfToken};browserIdentityExplicitIntent=true;clearLoginIntent();clearPrivateView();renderBrowserWalletIdentity();$('#browser-signin-logout').hidden=false;$('#browser-signin-state').textContent=financeText('privateLogoutUnconfirmed');
  }else $('#browser-signin-state').textContent=financeText('connectionUnavailable');
   }catch{if(revision===browserSSORevision)$('#browser-signin-state').textContent=financeText('connectionUnavailable');}
 }
 async function restoreBrowserIdentityQuietly(){
- if(browserSSOFinite)return; // An expired adopted family needs an explicit login intent, not passive regrant.
   const context=state.context,revision=browserSSORevision;
   if(browserIdentityLogoutPending||browserIdentityExplicitIntent||browserIdentitySilentAttempted){browserIdentityRestoreDeferred=false;return;}
   if(walletIdentityBusy||loginIntent||['checking','connecting'].includes(window.YNXFinanceWallet?.getPrivateState?.()?.status)){browserIdentityRestoreDeferred=true;return;}
